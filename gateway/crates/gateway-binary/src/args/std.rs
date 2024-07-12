@@ -5,7 +5,7 @@ use ascii::AsciiString;
 use clap::{ArgGroup, Parser};
 use federated_server::{Config, GraphFetchMethod};
 use grafbase_tracing::{
-    config::{TracingOtlpExporterConfig, TracingOtlpExporterGrpcConfig, TracingOtlpExporterProtocol},
+    config::{OtlpExporterConfig, OtlpExporterGrpcConfig, OtlpExporterProtocol},
     otel::layer::BoxedLayer,
 };
 use graph_ref::GraphRef;
@@ -86,18 +86,19 @@ impl super::Args for Args {
             }
             None => Config::default(),
         };
+
         if let Some(ref token) = self.grafbase_access_token {
             let mut telemetry = std::mem::take(&mut config.telemetry).unwrap_or_default();
-            telemetry.tracing.enabled = true;
-            telemetry.tracing.exporters.grafbase = Some(TracingOtlpExporterConfig {
+
+            telemetry.grafbase = Some(OtlpExporterConfig {
                 endpoint: "https://otel.grafbase.com".parse().unwrap(),
                 enabled: true,
-                protocol: TracingOtlpExporterProtocol::Grpc,
-                grpc: Some(TracingOtlpExporterGrpcConfig {
+                protocol: OtlpExporterProtocol::Grpc,
+                grpc: Some(OtlpExporterGrpcConfig {
                     tls: None,
                     headers: vec![(
-                        http::HeaderName::from_static("authorization"),
-                        http::HeaderValue::from_str(&format!("Bearer {token}")).context("Invalid access token")?,
+                        AsciiString::from_ascii(b"authorization").context("Invalid auth header name")?,
+                        AsciiString::from_ascii(format!("Bearer {token}")).context("Invalid access token")?,
                     )]
                     .into(),
                 }),

@@ -10,7 +10,7 @@ use tracing_subscriber::layer::Filter;
 use tracing_subscriber::registry::LookupSpan;
 use tracing_subscriber::{reload, Layer};
 
-use crate::config::TracingConfig;
+use crate::config::TelemetryConfig;
 use crate::error::TracingError;
 
 /// A type erased layer
@@ -54,11 +54,9 @@ where
 /// Creates a new OTEL tracing layer that uses a [`BatchSpanProcessor`] to collect and export traces.
 /// It's wrapped in a [`reload::Layer`] enabling its replacement.
 pub fn new_batched<S, R, I>(
-    service_name: impl Into<String>,
-    config: TracingConfig,
+    mut config: TelemetryConfig,
     id_generator: I,
     runtime: R,
-    resource_attributes: impl Into<Vec<KeyValue>>,
     will_reload_otel: bool,
 ) -> Result<ReloadableOtelLayers<S>, TracingError>
 where
@@ -66,8 +64,12 @@ where
     R: RuntimeChannel,
     I: IdGenerator + 'static,
 {
-    let mut resource_attributes = resource_attributes.into();
-    resource_attributes.push(KeyValue::new("service.name", service_name.into()));
+    let mut resource_attributes: Vec<_> = std::mem::take(&mut config.resource_attributes)
+        .into_iter()
+        .map(|(key, value)| KeyValue::new(key, value))
+        .collect();
+
+    resource_attributes.push(KeyValue::new("service.name", config.service_name.clone()));
     let resource = Resource::new(resource_attributes);
 
     // HACK: We don't want to create a PeriodicReader if we'll drop it later. Somehow it started spamming
@@ -85,14 +87,16 @@ where
         )?)
     };
 
-    let tracing_layer = if config.enabled {
-        let tracer_provider = super::traces::create(config, id_generator, runtime, resource.clone())?;
+    let tracing_layer = if config.tracing_exporters_enabled() {
+        let tracer_provider = super::traces::build_trace_provider(runtime, id_generator, &config, resource.clone())?;
+
         let tracer = tracer_provider.versioned_tracer(
             crate::span::SCOPE,
             Some(crate::span::SCOPE_VERSION),
             None::<std::borrow::Cow<'static, str>>,
             None,
         );
+
         let tracer_layer = tracing_opentelemetry::layer().with_tracer(tracer).boxed();
         let (tracer_layer, tracer_layer_reload_handle) = reload::Layer::new(tracer_layer);
 
@@ -103,7 +107,6 @@ where
         }
     } else {
         let otel_layer = tracing_opentelemetry::layer().with_tracer(NoopTracer::new()).boxed();
-
         let (otel_layer, reload_handle) = reload::Layer::new(otel_layer);
 
         ReloadableOtelLayer {

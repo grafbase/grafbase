@@ -11,7 +11,8 @@ use tracing::{error, Subscriber};
 use tracing_subscriber::registry::LookupSpan;
 use tracing_subscriber::{reload, EnvFilter, Layer, Registry};
 
-use federated_server::{Config, GraphFetchMethod, OtelReload, OtelTracing, TelemetryConfig};
+use federated_server::{Config, GraphFetchMethod, OtelReload, OtelTracing};
+use grafbase_tracing::config::TelemetryConfig;
 use grafbase_tracing::error::TracingError;
 use grafbase_tracing::otel::layer::BoxedLayer;
 use grafbase_tracing::otel::layer::{self, ReloadableOtelLayers};
@@ -190,29 +191,27 @@ where
         }
     };
 
-    let config = config.unwrap_or(TelemetryConfig {
+    let mut config = config.unwrap_or(TelemetryConfig {
         service_name: "unknown".to_string(),
         resource_attributes: Default::default(),
         tracing: Default::default(),
+        exporters: Default::default(),
+        logs: Default::default(),
+        metrics: Default::default(),
+        grafbase: Default::default(),
     });
 
-    let mut resource_attributes = config.resource_attributes;
     if let Some(reload_data) = reload_data {
-        resource_attributes.insert("grafbase.graph_id".to_string(), reload_data.graph_id.to_string());
-        resource_attributes.insert("grafbase.branch_id".to_string(), reload_data.branch_id.to_string());
-        resource_attributes.insert("grafbase.branch_name".to_string(), reload_data.branch_name.to_string());
+        config
+            .resource_attributes
+            .insert("grafbase.graph_id".to_string(), reload_data.graph_id.to_string());
+        config
+            .resource_attributes
+            .insert("grafbase.branch_id".to_string(), reload_data.branch_id.to_string());
+        config
+            .resource_attributes
+            .insert("grafbase.branch_name".to_string(), reload_data.branch_name.to_string());
     }
-    let resource_attributes = resource_attributes
-        .into_iter()
-        .map(|(key, value)| grafbase_tracing::otel::opentelemetry::KeyValue::new(key, value))
-        .collect::<Vec<_>>();
 
-    layer::new_batched::<S, _, _>(
-        config.service_name,
-        config.tracing,
-        id_generator,
-        Tokio,
-        resource_attributes,
-        will_reload_otel,
-    )
+    layer::new_batched::<S, _, _>(config, id_generator, Tokio, will_reload_otel)
 }

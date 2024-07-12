@@ -3,7 +3,7 @@ use parser_sdl::federation::header;
 use regex::Regex;
 use serde::Deserialize;
 
-use super::dynamic_string::DynamicString;
+use serde_dynamic_string::DynamicString;
 
 /// A header name can be provided either as a regex or as a static name.
 #[derive(Deserialize, Debug, Clone)]

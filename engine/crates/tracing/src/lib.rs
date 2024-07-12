@@ -1,3 +1,4 @@
+#![allow(unused_crate_dependencies)]
 //! Grafbase [tracing](https://docs.rs/tracing/latest/tracing/) integration
 
 /// Tracing configuration properties

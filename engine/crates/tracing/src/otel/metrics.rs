@@ -5,83 +5,8 @@ use opentelemetry_sdk::runtime::Runtime;
 use opentelemetry_sdk::Resource;
 use std::time::Duration;
 
-use crate::config::TracingConfig;
+use crate::config::TelemetryConfig;
 use crate::error::TracingError;
-
-pub(super) fn build_meter_provider<R>(
-    runtime: R,
-    config: &TracingConfig,
-    resource: Resource,
-) -> Result<SdkMeterProvider, TracingError>
-where
-    R: Runtime,
-{
-    let mut provider = SdkMeterProvider::builder().with_resource(resource);
-
-    if let Some(config) = config.exporters.stdout.as_ref().filter(|cfg| cfg.enabled) {
-        let reader = PeriodicReader::builder(
-            opentelemetry_stdout::MetricsExporter::builder()
-                .with_temporality_selector(DeltaTemporality)
-                .with_aggregation_selector(AggForLatencyHistogram)
-                .build(),
-            runtime.clone(),
-        )
-        .with_interval(
-            config
-                .batch_export
-                .scheduled_delay
-                .to_std()
-                .unwrap_or(Duration::from_secs(10)),
-        )
-        .with_timeout(config.timeout.to_std().unwrap_or(Duration::from_secs(60)))
-        .build();
-
-        provider = provider.with_reader(reader);
-    }
-
-    #[cfg(feature = "otlp")]
-    if let Some(config) = config.exporters.otlp.as_ref().filter(|cfg| cfg.enabled) {
-        use opentelemetry_otlp::MetricsExporterBuilder;
-        let exporter = super::exporter::build_otlp_exporter::<MetricsExporterBuilder>(config)?
-            .build_metrics_exporter(Box::new(DeltaTemporality), Box::new(AggForLatencyHistogram))
-            .map_err(|e| TracingError::MetricsExporterSetup(e.to_string()))?;
-        let reader = PeriodicReader::builder(exporter, runtime.clone())
-            .with_interval(
-                config
-                    .batch_export
-                    .scheduled_delay
-                    .to_std()
-                    .unwrap_or(Duration::from_secs(10)),
-            )
-            .with_timeout(config.timeout.to_std().unwrap_or(Duration::from_secs(60)))
-            .build();
-
-        provider = provider.with_reader(reader);
-    }
-
-    #[cfg(feature = "otlp")]
-    if let Some(config) = config.exporters.grafbase.as_ref().filter(|cfg| cfg.enabled) {
-        use opentelemetry_otlp::MetricsExporterBuilder;
-
-        let exporter = super::exporter::build_otlp_exporter::<MetricsExporterBuilder>(config)?
-            .build_metrics_exporter(Box::new(DeltaTemporality), Box::new(AggForLatencyHistogram))
-            .map_err(|e| TracingError::MetricsExporterSetup(e.to_string()))?;
-        let reader = PeriodicReader::builder(exporter, runtime.clone())
-            .with_interval(
-                config
-                    .batch_export
-                    .scheduled_delay
-                    .to_std()
-                    .unwrap_or(Duration::from_secs(10)),
-            )
-            .with_timeout(config.timeout.to_std().unwrap_or(Duration::from_secs(60)))
-            .build();
-
-        provider = provider.with_reader(reader);
-    }
-
-    Ok(provider.build())
-}
 
 pub struct DeltaTemporality;
 
@@ -109,4 +34,77 @@ impl AggregationSelector for AggForLatencyHistogram {
             },
         }
     }
+}
+
+pub(super) fn build_meter_provider<R>(
+    runtime: R,
+    config: &TelemetryConfig,
+    resource: Resource,
+) -> Result<SdkMeterProvider, TracingError>
+where
+    R: Runtime,
+{
+    let mut provider = SdkMeterProvider::builder().with_resource(resource);
+
+    if let Some(config) = config.metrics_stdout_config() {
+        let reader = PeriodicReader::builder(
+            opentelemetry_stdout::MetricsExporter::builder()
+                .with_temporality_selector(DeltaTemporality)
+                .with_aggregation_selector(AggForLatencyHistogram)
+                .build(),
+            runtime.clone(),
+        )
+        .with_interval(
+            config
+                .batch_export
+                .scheduled_delay
+                .to_std()
+                .unwrap_or(Duration::from_secs(10)),
+        )
+        .with_timeout(config.timeout.to_std().unwrap_or(Duration::from_secs(60)))
+        .build();
+
+        provider = provider.with_reader(reader);
+    }
+
+    #[cfg(feature = "otlp")]
+    if let Some(config) = config.metrics_otlp_config() {
+        provider = attach_reader(config, &runtime, provider)?;
+    }
+
+    #[cfg(feature = "otlp")]
+    if let Some(config) = config.grafbase_otlp_config() {
+        provider = attach_reader(config, &runtime, provider)?;
+    }
+
+    Ok(provider.build())
+}
+
+#[cfg(feature = "otlp")]
+fn attach_reader<R>(
+    config: &crate::config::OtlpExporterConfig,
+    runtime: &R,
+    provider: opentelemetry_sdk::metrics::MeterProviderBuilder,
+) -> Result<opentelemetry_sdk::metrics::MeterProviderBuilder, TracingError>
+where
+    R: Runtime,
+{
+    use opentelemetry_otlp::MetricsExporterBuilder;
+
+    let exporter = super::exporter::build_otlp_exporter::<MetricsExporterBuilder>(config)?
+        .build_metrics_exporter(Box::new(DeltaTemporality), Box::new(AggForLatencyHistogram))
+        .map_err(|e| TracingError::MetricsExporterSetup(e.to_string()))?;
+
+    let reader = PeriodicReader::builder(exporter, runtime.clone())
+        .with_interval(
+            config
+                .batch_export
+                .scheduled_delay
+                .to_std()
+                .unwrap_or(Duration::from_secs(10)),
+        )
+        .with_timeout(config.timeout.to_std().unwrap_or(Duration::from_secs(60)))
+        .build();
+
+    Ok(provider.with_reader(reader))
 }

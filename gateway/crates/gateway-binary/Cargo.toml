@@ -23,7 +23,6 @@ clap = { version = "4.5.4", features = ["cargo", "wrap_help", "derive", "env"] }
 federated-server.workspace = true
 grafbase-tracing = { workspace = true, features = ["otlp"] }
 graph-ref.workspace = true
-http.workspace = true
 mimalloc = "0.1.41"
 opentelemetry-aws = { version = "0.10.0", optional = true }
 rustls = { workspace = true, features = ["ring"] }
