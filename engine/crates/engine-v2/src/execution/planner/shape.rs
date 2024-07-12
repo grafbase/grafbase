@@ -228,6 +228,7 @@ where
                         .map(|id| &self.condition_results[usize::from(id)])
                     {
                         Some(ConditionResult::Errors(errors)) => {
+                            println!("found error");
                             field_errors_buffer.push(FieldError {
                                 edge: field.response_edge(),
                                 errors: errors.clone(),

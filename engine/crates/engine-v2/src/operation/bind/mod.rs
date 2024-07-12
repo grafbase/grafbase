@@ -187,10 +187,6 @@ pub fn bind_operation(schema: &Schema, mut parsed_operation: ParsedOperation) ->
     // Must be executed before binding selection sets
     binder.variable_definitions = binder.bind_variable_definitions(variable_definitions)?;
 
-    let root_condition_id = {
-        let conditions = binder.generate_entity_conditions(schema.walk(schema::EntityId::Object(root_object_id)));
-        binder.push_conditions(conditions)
-    };
     let root_selection_set_id = binder.bind_merged_selection_sets(
         SelectionSetType::Object(root_object_id),
         &[&parsed_operation.definition.selection_set],
@@ -207,7 +203,6 @@ pub fn bind_operation(schema: &Schema, mut parsed_operation: ParsedOperation) ->
             normalized_query_hash: [0; 32],
         },
         root_object_id,
-        root_condition_id,
         root_selection_set_id,
         selection_sets: binder.selection_sets,
         field_arguments: binder.field_arguments,

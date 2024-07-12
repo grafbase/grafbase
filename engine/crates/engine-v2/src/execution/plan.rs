@@ -3,7 +3,7 @@ use schema::EntityId;
 
 use crate::{
     operation::{FieldId, LogicalPlanId, SelectionSetId},
-    response::{ConcreteObjectShapeId, GraphqlError, ReadSelectionSet, ResponseObjectSetId, Shapes},
+    response::{ConcreteObjectShapeId, ReadSelectionSet, ResponseObjectSetId, Shapes},
     sources::PreparedExecutor,
 };
 
@@ -11,7 +11,6 @@ use super::ExecutionPlanId;
 
 pub(crate) struct ExecutionPlans {
     pub(crate) shapes: Shapes,
-    pub(super) root_errors: Vec<GraphqlError>,
     pub(super) response_object_set_consummers_count: Vec<usize>,
     pub(super) execution_plans: Vec<ExecutionPlan>,
     // ExecutionPlanId -> PreparedExecutor

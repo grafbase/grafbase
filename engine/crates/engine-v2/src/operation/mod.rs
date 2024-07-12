@@ -44,7 +44,6 @@ pub struct OperationMetadata {
 pub(crate) struct Operation {
     pub metadata: OperationMetadata,
     pub root_object_id: ObjectId,
-    pub root_condition_id: Option<ConditionId>,
     pub root_selection_set_id: SelectionSetId,
     pub response_keys: ResponseKeys,
     pub selection_sets: Vec<SelectionSet>,

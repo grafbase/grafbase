@@ -21,7 +21,7 @@ use crate::{
 
 use super::{state::OperationExecutionState, ExecutionPlanId, ExecutionResult, PreExecutionContext};
 
-pub(crate) trait ResponseSender {
+pub(crate) trait ResponseSender: Send {
     type Error;
     fn send(&mut self, response: Response) -> impl Future<Output = Result<(), Self::Error>> + Send;
 }
@@ -45,7 +45,7 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
     }
 
     #[instrument(skip_all)]
-    pub async fn execute_subscription(self, prepared: PreparedOperation, responses: impl ResponseSender + Send) {
+    pub async fn execute_subscription(self, prepared: PreparedOperation, responses: impl ResponseSender) {
         let background_futures: FuturesUnordered<_> = self.background_futures.into_iter().collect();
         let background_fut = background_futures.collect::<Vec<_>>();
         let ctx = ExecutionContext {
@@ -102,17 +102,8 @@ impl<'ctx, R: Runtime> ExecutionCoordinator<'ctx, R> {
         .await
     }
 
-    pub async fn execute_subscription(self, mut responses: impl ResponseSender + Send) {
+    pub async fn execute_subscription(self, responses: impl ResponseSender) {
         assert!(matches!(self.operation_plan.ty(), OperationType::Subscription));
-
-        if !self.operation_plan.plans.root_errors.is_empty() {
-            let mut response = ResponseBuilder::new(self.operation_plan.root_object_id);
-            response.push_root_errors(&self.operation_plan.plans.root_errors);
-            let _ = responses
-                .send(response.build(self.ctx.engine.schema.clone(), self.operation_plan.operation.clone()))
-                .await;
-            return;
-        }
 
         let (state, subscription_plan_id) = {
             let mut state = self.new_execution_state();
@@ -185,7 +176,7 @@ impl<'a, R: Runtime, S> SubscriptionExecution<S>
 where
     S: Stream<Item = ExecutionResult<OperationRootPlanExecution<'a, R>>> + Send,
 {
-    async fn execute(self, mut responses: impl ResponseSender + Send) {
+    async fn execute(self, mut responses: impl ResponseSender) {
         let subscription_stream = self.stream.fuse();
         futures_util::pin_mut!(subscription_stream);
 
@@ -278,14 +269,6 @@ pub struct OperationExecution<'ctx, R: Runtime> {
 impl<'ctx, R: Runtime> OperationExecution<'ctx, R> {
     /// Runs a single execution to completion, returning its response
     async fn execute(mut self) -> Response {
-        if !self.coordinator.operation_plan.plans.root_errors.is_empty() {
-            self.response
-                .push_root_errors(&self.coordinator.operation_plan.plans.root_errors);
-            return self.response.build(
-                self.coordinator.ctx.engine.schema.clone(),
-                self.coordinator.operation_plan.operation.clone(),
-            );
-        }
         for plan_id in self.state.get_executable_plans() {
             self.spawn_executor(plan_id);
         }

@@ -26,7 +26,7 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
         }
     }
 
-    pub fn push_background_future(&mut self, future: BoxFuture<'ctx, ()>) {
+    pub fn push_background_future(&self, future: BoxFuture<'ctx, ()>) {
         self.background_futures.push(future)
     }
 

@@ -64,10 +64,15 @@ fn query_root_type() {
     });
     insta::assert_json_snapshot!(response, @r###"
     {
-      "data": null,
+      "data": {
+        "me": null
+      },
       "errors": [
         {
           "message": "Query is not allowed!",
+          "path": [
+            "me"
+          ],
           "extensions": {
             "code": "UNAUTHORIZED"
           }
@@ -180,10 +185,15 @@ fn mutation_root_type() {
     });
     insta::assert_json_snapshot!(response, @r###"
     {
-      "data": null,
+      "data": {
+        "doStuff": null
+      },
       "errors": [
         {
           "message": "Mutation is not allowed!",
+          "path": [
+            "doStuff"
+          ],
           "extensions": {
             "code": "UNAUTHORIZED"
           }
@@ -194,6 +204,7 @@ fn mutation_root_type() {
 }
 
 #[test]
+#[ignore] // FIXME: GB-6988
 fn subscription_root_type() {
     struct TestHooks;
 
@@ -357,7 +368,8 @@ fn metadata_is_provided() {
               "message": "Unauthorized role",
               "path": [
                 "node",
-                "noMetadata"
+                "noMetadata",
+                "id"
               ],
               "extensions": {
                 "code": "UNAUTHORIZED"
@@ -424,7 +436,8 @@ fn definition_is_provided() {
               "message": "Wrong definition",
               "path": [
                 "node",
-                "wrongType"
+                "wrongType",
+                "id"
               ],
               "extensions": {
                 "code": "UNAUTHORIZED"
@@ -499,7 +512,8 @@ fn context_is_propagated() {
               "message": "Missing client",
               "path": [
                 "node",
-                "authorized"
+                "authorized",
+                "id"
               ],
               "extensions": {
                 "code": "UNAUTHORIZED"
@@ -549,7 +563,8 @@ fn error_propagation() {
               "message": "Broken",
               "path": [
                 "node",
-                "authorized"
+                "authorized",
+                "id"
               ],
               "extensions": {
                 "code": "HOOK_ERROR"

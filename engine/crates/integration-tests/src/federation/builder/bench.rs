@@ -163,6 +163,6 @@ impl runtime::fetch::FetcherInner for DummyFetcher {
         &self,
         _request: GraphqlRequest<'_>,
     ) -> FetchResult<BoxStream<'static, Result<serde_json::Value, FetchError>>> {
-        unreachable!()
+        unimplemented!()
     }
 }

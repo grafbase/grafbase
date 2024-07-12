@@ -74,7 +74,6 @@ where
                 shapes: Shapes::default(),
                 response_object_set_consummers_count: Vec::new(),
                 execution_plans: Vec::new(),
-                root_errors: Vec::new(),
                 prepared_executors: Vec::new(),
             },
         }
@@ -82,21 +81,11 @@ where
 
     pub(super) async fn plan(mut self) -> PlanningResult<ExecutionPlans> {
         self.condition_results = self.evaluate_all_conditions().await?;
+        self.generate_root_execution_plans()?;
         self.finalize()
     }
 
-    fn finalize(mut self) -> PlanningResult<ExecutionPlans> {
-        if let Some(id) = self.operation.root_condition_id {
-            match &self.condition_results[usize::from(id)] {
-                ConditionResult::Include => (),
-                ConditionResult::Errors(errors) => {
-                    self.plans.root_errors.extend_from_slice(errors);
-                    return Ok(self.plans);
-                }
-            }
-        }
-
-        self.generate_root_execution_plans()?;
+    fn finalize(self) -> PlanningResult<ExecutionPlans> {
         let mut plans = self.plans;
         let mut plan_parent_to_child_edges = self
             .plan_parent_to_child_edges
