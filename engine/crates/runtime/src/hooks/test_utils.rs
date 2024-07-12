@@ -27,7 +27,7 @@ pub trait DynHooks: Send + Sync + 'static {
         definition: EdgeDefinition<'_>,
         arguments: serde_json::Value,
         metadata: Option<serde_json::Value>,
-    ) -> Result<(), PartialGraphqlError> {
+    ) -> AuthorizationVerdict {
         Err(PartialGraphqlError::new(
             "authorize_edge_pre_execution is not implemented",
             PartialErrorCode::Unauthorized,
@@ -39,9 +39,22 @@ pub trait DynHooks: Send + Sync + 'static {
         context: &DynHookContext,
         definition: NodeDefinition<'_>,
         metadata: Option<serde_json::Value>,
-    ) -> Result<(), PartialGraphqlError> {
+    ) -> AuthorizationVerdict {
         Err(PartialGraphqlError::new(
             "authorize_node_pre_execution is not implemented",
+            PartialErrorCode::Unauthorized,
+        ))
+    }
+
+    async fn authorize_node_post_execution<'a>(
+        &self,
+        context: &DynHookContext,
+        definition: NodeDefinition<'a>,
+        nodes: Vec<serde_json::Value>,
+        metadata: Option<serde_json::Value>,
+    ) -> AuthorizationVerdicts {
+        Err(PartialGraphqlError::new(
+            "authorize_node_post_execution is not implemented",
             PartialErrorCode::Unauthorized,
         ))
     }
@@ -50,9 +63,9 @@ pub trait DynHooks: Send + Sync + 'static {
         &self,
         context: &DynHookContext,
         definition: EdgeDefinition<'a>,
-        parents: Vec<String>,
+        parents: Vec<serde_json::Value>,
         metadata: Option<serde_json::Value>,
-    ) -> Result<Vec<Result<(), PartialGraphqlError>>, PartialGraphqlError> {
+    ) -> AuthorizationVerdicts {
         Err(PartialGraphqlError::new(
             "authorize_parent_edge_post_execution is not implemented",
             PartialErrorCode::Unauthorized,
@@ -63,9 +76,9 @@ pub trait DynHooks: Send + Sync + 'static {
         &self,
         context: &DynHookContext,
         definition: EdgeDefinition<'a>,
-        nodes: Vec<String>,
+        nodes: Vec<serde_json::Value>,
         metadata: Option<serde_json::Value>,
-    ) -> Result<Vec<Result<(), PartialGraphqlError>>, PartialGraphqlError> {
+    ) -> AuthorizationVerdicts {
         Err(PartialGraphqlError::new(
             "authorize_edge_node_post_execution is not implemented",
             PartialErrorCode::Unauthorized,
@@ -76,9 +89,9 @@ pub trait DynHooks: Send + Sync + 'static {
         &self,
         context: &DynHookContext,
         definition: EdgeDefinition<'a>,
-        edges: Vec<(String, Vec<String>)>,
+        edges: Vec<(serde_json::Value, Vec<serde_json::Value>)>,
         metadata: Option<serde_json::Value>,
-    ) -> Result<Vec<Result<(), PartialGraphqlError>>, PartialGraphqlError> {
+    ) -> AuthorizationVerdicts {
         Err(PartialGraphqlError::new(
             "authorize_edge_post_execution is not implemented",
             PartialErrorCode::Unauthorized,
@@ -149,13 +162,19 @@ impl Hooks for DynamicHooks {
         Ok((context, headers))
     }
 
+    fn authorized(&self) -> &impl AuthorizedHooks<Self::Context> {
+        self
+    }
+}
+
+impl AuthorizedHooks<DynHookContext> for DynamicHooks {
     async fn authorize_edge_pre_execution<'a>(
         &self,
-        context: &Self::Context,
+        context: &DynHookContext,
         definition: EdgeDefinition<'a>,
-        arguments: impl serde::Serialize + serde::de::Deserializer<'a> + Send,
-        metadata: Option<impl serde::Serialize + serde::de::Deserializer<'a> + Send>,
-    ) -> Result<(), PartialGraphqlError> {
+        arguments: impl Anything<'a>,
+        metadata: Option<impl Anything<'a>>,
+    ) -> AuthorizationVerdict {
         self.0
             .authorize_edge_pre_execution(
                 context,
@@ -166,12 +185,32 @@ impl Hooks for DynamicHooks {
             .await
     }
 
+    async fn authorize_node_post_execution<'a>(
+        &self,
+        context: &DynHookContext,
+        definition: NodeDefinition<'a>,
+        nodes: impl IntoIterator<Item: Anything<'a>> + Send,
+        metadata: Option<impl Anything<'a>>,
+    ) -> AuthorizationVerdicts {
+        self.0
+            .authorize_node_post_execution(
+                context,
+                definition,
+                nodes
+                    .into_iter()
+                    .map(|value| serde_json::to_value(&value).unwrap())
+                    .collect(),
+                metadata.map(|m| serde_json::to_value(&m).unwrap()),
+            )
+            .await
+    }
+
     async fn authorize_node_pre_execution<'a>(
         &self,
-        context: &Self::Context,
+        context: &DynHookContext,
         definition: NodeDefinition<'a>,
-        metadata: Option<impl serde::Serialize + serde::de::Deserializer<'a> + Send>,
-    ) -> Result<(), PartialGraphqlError> {
+        metadata: Option<impl Anything<'a>>,
+    ) -> AuthorizationVerdict {
         self.0
             .authorize_node_pre_execution(context, definition, metadata.map(|m| serde_json::to_value(&m).unwrap()))
             .await
@@ -179,16 +218,19 @@ impl Hooks for DynamicHooks {
 
     async fn authorize_parent_edge_post_execution<'a>(
         &self,
-        context: &Self::Context,
+        context: &DynHookContext,
         definition: EdgeDefinition<'a>,
-        parents: Vec<String>,
-        metadata: Option<impl serde::Serialize + serde::de::Deserializer<'a> + Send>,
-    ) -> Result<Vec<Result<(), PartialGraphqlError>>, PartialGraphqlError> {
+        parents: impl IntoIterator<Item: Anything<'a>> + Send,
+        metadata: Option<impl Anything<'a>>,
+    ) -> AuthorizationVerdicts {
         self.0
             .authorize_parent_edge_post_execution(
                 context,
                 definition,
-                parents,
+                parents
+                    .into_iter()
+                    .map(|value| serde_json::to_value(&value).unwrap())
+                    .collect(),
                 metadata.map(|m| serde_json::to_value(&m).unwrap()),
             )
             .await
@@ -196,33 +238,51 @@ impl Hooks for DynamicHooks {
 
     async fn authorize_edge_node_post_execution<'a>(
         &self,
-        context: &Self::Context,
+        context: &DynHookContext,
         definition: EdgeDefinition<'a>,
-        nodes: Vec<String>,
-        metadata: Option<impl serde::Serialize + serde::de::Deserializer<'a> + Send>,
-    ) -> Result<Vec<Result<(), PartialGraphqlError>>, PartialGraphqlError> {
+        nodes: impl IntoIterator<Item: Anything<'a>> + Send,
+        metadata: Option<impl Anything<'a>>,
+    ) -> AuthorizationVerdicts {
         self.0
-            .authorize_parent_edge_post_execution(
+            .authorize_edge_node_post_execution(
                 context,
                 definition,
-                nodes,
+                nodes
+                    .into_iter()
+                    .map(|value| serde_json::to_value(&value).unwrap())
+                    .collect(),
                 metadata.map(|m| serde_json::to_value(&m).unwrap()),
             )
             .await
     }
 
-    async fn authorize_edge_post_execution<'a>(
+    async fn authorize_edge_post_execution<'a, Parent, Nodes>(
         &self,
-        context: &Self::Context,
+        context: &DynHookContext,
         definition: EdgeDefinition<'a>,
-        edges: Vec<(String, Vec<String>)>,
-        metadata: Option<impl serde::Serialize + serde::de::Deserializer<'a> + Send>,
-    ) -> Result<Vec<Result<(), PartialGraphqlError>>, PartialGraphqlError> {
+        edges: impl IntoIterator<Item = (Parent, Nodes)> + Send,
+        metadata: Option<impl Anything<'a>>,
+    ) -> AuthorizationVerdicts
+    where
+        Parent: Anything<'a>,
+        Nodes: IntoIterator<Item: Anything<'a>> + Send,
+    {
         self.0
             .authorize_edge_post_execution(
                 context,
                 definition,
-                edges,
+                edges
+                    .into_iter()
+                    .map(|(parent, nodes)| {
+                        (
+                            serde_json::to_value(&parent).unwrap(),
+                            nodes
+                                .into_iter()
+                                .map(|node| serde_json::to_value(&node).unwrap())
+                                .collect(),
+                        )
+                    })
+                    .collect(),
                 metadata.map(|m| serde_json::to_value(&m).unwrap()),
             )
             .await
