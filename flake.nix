@@ -77,7 +77,6 @@
 
             # Rust
             rustup
-            gdb
 
             # SQLx macros
             libiconv
@@ -94,6 +93,7 @@
             darwin.apple_sdk.frameworks.SystemConfiguration
           ]
           ++ optional (system != systems.aarch64-darwin) [
+            gdb
             cargo-about # broken build at the moment on darwin
           ];
 
