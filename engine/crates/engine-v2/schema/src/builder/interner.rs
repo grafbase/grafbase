@@ -1,9 +1,8 @@
 mod non_ord;
 
-pub use non_ord::NonOrdInterner;
+pub use non_ord::ProxyKeyInterner;
 
-use crate::{CacheControl, CacheControlId, RequiredScopes, RequiredScopesId, StringId};
-use std::marker::PhantomData;
+use std::{borrow::Borrow, marker::PhantomData};
 
 pub struct Interner<T, Id>(indexmap::IndexSet<T, fnv::FnvBuildHasher>, PhantomData<Id>);
 
@@ -32,6 +31,24 @@ impl<T: core::hash::Hash + PartialEq + Eq, Id: Copy + From<usize> + Into<usize>>
     pub fn extend(&mut self, other: impl IntoIterator<Item = T>) {
         self.0.extend(other)
     }
+
+    pub fn get_or_insert(&mut self, value: T) -> Id {
+        self.0
+            .get_full(&value)
+            .map(|(id, _)| id.into())
+            .unwrap_or_else(|| self.insert(value))
+    }
+
+    pub fn get_or_new<Q>(&mut self, value: &Q) -> Id
+    where
+        T: Borrow<Q> + for<'a> From<&'a Q>,
+        Q: ?Sized + Eq + std::hash::Hash,
+    {
+        self.0
+            .get_full(value.borrow())
+            .map(|(id, _)| id.into())
+            .unwrap_or_else(|| self.insert(value.into()))
+    }
 }
 
 impl<T, Id: Into<usize>> std::ops::Index<Id> for Interner<T, Id> {
@@ -39,33 +56,6 @@ impl<T, Id: Into<usize>> std::ops::Index<Id> for Interner<T, Id> {
 
     fn index(&self, index: Id) -> &T {
         &self.0[index.into()]
-    }
-}
-
-impl Interner<CacheControl, CacheControlId> {
-    pub fn get_or_insert(&mut self, value: CacheControl) -> CacheControlId {
-        self.0
-            .get_full(&value)
-            .map(|(id, _)| id.into())
-            .unwrap_or_else(|| self.insert(value))
-    }
-}
-
-impl Interner<RequiredScopes, RequiredScopesId> {
-    pub fn get_or_insert(&mut self, value: RequiredScopes) -> RequiredScopesId {
-        self.0
-            .get_full(&value)
-            .map(|(id, _)| id.into())
-            .unwrap_or_else(|| self.insert(value))
-    }
-}
-
-impl Interner<String, StringId> {
-    pub fn get_or_insert(&mut self, value: &str) -> StringId {
-        self.0
-            .get_full(value)
-            .map(|(id, _)| id.into())
-            .unwrap_or_else(|| self.insert(value.to_string()))
     }
 }
 

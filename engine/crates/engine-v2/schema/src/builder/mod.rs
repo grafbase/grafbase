@@ -15,7 +15,7 @@ use url::Url;
 use self::external_sources::ExternalDataSources;
 use self::graph::GraphBuilder;
 use self::ids::IdMaps;
-use self::interner::NonOrdInterner;
+use self::interner::ProxyKeyInterner;
 use self::sources::graphql::GraphqlEndpointId;
 
 use super::*;
@@ -40,7 +40,7 @@ impl TryFrom<Config> for Schema {
 
 pub(crate) struct BuildContext {
     pub strings: Interner<String, StringId>,
-    pub regexps: NonOrdInterner<Regex, RegexId>,
+    pub regexps: ProxyKeyInterner<Regex, RegexId>,
     urls: Interner<Url, UrlId>,
     idmaps: IdMaps,
     next_subraph_id: usize,
@@ -49,13 +49,13 @@ pub(crate) struct BuildContext {
 impl BuildContext {
     #[cfg(test)]
     pub fn build_with<T>(build: impl FnOnce(&mut Self, &mut Graph) -> T) -> (Schema, T) {
-        use crate::builder::interner::NonOrdInterner;
+        use crate::builder::interner::ProxyKeyInterner;
 
         use self::sources::introspection::IntrospectionBuilder;
 
         let mut ctx = Self {
             strings: Interner::from_vec(Vec::new()),
-            regexps: NonOrdInterner::default(),
+            regexps: ProxyKeyInterner::default(),
             urls: Interner::default(),
             idmaps: IdMaps::empty(),
             next_subraph_id: 0,
@@ -70,7 +70,7 @@ impl BuildContext {
             },
             type_definitions: Vec::new(),
             object_definitions: vec![Object {
-                name: ctx.strings.get_or_insert("Query"),
+                name: ctx.strings.get_or_new("Query"),
                 description: None,
                 interfaces: Default::default(),
                 directives: Default::default(),
@@ -79,7 +79,7 @@ impl BuildContext {
             interface_definitions: Vec::new(),
             field_definitions: vec![
                 FieldDefinition {
-                    name: ctx.strings.get_or_insert("__type"),
+                    name: ctx.strings.get_or_new("__type"),
                     parent_entity: EntityId::Object(0.into()),
                     description: None,
                     // will be replaced by introspection, doesn't matter.
@@ -95,7 +95,7 @@ impl BuildContext {
                     directives: Default::default(),
                 },
                 FieldDefinition {
-                    name: ctx.strings.get_or_insert("__schema"),
+                    name: ctx.strings.get_or_new("__schema"),
                     parent_entity: EntityId::Object(0.into()),
                     description: None,
                     // will be replaced by introspection, doesn't matter.
@@ -170,31 +170,31 @@ impl BuildContext {
                     config::latest::HeaderRule::Forward(rule) => {
                         let name = match rule.name {
                             config::latest::NameOrPattern::Pattern(regex) => {
-                                NameOrPattern::Pattern(self.regexps.get_or_insert(&regex))
+                                NameOrPattern::Pattern(self.regexps.get_or_insert(regex))
                             }
                             config::latest::NameOrPattern::Name(name) => {
-                                NameOrPattern::Name(self.strings.get_or_insert(&config[name]))
+                                NameOrPattern::Name(self.strings.get_or_new(&config[name]))
                             }
                         };
 
-                        let default = rule.default.map(|id| self.strings.get_or_insert(&config[id]));
-                        let rename = rule.rename.map(|id| self.strings.get_or_insert(&config[id]));
+                        let default = rule.default.map(|id| self.strings.get_or_new(&config[id]));
+                        let rename = rule.rename.map(|id| self.strings.get_or_new(&config[id]));
 
                         HeaderRule::Forward { name, default, rename }
                     }
                     config::latest::HeaderRule::Insert(rule) => {
-                        let name = self.strings.get_or_insert(&config[rule.name]);
-                        let value = self.strings.get_or_insert(&config[rule.value]);
+                        let name = self.strings.get_or_new(&config[rule.name]);
+                        let value = self.strings.get_or_new(&config[rule.value]);
 
                         HeaderRule::Insert { name, value }
                     }
                     config::latest::HeaderRule::Remove(rule) => {
                         let name = match rule.name {
                             config::latest::NameOrPattern::Pattern(regex) => {
-                                NameOrPattern::Pattern(self.regexps.get_or_insert(&regex))
+                                NameOrPattern::Pattern(self.regexps.get_or_insert(regex))
                             }
                             config::latest::NameOrPattern::Name(name) => {
-                                NameOrPattern::Name(self.strings.get_or_insert(&config[name]))
+                                NameOrPattern::Name(self.strings.get_or_new(&config[name]))
                             }
                         };
 

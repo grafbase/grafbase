@@ -6,9 +6,9 @@ use regex::Regex;
 /// to create (looking at you Regex). In many cases using the Interner in the parent module is what
 /// you want. This one allocates more and in general should be used in cases where you have no other
 /// choice.
-pub struct NonOrdInterner<T, Id>(indexmap::IndexMap<String, T, fnv::FnvBuildHasher>, PhantomData<Id>);
+pub struct ProxyKeyInterner<T, Id>(indexmap::IndexMap<Vec<u8>, T, fnv::FnvBuildHasher>, PhantomData<Id>);
 
-impl<T, Id> Default for NonOrdInterner<T, Id> {
+impl<T, Id> Default for ProxyKeyInterner<T, Id> {
     fn default() -> Self {
         Self(
             indexmap::IndexMap::with_hasher(fnv::FnvBuildHasher::default()),
@@ -17,13 +17,23 @@ impl<T, Id> Default for NonOrdInterner<T, Id> {
     }
 }
 
-impl<T, Id> NonOrdInterner<T, Id>
+pub trait ToKey {
+    fn to_key(&self) -> Vec<u8>;
+}
+
+impl ToKey for Regex {
+    fn to_key(&self) -> Vec<u8> {
+        self.to_string().into_bytes()
+    }
+}
+
+impl<T, Id> ProxyKeyInterner<T, Id>
 where
-    T: ToString,
+    T: ToKey,
     Id: Copy + From<usize> + Into<usize>,
 {
     pub fn from_vec(existing: Vec<T>) -> Self {
-        let iter = existing.into_iter().map(|t| (t.to_string(), t)).collect();
+        let iter = existing.into_iter().map(|t| (t.to_key(), t)).collect();
         Self(iter, PhantomData)
     }
 
@@ -32,15 +42,23 @@ where
     }
 
     pub fn insert(&mut self, value: T) -> Id {
-        self.0.insert_full(value.to_string(), value).0.into()
+        self.0.insert_full(value.to_key(), value).0.into()
     }
 
     pub fn extend(&mut self, other: impl IntoIterator<Item = T>) {
-        self.0.extend(other.into_iter().map(|t| (t.to_string(), t)))
+        self.0.extend(other.into_iter().map(|t| (t.to_key(), t)))
+    }
+
+    pub fn get_or_insert(&mut self, value: T) -> Id {
+        let key = value.to_key();
+        self.0
+            .get_full(&key)
+            .map(|(id, _, _)| id.into())
+            .unwrap_or_else(|| self.0.insert_full(key, value).0.into())
     }
 }
 
-impl<T, Id: Into<usize>> std::ops::Index<Id> for NonOrdInterner<T, Id> {
+impl<T, Id: Into<usize>> std::ops::Index<Id> for ProxyKeyInterner<T, Id> {
     type Output = T;
 
     fn index(&self, index: Id) -> &T {
@@ -48,29 +66,17 @@ impl<T, Id: Into<usize>> std::ops::Index<Id> for NonOrdInterner<T, Id> {
     }
 }
 
-impl<Id> NonOrdInterner<Regex, Id>
-where
-    Id: Copy + From<usize> + Into<usize>,
-{
-    pub fn get_or_insert(&mut self, value: &Regex) -> Id {
-        self.0
-            .get_full(value.as_str())
-            .map(|(id, _, _)| id.into())
-            .unwrap_or_else(|| self.insert(value.clone()))
-    }
-}
-
-impl<T, Id> IntoIterator for NonOrdInterner<T, Id> {
-    type Item = (String, T);
-    type IntoIter = <indexmap::IndexMap<String, T, fnv::FnvBuildHasher> as IntoIterator>::IntoIter;
+impl<T, Id> IntoIterator for ProxyKeyInterner<T, Id> {
+    type Item = (Vec<u8>, T);
+    type IntoIter = <indexmap::IndexMap<Vec<u8>, T, fnv::FnvBuildHasher> as IntoIterator>::IntoIter;
 
     fn into_iter(self) -> Self::IntoIter {
         self.0.into_iter()
     }
 }
 
-impl<T, Id> From<NonOrdInterner<T, Id>> for Vec<T> {
-    fn from(interner: NonOrdInterner<T, Id>) -> Self {
+impl<T, Id> From<ProxyKeyInterner<T, Id>> for Vec<T> {
+    fn from(interner: ProxyKeyInterner<T, Id>) -> Self {
         interner.into_iter().map(|(_, t)| t).collect()
     }
 }
