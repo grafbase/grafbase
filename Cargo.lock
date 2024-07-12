@@ -2859,7 +2859,6 @@ dependencies = [
  "http 1.1.0",
  "indoc",
  "insta",
- "itertools 0.13.0",
  "lambda_http",
  "parser-sdl",
  "regex",
@@ -2868,8 +2867,8 @@ dependencies = [
  "runtime-local",
  "runtime-noop",
  "serde",
+ "serde-dynamic-string",
  "serde_regex",
- "serde_with",
  "temp-env",
  "thiserror",
  "tokio",
@@ -3705,7 +3704,9 @@ dependencies = [
 name = "grafbase-tracing"
 version = "0.1.0"
 dependencies = [
+ "ascii 1.1.0",
  "base64 0.22.1",
+ "cfg-if",
  "chrono",
  "headers",
  "http 1.1.0",
@@ -3718,6 +3719,7 @@ dependencies = [
  "opentelemetry_sdk",
  "pin-project-lite",
  "serde",
+ "serde-dynamic-string",
  "serde_json",
  "tempfile",
  "thiserror",
@@ -7976,6 +7978,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7253ab4de971e72fb7be983802300c30b5a7f0c2e56fab8abfc6a214307c0094"
 dependencies = [
  "serde_derive",
+]
+
+[[package]]
+name = "serde-dynamic-string"
+version = "0.77.1"
+dependencies = [
+ "ascii 1.1.0",
+ "insta",
+ "itertools 0.13.0",
+ "regex",
+ "serde",
+ "serde_with",
+ "temp-env",
 ]
 
 [[package]]

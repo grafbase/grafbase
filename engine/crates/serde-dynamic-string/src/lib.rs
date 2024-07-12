@@ -1,13 +1,19 @@
 use std::{
     fmt::{self, Write},
+    ops::Deref,
     str::FromStr,
     sync::OnceLock,
 };
 
 use itertools::Itertools;
 use regex::Regex;
+use serde::Serialize;
+use serde_with::DeserializeFromStr;
 
-#[derive(Debug, serde::Serialize, serde_with::DeserializeFromStr, Clone)]
+/// A wrapper type for Serde structures that can be (de-)serialized from a string.
+/// If wrapping a type with this wrapper, one can pass values through env vars with the syntax
+/// "{{ env.FOO }}".
+#[derive(Debug, Serialize, DeserializeFromStr, Clone)]
 pub struct DynamicString<T>(T)
 where
     T::Err: std::error::Error,
@@ -97,6 +103,38 @@ where
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(self.0.as_ref())
+    }
+}
+
+impl<T> PartialEq for DynamicString<T>
+where
+    T::Err: std::error::Error,
+    T: FromStr + AsRef<str> + Default + Write + Clone + PartialEq,
+{
+    fn eq(&self, other: &Self) -> bool {
+        self.0.eq(&other.0)
+    }
+}
+
+impl<T> From<T> for DynamicString<T>
+where
+    T::Err: std::error::Error,
+    T: FromStr + AsRef<str> + Default + Write + Clone + PartialEq,
+{
+    fn from(value: T) -> Self {
+        Self(value)
+    }
+}
+
+impl<T> Deref for DynamicString<T>
+where
+    T::Err: std::error::Error,
+    T: FromStr + AsRef<str> + Default + Write + Clone + PartialEq,
+{
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
     }
 }
 

@@ -1,0 +1,22 @@
+[package]
+name = "serde-dynamic-string"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+homepage.workspace = true
+keywords.workspace = true
+repository.workspace = true
+
+[dependencies]
+itertools.workspace = true
+regex.workspace = true
+serde = { workspace = true, features = ["derive"] }
+serde_with.workspace = true
+
+[lints]
+workspace = true
+
+[dev-dependencies]
+ascii = "1.1.0"
+insta.workspace = true
+temp-env = "0.3.6"

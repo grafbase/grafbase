@@ -8,28 +8,27 @@ use opentelemetry_sdk::{
 };
 
 use crate::{
-    config::{TracingBatchExportConfig, TracingConfig},
+    config::{BatchExportConfig, TelemetryConfig},
     error::TracingError,
 };
 
-/// Creates a new OTEL tracing provider.
-pub fn create<R, I>(
-    config: TracingConfig,
-    id_generator: I,
+pub(super) fn build_trace_provider<R, I>(
     runtime: R,
+    id_generator: I,
+    config: &TelemetryConfig,
     resource: Resource,
 ) -> Result<TracerProvider, TracingError>
 where
     R: RuntimeChannel,
     I: IdGenerator + 'static,
 {
-    let builder = opentelemetry_sdk::trace::TracerProvider::builder().with_config(
+    let builder = TracerProvider::builder().with_config(
         opentelemetry_sdk::trace::config()
             .with_id_generator(id_generator)
-            .with_sampler(Sampler::TraceIdRatioBased(config.sampling))
-            .with_max_events_per_span(config.collect.max_events_per_span as u32)
-            .with_max_attributes_per_span(config.collect.max_attributes_per_span as u32)
-            .with_max_events_per_span(config.collect.max_events_per_span as u32)
+            .with_sampler(Sampler::TraceIdRatioBased(config.tracing.sampling))
+            .with_max_events_per_span(config.tracing.collect.max_events_per_span as u32)
+            .with_max_attributes_per_span(config.tracing.collect.max_attributes_per_span as u32)
+            .with_max_events_per_span(config.tracing.collect.max_events_per_span as u32)
             .with_resource(resource),
     );
 
@@ -38,27 +37,29 @@ where
 
 fn setup_exporters<R>(
     mut tracer_provider_builder: Builder,
-    config: TracingConfig,
+    config: &TelemetryConfig,
     runtime: R,
 ) -> Result<Builder, TracingError>
 where
     R: RuntimeChannel,
 {
     // stdout
-    if let Some(stdout_exporter) = &config.exporters.stdout {
+    if let Some(stdout_exporter) = config.tracing_stdout_config() {
         let span_processor = build_batched_span_processor(
             stdout_exporter.timeout,
             &stdout_exporter.batch_export,
             opentelemetry_stdout::SpanExporter::default(),
             runtime.clone(),
         );
+
         tracer_provider_builder = tracer_provider_builder.with_span_processor(span_processor);
     }
 
     // otlp
     #[cfg(feature = "otlp")]
-    if let Some(otlp_exporter_config) = config.exporters.otlp {
+    if let Some(otlp_exporter_config) = config.tracing_otlp_config() {
         use opentelemetry_otlp::SpanExporterBuilder;
+
         let span_exporter = super::exporter::build_otlp_exporter::<SpanExporterBuilder>(&otlp_exporter_config)?
             .build_span_exporter()
             .map_err(|err| TracingError::SpanExporterSetup(err.to_string()))?;
@@ -69,12 +70,14 @@ where
             span_exporter,
             runtime.clone(),
         );
+
         tracer_provider_builder = tracer_provider_builder.with_span_processor(span_processor);
     }
 
     #[cfg(feature = "otlp")]
-    if let Some(otlp_exporter_config) = config.exporters.grafbase {
+    if let Some(otlp_exporter_config) = config.grafbase_otlp_config() {
         use opentelemetry_otlp::SpanExporterBuilder;
+
         let span_exporter = super::exporter::build_otlp_exporter::<SpanExporterBuilder>(&otlp_exporter_config)?
             .build_span_exporter()
             .map_err(|err| TracingError::SpanExporterSetup(err.to_string()))?;
@@ -85,6 +88,7 @@ where
             span_exporter,
             runtime.clone(),
         );
+
         tracer_provider_builder = tracer_provider_builder.with_span_processor(span_processor);
     }
 
@@ -93,7 +97,7 @@ where
 
 fn build_batched_span_processor<R>(
     timeout: chrono::Duration,
-    config: &TracingBatchExportConfig,
+    config: &BatchExportConfig,
     exporter: impl SpanExporter + 'static,
     runtime: R,
 ) -> BatchSpanProcessor<R>

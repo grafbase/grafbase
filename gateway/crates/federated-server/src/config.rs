@@ -1,10 +1,8 @@
 mod authentication;
 mod cors;
-mod dynamic_string;
 mod header;
 mod health;
 mod rate_limit;
-mod telemetry;
 
 use std::{collections::BTreeMap, net::SocketAddr, path::PathBuf};
 
@@ -12,13 +10,12 @@ pub use self::health::HealthConfig;
 use ascii::AsciiString;
 pub use authentication::AuthenticationConfig;
 pub use cors::CorsConfig;
+use grafbase_tracing::config::TelemetryConfig;
 pub use header::{HeaderForward, HeaderInsert, HeaderRemove, HeaderRule, NameOrPattern};
 pub use rate_limit::RateLimitConfig;
 use runtime_local::HooksConfig;
-pub use telemetry::TelemetryConfig;
+use serde_dynamic_string::DynamicString;
 use url::Url;
-
-use self::dynamic_string::DynamicString;
 
 #[derive(Debug, Default, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -816,6 +813,10 @@ mod tests {
             service_name: "test".to_string(),
             resource_attributes: Default::default(),
             tracing: Default::default(),
+            exporters: Default::default(),
+            logs: Default::default(),
+            metrics: Default::default(),
+            grafbase: Default::default(),
         };
 
         let input = indoc! {r#"
