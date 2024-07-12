@@ -15,7 +15,7 @@ pub struct GraphqlEndpoint {
     pub(crate) name: StringId,
     pub(crate) url: UrlId,
     pub(crate) websocket_url: Option<UrlId>,
-    pub(crate) headers: Vec<HeaderRuleId>,
+    pub(crate) header_rules: Vec<HeaderRuleId>,
 }
 
 id_newtypes::U8! {
@@ -139,12 +139,12 @@ impl<'a> GraphqlEndpointWalker<'a> {
         }
     }
 
-    pub fn headers(self) -> impl Iterator<Item = HeaderRuleWalker<'a>> {
+    pub fn header_rules(self) -> impl Iterator<Item = HeaderRuleWalker<'a>> {
         self.schema
             .settings
             .default_header_rules
             .iter()
-            .chain(self.as_ref().headers.iter())
+            .chain(self.as_ref().header_rules.iter())
             .map(move |id| self.walk(*id))
     }
 }

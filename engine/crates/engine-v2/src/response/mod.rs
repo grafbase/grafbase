@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{borrow::Cow, sync::Arc};
 
 pub(crate) use error::*;
 use grafbase_tracing::gql_response_status::GraphqlResponseStatus;
@@ -9,7 +9,7 @@ use schema::Schema;
 pub use value::{ResponseObject, ResponseValue};
 pub use write::*;
 
-use crate::{http_response::HttpGraphqlResponse, operation::Operation};
+use crate::operation::Operation;
 
 mod error;
 mod key;
@@ -91,16 +91,19 @@ impl Response {
             },
         }
     }
+
+    pub(crate) fn first_error_message(&self) -> Option<Cow<'static, str>> {
+        match self {
+            Response::Initial(resp) => resp.errors.first(),
+            Response::ExecutionFailure(resp) => resp.errors.first(),
+            Response::PreExecutionError(resp) => resp.errors.first(),
+        }
+        .map(|error| error.message.clone())
+    }
 }
 
 impl std::fmt::Debug for Response {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Response").finish_non_exhaustive()
-    }
-}
-
-impl From<Response> for HttpGraphqlResponse {
-    fn from(response: Response) -> Self {
-        HttpGraphqlResponse::from_json(response.status(), &response)
     }
 }

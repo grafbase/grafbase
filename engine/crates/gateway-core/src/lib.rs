@@ -136,7 +136,7 @@ where
     {
         let auth = match self
             .auth
-            .authorize(ctx.headers())
+            .authenticate(ctx.headers())
             .instrument(info_span!("authorize_request"))
             .await
         {
@@ -256,7 +256,7 @@ where
 
         let auth = match self
             .auth
-            .authorize(ctx.headers())
+            .authenticate(ctx.headers())
             .instrument(info_span!("authorize_request"))
             .await
         {
@@ -315,7 +315,7 @@ where
 
         let auth = match self
             .auth
-            .authorize(ctx.headers())
+            .authenticate(ctx.headers())
             .instrument(info_span!("authorize_request"))
             .await
         {

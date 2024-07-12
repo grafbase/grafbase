@@ -5,6 +5,8 @@ use grafbase_tracing::gql_response_status::GraphqlResponseStatus;
 use headers::HeaderMapExt;
 use runtime::bytes::OwnedOrSharedBytes;
 
+use crate::response::{ErrorCode, Response};
+
 /// A GraphQL response with HTTP headers and execution metadata (used for tracing).
 /// The response is already pre-serialized because it might be coming directly from the cache.
 pub struct HttpGraphqlResponse {
@@ -38,35 +40,74 @@ impl HttpGraphqlResponseBody {
 }
 
 impl HttpGraphqlResponse {
-    pub fn request_error(message: &str) -> HttpGraphqlResponse {
+    pub fn bad_request_error(message: &str) -> HttpGraphqlResponse {
+        Self::from_json(
+            GraphqlResponseStatus::RequestError { count: 1 },
+            &serde_json::json!({
+            "errors": [
+                {
+                    "message": message,
+                    "extensions": {
+                        "code": ErrorCode::BadRequest
+                    }
+                }
+            ]
+            }),
+        )
+    }
+
+    pub fn internal_server_error(message: &str) -> HttpGraphqlResponse {
         Self::from_json(
             GraphqlResponseStatus::RequestError { count: 1 },
             &serde_json::json!({
                 "errors": [
                     {
                         "message": message,
+                        "extensions": {
+                            "code": ErrorCode::InternalServerError
+                        }
                     }
                 ]
             }),
         )
     }
 
-    pub(crate) fn with_metadata(mut self, metadata: HttpGraphqlResponseExtraMetadata) -> Self {
-        self.metadata = metadata;
-        self
+    pub(crate) fn build(
+        response: Response,
+        format: Option<StreamingFormat>,
+        metadata: HttpGraphqlResponseExtraMetadata,
+    ) -> Self {
+        let mut http_response = if let Some(format) = format {
+            Self::from_stream(
+                format,
+                response.status(),
+                futures_util::stream::iter(std::iter::once(response)),
+            )
+        } else {
+            Self::from_json(response.status(), &response)
+        };
+        http_response.metadata = metadata;
+        http_response
     }
 
-    pub(crate) fn from_json(status: GraphqlResponseStatus, value: &impl serde::Serialize) -> HttpGraphqlResponse {
-        match serde_json::to_vec(value) {
-            Ok(bytes) => Self::from_json_bytes(status, bytes.into()),
-            Err(err) => {
-                tracing::error!("Failed to serialize response: {}", err);
-                Self::request_error("Internal Server Error")
-            }
+    pub(crate) fn from_stream<T>(
+        format: StreamingFormat,
+        status: GraphqlResponseStatus,
+        stream: impl Stream<Item = T> + Send + 'static,
+    ) -> Self
+    where
+        T: serde::Serialize + Send,
+    {
+        let (mut headers, stream) = gateway_core::encode_stream_response(stream, format);
+        headers.typed_insert(status);
+        Self {
+            headers,
+            metadata: HttpGraphqlResponseExtraMetadata::default(),
+            body: HttpGraphqlResponseBody::Stream(stream.map_ok(|bytes| bytes.into()).boxed()),
         }
     }
 
-    pub(crate) fn batch_response(responses: Vec<HttpGraphqlResponse>) -> HttpGraphqlResponse {
+    pub(crate) fn from_batch(responses: Vec<HttpGraphqlResponse>) -> HttpGraphqlResponse {
         // Currently we only output JSON and those can be easily stitched together for a batch
         // response so we avoid a serde round-trip.
         let mut bytes_batch = Vec::new();
@@ -83,7 +124,8 @@ impl HttpGraphqlResponse {
                 status = status.union(response_status);
             }
             let HttpGraphqlResponseBody::Bytes(bytes) = response.body else {
-                return Self::request_error("Cannot use stream response with batch request.");
+                tracing::error!("Cannot use stream response with batch request.");
+                return Self::internal_server_error("Internal server error");
             };
             bytes_batch.push(bytes);
         }
@@ -104,6 +146,16 @@ impl HttpGraphqlResponse {
         HttpGraphqlResponse::from_json_bytes(status, body.into())
     }
 
+    fn from_json(status: GraphqlResponseStatus, value: &impl serde::Serialize) -> HttpGraphqlResponse {
+        match serde_json::to_vec(value) {
+            Ok(bytes) => Self::from_json_bytes(status, bytes.into()),
+            Err(err) => {
+                tracing::error!("Failed to serialize response: {}", err);
+                Self::internal_server_error("Internal server error")
+            }
+        }
+    }
+
     fn from_json_bytes(status: GraphqlResponseStatus, bytes: OwnedOrSharedBytes) -> HttpGraphqlResponse {
         let mut response = Self::from_bytes(status, bytes);
         response.headers.typed_insert(headers::ContentType::json());
@@ -118,37 +170,6 @@ impl HttpGraphqlResponse {
             headers,
             metadata: HttpGraphqlResponseExtraMetadata::default(),
             body: HttpGraphqlResponseBody::Bytes(bytes),
-        }
-    }
-
-    pub(crate) fn stream_request_error(format: StreamingFormat, message: &str) -> HttpGraphqlResponse {
-        Self::from_stream(
-            format,
-            GraphqlResponseStatus::RequestError { count: 1 },
-            futures_util::stream::iter(std::iter::once(serde_json::json!({
-                "errors": [
-                    {
-                        "message": message,
-                    }
-                ]
-            }))),
-        )
-    }
-
-    pub(crate) fn from_stream<T>(
-        format: StreamingFormat,
-        status: GraphqlResponseStatus,
-        stream: impl Stream<Item = T> + Send + 'static,
-    ) -> Self
-    where
-        T: serde::Serialize + Send,
-    {
-        let (mut headers, stream) = gateway_core::encode_stream_response(stream, format);
-        headers.typed_insert(status);
-        Self {
-            headers,
-            metadata: HttpGraphqlResponseExtraMetadata::default(),
-            body: HttpGraphqlResponseBody::Stream(stream.map_ok(|bytes| bytes.into()).boxed()),
         }
     }
 }

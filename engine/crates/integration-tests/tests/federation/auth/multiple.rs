@@ -69,7 +69,10 @@ fn test_provider() {
         {
           "errors": [
             {
-              "message": "Unauthorized"
+              "message": "Unauthenticated",
+              "extensions": {
+                "code": "UNAUTHENTICATED"
+              }
             }
           ]
         }

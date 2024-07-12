@@ -115,6 +115,14 @@ impl<'a> SchemaWalker<'a, ()> {
     pub fn as_ref(&self) -> &'a Schema {
         self.schema
     }
+
+    pub fn default_header_rules(self) -> impl ExactSizeIterator<Item = HeaderRuleWalker<'a>> {
+        self.as_ref()
+            .settings
+            .default_header_rules
+            .iter()
+            .map(move |id| self.walk(*id))
+    }
 }
 
 impl<'a> std::ops::Deref for SchemaWalker<'a, ()> {

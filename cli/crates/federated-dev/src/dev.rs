@@ -171,7 +171,7 @@ async fn handle_engine_request(
 ) -> impl IntoResponse {
     log::debug!("engine request received");
     let Some(engine) = engine.borrow().clone() else {
-        return engine_v2_axum::error("there are no subgraphs registered currently");
+        return engine_v2_axum::internal_server_error("there are no subgraphs registered currently");
     };
     engine_v2_axum::into_response(engine.execute(headers, request).await)
 }
