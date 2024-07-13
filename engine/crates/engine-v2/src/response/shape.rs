@@ -10,14 +10,12 @@ pub(crate) struct Shapes {
     pub polymorphic: Vec<PolymorphicObjectShape>,
     pub concrete: Vec<ConcreteObjectShape>,
     pub fields: Vec<FieldShape>,
-    pub errors: Vec<FieldError>,
 }
 
 id_newtypes::NonZeroU16! {
     Shapes.concrete[ConcreteObjectShapeId] => ConcreteObjectShape,
     Shapes.polymorphic[PolymorphicObjectShapeId] => PolymorphicObjectShape,
     Shapes.fields[FieldShapeId] => FieldShape,
-    Shapes.errors[FieldErrorId] => FieldError,
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
@@ -46,7 +44,7 @@ impl Shape {
     }
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub(crate) struct PolymorphicObjectShape {
     // Sorted by Object typename
     pub possibilities: Vec<(ObjectId, ConcreteObjectShapeId)>,
@@ -61,12 +59,6 @@ pub(crate) struct ConcreteObjectShape {
     pub typename_response_edges: Vec<ResponseEdge>,
     // Sorted by expected_key
     pub field_shape_ids: IdRange<FieldShapeId>,
-}
-
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub(crate) struct FieldError {
-    pub edge: ResponseEdge,
-    pub is_required: bool,
 }
 
 #[derive(Debug, Clone, Copy, serde::Serialize, serde::Deserialize)]

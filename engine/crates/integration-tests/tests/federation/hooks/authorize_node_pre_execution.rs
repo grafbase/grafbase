@@ -366,6 +366,28 @@ fn metadata_is_provided() {
           ]
         }
         "###);
+
+        // We shouldn't have requested the field.
+        insta::assert_json_snapshot!(engine.get_recorded_subrequests(), @r###"
+        [
+          {
+            "subgraph_name": "secure",
+            "request_body": {
+              "query": "query {\n  node {\n    ok: nullableAuthorizedWithMetadata {\n      id\n    }\n  }\n}\n",
+              "variables": {}
+            },
+            "response_body": {
+              "data": {
+                "node": {
+                  "ok": {
+                    "id": "2b"
+                  }
+                }
+              }
+            }
+          }
+        ]
+        "###);
     });
 }
 

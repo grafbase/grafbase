@@ -1,228 +1,135 @@
 mod builder;
 mod modifier;
-mod partition;
-mod pool;
-mod shape;
+
+use std::sync::Arc;
 
 use itertools::Itertools;
-use pool::BufferPool;
-use schema::Schema;
-use std::collections::{HashMap, HashSet};
 
 use builder::ExecutionPlanBuilder;
 
 use crate::{
-    execution::{ExecutionPlanId, ExecutionPlans, PlanWalker, PlanningError, PlanningResult, PreExecutionContext},
-    operation::{FieldId, LogicalPlanId, Operation, OperationWalker, SelectionSetType, Variables},
-    response::{FieldError, FieldShape, ResponseObjectSetId, Shapes},
+    execution::{ExecutionPlan, ExecutionPlanId, PlanningResult, PreExecutionContext},
+    operation::{FieldId, LogicalPlanId, PreparedOperation, Variables},
     sources::PreparedExecutor,
     Runtime,
 };
 
+use super::ExecutableOperation;
+
 pub(super) struct ExecutionPlanner<'ctx, 'op, R: Runtime> {
     ctx: &'op PreExecutionContext<'ctx, R>,
-    operation: &'op Operation,
-    variables: &'op Variables,
-    to_be_planned: Vec<ToBePlanned>,
-    plan_parent_to_child_edges: HashSet<UnfinalizedParentToChildEdge>,
-    plan_id_to_execution_plan_id: Vec<Option<ExecutionPlanId>>,
-    field_shapes_buffer_pool: BufferPool<FieldShape>,
-    field_errors_buffer_pool: BufferPool<FieldError>,
-    plans: ExecutionPlans,
-}
-
-#[derive(Debug, Hash, PartialEq, Eq)]
-struct UnfinalizedParentToChildEdge {
-    parent: LogicalPlanId,
-    child: LogicalPlanId,
-}
-
-struct ToBePlanned {
-    logical_plan_id: LogicalPlanId,
-    input_id: ResponseObjectSetId,
-    selection_set_ty: SelectionSetType,
-    root_fields: Vec<FieldId>,
-}
-
-#[derive(Hash, PartialEq, Eq, Clone, Copy, Debug, PartialOrd, Ord)]
-pub struct ParentToChildEdge {
-    pub parent: ExecutionPlanId,
-    pub child: ExecutionPlanId,
+    operation: ExecutableOperation,
+    logical_plan_to_execution_plan_id: Vec<Option<ExecutionPlanId>>,
+    execution_plans_dependencies: Vec<Vec<FieldId>>,
 }
 
 impl<'ctx, 'op, R: Runtime> ExecutionPlanner<'ctx, 'op, R>
 where
     'ctx: 'op,
 {
-    pub(super) fn new(
+    pub(super) async fn plan(
         ctx: &'op PreExecutionContext<'ctx, R>,
-        operation: &'op Operation,
-        variables: &'op Variables,
-    ) -> Self {
-        ExecutionPlanner {
-            ctx,
-            operation,
+        operation: Arc<PreparedOperation>,
+        variables: Variables,
+    ) -> PlanningResult<ExecutableOperation> {
+        let operation = ExecutableOperation {
+            query_modifications: modifier::QueryModificationsBuilder::new(ctx, &operation, &variables)
+                .build()
+                .await?,
+            prepared: operation,
             variables,
-            to_be_planned: Vec::new(),
-            plan_parent_to_child_edges: HashSet::new(),
-            plan_id_to_execution_plan_id: vec![None; operation.logical_plans.len()],
-            field_shapes_buffer_pool: Default::default(),
-            field_errors_buffer_pool: Default::default(),
-            plans: ExecutionPlans {
-                shapes: Shapes::default(),
-                response_object_set_consummers_count: Vec::new(),
-                execution_plans: Vec::new(),
-                root_errors: Vec::new(),
-                prepared_executors: Vec::new(),
-            },
+            execution_plans: Default::default(),
+        };
+        Self {
+            ctx,
+            logical_plan_to_execution_plan_id: vec![None; operation.plan.logical_plans.len()],
+            operation,
+            execution_plans_dependencies: Vec::new(),
         }
+        .build()
     }
 
-    pub(super) async fn plan(self) -> PlanningResult<ExecutionPlans> {
-        self.finalize()
-    }
-
-    fn finalize(mut self) -> PlanningResult<ExecutionPlans> {
-        self.generate_root_execution_plans()?;
-        let mut plans = self.plans;
-        let mut plan_parent_to_child_edges = self
-            .plan_parent_to_child_edges
-            .into_iter()
-            .map(|edge| {
-                let parent = self.plan_id_to_execution_plan_id[usize::from(edge.parent)];
-                let child = self.plan_id_to_execution_plan_id[usize::from(edge.child)];
-                match (parent, child) {
-                    (Some(parent), Some(child)) => Ok(ParentToChildEdge { parent, child }),
-                    pc => Err(PlanningError::InternalError(format!(
-                        "Unplanned depedency: {edge:?} -> {pc:?}"
-                    ))),
-                }
-            })
-            .collect::<Result<Vec<_>, _>>()?;
-        plan_parent_to_child_edges.sort_unstable();
-
-        for ParentToChildEdge { parent, child } in plan_parent_to_child_edges {
-            let parent = &mut plans.execution_plans[usize::from(parent)];
-            parent.output.dependent.push(child);
-            let child = &mut plans.execution_plans[usize::from(child)];
-            child.input.dependencies_count += 1;
+    fn build(mut self) -> PlanningResult<ExecutableOperation> {
+        // We start by the end so that we avoid retrieving extra fields that are never read.
+        for plan_id in self.operation.plan.in_topological_order.clone().into_iter().rev() {
+            self.create_execution_plan(plan_id)?;
         }
-        tracing::trace!(
-            "== Plan Summary ==\n{}",
-            plans
-                .execution_plans
-                .iter()
-                .enumerate()
-                .format_with("\n", |(id, plan), f| f(&format_args!(
-                    "**{id}**\n  input <- {}\n  ouput -> {}",
-                    plan.input.dependencies_count,
-                    plan.output.dependent.iter().join(",")
-                ))),
-        );
 
-        Ok(plans)
-    }
+        let Self {
+            mut operation,
+            logical_plan_to_execution_plan_id,
+            execution_plans_dependencies,
+            ..
+        } = self;
 
-    fn generate_root_execution_plans(&mut self) -> PlanningResult<()> {
-        let walker = self.walker();
-        let root_plans = walker.selection_set().fields().fold(
-            HashMap::<LogicalPlanId, Vec<FieldId>>::default(),
-            |mut acc, field| {
-                let plan_id = self.operation.plan_id_for(field.id());
-                acc.entry(plan_id).or_default().push(field.id());
-                acc
-            },
-        );
-
-        if walker.is_mutation() {
-            let mut maybe_previous_plan_id: Option<LogicalPlanId> = None;
-            let mut plan_ids = root_plans
-                .iter()
-                .map(|(plan_id, fields)| (walker.walk(fields[0]).as_ref().query_position(), plan_id))
-                .collect::<Vec<_>>();
-            plan_ids.sort_unstable();
-            for (_, &plan_id) in plan_ids {
-                if let Some(previous_plan_id) = maybe_previous_plan_id {
-                    self.plan_parent_to_child_edges.insert(UnfinalizedParentToChildEdge {
-                        parent: previous_plan_id,
-                        child: plan_id,
-                    });
+        for (i, dependencies) in execution_plans_dependencies.into_iter().enumerate() {
+            let child_id = ExecutionPlanId::from(i);
+            for field_id in dependencies {
+                let logical_plan_id = operation.plan.field_to_logical_plan_id[usize::from(field_id)];
+                let parent_id =
+                    logical_plan_to_execution_plan_id[usize::from(logical_plan_id)].expect("Depend on unfinished plan");
+                if !operation[parent_id].children.contains(&child_id) {
+                    operation[parent_id].children.push(child_id);
+                    operation[child_id].parent_count += 1;
                 }
-                maybe_previous_plan_id = Some(plan_id);
             }
         }
 
-        let response_location = self.next_response_object_set_id();
-        self.to_be_planned = root_plans
+        // To enforce the proper ordering of mutation fields, we create parent/child relations
+        // between them.
+        let mut mutation_fields_plan_order = operation
+            .plan
+            .mutation_fields_plan_order
+            .clone()
             .into_iter()
-            .map(|(plan_id, root_fields)| ToBePlanned {
-                input_id: response_location,
-                selection_set_ty: SelectionSetType::Object(self.walker().as_ref().root_object_id),
-                logical_plan_id: plan_id,
-                root_fields,
-            })
-            .collect();
-
-        while let Some(to_be_planned) = self.to_be_planned.pop() {
-            self.generate_plan(to_be_planned)?;
+            .filter_map(|id| logical_plan_to_execution_plan_id[usize::from(id)]);
+        if let Some(mut prev) = mutation_fields_plan_order.next() {
+            for next in mutation_fields_plan_order {
+                if !operation[prev].children.contains(&next) {
+                    operation[prev].children.push(next);
+                    operation[next].parent_count += 1;
+                }
+                prev = next;
+            }
         }
 
-        Ok(())
+        tracing::trace!(
+            "== Plan Summary ==\n{}",
+            operation
+                .execution_plans
+                .iter()
+                .enumerate()
+                .rev() // roots first
+                .format_with("\n", |(id, plan), f| f(&format_args!(
+                    "**{id}**\n  input <- {}\n  ouput -> {}",
+                    plan.parent_count,
+                    plan.children.iter().join(",")
+                ))),
+        );
+
+        Ok(operation)
     }
 
-    fn generate_plan(
-        &mut self,
-        ToBePlanned {
-            input_id,
-            selection_set_ty,
-            logical_plan_id,
-            root_fields,
-        }: ToBePlanned,
-    ) -> PlanningResult<()> {
+    fn create_execution_plan(&mut self, logical_plan_id: LogicalPlanId) -> PlanningResult<()> {
         tracing::trace!("Generating execution plan for {logical_plan_id}");
-        let execution_plan =
-            ExecutionPlanBuilder::new(self, input_id, logical_plan_id).build(selection_set_ty, root_fields)?;
-
-        self.plans.execution_plans.push(execution_plan);
-        let id = ExecutionPlanId::from(self.plans.execution_plans.len() - 1);
-        self.plan_id_to_execution_plan_id[usize::from(logical_plan_id)] = Some(id);
-
-        let resolver = self
-            .ctx
-            .schema()
-            .walker()
-            .walk(self.operation[logical_plan_id].resolver_id)
-            .with_own_names();
-
-        let prepared_executor = PreparedExecutor::prepare(
-            resolver,
-            self.operation.ty(),
-            PlanWalker {
-                schema_walker: resolver.walk(()),
-                operation: self.operation,
-                variables: self.variables,
-                plans: &self.plans,
-                execution_plan_id: id,
-                item: (),
-            },
-        )?;
-        self.plans.prepared_executors.push(prepared_executor);
+        // TODO: Skip plan with only skipped fields.
+        // FIXME: HACK to build an Executor, holding the prepared GraphQL query, we rely on a
+        // PlanWalker which needs an ExecutionPlanId. So we reserve the spot with the
+        // LogicalPlanId.
+        self.operation.execution_plans.push(ExecutionPlan {
+            logical_plan_id,
+            parent_count: 0,
+            children: Default::default(),
+            requires: Default::default(),
+            prepared_executor: PreparedExecutor::introspection(),
+        });
+        let id = ExecutionPlanId::from(self.operation.execution_plans.len() - 1);
+        let (execution_plan, dependencies) =
+            ExecutionPlanBuilder::new(self.ctx, &self.operation, id, logical_plan_id).build()?;
+        self.execution_plans_dependencies.push(dependencies);
+        self.operation[id] = execution_plan;
+        self.logical_plan_to_execution_plan_id[usize::from(logical_plan_id)] = Some(id);
 
         Ok(())
-    }
-
-    fn next_response_object_set_id(&mut self) -> ResponseObjectSetId {
-        let id = ResponseObjectSetId::from(self.plans.response_object_set_consummers_count.len());
-        self.plans.response_object_set_consummers_count.push(0);
-        id
-    }
-
-    fn walker(&self) -> OperationWalker<'op, (), ()> {
-        // yes looks weird, will be improved
-        self.operation.walker_with(self.ctx.schema.walker(), self.variables)
-    }
-
-    fn schema(&self) -> &'ctx Schema {
-        &self.ctx.engine.schema
     }
 }

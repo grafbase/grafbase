@@ -1,8 +1,8 @@
 use crate::response::GraphqlError;
 
-use super::{ExecutionPlan, ExecutionPlans, QueryModifications};
+use super::{ExecutableOperation, ExecutionPlan};
 
 id_newtypes::NonZeroU16! {
-    ExecutionPlans.execution_plans[ExecutionPlanId] => ExecutionPlan,
-    QueryModifications.errors[ErrorId] => GraphqlError,
+    ExecutableOperation.execution_plans[ExecutionPlanId] => ExecutionPlan,
+    ExecutableOperation.query_modifications.errors[ErrorId] => GraphqlError,
 }

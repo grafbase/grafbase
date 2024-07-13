@@ -1,4 +1,4 @@
-pub(super) struct BufferPool<T> {
+pub(crate) struct BufferPool<T> {
     buffers: Vec<Vec<T>>,
 }
 

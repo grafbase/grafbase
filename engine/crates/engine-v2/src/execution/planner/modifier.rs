@@ -168,7 +168,7 @@ where
         }
         for &field_id in &self.operation[impacted_fields] {
             self.modifications.skipped_fields.set(field_id, true);
-            for field_shape_id in self.operation.response_blueprint.field_to_shape_ids.get(field_id) {
+            for field_shape_id in self.operation.response_blueprint.field_to_shape_ids.find_all(field_id) {
                 self.field_shape_id_to_error_ids_builder
                     .push((*field_shape_id, error_id));
             }

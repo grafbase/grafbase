@@ -2,12 +2,9 @@ use std::sync::Arc;
 
 use schema::{EntityId, Schema};
 
-use crate::{
-    execution::ExecutionPlans,
-    response::{ResponseBuilder, ResponseObjectRef, ResponseObjectSetId},
-};
+use crate::response::{ResponseBuilder, ResponseObjectRef, ResponseObjectSetId};
 
-use super::ExecutionPlanId;
+use super::{ExecutableOperation, ExecutionPlanId};
 
 /// Holds the current state of the operation execution:
 /// - which plans have been executed
@@ -22,7 +19,7 @@ use super::ExecutionPlanId;
 #[derive(Clone)]
 pub(crate) struct OperationExecutionState<'ctx> {
     schema: &'ctx Schema,
-    plans: &'ctx ExecutionPlans,
+    operation: &'ctx ExecutableOperation,
     response_object_sets: Vec<ResponseObjectSet>,
     plan_dependencies_count: Vec<usize>,
 }
@@ -35,28 +32,18 @@ id_newtypes::index! {
 #[derive(Clone)]
 pub(crate) struct ResponseObjectSet {
     refs: Option<Arc<Vec<ResponseObjectRef>>>,
-    consummers_left: usize,
 }
 
 impl<'ctx> OperationExecutionState<'ctx> {
-    pub(super) fn new(schema: &'ctx Schema, plans: &'ctx ExecutionPlans) -> Self {
+    pub(super) fn new(schema: &'ctx Schema, operation: &'ctx ExecutableOperation) -> Self {
         Self {
             schema,
-            plans,
-            response_object_sets: plans
-                .response_object_set_consummers_count
-                .iter()
-                .copied()
-                .map(|consummers_left| ResponseObjectSet {
-                    refs: None,
-                    consummers_left,
-                })
-                .collect(),
-            plan_dependencies_count: plans
-                .execution_plans
-                .iter()
-                .map(|plan| plan.input.dependencies_count)
-                .collect(),
+            operation,
+            response_object_sets: vec![
+                ResponseObjectSet { refs: None };
+                operation.response_blueprint.response_object_set_count
+            ],
+            plan_dependencies_count: operation.execution_plans.iter().map(|plan| plan.parent_count).collect(),
         }
     }
 
@@ -97,24 +84,21 @@ impl<'ctx> OperationExecutionState<'ctx> {
         let Some(root_ref) = response.root_response_object() else {
             return Arc::new(Vec::new());
         };
-        let input = &self.plans[plan_id].input;
+        let logical_plan_id = self.operation[plan_id].logical_plan_id;
+        let input_id = self.operation.response_blueprint[logical_plan_id].input_id;
         let refs = {
-            let response_object_set = &mut self[input.id];
+            let response_object_set = &mut self[input_id];
             let Some(refs) = response_object_set.refs.clone() else {
-                if usize::from(input.id) == 0 {
+                if usize::from(input_id) == 0 {
                     return Arc::new(vec![root_ref]);
                 }
                 unreachable!("Missing entities");
             };
-            response_object_set.consummers_left -= 1;
-            if response_object_set.consummers_left == 0 {
-                response_object_set.refs = None;
-            }
             refs
         };
         // FIXME: it's not always necessary to clone the response_object_refs if it's always the
         // same entity.
-        match &input.entity_id {
+        match &self.operation[logical_plan_id].entity_id {
             EntityId::Interface(id) => {
                 let possible_types = &self.schema[*id].possible_types;
                 Arc::new(
@@ -130,7 +114,7 @@ impl<'ctx> OperationExecutionState<'ctx> {
 
     pub fn get_next_executable_plans(&mut self, plan_id: ExecutionPlanId) -> Vec<ExecutionPlanId> {
         let mut executable = Vec::new();
-        for child in self.plans[plan_id].output.dependent.iter().copied() {
+        for child in self.operation[plan_id].children.iter().copied() {
             self[child] -= 1;
             tracing::trace!("Child plan {child} has {} dependencies left", self[child],);
             if self[child] == 0 {

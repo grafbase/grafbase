@@ -20,7 +20,7 @@ use super::{
 };
 use crate::{
     execution::{ExecutionError, PlanWalker},
-    operation::Operation,
+    operation::PreparedOperation,
 };
 
 pub(crate) struct ResponseDataPart {
@@ -70,8 +70,8 @@ impl ResponseBuilder {
         }
     }
 
-    pub fn push_root_errors(&mut self, errors: &[GraphqlError]) {
-        self.errors.extend_from_slice(errors);
+    pub fn push_root_errors(&mut self, errors: impl IntoIterator<Item = GraphqlError>) {
+        self.errors.extend(errors);
         self.root = None;
     }
 
@@ -214,7 +214,7 @@ impl ResponseBuilder {
         part.response_object_set_ids.into_iter().zip(boundaries).collect()
     }
 
-    pub fn build(self, schema: Arc<Schema>, operation: Arc<Operation>) -> Response {
+    pub fn build(self, schema: Arc<Schema>, operation: Arc<PreparedOperation>) -> Response {
         Response::Initial(InitialResponse {
             data: ResponseData {
                 schema,

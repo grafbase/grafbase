@@ -203,6 +203,18 @@ pub enum EntityId {
     Interface(InterfaceId),
 }
 
+impl From<ObjectId> for EntityId {
+    fn from(id: ObjectId) -> Self {
+        EntityId::Object(id)
+    }
+}
+
+impl From<InterfaceId> for EntityId {
+    fn from(id: InterfaceId) -> Self {
+        EntityId::Interface(id)
+    }
+}
+
 impl From<EntityId> for Definition {
     fn from(value: EntityId) -> Self {
         match value {

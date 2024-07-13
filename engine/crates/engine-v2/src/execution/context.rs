@@ -7,13 +7,14 @@ use schema::{HeaderRuleWalker, NameOrPatternRef, Schema};
 
 use crate::{engine::RequestContext, Engine, Runtime};
 
-use super::RequestHooks;
+use super::{ExecutableOperation, RequestHooks};
 
 /// Context before starting to operation plan execution.
 /// Background futures will be started in parallel to avoid delaying the plan.
 pub(crate) struct PreExecutionContext<'ctx, R: Runtime> {
     pub(crate) engine: &'ctx Engine<R>,
     pub(crate) request_context: &'ctx RequestContext<<R::Hooks as Hooks>::Context>,
+    // needs to be Send so that futures are Send.
     pub(super) background_futures: crossbeam_queue::SegQueue<BoxFuture<'ctx, ()>>,
 }
 
@@ -26,7 +27,7 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
         }
     }
 
-    pub fn push_background_future(&mut self, future: BoxFuture<'ctx, ()>) {
+    pub fn push_background_future(&self, future: BoxFuture<'ctx, ()>) {
         self.background_futures.push(future)
     }
 
@@ -57,6 +58,7 @@ impl<'ctx, R: Runtime> std::ops::Deref for PreExecutionContext<'ctx, R> {
 /// Data available during the executor life during its build & execution phases.
 pub(crate) struct ExecutionContext<'ctx, R: Runtime> {
     pub engine: &'ctx Engine<R>,
+    pub operation: &'ctx ExecutableOperation,
     pub request_context: &'ctx RequestContext<<R::Hooks as Hooks>::Context>,
 }
 
@@ -67,13 +69,6 @@ impl<R: Runtime> Clone for ExecutionContext<'_, R> {
 }
 
 impl<R: Runtime> std::marker::Copy for ExecutionContext<'_, R> {}
-
-impl<'ctx, R: Runtime> std::ops::Deref for ExecutionContext<'ctx, R> {
-    type Target = Engine<R>;
-    fn deref(&self) -> &'ctx Self::Target {
-        self.engine
-    }
-}
 
 impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
     #[allow(unused)]
@@ -163,5 +158,9 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
     #[allow(unused)]
     pub fn hooks(&self) -> RequestHooks<'ctx, R::Hooks> {
         self.into()
+    }
+
+    pub fn schema(&self) -> &'ctx Schema {
+        &self.engine.schema
     }
 }

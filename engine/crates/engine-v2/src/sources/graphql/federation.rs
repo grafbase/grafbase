@@ -52,7 +52,7 @@ impl FederationEntityPreparedExecutor {
                 ctx.engine
                     .schema
                     .walker()
-                    .walk(schema::Definition::from(plan.as_ref().input.entity_id))
+                    .walk(schema::Definition::from(plan.logical_plan().as_ref().entity_id))
                     .name()
                     .to_string(),
             ),

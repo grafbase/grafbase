@@ -35,7 +35,7 @@ impl<'ctx, H: Hooks> super::RequestHooks<'ctx, H> {
     #[instrument(skip_all, ret(level = Level::DEBUG))]
     pub async fn authorize_node_pre_execution(
         &self,
-        entity: DefinitionWalker<'_>,
+        definition: DefinitionWalker<'_>,
         metadata: Option<SchemaInputValueWalker<'_>>,
     ) -> Result<(), GraphqlError> {
         self.hooks
@@ -43,7 +43,7 @@ impl<'ctx, H: Hooks> super::RequestHooks<'ctx, H> {
             .authorize_node_pre_execution(
                 self.context,
                 NodeDefinition {
-                    type_name: entity.name(),
+                    type_name: definition.name(),
                 },
                 metadata,
             )

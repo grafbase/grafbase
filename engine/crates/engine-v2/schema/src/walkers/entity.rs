@@ -29,3 +29,9 @@ impl<'a> EntityWalker<'a> {
         }
     }
 }
+
+impl std::fmt::Debug for EntityWalker<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Entity").field("name", &self.name()).finish()
+    }
+}

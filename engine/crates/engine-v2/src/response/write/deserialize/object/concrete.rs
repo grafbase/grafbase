@@ -1,12 +1,13 @@
 use std::fmt;
 
+use id_newtypes::IdRange;
 use schema::ObjectId;
 use serde::de::{DeserializeSeed, IgnoredAny, MapAccess, Visitor};
 
 use crate::response::{
     value::{ResponseObjectFields, RESPONSE_OBJECT_FIELDS_BINARY_SEARCH_THRESHOLD},
     write::deserialize::{field::FieldSeed, key::Key, SeedContext},
-    ConcreteObjectShapeId, FieldError, FieldShape, GraphqlError, ObjectIdentifier, ResponseEdge, ResponseObject,
+    ConcreteObjectShapeId, FieldShape, FieldShapeId, GraphqlError, ObjectIdentifier, ResponseEdge, ResponseObject,
     ResponseObjectRef, ResponseObjectSetId, ResponseValue,
 };
 
@@ -18,15 +19,15 @@ pub(crate) struct ConcreteObjectSeed<'ctx, 'seed> {
 
 impl<'ctx, 'seed> ConcreteObjectSeed<'ctx, 'seed> {
     pub fn new(ctx: &'seed SeedContext<'ctx>, shape_id: ConcreteObjectShapeId) -> Self {
-        let shape = &ctx.shapes[shape_id];
+        let shape = &ctx.operation.response_blueprint[shape_id];
         Self {
             ctx,
             set_id: shape.set_id,
             fields_seed: ConcreteObjectFieldsSeed {
                 ctx,
+                has_error: ctx.operation.query_modifications.concrete_shape_has_error[shape_id],
                 object_identifier: shape.identifier,
-                fields: &ctx.shapes[shape.field_shape_ids],
-                field_errors: &ctx.shapes[shape.field_error_ids],
+                field_shape_ids: shape.field_shape_ids,
                 typename_response_edges: &shape.typename_response_edges,
             },
         }
@@ -37,15 +38,15 @@ impl<'ctx, 'seed> ConcreteObjectSeed<'ctx, 'seed> {
         shape_id: ConcreteObjectShapeId,
         object_id: ObjectId,
     ) -> Self {
-        let shape = &ctx.shapes[shape_id];
+        let shape = &ctx.operation.response_blueprint[shape_id];
         Self {
             ctx,
             set_id: shape.set_id,
             fields_seed: ConcreteObjectFieldsSeed {
                 ctx,
+                has_error: ctx.operation.query_modifications.concrete_shape_has_error[shape_id],
                 object_identifier: ObjectIdentifier::Known(object_id),
-                fields: &ctx.shapes[shape.field_shape_ids],
-                field_errors: &ctx.shapes[shape.field_error_ids],
+                field_shape_ids: shape.field_shape_ids,
                 typename_response_edges: &shape.typename_response_edges,
             },
         }
@@ -58,9 +59,9 @@ impl<'ctx, 'seed> ConcreteObjectSeed<'ctx, 'seed> {
 
 pub(crate) struct ConcreteObjectFieldsSeed<'ctx, 'seed> {
     ctx: &'seed SeedContext<'ctx>,
+    has_error: bool,
     object_identifier: ObjectIdentifier,
-    fields: &'ctx [FieldShape],
-    field_errors: &'ctx [FieldError],
+    field_shape_ids: IdRange<FieldShapeId>,
     typename_response_edges: &'ctx [ResponseEdge],
 }
 
@@ -130,31 +131,7 @@ impl<'de, 'ctx, 'seed> Visitor<'de> for ConcreteObjectFieldsSeed<'ctx, 'seed> {
     {
         let plan = self.ctx.plan;
         let mut response_fields =
-            ResponseObjectFields::with_capacity(self.fields.len() + self.typename_response_edges.len());
-
-        let mut required_field_error = false;
-        for field_error in self.field_errors {
-            let mut path = self.ctx.response_path();
-            path.push(field_error.edge);
-
-            for error in &field_error.errors {
-                self.ctx.writer.push_error(GraphqlError {
-                    path: Some(path.clone()),
-                    ..error.clone()
-                });
-            }
-
-            if field_error.is_required {
-                required_field_error = true;
-            } else {
-                response_fields.push((field_error.edge, ResponseValue::Null));
-            }
-        }
-        if required_field_error {
-            // Skipping the rest of the fields
-            while map.next_entry::<IgnoredAny, IgnoredAny>()?.is_some() {}
-            return self.ctx.propagate_error();
-        }
+            ResponseObjectFields::with_capacity(self.field_shape_ids.len() + self.typename_response_edges.len());
 
         let mut maybe_object_id = None;
         match self.object_identifier {
@@ -181,7 +158,7 @@ impl<'de, 'ctx, 'seed> Visitor<'de> for ConcreteObjectFieldsSeed<'ctx, 'seed> {
             }
         }
 
-        self.check_missing_fields::<A>(&mut response_fields)?;
+        self.post_process::<A>(&mut response_fields)?;
 
         if !self.typename_response_edges.is_empty() {
             let Some(object_id) = maybe_object_id else {
@@ -204,14 +181,44 @@ impl<'de, 'ctx, 'seed> Visitor<'de> for ConcreteObjectFieldsSeed<'ctx, 'seed> {
 }
 
 impl<'de, 'ctx, 'seed> ConcreteObjectFieldsSeed<'ctx, 'seed> {
-    fn check_missing_fields<A: MapAccess<'de>>(
-        &self,
-        response_fields: &mut ResponseObjectFields,
-    ) -> Result<(), A::Error> {
-        if response_fields.len() < self.fields.len() {
+    fn post_process<A: MapAccess<'de>>(&self, response_fields: &mut ResponseObjectFields) -> Result<(), A::Error> {
+        if self.has_error {
+            let mut required_field_error = false;
+            for id in self.field_shape_ids {
+                for error_id in self
+                    .ctx
+                    .operation
+                    .query_modifications
+                    .field_shape_id_to_error_ids
+                    .find_all(id)
+                    .copied()
+                {
+                    let field_shape = &self.ctx.operation.response_blueprint[id];
+                    let mut path = self.ctx.response_path();
+                    path.push(field_shape.edge);
+
+                    self.ctx.writer.push_error(GraphqlError {
+                        path: Some(path),
+                        ..self.ctx.operation[error_id].clone()
+                    });
+
+                    if field_shape.wrapping.is_required() {
+                        required_field_error = true;
+                    } else {
+                        response_fields.push((field_shape.edge, ResponseValue::Null));
+                    }
+                }
+            }
+            if required_field_error {
+                return self.ctx.propagate_error();
+            }
+        }
+
+        if response_fields.len() < self.field_shape_ids.len() {
+            let fields = &self.ctx.operation.response_blueprint[self.field_shape_ids];
             let n = response_fields.len();
             if n <= RESPONSE_OBJECT_FIELDS_BINARY_SEARCH_THRESHOLD {
-                for field in self.fields {
+                for field in fields {
                     if !response_fields[0..n].iter().any(|(e, _)| *e == field.edge) {
                         if field.wrapping.is_required() {
                             return Err(serde::de::Error::custom(self.ctx.missing_field_error_message(field)));
@@ -220,7 +227,7 @@ impl<'de, 'ctx, 'seed> ConcreteObjectFieldsSeed<'ctx, 'seed> {
                     }
                 }
             } else {
-                for field in self.fields {
+                for field in fields {
                     if response_fields[0..n]
                         .binary_search_by(|(edge, _)| edge.cmp(&field.edge))
                         .is_err()
@@ -245,13 +252,19 @@ impl<'de, 'ctx, 'seed> ConcreteObjectFieldsSeed<'ctx, 'seed> {
     ) -> Result<ObjectId, A::Error> {
         let schema = self.ctx.plan.schema();
         let keys = self.ctx.plan.response_keys();
+        let fields = &self.ctx.operation.response_blueprint[self.field_shape_ids];
         let mut maybe_object_id = None;
         while let Some(key) = map.next_key::<Key<'_>>()? {
             let key = key.as_ref();
-            let start = self.fields.partition_point(|field| &keys[field.expected_key] < key);
+            let start = fields.partition_point(|field| &keys[field.expected_key] < key);
+            let fields = &fields[start..];
 
-            if start < self.fields.len() && &keys[self.fields[start].expected_key] == key {
-                self.visit_field(map, start, response_fields)?;
+            if fields
+                .first()
+                .map(|field| &keys[field.expected_key] == key)
+                .unwrap_or_default()
+            {
+                self.visit_field(map, fields, response_fields)?;
             // This supposes that the discriminant is never part of the schema.
             } else if maybe_object_id.is_none() && key == "__typename" {
                 let value = map.next_value::<Key<'_>>()?;
@@ -280,12 +293,18 @@ impl<'de, 'ctx, 'seed> ConcreteObjectFieldsSeed<'ctx, 'seed> {
         response_fields: &mut ResponseObjectFields,
     ) -> Result<(), A::Error> {
         let keys = self.ctx.plan.response_keys();
+        let fields = &self.ctx.operation.response_blueprint[self.field_shape_ids];
         while let Some(key) = map.next_key::<Key<'_>>()? {
             let key = key.as_ref();
-            let start = self.fields.partition_point(|field| &keys[field.expected_key] < key);
+            let start = fields.partition_point(|field| &keys[field.expected_key] < key);
+            let fields = &fields[start..];
 
-            if start < self.fields.len() && &keys[self.fields[start].expected_key] == key {
-                self.visit_field(map, start, response_fields)?;
+            if fields
+                .first()
+                .map(|field| &keys[field.expected_key] == key)
+                .unwrap_or_default()
+            {
+                self.visit_field(map, fields, response_fields)?;
             } else {
                 // Skipping the value.
                 map.next_value::<IgnoredAny>()?;
@@ -297,22 +316,21 @@ impl<'de, 'ctx, 'seed> ConcreteObjectFieldsSeed<'ctx, 'seed> {
     fn visit_field<A: MapAccess<'de>>(
         &self,
         map: &mut A,
-        start: usize,
+        fields: &[FieldShape],
         response_fields: &mut ResponseObjectFields,
     ) -> Result<(), A::Error> {
-        let mut end = start + 1;
-        let start_key = self.fields[start].expected_key;
+        let mut end = 1;
+        let start_key = fields[0].expected_key;
         // All fields with the same expected_key (when aliases aren't supported by upsteam)
-        while self
-            .fields
+        while fields
             .get(end + 1)
             .map(|field| field.expected_key == start_key)
             .unwrap_or_default()
         {
             end += 1;
         }
-        if end - start == 1 {
-            let field = &self.fields[start];
+        if end == 1 {
+            let field = &fields[0];
             self.ctx.push_edge(field.edge);
             let result = map.next_value_seed(FieldSeed {
                 ctx: self.ctx,
@@ -325,7 +343,7 @@ impl<'de, 'ctx, 'seed> ConcreteObjectFieldsSeed<'ctx, 'seed> {
             // if we found more than one field with the same expected_key we need to store the
             // value first.
             let stored_value = map.next_value::<serde_value::Value>()?;
-            for field in &self.fields[start..end] {
+            for field in &fields[..end] {
                 self.ctx.push_edge(field.edge);
                 let result = FieldSeed {
                     ctx: self.ctx,

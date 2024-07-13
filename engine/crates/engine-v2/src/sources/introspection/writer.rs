@@ -52,7 +52,10 @@ impl<'a> IntrospectionWriter<'a> {
             };
         }
         if !shape.typename_response_edges.is_empty() {
-            let name = self.schema.walk(self.plan.as_ref().input.entity_id).schema_name_id();
+            let name = self
+                .schema
+                .walk(self.plan.logical_plan().as_ref().entity_id)
+                .schema_name_id();
             for edge in &shape.typename_response_edges {
                 fields.push((*edge, name.into()));
             }

@@ -197,15 +197,8 @@ pub fn bind_operation(schema: &Schema, mut parsed_operation: ParsedOperation) ->
 
     let root_query_modifier_ids = binder.generate_modifiers_for_root_object(root_object_id);
     let (query_modifiers, query_modifiers_impacted_fields) = finalize_query_modifiers(binder.query_modifiers);
-
     Ok(Operation {
-        // Replaced later
-        metadata: super::OperationMetadata {
-            ty: parsed_operation.definition.ty,
-            name: parsed_operation.name.clone(),
-            normalized_query: String::new(),
-            normalized_query_hash: [0; 32],
-        },
+        ty: parsed_operation.definition.ty,
         root_object_id,
         root_query_modifier_ids,
         root_selection_set_id,
@@ -217,10 +210,6 @@ pub fn bind_operation(schema: &Schema, mut parsed_operation: ParsedOperation) ->
         query_input_values: binder.input_values,
         query_modifiers,
         query_modifiers_impacted_fields,
-        logical_plans: Vec::new(),
-        field_to_logical_plan_id: Vec::new(),
-        plan_edges: Vec::new(),
-        solved_requirements: Vec::new(),
     })
 }
 

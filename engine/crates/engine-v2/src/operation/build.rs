@@ -5,10 +5,11 @@ use crate::response::{ErrorCode, GraphqlError};
 
 use super::{
     bind::{bind_operation, BindError},
+    blueprint::ResponseBlueprintBuilder,
     logical_planner::{LogicalPlanner, LogicalPlanningError},
     parse::{parse_operation, ParseError, ParsedOperation},
     validation::{validate_operation, ValidationError},
-    Operation, OperationMetadata, Variables,
+    Operation, OperationMetadata, PreparedOperation, Variables,
 };
 
 #[derive(Debug, thiserror::Error)]
@@ -64,7 +65,7 @@ impl Operation {
     /// All field names are mapped to their actual field id in the schema and respective configuration.
     /// At this stage the operation might not be resolvable but it should make sense given the schema types.
     #[instrument(skip_all)]
-    pub fn build(schema: &Schema, request: &engine::Request) -> Result<Operation, OperationError> {
+    pub fn build(schema: &Schema, request: &engine::Request) -> Result<PreparedOperation, OperationError> {
         let parsed_operation = parse_operation(request)?;
         let operation_metadata = prepare_metadata(&parsed_operation, request);
 
@@ -87,15 +88,24 @@ impl Operation {
             });
         }
 
-        if let Err(err) = LogicalPlanner::new(schema, &variables, &mut operation).plan() {
-            return Err(OperationError::LogicalPlanning {
-                operation_metadata: Box::new(operation_metadata),
-                err,
-            });
-        }
+        let plan = match LogicalPlanner::new(schema, &variables, &mut operation).plan() {
+            Ok(plan) => plan,
+            Err(err) => {
+                return Err(OperationError::LogicalPlanning {
+                    operation_metadata: Box::new(operation_metadata),
+                    err,
+                });
+            }
+        };
 
-        operation.metadata = operation_metadata.ok_or(OperationError::NormalizationError)?;
-        Ok(operation)
+        let response_blueprint = ResponseBlueprintBuilder::new(schema, &variables, &operation, &plan).build();
+
+        Ok(PreparedOperation {
+            operation,
+            metadata: operation_metadata.ok_or(OperationError::NormalizationError)?,
+            plan,
+            response_blueprint,
+        })
     }
 }
 

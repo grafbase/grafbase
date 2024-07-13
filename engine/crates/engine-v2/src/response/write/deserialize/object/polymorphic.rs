@@ -12,15 +12,15 @@ use super::concrete::ConcreteObjectSeed;
 
 pub(crate) struct PolymorphicObjectSeed<'ctx, 'seed> {
     ctx: &'seed SeedContext<'ctx>,
-    shapes: &'ctx [(ObjectId, ConcreteObjectShapeId)],
+    possibilities: &'ctx [(ObjectId, ConcreteObjectShapeId)],
 }
 
 impl<'ctx, 'seed> PolymorphicObjectSeed<'ctx, 'seed> {
     pub fn new(ctx: &'seed SeedContext<'ctx>, shape_id: PolymorphicObjectShapeId) -> Self {
-        let shape = &ctx.shapes[shape_id];
+        let polymorphic = &ctx.operation.response_blueprint[shape_id];
         Self {
             ctx,
-            shapes: &shape.possibilities,
+            possibilities: &polymorphic.possibilities,
         }
     }
 }
@@ -55,10 +55,10 @@ impl<'de, 'ctx, 'parent> Visitor<'de> for PolymorphicObjectSeed<'ctx, 'parent> {
                 let value = map.next_value::<Key<'_>>()?;
                 let typename = value.as_ref();
                 if let Ok(i) = self
-                    .shapes
+                    .possibilities
                     .binary_search_by(|(id, _)| schema[schema[*id].name].as_str().cmp(typename))
                 {
-                    let (object_id, shape_id) = self.shapes[i];
+                    let (object_id, shape_id) = self.possibilities[i];
                     return ConcreteObjectSeed::new_with_object_id(self.ctx, shape_id, object_id).visit_map(
                         ChainedMapAcces {
                             before: content,

@@ -24,9 +24,9 @@ use trusted_documents::PreparedOperationDocument;
 use web_time::Instant;
 
 use crate::{
-    execution::{PreExecutionContext, PreparedOperation},
+    execution::{ExecutableOperation, PreExecutionContext},
     http_response::{HttpGraphqlResponse, HttpGraphqlResponseExtraMetadata},
-    operation::{Operation, OperationMetadata, Variables},
+    operation::{Operation, OperationMetadata, PreparedOperation, Variables},
     response::{ErrorCode, GraphqlError, Response},
     websocket,
 };
@@ -56,7 +56,7 @@ pub struct Engine<R: Runtime> {
     operation_metrics: GraphqlOperationMetrics,
     auth: AuthService,
     trusted_documents_cache: <R::CacheFactory as HotCacheFactory>::Cache<String>,
-    operation_cache: <R::CacheFactory as HotCacheFactory>::Cache<Arc<Operation>>,
+    operation_cache: <R::CacheFactory as HotCacheFactory>::Cache<Arc<PreparedOperation>>,
 }
 
 impl<R: Runtime> Engine<R> {
@@ -366,7 +366,7 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
     async fn prepare_operation(
         &mut self,
         mut request: Request,
-    ) -> Result<PreparedOperation, (Option<OperationMetadata>, Response)> {
+    ) -> Result<ExecutableOperation, (Option<OperationMetadata>, Response)> {
         let result = {
             let PreparedOperationDocument {
                 cache_key,
@@ -405,16 +405,9 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
         let variables = Variables::build(self.schema.as_ref(), &operation, request.variables)
             .map_err(|errors| (Some(operation.metadata.clone()), Response::pre_execution_errors(errors)))?;
 
-        let plans = self
-            .plan_execution(&operation, &variables)
+        self.finalize_operation(Arc::clone(&operation), variables)
             .await
-            .map_err(|err| (Some(operation.metadata.clone()), Response::pre_execution_error(err)))?;
-
-        Ok(PreparedOperation {
-            operation,
-            variables,
-            plans,
-        })
+            .map_err(|err| (Some(operation.metadata.clone()), Response::pre_execution_error(err)))
     }
 }
 
