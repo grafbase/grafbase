@@ -291,4 +291,32 @@ describe('Cache generator', () => {
       }"
     `)
   })
+
+  it('renders query cache rule', async () => {
+    g.query('cached', {
+      resolver: 'blah',
+      returns: g.string(),
+      cache: {
+        maxAge: 100
+      }
+    })
+
+    g.query('alsoCached', {
+      resolver: 'blah2',
+      returns: g.string()
+    }).cache({
+      maxAge: 200
+    })
+
+    const cfg = config({
+      schema: g
+    })
+
+    expect(renderGraphQL(cfg)).toMatchInlineSnapshot(`
+      "extend type Query {
+        cached: String! @cache(maxAge: 100) @resolver(name: "blah")
+        alsoCached: String! @cache(maxAge: 200) @resolver(name: "blah2")
+      }"
+    `)
+  })
 })

@@ -1,3 +1,4 @@
+import { FieldCacheParams, FieldLevelCache } from './typedefs/cache'
 import {
   DefaultDefinition,
   DefaultFieldShape,
@@ -47,6 +48,7 @@ export interface QueryInput {
   args?: Record<string, InputType>
   returns: OutputType
   resolver: string
+  cache?: FieldCacheParams
 }
 
 /**
@@ -82,12 +84,14 @@ export class Query {
   private arguments: FieldArgument[]
   private returns: OutputType
   private resolver: string
+  private _cache?: FieldLevelCache
 
   constructor(
     name: string,
     returnType: OutputType,
     resolverName: string,
-    mutation: boolean
+    mutation: boolean,
+    cache?: FieldCacheParams
   ) {
     validateIdentifier(name)
 
@@ -96,6 +100,9 @@ export class Query {
     this.returns = returnType
     this.resolver = resolverName
     this._kind = mutation ? 'mutation' : 'query'
+    if (cache) {
+      this.cache(cache)
+    }
   }
 
   public get kind(): 'mutation' | 'query' {
@@ -114,10 +121,21 @@ export class Query {
     return this
   }
 
+  /**
+   * Set the cache settiings for this field
+   *
+   * @param params - The cache definition parameters.
+   */
+  public cache(params: FieldCacheParams): Query {
+    this._cache = new FieldLevelCache(params)
+    return this
+  }
+
   public toString(): string {
     const args = this.arguments.map(String).join(', ')
     const argsStr = args ? `(${args})` : ''
+    const cacheStr = this._cache ? `${this._cache.toString()} ` : ''
 
-    return `${this.name}${argsStr}: ${this.returns} @resolver(name: "${this.resolver}")`
+    return `${this.name}${argsStr}: ${this.returns} ${cacheStr}@resolver(name: "${this.resolver}")`
   }
 }
