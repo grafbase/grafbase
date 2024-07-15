@@ -3,7 +3,7 @@ use graphql_mocks::{
     FakeFederationAccountsSchema, FakeFederationInventorySchema, FakeFederationProductsSchema,
     FakeFederationReviewsSchema, MockGraphQlServer,
 };
-use integration_tests::{federation::GatewayV2Ext, runtime};
+use integration_tests::{federation::EngineV2Ext, runtime};
 
 #[test]
 fn single_subgraph_subscription() {
@@ -11,8 +11,7 @@ fn single_subgraph_subscription() {
         let products = MockGraphQlServer::new(FakeFederationProductsSchema).await;
 
         let engine = Engine::builder()
-            .with_schema("products", &products)
-            .await
+            .with_subgraph("products", &products)
             .with_supergraph_config(indoc::formatdoc!(
                 r#"
                     extend schema
@@ -20,7 +19,7 @@ fn single_subgraph_subscription() {
                 "#,
                 products.websocket_url(),
             ))
-            .finish()
+            .build()
             .await;
 
         engine
@@ -73,14 +72,10 @@ fn actual_federated_subscription() {
         let inventory = MockGraphQlServer::new(FakeFederationInventorySchema).await;
 
         let engine = Engine::builder()
-            .with_schema("accounts", &accounts)
-            .await
-            .with_schema("products", &products)
-            .await
-            .with_schema("reviews", &reviews)
-            .await
-            .with_schema("inventory", &inventory)
-            .await
+            .with_subgraph("accounts", &accounts)
+            .with_subgraph("products", &products)
+            .with_subgraph("reviews", &reviews)
+            .with_subgraph("inventory", &inventory)
             .with_supergraph_config(indoc::formatdoc!(
                 r#"
                     extend schema
@@ -94,7 +89,7 @@ fn actual_federated_subscription() {
                 reviews.websocket_url(),
                 inventory.websocket_url(),
             ))
-            .finish()
+            .build()
             .await;
 
         engine

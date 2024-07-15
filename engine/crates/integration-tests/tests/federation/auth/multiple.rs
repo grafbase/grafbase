@@ -3,7 +3,7 @@ use graphql_mocks::{FakeGithubSchema, MockGraphQlServer};
 use integration_tests::federation::GraphqlResponse;
 use integration_tests::openid::{CoreClientExt, OryHydraOpenIDProvider};
 use integration_tests::{
-    federation::GatewayV2Ext,
+    federation::EngineV2Ext,
     openid::{AUDIENCE, JWKS_URI, JWKS_URI_2},
     runtime,
 };
@@ -14,15 +14,14 @@ fn test_provider() {
         let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
         let engine = Engine::builder()
-            .with_schema("github", &github_mock)
-            .await
+            .with_subgraph("github", &github_mock)
             .with_supergraph_config(format!(
                 r#"extend schema @authz(providers: [
                     {{ name: "my-jwt", type: jwt, jwks: {{ url: "{JWKS_URI}" }} }}
                     {{ name: "my-jwt-2", type: jwt, jwks: {{ url: "{JWKS_URI_2}" }} }}
                 ])"#
             ))
-            .finish()
+            .build()
             .await;
 
         // this one should work with `my-jwt` provider

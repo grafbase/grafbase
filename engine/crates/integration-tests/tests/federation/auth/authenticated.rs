@@ -2,12 +2,12 @@ use engine_v2::Engine;
 use futures::Future;
 use graphql_mocks::{MockGraphQlServer, SecureSchema};
 use integration_tests::{
-    federation::{GatewayV2Ext, TestFederationEngine},
+    federation::{EngineV2Ext, TestEngineV2},
     openid::{CoreClientExt, OryHydraOpenIDProvider, JWKS_URI},
     runtime,
 };
 
-pub(super) fn with_secure_schema<F, O>(f: impl FnOnce(TestFederationEngine) -> F) -> O
+pub(super) fn with_secure_schema<F, O>(f: impl FnOnce(TestEngineV2) -> F) -> O
 where
     F: Future<Output = O>,
 {
@@ -15,15 +15,14 @@ where
         let secure_mock = MockGraphQlServer::new(SecureSchema::default()).await;
 
         let engine = Engine::builder()
-            .with_schema("secure", &secure_mock)
-            .await
+            .with_subgraph("secure", &secure_mock)
             .with_supergraph_config(format!(
                 r#"extend schema @authz(providers: [
                 {{ name: "my-jwt", type: jwt, jwks: {{ url: "{JWKS_URI}" }} }},
                 {{ type: anonymous }}
             ])"#
             ))
-            .finish()
+            .build()
             .await;
 
         f(engine).await

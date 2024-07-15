@@ -10,23 +10,25 @@ use gateway_core::StreamingFormat;
 use headers::HeaderMapExt;
 use serde::de::Error;
 
-use crate::engine_v1::GraphQlRequest;
+use crate::{engine_v1::GraphQlRequest, fetch::RecordedSubRequest};
 
-pub struct TestFederationEngine {
+pub struct TestEngineV2 {
     engine: Arc<engine_v2::Engine<TestRuntime>>,
+    recorded_subrequests: Arc<crossbeam_queue::SegQueue<RecordedSubRequest>>,
 }
 
-impl TestFederationEngine {
-    pub fn new(engine: Arc<engine_v2::Engine<TestRuntime>>) -> Self {
-        TestFederationEngine { engine }
-    }
-
+impl TestEngineV2 {
     pub fn execute(&self, request: impl Into<GraphQlRequest>) -> ExecutionRequest {
+        while self.recorded_subrequests.pop().is_some() {}
         ExecutionRequest {
             request: request.into(),
             headers: HashMap::new(),
             engine: Arc::clone(&self.engine),
         }
+    }
+
+    pub fn get_recorded_subrequests(&self) -> Vec<RecordedSubRequest> {
+        std::iter::from_fn(|| self.recorded_subrequests.pop()).collect()
     }
 }
 

@@ -1,4 +1,5 @@
-use integration_tests::{federation::MockFederationEngine, runtime};
+use engine_v2::Engine;
+use integration_tests::{federation::EngineV2Ext, fetch::MockFetch, runtime};
 use serde_json::json;
 
 #[test]
@@ -38,9 +39,12 @@ fn gb6873_wrong_enum_sent_to_subgraph() {
         "###;
 
     runtime().block_on(async move {
-        let mut engine = MockFederationEngine::new(SDL).await;
+        let engine = Engine::builder()
+            .with_federated_sdl(SDL)
+            .with_fetcher(MockFetch::default().with_responses("a", vec![json!({"data": {"doStuff": "Hi!"}})]))
+            .build()
+            .await;
 
-        engine.mock("a", vec![json!({"data": {"doStuff": "Hi!"}})]);
         let response = engine
             .execute(
                 r#"
@@ -63,20 +67,24 @@ fn gb6873_wrong_enum_sent_to_subgraph() {
         }
         "###);
 
-        let requests = engine
-            .received_requests()
-            .into_iter()
-            .map(|req| serde_json::from_str::<serde_json::Value>(&req).unwrap())
-            .collect::<Vec<_>>();
+        let requests = engine.get_recorded_subrequests();
         insta::with_settings!({ sort_maps => true}, {
             insta::assert_json_snapshot!(requests, @r###"
             [
               {
-                "query": "query($var0: SomeInput!) {\n  doStuff(input: $var0)\n}\n",
-                "variables": {
-                  "var0": {
-                    "dummy": "DESCOPE",
-                    "token": "<token>"
+                "subgraph_name": "a",
+                "request_body": {
+                  "query": "query($var0: SomeInput!) {\n  doStuff(input: $var0)\n}\n",
+                  "variables": {
+                    "var0": {
+                      "dummy": "DESCOPE",
+                      "token": "<token>"
+                    }
+                  }
+                },
+                "response_body": {
+                  "data": {
+                    "doStuff": "Hi!"
                   }
                 }
               }

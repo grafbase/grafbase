@@ -13,6 +13,7 @@ async-graphql.workspace = true
 async-once-cell = "0.5.3"
 async-runtime.workspace = true
 async-trait.workspace = true
+crossbeam-queue = "0.3"
 cynic.workspace = true
 cynic-introspection.workspace = true
 engine-parser.workspace = true
@@ -24,6 +25,7 @@ futures = "0.3.30"
 gateway-core = { workspace = true, features = ["partial-caching"] }
 grafbase-graphql-introspection.workspace = true
 graphql-composition.workspace = true
+graphql-federated-graph.path = "../federated-graph"
 graphql-parser = "0.4.0"
 headers.workspace = true
 http.workspace = true
@@ -92,7 +94,6 @@ path = "../tracing"
 features = ["tower"]
 
 [dev-dependencies]
-graphql-federated-graph.path = "../federated-graph"
 similar-asserts = "1.5"
 base64.workspace = true
 rstest.workspace = true
@@ -101,7 +102,6 @@ headers.workspace = true
 criterion = { version = "0.5.1", features = ["async_tokio"] }
 sha2.workspace = true
 hex.workspace = true
-serde.workspace = true
 secrecy.workspace = true
 gateway-v2-auth.workspace = true
 common-types.workspace = true

@@ -1,27 +1,17 @@
-use integration_tests::{
-    federation::{TestFederationEngine, TestRuntime},
-    runtime,
-};
-use parser_sdl::federation::FederatedGraphConfig;
-use std::{future::IntoFuture, sync::Arc};
+use engine_v2::Engine;
+use integration_tests::{federation::EngineV2Ext, runtime};
 
 #[test]
 fn works_with_empty_config() {
-    let federated_graph =
-        graphql_federated_graph::FederatedGraph::V3(graphql_federated_graph::FederatedGraphV3::default());
-
-    let federated_graph_config = FederatedGraphConfig::default();
-
-    let config = engine_config_builder::build_config(&federated_graph_config, federated_graph);
-    let gateway = TestFederationEngine::new(Arc::new(runtime().block_on(engine_v2::Engine::new(
-        Arc::new(config.into_latest().try_into().unwrap()),
-        None,
-        TestRuntime::default(),
-    ))));
-
-    let request = r#"{ __typename }"#;
-
-    let response = runtime().block_on(gateway.execute(request).into_future());
-
-    assert_eq!("Query", response.body["data"]["__typename"]);
+    runtime().block_on(async {
+        let engine = Engine::builder().build().await;
+        let response = engine.execute("{ __typename }").await;
+        insta::assert_json_snapshot!(response, @r###"
+        {
+          "data": {
+            "__typename": "Query"
+          }
+        }
+        "###);
+    });
 }

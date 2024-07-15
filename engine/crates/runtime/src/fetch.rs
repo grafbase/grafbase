@@ -47,6 +47,7 @@ pub trait FetcherInner: Send + Sync {
     ) -> FetchResult<BoxStream<'static, Result<serde_json::Value, FetchError>>>;
 }
 
+#[derive(Clone)]
 pub struct Fetcher {
     inner: Arc<dyn FetcherInner>,
 }

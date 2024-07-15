@@ -1,7 +1,7 @@
 use engine_v2::Engine;
 use graphql_mocks::{EchoSchema, MockGraphQlServer};
 use http::HeaderMap;
-use integration_tests::{federation::GatewayV2Ext, runtime};
+use integration_tests::{federation::EngineV2Ext, runtime};
 use runtime::{
     error::{PartialErrorCode, PartialGraphqlError},
     hooks::{DynHookContext, DynHooks},
@@ -29,8 +29,7 @@ fn can_modify_headers() {
 
         let engine = Engine::builder()
             .with_hooks(TestHooks)
-            .with_schema("echo", &echo_mock)
-            .await
+            .with_subgraph("echo", &echo_mock)
             .with_supergraph_config(
                 r#"
                 extend schema @subgraph(
@@ -43,7 +42,7 @@ fn can_modify_headers() {
                 )
             "#,
             )
-            .finish()
+            .build()
             .await;
 
         engine
@@ -95,9 +94,8 @@ fn error_is_propagated_back_to_the_user() {
 
         let engine = Engine::builder()
             .with_hooks(TestHooks)
-            .with_schema("schema", &github_mock)
-            .await
-            .finish()
+            .with_subgraph("schema", &github_mock)
+            .build()
             .await;
 
         engine.execute("query { serverVersion }").await
@@ -141,9 +139,8 @@ fn error_code_is_propagated_back_to_the_user() {
 
         let engine = Engine::builder()
             .with_hooks(TestHooks)
-            .with_schema("schema", &github_mock)
-            .await
-            .finish()
+            .with_subgraph("schema", &github_mock)
+            .build()
             .await;
 
         engine.execute("query { serverVersion }").await

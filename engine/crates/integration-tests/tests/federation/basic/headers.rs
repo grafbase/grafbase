@@ -2,7 +2,7 @@
 
 use engine_v2::Engine;
 use graphql_mocks::{FakeGithubSchema, MockGraphQlServer};
-use integration_tests::{federation::GatewayV2Ext, runtime};
+use integration_tests::{federation::EngineV2Ext, runtime};
 use parser_sdl::federation::header::{NameOrPattern, SubgraphHeaderForward, SubgraphHeaderRemove, SubgraphHeaderRule};
 use regex::Regex;
 
@@ -23,8 +23,7 @@ fn test_default_headers() {
         let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
         let engine = Engine::builder()
-            .with_schema("github", &github_mock)
-            .await
+            .with_subgraph("github", &github_mock)
             .with_supergraph_config(
                 r#"
                     extend schema
@@ -34,7 +33,7 @@ fn test_default_headers() {
                         ])
                 "#,
             )
-            .finish()
+            .build()
             .await;
 
         engine.execute("query { headers { name value }}").await
@@ -68,8 +67,7 @@ fn test_default_headers_forwarding() {
         let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
         let engine = Engine::builder()
-            .with_schema("github", &github_mock)
-            .await
+            .with_subgraph("github", &github_mock)
             .with_supergraph_config(
                 r#"
                     extend schema
@@ -79,7 +77,7 @@ fn test_default_headers_forwarding() {
                         ])
                 "#,
             )
-            .finish()
+            .build()
             .await;
 
         engine
@@ -119,8 +117,7 @@ fn test_subgraph_specific_header_forwarding() {
         let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
         let engine = Engine::builder()
-            .with_schema("github", &github_mock)
-            .await
+            .with_subgraph("github", &github_mock)
             .with_supergraph_config(
                 r#"
                     extend schema
@@ -133,7 +130,7 @@ fn test_subgraph_specific_header_forwarding() {
                         ])
                 "#,
             )
-            .finish()
+            .build()
             .await;
 
         engine
@@ -173,14 +170,13 @@ fn test_regex_header_forwarding() {
         let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
         let engine = Engine::builder()
-            .with_schema("github", &github_mock)
-            .await
+            .with_subgraph("github", &github_mock)
             .with_header_rule(SubgraphHeaderRule::Forward(SubgraphHeaderForward {
                 name: NameOrPattern::Pattern(Regex::new("^x-*").unwrap()),
                 default: None,
                 rename: None,
             }))
-            .finish()
+            .build()
             .await;
 
         engine
@@ -222,14 +218,13 @@ fn test_header_forwarding_with_default() {
         let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
         let engine = Engine::builder()
-            .with_schema("github", &github_mock)
-            .await
+            .with_subgraph("github", &github_mock)
             .with_header_rule(SubgraphHeaderRule::Forward(SubgraphHeaderForward {
                 name: NameOrPattern::Name(String::from("x-source")),
                 rename: None,
                 default: Some(String::from("meow")),
             }))
-            .finish()
+            .build()
             .await;
 
         engine.execute("query { headers { name value }}").await
@@ -262,14 +257,13 @@ fn test_header_forwarding_with_default_and_existing_header() {
         let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
         let engine = Engine::builder()
-            .with_schema("github", &github_mock)
-            .await
+            .with_subgraph("github", &github_mock)
             .with_header_rule(SubgraphHeaderRule::Forward(SubgraphHeaderForward {
                 name: NameOrPattern::Name(String::from("x-source")),
                 rename: None,
                 default: Some(String::from("meow")),
             }))
-            .finish()
+            .build()
             .await;
 
         engine
@@ -305,8 +299,7 @@ fn test_regex_header_forwarding_then_delete() {
         let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
         let engine = Engine::builder()
-            .with_schema("github", &github_mock)
-            .await
+            .with_subgraph("github", &github_mock)
             .with_header_rule(SubgraphHeaderRule::Forward(SubgraphHeaderForward {
                 name: NameOrPattern::Pattern(Regex::new("^x-*").unwrap()),
                 default: None,
@@ -315,7 +308,7 @@ fn test_regex_header_forwarding_then_delete() {
             .with_header_rule(SubgraphHeaderRule::Remove(SubgraphHeaderRemove {
                 name: NameOrPattern::Name(String::from("x-kekw")),
             }))
-            .finish()
+            .build()
             .await;
 
         engine
@@ -353,8 +346,7 @@ fn test_regex_header_forwarding_then_delete_with_regex() {
         let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
         let engine = Engine::builder()
-            .with_schema("github", &github_mock)
-            .await
+            .with_subgraph("github", &github_mock)
             .with_header_rule(SubgraphHeaderRule::Forward(SubgraphHeaderForward {
                 name: NameOrPattern::Pattern(Regex::new("^x-*").unwrap()),
                 default: None,
@@ -363,7 +355,7 @@ fn test_regex_header_forwarding_then_delete_with_regex() {
             .with_header_rule(SubgraphHeaderRule::Remove(SubgraphHeaderRemove {
                 name: NameOrPattern::Pattern(Regex::new("^x-sou*").unwrap()),
             }))
-            .finish()
+            .build()
             .await;
 
         engine

@@ -4,7 +4,7 @@ use tracing_mock::{expect, subscriber};
 use engine_v2::Engine;
 use grafbase_tracing::span::gql::GRAPHQL_SPAN_NAME;
 use graphql_mocks::{FakeGithubSchema, MockGraphQlServer};
-use integration_tests::{federation::GatewayV2Ext, runtime};
+use integration_tests::{federation::EngineV2Ext, runtime};
 
 #[test]
 fn query_bad_request() {
@@ -35,11 +35,7 @@ fn query_bad_request() {
 
         let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
-        let engine = Engine::builder()
-            .with_schema("schema", &github_mock)
-            .await
-            .finish()
-            .await;
+        let engine = Engine::builder().with_subgraph("schema", &github_mock).build().await;
 
         // act
         let _ = engine.execute("{ __type_name }").await;
