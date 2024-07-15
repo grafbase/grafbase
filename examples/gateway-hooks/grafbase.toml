@@ -6,3 +6,18 @@ location = "target/wasm32-wasip1/release/demo_hooks.wasm"
 stdout = true
 stderr = true
 environment_variables = true
+
+[telemetry]
+service_name = "kekw"
+
+[telemetry.tracing]
+sampling = 1
+
+[telemetry.exporters.otlp]
+enabled = true
+endpoint = "http://localhost:4318"
+protocol = "grpc"
+
+[telemetry.exporters.otlp.batch_export]
+scheduled_delay = 1
+max_export_batch_size = 1

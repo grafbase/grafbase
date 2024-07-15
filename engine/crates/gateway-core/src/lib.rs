@@ -3,7 +3,7 @@ use engine::parser::types::OperationType;
 use futures_util::FutureExt;
 use grafbase_telemetry::{
     grafbase_client::Client,
-    metrics::GraphqlOperationMetrics,
+    metrics::{GraphqlOperationMetrics, GraphqlOperationMetricsAttributes},
     span::{gql::GqlRequestSpan, GqlRecorderSpanExt, GqlRequestAttributes},
 };
 pub use runtime::context::RequestContext;
@@ -186,6 +186,8 @@ where
             let normalized_query = operation_normalizer::normalize(request.query(), request.operation_name()).ok();
             let (response, headers) = self.execute_with_auth(ctx, request, auth).await?;
             let status = response.status();
+            let elapsed = start.elapsed();
+
             if let Some(operation) = &response.graphql_operation {
                 gql_span.record_gql_request(GqlRequestAttributes {
                     operation_type: match operation.r#type {
@@ -196,17 +198,20 @@ where
                     operation_name: operation.name.as_deref(),
                     sanitized_query: normalized_query.as_deref(),
                 });
-                gql_span.record_gql_status(status);
+
+                gql_span.record_gql_status(status, elapsed, response.first_error_message());
             }
 
             if let Some((operation, normalized_query)) = response.graphql_operation.as_ref().zip(normalized_query) {
+                let ty = match operation.r#type {
+                    common_types::OperationType::Query { .. } => "query",
+                    common_types::OperationType::Mutation => "mutation",
+                    common_types::OperationType::Subscription => "subscription",
+                };
+
                 self.operation_metrics.record(
-                    grafbase_telemetry::metrics::GraphqlOperationMetricsAttributes {
-                        ty: match operation.r#type {
-                            common_types::OperationType::Query { .. } => "query",
-                            common_types::OperationType::Mutation => "mutation",
-                            common_types::OperationType::Subscription => "subscription",
-                        },
+                    GraphqlOperationMetricsAttributes {
+                        ty,
                         name: operation.name.clone(),
                         normalized_query_hash: blake3::hash(normalized_query.as_bytes()).into(),
                         normalized_query,
@@ -216,7 +221,7 @@ where
                             .and_then(|v| v.to_str().ok().map(|s| s.to_string())),
                         client: Client::extract_from(ctx.headers()),
                     },
-                    start.elapsed(),
+                    elapsed,
                 );
             }
             Ok((response, headers))

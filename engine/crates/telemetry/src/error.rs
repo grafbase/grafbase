@@ -7,12 +7,15 @@ pub enum TracingError {
     /// Error reading a file from disk
     #[error(transparent)]
     FileReadError(std::io::Error),
-    /// Error configuring an exporter
+    /// Error configuring a span exporter
     #[error("unable to configure span exporter: {0}")]
     SpanExporterSetup(String),
     /// Error configuring a metric exporter
     #[error("unable to configure metrics exporter: {0}")]
     MetricsExporterSetup(String),
+    /// Error configuring a logs exporter
+    #[error("unable to configure logs exporter: {0}")]
+    LogsExporterSetup(String),
 }
 
 impl From<String> for TracingError {

@@ -47,7 +47,7 @@ where
     if let Some(stdout_exporter) = config.tracing_stdout_config() {
         let span_processor = build_batched_span_processor(
             stdout_exporter.timeout,
-            &stdout_exporter.batch_export,
+            &stdout_exporter.batch_export.unwrap_or_default(),
             opentelemetry_stdout::SpanExporter::default(),
             runtime.clone(),
         );
@@ -60,7 +60,12 @@ where
     if let Some(otlp_exporter_config) = config.tracing_otlp_config() {
         use opentelemetry_otlp::SpanExporterBuilder;
 
-        let span_exporter = super::exporter::build_otlp_exporter::<SpanExporterBuilder>(&otlp_exporter_config)?
+        let builder: SpanExporterBuilder = match super::exporter::build_otlp_exporter(otlp_exporter_config)? {
+            either::Either::Left(grpc) => grpc.into(),
+            either::Either::Right(http) => http.into(),
+        };
+
+        let span_exporter = builder
             .build_span_exporter()
             .map_err(|err| TracingError::SpanExporterSetup(err.to_string()))?;
 
@@ -78,7 +83,12 @@ where
     if let Some(otlp_exporter_config) = config.grafbase_otlp_config() {
         use opentelemetry_otlp::SpanExporterBuilder;
 
-        let span_exporter = super::exporter::build_otlp_exporter::<SpanExporterBuilder>(&otlp_exporter_config)?
+        let builder: SpanExporterBuilder = match super::exporter::build_otlp_exporter(otlp_exporter_config)? {
+            either::Either::Left(grpc) => grpc.into(),
+            either::Either::Right(http) => http.into(),
+        };
+
+        let span_exporter = builder
             .build_span_exporter()
             .map_err(|err| TracingError::SpanExporterSetup(err.to_string()))?;
 

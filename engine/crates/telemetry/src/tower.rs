@@ -16,7 +16,7 @@ use crate::{
     gql_response_status::GraphqlResponseStatus,
     grafbase_client::Client,
     metrics::{RequestMetrics, RequestMetricsAttributes},
-    span::{request::HttpRequestSpan, HttpRecorderSpanExt},
+    span::{request::HttpRequestSpan, GqlRecorderSpanExt, HttpRecorderSpanExt, GRAFBASE_TARGET},
 };
 
 pub fn layer(meter: Meter) -> TelemetryLayer {
@@ -144,11 +144,13 @@ where
     fn poll(self: std::pin::Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         let this = self.project();
         let _guard = this.span.enter();
+
         let mut result = ready!(this.inner.poll(cx));
         let latency = this.start.elapsed();
 
         let client = this.client.take();
         let metrics = this.metrics;
+
         match result {
             Ok(ref mut response) => {
                 let cache_status = response
@@ -156,19 +158,43 @@ where
                     .get("x-grafbase-cache")
                     .and_then(|value| value.to_str().ok())
                     .map(str::to_string);
+
+                Span::current().record("http.response.status_code", response.status().as_u16());
+
+                let gql_status = response.headers().typed_get();
+
                 metrics.record(
                     RequestMetricsAttributes {
                         status_code: response.status().as_u16(),
                         cache_status,
-                        gql_status: response.headers().typed_get(),
+                        gql_status,
                         client,
                     },
                     latency,
                 );
-                this.span.record_response(response);
+
+                match gql_status {
+                    Some(status) if status.is_success() => {
+                        Span::current().record_gql_status(status, latency, None);
+                        tracing::debug!(target: GRAFBASE_TARGET, "gateway response");
+                    }
+                    Some(status) => {
+                        Span::current().record_gql_status(status, latency, None);
+                        tracing::debug!(target: GRAFBASE_TARGET, "responding a GraphQL error");
+                    }
+                    None => {
+                        let status = GraphqlResponseStatus::RequestError { count: 1 };
+                        Span::current().record_gql_status(status, latency, None);
+
+                        tracing::debug!(target: GRAFBASE_TARGET, "responding a GraphQL error");
+                    }
+                }
+
                 response.headers_mut().remove(GraphqlResponseStatus::header_name());
             }
             Err(ref err) => {
+                Span::current().record("http.response.status_code", 500);
+
                 metrics.record(
                     RequestMetricsAttributes {
                         status_code: 500,
@@ -178,7 +204,9 @@ where
                     },
                     latency,
                 );
-                this.span.record_failure(err.to_string());
+
+                Span::current().record_failure(err.to_string());
+                tracing::error!(target: GRAFBASE_TARGET, "{err}");
             }
         }
 

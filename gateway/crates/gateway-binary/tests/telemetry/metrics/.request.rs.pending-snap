@@ -1,0 +1,21 @@
+{"run_id":"649a7522-f70c-4583-8fa6-e324a860d9dd","line":230,"new":{"module_name":"integration_tests__telemetry__metrics__request","snapshot_name":"client-2","metadata":{"source":"gateway/crates/gateway-binary/tests/telemetry/metrics/request.rs","assertion_line":230,"expression":"row"},"snapshot":"null"},"old":{"module_name":"integration_tests__telemetry__metrics__request","metadata":{},"snapshot":"{\n  \"Count\": 1,\n  \"Attributes\": {\n    \"gql.response.status\": \"SUCCESS\",\n    \"http.headers.x-grafbase-client-name\": \"test\",\n    \"http.headers.x-grafbase-client-version\": \"1.0.0\",\n    \"http.response.status_code\": \"200\"\n  }\n}"}}
+{"run_id":"ff9eccdf-e188-4ef6-9c66-5bfef96a28d6","line":49,"new":null,"old":null}
+{"run_id":"ff9eccdf-e188-4ef6-9c66-5bfef96a28d6","line":103,"new":null,"old":null}
+{"run_id":"ff9eccdf-e188-4ef6-9c66-5bfef96a28d6","line":9,"new":null,"old":null}
+{"run_id":"ff9eccdf-e188-4ef6-9c66-5bfef96a28d6","line":206,"new":null,"old":null}
+{"run_id":"ff9eccdf-e188-4ef6-9c66-5bfef96a28d6","line":152,"new":null,"old":null}
+{"run_id":"ff9eccdf-e188-4ef6-9c66-5bfef96a28d6","line":84,"new":null,"old":null}
+{"run_id":"ff9eccdf-e188-4ef6-9c66-5bfef96a28d6","line":136,"new":null,"old":null}
+{"run_id":"ff9eccdf-e188-4ef6-9c66-5bfef96a28d6","line":33,"new":null,"old":null}
+{"run_id":"ff9eccdf-e188-4ef6-9c66-5bfef96a28d6","line":230,"new":null,"old":null}
+{"run_id":"ff9eccdf-e188-4ef6-9c66-5bfef96a28d6","line":185,"new":null,"old":null}
+{"run_id":"7f9f66d6-474f-42cc-acc3-b9a961278623","line":206,"new":null,"old":null}
+{"run_id":"7f9f66d6-474f-42cc-acc3-b9a961278623","line":9,"new":null,"old":null}
+{"run_id":"7f9f66d6-474f-42cc-acc3-b9a961278623","line":103,"new":null,"old":null}
+{"run_id":"7f9f66d6-474f-42cc-acc3-b9a961278623","line":152,"new":null,"old":null}
+{"run_id":"7f9f66d6-474f-42cc-acc3-b9a961278623","line":49,"new":null,"old":null}
+{"run_id":"7f9f66d6-474f-42cc-acc3-b9a961278623","line":230,"new":null,"old":null}
+{"run_id":"7f9f66d6-474f-42cc-acc3-b9a961278623","line":33,"new":null,"old":null}
+{"run_id":"7f9f66d6-474f-42cc-acc3-b9a961278623","line":136,"new":null,"old":null}
+{"run_id":"7f9f66d6-474f-42cc-acc3-b9a961278623","line":185,"new":null,"old":null}
+{"run_id":"7f9f66d6-474f-42cc-acc3-b9a961278623","line":84,"new":null,"old":null}

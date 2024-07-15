@@ -1,6 +1,9 @@
+use std::borrow::Cow;
+
 use opentelemetry::trace::noop::NoopTracer;
 use opentelemetry::trace::TracerProvider;
 use opentelemetry::KeyValue;
+use opentelemetry_appender_tracing::layer::OpenTelemetryTracingBridge;
 use opentelemetry_sdk::runtime::RuntimeChannel;
 use opentelemetry_sdk::trace::IdGenerator;
 use opentelemetry_sdk::Resource;
@@ -26,6 +29,8 @@ pub struct ReloadableOtelLayers<S> {
     pub tracer: Option<ReloadableOtelLayer<S, opentelemetry_sdk::trace::TracerProvider>>,
     /// A reloadable metrics layer
     pub meter_provider: Option<opentelemetry_sdk::metrics::SdkMeterProvider>,
+    /// A reloadable logging layer
+    pub logger: Option<LoggerLayer>,
 }
 
 /// Holds tracing reloadable layer components
@@ -38,6 +43,11 @@ pub struct ReloadableOtelLayer<Subscriber, Provider> {
     pub provider: Provider,
 }
 
+pub struct LoggerLayer {
+    pub layer: OpenTelemetryTracingBridge<opentelemetry_sdk::logs::LoggerProvider, opentelemetry_sdk::logs::Logger>,
+    pub provider: opentelemetry_sdk::logs::LoggerProvider,
+}
+
 /// Creates a new OTEL tracing layer that doesn't collect or export any tracing data.
 /// The main reason this exists is to act as a placeholder in the subscriber. It's wrapped in a [`reload::Layer`]
 /// enabling its replacement.
@@ -48,6 +58,7 @@ where
     ReloadableOtelLayers {
         tracer: None,
         meter_provider: None,
+        logger: None,
     }
 }
 
@@ -87,17 +98,27 @@ where
         )?)
     };
 
+    let logger = match super::logs::build_logs_provider(runtime.clone(), &config, resource.clone())? {
+        Some(provider) if config.logs_exporters_enabled() => Some(LoggerLayer {
+            layer: OpenTelemetryTracingBridge::new(&provider),
+            provider,
+        }),
+        _ => None,
+    };
+
     let tracing_layer = if config.tracing_exporters_enabled() {
         let tracer_provider = super::traces::build_trace_provider(runtime, id_generator, &config, resource.clone())?;
 
         let tracer = tracer_provider.versioned_tracer(
-            crate::span::SCOPE,
-            Some(crate::span::SCOPE_VERSION),
-            None::<std::borrow::Cow<'static, str>>,
+            crate::SCOPE,
+            Some(crate::SCOPE_VERSION),
+            None::<Cow<'static, str>>,
             None,
         );
 
-        let tracer_layer = tracing_opentelemetry::layer().with_tracer(tracer).boxed();
+        let tracer_layer = tracing_opentelemetry::layer().with_tracer(tracer);
+        let tracer_layer = tracer_layer.boxed();
+
         let (tracer_layer, tracer_layer_reload_handle) = reload::Layer::new(tracer_layer);
 
         ReloadableOtelLayer {
@@ -119,5 +140,6 @@ where
     Ok(ReloadableOtelLayers {
         tracer: Some(tracing_layer),
         meter_provider,
+        logger,
     })
 }

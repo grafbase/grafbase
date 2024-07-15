@@ -72,7 +72,11 @@ impl ComponentLoader {
 
         let this = match Component::from_file(&engine, config.location()) {
             Ok(component) => {
-                tracing::info!(target: GRAFBASE_TARGET, "loaded the provided WASM component successfully");
+                tracing::debug!(
+                    target: GRAFBASE_TARGET,
+                    message = "loaded the provided web assembly component successfully",
+                    location = config.location().to_str(),
+                );
 
                 let mut linker = Linker::<WasiState>::new(&engine);
 
@@ -98,7 +102,12 @@ impl ComponentLoader {
                 })
             }
             Err(e) => {
-                tracing::debug!(target: GRAFBASE_TARGET, "error loading WASM component: {e}");
+                tracing::debug!(
+                    target: GRAFBASE_TARGET,
+                    message = "error loading web assembly component",
+                    location = config.location().to_str(),
+                    error = e.to_string(),
+                );
 
                 None
             }

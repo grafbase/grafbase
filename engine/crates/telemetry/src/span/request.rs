@@ -1,11 +1,11 @@
 use std::borrow::Cow;
-use std::net::IpAddr;
 
 use crate::grafbase_client::Client;
 use crate::span::HttpRecorderSpanExt;
-use http::header::USER_AGENT;
+use http::header::{HOST, USER_AGENT};
 use http::{Response, StatusCode};
 use http_body::Body;
+use tracing::field::Empty;
 use tracing::{info_span, Span};
 
 /// The name of the span that represents the root of an incoming request
@@ -32,7 +32,7 @@ pub struct HttpRequestSpan<'a> {
     header_ray_id: Option<Cow<'a, http::HeaderValue>>,
     header_x_grafbase_client: Option<Client>,
     /// Address of the local HTTP server that received the request
-    server_address: Option<Cow<'a, IpAddr>>,
+    server_address: Option<Cow<'a, http::HeaderValue>>,
     /// Port of the local HTTP server that received the request
     server_port: Option<u16>,
     /// The URI of the request
@@ -92,7 +92,7 @@ impl<'a> HttpRequestSpan<'a> {
             response_body_size: None,
             response_status_code: None,
             response_error: None,
-            server_address: None,
+            server_address: request.headers().get(HOST).map(Cow::Borrowed),
             server_port: None,
             environment: None,
             git_branch: None,
@@ -162,7 +162,7 @@ impl<'a> HttpRequestSpan<'a> {
             "http.header.x-grafbase-client-name" = self.header_x_grafbase_client.as_ref().map(|client| client.name.as_str()),
             "http.header.x-grafbase-client-version" = self.header_x_grafbase_client.as_ref().and_then(|client| client.version.as_deref()),
             "http.header.ray_id" = self.header_ray_id.as_ref().and_then(|v| v.to_str().ok()),
-            "server.address" = self.server_address.map(|v| v.to_string()),
+            "server.address" = self.server_address.as_ref().and_then(|v| v.to_str().ok()),
             "server.port" = self.server_port,
             "url.path" = self.url.path(),
             "url.scheme" = self.url.scheme().map(|v| v.as_str()),
@@ -170,6 +170,12 @@ impl<'a> HttpRequestSpan<'a> {
             "git.branch" = self.git_branch.as_ref().and_then(|v| v.to_str().ok()),
             "git.hash" = self.git_hash.as_ref().and_then(|v| v.to_str().ok()),
             "environment" = self.environment.as_ref().and_then(|v| v.to_str().ok()),
+            "gql.response.status" = Empty,
+            "gql.response.field_errors_count" = Empty,
+            "gql.response.data_is_null" = Empty,
+            "gql.response.request_errors_count" = Empty,
+            "gql.response.latency_ms" = Empty,
+            "gql.response.error" = Empty,
         )
     }
 }

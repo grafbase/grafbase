@@ -44,15 +44,14 @@ where
         service_name = "{service_name}"
 
         [telemetry.tracing]
-        enabled = true
         sampling = 1
 
-        [telemetry.tracing.exporters.otlp]
+        [telemetry.exporters.otlp]
         enabled = true
         endpoint = "http://localhost:4318"
         protocol = "grpc"
 
-        [telemetry.tracing.exporters.otlp.batch_export]
+        [telemetry.exporters.otlp.batch_export]
         scheduled_delay = 1
         max_export_batch_size = 1
     "#};

@@ -1,12 +1,12 @@
+use std::time::Duration;
+
 use http::Response;
 use http_body::Body;
 
-use crate::gql_response_status::GraphqlResponseStatus;
+use crate::gql_response_status::{GraphqlResponseStatus, SubgraphResponseStatus};
 
 /// Tracing target for logging
 pub const GRAFBASE_TARGET: &str = "grafbase";
-pub(crate) const SCOPE: &str = "grafbase";
-pub(crate) const SCOPE_VERSION: &str = "1.0";
 
 /// Cache span
 pub mod cache;
@@ -35,9 +35,28 @@ pub trait GqlRecorderSpanExt {
     fn record_gql_request(&self, attributes: GqlRequestAttributes<'_>);
     /// Record GraphQL response attributes in the span
     fn record_gql_response(&self, attributes: GqlResponseAttributes);
+    /// Record subgraph response attributes in the span
+    fn record_subgraph_response(&self, attributes: SubgraphResponseAttributes);
 
-    fn record_gql_status(&self, status: GraphqlResponseStatus) {
-        self.record_gql_response(GqlResponseAttributes { status })
+    fn record_gql_error(&self, error: String);
+    fn record_gql_duration(&self, duration: Duration);
+
+    fn record_gql_status(&self, status: GraphqlResponseStatus, duration: Duration, error: Option<String>) {
+        self.record_gql_response(GqlResponseAttributes { status });
+        self.record_gql_duration(duration);
+
+        if let Some(e) = error {
+            self.record_gql_error(e)
+        }
+    }
+
+    fn record_subgraph_status(&self, status: SubgraphResponseStatus, duration: Duration, error: Option<String>) {
+        self.record_subgraph_response(SubgraphResponseAttributes { status });
+        self.record_gql_duration(duration);
+
+        if let Some(e) = error {
+            self.record_gql_error(e)
+        }
     }
 }
 
@@ -55,6 +74,11 @@ pub struct GqlRequestAttributes<'a> {
 /// Wraps attributes of a graphql response intended to be recorded
 pub struct GqlResponseAttributes {
     pub status: GraphqlResponseStatus,
+}
+
+/// Wraps attributes of a subgraph response intended to be recorded
+pub struct SubgraphResponseAttributes {
+    pub status: SubgraphResponseStatus,
 }
 
 /// Extension trait to record resolver invocation attributes

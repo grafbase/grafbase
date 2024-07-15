@@ -540,7 +540,12 @@ impl Schema {
                 let (env_builder, futures_waiter) = match schema.prepare_request(extensions, request, session_data).await {
                     Ok(res) => res,
                     Err((operation_metadata, errors)) => {
-                        gql_span.record_gql_status(GraphqlResponseStatus::RequestError { count: errors.len() as u64 });
+                        gql_span.record_gql_status(
+                            GraphqlResponseStatus::RequestError { count: errors.len() as u64 },
+                            start.elapsed(),
+                            errors.first().map(|e| e.to_string())
+                        );
+
                         yield Response::bad_request(errors, operation_metadata).into_streaming_payload(false);
                         return;
                     }
@@ -550,6 +555,7 @@ impl Schema {
                 let env = if env_builder.operation_type() != OperationType::Subscription {
                     let (sender, mut receiver) = deferred::workload_channel();
                     let env = env_builder.with_deferred_sender(sender).build();
+
                     Span::current().record_gql_request(GqlRequestAttributes {
                         operation_type: env.operation.ty.as_str(),
                         operation_name: env.operation_analytics_attributes.name.as_deref(),
@@ -609,7 +615,11 @@ impl Schema {
                     env.clone()
                 };
 
-                Span::current().record_gql_status(status);
+                let elapsed = start.elapsed();
+
+                // TODO: what to do with errors here?
+                Span::current().record_gql_status(status, elapsed, None);
+
                 if let Some(normalized_query) = normalized_query {
                     schema.env.operation_metrics.record(
                         grafbase_telemetry::metrics::GraphqlOperationMetricsAttributes {
@@ -621,7 +631,7 @@ impl Schema {
                             cache_status: None,
                             client
                         },
-                        start.elapsed(),
+                        elapsed,
                     );
                 }
             }

@@ -40,6 +40,7 @@ opentelemetry = { git = "https://github.com/grafbase/opentelemetry-rust", rev = 
 opentelemetry-otlp = { git = "https://github.com/grafbase/opentelemetry-rust", rev = "830815740a43f488157e86b0c69b0b86d1aee867" }               # http-v1
 opentelemetry-stdout = { git = "https://github.com/grafbase/opentelemetry-rust", rev = "830815740a43f488157e86b0c69b0b86d1aee867" }             # http-v1
 opentelemetry_sdk = { git = "https://github.com/grafbase/opentelemetry-rust", rev = "830815740a43f488157e86b0c69b0b86d1aee867" }                # http-v1
+opentelemetry-appender-tracing = { git = "https://github.com/grafbase/opentelemetry-rust", rev = "830815740a43f488157e86b0c69b0b86d1aee867" }
 
 # FIXME: Uncomment when we upgrade opentelemetry to 0.23.
 # opentelemetry-aws = { git = "https://github.com/open-telemetry/opentelemetry-rust-contrib", rev = "086961e18437743c5ea43c9474cc1a7b13a49c6b" } # main
@@ -157,6 +158,7 @@ opentelemetry = "0.22"
 opentelemetry_sdk = "0.22.0"
 opentelemetry-stdout = "0.3"
 opentelemetry-otlp = "0.15"
+opentelemetry-appender-tracing = "0.3.0"
 
 # Common
 graph-ref = { path = "graph-ref" }

@@ -6,7 +6,7 @@ use crate::operation::Location;
 
 use super::ResponsePath;
 
-#[derive(Clone, Copy, Debug, serde::Serialize, serde::Deserialize, strum::Display)]
+#[derive(Clone, Copy, Debug, serde::Serialize, serde::Deserialize, strum::Display, strum::AsRefStr)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 #[strum(serialize_all = "SCREAMING_SNAKE_CASE")]
 pub(crate) enum ErrorCode {

@@ -90,24 +90,42 @@ fn init_global_tracing(args: &impl Args, config: Option<TelemetryConfig>) -> any
     use tracing_subscriber::util::SubscriberInitExt;
 
     let filter = args.log_level().map(|l| l.as_filter_str()).unwrap_or("info");
-
     let env_filter = EnvFilter::new(filter);
-
     let will_reload_otel = !matches!(args.fetch_method()?, GraphFetchMethod::FromLocal { .. });
-    let ReloadableOtelLayers { tracer, meter_provider } =
-        build_otel_layers(config, Default::default(), will_reload_otel)?;
+
+    let ReloadableOtelLayers {
+        tracer,
+        meter_provider,
+        logger,
+    } = build_otel_layers(config, Default::default(), will_reload_otel)?;
+
     let tracer = tracer.expect("should have a valid otel trace layer");
 
     grafbase_telemetry::otel::opentelemetry::global::set_tracer_provider(tracer.provider.clone());
+
     if let Some(meter_provider) = meter_provider {
         grafbase_telemetry::otel::opentelemetry::global::set_meter_provider(meter_provider);
     }
 
-    tracing_subscriber::registry()
-        .with(tracer.layer)
-        .with(args.log_format())
-        .with(env_filter)
-        .init();
+    match logger {
+        Some(logger) => {
+            tracing_subscriber::registry()
+                .with(tracer.layer.boxed())
+                .with(logger.layer.boxed())
+                .with(args.log_format())
+                .with(env_filter)
+                .init();
+
+            grafbase_telemetry::otel::opentelemetry::global::set_logger_provider(logger.provider.clone());
+        }
+        None => {
+            tracing_subscriber::registry()
+                .with(tracer.layer)
+                .with(args.log_format())
+                .with(env_filter)
+                .init();
+        }
+    }
 
     Ok(OtelLegos {
         tracer_provider: tracer.provider,
@@ -126,16 +144,19 @@ fn otel_layer_reload<S>(
 {
     tokio::spawn(async move {
         let result = reload_receiver.await;
-        tracing::debug!("Reloading OTEL layers.");
+        tracing::trace!("Initializing Grafbase telemetry");
 
         let Ok(reload_data) = result else {
-            tracing::debug!("OTEL did not reload");
+            tracing::debug!("Grafbase telemetry is disabled.");
             reload_ack_sender.send(()).ok();
             return;
         };
 
-        let ReloadableOtelLayers { tracer, meter_provider } = match build_otel_layers(config, Some(reload_data), false)
-        {
+        let ReloadableOtelLayers {
+            tracer,
+            meter_provider,
+            logger,
+        } = match build_otel_layers(config, Some(reload_data), false) {
             Ok(value) => value,
             Err(err) => {
                 error!("error creating a new otel layer for reload: {err}");
@@ -143,11 +164,13 @@ fn otel_layer_reload<S>(
                 return;
             }
         };
+
         let Some(tracer) = tracer else {
             error!("should have a valid otel trace layer");
             reload_ack_sender.send(()).ok();
             return;
         };
+
         let Some(meter_provider) = meter_provider else {
             error!("should have a valid otel meter provider");
             reload_ack_sender.send(()).ok();
@@ -162,7 +185,13 @@ fn otel_layer_reload<S>(
 
         grafbase_telemetry::otel::opentelemetry::global::set_meter_provider(meter_provider);
         grafbase_telemetry::otel::opentelemetry::global::set_tracer_provider(tracer.provider.clone());
+
+        if let Some(logger) = logger {
+            grafbase_telemetry::otel::opentelemetry::global::set_logger_provider(logger.provider.clone());
+        }
+
         reload_ack_sender.send(()).ok();
+
         // FIXME: this seems to block the reload, but it's not clear why
         tracer_sender.send(tracer.provider).ok();
     });

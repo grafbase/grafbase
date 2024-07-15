@@ -5,7 +5,7 @@ use std::collections::HashMap;
 #[cfg(feature = "otlp")]
 pub use exporters::{
     Headers, OtlpExporterConfig, OtlpExporterGrpcConfig, OtlpExporterHttpConfig, OtlpExporterProtocol,
-    OtlpExporterTlsConfig, DEFAULT_FILTER,
+    OtlpExporterTlsConfig,
 };
 pub use exporters::{
     LogsConfig, MetricsConfig, {TracingCollectConfig, TracingConfig, DEFAULT_SAMPLING},
@@ -99,6 +99,16 @@ impl TelemetryConfig {
             Some(config) if config.enabled => Some(config),
             Some(_) => None,
             None => self.exporters.otlp.as_ref().filter(|c| c.enabled),
+        }
+    }
+
+    pub fn logs_exporters_enabled(&self) -> bool {
+        cfg_if::cfg_if! {
+            if #[cfg(feature = "otlp")] {
+                self.logs_otlp_config().is_some() || self.logs_stdout_config().is_some()
+            } else {
+                self.logs_stdout_config().is_some()
+            }
         }
     }
 
@@ -1163,12 +1173,12 @@ pub mod tests {
         assert_eq!(
             Some(StdoutExporterConfig {
                 enabled: true,
-                batch_export: BatchExportConfig {
+                batch_export: Some(BatchExportConfig {
                     scheduled_delay: chrono::Duration::try_seconds(10).expect("must be fine"),
                     max_queue_size: 10,
                     max_export_batch_size: 10,
                     max_concurrent_exports: 10,
-                },
+                }),
                 timeout: chrono::Duration::try_seconds(10).expect("must be fine"),
             }),
             config.exporters.stdout

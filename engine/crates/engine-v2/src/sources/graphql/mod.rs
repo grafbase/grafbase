@@ -1,8 +1,12 @@
-use grafbase_telemetry::span::{subgraph::SubgraphRequestSpan, GqlRecorderSpanExt};
+use grafbase_telemetry::{
+    gql_response_status::{GraphqlResponseStatus, SubgraphResponseStatus},
+    span::{subgraph::SubgraphRequestSpan, GqlRecorderSpanExt, GRAFBASE_TARGET},
+};
 use runtime::fetch::FetchRequest;
 use schema::sources::graphql::{GraphqlEndpointId, GraphqlEndpointWalker, RootFieldResolverWalker};
 use serde::de::DeserializeSeed;
 use tracing::Instrument;
+use web_time::{Duration, Instant};
 
 use self::query::PreparedGraphqlOperation;
 use self::variables::SubgraphVariables;
@@ -101,45 +105,103 @@ impl<'ctx, R: Runtime> GraphqlExecutor<'ctx, R> {
         }
         .into_span();
 
-        async {
-            self.ctx
-                .engine
-                .runtime
-                .rate_limiter()
-                .limit(&crate::engine::RateLimitContext::Subgraph(self.subgraph.name()))
-                .await?;
+        self.subgraph_request(&mut response_part)
+            .instrument(span.clone())
+            .await?;
 
-            let bytes = self
-                .ctx
-                .engine
-                .runtime
-                .fetcher()
-                .post(FetchRequest {
-                    url: self.subgraph.url(),
-                    json_body: self.json_body,
-                    headers: self.ctx.headers_with_rules(self.subgraph.header_rules()),
-                })
-                .await?
-                .bytes;
+        Ok(response_part)
+    }
 
-            tracing::debug!("{}", String::from_utf8_lossy(&bytes));
+    async fn subgraph_request(self, response_part: &mut ResponsePart) -> ExecutionResult<()> {
+        self.ctx
+            .engine
+            .runtime
+            .rate_limiter()
+            .limit(&crate::engine::RateLimitContext::Subgraph(self.subgraph.name()))
+            .await?;
 
-            let part = response_part.as_mut();
+        let start = Instant::now();
 
-            let status = GraphqlResponseSeed::new(
-                part.next_seed(self.plan).ok_or("No object to update")?,
-                RootGraphqlErrors {
-                    response_part: &part,
-                    response_keys: self.plan.response_keys(),
-                },
-            )
-            .deserialize(&mut serde_json::Deserializer::from_slice(&bytes))?;
+        let response = self
+            .ctx
+            .engine
+            .runtime
+            .fetcher()
+            .post(FetchRequest {
+                url: self.subgraph.url(),
+                headers: self.ctx.headers_with_rules(self.subgraph.header_rules()),
+                json_body: self.json_body,
+            })
+            .await;
 
-            span.record_gql_status(status);
+        let elapsed = start.elapsed();
 
-            Ok(response_part)
+        let response = match response {
+            Ok(response) => response,
+            Err(e) => {
+                let status = SubgraphResponseStatus::HttpError;
+
+                tracing::Span::current().record_subgraph_status(status, elapsed, Some(e.to_string()));
+                tracing::error!(target: GRAFBASE_TARGET, "{e}");
+
+                return Err(e.into());
+            }
+        };
+
+        tracing::trace!("{}", String::from_utf8_lossy(&response.bytes));
+
+        let part = response_part.as_mut();
+
+        let result = GraphqlResponseSeed::new(
+            part.next_seed(self.plan).ok_or("No object to update")?,
+            RootGraphqlErrors {
+                response_part: &part,
+                response_keys: self.plan.response_keys(),
+            },
+        )
+        .deserialize(&mut serde_json::Deserializer::from_slice(&response.bytes));
+
+        handle_subgraph_result(result, response_part, elapsed)
+    }
+}
+
+fn handle_subgraph_result(
+    result: Result<GraphqlResponseStatus, serde_json::Error>,
+    response_part: &ResponsePart,
+    elapsed: Duration,
+) -> ExecutionResult<()> {
+    match result {
+        result if response_part.blocked_in_planning() => {
+            result?;
+            Ok(())
         }
-        .instrument(span.clone())
-        .await
+        Ok(status) if status.is_success() => {
+            let subgraph_status = SubgraphResponseStatus::GraphqlResponse(status);
+
+            tracing::Span::current().record_subgraph_status(subgraph_status, elapsed, None);
+            tracing::debug!(target: GRAFBASE_TARGET, "subgraph response");
+
+            Ok(())
+        }
+        Ok(status) => {
+            let subgraph_status = SubgraphResponseStatus::GraphqlResponse(status);
+            let message = response_part
+                .first_error_message()
+                .unwrap_or_else(|| String::from("subgraph error"));
+
+            tracing::Span::current().record_subgraph_status(subgraph_status, elapsed, Some(message.clone()));
+            tracing::error!(target: GRAFBASE_TARGET, "{message}");
+
+            Ok(())
+        }
+        Err(e) => {
+            let status = SubgraphResponseStatus::InvalidResponseError;
+            let message = e.to_string();
+
+            tracing::Span::current().record_subgraph_status(status, elapsed, Some(message.clone()));
+            tracing::error!(target: GRAFBASE_TARGET, "{message}");
+
+            Err(e.into())
+        }
     }
 }

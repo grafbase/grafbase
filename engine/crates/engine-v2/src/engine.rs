@@ -14,7 +14,7 @@ use grafbase_telemetry::{
     gql_response_status::GraphqlResponseStatus,
     grafbase_client::Client,
     metrics::{GraphqlOperationMetrics, GraphqlOperationMetricsAttributes},
-    span::{gql::GqlRequestSpan, GqlRecorderSpanExt, GqlRequestAttributes},
+    span::{gql::GqlRequestSpan, GqlRecorderSpanExt, GqlRequestAttributes, GRAFBASE_TARGET},
 };
 use headers::HeaderMapExt;
 use schema::Schema;
@@ -210,11 +210,15 @@ impl<R: Runtime> Engine<R> {
             let ctx = PreExecutionContext::new(self, request_context);
             let (operation_metadata, response) = ctx.execute_single(request).await;
             let status = response.status();
+
             let mut response_metadata = HttpGraphqlResponseExtraMetadata {
                 operation_name: None,
                 operation_type: None,
                 has_errors: !status.is_success(),
             };
+
+            let elapsed = start.elapsed();
+
             if let Some(OperationMetadata {
                 ty,
                 name,
@@ -222,13 +226,15 @@ impl<R: Runtime> Engine<R> {
                 normalized_query_hash,
             }) = operation_metadata
             {
-                span.record_gql_request(GqlRequestAttributes {
+                tracing::Span::current().record_gql_request(GqlRequestAttributes {
                     operation_type: ty.as_str(),
                     operation_name: name.as_deref(),
                     sanitized_query: Some(&normalized_query),
                 });
+
                 response_metadata.operation_name.clone_from(&name);
                 response_metadata.operation_type = Some(ty.as_str());
+
                 self.operation_metrics.record(
                     GraphqlOperationMetricsAttributes {
                         ty: ty.as_str(),
@@ -239,13 +245,27 @@ impl<R: Runtime> Engine<R> {
                         cache_status: None,
                         client: request_context.client.clone(),
                     },
-                    start.elapsed(),
+                    elapsed,
                 );
             }
-            span.record_gql_status(status);
+
+            if status.is_success() {
+                tracing::Span::current().record_gql_status(status, elapsed, None);
+                tracing::debug!(target: GRAFBASE_TARGET, "router response")
+            } else {
+                let message = response
+                    .first_error_message()
+                    .map(|s| s.into_owned())
+                    .unwrap_or_else(|| String::from("router error"));
+
+                tracing::Span::current().record_gql_status(status, elapsed, Some(message.clone()));
+
+                tracing::error!(target: GRAFBASE_TARGET, "{message}")
+            }
+
             HttpGraphqlResponse::build(response, None, response_metadata)
         }
-        .instrument(span.clone())
+        .instrument(span)
         .await
     }
 
@@ -264,6 +284,8 @@ impl<R: Runtime> Engine<R> {
             async move {
                 let ctx = PreExecutionContext::new(&engine, &request_context);
                 let (metadata, status) = ctx.execute_stream(request, sender).await;
+                let elapsed = start.elapsed();
+
                 if let Some(OperationMetadata {
                     ty,
                     name,
@@ -276,6 +298,7 @@ impl<R: Runtime> Engine<R> {
                         operation_name: name.as_deref(),
                         sanitized_query: Some(&normalized_query),
                     });
+
                     engine.operation_metrics.record(
                         GraphqlOperationMetricsAttributes {
                             ty: ty.as_str(),
@@ -286,11 +309,18 @@ impl<R: Runtime> Engine<R> {
                             cache_status: None,
                             client: request_context.client.clone(),
                         },
-                        start.elapsed(),
+                        elapsed,
                     );
                 }
 
-                span.record_gql_status(status);
+                // TODO: recording gql errors here is a bit...
+                span.record_gql_status(status, elapsed, None);
+
+                if status.is_success() {
+                    tracing::debug!(target: GRAFBASE_TARGET, "router response")
+                } else {
+                    tracing::error!(target: GRAFBASE_TARGET, "router error")
+                }
             }
             .instrument(span_clone),
         )
@@ -393,6 +423,7 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
                 Ok(pq) => pq,
                 Err(err) => return Err((None, Response::pre_execution_error(err))),
             };
+
             if let Some(operation) = self.operation_cache.get(&cache_key).await {
                 Ok(operation)
             } else if let Some(persisted_query) = document_fut {

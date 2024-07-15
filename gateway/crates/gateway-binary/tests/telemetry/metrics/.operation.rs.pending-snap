@@ -1,0 +1,25 @@
+{"run_id":"649a7522-f70c-4583-8fa6-e324a860d9dd","line":308,"new":{"module_name":"integration_tests__telemetry__metrics__operation","snapshot_name":"client-2","metadata":{"source":"gateway/crates/gateway-binary/tests/telemetry/metrics/operation.rs","assertion_line":308,"expression":"row"},"snapshot":"null"},"old":{"module_name":"integration_tests__telemetry__metrics__operation","metadata":{},"snapshot":"{\n  \"Count\": 1,\n  \"Attributes\": {\n    \"gql.operation.name\": \"SimpleQuery\",\n    \"gql.operation.normalized_query\": \"query SimpleQuery {\\n  __typename\\n}\\n\",\n    \"gql.operation.normalized_query_hash\": \"qIzPxtWwHz0t+aJjvOljljbR3aGLQAA0LI5VXjW/FwQ=\",\n    \"gql.operation.type\": \"query\",\n    \"gql.response.status\": \"SUCCESS\",\n    \"http.headers.x-grafbase-client-name\": \"test\",\n    \"http.headers.x-grafbase-client-version\": \"1.0.0\"\n  }\n}"}}
+{"run_id":"ff9eccdf-e188-4ef6-9c66-5bfef96a28d6","line":226,"new":null,"old":null}
+{"run_id":"ff9eccdf-e188-4ef6-9c66-5bfef96a28d6","line":283,"new":null,"old":null}
+{"run_id":"ff9eccdf-e188-4ef6-9c66-5bfef96a28d6","line":57,"new":null,"old":null}
+{"run_id":"ff9eccdf-e188-4ef6-9c66-5bfef96a28d6","line":12,"new":null,"old":null}
+{"run_id":"ff9eccdf-e188-4ef6-9c66-5bfef96a28d6","line":114,"new":null,"old":null}
+{"run_id":"ff9eccdf-e188-4ef6-9c66-5bfef96a28d6","line":171,"new":null,"old":null}
+{"run_id":"ff9eccdf-e188-4ef6-9c66-5bfef96a28d6","line":308,"new":null,"old":null}
+{"run_id":"ff9eccdf-e188-4ef6-9c66-5bfef96a28d6","line":259,"new":null,"old":null}
+{"run_id":"ff9eccdf-e188-4ef6-9c66-5bfef96a28d6","line":92,"new":null,"old":null}
+{"run_id":"ff9eccdf-e188-4ef6-9c66-5bfef96a28d6","line":35,"new":null,"old":null}
+{"run_id":"ff9eccdf-e188-4ef6-9c66-5bfef96a28d6","line":149,"new":null,"old":null}
+{"run_id":"ff9eccdf-e188-4ef6-9c66-5bfef96a28d6","line":204,"new":null,"old":null}
+{"run_id":"7f9f66d6-474f-42cc-acc3-b9a961278623","line":57,"new":null,"old":null}
+{"run_id":"7f9f66d6-474f-42cc-acc3-b9a961278623","line":226,"new":null,"old":null}
+{"run_id":"7f9f66d6-474f-42cc-acc3-b9a961278623","line":12,"new":null,"old":null}
+{"run_id":"7f9f66d6-474f-42cc-acc3-b9a961278623","line":114,"new":null,"old":null}
+{"run_id":"7f9f66d6-474f-42cc-acc3-b9a961278623","line":171,"new":null,"old":null}
+{"run_id":"7f9f66d6-474f-42cc-acc3-b9a961278623","line":283,"new":null,"old":null}
+{"run_id":"7f9f66d6-474f-42cc-acc3-b9a961278623","line":92,"new":null,"old":null}
+{"run_id":"7f9f66d6-474f-42cc-acc3-b9a961278623","line":259,"new":null,"old":null}
+{"run_id":"7f9f66d6-474f-42cc-acc3-b9a961278623","line":35,"new":null,"old":null}
+{"run_id":"7f9f66d6-474f-42cc-acc3-b9a961278623","line":149,"new":null,"old":null}
+{"run_id":"7f9f66d6-474f-42cc-acc3-b9a961278623","line":204,"new":null,"old":null}
+{"run_id":"7f9f66d6-474f-42cc-acc3-b9a961278623","line":308,"new":null,"old":null}

@@ -31,7 +31,7 @@ impl LogLevel {
             LogLevel::Error => "grafbase=error,off",
             LogLevel::Warn => "grafbase=warn,off",
             LogLevel::Info => "grafbase=info,off",
-            LogLevel::Debug => "debug",
+            LogLevel::Debug => "grafbase=debug,off",
             LogLevel::Trace => "trace",
         }
     }

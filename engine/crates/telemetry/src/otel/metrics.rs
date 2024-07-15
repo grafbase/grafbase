@@ -57,6 +57,7 @@ where
         .with_interval(
             config
                 .batch_export
+                .unwrap_or_default()
                 .scheduled_delay
                 .to_std()
                 .unwrap_or(Duration::from_secs(10)),
@@ -91,7 +92,12 @@ where
 {
     use opentelemetry_otlp::MetricsExporterBuilder;
 
-    let exporter = super::exporter::build_otlp_exporter::<MetricsExporterBuilder>(config)?
+    let builder: MetricsExporterBuilder = match super::exporter::build_otlp_exporter(config)? {
+        either::Either::Left(grpc) => grpc.into(),
+        either::Either::Right(http) => http.into(),
+    };
+
+    let exporter = builder
         .build_metrics_exporter(Box::new(DeltaTemporality), Box::new(AggForLatencyHistogram))
         .map_err(|e| TracingError::MetricsExporterSetup(e.to_string()))?;
 
