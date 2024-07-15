@@ -2,7 +2,7 @@ use serde::{de::DeserializeSeed, Deserializer};
 
 use crate::response::{ErrorCode, GraphqlError, ResponseKeys, ResponsePartMut, ResponsePath, UnpackedResponseEdge};
 
-pub(super) trait GraphqlErrorsSeed<'a> {
+pub trait GraphqlErrorsSeed<'a> {
     fn response_part(&self) -> &ResponsePartMut<'a>;
     fn convert_path(&self, path: &serde_json::Value) -> Option<ResponsePath>;
 }

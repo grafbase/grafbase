@@ -29,9 +29,7 @@ impl GraphqlResponseStatus {
             Self::RequestError { .. } => "REQUEST_ERROR",
         }
     }
-}
 
-impl GraphqlResponseStatus {
     pub fn header_name() -> &'static http::HeaderName {
         &X_GRAFBASE_GQL_RESPONSE_STATUS
     }
@@ -88,5 +86,30 @@ impl headers::Header for GraphqlResponseStatus {
 
     fn encode<E: Extend<http::HeaderValue>>(&self, values: &mut E) {
         values.extend(Some(GraphqlResponseStatus::encode(self).try_into().unwrap()))
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+pub enum SubgraphResponseStatus {
+    GraphqlResponse(GraphqlResponseStatus),
+    HttpError,
+    InvalidResponseError,
+}
+
+impl SubgraphResponseStatus {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            SubgraphResponseStatus::GraphqlResponse(response) => response.as_str(),
+            SubgraphResponseStatus::HttpError => "HTTP_ERROR",
+            SubgraphResponseStatus::InvalidResponseError => "INVALID_RESPONSE",
+        }
+    }
+
+    pub fn is_success(self) -> bool {
+        match self {
+            SubgraphResponseStatus::GraphqlResponse(response) => response.is_success(),
+            SubgraphResponseStatus::HttpError => false,
+            SubgraphResponseStatus::InvalidResponseError => false,
+        }
     }
 }

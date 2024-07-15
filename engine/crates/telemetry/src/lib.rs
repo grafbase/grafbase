@@ -15,3 +15,6 @@ pub mod span;
 /// [Tower](https://docs.rs/tower/latest/tower/) integration
 #[cfg(feature = "tower")]
 pub mod tower;
+
+pub(crate) const SCOPE: &str = "grafbase";
+pub(crate) const SCOPE_VERSION: &str = "1.0";

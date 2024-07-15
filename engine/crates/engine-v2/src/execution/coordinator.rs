@@ -31,6 +31,7 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
     pub async fn execute_query_or_mutation(self, operation: ExecutableOperation) -> Response {
         let background_futures: FuturesUnordered<_> = self.background_futures.into_iter().collect();
         let background_fut = background_futures.collect::<Vec<_>>();
+
         let ctx = ExecutionContext {
             engine: self.engine,
             operation: &operation,

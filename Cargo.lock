@@ -2280,9 +2280,9 @@ dependencies = [
 
 [[package]]
 name = "either"
-version = "1.12.0"
+version = "1.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3dca9240753cf90908d7e4aac30f630662b02aebaa1b58a3cadabdb23385b58b"
+checksum = "60b1af1c220855b6ceac025d3f6ecdd2b7c4894bfe9cd9bda4fbb4bc7c0d4cf0"
 
 [[package]]
 name = "elliptic-curve"
@@ -3708,12 +3708,14 @@ dependencies = [
  "base64 0.22.1",
  "cfg-if",
  "chrono",
+ "either",
  "headers",
  "http 1.1.0",
  "http-body 1.0.0",
  "indoc",
  "insta",
  "opentelemetry",
+ "opentelemetry-appender-tracing",
  "opentelemetry-otlp",
  "opentelemetry-stdout",
  "opentelemetry_sdk",
@@ -6055,6 +6057,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "opentelemetry-appender-tracing"
+version = "0.3.0"
+source = "git+https://github.com/grafbase/opentelemetry-rust?rev=830815740a43f488157e86b0c69b0b86d1aee867#830815740a43f488157e86b0c69b0b86d1aee867"
+dependencies = [
+ "once_cell",
+ "opentelemetry",
+ "opentelemetry_sdk",
+ "tracing",
+ "tracing-core",
+ "tracing-log",
+ "tracing-subscriber",
+]
+
+[[package]]
 name = "opentelemetry-aws"
 version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6124,6 +6140,7 @@ dependencies = [
  "ordered-float 4.2.0",
  "serde",
  "serde_json",
+ "thiserror",
 ]
 
 [[package]]
@@ -6144,6 +6161,7 @@ dependencies = [
  "ordered-float 4.2.0",
  "percent-encoding",
  "rand 0.8.5",
+ "serde_json",
  "thiserror",
  "tokio",
  "tokio-stream",

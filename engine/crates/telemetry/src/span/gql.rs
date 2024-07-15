@@ -1,9 +1,13 @@
+use std::time::Duration;
+
 use tracing::{info_span, Span};
 
 use crate::{
-    gql_response_status::GraphqlResponseStatus,
+    gql_response_status::{GraphqlResponseStatus, SubgraphResponseStatus},
     span::{GqlRecorderSpanExt, GqlRequestAttributes, GqlResponseAttributes},
 };
+
+use super::SubgraphResponseAttributes;
 
 /// The name of the GraphQL span
 pub const GRAPHQL_SPAN_NAME: &str = "graphql";
@@ -19,6 +23,7 @@ impl GqlRequestSpan {
     /// Consume self and turn into a [Span]
     pub fn create() -> Span {
         use tracing::field::Empty;
+
         info_span!(
             target: crate::span::GRAFBASE_TARGET,
             GRAPHQL_SPAN_NAME,
@@ -30,6 +35,8 @@ impl GqlRequestSpan {
             "gql.response.field_errors_count"  = Empty,
             "gql.response.data_is_null"  = Empty,
             "gql.response.request_errors_count"  = Empty,
+            "gql.response.latency_ms" = Empty,
+            "gql.response.error" = Empty,
         )
     }
 }
@@ -58,5 +65,24 @@ impl GqlRecorderSpanExt for Span {
                 self.record("gql.response.request_errors_count", count);
             }
         }
+    }
+
+    fn record_subgraph_response(&self, attributes: SubgraphResponseAttributes) {
+        match attributes.status {
+            SubgraphResponseStatus::GraphqlResponse(status) => {
+                self.record_gql_response(GqlResponseAttributes { status })
+            }
+            SubgraphResponseStatus::HttpError | SubgraphResponseStatus::InvalidResponseError => {
+                self.record("gql.response.status", attributes.status.as_str());
+            }
+        }
+    }
+
+    fn record_gql_error(&self, error: String) {
+        self.record("gql.response.error", error);
+    }
+
+    fn record_gql_duration(&self, duration: Duration) {
+        self.record("gql.response.latency_ms", duration.as_millis() as u64);
     }
 }

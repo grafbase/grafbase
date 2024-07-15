@@ -29,6 +29,23 @@ impl Headers {
             .map(|(name, value)| Ok((name.to_string(), value.to_string())))
             .collect::<Result<HashMap<_, _>, _>>()
     }
+
+    pub fn len(&self) -> usize {
+        self.inner().len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+}
+
+impl IntoIterator for Headers {
+    type Item = (AsciiString, DynamicString<AsciiString>);
+    type IntoIter = std::vec::IntoIter<Self::Item>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
+    }
 }
 
 impl From<Vec<(AsciiString, AsciiString)>> for Headers {

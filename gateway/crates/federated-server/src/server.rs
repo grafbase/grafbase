@@ -89,8 +89,9 @@ pub async fn serve(
 
     // HACK: Wait for the engine to be ready. This ensures we did reload OTEL providers if necessary
     // as we need all resources attributes to be present before creating the tracing layer.
-    tracing::event!(target: GRAFBASE_TARGET, Level::DEBUG, "Waiting for engine to be ready...");
+    tracing::event!(target: GRAFBASE_TARGET, Level::DEBUG, "waiting for engine to be ready...");
     gateway.changed().await.ok();
+
     let mut router = Router::new()
         .route(path, get(engine::get).post(engine::post))
         .route_service("/ws", WebsocketService::new(websocket_sender))

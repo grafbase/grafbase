@@ -183,6 +183,10 @@ impl Response {
             }
         }
     }
+
+    pub fn first_error_message(&self) -> Option<String> {
+        self.errors.first().map(ToString::to_string)
+    }
 }
 
 /// Response for batchable queries

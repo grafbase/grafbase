@@ -5,6 +5,7 @@ use serde::Deserialize;
 
 use crate::{load_schema, with_hybrid_server, with_static_server};
 
+mod logs;
 mod metrics;
 
 #[test]
@@ -13,7 +14,7 @@ fn with_stdout_telemetry() {
         [telemetry]
         service_name = "meow"
 
-        [telemetry.tracing.exporters.stdout]
+        [telemetry.exporters.stdout]
         enabled = true
     "#};
 
@@ -49,15 +50,14 @@ fn with_otel() {
         service_name = "{service_name}"
 
         [telemetry.tracing]
-        enabled = true
         sampling = 1
 
-        [telemetry.tracing.exporters.otlp]
+        [telemetry.exporters.otlp]
         enabled = true
         endpoint = "http://localhost:4318"
         protocol = "grpc"
 
-        [telemetry.tracing.exporters.otlp.batch_export]
+        [telemetry.exporters.otlp.batch_export]
         scheduled_delay = 1
         max_export_batch_size = 1
     "#};
@@ -114,15 +114,14 @@ fn extra_resource_attributes() {
         my-favorite-app = "graphabase"
 
         [telemetry.tracing]
-        enabled = true
         sampling = 1
 
-        [telemetry.tracing.exporters.otlp]
+        [telemetry.exporters.otlp]
         enabled = true
         endpoint = "http://localhost:4318"
         protocol = "grpc"
 
-        [telemetry.tracing.exporters.otlp.batch_export]
+        [telemetry.exporters.otlp.batch_export]
         scheduled_delay = 1
         max_export_batch_size = 1
     "#};
@@ -183,15 +182,14 @@ fn with_otel_reload_tracing() {
         service_name = "{service_name}"
 
         [telemetry.tracing]
-        enabled = true
         sampling = 1
 
-        [telemetry.tracing.exporters.otlp]
+        [telemetry.exporters.otlp]
         enabled = true
         endpoint = "http://localhost:4318"
         protocol = "grpc"
 
-        [telemetry.tracing.exporters.otlp.batch_export]
+        [telemetry.exporters.otlp.batch_export]
         scheduled_delay = 1
         max_export_batch_size = 1
     "#};

@@ -17,13 +17,6 @@ pub use tracing::{TracingCollectConfig, TracingConfig, DEFAULT_SAMPLING};
 use serde::{Deserialize, Deserializer};
 pub use stdout::StdoutExporterConfig;
 
-/// Default tracing filter to be applied on spans that are client facing
-pub const DEFAULT_FILTER: &str = "grafbase-gateway=info,federated-server=info,grafbase=info,off";
-
-fn default_filter() -> String {
-    DEFAULT_FILTER.to_string()
-}
-
 #[derive(Debug, Clone, PartialEq, Default, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ExportersConfig {
@@ -35,7 +28,7 @@ pub struct ExportersConfig {
 }
 
 /// Configuration for batched exports
-#[derive(Debug, Clone, PartialEq, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct BatchExportConfig {
     /// The delay, in seconds, between two consecutive processing of batches.

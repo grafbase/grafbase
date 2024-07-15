@@ -1,4 +1,4 @@
-use super::{default_filter, ExportersConfig};
+use super::ExportersConfig;
 
 use serde::de::Error as DeserializeError;
 use serde::{Deserialize, Deserializer};
@@ -10,9 +10,6 @@ pub const DEFAULT_COLLECT_VALUE: usize = 128;
 #[derive(Debug, Clone, PartialEq, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct TracingConfig {
-    /// Filter to be applied
-    #[serde(default = "default_filter")]
-    pub filter: String,
     /// The sampler between 0.0 and 1.0.
     /// Default is 0.15.
     #[serde(default = "default_sampling", deserialize_with = "deserialize_sampling")]
@@ -28,7 +25,6 @@ pub struct TracingConfig {
 impl Default for TracingConfig {
     fn default() -> Self {
         Self {
-            filter: default_filter(),
             sampling: DEFAULT_SAMPLING,
             collect: Default::default(),
             exporters: Default::default(),

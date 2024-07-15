@@ -9,7 +9,7 @@ pub struct StdoutExporterConfig {
     pub enabled: bool,
     /// Batch export configuration
     #[serde(default)]
-    pub batch_export: BatchExportConfig,
+    pub batch_export: Option<BatchExportConfig>,
     /// The maximum duration to export data.
     /// The default value is 60 seconds.
     #[serde(deserialize_with = "deserialize_duration", default = "default_export_timeout")]
