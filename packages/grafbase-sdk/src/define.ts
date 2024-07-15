@@ -56,7 +56,8 @@ export default {
       name,
       definition.returns,
       definition.resolver,
-      false
+      false,
+      definition.cache
     )
 
     if (definition.args != null) {
@@ -79,7 +80,9 @@ export default {
       name,
       definition.returns,
       definition.resolver,
-      true
+      true,
+      // Mutations shouldn't be cached, so passing undefined here explicitly
+      undefined
     )
 
     if (definition.args != null) {
