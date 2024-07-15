@@ -185,7 +185,7 @@ gateway-adapter = { path = "engine/crates/gateway-adapter" }
 gateway-core = { path = "engine/crates/gateway-core" }
 gateway-v2-auth = { path = "engine/crates/gateway-v2/auth" }
 gateway-v2-auth-config = { path = "engine/crates/gateway-v2/auth-config" }
-grafbase-tracing = { path = "engine/crates/tracing" }
+grafbase-telemetry = { path = "engine/crates/telemetry" }
 graph-entities = { path = "engine/crates/graph-entities" }
 graphql-composition = { path = "engine/crates/composition" }
 graphql-cursor = { path = "engine/crates/graphql-cursor" }

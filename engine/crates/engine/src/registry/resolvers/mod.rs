@@ -38,8 +38,8 @@ pub mod postgres;
 mod resolved_value;
 pub mod transformer;
 
-use grafbase_tracing::span::resolver::ResolverInvocationSpan;
-use grafbase_tracing::span::ResolverInvocationRecorderSpanExt;
+use grafbase_telemetry::span::resolver::ResolverInvocationSpan;
+use grafbase_telemetry::span::ResolverInvocationRecorderSpanExt;
 use tracing::{info_span, Instrument};
 
 pub use registry_v2::resolvers::Resolver;

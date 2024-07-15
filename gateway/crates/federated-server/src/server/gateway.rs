@@ -134,7 +134,7 @@ pub(super) async fn generate(
         fetcher: runtime_local::NativeFetcher::runtime_fetcher(),
         kv: InMemoryKvStore::runtime(),
         trusted_documents,
-        meter: grafbase_tracing::metrics::meter_from_global_provider(),
+        meter: grafbase_telemetry::metrics::meter_from_global_provider(),
         hooks: HooksWasi::new(
             wasi.map(ComponentLoader::new)
                 .transpose()
@@ -155,7 +155,7 @@ pub struct GatewayRuntime {
     fetcher: runtime::fetch::Fetcher,
     trusted_documents: runtime::trusted_documents_client::Client,
     kv: runtime::kv::KvStore,
-    meter: grafbase_tracing::otel::opentelemetry::metrics::Meter,
+    meter: grafbase_telemetry::otel::opentelemetry::metrics::Meter,
     hooks: HooksWasi,
     rate_limiter: runtime::rate_limiting::RateLimiter,
 }
@@ -173,7 +173,7 @@ impl engine_v2::Runtime for GatewayRuntime {
     fn kv(&self) -> &runtime::kv::KvStore {
         &self.kv
     }
-    fn meter(&self) -> &grafbase_tracing::otel::opentelemetry::metrics::Meter {
+    fn meter(&self) -> &grafbase_telemetry::otel::opentelemetry::metrics::Meter {
         &self.meter
     }
     fn hooks(&self) -> &HooksWasi {

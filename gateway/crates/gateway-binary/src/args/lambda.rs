@@ -3,7 +3,7 @@ use std::{fs, io::ErrorKind, path::PathBuf};
 use anyhow::Context;
 use clap::Parser;
 use federated_server::{Config, GraphFetchMethod};
-use grafbase_tracing::otel::layer::BoxedLayer;
+use grafbase_telemetry::otel::layer::BoxedLayer;
 use tracing::Subscriber;
 use tracing_subscriber::{registry::LookupSpan, Layer};
 

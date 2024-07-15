@@ -2,7 +2,7 @@ use tracing::Level;
 use tracing_mock::{expect, subscriber};
 
 use engine_v2::Engine;
-use grafbase_tracing::span::gql::GRAPHQL_SPAN_NAME;
+use grafbase_telemetry::span::gql::GRAPHQL_SPAN_NAME;
 use graphql_mocks::{FakeGithubSchema, MockGraphQlServer};
 use integration_tests::{federation::EngineV2Ext, runtime};
 

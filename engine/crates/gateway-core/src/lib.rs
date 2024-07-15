@@ -1,7 +1,7 @@
 use crate::rate_limit::RatelimitContext;
 use engine::parser::types::OperationType;
 use futures_util::FutureExt;
-use grafbase_tracing::{
+use grafbase_telemetry::{
     grafbase_client::Client,
     metrics::GraphqlOperationMetrics,
     span::{gql::GqlRequestSpan, GqlRecorderSpanExt, GqlRequestAttributes},
@@ -86,7 +86,7 @@ where
         auth: AuthService,
         authorizer: Box<dyn Authorizer<Context = Executor::Context>>,
         trusted_documents: runtime::trusted_documents_client::Client,
-        meter: grafbase_tracing::otel::opentelemetry::metrics::Meter,
+        meter: grafbase_telemetry::otel::opentelemetry::metrics::Meter,
         rate_limiter: Box<dyn RateLimiterInner>,
     ) -> Self {
         Self {
@@ -201,7 +201,7 @@ where
 
             if let Some((operation, normalized_query)) = response.graphql_operation.as_ref().zip(normalized_query) {
                 self.operation_metrics.record(
-                    grafbase_tracing::metrics::GraphqlOperationMetricsAttributes {
+                    grafbase_telemetry::metrics::GraphqlOperationMetricsAttributes {
                         ty: match operation.r#type {
                             common_types::OperationType::Query { .. } => "query",
                             common_types::OperationType::Mutation => "mutation",

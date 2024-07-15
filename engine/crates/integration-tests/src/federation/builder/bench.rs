@@ -70,7 +70,7 @@ impl<'a> DeterministicEngineBuilder<'a> {
                     runtime_noop::trusted_documents::NoopTrustedDocuments,
                 ),
                 kv: runtime_local::InMemoryKvStore::runtime(),
-                meter: grafbase_tracing::metrics::meter_from_global_provider(),
+                meter: grafbase_telemetry::metrics::meter_from_global_provider(),
                 hooks: self.hooks,
                 rate_limiter: runtime_noop::rate_limiting::NoopRateLimiter::runtime(),
             },

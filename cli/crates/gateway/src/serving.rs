@@ -19,8 +19,8 @@ pub(super) fn router(gateway: Gateway) -> Router {
     Router::new()
         .route("/graphql", post(post_graphql).options(options_any).get(get_graphql))
         .with_state(gateway)
-        .layer(grafbase_tracing::tower::layer(
-            grafbase_tracing::metrics::meter_from_global_provider(),
+        .layer(grafbase_telemetry::tower::layer(
+            grafbase_telemetry::metrics::meter_from_global_provider(),
         ))
         .layer(CorsLayer::permissive())
 }

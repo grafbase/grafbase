@@ -4,7 +4,7 @@ use crate::config::{HealthConfig, TlsConfig};
 
 use super::state::ServerState;
 use axum::{extract::State, routing::get, Json, Router};
-use grafbase_tracing::span::GRAFBASE_TARGET;
+use grafbase_telemetry::span::GRAFBASE_TARGET;
 use http::StatusCode;
 
 #[derive(Debug, serde::Serialize)]

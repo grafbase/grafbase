@@ -1,4 +1,4 @@
-use grafbase_tracing::gql_response_status::GraphqlResponseStatus;
+use grafbase_telemetry::gql_response_status::GraphqlResponseStatus;
 use graph_entities::CompactValue;
 use query_path::QueryPath;
 

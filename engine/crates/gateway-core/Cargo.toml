@@ -32,7 +32,7 @@ engine-value.workspace = true
 engine.workspace = true
 futures-channel = { workspace = true, optional = true }
 futures-util.workspace = true
-grafbase-tracing.workspace = true
+grafbase-telemetry.workspace = true
 headers.workspace = true
 http.workspace = true
 mediatype = "0.19.18"

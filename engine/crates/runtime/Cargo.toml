@@ -18,7 +18,7 @@ async-trait.workspace = true
 bytes.workspace = true
 derive_more = { workspace = true, features = ["display"] }
 futures-util.workspace = true
-grafbase-tracing.workspace = true
+grafbase-telemetry.workspace = true
 headers.workspace = true
 http.workspace = true
 secrecy = { workspace = true, features = ["serde"] }

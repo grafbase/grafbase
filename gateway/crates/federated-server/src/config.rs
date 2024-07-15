@@ -10,7 +10,7 @@ pub use self::health::HealthConfig;
 use ascii::AsciiString;
 pub use authentication::AuthenticationConfig;
 pub use cors::CorsConfig;
-use grafbase_tracing::config::TelemetryConfig;
+use grafbase_telemetry::config::TelemetryConfig;
 pub use header::{HeaderForward, HeaderInsert, HeaderRemove, HeaderRule, NameOrPattern};
 pub use rate_limit::RateLimitConfig;
 use runtime_local::HooksConfig;

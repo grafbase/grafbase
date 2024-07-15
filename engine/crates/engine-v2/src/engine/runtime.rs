@@ -1,4 +1,4 @@
-use grafbase_tracing::otel::opentelemetry::metrics::Meter;
+use grafbase_telemetry::otel::opentelemetry::metrics::Meter;
 use runtime::{fetch::Fetcher, kv::KvStore, rate_limiting::RateLimiter};
 
 pub trait Runtime: Send + Sync + 'static {

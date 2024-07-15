@@ -5,7 +5,7 @@ use axum::Router;
 use tracing::Level;
 use tracing_mock::{expect, subscriber};
 
-use grafbase_tracing::span::request::GATEWAY_SPAN_NAME;
+use grafbase_telemetry::span::request::GATEWAY_SPAN_NAME;
 
 // when using the tower layer there should be a span named gateway
 #[tokio::test(flavor = "current_thread")]
@@ -25,8 +25,8 @@ async fn expect_gateway_span() {
     // axum server with our tower layer
     let app = Router::new()
         .route("/", get(|| async {}))
-        .layer(grafbase_tracing::tower::layer(
-            grafbase_tracing::metrics::meter_from_global_provider(),
+        .layer(grafbase_telemetry::tower::layer(
+            grafbase_telemetry::metrics::meter_from_global_provider(),
         ));
 
     let tcp_listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();

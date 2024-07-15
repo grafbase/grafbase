@@ -9,7 +9,7 @@ repository.workspace = true
 
 [dependencies]
 anyhow.workspace = true
-grafbase-tracing.workspace = true
+grafbase-telemetry.workspace = true
 http.workspace = true
 serde.workspace = true
 thiserror.workspace = true

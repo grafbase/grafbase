@@ -160,6 +160,7 @@ impl EngineV2Builder {
         .unwrap_or_default();
 
         federated_graph_config.header_rules.extend(self.header_rules);
+
         (
             engine_config_builder::build_config(&federated_graph_config, graph).into_latest(),
             self.runtime,

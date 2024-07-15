@@ -6,7 +6,7 @@ use ::std::net::SocketAddr;
 
 use clap::Parser;
 use federated_server::{Config, GraphFetchMethod};
-use grafbase_tracing::otel::layer::BoxedLayer;
+use grafbase_telemetry::otel::layer::BoxedLayer;
 pub(crate) use log::LogLevel;
 use tracing::Subscriber;
 use tracing_subscriber::registry::LookupSpan;

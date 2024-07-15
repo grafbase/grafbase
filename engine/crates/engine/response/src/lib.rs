@@ -3,7 +3,7 @@ use std::{collections::BTreeMap, time::Duration};
 use engine_parser::types::OperationType;
 use engine_value::Value;
 use error::ServerError;
-use grafbase_tracing::gql_response_status::GraphqlResponseStatus;
+use grafbase_telemetry::gql_response_status::GraphqlResponseStatus;
 use graph_entities::QueryResponse;
 use http::{
     header::{HeaderMap, HeaderName},

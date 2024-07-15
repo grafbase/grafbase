@@ -1,7 +1,7 @@
 use std::{borrow::Cow, sync::Arc};
 
 pub(crate) use error::*;
-use grafbase_tracing::gql_response_status::GraphqlResponseStatus;
+use grafbase_telemetry::gql_response_status::GraphqlResponseStatus;
 pub use key::*;
 pub use path::*;
 pub use read::*;

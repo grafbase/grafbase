@@ -1,7 +1,7 @@
 use futures::{StreamExt, TryStreamExt};
 use futures_util::{stream::BoxStream, Stream};
 use gateway_core::StreamingFormat;
-use grafbase_tracing::gql_response_status::GraphqlResponseStatus;
+use grafbase_telemetry::gql_response_status::GraphqlResponseStatus;
 use headers::HeaderMapExt;
 use runtime::bytes::OwnedOrSharedBytes;
 

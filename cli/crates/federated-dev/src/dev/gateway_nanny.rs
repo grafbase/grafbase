@@ -70,7 +70,7 @@ pub(super) async fn new_gateway(config: Option<engine_v2::VersionedConfig>) -> O
             runtime_noop::trusted_documents::NoopTrustedDocuments,
         ),
         kv: runtime_local::InMemoryKvStore::runtime(),
-        meter: grafbase_tracing::metrics::meter_from_global_provider(),
+        meter: grafbase_telemetry::metrics::meter_from_global_provider(),
         rate_limiter: runtime_local::rate_limiting::key_based::InMemoryRateLimiter::runtime(KeyedRateLimitConfig {
             rate_limiting_configs,
         }),
@@ -86,7 +86,7 @@ pub struct CliRuntime {
     fetcher: runtime::fetch::Fetcher,
     trusted_documents: runtime::trusted_documents_client::Client,
     kv: runtime::kv::KvStore,
-    meter: grafbase_tracing::otel::opentelemetry::metrics::Meter,
+    meter: grafbase_telemetry::otel::opentelemetry::metrics::Meter,
     rate_limiter: runtime::rate_limiting::RateLimiter,
 }
 
@@ -97,18 +97,23 @@ impl engine_v2::Runtime for CliRuntime {
     fn fetcher(&self) -> &runtime::fetch::Fetcher {
         &self.fetcher
     }
+
     fn trusted_documents(&self) -> &runtime::trusted_documents_client::Client {
         &self.trusted_documents
     }
+
     fn kv(&self) -> &runtime::kv::KvStore {
         &self.kv
     }
-    fn meter(&self) -> &grafbase_tracing::otel::opentelemetry::metrics::Meter {
+
+    fn meter(&self) -> &grafbase_telemetry::otel::opentelemetry::metrics::Meter {
         &self.meter
     }
+
     fn hooks(&self) -> &() {
         &()
     }
+
     fn cache_factory(&self) -> &() {
         &()
     }
