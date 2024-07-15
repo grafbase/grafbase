@@ -1,11 +1,14 @@
+use std::collections::BTreeMap;
+use std::time::Duration;
+
+use regex::Regex;
+
+use federated_graph::{FederatedGraphV3, SubgraphId};
+
 pub use super::v4::{
     AuthConfig, AuthProviderConfig, CacheConfig, CacheConfigTarget, CacheConfigs, Header, HeaderId, HeaderValue,
     JwksConfig, JwtConfig, OperationLimits, StringId, SubgraphConfig,
 };
-
-use federated_graph::{FederatedGraphV3, SubgraphId};
-use regex::Regex;
-use std::collections::BTreeMap;
 
 /// Configuration for a federated graph
 #[derive(serde::Serialize, serde::Deserialize, Debug)]
@@ -28,6 +31,9 @@ pub struct Config {
 
     #[serde(default)]
     pub disable_introspection: bool,
+
+    #[serde(default)]
+    pub rate_limit: Option<RateLimitConfig>,
 }
 
 impl Config {
@@ -41,8 +47,16 @@ impl Config {
             auth: Default::default(),
             operation_limits: Default::default(),
             disable_introspection: Default::default(),
+            rate_limit: Default::default(),
         }
     }
+}
+
+pub const GLOBAL_RATE_LIMITER: &str = "global";
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct RateLimitConfig {
+    pub limit: usize,
+    pub duration: Duration,
 }
 
 /// A header name can be provided either as a regex or as a static name.
@@ -133,9 +147,11 @@ impl std::ops::Index<HeaderRuleId> for Config {
 
 #[cfg(test)]
 mod tests {
-    use crate::v5::{CacheConfig, CacheConfigTarget, CacheConfigs, Config};
-    use federated_graph::{FederatedGraphV3, FieldId, ObjectId, RootOperationTypes};
     use std::{collections::BTreeMap, time::Duration};
+
+    use federated_graph::{FederatedGraphV3, FieldId, ObjectId, RootOperationTypes};
+
+    use crate::v5::{CacheConfig, CacheConfigTarget, CacheConfigs, Config};
 
     #[test]
     fn make_sure_we_can_serialize_the_config() {
@@ -179,6 +195,7 @@ mod tests {
             auth: None,
             operation_limits: Default::default(),
             disable_introspection: Default::default(),
+            rate_limit: Default::default(),
         };
 
         insta::with_settings!({sort_maps => true}, {
@@ -232,7 +249,8 @@ mod tests {
                 "rootFields": null
               },
               "strings": [],
-              "subgraph_configs": {}
+              "subgraph_configs": {},
+              "rate_limit": [],
             }
             "###);
         });

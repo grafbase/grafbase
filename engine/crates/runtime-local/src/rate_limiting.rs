@@ -9,7 +9,7 @@ use governor::{DefaultKeyedRateLimiter, Quota};
 use tungstenite::http;
 
 use registry_v2::rate_limiting::{AnyOr, Header, Jwt, RateLimitRule, RateLimitRuleCondition};
-use runtime::rate_limiting::{Error, RateLimiter, RateLimiterContext};
+use runtime::rate_limiting::{Error, RateLimiterContext, RateLimiterInner};
 
 pub struct InMemoryRateLimiting {
     rate_limiters: Vec<(RateLimitRuleCondition, DefaultKeyedRateLimiter<String>)>,
@@ -39,7 +39,7 @@ impl InMemoryRateLimiting {
 
     fn check_headers<'a>(
         &'a self,
-        context: &(dyn RateLimiterContext + 'a),
+        context: &'a dyn RateLimiterContext,
         configured_headers: &[Header],
         rate_limiter: &DefaultKeyedRateLimiter<String>,
     ) -> Result<(), Error> {
@@ -74,7 +74,7 @@ impl InMemoryRateLimiting {
 
     fn check_operations<'a>(
         &'a self,
-        context: &(dyn RateLimiterContext + 'a),
+        context: &'a dyn RateLimiterContext,
         configured_operations: &AnyOr<HashSet<String>>,
         rate_limiter: &DefaultKeyedRateLimiter<String>,
     ) -> Result<(), Error> {
@@ -100,7 +100,7 @@ impl InMemoryRateLimiting {
 
     fn check_ips<'a>(
         &'a self,
-        context: &(dyn RateLimiterContext + 'a),
+        context: &'a dyn RateLimiterContext,
         configured_ips: &AnyOr<HashSet<IpAddr>>,
         rate_limiter: &DefaultKeyedRateLimiter<String>,
     ) -> Result<(), Error> {
@@ -125,7 +125,7 @@ impl InMemoryRateLimiting {
 
     fn check_jwt_claims<'a>(
         &'a self,
-        context: &(dyn RateLimiterContext + 'a),
+        context: &'a dyn RateLimiterContext,
         configured_jwt_claims: &[Jwt],
         rate_limiter: &DefaultKeyedRateLimiter<String>,
     ) -> Result<(), Error> {
@@ -152,18 +152,16 @@ impl InMemoryRateLimiting {
     }
 }
 
-impl RateLimiter for InMemoryRateLimiting {
-    fn limit<'a>(&'a self, context: Box<dyn RateLimiterContext + 'a>) -> BoxFuture<'a, Result<(), Error>> {
+impl RateLimiterInner for InMemoryRateLimiting {
+    fn limit<'a>(&'a self, context: &'a dyn RateLimiterContext) -> BoxFuture<'a, Result<(), Error>> {
         for (condition, rate_limiter) in &self.rate_limiters {
             if let Err(err) = match condition {
-                RateLimitRuleCondition::Header(headers) => self.check_headers(context.as_ref(), headers, rate_limiter),
+                RateLimitRuleCondition::Header(headers) => self.check_headers(context, headers, rate_limiter),
                 RateLimitRuleCondition::GraphqlOperation(operations) => {
-                    self.check_operations(context.as_ref(), operations, rate_limiter)
+                    self.check_operations(context, operations, rate_limiter)
                 }
-                RateLimitRuleCondition::Ip(ips) => self.check_ips(context.as_ref(), ips, rate_limiter),
-                RateLimitRuleCondition::JwtClaim(claims) => {
-                    self.check_jwt_claims(context.as_ref(), claims, rate_limiter)
-                }
+                RateLimitRuleCondition::Ip(ips) => self.check_ips(context, ips, rate_limiter),
+                RateLimitRuleCondition::JwtClaim(claims) => self.check_jwt_claims(context, claims, rate_limiter),
             } {
                 return ready(Err(err)).boxed();
             };

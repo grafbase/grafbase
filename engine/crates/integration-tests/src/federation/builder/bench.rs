@@ -72,6 +72,7 @@ impl<'a> DeterministicEngineBuilder<'a> {
                 kv: runtime_local::InMemoryKvStore::runtime(),
                 meter: grafbase_tracing::metrics::meter_from_global_provider(),
                 hooks: self.hooks,
+                rate_limiter: runtime_noop::rate_limiting::NoopRateLimiter::runtime(),
             },
         )
         .await;

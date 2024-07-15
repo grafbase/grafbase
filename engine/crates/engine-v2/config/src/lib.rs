@@ -134,6 +134,7 @@ impl VersionedConfig {
                     auth,
                     operation_limits,
                     disable_introspection,
+                    rate_limit: Default::default(),
                 }
             }
             VersionedConfig::V5(latest) => latest,

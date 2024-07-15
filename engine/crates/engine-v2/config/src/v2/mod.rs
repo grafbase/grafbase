@@ -2,6 +2,7 @@ mod cache_config;
 
 use std::collections::BTreeMap;
 
+use crate::latest::RateLimitConfig;
 pub use cache_config::{CacheConfig, CacheConfigTarget, CacheConfigs};
 use federated_graph::{FederatedGraphV1, SubgraphId};
 pub use gateway_auth_config::v2::*;
@@ -44,8 +45,11 @@ pub struct Config {
 /// Additional configuration for a particular subgraph
 #[derive(serde::Serialize, serde::Deserialize, Debug)]
 pub struct SubgraphConfig {
+    pub name: StringId,
     pub websocket_url: Option<StringId>,
     pub headers: Vec<HeaderRuleId>,
+    #[serde(default)]
+    pub rate_limit: Option<RateLimitConfig>,
 }
 
 /// A header that should be sent to a subgraph

@@ -4,6 +4,7 @@ use ::runtime::{
     hot_cache::{CachedDataKind, HotCache, HotCacheFactory},
 };
 use async_runtime::stream::StreamExt as _;
+use config::latest::GLOBAL_RATE_LIMITER;
 use engine::{BatchRequest, Request};
 use engine_parser::types::OperationType;
 use futures::{channel::mpsc, FutureExt, StreamExt};
@@ -32,9 +33,11 @@ use crate::{
 };
 
 mod cache;
+mod rate_limit;
 mod runtime;
 mod trusted_documents;
 
+pub use crate::engine::rate_limit::{EngineRateLimitContext, InMemoryRateLimiter};
 pub use runtime::Runtime;
 
 pub(crate) struct SchemaVersion(Vec<u8>);
@@ -102,6 +105,19 @@ impl<R: Runtime> Engine<R> {
             Ok(context) => context,
             Err(response) => return HttpGraphqlResponse::build(response, format, Default::default()),
         };
+
+        if let Err(err) = self
+            .runtime
+            .rate_limiter()
+            .limit(&EngineRateLimitContext(GLOBAL_RATE_LIMITER))
+            .await
+        {
+            return HttpGraphqlResponse::build(
+                Response::pre_execution_error(GraphqlError::new(err.to_string(), ErrorCode::RateLimitError)),
+                format,
+                Default::default(),
+            );
+        }
 
         self.execute_with_context(request_context, batch_request).await
     }

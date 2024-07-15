@@ -62,6 +62,13 @@ impl<'ctx, R: Runtime> GraphqlSubscriptionExecutor<'ctx, R> {
             url
         };
 
+        self.ctx
+            .engine
+            .runtime
+            .rate_limiter()
+            .limit(&crate::engine::EngineRateLimitContext(self.subgraph.name()))
+            .await?;
+
         let stream = ctx
             .engine
             .runtime

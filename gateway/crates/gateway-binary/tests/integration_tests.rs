@@ -15,11 +15,13 @@ use std::{
 
 use crate::mocks::gdn::GdnResponseMock;
 use duct::{cmd, Handle};
+use futures_util::future::BoxFuture;
 use futures_util::{Future, FutureExt};
 use http::{HeaderMap, StatusCode};
 use indoc::indoc;
 use tempfile::tempdir;
 use tokio::runtime::Runtime;
+use tokio::time::Instant;
 use wiremock::{
     matchers::{header, method, path},
     Mock, ResponseTemplate,
@@ -784,4 +786,77 @@ fn health_custom_listener() {
         }
         "###);
     });
+}
+
+#[test]
+fn global_rate_limiting() {
+    let config = indoc! {r#"
+        [rate_limit]
+        limit = 1
+        duration = "1s"
+    "#};
+
+    let schema = load_schema("big");
+
+    let query = indoc! {r#"
+        query Me {
+          me {
+            id
+          }
+        }
+    "#};
+
+    let expected_response = r#"{"errors":[{"message":"Too many requests","extensions":{"code":"RATE_LIMIT_ERROR"}}]}"#;
+
+    with_static_server(config, &schema, None, None, |client| async move {
+        expect_rate_limiting(|| client.gql(query).send().boxed(), expected_response).await;
+    })
+}
+
+#[test]
+fn subgraph_rate_limiting() {
+    let config = indoc! {r#"
+        [subgraphs.accounts.rate_limit]
+        limit = 1
+        duration = "1s"
+    "#};
+
+    let schema = load_schema("big");
+
+    let query = indoc! {r#"
+        query Me {
+          me {
+            id
+          }
+        }
+    "#};
+
+    let expected_response = r#"{"data":null,"errors":[{"message":"Too many requests","path":["me"],"extensions":{"code":"RATE_LIMIT_ERROR"}}]}"#;
+
+    with_static_server(config, &schema, None, None, |client| async move {
+        expect_rate_limiting(|| client.gql(query).send().boxed(), expected_response).await;
+    })
+}
+
+#[allow(clippy::panic)]
+async fn expect_rate_limiting<'a, F>(f: F, expected_response: &str)
+where
+    F: Fn() -> BoxFuture<'a, serde_json::Value>,
+{
+    let destiny = Instant::now().checked_add(Duration::from_secs(60)).unwrap();
+
+    loop {
+        let response = Box::pin(f());
+        let response = response.await;
+        let response = serde_json::to_string(&response).unwrap();
+
+        println!("{response}");
+        if response == expected_response {
+            break;
+        }
+
+        if Instant::now().gt(&destiny) {
+            panic!("Expected requests to get rate limited ...");
+        }
+    }
 }

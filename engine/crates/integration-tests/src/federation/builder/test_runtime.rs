@@ -1,3 +1,4 @@
+use engine_v2::InMemoryRateLimiter;
 use runtime::hooks::DynamicHooks;
 use runtime_local::InMemoryHotCacheFactory;
 
@@ -7,6 +8,7 @@ pub struct TestRuntime {
     pub kv: runtime::kv::KvStore,
     pub meter: grafbase_tracing::otel::opentelemetry::metrics::Meter,
     pub hooks: DynamicHooks,
+    pub rate_limiter: runtime::rate_limiting::RateLimiter,
 }
 
 impl Default for TestRuntime {
@@ -19,6 +21,7 @@ impl Default for TestRuntime {
             kv: runtime_local::InMemoryKvStore::runtime(),
             meter: grafbase_tracing::metrics::meter_from_global_provider(),
             hooks: Default::default(),
+            rate_limiter: runtime::rate_limiting::RateLimiter::new(InMemoryRateLimiter::default()),
         }
     }
 }
@@ -49,5 +52,9 @@ impl engine_v2::Runtime for TestRuntime {
 
     fn cache_factory(&self) -> &Self::CacheFactory {
         &InMemoryHotCacheFactory
+    }
+
+    fn rate_limiter(&self) -> &runtime::rate_limiting::RateLimiter {
+        &self.rate_limiter
     }
 }

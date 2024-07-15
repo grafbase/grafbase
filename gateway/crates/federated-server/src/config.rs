@@ -3,6 +3,7 @@ mod cors;
 mod dynamic_string;
 mod header;
 mod health;
+mod rate_limit;
 mod telemetry;
 
 use std::{collections::BTreeMap, net::SocketAddr, path::PathBuf};
@@ -12,6 +13,7 @@ use ascii::AsciiString;
 pub use authentication::AuthenticationConfig;
 pub use cors::CorsConfig;
 pub use header::{HeaderForward, HeaderInsert, HeaderRemove, HeaderRule, NameOrPattern};
+pub use rate_limit::RateLimitConfig;
 use runtime_local::HooksConfig;
 pub use telemetry::TelemetryConfig;
 use url::Url;
@@ -57,6 +59,9 @@ pub struct Config {
     /// Health check endpoint configuration
     #[serde(default)]
     pub health: HealthConfig,
+    /// Global rate limiting configuration
+    #[serde(default)]
+    pub rate_limit: Option<RateLimitConfig>,
 }
 
 #[derive(Debug, serde::Deserialize, Clone)]
@@ -66,6 +71,9 @@ pub struct SubgraphConfig {
     pub headers: Vec<HeaderRule>,
     /// The URL to use for GraphQL websocket calls.
     pub websocket_url: Option<Url>,
+    /// Rate limiting configuration specifically for this Subgraph
+    #[serde(default)]
+    pub rate_limit: Option<RateLimitConfig>,
 }
 
 #[derive(Debug, Default, serde::Deserialize)]
@@ -1268,5 +1276,59 @@ mod tests {
           |                 ^^^^^^^
         invalid value: string "WRONG", expected relative URL without a base
         "###);
+    }
+
+    #[test]
+    fn global_rate_limiting() {
+        let input = indoc! {r#"
+            [rate_limit]
+            limit = 1000
+            duration = "10s"
+        "#};
+
+        let config = toml::from_str::<Config>(input).unwrap();
+
+        insta::assert_debug_snapshot!(&config.rate_limit, @r###"
+        Some(
+            RateLimit {
+                limit: 1000,
+                duration: 10s,
+            },
+        )
+        "###);
+    }
+
+    #[test]
+    fn subgraph_rate_limiting() {
+        let input = indoc! {r#"
+            [subgraphs.products.rate_limit]
+            limit = 1000
+            duration = "10s"
+        "#};
+
+        let config = toml::from_str::<Config>(input).unwrap();
+
+        assert!(config.rate_limit.is_none());
+        insta::assert_debug_snapshot!(&config.subgraphs.get("products").unwrap().rate_limit, @r###"
+        Some(
+            RateLimit {
+                limit: 1000,
+                duration: 10s,
+            },
+        )
+        "###);
+    }
+
+    #[test]
+    fn rate_limiting_invalid_duration() {
+        let input = indoc! {r#"
+            [subgraphs.products.rate_limit]
+            limit = 1000
+            duration = "0s"
+        "#};
+
+        let error = toml::from_str::<Config>(input).unwrap_err();
+
+        insta::assert_debug_snapshot!(&error.to_string(), @r###""TOML parse error at line 3, column 12\n  |\n3 | duration = \"0s\"\n  |            ^^^^\nrate limit duration cannot be 0\n""###);
     }
 }

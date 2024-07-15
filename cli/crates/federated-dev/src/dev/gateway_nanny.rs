@@ -3,7 +3,7 @@ use std::sync::Arc;
 use crate::ConfigWatcher;
 
 use super::bus::{EngineSender, GraphWatcher};
-use engine_v2::Engine;
+use engine_v2::{Engine, InMemoryRateLimiter};
 use futures_concurrency::stream::Merge;
 use futures_util::{stream::BoxStream, StreamExt};
 use tokio_stream::wrappers::WatchStream;
@@ -47,6 +47,8 @@ impl EngineNanny {
 }
 
 pub(super) async fn new_gateway(config: Option<engine_v2::VersionedConfig>) -> Option<Arc<Engine<CliRuntime>>> {
+    let config = config?.into_latest();
+
     let runtime = CliRuntime {
         fetcher: runtime_local::NativeFetcher::runtime_fetcher(),
         trusted_documents: runtime::trusted_documents_client::Client::new(
@@ -54,10 +56,11 @@ pub(super) async fn new_gateway(config: Option<engine_v2::VersionedConfig>) -> O
         ),
         kv: runtime_local::InMemoryKvStore::runtime(),
         meter: grafbase_tracing::metrics::meter_from_global_provider(),
+        rate_limiter: InMemoryRateLimiter::runtime(&config),
     };
 
-    let config = config?.into_latest().try_into().ok()?;
-    let engine = Engine::new(Arc::new(config), None, runtime).await;
+    let schema = config.try_into().ok()?;
+    let engine = Engine::new(Arc::new(schema), None, runtime).await;
 
     Some(Arc::new(engine))
 }
@@ -67,6 +70,7 @@ pub struct CliRuntime {
     trusted_documents: runtime::trusted_documents_client::Client,
     kv: runtime::kv::KvStore,
     meter: grafbase_tracing::otel::opentelemetry::metrics::Meter,
+    rate_limiter: runtime::rate_limiting::RateLimiter,
 }
 
 impl engine_v2::Runtime for CliRuntime {
@@ -90,6 +94,10 @@ impl engine_v2::Runtime for CliRuntime {
     }
     fn cache_factory(&self) -> &() {
         &()
+    }
+
+    fn rate_limiter(&self) -> &runtime::rate_limiting::RateLimiter {
+        &self.rate_limiter
     }
 }
 

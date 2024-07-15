@@ -29,6 +29,8 @@ pub(crate) enum ErrorCode {
     OperationPlanningError,
     // Runtime
     HookError,
+    // Rate limit
+    RateLimitError,
 }
 
 impl From<PartialErrorCode> for ErrorCode {

@@ -36,6 +36,8 @@ pub enum ExecutionError {
     DeserializationError(String),
     #[error(transparent)]
     Fetch(#[from] runtime::fetch::FetchError),
+    #[error(transparent)]
+    RateLimit(#[from] runtime::rate_limiting::Error),
 }
 
 pub type ExecutionResult<T> = Result<T, ExecutionError>;
@@ -48,6 +50,7 @@ impl From<ExecutionError> for GraphqlError {
                 GraphqlError::new(message, ErrorCode::SubgraphInvalidResponseError)
             }
             ExecutionError::Fetch(err) => GraphqlError::new(err.to_string(), ErrorCode::SubgraphRequestError),
+            ExecutionError::RateLimit(err) => GraphqlError::new(err.to_string(), ErrorCode::RateLimitError),
         }
     }
 }

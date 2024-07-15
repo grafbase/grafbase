@@ -34,13 +34,28 @@ pub fn build_config(config: &FederatedGraphConfig, graph: FederatedGraph) -> Ver
         let parser_sdl::federation::SubgraphConfig {
             websocket_url,
             header_rules,
+            rate_limit,
             ..
         } = config;
 
         let headers = context.insert_headers(header_rules.iter());
         let websocket_url = websocket_url.as_ref().map(|url| context.strings.intern(url));
+        let subgraph_name = context.strings.intern(name);
 
-        subgraph_configs.insert(subgraph_id, config::SubgraphConfig { headers, websocket_url });
+        subgraph_configs.insert(
+            subgraph_id,
+            config::SubgraphConfig {
+                name: subgraph_name,
+                headers,
+                websocket_url,
+                rate_limit: rate_limit
+                    .as_ref()
+                    .map(|config| engine_v2_config::latest::RateLimitConfig {
+                        limit: config.limit,
+                        duration: config.duration,
+                    }),
+            },
+        );
     }
 
     let cache_config = build_cache_config(config, &graph);
@@ -54,6 +69,13 @@ pub fn build_config(config: &FederatedGraphConfig, graph: FederatedGraph) -> Ver
         auth: build_auth_config(config),
         operation_limits: build_operation_limits(config),
         disable_introspection: config.disable_introspection,
+        rate_limit: config
+            .rate_limit
+            .as_ref()
+            .map(|config| engine_v2_config::latest::RateLimitConfig {
+                limit: config.limit,
+                duration: config.duration,
+            }),
     })
 }
 
