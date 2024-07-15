@@ -8,7 +8,7 @@ use tracing::Level;
 use tracing_mock::{expect, subscriber};
 
 use engine::futures_util::future::BoxFuture;
-use grafbase_tracing::span::cache::CACHE_SPAN_NAME;
+use grafbase_telemetry::span::cache::CACHE_SPAN_NAME;
 use integration_tests::runtime;
 use runtime::cache::{
     CacheInner, CacheMetadata, CacheReadStatus, Cacheable, Entry, EntryState, GlobalCacheConfig, Key,

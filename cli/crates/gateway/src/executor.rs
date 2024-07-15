@@ -66,7 +66,7 @@ impl Executor {
 
         Ok(engine::Schema::build(
             Arc::clone(&self.registry),
-            grafbase_tracing::metrics::meter_from_global_provider(),
+            grafbase_telemetry::metrics::meter_from_global_provider(),
         )
         .data(engine::TraceId(ctx.ray_id().to_string()))
         .data(graphql::QueryBatcher::new())

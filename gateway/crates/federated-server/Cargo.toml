@@ -16,7 +16,7 @@ lambda = [
   "dep:axum-aws-lambda",
   "dep:tower",
   "dep:lambda_http",
-  "grafbase-tracing/lambda"
+  "grafbase-telemetry/lambda"
 ]
 
 [dependencies]
@@ -30,7 +30,7 @@ engine.workspace = true
 engine-config-builder.workspace = true
 engine-v2.workspace = true
 engine-v2-axum.workspace = true
-grafbase-tracing = { workspace = true, features = ["tower", "otlp"] }
+grafbase-telemetry = { workspace = true, features = ["tower", "otlp"] }
 graphql-composition.workspace = true
 http.workspace = true
 parser-sdl = { version = "0.1.0", path = "../../../engine/crates/parser-sdl" }

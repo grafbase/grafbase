@@ -7,7 +7,7 @@ use crate::{
 };
 use engine::{PersistedQueryRequestExtension, Request};
 use futures::{future::BoxFuture, FutureExt};
-use grafbase_tracing::grafbase_client::X_GRAFBASE_CLIENT_NAME;
+use grafbase_telemetry::grafbase_client::X_GRAFBASE_CLIENT_NAME;
 use runtime::{hot_cache::HotCache, trusted_documents_client::TrustedDocumentsError};
 use std::borrow::Cow;
 use tracing::instrument;

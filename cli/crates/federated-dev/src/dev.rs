@@ -101,8 +101,8 @@ pub(super) async fn run(
         .route("/graphql", get(engine_get).post(engine_post))
         .route_service("/ws", WebsocketService::new(websocket_sender))
         .nest_service("/static", tower_http::services::ServeDir::new(static_asset_path))
-        .layer(grafbase_tracing::tower::layer(
-            grafbase_tracing::metrics::meter_from_global_provider(),
+        .layer(grafbase_telemetry::tower::layer(
+            grafbase_telemetry::metrics::meter_from_global_provider(),
         ))
         .layer(CorsLayer::permissive())
         .with_state(ProxyState {

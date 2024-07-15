@@ -1,7 +1,7 @@
 use std::sync::RwLock;
 
 use anyhow::anyhow;
-use grafbase_tracing::span::GRAFBASE_TARGET;
+use grafbase_telemetry::span::GRAFBASE_TARGET;
 use wasmtime::{
     component::{ComponentNamedList, Instance, Lift, Lower, Resource, TypedFunc},
     Engine, Store,

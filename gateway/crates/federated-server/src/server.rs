@@ -10,7 +10,7 @@ mod otel;
 mod state;
 mod trusted_documents_client;
 
-use grafbase_tracing::gql_response_status::GraphqlResponseStatus;
+use grafbase_telemetry::gql_response_status::GraphqlResponseStatus;
 pub use graph_fetch_method::GraphFetchMethod;
 pub use otel::{OtelReload, OtelTracing};
 use tokio::sync::watch;
@@ -21,7 +21,7 @@ use crate::config::{Config, TlsConfig};
 use axum::{routing::get, Router};
 use axum_server as _;
 use engine_v2_axum::websocket::{WebsocketAccepter, WebsocketService};
-use grafbase_tracing::span::GRAFBASE_TARGET;
+use grafbase_telemetry::span::GRAFBASE_TARGET;
 use state::ServerState;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use tokio::sync::mpsc;
@@ -94,8 +94,8 @@ pub async fn serve(
     let mut router = Router::new()
         .route(path, get(engine::get).post(engine::post))
         .route_service("/ws", WebsocketService::new(websocket_sender))
-        .layer(grafbase_tracing::tower::layer(
-            grafbase_tracing::metrics::meter_from_global_provider(),
+        .layer(grafbase_telemetry::tower::layer(
+            grafbase_telemetry::metrics::meter_from_global_provider(),
         ))
         .layer(axum::middleware::map_response(
             |mut response: axum::response::Response<_>| async {

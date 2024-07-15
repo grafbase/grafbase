@@ -33,7 +33,7 @@ pub type Result<T> = std::result::Result<T, Error>;
 /// The guest result type
 pub type GuestResult<T> = std::result::Result<T, GuestError>;
 
-use grafbase_tracing::span::GRAFBASE_TARGET;
+use grafbase_telemetry::span::GRAFBASE_TARGET;
 use state::WasiState;
 use wasmtime::{
     component::{Component, Linker},

@@ -1,7 +1,7 @@
 use std::sync::Arc;
 use tokio::sync::watch;
 
-use grafbase_tracing::otel::opentelemetry_sdk::trace::TracerProvider;
+use grafbase_telemetry::otel::opentelemetry_sdk::trace::TracerProvider;
 
 use super::gateway::EngineWatcher;
 

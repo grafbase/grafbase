@@ -5,7 +5,7 @@ pub struct TestRuntime {
     pub fetcher: runtime::fetch::Fetcher,
     pub trusted_documents: runtime::trusted_documents_client::Client,
     pub kv: runtime::kv::KvStore,
-    pub meter: grafbase_tracing::otel::opentelemetry::metrics::Meter,
+    pub meter: grafbase_telemetry::otel::opentelemetry::metrics::Meter,
     pub hooks: DynamicHooks,
     pub rate_limiter: runtime::rate_limiting::RateLimiter,
 }
@@ -18,7 +18,7 @@ impl Default for TestRuntime {
                 runtime_noop::trusted_documents::NoopTrustedDocuments,
             ),
             kv: runtime_local::InMemoryKvStore::runtime(),
-            meter: grafbase_tracing::metrics::meter_from_global_provider(),
+            meter: grafbase_telemetry::metrics::meter_from_global_provider(),
             hooks: Default::default(),
             rate_limiter: runtime_local::rate_limiting::key_based::InMemoryRateLimiter::runtime(Default::default()),
         }
@@ -41,7 +41,7 @@ impl engine_v2::Runtime for TestRuntime {
         &self.trusted_documents
     }
 
-    fn meter(&self) -> &grafbase_tracing::otel::opentelemetry::metrics::Meter {
+    fn meter(&self) -> &grafbase_telemetry::otel::opentelemetry::metrics::Meter {
         &self.meter
     }
 

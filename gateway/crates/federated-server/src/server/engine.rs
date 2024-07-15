@@ -5,7 +5,7 @@ use axum::{
     Json,
 };
 use engine::BatchRequest;
-use grafbase_tracing::otel::opentelemetry_sdk::trace::TracerProvider;
+use grafbase_telemetry::otel::opentelemetry_sdk::trace::TracerProvider;
 use http::HeaderMap;
 
 pub(super) async fn get(

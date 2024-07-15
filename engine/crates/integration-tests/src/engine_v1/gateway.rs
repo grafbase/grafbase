@@ -114,7 +114,7 @@ impl GatewayBuilder {
                 auth,
                 authorizer,
                 trusted_documents,
-                grafbase_tracing::metrics::meter_from_global_provider(),
+                grafbase_telemetry::metrics::meter_from_global_provider(),
                 Box::new(rate_limiting),
             )),
         }

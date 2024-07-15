@@ -166,7 +166,7 @@ impl EngineBuilder {
         let (sender, _) = tokio::sync::mpsc::unbounded_channel();
         let mut schema_builder = Schema::build(
             Arc::new(registry),
-            grafbase_tracing::metrics::meter_from_global_provider(),
+            grafbase_telemetry::metrics::meter_from_global_provider(),
         )
         .data(QueryBatcher::new())
         .data(runtime::Context::new(

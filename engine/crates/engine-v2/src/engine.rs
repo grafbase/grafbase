@@ -10,7 +10,7 @@ use futures::{channel::mpsc, FutureExt, StreamExt};
 use futures_util::{SinkExt, Stream};
 use gateway_core::StreamingFormat;
 use gateway_v2_auth::AuthService;
-use grafbase_tracing::{
+use grafbase_telemetry::{
     gql_response_status::GraphqlResponseStatus,
     grafbase_client::Client,
     metrics::{GraphqlOperationMetrics, GraphqlOperationMetricsAttributes},

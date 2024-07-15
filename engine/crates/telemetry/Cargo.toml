@@ -1,5 +1,5 @@
 [package]
-name = "grafbase-tracing"
+name = "grafbase-telemetry"
 authors = ["Grafbase"]
 description = "Tracing capabilities for Grafbase"
 version = "0.1.0"

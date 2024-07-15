@@ -12,12 +12,12 @@ use tracing_subscriber::registry::LookupSpan;
 use tracing_subscriber::{reload, EnvFilter, Layer, Registry};
 
 use federated_server::{Config, GraphFetchMethod, OtelReload, OtelTracing};
-use grafbase_tracing::config::TelemetryConfig;
-use grafbase_tracing::error::TracingError;
-use grafbase_tracing::otel::layer::BoxedLayer;
-use grafbase_tracing::otel::layer::{self, ReloadableOtelLayers};
-use grafbase_tracing::otel::opentelemetry_sdk::runtime::Tokio;
-use grafbase_tracing::{otel::opentelemetry_sdk::trace::TracerProvider, span::GRAFBASE_TARGET};
+use grafbase_telemetry::config::TelemetryConfig;
+use grafbase_telemetry::error::TracingError;
+use grafbase_telemetry::otel::layer::BoxedLayer;
+use grafbase_telemetry::otel::layer::{self, ReloadableOtelLayers};
+use grafbase_telemetry::otel::opentelemetry_sdk::runtime::Tokio;
+use grafbase_telemetry::{otel::opentelemetry_sdk::trace::TracerProvider, span::GRAFBASE_TARGET};
 
 #[global_allocator]
 static GLOBAL: MiMalloc = MiMalloc;
@@ -98,9 +98,9 @@ fn init_global_tracing(args: &impl Args, config: Option<TelemetryConfig>) -> any
         build_otel_layers(config, Default::default(), will_reload_otel)?;
     let tracer = tracer.expect("should have a valid otel trace layer");
 
-    grafbase_tracing::otel::opentelemetry::global::set_tracer_provider(tracer.provider.clone());
+    grafbase_telemetry::otel::opentelemetry::global::set_tracer_provider(tracer.provider.clone());
     if let Some(meter_provider) = meter_provider {
-        grafbase_tracing::otel::opentelemetry::global::set_meter_provider(meter_provider);
+        grafbase_telemetry::otel::opentelemetry::global::set_meter_provider(meter_provider);
     }
 
     tracing_subscriber::registry()
@@ -160,8 +160,8 @@ fn otel_layer_reload<S>(
             return;
         }
 
-        grafbase_tracing::otel::opentelemetry::global::set_meter_provider(meter_provider);
-        grafbase_tracing::otel::opentelemetry::global::set_tracer_provider(tracer.provider.clone());
+        grafbase_telemetry::otel::opentelemetry::global::set_meter_provider(meter_provider);
+        grafbase_telemetry::otel::opentelemetry::global::set_tracer_provider(tracer.provider.clone());
         reload_ack_sender.send(()).ok();
         // FIXME: this seems to block the reload, but it's not clear why
         tracer_sender.send(tracer.provider).ok();
@@ -180,11 +180,11 @@ where
         cfg_if::cfg_if! {
             if #[cfg(feature = "lambda")] {
                 use opentelemetry_aws::trace::{XrayIdGenerator, XrayPropagator};
-                grafbase_tracing::otel::opentelemetry::global::set_text_map_propagator(XrayPropagator::default());
+                grafbase_telemetry::otel::opentelemetry::global::set_text_map_propagator(XrayPropagator::default());
 
                 XrayIdGenerator::default()
             } else {
-                use grafbase_tracing::otel::opentelemetry_sdk::trace::RandomIdGenerator;
+                use grafbase_telemetry::otel::opentelemetry_sdk::trace::RandomIdGenerator;
 
                 RandomIdGenerator::default()
             }

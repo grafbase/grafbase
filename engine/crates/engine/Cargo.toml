@@ -63,7 +63,7 @@ engine-response.workspace = true
 engine-scalars.path = "scalars"
 engine-validation.workspace = true
 engine-value = { path = "value", version = "3" }
-grafbase-tracing.workspace = true
+grafbase-telemetry.workspace = true
 graph-entities.workspace = true
 graphql-cursor.workspace = true
 meta-type-name.path = "meta-type-name"

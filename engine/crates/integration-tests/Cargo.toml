@@ -89,8 +89,8 @@ workspace = true
 [dependencies.parser-openapi]
 path = "../parser-openapi"
 
-[dependencies.grafbase-tracing]
-path = "../tracing"
+[dependencies.grafbase-telemetry]
+workspace = true
 features = ["tower"]
 
 [dev-dependencies]

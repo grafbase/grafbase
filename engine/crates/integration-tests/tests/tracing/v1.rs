@@ -5,8 +5,8 @@ use tracing::Level;
 use tracing_mock::{expect, subscriber};
 
 use engine::{Registry, StreamingPayload};
-use grafbase_tracing::span::gql::GRAPHQL_SPAN_NAME;
-use grafbase_tracing::span::resolver::RESOLVER_SPAN_NAME;
+use grafbase_telemetry::span::gql::GRAPHQL_SPAN_NAME;
+use grafbase_telemetry::span::resolver::RESOLVER_SPAN_NAME;
 use integration_tests::udfs::RustUdfs;
 use integration_tests::EngineBuilder;
 use runtime::udf::UdfResponse;

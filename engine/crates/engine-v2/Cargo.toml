@@ -24,6 +24,7 @@ ulid.workspace = true
 crossbeam-queue = "0.3.11"
 futures-util.workspace = true
 futures.workspace = true
+grafbase-telemetry.workspace = true
 hex.workspace = true
 id-newtypes = { path = "./id-newtypes", package = "engine-v2-id-newtypes" }
 im = "15.1.0"
@@ -46,7 +47,6 @@ operation-normalizer = { path = "../operation-normalizer" }
 config = { package = "engine-v2-config", path = "./config" }
 engine-parser = { path = "../engine/parser" }
 engine-value = { path = "../engine/value" }
-grafbase-tracing.workspace = true
 schema = { path = "./schema", package = "engine-v2-schema" }
 # needed for errors, not entirely sure if we should be separate or not right now.
 # might move it back to engine, the goal isn't to rewrite everything from engine per Se

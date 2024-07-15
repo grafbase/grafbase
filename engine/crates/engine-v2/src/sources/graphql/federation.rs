@@ -1,4 +1,4 @@
-use grafbase_tracing::span::{subgraph::SubgraphRequestSpan, GqlRecorderSpanExt};
+use grafbase_telemetry::span::{subgraph::SubgraphRequestSpan, GqlRecorderSpanExt};
 use runtime::fetch::FetchRequest;
 use schema::sources::graphql::{FederationEntityResolverWalker, GraphqlEndpointId, GraphqlEndpointWalker};
 use serde::de::DeserializeSeed;

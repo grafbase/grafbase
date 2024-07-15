@@ -6,9 +6,9 @@ use engine_response::{IncrementalPayload, StreamingPayload};
 use engine_validation::{check_strict_rules, ValidationResult};
 use futures_util::stream::{self, Stream, StreamExt};
 use futures_util::FutureExt;
-use grafbase_tracing::gql_response_status::GraphqlResponseStatus;
-use grafbase_tracing::metrics::GraphqlOperationMetrics;
-use grafbase_tracing::span::{gql::GqlRequestSpan, GqlRecorderSpanExt, GqlRequestAttributes};
+use grafbase_telemetry::gql_response_status::GraphqlResponseStatus;
+use grafbase_telemetry::metrics::GraphqlOperationMetrics;
+use grafbase_telemetry::span::{gql::GqlRequestSpan, GqlRecorderSpanExt, GqlRequestAttributes};
 use graph_entities::{CompactValue, QueryResponse};
 
 use registry_v2::OperationLimits;
@@ -147,7 +147,7 @@ impl Schema {
     /// If there is no subscription, you can use `EmptySubscription`.
     pub fn build(
         registry: Arc<registry_v2::Registry>,
-        meter: grafbase_tracing::otel::opentelemetry::metrics::Meter,
+        meter: grafbase_telemetry::otel::opentelemetry::metrics::Meter,
     ) -> SchemaBuilder {
         SchemaBuilder {
             registry,
@@ -209,7 +209,7 @@ impl Schema {
 
     /// Create a schema
     pub fn new(registry: Arc<registry_v2::Registry>) -> Schema {
-        Self::build(registry, grafbase_tracing::metrics::meter_from_global_provider()).finish()
+        Self::build(registry, grafbase_telemetry::metrics::meter_from_global_provider()).finish()
     }
 
     #[inline]
@@ -529,7 +529,7 @@ impl Schema {
             .data
             .get(&TypeId::of::<runtime::Context>())
             .and_then(|data| data.downcast_ref::<runtime::Context>())
-            .and_then(|ctx| grafbase_tracing::grafbase_client::Client::extract_from(ctx.headers()));
+            .and_then(|ctx| grafbase_telemetry::grafbase_client::Client::extract_from(ctx.headers()));
 
         let normalized_query = operation_normalizer::normalize(request.query(), request.operation_name()).ok();
 
@@ -612,7 +612,7 @@ impl Schema {
                 Span::current().record_gql_status(status);
                 if let Some(normalized_query) = normalized_query {
                     schema.env.operation_metrics.record(
-                        grafbase_tracing::metrics::GraphqlOperationMetricsAttributes {
+                        grafbase_telemetry::metrics::GraphqlOperationMetricsAttributes {
                             ty: env.operation.ty.as_str(),
                             name: env.operation_analytics_attributes.name.clone(),
                             normalized_query_hash: blake3::hash(normalized_query.as_bytes()).into(),

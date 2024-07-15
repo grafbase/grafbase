@@ -1,4 +1,4 @@
-use grafbase_tracing::otel::opentelemetry_sdk::trace::TracerProvider;
+use grafbase_telemetry::otel::opentelemetry_sdk::trace::TracerProvider;
 use ulid::Ulid;
 
 /// Holds legos to deal with opentelemetry tracing

@@ -3,7 +3,7 @@ use std::{borrow::Cow, sync::Arc, time::Duration};
 use super::gateway::{GatewayConfig, GatewaySender};
 use crate::OtelReload;
 use ascii::AsciiString;
-use grafbase_tracing::span::GRAFBASE_TARGET;
+use grafbase_telemetry::span::GRAFBASE_TARGET;
 use http::{HeaderValue, StatusCode};
 use tokio::sync::oneshot;
 use tokio::time::MissedTickBehavior;
