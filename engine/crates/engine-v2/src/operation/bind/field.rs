@@ -61,18 +61,17 @@ impl<'schema, 'p> Binder<'schema, 'p> {
         };
 
         let field_id = FieldId::from(self.fields.len());
-        let condition = self.generate_field_condition(field_id, definition);
         let argument_ids = self.bind_field_arguments(definition, field_id, location, &field.arguments)?;
-
         self.fields.push(Field::Query(QueryField {
             bound_response_key,
             location,
             definition_id: definition.id(),
             argument_ids,
             selection_set_id,
-            condition,
             parent_selection_set_id,
         }));
+
+        self.generate_field_modifiers(field_id, definition);
 
         Ok(field_id)
     }

@@ -3,7 +3,7 @@ use schema::{Definition, EntityId, FieldDefinitionId, InputValueDefinitionId, In
 
 use crate::response::{BoundResponseKey, ResponseEdge, ResponseKey};
 
-use super::{ConditionId, FieldArgumentId, FieldId, Location, QueryInputValueId, SelectionSetId};
+use super::{FieldArgumentId, FieldId, Location, QueryInputValueId, SelectionSetId};
 
 #[derive(Default, serde::Serialize, serde::Deserialize)]
 pub(crate) struct SelectionSet {
@@ -103,7 +103,6 @@ pub struct QueryField {
     pub definition_id: FieldDefinitionId,
     pub argument_ids: IdRange<FieldArgumentId>,
     pub selection_set_id: Option<SelectionSetId>,
-    pub condition: Option<ConditionId>,
     pub parent_selection_set_id: SelectionSetId,
 }
 
@@ -114,7 +113,6 @@ pub struct ExtraField {
     pub selection_set_id: Option<SelectionSetId>,
     pub argument_ids: IdRange<FieldArgumentId>,
     pub petitioner_location: Location,
-    pub condition: Option<ConditionId>,
     pub parent_selection_set_id: SelectionSetId,
 }
 
@@ -173,14 +171,6 @@ impl Field {
             Field::TypeName(TypeNameField { .. }) => IdRange::empty(),
             Field::Query(QueryField { argument_ids, .. }) => *argument_ids,
             Field::Extra(ExtraField { argument_ids, .. }) => *argument_ids,
-        }
-    }
-
-    pub fn condition(&self) -> Option<ConditionId> {
-        match self {
-            Field::TypeName(TypeNameField { .. }) => None,
-            Field::Query(QueryField { condition, .. }) => *condition,
-            Field::Extra(ExtraField { condition, .. }) => *condition,
         }
     }
 

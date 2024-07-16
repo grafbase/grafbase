@@ -20,7 +20,7 @@ impl<'ctx, 'seed> PolymorphicObjectSeed<'ctx, 'seed> {
         let shape = &ctx.shapes[shape_id];
         Self {
             ctx,
-            shapes: &shape.shapes,
+            shapes: &shape.possibilities,
         }
     }
 }

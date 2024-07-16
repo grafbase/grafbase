@@ -372,7 +372,6 @@ impl<'schema, 'a> SelectionSetLogicalPlanner<'schema, 'a> {
             selection_set_id: None,
             argument_ids: self.create_arguments_for(planned_field.required_field_id),
             petitioner_location: self.operation[planned_field.petitioner_field_id].location(),
-            condition: None,
             parent_selection_set_id,
         });
         self.operation.fields.push(field);

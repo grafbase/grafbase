@@ -1,6 +1,6 @@
 mod coercion;
-mod condition;
 mod field;
+mod modifier;
 mod selection_set;
 mod validation;
 mod variables;
@@ -10,10 +10,11 @@ use std::collections::HashMap;
 pub use engine_parser::types::OperationType;
 use id_newtypes::IdRange;
 use itertools::Itertools;
+use modifier::finalize_query_modifiers;
 use schema::Schema;
 use validation::validate_parsed_operation;
 
-use super::{parse::ParsedOperation, Condition, ConditionId, FieldId, QueryInputValues};
+use super::{parse::ParsedOperation, FieldId, QueryInputValues, QueryModifierCondition, QueryModifierId};
 use crate::{
     operation::SelectionSetType,
     operation::{
@@ -148,7 +149,7 @@ pub(crate) struct Binder<'schema, 'p> {
     selection_sets: Vec<SelectionSet>,
     variable_definitions: Vec<VariableDefinition>,
     input_values: QueryInputValues,
-    conditions: HashMap<Condition, ConditionId>,
+    query_modifiers: HashMap<QueryModifierCondition, (QueryModifierId, Vec<FieldId>)>,
 }
 
 id_newtypes::index! {
@@ -180,23 +181,22 @@ pub fn bind_operation(schema: &Schema, mut parsed_operation: ParsedOperation) ->
         fields: Vec::new(),
         selection_sets: Vec::new(),
         variable_definitions: Vec::new(),
-        conditions: Default::default(),
+        query_modifiers: Default::default(),
         input_values: QueryInputValues::default(),
     };
 
     // Must be executed before binding selection sets
     binder.variable_definitions = binder.bind_variable_definitions(variable_definitions)?;
 
-    let root_condition_id = {
-        let conditions = binder.generate_entity_conditions(schema.walk(schema::EntityId::Object(root_object_id)));
-        binder.push_conditions(conditions)
-    };
     let root_selection_set_id = binder.bind_merged_selection_sets(
         SelectionSetType::Object(root_object_id),
         &[&parsed_operation.definition.selection_set],
     )?;
 
     binder.validate_all_variables_used()?;
+
+    let root_query_modifier_ids = binder.generate_modifiers_for_root_object(root_object_id);
+    let (query_modifiers, query_modifiers_impacted_fields) = finalize_query_modifiers(binder.query_modifiers);
 
     Ok(Operation {
         // Replaced later
@@ -207,7 +207,7 @@ pub fn bind_operation(schema: &Schema, mut parsed_operation: ParsedOperation) ->
             normalized_query_hash: [0; 32],
         },
         root_object_id,
-        root_condition_id,
+        root_query_modifier_ids,
         root_selection_set_id,
         selection_sets: binder.selection_sets,
         field_arguments: binder.field_arguments,
@@ -215,11 +215,8 @@ pub fn bind_operation(schema: &Schema, mut parsed_operation: ParsedOperation) ->
         fields: binder.fields,
         variable_definitions: binder.variable_definitions,
         query_input_values: binder.input_values,
-        conditions: {
-            let mut cond = binder.conditions.into_iter().collect::<Vec<_>>();
-            cond.sort_unstable_by_key(|(_, id)| usize::from(*id));
-            cond.into_iter().map(|(cond, _)| cond).collect()
-        },
+        query_modifiers,
+        query_modifiers_impacted_fields,
         logical_plans: Vec::new(),
         field_to_logical_plan_id: Vec::new(),
         plan_edges: Vec::new(),

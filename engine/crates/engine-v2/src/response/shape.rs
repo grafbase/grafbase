@@ -3,9 +3,9 @@ use schema::{FieldDefinitionId, InterfaceId, ObjectId, ScalarType, UnionId, Wrap
 
 use crate::operation::FieldId;
 
-use super::{GraphqlError, ResponseEdge, ResponseObjectSetId, SafeResponseKey};
+use super::{ResponseEdge, ResponseObjectSetId, SafeResponseKey};
 
-#[derive(Default)]
+#[derive(Default, serde::Serialize, serde::Deserialize)]
 pub(crate) struct Shapes {
     pub polymorphic: Vec<PolymorphicObjectShape>,
     pub concrete: Vec<ConcreteObjectShape>,
@@ -20,7 +20,7 @@ id_newtypes::NonZeroU16! {
     Shapes.errors[FieldErrorId] => FieldError,
 }
 
-#[derive(Debug)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub(crate) struct FieldShape {
     pub expected_key: SafeResponseKey,
     pub edge: ResponseEdge,
@@ -30,7 +30,7 @@ pub(crate) struct FieldShape {
     pub wrapping: Wrapping,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, serde::Serialize, serde::Deserialize)]
 pub(crate) enum Shape {
     Scalar(ScalarType),
     ConcreteObject(ConcreteObjectShapeId),
@@ -46,31 +46,30 @@ impl Shape {
     }
 }
 
+#[derive(serde::Serialize, serde::Deserialize)]
 pub(crate) struct PolymorphicObjectShape {
     // Sorted by Object typename
-    pub shapes: Vec<(ObjectId, ConcreteObjectShapeId)>,
+    pub possibilities: Vec<(ObjectId, ConcreteObjectShapeId)>,
 }
 
 /// Being concrete does not mean it's only associated with a single object definition id
 /// only that we know exactly which fields must be present for one or multiple of them.
-#[derive(Debug)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub(crate) struct ConcreteObjectShape {
     pub set_id: Option<ResponseObjectSetId>,
     pub identifier: ObjectIdentifier,
     pub typename_response_edges: Vec<ResponseEdge>,
     // Sorted by expected_key
     pub field_shape_ids: IdRange<FieldShapeId>,
-    pub field_error_ids: IdRange<FieldErrorId>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub(crate) struct FieldError {
     pub edge: ResponseEdge,
-    pub errors: Vec<GraphqlError>,
     pub is_required: bool,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, serde::Serialize, serde::Deserialize)]
 pub enum ObjectIdentifier {
     Known(ObjectId),
     UnionTypename(UnionId),

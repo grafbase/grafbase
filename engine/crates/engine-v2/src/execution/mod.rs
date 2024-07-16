@@ -11,13 +11,15 @@ mod walkers;
 use std::sync::Arc;
 
 use crate::{
-    operation::{Operation, Variables},
+    operation::{FieldId, Operation, Variables},
+    response::{ConcreteObjectShapeId, FieldShapeId, GraphqlError},
     Runtime,
 };
 pub(crate) use context::*;
 pub(crate) use coordinator::*;
 pub(crate) use error::*;
 pub(crate) use hooks::RequestHooks;
+use id_newtypes::{BitSet, IdToMany};
 pub(crate) use ids::*;
 pub(crate) use plan::*;
 use tracing::instrument;
@@ -58,4 +60,13 @@ where
     fn index(&self, index: I) -> &Self::Output {
         &self.operation[index]
     }
+}
+
+#[derive(Default)]
+pub(crate) struct QueryModifications {
+    pub skipped_fields: BitSet<FieldId>,
+    pub errors: Vec<GraphqlError>,
+    pub concrete_shape_has_error: BitSet<ConcreteObjectShapeId>,
+    pub field_shape_id_to_error_ids: IdToMany<FieldShapeId, ErrorId>,
+    pub root_error_ids: Vec<ErrorId>,
 }

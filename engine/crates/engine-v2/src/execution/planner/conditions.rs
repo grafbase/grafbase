@@ -11,12 +11,12 @@ where
     'ctx: 'op,
 {
     pub(super) async fn evaluate_all_conditions(&self) -> PlanningResult<Vec<ConditionResult>> {
-        let mut results = Vec::with_capacity(self.operation.conditions.len());
+        let mut results = Vec::with_capacity(self.operation.query_modifiers.len());
 
         let is_anonymous = self.ctx.access_token().is_anonymous();
         let mut scopes = None;
 
-        for condition in &self.operation.conditions {
+        for condition in &self.operation.query_modifiers {
             let result = match condition {
                 Condition::All(ids) => ids
                     .iter()

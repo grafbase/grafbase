@@ -1,5 +1,5 @@
 mod builder;
-mod conditions;
+mod modifier;
 mod partition;
 mod pool;
 mod shape;
@@ -13,7 +13,7 @@ use builder::ExecutionPlanBuilder;
 
 use crate::{
     execution::{ExecutionPlanId, ExecutionPlans, PlanWalker, PlanningError, PlanningResult, PreExecutionContext},
-    operation::{ConditionResult, FieldId, LogicalPlanId, Operation, OperationWalker, SelectionSetType, Variables},
+    operation::{FieldId, LogicalPlanId, Operation, OperationWalker, SelectionSetType, Variables},
     response::{FieldError, FieldShape, ResponseObjectSetId, Shapes},
     sources::PreparedExecutor,
     Runtime,
@@ -26,7 +26,6 @@ pub(super) struct ExecutionPlanner<'ctx, 'op, R: Runtime> {
     to_be_planned: Vec<ToBePlanned>,
     plan_parent_to_child_edges: HashSet<UnfinalizedParentToChildEdge>,
     plan_id_to_execution_plan_id: Vec<Option<ExecutionPlanId>>,
-    condition_results: Vec<ConditionResult>,
     field_shapes_buffer_pool: BufferPool<FieldShape>,
     field_errors_buffer_pool: BufferPool<FieldError>,
     plans: ExecutionPlans,
@@ -67,7 +66,6 @@ where
             to_be_planned: Vec::new(),
             plan_parent_to_child_edges: HashSet::new(),
             plan_id_to_execution_plan_id: vec![None; operation.logical_plans.len()],
-            condition_results: Vec::new(),
             field_shapes_buffer_pool: Default::default(),
             field_errors_buffer_pool: Default::default(),
             plans: ExecutionPlans {
@@ -80,22 +78,11 @@ where
         }
     }
 
-    pub(super) async fn plan(mut self) -> PlanningResult<ExecutionPlans> {
-        self.condition_results = self.evaluate_all_conditions().await?;
+    pub(super) async fn plan(self) -> PlanningResult<ExecutionPlans> {
         self.finalize()
     }
 
     fn finalize(mut self) -> PlanningResult<ExecutionPlans> {
-        if let Some(id) = self.operation.root_condition_id {
-            match &self.condition_results[usize::from(id)] {
-                ConditionResult::Include => (),
-                ConditionResult::Errors(errors) => {
-                    self.plans.root_errors.extend_from_slice(errors);
-                    return Ok(self.plans);
-                }
-            }
-        }
-
         self.generate_root_execution_plans()?;
         let mut plans = self.plans;
         let mut plan_parent_to_child_edges = self

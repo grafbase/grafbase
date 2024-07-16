@@ -6,8 +6,8 @@ use schema::{EntityId, FieldDefinitionWalker, ObjectId, Schema};
 use crate::{
     execution::PlanInput,
     operation::{
-        ConditionResult, ExtraField, Field, FieldId, FieldWalker, LogicalPlanId, QueryField, SelectionSetId,
-        SelectionSetType, TypeNameField,
+        ExtraField, Field, FieldId, FieldWalker, LogicalPlanId, QueryField, SelectionSetId, SelectionSetType,
+        TypeNameField,
     },
     response::{
         ConcreteObjectShape, ConcreteObjectShapeId, FieldError, FieldShape, ObjectIdentifier, PolymorphicObjectShape,
@@ -137,9 +137,9 @@ where
                     }
                 }
             }
-            Ok(Shape::PolymorphicObject(
-                self.push_polymorphic_shape(PolymorphicObjectShape { shapes }),
-            ))
+            Ok(Shape::PolymorphicObject(self.push_polymorphic_shape(
+                PolymorphicObjectShape { possibilities: shapes },
+            )))
         } else {
             let shape_id = self.create_shape_for(output[0], maybe_response_object_set_id, &fields, &mut buffer)?;
             let shape = &mut self.plans.shapes[shape_id];
@@ -305,7 +305,7 @@ where
     fn push_polymorphic_shape(&mut self, mut shape: PolymorphicObjectShape) -> PolymorphicObjectShapeId {
         let id = self.plans.shapes.polymorphic.len().into();
         let schema = self.schema();
-        shape.shapes.sort_unstable_by(|a, b| {
+        shape.possibilities.sort_unstable_by(|a, b| {
             let a = &schema[schema[a.0].name];
             let b = &schema[schema[b.0].name];
             a.cmp(b)

@@ -1,10 +1,10 @@
 mod bind;
 mod build;
-mod condition;
 pub mod ids;
 mod input_value;
 mod location;
 mod logical_planner;
+mod modifier;
 mod parse;
 mod path;
 mod selection_set;
@@ -12,17 +12,42 @@ mod validation;
 mod variables;
 mod walkers;
 
-use crate::response::ResponseKeys;
-pub(crate) use condition::*;
+use crate::response::{ConcreteObjectShapeId, FieldShapeId, ResponseKeys, ResponseObjectSetId, Shapes};
 pub(crate) use engine_parser::types::OperationType;
+use id_newtypes::{BitSet, IdRange, IdToMany};
 pub(crate) use ids::*;
 pub(crate) use input_value::*;
 pub(crate) use location::Location;
+pub(crate) use modifier::*;
 pub(crate) use path::QueryPath;
 use schema::{ObjectId, RequiredFieldId, ResolverId, SchemaWalker};
 pub(crate) use selection_set::*;
 pub(crate) use variables::*;
 pub(crate) use walkers::*;
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub(crate) struct PreparedOperation {
+    pub operation: Operation,
+    pub metadata: OperationMetadata,
+    pub response_blueprint: ResponseBlueprint,
+}
+
+impl std::ops::Deref for PreparedOperation {
+    type Target = Operation;
+    fn deref(&self) -> &Self::Target {
+        &self.operation
+    }
+}
+
+impl<I> std::ops::Index<I> for PreparedOperation
+where
+    Operation: std::ops::Index<I>,
+{
+    type Output = <Operation as std::ops::Index<I>>::Output;
+    fn index(&self, index: I) -> &Self::Output {
+        &self.operation[index]
+    }
+}
 
 #[derive(serde::Serialize, serde::Deserialize)]
 pub(crate) struct LogicalPlan {
@@ -44,7 +69,7 @@ pub struct OperationMetadata {
 pub(crate) struct Operation {
     pub metadata: OperationMetadata,
     pub root_object_id: ObjectId,
-    pub root_condition_id: Option<ConditionId>,
+    pub root_query_modifier_ids: Vec<QueryModifierId>,
     pub root_selection_set_id: SelectionSetId,
     pub response_keys: ResponseKeys,
     pub selection_sets: Vec<SelectionSet>,
@@ -53,7 +78,8 @@ pub(crate) struct Operation {
     pub field_arguments: Vec<FieldArgument>,
     pub query_input_values: QueryInputValues,
     // deduplicated
-    pub conditions: Vec<Condition>,
+    pub query_modifiers: Vec<QueryModifier>,
+    pub query_modifiers_impacted_fields: Vec<FieldId>,
     // -- Added during the solving step --
     pub logical_plans: Vec<LogicalPlan>,
     pub field_to_logical_plan_id: Vec<LogicalPlanId>,
@@ -75,6 +101,22 @@ pub(crate) struct SolvedRequiredField {
     pub id: RequiredFieldId,
     pub field_id: FieldId,
     pub subselection: SolvedRequiredFieldSet,
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub(crate) struct ResponseBlueprint {
+    pub shapes: Shapes,
+    pub field_to_shape_ids: IdToMany<FieldId, FieldShapeId>,
+    pub logical_plan_to_blueprint: Vec<LogicalPlanResponseBlueprint>,
+    pub selection_set_to_requires_typename: BitSet<SelectionSetId>,
+    pub response_object_set_count: usize,
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub(crate) struct LogicalPlanResponseBlueprint {
+    pub input_id: ResponseObjectSetId,
+    pub output_ids: IdRange<ResponseObjectSetId>,
+    pub concrete_shape_id: ConcreteObjectShapeId,
 }
 
 impl Operation {
