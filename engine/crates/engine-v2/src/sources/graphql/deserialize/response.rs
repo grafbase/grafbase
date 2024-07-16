@@ -1,16 +1,14 @@
 use std::fmt;
 
-use grafbase_tracing::{gql_response_status::GraphqlResponseStatus, span::GqlRecorderSpanExt};
+use grafbase_tracing::gql_response_status::GraphqlResponseStatus;
 use serde::{
     de::{DeserializeSeed, IgnoredAny, MapAccess, Visitor},
     Deserializer,
 };
-use tracing::Span;
 
 use super::errors::{ConcreteGraphqlErrorsSeed, GraphqlErrorsSeed};
 
 pub(in crate::sources::graphql) struct GraphqlResponseSeed<DataSeed, ErrorSeed> {
-    graphql_span: Option<Span>,
     data_seed: Option<DataSeed>,
     errors_seed: Option<ConcreteGraphqlErrorsSeed<ErrorSeed>>,
 }
@@ -18,16 +16,8 @@ pub(in crate::sources::graphql) struct GraphqlResponseSeed<DataSeed, ErrorSeed> 
 impl<DataSeed, ErrorSeed> GraphqlResponseSeed<DataSeed, ErrorSeed> {
     pub fn new(data_seed: DataSeed, errors_seed: ErrorSeed) -> Self {
         Self {
-            graphql_span: None,
             data_seed: Some(data_seed),
             errors_seed: Some(ConcreteGraphqlErrorsSeed(errors_seed)),
-        }
-    }
-
-    pub fn with_graphql_span(self, span: Span) -> Self {
-        Self {
-            graphql_span: Some(span),
-            ..self
         }
     }
 }
@@ -37,7 +27,7 @@ where
     DataSeed: DeserializeSeed<'de, Value = ()>,
     ErrorsSeed: GraphqlErrorsSeed<'de>,
 {
-    type Value = ();
+    type Value = GraphqlResponseStatus;
 
     fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
     where
@@ -52,7 +42,7 @@ where
     DataSeed: DeserializeSeed<'de, Value = ()>,
     ErrorsSeed: GraphqlErrorsSeed<'de>,
 {
-    type Value = ();
+    type Value = GraphqlResponseStatus;
 
     fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         formatter.write_str("a valid GraphQL response")
@@ -83,23 +73,20 @@ where
         }
 
         let data_is_present = self.data_seed.is_some();
-        if let Some(span) = self.graphql_span {
-            let status = if errors_count == 0 {
-                GraphqlResponseStatus::Success
-            } else if data_is_present {
-                GraphqlResponseStatus::FieldError {
-                    count: errors_count as u64,
-                    data_is_null: data_is_null_result?,
-                }
-            } else {
-                GraphqlResponseStatus::RequestError {
-                    count: errors_count as u64,
-                }
-            };
-            span.record_gql_status(status);
-        }
+        let status = if errors_count == 0 {
+            GraphqlResponseStatus::Success
+        } else if data_is_present {
+            GraphqlResponseStatus::FieldError {
+                count: errors_count as u64,
+                data_is_null: data_is_null_result?,
+            }
+        } else {
+            GraphqlResponseStatus::RequestError {
+                count: errors_count as u64,
+            }
+        };
 
-        Ok(())
+        Ok(status)
     }
 }
 

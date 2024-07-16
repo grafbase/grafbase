@@ -1,4 +1,4 @@
-use grafbase_tracing::span::subgraph::SubgraphRequestSpan;
+use grafbase_tracing::span::{subgraph::SubgraphRequestSpan, GqlRecorderSpanExt};
 use runtime::fetch::FetchRequest;
 use schema::sources::graphql::{GraphqlEndpointId, GraphqlEndpointWalker, RootFieldResolverWalker};
 use serde::de::DeserializeSeed;
@@ -119,15 +119,16 @@ impl<'ctx, R: Runtime> GraphqlExecutor<'ctx, R> {
 
             let part = response_part.as_mut();
 
-            GraphqlResponseSeed::new(
+            let status = GraphqlResponseSeed::new(
                 part.next_seed(self.plan).ok_or("No object to update")?,
                 RootGraphqlErrors {
                     response_part: &part,
                     response_keys: self.plan.response_keys(),
                 },
             )
-            .with_graphql_span(span.clone())
             .deserialize(&mut serde_json::Deserializer::from_slice(&bytes))?;
+
+            span.record_gql_status(status);
 
             Ok(response_part)
         }
