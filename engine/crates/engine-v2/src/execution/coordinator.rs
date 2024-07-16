@@ -37,7 +37,7 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
             request_context: self.request_context,
         };
 
-        let response_fut = ExecutionCoordinator { ctx }.execute();
+        let response_fut = ctx.execute();
 
         tracing::trace!("Starting execution...");
         let (response, _) = futures_util::join!(response_fut, background_fut);
@@ -54,25 +54,14 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
             request_context: self.request_context,
         };
 
-        let subscription_fut = ExecutionCoordinator { ctx }.execute_subscription(responses);
+        let subscription_fut = ctx.execute_subscription(responses);
 
         tracing::trace!("Starting execution...");
         futures_util::join!(subscription_fut, background_fut);
     }
 }
 
-pub(crate) struct ExecutionCoordinator<'ctx, R: Runtime> {
-    ctx: ExecutionContext<'ctx, R>,
-}
-
-impl<'ctx, R: Runtime> std::ops::Deref for ExecutionCoordinator<'ctx, R> {
-    type Target = ExecutionContext<'ctx, R>;
-    fn deref(&self) -> &Self::Target {
-        &self.ctx
-    }
-}
-
-impl<'ctx, R: Runtime> ExecutionCoordinator<'ctx, R> {
+impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
     fn new_execution_state(&self) -> OperationExecutionState<'ctx> {
         OperationExecutionState::new(&self.engine.schema, self.operation)
     }
@@ -86,7 +75,7 @@ impl<'ctx, R: Runtime> ExecutionCoordinator<'ctx, R> {
         }
     }
 
-    pub async fn execute(self) -> Response {
+    async fn execute(self) -> Response {
         assert!(
             !matches!(self.operation.ty(), OperationType::Subscription),
             "execute shouldn't be called for subscriptions"
@@ -97,16 +86,16 @@ impl<'ctx, R: Runtime> ExecutionCoordinator<'ctx, R> {
         }
 
         OperationExecution {
-            coordinator: &self,
-            futures: ExecutorFutureSet::new(),
+            futures: ExecutorFutureSet::new(self),
             state: self.new_execution_state(),
             response: ResponseBuilder::new(self.operation.root_object_id),
+            ctx: self,
         }
         .execute()
         .await
     }
 
-    pub async fn execute_subscription(self, mut responses: impl ResponseSender) {
+    async fn execute_subscription(self, mut responses: impl ResponseSender) {
         assert!(matches!(self.operation.ty(), OperationType::Subscription));
 
         if let Some(response) = self.response_if_root_errors() {
@@ -114,62 +103,60 @@ impl<'ctx, R: Runtime> ExecutionCoordinator<'ctx, R> {
             return;
         }
 
-        let (state, subscription_plan_id) = {
+        let (initial_state, subscription_plan_id) = {
             let mut state = self.new_execution_state();
             let id = state.pop_subscription_plan_id();
             (state, id)
         };
-        let response_object_set_ids = self
-            .plan_walker(subscription_plan_id)
-            .logical_plan()
-            .response_blueprint()
-            .output_ids;
-        let new_execution = || {
-            let mut response = ResponseBuilder::new(self.operation.root_object_id);
-            OperationRootPlanExecution {
-                root_response_part: response.new_part(
-                    Arc::new(response.root_response_object().into_iter().collect()),
-                    response_object_set_ids,
-                ),
-                operation_execution: OperationExecution {
-                    coordinator: &self,
-                    futures: ExecutorFutureSet::new(),
-                    state: state.clone(),
-                    response,
-                },
-            }
-        };
 
-        let stream = match self
-            .build_subscription_stream(subscription_plan_id, new_execution)
-            .await
-        {
+        let stream = match self.build_subscription_stream(subscription_plan_id).await {
             Ok(stream) => stream,
             Err(error) => Box::pin(futures_util::stream::iter(std::iter::once(Err(error)))),
         };
 
         SubscriptionExecution {
+            ctx: self,
             subscription_plan_id,
+            initial_state,
             stream,
         }
         .execute(responses)
         .await
     }
 
-    async fn build_subscription_stream<'s, 'caller>(
-        &'s self,
-        plan_id: ExecutionPlanId,
-        new_execution: impl Fn() -> OperationRootPlanExecution<'caller, R> + Send + 'caller,
-    ) -> ExecutionResult<BoxStream<'caller, ExecutionResult<OperationRootPlanExecution<'caller, R>>>>
+    async fn build_subscription_stream<'exec>(
+        self,
+        subscription_plan_id: ExecutionPlanId,
+    ) -> ExecutionResult<BoxStream<'exec, ExecutionResult<SubscriptionResponse>>>
     where
-        's: 'caller,
+        'ctx: 'exec,
     {
-        let plan = self.plan_walker(plan_id);
-        let input = SubscriptionInput { ctx: self.ctx, plan };
-        let executor = self.operation[plan_id]
+        let plan = self.plan_walker(subscription_plan_id);
+        let input = SubscriptionInput { ctx: self, plan };
+        let executor = self.operation[subscription_plan_id]
             .prepared_executor
             .new_subscription_executor(input)?;
-        executor.execute(new_execution).await
+        executor
+            .execute(move || self.new_subscription_response(subscription_plan_id))
+            .await
+    }
+
+    fn new_subscription_response(&self, subscription_plan_id: ExecutionPlanId) -> SubscriptionResponse {
+        let mut response = ResponseBuilder::new(self.operation.root_object_id);
+        let response_object_set_ids = self
+            .plan_walker(subscription_plan_id)
+            .logical_plan()
+            .response_blueprint()
+            .output_ids;
+        let root_response_part = response.new_part(
+            Arc::new(response.root_response_object().into_iter().collect()),
+            response_object_set_ids,
+        );
+
+        SubscriptionResponse {
+            response,
+            root_response_part,
+        }
     }
 
     fn response_if_root_errors(&self) -> Option<Response> {
@@ -190,14 +177,17 @@ impl<'ctx, R: Runtime> ExecutionCoordinator<'ctx, R> {
     }
 }
 
-struct SubscriptionExecution<S> {
+struct SubscriptionExecution<'ctx, R: Runtime, S> {
+    ctx: ExecutionContext<'ctx, R>,
     subscription_plan_id: ExecutionPlanId,
+    initial_state: OperationExecutionState<'ctx>,
     stream: S,
 }
 
-impl<'a, R: Runtime, S> SubscriptionExecution<S>
+impl<'ctx, 'exec, R: Runtime, S> SubscriptionExecution<'ctx, R, S>
 where
-    S: Stream<Item = ExecutionResult<OperationRootPlanExecution<'a, R>>> + Send,
+    'ctx: 'exec,
+    S: Stream<Item = ExecutionResult<SubscriptionResponse>> + Send + 'exec,
 {
     async fn execute(self, mut responses: impl ResponseSender) {
         let subscription_stream = self.stream.fuse();
@@ -236,11 +226,19 @@ where
                         break;
                     };
                     match execution {
-                        Ok(OperationRootPlanExecution {
-                            mut operation_execution,
+                        Ok(SubscriptionResponse {
+                            response,
                             root_response_part,
                         }) => {
+                            let mut operation_execution = OperationExecution {
+                                futures: ExecutorFutureSet::new(self.ctx),
+                                state: self.initial_state.clone(),
+                                ctx: self.ctx,
+                                response,
+                            };
+
                             operation_execution.futures.push_result(ExecutorFutureResult {
+                                plan_id: self.subscription_plan_id,
                                 result: Ok(root_response_part),
                                 root_response_object_refs: Arc::new(
                                     operation_execution
@@ -249,8 +247,8 @@ where
                                         .into_iter()
                                         .collect(),
                                 ),
-                                plan_id: self.subscription_plan_id,
                             });
+
                             response_futures.push_back(operation_execution.execute());
                         }
                         Err(error) => {
@@ -271,32 +269,35 @@ where
     }
 }
 
-pub struct OperationRootPlanExecution<'ctx, R: Runtime> {
-    operation_execution: OperationExecution<'ctx, R>,
+pub struct SubscriptionResponse {
+    response: ResponseBuilder,
     root_response_part: ResponsePart,
 }
 
-impl<R: Runtime> OperationRootPlanExecution<'_, R> {
+impl SubscriptionResponse {
     pub fn root_response_part(&mut self) -> &mut ResponsePart {
         &mut self.root_response_part
     }
 }
 
-struct OperationExecution<'ctx, R: Runtime> {
-    coordinator: &'ctx ExecutionCoordinator<'ctx, R>,
-    futures: ExecutorFutureSet<'ctx>,
+struct OperationExecution<'ctx, 'exec, R: Runtime> {
+    ctx: ExecutionContext<'ctx, R>,
+    futures: ExecutorFutureSet<'ctx, 'exec, R>,
     state: OperationExecutionState<'ctx>,
     response: ResponseBuilder,
 }
 
-impl<'ctx, R: Runtime> std::ops::Deref for OperationExecution<'ctx, R> {
+impl<'ctx, 'exec, R: Runtime> std::ops::Deref for OperationExecution<'ctx, 'exec, R> {
     type Target = ExecutionContext<'ctx, R>;
     fn deref(&self) -> &Self::Target {
-        &self.coordinator.ctx
+        &self.ctx
     }
 }
 
-impl<'ctx, R: Runtime> OperationExecution<'ctx, R> {
+impl<'ctx, 'exec, R: Runtime> OperationExecution<'ctx, 'exec, R>
+where
+    'ctx: 'exec,
+{
     /// Runs a single execution to completion, returning its response
     async fn execute(mut self) -> Response {
         for plan_id in self.state.get_executable_plans() {
@@ -348,7 +349,7 @@ impl<'ctx, R: Runtime> OperationExecution<'ctx, R> {
         plan_id: ExecutionPlanId,
     ) -> (ResponseEdge, Option<Vec<(ResponseEdge, ResponseValue)>>) {
         let shape_id = self
-            .coordinator
+            .ctx
             .plan_walker(plan_id)
             .logical_plan()
             .response_blueprint()
@@ -390,13 +391,13 @@ impl<'ctx, R: Runtime> OperationExecution<'ctx, R> {
             return;
         }
 
-        let plan = self.coordinator.plan_walker(plan_id);
+        let plan = self.ctx.plan_walker(plan_id);
         let response_part = self.response.new_part(
             root_response_object_refs.clone(),
             plan.logical_plan().response_blueprint().output_ids,
         );
         let input = ExecutorInput {
-            ctx: self.coordinator.ctx,
+            ctx: self.ctx,
             plan,
             root_response_objects: self.response.read(
                 plan.schema(),
@@ -420,21 +421,31 @@ impl<'ctx, R: Runtime> OperationExecution<'ctx, R> {
     }
 }
 
-pub struct ExecutorFutureSet<'a>(FuturesUnordered<BoxFuture<'a, ExecutorFutureResult>>);
+pub struct ExecutorFutureSet<'ctx, 'exec, R: Runtime> {
+    #[allow(unused)]
+    ctx: ExecutionContext<'ctx, R>,
+    futures: FuturesUnordered<BoxFuture<'exec, ExecutorFutureResult>>,
+}
 
-impl<'a> ExecutorFutureSet<'a> {
-    fn new() -> Self {
-        ExecutorFutureSet(FuturesUnordered::new())
+impl<'ctx, 'exec, R: Runtime> ExecutorFutureSet<'ctx, 'exec, R>
+where
+    'ctx: 'exec,
+{
+    fn new(ctx: ExecutionContext<'ctx, R>) -> Self {
+        Self {
+            ctx,
+            futures: FuturesUnordered::new(),
+        }
     }
 
-    fn execute<R: Runtime>(
+    fn execute(
         &mut self,
         plan_id: ExecutionPlanId,
         root_response_object_refs: Arc<Vec<ResponseObjectRef>>,
-        executor: Executor<'a, R>,
+        executor: Executor<'exec, R>,
         response_part: ResponsePart,
     ) {
-        self.0.push(Box::pin(make_send_on_wasm(async move {
+        self.futures.push(Box::pin(make_send_on_wasm(async move {
             let result = executor.execute(response_part).await;
             ExecutorFutureResult {
                 plan_id,
@@ -445,11 +456,11 @@ impl<'a> ExecutorFutureSet<'a> {
     }
 
     fn push_result(&mut self, result: ExecutorFutureResult) {
-        self.0.push(Box::pin(async move { result }));
+        self.futures.push(Box::pin(async move { result }));
     }
 
     async fn next(&mut self) -> Option<ExecutorFutureResult> {
-        self.0.next().await
+        self.futures.next().await
     }
 }
 
