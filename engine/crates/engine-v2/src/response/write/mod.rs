@@ -211,7 +211,7 @@ impl ResponseBuilder {
                 })
                 .collect();
         }
-        part.response_object_set_ids.zip(boundaries).collect()
+        part.response_object_set_ids.into_iter().zip(boundaries).collect()
     }
 
     pub fn build(self, schema: Arc<Schema>, operation: Arc<Operation>) -> Response {
@@ -357,7 +357,7 @@ impl ResponsePart {
             errors: Vec::new(),
             updates: Vec::new(),
             response_object_set_ids,
-            response_object_sets: response_object_set_ids.map(|_| (Vec::new())).collect(),
+            response_object_sets: response_object_set_ids.into_iter().map(|_| (Vec::new())).collect(),
         }
     }
 

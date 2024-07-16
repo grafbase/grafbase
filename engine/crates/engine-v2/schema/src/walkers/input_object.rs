@@ -9,7 +9,10 @@ impl<'a> InputObjectWalker<'a> {
     }
 
     pub fn input_fields(self) -> impl ExactSizeIterator<Item = InputValueDefinitionWalker<'a>> + 'a {
-        self.schema[self.item].input_field_ids.map(move |id| self.walk(id))
+        self.schema[self.item]
+            .input_field_ids
+            .into_iter()
+            .map(move |id| self.walk(id))
     }
 
     pub fn directives(&self) -> TypeSystemDirectivesWalker<'a> {

@@ -10,7 +10,7 @@ impl<'a> InterfaceWalker<'a> {
 
     pub fn fields(self) -> impl Iterator<Item = FieldDefinitionWalker<'a>> + 'a {
         let fields = self.schema[self.item].fields;
-        fields.map(move |field_id| self.walk(field_id))
+        fields.into_iter().map(move |field_id| self.walk(field_id))
     }
 
     pub fn interfaces(self) -> impl ExactSizeIterator<Item = InterfaceWalker<'a>> + 'a {

@@ -13,3 +13,5 @@ workspace = true
 
 [dependencies]
 serde.workspace = true
+bitvec = { version = "1", features = ["serde"]}
+

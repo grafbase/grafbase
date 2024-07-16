@@ -1,7 +1,7 @@
 use std::ops::Range;
 
 // Not necessary anymore when Rust stabilize std::iter::Step
-#[derive(Debug, PartialEq, Eq, Clone, Copy, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Hash, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, serde::Serialize, serde::Deserialize)]
 pub struct IdRange<Id: Copy> {
     pub start: Id,
     pub end: Id,
@@ -99,6 +99,14 @@ where
             end: Id::from(end + 1),
         })
     }
+
+    pub fn start(&self) -> Id {
+        self.start
+    }
+
+    pub fn end(&self) -> Id {
+        self.end
+    }
 }
 
 impl<Id, T> From<Range<T>> for IdRange<Id>
@@ -113,7 +121,22 @@ where
     }
 }
 
-impl<Id> Iterator for IdRange<Id>
+impl<Id> IntoIterator for IdRange<Id>
+where
+    Id: Copy + From<usize>,
+    usize: From<Id>,
+{
+    type Item = Id;
+    type IntoIter = IdRangeIterator<Id>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        IdRangeIterator(self)
+    }
+}
+
+pub struct IdRangeIterator<Id: Copy>(IdRange<Id>);
+
+impl<Id> Iterator for IdRangeIterator<Id>
 where
     Id: Copy + From<usize>,
     usize: From<Id>,
@@ -121,9 +144,9 @@ where
     type Item = Id;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if !IdRange::<Id>::is_empty(self) {
-            let id = self.start;
-            self.start = Id::from(usize::from(id) + 1);
+        if !self.0.is_empty() {
+            let id = self.0.start;
+            self.0.start = Id::from(usize::from(id) + 1);
             Some(id)
         } else {
             None
@@ -136,12 +159,12 @@ where
     }
 }
 
-impl<Id> ExactSizeIterator for IdRange<Id>
+impl<Id> ExactSizeIterator for IdRangeIterator<Id>
 where
     Id: Copy + From<usize>,
     usize: From<Id>,
 {
     fn len(&self) -> usize {
-        IdRange::len(self)
+        self.0.len()
     }
 }

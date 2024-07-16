@@ -53,7 +53,10 @@ impl<'a> FieldDefinitionWalker<'a> {
     }
 
     pub fn arguments(self) -> impl ExactSizeIterator<Item = InputValueDefinitionWalker<'a>> + 'a {
-        self.schema[self.item].argument_ids.map(move |id| self.walk(id))
+        self.schema[self.item]
+            .argument_ids
+            .into_iter()
+            .map(move |id| self.walk(id))
     }
 
     pub fn ty(self) -> TypeWalker<'a> {

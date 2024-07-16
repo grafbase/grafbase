@@ -342,7 +342,7 @@ impl<'ctx, R: Runtime> OperationExecution<'ctx, R> {
             .iter()
             .map(|field| field.edge)
             .min()
-            .or_else(|| shape.field_error_ids.map(|id| shapes[id].edge).min())
+            .or_else(|| shape.field_error_ids.into_iter().map(|id| shapes[id].edge).min())
             .or_else(|| shape.typename_response_edges.iter().min().copied())
             .expect("Selection set without any fields?");
 
