@@ -10,7 +10,7 @@ impl<'a> EnumWalker<'a> {
     }
 
     pub fn values(self) -> impl ExactSizeIterator<Item = EnumValueWalker<'a>> + 'a {
-        self.as_ref().value_ids.map(move |id| self.walk(id))
+        self.as_ref().value_ids.into_iter().map(move |id| self.walk(id))
     }
 
     pub fn find_value_by_name(&self, name: &str) -> Option<EnumValueId> {

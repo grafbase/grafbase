@@ -1,5 +1,9 @@
+mod bitset;
+mod many;
 mod range;
-pub use range::IdRange;
+pub use bitset::*;
+pub use many::*;
+pub use range::*;
 
 #[macro_export]
 macro_rules! debug_display {
@@ -88,10 +92,10 @@ macro_rules! index {
 
 #[macro_export]
 macro_rules! NonZeroU32 {
-    ($($ty:ident$(<$( $lt:lifetime ),+>)?.$field:ident[$name:ident] => $output:ty $(|max($max:expr))? $(|proxy($ty2:ident$(.$field2:ident)+))* ,)*) => {
+    ($($ty:ident$(<$( $lt:lifetime ),+>)?$(.$field:ident)+[$name:ident] => $output:ty $(|max($max:expr))? $(|proxy($ty2:ident$(.$field2:ident)+))* ,)*) => {
         $(
             $crate::NonZeroU32! { $name $(|max($max))?, }
-            $crate::index!{ $ty$(<$($lt),+>)?.$field[$name] => $output $(|proxy($ty2$(.$field2)+))*, }
+            $crate::index!{ $ty$(<$($lt),+>)?$(.$field)+[$name] => $output $(|proxy($ty2$(.$field2)+))*, }
         )*
     };
     ($($name:ident $(|max($max:expr))?,)*) => {
@@ -130,10 +134,10 @@ macro_rules! NonZeroU32 {
 
 #[macro_export]
 macro_rules! NonZeroU16 {
-    ($($ty:ident$(<$( $lt:lifetime ),+>)?.$field:ident[$name:ident] => $output:ty $(| $(max($max:expr))?)? $(|proxy($ty2:ident$(.$field2:ident)+))*,)*) => {
+    ($($ty:ident$(<$( $lt:lifetime ),+>)?$(.$field:ident)+[$name:ident] => $output:ty $(| $(max($max:expr))?)? $(|proxy($ty2:ident$(.$field2:ident)+))*,)*) => {
         $(
             $crate::NonZeroU16! { $name $(|max($max))?, }
-            $crate::index!{ $ty$(<$($lt),+>)?.$field[$name] => $output $(|proxy($ty2$(.$field2)+))*, }
+            $crate::index!{ $ty$(<$($lt),+>)?$(.$field)+[$name] => $output $(|proxy($ty2$(.$field2)+))*, }
         )*
     };
     ($($name:ident $(|max($max:expr))?,)*) => {
@@ -172,10 +176,10 @@ macro_rules! NonZeroU16 {
 
 #[macro_export]
 macro_rules! U8 {
-    ($($ty:ident$(<$( $lt:lifetime ),+>)?.$field:ident[$name:ident] => $output:ty $(| $(max($max:expr))?)? $(|proxy($ty2:ident$(.$field2:ident)+))*,)*) => {
+    ($($ty:ident$(<$( $lt:lifetime ),+>)?$(.$field:ident)+[$name:ident] => $output:ty $(| $(max($max:expr))?)? $(|proxy($ty2:ident$(.$field2:ident)+))*,)*) => {
         $(
             $crate::NonZeroU16! { $name $(|max($max))?, }
-            $crate::index!{ $ty$(<$($lt),+>)?.$field[$name] => $output $(|proxy($ty2$(.$field2)+))*, }
+            $crate::index!{ $ty$(<$($lt),+>)?$(.$field)+[$name] => $output $(|proxy($ty2$(.$field2)+))*, }
         )*
     };
     ($($name:ident $(|max($max:expr))?,)*) => {

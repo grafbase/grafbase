@@ -1,4 +1,4 @@
-use id_newtypes::IdRange;
+use id_newtypes::{IdRange, IdRangeIterator};
 use schema::{InputValueDefinitionId, InputValueDefinitionWalker, InputValueSerdeError, InputValueSet};
 use serde::{de::value::MapDeserializer, forward_to_deserialize_any};
 
@@ -40,7 +40,7 @@ impl std::fmt::Debug for FieldArgumentWalker<'_> {
     }
 }
 
-pub type FieldArgumentsWalker<'a> = OperationWalker<'a, IdRange<FieldArgumentId>>;
+pub type FieldArgumentsWalker<'a> = OperationWalker<'a, IdRange<FieldArgumentId>, ()>;
 
 impl<'a> FieldArgumentsWalker<'a> {
     pub fn is_empty(&self) -> bool {
@@ -61,11 +61,11 @@ impl<'a> IntoIterator for FieldArgumentsWalker<'a> {
     type IntoIter = FieldArgumentsIterator<'a>;
 
     fn into_iter(self) -> Self::IntoIter {
-        FieldArgumentsIterator(self)
+        FieldArgumentsIterator(self.walk(self.item.into_iter()))
     }
 }
 
-pub(crate) struct FieldArgumentsIterator<'a>(FieldArgumentsWalker<'a>);
+pub(crate) struct FieldArgumentsIterator<'a>(OperationWalker<'a, IdRangeIterator<FieldArgumentId>, ()>);
 
 impl<'a> Iterator for FieldArgumentsIterator<'a> {
     type Item = FieldArgumentWalker<'a>;
