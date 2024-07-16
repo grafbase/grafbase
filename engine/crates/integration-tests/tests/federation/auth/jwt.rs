@@ -6,7 +6,7 @@ use graphql_mocks::{FakeGithubSchema, MockGraphQlServer};
 use integration_tests::federation::GraphqlResponse;
 use integration_tests::openid::{CoreClientExt, OryHydraOpenIDProvider};
 use integration_tests::{
-    federation::GatewayV2Ext,
+    federation::EngineV2Ext,
     openid::{AUDIENCE, JWKS_URI, OTHER_AUDIENCE},
     runtime,
 };
@@ -19,10 +19,9 @@ fn test_provider() {
         let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
         let engine = Engine::builder()
-            .with_schema("github", &github_mock)
-            .await
+            .with_subgraph("github", &github_mock)
             .with_supergraph_config(format!("extend schema @authz(providers: [{JWT_PROVIDER_CONFIG}])"))
-            .finish()
+            .build()
             .await;
 
         let token = OryHydraOpenIDProvider::default()
@@ -51,8 +50,7 @@ fn test_different_header_location() {
         let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
         let engine = Engine::builder()
-            .with_schema("github", &github_mock)
-            .await
+            .with_subgraph("github", &github_mock)
             .with_supergraph_config(format!(
                 r#"extend schema @authz(providers: [
                 {{
@@ -65,7 +63,7 @@ fn test_different_header_location() {
                 }}
             ])"#
             ))
-            .finish()
+            .build()
             .await;
 
         let token = OryHydraOpenIDProvider::default()
@@ -94,10 +92,9 @@ fn test_unauthorized() {
         let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
         let engine = Engine::builder()
-            .with_schema("github", &github_mock)
-            .await
+            .with_subgraph("github", &github_mock)
             .with_supergraph_config(format!("extend schema @authz(providers: [{JWT_PROVIDER_CONFIG}])"))
-            .finish()
+            .build()
             .await;
 
         // No token
@@ -159,10 +156,9 @@ fn test_tampered_jwt() {
         let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
         let engine = Engine::builder()
-            .with_schema("github", &github_mock)
-            .await
+            .with_subgraph("github", &github_mock)
             .with_supergraph_config(format!("extend schema @authz(providers: [{JWT_PROVIDER_CONFIG}])"))
-            .finish()
+            .build()
             .await;
 
         let token = OryHydraOpenIDProvider::default()
@@ -218,10 +214,9 @@ fn test_wrong_provider() {
         let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
         let engine = Engine::builder()
-            .with_schema("github", &github_mock)
-            .await
+            .with_subgraph("github", &github_mock)
             .with_supergraph_config(format!("extend schema @authz(providers: [{JWT_PROVIDER_CONFIG}])"))
-            .finish()
+            .build()
             .await;
 
         let token = OryHydraOpenIDProvider::second_provider()
@@ -255,15 +250,14 @@ fn test_audience() {
         let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
         let engine = Engine::builder()
-            .with_schema("github", &github_mock)
-            .await
+            .with_subgraph("github", &github_mock)
             .with_supergraph_config(format!(
                 r#"extend schema @authz(providers: [{{
                     type: "jwt",
                     jwks: {{ url: "{JWKS_URI}", audience: "{AUDIENCE}" }}
                 }}])"#
             ))
-            .finish()
+            .build()
             .await;
 
         let token = OryHydraOpenIDProvider::default()

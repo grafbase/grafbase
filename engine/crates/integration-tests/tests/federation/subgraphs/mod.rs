@@ -10,7 +10,7 @@ use graphql_mocks::{
     FakeFederationReviewsSchema, MockGraphQlServer,
 };
 use integration_tests::{
-    federation::{GatewayV2Ext, GraphqlResponse},
+    federation::{EngineV2Ext, GraphqlResponse},
     runtime,
 };
 
@@ -21,15 +21,11 @@ async fn execute(request: &str) -> GraphqlResponse {
     let inventory = MockGraphQlServer::new(FakeFederationInventorySchema).await;
 
     let engine = Engine::builder()
-        .with_schema("accounts", &accounts)
-        .await
-        .with_schema("products", &products)
-        .await
-        .with_schema("reviews", &reviews)
-        .await
-        .with_schema("inventory", &inventory)
-        .await
-        .finish()
+        .with_subgraph("accounts", &accounts)
+        .with_subgraph("products", &products)
+        .with_subgraph("reviews", &reviews)
+        .with_subgraph("inventory", &inventory)
+        .build()
         .await;
     engine.execute(request).await
 }

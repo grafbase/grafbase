@@ -2,6 +2,7 @@
 
 pub mod engine_v1;
 pub mod federation;
+pub mod fetch;
 pub mod helpers;
 pub mod mongodb;
 pub mod openid;

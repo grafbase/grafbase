@@ -5,7 +5,7 @@ use graphql_mocks::{
     EchoSchema, FakeFederationAccountsSchema, FakeFederationInventorySchema, FakeFederationProductsSchema,
     FakeFederationReviewsSchema, FakeGithubSchema, MockGraphQlServer,
 };
-use integration_tests::{federation::GatewayV2Ext, runtime};
+use integration_tests::{federation::EngineV2Ext, runtime};
 
 const PATHFINDER_INTROSPECTION_QUERY: &str = include_str!("../../data/introspection.graphql");
 
@@ -14,11 +14,7 @@ fn can_run_pathfinder_introspection_query() {
     let response = runtime().block_on(async move {
         let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
-        let engine = Engine::builder()
-            .with_schema("schema", &github_mock)
-            .await
-            .finish()
-            .await;
+        let engine = Engine::builder().with_subgraph("schema", &github_mock).build().await;
 
         engine.execute(PATHFINDER_INTROSPECTION_QUERY).await
     });
@@ -95,11 +91,7 @@ fn can_run_2018_introspection_query() {
     let response = runtime().block_on(async move {
         let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
-        let engine = Engine::builder()
-            .with_schema("schema", &github_mock)
-            .await
-            .finish()
-            .await;
+        let engine = Engine::builder().with_subgraph("schema", &github_mock).build().await;
 
         engine
             .execute(IntrospectionQuery::with_capabilities(
@@ -180,11 +172,7 @@ fn can_run_2021_introspection_query() {
     let response = runtime().block_on(async move {
         let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
-        let engine = Engine::builder()
-            .with_schema("schema", &github_mock)
-            .await
-            .finish()
-            .await;
+        let engine = Engine::builder().with_subgraph("schema", &github_mock).build().await;
 
         engine
             .execute(IntrospectionQuery::with_capabilities(
@@ -265,11 +253,7 @@ fn echo_subgraph_introspection() {
     let response = runtime().block_on(async move {
         let github_mock = MockGraphQlServer::new(EchoSchema).await;
 
-        let engine = Engine::builder()
-            .with_schema("schema", &github_mock)
-            .await
-            .finish()
-            .await;
+        let engine = Engine::builder().with_subgraph("schema", &github_mock).build().await;
 
         engine
             .execute(IntrospectionQuery::with_capabilities(
@@ -320,11 +304,7 @@ fn can_run_capability_introspection_query() {
     let response = runtime().block_on(async move {
         let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
-        let engine = Engine::builder()
-            .with_schema("schema", &github_mock)
-            .await
-            .finish()
-            .await;
+        let engine = Engine::builder().with_subgraph("schema", &github_mock).build().await;
 
         engine.execute(CapabilitiesQuery::build(())).await
     });
@@ -346,11 +326,7 @@ fn introspection_output_matches_source() {
     let (response, _upstream_sdl) = runtime().block_on(async move {
         let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
-        let engine = Engine::builder()
-            .with_schema("schema", &github_mock)
-            .await
-            .finish()
-            .await;
+        let engine = Engine::builder().with_subgraph("schema", &github_mock).build().await;
 
         let response = engine.execute(IntrospectionQuery::build(())).await;
 
@@ -381,11 +357,9 @@ fn raw_introspetion_output() {
         let echo_mock = MockGraphQlServer::new(EchoSchema).await;
 
         let engine = Engine::builder()
-            .with_schema("github", &github_mock)
-            .await
-            .with_schema("echo", &echo_mock)
-            .await
-            .finish()
+            .with_subgraph("github", &github_mock)
+            .with_subgraph("echo", &echo_mock)
+            .build()
             .await;
 
         engine.execute(IntrospectionQuery::build(())).await
@@ -402,11 +376,9 @@ fn can_introsect_when_multiple_subgraphs() {
         let echo_mock = MockGraphQlServer::new(EchoSchema).await;
 
         let engine = Engine::builder()
-            .with_schema("github", &github_mock)
-            .await
-            .with_schema("echo", &echo_mock)
-            .await
-            .finish()
+            .with_subgraph("github", &github_mock)
+            .with_subgraph("echo", &echo_mock)
+            .build()
             .await;
 
         engine.execute(IntrospectionQuery::build(())).await
@@ -513,11 +485,7 @@ fn supports_the_type_field() {
     let response = runtime().block_on(async move {
         let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
-        let engine = Engine::builder()
-            .with_schema("github", &github_mock)
-            .await
-            .finish()
-            .await;
+        let engine = Engine::builder().with_subgraph("github", &github_mock).build().await;
 
         engine
             .execute(
@@ -597,11 +565,7 @@ fn type_field_returns_null_on_missing_type() {
     let response = runtime().block_on(async move {
         let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
-        let engine = Engine::builder()
-            .with_schema("github", &github_mock)
-            .await
-            .finish()
-            .await;
+        let engine = Engine::builder().with_subgraph("github", &github_mock).build().await;
 
         engine
             .execute(
@@ -631,11 +595,7 @@ fn supports_recursing_through_types() {
     let response = runtime().block_on(async move {
         let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
-        let engine = Engine::builder()
-            .with_schema("github", &github_mock)
-            .await
-            .finish()
-            .await;
+        let engine = Engine::builder().with_subgraph("github", &github_mock).build().await;
 
         engine
             .execute(
@@ -808,11 +768,7 @@ fn rejects_bogus_introspection_queries() {
     let response = runtime().block_on(async move {
         let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
-        let engine = Engine::builder()
-            .with_schema("github", &github_mock)
-            .await
-            .finish()
-            .await;
+        let engine = Engine::builder().with_subgraph("github", &github_mock).build().await;
 
         engine
             .execute(
@@ -858,15 +814,11 @@ fn introspection_on_multiple_federation_subgraphs() {
         let inventory = MockGraphQlServer::new(FakeFederationInventorySchema).await;
 
         let engine = Engine::builder()
-            .with_schema("accounts", &accounts)
-            .await
-            .with_schema("products", &products)
-            .await
-            .with_schema("reviews", &reviews)
-            .await
-            .with_schema("inventory", &inventory)
-            .await
-            .finish()
+            .with_subgraph("accounts", &accounts)
+            .with_subgraph("products", &products)
+            .with_subgraph("reviews", &reviews)
+            .with_subgraph("inventory", &inventory)
+            .build()
             .await;
 
         engine.execute(PATHFINDER_INTROSPECTION_QUERY).await
@@ -982,9 +934,8 @@ fn introspecting_with_grafbase_openapi_subgraph() {
         let petstore_mock = MockGraphQlServer::new(engine_v1).await;
 
         let engine = Engine::builder()
-            .with_schema("petstore", &petstore_mock)
-            .await
-            .finish()
+            .with_subgraph("petstore", &petstore_mock)
+            .build()
             .await;
 
         engine.execute(IntrospectionQuery::build(())).await
@@ -998,11 +949,7 @@ fn default_values() {
     let response = runtime().block_on(async move {
         let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
-        let engine = Engine::builder()
-            .with_schema("github", &github_mock)
-            .await
-            .finish()
-            .await;
+        let engine = Engine::builder().with_subgraph("github", &github_mock).build().await;
 
         engine
             .execute(

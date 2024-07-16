@@ -16,18 +16,14 @@ mod variables;
 
 use engine_v2::Engine;
 use graphql_mocks::{FakeGithubSchema, MockGraphQlServer};
-use integration_tests::{federation::GatewayV2Ext, runtime};
+use integration_tests::{federation::EngineV2Ext, runtime};
 
 #[test]
 fn single_field_from_single_server() {
     let response = runtime().block_on(async move {
         let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
-        let engine = Engine::builder()
-            .with_schema("schema", &github_mock)
-            .await
-            .finish()
-            .await;
+        let engine = Engine::builder().with_subgraph("schema", &github_mock).build().await;
 
         engine.execute("query { serverVersion }").await
     });
@@ -46,11 +42,7 @@ fn top_level_typename() {
     let response = runtime().block_on(async move {
         let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
-        let engine = Engine::builder()
-            .with_schema("schema", &github_mock)
-            .await
-            .finish()
-            .await;
+        let engine = Engine::builder().with_subgraph("schema", &github_mock).build().await;
 
         engine.execute("query { __typename }").await
     });
@@ -69,11 +61,7 @@ fn only_typename() {
     let response = runtime().block_on(async move {
         let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
-        let engine = Engine::builder()
-            .with_schema("schema", &github_mock)
-            .await
-            .finish()
-            .await;
+        let engine = Engine::builder().with_subgraph("schema", &github_mock).build().await;
 
         engine
             .execute(
@@ -117,11 +105,7 @@ fn response_with_lists() {
     let response = runtime().block_on(async move {
         let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
 
-        let engine = Engine::builder()
-            .with_schema("schema", &github_mock)
-            .await
-            .finish()
-            .await;
+        let engine = Engine::builder().with_subgraph("schema", &github_mock).build().await;
 
         engine.execute("query { allBotPullRequests { title } }").await
     });
