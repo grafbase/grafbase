@@ -10,7 +10,7 @@ pub use shape::*;
 pub use value::{ResponseObject, ResponseValue};
 pub use write::*;
 
-use crate::operation::Operation;
+use crate::operation::PreparedOperation;
 
 mod error;
 mod key;
@@ -37,7 +37,7 @@ pub(crate) struct InitialResponse {
 
 struct ResponseData {
     schema: Arc<Schema>,
-    operation: Arc<Operation>,
+    operation: Arc<PreparedOperation>,
     root: Option<ResponseObjectId>,
     parts: Vec<ResponseDataPart>,
 }

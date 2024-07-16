@@ -2,6 +2,7 @@ mod argument;
 mod field;
 mod query_path;
 mod selection_set;
+mod solved;
 mod variable;
 
 pub use argument::*;
@@ -47,11 +48,7 @@ impl<'a> OperationWalker<'a, (), ()> {
     }
 
     pub(crate) fn is_query(&self) -> bool {
-        matches!(self.as_ref().ty(), OperationType::Query)
-    }
-
-    pub(crate) fn is_mutation(&self) -> bool {
-        matches!(self.as_ref().ty(), OperationType::Mutation)
+        matches!(self.as_ref().ty, OperationType::Query)
     }
 
     pub(crate) fn selection_set(&self) -> SelectionSetWalker<'a> {

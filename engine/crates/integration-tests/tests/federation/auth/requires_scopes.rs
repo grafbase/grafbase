@@ -10,7 +10,7 @@ fn anonymous_does_not_any_scope() {
           "data": null,
           "errors": [
             {
-              "message": "Not allowed: insufficient scopes",
+              "message": "Insufficient scopes",
               "path": [
                 "check",
                 "mustHaveReadScope"
@@ -43,7 +43,7 @@ fn no_scope() {
           "data": null,
           "errors": [
             {
-              "message": "Not allowed: insufficient scopes",
+              "message": "Insufficient scopes",
               "path": [
                 "check",
                 "mustHaveReadScope"
@@ -54,6 +54,26 @@ fn no_scope() {
             }
           ]
         }
+        "###);
+
+        // We shouldn't have requested the field.
+        insta::assert_json_snapshot!(engine.get_recorded_subrequests(), @r###"
+        [
+          {
+            "subgraph_name": "secure",
+            "request_body": {
+              "query": "query {\n  check {\n    __typename\n  }\n}\n",
+              "variables": {}
+            },
+            "response_body": {
+              "data": {
+                "check": {
+                  "__typename": "Check"
+                }
+              }
+            }
+          }
+        ]
         "###);
     });
 }
@@ -90,7 +110,7 @@ fn has_read_scope() {
           "data": null,
           "errors": [
             {
-              "message": "Not allowed: insufficient scopes",
+              "message": "Insufficient scopes",
               "path": [
                 "check",
                 "mustHaveWriteScope"
@@ -126,7 +146,7 @@ fn has_read_scope() {
           "data": null,
           "errors": [
             {
-              "message": "Not allowed: insufficient scopes",
+              "message": "Insufficient scopes",
               "path": [
                 "check",
                 "mustHaveReadAndWriteScope"
@@ -159,7 +179,7 @@ fn has_write_scope() {
           "data": null,
           "errors": [
             {
-              "message": "Not allowed: insufficient scopes",
+              "message": "Insufficient scopes",
               "path": [
                 "check",
                 "mustHaveReadScope"
@@ -209,7 +229,7 @@ fn has_write_scope() {
           "data": null,
           "errors": [
             {
-              "message": "Not allowed: insufficient scopes",
+              "message": "Insufficient scopes",
               "path": [
                 "check",
                 "mustHaveReadAndWriteScope"

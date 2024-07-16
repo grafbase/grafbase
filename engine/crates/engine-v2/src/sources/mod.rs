@@ -72,6 +72,10 @@ pub(crate) enum PreparedExecutor {
 }
 
 impl PreparedExecutor {
+    pub fn introspection() -> Self {
+        PreparedExecutor::Introspection(IntrospectionPreparedExecutor)
+    }
+
     pub fn prepare(
         walker: ResolverWalker<'_>,
         operation_type: OperationType,

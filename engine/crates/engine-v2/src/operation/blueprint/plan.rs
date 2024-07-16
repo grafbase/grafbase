@@ -4,35 +4,69 @@ use itertools::Itertools;
 use schema::{EntityId, FieldDefinitionWalker, ObjectId, Schema};
 
 use crate::{
-    execution::PlanInput,
     operation::{
-        ConditionResult, ExtraField, Field, FieldId, FieldWalker, LogicalPlanId, QueryField, SelectionSetId,
-        SelectionSetType, TypeNameField,
+        ExtraField, Field, FieldId, FieldWalker, LogicalPlanId, LogicalPlanResponseBlueprint, QueryField,
+        SelectionSetId, SelectionSetType, TypeNameField,
     },
     response::{
-        ConcreteObjectShape, ConcreteObjectShapeId, FieldError, FieldShape, ObjectIdentifier, PolymorphicObjectShape,
+        ConcreteObjectShape, ConcreteObjectShapeId, FieldShape, FieldShapeId, ObjectIdentifier, PolymorphicObjectShape,
         PolymorphicObjectShapeId, ResponseKey, ResponseObjectSetId, Shape,
     },
-    Runtime,
 };
 
 use super::{
     partition::{partition_shapes, Partition},
-    ExecutionPlanBuilder, PlanningResult,
+    ResponseBlueprintBuilder, ToBuild,
 };
 
-impl<'ctx, 'op, 'planner, R: Runtime> ExecutionPlanBuilder<'ctx, 'op, 'planner, R>
+pub(super) struct LogicalPlanResponseBlueprintBuilder<'schema, 'op, 'builder> {
+    builder: &'builder mut ResponseBlueprintBuilder<'schema, 'op>,
+    logical_plan_id: LogicalPlanId,
+    output_response_object_set_ids: Vec<ResponseObjectSetId>,
+}
+
+impl<'schema, 'op, 'builder> std::ops::Deref for LogicalPlanResponseBlueprintBuilder<'schema, 'op, 'builder> {
+    type Target = ResponseBlueprintBuilder<'schema, 'op>;
+    fn deref(&self) -> &Self::Target {
+        self.builder
+    }
+}
+
+impl<'schema, 'op, 'builder> std::ops::DerefMut for LogicalPlanResponseBlueprintBuilder<'schema, 'op, 'builder> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        self.builder
+    }
+}
+
+impl<'schema, 'op, 'builder> LogicalPlanResponseBlueprintBuilder<'schema, 'op, 'builder>
 where
-    'ctx: 'op,
+    'schema: 'op,
 {
-    pub(super) fn create_root_shape_for(
-        &mut self,
-        input: &PlanInput,
-        root_field_ids: &[FieldId],
-    ) -> PlanningResult<ConcreteObjectShapeId> {
-        let exemplar = match input.entity_id {
+    pub(super) fn build(
+        builder: &'builder mut ResponseBlueprintBuilder<'schema, 'op>,
+        ToBuild {
+            logical_plan_id,
+            input_id,
+            root_field_ids,
+        }: &ToBuild,
+    ) -> LogicalPlanResponseBlueprint {
+        let mut builder = LogicalPlanResponseBlueprintBuilder {
+            builder,
+            logical_plan_id: *logical_plan_id,
+            output_response_object_set_ids: Vec::new(),
+        };
+        let concrete_shape_id = builder.create_root_shape_for(builder.plan[*logical_plan_id].entity_id, root_field_ids);
+        LogicalPlanResponseBlueprint {
+            input_id: *input_id,
+            output_ids: IdRange::from_slice(&builder.output_response_object_set_ids).unwrap(),
+            concrete_shape_id,
+        }
+    }
+
+    fn create_root_shape_for(&mut self, entity_id: EntityId, root_field_ids: &[FieldId]) -> ConcreteObjectShapeId {
+        let exemplar = match entity_id {
             EntityId::Object(id) => id,
-            EntityId::Interface(id) => self.schema()[id].possible_types[0],
+            EntityId::Interface(id) => self.schema[id].possible_types[0],
         };
 
         let walker = self.walker();
@@ -42,21 +76,16 @@ where
                 .cmp(&right.response_key())
                 .then(left.as_ref().query_position().cmp(&right.as_ref().query_position()))
         });
-        let shape_id = self.create_shape_for(exemplar, None, &root_fields, &mut Vec::new())?;
 
-        Ok(shape_id)
+        self.create_shape_for(exemplar, None, &root_fields, &mut Vec::new())
     }
 
-    fn create_object_shape(
-        &mut self,
-        ty: SelectionSetType,
-        merged_selection_set_ids: Vec<SelectionSetId>,
-    ) -> PlanningResult<Shape> {
+    fn create_object_shape(&mut self, ty: SelectionSetType, merged_selection_set_ids: Vec<SelectionSetId>) -> Shape {
         let mut plan_field_ids: Vec<FieldId> = Vec::new();
         let mut children_plan: HashMap<LogicalPlanId, Vec<FieldId>> = HashMap::new();
         for id in &merged_selection_set_ids {
             for field in self.walker().walk(*id).fields() {
-                let plan_id = self.operation.plan_id_for(field.id());
+                let plan_id = self.plan.field_to_logical_plan_id[usize::from(field.id())];
                 if plan_id == self.logical_plan_id {
                     plan_field_ids.push(field.id());
                 } else {
@@ -68,36 +97,36 @@ where
             None
         } else {
             let id = self.next_response_object_set_id();
-            self.tracked_output_ids.push(id);
-            let to_be_planned = children_plan
-                .into_iter()
-                .map(|(plan_id, root_fields)| super::ToBePlanned {
-                    selection_set_ty: ty,
+            self.output_response_object_set_ids.push(id);
+            self.to_build_stack
+                .extend(children_plan.into_iter().map(|(plan_id, root_fields)| ToBuild {
                     input_id: id,
                     logical_plan_id: plan_id,
-                    root_fields,
-                })
-                .collect::<Vec<_>>();
-            self.to_be_planned.extend(to_be_planned);
+                    root_field_ids: root_fields,
+                }));
             Some(id)
         };
 
-        let shape = self.collect_object_shapes(ty, maybe_response_object_set_id, plan_field_ids)?;
+        let shape = self.collect_object_shapes(ty, maybe_response_object_set_id, plan_field_ids);
         match shape {
             Shape::Scalar(_) => {}
             Shape::ConcreteObject(id) => {
                 if matches!(
-                    self.plans.shapes[id].identifier,
+                    self.blueprint[id].identifier,
                     ObjectIdentifier::UnionTypename(_) | ObjectIdentifier::InterfaceTypename(_)
                 ) {
-                    self.requires_typename_for.push(merged_selection_set_ids[0]);
+                    self.blueprint
+                        .selection_set_to_requires_typename
+                        .set(merged_selection_set_ids[0], true);
                 }
             }
             Shape::PolymorphicObject(_) => {
-                self.requires_typename_for.push(merged_selection_set_ids[0]);
+                self.blueprint
+                    .selection_set_to_requires_typename
+                    .set(merged_selection_set_ids[0], true);
             }
         }
-        Ok(shape)
+        shape
     }
 
     fn collect_object_shapes(
@@ -105,11 +134,11 @@ where
         ty: SelectionSetType,
         maybe_response_object_set_id: Option<ResponseObjectSetId>,
         field_ids: Vec<FieldId>,
-    ) -> PlanningResult<Shape> {
+    ) -> Shape {
         let output: &[ObjectId] = match &ty {
             SelectionSetType::Object(id) => std::array::from_ref(id),
-            SelectionSetType::Interface(id) => &self.schema()[*id].possible_types,
-            SelectionSetType::Union(id) => &self.schema()[*id].possible_types,
+            SelectionSetType::Interface(id) => &self.schema[*id].possible_types,
+            SelectionSetType::Union(id) => &self.schema[*id].possible_types,
         };
         let shape_partitions = self.compute_shape_partitions(output, &field_ids);
 
@@ -123,26 +152,24 @@ where
         let mut buffer = Vec::new();
 
         if let Some(partitions) = shape_partitions {
-            let mut shapes = Vec::new();
+            let mut possibilities = Vec::new();
             for partition in partitions {
                 match partition {
                     Partition::One(id) => {
-                        let shape_id = self.create_shape_for(id, maybe_response_object_set_id, &fields, &mut buffer)?;
-                        shapes.push((id, shape_id))
+                        let shape_id = self.create_shape_for(id, maybe_response_object_set_id, &fields, &mut buffer);
+                        possibilities.push((id, shape_id))
                     }
                     Partition::Many(ids) => {
                         let shape_id =
-                            self.create_shape_for(ids[0], maybe_response_object_set_id, &fields, &mut buffer)?;
-                        shapes.extend(ids.into_iter().map(|id| (id, shape_id)))
+                            self.create_shape_for(ids[0], maybe_response_object_set_id, &fields, &mut buffer);
+                        possibilities.extend(ids.into_iter().map(|id| (id, shape_id)))
                     }
                 }
             }
-            Ok(Shape::PolymorphicObject(
-                self.push_polymorphic_shape(PolymorphicObjectShape { shapes }),
-            ))
+            Shape::PolymorphicObject(self.push_polymorphic_shape(PolymorphicObjectShape { possibilities }))
         } else {
-            let shape_id = self.create_shape_for(output[0], maybe_response_object_set_id, &fields, &mut buffer)?;
-            let shape = &mut self.plans.shapes[shape_id];
+            let shape_id = self.create_shape_for(output[0], maybe_response_object_set_id, &fields, &mut buffer);
+            let shape = &mut self.blueprint[shape_id];
             if output.len() == 1 {
                 shape.identifier = ObjectIdentifier::Known(output[0]);
             } else if shape.set_id.is_some() || !shape.typename_response_edges.is_empty() {
@@ -152,7 +179,7 @@ where
                     SelectionSetType::Object(_) => unreachable!(),
                 }
             }
-            Ok(Shape::ConcreteObject(shape_id))
+            Shape::ConcreteObject(shape_id)
         }
     }
 
@@ -162,7 +189,7 @@ where
             match &self.operation[*field_id] {
                 Field::TypeName(TypeNameField { type_condition, .. }) => type_conditions.push(*type_condition),
                 Field::Query(QueryField { definition_id, .. }) | Field::Extra(ExtraField { definition_id, .. }) => {
-                    type_conditions.push(self.schema().walk(*definition_id).parent_entity().id().into())
+                    type_conditions.push(self.schema.walk(*definition_id).parent_entity().id().into())
                 }
             }
         }
@@ -173,9 +200,9 @@ where
             match type_condition {
                 SelectionSetType::Object(id) => single_object_ids.push(id),
                 SelectionSetType::Interface(id) => {
-                    other_type_conditions.push(self.schema()[id].possible_types.as_slice())
+                    other_type_conditions.push(self.schema[id].possible_types.as_slice())
                 }
-                SelectionSetType::Union(id) => other_type_conditions.push(self.schema()[id].possible_types.as_slice()),
+                SelectionSetType::Union(id) => other_type_conditions.push(self.schema[id].possible_types.as_slice()),
             }
         }
 
@@ -187,13 +214,12 @@ where
         exemplar_object_id: ObjectId,
         maybe_response_object_set_id: Option<ResponseObjectSetId>,
         fields_sorted_by_response_key_then_position: &'a [FieldWalker<'op>],
-        buffer: &mut Vec<&'a FieldWalker<'op>>,
-    ) -> PlanningResult<ConcreteObjectShapeId> {
-        let schema = self.schema();
+        fields_buffer: &mut Vec<&'a FieldWalker<'op>>,
+    ) -> ConcreteObjectShapeId {
+        let schema = self.schema;
         tracing::trace!("Creating shape for exemplar {}", schema.walk(exemplar_object_id).name());
 
         let mut field_shapes_buffer = self.field_shapes_buffer_pool.pop();
-        let mut field_errors_buffer = self.field_errors_buffer_pool.pop();
         let mut typename_response_keys = Vec::new();
 
         let mut start = 0;
@@ -209,35 +235,23 @@ where
             {
                 end += 1;
             }
-            buffer.clear();
+            fields_buffer.clear();
             for field in &fields_sorted_by_response_key_then_position[start..end] {
                 if type_condition_applies(schema, field, exemplar_object_id) {
-                    buffer.push(field);
+                    fields_buffer.push(field);
                 }
             }
-            if let Some(field) = buffer.first() {
+            if let Some(field) = fields_buffer.first() {
                 tracing::trace!(
                     "Creating shape for {}.{}",
                     schema.walk(exemplar_object_id).name(),
                     field.name()
                 );
                 if let Some(definition) = field.definition() {
-                    match field
-                        .as_ref()
-                        .condition()
-                        .map(|id| &self.condition_results[usize::from(id)])
-                    {
-                        Some(ConditionResult::Errors(errors)) => {
-                            field_errors_buffer.push(FieldError {
-                                edge: field.response_edge(),
-                                errors: errors.clone(),
-                                is_required: definition.ty().wrapping().is_required(),
-                            });
-                        }
-                        Some(ConditionResult::Include) | None => {
-                            field_shapes_buffer.push(self.create_field_shape(response_key, definition, buffer)?)
-                        }
-                    }
+                    field_shapes_buffer.push((
+                        self.create_field_shape(response_key, definition, fields_buffer),
+                        fields_buffer.iter().map(|field| field.id()).collect(),
+                    ));
                 } else {
                     typename_response_keys.push(field.response_edge());
                 }
@@ -250,23 +264,26 @@ where
             identifier: ObjectIdentifier::Anonymous,
             typename_response_edges: typename_response_keys,
             field_shape_ids: {
-                let start = self.plans.shapes.fields.len();
+                let start = self.blueprint.shapes.fields.len();
                 let n = field_shapes_buffer.len();
                 let keys = &self.operation.response_keys;
-                field_shapes_buffer.sort_unstable_by(|a, b| keys[a.expected_key].cmp(&keys[b.expected_key]));
-                self.plans.shapes.fields.extend(&mut field_shapes_buffer.drain(..));
-                IdRange::from_start_and_length((start, n))
-            },
-            field_error_ids: {
-                let start = self.plans.shapes.errors.len();
-                let n = field_errors_buffer.len();
-                self.plans.shapes.errors.extend(&mut field_errors_buffer.drain(..));
+                field_shapes_buffer.sort_unstable_by(|a, b| keys[a.0.expected_key].cmp(&keys[b.0.expected_key]));
+                for (i, (_, field_ids)) in field_shapes_buffer.iter().enumerate() {
+                    let field_shape_id = FieldShapeId::from(start + i);
+                    for field_id in field_ids {
+                        self.field_id_to_field_shape_ids_builder
+                            .push((*field_id, field_shape_id));
+                    }
+                }
+                self.blueprint
+                    .shapes
+                    .fields
+                    .extend(&mut field_shapes_buffer.drain(..).map(|(field_shape, _)| field_shape));
                 IdRange::from_start_and_length((start, n))
             },
         };
         self.field_shapes_buffer_pool.push(field_shapes_buffer);
-        self.field_errors_buffer_pool.push(field_errors_buffer);
-        Ok(self.push_concrete_shape(shape))
+        self.push_concrete_shape(shape)
     }
 
     fn create_field_shape(
@@ -274,13 +291,13 @@ where
         response_key: ResponseKey,
         definition: FieldDefinitionWalker<'_>,
         fields: &[&FieldWalker<'_>],
-    ) -> PlanningResult<FieldShape> {
+    ) -> FieldShape {
         let field = fields
             .iter()
             .min_by_key(|field| field.response_edge())
             .expect("At least one field");
         let ty = definition.ty();
-        Ok(FieldShape {
+        FieldShape {
             expected_key: self.operation.response_keys.ensure_safety(response_key),
             edge: field.response_edge(),
             id: field.id(),
@@ -290,27 +307,27 @@ where
                 None => self.create_object_shape(
                     SelectionSetType::maybe_from(ty.inner().id()).unwrap(),
                     fields.iter().map(|field| field.selection_set().unwrap().id()).collect(),
-                )?,
+                ),
             },
             wrapping: ty.wrapping(),
-        })
+        }
     }
 
     fn push_concrete_shape(&mut self, shape: ConcreteObjectShape) -> ConcreteObjectShapeId {
-        let id = self.plans.shapes.concrete.len().into();
-        self.plans.shapes.concrete.push(shape);
+        let id = self.blueprint.shapes.concrete.len().into();
+        self.blueprint.shapes.concrete.push(shape);
         id
     }
 
     fn push_polymorphic_shape(&mut self, mut shape: PolymorphicObjectShape) -> PolymorphicObjectShapeId {
-        let id = self.plans.shapes.polymorphic.len().into();
-        let schema = self.schema();
-        shape.shapes.sort_unstable_by(|a, b| {
+        let id = self.blueprint.shapes.polymorphic.len().into();
+        let schema = self.schema;
+        shape.possibilities.sort_unstable_by(|a, b| {
             let a = &schema[schema[a.0].name];
             let b = &schema[schema[b.0].name];
             a.cmp(b)
         });
-        self.plans.shapes.polymorphic.push(shape);
+        self.blueprint.shapes.polymorphic.push(shape);
         id
     }
 }

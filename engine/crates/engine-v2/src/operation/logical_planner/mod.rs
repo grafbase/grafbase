@@ -2,8 +2,9 @@ mod logic;
 mod selection_set;
 
 use engine_parser::types::OperationType;
+use id_newtypes::IdToMany;
 use itertools::Itertools;
-use schema::{ResolverId, Schema};
+use schema::{EntityId, ResolverId, Schema};
 use tracing::instrument;
 
 use crate::{
@@ -15,6 +16,8 @@ use crate::{
 };
 use logic::*;
 use selection_set::*;
+
+use super::OperationPlan;
 
 #[derive(Debug, thiserror::Error)]
 pub(crate) enum LogicalPlanningError {
@@ -47,7 +50,17 @@ pub(super) struct LogicalPlanner<'a> {
     operation: &'a mut Operation,
     field_to_logical_plan_id: Vec<Option<LogicalPlanId>>,
     logical_plans: Vec<LogicalPlan>,
+    mutation_fields_plan_order: Vec<LogicalPlanId>,
+    // May have duplicates, parent may be equal to child (if we, as the supergraph, need the dependencies)
+    // (parent, child)
+    dependents_builder: Vec<(LogicalPlanId, LogicalPlanId)>,
     solved_requirements: Vec<(SelectionSetId, SolvedRequiredFieldSet)>,
+}
+
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub(crate) struct ParentToChildEdge {
+    pub parent: LogicalPlanId,
+    pub child: LogicalPlanId,
 }
 
 id_newtypes::index! {
@@ -64,37 +77,73 @@ impl<'a> LogicalPlanner<'a> {
             operation,
             logical_plans: Vec::new(),
             solved_requirements: Vec::new(),
+            dependents_builder: Vec::new(),
+            mutation_fields_plan_order: Vec::new(),
         }
     }
 
     #[instrument(skip_all)]
-    pub(super) fn plan(mut self) -> LogicalPlanningResult<()> {
+    pub(super) fn plan(mut self) -> LogicalPlanningResult<OperationPlan> {
         tracing::trace!("Logical Planning");
         self.plan_all_fields()?;
         let Self {
             operation,
-            logical_plans,
+            schema,
+            mut logical_plans,
             field_to_logical_plan_id,
-            solved_requirements,
+            mutation_fields_plan_order,
+            mut solved_requirements,
+            mut dependents_builder,
             ..
         } = self;
+        for plan in &mut logical_plans {
+            plan.root_field_ids_ordered_by_parent_entity_id_then_position
+                .sort_unstable_by_key(|id| {
+                    let field = &operation[*id];
+                    (
+                        field.definition_id().map(|id| schema[id].parent_entity),
+                        field.query_position(),
+                    )
+                });
+        }
 
-        operation.logical_plans = logical_plans;
-        operation.solved_requirements = solved_requirements;
-        operation.field_to_logical_plan_id = field_to_logical_plan_id
-            .into_iter()
-            .enumerate()
-            .map(|(i, maybe_logical_plan_id)| match maybe_logical_plan_id {
-                Some(logical_plan_id) => logical_plan_id,
-                None => {
-                    let name = &operation.response_keys[operation.fields[i].response_key()];
-                    unreachable!("No plan was associated with field:\n{name}");
+        solved_requirements.sort_unstable_by_key(|(id, _)| *id);
+        tracing::trace!(
+            "Solved requirements: {:?}",
+            solved_requirements.iter().map(|(id, _)| id).collect::<Vec<_>>()
+        );
+
+        dependents_builder.sort_unstable();
+        let children = IdToMany::from_sorted_vec(dependents_builder.into_iter().dedup().collect());
+
+        let mut plan = OperationPlan {
+            solved_requirements,
+            mutation_fields_plan_order,
+            field_to_logical_plan_id: field_to_logical_plan_id
+                .into_iter()
+                .enumerate()
+                .map(|(i, maybe_logical_plan_id)| match maybe_logical_plan_id {
+                    Some(logical_plan_id) => logical_plan_id,
+                    None => {
+                        let name = &operation.response_keys[operation.fields[i].response_key()];
+                        unreachable!("No plan was associated with field:\n{name}");
+                    }
+                })
+                .collect(),
+            parent_count: {
+                let mut parent_count = vec![0; logical_plans.len()];
+                for (_, child) in children.as_ref() {
+                    parent_count[usize::from(*child)] += 1;
                 }
-            })
-            .collect();
+                parent_count
+            },
+            logical_plans,
+            children,
+            in_topological_order: Vec::new(),
+        };
 
-        operation.solved_requirements.sort_unstable_by_key(|(id, _)| *id);
-        Ok(())
+        plan.in_topological_order = sorted_plan_ids_by_topological_order(&plan);
+        Ok(plan)
     }
 
     /// Step 1 of the planning, attributed all fields to a plan and satisfying their requirements.
@@ -121,11 +170,12 @@ impl<'a> LogicalPlanner<'a> {
             self.push_plan(
                 QueryPath::default(),
                 introspection.resolver_id,
+                self.operation.root_object_id.into(),
                 &introspection_field_ids,
             )?;
         }
 
-        if matches!(self.operation.ty(), OperationType::Mutation) {
+        if matches!(self.operation.ty, OperationType::Mutation) {
             self.plan_mutation(field_ids)?;
         } else {
             // Subscription are considered to be Queries for planning, they just happen to have
@@ -173,7 +223,13 @@ impl<'a> LogicalPlanner<'a> {
                     query_path: vec![],
                 })?;
 
-            self.push_plan(QueryPath::default(), resolver.id(), &field_ids)?;
+            let plan_id = self.push_plan(
+                QueryPath::default(),
+                resolver.id(),
+                self.operation.root_object_id.into(),
+                &field_ids,
+            )?;
+            self.mutation_fields_plan_order.push(plan_id);
         }
         Ok(())
     }
@@ -246,21 +302,31 @@ impl<'a> LogicalPlanner<'a> {
         &mut self,
         query_path: QueryPath,
         resolver_id: ResolverId,
-        field_ids: &[FieldId],
+        entity_id: EntityId,
+        root_field_ids: &[FieldId],
     ) -> LogicalPlanningResult<LogicalPlanId> {
         let id = LogicalPlanId::from(self.logical_plans.len());
         tracing::trace!(
             "Creating {id} ({}): {}",
             self.schema.walk(resolver_id).name(),
-            field_ids.iter().format_with(", ", |id, f| f(&format_args!(
+            root_field_ids.iter().format_with(", ", |id, f| f(&format_args!(
                 "{}",
                 self.walker().walk(*id).response_key_str()
             )))
         );
-        self.logical_plans.push(LogicalPlan { resolver_id });
+        self.logical_plans.push(LogicalPlan {
+            resolver_id,
+            entity_id,
+            // Sorted at the end as may need to add extra fields.
+            root_field_ids_ordered_by_parent_entity_id_then_position: root_field_ids.to_vec(),
+        });
         let logic = PlanningLogic::new(id, self.schema.walk(resolver_id));
-        self.grow_with_obviously_providable_subselections(&query_path, &logic, field_ids)?;
+        self.grow_with_obviously_providable_subselections(&query_path, &logic, root_field_ids)?;
         Ok(id)
+    }
+
+    pub fn register_plan_child(&mut self, edge: ParentToChildEdge) {
+        self.dependents_builder.push((edge.parent, edge.child));
     }
 
     pub fn attribute_fields(&mut self, fields: &[FieldId], id: LogicalPlanId) {
@@ -268,4 +334,40 @@ impl<'a> LogicalPlanner<'a> {
             self[*field_id] = Some(id);
         }
     }
+}
+
+fn sorted_plan_ids_by_topological_order(plan: &OperationPlan) -> Vec<LogicalPlanId> {
+    let mut parent_count = plan.parent_count.clone();
+    let mut out = parent_count
+        .iter()
+        .enumerate()
+        .filter_map(|(i, count)| {
+            if *count == 0 {
+                Some(LogicalPlanId::from(i))
+            } else {
+                None
+            }
+        })
+        .collect::<Vec<_>>();
+
+    let mut i = 0;
+    while let Some(plan_id) = out.get(i) {
+        for child in plan.children.find_all(*plan_id) {
+            parent_count[usize::from(*child)] -= 1;
+            if parent_count[usize::from(*child)] == 0 {
+                out.push(*child);
+            }
+        }
+        i += 1;
+    }
+
+    debug_assert_eq!(
+        out.len(),
+        plan.logical_plans.len(),
+        "parent_count: {:?}\nchildren: {:?}\n -> {:?}",
+        plan.parent_count,
+        plan.children.as_ref(),
+        out
+    );
+    out
 }

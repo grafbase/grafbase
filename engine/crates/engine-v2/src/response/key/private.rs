@@ -6,7 +6,7 @@ use super::{ResponseKey, MAX_RESPONSE_KEY};
 /// and thus will use `get_unchecked` to be retrieved. This improves
 /// performance by around 1% since we're doing a binary search for each
 /// incoming field name during deserialization.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize)]
 pub struct SafeResponseKey(u32);
 
 /// Interns all of the response keys strings.

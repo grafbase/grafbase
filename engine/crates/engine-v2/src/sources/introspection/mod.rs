@@ -29,11 +29,11 @@ impl<'ctx, R: Runtime> IntrospectionExecutor<'ctx, R> {
         writer::IntrospectionWriter {
             schema: self.ctx.engine.schema.walker(),
             metadata: self.ctx.engine.schema.walker().introspection_metadata(),
-            shapes: self.plan.shapes(),
+            shapes: &self.plan.blueprint().shapes,
             plan: self.plan,
             response: response_part.as_mut().next_writer().ok_or("No objects to update")?,
         }
-        .execute(self.plan.as_ref().output.shape_id);
+        .execute(self.plan.logical_plan().response_blueprint().concrete_shape_id);
         Ok(response_part)
     }
 }

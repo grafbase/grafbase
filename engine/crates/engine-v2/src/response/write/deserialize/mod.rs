@@ -10,8 +10,8 @@ use serde::{
 };
 
 use crate::{
-    execution::PlanWalker,
-    response::{ErrorCode, FieldShape, GraphqlError, ResponseEdge, ResponsePath, ResponseWriter, Shapes},
+    execution::{ExecutableOperation, PlanWalker},
+    response::{ErrorCode, FieldShape, GraphqlError, ResponseEdge, ResponsePath, ResponseWriter},
 };
 
 mod field;
@@ -27,7 +27,7 @@ use scalar::*;
 
 pub struct SeedContext<'ctx> {
     plan: PlanWalker<'ctx, (), ()>,
-    shapes: &'ctx Shapes,
+    operation: &'ctx ExecutableOperation,
     writer: ResponseWriter<'ctx>,
     propagating_error: Cell<bool>,
     path: RefCell<Vec<ResponseEdge>>,
@@ -37,7 +37,7 @@ impl<'ctx> SeedContext<'ctx> {
     pub fn new(plan: PlanWalker<'ctx>, writer: ResponseWriter<'ctx>) -> Self {
         let path = RefCell::new(writer.root_path().iter().copied().collect());
         Self {
-            shapes: plan.shapes(),
+            operation: plan.operation(),
             plan,
             writer,
             propagating_error: Cell::new(false),
@@ -115,7 +115,8 @@ impl<'de, 'ctx> DeserializeSeed<'de> for UpdateSeed<'ctx> {
     {
         let UpdateSeed { ctx } = self;
         let result = deserializer.deserialize_option(NullableVisitor(
-            ConcreteObjectSeed::new(&ctx, ctx.plan.as_ref().output.shape_id).into_fields_seed(),
+            ConcreteObjectSeed::new(&ctx, ctx.plan.logical_plan().response_blueprint().concrete_shape_id)
+                .into_fields_seed(),
         ));
 
         match result {

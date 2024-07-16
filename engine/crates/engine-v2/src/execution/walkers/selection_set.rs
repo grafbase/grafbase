@@ -13,12 +13,9 @@ impl<'a> PlanSelectionSet<'a> {
     pub fn requires_typename(&self) -> bool {
         match self {
             PlanSelectionSet::RootFields(_) => false,
-            PlanSelectionSet::SelectionSet(walker) => walker
-                .walk_with((), ())
-                .as_ref()
-                .output
-                .requires_typename_for
-                .contains(&walker.item),
+            PlanSelectionSet::SelectionSet(walker) => {
+                walker.walk_with((), ()).blueprint().selection_set_to_requires_typename[walker.item]
+            }
         }
     }
 
@@ -29,10 +26,11 @@ impl<'a> PlanSelectionSet<'a> {
     pub fn fields_ordered_by_parent_entity_id_then_position(&self) -> Vec<PlanField<'a>> {
         let out = match self {
             PlanSelectionSet::RootFields(walker) => walker
+                .logical_plan()
                 .as_ref()
-                .output
                 .root_field_ids_ordered_by_parent_entity_id_then_position
                 .iter()
+                .filter(|id| !walker.operation.query_modifications.skipped_fields[**id])
                 .filter_map(move |&id| {
                     walker.operation[id]
                         .definition_id()
@@ -40,11 +38,12 @@ impl<'a> PlanSelectionSet<'a> {
                 })
                 .collect::<Vec<_>>(),
             PlanSelectionSet::SelectionSet(walker) => {
-                let logical_plan_id = walker.plans[walker.execution_plan_id].logical_plan_id;
+                let logical_plan_id = walker.operation[walker.plan_id].logical_plan_id;
                 walker
                     .as_ref()
                     .field_ids_ordered_by_parent_entity_id_then_position
                     .iter()
+                    .filter(|id| !walker.operation.query_modifications.skipped_fields[**id])
                     .filter_map(|id| {
                         let field_plan_id = walker.operation.plan_id_for(*id);
                         if field_plan_id == logical_plan_id {

@@ -1,9 +1,11 @@
 use schema::SchemaWalker;
 
 use crate::{
-    execution::{ExecutionPlan, ExecutionPlanId, ExecutionPlans},
-    operation::{Operation, OperationWalker, QueryInputValueId, QueryInputValueWalker, Variables},
-    response::{ResponseKeys, Shapes},
+    operation::{
+        LogicalPlanId, LogicalPlanResponseBlueprint, OperationWalker, PreparedOperation, QueryInputValueId,
+        QueryInputValueWalker, ResponseBlueprint,
+    },
+    response::ResponseKeys,
 };
 
 mod field;
@@ -12,23 +14,23 @@ mod selection_set;
 pub use field::*;
 pub use selection_set::*;
 
+use super::{ExecutableOperation, ExecutionPlanId};
+
 /// TODO: Context is really big...
 #[derive(Clone, Copy)]
 pub(crate) struct PlanWalker<'a, Item = (), SchemaItem = ()> {
     pub(super) schema_walker: SchemaWalker<'a, SchemaItem>,
-    pub(super) operation: &'a Operation,
-    pub(super) variables: &'a Variables,
-    pub(super) plans: &'a ExecutionPlans,
-    pub(super) execution_plan_id: ExecutionPlanId,
+    pub(super) operation: &'a ExecutableOperation,
+    pub(super) plan_id: ExecutionPlanId,
     pub(super) item: Item,
 }
 
 // really weird to index through a walker, need to be reworked
 impl<'a, I> std::ops::Index<I> for PlanWalker<'a, (), ()>
 where
-    Operation: std::ops::Index<I>,
+    PreparedOperation: std::ops::Index<I>,
 {
-    type Output = <Operation as std::ops::Index<I>>::Output;
+    type Output = <PreparedOperation as std::ops::Index<I>>::Output;
     fn index(&self, index: I) -> &Self::Output {
         &self.operation[index]
     }
@@ -42,18 +44,14 @@ impl<'a> std::fmt::Debug for PlanWalker<'a> {
 
 impl<'a, I: Copy, SI> PlanWalker<'a, I, SI>
 where
-    Operation: std::ops::Index<I>,
+    PreparedOperation: std::ops::Index<I>,
 {
-    pub fn as_ref(&self) -> &'a <Operation as std::ops::Index<I>>::Output {
+    pub fn as_ref(&self) -> &'a <PreparedOperation as std::ops::Index<I>>::Output {
         &self.operation[self.item]
     }
 }
 
 impl<'a> PlanWalker<'a, (), ()> {
-    pub fn as_ref(&self) -> &'a ExecutionPlan {
-        &self.plans[self.execution_plan_id]
-    }
-
     pub fn schema(&self) -> SchemaWalker<'a, ()> {
         self.schema_walker
     }
@@ -62,8 +60,16 @@ impl<'a> PlanWalker<'a, (), ()> {
         &self.operation.response_keys
     }
 
-    pub fn shapes(&self) -> &'a Shapes {
-        &self.plans.shapes
+    pub fn blueprint(&self) -> &'a ResponseBlueprint {
+        &self.operation.response_blueprint
+    }
+
+    pub fn logical_plan(&self) -> LogicalPlanWalker<'a> {
+        self.walk_with(self.operation[self.plan_id].logical_plan_id, ())
+    }
+
+    pub fn operation(&self) -> &'a ExecutableOperation {
+        self.operation
     }
 
     pub fn selection_set(self) -> PlanSelectionSet<'a> {
@@ -75,9 +81,7 @@ impl<'a, I, SI> PlanWalker<'a, I, SI> {
     pub fn walk_with<I2, SI2>(&self, item: I2, schema_item: SI2) -> PlanWalker<'a, I2, SI2> {
         PlanWalker {
             operation: self.operation,
-            variables: self.variables,
-            plans: self.plans,
-            execution_plan_id: self.execution_plan_id,
+            plan_id: self.plan_id,
             schema_walker: self.schema_walker.walk(schema_item),
             item,
         }
@@ -85,13 +89,22 @@ impl<'a, I, SI> PlanWalker<'a, I, SI> {
 
     fn bound_walk_with<I2, SI2: Copy>(&self, item: I2, schema_item: SI2) -> OperationWalker<'a, I2, SI2> {
         self.operation
-            .walker_with(self.schema_walker.walk(schema_item), self.variables)
+            .prepared
+            .walker_with(self.schema_walker.walk(schema_item), &self.operation.variables)
             .walk(item)
     }
 }
 
 impl<'a> PlanWalker<'a, (), ()> {
     pub fn walk_input_value(&self, input_value_id: QueryInputValueId) -> QueryInputValueWalker<'a> {
-        self.bound_walk_with(&self.operation[input_value_id], ())
+        self.bound_walk_with(&self.operation.prepared[input_value_id], ())
+    }
+}
+
+type LogicalPlanWalker<'a> = PlanWalker<'a, LogicalPlanId, ()>;
+
+impl<'a> LogicalPlanWalker<'a> {
+    pub fn response_blueprint(&self) -> &LogicalPlanResponseBlueprint {
+        &self.operation.response_blueprint[self.item]
     }
 }

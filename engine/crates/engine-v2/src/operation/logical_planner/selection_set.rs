@@ -6,11 +6,12 @@ use std::{
 use id_newtypes::IdRange;
 use itertools::Itertools;
 use schema::{
-    FieldDefinitionId, FieldDefinitionWalker, RequiredFieldId, RequiredFieldSet, RequiredFieldSetItemWalker, ResolverId,
+    EntityId, FieldDefinitionId, FieldDefinitionWalker, RequiredFieldId, RequiredFieldSet, RequiredFieldSetItemWalker,
+    ResolverId,
 };
 use tracing::{instrument, Level};
 
-use super::{logic::PlanningLogic, LogicalPlanner, LogicalPlanningError, LogicalPlanningResult};
+use super::{logic::PlanningLogic, LogicalPlanner, LogicalPlanningError, LogicalPlanningResult, ParentToChildEdge};
 use crate::{
     operation::{
         ExtraField, Field, FieldArgument, FieldArgumentId, FieldId, LogicalPlanId, QueryInputValue, QueryPath,
@@ -54,13 +55,38 @@ impl<'schema, 'a> SelectionSetLogicalPlanner<'schema, 'a> {
         planned_field_ids: Vec<FieldId>,
         unplanned_field_ids: Vec<FieldId>,
     ) -> LogicalPlanningResult<()> {
+        tracing::trace!("Solving selection set {}", selection_set_id);
         let mut planned_selection_set = self.build_planned_selection_set(selection_set_id, &planned_field_ids);
         let missing = self.build_unplanned_fields(unplanned_field_ids);
         self.plan_selection_set(&mut planned_selection_set, missing)?;
 
-        self.planner
-            .solved_requirements
-            .push((selection_set_id, Self::build_solved_requirements(planned_selection_set)));
+        // During the planning we add extra fields as necessary but we don't add them in the
+        // children plan root fields.
+        let maybe_parent_plan_id = self.maybe_parent.map(|p| p.id());
+        for fields in planned_selection_set.fields.values() {
+            for field in fields {
+                let PlannedField::Extra(extra) = field else {
+                    continue;
+                };
+                let Some(field_id) = extra.field_id else {
+                    continue;
+                };
+                // Except the parent plan, all others have for root this selection set.
+                if Some(extra.logical_plan_id) != maybe_parent_plan_id {
+                    // Sorted at the end.
+                    self.planner[extra.logical_plan_id]
+                        .root_field_ids_ordered_by_parent_entity_id_then_position
+                        .push(field_id);
+                }
+            }
+        }
+
+        let solved_requirements = Self::build_solved_requirements(planned_selection_set);
+        if !solved_requirements.is_empty() {
+            self.planner
+                .solved_requirements
+                .push((selection_set_id, solved_requirements));
+        }
 
         Ok(())
     }
@@ -185,6 +211,7 @@ impl PlannedField {
 
 /// Potential child plan, but might not be the best one.
 struct ChildPlanCandidate<'schema> {
+    entity_id: EntityId,
     resolver_id: ResolverId,
     /// Providable fields by the resolvers with their requirements
     providable_fields: Vec<(FieldId, &'schema RequiredFieldSet)>,
@@ -229,7 +256,7 @@ impl<'schema, 'a> SelectionSetLogicalPlanner<'schema, 'a> {
 
             self.planner
                 .grow_with_obviously_providable_subselections(self.query_path, parent_logic, &field_ids)?;
-            self.register_necessary_extra_fields(planned_selection_set, &requires);
+            self.register_necessary_extra_fields(parent_logic.id(), planned_selection_set, &requires);
         }
 
         if unplanned_fields.is_empty() {
@@ -275,7 +302,13 @@ impl<'schema, 'a> SelectionSetLogicalPlanner<'schema, 'a> {
                 }
                 field_ids.push(id);
             }
-            self.push_child(planned_selection_set, candidate.resolver_id, requires, field_ids)?;
+            self.push_child(
+                planned_selection_set,
+                candidate.resolver_id,
+                requires,
+                candidate.entity_id,
+                field_ids,
+            )?;
         }
 
         Ok(())
@@ -286,11 +319,12 @@ impl<'schema, 'a> SelectionSetLogicalPlanner<'schema, 'a> {
         planned_selection_set: &mut PlannedSelectionSet,
         resolver_id: ResolverId,
         requires: Cow<'_, RequiredFieldSet>,
+        entity_id: EntityId,
         root_field_ids: Vec<FieldId>,
     ) -> LogicalPlanningResult<()> {
         let path = self.query_path.clone();
-        let plan_id = self.planner.push_plan(path, resolver_id, &root_field_ids)?;
-        self.register_necessary_extra_fields(planned_selection_set, &requires);
+        let plan_id = self.planner.push_plan(path, resolver_id, entity_id, &root_field_ids)?;
+        self.register_necessary_extra_fields(plan_id, planned_selection_set, &requires);
         for field_id in root_field_ids {
             let definition_id = self.operation[field_id]
                 .definition_id()
@@ -317,6 +351,7 @@ impl<'schema, 'a> SelectionSetLogicalPlanner<'schema, 'a> {
     /// plans.
     fn register_necessary_extra_fields(
         &mut self,
+        plan_id: LogicalPlanId,
         planned_selection_set: &mut PlannedSelectionSet,
         requires: &RequiredFieldSet,
     ) {
@@ -330,9 +365,21 @@ impl<'schema, 'a> SelectionSetLogicalPlanner<'schema, 'a> {
                 .find(|field| field.required_field_id() == Some(required_field.id))
                 .expect("We depend on it, so it must have been planned");
             match planned_field {
-                PlannedField::Query { lazy_subselection, .. } => {
+                PlannedField::Query {
+                    lazy_subselection,
+                    plan_id: parent_plan_id,
+                    ..
+                } => {
+                    self.register_plan_child(ParentToChildEdge {
+                        parent: *parent_plan_id,
+                        child: plan_id,
+                    });
                     if let Some(planned_subselection) = lazy_subselection {
-                        self.register_necessary_extra_fields(planned_subselection, &required_field.subselection)
+                        self.register_necessary_extra_fields(
+                            plan_id,
+                            planned_subselection,
+                            &required_field.subselection,
+                        )
                     }
                 }
                 PlannedField::Extra(field) => {
@@ -345,13 +392,21 @@ impl<'schema, 'a> SelectionSetLogicalPlanner<'schema, 'a> {
                             field,
                         );
                     }
+                    self.register_plan_child(ParentToChildEdge {
+                        parent: field.logical_plan_id,
+                        child: plan_id,
+                    });
 
                     if !required_field.subselection.is_empty() {
                         if field.subselection.id.is_none() {
                             self.operation.selection_sets.push(SelectionSet::default());
                             field.subselection.id = Some((self.operation.selection_sets.len() - 1).into());
                         }
-                        self.register_necessary_extra_fields(&mut field.subselection, &required_field.subselection)
+                        self.register_necessary_extra_fields(
+                            plan_id,
+                            &mut field.subselection,
+                            &required_field.subselection,
+                        )
                     }
                 }
             }
@@ -372,7 +427,6 @@ impl<'schema, 'a> SelectionSetLogicalPlanner<'schema, 'a> {
             selection_set_id: None,
             argument_ids: self.create_arguments_for(planned_field.required_field_id),
             petitioner_location: self.operation[planned_field.petitioner_field_id].location(),
-            condition: None,
             parent_selection_set_id,
         });
         self.operation.fields.push(field);
@@ -426,6 +480,7 @@ impl<'schema, 'a> SelectionSetLogicalPlanner<'schema, 'a> {
                         {
                             entry.insert(ChildPlanCandidate {
                                 resolver_id: resolver.id(),
+                                entity_id: definition.parent_entity().id(),
                                 providable_fields: vec![(id, field_requires)],
                             });
                         }
@@ -452,7 +507,7 @@ impl<'schema, 'a> SelectionSetLogicalPlanner<'schema, 'a> {
 
     fn could_plan_requirements_on_previous_plans(
         &mut self,
-        parent_resolved_query_part_id: Option<LogicalPlanId>,
+        parent_logical_plan_id: Option<LogicalPlanId>,
         planned_selection_set: &mut PlannedSelectionSet,
         petitioner_field_id: FieldId,
         requires: &'schema RequiredFieldSet,
@@ -549,7 +604,7 @@ impl<'schema, 'a> SelectionSetLogicalPlanner<'schema, 'a> {
 
             // if we're within a nested selection set, we only handle the case where the parent
             // resolver can provide this field.
-            if let Some(parent_resolved_query_part_id) = parent_resolved_query_part_id {
+            if let Some(parent_resolved_query_part_id) = parent_logical_plan_id {
                 return Ok(self.could_plan_exra_field(
                     planned_selection_set,
                     petitioner_field_id,
@@ -570,11 +625,11 @@ impl<'schema, 'a> SelectionSetLogicalPlanner<'schema, 'a> {
 
             // -- Plannable by existing children --
             for i in 0..self.children.len() {
-                let logical_plan_id = self.children[i];
+                let plan_id = self.children[i];
                 if self.could_plan_exra_field(
                     planned_selection_set,
                     petitioner_field_id,
-                    &PlanningLogic::new(logical_plan_id, self.schema.walk(self[logical_plan_id].resolver_id)),
+                    &PlanningLogic::new(plan_id, self.schema.walk(self[plan_id].resolver_id)),
                     required,
                 ) {
                     continue 'requires;

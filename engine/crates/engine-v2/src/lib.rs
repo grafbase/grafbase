@@ -6,6 +6,7 @@ mod http_response;
 mod operation;
 mod response;
 mod sources;
+mod utils;
 pub mod websocket;
 
 pub use ::engine::{BatchRequest, Request};
