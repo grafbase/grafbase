@@ -4,6 +4,7 @@ use super::{ResponseDataPartId, ResponseEdge, ResponseKey, ResponseListId, Respo
 
 // Threshold defined a bit arbitrarily
 pub const RESPONSE_OBJECT_FIELDS_BINARY_SEARCH_THRESHOLD: usize = 64;
+pub const NULL: ResponseValue = ResponseValue::Null;
 pub type ResponseObjectFields = Vec<(ResponseEdge, ResponseValue)>;
 
 #[derive(Default, Debug)]

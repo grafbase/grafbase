@@ -14,7 +14,10 @@ use modifier::finalize_query_modifiers;
 use schema::Schema;
 use validation::validate_parsed_operation;
 
-use super::{parse::ParsedOperation, FieldId, QueryInputValues, QueryModifierCondition, QueryModifierId};
+use super::{
+    parse::ParsedOperation, FieldId, QueryInputValues, QueryModifierId, QueryModifierRule, ResponseModifierRule,
+    ResponseModifierRuleId,
+};
 use crate::{
     operation::SelectionSetType,
     operation::{
@@ -149,7 +152,9 @@ pub(crate) struct Binder<'schema, 'p> {
     selection_sets: Vec<SelectionSet>,
     variable_definitions: Vec<VariableDefinition>,
     input_values: QueryInputValues,
-    query_modifiers: HashMap<QueryModifierCondition, (QueryModifierId, Vec<FieldId>)>,
+    query_modifiers: HashMap<QueryModifierRule, (QueryModifierId, Vec<FieldId>)>,
+    response_modifier_rules: HashMap<ResponseModifierRule, ResponseModifierRuleId>,
+    fields_subject_to_response_modifier_rules: Vec<ResponseModifierRuleId>,
 }
 
 id_newtypes::index! {
@@ -183,6 +188,8 @@ pub fn bind_operation(schema: &Schema, mut parsed_operation: ParsedOperation) ->
         variable_definitions: Vec::new(),
         query_modifiers: Default::default(),
         input_values: QueryInputValues::default(),
+        response_modifier_rules: Default::default(),
+        fields_subject_to_response_modifier_rules: Default::default(),
     };
 
     // Must be executed before binding selection sets
@@ -210,6 +217,16 @@ pub fn bind_operation(schema: &Schema, mut parsed_operation: ParsedOperation) ->
         query_input_values: binder.input_values,
         query_modifiers,
         query_modifiers_impacted_fields,
+        fields_subject_to_response_modifier_rules: binder.fields_subject_to_response_modifier_rules,
+        response_modifier_rules: {
+            let mut rules = binder
+                .response_modifier_rules
+                .into_iter()
+                .map(|(rule, id)| (id, rule))
+                .collect::<Vec<_>>();
+            rules.sort_unstable_by_key(|(id, _)| *id);
+            rules.into_iter().map(|(_, rule)| rule).collect()
+        },
     })
 }
 

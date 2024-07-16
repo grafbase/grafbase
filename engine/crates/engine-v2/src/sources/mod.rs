@@ -48,7 +48,7 @@ use schema::{Resolver, ResolverWalker};
 use crate::{
     execution::{ExecutionContext, ExecutionError, ExecutionResult, PlanWalker, PlanningResult, SubscriptionResponse},
     operation::OperationType,
-    response::{ResponseObjectsView, ResponsePart},
+    response::{ResponseObjectsView, SubgraphResponseMutRef},
     Runtime,
 };
 
@@ -137,11 +137,14 @@ pub(crate) enum Executor<'ctx, R: Runtime> {
 }
 
 impl<'ctx, R: Runtime> Executor<'ctx, R> {
-    pub async fn execute(self, response_part: ResponsePart) -> ExecutionResult<ResponsePart> {
+    pub async fn execute<'resp>(self, subgraph_response: SubgraphResponseMutRef<'resp>) -> ExecutionResult<()>
+    where
+        'ctx: 'resp,
+    {
         match self {
-            Executor::GraphQL(executor) => executor.execute(response_part).await,
-            Executor::Introspection(executor) => executor.execute(response_part).await,
-            Executor::FederationEntity(executor) => executor.execute(response_part).await,
+            Executor::GraphQL(executor) => executor.execute(subgraph_response).await,
+            Executor::Introspection(executor) => executor.execute(subgraph_response).await,
+            Executor::FederationEntity(executor) => executor.execute(subgraph_response).await,
         }
     }
 }

@@ -15,8 +15,9 @@ use schema::{ObjectId, Schema};
 use self::deserialize::UpdateSeed;
 
 use super::{
-    ErrorCode, GraphqlError, InitialResponse, Response, ResponseData, ResponseEdge, ResponseObject, ResponseObjectRef,
-    ResponsePath, ResponseValue, UnpackedResponseEdge,
+    ErrorCode, FilteredResponseObjectSet, GraphqlError, InitialResponse, Response, ResponseData, ResponseEdge,
+    ResponseObject, ResponseObjectRef, ResponseObjectSet, ResponseObjectSetId, ResponsePath, ResponseValue,
+    TrackedResponseObjectSets, UnpackedResponseEdge,
 };
 use crate::{
     execution::{ExecutionError, PlanWalker},
@@ -75,20 +76,20 @@ impl ResponseBuilder {
         self.root = None;
     }
 
-    pub fn new_part(
+    pub fn new_subgraph_response(
         &mut self,
-        root_response_object_refs: Arc<Vec<ResponseObjectRef>>,
-        response_object_set_ids: IdRange<ResponseObjectSetId>,
-    ) -> ResponsePart {
+        root_response_object_set: FilteredResponseObjectSet,
+        tracked_response_object_set_ids: IdRange<ResponseObjectSetId>,
+    ) -> SubgraphResponse {
         let id = ResponseDataPartId::from(self.parts.len());
         // reserving the spot until the actual data is written. It's safe as no one can reference
         // any data in this part before it's added. And a part can only be overwritten if it's
         // empty.
         self.parts.push(ResponseDataPart::new(id));
-        ResponsePart::new(
+        SubgraphResponse::new(
             ResponseDataPart::new(id),
-            root_response_object_refs,
-            response_object_set_ids,
+            root_response_object_set,
+            tracked_response_object_set_ids,
         )
     }
 
@@ -102,25 +103,26 @@ impl ResponseBuilder {
 
     pub fn propagate_execution_error(
         &mut self,
-        root_response_object_refs: &[ResponseObjectRef],
-        edge: ResponseEdge,
+        subgraph_response: SubgraphResponse,
         error: ExecutionError,
-        default_object: Option<Vec<(ResponseEdge, ResponseValue)>>,
+        any_edge: ResponseEdge,
+        default_fields: Option<Vec<(ResponseEdge, ResponseValue)>>,
     ) {
+        let root_response_object_set = subgraph_response.root_response_object_set;
         let error = GraphqlError::from(error);
-        if let Some(fields) = default_object {
-            for obj_ref in root_response_object_refs {
+        if let Some(fields) = default_fields {
+            for obj_ref in root_response_object_set.iter() {
                 self[obj_ref.id].extend(fields.clone());
                 // Definitely not ideal (for the client) to have a new error each time in the response.
                 // Not exactly sure how we should best deal with it.
-                self.errors.push(error.clone().with_path(obj_ref.path.child(edge)));
+                self.errors.push(error.clone().with_path(obj_ref.path.child(any_edge)));
             }
         } else {
             let mut invalidated_paths = Vec::<&[ResponseEdge]>::new();
-            for obj_ref in root_response_object_refs {
+            for obj_ref in root_response_object_set.iter() {
                 if !invalidated_paths.iter().any(|path| obj_ref.path.starts_with(path)) {
                     if let Some(invalidated_path) = self.propagate_error(&obj_ref.path) {
-                        self.errors.push(error.clone().with_path(obj_ref.path.child(edge)));
+                        self.errors.push(error.clone().with_path(obj_ref.path.child(any_edge)));
                         invalidated_paths.push(invalidated_path);
                     }
                 }
@@ -130,24 +132,28 @@ impl ResponseBuilder {
 
     pub fn ingest(
         &mut self,
-        part: ResponsePart,
-        edge: ResponseEdge,
-        default_object: Option<Vec<(ResponseEdge, ResponseValue)>>,
-    ) -> Vec<(ResponseObjectSetId, Vec<ResponseObjectRef>)> {
-        let reservation = &mut self.parts[usize::from(part.data.id)];
+        subgraph_response: SubgraphResponse,
+        any_edge: ResponseEdge,
+        default_fields: Option<Vec<(ResponseEdge, ResponseValue)>>,
+    ) -> TrackedResponseObjectSets {
+        let reservation = &mut self.parts[usize::from(subgraph_response.data.id)];
         assert!(reservation.is_empty(), "Part already has data");
-        *reservation = part.data;
+        *reservation = subgraph_response.data;
 
         let mut invalidated_paths = Vec::<&[ResponseEdge]>::new();
-        for (update, obj_ref) in part.updates.into_iter().zip(part.root_response_object_refs.iter()) {
+        for (update, obj_ref) in subgraph_response
+            .updates
+            .into_iter()
+            .zip(subgraph_response.root_response_object_set.iter())
+        {
             match update {
                 UpdateSlot::Reserved => {
-                    if let Some(fields) = &default_object {
+                    if let Some(fields) = &default_fields {
                         self[obj_ref.id].extend(fields.clone());
                         // If there isn't any existing error within the response object path,
                         // we create one. Errors without any path are considering to be
                         // execution errors which are also enough.
-                        if !part.errors.iter().any(|error| {
+                        if !subgraph_response.errors.iter().any(|error| {
                             error
                                 .path
                                 .as_ref()
@@ -159,7 +165,7 @@ impl ResponseBuilder {
                                     "Missing data from subgraph",
                                     ErrorCode::SubgraphInvalidResponseError,
                                 )
-                                .with_path(obj_ref.path.child(edge)),
+                                .with_path(obj_ref.path.child(any_edge)),
                             )
                         }
                     } else if !invalidated_paths.iter().any(|path| obj_ref.path.starts_with(path)) {
@@ -167,7 +173,7 @@ impl ResponseBuilder {
                             // If there isn't any existing error within the response object path,
                             // we create one. Errors without any path are considering to be
                             // execution errors which are also enough.
-                            if !part.errors.iter().any(|error| {
+                            if !subgraph_response.errors.iter().any(|error| {
                                 error
                                     .path
                                     .as_ref()
@@ -179,7 +185,7 @@ impl ResponseBuilder {
                                         "Missing data from subgraph",
                                         ErrorCode::SubgraphInvalidResponseError,
                                     )
-                                    .with_path(obj_ref.path.child(edge)),
+                                    .with_path(obj_ref.path.child(any_edge)),
                                 );
                             }
                             invalidated_paths.push(invalidated_path);
@@ -198,9 +204,9 @@ impl ResponseBuilder {
                 }
             }
         }
-        self.errors.extend(part.errors);
+        self.errors.extend(subgraph_response.errors);
 
-        let mut boundaries = part.response_object_sets;
+        let mut boundaries = subgraph_response.tracked_response_object_sets;
         if !invalidated_paths.is_empty() {
             boundaries = boundaries
                 .into_iter()
@@ -211,7 +217,10 @@ impl ResponseBuilder {
                 })
                 .collect();
         }
-        part.response_object_set_ids.into_iter().zip(boundaries).collect()
+        TrackedResponseObjectSets {
+            ids: subgraph_response.tracked_response_object_set_ids,
+            sets: boundaries,
+        }
     }
 
     pub fn build(self, schema: Arc<Schema>, operation: Arc<PreparedOperation>) -> Response {
@@ -327,50 +336,63 @@ enum ResponseValueId {
     },
 }
 
+pub(crate) struct SubgraphResponse {
+    data: ResponseDataPart,
+    root_response_object_set: FilteredResponseObjectSet,
+    errors: Vec<GraphqlError>,
+    updates: Vec<UpdateSlot>,
+    tracked_response_object_set_ids: IdRange<ResponseObjectSetId>,
+    tracked_response_object_sets: Vec<ResponseObjectSet>,
+}
+
+impl SubgraphResponse {
+    fn new(
+        data: ResponseDataPart,
+        root_response_object_set: FilteredResponseObjectSet,
+        tracked_response_object_set_ids: IdRange<ResponseObjectSetId>,
+    ) -> Self {
+        Self {
+            data,
+            root_response_object_set,
+            errors: Vec::new(),
+            updates: Vec::new(),
+            tracked_response_object_set_ids,
+            tracked_response_object_sets: tracked_response_object_set_ids
+                .into_iter()
+                .map(|_| (Vec::new()))
+                .collect(),
+        }
+    }
+
+    pub fn as_mut(&mut self) -> SubgraphResponseMutRef<'_> {
+        SubgraphResponseMutRef { inner: self }
+    }
+}
+
+pub(crate) struct SubgraphResponseMutRef<'resp> {
+    inner: &'resp mut SubgraphResponse,
+}
+
+impl<'resp> SubgraphResponseMutRef<'resp> {
+    /// Executors manipulate the response within a Send future, so we can't use a Rc/RefCell
+    /// directly. Only once the executor is ready to write should it use this method.
+    pub fn into_shared(self) -> SharedSubgraphResponse<'resp> {
+        SharedSubgraphResponse {
+            inner: Rc::new(RefCell::new(self.inner)),
+        }
+    }
+}
+
 #[derive(Clone)]
-pub(crate) struct ResponsePartMut<'resp> {
+pub(crate) struct SharedSubgraphResponse<'resp> {
     /// We end up writing objects or lists at various step of the de-serialization / query
     /// traversal, so having a RefCell is by far the easiest. We don't need a lock as executor are
     /// not expected to parallelize their work.
     /// The Rc makes it possible to write errors at one place and the data in another.
-    inner: Rc<RefCell<&'resp mut ResponsePart>>,
+    inner: Rc<RefCell<&'resp mut SubgraphResponse>>,
 }
 
-pub(crate) struct ResponsePart {
-    data: ResponseDataPart,
-    root_response_object_refs: Arc<Vec<ResponseObjectRef>>,
-    errors: Vec<GraphqlError>,
-    updates: Vec<UpdateSlot>,
-    response_object_set_ids: IdRange<ResponseObjectSetId>,
-    response_object_sets: Vec<Vec<ResponseObjectRef>>,
-}
-
-impl ResponsePart {
-    fn new(
-        data: ResponseDataPart,
-        root_response_object_refs: Arc<Vec<ResponseObjectRef>>,
-        response_object_set_ids: IdRange<ResponseObjectSetId>,
-    ) -> Self {
-        Self {
-            data,
-            root_response_object_refs,
-            errors: Vec::new(),
-            updates: Vec::new(),
-            response_object_set_ids,
-            response_object_sets: response_object_set_ids.into_iter().map(|_| (Vec::new())).collect(),
-        }
-    }
-
-    /// Executors manipulate the response part within a Send future, so we can't use Rc/RefCell
-    /// initially to send the response part. However, once within
-    pub fn as_mut(&mut self) -> ResponsePartMut<'_> {
-        ResponsePartMut {
-            inner: Rc::new(RefCell::new(self)),
-        }
-    }
-}
-
-impl<'resp> ResponsePartMut<'resp> {
+impl<'resp> SharedSubgraphResponse<'resp> {
     pub fn next_seed<'ctx>(&self, plan: PlanWalker<'ctx>) -> Option<UpdateSeed<'resp>>
     where
         'ctx: 'resp,
@@ -381,7 +403,7 @@ impl<'resp> ResponsePartMut<'resp> {
     pub fn next_writer(&self) -> Option<ResponseWriter<'resp>> {
         let index = {
             let mut inner = self.inner.borrow_mut();
-            if inner.updates.len() == inner.root_response_object_refs.len() {
+            if inner.updates.len() == inner.root_response_object_set.len() {
                 return None;
             }
             inner.updates.push(UpdateSlot::Reserved);
@@ -393,8 +415,8 @@ impl<'resp> ResponsePartMut<'resp> {
         })
     }
 
-    pub fn root_response_object_refs(&self) -> Ref<'_, [ResponseObjectRef]> {
-        Ref::map(self.inner.borrow(), |inner| inner.root_response_object_refs.as_slice())
+    pub fn get_root_response_object(&self, i: usize) -> Option<Ref<'_, ResponseObjectRef>> {
+        Ref::filter_map(self.inner.borrow(), |inner| inner.root_response_object_set.get(i)).ok()
     }
 
     pub fn push_error(&self, error: impl Into<GraphqlError>) {
@@ -408,16 +430,16 @@ impl<'resp> ResponsePartMut<'resp> {
 
 pub struct ResponseWriter<'resp> {
     index: usize,
-    part: ResponsePartMut<'resp>,
+    part: SharedSubgraphResponse<'resp>,
 }
 
 impl<'resp> ResponseWriter<'resp> {
-    fn part(&self) -> RefMut<'_, &'resp mut ResponsePart> {
+    fn part(&self) -> RefMut<'_, &'resp mut SubgraphResponse> {
         self.part.inner.borrow_mut()
     }
 
     pub fn root_path(&self) -> ResponsePath {
-        RefCell::borrow(&self.part.inner).root_response_object_refs[self.index]
+        RefCell::borrow(&self.part.inner).root_response_object_set[self.index]
             .path
             .clone()
     }
@@ -450,8 +472,8 @@ impl<'resp> ResponseWriter<'resp> {
 
     pub fn push_response_object(&self, set_id: ResponseObjectSetId, obj: ResponseObjectRef) {
         let mut part = self.part();
-        let i = part.response_object_set_ids.index_of(set_id).unwrap();
-        part.response_object_sets[i].push(obj);
+        let i = part.tracked_response_object_set_ids.index_of(set_id).unwrap();
+        part.tracked_response_object_sets[i].push(obj);
     }
 }
 

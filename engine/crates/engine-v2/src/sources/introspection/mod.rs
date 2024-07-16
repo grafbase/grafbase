@@ -1,7 +1,7 @@
 use super::{ExecutionError, Executor, ExecutorInput};
 use crate::{
-    execution::{ExecutionContext, PlanWalker},
-    response::ResponsePart,
+    execution::{ExecutionContext, ExecutionResult, PlanWalker},
+    response::SubgraphResponseMutRef,
     Runtime,
 };
 
@@ -25,15 +25,21 @@ pub(crate) struct IntrospectionExecutor<'ctx, R: Runtime> {
 }
 
 impl<'ctx, R: Runtime> IntrospectionExecutor<'ctx, R> {
-    pub async fn execute(self, mut response_part: ResponsePart) -> Result<ResponsePart, ExecutionError> {
+    pub async fn execute<'resp>(self, subgraph_response: SubgraphResponseMutRef<'resp>) -> ExecutionResult<()>
+    where
+        'ctx: 'resp,
+    {
         writer::IntrospectionWriter {
             schema: self.ctx.engine.schema.walker(),
             metadata: self.ctx.engine.schema.walker().introspection_metadata(),
             shapes: &self.plan.blueprint().shapes,
             plan: self.plan,
-            response: response_part.as_mut().next_writer().ok_or("No objects to update")?,
+            response: subgraph_response
+                .into_shared()
+                .next_writer()
+                .ok_or("No objects to update")?,
         }
         .execute(self.plan.logical_plan().response_blueprint().concrete_shape_id);
-        Ok(response_part)
+        Ok(())
     }
 }

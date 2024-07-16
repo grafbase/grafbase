@@ -88,15 +88,15 @@ impl<'ctx, R: Runtime> GraphqlSubscriptionExecutor<'ctx, R> {
 }
 
 fn ingest_response(
-    execution: &mut SubscriptionResponse,
+    subscription_response: &mut SubscriptionResponse,
     plan: PlanWalker<'_>,
     subgraph_response: serde_json::Value,
 ) -> ExecutionResult<()> {
-    let part = execution.root_response_part().as_mut();
+    let response = subscription_response.root_response().into_shared();
     GraphqlResponseSeed::new(
-        part.next_seed(plan).expect("Must have a root object to update"),
+        response.next_seed(plan).expect("Must have a root object to update"),
         RootGraphqlErrors {
-            response_part: &part,
+            response,
             response_keys: plan.response_keys(),
         },
     )

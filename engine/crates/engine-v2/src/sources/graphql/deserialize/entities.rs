@@ -7,17 +7,20 @@ use serde::{
 
 use crate::{
     execution::PlanWalker,
-    response::{ErrorCode, GraphqlError, ResponseKeys, ResponsePartMut, ResponsePath, UnpackedResponseEdge},
+    response::{ErrorCode, GraphqlError, ResponseKeys, ResponsePath, SharedSubgraphResponse, UnpackedResponseEdge},
 };
 
 use super::errors::GraphqlErrorsSeed;
 
-pub(in crate::sources::graphql) struct EntitiesDataSeed<'a> {
-    pub response_part: &'a ResponsePartMut<'a>,
-    pub plan: PlanWalker<'a>,
+pub(in crate::sources::graphql) struct EntitiesDataSeed<'resp> {
+    pub response: SharedSubgraphResponse<'resp>,
+    pub plan: PlanWalker<'resp>,
 }
 
-impl<'de, 'a> DeserializeSeed<'de> for EntitiesDataSeed<'a> {
+impl<'resp, 'de> DeserializeSeed<'de> for EntitiesDataSeed<'resp>
+where
+    'resp: 'de,
+{
     type Value = ();
 
     fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
@@ -28,7 +31,10 @@ impl<'de, 'a> DeserializeSeed<'de> for EntitiesDataSeed<'a> {
     }
 }
 
-impl<'de, 'a> Visitor<'de> for EntitiesDataSeed<'a> {
+impl<'resp, 'de> Visitor<'de> for EntitiesDataSeed<'resp>
+where
+    'resp: 'de,
+{
     type Value = ();
 
     fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -43,7 +49,7 @@ impl<'de, 'a> Visitor<'de> for EntitiesDataSeed<'a> {
             match key {
                 EntitiesKey::Entities => {
                     map.next_value_seed(EntitiesSeed {
-                        response_part: self.response_part,
+                        response_part: &self.response,
                         plan: self.plan,
                     })?;
                 }
@@ -64,12 +70,15 @@ enum EntitiesKey {
     Unknown,
 }
 
-struct EntitiesSeed<'a> {
-    response_part: &'a ResponsePartMut<'a>,
-    plan: PlanWalker<'a>,
+struct EntitiesSeed<'resp, 'parent> {
+    response_part: &'parent SharedSubgraphResponse<'resp>,
+    plan: PlanWalker<'resp>,
 }
 
-impl<'de, 'a> DeserializeSeed<'de> for EntitiesSeed<'a> {
+impl<'resp, 'de, 'parent> DeserializeSeed<'de> for EntitiesSeed<'resp, 'parent>
+where
+    'resp: 'de,
+{
     type Value = ();
 
     fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
@@ -80,7 +89,10 @@ impl<'de, 'a> DeserializeSeed<'de> for EntitiesSeed<'a> {
     }
 }
 
-impl<'de, 'a> Visitor<'de> for EntitiesSeed<'a> {
+impl<'resp, 'de, 'parent> Visitor<'de> for EntitiesSeed<'resp, 'parent>
+where
+    'resp: 'de,
+{
     type Value = ();
 
     fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -113,14 +125,14 @@ impl<'de, 'a> Visitor<'de> for EntitiesSeed<'a> {
     }
 }
 
-pub(in crate::sources::graphql) struct EntitiesErrorsSeed<'a> {
-    pub response_part: &'a ResponsePartMut<'a>,
-    pub response_keys: &'a ResponseKeys,
+pub(in crate::sources::graphql) struct EntitiesErrorsSeed<'resp> {
+    pub response: SharedSubgraphResponse<'resp>,
+    pub response_keys: &'resp ResponseKeys,
 }
 
-impl<'a> GraphqlErrorsSeed<'a> for EntitiesErrorsSeed<'a> {
-    fn response_part(&self) -> &'a ResponsePartMut<'a> {
-        self.response_part
+impl<'resp> GraphqlErrorsSeed<'resp> for EntitiesErrorsSeed<'resp> {
+    fn response(&self) -> &SharedSubgraphResponse<'resp> {
+        &self.response
     }
 
     fn convert_path(&self, path: &serde_json::Value) -> Option<ResponsePath> {
@@ -130,9 +142,8 @@ impl<'a> GraphqlErrorsSeed<'a> for EntitiesErrorsSeed<'a> {
         }
 
         let mut out = self
-            .response_part
-            .root_response_object_refs()
-            .get(path.next()?.as_u64()? as usize)?
+            .response
+            .get_root_response_object(path.next()?.as_u64()? as usize)?
             .path
             .clone();
 

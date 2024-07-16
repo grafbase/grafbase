@@ -103,7 +103,7 @@ impl<R: Runtime> Engine<R> {
             Err(response) => return HttpGraphqlResponse::build(response, format, Default::default()),
         };
 
-        self.execute_with_context(request_context, batch_request).await
+        self.execute_maybe_batch(request_context, batch_request).await
     }
 
     pub async fn create_session(self: &Arc<Self>, headers: http::HeaderMap) -> Result<Session<R>, Cow<'static, str>> {
@@ -148,7 +148,7 @@ impl<R: Runtime> Engine<R> {
         }
     }
 
-    async fn execute_with_context(
+    async fn execute_maybe_batch(
         self: &Arc<Self>,
         request_context: RequestContext<<R::Hooks as Hooks>::Context>,
         batch_request: BatchRequest,

@@ -276,7 +276,7 @@ impl<'a> LogicalPlanner<'a> {
             .partition(|field_id| {
                 if let Some(definition) = walker.walk(*field_id).definition() {
                     logic.is_providable(definition.id())
-                        && definition.requires(logic.resolver().subgraph_id()).is_empty()
+                        && !definition.has_required_fields(logic.resolver().subgraph_id())
                 } else {
                     true
                 }

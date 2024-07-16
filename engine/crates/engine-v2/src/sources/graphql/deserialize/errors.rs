@@ -1,20 +1,22 @@
 use serde::{de::DeserializeSeed, Deserializer};
 
-use crate::response::{ErrorCode, GraphqlError, ResponseKeys, ResponsePartMut, ResponsePath, UnpackedResponseEdge};
+use crate::response::{
+    ErrorCode, GraphqlError, ResponseKeys, ResponsePath, SharedSubgraphResponse, UnpackedResponseEdge,
+};
 
-pub(super) trait GraphqlErrorsSeed<'a> {
-    fn response_part(&self) -> &ResponsePartMut<'a>;
+pub(super) trait GraphqlErrorsSeed<'resp> {
+    fn response(&self) -> &SharedSubgraphResponse<'resp>;
     fn convert_path(&self, path: &serde_json::Value) -> Option<ResponsePath>;
 }
 
-pub(in crate::sources::graphql) struct RootGraphqlErrors<'a> {
-    pub response_part: &'a ResponsePartMut<'a>,
-    pub response_keys: &'a ResponseKeys,
+pub(in crate::sources::graphql) struct RootGraphqlErrors<'resp> {
+    pub response: SharedSubgraphResponse<'resp>,
+    pub response_keys: &'resp ResponseKeys,
 }
 
-impl<'a> GraphqlErrorsSeed<'a> for RootGraphqlErrors<'a> {
-    fn response_part(&self) -> &ResponsePartMut<'a> {
-        self.response_part
+impl<'resp> GraphqlErrorsSeed<'resp> for RootGraphqlErrors<'resp> {
+    fn response(&self) -> &SharedSubgraphResponse<'resp> {
+        &self.response
     }
 
     fn convert_path(&self, path: &serde_json::Value) -> Option<ResponsePath> {
@@ -52,9 +54,10 @@ pub(super) struct SubgraphGraphqlError {
 
 pub(super) struct ConcreteGraphqlErrorsSeed<T>(pub(super) T);
 
-impl<'de, T> DeserializeSeed<'de> for ConcreteGraphqlErrorsSeed<T>
+impl<'resp, 'de, T> DeserializeSeed<'de> for ConcreteGraphqlErrorsSeed<T>
 where
-    T: GraphqlErrorsSeed<'de>,
+    T: GraphqlErrorsSeed<'resp>,
+    'resp: 'de,
 {
     type Value = usize;
 
@@ -79,7 +82,7 @@ where
                 error
             })
             .collect();
-        self.0.response_part().push_errors(errors);
+        self.0.response().push_errors(errors);
         Ok(errors_count)
     }
 }

@@ -11,7 +11,7 @@ use super::{ExecutionContext, ExecutionResult, Executor, ExecutorInput, Prepared
 use crate::{
     execution::{PlanWalker, PlanningResult},
     operation::OperationType,
-    response::ResponsePart,
+    response::SubgraphResponseMutRef,
     sources::graphql::deserialize::{GraphqlResponseSeed, RootGraphqlErrors},
     Runtime,
 };
@@ -90,7 +90,10 @@ pub(crate) struct GraphqlExecutor<'ctx, R: Runtime> {
 
 impl<'ctx, R: Runtime> GraphqlExecutor<'ctx, R> {
     #[tracing::instrument(skip_all)]
-    pub async fn execute(self, mut response_part: ResponsePart) -> ExecutionResult<ResponsePart> {
+    pub async fn execute<'resp>(self, subgraph_response: SubgraphResponseMutRef<'resp>) -> ExecutionResult<()>
+    where
+        'ctx: 'resp,
+    {
         let span = SubgraphRequestSpan {
             name: self.subgraph.name(),
             operation_type: self.operation.ty.as_str(),
@@ -117,12 +120,11 @@ impl<'ctx, R: Runtime> GraphqlExecutor<'ctx, R> {
 
             tracing::debug!("{}", String::from_utf8_lossy(&bytes));
 
-            let part = response_part.as_mut();
-
+            let response = subgraph_response.into_shared();
             let status = GraphqlResponseSeed::new(
-                part.next_seed(self.plan).ok_or("No object to update")?,
+                response.next_seed(self.plan).ok_or("No object to update")?,
                 RootGraphqlErrors {
-                    response_part: &part,
+                    response,
                     response_keys: self.plan.response_keys(),
                 },
             )
@@ -130,7 +132,7 @@ impl<'ctx, R: Runtime> GraphqlExecutor<'ctx, R> {
 
             span.record_gql_status(status);
 
-            Ok(response_part)
+            Ok(())
         }
         .instrument(span.clone())
         .await

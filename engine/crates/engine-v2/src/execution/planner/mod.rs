@@ -1,5 +1,5 @@
 mod builder;
-mod modifier;
+mod query_modifier;
 
 use std::sync::Arc;
 
@@ -33,7 +33,7 @@ where
         variables: Variables,
     ) -> PlanningResult<ExecutableOperation> {
         let operation = ExecutableOperation {
-            query_modifications: modifier::QueryModificationsBuilder::new(ctx, &operation, &variables)
+            query_modifications: query_modifier::QueryModificationsBuilder::new(ctx, &operation, &variables)
                 .build()
                 .await?,
             prepared: operation,

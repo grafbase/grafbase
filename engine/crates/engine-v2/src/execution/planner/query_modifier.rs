@@ -3,9 +3,7 @@ use schema::Schema;
 
 use crate::{
     execution::{ErrorId, PlanningResult, PreExecutionContext, QueryModifications},
-    operation::{
-        ImpactedFieldId, OperationWalker, PreparedOperation, QueryModifierCondition, QueryModifierId, Variables,
-    },
+    operation::{ImpactedFieldId, OperationWalker, PreparedOperation, QueryModifierId, QueryModifierRule, Variables},
     response::{ConcreteObjectShapeId, ErrorCode, FieldShapeId, GraphqlError},
     Runtime,
 };
@@ -48,8 +46,8 @@ where
         for (i, modifier) in self.operation.query_modifiers.iter().enumerate() {
             let modifier_id = QueryModifierId::from(i);
 
-            match modifier.condition {
-                QueryModifierCondition::Authenticated => {
+            match modifier.rule {
+                QueryModifierRule::Authenticated => {
                     if self.ctx.access_token().is_anonymous() {
                         self.handle_modifier_resulted_in_error(
                             modifier_id,
@@ -58,7 +56,7 @@ where
                         )
                     }
                 }
-                QueryModifierCondition::RequiresScopes(id) => {
+                QueryModifierRule::RequiresScopes(id) => {
                     let scopes = scopes.get_or_insert_with(|| {
                         self.ctx
                             .access_token()
@@ -76,7 +74,7 @@ where
                         )
                     }
                 }
-                QueryModifierCondition::AuthorizedField {
+                QueryModifierRule::AuthorizedField {
                     directive_id,
                     definition_id,
                     argument_ids,
@@ -97,7 +95,7 @@ where
                         self.handle_modifier_resulted_in_error(modifier_id, modifier.impacted_fields, err);
                     }
                 }
-                QueryModifierCondition::AuthorizedDefinition {
+                QueryModifierRule::AuthorizedDefinition {
                     directive_id,
                     definition,
                 } => {

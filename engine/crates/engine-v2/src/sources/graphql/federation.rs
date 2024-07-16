@@ -7,7 +7,7 @@ use tracing::Instrument;
 use crate::{
     execution::{ExecutionContext, PlanWalker, PlanningResult},
     operation::OperationType,
-    response::ResponsePart,
+    response::SubgraphResponseMutRef,
     sources::{
         graphql::deserialize::{EntitiesErrorsSeed, GraphqlResponseSeed},
         ExecutionResult, Executor, ExecutorInput, PreparedExecutor,
@@ -96,7 +96,10 @@ pub(crate) struct FederationEntityExecutor<'ctx, R: Runtime> {
 
 impl<'ctx, R: Runtime> FederationEntityExecutor<'ctx, R> {
     #[tracing::instrument(skip_all)]
-    pub async fn execute(self, mut response_part: ResponsePart) -> ExecutionResult<ResponsePart> {
+    pub async fn execute<'resp>(self, subgraph_response: SubgraphResponseMutRef<'resp>) -> ExecutionResult<()>
+    where
+        'ctx: 'resp,
+    {
         let span = SubgraphRequestSpan {
             name: self.subgraph.name(),
             operation_type: OperationType::Query.as_str(),
@@ -122,15 +125,14 @@ impl<'ctx, R: Runtime> FederationEntityExecutor<'ctx, R> {
                 .bytes;
             tracing::debug!("{}", String::from_utf8_lossy(&bytes));
 
-            let part = response_part.as_mut();
-
+            let response = subgraph_response.into_shared();
             let status = GraphqlResponseSeed::new(
                 EntitiesDataSeed {
-                    response_part: &part,
+                    response: response.clone(),
                     plan: self.plan,
                 },
                 EntitiesErrorsSeed {
-                    response_part: &part,
+                    response,
                     response_keys: self.plan.response_keys(),
                 },
             )
@@ -138,7 +140,7 @@ impl<'ctx, R: Runtime> FederationEntityExecutor<'ctx, R> {
 
             span.record_gql_status(status);
 
-            Ok(response_part)
+            Ok(())
         }
         .instrument(span.clone())
         .await

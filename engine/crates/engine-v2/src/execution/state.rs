@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
-use schema::{EntityId, Schema};
+use schema::Schema;
 
-use crate::response::{ResponseBuilder, ResponseObjectRef, ResponseObjectSetId};
+use crate::response::{FilteredResponseObjectSet, ResponseBuilder, ResponseObjectSet, ResponseObjectSetId};
 
 use super::{ExecutableOperation, ExecutionPlanId};
 
@@ -20,18 +20,13 @@ use super::{ExecutableOperation, ExecutionPlanId};
 pub(crate) struct OperationExecutionState<'ctx> {
     schema: &'ctx Schema,
     operation: &'ctx ExecutableOperation,
-    response_object_sets: Vec<ResponseObjectSet>,
+    response_object_sets: Vec<Option<Arc<ResponseObjectSet>>>,
     plan_dependencies_count: Vec<usize>,
 }
 
 id_newtypes::index! {
     OperationExecutionState<'ctx>.plan_dependencies_count[ExecutionPlanId] => usize,
-    OperationExecutionState<'ctx>.response_object_sets[ResponseObjectSetId] => ResponseObjectSet,
-}
-
-#[derive(Clone)]
-pub(crate) struct ResponseObjectSet {
-    refs: Option<Arc<Vec<ResponseObjectRef>>>,
+    OperationExecutionState<'ctx>.response_object_sets[ResponseObjectSetId] => Option<Arc<ResponseObjectSet>>,
 }
 
 impl<'ctx> OperationExecutionState<'ctx> {
@@ -39,10 +34,7 @@ impl<'ctx> OperationExecutionState<'ctx> {
         Self {
             schema,
             operation,
-            response_object_sets: vec![
-                ResponseObjectSet { refs: None };
-                operation.response_blueprint.response_object_set_count
-            ],
+            response_object_sets: vec![None; operation.response_blueprint.response_object_set_count],
             plan_dependencies_count: operation.execution_plans.iter().map(|plan| plan.parent_count).collect(),
         }
     }
@@ -70,45 +62,36 @@ impl<'ctx> OperationExecutionState<'ctx> {
             .collect()
     }
 
-    pub fn push_response_objects(&mut self, set_id: ResponseObjectSetId, response_object_refs: Vec<ResponseObjectRef>) {
-        self[set_id].refs = Some(Arc::new(response_object_refs));
+    pub fn push_response_objects(&mut self, set_id: ResponseObjectSetId, response_object_refs: ResponseObjectSet) {
+        tracing::trace!("Pushing response objects for {set_id}");
+        self[set_id] = Some(Arc::new(response_object_refs));
     }
 
-    pub fn get_root_response_object_refs(
+    pub fn get_root_response_object_set(
         &mut self,
         response: &ResponseBuilder,
         plan_id: ExecutionPlanId,
-    ) -> Arc<Vec<ResponseObjectRef>> {
+    ) -> FilteredResponseObjectSet {
         // If there is no root, an error propagated up to it and data will be null. So there's
         // nothing to do anymore.
         let Some(root_ref) = response.root_response_object() else {
-            return Arc::new(Vec::new());
+            return Default::default();
         };
         let logical_plan_id = self.operation[plan_id].logical_plan_id;
         let input_id = self.operation.response_blueprint[logical_plan_id].input_id;
-        let refs = {
-            let response_object_set = &mut self[input_id];
-            let Some(refs) = response_object_set.refs.clone() else {
-                if usize::from(input_id) == 0 {
-                    return Arc::new(vec![root_ref]);
-                }
-                unreachable!("Missing entities");
-            };
-            refs
-        };
-        // FIXME: it's not always necessary to clone the response_object_refs if it's always the
-        // same entity.
-        match &self.operation[logical_plan_id].entity_id {
-            EntityId::Interface(id) => {
-                let possible_types = &self.schema[*id].possible_types;
-                Arc::new(
-                    refs.iter()
-                        .filter(|obj| possible_types.binary_search(&obj.definition_id).is_ok())
-                        .cloned()
-                        .collect(),
-                )
-            }
-            &EntityId::Object(id) => Arc::new(refs.iter().filter(|obj| obj.definition_id == id).cloned().collect()),
+        tracing::trace!("Get response objects for {input_id}");
+
+        let output = FilteredResponseObjectSet::default();
+        if let Some(refs) = &self[input_id] {
+            output.with_filtered_response_objects(
+                self.schema,
+                self.operation[logical_plan_id].entity_id,
+                Arc::clone(refs),
+            )
+        } else if usize::from(input_id) == 0 {
+            output.with_response_objects(Arc::new(vec![root_ref]))
+        } else {
+            output
         }
     }
 

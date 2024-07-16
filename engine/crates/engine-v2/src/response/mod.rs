@@ -2,18 +2,20 @@ use std::{borrow::Cow, sync::Arc};
 
 pub(crate) use error::*;
 use grafbase_tracing::gql_response_status::GraphqlResponseStatus;
-pub use key::*;
-pub use path::*;
-pub use read::*;
+pub(crate) use key::*;
+pub(crate) use object_set::*;
+pub(crate) use path::*;
+pub(crate) use read::*;
 use schema::Schema;
-pub use shape::*;
-pub use value::{ResponseObject, ResponseValue};
-pub use write::*;
+pub(crate) use shape::*;
+pub(crate) use value::{ResponseObject, ResponseValue};
+pub(crate) use write::*;
 
 use crate::operation::PreparedOperation;
 
 mod error;
 mod key;
+mod object_set;
 mod path;
 mod read;
 mod shape;
