@@ -1,4 +1,4 @@
-use grafbase_tracing::span::subgraph::SubgraphRequestSpan;
+use grafbase_tracing::span::{subgraph::SubgraphRequestSpan, GqlRecorderSpanExt};
 use runtime::fetch::FetchRequest;
 use schema::sources::graphql::{FederationEntityResolverWalker, GraphqlEndpointId, GraphqlEndpointWalker};
 use serde::de::DeserializeSeed;
@@ -124,7 +124,7 @@ impl<'ctx, R: Runtime> FederationEntityExecutor<'ctx, R> {
 
             let part = response_part.as_mut();
 
-            GraphqlResponseSeed::new(
+            let status = GraphqlResponseSeed::new(
                 EntitiesDataSeed {
                     response_part: &part,
                     plan: self.plan,
@@ -135,6 +135,9 @@ impl<'ctx, R: Runtime> FederationEntityExecutor<'ctx, R> {
                 },
             )
             .deserialize(&mut serde_json::Deserializer::from_slice(&bytes))?;
+
+            span.record_gql_status(status);
+
             Ok(response_part)
         }
         .instrument(span.clone())
