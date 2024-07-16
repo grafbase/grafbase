@@ -55,6 +55,7 @@ where
                 logical_plan_to_blueprint: Default::default(),
                 selection_set_to_requires_typename: BitSet::init_with(false, operation.selection_sets.len()),
                 response_object_set_count: 0,
+                logical_plan_response_modifiers: Vec::new(),
             },
             field_shapes_buffer_pool: Default::default(),
             field_id_to_field_shape_ids_builder: Default::default(),

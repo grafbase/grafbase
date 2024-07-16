@@ -2,7 +2,7 @@ use schema::{FieldDefinitionWalker, RequiredField};
 
 use super::{FieldArgumentsWalker, OperationWalker, SelectionSetWalker};
 use crate::{
-    operation::{ExtraField, Field, FieldId, Location, QueryField},
+    operation::{ExtraField, Field, FieldId, Location, QueryField, ResponseModifierRuleId},
     response::{ResponseEdge, ResponseKey},
 };
 
@@ -26,6 +26,12 @@ impl<'a> FieldWalker<'a> {
 
     pub fn response_key(&self) -> ResponseKey {
         self.as_ref().response_key()
+    }
+
+    pub fn subject_to_response_modifier_rules(&self) -> impl Iterator<Item = ResponseModifierRuleId> + 'a {
+        self.operation[self.as_ref().subject_to_response_modifier_rules()]
+            .iter()
+            .copied()
     }
 
     pub fn response_key_str(&self) -> &'a str {

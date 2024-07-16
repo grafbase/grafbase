@@ -61,12 +61,14 @@ pub(crate) struct Operation {
     pub response_keys: ResponseKeys,
     pub selection_sets: Vec<SelectionSet>,
     pub fields: Vec<Field>,
+    pub fields_subject_to_response_modifier_rules: Vec<ResponseModifierRuleId>,
     pub variable_definitions: Vec<VariableDefinition>,
     pub field_arguments: Vec<FieldArgument>,
     pub query_input_values: QueryInputValues,
     // deduplicated
     pub query_modifiers: Vec<QueryModifier>,
     pub query_modifiers_impacted_fields: Vec<FieldId>,
+    pub response_modifier_rules: Vec<ResponseModifierRule>,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -115,6 +117,7 @@ pub(crate) struct ResponseBlueprint {
     pub shapes: Shapes,
     pub field_to_shape_ids: IdToMany<FieldId, FieldShapeId>,
     pub logical_plan_to_blueprint: Vec<LogicalPlanResponseBlueprint>,
+    pub logical_plan_response_modifiers: Vec<ResponseModifier>,
     pub selection_set_to_requires_typename: BitSet<SelectionSetId>,
     pub response_object_set_count: usize,
 }
@@ -124,6 +127,8 @@ pub(crate) struct LogicalPlanResponseBlueprint {
     pub input_id: ResponseObjectSetId,
     pub output_ids: IdRange<ResponseObjectSetId>,
     pub concrete_shape_id: ConcreteObjectShapeId,
+    // modifiers will be sorted by rule_id
+    pub response_modifiers_ids: IdRange<ResponseModifierId>,
 }
 
 impl<I> std::ops::Index<I> for ResponseBlueprint

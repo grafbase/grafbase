@@ -214,7 +214,7 @@ struct ChildPlanCandidate<'schema> {
     entity_id: EntityId,
     resolver_id: ResolverId,
     /// Providable fields by the resolvers with their requirements
-    providable_fields: Vec<(FieldId, &'schema RequiredFieldSet)>,
+    providable_fields: Vec<(FieldId, Cow<'schema, RequiredFieldSet>)>,
 }
 
 impl<'schema, 'a> SelectionSetLogicalPlanner<'schema, 'a> {
@@ -231,31 +231,26 @@ impl<'schema, 'a> SelectionSetLogicalPlanner<'schema, 'a> {
         // unplanned_field may be still be provided by the parent plan, but at this stage it
         // means they had requirements.
         if let Some(parent_logic) = self.maybe_parent {
-            let mut planned = Vec::new();
+            let mut requires = Cow::Owned(RequiredFieldSet::default());
+            let mut planned_field_ids = vec![];
+
             for (&id, definition) in &unplanned_fields {
                 // If the parent plan can provide the field, we don't need to plan it.
+                let required_fields = definition.required_fields(parent_logic.resolver().subgraph_id());
                 if parent_logic.is_providable(definition.id())
-                    && self.could_plan_requirements(
-                        planned_selection_set,
-                        id,
-                        definition.requires(parent_logic.resolver().subgraph_id()),
-                    )?
+                    && self.could_plan_requirements(planned_selection_set, id, &required_fields)?
                 {
-                    planned.push(id);
+                    requires = RequiredFieldSet::union_cow(requires, required_fields);
+                    planned_field_ids.push(id);
                     continue;
                 }
             }
 
-            let mut requires = RequiredFieldSet::default();
-            let mut field_ids = vec![];
-            for id in planned {
-                let definition = unplanned_fields.remove(&id).unwrap();
-                requires = requires.union(definition.requires(parent_logic.resolver().subgraph_id()));
-                field_ids.push(id);
-            }
-
-            self.planner
-                .grow_with_obviously_providable_subselections(self.query_path, parent_logic, &field_ids)?;
+            self.planner.grow_with_obviously_providable_subselections(
+                self.query_path,
+                parent_logic,
+                &planned_field_ids,
+            )?;
             self.register_necessary_extra_fields(parent_logic.id(), planned_selection_set, &requires);
         }
 
@@ -295,11 +290,9 @@ impl<'schema, 'a> SelectionSetLogicalPlanner<'schema, 'a> {
 
             let mut requires = Cow::Borrowed(self.schema.walk(candidate.resolver_id).requires());
             let mut field_ids = vec![];
-            for (id, field_requires) in std::mem::take(&mut candidate.providable_fields) {
+            for (id, required_fields) in std::mem::take(&mut candidate.providable_fields) {
                 unplanned_fields.remove(&id);
-                if !field_requires.is_empty() {
-                    requires = Cow::Owned(requires.union(field_requires));
-                }
+                requires = RequiredFieldSet::union_cow(requires, required_fields);
                 field_ids.push(id);
             }
             self.push_child(
@@ -466,22 +459,22 @@ impl<'schema, 'a> SelectionSetLogicalPlanner<'schema, 'a> {
         for (&id, definition) in unplanned_fields {
             for resolver in definition.resolvers() {
                 tracing::trace!("Trying to plan '{}' with: {}", definition.name(), resolver.name());
-                let field_requires = definition.requires(resolver.subgraph_id());
+                let required_fields = definition.required_fields(resolver.subgraph_id());
                 match candidates.entry(resolver.id()) {
                     Entry::Occupied(mut entry) => {
                         let candidate = entry.get_mut();
-                        if self.could_plan_requirements(planned_selection_set, id, field_requires)? {
-                            candidate.providable_fields.push((id, field_requires));
+                        if self.could_plan_requirements(planned_selection_set, id, &required_fields)? {
+                            candidate.providable_fields.push((id, required_fields));
                         }
                     }
                     Entry::Vacant(entry) => {
                         if self.could_plan_requirements(planned_selection_set, id, resolver.requires())?
-                            && self.could_plan_requirements(planned_selection_set, id, field_requires)?
+                            && self.could_plan_requirements(planned_selection_set, id, &required_fields)?
                         {
                             entry.insert(ChildPlanCandidate {
                                 resolver_id: resolver.id(),
                                 entity_id: definition.parent_entity().id(),
-                                providable_fields: vec![(id, field_requires)],
+                                providable_fields: vec![(id, required_fields)],
                             });
                         }
                     }
@@ -497,7 +490,7 @@ impl<'schema, 'a> SelectionSetLogicalPlanner<'schema, 'a> {
         &mut self,
         planned_selection_set: &mut PlannedSelectionSet,
         petitioner_field_id: FieldId,
-        requires: &'schema RequiredFieldSet,
+        requires: &RequiredFieldSet,
     ) -> LogicalPlanningResult<bool> {
         if requires.is_empty() {
             return Ok(true);
@@ -510,7 +503,7 @@ impl<'schema, 'a> SelectionSetLogicalPlanner<'schema, 'a> {
         parent_logical_plan_id: Option<LogicalPlanId>,
         planned_selection_set: &mut PlannedSelectionSet,
         petitioner_field_id: FieldId,
-        requires: &'schema RequiredFieldSet,
+        requires: &RequiredFieldSet,
     ) -> LogicalPlanningResult<bool> {
         if requires.is_empty() {
             return Ok(true);
@@ -648,7 +641,7 @@ impl<'schema, 'a> SelectionSetLogicalPlanner<'schema, 'a> {
         planned_selection_set: &mut PlannedSelectionSet,
         petitioner_field_id: FieldId,
         logic: &PlanningLogic<'schema>,
-        required: RequiredFieldSetItemWalker<'schema>,
+        required: RequiredFieldSetItemWalker<'_>,
     ) -> bool {
         if !logic.is_providable(required.definition().id()) {
             return false;

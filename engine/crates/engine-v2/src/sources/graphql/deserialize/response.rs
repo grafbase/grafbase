@@ -22,10 +22,11 @@ impl<DataSeed, ErrorSeed> GraphqlResponseSeed<DataSeed, ErrorSeed> {
     }
 }
 
-impl<'de, DataSeed, ErrorsSeed> DeserializeSeed<'de> for GraphqlResponseSeed<DataSeed, ErrorsSeed>
+impl<'resp, 'de, DataSeed, ErrorsSeed> DeserializeSeed<'de> for GraphqlResponseSeed<DataSeed, ErrorsSeed>
 where
     DataSeed: DeserializeSeed<'de, Value = ()>,
-    ErrorsSeed: GraphqlErrorsSeed<'de>,
+    ErrorsSeed: GraphqlErrorsSeed<'resp>,
+    'resp: 'de,
 {
     type Value = GraphqlResponseStatus;
 
@@ -37,10 +38,11 @@ where
     }
 }
 
-impl<'de, DataSeed, ErrorsSeed> Visitor<'de> for GraphqlResponseSeed<DataSeed, ErrorsSeed>
+impl<'resp, 'de, DataSeed, ErrorsSeed> Visitor<'de> for GraphqlResponseSeed<DataSeed, ErrorsSeed>
 where
     DataSeed: DeserializeSeed<'de, Value = ()>,
-    ErrorsSeed: GraphqlErrorsSeed<'de>,
+    ErrorsSeed: GraphqlErrorsSeed<'resp>,
+    'resp: 'de,
 {
     type Value = GraphqlResponseStatus;
 

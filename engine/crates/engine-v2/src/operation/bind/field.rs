@@ -62,6 +62,7 @@ impl<'schema, 'p> Binder<'schema, 'p> {
 
         let field_id = FieldId::from(self.fields.len());
         let argument_ids = self.bind_field_arguments(definition, field_id, location, &field.arguments)?;
+        let subject_to_response_modifier_rules = self.generate_field_modifiers(field_id, argument_ids, definition);
         self.fields.push(Field::Query(QueryField {
             bound_response_key,
             location,
@@ -69,9 +70,8 @@ impl<'schema, 'p> Binder<'schema, 'p> {
             argument_ids,
             selection_set_id,
             parent_selection_set_id,
+            subject_to_response_modifier_rules,
         }));
-
-        self.generate_field_modifiers(field_id, definition);
 
         Ok(field_id)
     }

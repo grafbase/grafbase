@@ -1,18 +1,18 @@
 use grafbase_telemetry::span::subgraph::SubgraphRequestSpan;
 use request::execute_subgraph_request;
 use runtime::fetch::FetchRequest;
-use schema::sources::graphql::{GraphqlEndpointId, GraphqlEndpointWalker, RootFieldResolverWalker};
+use schema::sources::graphql::{GraphqlEndpointId, RootFieldResolverWalker};
 use serde::de::DeserializeSeed;
 use tracing::Instrument;
 
 use self::query::PreparedGraphqlOperation;
 use self::variables::SubgraphVariables;
 
-use super::{ExecutionContext, ExecutionResult, Executor, ExecutorInput, PreparedExecutor};
+use super::{ExecutionContext, ExecutionResult, PreparedExecutor};
 use crate::{
     execution::{PlanWalker, PlanningResult},
     operation::OperationType,
-    response::ResponsePart,
+    response::SubgraphResponse,
     sources::graphql::deserialize::{GraphqlResponseSeed, RootGraphqlErrors},
     Runtime,
 };
@@ -25,7 +25,6 @@ mod subscription;
 mod variables;
 
 pub(crate) use federation::*;
-pub(crate) use subscription::*;
 
 pub(crate) struct GraphqlPreparedExecutor {
     subgraph_id: GraphqlEndpointId,
@@ -48,12 +47,12 @@ impl GraphqlPreparedExecutor {
     }
 
     #[tracing::instrument(skip_all)]
-    pub fn new_executor<'ctx, R: Runtime>(
+    pub async fn execute<'ctx, R: Runtime>(
         &'ctx self,
-        input: ExecutorInput<'ctx, '_, R>,
-    ) -> ExecutionResult<Executor<'ctx, R>> {
-        let ExecutorInput { ctx, plan, .. } = input;
-
+        ctx: ExecutionContext<'ctx, R>,
+        plan: PlanWalker<'ctx, (), ()>,
+        mut subgraph_response: SubgraphResponse,
+    ) -> ExecutionResult<SubgraphResponse> {
         let subgraph = plan.schema().walk(self.subgraph_id);
         let variables = SubgraphVariables {
             plan,
@@ -72,59 +71,38 @@ impl GraphqlPreparedExecutor {
         }))
         .map_err(|err| format!("Failed to serialize query: {err}"))?;
 
-        Ok(Executor::GraphQL(GraphqlExecutor {
-            ctx,
-            subgraph,
-            operation: &self.operation,
-            json_body,
-            plan,
-        }))
-    }
-}
-
-pub(crate) struct GraphqlExecutor<'ctx, R: Runtime> {
-    ctx: ExecutionContext<'ctx, R>,
-    subgraph: GraphqlEndpointWalker<'ctx>,
-    operation: &'ctx PreparedGraphqlOperation,
-    json_body: String,
-    plan: PlanWalker<'ctx>,
-}
-
-impl<'ctx, R: Runtime> GraphqlExecutor<'ctx, R> {
-    #[tracing::instrument(skip_all)]
-    pub async fn execute(self, mut response_part: ResponsePart) -> ExecutionResult<ResponsePart> {
         let span = SubgraphRequestSpan {
-            name: self.subgraph.name(),
+            name: subgraph.name(),
             operation_type: self.operation.ty.as_str(),
             // The generated query does not contain any data, everything are in the variables, so
             // it's safe to use.
             sanitized_query: &self.operation.query,
-            url: self.subgraph.url(),
+            url: subgraph.url(),
         }
         .into_span();
 
         execute_subgraph_request(
-            self.ctx,
+            ctx,
             span.clone(),
-            self.subgraph.name(),
+            subgraph.name(),
             || FetchRequest {
-                url: self.subgraph.url(),
-                headers: self.ctx.headers_with_rules(self.subgraph.header_rules()),
-                json_body: self.json_body,
-                subgraph_name: self.subgraph.name(),
-                timeout: self.subgraph.timeout(),
+                url: subgraph.url(),
+                headers: ctx.headers_with_rules(subgraph.header_rules()),
+                json_body,
+                subgraph_name: subgraph.name(),
+                timeout: subgraph.timeout(),
             },
             |bytes| {
-                let part = response_part.as_mut();
+                let response = subgraph_response.as_mut();
                 let status = GraphqlResponseSeed::new(
-                    part.next_seed(self.plan).ok_or("No object to update")?,
+                    response.next_seed(plan).ok_or("No object to update")?,
                     RootGraphqlErrors {
-                        response_part: &part,
-                        response_keys: self.plan.response_keys(),
+                        response,
+                        response_keys: plan.response_keys(),
                     },
                 )
                 .deserialize(&mut serde_json::Deserializer::from_slice(&bytes))?;
-                Ok((status, response_part))
+                Ok((status, subgraph_response))
             },
         )
         .instrument(span)

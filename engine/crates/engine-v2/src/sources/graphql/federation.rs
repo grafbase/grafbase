@@ -1,16 +1,17 @@
 use grafbase_telemetry::span::subgraph::SubgraphRequestSpan;
 use runtime::fetch::FetchRequest;
-use schema::sources::graphql::{FederationEntityResolverWalker, GraphqlEndpointId, GraphqlEndpointWalker};
+use schema::sources::graphql::{FederationEntityResolverWalker, GraphqlEndpointId};
 use serde::de::DeserializeSeed;
+use std::future::Future;
 use tracing::Instrument;
 
 use crate::{
     execution::{ExecutionContext, PlanWalker, PlanningResult},
     operation::OperationType,
-    response::ResponsePart,
+    response::{ResponseObjectsView, SubgraphResponse},
     sources::{
         graphql::deserialize::{EntitiesErrorsSeed, GraphqlResponseSeed},
-        ExecutionResult, Executor, ExecutorInput, PreparedExecutor,
+        ExecutionResult, PreparedExecutor,
     },
     Runtime,
 };
@@ -39,16 +40,16 @@ impl FederationEntityPreparedExecutor {
         }))
     }
 
-    pub fn new_executor<'ctx, R: Runtime>(
+    pub fn execute<'ctx, 'fut, R: Runtime>(
         &'ctx self,
-        input: ExecutorInput<'ctx, '_, R>,
-    ) -> ExecutionResult<Executor<'ctx, R>> {
-        let ExecutorInput {
-            ctx,
-            plan,
-            root_response_objects,
-        } = input;
-
+        ctx: ExecutionContext<'ctx, R>,
+        plan: PlanWalker<'ctx, (), ()>,
+        root_response_objects: ResponseObjectsView<'_>,
+        mut subgraph_response: SubgraphResponse,
+    ) -> ExecutionResult<impl Future<Output = ExecutionResult<SubgraphResponse>> + Send + 'fut>
+    where
+        'ctx: 'fut,
+    {
         let root_response_objects = root_response_objects.with_extra_constant_fields(vec![(
             "__typename".to_string(),
             serde_json::Value::String(
@@ -79,65 +80,44 @@ impl FederationEntityPreparedExecutor {
         }))
         .map_err(|err| format!("Failed to serialize query: {err}"))?;
 
-        Ok(Executor::FederationEntity(FederationEntityExecutor {
-            ctx,
-            subgraph,
-            operation: &self.operation,
-            json_body,
-            plan,
-        }))
-    }
-}
-
-pub(crate) struct FederationEntityExecutor<'ctx, R: Runtime> {
-    ctx: ExecutionContext<'ctx, R>,
-    subgraph: GraphqlEndpointWalker<'ctx>,
-    operation: &'ctx PreparedFederationEntityOperation,
-    json_body: String,
-    plan: PlanWalker<'ctx>,
-}
-
-impl<'ctx, R: Runtime> FederationEntityExecutor<'ctx, R> {
-    #[tracing::instrument(skip_all)]
-    pub async fn execute(self, mut response_part: ResponsePart) -> ExecutionResult<ResponsePart> {
         let span = SubgraphRequestSpan {
-            name: self.subgraph.name(),
+            name: subgraph.name(),
             operation_type: OperationType::Query.as_str(),
             // The generated query does not contain any data, everything are in the variables, so
             // it's safe to use.
             sanitized_query: &self.operation.query,
-            url: self.subgraph.url(),
+            url: subgraph.url(),
         }
         .into_span();
 
-        execute_subgraph_request(
-            self.ctx,
+        let fut = execute_subgraph_request(
+            ctx,
             span.clone(),
-            self.subgraph.name(),
-            || FetchRequest {
-                url: self.subgraph.url(),
-                headers: self.ctx.headers_with_rules(self.subgraph.header_rules()),
-                json_body: self.json_body,
-                subgraph_name: self.subgraph.name(),
-                timeout: self.subgraph.timeout(),
+            subgraph.name(),
+            move || FetchRequest {
+                url: subgraph.url(),
+                headers: ctx.headers_with_rules(subgraph.header_rules()),
+                json_body,
+                subgraph_name: subgraph.name(),
+                timeout: subgraph.timeout(),
             },
             move |bytes| {
-                let part = response_part.as_mut();
+                let response = subgraph_response.as_mut();
                 let status = GraphqlResponseSeed::new(
                     EntitiesDataSeed {
-                        response_part: &part,
-                        plan: self.plan,
+                        response: response.clone(),
+                        plan,
                     },
                     EntitiesErrorsSeed {
-                        response_part: &part,
-                        response_keys: self.plan.response_keys(),
+                        response,
+                        response_keys: plan.response_keys(),
                     },
                 )
                 .deserialize(&mut serde_json::Deserializer::from_slice(&bytes))?;
-                Ok((status, response_part))
+                Ok((status, subgraph_response))
             },
         )
-        .instrument(span)
-        .await
+        .instrument(span);
+        Ok(fut)
     }
 }

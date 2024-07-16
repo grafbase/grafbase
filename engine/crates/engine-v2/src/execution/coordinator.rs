@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use async_runtime::make_send_on_wasm;
 use engine_parser::types::OperationType;
-use futures::{stream::FuturesOrdered, Future, Stream};
+use futures::{stream::FuturesOrdered, Future, FutureExt, Stream};
 use futures_util::{
     future::BoxFuture,
     stream::{BoxStream, FuturesUnordered},
@@ -13,13 +13,13 @@ use tracing::instrument;
 use crate::{
     execution::{ExecutableOperation, ExecutionContext, PlanWalker},
     response::{
-        ObjectIdentifier, Response, ResponseBuilder, ResponseEdge, ResponseObjectRef, ResponsePart, ResponseValue,
+        InputdResponseObjectSet, ObjectIdentifier, Response, ResponseBuilder, ResponseEdge, ResponseValue,
+        SubgraphResponse, SubgraphResponseRefMut,
     },
-    sources::{Executor, ExecutorInput, SubscriptionInput},
     Runtime,
 };
 
-use super::{state::OperationExecutionState, ExecutionPlanId, ExecutionResult, PreExecutionContext};
+use super::{state::OperationExecutionState, ExecutionError, ExecutionPlanId, ExecutionResult, PreExecutionContext};
 
 pub(crate) trait ResponseSender: Send {
     type Error;
@@ -67,7 +67,7 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
         OperationExecutionState::new(&self.engine.schema, self.operation)
     }
 
-    fn plan_walker(&self, plan_id: ExecutionPlanId) -> PlanWalker<'ctx, (), ()> {
+    pub(super) fn plan_walker(&self, plan_id: ExecutionPlanId) -> PlanWalker<'ctx, (), ()> {
         PlanWalker {
             schema_walker: self.engine.schema.walker(),
             operation: self.operation,
@@ -87,12 +87,12 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
         }
 
         OperationExecution {
-            futures: ExecutorFutureSet::new(self),
+            futures: ExecutorFutureSet::new(),
             state: self.new_execution_state(),
             response: ResponseBuilder::new(self.operation.root_object_id),
             ctx: self,
         }
-        .execute()
+        .run()
         .await
     }
 
@@ -133,30 +133,29 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
         'ctx: 'exec,
     {
         let plan = self.plan_walker(subscription_plan_id);
-        let input = SubscriptionInput { ctx: self, plan };
-        let executor = self.operation[subscription_plan_id]
+        self.operation[subscription_plan_id]
             .prepared_executor
-            .new_subscription_executor(input)?;
-        executor
-            .execute(move || self.new_subscription_response(subscription_plan_id))
+            .execute_subscription(self, plan, move || self.new_subscription_response(subscription_plan_id))
             .await
     }
 
     fn new_subscription_response(&self, subscription_plan_id: ExecutionPlanId) -> SubscriptionResponse {
         let mut response = ResponseBuilder::new(self.operation.root_object_id);
-        let response_object_set_ids = self
+        let tracked_response_object_set_ids = self
             .plan_walker(subscription_plan_id)
             .logical_plan()
             .response_blueprint()
             .output_ids;
-        let root_response_part = response.new_part(
-            Arc::new(response.root_response_object().into_iter().collect()),
-            response_object_set_ids,
+        let root_response_object_set = Arc::new(
+            InputdResponseObjectSet::default()
+                .with_response_objects(Arc::new(response.root_response_object().into_iter().collect())),
         );
+        let root_subgraph_response =
+            response.new_subgraph_response(root_response_object_set, tracked_response_object_set_ids);
 
         SubscriptionResponse {
             response,
-            root_response_part,
+            root_subgraph_response,
         }
     }
 
@@ -229,10 +228,10 @@ where
                     match execution {
                         Ok(SubscriptionResponse {
                             response,
-                            root_response_part,
+                            root_subgraph_response,
                         }) => {
                             let mut operation_execution = OperationExecution {
-                                futures: ExecutorFutureSet::new(self.ctx),
+                                futures: ExecutorFutureSet::new(),
                                 state: self.initial_state.clone(),
                                 ctx: self.ctx,
                                 response,
@@ -240,17 +239,10 @@ where
 
                             operation_execution.futures.push_result(ExecutorFutureResult {
                                 plan_id: self.subscription_plan_id,
-                                result: Ok(root_response_part),
-                                root_response_object_refs: Arc::new(
-                                    operation_execution
-                                        .response
-                                        .root_response_object()
-                                        .into_iter()
-                                        .collect(),
-                                ),
+                                result: Ok(root_subgraph_response),
                             });
 
-                            response_futures.push_back(operation_execution.execute());
+                            response_futures.push_back(operation_execution.run());
                         }
                         Err(error) => {
                             if responses.send(Response::execution_error(error)).await.is_err() {
@@ -272,18 +264,18 @@ where
 
 pub struct SubscriptionResponse {
     response: ResponseBuilder,
-    root_response_part: ResponsePart,
+    root_subgraph_response: SubgraphResponse,
 }
 
 impl SubscriptionResponse {
-    pub fn root_response_part(&mut self) -> &mut ResponsePart {
-        &mut self.root_response_part
+    pub fn root_response(&mut self) -> SubgraphResponseRefMut<'_> {
+        self.root_subgraph_response.as_mut()
     }
 }
 
 struct OperationExecution<'ctx, 'exec, R: Runtime> {
     ctx: ExecutionContext<'ctx, R>,
-    futures: ExecutorFutureSet<'ctx, 'exec, R>,
+    futures: ExecutorFutureSet<'exec>,
     state: OperationExecutionState<'ctx>,
     response: ResponseBuilder,
 }
@@ -300,44 +292,34 @@ where
     'ctx: 'exec,
 {
     /// Runs a single execution to completion, returning its response
-    async fn execute(mut self) -> Response {
+    async fn run(mut self) -> Response {
         for plan_id in self.state.get_executable_plans() {
             self.spawn_executor(plan_id);
         }
 
-        while let Some(ExecutorFutureResult {
-            plan_id,
-            root_response_object_refs,
-            result,
-        }) = self.futures.next().await
-        {
+        while let Some(ExecutorFutureResult { plan_id, result }) = self.futures.next().await {
             // Retrieving the first edge (response key) appearing in the query to provide a better
             // error path if necessary.
-            let (first_edge, default_object) = self.get_first_edge_and_default_object(plan_id);
+            let (any_edge, default_fields) = self.get_first_edge_and_default_object(plan_id);
             match result {
-                Ok(part) => {
+                Ok(subgraph_response) => {
                     tracing::trace!(%plan_id, "Succeeded");
-
-                    for (entity_location, response_object_refs) in
-                        self.response.ingest(part, first_edge, default_object)
-                    {
-                        self.state.push_response_objects(entity_location, response_object_refs);
+                    let tracked_response_object_sets =
+                        self.response.ingest(subgraph_response, any_edge, default_fields);
+                    for (set_id, response_object_refs) in tracked_response_object_sets.into_iter() {
+                        self.state.push_response_objects(set_id, response_object_refs);
                     }
 
                     for plan_id in self.state.get_next_executable_plans(plan_id) {
                         self.spawn_executor(plan_id);
                     }
                 }
-                Err(error) => {
+                Err((root_response_object_set, error)) => {
                     tracing::trace!(%plan_id, "Failed");
-                    self.response.propagate_execution_error(
-                        &root_response_object_refs,
-                        first_edge,
-                        error,
-                        default_object,
-                    );
+                    self.response
+                        .propagate_execution_error(root_response_object_set, error, any_edge, default_fields);
                 }
-            };
+            }
         }
 
         let schema = self.engine.schema.clone();
@@ -385,75 +367,52 @@ where
 
     fn spawn_executor(&mut self, plan_id: ExecutionPlanId) {
         tracing::trace!(%plan_id, "Starting plan");
-        let root_response_object_refs = self.state.get_root_response_object_refs(&self.response, plan_id);
+        let root_response_object_set = Arc::new(self.state.get_root_response_object_set(&self.response, plan_id));
 
-        tracing::trace!(%plan_id, "Found {} root response objects", root_response_object_refs.len());
-        if root_response_object_refs.is_empty() {
+        tracing::trace!(%plan_id, "Found {} root response objects", root_response_object_set.len());
+        if root_response_object_set.is_empty() {
             return;
         }
 
-        let plan = self.ctx.plan_walker(plan_id);
-        let response_part = self.response.new_part(
-            root_response_object_refs.clone(),
-            plan.logical_plan().response_blueprint().output_ids,
-        );
-        let input = ExecutorInput {
-            ctx: self.ctx,
-            plan,
-            root_response_objects: self.response.read(
-                plan.schema(),
-                root_response_object_refs.clone(),
+        self.futures.push_fut({
+            let plan = self.ctx.plan_walker(plan_id);
+            let subgraph_response = self.response.new_subgraph_response(
+                Arc::clone(&root_response_object_set),
+                plan.logical_plan().response_blueprint().output_ids,
+            );
+            let root_response_objects = self.response.read(
+                self.ctx.schema(),
+                Arc::clone(&root_response_object_set),
                 &self.operation[plan_id].requires,
-            ),
-        };
-
-        match self.operation[plan_id].prepared_executor.new_executor(input) {
-            Ok(executor) => self
-                .futures
-                .execute(plan_id, root_response_object_refs, executor, response_part),
-            Err(error) => {
-                self.futures.push_result(ExecutorFutureResult {
-                    result: Err(error),
-                    root_response_object_refs,
-                    plan_id,
-                });
-            }
-        }
+            );
+            let fut = self.operation[plan_id].prepared_executor.execute(
+                self.ctx,
+                plan,
+                root_response_objects,
+                subgraph_response,
+            );
+            make_send_on_wasm(fut.map(move |result| ExecutorFutureResult {
+                plan_id,
+                result: result.map_err(|err| (root_response_object_set, err)),
+            }))
+            .boxed()
+        });
     }
 }
 
-pub struct ExecutorFutureSet<'ctx, 'exec, R: Runtime> {
-    #[allow(unused)]
-    ctx: ExecutionContext<'ctx, R>,
+struct ExecutorFutureSet<'exec> {
     futures: FuturesUnordered<BoxFuture<'exec, ExecutorFutureResult>>,
 }
 
-impl<'ctx, 'exec, R: Runtime> ExecutorFutureSet<'ctx, 'exec, R>
-where
-    'ctx: 'exec,
-{
-    fn new(ctx: ExecutionContext<'ctx, R>) -> Self {
+impl<'exec> ExecutorFutureSet<'exec> {
+    fn new() -> Self {
         Self {
-            ctx,
             futures: FuturesUnordered::new(),
         }
     }
 
-    fn execute(
-        &mut self,
-        plan_id: ExecutionPlanId,
-        root_response_object_refs: Arc<Vec<ResponseObjectRef>>,
-        executor: Executor<'exec, R>,
-        response_part: ResponsePart,
-    ) {
-        self.futures.push(Box::pin(make_send_on_wasm(async move {
-            let result = executor.execute(response_part).await;
-            ExecutorFutureResult {
-                plan_id,
-                root_response_object_refs,
-                result,
-            }
-        })));
+    fn push_fut(&mut self, fut: BoxFuture<'exec, ExecutorFutureResult>) {
+        self.futures.push(fut);
     }
 
     fn push_result(&mut self, result: ExecutorFutureResult) {
@@ -467,6 +426,5 @@ where
 
 struct ExecutorFutureResult {
     plan_id: ExecutionPlanId,
-    root_response_object_refs: Arc<Vec<ResponseObjectRef>>,
-    result: ExecutionResult<ResponsePart>,
+    result: Result<SubgraphResponse, (Arc<InputdResponseObjectSet>, ExecutionError)>,
 }

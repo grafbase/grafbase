@@ -132,7 +132,7 @@ impl<R: Runtime> Engine<R> {
         .fuse();
         pin_mut!(timeout);
 
-        let execution = self.execute_with_context(request_context, batch_request).fuse();
+        let execution = self.execute_maybe_batch(request_context, batch_request).fuse();
         pin_mut!(execution);
 
         select!(
@@ -191,7 +191,7 @@ impl<R: Runtime> Engine<R> {
         }
     }
 
-    async fn execute_with_context(
+    async fn execute_maybe_batch(
         self: &Arc<Self>,
         request_context: RequestContext<<R::Hooks as Hooks>::Context>,
         batch_request: BatchRequest,

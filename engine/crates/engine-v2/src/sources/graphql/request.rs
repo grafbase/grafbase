@@ -9,7 +9,7 @@ use tracing::Span;
 use crate::{
     engine::RateLimitContext,
     execution::{ExecutionContext, ExecutionError, ExecutionResult},
-    response::ResponsePart,
+    response::SubgraphResponse,
     Runtime,
 };
 
@@ -18,8 +18,8 @@ pub(super) async fn execute_subgraph_request<'ctx, 'a, R: Runtime>(
     span: Span,
     subgraph_name: &str,
     make_request: impl FnOnce() -> FetchRequest<'a> + Send,
-    ingest: impl FnOnce(Bytes) -> Result<(GraphqlResponseStatus, ResponsePart), ExecutionError> + Send,
-) -> ExecutionResult<ResponsePart> {
+    ingest: impl FnOnce(Bytes) -> Result<(GraphqlResponseStatus, SubgraphResponse), ExecutionError> + Send,
+) -> ExecutionResult<SubgraphResponse> {
     ctx.engine
         .runtime
         .rate_limiter()
