@@ -1,6 +1,8 @@
 mod de;
 mod ser;
 
+use std::sync::Arc;
+
 use schema::Schema;
 
 use super::ReadSelectionSet;
@@ -10,7 +12,7 @@ use crate::response::{FilteredResponseObjectSet, ResponseBuilder, ResponseObject
 pub(crate) struct ResponseObjectsView<'a> {
     pub(super) schema: &'a Schema,
     pub(super) response: &'a ResponseBuilder,
-    pub(super) response_object_set: &'a FilteredResponseObjectSet,
+    pub(super) response_object_set: Arc<FilteredResponseObjectSet>,
     pub(super) selection_set: &'a ReadSelectionSet,
 }
 
@@ -18,7 +20,7 @@ pub(crate) struct ResponseObjectsView<'a> {
 pub(crate) struct ResponseObjectsViewWithExtraFields<'a> {
     schema: &'a Schema,
     response: &'a ResponseBuilder,
-    response_object_set: &'a FilteredResponseObjectSet,
+    response_object_set: Arc<FilteredResponseObjectSet>,
     selection_set: &'a ReadSelectionSet,
     extra_constant_fields: Vec<(String, serde_json::Value)>,
 }

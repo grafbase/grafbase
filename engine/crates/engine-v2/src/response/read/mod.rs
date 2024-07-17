@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use super::{FilteredResponseObjectSet, ResponseBuilder};
 mod selection_set;
 mod ser;
@@ -11,7 +13,7 @@ impl ResponseBuilder {
     pub fn read<'a>(
         &'a self,
         schema: &'a Schema,
-        response_object_set: &'a FilteredResponseObjectSet,
+        response_object_set: Arc<FilteredResponseObjectSet>,
         selection_set: &'a ReadSelectionSet,
     ) -> ResponseObjectsView<'a> {
         ResponseObjectsView {

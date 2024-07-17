@@ -78,7 +78,7 @@ impl ResponseBuilder {
 
     pub fn new_subgraph_response(
         &mut self,
-        root_response_object_set: FilteredResponseObjectSet,
+        root_response_object_set: Arc<FilteredResponseObjectSet>,
         tracked_response_object_set_ids: IdRange<ResponseObjectSetId>,
     ) -> SubgraphResponse {
         let id = ResponseDataPartId::from(self.parts.len());
@@ -103,12 +103,11 @@ impl ResponseBuilder {
 
     pub fn propagate_execution_error(
         &mut self,
-        subgraph_response: SubgraphResponse,
+        root_response_object_set: Arc<FilteredResponseObjectSet>,
         error: ExecutionError,
         any_edge: ResponseEdge,
         default_fields: Option<Vec<(ResponseEdge, ResponseValue)>>,
     ) {
-        let root_response_object_set = subgraph_response.root_response_object_set;
         let error = GraphqlError::from(error);
         if let Some(fields) = default_fields {
             for obj_ref in root_response_object_set.iter() {
@@ -338,7 +337,7 @@ enum ResponseValueId {
 
 pub(crate) struct SubgraphResponse {
     data: ResponseDataPart,
-    root_response_object_set: FilteredResponseObjectSet,
+    root_response_object_set: Arc<FilteredResponseObjectSet>,
     errors: Vec<GraphqlError>,
     updates: Vec<UpdateSlot>,
     tracked_response_object_set_ids: IdRange<ResponseObjectSetId>,
@@ -348,7 +347,7 @@ pub(crate) struct SubgraphResponse {
 impl SubgraphResponse {
     fn new(
         data: ResponseDataPart,
-        root_response_object_set: FilteredResponseObjectSet,
+        root_response_object_set: Arc<FilteredResponseObjectSet>,
         tracked_response_object_set_ids: IdRange<ResponseObjectSetId>,
     ) -> Self {
         Self {
@@ -364,27 +363,17 @@ impl SubgraphResponse {
         }
     }
 
-    pub fn as_mut(&mut self) -> SubgraphResponseMutRef<'_> {
-        SubgraphResponseMutRef { inner: self }
-    }
-}
-
-pub(crate) struct SubgraphResponseMutRef<'resp> {
-    inner: &'resp mut SubgraphResponse,
-}
-
-impl<'resp> SubgraphResponseMutRef<'resp> {
     /// Executors manipulate the response within a Send future, so we can't use a Rc/RefCell
     /// directly. Only once the executor is ready to write should it use this method.
-    pub fn into_shared(self) -> SharedSubgraphResponse<'resp> {
-        SharedSubgraphResponse {
-            inner: Rc::new(RefCell::new(self.inner)),
+    pub fn as_mut(&mut self) -> SubgraphResponseRefMut<'_> {
+        SubgraphResponseRefMut {
+            inner: Rc::new(RefCell::new(self)),
         }
     }
 }
 
 #[derive(Clone)]
-pub(crate) struct SharedSubgraphResponse<'resp> {
+pub(crate) struct SubgraphResponseRefMut<'resp> {
     /// We end up writing objects or lists at various step of the de-serialization / query
     /// traversal, so having a RefCell is by far the easiest. We don't need a lock as executor are
     /// not expected to parallelize their work.
@@ -392,7 +381,7 @@ pub(crate) struct SharedSubgraphResponse<'resp> {
     inner: Rc<RefCell<&'resp mut SubgraphResponse>>,
 }
 
-impl<'resp> SharedSubgraphResponse<'resp> {
+impl<'resp> SubgraphResponseRefMut<'resp> {
     pub fn next_seed<'ctx>(&self, plan: PlanWalker<'ctx>) -> Option<UpdateSeed<'resp>>
     where
         'ctx: 'resp,
@@ -430,7 +419,7 @@ impl<'resp> SharedSubgraphResponse<'resp> {
 
 pub struct ResponseWriter<'resp> {
     index: usize,
-    part: SharedSubgraphResponse<'resp>,
+    part: SubgraphResponseRefMut<'resp>,
 }
 
 impl<'resp> ResponseWriter<'resp> {

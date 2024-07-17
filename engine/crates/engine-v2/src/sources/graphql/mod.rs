@@ -1,17 +1,17 @@
 use grafbase_tracing::span::{subgraph::SubgraphRequestSpan, GqlRecorderSpanExt};
 use runtime::fetch::FetchRequest;
-use schema::sources::graphql::{GraphqlEndpointId, GraphqlEndpointWalker, RootFieldResolverWalker};
+use schema::sources::graphql::{GraphqlEndpointId, RootFieldResolverWalker};
 use serde::de::DeserializeSeed;
 use tracing::Instrument;
 
 use self::query::PreparedGraphqlOperation;
 use self::variables::SubgraphVariables;
 
-use super::{ExecutionContext, ExecutionResult, Executor, ExecutorInput, PreparedExecutor};
+use super::{ExecutionContext, ExecutionResult, PreparedExecutor};
 use crate::{
     execution::{PlanWalker, PlanningResult},
     operation::OperationType,
-    response::SubgraphResponseMutRef,
+    response::SubgraphResponse,
     sources::graphql::deserialize::{GraphqlResponseSeed, RootGraphqlErrors},
     Runtime,
 };
@@ -23,7 +23,6 @@ mod subscription;
 mod variables;
 
 pub(crate) use federation::*;
-pub(crate) use subscription::*;
 
 pub(crate) struct GraphqlPreparedExecutor {
     subgraph_id: GraphqlEndpointId,
@@ -46,12 +45,12 @@ impl GraphqlPreparedExecutor {
     }
 
     #[tracing::instrument(skip_all)]
-    pub fn new_executor<'ctx, R: Runtime>(
+    pub async fn execute<'ctx, R: Runtime>(
         &'ctx self,
-        input: ExecutorInput<'ctx, '_, R>,
-    ) -> ExecutionResult<Executor<'ctx, R>> {
-        let ExecutorInput { ctx, plan, .. } = input;
-
+        ctx: ExecutionContext<'ctx, R>,
+        plan: PlanWalker<'ctx, (), ()>,
+        mut subgraph_response: SubgraphResponse,
+    ) -> ExecutionResult<SubgraphResponse> {
         let subgraph = plan.schema().walk(self.subgraph_id);
         let variables = SubgraphVariables {
             plan,
@@ -70,69 +69,44 @@ impl GraphqlPreparedExecutor {
         }))
         .map_err(|err| format!("Failed to serialize query: {err}"))?;
 
-        Ok(Executor::GraphQL(GraphqlExecutor {
-            ctx,
-            subgraph,
-            operation: &self.operation,
-            json_body,
-            plan,
-        }))
-    }
-}
-
-pub(crate) struct GraphqlExecutor<'ctx, R: Runtime> {
-    ctx: ExecutionContext<'ctx, R>,
-    subgraph: GraphqlEndpointWalker<'ctx>,
-    operation: &'ctx PreparedGraphqlOperation,
-    json_body: String,
-    plan: PlanWalker<'ctx>,
-}
-
-impl<'ctx, R: Runtime> GraphqlExecutor<'ctx, R> {
-    #[tracing::instrument(skip_all)]
-    pub async fn execute<'resp>(self, subgraph_response: SubgraphResponseMutRef<'resp>) -> ExecutionResult<()>
-    where
-        'ctx: 'resp,
-    {
         let span = SubgraphRequestSpan {
-            name: self.subgraph.name(),
+            name: subgraph.name(),
             operation_type: self.operation.ty.as_str(),
             // The generated query does not contain any data, everything are in the variables, so
             // it's safe to use.
             sanitized_query: &self.operation.query,
-            url: self.subgraph.url(),
+            url: subgraph.url(),
         }
         .into_span();
 
         async {
-            let bytes = self
-                .ctx
+            let bytes = ctx
                 .engine
                 .runtime
                 .fetcher()
                 .post(FetchRequest {
-                    url: self.subgraph.url(),
-                    json_body: self.json_body,
-                    headers: self.ctx.headers_with_rules(self.subgraph.header_rules()),
+                    url: subgraph.url(),
+                    json_body,
+                    headers: ctx.headers_with_rules(subgraph.header_rules()),
                 })
                 .await?
                 .bytes;
 
             tracing::debug!("{}", String::from_utf8_lossy(&bytes));
 
-            let response = subgraph_response.into_shared();
+            let response = subgraph_response.as_mut();
             let status = GraphqlResponseSeed::new(
-                response.next_seed(self.plan).ok_or("No object to update")?,
+                response.next_seed(plan).ok_or("No object to update")?,
                 RootGraphqlErrors {
                     response,
-                    response_keys: self.plan.response_keys(),
+                    response_keys: plan.response_keys(),
                 },
             )
             .deserialize(&mut serde_json::Deserializer::from_slice(&bytes))?;
 
             span.record_gql_status(status);
 
-            Ok(())
+            Ok(subgraph_response)
         }
         .instrument(span.clone())
         .await

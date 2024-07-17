@@ -1,21 +1,21 @@
 use serde::{de::DeserializeSeed, Deserializer};
 
 use crate::response::{
-    ErrorCode, GraphqlError, ResponseKeys, ResponsePath, SharedSubgraphResponse, UnpackedResponseEdge,
+    ErrorCode, GraphqlError, ResponseKeys, ResponsePath, SubgraphResponseRefMut, UnpackedResponseEdge,
 };
 
 pub(super) trait GraphqlErrorsSeed<'resp> {
-    fn response(&self) -> &SharedSubgraphResponse<'resp>;
+    fn response(&self) -> &SubgraphResponseRefMut<'resp>;
     fn convert_path(&self, path: &serde_json::Value) -> Option<ResponsePath>;
 }
 
 pub(in crate::sources::graphql) struct RootGraphqlErrors<'resp> {
-    pub response: SharedSubgraphResponse<'resp>,
+    pub response: SubgraphResponseRefMut<'resp>,
     pub response_keys: &'resp ResponseKeys,
 }
 
 impl<'resp> GraphqlErrorsSeed<'resp> for RootGraphqlErrors<'resp> {
-    fn response(&self) -> &SharedSubgraphResponse<'resp> {
+    fn response(&self) -> &SubgraphResponseRefMut<'resp> {
         &self.response
     }
 

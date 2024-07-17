@@ -7,13 +7,13 @@ use serde::{
 
 use crate::{
     execution::PlanWalker,
-    response::{ErrorCode, GraphqlError, ResponseKeys, ResponsePath, SharedSubgraphResponse, UnpackedResponseEdge},
+    response::{ErrorCode, GraphqlError, ResponseKeys, ResponsePath, SubgraphResponseRefMut, UnpackedResponseEdge},
 };
 
 use super::errors::GraphqlErrorsSeed;
 
 pub(in crate::sources::graphql) struct EntitiesDataSeed<'resp> {
-    pub response: SharedSubgraphResponse<'resp>,
+    pub response: SubgraphResponseRefMut<'resp>,
     pub plan: PlanWalker<'resp>,
 }
 
@@ -71,7 +71,7 @@ enum EntitiesKey {
 }
 
 struct EntitiesSeed<'resp, 'parent> {
-    response_part: &'parent SharedSubgraphResponse<'resp>,
+    response_part: &'parent SubgraphResponseRefMut<'resp>,
     plan: PlanWalker<'resp>,
 }
 
@@ -126,12 +126,12 @@ where
 }
 
 pub(in crate::sources::graphql) struct EntitiesErrorsSeed<'resp> {
-    pub response: SharedSubgraphResponse<'resp>,
+    pub response: SubgraphResponseRefMut<'resp>,
     pub response_keys: &'resp ResponseKeys,
 }
 
 impl<'resp> GraphqlErrorsSeed<'resp> for EntitiesErrorsSeed<'resp> {
-    fn response(&self) -> &SharedSubgraphResponse<'resp> {
+    fn response(&self) -> &SubgraphResponseRefMut<'resp> {
         &self.response
     }
 
