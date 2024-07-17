@@ -28,7 +28,6 @@ hex.workspace = true
 id-newtypes = { path = "./id-newtypes", package = "engine-v2-id-newtypes" }
 im = "15.1.0"
 itertools.workspace = true
-governor.workspace = true
 lasso2 = { version = "0.8.2", features = ["serialize"] }
 serde = { workspace = true, features = ["rc"] }
 serde-value = "0.7"

@@ -112,7 +112,7 @@ impl<'ctx, R: Runtime> FederationEntityExecutor<'ctx, R> {
                 .engine
                 .runtime
                 .rate_limiter()
-                .limit(&crate::engine::EngineRateLimitContext(self.subgraph.name()))
+                .limit(&crate::engine::RateLimitContext::Subgraph(self.subgraph.name()))
                 .await?;
 
             let bytes = self

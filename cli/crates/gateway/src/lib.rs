@@ -1,6 +1,6 @@
 use auth::AnyApiKeyProvider;
 use gateway_core::CacheConfig;
-use runtime_local::{InMemoryCache, InMemoryKvStore, InMemoryRateLimiting};
+use runtime_local::{rate_limiting::rules_based::InMemoryRateLimiter, InMemoryCache, InMemoryKvStore};
 use std::{collections::HashMap, ops::Deref, sync::Arc};
 
 use self::executor::Executor;
@@ -46,7 +46,7 @@ impl Gateway {
             String::new(),
         )
         .with_first_authorizer(AnyApiKeyProvider);
-        let rate_limiter = InMemoryRateLimiting::new(&registry.rate_limiting.rules);
+        let rate_limiter = InMemoryRateLimiter::new(&registry.rate_limiting.rules);
         let executor = Arc::new(Executor::new(env_vars, bridge, registry).await?);
         let trusted_documents =
             runtime::trusted_documents_client::Client::new(runtime_noop::trusted_documents::NoopTrustedDocuments);

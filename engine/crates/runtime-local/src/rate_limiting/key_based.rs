@@ -5,15 +5,14 @@ use std::num::NonZeroU32;
 use futures_util::future::BoxFuture;
 use futures_util::FutureExt;
 use governor::Quota;
-use http::{HeaderName, HeaderValue};
 use serde_json::Value;
 
-use config::latest::{Config, GLOBAL_RATE_LIMITER};
-use runtime::rate_limiting::{Error, RateLimiter, RateLimiterContext};
+use http::{HeaderName, HeaderValue};
+use runtime::rate_limiting::{Error, KeyedRateLimitConfig, RateLimitConfig, RateLimiter, RateLimiterContext};
 
-pub struct EngineRateLimitContext<'a>(pub &'a str);
+pub struct RateLimitingContext(pub String);
 
-impl RateLimiterContext for EngineRateLimitContext<'_> {
+impl RateLimiterContext for RateLimitingContext {
     fn header(&self, _name: HeaderName) -> Option<&HeaderValue> {
         None
     }
@@ -31,7 +30,7 @@ impl RateLimiterContext for EngineRateLimitContext<'_> {
     }
 
     fn key(&self) -> Option<&str> {
-        Some(self.0)
+        Some(&self.0)
     }
 }
 
@@ -41,25 +40,18 @@ pub struct InMemoryRateLimiter {
 }
 
 impl InMemoryRateLimiter {
-    pub fn runtime(config: &Config) -> RateLimiter {
+    pub fn runtime(config: KeyedRateLimitConfig<'_>) -> RateLimiter {
         let mut limiter = Self::default();
 
-        // add global rate limiting configuration
-        if let Some(global_rate_limit_config) = &config.rate_limit {
-            limiter = limiter.with_rate_limiter(GLOBAL_RATE_LIMITER, global_rate_limit_config.clone());
-        }
-
         // add subgraph rate limiting configuration
-        for subgraph_config in config.subgraph_configs.values() {
-            if let Some(rate_limit_config) = &subgraph_config.rate_limit {
-                limiter = limiter.with_rate_limiter(&config.strings[subgraph_config.name.0], rate_limit_config.clone());
-            }
+        for (name, rate_limit_config) in config.rate_limiting_configs {
+            limiter = limiter.with_rate_limiter(name, rate_limit_config.clone());
         }
 
         RateLimiter::new(limiter)
     }
 
-    pub fn with_rate_limiter(mut self, key: &str, rate_limit_config: config::latest::RateLimitConfig) -> Self {
+    pub fn with_rate_limiter(mut self, key: &str, rate_limit_config: RateLimitConfig) -> Self {
         let quota = (rate_limit_config.limit as u64)
             .checked_div(rate_limit_config.duration.as_secs())
             .expect("rate limiter with invalid per second quota");

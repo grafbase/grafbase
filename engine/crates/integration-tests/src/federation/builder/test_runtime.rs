@@ -1,4 +1,3 @@
-use engine_v2::InMemoryRateLimiter;
 use runtime::hooks::DynamicHooks;
 use runtime_local::InMemoryHotCacheFactory;
 
@@ -21,7 +20,7 @@ impl Default for TestRuntime {
             kv: runtime_local::InMemoryKvStore::runtime(),
             meter: grafbase_tracing::metrics::meter_from_global_provider(),
             hooks: Default::default(),
-            rate_limiter: runtime::rate_limiting::RateLimiter::new(InMemoryRateLimiter::default()),
+            rate_limiter: runtime_local::rate_limiting::key_based::InMemoryRateLimiter::runtime(Default::default()),
         }
     }
 }

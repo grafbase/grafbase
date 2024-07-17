@@ -1,11 +1,16 @@
+use std::collections::HashMap;
 use std::{collections::BTreeMap, sync::Arc};
 
-use engine_v2::{Engine, InMemoryRateLimiter};
+use tokio::sync::watch;
+
+use engine_v2::Engine;
 use graphql_composition::FederatedGraph;
 use parser_sdl::federation::{header::SubgraphHeaderRule, FederatedGraphConfig};
-use runtime_local::{ComponentLoader, HooksConfig, HooksWasi, InMemoryKvStore};
+use runtime::rate_limiting::KeyedRateLimitConfig;
+use runtime_local::{
+    rate_limiting::key_based::InMemoryRateLimiter, ComponentLoader, HooksConfig, HooksWasi, InMemoryKvStore,
+};
 use runtime_noop::trusted_documents::NoopTrustedDocuments;
-use tokio::sync::watch;
 
 use crate::{
     config::{AuthenticationConfig, OperationLimitsConfig, RateLimitConfig, SubgraphConfig, TrustedDocumentsConfig},
@@ -110,7 +115,20 @@ pub(super) async fn generate(
         runtime::trusted_documents_client::Client::new(NoopTrustedDocuments)
     };
 
-    let rate_limiter = InMemoryRateLimiter::runtime(&config);
+    let rate_limiting_configs = config
+        .as_keyed_rate_limit_config()
+        .into_iter()
+        .map(|(k, v)| {
+            (
+                k,
+                runtime::rate_limiting::RateLimitConfig {
+                    limit: v.limit,
+                    duration: v.duration,
+                },
+            )
+        })
+        .collect::<HashMap<_, _>>();
+    let rate_limiter = InMemoryRateLimiter::runtime(KeyedRateLimitConfig { rate_limiting_configs });
 
     let runtime = GatewayRuntime {
         fetcher: runtime_local::NativeFetcher::runtime_fetcher(),

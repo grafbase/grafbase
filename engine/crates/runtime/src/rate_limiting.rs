@@ -1,5 +1,7 @@
+use std::collections::HashMap;
 use std::net::IpAddr;
 use std::sync::Arc;
+use std::time::Duration;
 
 use futures_util::future::BoxFuture;
 
@@ -44,4 +46,15 @@ impl std::ops::Deref for RateLimiter {
     fn deref(&self) -> &Self::Target {
         self.inner.as_ref()
     }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct RateLimitConfig {
+    pub limit: usize,
+    pub duration: Duration,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct KeyedRateLimitConfig<'a> {
+    pub rate_limiting_configs: HashMap<&'a str, RateLimitConfig>,
 }

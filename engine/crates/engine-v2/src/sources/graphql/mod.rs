@@ -106,7 +106,7 @@ impl<'ctx, R: Runtime> GraphqlExecutor<'ctx, R> {
                 .engine
                 .runtime
                 .rate_limiter()
-                .limit(&crate::engine::EngineRateLimitContext(self.subgraph.name()))
+                .limit(&crate::engine::RateLimitContext::Subgraph(self.subgraph.name()))
                 .await?;
 
             let bytes = self

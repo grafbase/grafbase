@@ -1238,6 +1238,7 @@ mod tests {
                     ),
                 ],
                 websocket_url: None,
+                rate_limit: None,
             },
         }
         "###);
@@ -1290,7 +1291,7 @@ mod tests {
 
         insta::assert_debug_snapshot!(&config.rate_limit, @r###"
         Some(
-            RateLimit {
+            RateLimitConfig {
                 limit: 1000,
                 duration: 10s,
             },
@@ -1311,7 +1312,7 @@ mod tests {
         assert!(config.rate_limit.is_none());
         insta::assert_debug_snapshot!(&config.subgraphs.get("products").unwrap().rate_limit, @r###"
         Some(
-            RateLimit {
+            RateLimitConfig {
                 limit: 1000,
                 duration: 10s,
             },

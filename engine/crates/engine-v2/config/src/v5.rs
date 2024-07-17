@@ -1,8 +1,9 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 use std::time::Duration;
 
 use regex::Regex;
 
+use crate::GLOBAL_RATE_LIMIT_KEY;
 use federated_graph::{FederatedGraphV3, SubgraphId};
 
 pub use super::v4::{
@@ -50,9 +51,23 @@ impl Config {
             rate_limit: Default::default(),
         }
     }
+
+    pub fn as_keyed_rate_limit_config(&self) -> HashMap<&str, RateLimitConfig> {
+        let mut key_based_config = HashMap::new();
+        if let Some(global_config) = &self.rate_limit {
+            key_based_config.insert(GLOBAL_RATE_LIMIT_KEY, global_config.clone());
+        }
+
+        for subgraph in self.subgraph_configs.values() {
+            if let Some(subgraph_rate_limit) = &subgraph.rate_limit {
+                key_based_config.insert(&self.strings[subgraph.name.0], subgraph_rate_limit.clone());
+            }
+        }
+
+        key_based_config
+    }
 }
 
-pub const GLOBAL_RATE_LIMITER: &str = "global";
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct RateLimitConfig {
     pub limit: usize,
@@ -248,9 +263,9 @@ mod tests {
                 "height": null,
                 "rootFields": null
               },
+              "rate_limit": null,
               "strings": [],
-              "subgraph_configs": {},
-              "rate_limit": [],
+              "subgraph_configs": {}
             }
             "###);
         });

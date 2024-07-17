@@ -1,11 +1,13 @@
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use crate::ConfigWatcher;
 
 use super::bus::{EngineSender, GraphWatcher};
-use engine_v2::{Engine, InMemoryRateLimiter};
+use engine_v2::Engine;
 use futures_concurrency::stream::Merge;
 use futures_util::{stream::BoxStream, StreamExt};
+use runtime::rate_limiting::KeyedRateLimitConfig;
 use tokio_stream::wrappers::WatchStream;
 
 /// The GatewayNanny looks after the `Gateway` - on updates to the graph or config it'll
@@ -48,6 +50,19 @@ impl EngineNanny {
 
 pub(super) async fn new_gateway(config: Option<engine_v2::VersionedConfig>) -> Option<Arc<Engine<CliRuntime>>> {
     let config = config?.into_latest();
+    let rate_limiting_configs = config
+        .as_keyed_rate_limit_config()
+        .into_iter()
+        .map(|(k, v)| {
+            (
+                k,
+                runtime::rate_limiting::RateLimitConfig {
+                    limit: v.limit,
+                    duration: v.duration,
+                },
+            )
+        })
+        .collect::<HashMap<_, _>>();
 
     let runtime = CliRuntime {
         fetcher: runtime_local::NativeFetcher::runtime_fetcher(),
@@ -56,7 +71,9 @@ pub(super) async fn new_gateway(config: Option<engine_v2::VersionedConfig>) -> O
         ),
         kv: runtime_local::InMemoryKvStore::runtime(),
         meter: grafbase_tracing::metrics::meter_from_global_provider(),
-        rate_limiter: InMemoryRateLimiter::runtime(&config),
+        rate_limiter: runtime_local::rate_limiting::key_based::InMemoryRateLimiter::runtime(KeyedRateLimitConfig {
+            rate_limiting_configs,
+        }),
     };
 
     let schema = config.try_into().ok()?;
