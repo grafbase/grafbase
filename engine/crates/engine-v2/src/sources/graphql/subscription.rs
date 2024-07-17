@@ -10,7 +10,7 @@ use super::{
     ExecutionContext, GraphqlPreparedExecutor,
 };
 use crate::{
-    execution::{OperationRootPlanExecution, PlanWalker},
+    execution::{PlanWalker, SubscriptionResponse},
     sources::{ExecutionResult, SubscriptionExecutor, SubscriptionInput},
     Runtime,
 };
@@ -41,8 +41,8 @@ impl GraphqlPreparedExecutor {
 impl<'ctx, R: Runtime> GraphqlSubscriptionExecutor<'ctx, R> {
     pub async fn execute(
         self,
-        new_execution: impl Fn() -> OperationRootPlanExecution<'ctx, R> + Send + 'ctx,
-    ) -> ExecutionResult<BoxStream<'ctx, ExecutionResult<OperationRootPlanExecution<'ctx, R>>>> {
+        new_response: impl Fn() -> SubscriptionResponse + Send + 'ctx,
+    ) -> ExecutionResult<BoxStream<'ctx, ExecutionResult<SubscriptionResponse>>> {
         let Self {
             ctx,
             subgraph,
@@ -79,16 +79,16 @@ impl<'ctx, R: Runtime> GraphqlSubscriptionExecutor<'ctx, R> {
             })
             .await?;
 
-        Ok(Box::pin(stream.map(move |response| {
-            let mut execution = new_execution();
-            ingest_response(&mut execution, plan, response?)?;
-            Ok(execution)
+        Ok(Box::pin(stream.map(move |subgraph_response| {
+            let mut subscription_response = new_response();
+            ingest_response(&mut subscription_response, plan, subgraph_response?)?;
+            Ok(subscription_response)
         })))
     }
 }
 
-fn ingest_response<R: Runtime>(
-    execution: &mut OperationRootPlanExecution<'_, R>,
+fn ingest_response(
+    execution: &mut SubscriptionResponse,
     plan: PlanWalker<'_>,
     subgraph_response: serde_json::Value,
 ) -> ExecutionResult<()> {

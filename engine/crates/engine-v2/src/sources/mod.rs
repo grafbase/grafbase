@@ -46,9 +46,7 @@ use futures_util::stream::BoxStream;
 use schema::{Resolver, ResolverWalker};
 
 use crate::{
-    execution::{
-        ExecutionContext, ExecutionError, ExecutionResult, OperationRootPlanExecution, PlanWalker, PlanningResult,
-    },
+    execution::{ExecutionContext, ExecutionError, ExecutionResult, PlanWalker, PlanningResult, SubscriptionResponse},
     operation::OperationType,
     response::{ResponseObjectsView, ResponsePart},
     Runtime,
@@ -155,10 +153,10 @@ pub(crate) enum SubscriptionExecutor<'ctx, R: Runtime> {
 impl<'ctx, R: Runtime> SubscriptionExecutor<'ctx, R> {
     pub async fn execute(
         self,
-        new_execution: impl Fn() -> OperationRootPlanExecution<'ctx, R> + Send + 'ctx,
-    ) -> ExecutionResult<BoxStream<'ctx, ExecutionResult<OperationRootPlanExecution<'ctx, R>>>> {
+        new_response: impl Fn() -> SubscriptionResponse + Send + 'ctx,
+    ) -> ExecutionResult<BoxStream<'ctx, ExecutionResult<SubscriptionResponse>>> {
         match self {
-            SubscriptionExecutor::Graphql(executor) => executor.execute(new_execution).await,
+            SubscriptionExecutor::Graphql(executor) => executor.execute(new_response).await,
         }
     }
 }
