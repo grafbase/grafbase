@@ -52,10 +52,7 @@ impl InMemoryRateLimiter {
         // add subgraph rate limiting configuration
         for subgraph_config in config.subgraph_configs.values() {
             if let Some(rate_limit_config) = &subgraph_config.rate_limit {
-                limiter = limiter.with_rate_limiter(
-                    &config.strings[subgraph_config.name.0],
-                    rate_limit_config.clone(),
-                );
+                limiter = limiter.with_rate_limiter(&config.strings[subgraph_config.name.0], rate_limit_config.clone());
             }
         }
 
