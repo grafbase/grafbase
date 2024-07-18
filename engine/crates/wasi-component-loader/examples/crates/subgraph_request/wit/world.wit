@@ -20,6 +20,7 @@ interface types {
         get: func(name: string) -> option<string>;
         set: func(name: string, value: string) -> result<_, header-error>;
         delete: func(name: string) -> option<string>;
+        entries: func() -> list<tuple<string, string>>;
     }
 
     record edge-definition {
@@ -41,6 +42,12 @@ interface gateway-request {
     use types.{headers, error, context};
 
     on-gateway-request: func(context: context, headers: headers) -> result<_, error>;
+}
+
+interface subgraph-request {
+    use types.{shared-context, headers, error};
+
+    on-subgraph-request: func(context: shared-context, method: string, url: string, headers: headers) -> result<_, error>;
 }
 
 interface authorization {
@@ -80,8 +87,7 @@ interface authorization {
         metadata: string
     ) -> list<result<_, error>>;
 }
- 
+
 world hooks {
-    export gateway-request;
-    export authorization;
+    export subgraph-request;
 }

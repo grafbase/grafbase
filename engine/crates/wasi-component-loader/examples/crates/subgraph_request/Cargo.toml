@@ -1,5 +1,5 @@
 [package]
-name = "dir_access"
+name = "subgraph_request"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -8,10 +8,12 @@ keywords.workspace = true
 repository.workspace = true
 
 [dependencies]
+serde_json.workspace = true
+base64.workspace = true
 wit-bindgen-rt.workspace = true
 
 [lib]
 crate-type = ["cdylib"]
 
 [package.metadata.component]
-package = "component:dir-access"
+package = "component:subgraph-request"

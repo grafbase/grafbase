@@ -9,7 +9,7 @@ repository.workspace = true
 
 [dependencies]
 waki = "0.3.0"
-wit-bindgen-rt = { version = "0.27.0", features = ["bitflags"] }
+wit-bindgen-rt.workspace = true
 
 [lib]
 crate-type = ["cdylib"]

@@ -17,9 +17,9 @@ interface types {
     }
 
     resource headers {
-        get: func(name: string) -> result<option<string>, header-error>;
+        get: func(name: string) -> option<string>;
         set: func(name: string, value: string) -> result<_, header-error>;
-        delete: func(name: string) -> result<option<string>, header-error>;
+        delete: func(name: string) -> option<string>;
     }
 
     record edge-definition {

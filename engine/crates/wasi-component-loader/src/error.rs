@@ -8,15 +8,21 @@ pub enum Error {
     Internal(#[from] anyhow::Error),
     /// User-thrown error of the WASI guest
     #[error("{0}")]
-    User(#[from] guest::Error),
+    Guest(#[from] guest::GuestError),
 }
 
 impl Error {
     /// Converts into user error response, if one.
-    pub fn into_user_error(self) -> Option<guest::Error> {
+    pub fn into_guest_error(self) -> Option<guest::GuestError> {
         match self {
             Error::Internal(_) => None,
-            Error::User(error) => Some(error),
+            Error::Guest(error) => Some(error),
         }
+    }
+}
+
+impl From<String> for Error {
+    fn from(error: String) -> Self {
+        Error::Internal(anyhow::anyhow!(error))
     }
 }

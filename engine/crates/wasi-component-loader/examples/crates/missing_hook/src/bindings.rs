@@ -393,11 +393,11 @@ pub mod component {
             }
             impl Headers {
                 #[allow(unused_unsafe, clippy::all)]
-                pub fn get(&self, name: &str) -> Result<Option<_rt::String>, HeaderError> {
+                pub fn get(&self, name: &str) -> Option<_rt::String> {
                     unsafe {
                         #[repr(align(4))]
-                        struct RetArea([::core::mem::MaybeUninit<u8>; 16]);
-                        let mut ret_area = RetArea([::core::mem::MaybeUninit::uninit(); 16]);
+                        struct RetArea([::core::mem::MaybeUninit<u8>; 12]);
+                        let mut ret_area = RetArea([::core::mem::MaybeUninit::uninit(); 12]);
                         let vec0 = name;
                         let ptr0 = vec0.as_ptr().cast::<u8>();
                         let len0 = vec0.len();
@@ -416,35 +416,17 @@ pub mod component {
                         wit_import((self).handle() as i32, ptr0.cast_mut(), len0, ptr1);
                         let l2 = i32::from(*ptr1.add(0).cast::<u8>());
                         match l2 {
-                            0 => {
-                                let e = {
-                                    let l3 = i32::from(*ptr1.add(4).cast::<u8>());
-
-                                    match l3 {
-                                        0 => None,
-                                        1 => {
-                                            let e = {
-                                                let l4 = *ptr1.add(8).cast::<*mut u8>();
-                                                let l5 = *ptr1.add(12).cast::<usize>();
-                                                let len6 = l5;
-                                                let bytes6 = _rt::Vec::from_raw_parts(l4.cast(), len6, len6);
-
-                                                _rt::string_lift(bytes6)
-                                            };
-                                            Some(e)
-                                        }
-                                        _ => _rt::invalid_enum_discriminant(),
-                                    }
-                                };
-                                Ok(e)
-                            }
+                            0 => None,
                             1 => {
                                 let e = {
-                                    let l7 = i32::from(*ptr1.add(4).cast::<u8>());
+                                    let l3 = *ptr1.add(4).cast::<*mut u8>();
+                                    let l4 = *ptr1.add(8).cast::<usize>();
+                                    let len5 = l4;
+                                    let bytes5 = _rt::Vec::from_raw_parts(l3.cast(), len5, len5);
 
-                                    HeaderError::_lift(l7 as u8)
+                                    _rt::string_lift(bytes5)
                                 };
-                                Err(e)
+                                Some(e)
                             }
                             _ => _rt::invalid_enum_discriminant(),
                         }
@@ -505,11 +487,11 @@ pub mod component {
             }
             impl Headers {
                 #[allow(unused_unsafe, clippy::all)]
-                pub fn delete(&self, name: &str) -> Result<Option<_rt::String>, HeaderError> {
+                pub fn delete(&self, name: &str) -> Option<_rt::String> {
                     unsafe {
                         #[repr(align(4))]
-                        struct RetArea([::core::mem::MaybeUninit<u8>; 16]);
-                        let mut ret_area = RetArea([::core::mem::MaybeUninit::uninit(); 16]);
+                        struct RetArea([::core::mem::MaybeUninit<u8>; 12]);
+                        let mut ret_area = RetArea([::core::mem::MaybeUninit::uninit(); 12]);
                         let vec0 = name;
                         let ptr0 = vec0.as_ptr().cast::<u8>();
                         let len0 = vec0.len();
@@ -528,35 +510,17 @@ pub mod component {
                         wit_import((self).handle() as i32, ptr0.cast_mut(), len0, ptr1);
                         let l2 = i32::from(*ptr1.add(0).cast::<u8>());
                         match l2 {
-                            0 => {
-                                let e = {
-                                    let l3 = i32::from(*ptr1.add(4).cast::<u8>());
-
-                                    match l3 {
-                                        0 => None,
-                                        1 => {
-                                            let e = {
-                                                let l4 = *ptr1.add(8).cast::<*mut u8>();
-                                                let l5 = *ptr1.add(12).cast::<usize>();
-                                                let len6 = l5;
-                                                let bytes6 = _rt::Vec::from_raw_parts(l4.cast(), len6, len6);
-
-                                                _rt::string_lift(bytes6)
-                                            };
-                                            Some(e)
-                                        }
-                                        _ => _rt::invalid_enum_discriminant(),
-                                    }
-                                };
-                                Ok(e)
-                            }
+                            0 => None,
                             1 => {
                                 let e = {
-                                    let l7 = i32::from(*ptr1.add(4).cast::<u8>());
+                                    let l3 = *ptr1.add(4).cast::<*mut u8>();
+                                    let l4 = *ptr1.add(8).cast::<usize>();
+                                    let len5 = l4;
+                                    let bytes5 = _rt::Vec::from_raw_parts(l3.cast(), len5, len5);
 
-                                    HeaderError::_lift(l7 as u8)
+                                    _rt::string_lift(bytes5)
                                 };
-                                Err(e)
+                                Some(e)
                             }
                             _ => _rt::invalid_enum_discriminant(),
                         }
@@ -1550,9 +1514,9 @@ pub(crate) use __export_hooks_impl as export;
 #[cfg(target_arch = "wasm32")]
 #[link_section = "component-type:wit-bindgen:0.25.0:hooks:encoded world"]
 #[doc(hidden)]
-pub static __WIT_BINDGEN_COMPONENT_TYPE: [u8; 1349] = *b"\
-\0asm\x0d\0\x01\0\0\x19\x16wit-component-encoding\x04\0\x07\xc9\x09\x01A\x02\x01\
-A\x08\x01B\x1f\x01m\x02\x14invalid-header-value\x13invalid-header-name\x04\0\x0c\
+pub static __WIT_BINDGEN_COMPONENT_TYPE: [u8; 1343] = *b"\
+\0asm\x0d\0\x01\0\0\x19\x16wit-component-encoding\x04\0\x07\xc3\x09\x01A\x02\x01\
+A\x08\x01B\x1e\x01m\x02\x14invalid-header-value\x13invalid-header-name\x04\0\x0c\
 header-error\x03\0\0\x04\0\x07context\x03\x01\x04\0\x0eshared-context\x03\x01\x04\
 \0\x07headers\x03\x01\x01r\x02\x10parent-type-names\x0afield-names\x04\0\x0fedge\
 -definition\x03\0\x05\x01r\x01\x09type-names\x04\0\x0fnode-definition\x03\0\x07\x01\
@@ -1560,26 +1524,25 @@ o\x02ss\x01p\x09\x01r\x02\x07messages\x0aextensions\x0a\x04\0\x05error\x03\0\x0b
 \x01h\x02\x01ks\x01@\x02\x04self\x0d\x04names\0\x0e\x04\0\x13[method]context.get\
 \x01\x0f\x01@\x03\x04self\x0d\x04names\x05values\x01\0\x04\0\x13[method]context.\
 set\x01\x10\x04\0\x16[method]context.delete\x01\x0f\x01h\x03\x01@\x02\x04self\x11\
-\x04names\0\x0e\x04\0\x1a[method]shared-context.get\x01\x12\x01h\x04\x01j\x01\x0e\
-\x01\x01\x01@\x02\x04self\x13\x04names\0\x14\x04\0\x13[method]headers.get\x01\x15\
-\x01j\0\x01\x01\x01@\x03\x04self\x13\x04names\x05values\0\x16\x04\0\x13[method]h\
-eaders.set\x01\x17\x04\0\x16[method]headers.delete\x01\x15\x03\x01\x18component:\
-grafbase/types\x05\0\x02\x03\0\0\x05error\x02\x03\0\0\x0eshared-context\x02\x03\0\
-\0\x0fedge-definition\x02\x03\0\0\x0fnode-definition\x01B\x18\x02\x03\x02\x01\x01\
-\x04\0\x05error\x03\0\0\x02\x03\x02\x01\x02\x04\0\x0eshared-context\x03\0\x02\x02\
-\x03\x02\x01\x03\x04\0\x0fedge-definition\x03\0\x04\x02\x03\x02\x01\x04\x04\0\x0f\
-node-definition\x03\0\x06\x01i\x03\x01j\0\x01\x01\x01@\x04\x07context\x08\x0adef\
-inition\x05\x09argumentss\x08metadatas\0\x09\x04\0\x1cauthorize-edge-pre-executi\
-on\x01\x0a\x01@\x03\x07context\x08\x0adefinition\x07\x08metadatas\0\x09\x04\0\x1c\
-authorize-node-pre-execution\x01\x0b\x01ps\x01p\x09\x01@\x04\x07context\x08\x0ad\
-efinition\x05\x07parents\x0c\x08metadatas\0\x0d\x04\0$authorize-parent-edge-post\
--execution\x01\x0e\x01@\x04\x07context\x08\x0adefinition\x05\x05nodes\x0c\x08met\
-adatas\0\x0d\x04\0\"authorize-edge-node-post-execution\x01\x0f\x01o\x02s\x0c\x01\
-p\x10\x01@\x04\x07context\x08\x0adefinition\x05\x05edges\x11\x08metadatas\0\x0d\x04\
-\0\x1dauthorize-edge-post-execution\x01\x12\x04\x01\x20component:grafbase/author\
-ization\x05\x05\x04\x01\x18component:grafbase/hooks\x04\0\x0b\x0b\x01\0\x05hooks\
-\x03\0\0\0G\x09producers\x01\x0cprocessed-by\x02\x0dwit-component\x070.208.1\x10\
-wit-bindgen-rust\x060.25.0";
+\x04names\0\x0e\x04\0\x1a[method]shared-context.get\x01\x12\x01h\x04\x01@\x02\x04\
+self\x13\x04names\0\x0e\x04\0\x13[method]headers.get\x01\x14\x01j\0\x01\x01\x01@\
+\x03\x04self\x13\x04names\x05values\0\x15\x04\0\x13[method]headers.set\x01\x16\x04\
+\0\x16[method]headers.delete\x01\x14\x03\x01\x18component:grafbase/types\x05\0\x02\
+\x03\0\0\x05error\x02\x03\0\0\x0eshared-context\x02\x03\0\0\x0fedge-definition\x02\
+\x03\0\0\x0fnode-definition\x01B\x18\x02\x03\x02\x01\x01\x04\0\x05error\x03\0\0\x02\
+\x03\x02\x01\x02\x04\0\x0eshared-context\x03\0\x02\x02\x03\x02\x01\x03\x04\0\x0f\
+edge-definition\x03\0\x04\x02\x03\x02\x01\x04\x04\0\x0fnode-definition\x03\0\x06\
+\x01i\x03\x01j\0\x01\x01\x01@\x04\x07context\x08\x0adefinition\x05\x09argumentss\
+\x08metadatas\0\x09\x04\0\x1cauthorize-edge-pre-execution\x01\x0a\x01@\x03\x07co\
+ntext\x08\x0adefinition\x07\x08metadatas\0\x09\x04\0\x1cauthorize-node-pre-execu\
+tion\x01\x0b\x01ps\x01p\x09\x01@\x04\x07context\x08\x0adefinition\x05\x07parents\
+\x0c\x08metadatas\0\x0d\x04\0$authorize-parent-edge-post-execution\x01\x0e\x01@\x04\
+\x07context\x08\x0adefinition\x05\x05nodes\x0c\x08metadatas\0\x0d\x04\0\"authori\
+ze-edge-node-post-execution\x01\x0f\x01o\x02s\x0c\x01p\x10\x01@\x04\x07context\x08\
+\x0adefinition\x05\x05edges\x11\x08metadatas\0\x0d\x04\0\x1dauthorize-edge-post-\
+execution\x01\x12\x04\x01\x20component:grafbase/authorization\x05\x05\x04\x01\x18\
+component:grafbase/hooks\x04\0\x0b\x0b\x01\0\x05hooks\x03\0\0\0G\x09producers\x01\
+\x0cprocessed-by\x02\x0dwit-component\x070.208.1\x10wit-bindgen-rust\x060.25.0";
 
 #[inline(never)]
 #[doc(hidden)]

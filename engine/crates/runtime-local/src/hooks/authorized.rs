@@ -69,7 +69,7 @@ impl AuthorizedHooks<Context> for HooksWasi {
                     tracing::error!("authorize_edge_pre_execution error at: {error}");
                     PartialGraphqlError::internal_hook_error()
                 }
-                wasi_component_loader::Error::User(error) => {
+                wasi_component_loader::Error::Guest(error) => {
                     error_response_to_user_error(error, PartialErrorCode::Unauthorized)
                 }
             })?;
@@ -101,7 +101,7 @@ impl AuthorizedHooks<Context> for HooksWasi {
                     tracing::error!("authorize_node_pre_execution error at: {error}");
                     PartialGraphqlError::internal_hook_error()
                 }
-                wasi_component_loader::Error::User(error) => {
+                wasi_component_loader::Error::Guest(error) => {
                     error_response_to_user_error(error, PartialErrorCode::Unauthorized)
                 }
             })?;
@@ -155,7 +155,7 @@ impl AuthorizedHooks<Context> for HooksWasi {
                     tracing::error!("authorize_parent_edge_post_execution error at: {error}");
                     PartialGraphqlError::internal_server_error()
                 }
-                wasi_component_loader::Error::User(error) => {
+                wasi_component_loader::Error::Guest(error) => {
                     error_response_to_user_error(error, PartialErrorCode::Unauthorized)
                 }
             })?
@@ -195,7 +195,7 @@ impl AuthorizedHooks<Context> for HooksWasi {
                     tracing::error!("authorize_edge_node_post_execution error at: {error}");
                     PartialGraphqlError::internal_server_error()
                 }
-                wasi_component_loader::Error::User(error) => {
+                wasi_component_loader::Error::Guest(error) => {
                     error_response_to_user_error(error, PartialErrorCode::Unauthorized)
                 }
             })?
@@ -261,7 +261,7 @@ impl AuthorizedHooks<Context> for HooksWasi {
                     tracing::error!("authorize_edge_post_execution error at: {error}");
                     PartialGraphqlError::internal_server_error()
                 }
-                wasi_component_loader::Error::User(error) => {
+                wasi_component_loader::Error::Guest(error) => {
                     error_response_to_user_error(error, PartialErrorCode::Unauthorized)
                 }
             })?
