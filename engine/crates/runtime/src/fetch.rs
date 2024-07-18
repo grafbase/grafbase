@@ -60,6 +60,25 @@ impl Fetcher {
             inner: Arc::new(fetcher),
         }
     }
+
+    pub async fn post(&self, request: FetchRequest<'_>) -> FetchResult<FetchResponse> {
+        let subgraph_name = request.subgraph_name;
+        let timeout = request.timeout;
+
+        let timeout = async {
+            tokio::time::sleep(timeout).await;
+            Err(FetchError::AnyError(format!(
+                "Request to the `{subgraph_name}` subgraph timed out"
+            )))
+        };
+
+        let execution = self.inner.post(request);
+
+        tokio::select! {
+            result = timeout => { result }
+            result = execution => { result }
+        }
+    }
 }
 
 impl std::ops::Deref for Fetcher {
