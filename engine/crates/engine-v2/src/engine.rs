@@ -117,6 +117,14 @@ impl<R: Runtime> Engine<R> {
     }
 
     pub async fn create_session(self: &Arc<Self>, headers: http::HeaderMap) -> Result<Session<R>, Cow<'static, str>> {
+        if let Err(err) = self.runtime.rate_limiter().limit(&RateLimitContext::Global).await {
+            return Err(
+                Response::pre_execution_error(GraphqlError::new(err.to_string(), ErrorCode::RateLimitError))
+                    .first_error_message()
+                    .unwrap_or("Internal server error".into()),
+            );
+        }
+
         let request_context = match self.create_request_context(headers).await {
             Ok(context) => context,
             Err(response) => return Err(response.first_error_message().unwrap_or("Internal server error".into())),
