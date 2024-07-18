@@ -101,7 +101,7 @@ pub async fn serve(
         .layer(grafbase_telemetry::tower::layer(
             grafbase_telemetry::metrics::meter_from_global_provider(),
         ))
-        .layer(tower_http::timeout::TimeoutLayer::new(
+        .layer(tower_http::timeout::RequestBodyTimeoutLayer::new(
             config.timeout.unwrap_or(DEFAULT_GATEWAY_TIMEOUT),
         ))
         .layer(axum::middleware::map_response(

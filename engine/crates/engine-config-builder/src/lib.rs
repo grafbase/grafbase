@@ -55,7 +55,7 @@ pub fn build_config(config: &FederatedGraphConfig, graph: FederatedGraph) -> Ver
                         limit: config.limit,
                         duration: config.duration,
                     }),
-                timeout: timeout.clone(),
+                timeout: *timeout,
             },
         );
     }
@@ -78,6 +78,7 @@ pub fn build_config(config: &FederatedGraphConfig, graph: FederatedGraph) -> Ver
                 limit: config.limit,
                 duration: config.duration,
             }),
+        timeout: config.timeout,
     })
 }
 

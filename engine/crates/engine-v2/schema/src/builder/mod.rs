@@ -8,6 +8,7 @@ mod interner;
 mod requires;
 
 use std::mem::take;
+use std::time::Duration;
 
 use config::latest::Config;
 use url::Url;
@@ -219,6 +220,7 @@ impl BuildContext {
             urls: self.urls.into(),
             header_rules,
             settings: Settings {
+                timeout: config.timeout.unwrap_or(DEFAULT_GATEWAY_TIMEOUT),
                 default_header_rules,
                 auth_config: take(&mut config.auth),
                 operation_limits: take(&mut config.operation_limits),
@@ -253,3 +255,5 @@ from_id_newtypes! {
     federated_graph::UnionId => UnionId,
     config::latest::HeaderRuleId => HeaderRuleId,
 }
+
+const DEFAULT_GATEWAY_TIMEOUT: Duration = Duration::from_secs(30);

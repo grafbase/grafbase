@@ -36,7 +36,7 @@ impl FetcherInner for NativeFetcher {
             .await
             .map_err(|e| {
                 if e.is_timeout() {
-                    FetchError::AnyError(format!("Subgraph {subgraph_name} timed out"))
+                    FetchError::AnyError(format!("Request to the `{subgraph_name}` subgraph timed out"))
                 } else {
                     FetchError::AnyError(e.to_string())
                 }

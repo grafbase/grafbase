@@ -2522,6 +2522,7 @@ dependencies = [
  "sha2",
  "strum",
  "thiserror",
+ "tokio",
  "tracing",
  "ulid",
  "web-time",

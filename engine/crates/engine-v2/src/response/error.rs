@@ -31,6 +31,8 @@ pub(crate) enum ErrorCode {
     HookError,
     // Rate limit
     RateLimitError,
+    // Timeouts
+    GatewayTimeout,
 }
 
 impl From<PartialErrorCode> for ErrorCode {

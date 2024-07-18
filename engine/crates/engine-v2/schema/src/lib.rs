@@ -67,6 +67,7 @@ pub struct Schema {
 pub struct Settings {
     default_header_rules: Vec<HeaderRuleId>,
 
+    pub timeout: std::time::Duration,
     pub auth_config: Option<config::latest::AuthConfig>,
     pub operation_limits: config::latest::OperationLimits,
     pub disable_introspection: bool,

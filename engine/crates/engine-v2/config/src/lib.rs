@@ -137,6 +137,7 @@ impl VersionedConfig {
                     operation_limits,
                     disable_introspection,
                     rate_limit: Default::default(),
+                    timeout: None,
                 }
             }
             VersionedConfig::V5(latest) => latest,

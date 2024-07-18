@@ -30,6 +30,10 @@ pub struct SubgraphDirective {
     /// Any additional headers we want to send to this subgraph
     #[serde(default)]
     headers: Vec<Header>,
+
+    /// Timeout for requests to that subgraph
+    #[serde(default, deserialize_with = "duration_str::deserialize_option_duration")]
+    timeout: Option<std::time::Duration>,
 }
 
 impl Directive for SubgraphDirective {
@@ -55,6 +59,11 @@ impl Directive for SubgraphDirective {
 
           "Any additional headers we want to send to this subgraph"
           headers: [SubgraphHeader!]
+
+          """
+          Timeout for requests to that subgraph
+          """
+          timeout: String
         ) on SCHEMA
 
         input SubgraphHeader {
@@ -128,7 +137,9 @@ impl Visitor<'_> for SubgraphDirectiveVisitor {
                     .into_iter()
                     .map(|header| (header.name, header.value))
                     .map(SubgraphHeaderRule::from),
-            )
+            );
+
+            subgraph.timeout = directive.timeout;
         }
     }
 }
@@ -188,6 +199,7 @@ mod tests {
                             ),
                         ],
                         rate_limit: None,
+                        timeout: None,
                     },
                     "Reviews": SubgraphConfig {
                         name: "Reviews",
@@ -202,6 +214,7 @@ mod tests {
                             ),
                         ],
                         rate_limit: None,
+                        timeout: None,
                     },
                 },
                 header_rules: [],
@@ -218,6 +231,7 @@ mod tests {
                 auth: None,
                 disable_introspection: false,
                 rate_limit: None,
+                timeout: None,
             },
         )
         "###);

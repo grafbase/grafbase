@@ -125,6 +125,7 @@ mod tests {
                             ),
                         ],
                         rate_limit: None,
+                        timeout: None,
                     },
                 },
                 header_rules: [
@@ -169,6 +170,7 @@ mod tests {
                 auth: None,
                 disable_introspection: false,
                 rate_limit: None,
+                timeout: None,
             },
         )
         "###);
