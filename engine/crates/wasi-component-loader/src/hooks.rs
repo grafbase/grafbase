@@ -165,7 +165,6 @@ impl ComponentInstance {
                 Some(hook)
             }
             Err(e) => {
-                dbg!(&e);
                 tracing::debug!(target: GRAFBASE_TARGET, "error instantizing the authorization hook WASM function: {e}");
                 None
             }
