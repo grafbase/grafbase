@@ -1,5 +1,3 @@
-use std::time::Duration;
-
 use http::Response;
 use http_body::Body;
 
@@ -38,25 +36,12 @@ pub trait GqlRecorderSpanExt {
     /// Record subgraph response attributes in the span
     fn record_subgraph_response(&self, attributes: SubgraphResponseAttributes);
 
-    fn record_gql_error(&self, error: String);
-    fn record_gql_duration(&self, duration: Duration);
-
-    fn record_gql_status(&self, status: GraphqlResponseStatus, duration: Duration, error: Option<String>) {
+    fn record_gql_status(&self, status: GraphqlResponseStatus) {
         self.record_gql_response(GqlResponseAttributes { status });
-        self.record_gql_duration(duration);
-
-        if let Some(e) = error {
-            self.record_gql_error(e)
-        }
     }
 
-    fn record_subgraph_status(&self, status: SubgraphResponseStatus, duration: Duration, error: Option<String>) {
+    fn record_subgraph_status(&self, status: SubgraphResponseStatus) {
         self.record_subgraph_response(SubgraphResponseAttributes { status });
-        self.record_gql_duration(duration);
-
-        if let Some(e) = error {
-            self.record_gql_error(e)
-        }
     }
 }
 

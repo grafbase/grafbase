@@ -369,17 +369,12 @@ impl ResponsePart {
         }
     }
 
-    pub fn first_error_message(&self) -> Option<String> {
-        self.errors.first().map(|s| s.message.to_string())
-    }
-
-    /// True if this request was blocked by the query plan. Avoid logging any request details if this is true.
-    pub fn blocked_in_planning(&self) -> bool {
-        self.errors.iter().any(|e| match e.code {
-            ErrorCode::SubgraphError => false,
-            ErrorCode::SubgraphInvalidResponseError => false,
-            ErrorCode::SubgraphRequestError => false,
-            _ => true,
+    pub fn subgraph_errors(&self) -> impl Iterator<Item = &GraphqlError> + '_ {
+        self.errors.iter().filter(|e| {
+            matches!(
+                e.code,
+                ErrorCode::SubgraphError | ErrorCode::SubgraphInvalidResponseError | ErrorCode::SubgraphRequestError
+            )
         })
     }
 }

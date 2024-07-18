@@ -6,7 +6,6 @@ use runtime::fetch::FetchRequest;
 use schema::sources::graphql::{GraphqlEndpointId, GraphqlEndpointWalker, RootFieldResolverWalker};
 use serde::de::DeserializeSeed;
 use tracing::Instrument;
-use web_time::{Duration, Instant};
 
 use self::query::PreparedGraphqlOperation;
 use self::variables::SubgraphVariables;
@@ -120,8 +119,6 @@ impl<'ctx, R: Runtime> GraphqlExecutor<'ctx, R> {
             .limit(&crate::engine::RateLimitContext::Subgraph(self.subgraph.name()))
             .await?;
 
-        let start = Instant::now();
-
         let response = self
             .ctx
             .engine
@@ -134,14 +131,12 @@ impl<'ctx, R: Runtime> GraphqlExecutor<'ctx, R> {
             })
             .await;
 
-        let elapsed = start.elapsed();
-
         let response = match response {
             Ok(response) => response,
             Err(e) => {
                 let status = SubgraphResponseStatus::HttpError;
 
-                tracing::Span::current().record_subgraph_status(status, elapsed, Some(e.to_string()));
+                tracing::Span::current().record_subgraph_status(status);
                 tracing::error!(target: GRAFBASE_TARGET, "{e}");
 
                 return Err(e.into());
@@ -161,47 +156,36 @@ impl<'ctx, R: Runtime> GraphqlExecutor<'ctx, R> {
         )
         .deserialize(&mut serde_json::Deserializer::from_slice(&response.bytes));
 
-        handle_subgraph_result(result, response_part, elapsed)
+        handle_subgraph_result(result, response_part)
     }
 }
 
 fn handle_subgraph_result(
     result: Result<GraphqlResponseStatus, serde_json::Error>,
     response_part: &ResponsePart,
-    elapsed: Duration,
 ) -> ExecutionResult<()> {
-    match result {
-        result if response_part.blocked_in_planning() => {
-            result?;
-            Ok(())
-        }
-        Ok(status) if status.is_success() => {
-            let subgraph_status = SubgraphResponseStatus::GraphqlResponse(status);
-
-            tracing::Span::current().record_subgraph_status(subgraph_status, elapsed, None);
-            tracing::debug!(target: GRAFBASE_TARGET, "subgraph response");
-
-            Ok(())
-        }
-        Ok(status) => {
-            let subgraph_status = SubgraphResponseStatus::GraphqlResponse(status);
-            let message = response_part
-                .first_error_message()
-                .unwrap_or_else(|| String::from("subgraph error"));
-
-            tracing::Span::current().record_subgraph_status(subgraph_status, elapsed, Some(message.clone()));
-            tracing::error!(target: GRAFBASE_TARGET, "{message}");
-
-            Ok(())
-        }
-        Err(e) => {
+    let status = match result {
+        Ok(status) => SubgraphResponseStatus::GraphqlResponse(status),
+        Err(error) => {
             let status = SubgraphResponseStatus::InvalidResponseError;
-            let message = e.to_string();
 
-            tracing::Span::current().record_subgraph_status(status, elapsed, Some(message.clone()));
-            tracing::error!(target: GRAFBASE_TARGET, "{message}");
+            tracing::Span::current().record_subgraph_status(status);
+            tracing::error!(target: GRAFBASE_TARGET, "{error}");
 
-            Err(e.into())
+            return Err(error.into());
+        }
+    };
+
+    tracing::Span::current().record_subgraph_status(status);
+
+    match response_part.subgraph_errors().next().map(|e| &e.message) {
+        Some(error) => {
+            tracing::error!(target: GRAFBASE_TARGET, "{error}");
+        }
+        None => {
+            tracing::debug!(target: GRAFBASE_TARGET, "subgraph request")
         }
     }
+
+    Ok(())
 }

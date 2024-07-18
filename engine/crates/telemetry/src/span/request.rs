@@ -174,7 +174,6 @@ impl<'a> HttpRequestSpan<'a> {
             "gql.response.field_errors_count" = Empty,
             "gql.response.data_is_null" = Empty,
             "gql.response.request_errors_count" = Empty,
-            "gql.response.latency_ms" = Empty,
             "gql.response.error" = Empty,
         )
     }
