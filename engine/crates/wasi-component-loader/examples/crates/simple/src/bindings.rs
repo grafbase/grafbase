@@ -369,11 +369,11 @@ pub mod component {
             }
             impl Headers {
                 #[allow(unused_unsafe, clippy::all)]
-                pub fn get(&self, name: &str) -> Result<Option<_rt::String>, HeaderError> {
+                pub fn get(&self, name: &str) -> Option<_rt::String> {
                     unsafe {
                         #[repr(align(4))]
-                        struct RetArea([::core::mem::MaybeUninit<u8>; 16]);
-                        let mut ret_area = RetArea([::core::mem::MaybeUninit::uninit(); 16]);
+                        struct RetArea([::core::mem::MaybeUninit<u8>; 12]);
+                        let mut ret_area = RetArea([::core::mem::MaybeUninit::uninit(); 12]);
                         let vec0 = name;
                         let ptr0 = vec0.as_ptr().cast::<u8>();
                         let len0 = vec0.len();
@@ -392,35 +392,17 @@ pub mod component {
                         wit_import((self).handle() as i32, ptr0.cast_mut(), len0, ptr1);
                         let l2 = i32::from(*ptr1.add(0).cast::<u8>());
                         match l2 {
-                            0 => {
-                                let e = {
-                                    let l3 = i32::from(*ptr1.add(4).cast::<u8>());
-
-                                    match l3 {
-                                        0 => None,
-                                        1 => {
-                                            let e = {
-                                                let l4 = *ptr1.add(8).cast::<*mut u8>();
-                                                let l5 = *ptr1.add(12).cast::<usize>();
-                                                let len6 = l5;
-                                                let bytes6 = _rt::Vec::from_raw_parts(l4.cast(), len6, len6);
-
-                                                _rt::string_lift(bytes6)
-                                            };
-                                            Some(e)
-                                        }
-                                        _ => _rt::invalid_enum_discriminant(),
-                                    }
-                                };
-                                Ok(e)
-                            }
+                            0 => None,
                             1 => {
                                 let e = {
-                                    let l7 = i32::from(*ptr1.add(4).cast::<u8>());
+                                    let l3 = *ptr1.add(4).cast::<*mut u8>();
+                                    let l4 = *ptr1.add(8).cast::<usize>();
+                                    let len5 = l4;
+                                    let bytes5 = _rt::Vec::from_raw_parts(l3.cast(), len5, len5);
 
-                                    HeaderError::_lift(l7 as u8)
+                                    _rt::string_lift(bytes5)
                                 };
-                                Err(e)
+                                Some(e)
                             }
                             _ => _rt::invalid_enum_discriminant(),
                         }
@@ -481,11 +463,11 @@ pub mod component {
             }
             impl Headers {
                 #[allow(unused_unsafe, clippy::all)]
-                pub fn delete(&self, name: &str) -> Result<Option<_rt::String>, HeaderError> {
+                pub fn delete(&self, name: &str) -> Option<_rt::String> {
                     unsafe {
                         #[repr(align(4))]
-                        struct RetArea([::core::mem::MaybeUninit<u8>; 16]);
-                        let mut ret_area = RetArea([::core::mem::MaybeUninit::uninit(); 16]);
+                        struct RetArea([::core::mem::MaybeUninit<u8>; 12]);
+                        let mut ret_area = RetArea([::core::mem::MaybeUninit::uninit(); 12]);
                         let vec0 = name;
                         let ptr0 = vec0.as_ptr().cast::<u8>();
                         let len0 = vec0.len();
@@ -504,38 +486,66 @@ pub mod component {
                         wit_import((self).handle() as i32, ptr0.cast_mut(), len0, ptr1);
                         let l2 = i32::from(*ptr1.add(0).cast::<u8>());
                         match l2 {
-                            0 => {
-                                let e = {
-                                    let l3 = i32::from(*ptr1.add(4).cast::<u8>());
-
-                                    match l3 {
-                                        0 => None,
-                                        1 => {
-                                            let e = {
-                                                let l4 = *ptr1.add(8).cast::<*mut u8>();
-                                                let l5 = *ptr1.add(12).cast::<usize>();
-                                                let len6 = l5;
-                                                let bytes6 = _rt::Vec::from_raw_parts(l4.cast(), len6, len6);
-
-                                                _rt::string_lift(bytes6)
-                                            };
-                                            Some(e)
-                                        }
-                                        _ => _rt::invalid_enum_discriminant(),
-                                    }
-                                };
-                                Ok(e)
-                            }
+                            0 => None,
                             1 => {
                                 let e = {
-                                    let l7 = i32::from(*ptr1.add(4).cast::<u8>());
+                                    let l3 = *ptr1.add(4).cast::<*mut u8>();
+                                    let l4 = *ptr1.add(8).cast::<usize>();
+                                    let len5 = l4;
+                                    let bytes5 = _rt::Vec::from_raw_parts(l3.cast(), len5, len5);
 
-                                    HeaderError::_lift(l7 as u8)
+                                    _rt::string_lift(bytes5)
                                 };
-                                Err(e)
+                                Some(e)
                             }
                             _ => _rt::invalid_enum_discriminant(),
                         }
+                    }
+                }
+            }
+            impl Headers {
+                #[allow(unused_unsafe, clippy::all)]
+                pub fn entries(&self) -> _rt::Vec<(_rt::String, _rt::String)> {
+                    unsafe {
+                        #[repr(align(4))]
+                        struct RetArea([::core::mem::MaybeUninit<u8>; 8]);
+                        let mut ret_area = RetArea([::core::mem::MaybeUninit::uninit(); 8]);
+                        let ptr0 = ret_area.0.as_mut_ptr().cast::<u8>();
+                        #[cfg(target_arch = "wasm32")]
+                        #[link(wasm_import_module = "component:grafbase/types")]
+                        extern "C" {
+                            #[link_name = "[method]headers.entries"]
+                            fn wit_import(_: i32, _: *mut u8);
+                        }
+
+                        #[cfg(not(target_arch = "wasm32"))]
+                        fn wit_import(_: i32, _: *mut u8) {
+                            unreachable!()
+                        }
+                        wit_import((self).handle() as i32, ptr0);
+                        let l1 = *ptr0.add(0).cast::<*mut u8>();
+                        let l2 = *ptr0.add(4).cast::<usize>();
+                        let base9 = l1;
+                        let len9 = l2;
+                        let mut result9 = _rt::Vec::with_capacity(len9);
+                        for i in 0..len9 {
+                            let base = base9.add(i * 16);
+                            let e9 = {
+                                let l3 = *base.add(0).cast::<*mut u8>();
+                                let l4 = *base.add(4).cast::<usize>();
+                                let len5 = l4;
+                                let bytes5 = _rt::Vec::from_raw_parts(l3.cast(), len5, len5);
+                                let l6 = *base.add(8).cast::<*mut u8>();
+                                let l7 = *base.add(12).cast::<usize>();
+                                let len8 = l7;
+                                let bytes8 = _rt::Vec::from_raw_parts(l6.cast(), len8, len8);
+
+                                (_rt::string_lift(bytes5), _rt::string_lift(bytes8))
+                            };
+                            result9.push(e9);
+                        }
+                        _rt::cabi_dealloc(base9, len9 * 16, 4);
+                        result9
                     }
                 }
             }
@@ -788,12 +798,6 @@ mod _rt {
             core::hint::unreachable_unchecked()
         }
     }
-
-    #[cfg(target_arch = "wasm32")]
-    pub fn run_ctors_once() {
-        wit_bindgen_rt::run_ctors_once();
-    }
-    pub use alloc_crate::alloc;
     pub unsafe fn cabi_dealloc(ptr: *mut u8, size: usize, align: usize) {
         if size == 0 {
             return;
@@ -801,6 +805,12 @@ mod _rt {
         let layout = alloc::Layout::from_size_align_unchecked(size, align);
         alloc::dealloc(ptr as *mut u8, layout);
     }
+
+    #[cfg(target_arch = "wasm32")]
+    pub fn run_ctors_once() {
+        wit_bindgen_rt::run_ctors_once();
+    }
+    pub use alloc_crate::alloc;
     extern crate alloc as alloc_crate;
 }
 
@@ -835,9 +845,9 @@ pub(crate) use __export_hooks_impl as export;
 #[cfg(target_arch = "wasm32")]
 #[link_section = "component-type:wit-bindgen:0.25.0:hooks:encoded world"]
 #[doc(hidden)]
-pub static __WIT_BINDGEN_COMPONENT_TYPE: [u8; 916] = *b"\
-\0asm\x0d\0\x01\0\0\x19\x16wit-component-encoding\x04\0\x07\x98\x06\x01A\x02\x01\
-A\x07\x01B\x1f\x01m\x02\x14invalid-header-value\x13invalid-header-name\x04\0\x0c\
+pub static __WIT_BINDGEN_COMPONENT_TYPE: [u8; 949] = *b"\
+\0asm\x0d\0\x01\0\0\x19\x16wit-component-encoding\x04\0\x07\xb9\x06\x01A\x02\x01\
+A\x07\x01B\x20\x01m\x02\x14invalid-header-value\x13invalid-header-name\x04\0\x0c\
 header-error\x03\0\0\x04\0\x07context\x03\x01\x04\0\x0eshared-context\x03\x01\x04\
 \0\x07headers\x03\x01\x01r\x02\x10parent-type-names\x0afield-names\x04\0\x0fedge\
 -definition\x03\0\x05\x01r\x01\x09type-names\x04\0\x0fnode-definition\x03\0\x07\x01\
@@ -845,18 +855,18 @@ o\x02ss\x01p\x09\x01r\x02\x0aextensions\x0a\x07messages\x04\0\x05error\x03\0\x0b
 \x01h\x02\x01ks\x01@\x02\x04self\x0d\x04names\0\x0e\x04\0\x13[method]context.get\
 \x01\x0f\x01@\x03\x04self\x0d\x04names\x05values\x01\0\x04\0\x13[method]context.\
 set\x01\x10\x04\0\x16[method]context.delete\x01\x0f\x01h\x03\x01@\x02\x04self\x11\
-\x04names\0\x0e\x04\0\x1a[method]shared-context.get\x01\x12\x01h\x04\x01j\x01\x0e\
-\x01\x01\x01@\x02\x04self\x13\x04names\0\x14\x04\0\x13[method]headers.get\x01\x15\
-\x01j\0\x01\x01\x01@\x03\x04self\x13\x04names\x05values\0\x16\x04\0\x13[method]h\
-eaders.set\x01\x17\x04\0\x16[method]headers.delete\x01\x15\x03\x01\x18component:\
-grafbase/types\x05\0\x02\x03\0\0\x07headers\x02\x03\0\0\x05error\x02\x03\0\0\x07\
-context\x01B\x0b\x02\x03\x02\x01\x01\x04\0\x07headers\x03\0\0\x02\x03\x02\x01\x02\
-\x04\0\x05error\x03\0\x02\x02\x03\x02\x01\x03\x04\0\x07context\x03\0\x04\x01i\x05\
-\x01i\x01\x01j\0\x01\x03\x01@\x02\x07context\x06\x07headers\x07\0\x08\x04\0\x12o\
-n-gateway-request\x01\x09\x04\x01\"component:grafbase/gateway-request\x05\x04\x04\
-\x01\x18component:grafbase/hooks\x04\0\x0b\x0b\x01\0\x05hooks\x03\0\0\0G\x09prod\
-ucers\x01\x0cprocessed-by\x02\x0dwit-component\x070.208.1\x10wit-bindgen-rust\x06\
-0.25.0";
+\x04names\0\x0e\x04\0\x1a[method]shared-context.get\x01\x12\x01h\x04\x01@\x02\x04\
+self\x13\x04names\0\x0e\x04\0\x13[method]headers.get\x01\x14\x01j\0\x01\x01\x01@\
+\x03\x04self\x13\x04names\x05values\0\x15\x04\0\x13[method]headers.set\x01\x16\x04\
+\0\x16[method]headers.delete\x01\x14\x01@\x01\x04self\x13\0\x0a\x04\0\x17[method\
+]headers.entries\x01\x17\x03\x01\x18component:grafbase/types\x05\0\x02\x03\0\0\x07\
+headers\x02\x03\0\0\x05error\x02\x03\0\0\x07context\x01B\x0b\x02\x03\x02\x01\x01\
+\x04\0\x07headers\x03\0\0\x02\x03\x02\x01\x02\x04\0\x05error\x03\0\x02\x02\x03\x02\
+\x01\x03\x04\0\x07context\x03\0\x04\x01i\x05\x01i\x01\x01j\0\x01\x03\x01@\x02\x07\
+context\x06\x07headers\x07\0\x08\x04\0\x12on-gateway-request\x01\x09\x04\x01\"co\
+mponent:grafbase/gateway-request\x05\x04\x04\x01\x18component:grafbase/hooks\x04\
+\0\x0b\x0b\x01\0\x05hooks\x03\0\0\0G\x09producers\x01\x0cprocessed-by\x02\x0dwit\
+-component\x070.208.1\x10wit-bindgen-rust\x060.25.0";
 
 #[inline(never)]
 #[doc(hidden)]

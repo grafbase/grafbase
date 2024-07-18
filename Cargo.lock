@@ -9705,10 +9705,12 @@ name = "wasi-component-loader"
 version = "0.77.1"
 dependencies = [
  "anyhow",
+ "base64 0.22.1",
  "expect-test",
  "grafbase-tracing",
  "http 1.1.0",
  "indoc",
+ "insta",
  "serde",
  "serde_json",
  "tempdir",
@@ -9716,6 +9718,7 @@ dependencies = [
  "tokio",
  "toml",
  "tracing",
+ "url",
  "wasmtime",
  "wasmtime-wasi",
  "wasmtime-wasi-http",

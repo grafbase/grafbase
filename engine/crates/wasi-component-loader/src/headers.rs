@@ -7,7 +7,7 @@ use wasmtime::{
 };
 
 use crate::{
-    names::{HEADERS_DELETE_METHOD, HEADERS_GET_METHOD, HEADERS_RESOURCE, HEADERS_SET_METHOD},
+    names::{HEADERS_DELETE_METHOD, HEADERS_ENTRIES_METHOD, HEADERS_GET_METHOD, HEADERS_RESOURCE, HEADERS_SET_METHOD},
     state::WasiState,
 };
 
@@ -28,7 +28,8 @@ enum HeaderError {
 ///         get: func(key: string) -> result<option<string>, header-error>;
 ///         set: func(key: string, value: string) -> result<_, header-error>;
 ///         delete: func(key: string) -> result<option<string>, header-error>;
-///     }    
+///         entries: func() -> list<tuple<string, string>>;
+///     }
 /// }
 /// ```
 pub(crate) fn map(types: &mut LinkerInstance<'_, WasiState>) -> crate::Result<()> {
@@ -36,6 +37,7 @@ pub(crate) fn map(types: &mut LinkerInstance<'_, WasiState>) -> crate::Result<()
     types.func_wrap(HEADERS_SET_METHOD, set)?;
     types.func_wrap(HEADERS_GET_METHOD, get)?;
     types.func_wrap(HEADERS_DELETE_METHOD, delete)?;
+    types.func_wrap(HEADERS_ENTRIES_METHOD, entries)?;
 
     Ok(())
 }
@@ -72,16 +74,14 @@ fn set(
 fn get(
     store: StoreContextMut<'_, WasiState>,
     (this, key): (Resource<HeaderMap>, String),
-) -> anyhow::Result<(Result<Option<String>, HeaderError>,)> {
+) -> anyhow::Result<(Option<String>,)> {
     let headers = store.data().get(&this).expect("must exist");
 
-    let val = match headers.get(&key).map(|val| val.to_str()) {
-        Some(Err(_)) => return Ok((Err(HeaderError::InvalidHeaderName),)),
-        Some(Ok(val)) => Some(val.to_string()),
-        None => None,
-    };
+    let value = headers
+        .get(&key)
+        .map(|val| String::from_utf8_lossy(val.as_bytes()).into_owned());
 
-    Ok((Ok(val),))
+    Ok((value,))
 }
 
 /// Look for a header with the given key, returning a copy of the value if found. Will remove
@@ -91,14 +91,30 @@ fn get(
 fn delete(
     mut store: StoreContextMut<'_, WasiState>,
     (this, key): (Resource<HeaderMap>, String),
-) -> anyhow::Result<(Result<Option<String>, HeaderError>,)> {
+) -> anyhow::Result<(Option<String>,)> {
     let headers = store.data_mut().get_mut(&this).expect("must exist");
 
-    let val = match headers.remove(key).map(|val| val.to_str().map(ToString::to_string)) {
-        Some(Err(_)) => return Ok((Err(HeaderError::InvalidHeaderName),)),
-        Some(Ok(val)) => Some(val.to_string()),
-        None => None,
-    };
+    let old_value = headers
+        .remove(&key)
+        .map(|val| String::from_utf8_lossy(val.as_bytes()).into_owned());
 
-    Ok((Ok(val),))
+    Ok((old_value,))
+}
+
+fn entries(
+    mut store: StoreContextMut<'_, WasiState>,
+    (this,): (Resource<HeaderMap>,),
+) -> anyhow::Result<(Vec<(String, String)>,)> {
+    let headers = store.data_mut().get_mut(&this).expect("must exist");
+
+    let entries = headers
+        .iter()
+        .map(|(key, value)| {
+            let key = key.to_string();
+            let value = String::from_utf8_lossy(value.as_bytes()).into_owned();
+            (key, value)
+        })
+        .collect();
+
+    Ok((entries,))
 }

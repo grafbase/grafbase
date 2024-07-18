@@ -21,14 +21,17 @@ mod tests;
 
 pub use config::Config;
 pub use context::{ContextMap, SharedContextMap};
-pub use error::{guest::Error as ErrorResponse, Error};
+pub use error::{guest::GuestError, Error};
 pub use hooks::{
     authorization::{AuthorizationHookInstance, EdgeDefinition, NodeDefinition},
     gateway::GatewayHookInstance,
+    subgraph::*,
 };
 
 /// The crate result type
 pub type Result<T> = std::result::Result<T, Error>;
+/// The guest result type
+pub type GuestResult<T> = std::result::Result<T, GuestError>;
 
 use grafbase_tracing::span::GRAFBASE_TARGET;
 use state::WasiState;

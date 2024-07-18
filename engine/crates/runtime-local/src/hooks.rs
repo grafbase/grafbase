@@ -65,7 +65,7 @@ impl Hooks for HooksWasi {
                     tracing::error!("on_gateway_request error: {err}");
                     PartialGraphqlError::internal_hook_error()
                 }
-                wasi_component_loader::Error::User(err) => {
+                wasi_component_loader::Error::Guest(err) => {
                     error_response_to_user_error(err, PartialErrorCode::BadRequest)
                 }
             })
@@ -77,7 +77,7 @@ impl Hooks for HooksWasi {
 }
 
 fn error_response_to_user_error(
-    error: wasi_component_loader::ErrorResponse,
+    error: wasi_component_loader::GuestError,
     code: PartialErrorCode,
 ) -> PartialGraphqlError {
     let extensions = error

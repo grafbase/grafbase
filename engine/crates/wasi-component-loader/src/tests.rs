@@ -1,8 +1,8 @@
 use std::{collections::HashMap, sync::Arc};
 
 use crate::{
-    AuthorizationHookInstance, ComponentLoader, Config, EdgeDefinition, ErrorResponse, GatewayHookInstance,
-    NodeDefinition,
+    hooks::subgraph::SubgraphHookInstance, AuthorizationHookInstance, ComponentLoader, Config, EdgeDefinition,
+    GatewayHookInstance, GuestError, NodeDefinition,
 };
 use expect_test::expect;
 use http::{HeaderMap, HeaderValue};
@@ -228,12 +228,12 @@ async fn guest_error() {
     let mut hook = GatewayHookInstance::new(&loader).await.unwrap();
     let error = hook.call(HashMap::new(), HeaderMap::new()).await.unwrap_err();
 
-    let expected = ErrorResponse {
+    let expected = GuestError {
         message: String::from("not found"),
         extensions: vec![(String::from("my"), String::from("extension"))],
     };
 
-    assert_eq!(Some(expected), error.into_user_error());
+    assert_eq!(Some(expected), error.into_guest_error());
 }
 
 #[tokio::test]
@@ -267,12 +267,12 @@ async fn authorize_edge_pre_execution_error() {
         .await
         .unwrap_err();
 
-    let expected = ErrorResponse {
+    let expected = GuestError {
         message: String::from("not authorized"),
         extensions: vec![],
     };
 
-    assert_eq!(Some(expected), error.into_user_error());
+    assert_eq!(Some(expected), error.into_guest_error());
 }
 
 #[tokio::test]
@@ -336,12 +336,12 @@ async fn authorize_node_pre_execution_error() {
         .await
         .unwrap_err();
 
-    let expected = ErrorResponse {
+    let expected = GuestError {
         message: String::from("not authorized"),
         extensions: vec![],
     };
 
-    assert_eq!(Some(expected), error.into_user_error());
+    assert_eq!(Some(expected), error.into_guest_error());
 }
 
 #[tokio::test]
@@ -416,7 +416,7 @@ async fn authorize_parent_edge_post_execution() {
                 (),
             ),
             Err(
-                Error {
+                GuestError {
                     extensions: [],
                     message: "not authorized",
                 },
@@ -469,7 +469,7 @@ async fn authorize_edge_node_post_execution() {
                 (),
             ),
             Err(
-                Error {
+                GuestError {
                     extensions: [],
                     message: "not authorized",
                 },
@@ -532,7 +532,7 @@ async fn authorize_edge_post_execution() {
                 (),
             ),
             Err(
-                Error {
+                GuestError {
                     extensions: [],
                     message: "not authorized",
                 },
@@ -541,7 +541,7 @@ async fn authorize_edge_post_execution() {
                 (),
             ),
             Err(
-                Error {
+                GuestError {
                     extensions: [],
                     message: "not authorized",
                 },
@@ -550,4 +550,74 @@ async fn authorize_edge_post_execution() {
     "#]];
 
     expected.assert_debug_eq(&result);
+}
+
+#[tokio::test]
+async fn on_subgraph_request() {
+    use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
+
+    let config = indoc! {r#"
+        location = "examples/target/wasm32-wasip1/debug/subgraph_request.wasm"
+    "#};
+
+    let config: Config = toml::from_str(config).unwrap();
+    assert!(config.location().exists());
+
+    let mut headers = HeaderMap::new();
+    headers.insert("Hi", HeaderValue::from_static("Rusty"));
+
+    let loader = ComponentLoader::new(config).unwrap().unwrap();
+
+    let mut hook = GatewayHookInstance::new(&loader).await.unwrap();
+    let (context, headers) = hook.call(HashMap::new(), headers).await.unwrap();
+
+    let mut hook = SubgraphHookInstance::new(&loader).await.unwrap();
+
+    let headers = hook
+        .on_subgraph_request(
+            Arc::new(context),
+            http::Method::POST,
+            &"http://example.com".parse().unwrap(),
+            headers,
+        )
+        .await
+        .unwrap();
+
+    let everything = headers
+        .get("everything")
+        .map(|value| URL_SAFE_NO_PAD.decode(value.to_str().unwrap()).unwrap())
+        .unwrap_or_default();
+    let value = serde_json::from_slice::<serde_json::Value>(&everything).unwrap();
+    insta::assert_json_snapshot!(value, @r###"
+    {
+      "headers": [
+        [
+          "hi",
+          "Rusty"
+        ]
+      ],
+      "method": "POST",
+      "url": "http://example.com/"
+    }
+    "###);
+
+    let context = HashMap::from_iter([("should-fail".into(), "yes".into())]);
+    let error = hook
+        .on_subgraph_request(
+            Arc::new(context),
+            http::Method::POST,
+            &"http://example.com".parse().unwrap(),
+            headers,
+        )
+        .await
+        .unwrap_err();
+
+    insta::assert_debug_snapshot!(error, @r###"
+    Guest(
+        GuestError {
+            extensions: [],
+            message: "failure",
+        },
+    )
+    "###);
 }

@@ -15,7 +15,7 @@ struct Edge {
 
 impl gateway_request::Guest for Component {
     fn on_gateway_request(context: Context, headers: Headers) -> Result<(), Error> {
-        if let Ok(Some(auth_header)) = headers.get("Authorization") {
+        if let Some(auth_header) = headers.get("Authorization") {
             context.set("entitlement", &auth_header);
         }
 

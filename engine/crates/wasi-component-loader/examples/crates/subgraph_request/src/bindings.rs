@@ -559,42 +559,55 @@ pub mod exports {
         #[allow(dead_code)]
         pub mod grafbase {
             #[allow(dead_code, clippy::all)]
-            pub mod gateway_request {
+            pub mod subgraph_request {
                 #[used]
                 #[doc(hidden)]
                 #[cfg(target_arch = "wasm32")]
                 static __FORCE_SECTION_REF: fn() = super::super::super::super::__link_custom_section_describing_imports;
                 use super::super::super::super::_rt;
+                pub type SharedContext = super::super::super::super::component::grafbase::types::SharedContext;
                 pub type Headers = super::super::super::super::component::grafbase::types::Headers;
                 pub type Error = super::super::super::super::component::grafbase::types::Error;
-                pub type Context = super::super::super::super::component::grafbase::types::Context;
                 #[doc(hidden)]
                 #[allow(non_snake_case)]
-                pub unsafe fn _export_on_gateway_request_cabi<T: Guest>(arg0: i32, arg1: i32) -> *mut u8 {
+                pub unsafe fn _export_on_subgraph_request_cabi<T: Guest>(
+                    arg0: i32,
+                    arg1: *mut u8,
+                    arg2: usize,
+                    arg3: *mut u8,
+                    arg4: usize,
+                    arg5: i32,
+                ) -> *mut u8 {
                     #[cfg(target_arch = "wasm32")]
                     _rt::run_ctors_once();
-                    let result0 = T::on_gateway_request(
-                        super::super::super::super::component::grafbase::types::Context::from_handle(arg0 as u32),
-                        super::super::super::super::component::grafbase::types::Headers::from_handle(arg1 as u32),
+                    let len0 = arg2;
+                    let bytes0 = _rt::Vec::from_raw_parts(arg1.cast(), len0, len0);
+                    let len1 = arg4;
+                    let bytes1 = _rt::Vec::from_raw_parts(arg3.cast(), len1, len1);
+                    let result2 = T::on_subgraph_request(
+                        super::super::super::super::component::grafbase::types::SharedContext::from_handle(arg0 as u32),
+                        _rt::string_lift(bytes0),
+                        _rt::string_lift(bytes1),
+                        super::super::super::super::component::grafbase::types::Headers::from_handle(arg5 as u32),
                     );
-                    let ptr1 = _RET_AREA.0.as_mut_ptr().cast::<u8>();
-                    match result0 {
+                    let ptr3 = _RET_AREA.0.as_mut_ptr().cast::<u8>();
+                    match result2 {
                         Ok(_) => {
-                            *ptr1.add(0).cast::<u8>() = (0i32) as u8;
+                            *ptr3.add(0).cast::<u8>() = (0i32) as u8;
                         }
                         Err(e) => {
-                            *ptr1.add(0).cast::<u8>() = (1i32) as u8;
+                            *ptr3.add(0).cast::<u8>() = (1i32) as u8;
                             let super::super::super::super::component::grafbase::types::Error {
-                                extensions: extensions2,
-                                message: message2,
+                                extensions: extensions4,
+                                message: message4,
                             } = e;
-                            let vec6 = extensions2;
-                            let len6 = vec6.len();
-                            let layout6 = _rt::alloc::Layout::from_size_align_unchecked(vec6.len() * 16, 4);
-                            let result6 = if layout6.size() != 0 {
-                                let ptr = _rt::alloc::alloc(layout6).cast::<u8>();
+                            let vec8 = extensions4;
+                            let len8 = vec8.len();
+                            let layout8 = _rt::alloc::Layout::from_size_align_unchecked(vec8.len() * 16, 4);
+                            let result8 = if layout8.size() != 0 {
+                                let ptr = _rt::alloc::alloc(layout8).cast::<u8>();
                                 if ptr.is_null() {
-                                    _rt::alloc::handle_alloc_error(layout6);
+                                    _rt::alloc::handle_alloc_error(layout8);
                                 }
                                 ptr
                             } else {
@@ -602,39 +615,39 @@ pub mod exports {
                                     ::core::ptr::null_mut()
                                 }
                             };
-                            for (i, e) in vec6.into_iter().enumerate() {
-                                let base = result6.add(i * 16);
+                            for (i, e) in vec8.into_iter().enumerate() {
+                                let base = result8.add(i * 16);
                                 {
-                                    let (t3_0, t3_1) = e;
-                                    let vec4 = (t3_0.into_bytes()).into_boxed_slice();
-                                    let ptr4 = vec4.as_ptr().cast::<u8>();
-                                    let len4 = vec4.len();
-                                    ::core::mem::forget(vec4);
-                                    *base.add(4).cast::<usize>() = len4;
-                                    *base.add(0).cast::<*mut u8>() = ptr4.cast_mut();
-                                    let vec5 = (t3_1.into_bytes()).into_boxed_slice();
-                                    let ptr5 = vec5.as_ptr().cast::<u8>();
-                                    let len5 = vec5.len();
-                                    ::core::mem::forget(vec5);
-                                    *base.add(12).cast::<usize>() = len5;
-                                    *base.add(8).cast::<*mut u8>() = ptr5.cast_mut();
+                                    let (t5_0, t5_1) = e;
+                                    let vec6 = (t5_0.into_bytes()).into_boxed_slice();
+                                    let ptr6 = vec6.as_ptr().cast::<u8>();
+                                    let len6 = vec6.len();
+                                    ::core::mem::forget(vec6);
+                                    *base.add(4).cast::<usize>() = len6;
+                                    *base.add(0).cast::<*mut u8>() = ptr6.cast_mut();
+                                    let vec7 = (t5_1.into_bytes()).into_boxed_slice();
+                                    let ptr7 = vec7.as_ptr().cast::<u8>();
+                                    let len7 = vec7.len();
+                                    ::core::mem::forget(vec7);
+                                    *base.add(12).cast::<usize>() = len7;
+                                    *base.add(8).cast::<*mut u8>() = ptr7.cast_mut();
                                 }
                             }
-                            *ptr1.add(8).cast::<usize>() = len6;
-                            *ptr1.add(4).cast::<*mut u8>() = result6;
-                            let vec7 = (message2.into_bytes()).into_boxed_slice();
-                            let ptr7 = vec7.as_ptr().cast::<u8>();
-                            let len7 = vec7.len();
-                            ::core::mem::forget(vec7);
-                            *ptr1.add(16).cast::<usize>() = len7;
-                            *ptr1.add(12).cast::<*mut u8>() = ptr7.cast_mut();
+                            *ptr3.add(8).cast::<usize>() = len8;
+                            *ptr3.add(4).cast::<*mut u8>() = result8;
+                            let vec9 = (message4.into_bytes()).into_boxed_slice();
+                            let ptr9 = vec9.as_ptr().cast::<u8>();
+                            let len9 = vec9.len();
+                            ::core::mem::forget(vec9);
+                            *ptr3.add(16).cast::<usize>() = len9;
+                            *ptr3.add(12).cast::<*mut u8>() = ptr9.cast_mut();
                         }
                     };
-                    ptr1
+                    ptr3
                 }
                 #[doc(hidden)]
                 #[allow(non_snake_case)]
-                pub unsafe fn __post_return_on_gateway_request<T: Guest>(arg0: *mut u8) {
+                pub unsafe fn __post_return_on_subgraph_request<T: Guest>(arg0: *mut u8) {
                     let l0 = i32::from(*arg0.add(0).cast::<u8>());
                     match l0 {
                         0 => (),
@@ -662,25 +675,30 @@ pub mod exports {
                     }
                 }
                 pub trait Guest {
-                    fn on_gateway_request(context: Context, headers: Headers) -> Result<(), Error>;
+                    fn on_subgraph_request(
+                        context: SharedContext,
+                        method: _rt::String,
+                        url: _rt::String,
+                        headers: Headers,
+                    ) -> Result<(), Error>;
                 }
                 #[doc(hidden)]
 
-                macro_rules! __export_component_grafbase_gateway_request_cabi{
+                macro_rules! __export_component_grafbase_subgraph_request_cabi{
         ($ty:ident with_types_in $($path_to_types:tt)*) => (const _: () = {
 
-          #[export_name = "component:grafbase/gateway-request#on-gateway-request"]
-          unsafe extern "C" fn export_on_gateway_request(arg0: i32,arg1: i32,) -> *mut u8 {
-            $($path_to_types)*::_export_on_gateway_request_cabi::<$ty>(arg0, arg1)
+          #[export_name = "component:grafbase/subgraph-request#on-subgraph-request"]
+          unsafe extern "C" fn export_on_subgraph_request(arg0: i32,arg1: *mut u8,arg2: usize,arg3: *mut u8,arg4: usize,arg5: i32,) -> *mut u8 {
+            $($path_to_types)*::_export_on_subgraph_request_cabi::<$ty>(arg0, arg1, arg2, arg3, arg4, arg5)
           }
-          #[export_name = "cabi_post_component:grafbase/gateway-request#on-gateway-request"]
-          unsafe extern "C" fn _post_return_on_gateway_request(arg0: *mut u8,) {
-            $($path_to_types)*::__post_return_on_gateway_request::<$ty>(arg0)
+          #[export_name = "cabi_post_component:grafbase/subgraph-request#on-subgraph-request"]
+          unsafe extern "C" fn _post_return_on_subgraph_request(arg0: *mut u8,) {
+            $($path_to_types)*::__post_return_on_subgraph_request::<$ty>(arg0)
           }
         };);
       }
                 #[doc(hidden)]
-                pub(crate) use __export_component_grafbase_gateway_request_cabi;
+                pub(crate) use __export_component_grafbase_subgraph_request_cabi;
                 #[repr(align(4))]
                 struct _RetArea([::core::mem::MaybeUninit<u8>; 20]);
                 static mut _RET_AREA: _RetArea = _RetArea([::core::mem::MaybeUninit::uninit(); 20]);
@@ -836,7 +854,7 @@ mod _rt {
 macro_rules! __export_hooks_impl {
   ($ty:ident) => (self::export!($ty with_types_in self););
   ($ty:ident with_types_in $($path_to_types_root:tt)*) => (
-  $($path_to_types_root)*::exports::component::grafbase::gateway_request::__export_component_grafbase_gateway_request_cabi!($ty with_types_in $($path_to_types_root)*::exports::component::grafbase::gateway_request);
+  $($path_to_types_root)*::exports::component::grafbase::subgraph_request::__export_component_grafbase_subgraph_request_cabi!($ty with_types_in $($path_to_types_root)*::exports::component::grafbase::subgraph_request);
   )
 }
 #[doc(inline)]
@@ -845,8 +863,8 @@ pub(crate) use __export_hooks_impl as export;
 #[cfg(target_arch = "wasm32")]
 #[link_section = "component-type:wit-bindgen:0.25.0:hooks:encoded world"]
 #[doc(hidden)]
-pub static __WIT_BINDGEN_COMPONENT_TYPE: [u8; 949] = *b"\
-\0asm\x0d\0\x01\0\0\x19\x16wit-component-encoding\x04\0\x07\xb9\x06\x01A\x02\x01\
+pub static __WIT_BINDGEN_COMPONENT_TYPE: [u8; 978] = *b"\
+\0asm\x0d\0\x01\0\0\x19\x16wit-component-encoding\x04\0\x07\xd6\x06\x01A\x02\x01\
 A\x07\x01B\x20\x01m\x02\x14invalid-header-value\x13invalid-header-name\x04\0\x0c\
 header-error\x03\0\0\x04\0\x07context\x03\x01\x04\0\x0eshared-context\x03\x01\x04\
 \0\x07headers\x03\x01\x01r\x02\x10parent-type-names\x0afield-names\x04\0\x0fedge\
@@ -859,14 +877,14 @@ set\x01\x10\x04\0\x16[method]context.delete\x01\x0f\x01h\x03\x01@\x02\x04self\x1
 self\x13\x04names\0\x0e\x04\0\x13[method]headers.get\x01\x14\x01j\0\x01\x01\x01@\
 \x03\x04self\x13\x04names\x05values\0\x15\x04\0\x13[method]headers.set\x01\x16\x04\
 \0\x16[method]headers.delete\x01\x14\x01@\x01\x04self\x13\0\x0a\x04\0\x17[method\
-]headers.entries\x01\x17\x03\x01\x18component:grafbase/types\x05\0\x02\x03\0\0\x07\
-headers\x02\x03\0\0\x05error\x02\x03\0\0\x07context\x01B\x0b\x02\x03\x02\x01\x01\
-\x04\0\x07headers\x03\0\0\x02\x03\x02\x01\x02\x04\0\x05error\x03\0\x02\x02\x03\x02\
-\x01\x03\x04\0\x07context\x03\0\x04\x01i\x05\x01i\x01\x01j\0\x01\x03\x01@\x02\x07\
-context\x06\x07headers\x07\0\x08\x04\0\x12on-gateway-request\x01\x09\x04\x01\"co\
-mponent:grafbase/gateway-request\x05\x04\x04\x01\x18component:grafbase/hooks\x04\
-\0\x0b\x0b\x01\0\x05hooks\x03\0\0\0G\x09producers\x01\x0cprocessed-by\x02\x0dwit\
--component\x070.208.1\x10wit-bindgen-rust\x060.25.0";
+]headers.entries\x01\x17\x03\x01\x18component:grafbase/types\x05\0\x02\x03\0\0\x0e\
+shared-context\x02\x03\0\0\x07headers\x02\x03\0\0\x05error\x01B\x0b\x02\x03\x02\x01\
+\x01\x04\0\x0eshared-context\x03\0\0\x02\x03\x02\x01\x02\x04\0\x07headers\x03\0\x02\
+\x02\x03\x02\x01\x03\x04\0\x05error\x03\0\x04\x01i\x01\x01i\x03\x01j\0\x01\x05\x01\
+@\x04\x07context\x06\x06methods\x03urls\x07headers\x07\0\x08\x04\0\x13on-subgrap\
+h-request\x01\x09\x04\x01#component:grafbase/subgraph-request\x05\x04\x04\x01\x18\
+component:grafbase/hooks\x04\0\x0b\x0b\x01\0\x05hooks\x03\0\0\0G\x09producers\x01\
+\x0cprocessed-by\x02\x0dwit-component\x070.208.1\x10wit-bindgen-rust\x060.25.0";
 
 #[inline(never)]
 #[doc(hidden)]
