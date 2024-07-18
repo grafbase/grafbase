@@ -3,14 +3,14 @@ use wasmtime::component::{ComponentType, Lower};
 use crate::{
     context::SharedContextMap,
     names::{
-        AUTHORIZE_EDGE_NODE_POST_EXECUTION_HOOK_FUNCTION, AUTHORIZE_EDGE_POST_EXECUTION_HOOK_FUNCTION,
-        AUTHORIZE_EDGE_PRE_EXECUTION_HOOK_FUNCTION, AUTHORIZE_NODE_PRE_EXECUTION_HOOK_FUNCTION,
-        AUTHORIZE_PARENT_EDGE_POST_EXECUTION_HOOK_FUNCTION, COMPONENT_AUTHORIZATION,
+        AUTHORIZATION_INTERFACE, AUTHORIZE_EDGE_NODE_POST_EXECUTION_HOOK_FUNCTION,
+        AUTHORIZE_EDGE_POST_EXECUTION_HOOK_FUNCTION, AUTHORIZE_EDGE_PRE_EXECUTION_HOOK_FUNCTION,
+        AUTHORIZE_NODE_PRE_EXECUTION_HOOK_FUNCTION, AUTHORIZE_PARENT_EDGE_POST_EXECUTION_HOOK_FUNCTION,
     },
     ComponentLoader, GuestResult,
 };
 
-use super::ComponentInstance;
+use super::{component_instance, ComponentInstance};
 
 /// Defines an edge in an authorization hook.
 #[derive(Lower, ComponentType)]
@@ -33,32 +33,9 @@ pub struct NodeDefinition {
     pub type_name: String,
 }
 
-/// The authorization hook is called if the requested type uses the authorization directive.
-///
-/// An instance of a function to be called from the Gateway level for the request.
-/// The instance is meant to be separate for every request. The instance shares a memory space
-/// with the guest, and cannot be shared with multiple requests.
-pub struct AuthorizationHookInstance(ComponentInstance);
+component_instance!(AuthorizationComponentInstance: AUTHORIZATION_INTERFACE);
 
-impl std::ops::Deref for AuthorizationHookInstance {
-    type Target = ComponentInstance;
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl std::ops::DerefMut for AuthorizationHookInstance {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
-    }
-}
-
-impl AuthorizationHookInstance {
-    /// Creates a new instance of the authorization hook
-    pub async fn new(loader: &ComponentLoader) -> crate::Result<Self> {
-        ComponentInstance::new(loader, COMPONENT_AUTHORIZATION).await.map(Self)
-    }
-
+impl AuthorizationComponentInstance {
     /// Calls the pre authorize hook for an edge
     pub async fn authorize_edge_pre_execution(
         &mut self,

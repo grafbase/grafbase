@@ -19,7 +19,7 @@ pub use pg::{LazyPgConnectionsPool, LocalPgTransportFactory};
 pub use ufd_invoker::UdfInvokerImpl;
 
 #[cfg(feature = "wasi")]
-pub use hooks::{ComponentLoader, HooksConfig, HooksWasi};
+pub use hooks::{ComponentLoader, HooksWasi, HooksWasiConfig};
 
 pub use crate::log::LogEventReceiverImpl;
 

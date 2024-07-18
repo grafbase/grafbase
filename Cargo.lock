@@ -2495,6 +2495,7 @@ dependencies = [
  "async-runtime",
  "base64 0.22.1",
  "blake3",
+ "bytes",
  "crossbeam-queue",
  "engine",
  "engine-parser",
@@ -2524,6 +2525,7 @@ dependencies = [
  "thiserror",
  "tracing",
  "ulid",
+ "url",
  "web-time",
 ]
 
@@ -7701,6 +7703,7 @@ dependencies = [
  "tracing",
  "tungstenite",
  "ulid",
+ "url",
  "wasi-component-loader",
 ]
 

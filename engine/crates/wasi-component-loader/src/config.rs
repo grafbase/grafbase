@@ -28,6 +28,20 @@ pub struct PreopenedDirectory {
 }
 
 impl Config {
+    /// Add location
+    pub fn with_location(self, location: impl Into<PathBuf>) -> Self {
+        Self {
+            location: location.into(),
+            ..self
+        }
+    }
+
+    /// Define the location root directory (prefix)
+    pub fn with_location_root_dir(self, dir: impl Into<PathBuf>) -> Self {
+        let location = dir.into().join(self.location);
+        Self { location, ..self }
+    }
+
     pub(crate) fn location(&self) -> &Path {
         &self.location
     }

@@ -8,6 +8,7 @@ struct Component;
 impl subgraph_request::Guest for Component {
     fn on_subgraph_request(
         context: subgraph_request::SharedContext,
+        subgraph_name: String,
         method: String,
         url: String,
         headers: subgraph_request::Headers,
@@ -22,6 +23,7 @@ impl subgraph_request::Guest for Component {
         }
 
         let everything = serde_json::to_vec(&serde_json::json!({
+            "subgraph_name": subgraph_name,
             "method": method,
             "url": url,
             "headers": headers.entries()

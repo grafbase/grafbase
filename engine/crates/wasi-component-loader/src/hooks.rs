@@ -1,3 +1,5 @@
+use std::any::Any;
+use std::future::Future;
 use std::sync::RwLock;
 
 use anyhow::anyhow;
@@ -13,6 +15,52 @@ pub(crate) mod authorization;
 pub(crate) mod gateway;
 pub(crate) mod subgraph;
 
+/// A trait for components that can be recycled
+pub trait RecycleableComponentInstance: Sized + Send + 'static {
+    /// Creates a new instance of the component
+    fn new(loader: &ComponentLoader) -> impl Future<Output = crate::Result<Self>> + Send;
+    /// Resets the store to the original state. This must be called if wanting to reuse this instance.
+    fn recycle(&mut self) -> crate::Result<()>;
+}
+
+macro_rules! component_instance {
+    ($ty:ident: $name:expr) => {
+        /// A component instance
+        pub struct $ty(ComponentInstance);
+
+        impl std::fmt::Debug for $ty {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                write!(f, "{}", stringify!($ty))
+            }
+        }
+
+        impl std::ops::Deref for $ty {
+            type Target = ComponentInstance;
+            fn deref(&self) -> &Self::Target {
+                &self.0
+            }
+        }
+
+        impl std::ops::DerefMut for $ty {
+            fn deref_mut(&mut self) -> &mut Self::Target {
+                &mut self.0
+            }
+        }
+
+        impl $crate::RecycleableComponentInstance for $ty {
+            async fn new(loader: &ComponentLoader) -> $crate::Result<Self> {
+                ComponentInstance::new(loader, $name).await.map(Self)
+            }
+
+            fn recycle(&mut self) -> $crate::Result<()> {
+                self.0.recycle()
+            }
+        }
+    };
+}
+
+pub(crate) use component_instance;
+
 /// Generic initialization of WASI components for all hooks.
 fn initialize_store(config: &Config, engine: &Engine) -> crate::Result<Store<WasiState>> {
     let state = WasiState::new(config.wasi_context());
@@ -26,19 +74,20 @@ fn initialize_store(config: &Config, engine: &Engine) -> crate::Result<Store<Was
     Ok(store)
 }
 
-type FunctionCache = RwLock<Vec<(&'static str, Box<dyn std::any::Any + Send + Sync>)>>;
+type FunctionCache = RwLock<Vec<(&'static str, Option<Box<dyn Any + Send + Sync + 'static>>)>>;
 
+/// Component instance for hooks
 pub struct ComponentInstance {
     store: Store<WasiState>,
     instance: Instance,
-    export_name: &'static str,
+    interface_name: &'static str,
     function_cache: FunctionCache,
     poisoned: bool,
 }
 
 impl ComponentInstance {
     /// Creates a new instance of the authorization hook
-    async fn new(loader: &ComponentLoader, export_name: &'static str) -> crate::Result<Self> {
+    async fn new(loader: &ComponentLoader, interface_name: &'static str) -> crate::Result<Self> {
         let mut store = initialize_store(loader.config(), loader.engine())?;
 
         let instance = loader
@@ -49,7 +98,7 @@ impl ComponentInstance {
         Ok(Self {
             store,
             instance,
-            export_name,
+            interface_name,
             function_cache: Default::default(),
             poisoned: false,
         })
@@ -137,35 +186,36 @@ impl ComponentInstance {
         I: ComponentNamedList + Lower + Send + Sync + 'static,
         O: ComponentNamedList + Lift + Send + Sync + 'static,
     {
-        if let Some(func) = self
+        if let Some((_, cached)) = self
             .function_cache
             .read()
             .unwrap()
             .iter()
-            .filter(|(name, _)| *name == function_name)
-            .find_map(|(_, cached)| cached.downcast_ref::<TypedFunc<I, O>>())
+            .find(|(name, _)| *name == function_name)
         {
-            return Some(*func);
+            return cached.as_ref().and_then(|func| func.downcast_ref().copied());
         }
         let mut exports = self.instance.exports(&mut self.store);
         let mut root = exports.root();
 
-        let Some(mut interface) = root.instance(self.export_name) else {
-            tracing::debug!(target: GRAFBASE_TARGET, "could not find export for authorization interface");
+        let Some(mut interface) = root.instance(self.interface_name) else {
+            tracing::debug!(target: GRAFBASE_TARGET, "could not find export for {} interface", self.interface_name);
+            self.function_cache.write().unwrap().push((function_name, None));
             return None;
         };
 
         match interface.typed_func(function_name) {
             Ok(hook) => {
-                tracing::debug!(target: GRAFBASE_TARGET, "instantized the authorization hook WASM function");
+                tracing::debug!(target: GRAFBASE_TARGET, "instantized the {function_name} hook WASM function");
                 self.function_cache
                     .write()
                     .unwrap()
-                    .push((function_name, Box::new(hook)));
+                    .push((function_name, Some(Box::new(hook))));
                 Some(hook)
             }
             Err(e) => {
-                tracing::debug!(target: GRAFBASE_TARGET, "error instantizing the authorization hook WASM function: {e}");
+                // Shouldn't happen, so we keep spamming errors to be sure it's seen.
+                tracing::error!(target: GRAFBASE_TARGET, "error instantizing the {function_name} hook WASM function: {e}");
                 None
             }
         }
@@ -174,7 +224,7 @@ impl ComponentInstance {
     /// Resets the store to the original state. This must be called if wanting to reuse this instance.
     ///
     /// If the cleanup fails, the instance is gone and must be dropped.
-    pub fn cleanup(&mut self) -> crate::Result<()> {
+    pub fn recycle(&mut self) -> crate::Result<()> {
         if self.poisoned {
             return Err(anyhow!("this instance is poisoned").into());
         }

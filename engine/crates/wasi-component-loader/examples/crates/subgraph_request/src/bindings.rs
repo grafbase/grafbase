@@ -576,7 +576,9 @@ pub mod exports {
                     arg2: usize,
                     arg3: *mut u8,
                     arg4: usize,
-                    arg5: i32,
+                    arg5: *mut u8,
+                    arg6: usize,
+                    arg7: i32,
                 ) -> *mut u8 {
                     #[cfg(target_arch = "wasm32")]
                     _rt::run_ctors_once();
@@ -584,30 +586,33 @@ pub mod exports {
                     let bytes0 = _rt::Vec::from_raw_parts(arg1.cast(), len0, len0);
                     let len1 = arg4;
                     let bytes1 = _rt::Vec::from_raw_parts(arg3.cast(), len1, len1);
-                    let result2 = T::on_subgraph_request(
+                    let len2 = arg6;
+                    let bytes2 = _rt::Vec::from_raw_parts(arg5.cast(), len2, len2);
+                    let result3 = T::on_subgraph_request(
                         super::super::super::super::component::grafbase::types::SharedContext::from_handle(arg0 as u32),
                         _rt::string_lift(bytes0),
                         _rt::string_lift(bytes1),
-                        super::super::super::super::component::grafbase::types::Headers::from_handle(arg5 as u32),
+                        _rt::string_lift(bytes2),
+                        super::super::super::super::component::grafbase::types::Headers::from_handle(arg7 as u32),
                     );
-                    let ptr3 = _RET_AREA.0.as_mut_ptr().cast::<u8>();
-                    match result2 {
+                    let ptr4 = _RET_AREA.0.as_mut_ptr().cast::<u8>();
+                    match result3 {
                         Ok(_) => {
-                            *ptr3.add(0).cast::<u8>() = (0i32) as u8;
+                            *ptr4.add(0).cast::<u8>() = (0i32) as u8;
                         }
                         Err(e) => {
-                            *ptr3.add(0).cast::<u8>() = (1i32) as u8;
+                            *ptr4.add(0).cast::<u8>() = (1i32) as u8;
                             let super::super::super::super::component::grafbase::types::Error {
-                                extensions: extensions4,
-                                message: message4,
+                                extensions: extensions5,
+                                message: message5,
                             } = e;
-                            let vec8 = extensions4;
-                            let len8 = vec8.len();
-                            let layout8 = _rt::alloc::Layout::from_size_align_unchecked(vec8.len() * 16, 4);
-                            let result8 = if layout8.size() != 0 {
-                                let ptr = _rt::alloc::alloc(layout8).cast::<u8>();
+                            let vec9 = extensions5;
+                            let len9 = vec9.len();
+                            let layout9 = _rt::alloc::Layout::from_size_align_unchecked(vec9.len() * 16, 4);
+                            let result9 = if layout9.size() != 0 {
+                                let ptr = _rt::alloc::alloc(layout9).cast::<u8>();
                                 if ptr.is_null() {
-                                    _rt::alloc::handle_alloc_error(layout8);
+                                    _rt::alloc::handle_alloc_error(layout9);
                                 }
                                 ptr
                             } else {
@@ -615,35 +620,35 @@ pub mod exports {
                                     ::core::ptr::null_mut()
                                 }
                             };
-                            for (i, e) in vec8.into_iter().enumerate() {
-                                let base = result8.add(i * 16);
+                            for (i, e) in vec9.into_iter().enumerate() {
+                                let base = result9.add(i * 16);
                                 {
-                                    let (t5_0, t5_1) = e;
-                                    let vec6 = (t5_0.into_bytes()).into_boxed_slice();
-                                    let ptr6 = vec6.as_ptr().cast::<u8>();
-                                    let len6 = vec6.len();
-                                    ::core::mem::forget(vec6);
-                                    *base.add(4).cast::<usize>() = len6;
-                                    *base.add(0).cast::<*mut u8>() = ptr6.cast_mut();
-                                    let vec7 = (t5_1.into_bytes()).into_boxed_slice();
+                                    let (t6_0, t6_1) = e;
+                                    let vec7 = (t6_0.into_bytes()).into_boxed_slice();
                                     let ptr7 = vec7.as_ptr().cast::<u8>();
                                     let len7 = vec7.len();
                                     ::core::mem::forget(vec7);
-                                    *base.add(12).cast::<usize>() = len7;
-                                    *base.add(8).cast::<*mut u8>() = ptr7.cast_mut();
+                                    *base.add(4).cast::<usize>() = len7;
+                                    *base.add(0).cast::<*mut u8>() = ptr7.cast_mut();
+                                    let vec8 = (t6_1.into_bytes()).into_boxed_slice();
+                                    let ptr8 = vec8.as_ptr().cast::<u8>();
+                                    let len8 = vec8.len();
+                                    ::core::mem::forget(vec8);
+                                    *base.add(12).cast::<usize>() = len8;
+                                    *base.add(8).cast::<*mut u8>() = ptr8.cast_mut();
                                 }
                             }
-                            *ptr3.add(8).cast::<usize>() = len8;
-                            *ptr3.add(4).cast::<*mut u8>() = result8;
-                            let vec9 = (message4.into_bytes()).into_boxed_slice();
-                            let ptr9 = vec9.as_ptr().cast::<u8>();
-                            let len9 = vec9.len();
-                            ::core::mem::forget(vec9);
-                            *ptr3.add(16).cast::<usize>() = len9;
-                            *ptr3.add(12).cast::<*mut u8>() = ptr9.cast_mut();
+                            *ptr4.add(8).cast::<usize>() = len9;
+                            *ptr4.add(4).cast::<*mut u8>() = result9;
+                            let vec10 = (message5.into_bytes()).into_boxed_slice();
+                            let ptr10 = vec10.as_ptr().cast::<u8>();
+                            let len10 = vec10.len();
+                            ::core::mem::forget(vec10);
+                            *ptr4.add(16).cast::<usize>() = len10;
+                            *ptr4.add(12).cast::<*mut u8>() = ptr10.cast_mut();
                         }
                     };
-                    ptr3
+                    ptr4
                 }
                 #[doc(hidden)]
                 #[allow(non_snake_case)]
@@ -677,6 +682,7 @@ pub mod exports {
                 pub trait Guest {
                     fn on_subgraph_request(
                         context: SharedContext,
+                        subgraph_name: _rt::String,
                         method: _rt::String,
                         url: _rt::String,
                         headers: Headers,
@@ -688,8 +694,8 @@ pub mod exports {
         ($ty:ident with_types_in $($path_to_types:tt)*) => (const _: () = {
 
           #[export_name = "component:grafbase/subgraph-request#on-subgraph-request"]
-          unsafe extern "C" fn export_on_subgraph_request(arg0: i32,arg1: *mut u8,arg2: usize,arg3: *mut u8,arg4: usize,arg5: i32,) -> *mut u8 {
-            $($path_to_types)*::_export_on_subgraph_request_cabi::<$ty>(arg0, arg1, arg2, arg3, arg4, arg5)
+          unsafe extern "C" fn export_on_subgraph_request(arg0: i32,arg1: *mut u8,arg2: usize,arg3: *mut u8,arg4: usize,arg5: *mut u8,arg6: usize,arg7: i32,) -> *mut u8 {
+            $($path_to_types)*::_export_on_subgraph_request_cabi::<$ty>(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7)
           }
           #[export_name = "cabi_post_component:grafbase/subgraph-request#on-subgraph-request"]
           unsafe extern "C" fn _post_return_on_subgraph_request(arg0: *mut u8,) {
@@ -863,8 +869,8 @@ pub(crate) use __export_hooks_impl as export;
 #[cfg(target_arch = "wasm32")]
 #[link_section = "component-type:wit-bindgen:0.25.0:hooks:encoded world"]
 #[doc(hidden)]
-pub static __WIT_BINDGEN_COMPONENT_TYPE: [u8; 978] = *b"\
-\0asm\x0d\0\x01\0\0\x19\x16wit-component-encoding\x04\0\x07\xd6\x06\x01A\x02\x01\
+pub static __WIT_BINDGEN_COMPONENT_TYPE: [u8; 993] = *b"\
+\0asm\x0d\0\x01\0\0\x19\x16wit-component-encoding\x04\0\x07\xe5\x06\x01A\x02\x01\
 A\x07\x01B\x20\x01m\x02\x14invalid-header-value\x13invalid-header-name\x04\0\x0c\
 header-error\x03\0\0\x04\0\x07context\x03\x01\x04\0\x0eshared-context\x03\x01\x04\
 \0\x07headers\x03\x01\x01r\x02\x10parent-type-names\x0afield-names\x04\0\x0fedge\
@@ -881,10 +887,11 @@ self\x13\x04names\0\x0e\x04\0\x13[method]headers.get\x01\x14\x01j\0\x01\x01\x01@
 shared-context\x02\x03\0\0\x07headers\x02\x03\0\0\x05error\x01B\x0b\x02\x03\x02\x01\
 \x01\x04\0\x0eshared-context\x03\0\0\x02\x03\x02\x01\x02\x04\0\x07headers\x03\0\x02\
 \x02\x03\x02\x01\x03\x04\0\x05error\x03\0\x04\x01i\x01\x01i\x03\x01j\0\x01\x05\x01\
-@\x04\x07context\x06\x06methods\x03urls\x07headers\x07\0\x08\x04\0\x13on-subgrap\
-h-request\x01\x09\x04\x01#component:grafbase/subgraph-request\x05\x04\x04\x01\x18\
-component:grafbase/hooks\x04\0\x0b\x0b\x01\0\x05hooks\x03\0\0\0G\x09producers\x01\
-\x0cprocessed-by\x02\x0dwit-component\x070.208.1\x10wit-bindgen-rust\x060.25.0";
+@\x05\x07context\x06\x0dsubgraph-names\x06methods\x03urls\x07headers\x07\0\x08\x04\
+\0\x13on-subgraph-request\x01\x09\x04\x01#component:grafbase/subgraph-request\x05\
+\x04\x04\x01\x18component:grafbase/hooks\x04\0\x0b\x0b\x01\0\x05hooks\x03\0\0\0G\
+\x09producers\x01\x0cprocessed-by\x02\x0dwit-component\x070.208.1\x10wit-bindgen\
+-rust\x060.25.0";
 
 #[inline(never)]
 #[doc(hidden)]

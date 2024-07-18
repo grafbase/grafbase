@@ -30,6 +30,7 @@ graphql-parser = "0.4.0"
 headers.workspace = true
 http.workspace = true
 indoc = "2.0.5"
+insta.workspace = true
 multipart-stream = "0.1.2"
 names = "0.14.1-dev"
 openidconnect.workspace = true
@@ -61,10 +62,6 @@ regex.workspace = true
 [dependencies.tokio]
 version = "1.37"
 features = ["full"]
-
-[dependencies.insta]
-version = "1.38"
-features = ["json"]
 
 [dependencies.engine]
 path = "../engine"

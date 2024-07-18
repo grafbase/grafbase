@@ -1,8 +1,8 @@
 use std::{collections::HashMap, sync::Arc};
 
 use crate::{
-    hooks::subgraph::SubgraphHookInstance, AuthorizationHookInstance, ComponentLoader, Config, EdgeDefinition,
-    GatewayHookInstance, GuestError, NodeDefinition,
+    hooks::subgraph::SubgraphComponentInstance, AuthorizationComponentInstance, ComponentLoader, Config,
+    EdgeDefinition, GatewayComponentInstance, GuestError, NodeDefinition, RecycleableComponentInstance,
 };
 use expect_test::expect;
 use http::{HeaderMap, HeaderValue};
@@ -34,9 +34,9 @@ async fn missing_hook() {
     assert!(config.location().exists());
 
     let loader = ComponentLoader::new(config).unwrap().unwrap();
-    let mut hook = GatewayHookInstance::new(&loader).await.unwrap();
+    let mut hook = GatewayComponentInstance::new(&loader).await.unwrap();
 
-    let (context, headers) = hook.call(HashMap::new(), HeaderMap::new()).await.unwrap();
+    let (context, headers) = hook.on_gateway_request(HashMap::new(), HeaderMap::new()).await.unwrap();
 
     assert_eq!(HeaderMap::new(), headers);
     assert_eq!(HashMap::new(), context);
@@ -63,8 +63,8 @@ async fn simple_no_io() {
     let mut context = HashMap::new();
     context.insert("kekw".to_string(), "lol".to_string());
 
-    let mut hook = GatewayHookInstance::new(&loader).await.unwrap();
-    let (context, headers) = hook.call(context, HeaderMap::new()).await.unwrap();
+    let mut hook = GatewayComponentInstance::new(&loader).await.unwrap();
+    let (context, headers) = hook.on_gateway_request(context, HeaderMap::new()).await.unwrap();
 
     assert_eq!(Some(&HeaderValue::from_static("call")), headers.get("direct"));
     assert_eq!(Some(&HeaderValue::from_static("meow")), headers.get("fromEnv"));
@@ -98,8 +98,8 @@ async fn dir_access_read_only() {
 
     let loader = ComponentLoader::new(config).unwrap().unwrap();
 
-    let mut hook = GatewayHookInstance::new(&loader).await.unwrap();
-    let (_, headers) = hook.call(HashMap::new(), HeaderMap::new()).await.unwrap();
+    let mut hook = GatewayComponentInstance::new(&loader).await.unwrap();
+    let (_, headers) = hook.on_gateway_request(HashMap::new(), HeaderMap::new()).await.unwrap();
 
     assert_eq!(
         Some(&HeaderValue::from_static("test string")),
@@ -135,8 +135,8 @@ async fn dir_access_write() {
     std::fs::write(path.join("contents.txt"), "test string").unwrap();
 
     let loader = ComponentLoader::new(config).unwrap().unwrap();
-    let mut hook = GatewayHookInstance::new(&loader).await.unwrap();
-    hook.call(HashMap::new(), HeaderMap::new()).await.unwrap();
+    let mut hook = GatewayComponentInstance::new(&loader).await.unwrap();
+    hook.on_gateway_request(HashMap::new(), HeaderMap::new()).await.unwrap();
 
     let path = path.join("guest_write.txt");
 
@@ -172,8 +172,8 @@ async fn networking() {
     assert!(config.location().exists());
 
     let loader = ComponentLoader::new(config).unwrap().unwrap();
-    let mut hook = GatewayHookInstance::new(&loader).await.unwrap();
-    let (context, _) = hook.call(HashMap::new(), HeaderMap::new()).await.unwrap();
+    let mut hook = GatewayComponentInstance::new(&loader).await.unwrap();
+    let (context, _) = hook.on_gateway_request(HashMap::new(), HeaderMap::new()).await.unwrap();
 
     assert_eq!(Some("kekw"), context.get("HTTP_RESPONSE").map(|s| s.as_str()));
 }
@@ -204,7 +204,7 @@ async fn networking_no_network() {
     assert!(config.location().exists());
 
     let loader = ComponentLoader::new(config).unwrap().unwrap();
-    let error = GatewayHookInstance::new(&loader).await.unwrap_err();
+    let error = GatewayComponentInstance::new(&loader).await.unwrap_err();
 
     let expected = expect![
         "component imports instance `wasi:http/types@0.2.0`, but a matching implementation was not found in the linker"
@@ -225,8 +225,11 @@ async fn guest_error() {
     assert!(config.location().exists());
 
     let loader = ComponentLoader::new(config).unwrap().unwrap();
-    let mut hook = GatewayHookInstance::new(&loader).await.unwrap();
-    let error = hook.call(HashMap::new(), HeaderMap::new()).await.unwrap_err();
+    let mut hook = GatewayComponentInstance::new(&loader).await.unwrap();
+    let error = hook
+        .on_gateway_request(HashMap::new(), HeaderMap::new())
+        .await
+        .unwrap_err();
 
     let expected = GuestError {
         message: String::from("not found"),
@@ -252,10 +255,10 @@ async fn authorize_edge_pre_execution_error() {
 
     let loader = ComponentLoader::new(config).unwrap().unwrap();
 
-    let mut hook = GatewayHookInstance::new(&loader).await.unwrap();
-    let (context, _) = hook.call(HashMap::new(), headers).await.unwrap();
+    let mut hook = GatewayComponentInstance::new(&loader).await.unwrap();
+    let (context, _) = hook.on_gateway_request(HashMap::new(), headers).await.unwrap();
 
-    let mut hook = AuthorizationHookInstance::new(&loader).await.unwrap();
+    let mut hook = AuthorizationComponentInstance::new(&loader).await.unwrap();
 
     let definition = EdgeDefinition {
         parent_type_name: String::new(),
@@ -291,10 +294,10 @@ async fn authorize_edge_pre_execution_success() {
 
     let loader = ComponentLoader::new(config).unwrap().unwrap();
 
-    let mut hook = GatewayHookInstance::new(&loader).await.unwrap();
-    let (context, _) = hook.call(HashMap::new(), headers).await.unwrap();
+    let mut hook = GatewayComponentInstance::new(&loader).await.unwrap();
+    let (context, _) = hook.on_gateway_request(HashMap::new(), headers).await.unwrap();
 
-    let mut hook = AuthorizationHookInstance::new(&loader).await.unwrap();
+    let mut hook = AuthorizationComponentInstance::new(&loader).await.unwrap();
 
     let definition = EdgeDefinition {
         parent_type_name: String::new(),
@@ -322,10 +325,10 @@ async fn authorize_node_pre_execution_error() {
 
     let loader = ComponentLoader::new(config).unwrap().unwrap();
 
-    let mut hook = GatewayHookInstance::new(&loader).await.unwrap();
-    let (context, _) = hook.call(HashMap::new(), headers).await.unwrap();
+    let mut hook = GatewayComponentInstance::new(&loader).await.unwrap();
+    let (context, _) = hook.on_gateway_request(HashMap::new(), headers).await.unwrap();
 
-    let mut hook = AuthorizationHookInstance::new(&loader).await.unwrap();
+    let mut hook = AuthorizationComponentInstance::new(&loader).await.unwrap();
 
     let definition = NodeDefinition {
         type_name: String::new(),
@@ -360,10 +363,10 @@ async fn authorize_node_pre_execution_success() {
 
     let loader = ComponentLoader::new(config).unwrap().unwrap();
 
-    let mut hook = GatewayHookInstance::new(&loader).await.unwrap();
-    let (context, _) = hook.call(HashMap::new(), headers).await.unwrap();
+    let mut hook = GatewayComponentInstance::new(&loader).await.unwrap();
+    let (context, _) = hook.on_gateway_request(HashMap::new(), headers).await.unwrap();
 
-    let mut hook = AuthorizationHookInstance::new(&loader).await.unwrap();
+    let mut hook = AuthorizationComponentInstance::new(&loader).await.unwrap();
 
     let definition = NodeDefinition {
         type_name: String::new(),
@@ -390,10 +393,10 @@ async fn authorize_parent_edge_post_execution() {
 
     let loader = ComponentLoader::new(config).unwrap().unwrap();
 
-    let mut hook = GatewayHookInstance::new(&loader).await.unwrap();
-    let (context, _) = hook.call(HashMap::new(), headers).await.unwrap();
+    let mut hook = GatewayComponentInstance::new(&loader).await.unwrap();
+    let (context, _) = hook.on_gateway_request(HashMap::new(), headers).await.unwrap();
 
-    let mut hook = AuthorizationHookInstance::new(&loader).await.unwrap();
+    let mut hook = AuthorizationComponentInstance::new(&loader).await.unwrap();
 
     let definition = EdgeDefinition {
         parent_type_name: String::new(),
@@ -443,10 +446,10 @@ async fn authorize_edge_node_post_execution() {
 
     let loader = ComponentLoader::new(config).unwrap().unwrap();
 
-    let mut hook = GatewayHookInstance::new(&loader).await.unwrap();
-    let (context, _) = hook.call(HashMap::new(), headers).await.unwrap();
+    let mut hook = GatewayComponentInstance::new(&loader).await.unwrap();
+    let (context, _) = hook.on_gateway_request(HashMap::new(), headers).await.unwrap();
 
-    let mut hook = AuthorizationHookInstance::new(&loader).await.unwrap();
+    let mut hook = AuthorizationComponentInstance::new(&loader).await.unwrap();
 
     let definition = EdgeDefinition {
         parent_type_name: String::new(),
@@ -496,10 +499,10 @@ async fn authorize_edge_post_execution() {
 
     let loader = ComponentLoader::new(config).unwrap().unwrap();
 
-    let mut hook = GatewayHookInstance::new(&loader).await.unwrap();
-    let (context, _) = hook.call(HashMap::new(), headers).await.unwrap();
+    let mut hook = GatewayComponentInstance::new(&loader).await.unwrap();
+    let (context, _) = hook.on_gateway_request(HashMap::new(), headers).await.unwrap();
 
-    let mut hook = AuthorizationHookInstance::new(&loader).await.unwrap();
+    let mut hook = AuthorizationComponentInstance::new(&loader).await.unwrap();
 
     let definition = EdgeDefinition {
         parent_type_name: String::new(),
@@ -568,14 +571,15 @@ async fn on_subgraph_request() {
 
     let loader = ComponentLoader::new(config).unwrap().unwrap();
 
-    let mut hook = GatewayHookInstance::new(&loader).await.unwrap();
-    let (context, headers) = hook.call(HashMap::new(), headers).await.unwrap();
+    let mut hook = GatewayComponentInstance::new(&loader).await.unwrap();
+    let (context, headers) = hook.on_gateway_request(HashMap::new(), headers).await.unwrap();
 
-    let mut hook = SubgraphHookInstance::new(&loader).await.unwrap();
+    let mut hook = SubgraphComponentInstance::new(&loader).await.unwrap();
 
     let headers = hook
         .on_subgraph_request(
             Arc::new(context),
+            "dummy",
             http::Method::POST,
             &"http://example.com".parse().unwrap(),
             headers,
@@ -597,6 +601,7 @@ async fn on_subgraph_request() {
         ]
       ],
       "method": "POST",
+      "subgraph_name": "dummy",
       "url": "http://example.com/"
     }
     "###);
@@ -605,6 +610,7 @@ async fn on_subgraph_request() {
     let error = hook
         .on_subgraph_request(
             Arc::new(context),
+            "dummy",
             http::Method::POST,
             &"http://example.com".parse().unwrap(),
             headers,

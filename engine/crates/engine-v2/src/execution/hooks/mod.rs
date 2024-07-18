@@ -4,7 +4,8 @@ use crate::Runtime;
 
 use super::{ExecutionContext, PreExecutionContext};
 
-pub(crate) mod authorized;
+mod authorized;
+mod subgraph;
 
 pub(crate) struct RequestHooks<'ctx, H: Hooks> {
     hooks: &'ctx H,

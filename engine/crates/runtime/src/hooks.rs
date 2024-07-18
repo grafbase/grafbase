@@ -3,6 +3,7 @@ mod test_utils;
 
 #[cfg(feature = "test-utils")]
 pub use test_utils::*;
+use url::Url;
 
 use std::future::Future;
 
@@ -47,6 +48,8 @@ pub trait Hooks: Send + Sync + 'static {
     ) -> impl Future<Output = Result<(Self::Context, HeaderMap), PartialGraphqlError>> + Send;
 
     fn authorized(&self) -> &impl AuthorizedHooks<Self::Context>;
+
+    fn subgraph(&self) -> &impl SubgraphHooks<Self::Context>;
 }
 
 pub trait AuthorizedHooks<Context>: Send + Sync + 'static {
@@ -101,6 +104,17 @@ pub trait AuthorizedHooks<Context>: Send + Sync + 'static {
         Nodes: IntoIterator<Item: Anything<'a>> + Send;
 }
 
+pub trait SubgraphHooks<Context>: Send + Sync + 'static {
+    fn on_subgraph_request(
+        &self,
+        context: &Context,
+        subgraph_name: &str,
+        method: http::Method,
+        url: &Url,
+        headers: HeaderMap,
+    ) -> impl Future<Output = Result<HeaderMap, PartialGraphqlError>> + Send;
+}
+
 // ---------------------------//
 // -- No-op implementation -- //
 // ---------------------------//
@@ -112,6 +126,10 @@ impl Hooks for () {
     }
 
     fn authorized(&self) -> &impl AuthorizedHooks<()> {
+        self
+    }
+
+    fn subgraph(&self) -> &impl SubgraphHooks<()> {
         self
     }
 }
@@ -196,5 +214,18 @@ impl AuthorizedHooks<()> for () {
             "@authorized directive cannot be used, so access was denied",
             PartialErrorCode::Unauthorized,
         ))
+    }
+}
+
+impl SubgraphHooks<()> for () {
+    async fn on_subgraph_request(
+        &self,
+        _: &(),
+        _: &str,
+        _: http::Method,
+        _: &Url,
+        headers: HeaderMap,
+    ) -> Result<HeaderMap, PartialGraphqlError> {
+        Ok(headers)
     }
 }

@@ -23,9 +23,10 @@ pub use config::Config;
 pub use context::{ContextMap, SharedContextMap};
 pub use error::{guest::GuestError, Error};
 pub use hooks::{
-    authorization::{AuthorizationHookInstance, EdgeDefinition, NodeDefinition},
-    gateway::GatewayHookInstance,
+    authorization::{AuthorizationComponentInstance, EdgeDefinition, NodeDefinition},
+    gateway::GatewayComponentInstance,
     subgraph::*,
+    RecycleableComponentInstance,
 };
 
 /// The crate result type
@@ -102,7 +103,7 @@ impl ComponentLoader {
                 })
             }
             Err(e) => {
-                tracing::debug!(
+                tracing::error!(
                     target: GRAFBASE_TARGET,
                     message = "error loading web assembly component",
                     location = config.location().to_str(),

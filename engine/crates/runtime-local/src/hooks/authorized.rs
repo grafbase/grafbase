@@ -6,7 +6,7 @@ use runtime::{
 };
 use tracing::instrument;
 
-use super::{error_response_to_user_error, Context, HooksWasi};
+use super::{guest_error_as_gql, Context, HooksWasi};
 
 macro_rules! prepare_authorized {
     ($self:ident named $func_name:literal at $definition:expr; [$(($name:literal, $input:expr),)+]) => {{
@@ -16,7 +16,7 @@ macro_rules! prepare_authorized {
                 PartialErrorCode::Unauthorized,
             ));
         };
-        let instance = inner.authorization_hooks.get().await.expect("no io, should not fail");
+        let instance = inner.authorization.get().await;
         let inputs = [$(
             encode($func_name, $definition, $name, $input)?,
         )+];
@@ -69,9 +69,7 @@ impl AuthorizedHooks<Context> for HooksWasi {
                     tracing::error!("authorize_edge_pre_execution error at: {error}");
                     PartialGraphqlError::internal_hook_error()
                 }
-                wasi_component_loader::Error::Guest(error) => {
-                    error_response_to_user_error(error, PartialErrorCode::Unauthorized)
-                }
+                wasi_component_loader::Error::Guest(error) => guest_error_as_gql(error, PartialErrorCode::Unauthorized),
             })?;
 
         Ok(())
@@ -101,9 +99,7 @@ impl AuthorizedHooks<Context> for HooksWasi {
                     tracing::error!("authorize_node_pre_execution error at: {error}");
                     PartialGraphqlError::internal_hook_error()
                 }
-                wasi_component_loader::Error::Guest(error) => {
-                    error_response_to_user_error(error, PartialErrorCode::Unauthorized)
-                }
+                wasi_component_loader::Error::Guest(error) => guest_error_as_gql(error, PartialErrorCode::Unauthorized),
             })?;
 
         Ok(())
@@ -155,14 +151,12 @@ impl AuthorizedHooks<Context> for HooksWasi {
                     tracing::error!("authorize_parent_edge_post_execution error at: {error}");
                     PartialGraphqlError::internal_server_error()
                 }
-                wasi_component_loader::Error::Guest(error) => {
-                    error_response_to_user_error(error, PartialErrorCode::Unauthorized)
-                }
+                wasi_component_loader::Error::Guest(error) => guest_error_as_gql(error, PartialErrorCode::Unauthorized),
             })?
             .into_iter()
             .map(|result| match result {
                 Ok(()) => Ok(()),
-                Err(error) => Err(error_response_to_user_error(error, PartialErrorCode::Unauthorized)),
+                Err(error) => Err(guest_error_as_gql(error, PartialErrorCode::Unauthorized)),
             })
             .collect();
 
@@ -195,14 +189,12 @@ impl AuthorizedHooks<Context> for HooksWasi {
                     tracing::error!("authorize_edge_node_post_execution error at: {error}");
                     PartialGraphqlError::internal_server_error()
                 }
-                wasi_component_loader::Error::Guest(error) => {
-                    error_response_to_user_error(error, PartialErrorCode::Unauthorized)
-                }
+                wasi_component_loader::Error::Guest(error) => guest_error_as_gql(error, PartialErrorCode::Unauthorized),
             })?
             .into_iter()
             .map(|result| match result {
                 Ok(()) => Ok(()),
-                Err(error) => Err(error_response_to_user_error(error, PartialErrorCode::Unauthorized)),
+                Err(error) => Err(guest_error_as_gql(error, PartialErrorCode::Unauthorized)),
             })
             .collect();
 
@@ -261,14 +253,12 @@ impl AuthorizedHooks<Context> for HooksWasi {
                     tracing::error!("authorize_edge_post_execution error at: {error}");
                     PartialGraphqlError::internal_server_error()
                 }
-                wasi_component_loader::Error::Guest(error) => {
-                    error_response_to_user_error(error, PartialErrorCode::Unauthorized)
-                }
+                wasi_component_loader::Error::Guest(error) => guest_error_as_gql(error, PartialErrorCode::Unauthorized),
             })?
             .into_iter()
             .map(|result| match result {
                 Ok(()) => Ok(()),
-                Err(error) => Err(error_response_to_user_error(error, PartialErrorCode::Unauthorized)),
+                Err(error) => Err(guest_error_as_gql(error, PartialErrorCode::Unauthorized)),
             })
             .collect();
 

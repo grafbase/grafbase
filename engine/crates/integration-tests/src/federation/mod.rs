@@ -1,6 +1,12 @@
 mod builder;
 
-use std::{borrow::Cow, collections::HashMap, future::IntoFuture, ops::Deref, sync::Arc};
+use std::{
+    borrow::Cow,
+    collections::HashMap,
+    future::IntoFuture,
+    ops::{Deref, DerefMut},
+    sync::Arc,
+};
 
 pub use builder::*;
 use engine::{BatchRequest, Variables};
@@ -159,6 +165,12 @@ impl Deref for GraphqlResponse {
 
     fn deref(&self) -> &Self::Target {
         &self.body
+    }
+}
+
+impl DerefMut for GraphqlResponse {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.body
     }
 }
 

@@ -2,40 +2,20 @@ use url::Url;
 
 use crate::{
     context::SharedContextMap,
-    names::{COMPONENT_SUBGRAPH_REQUEST, ON_SUBGRAGH_REQUEST_HOOK_FUNCTION},
+    names::{ON_SUBGRAGH_REQUEST_HOOK_FUNCTION, SUBGRAPH_REQUEST_INTERFACE},
     ComponentLoader, GuestResult,
 };
 
-use super::ComponentInstance;
+use super::{component_instance, ComponentInstance};
 
-/// Subgraph related hooks
-pub struct SubgraphHookInstance(ComponentInstance);
+component_instance!(SubgraphComponentInstance: SUBGRAPH_REQUEST_INTERFACE);
 
-impl std::ops::Deref for SubgraphHookInstance {
-    type Target = ComponentInstance;
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl std::ops::DerefMut for SubgraphHookInstance {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
-    }
-}
-
-impl SubgraphHookInstance {
-    /// Creates a new instance for the subgraph hooks.
-    pub async fn new(loader: &ComponentLoader) -> crate::Result<Self> {
-        ComponentInstance::new(loader, COMPONENT_SUBGRAPH_REQUEST)
-            .await
-            .map(Self)
-    }
-
+impl SubgraphComponentInstance {
     /// Called just before sending a HTTP request to a subgraph
     pub async fn on_subgraph_request(
         &mut self,
         context: SharedContextMap,
+        subgraph_name: &str,
         method: http::Method,
         url: &Url,
         headers: http::HeaderMap,
@@ -44,6 +24,7 @@ impl SubgraphHookInstance {
             return Ok(headers);
         };
 
+        let subgraph_name = subgraph_name.to_string();
         let url = url.to_string();
         let method = method.to_string();
         // adds the data to the shared memory
@@ -55,7 +36,9 @@ impl SubgraphHookInstance {
         let headers_rep = headers.rep();
         let context_rep = context.rep();
 
-        let result = hook.call_async(&mut self.store, (context, method, url, headers)).await;
+        let result = hook
+            .call_async(&mut self.store, (context, subgraph_name, method, url, headers))
+            .await;
 
         if result.is_err() {
             self.poisoned = true;
