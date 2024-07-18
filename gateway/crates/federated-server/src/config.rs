@@ -1246,7 +1246,7 @@ mod tests {
                 ],
                 websocket_url: None,
                 rate_limit: None,
-                timeout: 30s,
+                timeout: None,
             },
         }
         "###);

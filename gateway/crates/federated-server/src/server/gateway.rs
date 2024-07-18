@@ -187,4 +187,8 @@ impl engine_v2::Runtime for GatewayRuntime {
     fn rate_limiter(&self) -> &runtime::rate_limiting::RateLimiter {
         &self.rate_limiter
     }
+
+    fn sleep(&self, duration: std::time::Duration) -> futures_util::future::BoxFuture<'static, ()> {
+        Box::pin(tokio::time::sleep(duration))
+    }
 }

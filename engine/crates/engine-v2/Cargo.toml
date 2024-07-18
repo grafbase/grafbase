@@ -39,7 +39,6 @@ thiserror.workspace = true
 tracing.workspace = true
 http.workspace = true
 headers.workspace = true
-tokio.workspace = true
 gateway-core = { path = "../gateway-core" }
 web-time.workspace = true
 

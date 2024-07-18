@@ -99,6 +99,8 @@ impl<R: Runtime> Engine<R> {
         headers: http::HeaderMap,
         batch_request: BatchRequest,
     ) -> HttpGraphqlResponse {
+        use futures_util::{pin_mut, select, FutureExt};
+
         let format = headers.typed_get::<StreamingFormat>();
         let request_context = match self.create_request_context(headers).await {
             Ok(context) => context,
@@ -120,19 +122,22 @@ impl<R: Runtime> Engine<R> {
             } else {
                 self.schema.settings.timeout
             };
-            tokio::time::sleep(timeout).await;
+            self.runtime.sleep(timeout).await;
             HttpGraphqlResponse::build(
                 Response::execution_error(GraphqlError::new("Gateway timeout", ErrorCode::GatewayTimeout)),
                 format,
                 Default::default(),
             )
-        };
+        }
+        .fuse();
+        pin_mut!(timeout);
 
-        let execution = self.execute_with_context(request_context, batch_request);
+        let execution = self.execute_with_context(request_context, batch_request).fuse();
+        pin_mut!(execution);
 
-        tokio::select!(
-           response = timeout => { response }
-           response = execution => { response }
+        select!(
+           response = timeout => response,
+           response = execution => response
         )
     }
 

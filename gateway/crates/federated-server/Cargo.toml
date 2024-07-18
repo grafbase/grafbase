@@ -30,6 +30,7 @@ engine.workspace = true
 engine-config-builder.workspace = true
 engine-v2.workspace = true
 engine-v2-axum.workspace = true
+futures-util.workspace = true
 grafbase-telemetry = { workspace = true, features = ["tower", "otlp"] }
 graphql-composition.workspace = true
 http.workspace = true
