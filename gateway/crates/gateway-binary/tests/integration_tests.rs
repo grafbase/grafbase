@@ -1,4 +1,4 @@
-#![allow(unused_crate_dependencies)]
+#![allow(unused_crate_dependencies, clippy::panic)]
 
 mod mocks;
 mod telemetry;
@@ -863,4 +863,222 @@ where
             panic!("Expected requests to get rate limited ...");
         }
     }
+}
+
+#[test]
+fn gateway_timeout() {
+    let config = r#"
+        timeout = "2s"
+    "#;
+
+    let schema = load_schema("big");
+
+    with_static_server(config, &schema, None, None, |client| async move {
+        let _permit = test_with_subgraph().acquire().await.unwrap();
+
+        // A product subgraph that responds immediately
+        let listener = bind_tcp_listener("127.0.0.1:45399").await;
+        let server = wiremock::MockServer::builder().listener(listener).start().await;
+
+        Mock::given(method("POST"))
+            .respond_with(
+                ResponseTemplate::new(200).set_body_string(
+                    r#"{"data": {"topProducts": [{"name": "Product", "price": 100, "upc": "0000"}]}}"#,
+                ),
+            )
+            .mount(&server)
+            .await;
+
+        // A reviews subgraphs that responds after 3 seconds
+        let listener = bind_tcp_listener("127.0.0.1:45899").await;
+        let reviews_server = wiremock::MockServer::builder().listener(listener).start().await;
+
+        Mock::given(method("POST"))
+            .respond_with(|_req: &wiremock::Request| {
+                std::thread::sleep(std::time::Duration::from_secs(10));
+                ResponseTemplate::new(200).set_body_string("\"not relevant\"")
+            })
+            .mount(&reviews_server)
+            .await;
+
+        let query = r#"
+        {
+            topProducts {
+                name
+                price
+            }
+        }
+        "#;
+
+        let response: serde_json::Value = client.gql(query).send().await;
+
+        insta::assert_json_snapshot!(response, @r###"
+        {
+          "data": {
+            "topProducts": [
+              {
+                "name": "Product",
+                "price": 100
+              }
+            ]
+          }
+        }
+        "###);
+
+        let query = r#"
+        {
+            topProducts {
+                name
+                price
+                reviews {
+                    id
+                    body
+                }
+            }
+        }
+        "#;
+
+        let response = client
+            .client()
+            .post(client.endpoint())
+            .json(&serde_json::json!({ "query": query }))
+            .send()
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), http::StatusCode::REQUEST_TIMEOUT);
+    })
+}
+
+#[test]
+fn subgraph_timeout() {
+    let config = r#"
+        [subgraphs.products]
+        timeout = "10s"
+
+        [subgraphs.reviews]
+        timeout = "2s"
+    "#;
+
+    let schema = load_schema("big");
+
+    with_static_server(config, &schema, None, None, |client| async move {
+        let _permit = test_with_subgraph().acquire().await.unwrap();
+
+        // A product subgraph that responds in 3 seconds
+        let listener = bind_tcp_listener("127.0.0.1:45399").await;
+        let server = wiremock::MockServer::builder().listener(listener).start().await;
+
+        Mock::given(method("POST"))
+            .respond_with(|_req: &wiremock::Request| {
+                std::thread::sleep(std::time::Duration::from_secs(3));
+                ResponseTemplate::new(200)
+                    .set_body_string(r#"{"data": {"topProducts": [{"name": "Product", "price": 100, "upc": "0000"}]}}"#)
+            })
+            .mount(&server)
+            .await;
+
+        // A reviews subgraphs that responds after 3 seconds
+        let listener = bind_tcp_listener("127.0.0.1:45899").await;
+        let reviews_server = wiremock::MockServer::builder().listener(listener).start().await;
+
+        Mock::given(method("POST"))
+            .respond_with(|_req: &wiremock::Request| {
+                std::thread::sleep(std::time::Duration::from_secs(10));
+                ResponseTemplate::new(200).set_body_string("\"not relevant\"")
+            })
+            .mount(&reviews_server)
+            .await;
+
+        let query = r#"
+        {
+            topProducts {
+                name
+                price
+            }
+        }
+        "#;
+
+        let response: serde_json::Value = client.gql(query).send().await;
+
+        insta::assert_json_snapshot!(response, @r###"
+        {
+          "data": {
+            "topProducts": [
+              {
+                "name": "Product",
+                "price": 100
+              }
+            ]
+          }
+        }
+        "###);
+
+        let query = r#"
+        {
+            topProducts {
+                name
+                price
+                reviews {
+                    id
+                    body
+                }
+            }
+        }
+        "#;
+
+        let response = client
+            .client()
+            .post(client.endpoint())
+            .json(&serde_json::json!({ "query": query }))
+            .send()
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), 200);
+
+        let body: serde_json::Value = response.json().await.unwrap();
+
+        insta::assert_json_snapshot!(body, @r###"
+        {
+          "data": null,
+          "errors": [
+            {
+              "message": "Subgraph reviews timed out",
+              "path": [
+                "topProducts",
+                0,
+                "reviews"
+              ],
+              "extensions": {
+                "code": "SUBGRAPH_REQUEST_ERROR"
+              }
+            }
+          ]
+        }
+        "###);
+    })
+}
+
+async fn bind_tcp_listener(addr: &str) -> std::net::TcpListener {
+    let mut last_err = None;
+
+    for i in [0, 2, 4, 6, 8] {
+        tokio::time::sleep(Duration::from_secs(i)).await;
+        match std::net::TcpListener::bind(addr) {
+            Ok(listener) => return listener,
+            Err(err) => last_err = Some(err),
+        }
+    }
+
+    panic!("{}", last_err.unwrap())
+}
+
+/// Acquire this in tests that bind subgraphs to a port, to make them run serially.
+fn test_with_subgraph() -> &'static tokio::sync::Semaphore {
+    use std::sync::OnceLock;
+
+    static TESTS_WITH_SUBGRAPHS: OnceLock<tokio::sync::Semaphore> = OnceLock::new();
+
+    TESTS_WITH_SUBGRAPHS.get_or_init(|| tokio::sync::Semaphore::new(1))
 }

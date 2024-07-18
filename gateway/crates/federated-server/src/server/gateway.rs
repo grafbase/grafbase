@@ -86,6 +86,7 @@ pub(super) async fn generate(
                 header_rules,
                 development_url: None,
                 rate_limit: value.rate_limit.map(Into::into),
+                timeout: value.timeout,
             };
 
             (name, config)

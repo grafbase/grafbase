@@ -1,3 +1,4 @@
+use std::time::Duration;
 use url::Url;
 
 use crate::{
@@ -16,6 +17,7 @@ pub struct GraphqlEndpoint {
     pub(crate) url: UrlId,
     pub(crate) websocket_url: Option<UrlId>,
     pub(crate) header_rules: Vec<HeaderRuleId>,
+    pub(crate) timeout: Duration,
 }
 
 id_newtypes::U8! {
@@ -126,6 +128,10 @@ impl<'a> GraphqlEndpointWalker<'a> {
 
     pub fn name(&self) -> &'a str {
         &self.schema[self.as_ref().name]
+    }
+
+    pub fn timeout(self) -> Duration {
+        self.as_ref().timeout
     }
 
     pub fn url(&self) -> &'a Url {

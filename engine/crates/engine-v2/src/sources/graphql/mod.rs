@@ -128,6 +128,8 @@ impl<'ctx, R: Runtime> GraphqlExecutor<'ctx, R> {
                 url: self.subgraph.url(),
                 headers: self.ctx.headers_with_rules(self.subgraph.header_rules()),
                 json_body: self.json_body,
+                subgraph_name: self.subgraph.name(),
+                timeout: self.subgraph.timeout(),
             })
             .await;
 

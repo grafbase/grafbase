@@ -35,6 +35,7 @@ pub fn build_config(config: &FederatedGraphConfig, graph: FederatedGraph) -> Ver
             websocket_url,
             header_rules,
             rate_limit,
+            timeout,
             ..
         } = config;
 
@@ -54,6 +55,7 @@ pub fn build_config(config: &FederatedGraphConfig, graph: FederatedGraph) -> Ver
                         limit: config.limit,
                         duration: config.duration,
                     }),
+                timeout: timeout.clone(),
             },
         );
     }

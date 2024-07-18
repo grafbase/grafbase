@@ -18,6 +18,7 @@ pub struct FederatedGraphConfig {
     pub auth: Option<AuthV2Directive>,
     pub disable_introspection: bool,
     pub rate_limit: Option<RateLimitConfig>,
+    pub timeout: Option<Duration>,
 }
 
 /// Configuration for a subgraph of the current federated graph
@@ -42,6 +43,9 @@ pub struct SubgraphConfig {
 
     /// Configuration to enforce rate limiting on subgraph requests
     pub rate_limit: Option<RateLimitConfig>,
+
+    /// Timeouts to apply to subgraph requests
+    pub timeout: Option<Duration>,
 }
 
 impl From<(String, ConnectorHeaderValue)> for SubgraphHeaderRule {
