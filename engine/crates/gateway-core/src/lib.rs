@@ -7,7 +7,7 @@ use grafbase_tracing::{
     span::{gql::GqlRequestSpan, GqlRecorderSpanExt, GqlRequestAttributes},
 };
 pub use runtime::context::RequestContext;
-use runtime::rate_limiting::RateLimiter;
+use runtime::rate_limiting::RateLimiterInner;
 use runtime::{
     auth::AccessToken,
     cache::{Cache, CacheReadStatus, CachedExecutionResponse, X_GRAFBASE_CACHE},
@@ -68,7 +68,7 @@ pub struct Gateway<Executor: self::Executor> {
     trusted_documents: runtime::trusted_documents_client::Client,
     authorizer: Box<dyn Authorizer<Context = Executor::Context>>,
     operation_metrics: GraphqlOperationMetrics,
-    rate_limiter: Box<dyn RateLimiter>,
+    rate_limiter: Box<dyn RateLimiterInner>,
 }
 
 impl<Executor> Gateway<Executor>
@@ -87,7 +87,7 @@ where
         authorizer: Box<dyn Authorizer<Context = Executor::Context>>,
         trusted_documents: runtime::trusted_documents_client::Client,
         meter: grafbase_tracing::otel::opentelemetry::metrics::Meter,
-        rate_limiter: Box<dyn RateLimiter>,
+        rate_limiter: Box<dyn RateLimiterInner>,
     ) -> Self {
         Self {
             executor,
@@ -154,7 +154,7 @@ where
         };
 
         self.rate_limiter
-            .limit(Box::new(RatelimitContext::new(&request, &auth, ctx.headers())))
+            .limit(&RatelimitContext::new(&request, &auth, ctx.headers()))
             .instrument(info_span!("rate_limit_check"))
             .await?;
 
@@ -274,7 +274,7 @@ where
         };
 
         self.rate_limiter
-            .limit(Box::new(RatelimitContext::new(&request, &auth, ctx.headers())))
+            .limit(&RatelimitContext::new(&request, &auth, ctx.headers()))
             .await?;
 
         let AccessToken::V1(auth) = auth else {
@@ -330,7 +330,7 @@ where
         };
 
         self.rate_limiter
-            .limit(Box::new(RatelimitContext::new(&request, &auth, ctx.headers())))
+            .limit(&RatelimitContext::new(&request, &auth, ctx.headers()))
             .await?;
 
         let AccessToken::V1(auth) = auth else {

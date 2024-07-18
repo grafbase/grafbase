@@ -22,6 +22,7 @@ async-tungstenite = { version = "0.26.0", features = ["tokio-runtime", "tokio-ru
 futures-util.workspace = true
 graphql-ws-client = { version = "0.10.0", features = ["tungstenite"] }
 governor.workspace = true
+http.workspace = true
 ulid.workspace = true
 serde.workspace = true
 serde_json.workspace  = true

@@ -22,16 +22,16 @@ impl ExternalDataSources {
                     .urls
                     .insert(url::Url::parse(&ctx.strings[subgraph.url.into()]).expect("valid url"));
                 match config.subgraph_configs.remove(&federated_graph::SubgraphId(index)) {
-                    Some(config::latest::SubgraphConfig { websocket_url, headers }) => {
-                        sources::graphql::GraphqlEndpoint {
-                            name,
-                            subgraph_id,
-                            url,
-                            websocket_url: websocket_url
-                                .map(|url| ctx.urls.insert(url::Url::parse(&config[url]).expect("valid url"))),
-                            header_rules: headers.into_iter().map(Into::into).collect(),
-                        }
-                    }
+                    Some(config::latest::SubgraphConfig {
+                        websocket_url, headers, ..
+                    }) => sources::graphql::GraphqlEndpoint {
+                        name,
+                        subgraph_id,
+                        url,
+                        websocket_url: websocket_url
+                            .map(|url| ctx.urls.insert(url::Url::parse(&config[url]).expect("valid url"))),
+                        header_rules: headers.into_iter().map(Into::into).collect(),
+                    },
 
                     None => sources::graphql::GraphqlEndpoint {
                         name,

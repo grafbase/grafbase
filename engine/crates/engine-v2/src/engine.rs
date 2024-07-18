@@ -32,9 +32,11 @@ use crate::{
 };
 
 mod cache;
+mod rate_limiting;
 mod runtime;
 mod trusted_documents;
 
+pub use crate::engine::rate_limiting::RateLimitContext;
 pub use runtime::Runtime;
 
 pub(crate) struct SchemaVersion(Vec<u8>);
@@ -103,10 +105,26 @@ impl<R: Runtime> Engine<R> {
             Err(response) => return HttpGraphqlResponse::build(response, format, Default::default()),
         };
 
+        if let Err(err) = self.runtime.rate_limiter().limit(&RateLimitContext::Global).await {
+            return HttpGraphqlResponse::build(
+                Response::pre_execution_error(GraphqlError::new(err.to_string(), ErrorCode::RateLimitError)),
+                format,
+                Default::default(),
+            );
+        }
+
         self.execute_with_context(request_context, batch_request).await
     }
 
     pub async fn create_session(self: &Arc<Self>, headers: http::HeaderMap) -> Result<Session<R>, Cow<'static, str>> {
+        if let Err(err) = self.runtime.rate_limiter().limit(&RateLimitContext::Global).await {
+            return Err(
+                Response::pre_execution_error(GraphqlError::new(err.to_string(), ErrorCode::RateLimitError))
+                    .first_error_message()
+                    .unwrap_or("Internal server error".into()),
+            );
+        }
+
         let request_context = match self.create_request_context(headers).await {
             Ok(context) => context,
             Err(response) => return Err(response.first_error_message().unwrap_or("Internal server error".into())),

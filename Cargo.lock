@@ -7668,6 +7668,7 @@ dependencies = [
  "futures-util",
  "governor",
  "graphql-ws-client",
+ "http 1.1.0",
  "mini-moka",
  "postgres-connector-types",
  "registry-v2",

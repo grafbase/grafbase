@@ -68,6 +68,7 @@ pub async fn serve(
                 trusted_documents: config.trusted_documents,
                 wasi: config.hooks,
                 header_rules: config.headers,
+                rate_limit: config.rate_limit,
             },
             otel_reload,
             sender,

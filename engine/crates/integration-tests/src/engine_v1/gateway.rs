@@ -103,7 +103,8 @@ impl GatewayBuilder {
 
         let trusted_documents = trusted_documents_client::Client::new(self.trusted_documents.unwrap_or_default());
 
-        let rate_limiting = runtime_local::InMemoryRateLimiting::new(&self.rate_limiting_config.rules);
+        let rate_limiting =
+            runtime_local::rate_limiting::rules_based::InMemoryRateLimiter::new(&self.rate_limiting_config.rules);
 
         GatewayTester {
             inner: Arc::new(gateway_core::Gateway::new(

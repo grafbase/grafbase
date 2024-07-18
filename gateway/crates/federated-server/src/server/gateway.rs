@@ -1,14 +1,19 @@
+use std::collections::HashMap;
 use std::{collections::BTreeMap, sync::Arc};
+
+use tokio::sync::watch;
 
 use engine_v2::Engine;
 use graphql_composition::FederatedGraph;
 use parser_sdl::federation::{header::SubgraphHeaderRule, FederatedGraphConfig};
-use runtime_local::{ComponentLoader, HooksConfig, HooksWasi, InMemoryKvStore};
+use runtime::rate_limiting::KeyedRateLimitConfig;
+use runtime_local::{
+    rate_limiting::key_based::InMemoryRateLimiter, ComponentLoader, HooksConfig, HooksWasi, InMemoryKvStore,
+};
 use runtime_noop::trusted_documents::NoopTrustedDocuments;
-use tokio::sync::watch;
 
 use crate::{
-    config::{AuthenticationConfig, OperationLimitsConfig, SubgraphConfig, TrustedDocumentsConfig},
+    config::{AuthenticationConfig, OperationLimitsConfig, RateLimitConfig, SubgraphConfig, TrustedDocumentsConfig},
     HeaderRule,
 };
 
@@ -30,6 +35,7 @@ pub(crate) struct GatewayConfig {
     pub subgraphs: BTreeMap<String, SubgraphConfig>,
     pub trusted_documents: TrustedDocumentsConfig,
     pub wasi: Option<HooksConfig>,
+    pub rate_limit: Option<RateLimitConfig>,
 }
 
 /// Creates a new gateway from federated schema.
@@ -46,6 +52,7 @@ pub(super) async fn generate(
         subgraphs,
         trusted_documents,
         wasi,
+        rate_limit,
     } = config;
 
     let schema_version = blake3::hash(federated_schema.as_bytes());
@@ -66,6 +73,8 @@ pub(super) async fn generate(
 
     graph_config.header_rules = header_rules.into_iter().map(SubgraphHeaderRule::from).collect();
 
+    graph_config.rate_limit = rate_limit.map(Into::into);
+
     graph_config.subgraphs = subgraphs
         .into_iter()
         .map(|(name, value)| {
@@ -76,13 +85,14 @@ pub(super) async fn generate(
                 websocket_url: value.websocket_url.map(|url| url.to_string()),
                 header_rules,
                 development_url: None,
+                rate_limit: value.rate_limit.map(Into::into),
             };
 
             (name, config)
         })
         .collect();
 
-    let config = engine_config_builder::build_config(&graph_config, graph);
+    let config = engine_config_builder::build_config(&graph_config, graph).into_latest();
 
     // TODO: https://linear.app/grafbase/issue/GB-6168/support-trusted-documents-in-air-gapped-mode
     let trusted_documents = if trusted_documents.enabled {
@@ -105,6 +115,21 @@ pub(super) async fn generate(
         runtime::trusted_documents_client::Client::new(NoopTrustedDocuments)
     };
 
+    let rate_limiting_configs = config
+        .as_keyed_rate_limit_config()
+        .into_iter()
+        .map(|(k, v)| {
+            (
+                k,
+                runtime::rate_limiting::RateLimitConfig {
+                    limit: v.limit,
+                    duration: v.duration,
+                },
+            )
+        })
+        .collect::<HashMap<_, _>>();
+    let rate_limiter = InMemoryRateLimiter::runtime(KeyedRateLimitConfig { rate_limiting_configs });
+
     let runtime = GatewayRuntime {
         fetcher: runtime_local::NativeFetcher::runtime_fetcher(),
         kv: InMemoryKvStore::runtime(),
@@ -116,10 +141,10 @@ pub(super) async fn generate(
                 .map_err(|e| crate::Error::InternalError(e.to_string()))?
                 .flatten(),
         ),
+        rate_limiter,
     };
 
     let config = config
-        .into_latest()
         .try_into()
         .map_err(|err| crate::Error::InternalError(format!("Failed to generate engine Schema: {err}")))?;
 
@@ -132,6 +157,7 @@ pub struct GatewayRuntime {
     kv: runtime::kv::KvStore,
     meter: grafbase_tracing::otel::opentelemetry::metrics::Meter,
     hooks: HooksWasi,
+    rate_limiter: runtime::rate_limiting::RateLimiter,
 }
 
 impl engine_v2::Runtime for GatewayRuntime {
@@ -155,5 +181,9 @@ impl engine_v2::Runtime for GatewayRuntime {
     }
     fn cache_factory(&self) -> &Self::CacheFactory {
         &()
+    }
+
+    fn rate_limiter(&self) -> &runtime::rate_limiting::RateLimiter {
+        &self.rate_limiter
     }
 }

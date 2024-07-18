@@ -8,6 +8,8 @@ mod v3;
 mod v4;
 mod v5;
 
+pub const GLOBAL_RATE_LIMIT_KEY: &str = "global";
+
 /// The latest version of the configuration.
 ///
 /// Users of the crate should always use this verison, and we can keep the details
@@ -134,6 +136,7 @@ impl VersionedConfig {
                     auth,
                     operation_limits,
                     disable_introspection,
+                    rate_limit: Default::default(),
                 }
             }
             VersionedConfig::V5(latest) => latest,

@@ -102,6 +102,13 @@ impl<'ctx, R: Runtime> GraphqlExecutor<'ctx, R> {
         .into_span();
 
         async {
+            self.ctx
+                .engine
+                .runtime
+                .rate_limiter()
+                .limit(&crate::engine::RateLimitContext::Subgraph(self.subgraph.name()))
+                .await?;
+
             let bytes = self
                 .ctx
                 .engine
