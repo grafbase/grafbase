@@ -1,5 +1,3 @@
-use std::time::Duration;
-
 use tracing::{info_span, Span};
 
 use crate::{
@@ -35,8 +33,6 @@ impl GqlRequestSpan {
             "gql.response.field_errors_count"  = Empty,
             "gql.response.data_is_null"  = Empty,
             "gql.response.request_errors_count"  = Empty,
-            "gql.response.latency_ms" = Empty,
-            "gql.response.error" = Empty,
         )
     }
 }
@@ -76,13 +72,5 @@ impl GqlRecorderSpanExt for Span {
                 self.record("gql.response.status", attributes.status.as_str());
             }
         }
-    }
-
-    fn record_gql_error(&self, error: String) {
-        self.record("gql.response.error", error);
-    }
-
-    fn record_gql_duration(&self, duration: Duration) {
-        self.record("gql.response.latency_ms", duration.as_millis() as u64);
     }
 }

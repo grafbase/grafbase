@@ -199,7 +199,7 @@ where
                     sanitized_query: normalized_query.as_deref(),
                 });
 
-                gql_span.record_gql_status(status, elapsed, response.first_error_message());
+                gql_span.record_gql_status(status);
             }
 
             if let Some((operation, normalized_query)) = response.graphql_operation.as_ref().zip(normalized_query) {

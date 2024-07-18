@@ -300,7 +300,9 @@ fn with_static_server<F, T>(
         &config_path.to_str().unwrap(),
         "--schema",
         &schema_path.to_str().unwrap(),
-    );
+    )
+    .stdout_null()
+    .stderr_null();
 
     let endpoint = match path {
         Some(path) => format!("http://{addr}/{path}"),
@@ -368,6 +370,8 @@ where
             "--graph-ref",
             graph_ref,
         )
+        .stdout_null()
+        .stderr_null()
         .env("GRAFBASE_GDN_URL", format!("http://{}", server.address()))
         .env("GRAFBASE_ACCESS_TOKEN", ACCESS_TOKEN);
 

@@ -6,7 +6,6 @@ use runtime::fetch::FetchRequest;
 use schema::sources::graphql::{FederationEntityResolverWalker, GraphqlEndpointId, GraphqlEndpointWalker};
 use serde::de::DeserializeSeed;
 use tracing::Instrument;
-use web_time::Instant;
 
 use crate::{
     execution::{ExecutionContext, PlanWalker, PlanningResult},
@@ -124,8 +123,6 @@ impl<'ctx, R: Runtime> FederationEntityExecutor<'ctx, R> {
             .limit(&crate::engine::RateLimitContext::Subgraph(self.subgraph.name()))
             .await?;
 
-        let start = Instant::now();
-
         let response = self
             .ctx
             .engine
@@ -138,14 +135,12 @@ impl<'ctx, R: Runtime> FederationEntityExecutor<'ctx, R> {
             })
             .await;
 
-        let elapsed = start.elapsed();
-
         let response = match response {
             Ok(response) => response,
             Err(e) => {
                 let status = SubgraphResponseStatus::HttpError;
 
-                tracing::Span::current().record_subgraph_status(status, elapsed, Some(e.to_string()));
+                tracing::Span::current().record_subgraph_status(status);
                 tracing::error!(GRAFBASE_TARGET, "{e}");
 
                 return Err(e.into());
@@ -168,6 +163,6 @@ impl<'ctx, R: Runtime> FederationEntityExecutor<'ctx, R> {
         )
         .deserialize(&mut serde_json::Deserializer::from_slice(&response.bytes));
 
-        super::handle_subgraph_result(result, response_part, elapsed)
+        super::handle_subgraph_result(result, response_part)
     }
 }

@@ -36,7 +36,7 @@ mod rate_limiting;
 mod runtime;
 mod trusted_documents;
 
-pub use crate::engine::rate_limiting::RateLimitContext;
+pub use rate_limiting::RateLimitContext;
 pub use runtime::Runtime;
 
 pub(crate) struct SchemaVersion(Vec<u8>);
@@ -250,16 +250,15 @@ impl<R: Runtime> Engine<R> {
             }
 
             if status.is_success() {
-                tracing::Span::current().record_gql_status(status, elapsed, None);
-                tracing::debug!(target: GRAFBASE_TARGET, "router response")
+                tracing::Span::current().record_gql_status(status);
+                tracing::debug!(target: GRAFBASE_TARGET, "gateway request")
             } else {
                 let message = response
                     .first_error_message()
                     .map(|s| s.into_owned())
-                    .unwrap_or_else(|| String::from("router error"));
+                    .unwrap_or_else(|| String::from("gateway error"));
 
-                tracing::Span::current().record_gql_status(status, elapsed, Some(message.clone()));
-
+                tracing::Span::current().record_gql_status(status);
                 tracing::error!(target: GRAFBASE_TARGET, "{message}")
             }
 
@@ -314,12 +313,12 @@ impl<R: Runtime> Engine<R> {
                 }
 
                 // TODO: recording gql errors here is a bit...
-                span.record_gql_status(status, elapsed, None);
+                span.record_gql_status(status);
 
                 if status.is_success() {
-                    tracing::debug!(target: GRAFBASE_TARGET, "router response")
+                    tracing::debug!(target: GRAFBASE_TARGET, "gateway request")
                 } else {
-                    tracing::error!(target: GRAFBASE_TARGET, "router error")
+                    tracing::error!(target: GRAFBASE_TARGET, "gateway error")
                 }
             }
             .instrument(span_clone),
