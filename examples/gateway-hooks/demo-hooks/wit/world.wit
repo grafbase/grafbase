@@ -89,7 +89,13 @@ interface subgraph-request {
     use types.{shared-context, headers, error};
 
     // The hook is called just before sending the HTTP request to the subgraph.
-    on-subgraph-request: func(context: shared-context, subgraph-name: string, method: string, url: string, headers: headers) -> result<_, error>;
+    on-subgraph-request: func(
+        context: shared-context,
+        subgraph-name: string,
+        method: string,
+        url: string,
+        headers: headers
+    ) -> result<_, error>;
 }
 
 interface authorization {
