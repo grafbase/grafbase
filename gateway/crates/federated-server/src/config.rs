@@ -85,6 +85,22 @@ pub struct SubgraphConfig {
     /// Timeout for subgraph requests in seconds. Default: 30 seconds.
     #[serde(deserialize_with = "duration_str::deserialize_option_duration", default)]
     pub timeout: Option<Duration>,
+    #[serde(default)]
+    pub retry: SubgraphRetryConfig,
+}
+
+#[derive(Debug, serde::Deserialize, Clone, Default)]
+pub struct SubgraphRetryConfig {
+    /// How many retries are available per second, at a minimum.
+    pub min_per_second: Option<u32>,
+    /// Each successful request to the subgraph adds to the retry budget. This setting controls for how long the budget remembers successful requests.
+    #[serde(deserialize_with = "duration_str::deserialize_option_duration")]
+    pub ttl: Option<Duration>,
+    /// The fraction of the successful requests budget that can be used for retries.
+    pub retry_percent: Option<f32>,
+    /// Whether mutations should be retried at all. False by default.
+    #[serde(default)]
+    pub retry_mutations: Option<bool>,
 }
 
 #[derive(Debug, Default, serde::Deserialize)]
@@ -1288,6 +1304,12 @@ mod tests {
                 websocket_url: None,
                 rate_limit: None,
                 timeout: None,
+                retry: SubgraphRetryConfig {
+                    min_per_second: None,
+                    ttl: None,
+                    retry_percent: None,
+                    retry_mutations: None,
+                },
             },
         }
         "###);

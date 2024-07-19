@@ -41,8 +41,10 @@ impl GraphqlPreparedExecutor {
         plan: PlanWalker<'_>,
     ) -> PlanningResult<PreparedExecutor> {
         let subgraph = resolver.endpoint();
+
         let operation = query::PreparedGraphqlOperation::build(operation_type, plan)
             .map_err(|err| format!("Failed to build query: {err}"))?;
+
         Ok(PreparedExecutor::GraphQL(Self {
             subgraph_id: subgraph.id(),
             operation,
@@ -57,6 +59,7 @@ impl GraphqlPreparedExecutor {
         mut subgraph_response: SubgraphResponse,
     ) -> ExecutionResult<SubgraphResponse> {
         let subgraph = plan.schema().walk(self.subgraph_id);
+
         let variables = SubgraphVariables::<()> {
             plan,
             variables: &self.operation.variables,
@@ -69,6 +72,7 @@ impl GraphqlPreparedExecutor {
             self.operation.query,
             serde_json::to_string_pretty(&variables).unwrap_or_default()
         );
+
         let json_body = serde_json::to_string(&serde_json::json!({
             "query": self.operation.query,
             "variables": variables
@@ -118,6 +122,14 @@ impl GraphqlPreparedExecutor {
 
                 return Ok(subgraph_response);
             };
+        };
+
+        let mut retry_budget = ctx.engine.retry_budget_for_subgraph(self.subgraph_id);
+
+        if self.operation.ty.is_mutation()
+            && subgraph.retry_config().and_then(|config| config.retry_mutations) != Some(true)
+        {
+            retry_budget = None;
         }
 
         execute_subgraph_request(
@@ -130,6 +142,7 @@ impl GraphqlPreparedExecutor {
                 json_body,
                 subgraph_name: subgraph.name(),
                 timeout: subgraph.timeout(),
+                retry_budget,
             },
             GraphqlIngester {
                 ctx,

@@ -1,9 +1,11 @@
+#![allow(clippy::panic)]
+
 use std::sync::{
     atomic::{AtomicUsize, Ordering},
     Arc,
 };
 
-use async_graphql::{Context, EmptySubscription, Object, Schema};
+use async_graphql::{Context, EmptySubscription, FieldResult, Object, Schema};
 
 #[derive(Default)]
 pub struct StateMutationSchema {
@@ -58,6 +60,18 @@ impl Query {
     async fn value(&self, ctx: &Context<'_>) -> usize {
         ctx.data_unchecked::<Arc<AtomicUsize>>().load(Ordering::Relaxed)
     }
+
+    /// Used to test retry logic.
+    async fn increment_and_fail_if_less_than(&self, ctx: &Context<'_>, n: usize) -> FieldResult<usize> {
+        let state = ctx.data_unchecked::<Arc<AtomicUsize>>();
+        let new = state.fetch_add(1, Ordering::Relaxed);
+        if new < n {
+            // Trigger a 500
+            panic!("State value is {new} < {n}")
+        } else {
+            Ok(new)
+        }
+    }
 }
 
 struct Mutation;
@@ -84,5 +98,17 @@ impl Mutation {
 
     async fn faillible(&self) -> async_graphql::FieldResult<Option<usize>> {
         Err("This mutation always fails".into())
+    }
+
+    /// Used to test retry logic.
+    async fn increment_and_fail_if_less_than(&self, ctx: &Context<'_>, n: usize) -> FieldResult<usize> {
+        let state = ctx.data_unchecked::<Arc<AtomicUsize>>();
+        let new = state.fetch_add(1, Ordering::Relaxed);
+        if new < n {
+            // Trigger a 500
+            panic!("State value is {new} < {n}")
+        } else {
+            Ok(new)
+        }
     }
 }

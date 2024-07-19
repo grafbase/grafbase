@@ -93,6 +93,12 @@ pub(super) async fn generate(
                 rate_limit: value.rate_limit.map(Into::into),
                 timeout: value.timeout,
                 entity_cache_ttl: None,
+                retry: Some(parser_sdl::federation::RetryConfig {
+                    min_per_second: value.retry.min_per_second,
+                    ttl: value.retry.ttl,
+                    retry_percent: value.retry.retry_percent,
+                    retry_mutations: value.retry.retry_mutations,
+                }),
             };
 
             (name, config)

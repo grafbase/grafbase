@@ -126,19 +126,21 @@ fn determine_changes<'a>(
     let deleted_names = previous_names.difference(&next_names).collect::<BTreeSet<_>>();
 
     let changed_subgraphs = {
-        let previous_subgraphs = previous_subgraphs
+        let previous_subgraph_names = previous_subgraphs
             .iter()
             .filter(|(name, _)| !deleted_names.contains(name))
+            .map(|(name, _)| name)
             .collect::<BTreeSet<_>>();
 
-        let next_subgraphs = next_subgraphs
+        let next_subgraph_names = next_subgraphs
             .iter()
             .filter(|(name, _)| !new_names.contains(name))
+            .map(|(name, _)| name)
             .collect::<BTreeSet<_>>();
 
-        next_subgraphs
-            .difference(&previous_subgraphs)
-            .map(|(_, config)| *config)
+        next_subgraph_names
+            .difference(&previous_subgraph_names)
+            .map(|name| &next_subgraphs[name.as_str()])
             .collect::<Vec<_>>()
     };
 

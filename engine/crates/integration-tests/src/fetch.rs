@@ -32,7 +32,7 @@ impl MockFetch {
 
 #[async_trait::async_trait]
 impl runtime::fetch::FetcherInner for MockFetch {
-    async fn post(&self, request: FetchRequest<'_>) -> FetchResult<FetchResponse> {
+    async fn post(&self, request: &FetchRequest<'_>) -> FetchResult<FetchResponse> {
         let host = request.url.host_str().unwrap();
         self.requests.push((
             host.to_string(),
@@ -41,6 +41,7 @@ impl runtime::fetch::FetcherInner for MockFetch {
                 body: serde_json::from_str(&request.json_body).unwrap(),
             },
         ));
+
         self.responses
             .lock()
             .unwrap()

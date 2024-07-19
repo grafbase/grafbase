@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 pub use super::v2::{
     AuthConfig, AuthProviderConfig, CacheConfig, CacheConfigTarget, CacheConfigs, Header, HeaderId, HeaderValue,
-    JwksConfig, JwtConfig, OperationLimits, StringId, SubgraphConfig,
+    JwksConfig, JwtConfig, OperationLimits, RetryConfig, StringId, SubgraphConfig,
 };
 
 use federated_graph::{FederatedGraphV2, SubgraphId};

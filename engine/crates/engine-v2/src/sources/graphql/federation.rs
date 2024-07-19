@@ -128,6 +128,8 @@ impl FederationEntityPreparedExecutor {
                 }))
                 .map_err(|err| format!("Failed to serialize query: {err}"))?;
 
+                let retry_budget = ctx.engine.retry_budget_for_subgraph(self.subgraph_id);
+
                 execute_subgraph_request(
                     ctx,
                     span.clone(),
@@ -138,6 +140,7 @@ impl FederationEntityPreparedExecutor {
                         json_body,
                         subgraph_name: subgraph.name(),
                         timeout: subgraph.timeout(),
+                        retry_budget,
                     },
                     ingester,
                 )

@@ -135,6 +135,11 @@ impl Schema {
             .map(|pos| FieldDefinitionId::from(usize::from(fields.start) + pos))
     }
 
+    pub fn iter_graphql_endpoints(&self) -> impl ExactSizeIterator<Item = sources::graphql::GraphqlEndpointWalker<'_>> {
+        (0..self.data_sources.graphql.endpoints.len())
+            .map(|i| sources::graphql::GraphqlEndpointWalker::new(i.into(), self, &()))
+    }
+
     fn definition_name(&self, definition: Definition) -> &str {
         let name = match definition {
             Definition::Scalar(s) => self[s].name,

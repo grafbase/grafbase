@@ -1,0 +1,9 @@
+---
+source: engine/crates/integration-tests/tests/federation/subgraph_retries.rs
+expression: response
+---
+{
+  "data": {
+    "incrementAndFailIfLessThan": 5
+  }
+}

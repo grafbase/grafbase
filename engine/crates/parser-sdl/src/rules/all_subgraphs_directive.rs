@@ -127,6 +127,7 @@ mod tests {
                         rate_limit: None,
                         timeout: None,
                         entity_cache_ttl: None,
+                        retry: None,
                     },
                 },
                 header_rules: [

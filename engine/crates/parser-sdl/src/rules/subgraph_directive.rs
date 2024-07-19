@@ -1,7 +1,12 @@
+use std::time::Duration;
+
 use engine_parser::types::SchemaDefinition;
 use url::Url;
 
-use crate::{directive_de::parse_directive, federation::header::SubgraphHeaderRule};
+use crate::{
+    directive_de::parse_directive,
+    federation::{header::SubgraphHeaderRule, RetryConfig as SubgraphRetryConfig},
+};
 
 use super::{
     connector_headers::Header,
@@ -38,6 +43,27 @@ pub struct SubgraphDirective {
     /// Timeout for requests to that subgraph
     #[serde(default, deserialize_with = "duration_str::deserialize_option_duration")]
     entity_cache_ttl: Option<std::time::Duration>,
+
+    /// Retry configuration for that subgraph
+    #[serde(default)]
+    retry: Option<RetryConfig>,
+}
+
+#[derive(Debug, serde::Deserialize, Clone)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct RetryConfig {
+    /// How many retries are available per second, at a minimum.
+    #[serde(default)]
+    pub min_per_second: Option<u32>,
+    /// Each successful request to the subgraph adds to the retry budget. This setting controls for how long the budget remembers successful requests.
+    #[serde(default, deserialize_with = "duration_str::deserialize_option_duration")]
+    pub ttl: Option<Duration>,
+    /// The fraction of the successful requests budget that can be used for retries.
+    #[serde(default)]
+    pub retry_percent: Option<f32>,
+    /// Whether mutations should be retried at all. False by default.
+    #[serde(default)]
+    pub retry_mutations: Option<bool>,
 }
 
 impl Directive for SubgraphDirective {
@@ -73,12 +99,27 @@ impl Directive for SubgraphDirective {
           Timeout for requests to that subgraph
           """
           entityCacheTtl: String
+
+          Retry configuration for that subgraph
+          """
+          retry: RetryConfig
         ) on SCHEMA
 
         input SubgraphHeader {
             name: String!
             value: String
             forward: String
+        }
+
+        input RetryConfig {
+            "How many retries are available per second, at a minimum."
+            minPerSecond: Int
+            "Each successful request to the subgraph adds to the retry budget. This setting controls for how long the budget remembers successful requests."
+            ttl: String
+            "The fraction of the successful requests budget that can be used for retries."
+            retry_percent: Float
+            "Whether mutations should be retried at all. False by default."
+            retry_mutations: Boolean
         }
         "#
         .to_string()
@@ -153,6 +194,20 @@ impl Visitor<'_> for SubgraphDirectiveVisitor {
             );
 
             subgraph.timeout = directive.timeout;
+
+            subgraph.retry = directive.retry.map(
+                |RetryConfig {
+                     min_per_second,
+                     ttl,
+                     retry_percent,
+                     retry_mutations,
+                 }| SubgraphRetryConfig {
+                    min_per_second,
+                    ttl,
+                    retry_percent,
+                    retry_mutations,
+                },
+            );
         }
     }
 }
@@ -214,6 +269,7 @@ mod tests {
                         rate_limit: None,
                         timeout: None,
                         entity_cache_ttl: None,
+                        retry: None,
                     },
                     "Reviews": SubgraphConfig {
                         name: "Reviews",
@@ -230,6 +286,7 @@ mod tests {
                         rate_limit: None,
                         timeout: None,
                         entity_cache_ttl: None,
+                        retry: None,
                     },
                 },
                 header_rules: [],

@@ -52,9 +52,22 @@ pub struct SubgraphConfig {
     pub rate_limit: Option<GraphRateLimit>,
     #[serde(default)]
     pub timeout: Option<Duration>,
-
     #[serde(default)]
     pub entity_cache_ttl: Option<Duration>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub retry: Option<RetryConfig>,
+}
+
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+pub struct RetryConfig {
+    /// How many retries are available per second, at a minimum.
+    pub min_per_second: Option<u32>,
+    /// Each successful request to the subgraph adds to the retry budget. This setting controls for how long the budget remembers successful requests.
+    pub ttl: Option<Duration>,
+    /// The fraction of the successful requests budget that can be used for retries.
+    pub retry_percent: Option<f32>,
+    /// Whether mutations should be retried at all. False by default.
+    pub retry_mutations: Option<bool>,
 }
 
 /// A header that should be sent to a subgraph

@@ -27,6 +27,7 @@ impl ExternalDataSources {
                         headers,
                         timeout,
                         entity_cache_ttl,
+                        retry,
                         ..
                     }) => sources::graphql::GraphqlEndpoint {
                         name,
@@ -37,6 +38,19 @@ impl ExternalDataSources {
                         header_rules: headers.into_iter().map(Into::into).collect(),
                         timeout: timeout.unwrap_or(DEFAULT_SUBGRAPH_TIMEOUT),
                         entity_cache_ttl: entity_cache_ttl.unwrap_or(DEFAULT_ENTITY_CACHE_TTL),
+                        retry: retry.map(
+                            |config::latest::RetryConfig {
+                                 min_per_second,
+                                 ttl,
+                                 retry_percent,
+                                 retry_mutations,
+                             }| sources::graphql::RetryConfig {
+                                min_per_second,
+                                ttl,
+                                retry_percent,
+                                retry_mutations,
+                            },
+                        ),
                     },
 
                     None => sources::graphql::GraphqlEndpoint {
@@ -47,6 +61,7 @@ impl ExternalDataSources {
                         header_rules: Vec::new(),
                         timeout: DEFAULT_SUBGRAPH_TIMEOUT,
                         entity_cache_ttl: DEFAULT_ENTITY_CACHE_TTL,
+                        retry: None,
                     },
                 }
             })

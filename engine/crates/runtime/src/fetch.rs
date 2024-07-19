@@ -25,6 +25,7 @@ pub struct FetchRequest<'a> {
     pub json_body: String,
     pub subgraph_name: &'a str,
     pub timeout: Duration,
+    pub retry_budget: Option<&'a tower::retry::budget::Budget>,
 }
 
 #[derive(Clone)]
@@ -41,7 +42,7 @@ pub struct GraphqlRequest<'a> {
 
 #[async_trait::async_trait]
 pub trait FetcherInner: Send + Sync {
-    async fn post(&self, request: FetchRequest<'_>) -> FetchResult<FetchResponse>;
+    async fn post(&self, request: &FetchRequest<'_>) -> FetchResult<FetchResponse>;
 
     async fn stream(
         &self,
@@ -58,6 +59,38 @@ impl Fetcher {
     pub fn new(fetcher: impl FetcherInner + 'static) -> Fetcher {
         Fetcher {
             inner: Arc::new(fetcher),
+        }
+    }
+
+    #[allow(unused_variables)]
+    pub async fn post<SleepFut>(
+        &self,
+        request: &FetchRequest<'_>,
+        sleep: impl Fn(Duration) -> SleepFut + Send + Sync,
+    ) -> FetchResult<FetchResponse>
+    where
+        SleepFut: std::future::Future<Output = ()> + Send,
+    {
+        let mut result = self.inner.post(request).await;
+
+        let Some(retry_budget) = request.retry_budget else {
+            return result;
+        };
+
+        loop {
+            match result {
+                Ok(bytes) => {
+                    retry_budget.deposit();
+                    return Ok(bytes);
+                }
+                Err(err) => {
+                    if retry_budget.withdraw().is_ok() {
+                        result = self.inner.post(request).await;
+                    } else {
+                        return Err(err);
+                    }
+                }
+            }
         }
     }
 }

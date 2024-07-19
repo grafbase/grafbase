@@ -52,6 +52,14 @@ impl OperationType {
             Self::Subscription => "subscription",
         }
     }
+
+    /// Returns `true` if the operation type is [`Mutation`].
+    ///
+    /// [`Mutation`]: OperationType::Mutation
+    #[must_use]
+    pub fn is_mutation(&self) -> bool {
+        matches!(self, Self::Mutation)
+    }
 }
 
 impl AsRef<str> for OperationType {
