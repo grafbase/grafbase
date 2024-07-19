@@ -90,7 +90,13 @@ interface subgraph-request {
 
     // The hook is called just before requesting a subgraph, after rate limiting is done. It can be used
     // to read and modify the subgraph request headers. If returning an error, the subgraph is not requested.
-    on-subgraph-request: func(context: shared-context, method: string, url: string, headers: headers) -> result<_, error>;
+    on-subgraph-request: func(
+        context: shared-context,
+        subgraph-name: string,
+        method: string,
+        url: string,
+        headers: headers
+    ) -> result<_, error>;
 }
 
 interface authorization {
