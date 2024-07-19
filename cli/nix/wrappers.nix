@@ -2,7 +2,7 @@
   packages.wrappers = pkgs.buildNpmPackage {
     src = ../wrappers;
     name = "wrappers";
-    npmDepsHash = "sha256-CFF1bNRbji5V6+VhFdYt6eptFZd1+QsOOj9tUu3xqdg=";
+    npmDepsHash = "sha256-MUkBH6lAKUQLtm0TRX5zUThcQhi+wukUg6wLyOs+8Q8=";
 
     nativeBuildInputs = [pkgs.bun];
 

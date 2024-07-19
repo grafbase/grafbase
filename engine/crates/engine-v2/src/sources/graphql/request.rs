@@ -49,10 +49,16 @@ pub(super) async fn execute_subgraph_request<'ctx, 'a, R: Runtime>(
         .headers
         .insert(http::header::ACCEPT, http::HeaderValue::from_static("application/json"));
 
-    let fetch_response = ctx.engine.runtime.fetcher().post(request).await.inspect_err(|err| {
-        span.record_subgraph_status(SubgraphResponseStatus::HttpError);
-        tracing::error!(target: GRAFBASE_TARGET, "{err}");
-    })?;
+    let fetch_response = ctx
+        .engine
+        .runtime
+        .fetcher()
+        .post(&request, |duration| ctx.engine.runtime.sleep(duration))
+        .await
+        .inspect_err(|err| {
+            span.record_subgraph_status(SubgraphResponseStatus::HttpError);
+            tracing::error!(target: GRAFBASE_TARGET, "{err}");
+        })?;
 
     tracing::debug!("{}", String::from_utf8_lossy(&fetch_response.bytes));
 

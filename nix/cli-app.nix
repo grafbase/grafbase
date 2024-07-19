@@ -1,22 +1,19 @@
-{ pkgs, ... }:
-
-let
-  src = pkgs.nix-gitignore.gitignoreSourcePure [ ".gitignore" ] ../packages;
+{pkgs, ...}: let
+  src = pkgs.nix-gitignore.gitignoreSourcePure [".gitignore"] ../packages;
   pname = "cli-app";
   version = "1";
 
   inherit (pkgs) jq nodejs pnpm_9 stdenv;
-in
-{
+in {
   packages.cli-app = stdenv.mkDerivation {
     inherit pname version src;
 
     pnpmDeps = pnpm_9.fetchDeps {
       inherit src pname version;
-      hash = "sha256-BGiSFr2Fm6610g6zPMo0Rw3c1MWE/zqxr2YEY9MEdbk=";
+      hash = "sha256-v0PPuufzvNxSITOlFPb8j5IEySMpOLB65M/eRMvEVF8=";
     };
 
-    buildInputs = [ jq ];
+    buildInputs = [jq];
 
     nativeBuildInputs = [
       nodejs

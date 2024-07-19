@@ -152,7 +152,7 @@ impl DummyFetcher {
 
 #[async_trait::async_trait]
 impl runtime::fetch::FetcherInner for DummyFetcher {
-    async fn post(&self, _request: FetchRequest<'_>) -> FetchResult<FetchResponse> {
+    async fn post(&self, _request: &FetchRequest<'_>) -> FetchResult<FetchResponse> {
         Ok(self
             .responses
             .get(self.index.fetch_add(1, Ordering::Relaxed))

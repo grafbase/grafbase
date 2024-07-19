@@ -191,6 +191,20 @@ impl<'a> BuildContext<'a> {
                     duration: config.duration,
                 });
 
+            let retry = config.retry.as_ref().map(
+                |parser_sdl::federation::RetryConfig {
+                     min_per_second,
+                     ttl,
+                     retry_percent,
+                     retry_mutations,
+                 }| engine_v2_config::latest::RetryConfig {
+                    min_per_second: *min_per_second,
+                    ttl: *ttl,
+                    retry_percent: *retry_percent,
+                    retry_mutations: *retry_mutations,
+                },
+            );
+
             self.subgraph_configs.insert(
                 subgraph_id,
                 config::SubgraphConfig {
@@ -200,6 +214,7 @@ impl<'a> BuildContext<'a> {
                     rate_limit,
                     timeout: *timeout,
                     entity_cache_ttl: *entity_cache_ttl,
+                    retry,
                 },
             );
         }

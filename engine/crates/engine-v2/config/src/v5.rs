@@ -14,7 +14,7 @@ use self::rate_limit::{RateLimitConfigRef, RateLimitRedisConfigRef, RateLimitRed
 
 pub use super::v4::{
     AuthConfig, AuthProviderConfig, CacheConfig, CacheConfigTarget, CacheConfigs, Header, HeaderId, HeaderValue,
-    JwksConfig, JwtConfig, OperationLimits, StringId, SubgraphConfig,
+    JwksConfig, JwtConfig, OperationLimits, RetryConfig, StringId, SubgraphConfig,
 };
 pub use header::{
     HeaderForward, HeaderInsert, HeaderRemove, HeaderRenameDuplicate, HeaderRule, HeaderRuleId, NameOrPattern,

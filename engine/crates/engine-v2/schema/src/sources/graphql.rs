@@ -19,6 +19,19 @@ pub struct GraphqlEndpoint {
     pub(crate) header_rules: Vec<HeaderRuleId>,
     pub(crate) timeout: Duration,
     pub(crate) entity_cache_ttl: Duration,
+    pub(crate) retry: Option<RetryConfig>,
+}
+
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+pub struct RetryConfig {
+    /// How many retries are available per second, at a minimum.
+    pub min_per_second: Option<u32>,
+    /// Each successful request to the subgraph adds to the retry budget. This setting controls for how long the budget remembers successful requests.
+    pub ttl: Option<Duration>,
+    /// The fraction of the successful requests budget that can be used for retries.
+    pub retry_percent: Option<f32>,
+    /// Whether mutations should be retried at all. False by default.
+    pub retry_mutations: Option<bool>,
 }
 
 id_newtypes::U8! {
@@ -152,6 +165,10 @@ impl<'a> GraphqlEndpointWalker<'a> {
 
     pub fn entity_cache_ttl(self) -> Duration {
         self.as_ref().entity_cache_ttl
+    }
+
+    pub fn retry_config(self) -> Option<&'a RetryConfig> {
+        self.as_ref().retry.as_ref()
     }
 }
 
