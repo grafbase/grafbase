@@ -28,6 +28,9 @@ pub struct Config {
     /// Server bind settings
     #[serde(default)]
     pub network: NetworkConfig,
+    /// General settings for the gateway server
+    #[serde(default)]
+    pub gateway: GatewayConfig,
     /// Cross-site request forgery settings
     #[serde(default)]
     pub csrf: CsrfConfig,
@@ -56,12 +59,17 @@ pub struct Config {
     /// Health check endpoint configuration
     #[serde(default)]
     pub health: HealthConfig,
+}
+
+#[derive(Debug, Default, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct GatewayConfig {
+    /// Time out for gateway requests.
+    #[serde(deserialize_with = "duration_str::deserialize_option_duration", default)]
+    pub timeout: Option<Duration>,
     /// Global rate limiting configuration
     #[serde(default)]
     pub rate_limit: Option<RateLimitConfig>,
-    /// Time out for gateway requests in seconds. Default: 30 seconds.
-    #[serde(deserialize_with = "duration_str::deserialize_option_duration", default)]
-    pub timeout: Option<Duration>,
 }
 
 #[derive(Debug, serde::Deserialize, Clone)]
@@ -1323,14 +1331,14 @@ mod tests {
     #[test]
     fn global_rate_limiting() {
         let input = indoc! {r#"
-            [rate_limit]
+            [gateway.rate_limit]
             limit = 1000
             duration = "10s"
         "#};
 
         let config = toml::from_str::<Config>(input).unwrap();
 
-        insta::assert_debug_snapshot!(&config.rate_limit, @r###"
+        insta::assert_debug_snapshot!(&config.gateway.rate_limit, @r###"
         Some(
             RateLimitConfig {
                 limit: 1000,
@@ -1350,7 +1358,7 @@ mod tests {
 
         let config = toml::from_str::<Config>(input).unwrap();
 
-        assert!(config.rate_limit.is_none());
+        assert!(config.gateway.rate_limit.is_none());
         insta::assert_debug_snapshot!(&config.subgraphs.get("products").unwrap().rate_limit, @r###"
         Some(
             RateLimitConfig {

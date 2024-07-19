@@ -795,7 +795,7 @@ fn health_custom_listener() {
 #[test]
 fn global_rate_limiting() {
     let config = indoc! {r#"
-        [rate_limit]
+        [gateway.rate_limit]
         limit = 1
         duration = "1s"
     "#};
