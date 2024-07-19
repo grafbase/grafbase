@@ -1,8 +1,6 @@
 use bindings::{
-    component::grafbase::types::{
-        Context, EdgeDefinition, Error, Headers, NodeDefinition, SharedContext,
-    },
-    exports::component::grafbase::{authorization, gateway_request},
+    component::grafbase::types::{Context, EdgeDefinition, Error, Headers, NodeDefinition, SharedContext},
+    exports::component::grafbase::{authorization, gateway_request, subgraph_request},
 };
 
 #[allow(warnings)]
@@ -23,10 +21,22 @@ impl gateway_request::Guest for Component {
     /// The context written in this hook will be available in all subsequent hooks throughout
     /// the request lifespan.
     fn on_gateway_request(context: Context, headers: Headers) -> Result<(), Error> {
-        if let Ok(Some(id)) = headers.get("x-current-user-id") {
+        if let Some(id) = headers.get("x-current-user-id") {
             context.set("current-user-id", &id);
         }
 
+        Ok(())
+    }
+}
+impl subgraph_request::Guest for Component {
+    /// Called just before sending a request to the subgraph. Headers can be modified
+    fn on_subgraph_request(
+        _context: SharedContext,
+        _subgraph_name: String,
+        _method: String,
+        _url: String,
+        _headers: Headers,
+    ) -> Result<(), Error> {
         Ok(())
     }
 }
@@ -107,10 +117,7 @@ impl authorization::Guest for Component {
 }
 
 fn parse_user_id(context: &SharedContext) -> Result<u64, Error> {
-    match context
-        .get("current-user-id")
-        .and_then(|id| id.parse().ok())
-    {
+    match context.get("current-user-id").and_then(|id| id.parse().ok()) {
         Some(id) => Ok(id),
         None => Err(Error {
             extensions: vec![(
