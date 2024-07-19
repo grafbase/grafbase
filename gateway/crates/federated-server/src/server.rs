@@ -71,7 +71,8 @@ pub async fn serve(
                 trusted_documents: config.trusted_documents,
                 wasi: config.hooks,
                 header_rules: config.headers,
-                rate_limit: config.rate_limit,
+                rate_limit: config.gateway.rate_limit,
+                timeout: config.gateway.timeout,
             },
             otel_reload,
             sender,
@@ -102,7 +103,7 @@ pub async fn serve(
             grafbase_telemetry::metrics::meter_from_global_provider(),
         ))
         .layer(tower_http::timeout::RequestBodyTimeoutLayer::new(
-            config.timeout.unwrap_or(DEFAULT_GATEWAY_TIMEOUT),
+            config.gateway.timeout.unwrap_or(DEFAULT_GATEWAY_TIMEOUT),
         ))
         .layer(axum::middleware::map_response(
             |mut response: axum::response::Response<_>| async {

@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::time::Duration;
 use std::{collections::BTreeMap, sync::Arc};
 
 use tokio::sync::watch;
@@ -36,6 +37,7 @@ pub(crate) struct GatewayConfig {
     pub trusted_documents: TrustedDocumentsConfig,
     pub wasi: Option<HooksWasiConfig>,
     pub rate_limit: Option<RateLimitConfig>,
+    pub timeout: Option<Duration>,
 }
 
 /// Creates a new gateway from federated schema.
@@ -53,6 +55,7 @@ pub(super) async fn generate(
         trusted_documents,
         wasi,
         rate_limit,
+        timeout,
     } = config;
 
     let schema_version = blake3::hash(federated_schema.as_bytes());
@@ -68,6 +71,8 @@ pub(super) async fn generate(
     if let Some(auth_config) = authentication {
         graph_config.auth = Some(auth_config.into());
     }
+
+    graph_config.timeout = timeout;
 
     graph_config.disable_introspection = !enable_introspection;
 
