@@ -35,15 +35,15 @@ interface types {
     // Provides access to the request headers. Available in a mutable form
     // only in the gateway request hook.
     resource headers {
-        // Gets a header value with the given name. Returns an error if
-        // the name is not a valid header name. Returns none if the header does not exist.
-        get: func(name: string) -> result<option<string>, header-error>;
+        // Gets a header value with the given name if it exists.
+        get: func(name: string) -> option<string>;
         // Sets the header value with the given name. Returns an error if the given name
         // is not a valid header name.
         set: func(name: string, value: string) -> result<_, header-error>;
-        // Deletes a header value with the given name. Returns an error if
-        // the given name is not a valid header name. Returns the value if ixisting.
-        delete: func(name: string) -> result<option<string>, header-error>;
+        // Deletes a header value with the given name. Returns the value if it existed.
+        delete: func(name: string) -> option<string>;
+        // Lists all header key value pairs.
+        entries: func() -> list<tuple<string, string>>;
     }
 
     // Defines an edge in a type
@@ -85,6 +85,13 @@ interface gateway-request {
     on-gateway-request: func(context: context, headers: headers) -> result<_, error>;
 }
 
+interface subgraph-request {
+    use types.{shared-context, headers, error};
+
+    // The hook is called just before sending the HTTP request to the subgraph.
+    on-subgraph-request: func(context: shared-context, subgraph-name: string, method: string, url: string, headers: headers) -> result<_, error>;
+}
+
 interface authorization {
     use types.{error, shared-context, edge-definition, node-definition};
 
@@ -124,4 +131,5 @@ interface authorization {
 world hooks {
     export gateway-request;
     export authorization;
+    export subgraph-request;
 }
