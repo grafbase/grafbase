@@ -85,6 +85,14 @@ interface gateway-request {
     on-gateway-request: func(context: context, headers: headers) -> result<_, error>;
 }
 
+interface subgraph-request {
+    use types.{shared-context, headers, error};
+
+    // The hook is called just before requesting a subgraph, after rate limiting is done. It can be used
+    // to read and modify the subgraph request headers. If returning an error, the subgraph is not requested.
+    on-subgraph-request: func(context: shared-context, method: string, url: string, headers: headers) -> result<_, error>;
+}
+
 interface authorization {
     use types.{error, shared-context, edge-definition, node-definition};
 
