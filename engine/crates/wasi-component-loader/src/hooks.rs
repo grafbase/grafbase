@@ -206,7 +206,7 @@ impl ComponentInstance {
 
         match interface.typed_func(function_name) {
             Ok(hook) => {
-                tracing::debug!(target: GRAFBASE_TARGET, "instantized the {function_name} hook WASM function");
+                tracing::debug!(target: GRAFBASE_TARGET, "instantized the {function_name} hook Wasm function");
                 self.function_cache
                     .write()
                     .unwrap()
@@ -215,7 +215,7 @@ impl ComponentInstance {
             }
             Err(e) => {
                 // Shouldn't happen, so we keep spamming errors to be sure it's seen.
-                tracing::error!(target: GRAFBASE_TARGET, "error instantizing the {function_name} hook WASM function: {e}");
+                tracing::error!(target: GRAFBASE_TARGET, "error instantizing the {function_name} hook Wasm function: {e}");
                 None
             }
         }
