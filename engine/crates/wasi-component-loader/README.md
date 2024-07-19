@@ -1,6 +1,6 @@
-# WASM component loader for Grafbase Gateway
+# Wasm component loader for the Grafbase Gateway
 
-Adds support for loading WASM components in Grafbase Gateway. The WASM file has to be in a form of WASM Preview 2 component, which can be created using the [cargo-component](https://github.com/bytecodealliance/cargo-component) tooling. See the examples for simple guest components, which are all tested in CI for this crate and work together with the host library.
+Adds support for loading WebAssembly components in the Grafbase Gateway. The Wasm file has to be in a form of WASI Preview 2 component, which can be created using the [cargo-component](https://github.com/bytecodealliance/cargo-component) tooling. See the examples for simple guest components, which are all tested in CI for this crate and work together with the host library.
 
 The component interface must define the types defined in a wit file:
 
