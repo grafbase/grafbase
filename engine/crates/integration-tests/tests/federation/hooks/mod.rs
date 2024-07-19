@@ -1,6 +1,7 @@
 mod authorize_edge_pre_execution;
 mod authorize_node_pre_execution;
 mod on_gateway_request;
+mod on_subgraph_request;
 
 use engine_v2::Engine;
 use futures::Future;

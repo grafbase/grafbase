@@ -13,7 +13,7 @@ pub use cors::CorsConfig;
 use grafbase_telemetry::config::TelemetryConfig;
 pub use header::{HeaderForward, HeaderInsert, HeaderRemove, HeaderRule, NameOrPattern};
 pub use rate_limit::RateLimitConfig;
-use runtime_local::HooksConfig;
+use runtime_local::HooksWasiConfig;
 use serde_dynamic_string::DynamicString;
 use url::Url;
 
@@ -52,7 +52,7 @@ pub struct Config {
     pub subgraphs: BTreeMap<String, SubgraphConfig>,
     /// Hooks configuration
     #[serde(default)]
-    pub hooks: Option<HooksConfig>,
+    pub hooks: Option<HooksWasiConfig>,
     /// Health check endpoint configuration
     #[serde(default)]
     pub health: HealthConfig,

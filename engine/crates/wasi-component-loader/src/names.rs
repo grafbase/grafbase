@@ -1,7 +1,7 @@
 pub(crate) static COMPONENT_TYPES: &str = "component:grafbase/types";
-pub(crate) static COMPONENT_GATEWAY_REQUEST: &str = "component:grafbase/gateway-request";
-pub(crate) static COMPONENT_AUTHORIZATION: &str = "component:grafbase/authorization";
-pub(crate) static COMPONENT_SUBGRAPH_REQUEST: &str = "component:grafbase/subgraph-request";
+pub(crate) static GATEWAY_REQUEST_INTERFACE: &str = "component:grafbase/gateway-request";
+pub(crate) static AUTHORIZATION_INTERFACE: &str = "component:grafbase/authorization";
+pub(crate) static SUBGRAPH_REQUEST_INTERFACE: &str = "component:grafbase/subgraph-request";
 
 pub(crate) static GATEWAY_HOOK_FUNCTION: &str = "on-gateway-request";
 pub(crate) static AUTHORIZE_EDGE_PRE_EXECUTION_HOOK_FUNCTION: &str = "authorize-edge-pre-execution";

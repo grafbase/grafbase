@@ -30,7 +30,7 @@ pub(crate) enum ErrorCode {
     // Runtime
     HookError,
     // Rate limit
-    RateLimitError,
+    RateLimited,
     // Timeouts
     GatewayTimeout,
 }
@@ -103,5 +103,11 @@ impl From<runtime::error::PartialGraphqlError> for GraphqlError {
             locations: Vec::new(),
             path: None,
         }
+    }
+}
+
+impl std::fmt::Display for GraphqlError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.message.fmt(f)
     }
 }

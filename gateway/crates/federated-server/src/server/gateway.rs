@@ -8,7 +8,7 @@ use graphql_composition::FederatedGraph;
 use parser_sdl::federation::{header::SubgraphHeaderRule, FederatedGraphConfig};
 use runtime::rate_limiting::KeyedRateLimitConfig;
 use runtime_local::{
-    rate_limiting::key_based::InMemoryRateLimiter, ComponentLoader, HooksConfig, HooksWasi, InMemoryKvStore,
+    rate_limiting::key_based::InMemoryRateLimiter, ComponentLoader, HooksWasi, HooksWasiConfig, InMemoryKvStore,
 };
 use runtime_noop::trusted_documents::NoopTrustedDocuments;
 
@@ -34,7 +34,7 @@ pub(crate) struct GatewayConfig {
     pub header_rules: Vec<HeaderRule>,
     pub subgraphs: BTreeMap<String, SubgraphConfig>,
     pub trusted_documents: TrustedDocumentsConfig,
-    pub wasi: Option<HooksConfig>,
+    pub wasi: Option<HooksWasiConfig>,
     pub rate_limit: Option<RateLimitConfig>,
 }
 

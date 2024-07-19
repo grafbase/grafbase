@@ -1,46 +1,35 @@
 mod authorized;
 mod pool;
+mod subgraph;
 
 use std::{collections::HashMap, sync::Arc};
 
-use deadpool::managed::Pool;
+use pool::Pool;
 use runtime::{
     error::{PartialErrorCode, PartialGraphqlError},
-    hooks::{AuthorizedHooks, HeaderMap, Hooks},
+    hooks::{AuthorizedHooks, HeaderMap, Hooks, SubgraphHooks},
 };
 use tracing::instrument;
-pub use wasi_component_loader::{ComponentLoader, Config as HooksConfig};
-
-use self::pool::{AuthorizationHookManager, GatewayHookManager};
+use wasi_component_loader::{AuthorizationComponentInstance, GatewayComponentInstance, SubgraphComponentInstance};
+pub use wasi_component_loader::{ComponentLoader, Config as HooksWasiConfig};
 
 pub struct HooksWasi(Option<HooksWasiInner>);
 type Context = Arc<HashMap<String, String>>;
 
 struct HooksWasiInner {
-    gateway_hooks: Pool<GatewayHookManager>,
-    authorization_hooks: Pool<AuthorizationHookManager>,
+    gateway: Pool<GatewayComponentInstance>,
+    authorization: Pool<AuthorizationComponentInstance>,
+    subgraph: Pool<SubgraphComponentInstance>,
 }
 
 impl HooksWasi {
     pub fn new(loader: Option<ComponentLoader>) -> Self {
         match loader.map(Arc::new) {
-            Some(loader) => {
-                let gateway_mgr = GatewayHookManager::new(loader.clone());
-                let authorization_mgr = AuthorizationHookManager::new(loader);
-
-                let gateway_hooks = Pool::builder(gateway_mgr)
-                    .build()
-                    .expect("only fails if not in a runtime");
-
-                let authorization_hooks = Pool::builder(authorization_mgr)
-                    .build()
-                    .expect("only fails if not in a runtime");
-
-                Self(Some(HooksWasiInner {
-                    gateway_hooks,
-                    authorization_hooks,
-                }))
-            }
+            Some(loader) => Self(Some(HooksWasiInner {
+                gateway: Pool::new(&loader),
+                authorization: Pool::new(&loader),
+                subgraph: Pool::new(&loader),
+            })),
             None => Self(None),
         }
     }
@@ -55,9 +44,9 @@ impl Hooks for HooksWasi {
             return Ok((Arc::new(HashMap::new()), headers));
         };
 
-        let mut hook = inner.gateway_hooks.get().await.expect("no io, should not fail");
+        let mut hook = inner.gateway.get().await;
 
-        hook.call(HashMap::new(), headers)
+        hook.on_gateway_request(HashMap::new(), headers)
             .await
             .map(|(ctx, headers)| (Arc::new(ctx), headers))
             .map_err(|err| match err {
@@ -65,21 +54,20 @@ impl Hooks for HooksWasi {
                     tracing::error!("on_gateway_request error: {err}");
                     PartialGraphqlError::internal_hook_error()
                 }
-                wasi_component_loader::Error::Guest(err) => {
-                    error_response_to_user_error(err, PartialErrorCode::BadRequest)
-                }
+                wasi_component_loader::Error::Guest(err) => guest_error_as_gql(err, PartialErrorCode::BadRequest),
             })
     }
 
     fn authorized(&self) -> &impl AuthorizedHooks<Self::Context> {
         self
     }
+
+    fn subgraph(&self) -> &impl SubgraphHooks<Self::Context> {
+        self
+    }
 }
 
-fn error_response_to_user_error(
-    error: wasi_component_loader::GuestError,
-    code: PartialErrorCode,
-) -> PartialGraphqlError {
+fn guest_error_as_gql(error: wasi_component_loader::GuestError, code: PartialErrorCode) -> PartialGraphqlError {
     let extensions = error
         .extensions
         .into_iter()

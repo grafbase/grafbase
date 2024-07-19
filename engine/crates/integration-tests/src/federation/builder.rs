@@ -11,6 +11,7 @@ use graphql_federated_graph::FederatedGraphV3;
 use graphql_mocks::MockGraphQlServer;
 use parser_sdl::{connector_parsers::MockConnectorParsers, federation::header::SubgraphHeaderRule};
 use runtime::{fetch::FetcherInner, hooks::DynamicHooks, trusted_documents_client};
+use runtime_local::{ComponentLoader, HooksWasi, HooksWasiConfig};
 pub use test_runtime::*;
 
 use super::TestEngineV2;
@@ -81,6 +82,20 @@ impl EngineV2Builder {
 
     pub fn with_hooks(mut self, hooks: impl Into<DynamicHooks>) -> Self {
         self.runtime.hooks = hooks.into();
+        self
+    }
+
+    /// Wasm location will be assumed to be in our examples
+    pub fn with_wasi_hooks(mut self, config: HooksWasiConfig) -> Self {
+        let wasi_hooks = HooksWasi::new(Some(
+            ComponentLoader::new(
+                config.with_location_root_dir("../wasi-component-loader/examples/target/wasm32-wasip1/debug"),
+            )
+            .ok()
+            .flatten()
+            .expect("Wasm examples weren't built, please run:\ncd engine/crates/wasi-component-loader/examples && cargo component build"),
+        ));
+        self.runtime.hooks = DynamicHooks::wrap(wasi_hooks);
         self
     }
 

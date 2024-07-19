@@ -810,7 +810,7 @@ fn global_rate_limiting() {
         }
     "#};
 
-    let expected_response = r#"{"errors":[{"message":"Too many requests","extensions":{"code":"RATE_LIMIT_ERROR"}}]}"#;
+    let expected_response = r#"{"errors":[{"message":"Too many requests","extensions":{"code":"RATE_LIMITED"}}]}"#;
 
     with_static_server(config, &schema, None, None, |client| async move {
         expect_rate_limiting(|| client.gql(query).send().boxed(), expected_response).await;
@@ -835,7 +835,7 @@ fn subgraph_rate_limiting() {
         }
     "#};
 
-    let expected_response = r#"{"data":null,"errors":[{"message":"Too many requests","path":["me"],"extensions":{"code":"RATE_LIMIT_ERROR"}}]}"#;
+    let expected_response = r#"{"data":null,"errors":[{"message":"Too many requests","path":["me"],"extensions":{"code":"RATE_LIMITED"}}]}"#;
 
     with_static_server(config, &schema, None, None, |client| async move {
         expect_rate_limiting(|| client.gql(query).send().boxed(), expected_response).await;

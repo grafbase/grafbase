@@ -6,6 +6,80 @@ use runtime::{
     error::{PartialErrorCode, PartialGraphqlError},
     hooks::{DynHookContext, DynHooks},
 };
+use runtime_local::HooksWasiConfig;
+use url::Url;
+
+#[test]
+fn wasi() {
+    use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
+
+    let mut response = runtime().block_on(async move {
+        let echo_mock = MockGraphQlServer::new(EchoSchema).await;
+
+        let engine = Engine::builder()
+            .with_wasi_hooks(HooksWasiConfig::default().with_location("subgraph_request.wasm"))
+            .with_subgraph("echo", &echo_mock)
+            .with_supergraph_config(
+                r#"
+                    extend schema @subgraph(
+                        name: "echo",
+                        headers: [
+                            { name: "hi", forward: "hi" },
+                        ]
+                    )
+                "#,
+            )
+            .build()
+            .await;
+
+        engine
+            .execute(
+                r###"
+            query {
+                hi: header(name: "hi")
+                everything: header(name: "everything")
+            }
+            "###,
+            )
+            .header("hi", "Rusty")
+            .await
+    });
+    let value = response["data"]["everything"].as_str().unwrap();
+    let value: serde_json::Value = serde_json::from_slice(&URL_SAFE_NO_PAD.decode(value).unwrap()).unwrap();
+    response["data"]["everything"] = value;
+
+    let url_redaction = insta::dynamic_redaction(|value, _path| {
+        assert!(value.as_str().unwrap().starts_with("http://127.0.0.1:"));
+        "[url]"
+    });
+    // the content of everything has no particular order.
+    insta::with_settings!({sort_maps => true}, {
+        insta::assert_json_snapshot!(
+            response,
+            {
+                ".data.everything.url" => url_redaction,
+            },
+            @r###"
+        {
+          "data": {
+            "everything": {
+              "headers": [
+                [
+                  "hi",
+                  "Rusty"
+                ]
+              ],
+              "method": "POST",
+              "subgraph_name": "echo",
+              "url": "[url]"
+            },
+            "hi": "Rusty"
+          }
+        }
+        "###
+        );
+    });
+}
 
 #[test]
 fn can_modify_headers() {
@@ -13,9 +87,12 @@ fn can_modify_headers() {
 
     #[async_trait::async_trait]
     impl DynHooks for TestHooks {
-        async fn on_gateway_request(
+        async fn on_subgraph_request(
             &self,
-            _context: &mut DynHookContext,
+            _context: &DynHookContext,
+            _subgraph_name: &str,
+            _method: http::Method,
+            _url: &Url,
             mut headers: HeaderMap,
         ) -> Result<HeaderMap, PartialGraphqlError> {
             headers.insert("b", "22".parse().unwrap());
@@ -80,12 +157,15 @@ fn error_is_propagated_back_to_the_user() {
 
     #[async_trait::async_trait]
     impl DynHooks for TestHooks {
-        async fn on_gateway_request(
+        async fn on_subgraph_request(
             &self,
-            _context: &mut DynHookContext,
+            _context: &DynHookContext,
+            _subgraph_name: &str,
+            _method: http::Method,
+            _url: &Url,
             _headers: HeaderMap,
         ) -> Result<HeaderMap, PartialGraphqlError> {
-            Err(PartialGraphqlError::new("impossible error", PartialErrorCode::BadRequest).with_extension("foo", "bar"))
+            Err(PartialGraphqlError::new("impossible error", PartialErrorCode::HookError).with_extension("foo", "bar"))
         }
     }
 
@@ -103,12 +183,16 @@ fn error_is_propagated_back_to_the_user() {
 
     insta::assert_json_snapshot!(response, @r###"
     {
+      "data": null,
       "errors": [
         {
           "message": "impossible error",
+          "path": [
+            "serverVersion"
+          ],
           "extensions": {
             "foo": "bar",
-            "code": "BAD_REQUEST"
+            "code": "HOOK_ERROR"
           }
         }
       ]
@@ -122,13 +206,16 @@ fn error_code_is_propagated_back_to_the_user() {
 
     #[async_trait::async_trait]
     impl DynHooks for TestHooks {
-        async fn on_gateway_request(
+        async fn on_subgraph_request(
             &self,
-            _context: &mut DynHookContext,
+            _context: &DynHookContext,
+            _subgraph_name: &str,
+            _method: http::Method,
+            _url: &Url,
             _headers: HeaderMap,
         ) -> Result<HeaderMap, PartialGraphqlError> {
             Err(
-                PartialGraphqlError::new("impossible error", PartialErrorCode::BadRequest)
+                PartialGraphqlError::new("impossible error", PartialErrorCode::HookError)
                     .with_extension("code", "IMPOSSIBLE"),
             )
         }
@@ -148,9 +235,13 @@ fn error_code_is_propagated_back_to_the_user() {
 
     insta::assert_json_snapshot!(response, @r###"
     {
+      "data": null,
       "errors": [
         {
           "message": "impossible error",
+          "path": [
+            "serverVersion"
+          ],
           "extensions": {
             "code": "IMPOSSIBLE"
           }

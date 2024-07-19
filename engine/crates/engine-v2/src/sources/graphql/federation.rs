@@ -1,7 +1,4 @@
-use grafbase_telemetry::{
-    gql_response_status::SubgraphResponseStatus,
-    span::{subgraph::SubgraphRequestSpan, GqlRecorderSpanExt, GRAFBASE_TARGET},
-};
+use grafbase_telemetry::span::subgraph::SubgraphRequestSpan;
 use runtime::fetch::FetchRequest;
 use schema::sources::graphql::{FederationEntityResolverWalker, GraphqlEndpointId, GraphqlEndpointWalker};
 use serde::de::DeserializeSeed;
@@ -18,7 +15,10 @@ use crate::{
     Runtime,
 };
 
-use super::{deserialize::EntitiesDataSeed, query::PreparedFederationEntityOperation, variables::SubgraphVariables};
+use super::{
+    deserialize::EntitiesDataSeed, query::PreparedFederationEntityOperation, request::execute_subgraph_request,
+    variables::SubgraphVariables,
+};
 
 pub(crate) struct FederationEntityPreparedExecutor {
     subgraph_id: GraphqlEndpointId,
@@ -110,61 +110,34 @@ impl<'ctx, R: Runtime> FederationEntityExecutor<'ctx, R> {
         }
         .into_span();
 
-        self.subgraph_request(&mut response_part).instrument(span).await?;
-
-        Ok(response_part)
-    }
-
-    async fn subgraph_request(self, response_part: &mut ResponsePart) -> ExecutionResult<()> {
-        self.ctx
-            .engine
-            .runtime
-            .rate_limiter()
-            .limit(&crate::engine::RateLimitContext::Subgraph(self.subgraph.name()))
-            .await?;
-
-        let response = self
-            .ctx
-            .engine
-            .runtime
-            .fetcher()
-            .post(FetchRequest {
+        execute_subgraph_request(
+            self.ctx,
+            span.clone(),
+            self.subgraph.name(),
+            || FetchRequest {
                 url: self.subgraph.url(),
                 headers: self.ctx.headers_with_rules(self.subgraph.header_rules()),
                 json_body: self.json_body,
                 subgraph_name: self.subgraph.name(),
                 timeout: self.subgraph.timeout(),
-            })
-            .await;
-
-        let response = match response {
-            Ok(response) => response,
-            Err(e) => {
-                let status = SubgraphResponseStatus::HttpError;
-
-                tracing::Span::current().record_subgraph_status(status);
-                tracing::error!(GRAFBASE_TARGET, "{e}");
-
-                return Err(e.into());
-            }
-        };
-
-        tracing::trace!("{}", String::from_utf8_lossy(&response.bytes));
-
-        let part = response_part.as_mut();
-
-        let result = GraphqlResponseSeed::new(
-            EntitiesDataSeed {
-                response_part: &part,
-                plan: self.plan,
             },
-            EntitiesErrorsSeed {
-                response_part: &part,
-                response_keys: self.plan.response_keys(),
+            move |bytes| {
+                let part = response_part.as_mut();
+                let status = GraphqlResponseSeed::new(
+                    EntitiesDataSeed {
+                        response_part: &part,
+                        plan: self.plan,
+                    },
+                    EntitiesErrorsSeed {
+                        response_part: &part,
+                        response_keys: self.plan.response_keys(),
+                    },
+                )
+                .deserialize(&mut serde_json::Deserializer::from_slice(&bytes))?;
+                Ok((status, response_part))
             },
         )
-        .deserialize(&mut serde_json::Deserializer::from_slice(&response.bytes));
-
-        super::handle_subgraph_result(result, response_part)
+        .instrument(span)
+        .await
     }
 }

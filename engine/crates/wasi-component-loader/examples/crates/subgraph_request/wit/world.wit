@@ -47,7 +47,7 @@ interface gateway-request {
 interface subgraph-request {
     use types.{shared-context, headers, error};
 
-    on-subgraph-request: func(context: shared-context, method: string, url: string, headers: headers) -> result<_, error>;
+    on-subgraph-request: func(context: shared-context, subgraph-name: string, method: string, url: string, headers: headers) -> result<_, error>;
 }
 
 interface authorization {

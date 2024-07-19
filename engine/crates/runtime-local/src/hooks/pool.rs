@@ -1,54 +1,47 @@
 use std::sync::Arc;
 
 use deadpool::managed;
-use wasi_component_loader::{AuthorizationHookInstance, ComponentLoader, GatewayHookInstance};
+use wasi_component_loader::{ComponentLoader, RecycleableComponentInstance};
 
-pub(super) struct GatewayHookManager {
+pub(super) struct Pool<T: RecycleableComponentInstance>(managed::Pool<ComponentMananger<T>>);
+
+impl<T: RecycleableComponentInstance> Pool<T> {
+    pub(super) fn new(loader: &Arc<ComponentLoader>) -> Self {
+        let mgr = ComponentMananger::<T>::new(loader.clone());
+        Self(
+            managed::Pool::builder(mgr)
+                .build()
+                .expect("only fails if not in a runtime"),
+        )
+    }
+
+    pub(super) async fn get(&self) -> managed::Object<ComponentMananger<T>> {
+        self.0.get().await.expect("no io, should not fail")
+    }
+}
+
+pub(super) struct ComponentMananger<T> {
     component_loader: Arc<ComponentLoader>,
+    _phantom: std::marker::PhantomData<fn() -> T>,
 }
 
-impl GatewayHookManager {
-    pub fn new(component_loader: Arc<ComponentLoader>) -> Self {
-        Self { component_loader }
+impl<T: RecycleableComponentInstance> ComponentMananger<T> {
+    pub(super) fn new(component_loader: Arc<ComponentLoader>) -> Self {
+        Self {
+            component_loader,
+            _phantom: std::marker::PhantomData,
+        }
     }
 }
 
-impl managed::Manager for GatewayHookManager {
-    type Type = GatewayHookInstance;
+impl<T: RecycleableComponentInstance> managed::Manager for ComponentMananger<T> {
+    type Type = T;
     type Error = wasi_component_loader::Error;
-
     async fn create(&self) -> Result<Self::Type, Self::Error> {
-        GatewayHookInstance::new(&self.component_loader).await
+        T::new(&self.component_loader).await
     }
-
     async fn recycle(&self, instance: &mut Self::Type, _: &managed::Metrics) -> managed::RecycleResult<Self::Error> {
-        instance.cleanup()?;
-
-        Ok(())
-    }
-}
-
-pub(super) struct AuthorizationHookManager {
-    component_loader: Arc<ComponentLoader>,
-}
-
-impl AuthorizationHookManager {
-    pub fn new(component_loader: Arc<ComponentLoader>) -> Self {
-        Self { component_loader }
-    }
-}
-
-impl managed::Manager for AuthorizationHookManager {
-    type Type = AuthorizationHookInstance;
-    type Error = wasi_component_loader::Error;
-
-    async fn create(&self) -> Result<Self::Type, Self::Error> {
-        AuthorizationHookInstance::new(&self.component_loader).await
-    }
-
-    async fn recycle(&self, instance: &mut Self::Type, _: &managed::Metrics) -> managed::RecycleResult<Self::Error> {
-        instance.cleanup()?;
-
+        instance.recycle()?;
         Ok(())
     }
 }

@@ -3,6 +3,8 @@ use std::{
     collections::HashMap,
 };
 
+use futures_util::{future::BoxFuture, FutureExt};
+
 use super::*;
 
 /// Dynamic hooks, for testing purposes to have a default implementation and avoid
@@ -46,10 +48,10 @@ pub trait DynHooks: Send + Sync + 'static {
         ))
     }
 
-    async fn authorize_node_post_execution<'a>(
+    async fn authorize_node_post_execution(
         &self,
         context: &DynHookContext,
-        definition: NodeDefinition<'a>,
+        definition: NodeDefinition<'_>,
         nodes: Vec<serde_json::Value>,
         metadata: Option<serde_json::Value>,
     ) -> AuthorizationVerdicts {
@@ -59,10 +61,10 @@ pub trait DynHooks: Send + Sync + 'static {
         ))
     }
 
-    async fn authorize_parent_edge_post_execution<'a>(
+    async fn authorize_parent_edge_post_execution(
         &self,
         context: &DynHookContext,
-        definition: EdgeDefinition<'a>,
+        definition: EdgeDefinition<'_>,
         parents: Vec<serde_json::Value>,
         metadata: Option<serde_json::Value>,
     ) -> AuthorizationVerdicts {
@@ -72,10 +74,10 @@ pub trait DynHooks: Send + Sync + 'static {
         ))
     }
 
-    async fn authorize_edge_node_post_execution<'a>(
+    async fn authorize_edge_node_post_execution(
         &self,
         context: &DynHookContext,
-        definition: EdgeDefinition<'a>,
+        definition: EdgeDefinition<'_>,
         nodes: Vec<serde_json::Value>,
         metadata: Option<serde_json::Value>,
     ) -> AuthorizationVerdicts {
@@ -85,10 +87,10 @@ pub trait DynHooks: Send + Sync + 'static {
         ))
     }
 
-    async fn authorize_edge_post_execution<'a>(
+    async fn authorize_edge_post_execution(
         &self,
         context: &DynHookContext,
-        definition: EdgeDefinition<'a>,
+        definition: EdgeDefinition<'_>,
         edges: Vec<(serde_json::Value, Vec<serde_json::Value>)>,
         metadata: Option<serde_json::Value>,
     ) -> AuthorizationVerdicts {
@@ -96,6 +98,17 @@ pub trait DynHooks: Send + Sync + 'static {
             "authorize_edge_post_execution is not implemented",
             PartialErrorCode::Unauthorized,
         ))
+    }
+
+    async fn on_subgraph_request(
+        &self,
+        context: &DynHookContext,
+        subgraph_name: &str,
+        method: http::Method,
+        url: &Url,
+        headers: HeaderMap,
+    ) -> Result<HeaderMap, PartialGraphqlError> {
+        Ok(headers)
     }
 }
 
@@ -131,8 +144,6 @@ impl DynHookContext {
     }
 }
 
-impl DynHooks for () {}
-
 impl<T: DynHooks> From<T> for DynamicHooks {
     fn from(hooks: T) -> Self {
         Self::new(hooks)
@@ -143,11 +154,15 @@ pub struct DynamicHooks(Box<dyn DynHooks>);
 
 impl Default for DynamicHooks {
     fn default() -> Self {
-        Self::new(())
+        Self::new(DynWrapper(()))
     }
 }
 
 impl DynamicHooks {
+    pub fn wrap<H: Hooks>(hooks: H) -> Self {
+        Self::new(DynWrapper(hooks))
+    }
+
     pub fn new(hooks: impl DynHooks) -> Self {
         Self(Box::new(hooks))
     }
@@ -163,6 +178,10 @@ impl Hooks for DynamicHooks {
     }
 
     fn authorized(&self) -> &impl AuthorizedHooks<Self::Context> {
+        self
+    }
+
+    fn subgraph(&self) -> &impl SubgraphHooks<Self::Context> {
         self
     }
 }
@@ -286,5 +305,162 @@ impl AuthorizedHooks<DynHookContext> for DynamicHooks {
                 metadata.map(|m| serde_json::to_value(&m).unwrap()),
             )
             .await
+    }
+}
+
+impl SubgraphHooks<DynHookContext> for DynamicHooks {
+    async fn on_subgraph_request(
+        &self,
+        context: &DynHookContext,
+        subgraph_name: &str,
+        method: http::Method,
+        url: &Url,
+        headers: HeaderMap,
+    ) -> Result<HeaderMap, PartialGraphqlError> {
+        self.0
+            .on_subgraph_request(context, subgraph_name, method, url, headers)
+            .await
+    }
+}
+
+pub struct DynWrapper<T>(T);
+
+impl<H: Hooks> DynHooks for DynWrapper<H> {
+    fn on_gateway_request<'a, 'b, 'fut>(
+        &'a self,
+        context: &'b mut DynHookContext,
+        headers: HeaderMap,
+    ) -> BoxFuture<'fut, Result<HeaderMap, PartialGraphqlError>>
+    where
+        'a: 'fut,
+        'b: 'fut,
+    {
+        async {
+            let (ctx, headers) = Hooks::on_gateway_request(&self.0, headers).await?;
+            context.typed_insert(ctx);
+            Ok(headers)
+        }
+        .boxed()
+    }
+
+    // FIXME: Had to write them explicitly because of: https://github.com/rust-lang/rust/issues/100013
+    fn authorize_edge_pre_execution<'a, 'b, 'c, 'fut>(
+        &'a self,
+        context: &'b DynHookContext,
+        definition: EdgeDefinition<'c>,
+        arguments: serde_json::Value,
+        metadata: Option<serde_json::Value>,
+    ) -> BoxFuture<'fut, AuthorizationVerdict>
+    where
+        'a: 'fut,
+        'b: 'fut,
+        'c: 'fut,
+    {
+        Hooks::authorized(&self.0)
+            .authorize_edge_pre_execution(context.typed_get().unwrap(), definition, arguments, metadata)
+            .boxed()
+    }
+
+    fn authorize_node_pre_execution<'a, 'b, 'c, 'fut>(
+        &'a self,
+        context: &'b DynHookContext,
+        definition: NodeDefinition<'c>,
+        metadata: Option<serde_json::Value>,
+    ) -> BoxFuture<'fut, AuthorizationVerdict>
+    where
+        'a: 'fut,
+        'b: 'fut,
+        'c: 'fut,
+    {
+        Hooks::authorized(&self.0)
+            .authorize_node_pre_execution(context.typed_get().unwrap(), definition, metadata)
+            .boxed()
+    }
+
+    fn authorize_node_post_execution<'a, 'b, 'c, 'fut>(
+        &'a self,
+        context: &'b DynHookContext,
+        definition: NodeDefinition<'c>,
+        nodes: Vec<serde_json::Value>,
+        metadata: Option<serde_json::Value>,
+    ) -> BoxFuture<'fut, AuthorizationVerdicts>
+    where
+        'a: 'fut,
+        'b: 'fut,
+        'c: 'fut,
+    {
+        Hooks::authorized(&self.0)
+            .authorize_node_post_execution(context.typed_get().unwrap(), definition, nodes, metadata)
+            .boxed()
+    }
+
+    fn authorize_parent_edge_post_execution<'a, 'b, 'c, 'fut>(
+        &'a self,
+        context: &'b DynHookContext,
+        definition: EdgeDefinition<'c>,
+        parents: Vec<serde_json::Value>,
+        metadata: Option<serde_json::Value>,
+    ) -> BoxFuture<'fut, AuthorizationVerdicts>
+    where
+        'a: 'fut,
+        'b: 'fut,
+        'c: 'fut,
+    {
+        Hooks::authorized(&self.0)
+            .authorize_parent_edge_post_execution(context.typed_get().unwrap(), definition, parents, metadata)
+            .boxed()
+    }
+
+    fn authorize_edge_node_post_execution<'a, 'b, 'c, 'fut>(
+        &'a self,
+        context: &'b DynHookContext,
+        definition: EdgeDefinition<'c>,
+        nodes: Vec<serde_json::Value>,
+        metadata: Option<serde_json::Value>,
+    ) -> BoxFuture<'fut, AuthorizationVerdicts>
+    where
+        'a: 'fut,
+        'b: 'fut,
+        'c: 'fut,
+    {
+        Hooks::authorized(&self.0)
+            .authorize_edge_node_post_execution(context.typed_get().unwrap(), definition, nodes, metadata)
+            .boxed()
+    }
+
+    fn authorize_edge_post_execution<'a, 'b, 'c, 'fut>(
+        &'a self,
+        context: &'b DynHookContext,
+        definition: EdgeDefinition<'c>,
+        edges: Vec<(serde_json::Value, Vec<serde_json::Value>)>,
+        metadata: Option<serde_json::Value>,
+    ) -> BoxFuture<'fut, AuthorizationVerdicts>
+    where
+        'a: 'fut,
+        'b: 'fut,
+        'c: 'fut,
+    {
+        Hooks::authorized(&self.0)
+            .authorize_edge_post_execution(context.typed_get().unwrap(), definition, edges, metadata)
+            .boxed()
+    }
+
+    fn on_subgraph_request<'a, 'b, 'c, 'd, 'fut>(
+        &'a self,
+        context: &'b DynHookContext,
+        subgraph_name: &'c str,
+        method: http::Method,
+        url: &'d Url,
+        headers: HeaderMap,
+    ) -> BoxFuture<'fut, Result<HeaderMap, PartialGraphqlError>>
+    where
+        'a: 'fut,
+        'b: 'fut,
+        'c: 'fut,
+        'd: 'fut,
+    {
+        Hooks::subgraph(&self.0)
+            .on_subgraph_request(context.typed_get().unwrap(), subgraph_name, method, url, headers)
+            .boxed()
     }
 }
