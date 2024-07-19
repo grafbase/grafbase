@@ -201,6 +201,11 @@ impl BuildContext {
 
                         HeaderRule::Remove { name }
                     }
+                    config::latest::HeaderRule::RenameDuplicate(rule) => HeaderRule::RenameDuplicate {
+                        name: self.strings.get_or_new(&config[rule.name]),
+                        default: rule.default.map(|id| self.strings.get_or_new(&config[id])),
+                        rename: self.strings.get_or_new(&config[rule.rename]),
+                    },
                 }
             })
             .collect();

@@ -441,4 +441,9 @@ pub enum HeaderRule {
     Remove {
         name: NameOrPattern,
     },
+    RenameDuplicate {
+        name: StringId,
+        default: Option<StringId>,
+        rename: StringId,
+    },
 }

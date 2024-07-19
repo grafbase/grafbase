@@ -3,7 +3,9 @@
 use engine_v2::Engine;
 use graphql_mocks::{FakeGithubSchema, MockGraphQlServer};
 use integration_tests::{federation::EngineV2Ext, runtime};
-use parser_sdl::federation::header::{NameOrPattern, SubgraphHeaderForward, SubgraphHeaderRemove, SubgraphHeaderRule};
+use parser_sdl::federation::header::{
+    NameOrPattern, SubgraphHeaderForward, SubgraphHeaderRemove, SubgraphHeaderRule, SubgraphRenameDuplicate,
+};
 use regex::Regex;
 
 #[derive(serde::Deserialize, Debug, PartialEq, Eq, PartialOrd, Ord)]
@@ -383,6 +385,141 @@ fn test_regex_header_forwarding_then_delete_with_regex() {
         Header {
             name: "x-kekw",
             value: "meow",
+        },
+    ]
+    "###);
+}
+
+#[test]
+fn test_rename_duplicate_no_default() {
+    let response = runtime().block_on(async move {
+        let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
+
+        let engine = Engine::builder()
+            .with_subgraph("github", &github_mock)
+            .with_header_rule(SubgraphHeaderRule::RenameDuplicate(SubgraphRenameDuplicate {
+                name: String::from("foo"),
+                default: None,
+                rename: String::from("bar"),
+            }))
+            .build()
+            .await;
+
+        engine
+            .execute("query { headers { name value }}")
+            .header("foo", "lol")
+            .await
+    });
+
+    let mut response: Response = serde_json::from_value(response.into_data()).unwrap();
+    response.headers.sort();
+
+    insta::assert_debug_snapshot!(response.headers, @r###"
+    [
+        Header {
+            name: "accept",
+            value: "*/*",
+        },
+        Header {
+            name: "bar",
+            value: "lol",
+        },
+        Header {
+            name: "content-type",
+            value: "application/json",
+        },
+        Header {
+            name: "foo",
+            value: "lol",
+        },
+    ]
+    "###);
+}
+
+#[test]
+fn test_rename_duplicate_default() {
+    let response = runtime().block_on(async move {
+        let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
+
+        let engine = Engine::builder()
+            .with_subgraph("github", &github_mock)
+            .with_header_rule(SubgraphHeaderRule::RenameDuplicate(SubgraphRenameDuplicate {
+                name: String::from("foo"),
+                default: Some(String::from("kekw")),
+                rename: String::from("bar"),
+            }))
+            .build()
+            .await;
+
+        engine
+            .execute("query { headers { name value }}")
+            .header("foo", "lol")
+            .await
+    });
+
+    let mut response: Response = serde_json::from_value(response.into_data()).unwrap();
+    response.headers.sort();
+
+    insta::assert_debug_snapshot!(response.headers, @r###"
+    [
+        Header {
+            name: "accept",
+            value: "*/*",
+        },
+        Header {
+            name: "bar",
+            value: "lol",
+        },
+        Header {
+            name: "content-type",
+            value: "application/json",
+        },
+        Header {
+            name: "foo",
+            value: "lol",
+        },
+    ]
+    "###);
+}
+
+#[test]
+fn test_rename_duplicate_default_with_missing_value() {
+    let response = runtime().block_on(async move {
+        let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
+
+        let engine = Engine::builder()
+            .with_subgraph("github", &github_mock)
+            .with_header_rule(SubgraphHeaderRule::RenameDuplicate(SubgraphRenameDuplicate {
+                name: String::from("foo"),
+                default: Some(String::from("kekw")),
+                rename: String::from("bar"),
+            }))
+            .build()
+            .await;
+
+        engine.execute("query { headers { name value }}").await
+    });
+
+    let mut response: Response = serde_json::from_value(response.into_data()).unwrap();
+    response.headers.sort();
+
+    insta::assert_debug_snapshot!(response.headers, @r###"
+    [
+        Header {
+            name: "accept",
+            value: "*/*",
+        },
+        Header {
+            name: "bar",
+            value: "kekw",
+        },
+        Header {
+            name: "content-type",
+            value: "application/json",
+        },
+        Header {
+            name: "foo",
+            value: "kekw",
         },
     ]
     "###);

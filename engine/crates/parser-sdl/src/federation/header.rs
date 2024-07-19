@@ -52,6 +52,8 @@ pub enum SubgraphHeaderRule {
     Insert(SubgraphHeaderInsert),
     /// Remove the header.
     Remove(SubgraphHeaderRemove),
+    /// Duplicate the header with a new name.
+    RenameDuplicate(SubgraphRenameDuplicate),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
@@ -76,4 +78,14 @@ pub struct SubgraphHeaderInsert {
 pub struct SubgraphHeaderRemove {
     /// Removes the header with a static name or matching a regex pattern.
     pub name: NameOrPattern,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct SubgraphRenameDuplicate {
+    /// Name or pattern of the header to be forwarded.
+    pub name: String,
+    /// If header is not present, insert this value.
+    pub default: Option<String>,
+    /// Use this name instead of the original when forwarding.
+    pub rename: String,
 }

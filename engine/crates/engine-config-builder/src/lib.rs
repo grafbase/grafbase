@@ -5,7 +5,7 @@ use std::time::Duration;
 
 use engine_v2_config::latest::{
     AuthConfig, AuthProviderConfig, CacheConfig, CacheConfigTarget, CacheConfigs, HeaderForward, HeaderInsert,
-    HeaderRemove, HeaderRule, HeaderRuleId, NameOrPattern, OperationLimits,
+    HeaderRemove, HeaderRenameDuplicate, HeaderRule, HeaderRuleId, NameOrPattern, OperationLimits,
 };
 use engine_v2_config::{
     latest::{self as config},
@@ -179,6 +179,11 @@ impl<'a> BuildContext<'a> {
             }),
             SubgraphHeaderRule::Remove(ref rule) => HeaderRule::Remove(HeaderRemove {
                 name: self.intern_header_name(&rule.name),
+            }),
+            SubgraphHeaderRule::RenameDuplicate(ref rule) => HeaderRule::RenameDuplicate(HeaderRenameDuplicate {
+                name: self.strings.intern(&rule.name),
+                default: rule.default.as_ref().map(|default| self.strings.intern(default)),
+                rename: self.strings.intern(&rule.rename),
             }),
         };
 
