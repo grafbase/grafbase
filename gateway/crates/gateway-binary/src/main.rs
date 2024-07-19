@@ -32,7 +32,7 @@ fn main() -> anyhow::Result<()> {
         .expect("installing default crypto provider");
 
     let args = self::args::parse();
-    let mut config = dbg!(args.config()?);
+    let mut config = args.config()?;
 
     let runtime = runtime::Builder::new_multi_thread()
         .enable_all()
