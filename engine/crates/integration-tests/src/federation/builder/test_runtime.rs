@@ -56,4 +56,8 @@ impl engine_v2::Runtime for TestRuntime {
     fn rate_limiter(&self) -> &runtime::rate_limiting::RateLimiter {
         &self.rate_limiter
     }
+
+    fn sleep(&self, duration: std::time::Duration) -> futures::prelude::future::BoxFuture<'static, ()> {
+        Box::pin(tokio::time::sleep(duration))
+    }
 }

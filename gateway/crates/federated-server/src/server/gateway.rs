@@ -86,6 +86,7 @@ pub(super) async fn generate(
                 header_rules,
                 development_url: None,
                 rate_limit: value.rate_limit.map(Into::into),
+                timeout: value.timeout,
             };
 
             (name, config)
@@ -185,5 +186,9 @@ impl engine_v2::Runtime for GatewayRuntime {
 
     fn rate_limiter(&self) -> &runtime::rate_limiting::RateLimiter {
         &self.rate_limiter
+    }
+
+    fn sleep(&self, duration: std::time::Duration) -> futures_util::future::BoxFuture<'static, ()> {
+        Box::pin(tokio::time::sleep(duration))
     }
 }

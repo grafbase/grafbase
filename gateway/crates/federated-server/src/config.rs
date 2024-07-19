@@ -4,7 +4,7 @@ mod header;
 mod health;
 mod rate_limit;
 
-use std::{collections::BTreeMap, net::SocketAddr, path::PathBuf};
+use std::{collections::BTreeMap, net::SocketAddr, path::PathBuf, time::Duration};
 
 pub use self::health::HealthConfig;
 use ascii::AsciiString;
@@ -59,6 +59,9 @@ pub struct Config {
     /// Global rate limiting configuration
     #[serde(default)]
     pub rate_limit: Option<RateLimitConfig>,
+    /// Time out for gateway requests in seconds. Default: 30 seconds.
+    #[serde(deserialize_with = "duration_str::deserialize_option_duration", default)]
+    pub timeout: Option<Duration>,
 }
 
 #[derive(Debug, serde::Deserialize, Clone)]
@@ -71,6 +74,9 @@ pub struct SubgraphConfig {
     /// Rate limiting configuration specifically for this Subgraph
     #[serde(default)]
     pub rate_limit: Option<RateLimitConfig>,
+    /// Timeout for subgraph requests in seconds. Default: 30 seconds.
+    #[serde(deserialize_with = "duration_str::deserialize_option_duration", default)]
+    pub timeout: Option<Duration>,
 }
 
 #[derive(Debug, Default, serde::Deserialize)]
@@ -1240,6 +1246,7 @@ mod tests {
                 ],
                 websocket_url: None,
                 rate_limit: None,
+                timeout: None,
             },
         }
         "###);

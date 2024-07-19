@@ -1,6 +1,6 @@
 mod cache_config;
 
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, time::Duration};
 
 use crate::latest::RateLimitConfig;
 pub use cache_config::{CacheConfig, CacheConfigTarget, CacheConfigs};
@@ -50,6 +50,8 @@ pub struct SubgraphConfig {
     pub headers: Vec<HeaderRuleId>,
     #[serde(default)]
     pub rate_limit: Option<RateLimitConfig>,
+    #[serde(default)]
+    pub timeout: Option<Duration>,
 }
 
 /// A header that should be sent to a subgraph

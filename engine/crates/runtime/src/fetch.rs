@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{sync::Arc, time::Duration};
 
 use bytes::Bytes;
 use futures_util::stream::BoxStream;
@@ -23,6 +23,8 @@ pub struct FetchRequest<'a> {
     pub url: &'a url::Url,
     pub headers: http::HeaderMap,
     pub json_body: String,
+    pub subgraph_name: &'a str,
+    pub timeout: Duration,
 }
 
 #[derive(Clone)]

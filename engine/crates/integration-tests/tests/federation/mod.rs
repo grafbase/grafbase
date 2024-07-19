@@ -6,4 +6,5 @@ mod introspection;
 mod issues;
 mod subgraphs;
 mod subscriptions;
+mod timeouts;
 mod trusted_documents;

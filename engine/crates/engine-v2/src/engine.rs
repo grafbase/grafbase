@@ -99,6 +99,8 @@ impl<R: Runtime> Engine<R> {
         headers: http::HeaderMap,
         batch_request: BatchRequest,
     ) -> HttpGraphqlResponse {
+        use futures_util::{pin_mut, select, FutureExt};
+
         let format = headers.typed_get::<StreamingFormat>();
         let request_context = match self.create_request_context(headers).await {
             Ok(context) => context,
@@ -113,7 +115,30 @@ impl<R: Runtime> Engine<R> {
             );
         }
 
-        self.execute_with_context(request_context, batch_request).await
+        let timeout = async move {
+            // Avoid timing out on streaming responses.
+            let timeout = if format.is_some() {
+                std::time::Duration::MAX
+            } else {
+                self.schema.settings.timeout
+            };
+            self.runtime.sleep(timeout).await;
+            HttpGraphqlResponse::build(
+                Response::execution_error(GraphqlError::new("Gateway timeout", ErrorCode::GatewayTimeout)),
+                format,
+                Default::default(),
+            )
+        }
+        .fuse();
+        pin_mut!(timeout);
+
+        let execution = self.execute_with_context(request_context, batch_request).fuse();
+        pin_mut!(execution);
+
+        select!(
+           response = timeout => response,
+           response = execution => response
+        )
     }
 
     pub async fn create_session(self: &Arc<Self>, headers: http::HeaderMap) -> Result<Session<R>, Cow<'static, str>> {

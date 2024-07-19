@@ -1,4 +1,4 @@
-use std::mem::take;
+use std::{mem::take, time::Duration};
 
 use config::latest::Config;
 
@@ -23,7 +23,10 @@ impl ExternalDataSources {
                     .insert(url::Url::parse(&ctx.strings[subgraph.url.into()]).expect("valid url"));
                 match config.subgraph_configs.remove(&federated_graph::SubgraphId(index)) {
                     Some(config::latest::SubgraphConfig {
-                        websocket_url, headers, ..
+                        websocket_url,
+                        headers,
+                        timeout,
+                        ..
                     }) => sources::graphql::GraphqlEndpoint {
                         name,
                         subgraph_id,
@@ -31,6 +34,7 @@ impl ExternalDataSources {
                         websocket_url: websocket_url
                             .map(|url| ctx.urls.insert(url::Url::parse(&config[url]).expect("valid url"))),
                         header_rules: headers.into_iter().map(Into::into).collect(),
+                        timeout: timeout.unwrap_or(DEFAULT_SUBGRAPH_TIMEOUT),
                     },
 
                     None => sources::graphql::GraphqlEndpoint {
@@ -39,6 +43,7 @@ impl ExternalDataSources {
                         url,
                         websocket_url: None,
                         header_rules: Vec::new(),
+                        timeout: DEFAULT_SUBGRAPH_TIMEOUT,
                     },
                 }
             })
@@ -48,3 +53,5 @@ impl ExternalDataSources {
         }
     }
 }
+
+const DEFAULT_SUBGRAPH_TIMEOUT: Duration = Duration::from_secs(30);

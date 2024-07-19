@@ -12,11 +12,12 @@ mod error_schema;
 mod fake_github;
 mod federation;
 mod secure;
+mod slow;
 mod state_mutation;
 
 pub use {
     almost_empty::AlmostEmptySchema, echo::EchoSchema, error_schema::ErrorSchema, fake_github::FakeGithubSchema,
-    federation::*, secure::SecureSchema, state_mutation::StateMutationSchema,
+    federation::*, secure::SecureSchema, slow::SlowSchema, state_mutation::StateMutationSchema,
 };
 
 pub struct MockGraphQlServer {

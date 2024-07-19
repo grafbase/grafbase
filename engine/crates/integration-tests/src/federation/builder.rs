@@ -1,7 +1,7 @@
 mod bench;
 mod test_runtime;
 
-use std::{collections::HashMap, sync::Arc};
+use std::{collections::HashMap, sync::Arc, time::Duration};
 
 use crate::{fetch::FetchRecorder, mock_trusted_documents::MockTrustedDocumentsClient, TestTrustedDocument};
 use async_graphql_parser::types::ServiceDocument;
@@ -22,6 +22,7 @@ pub struct EngineV2Builder {
     config_sdl: Option<String>,
     runtime: TestRuntime,
     header_rules: Vec<SubgraphHeaderRule>,
+    timeout: Option<Duration>,
 }
 
 struct TestSubgraph {
@@ -37,6 +38,7 @@ pub trait EngineV2Ext {
             subgraphs: vec![],
             config_sdl: None,
             header_rules: Vec::new(),
+            timeout: None,
             runtime: TestRuntime::default(),
         }
     }
@@ -87,6 +89,11 @@ impl EngineV2Builder {
         self
     }
 
+    pub fn with_timeout(mut self, timeout: Duration) -> Self {
+        self.timeout = Some(timeout);
+        self
+    }
+
     pub fn with_fetcher(mut self, fetcher: impl FetcherInner + 'static) -> Self {
         self.runtime.fetcher = runtime::fetch::Fetcher::new(fetcher);
         self
@@ -132,7 +139,7 @@ impl EngineV2Builder {
         let sdl = self.federated_sdl.unwrap_or_else(|| {
             let graph = if !self.subgraphs.is_empty() {
                 let mut subgraphs = graphql_composition::Subgraphs::default();
-                for TestSubgraph { name, url, schema } in &self.subgraphs {
+                for TestSubgraph { name, url, schema, .. } in &self.subgraphs {
                     subgraphs.ingest(schema, name, url);
                 }
                 graphql_composition::compose(&subgraphs)
@@ -159,6 +166,7 @@ impl EngineV2Builder {
         }
         .unwrap_or_default();
 
+        federated_graph_config.timeout = self.timeout;
         federated_graph_config.header_rules.extend(self.header_rules);
 
         (

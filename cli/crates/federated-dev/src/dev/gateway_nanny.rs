@@ -6,7 +6,7 @@ use crate::ConfigWatcher;
 use super::bus::{EngineSender, GraphWatcher};
 use engine_v2::Engine;
 use futures_concurrency::stream::Merge;
-use futures_util::{stream::BoxStream, StreamExt};
+use futures_util::{future::BoxFuture, stream::BoxStream, FutureExt as _, StreamExt};
 use runtime::rate_limiting::KeyedRateLimitConfig;
 use tokio_stream::wrappers::WatchStream;
 
@@ -120,6 +120,10 @@ impl engine_v2::Runtime for CliRuntime {
 
     fn rate_limiter(&self) -> &runtime::rate_limiting::RateLimiter {
         &self.rate_limiter
+    }
+
+    fn sleep(&self, duration: std::time::Duration) -> BoxFuture<'static, ()> {
+        tokio::time::sleep(duration).boxed()
     }
 }
 

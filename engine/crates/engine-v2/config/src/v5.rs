@@ -35,6 +35,9 @@ pub struct Config {
 
     #[serde(default)]
     pub rate_limit: Option<RateLimitConfig>,
+
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub timeout: Option<Duration>,
 }
 
 impl Config {
@@ -49,6 +52,7 @@ impl Config {
             operation_limits: Default::default(),
             disable_introspection: Default::default(),
             rate_limit: Default::default(),
+            timeout: None,
         }
     }
 
@@ -211,6 +215,7 @@ mod tests {
             operation_limits: Default::default(),
             disable_introspection: Default::default(),
             rate_limit: Default::default(),
+            timeout: None,
         };
 
         insta::with_settings!({sort_maps => true}, {

@@ -30,6 +30,7 @@ engine.workspace = true
 engine-config-builder.workspace = true
 engine-v2.workspace = true
 engine-v2-axum.workspace = true
+futures-util.workspace = true
 grafbase-telemetry = { workspace = true, features = ["tower", "otlp"] }
 graphql-composition.workspace = true
 http.workspace = true
@@ -41,7 +42,7 @@ runtime-noop.workspace = true
 serde.workspace = true
 thiserror.workspace = true
 tokio = { workspace = true, features = ["signal", "time", "net"] }
-tower-http = { version = "0.5.2", features = ["cors"] }
+tower-http = { version = "0.5.2", features = ["cors", "timeout"] }
 tracing.workspace = true
 ulid = { workspace = true, features = ["serde"] }
 url = { workspace = true, features = ["serde"] }

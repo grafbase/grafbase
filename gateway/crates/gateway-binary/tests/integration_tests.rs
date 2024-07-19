@@ -1,4 +1,4 @@
-#![allow(unused_crate_dependencies)]
+#![allow(unused_crate_dependencies, clippy::panic)]
 
 mod mocks;
 mod telemetry;
