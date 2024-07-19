@@ -38,6 +38,9 @@ pub enum HeaderRule {
     /// Remove the header.
     #[serde(rename = "remove")]
     Remove(HeaderRemove),
+    /// Forward the header to the subgraphs together with a renamed copy.
+    #[serde(rename = "rename_duplicate")]
+    RenameDuplicate(RenameDuplicate),
 }
 
 impl From<HeaderRule> for header::SubgraphHeaderRule {
@@ -46,6 +49,29 @@ impl From<HeaderRule> for header::SubgraphHeaderRule {
             HeaderRule::Forward(fwd) => Self::Forward(fwd.into()),
             HeaderRule::Insert(insert) => Self::Insert(insert.into()),
             HeaderRule::Remove(remove) => Self::Remove(remove.into()),
+            HeaderRule::RenameDuplicate(rename) => Self::RenameDuplicate(rename.into()),
+        }
+    }
+}
+
+/// Header forwarding rules.
+#[derive(Deserialize, Debug, Clone)]
+#[serde(deny_unknown_fields)]
+pub struct RenameDuplicate {
+    /// Name or pattern of the header to be forwarded.
+    pub name: DynamicString<AsciiString>,
+    /// If header is not present, insert this value.
+    pub default: Option<DynamicString<AsciiString>>,
+    /// Use this name instead of the original when forwarding.
+    pub rename: DynamicString<AsciiString>,
+}
+
+impl From<RenameDuplicate> for header::SubgraphRenameDuplicate {
+    fn from(value: RenameDuplicate) -> Self {
+        Self {
+            name: value.name.to_string(),
+            default: value.default.as_ref().map(ToString::to_string),
+            rename: value.rename.to_string(),
         }
     }
 }

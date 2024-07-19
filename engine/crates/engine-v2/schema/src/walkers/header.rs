@@ -19,6 +19,11 @@ impl<'a> HeaderRuleWalker<'a> {
             HeaderRule::Remove { name } => HeaderRuleRef::Remove {
                 name: self.name_or_pattern_ref(name),
             },
+            HeaderRule::RenameDuplicate { name, default, rename } => HeaderRuleRef::RenameDuplicate {
+                name: self.schema[*name].as_str(),
+                default: default.map(|id| self.schema[id].as_str()),
+                rename: self.schema[*rename].as_str(),
+            },
         }
     }
 
@@ -49,6 +54,11 @@ pub enum HeaderRuleRef<'a> {
     },
     Remove {
         name: NameOrPatternRef<'a>,
+    },
+    RenameDuplicate {
+        name: &'a str,
+        default: Option<&'a str>,
+        rename: &'a str,
     },
 }
 

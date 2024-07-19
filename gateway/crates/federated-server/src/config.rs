@@ -838,6 +838,39 @@ mod tests {
     }
 
     #[test]
+    fn header_rename_duplicate() {
+        let input = indoc! {r#"
+            [[headers]]     
+            rule = "rename_duplicate"
+            name = "content-type"
+            default = "foo"
+            rename = "something"
+        "#};
+
+        let result: Config = toml::from_str(input).unwrap();
+
+        insta::assert_debug_snapshot!(&result.headers, @r###"
+        [
+            RenameDuplicate(
+                RenameDuplicate {
+                    name: DynamicString(
+                        "content-type",
+                    ),
+                    default: Some(
+                        DynamicString(
+                            "foo",
+                        ),
+                    ),
+                    rename: DynamicString(
+                        "something",
+                    ),
+                },
+            ),
+        ]
+        "###);
+    }
+
+    #[test]
     fn header_forward_static() {
         let input = indoc! {r#"
             [[headers]]     

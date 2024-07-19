@@ -1,4 +1,4 @@
-use std::str::FromStr;
+use std::{borrow::Cow, str::FromStr};
 
 use ::runtime::hooks::Hooks;
 use futures::future::BoxFuture;
@@ -149,6 +149,26 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
                         headers.remove(name);
                     }
                 },
+                schema::HeaderRuleRef::RenameDuplicate { name, default, rename } => {
+                    let Ok(name) = http::HeaderName::from_str(name) else {
+                        continue;
+                    };
+
+                    let Ok(rename) = http::HeaderName::from_str(rename) else {
+                        continue;
+                    };
+
+                    let value = self.headers().get(&name).map(Cow::Borrowed).or_else(|| {
+                        default
+                            .and_then(|d| http::HeaderValue::from_str(d).ok())
+                            .map(Cow::Owned)
+                    });
+
+                    if let Some(value) = value {
+                        headers.insert(name, value.clone().into_owned());
+                        headers.insert(rename, value.into_owned());
+                    }
+                }
             }
         }
 

@@ -108,6 +108,9 @@ pub enum HeaderRule {
     /// Remove the header.
     #[serde(rename = "remove")]
     Remove(HeaderRemove),
+    /// Duplicate the header with a new name.
+    #[serde(rename = "rename_duplicate")]
+    RenameDuplicate(HeaderRenameDuplicate),
 }
 
 /// Header forwarding rules.
@@ -137,6 +140,17 @@ pub struct HeaderRemove {
     /// Removes the header with a static name or matching a regex pattern.
     #[serde(flatten)]
     pub name: NameOrPattern,
+}
+
+/// Header forwarding rules.
+#[derive(serde::Deserialize, serde::Serialize, Debug)]
+pub struct HeaderRenameDuplicate {
+    /// Name or pattern of the header to be duplicated.
+    pub name: StringId,
+    /// If header is not present, insert this value.
+    pub default: Option<StringId>,
+    /// Use this name for the copy.
+    pub rename: StringId,
 }
 
 impl std::ops::Index<StringId> for Config {

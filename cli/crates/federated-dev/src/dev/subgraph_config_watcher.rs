@@ -65,6 +65,7 @@ impl SubgraphConfigWatcher {
                         }),
                         SubgraphHeaderRule::Forward(_) => None,
                         SubgraphHeaderRule::Remove(_) => None,
+                        SubgraphHeaderRule::RenameDuplicate(_) => None,
                     })
                     .collect::<Vec<_>>();
 
