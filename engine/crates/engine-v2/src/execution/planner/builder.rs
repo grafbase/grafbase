@@ -86,30 +86,30 @@ where
             let (selection_set_id, field_ids) = field_ids_by_selection_set_id
                 .next()
                 .expect("At least one field is planned");
-            let mut requires = Cow::Borrowed(self.resolver.requires());
+            let mut required_fields = Cow::Borrowed(self.resolver.requires());
             for field_id in field_ids {
                 if let Some(definition) = self.walker().walk(*field_id).definition() {
-                    let field_requires = definition.requires(self.resolver.subgraph_id());
-                    if !field_requires.is_empty() {
-                        requires = Cow::Owned(requires.union(field_requires));
-                    }
+                    required_fields = RequiredFieldSet::union_cow(
+                        required_fields,
+                        definition.required_fields(self.resolver.subgraph_id()),
+                    );
                 }
             }
-            self.create_read_selection_set_for_requirements(selection_set_id, &requires)
+            self.create_read_selection_set_for_requirements(selection_set_id, &required_fields)
         };
 
         for (selection_set_id, field_ids) in field_ids_by_selection_set_id {
-            let mut requires = RequiredFieldSet::default();
+            let mut required_fields = Cow::Owned(RequiredFieldSet::default());
             for field_id in field_ids {
                 if let Some(definition) = self.walker().walk(*field_id).definition() {
-                    let field_requires = definition.requires(self.resolver.subgraph_id());
-                    if !field_requires.is_empty() {
-                        requires = requires.union(field_requires);
-                    }
+                    required_fields = RequiredFieldSet::union_cow(
+                        required_fields,
+                        definition.required_fields(self.resolver.subgraph_id()),
+                    );
                 }
             }
-            read_selection_set =
-                read_selection_set.union(self.create_read_selection_set_for_requirements(selection_set_id, &requires));
+            read_selection_set = read_selection_set
+                .union(self.create_read_selection_set_for_requirements(selection_set_id, &required_fields));
         }
 
         read_selection_set
@@ -122,12 +122,12 @@ where
     fn create_read_selection_set_for_requirements(
         &mut self,
         id: SelectionSetId,
-        requires: &RequiredFieldSet,
+        required_fields: &RequiredFieldSet,
     ) -> ReadSelectionSet {
-        if requires.is_empty() {
+        if required_fields.is_empty() {
             return ReadSelectionSet::default();
         }
-        requires
+        required_fields
             .iter()
             .map(|required_field| {
                 let solved_requirements = &self.operation.solved_requirements_for(id).expect("Should be planned");
@@ -150,8 +150,8 @@ where
                     name: self
                         .resolver
                         .walk(self.ctx.schema[required_field.id].definition_id)
-                        .name()
-                        .to_string(),
+                        .as_ref()
+                        .name,
                     subselection: if !required_field.subselection.is_empty() {
                         self.create_read_selection_set_for_requirements(
                             self.operation[field_id]

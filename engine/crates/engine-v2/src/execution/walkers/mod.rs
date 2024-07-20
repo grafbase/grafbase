@@ -3,7 +3,7 @@ use schema::SchemaWalker;
 use crate::{
     operation::{
         LogicalPlanId, LogicalPlanResponseBlueprint, OperationWalker, PreparedOperation, QueryInputValueId,
-        QueryInputValueWalker, ResponseBlueprint,
+        QueryInputValueWalker, ResponseBlueprint, ResponseModifier,
     },
     response::ResponseKeys,
 };
@@ -106,5 +106,10 @@ type LogicalPlanWalker<'a> = PlanWalker<'a, LogicalPlanId, ()>;
 impl<'a> LogicalPlanWalker<'a> {
     pub fn response_blueprint(&self) -> &LogicalPlanResponseBlueprint {
         &self.operation.response_blueprint[self.item]
+    }
+
+    #[allow(unused)]
+    pub fn response_modifiers(&self) -> impl Iterator<Item = &'a ResponseModifier> + 'a {
+        self.operation[self.response_blueprint().response_modifiers_ids].iter()
     }
 }

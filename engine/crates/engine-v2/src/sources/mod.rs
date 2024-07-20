@@ -42,22 +42,21 @@
 //!
 //! The executor for the catalog plan would have a single response object root and the price plan
 //! executor will have a root for each product in the response.
+use futures::{future::BoxFuture, FutureExt};
 use futures_util::stream::BoxStream;
 use schema::{Resolver, ResolverWalker};
+use std::future::Future;
 
 use crate::{
     execution::{ExecutionContext, ExecutionError, ExecutionResult, PlanWalker, PlanningResult, SubscriptionResponse},
     operation::OperationType,
-    response::{ResponseObjectsView, ResponsePart},
+    response::{ResponseObjectsView, SubgraphResponse},
     Runtime,
 };
 
 use self::{
-    graphql::{
-        FederationEntityExecutor, FederationEntityPreparedExecutor, GraphqlExecutor, GraphqlPreparedExecutor,
-        GraphqlSubscriptionExecutor,
-    },
-    introspection::{IntrospectionExecutor, IntrospectionPreparedExecutor},
+    graphql::{FederationEntityPreparedExecutor, GraphqlPreparedExecutor},
+    introspection::IntrospectionPreparedExecutor,
 };
 
 mod graphql;
@@ -91,72 +90,50 @@ impl PreparedExecutor {
     }
 }
 
-pub(crate) struct ExecutorInput<'ctx, 'input, R: Runtime> {
-    pub ctx: ExecutionContext<'ctx, R>,
-    pub plan: PlanWalker<'ctx, (), ()>,
-    pub root_response_objects: ResponseObjectsView<'input>,
-}
-
-pub(crate) struct SubscriptionInput<'ctx, R: Runtime> {
-    pub ctx: ExecutionContext<'ctx, R>,
-    pub plan: PlanWalker<'ctx>,
-}
-
 impl PreparedExecutor {
-    pub fn new_executor<'ctx, R: Runtime>(
+    pub fn execute<'ctx, 'fut, R: Runtime>(
         &'ctx self,
-        input: ExecutorInput<'ctx, '_, R>,
-    ) -> Result<Executor<'ctx, R>, ExecutionError> {
-        match self {
-            PreparedExecutor::Introspection(prepared) => prepared.new_executor(input),
-            PreparedExecutor::GraphQL(prepared) => prepared.new_executor(input),
-            PreparedExecutor::FederationEntity(prepared) => prepared.new_executor(input),
+        ctx: ExecutionContext<'ctx, R>,
+        plan: PlanWalker<'ctx, (), ()>,
+        // This cannot be kept in the future, it locks the whole the response to have this view.
+        // So an executor is expected to prepare whatever it required from the response before
+        // awaiting anything.
+        root_response_objects: ResponseObjectsView<'_>,
+        subgraph_response: SubgraphResponse,
+    ) -> impl Future<Output = ExecutionResult<SubgraphResponse>> + Send + 'fut
+    where
+        'ctx: 'fut,
+    {
+        let result: ExecutionResult<BoxFuture<'fut, _>> = match self {
+            PreparedExecutor::GraphQL(prepared) => Ok(prepared.execute(ctx, plan, subgraph_response).boxed()),
+            PreparedExecutor::FederationEntity(prepared) => prepared
+                .execute(ctx, plan, root_response_objects, subgraph_response)
+                .map(FutureExt::boxed),
+            PreparedExecutor::Introspection(prepared) => Ok(prepared.execute(ctx, plan, subgraph_response).boxed()),
+        };
+
+        async {
+            match result {
+                Ok(future) => future.await,
+                Err(err) => Err(err),
+            }
         }
     }
 
-    pub fn new_subscription_executor<'ctx, R: Runtime>(
+    pub async fn execute_subscription<'ctx, R: Runtime>(
         &'ctx self,
-        input: SubscriptionInput<'ctx, R>,
-    ) -> Result<SubscriptionExecutor<'ctx, R>, ExecutionError> {
+        ctx: ExecutionContext<'ctx, R>,
+        plan: PlanWalker<'ctx>,
+        new_response: impl Fn() -> SubscriptionResponse + Send + 'ctx,
+    ) -> ExecutionResult<BoxStream<'ctx, ExecutionResult<SubscriptionResponse>>> {
         match self {
-            PreparedExecutor::GraphQL(prepared) => prepared.new_subscription_executor(input),
+            PreparedExecutor::GraphQL(prepared) => prepared.execute_subscription(ctx, plan, new_response).await,
             PreparedExecutor::Introspection(_) => Err(ExecutionError::Internal(
                 "Subscriptions can't contain introspection".into(),
             )),
             PreparedExecutor::FederationEntity(_) => Err(ExecutionError::Internal(
                 "Subscriptions can only be at the root of a query so can't contain federated entitites".into(),
             )),
-        }
-    }
-}
-
-pub(crate) enum Executor<'ctx, R: Runtime> {
-    GraphQL(GraphqlExecutor<'ctx, R>),
-    Introspection(IntrospectionExecutor<'ctx, R>),
-    FederationEntity(FederationEntityExecutor<'ctx, R>),
-}
-
-impl<'ctx, R: Runtime> Executor<'ctx, R> {
-    pub async fn execute(self, response_part: ResponsePart) -> ExecutionResult<ResponsePart> {
-        match self {
-            Executor::GraphQL(executor) => executor.execute(response_part).await,
-            Executor::Introspection(executor) => executor.execute(response_part).await,
-            Executor::FederationEntity(executor) => executor.execute(response_part).await,
-        }
-    }
-}
-
-pub(crate) enum SubscriptionExecutor<'ctx, R: Runtime> {
-    Graphql(GraphqlSubscriptionExecutor<'ctx, R>),
-}
-
-impl<'ctx, R: Runtime> SubscriptionExecutor<'ctx, R> {
-    pub async fn execute(
-        self,
-        new_response: impl Fn() -> SubscriptionResponse + Send + 'ctx,
-    ) -> ExecutionResult<BoxStream<'ctx, ExecutionResult<SubscriptionResponse>>> {
-        match self {
-            SubscriptionExecutor::Graphql(executor) => executor.execute(new_response).await,
         }
     }
 }

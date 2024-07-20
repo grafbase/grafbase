@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use super::{resolver::ResolverWalker, SchemaWalker};
 use crate::{
     EntityWalker, FieldDefinitionId, InputValueDefinitionWalker, ProvidableFieldSet, RequiredFieldSet, SubgraphId,
@@ -34,18 +36,27 @@ impl<'a> FieldDefinitionWalker<'a> {
             .unwrap_or(&crate::provides::EMPTY)
     }
 
-    pub fn requires(&self, subgraph_id: SubgraphId) -> &'a RequiredFieldSet {
-        self.as_ref()
-            .requires
-            .iter()
-            .find_map(|requires| {
+    pub fn required_fields(&self, subgraph_id: SubgraphId) -> Cow<'a, RequiredFieldSet> {
+        self.directives()
+            .iter_required_fields()
+            .map(Cow::Borrowed)
+            .chain(self.as_ref().requires.iter().find_map(|requires| {
                 if requires.subgraph_id == subgraph_id {
-                    Some(&self.schema[requires.field_set_id])
+                    Some(Cow::Borrowed(&self.schema[requires.field_set_id]))
                 } else {
                     None
                 }
-            })
-            .unwrap_or(&crate::requires::EMPTY)
+            }))
+            .reduce(RequiredFieldSet::union_cow)
+            .unwrap_or(Cow::Borrowed(&crate::requires::EMPTY))
+    }
+
+    pub fn has_required_fields(&self, subgraph_id: SubgraphId) -> bool {
+        self.as_ref()
+            .requires
+            .iter()
+            .any(|requires| requires.subgraph_id == subgraph_id)
+            || self.directives().any_has_required_fields()
     }
 
     pub fn parent_entity(&self) -> EntityWalker<'a> {

@@ -1,4 +1,4 @@
-use std::cmp::Ordering;
+use std::{borrow::Cow, cmp::Ordering};
 
 use crate::{FieldDefinitionId, InputValueDefinitionId, RequiredFieldId, SchemaInputValueId};
 
@@ -44,13 +44,14 @@ impl<'a> IntoIterator for &'a RequiredFieldSet {
 }
 
 impl RequiredFieldSet {
-    pub fn union_opt(left_set: Option<&Self>, right_set: Option<&Self>) -> Self {
-        match (left_set, right_set) {
-            (Some(left_set), Some(right_set)) => left_set.union(right_set),
-            (Some(left_set), None) => left_set.clone(),
-            (None, Some(right_set)) => right_set.clone(),
-            (None, None) => Self::default(),
+    pub fn union_cow<'a>(left: Cow<'a, Self>, right: Cow<'a, Self>) -> Cow<'a, Self> {
+        if left.is_empty() {
+            return right;
         }
+        if right.is_empty() {
+            return left;
+        }
+        Cow::Owned(left.union(&right))
     }
 
     pub fn union(&self, right_set: &Self) -> Self {
@@ -76,7 +77,13 @@ impl RequiredFieldSet {
                 Ordering::Equal => {
                     fields.push(RequiredFieldSetItem {
                         id: left.id,
-                        subselection: left.subselection.union(&right.subselection),
+                        subselection: if left.subselection.is_empty() {
+                            right.subselection.clone()
+                        } else if right.subselection.is_empty() {
+                            left.subselection.clone()
+                        } else {
+                            left.subselection.union(&right.subselection)
+                        },
                     });
                     l += 1;
                     r += 1;

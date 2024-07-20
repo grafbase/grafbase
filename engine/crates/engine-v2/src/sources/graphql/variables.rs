@@ -1,13 +1,13 @@
 use serde::ser::SerializeMap;
 
-use crate::{execution::PlanWalker, response::ResponseObjectsView};
+use crate::{execution::PlanWalker, response::ResponseObjectsViewWithExtraFields};
 
 use super::query::QueryVariables;
 
 pub(super) struct SubgraphVariables<'a> {
     pub plan: PlanWalker<'a>,
     pub variables: &'a QueryVariables,
-    pub inputs: Vec<(&'a str, ResponseObjectsView<'a>)>,
+    pub inputs: Vec<(&'a str, ResponseObjectsViewWithExtraFields<'a>)>,
 }
 
 impl<'a> serde::Serialize for SubgraphVariables<'a> {

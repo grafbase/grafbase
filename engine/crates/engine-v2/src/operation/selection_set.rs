@@ -3,7 +3,7 @@ use schema::{Definition, EntityId, FieldDefinitionId, InputValueDefinitionId, In
 
 use crate::response::{BoundResponseKey, ResponseEdge, ResponseKey};
 
-use super::{FieldArgumentId, FieldId, Location, QueryInputValueId, SelectionSetId};
+use super::{FieldArgumentId, FieldId, Location, QueryInputValueId, SelectionSetId, SubjectToResponseModifierRuleId};
 
 #[derive(Default, serde::Serialize, serde::Deserialize)]
 pub(crate) struct SelectionSet {
@@ -104,6 +104,7 @@ pub struct QueryField {
     pub argument_ids: IdRange<FieldArgumentId>,
     pub selection_set_id: Option<SelectionSetId>,
     pub parent_selection_set_id: SelectionSetId,
+    pub subject_to_response_modifier_rules: IdRange<SubjectToResponseModifierRuleId>,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -188,6 +189,17 @@ impl Field {
                 parent_selection_set_id,
                 ..
             }) => *parent_selection_set_id,
+        }
+    }
+
+    pub fn subject_to_response_modifier_rules(&self) -> IdRange<SubjectToResponseModifierRuleId> {
+        match self {
+            Field::TypeName(_) => IdRange::empty(),
+            Field::Query(QueryField {
+                subject_to_response_modifier_rules,
+                ..
+            }) => *subject_to_response_modifier_rules,
+            Field::Extra(_) => IdRange::empty(),
         }
     }
 }

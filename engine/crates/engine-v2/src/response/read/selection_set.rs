@@ -1,3 +1,5 @@
+use schema::StringId;
+
 use crate::response::ResponseEdge;
 
 /// Selection set used to read data from the response.
@@ -10,7 +12,7 @@ pub struct ReadSelectionSet {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ReadField {
     pub edge: ResponseEdge,
-    pub name: String,
+    pub name: StringId,
     pub subselection: ReadSelectionSet,
 }
 
@@ -31,7 +33,7 @@ impl ReadSelectionSet {
         let mut left = self.items;
         let mut right = other.items;
 
-        // We're reading fields from a single entity, so field names will unique.
+        // We're reading fields from a single entity, so names will unique.
         left.sort_unstable_by(|a, b| a.name.cmp(&b.name));
         right.sort_unstable_by(|a, b| a.name.cmp(&b.name));
 
@@ -48,7 +50,7 @@ impl ReadSelectionSet {
                     let left_field = left.next().unwrap();
                     let right_field = right.next().unwrap();
                     items.push(ReadField {
-                        edge: left_field.edge,
+                        edge: std::cmp::min(right_field.edge, left_field.edge),
                         name: left_field.name,
                         subselection: left_field.subselection.union(right_field.subselection),
                     });
@@ -58,6 +60,9 @@ impl ReadSelectionSet {
                 }
             }
         }
+
+        items.extend(left);
+        items.extend(right);
 
         ReadSelectionSet { items }
     }
