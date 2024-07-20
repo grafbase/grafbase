@@ -14,7 +14,7 @@ use crate::{
     Runtime,
 };
 
-use super::ExecutableOperation;
+use super::{header_rule::create_subgraph_headers_with_rules, ExecutableOperation};
 
 pub(super) struct ExecutionPlanner<'ctx, 'op, R: Runtime> {
     ctx: &'op PreExecutionContext<'ctx, R>,
@@ -29,16 +29,21 @@ where
 {
     pub(super) async fn plan(
         ctx: &'op PreExecutionContext<'ctx, R>,
-        operation: Arc<PreparedOperation>,
+        prepared: Arc<PreparedOperation>,
         variables: Variables,
     ) -> PlanningResult<ExecutableOperation> {
         let operation = ExecutableOperation {
-            query_modifications: query_modifier::QueryModificationsBuilder::new(ctx, &operation, &variables)
+            query_modifications: query_modifier::QueryModificationsBuilder::new(ctx, &prepared, &variables)
                 .build()
                 .await?,
-            prepared: operation,
+            prepared,
             variables,
             execution_plans: Default::default(),
+            subgraph_default_headers: create_subgraph_headers_with_rules(
+                ctx.request_context,
+                ctx.schema.walker().default_header_rules(),
+                http::HeaderMap::new(),
+            ),
         };
         Self {
             ctx,

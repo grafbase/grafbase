@@ -1,37 +1,26 @@
 //! Tests of header forwarding behaviour
 
 use engine_v2::Engine;
-use graphql_mocks::{FakeGithubSchema, MockGraphQlServer};
+use graphql_mocks::{EchoSchema, MockGraphQlServer};
 use integration_tests::{federation::EngineV2Ext, runtime};
 use parser_sdl::federation::header::{
-    NameOrPattern, SubgraphHeaderForward, SubgraphHeaderRemove, SubgraphHeaderRule, SubgraphRenameDuplicate,
+    NameOrPattern, SubgraphHeaderForward, SubgraphHeaderInsert, SubgraphHeaderRemove, SubgraphHeaderRule,
+    SubgraphRenameDuplicate,
 };
 use regex::Regex;
-
-#[derive(serde::Deserialize, Debug, PartialEq, Eq, PartialOrd, Ord)]
-struct Header {
-    name: String,
-    value: String,
-}
-
-#[derive(serde::Deserialize)]
-struct Response {
-    headers: Vec<Header>,
-}
 
 #[test]
 fn test_default_headers() {
     let response = runtime().block_on(async move {
-        let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
+        let echo_subgraph = MockGraphQlServer::new(EchoSchema).await;
 
         let engine = Engine::builder()
-            .with_subgraph("github", &github_mock)
+            .with_subgraph("echo", &echo_subgraph)
             .with_supergraph_config(
                 r#"
                     extend schema
                         @allSubgraphs(headers: [
                             {name: "x-foo", value: "BAR"}
-                            {name: "x-forwarded", forward: "x-source"}
                         ])
                 "#,
             )
@@ -41,10 +30,18 @@ fn test_default_headers() {
         engine.execute("query { headers { name value }}").await
     });
 
-    insta::assert_json_snapshot!(response, @r###"
+    insta::assert_json_snapshot!(response, { "data.headers."}, @r###"
     {
       "data": {
         "headers": [
+          {
+            "name": "accept",
+            "value": "application/json"
+          },
+          {
+            "name": "content-length",
+            "value": "78"
+          },
           {
             "name": "content-type",
             "value": "application/json"
@@ -52,10 +49,6 @@ fn test_default_headers() {
           {
             "name": "x-foo",
             "value": "BAR"
-          },
-          {
-            "name": "accept",
-            "value": "*/*"
           }
         ]
       }
@@ -66,10 +59,10 @@ fn test_default_headers() {
 #[test]
 fn test_default_headers_forwarding() {
     let response = runtime().block_on(async move {
-        let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
+        let echo_subgraph = MockGraphQlServer::new(EchoSchema).await;
 
         let engine = Engine::builder()
-            .with_subgraph("github", &github_mock)
+            .with_subgraph("echo", &echo_subgraph)
             .with_supergraph_config(
                 r#"
                     extend schema
@@ -88,45 +81,50 @@ fn test_default_headers_forwarding() {
             .await
     });
 
-    let mut response: Response = serde_json::from_value(response.into_data()).unwrap();
-    response.headers.sort();
-
-    insta::assert_debug_snapshot!(response.headers, @r###"
-    [
-        Header {
-            name: "accept",
-            value: "*/*",
-        },
-        Header {
-            name: "content-type",
-            value: "application/json",
-        },
-        Header {
-            name: "x-foo",
-            value: "BAR",
-        },
-        Header {
-            name: "x-forwarded",
-            value: "boom",
-        },
-    ]
+    insta::assert_json_snapshot!(response, @r###"
+    {
+      "data": {
+        "headers": [
+          {
+            "name": "accept",
+            "value": "application/json"
+          },
+          {
+            "name": "content-length",
+            "value": "78"
+          },
+          {
+            "name": "content-type",
+            "value": "application/json"
+          },
+          {
+            "name": "x-foo",
+            "value": "BAR"
+          },
+          {
+            "name": "x-forwarded",
+            "value": "boom"
+          }
+        ]
+      }
+    }
     "###);
 }
 
 #[test]
 fn test_subgraph_specific_header_forwarding() {
     let response = runtime().block_on(async move {
-        let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
+        let echo_subgraph = MockGraphQlServer::new(EchoSchema).await;
 
         let engine = Engine::builder()
-            .with_subgraph("github", &github_mock)
+            .with_subgraph("echo", &echo_subgraph)
             .with_supergraph_config(
                 r#"
                     extend schema
                         @subgraph(name: "other", headers: [
                             {name: "boop", value: "bleep"}
                         ])
-                        @subgraph(name: "github", headers: [
+                        @subgraph(name: "echo", headers: [
                             {name: "x-foo", value: "BAR"}
                             {name: "x-forwarded", forward: "x-source"}
                         ])
@@ -141,38 +139,112 @@ fn test_subgraph_specific_header_forwarding() {
             .await
     });
 
-    let mut response: Response = serde_json::from_value(response.into_data()).unwrap();
-    response.headers.sort();
-
-    insta::assert_debug_snapshot!(response.headers, @r###"
-    [
-        Header {
-            name: "accept",
-            value: "*/*",
-        },
-        Header {
-            name: "content-type",
-            value: "application/json",
-        },
-        Header {
-            name: "x-foo",
-            value: "BAR",
-        },
-        Header {
-            name: "x-forwarded",
-            value: "boom",
-        },
-    ]
+    insta::assert_json_snapshot!(response, @r###"
+    {
+      "data": {
+        "headers": [
+          {
+            "name": "accept",
+            "value": "application/json"
+          },
+          {
+            "name": "content-length",
+            "value": "78"
+          },
+          {
+            "name": "content-type",
+            "value": "application/json"
+          },
+          {
+            "name": "x-foo",
+            "value": "BAR"
+          },
+          {
+            "name": "x-forwarded",
+            "value": "boom"
+          }
+        ]
+      }
+    }
     "###);
 }
 
 #[test]
-fn test_regex_header_forwarding() {
-    let response = runtime().block_on(async move {
-        let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
+fn should_not_propagate_blacklisted_headers() {
+    runtime().block_on(async move {
+        let echo_mock = MockGraphQlServer::new(EchoSchema).await;
 
         let engine = Engine::builder()
-            .with_subgraph("github", &github_mock)
+            .with_subgraph("echo", &echo_mock)
+            .with_header_rule(SubgraphHeaderRule::Forward(SubgraphHeaderForward {
+                name: NameOrPattern::Pattern(Regex::new(".*").unwrap()),
+                default: None,
+                rename: None,
+            }))
+            .with_header_rule(SubgraphHeaderRule::Insert(SubgraphHeaderInsert {
+                name: "Content-Type".into(),
+                value: "application/trust-me".into(),
+            }))
+            .with_header_rule(SubgraphHeaderRule::RenameDuplicate(SubgraphRenameDuplicate {
+                name: "User-Agent".into(),
+                default: None,
+                rename: "TE".into(),
+            }))
+            .build()
+            .await;
+
+        let response = engine
+            .execute("query { headers { name value }}")
+            .header("User-Agent", "Rusty")
+            .header("Accept", "application/json")
+            .header("Accept-Encoding", "gzip")
+            .header("Accept-Charset", "utf-8")
+            .header("Accept-Ranges", "bytes")
+            .header("Content-Length", "728")
+            .header("Content-Type", "application/jpeg")
+            .header("Connection", "keep-alive")
+            .header("Keep-Alive", "10")
+            .header("Proxy-Authenticate", "Basic")
+            .header("Proxy-Authorization", "Basic")
+            .header("TE", "gzip")
+            .header("Trailer", "gzip")
+            .header("Transfer-Encoding", "gzip")
+            .header("Upgrade", "foo/2")
+            .await;
+
+        insta::assert_json_snapshot!(response, @r###"
+        {
+          "data": {
+            "headers": [
+              {
+                "name": "accept",
+                "value": "application/json"
+              },
+              {
+                "name": "content-length",
+                "value": "78"
+              },
+              {
+                "name": "content-type",
+                "value": "application/json"
+              },
+              {
+                "name": "user-agent",
+                "value": "Rusty"
+              }
+            ]
+          }
+        }
+        "###);
+    })
+}
+#[test]
+fn test_regex_header_forwarding() {
+    let response = runtime().block_on(async move {
+        let echo_subgraph = MockGraphQlServer::new(EchoSchema).await;
+
+        let engine = Engine::builder()
+            .with_subgraph("echo", &echo_subgraph)
             .with_header_rule(SubgraphHeaderRule::Forward(SubgraphHeaderForward {
                 name: NameOrPattern::Pattern(Regex::new("^x-*").unwrap()),
                 default: None,
@@ -189,38 +261,43 @@ fn test_regex_header_forwarding() {
             .await
     });
 
-    let mut response: Response = serde_json::from_value(response.into_data()).unwrap();
-    response.headers.sort();
-
-    insta::assert_debug_snapshot!(response.headers, @r###"
-    [
-        Header {
-            name: "accept",
-            value: "*/*",
-        },
-        Header {
-            name: "content-type",
-            value: "application/json",
-        },
-        Header {
-            name: "x-some",
-            value: "meow",
-        },
-        Header {
-            name: "x-source",
-            value: "boom",
-        },
-    ]
+    insta::assert_json_snapshot!(response, @r###"
+    {
+      "data": {
+        "headers": [
+          {
+            "name": "accept",
+            "value": "application/json"
+          },
+          {
+            "name": "content-length",
+            "value": "78"
+          },
+          {
+            "name": "content-type",
+            "value": "application/json"
+          },
+          {
+            "name": "x-some",
+            "value": "meow"
+          },
+          {
+            "name": "x-source",
+            "value": "boom"
+          }
+        ]
+      }
+    }
     "###);
 }
 
 #[test]
 fn test_header_forwarding_with_default() {
     let response = runtime().block_on(async move {
-        let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
+        let echo_subgraph = MockGraphQlServer::new(EchoSchema).await;
 
         let engine = Engine::builder()
-            .with_subgraph("github", &github_mock)
+            .with_subgraph("echo", &echo_subgraph)
             .with_header_rule(SubgraphHeaderRule::Forward(SubgraphHeaderForward {
                 name: NameOrPattern::Name(String::from("x-source")),
                 rename: None,
@@ -232,34 +309,39 @@ fn test_header_forwarding_with_default() {
         engine.execute("query { headers { name value }}").await
     });
 
-    let mut response: Response = serde_json::from_value(response.into_data()).unwrap();
-    response.headers.sort();
-
-    insta::assert_debug_snapshot!(response.headers, @r###"
-    [
-        Header {
-            name: "accept",
-            value: "*/*",
-        },
-        Header {
-            name: "content-type",
-            value: "application/json",
-        },
-        Header {
-            name: "x-source",
-            value: "meow",
-        },
-    ]
+    insta::assert_json_snapshot!(response, @r###"
+    {
+      "data": {
+        "headers": [
+          {
+            "name": "accept",
+            "value": "application/json"
+          },
+          {
+            "name": "content-length",
+            "value": "78"
+          },
+          {
+            "name": "content-type",
+            "value": "application/json"
+          },
+          {
+            "name": "x-source",
+            "value": "meow"
+          }
+        ]
+      }
+    }
     "###);
 }
 
 #[test]
 fn test_header_forwarding_with_default_and_existing_header() {
     let response = runtime().block_on(async move {
-        let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
+        let echo_subgraph = MockGraphQlServer::new(EchoSchema).await;
 
         let engine = Engine::builder()
-            .with_subgraph("github", &github_mock)
+            .with_subgraph("echo", &echo_subgraph)
             .with_header_rule(SubgraphHeaderRule::Forward(SubgraphHeaderForward {
                 name: NameOrPattern::Name(String::from("x-source")),
                 rename: None,
@@ -274,34 +356,39 @@ fn test_header_forwarding_with_default_and_existing_header() {
             .await
     });
 
-    let mut response: Response = serde_json::from_value(response.into_data()).unwrap();
-    response.headers.sort();
-
-    insta::assert_debug_snapshot!(response.headers, @r###"
-    [
-        Header {
-            name: "accept",
-            value: "*/*",
-        },
-        Header {
-            name: "content-type",
-            value: "application/json",
-        },
-        Header {
-            name: "x-source",
-            value: "kekw",
-        },
-    ]
+    insta::assert_json_snapshot!(response, @r###"
+    {
+      "data": {
+        "headers": [
+          {
+            "name": "accept",
+            "value": "application/json"
+          },
+          {
+            "name": "content-length",
+            "value": "78"
+          },
+          {
+            "name": "content-type",
+            "value": "application/json"
+          },
+          {
+            "name": "x-source",
+            "value": "kekw"
+          }
+        ]
+      }
+    }
     "###);
 }
 
 #[test]
 fn test_regex_header_forwarding_then_delete() {
     let response = runtime().block_on(async move {
-        let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
+        let echo_subgraph = MockGraphQlServer::new(EchoSchema).await;
 
         let engine = Engine::builder()
-            .with_subgraph("github", &github_mock)
+            .with_subgraph("echo", &echo_subgraph)
             .with_header_rule(SubgraphHeaderRule::Forward(SubgraphHeaderForward {
                 name: NameOrPattern::Pattern(Regex::new("^x-*").unwrap()),
                 default: None,
@@ -321,34 +408,39 @@ fn test_regex_header_forwarding_then_delete() {
             .await
     });
 
-    let mut response: Response = serde_json::from_value(response.into_data()).unwrap();
-    response.headers.sort();
-
-    insta::assert_debug_snapshot!(response.headers, @r###"
-    [
-        Header {
-            name: "accept",
-            value: "*/*",
-        },
-        Header {
-            name: "content-type",
-            value: "application/json",
-        },
-        Header {
-            name: "x-source",
-            value: "boom",
-        },
-    ]
+    insta::assert_json_snapshot!(response, @r###"
+    {
+      "data": {
+        "headers": [
+          {
+            "name": "accept",
+            "value": "application/json"
+          },
+          {
+            "name": "content-length",
+            "value": "78"
+          },
+          {
+            "name": "content-type",
+            "value": "application/json"
+          },
+          {
+            "name": "x-source",
+            "value": "boom"
+          }
+        ]
+      }
+    }
     "###);
 }
 
 #[test]
 fn test_regex_header_forwarding_then_delete_with_regex() {
     let response = runtime().block_on(async move {
-        let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
+        let echo_subgraph = MockGraphQlServer::new(EchoSchema).await;
 
         let engine = Engine::builder()
-            .with_subgraph("github", &github_mock)
+            .with_subgraph("echo", &echo_subgraph)
             .with_header_rule(SubgraphHeaderRule::Forward(SubgraphHeaderForward {
                 name: NameOrPattern::Pattern(Regex::new("^x-*").unwrap()),
                 default: None,
@@ -369,34 +461,39 @@ fn test_regex_header_forwarding_then_delete_with_regex() {
             .await
     });
 
-    let mut response: Response = serde_json::from_value(response.into_data()).unwrap();
-    response.headers.sort();
-
-    insta::assert_debug_snapshot!(response.headers, @r###"
-    [
-        Header {
-            name: "accept",
-            value: "*/*",
-        },
-        Header {
-            name: "content-type",
-            value: "application/json",
-        },
-        Header {
-            name: "x-kekw",
-            value: "meow",
-        },
-    ]
+    insta::assert_json_snapshot!(response, @r###"
+    {
+      "data": {
+        "headers": [
+          {
+            "name": "accept",
+            "value": "application/json"
+          },
+          {
+            "name": "content-length",
+            "value": "78"
+          },
+          {
+            "name": "content-type",
+            "value": "application/json"
+          },
+          {
+            "name": "x-kekw",
+            "value": "meow"
+          }
+        ]
+      }
+    }
     "###);
 }
 
 #[test]
 fn test_rename_duplicate_no_default() {
     let response = runtime().block_on(async move {
-        let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
+        let echo_subgraph = MockGraphQlServer::new(EchoSchema).await;
 
         let engine = Engine::builder()
-            .with_subgraph("github", &github_mock)
+            .with_subgraph("echo", &echo_subgraph)
             .with_header_rule(SubgraphHeaderRule::RenameDuplicate(SubgraphRenameDuplicate {
                 name: String::from("foo"),
                 default: None,
@@ -411,38 +508,43 @@ fn test_rename_duplicate_no_default() {
             .await
     });
 
-    let mut response: Response = serde_json::from_value(response.into_data()).unwrap();
-    response.headers.sort();
-
-    insta::assert_debug_snapshot!(response.headers, @r###"
-    [
-        Header {
-            name: "accept",
-            value: "*/*",
-        },
-        Header {
-            name: "bar",
-            value: "lol",
-        },
-        Header {
-            name: "content-type",
-            value: "application/json",
-        },
-        Header {
-            name: "foo",
-            value: "lol",
-        },
-    ]
+    insta::assert_json_snapshot!(response, @r###"
+    {
+      "data": {
+        "headers": [
+          {
+            "name": "accept",
+            "value": "application/json"
+          },
+          {
+            "name": "bar",
+            "value": "lol"
+          },
+          {
+            "name": "content-length",
+            "value": "78"
+          },
+          {
+            "name": "content-type",
+            "value": "application/json"
+          },
+          {
+            "name": "foo",
+            "value": "lol"
+          }
+        ]
+      }
+    }
     "###);
 }
 
 #[test]
 fn test_rename_duplicate_default() {
     let response = runtime().block_on(async move {
-        let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
+        let echo_subgraph = MockGraphQlServer::new(EchoSchema).await;
 
         let engine = Engine::builder()
-            .with_subgraph("github", &github_mock)
+            .with_subgraph("echo", &echo_subgraph)
             .with_header_rule(SubgraphHeaderRule::RenameDuplicate(SubgraphRenameDuplicate {
                 name: String::from("foo"),
                 default: Some(String::from("kekw")),
@@ -457,38 +559,43 @@ fn test_rename_duplicate_default() {
             .await
     });
 
-    let mut response: Response = serde_json::from_value(response.into_data()).unwrap();
-    response.headers.sort();
-
-    insta::assert_debug_snapshot!(response.headers, @r###"
-    [
-        Header {
-            name: "accept",
-            value: "*/*",
-        },
-        Header {
-            name: "bar",
-            value: "lol",
-        },
-        Header {
-            name: "content-type",
-            value: "application/json",
-        },
-        Header {
-            name: "foo",
-            value: "lol",
-        },
-    ]
+    insta::assert_json_snapshot!(response, @r###"
+    {
+      "data": {
+        "headers": [
+          {
+            "name": "accept",
+            "value": "application/json"
+          },
+          {
+            "name": "bar",
+            "value": "lol"
+          },
+          {
+            "name": "content-length",
+            "value": "78"
+          },
+          {
+            "name": "content-type",
+            "value": "application/json"
+          },
+          {
+            "name": "foo",
+            "value": "lol"
+          }
+        ]
+      }
+    }
     "###);
 }
 
 #[test]
 fn test_rename_duplicate_default_with_missing_value() {
     let response = runtime().block_on(async move {
-        let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
+        let echo_subgraph = MockGraphQlServer::new(EchoSchema).await;
 
         let engine = Engine::builder()
-            .with_subgraph("github", &github_mock)
+            .with_subgraph("echo", &echo_subgraph)
             .with_header_rule(SubgraphHeaderRule::RenameDuplicate(SubgraphRenameDuplicate {
                 name: String::from("foo"),
                 default: Some(String::from("kekw")),
@@ -500,27 +607,32 @@ fn test_rename_duplicate_default_with_missing_value() {
         engine.execute("query { headers { name value }}").await
     });
 
-    let mut response: Response = serde_json::from_value(response.into_data()).unwrap();
-    response.headers.sort();
-
-    insta::assert_debug_snapshot!(response.headers, @r###"
-    [
-        Header {
-            name: "accept",
-            value: "*/*",
-        },
-        Header {
-            name: "bar",
-            value: "kekw",
-        },
-        Header {
-            name: "content-type",
-            value: "application/json",
-        },
-        Header {
-            name: "foo",
-            value: "kekw",
-        },
-    ]
+    insta::assert_json_snapshot!(response, @r###"
+    {
+      "data": {
+        "headers": [
+          {
+            "name": "accept",
+            "value": "application/json"
+          },
+          {
+            "name": "bar",
+            "value": "kekw"
+          },
+          {
+            "name": "content-length",
+            "value": "78"
+          },
+          {
+            "name": "content-type",
+            "value": "application/json"
+          },
+          {
+            "name": "foo",
+            "value": "kekw"
+          }
+        ]
+      }
+    }
     "###);
 }

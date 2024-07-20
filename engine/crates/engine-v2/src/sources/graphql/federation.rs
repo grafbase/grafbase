@@ -96,7 +96,7 @@ impl FederationEntityPreparedExecutor {
             subgraph.name(),
             move || FetchRequest {
                 url: subgraph.url(),
-                headers: ctx.headers_with_rules(subgraph.header_rules()),
+                headers: ctx.subgraph_headers_with_rules(subgraph.header_rules()),
                 json_body,
                 subgraph_name: subgraph.name(),
                 timeout: subgraph.timeout(),

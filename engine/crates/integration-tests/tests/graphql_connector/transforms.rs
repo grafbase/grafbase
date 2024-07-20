@@ -23,11 +23,6 @@ fn graphql_test_with_transforms() {
 
         scalar CustomRepoId
 
-        type Header {
-          name: String!
-          value: String!
-        }
-
         type Issue implements PullRequestOrIssue {
           title: String!
         }
@@ -51,7 +46,6 @@ fn graphql_test_with_transforms() {
           allBotPullRequests: [PullRequest!]!
           botPullRequests(bots: [[BotInput!]]!): [PullRequest!]!
           favoriteRepository: CustomRepoId!
-          headers: [Header!]!
           pullRequest(id: ID!): PullRequest
           pullRequestOrIssue(id: ID!): PullRequestOrIssue
           pullRequestsAndIssues(filter: PullRequestsAndIssuesFilters!): [PullRequestOrIssue!]!

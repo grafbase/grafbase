@@ -25,12 +25,14 @@ impl FetcherInner for NativeFetcher {
     async fn post(&self, request: FetchRequest<'_>) -> FetchResult<FetchResponse> {
         let subgraph_name = request.subgraph_name;
 
+        let n = request.json_body.len();
         let response = self
             .client
             .post(request.url.clone())
             .body(request.json_body)
+            .headers(request.headers)
             .header("Content-Type", "application/json")
-            .headers(request.headers.clone())
+            .header("Content-Length", n)
             .timeout(request.timeout)
             .send()
             .await

@@ -53,7 +53,7 @@ impl GraphqlPreparedExecutor {
                     inputs: Vec::new(),
                 })
                 .map_err(|error| error.to_string())?,
-                headers: ctx.headers_with_rules(subgraph.header_rules()),
+                headers: ctx.subgraph_headers_with_rules(subgraph.header_rules()),
             })
             .await?;
         Ok(Box::pin(stream.map(move |subgraph_response| {

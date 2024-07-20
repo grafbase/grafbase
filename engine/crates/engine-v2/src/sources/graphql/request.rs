@@ -3,6 +3,7 @@ use grafbase_telemetry::{
     gql_response_status::{GraphqlResponseStatus, SubgraphResponseStatus},
     span::{GqlRecorderSpanExt, GRAFBASE_TARGET},
 };
+use headers::HeaderMapExt;
 use runtime::fetch::FetchRequest;
 use tracing::Span;
 
@@ -36,6 +37,14 @@ pub(super) async fn execute_subgraph_request<'ctx, 'a, R: Runtime>(
             std::mem::take(&mut request.headers),
         )
         .await?;
+
+    request.headers.typed_insert(headers::ContentType::json());
+    request
+        .headers
+        .typed_insert(headers::ContentLength(request.json_body.len() as u64));
+    request
+        .headers
+        .insert(http::header::ACCEPT, http::HeaderValue::from_static("application/json"));
 
     let fetch_response = ctx.engine.runtime.fetcher().post(request).await.inspect_err(|err| {
         span.record_subgraph_status(SubgraphResponseStatus::HttpError);

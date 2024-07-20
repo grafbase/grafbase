@@ -1,6 +1,7 @@
 mod context;
 mod coordinator;
 mod error;
+mod header_rule;
 pub(crate) mod hooks;
 mod ids;
 mod planner;
@@ -40,6 +41,7 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
 pub(crate) struct ExecutableOperation {
     pub(crate) prepared: Arc<PreparedOperation>,
     pub(crate) variables: Variables,
+    pub(crate) subgraph_default_headers: http::HeaderMap,
     pub(crate) query_modifications: QueryModifications,
     pub(crate) execution_plans: Vec<ExecutionPlan>,
 }
