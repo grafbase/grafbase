@@ -65,7 +65,7 @@ prettytable = { version = "0.10.0", default-features = false, features = ["win_c
 async-graphql-axum.workspace = true
 async-graphql.workspace = true
 async-trait = "0.1.80"
-async-tungstenite = "0.26.0"
+async-tungstenite = "0.27.0"
 axum.workspace = true
 cfg-if = "1"
 chrono = "0.4.38"

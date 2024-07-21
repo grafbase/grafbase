@@ -1,7 +1,7 @@
 #
 # === Pathfinder & UDF wrapper ===
 #
-FROM oven/bun:1.1.6-alpine AS assets
+FROM oven/bun:1.1.20-alpine AS assets
 WORKDIR /grafbase
 COPY ./cli/wrappers ./cli/wrappers
 COPY ./packages/cli-app ./packages/cli-app
@@ -49,7 +49,7 @@ RUN cargo build --release --bin grafbase
 #
 # === Final image ===
 #
-FROM oven/bun:1.1.6-alpine
+FROM oven/bun:1.1.20-alpine
 
 # gosu is a better sudo/su to step down from root into the service user in the docker-entrypoint.sh script
 # See https://github.com/tianon/gosu/blob/master/INSTALL.md

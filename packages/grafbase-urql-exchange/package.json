@@ -19,7 +19,7 @@
     "@n1ru4l/push-pull-async-iterable-iterator": "3.2.0",
     "@repeaterjs/repeater": "3.0.6",
     "@urql/core": "5.0.4",
-    "graphql": "16.8.1",
+    "graphql": "16.9.0",
     "reconnecting-eventsource": "1.6.2",
     "wonka": "6.3.4"
   },
@@ -27,7 +27,7 @@
     "eslint": "^8.0.0",
     "eslint-config-grafbase": "workspace:*",
     "tsconfig": "workspace:*",
-    "tsup": "8.1.0",
+    "tsup": "8.2.1",
     "typescript": "^5.0.0"
   }
 }

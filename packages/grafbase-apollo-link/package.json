@@ -14,19 +14,19 @@
     "lint": "eslint src/*.ts*"
   },
   "dependencies": {
-    "@apollo/client": "3.10.4",
+    "@apollo/client": "3.10.8",
     "@n1ru4l/graphql-live-query": "0.10.0",
     "@n1ru4l/graphql-live-query-patch-json-patch": "0.7.0",
     "@n1ru4l/push-pull-async-iterable-iterator": "3.2.0",
     "@repeaterjs/repeater": "3.0.6",
-    "graphql": "16.8.1",
+    "graphql": "16.9.0",
     "reconnecting-eventsource": "1.6.2"
   },
   "devDependencies": {
     "eslint": "^8.0.0",
     "eslint-config-grafbase": "workspace:*",
     "tsconfig": "workspace:*",
-    "tsup": "8.1.0",
+    "tsup": "8.2.1",
     "typescript": "^5.0.0"
   }
 }

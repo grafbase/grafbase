@@ -18,7 +18,7 @@ wasi = ["wasi-component-loader", "deadpool", "url"]
 [dependencies]
 async-runtime.workspace = true
 async-trait = "0.1.80"
-async-tungstenite = { version = "0.26.0", features = ["tokio-runtime", "tokio-rustls-webpki-roots"] }
+async-tungstenite = { version = "0.27.0", features = ["tokio-runtime", "tokio-rustls-webpki-roots"] }
 futures-util.workspace = true
 graphql-ws-client = { version = "0.10.0", features = ["tungstenite"] }
 governor.workspace = true
