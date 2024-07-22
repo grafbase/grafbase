@@ -8,10 +8,10 @@ pub struct FakeGithubSchema;
 impl super::Schema for FakeGithubSchema {
     async fn execute(
         &self,
-        headers: Vec<(String, String)>,
+        _headers: Vec<(String, String)>,
         request: async_graphql::Request,
     ) -> async_graphql::Response {
-        async_graphql::Schema::build(Query { headers }, EmptyMutation, EmptySubscription)
+        async_graphql::Schema::build(Query, EmptyMutation, EmptySubscription)
             .finish()
             .execute(request)
             .await
@@ -22,35 +22,20 @@ impl super::Schema for FakeGithubSchema {
         request: async_graphql::Request,
     ) -> futures::stream::BoxStream<'static, async_graphql::Response> {
         Box::pin(
-            async_graphql::Schema::build(
-                Query {
-                    headers: Default::default(),
-                },
-                EmptyMutation,
-                EmptySubscription,
-            )
-            .finish()
-            .execute_stream(request),
+            async_graphql::Schema::build(Query, EmptyMutation, EmptySubscription)
+                .finish()
+                .execute_stream(request),
         )
     }
 
     fn sdl(&self) -> String {
-        let schema = async_graphql::Schema::build(
-            Query {
-                headers: Default::default(),
-            },
-            EmptyMutation,
-            EmptySubscription,
-        )
-        .finish();
+        let schema = async_graphql::Schema::build(Query, EmptyMutation, EmptySubscription).finish();
 
         schema.sdl_with_options(async_graphql::SDLExportOptions::new())
     }
 }
 
-struct Query {
-    headers: Vec<(String, String)>,
-}
+struct Query;
 
 #[derive(serde::Serialize, serde::Deserialize)]
 struct CustomRepoId {
@@ -205,27 +190,12 @@ impl Query {
         None
     }
 
-    async fn headers(&self) -> Vec<Header> {
-        self.headers
-            .clone()
-            .into_iter()
-            .filter(|(name, _)| name != "host" && name != "content-length")
-            .map(|(name, value)| Header { name, value })
-            .collect()
-    }
-
     async fn status_string(&self, status: Status) -> &str {
         match status {
             Status::Open => "boo its closed",
             Status::Closed => "woo its open",
         }
     }
-}
-
-#[derive(SimpleObject)]
-struct Header {
-    name: String,
-    value: String,
 }
 
 #[derive(SimpleObject)]

@@ -1,4 +1,6 @@
-use async_graphql::{EmptyMutation, EmptySubscription, Enum, InputObject, Json, MaybeUndefined, Object, ID};
+use async_graphql::{
+    EmptyMutation, EmptySubscription, Enum, InputObject, Json, MaybeUndefined, Object, SimpleObject, ID,
+};
 
 /// A schema that just echoes stuff back at you.
 ///
@@ -104,6 +106,24 @@ impl Query {
             .find(|(key, _)| key == &name)
             .map(|(_, value)| value.clone())
     }
+
+    async fn headers(&self) -> Vec<Header> {
+        let mut headers = self
+            .headers
+            .clone()
+            .into_iter()
+            .filter(|(name, _)| name != "host")
+            .map(|(name, value)| Header { name, value })
+            .collect::<Vec<_>>();
+        headers.sort_unstable();
+        headers
+    }
+}
+
+#[derive(SimpleObject, Clone, PartialEq, Eq, PartialOrd, Ord)]
+struct Header {
+    name: String,
+    value: String,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Enum, serde::Serialize)]

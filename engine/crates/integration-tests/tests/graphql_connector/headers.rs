@@ -1,10 +1,10 @@
-use graphql_mocks::{FakeGithubSchema, MockGraphQlServer};
+use graphql_mocks::{EchoSchema, MockGraphQlServer};
 use integration_tests::{runtime, EngineBuilder, ResponseExt};
 
 #[test]
 fn test_header_forwarding() {
     runtime().block_on(async {
-        let graphql_mock = MockGraphQlServer::new(FakeGithubSchema).await;
+        let graphql_mock = MockGraphQlServer::new(EchoSchema).await;
 
         let engine = EngineBuilder::new(schema(graphql_mock.port()))
             .with_env_var("API_KEY", "BLAH")
@@ -34,28 +34,32 @@ fn test_header_forwarding() {
           "data": {
             "headers": [
               {
-                "name": "user-agent",
-                "value": "Grafbase"
-              },
-              {
-                "name": "content-type",
-                "value": "application/json"
-              },
-              {
-                "name": "authorization",
-                "value": "Bearer BLAH"
-              },
-              {
-                "name": "wow-what-a-header",
-                "value": "isn't it the best"
+                "name": "accept",
+                "value": "*/*"
               },
               {
                 "name": "another-one",
                 "value": "yes"
               },
               {
-                "name": "accept",
-                "value": "*/*"
+                "name": "authorization",
+                "value": "Bearer BLAH"
+              },
+              {
+                "name": "content-length",
+                "value": "96"
+              },
+              {
+                "name": "content-type",
+                "value": "application/json"
+              },
+              {
+                "name": "user-agent",
+                "value": "Grafbase"
+              },
+              {
+                "name": "wow-what-a-header",
+                "value": "isn't it the best"
               }
             ]
           }

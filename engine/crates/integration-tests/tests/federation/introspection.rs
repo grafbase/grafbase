@@ -31,11 +31,6 @@ fn can_run_pathfinder_introspection_query() {
 
     scalar CustomRepoId
 
-    type Header {
-      name: String!
-      value: String!
-    }
-
     type Issue implements PullRequestOrIssue {
       author: UserOrBot!
       title: String!
@@ -62,7 +57,6 @@ fn can_run_pathfinder_introspection_query() {
       allBotPullRequests: [PullRequest!]!
       botPullRequests(bots: [[BotInput!]]!): [PullRequest!]!
       favoriteRepository: CustomRepoId!
-      headers: [Header!]!
       pullRequest(id: ID!): PullRequest
       pullRequestOrIssue(id: ID!): PullRequestOrIssue
       pullRequestsAndIssues(filter: PullRequestsAndIssuesFilters!): [PullRequestOrIssue!]!
@@ -112,11 +106,6 @@ fn can_run_2018_introspection_query() {
 
     scalar CustomRepoId
 
-    type Header {
-      name: String!
-      value: String!
-    }
-
     type Issue implements PullRequestOrIssue {
       author: UserOrBot!
       title: String!
@@ -143,7 +132,6 @@ fn can_run_2018_introspection_query() {
       allBotPullRequests: [PullRequest!]!
       botPullRequests(bots: [[BotInput!]]!): [PullRequest!]!
       favoriteRepository: CustomRepoId!
-      headers: [Header!]!
       pullRequest(id: ID!): PullRequest
       pullRequestOrIssue(id: ID!): PullRequestOrIssue
       pullRequestsAndIssues(filter: PullRequestsAndIssuesFilters!): [PullRequestOrIssue!]!
@@ -193,11 +181,6 @@ fn can_run_2021_introspection_query() {
 
     scalar CustomRepoId
 
-    type Header {
-      name: String!
-      value: String!
-    }
-
     type Issue implements PullRequestOrIssue {
       author: UserOrBot!
       title: String!
@@ -224,7 +207,6 @@ fn can_run_2021_introspection_query() {
       allBotPullRequests: [PullRequest!]!
       botPullRequests(bots: [[BotInput!]]!): [PullRequest!]!
       favoriteRepository: CustomRepoId!
-      headers: [Header!]!
       pullRequest(id: ID!): PullRequest
       pullRequestOrIssue(id: ID!): PullRequestOrIssue
       pullRequestsAndIssues(filter: PullRequestsAndIssuesFilters!): [PullRequestOrIssue!]!
@@ -269,6 +251,11 @@ fn echo_subgraph_introspection() {
       YES
     }
 
+    type Header {
+      name: String!
+      value: String!
+    }
+
     input InputObj {
       string: String
       int: Int
@@ -286,6 +273,7 @@ fn echo_subgraph_introspection() {
       fancyBool(input: FancyBool!): FancyBool!
       float(input: Float!): Float!
       header(name: String!): String
+      headers: [Header!]!
       id(input: ID!): ID!
       inputObject(input: InputObj!): JSON!
       int(input: Int!): Int!
