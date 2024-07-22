@@ -77,9 +77,18 @@ impl AuthProvider {
                     )),
                     (Some(issuer), None) => {
                         // issuer must be a URL in this case so that jwks_endpoint can be constructed.
-                        let url = Self::validate_url(issuer, "JWKS provider")?;
-                        const JWKS_PATH: &str = "/.well-known/jwks.json";
-                        let url = url.join(JWKS_PATH).expect("cannot fail");
+                        let mut url = Self::validate_url(issuer, "JWKS provider")?;
+                        const JWKS_PATH_SEGMENTS: [&str; 2] = [".well-known", "jwks.json"];
+
+                        url.path_segments_mut()
+                            .map_err(|_| {
+                                ServerError::new(
+                                    String::from("JWKS provider: encountered a cannot-be-a-base issuer url"),
+                                    None,
+                                )
+                            })?
+                            .extend(JWKS_PATH_SEGMENTS);
+
                         *jwks_endpoint = Some(url.to_string());
                         Ok(())
                     }
