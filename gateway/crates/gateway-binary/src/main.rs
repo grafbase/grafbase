@@ -129,8 +129,6 @@ fn init_global_tracing(args: &impl Args, config: Option<TelemetryConfig>) -> any
                 .with(args.log_format())
                 .with(env_filter)
                 .init();
-
-            grafbase_telemetry::otel::opentelemetry::global::set_logger_provider(logger.provider.clone());
         }
         None => {
             tracing_subscriber::registry()
@@ -167,9 +165,7 @@ fn otel_layer_reload<S>(
         };
 
         let ReloadableOtelLayers {
-            tracer,
-            meter_provider,
-            logger,
+            tracer, meter_provider, ..
         } = match build_otel_layers(config, Some(reload_data), false) {
             Ok(value) => value,
             Err(err) => {
@@ -199,10 +195,6 @@ fn otel_layer_reload<S>(
 
         grafbase_telemetry::otel::opentelemetry::global::set_meter_provider(meter_provider);
         grafbase_telemetry::otel::opentelemetry::global::set_tracer_provider(tracer.provider.clone());
-
-        if let Some(logger) = logger {
-            grafbase_telemetry::otel::opentelemetry::global::set_logger_provider(logger.provider.clone());
-        }
 
         reload_ack_sender.send(()).ok();
 
