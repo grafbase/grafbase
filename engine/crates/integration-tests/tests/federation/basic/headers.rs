@@ -294,10 +294,10 @@ fn test_regex_header_forwarding() {
 #[test]
 fn test_header_forwarding_with_rename() {
     let response = runtime().block_on(async move {
-        let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
+        let github_mock = MockGraphQlServer::new(EchoSchema).await;
 
         let engine = Engine::builder()
-            .with_subgraph("github", &github_mock)
+            .with_subgraph("echo", &github_mock)
             .with_header_rule(SubgraphHeaderRule::Forward(SubgraphHeaderForward {
                 name: NameOrPattern::Name(String::from("x-source")),
                 rename: Some(String::from("y-source")),
@@ -312,24 +312,29 @@ fn test_header_forwarding_with_rename() {
             .await
     });
 
-    let mut response: Response = serde_json::from_value(response.into_data()).unwrap();
-    response.headers.sort();
-
-    insta::assert_debug_snapshot!(response.headers, @r###"
-    [
-        Header {
-            name: "accept",
-            value: "*/*",
-        },
-        Header {
-            name: "content-type",
-            value: "application/json",
-        },
-        Header {
-            name: "y-source",
-            value: "boom",
-        },
-    ]
+    insta::assert_json_snapshot!(response, @r###"
+    {
+      "data": {
+        "headers": [
+          {
+            "name": "accept",
+            "value": "application/json"
+          },
+          {
+            "name": "content-length",
+            "value": "78"
+          },
+          {
+            "name": "content-type",
+            "value": "application/json"
+          },
+          {
+            "name": "y-source",
+            "value": "boom"
+          }
+        ]
+      }
+    }
     "###);
 }
 
