@@ -238,6 +238,7 @@ fn should_not_propagate_blacklisted_headers() {
         "###);
     })
 }
+
 #[test]
 fn test_regex_header_forwarding() {
     let response = runtime().block_on(async move {
@@ -283,6 +284,64 @@ fn test_regex_header_forwarding() {
           },
           {
             "name": "x-source",
+            "value": "boom"
+          }
+        ]
+      }
+    }
+    "###);
+}
+
+#[test]
+fn test_regex_header_forwarding_should_not_duplicate() {
+    let response = runtime().block_on(async move {
+        let echo_subgraph = MockGraphQlServer::new(EchoSchema).await;
+
+        let engine = Engine::builder()
+            .with_subgraph("echo", &echo_subgraph)
+            .with_header_rule(SubgraphHeaderRule::Forward(SubgraphHeaderForward {
+                name: NameOrPattern::Pattern(Regex::new("^x-*").unwrap()),
+                default: None,
+                rename: None,
+            }))
+            .with_header_rule(SubgraphHeaderRule::Forward(SubgraphHeaderForward {
+                name: NameOrPattern::Name(String::from("x-source")),
+                default: None,
+                rename: Some(String::from("y-source")),
+            }))
+            .build()
+            .await;
+
+        engine
+            .execute("query { headers { name value }}")
+            .header("x-source", "boom")
+            .header("asdf", "lol")
+            .header("x-some", "meow")
+            .await
+    });
+
+    insta::assert_json_snapshot!(response, @r###"
+    {
+      "data": {
+        "headers": [
+          {
+            "name": "accept",
+            "value": "application/json"
+          },
+          {
+            "name": "content-length",
+            "value": "78"
+          },
+          {
+            "name": "content-type",
+            "value": "application/json"
+          },
+          {
+            "name": "x-some",
+            "value": "meow"
+          },
+          {
+            "name": "y-source",
             "value": "boom"
           }
         ]
