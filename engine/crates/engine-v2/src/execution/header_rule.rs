@@ -14,114 +14,146 @@ pub(super) fn create_subgraph_headers_with_rules<'ctx, C>(
 
     for header in rules {
         match header.rule() {
-            schema::HeaderRuleRef::Forward { name, default, rename } => match name {
-                NameOrPatternRef::Pattern(regex) => {
-                    let filtered = request_context
-                        .headers
-                        .iter()
-                        .filter(|(name, _)| !is_header_denied(name))
-                        .filter(|(name, _)| regex.is_match(name.as_str()));
-
-                    for (name, value) in filtered {
-                        // if a previous rule added a header with the same name, remove the old one.
-                        headers.remove(name);
-
-                        match rename.and_then(|s| http::HeaderName::from_str(s).ok()) {
-                            Some(rename) => {
-                                headers.insert(rename, value.clone());
-                            }
-                            None => {
-                                headers.insert(name.clone(), value.clone());
-                            }
-                        }
-                    }
-                }
-                NameOrPatternRef::Name(name) => {
-                    // if a previous rule added a header with the same name, remove the old one.
-                    headers.remove(name);
-
-                    let header = request_context.headers.get(name);
-                    let default = default.and_then(|d| http::HeaderValue::from_str(d).ok());
-
-                    let name = match rename {
-                        Some(rename) => rename,
-                        None => name,
-                    };
-
-                    let Ok(name) = http::HeaderName::from_str(name) else {
-                        continue;
-                    };
-
-                    if is_header_denied(&name) {
-                        continue;
-                    }
-
-                    match (header, default) {
-                        (None, Some(default)) => {
-                            headers.insert(name, default);
-                        }
-                        (Some(value), _) => {
-                            headers.insert(name, value.clone());
-                        }
-                        _ => (),
-                    };
-                }
-            },
-            schema::HeaderRuleRef::Insert { name, value } => {
-                let name = http::HeaderName::from_bytes(name.as_bytes()).ok();
-                let value = http::HeaderValue::from_str(value).ok();
-
-                if let Some((name, value)) = name.zip(value) {
-                    if is_header_denied(&name) {
-                        continue;
-                    }
-                    headers.insert(name, value);
-                }
+            schema::HeaderRuleRef::Forward { name, default, rename } => {
+                handle_forward(&mut headers, name, request_context, rename, default);
             }
-            schema::HeaderRuleRef::Remove { name } => match name {
-                schema::NameOrPatternRef::Pattern(regex) => {
-                    // https://github.com/hyperium/http/issues/632
-                    let delete_list: Vec<_> = headers
-                        .keys()
-                        .filter(|key| regex.is_match(key.as_str()))
-                        .map(Clone::clone)
-                        .collect();
-
-                    for key in delete_list {
-                        headers.remove(key);
-                    }
-                }
-                schema::NameOrPatternRef::Name(name) => {
-                    headers.remove(name);
-                }
-            },
+            schema::HeaderRuleRef::Insert { name, value } => {
+                handle_insert(&mut headers, name, value);
+            }
+            schema::HeaderRuleRef::Remove { name } => handle_remove(&mut headers, name),
             schema::HeaderRuleRef::RenameDuplicate { name, default, rename } => {
-                let Ok(name) = http::HeaderName::from_str(name) else {
-                    continue;
-                };
-
-                let Ok(rename) = http::HeaderName::from_str(rename) else {
-                    continue;
-                };
-                if is_header_denied(&rename) {
-                    continue;
-                }
-
-                let value = request_context.headers.get(&name).map(Cow::Borrowed).or_else(|| {
-                    default
-                        .and_then(|d| http::HeaderValue::from_str(d).ok())
-                        .map(Cow::Owned)
-                });
-
-                if let Some(value) = value {
-                    headers.insert(name, value.clone().into_owned());
-                    headers.insert(rename, value.into_owned());
-                }
+                handle_rename_duplicate(&mut headers, name, rename, request_context, default);
             }
         }
     }
 
     headers
+}
+
+fn handle_rename_duplicate<C>(
+    headers: &mut http::HeaderMap,
+    name: &str,
+    rename: &str,
+    request_context: &RequestContext<C>,
+    default: Option<&str>,
+) {
+    let Ok(name) = http::HeaderName::from_str(name) else {
+        return;
+    };
+
+    let Ok(rename) = http::HeaderName::from_str(rename) else {
+        return;
+    };
+
+    if is_header_denied(&rename) {
+        return;
+    }
+
+    let value = request_context.headers.get(&name).map(Cow::Borrowed).or_else(|| {
+        default
+            .and_then(|d| http::HeaderValue::from_str(d).ok())
+            .map(Cow::Owned)
+    });
+
+    if let Some(value) = value {
+        headers.insert(name, value.clone().into_owned());
+        headers.insert(rename, value.into_owned());
+    }
+}
+
+fn handle_remove(headers: &mut http::HeaderMap, name: NameOrPatternRef<'_>) {
+    match name {
+        schema::NameOrPatternRef::Pattern(regex) => {
+            // https://github.com/hyperium/http/issues/632
+            let delete_list: Vec<_> = headers
+                .keys()
+                .filter(|key| regex.is_match(key.as_str()))
+                .map(Clone::clone)
+                .collect();
+
+            for key in delete_list {
+                headers.remove(key);
+            }
+        }
+        schema::NameOrPatternRef::Name(name) => {
+            headers.remove(name);
+        }
+    }
+}
+
+fn handle_insert(headers: &mut http::HeaderMap, name: &str, value: &str) {
+    let name = http::HeaderName::from_bytes(name.as_bytes()).ok();
+    let value = http::HeaderValue::from_str(value).ok();
+
+    if let Some((name, value)) = name.zip(value) {
+        if is_header_denied(&name) {
+            return;
+        }
+
+        headers.insert(name, value);
+    }
+}
+
+fn handle_forward<C>(
+    headers: &mut http::HeaderMap,
+    name: NameOrPatternRef<'_>,
+    request_context: &RequestContext<C>,
+    rename: Option<&str>,
+    default: Option<&str>,
+) {
+    match name {
+        NameOrPatternRef::Pattern(regex) => {
+            let filtered = request_context
+                .headers
+                .iter()
+                .filter(|(name, _)| !is_header_denied(name))
+                .filter(|(name, _)| regex.is_match(name.as_str()));
+
+            for (name, value) in filtered {
+                // if a previous rule added a header with the same name, remove the old one.
+                headers.remove(name);
+
+                match rename.and_then(|s| http::HeaderName::from_str(s).ok()) {
+                    Some(rename) => {
+                        headers.insert(rename, value.clone());
+                    }
+                    None => {
+                        headers.insert(name.clone(), value.clone());
+                    }
+                }
+            }
+        }
+        NameOrPatternRef::Name(name) => {
+            // if a previous rule added a header with the same name, remove the old one.
+            headers.remove(name);
+
+            let header = request_context.headers.get(name);
+            let default = default.and_then(|d| http::HeaderValue::from_str(d).ok());
+
+            let name = match rename {
+                Some(rename) => rename,
+                None => name,
+            };
+
+            let Ok(name) = http::HeaderName::from_str(name) else {
+                return;
+            };
+
+            if is_header_denied(&name) {
+                return;
+            }
+
+            match (header, default) {
+                (None, Some(default)) => {
+                    headers.insert(name, default);
+                }
+                (Some(value), _) => {
+                    headers.insert(name, value.clone());
+                }
+                _ => (),
+            };
+        }
+    }
 }
 
 fn is_header_denied(name: &HeaderName) -> bool {
