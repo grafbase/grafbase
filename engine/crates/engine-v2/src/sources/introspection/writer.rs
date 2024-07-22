@@ -9,7 +9,9 @@ use schema::{
 
 use crate::{
     execution::{PlanField, PlanWalker},
-    response::{ConcreteObjectShapeId, FieldShape, ResponseObject, ResponseValue, ResponseWriter, Shapes},
+    response::{
+        ConcreteObjectShapeId, FieldShape, ResponseObject, ResponseObjectField, ResponseValue, ResponseWriter, Shapes,
+    },
 };
 
 pub(super) struct IntrospectionWriter<'a> {
@@ -36,18 +38,24 @@ impl<'a> IntrospectionWriter<'a> {
             match self.metadata.root_field(*definition_id) {
                 IntrospectionField::Type => {
                     let name = field.get_arg_value_as::<&str>("name");
-                    fields.push((
-                        *edge,
-                        self.schema
+                    fields.push(ResponseObjectField {
+                        edge: *edge,
+                        required_field_id: None,
+                        value: self
+                            .schema
                             .definition_by_name(name)
                             .map(|definition| {
                                 self.__type_inner(self.schema.walk(definition), shape.as_concrete_object().unwrap())
                             })
                             .into(),
-                    ));
+                    });
                 }
                 IntrospectionField::Schema => {
-                    fields.push((*edge, self.__schema(shape.as_concrete_object().unwrap())));
+                    fields.push(ResponseObjectField {
+                        edge: *edge,
+                        required_field_id: None,
+                        value: self.__schema(shape.as_concrete_object().unwrap()),
+                    });
                 }
             };
         }
@@ -57,7 +65,11 @@ impl<'a> IntrospectionWriter<'a> {
                 .walk(self.plan.logical_plan().as_ref().entity_id)
                 .schema_name_id();
             for edge in &shape.typename_response_edges {
-                fields.push((*edge, name.into()));
+                fields.push(ResponseObjectField {
+                    edge: *edge,
+                    required_field_id: None,
+                    value: name.into(),
+                });
             }
         }
         self.response.update_root_object_with(fields);
@@ -77,12 +89,20 @@ impl<'a> IntrospectionWriter<'a> {
         let mut fields = Vec::with_capacity(shape.field_shape_ids.len() + shape.typename_response_edges.len());
         for id in shape.field_shape_ids {
             let field = &self.shapes[id];
-            fields.push((field.edge, build(field, object[field.definition_id])));
+            fields.push(ResponseObjectField {
+                edge: field.edge,
+                required_field_id: None,
+                value: build(field, object[field.definition_id]),
+            });
         }
         if !shape.typename_response_edges.is_empty() {
             let name = self.schema.walk(object.id).as_ref().name;
             for edge in &shape.typename_response_edges {
-                fields.push((*edge, name.into()));
+                fields.push(ResponseObjectField {
+                    edge: *edge,
+                    required_field_id: None,
+                    value: name.into(),
+                });
             }
         }
 

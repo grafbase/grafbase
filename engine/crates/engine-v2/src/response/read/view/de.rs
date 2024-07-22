@@ -56,13 +56,12 @@ impl<'de> serde::Deserializer<'de> for ResponseObjectView<'de> {
     where
         V: Visitor<'de>,
     {
-        MapDeserializer::new(self.selection_set.into_iter().map(|selection| {
-            let key = self.schema[selection.name].as_str();
+        MapDeserializer::new(self.ctx.response_views[self.selection_set].iter().map(|selection| {
+            let key = self.ctx.schema[selection.name].as_str();
             let value = ResponseValueWalker {
-                schema: self.schema,
-                response: self.response,
-                value: self.response_object.find(selection.edge).unwrap_or(&NULL),
-                selection_set: &selection.subselection,
+                ctx: self.ctx,
+                value: self.response_object.find_required_field(selection.id).unwrap_or(&NULL),
+                selection_set: selection.subselection,
             };
             (key, value)
         }))
@@ -111,7 +110,7 @@ impl<'de> serde::Deserializer<'de> for ResponseValueWalker<'de> {
             ResponseValue::BigInt { value, .. } => visitor.visit_i64(*value),
             ResponseValue::Float { value, .. } => visitor.visit_f64(*value),
             ResponseValue::String { value, .. } => visitor.visit_borrowed_str(value),
-            ResponseValue::StringId { id, .. } => visitor.visit_borrowed_str(&self.schema[*id]),
+            ResponseValue::StringId { id, .. } => visitor.visit_borrowed_str(&self.ctx.schema[*id]),
             ResponseValue::Json { value, .. } => value
                 .as_ref()
                 .deserialize_any(visitor)
@@ -122,24 +121,22 @@ impl<'de> serde::Deserializer<'de> for ResponseValueWalker<'de> {
                 length,
                 ..
             } => {
-                let values = &self.response[ResponseListId {
+                let values = &self.ctx.response[ResponseListId {
                     part_id,
                     offset,
                     length,
                 }];
 
                 SeqDeserializer::new(values.iter().map(|value| ResponseValueWalker {
-                    schema: self.schema,
-                    response: self.response,
+                    ctx: self.ctx,
                     value,
                     selection_set: self.selection_set,
                 }))
                 .deserialize_any(visitor)
             }
             &ResponseValue::Object { part_id, index, .. } => ResponseObjectView {
-                schema: self.schema,
-                response: self.response,
-                response_object: &self.response[ResponseObjectId { part_id, index }],
+                ctx: self.ctx,
+                response_object: &self.ctx.response[ResponseObjectId { part_id, index }],
                 selection_set: self.selection_set,
             }
             .deserialize_any(visitor),

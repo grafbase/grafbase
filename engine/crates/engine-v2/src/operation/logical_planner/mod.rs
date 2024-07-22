@@ -4,7 +4,7 @@ mod selection_set;
 use engine_parser::types::OperationType;
 use id_newtypes::IdToMany;
 use itertools::Itertools;
-use schema::{EntityId, ResolverId, Schema};
+use schema::{EntityId, RequiredFieldId, ResolverId, Schema};
 use tracing::instrument;
 
 use crate::{
@@ -49,6 +49,7 @@ pub(super) struct LogicalPlanner<'a> {
     variables: &'a Variables,
     operation: &'a mut Operation,
     field_to_logical_plan_id: Vec<Option<LogicalPlanId>>,
+    field_to_solved_requirement: Vec<Option<RequiredFieldId>>,
     logical_plans: Vec<LogicalPlan>,
     mutation_fields_plan_order: Vec<LogicalPlanId>,
     // May have duplicates, parent may be equal to child (if we, as the supergraph, need the dependencies)
@@ -74,6 +75,7 @@ impl<'a> LogicalPlanner<'a> {
             schema,
             variables,
             field_to_logical_plan_id: vec![None; operation.fields.len()],
+            field_to_solved_requirement: vec![None; operation.fields.len()],
             operation,
             logical_plans: Vec::new(),
             solved_requirements: Vec::new(),
@@ -91,6 +93,7 @@ impl<'a> LogicalPlanner<'a> {
             schema,
             mut logical_plans,
             field_to_logical_plan_id,
+            field_to_solved_requirement,
             mutation_fields_plan_order,
             mut solved_requirements,
             mut dependents_builder,
@@ -112,6 +115,7 @@ impl<'a> LogicalPlanner<'a> {
             "Solved requirements: {:?}",
             solved_requirements.iter().map(|(id, _)| id).collect::<Vec<_>>()
         );
+        tracing::debug!("{:?}", field_to_solved_requirement);
 
         dependents_builder.sort_unstable();
         let children = IdToMany::from_sorted_vec(dependents_builder.into_iter().dedup().collect());
@@ -119,6 +123,7 @@ impl<'a> LogicalPlanner<'a> {
         let mut plan = OperationPlan {
             solved_requirements,
             mutation_fields_plan_order,
+            field_to_solved_requirement,
             field_to_logical_plan_id: field_to_logical_plan_id
                 .into_iter()
                 .enumerate()

@@ -15,18 +15,14 @@ struct Query;
 
 #[Object]
 impl Query {
-    async fn fast_field(&self) -> i64 {
-        100
+    async fn delay(&self, ms: u32) -> u32 {
+        tokio::time::sleep(tokio::time::Duration::from_millis(ms.into())).await;
+        ms
     }
 
-    async fn one_second_field(&self) -> i64 {
-        tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
-        200
-    }
-
-    async fn five_second_field(&self) -> i64 {
-        tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
-        300
+    async fn nullable_delay(&self, ms: u32) -> Option<u32> {
+        tokio::time::sleep(tokio::time::Duration::from_millis(ms.into())).await;
+        Some(ms)
     }
 }
 

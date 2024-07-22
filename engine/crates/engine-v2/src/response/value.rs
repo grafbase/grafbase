@@ -1,66 +1,53 @@
-use schema::StringId;
+use schema::{RequiredFieldId, StringId};
 
-use super::{ResponseDataPartId, ResponseEdge, ResponseKey, ResponseListId, ResponseObjectId};
+use super::{ResponseDataPartId, ResponseEdge, ResponseListId, ResponseObjectId};
 
 // Threshold defined a bit arbitrarily
-pub const RESPONSE_OBJECT_FIELDS_BINARY_SEARCH_THRESHOLD: usize = 64;
 pub const NULL: ResponseValue = ResponseValue::Null;
-pub type ResponseObjectFields = Vec<(ResponseEdge, ResponseValue)>;
 
 #[derive(Default, Debug)]
-pub struct ResponseObject {
+pub(crate) struct ResponseObject {
     /// fields are ordered by the position they appear in the query.
     /// We use ResponseEdge here, but it'll never be an index out of the 3 possible variants.
     /// That's something we should rework at some point, but it's convenient for now.
-    fields: ResponseObjectFields,
+    fields: Vec<ResponseObjectField>,
+}
+
+#[derive(Debug, Clone)]
+pub(crate) struct ResponseObjectField {
+    pub edge: ResponseEdge,
+    pub required_field_id: Option<RequiredFieldId>,
+    pub value: ResponseValue,
 }
 
 impl ResponseObject {
-    pub fn new(mut fields: ResponseObjectFields) -> Self {
-        fields.sort_unstable_by(|a, b| a.0.cmp(&b.0));
+    pub fn new(mut fields: Vec<ResponseObjectField>) -> Self {
+        fields.sort_unstable_by(|a, b| a.edge.cmp(&b.edge));
         Self { fields }
     }
 
-    pub fn extend(&mut self, fields: ResponseObjectFields) {
+    pub fn extend(&mut self, fields: Vec<ResponseObjectField>) {
         self.fields.extend(fields);
-        self.fields.sort_unstable_by(|a, b| a.0.cmp(&b.0));
+        self.fields.sort_unstable_by(|a, b| a.edge.cmp(&b.edge));
     }
 
     pub fn len(&self) -> usize {
         self.fields.len()
     }
 
-    pub fn fields(&self) -> impl Iterator<Item = &(ResponseEdge, ResponseValue)> {
+    pub fn fields(&self) -> impl Iterator<Item = &ResponseObjectField> {
         self.fields.iter()
     }
 
-    // Until acutal field collection with the concrete object id we're not certain of which bound
-    // response key (field position & name) will be used but the actual response key (field name)
-    // should still be there. So, first trying with the bound key and then searching for a matching
-    // response key. This is only used for executor input creation, usually a few fields, and may
-    // only fallback if the selection had type conditions and field duplication.
-    // So should be a decent tradeoff as this allows us to serialize the whole response without any
-    // additional metadata as both position and key are encoded.
-    pub(super) fn find(&self, edge: ResponseEdge) -> Option<&ResponseValue> {
-        if let Some(pos) = self.field_position(edge) {
-            return Some(&self.fields[pos].1);
-        }
-        edge.as_response_key().and_then(|key| self.find_by_name(key))
-    }
-
     pub(super) fn field_position(&self, edge: ResponseEdge) -> Option<usize> {
-        if self.fields.len() <= RESPONSE_OBJECT_FIELDS_BINARY_SEARCH_THRESHOLD {
-            self.fields.iter().position(|(e, _)| *e == edge)
-        } else {
-            self.fields.binary_search_by(|(e, _)| e.cmp(&edge)).ok()
-        }
+        self.fields.binary_search_by(|field| field.edge.cmp(&edge)).ok()
     }
 
-    fn find_by_name(&self, target: ResponseKey) -> Option<&ResponseValue> {
-        self.fields.iter().find_map(|(key, field)| match key.as_response_key() {
-            Some(key) if key == target => Some(field),
-            _ => None,
-        })
+    pub(super) fn find_required_field(&self, id: RequiredFieldId) -> Option<&ResponseValue> {
+        self.fields
+            .iter()
+            .find(|field| field.required_field_id == Some(id))
+            .map(|field| &field.value)
     }
 }
 
@@ -68,13 +55,13 @@ impl std::ops::Index<usize> for ResponseObject {
     type Output = ResponseValue;
 
     fn index(&self, index: usize) -> &Self::Output {
-        &self.fields[index].1
+        &self.fields[index].value
     }
 }
 
 impl std::ops::IndexMut<usize> for ResponseObject {
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
-        &mut self.fields[index].1
+        &mut self.fields[index].value
     }
 }
 
@@ -87,7 +74,7 @@ impl std::ops::IndexMut<usize> for ResponseObject {
 /// propagation to change a list item to null. So it's a slice id (offset + length in u32) into a
 /// specific ResponseDataPart.
 #[derive(Default, Debug, Clone)]
-pub enum ResponseValue {
+pub(crate) enum ResponseValue {
     #[default]
     Null,
     Boolean {

@@ -349,6 +349,9 @@ where
             expected_key: self.operation.response_keys.ensure_safety(response_key),
             edge: field.response_edge(),
             id: field.id(),
+            required_field_id: fields
+                .iter()
+                .find_map(|field| self.plan.field_to_solved_requirement[usize::from(field.id())]),
             definition_id: definition.id(),
             shape: match ty.inner().scalar_type() {
                 Some(scalar) => Shape::Scalar(scalar),

@@ -5,57 +5,63 @@ use schema::{RequiredFieldSet, ResolverWalker};
 use crate::{
     execution::{ExecutableOperation, ExecutionPlan, ExecutionPlanId, PlanWalker, PreExecutionContext},
     operation::{FieldId, LogicalPlanId, OperationWalker, SelectionSetId},
-    response::{ReadField, ReadSelectionSet},
+    response::{ResponseViewSelection, ResponseViewSelectionSet, ResponseViews},
     sources::PreparedExecutor,
+    utils::BufferPool,
     Runtime,
 };
 
 use super::PlanningResult;
 
-pub(super) struct ExecutionPlanBuilder<'ctx, 'op, R: Runtime> {
+pub(super) struct RequirementsBuildContext<'ctx, 'op, 'parent, R: Runtime> {
     ctx: &'op PreExecutionContext<'ctx, R>,
     operation: &'op ExecutableOperation,
-    execution_plan_id: ExecutionPlanId,
-    logical_plan_id: LogicalPlanId,
-    resolver: ResolverWalker<'ctx>,
-    dependencies: Vec<FieldId>,
+    response_views: &'parent mut ResponseViews,
+    response_view_selection_buffer_pool: &'parent mut BufferPool<ResponseViewSelection>,
 }
 
-impl<'ctx, 'op, R: Runtime> ExecutionPlanBuilder<'ctx, 'op, R>
+impl<'ctx, 'op, 'parent, R: Runtime> RequirementsBuildContext<'ctx, 'op, 'parent, R>
 where
     'ctx: 'op,
+    'op: 'parent,
 {
     pub(super) fn new(
         ctx: &'op PreExecutionContext<'ctx, R>,
         operation: &'op ExecutableOperation,
-        execution_plan_id: ExecutionPlanId,
-        logical_plan_id: LogicalPlanId,
+        response_views: &'parent mut ResponseViews,
+        response_view_selection_buffer_pool: &'parent mut BufferPool<ResponseViewSelection>,
     ) -> Self {
-        let resolver = ctx
-            .schema()
-            .walker()
-            .walk(operation[logical_plan_id].resolver_id)
-            .with_own_names();
         Self {
             ctx,
             operation,
-            execution_plan_id,
-            logical_plan_id,
-            resolver,
-            dependencies: Vec::new(),
+            response_views,
+            response_view_selection_buffer_pool,
         }
     }
-    pub(super) fn build(mut self) -> PlanningResult<(ExecutionPlan, Vec<FieldId>)> {
-        let logical_plan = &self.operation[self.logical_plan_id];
-        let requires =
-            self.create_read_selection_set(&logical_plan.root_field_ids_ordered_by_parent_entity_id_then_position);
+
+    pub(super) fn build_execution_plan(
+        mut self,
+        execution_plan_id: ExecutionPlanId,
+        logical_plan_id: LogicalPlanId,
+    ) -> PlanningResult<(ExecutionPlan, Vec<FieldId>)> {
+        let logical_plan = &self.operation[logical_plan_id];
+        let resolver = self
+            .ctx
+            .schema()
+            .walker()
+            .walk(self.operation[logical_plan_id].resolver_id)
+            .with_own_names();
+        let (requires, dependencies) = self.create_view_and_list_dependencies(
+            resolver,
+            &logical_plan.root_field_ids_ordered_by_parent_entity_id_then_position,
+        );
         let prepared_executor = PreparedExecutor::prepare(
-            self.resolver,
+            resolver,
             self.operation.ty(),
             PlanWalker {
-                schema_walker: self.resolver.walk(()),
+                schema_walker: resolver.walk(()),
                 operation: self.operation,
-                plan_id: self.execution_plan_id,
+                plan_id: execution_plan_id,
                 item: (),
             },
         )?;
@@ -66,110 +72,97 @@ where
             children: Vec::new(),
             requires,
             prepared_executor,
-            logical_plan_id: self.logical_plan_id,
+            logical_plan_id,
         };
-        Ok((plan, self.dependencies))
+        Ok((plan, dependencies))
     }
 
-    fn create_read_selection_set(&mut self, field_ids: &Vec<FieldId>) -> ReadSelectionSet {
-        let mut field_ids_by_selection_set_id = HashMap::<_, Vec<_>>::new();
+    fn create_view_and_list_dependencies(
+        &mut self,
+        resolver: ResolverWalker<'op>,
+        field_ids: &Vec<FieldId>,
+    ) -> (ResponseViewSelectionSet, Vec<FieldId>) {
+        let mut required_fields = Cow::Borrowed(resolver.requires());
+        let mut required_fields_by_selection_set_id = HashMap::new();
         for field_id in field_ids {
-            field_ids_by_selection_set_id
-                .entry(self.operation[*field_id].parent_selection_set_id())
-                .or_default()
-                .push(field_id);
-        }
-
-        let mut field_ids_by_selection_set_id = field_ids_by_selection_set_id.into_iter();
-
-        let mut read_selection_set = {
-            let (selection_set_id, field_ids) = field_ids_by_selection_set_id
-                .next()
-                .expect("At least one field is planned");
-            let mut required_fields = Cow::Borrowed(self.resolver.requires());
-            for field_id in field_ids {
-                if let Some(definition) = self.walker().walk(*field_id).definition() {
-                    required_fields = RequiredFieldSet::union_cow(
-                        required_fields,
-                        definition.required_fields(self.resolver.subgraph_id()),
-                    );
-                }
+            let field = self.walker().walk(*field_id);
+            if let Some(definition) = field.definition() {
+                let field_requirements = definition.required_fields(resolver.subgraph_id());
+                required_fields = RequiredFieldSet::union_cow(required_fields, field_requirements.clone());
+                let value = required_fields_by_selection_set_id
+                    .entry(field.as_ref().parent_selection_set_id())
+                    .or_insert_with(|| Cow::Borrowed(resolver.requires()));
+                *value = RequiredFieldSet::union_cow(std::mem::take(value), field_requirements);
             }
-            self.create_read_selection_set_for_requirements(selection_set_id, &required_fields)
-        };
-
-        for (selection_set_id, field_ids) in field_ids_by_selection_set_id {
-            let mut required_fields = Cow::Owned(RequiredFieldSet::default());
-            for field_id in field_ids {
-                if let Some(definition) = self.walker().walk(*field_id).definition() {
-                    required_fields = RequiredFieldSet::union_cow(
-                        required_fields,
-                        definition.required_fields(self.resolver.subgraph_id()),
-                    );
-                }
-            }
-            read_selection_set = read_selection_set
-                .union(self.create_read_selection_set_for_requirements(selection_set_id, &required_fields));
         }
-
-        read_selection_set
+        let mut dependencies = Vec::new();
+        for (selection_set_id, required_fields) in required_fields_by_selection_set_id {
+            self.collect_dependencies(selection_set_id, &required_fields, &mut dependencies)
+        }
+        let view = self.build_view(&required_fields);
+        (view, dependencies)
     }
 
-    /// Create the input selection set of a Plan given its resolver and requirements.
-    /// We iterate over the requirements and find the matching fields inside the boundary fields,
-    /// which contains all providable & extra fields. During the iteration we track all the dependency
-    /// plans.
-    fn create_read_selection_set_for_requirements(
+    pub fn build_view(&mut self, required: &RequiredFieldSet) -> ResponseViewSelectionSet {
+        let schema = self.ctx.schema();
+        let mut buffer = self.response_view_selection_buffer_pool.pop();
+
+        buffer.extend(required.iter().map(|item| {
+            let name = schema[schema[item.id].definition_id].name;
+            ResponseViewSelection {
+                name,
+                id: item.id,
+                subselection: self.build_view(&item.subselection),
+            }
+        }));
+        self.push_view_selection_set(buffer)
+    }
+
+    fn collect_dependencies(
         &mut self,
         id: SelectionSetId,
         required_fields: &RequiredFieldSet,
-    ) -> ReadSelectionSet {
-        if required_fields.is_empty() {
-            return ReadSelectionSet::default();
+        dependencies: &mut Vec<FieldId>,
+    ) {
+        for required_field in required_fields {
+            let solved_requirements = &self.operation.solved_requirements_for(id).expect("Should be planned");
+            tracing::trace!(
+                "requires {} in ({id}) {:#?}",
+                self.ctx
+                    .schema
+                    .walk(self.ctx.schema[required_field.id].definition_id)
+                    .name(),
+                self.walker().walk(*solved_requirements)
+            );
+            let solved = solved_requirements
+                .iter()
+                .find(|solved| solved.id == required_field.id)
+                .expect("Solver did its job");
+            let field_id = solved.field_id;
+            dependencies.push(field_id);
+
+            if !required_field.subselection.is_empty() {
+                self.collect_dependencies(
+                    self.operation[field_id]
+                        .selection_set_id()
+                        .expect("Could not have requirements"),
+                    &required_field.subselection,
+                    dependencies,
+                )
+            }
         }
-        required_fields
-            .iter()
-            .map(|required_field| {
-                let solved_requirements = &self.operation.solved_requirements_for(id).expect("Should be planned");
-                tracing::trace!(
-                    "requires {} in ({id}) {:#?}",
-                    self.ctx
-                        .schema
-                        .walk(self.ctx.schema[required_field.id].definition_id)
-                        .name(),
-                    self.walker().walk(*solved_requirements)
-                );
-                let solved = solved_requirements
-                    .iter()
-                    .find(|solved| solved.id == required_field.id)
-                    .expect("Solver did its job");
-                let field_id = solved.field_id;
-                self.dependencies.push(field_id);
-                ReadField {
-                    edge: self.operation[field_id].response_edge(),
-                    name: self
-                        .resolver
-                        .walk(self.ctx.schema[required_field.id].definition_id)
-                        .as_ref()
-                        .name,
-                    subselection: if !required_field.subselection.is_empty() {
-                        self.create_read_selection_set_for_requirements(
-                            self.operation[field_id]
-                                .selection_set_id()
-                                .expect("Could not have requirements"),
-                            &required_field.subselection,
-                        )
-                    } else {
-                        ReadSelectionSet::default()
-                    },
-                }
-            })
-            .collect()
     }
 
     fn walker(&self) -> OperationWalker<'op, (), ()> {
         // yes looks weird, will be improved
         self.operation
             .walker_with(self.ctx.schema.walker(), &self.operation.variables)
+    }
+
+    fn push_view_selection_set(&mut self, mut buffer: Vec<ResponseViewSelection>) -> ResponseViewSelectionSet {
+        let start = self.response_views.selections.len();
+        self.response_views.selections.extend(&mut buffer.drain(..));
+        self.response_view_selection_buffer_pool.push(buffer);
+        ResponseViewSelectionSet::from(start..self.response_views.selections.len())
     }
 }

@@ -7,7 +7,7 @@ use serde::{
 
 use super::{QueryInputValue, QueryInputValueWalker};
 
-pub struct QueryInputValueView<'a> {
+pub(crate) struct QueryInputValueView<'a> {
     pub(super) inner: QueryInputValueWalker<'a>,
     pub(super) selection_set: &'a InputValueSet,
 }

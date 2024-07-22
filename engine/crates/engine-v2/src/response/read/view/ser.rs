@@ -39,12 +39,11 @@ impl<'a> serde::Serialize for ResponseObjectWithExtraFieldsWalker<'a> {
             map.serialize_key(name)?;
             map.serialize_value(value)?;
         }
-        for selection in self.selection_set {
-            map.serialize_key(&self.schema[selection.name])?;
-            if let Some(value) = self.response_object.find(selection.edge) {
+        for selection in &self.ctx.response_views[self.selection_set] {
+            map.serialize_key(&self.ctx.schema[selection.name])?;
+            if let Some(value) = self.response_object.find_required_field(selection.id) {
                 map.serialize_value(&ResponseValueWalker {
-                    schema: self.schema,
-                    response: self.response,
+                    ctx: self.ctx,
                     value,
                     selection_set: self.selection_set,
                 })?;
@@ -63,14 +62,13 @@ impl<'a> serde::Serialize for ResponseObjectView<'a> {
         S: serde::Serializer,
     {
         let mut map = serializer.serialize_map(Some(self.selection_set.len()))?;
-        for selection in self.selection_set {
-            map.serialize_key(&self.schema[selection.name])?;
-            if let Some(value) = self.response_object.find(selection.edge) {
+        for selection in &self.ctx.response_views[self.selection_set] {
+            map.serialize_key(&self.ctx.schema[selection.name])?;
+            if let Some(value) = self.response_object.find_required_field(selection.id) {
                 map.serialize_value(&ResponseValueWalker {
-                    schema: self.schema,
-                    response: self.response,
+                    ctx: self.ctx,
                     value,
-                    selection_set: &selection.subselection,
+                    selection_set: selection.subselection,
                 })?;
             } else {
                 map.serialize_value(&None::<()>)?
@@ -92,7 +90,7 @@ impl<'a> serde::Serialize for ResponseValueWalker<'a> {
             ResponseValue::Int { value, .. } => value.serialize(serializer),
             ResponseValue::Float { value, .. } => value.serialize(serializer),
             ResponseValue::String { value, .. } => value.serialize(serializer),
-            ResponseValue::StringId { id, .. } => self.schema[*id].serialize(serializer),
+            ResponseValue::StringId { id, .. } => self.ctx.schema[*id].serialize(serializer),
             ResponseValue::BigInt { value, .. } => value.serialize(serializer),
             &ResponseValue::List {
                 part_id,
@@ -100,7 +98,7 @@ impl<'a> serde::Serialize for ResponseValueWalker<'a> {
                 length,
                 ..
             } => {
-                let values = &self.response[ResponseListId {
+                let values = &self.ctx.response[ResponseListId {
                     part_id,
                     offset,
                     length,
@@ -108,8 +106,7 @@ impl<'a> serde::Serialize for ResponseValueWalker<'a> {
                 let mut seq = serializer.serialize_seq(Some(values.len()))?;
                 for value in values {
                     seq.serialize_element(&ResponseValueWalker {
-                        schema: self.schema,
-                        response: self.response,
+                        ctx: self.ctx,
                         value,
                         selection_set: self.selection_set,
                     })?;
@@ -117,9 +114,8 @@ impl<'a> serde::Serialize for ResponseValueWalker<'a> {
                 seq.end()
             }
             &ResponseValue::Object { part_id, index, .. } => ResponseObjectView {
-                schema: self.schema,
-                response: self.response,
-                response_object: &self.response[ResponseObjectId { part_id, index }],
+                ctx: self.ctx,
+                response_object: &self.ctx.response[ResponseObjectId { part_id, index }],
                 selection_set: self.selection_set,
             }
             .serialize(serializer),

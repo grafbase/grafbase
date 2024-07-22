@@ -46,9 +46,9 @@ impl OutputResponseObjectSets {
     }
 }
 
-const SET_INDEX_OFFSET: u32 = 24;
-const MAX_SET_INDEX: usize = (1 << (u32::BITS - SET_INDEX_OFFSET)) as usize;
-const OBJECT_INDEX_MASK: u32 = (1 << SET_INDEX_OFFSET) - 1;
+const SET_INDEX_SHIFT: u32 = 24;
+const MAX_SET_INDEX: usize = (1 << (u32::BITS - SET_INDEX_SHIFT)) as usize;
+const OBJECT_INDEX_MASK: u32 = (1 << SET_INDEX_SHIFT) - 1;
 
 /// An individual ResponseObjectSet may contain more objects than what a ResponseModifier or Plan
 /// requires. ResponseObjectSet are built by accumulating all the response object references for a
@@ -77,7 +77,7 @@ impl InputdResponseObjectSet {
         let set_idx = self.sets.len() - 1;
         assert!(set_idx < MAX_SET_INDEX, "Too many sets");
         for i in 0..self.sets[set_idx].len() {
-            self.indices.push((set_idx << SET_INDEX_OFFSET) as u32 | i as u32);
+            self.indices.push((set_idx << SET_INDEX_SHIFT) as u32 | i as u32);
         }
         assert!(
             self.indices.len() - n < (OBJECT_INDEX_MASK as usize),
@@ -104,14 +104,14 @@ impl InputdResponseObjectSet {
                 let possible_types = &schema[id].possible_types;
                 for (i, item) in self.sets[set_idx].iter().enumerate() {
                     if possible_types.binary_search(&item.definition_id).is_ok() {
-                        self.indices.push((set_idx << SET_INDEX_OFFSET) as u32 | i as u32);
+                        self.indices.push((set_idx << SET_INDEX_SHIFT) as u32 | i as u32);
                     }
                 }
             }
             EntityId::Object(id) => {
                 for (i, item) in self.sets[set_idx].iter().enumerate() {
                     if item.definition_id == id {
-                        self.indices.push((set_idx << SET_INDEX_OFFSET) as u32 | i as u32);
+                        self.indices.push((set_idx << SET_INDEX_SHIFT) as u32 | i as u32);
                     }
                 }
             }
@@ -139,7 +139,7 @@ impl InputdResponseObjectSet {
     pub(crate) fn get(&self, i: usize) -> Option<&ResponseObjectRef> {
         self.indices
             .get(i)
-            .map(|index| &self.sets[(index >> SET_INDEX_OFFSET) as usize][(index & OBJECT_INDEX_MASK) as usize])
+            .map(|index| &self.sets[(index >> SET_INDEX_SHIFT) as usize][(index & OBJECT_INDEX_MASK) as usize])
     }
 }
 

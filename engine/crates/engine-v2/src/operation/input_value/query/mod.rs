@@ -10,7 +10,7 @@ use crate::operation::{Operation, OperationWalker, VariableDefinitionId, Variabl
 pub(crate) use view::*;
 
 #[derive(Default, Clone, serde::Serialize, serde::Deserialize)]
-pub struct QueryInputValues {
+pub(crate) struct QueryInputValues {
     /// Individual input values and list values
     values: Vec<QueryInputValue>,
     /// InputObject's fields
@@ -26,7 +26,7 @@ id_newtypes::NonZeroU32! {
 }
 
 #[derive(Default, Clone, serde::Serialize, serde::Deserialize)]
-pub enum QueryInputValue {
+pub(crate) enum QueryInputValue {
     #[default]
     Null,
     String(String),
@@ -84,7 +84,7 @@ impl QueryInputValues {
     }
 }
 
-pub type QueryInputValueWalker<'a> = OperationWalker<'a, &'a QueryInputValue, ()>;
+pub(crate) type QueryInputValueWalker<'a> = OperationWalker<'a, &'a QueryInputValue, ()>;
 
 impl<'a> QueryInputValueWalker<'a> {
     pub fn is_undefined(&self) -> bool {

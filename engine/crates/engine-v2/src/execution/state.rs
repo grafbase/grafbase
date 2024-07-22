@@ -63,7 +63,7 @@ impl<'ctx> OperationExecutionState<'ctx> {
     }
 
     pub fn push_response_objects(&mut self, set_id: ResponseObjectSetId, response_object_refs: ResponseObjectSet) {
-        tracing::trace!("Pushing response objects for {set_id}");
+        tracing::trace!("Pushing response objects for {set_id}: {}", response_object_refs.len());
         self[set_id] = Some(Arc::new(response_object_refs));
     }
 

@@ -5,12 +5,14 @@ use std::sync::Arc;
 
 use itertools::Itertools;
 
-use builder::ExecutionPlanBuilder;
+use builder::RequirementsBuildContext;
 
 use crate::{
     execution::{ExecutionPlan, ExecutionPlanId, PlanningResult, PreExecutionContext},
     operation::{FieldId, LogicalPlanId, PreparedOperation, Variables},
+    response::{ResponseViewSelection, ResponseViews},
     sources::PreparedExecutor,
+    utils::BufferPool,
     Runtime,
 };
 
@@ -21,6 +23,8 @@ pub(super) struct ExecutionPlanner<'ctx, 'op, R: Runtime> {
     operation: ExecutableOperation,
     logical_plan_to_execution_plan_id: Vec<Option<ExecutionPlanId>>,
     execution_plans_dependencies: Vec<Vec<FieldId>>,
+    response_view_selection_buffer_pool: BufferPool<ResponseViewSelection>,
+    response_views: ResponseViews,
 }
 
 impl<'ctx, 'op, R: Runtime> ExecutionPlanner<'ctx, 'op, R>
@@ -44,12 +48,15 @@ where
                 ctx.schema.walker().default_header_rules(),
                 http::HeaderMap::new(),
             ),
+            response_views: Default::default(),
         };
         Self {
             ctx,
             logical_plan_to_execution_plan_id: vec![None; operation.plan.logical_plans.len()],
             operation,
             execution_plans_dependencies: Vec::new(),
+            response_view_selection_buffer_pool: Default::default(),
+            response_views: Default::default(),
         }
         .build()
     }
@@ -64,8 +71,11 @@ where
             mut operation,
             logical_plan_to_execution_plan_id,
             execution_plans_dependencies,
+            response_views,
             ..
         } = self;
+
+        operation.response_views = response_views;
 
         for (i, dependencies) in execution_plans_dependencies.into_iter().enumerate() {
             let child_id = ExecutionPlanId::from(i);
@@ -129,8 +139,13 @@ where
             prepared_executor: PreparedExecutor::introspection(),
         });
         let id = ExecutionPlanId::from(self.operation.execution_plans.len() - 1);
-        let (execution_plan, dependencies) =
-            ExecutionPlanBuilder::new(self.ctx, &self.operation, id, logical_plan_id).build()?;
+        let (execution_plan, dependencies) = RequirementsBuildContext::new(
+            self.ctx,
+            &self.operation,
+            &mut self.response_views,
+            &mut self.response_view_selection_buffer_pool,
+        )
+        .build_execution_plan(id, logical_plan_id)?;
         self.execution_plans_dependencies.push(dependencies);
         self.operation[id] = execution_plan;
         self.logical_plan_to_execution_plan_id[usize::from(logical_plan_id)] = Some(id);
