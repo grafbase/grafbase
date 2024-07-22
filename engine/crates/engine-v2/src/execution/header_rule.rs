@@ -11,6 +11,7 @@ pub(super) fn create_subgraph_headers_with_rules<'ctx, C>(
     default: http::HeaderMap,
 ) -> http::HeaderMap {
     let mut headers = default;
+
     for header in rules {
         match header.rule() {
             schema::HeaderRuleRef::Forward { name, default, rename } => match name {
@@ -22,6 +23,9 @@ pub(super) fn create_subgraph_headers_with_rules<'ctx, C>(
                         .filter(|(name, _)| regex.is_match(name.as_str()));
 
                     for (name, value) in filtered {
+                        // if a previous rule added a header with the same name, remove the old one.
+                        headers.remove(name);
+
                         match rename.and_then(|s| http::HeaderName::from_str(s).ok()) {
                             Some(rename) => {
                                 headers.insert(rename, value.clone());
@@ -33,6 +37,9 @@ pub(super) fn create_subgraph_headers_with_rules<'ctx, C>(
                     }
                 }
                 NameOrPatternRef::Name(name) => {
+                    // if a previous rule added a header with the same name, remove the old one.
+                    headers.remove(name);
+
                     let header = request_context.headers.get(name);
                     let default = default.and_then(|d| http::HeaderValue::from_str(d).ok());
 
@@ -44,6 +51,7 @@ pub(super) fn create_subgraph_headers_with_rules<'ctx, C>(
                     let Ok(name) = http::HeaderName::from_str(name) else {
                         continue;
                     };
+
                     if is_header_denied(&name) {
                         continue;
                     }
