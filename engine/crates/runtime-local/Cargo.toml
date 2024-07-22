@@ -13,7 +13,7 @@ keywords = ["local", "runtime", "grafbase"]
 workspace = true
 
 [features]
-wasi = ["wasi-component-loader", "deadpool", "url"]
+wasi = ["wasi-component-loader", "url"]
 
 [dependencies]
 async-runtime.workspace = true
@@ -34,10 +34,13 @@ runtime.workspace = true
 url = { workspace = true, optional = true }
 postgres-connector-types = { path = "../postgres-connector-types" }
 mini-moka = "0.10"
+redis = { version = "0.25.4", features = ["tokio-rustls-comp", "connection-manager"] }
 
 reqwest = { workspace = true, features = [
   "json",
   "rustls-tls",
 ] }
 wasi-component-loader = { version = "0.77.1", path = "../wasi-component-loader", optional = true }
-deadpool = { version = "0.12.1", optional = true }
+deadpool = { version = "0.12.1", features = ["rt_tokio_1"] }
+grafbase-telemetry.workspace = true
+anyhow.workspace = true

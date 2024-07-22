@@ -14,6 +14,7 @@ use http::HeaderMap;
 use registry_for_cache::PartialCacheRegistry;
 use registry_v2::rate_limiting::RateLimitConfig;
 use runtime::{kv::KvStore, trusted_documents_client, udf::UdfInvoker};
+use runtime_local::rate_limiting::in_memory::rules_based::InMemoryRateLimiter;
 use runtime_noop::kv::NoopKvStore;
 use tokio::sync::mpsc;
 
@@ -100,11 +101,8 @@ impl GatewayBuilder {
         // This authorizor is used to authorize admin requests.
         // Not to be confused with the authorizors that live inside AuthService above :|
         let authorizer = Box::new(AnythingGoes);
-
         let trusted_documents = trusted_documents_client::Client::new(self.trusted_documents.unwrap_or_default());
-
-        let rate_limiting =
-            runtime_local::rate_limiting::rules_based::InMemoryRateLimiter::new(&self.rate_limiting_config.rules);
+        let rate_limiting = InMemoryRateLimiter::new(&self.rate_limiting_config.rules);
 
         GatewayTester {
             inner: Arc::new(gateway_core::Gateway::new(

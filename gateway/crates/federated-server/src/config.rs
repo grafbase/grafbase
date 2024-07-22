@@ -12,7 +12,7 @@ pub use authentication::AuthenticationConfig;
 pub use cors::CorsConfig;
 use grafbase_telemetry::config::TelemetryConfig;
 pub use header::{HeaderForward, HeaderInsert, HeaderRemove, HeaderRule, NameOrPattern};
-pub use rate_limit::RateLimitConfig;
+pub use rate_limit::{RateLimitConfig, SubgraphRateLimitConfig};
 use runtime_local::HooksWasiConfig;
 use serde_dynamic_string::DynamicString;
 use url::Url;
@@ -81,7 +81,7 @@ pub struct SubgraphConfig {
     pub websocket_url: Option<Url>,
     /// Rate limiting configuration specifically for this Subgraph
     #[serde(default)]
-    pub rate_limit: Option<RateLimitConfig>,
+    pub rate_limit: Option<SubgraphRateLimitConfig>,
     /// Timeout for subgraph requests in seconds. Default: 30 seconds.
     #[serde(deserialize_with = "duration_str::deserialize_option_duration", default)]
     pub timeout: Option<Duration>,
@@ -1629,31 +1629,9 @@ mod tests {
         assert!(config.gateway.rate_limit.is_none());
         insta::assert_debug_snapshot!(&config.subgraphs.get("products").unwrap().rate_limit, @r###"
         Some(
-            RateLimitConfig {
+            SubgraphRateLimitConfig {
                 limit: 1000,
                 duration: 10s,
-                storage: InMemory,
-                redis: RateLimitRedisConfig {
-                    url: Url {
-                        scheme: "redis",
-                        cannot_be_a_base: false,
-                        username: "",
-                        password: None,
-                        host: Some(
-                            Domain(
-                                "localhost",
-                            ),
-                        ),
-                        port: Some(
-                            6379,
-                        ),
-                        path: "",
-                        query: None,
-                        fragment: None,
-                    },
-                    key_prefix: "grafbase",
-                    tls: None,
-                },
             },
         )
         "###);

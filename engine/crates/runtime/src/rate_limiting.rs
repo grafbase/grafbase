@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::net::IpAddr;
+use std::path::Path;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -48,13 +49,27 @@ impl std::ops::Deref for RateLimiter {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub struct RateLimitConfig {
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub struct SubgraphRateLimitConfig {
     pub limit: usize,
     pub duration: Duration,
 }
 
 #[derive(Debug, Clone, Default)]
 pub struct KeyedRateLimitConfig<'a> {
-    pub rate_limiting_configs: HashMap<&'a str, RateLimitConfig>,
+    pub rate_limiting_configs: HashMap<&'a str, SubgraphRateLimitConfig>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub struct RateLimitRedisConfig<'a> {
+    pub url: &'a str,
+    pub key_prefix: &'a str,
+    pub tls: Option<RateLimitRedisTlsConfig<'a>>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub struct RateLimitRedisTlsConfig<'a> {
+    pub cert: &'a Path,
+    pub key: &'a Path,
+    pub ca: Option<&'a Path>,
 }
