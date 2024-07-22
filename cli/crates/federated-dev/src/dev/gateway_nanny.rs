@@ -8,6 +8,7 @@ use engine_v2::Engine;
 use futures_concurrency::stream::Merge;
 use futures_util::{future::BoxFuture, stream::BoxStream, FutureExt as _, StreamExt};
 use runtime::rate_limiting::KeyedRateLimitConfig;
+use runtime_local::rate_limiting::in_memory::key_based::InMemoryRateLimiter;
 use tokio_stream::wrappers::WatchStream;
 
 /// The GatewayNanny looks after the `Gateway` - on updates to the graph or config it'll
@@ -56,7 +57,7 @@ pub(super) async fn new_gateway(config: Option<engine_v2::VersionedConfig>) -> O
         .map(|(k, v)| {
             (
                 k,
-                runtime::rate_limiting::RateLimitConfig {
+                runtime::rate_limiting::SubgraphRateLimitConfig {
                     limit: v.limit,
                     duration: v.duration,
                 },
@@ -71,9 +72,7 @@ pub(super) async fn new_gateway(config: Option<engine_v2::VersionedConfig>) -> O
         ),
         kv: runtime_local::InMemoryKvStore::runtime(),
         meter: grafbase_telemetry::metrics::meter_from_global_provider(),
-        rate_limiter: runtime_local::rate_limiting::key_based::InMemoryRateLimiter::runtime(KeyedRateLimitConfig {
-            rate_limiting_configs,
-        }),
+        rate_limiter: InMemoryRateLimiter::runtime(KeyedRateLimitConfig { rate_limiting_configs }),
     };
 
     let schema = config.try_into().ok()?;

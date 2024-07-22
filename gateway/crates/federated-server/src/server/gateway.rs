@@ -2,15 +2,15 @@ use std::collections::HashMap;
 use std::time::Duration;
 use std::{collections::BTreeMap, sync::Arc};
 
+use runtime_local::rate_limiting::in_memory::key_based::InMemoryRateLimiter;
+use runtime_local::rate_limiting::redis::RedisRateLimiter;
 use tokio::sync::watch;
 
 use engine_v2::Engine;
 use graphql_composition::FederatedGraph;
 use parser_sdl::federation::{header::SubgraphHeaderRule, FederatedGraphConfig};
 use runtime::rate_limiting::KeyedRateLimitConfig;
-use runtime_local::{
-    rate_limiting::key_based::InMemoryRateLimiter, ComponentLoader, HooksWasi, HooksWasiConfig, InMemoryKvStore,
-};
+use runtime_local::{ComponentLoader, HooksWasi, HooksWasiConfig, InMemoryKvStore};
 use runtime_noop::trusted_documents::NoopTrustedDocuments;
 
 use crate::{
@@ -127,14 +127,37 @@ pub(super) async fn generate(
         .map(|(k, v)| {
             (
                 k,
-                runtime::rate_limiting::RateLimitConfig {
+                runtime::rate_limiting::SubgraphRateLimitConfig {
                     limit: v.limit,
                     duration: v.duration,
                 },
             )
         })
         .collect::<HashMap<_, _>>();
-    let rate_limiter = InMemoryRateLimiter::runtime(KeyedRateLimitConfig { rate_limiting_configs });
+
+    let rate_limiter = match config.rate_limit_config() {
+        Some(config) if config.storage.is_redis() => {
+            let tls = config
+                .redis
+                .tls
+                .map(|tls| runtime::rate_limiting::RateLimitRedisTlsConfig {
+                    cert: tls.cert,
+                    key: tls.key,
+                    ca: tls.ca,
+                });
+
+            let global_config = runtime::rate_limiting::RateLimitRedisConfig {
+                url: config.redis.url,
+                key_prefix: config.redis.key_prefix,
+                tls,
+            };
+
+            RedisRateLimiter::runtime(global_config, rate_limiting_configs)
+                .await
+                .map_err(|e| crate::Error::InternalError(e.to_string()))?
+        }
+        _ => InMemoryRateLimiter::runtime(KeyedRateLimitConfig { rate_limiting_configs }),
+    };
 
     let runtime = GatewayRuntime {
         fetcher: runtime_local::NativeFetcher::runtime_fetcher(),

@@ -5,7 +5,7 @@ use std::time::Duration;
 
 use engine_v2_config::latest::{
     AuthConfig, AuthProviderConfig, CacheConfig, CacheConfigTarget, CacheConfigs, HeaderForward, HeaderInsert,
-    HeaderRemove, HeaderRenameDuplicate, HeaderRule, HeaderRuleId, NameOrPattern, OperationLimits,
+    HeaderRemove, HeaderRenameDuplicate, HeaderRule, HeaderRuleId, NameOrPattern, OperationLimits, SubgraphConfig,
 };
 use engine_v2_config::{
     latest::{self as config},
@@ -16,84 +16,36 @@ use parser_sdl::federation::header::SubgraphHeaderRule;
 use parser_sdl::federation::FederatedGraphConfig;
 use parser_sdl::{AuthV2Provider, GlobalCacheTarget};
 
+mod paths;
 mod strings;
 
 pub fn build_config(config: &FederatedGraphConfig, graph: FederatedGraph) -> VersionedConfig {
     let graph = graph.into_latest();
 
     let mut context = BuildContext::default();
-    let mut subgraph_configs = BTreeMap::new();
-
     let default_header_rules = context.insert_headers(&config.header_rules);
 
-    for (name, config) in &config.subgraphs {
-        let Some(subgraph_id) = graph.find_subgraph(name) else {
-            continue;
-        };
+    context.insert_subgraph_configs(&graph, &config.subgraphs);
+    context.insert_cache_config(&graph, &config.global_cache_rules);
 
-        let parser_sdl::federation::SubgraphConfig {
-            websocket_url,
-            header_rules,
-            rate_limit,
-            timeout,
-            ..
-        } = config;
-
-        let headers = context.insert_headers(header_rules.iter());
-        let websocket_url = websocket_url.as_ref().map(|url| context.strings.intern(url));
-        let subgraph_name = context.strings.intern(name);
-
-        subgraph_configs.insert(
-            subgraph_id,
-            config::SubgraphConfig {
-                name: subgraph_name,
-                headers,
-                websocket_url,
-                rate_limit: rate_limit.as_ref().map(convert_rate_limit),
-                timeout: *timeout,
-            },
-        );
+    if let Some(ref config) = config.rate_limit {
+        context.insert_rate_limit(config);
     }
-
-    let cache_config = build_cache_config(config, &graph);
 
     VersionedConfig::V5(config::Config {
         graph,
         strings: context.strings.into_vec(),
+        paths: context.paths.into_vec(),
         header_rules: context.header_rules,
         default_header_rules,
-        subgraph_configs,
-        cache: cache_config,
+        subgraph_configs: context.subgraph_configs,
+        cache: context.cache,
         auth: build_auth_config(config),
         operation_limits: build_operation_limits(config),
         disable_introspection: config.disable_introspection,
-        rate_limit: config.rate_limit.as_ref().map(convert_rate_limit),
+        rate_limit: context.rate_limit,
         timeout: config.timeout,
     })
-}
-
-fn convert_rate_limit(config: &parser_sdl::federation::RateLimitConfig) -> engine_v2_config::latest::RateLimitConfig {
-    engine_v2_config::latest::RateLimitConfig {
-        limit: config.limit,
-        duration: config.duration,
-        storage: match config.storage {
-            parser_sdl::federation::RateLimitStorage::InMemory => engine_v2_config::latest::RateLimitStorage::InMemory,
-            parser_sdl::federation::RateLimitStorage::Redis => engine_v2_config::latest::RateLimitStorage::Redis,
-        },
-        redis: engine_v2_config::latest::RateLimitRedisConfig {
-            url: config.redis.url.clone(),
-            key_prefix: config.redis.key_prefix.clone(),
-            tls: config
-                .redis
-                .tls
-                .clone()
-                .map(|config| engine_v2_config::latest::RateLimitRedisTlsConfig {
-                    cert: config.cert,
-                    key: config.key,
-                    ca: config.ca,
-                }),
-        },
-    }
 }
 
 fn build_operation_limits(config: &FederatedGraphConfig) -> OperationLimits {
@@ -107,6 +59,7 @@ fn build_operation_limits(config: &FederatedGraphConfig) -> OperationLimits {
     }
 }
 
+// TODO: intern these
 fn build_auth_config(config: &FederatedGraphConfig) -> Option<AuthConfig> {
     config.auth.as_ref().map(|auth| {
         let providers = auth
@@ -131,46 +84,124 @@ fn build_auth_config(config: &FederatedGraphConfig) -> Option<AuthConfig> {
     })
 }
 
-fn build_cache_config(config: &FederatedGraphConfig, graph: &FederatedGraphV3) -> CacheConfigs {
-    let mut cache_config = BTreeMap::new();
-
-    for (target, cache_control) in config.global_cache_rules.iter() {
-        match target {
-            GlobalCacheTarget::Type(name) => {
-                if let Some(object_id) = graph.find_object(name) {
-                    cache_config.insert(
-                        CacheConfigTarget::Object(object_id),
-                        CacheConfig {
-                            max_age: Duration::from_secs(cache_control.max_age as u64),
-                            stale_while_revalidate: Duration::from_secs(cache_control.stale_while_revalidate as u64),
-                        },
-                    );
-                }
-            }
-            GlobalCacheTarget::Field(object_name, field_name) => {
-                if let Some(field_id) = graph.find_object_field(object_name, field_name) {
-                    cache_config.insert(
-                        CacheConfigTarget::Field(field_id),
-                        CacheConfig {
-                            max_age: Duration::from_secs(cache_control.max_age as u64),
-                            stale_while_revalidate: Duration::from_secs(cache_control.stale_while_revalidate as u64),
-                        },
-                    );
-                }
-            }
-        }
-    }
-
-    CacheConfigs { rules: cache_config }
-}
-
 #[derive(Default)]
 struct BuildContext<'a> {
     strings: strings::Strings<'a>,
+    paths: paths::Paths<'a>,
     header_rules: Vec<HeaderRule>,
+    rate_limit: Option<engine_v2_config::latest::RateLimitConfig>,
+    subgraph_configs: BTreeMap<SubgraphId, SubgraphConfig>,
+    cache: CacheConfigs,
 }
 
 impl<'a> BuildContext<'a> {
+    pub fn insert_cache_config(&mut self, graph: &FederatedGraphV3, rules: &parser_sdl::GlobalCacheRules<'static>) {
+        let mut cache_config = BTreeMap::new();
+
+        for (target, cache_control) in rules.iter() {
+            match target {
+                GlobalCacheTarget::Type(name) => {
+                    if let Some(object_id) = graph.find_object(name) {
+                        cache_config.insert(
+                            CacheConfigTarget::Object(object_id),
+                            CacheConfig {
+                                max_age: Duration::from_secs(cache_control.max_age as u64),
+                                stale_while_revalidate: Duration::from_secs(
+                                    cache_control.stale_while_revalidate as u64,
+                                ),
+                            },
+                        );
+                    }
+                }
+                GlobalCacheTarget::Field(object_name, field_name) => {
+                    if let Some(field_id) = graph.find_object_field(object_name, field_name) {
+                        cache_config.insert(
+                            CacheConfigTarget::Field(field_id),
+                            CacheConfig {
+                                max_age: Duration::from_secs(cache_control.max_age as u64),
+                                stale_while_revalidate: Duration::from_secs(
+                                    cache_control.stale_while_revalidate as u64,
+                                ),
+                            },
+                        );
+                    }
+                }
+            }
+        }
+
+        self.cache = CacheConfigs { rules: cache_config }
+    }
+
+    pub fn insert_rate_limit(&mut self, config: &'a parser_sdl::federation::RateLimitConfig) {
+        let rate_limit = engine_v2_config::latest::RateLimitConfig {
+            limit: config.limit,
+            duration: config.duration,
+            storage: match config.storage {
+                parser_sdl::federation::RateLimitStorage::InMemory => {
+                    engine_v2_config::latest::RateLimitStorage::InMemory
+                }
+                parser_sdl::federation::RateLimitStorage::Redis => engine_v2_config::latest::RateLimitStorage::Redis,
+            },
+            redis: engine_v2_config::latest::RateLimitRedisConfig {
+                url: self.strings.intern(config.redis.url.as_str()),
+                key_prefix: self.strings.intern(&config.redis.key_prefix),
+                tls: config
+                    .redis
+                    .tls
+                    .as_ref()
+                    .map(|config| engine_v2_config::latest::RateLimitRedisTlsConfig {
+                        cert: self.paths.intern(&config.cert),
+                        key: self.paths.intern(&config.key),
+                        ca: config.ca.as_ref().map(|ca| self.paths.intern(ca)),
+                    }),
+            },
+        };
+
+        self.rate_limit = Some(rate_limit)
+    }
+
+    pub fn insert_subgraph_configs(
+        &mut self,
+        graph: &FederatedGraphV3,
+        configs: impl IntoIterator<Item = (&'a String, &'a parser_sdl::federation::SubgraphConfig)>,
+    ) {
+        for (name, config) in configs {
+            let Some(subgraph_id) = graph.find_subgraph(name) else {
+                continue;
+            };
+
+            let parser_sdl::federation::SubgraphConfig {
+                websocket_url,
+                header_rules,
+                rate_limit,
+                timeout,
+                ..
+            } = config;
+
+            let headers = self.insert_headers(header_rules.iter());
+            let websocket_url = websocket_url.as_ref().map(|url| self.strings.intern(url));
+            let subgraph_name = self.strings.intern(name);
+
+            let rate_limit = rate_limit
+                .as_ref()
+                .map(|config| engine_v2_config::latest::SubgraphRateLimitConfig {
+                    limit: config.limit,
+                    duration: config.duration,
+                });
+
+            self.subgraph_configs.insert(
+                subgraph_id,
+                config::SubgraphConfig {
+                    name: subgraph_name,
+                    headers,
+                    websocket_url,
+                    rate_limit,
+                    timeout: *timeout,
+                },
+            );
+        }
+    }
+
     pub fn insert_headers(
         &mut self,
         header_rules: impl IntoIterator<Item = &'a SubgraphHeaderRule>,

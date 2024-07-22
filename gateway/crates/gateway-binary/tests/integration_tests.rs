@@ -842,6 +842,62 @@ fn subgraph_rate_limiting() {
     })
 }
 
+#[test]
+fn global_redis_rate_limiting() {
+    let config = indoc! {r#"
+        [gateway.rate_limit]
+        limit = 1
+        duration = "1s"
+        storage = "redis"
+    "#};
+
+    let schema = load_schema("big");
+
+    let query = indoc! {r#"
+        query Me {
+          me {
+            id
+          }
+        }
+    "#};
+
+    let expected_response = r#"{"errors":[{"message":"Too many requests","extensions":{"code":"RATE_LIMITED"}}]}"#;
+
+    with_static_server(config, &schema, None, None, |client| async move {
+        expect_rate_limiting(|| client.gql(query).send().boxed(), expected_response).await;
+    })
+}
+
+#[test]
+fn subgraph_redis_rate_limiting() {
+    let config = indoc! {r#"
+        [gateway.rate_limit]
+        limit = 100
+        duration = "1s"
+        storage = "redis"
+
+        [subgraphs.accounts.rate_limit]
+        limit = 1
+        duration = "1s"
+    "#};
+
+    let schema = load_schema("big");
+
+    let query = indoc! {r#"
+        query Me {
+          me {
+            id
+          }
+        }
+    "#};
+
+    let expected_response = r#"{"data":null,"errors":[{"message":"Too many requests","path":["me"],"extensions":{"code":"RATE_LIMITED"}}]}"#;
+
+    with_static_server(config, &schema, None, None, |client| async move {
+        expect_rate_limiting(|| client.gql(query).send().boxed(), expected_response).await;
+    })
+}
+
 #[allow(clippy::panic)]
 async fn expect_rate_limiting<'a, F>(f: F, expected_response: &str)
 where

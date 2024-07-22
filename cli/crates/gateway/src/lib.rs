@@ -1,6 +1,6 @@
 use auth::AnyApiKeyProvider;
 use gateway_core::CacheConfig;
-use runtime_local::{rate_limiting::rules_based::InMemoryRateLimiter, InMemoryCache, InMemoryKvStore};
+use runtime_local::{rate_limiting::in_memory::rules_based::InMemoryRateLimiter, InMemoryCache, InMemoryKvStore};
 use std::{collections::HashMap, ops::Deref, sync::Arc};
 
 use self::executor::Executor;

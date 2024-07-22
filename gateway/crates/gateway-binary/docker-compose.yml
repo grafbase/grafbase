@@ -28,5 +28,11 @@ services:
     networks:
       - otel-clickhouse
 
+  redis:
+    restart: unless-stopped
+    image: redis:latest
+    ports:
+      - '6379:6379'
+
 networks:
   otel-clickhouse:

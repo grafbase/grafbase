@@ -3,11 +3,14 @@ mod rate_limit;
 
 use std::{
     collections::{BTreeMap, HashMap},
+    path::{Path, PathBuf},
     time::Duration,
 };
 
 use crate::GLOBAL_RATE_LIMIT_KEY;
 use federated_graph::{FederatedGraphV3, SubgraphId};
+
+use self::rate_limit::{RateLimitConfigRef, RateLimitRedisConfigRef, RateLimitRedisTlsConfigRef};
 
 pub use super::v4::{
     AuthConfig, AuthProviderConfig, CacheConfig, CacheConfigTarget, CacheConfigs, Header, HeaderId, HeaderValue,
@@ -16,13 +19,17 @@ pub use super::v4::{
 pub use header::{
     HeaderForward, HeaderInsert, HeaderRemove, HeaderRenameDuplicate, HeaderRule, HeaderRuleId, NameOrPattern,
 };
-pub use rate_limit::{RateLimitConfig, RateLimitRedisConfig, RateLimitRedisTlsConfig, RateLimitStorage};
+pub use rate_limit::{
+    RateLimitConfig, RateLimitRedisConfig, RateLimitRedisTlsConfig, RateLimitStorage, SubgraphRateLimitConfig,
+};
 
 /// Configuration for a federated graph
 #[derive(serde::Serialize, serde::Deserialize, Debug)]
 pub struct Config {
     pub graph: FederatedGraphV3,
     pub strings: Vec<String>,
+    #[serde(default)]
+    pub paths: Vec<PathBuf>,
     pub header_rules: Vec<HeaderRule>,
     pub default_header_rules: Vec<HeaderRuleId>,
 
@@ -53,6 +60,7 @@ impl Config {
         Config {
             graph,
             strings: Vec::new(),
+            paths: Vec::new(),
             header_rules: Vec::new(),
             default_header_rules: Default::default(),
             subgraph_configs: Default::default(),
@@ -65,15 +73,31 @@ impl Config {
         }
     }
 
-    pub fn as_keyed_rate_limit_config(&self) -> HashMap<&str, RateLimitConfig> {
+    pub fn rate_limit_config(&self) -> Option<RateLimitConfigRef<'_>> {
+        self.rate_limit.map(|config| RateLimitConfigRef {
+            storage: config.storage,
+            redis: RateLimitRedisConfigRef {
+                url: &self[config.redis.url],
+                key_prefix: &self[config.redis.key_prefix],
+                tls: config.redis.tls.map(|config| RateLimitRedisTlsConfigRef {
+                    cert: &self[config.cert],
+                    key: &self[config.key],
+                    ca: config.ca.map(|ca| &self[ca]),
+                }),
+            },
+        })
+    }
+
+    pub fn as_keyed_rate_limit_config(&self) -> HashMap<&str, SubgraphRateLimitConfig> {
         let mut key_based_config = HashMap::new();
+
         if let Some(global_config) = &self.rate_limit {
-            key_based_config.insert(GLOBAL_RATE_LIMIT_KEY, global_config.clone());
+            key_based_config.insert(GLOBAL_RATE_LIMIT_KEY, global_config.as_subgraph_config());
         }
 
         for subgraph in self.subgraph_configs.values() {
-            if let Some(subgraph_rate_limit) = &subgraph.rate_limit {
-                key_based_config.insert(&self.strings[subgraph.name.0], subgraph_rate_limit.clone());
+            if let Some(subgraph_rate_limit) = subgraph.rate_limit {
+                key_based_config.insert(&self.strings[subgraph.name.0], subgraph_rate_limit);
             }
         }
 
@@ -86,6 +110,17 @@ impl std::ops::Index<StringId> for Config {
 
     fn index(&self, index: StringId) -> &String {
         &self.strings[index.0]
+    }
+}
+
+#[derive(Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd, serde::Serialize, serde::Deserialize, Debug)]
+pub struct PathId(pub usize);
+
+impl std::ops::Index<PathId> for Config {
+    type Output = Path;
+
+    fn index(&self, index: PathId) -> &Path {
+        &self.paths[index.0]
     }
 }
 
@@ -133,6 +168,7 @@ mod tests {
                 interface_authorized_directives: vec![],
             },
             strings: vec![],
+            paths: Vec::new(),
             header_rules: vec![],
             default_header_rules: Vec::new(),
             subgraph_configs: Default::default(),
@@ -195,6 +231,7 @@ mod tests {
                 "height": null,
                 "rootFields": null
               },
+              "paths": [],
               "rate_limit": null,
               "strings": [],
               "subgraph_configs": {}

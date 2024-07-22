@@ -1,11 +1,15 @@
-use runtime::hooks::DynamicHooks;
-use runtime_local::InMemoryHotCacheFactory;
+use grafbase_telemetry::{metrics, otel::opentelemetry};
+use runtime::{hooks::DynamicHooks, trusted_documents_client};
+use runtime_local::{
+    rate_limiting::in_memory::key_based::InMemoryRateLimiter, InMemoryHotCacheFactory, InMemoryKvStore, NativeFetcher,
+};
+use runtime_noop::trusted_documents::NoopTrustedDocuments;
 
 pub struct TestRuntime {
     pub fetcher: runtime::fetch::Fetcher,
-    pub trusted_documents: runtime::trusted_documents_client::Client,
+    pub trusted_documents: trusted_documents_client::Client,
     pub kv: runtime::kv::KvStore,
-    pub meter: grafbase_telemetry::otel::opentelemetry::metrics::Meter,
+    pub meter: opentelemetry::metrics::Meter,
     pub hooks: DynamicHooks,
     pub rate_limiter: runtime::rate_limiting::RateLimiter,
 }
@@ -13,14 +17,12 @@ pub struct TestRuntime {
 impl Default for TestRuntime {
     fn default() -> Self {
         Self {
-            fetcher: runtime_local::NativeFetcher::runtime_fetcher(),
-            trusted_documents: runtime::trusted_documents_client::Client::new(
-                runtime_noop::trusted_documents::NoopTrustedDocuments,
-            ),
-            kv: runtime_local::InMemoryKvStore::runtime(),
-            meter: grafbase_telemetry::metrics::meter_from_global_provider(),
+            fetcher: NativeFetcher::runtime_fetcher(),
+            trusted_documents: trusted_documents_client::Client::new(NoopTrustedDocuments),
+            kv: InMemoryKvStore::runtime(),
+            meter: metrics::meter_from_global_provider(),
             hooks: Default::default(),
-            rate_limiter: runtime_local::rate_limiting::key_based::InMemoryRateLimiter::runtime(Default::default()),
+            rate_limiter: InMemoryRateLimiter::runtime(Default::default()),
         }
     }
 }
@@ -37,11 +39,11 @@ impl engine_v2::Runtime for TestRuntime {
         &self.kv
     }
 
-    fn trusted_documents(&self) -> &runtime::trusted_documents_client::Client {
+    fn trusted_documents(&self) -> &trusted_documents_client::Client {
         &self.trusted_documents
     }
 
-    fn meter(&self) -> &grafbase_telemetry::otel::opentelemetry::metrics::Meter {
+    fn meter(&self) -> &opentelemetry::metrics::Meter {
         &self.meter
     }
 

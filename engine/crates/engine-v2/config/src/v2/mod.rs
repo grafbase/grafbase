@@ -2,7 +2,7 @@ mod cache_config;
 
 use std::{collections::BTreeMap, time::Duration};
 
-use crate::latest::RateLimitConfig;
+use crate::latest::SubgraphRateLimitConfig;
 pub use cache_config::{CacheConfig, CacheConfigTarget, CacheConfigs};
 use federated_graph::{FederatedGraphV1, SubgraphId};
 pub use gateway_auth_config::v2::*;
@@ -49,7 +49,7 @@ pub struct SubgraphConfig {
     pub websocket_url: Option<StringId>,
     pub headers: Vec<HeaderRuleId>,
     #[serde(default)]
-    pub rate_limit: Option<RateLimitConfig>,
+    pub rate_limit: Option<SubgraphRateLimitConfig>,
     #[serde(default)]
     pub timeout: Option<Duration>,
 }

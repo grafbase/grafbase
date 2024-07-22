@@ -42,7 +42,7 @@ pub struct SubgraphConfig {
     pub header_rules: Vec<SubgraphHeaderRule>,
 
     /// Configuration to enforce rate limiting on subgraph requests
-    pub rate_limit: Option<RateLimitConfig>,
+    pub rate_limit: Option<SubgraphRateLimitConfig>,
 
     /// Timeouts to apply to subgraph requests
     pub timeout: Option<Duration>,
@@ -59,6 +59,12 @@ impl From<(String, ConnectorHeaderValue)> for SubgraphHeaderRule {
             }),
         }
     }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct SubgraphRateLimitConfig {
+    pub limit: usize,
+    pub duration: Duration,
 }
 
 // we're simplifying federated rate limiting atm, taking the same config (registry_v2::rate_limiting::RateLimitConfig)

@@ -1,2 +1,2 @@
-pub mod key_based;
-pub mod rules_based;
+pub mod in_memory;
+pub mod redis;

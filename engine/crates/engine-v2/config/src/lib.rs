@@ -132,6 +132,7 @@ impl VersionedConfig {
                 v5::Config {
                     graph,
                     strings,
+                    paths: Vec::new(),
                     header_rules,
                     default_header_rules,
                     subgraph_configs,
