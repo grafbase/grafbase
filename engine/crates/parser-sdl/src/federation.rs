@@ -1,7 +1,7 @@
 pub mod header;
 
-use std::collections::BTreeMap;
 use std::time::Duration;
+use std::{collections::BTreeMap, path::PathBuf};
 
 use crate::{rules::auth_directive::v2::AuthV2Directive, GlobalCacheRules};
 use registry_v2::{ConnectorHeaderValue, OperationLimits};
@@ -67,4 +67,26 @@ impl From<(String, ConnectorHeaderValue)> for SubgraphHeaderRule {
 pub struct RateLimitConfig {
     pub limit: usize,
     pub duration: Duration,
+    pub storage: RateLimitStorage,
+    pub redis: RateLimitRedisConfig,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub enum RateLimitStorage {
+    InMemory,
+    Redis,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct RateLimitRedisConfig {
+    pub url: url::Url,
+    pub key_prefix: String,
+    pub tls: Option<RateLimitRedisTlsConfig>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq, PartialOrd, Ord)]
+pub struct RateLimitRedisTlsConfig {
+    pub cert: PathBuf,
+    pub key: PathBuf,
+    pub ca: Option<PathBuf>,
 }

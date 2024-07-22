@@ -1343,6 +1343,274 @@ mod tests {
             RateLimitConfig {
                 limit: 1000,
                 duration: 10s,
+                storage: InMemory,
+                redis: RateLimitRedisConfig {
+                    url: Url {
+                        scheme: "redis",
+                        cannot_be_a_base: false,
+                        username: "",
+                        password: None,
+                        host: Some(
+                            Domain(
+                                "localhost",
+                            ),
+                        ),
+                        port: Some(
+                            6379,
+                        ),
+                        path: "",
+                        query: None,
+                        fragment: None,
+                    },
+                    key_prefix: "grafbase",
+                    tls: None,
+                },
+            },
+        )
+        "###);
+    }
+
+    #[test]
+    fn global_rate_limiting_redis_defaults() {
+        let input = indoc! {r#"
+            [gateway.rate_limit]
+            limit = 1000
+            duration = "10s"
+            storage = "redis"
+        "#};
+
+        let config = toml::from_str::<Config>(input).unwrap();
+
+        insta::assert_debug_snapshot!(&config.gateway.rate_limit, @r###"
+        Some(
+            RateLimitConfig {
+                limit: 1000,
+                duration: 10s,
+                storage: Redis,
+                redis: RateLimitRedisConfig {
+                    url: Url {
+                        scheme: "redis",
+                        cannot_be_a_base: false,
+                        username: "",
+                        password: None,
+                        host: Some(
+                            Domain(
+                                "localhost",
+                            ),
+                        ),
+                        port: Some(
+                            6379,
+                        ),
+                        path: "",
+                        query: None,
+                        fragment: None,
+                    },
+                    key_prefix: "grafbase",
+                    tls: None,
+                },
+            },
+        )
+        "###);
+    }
+
+    #[test]
+    fn global_rate_limiting_redis_custom_url() {
+        let input = indoc! {r#"
+            [gateway.rate_limit]
+            limit = 1000
+            duration = "10s"
+            storage = "redis"
+
+            [gateway.rate_limit.redis]
+            url = "redis://user:password@localhost:420"
+        "#};
+
+        let config = toml::from_str::<Config>(input).unwrap();
+
+        insta::assert_debug_snapshot!(&config.gateway.rate_limit, @r###"
+        Some(
+            RateLimitConfig {
+                limit: 1000,
+                duration: 10s,
+                storage: Redis,
+                redis: RateLimitRedisConfig {
+                    url: Url {
+                        scheme: "redis",
+                        cannot_be_a_base: false,
+                        username: "user",
+                        password: Some(
+                            "password",
+                        ),
+                        host: Some(
+                            Domain(
+                                "localhost",
+                            ),
+                        ),
+                        port: Some(
+                            420,
+                        ),
+                        path: "",
+                        query: None,
+                        fragment: None,
+                    },
+                    key_prefix: "grafbase",
+                    tls: None,
+                },
+            },
+        )
+        "###);
+    }
+
+    #[test]
+    fn global_rate_limiting_redis_custom_key_prefix() {
+        let input = indoc! {r#"
+            [gateway.rate_limit]
+            limit = 1000
+            duration = "10s"
+            storage = "redis"
+
+            [gateway.rate_limit.redis]
+            key_prefix = "kekw"
+        "#};
+
+        let config = toml::from_str::<Config>(input).unwrap();
+
+        insta::assert_debug_snapshot!(&config.gateway.rate_limit, @r###"
+        Some(
+            RateLimitConfig {
+                limit: 1000,
+                duration: 10s,
+                storage: Redis,
+                redis: RateLimitRedisConfig {
+                    url: Url {
+                        scheme: "redis",
+                        cannot_be_a_base: false,
+                        username: "",
+                        password: None,
+                        host: Some(
+                            Domain(
+                                "localhost",
+                            ),
+                        ),
+                        port: Some(
+                            6379,
+                        ),
+                        path: "",
+                        query: None,
+                        fragment: None,
+                    },
+                    key_prefix: "kekw",
+                    tls: None,
+                },
+            },
+        )
+        "###);
+    }
+
+    #[test]
+    fn global_rate_limiting_redis_tls() {
+        let input = indoc! {r#"
+            [gateway.rate_limit]
+            limit = 1000
+            duration = "10s"
+            storage = "redis"
+
+            [gateway.rate_limit.redis.tls]
+            cert = "/path/to/cert.pem"
+            key = "/path/to/key.pem"
+        "#};
+
+        let config = toml::from_str::<Config>(input).unwrap();
+
+        insta::assert_debug_snapshot!(&config.gateway.rate_limit, @r###"
+        Some(
+            RateLimitConfig {
+                limit: 1000,
+                duration: 10s,
+                storage: Redis,
+                redis: RateLimitRedisConfig {
+                    url: Url {
+                        scheme: "redis",
+                        cannot_be_a_base: false,
+                        username: "",
+                        password: None,
+                        host: Some(
+                            Domain(
+                                "localhost",
+                            ),
+                        ),
+                        port: Some(
+                            6379,
+                        ),
+                        path: "",
+                        query: None,
+                        fragment: None,
+                    },
+                    key_prefix: "grafbase",
+                    tls: Some(
+                        RateLimitRedisTlsConfig {
+                            cert: "/path/to/cert.pem",
+                            key: "/path/to/key.pem",
+                            ca: None,
+                        },
+                    ),
+                },
+            },
+        )
+        "###);
+    }
+
+    #[test]
+    fn global_rate_limiting_redis_tls_custom_ca() {
+        let input = indoc! {r#"
+            [gateway.rate_limit]
+            limit = 1000
+            duration = "10s"
+            storage = "redis"
+
+            [gateway.rate_limit.redis.tls]
+            cert = "/path/to/cert.pem"
+            key = "/path/to/key.pem"
+            ca = "ca.crt"
+        "#};
+
+        let config = toml::from_str::<Config>(input).unwrap();
+
+        insta::assert_debug_snapshot!(&config.gateway.rate_limit, @r###"
+        Some(
+            RateLimitConfig {
+                limit: 1000,
+                duration: 10s,
+                storage: Redis,
+                redis: RateLimitRedisConfig {
+                    url: Url {
+                        scheme: "redis",
+                        cannot_be_a_base: false,
+                        username: "",
+                        password: None,
+                        host: Some(
+                            Domain(
+                                "localhost",
+                            ),
+                        ),
+                        port: Some(
+                            6379,
+                        ),
+                        path: "",
+                        query: None,
+                        fragment: None,
+                    },
+                    key_prefix: "grafbase",
+                    tls: Some(
+                        RateLimitRedisTlsConfig {
+                            cert: "/path/to/cert.pem",
+                            key: "/path/to/key.pem",
+                            ca: Some(
+                                "ca.crt",
+                            ),
+                        },
+                    ),
+                },
             },
         )
         "###);
@@ -1364,6 +1632,28 @@ mod tests {
             RateLimitConfig {
                 limit: 1000,
                 duration: 10s,
+                storage: InMemory,
+                redis: RateLimitRedisConfig {
+                    url: Url {
+                        scheme: "redis",
+                        cannot_be_a_base: false,
+                        username: "",
+                        password: None,
+                        host: Some(
+                            Domain(
+                                "localhost",
+                            ),
+                        ),
+                        port: Some(
+                            6379,
+                        ),
+                        path: "",
+                        query: None,
+                        fragment: None,
+                    },
+                    key_prefix: "grafbase",
+                    tls: None,
+                },
             },
         )
         "###);

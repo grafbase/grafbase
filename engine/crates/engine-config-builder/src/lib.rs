@@ -49,12 +49,7 @@ pub fn build_config(config: &FederatedGraphConfig, graph: FederatedGraph) -> Ver
                 name: subgraph_name,
                 headers,
                 websocket_url,
-                rate_limit: rate_limit
-                    .as_ref()
-                    .map(|config| engine_v2_config::latest::RateLimitConfig {
-                        limit: config.limit,
-                        duration: config.duration,
-                    }),
+                rate_limit: rate_limit.as_ref().map(convert_rate_limit),
                 timeout: *timeout,
             },
         );
@@ -72,15 +67,33 @@ pub fn build_config(config: &FederatedGraphConfig, graph: FederatedGraph) -> Ver
         auth: build_auth_config(config),
         operation_limits: build_operation_limits(config),
         disable_introspection: config.disable_introspection,
-        rate_limit: config
-            .rate_limit
-            .as_ref()
-            .map(|config| engine_v2_config::latest::RateLimitConfig {
-                limit: config.limit,
-                duration: config.duration,
-            }),
+        rate_limit: config.rate_limit.as_ref().map(convert_rate_limit),
         timeout: config.timeout,
     })
+}
+
+fn convert_rate_limit(config: &parser_sdl::federation::RateLimitConfig) -> engine_v2_config::latest::RateLimitConfig {
+    engine_v2_config::latest::RateLimitConfig {
+        limit: config.limit,
+        duration: config.duration,
+        storage: match config.storage {
+            parser_sdl::federation::RateLimitStorage::InMemory => engine_v2_config::latest::RateLimitStorage::InMemory,
+            parser_sdl::federation::RateLimitStorage::Redis => engine_v2_config::latest::RateLimitStorage::Redis,
+        },
+        redis: engine_v2_config::latest::RateLimitRedisConfig {
+            url: config.redis.url.clone(),
+            key_prefix: config.redis.key_prefix.clone(),
+            tls: config
+                .redis
+                .tls
+                .clone()
+                .map(|config| engine_v2_config::latest::RateLimitRedisTlsConfig {
+                    cert: config.cert,
+                    key: config.key,
+                    ca: config.ca,
+                }),
+        },
+    }
 }
 
 fn build_operation_limits(config: &FederatedGraphConfig) -> OperationLimits {
