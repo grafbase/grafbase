@@ -2,7 +2,7 @@ mod logic;
 mod selection_set;
 
 use engine_parser::types::OperationType;
-use id_newtypes::IdToMany;
+use id_newtypes::{BitSet, IdToMany};
 use itertools::Itertools;
 use schema::{EntityId, RequiredFieldId, ResolverId, Schema};
 use tracing::instrument;
@@ -51,6 +51,7 @@ pub(super) struct LogicalPlanner<'a> {
     field_to_logical_plan_id: Vec<Option<LogicalPlanId>>,
     field_to_solved_requirement: Vec<Option<RequiredFieldId>>,
     logical_plans: Vec<LogicalPlan>,
+    selection_set_to_objects_must_be_tracked: BitSet<SelectionSetId>,
     mutation_fields_plan_order: Vec<LogicalPlanId>,
     // May have duplicates, parent may be equal to child (if we, as the supergraph, need the dependencies)
     // (parent, child)
@@ -76,6 +77,7 @@ impl<'a> LogicalPlanner<'a> {
             variables,
             field_to_logical_plan_id: vec![None; operation.fields.len()],
             field_to_solved_requirement: vec![None; operation.fields.len()],
+            selection_set_to_objects_must_be_tracked: BitSet::init_with(false, operation.selection_sets.len()),
             operation,
             logical_plans: Vec::new(),
             solved_requirements: Vec::new(),
@@ -95,6 +97,7 @@ impl<'a> LogicalPlanner<'a> {
             field_to_logical_plan_id,
             field_to_solved_requirement,
             mutation_fields_plan_order,
+            selection_set_to_objects_must_be_tracked,
             mut solved_requirements,
             mut dependents_builder,
             ..
@@ -124,6 +127,7 @@ impl<'a> LogicalPlanner<'a> {
             solved_requirements,
             mutation_fields_plan_order,
             field_to_solved_requirement,
+            selection_set_to_objects_must_be_tracked,
             field_to_logical_plan_id: field_to_logical_plan_id
                 .into_iter()
                 .enumerate()

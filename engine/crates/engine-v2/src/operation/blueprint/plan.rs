@@ -6,7 +6,7 @@ use schema::{EntityId, FieldDefinitionWalker, ObjectId, Schema};
 use crate::{
     operation::{
         ExtraField, Field, FieldId, FieldWalker, LogicalPlanId, LogicalPlanResponseBlueprint, QueryField,
-        ResponseModifier, SelectionSetId, SelectionSetType, TypeNameField,
+        SelectionSetId, SelectionSetType, TypeNameField,
     },
     response::{
         ConcreteObjectShape, ConcreteObjectShapeId, FieldShape, FieldShapeId, ObjectIdentifier, PolymorphicObjectShape,
@@ -50,19 +50,16 @@ where
             root_field_ids,
         }: &ToBuild,
     ) -> LogicalPlanResponseBlueprint {
-        let start = builder.blueprint.logical_plan_response_modifiers.len();
         let mut builder = LogicalPlanResponseBlueprintBuilder {
             builder,
             logical_plan_id: *logical_plan_id,
             output_response_object_set_ids: Vec::new(),
         };
         let concrete_shape_id = builder.create_root_shape_for(builder.plan[*logical_plan_id].entity_id, root_field_ids);
-        let end = builder.blueprint.logical_plan_response_modifiers.len();
         LogicalPlanResponseBlueprint {
             input_id: *input_id,
             output_ids: IdRange::from_slice(&builder.output_response_object_set_ids).unwrap(),
             concrete_shape_id,
-            response_modifiers_ids: IdRange::from(start..end),
         }
     }
 
@@ -96,10 +93,8 @@ where
                 }
             }
         }
-        let maybe_response_object_set_id = if children_plan.is_empty() {
-            None
-        } else {
-            let id = self.next_response_object_set_id();
+        let maybe_response_object_set_id = if !children_plan.is_empty() {
+            let id = self.next_response_object_set_id(ty);
             self.output_response_object_set_ids.push(id);
             self.to_build_stack
                 .extend(children_plan.into_iter().map(|(plan_id, root_fields)| ToBuild {
@@ -108,7 +103,20 @@ where
                     root_field_ids: root_fields,
                 }));
             Some(id)
+        } else if merged_selection_set_ids
+            .iter()
+            .any(|&id| self.plan.selection_set_to_objects_must_be_tracked[id])
+        {
+            Some(self.next_response_object_set_id(ty))
+        } else {
+            None
         };
+
+        if let Some(set_id) = maybe_response_object_set_id {
+            for &id in &merged_selection_set_ids {
+                self.selection_set_to_response_object_set[usize::from(id)] = Some(set_id);
+            }
+        }
 
         let shape = self.collect_object_shapes(ty, maybe_response_object_set_id, plan_field_ids);
         match shape {
@@ -135,7 +143,7 @@ where
     fn collect_object_shapes(
         &mut self,
         ty: SelectionSetType,
-        mut maybe_response_object_set_id: Option<ResponseObjectSetId>,
+        maybe_response_object_set_id: Option<ResponseObjectSetId>,
         field_ids: Vec<FieldId>,
     ) -> Shape {
         let output: &[ObjectId] = match &ty {
@@ -154,36 +162,6 @@ where
                 .then(left.as_ref().query_position().cmp(&right.as_ref().query_position()))
         });
         let mut buffer = Vec::new();
-
-        // A very simplistic approach: If any field is subject to a response modifier rule we'll
-        // keep track of all the response objects even if the field won't be present.
-        let mut response_modifier_rules = fields_sorted_by_response_key_then_position
-            .iter()
-            .flat_map(|field| {
-                field.subject_to_response_modifier_rules().map(|id| {
-                    (
-                        id,
-                        field
-                            .definition()
-                            .expect("__typename cannot have response modifiers")
-                            .parent_entity()
-                            .id(),
-                    )
-                })
-            })
-            .collect::<Vec<_>>();
-        if !response_modifier_rules.is_empty() {
-            response_modifier_rules.sort_unstable();
-            let response_object_set_id =
-                *maybe_response_object_set_id.get_or_insert_with(|| self.next_response_object_set_id());
-            for (rule_id, type_condition) in response_modifier_rules.into_iter().dedup() {
-                self.blueprint.logical_plan_response_modifiers.push(ResponseModifier {
-                    rule_id,
-                    type_condition,
-                    response_object_set_id,
-                });
-            }
-        }
 
         if let Some(partitions) = shape_partitions {
             let mut possibilities = Vec::new();

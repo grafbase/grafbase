@@ -11,8 +11,11 @@ mod walkers;
 use std::sync::Arc;
 
 use crate::{
-    operation::{FieldId, LogicalPlanId, PreparedOperation, Variables},
-    response::{ConcreteObjectShapeId, FieldShapeId, GraphqlError, ResponseViewSelectionSet, ResponseViews},
+    operation::{FieldId, LogicalPlanId, PreparedOperation, ResponseModifierRule, Variables},
+    response::{
+        ConcreteObjectShapeId, FieldShapeId, GraphqlError, ResponseKey, ResponseObjectSetId, ResponseViewSelectionSet,
+        ResponseViews,
+    },
     sources::PreparedExecutor,
     Runtime,
 };
@@ -22,6 +25,7 @@ pub(crate) use error::*;
 pub(crate) use hooks::RequestHooks;
 use id_newtypes::{BitSet, IdToMany};
 pub(crate) use ids::*;
+use schema::EntityId;
 use tracing::instrument;
 pub(crate) use walkers::*;
 
@@ -33,7 +37,7 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
         variables: Variables,
     ) -> PlanningResult<ExecutableOperation> {
         tracing::trace!("Execution Planning");
-        planner::ExecutionPlanner::plan(self, operation, variables).await
+        planner::plan(self, operation, variables).await
     }
 }
 
@@ -45,6 +49,7 @@ pub(crate) struct ExecutableOperation {
     pub(crate) query_modifications: QueryModifications,
     pub(crate) execution_plans: Vec<ExecutionPlan>,
     pub(crate) response_views: ResponseViews,
+    pub(crate) response_modifier_executors: Vec<ResponseModifierExecutor>,
 }
 
 impl std::ops::Deref for ExecutableOperation {
@@ -69,6 +74,7 @@ pub(crate) struct ExecutionPlan {
     pub logical_plan_id: LogicalPlanId,
     pub parent_count: usize,
     pub children: Vec<ExecutionPlanId>,
+    pub dependent_response_modifiers: Vec<ResponseModifierExecutorId>,
     pub requires: ResponseViewSelectionSet,
     pub prepared_executor: PreparedExecutor,
 }
@@ -80,4 +86,18 @@ pub(crate) struct QueryModifications {
     pub concrete_shape_has_error: BitSet<ConcreteObjectShapeId>,
     pub field_shape_id_to_error_ids: IdToMany<FieldShapeId, ErrorId>,
     pub root_error_ids: Vec<ErrorId>,
+}
+
+// Modifies the response based on a given rule
+#[allow(unused)]
+pub(crate) struct ResponseModifierExecutor {
+    pub rule: ResponseModifierRule,
+    /// Which object & fields are impacted
+    pub on: Vec<(ResponseObjectSetId, Option<EntityId>, ResponseKey)>,
+    /// What fields the hook requires
+    pub requires: ResponseViewSelectionSet,
+    /// Dependency count
+    pub parent_count: usize,
+    /// Dependents
+    pub children: Vec<ExecutionPlanId>,
 }

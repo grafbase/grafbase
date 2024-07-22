@@ -61,14 +61,15 @@ pub(crate) struct Operation {
     pub response_keys: ResponseKeys,
     pub selection_sets: Vec<SelectionSet>,
     pub fields: Vec<Field>,
-    pub fields_subject_to_response_modifier_rules: Vec<ResponseModifierRuleId>,
     pub variable_definitions: Vec<VariableDefinition>,
     pub field_arguments: Vec<FieldArgument>,
     pub query_input_values: QueryInputValues,
-    // deduplicated
+    // deduplicated by rule
     pub query_modifiers: Vec<QueryModifier>,
-    pub query_modifiers_impacted_fields: Vec<FieldId>,
-    pub response_modifier_rules: Vec<ResponseModifierRule>,
+    pub query_modifier_impacted_fields: Vec<FieldId>,
+    // deduplicated by rule
+    pub response_modifiers: Vec<ResponseModifier>,
+    pub response_modifier_impacted_fields: Vec<FieldId>,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -86,6 +87,7 @@ pub struct OperationMetadata {
 pub(crate) struct OperationPlan {
     pub field_to_logical_plan_id: Vec<LogicalPlanId>,
     pub field_to_solved_requirement: Vec<Option<RequiredFieldId>>,
+    pub selection_set_to_objects_must_be_tracked: BitSet<SelectionSetId>,
     pub logical_plans: Vec<LogicalPlan>,
     pub mutation_fields_plan_order: Vec<LogicalPlanId>,
     pub children: IdToMany<LogicalPlanId, LogicalPlanId>,
@@ -117,10 +119,10 @@ pub(crate) struct SolvedRequiredField {
 pub(crate) struct ResponseBlueprint {
     pub shapes: Shapes,
     pub field_to_shape_ids: IdToMany<FieldId, FieldShapeId>,
+    pub response_modifier_impacted_field_to_response_object_set: Vec<ResponseObjectSetId>,
     pub logical_plan_to_blueprint: Vec<LogicalPlanResponseBlueprint>,
-    pub logical_plan_response_modifiers: Vec<ResponseModifier>,
     pub selection_set_to_requires_typename: BitSet<SelectionSetId>,
-    pub response_object_set_count: usize,
+    pub response_object_sets_to_type: Vec<SelectionSetType>,
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]
@@ -128,8 +130,6 @@ pub(crate) struct LogicalPlanResponseBlueprint {
     pub input_id: ResponseObjectSetId,
     pub output_ids: IdRange<ResponseObjectSetId>,
     pub concrete_shape_id: ConcreteObjectShapeId,
-    // modifiers will be sorted by rule_id
-    pub response_modifiers_ids: IdRange<ResponseModifierId>,
 }
 
 impl<I> std::ops::Index<I> for ResponseBlueprint

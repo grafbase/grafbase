@@ -3,7 +3,9 @@ use schema::Schema;
 
 use crate::{
     execution::{ErrorId, PlanningResult, PreExecutionContext, QueryModifications},
-    operation::{ImpactedFieldId, OperationWalker, PreparedOperation, QueryModifierId, QueryModifierRule, Variables},
+    operation::{
+        OperationWalker, PreparedOperation, QueryModifierId, QueryModifierImpactedFieldId, QueryModifierRule, Variables,
+    },
     response::{ConcreteObjectShapeId, ErrorCode, FieldShapeId, GraphqlError},
     Runtime,
 };
@@ -157,7 +159,7 @@ where
     fn handle_modifier_resulted_in_error(
         &mut self,
         id: QueryModifierId,
-        impacted_fields: IdRange<ImpactedFieldId>,
+        impacted_fields: IdRange<QueryModifierImpactedFieldId>,
         error: GraphqlError,
     ) {
         let error_id = self.push_error(error);

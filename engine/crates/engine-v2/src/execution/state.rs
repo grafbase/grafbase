@@ -34,7 +34,7 @@ impl<'ctx> OperationExecutionState<'ctx> {
         Self {
             schema,
             operation,
-            response_object_sets: vec![None; operation.response_blueprint.response_object_set_count],
+            response_object_sets: vec![None; operation.response_blueprint.response_object_sets_to_type.len()],
             plan_dependencies_count: operation.execution_plans.iter().map(|plan| plan.parent_count).collect(),
         }
     }
