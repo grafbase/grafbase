@@ -5,6 +5,7 @@ mod header_rule;
 pub(crate) mod hooks;
 mod ids;
 mod planner;
+mod response_modifier;
 mod state;
 mod walkers;
 
@@ -89,10 +90,10 @@ pub(crate) struct QueryModifications {
 }
 
 // Modifies the response based on a given rule
-#[allow(unused)]
 pub(crate) struct ResponseModifierExecutor {
     pub rule: ResponseModifierRule,
     /// Which object & fields are impacted
+    /// ordered
     pub on: Vec<(ResponseObjectSetId, Option<EntityId>, ResponseKey)>,
     /// What fields the hook requires
     pub requires: ResponseViewSelectionSet,

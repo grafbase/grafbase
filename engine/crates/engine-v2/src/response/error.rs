@@ -38,10 +38,10 @@ pub(crate) enum ErrorCode {
 impl From<PartialErrorCode> for ErrorCode {
     fn from(code: PartialErrorCode) -> Self {
         match code {
-            PartialErrorCode::InternalServerError => Self::InternalServerError,
             PartialErrorCode::HookError => Self::HookError,
             PartialErrorCode::Unauthorized => Self::Unauthorized,
             PartialErrorCode::BadRequest => Self::BadRequest,
+            _ => Self::InternalServerError,
         }
     }
 }

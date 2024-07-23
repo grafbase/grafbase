@@ -1,9 +1,12 @@
 use std::{borrow::Cow, fmt};
 
 /// Some of the error codes that the engine supports
+/// These are not exhaustive and can be extended as needed by adding a `code` inside the
+/// extensions.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize, strum::Display)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 #[strum(serialize_all = "SCREAMING_SNAKE_CASE")]
+#[non_exhaustive]
 pub enum PartialErrorCode {
     InternalServerError,
     BadRequest,
@@ -16,6 +19,8 @@ pub enum PartialErrorCode {
 #[derive(Clone, Debug, PartialEq)]
 pub struct PartialGraphqlError {
     pub message: Cow<'static, str>,
+    /// An error MUST have an error code, but it can be overridden by adding a custom string inside
+    /// extensions for the `code` key.
     pub code: PartialErrorCode,
     /// Optional extensions added to the response
     /// Will be serialized as a map, but we store it as a Vec for efficiency

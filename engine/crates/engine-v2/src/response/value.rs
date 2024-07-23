@@ -39,8 +39,20 @@ impl ResponseObject {
         self.fields.iter()
     }
 
+    // FIXME: Shouldn't store by edge nor should the response path...
     pub(super) fn field_position(&self, edge: ResponseEdge) -> Option<usize> {
-        self.fields.binary_search_by(|field| field.edge.cmp(&edge)).ok()
+        self.fields
+            .binary_search_by(|field| field.edge.cmp(&edge))
+            .ok()
+            .or_else(|| match edge.as_response_key() {
+                Some(key) => {
+                    return self
+                        .fields
+                        .iter()
+                        .position(|field| field.edge.as_response_key() == Some(key));
+                }
+                None => None,
+            })
     }
 
     pub(super) fn find_required_field(&self, id: RequiredFieldId) -> Option<&ResponseValue> {

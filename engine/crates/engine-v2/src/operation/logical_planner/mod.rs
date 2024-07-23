@@ -118,7 +118,7 @@ impl<'a> LogicalPlanner<'a> {
             "Solved requirements: {:?}",
             solved_requirements.iter().map(|(id, _)| id).collect::<Vec<_>>()
         );
-        tracing::debug!("{:?}", field_to_solved_requirement);
+        tracing::trace!("Field to solved requirements: {:?}", field_to_solved_requirement);
 
         dependents_builder.sort_unstable();
         let children = IdToMany::from_sorted_vec(dependents_builder.into_iter().dedup().collect());
@@ -335,7 +335,11 @@ impl<'a> LogicalPlanner<'a> {
     }
 
     pub fn register_plan_child(&mut self, edge: ParentToChildEdge) {
-        self.dependents_builder.push((edge.parent, edge.child));
+        // A parent and child may be the same if the requirements is coming from a ResponseModifier
+        // like @authorized
+        if edge.parent != edge.child {
+            self.dependents_builder.push((edge.parent, edge.child));
+        }
     }
 
     pub fn attribute_fields(&mut self, fields: &[FieldId], id: LogicalPlanId) {

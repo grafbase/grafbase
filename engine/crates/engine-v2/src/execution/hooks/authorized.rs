@@ -1,5 +1,8 @@
 use futures::FutureExt;
-use runtime::hooks::{AuthorizedHooks, EdgeDefinition, Hooks, NodeDefinition};
+use runtime::{
+    error::PartialGraphqlError,
+    hooks::{AuthorizedHooks, EdgeDefinition, Hooks, NodeDefinition},
+};
 use schema::{DefinitionWalker, FieldDefinitionWalker, SchemaInputValueWalker};
 use tracing::{instrument, Level};
 
@@ -41,9 +44,8 @@ impl<'ctx, H: Hooks> super::RequestHooks<'ctx, H> {
         definition: FieldDefinitionWalker<'_>,
         parents: ResponseObjectsView<'_>,
         metadata: Option<SchemaInputValueWalker<'_>>,
-    ) -> Result<(), GraphqlError> {
-        let _ = self
-            .hooks
+    ) -> Result<Vec<Result<(), PartialGraphqlError>>, GraphqlError> {
+        self.hooks
             .authorized()
             .authorize_parent_edge_post_execution(
                 self.context,
@@ -58,9 +60,8 @@ impl<'ctx, H: Hooks> super::RequestHooks<'ctx, H> {
             //        https://github.com/rust-lang/rust/issues/110338#issuecomment-1513761297
             //        Otherwise is not correctly evaluated to be Send due to the impl IntoIterator
             .boxed()
-            .await;
-
-        todo!()
+            .await
+            .map_err(Into::into)
     }
 
     #[instrument(skip_all, ret(level = Level::DEBUG))]

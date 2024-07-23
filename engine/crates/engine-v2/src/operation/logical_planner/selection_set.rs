@@ -253,6 +253,10 @@ impl<'schema, 'a> SelectionSetLogicalPlanner<'schema, 'a> {
                 }
             }
 
+            for id in &planned_field_ids {
+                unplanned_fields.remove(id);
+            }
+
             self.planner.grow_with_obviously_providable_subselections(
                 self.query_path,
                 parent_logic,
@@ -273,6 +277,7 @@ impl<'schema, 'a> SelectionSetLogicalPlanner<'schema, 'a> {
 
             let Some(candidate) = select_best_child_plan(&mut candidates) else {
                 let walker = self.walker();
+                let parent_subgraph_id = self.maybe_parent.map(|parent| parent.resolver().subgraph_id());
                 tracing::debug!(
                     "Could not plan fields:\n=== PARENT ===\n{:#?}\n=== CURRENT ===\n{}\n=== MISSING ===\n{}",
                     self.maybe_parent.map(|parent| parent.resolver()),
@@ -284,7 +289,10 @@ impl<'schema, 'a> SelectionSetLogicalPlanner<'schema, 'a> {
                     unplanned_fields
                         .keys()
                         .map(|id| walker.walk(*id).definition().unwrap())
-                        .format_with("\n", |field, f| f(&format_args!("{field:#?}")))
+                        .format_with("\n\n", |field, f| f(&format_args!(
+                            "{field:#?}\n{:#?}",
+                            parent_subgraph_id.map(|id| field.required_fields(id))
+                        )))
                 );
                 return Err(LogicalPlanningError::CouldNotPlanAnyField {
                     missing: unplanned_fields
