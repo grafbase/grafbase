@@ -1,8 +1,13 @@
-use grafbase_telemetry::span::subgraph::SubgraphRequestSpan;
-use request::execute_subgraph_request;
+use std::{borrow::Cow, time::Duration};
+
+use bytes::Bytes;
+use grafbase_telemetry::{gql_response_status::GraphqlResponseStatus, span::subgraph::SubgraphRequestSpan};
+use hex::ToHex;
+use request::{execute_subgraph_request, ResponseIngester};
 use runtime::fetch::FetchRequest;
 use schema::sources::graphql::{GraphqlEndpointId, RootFieldResolverWalker};
 use serde::de::DeserializeSeed;
+use sha2::Digest;
 use tracing::Instrument;
 
 use self::query::PreparedGraphqlOperation;
@@ -59,6 +64,7 @@ impl GraphqlPreparedExecutor {
             variables: &self.operation.variables,
             inputs: Vec::new(),
         };
+
         tracing::debug!(
             "Query {}\n{}\n{}",
             subgraph.name(),
@@ -81,6 +87,41 @@ impl GraphqlPreparedExecutor {
         }
         .into_span();
 
+        let cache_key = ctx
+            .engine
+            .schema
+            .settings
+            .enable_entity_caching
+            .then(|| build_cache_key(&json_body));
+        let cache_ttl = subgraph.entity_cache_ttl();
+
+        if let Some(cache_key) = &cache_key {
+            let cache_entry = ctx
+                .engine
+                .runtime
+                .kv()
+                .get(cache_key, Some(Duration::ZERO))
+                .await
+                .inspect_err(|err| tracing::warn!("Failed to read the cache key {cache_key}: {err}"))
+                .ok()
+                .flatten();
+
+            if let Some(bytes) = cache_entry {
+                let response = subgraph_response.as_mut();
+
+                GraphqlResponseSeed::new(
+                    response.next_seed(plan).ok_or("No object to update")?,
+                    RootGraphqlErrors {
+                        response,
+                        response_keys: plan.response_keys(),
+                    },
+                )
+                .deserialize(&mut serde_json::Deserializer::from_slice(&bytes))?;
+
+                return Ok(subgraph_response);
+            };
+        }
+
         execute_subgraph_request(
             ctx,
             span.clone(),
@@ -92,20 +133,65 @@ impl GraphqlPreparedExecutor {
                 subgraph_name: subgraph.name(),
                 timeout: subgraph.timeout(),
             },
-            |bytes| {
-                let response = subgraph_response.as_mut();
-                let status = GraphqlResponseSeed::new(
-                    response.next_seed(plan).ok_or("No object to update")?,
-                    RootGraphqlErrors {
-                        response,
-                        response_keys: plan.response_keys(),
-                    },
-                )
-                .deserialize(&mut serde_json::Deserializer::from_slice(&bytes))?;
-                Ok((status, subgraph_response))
+            GraphqlIngester {
+                ctx,
+                plan,
+                cache_key,
+                subgraph_response,
+                cache_ttl,
             },
         )
         .instrument(span)
         .await
+    }
+}
+
+fn build_cache_key(json_body: &str) -> String {
+    let mut hasher = sha2::Sha256::new();
+    hasher.update(json_body);
+    let output = hasher.finalize();
+    output.encode_hex()
+}
+
+struct GraphqlIngester<'ctx, R: Runtime> {
+    ctx: ExecutionContext<'ctx, R>,
+    plan: PlanWalker<'ctx, (), ()>,
+    cache_key: Option<String>,
+    subgraph_response: SubgraphResponse,
+    cache_ttl: Duration,
+}
+
+impl<'ctx, R> ResponseIngester for GraphqlIngester<'ctx, R>
+where
+    R: Runtime,
+{
+    async fn ingest(
+        mut self,
+        bytes: Bytes,
+    ) -> Result<(GraphqlResponseStatus, SubgraphResponse), crate::execution::ExecutionError> {
+        if let Some(cache_key) = self.cache_key {
+            // We could probably put this call into the background at some point, but for
+            // simplicities sake I am not going to do that just now.
+            self.ctx
+                .engine
+                .runtime
+                .kv()
+                .put(&cache_key, Cow::Borrowed(bytes.as_ref()), Some(self.cache_ttl))
+                .await
+                .inspect_err(|err| tracing::warn!("Failed to write the cache key {cache_key}: {err}"))
+                .ok();
+        }
+
+        let response = self.subgraph_response.as_mut();
+        let status = GraphqlResponseSeed::new(
+            response.next_seed(self.plan).ok_or("No object to update")?,
+            RootGraphqlErrors {
+                response,
+                response_keys: self.plan.response_keys(),
+            },
+        )
+        .deserialize(&mut serde_json::Deserializer::from_slice(&bytes))?;
+
+        Ok((status, self.subgraph_response))
     }
 }

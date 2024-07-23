@@ -100,7 +100,11 @@ impl JwtProvider {
 
                 let bytes = Vec::from(bytes);
                 self.kv
-                    .put(&self.key, bytes.clone(), Some(self.config.jwks.poll_interval))
+                    .put(
+                        &self.key,
+                        Cow::Borrowed(bytes.as_ref()),
+                        Some(self.config.jwks.poll_interval),
+                    )
                     .await
                     .inspect_err(|err| {
                         tracing::error!("Could not store JWKS metadata in KV: {err}");

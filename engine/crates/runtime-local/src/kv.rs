@@ -1,5 +1,6 @@
 use runtime::kv::{KvResult, KvStore, KvStoreInner};
 use std::{
+    borrow::Cow,
     collections::{hash_map::Entry, HashMap},
     sync::Mutex,
     time::{Duration, Instant},
@@ -48,12 +49,12 @@ impl KvStoreInner for InMemoryKvStore {
     }
 
     #[allow(clippy::panic)]
-    async fn put(&self, name: &str, bytes: Vec<u8>, expiration_ttl: Option<Duration>) -> KvResult<()> {
+    async fn put(&self, name: &str, bytes: Cow<'_, [u8]>, expiration_ttl: Option<Duration>) -> KvResult<()> {
         let mut inner = self.inner.lock().unwrap();
         inner.insert(
             name.to_string(),
             CacheValue {
-                data: bytes,
+                data: bytes.into_owned(),
                 expires_at: expiration_ttl.map(|ttl| Instant::now() + ttl),
             },
         );

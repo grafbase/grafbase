@@ -126,6 +126,7 @@ mod tests {
                         ],
                         rate_limit: None,
                         timeout: None,
+                        entity_cache_ttl: None,
                     },
                 },
                 header_rules: [
@@ -171,6 +172,7 @@ mod tests {
                 disable_introspection: false,
                 rate_limit: None,
                 timeout: None,
+                enable_entity_caching: false,
             },
         )
         "###);

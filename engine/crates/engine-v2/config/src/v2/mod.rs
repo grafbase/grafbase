@@ -52,6 +52,9 @@ pub struct SubgraphConfig {
     pub rate_limit: Option<GraphRateLimit>,
     #[serde(default)]
     pub timeout: Option<Duration>,
+
+    #[serde(default)]
+    pub entity_cache_ttl: Option<Duration>,
 }
 
 /// A header that should be sent to a subgraph

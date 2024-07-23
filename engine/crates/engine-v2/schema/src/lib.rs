@@ -71,6 +71,8 @@ pub struct Settings {
     pub auth_config: Option<config::latest::AuthConfig>,
     pub operation_limits: config::latest::OperationLimits,
     pub disable_introspection: bool,
+
+    pub enable_entity_caching: bool,
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]

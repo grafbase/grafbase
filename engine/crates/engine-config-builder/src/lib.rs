@@ -45,6 +45,7 @@ pub fn build_config(config: &FederatedGraphConfig, graph: FederatedGraph) -> Ver
         disable_introspection: config.disable_introspection,
         rate_limit: context.rate_limit,
         timeout: config.timeout,
+        enable_entity_caching: config.enable_entity_caching,
     })
 }
 
@@ -175,6 +176,7 @@ impl<'a> BuildContext<'a> {
                 header_rules,
                 rate_limit,
                 timeout,
+                entity_cache_ttl,
                 ..
             } = config;
 
@@ -197,6 +199,7 @@ impl<'a> BuildContext<'a> {
                     websocket_url,
                     rate_limit,
                     timeout: *timeout,
+                    entity_cache_ttl: *entity_cache_ttl,
                 },
             );
         }

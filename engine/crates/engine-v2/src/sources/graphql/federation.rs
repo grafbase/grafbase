@@ -1,3 +1,4 @@
+use bytes::Bytes;
 use grafbase_telemetry::span::subgraph::SubgraphRequestSpan;
 use runtime::fetch::FetchRequest;
 use schema::sources::graphql::{FederationEntityResolverWalker, GraphqlEndpointId};
@@ -101,7 +102,7 @@ impl FederationEntityPreparedExecutor {
                 subgraph_name: subgraph.name(),
                 timeout: subgraph.timeout(),
             },
-            move |bytes| {
+            move |bytes: Bytes| {
                 let response = subgraph_response.as_mut();
                 let status = GraphqlResponseSeed::new(
                     EntitiesDataSeed {

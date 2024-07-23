@@ -34,6 +34,10 @@ pub struct SubgraphDirective {
     /// Timeout for requests to that subgraph
     #[serde(default, deserialize_with = "duration_str::deserialize_option_duration")]
     timeout: Option<std::time::Duration>,
+
+    /// Timeout for requests to that subgraph
+    #[serde(default, deserialize_with = "duration_str::deserialize_option_duration")]
+    entity_cache_ttl: Option<std::time::Duration>,
 }
 
 impl Directive for SubgraphDirective {
@@ -64,6 +68,11 @@ impl Directive for SubgraphDirective {
           Timeout for requests to that subgraph
           """
           timeout: String
+
+          """
+          Timeout for requests to that subgraph
+          """
+          entityCacheTtl: String
         ) on SCHEMA
 
         input SubgraphHeader {
@@ -129,6 +138,10 @@ impl Visitor<'_> for SubgraphDirectiveVisitor {
 
             if let Some(url) = directive.development_url {
                 subgraph.development_url = Some(url.to_string())
+            }
+
+            if let Some(ttl) = directive.entity_cache_ttl {
+                subgraph.entity_cache_ttl = Some(ttl)
             }
 
             subgraph.header_rules.extend(
@@ -200,6 +213,7 @@ mod tests {
                         ],
                         rate_limit: None,
                         timeout: None,
+                        entity_cache_ttl: None,
                     },
                     "Reviews": SubgraphConfig {
                         name: "Reviews",
@@ -215,6 +229,7 @@ mod tests {
                         ],
                         rate_limit: None,
                         timeout: None,
+                        entity_cache_ttl: None,
                     },
                 },
                 header_rules: [],
@@ -232,6 +247,7 @@ mod tests {
                 disable_introspection: false,
                 rate_limit: None,
                 timeout: None,
+                enable_entity_caching: false,
             },
         )
         "###);
