@@ -2,7 +2,7 @@ mod exporters;
 
 use std::collections::HashMap;
 
-#[cfg(feature = "otlp")]
+// #[cfg(feature = "otlp")]
 pub use exporters::{
     Headers, OtlpExporterConfig, OtlpExporterGrpcConfig, OtlpExporterHttpConfig, OtlpExporterProtocol,
     OtlpExporterTlsConfig,
@@ -34,7 +34,6 @@ pub struct TelemetryConfig {
     pub metrics: Option<MetricsConfig>,
     /// Grafbase OTEL exporter configuration when an access token is used.
     #[serde(skip)]
-    #[cfg(feature = "otlp")]
     pub grafbase: Option<OtlpExporterConfig>,
 }
 
@@ -382,7 +381,7 @@ pub mod tests {
 
         let input = indoc! {r#"
             service_name = "kekw"
-                
+
             [exporters.stdout]
             enabled = true
             timeout = 10
@@ -407,7 +406,7 @@ pub mod tests {
 
         let input = indoc! {r#"
             service_name = "kekw"
-                
+
             [exporters.stdout]
             enabled = true
             timeout = 10
@@ -440,7 +439,7 @@ pub mod tests {
 
         let input = indoc! {r#"
             service_name = "kekw"
-                
+
             [exporters.stdout]
             enabled = true
             timeout = 10
@@ -476,7 +475,7 @@ pub mod tests {
 
         let input = indoc! {r#"
             service_name = "kekw"
-                
+
             [exporters.otlp]
             enabled = true
             endpoint = "http://localhost:1234"
@@ -516,7 +515,7 @@ pub mod tests {
 
         let input = indoc! {r#"
             service_name = "kekw"
-                
+
             [exporters.otlp]
             enabled = true
             endpoint = "http://localhost:1234"
@@ -578,7 +577,7 @@ pub mod tests {
 
         let input = indoc! {r#"
             service_name = "kekw"
-                
+
             [exporters.otlp]
             enabled = true
             endpoint = "http://localhost:1234"
@@ -641,7 +640,7 @@ pub mod tests {
 
         let input = indoc! {r#"
             service_name = "kekw"
-                
+
             [exporters.stdout]
             enabled = true
             timeout = 10
@@ -666,7 +665,7 @@ pub mod tests {
 
         let input = indoc! {r#"
             service_name = "kekw"
-                
+
             [exporters.stdout]
             enabled = true
             timeout = 10
@@ -698,7 +697,7 @@ pub mod tests {
 
         let input = indoc! {r#"
             service_name = "kekw"
-                
+
             [exporters.stdout]
             enabled = true
             timeout = 10
@@ -734,7 +733,7 @@ pub mod tests {
 
         let input = indoc! {r#"
             service_name = "kekw"
-                
+
             [exporters.otlp]
             enabled = true
             endpoint = "http://localhost:1234"
@@ -774,7 +773,7 @@ pub mod tests {
 
         let input = indoc! {r#"
             service_name = "kekw"
-                
+
             [exporters.otlp]
             enabled = true
             endpoint = "http://localhost:1234"
@@ -836,7 +835,7 @@ pub mod tests {
 
         let input = indoc! {r#"
             service_name = "kekw"
-                
+
             [exporters.otlp]
             enabled = true
             endpoint = "http://localhost:1234"
@@ -899,7 +898,7 @@ pub mod tests {
 
         let input = indoc! {r#"
             service_name = "kekw"
-                
+
             [exporters.stdout]
             enabled = true
             timeout = 10
@@ -924,7 +923,7 @@ pub mod tests {
 
         let input = indoc! {r#"
             service_name = "kekw"
-                
+
             [exporters.stdout]
             enabled = true
             timeout = 10
@@ -957,7 +956,7 @@ pub mod tests {
 
         let input = indoc! {r#"
             service_name = "kekw"
-                
+
             [exporters.stdout]
             enabled = true
             timeout = 10
@@ -993,7 +992,7 @@ pub mod tests {
 
         let input = indoc! {r#"
             service_name = "kekw"
-                
+
             [exporters.otlp]
             enabled = true
             endpoint = "http://localhost:1234"
@@ -1033,7 +1032,7 @@ pub mod tests {
 
         let input = indoc! {r#"
             service_name = "kekw"
-                
+
             [exporters.otlp]
             enabled = true
             endpoint = "http://localhost:1234"
@@ -1094,7 +1093,7 @@ pub mod tests {
 
         let input = indoc! {r#"
             service_name = "kekw"
-                
+
             [exporters.otlp]
             enabled = true
             endpoint = "http://localhost:1234"
