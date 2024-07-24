@@ -14,6 +14,7 @@ workspace = true
 
 [features]
 wasi = ["wasi-component-loader", "url"]
+redis = ["dep:redis"]
 
 [dependencies]
 async-runtime.workspace = true
@@ -34,7 +35,7 @@ runtime.workspace = true
 url = { workspace = true, optional = true }
 postgres-connector-types = { path = "../postgres-connector-types" }
 mini-moka = "0.10"
-redis = { version = "0.25.4", features = ["tokio-rustls-comp", "connection-manager"] }
+redis = { version = "0.25.4", features = ["tokio-rustls-comp", "connection-manager"], optional = true }
 
 reqwest = { workspace = true, features = [
   "json",

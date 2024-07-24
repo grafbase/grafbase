@@ -3,7 +3,6 @@ mod headers;
 pub use headers::Headers;
 
 use super::{default_export_timeout, deserialize_duration, BatchExportConfig};
-use crate::error::TracingError;
 use std::{path::PathBuf, str::FromStr};
 use url::Url;
 
@@ -95,9 +94,10 @@ pub struct OtlpExporterTlsConfig {
 
 #[cfg(feature = "otlp")]
 impl TryFrom<OtlpExporterTlsConfig> for tonic::transport::ClientTlsConfig {
-    type Error = TracingError;
+    type Error = crate::error::TracingError;
 
     fn try_from(value: OtlpExporterTlsConfig) -> Result<tonic::transport::ClientTlsConfig, Self::Error> {
+        use crate::error::TracingError;
         use std::fs;
         use tonic::transport::{Certificate, ClientTlsConfig, Identity};
 
