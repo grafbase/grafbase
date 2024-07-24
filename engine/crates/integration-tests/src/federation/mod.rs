@@ -2,9 +2,9 @@ mod builder;
 
 use std::{
     borrow::Cow,
-    collections::HashMap,
     future::IntoFuture,
     ops::{Deref, DerefMut},
+    str::FromStr,
     sync::Arc,
 };
 
@@ -14,6 +14,7 @@ use engine_v2::{HttpGraphqlResponse, HttpGraphqlResponseBody};
 use futures::{future::BoxFuture, stream::BoxStream, StreamExt, TryStreamExt};
 use gateway_core::StreamingFormat;
 use headers::HeaderMapExt;
+use http::{header::Entry, HeaderName, HeaderValue};
 use serde::de::Error;
 
 use crate::{engine_v1::GraphQlRequest, fetch::RecordedSubRequest};
@@ -28,7 +29,7 @@ impl TestEngineV2 {
         while self.recorded_subrequests.pop().is_some() {}
         ExecutionRequest {
             request: request.into(),
-            headers: HashMap::new(),
+            headers: Vec::new(),
             engine: Arc::clone(&self.engine),
         }
     }
@@ -42,7 +43,7 @@ impl TestEngineV2 {
 pub struct ExecutionRequest {
     request: GraphQlRequest,
     #[allow(dead_code)]
-    headers: HashMap<String, String>,
+    headers: Vec<(String, String)>,
     engine: Arc<engine_v2::Engine<TestRuntime>>,
 }
 
@@ -54,7 +55,7 @@ impl ExecutionRequest {
 
     /// Adds a header into the request
     pub fn header(mut self, name: impl Into<String>, value: impl Into<String>) -> Self {
-        self.headers.insert(name.into(), value.into());
+        self.headers.push((name.into(), value.into()));
         self
     }
 
@@ -73,7 +74,20 @@ impl ExecutionRequest {
     }
 
     fn http_headers(&self) -> http::HeaderMap {
-        TryFrom::try_from(&self.headers).unwrap()
+        let mut headers = http::HeaderMap::new();
+
+        for (key, value) in &self.headers {
+            let key = HeaderName::from_str(key).unwrap();
+            let value = HeaderValue::from_str(value).unwrap();
+
+            if let Entry::Occupied(mut e) = headers.entry(key.clone()) {
+                e.append(value);
+            } else {
+                headers.insert(key, value);
+            }
+        }
+
+        headers
     }
 
     pub fn into_multipart_stream(self) -> MultipartStreamRequest {

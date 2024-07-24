@@ -742,3 +742,243 @@ fn test_rename_duplicate_default_with_missing_value() {
     }
     "###);
 }
+
+#[test]
+fn regex_header_regex_forwarding_should_forward_duplicates_too() {
+    let response = runtime().block_on(async move {
+        let echo_subgraph = MockGraphQlServer::new(EchoSchema).await;
+
+        let engine = Engine::builder()
+            .with_subgraph("echo", &echo_subgraph)
+            .with_header_rule(SubgraphHeaderRule::Forward(SubgraphHeaderForward {
+                name: NameOrPattern::Pattern(Regex::new("^.*$").unwrap()),
+                default: None,
+                rename: None,
+            }))
+            .build()
+            .await;
+
+        engine
+            .execute("query { headers { name value }}")
+            .header("x-source", "boom")
+            .header("x-source", "zoom")
+            .await
+    });
+
+    insta::assert_json_snapshot!(response, @r###"
+    {
+      "data": {
+        "headers": [
+          {
+            "name": "accept",
+            "value": "application/json"
+          },
+          {
+            "name": "content-length",
+            "value": "78"
+          },
+          {
+            "name": "content-type",
+            "value": "application/json"
+          },
+          {
+            "name": "x-source",
+            "value": "boom"
+          },
+          {
+            "name": "x-source",
+            "value": "zoom"
+          }
+        ]
+      }
+    }
+    "###);
+}
+
+#[test]
+fn regex_header_forwarding_should_forward_duplicates() {
+    let response = runtime().block_on(async move {
+        let echo_subgraph = MockGraphQlServer::new(EchoSchema).await;
+
+        let engine = Engine::builder()
+            .with_subgraph("echo", &echo_subgraph)
+            .with_header_rule(SubgraphHeaderRule::Forward(SubgraphHeaderForward {
+                name: NameOrPattern::Name(String::from("x-source")),
+                default: None,
+                rename: None,
+            }))
+            .build()
+            .await;
+
+        engine
+            .execute("query { headers { name value }}")
+            .header("x-source", "boom")
+            .header("x-source", "zoom")
+            .await
+    });
+
+    insta::assert_json_snapshot!(response, @r###"
+    {
+      "data": {
+        "headers": [
+          {
+            "name": "accept",
+            "value": "application/json"
+          },
+          {
+            "name": "content-length",
+            "value": "78"
+          },
+          {
+            "name": "content-type",
+            "value": "application/json"
+          },
+          {
+            "name": "x-source",
+            "value": "boom"
+          },
+          {
+            "name": "x-source",
+            "value": "zoom"
+          }
+        ]
+      }
+    }
+    "###);
+}
+
+#[test]
+fn regex_header_forwarding_should_forward_duplicates_with_rename() {
+    let response = runtime().block_on(async move {
+        let echo_subgraph = MockGraphQlServer::new(EchoSchema).await;
+
+        let engine = Engine::builder()
+            .with_subgraph("echo", &echo_subgraph)
+            .with_header_rule(SubgraphHeaderRule::Forward(SubgraphHeaderForward {
+                name: NameOrPattern::Name(String::from("x-source")),
+                default: None,
+                rename: Some(String::from("y-source")),
+            }))
+            .build()
+            .await;
+
+        engine
+            .execute("query { headers { name value }}")
+            .header("x-source", "boom")
+            .header("x-source", "zoom")
+            .await
+    });
+
+    insta::assert_json_snapshot!(response, @r###"
+    {
+      "data": {
+        "headers": [
+          {
+            "name": "accept",
+            "value": "application/json"
+          },
+          {
+            "name": "content-length",
+            "value": "78"
+          },
+          {
+            "name": "content-type",
+            "value": "application/json"
+          },
+          {
+            "name": "y-source",
+            "value": "boom"
+          },
+          {
+            "name": "y-source",
+            "value": "zoom"
+          }
+        ]
+      }
+    }
+    "###);
+}
+
+#[test]
+fn header_remove_should_remove_duplicates() {
+    let response = runtime().block_on(async move {
+        let echo_subgraph = MockGraphQlServer::new(EchoSchema).await;
+
+        let engine = Engine::builder()
+            .with_subgraph("echo", &echo_subgraph)
+            .with_header_rule(SubgraphHeaderRule::Remove(SubgraphHeaderRemove {
+                name: NameOrPattern::Name(String::from("x-source")),
+            }))
+            .build()
+            .await;
+
+        engine
+            .execute("query { headers { name value }}")
+            .header("x-source", "boom")
+            .header("x-source", "zoom")
+            .await
+    });
+
+    insta::assert_json_snapshot!(response, @r###"
+    {
+      "data": {
+        "headers": [
+          {
+            "name": "accept",
+            "value": "application/json"
+          },
+          {
+            "name": "content-length",
+            "value": "78"
+          },
+          {
+            "name": "content-type",
+            "value": "application/json"
+          }
+        ]
+      }
+    }
+    "###);
+}
+
+#[test]
+fn header_regex_remove_should_remove_duplicates() {
+    let response = runtime().block_on(async move {
+        let echo_subgraph = MockGraphQlServer::new(EchoSchema).await;
+
+        let engine = Engine::builder()
+            .with_subgraph("echo", &echo_subgraph)
+            .with_header_rule(SubgraphHeaderRule::Remove(SubgraphHeaderRemove {
+                name: NameOrPattern::Pattern(Regex::new("^x-source$").unwrap()),
+            }))
+            .build()
+            .await;
+
+        engine
+            .execute("query { headers { name value }}")
+            .header("x-source", "boom")
+            .header("x-source", "zoom")
+            .await
+    });
+
+    insta::assert_json_snapshot!(response, @r###"
+    {
+      "data": {
+        "headers": [
+          {
+            "name": "accept",
+            "value": "application/json"
+          },
+          {
+            "name": "content-length",
+            "value": "78"
+          },
+          {
+            "name": "content-type",
+            "value": "application/json"
+          }
+        ]
+      }
+    }
+    "###);
+}

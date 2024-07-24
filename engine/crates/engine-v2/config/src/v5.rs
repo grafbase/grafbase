@@ -253,6 +253,7 @@ mod tests {
                   }
                 }
               },
+              "default_header_rules": [],
               "disable_introspection": false,
               "graph": {
                 "authorized_directives": [],
