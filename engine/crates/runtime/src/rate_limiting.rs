@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 use std::net::IpAddr;
-use std::path::Path;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -58,18 +57,4 @@ pub struct SubgraphRateLimitConfig {
 #[derive(Debug, Clone, Default)]
 pub struct KeyedRateLimitConfig<'a> {
     pub rate_limiting_configs: HashMap<&'a str, SubgraphRateLimitConfig>,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub struct RateLimitRedisConfig<'a> {
-    pub url: &'a str,
-    pub key_prefix: &'a str,
-    pub tls: Option<RateLimitRedisTlsConfig<'a>>,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub struct RateLimitRedisTlsConfig<'a> {
-    pub cert: &'a Path,
-    pub key: &'a Path,
-    pub ca: Option<&'a Path>,
 }

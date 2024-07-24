@@ -6,6 +6,7 @@ use std::{
     fs::File,
     io::{BufReader, Read},
     net::IpAddr,
+    path::Path,
     time::{Duration, SystemTime},
 };
 
@@ -14,8 +15,22 @@ use deadpool::managed::Pool;
 use futures_util::future::BoxFuture;
 use grafbase_telemetry::span::GRAFBASE_TARGET;
 use http::{HeaderName, HeaderValue};
-use runtime::rate_limiting::{Error, RateLimitRedisConfig, RateLimiter, RateLimiterContext, SubgraphRateLimitConfig};
+use runtime::rate_limiting::{Error, RateLimiter, RateLimiterContext, SubgraphRateLimitConfig};
 use serde_json::Value;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub struct RateLimitRedisConfig<'a> {
+    pub url: &'a str,
+    pub key_prefix: &'a str,
+    pub tls: Option<RateLimitRedisTlsConfig<'a>>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub struct RateLimitRedisTlsConfig<'a> {
+    pub cert: &'a Path,
+    pub key: &'a Path,
+    pub ca: Option<&'a Path>,
+}
 
 pub struct RateLimitingContext(pub String);
 

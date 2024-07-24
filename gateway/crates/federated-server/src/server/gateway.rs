@@ -140,13 +140,13 @@ pub(super) async fn generate(
             let tls = config
                 .redis
                 .tls
-                .map(|tls| runtime::rate_limiting::RateLimitRedisTlsConfig {
+                .map(|tls| runtime_local::rate_limiting::redis::RateLimitRedisTlsConfig {
                     cert: tls.cert,
                     key: tls.key,
                     ca: tls.ca,
                 });
 
-            let global_config = runtime::rate_limiting::RateLimitRedisConfig {
+            let global_config = runtime_local::rate_limiting::redis::RateLimitRedisConfig {
                 url: config.redis.url,
                 key_prefix: config.redis.key_prefix,
                 tls,
