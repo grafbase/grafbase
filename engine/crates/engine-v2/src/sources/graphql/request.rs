@@ -38,10 +38,10 @@ pub(super) async fn execute_subgraph_request<'ctx, 'a, R: Runtime>(
         )
         .await?;
 
-    request.headers.typed_insert(headers::ContentType::json());
     request
         .headers
         .typed_insert(headers::ContentLength(request.json_body.len() as u64));
+
     request
         .headers
         .insert(http::header::ACCEPT, http::HeaderValue::from_static("application/json"));
