@@ -795,7 +795,7 @@ fn health_custom_listener() {
 #[test]
 fn global_rate_limiting() {
     let config = indoc! {r#"
-        [gateway.rate_limit]
+        [gateway.rate_limit.global]
         limit = 1
         duration = "1s"
     "#};
@@ -846,9 +846,11 @@ fn subgraph_rate_limiting() {
 fn global_redis_rate_limiting() {
     let config = indoc! {r#"
         [gateway.rate_limit]
+        storage = "redis"
+
+        [gateway.rate_limit.global]
         limit = 1
         duration = "1s"
-        storage = "redis"
     "#};
 
     let schema = load_schema("big");
@@ -872,8 +874,6 @@ fn global_redis_rate_limiting() {
 fn subgraph_redis_rate_limiting() {
     let config = indoc! {r#"
         [gateway.rate_limit]
-        limit = 100
-        duration = "1s"
         storage = "redis"
 
         [subgraphs.accounts.rate_limit]

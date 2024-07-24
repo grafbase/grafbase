@@ -20,7 +20,7 @@ pub use header::{
     HeaderForward, HeaderInsert, HeaderRemove, HeaderRenameDuplicate, HeaderRule, HeaderRuleId, NameOrPattern,
 };
 pub use rate_limit::{
-    RateLimitConfig, RateLimitRedisConfig, RateLimitRedisTlsConfig, RateLimitStorage, SubgraphRateLimitConfig,
+    GraphRateLimit, RateLimitConfig, RateLimitRedisConfig, RateLimitRedisTlsConfig, RateLimitStorage,
 };
 
 /// Configuration for a federated graph
@@ -88,11 +88,11 @@ impl Config {
         })
     }
 
-    pub fn as_keyed_rate_limit_config(&self) -> HashMap<&str, SubgraphRateLimitConfig> {
+    pub fn as_keyed_rate_limit_config(&self) -> HashMap<&str, GraphRateLimit> {
         let mut key_based_config = HashMap::new();
 
-        if let Some(global_config) = &self.rate_limit {
-            key_based_config.insert(GLOBAL_RATE_LIMIT_KEY, global_config.as_subgraph_config());
+        if let Some(global_config) = self.rate_limit.as_ref().and_then(|c| c.global) {
+            key_based_config.insert(GLOBAL_RATE_LIMIT_KEY, global_config);
         }
 
         for subgraph in self.subgraph_configs.values() {

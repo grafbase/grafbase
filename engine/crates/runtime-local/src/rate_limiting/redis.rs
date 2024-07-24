@@ -15,7 +15,7 @@ use deadpool::managed::Pool;
 use futures_util::future::BoxFuture;
 use grafbase_telemetry::span::GRAFBASE_TARGET;
 use http::{HeaderName, HeaderValue};
-use runtime::rate_limiting::{Error, RateLimiter, RateLimiterContext, SubgraphRateLimitConfig};
+use runtime::rate_limiting::{Error, GraphRateLimit, RateLimiter, RateLimiterContext};
 use serde_json::Value;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -70,7 +70,7 @@ impl RateLimiterContext for RateLimitingContext {
 pub struct RedisRateLimiter {
     pool: Pool<pool::Manager>,
     key_prefix: String,
-    subgraph_limits: HashMap<String, SubgraphRateLimitConfig>,
+    subgraph_limits: HashMap<String, GraphRateLimit>,
 }
 
 enum Key<'a> {
@@ -95,7 +95,7 @@ impl<'a> fmt::Display for Key<'a> {
 impl RedisRateLimiter {
     pub async fn runtime(
         config: RateLimitRedisConfig<'_>,
-        subgraph_limits: impl IntoIterator<Item = (&str, SubgraphRateLimitConfig)>,
+        subgraph_limits: impl IntoIterator<Item = (&str, GraphRateLimit)>,
     ) -> anyhow::Result<RateLimiter> {
         let inner = Self::new(config, subgraph_limits).await?;
         Ok(RateLimiter::new(inner))
@@ -103,7 +103,7 @@ impl RedisRateLimiter {
 
     pub async fn new(
         config: RateLimitRedisConfig<'_>,
-        subgraph_limits: impl IntoIterator<Item = (&str, SubgraphRateLimitConfig)>,
+        subgraph_limits: impl IntoIterator<Item = (&str, GraphRateLimit)>,
     ) -> anyhow::Result<RedisRateLimiter> {
         let manager = match config.tls {
             Some(tls) => {

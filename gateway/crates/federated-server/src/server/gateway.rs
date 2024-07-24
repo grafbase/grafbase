@@ -127,7 +127,7 @@ pub(super) async fn generate(
         .map(|(k, v)| {
             (
                 k,
-                runtime::rate_limiting::SubgraphRateLimitConfig {
+                runtime::rate_limiting::GraphRateLimit {
                     limit: v.limit,
                     duration: v.duration,
                 },

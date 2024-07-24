@@ -6,7 +6,7 @@ use std::time::Duration;
 
 #[derive(Debug, Clone, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
-pub struct SubgraphRateLimitConfig {
+pub struct GraphRateLimit {
     pub limit: usize,
     #[serde(deserialize_with = "deserialize_duration_internal")]
     pub duration: Duration,
@@ -15,9 +15,7 @@ pub struct SubgraphRateLimitConfig {
 #[derive(Debug, Clone, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct RateLimitConfig {
-    pub limit: usize,
-    #[serde(deserialize_with = "deserialize_duration_internal")]
-    pub duration: Duration,
+    pub global: Option<GraphRateLimit>,
     #[serde(default)]
     pub storage: RateLimitStorage,
     #[serde(default)]
@@ -86,16 +84,15 @@ where
 impl From<RateLimitConfig> for parser_sdl::federation::RateLimitConfig {
     fn from(value: RateLimitConfig) -> Self {
         Self {
-            limit: value.limit,
-            duration: value.duration,
+            global: value.global.map(Into::into),
             storage: value.storage.into(),
             redis: value.redis.into(),
         }
     }
 }
 
-impl From<SubgraphRateLimitConfig> for parser_sdl::federation::SubgraphRateLimitConfig {
-    fn from(value: SubgraphRateLimitConfig) -> Self {
+impl From<GraphRateLimit> for parser_sdl::federation::GraphRateLimit {
+    fn from(value: GraphRateLimit) -> Self {
         Self {
             limit: value.limit,
             duration: value.duration,

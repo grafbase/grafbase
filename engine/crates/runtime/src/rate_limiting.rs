@@ -49,12 +49,12 @@ impl std::ops::Deref for RateLimiter {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub struct SubgraphRateLimitConfig {
+pub struct GraphRateLimit {
     pub limit: usize,
     pub duration: Duration,
 }
 
 #[derive(Debug, Clone, Default)]
 pub struct KeyedRateLimitConfig<'a> {
-    pub rate_limiting_configs: HashMap<&'a str, SubgraphRateLimitConfig>,
+    pub rate_limiting_configs: HashMap<&'a str, GraphRateLimit>,
 }

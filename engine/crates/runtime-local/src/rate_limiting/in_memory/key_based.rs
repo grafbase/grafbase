@@ -8,7 +8,7 @@ use governor::Quota;
 use serde_json::Value;
 
 use http::{HeaderName, HeaderValue};
-use runtime::rate_limiting::{Error, KeyedRateLimitConfig, RateLimiter, RateLimiterContext, SubgraphRateLimitConfig};
+use runtime::rate_limiting::{Error, GraphRateLimit, KeyedRateLimitConfig, RateLimiter, RateLimiterContext};
 
 pub struct RateLimitingContext(pub String);
 
@@ -51,7 +51,7 @@ impl InMemoryRateLimiter {
         RateLimiter::new(limiter)
     }
 
-    pub fn with_rate_limiter(mut self, key: &str, rate_limit_config: SubgraphRateLimitConfig) -> Self {
+    pub fn with_rate_limiter(mut self, key: &str, rate_limit_config: GraphRateLimit) -> Self {
         let quota = (rate_limit_config.limit as u64)
             .checked_div(rate_limit_config.duration.as_secs())
             .expect("rate limiter with invalid per second quota");
