@@ -24,7 +24,7 @@ pub struct RateLimitConfigRef<'a> {
 #[derive(Debug, Clone, Copy, Default, serde::Serialize, serde::Deserialize)]
 pub enum RateLimitStorage {
     #[default]
-    InMemory,
+    Memory,
     Redis,
 }
 impl RateLimitStorage {

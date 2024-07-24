@@ -78,7 +78,7 @@ pub struct RateLimitConfig {
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum RateLimitStorage {
-    InMemory,
+    Memory,
     Redis,
 }
 
