@@ -146,12 +146,7 @@ impl<'a> GraphqlEndpointWalker<'a> {
     }
 
     pub fn header_rules(self) -> impl Iterator<Item = HeaderRuleWalker<'a>> {
-        self.schema
-            .settings
-            .default_header_rules
-            .iter()
-            .chain(self.as_ref().header_rules.iter())
-            .map(move |id| self.walk(*id))
+        self.as_ref().header_rules.iter().map(move |id| self.walk(*id))
     }
 }
 
