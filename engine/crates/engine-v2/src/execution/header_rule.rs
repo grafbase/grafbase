@@ -56,8 +56,8 @@ fn handle_rename_duplicate<C>(
     });
 
     if let Some(value) = value {
-        headers.insert(name, value.clone().into_owned());
-        headers.insert(rename, value.into_owned());
+        headers.append(name, value.clone().into_owned());
+        headers.append(rename, value.into_owned());
     }
 }
 
@@ -90,7 +90,7 @@ fn handle_insert(headers: &mut http::HeaderMap, name: &str, value: &str) {
             return;
         }
 
-        headers.insert(name, value);
+        headers.append(name, value);
     }
 }
 
@@ -110,48 +110,54 @@ fn handle_forward<C>(
                 .filter(|(name, _)| regex.is_match(name.as_str()));
 
             for (name, value) in filtered {
-                // if a previous rule added a header with the same name, remove the old one.
-                headers.remove(name);
-
                 match rename.and_then(|s| http::HeaderName::from_str(s).ok()) {
                     Some(rename) => {
-                        headers.insert(rename, value.clone());
+                        headers.append(rename, value.clone());
                     }
                     None => {
-                        headers.insert(name.clone(), value.clone());
+                        headers.append(name.clone(), value.clone());
                     }
                 }
             }
         }
         NameOrPatternRef::Name(name) => {
-            // if a previous rule added a header with the same name, remove the old one.
-            headers.remove(name);
-
-            let header = request_context.headers.get(name);
-            let default = default.and_then(|d| http::HeaderValue::from_str(d).ok());
-
-            let name = match rename {
-                Some(rename) => rename,
-                None => name,
-            };
-
             let Ok(name) = http::HeaderName::from_str(name) else {
                 return;
+            };
+
+            // if a previous rule added a header with the same name, remove the old one.
+            headers.remove(&name);
+
+            let found = request_context.headers.get_all(&name);
+
+            let name = match rename {
+                Some(rename) => match http::HeaderName::from_str(rename) {
+                    Ok(name) => name,
+                    Err(_) => {
+                        return;
+                    }
+                },
+                None => name,
             };
 
             if is_header_denied(&name) {
                 return;
             }
 
-            match (header, default) {
-                (None, Some(default)) => {
-                    headers.insert(name, default);
-                }
-                (Some(value), _) => {
-                    headers.insert(name, value.clone());
+            let default = default.and_then(|d| http::HeaderValue::from_str(d).ok());
+            let mut inserted = false;
+
+            for header in found {
+                inserted = true;
+                headers.append(name.clone(), header.clone());
+            }
+
+            match default {
+                Some(value) if !inserted => {
+                    headers.insert(name, value);
                 }
                 _ => (),
-            };
+            }
         }
     }
 }

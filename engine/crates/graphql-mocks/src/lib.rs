@@ -121,8 +121,8 @@ async fn graphql_handler(
         .ok();
 
     let headers = headers
-        .into_iter()
-        .filter_map(|(name, value)| Some((name?.to_string(), String::from_utf8_lossy(value.as_bytes()).to_string())))
+        .iter()
+        .map(|(name, value)| (name.to_string(), String::from_utf8_lossy(value.as_bytes()).to_string()))
         .collect();
 
     let response: GraphQLResponse = state.schema.execute(headers, req).await.into();
