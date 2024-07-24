@@ -139,9 +139,7 @@ impl<'a> BuildContext<'a> {
                 duration: config.duration,
             }),
             storage: match config.storage {
-                parser_sdl::federation::RateLimitStorage::InMemory => {
-                    engine_v2_config::latest::RateLimitStorage::InMemory
-                }
+                parser_sdl::federation::RateLimitStorage::Memory => engine_v2_config::latest::RateLimitStorage::Memory,
                 parser_sdl::federation::RateLimitStorage::Redis => engine_v2_config::latest::RateLimitStorage::Redis,
             },
             redis: engine_v2_config::latest::RateLimitRedisConfig {

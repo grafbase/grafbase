@@ -26,7 +26,7 @@ pub struct RateLimitConfig {
 #[serde(rename_all = "lowercase")]
 pub enum RateLimitStorage {
     #[default]
-    InMemory,
+    Memory,
     Redis,
 }
 
@@ -103,7 +103,7 @@ impl From<GraphRateLimit> for parser_sdl::federation::GraphRateLimit {
 impl From<RateLimitStorage> for parser_sdl::federation::RateLimitStorage {
     fn from(value: RateLimitStorage) -> Self {
         match value {
-            RateLimitStorage::InMemory => Self::InMemory,
+            RateLimitStorage::Memory => Self::Memory,
             RateLimitStorage::Redis => Self::Redis,
         }
     }

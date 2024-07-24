@@ -1347,7 +1347,7 @@ mod tests {
                         duration: 10s,
                     },
                 ),
-                storage: InMemory,
+                storage: Memory,
                 redis: RateLimitRedisConfig {
                     url: Url {
                         scheme: "redis",
