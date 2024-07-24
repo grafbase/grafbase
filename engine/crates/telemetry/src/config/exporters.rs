@@ -1,13 +1,13 @@
 mod logs;
 mod metrics;
-#[cfg(feature = "otlp")]
+// #[cfg(feature = "otlp")]
 mod otlp;
 mod stdout;
 mod tracing;
 
 pub use logs::LogsConfig;
 pub use metrics::MetricsConfig;
-#[cfg(feature = "otlp")]
+// #[cfg(feature = "otlp")]
 pub use otlp::{
     Headers, OtlpExporterConfig, OtlpExporterGrpcConfig, OtlpExporterHttpConfig, OtlpExporterProtocol,
     OtlpExporterTlsConfig,
@@ -23,7 +23,6 @@ pub struct ExportersConfig {
     #[serde(default)]
     pub stdout: Option<StdoutExporterConfig>,
     #[serde(default)]
-    #[cfg(feature = "otlp")]
     pub otlp: Option<OtlpExporterConfig>,
 }
 
