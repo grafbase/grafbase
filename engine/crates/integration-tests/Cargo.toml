@@ -42,7 +42,7 @@ ulid.workspace = true
 url.workspace = true
 wiremock.workspace = true
 registry-upgrade.workspace = true
-runtime-local = { workspace = true, features = ["wasi"] }
+runtime-local = { workspace = true, features = ["wasi", "redis"] }
 runtime-noop.workspace = true
 ory-client = "1.9.0"
 tracing-subscriber = { version = "0.3.18", default-features = false, features = [

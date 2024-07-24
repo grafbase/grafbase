@@ -22,7 +22,7 @@ indoc = "2.0.5"
 log = "0.4.21"
 reqwest = { workspace = true, features = ["json", "rustls-tls"] }
 runtime.workspace = true
-runtime-local = { workspace = true, features = ["wasi"] }
+runtime-local = { workspace = true, features = ["wasi", "redis"] }
 runtime-noop.workspace = true
 serde = "1.0.199"
 serde_json.workspace = true
@@ -37,7 +37,7 @@ common = { package = "grafbase-local-common", path = "../common", version = "0.7
 engine = { path = "../../../engine/crates/engine" }
 engine-config-builder = { path = "../../../engine/crates/engine-config-builder" }
 engine-v2.workspace = true
-engine-v2-axum.workspace = true 
+engine-v2-axum.workspace = true
 grafbase-graphql-introspection.workspace = true
 grafbase-telemetry = { workspace = true , features = ["tower"] }
 parser-sdl = { path = "../../../engine/crates/parser-sdl" }
