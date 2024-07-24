@@ -210,11 +210,10 @@ impl BuildContext {
             })
             .collect();
 
-        let default_header_rules = header_rules
-            .iter()
-            .enumerate()
-            .map(|(i, _)| i)
-            .map(Into::into)
+        let default_header_rules = config
+            .default_header_rules
+            .into_iter()
+            .map(|id| HeaderRuleId::from(id.0))
             .collect();
 
         Ok(Schema {

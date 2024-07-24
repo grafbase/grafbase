@@ -50,6 +50,7 @@ impl MockGraphQlServer {
             requests: sender,
             next_responses: Arc::new(Mutex::new(next_response_receiver)),
         };
+
         let app = Router::new()
             .route("/", post(graphql_handler))
             .route_service("/ws", GraphQLSubscription::new(SchemaExecutor(schema.clone())))
