@@ -24,7 +24,7 @@ pub fn build_config(config: &FederatedGraphConfig, graph: FederatedGraph) -> Ver
     let mut context = BuildContext::default();
     let mut subgraph_configs = BTreeMap::new();
 
-    context.insert_headers(&config.header_rules);
+    let default_header_rules = context.insert_headers(&config.header_rules);
 
     for (name, config) in &config.subgraphs {
         let Some(subgraph_id) = graph.find_subgraph(name) else {
@@ -66,6 +66,7 @@ pub fn build_config(config: &FederatedGraphConfig, graph: FederatedGraph) -> Ver
         graph,
         strings: context.strings.into_vec(),
         header_rules: context.header_rules,
+        default_header_rules,
         subgraph_configs,
         cache: cache_config,
         auth: build_auth_config(config),

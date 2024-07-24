@@ -17,6 +17,7 @@ pub struct Config {
     pub graph: FederatedGraphV3,
     pub strings: Vec<String>,
     pub header_rules: Vec<HeaderRule>,
+    pub default_header_rules: Vec<HeaderRuleId>,
 
     /// Additional configuration for our subgraphs
     pub subgraph_configs: BTreeMap<SubgraphId, SubgraphConfig>,
@@ -46,6 +47,7 @@ impl Config {
             graph,
             strings: Vec::new(),
             header_rules: Vec::new(),
+            default_header_rules: Default::default(),
             subgraph_configs: Default::default(),
             cache: Default::default(),
             auth: Default::default(),
@@ -223,6 +225,7 @@ mod tests {
             },
             strings: vec![],
             header_rules: vec![],
+            default_header_rules: Vec::new(),
             subgraph_configs: Default::default(),
             cache: CacheConfigs { rules: cache_config },
             auth: None,

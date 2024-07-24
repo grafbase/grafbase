@@ -1,5 +1,5 @@
 use federated_graph::FederatedGraphV1;
-use latest::{HeaderForward, HeaderInsert, HeaderRule};
+use latest::{HeaderForward, HeaderInsert, HeaderRule, HeaderRuleId};
 
 // The specific version modules should be kept private, users of this crate
 // should only access types via `latest`
@@ -105,7 +105,7 @@ impl VersionedConfig {
                 graph,
                 strings,
                 headers,
-                default_headers: _,
+                default_headers,
                 subgraph_configs,
                 cache,
                 auth,
@@ -127,10 +127,13 @@ impl VersionedConfig {
                     })
                     .collect();
 
+                let default_header_rules = default_headers.into_iter().map(|id| HeaderRuleId(id.0)).collect();
+
                 v5::Config {
                     graph,
                     strings,
                     header_rules,
+                    default_header_rules,
                     subgraph_configs,
                     cache,
                     auth,
