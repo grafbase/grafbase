@@ -134,8 +134,10 @@ impl<'a> BuildContext<'a> {
 
     pub fn insert_rate_limit(&mut self, config: &'a parser_sdl::federation::RateLimitConfig) {
         let rate_limit = engine_v2_config::latest::RateLimitConfig {
-            limit: config.limit,
-            duration: config.duration,
+            global: config.global.map(|config| engine_v2_config::latest::GraphRateLimit {
+                limit: config.limit,
+                duration: config.duration,
+            }),
             storage: match config.storage {
                 parser_sdl::federation::RateLimitStorage::InMemory => {
                     engine_v2_config::latest::RateLimitStorage::InMemory
@@ -184,7 +186,7 @@ impl<'a> BuildContext<'a> {
 
             let rate_limit = rate_limit
                 .as_ref()
-                .map(|config| engine_v2_config::latest::SubgraphRateLimitConfig {
+                .map(|config| engine_v2_config::latest::GraphRateLimit {
                     limit: config.limit,
                     duration: config.duration,
                 });

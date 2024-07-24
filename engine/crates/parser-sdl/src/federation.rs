@@ -42,7 +42,7 @@ pub struct SubgraphConfig {
     pub header_rules: Vec<SubgraphHeaderRule>,
 
     /// Configuration to enforce rate limiting on subgraph requests
-    pub rate_limit: Option<SubgraphRateLimitConfig>,
+    pub rate_limit: Option<GraphRateLimit>,
 
     /// Timeouts to apply to subgraph requests
     pub timeout: Option<Duration>,
@@ -61,8 +61,8 @@ impl From<(String, ConnectorHeaderValue)> for SubgraphHeaderRule {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub struct SubgraphRateLimitConfig {
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub struct GraphRateLimit {
     pub limit: usize,
     pub duration: Duration,
 }
@@ -71,8 +71,7 @@ pub struct SubgraphRateLimitConfig {
 // for standalone v1 and local wouldn't work as its quite different
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct RateLimitConfig {
-    pub limit: usize,
-    pub duration: Duration,
+    pub global: Option<GraphRateLimit>,
     pub storage: RateLimitStorage,
     pub redis: RateLimitRedisConfig,
 }

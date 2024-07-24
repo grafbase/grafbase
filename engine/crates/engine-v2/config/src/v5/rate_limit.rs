@@ -3,15 +3,14 @@ use std::{path::Path, time::Duration};
 use super::{PathId, StringId};
 
 #[derive(Debug, Clone, Copy, serde::Serialize, serde::Deserialize)]
-pub struct SubgraphRateLimitConfig {
+pub struct GraphRateLimit {
     pub limit: usize,
     pub duration: Duration,
 }
 
 #[derive(Debug, Clone, Copy, serde::Serialize, serde::Deserialize)]
 pub struct RateLimitConfig {
-    pub limit: usize,
-    pub duration: Duration,
+    pub global: Option<GraphRateLimit>,
     pub storage: RateLimitStorage,
     pub redis: RateLimitRedisConfig,
 }
@@ -20,15 +19,6 @@ pub struct RateLimitConfig {
 pub struct RateLimitConfigRef<'a> {
     pub storage: RateLimitStorage,
     pub redis: RateLimitRedisConfigRef<'a>,
-}
-
-impl RateLimitConfig {
-    pub fn as_subgraph_config(self) -> SubgraphRateLimitConfig {
-        SubgraphRateLimitConfig {
-            limit: self.limit,
-            duration: self.duration,
-        }
-    }
 }
 
 #[derive(Debug, Clone, Copy, Default, serde::Serialize, serde::Deserialize)]

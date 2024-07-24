@@ -12,7 +12,7 @@ pub use authentication::AuthenticationConfig;
 pub use cors::CorsConfig;
 use grafbase_telemetry::config::TelemetryConfig;
 pub use header::{HeaderForward, HeaderInsert, HeaderRemove, HeaderRule, NameOrPattern};
-pub use rate_limit::{RateLimitConfig, SubgraphRateLimitConfig};
+pub use rate_limit::{GraphRateLimit, RateLimitConfig};
 use runtime_local::HooksWasiConfig;
 use serde_dynamic_string::DynamicString;
 use url::Url;
@@ -81,7 +81,7 @@ pub struct SubgraphConfig {
     pub websocket_url: Option<Url>,
     /// Rate limiting configuration specifically for this Subgraph
     #[serde(default)]
-    pub rate_limit: Option<SubgraphRateLimitConfig>,
+    pub rate_limit: Option<GraphRateLimit>,
     /// Timeout for subgraph requests in seconds. Default: 30 seconds.
     #[serde(deserialize_with = "duration_str::deserialize_option_duration", default)]
     pub timeout: Option<Duration>,
@@ -1331,7 +1331,7 @@ mod tests {
     #[test]
     fn global_rate_limiting() {
         let input = indoc! {r#"
-            [gateway.rate_limit]
+            [gateway.rate_limit.global]
             limit = 1000
             duration = "10s"
         "#};
@@ -1341,8 +1341,12 @@ mod tests {
         insta::assert_debug_snapshot!(&config.gateway.rate_limit, @r###"
         Some(
             RateLimitConfig {
-                limit: 1000,
-                duration: 10s,
+                global: Some(
+                    GraphRateLimit {
+                        limit: 1000,
+                        duration: 10s,
+                    },
+                ),
                 storage: InMemory,
                 redis: RateLimitRedisConfig {
                     url: Url {
@@ -1374,8 +1378,6 @@ mod tests {
     fn global_rate_limiting_redis_defaults() {
         let input = indoc! {r#"
             [gateway.rate_limit]
-            limit = 1000
-            duration = "10s"
             storage = "redis"
         "#};
 
@@ -1384,8 +1386,7 @@ mod tests {
         insta::assert_debug_snapshot!(&config.gateway.rate_limit, @r###"
         Some(
             RateLimitConfig {
-                limit: 1000,
-                duration: 10s,
+                global: None,
                 storage: Redis,
                 redis: RateLimitRedisConfig {
                     url: Url {
@@ -1417,8 +1418,6 @@ mod tests {
     fn global_rate_limiting_redis_custom_url() {
         let input = indoc! {r#"
             [gateway.rate_limit]
-            limit = 1000
-            duration = "10s"
             storage = "redis"
 
             [gateway.rate_limit.redis]
@@ -1430,8 +1429,7 @@ mod tests {
         insta::assert_debug_snapshot!(&config.gateway.rate_limit, @r###"
         Some(
             RateLimitConfig {
-                limit: 1000,
-                duration: 10s,
+                global: None,
                 storage: Redis,
                 redis: RateLimitRedisConfig {
                     url: Url {
@@ -1465,8 +1463,6 @@ mod tests {
     fn global_rate_limiting_redis_custom_key_prefix() {
         let input = indoc! {r#"
             [gateway.rate_limit]
-            limit = 1000
-            duration = "10s"
             storage = "redis"
 
             [gateway.rate_limit.redis]
@@ -1478,8 +1474,7 @@ mod tests {
         insta::assert_debug_snapshot!(&config.gateway.rate_limit, @r###"
         Some(
             RateLimitConfig {
-                limit: 1000,
-                duration: 10s,
+                global: None,
                 storage: Redis,
                 redis: RateLimitRedisConfig {
                     url: Url {
@@ -1511,8 +1506,6 @@ mod tests {
     fn global_rate_limiting_redis_tls() {
         let input = indoc! {r#"
             [gateway.rate_limit]
-            limit = 1000
-            duration = "10s"
             storage = "redis"
 
             [gateway.rate_limit.redis.tls]
@@ -1525,8 +1518,7 @@ mod tests {
         insta::assert_debug_snapshot!(&config.gateway.rate_limit, @r###"
         Some(
             RateLimitConfig {
-                limit: 1000,
-                duration: 10s,
+                global: None,
                 storage: Redis,
                 redis: RateLimitRedisConfig {
                     url: Url {
@@ -1564,8 +1556,6 @@ mod tests {
     fn global_rate_limiting_redis_tls_custom_ca() {
         let input = indoc! {r#"
             [gateway.rate_limit]
-            limit = 1000
-            duration = "10s"
             storage = "redis"
 
             [gateway.rate_limit.redis.tls]
@@ -1579,8 +1569,7 @@ mod tests {
         insta::assert_debug_snapshot!(&config.gateway.rate_limit, @r###"
         Some(
             RateLimitConfig {
-                limit: 1000,
-                duration: 10s,
+                global: None,
                 storage: Redis,
                 redis: RateLimitRedisConfig {
                     url: Url {
@@ -1629,7 +1618,7 @@ mod tests {
         assert!(config.gateway.rate_limit.is_none());
         insta::assert_debug_snapshot!(&config.subgraphs.get("products").unwrap().rate_limit, @r###"
         Some(
-            SubgraphRateLimitConfig {
+            GraphRateLimit {
                 limit: 1000,
                 duration: 10s,
             },

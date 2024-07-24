@@ -57,7 +57,7 @@ pub(super) async fn new_gateway(config: Option<engine_v2::VersionedConfig>) -> O
         .map(|(k, v)| {
             (
                 k,
-                runtime::rate_limiting::SubgraphRateLimitConfig {
+                runtime::rate_limiting::GraphRateLimit {
                     limit: v.limit,
                     duration: v.duration,
                 },
