@@ -15,6 +15,7 @@ use deadpool::managed::Pool;
 use futures_util::future::BoxFuture;
 use grafbase_telemetry::span::GRAFBASE_TARGET;
 use http::{HeaderName, HeaderValue};
+use redis::ClientTlsConfig;
 use runtime::rate_limiting::{Error, GraphRateLimit, RateLimiter, RateLimiterContext};
 use serde_json::Value;
 
@@ -27,8 +28,8 @@ pub struct RateLimitRedisConfig<'a> {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct RateLimitRedisTlsConfig<'a> {
-    pub cert: &'a Path,
-    pub key: &'a Path,
+    pub cert: Option<&'a Path>,
+    pub key: Option<&'a Path>,
     pub ca: Option<&'a Path>,
 }
 
@@ -108,19 +109,29 @@ impl RedisRateLimiter {
         config: RateLimitRedisConfig<'_>,
         subgraph_limits: impl IntoIterator<Item = (&str, GraphRateLimit)>,
     ) -> anyhow::Result<RedisRateLimiter> {
-        let manager = match config.tls {
+        let tls_config = match config.tls {
             Some(tls) => {
-                let mut client_cert = Vec::new();
+                let client_tls = match tls.cert.zip(tls.key) {
+                    Some((cert, key)) => {
+                        let mut client_cert = Vec::new();
 
-                File::open(tls.cert)
-                    .and_then(|file| BufReader::new(file).read_to_end(&mut client_cert))
-                    .context("loading the Redis client certificate")?;
+                        File::open(cert)
+                            .and_then(|file| BufReader::new(file).read_to_end(&mut client_cert))
+                            .context("loading the Redis client certificate")?;
 
-                let mut client_key = Vec::new();
+                        let mut client_key = Vec::new();
 
-                File::open(tls.key)
-                    .and_then(|file| BufReader::new(file).read_to_end(&mut client_key))
-                    .context("loading the Redis client key")?;
+                        File::open(key)
+                            .and_then(|file| BufReader::new(file).read_to_end(&mut client_key))
+                            .context("loading the Redis client key")?;
+
+                        Some(ClientTlsConfig {
+                            client_cert,
+                            client_key,
+                        })
+                    }
+                    None => None,
+                };
 
                 let root_cert = match tls.ca {
                     Some(path) => {
@@ -135,25 +146,31 @@ impl RedisRateLimiter {
                     None => None,
                 };
 
-                pool::Manager::new(
-                    config.url,
-                    Some(pool::TlsConfig {
-                        client_cert,
-                        client_key,
-                        root_cert,
-                    }),
-                )
-                .context("creating a Redis connection with TLS")?
+                Some(pool::TlsConfig { client_tls, root_cert })
             }
-            None => pool::Manager::new(config.url, None).context("initializing a Redis client")?,
+            None => None,
         };
 
-        let pool = Pool::builder(manager)
+        let manager = match pool::Manager::new(config.url, tls_config) {
+            Ok(manager) => manager,
+            Err(e) => {
+                tracing::error!(target: GRAFBASE_TARGET, "error creating a Redis pool: {e}");
+                return Err(e.into());
+            }
+        };
+
+        let pool = match Pool::builder(manager)
             .wait_timeout(Some(Duration::from_secs(5)))
             .create_timeout(Some(Duration::from_secs(10)))
             .runtime(deadpool::Runtime::Tokio1)
             .build()
-            .context("creating a Redis connection pool")?;
+        {
+            Ok(pool) => pool,
+            Err(e) => {
+                tracing::error!(target: GRAFBASE_TARGET, "error creating a Redis pool: {e}");
+                return Err(e.into());
+            }
+        };
 
         let subgraph_limits = subgraph_limits
             .into_iter()
@@ -182,14 +199,17 @@ impl RedisRateLimiter {
 
         let current_ts = match now.duration_since(SystemTime::UNIX_EPOCH) {
             Ok(ts) => ts.as_nanos() as u64,
-            Err(e) => return Err(Error::Internal(e.to_string())),
+            Err(error) => {
+                tracing::error!(target: GRAFBASE_TARGET, "error with rate limit duration: {error}");
+                return Err(Error::Internal(String::from("rate limit")));
+            }
         };
 
         let mut conn = match self.pool.get().await {
             Ok(conn) => conn,
             Err(error) => {
                 tracing::error!(target: GRAFBASE_TARGET, "error fetching a Redis connection: {error}");
-                return Err(Error::Internal(error.to_string()));
+                return Err(Error::Internal(String::from("rate limit")));
             }
         };
 
@@ -237,7 +257,7 @@ impl RedisRateLimiter {
             }
             Err(e) => {
                 tracing::error!(target: GRAFBASE_TARGET, "error with Redis query: {e}");
-                Err(Error::Internal(e.to_string()))
+                Err(Error::Internal(String::from("rate limit")))
             }
         }
     }

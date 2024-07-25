@@ -150,8 +150,8 @@ impl<'a> BuildContext<'a> {
                     .tls
                     .as_ref()
                     .map(|config| engine_v2_config::latest::RateLimitRedisTlsConfig {
-                        cert: self.paths.intern(&config.cert),
-                        key: self.paths.intern(&config.key),
+                        cert: config.cert.as_ref().map(|cert| self.paths.intern(cert)),
+                        key: config.key.as_ref().map(|key| self.paths.intern(key)),
                         ca: config.ca.as_ref().map(|ca| self.paths.intern(ca)),
                     }),
             },

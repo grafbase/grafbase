@@ -63,8 +63,8 @@ impl RateLimitRedisConfig {
 #[derive(Debug, Clone, PartialEq, Default, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct RateLimitRedisTlsConfig {
-    pub cert: PathBuf,
-    pub key: PathBuf,
+    pub cert: Option<PathBuf>,
+    pub key: Option<PathBuf>,
     pub ca: Option<PathBuf>,
 }
 

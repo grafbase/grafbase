@@ -80,8 +80,8 @@ impl Config {
                 url: &self[config.redis.url],
                 key_prefix: &self[config.redis.key_prefix],
                 tls: config.redis.tls.map(|config| RateLimitRedisTlsConfigRef {
-                    cert: &self[config.cert],
-                    key: &self[config.key],
+                    cert: config.cert.map(|cert| &self[cert]),
+                    key: config.key.map(|key| &self[key]),
                     ca: config.ca.map(|ca| &self[ca]),
                 }),
             },

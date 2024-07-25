@@ -9,8 +9,7 @@ pub struct Manager {
 }
 
 pub(super) struct TlsConfig {
-    pub client_cert: Vec<u8>,
-    pub client_key: Vec<u8>,
+    pub client_tls: Option<ClientTlsConfig>,
     pub root_cert: Option<Vec<u8>>,
 }
 
@@ -20,10 +19,7 @@ impl Manager {
             Some(config) => Client::build_with_tls(
                 url,
                 TlsCertificates {
-                    client_tls: Some(ClientTlsConfig {
-                        client_cert: config.client_cert,
-                        client_key: config.client_key,
-                    }),
+                    client_tls: config.client_tls,
                     root_cert: config.root_cert,
                 },
             )?,

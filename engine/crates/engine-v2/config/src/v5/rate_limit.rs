@@ -49,14 +49,14 @@ pub struct RateLimitRedisConfigRef<'a> {
 
 #[derive(Debug, Clone, Copy, serde::Serialize, serde::Deserialize)]
 pub struct RateLimitRedisTlsConfig {
-    pub cert: PathId,
-    pub key: PathId,
+    pub cert: Option<PathId>,
+    pub key: Option<PathId>,
     pub ca: Option<PathId>,
 }
 
 #[derive(Debug, Clone, Copy)]
 pub struct RateLimitRedisTlsConfigRef<'a> {
-    pub cert: &'a Path,
-    pub key: &'a Path,
+    pub cert: Option<&'a Path>,
+    pub key: Option<&'a Path>,
     pub ca: Option<&'a Path>,
 }

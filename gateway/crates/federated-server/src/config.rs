@@ -1541,8 +1541,12 @@ mod tests {
                     key_prefix: "grafbase",
                     tls: Some(
                         RateLimitRedisTlsConfig {
-                            cert: "/path/to/cert.pem",
-                            key: "/path/to/key.pem",
+                            cert: Some(
+                                "/path/to/cert.pem",
+                            ),
+                            key: Some(
+                                "/path/to/key.pem",
+                            ),
                             ca: None,
                         },
                     ),
@@ -1592,8 +1596,12 @@ mod tests {
                     key_prefix: "grafbase",
                     tls: Some(
                         RateLimitRedisTlsConfig {
-                            cert: "/path/to/cert.pem",
-                            key: "/path/to/key.pem",
+                            cert: Some(
+                                "/path/to/cert.pem",
+                            ),
+                            key: Some(
+                                "/path/to/key.pem",
+                            ),
                             ca: Some(
                                 "ca.crt",
                             ),
