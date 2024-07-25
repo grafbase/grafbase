@@ -25,23 +25,38 @@ impl<'schema, 'p> super::Binder<'schema, 'p> {
                 }
                 TypeSystemDirective::Authorized(id) => {
                     let directive = &self.schema[*id];
-                    if directive.fields.is_some() {
-                        self.register_field_impacted_by_response_modifier(
-                            ResponseModifierRule::AuthorizedField {
-                                directive_id: *id,
-                                definition_id: definition.id(),
-                            },
-                            field_id,
-                        );
-                    } else {
-                        self.register_field_impacted_by_query_modifier(
-                            QueryModifierRule::AuthorizedField {
-                                directive_id: *id,
-                                definition_id: definition.id(),
-                                argument_ids,
-                            },
-                            field_id,
-                        );
+                    match (directive.fields.is_some(), directive.node.is_some()) {
+                        (true, true) => {
+                            unreachable!("Authorized directive with both fields and node isn't supported yet");
+                        }
+                        (true, false) => {
+                            self.register_field_impacted_by_response_modifier(
+                                ResponseModifierRule::AuthorizedParentEdge {
+                                    directive_id: *id,
+                                    definition_id: definition.id(),
+                                },
+                                field_id,
+                            );
+                        }
+                        (false, true) => {
+                            self.register_field_impacted_by_response_modifier(
+                                ResponseModifierRule::AuthorizedEdgeChild {
+                                    directive_id: *id,
+                                    definition_id: definition.id(),
+                                },
+                                field_id,
+                            );
+                        }
+                        (false, false) => {
+                            self.register_field_impacted_by_query_modifier(
+                                QueryModifierRule::AuthorizedField {
+                                    directive_id: *id,
+                                    definition_id: definition.id(),
+                                    argument_ids,
+                                },
+                                field_id,
+                            );
+                        }
                     }
                 }
                 _ => {}

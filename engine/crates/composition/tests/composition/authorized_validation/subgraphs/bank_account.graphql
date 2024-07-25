@@ -32,13 +32,13 @@ type Query {
   user(id: ID!): User
   accounts: [Account!]!
   account(id: ID!): Account
-  transactions: [Transaction!]!
+  transactions: [Transaction!]! @authorized(node: "doesNotExist")
   transaction(id: ID!): Transaction
 }
 
 # Define the Mutation type
 type Mutation {
-  createUser( name: String!, email: String!): User! @authorized(arguments: "not-a-selection")
+  createUser(name: String!, email: String!): User! @authorized(arguments: "not-a-selection")
   createAccount(userId: ID!, type: AccountType!, initialBalance: Float!): Account!
   createTransaction(accountId: ID!, amount: Float!, description: String): Transaction!
   updateUser(id: ID!, name: String, email: String): User!
@@ -47,4 +47,3 @@ type Mutation {
   deleteAccount(id: ID!): Account!
   deleteTransaction(id: ID!): Transaction!
 }
-

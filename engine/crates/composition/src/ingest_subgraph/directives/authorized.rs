@@ -23,6 +23,15 @@ pub(super) fn ingest(
         .map(|fields| subgraphs.selection_set_from_str(fields))
         .transpose()?;
 
+    let node = directive
+        .get_argument("node")
+        .and_then(|arg| match &arg.node {
+            ConstValue::String(requires) => Some(requires),
+            _ => None,
+        })
+        .map(|fields| subgraphs.selection_set_from_str(fields))
+        .transpose()?;
+
     let metadata = directive
         .get_argument("metadata")
         .map(|value| ast_value_to_subgraph_value(&value.node, subgraphs));
@@ -31,6 +40,7 @@ pub(super) fn ingest(
         directive_site_id,
         subgraphs::AuthorizedDirective {
             arguments,
+            node,
             fields,
             metadata,
         },

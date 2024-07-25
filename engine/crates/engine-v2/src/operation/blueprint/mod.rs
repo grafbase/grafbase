@@ -13,7 +13,9 @@ use crate::{
     utils::BufferPool,
 };
 
-use super::{FieldId, LogicalPlanId, OperationPlan, OperationWalker, ResponseBlueprint, SelectionSetType};
+use super::{
+    FieldId, LogicalPlanId, OperationPlan, OperationWalker, ResponseBlueprint, ResponseModifierRule, SelectionSetType,
+};
 
 pub(super) struct ResponseBlueprintBuilder<'schema, 'op> {
     schema: &'schema Schema,
@@ -75,13 +77,20 @@ where
             mut logical_plan_to_blueprint_builder,
             ..
         } = self;
-        for &field_id in &operation.response_modifier_impacted_fields {
-            let set_id = selection_set_to_response_object_set
-                [usize::from(operation[field_id].parent_selection_set_id())]
-            .expect("Not ResponseObjectSet defined for selection set");
-            blueprint
-                .response_modifier_impacted_field_to_response_object_set
-                .push(set_id);
+        for modifier in &operation.response_modifiers {
+            for &field_id in &operation[modifier.impacted_fields] {
+                let selection_set_id = match modifier.rule {
+                    ResponseModifierRule::AuthorizedParentEdge { .. } => operation[field_id].parent_selection_set_id(),
+                    ResponseModifierRule::AuthorizedEdgeChild { .. } => operation[field_id]
+                        .selection_set_id()
+                        .expect("Only an object/interface can be authorized here"),
+                };
+                let set_id = selection_set_to_response_object_set[usize::from(selection_set_id)]
+                    .expect("Not ResponseObjectSet defined for selection set");
+                blueprint
+                    .response_modifier_impacted_field_to_response_object_set
+                    .push(set_id);
+            }
         }
         blueprint.field_to_shape_ids = field_id_to_field_shape_ids_builder.into();
         logical_plan_to_blueprint_builder.sort_unstable_by_key(|(id, _)| *id);

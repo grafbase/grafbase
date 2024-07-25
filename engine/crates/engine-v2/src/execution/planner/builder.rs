@@ -131,28 +131,52 @@ where
             .chunk_by(|impacted_key| (impacted_key.rule, impacted_key.field_logical_plan_id))
             .into_iter()
         {
-            let mut selection_set_ids = Vec::new();
             let mut on = Vec::new();
+            let mut input_fields = self.io_fields_buffer_pool.pop();
             let mut output_fields = self.io_fields_buffer_pool.pop();
-            for ImpactedField { set_id, field_id, .. } in chunk {
-                let field = walker.walk(field_id);
-                selection_set_ids.push(field.as_ref().parent_selection_set_id());
-
-                let set_ty = self.operation.response_blueprint.response_object_sets_to_type[usize::from(set_id)];
-                let entity_id = field.definition().unwrap().parent_entity().id();
-                let type_condition = (set_ty != SelectionSetType::from(entity_id)).then_some(entity_id);
-                on.push((set_id, type_condition, field.response_key()));
-                output_fields.push(field_id);
-            }
+            // FIXME: split me into different functions
             let required_fields = match rule {
-                ResponseModifierRule::AuthorizedField { directive_id, .. } => {
-                    &schema[schema[directive_id].fields.unwrap()]
+                ResponseModifierRule::AuthorizedParentEdge { directive_id, .. } => {
+                    let required_fields = &schema[schema[directive_id].fields.unwrap()];
+                    for ImpactedField { set_id, field_id, .. } in chunk {
+                        let field = walker.walk(field_id);
+
+                        let set_ty =
+                            self.operation.response_blueprint.response_object_sets_to_type[usize::from(set_id)];
+                        let entity_id = field.definition().unwrap().parent_entity().id();
+                        let type_condition = (set_ty != SelectionSetType::from(entity_id)).then_some(entity_id);
+                        on.push((set_id, type_condition, field.response_key()));
+
+                        output_fields.push(field_id);
+                        self.collect_dependencies(
+                            field.as_ref().parent_selection_set_id(),
+                            required_fields,
+                            &mut input_fields,
+                        );
+                    }
+                    required_fields
+                }
+                ResponseModifierRule::AuthorizedEdgeChild { directive_id, .. } => {
+                    let required_fields = &schema[schema[directive_id].node.unwrap()];
+                    for ImpactedField { set_id, field_id, .. } in chunk {
+                        let field = walker.walk(field_id);
+
+                        let set_ty =
+                            self.operation.response_blueprint.response_object_sets_to_type[usize::from(set_id)];
+                        let entity_id = field.definition().unwrap().ty().inner().as_entity().unwrap().id();
+                        let type_condition = (set_ty != SelectionSetType::from(entity_id)).then_some(entity_id);
+                        on.push((set_id, type_condition, field.response_key()));
+
+                        output_fields.push(field_id);
+                        self.collect_dependencies(
+                            field.as_ref().selection_set_id().unwrap(),
+                            required_fields,
+                            &mut input_fields,
+                        );
+                    }
+                    required_fields
                 }
             };
-            let mut input_fields = self.io_fields_buffer_pool.pop();
-            for id in selection_set_ids {
-                self.collect_dependencies(id, required_fields, &mut input_fields)
-            }
             let requires = self.build_view(required_fields);
             self.response_modifier_executors.push(ResponseModifierExecutor {
                 rule,

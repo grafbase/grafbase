@@ -52,13 +52,14 @@ impl<'schema, 'a> SelectionSetLogicalPlanner<'schema, 'a> {
     pub(super) fn solve(
         &mut self,
         selection_set_id: SelectionSetId,
+        parent_field_requirements: Option<(FieldId, Cow<'schema, RequiredFieldSet>)>,
         planned_field_ids: Vec<FieldId>,
         unplanned_field_ids: Vec<FieldId>,
     ) -> LogicalPlanningResult<()> {
         tracing::trace!("Solving selection set {}", selection_set_id);
         let mut planned_selection_set = self.build_planned_selection_set(selection_set_id, &planned_field_ids);
         let missing = self.build_unplanned_fields(unplanned_field_ids);
-        self.plan_selection_set(&mut planned_selection_set, missing)?;
+        self.plan_selection_set(&mut planned_selection_set, parent_field_requirements, missing)?;
 
         // During the planning we add extra fields as necessary but we don't add them in the
         // children plan root fields.
@@ -83,12 +84,15 @@ impl<'schema, 'a> SelectionSetLogicalPlanner<'schema, 'a> {
 
         let solved_requirements = self.build_solved_requirements(planned_selection_set);
         if !solved_requirements.is_empty() {
-            // At least one child or response modifier will read something from this selection set
-            self.selection_set_to_objects_must_be_tracked
-                .set(selection_set_id, true);
             self.planner
                 .solved_requirements
                 .push((selection_set_id, solved_requirements));
+        }
+
+        if !self.children.is_empty() {
+            // At least one child will read something from this selection set
+            self.selection_set_to_objects_must_be_tracked
+                .set(selection_set_id, true);
         }
 
         Ok(())
@@ -233,6 +237,7 @@ impl<'schema, 'a> SelectionSetLogicalPlanner<'schema, 'a> {
     fn plan_selection_set(
         &mut self,
         planned_selection_set: &mut PlannedSelectionSet,
+        mut parent_field_requirements: Option<(FieldId, Cow<'schema, RequiredFieldSet>)>,
         mut unplanned_fields: HashMap<FieldId, FieldDefinitionWalker<'schema>>,
     ) -> LogicalPlanningResult<()> {
         // unplanned_field may be still be provided by the parent plan, but at this stage it
@@ -253,6 +258,13 @@ impl<'schema, 'a> SelectionSetLogicalPlanner<'schema, 'a> {
                 }
             }
 
+            if let Some((parent_field_id, parent_extra_requirements)) = &mut parent_field_requirements {
+                // If the parent plan can provide the field, we don't need to plan it.
+                if self.could_plan_requirements(planned_selection_set, *parent_field_id, parent_extra_requirements)? {
+                    requires = RequiredFieldSet::union_cow(requires, std::mem::take(parent_extra_requirements));
+                }
+            }
+
             for id in &planned_field_ids {
                 unplanned_fields.remove(id);
             }
@@ -262,10 +274,15 @@ impl<'schema, 'a> SelectionSetLogicalPlanner<'schema, 'a> {
                 parent_logic,
                 &planned_field_ids,
             )?;
-            self.register_necessary_extra_fields(parent_logic.id(), planned_selection_set, &requires);
+            self.register_necessary_extra_fields(None, planned_selection_set, &requires);
         }
 
-        if unplanned_fields.is_empty() {
+        if unplanned_fields.is_empty()
+            && parent_field_requirements
+                .as_ref()
+                .map(|(_, requirements)| requirements.is_empty())
+                .unwrap_or(true)
+        {
             return Ok(());
         }
 
@@ -319,6 +336,34 @@ impl<'schema, 'a> SelectionSetLogicalPlanner<'schema, 'a> {
             )?;
         }
 
+        if let Some((parent_field_id, parent_extra_requirements)) =
+            parent_field_requirements.filter(|(_, requirements)| !requirements.is_empty())
+        {
+            if self.could_plan_requirements(planned_selection_set, parent_field_id, &parent_extra_requirements)? {
+                self.register_necessary_extra_fields(None, planned_selection_set, &parent_extra_requirements);
+            } else {
+                let walker = self.walker();
+                tracing::debug!(
+                    "Could not plan extra requirements:\n=== PARENT ===\n{:#?}\n=== CURRENT ===\n{}\n=== MISSING ===\nFor {}\n{:#?}",
+                    self.maybe_parent.map(|parent| parent.resolver()),
+                    planned_selection_set
+                        .fields
+                        .keys()
+                        .map(|id| self.schema.walk(*id))
+                        .format_with("\n", |field, f| f(&format_args!("{field:#?}"))),
+                    walker.walk(parent_field_id).response_key_str(),
+                    self.schema.walk(parent_extra_requirements.as_ref())
+                );
+                return Err(LogicalPlanningError::CouldNotPlanAnyField {
+                    missing: parent_extra_requirements
+                        .iter()
+                        .map(|item| self.schema.walk(item).name().to_string())
+                        .collect(),
+                    query_path: walker.walk(self.query_path).iter().map(|s| s.to_string()).collect(),
+                });
+            }
+        }
+
         Ok(())
     }
 
@@ -332,7 +377,7 @@ impl<'schema, 'a> SelectionSetLogicalPlanner<'schema, 'a> {
     ) -> LogicalPlanningResult<()> {
         let path = self.query_path.clone();
         let plan_id = self.planner.push_plan(path, resolver_id, entity_id, &root_field_ids)?;
-        self.register_necessary_extra_fields(plan_id, planned_selection_set, &requires);
+        self.register_necessary_extra_fields(Some(plan_id), planned_selection_set, &requires);
         for field_id in root_field_ids {
             let definition_id = self.operation[field_id]
                 .definition_id()
@@ -359,7 +404,7 @@ impl<'schema, 'a> SelectionSetLogicalPlanner<'schema, 'a> {
     /// plans.
     fn register_necessary_extra_fields(
         &mut self,
-        plan_id: LogicalPlanId,
+        dependent_plan_id: Option<LogicalPlanId>,
         planned_selection_set: &mut PlannedSelectionSet,
         requires: &RequiredFieldSet,
     ) {
@@ -378,13 +423,15 @@ impl<'schema, 'a> SelectionSetLogicalPlanner<'schema, 'a> {
                     plan_id: parent_plan_id,
                     ..
                 } => {
-                    self.register_plan_child(ParentToChildEdge {
-                        parent: *parent_plan_id,
-                        child: plan_id,
-                    });
+                    if let Some(child) = dependent_plan_id {
+                        self.register_plan_child(ParentToChildEdge {
+                            parent: *parent_plan_id,
+                            child,
+                        });
+                    }
                     if let Some(planned_subselection) = lazy_subselection {
                         self.register_necessary_extra_fields(
-                            plan_id,
+                            dependent_plan_id,
                             planned_subselection,
                             &required_field.subselection,
                         )
@@ -400,10 +447,12 @@ impl<'schema, 'a> SelectionSetLogicalPlanner<'schema, 'a> {
                             field,
                         );
                     }
-                    self.register_plan_child(ParentToChildEdge {
-                        parent: field.logical_plan_id,
-                        child: plan_id,
-                    });
+                    if let Some(child) = dependent_plan_id {
+                        self.register_plan_child(ParentToChildEdge {
+                            parent: field.logical_plan_id,
+                            child,
+                        });
+                    }
 
                     if !required_field.subselection.is_empty() {
                         if field.subselection.id.is_none() {
@@ -411,7 +460,7 @@ impl<'schema, 'a> SelectionSetLogicalPlanner<'schema, 'a> {
                             field.subselection.id = Some((self.operation.selection_sets.len() - 1).into());
                         }
                         self.register_necessary_extra_fields(
-                            plan_id,
+                            dependent_plan_id,
                             &mut field.subselection,
                             &required_field.subselection,
                         )

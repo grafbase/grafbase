@@ -261,6 +261,7 @@ pub(crate) struct OverrideDirective {
 pub(crate) struct AuthorizedDirective {
     pub(crate) arguments: Option<Vec<Selection>>,
     pub(crate) fields: Option<Vec<Selection>>,
+    pub(crate) node: Option<Vec<Selection>>,
     pub(crate) metadata: Option<Value>,
 }
 

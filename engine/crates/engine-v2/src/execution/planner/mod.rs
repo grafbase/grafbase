@@ -18,7 +18,7 @@ use crate::{
 
 use super::{header_rule::create_subgraph_headers_with_rules, ExecutableOperation, ResponseModifierExecutor};
 
-pub(super) struct ExecutionPlanner<'ctx, 'op, R: Runtime> {
+struct ExecutionPlanner<'ctx, 'op, R: Runtime> {
     ctx: &'op PreExecutionContext<'ctx, R>,
     operation: ExecutableOperation,
     build_context: BuildContext,
@@ -40,7 +40,7 @@ impl<'ctx, 'op, R: Runtime> std::ops::DerefMut for ExecutionPlanner<'ctx, 'op, R
 // Ideally this BuilderContext would just be inside the ExecutionPlanner. But we do need to modify
 // the ExecutableOperation at some moments (here in the ExecutionPlanner) and at others we rely on it be immutable for walkers (in the builder::ExecutionBuilder)
 #[derive(Default)]
-pub struct BuildContext {
+struct BuildContext {
     // Either an input or output field of a plan or response modifier
     io_fields: Vec<FieldId>,
     io_fields_buffer_pool: BufferPool<FieldId>,
@@ -100,7 +100,7 @@ pub(super) async fn plan<'ctx, R: Runtime>(
         },
         operation,
     }
-    .build()?;
+    .plan()?;
 
     tracing::trace!(
         "== Plan Summary ==\n{}",
@@ -123,7 +123,7 @@ impl<'ctx, 'op, R: Runtime> ExecutionPlanner<'ctx, 'op, R>
 where
     'ctx: 'op,
 {
-    fn build(mut self) -> PlanningResult<ExecutableOperation> {
+    fn plan(mut self) -> PlanningResult<ExecutableOperation> {
         // We start by the end so that we avoid retrieving extra fields that are never read.
         for plan_id in self.operation.plan.in_topological_order.clone().into_iter().rev() {
             self.insert_execution_plan_for(plan_id)?;
@@ -191,22 +191,18 @@ where
 
         // To enforce the proper ordering of mutation fields, we create parent/child relations
         // between them.
-        let mut mutation_fields_plan_order = self
+        let mutation_order = self
             .operation
             .plan
             .mutation_fields_plan_order
-            .clone()
-            .into_iter()
-            .filter_map(|id| self.logical_plan_to_execution_plan_id[usize::from(id)])
-            .collect::<Vec<_>>()
-            .into_iter();
-        if let Some(mut prev) = mutation_fields_plan_order.next() {
-            for next in mutation_fields_plan_order {
-                if !self.operation[prev].children.contains(&next) {
-                    self.operation[prev].children.push(next);
-                    self.operation[next].parent_count += 1;
-                }
-                prev = next;
+            .iter()
+            .filter_map(|id| self.logical_plan_to_execution_plan_id[usize::from(*id)])
+            .collect::<Vec<_>>();
+
+        for (prev, next) in mutation_order.into_iter().tuple_windows() {
+            if !self.operation[prev].children.contains(&next) {
+                self.operation[prev].children.push(next);
+                self.operation[next].parent_count += 1;
             }
         }
 

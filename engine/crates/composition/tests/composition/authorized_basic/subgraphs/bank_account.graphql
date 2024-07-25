@@ -31,13 +31,13 @@ type Query {
   users: [User!]!
   user(id: ID!): User
   accounts: [Account!]!
-  account(id: ID!): Account
-  transactions: [Transaction!]!
+  account(id: ID!): Account @authorized(node: "id")
+  transactions: [Transaction!]! @authorized(node: "account { id }")
   transaction(id: ID!): Transaction
 }
 
 type Mutation {
-  createUser( name: String!, email: String!): User!
+  createUser(name: String!, email: String!): User!
   createAccount(userId: ID!, type: AccountType!, initialBalance: Float!): Account!
   createTransaction(accountId: ID!, amount: Float!, description: String): Transaction!
   updateUser(id: ID!, name: String, email: String): User!
@@ -45,7 +45,8 @@ type Mutation {
   deleteUser(id: ID!, soft: Boolean): User! @authorized(arguments: "id")
   deleteAccount(id: ID!): Account!
   deleteTransaction(id: ID!): Transaction!
-  createAccount(input: CreateAccountInput, included: Boolean, notIncluded: String): Account @authorized(arguments: "input { userId nested { name } } included", metadata: ["a", "b", "c"])
+  createAccount(input: CreateAccountInput, included: Boolean, notIncluded: String): Account
+    @authorized(arguments: "input { userId nested { name } } included", metadata: ["a", "b", "c"])
 }
 
 input CreateAccountInput {
