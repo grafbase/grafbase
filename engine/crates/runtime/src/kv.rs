@@ -59,6 +59,16 @@ impl std::ops::Deref for KvStore {
 
 #[async_trait::async_trait]
 pub trait KvStoreInner: Send + Sync {
+    /// Get an entry from the KV store.
+    ///
+    /// If cache_ttl is provided and the local cache has a sufficiently fresh entry, we'll read it
+    /// from there.  Otherwise we will fetch from a central location.
+    ///
+    /// See https://developers.cloudflare.com/kv/reference/how-kv-works/#performance for more details.
+    ///
+    /// Non-cloudflare implementations of this trait may have different behaviour.
     async fn get(&self, name: &str, cache_ttl: Option<Duration>) -> KvResult<Option<Vec<u8>>>;
+
+    /// Put an entry into the TTL store, with an optional expiry.
     async fn put(&self, name: &str, bytes: Vec<u8>, expiration_ttl: Option<Duration>) -> KvResult<()>;
 }
