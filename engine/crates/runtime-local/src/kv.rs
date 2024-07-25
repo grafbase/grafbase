@@ -1,12 +1,17 @@
 use runtime::kv::{KvResult, KvStore, KvStoreInner};
 use std::{
-    collections::HashMap,
+    collections::{hash_map::Entry, HashMap},
     sync::Mutex,
     time::{Duration, Instant},
 };
 
 pub struct InMemoryKvStore {
-    inner: Mutex<HashMap<String, (Vec<u8>, Instant)>>,
+    inner: Mutex<HashMap<String, CacheValue>>,
+}
+
+struct CacheValue {
+    data: Vec<u8>,
+    expires_at: Option<Instant>,
 }
 
 impl InMemoryKvStore {
@@ -25,16 +30,20 @@ impl Default for InMemoryKvStore {
 
 #[async_trait::async_trait]
 impl KvStoreInner for InMemoryKvStore {
-    async fn get(&self, name: &str, cache_ttl: Option<Duration>) -> KvResult<Option<Vec<u8>>> {
-        if let Some(value) = self.inner.lock().unwrap().get(name) {
-            if let Some(cache_ttl) = cache_ttl {
-                if value.1.elapsed() > cache_ttl {
-                    return Ok(None);
-                }
+    async fn get(&self, name: &str, _cache_ttl: Option<Duration>) -> KvResult<Option<Vec<u8>>> {
+        let mut lock = self.inner.lock().unwrap();
+        let Entry::Occupied(entry) = lock.entry(name.to_string()) else {
+            return Ok(None);
+        };
+
+        let value = entry.get();
+
+        match value.expires_at {
+            Some(instant) if instant < Instant::now() => {
+                entry.remove();
+                Ok(None)
             }
-            Ok(Some(value.0.clone()))
-        } else {
-            Ok(None)
+            _ => Ok(Some(value.data.clone())),
         }
     }
 
@@ -43,10 +52,10 @@ impl KvStoreInner for InMemoryKvStore {
         let mut inner = self.inner.lock().unwrap();
         inner.insert(
             name.to_string(),
-            (
-                bytes,
-                expiration_ttl.map(|ttl| Instant::now() + ttl).unwrap_or(Instant::now()),
-            ),
+            CacheValue {
+                data: bytes,
+                expires_at: expiration_ttl.map(|ttl| Instant::now() + ttl),
+            },
         );
         // Sanity check, we're never deleting anything currently. And only used store OpenID
         // providers metadata. Easier to deal with a panic than a memory leak.
