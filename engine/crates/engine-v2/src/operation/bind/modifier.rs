@@ -1,11 +1,11 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, ops::Range};
 
 use id_newtypes::IdRange;
 use schema::{Definition, FieldDefinitionWalker, ObjectId, TypeSystemDirective};
 
 use crate::operation::{
-    FieldArgumentId, FieldId, QueryModifier, QueryModifierId, QueryModifierRule, ResponseModifierRule,
-    SubjectToResponseModifierRuleId,
+    FieldArgumentId, FieldId, QueryModifier, QueryModifierId, QueryModifierRule, ResponseModifier, ResponseModifierId,
+    ResponseModifierRule,
 };
 
 impl<'schema, 'p> super::Binder<'schema, 'p> {
@@ -14,9 +14,7 @@ impl<'schema, 'p> super::Binder<'schema, 'p> {
         field_id: FieldId,
         argument_ids: IdRange<FieldArgumentId>,
         definition: FieldDefinitionWalker<'_>,
-    ) -> IdRange<SubjectToResponseModifierRuleId> {
-        let response_modifiers_start = self.response_modifier_rules.len();
-
+    ) {
         for directive in definition.directives().as_ref().iter() {
             match directive {
                 TypeSystemDirective::Authenticated => {
@@ -28,10 +26,13 @@ impl<'schema, 'p> super::Binder<'schema, 'p> {
                 TypeSystemDirective::Authorized(id) => {
                     let directive = &self.schema[*id];
                     if directive.fields.is_some() {
-                        self.register_field_subject_to_response_modifier_rule(ResponseModifierRule::AuthorizedField {
-                            directive_id: *id,
-                            definition_id: definition.id(),
-                        });
+                        self.register_field_impacted_by_response_modifier(
+                            ResponseModifierRule::AuthorizedField {
+                                directive_id: *id,
+                                definition_id: definition.id(),
+                            },
+                            field_id,
+                        );
                     } else {
                         self.register_field_impacted_by_query_modifier(
                             QueryModifierRule::AuthorizedField {
@@ -68,9 +69,6 @@ impl<'schema, 'p> super::Binder<'schema, 'p> {
                 _ => {}
             }
         }
-
-        let response_modifiers_end = self.response_modifier_rules.len();
-        IdRange::from(response_modifiers_start..response_modifiers_end)
     }
 
     pub(super) fn generate_modifiers_for_root_object(&mut self, root_object_id: ObjectId) -> Vec<QueryModifierId> {
@@ -98,10 +96,13 @@ impl<'schema, 'p> super::Binder<'schema, 'p> {
         modifiers
     }
 
-    fn register_field_subject_to_response_modifier_rule(&mut self, rule: ResponseModifierRule) {
-        let n = self.response_modifier_rules.len();
-        let id = *self.response_modifier_rules.entry(rule).or_insert(n.into());
-        self.fields_subject_to_response_modifier_rules.push(id);
+    fn register_field_impacted_by_response_modifier(&mut self, rule: ResponseModifierRule, field_id: FieldId) {
+        let n = self.response_modifiers.len();
+        self.response_modifiers
+            .entry(rule)
+            .or_insert((n.into(), Vec::new()))
+            .1
+            .push(field_id);
     }
 
     fn register_field_impacted_by_query_modifier(&mut self, rule: QueryModifierRule, field_id: FieldId) {
@@ -122,7 +123,26 @@ impl<'schema, 'p> super::Binder<'schema, 'p> {
 pub(super) fn finalize_query_modifiers(
     query_modifiers: HashMap<QueryModifierRule, (QueryModifierId, Vec<FieldId>)>,
 ) -> (Vec<QueryModifier>, Vec<FieldId>) {
-    let mut query_modifiers = query_modifiers
+    finalize_modifiers(query_modifiers, |rule, ids_range| QueryModifier {
+        rule,
+        impacted_fields: IdRange::from(ids_range),
+    })
+}
+
+pub(super) fn finalize_response_modifiers(
+    response_modifiers: HashMap<ResponseModifierRule, (ResponseModifierId, Vec<FieldId>)>,
+) -> (Vec<ResponseModifier>, Vec<FieldId>) {
+    finalize_modifiers(response_modifiers, |rule, ids_range| ResponseModifier {
+        rule,
+        impacted_fields: IdRange::from(ids_range),
+    })
+}
+
+fn finalize_modifiers<Rule, Id: Ord + Copy, Modifier>(
+    modifiers: HashMap<Rule, (Id, Vec<FieldId>)>,
+    build: impl Fn(Rule, Range<usize>) -> Modifier,
+) -> (Vec<Modifier>, Vec<FieldId>) where {
+    let mut query_modifiers = modifiers
         .into_iter()
         .map(|(rule, (id, fields))| (id, rule, fields))
         .collect::<Vec<_>>();
@@ -131,13 +151,10 @@ pub(super) fn finalize_query_modifiers(
     let n = query_modifiers.len();
     query_modifiers.into_iter().fold(
         (Vec::with_capacity(n), Vec::with_capacity(n * 2)),
-        |(mut modifiers, mut impact_field_ids), (_, modifier, field_ids)| {
+        |(mut modifiers, mut impact_field_ids), (_, rule, field_ids)| {
             let start = impact_field_ids.len();
             impact_field_ids.extend(field_ids);
-            modifiers.push(QueryModifier {
-                rule: modifier,
-                impacted_fields: IdRange::from(start..impact_field_ids.len()),
-            });
+            modifiers.push(build(rule, start..impact_field_ids.len()));
             (modifiers, impact_field_ids)
         },
     )

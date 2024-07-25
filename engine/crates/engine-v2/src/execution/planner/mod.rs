@@ -1,14 +1,14 @@
 mod builder;
 mod query_modifier;
 
-use std::sync::Arc;
+use std::{mem::take, sync::Arc};
 
+use builder::ExecutionBuilder;
+use id_newtypes::IdRange;
 use itertools::Itertools;
 
-use builder::RequirementsBuildContext;
-
 use crate::{
-    execution::{ExecutionPlan, ExecutionPlanId, PlanningResult, PreExecutionContext},
+    execution::{ExecutionPlan, ExecutionPlanId, PlanningResult, PreExecutionContext, ResponseModifierExecutorId},
     operation::{FieldId, LogicalPlanId, PreparedOperation, Variables},
     response::{ResponseViewSelection, ResponseViews},
     sources::PreparedExecutor,
@@ -16,116 +16,202 @@ use crate::{
     Runtime,
 };
 
-use super::{header_rule::create_subgraph_headers_with_rules, ExecutableOperation};
+use super::{header_rule::create_subgraph_headers_with_rules, ExecutableOperation, ResponseModifierExecutor};
 
 pub(super) struct ExecutionPlanner<'ctx, 'op, R: Runtime> {
     ctx: &'op PreExecutionContext<'ctx, R>,
     operation: ExecutableOperation,
+    build_context: BuildContext,
+}
+
+impl<'ctx, 'op, R: Runtime> std::ops::Deref for ExecutionPlanner<'ctx, 'op, R> {
+    type Target = BuildContext;
+    fn deref(&self) -> &Self::Target {
+        &self.build_context
+    }
+}
+
+impl<'ctx, 'op, R: Runtime> std::ops::DerefMut for ExecutionPlanner<'ctx, 'op, R> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.build_context
+    }
+}
+
+// Ideally this BuilderContext would just be inside the ExecutionPlanner. But we do need to modify
+// the ExecutableOperation at some moments (here in the ExecutionPlanner) and at others we rely on it be immutable for walkers (in the builder::ExecutionBuilder)
+#[derive(Default)]
+pub struct BuildContext {
+    // Either an input or output field of a plan or response modifier
+    io_fields: Vec<FieldId>,
+    io_fields_buffer_pool: BufferPool<FieldId>,
+    response_modifier_executors: Vec<ResponseModifierExecutor>,
+    response_modifier_executors_input_fields: Vec<IdRange<IOFieldId>>,
+    response_modifier_executors_output_fields: Vec<IdRange<IOFieldId>>,
+    execution_plans: Vec<ExecutionPlan>,
+    execution_plans_input_fields: Vec<IdRange<IOFieldId>>,
     logical_plan_to_execution_plan_id: Vec<Option<ExecutionPlanId>>,
-    execution_plans_dependencies: Vec<Vec<FieldId>>,
-    response_view_selection_buffer_pool: BufferPool<ResponseViewSelection>,
     response_views: ResponseViews,
+    response_view_selection_buffer_pool: BufferPool<ResponseViewSelection>,
+}
+
+id_newtypes::NonZeroU16! {
+    BuildContext.io_fields[IOFieldId] => FieldId,
+}
+id_newtypes::index! {
+    ExecutionPlanner<'ctx, 'op, R: Runtime + 'static>.build_context.io_fields[IOFieldId] => FieldId,
+}
+
+impl BuildContext {
+    fn push_io_fields(&mut self, mut fields: Vec<FieldId>) -> IdRange<IOFieldId> {
+        let start = self.io_fields.len();
+        self.io_fields.extend(&mut fields.drain(..));
+        self.io_fields_buffer_pool.push(fields);
+        IdRange::from(start..self.io_fields.len())
+    }
+}
+
+pub(super) async fn plan<'ctx, R: Runtime>(
+    ctx: &PreExecutionContext<'ctx, R>,
+    prepared: Arc<PreparedOperation>,
+    variables: Variables,
+) -> PlanningResult<ExecutableOperation> {
+    let operation = ExecutableOperation {
+        query_modifications: query_modifier::QueryModificationsBuilder::new(ctx, &prepared, &variables)
+            .build()
+            .await?,
+        prepared,
+        variables,
+        subgraph_default_headers: create_subgraph_headers_with_rules(
+            ctx.request_context,
+            ctx.schema.walker().default_header_rules(),
+            http::HeaderMap::new(),
+        ),
+        execution_plans: Default::default(),
+        response_views: Default::default(),
+        response_modifier_executors: Default::default(),
+    };
+
+    let operation = ExecutionPlanner {
+        ctx,
+        build_context: BuildContext {
+            logical_plan_to_execution_plan_id: vec![None; operation.plan.logical_plans.len()],
+            io_fields: Vec::with_capacity(operation.fields.len()),
+            ..Default::default()
+        },
+        operation,
+    }
+    .build()?;
+
+    tracing::trace!(
+        "== Plan Summary ==\n{}",
+        operation
+            .execution_plans
+            .iter()
+            .enumerate()
+            .rev() // roots first
+            .format_with("\n", |(id, plan), f| f(&format_args!(
+                "**{id}**\n  input <- {}\n  ouput -> {}",
+                plan.parent_count,
+                plan.children.iter().join(",")
+            ))),
+    );
+
+    Ok(operation)
 }
 
 impl<'ctx, 'op, R: Runtime> ExecutionPlanner<'ctx, 'op, R>
 where
     'ctx: 'op,
 {
-    pub(super) async fn plan(
-        ctx: &'op PreExecutionContext<'ctx, R>,
-        prepared: Arc<PreparedOperation>,
-        variables: Variables,
-    ) -> PlanningResult<ExecutableOperation> {
-        let operation = ExecutableOperation {
-            query_modifications: query_modifier::QueryModificationsBuilder::new(ctx, &prepared, &variables)
-                .build()
-                .await?,
-            prepared,
-            variables,
-            execution_plans: Default::default(),
-            subgraph_default_headers: create_subgraph_headers_with_rules(
-                ctx.request_context,
-                ctx.schema.walker().default_header_rules(),
-                http::HeaderMap::new(),
-            ),
-            response_views: Default::default(),
-        };
-        Self {
-            ctx,
-            logical_plan_to_execution_plan_id: vec![None; operation.plan.logical_plans.len()],
-            operation,
-            execution_plans_dependencies: Vec::new(),
-            response_view_selection_buffer_pool: Default::default(),
-            response_views: Default::default(),
-        }
-        .build()
-    }
-
     fn build(mut self) -> PlanningResult<ExecutableOperation> {
         // We start by the end so that we avoid retrieving extra fields that are never read.
         for plan_id in self.operation.plan.in_topological_order.clone().into_iter().rev() {
-            self.create_execution_plan(plan_id)?;
+            self.insert_execution_plan_for(plan_id)?;
+        }
+        // Build all response modifiers that are still relevant
+        self.builder().insert_all_response_modifier_executors();
+
+        // finalize operation with all dependency relations
+        self.operation.response_modifier_executors = take(&mut self.build_context.response_modifier_executors);
+        self.operation.execution_plans = take(&mut self.build_context.execution_plans);
+        self.operation.response_views = take(&mut self.build_context.response_views);
+
+        // All parents of a response modifiers
+        for (i, input_fields) in take(&mut self.response_modifier_executors_input_fields)
+            .into_iter()
+            .enumerate()
+        {
+            let child_id = ResponseModifierExecutorId::from(i);
+            for &field_id in &self.build_context[input_fields] {
+                let parent_logical_plan_id = self.operation.plan.field_to_logical_plan_id[usize::from(field_id)];
+                let parent_id = self.logical_plan_to_execution_plan_id[usize::from(parent_logical_plan_id)]
+                    .expect("Depend on unfinished plan");
+                if !self.operation[parent_id]
+                    .dependent_response_modifiers
+                    .contains(&child_id)
+                {
+                    self.operation[parent_id].dependent_response_modifiers.push(child_id);
+                    self.operation[child_id].parent_count += 1;
+                }
+            }
         }
 
-        let Self {
-            mut operation,
-            logical_plan_to_execution_plan_id,
-            execution_plans_dependencies,
-            response_views,
-            ..
-        } = self;
+        // All execution plans that must be executed *after* a response modifier
+        for (i, output_fields) in take(&mut self.response_modifier_executors_output_fields)
+            .into_iter()
+            .enumerate()
+        {
+            let parent_id = ResponseModifierExecutorId::from(i);
+            for &field_id in &self.build_context[output_fields] {
+                let child_logical_plan_id = self.operation.plan.field_to_logical_plan_id[usize::from(field_id)];
+                let child_id = self.logical_plan_to_execution_plan_id[usize::from(child_logical_plan_id)]
+                    .expect("Depend on unfinished plan");
+                if !self.operation[parent_id].children.contains(&child_id) {
+                    self.operation[parent_id].children.push(child_id);
+                    self.operation[child_id].parent_count += 1;
+                }
+            }
+        }
 
-        operation.response_views = response_views;
-
-        for (i, dependencies) in execution_plans_dependencies.into_iter().enumerate() {
+        // child/parent relations between execution plans.
+        for (i, input_fields) in take(&mut self.execution_plans_input_fields).into_iter().enumerate() {
             let child_id = ExecutionPlanId::from(i);
-            for field_id in dependencies {
-                let logical_plan_id = operation.plan.field_to_logical_plan_id[usize::from(field_id)];
-                let parent_id =
-                    logical_plan_to_execution_plan_id[usize::from(logical_plan_id)].expect("Depend on unfinished plan");
-                if !operation[parent_id].children.contains(&child_id) {
-                    operation[parent_id].children.push(child_id);
-                    operation[child_id].parent_count += 1;
+            for &field_id in &self.build_context[input_fields] {
+                let parent_logical_plan_id = self.operation.plan.field_to_logical_plan_id[usize::from(field_id)];
+                let parent_id = self.logical_plan_to_execution_plan_id[usize::from(parent_logical_plan_id)]
+                    .expect("Depend on unfinished plan");
+                if !self.operation[parent_id].children.contains(&child_id) {
+                    self.operation[parent_id].children.push(child_id);
+                    self.operation[child_id].parent_count += 1;
                 }
             }
         }
 
         // To enforce the proper ordering of mutation fields, we create parent/child relations
         // between them.
-        let mut mutation_fields_plan_order = operation
+        let mut mutation_fields_plan_order = self
+            .operation
             .plan
             .mutation_fields_plan_order
             .clone()
             .into_iter()
-            .filter_map(|id| logical_plan_to_execution_plan_id[usize::from(id)]);
+            .filter_map(|id| self.logical_plan_to_execution_plan_id[usize::from(id)])
+            .collect::<Vec<_>>()
+            .into_iter();
         if let Some(mut prev) = mutation_fields_plan_order.next() {
             for next in mutation_fields_plan_order {
-                if !operation[prev].children.contains(&next) {
-                    operation[prev].children.push(next);
-                    operation[next].parent_count += 1;
+                if !self.operation[prev].children.contains(&next) {
+                    self.operation[prev].children.push(next);
+                    self.operation[next].parent_count += 1;
                 }
                 prev = next;
             }
         }
 
-        tracing::trace!(
-            "== Plan Summary ==\n{}",
-            operation
-                .execution_plans
-                .iter()
-                .enumerate()
-                .rev() // roots first
-                .format_with("\n", |(id, plan), f| f(&format_args!(
-                    "**{id}**\n  input <- {}\n  ouput -> {}",
-                    plan.parent_count,
-                    plan.children.iter().join(",")
-                ))),
-        );
-
-        Ok(operation)
+        Ok(self.operation)
     }
 
-    fn create_execution_plan(&mut self, logical_plan_id: LogicalPlanId) -> PlanningResult<()> {
+    fn insert_execution_plan_for(&mut self, logical_plan_id: LogicalPlanId) -> PlanningResult<()> {
         tracing::trace!("Generating execution plan for {logical_plan_id}");
         // TODO: Skip plan with only skipped fields.
         // FIXME: HACK to build an Executor, holding the prepared GraphQL query, we rely on a
@@ -137,19 +223,22 @@ where
             children: Default::default(),
             requires: Default::default(),
             prepared_executor: PreparedExecutor::introspection(),
+            dependent_response_modifiers: Vec::new(),
         });
         let id = ExecutionPlanId::from(self.operation.execution_plans.len() - 1);
-        let (execution_plan, dependencies) = RequirementsBuildContext::new(
-            self.ctx,
-            &self.operation,
-            &mut self.response_views,
-            &mut self.response_view_selection_buffer_pool,
-        )
-        .build_execution_plan(id, logical_plan_id)?;
-        self.execution_plans_dependencies.push(dependencies);
-        self.operation[id] = execution_plan;
-        self.logical_plan_to_execution_plan_id[usize::from(logical_plan_id)] = Some(id);
+        self.builder().insert_execution_plan(id, logical_plan_id)?;
 
         Ok(())
+    }
+
+    fn builder<'a>(&'a mut self) -> ExecutionBuilder<'ctx, 'a, R>
+    where
+        'op: 'a,
+    {
+        ExecutionBuilder {
+            ctx: self.ctx,
+            operation: &self.operation,
+            build_context: &mut self.build_context,
+        }
     }
 }

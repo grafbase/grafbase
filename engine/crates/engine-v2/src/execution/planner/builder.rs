@@ -1,49 +1,51 @@
-use std::{borrow::Cow, collections::HashMap};
+use std::{
+    borrow::{Borrow, Cow},
+    collections::HashMap,
+};
 
+use itertools::Itertools;
 use schema::{RequiredFieldSet, ResolverWalker};
 
 use crate::{
-    execution::{ExecutableOperation, ExecutionPlan, ExecutionPlanId, PlanWalker, PreExecutionContext},
-    operation::{FieldId, LogicalPlanId, OperationWalker, SelectionSetId},
-    response::{ResponseViewSelection, ResponseViewSelectionSet, ResponseViews},
+    execution::{
+        ExecutableOperation, ExecutionPlan, ExecutionPlanId, PlanWalker, PreExecutionContext, ResponseModifierExecutor,
+    },
+    operation::{FieldId, LogicalPlanId, OperationWalker, ResponseModifierRule, SelectionSetId, SelectionSetType},
+    response::{ResponseObjectSetId, ResponseViewSelection, ResponseViewSelectionSet},
     sources::PreparedExecutor,
-    utils::BufferPool,
     Runtime,
 };
 
-use super::PlanningResult;
+use super::{BuildContext, PlanningResult};
 
-pub(super) struct RequirementsBuildContext<'ctx, 'op, 'parent, R: Runtime> {
-    ctx: &'op PreExecutionContext<'ctx, R>,
-    operation: &'op ExecutableOperation,
-    response_views: &'parent mut ResponseViews,
-    response_view_selection_buffer_pool: &'parent mut BufferPool<ResponseViewSelection>,
+pub(super) struct ExecutionBuilder<'ctx, 'op, R: Runtime> {
+    pub(super) ctx: &'op PreExecutionContext<'ctx, R>,
+    pub(super) operation: &'op ExecutableOperation,
+    pub(super) build_context: &'op mut BuildContext,
 }
 
-impl<'ctx, 'op, 'parent, R: Runtime> RequirementsBuildContext<'ctx, 'op, 'parent, R>
+impl<'ctx, 'op, R: Runtime> std::ops::Deref for ExecutionBuilder<'ctx, 'op, R> {
+    type Target = BuildContext;
+    fn deref(&self) -> &Self::Target {
+        self.build_context
+    }
+}
+
+impl<'ctx, 'op, R: Runtime> std::ops::DerefMut for ExecutionBuilder<'ctx, 'op, R> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        self.build_context
+    }
+}
+
+impl<'ctx, 'op, R: Runtime> ExecutionBuilder<'ctx, 'op, R>
 where
     'ctx: 'op,
-    'op: 'parent,
 {
-    pub(super) fn new(
-        ctx: &'op PreExecutionContext<'ctx, R>,
-        operation: &'op ExecutableOperation,
-        response_views: &'parent mut ResponseViews,
-        response_view_selection_buffer_pool: &'parent mut BufferPool<ResponseViewSelection>,
-    ) -> Self {
-        Self {
-            ctx,
-            operation,
-            response_views,
-            response_view_selection_buffer_pool,
-        }
-    }
-
-    pub(super) fn build_execution_plan(
+    pub(super) fn insert_execution_plan(
         mut self,
         execution_plan_id: ExecutionPlanId,
         logical_plan_id: LogicalPlanId,
-    ) -> PlanningResult<(ExecutionPlan, Vec<FieldId>)> {
+    ) -> PlanningResult<()> {
         let logical_plan = &self.operation[logical_plan_id];
         let resolver = self
             .ctx
@@ -51,13 +53,13 @@ where
             .walker()
             .walk(self.operation[logical_plan_id].resolver_id)
             .with_own_names();
-        let (requires, dependencies) = self.create_view_and_list_dependencies(
+        let (requires, input_fields) = self.create_plan_view_and_list_dependencies(
             resolver,
             &logical_plan.root_field_ids_ordered_by_parent_entity_id_then_position,
         );
         let prepared_executor = PreparedExecutor::prepare(
             resolver,
-            self.operation.ty(),
+            self.operation.borrow().ty(),
             PlanWalker {
                 schema_walker: resolver.walk(()),
                 operation: self.operation,
@@ -73,13 +75,103 @@ where
             requires,
             prepared_executor,
             logical_plan_id,
+            dependent_response_modifiers: Vec::new(),
         };
-        Ok((plan, dependencies))
+        self.execution_plans.push(plan);
+        self.logical_plan_to_execution_plan_id[usize::from(logical_plan_id)] = Some(execution_plan_id);
+        let range = self.push_io_fields(input_fields);
+        self.execution_plans_input_fields.push(range);
+
+        Ok(())
     }
 
-    fn create_view_and_list_dependencies(
+    pub(super) fn insert_all_response_modifier_executors(&mut self) {
+        #[derive(Eq, PartialEq, Ord, PartialOrd)]
+        struct ImpactedField {
+            // Which rule is applied
+            rule: ResponseModifierRule,
+            // Where the field will be present in the response
+            set_id: ResponseObjectSetId,
+            // What field is impacted
+            field_id: FieldId,
+            field_logical_plan_id: LogicalPlanId,
+        }
+        let walker = self.walker();
+
+        // First we collect all the impacted fields
+        let mut impacted_fields = Vec::with_capacity(self.operation.response_modifier_impacted_fields.len());
+        for modifier in &self.operation.response_modifiers {
+            for id in modifier.impacted_fields {
+                let field = walker.walk(self.operation[id]);
+                if self.operation.query_modifications.skipped_fields[field.id()] {
+                    continue;
+                }
+                let set_id = self
+                    .operation
+                    .response_blueprint
+                    .response_modifier_impacted_field_to_response_object_set[usize::from(id)];
+                impacted_fields.push(ImpactedField {
+                    rule: modifier.rule,
+                    field_logical_plan_id: self.operation.plan[field.id()],
+                    set_id,
+                    field_id: field.id(),
+                });
+            }
+        }
+        impacted_fields.sort_unstable();
+        let schema = self.ctx.schema();
+
+        // Now we aggregate all the impacted fields by their rule and the plan producing them. This
+        // ensure we call a given a rule at most once after a plan has finished but as early as
+        // possible.
+        self.response_modifier_executors =
+            Vec::<ResponseModifierExecutor>::with_capacity(self.operation.response_modifiers.len());
+        for ((rule, _), chunk) in impacted_fields
+            .into_iter()
+            .chunk_by(|impacted_key| (impacted_key.rule, impacted_key.field_logical_plan_id))
+            .into_iter()
+        {
+            let mut selection_set_ids = Vec::new();
+            let mut on = Vec::new();
+            let mut output_fields = self.io_fields_buffer_pool.pop();
+            for ImpactedField { set_id, field_id, .. } in chunk {
+                let field = walker.walk(field_id);
+                selection_set_ids.push(field.as_ref().parent_selection_set_id());
+
+                let set_ty = self.operation.response_blueprint.response_object_sets_to_type[usize::from(set_id)];
+                let entity_id = field.definition().unwrap().parent_entity().id();
+                let type_condition = (set_ty != SelectionSetType::from(entity_id)).then_some(entity_id);
+                on.push((set_id, type_condition, field.response_key()));
+                output_fields.push(field_id);
+            }
+            let required_fields = match rule {
+                ResponseModifierRule::AuthorizedField { directive_id, .. } => {
+                    &schema[schema[directive_id].fields.unwrap()]
+                }
+            };
+            let mut input_fields = self.io_fields_buffer_pool.pop();
+            for id in selection_set_ids {
+                self.collect_dependencies(id, required_fields, &mut input_fields)
+            }
+            let requires = self.build_view(required_fields);
+            self.response_modifier_executors.push(ResponseModifierExecutor {
+                rule,
+                on,
+                requires,
+                // Defined at the end.
+                parent_count: 0,
+                children: Vec::new(),
+            });
+            let range = self.push_io_fields(input_fields);
+            self.response_modifier_executors_input_fields.push(range);
+            let range = self.push_io_fields(output_fields);
+            self.response_modifier_executors_output_fields.push(range);
+        }
+    }
+
+    fn create_plan_view_and_list_dependencies(
         &mut self,
-        resolver: ResolverWalker<'op>,
+        resolver: ResolverWalker<'_>,
         field_ids: &Vec<FieldId>,
     ) -> (ResponseViewSelectionSet, Vec<FieldId>) {
         let mut required_fields = Cow::Borrowed(resolver.requires());
@@ -95,7 +187,7 @@ where
                 *value = RequiredFieldSet::union_cow(std::mem::take(value), field_requirements);
             }
         }
-        let mut dependencies = Vec::new();
+        let mut dependencies = self.io_fields_buffer_pool.pop();
         for (selection_set_id, required_fields) in required_fields_by_selection_set_id {
             self.collect_dependencies(selection_set_id, &required_fields, &mut dependencies)
         }
@@ -154,9 +246,8 @@ where
     }
 
     fn walker(&self) -> OperationWalker<'op, (), ()> {
-        // yes looks weird, will be improved
         self.operation
-            .walker_with(self.ctx.schema.walker(), &self.operation.variables)
+            .walker_with(self.ctx.schema().walker(), &self.operation.variables)
     }
 
     fn push_view_selection_set(&mut self, mut buffer: Vec<ResponseViewSelection>) -> ResponseViewSelectionSet {

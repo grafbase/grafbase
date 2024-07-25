@@ -13,7 +13,7 @@ use crate::{
     utils::BufferPool,
 };
 
-use super::{FieldId, LogicalPlanId, OperationPlan, OperationWalker, ResponseBlueprint};
+use super::{FieldId, LogicalPlanId, OperationPlan, OperationWalker, ResponseBlueprint, SelectionSetType};
 
 pub(super) struct ResponseBlueprintBuilder<'schema, 'op> {
     schema: &'schema Schema,
@@ -24,6 +24,7 @@ pub(super) struct ResponseBlueprintBuilder<'schema, 'op> {
     field_shapes_buffer_pool: BufferPool<(FieldShape, Vec<FieldId>)>,
     field_id_to_field_shape_ids_builder: Vec<(FieldId, FieldShapeId)>,
     logical_plan_to_blueprint_builder: Vec<(LogicalPlanId, LogicalPlanResponseBlueprint)>,
+    selection_set_to_response_object_set: Vec<Option<ResponseObjectSetId>>,
     blueprint: ResponseBlueprint,
 }
 
@@ -54,23 +55,34 @@ where
                 field_to_shape_ids: Default::default(),
                 logical_plan_to_blueprint: Default::default(),
                 selection_set_to_requires_typename: BitSet::init_with(false, operation.selection_sets.len()),
-                response_object_set_count: 0,
-                logical_plan_response_modifiers: Vec::new(),
+                response_modifier_impacted_field_to_response_object_set: Vec::new(),
+                response_object_sets_to_type: Vec::new(),
             },
             field_shapes_buffer_pool: Default::default(),
             field_id_to_field_shape_ids_builder: Default::default(),
             logical_plan_to_blueprint_builder: Default::default(),
+            selection_set_to_response_object_set: vec![None; operation.selection_sets.len()],
         }
     }
 
     pub(super) fn build(mut self) -> ResponseBlueprint {
         self.traverse_operation_and_build_blueprint();
         let Self {
+            operation,
             mut blueprint,
             field_id_to_field_shape_ids_builder,
+            selection_set_to_response_object_set,
             mut logical_plan_to_blueprint_builder,
             ..
         } = self;
+        for &field_id in &operation.response_modifier_impacted_fields {
+            let set_id = selection_set_to_response_object_set
+                [usize::from(operation[field_id].parent_selection_set_id())]
+            .expect("Not ResponseObjectSet defined for selection set");
+            blueprint
+                .response_modifier_impacted_field_to_response_object_set
+                .push(set_id);
+        }
         blueprint.field_to_shape_ids = field_id_to_field_shape_ids_builder.into();
         logical_plan_to_blueprint_builder.sort_unstable_by_key(|(id, _)| *id);
         blueprint.logical_plan_to_blueprint = logical_plan_to_blueprint_builder
@@ -91,7 +103,7 @@ where
             },
         );
 
-        let input_id = self.next_response_object_set_id();
+        let input_id = self.next_response_object_set_id(SelectionSetType::Object(self.operation.root_object_id));
         self.to_build_stack = root_plans
             .into_iter()
             .map(|(logical_plan_id, root_field_ids)| ToBuild {
@@ -117,9 +129,8 @@ where
         self.operation.walker_with(self.schema.walker(), self.variables)
     }
 
-    fn next_response_object_set_id(&mut self) -> ResponseObjectSetId {
-        let id = self.blueprint.response_object_set_count;
-        self.blueprint.response_object_set_count += 1;
-        id.into()
+    fn next_response_object_set_id(&mut self, ty: SelectionSetType) -> ResponseObjectSetId {
+        self.blueprint.response_object_sets_to_type.push(ty);
+        (self.blueprint.response_object_sets_to_type.len() - 1).into()
     }
 }

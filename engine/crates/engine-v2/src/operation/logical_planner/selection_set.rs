@@ -83,6 +83,9 @@ impl<'schema, 'a> SelectionSetLogicalPlanner<'schema, 'a> {
 
         let solved_requirements = self.build_solved_requirements(planned_selection_set);
         if !solved_requirements.is_empty() {
+            // At least one child or response modifier will read something from this selection set
+            self.selection_set_to_objects_must_be_tracked
+                .set(selection_set_id, true);
             self.planner
                 .solved_requirements
                 .push((selection_set_id, solved_requirements));

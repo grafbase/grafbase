@@ -1,14 +1,12 @@
 use id_newtypes::IdRange;
-use schema::{AuthorizedDirectiveId, Definition, EntityId, FieldDefinitionId, RequiredScopesId};
+use schema::{AuthorizedDirectiveId, Definition, FieldDefinitionId, RequiredScopesId};
 
-use crate::response::ResponseObjectSetId;
-
-use super::{FieldArgumentId, ImpactedFieldId, ResponseModifierRuleId};
+use super::{FieldArgumentId, QueryModifierImpactedFieldId, ResponseModifierImpactedFieldId};
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub(crate) struct QueryModifier {
     pub rule: QueryModifierRule,
-    pub impacted_fields: IdRange<ImpactedFieldId>,
+    pub impacted_fields: IdRange<QueryModifierImpactedFieldId>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
@@ -26,14 +24,13 @@ pub(crate) enum QueryModifierRule {
     },
 }
 
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub(crate) struct ResponseModifier {
-    pub rule_id: ResponseModifierRuleId,
-    pub response_object_set_id: ResponseObjectSetId,
-    pub type_condition: EntityId,
+    pub rule: ResponseModifierRule,
+    pub impacted_fields: IdRange<ResponseModifierImpactedFieldId>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize)]
 pub(crate) enum ResponseModifierRule {
     AuthorizedField {
         directive_id: AuthorizedDirectiveId,

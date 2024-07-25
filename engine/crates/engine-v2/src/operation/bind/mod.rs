@@ -10,13 +10,13 @@ use std::collections::HashMap;
 pub use engine_parser::types::OperationType;
 use id_newtypes::IdRange;
 use itertools::Itertools;
-use modifier::finalize_query_modifiers;
+use modifier::{finalize_query_modifiers, finalize_response_modifiers};
 use schema::Schema;
 use validation::validate_parsed_operation;
 
 use super::{
-    parse::ParsedOperation, FieldId, QueryInputValues, QueryModifierId, QueryModifierRule, ResponseModifierRule,
-    ResponseModifierRuleId,
+    parse::ParsedOperation, FieldId, QueryInputValues, QueryModifierId, QueryModifierRule, ResponseModifierId,
+    ResponseModifierRule,
 };
 use crate::{
     operation::SelectionSetType,
@@ -153,8 +153,7 @@ pub(crate) struct Binder<'schema, 'p> {
     variable_definitions: Vec<VariableDefinition>,
     input_values: QueryInputValues,
     query_modifiers: HashMap<QueryModifierRule, (QueryModifierId, Vec<FieldId>)>,
-    response_modifier_rules: HashMap<ResponseModifierRule, ResponseModifierRuleId>,
-    fields_subject_to_response_modifier_rules: Vec<ResponseModifierRuleId>,
+    response_modifiers: HashMap<ResponseModifierRule, (ResponseModifierId, Vec<FieldId>)>,
 }
 
 id_newtypes::index! {
@@ -188,8 +187,7 @@ pub fn bind_operation(schema: &Schema, mut parsed_operation: ParsedOperation) ->
         variable_definitions: Vec::new(),
         query_modifiers: Default::default(),
         input_values: QueryInputValues::default(),
-        response_modifier_rules: Default::default(),
-        fields_subject_to_response_modifier_rules: Default::default(),
+        response_modifiers: Default::default(),
     };
 
     // Must be executed before binding selection sets
@@ -203,7 +201,9 @@ pub fn bind_operation(schema: &Schema, mut parsed_operation: ParsedOperation) ->
     binder.validate_all_variables_used()?;
 
     let root_query_modifier_ids = binder.generate_modifiers_for_root_object(root_object_id);
-    let (query_modifiers, query_modifiers_impacted_fields) = finalize_query_modifiers(binder.query_modifiers);
+    let (query_modifiers, query_modifier_impacted_fields) = finalize_query_modifiers(binder.query_modifiers);
+    let (response_modifiers, response_modifier_impacted_fields) =
+        finalize_response_modifiers(binder.response_modifiers);
     Ok(Operation {
         ty: parsed_operation.definition.ty,
         root_object_id,
@@ -216,17 +216,9 @@ pub fn bind_operation(schema: &Schema, mut parsed_operation: ParsedOperation) ->
         variable_definitions: binder.variable_definitions,
         query_input_values: binder.input_values,
         query_modifiers,
-        query_modifiers_impacted_fields,
-        fields_subject_to_response_modifier_rules: binder.fields_subject_to_response_modifier_rules,
-        response_modifier_rules: {
-            let mut rules = binder
-                .response_modifier_rules
-                .into_iter()
-                .map(|(rule, id)| (id, rule))
-                .collect::<Vec<_>>();
-            rules.sort_unstable_by_key(|(id, _)| *id);
-            rules.into_iter().map(|(_, rule)| rule).collect()
-        },
+        query_modifier_impacted_fields,
+        response_modifiers,
+        response_modifier_impacted_fields,
     })
 }
 
