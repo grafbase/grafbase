@@ -4,7 +4,7 @@ use schema::Schema;
 
 use crate::response::{InputdResponseObjectSet, ResponseBuilder, ResponseObjectSet, ResponseObjectSetId};
 
-use super::{ExecutableOperation, ExecutionPlanId};
+use super::{ExecutableOperation, ExecutionPlanId, ResponseModifierExecutorId};
 
 /// Holds the current state of the operation execution:
 /// - which plans have been executed
@@ -21,11 +21,13 @@ pub(crate) struct OperationExecutionState<'ctx> {
     schema: &'ctx Schema,
     operation: &'ctx ExecutableOperation,
     response_object_sets: Vec<Option<Arc<ResponseObjectSet>>>,
-    plan_dependencies_count: Vec<usize>,
+    execution_plan_to_parent_count: Vec<usize>,
+    response_modifier_executor_to_parent_count: Vec<usize>,
 }
 
 id_newtypes::index! {
-    OperationExecutionState<'ctx>.plan_dependencies_count[ExecutionPlanId] => usize,
+    OperationExecutionState<'ctx>.execution_plan_to_parent_count[ExecutionPlanId] => usize,
+    OperationExecutionState<'ctx>.response_modifier_executor_to_parent_count[ResponseModifierExecutorId] => usize,
     OperationExecutionState<'ctx>.response_object_sets[ResponseObjectSetId] => Option<Arc<ResponseObjectSet>>,
 }
 
@@ -35,7 +37,12 @@ impl<'ctx> OperationExecutionState<'ctx> {
             schema,
             operation,
             response_object_sets: vec![None; operation.response_blueprint.response_object_sets_to_type.len()],
-            plan_dependencies_count: operation.execution_plans.iter().map(|plan| plan.parent_count).collect(),
+            execution_plan_to_parent_count: operation.execution_plans.iter().map(|plan| plan.parent_count).collect(),
+            response_modifier_executor_to_parent_count: operation
+                .response_modifier_executors
+                .iter()
+                .map(|exec| exec.parent_count)
+                .collect(),
         }
     }
 
@@ -49,7 +56,7 @@ impl<'ctx> OperationExecutionState<'ctx> {
     }
 
     pub fn get_executable_plans(&self) -> Vec<ExecutionPlanId> {
-        self.plan_dependencies_count
+        self.execution_plan_to_parent_count
             .iter()
             .enumerate()
             .filter_map(|(i, &count)| {
@@ -67,11 +74,7 @@ impl<'ctx> OperationExecutionState<'ctx> {
         self[set_id] = Some(Arc::new(response_object_refs));
     }
 
-    pub fn get_root_response_object_set(
-        &mut self,
-        response: &ResponseBuilder,
-        plan_id: ExecutionPlanId,
-    ) -> InputdResponseObjectSet {
+    pub fn get_input(&mut self, response: &ResponseBuilder, plan_id: ExecutionPlanId) -> InputdResponseObjectSet {
         // If there is no root, an error propagated up to it and data will be null. So there's
         // nothing to do anymore.
         let Some(root_ref) = response.root_response_object() else {
@@ -95,13 +98,48 @@ impl<'ctx> OperationExecutionState<'ctx> {
         }
     }
 
-    pub fn get_next_executable_plans(&mut self, plan_id: ExecutionPlanId) -> Vec<ExecutionPlanId> {
+    /// We just finished a plan, which response modifiers should be executed next?
+    pub fn get_next_executable_response_modifiers(
+        &mut self,
+        plan_id: ExecutionPlanId,
+    ) -> Vec<ResponseModifierExecutorId> {
         let mut executable = Vec::new();
-        for child in self.operation[plan_id].children.iter().copied() {
+        for child in self.operation[plan_id].dependent_response_modifiers.iter().copied() {
+            self[child] -= 1;
+            tracing::trace!(
+                "Response modifier executor {child} has {} dependencies left",
+                self[child],
+            );
+            if self[child] == 0 {
+                executable.push(child);
+            }
+        }
+        executable
+    }
+
+    /// We just finished a plan and applied all the relevant response modifiers, which plans should
+    /// be executed next?
+    pub fn get_next_executable_plans(
+        &mut self,
+        plan_id: ExecutionPlanId,
+        response_modifier_executor_ids: Vec<ResponseModifierExecutorId>,
+    ) -> Vec<ExecutionPlanId> {
+        let mut executable = Vec::new();
+        for &child in &self.operation[plan_id].children {
             self[child] -= 1;
             tracing::trace!("Child plan {child} has {} dependencies left", self[child],);
             if self[child] == 0 {
                 executable.push(child);
+            }
+        }
+        for response_modifier_executor_id in response_modifier_executor_ids {
+            let response_modifier_executor = &self.operation[response_modifier_executor_id];
+            for &child in &response_modifier_executor.children {
+                self[child] -= 1;
+                tracing::trace!("Child plan {child} has {} dependencies left", self[child],);
+                if self[child] == 0 {
+                    executable.push(child);
+                }
             }
         }
         executable

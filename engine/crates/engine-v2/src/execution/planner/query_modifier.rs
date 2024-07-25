@@ -81,7 +81,7 @@ where
                     definition_id,
                     argument_ids,
                 } => {
-                    let directive = &self.schema()[directive_id];
+                    let directive = &self.schema().walk(directive_id);
                     let verdict = self
                         .ctx
                         .hooks()
@@ -89,8 +89,8 @@ where
                             self.schema().walk(definition_id),
                             self.walker()
                                 .walk(argument_ids)
-                                .with_selection_set(&directive.arguments),
-                            directive.metadata.map(|id| self.ctx.schema.walk(&self.ctx.schema[id])),
+                                .with_selection_set(directive.arguments()),
+                            directive.metadata(),
                         )
                         .await;
                     if let Err(err) = verdict {
@@ -101,14 +101,11 @@ where
                     directive_id,
                     definition,
                 } => {
-                    let directive = &self.ctx.schema[directive_id];
+                    let directive = &self.schema().walk(directive_id);
                     let result = self
                         .ctx
                         .hooks()
-                        .authorize_node_pre_execution(
-                            self.ctx.schema.walk(definition),
-                            directive.metadata.map(|id| self.ctx.schema.walk(&self.ctx.schema[id])),
-                        )
+                        .authorize_node_pre_execution(self.ctx.schema.walk(definition), directive.metadata())
                         .await;
 
                     if let Err(err) = result {

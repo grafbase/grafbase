@@ -1,8 +1,8 @@
 use id_newtypes::IdRange;
 
 use crate::{
-    CacheControl, Deprecated, RequiredFieldSet, RequiredScopesWalker, SchemaWalker, TypeSystemDirective,
-    TypeSystemDirectiveId,
+    AuthorizedDirectiveId, CacheControl, Deprecated, InputValueSet, RequiredFieldSet, RequiredScopesWalker,
+    SchemaInputValueWalker, SchemaWalker, TypeSystemDirective, TypeSystemDirectiveId,
 };
 
 pub type TypeSystemDirectivesWalker<'a> = SchemaWalker<'a, IdRange<TypeSystemDirectiveId>>;
@@ -60,5 +60,17 @@ impl<'a> TypeSystemDirectivesWalker<'a> {
             }
             _ => false,
         })
+    }
+}
+
+pub type AuthorizedDirectiveWalker<'a> = SchemaWalker<'a, AuthorizedDirectiveId>;
+
+impl<'a> AuthorizedDirectiveWalker<'a> {
+    pub fn arguments(&self) -> &'a InputValueSet {
+        &self.as_ref().arguments
+    }
+
+    pub fn metadata(&self) -> Option<SchemaInputValueWalker<'a>> {
+        self.as_ref().metadata.map(|id| self.walk(&self.schema[id]))
     }
 }

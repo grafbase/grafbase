@@ -310,7 +310,17 @@ where
                         self.state.push_response_objects(set_id, response_object_refs);
                     }
 
-                    for plan_id in self.state.get_next_executable_plans(plan_id) {
+                    let response_modifier_executor_ids = self.state.get_next_executable_response_modifiers(plan_id);
+                    for id in &response_modifier_executor_ids {
+                        self.ctx
+                            .execute_response_modifier(&mut self.state, &mut self.response, *id)
+                            .await;
+                    }
+
+                    for plan_id in self
+                        .state
+                        .get_next_executable_plans(plan_id, response_modifier_executor_ids)
+                    {
                         self.spawn_executor(plan_id);
                     }
                 }
@@ -375,7 +385,7 @@ where
 
     fn spawn_executor(&mut self, plan_id: ExecutionPlanId) {
         tracing::trace!(%plan_id, "Starting plan");
-        let root_response_object_set = Arc::new(self.state.get_root_response_object_set(&self.response, plan_id));
+        let root_response_object_set = Arc::new(self.state.get_input(&self.response, plan_id));
 
         tracing::trace!(%plan_id, "Found {} root response objects", root_response_object_set.len());
         if root_response_object_set.is_empty() {

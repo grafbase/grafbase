@@ -1,5 +1,6 @@
 mod authorize_edge_pre_execution;
 mod authorize_node_pre_execution;
+mod authorize_parent_edge_post_execution;
 mod on_gateway_request;
 mod on_subgraph_request;
 

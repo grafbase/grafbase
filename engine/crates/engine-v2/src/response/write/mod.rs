@@ -76,6 +76,14 @@ impl ResponseBuilder {
         self.root = None;
     }
 
+    pub fn push_error(&mut self, error: impl Into<GraphqlError>) {
+        let error = error.into();
+        if let Some(path) = error.path.as_ref() {
+            self.propagate_error(path);
+        }
+        self.errors.push(error);
+    }
+
     pub fn new_subgraph_response(
         &mut self,
         root_response_object_set: Arc<InputdResponseObjectSet>,
@@ -470,7 +478,10 @@ impl<'resp> ResponseWriter<'resp> {
 
     pub fn push_response_object(&self, set_id: ResponseObjectSetId, obj: ResponseObjectRef) {
         let mut part = self.part();
-        let i = part.tracked_response_object_set_ids.index_of(set_id).unwrap();
+        let i = part
+            .tracked_response_object_set_ids
+            .index_of(set_id)
+            .unwrap_or_else(|| unreachable!("{set_id} not in {:?}", part.tracked_response_object_set_ids));
         part.tracked_response_object_sets[i].push(obj);
     }
 }

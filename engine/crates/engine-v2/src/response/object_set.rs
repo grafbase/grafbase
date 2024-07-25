@@ -128,6 +128,10 @@ impl InputdResponseObjectSet {
         ResponseObjectIterator { parent: self, idx: 0 }
     }
 
+    pub(crate) fn iter_with_set_index(&self) -> ResponseObjectIteratorWithSetIndex<'_> {
+        ResponseObjectIteratorWithSetIndex { parent: self, idx: 0 }
+    }
+
     pub(crate) fn len(&self) -> usize {
         self.indices.len()
     }
@@ -162,5 +166,24 @@ impl<'set> Iterator for ResponseObjectIterator<'set> {
         let item = self.parent.get(self.idx)?;
         self.idx += 1;
         Some(item)
+    }
+}
+
+pub(crate) struct ResponseObjectIteratorWithSetIndex<'set> {
+    parent: &'set InputdResponseObjectSet,
+    idx: usize,
+}
+
+impl<'set> Iterator for ResponseObjectIteratorWithSetIndex<'set> {
+    type Item = (usize, &'set ResponseObjectRef);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let index = self.parent.indices.get(self.idx)?;
+        self.idx += 1;
+
+        let set_idex = (index >> SET_INDEX_SHIFT) as usize;
+        let object_index = (index & OBJECT_INDEX_MASK) as usize;
+        let item = &self.parent.sets[set_idex][object_index];
+        Some((set_idex, item))
     }
 }

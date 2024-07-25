@@ -22,7 +22,6 @@ use super::{
 pub(super) struct LogicalPlanResponseBlueprintBuilder<'schema, 'op, 'builder> {
     builder: &'builder mut ResponseBlueprintBuilder<'schema, 'op>,
     logical_plan_id: LogicalPlanId,
-    output_response_object_set_ids: Vec<ResponseObjectSetId>,
 }
 
 impl<'schema, 'op, 'builder> std::ops::Deref for LogicalPlanResponseBlueprintBuilder<'schema, 'op, 'builder> {
@@ -50,15 +49,15 @@ where
             root_field_ids,
         }: &ToBuild,
     ) -> LogicalPlanResponseBlueprint {
+        let start = builder.blueprint.response_object_sets_to_type.len();
         let mut builder = LogicalPlanResponseBlueprintBuilder {
             builder,
             logical_plan_id: *logical_plan_id,
-            output_response_object_set_ids: Vec::new(),
         };
         let concrete_shape_id = builder.create_root_shape_for(builder.plan[*logical_plan_id].entity_id, root_field_ids);
         LogicalPlanResponseBlueprint {
             input_id: *input_id,
-            output_ids: IdRange::from_slice(&builder.output_response_object_set_ids).unwrap(),
+            output_ids: IdRange::from(start..builder.blueprint.response_object_sets_to_type.len()),
             concrete_shape_id,
         }
     }
@@ -95,7 +94,6 @@ where
         }
         let maybe_response_object_set_id = if !children_plan.is_empty() {
             let id = self.next_response_object_set_id(ty);
-            self.output_response_object_set_ids.push(id);
             self.to_build_stack
                 .extend(children_plan.into_iter().map(|(plan_id, root_fields)| ToBuild {
                     input_id: id,

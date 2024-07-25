@@ -26,14 +26,14 @@ fn requires_scopes(scopes: Vec<Vec<String>>) {}
     location = "Object",
     composable = "https://custom.spec.dev/extension/v1.0"
 )]
-fn authorized(arguments: Option<String>, metadata: Option<Vec<Vec<String>>>) {}
+fn authorized(arguments: Option<String>, fields: Option<String>, metadata: Option<Vec<Vec<String>>>) {}
 
 #[derive(Default)]
 pub struct Query;
 
 #[derive(Default, SimpleObject)]
 #[graphql(
-    directive = authorized::apply(None, None)
+    directive = authorized::apply(None, None, None)
 )]
 pub struct AuthorizedNode {
     pub id: String,
@@ -41,7 +41,7 @@ pub struct AuthorizedNode {
 
 #[derive(Default, SimpleObject)]
 #[graphql(
-    directive = authorized::apply(None, Some(vec![vec!["admin".into()]]))
+    directive = authorized::apply(None, None, Some(vec![vec!["admin".into()]]))
 )]
 pub struct AuthorizedWithMetdataNode {
     pub id: String,
@@ -72,10 +72,41 @@ impl Node {
     }
 }
 
+struct AuthorizedEdgeWithFields {
+    id: String,
+}
+
+#[Object]
+impl AuthorizedEdgeWithFields {
+    async fn id(&self) -> &str {
+        &self.id
+    }
+
+    #[graphql(
+        directive = authorized::apply(None, Some("id".to_string()), None)
+    )]
+    async fn with_id(&self) -> &'static str {
+        "You have access"
+    }
+
+    #[graphql(
+        directive = authorized::apply(None, Some("id".to_string()), Some(vec![vec!["rusty".to_string()]]))
+    )]
+    async fn with_id_and_metadata(&self) -> &'static str {
+        "You have access"
+    }
+}
+
 pub struct Check;
 
 #[Object]
 impl Check {
+    async fn authorized_edge_with_fields(&self, prefix: String, id: String) -> AuthorizedEdgeWithFields {
+        AuthorizedEdgeWithFields {
+            id: format!("{prefix}{id}"),
+        }
+    }
+
     // -- @authenticated -- //
     async fn anonymous(&self) -> &'static str {
         "Hello anonymous!"
@@ -126,21 +157,21 @@ impl Check {
 
     // -- @authorized -- //
     #[graphql(
-        directive = authorized::apply(None, None)
+        directive = authorized::apply(None, None, None)
     )]
     async fn authorized(&self) -> &'static str {
         "You have access"
     }
 
     #[graphql(
-        directive = authorized::apply(None, Some(vec![vec!["admin".into()]]))
+        directive = authorized::apply(None, None, Some(vec![vec!["admin".into()]]))
     )]
     async fn authorized_with_metadata(&self) -> &'static str {
         "You have access"
     }
 
     #[graphql(
-        directive = authorized::apply(Some("id".into()), None)
+        directive = authorized::apply(Some("id".into()), None, None)
     )]
     async fn authorized_with_id(&self, id: i64) -> &'static str {
         let _ = id;
@@ -153,14 +184,14 @@ pub struct OtherCheck;
 #[Object]
 impl OtherCheck {
     #[graphql(
-        directive = authorized::apply(None, None)
+        directive = authorized::apply(None, None, None)
     )]
     async fn authorized(&self) -> &'static str {
         "Other: You have access"
     }
 
     #[graphql(
-        directive = authorized::apply(None, Some(vec![vec!["admin".into()]]))
+        directive = authorized::apply(None, None, Some(vec![vec!["admin".into()]]))
     )]
     async fn authorized_with_metadata(&self) -> &'static str {
         "You have access"

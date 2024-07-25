@@ -163,12 +163,14 @@ where
         {
             let parent_id = ResponseModifierExecutorId::from(i);
             for &field_id in &self.build_context[output_fields] {
-                let child_logical_plan_id = self.operation.plan.field_to_logical_plan_id[usize::from(field_id)];
-                let child_id = self.logical_plan_to_execution_plan_id[usize::from(child_logical_plan_id)]
-                    .expect("Depend on unfinished plan");
-                if !self.operation[parent_id].children.contains(&child_id) {
-                    self.operation[parent_id].children.push(child_id);
-                    self.operation[child_id].parent_count += 1;
+                for (i, input_fields) in self.build_context.execution_plans_input_fields.iter().enumerate() {
+                    let child_id = ExecutionPlanId::from(i);
+                    if self.build_context[*input_fields].contains(&field_id)
+                        && !self.operation[parent_id].children.contains(&child_id)
+                    {
+                        self.operation[parent_id].children.push(child_id);
+                        self.operation[child_id].parent_count += 1;
+                    }
                 }
             }
         }
