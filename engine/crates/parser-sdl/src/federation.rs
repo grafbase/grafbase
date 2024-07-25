@@ -91,7 +91,7 @@ pub struct RateLimitRedisConfig {
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub struct RateLimitRedisTlsConfig {
-    pub cert: PathBuf,
-    pub key: PathBuf,
+    pub cert: Option<PathBuf>,
+    pub key: Option<PathBuf>,
     pub ca: Option<PathBuf>,
 }
