@@ -265,7 +265,7 @@ pub(super) fn ingest_directive_definitions(
 ///
 /// - The `as` argument: `@link(url: "...", as: "compositionDirectives")
 ///   - In the absence of an `@link` or `as` argument, all directives are in scope prefixed with
-///   `@federation__`, for example `@federation__shareable`.
+///     `@federation__`, for example `@federation__shareable`.
 ///   - With an `@link(as: "something")`, they are in scope under the `@something__` prefix.
 ///
 /// Last rule: if a directive is `import`ed, it is no longer available under the prefix.

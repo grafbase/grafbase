@@ -99,7 +99,7 @@ fn format_code(text: impl ToString) -> anyhow::Result<String> {
     use xshell::{cmd, Shell};
     let sh = Shell::new()?;
 
-    let stdout = cmd!(sh, "rustfmt").stdin(&text.to_string()).read()?;
+    let stdout = cmd!(sh, "rustfmt").stdin(text.to_string()).read()?;
 
     Ok(stdout)
 }
