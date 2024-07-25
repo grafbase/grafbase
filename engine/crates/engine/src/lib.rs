@@ -6,7 +6,7 @@
 #![forbid(unsafe_code)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 
-#[cfg(target_arch = "wasm")]
+#[cfg(target_arch = "wasm32")]
 use getrandom as _;
 
 mod base;
