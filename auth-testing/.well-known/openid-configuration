@@ -1,4 +1,5 @@
 {
   "issuer": "https://raw.githubusercontent.com/grafbase/grafbase/main/auth-testing",
-  "jwks_uri": "https://raw.githubusercontent.com/grafbase/grafbase/main/auth-testing/.well-known/jwks.json"
+  "jwks_uri": "https://raw.githubusercontent.com/grafbase/grafbase/main/auth-testing/.well-known/jwks.json",
+  "groups_claim": "groups"
 }
