@@ -1,4 +1,4 @@
-use std::{sync::Arc, time::Duration};
+use std::{borrow::Cow, sync::Arc, time::Duration};
 
 #[derive(Debug, thiserror::Error)]
 pub enum KvError {
@@ -46,7 +46,7 @@ impl KvStore {
         expiration_ttl: Option<Duration>,
     ) -> KvResult<()> {
         let bytes = serde_json::to_vec(value)?;
-        self.put(name, bytes, expiration_ttl).await
+        self.put(name, Cow::Owned(bytes), expiration_ttl).await
     }
 }
 
@@ -70,5 +70,5 @@ pub trait KvStoreInner: Send + Sync {
     async fn get(&self, name: &str, cache_ttl: Option<Duration>) -> KvResult<Option<Vec<u8>>>;
 
     /// Put an entry into the TTL store, with an optional expiry.
-    async fn put(&self, name: &str, bytes: Vec<u8>, expiration_ttl: Option<Duration>) -> KvResult<()>;
+    async fn put(&self, name: &str, bytes: Cow<'_, [u8]>, expiration_ttl: Option<Duration>) -> KvResult<()>;
 }

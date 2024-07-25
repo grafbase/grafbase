@@ -92,6 +92,7 @@ pub(super) async fn generate(
                 development_url: None,
                 rate_limit: value.rate_limit.map(Into::into),
                 timeout: value.timeout,
+                entity_cache_ttl: None,
             };
 
             (name, config)

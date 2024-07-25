@@ -1,6 +1,7 @@
 mod apq;
 mod auth;
 mod basic;
+mod entity_caching;
 mod hooks;
 mod introspection;
 mod issues;

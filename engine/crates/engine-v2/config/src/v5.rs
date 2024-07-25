@@ -53,6 +53,9 @@ pub struct Config {
 
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub timeout: Option<Duration>,
+
+    #[serde(default)]
+    pub enable_entity_caching: bool,
 }
 
 impl Config {
@@ -70,6 +73,7 @@ impl Config {
             disable_introspection: Default::default(),
             rate_limit: Default::default(),
             timeout: None,
+            enable_entity_caching: false,
         }
     }
 
@@ -178,6 +182,7 @@ mod tests {
             disable_introspection: Default::default(),
             rate_limit: Default::default(),
             timeout: None,
+            enable_entity_caching: false,
         };
 
         insta::with_settings!({sort_maps => true}, {
@@ -200,6 +205,7 @@ mod tests {
               },
               "default_header_rules": [],
               "disable_introspection": false,
+              "enable_entity_caching": false,
               "graph": {
                 "authorized_directives": [],
                 "directives": [],

@@ -26,6 +26,7 @@ impl ExternalDataSources {
                         websocket_url,
                         headers,
                         timeout,
+                        entity_cache_ttl,
                         ..
                     }) => sources::graphql::GraphqlEndpoint {
                         name,
@@ -35,6 +36,7 @@ impl ExternalDataSources {
                             .map(|url| ctx.urls.insert(url::Url::parse(&config[url]).expect("valid url"))),
                         header_rules: headers.into_iter().map(Into::into).collect(),
                         timeout: timeout.unwrap_or(DEFAULT_SUBGRAPH_TIMEOUT),
+                        entity_cache_ttl: entity_cache_ttl.unwrap_or(DEFAULT_ENTITY_CACHE_TTL),
                     },
 
                     None => sources::graphql::GraphqlEndpoint {
@@ -44,6 +46,7 @@ impl ExternalDataSources {
                         websocket_url: None,
                         header_rules: Vec::new(),
                         timeout: DEFAULT_SUBGRAPH_TIMEOUT,
+                        entity_cache_ttl: DEFAULT_ENTITY_CACHE_TTL,
                     },
                 }
             })
@@ -55,3 +58,4 @@ impl ExternalDataSources {
 }
 
 const DEFAULT_SUBGRAPH_TIMEOUT: Duration = Duration::from_secs(30);
+const DEFAULT_ENTITY_CACHE_TTL: Duration = Duration::from_secs(60);

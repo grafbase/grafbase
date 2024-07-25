@@ -1,5 +1,5 @@
 /// FIXME: Only here because of jwt-verifier, to be refactored with auth
-use std::time::Duration;
+use std::{borrow::Cow, time::Duration};
 
 use runtime::kv::{KvError, KvResult, KvStoreInner};
 
@@ -17,7 +17,7 @@ impl KvStoreInner for NoopKvStore {
         Err(KvError::Kv("Not available".into()))
     }
 
-    async fn put(&self, _name: &str, _bytes: Vec<u8>, _expiration_ttl: Option<Duration>) -> KvResult<()> {
+    async fn put(&self, _name: &str, _bytes: Cow<'_, [u8]>, _expiration_ttl: Option<Duration>) -> KvResult<()> {
         Ok(())
     }
 }

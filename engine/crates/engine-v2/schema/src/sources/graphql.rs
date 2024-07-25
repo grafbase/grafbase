@@ -18,6 +18,7 @@ pub struct GraphqlEndpoint {
     pub(crate) websocket_url: Option<UrlId>,
     pub(crate) header_rules: Vec<HeaderRuleId>,
     pub(crate) timeout: Duration,
+    pub(crate) entity_cache_ttl: Duration,
 }
 
 id_newtypes::U8! {
@@ -147,6 +148,10 @@ impl<'a> GraphqlEndpointWalker<'a> {
 
     pub fn header_rules(self) -> impl Iterator<Item = HeaderRuleWalker<'a>> {
         self.as_ref().header_rules.iter().map(move |id| self.walk(*id))
+    }
+
+    pub fn entity_cache_ttl(self) -> Duration {
+        self.as_ref().entity_cache_ttl
     }
 }
 

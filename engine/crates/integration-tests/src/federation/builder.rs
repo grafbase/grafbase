@@ -24,6 +24,7 @@ pub struct EngineV2Builder {
     runtime: TestRuntime,
     header_rules: Vec<SubgraphHeaderRule>,
     timeout: Option<Duration>,
+    enable_entity_caching: bool,
 }
 
 struct TestSubgraph {
@@ -41,6 +42,7 @@ pub trait EngineV2Ext {
             header_rules: Vec::new(),
             timeout: None,
             runtime: TestRuntime::default(),
+            enable_entity_caching: false,
         }
     }
 }
@@ -106,6 +108,11 @@ impl EngineV2Builder {
 
     pub fn with_timeout(mut self, timeout: Duration) -> Self {
         self.timeout = Some(timeout);
+        self
+    }
+
+    pub fn with_entity_caching(mut self) -> Self {
+        self.enable_entity_caching = true;
         self
     }
 
@@ -183,6 +190,7 @@ impl EngineV2Builder {
 
         federated_graph_config.timeout = self.timeout;
         federated_graph_config.header_rules.extend(self.header_rules);
+        federated_graph_config.enable_entity_caching = self.enable_entity_caching;
 
         (
             engine_config_builder::build_config(&federated_graph_config, graph).into_latest(),

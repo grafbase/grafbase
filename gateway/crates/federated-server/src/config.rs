@@ -848,7 +848,7 @@ mod tests {
     #[test]
     fn header_rename_duplicate() {
         let input = indoc! {r#"
-            [[headers]]     
+            [[headers]]
             rule = "rename_duplicate"
             name = "content-type"
             default = "foo"
@@ -881,7 +881,7 @@ mod tests {
     #[test]
     fn header_forward_static() {
         let input = indoc! {r#"
-            [[headers]]     
+            [[headers]]
             rule = "forward"
             name = "content-type"
         "#};
@@ -908,7 +908,7 @@ mod tests {
     #[test]
     fn header_forward_invalid_name() {
         let input = indoc! {r#"
-            [[headers]]     
+            [[headers]]
             rule = "forward"
             name = "Authoriz🎠"
         "#};
@@ -918,8 +918,8 @@ mod tests {
         insta::assert_snapshot!(&error.to_string(), @r###"
         TOML parse error at line 1, column 1
           |
-        1 | [[headers]]     
-          | ^^^^^^^^^^^^^^^^
+        1 | [[headers]]
+          | ^^^^^^^^^^^
         the byte at index 8 is not ASCII
         "###);
     }
@@ -927,11 +927,11 @@ mod tests {
     #[test]
     fn header_forward_two_headers_in_written_order() {
         let input = indoc! {r#"
-            [[headers]]     
+            [[headers]]
             rule = "forward"
             name = "content-type"
 
-            [[headers]]     
+            [[headers]]
             rule = "forward"
             name = "accept"
         "#};
@@ -969,7 +969,7 @@ mod tests {
     #[test]
     fn header_forward_pattern() {
         let input = indoc! {r#"
-            [[headers]]     
+            [[headers]]
             rule = "forward"
             pattern = "^content-type-*"
         "#};
@@ -996,7 +996,7 @@ mod tests {
     #[test]
     fn header_forward_invalid_pattern() {
         let input = indoc! {r#"
-            [[headers]]     
+            [[headers]]
             rule = "forward"
             pattern = "foo(bar"
         "#};
@@ -1006,8 +1006,8 @@ mod tests {
         insta::assert_snapshot!(&error.to_string(), @r###"
         TOML parse error at line 1, column 1
           |
-        1 | [[headers]]     
-          | ^^^^^^^^^^^^^^^^
+        1 | [[headers]]
+          | ^^^^^^^^^^^
         regex parse error:
             foo(bar
                ^
@@ -1018,7 +1018,7 @@ mod tests {
     #[test]
     fn header_forward_default() {
         let input = indoc! {r#"
-            [[headers]]     
+            [[headers]]
             rule = "forward"
             name = "content-type"
             default = "application/json"
@@ -1050,7 +1050,7 @@ mod tests {
     #[test]
     fn header_forward_invalid_default() {
         let input = indoc! {r#"
-            [[headers]]     
+            [[headers]]
             rule = "forward"
             name = "content-type"
             default = "application/json🎠"
@@ -1061,8 +1061,8 @@ mod tests {
         insta::assert_snapshot!(&error.to_string(), @r###"
         TOML parse error at line 1, column 1
           |
-        1 | [[headers]]     
-          | ^^^^^^^^^^^^^^^^
+        1 | [[headers]]
+          | ^^^^^^^^^^^
         the byte at index 16 is not ASCII
         "###);
     }
@@ -1070,7 +1070,7 @@ mod tests {
     #[test]
     fn header_forward_rename() {
         let input = indoc! {r#"
-            [[headers]]     
+            [[headers]]
             rule = "forward"
             name = "content-type"
             rename = "kekw-type"
@@ -1102,7 +1102,7 @@ mod tests {
     #[test]
     fn header_forward_invalid_rename() {
         let input = indoc! {r#"
-            [[headers]]     
+            [[headers]]
             rule = "forward"
             name = "content-type"
             rename = "🎠"
@@ -1113,8 +1113,8 @@ mod tests {
         insta::assert_snapshot!(&error.to_string(), @r###"
         TOML parse error at line 1, column 1
           |
-        1 | [[headers]]     
-          | ^^^^^^^^^^^^^^^^
+        1 | [[headers]]
+          | ^^^^^^^^^^^
         the byte at index 0 is not ASCII
         "###);
     }
@@ -1122,7 +1122,7 @@ mod tests {
     #[test]
     fn header_insert() {
         let input = indoc! {r#"
-            [[headers]]     
+            [[headers]]
             rule = "insert"
             name = "content-type"
             value = "application/json"
@@ -1150,7 +1150,7 @@ mod tests {
     fn header_insert_env() {
         temp_env::with_var("CONTENT_TYPE", Some("application/json"), || {
             let input = indoc! {r#"
-                [[headers]]     
+                [[headers]]
                 rule = "insert"
                 name = "content-type"
                 value = "{{ env.CONTENT_TYPE }}"
@@ -1218,7 +1218,7 @@ mod tests {
     #[test]
     fn header_remove() {
         let input = indoc! {r#"
-            [[headers]]     
+            [[headers]]
             rule = "remove"
             name = "content-type"
         "#};
@@ -1262,7 +1262,7 @@ mod tests {
     #[test]
     fn subgraph_header_forward_static() {
         let input = indoc! {r#"
-            [[subgraphs.products.headers]]     
+            [[subgraphs.products.headers]]
             rule = "forward"
             name = "content-type"
         "#};
