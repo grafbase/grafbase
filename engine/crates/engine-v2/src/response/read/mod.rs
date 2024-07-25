@@ -13,12 +13,16 @@ impl ResponseBuilder {
     pub fn read<'a>(
         &'a self,
         schema: &'a Schema,
+        response_views: &'a ResponseViews,
         response_object_set: Arc<InputdResponseObjectSet>,
-        selection_set: &'a ReadSelectionSet,
+        selection_set: ResponseViewSelectionSet,
     ) -> ResponseObjectsView<'a> {
         ResponseObjectsView {
-            schema,
-            response: self,
+            ctx: ViewContext {
+                schema,
+                response_views,
+                response: self,
+            },
             response_object_set,
             selection_set,
         }

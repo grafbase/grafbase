@@ -232,7 +232,7 @@ pub fn bind_operation(schema: &Schema, mut parsed_operation: ParsedOperation) ->
 
 /// A helper struct for optionally including operation names in error messages
 #[derive(Debug, Clone)]
-pub struct ErrorOperationName(Option<String>);
+pub(crate) struct ErrorOperationName(Option<String>);
 
 impl std::fmt::Display for ErrorOperationName {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

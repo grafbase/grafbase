@@ -8,7 +8,7 @@ pub(crate) use path::*;
 pub(crate) use read::*;
 use schema::Schema;
 pub(crate) use shape::*;
-pub(crate) use value::{ResponseObject, ResponseValue};
+pub(crate) use value::*;
 pub(crate) use write::*;
 
 use crate::operation::PreparedOperation;

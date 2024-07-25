@@ -1,5 +1,5 @@
 use id_newtypes::IdRange;
-use schema::{FieldDefinitionId, InterfaceId, ObjectId, ScalarType, UnionId, Wrapping};
+use schema::{FieldDefinitionId, InterfaceId, ObjectId, RequiredFieldId, ScalarType, UnionId, Wrapping};
 
 use crate::operation::FieldId;
 
@@ -23,6 +23,7 @@ pub(crate) struct FieldShape {
     pub expected_key: SafeResponseKey,
     pub edge: ResponseEdge,
     pub id: FieldId,
+    pub required_field_id: Option<RequiredFieldId>,
     pub definition_id: FieldDefinitionId,
     pub shape: Shape,
     pub wrapping: Wrapping,

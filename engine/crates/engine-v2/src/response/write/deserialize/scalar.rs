@@ -3,7 +3,7 @@ use serde::{de::DeserializeSeed, Deserialize};
 
 use crate::response::ResponseValue;
 
-pub struct ScalarTypeSeed(pub ScalarType);
+pub(crate) struct ScalarTypeSeed(pub ScalarType);
 
 impl<'de> DeserializeSeed<'de> for ScalarTypeSeed {
     type Value = ResponseValue;

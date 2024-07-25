@@ -13,8 +13,8 @@ use tracing::instrument;
 use crate::{
     execution::{ExecutableOperation, ExecutionContext, PlanWalker},
     response::{
-        InputdResponseObjectSet, ObjectIdentifier, Response, ResponseBuilder, ResponseEdge, ResponseValue,
-        SubgraphResponse, SubgraphResponseRefMut,
+        InputdResponseObjectSet, ObjectIdentifier, Response, ResponseBuilder, ResponseEdge, ResponseObjectField,
+        ResponseValue, SubgraphResponse, SubgraphResponseRefMut,
     },
     Runtime,
 };
@@ -262,7 +262,7 @@ where
     }
 }
 
-pub struct SubscriptionResponse {
+pub(crate) struct SubscriptionResponse {
     response: ResponseBuilder,
     root_subgraph_response: SubgraphResponse,
 }
@@ -330,7 +330,7 @@ where
     fn get_first_edge_and_default_object(
         &self,
         plan_id: ExecutionPlanId,
-    ) -> (ResponseEdge, Option<Vec<(ResponseEdge, ResponseValue)>>) {
+    ) -> (ResponseEdge, Option<Vec<ResponseObjectField>>) {
         let shape_id = self
             .ctx
             .plan_walker(plan_id)
@@ -350,16 +350,24 @@ where
         if !shape.typename_response_edges.is_empty() {
             if let ObjectIdentifier::Known(object_id) = shape.identifier {
                 let name: ResponseValue = self.schema().walk(object_id).as_ref().name.into();
-                fields.extend(shape.typename_response_edges.iter().map(|&edge| (edge, name.clone())))
+                fields.extend(shape.typename_response_edges.iter().map(|&edge| ResponseObjectField {
+                    edge,
+                    required_field_id: None,
+                    value: name.clone(),
+                }))
             } else {
                 return (first_edge, None);
             }
         }
-        for field in &shapes[shape.field_shape_ids] {
-            if field.wrapping.is_required() {
+        for field_shape in &shapes[shape.field_shape_ids] {
+            if field_shape.wrapping.is_required() {
                 return (first_edge, None);
             }
-            fields.push((field.edge, ResponseValue::Null))
+            fields.push(ResponseObjectField {
+                edge: field_shape.edge,
+                required_field_id: field_shape.required_field_id,
+                value: ResponseValue::Null,
+            })
         }
 
         (first_edge, Some(fields))
@@ -382,8 +390,9 @@ where
             );
             let root_response_objects = self.response.read(
                 self.ctx.schema(),
+                &self.ctx.operation.response_views,
                 Arc::clone(&root_response_object_set),
-                &self.operation[plan_id].requires,
+                self.operation[plan_id].requires,
             );
             let fut = self.operation[plan_id].prepared_executor.execute(
                 self.ctx,

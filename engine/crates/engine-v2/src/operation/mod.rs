@@ -85,6 +85,7 @@ pub struct OperationMetadata {
 #[derive(serde::Serialize, serde::Deserialize)]
 pub(crate) struct OperationPlan {
     pub field_to_logical_plan_id: Vec<LogicalPlanId>,
+    pub field_to_solved_requirement: Vec<Option<RequiredFieldId>>,
     pub logical_plans: Vec<LogicalPlan>,
     pub mutation_fields_plan_order: Vec<LogicalPlanId>,
     pub children: IdToMany<LogicalPlanId, LogicalPlanId>,

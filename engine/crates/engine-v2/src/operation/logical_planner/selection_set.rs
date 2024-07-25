@@ -81,7 +81,7 @@ impl<'schema, 'a> SelectionSetLogicalPlanner<'schema, 'a> {
             }
         }
 
-        let solved_requirements = Self::build_solved_requirements(planned_selection_set);
+        let solved_requirements = self.build_solved_requirements(planned_selection_set);
         if !solved_requirements.is_empty() {
             self.planner
                 .solved_requirements
@@ -91,12 +91,11 @@ impl<'schema, 'a> SelectionSetLogicalPlanner<'schema, 'a> {
         Ok(())
     }
 
-    fn build_solved_requirements(planned_selection_set: PlannedSelectionSet) -> SolvedRequiredFieldSet {
-        planned_selection_set
-            .fields
-            .into_values()
-            .flat_map(|fields| {
-                fields.into_iter().filter_map(|field| match field {
+    fn build_solved_requirements(&mut self, planned_selection_set: PlannedSelectionSet) -> SolvedRequiredFieldSet {
+        let mut solved_fields = Vec::new();
+        for fields in planned_selection_set.fields.into_values() {
+            for field in fields {
+                let solved_field = match field {
                     PlannedField::Query {
                         field_id,
                         required_field_id,
@@ -106,7 +105,7 @@ impl<'schema, 'a> SelectionSetLogicalPlanner<'schema, 'a> {
                         id,
                         field_id,
                         subselection: lazy_subselection
-                            .map(Self::build_solved_requirements)
+                            .map(|subselection| self.build_solved_requirements(subselection))
                             .unwrap_or_default(),
                     }),
                     PlannedField::Extra(ExtraPlannedField {
@@ -117,11 +116,16 @@ impl<'schema, 'a> SelectionSetLogicalPlanner<'schema, 'a> {
                     }) => field_id.map(|field_id| SolvedRequiredField {
                         id: required_field_id,
                         field_id,
-                        subselection: Self::build_solved_requirements(subselection),
+                        subselection: self.build_solved_requirements(subselection),
                     }),
-                })
-            })
-            .collect()
+                };
+                if let Some(solved) = solved_field {
+                    self.field_to_solved_requirement[usize::from(solved.field_id)] = Some(solved.id);
+                    solved_fields.push(solved);
+                }
+            }
+        }
+        solved_fields
     }
 
     fn build_planned_selection_set(&self, id: SelectionSetId, planned_field_ids: &[FieldId]) -> PlannedSelectionSet {
@@ -424,6 +428,8 @@ impl<'schema, 'a> SelectionSetLogicalPlanner<'schema, 'a> {
         });
         self.operation.fields.push(field);
         self.field_to_logical_plan_id.push(Some(planned_field.logical_plan_id));
+        self.field_to_solved_requirement
+            .push(Some(planned_field.required_field_id));
         let id = (self.operation.fields.len() - 1).into();
         planned_field.field_id = Some(id);
 

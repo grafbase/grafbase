@@ -15,9 +15,9 @@ use schema::{ObjectId, Schema};
 use self::deserialize::UpdateSeed;
 
 use super::{
-    ErrorCode, GraphqlError, InitialResponse, InputdResponseObjectSet, OutputResponseObjectSets, Response,
-    ResponseData, ResponseEdge, ResponseObject, ResponseObjectRef, ResponseObjectSet, ResponseObjectSetId,
-    ResponsePath, ResponseValue, UnpackedResponseEdge,
+    value::ResponseObjectField, ErrorCode, GraphqlError, InitialResponse, InputdResponseObjectSet,
+    OutputResponseObjectSets, Response, ResponseData, ResponseEdge, ResponseObject, ResponseObjectRef,
+    ResponseObjectSet, ResponseObjectSetId, ResponsePath, ResponseValue, UnpackedResponseEdge,
 };
 use crate::{
     execution::{ExecutionError, PlanWalker},
@@ -106,7 +106,7 @@ impl ResponseBuilder {
         root_response_object_set: Arc<InputdResponseObjectSet>,
         error: ExecutionError,
         any_edge: ResponseEdge,
-        default_fields: Option<Vec<(ResponseEdge, ResponseValue)>>,
+        default_fields: Option<Vec<ResponseObjectField>>,
     ) {
         let error = GraphqlError::from(error);
         if let Some(fields) = default_fields {
@@ -133,7 +133,7 @@ impl ResponseBuilder {
         &mut self,
         subgraph_response: SubgraphResponse,
         any_edge: ResponseEdge,
-        default_fields: Option<Vec<(ResponseEdge, ResponseValue)>>,
+        default_fields: Option<Vec<ResponseObjectField>>,
     ) -> OutputResponseObjectSets {
         let reservation = &mut self.parts[usize::from(subgraph_response.data.id)];
         assert!(reservation.is_empty(), "Part already has data");
@@ -450,7 +450,7 @@ impl<'resp> ResponseWriter<'resp> {
         self.part().data.push_list(value)
     }
 
-    pub fn update_root_object_with(&self, fields: Vec<(ResponseEdge, ResponseValue)>) {
+    pub fn update_root_object_with(&self, fields: Vec<ResponseObjectField>) {
         self.part().updates[self.index] = UpdateSlot::Fields(fields);
     }
 
@@ -477,6 +477,6 @@ impl<'resp> ResponseWriter<'resp> {
 
 enum UpdateSlot {
     Reserved,
-    Fields(Vec<(ResponseEdge, ResponseValue)>),
+    Fields(Vec<ResponseObjectField>),
     Error,
 }

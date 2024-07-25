@@ -12,7 +12,7 @@ use std::sync::Arc;
 
 use crate::{
     operation::{FieldId, LogicalPlanId, PreparedOperation, Variables},
-    response::{ConcreteObjectShapeId, FieldShapeId, GraphqlError, ReadSelectionSet},
+    response::{ConcreteObjectShapeId, FieldShapeId, GraphqlError, ResponseViewSelectionSet, ResponseViews},
     sources::PreparedExecutor,
     Runtime,
 };
@@ -44,6 +44,7 @@ pub(crate) struct ExecutableOperation {
     pub(crate) subgraph_default_headers: http::HeaderMap,
     pub(crate) query_modifications: QueryModifications,
     pub(crate) execution_plans: Vec<ExecutionPlan>,
+    pub(crate) response_views: ResponseViews,
 }
 
 impl std::ops::Deref for ExecutableOperation {
@@ -68,7 +69,7 @@ pub(crate) struct ExecutionPlan {
     pub logical_plan_id: LogicalPlanId,
     pub parent_count: usize,
     pub children: Vec<ExecutionPlanId>,
-    pub requires: ReadSelectionSet,
+    pub requires: ResponseViewSelectionSet,
     pub prepared_executor: PreparedExecutor,
 }
 

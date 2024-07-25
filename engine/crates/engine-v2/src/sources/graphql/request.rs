@@ -51,7 +51,7 @@ pub(super) async fn execute_subgraph_request<'ctx, 'a, R: Runtime>(
         tracing::error!(target: GRAFBASE_TARGET, "{err}");
     })?;
 
-    tracing::trace!("{}", String::from_utf8_lossy(&fetch_response.bytes));
+    tracing::debug!("{}", String::from_utf8_lossy(&fetch_response.bytes));
 
     let (status, response) = ingest(fetch_response.bytes).inspect_err(|err| {
         let status = SubgraphResponseStatus::InvalidResponseError;
