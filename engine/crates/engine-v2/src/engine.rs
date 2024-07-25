@@ -115,22 +115,22 @@ impl<R: Runtime> Engine<R> {
             );
         }
 
-        let timeout = async move {
-            // Avoid timing out on streaming responses.
-            let timeout = if format.is_some() {
-                std::time::Duration::MAX
-            } else {
-                self.schema.settings.timeout
-            };
-            self.runtime.sleep(timeout).await;
-            HttpGraphqlResponse::build(
-                Response::execution_error(GraphqlError::new("Gateway timeout", ErrorCode::GatewayTimeout)),
-                format,
-                Default::default(),
-            )
+        let mut timeout = match format {
+            Some(_) => {
+                // Streaming requests are subscriptions so shouldn't timeout
+                std::future::pending().boxed()
+            }
+            None => async move {
+                self.runtime.sleep(self.schema.settings.timeout).await;
+                HttpGraphqlResponse::build(
+                    Response::execution_error(GraphqlError::new("Gateway timeout", ErrorCode::GatewayTimeout)),
+                    format,
+                    Default::default(),
+                )
+            }
+            .boxed(),
         }
         .fuse();
-        pin_mut!(timeout);
 
         let execution = self.execute_maybe_batch(request_context, batch_request).fuse();
         pin_mut!(execution);
