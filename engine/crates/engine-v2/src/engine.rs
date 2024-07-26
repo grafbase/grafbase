@@ -284,7 +284,7 @@ impl<R: Runtime> Engine<R> {
                     .unwrap_or_else(|| String::from("gateway error"));
 
                 tracing::Span::current().record_gql_status(status);
-                tracing::error!(target: GRAFBASE_TARGET, "{message}")
+                tracing::info!(target: GRAFBASE_TARGET, "{message}")
             }
 
             HttpGraphqlResponse::build(response, None, response_metadata)
@@ -343,7 +343,7 @@ impl<R: Runtime> Engine<R> {
                 if status.is_success() {
                     tracing::debug!(target: GRAFBASE_TARGET, "gateway request")
                 } else {
-                    tracing::error!(target: GRAFBASE_TARGET, "gateway error")
+                    tracing::info!(target: GRAFBASE_TARGET, "gateway error")
                 }
             }
             .instrument(span_clone),
