@@ -169,7 +169,19 @@ where
         mut self,
         bytes: Bytes,
     ) -> Result<(GraphqlResponseStatus, SubgraphResponse), crate::execution::ExecutionError> {
-        if let Some(cache_key) = self.cache_key {
+        let status = {
+            let response = self.subgraph_response.as_mut();
+            GraphqlResponseSeed::new(
+                response.next_seed(self.plan).ok_or("No object to update")?,
+                RootGraphqlErrors {
+                    response,
+                    response_keys: self.plan.response_keys(),
+                },
+            )
+            .deserialize(&mut serde_json::Deserializer::from_slice(&bytes))?
+        };
+
+        if let Some(cache_key) = self.cache_key.filter(|_| status.is_success()) {
             // We could probably put this call into the background at some point, but for
             // simplicities sake I am not going to do that just now.
             self.ctx
@@ -181,16 +193,6 @@ where
                 .inspect_err(|err| tracing::warn!("Failed to write the cache key {cache_key}: {err}"))
                 .ok();
         }
-
-        let response = self.subgraph_response.as_mut();
-        let status = GraphqlResponseSeed::new(
-            response.next_seed(self.plan).ok_or("No object to update")?,
-            RootGraphqlErrors {
-                response,
-                response_keys: self.plan.response_keys(),
-            },
-        )
-        .deserialize(&mut serde_json::Deserializer::from_slice(&bytes))?;
 
         Ok((status, self.subgraph_response))
     }
