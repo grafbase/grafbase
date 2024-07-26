@@ -1,3 +1,4 @@
+mod authorize_edge_node_post_execution;
 mod authorize_edge_pre_execution;
 mod authorize_node_pre_execution;
 mod authorize_parent_edge_post_execution;

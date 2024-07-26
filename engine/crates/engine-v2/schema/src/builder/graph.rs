@@ -686,6 +686,7 @@ impl<'a> GraphBuilder<'a> {
                     fields,
                     arguments,
                     metadata,
+                    node,
                 } = &config.graph[id];
 
                 self.graph.authorized_directives.push(AuthorizedDirective {
@@ -695,7 +696,10 @@ impl<'a> GraphBuilder<'a> {
                         .unwrap_or_default(),
                     fields: fields
                         .as_ref()
-                        .map(|fields| self.required_field_sets_buffer.push(schema_location, fields.clone())),
+                        .map(|field_set| self.required_field_sets_buffer.push(schema_location, field_set.clone())),
+                    node: node
+                        .as_ref()
+                        .map(|field_set| self.required_field_sets_buffer.push(schema_location, field_set.clone())),
                     metadata: metadata.clone().map(|value| {
                         let value = self
                             .graph

@@ -32,7 +32,11 @@ pub(crate) struct ResponseModifier {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize)]
 pub(crate) enum ResponseModifierRule {
-    AuthorizedField {
+    AuthorizedParentEdge {
+        directive_id: AuthorizedDirectiveId,
+        definition_id: FieldDefinitionId,
+    },
+    AuthorizedEdgeChild {
         directive_id: AuthorizedDirectiveId,
         definition_id: FieldDefinitionId,
     },

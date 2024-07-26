@@ -318,6 +318,11 @@ impl Display for AuthorizedDirectiveDisplay<'_> {
             .as_ref()
             .map(|fields| ("fields", DisplayableArgument::from(FieldSetDisplay(fields, graph))));
 
+        let node = directive
+            .node
+            .as_ref()
+            .map(|fields| ("node", DisplayableArgument::from(FieldSetDisplay(fields, graph))));
+
         let arguments = directive.arguments.as_ref().map(|arguments| {
             (
                 "arguments",
@@ -330,7 +335,7 @@ impl Display for AuthorizedDirectiveDisplay<'_> {
             .as_ref()
             .map(|metadata| ("metadata", DisplayableArgument::Value(metadata.clone())));
 
-        let arguments = [fields, arguments, metadata];
+        let arguments = [fields, node, arguments, metadata];
 
         write_directive(f, "authorized", arguments.into_iter().flatten(), graph)
     }

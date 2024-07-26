@@ -78,6 +78,7 @@ fn emit_authorized_directives(ir: &CompositionIr, ctx: &mut Context<'_>) {
             .authorized_directives
             .push_return_idx(federated::AuthorizedDirective {
                 fields,
+                node: None,
                 arguments: None,
                 metadata,
             });
@@ -102,6 +103,7 @@ fn emit_authorized_directives(ir: &CompositionIr, ctx: &mut Context<'_>) {
             .authorized_directives
             .push_return_idx(federated::AuthorizedDirective {
                 fields,
+                node: None,
                 arguments: None,
                 metadata,
             });
@@ -179,11 +181,14 @@ fn emit_fields<'a>(
         federated::Definition,
         &'a [subgraphs::Selection],
     )> = Vec::new();
-    let mut field_authorized: Vec<(
-        federated::FieldId,
-        federated::Definition,
-        &subgraphs::AuthorizedDirective,
-    )> = Vec::new();
+
+    struct AuthorizedField<'a> {
+        parent: federated::Definition,
+        field_id: federated::FieldId,
+        output: federated::Definition,
+        directive: &'a subgraphs::AuthorizedDirective,
+    }
+    let mut field_authorized: Vec<AuthorizedField<'_>> = Vec::new();
 
     emit_fields::for_each_field_group(&ir_fields, |definition, fields| {
         let mut start_field_id = None;
@@ -222,6 +227,7 @@ fn emit_fields<'a>(
         {
             let r#type = ctx.insert_field_type(ctx.subgraphs.walk(field_type));
             let field_name = ctx.insert_string(ctx.subgraphs.walk(field_name));
+            let output_definition = r#type.definition;
 
             let field = federated::Field {
                 name: field_name,
@@ -271,7 +277,12 @@ fn emit_fields<'a>(
                 .iter()
                 .filter_map(|field_id| ctx.subgraphs.walk_field(*field_id).directives().authorized())
             {
-                field_authorized.push((field_id, definition, authorized));
+                field_authorized.push(AuthorizedField {
+                    parent: definition,
+                    field_id,
+                    output: output_definition,
+                    directive: authorized,
+                });
             }
 
             let selection_map_key = (definition, field_name);
@@ -336,14 +347,24 @@ fn emit_fields<'a>(
             .push(federated::FieldRequires { subgraph_id, fields });
     }
 
-    for (field_id, definition, authorized) in field_authorized {
-        let fields = authorized
+    for AuthorizedField {
+        parent,
+        field_id,
+        output,
+        directive,
+    } in field_authorized
+    {
+        let fields = directive
             .fields
             .as_ref()
-            .map(|fields| attach_selection(fields, definition, ctx));
-        let metadata = authorized.metadata.as_ref().map(|metadata| ctx.insert_value(metadata));
+            .map(|field_set| attach_selection(field_set, parent, ctx));
+        let node = directive
+            .node
+            .as_ref()
+            .map(|field_set| attach_selection(field_set, output, ctx));
+        let metadata = directive.metadata.as_ref().map(|metadata| ctx.insert_value(metadata));
 
-        let arguments = authorized
+        let arguments = directive
             .arguments
             .as_ref()
             .map(|args| attach_argument_selection::attach_argument_selection(args, field_id, ctx));
@@ -353,6 +374,7 @@ fn emit_fields<'a>(
             .authorized_directives
             .push_return_idx(federated::AuthorizedDirective {
                 fields,
+                node,
                 arguments,
                 metadata,
             });
@@ -412,14 +434,14 @@ fn emit_keys(keys: &[KeyIr], ctx: &mut Context<'_>) {
 /// field ids.
 fn attach_selection(
     selection_set: &[subgraphs::Selection],
-    parent_id: federated::Definition,
+    target: federated::Definition,
     ctx: &mut Context<'_>,
 ) -> federated::FieldSet {
     selection_set
         .iter()
         .map(|selection| {
             let selection_field = ctx.insert_string(ctx.subgraphs.walk(selection.field));
-            let field = ctx.selection_map[&(parent_id, selection_field)];
+            let field = ctx.selection_map[&(target, selection_field)];
             let field_ty = ctx.out[field].r#type.definition;
             let field_arguments = ctx.out[field].arguments;
             let (federated::InputValueDefinitionId(field_arguments_start), _) = field_arguments;

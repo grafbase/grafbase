@@ -1,16 +1,18 @@
 mod logic;
 mod selection_set;
 
+use std::borrow::Cow;
+
 use engine_parser::types::OperationType;
 use id_newtypes::{BitSet, IdToMany};
 use itertools::Itertools;
-use schema::{EntityId, RequiredFieldId, ResolverId, Schema};
+use schema::{EntityId, FieldDefinitionId, RequiredFieldId, RequiredFieldSet, ResolverId, Schema};
 use tracing::instrument;
 
 use crate::{
     operation::{
-        FieldId, LogicalPlan, LogicalPlanId, Operation, OperationWalker, QueryPath, SelectionSetId,
-        SolvedRequiredFieldSet, Variables,
+        FieldId, LogicalPlan, LogicalPlanId, Operation, OperationWalker, QueryPath, ResponseModifierRule,
+        SelectionSetId, SolvedRequiredFieldSet, Variables,
     },
     response::{ErrorCode, GraphqlError},
 };
@@ -90,6 +92,23 @@ impl<'a> LogicalPlanner<'a> {
     pub(super) fn plan(mut self) -> LogicalPlanningResult<OperationPlan> {
         tracing::trace!("Logical Planning");
         self.plan_all_fields()?;
+
+        for modifier in &self.operation.response_modifiers {
+            for &field_id in &self.operation[modifier.impacted_fields] {
+                let selection_set_id = match modifier.rule {
+                    ResponseModifierRule::AuthorizedParentEdge { .. } => {
+                        self.operation[field_id].parent_selection_set_id()
+                    }
+                    ResponseModifierRule::AuthorizedEdgeChild { .. } => self.operation[field_id]
+                        .selection_set_id()
+                        .expect("Only an object/interface can be authorized here"),
+                };
+
+                self.selection_set_to_objects_must_be_tracked
+                    .set(selection_set_id, true);
+            }
+        }
+
         let Self {
             operation,
             schema,
@@ -198,7 +217,7 @@ impl<'a> LogicalPlanner<'a> {
     /// A query is simply treated as a plan boundary with no parent.
     fn plan_query(&mut self, field_ids: Vec<FieldId>) -> LogicalPlanningResult<()> {
         let id = self.operation.root_selection_set_id;
-        SelectionSetLogicalPlanner::new(self, &QueryPath::default(), None).solve(id, Vec::new(), field_ids)
+        SelectionSetLogicalPlanner::new(self, &QueryPath::default(), None).solve(id, None, Vec::new(), field_ids)
     }
 
     /// Mutation is a special case because root fields need to execute in order. So planning each
@@ -256,8 +275,9 @@ impl<'a> LogicalPlanner<'a> {
             if let Some(selection_set_id) = self.operation[*id].selection_set_id() {
                 let field = self.walker().walk(*id);
                 let path = path.child(field.response_key());
-                let logic = logic.child(field.definition().expect("wouldn't have a subselection").id());
-                self.plan_selection_set(&path, &logic, selection_set_id)?;
+                let definition_id = field.definition().expect("wouldn't have a subselection").id();
+                let logic = logic.child(definition_id);
+                self.plan_selection_set(&path, &logic, *id, definition_id, selection_set_id)?;
             }
         }
 
@@ -275,10 +295,12 @@ impl<'a> LogicalPlanner<'a> {
         &mut self,
         path: &QueryPath,
         logic: &PlanningLogic<'a>,
-        id: SelectionSetId,
+        parent_field_id: FieldId,
+        parent_definition_id: FieldDefinitionId,
+        selection_set_id: SelectionSetId,
     ) -> LogicalPlanningResult<()> {
         let walker = self.walker();
-        let (obviously_plannable_field_ids, unplanned_field_ids): (Vec<_>, Vec<_>) = self.operation[id]
+        let (obviously_plannable_field_ids, unplanned_field_ids): (Vec<_>, Vec<_>) = self.operation[selection_set_id]
             .field_ids_ordered_by_parent_entity_id_then_position
             .iter()
             .copied()
@@ -293,9 +315,18 @@ impl<'a> LogicalPlanner<'a> {
 
         self.grow_with_obviously_providable_subselections(path, logic, &obviously_plannable_field_ids)?;
 
-        if !unplanned_field_ids.is_empty() {
+        let parent_extra_requirements = self
+            .schema
+            .walk(parent_definition_id)
+            .directives()
+            .authorized()
+            .fold(Default::default(), |acc, directive| {
+                RequiredFieldSet::union_cow(acc, Cow::Borrowed(directive.node()))
+            });
+        if !unplanned_field_ids.is_empty() || !parent_extra_requirements.is_empty() {
             SelectionSetLogicalPlanner::new(self, path, Some(logic)).solve(
-                id,
+                selection_set_id,
+                Some((parent_field_id, parent_extra_requirements)),
                 obviously_plannable_field_ids,
                 unplanned_field_ids,
             )?;
@@ -335,11 +366,10 @@ impl<'a> LogicalPlanner<'a> {
     }
 
     pub fn register_plan_child(&mut self, edge: ParentToChildEdge) {
-        // A parent and child may be the same if the requirements is coming from a ResponseModifier
-        // like @authorized
-        if edge.parent != edge.child {
-            self.dependents_builder.push((edge.parent, edge.child));
-        }
+        // Not a big deal if that happens, we would just ignore the edge. But would indicate a bug
+        // somewhere.
+        assert!(edge.parent != edge.child, "Self-dependency detected");
+        self.dependents_builder.push((edge.parent, edge.child));
     }
 
     pub fn attribute_fields(&mut self, fields: &[FieldId], id: LogicalPlanId) {

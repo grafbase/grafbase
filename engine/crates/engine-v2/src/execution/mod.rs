@@ -93,7 +93,7 @@ pub(crate) struct QueryModifications {
 pub(crate) struct ResponseModifierExecutor {
     pub rule: ResponseModifierRule,
     /// Which object & fields are impacted
-    /// ordered
+    /// sorted by natural order
     pub on: Vec<(ResponseObjectSetId, Option<EntityId>, ResponseKey)>,
     /// What fields the hook requires
     pub requires: ResponseViewSelectionSet,

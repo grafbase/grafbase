@@ -143,6 +143,18 @@ impl<'a> State<'a> {
             subscription: get_object_id(self, subscription_type_name),
         })
     }
+
+    fn get_definition_name(&self, definition: Definition) -> &str {
+        let name = match definition {
+            Definition::Object(object_id) => self.objects[object_id.0].name,
+            Definition::Interface(interface_id) => self.interfaces[interface_id.0].name,
+            Definition::Scalar(scalar_id) => self.scalars[scalar_id.0].name,
+            Definition::Enum(enum_id) => self.enums[enum_id.0].name,
+            Definition::Union(union_id) => self.unions[union_id.0].name,
+            Definition::InputObject(input_object_id) => self.input_objects[input_object_id.0].name,
+        };
+        &self.strings[name.0]
+    }
 }
 
 pub fn from_sdl(sdl: &str) -> Result<FederatedGraph, DomainError> {
@@ -363,6 +375,7 @@ fn ingest_authorized_directives(parsed: &ast::ServiceDocument, state: &mut State
 
         let idx = state.authorized_directives.push_return_idx(AuthorizedDirective {
             fields,
+            node: None,
             arguments: None,
             metadata,
         });
@@ -534,8 +547,9 @@ fn ingest_field_directives_after_graph(
                             _ => None,
                         })
                         .map(|arguments| {
-                            parse_selection_set(arguments)
-                                .and_then(|fields| attach_input_value_set_to_field_arguments(&fields, field_id, state))
+                            parse_selection_set(arguments).and_then(|fields| {
+                                attach_input_value_set_to_field_arguments(&fields, parent_id, field_id, state)
+                            })
                         })
                         .transpose()?,
                     fields: directive
@@ -547,6 +561,18 @@ fn ingest_field_directives_after_graph(
                         })
                         .map(|fields| {
                             parse_selection_set(fields).and_then(|fields| attach_field_set(&fields, parent_id, state))
+                        })
+                        .transpose()?,
+                    node: directive
+                        .node
+                        .get_argument("node")
+                        .and_then(|arg| match &arg.node {
+                            async_graphql_value::ConstValue::String(s) => Some(s),
+                            _ => None,
+                        })
+                        .map(|fields| {
+                            parse_selection_set(fields)
+                                .and_then(|fields| attach_field_set(&fields, field_type.definition, state))
                         })
                         .transpose()?,
                     metadata: directive
@@ -983,7 +1009,7 @@ fn parse_selection_set(fields: &str) -> Result<Vec<Positioned<ast::Selection>>, 
 /// field ids.
 fn attach_field_set(
     selection_set: &[Positioned<ast::Selection>],
-    parent_id: Definition,
+    target: Definition,
     state: &mut State<'_>,
 ) -> Result<FieldSet, DomainError> {
     selection_set
@@ -992,7 +1018,17 @@ fn attach_field_set(
             let ast::Selection::Field(ast_field) = &selection.node else {
                 return Err(DomainError("Unsupported fragment spread in selection set".to_owned()));
             };
-            let field: FieldId = state.selection_map[&(parent_id, ast_field.node.name.node.as_str())];
+            let field: FieldId = *state
+                .selection_map
+                .get(&(target, ast_field.node.name.node.as_str()))
+                .ok_or_else(|| {
+                    DomainError(format!(
+                        "Field '{}.{}' does not exist at {}",
+                        state.get_definition_name(target),
+                        ast_field.node.name.node,
+                        selection.pos,
+                    ))
+                })?;
             let field_ty = state.fields[field.0].r#type.definition;
             let subselection = &ast_field.node.selection_set.node.items;
             let arguments = ast_field
@@ -1023,6 +1059,7 @@ fn attach_field_set(
 
 fn attach_input_value_set_to_field_arguments(
     selection_set: &[Positioned<ast::Selection>],
+    parent: Definition,
     field_id: FieldId,
     state: &mut State<'_>,
 ) -> Result<InputValueDefinitionSet, DomainError> {
@@ -1041,9 +1078,11 @@ fn attach_input_value_set_to_field_arguments(
                 .find(|(_, arg)| state.strings.get_index(arg.name.0).unwrap() == ast_arg.node.name.node.as_str())
             else {
                 return Err(DomainError(format!(
-                    "Unknown argument {} for field {}",
+                    "Argument '{}' does not exist for the field '{}.{}' at {}",
                     ast_arg.node.name.node,
-                    state.strings.get_index(state.fields[field_id.0].name.0).unwrap()
+                    state.get_definition_name(parent),
+                    state.strings.get_index(state.fields[field_id.0].name.0).unwrap(),
+                    selection.pos,
                 )));
             };
 
@@ -1078,7 +1117,17 @@ fn attach_input_value_set(
             let ast::Selection::Field(ast_field) = &selection.node else {
                 return Err(DomainError("Unsupported fragment spread in selection set".to_owned()));
             };
-            let id = state.input_values_map[&(input_object_id, ast_field.node.name.node.as_str())];
+            let id = *state
+                .input_values_map
+                .get(&(input_object_id, ast_field.node.name.node.as_str()))
+                .ok_or_else(|| {
+                    DomainError(format!(
+                        "Input field '{}.{}' does not exist at {}",
+                        state.get_definition_name(Definition::InputObject(input_object_id)),
+                        ast_field.node.name.node,
+                        selection.pos
+                    ))
+                })?;
 
             let ast_subselection = &ast_field.node.selection_set.node.items;
             let subselection = if let Definition::InputObject(input_object_id) =

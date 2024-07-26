@@ -52,7 +52,7 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
 
         // Now we can execute the hook and propagate any errors.
         match executor.rule {
-            ResponseModifierRule::AuthorizedField {
+            ResponseModifierRule::AuthorizedParentEdge {
                 directive_id,
                 definition_id,
             } => {
@@ -101,6 +101,53 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
                                 .child(UnpackedResponseEdge::ExtraFieldResponseKey(*key).pack());
                             response.push_error(err.clone().with_path(path));
                         }
+                    }
+                }
+            }
+            ResponseModifierRule::AuthorizedEdgeChild {
+                directive_id,
+                definition_id,
+            } => {
+                let definition = self.schema().walk(definition_id);
+                let directive = self.schema().walk(directive_id);
+                let input = Arc::new(input);
+                let nodes = response.read(
+                    self.schema(),
+                    &self.operation.response_views,
+                    input.clone(),
+                    executor.requires,
+                );
+                let result = self
+                    .hooks()
+                    .authorize_edge_node_post_execution(definition, nodes, directive.metadata())
+                    .await;
+                // FIXME: make this efficient
+                let result = match result {
+                    Ok(result) => {
+                        if result.len() == input.len() {
+                            result
+                                .into_iter()
+                                .map(|res| res.map_err(GraphqlError::from))
+                                .collect::<Vec<_>>()
+                        } else {
+                            // TODO: should be an error log instead not add any GraphQL error I
+                            // guess
+                            (0..input.len())
+                                .map(|_| {
+                                    Err(GraphqlError::new(
+                                        "Incorrect number of authorization replies",
+                                        ErrorCode::HookError,
+                                    ))
+                                })
+                                .collect()
+                        }
+                    }
+                    Err(err) => (0..input.len()).map(|_| Err(err.clone())).collect(),
+                };
+
+                for (obj_ref, result) in input.iter().zip_eq(result) {
+                    if let Err(err) = result {
+                        response.push_error(err.clone().with_path(obj_ref.path.clone()));
                     }
                 }
             }

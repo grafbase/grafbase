@@ -36,10 +36,10 @@ type Account @authorized(fields: "user { userId }") {
 }
 
 type Query {
-    account(id: ID!): Account @join__field(graph: BANK_ACCOUNT)
+    account(id: ID!): Account @join__field(graph: BANK_ACCOUNT) @authorized(node: "id")
     accounts: [Account!]! @join__field(graph: BANK_ACCOUNT)
     transaction(id: ID!): Transaction @join__field(graph: BANK_ACCOUNT)
-    transactions: [Transaction!]! @join__field(graph: BANK_ACCOUNT)
+    transactions: [Transaction!]! @join__field(graph: BANK_ACCOUNT) @authorized(node: "account { id }")
     user(id: ID!): User @join__field(graph: BANK_ACCOUNT)
     users: [User!]! @join__field(graph: BANK_ACCOUNT)
 }

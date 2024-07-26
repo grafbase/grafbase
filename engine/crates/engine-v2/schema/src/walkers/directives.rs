@@ -61,6 +61,14 @@ impl<'a> TypeSystemDirectivesWalker<'a> {
             _ => false,
         })
     }
+
+    pub fn authorized(&self) -> impl Iterator<Item = AuthorizedDirectiveWalker<'a>> + 'a {
+        let schema = self.schema;
+        self.as_ref().iter().filter_map(move |d| match d {
+            TypeSystemDirective::Authorized(id) => Some(schema.walk(*id)),
+            _ => None,
+        })
+    }
 }
 
 pub type AuthorizedDirectiveWalker<'a> = SchemaWalker<'a, AuthorizedDirectiveId>;
@@ -68,6 +76,13 @@ pub type AuthorizedDirectiveWalker<'a> = SchemaWalker<'a, AuthorizedDirectiveId>
 impl<'a> AuthorizedDirectiveWalker<'a> {
     pub fn arguments(&self) -> &'a InputValueSet {
         &self.as_ref().arguments
+    }
+
+    pub fn node(&self) -> &'a RequiredFieldSet {
+        self.as_ref()
+            .node
+            .map(|id| &self.schema[id])
+            .unwrap_or(&crate::requires::EMPTY)
     }
 
     pub fn metadata(&self) -> Option<SchemaInputValueWalker<'a>> {
