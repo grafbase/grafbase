@@ -112,6 +112,11 @@ impl Query {
         ctx.data_unchecked::<Vec<Product>>()
     }
 
+    async fn product<'a>(&self, ctx: &'a Context<'_>, upc: String) -> Option<&'a Product> {
+        let products = ctx.data_unchecked::<Vec<Product>>();
+        products.iter().find(|product| product.upc == upc)
+    }
+
     #[graphql(entity)]
     async fn find_product_by_upc<'a>(&self, ctx: &'a Context<'_>, upc: String) -> Option<&'a Product> {
         let products = ctx.data_unchecked::<Vec<Product>>();

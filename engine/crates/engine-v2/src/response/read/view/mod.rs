@@ -45,7 +45,7 @@ impl<'a> ResponseObjectsView<'a> {
 }
 
 impl<'a> ResponseObjectsViewWithExtraFields<'a> {
-    fn iter(&self) -> impl Iterator<Item = ResponseObjectWithExtraFieldsWalker<'_>> + '_ {
+    pub fn iter(&self) -> impl Iterator<Item = ResponseObjectWithExtraFieldsWalker<'_>> + '_ {
         self.response_object_set
             .iter()
             .map(|item| ResponseObjectWithExtraFieldsWalker {
@@ -92,7 +92,7 @@ pub(crate) struct ResponseObjectView<'a> {
     selection_set: ResponseViewSelectionSet,
 }
 
-struct ResponseObjectWithExtraFieldsWalker<'a> {
+pub(crate) struct ResponseObjectWithExtraFieldsWalker<'a> {
     ctx: ViewContext<'a>,
     response_object: &'a ResponseObject,
     selection_set: ResponseViewSelectionSet,

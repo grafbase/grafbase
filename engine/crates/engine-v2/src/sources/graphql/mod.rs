@@ -59,7 +59,7 @@ impl GraphqlPreparedExecutor {
         mut subgraph_response: SubgraphResponse,
     ) -> ExecutionResult<SubgraphResponse> {
         let subgraph = plan.schema().walk(self.subgraph_id);
-        let variables = SubgraphVariables {
+        let variables = SubgraphVariables::<()> {
             plan,
             variables: &self.operation.variables,
             inputs: Vec::new(),

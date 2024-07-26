@@ -1,8 +1,9 @@
 use std::time::Duration;
 
 use engine_v2::Engine;
-use graphql_mocks::{ErrorSchema, FederatedProductsSchema};
+use graphql_mocks::{ErrorSchema, FederatedInventorySchema, FederatedProductsSchema, FederatedReviewsSchema};
 use integration_tests::{federation::EngineV2Ext, runtime};
+use serde_json::json;
 
 #[test]
 fn root_level_entity_caching() {
@@ -144,7 +145,7 @@ fn test_cache_expiry() {
 }
 
 #[test]
-fn cache_skipped_if_downstream_error() {
+fn cache_skipped_if_subgraph_errors() {
     runtime().block_on(async move {
         let engine = Engine::builder()
             .with_subgraph(ErrorSchema::default())
@@ -163,4 +164,106 @@ fn cache_skipped_if_downstream_error() {
 
         assert_eq!(engine.drain_graphql_requests_sent_to::<ErrorSchema>().len(), 2);
     });
+}
+
+#[test]
+fn entity_request_caching() {
+    runtime().block_on(async move {
+        let engine = Engine::builder()
+            .with_subgraph(FederatedProductsSchema)
+            .with_subgraph(FederatedReviewsSchema)
+            .with_subgraph(FederatedInventorySchema)
+            .with_entity_caching()
+            .build()
+            .await;
+
+        let response = engine
+            .execute("{ topProducts { upc reviews { id body } } }")
+            .await
+            .into_data();
+        let first_product = &response["topProducts"][0];
+        let product_upc = &first_product["upc"];
+
+        let second_response = engine
+            .execute("query ($upc: String!) { product(upc: $upc) { reviews { id body } } }")
+            .variables(json!({ "upc": product_upc }))
+            .await
+            .into_data();
+
+        assert_eq!(
+            engine.drain_graphql_requests_sent_to::<FederatedReviewsSchema>().len(),
+            1
+        );
+
+        assert_eq!(first_product["reviews"], second_response["product"]["reviews"]);
+    })
+}
+
+#[test]
+fn entity_request_cache_partial_hit() {
+    runtime().block_on(async move {
+        let engine = Engine::builder()
+            .with_subgraph(FederatedProductsSchema)
+            .with_subgraph(FederatedReviewsSchema)
+            .with_subgraph(FederatedInventorySchema)
+            .with_entity_caching()
+            .build()
+            .await;
+
+        engine
+            .execute("query ($upc: String!) { product(upc: $upc) { reviews { id body } } }")
+            .variables(json!({ "upc": "top-1" }))
+            .await
+            .into_data();
+
+        engine
+            .execute("{ topProducts { upc reviews { id body } } }")
+            .await
+            .into_data();
+
+        // The first request here should be for top-1, and the second one should _not_ have top-1 because
+        // it should have been loaded from the cache
+        insta::assert_json_snapshot!(engine.drain_graphql_requests_sent_to::<FederatedReviewsSchema>(), @r###"
+        [
+          {
+            "query": "query($var0: [_Any!]!) {\n  _entities(representations: $var0) {\n    ... on Product {\n      reviews {\n        id\n        body\n      }\n    }\n  }\n}",
+            "operationName": null,
+            "variables": {
+              "var0": [
+                {
+                  "__typename": "Product",
+                  "upc": "top-1"
+                }
+              ]
+            },
+            "extensions": {}
+          },
+          {
+            "query": "query($var0: [_Any!]!) {\n  _entities(representations: $var0) {\n    ... on Product {\n      reviews {\n        id\n        body\n      }\n    }\n  }\n}",
+            "operationName": null,
+            "variables": {
+              "var0": [
+                {
+                  "__typename": "Product",
+                  "upc": "top-2"
+                },
+                {
+                  "__typename": "Product",
+                  "upc": "top-3"
+                },
+                {
+                  "__typename": "Product",
+                  "upc": "top-4"
+                },
+                {
+                  "__typename": "Product",
+                  "upc": "top-5"
+                }
+              ]
+            },
+            "extensions": {}
+          }
+        ]
+        "###);
+    })
 }
