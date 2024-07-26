@@ -33,4 +33,8 @@ impl RateLimiterContext for RateLimitContext<'_> {
             RateLimitContext::Subgraph(name) => name,
         })
     }
+
+    fn is_global(&self) -> bool {
+        matches!(self, Self::Global)
+    }
 }

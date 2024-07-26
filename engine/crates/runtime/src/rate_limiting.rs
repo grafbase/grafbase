@@ -21,6 +21,10 @@ pub trait RateLimiterContext: Send + Sync {
     fn key(&self) -> Option<&str> {
         None
     }
+
+    fn is_global(&self) -> bool {
+        true
+    }
 }
 
 pub trait RateLimiterInner: Send + Sync {
