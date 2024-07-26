@@ -42,6 +42,16 @@ impl std::ops::Deref for PreparedOperation {
     }
 }
 
+impl std::ops::Index<LogicalPlanId> for PreparedOperation {
+    type Output = LogicalPlan;
+
+    fn index(&self, index: LogicalPlanId) -> &Self::Output {
+        &self.plan[index]
+    }
+}
+
+// Is this even a good idea?
+// It's very difficult to actually tell where data lives when we're going through three shadow Index impls....
 impl<I> std::ops::Index<I> for PreparedOperation
 where
     Operation: std::ops::Index<I>,
@@ -90,6 +100,7 @@ pub(crate) struct OperationPlan {
     pub field_to_logical_plan_id: Vec<LogicalPlanId>,
     pub field_to_solved_requirement: Vec<Option<RequiredFieldId>>,
     pub selection_set_to_objects_must_be_tracked: BitSet<SelectionSetId>,
+    #[indexed_by(LogicalPlanId)]
     pub logical_plans: Vec<LogicalPlan>,
     pub mutation_fields_plan_order: Vec<LogicalPlanId>,
     pub children: IdToMany<LogicalPlanId, LogicalPlanId>,

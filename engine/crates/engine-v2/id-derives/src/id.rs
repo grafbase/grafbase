@@ -15,7 +15,7 @@ pub fn derive_id(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
         panic!("IndexImpls can only be derived on named field structs")
     };
 
-    let inner_ty = find_non_zero_kind(&fields).unwrap();
+    let inner_ty = find_non_zero_kind(&fields).expect("Id derive only supports newtypes containing some NonZero<T>");
 
     let max_check = build_max_check(&input.attrs, &ident);
 
