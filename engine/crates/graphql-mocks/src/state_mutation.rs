@@ -10,6 +10,15 @@ pub struct StateMutationSchema {
     state: Arc<AtomicUsize>,
 }
 
+impl crate::Subgraph for StateMutationSchema {
+    fn name(&self) -> String {
+        "state-mutation".to_string()
+    }
+    async fn start(self) -> crate::MockGraphQlServer {
+        crate::MockGraphQlServer::new(self).await
+    }
+}
+
 impl StateMutationSchema {
     fn schema(&self) -> Schema<Query, Mutation, EmptySubscription> {
         Schema::build(Query, Mutation, EmptySubscription)

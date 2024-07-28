@@ -5,7 +5,7 @@ mod inventory;
 mod products;
 mod reviews;
 
-pub use accounts::FakeFederationAccountsSchema;
-pub use inventory::FakeFederationInventorySchema;
-pub use products::FakeFederationProductsSchema;
-pub use reviews::FakeFederationReviewsSchema;
+pub use accounts::FederatedAccountsSchema;
+pub use inventory::FederatedInventorySchema;
+pub use products::FederatedProductsSchema;
+pub use reviews::FederatedReviewsSchema;

@@ -3,9 +3,9 @@ mod test_runtime;
 
 use std::{collections::HashMap, sync::Arc, time::Duration};
 
-use crate::{fetch::FetchRecorder, mock_trusted_documents::MockTrustedDocumentsClient, TestTrustedDocument};
-use async_graphql_parser::types::ServiceDocument;
+use crate::{mock_trusted_documents::MockTrustedDocumentsClient, TestTrustedDocument};
 pub use bench::*;
+use futures::{future::BoxFuture, stream::FuturesUnordered, FutureExt, StreamExt};
 use graphql_composition::FederatedGraph;
 use graphql_federated_graph::FederatedGraphV3;
 use graphql_mocks::MockGraphQlServer;
@@ -16,29 +16,28 @@ pub use test_runtime::*;
 
 use super::TestEngineV2;
 
+enum Config {
+    Sdl(String),
+    SdlWebsocket,
+}
+
 #[must_use]
 pub struct EngineV2Builder {
     federated_sdl: Option<String>,
-    subgraphs: Vec<TestSubgraph>,
-    config_sdl: Option<String>,
+    subgraphs: HashMap<std::any::TypeId, (String, BoxFuture<'static, MockGraphQlServer>)>,
+    config: Option<Config>,
     runtime: TestRuntime,
     header_rules: Vec<SubgraphHeaderRule>,
     timeout: Option<Duration>,
     enable_entity_caching: bool,
 }
 
-struct TestSubgraph {
-    name: String,
-    url: String,
-    schema: ServiceDocument,
-}
-
 pub trait EngineV2Ext {
     fn builder() -> EngineV2Builder {
         EngineV2Builder {
             federated_sdl: None,
-            subgraphs: vec![],
-            config_sdl: None,
+            subgraphs: HashMap::new(),
+            config: None,
             header_rules: Vec::new(),
             timeout: None,
             runtime: TestRuntime::default(),
@@ -49,23 +48,21 @@ pub trait EngineV2Ext {
 
 impl EngineV2Ext for engine_v2::Engine<TestRuntime> {}
 
-pub trait SchemaSource {
-    fn sdl(&self) -> String;
-    fn url(&self) -> String;
-}
-
 impl EngineV2Builder {
-    pub fn with_supergraph_config(mut self, sdl: impl Into<String>) -> Self {
-        self.config_sdl = Some(format!("{}\nextend schema @graph(type: federated)", sdl.into()));
+    pub fn with_sdl_config(mut self, sdl: impl Into<String>) -> Self {
+        self.config = Some(Config::Sdl(sdl.into()));
         self
     }
 
-    pub fn with_subgraph(mut self, name: &str, schema: &impl SchemaSource) -> Self {
-        self.subgraphs.push(TestSubgraph {
-            name: name.to_string(),
-            url: schema.url(),
-            schema: async_graphql_parser::parse_schema(schema.sdl()).expect("schema to be well formed"),
-        });
+    pub fn with_sdl_websocket_config(mut self) -> Self {
+        self.config = Some(Config::SdlWebsocket);
+        self
+    }
+
+    pub fn with_subgraph<S: graphql_mocks::Subgraph>(mut self, subgraph: S) -> Self {
+        let name = subgraph.name();
+        self.subgraphs
+            .insert(std::any::TypeId::of::<S>(), (name, subgraph.start().boxed()));
         self
     }
 
@@ -122,51 +119,37 @@ impl EngineV2Builder {
     }
 
     pub async fn build(self) -> TestEngineV2 {
-        let (config, runtime) = self.finalize().await;
-        let fetcher = FetchRecorder::record(runtime.fetcher.clone()).with_url_to_subgraph_name(
-            config
-                .graph
-                .subgraphs
-                .iter()
-                .map(|subgraph| {
-                    let url = config.graph[subgraph.url].parse().unwrap();
-                    let name = config.graph[subgraph.name].clone();
-                    (url, name)
-                })
-                .collect(),
-        );
-        let recorded_subrequests = fetcher.recorded_requests();
-        let engine = engine_v2::Engine::new(
-            Arc::new(config.try_into().unwrap()),
-            None,
-            TestRuntime {
-                fetcher: runtime::fetch::Fetcher::new(fetcher),
-                ..runtime
-            },
-        )
-        .await;
-
-        TestEngineV2 {
-            engine: Arc::new(engine),
-            recorded_subrequests,
-        }
-    }
-
-    async fn finalize(self) -> (engine_v2::config::Config, TestRuntime) {
-        assert!(
-            self.federated_sdl.is_none() || self.subgraphs.is_empty(),
-            "Cannot use both subgraphs and federated SDL together"
-        );
+        let mut subgraphs = self
+            .subgraphs
+            .into_iter()
+            .map(|(type_id, (name, server))| async move {
+                (
+                    type_id,
+                    super::Subgraph {
+                        name,
+                        server: server.await,
+                    },
+                )
+            })
+            .collect::<FuturesUnordered<_>>()
+            .collect::<Vec<_>>()
+            .await;
+        // Ensures consistency of composition and thus introspection tests.
+        subgraphs.sort_unstable_by(|a, b| a.1.name.cmp(&b.1.name));
 
         let sdl = self.federated_sdl.unwrap_or_else(|| {
-            let graph = if !self.subgraphs.is_empty() {
-                let mut subgraphs = graphql_composition::Subgraphs::default();
-                for TestSubgraph { name, url, schema, .. } in &self.subgraphs {
-                    subgraphs.ingest(schema, name, url);
-                }
-                graphql_composition::compose(&subgraphs)
-                    .into_result()
-                    .expect("schemas to compose succesfully")
+            let graph = if !subgraphs.is_empty() {
+                graphql_composition::compose(&subgraphs.iter().fold(
+                    graphql_composition::Subgraphs::default(),
+                    |mut subgraphs, (_, subgraph)| {
+                        let schema =
+                            async_graphql_parser::parse_schema(subgraph.sdl()).expect("schema to be well formed");
+                        subgraphs.ingest(&schema, &subgraph.name, &subgraph.url());
+                        subgraphs
+                    },
+                ))
+                .into_result()
+                .expect("schemas to compose succesfully")
             } else {
                 FederatedGraph::V3(FederatedGraphV3::default())
             };
@@ -177,9 +160,26 @@ impl EngineV2Builder {
         let graph = FederatedGraph::from_sdl(&sdl).unwrap();
         let graph = serde_json::from_value(serde_json::to_value(&graph).unwrap()).unwrap();
 
-        let mut federated_graph_config = match &self.config_sdl {
-            Some(sdl) => {
-                parser_sdl::parse(sdl, &HashMap::new(), &MockConnectorParsers::default())
+        let mut federated_graph_config = match self.config {
+            Some(Config::Sdl(mut sdl)) => {
+                sdl.push_str("\nextend schema @graph(type: federated)");
+                parser_sdl::parse(&sdl, &HashMap::new(), &MockConnectorParsers::default())
+                    .await
+                    .expect("supergraph config SDL to be valid")
+                    .federated_graph_config
+            }
+            Some(Config::SdlWebsocket) => {
+                let mut sdl = String::new();
+                sdl.push_str("\nextend schema @graph(type: federated)");
+                for (_, subgraph) in &subgraphs {
+                    sdl.push_str(&format!(
+                        "\nextend schema @subgraph(name: \"{}\", websocketUrl: \"{}\")",
+                        subgraph.name,
+                        subgraph.websocket_url()
+                    ));
+                }
+
+                parser_sdl::parse(&sdl, &HashMap::new(), &MockConnectorParsers::default())
                     .await
                     .expect("supergraph config SDL to be valid")
                     .federated_graph_config
@@ -192,46 +192,12 @@ impl EngineV2Builder {
         federated_graph_config.header_rules.extend(self.header_rules);
         federated_graph_config.enable_entity_caching = self.enable_entity_caching;
 
-        (
-            engine_config_builder::build_config(&federated_graph_config, graph).into_latest(),
-            self.runtime,
-        )
-    }
-}
+        let config = engine_config_builder::build_config(&federated_graph_config, graph).into_latest();
+        let engine = engine_v2::Engine::new(Arc::new(config.try_into().unwrap()), None, self.runtime).await;
 
-#[async_trait::async_trait]
-impl SchemaSource for String {
-    fn sdl(&self) -> String {
-        self.clone()
-    }
-
-    // Probably shouldn't really use this SchemaSource since this'll never work.
-    fn url(&self) -> String {
-        "http://example.com".to_string()
-    }
-}
-
-#[async_trait::async_trait]
-impl<T> SchemaSource for &T
-where
-    T: SchemaSource + Send + Sync,
-{
-    fn sdl(&self) -> String {
-        T::sdl(self)
-    }
-
-    fn url(&self) -> String {
-        T::url(self)
-    }
-}
-
-#[async_trait::async_trait]
-impl SchemaSource for MockGraphQlServer {
-    fn sdl(&self) -> String {
-        self.schema.sdl()
-    }
-
-    fn url(&self) -> String {
-        format!("http://127.0.0.1:{}", self.port())
+        TestEngineV2 {
+            engine: Arc::new(engine),
+            subgraphs: subgraphs.into_iter().collect(),
+        }
     }
 }

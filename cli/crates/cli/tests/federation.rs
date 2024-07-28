@@ -61,7 +61,7 @@ async fn federation_start() {
 #[cfg(not(target_os = "windows"))] // tsconfig setup doesn't work on windows :(
 async fn test_sse_transport() {
     let mut env = Environment::init_async().await;
-    let subscription_server = MockGraphQlServer::new(graphql_mocks::FakeFederationProductsSchema).await;
+    let subscription_server = MockGraphQlServer::new(graphql_mocks::FederatedProductsSchema).await;
 
     env.grafbase_init(GraphType::Federated);
     env.set_typescript_config(format!(
@@ -134,7 +134,7 @@ async fn test_sse_transport() {
 async fn test_sse_transport_with_auth() {
     let mut env = Environment::init_async().await;
     let identity_server = utils::IdentityServer::new().await;
-    let subscription_server = MockGraphQlServer::new(graphql_mocks::FakeFederationProductsSchema).await;
+    let subscription_server = MockGraphQlServer::new(graphql_mocks::FederatedProductsSchema).await;
 
     env.grafbase_init(GraphType::Federated);
     env.set_typescript_config(format!(
@@ -210,7 +210,7 @@ async fn test_sse_transport_with_auth() {
 async fn test_sse_transport_with_failed_auth() {
     let mut env = Environment::init_async().await;
     let identity_server = utils::IdentityServer::new().await;
-    let subscription_server = MockGraphQlServer::new(graphql_mocks::FakeFederationProductsSchema).await;
+    let subscription_server = MockGraphQlServer::new(graphql_mocks::FederatedProductsSchema).await;
 
     env.grafbase_init(GraphType::Federated);
     env.set_typescript_config(format!(
@@ -280,7 +280,7 @@ async fn test_sse_transport_with_failed_auth() {
 #[cfg(not(target_os = "windows"))] // tsconfig setup doesn't work on windows :(
 async fn test_multipart_transport() {
     let mut env = Environment::init_async().await;
-    let subscription_server = MockGraphQlServer::new(graphql_mocks::FakeFederationProductsSchema).await;
+    let subscription_server = MockGraphQlServer::new(graphql_mocks::FederatedProductsSchema).await;
 
     env.grafbase_init(GraphType::Federated);
     env.set_typescript_config(format!(
@@ -354,7 +354,7 @@ async fn test_multipart_transport() {
 async fn test_multipart_transport_with_auth() {
     let mut env = Environment::init_async().await;
     let identity_server = utils::IdentityServer::new().await;
-    let subscription_server = MockGraphQlServer::new(graphql_mocks::FakeFederationProductsSchema).await;
+    let subscription_server = MockGraphQlServer::new(graphql_mocks::FederatedProductsSchema).await;
 
     env.grafbase_init(GraphType::Federated);
     env.set_typescript_config(format!(
@@ -431,7 +431,7 @@ async fn test_multipart_transport_with_auth() {
 async fn test_multipart_transport_with_bad_auth() {
     let mut env = Environment::init_async().await;
     let identity_server = utils::IdentityServer::new().await;
-    let subscription_server = MockGraphQlServer::new(graphql_mocks::FakeFederationProductsSchema).await;
+    let subscription_server = MockGraphQlServer::new(graphql_mocks::FederatedProductsSchema).await;
 
     env.grafbase_init(GraphType::Federated);
     env.set_typescript_config(format!(
@@ -502,7 +502,7 @@ async fn test_multipart_transport_with_bad_auth() {
 #[cfg(not(target_os = "windows"))] // tsconfig setup doesn't work on windows :(
 async fn test_websocket_transport() {
     let mut env = Environment::init_async().await;
-    let subscription_server = MockGraphQlServer::new(graphql_mocks::FakeFederationProductsSchema).await;
+    let subscription_server = MockGraphQlServer::new(graphql_mocks::FederatedProductsSchema).await;
 
     env.grafbase_init(GraphType::Federated);
     env.set_typescript_config(format!(
@@ -577,7 +577,7 @@ async fn test_websocket_transport() {
 async fn test_websocket_transport_with_auth() {
     let mut env = Environment::init_async().await;
     let identity_server = utils::IdentityServer::new().await;
-    let subscription_server = MockGraphQlServer::new(graphql_mocks::FakeFederationProductsSchema).await;
+    let subscription_server = MockGraphQlServer::new(graphql_mocks::FederatedProductsSchema).await;
 
     env.grafbase_init(GraphType::Federated);
     env.set_typescript_config(format!(
@@ -655,7 +655,7 @@ async fn test_websocket_transport_with_auth() {
 async fn test_websocket_transport_with_bad_auth() {
     let mut env = Environment::init_async().await;
     let identity_server = utils::IdentityServer::new().await;
-    let subscription_server = MockGraphQlServer::new(graphql_mocks::FakeFederationProductsSchema).await;
+    let subscription_server = MockGraphQlServer::new(graphql_mocks::FederatedProductsSchema).await;
 
     env.grafbase_init(GraphType::Federated);
     env.set_typescript_config(format!(
@@ -717,7 +717,7 @@ async fn test_websocket_transport_with_bad_auth() {
 #[cfg(not(target_os = "windows"))] // tsconfig setup doesn't work on windows :(
 async fn test_batch_requests() {
     let mut env = Environment::init_async().await;
-    let subscription_server = MockGraphQlServer::new(graphql_mocks::FakeFederationProductsSchema).await;
+    let subscription_server = MockGraphQlServer::new(graphql_mocks::FederatedProductsSchema).await;
 
     env.grafbase_init(GraphType::Federated);
     env.set_typescript_config(

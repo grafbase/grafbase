@@ -1,7 +1,9 @@
 mod builder;
 
 use std::{
+    any::TypeId,
     borrow::Cow,
+    collections::HashMap,
     future::IntoFuture,
     ops::{Deref, DerefMut},
     str::FromStr,
@@ -13,20 +15,38 @@ use engine::{BatchRequest, Variables};
 use engine_v2::{HttpGraphqlResponse, HttpGraphqlResponseBody};
 use futures::{future::BoxFuture, stream::BoxStream, StreamExt, TryStreamExt};
 use gateway_core::StreamingFormat;
+use graphql_mocks::{MockGraphQlServer, ReceivedRequest};
 use headers::HeaderMapExt;
 use http::{header::Entry, HeaderName, HeaderValue};
 use serde::de::Error;
 
-use crate::{engine_v1::GraphQlRequest, fetch::RecordedSubRequest};
+use crate::engine_v1::GraphQlRequest;
 
 pub struct TestEngineV2 {
     engine: Arc<engine_v2::Engine<TestRuntime>>,
-    recorded_subrequests: Arc<crossbeam_queue::SegQueue<RecordedSubRequest>>,
+    subgraphs: HashMap<TypeId, Subgraph>,
+}
+
+pub struct Subgraph {
+    pub name: String,
+    pub server: MockGraphQlServer,
+}
+
+impl std::ops::Deref for Subgraph {
+    type Target = MockGraphQlServer;
+    fn deref(&self) -> &Self::Target {
+        &self.server
+    }
+}
+
+impl std::ops::DerefMut for Subgraph {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.server
+    }
 }
 
 impl TestEngineV2 {
     pub fn execute(&self, request: impl Into<GraphQlRequest>) -> ExecutionRequest {
-        while self.recorded_subrequests.pop().is_some() {}
         ExecutionRequest {
             request: request.into(),
             headers: Vec::new(),
@@ -34,8 +54,19 @@ impl TestEngineV2 {
         }
     }
 
-    pub fn get_recorded_subrequests(&self) -> Vec<RecordedSubRequest> {
-        std::iter::from_fn(|| self.recorded_subrequests.pop()).collect()
+    pub fn subgraph<S: graphql_mocks::Subgraph>(&self) -> &Subgraph {
+        self.subgraphs.get(&std::any::TypeId::of::<S>()).unwrap()
+    }
+
+    pub fn drain_http_requests_sent_to<S: graphql_mocks::Subgraph>(&self) -> Vec<ReceivedRequest> {
+        self.subgraph::<S>().drain_received_requests().collect()
+    }
+
+    pub fn drain_graphql_requests_sent_to<S: graphql_mocks::Subgraph>(&self) -> Vec<async_graphql::Request> {
+        self.subgraph::<S>()
+            .drain_received_requests()
+            .map(|req| req.body)
+            .collect()
     }
 }
 

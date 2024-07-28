@@ -4,7 +4,8 @@ use std::{sync::Arc, time::Duration};
 
 use async_graphql_axum::{GraphQLRequest, GraphQLResponse, GraphQLSubscription};
 use axum::{extract::State, http::HeaderMap, response::IntoResponse, routing::post, Router};
-use tokio::sync::{mpsc, Mutex};
+use futures::Future;
+use serde::ser::SerializeMap;
 
 mod almost_empty;
 mod echo;
@@ -20,10 +21,39 @@ pub use {
     federation::*, secure::SecureSchema, slow::SlowSchema, state_mutation::StateMutationSchema,
 };
 
+#[derive(Debug)]
+pub struct ReceivedRequest {
+    pub headers: http::HeaderMap,
+    pub body: async_graphql::Request,
+}
+
+impl serde::Serialize for ReceivedRequest {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let mut map = serializer.serialize_map(Some(2))?;
+        let mut headers = self
+            .headers
+            .iter()
+            .map(|(name, value)| (name.to_string(), String::from_utf8_lossy(value.as_bytes()).into_owned()))
+            .collect::<Vec<_>>();
+        headers.sort_unstable();
+        map.serialize_entry("headers", &headers)?;
+        map.serialize_entry("body", &self.body)?;
+        map.end()
+    }
+}
+
+impl std::ops::Deref for ReceivedRequest {
+    type Target = async_graphql::Request;
+    fn deref(&self) -> &Self::Target {
+        &self.body
+    }
+}
+
 pub struct MockGraphQlServer {
-    pub schema: Arc<dyn Schema>,
-    received_requests: mpsc::UnboundedReceiver<async_graphql::Request>,
-    next_response: mpsc::UnboundedSender<axum::response::Response>,
+    state: AppState,
     shutdown: Option<tokio::sync::oneshot::Sender<()>>,
     port: u16,
 }
@@ -42,19 +72,16 @@ impl MockGraphQlServer {
     }
 
     async fn new_impl(schema: Arc<dyn Schema>) -> Self {
-        let (sender, receiver) = mpsc::unbounded_channel();
-        let (next_response_sender, next_response_receiver) = mpsc::unbounded_channel();
-
         let state = AppState {
             schema: schema.clone(),
-            requests: sender,
-            next_responses: Arc::new(Mutex::new(next_response_receiver)),
+            received_requests: Default::default(),
+            next_responses: Default::default(),
         };
 
         let app = Router::new()
             .route("/", post(graphql_handler))
-            .route_service("/ws", GraphQLSubscription::new(SchemaExecutor(schema.clone())))
-            .with_state(state);
+            .route_service("/ws", GraphQLSubscription::new(SchemaExecutor(schema)))
+            .with_state(state.clone());
 
         let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
         let port = listener.local_addr().unwrap().port();
@@ -74,10 +101,8 @@ impl MockGraphQlServer {
         tokio::time::sleep(Duration::from_millis(20)).await;
 
         MockGraphQlServer {
-            schema,
+            state,
             shutdown: Some(shutdown_sender),
-            received_requests: receiver,
-            next_response: next_response_sender,
             port,
         }
     }
@@ -90,16 +115,20 @@ impl MockGraphQlServer {
         format!("http://localhost:{}", self.port)
     }
 
+    pub fn sdl(&self) -> String {
+        self.state.schema.sdl()
+    }
+
     pub fn websocket_url(&self) -> String {
         format!("ws://localhost:{}/ws", self.port)
     }
 
-    pub async fn drain_requests(&mut self) -> impl Iterator<Item = async_graphql::Request> + '_ {
-        std::iter::from_fn(|| self.received_requests.try_recv().ok())
+    pub fn drain_received_requests(&self) -> impl Iterator<Item = ReceivedRequest> + '_ {
+        std::iter::from_fn(|| self.state.received_requests.pop())
     }
 
     pub fn force_next_response(&self, response: impl IntoResponse) {
-        self.next_response.send(response.into_response()).unwrap();
+        self.state.next_responses.push(response.into_response());
     }
 }
 
@@ -108,17 +137,18 @@ async fn graphql_handler(
     headers: HeaderMap,
     req: GraphQLRequest,
 ) -> axum::response::Response {
-    if let Ok(response) = state.next_responses.lock().await.try_recv() {
-        return response;
-    }
     let req = req.into_inner();
 
     // Record the request incase tests want to inspect it.
     // async_graphql::Request isn't clone so we do a deser roundtrip instead
-    state
-        .requests
-        .send(serde_json::from_value(serde_json::to_value(&req).unwrap()).unwrap())
-        .ok();
+    state.received_requests.push(ReceivedRequest {
+        headers: headers.clone(),
+        body: serde_json::from_value(serde_json::to_value(&req).unwrap()).unwrap(),
+    });
+
+    if let Some(response) = state.next_responses.pop() {
+        return response;
+    }
 
     let headers = headers
         .iter()
@@ -132,8 +162,13 @@ async fn graphql_handler(
 #[derive(Clone)]
 struct AppState {
     schema: Arc<dyn Schema>,
-    requests: mpsc::UnboundedSender<async_graphql::Request>,
-    next_responses: Arc<Mutex<mpsc::UnboundedReceiver<axum::response::Response>>>,
+    received_requests: Arc<crossbeam_queue::SegQueue<ReceivedRequest>>,
+    next_responses: Arc<crossbeam_queue::SegQueue<axum::response::Response>>,
+}
+
+pub trait Subgraph: 'static {
+    fn name(&self) -> String;
+    fn start(self) -> impl Future<Output = MockGraphQlServer> + Send;
 }
 
 /// Creating a trait for schema so we can use it as a trait object and avoid
@@ -149,6 +184,53 @@ pub trait Schema: Send + Sync {
     ) -> futures::stream::BoxStream<'static, async_graphql::Response>;
 
     fn sdl(&self) -> String;
+
+    fn with_sdl(self, sdl: &str) -> SchemaWithSdlOverride
+    where
+        Self: Sized + 'static,
+    {
+        SchemaWithSdlOverride {
+            schema: Box::new(self),
+            sdl: sdl.to_string(),
+        }
+    }
+}
+
+pub struct SchemaWithSdlOverride {
+    pub schema: Box<dyn Schema>,
+    pub sdl: String,
+}
+
+#[async_trait::async_trait]
+impl Schema for SchemaWithSdlOverride {
+    async fn execute(
+        &self,
+        headers: Vec<(String, String)>,
+        request: async_graphql::Request,
+    ) -> async_graphql::Response {
+        self.schema.execute(headers, request).await
+    }
+
+    fn execute_stream(
+        &self,
+        request: async_graphql::Request,
+    ) -> futures::stream::BoxStream<'static, async_graphql::Response> {
+        self.schema.execute_stream(request)
+    }
+
+    fn sdl(&self) -> String {
+        self.sdl.clone()
+    }
+
+    fn with_sdl(self, sdl: &str) -> SchemaWithSdlOverride
+    where
+        Self: Sized + 'static,
+    {
+        SchemaWithSdlOverride {
+            schema: self.schema,
+            sdl: sdl.to_string(),
+        }
+    }
 }
 
 #[async_trait::async_trait]

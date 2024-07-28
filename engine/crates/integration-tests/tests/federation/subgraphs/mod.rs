@@ -6,8 +6,7 @@ mod simple_key;
 
 use engine_v2::Engine;
 use graphql_mocks::{
-    FakeFederationAccountsSchema, FakeFederationInventorySchema, FakeFederationProductsSchema,
-    FakeFederationReviewsSchema, MockGraphQlServer,
+    FederatedAccountsSchema, FederatedInventorySchema, FederatedProductsSchema, FederatedReviewsSchema,
 };
 use integration_tests::{
     federation::{EngineV2Ext, GraphqlResponse},
@@ -15,16 +14,11 @@ use integration_tests::{
 };
 
 async fn execute(request: &str) -> GraphqlResponse {
-    let accounts = MockGraphQlServer::new(FakeFederationAccountsSchema).await;
-    let products = MockGraphQlServer::new(FakeFederationProductsSchema).await;
-    let reviews = MockGraphQlServer::new(FakeFederationReviewsSchema).await;
-    let inventory = MockGraphQlServer::new(FakeFederationInventorySchema).await;
-
     let engine = Engine::builder()
-        .with_subgraph("accounts", &accounts)
-        .with_subgraph("products", &products)
-        .with_subgraph("reviews", &reviews)
-        .with_subgraph("inventory", &inventory)
+        .with_subgraph(FederatedAccountsSchema)
+        .with_subgraph(FederatedProductsSchema)
+        .with_subgraph(FederatedReviewsSchema)
+        .with_subgraph(FederatedInventorySchema)
         .build()
         .await;
     engine.execute(request).await

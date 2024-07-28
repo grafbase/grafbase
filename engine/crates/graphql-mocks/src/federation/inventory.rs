@@ -4,9 +4,18 @@ use async_graphql::{
     ComplexObject, Context, EmptyMutation, EmptySubscription, Interface, Object, Schema, SimpleObject,
 };
 
-pub struct FakeFederationInventorySchema;
+pub struct FederatedInventorySchema;
 
-impl FakeFederationInventorySchema {
+impl crate::Subgraph for FederatedInventorySchema {
+    fn name(&self) -> String {
+        "inventory".to_string()
+    }
+    async fn start(self) -> crate::MockGraphQlServer {
+        crate::MockGraphQlServer::new(self).await
+    }
+}
+
+impl FederatedInventorySchema {
     fn schema() -> Schema<Query, EmptyMutation, EmptySubscription> {
         let shiping_services = vec![
             ShippingService::DeliveryCompany(DeliveryCompany {
@@ -26,7 +35,7 @@ impl FakeFederationInventorySchema {
 }
 
 #[async_trait::async_trait]
-impl super::super::Schema for FakeFederationInventorySchema {
+impl super::super::Schema for FederatedInventorySchema {
     async fn execute(
         &self,
         _headers: Vec<(String, String)>,

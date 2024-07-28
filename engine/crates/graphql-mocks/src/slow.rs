@@ -1,7 +1,19 @@
 use async_graphql::{EmptyMutation, EmptySubscription, Object, Schema};
 
+use crate::MockGraphQlServer;
+
 #[derive(Default)]
 pub struct SlowSchema;
+
+impl crate::Subgraph for SlowSchema {
+    fn name(&self) -> String {
+        "slow".to_string()
+    }
+
+    async fn start(self) -> MockGraphQlServer {
+        MockGraphQlServer::new(self).await
+    }
+}
 
 impl SlowSchema {
     fn schema() -> Schema<Query, EmptyMutation, EmptySubscription> {

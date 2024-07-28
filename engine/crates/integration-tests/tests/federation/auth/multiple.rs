@@ -1,5 +1,5 @@
 use engine_v2::Engine;
-use graphql_mocks::{FakeGithubSchema, MockGraphQlServer};
+use graphql_mocks::FakeGithubSchema;
 use integration_tests::federation::GraphqlResponse;
 use integration_tests::openid::{CoreClientExt, OryHydraOpenIDProvider};
 use integration_tests::{
@@ -11,11 +11,9 @@ use integration_tests::{
 #[test]
 fn test_provider() {
     runtime().block_on(async move {
-        let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
-
         let engine = Engine::builder()
-            .with_subgraph("github", &github_mock)
-            .with_supergraph_config(format!(
+            .with_subgraph(FakeGithubSchema)
+            .with_sdl_config(format!(
                 r#"extend schema @authz(providers: [
                     {{ name: "my-jwt", type: jwt, jwks: {{ url: "{JWKS_URI}" }} }}
                     {{ name: "my-jwt-2", type: jwt, jwks: {{ url: "{JWKS_URI_2}" }} }}

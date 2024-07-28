@@ -3,7 +3,7 @@ use tracing_mock::{expect, subscriber};
 
 use engine_v2::Engine;
 use grafbase_telemetry::span::gql::GRAPHQL_SPAN_NAME;
-use graphql_mocks::{FakeGithubSchema, MockGraphQlServer};
+use graphql_mocks::FakeGithubSchema;
 use integration_tests::{federation::EngineV2Ext, runtime};
 
 #[test]
@@ -33,9 +33,7 @@ fn query_bad_request() {
 
         let _default = tracing::subscriber::set_default(subscriber);
 
-        let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
-
-        let engine = Engine::builder().with_subgraph("schema", &github_mock).build().await;
+        let engine = Engine::builder().with_subgraph(FakeGithubSchema).build().await;
 
         // act
         let _ = engine.execute("{ __type_name }").await;

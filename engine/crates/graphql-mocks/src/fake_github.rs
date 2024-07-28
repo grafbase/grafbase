@@ -2,7 +2,19 @@ use async_graphql::{
     scalar, ComplexObject, EmptyMutation, EmptySubscription, InputObject, Interface, Object, SimpleObject, Union, ID,
 };
 
+use crate::{MockGraphQlServer, Subgraph};
+
 pub struct FakeGithubSchema;
+
+impl Subgraph for FakeGithubSchema {
+    fn name(&self) -> String {
+        "github".to_string()
+    }
+
+    async fn start(self) -> MockGraphQlServer {
+        MockGraphQlServer::new(self).await
+    }
+}
 
 #[async_trait::async_trait]
 impl super::Schema for FakeGithubSchema {
