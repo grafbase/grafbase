@@ -1,8 +1,7 @@
 #![allow(unused_crate_dependencies)]
 //! Grafbase [tracing](https://docs.rs/tracing/latest/tracing/) integration
 
-/// Tracing configuration properties
-pub mod config;
+pub use gateway_config::telemetry as config;
 /// Potential errors from this crate
 pub mod error;
 pub mod gql_response_status;

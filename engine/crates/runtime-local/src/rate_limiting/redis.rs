@@ -1,36 +1,19 @@
 mod pool;
 
 use std::{
-    collections::HashMap,
     fs::File,
     io::{BufReader, Read},
-    path::Path,
     time::{Duration, SystemTime},
 };
 
 use anyhow::Context;
 use deadpool::managed::Pool;
 use futures_util::future::BoxFuture;
+use gateway_config::{Config, RateLimitRedisConfig};
 use grafbase_telemetry::span::GRAFBASE_TARGET;
 use redis::ClientTlsConfig;
-use runtime::rate_limiting::{Error, GraphRateLimit, RateLimitKey, RateLimiter, RateLimiterContext};
+use runtime::rate_limiting::{Error, RateLimitKey, RateLimiter, RateLimiterContext};
 use tokio::sync::watch;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub struct RateLimitRedisConfig<'a> {
-    pub url: &'a str,
-    pub key_prefix: &'a str,
-    pub tls: Option<RateLimitRedisTlsConfig<'a>>,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub struct RateLimitRedisTlsConfig<'a> {
-    pub cert: Option<&'a Path>,
-    pub key: Option<&'a Path>,
-    pub ca: Option<&'a Path>,
-}
-
-pub type Limits = watch::Receiver<HashMap<RateLimitKey<'static>, GraphRateLimit>>;
 
 /// Rate limiter by utilizing Redis as a backend. It uses a averaging fixed window algorithm
 /// to define is the limit reached or not.
@@ -49,18 +32,24 @@ pub type Limits = watch::Receiver<HashMap<RateLimitKey<'static>, GraphRateLimit>
 pub struct RedisRateLimiter {
     pool: Pool<pool::Manager>,
     key_prefix: String,
-    limits: Limits,
+    config_watcher: watch::Receiver<Config>,
 }
 
 impl RedisRateLimiter {
-    pub async fn runtime(config: RateLimitRedisConfig<'_>, limits: Limits) -> anyhow::Result<RateLimiter> {
-        Ok(RateLimiter::new(Self::new(config, limits).await?))
+    pub async fn runtime(
+        config: &RateLimitRedisConfig,
+        watcher: watch::Receiver<Config>,
+    ) -> anyhow::Result<RateLimiter> {
+        Ok(RateLimiter::new(Self::new(config, watcher).await?))
     }
 
-    pub async fn new(config: RateLimitRedisConfig<'_>, limits: Limits) -> anyhow::Result<RedisRateLimiter> {
-        let tls_config = match config.tls {
+    pub async fn new(
+        config: &RateLimitRedisConfig,
+        watcher: watch::Receiver<Config>,
+    ) -> anyhow::Result<RedisRateLimiter> {
+        let tls_config = match &config.tls {
             Some(tls) => {
-                let client_tls = match tls.cert.zip(tls.key) {
+                let client_tls = match tls.cert.as_ref().zip(tls.key.as_ref()) {
                     Some((cert, key)) => {
                         let mut client_cert = Vec::new();
 
@@ -82,7 +71,7 @@ impl RedisRateLimiter {
                     None => None,
                 };
 
-                let root_cert = match tls.ca {
+                let root_cert = match &tls.ca {
                     Some(path) => {
                         let mut ca = Vec::new();
 
@@ -100,7 +89,7 @@ impl RedisRateLimiter {
             None => None,
         };
 
-        let manager = match pool::Manager::new(config.url, tls_config) {
+        let manager = match pool::Manager::new(config.url.as_str(), tls_config) {
             Ok(manager) => manager,
             Err(e) => {
                 tracing::error!(target: GRAFBASE_TARGET, "error creating a Redis pool: {e}");
@@ -124,7 +113,7 @@ impl RedisRateLimiter {
         Ok(Self {
             pool,
             key_prefix: config.key_prefix.to_string(),
-            limits,
+            config_watcher: watcher,
         })
     }
 
@@ -142,7 +131,23 @@ impl RedisRateLimiter {
     async fn limit_inner(&self, context: &dyn RateLimiterContext) -> Result<(), Error> {
         let Some(key) = context.key() else { return Ok(()) };
 
-        let Some(config) = self.limits.borrow().get(key).copied() else {
+        let config = match key {
+            RateLimitKey::Global => self
+                .config_watcher
+                .borrow()
+                .gateway
+                .rate_limit
+                .as_ref()
+                .and_then(|rt| rt.global),
+            RateLimitKey::Subgraph(name) => self
+                .config_watcher
+                .borrow()
+                .subgraphs
+                .get(name.as_ref())
+                .and_then(|sb| sb.rate_limit),
+        };
+
+        let Some(config) = config else {
             return Ok(());
         };
 

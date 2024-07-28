@@ -134,6 +134,45 @@ fn default_header_value_prefix() -> String {
     "Bearer ".into()
 }
 
+impl From<gateway_config::JwksConfig> for Jwks {
+    fn from(value: gateway_config::JwksConfig) -> Self {
+        Self {
+            url: value.url,
+            issuer: value.issuer,
+            audience: value.audience,
+            poll_interval: value.poll_interval,
+        }
+    }
+}
+
+impl From<gateway_config::AuthenticationProvider> for AuthV2Provider {
+    fn from(value: gateway_config::AuthenticationProvider) -> Self {
+        match value {
+            gateway_config::AuthenticationProvider::Jwt(jwt) => Self::JWT {
+                name: jwt.name,
+                jwks: Jwks::from(jwt.jwks),
+                header: JwtTokenHeader::from(jwt.header),
+            },
+        }
+    }
+}
+
+impl From<gateway_config::AuthenticationHeader> for JwtTokenHeader {
+    fn from(value: gateway_config::AuthenticationHeader) -> Self {
+        Self {
+            name: value.name.to_string(),
+            value_prefix: value.value_prefix.to_string(),
+        }
+    }
+}
+
+impl From<gateway_config::AuthenticationConfig> for AuthV2Directive {
+    fn from(value: gateway_config::AuthenticationConfig) -> Self {
+        let providers = value.providers.into_iter().map(AuthV2Provider::from).collect();
+        Self { providers }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;

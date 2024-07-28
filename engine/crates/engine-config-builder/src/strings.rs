@@ -1,4 +1,4 @@
-use crate::config::StringId;
+use engine_v2_config::latest::StringId;
 
 /// Very simple implementation of string interning.
 #[derive(Default)]

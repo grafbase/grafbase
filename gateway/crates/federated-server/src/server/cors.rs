@@ -1,4 +1,4 @@
-use crate::config::CorsConfig;
+use gateway_config::CorsConfig;
 use tower_http::cors::CorsLayer;
 
 pub(super) fn generate(cors: CorsConfig) -> CorsLayer {

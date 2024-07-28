@@ -124,6 +124,7 @@ tokio-postgres = { version = "0.7.10", default-features = false }
 tokio-postgres-rustls = "0.12.0"
 tokio-rustls = { version = "0.26.0", default-features = false }
 tokio-tungstenite = { version = "0.23.0", default-features = false }
+toml = "0.8"
 tungstenite = { version = "0.23.0", default-features = false }
 tonic = "0.12.0"
 tower = "0.4.13"
@@ -181,11 +182,13 @@ engine-v2 = { path = "engine/crates/engine-v2" }
 engine-v2-axum = { path = "engine/crates/engine-v2/axum" }
 engine-validation = { path = "engine/crates/engine/validation" }
 engine-value = { path = "engine/crates/engine/value" }
+federated-graph = { path = "engine/crates/federated-graph", package = "graphql-federated-graph" }
 gateway-adapter-local = { path = "engine/crates/gateway-adapter-local" }
 gateway-adapter = { path = "engine/crates/gateway-adapter" }
 gateway-core = { path = "engine/crates/gateway-core" }
 gateway-v2-auth = { path = "engine/crates/gateway-v2/auth" }
 gateway-v2-auth-config = { path = "engine/crates/gateway-v2/auth-config" }
+gateway-config = { path = "gateway/crates/config" }
 grafbase-telemetry = { path = "engine/crates/telemetry" }
 graph-entities = { path = "engine/crates/graph-entities" }
 graphql-composition = { path = "engine/crates/composition" }

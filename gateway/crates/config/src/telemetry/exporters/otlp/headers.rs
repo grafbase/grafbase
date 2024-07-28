@@ -1,4 +1,3 @@
-use crate::error::TracingError;
 use ascii::AsciiString;
 use serde::{
     de::{MapAccess, Visitor},
@@ -23,11 +22,11 @@ impl Headers {
     }
 
     /// Consume self and return a map of header/header_value as ascii strings
-    pub fn try_into_map(self) -> Result<HashMap<String, String>, TracingError> {
+    pub fn into_map(self) -> HashMap<String, String> {
         self.into_inner()
             .into_iter()
-            .map(|(name, value)| Ok((name.to_string(), value.to_string())))
-            .collect::<Result<HashMap<_, _>, _>>()
+            .map(|(name, value)| (name.to_string(), value.to_string()))
+            .collect()
     }
 
     pub fn len(&self) -> usize {

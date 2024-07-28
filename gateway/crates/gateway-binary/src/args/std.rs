@@ -7,7 +7,8 @@ use std::{
 use anyhow::Context;
 use ascii::AsciiString;
 use clap::{ArgGroup, Parser};
-use federated_server::{Config, GraphFetchMethod};
+use federated_server::GraphFetchMethod;
+use gateway_config::Config;
 use grafbase_telemetry::{
     config::{OtlpExporterConfig, OtlpExporterGrpcConfig, OtlpExporterProtocol},
     otel::layer::BoxedLayer,

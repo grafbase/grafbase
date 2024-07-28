@@ -11,9 +11,9 @@ use common::channels::constant_watch_receiver;
 use common::consts::MAX_PORT;
 use common::consts::{GRAFBASE_SCHEMA_FILE_NAME, GRAFBASE_TS_CONFIG_FILE_NAME};
 use common::environment::{Environment, Project};
+use federated_graph::FederatedGraph;
 use flate2::read::GzDecoder;
 use futures_util::StreamExt;
-use graphql_federated_graph::FederatedGraph;
 use std::collections::HashMap;
 use std::env;
 use std::fs;
@@ -72,7 +72,7 @@ impl ProductionServer {
                     let sdl = tokio::fs::read_to_string(&path)
                         .await
                         .map_err(|err| ServerError::InvalidFederatedGraphSdl(err.to_string()))?;
-                    Some(graphql_federated_graph::from_sdl(&sdl).map_err(|err| {
+                    Some(federated_graph::from_sdl(&sdl).map_err(|err| {
                         ServerError::InvalidFederatedGraphSdl(format!("Invalid federated graph SDL: {}", err))
                     })?)
                 }

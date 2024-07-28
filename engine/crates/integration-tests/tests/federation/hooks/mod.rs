@@ -21,7 +21,7 @@ where
     runtime().block_on(async move {
         let engine = Engine::builder()
             .with_subgraph(SecureSchema)
-            .with_hooks(hooks)
+            .with_mock_hooks(hooks)
             .build()
             .await;
 

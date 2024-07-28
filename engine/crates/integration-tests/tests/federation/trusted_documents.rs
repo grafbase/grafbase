@@ -31,7 +31,7 @@ where
     runtime().block_on(async move {
         let engine = Engine::builder()
             .with_subgraph(FakeGithubSchema)
-            .with_trusted_documents("my-branch-id".to_owned(), TRUSTED_DOCUMENTS.to_owned())
+            .with_mock_trusted_documents("my-branch-id".to_owned(), TRUSTED_DOCUMENTS.to_owned())
             .build()
             .await;
 

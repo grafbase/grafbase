@@ -32,6 +32,7 @@ tungstenite = { workspace = true, features = ["url"] }
 tokio = { workspace = true, features = ["macros", "sync"] }
 registry-v2.workspace = true
 runtime.workspace = true
+gateway-config.workspace = true
 url = { workspace = true, optional = true }
 postgres-connector-types = { path = "../postgres-connector-types" }
 mini-moka = "0.10"

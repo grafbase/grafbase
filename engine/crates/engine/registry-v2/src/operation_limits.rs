@@ -13,3 +13,15 @@ impl OperationLimits {
         *self != Default::default()
     }
 }
+
+impl From<gateway_config::OperationLimitsConfig> for OperationLimits {
+    fn from(value: gateway_config::OperationLimitsConfig) -> Self {
+        Self {
+            depth: value.depth,
+            height: value.height,
+            aliases: value.aliases,
+            root_fields: value.root_fields,
+            complexity: value.complexity,
+        }
+    }
+}

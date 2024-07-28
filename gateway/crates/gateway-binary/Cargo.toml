@@ -21,6 +21,7 @@ ascii = { version = "1.1.0", default-features = false }
 atty = "0.2.14"
 clap = { version = "4.5.4", features = ["cargo", "wrap_help", "derive", "env"] }
 federated-server.workspace = true
+gateway-config.workspace = true
 grafbase-telemetry = { workspace = true, features = ["otlp"] }
 graph-ref.workspace = true
 mimalloc = "0.1.41"
@@ -36,7 +37,7 @@ cfg-if = "1.0.0"
 workspace = true
 
 [dev-dependencies]
-clickhouse = { version = "0.11.6" }
+clickhouse = { version = "0.12" }
 ctor.workspace = true
 duct = "0.13.7"
 fslock = "0.2.1"

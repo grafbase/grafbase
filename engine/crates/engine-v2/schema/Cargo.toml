@@ -27,7 +27,7 @@ thiserror.workspace = true
 url.workspace = true
 
 config = { package = "engine-v2-config", path = "../config" }
-federated-graph = { package = "graphql-federated-graph", path = "../../federated-graph" }
+federated-graph.workspace = true
 wrapping.workspace = true
 regex.workspace = true
 serde_regex = "1.1.0"

@@ -13,8 +13,9 @@ repository.workspace = true
 indexmap.workspace = true
 
 engine-v2-config = { path = "../engine-v2/config" }
-federated-graph = { path = "../federated-graph", package = "graphql-federated-graph" }
-parser-sdl = { path = "../parser-sdl" }
+federated-graph.workspace = true
+parser-sdl.workspace = true
+gateway-config.workspace = true
 
 [lints]
 workspace = true

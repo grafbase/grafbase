@@ -80,7 +80,7 @@ fn after_pre_execution_hook() {
                 }
             "###,
             ))
-            .with_hooks(TestHooks)
+            .with_mock_hooks(TestHooks)
             .build()
             .await;
 

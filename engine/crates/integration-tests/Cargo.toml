@@ -23,9 +23,10 @@ engine-config-builder = { path = "../engine-config-builder" }
 expect-test = "1.5"
 futures = "0.3.30"
 gateway-core = { workspace = true, features = ["partial-caching"] }
+gateway-config.workspace = true
 grafbase-graphql-introspection.workspace = true
 graphql-composition.workspace = true
-graphql-federated-graph.path = "../federated-graph"
+federated-graph.workspace = true
 graphql-parser = "0.4.0"
 headers.workspace = true
 http.workspace = true
@@ -54,6 +55,7 @@ tracing-subscriber = { version = "0.3.18", default-features = false, features = 
 ctor.workspace = true
 registry-v2.workspace = true
 rustls = { workspace = true, features = ["ring"] }
+toml.workspace = true
 tracing.workspace = true
 tracing-mock.workspace = true
 runtime = { workspace = true, features = ["test-utils"]}

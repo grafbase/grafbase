@@ -2,7 +2,6 @@ use std::time::Duration;
 
 use ascii::AsciiString;
 use duration_str::deserialize_duration;
-use parser_sdl::{AuthV2Directive, AuthV2Provider, Jwks, JwtTokenHeader};
 use url::Url;
 
 /// Configures the GraphQL server JWT authentication
@@ -60,44 +59,5 @@ impl Default for AuthenticationHeader {
             name: AsciiString::from_ascii(b"Authorization").expect("that is ascii"),
             value_prefix: AsciiString::from_ascii(b"Bearer ").expect("that is ascii"),
         }
-    }
-}
-
-impl From<JwksConfig> for Jwks {
-    fn from(value: JwksConfig) -> Self {
-        Self {
-            url: value.url,
-            issuer: value.issuer,
-            audience: value.audience,
-            poll_interval: value.poll_interval,
-        }
-    }
-}
-
-impl From<AuthenticationProvider> for AuthV2Provider {
-    fn from(value: AuthenticationProvider) -> Self {
-        match value {
-            AuthenticationProvider::Jwt(jwt) => Self::JWT {
-                name: jwt.name,
-                jwks: Jwks::from(jwt.jwks),
-                header: JwtTokenHeader::from(jwt.header),
-            },
-        }
-    }
-}
-
-impl From<AuthenticationHeader> for JwtTokenHeader {
-    fn from(value: AuthenticationHeader) -> Self {
-        Self {
-            name: value.name.to_string(),
-            value_prefix: value.value_prefix.to_string(),
-        }
-    }
-}
-
-impl From<AuthenticationConfig> for AuthV2Directive {
-    fn from(value: AuthenticationConfig) -> Self {
-        let providers = value.providers.into_iter().map(AuthV2Provider::from).collect();
-        Self { providers }
     }
 }

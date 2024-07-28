@@ -6,7 +6,8 @@ use std::{
 
 use anyhow::Context;
 use clap::Parser;
-use federated_server::{Config, GraphFetchMethod};
+use federated_server::GraphFetchMethod;
+use gateway_config::Config;
 use grafbase_telemetry::otel::layer::BoxedLayer;
 use tracing::Subscriber;
 use tracing_subscriber::{registry::LookupSpan, Layer};

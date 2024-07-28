@@ -7,7 +7,12 @@ fn gateway_timeout() {
     runtime().block_on(async move {
         let engine = Engine::builder()
             .with_subgraph(SlowSchema)
-            .with_timeout(std::time::Duration::from_secs(1))
+            .with_toml_config(
+                r###"
+                [gateway]
+                timeout = "1s"
+                "###,
+            )
             .build()
             .await;
 

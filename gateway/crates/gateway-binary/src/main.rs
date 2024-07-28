@@ -3,6 +3,7 @@
 use args::Args;
 use ascii as _;
 use clap::crate_version;
+use gateway_config::Config;
 use graph_ref as _;
 use mimalloc::MiMalloc;
 use tokio::runtime;
@@ -11,7 +12,7 @@ use tracing::{error, Subscriber};
 use tracing_subscriber::registry::LookupSpan;
 use tracing_subscriber::{reload, EnvFilter, Layer, Registry};
 
-use federated_server::{Config, GraphFetchMethod, OtelReload, OtelTracing, ServerConfig};
+use federated_server::{GraphFetchMethod, OtelReload, OtelTracing, ServerConfig};
 use grafbase_telemetry::config::TelemetryConfig;
 use grafbase_telemetry::error::TracingError;
 use grafbase_telemetry::otel::layer::BoxedLayer;

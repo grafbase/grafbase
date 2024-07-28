@@ -118,9 +118,9 @@ impl TelemetryConfig {
 }
 
 #[cfg(test)]
-pub mod tests {
-    use super::{BatchExportConfig, TracingCollectConfig, TracingConfig};
-    use crate::config::StdoutExporterConfig;
+mod tests {
+    use super::*;
+
     #[cfg(feature = "otlp")]
     use ascii::AsciiString;
     #[cfg(feature = "otlp")]
@@ -133,12 +133,6 @@ pub mod tests {
     use tempfile as _;
     #[cfg(feature = "otlp")]
     use url::Url;
-
-    #[cfg(feature = "otlp")]
-    use super::{
-        Headers, OtlpExporterConfig, OtlpExporterGrpcConfig, OtlpExporterHttpConfig, OtlpExporterProtocol,
-        OtlpExporterTlsConfig,
-    };
 
     #[test]
     fn sampling() {
@@ -306,8 +300,6 @@ pub mod tests {
     #[cfg(feature = "otlp")]
     #[test]
     fn otlp_exporter_kitchen_sink() {
-        use crate::config::TelemetryConfig;
-
         let input = indoc! {r#"
             service_name = "kekw"
 
@@ -377,8 +369,6 @@ pub mod tests {
 
     #[test]
     fn tracing_stdout_defaults() {
-        use crate::config::TelemetryConfig;
-
         let input = indoc! {r#"
             service_name = "kekw"
 
@@ -402,8 +392,6 @@ pub mod tests {
 
     #[test]
     fn tracing_stdout_alternative_config_not_enabled() {
-        use crate::config::TelemetryConfig;
-
         let input = indoc! {r#"
             service_name = "kekw"
 
@@ -435,8 +423,6 @@ pub mod tests {
 
     #[test]
     fn tracing_stdout_alternative_config_enabled() {
-        use crate::config::TelemetryConfig;
-
         let input = indoc! {r#"
             service_name = "kekw"
 
@@ -471,8 +457,6 @@ pub mod tests {
     #[cfg(feature = "otlp")]
     #[test]
     fn tracing_otlp_default_config() {
-        use crate::config::TelemetryConfig;
-
         let input = indoc! {r#"
             service_name = "kekw"
 
@@ -511,8 +495,6 @@ pub mod tests {
     #[cfg(feature = "otlp")]
     #[test]
     fn tracing_otlp_alternative_config_not_enabled() {
-        use crate::config::TelemetryConfig;
-
         let input = indoc! {r#"
             service_name = "kekw"
 
@@ -573,8 +555,6 @@ pub mod tests {
     #[cfg(feature = "otlp")]
     #[test]
     fn tracing_otlp_alternative_config_enabled() {
-        use crate::config::TelemetryConfig;
-
         let input = indoc! {r#"
             service_name = "kekw"
 
@@ -636,8 +616,6 @@ pub mod tests {
 
     #[test]
     fn metrics_stdout_defaults() {
-        use crate::config::TelemetryConfig;
-
         let input = indoc! {r#"
             service_name = "kekw"
 
@@ -661,8 +639,6 @@ pub mod tests {
 
     #[test]
     fn metrics_stdout_alternative_config_not_enabled() {
-        use crate::config::TelemetryConfig;
-
         let input = indoc! {r#"
             service_name = "kekw"
 
@@ -693,8 +669,6 @@ pub mod tests {
 
     #[test]
     fn metrics_stdout_alternative_config_enabled() {
-        use crate::config::TelemetryConfig;
-
         let input = indoc! {r#"
             service_name = "kekw"
 
@@ -729,8 +703,6 @@ pub mod tests {
     #[cfg(feature = "otlp")]
     #[test]
     fn metrics_otlp_default_config() {
-        use crate::config::TelemetryConfig;
-
         let input = indoc! {r#"
             service_name = "kekw"
 
@@ -769,8 +741,6 @@ pub mod tests {
     #[cfg(feature = "otlp")]
     #[test]
     fn metrics_otlp_alternative_config_not_enabled() {
-        use crate::config::TelemetryConfig;
-
         let input = indoc! {r#"
             service_name = "kekw"
 
@@ -831,8 +801,6 @@ pub mod tests {
     #[cfg(feature = "otlp")]
     #[test]
     fn metrics_otlp_alternative_config_enabled() {
-        use crate::config::TelemetryConfig;
-
         let input = indoc! {r#"
             service_name = "kekw"
 
@@ -894,8 +862,6 @@ pub mod tests {
 
     #[test]
     fn logs_stdout_defaults() {
-        use crate::config::TelemetryConfig;
-
         let input = indoc! {r#"
             service_name = "kekw"
 
@@ -919,8 +885,6 @@ pub mod tests {
 
     #[test]
     fn logs_stdout_alternative_config_not_enabled() {
-        use crate::config::TelemetryConfig;
-
         let input = indoc! {r#"
             service_name = "kekw"
 
@@ -952,8 +916,6 @@ pub mod tests {
 
     #[test]
     fn logs_stdout_alternative_config_enabled() {
-        use crate::config::TelemetryConfig;
-
         let input = indoc! {r#"
             service_name = "kekw"
 
@@ -988,8 +950,6 @@ pub mod tests {
     #[cfg(feature = "otlp")]
     #[test]
     fn logs_otlp_default_config() {
-        use crate::config::TelemetryConfig;
-
         let input = indoc! {r#"
             service_name = "kekw"
 
@@ -1028,8 +988,6 @@ pub mod tests {
     #[cfg(feature = "otlp")]
     #[test]
     fn logs_otlp_alternative_config_not_enabled() {
-        use crate::config::TelemetryConfig;
-
         let input = indoc! {r#"
             service_name = "kekw"
 
@@ -1089,8 +1047,6 @@ pub mod tests {
     #[cfg(feature = "otlp")]
     #[test]
     fn logs_otlp_alternative_config_enabled() {
-        use crate::config::TelemetryConfig;
-
         let input = indoc! {r#"
             service_name = "kekw"
 
@@ -1187,7 +1143,6 @@ pub mod tests {
     #[cfg(feature = "otlp")]
     #[test]
     fn tls_config() {
-        use crate::error::TracingError;
         use tonic::transport::ClientTlsConfig;
 
         let tls_config = OtlpExporterTlsConfig::default();
@@ -1201,7 +1156,7 @@ pub mod tests {
             ..Default::default()
         };
         let result = ClientTlsConfig::try_from(tls_config);
-        assert!(matches!(result.err().unwrap(), TracingError::FileReadError(_)));
+        assert!(result.is_err());
 
         // error reading cert file
         let tls_config = OtlpExporterTlsConfig {
@@ -1209,7 +1164,7 @@ pub mod tests {
             ..Default::default()
         };
         let result = ClientTlsConfig::try_from(tls_config);
-        assert!(matches!(result.err().unwrap(), TracingError::FileReadError(_)));
+        assert!(result.is_err());
 
         // error reading key file
         let tmp_cert_file = tempfile::NamedTempFile::new().unwrap();
@@ -1220,7 +1175,7 @@ pub mod tests {
             ..Default::default()
         };
         let result = ClientTlsConfig::try_from(tls_config);
-        assert!(matches!(result.err().unwrap(), TracingError::FileReadError(_)));
+        assert!(result.is_err());
 
         // ok, optional key file
         let tmp_cert_file = tempfile::NamedTempFile::new().unwrap();

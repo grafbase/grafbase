@@ -5,7 +5,7 @@ use std::time::Duration;
 use tower_http::cors::{AllowHeaders, AllowMethods, AllowOrigin, ExposeHeaders};
 use url::Url;
 
-#[derive(Debug, serde::Deserialize)]
+#[derive(Clone, Debug, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct CorsConfig {
     /// If false (or not defined), credentials are not allowed in requests
@@ -57,7 +57,7 @@ impl From<HttpMethod> for http::Method {
     }
 }
 
-#[derive(Debug, PartialEq, serde::Deserialize)]
+#[derive(Clone, Debug, PartialEq, serde::Deserialize)]
 #[serde(rename_all = "lowercase")]
 #[serde(expecting = "expecting string \"any\", or an array of urls")]
 pub enum AnyOrUrlArray {
@@ -83,7 +83,7 @@ impl From<AnyOrUrlArray> for AllowOrigin {
     }
 }
 
-#[derive(Debug, PartialEq, serde::Deserialize)]
+#[derive(Clone, Debug, PartialEq, serde::Deserialize)]
 #[serde(rename_all = "lowercase")]
 #[serde(expecting = "expecting string \"any\", or an array of capitalized HTTP methods")]
 pub enum AnyOrHttpMethodArray {
@@ -104,7 +104,7 @@ impl From<AnyOrHttpMethodArray> for AllowMethods {
     }
 }
 
-#[derive(Debug, PartialEq, serde::Deserialize)]
+#[derive(Clone, Debug, PartialEq, serde::Deserialize)]
 #[serde(rename_all = "lowercase")]
 #[serde(expecting = "expecting string \"any\", or an array of ASCII strings")]
 pub enum AnyOrAsciiStringArray {
