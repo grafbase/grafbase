@@ -2,9 +2,6 @@ use async_graphql::{Context, EmptyMutation, EmptySubscription, Object, SimpleObj
 
 use crate::Schema;
 
-/// A schema that only uses String types.
-///
-/// This is used to make sure that we're not pruning built in scalars that aren't used
 #[derive(Default)]
 pub struct TeaShop {
     sdl: Option<String>,

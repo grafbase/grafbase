@@ -6,3 +6,4 @@ location = "target/wasm32-wasip1/release/demo_hooks.wasm"
 stdout = true
 stderr = true
 environment_variables = true
+networking = true

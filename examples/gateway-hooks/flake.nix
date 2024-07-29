@@ -34,6 +34,14 @@
         devshells.default = {
           commands = [
             {
+              package = pkgs.oha;
+              category = "development";
+            }
+            {
+              package = pkgs.jq;
+              category = "development";
+            }
+            {
               package = pkgs.rustup;
               category = "development";
             }

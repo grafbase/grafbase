@@ -116,6 +116,41 @@ interface authorization {
         metadata: string
     ) -> result<_, error>;
 
+    // Called when `@authorized` is used on a field with `fields` argument:
+    //
+    // type User {
+    //    id: ID!
+    //    address: Address @authorized(fields: "id")
+    // }
+    //
+    // The engine calls the hook after the subgraph response has arrived with the list of parent fields for 
+    // every node containing the address field.
+    authorize-parent-edge-post-execution: func(
+        context: shared-context,
+        definition: edge-definition,
+        parents: list<string>,
+        metadata: string
+    ) -> list<result<_, error>>;
+
+    // Called when `@authorized` is used on a field with `node` argument:
+    //
+    // type User {
+    //    id: ID!
+    // }
+    //
+    // type Query {
+    //    users: [User]! @authorized(node: "id")
+    // }
+    //
+    // The engine calls the hook after the subgraph response has arrived with the list of nodes (User here) for the
+    // field.
+    authorize-edge-node-post-execution: func(
+        context: shared-context,
+        definition: edge-definition,
+        nodes: list<string>,
+        metadata: string
+    ) -> list<result<_, error>>;
+
     // The hook is called in the request cycle if the schema defines an authorization directive to
     // a node, providing the definition of the node and the metadata of the directive to the hook.
     //
@@ -137,5 +172,4 @@ interface authorization {
 world hooks {
     export gateway-request;
     export authorization;
-    export subgraph-request;
 }
