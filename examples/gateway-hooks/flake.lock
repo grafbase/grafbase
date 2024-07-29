@@ -102,16 +102,16 @@
         "rust-overlay": "rust-overlay"
       },
       "locked": {
-        "lastModified": 1721406082,
-        "narHash": "sha256-L9Uxj3Yuj0WK9zfy970b03Wk/2fAxd8lQN9lsiBbY5Q=",
+        "lastModified": 1722263249,
+        "narHash": "sha256-qiCIsST4QZePu+QQOEZ7wztX97vsaqvwkFqB1f9BMTk=",
         "owner": "grafbase",
         "repo": "grafbase",
-        "rev": "c08ca8a6decb4ad50af7765975e5f23a06c91f9b",
+        "rev": "a3fdf11e2e8960edd776b0864fdadd7d6d3d7bec",
         "type": "github"
       },
       "original": {
         "owner": "grafbase",
-        "ref": "gateway-0.6.1",
+        "ref": "gateway-0.7.0",
         "repo": "grafbase",
         "type": "github"
       }
