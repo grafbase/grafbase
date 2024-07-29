@@ -1,16 +1,14 @@
 use std::time::Duration;
 
 use engine_v2::Engine;
-use graphql_mocks::{FakeFederationProductsSchema, MockGraphQlServer};
+use graphql_mocks::FederatedProductsSchema;
 use integration_tests::{federation::EngineV2Ext, runtime};
 
 #[test]
 fn root_level_entity_caching() {
     let response = runtime().block_on(async move {
-        let mut products = MockGraphQlServer::new(FakeFederationProductsSchema).await;
-
         let engine = Engine::builder()
-            .with_subgraph("products", &products)
+            .with_subgraph(FederatedProductsSchema)
             .with_entity_caching()
             .build()
             .await;
@@ -22,7 +20,10 @@ fn root_level_entity_caching() {
 
         assert_eq!(first_response, second_response);
 
-        assert_eq!(products.drain_requests().await.count(), 1);
+        assert_eq!(
+            engine.drain_graphql_requests_sent_to::<FederatedProductsSchema>().len(),
+            1
+        );
 
         first_response
     });
@@ -63,10 +64,8 @@ fn root_level_entity_caching() {
 #[test]
 fn different_queries_dont_share_cache() {
     runtime().block_on(async move {
-        let mut products = MockGraphQlServer::new(FakeFederationProductsSchema).await;
-
         let engine = Engine::builder()
-            .with_subgraph("products", &products)
+            .with_subgraph(FederatedProductsSchema)
             .with_entity_caching()
             .build()
             .await;
@@ -76,18 +75,19 @@ fn different_queries_dont_share_cache() {
 
         assert!(first_response != second_response);
 
-        assert_eq!(products.drain_requests().await.count(), 2);
+        assert_eq!(
+            engine.drain_graphql_requests_sent_to::<FederatedProductsSchema>().len(),
+            2
+        );
     });
 }
 
 #[test]
 fn test_cache_expiry() {
     let response = runtime().block_on(async move {
-        let mut products = MockGraphQlServer::new(FakeFederationProductsSchema).await;
-
         let engine = Engine::builder()
-            .with_subgraph("products", &products)
-            .with_supergraph_config(r#"extend schema @subgraph(name: "products", entityCacheTtl: "1s")"#)
+            .with_subgraph(FederatedProductsSchema)
+            .with_sdl_config(r#"extend schema @subgraph(name: "products", entityCacheTtl: "1s")"#)
             .with_entity_caching()
             .build()
             .await;
@@ -102,7 +102,10 @@ fn test_cache_expiry() {
 
         assert_eq!(first_response, second_response);
 
-        assert_eq!(products.drain_requests().await.count(), 2);
+        assert_eq!(
+            engine.drain_graphql_requests_sent_to::<FederatedProductsSchema>().len(),
+            2
+        );
 
         first_response
     });

@@ -1,13 +1,12 @@
 use engine_v2::Engine;
-use graphql_mocks::{FakeGithubSchema, MockGraphQlServer, SlowSchema};
+use graphql_mocks::{FakeGithubSchema, SlowSchema};
 use integration_tests::{federation::EngineV2Ext, runtime};
 
 #[test]
 fn gateway_timeout() {
     runtime().block_on(async move {
-        let slow_subgraph_mock = MockGraphQlServer::new(SlowSchema).await;
         let engine = Engine::builder()
-            .with_subgraph("slow", &slow_subgraph_mock)
+            .with_subgraph(SlowSchema)
             .with_timeout(std::time::Duration::from_secs(1))
             .build()
             .await;
@@ -46,12 +45,10 @@ fn gateway_timeout() {
 #[test]
 fn subgraph_timeout() {
     runtime().block_on(async move {
-        let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
-        let slow_subgraph_mock = MockGraphQlServer::new(SlowSchema).await;
         let engine = Engine::builder()
-            .with_subgraph("slow", &slow_subgraph_mock)
-            .with_subgraph("github", &github_mock)
-            .with_supergraph_config(
+            .with_subgraph(SlowSchema)
+            .with_subgraph(FakeGithubSchema)
+            .with_sdl_config(
                 r#"
                 extend schema @subgraph(
                     name: "slow",

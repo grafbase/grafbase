@@ -1,6 +1,6 @@
 use engine_v2::Engine;
 use futures::Future;
-use graphql_mocks::{FakeGithubSchema, MockGraphQlServer};
+use graphql_mocks::FakeGithubSchema;
 use integration_tests::{
     engine_v1::GraphQlRequest,
     federation::{EngineV2Ext, TestEngineV2},
@@ -29,10 +29,8 @@ where
     Fut: Future<Output = ()>,
 {
     runtime().block_on(async move {
-        let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
-
         let engine = Engine::builder()
-            .with_subgraph("schema", &github_mock)
+            .with_subgraph(FakeGithubSchema)
             .with_trusted_documents("my-branch-id".to_owned(), TRUSTED_DOCUMENTS.to_owned())
             .build()
             .await;

@@ -39,9 +39,10 @@ fn gb6873_wrong_enum_sent_to_subgraph() {
         "###;
 
     runtime().block_on(async move {
+        let fetcher = MockFetch::default().with_responses("a", vec![json!({"data": {"doStuff": "Hi!"}})]);
         let engine = Engine::builder()
             .with_federated_sdl(SDL)
-            .with_fetcher(MockFetch::default().with_responses("a", vec![json!({"data": {"doStuff": "Hi!"}})]))
+            .with_fetcher(fetcher.clone())
             .build()
             .await;
 
@@ -67,27 +68,32 @@ fn gb6873_wrong_enum_sent_to_subgraph() {
         }
         "###);
 
-        let requests = engine.get_recorded_subrequests();
+        let requests = fetcher.drain_received_requests().collect::<Vec<_>>();
         insta::with_settings!({ sort_maps => true}, {
             insta::assert_json_snapshot!(requests, @r###"
             [
-              {
-                "subgraph_name": "a",
-                "request_body": {
-                  "query": "query($var0: SomeInput!) {\n  doStuff(input: $var0)\n}\n",
-                  "variables": {
-                    "var0": {
-                      "dummy": "DESCOPE",
-                      "token": "<token>"
-                    }
-                  }
-                },
-                "response_body": {
-                  "data": {
-                    "doStuff": "Hi!"
-                  }
+              [
+                "a",
+                {
+                  "body": {
+                    "query": "query($var0: SomeInput!) {\n  doStuff(input: $var0)\n}\n",
+                    "operationName": null,
+                    "variables": {
+                      "var0": {
+                        "dummy": "DESCOPE",
+                        "token": "<token>"
+                      }
+                    },
+                    "extensions": {}
+                  },
+                  "headers": [
+                    [
+                      "accept",
+                      "application/json"
+                    ]
+                  ]
                 }
-              }
+              ]
             ]
             "###)
         });

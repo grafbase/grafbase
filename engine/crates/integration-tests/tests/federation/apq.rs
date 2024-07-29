@@ -1,13 +1,11 @@
 use engine_v2::Engine;
-use graphql_mocks::{FakeGithubSchema, MockGraphQlServer};
+use graphql_mocks::FakeGithubSchema;
 use integration_tests::{federation::EngineV2Ext, runtime};
 
 #[test]
 fn single_field_from_single_server() {
     runtime().block_on(async move {
-        let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
-
-        let engine = Engine::builder().with_subgraph("schema", &github_mock).build().await;
+        let engine = Engine::builder().with_subgraph(FakeGithubSchema).build().await;
 
         let query = "query { serverVersion }";
 

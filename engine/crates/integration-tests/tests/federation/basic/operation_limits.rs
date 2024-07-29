@@ -1,5 +1,5 @@
 use engine_v2::Engine;
-use graphql_mocks::{FakeGithubSchema, MockGraphQlServer};
+use graphql_mocks::FakeGithubSchema;
 use integration_tests::{federation::EngineV2Ext, runtime};
 
 #[rstest::rstest]
@@ -130,11 +130,9 @@ fn test_operation_limits(
     #[case] error: Option<&'static str>,
 ) {
     let response = runtime().block_on(async move {
-        let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
-
         let engine = Engine::builder()
-            .with_supergraph_config(format!("extend schema {operation_limits_config}"))
-            .with_subgraph("schema", &github_mock)
+            .with_sdl_config(format!("extend schema {operation_limits_config}"))
+            .with_subgraph(FakeGithubSchema)
             .build()
             .await;
 

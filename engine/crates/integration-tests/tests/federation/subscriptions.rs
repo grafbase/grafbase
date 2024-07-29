@@ -1,24 +1,15 @@
 use engine_v2::Engine;
 use graphql_mocks::{
-    FakeFederationAccountsSchema, FakeFederationInventorySchema, FakeFederationProductsSchema,
-    FakeFederationReviewsSchema, MockGraphQlServer,
+    FederatedAccountsSchema, FederatedInventorySchema, FederatedProductsSchema, FederatedReviewsSchema,
 };
 use integration_tests::{federation::EngineV2Ext, runtime};
 
 #[test]
 fn single_subgraph_subscription() {
     let response = runtime().block_on(async move {
-        let products = MockGraphQlServer::new(FakeFederationProductsSchema).await;
-
         let engine = Engine::builder()
-            .with_subgraph("products", &products)
-            .with_supergraph_config(indoc::formatdoc!(
-                r#"
-                    extend schema
-                      @subgraph(name: "products", websocketUrl: "{}")
-                "#,
-                products.websocket_url(),
-            ))
+            .with_subgraph(FederatedProductsSchema)
+            .with_sdl_websocket_config()
             .build()
             .await;
 
@@ -66,29 +57,12 @@ fn single_subgraph_subscription() {
 #[test]
 fn actual_federated_subscription() {
     let response = runtime().block_on(async move {
-        let accounts = MockGraphQlServer::new(FakeFederationAccountsSchema).await;
-        let products = MockGraphQlServer::new(FakeFederationProductsSchema).await;
-        let reviews = MockGraphQlServer::new(FakeFederationReviewsSchema).await;
-        let inventory = MockGraphQlServer::new(FakeFederationInventorySchema).await;
-
         let engine = Engine::builder()
-            .with_subgraph("accounts", &accounts)
-            .with_subgraph("products", &products)
-            .with_subgraph("reviews", &reviews)
-            .with_subgraph("inventory", &inventory)
-            .with_supergraph_config(indoc::formatdoc!(
-                r#"
-                    extend schema
-                      @subgraph(name: "accounts", websocketUrl: "{}")
-                      @subgraph(name: "products", websocketUrl: "{}")
-                      @subgraph(name: "reviews", websocketUrl: "{}")
-                      @subgraph(name: "inventory", websocketUrl: "{}")
-                "#,
-                accounts.websocket_url(),
-                products.websocket_url(),
-                reviews.websocket_url(),
-                inventory.websocket_url(),
-            ))
+            .with_subgraph(FederatedAccountsSchema)
+            .with_subgraph(FederatedProductsSchema)
+            .with_subgraph(FederatedReviewsSchema)
+            .with_subgraph(FederatedInventorySchema)
+            .with_sdl_websocket_config()
             .build()
             .await;
 

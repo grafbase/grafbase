@@ -1,6 +1,6 @@
 use engine_v2::Engine;
 use futures::Future;
-use graphql_mocks::{MockGraphQlServer, SecureSchema};
+use graphql_mocks::SecureSchema;
 use integration_tests::{
     federation::{EngineV2Ext, TestEngineV2},
     openid::{CoreClientExt, OryHydraOpenIDProvider, JWKS_URI},
@@ -12,11 +12,9 @@ where
     F: Future<Output = O>,
 {
     runtime().block_on(async move {
-        let secure_mock = MockGraphQlServer::new(SecureSchema::default()).await;
-
         let engine = Engine::builder()
-            .with_subgraph("secure", &secure_mock)
-            .with_supergraph_config(format!(
+            .with_subgraph(SecureSchema)
+            .with_sdl_config(format!(
                 r#"extend schema @authz(providers: [
                 {{ name: "my-jwt", type: jwt, jwks: {{ url: "{JWKS_URI}" }} }},
                 {{ type: anonymous }}
@@ -102,21 +100,20 @@ fn not_authenticated() {
         "###);
 
         // We shouldn't have requested the field.
-        insta::assert_json_snapshot!(engine.get_recorded_subrequests(), @r###"
+        let requests = engine.drain_graphql_requests_sent_to::<SecureSchema>();
+        insta::assert_json_snapshot!(requests, @r###"
         [
           {
-            "subgraph_name": "secure",
-            "request_body": {
-              "query": "query {\n  check {\n    __typename\n  }\n}\n",
-              "variables": {}
-            },
-            "response_body": {
-              "data": {
-                "check": {
-                  "__typename": "Check"
-                }
-              }
-            }
+            "query": "query {\n  check {\n    anonymous\n  }\n}\n",
+            "operationName": null,
+            "variables": {},
+            "extensions": {}
+          },
+          {
+            "query": "query {\n  check {\n    __typename\n  }\n}\n",
+            "operationName": null,
+            "variables": {},
+            "extensions": {}
           }
         ]
         "###);

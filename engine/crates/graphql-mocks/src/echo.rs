@@ -7,6 +7,15 @@ use async_graphql::{
 /// Useful for testing inputs & outputs
 pub struct EchoSchema;
 
+impl crate::Subgraph for EchoSchema {
+    fn name(&self) -> String {
+        "echo".to_string()
+    }
+    async fn start(self) -> crate::MockGraphQlServer {
+        crate::MockGraphQlServer::new(self).await
+    }
+}
+
 #[async_trait::async_trait]
 impl super::Schema for EchoSchema {
     async fn execute(

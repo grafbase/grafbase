@@ -1,12 +1,11 @@
 use engine_v2::Engine;
-use graphql_mocks::{FakeFederationAccountsSchema, MockGraphQlServer};
+use graphql_mocks::FederatedAccountsSchema;
 use integration_tests::{federation::EngineV2Ext, runtime};
 
 #[test]
 fn simple_override() {
     let response = runtime().block_on(async {
-        let accounts = MockGraphQlServer::new(FakeFederationAccountsSchema).await;
-        let engine = Engine::builder().with_subgraph("accounts", &accounts).build().await;
+        let engine = Engine::builder().with_subgraph(FederatedAccountsSchema).build().await;
         engine
             .execute(
                 r"

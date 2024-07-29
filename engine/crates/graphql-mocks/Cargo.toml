@@ -18,6 +18,8 @@ futures.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 tokio.workspace = true
+crossbeam-queue = "0.3"
+http.workspace = true
 
 [lints]
 workspace = true
