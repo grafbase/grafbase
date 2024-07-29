@@ -15,10 +15,11 @@ mod federation;
 mod secure;
 mod slow;
 mod state_mutation;
+mod tea_shop;
 
 pub use {
     almost_empty::AlmostEmptySchema, echo::EchoSchema, error_schema::ErrorSchema, fake_github::FakeGithubSchema,
-    federation::*, secure::SecureSchema, slow::SlowSchema, state_mutation::StateMutationSchema,
+    federation::*, secure::SecureSchema, slow::SlowSchema, state_mutation::StateMutationSchema, tea_shop::TeaShop,
 };
 
 #[derive(Debug)]
@@ -112,7 +113,7 @@ impl MockGraphQlServer {
     }
 
     pub fn url(&self) -> String {
-        format!("http://localhost:{}", self.port)
+        format!("http://127.0.0.1:{}", self.port)
     }
 
     pub fn sdl(&self) -> String {
@@ -120,7 +121,7 @@ impl MockGraphQlServer {
     }
 
     pub fn websocket_url(&self) -> String {
-        format!("ws://localhost:{}/ws", self.port)
+        format!("ws://127.0.0.1:{}/ws", self.port)
     }
 
     pub fn drain_received_requests(&self) -> impl Iterator<Item = ReceivedRequest> + '_ {

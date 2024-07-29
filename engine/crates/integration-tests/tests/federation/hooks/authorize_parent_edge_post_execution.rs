@@ -1,10 +1,150 @@
+use engine_v2::Engine;
+use graphql_mocks::TeaShop;
 use http::HeaderMap;
+use integration_tests::{federation::EngineV2Ext, runtime};
 use runtime::{
     error::{PartialErrorCode, PartialGraphqlError},
     hooks::{DynHookContext, DynHooks, EdgeDefinition},
 };
 
 use super::with_engine_for_auth;
+
+#[test]
+fn after_pre_execution_hook() {
+    struct TestHooks;
+
+    #[derive(serde::Deserialize)]
+    struct User {
+        id: usize,
+    }
+
+    #[async_trait::async_trait]
+    impl DynHooks for TestHooks {
+        async fn authorize_edge_pre_execution(
+            &self,
+            _context: &DynHookContext,
+            _definition: EdgeDefinition<'_>,
+            arguments: serde_json::Value,
+            _metadata: Option<serde_json::Value>,
+        ) -> Result<(), PartialGraphqlError> {
+            if let Ok(user) = serde_json::from_value::<User>(arguments) {
+                if user.id == 1 {
+                    return Ok(());
+                }
+            }
+            Err(PartialGraphqlError::new(
+                "Not authorized",
+                PartialErrorCode::Unauthorized,
+            ))
+        }
+
+        async fn authorize_parent_edge_post_execution(
+            &self,
+            _context: &DynHookContext,
+            _definition: EdgeDefinition<'_>,
+            parents: Vec<serde_json::Value>,
+            _metadata: Option<serde_json::Value>,
+        ) -> Result<Vec<Result<(), PartialGraphqlError>>, PartialGraphqlError> {
+            Ok(parents
+                .into_iter()
+                .map(|parent| {
+                    if let Ok(user) = serde_json::from_value::<User>(parent) {
+                        if user.id == 1 {
+                            return Ok(());
+                        }
+                    }
+                    Err(PartialGraphqlError::new(
+                        "Not authorized",
+                        PartialErrorCode::Unauthorized,
+                    ))
+                })
+                .collect())
+        }
+    }
+
+    runtime().block_on(async move {
+        let engine = Engine::builder()
+            .with_subgraph(TeaShop::with_sdl(
+                r###"
+                type Query {
+                    user(id: Int!): User @authorized(arguments: "id")
+                }
+
+                type User {
+                    id: Int!
+                    address: Address! @authorized(fields: "id")
+                }
+
+                type Address {
+                    street: String!
+                }
+            "###,
+            ))
+            .with_hooks(TestHooks)
+            .build()
+            .await;
+
+        let response = engine
+            .execute(
+                r#"
+                query {
+                    user(id: 1) {
+                        address {
+                            street
+                        }
+                    }
+                }
+                "#,
+            )
+            .await;
+        insta::assert_json_snapshot!(response, @r###"
+        {
+          "data": {
+            "user": {
+              "address": {
+                "street": "5678 Oak St"
+              }
+            }
+          }
+        }
+        "###);
+
+        // This used to panic because the response modifier was expecting a set of user objects
+        // to exists (its input), but with pre-execution authorization of `user` we never request
+        // it from the subgraph.
+        let response = engine
+            .execute(
+                r#"
+                query {
+                    user(id: 2) {
+                        address {
+                            street
+                        }
+                    }
+                }
+                "#,
+            )
+            .await;
+        insta::assert_json_snapshot!(response, @r###"
+        {
+          "data": {
+            "user": null
+          },
+          "errors": [
+            {
+              "message": "Not authorized",
+              "path": [
+                "user"
+              ],
+              "extensions": {
+                "code": "UNAUTHORIZED"
+              }
+            }
+          ]
+        }
+        "###);
+    });
+}
 
 #[test]
 fn parents_are_provided() {

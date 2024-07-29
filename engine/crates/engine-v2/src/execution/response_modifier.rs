@@ -33,9 +33,10 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
             .chunk_by(|(_, (set_id, _, _))| *set_id)
             .into_iter()
         {
-            let refs = state[set_id]
-                .as_ref()
-                .expect("Response Modifier is ready but response object set doesn't exist");
+            // With query modifications, this response object set might never exist.
+            let Some(refs) = state[set_id].as_ref() else {
+                continue;
+            };
 
             for (entity_id, mut chunk) in chunk.into_iter().chunk_by(|(_, (_, entity, _))| *entity).into_iter() {
                 let start = chunk.next().unwrap().0;
@@ -48,6 +49,10 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
                     input = input.with_response_objects(refs.clone());
                 }
             }
+        }
+
+        if input.is_empty() {
+            return;
         }
 
         // Now we can execute the hook and propagate any errors.
