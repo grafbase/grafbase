@@ -3,6 +3,15 @@ use async_graphql::{EmptyMutation, EmptySubscription, FieldResult, Object};
 /// A schema that exposes a field with errors
 pub type ErrorSchema = async_graphql::Schema<Query, EmptyMutation, EmptySubscription>;
 
+impl crate::Subgraph for ErrorSchema {
+    fn name(&self) -> String {
+        "errors".to_string()
+    }
+    async fn start(self) -> crate::MockGraphQlServer {
+        crate::MockGraphQlServer::new(self).await
+    }
+}
+
 #[derive(Default)]
 pub struct Query;
 

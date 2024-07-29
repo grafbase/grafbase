@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use engine_v2::Engine;
-use graphql_mocks::FederatedProductsSchema;
+use graphql_mocks::{ErrorSchema, FederatedProductsSchema};
 use integration_tests::{federation::EngineV2Ext, runtime};
 
 #[test]
@@ -141,4 +141,26 @@ fn test_cache_expiry() {
       ]
     }
     "###);
+}
+
+#[test]
+fn cache_skipped_if_downstream_error() {
+    runtime().block_on(async move {
+        let engine = Engine::builder()
+            .with_subgraph(ErrorSchema::default())
+            .with_entity_caching()
+            .build()
+            .await;
+
+        const QUERY: &str = "query { brokenField(error: \"blah\") }";
+
+        let first_response = engine.execute(QUERY).await;
+        let second_response = engine.execute(QUERY).await;
+
+        assert!(!first_response.errors().is_empty());
+
+        assert!(first_response.into_value() == second_response.into_value());
+
+        assert_eq!(engine.drain_graphql_requests_sent_to::<ErrorSchema>().len(), 2);
+    });
 }
