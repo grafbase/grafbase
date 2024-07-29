@@ -3,7 +3,7 @@
   "module": "udf.ts",
   "devDependencies": {
     "@types/bun": "^1.0.2",
-    "@types/node": "^20.10.5",
+    "@types/node": "^22.0.0",
     "bun": "1.1.12",
     "typescript": "^5.3.3"
   },
