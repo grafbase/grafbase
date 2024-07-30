@@ -105,7 +105,7 @@ fn field_error() {
           "data": null,
           "errors": [
             {
-              "message": "error sending request for url (http://127.0.0.1:46697/)",
+              "message": "Request to subgraph 'accounts' failed with: error sending request for url (http://127.0.0.1:46697/)",
               "path": [
                 "me"
               ],
@@ -154,7 +154,7 @@ fn field_error_data_null() {
           "data": null,
           "errors": [
             {
-              "message": "error sending request for url (http://127.0.0.1:46697/)",
+              "message": "Request to subgraph 'accounts' failed with: error sending request for url (http://127.0.0.1:46697/)",
               "path": [
                 "me"
               ],

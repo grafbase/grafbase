@@ -26,7 +26,7 @@ fn subgraph_no_response() {
       "data": null,
       "errors": [
         {
-          "message": "invalid type: null, expected a valid GraphQL response at line 1 column 4",
+          "message": "Deserialization error: invalid type: null, expected a valid GraphQL response at line 1 column 4",
           "path": [
             "me"
           ],
