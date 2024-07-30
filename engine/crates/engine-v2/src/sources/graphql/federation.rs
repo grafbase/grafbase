@@ -137,7 +137,7 @@ impl FederationEntityPreparedExecutor {
                     move || FetchRequest {
                         url: subgraph.url(),
                         headers: ctx.subgraph_headers_with_rules(subgraph.header_rules()),
-                        json_body,
+                        json_body: Bytes::from(json_body.into_bytes()),
                         subgraph_name: subgraph.name(),
                         timeout: subgraph.timeout(),
                         retry_budget,

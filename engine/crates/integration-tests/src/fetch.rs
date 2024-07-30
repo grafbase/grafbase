@@ -38,7 +38,7 @@ impl runtime::fetch::FetcherInner for MockFetch {
             host.to_string(),
             ReceivedRequest {
                 headers: request.headers.clone(),
-                body: serde_json::from_str(&request.json_body).unwrap(),
+                body: serde_json::from_slice(&request.json_body).unwrap(),
             },
         ));
 
