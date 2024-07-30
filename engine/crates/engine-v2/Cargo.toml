@@ -56,6 +56,7 @@ schema = { path = "./schema", package = "engine-v2-schema" }
 # but having more explicit dependencies for now.
 engine = { path = "../engine" }
 runtime.workspace = true
+rand = "0.8.5"
 
 [dev-dependencies]
 pretty_assertions = "1"

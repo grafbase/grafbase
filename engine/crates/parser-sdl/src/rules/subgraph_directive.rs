@@ -100,6 +100,7 @@ impl Directive for SubgraphDirective {
           """
           entityCacheTtl: String
 
+          """
           Retry configuration for that subgraph
           """
           retry: RetryConfig
@@ -117,9 +118,9 @@ impl Directive for SubgraphDirective {
             "Each successful request to the subgraph adds to the retry budget. This setting controls for how long the budget remembers successful requests."
             ttl: String
             "The fraction of the successful requests budget that can be used for retries."
-            retry_percent: Float
+            retryPercent: Float
             "Whether mutations should be retried at all. False by default."
-            retry_mutations: Boolean
+            retryMutations: Boolean
         }
         "#
         .to_string()

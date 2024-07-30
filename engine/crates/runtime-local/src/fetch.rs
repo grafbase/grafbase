@@ -23,8 +23,6 @@ impl NativeFetcher {
 #[async_trait::async_trait]
 impl FetcherInner for NativeFetcher {
     async fn post(&self, request: &FetchRequest<'_>) -> FetchResult<FetchResponse> {
-        let subgraph_name = request.subgraph_name;
-
         let n = request.json_body.len();
 
         let response = self
@@ -39,7 +37,7 @@ impl FetcherInner for NativeFetcher {
             .await
             .map_err(|e| {
                 if e.is_timeout() {
-                    FetchError::AnyError(format!("Request to the `{subgraph_name}` subgraph timed out"))
+                    FetchError::AnyError(format!("Request to the `{}` subgraph timed out", request.subgraph_name))
                 } else {
                     FetchError::AnyError(e.to_string())
                 }
