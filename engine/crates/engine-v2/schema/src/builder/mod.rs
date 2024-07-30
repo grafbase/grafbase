@@ -229,7 +229,6 @@ impl BuildContext {
                 auth_config: take(&mut config.auth),
                 operation_limits: take(&mut config.operation_limits),
                 disable_introspection: config.disable_introspection,
-                enable_entity_caching: config.enable_entity_caching,
             },
         })
     }

@@ -85,15 +85,11 @@ impl GraphqlPreparedExecutor {
         }
         .into_span();
 
-        let cache_key = ctx
-            .engine
-            .schema
-            .settings
-            .enable_entity_caching
-            .then(|| build_cache_key(&json_body));
-        let cache_ttl = subgraph.entity_cache_ttl();
+        let cache_ttl_and_key = subgraph
+            .entity_cache_ttl()
+            .map(|ttl| (ttl, build_cache_key(&json_body)));
 
-        if let Some(cache_key) = &cache_key {
+        if let Some((_, cache_key)) = &cache_ttl_and_key {
             let cache_entry = ctx
                 .engine
                 .runtime
@@ -134,9 +130,8 @@ impl GraphqlPreparedExecutor {
             GraphqlIngester {
                 ctx,
                 plan,
-                cache_key,
+                cache_ttl_and_key,
                 subgraph_response,
-                cache_ttl,
             },
         )
         .instrument(span)
@@ -153,9 +148,8 @@ fn build_cache_key(json_body: &str) -> String {
 struct GraphqlIngester<'ctx, R: Runtime> {
     ctx: ExecutionContext<'ctx, R>,
     plan: PlanWalker<'ctx, (), ()>,
-    cache_key: Option<String>,
     subgraph_response: SubgraphResponse,
-    cache_ttl: Duration,
+    cache_ttl_and_key: Option<(Duration, String)>,
 }
 
 impl<'ctx, R> ResponseIngester for GraphqlIngester<'ctx, R>
@@ -178,14 +172,14 @@ where
             .deserialize(&mut serde_json::Deserializer::from_slice(&bytes))?
         };
 
-        if let Some(cache_key) = self.cache_key.filter(|_| status.is_success()) {
+        if let Some((cache_ttl, cache_key)) = self.cache_ttl_and_key.filter(|_| status.is_success()) {
             // We could probably put this call into the background at some point, but for
             // simplicities sake I am not going to do that just now.
             self.ctx
                 .engine
                 .runtime
                 .kv()
-                .put(&cache_key, Cow::Borrowed(bytes.as_ref()), Some(self.cache_ttl))
+                .put(&cache_key, Cow::Borrowed(bytes.as_ref()), Some(cache_ttl))
                 .await
                 .inspect_err(|err| tracing::warn!("Failed to write the cache key {cache_key}: {err}"))
                 .ok();

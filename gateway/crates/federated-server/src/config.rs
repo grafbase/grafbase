@@ -1,5 +1,6 @@
 mod authentication;
 mod cors;
+mod entity_caching;
 mod header;
 mod health;
 mod rate_limit;
@@ -10,6 +11,7 @@ pub use self::health::HealthConfig;
 use ascii::AsciiString;
 pub use authentication::AuthenticationConfig;
 pub use cors::CorsConfig;
+pub use entity_caching::EntityCachingConfig;
 use grafbase_telemetry::config::TelemetryConfig;
 pub use header::{HeaderForward, HeaderInsert, HeaderRemove, HeaderRule, NameOrPattern};
 pub use rate_limit::{GraphRateLimit, RateLimitConfig};
@@ -59,6 +61,10 @@ pub struct Config {
     /// Health check endpoint configuration
     #[serde(default)]
     pub health: HealthConfig,
+
+    /// Global configuration for entity caching
+    #[serde(default)]
+    pub entity_caching: EntityCachingConfig,
 }
 
 #[derive(Debug, Default, serde::Deserialize)]
@@ -85,6 +91,10 @@ pub struct SubgraphConfig {
     /// Timeout for subgraph requests in seconds. Default: 30 seconds.
     #[serde(deserialize_with = "duration_str::deserialize_option_duration", default)]
     pub timeout: Option<Duration>,
+
+    /// Subgraph specific entity caching config  this overrides the global config if there
+    /// is any
+    pub entity_caching: Option<EntityCachingConfig>,
 }
 
 #[derive(Debug, Default, serde::Deserialize)]
@@ -1288,6 +1298,7 @@ mod tests {
                 websocket_url: None,
                 rate_limit: None,
                 timeout: None,
+                entity_caching: None,
             },
         }
         "###);

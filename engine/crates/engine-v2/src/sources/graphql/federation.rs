@@ -88,7 +88,7 @@ impl FederationEntityPreparedExecutor {
                     cache_ttl,
                 };
 
-                if ctx.engine.schema.settings.enable_entity_caching {
+                if cache_ttl.is_some() {
                     let fetches = representations
                         .iter()
                         .map(|repr| cache_fetch(ctx, subgraph.name(), repr));
@@ -155,7 +155,7 @@ struct EntityIngester<'ctx, R: Runtime> {
     plan: PlanWalker<'ctx, (), ()>,
     cache_entries: Option<Vec<CacheEntry>>,
     subgraph_response: SubgraphResponse,
-    cache_ttl: Duration,
+    cache_ttl: Option<Duration>,
 }
 
 pub enum CacheEntry {
@@ -205,8 +205,10 @@ where
             .deserialize(&mut serde_json::Deserializer::from_slice(&bytes))?
         };
 
-        if let Some(cache_entries) = cache_entries.filter(|_| status.is_success()) {
-            update_cache(ctx, cache_ttl, bytes, cache_entries).await
+        if let Some(cache_ttl) = cache_ttl {
+            if let Some(cache_entries) = cache_entries.filter(|_| status.is_success()) {
+                update_cache(ctx, cache_ttl, bytes, cache_entries).await
+            }
         }
 
         Ok((status, subgraph_response))

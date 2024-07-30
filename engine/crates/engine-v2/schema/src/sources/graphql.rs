@@ -18,7 +18,9 @@ pub struct GraphqlEndpoint {
     pub(crate) websocket_url: Option<UrlId>,
     pub(crate) header_rules: Vec<HeaderRuleId>,
     pub(crate) timeout: Duration,
-    pub(crate) entity_cache_ttl: Duration,
+    // The ttl to use for caching for this subgraph.
+    // If None then caching is disabled for this subgraph
+    pub(crate) entity_cache_ttl: Option<Duration>,
 }
 
 id_newtypes::U8! {
@@ -150,7 +152,7 @@ impl<'a> GraphqlEndpointWalker<'a> {
         self.as_ref().header_rules.iter().map(move |id| self.walk(*id))
     }
 
-    pub fn entity_cache_ttl(self) -> Duration {
+    pub fn entity_cache_ttl(self) -> Option<Duration> {
         self.as_ref().entity_cache_ttl
     }
 }

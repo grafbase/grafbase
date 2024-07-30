@@ -73,6 +73,7 @@ pub async fn serve(
                 header_rules: config.headers,
                 rate_limit: config.gateway.rate_limit,
                 timeout: config.gateway.timeout,
+                entity_caching: config.entity_caching,
             },
             otel_reload,
             sender,
