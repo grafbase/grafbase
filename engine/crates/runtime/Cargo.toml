@@ -29,12 +29,10 @@ thiserror.workspace = true
 ulid.workspace = true
 tracing.workspace = true
 tracing-futures.workspace = true
-tower = { workspace = true, features = ["retry"] }
 url.workspace = true
 
 postgres-connector-types = { path = "../postgres-connector-types" }
 common-types.workspace = true
-rand = "0.8.5"
 
 [features]
 test-utils = []

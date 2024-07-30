@@ -27,28 +27,6 @@ pub trait RateLimiterContext: Send + Sync {
     }
 }
 
-impl RateLimiterContext for &str {
-    fn header(&self, _: http::HeaderName) -> Option<&http::HeaderValue> {
-        None
-    }
-
-    fn graphql_operation_name(&self) -> Option<&str> {
-        None
-    }
-
-    fn ip(&self) -> Option<IpAddr> {
-        None
-    }
-
-    fn jwt_claim(&self, _: &str) -> Option<&serde_json::Value> {
-        None
-    }
-
-    fn key(&self) -> Option<&str> {
-        Some(*self)
-    }
-}
-
 pub trait RateLimiterInner: Send + Sync {
     fn limit<'a>(&'a self, context: &'a dyn RateLimiterContext) -> BoxFuture<'a, Result<(), Error>>;
 }

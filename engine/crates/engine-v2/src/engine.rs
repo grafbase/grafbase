@@ -73,7 +73,8 @@ impl<R: Runtime> Engine<R> {
         );
 
         let retry_budgets = schema
-            .iter_graphql_endpoints()
+            .walker()
+            .graphql_endpoints()
             .map(|endpoint| {
                 let retry_config = endpoint.retry_config()?;
 

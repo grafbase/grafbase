@@ -1,14 +1,25 @@
 use engine_v2::Engine;
-use graphql_mocks::{MockGraphQlServer, StateMutationSchema};
+use graphql_mocks::{MockGraphQlServer, StateMutationSchema, Subgraph};
 use integration_tests::{federation::EngineV2Ext, runtime};
+
+struct Stateful;
+
+impl Subgraph for Stateful {
+    fn name(&self) -> String {
+        String::from("stateful")
+    }
+
+    async fn start(self) -> MockGraphQlServer {
+        MockGraphQlServer::new(StateMutationSchema::default()).await
+    }
+}
 
 #[test]
 fn subgraph_retries_mutations_disabled() {
     runtime().block_on(async move {
-        let subgraph = MockGraphQlServer::new(StateMutationSchema::default()).await;
         let engine = Engine::builder()
-            .with_subgraph("stateful", &subgraph)
-            .with_supergraph_config(
+            .with_subgraph(Stateful)
+            .with_sdl_config(
                 r#"
                 extend schema @subgraph(
                     name: "stateful",
@@ -62,10 +73,9 @@ fn subgraph_retries_mutations_disabled() {
 #[test]
 fn subgraph_retries_mutations_enabled() {
     runtime().block_on(async move {
-        let subgraph = MockGraphQlServer::new(StateMutationSchema::default()).await;
         let engine = Engine::builder()
-            .with_subgraph("stateful", &subgraph)
-            .with_supergraph_config(
+            .with_subgraph(Stateful)
+            .with_sdl_config(
                 r#"
                 extend schema @subgraph(
                     name: "stateful",
