@@ -4,6 +4,7 @@ mod query_modifier;
 use std::{mem::take, sync::Arc};
 
 use builder::ExecutionBuilder;
+use id_derives::{Id, IndexImpls};
 use id_newtypes::IdRange;
 use itertools::Itertools;
 
@@ -39,9 +40,10 @@ impl<'ctx, 'op, R: Runtime> std::ops::DerefMut for ExecutionPlanner<'ctx, 'op, R
 
 // Ideally this BuilderContext would just be inside the ExecutionPlanner. But we do need to modify
 // the ExecutableOperation at some moments (here in the ExecutionPlanner) and at others we rely on it be immutable for walkers (in the builder::ExecutionBuilder)
-#[derive(Default)]
+#[derive(Default, IndexImpls)]
 struct BuildContext {
     // Either an input or output field of a plan or response modifier
+    #[indexed_by(IOFieldId)]
     io_fields: Vec<FieldId>,
     io_fields_buffer_pool: BufferPool<FieldId>,
     response_modifier_executors: Vec<ResponseModifierExecutor>,
@@ -54,12 +56,8 @@ struct BuildContext {
     response_view_selection_buffer_pool: BufferPool<ResponseViewSelection>,
 }
 
-id_newtypes::NonZeroU16! {
-    BuildContext.io_fields[IOFieldId] => FieldId,
-}
-id_newtypes::index! {
-    ExecutionPlanner<'ctx, 'op, R: Runtime + 'static>.build_context.io_fields[IOFieldId] => FieldId,
-}
+#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, Id)]
+pub struct IOFieldId(std::num::NonZero<u16>);
 
 impl BuildContext {
     fn push_io_fields(&mut self, mut fields: Vec<FieldId>) -> IdRange<IOFieldId> {

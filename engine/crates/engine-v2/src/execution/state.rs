@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use id_derives::IndexImpls;
 use schema::Schema;
 
 use crate::response::{InputdResponseObjectSet, ResponseBuilder, ResponseObjectSet, ResponseObjectSetId};
@@ -16,19 +17,16 @@ use super::{ExecutableOperation, ExecutionPlanId, ResponseModifierExecutorId};
 /// Response boundary items, so objects within the response provided by one plan and updated by
 /// other children plans, are also kept in this struct as long as any children plan might need
 /// it.
-#[derive(Clone)]
+#[derive(Clone, IndexImpls)]
 pub(crate) struct OperationExecutionState<'ctx> {
     schema: &'ctx Schema,
     operation: &'ctx ExecutableOperation,
+    #[indexed_by(ResponseObjectSetId)]
     response_object_sets: Vec<Option<Arc<ResponseObjectSet>>>,
+    #[indexed_by(ExecutionPlanId)]
     execution_plan_to_parent_count: Vec<usize>,
+    #[indexed_by(ResponseModifierExecutorId)]
     response_modifier_executor_to_parent_count: Vec<usize>,
-}
-
-id_newtypes::index! {
-    OperationExecutionState<'ctx>.execution_plan_to_parent_count[ExecutionPlanId] => usize,
-    OperationExecutionState<'ctx>.response_modifier_executor_to_parent_count[ResponseModifierExecutorId] => usize,
-    OperationExecutionState<'ctx>.response_object_sets[ResponseObjectSetId] => Option<Arc<ResponseObjectSet>>,
 }
 
 impl<'ctx> OperationExecutionState<'ctx> {

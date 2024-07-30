@@ -5,8 +5,9 @@ use crate::{
     HeaderRuleId, HeaderRuleWalker, RequiredFieldSet, RequiredFieldSetId, SchemaWalker, StringId, SubgraphId, UrlId,
 };
 
-#[derive(Default, serde::Serialize, serde::Deserialize)]
+#[derive(Default, serde::Serialize, serde::Deserialize, id_derives::IndexImpls)]
 pub struct GraphqlEndpoints {
+    #[indexed_by(GraphqlEndpointId)]
     pub(crate) endpoints: Vec<GraphqlEndpoint>,
 }
 
@@ -21,9 +22,12 @@ pub struct GraphqlEndpoint {
     pub(crate) entity_cache_ttl: Duration,
 }
 
-id_newtypes::U8! {
-    GraphqlEndpoints.endpoints[GraphqlEndpointId] => GraphqlEndpoint,
-}
+#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
+pub struct GraphqlEndpointId(std::num::NonZero<u8>);
+
+// id_newtypes::U8! {
+//     GraphqlEndpoints.endpoints[GraphqlEndpointId] => GraphqlEndpoint,
+// }
 
 #[derive(Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct RootFieldResolver {

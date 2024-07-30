@@ -1,13 +1,13 @@
 use std::sync::Arc;
 
+use id_derives::Id;
 use id_newtypes::IdRange;
 use schema::{EntityId, ObjectId, Schema};
 
 use super::{ResponseObjectId, ResponsePath};
 
-id_newtypes::NonZeroU16! {
-    ResponseObjectSetId,
-}
+#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, Id, serde::Serialize, serde::Deserialize)]
+pub struct ResponseObjectSetId(std::num::NonZero<u16>);
 
 /// A "fat" reference to a response object. We keep track of its path for further execution and its
 /// definition id because we don't store it anywhere else as of today.

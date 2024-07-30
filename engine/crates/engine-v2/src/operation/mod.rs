@@ -15,6 +15,7 @@ mod walkers;
 
 use crate::response::{ConcreteObjectShapeId, FieldShapeId, ResponseKeys, ResponseObjectSetId, Shapes};
 pub(crate) use engine_parser::types::OperationType;
+use id_derives::IndexImpls;
 use id_newtypes::{BitSet, IdRange, IdToMany};
 pub(crate) use ids::*;
 pub(crate) use input_value::*;
@@ -83,8 +84,9 @@ pub struct OperationMetadata {
     pub normalized_query_hash: [u8; 32],
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(serde::Serialize, serde::Deserialize, IndexImpls)]
 pub(crate) struct OperationPlan {
+    #[indexed_by(FieldId)]
     pub field_to_logical_plan_id: Vec<LogicalPlanId>,
     pub field_to_solved_requirement: Vec<Option<RequiredFieldId>>,
     pub selection_set_to_objects_must_be_tracked: BitSet<SelectionSetId>,
@@ -115,11 +117,12 @@ pub(crate) struct SolvedRequiredField {
     pub subselection: SolvedRequiredFieldSet,
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(serde::Serialize, serde::Deserialize, IndexImpls)]
 pub(crate) struct ResponseBlueprint {
     pub shapes: Shapes,
     pub field_to_shape_ids: IdToMany<FieldId, FieldShapeId>,
     pub response_modifier_impacted_field_to_response_object_set: Vec<ResponseObjectSetId>,
+    #[indexed_by(LogicalPlanId)]
     pub logical_plan_to_blueprint: Vec<LogicalPlanResponseBlueprint>,
     pub selection_set_to_requires_typename: BitSet<SelectionSetId>,
     pub response_object_sets_to_type: Vec<SelectionSetType>,

@@ -8,6 +8,7 @@ mod variables;
 use std::collections::HashMap;
 
 pub use engine_parser::types::OperationType;
+use id_derives::IndexImpls;
 use id_newtypes::IdRange;
 use itertools::Itertools;
 use modifier::{finalize_query_modifiers, finalize_response_modifiers};
@@ -141,6 +142,7 @@ impl From<BindError> for GraphqlError {
 
 pub type BindResult<T> = Result<T, BindError>;
 
+#[derive(IndexImpls)]
 pub(crate) struct Binder<'schema, 'p> {
     schema: &'schema Schema,
     parsed_operation: &'p ParsedOperation,
@@ -148,17 +150,14 @@ pub(crate) struct Binder<'schema, 'p> {
     response_keys: ResponseKeys,
     field_arguments: Vec<FieldArgument>,
     location_to_field_arguments: HashMap<Location, IdRange<FieldArgumentId>>,
+    #[indexed_by(FieldId)]
     fields: Vec<Field>,
+    #[indexed_by(SelectionSetId)]
     selection_sets: Vec<SelectionSet>,
     variable_definitions: Vec<VariableDefinition>,
     input_values: QueryInputValues,
     query_modifiers: HashMap<QueryModifierRule, (QueryModifierId, Vec<FieldId>)>,
     response_modifiers: HashMap<ResponseModifierRule, (ResponseModifierId, Vec<FieldId>)>,
-}
-
-id_newtypes::index! {
-    Binder<'s, 'p>.fields[FieldId] => Field,
-    Binder<'s, 'p>.selection_sets[SelectionSetId] => SelectionSet,
 }
 
 pub fn bind_operation(schema: &Schema, mut parsed_operation: ParsedOperation) -> BindResult<Operation> {
