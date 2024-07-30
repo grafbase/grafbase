@@ -34,6 +34,7 @@ url.workspace = true
 
 postgres-connector-types = { path = "../postgres-connector-types" }
 common-types.workspace = true
+rand = "0.8.5"
 
 [features]
 test-utils = []

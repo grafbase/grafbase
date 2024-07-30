@@ -73,11 +73,8 @@ pub(super) async fn generate(
     }
 
     graph_config.timeout = timeout;
-
     graph_config.disable_introspection = !enable_introspection;
-
     graph_config.header_rules = header_rules.into_iter().map(SubgraphHeaderRule::from).collect();
-
     graph_config.rate_limit = rate_limit.map(Into::into);
 
     graph_config.subgraphs = subgraphs
@@ -93,7 +90,7 @@ pub(super) async fn generate(
                 rate_limit: value.rate_limit.map(Into::into),
                 timeout: value.timeout,
                 entity_cache_ttl: None,
-                retry: Some(parser_sdl::federation::RetryConfig {
+                retry: value.retry.enabled.then_some(parser_sdl::federation::RetryConfig {
                     min_per_second: value.retry.min_per_second,
                     ttl: value.retry.ttl,
                     retry_percent: value.retry.retry_percent,

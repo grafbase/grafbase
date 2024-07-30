@@ -91,6 +91,8 @@ pub struct SubgraphConfig {
 
 #[derive(Debug, serde::Deserialize, Clone, Default)]
 pub struct SubgraphRetryConfig {
+    /// Should we retry or not.
+    pub enabled: bool,
     /// How many retries are available per second, at a minimum.
     pub min_per_second: Option<u32>,
     /// Each successful request to the subgraph adds to the retry budget. This setting controls for how long the budget remembers successful requests.
@@ -1305,6 +1307,7 @@ mod tests {
                 rate_limit: None,
                 timeout: None,
                 retry: SubgraphRetryConfig {
+                    enabled: false,
                     min_per_second: None,
                     ttl: None,
                     retry_percent: None,

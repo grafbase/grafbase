@@ -93,6 +93,8 @@ impl Fetcher {
             return result;
         };
 
+        let mut counter = 0;
+
         loop {
             match result {
                 Ok(bytes) => {
@@ -101,6 +103,14 @@ impl Fetcher {
                 }
                 Err(err) => {
                     if retry_budget.withdraw().is_ok() {
+                        let jitter = rand::random::<f64>() * 2.0;
+                        let exp_backoff = (100 * 2u64.pow(counter)) as f64;
+                        let backoff_ms = (exp_backoff * jitter).round() as u64;
+
+                        sleep(Duration::from_millis(backoff_ms)).await;
+
+                        counter += 1;
+
                         let rate_limit = request
                             .rate_limiter
                             .limit(&request.subgraph_name)
