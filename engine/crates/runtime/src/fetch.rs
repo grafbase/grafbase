@@ -32,7 +32,7 @@ pub type FetchResult<T> = Result<T, FetchError>;
 pub struct FetchRequest<'a> {
     pub url: &'a url::Url,
     pub headers: http::HeaderMap,
-    pub json_body: String,
+    pub json_body: Bytes,
     pub subgraph_name: &'a str,
     pub timeout: Duration,
     pub retry_budget: Option<&'a tower::retry::budget::Budget>,
