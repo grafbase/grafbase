@@ -207,25 +207,21 @@ impl RedisRateLimiter {
         pipe.atomic();
 
         pipe.cmd("GET").arg(&previous_bucket);
-        pipe.cmd("INCR").arg(&current_bucket);
-
-        // Sets the timeout to the set. This will delete the data after the duration if we do not modify the value.
-        pipe.cmd("EXPIRE")
-            .arg(&current_bucket)
-            .arg(config.duration.as_secs() * 2)
-            .ignore();
+        pipe.cmd("GET").arg(&current_bucket);
 
         // Execute the whole pipeline in one multiplexed request.
-        match pipe.query_async::<_, (Option<u64>, u64)>(&mut *conn).await {
+        match pipe.query_async::<_, (Option<u64>, Option<u64>)>(&mut *conn).await {
             Ok((previous_count, current_count)) => {
                 let previous_count = previous_count.unwrap_or_default().min(config.limit as u64);
-                let current_count = current_count.min(config.limit as u64);
+                let current_count = current_count.unwrap_or_default().min(config.limit as u64);
 
                 // Sum is a percentage what is left from the previous window, and the count of the
                 // current window.
                 let average = previous_count as f64 * (1.0 - bucket_percentage) + current_count as f64;
 
-                if average <= config.limit as f64 {
+                if average < config.limit as f64 {
+                    tokio::spawn(incr_counter(self.pool.clone(), current_bucket, config.duration));
+
                     Ok(())
                 } else {
                     Err(Error::ExceededCapacity)
@@ -237,6 +233,34 @@ impl RedisRateLimiter {
             }
         }
     }
+}
+
+async fn incr_counter(pool: Pool<pool::Manager>, current_bucket: String, expire: Duration) -> Result<(), Error> {
+    let mut conn = match pool.get().await {
+        Ok(conn) => conn,
+        Err(error) => {
+            tracing::error!(target: GRAFBASE_TARGET, "error fetching a Redis connection: {error}");
+            return Err(Error::Internal(String::from("rate limit")));
+        }
+    };
+
+    let mut pipe = redis::pipe();
+    pipe.atomic();
+
+    pipe.cmd("INCR").arg(&current_bucket);
+
+    // Sets the timeout to the set. This will delete the data after the duration if we do not modify the value.
+    pipe.cmd("EXPIRE")
+        .arg(&current_bucket)
+        .arg(expire.as_secs() * 2)
+        .ignore();
+
+    if let Err(e) = pipe.query_async::<_, (u64,)>(&mut *conn).await {
+        tracing::error!(target: GRAFBASE_TARGET, "error with Redis query: {e}");
+        return Err(Error::Internal(String::from("rate limit")));
+    }
+
+    Ok(())
 }
 
 impl runtime::rate_limiting::RateLimiterInner for RedisRateLimiter {

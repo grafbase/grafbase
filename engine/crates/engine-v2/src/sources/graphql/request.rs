@@ -8,7 +8,6 @@ use runtime::fetch::FetchRequest;
 use tracing::Span;
 
 use crate::{
-    engine::RateLimitContext,
     execution::{ExecutionContext, ExecutionError, ExecutionResult},
     response::SubgraphResponse,
     Runtime,
@@ -28,12 +27,6 @@ pub(super) async fn execute_subgraph_request<'ctx, 'a, R: Runtime>(
     make_request: impl FnOnce() -> FetchRequest<'a> + Send,
     ingester: impl ResponseIngester,
 ) -> ExecutionResult<SubgraphResponse> {
-    ctx.engine
-        .runtime
-        .rate_limiter()
-        .limit(&RateLimitContext::Subgraph(subgraph_name))
-        .await?;
-
     let mut request = make_request();
     request.headers = ctx
         .hooks()
@@ -55,9 +48,14 @@ pub(super) async fn execute_subgraph_request<'ctx, 'a, R: Runtime>(
         .fetcher()
         .post(&request, |duration| ctx.engine.runtime.sleep(duration))
         .await
-        .inspect_err(|err| {
+        .map_err(|err| {
             span.record_subgraph_status(SubgraphResponseStatus::HttpError);
             tracing::error!(target: GRAFBASE_TARGET, "{err}");
+
+            match err {
+                e @ runtime::fetch::FetchError::AnyError(_) => ExecutionError::from(e),
+                runtime::fetch::FetchError::RateLimit(e) => ExecutionError::from(e),
+            }
         })?;
 
     tracing::debug!("{}", String::from_utf8_lossy(&fetch_response.bytes));
