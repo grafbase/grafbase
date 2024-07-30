@@ -2,12 +2,10 @@ use std::{borrow::Cow, time::Duration};
 
 use bytes::Bytes;
 use grafbase_telemetry::{gql_response_status::GraphqlResponseStatus, span::subgraph::SubgraphRequestSpan};
-use hex::ToHex;
 use request::{execute_subgraph_request, ResponseIngester};
 use runtime::fetch::FetchRequest;
 use schema::sources::graphql::{GraphqlEndpointId, RootFieldResolverWalker};
 use serde::de::DeserializeSeed;
-use sha2::Digest;
 use tracing::Instrument;
 
 use self::query::PreparedGraphqlOperation;
@@ -59,7 +57,7 @@ impl GraphqlPreparedExecutor {
         mut subgraph_response: SubgraphResponse,
     ) -> ExecutionResult<SubgraphResponse> {
         let subgraph = plan.schema().walk(self.subgraph_id);
-        let variables = SubgraphVariables {
+        let variables = SubgraphVariables::<()> {
             plan,
             variables: &self.operation.variables,
             inputs: Vec::new(),
@@ -147,10 +145,9 @@ impl GraphqlPreparedExecutor {
 }
 
 fn build_cache_key(json_body: &str) -> String {
-    let mut hasher = sha2::Sha256::new();
-    hasher.update(json_body);
-    let output = hasher.finalize();
-    output.encode_hex()
+    let mut hasher = blake3::Hasher::new();
+    hasher.update(json_body.as_bytes());
+    hasher.finalize().to_string()
 }
 
 struct GraphqlIngester<'ctx, R: Runtime> {

@@ -47,7 +47,7 @@ impl GraphqlPreparedExecutor {
             .stream(GraphqlRequest {
                 url: &url,
                 query: &self.operation.query,
-                variables: serde_json::to_value(&SubgraphVariables {
+                variables: serde_json::to_value(&SubgraphVariables::<()> {
                     plan,
                     variables: &self.operation.variables,
                     inputs: Vec::new(),

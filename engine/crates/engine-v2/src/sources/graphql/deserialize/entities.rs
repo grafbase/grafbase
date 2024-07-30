@@ -1,13 +1,14 @@
 use std::fmt;
 
 use serde::{
-    de::{DeserializeSeed, IgnoredAny, MapAccess, SeqAccess, Visitor},
+    de::{DeserializeSeed, Error, IgnoredAny, MapAccess, SeqAccess, Visitor},
     Deserializer,
 };
 
 use crate::{
     execution::PlanWalker,
     response::{ErrorCode, GraphqlError, ResponseKeys, ResponsePath, SubgraphResponseRefMut, UnpackedResponseEdge},
+    sources::graphql::CacheEntry,
 };
 
 use super::errors::GraphqlErrorsSeed;
@@ -15,6 +16,7 @@ use super::errors::GraphqlErrorsSeed;
 pub(in crate::sources::graphql) struct EntitiesDataSeed<'resp> {
     pub response: SubgraphResponseRefMut<'resp>,
     pub plan: PlanWalker<'resp>,
+    pub cache_entries: Option<&'resp [CacheEntry]>,
 }
 
 impl<'resp, 'de> DeserializeSeed<'de> for EntitiesDataSeed<'resp>
@@ -51,6 +53,7 @@ where
                     map.next_value_seed(EntitiesSeed {
                         response_part: &self.response,
                         plan: self.plan,
+                        cache_entries: self.cache_entries.map(|slice| slice.iter()),
                     })?;
                 }
                 EntitiesKey::Unknown => {
@@ -73,6 +76,7 @@ enum EntitiesKey {
 struct EntitiesSeed<'resp, 'parent> {
     response_part: &'parent SubgraphResponseRefMut<'resp>,
     plan: PlanWalker<'resp>,
+    cache_entries: Option<std::slice::Iter<'parent, CacheEntry>>,
 }
 
 impl<'resp, 'de, 'parent> DeserializeSeed<'de> for EntitiesSeed<'resp, 'parent>
@@ -99,12 +103,31 @@ where
         formatter.write_str("a non null entities list")
     }
 
-    fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
+    fn visit_seq<A>(mut self, mut seq: A) -> Result<Self::Value, A::Error>
     where
         A: SeqAccess<'de>,
     {
         while let Some(seed) = self.response_part.next_seed(self.plan) {
-            match seq.next_element_seed(seed) {
+            let maybe_cache_data = self
+                .cache_entries
+                .as_mut()
+                .map(|some| some.next().expect("cache entries to be the correct length"))
+                .and_then(CacheEntry::as_data);
+
+            let result = match maybe_cache_data {
+                Some(data) => {
+                    // The current element was found in the cache
+                    seed.deserialize(&mut serde_json::Deserializer::from_slice(data))
+                        .map(Some)
+                        .map_err(A::Error::custom)
+                }
+                _ => {
+                    // The current element was not found in the cache so should be read from the response
+                    seq.next_element_seed(seed)
+                }
+            };
+
+            match result {
                 Ok(Some(_)) => continue,
                 Ok(None) => break,
                 Err(err) => {
