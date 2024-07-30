@@ -246,27 +246,29 @@ impl<A, B> VisitorCons<A, B> {
 
 impl<'a, Registry: AnyRegistry> Visitor<'a, Registry> for VisitorNil {}
 
-impl<'a, A, B, Registry> Visitor<'a, Registry> for VisitorCons<A, B>
+impl<'ctx, 'a, 'b, A, B, Registry> Visitor<'ctx, Registry> for VisitorCons<A, B>
 where
     Registry: AnyRegistry,
-    A: Visitor<'a, Registry> + 'a,
-    B: Visitor<'a, Registry> + 'a,
+    A: Visitor<'ctx, Registry> + 'a,
+    B: Visitor<'ctx, Registry> + 'b,
+    'ctx: 'a,
+    'ctx: 'b,
 {
-    fn enter_document(&mut self, ctx: &mut VisitorContext<'a, Registry>, doc: &'a ExecutableDocument) {
+    fn enter_document(&mut self, ctx: &mut VisitorContext<'ctx, Registry>, doc: &'ctx ExecutableDocument) {
         self.0.enter_document(ctx, doc);
         self.1.enter_document(ctx, doc);
     }
 
-    fn exit_document(&mut self, ctx: &mut VisitorContext<'a, Registry>, doc: &'a ExecutableDocument) {
+    fn exit_document(&mut self, ctx: &mut VisitorContext<'ctx, Registry>, doc: &'ctx ExecutableDocument) {
         self.0.exit_document(ctx, doc);
         self.1.exit_document(ctx, doc);
     }
 
     fn enter_operation_definition(
         &mut self,
-        ctx: &mut VisitorContext<'a, Registry>,
-        name: Option<&'a Name>,
-        operation_definition: &'a Positioned<OperationDefinition>,
+        ctx: &mut VisitorContext<'ctx, Registry>,
+        name: Option<&'ctx Name>,
+        operation_definition: &'ctx Positioned<OperationDefinition>,
     ) {
         self.0.enter_operation_definition(ctx, name, operation_definition);
         self.1.enter_operation_definition(ctx, name, operation_definition);
@@ -274,9 +276,9 @@ where
 
     fn exit_operation_definition(
         &mut self,
-        ctx: &mut VisitorContext<'a, Registry>,
-        name: Option<&'a Name>,
-        operation_definition: &'a Positioned<OperationDefinition>,
+        ctx: &mut VisitorContext<'ctx, Registry>,
+        name: Option<&'ctx Name>,
+        operation_definition: &'ctx Positioned<OperationDefinition>,
     ) {
         self.0.exit_operation_definition(ctx, name, operation_definition);
         self.1.exit_operation_definition(ctx, name, operation_definition);
@@ -284,9 +286,9 @@ where
 
     fn enter_fragment_definition(
         &mut self,
-        ctx: &mut VisitorContext<'a, Registry>,
-        name: &'a Name,
-        fragment_definition: &'a Positioned<FragmentDefinition>,
+        ctx: &mut VisitorContext<'ctx, Registry>,
+        name: &'ctx Name,
+        fragment_definition: &'ctx Positioned<FragmentDefinition>,
     ) {
         self.0.enter_fragment_definition(ctx, name, fragment_definition);
         self.1.enter_fragment_definition(ctx, name, fragment_definition);
@@ -294,9 +296,9 @@ where
 
     fn exit_fragment_definition(
         &mut self,
-        ctx: &mut VisitorContext<'a, Registry>,
-        name: &'a Name,
-        fragment_definition: &'a Positioned<FragmentDefinition>,
+        ctx: &mut VisitorContext<'ctx, Registry>,
+        name: &'ctx Name,
+        fragment_definition: &'ctx Positioned<FragmentDefinition>,
     ) {
         self.0.exit_fragment_definition(ctx, name, fragment_definition);
         self.1.exit_fragment_definition(ctx, name, fragment_definition);
@@ -304,8 +306,8 @@ where
 
     fn enter_variable_definition(
         &mut self,
-        ctx: &mut VisitorContext<'a, Registry>,
-        variable_definition: &'a Positioned<VariableDefinition>,
+        ctx: &mut VisitorContext<'ctx, Registry>,
+        variable_definition: &'ctx Positioned<VariableDefinition>,
     ) {
         self.0.enter_variable_definition(ctx, variable_definition);
         self.1.enter_variable_definition(ctx, variable_definition);
@@ -313,28 +315,28 @@ where
 
     fn exit_variable_definition(
         &mut self,
-        ctx: &mut VisitorContext<'a, Registry>,
-        variable_definition: &'a Positioned<VariableDefinition>,
+        ctx: &mut VisitorContext<'ctx, Registry>,
+        variable_definition: &'ctx Positioned<VariableDefinition>,
     ) {
         self.0.exit_variable_definition(ctx, variable_definition);
         self.1.exit_variable_definition(ctx, variable_definition);
     }
 
-    fn enter_directive(&mut self, ctx: &mut VisitorContext<'a, Registry>, directive: &'a Positioned<Directive>) {
+    fn enter_directive(&mut self, ctx: &mut VisitorContext<'ctx, Registry>, directive: &'ctx Positioned<Directive>) {
         self.0.enter_directive(ctx, directive);
         self.1.enter_directive(ctx, directive);
     }
 
-    fn exit_directive(&mut self, ctx: &mut VisitorContext<'a, Registry>, directive: &'a Positioned<Directive>) {
+    fn exit_directive(&mut self, ctx: &mut VisitorContext<'ctx, Registry>, directive: &'ctx Positioned<Directive>) {
         self.0.exit_directive(ctx, directive);
         self.1.exit_directive(ctx, directive);
     }
 
     fn enter_argument(
         &mut self,
-        ctx: &mut VisitorContext<'a, Registry>,
-        name: &'a Positioned<Name>,
-        value: &'a Positioned<Value>,
+        ctx: &mut VisitorContext<'ctx, Registry>,
+        name: &'ctx Positioned<Name>,
+        value: &'ctx Positioned<Value>,
     ) {
         self.0.enter_argument(ctx, name, value);
         self.1.enter_argument(ctx, name, value);
@@ -342,9 +344,9 @@ where
 
     fn exit_argument(
         &mut self,
-        ctx: &mut VisitorContext<'a, Registry>,
-        name: &'a Positioned<Name>,
-        value: &'a Positioned<Value>,
+        ctx: &mut VisitorContext<'ctx, Registry>,
+        name: &'ctx Positioned<Name>,
+        value: &'ctx Positioned<Value>,
     ) {
         self.0.exit_argument(ctx, name, value);
         self.1.exit_argument(ctx, name, value);
@@ -352,8 +354,8 @@ where
 
     fn enter_selection_set(
         &mut self,
-        ctx: &mut VisitorContext<'a, Registry>,
-        selection_set: &'a Positioned<SelectionSet>,
+        ctx: &mut VisitorContext<'ctx, Registry>,
+        selection_set: &'ctx Positioned<SelectionSet>,
     ) {
         self.0.enter_selection_set(ctx, selection_set);
         self.1.enter_selection_set(ctx, selection_set);
@@ -361,37 +363,37 @@ where
 
     fn exit_selection_set(
         &mut self,
-        ctx: &mut VisitorContext<'a, Registry>,
-        selection_set: &'a Positioned<SelectionSet>,
+        ctx: &mut VisitorContext<'ctx, Registry>,
+        selection_set: &'ctx Positioned<SelectionSet>,
     ) {
         self.0.exit_selection_set(ctx, selection_set);
         self.1.exit_selection_set(ctx, selection_set);
     }
 
-    fn enter_selection(&mut self, ctx: &mut VisitorContext<'a, Registry>, selection: &'a Positioned<Selection>) {
+    fn enter_selection(&mut self, ctx: &mut VisitorContext<'ctx, Registry>, selection: &'ctx Positioned<Selection>) {
         self.0.enter_selection(ctx, selection);
         self.1.enter_selection(ctx, selection);
     }
 
-    fn exit_selection(&mut self, ctx: &mut VisitorContext<'a, Registry>, selection: &'a Positioned<Selection>) {
+    fn exit_selection(&mut self, ctx: &mut VisitorContext<'ctx, Registry>, selection: &'ctx Positioned<Selection>) {
         self.0.exit_selection(ctx, selection);
         self.1.exit_selection(ctx, selection);
     }
 
-    fn enter_field(&mut self, ctx: &mut VisitorContext<'a, Registry>, field: &'a Positioned<Field>) {
+    fn enter_field(&mut self, ctx: &mut VisitorContext<'ctx, Registry>, field: &'ctx Positioned<Field>) {
         self.0.enter_field(ctx, field);
         self.1.enter_field(ctx, field);
     }
 
-    fn exit_field(&mut self, ctx: &mut VisitorContext<'a, Registry>, field: &'a Positioned<Field>) {
+    fn exit_field(&mut self, ctx: &mut VisitorContext<'ctx, Registry>, field: &'ctx Positioned<Field>) {
         self.0.exit_field(ctx, field);
         self.1.exit_field(ctx, field);
     }
 
     fn enter_fragment_spread(
         &mut self,
-        ctx: &mut VisitorContext<'a, Registry>,
-        fragment_spread: &'a Positioned<FragmentSpread>,
+        ctx: &mut VisitorContext<'ctx, Registry>,
+        fragment_spread: &'ctx Positioned<FragmentSpread>,
     ) {
         self.0.enter_fragment_spread(ctx, fragment_spread);
         self.1.enter_fragment_spread(ctx, fragment_spread);
@@ -399,8 +401,8 @@ where
 
     fn exit_fragment_spread(
         &mut self,
-        ctx: &mut VisitorContext<'a, Registry>,
-        fragment_spread: &'a Positioned<FragmentSpread>,
+        ctx: &mut VisitorContext<'ctx, Registry>,
+        fragment_spread: &'ctx Positioned<FragmentSpread>,
     ) {
         self.0.exit_fragment_spread(ctx, fragment_spread);
         self.1.exit_fragment_spread(ctx, fragment_spread);
@@ -408,8 +410,8 @@ where
 
     fn enter_inline_fragment(
         &mut self,
-        ctx: &mut VisitorContext<'a, Registry>,
-        inline_fragment: &'a Positioned<InlineFragment>,
+        ctx: &mut VisitorContext<'ctx, Registry>,
+        inline_fragment: &'ctx Positioned<InlineFragment>,
     ) {
         self.0.enter_inline_fragment(ctx, inline_fragment);
         self.1.enter_inline_fragment(ctx, inline_fragment);
@@ -417,8 +419,8 @@ where
 
     fn exit_inline_fragment(
         &mut self,
-        ctx: &mut VisitorContext<'a, Registry>,
-        inline_fragment: &'a Positioned<InlineFragment>,
+        ctx: &mut VisitorContext<'ctx, Registry>,
+        inline_fragment: &'ctx Positioned<InlineFragment>,
     ) {
         self.0.exit_inline_fragment(ctx, inline_fragment);
         self.1.exit_inline_fragment(ctx, inline_fragment);
@@ -426,11 +428,11 @@ where
 
     fn enter_input_value(
         &mut self,
-        ctx: &mut VisitorContext<'a, Registry>,
+        ctx: &mut VisitorContext<'ctx, Registry>,
         pos: Pos,
         expected_type: &Option<MetaTypeName<'_>>,
-        value: &'a Value,
-        meta: Option<Registry::MetaInputValue<'a>>,
+        value: &'ctx Value,
+        meta: Option<Registry::MetaInputValue<'ctx>>,
     ) {
         self.0.enter_input_value(ctx, pos, expected_type, value, meta);
         self.1.enter_input_value(ctx, pos, expected_type, value, meta);
@@ -438,11 +440,11 @@ where
 
     fn exit_input_value(
         &mut self,
-        ctx: &mut VisitorContext<'a, Registry>,
+        ctx: &mut VisitorContext<'ctx, Registry>,
         pos: Pos,
         expected_type: &Option<MetaTypeName<'_>>,
         value: &Value,
-        meta: Option<Registry::MetaInputValue<'a>>,
+        meta: Option<Registry::MetaInputValue<'ctx>>,
     ) {
         self.0.exit_input_value(ctx, pos, expected_type, value, meta);
         self.1.exit_input_value(ctx, pos, expected_type, value, meta);

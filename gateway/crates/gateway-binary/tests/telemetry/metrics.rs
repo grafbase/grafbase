@@ -13,6 +13,8 @@ use crate::{clickhouse_client, load_schema, with_static_server, Client};
 mod operation;
 mod request;
 
+const METRICS_DELAY: Duration = Duration::from_secs(2);
+
 #[serde_with::serde_as]
 #[derive(Debug, clickhouse::Row, Deserialize, Serialize, PartialEq)]
 struct SumMetricCountRow {
@@ -40,6 +42,9 @@ where
 {
     let service_name = format!("service_{}", ulid::Ulid::new());
     let config = &formatdoc! {r#"
+        [graph]
+        introspection = true
+
         [telemetry]
         service_name = "{service_name}"
 

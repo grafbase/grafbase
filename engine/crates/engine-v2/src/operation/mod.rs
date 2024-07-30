@@ -5,6 +5,7 @@ pub mod ids;
 mod input_value;
 mod location;
 mod logical_planner;
+mod metrics;
 mod modifier;
 mod parse;
 mod path;
@@ -15,6 +16,7 @@ mod walkers;
 
 use crate::response::{ConcreteObjectShapeId, FieldShapeId, ResponseKeys, ResponseObjectSetId, Shapes};
 pub(crate) use engine_parser::types::OperationType;
+use grafbase_telemetry::metrics::OperationMetricsAttributes;
 use id_newtypes::{BitSet, IdRange, IdToMany};
 pub(crate) use ids::*;
 pub(crate) use input_value::*;
@@ -29,7 +31,7 @@ pub(crate) use walkers::*;
 #[derive(serde::Serialize, serde::Deserialize)]
 pub(crate) struct PreparedOperation {
     pub operation: Operation,
-    pub metadata: OperationMetadata,
+    pub metrics_attributes: OperationMetricsAttributes,
     pub plan: OperationPlan,
     pub response_blueprint: ResponseBlueprint,
 }
@@ -70,17 +72,6 @@ pub(crate) struct Operation {
     // deduplicated by rule
     pub response_modifiers: Vec<ResponseModifier>,
     pub response_modifier_impacted_fields: Vec<FieldId>,
-}
-
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct OperationMetadata {
-    pub ty: OperationType,
-    /// This is a *processed* operation name, it does not strictly reflect the GraphQL operation
-    /// name. Currently, if the latter doesn't exist we take the first field's name as the
-    /// operation name.
-    pub name: Option<String>,
-    pub normalized_query: String,
-    pub normalized_query_hash: [u8; 32],
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]

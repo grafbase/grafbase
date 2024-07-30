@@ -3,7 +3,7 @@ use engine::parser::types::OperationType;
 use futures_util::FutureExt;
 use grafbase_telemetry::{
     grafbase_client::Client,
-    metrics::{GraphqlOperationMetrics, GraphqlOperationMetricsAttributes},
+    metrics::{GraphqlOperationMetrics, GraphqlRequestMetricsAttributes, OperationMetricsAttributes},
     span::{gql::GqlRequestSpan, GqlRecorderSpanExt, GqlRequestAttributes},
 };
 pub use runtime::context::RequestContext;
@@ -203,18 +203,25 @@ where
             }
 
             if let Some((operation, normalized_query)) = response.graphql_operation.as_ref().zip(normalized_query) {
-                let ty = match operation.r#type {
-                    common_types::OperationType::Query { .. } => "query",
-                    common_types::OperationType::Mutation => "mutation",
-                    common_types::OperationType::Subscription => "subscription",
-                };
-
                 self.operation_metrics.record(
-                    GraphqlOperationMetricsAttributes {
-                        ty,
-                        name: operation.name.clone(),
-                        normalized_query_hash: blake3::hash(normalized_query.as_bytes()).into(),
-                        normalized_query,
+                    GraphqlRequestMetricsAttributes {
+                        operation: OperationMetricsAttributes {
+                            ty: match operation.r#type {
+                                common_types::OperationType::Query { .. } => {
+                                    grafbase_telemetry::metrics::OperationType::Query
+                                }
+                                common_types::OperationType::Mutation => {
+                                    grafbase_telemetry::metrics::OperationType::Mutation
+                                }
+                                common_types::OperationType::Subscription => {
+                                    grafbase_telemetry::metrics::OperationType::Subscription
+                                }
+                            },
+                            name: operation.name.clone(),
+                            sanitized_query_hash: blake3::hash(normalized_query.as_bytes()).into(),
+                            sanitized_query: normalized_query,
+                            used_fields: String::new(),
+                        },
                         status,
                         cache_status: headers
                             .get(X_GRAFBASE_CACHE)

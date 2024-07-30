@@ -7,7 +7,7 @@ use engine_validation::{check_strict_rules, ValidationResult};
 use futures_util::stream::{self, Stream, StreamExt};
 use futures_util::FutureExt;
 use grafbase_telemetry::gql_response_status::GraphqlResponseStatus;
-use grafbase_telemetry::metrics::GraphqlOperationMetrics;
+use grafbase_telemetry::metrics::{GraphqlOperationMetrics, OperationMetricsAttributes};
 use grafbase_telemetry::span::{gql::GqlRequestSpan, GqlRecorderSpanExt, GqlRequestAttributes};
 use graph_entities::{CompactValue, QueryResponse};
 
@@ -531,7 +531,7 @@ impl Schema {
             .and_then(|data| data.downcast_ref::<runtime::Context>())
             .and_then(|ctx| grafbase_telemetry::grafbase_client::Client::extract_from(ctx.headers()));
 
-        let normalized_query = operation_normalizer::normalize(request.query(), request.operation_name()).ok();
+        let sanitized_query = operation_normalizer::normalize(request.query(), request.operation_name()).ok();
 
         let gql_span_clone = gql_span.clone();
         let request = futures_util::stream::StreamExt::boxed({
@@ -557,7 +557,7 @@ impl Schema {
                     Span::current().record_gql_request(GqlRequestAttributes {
                         operation_type: env.operation.ty.as_str(),
                         operation_name: env.operation_analytics_attributes.name.as_deref(),
-                        sanitized_query: normalized_query.as_deref(),
+                        sanitized_query: sanitized_query.as_deref(),
                     });
 
                     let initial_response = schema
@@ -588,7 +588,7 @@ impl Schema {
                     gql_span.record_gql_request(GqlRequestAttributes {
                         operation_type: env.operation.ty.as_str(),
                         operation_name: env.operation_analytics_attributes.name.as_deref(),
-                        sanitized_query: normalized_query.as_deref(),
+                        sanitized_query: sanitized_query.as_deref(),
                     });
 
                     let ctx = env.create_context(
@@ -617,13 +617,17 @@ impl Schema {
 
                 Span::current().record_gql_status(status);
 
-                if let Some(normalized_query) = normalized_query {
+                if let Some(sanitized_query) = sanitized_query {
                     schema.env.operation_metrics.record(
-                        grafbase_telemetry::metrics::GraphqlOperationMetricsAttributes {
-                            ty: env.operation.ty.as_str(),
+                        grafbase_telemetry::metrics::GraphqlRequestMetricsAttributes {
+                            operation: OperationMetricsAttributes {
+                            ty: env.operation.ty.into(),
                             name: env.operation_analytics_attributes.name.clone(),
-                            normalized_query_hash: blake3::hash(normalized_query.as_bytes()).into(),
-                            normalized_query,
+                            sanitized_query_hash: blake3::hash(sanitized_query.as_bytes()).into(),
+                            sanitized_query,
+                                used_fields: String::new()
+
+                            },
                             status,
                             cache_status: None,
                             client
