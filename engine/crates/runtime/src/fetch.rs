@@ -1,18 +1,28 @@
 use std::{sync::Arc, time::Duration};
 
 use bytes::Bytes;
-use futures_util::stream::BoxStream;
+use futures_util::{stream::BoxStream, TryFutureExt};
 use serde_json::Value;
+
+use crate::rate_limiting::RateLimiter;
 
 #[derive(Debug, thiserror::Error)]
 pub enum FetchError {
     #[error("{0}")]
     AnyError(String),
+    #[error("{0}")]
+    RateLimit(crate::rate_limiting::Error),
 }
 
 impl FetchError {
     pub fn any(error: impl ToString) -> Self {
         FetchError::AnyError(error.to_string())
+    }
+}
+
+impl From<crate::rate_limiting::Error> for FetchError {
+    fn from(value: crate::rate_limiting::Error) -> Self {
+        Self::RateLimit(value)
     }
 }
 
@@ -26,6 +36,7 @@ pub struct FetchRequest<'a> {
     pub subgraph_name: &'a str,
     pub timeout: Duration,
     pub retry_budget: Option<&'a tower::retry::budget::Budget>,
+    pub rate_limiter: &'a RateLimiter,
 }
 
 #[derive(Clone)]
@@ -71,7 +82,12 @@ impl Fetcher {
     where
         SleepFut: std::future::Future<Output = ()> + Send,
     {
-        let mut result = self.inner.post(request).await;
+        let rate_limit = request
+            .rate_limiter
+            .limit(&request.subgraph_name)
+            .map_err(FetchError::RateLimit);
+
+        let mut result = rate_limit.and_then(|_| self.inner.post(request)).await;
 
         let Some(retry_budget) = request.retry_budget else {
             return result;
@@ -85,7 +101,12 @@ impl Fetcher {
                 }
                 Err(err) => {
                     if retry_budget.withdraw().is_ok() {
-                        result = self.inner.post(request).await;
+                        let rate_limit = request
+                            .rate_limiter
+                            .limit(&request.subgraph_name)
+                            .map_err(FetchError::RateLimit);
+
+                        result = rate_limit.and_then(|_| self.inner.post(request)).await;
                     } else {
                         return Err(err);
                     }
