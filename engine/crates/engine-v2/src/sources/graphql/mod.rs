@@ -143,6 +143,7 @@ impl GraphqlPreparedExecutor {
                 subgraph_name: subgraph.name(),
                 timeout: subgraph.timeout(),
                 retry_budget,
+                rate_limiter: ctx.engine.runtime.rate_limiter(),
             },
             GraphqlIngester {
                 ctx,
