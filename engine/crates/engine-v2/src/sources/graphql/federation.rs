@@ -1,12 +1,10 @@
 use bytes::Bytes;
 use futures::future::join_all;
 use grafbase_telemetry::{gql_response_status::GraphqlResponseStatus, span::subgraph::SubgraphRequestSpan};
-use hex::ToHex;
 use runtime::fetch::FetchRequest;
 use schema::sources::graphql::{FederationEntityResolverWalker, GraphqlEndpointId};
 use serde::{de::DeserializeSeed, Deserialize};
 use serde_json::value::RawValue;
-use sha2::Digest;
 use std::{borrow::Cow, future::Future, time::Duration};
 use tracing::Instrument;
 
@@ -96,7 +94,7 @@ impl FederationEntityPreparedExecutor {
                         .map(|repr| cache_fetch(ctx, subgraph.name(), repr));
 
                     let cache_entries = join_all(fetches).await;
-                    let fully_cached = !cache_entries.iter().any(|entry| entry.data.is_none());
+                    let fully_cached = !cache_entries.iter().any(CacheEntry::is_miss);
                     ingester.cache_entries = Some(cache_entries);
                     if fully_cached {
                         let (_, response) = ingester
@@ -108,7 +106,7 @@ impl FederationEntityPreparedExecutor {
                     representations = representations
                         .into_iter()
                         .zip(ingester.cache_entries.as_ref().unwrap())
-                        .filter(|(_, cache_entry)| cache_entry.data.is_none())
+                        .filter(|(_, cache_entry)| cache_entry.is_miss())
                         .map(|(repr, _)| repr)
                         .collect();
                 }
@@ -155,14 +153,27 @@ impl FederationEntityPreparedExecutor {
 struct EntityIngester<'ctx, R: Runtime> {
     ctx: ExecutionContext<'ctx, R>,
     plan: PlanWalker<'ctx, (), ()>,
-    cache_entries: Option<Vec<CachedEntity>>,
+    cache_entries: Option<Vec<CacheEntry>>,
     subgraph_response: SubgraphResponse,
     cache_ttl: Duration,
 }
 
-pub struct CachedEntity {
-    pub key: String,
-    pub data: Option<Vec<u8>>,
+pub enum CacheEntry {
+    Miss { key: String },
+    Hit { data: Vec<u8> },
+}
+
+impl CacheEntry {
+    pub fn is_miss(&self) -> bool {
+        matches!(self, CacheEntry::Miss { .. })
+    }
+
+    pub fn as_data(&self) -> Option<&[u8]> {
+        match self {
+            CacheEntry::Hit { data } => Some(data),
+            _ => None,
+        }
+    }
 }
 
 impl<'ctx, R> ResponseIngester for EntityIngester<'ctx, R>
@@ -206,7 +217,7 @@ async fn update_cache<R: Runtime>(
     ctx: ExecutionContext<'_, R>,
     cache_ttl: Duration,
     bytes: Bytes,
-    cache_entries: Vec<CachedEntity>,
+    cache_entries: Vec<CacheEntry>,
 ) {
     let mut entities = match Response::deserialize(&mut serde_json::Deserializer::from_slice(&bytes)) {
         Ok(response) => response.data.entities.into_iter(),
@@ -220,23 +231,21 @@ async fn update_cache<R: Runtime>(
 
     let mut update_futures = vec![];
     for entry in cache_entries {
-        if entry.data.is_some() {
-            continue;
-        }
+        let CacheEntry::Miss { key } = entry else { continue };
+
         let Some(data) = entities.next() else {
             // This shouldn't really happen but if it does lets ignore it
             // Don't want cache stuff to break the actual request
             return;
         };
         let bytes = data.get().as_bytes();
-        let cache_key = entry.key;
         update_futures.push(async move {
             ctx.engine
                 .runtime
                 .kv()
-                .put(&cache_key, Cow::Borrowed(bytes), Some(cache_ttl))
+                .put(&key, Cow::Borrowed(bytes), Some(cache_ttl))
                 .await
-                .inspect_err(|err| tracing::warn!("Failed to write the cache key {cache_key}: {err}"))
+                .inspect_err(|err| tracing::warn!("Failed to write the cache key {key}: {err}"))
                 .ok();
         })
     }
@@ -256,7 +265,7 @@ struct Data<'a> {
     entities: Vec<&'a serde_json::value::RawValue>,
 }
 
-async fn cache_fetch<R: Runtime>(ctx: ExecutionContext<'_, R>, subgraph_name: &str, repr: &RawValue) -> CachedEntity {
+async fn cache_fetch<R: Runtime>(ctx: ExecutionContext<'_, R>, subgraph_name: &str, repr: &RawValue) -> CacheEntry {
     let key = build_cache_key(subgraph_name, repr);
 
     let data = ctx
@@ -269,15 +278,17 @@ async fn cache_fetch<R: Runtime>(ctx: ExecutionContext<'_, R>, subgraph_name: &s
         .ok()
         .flatten();
 
-    CachedEntity { key, data }
+    match data {
+        Some(data) => CacheEntry::Hit { data },
+        None => CacheEntry::Miss { key },
+    }
 }
 
 fn build_cache_key(subgraph_name: &str, repr: &RawValue) -> String {
-    let mut hasher = sha2::Sha256::new();
-    hasher.update(subgraph_name);
-    hasher.update(repr.get());
-    let output = hasher.finalize();
-    output.encode_hex()
+    let mut hasher = blake3::Hasher::new();
+    hasher.update(subgraph_name.as_bytes());
+    hasher.update(repr.get().as_bytes());
+    hasher.finalize().to_string()
 }
 
 fn entity_name<R: Runtime>(ctx: ExecutionContext<'_, R>, plan: PlanWalker<'_, (), ()>) -> String {
