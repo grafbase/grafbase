@@ -10,8 +10,8 @@ use grafbase_telemetry::span::GRAFBASE_TARGET;
 use serde_json::Value;
 
 use http::{HeaderName, HeaderValue};
-use runtime::rate_limiting::{Error, GraphRateLimit, KeyedRateLimitConfig, RateLimiter, RateLimiterContext};
-use tokio::sync::mpsc;
+use runtime::rate_limiting::{Error, GraphRateLimit, RateLimiter, RateLimiterContext};
+use tokio::sync::watch;
 
 pub struct RateLimitingContext(pub String);
 
@@ -42,15 +42,12 @@ pub struct InMemoryRateLimiter {
 }
 
 impl InMemoryRateLimiter {
-    pub fn runtime(
-        config: KeyedRateLimitConfig,
-        mut updates: mpsc::Receiver<HashMap<String, GraphRateLimit>>,
-    ) -> RateLimiter {
+    pub fn runtime(mut updates: watch::Receiver<HashMap<String, GraphRateLimit>>) -> RateLimiter {
         let mut limiters = HashMap::new();
 
         // add subgraph rate limiting configuration
-        for (name, config) in config.rate_limiting_configs {
-            let Some(limiter) = create_limiter(config) else {
+        for (name, config) in updates.borrow_and_update().iter() {
+            let Some(limiter) = create_limiter(*config) else {
                 continue;
             };
 
@@ -61,12 +58,12 @@ impl InMemoryRateLimiter {
         let limiters_copy = limiters.clone();
 
         tokio::spawn(async move {
-            while let Some(updates) = updates.recv().await {
+            while let Ok(()) = updates.changed().await {
                 let mut limiters = limiters_copy.write().unwrap();
                 limiters.clear();
 
-                for (name, config) in updates {
-                    let Some(limiter) = create_limiter(config) else {
+                for (name, config) in updates.borrow_and_update().iter() {
+                    let Some(limiter) = create_limiter(*config) else {
                         continue;
                     };
 
