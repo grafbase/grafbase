@@ -33,11 +33,7 @@ impl Directive for AllSubgraphsDirective {
 pub struct AllSubgraphsDirectiveVisitor;
 
 impl Visitor<'_> for AllSubgraphsDirectiveVisitor {
-    fn enter_schema(
-        &mut self,
-        ctx: &mut VisitorContext<'_>,
-        doc: &engine::Positioned<SchemaDefinition>,
-    ) {
+    fn enter_schema(&mut self, ctx: &mut VisitorContext<'_>, doc: &engine::Positioned<SchemaDefinition>) {
         let directives = doc
             .node
             .directives
@@ -48,10 +44,7 @@ impl Visitor<'_> for AllSubgraphsDirectiveVisitor {
         if !ctx.registry.borrow().is_federated {
             if !directives.is_empty() {
                 ctx.report_error(
-                    directives
-                        .into_iter()
-                        .map(|directive| directive.pos)
-                        .collect(),
+                    directives.into_iter().map(|directive| directive.pos).collect(),
                     "The @allSubgraphs directive is only valid in federated graphs",
                 );
             }
@@ -59,8 +52,7 @@ impl Visitor<'_> for AllSubgraphsDirectiveVisitor {
         }
 
         for directive in directives {
-            let directive = match parse_directive::<AllSubgraphsDirective>(directive, ctx.variables)
-            {
+            let directive = match parse_directive::<AllSubgraphsDirective>(directive, ctx.variables) {
                 Ok(directive) => directive,
                 Err(error) => {
                     ctx.append_errors(vec![error]);

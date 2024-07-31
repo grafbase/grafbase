@@ -6,9 +6,7 @@ use std::{collections::BTreeMap, path::PathBuf};
 use crate::{rules::auth_directive::v2::AuthV2Directive, GlobalCacheRules};
 use registry_v2::{ConnectorHeaderValue, OperationLimits};
 
-use self::header::{
-    NameOrPattern, SubgraphHeaderForward, SubgraphHeaderInsert, SubgraphHeaderRule,
-};
+use self::header::{NameOrPattern, SubgraphHeaderForward, SubgraphHeaderInsert, SubgraphHeaderRule};
 
 /// Configuration for a federated graph
 #[derive(Clone, Debug, Default)]
@@ -69,16 +67,12 @@ pub enum EntityCachingConfig {
 impl From<(String, ConnectorHeaderValue)> for SubgraphHeaderRule {
     fn from((name, value): (String, ConnectorHeaderValue)) -> Self {
         match value {
-            ConnectorHeaderValue::Static(value) => {
-                SubgraphHeaderRule::Insert(SubgraphHeaderInsert { name, value })
-            }
-            ConnectorHeaderValue::Forward(value) => {
-                SubgraphHeaderRule::Forward(SubgraphHeaderForward {
-                    name: NameOrPattern::Name(value),
-                    default: None,
-                    rename: Some(name),
-                })
-            }
+            ConnectorHeaderValue::Static(value) => SubgraphHeaderRule::Insert(SubgraphHeaderInsert { name, value }),
+            ConnectorHeaderValue::Forward(value) => SubgraphHeaderRule::Forward(SubgraphHeaderForward {
+                name: NameOrPattern::Name(value),
+                default: None,
+                rename: Some(name),
+            }),
         }
     }
 }

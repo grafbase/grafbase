@@ -2,8 +2,7 @@ use std::time::Duration;
 use url::Url;
 
 use crate::{
-    HeaderRuleId, HeaderRuleWalker, RequiredFieldSet, RequiredFieldSetId, SchemaWalker, StringId,
-    SubgraphId, UrlId,
+    HeaderRuleId, HeaderRuleWalker, RequiredFieldSet, RequiredFieldSetId, SchemaWalker, StringId, SubgraphId, UrlId,
 };
 
 #[derive(Default, serde::Serialize, serde::Deserialize)]
@@ -58,10 +57,7 @@ impl<'a> std::ops::Deref for RootFieldResolverWalker<'a> {
 
 impl<'a> RootFieldResolverWalker<'a> {
     pub fn name(&self) -> String {
-        format!(
-            "Graphql root field resolver for subgraph '{}'",
-            self.endpoint().name()
-        )
+        format!("Graphql root field resolver for subgraph '{}'", self.endpoint().name())
     }
 
     pub fn subgraph_id(&self) -> SubgraphId {
@@ -166,10 +162,7 @@ impl<'a> GraphqlEndpointWalker<'a> {
     }
 
     pub fn header_rules(self) -> impl Iterator<Item = HeaderRuleWalker<'a>> {
-        self.as_ref()
-            .header_rules
-            .iter()
-            .map(move |id| self.walk(*id))
+        self.as_ref().header_rules.iter().map(move |id| self.walk(*id))
     }
 
     pub fn entity_cache_ttl(self) -> Option<Duration> {

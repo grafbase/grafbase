@@ -71,10 +71,7 @@ pub struct Config {
 #[serde(deny_unknown_fields)]
 pub struct GatewayConfig {
     /// Time out for gateway requests.
-    #[serde(
-        deserialize_with = "duration_str::deserialize_option_duration",
-        default
-    )]
+    #[serde(deserialize_with = "duration_str::deserialize_option_duration", default)]
     pub timeout: Option<Duration>,
     /// Global rate limiting configuration
     #[serde(default)]
@@ -92,10 +89,7 @@ pub struct SubgraphConfig {
     #[serde(default)]
     pub rate_limit: Option<GraphRateLimit>,
     /// Timeout for subgraph requests in seconds. Default: 30 seconds.
-    #[serde(
-        deserialize_with = "duration_str::deserialize_option_duration",
-        default
-    )]
+    #[serde(deserialize_with = "duration_str::deserialize_option_duration", default)]
     pub timeout: Option<Duration>,
     #[serde(default)]
     pub retry: SubgraphRetryConfig,
@@ -229,10 +223,7 @@ mod tests {
         "#};
 
         let config: Config = toml::from_str(input).unwrap();
-        let expected = Some(SocketAddr::new(
-            std::net::IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)),
-            4000,
-        ));
+        let expected = Some(SocketAddr::new(std::net::IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)), 4000));
 
         assert_eq!(expected, config.network.listen_address);
     }
@@ -482,10 +473,7 @@ mod tests {
         let config: Config = toml::from_str(input).unwrap();
         let cors = config.cors.unwrap();
 
-        let expected = AnyOrAsciiStringArray::Explicit(vec![AsciiString::from_ascii(
-            b"Content-Type",
-        )
-        .unwrap()]);
+        let expected = AnyOrAsciiStringArray::Explicit(vec![AsciiString::from_ascii(b"Content-Type").unwrap()]);
 
         assert_eq!(Some(expected), cors.allow_headers)
     }
@@ -543,10 +531,7 @@ mod tests {
         let config: Config = toml::from_str(input).unwrap();
         let cors = config.cors.unwrap();
 
-        let expected = AnyOrAsciiStringArray::Explicit(vec![AsciiString::from_ascii(
-            b"Content-Type",
-        )
-        .unwrap()]);
+        let expected = AnyOrAsciiStringArray::Explicit(vec![AsciiString::from_ascii(b"Content-Type").unwrap()]);
 
         assert_eq!(Some(expected), cors.expose_headers);
     }
@@ -1696,5 +1681,75 @@ mod tests {
         let error = toml::from_str::<Config>(input).unwrap_err();
 
         insta::assert_debug_snapshot!(&error.to_string(), @r###""TOML parse error at line 3, column 12\n  |\n3 | duration = \"0s\"\n  |            ^^^^\nrate limit duration cannot be 0\n""###);
+    }
+
+    #[test]
+    fn entity_caching_global() {
+        use parser_sdl::federation::EntityCachingConfig;
+        let input = indoc! {r#"
+            [entity_caching]
+            enabled = true
+            ttl = "60s"
+        "#};
+
+        let config = toml::from_str::<Config>(input).unwrap();
+
+        assert_eq!(
+            EntityCachingConfig::from(config.entity_caching),
+            EntityCachingConfig::Enabled {
+                ttl: Some(Duration::from_secs(60))
+            }
+        )
+    }
+
+    #[test]
+    fn entity_caching_subgraph() {
+        use parser_sdl::federation::EntityCachingConfig;
+        let input = indoc! {r#"
+            [subgraphs.products.entity_caching]
+            ttl = "60s"
+        "#};
+
+        let mut config = toml::from_str::<Config>(input).unwrap();
+
+        assert_eq!(
+            EntityCachingConfig::from(config.subgraphs.remove("products").unwrap().entity_caching.unwrap()),
+            EntityCachingConfig::Enabled {
+                ttl: Some(Duration::from_secs(60))
+            }
+        )
+    }
+
+    #[test]
+    fn entity_caching_subgraph_enabled() {
+        use parser_sdl::federation::EntityCachingConfig;
+        let input = indoc! {r#"
+            [subgraphs.products.entity_caching]
+            enabled = true
+        "#};
+
+        let mut config = toml::from_str::<Config>(input).unwrap();
+
+        assert_eq!(
+            EntityCachingConfig::from(config.subgraphs.remove("products").unwrap().entity_caching.unwrap()),
+            EntityCachingConfig::Enabled { ttl: None }
+        )
+    }
+
+    #[test]
+    fn entity_caching_subgraph_disabled() {
+        use parser_sdl::federation::EntityCachingConfig;
+        let input = indoc! {r#"
+            [subgraphs.products.entity_caching]
+            enabled = false
+            ttl = "60s"
+        "#};
+
+        let mut config = toml::from_str::<Config>(input).unwrap();
+
+        assert_eq!(
+            EntityCachingConfig::from(config.subgraphs.remove("products").unwrap().entity_caching.unwrap()),
+            EntityCachingConfig::Disabled
+        )
     }
 }

@@ -107,9 +107,7 @@ pub enum HeaderValue {
     Static(StringId),
 }
 
-#[derive(
-    Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd, serde::Serialize, serde::Deserialize, Debug,
-)]
+#[derive(Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd, serde::Serialize, serde::Deserialize, Debug)]
 pub struct StringId(pub usize);
 
 impl std::ops::Index<StringId> for Config {
@@ -173,9 +171,7 @@ mod tests {
             headers: vec![],
             default_headers: vec![],
             subgraph_configs: Default::default(),
-            cache: CacheConfigs {
-                rules: cache_config,
-            },
+            cache: CacheConfigs { rules: cache_config },
             auth: None,
             operation_limits: Default::default(),
         };
