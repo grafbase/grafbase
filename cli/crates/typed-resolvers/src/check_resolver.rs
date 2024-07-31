@@ -1,7 +1,7 @@
 use crate::analyze::{AnalyzedSchema, Definition, Field};
 use miette::{Diagnostic, SourceSpan};
 use std::{ffi, fs, path::Path, rc::Rc};
-use swc_common::{source_map::Pos, SourceFile, Span};
+use swc_common::{SourceFile, Span};
 use swc_ecma_ast as ast;
 use swc_ecma_parser as parser;
 use thiserror::Error;
@@ -220,7 +220,7 @@ fn parse_file(path: &Path) -> miette::Result<(Rc<String>, ast::Module)> {
 
     let module = parser::parse_file_as_module(
         &source_file,
-        parser::Syntax::Typescript(parser::TsConfig::default()),
+        parser::Syntax::Typescript(parser::TsSyntax::default()),
         ast::EsVersion::EsNext,
         None,
         &mut recovered_errors,
@@ -242,14 +242,15 @@ fn parse_file(path: &Path) -> miette::Result<(Rc<String>, ast::Module)> {
 struct CouldNotReadFile;
 
 fn path_to_swc_source_file(path: &Path) -> Result<SourceFile, CouldNotReadFile> {
+    use swc_common::source_map::SmallPos;
     let Ok(src) = fs::read_to_string(path) else {
         return Err(CouldNotReadFile);
     };
     let file_name = swc_common::FileName::Real(path.to_owned());
     Ok(SourceFile::new(
-        file_name.clone(),
+        Rc::new(file_name.clone()),
         false,
-        file_name,
+        Rc::new(file_name),
         src,
         swc_common::BytePos::from_u32(1),
     ))
