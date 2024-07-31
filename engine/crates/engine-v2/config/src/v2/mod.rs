@@ -52,10 +52,30 @@ pub struct SubgraphConfig {
     pub rate_limit: Option<GraphRateLimit>,
     #[serde(default)]
     pub timeout: Option<Duration>,
-    #[serde(default)]
-    pub entity_cache_ttl: Option<Duration>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub retry: Option<RetryConfig>,
+    #[serde(default)]
+    pub entity_caching: Option<EntityCaching>,
+}
+
+#[derive(serde::Serialize, serde::Deserialize, Debug, Default, Clone, Copy)]
+pub enum EntityCaching {
+    #[default]
+    Disabled,
+    Enabled {
+        ttl: Option<Duration>,
+    },
+}
+
+const DEFAULT_ENTITY_CACHE_TTL: Duration = Duration::from_secs(60);
+
+impl EntityCaching {
+    pub fn ttl(&self) -> Option<Duration> {
+        match self {
+            Self::Enabled { ttl } => Some(ttl.unwrap_or(DEFAULT_ENTITY_CACHE_TTL)),
+            _ => None,
+        }
+    }
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]

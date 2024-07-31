@@ -19,7 +19,7 @@ pub struct FederatedGraphConfig {
     pub disable_introspection: bool,
     pub rate_limit: Option<RateLimitConfig>,
     pub timeout: Option<Duration>,
-    pub enable_entity_caching: bool,
+    pub entity_caching: EntityCachingConfig,
 }
 
 /// Configuration for a subgraph of the current federated graph
@@ -48,11 +48,20 @@ pub struct SubgraphConfig {
     /// Timeouts to apply to subgraph requests
     pub timeout: Option<Duration>,
 
-    /// The ttl of entity cache entries for this subgraph
-    pub entity_cache_ttl: Option<Duration>,
-
     /// Retry configuration
     pub retry: Option<RetryConfig>,
+
+    /// Optional entity caching config for this subgraph.
+    pub entity_caching: Option<EntityCachingConfig>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
+pub enum EntityCachingConfig {
+    #[default]
+    Disabled,
+    Enabled {
+        ttl: Option<Duration>,
+    },
 }
 
 impl From<(String, ConnectorHeaderValue)> for SubgraphHeaderRule {

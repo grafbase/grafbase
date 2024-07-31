@@ -13,6 +13,7 @@ use runtime::rate_limiting::KeyedRateLimitConfig;
 use runtime_local::{ComponentLoader, HooksWasi, HooksWasiConfig, InMemoryKvStore};
 use runtime_noop::trusted_documents::NoopTrustedDocuments;
 
+use crate::config::EntityCachingConfig;
 use crate::{
     config::{AuthenticationConfig, OperationLimitsConfig, RateLimitConfig, SubgraphConfig, TrustedDocumentsConfig},
     HeaderRule,
@@ -38,6 +39,7 @@ pub(crate) struct GatewayConfig {
     pub wasi: Option<HooksWasiConfig>,
     pub rate_limit: Option<RateLimitConfig>,
     pub timeout: Option<Duration>,
+    pub entity_caching: EntityCachingConfig,
 }
 
 /// Creates a new gateway from federated schema.
@@ -56,6 +58,7 @@ pub(super) async fn generate(
         wasi,
         rate_limit,
         timeout,
+        entity_caching,
     } = config;
 
     let schema_version = blake3::hash(federated_schema.as_bytes());
@@ -77,6 +80,8 @@ pub(super) async fn generate(
     graph_config.header_rules = header_rules.into_iter().map(SubgraphHeaderRule::from).collect();
     graph_config.rate_limit = rate_limit.map(Into::into);
 
+    graph_config.entity_caching = entity_caching.into();
+
     graph_config.subgraphs = subgraphs
         .into_iter()
         .map(|(name, value)| {
@@ -89,7 +94,7 @@ pub(super) async fn generate(
                 development_url: None,
                 rate_limit: value.rate_limit.map(Into::into),
                 timeout: value.timeout,
-                entity_cache_ttl: None,
+                entity_caching: value.entity_caching.map(Into::into),
                 retry: value.retry.enabled.then_some(parser_sdl::federation::RetryConfig {
                     min_per_second: value.retry.min_per_second,
                     ttl: value.retry.ttl,

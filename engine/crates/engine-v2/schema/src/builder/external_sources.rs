@@ -26,8 +26,8 @@ impl ExternalDataSources {
                         websocket_url,
                         headers,
                         timeout,
-                        entity_cache_ttl,
                         retry,
+                        entity_caching,
                         ..
                     }) => sources::graphql::GraphqlEndpoint {
                         name,
@@ -37,7 +37,6 @@ impl ExternalDataSources {
                             .map(|url| ctx.urls.insert(url::Url::parse(&config[url]).expect("valid url"))),
                         header_rules: headers.into_iter().map(Into::into).collect(),
                         timeout: timeout.unwrap_or(DEFAULT_SUBGRAPH_TIMEOUT),
-                        entity_cache_ttl: entity_cache_ttl.unwrap_or(DEFAULT_ENTITY_CACHE_TTL),
                         retry: retry.map(
                             |config::latest::RetryConfig {
                                  min_per_second,
@@ -51,6 +50,7 @@ impl ExternalDataSources {
                                 retry_mutations,
                             },
                         ),
+                        entity_cache_ttl: entity_caching.as_ref().unwrap_or(&config.entity_caching).ttl(),
                     },
 
                     None => sources::graphql::GraphqlEndpoint {
@@ -60,8 +60,8 @@ impl ExternalDataSources {
                         websocket_url: None,
                         header_rules: Vec::new(),
                         timeout: DEFAULT_SUBGRAPH_TIMEOUT,
-                        entity_cache_ttl: DEFAULT_ENTITY_CACHE_TTL,
                         retry: None,
+                        entity_cache_ttl: config.entity_caching.ttl(),
                     },
                 }
             })
@@ -73,4 +73,3 @@ impl ExternalDataSources {
 }
 
 const DEFAULT_SUBGRAPH_TIMEOUT: Duration = Duration::from_secs(30);
-const DEFAULT_ENTITY_CACHE_TTL: Duration = Duration::from_secs(60);

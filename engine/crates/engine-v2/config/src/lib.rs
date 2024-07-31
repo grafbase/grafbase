@@ -142,7 +142,7 @@ impl VersionedConfig {
                     disable_introspection,
                     rate_limit: Default::default(),
                     timeout: None,
-                    enable_entity_caching: false,
+                    entity_caching: Default::default(),
                 }
             }
             VersionedConfig::V5(latest) => latest,

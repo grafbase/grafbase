@@ -4,8 +4,9 @@ use std::collections::BTreeMap;
 use std::time::Duration;
 
 use engine_v2_config::latest::{
-    AuthConfig, AuthProviderConfig, CacheConfig, CacheConfigTarget, CacheConfigs, HeaderForward, HeaderInsert,
-    HeaderRemove, HeaderRenameDuplicate, HeaderRule, HeaderRuleId, NameOrPattern, OperationLimits, SubgraphConfig,
+    AuthConfig, AuthProviderConfig, CacheConfig, CacheConfigTarget, CacheConfigs, EntityCaching, HeaderForward,
+    HeaderInsert, HeaderRemove, HeaderRenameDuplicate, HeaderRule, HeaderRuleId, NameOrPattern, OperationLimits,
+    SubgraphConfig,
 };
 use engine_v2_config::{
     latest::{self as config},
@@ -13,7 +14,7 @@ use engine_v2_config::{
 };
 use federated_graph::{FederatedGraph, FederatedGraphV3, FieldId, ObjectId, SubgraphId};
 use parser_sdl::federation::header::SubgraphHeaderRule;
-use parser_sdl::federation::FederatedGraphConfig;
+use parser_sdl::federation::{EntityCachingConfig, FederatedGraphConfig};
 use parser_sdl::{AuthV2Provider, GlobalCacheTarget};
 
 mod paths;
@@ -45,7 +46,10 @@ pub fn build_config(config: &FederatedGraphConfig, graph: FederatedGraph) -> Ver
         disable_introspection: config.disable_introspection,
         rate_limit: context.rate_limit,
         timeout: config.timeout,
-        enable_entity_caching: config.enable_entity_caching,
+        entity_caching: match config.entity_caching {
+            EntityCachingConfig::Enabled { ttl } => EntityCaching::Enabled { ttl },
+            _ => EntityCaching::Disabled,
+        },
     })
 }
 
@@ -176,7 +180,7 @@ impl<'a> BuildContext<'a> {
                 header_rules,
                 rate_limit,
                 timeout,
-                entity_cache_ttl,
+                entity_caching,
                 ..
             } = config;
 
@@ -213,8 +217,11 @@ impl<'a> BuildContext<'a> {
                     websocket_url,
                     rate_limit,
                     timeout: *timeout,
-                    entity_cache_ttl: *entity_cache_ttl,
                     retry,
+                    entity_caching: entity_caching.as_ref().map(|config| match config {
+                        EntityCachingConfig::Disabled => EntityCaching::Disabled,
+                        EntityCachingConfig::Enabled { ttl } => EntityCaching::Enabled { ttl: *ttl },
+                    }),
                 },
             );
         }
