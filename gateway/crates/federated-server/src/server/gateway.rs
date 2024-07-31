@@ -3,6 +3,7 @@ use std::sync::Arc;
 
 use runtime_local::rate_limiting::in_memory::key_based::InMemoryRateLimiter;
 use runtime_local::rate_limiting::redis::RedisRateLimiter;
+use runtime_local::redis::{RedisPoolFactory, RedisTlsConfig};
 use tokio::sync::watch;
 
 use engine_v2::Engine;
@@ -64,12 +65,30 @@ pub(super) async fn generate(
         runtime::trusted_documents_client::Client::new(NoopTrustedDocuments)
     };
 
+    let mut redis_factory = RedisPoolFactory::default();
+
     let watcher = ConfigWatcher::init(gateway_config.clone(), hot_reload_config_path)?;
 
-    let rate_limiter = match &gateway_config.gateway.rate_limit {
-        Some(config) if config.storage.is_redis() => RedisRateLimiter::runtime(&config.redis, watcher)
-            .await
-            .map_err(|e| crate::Error::InternalError(e.to_string()))?,
+    let rate_limiter = match config.rate_limit_config() {
+        Some(config) if config.storage.is_redis() => {
+            let tls = config.redis.tls.map(|tls| RedisTlsConfig {
+                cert: tls.cert,
+                key: tls.key,
+                ca: tls.ca,
+            });
+
+            let pool = redis_factory
+                .pool(config.redis.url, tls)
+                .map_err(|e| crate::Error::InternalError(e.to_string()))?;
+
+            let global_config = runtime_local::rate_limiting::redis::RateLimitRedisConfig {
+                key_prefix: config.redis.key_prefix,
+            };
+
+            RedisRateLimiter::runtime(global_config, pool, watcher)
+                .await
+                .map_err(|e| crate::Error::InternalError(e.to_string()))?
+        }
         _ => InMemoryRateLimiter::runtime_with_watcher(watcher),
     };
 

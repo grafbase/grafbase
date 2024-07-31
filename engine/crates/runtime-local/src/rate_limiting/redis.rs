@@ -1,19 +1,17 @@
-mod pool;
+use std::time::{Duration, SystemTime};
 
-use std::{
-    fs::File,
-    io::{BufReader, Read},
-    time::{Duration, SystemTime},
-};
-
-use anyhow::Context;
-use deadpool::managed::Pool;
 use futures_util::future::BoxFuture;
-use gateway_config::{Config, RateLimitRedisConfig};
+use gateway_config::Config;
 use grafbase_telemetry::span::GRAFBASE_TARGET;
-use redis::ClientTlsConfig;
 use runtime::rate_limiting::{Error, RateLimitKey, RateLimiter, RateLimiterContext};
 use tokio::sync::watch;
+
+use crate::redis::Pool;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub struct RateLimitRedisConfig<'a> {
+    pub key_prefix: &'a str,
+}
 
 /// Rate limiter by utilizing Redis as a backend. It uses a averaging fixed window algorithm
 /// to define is the limit reached or not.
@@ -30,86 +28,26 @@ use tokio::sync::watch;
 /// A request must have a unique access to a connection, which means utilizing a connection
 /// pool.
 pub struct RedisRateLimiter {
-    pool: Pool<pool::Manager>,
+    pool: Pool,
     key_prefix: String,
     config_watcher: watch::Receiver<Config>,
 }
 
 impl RedisRateLimiter {
     pub async fn runtime(
-        config: &RateLimitRedisConfig,
+        config: RateLimitRedisConfig<'_>,
+        pool: Pool,
         watcher: watch::Receiver<Config>,
     ) -> anyhow::Result<RateLimiter> {
-        Ok(RateLimiter::new(Self::new(config, watcher).await?))
+        let inner = Self::new(config, pool, watcher).await?;
+        Ok(RateLimiter::new(inner))
     }
 
     pub async fn new(
-        config: &RateLimitRedisConfig,
+        config: RateLimitRedisConfig<'_>,
+        pool: Pool,
         watcher: watch::Receiver<Config>,
     ) -> anyhow::Result<RedisRateLimiter> {
-        let tls_config = match &config.tls {
-            Some(tls) => {
-                let client_tls = match tls.cert.as_ref().zip(tls.key.as_ref()) {
-                    Some((cert, key)) => {
-                        let mut client_cert = Vec::new();
-
-                        File::open(cert)
-                            .and_then(|file| BufReader::new(file).read_to_end(&mut client_cert))
-                            .context("loading the Redis client certificate")?;
-
-                        let mut client_key = Vec::new();
-
-                        File::open(key)
-                            .and_then(|file| BufReader::new(file).read_to_end(&mut client_key))
-                            .context("loading the Redis client key")?;
-
-                        Some(ClientTlsConfig {
-                            client_cert,
-                            client_key,
-                        })
-                    }
-                    None => None,
-                };
-
-                let root_cert = match &tls.ca {
-                    Some(path) => {
-                        let mut ca = Vec::new();
-
-                        File::open(path)
-                            .and_then(|file| BufReader::new(file).read_to_end(&mut ca))
-                            .context("loading the Redis CA certificate")?;
-
-                        Some(ca)
-                    }
-                    None => None,
-                };
-
-                Some(pool::TlsConfig { client_tls, root_cert })
-            }
-            None => None,
-        };
-
-        let manager = match pool::Manager::new(config.url.as_str(), tls_config) {
-            Ok(manager) => manager,
-            Err(e) => {
-                tracing::error!(target: GRAFBASE_TARGET, "error creating a Redis pool: {e}");
-                return Err(e.into());
-            }
-        };
-
-        let pool = match Pool::builder(manager)
-            .wait_timeout(Some(Duration::from_secs(5)))
-            .create_timeout(Some(Duration::from_secs(10)))
-            .runtime(deadpool::Runtime::Tokio1)
-            .build()
-        {
-            Ok(pool) => pool,
-            Err(e) => {
-                tracing::error!(target: GRAFBASE_TARGET, "error creating a Redis pool: {e}");
-                return Err(e.into());
-            }
-        };
-
         Ok(Self {
             pool,
             key_prefix: config.key_prefix.to_string(),
@@ -215,7 +153,7 @@ impl RedisRateLimiter {
     }
 }
 
-async fn incr_counter(pool: Pool<pool::Manager>, current_bucket: String, expire: Duration) -> Result<(), Error> {
+async fn incr_counter(pool: Pool, current_bucket: String, expire: Duration) -> Result<(), Error> {
     let mut conn = match pool.get().await {
         Ok(conn) => conn,
         Err(error) => {

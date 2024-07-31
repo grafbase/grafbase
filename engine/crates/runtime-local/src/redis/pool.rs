@@ -14,7 +14,7 @@ pub(super) struct TlsConfig {
 }
 
 impl Manager {
-    pub fn new(url: &str, tls: Option<TlsConfig>) -> RedisResult<Self> {
+    pub(super) fn new(url: &str, tls: Option<TlsConfig>) -> RedisResult<Self> {
         let client = match tls {
             Some(config) => Client::build_with_tls(
                 url,
