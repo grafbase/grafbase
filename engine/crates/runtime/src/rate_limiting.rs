@@ -59,6 +59,6 @@ pub struct GraphRateLimit {
 }
 
 #[derive(Debug, Clone, Default)]
-pub struct KeyedRateLimitConfig<'a> {
-    pub rate_limiting_configs: HashMap<&'a str, GraphRateLimit>,
+pub struct KeyedRateLimitConfig {
+    pub rate_limiting_configs: HashMap<String, GraphRateLimit>,
 }

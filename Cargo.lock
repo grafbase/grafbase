@@ -2872,6 +2872,7 @@ dependencies = [
  "indoc",
  "insta",
  "lambda_http",
+ "notify",
  "parser-sdl",
  "regex",
  "reqwest",

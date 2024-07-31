@@ -3,9 +3,15 @@ mod cors;
 mod entity_caching;
 mod header;
 mod health;
+pub(crate) mod hot_reload;
 mod rate_limit;
 
-use std::{collections::BTreeMap, net::SocketAddr, path::PathBuf, time::Duration};
+use std::{
+    collections::{BTreeMap, HashMap},
+    net::SocketAddr,
+    path::PathBuf,
+    time::Duration,
+};
 
 pub use self::health::HealthConfig;
 use ascii::AsciiString;
@@ -65,6 +71,25 @@ pub struct Config {
     /// Global configuration for entity caching
     #[serde(default)]
     pub entity_caching: EntityCachingConfig,
+}
+
+impl Config {
+    /// Load the rate limit configuration for global and subgraph level settings.
+    pub fn as_keyed_rate_limit_config(&self) -> HashMap<&str, GraphRateLimit> {
+        let mut key_based_config = HashMap::new();
+
+        if let Some(global_config) = self.gateway.rate_limit.as_ref().and_then(|c| c.global) {
+            key_based_config.insert("global", global_config);
+        }
+
+        for (subgraph_name, subgraph) in self.subgraphs.iter() {
+            if let Some(limit) = subgraph.rate_limit {
+                key_based_config.insert(subgraph_name, limit);
+            }
+        }
+
+        key_based_config
+    }
 }
 
 #[derive(Debug, Default, serde::Deserialize)]

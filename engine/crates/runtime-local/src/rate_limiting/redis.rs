@@ -15,6 +15,7 @@ use futures_util::future::BoxFuture;
 use grafbase_telemetry::span::GRAFBASE_TARGET;
 use redis::ClientTlsConfig;
 use runtime::rate_limiting::{Error, GraphRateLimit, RateLimiter, RateLimiterContext};
+use tokio::sync::watch;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct RateLimitRedisConfig<'a> {
@@ -29,6 +30,8 @@ pub struct RateLimitRedisTlsConfig<'a> {
     pub key: Option<&'a Path>,
     pub ca: Option<&'a Path>,
 }
+
+pub type Limits = watch::Receiver<HashMap<String, GraphRateLimit>>;
 
 /// Rate limiter by utilizing Redis as a backend. It uses a averaging fixed window algorithm
 /// to define is the limit reached or not.
@@ -47,7 +50,7 @@ pub struct RateLimitRedisTlsConfig<'a> {
 pub struct RedisRateLimiter {
     pool: Pool<pool::Manager>,
     key_prefix: String,
-    subgraph_limits: HashMap<String, GraphRateLimit>,
+    limits: Limits,
 }
 
 enum Key<'a> {
@@ -69,18 +72,11 @@ impl<'a> fmt::Display for Key<'a> {
 }
 
 impl RedisRateLimiter {
-    pub async fn runtime(
-        config: RateLimitRedisConfig<'_>,
-        subgraph_limits: impl IntoIterator<Item = (&str, GraphRateLimit)>,
-    ) -> anyhow::Result<RateLimiter> {
-        let inner = Self::new(config, subgraph_limits).await?;
-        Ok(RateLimiter::new(inner))
+    pub async fn runtime(config: RateLimitRedisConfig<'_>, limits: Limits) -> anyhow::Result<RateLimiter> {
+        Ok(RateLimiter::new(Self::new(config, limits).await?))
     }
 
-    pub async fn new(
-        config: RateLimitRedisConfig<'_>,
-        subgraph_limits: impl IntoIterator<Item = (&str, GraphRateLimit)>,
-    ) -> anyhow::Result<RedisRateLimiter> {
+    pub async fn new(config: RateLimitRedisConfig<'_>, limits: Limits) -> anyhow::Result<RedisRateLimiter> {
         let tls_config = match config.tls {
             Some(tls) => {
                 let client_tls = match tls.cert.zip(tls.key) {
@@ -144,15 +140,10 @@ impl RedisRateLimiter {
             }
         };
 
-        let subgraph_limits = subgraph_limits
-            .into_iter()
-            .map(|(key, value)| (key.to_string(), value))
-            .collect();
-
         Ok(Self {
             pool,
             key_prefix: config.key_prefix.to_string(),
-            subgraph_limits,
+            limits,
         })
     }
 
@@ -167,7 +158,7 @@ impl RedisRateLimiter {
     async fn limit_inner(&self, context: &dyn RateLimiterContext) -> Result<(), Error> {
         let Some(key) = context.key() else { return Ok(()) };
 
-        let Some(config) = self.subgraph_limits.get(key) else {
+        let Some(config) = self.limits.borrow().get(key).copied() else {
             return Ok(());
         };
 

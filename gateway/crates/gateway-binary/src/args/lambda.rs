@@ -1,4 +1,8 @@
-use std::{fs, io::ErrorKind, path::PathBuf};
+use std::{
+    fs,
+    io::ErrorKind,
+    path::{Path, PathBuf},
+};
 
 use anyhow::Context;
 use clap::Parser;
@@ -49,6 +53,10 @@ impl super::Args for Args {
         }
     }
 
+    fn config_path(&self) -> Option<&Path> {
+        Some(&self.config)
+    }
+
     fn log_format<S>(&self) -> BoxedLayer<S>
     where
         S: Subscriber + for<'span> LookupSpan<'span> + Send + Sync,
@@ -62,6 +70,10 @@ impl super::Args for Args {
             LogStyle::Text => layer.with_ansi(false).with_target(false).boxed(),
             LogStyle::Json => layer.json().boxed(),
         }
+    }
+
+    fn hot_reload(&self) -> bool {
+        false
     }
 
     fn listen_address(&self) -> Option<std::net::SocketAddr> {

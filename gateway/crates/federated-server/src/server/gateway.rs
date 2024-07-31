@@ -1,10 +1,11 @@
 use std::collections::HashMap;
+use std::path::PathBuf;
 use std::time::Duration;
 use std::{collections::BTreeMap, sync::Arc};
 
 use runtime_local::rate_limiting::in_memory::key_based::InMemoryRateLimiter;
 use runtime_local::rate_limiting::redis::RedisRateLimiter;
-use tokio::sync::watch;
+use tokio::sync::{mpsc, watch};
 
 use engine_v2::Engine;
 use graphql_composition::FederatedGraph;
@@ -13,9 +14,11 @@ use runtime::rate_limiting::KeyedRateLimitConfig;
 use runtime_local::{ComponentLoader, HooksWasi, HooksWasiConfig, InMemoryKvStore};
 use runtime_noop::trusted_documents::NoopTrustedDocuments;
 
-use crate::config::EntityCachingConfig;
 use crate::{
-    config::{AuthenticationConfig, OperationLimitsConfig, RateLimitConfig, SubgraphConfig, TrustedDocumentsConfig},
+    config::{
+        hot_reload, AuthenticationConfig, EntityCachingConfig, OperationLimitsConfig, RateLimitConfig, SubgraphConfig,
+        TrustedDocumentsConfig,
+    },
     HeaderRule,
 };
 
@@ -40,6 +43,8 @@ pub(crate) struct GatewayConfig {
     pub rate_limit: Option<RateLimitConfig>,
     pub timeout: Option<Duration>,
     pub entity_caching: EntityCachingConfig,
+    pub config_hot_reload: bool,
+    pub config_path: Option<PathBuf>,
 }
 
 /// Creates a new gateway from federated schema.
@@ -59,6 +64,8 @@ pub(super) async fn generate(
         rate_limit,
         timeout,
         entity_caching,
+        config_hot_reload,
+        config_path,
     } = config;
 
     let schema_version = blake3::hash(federated_schema.as_bytes());
@@ -135,7 +142,7 @@ pub(super) async fn generate(
         .into_iter()
         .map(|(k, v)| {
             (
-                k,
+                k.to_string(),
                 runtime::rate_limiting::GraphRateLimit {
                     limit: v.limit,
                     duration: v.duration,
@@ -146,6 +153,8 @@ pub(super) async fn generate(
 
     let rate_limiter = match config.rate_limit_config() {
         Some(config) if config.storage.is_redis() => {
+            let (tx, rx) = watch::channel(rate_limiting_configs);
+
             let tls = config
                 .redis
                 .tls
@@ -161,11 +170,29 @@ pub(super) async fn generate(
                 tls,
             };
 
-            RedisRateLimiter::runtime(global_config, rate_limiting_configs)
+            match config_path {
+                Some(path) if config_hot_reload => {
+                    hot_reload::ConfigWatcher::new(path, tx).watch()?;
+                }
+                _ => (),
+            }
+
+            RedisRateLimiter::runtime(global_config, rx)
                 .await
                 .map_err(|e| crate::Error::InternalError(e.to_string()))?
         }
-        _ => InMemoryRateLimiter::runtime(KeyedRateLimitConfig { rate_limiting_configs }),
+        _ => {
+            let (tx, rx) = mpsc::channel(100);
+
+            match config_path {
+                Some(path) if config_hot_reload => {
+                    hot_reload::ConfigWatcher::new(path, tx).watch()?;
+                }
+                _ => (),
+            }
+
+            InMemoryRateLimiter::runtime(KeyedRateLimitConfig { rate_limiting_configs }, rx)
+        }
     };
 
     let runtime = GatewayRuntime {

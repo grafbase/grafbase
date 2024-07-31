@@ -1,14 +1,17 @@
-use std::collections::HashMap;
 use std::net::IpAddr;
 use std::num::NonZeroU32;
+use std::sync::Arc;
+use std::{collections::HashMap, sync::RwLock};
 
 use futures_util::future::BoxFuture;
 use futures_util::FutureExt;
 use governor::Quota;
+use grafbase_telemetry::span::GRAFBASE_TARGET;
 use serde_json::Value;
 
 use http::{HeaderName, HeaderValue};
 use runtime::rate_limiting::{Error, GraphRateLimit, KeyedRateLimitConfig, RateLimiter, RateLimiterContext};
+use tokio::sync::mpsc;
 
 pub struct RateLimitingContext(pub String);
 
@@ -34,48 +37,72 @@ impl RateLimiterContext for RateLimitingContext {
     }
 }
 
-#[derive(Default)]
 pub struct InMemoryRateLimiter {
-    inner: HashMap<String, governor::DefaultKeyedRateLimiter<usize>>,
+    limiters: Arc<RwLock<HashMap<String, governor::DefaultKeyedRateLimiter<usize>>>>,
 }
 
 impl InMemoryRateLimiter {
-    pub fn runtime(config: KeyedRateLimitConfig<'_>) -> RateLimiter {
-        let mut limiter = Self::default();
+    pub fn runtime(
+        config: KeyedRateLimitConfig,
+        mut updates: mpsc::Receiver<HashMap<String, GraphRateLimit>>,
+    ) -> RateLimiter {
+        let mut limiters = HashMap::new();
 
         // add subgraph rate limiting configuration
-        for (name, rate_limit_config) in config.rate_limiting_configs {
-            limiter = limiter.with_rate_limiter(name, rate_limit_config);
+        for (name, config) in config.rate_limiting_configs {
+            let Some(limiter) = create_limiter(config) else {
+                continue;
+            };
+
+            limiters.insert(name.to_string(), limiter);
         }
 
-        RateLimiter::new(limiter)
-    }
+        let limiters = Arc::new(RwLock::new(limiters));
+        let limiters_copy = limiters.clone();
 
-    pub fn with_rate_limiter(mut self, key: &str, rate_limit_config: GraphRateLimit) -> Self {
-        let quota = (rate_limit_config.limit as u64)
-            .checked_div(rate_limit_config.duration.as_secs())
-            .expect("rate limiter with invalid per second quota");
+        tokio::spawn(async move {
+            while let Some(updates) = updates.recv().await {
+                let mut limiters = limiters_copy.write().unwrap();
 
-        self.inner.insert(
-            key.to_string(),
-            governor::RateLimiter::keyed(Quota::per_second(
-                NonZeroU32::new(quota as u32).expect("rate limit duration cannot be 0"),
-            )),
-        );
-        self
+                for (name, config) in updates {
+                    let Some(limiter) = create_limiter(config) else {
+                        continue;
+                    };
+
+                    limiters.insert(name.to_string(), limiter);
+                }
+            }
+        });
+
+        RateLimiter::new(Self { limiters })
     }
+}
+
+fn create_limiter(rate_limit_config: GraphRateLimit) -> Option<governor::DefaultKeyedRateLimiter<usize>> {
+    let Some(quota) = (rate_limit_config.limit as u64).checked_div(rate_limit_config.duration.as_secs()) else {
+        tracing::error!(target: GRAFBASE_TARGET, "the duration for rate limit cannot be zero");
+        return None;
+    };
+
+    let Some(quota) = NonZeroU32::new(quota as u32) else {
+        tracing::error!(target: GRAFBASE_TARGET, "the limit is too low per defined duration");
+        return None;
+    };
+
+    Some(governor::RateLimiter::keyed(Quota::per_second(quota)))
 }
 
 impl runtime::rate_limiting::RateLimiterInner for InMemoryRateLimiter {
     fn limit<'a>(&'a self, context: &'a dyn RateLimiterContext) -> BoxFuture<'a, Result<(), Error>> {
         async {
-            if let Some(key) = context.key() {
-                if let Some(rate_limiter) = self.inner.get(key) {
-                    rate_limiter
-                        .check_key(&usize::MIN)
-                        .map_err(|_err| Error::ExceededCapacity)?;
-                };
-            }
+            let Some(key) = context.key() else { return Ok(()) };
+            let limiters = self.limiters.read().unwrap();
+
+            if let Some(rate_limiter) = limiters.get(key) {
+                rate_limiter
+                    .check_key(&usize::MIN)
+                    .map_err(|_err| Error::ExceededCapacity)?;
+            };
 
             Ok(())
         }

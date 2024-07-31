@@ -4,6 +4,7 @@ use runtime_local::{
     rate_limiting::in_memory::key_based::InMemoryRateLimiter, InMemoryHotCacheFactory, InMemoryKvStore, NativeFetcher,
 };
 use runtime_noop::trusted_documents::NoopTrustedDocuments;
+use tokio::sync::mpsc;
 
 pub struct TestRuntime {
     pub fetcher: runtime::fetch::Fetcher,
@@ -16,13 +17,14 @@ pub struct TestRuntime {
 
 impl Default for TestRuntime {
     fn default() -> Self {
+        let (_, rx) = mpsc::channel(100);
         Self {
             fetcher: NativeFetcher::runtime_fetcher(),
             trusted_documents: trusted_documents_client::Client::new(NoopTrustedDocuments),
             kv: InMemoryKvStore::runtime(),
             meter: metrics::meter_from_global_provider(),
             hooks: Default::default(),
-            rate_limiter: InMemoryRateLimiter::runtime(Default::default()),
+            rate_limiter: InMemoryRateLimiter::runtime(Default::default(), rx),
         }
     }
 }
