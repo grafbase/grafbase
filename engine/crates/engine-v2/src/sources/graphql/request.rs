@@ -1,11 +1,11 @@
 use bytes::Bytes;
-use futures::{Future, TryFutureExt};
+use futures::Future;
 use grafbase_telemetry::{
     gql_response_status::{GraphqlResponseStatus, SubgraphResponseStatus},
     span::{GqlRecorderSpanExt, GRAFBASE_TARGET},
 };
 use runtime::fetch::{FetchRequest, FetchResponse};
-use schema::sources::graphql::GraphqlEndpointId;
+use schema::sources::graphql::{GraphqlEndpointId, GraphqlEndpointWalker};
 use tower::retry::budget::Budget;
 use tracing::Span;
 use web_time::Duration;
@@ -21,6 +21,15 @@ pub trait ResponseIngester: Send {
         self,
         bytes: Bytes,
     ) -> impl Future<Output = Result<(GraphqlResponseStatus, SubgraphResponse), ExecutionError>> + Send;
+}
+
+impl<T> ResponseIngester for T
+where
+    T: FnOnce(Bytes) -> Result<(GraphqlResponseStatus, SubgraphResponse), ExecutionError> + Send,
+{
+    async fn ingest(self, bytes: Bytes) -> Result<(GraphqlResponseStatus, SubgraphResponse), ExecutionError> {
+        self(bytes)
+    }
 }
 
 pub(super) async fn execute_subgraph_request<'ctx, 'a, R: Runtime>(
@@ -80,16 +89,7 @@ async fn retrying_fetch<'ctx, R: Runtime>(
 ) -> ExecutionResult<FetchResponse> {
     let subgraph = ctx.engine.schema.walk(subgraph_id);
 
-    let fetch = ctx.engine.runtime.fetcher().post(request).map_err(ExecutionError::from);
-
-    let mut result = ctx
-        .engine
-        .runtime
-        .rate_limiter()
-        .limit(&RateLimitContext::Subgraph(subgraph.name()))
-        .map_err(ExecutionError::from)
-        .and_then(|_| fetch)
-        .await;
+    let mut result = rate_limited_fetch(ctx, subgraph, request).await;
 
     let Some(retry_budget) = retry_budget else {
         return result;
@@ -113,16 +113,7 @@ async fn retrying_fetch<'ctx, R: Runtime>(
 
                     counter += 1;
 
-                    let fetch = ctx.engine.runtime.fetcher().post(request).map_err(ExecutionError::from);
-
-                    result = ctx
-                        .engine
-                        .runtime
-                        .rate_limiter()
-                        .limit(&RateLimitContext::Subgraph(subgraph.name()))
-                        .map_err(ExecutionError::from)
-                        .and_then(|_| fetch)
-                        .await;
+                    result = rate_limited_fetch(ctx, subgraph, request).await;
                 } else {
                     return Err(err);
                 }
@@ -131,11 +122,24 @@ async fn retrying_fetch<'ctx, R: Runtime>(
     }
 }
 
-impl<T> ResponseIngester for T
-where
-    T: FnOnce(Bytes) -> Result<(GraphqlResponseStatus, SubgraphResponse), ExecutionError> + Send,
-{
-    async fn ingest(self, bytes: Bytes) -> Result<(GraphqlResponseStatus, SubgraphResponse), ExecutionError> {
-        self(bytes)
-    }
+async fn rate_limited_fetch<'ctx, R: Runtime>(
+    ctx: ExecutionContext<'ctx, R>,
+    subgraph: GraphqlEndpointWalker<'ctx>,
+    request: &FetchRequest<'_>,
+) -> ExecutionResult<FetchResponse> {
+    ctx.engine
+        .runtime
+        .rate_limiter()
+        .limit(&RateLimitContext::Subgraph(subgraph.name()))
+        .await?;
+
+    ctx.engine
+        .runtime
+        .fetcher()
+        .post(request)
+        .await
+        .map_err(|error| ExecutionError::Fetch {
+            subgraph_name: subgraph.name().to_string(),
+            error,
+        })
 }

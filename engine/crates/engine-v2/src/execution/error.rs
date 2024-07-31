@@ -34,8 +34,11 @@ pub enum ExecutionError {
     Internal(Cow<'static, str>),
     #[error("Deserialization error: {0}")]
     DeserializationError(String),
-    #[error(transparent)]
-    Fetch(#[from] runtime::fetch::FetchError),
+    #[error("Request to subgraph '{subgraph_name}' failed with: {error}")]
+    Fetch {
+        subgraph_name: String,
+        error: runtime::fetch::FetchError,
+    },
     #[error(transparent)]
     RateLimit(#[from] runtime::rate_limiting::Error),
     #[error("{0}")]
@@ -46,15 +49,18 @@ pub type ExecutionResult<T> = Result<T, ExecutionError>;
 
 impl From<ExecutionError> for GraphqlError {
     fn from(err: ExecutionError) -> Self {
-        match err {
-            ExecutionError::Internal(message) => GraphqlError::new(message, ErrorCode::InternalServerError),
-            ExecutionError::DeserializationError(message) => {
-                GraphqlError::new(message, ErrorCode::SubgraphInvalidResponseError)
-            }
-            ExecutionError::Fetch(err) => GraphqlError::new(err.to_string(), ErrorCode::SubgraphRequestError),
-            ExecutionError::RateLimit(err) => GraphqlError::new(err.to_string(), ErrorCode::RateLimited),
-            ExecutionError::Graphql(err) => err,
+        if let ExecutionError::Graphql(err) = err {
+            return err;
         }
+        let message = err.to_string();
+        let code = match &err {
+            ExecutionError::Internal(_) => ErrorCode::InternalServerError,
+            ExecutionError::DeserializationError(_) => ErrorCode::SubgraphInvalidResponseError,
+            ExecutionError::Fetch { .. } => ErrorCode::SubgraphRequestError,
+            ExecutionError::RateLimit(_) => ErrorCode::RateLimited,
+            ExecutionError::Graphql(err) => err.code,
+        };
+        GraphqlError::new(message, code)
     }
 }
 

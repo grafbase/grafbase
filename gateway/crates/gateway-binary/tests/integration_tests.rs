@@ -441,7 +441,7 @@ fn static_schema() {
           "data": null,
           "errors": [
             {
-              "message": "error sending request for url (http://127.0.0.1:46697/)",
+              "message": "Request to subgraph 'accounts' failed with: error sending request for url (http://127.0.0.1:46697/)",
               "path": [
                 "me"
               ],
@@ -563,7 +563,7 @@ fn custom_path() {
           "data": null,
           "errors": [
             {
-              "message": "error sending request for url (http://127.0.0.1:46697/)",
+              "message": "Request to subgraph 'accounts' failed with: error sending request for url (http://127.0.0.1:46697/)",
               "path": [
                 "me"
               ],
@@ -628,7 +628,7 @@ fn csrf_with_header() {
           "data": null,
           "errors": [
             {
-              "message": "error sending request for url (http://127.0.0.1:46697/)",
+              "message": "Request to subgraph 'accounts' failed with: error sending request for url (http://127.0.0.1:46697/)",
               "path": [
                 "me"
               ],
@@ -663,7 +663,7 @@ fn hybrid_graph() {
           "data": null,
           "errors": [
             {
-              "message": "error sending request for url (http://127.0.0.1:46697/)",
+              "message": "Request to subgraph 'accounts' failed with: error sending request for url (http://127.0.0.1:46697/)",
               "path": [
                 "me"
               ],

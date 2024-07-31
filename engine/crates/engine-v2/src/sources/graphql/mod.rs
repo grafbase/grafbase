@@ -138,7 +138,6 @@ impl GraphqlPreparedExecutor {
                 headers: ctx.subgraph_headers_with_rules(subgraph.header_rules()),
                 json_body: Bytes::from(json_body.into_bytes()),
                 timeout: subgraph.timeout(),
-                subgraph_name: subgraph.name(),
             },
             GraphqlIngester {
                 ctx,

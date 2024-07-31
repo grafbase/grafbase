@@ -8,7 +8,7 @@ use super::{
     ExecutionContext, GraphqlPreparedExecutor,
 };
 use crate::{
-    execution::{PlanWalker, SubscriptionResponse},
+    execution::{ExecutionError, PlanWalker, SubscriptionResponse},
     sources::ExecutionResult,
     Runtime,
 };
@@ -55,10 +55,21 @@ impl GraphqlPreparedExecutor {
                 .map_err(|error| error.to_string())?,
                 headers: ctx.subgraph_headers_with_rules(subgraph.header_rules()),
             })
-            .await?;
+            .await
+            .map_err(|error| ExecutionError::Fetch {
+                subgraph_name: subgraph.name().to_string(),
+                error,
+            })?;
         Ok(Box::pin(stream.map(move |subgraph_response| {
             let mut subscription_response = new_response();
-            ingest_response(&mut subscription_response, plan, subgraph_response?)?;
+            ingest_response(
+                &mut subscription_response,
+                plan,
+                subgraph_response.map_err(|error| ExecutionError::Fetch {
+                    subgraph_name: subgraph.name().to_string(),
+                    error,
+                })?,
+            )?;
             Ok(subscription_response)
         })))
     }
