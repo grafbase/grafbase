@@ -63,6 +63,7 @@ impl InMemoryRateLimiter {
         tokio::spawn(async move {
             while let Some(updates) = updates.recv().await {
                 let mut limiters = limiters_copy.write().unwrap();
+                limiters.clear();
 
                 for (name, config) in updates {
                     let Some(limiter) = create_limiter(config) else {
