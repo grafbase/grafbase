@@ -2,7 +2,8 @@ use std::time::Duration;
 use url::Url;
 
 use crate::{
-    HeaderRuleId, HeaderRuleWalker, RequiredFieldSet, RequiredFieldSetId, SchemaWalker, StringId, SubgraphId, UrlId,
+    HeaderRuleId, HeaderRuleWalker, RequiredFieldSet, RequiredFieldSetId, SchemaWalker, StringId,
+    SubgraphId, UrlId,
 };
 
 #[derive(Default, serde::Serialize, serde::Deserialize)]
@@ -18,8 +19,10 @@ pub struct GraphqlEndpoint {
     pub(crate) websocket_url: Option<UrlId>,
     pub(crate) header_rules: Vec<HeaderRuleId>,
     pub(crate) timeout: Duration,
-    pub(crate) entity_cache_ttl: Duration,
     pub(crate) retry: Option<RetryConfig>,
+    // The ttl to use for caching for this subgraph.
+    // If None then caching is disabled for this subgraph
+    pub(crate) entity_cache_ttl: Option<Duration>,
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
@@ -55,7 +58,10 @@ impl<'a> std::ops::Deref for RootFieldResolverWalker<'a> {
 
 impl<'a> RootFieldResolverWalker<'a> {
     pub fn name(&self) -> String {
-        format!("Graphql root field resolver for subgraph '{}'", self.endpoint().name())
+        format!(
+            "Graphql root field resolver for subgraph '{}'",
+            self.endpoint().name()
+        )
     }
 
     pub fn subgraph_id(&self) -> SubgraphId {
@@ -160,10 +166,13 @@ impl<'a> GraphqlEndpointWalker<'a> {
     }
 
     pub fn header_rules(self) -> impl Iterator<Item = HeaderRuleWalker<'a>> {
-        self.as_ref().header_rules.iter().map(move |id| self.walk(*id))
+        self.as_ref()
+            .header_rules
+            .iter()
+            .map(move |id| self.walk(*id))
     }
 
-    pub fn entity_cache_ttl(self) -> Duration {
+    pub fn entity_cache_ttl(self) -> Option<Duration> {
         self.as_ref().entity_cache_ttl
     }
 

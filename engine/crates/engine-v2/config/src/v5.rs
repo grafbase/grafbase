@@ -12,6 +12,7 @@ use federated_graph::{FederatedGraphV3, SubgraphId};
 
 use self::rate_limit::{RateLimitConfigRef, RateLimitRedisConfigRef, RateLimitRedisTlsConfigRef};
 
+pub use super::v2::EntityCaching;
 pub use super::v4::{
     AuthConfig, AuthProviderConfig, CacheConfig, CacheConfigTarget, CacheConfigs, Header, HeaderId, HeaderValue,
     JwksConfig, JwtConfig, OperationLimits, RetryConfig, StringId, SubgraphConfig,
@@ -55,7 +56,7 @@ pub struct Config {
     pub timeout: Option<Duration>,
 
     #[serde(default)]
-    pub enable_entity_caching: bool,
+    pub entity_caching: EntityCaching,
 }
 
 impl Config {
@@ -73,7 +74,7 @@ impl Config {
             disable_introspection: Default::default(),
             rate_limit: Default::default(),
             timeout: None,
-            enable_entity_caching: false,
+            entity_caching: EntityCaching::Disabled,
         }
     }
 
@@ -182,7 +183,7 @@ mod tests {
             disable_introspection: Default::default(),
             rate_limit: Default::default(),
             timeout: None,
-            enable_entity_caching: false,
+            entity_caching: Default::default(),
         };
 
         insta::with_settings!({sort_maps => true}, {
@@ -205,7 +206,7 @@ mod tests {
               },
               "default_header_rules": [],
               "disable_introspection": false,
-              "enable_entity_caching": false,
+              "entity_caching": "Disabled",
               "graph": {
                 "authorized_directives": [],
                 "directives": [],

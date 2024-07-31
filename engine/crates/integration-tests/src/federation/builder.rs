@@ -9,7 +9,10 @@ use futures::{future::BoxFuture, stream::FuturesUnordered, FutureExt, StreamExt}
 use graphql_composition::FederatedGraph;
 use graphql_federated_graph::FederatedGraphV3;
 use graphql_mocks::MockGraphQlServer;
-use parser_sdl::{connector_parsers::MockConnectorParsers, federation::header::SubgraphHeaderRule};
+use parser_sdl::{
+    connector_parsers::MockConnectorParsers,
+    federation::{header::SubgraphHeaderRule, EntityCachingConfig},
+};
 use runtime::{fetch::FetcherInner, hooks::DynamicHooks, trusted_documents_client};
 use runtime_local::{ComponentLoader, HooksWasi, HooksWasiConfig};
 pub use test_runtime::*;
@@ -190,7 +193,11 @@ impl EngineV2Builder {
 
         federated_graph_config.timeout = self.timeout;
         federated_graph_config.header_rules.extend(self.header_rules);
-        federated_graph_config.enable_entity_caching = self.enable_entity_caching;
+        federated_graph_config.entity_caching = if self.enable_entity_caching {
+            EntityCachingConfig::Enabled { ttl: None }
+        } else {
+            EntityCachingConfig::Disabled
+        };
 
         let config = engine_config_builder::build_config(&federated_graph_config, graph).into_latest();
         let engine = engine_v2::Engine::new(Arc::new(config.try_into().unwrap()), None, self.runtime).await;

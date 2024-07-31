@@ -4,8 +4,9 @@ use std::collections::BTreeMap;
 use std::time::Duration;
 
 use engine_v2_config::latest::{
-    AuthConfig, AuthProviderConfig, CacheConfig, CacheConfigTarget, CacheConfigs, HeaderForward, HeaderInsert,
-    HeaderRemove, HeaderRenameDuplicate, HeaderRule, HeaderRuleId, NameOrPattern, OperationLimits, SubgraphConfig,
+    AuthConfig, AuthProviderConfig, CacheConfig, CacheConfigTarget, CacheConfigs, EntityCaching,
+    HeaderForward, HeaderInsert, HeaderRemove, HeaderRenameDuplicate, HeaderRule, HeaderRuleId,
+    NameOrPattern, OperationLimits, SubgraphConfig,
 };
 use engine_v2_config::{
     latest::{self as config},
@@ -13,7 +14,7 @@ use engine_v2_config::{
 };
 use federated_graph::{FederatedGraph, FederatedGraphV3, FieldId, ObjectId, SubgraphId};
 use parser_sdl::federation::header::SubgraphHeaderRule;
-use parser_sdl::federation::FederatedGraphConfig;
+use parser_sdl::federation::{EntityCachingConfig, FederatedGraphConfig};
 use parser_sdl::{AuthV2Provider, GlobalCacheTarget};
 
 mod paths;
@@ -45,7 +46,10 @@ pub fn build_config(config: &FederatedGraphConfig, graph: FederatedGraph) -> Ver
         disable_introspection: config.disable_introspection,
         rate_limit: context.rate_limit,
         timeout: config.timeout,
-        enable_entity_caching: config.enable_entity_caching,
+        entity_caching: match config.entity_caching {
+            EntityCachingConfig::Enabled { ttl } => EntityCaching::Enabled { ttl },
+            _ => EntityCaching::Disabled,
+        },
     })
 }
 
@@ -67,17 +71,19 @@ fn build_auth_config(config: &FederatedGraphConfig) -> Option<AuthConfig> {
             .providers
             .iter()
             .map(|provider| match provider {
-                AuthV2Provider::JWT { name, jwks, header } => AuthProviderConfig::Jwt(config::JwtConfig {
-                    name: name.clone(),
-                    jwks: config::JwksConfig {
-                        issuer: jwks.issuer.clone(),
-                        audience: jwks.audience.clone(),
-                        url: jwks.url.clone(),
-                        poll_interval: jwks.poll_interval,
-                    },
-                    header_name: header.name.clone(),
-                    header_value_prefix: header.value_prefix.clone(),
-                }),
+                AuthV2Provider::JWT { name, jwks, header } => {
+                    AuthProviderConfig::Jwt(config::JwtConfig {
+                        name: name.clone(),
+                        jwks: config::JwksConfig {
+                            issuer: jwks.issuer.clone(),
+                            audience: jwks.audience.clone(),
+                            url: jwks.url.clone(),
+                            poll_interval: jwks.poll_interval,
+                        },
+                        header_name: header.name.clone(),
+                        header_value_prefix: header.value_prefix.clone(),
+                    })
+                }
                 AuthV2Provider::Anonymous => AuthProviderConfig::Anonymous,
             })
             .collect();
@@ -96,7 +102,11 @@ struct BuildContext<'a> {
 }
 
 impl<'a> BuildContext<'a> {
-    pub fn insert_cache_config(&mut self, graph: &FederatedGraphV3, rules: &parser_sdl::GlobalCacheRules<'static>) {
+    pub fn insert_cache_config(
+        &mut self,
+        graph: &FederatedGraphV3,
+        rules: &parser_sdl::GlobalCacheRules<'static>,
+    ) {
         let mut cache_config = BTreeMap::new();
 
         for (target, cache_control) in rules.iter() {
@@ -130,31 +140,37 @@ impl<'a> BuildContext<'a> {
             }
         }
 
-        self.cache = CacheConfigs { rules: cache_config }
+        self.cache = CacheConfigs {
+            rules: cache_config,
+        }
     }
 
     pub fn insert_rate_limit(&mut self, config: &'a parser_sdl::federation::RateLimitConfig) {
         let rate_limit = engine_v2_config::latest::RateLimitConfig {
-            global: config.global.map(|config| engine_v2_config::latest::GraphRateLimit {
-                limit: config.limit,
-                duration: config.duration,
-            }),
+            global: config
+                .global
+                .map(|config| engine_v2_config::latest::GraphRateLimit {
+                    limit: config.limit,
+                    duration: config.duration,
+                }),
             storage: match config.storage {
-                parser_sdl::federation::RateLimitStorage::Memory => engine_v2_config::latest::RateLimitStorage::Memory,
-                parser_sdl::federation::RateLimitStorage::Redis => engine_v2_config::latest::RateLimitStorage::Redis,
+                parser_sdl::federation::RateLimitStorage::Memory => {
+                    engine_v2_config::latest::RateLimitStorage::Memory
+                }
+                parser_sdl::federation::RateLimitStorage::Redis => {
+                    engine_v2_config::latest::RateLimitStorage::Redis
+                }
             },
             redis: engine_v2_config::latest::RateLimitRedisConfig {
                 url: self.strings.intern(config.redis.url.as_str()),
                 key_prefix: self.strings.intern(&config.redis.key_prefix),
-                tls: config
-                    .redis
-                    .tls
-                    .as_ref()
-                    .map(|config| engine_v2_config::latest::RateLimitRedisTlsConfig {
+                tls: config.redis.tls.as_ref().map(|config| {
+                    engine_v2_config::latest::RateLimitRedisTlsConfig {
                         cert: config.cert.as_ref().map(|cert| self.paths.intern(cert)),
                         key: config.key.as_ref().map(|key| self.paths.intern(key)),
                         ca: config.ca.as_ref().map(|ca| self.paths.intern(ca)),
-                    }),
+                    }
+                }),
             },
         };
 
@@ -176,7 +192,7 @@ impl<'a> BuildContext<'a> {
                 header_rules,
                 rate_limit,
                 timeout,
-                entity_cache_ttl,
+                entity_caching,
                 ..
             } = config;
 
@@ -184,12 +200,13 @@ impl<'a> BuildContext<'a> {
             let websocket_url = websocket_url.as_ref().map(|url| self.strings.intern(url));
             let subgraph_name = self.strings.intern(name);
 
-            let rate_limit = rate_limit
-                .as_ref()
-                .map(|config| engine_v2_config::latest::GraphRateLimit {
-                    limit: config.limit,
-                    duration: config.duration,
-                });
+            let rate_limit =
+                rate_limit
+                    .as_ref()
+                    .map(|config| engine_v2_config::latest::GraphRateLimit {
+                        limit: config.limit,
+                        duration: config.duration,
+                    });
 
             let retry = config.retry.as_ref().map(
                 |parser_sdl::federation::RetryConfig {
@@ -213,8 +230,13 @@ impl<'a> BuildContext<'a> {
                     websocket_url,
                     rate_limit,
                     timeout: *timeout,
-                    entity_cache_ttl: *entity_cache_ttl,
                     retry,
+                    entity_caching: entity_caching.as_ref().map(|config| match config {
+                        EntityCachingConfig::Disabled => EntityCaching::Disabled,
+                        EntityCachingConfig::Enabled { ttl } => {
+                            EntityCaching::Enabled { ttl: *ttl }
+                        }
+                    }),
                 },
             );
         }
@@ -224,17 +246,30 @@ impl<'a> BuildContext<'a> {
         &mut self,
         header_rules: impl IntoIterator<Item = &'a SubgraphHeaderRule>,
     ) -> Vec<HeaderRuleId> {
-        header_rules.into_iter().map(|rule| self.insert_header(rule)).collect()
+        header_rules
+            .into_iter()
+            .map(|rule| self.insert_header(rule))
+            .collect()
     }
 
     pub fn insert_header(&mut self, rule: &'a SubgraphHeaderRule) -> HeaderRuleId {
         let rule = match rule {
             SubgraphHeaderRule::Forward(ref rule) => {
                 let name = self.intern_header_name(&rule.name);
-                let default = rule.default.as_ref().map(|default| self.strings.intern(default));
-                let rename = rule.rename.as_ref().map(|rename| self.strings.intern(rename));
+                let default = rule
+                    .default
+                    .as_ref()
+                    .map(|default| self.strings.intern(default));
+                let rename = rule
+                    .rename
+                    .as_ref()
+                    .map(|rename| self.strings.intern(rename));
 
-                HeaderRule::Forward(HeaderForward { name, default, rename })
+                HeaderRule::Forward(HeaderForward {
+                    name,
+                    default,
+                    rename,
+                })
             }
             SubgraphHeaderRule::Insert(ref rule) => HeaderRule::Insert(HeaderInsert {
                 name: self.strings.intern(&rule.name),
@@ -243,11 +278,16 @@ impl<'a> BuildContext<'a> {
             SubgraphHeaderRule::Remove(ref rule) => HeaderRule::Remove(HeaderRemove {
                 name: self.intern_header_name(&rule.name),
             }),
-            SubgraphHeaderRule::RenameDuplicate(ref rule) => HeaderRule::RenameDuplicate(HeaderRenameDuplicate {
-                name: self.strings.intern(&rule.name),
-                default: rule.default.as_ref().map(|default| self.strings.intern(default)),
-                rename: self.strings.intern(&rule.rename),
-            }),
+            SubgraphHeaderRule::RenameDuplicate(ref rule) => {
+                HeaderRule::RenameDuplicate(HeaderRenameDuplicate {
+                    name: self.strings.intern(&rule.name),
+                    default: rule
+                        .default
+                        .as_ref()
+                        .map(|default| self.strings.intern(default)),
+                    rename: self.strings.intern(&rule.rename),
+                })
+            }
         };
 
         let id = config::HeaderRuleId(self.header_rules.len());
@@ -256,7 +296,10 @@ impl<'a> BuildContext<'a> {
         id
     }
 
-    fn intern_header_name(&mut self, name: &'a parser_sdl::federation::header::NameOrPattern) -> NameOrPattern {
+    fn intern_header_name(
+        &mut self,
+        name: &'a parser_sdl::federation::header::NameOrPattern,
+    ) -> NameOrPattern {
         match name {
             parser_sdl::federation::header::NameOrPattern::Pattern(ref pattern) => {
                 NameOrPattern::Pattern(pattern.clone())

@@ -88,7 +88,7 @@ fn test_cache_expiry() {
     let response = runtime().block_on(async move {
         let engine = Engine::builder()
             .with_subgraph(FederatedProductsSchema)
-            .with_sdl_config(r#"extend schema @subgraph(name: "products", entityCacheTtl: "1s")"#)
+            .with_sdl_config(r#"extend schema @subgraph(name: "products", entityCachingTtl: "1s")"#)
             .with_entity_caching()
             .build()
             .await;

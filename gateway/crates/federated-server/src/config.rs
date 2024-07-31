@@ -1,5 +1,6 @@
 mod authentication;
 mod cors;
+mod entity_caching;
 mod header;
 mod health;
 mod rate_limit;
@@ -10,6 +11,7 @@ pub use self::health::HealthConfig;
 use ascii::AsciiString;
 pub use authentication::AuthenticationConfig;
 pub use cors::CorsConfig;
+pub use entity_caching::EntityCachingConfig;
 use grafbase_telemetry::config::TelemetryConfig;
 pub use header::{HeaderForward, HeaderInsert, HeaderRemove, HeaderRule, NameOrPattern};
 pub use rate_limit::{GraphRateLimit, RateLimitConfig};
@@ -59,13 +61,20 @@ pub struct Config {
     /// Health check endpoint configuration
     #[serde(default)]
     pub health: HealthConfig,
+
+    /// Global configuration for entity caching
+    #[serde(default)]
+    pub entity_caching: EntityCachingConfig,
 }
 
 #[derive(Debug, Default, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct GatewayConfig {
     /// Time out for gateway requests.
-    #[serde(deserialize_with = "duration_str::deserialize_option_duration", default)]
+    #[serde(
+        deserialize_with = "duration_str::deserialize_option_duration",
+        default
+    )]
     pub timeout: Option<Duration>,
     /// Global rate limiting configuration
     #[serde(default)]
@@ -83,10 +92,17 @@ pub struct SubgraphConfig {
     #[serde(default)]
     pub rate_limit: Option<GraphRateLimit>,
     /// Timeout for subgraph requests in seconds. Default: 30 seconds.
-    #[serde(deserialize_with = "duration_str::deserialize_option_duration", default)]
+    #[serde(
+        deserialize_with = "duration_str::deserialize_option_duration",
+        default
+    )]
     pub timeout: Option<Duration>,
     #[serde(default)]
     pub retry: SubgraphRetryConfig,
+
+    /// Subgraph specific entity caching config  this overrides the global config if there
+    /// is any
+    pub entity_caching: Option<EntityCachingConfig>,
 }
 
 #[derive(Debug, serde::Deserialize, Clone, Default)]
@@ -213,7 +229,10 @@ mod tests {
         "#};
 
         let config: Config = toml::from_str(input).unwrap();
-        let expected = Some(SocketAddr::new(std::net::IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)), 4000));
+        let expected = Some(SocketAddr::new(
+            std::net::IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)),
+            4000,
+        ));
 
         assert_eq!(expected, config.network.listen_address);
     }
@@ -463,7 +482,10 @@ mod tests {
         let config: Config = toml::from_str(input).unwrap();
         let cors = config.cors.unwrap();
 
-        let expected = AnyOrAsciiStringArray::Explicit(vec![AsciiString::from_ascii(b"Content-Type").unwrap()]);
+        let expected = AnyOrAsciiStringArray::Explicit(vec![AsciiString::from_ascii(
+            b"Content-Type",
+        )
+        .unwrap()]);
 
         assert_eq!(Some(expected), cors.allow_headers)
     }
@@ -521,7 +543,10 @@ mod tests {
         let config: Config = toml::from_str(input).unwrap();
         let cors = config.cors.unwrap();
 
-        let expected = AnyOrAsciiStringArray::Explicit(vec![AsciiString::from_ascii(b"Content-Type").unwrap()]);
+        let expected = AnyOrAsciiStringArray::Explicit(vec![AsciiString::from_ascii(
+            b"Content-Type",
+        )
+        .unwrap()]);
 
         assert_eq!(Some(expected), cors.expose_headers);
     }
@@ -1313,6 +1338,7 @@ mod tests {
                     retry_percent: None,
                     retry_mutations: None,
                 },
+                entity_caching: None,
             },
         }
         "###);

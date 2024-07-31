@@ -5,7 +5,10 @@ use url::Url;
 
 use crate::{
     directive_de::parse_directive,
-    federation::{header::SubgraphHeaderRule, RetryConfig as SubgraphRetryConfig},
+    federation::{
+        EntityCachingConfig,
+        {header::SubgraphHeaderRule, RetryConfig as SubgraphRetryConfig},
+    },
 };
 
 use super::{
@@ -40,9 +43,14 @@ pub struct SubgraphDirective {
     #[serde(default, deserialize_with = "duration_str::deserialize_option_duration")]
     timeout: Option<std::time::Duration>,
 
-    /// Timeout for requests to that subgraph
+    /// Whether to enable entity caching for this subgraph or not.  Defaults to the
+    /// global setting.
+    #[serde(default)]
+    entity_caching_enabled: Option<bool>,
+
+    /// The ttl to use for entity caching on this subgraph
     #[serde(default, deserialize_with = "duration_str::deserialize_option_duration")]
-    entity_cache_ttl: Option<std::time::Duration>,
+    entity_caching_ttl: Option<std::time::Duration>,
 
     /// Retry configuration for that subgraph
     #[serde(default)]
@@ -182,8 +190,17 @@ impl Visitor<'_> for SubgraphDirectiveVisitor {
                 subgraph.development_url = Some(url.to_string())
             }
 
-            if let Some(ttl) = directive.entity_cache_ttl {
-                subgraph.entity_cache_ttl = Some(ttl)
+            if let Some(enabled) = directive.entity_caching_enabled {
+                if enabled {
+                    subgraph.entity_caching = Some(EntityCachingConfig::Enabled { ttl: None });
+                } else {
+                    subgraph.entity_caching = Some(EntityCachingConfig::Disabled);
+                }
+            }
+
+            if let Some(ttl) = directive.entity_caching_ttl {
+                // If there's a ttl we always enable
+                subgraph.entity_caching = Some(EntityCachingConfig::Enabled { ttl: Some(ttl) });
             }
 
             subgraph.header_rules.extend(
@@ -269,8 +286,8 @@ mod tests {
                         ],
                         rate_limit: None,
                         timeout: None,
-                        entity_cache_ttl: None,
                         retry: None,
+                        entity_caching: None,
                     },
                     "Reviews": SubgraphConfig {
                         name: "Reviews",
@@ -286,8 +303,8 @@ mod tests {
                         ],
                         rate_limit: None,
                         timeout: None,
-                        entity_cache_ttl: None,
                         retry: None,
+                        entity_caching: None,
                     },
                 },
                 header_rules: [],
@@ -305,7 +322,7 @@ mod tests {
                 disable_introspection: false,
                 rate_limit: None,
                 timeout: None,
-                enable_entity_caching: false,
+                entity_caching: Disabled,
             },
         )
         "###);
