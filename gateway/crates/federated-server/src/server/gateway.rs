@@ -5,12 +5,11 @@ use std::{collections::BTreeMap, sync::Arc};
 
 use runtime_local::rate_limiting::in_memory::key_based::InMemoryRateLimiter;
 use runtime_local::rate_limiting::redis::RedisRateLimiter;
-use tokio::sync::{mpsc, watch};
+use tokio::sync::watch;
 
 use engine_v2::Engine;
 use graphql_composition::FederatedGraph;
 use parser_sdl::federation::{header::SubgraphHeaderRule, FederatedGraphConfig};
-use runtime::rate_limiting::KeyedRateLimitConfig;
 use runtime_local::{ComponentLoader, HooksWasi, HooksWasiConfig, InMemoryKvStore};
 use runtime_noop::trusted_documents::NoopTrustedDocuments;
 
@@ -151,10 +150,14 @@ pub(super) async fn generate(
         })
         .collect::<HashMap<_, _>>();
 
+    let (rate_limit_tx, rate_limit_rx) = watch::channel(rate_limiting_configs);
+
+    if let Some(path) = config_hot_reload.then_some(config_path).flatten() {
+        hot_reload::ConfigWatcher::new(path, rate_limit_tx).watch()?;
+    }
+
     let rate_limiter = match config.rate_limit_config() {
         Some(config) if config.storage.is_redis() => {
-            let (tx, rx) = watch::channel(rate_limiting_configs);
-
             let tls = config
                 .redis
                 .tls
@@ -170,29 +173,11 @@ pub(super) async fn generate(
                 tls,
             };
 
-            match config_path {
-                Some(path) if config_hot_reload => {
-                    hot_reload::ConfigWatcher::new(path, tx).watch()?;
-                }
-                _ => (),
-            }
-
-            RedisRateLimiter::runtime(global_config, rx)
+            RedisRateLimiter::runtime(global_config, rate_limit_rx)
                 .await
                 .map_err(|e| crate::Error::InternalError(e.to_string()))?
         }
-        _ => {
-            let (tx, rx) = mpsc::channel(100);
-
-            match config_path {
-                Some(path) if config_hot_reload => {
-                    hot_reload::ConfigWatcher::new(path, tx).watch()?;
-                }
-                _ => (),
-            }
-
-            InMemoryRateLimiter::runtime(KeyedRateLimitConfig { rate_limiting_configs }, rx)
-        }
+        _ => InMemoryRateLimiter::runtime(rate_limit_rx),
     };
 
     let runtime = GatewayRuntime {
