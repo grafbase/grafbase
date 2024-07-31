@@ -55,11 +55,15 @@ impl InMemoryRateLimiter {
         }
 
         let limiters = Arc::new(RwLock::new(limiters));
-        let limiters_copy = limiters.clone();
+        let limiters_copy = Arc::downgrade(&limiters);
 
         tokio::spawn(async move {
             while let Ok(()) = updates.changed().await {
-                let mut limiters = limiters_copy.write().unwrap();
+                let Some(limiters) = limiters_copy.upgrade() else {
+                    break;
+                };
+
+                let mut limiters = limiters.write().unwrap();
                 limiters.clear();
 
                 for (name, config) in updates.borrow_and_update().iter() {
