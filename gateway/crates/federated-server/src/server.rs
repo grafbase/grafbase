@@ -25,6 +25,7 @@ use grafbase_telemetry::span::GRAFBASE_TARGET;
 use state::ServerState;
 use std::{
     net::{IpAddr, Ipv4Addr, SocketAddr},
+    path::PathBuf,
     time::Duration,
 };
 use tokio::sync::mpsc;
@@ -34,14 +35,35 @@ use self::gateway::GatewayConfig;
 
 const DEFAULT_LISTEN_ADDRESS: SocketAddr = SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), 5000);
 
+/// Start parameter for the gateway.
+pub struct ServerConfig {
+    /// The GraphQL endpoint listen address.
+    pub listen_addr: Option<SocketAddr>,
+    /// The gateway configuration.
+    pub config: Config,
+    /// The config file path for hot reload.
+    pub config_path: Option<PathBuf>,
+    /// If true, watches changes to the config
+    /// and reloads _some_ of the things.
+    pub config_hot_reload: bool,
+    /// The way of loading the graph for the gateway.
+    pub fetch_method: GraphFetchMethod,
+    /// The opentelemetry tracer.
+    pub otel_tracing: Option<OtelTracing>,
+}
+
 /// Starts the self-hosted Grafbase gateway. If started with a schema path, will
 /// not connect our API for changes in the schema and if started without, we poll
 /// the schema registry every ten second for changes.
 pub async fn serve(
-    listen_addr: Option<SocketAddr>,
-    config: Config,
-    fetch_method: GraphFetchMethod,
-    otel_tracing: Option<OtelTracing>,
+    ServerConfig {
+        listen_addr,
+        config,
+        config_path,
+        fetch_method,
+        otel_tracing,
+        config_hot_reload,
+    }: ServerConfig,
 ) -> crate::Result<()> {
     let path = config.graph.path.as_deref().unwrap_or("/graphql");
 
@@ -74,6 +96,8 @@ pub async fn serve(
                 rate_limit: config.gateway.rate_limit,
                 timeout: config.gateway.timeout,
                 entity_caching: config.entity_caching,
+                config_hot_reload,
+                config_path,
             },
             otel_reload,
             sender,

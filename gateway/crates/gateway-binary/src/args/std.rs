@@ -1,4 +1,8 @@
-use std::{fs, net::SocketAddr, path::PathBuf};
+use std::{
+    fs,
+    net::SocketAddr,
+    path::{Path, PathBuf},
+};
 
 use anyhow::Context;
 use ascii::AsciiString;
@@ -52,6 +56,9 @@ pub struct Args {
     /// Set the style of log output
     #[arg(long, env = "GRAFBASE_LOG_STYLE", default_value_t = LogStyle::Text)]
     log_style: LogStyle,
+    /// If set, parts of the configuration will get reloaded when changed.
+    #[arg(long, action)]
+    hot_reload: bool,
 }
 
 impl super::Args for Args {
@@ -76,6 +83,14 @@ impl super::Args for Args {
                 })
             }
         }
+    }
+
+    fn config_path(&self) -> Option<&Path> {
+        self.config.as_deref()
+    }
+
+    fn hot_reload(&self) -> bool {
+        self.hot_reload
     }
 
     fn config(&self) -> anyhow::Result<Config> {

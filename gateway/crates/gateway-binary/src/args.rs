@@ -2,7 +2,7 @@ mod lambda;
 mod log;
 mod std;
 
-use ::std::net::SocketAddr;
+use ::std::{net::SocketAddr, path::Path};
 
 use clap::Parser;
 use federated_server::{Config, GraphFetchMethod};
@@ -19,6 +19,10 @@ pub(crate) trait Args {
     fn fetch_method(&self) -> anyhow::Result<GraphFetchMethod>;
 
     fn config(&self) -> anyhow::Result<Config>;
+
+    fn config_path(&self) -> Option<&Path>;
+
+    fn hot_reload(&self) -> bool;
 
     fn log_format<S>(&self) -> BoxedLayer<S>
     where

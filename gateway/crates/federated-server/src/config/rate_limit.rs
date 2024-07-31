@@ -4,7 +4,7 @@ use serde::Deserializer;
 use std::path::PathBuf;
 use std::time::Duration;
 
-#[derive(Debug, Clone, serde::Deserialize)]
+#[derive(Debug, Clone, Copy, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct GraphRateLimit {
     pub limit: usize,

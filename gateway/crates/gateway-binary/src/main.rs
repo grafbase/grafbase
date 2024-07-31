@@ -11,7 +11,7 @@ use tracing::{error, Subscriber};
 use tracing_subscriber::registry::LookupSpan;
 use tracing_subscriber::{reload, EnvFilter, Layer, Registry};
 
-use federated_server::{Config, GraphFetchMethod, OtelReload, OtelTracing};
+use federated_server::{Config, GraphFetchMethod, OtelReload, OtelTracing, ServerConfig};
 use grafbase_telemetry::config::TelemetryConfig;
 use grafbase_telemetry::error::TracingError;
 use grafbase_telemetry::otel::layer::BoxedLayer;
@@ -42,6 +42,7 @@ fn main() -> anyhow::Result<()> {
     runtime.block_on(async move {
         let otel_tracing = if std::env::var("__GRAFBASE_RUST_LOG").is_ok() {
             let filter = tracing_subscriber::filter::EnvFilter::try_from_env("__GRAFBASE_RUST_LOG").unwrap_or_default();
+
             tracing_subscriber::fmt()
                 .pretty()
                 .with_env_filter(filter)
@@ -50,7 +51,9 @@ fn main() -> anyhow::Result<()> {
                 .with_target(true)
                 .without_time()
                 .init();
+
             tracing::warn!("Skipping OTEL configuration.");
+
             None
         } else {
             setup_tracing(&mut config, &args)?
@@ -59,7 +62,15 @@ fn main() -> anyhow::Result<()> {
         let crate_version = crate_version!();
         tracing::info!(target: GRAFBASE_TARGET, "Grafbase Gateway {crate_version}");
 
-        federated_server::serve(args.listen_address(), config, args.fetch_method()?, otel_tracing).await?;
+        federated_server::serve(ServerConfig {
+            listen_addr: args.listen_address(),
+            config,
+            config_path: args.config_path().map(|p| p.to_owned()),
+            config_hot_reload: args.hot_reload(),
+            fetch_method: args.fetch_method()?,
+            otel_tracing,
+        })
+        .await?;
 
         Ok::<(), anyhow::Error>(())
     })?;
