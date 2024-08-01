@@ -97,8 +97,8 @@ impl GraphqlPreparedExecutor {
             let cache_entry = ctx
                 .engine
                 .runtime
-                .kv()
-                .get(cache_key, Some(Duration::ZERO))
+                .entity_cache()
+                .get(cache_key)
                 .await
                 .inspect_err(|err| tracing::warn!("Failed to read the cache key {cache_key}: {err}"))
                 .ok()
@@ -190,8 +190,8 @@ where
             self.ctx
                 .engine
                 .runtime
-                .kv()
-                .put(&cache_key, Cow::Borrowed(bytes.as_ref()), Some(cache_ttl))
+                .entity_cache()
+                .put(&cache_key, Cow::Borrowed(bytes.as_ref()), cache_ttl)
                 .await
                 .inspect_err(|err| tracing::warn!("Failed to write the cache key {cache_key}: {err}"))
                 .ok();
