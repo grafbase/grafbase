@@ -1,6 +1,31 @@
 use runtime::hot_cache::{CachedDataKind, HotCache, HotCacheFactory};
 
-pub struct InMemoryHotCacheFactory;
+pub struct InMemoryHotCacheConfig {
+    pub limit: usize,
+}
+
+pub struct InMemoryHotCacheFactory {
+    pub trusted_documents_config: InMemoryHotCacheConfig,
+    pub operation_config: InMemoryHotCacheConfig,
+}
+
+impl InMemoryHotCacheFactory {
+    pub fn inactive() -> Self {
+        InMemoryHotCacheFactory {
+            trusted_documents_config: InMemoryHotCacheConfig { limit: 0 },
+            operation_config: InMemoryHotCacheConfig { limit: 0 },
+        }
+    }
+}
+
+impl Default for InMemoryHotCacheFactory {
+    fn default() -> Self {
+        InMemoryHotCacheFactory {
+            trusted_documents_config: InMemoryHotCacheConfig { limit: 100 },
+            operation_config: InMemoryHotCacheConfig { limit: 1000 },
+        }
+    }
+}
 
 impl HotCacheFactory for InMemoryHotCacheFactory {
     type Cache<V> = InMemoryHotCache<V>
@@ -11,13 +36,14 @@ impl HotCacheFactory for InMemoryHotCacheFactory {
     where
         V: Clone + Send + Sync + 'static + serde::Serialize + serde::de::DeserializeOwned,
     {
-        // A bit arbitrary for now
-        let builder = mini_moka::sync::Cache::builder();
+        let config = match kind {
+            CachedDataKind::TrustedDocument => &self.trusted_documents_config,
+            CachedDataKind::Operation => &self.operation_config,
+        };
         InMemoryHotCache {
-            inner: match kind {
-                CachedDataKind::PersistedQuery => builder.max_capacity(100).build(),
-                CachedDataKind::Operation => builder.max_capacity(1000).build(),
-            },
+            inner: mini_moka::sync::Cache::builder()
+                .max_capacity(config.limit as u64)
+                .build(),
         }
     }
 }

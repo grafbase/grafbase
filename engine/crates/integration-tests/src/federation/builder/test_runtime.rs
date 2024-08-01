@@ -11,6 +11,7 @@ pub struct TestRuntime {
     pub fetcher: runtime::fetch::Fetcher,
     pub trusted_documents: trusted_documents_client::Client,
     pub kv: runtime::kv::KvStore,
+    pub hot_cache_factory: InMemoryHotCacheFactory,
     pub meter: opentelemetry::metrics::Meter,
     pub hooks: DynamicHooks,
     pub rate_limiter: runtime::rate_limiting::RateLimiter,
@@ -29,6 +30,7 @@ impl Default for TestRuntime {
             hooks: Default::default(),
             rate_limiter: InMemoryRateLimiter::runtime_with_watcher(rx),
             entity_cache: InMemoryEntityCache::default(),
+            hot_cache_factory: Default::default(),
         }
     }
 }
@@ -58,7 +60,7 @@ impl engine_v2::Runtime for TestRuntime {
     }
 
     fn cache_factory(&self) -> &Self::CacheFactory {
-        &InMemoryHotCacheFactory
+        &self.hot_cache_factory
     }
 
     fn rate_limiter(&self) -> &runtime::rate_limiting::RateLimiter {

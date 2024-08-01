@@ -1,6 +1,9 @@
-use std::sync::{
-    atomic::{AtomicUsize, Ordering},
-    Arc,
+use std::{
+    borrow::Cow,
+    sync::{
+        atomic::{AtomicUsize, Ordering},
+        Arc,
+    },
 };
 
 use engine::BatchRequest;
@@ -13,22 +16,23 @@ use runtime::{
     fetch::{FetchError, FetchRequest, FetchResponse, FetchResult, GraphqlRequest},
     hooks::DynamicHooks,
 };
+use runtime_local::InMemoryHotCacheFactory;
 
 use crate::federation::{GraphqlResponse, GraphqlStreamingResponse};
 
 use super::TestRuntime;
 
 #[derive(Clone)]
-pub struct DeterministicEngine<'a> {
+pub struct DeterministicEngine {
     engine: Arc<engine_v2::Engine<TestRuntime>>,
-    query: &'a str,
+    query: String,
     dummy_responses_index: Arc<AtomicUsize>,
 }
 
 pub struct DeterministicEngineBuilder<'a> {
-    hooks: DynamicHooks,
+    runtime: TestRuntime,
     schema: &'a str,
-    query: &'a str,
+    query: String,
     subgraphs_json_responses: Vec<String>,
 }
 
@@ -42,11 +46,16 @@ impl<'a> DeterministicEngineBuilder<'a> {
 
     #[must_use]
     pub fn with_hooks(mut self, hooks: impl Into<DynamicHooks>) -> Self {
-        self.hooks = hooks.into();
+        self.runtime.hooks = hooks.into();
         self
     }
 
-    pub async fn build(self) -> DeterministicEngine<'a> {
+    pub fn without_hot_cache(mut self) -> Self {
+        self.runtime.hot_cache_factory = InMemoryHotCacheFactory::inactive();
+        self
+    }
+
+    pub async fn build(self) -> DeterministicEngine {
         let dummy_responses_index = Arc::new(AtomicUsize::new(0));
         let fetcher = DummyFetcher::create(
             self.subgraphs_json_responses
@@ -66,14 +75,7 @@ impl<'a> DeterministicEngineBuilder<'a> {
             None,
             TestRuntime {
                 fetcher,
-                trusted_documents: runtime::trusted_documents_client::Client::new(
-                    runtime_noop::trusted_documents::NoopTrustedDocuments,
-                ),
-                kv: runtime_local::InMemoryKvStore::runtime(),
-                meter: grafbase_telemetry::metrics::meter_from_global_provider(),
-                hooks: self.hooks,
-                rate_limiter: runtime_noop::rate_limiting::NoopRateLimiter::runtime(),
-                entity_cache: runtime_local::InMemoryEntityCache::default(),
+                ..self.runtime
             },
         )
         .await;
@@ -85,17 +87,21 @@ impl<'a> DeterministicEngineBuilder<'a> {
     }
 }
 
-impl<'a> DeterministicEngine<'a> {
-    pub fn builder(schema: &'a str, query: &'a str) -> DeterministicEngineBuilder<'a> {
+impl DeterministicEngine {
+    pub fn builder(schema: &str, query: impl Into<Cow<'static, str>>) -> DeterministicEngineBuilder<'_> {
         DeterministicEngineBuilder {
-            hooks: DynamicHooks::default(),
+            runtime: TestRuntime::default(),
             schema,
-            query,
+            query: query.into().into_owned(),
             subgraphs_json_responses: Vec::new(),
         }
     }
 
-    pub async fn new<T: serde::Serialize, I>(schema: &'a str, query: &'a str, subgraphs_responses: I) -> Self
+    pub async fn new<T: serde::Serialize, I>(
+        schema: &str,
+        query: impl Into<Cow<'static, str>>,
+        subgraphs_responses: I,
+    ) -> Self
     where
         I: IntoIterator<Item = T>,
     {
@@ -111,7 +117,7 @@ impl<'a> DeterministicEngine<'a> {
         self.engine
             .execute(
                 http::HeaderMap::new(),
-                BatchRequest::Single(engine::Request::new(self.query)),
+                BatchRequest::Single(engine::Request::new(&self.query)),
             )
             .await
     }
@@ -126,7 +132,7 @@ impl<'a> DeterministicEngine<'a> {
         headers.typed_insert(StreamingFormat::IncrementalDelivery);
         let response = self
             .engine
-            .execute(headers, BatchRequest::Single(engine::Request::new(self.query)))
+            .execute(headers, BatchRequest::Single(engine::Request::new(&self.query)))
             .await;
         let stream = multipart_stream::parse(response.body.into_stream().map_ok(Into::into), "-")
             .map(|result| serde_json::from_slice(&result.unwrap().body).unwrap());
