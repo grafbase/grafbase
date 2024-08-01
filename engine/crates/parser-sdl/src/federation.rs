@@ -91,11 +91,11 @@ impl From<gateway_config::EntityCachingConfig> for EntityCachingConfig {
 
 fn entity_cache_storage(
     storage: gateway_config::EntityCachingStorage,
-    redis: Option<gateway_config::EntityCachingRedisConfig>,
+    redis: gateway_config::EntityCachingRedisConfig,
 ) -> EntityCacheStorage {
     match storage {
         gateway_config::EntityCachingStorage::Memory => EntityCacheStorage::Memory,
-        gateway_config::EntityCachingStorage::Redis => EntityCacheStorage::Redis(redis.unwrap_or_default().into()),
+        gateway_config::EntityCachingStorage::Redis => EntityCacheStorage::Redis(redis.into()),
     }
 }
 

@@ -8,7 +8,7 @@ pub struct EntityCachingConfig {
     pub storage: EntityCachingStorage,
 
     #[serde(default)]
-    pub redis: Option<EntityCachingRedisConfig>,
+    pub redis: EntityCachingRedisConfig,
 
     /// The ttl to store cache entries with.  Defaults to 60s
     #[serde(deserialize_with = "duration_str::deserialize_option_duration", default)]
