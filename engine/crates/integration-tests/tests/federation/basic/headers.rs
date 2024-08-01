@@ -3,11 +3,6 @@
 use engine_v2::Engine;
 use graphql_mocks::EchoSchema;
 use integration_tests::{federation::EngineV2Ext, runtime};
-use parser_sdl::federation::header::{
-    NameOrPattern, SubgraphHeaderForward, SubgraphHeaderInsert, SubgraphHeaderRemove, SubgraphHeaderRule,
-    SubgraphRenameDuplicate,
-};
-use regex::Regex;
 
 #[test]
 fn test_default_headers() {
@@ -168,20 +163,23 @@ fn should_not_propagate_blacklisted_headers() {
     runtime().block_on(async move {
         let engine = Engine::builder()
             .with_subgraph(EchoSchema)
-            .with_header_rule(SubgraphHeaderRule::Forward(SubgraphHeaderForward {
-                name: NameOrPattern::Pattern(Regex::new(".*").unwrap()),
-                default: None,
-                rename: None,
-            }))
-            .with_header_rule(SubgraphHeaderRule::Insert(SubgraphHeaderInsert {
-                name: "Content-Type".into(),
-                value: "application/trust-me".into(),
-            }))
-            .with_header_rule(SubgraphHeaderRule::RenameDuplicate(SubgraphRenameDuplicate {
-                name: "User-Agent".into(),
-                default: None,
-                rename: "TE".into(),
-            }))
+            .with_toml_config(
+                r###"
+                [[headers]]
+                rule = "forward"
+                pattern = ".*"
+
+                [[headers]]
+                rule = "insert"
+                name = "Content-Type"
+                value = "application/trust-me"
+
+                [[headers]]
+                rule = "rename_duplicate"
+                name = "User-Agent"
+                rename = "TE"
+                "###,
+            )
             .build()
             .await;
 
@@ -236,11 +234,13 @@ fn test_regex_header_forwarding() {
     let response = runtime().block_on(async move {
         let engine = Engine::builder()
             .with_subgraph(EchoSchema)
-            .with_header_rule(SubgraphHeaderRule::Forward(SubgraphHeaderForward {
-                name: NameOrPattern::Pattern(Regex::new("^x-*").unwrap()),
-                default: None,
-                rename: None,
-            }))
+            .with_toml_config(
+                r###"
+                [[headers]]
+                rule = "forward"
+                pattern = "^x-*"
+                "###,
+            )
             .build()
             .await;
 
@@ -287,16 +287,18 @@ fn test_regex_header_forwarding_should_not_duplicate() {
     let response = runtime().block_on(async move {
         let engine = Engine::builder()
             .with_subgraph(EchoSchema)
-            .with_header_rule(SubgraphHeaderRule::Forward(SubgraphHeaderForward {
-                name: NameOrPattern::Pattern(Regex::new("^x-*").unwrap()),
-                default: None,
-                rename: None,
-            }))
-            .with_header_rule(SubgraphHeaderRule::Forward(SubgraphHeaderForward {
-                name: NameOrPattern::Name(String::from("x-source")),
-                default: None,
-                rename: Some(String::from("y-source")),
-            }))
+            .with_toml_config(
+                r###"
+                [[headers]]
+                rule = "forward"
+                pattern = "^x-*"
+
+                [[headers]]
+                rule = "forward"
+                name = "x-source"
+                rename = "y-source"
+                "###,
+            )
             .build()
             .await;
 
@@ -343,11 +345,14 @@ fn test_header_forwarding_with_rename() {
     let response = runtime().block_on(async move {
         let engine = Engine::builder()
             .with_subgraph(EchoSchema)
-            .with_header_rule(SubgraphHeaderRule::Forward(SubgraphHeaderForward {
-                name: NameOrPattern::Name(String::from("x-source")),
-                rename: Some(String::from("y-source")),
-                default: None,
-            }))
+            .with_toml_config(
+                r###"
+                [[headers]]
+                rule = "forward"
+                name = "x-source"
+                rename = "y-source"
+                "###,
+            )
             .build()
             .await;
 
@@ -388,11 +393,14 @@ fn test_header_forwarding_with_default() {
     let response = runtime().block_on(async move {
         let engine = Engine::builder()
             .with_subgraph(EchoSchema)
-            .with_header_rule(SubgraphHeaderRule::Forward(SubgraphHeaderForward {
-                name: NameOrPattern::Name(String::from("x-source")),
-                rename: None,
-                default: Some(String::from("meow")),
-            }))
+            .with_toml_config(
+                r###"
+                [[headers]]
+                rule = "forward"
+                name = "x-source"
+                default = "meow"
+                "###,
+            )
             .build()
             .await;
 
@@ -430,11 +438,14 @@ fn test_header_forwarding_with_default_and_existing_header() {
     let response = runtime().block_on(async move {
         let engine = Engine::builder()
             .with_subgraph(EchoSchema)
-            .with_header_rule(SubgraphHeaderRule::Forward(SubgraphHeaderForward {
-                name: NameOrPattern::Name(String::from("x-source")),
-                rename: None,
-                default: Some(String::from("meow")),
-            }))
+            .with_toml_config(
+                r###"
+                [[headers]]
+                rule = "forward"
+                name = "x-source"
+                default = "meow"
+                "###,
+            )
             .build()
             .await;
 
@@ -475,14 +486,17 @@ fn test_regex_header_forwarding_then_delete() {
     let response = runtime().block_on(async move {
         let engine = Engine::builder()
             .with_subgraph(EchoSchema)
-            .with_header_rule(SubgraphHeaderRule::Forward(SubgraphHeaderForward {
-                name: NameOrPattern::Pattern(Regex::new("^x-*").unwrap()),
-                default: None,
-                rename: None,
-            }))
-            .with_header_rule(SubgraphHeaderRule::Remove(SubgraphHeaderRemove {
-                name: NameOrPattern::Name(String::from("x-kekw")),
-            }))
+            .with_toml_config(
+                r###"
+                [[headers]]
+                rule = "forward"
+                pattern = "^x-*"
+
+                [[headers]]
+                rule = "remove"
+                name = "x-kekw"
+                "###,
+            )
             .build()
             .await;
 
@@ -525,14 +539,17 @@ fn test_regex_header_forwarding_then_delete_with_regex() {
     let response = runtime().block_on(async move {
         let engine = Engine::builder()
             .with_subgraph(EchoSchema)
-            .with_header_rule(SubgraphHeaderRule::Forward(SubgraphHeaderForward {
-                name: NameOrPattern::Pattern(Regex::new("^x-*").unwrap()),
-                default: None,
-                rename: None,
-            }))
-            .with_header_rule(SubgraphHeaderRule::Remove(SubgraphHeaderRemove {
-                name: NameOrPattern::Pattern(Regex::new("^x-sou*").unwrap()),
-            }))
+            .with_toml_config(
+                r###"
+                [[headers]]
+                rule = "forward"
+                pattern = "^x-*"
+
+                [[headers]]
+                rule = "remove"
+                pattern = "^x-sou*"
+                "###,
+            )
             .build()
             .await;
 
@@ -576,11 +593,14 @@ fn test_rename_duplicate_no_default() {
     let response = runtime().block_on(async move {
         let engine = Engine::builder()
             .with_subgraph(EchoSchema)
-            .with_header_rule(SubgraphHeaderRule::RenameDuplicate(SubgraphRenameDuplicate {
-                name: String::from("foo"),
-                default: None,
-                rename: String::from("bar"),
-            }))
+            .with_toml_config(
+                r###"
+                [[headers]]
+                rule = "rename_duplicate"
+                name = "foo"
+                rename = "bar"
+                "###,
+            )
             .build()
             .await;
 
@@ -625,11 +645,15 @@ fn test_rename_duplicate_default() {
     let response = runtime().block_on(async move {
         let engine = Engine::builder()
             .with_subgraph(EchoSchema)
-            .with_header_rule(SubgraphHeaderRule::RenameDuplicate(SubgraphRenameDuplicate {
-                name: String::from("foo"),
-                default: Some(String::from("kekw")),
-                rename: String::from("bar"),
-            }))
+            .with_toml_config(
+                r###"
+                [[headers]]
+                rule = "rename_duplicate"
+                name = "foo"
+                default = "kekw"
+                rename = "bar"
+                "###,
+            )
             .build()
             .await;
 
@@ -674,11 +698,15 @@ fn test_rename_duplicate_default_with_missing_value() {
     let response = runtime().block_on(async move {
         let engine = Engine::builder()
             .with_subgraph(EchoSchema)
-            .with_header_rule(SubgraphHeaderRule::RenameDuplicate(SubgraphRenameDuplicate {
-                name: String::from("foo"),
-                default: Some(String::from("kekw")),
-                rename: String::from("bar"),
-            }))
+            .with_toml_config(
+                r###"
+                [[headers]]
+                rule = "rename_duplicate"
+                name = "foo"
+                default = "kekw"
+                rename = "bar"
+                "###,
+            )
             .build()
             .await;
 
@@ -720,11 +748,13 @@ fn regex_header_regex_forwarding_should_forward_duplicates_too() {
     let response = runtime().block_on(async move {
         let engine = Engine::builder()
             .with_subgraph(EchoSchema)
-            .with_header_rule(SubgraphHeaderRule::Forward(SubgraphHeaderForward {
-                name: NameOrPattern::Pattern(Regex::new("^.*$").unwrap()),
-                default: None,
-                rename: None,
-            }))
+            .with_toml_config(
+                r###"
+                [[headers]]
+                rule = "forward"
+                pattern = "^.*$"
+                "###,
+            )
             .build()
             .await;
 
@@ -770,11 +800,13 @@ fn regex_header_forwarding_should_forward_duplicates() {
     let response = runtime().block_on(async move {
         let engine = Engine::builder()
             .with_subgraph(EchoSchema)
-            .with_header_rule(SubgraphHeaderRule::Forward(SubgraphHeaderForward {
-                name: NameOrPattern::Name(String::from("x-source")),
-                default: None,
-                rename: None,
-            }))
+            .with_toml_config(
+                r###"
+                [[headers]]
+                rule = "forward"
+                name = "x-source"
+                "###,
+            )
             .build()
             .await;
 
@@ -820,11 +852,14 @@ fn regex_header_forwarding_should_forward_duplicates_with_rename() {
     let response = runtime().block_on(async move {
         let engine = Engine::builder()
             .with_subgraph(EchoSchema)
-            .with_header_rule(SubgraphHeaderRule::Forward(SubgraphHeaderForward {
-                name: NameOrPattern::Name(String::from("x-source")),
-                default: None,
-                rename: Some(String::from("y-source")),
-            }))
+            .with_toml_config(
+                r###"
+                [[headers]]
+                rule = "forward"
+                name = "x-source"
+                rename = "y-source"
+                "###,
+            )
             .build()
             .await;
 
@@ -870,9 +905,13 @@ fn header_remove_should_remove_duplicates() {
     let response = runtime().block_on(async move {
         let engine = Engine::builder()
             .with_subgraph(EchoSchema)
-            .with_header_rule(SubgraphHeaderRule::Remove(SubgraphHeaderRemove {
-                name: NameOrPattern::Name(String::from("x-source")),
-            }))
+            .with_toml_config(
+                r###"
+                [[headers]]
+                rule = "remove"
+                name = "x-source"
+                "###,
+            )
             .build()
             .await;
 
@@ -910,9 +949,13 @@ fn header_regex_remove_should_remove_duplicates() {
     let response = runtime().block_on(async move {
         let engine = Engine::builder()
             .with_subgraph(EchoSchema)
-            .with_header_rule(SubgraphHeaderRule::Remove(SubgraphHeaderRemove {
-                name: NameOrPattern::Pattern(Regex::new("^x-source$").unwrap()),
-            }))
+            .with_toml_config(
+                r###"
+                [[headers]]
+                rule = "remove"
+                pattern = "^x-source$"
+                "###,
+            )
             .build()
             .await;
 

@@ -319,7 +319,7 @@ dependencies = [
  "fnv",
  "futures-util",
  "handlebars",
- "http 1.1.0",
+ "http",
  "indexmap 2.2.6",
  "mime",
  "multer",
@@ -537,8 +537,8 @@ checksum = "7319a086b79c3ff026a33a61e80f04fd3885fbb73237981ea080d21944e1cb1c"
 dependencies = [
  "base64 0.22.1",
  "bytes",
- "http 1.1.0",
- "http-body 1.0.1",
+ "http",
+ "http-body",
  "http-serde",
  "query_map",
  "serde",
@@ -556,10 +556,10 @@ dependencies = [
  "base64 0.21.7",
  "bytes",
  "futures-util",
- "http 1.1.0",
- "http-body 1.0.1",
+ "http",
+ "http-body",
  "http-body-util",
- "hyper 1.3.1",
+ "hyper",
  "hyper-util",
  "itoa",
  "matchit",
@@ -591,9 +591,9 @@ dependencies = [
  "axum",
  "bytes",
  "futures-util",
- "http 1.1.0",
+ "http",
  "http-body-util",
- "hyper 1.3.1",
+ "hyper",
  "lambda_http",
  "tower",
  "tower-service",
@@ -607,8 +607,8 @@ dependencies = [
  "async-trait",
  "bytes",
  "futures-util",
- "http 1.1.0",
- "http-body 1.0.1",
+ "http",
+ "http-body",
  "http-body-util",
  "mime",
  "pin-project-lite",
@@ -638,10 +638,10 @@ dependencies = [
  "arc-swap",
  "bytes",
  "futures-util",
- "http 1.1.0",
- "http-body 1.0.1",
+ "http",
+ "http-body",
  "http-body-util",
- "hyper 1.3.1",
+ "hyper",
  "hyper-util",
  "pin-project-lite",
  "rustls 0.23.10",
@@ -832,9 +832,9 @@ dependencies = [
  "futures-core",
  "futures-util",
  "hex",
- "http 1.1.0",
+ "http",
  "http-body-util",
- "hyper 1.3.1",
+ "hyper",
  "hyper-named-pipe",
  "hyper-util",
  "hyperlocal-next",
@@ -1278,17 +1278,19 @@ checksum = "4b82cf0babdbd58558212896d1a4272303a57bdb245c2bf1147185fb45640e70"
 
 [[package]]
 name = "clickhouse"
-version = "0.11.6"
+version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a0875e527e299fc5f4faba42870bf199a39ab0bb2dbba1b8aef0a2151451130f"
+checksum = "eab6d70c534d5e54680aae99712800fca8d048cdfad3fbd154daf823d444f08b"
 dependencies = [
  "bstr 1.9.1",
  "bytes",
  "clickhouse-derive",
  "clickhouse-rs-cityhash-sys",
  "futures",
- "hyper 0.14.29",
- "hyper-tls",
+ "futures-channel",
+ "http-body-util",
+ "hyper",
+ "hyper-util",
  "lz4",
  "sealed",
  "serde",
@@ -1300,14 +1302,14 @@ dependencies = [
 
 [[package]]
 name = "clickhouse-derive"
-version = "0.1.1"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "18af5425854858c507eec70f7deb4d5d8cec4216fcb086283a78872387281ea5"
+checksum = "d70f3e2893f7d3e017eeacdc9a708fbc29a10488e3ebca21f9df6a5d2b616dbb"
 dependencies = [
  "proc-macro2",
  "quote",
- "serde_derive_internals 0.26.0",
- "syn 1.0.109",
+ "serde_derive_internals",
+ "syn 2.0.72",
 ]
 
 [[package]]
@@ -2373,7 +2375,7 @@ dependencies = [
  "grafbase-telemetry",
  "graph-entities",
  "graphql-cursor",
- "http 1.1.0",
+ "http",
  "indexmap 2.2.6",
  "indoc",
  "insta",
@@ -2412,6 +2414,7 @@ name = "engine-config-builder"
 version = "0.77.1"
 dependencies = [
  "engine-v2-config",
+ "gateway-config",
  "graphql-federated-graph",
  "indexmap 2.2.6",
  "parser-sdl",
@@ -2466,7 +2469,7 @@ dependencies = [
  "engine-value",
  "grafbase-telemetry",
  "graph-entities",
- "http 1.1.0",
+ "http",
  "query-path",
  "runtime",
  "serde",
@@ -2518,7 +2521,7 @@ dependencies = [
  "grafbase-telemetry",
  "headers",
  "hex",
- "http 1.1.0",
+ "http",
  "im",
  "itertools 0.13.0",
  "lasso2",
@@ -2829,6 +2832,7 @@ dependencies = [
  "engine-v2-axum",
  "futures-concurrency",
  "futures-util",
+ "gateway-config",
  "grafbase-graphql-introspection",
  "grafbase-local-common",
  "grafbase-telemetry",
@@ -2861,29 +2865,22 @@ dependencies = [
  "axum-aws-lambda",
  "axum-server",
  "blake3",
- "duration-str",
  "engine",
  "engine-config-builder",
  "engine-v2",
  "engine-v2-axum",
  "futures-util",
+ "gateway-config",
  "grafbase-telemetry",
  "graphql-composition",
- "http 1.1.0",
- "indoc",
- "insta",
+ "http",
  "lambda_http",
  "notify",
- "parser-sdl",
- "regex",
  "reqwest",
  "runtime",
  "runtime-local",
  "runtime-noop",
  "serde",
- "serde-dynamic-string",
- "serde_regex",
- "temp-env",
  "thiserror",
  "tokio",
  "toml",
@@ -2957,21 +2954,6 @@ name = "fnv"
 version = "1.0.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3f9eec918d3f24069decb9af1554cad7c880e2da24a9afd88aca000531ab82c1"
-
-[[package]]
-name = "foreign-types"
-version = "0.3.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f6f339eb8adc052cd2ca78910fda869aefa38d22d5cb648e6485e4d3fc06f3b1"
-dependencies = [
- "foreign-types-shared",
-]
-
-[[package]]
-name = "foreign-types-shared"
-version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "00b0228411908ca8685dba7fc2cdd70ec9990a6e753e89b6ac91a84c40fbaf4b"
 
 [[package]]
 name = "form_urlencoded"
@@ -3234,7 +3216,7 @@ dependencies = [
  "gateway-v2-auth",
  "grafbase-telemetry",
  "graphql-extensions",
- "http 1.1.0",
+ "http",
  "postgres-connector-types",
  "registry-for-cache",
  "registry-v2",
@@ -3246,6 +3228,29 @@ dependencies = [
  "tokio",
  "tower-http",
  "ulid",
+]
+
+[[package]]
+name = "gateway-config"
+version = "0.6.1"
+dependencies = [
+ "ascii 1.1.0",
+ "cfg-if",
+ "chrono",
+ "duration-str",
+ "http",
+ "indoc",
+ "insta",
+ "regex",
+ "serde",
+ "serde-dynamic-string",
+ "serde_regex",
+ "temp-env",
+ "tempfile",
+ "toml",
+ "tonic",
+ "tower-http",
+ "url",
 ]
 
 [[package]]
@@ -3270,7 +3275,7 @@ dependencies = [
  "grafbase-telemetry",
  "headers",
  "hex",
- "http 1.1.0",
+ "http",
  "mediatype",
  "mime",
  "multipart-stream",
@@ -3298,7 +3303,7 @@ dependencies = [
  "futures-util",
  "gateway-v2-auth-config",
  "getrandom 0.2.15",
- "http 1.1.0",
+ "http",
  "jwt-compact",
  "jwt-verifier",
  "reqwest",
@@ -3485,7 +3490,7 @@ dependencies = [
  "graphql-ws-client",
  "headers",
  "hex",
- "http 1.1.0",
+ "http",
  "indicatif",
  "indoc",
  "inquire",
@@ -3563,10 +3568,11 @@ dependencies = [
  "federated-server",
  "fslock",
  "futures-util",
+ "gateway-config",
  "grafbase-graphql-introspection",
  "grafbase-telemetry",
  "graph-ref",
- "http 1.1.0",
+ "http",
  "indoc",
  "insta",
  "mimalloc",
@@ -3670,7 +3676,7 @@ dependencies = [
  "graphql-federated-graph",
  "graphql-schema-validation",
  "handlebars",
- "hyper 1.3.1",
+ "hyper",
  "hyper-util",
  "itertools 0.13.0",
  "log",
@@ -3723,9 +3729,10 @@ dependencies = [
  "cfg-if",
  "chrono",
  "either",
+ "gateway-config",
  "headers",
- "http 1.1.0",
- "http-body 1.0.1",
+ "http",
+ "http-body",
  "indoc",
  "insta",
  "opentelemetry",
@@ -3845,7 +3852,7 @@ dependencies = [
  "axum",
  "crossbeam-queue",
  "futures",
- "http 1.1.0",
+ "http",
  "serde",
  "serde_json",
  "tokio",
@@ -3941,7 +3948,7 @@ dependencies = [
  "fnv",
  "futures-core",
  "futures-sink",
- "http 1.1.0",
+ "http",
  "indexmap 2.2.6",
  "slab",
  "tokio",
@@ -4020,7 +4027,7 @@ dependencies = [
  "base64 0.21.7",
  "bytes",
  "headers-core",
- "http 1.1.0",
+ "http",
  "httpdate",
  "mime",
  "sha1",
@@ -4032,7 +4039,7 @@ version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "54b4a22553d4242c49fddb9ba998a99962b5cc6f22cb5a3482bec22522403ce4"
 dependencies = [
- "http 1.1.0",
+ "http",
 ]
 
 [[package]]
@@ -4047,15 +4054,6 @@ dependencies = [
  "serde",
  "spin",
  "stable_deref_trait",
-]
-
-[[package]]
-name = "heck"
-version = "0.3.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6d621efb26863f0e9924c6ac577e8275e5e6b77455db64ffa6c65c904e9e132c"
-dependencies = [
- "unicode-segmentation",
 ]
 
 [[package]]
@@ -4134,17 +4132,6 @@ dependencies = [
 
 [[package]]
 name = "http"
-version = "0.2.12"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "601cbb57e577e2f5ef5be8e7b83f0f63994f25aa94d673e54a92d5c516d101f1"
-dependencies = [
- "bytes",
- "fnv",
- "itoa",
-]
-
-[[package]]
-name = "http"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "21b9ddb458710bc376481b842f5da65cdf31522de232c1ca8146abce2a358258"
@@ -4156,23 +4143,12 @@ dependencies = [
 
 [[package]]
 name = "http-body"
-version = "0.4.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7ceab25649e9960c0311ea418d17bee82c0dcec1bd053b5f9a66e265a693bed2"
-dependencies = [
- "bytes",
- "http 0.2.12",
- "pin-project-lite",
-]
-
-[[package]]
-name = "http-body"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1efedce1fb8e6913f23e0c92de8e62cd5b772a67e7b3946df930a62566c93184"
 dependencies = [
  "bytes",
- "http 1.1.0",
+ "http",
 ]
 
 [[package]]
@@ -4183,8 +4159,8 @@ checksum = "793429d76616a256bcb62c2a2ec2bed781c8307e797e2598c50010f2bee2544f"
 dependencies = [
  "bytes",
  "futures-util",
- "http 1.1.0",
- "http-body 1.0.1",
+ "http",
+ "http-body",
  "pin-project-lite",
 ]
 
@@ -4197,7 +4173,7 @@ dependencies = [
  "async-trait",
  "bincode",
  "cacache",
- "http 1.1.0",
+ "http",
  "http-cache-semantics",
  "httpdate",
  "serde",
@@ -4212,7 +4188,7 @@ checksum = "be3e27c4e2e510571cbcc601407b639667146aa9a4e818d5cc1d97c8b4b27d61"
 dependencies = [
  "anyhow",
  "async-trait",
- "http 1.1.0",
+ "http",
  "http-cache",
  "http-cache-semantics",
  "reqwest",
@@ -4227,7 +4203,7 @@ version = "2.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "92baf25cf0b8c9246baecf3a444546360a97b569168fdf92563ee6a47829920c"
 dependencies = [
- "http 1.1.0",
+ "http",
  "http-serde",
  "serde",
  "time",
@@ -4245,7 +4221,7 @@ version = "2.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0f056c8559e3757392c8d091e796416e4649d8e49e88b8d76df6c002f05027fd"
 dependencies = [
- "http 1.1.0",
+ "http",
  "serde",
 ]
 
@@ -4289,39 +4265,16 @@ checksum = "9a3a5bfb195931eeb336b2a7b4d761daec841b97f947d34394601737a7bba5e4"
 
 [[package]]
 name = "hyper"
-version = "0.14.29"
+version = "1.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f361cde2f109281a220d4307746cdfd5ee3f410da58a70377762396775634b33"
-dependencies = [
- "bytes",
- "futures-channel",
- "futures-core",
- "futures-util",
- "http 0.2.12",
- "http-body 0.4.6",
- "httparse",
- "httpdate",
- "itoa",
- "pin-project-lite",
- "socket2",
- "tokio",
- "tower-service",
- "tracing",
- "want",
-]
-
-[[package]]
-name = "hyper"
-version = "1.3.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fe575dd17d0862a9a33781c8c4696a55c320909004a67a00fb286ba8b1bc496d"
+checksum = "50dfd22e0e76d0f662d429a5f80fcaf3855009297eab6a0a9f8543834744ba05"
 dependencies = [
  "bytes",
  "futures-channel",
  "futures-util",
  "h2",
- "http 1.1.0",
- "http-body 1.0.1",
+ "http",
+ "http-body",
  "httparse",
  "httpdate",
  "itoa",
@@ -4338,7 +4291,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "73b7d8abf35697b81a825e386fc151e0d503e8cb5fcb93cc8669c376dfd6f278"
 dependencies = [
  "hex",
- "hyper 1.3.1",
+ "hyper",
  "hyper-util",
  "pin-project-lite",
  "tokio",
@@ -4353,8 +4306,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5ee4be2c948921a1a5320b629c4193916ed787a7f7f293fd3f7f5a6c9de74155"
 dependencies = [
  "futures-util",
- "http 1.1.0",
- "hyper 1.3.1",
+ "http",
+ "hyper",
  "hyper-util",
  "rustls 0.23.10",
  "rustls-pki-types",
@@ -4370,7 +4323,7 @@ version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3203a961e5c83b6f5498933e78b6b263e208c197b63e9c6c53cc82ffd3f63793"
 dependencies = [
- "hyper 1.3.1",
+ "hyper",
  "hyper-util",
  "pin-project-lite",
  "tokio",
@@ -4378,30 +4331,17 @@ dependencies = [
 ]
 
 [[package]]
-name = "hyper-tls"
-version = "0.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d6183ddfa99b85da61a140bea0efc93fdf56ceaa041b37d553518030827f9905"
-dependencies = [
- "bytes",
- "hyper 0.14.29",
- "native-tls",
- "tokio",
- "tokio-native-tls",
-]
-
-[[package]]
 name = "hyper-util"
-version = "0.1.5"
+version = "0.1.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7b875924a60b96e5d7b9ae7b066540b1dd1cbd90d1828f54c92e02a283351c56"
+checksum = "3ab92f4f49ee4fb4f997c784b7a2e0fa70050211e0b6a287f898c3c9785ca956"
 dependencies = [
  "bytes",
  "futures-channel",
  "futures-util",
- "http 1.1.0",
- "http-body 1.0.1",
- "hyper 1.3.1",
+ "http",
+ "http-body",
+ "hyper",
  "pin-project-lite",
  "socket2",
  "tokio",
@@ -4418,7 +4358,7 @@ checksum = "acf569d43fa9848e510358c07b80f4adf34084ddc28c6a4a651ee8474c070dcc"
 dependencies = [
  "hex",
  "http-body-util",
- "hyper 1.3.1",
+ "hyper",
  "hyper-util",
  "pin-project-lite",
  "tokio",
@@ -4654,6 +4594,7 @@ dependencies = [
  "engine-v2",
  "expect-test",
  "futures",
+ "gateway-config",
  "gateway-core",
  "gateway-v2-auth",
  "grafbase-graphql-introspection",
@@ -4664,7 +4605,7 @@ dependencies = [
  "graphql-parser 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "headers",
  "hex",
- "http 1.1.0",
+ "http",
  "indoc",
  "insta",
  "multipart-stream",
@@ -4693,6 +4634,7 @@ dependencies = [
  "similar-asserts",
  "thiserror",
  "tokio",
+ "toml",
  "tracing",
  "tracing-mock",
  "tracing-subscriber",
@@ -4963,10 +4905,10 @@ dependencies = [
  "encoding_rs",
  "futures",
  "futures-util",
- "http 1.1.0",
- "http-body 1.0.1",
+ "http",
+ "http-body",
  "http-body-util",
- "hyper 1.3.1",
+ "hyper",
  "lambda_runtime",
  "mime",
  "percent-encoding",
@@ -4988,11 +4930,11 @@ dependencies = [
  "base64 0.22.1",
  "bytes",
  "futures",
- "http 1.1.0",
- "http-body 1.0.1",
+ "http",
+ "http-body",
  "http-body-util",
  "http-serde",
- "hyper 1.3.1",
+ "hyper",
  "hyper-util",
  "lambda_runtime_api_client",
  "pin-project",
@@ -5015,10 +4957,10 @@ dependencies = [
  "bytes",
  "futures-channel",
  "futures-util",
- "http 1.1.0",
- "http-body 1.0.1",
+ "http",
+ "http-body",
  "http-body-util",
- "hyper 1.3.1",
+ "hyper",
  "hyper-util",
  "tokio",
  "tower",
@@ -5495,7 +5437,7 @@ dependencies = [
  "bytes",
  "encoding_rs",
  "futures-util",
- "http 1.1.0",
+ "http",
  "httparse",
  "memchr",
  "mime",
@@ -5510,7 +5452,7 @@ source = "git+https://github.com/grafbase/multipart-stream-rs-fork?rev=06ff198e4
 dependencies = [
  "bytes",
  "futures",
- "http 1.1.0",
+ "http",
  "httparse",
  "pin-project",
 ]
@@ -5522,23 +5464,6 @@ source = "git+https://github.com/grafbase/names?rev=443800fbb7bc2936c1f2c16f3a5e
 dependencies = [
  "clap",
  "rand 0.8.5",
-]
-
-[[package]]
-name = "native-tls"
-version = "0.2.12"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a8614eb2c83d59d1c8cc974dd3f920198647674a0a035e1af1fa58707e317466"
-dependencies = [
- "libc",
- "log",
- "openssl",
- "openssl-probe",
- "openssl-sys",
- "schannel",
- "security-framework",
- "security-framework-sys",
- "tempfile",
 ]
 
 [[package]]
@@ -5754,7 +5679,7 @@ dependencies = [
  "base64 0.21.7",
  "chrono",
  "getrandom 0.2.15",
- "http 1.1.0",
+ "http",
  "rand 0.8.5",
  "reqwest",
  "serde",
@@ -5880,7 +5805,7 @@ dependencies = [
  "dyn-clone",
  "ed25519-dalek",
  "hmac",
- "http 1.1.0",
+ "http",
  "itertools 0.10.5",
  "log",
  "oauth2",
@@ -5901,48 +5826,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "openssl"
-version = "0.10.64"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "95a0481286a310808298130d22dd1fef0fa571e05a8f44ec801801e84b216b1f"
-dependencies = [
- "bitflags 2.6.0",
- "cfg-if",
- "foreign-types",
- "libc",
- "once_cell",
- "openssl-macros",
- "openssl-sys",
-]
-
-[[package]]
-name = "openssl-macros"
-version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a948666b637a0f465e8564c73e89d4dde00d72d4d473cc972f390fc3dcee7d9c"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.72",
-]
-
-[[package]]
 name = "openssl-probe"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ff011a302c396a5197692431fc1948019154afc178baf7d8e37367442a4601cf"
-
-[[package]]
-name = "openssl-sys"
-version = "0.9.102"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c597637d56fbc83893a35eb0dd04b2b8e7a50c91e64e9493e398b5df4fb45fa2"
-dependencies = [
- "cc",
- "libc",
- "pkg-config",
- "vcpkg",
-]
 
 [[package]]
 name = "opentelemetry"
@@ -5990,7 +5877,7 @@ source = "git+https://github.com/grafbase/opentelemetry-rust?rev=f215fe9a391d7d1
 dependencies = [
  "async-trait",
  "bytes",
- "http 1.1.0",
+ "http",
  "opentelemetry",
 ]
 
@@ -6001,7 +5888,7 @@ source = "git+https://github.com/grafbase/opentelemetry-rust?rev=f215fe9a391d7d1
 dependencies = [
  "async-trait",
  "futures-core",
- "http 1.1.0",
+ "http",
  "opentelemetry",
  "opentelemetry-http",
  "opentelemetry-proto",
@@ -6249,7 +6136,7 @@ dependencies = [
  "engine",
  "engine-parser",
  "graphql-schema-validation",
- "http 1.1.0",
+ "http",
  "insta",
  "registry-v2",
  "reqwest",
@@ -6327,6 +6214,7 @@ dependencies = [
  "engine-scalars",
  "engine-value",
  "futures",
+ "gateway-config",
  "if_chain",
  "indexmap 2.2.6",
  "indoc",
@@ -6345,6 +6233,7 @@ dependencies = [
  "serde_with",
  "thiserror",
  "tokio-postgres",
+ "toml",
  "tuple",
  "url",
 ]
@@ -6360,7 +6249,7 @@ dependencies = [
  "engine-value",
  "graph-entities",
  "headers",
- "http 1.1.0",
+ "http",
  "indexmap 2.2.6",
  "insta",
  "internment",
@@ -7334,6 +7223,7 @@ dependencies = [
  "common-types",
  "engine-id-newtypes",
  "engine-value",
+ "gateway-config",
  "gateway-v2-auth-config",
  "indexmap 2.2.6",
  "postgres-connector-types",
@@ -7391,10 +7281,10 @@ dependencies = [
  "futures-core",
  "futures-util",
  "h2",
- "http 1.1.0",
- "http-body 1.0.1",
+ "http",
+ "http-body",
  "http-body-util",
- "hyper 1.3.1",
+ "hyper",
  "hyper-rustls",
  "hyper-util",
  "ipnet",
@@ -7450,7 +7340,7 @@ checksum = "a45d100244a467870f6cb763c4484d010a6bed6bd610b3676e3825d93fb4cfbd"
 dependencies = [
  "anyhow",
  "async-trait",
- "http 1.1.0",
+ "http",
  "reqwest",
  "serde",
  "thiserror",
@@ -7598,7 +7488,7 @@ dependencies = [
  "futures-util",
  "grafbase-telemetry",
  "headers",
- "http 1.1.0",
+ "http",
  "postgres-connector-types",
  "secrecy",
  "serde",
@@ -7622,10 +7512,11 @@ dependencies = [
  "async-tungstenite",
  "deadpool 0.12.1",
  "futures-util",
+ "gateway-config",
  "governor",
  "grafbase-telemetry",
  "graphql-ws-client",
- "http 1.1.0",
+ "http",
  "mini-moka",
  "postgres-connector-types",
  "redis",
@@ -7823,7 +7714,7 @@ checksum = "b1eee588578aff73f856ab961cd2f79e36bc45d7ded33a7562adba4667aecc0e"
 dependencies = [
  "proc-macro2",
  "quote",
- "serde_derive_internals 0.29.1",
+ "serde_derive_internals",
  "syn 2.0.72",
 ]
 
@@ -7847,14 +7738,14 @@ checksum = "1c107b6f4780854c8b126e228ea8869f4d7b71260f962fefb57b996b8959ba6b"
 
 [[package]]
 name = "sealed"
-version = "0.4.0"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6b5e421024b5e5edfbaa8e60ecf90bda9dbffc602dbb230e6028763f85f0c68c"
+checksum = "f4a8caec23b7800fb97971a1c6ae365b6239aaeddfb934d6265f8505e795699d"
 dependencies = [
- "heck 0.3.3",
+ "heck 0.4.1",
  "proc-macro2",
  "quote",
- "syn 1.0.109",
+ "syn 2.0.72",
 ]
 
 [[package]]
@@ -7991,17 +7882,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.72",
-]
-
-[[package]]
-name = "serde_derive_internals"
-version = "0.26.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "85bf8229e7920a9f636479437026331ce11aa132b4dde37d121944a44d6e5f3c"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 1.0.109",
 ]
 
 [[package]]
@@ -8994,16 +8874,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "tokio-native-tls"
-version = "0.3.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bbae76ab933c85776efabc971569dd6119c580d8f5d448769dec1764bf796ef2"
-dependencies = [
- "native-tls",
- "tokio",
-]
-
-[[package]]
 name = "tokio-postgres"
 version = "0.7.10"
 source = "git+https://github.com/grafbase/rust-postgres/?branch=grafbase-rebased#a222b2b3f78dea9fb90faa5dac27bf18a1e31282"
@@ -9181,10 +9051,10 @@ dependencies = [
  "base64 0.22.1",
  "bytes",
  "h2",
- "http 1.1.0",
- "http-body 1.0.1",
+ "http",
+ "http-body",
  "http-body-util",
- "hyper 1.3.1",
+ "hyper",
  "hyper-timeout",
  "hyper-util",
  "percent-encoding",
@@ -9231,8 +9101,8 @@ dependencies = [
  "bitflags 2.6.0",
  "bytes",
  "futures-util",
- "http 1.1.0",
- "http-body 1.0.1",
+ "http",
+ "http-body",
  "http-body-util",
  "http-range-header",
  "httpdate",
@@ -9393,7 +9263,7 @@ dependencies = [
  "byteorder",
  "bytes",
  "data-encoding",
- "http 1.1.0",
+ "http",
  "httparse",
  "log",
  "rand 0.8.5",
@@ -9661,11 +9531,11 @@ dependencies = [
  "anyhow",
  "base64 0.22.1",
  "expect-test",
+ "gateway-config",
  "grafbase-telemetry",
- "http 1.1.0",
+ "http",
  "indoc",
  "insta",
- "serde",
  "serde_json",
  "tempdir",
  "thiserror",
@@ -10055,10 +9925,10 @@ dependencies = [
  "async-trait",
  "bytes",
  "futures",
- "http 1.1.0",
- "http-body 1.0.1",
+ "http",
+ "http-body",
  "http-body-util",
- "hyper 1.3.1",
+ "hyper",
  "rustls 0.22.4",
  "tokio",
  "tokio-rustls 0.25.0",
@@ -10566,9 +10436,9 @@ dependencies = [
  "base64 0.21.7",
  "deadpool 0.10.0",
  "futures",
- "http 1.1.0",
+ "http",
  "http-body-util",
- "hyper 1.3.1",
+ "hyper",
  "hyper-util",
  "log",
  "once_cell",
@@ -10608,8 +10478,8 @@ dependencies = [
  "chrono",
  "futures-channel",
  "futures-util",
- "http 1.1.0",
- "http-body 1.0.1",
+ "http",
+ "http-body",
  "js-sys",
  "matchit",
  "pin-project",

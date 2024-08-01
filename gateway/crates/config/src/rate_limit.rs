@@ -30,6 +30,12 @@ pub enum RateLimitStorage {
     Redis,
 }
 
+impl RateLimitStorage {
+    pub fn is_redis(&self) -> bool {
+        matches!(self, Self::Redis)
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct RateLimitRedisConfig {
@@ -79,52 +85,4 @@ where
     }
 
     Ok(duration)
-}
-
-impl From<RateLimitConfig> for parser_sdl::federation::RateLimitConfig {
-    fn from(value: RateLimitConfig) -> Self {
-        Self {
-            global: value.global.map(Into::into),
-            storage: value.storage.into(),
-            redis: value.redis.into(),
-        }
-    }
-}
-
-impl From<GraphRateLimit> for parser_sdl::federation::GraphRateLimit {
-    fn from(value: GraphRateLimit) -> Self {
-        Self {
-            limit: value.limit,
-            duration: value.duration,
-        }
-    }
-}
-
-impl From<RateLimitStorage> for parser_sdl::federation::RateLimitStorage {
-    fn from(value: RateLimitStorage) -> Self {
-        match value {
-            RateLimitStorage::Memory => Self::Memory,
-            RateLimitStorage::Redis => Self::Redis,
-        }
-    }
-}
-
-impl From<RateLimitRedisConfig> for parser_sdl::federation::RateLimitRedisConfig {
-    fn from(value: RateLimitRedisConfig) -> Self {
-        Self {
-            url: value.url,
-            key_prefix: value.key_prefix,
-            tls: value.tls.map(Into::into),
-        }
-    }
-}
-
-impl From<RateLimitRedisTlsConfig> for parser_sdl::federation::RateLimitRedisTlsConfig {
-    fn from(value: RateLimitRedisTlsConfig) -> Self {
-        Self {
-            cert: value.cert,
-            key: value.key,
-            ca: value.ca,
-        }
-    }
 }

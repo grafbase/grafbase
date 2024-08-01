@@ -70,7 +70,7 @@ engine = { path = "../../../engine/crates/engine" }
 parser-sdl = { path = "../../../engine/crates/parser-sdl", features = [
     "local",
 ] }
-graphql-federated-graph = { path = "../../../engine/crates/federated-graph", features = [
+federated-graph = { workspace = true, features = [
     "from_sdl",
 ] }
 graphql-schema-validation = { path = "../../../engine/crates/validation" }

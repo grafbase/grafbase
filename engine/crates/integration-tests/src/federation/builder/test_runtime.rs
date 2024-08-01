@@ -25,7 +25,7 @@ impl Default for TestRuntime {
             kv: InMemoryKvStore::runtime(),
             meter: metrics::meter_from_global_provider(),
             hooks: Default::default(),
-            rate_limiter: InMemoryRateLimiter::runtime(rx),
+            rate_limiter: InMemoryRateLimiter::runtime_with_watcher(rx),
         }
     }
 }

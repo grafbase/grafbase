@@ -1,7 +1,7 @@
 use std::{borrow::Cow, net::SocketAddr};
 
 /// Health endpoint configuration.
-#[derive(Debug, serde::Deserialize)]
+#[derive(Clone, Debug, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct HealthConfig {
     #[serde(default = "default_true")]

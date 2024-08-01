@@ -94,10 +94,9 @@ pub struct OtlpExporterTlsConfig {
 
 #[cfg(feature = "otlp")]
 impl TryFrom<OtlpExporterTlsConfig> for tonic::transport::ClientTlsConfig {
-    type Error = crate::error::TracingError;
+    type Error = std::io::Error;
 
     fn try_from(value: OtlpExporterTlsConfig) -> Result<tonic::transport::ClientTlsConfig, Self::Error> {
-        use crate::error::TracingError;
         use std::fs;
         use tonic::transport::{Certificate, ClientTlsConfig, Identity};
 
@@ -108,19 +107,14 @@ impl TryFrom<OtlpExporterTlsConfig> for tonic::transport::ClientTlsConfig {
         }
 
         if let Some(ca) = value.ca {
-            let ca_cert = fs::read(ca).map_err(TracingError::FileReadError)?;
+            let ca_cert = fs::read(ca)?;
             tls = tls.ca_certificate(Certificate::from_pem(ca_cert))
         }
 
         if let Some(cert) = value.cert {
-            let cert = fs::read(cert).map_err(TracingError::FileReadError)?;
+            let cert = fs::read(cert)?;
 
-            let key = value
-                .key
-                .map(fs::read)
-                .transpose()
-                .map_err(TracingError::FileReadError)?
-                .unwrap_or_default();
+            let key = value.key.map(fs::read).transpose()?.unwrap_or_default();
 
             let identity = Identity::from_pem(cert, key);
             tls = tls.identity(identity);

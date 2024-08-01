@@ -4,12 +4,11 @@
 
 #![deny(missing_docs)]
 
-pub use crate::config::{Config, HeaderForward, HeaderInsert, HeaderRemove, HeaderRule, NameOrPattern};
+mod hot_reload;
 pub use error::Error;
 pub use server::GdnResponse;
 pub use server::{GraphFetchMethod, OtelReload, OtelTracing};
 
-mod config;
 mod error;
 mod server;
 

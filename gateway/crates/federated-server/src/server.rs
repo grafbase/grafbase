@@ -17,10 +17,10 @@ use tokio::sync::watch;
 use tracing::Level;
 use ulid::Ulid;
 
-use crate::config::{Config, TlsConfig};
 use axum::{routing::get, Router};
 use axum_server as _;
 use engine_v2_axum::websocket::{WebsocketAccepter, WebsocketService};
+use gateway_config::{Config, TlsConfig};
 use grafbase_telemetry::span::GRAFBASE_TARGET;
 use state::ServerState;
 use std::{
@@ -30,8 +30,6 @@ use std::{
 };
 use tokio::sync::mpsc;
 use tower_http::cors::CorsLayer;
-
-use self::gateway::GatewayConfig;
 
 const DEFAULT_LISTEN_ADDRESS: SocketAddr = SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), 5000);
 
@@ -85,20 +83,8 @@ pub async fn serve(
 
     fetch_method
         .start(
-            GatewayConfig {
-                enable_introspection: config.graph.introspection,
-                operation_limits: config.operation_limits,
-                authentication: config.authentication,
-                subgraphs: config.subgraphs,
-                trusted_documents: config.trusted_documents,
-                wasi: config.hooks,
-                header_rules: config.headers,
-                rate_limit: config.gateway.rate_limit,
-                timeout: config.gateway.timeout,
-                entity_caching: config.entity_caching,
-                config_hot_reload,
-                config_path,
-            },
+            &config,
+            config_hot_reload.then_some(config_path).flatten(),
             otel_reload,
             sender,
         )

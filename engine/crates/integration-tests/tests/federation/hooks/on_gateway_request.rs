@@ -26,7 +26,7 @@ fn can_modify_headers() {
 
     let response = runtime().block_on(async move {
         let engine = Engine::builder()
-            .with_hooks(TestHooks)
+            .with_mock_hooks(TestHooks)
             .with_subgraph(EchoSchema)
             .with_sdl_config(
                 r#"
@@ -89,7 +89,7 @@ fn error_is_propagated_back_to_the_user() {
 
     let response = runtime().block_on(async move {
         let engine = Engine::builder()
-            .with_hooks(TestHooks)
+            .with_mock_hooks(TestHooks)
             .with_subgraph(FakeGithubSchema)
             .build()
             .await;
@@ -132,7 +132,7 @@ fn error_code_is_propagated_back_to_the_user() {
 
     let response = runtime().block_on(async move {
         let engine = Engine::builder()
-            .with_hooks(TestHooks)
+            .with_mock_hooks(TestHooks)
             .with_subgraph(FakeGithubSchema)
             .build()
             .await;

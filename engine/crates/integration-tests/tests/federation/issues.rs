@@ -42,7 +42,7 @@ fn gb6873_wrong_enum_sent_to_subgraph() {
         let fetcher = MockFetch::default().with_responses("a", vec![json!({"data": {"doStuff": "Hi!"}})]);
         let engine = Engine::builder()
             .with_federated_sdl(SDL)
-            .with_fetcher(fetcher.clone())
+            .with_mock_fetcher(fetcher.clone())
             .build()
             .await;
 

@@ -1,6 +1,6 @@
 use std::net::SocketAddr;
 
-use crate::config::{HealthConfig, TlsConfig};
+use gateway_config::{HealthConfig, TlsConfig};
 
 use super::state::ServerState;
 use axum::{extract::State, routing::get, Json, Router};

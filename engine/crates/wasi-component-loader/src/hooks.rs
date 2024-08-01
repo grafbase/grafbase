@@ -9,7 +9,7 @@ use wasmtime::{
     Engine, Store,
 };
 
-use crate::{state::WasiState, ComponentLoader, Config, SharedContextMap};
+use crate::{config::build_wasi_context, state::WasiState, ComponentLoader, Config, SharedContextMap};
 
 pub(crate) mod authorization;
 pub(crate) mod gateway;
@@ -63,7 +63,7 @@ pub(crate) use component_instance;
 
 /// Generic initialization of WASI components for all hooks.
 fn initialize_store(config: &Config, engine: &Engine) -> crate::Result<Store<WasiState>> {
-    let state = WasiState::new(config.wasi_context());
+    let state = WasiState::new(build_wasi_context(config));
 
     let mut store = Store::new(engine, state);
     store.set_fuel(u64::MAX)?;

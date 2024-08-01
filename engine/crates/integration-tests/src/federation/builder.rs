@@ -1,26 +1,25 @@
 mod bench;
 mod test_runtime;
 
-use std::{collections::HashMap, sync::Arc, time::Duration};
+use std::{collections::HashMap, sync::Arc};
 
 use crate::{mock_trusted_documents::MockTrustedDocumentsClient, TestTrustedDocument};
 pub use bench::*;
+use engine_config_builder::{build_with_sdl_config, build_with_toml_config};
+use federated_graph::FederatedGraphV3;
 use futures::{future::BoxFuture, stream::FuturesUnordered, FutureExt, StreamExt};
 use graphql_composition::FederatedGraph;
-use graphql_federated_graph::FederatedGraphV3;
 use graphql_mocks::MockGraphQlServer;
-use parser_sdl::{
-    connector_parsers::MockConnectorParsers,
-    federation::{header::SubgraphHeaderRule, EntityCachingConfig},
-};
+use parser_sdl::{connector_parsers::MockConnectorParsers, federation::FederatedGraphConfig};
 use runtime::{fetch::FetcherInner, hooks::DynamicHooks, trusted_documents_client};
-use runtime_local::{ComponentLoader, HooksWasi, HooksWasiConfig};
+use runtime_local::{ComponentLoader, HooksWasi};
 pub use test_runtime::*;
 
 use super::TestEngineV2;
 
-enum Config {
+enum ConfigSource {
     Sdl(String),
+    Toml(String),
     SdlWebsocket,
 }
 
@@ -28,11 +27,8 @@ enum Config {
 pub struct EngineV2Builder {
     federated_sdl: Option<String>,
     subgraphs: HashMap<std::any::TypeId, (String, BoxFuture<'static, MockGraphQlServer>)>,
-    config: Option<Config>,
+    config_source: Option<ConfigSource>,
     runtime: TestRuntime,
-    header_rules: Vec<SubgraphHeaderRule>,
-    timeout: Option<Duration>,
-    enable_entity_caching: bool,
 }
 
 pub trait EngineV2Ext {
@@ -40,11 +36,8 @@ pub trait EngineV2Ext {
         EngineV2Builder {
             federated_sdl: None,
             subgraphs: HashMap::new(),
-            config: None,
-            header_rules: Vec::new(),
-            timeout: None,
+            config_source: None,
             runtime: TestRuntime::default(),
-            enable_entity_caching: false,
         }
     }
 }
@@ -53,12 +46,20 @@ impl EngineV2Ext for engine_v2::Engine<TestRuntime> {}
 
 impl EngineV2Builder {
     pub fn with_sdl_config(mut self, sdl: impl Into<String>) -> Self {
-        self.config = Some(Config::Sdl(sdl.into()));
+        assert!(self.config_source.is_none(), "overwriting config!");
+        self.config_source = Some(ConfigSource::Sdl(sdl.into()));
+        self
+    }
+
+    pub fn with_toml_config(mut self, toml: impl Into<String>) -> Self {
+        assert!(self.config_source.is_none(), "overwriting config!");
+        self.config_source = Some(ConfigSource::Toml(toml.into()));
         self
     }
 
     pub fn with_sdl_websocket_config(mut self) -> Self {
-        self.config = Some(Config::SdlWebsocket);
+        assert!(self.config_source.is_none(), "overwriting config!");
+        self.config_source = Some(ConfigSource::SdlWebsocket);
         self
     }
 
@@ -69,12 +70,17 @@ impl EngineV2Builder {
         self
     }
 
+    /// Will bypass the composition of subgraphs and be used at its stead.
     pub fn with_federated_sdl(mut self, sdl: &str) -> Self {
         self.federated_sdl = Some(sdl.to_string());
         self
     }
 
-    pub fn with_trusted_documents(mut self, branch_id: String, documents: Vec<TestTrustedDocument>) -> Self {
+    //-- Runtime customization --
+    // Prefer passing through either the TOML / SDL config when relevant, see update_runtime_with_toml_config
+    //--
+
+    pub fn with_mock_trusted_documents(mut self, branch_id: String, documents: Vec<TestTrustedDocument>) -> Self {
         self.runtime.trusted_documents = trusted_documents_client::Client::new(MockTrustedDocumentsClient {
             _branch_id: branch_id,
             documents,
@@ -82,46 +88,18 @@ impl EngineV2Builder {
         self
     }
 
-    pub fn with_hooks(mut self, hooks: impl Into<DynamicHooks>) -> Self {
+    pub fn with_mock_hooks(mut self, hooks: impl Into<DynamicHooks>) -> Self {
         self.runtime.hooks = hooks.into();
         self
     }
 
-    /// Wasm location will be assumed to be in our examples
-    pub fn with_wasi_hooks(mut self, config: HooksWasiConfig) -> Self {
-        let wasi_hooks = HooksWasi::new(Some(
-            ComponentLoader::new(
-                config.with_location_root_dir("../wasi-component-loader/examples/target/wasm32-wasip1/debug"),
-            )
-            .ok()
-            .flatten()
-            .expect("Wasm examples weren't built, please run:\ncd engine/crates/wasi-component-loader/examples && cargo component build"),
-        ));
-        self.runtime.hooks = DynamicHooks::wrap(wasi_hooks);
-        self
-    }
-
-    pub fn with_header_rule(mut self, rule: SubgraphHeaderRule) -> Self {
-        self.header_rules.push(rule);
-        self
-    }
-
-    pub fn with_timeout(mut self, timeout: Duration) -> Self {
-        self.timeout = Some(timeout);
-        self
-    }
-
-    pub fn with_entity_caching(mut self) -> Self {
-        self.enable_entity_caching = true;
-        self
-    }
-
-    pub fn with_fetcher(mut self, fetcher: impl FetcherInner + 'static) -> Self {
+    pub fn with_mock_fetcher(mut self, fetcher: impl FetcherInner + 'static) -> Self {
         self.runtime.fetcher = runtime::fetch::Fetcher::new(fetcher);
         self
     }
+    //-- Runtime customization --
 
-    pub async fn build(self) -> TestEngineV2 {
+    pub async fn build(mut self) -> TestEngineV2 {
         let mut subgraphs = self
             .subgraphs
             .into_iter()
@@ -163,15 +141,18 @@ impl EngineV2Builder {
         let graph = FederatedGraph::from_sdl(&sdl).unwrap();
         let graph = serde_json::from_value(serde_json::to_value(&graph).unwrap()).unwrap();
 
-        let mut federated_graph_config = match self.config {
-            Some(Config::Sdl(mut sdl)) => {
-                sdl.push_str("\nextend schema @graph(type: federated)");
-                parser_sdl::parse(&sdl, &HashMap::new(), &MockConnectorParsers::default())
-                    .await
-                    .expect("supergraph config SDL to be valid")
-                    .federated_graph_config
+        let config = match self.config_source {
+            Some(ConfigSource::Toml(toml)) => {
+                let config: gateway_config::Config = toml::from_str(&toml).unwrap();
+                update_runtime_with_toml_config(&mut self.runtime, &config);
+                build_with_toml_config(&config, graph)
             }
-            Some(Config::SdlWebsocket) => {
+            Some(ConfigSource::Sdl(mut sdl)) => {
+                sdl.push_str("\nextend schema @graph(type: federated)");
+                let config = parse_sdl_config(&sdl).await;
+                build_with_sdl_config(&config, graph)
+            }
+            Some(ConfigSource::SdlWebsocket) => {
                 let mut sdl = String::new();
                 sdl.push_str("\nextend schema @graph(type: federated)");
                 for (_, subgraph) in &subgraphs {
@@ -182,24 +163,13 @@ impl EngineV2Builder {
                     ));
                 }
 
-                parser_sdl::parse(&sdl, &HashMap::new(), &MockConnectorParsers::default())
-                    .await
-                    .expect("supergraph config SDL to be valid")
-                    .federated_graph_config
+                let config = parse_sdl_config(&sdl).await;
+                build_with_sdl_config(&config, graph)
             }
-            None => None,
+            None => build_with_sdl_config(&Default::default(), graph),
         }
-        .unwrap_or_default();
+        .into_latest();
 
-        federated_graph_config.timeout = self.timeout;
-        federated_graph_config.header_rules.extend(self.header_rules);
-        federated_graph_config.entity_caching = if self.enable_entity_caching {
-            EntityCachingConfig::Enabled { ttl: None }
-        } else {
-            EntityCachingConfig::Disabled
-        };
-
-        let config = engine_config_builder::build_config(&federated_graph_config, graph).into_latest();
         let engine = engine_v2::Engine::new(Arc::new(config.try_into().unwrap()), None, self.runtime).await;
 
         TestEngineV2 {
@@ -207,4 +177,26 @@ impl EngineV2Builder {
             subgraphs: subgraphs.into_iter().collect(),
         }
     }
+}
+
+fn update_runtime_with_toml_config(runtime: &mut TestRuntime, config: &gateway_config::Config) {
+    if let Some(hooks_config) = config.hooks.clone() {
+        let wasi_hooks = HooksWasi::new(Some(
+                        ComponentLoader::new(
+                            hooks_config
+                        )
+                        .ok()
+                        .flatten()
+                        .expect("Wasm examples weren't built, please run:\ncd engine/crates/wasi-component-loader/examples && cargo component build"),
+                    ));
+        runtime.hooks = DynamicHooks::wrap(wasi_hooks);
+    }
+}
+
+async fn parse_sdl_config(sdl: &str) -> FederatedGraphConfig {
+    parser_sdl::parse(sdl, &HashMap::new(), &MockConnectorParsers::default())
+        .await
+        .expect("supergraph config SDL to be valid")
+        .federated_graph_config
+        .unwrap_or_default()
 }

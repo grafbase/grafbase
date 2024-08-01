@@ -64,6 +64,17 @@ pub enum EntityCachingConfig {
     },
 }
 
+impl From<gateway_config::EntityCachingConfig> for EntityCachingConfig {
+    fn from(config: gateway_config::EntityCachingConfig) -> Self {
+        match (config.enabled, config.ttl) {
+            (Some(false), _) => EntityCachingConfig::Disabled,
+            (Some(true), ttl) => EntityCachingConfig::Enabled { ttl },
+            (_, Some(ttl)) => EntityCachingConfig::Enabled { ttl: Some(ttl) },
+            _ => EntityCachingConfig::Disabled,
+        }
+    }
+}
+
 impl From<(String, ConnectorHeaderValue)> for SubgraphHeaderRule {
     fn from((name, value): (String, ConnectorHeaderValue)) -> Self {
         match value {
@@ -90,6 +101,54 @@ pub struct RateLimitConfig {
     pub global: Option<GraphRateLimit>,
     pub storage: RateLimitStorage,
     pub redis: RateLimitRedisConfig,
+}
+
+impl From<gateway_config::RateLimitConfig> for RateLimitConfig {
+    fn from(value: gateway_config::RateLimitConfig) -> Self {
+        Self {
+            global: value.global.map(Into::into),
+            storage: value.storage.into(),
+            redis: value.redis.into(),
+        }
+    }
+}
+
+impl From<gateway_config::GraphRateLimit> for GraphRateLimit {
+    fn from(value: gateway_config::GraphRateLimit) -> Self {
+        Self {
+            limit: value.limit,
+            duration: value.duration,
+        }
+    }
+}
+
+impl From<gateway_config::RateLimitStorage> for RateLimitStorage {
+    fn from(value: gateway_config::RateLimitStorage) -> Self {
+        match value {
+            gateway_config::RateLimitStorage::Memory => Self::Memory,
+            gateway_config::RateLimitStorage::Redis => Self::Redis,
+        }
+    }
+}
+
+impl From<gateway_config::RateLimitRedisConfig> for RateLimitRedisConfig {
+    fn from(value: gateway_config::RateLimitRedisConfig) -> Self {
+        Self {
+            url: value.url,
+            key_prefix: value.key_prefix,
+            tls: value.tls.map(Into::into),
+        }
+    }
+}
+
+impl From<gateway_config::RateLimitRedisTlsConfig> for RateLimitRedisTlsConfig {
+    fn from(value: gateway_config::RateLimitRedisTlsConfig) -> Self {
+        Self {
+            cert: value.cert,
+            key: value.key,
+            ca: value.ca,
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
@@ -122,4 +181,76 @@ pub struct RetryConfig {
     pub retry_percent: Option<f32>,
     /// Whether mutations should be retried at all. False by default.
     pub retry_mutations: Option<bool>,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use indoc::indoc;
+
+    #[test]
+    fn entity_caching_global() {
+        let input = indoc! {r#"
+            [entity_caching]
+            enabled = true
+            ttl = "60s"
+        "#};
+
+        let config = toml::from_str::<gateway_config::Config>(input).unwrap();
+
+        assert_eq!(
+            EntityCachingConfig::from(config.entity_caching),
+            EntityCachingConfig::Enabled {
+                ttl: Some(Duration::from_secs(60))
+            }
+        )
+    }
+
+    #[test]
+    fn entity_caching_subgraph() {
+        let input = indoc! {r#"
+            [subgraphs.products.entity_caching]
+            ttl = "60s"
+        "#};
+
+        let mut config = toml::from_str::<gateway_config::Config>(input).unwrap();
+
+        assert_eq!(
+            EntityCachingConfig::from(config.subgraphs.remove("products").unwrap().entity_caching.unwrap()),
+            EntityCachingConfig::Enabled {
+                ttl: Some(Duration::from_secs(60))
+            }
+        )
+    }
+
+    #[test]
+    fn entity_caching_subgraph_enabled() {
+        let input = indoc! {r#"
+            [subgraphs.products.entity_caching]
+            enabled = true
+        "#};
+
+        let mut config = toml::from_str::<gateway_config::Config>(input).unwrap();
+
+        assert_eq!(
+            EntityCachingConfig::from(config.subgraphs.remove("products").unwrap().entity_caching.unwrap()),
+            EntityCachingConfig::Enabled { ttl: None }
+        )
+    }
+
+    #[test]
+    fn entity_caching_subgraph_disabled() {
+        let input = indoc! {r#"
+            [subgraphs.products.entity_caching]
+            enabled = false
+            ttl = "60s"
+        "#};
+
+        let mut config = toml::from_str::<gateway_config::Config>(input).unwrap();
+
+        assert_eq!(
+            EntityCachingConfig::from(config.subgraphs.remove("products").unwrap().entity_caching.unwrap()),
+            EntityCachingConfig::Disabled
+        )
+    }
 }

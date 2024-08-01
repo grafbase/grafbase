@@ -89,3 +89,60 @@ pub struct SubgraphRenameDuplicate {
     /// Use this name instead of the original when forwarding.
     pub rename: String,
 }
+
+impl From<gateway_config::NameOrPattern> for NameOrPattern {
+    fn from(value: gateway_config::NameOrPattern) -> Self {
+        match value {
+            gateway_config::NameOrPattern::Pattern(regex) => NameOrPattern::Pattern(regex),
+            gateway_config::NameOrPattern::Name(name) => NameOrPattern::Name(name.to_string()),
+        }
+    }
+}
+
+impl From<gateway_config::HeaderRule> for SubgraphHeaderRule {
+    fn from(value: gateway_config::HeaderRule) -> Self {
+        match value {
+            gateway_config::HeaderRule::Forward(fwd) => Self::Forward(fwd.into()),
+            gateway_config::HeaderRule::Insert(insert) => Self::Insert(insert.into()),
+            gateway_config::HeaderRule::Remove(remove) => Self::Remove(remove.into()),
+            gateway_config::HeaderRule::RenameDuplicate(rename) => Self::RenameDuplicate(rename.into()),
+        }
+    }
+}
+
+impl From<gateway_config::RenameDuplicate> for SubgraphRenameDuplicate {
+    fn from(value: gateway_config::RenameDuplicate) -> Self {
+        Self {
+            name: value.name.to_string(),
+            default: value.default.as_ref().map(ToString::to_string),
+            rename: value.rename.to_string(),
+        }
+    }
+}
+
+impl From<gateway_config::HeaderForward> for SubgraphHeaderForward {
+    fn from(value: gateway_config::HeaderForward) -> Self {
+        Self {
+            name: value.name.into(),
+            default: value.default.as_ref().map(ToString::to_string),
+            rename: value.rename.as_ref().map(ToString::to_string),
+        }
+    }
+}
+
+impl From<gateway_config::HeaderInsert> for SubgraphHeaderInsert {
+    fn from(value: gateway_config::HeaderInsert) -> Self {
+        Self {
+            name: value.name.to_string(),
+            value: value.value.to_string(),
+        }
+    }
+}
+
+impl From<gateway_config::HeaderRemove> for SubgraphHeaderRemove {
+    fn from(value: gateway_config::HeaderRemove) -> Self {
+        Self {
+            name: value.name.into(),
+        }
+    }
+}

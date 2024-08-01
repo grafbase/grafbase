@@ -10,7 +10,12 @@ fn root_level_entity_caching() {
     let response = runtime().block_on(async move {
         let engine = Engine::builder()
             .with_subgraph(FederatedProductsSchema)
-            .with_entity_caching()
+            .with_toml_config(
+                r#"
+                [entity_caching]
+                enabled = true
+                "#,
+            )
             .build()
             .await;
 
@@ -67,7 +72,12 @@ fn different_queries_dont_share_cache() {
     runtime().block_on(async move {
         let engine = Engine::builder()
             .with_subgraph(FederatedProductsSchema)
-            .with_entity_caching()
+            .with_toml_config(
+                r#"
+                [entity_caching]
+                enabled = true
+                "#,
+            )
             .build()
             .await;
 
@@ -88,8 +98,15 @@ fn test_cache_expiry() {
     let response = runtime().block_on(async move {
         let engine = Engine::builder()
             .with_subgraph(FederatedProductsSchema)
-            .with_sdl_config(r#"extend schema @subgraph(name: "products", entityCachingTtl: "1s")"#)
-            .with_entity_caching()
+            .with_toml_config(
+                r#"
+                [entity_caching]
+                enabled = true
+
+                [subgraphs.products.entity_caching]
+                ttl = "1s"
+                "#,
+            )
             .build()
             .await;
 
@@ -149,7 +166,12 @@ fn cache_skipped_if_subgraph_errors() {
     runtime().block_on(async move {
         let engine = Engine::builder()
             .with_subgraph(ErrorSchema::default())
-            .with_entity_caching()
+            .with_toml_config(
+                r#"
+                [entity_caching]
+                enabled = true
+                "#,
+            )
             .build()
             .await;
 
@@ -173,7 +195,12 @@ fn entity_request_caching() {
             .with_subgraph(FederatedProductsSchema)
             .with_subgraph(FederatedReviewsSchema)
             .with_subgraph(FederatedInventorySchema)
-            .with_entity_caching()
+            .with_toml_config(
+                r#"
+                [entity_caching]
+                enabled = true
+                "#,
+            )
             .build()
             .await;
 
@@ -206,7 +233,12 @@ fn entity_request_cache_partial_hit() {
             .with_subgraph(FederatedProductsSchema)
             .with_subgraph(FederatedReviewsSchema)
             .with_subgraph(FederatedInventorySchema)
-            .with_entity_caching()
+            .with_toml_config(
+                r#"
+                [entity_caching]
+                enabled = true
+                "#,
+            )
             .build()
             .await;
 

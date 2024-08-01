@@ -71,12 +71,12 @@ impl ComponentLoader {
 
         let engine = Engine::new(&wasm_config)?;
 
-        let this = match Component::from_file(&engine, config.location()) {
+        let this = match Component::from_file(&engine, &config.location) {
             Ok(component) => {
                 tracing::debug!(
                     target: GRAFBASE_TARGET,
                     message = "loaded the provided web assembly component successfully",
-                    location = config.location().to_str(),
+                    location = config.location.to_str(),
                 );
 
                 let mut linker = Linker::<WasiState>::new(&engine);
@@ -84,7 +84,7 @@ impl ComponentLoader {
                 // adds the wasi interfaces to our component
                 wasmtime_wasi::add_to_linker_async(&mut linker)?;
 
-                if config.networking_enabled() {
+                if config.networking {
                     // adds the wasi http interfaces to our component
                     wasmtime_wasi_http::proxy::add_only_http_to_linker(&mut linker)?;
                 }
@@ -106,7 +106,7 @@ impl ComponentLoader {
                 tracing::error!(
                     target: GRAFBASE_TARGET,
                     message = "error loading web assembly component",
-                    location = config.location().to_str(),
+                    location = config.location.to_str(),
                     error = e.to_string(),
                 );
 

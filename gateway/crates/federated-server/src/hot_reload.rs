@@ -1,33 +1,30 @@
-use std::{collections::HashMap, fs, path::PathBuf, sync::OnceLock, time::Duration};
+use std::{fs, path::PathBuf, sync::OnceLock, time::Duration};
 
+use gateway_config::Config;
 use grafbase_telemetry::span::GRAFBASE_TARGET;
 use notify::{EventHandler, EventKind, PollWatcher, Watcher};
-use runtime::rate_limiting::{GraphRateLimit, RateLimitKey};
 use tokio::sync::watch;
 
-use crate::Config;
-
-type RateLimitData = HashMap<RateLimitKey<'static>, GraphRateLimit>;
-
 pub(crate) struct ConfigWatcher {
-    config_path: PathBuf,
-    rate_limit_sender: watch::Sender<RateLimitData>,
+    path: PathBuf,
+    sender: watch::Sender<Config>,
 }
 
 impl ConfigWatcher {
-    pub fn new(config_path: PathBuf, rate_limit_sender: watch::Sender<RateLimitData>) -> Self {
-        Self {
-            config_path,
-            rate_limit_sender,
+    pub fn init(config: Config, hot_reload_config_path: Option<PathBuf>) -> crate::Result<watch::Receiver<Config>> {
+        let (sender, receiver) = watch::channel(config);
+        if let Some(path) = hot_reload_config_path {
+            Self { path, sender }.start()?
         }
+        Ok(receiver)
     }
 
-    pub fn watch(self) -> crate::Result<()> {
+    fn start(self) -> crate::Result<()> {
         static WATCHER: OnceLock<PollWatcher> = OnceLock::new();
 
         WATCHER.get_or_init(|| {
             let config = notify::Config::default().with_poll_interval(Duration::from_secs(1));
-            let path = self.config_path.clone();
+            let path = self.path.clone();
             let mut watcher = PollWatcher::new(self, config).expect("config watch init failed");
 
             watcher
@@ -41,7 +38,7 @@ impl ConfigWatcher {
     }
 
     fn reload_config(&self) -> crate::Result<()> {
-        let config = match fs::read_to_string(&self.config_path) {
+        let config = match fs::read_to_string(&self.path) {
             Ok(config) => config,
             Err(e) => {
                 tracing::error!(target: GRAFBASE_TARGET, "error reading gateway config: {e}");
@@ -59,21 +56,7 @@ impl ConfigWatcher {
             }
         };
 
-        let rate_limiting_configs = config
-            .as_keyed_rate_limit_config()
-            .into_iter()
-            .map(|(k, v)| {
-                (
-                    k,
-                    runtime::rate_limiting::GraphRateLimit {
-                        limit: v.limit,
-                        duration: v.duration,
-                    },
-                )
-            })
-            .collect();
-
-        self.rate_limit_sender.send(rate_limiting_configs)?;
+        self.sender.send(config)?;
 
         Ok(())
     }

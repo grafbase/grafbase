@@ -12,7 +12,6 @@ workspace = true
 
 [dependencies]
 graphql-federated-graph = { path = "../federated-graph", version = "0.4.0" }
-
 async-graphql-parser.workspace = true
 async-graphql-value.workspace = true
 indexmap.workspace = true

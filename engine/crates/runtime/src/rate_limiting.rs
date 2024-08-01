@@ -1,10 +1,9 @@
 use std::borrow::Cow;
-use std::collections::HashMap;
 use std::net::IpAddr;
 use std::sync::Arc;
-use std::time::Duration;
 
 use futures_util::future::BoxFuture;
+use futures_util::FutureExt;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -27,6 +26,12 @@ pub trait RateLimiterContext: Send + Sync {
 
 pub trait RateLimiterInner: Send + Sync {
     fn limit<'a>(&'a self, context: &'a dyn RateLimiterContext) -> BoxFuture<'a, Result<(), Error>>;
+}
+
+impl RateLimiterInner for () {
+    fn limit<'a>(&'a self, _: &'a dyn RateLimiterContext) -> BoxFuture<'a, Result<(), Error>> {
+        async { Ok(()) }.boxed()
+    }
 }
 
 #[derive(Clone)]
@@ -88,15 +93,4 @@ impl std::ops::Deref for RateLimiter {
     fn deref(&self) -> &Self::Target {
         self.inner.as_ref()
     }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub struct GraphRateLimit {
-    pub limit: usize,
-    pub duration: Duration,
-}
-
-#[derive(Debug, Clone, Default)]
-pub struct KeyedRateLimitConfig {
-    pub rate_limiting_configs: HashMap<String, GraphRateLimit>,
 }
