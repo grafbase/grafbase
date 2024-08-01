@@ -10,7 +10,7 @@ mod utils;
 pub mod websocket;
 
 pub use ::engine::{BatchRequest, Request};
-pub use engine::{Engine, RateLimitContext, Runtime, Session};
+pub use engine::{Engine, Runtime, Session};
 pub use http_response::{HttpGraphqlResponse, HttpGraphqlResponseBody};
 pub use schema::{CacheControl, Schema};
 

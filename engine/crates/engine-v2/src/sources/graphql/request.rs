@@ -4,7 +4,10 @@ use grafbase_telemetry::{
     gql_response_status::{GraphqlResponseStatus, SubgraphResponseStatus},
     span::{GqlRecorderSpanExt, GRAFBASE_TARGET},
 };
-use runtime::fetch::{FetchRequest, FetchResponse};
+use runtime::{
+    fetch::{FetchRequest, FetchResponse},
+    rate_limiting::RateLimitKey,
+};
 use schema::sources::graphql::{GraphqlEndpointId, GraphqlEndpointWalker};
 use tower::retry::budget::Budget;
 use tracing::Span;
@@ -13,7 +16,7 @@ use web_time::Duration;
 use crate::{
     execution::{ExecutionContext, ExecutionError, ExecutionResult},
     response::SubgraphResponse,
-    RateLimitContext, Runtime,
+    Runtime,
 };
 
 pub trait ResponseIngester: Send {
@@ -130,7 +133,7 @@ async fn rate_limited_fetch<'ctx, R: Runtime>(
     ctx.engine
         .runtime
         .rate_limiter()
-        .limit(&RateLimitContext::Subgraph(subgraph.name()))
+        .limit(&RateLimitKey::Subgraph(subgraph.name().into()))
         .await?;
 
     ctx.engine

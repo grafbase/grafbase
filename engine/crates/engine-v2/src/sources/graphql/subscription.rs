@@ -1,5 +1,5 @@
 use futures_util::{stream::BoxStream, StreamExt};
-use runtime::fetch::GraphqlRequest;
+use runtime::{fetch::GraphqlRequest, rate_limiting::RateLimitKey};
 use serde::de::DeserializeSeed;
 
 use super::{
@@ -37,7 +37,7 @@ impl GraphqlPreparedExecutor {
         ctx.engine
             .runtime
             .rate_limiter()
-            .limit(&crate::engine::RateLimitContext::Subgraph(subgraph.name()))
+            .limit(&RateLimitKey::Subgraph(subgraph.name().into()))
             .await?;
 
         let stream = ctx

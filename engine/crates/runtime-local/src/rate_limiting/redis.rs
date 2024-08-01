@@ -1,6 +1,5 @@
 mod pool;
 
-use core::fmt;
 use std::{
     collections::HashMap,
     fs::File,
@@ -14,7 +13,7 @@ use deadpool::managed::Pool;
 use futures_util::future::BoxFuture;
 use grafbase_telemetry::span::GRAFBASE_TARGET;
 use redis::ClientTlsConfig;
-use runtime::rate_limiting::{Error, GraphRateLimit, RateLimiter, RateLimiterContext};
+use runtime::rate_limiting::{Error, GraphRateLimit, RateLimitKey, RateLimiter, RateLimiterContext};
 use tokio::sync::watch;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -31,7 +30,7 @@ pub struct RateLimitRedisTlsConfig<'a> {
     pub ca: Option<&'a Path>,
 }
 
-pub type Limits = watch::Receiver<HashMap<String, GraphRateLimit>>;
+pub type Limits = watch::Receiver<HashMap<RateLimitKey<'static>, GraphRateLimit>>;
 
 /// Rate limiter by utilizing Redis as a backend. It uses a averaging fixed window algorithm
 /// to define is the limit reached or not.
@@ -51,24 +50,6 @@ pub struct RedisRateLimiter {
     pool: Pool<pool::Manager>,
     key_prefix: String,
     limits: Limits,
-}
-
-enum Key<'a> {
-    Graph { name: &'a str },
-}
-
-impl<'a> fmt::Display for Key<'a> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str("rate_limit:")?;
-
-        match self {
-            Key::Graph { name } => {
-                f.write_str(name)?;
-            }
-        }
-
-        Ok(())
-    }
 }
 
 impl RedisRateLimiter {
@@ -147,11 +128,14 @@ impl RedisRateLimiter {
         })
     }
 
-    fn generate_key(&self, bucket: u64, context: &dyn RateLimiterContext, key: Key<'_>) -> String {
-        if context.is_global() {
-            format!("{}:{key}:{bucket}", self.key_prefix)
-        } else {
-            format!("{}:subgraph:{key}:{bucket}", self.key_prefix)
+    fn generate_key(&self, bucket: u64, key: &RateLimitKey<'_>) -> String {
+        match key {
+            RateLimitKey::Global => {
+                format!("{}:rate_limit:global:{bucket}", self.key_prefix)
+            }
+            RateLimitKey::Subgraph(ref graph) => {
+                format!("{}:subgraph:rate_limit:{graph}:{bucket}", self.key_prefix)
+            }
         }
     }
 
@@ -187,9 +171,9 @@ impl RedisRateLimiter {
         let bucket_percentage = (current_ts % duration_ns) as f64 / duration_ns as f64;
 
         // The counter key for the current window.
-        let current_bucket = self.generate_key(current_bucket, context, Key::Graph { name: key });
+        let current_bucket = self.generate_key(current_bucket, key);
         // The counter key for the previous window.
-        let previous_bucket = self.generate_key(previous_bucket, context, Key::Graph { name: key });
+        let previous_bucket = self.generate_key(previous_bucket, key);
 
         // We execute multiple commands in one pipelined query to be _fast_.
         let mut pipe = redis::pipe();

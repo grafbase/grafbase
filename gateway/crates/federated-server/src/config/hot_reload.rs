@@ -2,12 +2,12 @@ use std::{collections::HashMap, fs, path::PathBuf, sync::OnceLock, time::Duratio
 
 use grafbase_telemetry::span::GRAFBASE_TARGET;
 use notify::{EventHandler, EventKind, PollWatcher, Watcher};
-use runtime::rate_limiting::GraphRateLimit;
+use runtime::rate_limiting::{GraphRateLimit, RateLimitKey};
 use tokio::sync::watch;
 
 use crate::Config;
 
-type RateLimitData = HashMap<String, GraphRateLimit>;
+type RateLimitData = HashMap<RateLimitKey<'static>, GraphRateLimit>;
 
 pub(crate) struct ConfigWatcher {
     config_path: PathBuf,
@@ -64,7 +64,7 @@ impl ConfigWatcher {
             .into_iter()
             .map(|(k, v)| {
                 (
-                    k.to_string(),
+                    k,
                     runtime::rate_limiting::GraphRateLimit {
                         limit: v.limit,
                         duration: v.duration,

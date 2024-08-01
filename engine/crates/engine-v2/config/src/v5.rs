@@ -2,12 +2,11 @@ mod header;
 mod rate_limit;
 
 use std::{
-    collections::{BTreeMap, HashMap},
+    collections::BTreeMap,
     path::{Path, PathBuf},
     time::Duration,
 };
 
-use crate::GLOBAL_RATE_LIMIT_KEY;
 use federated_graph::{FederatedGraphV3, SubgraphId};
 
 use self::rate_limit::{RateLimitConfigRef, RateLimitRedisConfigRef, RateLimitRedisTlsConfigRef};
@@ -93,21 +92,28 @@ impl Config {
         })
     }
 
-    pub fn as_keyed_rate_limit_config(&self) -> HashMap<&str, GraphRateLimit> {
-        let mut key_based_config = HashMap::new();
+    pub fn as_keyed_rate_limit_config(&self) -> Vec<(RateLimitKey<'_>, GraphRateLimit)> {
+        let mut key_based_config = Vec::new();
 
         if let Some(global_config) = self.rate_limit.as_ref().and_then(|c| c.global) {
-            key_based_config.insert(GLOBAL_RATE_LIMIT_KEY, global_config);
+            key_based_config.push((RateLimitKey::Global, global_config));
         }
 
         for subgraph in self.subgraph_configs.values() {
             if let Some(subgraph_rate_limit) = subgraph.rate_limit {
-                key_based_config.insert(&self.strings[subgraph.name.0], subgraph_rate_limit);
+                let key = RateLimitKey::Subgraph(&self.strings[subgraph.name.0]);
+                key_based_config.push((key, subgraph_rate_limit));
             }
         }
 
         key_based_config
     }
+}
+
+#[derive(Clone, Copy, Debug)]
+pub enum RateLimitKey<'a> {
+    Global,
+    Subgraph(&'a str),
 }
 
 impl std::ops::Index<StringId> for Config {
