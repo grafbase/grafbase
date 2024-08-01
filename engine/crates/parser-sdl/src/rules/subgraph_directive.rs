@@ -190,18 +190,18 @@ impl Visitor<'_> for SubgraphDirectiveVisitor {
                 subgraph.development_url = Some(url.to_string())
             }
 
-            if let Some(enabled) = directive.entity_caching_enabled {
-                if enabled {
-                    subgraph.entity_caching = Some(EntityCachingConfig::Enabled { ttl: None });
-                } else {
-                    subgraph.entity_caching = Some(EntityCachingConfig::Disabled);
-                }
-            }
-
-            if let Some(ttl) = directive.entity_caching_ttl {
-                // If there's a ttl we always enable
-                subgraph.entity_caching = Some(EntityCachingConfig::Enabled { ttl: Some(ttl) });
-            }
+            subgraph.entity_caching = match (directive.entity_caching_enabled, directive.entity_caching_ttl) {
+                (Some(false), _) => Some(EntityCachingConfig::Disabled),
+                (Some(true), ttl) => Some(EntityCachingConfig::Enabled {
+                    ttl,
+                    storage: Default::default(),
+                }),
+                (_, Some(ttl)) => Some(EntityCachingConfig::Enabled {
+                    ttl: Some(ttl),
+                    storage: Default::default(),
+                }),
+                _ => None,
+            };
 
             subgraph.header_rules.extend(
                 directive

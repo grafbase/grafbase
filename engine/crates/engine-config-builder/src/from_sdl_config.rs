@@ -44,7 +44,7 @@ pub fn build_with_sdl_config(config: &FederatedGraphConfig, graph: FederatedGrap
         rate_limit: context.rate_limit,
         timeout: config.timeout,
         entity_caching: match config.entity_caching {
-            EntityCachingConfig::Enabled { ttl } => EntityCaching::Enabled { ttl },
+            EntityCachingConfig::Enabled { ttl, .. } => EntityCaching::Enabled { ttl },
             _ => EntityCaching::Disabled,
         },
     })
@@ -211,7 +211,7 @@ impl<'a> BuildContext<'a> {
                     retry,
                     entity_caching: entity_caching.as_ref().map(|config| match config {
                         EntityCachingConfig::Disabled => EntityCaching::Disabled,
-                        EntityCachingConfig::Enabled { ttl } => EntityCaching::Enabled { ttl: *ttl },
+                        EntityCachingConfig::Enabled { ttl, .. } => EntityCaching::Enabled { ttl: *ttl },
                     }),
                 },
             );

@@ -61,17 +61,59 @@ pub enum EntityCachingConfig {
     Disabled,
     Enabled {
         ttl: Option<Duration>,
+        storage: EntityCacheStorage,
     },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Default)]
+pub enum EntityCacheStorage {
+    #[default]
+    Memory,
+    Redis(RedisConfig),
 }
 
 impl From<gateway_config::EntityCachingConfig> for EntityCachingConfig {
     fn from(config: gateway_config::EntityCachingConfig) -> Self {
         match (config.enabled, config.ttl) {
             (Some(false), _) => EntityCachingConfig::Disabled,
-            (Some(true), ttl) => EntityCachingConfig::Enabled { ttl },
-            (_, Some(ttl)) => EntityCachingConfig::Enabled { ttl: Some(ttl) },
+            (Some(true), ttl) => EntityCachingConfig::Enabled {
+                ttl,
+                storage: entity_cache_storage(config.storage, config.redis),
+            },
+            (_, Some(ttl)) => EntityCachingConfig::Enabled {
+                ttl: Some(ttl),
+                storage: entity_cache_storage(config.storage, config.redis),
+            },
             _ => EntityCachingConfig::Disabled,
         }
+    }
+}
+
+fn entity_cache_storage(
+    storage: gateway_config::EntityCachingStorage,
+    redis: Option<gateway_config::EntityCachingRedisConfig>,
+) -> EntityCacheStorage {
+    match storage {
+        gateway_config::EntityCachingStorage::Memory => EntityCacheStorage::Memory,
+        gateway_config::EntityCachingStorage::Redis => EntityCacheStorage::Redis(redis.unwrap_or_default().into()),
+    }
+}
+
+impl From<gateway_config::EntityCachingRedisConfig> for RedisConfig {
+    fn from(value: gateway_config::EntityCachingRedisConfig) -> Self {
+        let gateway_config::EntityCachingRedisConfig { url, key_prefix, tls } = value;
+        RedisConfig {
+            url,
+            key_prefix,
+            tls: tls.map(Into::into),
+        }
+    }
+}
+
+impl From<gateway_config::EntityCachingRedisTlsConfig> for RedisTlsConfig {
+    fn from(value: gateway_config::EntityCachingRedisTlsConfig) -> Self {
+        let gateway_config::EntityCachingRedisTlsConfig { cert, key, ca } = value;
+        RedisTlsConfig { cert, key, ca }
     }
 }
 
@@ -100,7 +142,7 @@ pub struct GraphRateLimit {
 pub struct RateLimitConfig {
     pub global: Option<GraphRateLimit>,
     pub storage: RateLimitStorage,
-    pub redis: RateLimitRedisConfig,
+    pub redis: RedisConfig,
 }
 
 impl From<gateway_config::RateLimitConfig> for RateLimitConfig {
@@ -131,7 +173,7 @@ impl From<gateway_config::RateLimitStorage> for RateLimitStorage {
     }
 }
 
-impl From<gateway_config::RateLimitRedisConfig> for RateLimitRedisConfig {
+impl From<gateway_config::RateLimitRedisConfig> for RedisConfig {
     fn from(value: gateway_config::RateLimitRedisConfig) -> Self {
         Self {
             url: value.url,
@@ -141,7 +183,7 @@ impl From<gateway_config::RateLimitRedisConfig> for RateLimitRedisConfig {
     }
 }
 
-impl From<gateway_config::RateLimitRedisTlsConfig> for RateLimitRedisTlsConfig {
+impl From<gateway_config::RateLimitRedisTlsConfig> for RedisTlsConfig {
     fn from(value: gateway_config::RateLimitRedisTlsConfig) -> Self {
         Self {
             cert: value.cert,
@@ -158,14 +200,14 @@ pub enum RateLimitStorage {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub struct RateLimitRedisConfig {
+pub struct RedisConfig {
     pub url: url::Url,
     pub key_prefix: String,
-    pub tls: Option<RateLimitRedisTlsConfig>,
+    pub tls: Option<RedisTlsConfig>,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, PartialOrd, Ord)]
-pub struct RateLimitRedisTlsConfig {
+pub struct RedisTlsConfig {
     pub cert: Option<PathBuf>,
     pub key: Option<PathBuf>,
     pub ca: Option<PathBuf>,
@@ -201,7 +243,8 @@ mod tests {
         assert_eq!(
             EntityCachingConfig::from(config.entity_caching),
             EntityCachingConfig::Enabled {
-                ttl: Some(Duration::from_secs(60))
+                ttl: Some(Duration::from_secs(60)),
+                storage: Default::default(),
             }
         )
     }
@@ -218,7 +261,8 @@ mod tests {
         assert_eq!(
             EntityCachingConfig::from(config.subgraphs.remove("products").unwrap().entity_caching.unwrap()),
             EntityCachingConfig::Enabled {
-                ttl: Some(Duration::from_secs(60))
+                ttl: Some(Duration::from_secs(60)),
+                storage: Default::default()
             }
         )
     }
@@ -234,7 +278,10 @@ mod tests {
 
         assert_eq!(
             EntityCachingConfig::from(config.subgraphs.remove("products").unwrap().entity_caching.unwrap()),
-            EntityCachingConfig::Enabled { ttl: None }
+            EntityCachingConfig::Enabled {
+                ttl: None,
+                storage: Default::default()
+            }
         )
     }
 
