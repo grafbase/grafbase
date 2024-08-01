@@ -8,6 +8,7 @@ mod kv;
 mod log;
 mod pg;
 pub mod rate_limiting;
+pub mod redis;
 mod ufd_invoker;
 
 pub use bridge::Bridge;
