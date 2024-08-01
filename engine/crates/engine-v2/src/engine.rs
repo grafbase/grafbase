@@ -13,8 +13,8 @@ use gateway_v2_auth::AuthService;
 use grafbase_telemetry::{
     gql_response_status::GraphqlResponseStatus,
     grafbase_client::Client,
-    metrics::{GraphqlOperationMetrics, GraphqlOperationMetricsAttributes},
-    span::{gql::GqlRequestSpan, GqlRecorderSpanExt, GqlRequestAttributes, GRAFBASE_TARGET},
+    metrics::{GraphqlOperationMetrics, GraphqlRequestMetricsAttributes, OperationMetricsAttributes},
+    span::{gql::GqlRequestSpan, GqlRecorderSpanExt, GRAFBASE_TARGET},
 };
 use headers::HeaderMapExt;
 use schema::Schema;
@@ -27,7 +27,7 @@ use web_time::Instant;
 use crate::{
     execution::{ExecutableOperation, PreExecutionContext},
     http_response::{HttpGraphqlResponse, HttpGraphqlResponseExtraMetadata},
-    operation::{Operation, OperationMetadata, PreparedOperation, Variables},
+    operation::{Operation, PreparedOperation, Variables},
     response::{ErrorCode, GraphqlError, Response},
     websocket,
 };
@@ -251,7 +251,7 @@ impl<R: Runtime> Engine<R> {
         let span = GqlRequestSpan::create();
         async {
             let ctx = PreExecutionContext::new(self, request_context);
-            let (operation_metadata, response) = ctx.execute_single(request).await;
+            let (operation_metrics_attributes, response) = ctx.execute_single(request).await;
             let status = response.status();
 
             let mut response_metadata = HttpGraphqlResponseExtraMetadata {
@@ -262,28 +262,17 @@ impl<R: Runtime> Engine<R> {
 
             let elapsed = start.elapsed();
 
-            if let Some(OperationMetadata {
-                ty,
-                name,
-                normalized_query,
-                normalized_query_hash,
-            }) = operation_metadata
-            {
-                tracing::Span::current().record_gql_request(GqlRequestAttributes {
-                    operation_type: ty.as_str(),
-                    operation_name: name.as_deref(),
-                    sanitized_query: Some(&normalized_query),
-                });
+            if let Some(operation_metrics_attributes) = operation_metrics_attributes {
+                tracing::Span::current().record_gql_request((&operation_metrics_attributes).into());
 
-                response_metadata.operation_name.clone_from(&name);
-                response_metadata.operation_type = Some(ty.as_str());
+                response_metadata
+                    .operation_name
+                    .clone_from(&operation_metrics_attributes.name);
+                response_metadata.operation_type = Some(operation_metrics_attributes.ty.as_str());
 
                 self.operation_metrics.record(
-                    GraphqlOperationMetricsAttributes {
-                        ty: ty.as_str(),
-                        name,
-                        normalized_query,
-                        normalized_query_hash,
+                    GraphqlRequestMetricsAttributes {
+                        operation: operation_metrics_attributes,
                         status,
                         cache_status: None,
                         client: request_context.client.clone(),
@@ -302,7 +291,7 @@ impl<R: Runtime> Engine<R> {
                     .unwrap_or_else(|| String::from("gateway error"));
 
                 tracing::Span::current().record_gql_status(status);
-                tracing::info!(target: GRAFBASE_TARGET, "{message}")
+                tracing::debug!(target: GRAFBASE_TARGET, "{message}")
             }
 
             HttpGraphqlResponse::build(response, None, response_metadata)
@@ -325,28 +314,15 @@ impl<R: Runtime> Engine<R> {
         receiver.join(
             async move {
                 let ctx = PreExecutionContext::new(&engine, &request_context);
-                let (metadata, status) = ctx.execute_stream(request, sender).await;
+                let (operation_metrics_attributes, status) = ctx.execute_stream(request, sender).await;
                 let elapsed = start.elapsed();
 
-                if let Some(OperationMetadata {
-                    ty,
-                    name,
-                    normalized_query,
-                    normalized_query_hash,
-                }) = metadata
-                {
-                    span.record_gql_request(GqlRequestAttributes {
-                        operation_type: ty.as_str(),
-                        operation_name: name.as_deref(),
-                        sanitized_query: Some(&normalized_query),
-                    });
+                if let Some(operation_metrics_attributes) = operation_metrics_attributes {
+                    tracing::Span::current().record_gql_request((&operation_metrics_attributes).into());
 
                     engine.operation_metrics.record(
-                        GraphqlOperationMetricsAttributes {
-                            ty: ty.as_str(),
-                            name,
-                            normalized_query,
-                            normalized_query_hash,
+                        GraphqlRequestMetricsAttributes {
+                            operation: operation_metrics_attributes,
                             status,
                             cache_status: None,
                             client: request_context.client.clone(),
@@ -355,13 +331,12 @@ impl<R: Runtime> Engine<R> {
                     );
                 }
 
-                // TODO: recording gql errors here is a bit...
                 span.record_gql_status(status);
 
                 if status.is_success() {
                     tracing::debug!(target: GRAFBASE_TARGET, "gateway request")
                 } else {
-                    tracing::info!(target: GRAFBASE_TARGET, "gateway error")
+                    tracing::debug!(target: GRAFBASE_TARGET, "gateway error")
                 }
             }
             .instrument(span_clone),
@@ -393,13 +368,13 @@ async fn convert_stream_to_http_response(
 }
 
 impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
-    async fn execute_single(mut self, request: Request) -> (Option<OperationMetadata>, Response) {
+    async fn execute_single(mut self, request: Request) -> (Option<OperationMetricsAttributes>, Response) {
         let operation_plan = match self.prepare_operation(request).await {
             Ok(operation_plan) => operation_plan,
             Err((metadata, response)) => return (metadata, response),
         };
 
-        let metadata = Some(operation_plan.metadata.clone());
+        let metrics_attributes = Some(operation_plan.metrics_attributes.clone());
         let response = if matches!(operation_plan.ty(), OperationType::Subscription) {
             Response::pre_execution_error(GraphqlError::new(
                 "Subscriptions are only suported on streaming transports. Try making a request with SSE or WebSockets",
@@ -409,14 +384,14 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
             self.execute_query_or_mutation(operation_plan).await
         };
 
-        (metadata, response)
+        (metrics_attributes, response)
     }
 
     async fn execute_stream(
         mut self,
         request: Request,
         mut sender: mpsc::Sender<Response>,
-    ) -> (Option<OperationMetadata>, GraphqlResponseStatus) {
+    ) -> (Option<OperationMetricsAttributes>, GraphqlResponseStatus) {
         let operation_plan = match self.prepare_operation(request).await {
             Ok(operation_plan) => operation_plan,
             Err((metadata, response)) => {
@@ -426,13 +401,13 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
             }
         };
         let operation_type = operation_plan.ty();
-        let metadata = Some(operation_plan.metadata.clone());
+        let metrics_attributes = Some(operation_plan.metrics_attributes.clone());
 
         if matches!(operation_type, OperationType::Query | OperationType::Mutation) {
             let response = self.execute_query_or_mutation(operation_plan).await;
             let status = response.status();
             sender.send(response).await.ok();
-            return (metadata, status);
+            return (metrics_attributes, status);
         }
 
         let mut status: GraphqlResponseStatus = GraphqlResponseStatus::Success;
@@ -457,13 +432,13 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
             },
         )
         .await;
-        (metadata, status)
+        (metrics_attributes, status)
     }
 
     async fn prepare_operation(
         &mut self,
         mut request: Request,
-    ) -> Result<ExecutableOperation, (Option<OperationMetadata>, Response)> {
+    ) -> Result<ExecutableOperation, (Option<OperationMetricsAttributes>, Response)> {
         let result = {
             let PreparedOperationDocument {
                 cache_key,
@@ -493,19 +468,28 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
                 }
                 let operation = Operation::build(&self.schema, &request)
                     .map(Arc::new)
-                    .map_err(|mut err| (err.take_operation_metadata(), Response::pre_execution_error(err)))?;
+                    .map_err(|mut err| (err.take_metrics_attributes(), Response::pre_execution_error(err)))?;
 
                 self.push_background_future(self.engine.operation_cache.insert(cache_key, operation.clone()).boxed());
                 operation
             }
         };
 
-        let variables = Variables::build(self.schema.as_ref(), &operation, request.variables)
-            .map_err(|errors| (Some(operation.metadata.clone()), Response::pre_execution_errors(errors)))?;
+        let variables = Variables::build(self.schema.as_ref(), &operation, request.variables).map_err(|errors| {
+            (
+                Some(operation.metrics_attributes.clone()),
+                Response::pre_execution_errors(errors),
+            )
+        })?;
 
         self.finalize_operation(Arc::clone(&operation), variables)
             .await
-            .map_err(|err| (Some(operation.metadata.clone()), Response::pre_execution_error(err)))
+            .map_err(|err| {
+                (
+                    Some(operation.metrics_attributes.clone()),
+                    Response::pre_execution_error(err),
+                )
+            })
     }
 }
 

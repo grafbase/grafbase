@@ -2451,6 +2451,7 @@ name = "engine-parser"
 version = "3.0.31"
 dependencies = [
  "engine-value",
+ "grafbase-telemetry",
  "pest",
  "pest_derive",
  "serde",

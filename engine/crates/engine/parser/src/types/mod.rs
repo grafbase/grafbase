@@ -43,6 +43,16 @@ pub enum OperationType {
     Subscription,
 }
 
+impl From<OperationType> for grafbase_telemetry::metrics::OperationType {
+    fn from(value: OperationType) -> Self {
+        match value {
+            OperationType::Query => Self::Query,
+            OperationType::Mutation => Self::Mutation,
+            OperationType::Subscription => Self::Subscription,
+        }
+    }
+}
+
 impl OperationType {
     /// Operation type as str
     pub fn as_str(&self) -> &'static str {
