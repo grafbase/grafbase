@@ -273,7 +273,7 @@ impl Schema {
                 _ => None,
             });
 
-        let operation_analytics_attributes = if let Some(operation_name) = request.operation_name() {
+        let mut operation_analytics_attributes = if let Some(operation_name) = request.operation_name() {
             match &document.operations {
                 DocumentOperations::Multiple(operations) => {
                     operations
@@ -281,6 +281,7 @@ impl Schema {
                         .map(|operation| GraphqlOperationAnalyticsAttributes {
                             name: Some(operation_name.to_string()),
                             r#type: response_operation_for_definition(&operation.node),
+                            used_fields: String::new(),
                         })
                 }
                 _ => None,
@@ -290,12 +291,14 @@ impl Schema {
                 DocumentOperations::Single(operation) => Some(GraphqlOperationAnalyticsAttributes {
                     name: engine_parser::find_first_field_name(&document.fragments, &operation.node.selection_set),
                     r#type: response_operation_for_definition(&operation.node),
+                    used_fields: String::new(),
                 }),
                 DocumentOperations::Multiple(operations) if operations.len() == 1 => {
                     let (operation_name, operation) = operations.iter().next().unwrap();
                     Some(GraphqlOperationAnalyticsAttributes {
                         name: Some(operation_name.to_string()),
                         r#type: response_operation_for_definition(&operation.node),
+                        used_fields: String::new(),
                     })
                 }
                 _ => None,
@@ -303,7 +306,7 @@ impl Schema {
         };
 
         // check rules
-        let validation_result = {
+        let mut validation_result = {
             let validation_fut = async {
                 check_strict_rules(&self.env.registry, &document, Some(&request.variables))
                     .map_err(|errors| errors.into_iter().map(ServerError::from).collect())
@@ -314,6 +317,9 @@ impl Schema {
                 Err(errors) => return Err((operation_analytics_attributes, errors)),
             }
         };
+        if let Some(ref mut attrs) = operation_analytics_attributes {
+            attrs.used_fields = std::mem::take(&mut validation_result.used_fields).unwrap_or_default();
+        }
 
         let mut operation = if let Some(operation_name) = request.operation_name() {
             match document.operations {
@@ -621,12 +627,11 @@ impl Schema {
                     schema.env.operation_metrics.record(
                         grafbase_telemetry::metrics::GraphqlRequestMetricsAttributes {
                             operation: OperationMetricsAttributes {
-                            ty: env.operation.ty.into(),
-                            name: env.operation_analytics_attributes.name.clone(),
-                            sanitized_query_hash: blake3::hash(sanitized_query.as_bytes()).into(),
-                            sanitized_query,
-                                used_fields: String::new()
-
+                                ty: env.operation.ty.into(),
+                                name: env.operation_analytics_attributes.name.clone(),
+                                sanitized_query_hash: blake3::hash(sanitized_query.as_bytes()).into(),
+                                sanitized_query,
+                                used_fields: env.operation_analytics_attributes.used_fields.clone(),
                             },
                             status,
                             cache_status: None,

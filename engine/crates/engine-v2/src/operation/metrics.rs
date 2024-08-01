@@ -17,6 +17,7 @@ pub(super) fn prepare_metrics_attributes(
             }),
             sanitized_query_hash: blake3::hash(sanitized_query.as_bytes()).into(),
             sanitized_query,
+            // Added after the binding step
             used_fields: String::new(),
         })
 }
