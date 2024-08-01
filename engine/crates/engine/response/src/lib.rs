@@ -24,6 +24,7 @@ mod streaming;
 pub struct GraphqlOperationAnalyticsAttributes {
     pub name: Option<String>,
     pub r#type: common_types::OperationType,
+    #[serde(default)]
     pub used_fields: String,
 }
 
