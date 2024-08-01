@@ -220,7 +220,7 @@ where
                             name: operation.name.clone(),
                             sanitized_query_hash: blake3::hash(normalized_query.as_bytes()).into(),
                             sanitized_query: normalized_query,
-                            used_fields: String::new(),
+                            used_fields: operation.used_fields.clone(),
                         },
                         status,
                         cache_status: headers
