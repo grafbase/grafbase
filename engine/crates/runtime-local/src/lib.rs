@@ -8,6 +8,7 @@ mod kv;
 mod log;
 mod pg;
 pub mod rate_limiting;
+#[cfg(feature = "redis")]
 pub mod redis;
 mod ufd_invoker;
 
