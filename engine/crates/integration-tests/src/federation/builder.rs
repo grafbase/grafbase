@@ -118,28 +118,31 @@ impl EngineV2Builder {
         // Ensures consistency of composition and thus introspection tests.
         subgraphs.sort_unstable_by(|a, b| a.1.name.cmp(&b.1.name));
 
-        let sdl = self.federated_sdl.unwrap_or_else(|| {
-            let graph = if !subgraphs.is_empty() {
-                graphql_composition::compose(&subgraphs.iter().fold(
-                    graphql_composition::Subgraphs::default(),
-                    |mut subgraphs, (_, subgraph)| {
-                        let schema =
-                            async_graphql_parser::parse_schema(subgraph.sdl()).expect("schema to be well formed");
-                        subgraphs.ingest(&schema, &subgraph.name, &subgraph.url());
-                        subgraphs
-                    },
-                ))
-                .into_result()
-                .expect("schemas to compose succesfully")
-            } else {
-                FederatedGraph::V3(FederatedGraphV3::default())
-            };
-            graph.into_sdl().unwrap()
-        });
+        let mut graph = self
+            .federated_sdl
+            .map(|sdl| FederatedGraph::from_sdl(&sdl).unwrap())
+            .unwrap_or_else(|| {
+                let graph = if !subgraphs.is_empty() {
+                    graphql_composition::compose(&subgraphs.iter().fold(
+                        graphql_composition::Subgraphs::default(),
+                        |mut subgraphs, (_, subgraph)| {
+                            let schema =
+                                async_graphql_parser::parse_schema(subgraph.sdl()).expect("schema to be well formed");
+                            subgraphs.ingest(&schema, &subgraph.name, &subgraph.url());
+                            subgraphs
+                        },
+                    ))
+                    .into_result()
+                    .expect("schemas to compose succesfully")
+                } else {
+                    FederatedGraph::V3(FederatedGraphV3::default())
+                };
+                graph
+            });
 
         // Ensure SDL/JSON serialization work as a expected
-        let graph = FederatedGraph::from_sdl(&sdl).unwrap();
-        let graph = serde_json::from_value(serde_json::to_value(&graph).unwrap()).unwrap();
+        graph = FederatedGraph::from_sdl(&graph.into_sdl().unwrap()).unwrap();
+        graph = serde_json::from_value(serde_json::to_value(&graph).unwrap()).unwrap();
 
         let config = match self.config_source {
             Some(ConfigSource::Toml(toml)) => {

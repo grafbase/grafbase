@@ -94,16 +94,19 @@ features = ["tower"]
 
 [dev-dependencies]
 similar-asserts = "1.5"
+cynic-parser = "0.4"
 base64.workspace = true
 rstest.workspace = true
 const_format = "0.2.32"
 headers.workspace = true
 criterion = { version = "0.5.1", features = ["async_tokio"] }
+pprof = { version = "0.13", features = ["criterion", "flamegraph"] }
 sha2.workspace = true
 hex.workspace = true
 secrecy.workspace = true
 gateway-v2-auth.workspace = true
 common-types.workspace = true
+itertools.workspace = true
 
 [[bench]]
 name = "federation"

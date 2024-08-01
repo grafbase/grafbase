@@ -105,7 +105,7 @@ impl<R: Runtime> Engine<R> {
             auth,
             retry_budgets,
             operation_metrics: GraphqlOperationMetrics::build(runtime.meter()),
-            trusted_documents_cache: runtime.cache_factory().create(CachedDataKind::PersistedQuery).await,
+            trusted_documents_cache: runtime.cache_factory().create(CachedDataKind::TrustedDocument).await,
             operation_cache: runtime.cache_factory().create(CachedDataKind::Operation).await,
             runtime,
         }

@@ -216,6 +216,7 @@ worker-env = { path = "engine/crates/worker-env" }
 wrapping = { path = "engine/crates/wrapping", package = "graphql-wrapping-types" }
 
 [profile.bench]
+strip = "none"
 debug = true
 
 [profile.release]
