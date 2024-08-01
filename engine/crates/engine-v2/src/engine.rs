@@ -2,6 +2,7 @@ use ::runtime::{
     auth::AccessToken,
     hooks::Hooks,
     hot_cache::{CachedDataKind, HotCache, HotCacheFactory},
+    rate_limiting::RateLimitKey,
 };
 use async_runtime::stream::StreamExt as _;
 use engine::{BatchRequest, Request};
@@ -33,11 +34,9 @@ use crate::{
 };
 
 mod cache;
-mod rate_limiting;
 mod runtime;
 mod trusted_documents;
 
-pub use rate_limiting::RateLimitContext;
 pub use runtime::Runtime;
 
 pub(crate) struct SchemaVersion(Vec<u8>);
@@ -125,7 +124,7 @@ impl<R: Runtime> Engine<R> {
             Err(response) => return HttpGraphqlResponse::build(response, format, Default::default()),
         };
 
-        if let Err(err) = self.runtime.rate_limiter().limit(&RateLimitContext::Global).await {
+        if let Err(err) = self.runtime.rate_limiter().limit(&RateLimitKey::Global).await {
             return HttpGraphqlResponse::build(
                 Response::pre_execution_error(GraphqlError::new(err.to_string(), ErrorCode::RateLimited)),
                 format,
@@ -160,7 +159,7 @@ impl<R: Runtime> Engine<R> {
     }
 
     pub async fn create_session(self: &Arc<Self>, headers: http::HeaderMap) -> Result<Session<R>, Cow<'static, str>> {
-        if let Err(err) = self.runtime.rate_limiter().limit(&RateLimitContext::Global).await {
+        if let Err(err) = self.runtime.rate_limiter().limit(&RateLimitKey::Global).await {
             return Err(
                 Response::pre_execution_error(GraphqlError::new(err.to_string(), ErrorCode::RateLimited))
                     .first_error_message()

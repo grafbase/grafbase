@@ -56,7 +56,12 @@ pub(super) async fn new_gateway(config: Option<engine_v2::VersionedConfig>) -> O
         .into_iter()
         .map(|(k, v)| {
             (
-                k.to_string(),
+                match k {
+                    engine_v2::config::RateLimitKey::Global => runtime::rate_limiting::RateLimitKey::Global,
+                    engine_v2::config::RateLimitKey::Subgraph(name) => {
+                        runtime::rate_limiting::RateLimitKey::Subgraph(name.to_string().into())
+                    }
+                },
                 runtime::rate_limiting::GraphRateLimit {
                     limit: v.limit,
                     duration: v.duration,

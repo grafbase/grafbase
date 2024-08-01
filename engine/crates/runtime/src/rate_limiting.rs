@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::collections::HashMap;
 use std::net::IpAddr;
 use std::sync::Arc;
@@ -18,12 +19,9 @@ pub trait RateLimiterContext: Send + Sync {
     fn graphql_operation_name(&self) -> Option<&str>;
     fn ip(&self) -> Option<IpAddr>;
     fn jwt_claim(&self, key: &str) -> Option<&serde_json::Value>;
-    fn key(&self) -> Option<&str> {
-        None
-    }
 
-    fn is_global(&self) -> bool {
-        true
+    fn key(&self) -> Option<&RateLimitKey<'_>> {
+        None
     }
 }
 
@@ -41,6 +39,46 @@ impl RateLimiter {
         RateLimiter {
             inner: Arc::new(rate_limiter),
         }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum RateLimitKey<'a> {
+    Global,
+    Subgraph(Cow<'a, str>),
+}
+
+impl<'a> From<&'a str> for RateLimitKey<'a> {
+    fn from(value: &'a str) -> Self {
+        Self::Subgraph(Cow::Borrowed(value))
+    }
+}
+
+impl<'a> From<String> for RateLimitKey<'a> {
+    fn from(value: String) -> Self {
+        Self::Subgraph(Cow::Owned(value))
+    }
+}
+
+impl<'a> RateLimiterContext for RateLimitKey<'a> {
+    fn header(&self, _: http::HeaderName) -> Option<&http::HeaderValue> {
+        None
+    }
+
+    fn graphql_operation_name(&self) -> Option<&str> {
+        None
+    }
+
+    fn ip(&self) -> Option<IpAddr> {
+        None
+    }
+
+    fn jwt_claim(&self, _: &str) -> Option<&serde_json::Value> {
+        None
+    }
+
+    fn key(&self) -> Option<&RateLimitKey<'a>> {
+        Some(self)
     }
 }
 
