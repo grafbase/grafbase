@@ -13,7 +13,7 @@ pub struct GraphqlEndpoints {
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct GraphqlEndpoint {
     pub(crate) subgraph_id: SubgraphId,
-    pub(crate) name: StringId,
+    pub(crate) subgraph_name: StringId,
     pub(crate) url: UrlId,
     pub(crate) websocket_url: Option<UrlId>,
     pub(crate) header_rules: Vec<HeaderRuleId>,
@@ -57,7 +57,10 @@ impl<'a> std::ops::Deref for RootFieldResolverWalker<'a> {
 
 impl<'a> RootFieldResolverWalker<'a> {
     pub fn name(&self) -> String {
-        format!("Graphql root field resolver for subgraph '{}'", self.endpoint().name())
+        format!(
+            "Graphql root field resolver for subgraph '{}'",
+            self.endpoint().subgraph_name()
+        )
     }
 
     pub fn subgraph_id(&self) -> SubgraphId {
@@ -72,7 +75,7 @@ impl<'a> RootFieldResolverWalker<'a> {
 impl<'a> std::fmt::Debug for RootFieldResolverWalker<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("GraphqlRootField")
-            .field("subgraph", &self.endpoint().name())
+            .field("subgraph", &self.endpoint().subgraph_name())
             .field("subgraph_id", &self.subgraph_id())
             .finish()
     }
@@ -103,7 +106,7 @@ impl<'a> FederationEntityResolverWalker<'a> {
     pub fn name(&self) -> String {
         format!(
             "Graphql federation entity resolver for subgraph '{}'",
-            self.endpoint().name()
+            self.endpoint().subgraph_name()
         )
     }
 
@@ -123,7 +126,7 @@ impl<'a> FederationEntityResolverWalker<'a> {
 impl<'a> std::fmt::Debug for FederationEntityResolverWalker<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("GraphqlFederationEntityResolver")
-            .field("subgraph", &self.endpoint().name())
+            .field("subgraph", &self.endpoint().subgraph_name())
             .field("subgraph_id", &self.subgraph_id())
             .field("key", &self.walk(&self.schema[self.key.fields]))
             .finish()
@@ -142,8 +145,8 @@ impl<'a> GraphqlEndpointWalker<'a> {
         &self.schema.data_sources.graphql[self.item]
     }
 
-    pub fn name(&self) -> &'a str {
-        &self.schema[self.as_ref().name]
+    pub fn subgraph_name(&self) -> &'a str {
+        &self.schema[self.as_ref().subgraph_name]
     }
 
     pub fn timeout(self) -> Duration {
@@ -177,7 +180,7 @@ impl<'a> GraphqlEndpointWalker<'a> {
 impl<'a> std::fmt::Debug for GraphqlEndpointWalker<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("GraphqlEndpoint")
-            .field("name", &self.name())
+            .field("name", &self.subgraph_name())
             .field("url", &self.url())
             .finish()
     }

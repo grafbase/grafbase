@@ -13,34 +13,31 @@ use crate::{
     operation::OperationType,
     response::{ResponseObjectsView, SubgraphResponse},
     sources::{
-        graphql::deserialize::{EntitiesErrorsSeed, GraphqlResponseSeed},
-        ExecutionResult, PreparedExecutor,
+        graphql::{
+            deserialize::{EntitiesErrorsSeed, GraphqlResponseSeed},
+            request::{SubgraphGraphqlRequest, SubgraphVariables},
+        },
+        ExecutionResult, Executor,
     },
     Runtime,
 };
 
 use super::{
     deserialize::EntitiesDataSeed,
-    query::PreparedFederationEntityOperation,
-    request::{execute_subgraph_request, ResponseIngester},
-    variables::SubgraphVariables,
+    request::{execute_subgraph_request, PreparedFederationEntityOperation, ResponseIngester},
 };
 
-pub(crate) struct FederationEntityPreparedExecutor {
-    subgraph_id: GraphqlEndpointId,
+pub(crate) struct FederationEntityExecutor {
+    endpoint_id: GraphqlEndpointId,
     operation: PreparedFederationEntityOperation,
 }
 
-impl FederationEntityPreparedExecutor {
-    pub fn prepare(
-        resolver: FederationEntityResolverWalker<'_>,
-        plan: PlanWalker<'_>,
-    ) -> PlanningResult<PreparedExecutor> {
-        let subgraph = resolver.endpoint();
+impl FederationEntityExecutor {
+    pub fn prepare(resolver: FederationEntityResolverWalker<'_>, plan: PlanWalker<'_>) -> PlanningResult<Executor> {
         let operation =
             PreparedFederationEntityOperation::build(plan).map_err(|err| format!("Failed to build query: {err}"))?;
-        Ok(PreparedExecutor::FederationEntity(Self {
-            subgraph_id: subgraph.id(),
+        Ok(Executor::FederationEntity(Self {
+            endpoint_id: resolver.endpoint().id(),
             operation,
         }))
     }
@@ -64,18 +61,18 @@ impl FederationEntityPreparedExecutor {
             .map(|object| serde_json::to_string(&object).and_then(RawValue::from_string))
             .collect::<Result<Vec<_>, _>>()?;
 
-        let subgraph = ctx.engine.schema.walk(self.subgraph_id);
+        let endpoint = ctx.engine.schema.walk(self.endpoint_id);
         let span = SubgraphRequestSpan {
-            name: subgraph.name(),
+            name: endpoint.subgraph_name(),
             operation_type: OperationType::Query.as_str(),
             // The generated query does not contain any data, everything are in the variables, so
             // it's safe to use.
             sanitized_query: &self.operation.query,
-            url: subgraph.url(),
+            url: endpoint.url(),
         }
         .into_span();
 
-        let cache_ttl = subgraph.entity_cache_ttl();
+        let cache_ttl = endpoint.entity_cache_ttl();
 
         let fut = {
             let span = span.clone();
@@ -91,7 +88,7 @@ impl FederationEntityPreparedExecutor {
                 if cache_ttl.is_some() {
                     let fetches = representations
                         .iter()
-                        .map(|repr| cache_fetch(ctx, subgraph.name(), repr));
+                        .map(|repr| cache_fetch(ctx, endpoint.subgraph_name(), repr));
 
                     let cache_entries = join_all(fetches).await;
                     let fully_cached = !cache_entries.iter().any(CacheEntry::is_miss);
@@ -113,33 +110,33 @@ impl FederationEntityPreparedExecutor {
                 let variables = SubgraphVariables {
                     plan,
                     variables: &self.operation.variables,
-                    inputs: vec![(&self.operation.entities_variable_name, representations)],
+                    extra_variables: vec![(&self.operation.entities_variable_name, representations)],
                 };
 
                 tracing::debug!(
                     "Query {}\n{}\n{}",
-                    subgraph.name(),
+                    endpoint.subgraph_name(),
                     self.operation.query,
                     serde_json::to_string_pretty(&variables).unwrap_or_default()
                 );
-                let json_body = serde_json::to_string(&serde_json::json!({
-                    "query": self.operation.query,
-                    "variables": variables
-                }))
+                let body = serde_json::to_vec(&SubgraphGraphqlRequest {
+                    query: &self.operation.query,
+                    variables,
+                })
                 .map_err(|err| format!("Failed to serialize query: {err}"))?;
 
-                let retry_budget = ctx.engine.retry_budget_for_subgraph(self.subgraph_id);
+                let retry_budget = ctx.engine.get_retry_budget_for_query(self.endpoint_id);
 
                 execute_subgraph_request(
                     ctx,
                     span.clone(),
-                    self.subgraph_id,
+                    self.endpoint_id,
                     retry_budget,
                     move || FetchRequest {
-                        url: subgraph.url(),
-                        headers: ctx.subgraph_headers_with_rules(subgraph.header_rules()),
-                        json_body: Bytes::from(json_body.into_bytes()),
-                        timeout: subgraph.timeout(),
+                        url: endpoint.url(),
+                        headers: ctx.subgraph_headers_with_rules(endpoint.header_rules()),
+                        json_body: Bytes::from(body),
+                        timeout: endpoint.timeout(),
                     },
                     ingester,
                 )

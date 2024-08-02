@@ -30,7 +30,7 @@ impl ExternalDataSources {
                         entity_caching,
                         ..
                     }) => sources::graphql::GraphqlEndpoint {
-                        name,
+                        subgraph_name: name,
                         subgraph_id,
                         url,
                         websocket_url: websocket_url
@@ -54,7 +54,7 @@ impl ExternalDataSources {
                     },
 
                     None => sources::graphql::GraphqlEndpoint {
-                        name,
+                        subgraph_name: name,
                         subgraph_id,
                         url,
                         websocket_url: None,

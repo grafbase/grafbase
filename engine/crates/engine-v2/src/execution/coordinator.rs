@@ -134,7 +134,7 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
     {
         let plan = self.plan_walker(subscription_plan_id);
         self.operation[subscription_plan_id]
-            .prepared_executor
+            .executor
             .execute_subscription(self, plan, move || self.new_subscription_response(subscription_plan_id))
             .await
     }
@@ -404,12 +404,10 @@ where
                 Arc::clone(&root_response_object_set),
                 self.operation[plan_id].requires,
             );
-            let fut = self.operation[plan_id].prepared_executor.execute(
-                self.ctx,
-                plan,
-                root_response_objects,
-                subgraph_response,
-            );
+            let fut =
+                self.operation[plan_id]
+                    .executor
+                    .execute(self.ctx, plan, root_response_objects, subgraph_response);
             make_send_on_wasm(fut.map(move |result| ExecutorFutureResult {
                 plan_id,
                 result: result.map_err(|err| (root_response_object_set, err)),

@@ -35,21 +35,21 @@ where
     }
 }
 
-pub(super) async fn execute_subgraph_request<'ctx, 'a, R: Runtime>(
+pub(crate) async fn execute_subgraph_request<'ctx, 'a, R: Runtime>(
     ctx: ExecutionContext<'ctx, R>,
     span: Span,
-    subgraph_id: GraphqlEndpointId,
+    endpoint_id: GraphqlEndpointId,
     retry_budget: Option<&Budget>,
     make_request: impl FnOnce() -> FetchRequest<'a> + Send,
     ingester: impl ResponseIngester,
 ) -> ExecutionResult<SubgraphResponse> {
-    let subgraph = ctx.schema().walk(subgraph_id);
+    let endpoint = ctx.schema().walk(endpoint_id);
 
     let mut request = make_request();
     request.headers = ctx
         .hooks()
         .on_subgraph_request(
-            subgraph.name(),
+            endpoint.subgraph_name(),
             http::Method::POST,
             request.url,
             std::mem::take(&mut request.headers),
@@ -60,7 +60,7 @@ pub(super) async fn execute_subgraph_request<'ctx, 'a, R: Runtime>(
         .headers
         .insert(http::header::ACCEPT, http::HeaderValue::from_static("application/json"));
 
-    let fetch_response = retrying_fetch(ctx, &request, subgraph_id, retry_budget).await?;
+    let fetch_response = retrying_fetch(ctx, &request, endpoint, retry_budget).await?;
 
     tracing::debug!("{}", String::from_utf8_lossy(&fetch_response.bytes));
 
@@ -87,12 +87,10 @@ pub(super) async fn execute_subgraph_request<'ctx, 'a, R: Runtime>(
 async fn retrying_fetch<'ctx, R: Runtime>(
     ctx: ExecutionContext<'ctx, R>,
     request: &FetchRequest<'_>,
-    subgraph_id: GraphqlEndpointId,
+    endpoint: GraphqlEndpointWalker<'_>,
     retry_budget: Option<&Budget>,
 ) -> ExecutionResult<FetchResponse> {
-    let subgraph = ctx.engine.schema.walk(subgraph_id);
-
-    let mut result = rate_limited_fetch(ctx, subgraph, request).await;
+    let mut result = rate_limited_fetch(ctx, endpoint, request).await;
 
     let Some(retry_budget) = retry_budget else {
         return result;
@@ -116,7 +114,7 @@ async fn retrying_fetch<'ctx, R: Runtime>(
 
                     counter += 1;
 
-                    result = rate_limited_fetch(ctx, subgraph, request).await;
+                    result = rate_limited_fetch(ctx, endpoint, request).await;
                 } else {
                     return Err(err);
                 }
@@ -127,13 +125,13 @@ async fn retrying_fetch<'ctx, R: Runtime>(
 
 async fn rate_limited_fetch<'ctx, R: Runtime>(
     ctx: ExecutionContext<'ctx, R>,
-    subgraph: GraphqlEndpointWalker<'ctx>,
+    endpoint: GraphqlEndpointWalker<'ctx>,
     request: &FetchRequest<'_>,
 ) -> ExecutionResult<FetchResponse> {
     ctx.engine
         .runtime
         .rate_limiter()
-        .limit(&RateLimitKey::Subgraph(subgraph.name().into()))
+        .limit(&RateLimitKey::Subgraph(endpoint.subgraph_name().into()))
         .await?;
 
     ctx.engine
@@ -142,7 +140,7 @@ async fn rate_limited_fetch<'ctx, R: Runtime>(
         .post(request)
         .await
         .map_err(|error| ExecutionError::Fetch {
-            subgraph_name: subgraph.name().to_string(),
+            subgraph_name: endpoint.subgraph_name().to_string(),
             error,
         })
 }

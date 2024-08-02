@@ -21,21 +21,21 @@ macro_rules! indent_write {
     }};
 }
 
-pub(super) struct PreparedGraphqlOperation {
+pub(crate) struct PreparedGraphqlOperation {
     pub ty: OperationType,
     pub query: String,
     pub variables: QueryVariables,
 }
 
 impl PreparedGraphqlOperation {
-    pub(super) fn build(
+    pub(crate) fn build(
         operation_type: OperationType,
         plan: PlanWalker<'_>,
     ) -> Result<PreparedGraphqlOperation, Error> {
         let mut ctx = QueryBuilderContext::default();
         // Generating the selection set first as this will define all the operation arguments
         let selection_set = {
-            let mut buffer = Buffer::default();
+            let mut buffer = Buffer::with_capacity(256);
             let entity_id = EntityId::Object(match operation_type {
                 OperationType::Query => plan.schema().as_ref().graph.root_operation_types.query,
                 OperationType::Mutation => plan.schema().as_ref().graph.root_operation_types.mutation.unwrap(),
@@ -45,7 +45,7 @@ impl PreparedGraphqlOperation {
             buffer.into_string()
         };
 
-        let mut query = String::new();
+        let mut query = String::with_capacity(selection_set.len() + 14 + ctx.estimated_variable_definitions_string_len);
         match operation_type {
             OperationType::Query => write!(query, "query")?,
             OperationType::Mutation => write!(query, "mutation")?,
@@ -68,27 +68,31 @@ impl PreparedGraphqlOperation {
     }
 }
 
-pub(super) struct PreparedFederationEntityOperation {
+pub(crate) struct PreparedFederationEntityOperation {
     pub query: String,
     pub entities_variable_name: String,
     pub variables: QueryVariables,
 }
 
 impl PreparedFederationEntityOperation {
-    pub(super) fn build(plan: PlanWalker<'_>) -> Result<Self, Error> {
+    pub(crate) fn build(plan: PlanWalker<'_>) -> Result<Self, Error> {
         let mut ctx = QueryBuilderContext::default();
-        let mut query = String::from("query");
 
         // Generating the selection set first as this will define all the operation arguments
         let selection_set = {
-            let mut buffer = Buffer::default();
+            let mut buffer = Buffer::with_capacity(256);
             buffer.indent += 1;
             ctx.write_selection_set(None, &mut buffer, plan.selection_set())?;
             buffer.into_string()
         };
 
-        query.push('(');
         let entities_variable_name = format!("{VARIABLE_PREFIX}{}", ctx.variables.len());
+        let mut query = String::with_capacity(
+            // Rough approximation of the final string length counted by hand
+            selection_set.len() + 60 + ctx.estimated_variable_definitions_string_len + 2 * entities_variable_name.len(),
+        );
+        query.push_str("query");
+        query.push('(');
         write!(query, "${entities_variable_name}: [_Any!]!")?;
 
         if !ctx.variables.is_empty() {
@@ -112,7 +116,7 @@ impl PreparedFederationEntityOperation {
 
 /// All variables associated with a subgraph query. Each one is associated with the variable name
 /// "{$VARIABLE_PREFIX}{idx}" with `idx` being the position of the input value in the inner vec.
-pub struct QueryVariables(Vec<QueryInputValueId>);
+pub(crate) struct QueryVariables(Vec<QueryInputValueId>);
 
 impl QueryVariables {
     pub fn len(&self) -> usize {
@@ -127,18 +131,19 @@ impl QueryVariables {
     }
 }
 
-pub struct QueryVariable {
+struct QueryVariable {
     idx: usize,
     ty: String,
 }
 
 #[derive(Default)]
-pub struct QueryBuilderContext {
+struct QueryBuilderContext {
     variables: HashMap<QueryInputValueId, QueryVariable>,
+    estimated_variable_definitions_string_len: usize,
 }
 
 impl QueryBuilderContext {
-    pub fn into_query_variables(self) -> QueryVariables {
+    fn into_query_variables(self) -> QueryVariables {
         let mut vars = vec![None; self.variables.len()];
         for (input_value_id, var) in self.variables {
             vars[var.idx] = Some(input_value_id);
@@ -246,13 +251,12 @@ impl QueryBuilderContext {
                         f(&format_args!("{}: {}", arg.name(), value))
                     } else {
                         let idx = self.variables.len();
-                        let var = self
-                            .variables
-                            .entry(arg.as_ref().input_value_id)
-                            .or_insert_with(|| QueryVariable {
-                                idx,
-                                ty: arg.ty().to_string(),
-                            });
+                        let var = self.variables.entry(arg.as_ref().input_value_id).or_insert_with(|| {
+                            let ty = arg.ty().to_string();
+                            // prefix + ': ' + index (2) + ',' + ty.len()
+                            self.estimated_variable_definitions_string_len += VARIABLE_PREFIX.len() + 5 + ty.len();
+                            QueryVariable { idx, ty }
+                        });
                         f(&format_args!("{}: ${VARIABLE_PREFIX}{}", arg.name(), var.idx))
                     }
                 })
@@ -262,7 +266,7 @@ impl QueryBuilderContext {
     }
 }
 
-#[derive(Default, Hash, PartialEq, Eq)]
+#[derive(Hash, PartialEq, Eq)]
 struct Buffer {
     inner: String,
     indent: usize,
@@ -283,6 +287,13 @@ impl std::ops::DerefMut for Buffer {
 }
 
 impl Buffer {
+    fn with_capacity(capacity: usize) -> Self {
+        Buffer {
+            inner: String::with_capacity(capacity),
+            indent: 0,
+        }
+    }
+
     fn into_string(self) -> String {
         self.inner
     }

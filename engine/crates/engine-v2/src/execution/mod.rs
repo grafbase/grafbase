@@ -17,7 +17,7 @@ use crate::{
         ConcreteObjectShapeId, FieldShapeId, GraphqlError, ResponseKey, ResponseObjectSetId, ResponseViewSelectionSet,
         ResponseViews,
     },
-    sources::PreparedExecutor,
+    sources::Executor,
     Runtime,
 };
 pub(crate) use context::*;
@@ -77,7 +77,7 @@ pub(crate) struct ExecutionPlan {
     pub children: Vec<ExecutionPlanId>,
     pub dependent_response_modifiers: Vec<ResponseModifierExecutorId>,
     pub requires: ResponseViewSelectionSet,
-    pub prepared_executor: PreparedExecutor,
+    pub executor: Executor,
 }
 
 #[derive(Default)]
