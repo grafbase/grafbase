@@ -87,6 +87,7 @@ pub struct RetryConfig {
     /// The fraction of the successful requests budget that can be used for retries.
     pub retry_percent: Option<f32>,
     /// Whether mutations should be retried at all. False by default.
+    #[serde(default)]
     pub retry_mutations: bool,
 }
 
