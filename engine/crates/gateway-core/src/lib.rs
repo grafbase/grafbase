@@ -15,9 +15,7 @@ use runtime::{
 use std::sync::Arc;
 use tracing::{info_span, Instrument};
 
-#[cfg(feature = "partial-caching")]
 use engine::{InitialResponse, StreamingPayload};
-#[cfg(feature = "partial-caching")]
 use futures_util::stream::{self, BoxStream, StreamExt};
 
 mod admin;
@@ -299,7 +297,6 @@ where
             .await
     }
 
-    #[cfg(feature = "partial-caching")]
     pub async fn execute_stream_v2(
         &self,
         ctx: &Arc<Executor::Context>,
@@ -407,7 +404,6 @@ where
             return Ok((Arc::new(response), Default::default()));
         }
 
-        #[cfg(feature = "partial-caching")]
         if self.cache_config.partial_registry.enable_partial_caching {
             let cache_plan = partial_caching::build_plan(
                 request.query(),
@@ -472,7 +468,6 @@ where
     }
 }
 
-#[cfg(feature = "partial-caching")]
 fn error_stream(response: engine::Response) -> BoxStream<'static, engine::StreamingPayload> {
     stream::once(async move { StreamingPayload::InitialResponse(InitialResponse::error(response)) }).boxed()
 }
