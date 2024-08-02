@@ -42,7 +42,7 @@ tower = { workspace = true, features = ["retry"] }
 tracing.workspace = true
 http.workspace = true
 headers.workspace = true
-gateway-core = { path = "../gateway-core" }
+gateway-core.workspace = true
 web-time.workspace = true
 
 gateway-v2-auth = { path = "../gateway-v2/auth" }
