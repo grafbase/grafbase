@@ -35,10 +35,12 @@ pub(super) fn build_otlp_exporter(
                 .with_timeout(exporter_timeout)
                 .with_metadata(metadata);
 
-            if let Some(tls_config) = grpc_config.tls {
-                grpc_exporter = grpc_exporter
-                    .with_tls_config(ClientTlsConfig::try_from(tls_config).map_err(TracingError::FileReadError)?);
-            }
+            grpc_exporter = if let Some(tls_config) = grpc_config.tls {
+                grpc_exporter
+                    .with_tls_config(ClientTlsConfig::try_from(tls_config).map_err(TracingError::FileReadError)?)
+            } else {
+                grpc_exporter.with_tls_config(ClientTlsConfig::default().with_native_roots())
+            };
 
             Ok(Either::Left(grpc_exporter))
         }
