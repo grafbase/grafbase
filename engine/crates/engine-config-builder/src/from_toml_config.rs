@@ -45,7 +45,7 @@ pub fn build_with_toml_config(config: &Config, graph: FederatedGraph) -> Version
                 header_rules,
                 development_url: None,
                 rate_limit: subgraph_config.rate_limit.map(Into::into),
-                timeout: subgraph_config.timeout,
+                timeout: subgraph_config.timeout.or(config.gateway.subgraph_timeout),
                 entity_caching: subgraph_config.entity_caching.map(Into::into),
                 retry: subgraph_config
                     .retry

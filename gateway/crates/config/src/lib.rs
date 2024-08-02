@@ -91,9 +91,12 @@ impl Config {
 #[derive(Clone, Debug, Default, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct GatewayConfig {
-    /// Time out for gateway requests.
+    /// Timeout for gateway requests.
     #[serde(deserialize_with = "duration_str::deserialize_option_duration", default)]
     pub timeout: Option<Duration>,
+    /// Default timeout for subgraph requests.
+    #[serde(deserialize_with = "duration_str::deserialize_option_duration", default)]
+    pub subgraph_timeout: Option<Duration>,
     /// Global rate limiting configuration
     #[serde(default)]
     pub rate_limit: Option<RateLimitConfig>,
@@ -1365,6 +1368,29 @@ mod tests {
         2 | websocket_url = "WRONG"
           |                 ^^^^^^^
         invalid value: string "WRONG", expected relative URL without a base
+        "###);
+    }
+
+    #[test]
+    fn timeouts() {
+        let input = indoc! {r#"
+            [gateway]
+            timeout = "1s"
+            subgraph_timeout = "2s"
+        "#};
+
+        let config: Config = toml::from_str(input).unwrap();
+
+        insta::assert_debug_snapshot!(&config.gateway, @r###"
+        GatewayConfig {
+            timeout: Some(
+                1s,
+            ),
+            subgraph_timeout: Some(
+                2s,
+            ),
+            rate_limit: None,
+        }
         "###);
     }
 
