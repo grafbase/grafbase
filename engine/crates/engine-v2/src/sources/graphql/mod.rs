@@ -123,7 +123,10 @@ impl GraphqlPreparedExecutor {
         let mut retry_budget = ctx.engine.retry_budget_for_subgraph(self.subgraph_id);
 
         if self.operation.ty.is_mutation()
-            && subgraph.retry_config().and_then(|config| config.retry_mutations) != Some(true)
+            && !subgraph
+                .retry_config()
+                .map(|config| config.retry_mutations)
+                .unwrap_or(false)
         {
             retry_budget = None;
         }
