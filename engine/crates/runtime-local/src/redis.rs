@@ -14,6 +14,8 @@ use redis::ClientTlsConfig;
 
 pub type Pool = deadpool::managed::Pool<pool::Manager>;
 
+pub use pool::Manager;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct RedisTlsConfig<'a> {
     pub cert: Option<&'a Path>,

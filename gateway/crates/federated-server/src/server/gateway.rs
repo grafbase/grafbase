@@ -9,10 +9,10 @@ use tokio::sync::watch;
 
 use engine_v2::Engine;
 use graphql_composition::FederatedGraph;
-use runtime_local::{ComponentLoader, HooksWasi, InMemoryEntityCache, InMemoryKvStore};
+use runtime_local::{ComponentLoader, HooksWasi, InMemoryEntityCache, InMemoryKvStore, RedisEntityCache};
 use runtime_noop::trusted_documents::NoopTrustedDocuments;
 
-use gateway_config::Config;
+use gateway_config::{Config, EntityCachingRedisConfig};
 
 use crate::hot_reload::ConfigWatcher;
 
@@ -93,6 +93,24 @@ pub(super) async fn generate(
         _ => InMemoryRateLimiter::runtime_with_watcher(watcher),
     };
 
+    let entity_cache: Box<dyn EntityCache> = match gateway_config.entity_caching.storage {
+        gateway_config::EntityCachingStorage::Memory => Box::new(InMemoryEntityCache::default()),
+        gateway_config::EntityCachingStorage::Redis => {
+            let EntityCachingRedisConfig { url, key_prefix, tls } = &gateway_config.entity_caching.redis;
+            let tls = tls.as_ref().map(|tls| RedisTlsConfig {
+                cert: tls.cert.as_deref(),
+                key: tls.key.as_deref(),
+                ca: tls.ca.as_deref(),
+            });
+
+            let pool = redis_factory
+                .pool(url.as_str(), tls)
+                .map_err(|e| crate::Error::InternalError(e.to_string()))?;
+
+            Box::new(RedisEntityCache::new(pool, key_prefix))
+        }
+    };
+
     let runtime = GatewayRuntime {
         fetcher: runtime_local::NativeFetcher::runtime_fetcher(),
         kv: InMemoryKvStore::runtime(),
@@ -108,7 +126,7 @@ pub(super) async fn generate(
                 .flatten(),
         ),
         rate_limiter,
-        entity_cache: Box::new(InMemoryEntityCache::default()),
+        entity_cache,
     };
 
     let config = config
