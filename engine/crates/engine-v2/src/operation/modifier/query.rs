@@ -1,16 +1,55 @@
-use id_newtypes::{BitSet, IdRange};
+use id_newtypes::{BitSet, IdRange, IdToMany};
 use schema::Schema;
 
 use crate::{
-    execution::{ErrorId, PlanningResult, PreExecutionContext, QueryModifications},
+    execution::{ErrorId, PlanningResult, PreExecutionContext},
     operation::{
-        OperationWalker, PreparedOperation, QueryModifierId, QueryModifierImpactedFieldId, QueryModifierRule, Variables,
+        FieldId, PreparedOperation, PreparedOperationWalker, QueryModifierId, QueryModifierImpactedFieldId,
+        QueryModifierRule, Variables,
     },
     response::{ConcreteObjectShapeId, ErrorCode, FieldShapeId, GraphqlError},
     Runtime,
 };
 
-pub(super) struct QueryModificationsBuilder<'ctx, 'op, R: Runtime> {
+pub(crate) struct QueryModifications {
+    pub is_any_field_skipped: bool,
+    pub skipped_fields: BitSet<FieldId>,
+    pub errors: Vec<GraphqlError>,
+    pub concrete_shape_has_error: BitSet<ConcreteObjectShapeId>,
+    pub field_shape_id_to_error_ids: IdToMany<FieldShapeId, ErrorId>,
+    pub root_error_ids: Vec<ErrorId>,
+}
+
+impl QueryModifications {
+    pub(crate) async fn build(
+        ctx: &PreExecutionContext<'_, impl Runtime>,
+        operation: &PreparedOperation,
+        variables: &Variables,
+    ) -> PlanningResult<Self> {
+        Builder {
+            ctx,
+            operation,
+            variables,
+            field_shape_id_to_error_ids_builder: Default::default(),
+            modifications: Self::default_for(operation),
+        }
+        .build()
+        .await
+    }
+
+    pub fn default_for(operation: &PreparedOperation) -> Self {
+        QueryModifications {
+            is_any_field_skipped: false,
+            skipped_fields: BitSet::init_with(false, operation.fields.len()),
+            concrete_shape_has_error: BitSet::init_with(false, operation.response_blueprint.shapes.concrete.len()),
+            errors: Vec::new(),
+            field_shape_id_to_error_ids: Default::default(),
+            root_error_ids: Vec::new(),
+        }
+    }
+}
+
+struct Builder<'ctx, 'op, R: Runtime> {
     ctx: &'op PreExecutionContext<'ctx, R>,
     operation: &'op PreparedOperation,
     variables: &'op Variables,
@@ -18,30 +57,10 @@ pub(super) struct QueryModificationsBuilder<'ctx, 'op, R: Runtime> {
     modifications: QueryModifications,
 }
 
-impl<'ctx, 'op, R: Runtime> QueryModificationsBuilder<'ctx, 'op, R>
+impl<'ctx, 'op, R: Runtime> Builder<'ctx, 'op, R>
 where
     'ctx: 'op,
 {
-    pub(super) fn new(
-        ctx: &'op PreExecutionContext<'ctx, R>,
-        operation: &'op PreparedOperation,
-        variables: &'op Variables,
-    ) -> Self {
-        QueryModificationsBuilder {
-            ctx,
-            operation,
-            variables,
-            field_shape_id_to_error_ids_builder: Default::default(),
-            modifications: QueryModifications {
-                skipped_fields: BitSet::init_with(false, operation.fields.len()),
-                concrete_shape_has_error: BitSet::init_with(false, operation.response_blueprint.shapes.concrete.len()),
-                errors: Vec::new(),
-                field_shape_id_to_error_ids: Default::default(),
-                root_error_ids: Vec::new(),
-            },
-        }
-    }
-
     pub(super) async fn build(mut self) -> PlanningResult<QueryModifications> {
         let mut scopes = None;
 
@@ -159,6 +178,7 @@ where
         impacted_fields: IdRange<QueryModifierImpactedFieldId>,
         error: GraphqlError,
     ) {
+        self.modifications.is_any_field_skipped = true;
         let error_id = self.push_error(error);
         if self.operation.root_query_modifier_ids.contains(&id) {
             self.modifications.root_error_ids.push(error_id);
@@ -178,9 +198,13 @@ where
         id
     }
 
-    fn walker(&self) -> OperationWalker<'op, (), ()> {
-        // yes looks weird, will be improved
-        self.operation.walker_with(self.ctx.schema.walker(), self.variables)
+    fn walker(&self) -> PreparedOperationWalker<'op, (), ()> {
+        PreparedOperationWalker {
+            schema_walker: self.ctx.schema.walker(),
+            operation: self.operation,
+            variables: self.variables,
+            item: (),
+        }
     }
 
     fn schema(&self) -> &'ctx Schema {

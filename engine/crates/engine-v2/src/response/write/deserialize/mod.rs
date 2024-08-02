@@ -10,10 +10,13 @@ use serde::{
 };
 
 use crate::{
-    execution::{ExecutableOperation, PlanWalker},
-    response::{ErrorCode, FieldShape, GraphqlError, ResponseEdge, ResponsePath, ResponseWriter},
+    execution::ExecutionContext,
+    operation::LogicalPlanId,
+    response::{ErrorCode, GraphqlError, ResponseWriter},
+    Runtime,
 };
 
+mod ctx;
 mod field;
 mod key;
 mod list;
@@ -21,87 +24,31 @@ mod nullable;
 mod object;
 mod scalar;
 
+use ctx::*;
 use list::ListSeed;
 use nullable::NullableSeed;
 use scalar::*;
-
-pub struct SeedContext<'ctx> {
-    plan: PlanWalker<'ctx, (), ()>,
-    operation: &'ctx ExecutableOperation,
-    writer: ResponseWriter<'ctx>,
-    propagating_error: Cell<bool>,
-    path: RefCell<Vec<ResponseEdge>>,
-}
-
-impl<'ctx> SeedContext<'ctx> {
-    pub fn new(plan: PlanWalker<'ctx>, writer: ResponseWriter<'ctx>) -> Self {
-        let path = RefCell::new(writer.root_path().iter().copied().collect());
-        Self {
-            operation: plan.operation(),
-            plan,
-            writer,
-            propagating_error: Cell::new(false),
-            path,
-        }
-    }
-}
-
-impl<'ctx> SeedContext<'ctx> {
-    fn missing_field_error_message(&self, shape: &FieldShape) -> String {
-        let field = &self.plan.walk_with(shape.id, shape.definition_id);
-        let response_keys = self.plan.response_keys();
-        if field.response_key() == shape.expected_key.into() {
-            format!(
-                "Error decoding response from upstream: Missing required field named '{}'",
-                &response_keys[shape.expected_key]
-            )
-        } else {
-            format!(
-                "Error decoding response from upstream: Missing required field named '{}' (expected: '{}')",
-                &response_keys[field.response_key()],
-                &response_keys[shape.expected_key]
-            )
-        }
-    }
-
-    fn push_edge(&self, edge: ResponseEdge) {
-        self.path.borrow_mut().push(edge);
-    }
-
-    fn pop_edge(&self) {
-        self.path.borrow_mut().pop();
-    }
-
-    fn response_path(&self) -> ResponsePath {
-        ResponsePath::from(self.path.borrow().clone())
-    }
-
-    fn should_create_new_graphql_error(&self) -> bool {
-        let is_propagating = self.propagating_error.get();
-        self.propagating_error.set(true);
-        !is_propagating
-    }
-
-    fn stop_propagating_and_should_create_new_graphql_error(&self) -> bool {
-        let is_propagating = self.propagating_error.get();
-        self.propagating_error.set(false);
-        !is_propagating
-    }
-
-    fn propagate_error<V, E: serde::de::Error>(&self) -> Result<V, E> {
-        self.propagating_error.set(true);
-        Err(serde::de::Error::custom(""))
-    }
-}
 
 pub(crate) struct UpdateSeed<'ctx> {
     ctx: SeedContext<'ctx>,
 }
 
 impl<'ctx> UpdateSeed<'ctx> {
-    pub(super) fn new(plan: PlanWalker<'ctx>, writer: ResponseWriter<'ctx>) -> Self {
+    pub(super) fn new<R: Runtime>(
+        ctx: ExecutionContext<'ctx, R>,
+        logical_plan_id: LogicalPlanId,
+        writer: ResponseWriter<'ctx>,
+    ) -> Self {
+        let path = RefCell::new(writer.root_path().iter().copied().collect());
         Self {
-            ctx: SeedContext::new(plan, writer),
+            ctx: SeedContext {
+                schema: ctx.schema(),
+                operation: ctx.operation,
+                logical_plan_id,
+                writer,
+                propagating_error: Cell::new(false),
+                path,
+            },
         }
     }
 }
@@ -115,8 +62,11 @@ impl<'de, 'ctx> DeserializeSeed<'de> for UpdateSeed<'ctx> {
     {
         let UpdateSeed { ctx } = self;
         let result = deserializer.deserialize_option(NullableVisitor(
-            ConcreteObjectSeed::new(&ctx, ctx.plan.logical_plan().response_blueprint().concrete_shape_id)
-                .into_fields_seed(),
+            ConcreteObjectSeed::new(
+                &ctx,
+                ctx.operation.response_blueprint[ctx.logical_plan_id].concrete_shape_id,
+            )
+            .into_fields_seed(),
         ));
 
         match result {

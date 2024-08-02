@@ -48,7 +48,7 @@ impl<'de, 'ctx, 'parent> Visitor<'de> for PolymorphicObjectSeed<'ctx, 'parent> {
     where
         A: MapAccess<'de>,
     {
-        let schema = self.ctx.plan.schema();
+        let schema = self.ctx.schema;
         let mut content = VecDeque::<(_, serde_value::Value)>::new();
         while let Some(key) = map.next_key::<Key<'de>>()? {
             if key.as_ref() == "__typename" {

@@ -4,7 +4,7 @@ mod ser;
 use id_newtypes::IdRange;
 use schema::{EnumValueId, InputValue, InputValueDefinitionId, SchemaInputValue, SchemaInputValueId};
 
-use crate::operation::OperationWalker;
+use crate::operation::PreparedOperationWalker;
 
 #[derive(Default)]
 pub struct VariableInputValues {
@@ -82,7 +82,7 @@ impl VariableInputValues {
     }
 }
 
-pub type VariableInputValueWalker<'a> = OperationWalker<'a, &'a VariableInputValue, ()>;
+pub type VariableInputValueWalker<'a> = PreparedOperationWalker<'a, &'a VariableInputValue, ()>;
 
 impl<'a> From<VariableInputValueWalker<'a>> for InputValue<'a> {
     fn from(walker: VariableInputValueWalker<'a>) -> Self {

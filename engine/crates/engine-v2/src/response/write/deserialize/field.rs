@@ -72,7 +72,7 @@ impl<'de, 'ctx, 'parent> DeserializeSeed<'de> for FieldSeed<'ctx, 'parent> {
             if self.ctx.should_create_new_graphql_error() {
                 self.ctx.writer.push_error(
                     GraphqlError::new(err.to_string(), ErrorCode::SubgraphInvalidResponseError)
-                        .with_location(self.ctx.plan[self.field.id].location())
+                        .with_location(self.ctx.operation[self.field.id].location())
                         .with_path(self.ctx.response_path()),
                 );
             }

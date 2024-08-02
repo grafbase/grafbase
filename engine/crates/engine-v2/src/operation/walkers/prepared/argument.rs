@@ -4,13 +4,13 @@ use serde::{de::value::MapDeserializer, forward_to_deserialize_any};
 
 use crate::operation::{FieldArgumentId, QueryInputValueWalker};
 
-use super::OperationWalker;
-
 mod view;
 
 pub(crate) use view::*;
 
-pub type FieldArgumentWalker<'a> = OperationWalker<'a, FieldArgumentId, InputValueDefinitionId>;
+use super::PreparedOperationWalker;
+
+pub type FieldArgumentWalker<'a> = PreparedOperationWalker<'a, FieldArgumentId, InputValueDefinitionId>;
 
 impl<'a> FieldArgumentWalker<'a> {
     pub fn value(&self) -> Option<QueryInputValueWalker<'a>> {
@@ -40,7 +40,7 @@ impl std::fmt::Debug for FieldArgumentWalker<'_> {
     }
 }
 
-pub type FieldArgumentsWalker<'a> = OperationWalker<'a, IdRange<FieldArgumentId>, ()>;
+pub type FieldArgumentsWalker<'a> = PreparedOperationWalker<'a, IdRange<FieldArgumentId>, ()>;
 
 impl<'a> FieldArgumentsWalker<'a> {
     pub fn is_empty(&self) -> bool {
@@ -65,7 +65,7 @@ impl<'a> IntoIterator for FieldArgumentsWalker<'a> {
     }
 }
 
-pub(crate) struct FieldArgumentsIterator<'a>(OperationWalker<'a, IdRangeIterator<FieldArgumentId>, ()>);
+pub(crate) struct FieldArgumentsIterator<'a>(PreparedOperationWalker<'a, IdRangeIterator<FieldArgumentId>, ()>);
 
 impl<'a> Iterator for FieldArgumentsIterator<'a> {
     type Item = FieldArgumentWalker<'a>;

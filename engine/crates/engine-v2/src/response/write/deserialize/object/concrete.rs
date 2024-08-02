@@ -129,7 +129,7 @@ impl<'de, 'ctx, 'seed> Visitor<'de> for ConcreteObjectFieldsSeed<'ctx, 'seed> {
     where
         A: MapAccess<'de>,
     {
-        let plan = self.ctx.plan;
+        let schema = self.ctx.schema;
         let mut response_fields = Vec::with_capacity(self.field_shape_ids.len() + self.typename_response_edges.len());
 
         let mut maybe_object_id = None;
@@ -144,14 +144,14 @@ impl<'de, 'ctx, 'seed> Visitor<'de> for ConcreteObjectFieldsSeed<'ctx, 'seed> {
             ObjectIdentifier::UnionTypename(id) => {
                 maybe_object_id = Some(self.visit_fields_with_typename_detection(
                     &mut map,
-                    &plan.schema()[id].possible_types_ordered_by_typename,
+                    &schema[id].possible_types_ordered_by_typename,
                     &mut response_fields,
                 )?);
             }
             ObjectIdentifier::InterfaceTypename(id) => {
                 maybe_object_id = Some(self.visit_fields_with_typename_detection(
                     &mut map,
-                    &plan.schema()[id].possible_types_ordered_by_typename,
+                    &schema[id].possible_types_ordered_by_typename,
                     &mut response_fields,
                 )?);
             }
@@ -163,7 +163,7 @@ impl<'de, 'ctx, 'seed> Visitor<'de> for ConcreteObjectFieldsSeed<'ctx, 'seed> {
             let Some(object_id) = maybe_object_id else {
                 return Err(serde::de::Error::custom("Could not determine the "));
             };
-            let name_id = plan.schema()[object_id].name;
+            let name_id = schema[object_id].name;
             for edge in self.typename_response_edges {
                 response_fields.push(ResponseObjectField {
                     edge: *edge,
@@ -249,8 +249,8 @@ impl<'de, 'ctx, 'seed> ConcreteObjectFieldsSeed<'ctx, 'seed> {
         possible_types_ordered_by_typename: &[ObjectId],
         response_fields: &mut Vec<ResponseObjectField>,
     ) -> Result<ObjectId, A::Error> {
-        let schema = self.ctx.plan.schema();
-        let keys = self.ctx.plan.response_keys();
+        let schema = self.ctx.schema;
+        let keys = &self.ctx.operation.response_keys;
         let fields = &self.ctx.operation.response_blueprint[self.field_shape_ids];
         let mut maybe_object_id = None;
         while let Some(key) = map.next_key::<Key<'_>>()? {
@@ -291,7 +291,7 @@ impl<'de, 'ctx, 'seed> ConcreteObjectFieldsSeed<'ctx, 'seed> {
         map: &mut A,
         response_fields: &mut Vec<ResponseObjectField>,
     ) -> Result<(), A::Error> {
-        let keys = self.ctx.plan.response_keys();
+        let keys = &self.ctx.operation.response_keys;
         let fields = &self.ctx.operation.response_blueprint[self.field_shape_ids];
         while let Some(key) = map.next_key::<Key<'_>>()? {
             let key = key.as_ref();

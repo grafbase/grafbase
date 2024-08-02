@@ -1,25 +1,23 @@
-mod argument;
 mod field;
+mod plan;
+mod prepared;
 mod query_path;
 mod selection_set;
 mod solved;
-mod variable;
 
-pub use argument::*;
 use engine_parser::types::OperationType;
-pub use field::*;
+pub(crate) use field::*;
+pub(crate) use plan::*;
+pub(crate) use prepared::*;
 use schema::SchemaWalker;
-pub use selection_set::*;
-#[allow(unused_imports)]
-pub use variable::*;
+pub(crate) use selection_set::*;
 
-use super::{Operation, Variables};
+use super::Operation;
 
 #[derive(Clone, Copy)]
 pub(crate) struct OperationWalker<'a, Item = (), SchemaItem = ()> {
     pub(super) schema_walker: SchemaWalker<'a, SchemaItem>,
     pub(super) operation: &'a Operation,
-    pub(super) variables: &'a Variables,
     pub(super) item: Item,
 }
 
@@ -64,7 +62,6 @@ impl<'a, I, SI> OperationWalker<'a, I, SI> {
         OperationWalker {
             schema_walker: self.schema_walker,
             operation: self.operation,
-            variables: self.variables,
             item,
         }
     }
@@ -73,7 +70,6 @@ impl<'a, I, SI> OperationWalker<'a, I, SI> {
         OperationWalker {
             schema_walker: self.schema_walker.walk(schema_item),
             operation: self.operation,
-            variables: self.variables,
             item,
         }
     }

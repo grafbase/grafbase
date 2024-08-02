@@ -25,7 +25,7 @@ impl<'a> PlanField<'a> {
     }
 
     pub fn arguments(self) -> FieldArgumentsWalker<'a> {
-        self.bound_walk_with(self.as_ref().argument_ids(), ())
+        self.prepared_walk_with(self.as_ref().argument_ids(), ())
     }
 
     pub fn get_arg_value_opt(&self, name: &str) -> Option<QueryInputValueWalker<'a>> {

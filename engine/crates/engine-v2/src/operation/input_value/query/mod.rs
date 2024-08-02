@@ -5,7 +5,7 @@ mod view;
 use id_newtypes::IdRange;
 use schema::{EnumValueId, InputValue, InputValueDefinitionId, InputValueSet, SchemaInputValue, SchemaInputValueId};
 
-use crate::operation::{Operation, OperationWalker, VariableDefinitionId, VariableValueWalker};
+use crate::operation::{Operation, OperationWalker, PreparedOperationWalker, VariableDefinitionId};
 
 pub(crate) use view::*;
 
@@ -84,7 +84,7 @@ impl QueryInputValues {
     }
 }
 
-pub(crate) type QueryInputValueWalker<'a> = OperationWalker<'a, &'a QueryInputValue, ()>;
+pub(crate) type QueryInputValueWalker<'a> = PreparedOperationWalker<'a, &'a QueryInputValue, ()>;
 
 impl<'a> QueryInputValueWalker<'a> {
     pub fn is_undefined(&self) -> bool {
@@ -172,7 +172,7 @@ impl<'a> From<QueryInputValueWalker<'a>> for InputValue<'a> {
     }
 }
 
-impl PartialEq<SchemaInputValue> for QueryInputValueWalker<'_> {
+impl PartialEq<SchemaInputValue> for OperationWalker<'_, &QueryInputValue, ()> {
     fn eq(&self, other: &SchemaInputValue) -> bool {
         match (self.item, other) {
             (QueryInputValue::Null, SchemaInputValue::Null) => true,
@@ -187,7 +187,7 @@ impl PartialEq<SchemaInputValue> for QueryInputValueWalker<'_> {
                 let op_input_values = &self.operation[*lids];
                 let schema_input_values = &self.schema_walker.as_ref()[*rids];
 
-                if op_input_values.len() < schema_input_values.len() {
+                if op_input_values.len() != schema_input_values.len() {
                     return false;
                 }
 
@@ -197,7 +197,7 @@ impl PartialEq<SchemaInputValue> for QueryInputValueWalker<'_> {
                         if !input_value.eq(&schema_input_values[i].1) {
                             return false;
                         }
-                    } else if !input_value.is_undefined() {
+                    } else {
                         return false;
                     };
                 }
@@ -227,7 +227,7 @@ impl PartialEq<SchemaInputValue> for QueryInputValueWalker<'_> {
                         if !value.eq(&schema_kv[i].1) {
                             return false;
                         }
-                    } else if !value.is_undefined() {
+                    } else {
                         return false;
                     };
                 }
@@ -238,12 +238,7 @@ impl PartialEq<SchemaInputValue> for QueryInputValueWalker<'_> {
                 .schema_walker
                 .walk(&self.schema_walker.as_ref()[*id])
                 .eq(&self.schema_walker.walk(value)),
-            (QueryInputValue::Variable(id), other) => match self.walk(*id).as_value() {
-                VariableValueWalker::Unavailable => false,
-                VariableValueWalker::Undefined => false,
-                VariableValueWalker::VariableInputValue(value) => value.eq(other),
-                VariableValueWalker::DefaultValue(value) => value.eq(other),
-            },
+            (QueryInputValue::Variable(_), _) => false,
             // A bit tedious, but avoids missing a case
             (QueryInputValue::Null, _) => false,
             (QueryInputValue::String(_), _) => false,
