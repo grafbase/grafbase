@@ -223,7 +223,7 @@ impl Visitor<'_> for SubgraphDirectiveVisitor {
                     min_per_second,
                     ttl,
                     retry_percent,
-                    retry_mutations,
+                    retry_mutations: retry_mutations.unwrap_or_default(),
                 },
             );
         }

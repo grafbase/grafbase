@@ -63,7 +63,6 @@ pub struct Config {
     /// Health check endpoint configuration
     #[serde(default)]
     pub health: HealthConfig,
-
     /// Global configuration for entity caching
     #[serde(default)]
     pub entity_caching: EntityCachingConfig,
@@ -97,6 +96,9 @@ pub struct GatewayConfig {
     /// Global rate limiting configuration
     #[serde(default)]
     pub rate_limit: Option<RateLimitConfig>,
+    /// Global retry configuration
+    #[serde(default)]
+    pub retry: RetryConfig,
 }
 
 #[derive(Debug, serde::Deserialize, Clone)]
@@ -113,27 +115,29 @@ pub struct SubgraphConfig {
     #[serde(deserialize_with = "duration_str::deserialize_option_duration", default)]
     pub timeout: Option<Duration>,
     #[serde(default)]
-    pub retry: SubgraphRetryConfig,
+    pub retry: Option<RetryConfig>,
 
     /// Subgraph specific entity caching config  this overrides the global config if there
     /// is any
     pub entity_caching: Option<EntityCachingConfig>,
 }
 
-#[derive(Debug, serde::Deserialize, Clone, Default)]
-pub struct SubgraphRetryConfig {
+#[derive(Debug, serde::Deserialize, Clone, Copy, Default, PartialEq)]
+pub struct RetryConfig {
     /// Should we retry or not.
     pub enabled: bool,
     /// How many retries are available per second, at a minimum.
+    #[serde(default)]
     pub min_per_second: Option<u32>,
     /// Each successful request to the subgraph adds to the retry budget. This setting controls for how long the budget remembers successful requests.
-    #[serde(deserialize_with = "duration_str::deserialize_option_duration")]
+    #[serde(default, deserialize_with = "duration_str::deserialize_option_duration")]
     pub ttl: Option<Duration>,
     /// The fraction of the successful requests budget that can be used for retries.
+    #[serde(default)]
     pub retry_percent: Option<f32>,
     /// Whether mutations should be retried at all. False by default.
     #[serde(default)]
-    pub retry_mutations: Option<bool>,
+    pub retry_mutations: bool,
 }
 
 #[derive(Clone, Debug, Default, serde::Deserialize)]
@@ -1320,13 +1324,7 @@ mod tests {
                 websocket_url: None,
                 rate_limit: None,
                 timeout: None,
-                retry: SubgraphRetryConfig {
-                    enabled: false,
-                    min_per_second: None,
-                    ttl: None,
-                    retry_percent: None,
-                    retry_mutations: None,
-                },
+                retry: None,
                 entity_caching: None,
             },
         }
@@ -1685,5 +1683,56 @@ mod tests {
         let error = toml::from_str::<Config>(input).unwrap_err();
 
         insta::assert_debug_snapshot!(&error.to_string(), @r###""TOML parse error at line 3, column 12\n  |\n3 | duration = \"0s\"\n  |            ^^^^\nrate limit duration cannot be 0\n""###);
+    }
+
+    #[test]
+    fn subgraph_global_retry() {
+        let input = indoc! {r#"
+            [gateway.retry]
+            enabled = true
+        "#};
+
+        let config: Config = toml::from_str(input).unwrap();
+
+        insta::assert_debug_snapshot!(&config.gateway.retry, @r###"
+        RetryConfig {
+            enabled: true,
+            min_per_second: None,
+            ttl: None,
+            retry_percent: None,
+            retry_mutations: false,
+        }
+        "###);
+    }
+
+    #[test]
+    fn subgraph_retry() {
+        let input = indoc! {r#"
+            [subgraphs.products.retry]
+            enabled = true
+        "#};
+
+        let config: Config = toml::from_str(input).unwrap();
+
+        insta::assert_debug_snapshot!(&config.subgraphs, @r###"
+        {
+            "products": SubgraphConfig {
+                headers: [],
+                websocket_url: None,
+                rate_limit: None,
+                timeout: None,
+                retry: Some(
+                    RetryConfig {
+                        enabled: true,
+                        min_per_second: None,
+                        ttl: None,
+                        retry_percent: None,
+                        retry_mutations: false,
+                    },
+                ),
+                entity_caching: None,
+            },
+        }
+        "###);
     }
 }
