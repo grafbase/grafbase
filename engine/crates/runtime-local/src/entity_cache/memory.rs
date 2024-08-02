@@ -1,36 +1,35 @@
-use std::{
-    collections::{hash_map::Entry, HashMap},
-    sync::Mutex,
-    time::Instant,
-};
+use std::time::Instant;
 
 use futures_util::future::BoxFuture;
 
-#[derive(Default)]
 pub struct InMemoryEntityCache {
-    inner: Mutex<HashMap<String, CacheValue>>,
+    inner: mini_moka::sync::Cache<String, CacheValue>,
 }
 
+#[derive(Clone)]
 struct CacheValue {
     data: Vec<u8>,
     expires_at: Instant,
 }
 
 impl InMemoryEntityCache {
+    pub fn new() -> Self {
+        InMemoryEntityCache {
+            inner: mini_moka::sync::Cache::new(4096),
+        }
+    }
+
     async fn get(&self, name: &str) -> anyhow::Result<Option<Vec<u8>>> {
-        let mut lock = self.inner.lock().unwrap();
-        let Entry::Occupied(entry) = lock.entry(name.to_string()) else {
+        let Some(value) = self.inner.get(&name.to_string()) else {
             return Ok(None);
         };
 
-        let value = entry.get();
-
         if value.expires_at < Instant::now() {
-            entry.remove();
+            self.inner.invalidate(&name.to_string());
             return Ok(None);
         }
 
-        Ok(Some(value.data.clone()))
+        Ok(Some(value.data))
     }
 
     async fn put(
@@ -39,8 +38,7 @@ impl InMemoryEntityCache {
         bytes: std::borrow::Cow<'_, [u8]>,
         expiration_ttl: std::time::Duration,
     ) -> anyhow::Result<()> {
-        let mut inner = self.inner.lock().unwrap();
-        inner.insert(
+        self.inner.insert(
             name.to_string(),
             CacheValue {
                 data: bytes.into_owned(),
@@ -48,6 +46,12 @@ impl InMemoryEntityCache {
             },
         );
         Ok(())
+    }
+}
+
+impl Default for InMemoryEntityCache {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
