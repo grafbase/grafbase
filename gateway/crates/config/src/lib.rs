@@ -1388,6 +1388,13 @@ mod tests {
                 2s,
             ),
             rate_limit: None,
+            retry: RetryConfig {
+                enabled: false,
+                min_per_second: None,
+                ttl: None,
+                retry_percent: None,
+                retry_mutations: false,
+            },
         }
         "###);
     }
