@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 use std::sync::Arc;
 
+use runtime::entity_cache::EntityCache;
 use runtime_local::rate_limiting::in_memory::key_based::InMemoryRateLimiter;
 use runtime_local::rate_limiting::redis::RedisRateLimiter;
 use runtime_local::redis::{RedisPoolFactory, RedisTlsConfig};
@@ -8,7 +9,7 @@ use tokio::sync::watch;
 
 use engine_v2::Engine;
 use graphql_composition::FederatedGraph;
-use runtime_local::{ComponentLoader, HooksWasi, InMemoryKvStore};
+use runtime_local::{ComponentLoader, HooksWasi, InMemoryEntityCache, InMemoryKvStore};
 use runtime_noop::trusted_documents::NoopTrustedDocuments;
 
 use gateway_config::Config;
@@ -107,6 +108,7 @@ pub(super) async fn generate(
                 .flatten(),
         ),
         rate_limiter,
+        entity_cache: Box::new(InMemoryEntityCache::default()),
     };
 
     let config = config
@@ -123,6 +125,7 @@ pub struct GatewayRuntime {
     meter: grafbase_telemetry::otel::opentelemetry::metrics::Meter,
     hooks: HooksWasi,
     rate_limiter: runtime::rate_limiting::RateLimiter,
+    entity_cache: Box<dyn EntityCache>,
 }
 
 impl engine_v2::Runtime for GatewayRuntime {
@@ -154,5 +157,9 @@ impl engine_v2::Runtime for GatewayRuntime {
 
     fn sleep(&self, duration: std::time::Duration) -> futures_util::future::BoxFuture<'static, ()> {
         Box::pin(tokio::time::sleep(duration))
+    }
+
+    fn entity_cache(&self) -> &dyn EntityCache {
+        self.entity_cache.as_ref()
     }
 }

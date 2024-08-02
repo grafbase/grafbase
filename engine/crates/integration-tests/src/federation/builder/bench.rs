@@ -73,6 +73,7 @@ impl<'a> DeterministicEngineBuilder<'a> {
                 meter: grafbase_telemetry::metrics::meter_from_global_provider(),
                 hooks: self.hooks,
                 rate_limiter: runtime_noop::rate_limiting::NoopRateLimiter::runtime(),
+                entity_cache: runtime_local::InMemoryEntityCache::default(),
             },
         )
         .await;

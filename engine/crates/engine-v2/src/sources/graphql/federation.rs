@@ -246,8 +246,8 @@ async fn update_cache<R: Runtime>(
         update_futures.push(async move {
             ctx.engine
                 .runtime
-                .kv()
-                .put(&key, Cow::Borrowed(bytes), Some(cache_ttl))
+                .entity_cache()
+                .put(&key, Cow::Borrowed(bytes), cache_ttl)
                 .await
                 .inspect_err(|err| tracing::warn!("Failed to write the cache key {key}: {err}"))
                 .ok();
@@ -275,8 +275,8 @@ async fn cache_fetch<R: Runtime>(ctx: ExecutionContext<'_, R>, subgraph_name: &s
     let data = ctx
         .engine
         .runtime
-        .kv()
-        .get(&key, Some(Duration::ZERO))
+        .entity_cache()
+        .get(&key)
         .await
         .inspect_err(|err| tracing::warn!("Failed to read the cache key {key}: {err}"))
         .ok()

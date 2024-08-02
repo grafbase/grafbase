@@ -8,7 +8,7 @@ use futures_concurrency::stream::Merge;
 use futures_util::{future::BoxFuture, stream::BoxStream, FutureExt as _, StreamExt};
 use gateway_config::GraphRateLimit;
 use runtime::rate_limiting::RateLimitKey;
-use runtime_local::rate_limiting::in_memory::key_based::InMemoryRateLimiter;
+use runtime_local::{rate_limiting::in_memory::key_based::InMemoryRateLimiter, InMemoryEntityCache};
 use tokio_stream::wrappers::WatchStream;
 
 /// The GatewayNanny looks after the `Gateway` - on updates to the graph or config it'll
@@ -88,6 +88,7 @@ pub(super) async fn new_gateway(config: Option<engine_v2::VersionedConfig>) -> O
 
             key_based_config
         }),
+        entity_cache: InMemoryEntityCache::default(),
     };
 
     let schema = config.try_into().ok()?;
@@ -102,6 +103,7 @@ pub struct CliRuntime {
     kv: runtime::kv::KvStore,
     meter: grafbase_telemetry::otel::opentelemetry::metrics::Meter,
     rate_limiter: runtime::rate_limiting::RateLimiter,
+    entity_cache: InMemoryEntityCache,
 }
 
 impl engine_v2::Runtime for CliRuntime {
@@ -138,6 +140,10 @@ impl engine_v2::Runtime for CliRuntime {
 
     fn sleep(&self, duration: std::time::Duration) -> BoxFuture<'static, ()> {
         tokio::time::sleep(duration).boxed()
+    }
+
+    fn entity_cache(&self) -> &dyn runtime::entity_cache::EntityCache {
+        &self.entity_cache
     }
 }
 

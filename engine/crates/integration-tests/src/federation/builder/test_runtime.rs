@@ -1,7 +1,8 @@
 use grafbase_telemetry::{metrics, otel::opentelemetry};
-use runtime::{hooks::DynamicHooks, trusted_documents_client};
+use runtime::{entity_cache::EntityCache, hooks::DynamicHooks, trusted_documents_client};
 use runtime_local::{
-    rate_limiting::in_memory::key_based::InMemoryRateLimiter, InMemoryHotCacheFactory, InMemoryKvStore, NativeFetcher,
+    rate_limiting::in_memory::key_based::InMemoryRateLimiter, InMemoryEntityCache, InMemoryHotCacheFactory,
+    InMemoryKvStore, NativeFetcher,
 };
 use runtime_noop::trusted_documents::NoopTrustedDocuments;
 use tokio::sync::watch;
@@ -13,6 +14,7 @@ pub struct TestRuntime {
     pub meter: opentelemetry::metrics::Meter,
     pub hooks: DynamicHooks,
     pub rate_limiter: runtime::rate_limiting::RateLimiter,
+    pub entity_cache: InMemoryEntityCache,
 }
 
 impl Default for TestRuntime {
@@ -26,6 +28,7 @@ impl Default for TestRuntime {
             meter: metrics::meter_from_global_provider(),
             hooks: Default::default(),
             rate_limiter: InMemoryRateLimiter::runtime_with_watcher(rx),
+            entity_cache: InMemoryEntityCache::default(),
         }
     }
 }
@@ -64,5 +67,9 @@ impl engine_v2::Runtime for TestRuntime {
 
     fn sleep(&self, duration: std::time::Duration) -> futures::prelude::future::BoxFuture<'static, ()> {
         Box::pin(tokio::time::sleep(duration))
+    }
+
+    fn entity_cache(&self) -> &dyn EntityCache {
+        &self.entity_cache
     }
 }

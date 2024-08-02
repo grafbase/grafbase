@@ -13,6 +13,7 @@ keywords = ["runtime", "environment", "grafbase"]
 workspace = true
 
 [dependencies]
+anyhow.workspace = true
 async-runtime.workspace = true
 async-trait.workspace = true
 bytes.workspace = true
