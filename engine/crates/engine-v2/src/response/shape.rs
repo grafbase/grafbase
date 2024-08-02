@@ -12,7 +12,7 @@ pub(crate) struct Shapes {
     pub fields: Vec<FieldShape>,
 }
 
-id_newtypes::NonZeroU16! {
+id_newtypes::NonZeroU32! {
     Shapes.concrete[ConcreteObjectShapeId] => ConcreteObjectShape,
     Shapes.polymorphic[PolymorphicObjectShapeId] => PolymorphicObjectShape,
     Shapes.fields[FieldShapeId] => FieldShape,

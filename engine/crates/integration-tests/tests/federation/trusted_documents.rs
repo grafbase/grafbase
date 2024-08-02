@@ -77,7 +77,7 @@ fn apollo_client_style_happy_path() {
             engine
                 .execute("")
                 .extensions(
-                    &json!({"persistedQuery": { "version": 1, "sha256Hash": &TRUSTED_DOCUMENTS[0].document_id }}),
+                    json!({"persistedQuery": { "version": 1, "sha256Hash": &TRUSTED_DOCUMENTS[0].document_id }}),
                 )
                 .header("x-grafbase-client-name", "ios-app")
         };
@@ -123,7 +123,7 @@ fn trusted_document_queries_without_client_name_header_are_rejected() {
     test(|engine| async move {
         let response = engine
             .execute("")
-            .extensions(&json!({"persistedQuery": { "version": 1, "sha256Hash": &TRUSTED_DOCUMENTS[0].document_id }}))
+            .extensions(json!({"persistedQuery": { "version": 1, "sha256Hash": &TRUSTED_DOCUMENTS[0].document_id }}))
             .await;
 
         insta::assert_json_snapshot!(response, @r###"
@@ -146,7 +146,7 @@ fn wrong_client_name() {
     test(|engine| async move {
         let response = engine
             .execute("")
-            .extensions(&json!({"persistedQuery": { "version": 1, "sha256Hash": &TRUSTED_DOCUMENTS[0].document_id }}))
+            .extensions(json!({"persistedQuery": { "version": 1, "sha256Hash": &TRUSTED_DOCUMENTS[0].document_id }}))
             .header("x-grafbase-client-name", "android-app")
             .await;
 
