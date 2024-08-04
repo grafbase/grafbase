@@ -2,7 +2,7 @@ use std::borrow::Cow;
 
 use engine_parser::Positioned;
 use im::HashMap;
-use schema::{Definition, FieldDefinitionId, ObjectId};
+use schema::{Definition, FieldDefinitionId, ObjectDefinitionId};
 
 use crate::{
     operation::{FieldId, Location, QueryPosition, SelectionSet, SelectionSetId, SelectionSetType},
@@ -304,7 +304,7 @@ impl<'schema, 'p, 'binder> SelectionSetBinder<'schema, 'p, 'binder> {
         })
     }
 
-    fn get_possible_types(&self, ty: SelectionSetType) -> Cow<'schema, [ObjectId]> {
+    fn get_possible_types(&self, ty: SelectionSetType) -> Cow<'schema, [ObjectDefinitionId]> {
         match ty {
             SelectionSetType::Object(id) => Cow::Owned(vec![id]),
             SelectionSetType::Interface(id) => Cow::Borrowed(&self.schema[id].possible_types),

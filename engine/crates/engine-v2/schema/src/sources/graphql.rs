@@ -41,21 +41,21 @@ id_newtypes::U8! {
 }
 
 #[derive(Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-pub struct RootFieldResolver {
+pub struct RootFieldResolverDefinition {
     pub(crate) endpoint_id: GraphqlEndpointId,
 }
 
-pub type RootFieldResolverWalker<'a> = SchemaWalker<'a, &'a RootFieldResolver>;
+pub type RootFieldResolverDefinitionWalker<'a> = SchemaWalker<'a, &'a RootFieldResolverDefinition>;
 
-impl<'a> std::ops::Deref for RootFieldResolverWalker<'a> {
-    type Target = RootFieldResolver;
+impl<'a> std::ops::Deref for RootFieldResolverDefinitionWalker<'a> {
+    type Target = RootFieldResolverDefinition;
 
     fn deref(&self) -> &'a Self::Target {
         self.item
     }
 }
 
-impl<'a> RootFieldResolverWalker<'a> {
+impl<'a> RootFieldResolverDefinitionWalker<'a> {
     pub fn name(&self) -> String {
         format!(
             "Graphql root field resolver for subgraph '{}'",
@@ -72,7 +72,7 @@ impl<'a> RootFieldResolverWalker<'a> {
     }
 }
 
-impl<'a> std::fmt::Debug for RootFieldResolverWalker<'a> {
+impl<'a> std::fmt::Debug for RootFieldResolverDefinitionWalker<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("GraphqlRootField")
             .field("subgraph", &self.endpoint().subgraph_name())
@@ -82,7 +82,7 @@ impl<'a> std::fmt::Debug for RootFieldResolverWalker<'a> {
 }
 
 #[derive(Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-pub struct FederationEntityResolver {
+pub struct FederationEntityResolverDefinition {
     pub(crate) endpoint_id: GraphqlEndpointId,
     pub(crate) key: FederationKey,
 }
@@ -92,17 +92,17 @@ pub struct FederationKey {
     pub(crate) fields: RequiredFieldSetId,
 }
 
-pub type FederationEntityResolverWalker<'a> = SchemaWalker<'a, &'a FederationEntityResolver>;
+pub type FederationEntityResolveDefinitionrWalker<'a> = SchemaWalker<'a, &'a FederationEntityResolverDefinition>;
 
-impl<'a> std::ops::Deref for FederationEntityResolverWalker<'a> {
-    type Target = FederationEntityResolver;
+impl<'a> std::ops::Deref for FederationEntityResolveDefinitionrWalker<'a> {
+    type Target = FederationEntityResolverDefinition;
 
     fn deref(&self) -> &'a Self::Target {
         self.item
     }
 }
 
-impl<'a> FederationEntityResolverWalker<'a> {
+impl<'a> FederationEntityResolveDefinitionrWalker<'a> {
     pub fn name(&self) -> String {
         format!(
             "Graphql federation entity resolver for subgraph '{}'",
@@ -123,7 +123,7 @@ impl<'a> FederationEntityResolverWalker<'a> {
     }
 }
 
-impl<'a> std::fmt::Debug for FederationEntityResolverWalker<'a> {
+impl<'a> std::fmt::Debug for FederationEntityResolveDefinitionrWalker<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("GraphqlFederationEntityResolver")
             .field("subgraph", &self.endpoint().subgraph_name())

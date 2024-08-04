@@ -2,7 +2,7 @@ use bytes::Bytes;
 use futures::future::join_all;
 use grafbase_telemetry::{gql_response_status::GraphqlResponseStatus, span::subgraph::SubgraphRequestSpan};
 use runtime::fetch::FetchRequest;
-use schema::sources::graphql::{FederationEntityResolverWalker, GraphqlEndpointId};
+use schema::sources::graphql::{FederationEntityResolveDefinitionrWalker, GraphqlEndpointId};
 use serde::{de::DeserializeSeed, Deserialize};
 use serde_json::value::RawValue;
 use std::{borrow::Cow, future::Future, time::Duration};
@@ -17,7 +17,7 @@ use crate::{
             deserialize::{EntitiesErrorsSeed, GraphqlResponseSeed},
             request::{SubgraphGraphqlRequest, SubgraphVariables},
         },
-        ExecutionResult, Executor,
+        ExecutionResult, Resolver,
     },
     Runtime,
 };
@@ -27,17 +27,20 @@ use super::{
     request::{execute_subgraph_request, PreparedFederationEntityOperation, ResponseIngester},
 };
 
-pub(crate) struct FederationEntityExecutor {
+pub(crate) struct FederationEntityResolver {
     endpoint_id: GraphqlEndpointId,
     operation: PreparedFederationEntityOperation,
 }
 
-impl FederationEntityExecutor {
-    pub fn prepare(resolver: FederationEntityResolverWalker<'_>, plan: PlanWalker<'_>) -> PlanningResult<Executor> {
+impl FederationEntityResolver {
+    pub fn prepare(
+        definition: FederationEntityResolveDefinitionrWalker<'_>,
+        plan: PlanWalker<'_>,
+    ) -> PlanningResult<Resolver> {
         let operation =
             PreparedFederationEntityOperation::build(plan).map_err(|err| format!("Failed to build query: {err}"))?;
-        Ok(Executor::FederationEntity(Self {
-            endpoint_id: resolver.endpoint().id(),
+        Ok(Resolver::FederationEntity(Self {
+            endpoint_id: definition.endpoint().id(),
             operation,
         }))
     }

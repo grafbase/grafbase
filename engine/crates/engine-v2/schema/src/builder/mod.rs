@@ -11,15 +11,15 @@ use std::mem::take;
 use std::time::Duration;
 
 use config::latest::Config;
+use sources::graphql::GraphqlEndpointId;
 use url::Url;
 
 use self::external_sources::ExternalDataSources;
 use self::graph::GraphBuilder;
 use self::ids::IdMaps;
 use self::interner::ProxyKeyInterner;
-use self::sources::graphql::GraphqlEndpointId;
 
-use super::*;
+use crate::*;
 use error::*;
 use interner::Interner;
 use requires::*;
@@ -50,9 +50,9 @@ pub(crate) struct BuildContext {
 impl BuildContext {
     #[cfg(test)]
     pub fn build_with<T>(build: impl FnOnce(&mut Self, &mut Graph) -> T) -> (Schema, T) {
-        use crate::builder::interner::ProxyKeyInterner;
+        use sources::introspection::IntrospectionBuilder;
 
-        use self::sources::introspection::IntrospectionBuilder;
+        use crate::builder::interner::ProxyKeyInterner;
 
         let mut ctx = Self {
             strings: Interner::from_vec(Vec::new()),
@@ -65,12 +65,12 @@ impl BuildContext {
         let mut graph = Graph {
             description: None,
             root_operation_types: RootOperationTypes {
-                query: ObjectId::from(0),
+                query: ObjectDefinitionId::from(0),
                 mutation: None,
                 subscription: None,
             },
             type_definitions: Vec::new(),
-            object_definitions: vec![Object {
+            object_definitions: vec![ObjectDefinition {
                 name: ctx.strings.get_or_new("Query"),
                 description: None,
                 interfaces: Default::default(),
@@ -85,7 +85,7 @@ impl BuildContext {
                     description: None,
                     // will be replaced by introspection, doesn't matter.
                     ty: Type {
-                        inner: Definition::Object(ObjectId::from(0)),
+                        inner: Definition::Object(ObjectDefinitionId::from(0)),
                         wrapping: Default::default(),
                     },
                     resolvers: Default::default(),
@@ -101,7 +101,7 @@ impl BuildContext {
                     description: None,
                     // will be replaced by introspection, doesn't matter.
                     ty: Type {
-                        inner: Definition::Object(ObjectId::from(0)),
+                        inner: Definition::Object(ObjectDefinitionId::from(0)),
                         wrapping: Default::default(),
                     },
                     resolvers: Default::default(),
@@ -119,7 +119,7 @@ impl BuildContext {
             input_value_definitions: Vec::new(),
             type_system_directives: Vec::new(),
             enum_value_definitions: Vec::new(),
-            resolvers: Vec::new(),
+            resolver_definitions: Vec::new(),
             required_field_sets: Vec::new(),
             required_fields: Vec::new(),
             cache_control: Vec::new(),
@@ -249,14 +249,14 @@ macro_rules! from_id_newtypes {
 // EnumValueId from federated_graph can't be directly
 // converted, we sort them by their name.
 from_id_newtypes! {
-    federated_graph::EnumId => EnumId,
-    federated_graph::InputObjectId => InputObjectId,
-    federated_graph::InterfaceId => InterfaceId,
-    federated_graph::ObjectId => ObjectId,
-    federated_graph::ScalarId => ScalarId,
+    federated_graph::EnumId => EnumDefinitionId,
+    federated_graph::InputObjectId => InputObjectDefinitionId,
+    federated_graph::InterfaceId => InterfaceDefinitionId,
+    federated_graph::ObjectId => ObjectDefinitionId,
+    federated_graph::ScalarId => ScalarDefinitionId,
     federated_graph::StringId => StringId,
     federated_graph::SubgraphId => GraphqlEndpointId,
-    federated_graph::UnionId => UnionId,
+    federated_graph::UnionId => UnionDefinitionId,
     config::latest::HeaderRuleId => HeaderRuleId,
 }
 

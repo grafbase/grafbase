@@ -93,15 +93,15 @@ impl<'a> SchemaWalker<'a, ()> {
         &self.schema.data_sources.introspection
     }
 
-    pub fn query(&self) -> ObjectWalker<'a> {
+    pub fn query(&self) -> ObjectDefinitionWalker<'a> {
         self.walk(self.schema.graph.root_operation_types.query)
     }
 
-    pub fn mutation(&self) -> Option<ObjectWalker<'a>> {
+    pub fn mutation(&self) -> Option<ObjectDefinitionWalker<'a>> {
         self.schema.graph.root_operation_types.mutation.map(|id| self.walk(id))
     }
 
-    pub fn subscription(&self) -> Option<ObjectWalker<'a>> {
+    pub fn subscription(&self) -> Option<ObjectDefinitionWalker<'a>> {
         self.schema
             .graph
             .root_operation_types

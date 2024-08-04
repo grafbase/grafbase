@@ -2,12 +2,16 @@ use std::{mem::take, time::Duration};
 
 use config::latest::Config;
 
-use crate::sources;
-
-use super::BuildContext;
+use super::{
+    sources::{
+        graphql::{GraphqlEndpoint, RetryConfig},
+        GraphqlEndpoints,
+    },
+    BuildContext,
+};
 
 pub struct ExternalDataSources {
-    pub graphql: sources::graphql::GraphqlEndpoints,
+    pub graphql: GraphqlEndpoints,
 }
 
 impl ExternalDataSources {
@@ -29,7 +33,7 @@ impl ExternalDataSources {
                         retry,
                         entity_caching,
                         ..
-                    }) => sources::graphql::GraphqlEndpoint {
+                    }) => GraphqlEndpoint {
                         subgraph_name: name,
                         subgraph_id,
                         url,
@@ -43,7 +47,7 @@ impl ExternalDataSources {
                                  ttl,
                                  retry_percent,
                                  retry_mutations,
-                             }| sources::graphql::RetryConfig {
+                             }| RetryConfig {
                                 min_per_second,
                                 ttl,
                                 retry_percent,
@@ -53,7 +57,7 @@ impl ExternalDataSources {
                         entity_cache_ttl: entity_caching.as_ref().unwrap_or(&config.entity_caching).ttl(),
                     },
 
-                    None => sources::graphql::GraphqlEndpoint {
+                    None => GraphqlEndpoint {
                         subgraph_name: name,
                         subgraph_id,
                         url,
@@ -67,7 +71,7 @@ impl ExternalDataSources {
             })
             .collect();
         ExternalDataSources {
-            graphql: sources::GraphqlEndpoints { endpoints },
+            graphql: GraphqlEndpoints { endpoints },
         }
     }
 }

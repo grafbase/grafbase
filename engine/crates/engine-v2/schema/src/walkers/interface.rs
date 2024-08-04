@@ -1,9 +1,9 @@
 use super::{FieldDefinitionWalker, SchemaWalker};
-use crate::{InterfaceId, ObjectWalker, TypeSystemDirectivesWalker};
+use crate::{InterfaceDefinitionId, ObjectDefinitionWalker, TypeSystemDirectivesWalker};
 
-pub type InterfaceWalker<'a> = SchemaWalker<'a, InterfaceId>;
+pub type InterfaceDefinitionWalker<'a> = SchemaWalker<'a, InterfaceDefinitionId>;
 
-impl<'a> InterfaceWalker<'a> {
+impl<'a> InterfaceDefinitionWalker<'a> {
     pub fn name(&self) -> &'a str {
         self.names.interface(self.schema, self.item)
     }
@@ -13,7 +13,7 @@ impl<'a> InterfaceWalker<'a> {
         fields.into_iter().map(move |field_id| self.walk(field_id))
     }
 
-    pub fn interfaces(self) -> impl ExactSizeIterator<Item = InterfaceWalker<'a>> + 'a {
+    pub fn interfaces(self) -> impl ExactSizeIterator<Item = InterfaceDefinitionWalker<'a>> + 'a {
         self.as_ref()
             .interfaces
             .clone()
@@ -21,7 +21,7 @@ impl<'a> InterfaceWalker<'a> {
             .map(move |id| self.walk(id))
     }
 
-    pub fn possible_types(self) -> impl ExactSizeIterator<Item = ObjectWalker<'a>> + 'a {
+    pub fn possible_types(self) -> impl ExactSizeIterator<Item = ObjectDefinitionWalker<'a>> + 'a {
         self.as_ref()
             .possible_types
             .clone()
@@ -34,7 +34,7 @@ impl<'a> InterfaceWalker<'a> {
     }
 }
 
-impl<'a> std::fmt::Debug for InterfaceWalker<'a> {
+impl<'a> std::fmt::Debug for InterfaceDefinitionWalker<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Interface")
             .field("id", &usize::from(self.item))

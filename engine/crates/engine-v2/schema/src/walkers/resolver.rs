@@ -1,19 +1,23 @@
-use crate::{FieldDefinitionId, Names, RequiredFieldSet, Resolver, ResolverId, SchemaWalker, SubgraphId};
+use crate::{
+    FieldDefinitionId, Names, RequiredFieldSet, ResolverDefinition, ResolverDefinitionId, SchemaWalker, SubgraphId,
+};
 
-pub type ResolverWalker<'a> = SchemaWalker<'a, ResolverId>;
+pub type ResolverDefinitionWalker<'a> = SchemaWalker<'a, ResolverDefinitionId>;
 
-impl<'a> ResolverWalker<'a> {
+impl<'a> ResolverDefinitionWalker<'a> {
     pub fn name(&self) -> String {
         match self.as_ref() {
-            Resolver::Introspection(_) => "Introspection resolver".to_string(),
-            Resolver::GraphqlRootField(resolver) => self.walk(resolver).name(),
-            Resolver::GraphqlFederationEntity(resolver) => self.walk(resolver).name(),
+            ResolverDefinition::Introspection(_) => "Introspection resolver".to_string(),
+            ResolverDefinition::GraphqlRootField(resolver) => self.walk(resolver).name(),
+            ResolverDefinition::GraphqlFederationEntity(resolver) => self.walk(resolver).name(),
         }
     }
 
     pub fn supports_aliases(&self) -> bool {
         match self.as_ref() {
-            Resolver::GraphqlRootField(_) | Resolver::Introspection(_) | Resolver::GraphqlFederationEntity(_) => true,
+            ResolverDefinition::GraphqlRootField(_)
+            | ResolverDefinition::Introspection(_)
+            | ResolverDefinition::GraphqlFederationEntity(_) => true,
         }
     }
 
@@ -27,16 +31,16 @@ impl<'a> ResolverWalker<'a> {
 
     pub fn requires(&self) -> &'a RequiredFieldSet {
         match self.as_ref() {
-            Resolver::GraphqlFederationEntity(resolver) => self.walk(resolver).requires(),
-            Resolver::Introspection(_) | Resolver::GraphqlRootField(_) => &crate::requires::EMPTY,
+            ResolverDefinition::GraphqlFederationEntity(resolver) => self.walk(resolver).requires(),
+            ResolverDefinition::Introspection(_) | ResolverDefinition::GraphqlRootField(_) => &crate::requires::EMPTY,
         }
     }
 
     pub fn subgraph_id(&self) -> SubgraphId {
         match self.as_ref() {
-            Resolver::Introspection(resolver) => self.walk(resolver).subgraph_id(),
-            Resolver::GraphqlRootField(resolver) => self.walk(resolver).subgraph_id(),
-            Resolver::GraphqlFederationEntity(resolver) => self.walk(resolver).subgraph_id(),
+            ResolverDefinition::Introspection(resolver) => self.walk(resolver).subgraph_id(),
+            ResolverDefinition::GraphqlRootField(resolver) => self.walk(resolver).subgraph_id(),
+            ResolverDefinition::GraphqlFederationEntity(resolver) => self.walk(resolver).subgraph_id(),
         }
     }
 
@@ -45,12 +49,12 @@ impl<'a> ResolverWalker<'a> {
     }
 }
 
-impl<'a> std::fmt::Debug for ResolverWalker<'a> {
+impl<'a> std::fmt::Debug for ResolverDefinitionWalker<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self.as_ref() {
-            Resolver::Introspection(_) => f.debug_struct("Introspection").finish(),
-            Resolver::GraphqlRootField(resolver) => self.walk(resolver).fmt(f),
-            Resolver::GraphqlFederationEntity(resolver) => self.walk(resolver).fmt(f),
+            ResolverDefinition::Introspection(_) => f.debug_struct("Introspection").finish(),
+            ResolverDefinition::GraphqlRootField(resolver) => self.walk(resolver).fmt(f),
+            ResolverDefinition::GraphqlFederationEntity(resolver) => self.walk(resolver).fmt(f),
         }
     }
 }

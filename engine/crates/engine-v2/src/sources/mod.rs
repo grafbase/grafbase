@@ -44,7 +44,7 @@
 //! executor will have a root for each product in the response.
 use futures::{future::BoxFuture, FutureExt};
 use futures_util::stream::BoxStream;
-use schema::{Resolver, ResolverWalker};
+use schema::{ResolverDefinition, ResolverDefinitionWalker};
 use std::future::Future;
 
 use crate::{
@@ -55,42 +55,42 @@ use crate::{
 };
 
 use self::{
-    graphql::{FederationEntityExecutor, GraphqlExecutor},
-    introspection::IntrospectionExecutor,
+    graphql::{FederationEntityResolver, GraphqlResolver},
+    introspection::IntrospectionResolver,
 };
 
 mod graphql;
 mod introspection;
 
-pub(crate) enum Executor {
-    GraphQL(GraphqlExecutor),
-    FederationEntity(FederationEntityExecutor),
-    Introspection(IntrospectionExecutor),
+pub(crate) enum Resolver {
+    GraphQL(GraphqlResolver),
+    FederationEntity(FederationEntityResolver),
+    Introspection(IntrospectionResolver),
 }
 
-impl Executor {
+impl Resolver {
     pub fn introspection() -> Self {
-        Executor::Introspection(IntrospectionExecutor)
+        Resolver::Introspection(IntrospectionResolver)
     }
 
     pub fn prepare(
-        walker: ResolverWalker<'_>,
+        definition: ResolverDefinitionWalker<'_>,
         operation_type: OperationType,
         plan: PlanWalker<'_>,
     ) -> PlanningResult<Self> {
-        match walker.as_ref() {
-            Resolver::Introspection(_) => Ok(Executor::Introspection(IntrospectionExecutor)),
-            Resolver::GraphqlRootField(resolver) => {
-                GraphqlExecutor::prepare(walker.walk(resolver), operation_type, plan)
+        match definition.as_ref() {
+            ResolverDefinition::Introspection(_) => Ok(Resolver::Introspection(IntrospectionResolver)),
+            ResolverDefinition::GraphqlRootField(resolver) => {
+                GraphqlResolver::prepare(definition.walk(resolver), operation_type, plan)
             }
-            Resolver::GraphqlFederationEntity(resolver) => {
-                FederationEntityExecutor::prepare(walker.walk(resolver), plan)
+            ResolverDefinition::GraphqlFederationEntity(resolver) => {
+                FederationEntityResolver::prepare(definition.walk(resolver), plan)
             }
         }
     }
 }
 
-impl Executor {
+impl Resolver {
     pub fn execute<'ctx, 'fut, R: Runtime>(
         &'ctx self,
         ctx: ExecutionContext<'ctx, R>,
@@ -105,11 +105,11 @@ impl Executor {
         'ctx: 'fut,
     {
         let result: ExecutionResult<BoxFuture<'fut, _>> = match self {
-            Executor::GraphQL(prepared) => Ok(prepared.execute(ctx, plan, subgraph_response).boxed()),
-            Executor::FederationEntity(prepared) => prepared
+            Resolver::GraphQL(prepared) => Ok(prepared.execute(ctx, plan, subgraph_response).boxed()),
+            Resolver::FederationEntity(prepared) => prepared
                 .execute(ctx, plan, root_response_objects, subgraph_response)
                 .map(FutureExt::boxed),
-            Executor::Introspection(prepared) => Ok(prepared.execute(ctx, plan, subgraph_response).boxed()),
+            Resolver::Introspection(prepared) => Ok(prepared.execute(ctx, plan, subgraph_response).boxed()),
         };
 
         async {
@@ -127,11 +127,11 @@ impl Executor {
         new_response: impl Fn() -> SubscriptionResponse + Send + 'ctx,
     ) -> ExecutionResult<BoxStream<'ctx, ExecutionResult<SubscriptionResponse>>> {
         match self {
-            Executor::GraphQL(prepared) => prepared.execute_subscription(ctx, plan, new_response).await,
-            Executor::Introspection(_) => Err(ExecutionError::Internal(
+            Resolver::GraphQL(prepared) => prepared.execute_subscription(ctx, plan, new_response).await,
+            Resolver::Introspection(_) => Err(ExecutionError::Internal(
                 "Subscriptions can't contain introspection".into(),
             )),
-            Executor::FederationEntity(_) => Err(ExecutionError::Internal(
+            Resolver::FederationEntity(_) => Err(ExecutionError::Internal(
                 "Subscriptions can only be at the root of a query so can't contain federated entitites".into(),
             )),
         }

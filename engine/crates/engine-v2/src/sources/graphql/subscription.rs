@@ -5,7 +5,7 @@ use serde::de::DeserializeSeed;
 use super::{
     deserialize::{GraphqlResponseSeed, RootGraphqlErrors},
     request::SubgraphVariables,
-    GraphqlExecutor,
+    GraphqlResolver,
 };
 use crate::{
     execution::{ExecutionContext, ExecutionError, SubscriptionResponse},
@@ -14,7 +14,7 @@ use crate::{
     Runtime,
 };
 
-impl GraphqlExecutor {
+impl GraphqlResolver {
     pub async fn execute_subscription<'ctx, R: Runtime>(
         &'ctx self,
         ctx: ExecutionContext<'ctx, R>,

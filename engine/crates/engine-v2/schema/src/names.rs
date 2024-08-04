@@ -1,6 +1,6 @@
 use crate::{
-    Definition, EnumId, EnumValueId, FieldDefinitionId, InputObjectId, InputValueDefinitionId, InterfaceId, ObjectId,
-    ScalarId, Schema, UnionId,
+    Definition, EnumDefinitionId, EnumValueId, FieldDefinitionId, InputObjectDefinitionId, InputValueDefinitionId,
+    InterfaceDefinitionId, ObjectDefinitionId, ScalarDefinitionId, Schema, UnionDefinitionId,
 };
 
 /// Small abstraction over the actual names to make easier to deal with
@@ -11,15 +11,15 @@ pub trait Names: Send + Sync {
         &schema[schema[field_id].name]
     }
 
-    fn object<'s>(&self, schema: &'s Schema, object_id: ObjectId) -> &'s str {
+    fn object<'s>(&self, schema: &'s Schema, object_id: ObjectDefinitionId) -> &'s str {
         &schema[schema[object_id].name]
     }
 
-    fn union<'s>(&self, schema: &'s Schema, union_id: UnionId) -> &'s str {
+    fn union<'s>(&self, schema: &'s Schema, union_id: UnionDefinitionId) -> &'s str {
         &schema[schema[union_id].name]
     }
 
-    fn interface<'s>(&self, schema: &'s Schema, interface_id: InterfaceId) -> &'s str {
+    fn interface<'s>(&self, schema: &'s Schema, interface_id: InterfaceDefinitionId) -> &'s str {
         &schema[schema[interface_id].name]
     }
 
@@ -27,15 +27,15 @@ pub trait Names: Send + Sync {
         &schema[schema[input_value_id].name]
     }
 
-    fn input_object<'s>(&self, schema: &'s Schema, input_object_id: InputObjectId) -> &'s str {
+    fn input_object<'s>(&self, schema: &'s Schema, input_object_id: InputObjectDefinitionId) -> &'s str {
         &schema[schema[input_object_id].name]
     }
 
-    fn scalar<'s>(&self, schema: &'s Schema, scalar_id: ScalarId) -> &'s str {
+    fn scalar<'s>(&self, schema: &'s Schema, scalar_id: ScalarDefinitionId) -> &'s str {
         &schema[schema[scalar_id].name]
     }
 
-    fn r#enum<'s>(&self, schema: &'s Schema, enum_id: EnumId) -> &'s str {
+    fn r#enum<'s>(&self, schema: &'s Schema, enum_id: EnumDefinitionId) -> &'s str {
         &schema[schema[enum_id].name]
     }
 
@@ -46,20 +46,20 @@ pub trait Names: Send + Sync {
     ////////////////////////////////////////////////////////////////////////////////
     // Used when writing data into the response to determine the actual object id //
 
-    fn union_discriminant_key<'s>(&self, _schema: &'s Schema, _union_id: UnionId) -> &'s str {
+    fn union_discriminant_key<'s>(&self, _schema: &'s Schema, _union_id: UnionDefinitionId) -> &'s str {
         "__typename"
     }
 
-    fn interface_discriminant_key<'s>(&self, _schema: &'s Schema, _interface_id: InterfaceId) -> &'s str {
+    fn interface_discriminant_key<'s>(&self, _schema: &'s Schema, _interface_id: InterfaceDefinitionId) -> &'s str {
         "__typename"
     }
 
     fn concrete_object_id_from_union_discriminant(
         &self,
         schema: &Schema,
-        union_id: UnionId,
+        union_id: UnionDefinitionId,
         discriminant: &str,
-    ) -> Option<ObjectId> {
+    ) -> Option<ObjectDefinitionId> {
         schema.definition_by_name(discriminant).and_then(|definition| {
             if let Definition::Object(object_id) = definition {
                 if schema[union_id].possible_types.contains(&object_id) {
@@ -76,9 +76,9 @@ pub trait Names: Send + Sync {
     fn concrete_object_id_from_interface_discriminant(
         &self,
         schema: &Schema,
-        interface_id: InterfaceId,
+        interface_id: InterfaceDefinitionId,
         discriminant: &str,
-    ) -> Option<ObjectId> {
+    ) -> Option<ObjectDefinitionId> {
         schema.definition_by_name(discriminant).and_then(|definition| {
             if let Definition::Object(object_id) = definition {
                 if schema[interface_id].possible_types.contains(&object_id) {

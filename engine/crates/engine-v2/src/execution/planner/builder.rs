@@ -4,7 +4,7 @@ use std::{
 };
 
 use itertools::Itertools;
-use schema::{RequiredFieldSet, ResolverWalker};
+use schema::{RequiredFieldSet, ResolverDefinitionWalker};
 
 use crate::{
     execution::{ExecutableOperation, ExecutionPlan, ExecutionPlanId, PreExecutionContext, ResponseModifierExecutor},
@@ -12,7 +12,7 @@ use crate::{
         FieldId, LogicalPlanId, OperationWalker, PlanWalker, ResponseModifierRule, SelectionSetId, SelectionSetType,
     },
     response::{ResponseObjectSetId, ResponseViewSelection, ResponseViewSelectionSet},
-    sources::Executor,
+    sources::Resolver,
     Runtime,
 };
 
@@ -53,7 +53,7 @@ where
             resolver,
             &logical_plan.root_field_ids_ordered_by_parent_entity_id_then_position,
         );
-        let prepared_executor = Executor::prepare(
+        let resolver = Resolver::prepare(
             resolver,
             self.operation.borrow().ty(),
             PlanWalker {
@@ -71,7 +71,7 @@ where
             parent_count: 0,
             children: Vec::new(),
             requires,
-            executor: prepared_executor,
+            resolver,
             logical_plan_id,
             dependent_response_modifiers: Vec::new(),
         };
@@ -194,7 +194,7 @@ where
 
     fn create_plan_view_and_list_dependencies(
         &mut self,
-        resolver: ResolverWalker<'_>,
+        resolver: ResolverDefinitionWalker<'_>,
         field_ids: &Vec<FieldId>,
     ) -> (ResponseViewSelectionSet, Vec<FieldId>) {
         let mut required_fields = Cow::Borrowed(resolver.requires());
