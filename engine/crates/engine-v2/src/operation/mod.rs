@@ -50,8 +50,6 @@ impl std::ops::Index<LogicalPlanId> for PreparedOperation {
     }
 }
 
-// Is this even a good idea?
-// It's very difficult to actually tell where data lives when we're going through three shadow Index impls....
 impl<I> std::ops::Index<I> for PreparedOperation
 where
     Operation: std::ops::Index<I>,
