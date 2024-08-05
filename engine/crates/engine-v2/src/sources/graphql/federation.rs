@@ -1,6 +1,7 @@
 use bytes::Bytes;
 use futures::future::join_all;
 use grafbase_telemetry::{gql_response_status::GraphqlResponseStatus, span::subgraph::SubgraphRequestSpan};
+use http::HeaderMap;
 use runtime::fetch::FetchRequest;
 use schema::sources::graphql::{FederationEntityResolveDefinitionrWalker, GraphqlEndpointId};
 use serde::{de::DeserializeSeed, Deserialize};
@@ -90,8 +91,10 @@ impl FederationEntityResolver {
                 let headers = ctx.subgraph_headers_with_rules(endpoint.header_rules());
 
                 if cache_ttl.is_some() {
-                    match cache_fetches(ctx, endpoint, &headers, representations, &mut ingester).await {
-                        CacheFetchOutcome::FullyCached => {
+                    match cache_fetches(ctx, endpoint, &headers, representations).await {
+                        CacheFetchOutcome::FullyCached { cache_entries } => {
+                            ingester.cache_entries = Some(cache_entries);
+
                             let (_, response) = ingester
                                 .ingest(Bytes::from_static(br#"{"data": {"_entities": []}}"#))
                                 .await?;
@@ -99,8 +102,12 @@ impl FederationEntityResolver {
                             return Ok(response);
                         }
                         CacheFetchOutcome::Other {
+                            cache_entries,
                             filtered_representations,
-                        } => representations = filtered_representations,
+                        } => {
+                            ingester.cache_entries = cache_entries;
+                            representations = filtered_representations;
+                        }
                     }
                 }
                 let variables = SubgraphVariables {
@@ -150,50 +157,37 @@ async fn cache_fetches<'ctx, R: Runtime>(
     endpoint: schema::SchemaWalker<'_, GraphqlEndpointId>,
     headers: &http::HeaderMap,
     representations: Vec<Box<RawValue>>,
-    ingester: &mut EntityIngester<'ctx, R>,
 ) -> CacheFetchOutcome {
-    let header_result = serde_json::to_vec(
-        &headers
-            .iter()
-            .map(|(name, value)| (name.as_str(), value.as_bytes()))
-            .collect::<Vec<_>>(),
-    )
-    .inspect_err(|err| tracing::warn!("Couldn't encode headers as JSON for cache key: {err}"));
-
-    let Ok(headers_json) = header_result else {
-        return CacheFetchOutcome::Other {
-            filtered_representations: representations,
-        };
-    };
-
     let fetches = representations
         .iter()
-        .map(|repr| cache_fetch(ctx, endpoint.subgraph_name(), &headers_json, repr));
+        .map(|repr| cache_fetch(ctx, endpoint.subgraph_name(), headers, repr));
 
     let cache_entries = join_all(fetches).await;
     let fully_cached = !cache_entries.iter().any(CacheEntry::is_miss);
 
-    ingester.cache_entries = Some(cache_entries);
-
     if fully_cached {
-        return CacheFetchOutcome::FullyCached;
+        return CacheFetchOutcome::FullyCached { cache_entries };
     }
 
     let filtered_representations = representations
         .into_iter()
-        .zip(ingester.cache_entries.as_ref().unwrap())
+        .zip(cache_entries.iter())
         .filter(|(_, cache_entry)| cache_entry.is_miss())
         .map(|(repr, _)| repr)
         .collect();
 
     CacheFetchOutcome::Other {
+        cache_entries: Some(cache_entries),
         filtered_representations,
     }
 }
 
 enum CacheFetchOutcome {
-    FullyCached,
+    FullyCached {
+        cache_entries: Vec<CacheEntry>,
+    },
     Other {
+        cache_entries: Option<Vec<CacheEntry>>,
         filtered_representations: Vec<Box<RawValue>>,
     },
 }
@@ -313,10 +307,10 @@ struct Data<'a> {
 async fn cache_fetch<R: Runtime>(
     ctx: ExecutionContext<'_, R>,
     subgraph_name: &str,
-    headers_json: &[u8],
+    headers: &HeaderMap,
     repr: &RawValue,
 ) -> CacheEntry {
-    let key = build_cache_key(subgraph_name, headers_json, repr);
+    let key = build_cache_key(subgraph_name, headers, repr);
 
     let data = ctx
         .engine
@@ -334,10 +328,16 @@ async fn cache_fetch<R: Runtime>(
     }
 }
 
-fn build_cache_key(subgraph_name: &str, headers_json: &[u8], repr: &RawValue) -> String {
+fn build_cache_key(subgraph_name: &str, headers: &HeaderMap, repr: &RawValue) -> String {
     let mut hasher = blake3::Hasher::new();
     hasher.update(subgraph_name.as_bytes());
-    hasher.update(headers_json);
+    hasher.update(&headers.len().to_ne_bytes());
+    for (name, value) in headers {
+        hasher.update(&name.as_str().len().to_ne_bytes());
+        hasher.update(name.as_str().as_bytes());
+        hasher.update(&value.len().to_ne_bytes());
+        hasher.update(value.as_bytes());
+    }
     hasher.update(repr.get().as_bytes());
     hasher.finalize().to_string()
 }

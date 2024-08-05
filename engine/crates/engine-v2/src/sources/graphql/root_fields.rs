@@ -135,18 +135,15 @@ impl GraphqlResolver {
 }
 
 fn build_cache_key(subgraph_name: &str, subgraph_request_body: &[u8], headers: &http::HeaderMap) -> Option<String> {
-    let header_json = serde_json::to_vec(
-        &headers
-            .iter()
-            .map(|(name, value)| (name.as_str(), value.as_bytes()))
-            .collect::<Vec<_>>(),
-    )
-    .inspect_err(|err| tracing::warn!("Couldn't encode headers as JSON for cache key: {err}"))
-    .ok()?;
-
     let mut hasher = blake3::Hasher::new();
     hasher.update(subgraph_name.as_bytes());
-    hasher.update(&header_json);
+    hasher.update(&headers.len().to_ne_bytes());
+    for (name, value) in headers {
+        hasher.update(&name.as_str().len().to_ne_bytes());
+        hasher.update(name.as_str().as_bytes());
+        hasher.update(&value.len().to_ne_bytes());
+        hasher.update(value.as_bytes());
+    }
     hasher.update(subgraph_request_body);
     Some(hasher.finalize().to_string())
 }
