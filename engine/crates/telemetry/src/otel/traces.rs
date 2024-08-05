@@ -3,7 +3,7 @@ use std::time::Duration;
 use opentelemetry_sdk::{
     export::trace::SpanExporter,
     runtime::RuntimeChannel,
-    trace::{BatchConfigBuilder, BatchSpanProcessor, Builder, IdGenerator, Sampler, TracerProvider},
+    trace::{BatchConfigBuilder, BatchSpanProcessor, Builder, Config, IdGenerator, Sampler, TracerProvider},
     Resource,
 };
 
@@ -23,7 +23,7 @@ where
     I: IdGenerator + 'static,
 {
     let builder = TracerProvider::builder().with_config(
-        opentelemetry_sdk::trace::config()
+        Config::default()
             .with_id_generator(id_generator)
             .with_sampler(Sampler::TraceIdRatioBased(config.tracing.sampling))
             .with_max_events_per_span(config.tracing.collect.max_events_per_span as u32)
