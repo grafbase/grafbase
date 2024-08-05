@@ -12,7 +12,7 @@ use crate::{
     },
     operation::{FieldId, LogicalPlanId, OperationWalker, ResponseModifierRule, SelectionSetId, SelectionSetType},
     response::{ResponseObjectSetId, ResponseViewSelection, ResponseViewSelectionSet},
-    sources::PreparedExecutor,
+    sources::Executor,
     Runtime,
 };
 
@@ -57,7 +57,7 @@ where
             resolver,
             &logical_plan.root_field_ids_ordered_by_parent_entity_id_then_position,
         );
-        let prepared_executor = PreparedExecutor::prepare(
+        let prepared_executor = Executor::prepare(
             resolver,
             self.operation.borrow().ty(),
             PlanWalker {
@@ -73,7 +73,7 @@ where
             parent_count: 0,
             children: Vec::new(),
             requires,
-            prepared_executor,
+            executor: prepared_executor,
             logical_plan_id,
             dependent_response_modifiers: Vec::new(),
         };

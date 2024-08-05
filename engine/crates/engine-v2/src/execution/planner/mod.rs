@@ -11,7 +11,7 @@ use crate::{
     execution::{ExecutionPlan, ExecutionPlanId, PlanningResult, PreExecutionContext, ResponseModifierExecutorId},
     operation::{FieldId, LogicalPlanId, PreparedOperation, Variables},
     response::{ResponseViewSelection, ResponseViews},
-    sources::PreparedExecutor,
+    sources::Executor,
     utils::BufferPool,
     Runtime,
 };
@@ -220,7 +220,7 @@ where
             parent_count: 0,
             children: Default::default(),
             requires: Default::default(),
-            prepared_executor: PreparedExecutor::introspection(),
+            executor: Executor::introspection(),
             dependent_response_modifiers: Vec::new(),
         });
         let id = ExecutionPlanId::from(self.operation.execution_plans.len() - 1);

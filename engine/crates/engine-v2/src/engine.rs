@@ -18,9 +18,9 @@ use grafbase_telemetry::{
     span::{gql::GqlRequestSpan, GqlRecorderSpanExt, GRAFBASE_TARGET},
 };
 use headers::HeaderMapExt;
+use retry_budget::RetryBudgets;
 use schema::Schema;
 use std::{borrow::Cow, sync::Arc};
-use tower::retry::budget::Budget as RetryBudget;
 use tracing::Instrument;
 use trusted_documents::PreparedOperationDocument;
 use web_time::Instant;
@@ -34,6 +34,7 @@ use crate::{
 };
 
 mod cache;
+mod retry_budget;
 mod runtime;
 mod trusted_documents;
 
@@ -57,7 +58,7 @@ pub struct Engine<R: Runtime> {
     pub(crate) runtime: R,
     operation_metrics: GraphqlOperationMetrics,
     auth: AuthService,
-    retry_budgets: Vec<Option<RetryBudget>>,
+    retry_budgets: RetryBudgets,
     trusted_documents_cache: <R::CacheFactory as HotCacheFactory>::Cache<String>,
     operation_cache: <R::CacheFactory as HotCacheFactory>::Cache<Arc<PreparedOperation>>,
 }
@@ -71,23 +72,7 @@ impl<R: Runtime> Engine<R> {
             runtime.kv().clone(),
         );
 
-        let retry_budgets = schema
-            .walker()
-            .graphql_endpoints()
-            .map(|endpoint| {
-                let retry_config = endpoint.retry_config()?;
-
-                // Defaults: https://docs.rs/tower/0.4.13/src/tower/retry/budget.rs.html#137-139
-                let ttl = retry_config.ttl.unwrap_or(std::time::Duration::from_secs(10));
-                let min_per_second = retry_config.min_per_second.unwrap_or(10);
-                let retry_percent = retry_config.retry_percent.unwrap_or(0.2);
-
-                Some(RetryBudget::new(ttl, min_per_second, retry_percent))
-            })
-            .collect();
-
         Self {
-            schema,
             schema_version: SchemaVersion({
                 let mut out = Vec::new();
                 match schema_version {
@@ -103,10 +88,11 @@ impl<R: Runtime> Engine<R> {
                 out
             }),
             auth,
-            retry_budgets,
+            retry_budgets: RetryBudgets::build(&schema),
             operation_metrics: GraphqlOperationMetrics::build(runtime.meter()),
             trusted_documents_cache: runtime.cache_factory().create(CachedDataKind::TrustedDocument).await,
             operation_cache: runtime.cache_factory().create(CachedDataKind::Operation).await,
+            schema,
             runtime,
         }
     }
@@ -340,13 +326,6 @@ impl<R: Runtime> Engine<R> {
             }
             .instrument(span_clone),
         )
-    }
-
-    pub(crate) fn retry_budget_for_subgraph(
-        &self,
-        subgraph_id: schema::sources::graphql::GraphqlEndpointId,
-    ) -> Option<&RetryBudget> {
-        self.retry_budgets[usize::from(subgraph_id)].as_ref()
     }
 }
 

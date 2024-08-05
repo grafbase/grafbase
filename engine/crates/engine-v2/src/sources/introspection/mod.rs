@@ -6,9 +6,9 @@ use crate::{
 
 mod writer;
 
-pub(crate) struct IntrospectionPreparedExecutor;
+pub(crate) struct IntrospectionExecutor;
 
-impl IntrospectionPreparedExecutor {
+impl IntrospectionExecutor {
     #[allow(clippy::unnecessary_wraps)]
     pub async fn execute<'ctx, R: Runtime>(
         &'ctx self,
