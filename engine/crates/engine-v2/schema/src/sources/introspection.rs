@@ -1,16 +1,17 @@
 use std::ops::{Deref, DerefMut};
 
 use crate::{
-    builder::BuildContext, Definition, EntityId, EnumId, EnumValue, EnumValueId, FieldDefinition, FieldDefinitionId,
-    Graph, IdRange, InputValueDefinition, InputValueDefinitionId, ObjectId, ResolverId, ScalarId, ScalarType,
-    SchemaInputValue, SchemaInputValueId, SchemaWalker, StringId, SubgraphId, Type, Wrapping,
+    builder::BuildContext, Definition, EntityId, EnumDefinitionId, EnumValue, EnumValueId, FieldDefinition,
+    FieldDefinitionId, Graph, IdRange, InputValueDefinition, InputValueDefinitionId, ObjectDefinitionId,
+    ResolverDefinitionId, ScalarDefinitionId, ScalarType, SchemaInputValue, SchemaInputValueId, SchemaWalker, StringId,
+    SubgraphId, Type, Wrapping,
 };
 use strum::EnumCount;
 
 #[derive(Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-pub struct Resolver;
+pub struct IntrospectionResolverDefinition;
 
-pub type ResolverWalker<'a> = SchemaWalker<'a, &'a Resolver>;
+pub type ResolverWalker<'a> = SchemaWalker<'a, &'a IntrospectionResolverDefinition>;
 
 impl<'a> ResolverWalker<'a> {
     pub fn subgraph_id(&self) -> SubgraphId {
@@ -147,7 +148,7 @@ pub enum __Directive {
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct IntrospectionMetadata {
     pub subgraph_id: SubgraphId,
-    pub resolver_id: ResolverId,
+    pub resolver_id: ResolverDefinitionId,
     pub meta_fields: [FieldDefinitionId; 2],
     pub type_kind: TypeKind,
     pub directive_location: DirectiveLocation,
@@ -163,7 +164,7 @@ pub struct IntrospectionMetadata {
 #[derive(serde::Serialize, serde::Deserialize)]
 #[serde(bound(serialize = "E: serde::Serialize", deserialize = "E: serde::Deserialize<'de>"))]
 pub struct IntrospectionObject<E, const N: usize> {
-    pub id: ObjectId,
+    pub id: ObjectDefinitionId,
     #[serde_as(as = "[_; N]")]
     pub fields: [(FieldDefinitionId, E); N],
 }
@@ -576,8 +577,10 @@ impl<'a> IntrospectionBuilder<'a> {
             ],
         );
 
-        let resolver_id = ResolverId::from(self.resolvers.len());
-        self.resolvers.push(crate::Resolver::Introspection(Resolver));
+        let resolver_id = ResolverDefinitionId::from(self.resolver_definitions.len());
+        self.resolver_definitions.push(crate::ResolverDefinition::Introspection(
+            IntrospectionResolverDefinition,
+        ));
 
         /*
         __schema: __Schema!
@@ -631,7 +634,7 @@ impl<'a> IntrospectionBuilder<'a> {
         }
     }
 
-    fn insert_enum(&mut self, name: &str, values: &[&str]) -> EnumId {
+    fn insert_enum(&mut self, name: &str, values: &[&str]) -> EnumDefinitionId {
         let name = self.get_or_intern(name);
 
         let values = if values.is_empty() {
@@ -654,32 +657,32 @@ impl<'a> IntrospectionBuilder<'a> {
             }
         };
 
-        self.enum_definitions.push(crate::Enum {
+        self.enum_definitions.push(crate::EnumDefinition {
             name,
             description: None,
             value_ids: values,
             directives: IdRange::empty(),
         });
-        let enum_id = EnumId::from(self.enum_definitions.len() - 1);
+        let enum_id = EnumDefinitionId::from(self.enum_definitions.len() - 1);
         self.type_definitions.push(Definition::Enum(enum_id));
         enum_id
     }
 
-    fn new_object(&mut self, name: &str) -> ObjectId {
+    fn new_object(&mut self, name: &str) -> ObjectDefinitionId {
         let name = self.get_or_intern(name);
-        self.object_definitions.push(crate::Object {
+        self.object_definitions.push(crate::ObjectDefinition {
             name,
             description: None,
             interfaces: vec![],
             directives: IdRange::empty(),
             fields: IdRange::empty(),
         });
-        ObjectId::from(self.object_definitions.len() - 1)
+        ObjectDefinitionId::from(self.object_definitions.len() - 1)
     }
 
     fn insert_object_fields<E: std::fmt::Debug, const N: usize>(
         &mut self,
-        object_id: ObjectId,
+        object_id: ObjectDefinitionId,
         fields: [(&str, Type, E); N],
     ) -> IntrospectionObject<E, N> {
         let start = self.field_definitions.len().into();
@@ -716,7 +719,7 @@ impl<'a> IntrospectionBuilder<'a> {
         }
     }
 
-    fn insert_object(&mut self, name: &str) -> ObjectId {
+    fn insert_object(&mut self, name: &str) -> ObjectDefinitionId {
         let id = self.new_object(name);
         self.type_definitions.push(Definition::from(id));
         id
@@ -725,7 +728,7 @@ impl<'a> IntrospectionBuilder<'a> {
     /// Warning: if you call this twice, the second call will overwrite the first.
     fn set_field_arguments<'b>(
         &mut self,
-        object_id: ObjectId,
+        object_id: ObjectDefinitionId,
         field_name: &str,
         arguments: impl Iterator<Item = (&'b str, Type, Option<SchemaInputValueId>)>,
     ) {
@@ -774,19 +777,19 @@ impl<'a> IntrospectionBuilder<'a> {
             .iter()
             .enumerate()
             .find(|(_, scalar)| self.ctx.strings[scalar.name] == scalar_name)
-            .map(|(id, _)| ScalarId::from(id))
+            .map(|(id, _)| ScalarDefinitionId::from(id))
         {
             Some(id) => id,
             None => {
                 let name = self.ctx.strings.get_or_new(scalar_name);
-                self.scalar_definitions.push(crate::Scalar {
+                self.scalar_definitions.push(crate::ScalarDefinition {
                     name,
                     ty: scalar_type,
                     description: None,
                     specified_by_url: None,
                     directives: IdRange::empty(),
                 });
-                ScalarId::from(self.scalar_definitions.len() - 1)
+                ScalarDefinitionId::from(self.scalar_definitions.len() - 1)
             }
         };
         let expected_kind = Definition::from(scalar_id);

@@ -1,6 +1,6 @@
 use std::{collections::VecDeque, fmt};
 
-use schema::ObjectId;
+use schema::ObjectDefinitionId;
 use serde::de::{DeserializeSeed, IgnoredAny, MapAccess, Visitor};
 
 use crate::response::{
@@ -12,7 +12,7 @@ use super::concrete::ConcreteObjectSeed;
 
 pub(crate) struct PolymorphicObjectSeed<'ctx, 'seed> {
     ctx: &'seed SeedContext<'ctx>,
-    possibilities: &'ctx [(ObjectId, ConcreteObjectShapeId)],
+    possibilities: &'ctx [(ObjectDefinitionId, ConcreteObjectShapeId)],
 }
 
 impl<'ctx, 'seed> PolymorphicObjectSeed<'ctx, 'seed> {

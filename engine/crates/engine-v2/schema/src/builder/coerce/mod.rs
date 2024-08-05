@@ -2,8 +2,8 @@ mod error;
 mod path;
 
 use crate::{
-    Definition, EnumId, Graph, InputObjectId, InputValueDefinitionId, ScalarId, ScalarType, SchemaInputValue,
-    SchemaInputValueId, SchemaInputValues, StringId, Type,
+    Definition, EnumDefinitionId, Graph, InputObjectDefinitionId, InputValueDefinitionId, ScalarDefinitionId,
+    ScalarType, SchemaInputValue, SchemaInputValueId, SchemaInputValues, StringId, Type,
 };
 pub use error::*;
 use federated_graph::Value;
@@ -98,7 +98,7 @@ impl<'a> InputValueCoercer<'a> {
 
     fn coerce_input_objet(
         &mut self,
-        input_object_id: InputObjectId,
+        input_object_id: InputObjectDefinitionId,
         value: Value,
     ) -> Result<SchemaInputValue, InputValueError> {
         let input_object = &self.graph[input_object_id];
@@ -158,7 +158,7 @@ impl<'a> InputValueCoercer<'a> {
         Ok(SchemaInputValue::InputObject(ids))
     }
 
-    fn coerce_enum(&mut self, enum_id: EnumId, value: Value) -> Result<SchemaInputValue, InputValueError> {
+    fn coerce_enum(&mut self, enum_id: EnumDefinitionId, value: Value) -> Result<SchemaInputValue, InputValueError> {
         let r#enum = &self.graph[enum_id];
         let name = match &value {
             Value::EnumValue(id) => &self.ctx.strings[StringId::from(*id)],
@@ -183,7 +183,11 @@ impl<'a> InputValueCoercer<'a> {
         }
     }
 
-    fn coerce_scalar(&mut self, scalar_id: ScalarId, value: Value) -> Result<SchemaInputValue, InputValueError> {
+    fn coerce_scalar(
+        &mut self,
+        scalar_id: ScalarDefinitionId,
+        value: Value,
+    ) -> Result<SchemaInputValue, InputValueError> {
         match self.graph[scalar_id].ty {
             ScalarType::String => match value {
                 Value::String(id) => Some(id.into()),

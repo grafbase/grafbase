@@ -1,7 +1,7 @@
 use id_newtypes::IdRange;
 use im::HashMap;
 use itertools::Itertools;
-use schema::{EntityId, FieldDefinitionWalker, ObjectId, Schema};
+use schema::{EntityId, FieldDefinitionWalker, ObjectDefinitionId, Schema};
 
 use crate::{
     operation::{
@@ -144,7 +144,7 @@ where
         maybe_response_object_set_id: Option<ResponseObjectSetId>,
         field_ids: Vec<FieldId>,
     ) -> Shape {
-        let output: &[ObjectId] = match &ty {
+        let output: &[ObjectDefinitionId] = match &ty {
             SelectionSetType::Object(id) => std::array::from_ref(id),
             SelectionSetType::Interface(id) => &self.schema[*id].possible_types,
             SelectionSetType::Union(id) => &self.schema[*id].possible_types,
@@ -207,7 +207,11 @@ where
         }
     }
 
-    fn compute_shape_partitions(&self, output: &[ObjectId], field_ids: &[FieldId]) -> Option<Vec<Partition<ObjectId>>> {
+    fn compute_shape_partitions(
+        &self,
+        output: &[ObjectDefinitionId],
+        field_ids: &[FieldId],
+    ) -> Option<Vec<Partition<ObjectDefinitionId>>> {
         let mut type_conditions = Vec::new();
         for field_id in field_ids {
             match &self.operation[*field_id] {
@@ -235,7 +239,7 @@ where
 
     fn create_shape_for<'a>(
         &mut self,
-        exemplar_object_id: ObjectId,
+        exemplar_object_id: ObjectDefinitionId,
         maybe_response_object_set_id: Option<ResponseObjectSetId>,
         fields_sorted_by_response_key_then_position: &'a [FieldWalker<'op>],
         fields_buffer: &mut Vec<&'a FieldWalker<'op>>,
@@ -359,7 +363,7 @@ where
     }
 }
 
-fn is_field_of(schema: &Schema, field: &FieldWalker<'_>, object_id: ObjectId) -> bool {
+fn is_field_of(schema: &Schema, field: &FieldWalker<'_>, object_id: ObjectDefinitionId) -> bool {
     match field.as_ref() {
         Field::TypeName(TypeNameField { type_condition, .. }) => match type_condition {
             SelectionSetType::Object(id) => *id == object_id,

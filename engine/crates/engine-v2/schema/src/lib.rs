@@ -22,6 +22,7 @@ pub use provides::*;
 use regex::Regex;
 pub use requires::*;
 pub use resolver::*;
+use sources::{GraphqlEndpoints, IntrospectionMetadata};
 pub use walkers::*;
 pub use wrapping::*;
 
@@ -80,18 +81,18 @@ pub struct Graph {
 
     // All type definitions sorted by their name (actual string)
     type_definitions: Vec<Definition>,
-    object_definitions: Vec<Object>,
-    interface_definitions: Vec<Interface>,
+    object_definitions: Vec<ObjectDefinition>,
+    interface_definitions: Vec<InterfaceDefinition>,
     field_definitions: Vec<FieldDefinition>,
-    enum_definitions: Vec<Enum>,
-    union_definitions: Vec<Union>,
-    scalar_definitions: Vec<Scalar>,
-    input_object_definitions: Vec<InputObject>,
+    enum_definitions: Vec<EnumDefinition>,
+    union_definitions: Vec<UnionDefinition>,
+    scalar_definitions: Vec<ScalarDefinition>,
+    input_object_definitions: Vec<InputObjectDefinition>,
     input_value_definitions: Vec<InputValueDefinition>,
     enum_value_definitions: Vec<EnumValue>,
 
     type_system_directives: Vec<TypeSystemDirective>,
-    resolvers: Vec<Resolver>,
+    resolver_definitions: Vec<ResolverDefinition>,
     required_field_sets: Vec<RequiredFieldSet>,
     // deduplicated
     required_fields: Vec<RequiredField>,
@@ -104,8 +105,8 @@ pub struct Graph {
 
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct DataSources {
-    graphql: sources::GraphqlEndpoints,
-    pub introspection: sources::IntrospectionMetadata,
+    graphql: GraphqlEndpoints,
+    pub introspection: IntrospectionMetadata,
 }
 
 impl Schema {
@@ -117,7 +118,7 @@ impl Schema {
             .ok()
     }
 
-    pub fn object_field_by_name(&self, object_id: ObjectId, name: &str) -> Option<FieldDefinitionId> {
+    pub fn object_field_by_name(&self, object_id: ObjectDefinitionId, name: &str) -> Option<FieldDefinitionId> {
         let fields = self[object_id].fields;
         self[fields]
             .iter()
@@ -125,7 +126,11 @@ impl Schema {
             .map(|pos| FieldDefinitionId::from(usize::from(fields.start) + pos))
     }
 
-    pub fn interface_field_by_name(&self, interface_id: InterfaceId, name: &str) -> Option<FieldDefinitionId> {
+    pub fn interface_field_by_name(
+        &self,
+        interface_id: InterfaceDefinitionId,
+        name: &str,
+    ) -> Option<FieldDefinitionId> {
         let fields = self[interface_id].fields;
         self[fields]
             .iter()
@@ -148,9 +153,9 @@ impl Schema {
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct RootOperationTypes {
-    pub query: ObjectId,
-    pub mutation: Option<ObjectId>,
-    pub subscription: Option<ObjectId>,
+    pub query: ObjectDefinitionId,
+    pub mutation: Option<ObjectDefinitionId>,
+    pub subscription: Option<ObjectDefinitionId>,
 }
 
 impl std::fmt::Debug for Schema {
@@ -160,10 +165,10 @@ impl std::fmt::Debug for Schema {
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
-pub struct Object {
+pub struct ObjectDefinition {
     pub name: StringId,
     pub description: Option<StringId>,
-    pub interfaces: Vec<InterfaceId>,
+    pub interfaces: Vec<InterfaceDefinitionId>,
     pub directives: IdRange<TypeSystemDirectiveId>,
     pub fields: IdRange<FieldDefinitionId>,
 }
@@ -174,7 +179,7 @@ pub struct FieldDefinition {
     pub parent_entity: EntityId,
     pub description: Option<StringId>,
     pub ty: Type,
-    pub resolvers: Vec<ResolverId>,
+    pub resolvers: Vec<ResolverDefinitionId>,
     /// By default a field is considered shared and providable by *any* subgraph that exposes it.
     /// It's up to the composition to ensure it. If this field is specific to some subgraphs, they
     /// will be specified in this Vec.
@@ -200,18 +205,18 @@ pub struct FieldRequires {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize)]
 pub enum EntityId {
-    Object(ObjectId),
-    Interface(InterfaceId),
+    Object(ObjectDefinitionId),
+    Interface(InterfaceDefinitionId),
 }
 
-impl From<ObjectId> for EntityId {
-    fn from(id: ObjectId) -> Self {
+impl From<ObjectDefinitionId> for EntityId {
+    fn from(id: ObjectDefinitionId) -> Self {
         EntityId::Object(id)
     }
 }
 
-impl From<InterfaceId> for EntityId {
-    fn from(id: InterfaceId) -> Self {
+impl From<InterfaceDefinitionId> for EntityId {
+    fn from(id: InterfaceDefinitionId) -> Self {
         EntityId::Interface(id)
     }
 }
@@ -241,12 +246,12 @@ impl EntityId {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize)]
 pub enum Definition {
-    Scalar(ScalarId),
-    Object(ObjectId),
-    Interface(InterfaceId),
-    Union(UnionId),
-    Enum(EnumId),
-    InputObject(InputObjectId),
+    Scalar(ScalarDefinitionId),
+    Object(ObjectDefinitionId),
+    Interface(InterfaceDefinitionId),
+    Union(UnionDefinitionId),
+    Enum(EnumDefinitionId),
+    InputObject(InputObjectDefinitionId),
 }
 
 impl Definition {
@@ -255,38 +260,38 @@ impl Definition {
     }
 }
 
-impl From<ScalarId> for Definition {
-    fn from(id: ScalarId) -> Self {
+impl From<ScalarDefinitionId> for Definition {
+    fn from(id: ScalarDefinitionId) -> Self {
         Self::Scalar(id)
     }
 }
 
-impl From<ObjectId> for Definition {
-    fn from(id: ObjectId) -> Self {
+impl From<ObjectDefinitionId> for Definition {
+    fn from(id: ObjectDefinitionId) -> Self {
         Self::Object(id)
     }
 }
 
-impl From<InterfaceId> for Definition {
-    fn from(id: InterfaceId) -> Self {
+impl From<InterfaceDefinitionId> for Definition {
+    fn from(id: InterfaceDefinitionId) -> Self {
         Self::Interface(id)
     }
 }
 
-impl From<UnionId> for Definition {
-    fn from(id: UnionId) -> Self {
+impl From<UnionDefinitionId> for Definition {
+    fn from(id: UnionDefinitionId) -> Self {
         Self::Union(id)
     }
 }
 
-impl From<EnumId> for Definition {
-    fn from(id: EnumId) -> Self {
+impl From<EnumDefinitionId> for Definition {
+    fn from(id: EnumDefinitionId) -> Self {
         Self::Enum(id)
     }
 }
 
-impl From<InputObjectId> for Definition {
-    fn from(id: InputObjectId) -> Self {
+impl From<InputObjectDefinitionId> for Definition {
+    fn from(id: InputObjectDefinitionId) -> Self {
         Self::InputObject(id)
     }
 }
@@ -316,20 +321,20 @@ impl Type {
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
-pub struct Interface {
+pub struct InterfaceDefinition {
     pub name: StringId,
     pub description: Option<StringId>,
-    pub interfaces: Vec<InterfaceId>,
+    pub interfaces: Vec<InterfaceDefinitionId>,
 
     /// sorted by ObjectId
-    pub possible_types: Vec<ObjectId>,
-    pub possible_types_ordered_by_typename: Vec<ObjectId>,
+    pub possible_types: Vec<ObjectDefinitionId>,
+    pub possible_types_ordered_by_typename: Vec<ObjectDefinitionId>,
     pub directives: IdRange<TypeSystemDirectiveId>,
     pub fields: IdRange<FieldDefinitionId>,
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
-pub struct Enum {
+pub struct EnumDefinition {
     pub name: StringId,
     pub description: Option<StringId>,
     /// The enum values referenced by this range are sorted by their name (string)
@@ -345,17 +350,17 @@ pub struct EnumValue {
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
-pub struct Union {
+pub struct UnionDefinition {
     pub name: StringId,
     pub description: Option<StringId>,
     /// sorted by ObjectId
-    pub possible_types: Vec<ObjectId>,
-    pub possible_types_ordered_by_typename: Vec<ObjectId>,
+    pub possible_types: Vec<ObjectDefinitionId>,
+    pub possible_types_ordered_by_typename: Vec<ObjectDefinitionId>,
     pub directives: IdRange<TypeSystemDirectiveId>,
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
-pub struct Scalar {
+pub struct ScalarDefinition {
     pub name: StringId,
     pub ty: ScalarType,
     pub description: Option<StringId>,
@@ -388,7 +393,7 @@ impl ScalarType {
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
-pub struct InputObject {
+pub struct InputObjectDefinition {
     pub name: StringId,
     pub description: Option<StringId>,
     /// The input fields referenced by this range are sorted by their name (string)

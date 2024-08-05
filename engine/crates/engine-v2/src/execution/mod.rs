@@ -13,7 +13,7 @@ use std::sync::Arc;
 use crate::{
     operation::{LogicalPlanId, PreparedOperation, QueryModifications, ResponseModifierRule, Variables},
     response::{ResponseKey, ResponseObjectSetId, ResponseViewSelectionSet, ResponseViews},
-    sources::Executor,
+    sources::Resolver,
     Runtime,
 };
 pub(crate) use context::*;
@@ -71,7 +71,7 @@ pub(crate) struct ExecutionPlan {
     pub children: Vec<ExecutionPlanId>,
     pub dependent_response_modifiers: Vec<ResponseModifierExecutorId>,
     pub requires: ResponseViewSelectionSet,
-    pub executor: Executor,
+    pub resolver: Resolver,
 }
 
 // Modifies the response based on a given rule

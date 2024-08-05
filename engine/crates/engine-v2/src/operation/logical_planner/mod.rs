@@ -6,7 +6,7 @@ use std::borrow::Cow;
 use engine_parser::types::OperationType;
 use id_newtypes::{BitSet, IdToMany};
 use itertools::Itertools;
-use schema::{EntityId, FieldDefinitionId, RequiredFieldId, RequiredFieldSet, ResolverId, Schema};
+use schema::{EntityId, FieldDefinitionId, RequiredFieldId, RequiredFieldSet, ResolverDefinitionId, Schema};
 use tracing::instrument;
 
 use crate::{
@@ -339,7 +339,7 @@ impl<'a> LogicalPlanner<'a> {
     pub fn push_plan(
         &mut self,
         query_path: QueryPath,
-        resolver_id: ResolverId,
+        resolver_id: ResolverDefinitionId,
         entity_id: EntityId,
         root_field_ids: &[FieldId],
     ) -> LogicalPlanningResult<LogicalPlanId> {

@@ -10,7 +10,7 @@ use std::{
 use id_newtypes::IdRange;
 pub use ids::*;
 use itertools::Either;
-use schema::{ObjectId, Schema};
+use schema::{ObjectDefinitionId, Schema};
 
 use self::deserialize::UpdateSeed;
 
@@ -47,7 +47,7 @@ impl ResponseDataPart {
 
 pub(crate) struct ResponseBuilder {
     // will be None if an error propagated up to the root.
-    pub(super) root: Option<(ResponseObjectId, ObjectId)>,
+    pub(super) root: Option<(ResponseObjectId, ObjectDefinitionId)>,
     parts: Vec<ResponseDataPart>,
     errors: Vec<GraphqlError>,
 }
@@ -58,7 +58,7 @@ pub(crate) struct ResponseBuilder {
 // least wait until we face actual problems. We're focused on OLTP workloads, so might never
 // happen.
 impl ResponseBuilder {
-    pub fn new(root_object_id: ObjectId) -> Self {
+    pub fn new(root_object_id: ObjectDefinitionId) -> Self {
         let mut initial_part = ResponseDataPart {
             id: ResponseDataPartId::from(0),
             objects: Vec::new(),

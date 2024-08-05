@@ -1,9 +1,9 @@
 use super::{FieldDefinitionWalker, SchemaWalker};
-use crate::{InterfaceWalker, ObjectId, TypeSystemDirectivesWalker};
+use crate::{InterfaceDefinitionWalker, ObjectDefinitionId, TypeSystemDirectivesWalker};
 
-pub type ObjectWalker<'a> = SchemaWalker<'a, ObjectId>;
+pub type ObjectDefinitionWalker<'a> = SchemaWalker<'a, ObjectDefinitionId>;
 
-impl<'a> ObjectWalker<'a> {
+impl<'a> ObjectDefinitionWalker<'a> {
     pub fn name(&self) -> &'a str {
         self.names.object(self.schema, self.item)
     }
@@ -13,7 +13,7 @@ impl<'a> ObjectWalker<'a> {
         fields.into_iter().map(move |field_id| self.walk(field_id))
     }
 
-    pub fn interfaces(self) -> impl ExactSizeIterator<Item = InterfaceWalker<'a>> + 'a {
+    pub fn interfaces(self) -> impl ExactSizeIterator<Item = InterfaceDefinitionWalker<'a>> + 'a {
         self.as_ref()
             .interfaces
             .clone()
@@ -26,7 +26,7 @@ impl<'a> ObjectWalker<'a> {
     }
 }
 
-impl<'a> std::fmt::Debug for ObjectWalker<'a> {
+impl<'a> std::fmt::Debug for ObjectDefinitionWalker<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Object")
             .field("id", &usize::from(self.item))

@@ -1,7 +1,7 @@
 use std::fmt;
 
 use id_newtypes::IdRange;
-use schema::ObjectId;
+use schema::ObjectDefinitionId;
 use serde::de::{DeserializeSeed, IgnoredAny, MapAccess, Visitor};
 
 use crate::response::{
@@ -36,7 +36,7 @@ impl<'ctx, 'seed> ConcreteObjectSeed<'ctx, 'seed> {
     pub fn new_with_object_id(
         ctx: &'seed SeedContext<'ctx>,
         shape_id: ConcreteObjectShapeId,
-        object_id: ObjectId,
+        object_id: ObjectDefinitionId,
     ) -> Self {
         let shape = &ctx.operation.response_blueprint[shape_id];
         Self {
@@ -107,7 +107,7 @@ impl<'de, 'ctx, 'parent> Visitor<'de> for ConcreteObjectSeed<'ctx, 'parent> {
 }
 
 impl<'de, 'ctx, 'seed> DeserializeSeed<'de> for ConcreteObjectFieldsSeed<'ctx, 'seed> {
-    type Value = (Option<ObjectId>, Vec<ResponseObjectField>);
+    type Value = (Option<ObjectDefinitionId>, Vec<ResponseObjectField>);
 
     fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
     where
@@ -118,7 +118,7 @@ impl<'de, 'ctx, 'seed> DeserializeSeed<'de> for ConcreteObjectFieldsSeed<'ctx, '
 }
 
 impl<'de, 'ctx, 'seed> Visitor<'de> for ConcreteObjectFieldsSeed<'ctx, 'seed> {
-    type Value = (Option<ObjectId>, Vec<ResponseObjectField>);
+    type Value = (Option<ObjectDefinitionId>, Vec<ResponseObjectField>);
 
     fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         formatter.write_str("an object")
@@ -246,9 +246,9 @@ impl<'de, 'ctx, 'seed> ConcreteObjectFieldsSeed<'ctx, 'seed> {
     fn visit_fields_with_typename_detection<A: MapAccess<'de>>(
         &self,
         map: &mut A,
-        possible_types_ordered_by_typename: &[ObjectId],
+        possible_types_ordered_by_typename: &[ObjectDefinitionId],
         response_fields: &mut Vec<ResponseObjectField>,
-    ) -> Result<ObjectId, A::Error> {
+    ) -> Result<ObjectDefinitionId, A::Error> {
         let schema = self.ctx.schema;
         let keys = &self.ctx.operation.response_keys;
         let fields = &self.ctx.operation.response_blueprint[self.field_shape_ids];

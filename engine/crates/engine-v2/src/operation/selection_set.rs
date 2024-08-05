@@ -1,5 +1,8 @@
 use id_newtypes::IdRange;
-use schema::{Definition, EntityId, FieldDefinitionId, InputValueDefinitionId, InterfaceId, ObjectId, UnionId};
+use schema::{
+    Definition, EntityId, FieldDefinitionId, InputValueDefinitionId, InterfaceDefinitionId, ObjectDefinitionId,
+    UnionDefinitionId,
+};
 
 use crate::response::{BoundResponseKey, ResponseEdge, ResponseKey};
 
@@ -14,9 +17,9 @@ pub(crate) struct SelectionSet {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, serde::Serialize, serde::Deserialize)]
 pub enum SelectionSetType {
-    Object(ObjectId),
-    Interface(InterfaceId),
-    Union(UnionId),
+    Object(ObjectDefinitionId),
+    Interface(InterfaceDefinitionId),
+    Union(UnionDefinitionId),
 }
 
 impl SelectionSetType {
@@ -54,7 +57,7 @@ impl SelectionSetType {
         }
     }
 
-    pub fn as_object_id(&self) -> Option<ObjectId> {
+    pub fn as_object_id(&self) -> Option<ObjectDefinitionId> {
         match self {
             SelectionSetType::Object(id) => Some(*id),
             _ => None,

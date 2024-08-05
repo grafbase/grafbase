@@ -1,8 +1,8 @@
 use engine_value::{ConstValue, Name, Value};
 use id_newtypes::IdRange;
 use schema::{
-    Definition, EnumWalker, InputObjectWalker, InputValueDefinitionId, ListWrapping, ScalarType, ScalarWalker, Type,
-    Wrapping,
+    Definition, EnumDefinitionWalker, InputObjectDefinitionWalker, InputValueDefinitionId, ListWrapping,
+    ScalarDefinitionWalker, ScalarType, Type, Wrapping,
 };
 
 use super::super::Binder;
@@ -185,7 +185,7 @@ impl<'binder, 'schema, 'parsed> QueryValueCoercionContext<'binder, 'schema, 'par
 
     fn coerce_input_objet(
         &mut self,
-        input_object: InputObjectWalker<'_>,
+        input_object: InputObjectDefinitionWalker<'_>,
         value: Value,
     ) -> Result<QueryInputValue, InputValueError> {
         let Value::Object(mut fields) = value else {
@@ -232,7 +232,11 @@ impl<'binder, 'schema, 'parsed> QueryValueCoercionContext<'binder, 'schema, 'par
         Ok(QueryInputValue::InputObject(ids))
     }
 
-    fn coerce_enum(&mut self, r#enum: EnumWalker<'_>, value: Value) -> Result<QueryInputValue, InputValueError> {
+    fn coerce_enum(
+        &mut self,
+        r#enum: EnumDefinitionWalker<'_>,
+        value: Value,
+    ) -> Result<QueryInputValue, InputValueError> {
         let name = match &value {
             Value::Enum(value) => value.as_str(),
             value => {
@@ -257,7 +261,11 @@ impl<'binder, 'schema, 'parsed> QueryValueCoercionContext<'binder, 'schema, 'par
         Ok(QueryInputValue::EnumValue(id))
     }
 
-    fn coerce_scalar(&mut self, scalar: ScalarWalker<'_>, value: Value) -> Result<QueryInputValue, InputValueError> {
+    fn coerce_scalar(
+        &mut self,
+        scalar: ScalarDefinitionWalker<'_>,
+        value: Value,
+    ) -> Result<QueryInputValue, InputValueError> {
         match (value, scalar.as_ref().ty) {
             (value, ScalarType::JSON) => Ok(match value {
                 Value::Null => QueryInputValue::Null,

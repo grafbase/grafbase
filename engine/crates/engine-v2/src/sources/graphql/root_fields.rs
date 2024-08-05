@@ -3,7 +3,7 @@ use std::{borrow::Cow, time::Duration};
 use bytes::Bytes;
 use grafbase_telemetry::{gql_response_status::GraphqlResponseStatus, span::subgraph::SubgraphRequestSpan};
 use runtime::fetch::FetchRequest;
-use schema::sources::graphql::{GraphqlEndpointId, RootFieldResolverWalker};
+use schema::sources::graphql::{GraphqlEndpointId, RootFieldResolverDefinitionWalker};
 use serde::de::DeserializeSeed;
 use tracing::Instrument;
 
@@ -15,26 +15,26 @@ use crate::{
     execution::PlanningResult,
     operation::{OperationType, PlanWalker},
     response::SubgraphResponse,
-    sources::{graphql::request::SubgraphGraphqlRequest, ExecutionContext, ExecutionResult, Executor},
+    sources::{graphql::request::SubgraphGraphqlRequest, ExecutionContext, ExecutionResult, Resolver},
     Runtime,
 };
 
-pub(crate) struct GraphqlExecutor {
+pub(crate) struct GraphqlResolver {
     pub(super) endpoint_id: GraphqlEndpointId,
     pub(super) operation: PreparedGraphqlOperation,
 }
 
-impl GraphqlExecutor {
+impl GraphqlResolver {
     pub fn prepare(
-        resolver: RootFieldResolverWalker<'_>,
+        definition: RootFieldResolverDefinitionWalker<'_>,
         operation_type: OperationType,
         plan: PlanWalker<'_>,
-    ) -> PlanningResult<Executor> {
+    ) -> PlanningResult<Resolver> {
         let operation = PreparedGraphqlOperation::build(operation_type, plan)
             .map_err(|err| format!("Failed to build query: {err}"))?;
 
-        Ok(Executor::GraphQL(Self {
-            endpoint_id: resolver.endpoint().id(),
+        Ok(Resolver::GraphQL(Self {
+            endpoint_id: definition.endpoint().id(),
             operation,
         }))
     }

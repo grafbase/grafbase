@@ -1,7 +1,7 @@
 use super::{field::FieldDefinitionWalker, SchemaWalker};
 use crate::{
-    Definition, EntityId, EntityWalker, EnumWalker, InputObjectWalker, InterfaceWalker, ObjectWalker, ScalarType,
-    ScalarWalker, StringId, TypeSystemDirectivesWalker,
+    Definition, EntityId, EntityWalker, EnumDefinitionWalker, InputObjectDefinitionWalker, InterfaceDefinitionWalker,
+    ObjectDefinitionWalker, ScalarDefinitionWalker, ScalarType, StringId, TypeSystemDirectivesWalker,
 };
 
 pub type DefinitionWalker<'a> = SchemaWalker<'a, Definition>;
@@ -52,7 +52,7 @@ impl<'a> DefinitionWalker<'a> {
         }
     }
 
-    pub fn interfaces(&self) -> Option<Box<dyn ExactSizeIterator<Item = InterfaceWalker<'a>> + 'a>> {
+    pub fn interfaces(&self) -> Option<Box<dyn ExactSizeIterator<Item = InterfaceDefinitionWalker<'a>> + 'a>> {
         match self.item {
             Definition::Object(o) => Some(Box::new(self.walk(o).interfaces())),
             Definition::Interface(i) => Some(Box::new(self.walk(i).interfaces())),
@@ -60,7 +60,7 @@ impl<'a> DefinitionWalker<'a> {
         }
     }
 
-    pub fn possible_types(&self) -> Option<Box<dyn ExactSizeIterator<Item = ObjectWalker<'a>> + 'a>> {
+    pub fn possible_types(&self) -> Option<Box<dyn ExactSizeIterator<Item = ObjectDefinitionWalker<'a>> + 'a>> {
         match self.item {
             Definition::Interface(i) => Some(Box::new(self.walk(i).possible_types())),
             Definition::Union(u) => Some(Box::new(self.walk(u).possible_types())),
@@ -68,28 +68,28 @@ impl<'a> DefinitionWalker<'a> {
         }
     }
 
-    pub fn as_enum(&self) -> Option<EnumWalker<'a>> {
+    pub fn as_enum(&self) -> Option<EnumDefinitionWalker<'a>> {
         match self.item {
             Definition::Enum(e) => Some(self.walk(e)),
             _ => None,
         }
     }
 
-    pub fn as_input_object(&self) -> Option<InputObjectWalker<'a>> {
+    pub fn as_input_object(&self) -> Option<InputObjectDefinitionWalker<'a>> {
         match self.item {
             Definition::InputObject(io) => Some(self.walk(io)),
             _ => None,
         }
     }
 
-    pub fn as_scalar(&self) -> Option<ScalarWalker<'a>> {
+    pub fn as_scalar(&self) -> Option<ScalarDefinitionWalker<'a>> {
         match self.item {
             Definition::Scalar(s) => Some(self.walk(s)),
             _ => None,
         }
     }
 
-    pub fn as_object(&self) -> Option<ObjectWalker<'a>> {
+    pub fn as_object(&self) -> Option<ObjectDefinitionWalker<'a>> {
         match self.item {
             Definition::Object(s) => Some(self.walk(s)),
             _ => None,
@@ -128,14 +128,14 @@ impl<'a> DefinitionWalker<'a> {
     }
 }
 
-impl<'a> From<ObjectWalker<'a>> for DefinitionWalker<'a> {
-    fn from(value: ObjectWalker<'a>) -> Self {
+impl<'a> From<ObjectDefinitionWalker<'a>> for DefinitionWalker<'a> {
+    fn from(value: ObjectDefinitionWalker<'a>) -> Self {
         value.walk(value.item.into())
     }
 }
 
-impl<'a> From<InterfaceWalker<'a>> for DefinitionWalker<'a> {
-    fn from(value: InterfaceWalker<'a>) -> Self {
+impl<'a> From<InterfaceDefinitionWalker<'a>> for DefinitionWalker<'a> {
+    fn from(value: InterfaceDefinitionWalker<'a>) -> Self {
         value.walk(value.item.into())
     }
 }
