@@ -44,7 +44,7 @@ opentelemetry-appender-tracing = { git = "https://github.com/grafbase/openteleme
 
 # FIXME: Uncomment when we upgrade opentelemetry to 0.23.
 # opentelemetry-aws = { git = "https://github.com/open-telemetry/opentelemetry-rust-contrib", rev = "086961e18437743c5ea43c9474cc1a7b13a49c6b" } # main
-ory-client = { git = "https://github.com/grafbase/client-rust", rev = "88ed8f63c1d71b294c2ef64fd80ca654e91ac25f" } # reqwest-0.12
+ory-client = { git = "https://github.com/ory/client-rust", rev = "v1.14.3" }
 reqwest = { git = "https://github.com/grafbase/reqwest", rev = "874a6b3c522de296629d4542943934fa20d7ab4d" } # 0.12.5-with-patches-wasm-timeout
 rudderanalytics =  { git = "https://github.com/grafbase/rudder-sdk-rust", rev = "3e994eb4dcc9c580be311ef9eab6e96dd264293b" } # async
 serde_with = { git = "https://github.com/grafbase/serde_with", rev = "06ad277a0e0175c2364d3c065e303a6c8a775c8a" } # minify-field-names

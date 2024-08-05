@@ -45,7 +45,7 @@ wiremock.workspace = true
 registry-upgrade.workspace = true
 runtime-local = { workspace = true, features = ["wasi", "redis"] }
 runtime-noop.workspace = true
-ory-client = "1.9.0"
+ory-client = "1.9.0" # overridden by patch, pointing to their last release on GitHub
 tracing-subscriber = { version = "0.3.18", default-features = false, features = [
   "fmt",
   "tracing-log",
