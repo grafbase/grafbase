@@ -1,17 +1,28 @@
-use id_derives::Id;
+use std::num::NonZero;
 
-use super::{Field, FieldArgument, Operation, QueryModifier, ResponseModifier, SelectionSet, VariableDefinition};
+#[id_derives::id]
+pub struct LogicalPlanId(NonZero<u16>);
 
-id_newtypes::NonZeroU16! {
-    Operation.selection_sets[SelectionSetId] => SelectionSet,
-    Operation.variable_definitions[VariableDefinitionId] => VariableDefinition,
-    Operation.fields[FieldId] => Field,
-    Operation.field_arguments[FieldArgumentId] => FieldArgument,
-    Operation.response_modifiers[ResponseModifierId] => ResponseModifier,
-    Operation.response_modifier_impacted_fields[ResponseModifierImpactedFieldId] => FieldId,
-    Operation.query_modifiers[QueryModifierId] => QueryModifier,
-    Operation.query_modifier_impacted_fields[QueryModifierImpactedFieldId] => FieldId,
-}
+#[id_derives::id]
+pub struct SelectionSetId(NonZero<u16>);
 
-#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, Id)]
-pub struct LogicalPlanId(std::num::NonZero<u16>);
+#[id_derives::id]
+pub struct VariableDefinitionId(NonZero<u16>);
+
+#[id_derives::id]
+pub struct FieldId(NonZero<u16>);
+
+#[id_derives::id]
+pub struct FieldArgumentId(NonZero<u16>);
+
+#[id_derives::id]
+pub struct ResponseModifierId(NonZero<u16>);
+
+#[id_derives::id]
+pub struct ResponseModifierImpactedFieldId(NonZero<u16>);
+
+#[id_derives::id]
+pub struct QueryModifierId(NonZero<u16>);
+
+#[id_derives::id]
+pub struct QueryModifierImpactedFieldId(NonZero<u16>);

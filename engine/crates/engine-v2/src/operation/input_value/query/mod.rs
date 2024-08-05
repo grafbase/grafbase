@@ -2,7 +2,7 @@ mod de;
 mod ser;
 mod view;
 
-use id_derives::{Id, IndexImpls};
+use id_derives::{Id, IndexedFields};
 use id_newtypes::IdRange;
 use schema::{EnumValueId, InputValue, InputValueDefinitionId, InputValueSet, SchemaInputValue, SchemaInputValueId};
 
@@ -10,7 +10,7 @@ use crate::operation::{OperationWalker, PreparedOperationWalker, VariableDefinit
 
 pub(crate) use view::*;
 
-#[derive(Default, Clone, serde::Serialize, serde::Deserialize, IndexImpls)]
+#[derive(Default, Clone, serde::Serialize, serde::Deserialize, IndexedFields)]
 pub(crate) struct QueryInputValues {
     /// Individual input values and list values
     #[indexed_by(QueryInputValueId)]

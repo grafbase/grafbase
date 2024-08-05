@@ -1,5 +1,24 @@
+use proc_macro2::TokenStream;
 use quote::quote;
 use syn::parse_macro_input;
+
+pub fn add_derive(attr: proc_macro::TokenStream, input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    let attr: TokenStream = attr.into();
+    let input: TokenStream = input.into();
+    let output = if attr.is_empty() {
+        quote! {
+            #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
+            #input
+        }
+    } else {
+        quote! {
+            #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
+            #[#attr]
+            #input
+        }
+    };
+    output.into()
+}
 
 pub fn derive_id(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let input = parse_macro_input!(input as syn::DeriveInput);
@@ -69,9 +88,7 @@ fn build_max_check(attrs: &[syn::Attribute], ident: &syn::Ident) -> Option<proc_
         _ => None,
     })?;
 
-    let max = meta_list
-        .parse_args::<syn::LitInt>()
-        .expect("max takes a literal integer");
+    let max = meta_list.parse_args::<syn::Ident>().expect("max takes a ident");
 
     let name = proc_macro2::Literal::string(&ident.to_string());
 

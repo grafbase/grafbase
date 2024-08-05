@@ -17,7 +17,7 @@ mod walkers;
 use crate::response::{ConcreteObjectShapeId, FieldShapeId, ResponseKeys, ResponseObjectSetId, Shapes};
 pub(crate) use engine_parser::types::OperationType;
 use grafbase_telemetry::metrics::OperationMetricsAttributes;
-use id_derives::IndexImpls;
+use id_derives::IndexedFields;
 use id_newtypes::{BitSet, IdRange, IdToMany};
 pub(crate) use ids::*;
 pub(crate) use input_value::*;
@@ -62,7 +62,7 @@ where
     }
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(serde::Serialize, serde::Deserialize, IndexedFields)]
 pub(crate) struct Operation {
     pub ty: OperationType,
     pub root_object_id: ObjectDefinitionId,
@@ -70,20 +70,26 @@ pub(crate) struct Operation {
     // sorted
     pub root_query_modifier_ids: Vec<QueryModifierId>,
     pub response_keys: ResponseKeys,
+    #[indexed_by(SelectionSetId)]
     pub selection_sets: Vec<SelectionSet>,
+    #[indexed_by(FieldId)]
     pub fields: Vec<Field>,
+    #[indexed_by(VariableDefinitionId)]
     pub variable_definitions: Vec<VariableDefinition>,
+    #[indexed_by(FieldArgumentId)]
     pub field_arguments: Vec<FieldArgument>,
     pub query_input_values: QueryInputValues,
     // deduplicated by rule
+    #[indexed_by(QueryModifierId)]
     pub query_modifiers: Vec<QueryModifier>,
     pub query_modifier_impacted_fields: Vec<FieldId>,
     // deduplicated by rule
+    #[indexed_by(ResponseModifierId)]
     pub response_modifiers: Vec<ResponseModifier>,
     pub response_modifier_impacted_fields: Vec<FieldId>,
 }
 
-#[derive(serde::Serialize, serde::Deserialize, IndexImpls)]
+#[derive(serde::Serialize, serde::Deserialize, IndexedFields)]
 pub(crate) struct OperationPlan {
     #[indexed_by(FieldId)]
     pub field_to_logical_plan_id: Vec<LogicalPlanId>,
@@ -117,7 +123,7 @@ pub(crate) struct SolvedRequiredField {
     pub subselection: SolvedRequiredFieldSet,
 }
 
-#[derive(serde::Serialize, serde::Deserialize, IndexImpls)]
+#[derive(serde::Serialize, serde::Deserialize, IndexedFields)]
 pub(crate) struct ResponseBlueprint {
     pub shapes: Shapes,
     pub field_to_shape_ids: IdToMany<FieldId, FieldShapeId>,

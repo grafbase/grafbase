@@ -11,9 +11,11 @@ use crate::{
     Runtime,
 };
 
+#[derive(id_derives::IndexedFields)]
 pub(crate) struct QueryModifications {
     pub is_any_field_skipped: bool,
     pub skipped_fields: BitSet<FieldId>,
+    #[indexed_by(ErrorId)]
     pub errors: Vec<GraphqlError>,
     pub concrete_shape_has_error: BitSet<ConcreteObjectShapeId>,
     pub field_shape_id_to_error_ids: IdToMany<FieldShapeId, ErrorId>,

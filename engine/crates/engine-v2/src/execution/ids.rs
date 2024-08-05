@@ -1,9 +1,10 @@
-use crate::response::GraphqlError;
+use std::num::NonZero;
 
-use super::{ExecutableOperation, ExecutionPlan, ResponseModifierExecutor};
+#[id_derives::id]
+pub struct ExecutionPlanId(NonZero<u16>);
 
-id_newtypes::NonZeroU16! {
-    ExecutableOperation.execution_plans[ExecutionPlanId] => ExecutionPlan,
-    ExecutableOperation.query_modifications.errors[ErrorId] => GraphqlError,
-    ExecutableOperation.response_modifier_executors[ResponseModifierExecutorId] => ResponseModifierExecutor,
-}
+#[id_derives::id]
+pub struct ErrorId(NonZero<u16>);
+
+#[id_derives::id]
+pub struct ResponseModifierExecutorId(NonZero<u16>);

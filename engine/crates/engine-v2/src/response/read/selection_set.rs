@@ -1,8 +1,8 @@
-use id_derives::{Id, IndexImpls};
+use id_derives::{Id, IndexedFields};
 use id_newtypes::IdRange;
 use schema::{RequiredFieldId, StringId};
 
-#[derive(Default, IndexImpls)]
+#[derive(Default, IndexedFields)]
 pub(crate) struct ResponseViews {
     #[indexed_by(ResponseViewSelectionId)]
     pub selections: Vec<ResponseViewSelection>,

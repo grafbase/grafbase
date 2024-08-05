@@ -37,13 +37,16 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
 }
 
 /// All the necessary information for the operation to be executed that can be prepared & cached.
+#[derive(id_derives::IndexedFields)]
 pub(crate) struct ExecutableOperation {
     pub(crate) prepared: Arc<PreparedOperation>,
     pub(crate) variables: Variables,
     pub(crate) subgraph_default_headers: http::HeaderMap,
     pub(crate) query_modifications: QueryModifications,
+    #[indexed_by(ExecutionPlanId)]
     pub(crate) execution_plans: Vec<ExecutionPlan>,
     pub(crate) response_views: ResponseViews,
+    #[indexed_by(ResponseModifierExecutorId)]
     pub(crate) response_modifier_executors: Vec<ResponseModifierExecutor>,
 }
 

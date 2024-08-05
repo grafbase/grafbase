@@ -135,42 +135,10 @@ macro_rules! NonZeroU32 {
 
 #[macro_export]
 macro_rules! NonZeroU16 {
-    ($($ty:ident$(< $( $ltOrGeneric:tt $( : $bound:tt $(+ $bounds:tt )* )? ),+ >)?$(.$field:ident)+[$name:ident] => $output:ty $(| $(max($max:expr))?)? $(|proxy($ty2:ident$(.$field2:ident)+))*,)*) => {
+    ($($name:ident),*) => {
         $(
-            $crate::NonZeroU16! { $name $(|max($max))?, }
-            $crate::index!{ $ty$(< $( $ltOrGeneric $( : $bound $(+ $bounds )* )? ),+ >)?$(.$field)+[$name] => $output $(|proxy($ty2$(.$field2)+))*, }
-        )*
-    };
-    ($($name:ident $(|max($max:expr))?,)*) => {
-        $(
-            #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize)]
+            #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
             pub struct $name(std::num::NonZeroU16);
-
-            impl From<usize> for $name {
-                fn from(value: usize) -> Self {
-                    $(assert!(value <= $max, "{} id {} exceeds maximum {}", stringify!($name), value, stringify($ty));)?
-                    Self(
-                        u16::try_from(value)
-                            .ok()
-                            .and_then(|value| std::num::NonZeroU16::new(value + 1))
-                            .expect(concat!("Too many ", stringify!($name)))
-                    )
-                }
-            }
-
-            impl From<$name> for u16 {
-                fn from(id: $name) -> Self {
-                    (id.0.get() - 1) as u16
-                }
-            }
-
-            impl From<$name> for usize {
-                fn from(id: $name) -> Self {
-                    (id.0.get() - 1) as usize
-                }
-            }
-
-            $crate::debug_display! { $name }
         )*
     }
 }

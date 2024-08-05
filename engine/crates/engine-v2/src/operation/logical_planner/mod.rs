@@ -4,7 +4,7 @@ mod selection_set;
 use std::borrow::Cow;
 
 use engine_parser::types::OperationType;
-use id_derives::IndexImpls;
+use id_derives::IndexedFields;
 use id_newtypes::{BitSet, IdToMany};
 use itertools::Itertools;
 use schema::{EntityId, FieldDefinitionId, RequiredFieldId, RequiredFieldSet, ResolverDefinitionId, Schema};
@@ -47,7 +47,7 @@ impl From<LogicalPlanningError> for GraphqlError {
 
 pub(super) type LogicalPlanningResult<T> = Result<T, LogicalPlanningError>;
 
-#[derive(IndexImpls)]
+#[derive(IndexedFields)]
 pub(super) struct LogicalPlanner<'a> {
     schema: &'a Schema,
     operation: &'a mut Operation,

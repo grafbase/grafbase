@@ -8,7 +8,7 @@ mod variables;
 use std::collections::HashMap;
 
 pub use engine_parser::types::OperationType;
-use id_derives::IndexImpls;
+use id_derives::IndexedFields;
 use id_newtypes::IdRange;
 use itertools::Itertools;
 use modifier::{finalize_query_modifiers, finalize_response_modifiers};
@@ -142,7 +142,7 @@ impl From<BindError> for GraphqlError {
 
 pub type BindResult<T> = Result<T, BindError>;
 
-#[derive(IndexImpls)]
+#[derive(IndexedFields)]
 pub(crate) struct Binder<'schema, 'p> {
     schema: &'schema Schema,
     parsed_operation: &'p ParsedOperation,

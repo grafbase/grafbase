@@ -5,7 +5,7 @@ use crate::{
     HeaderRuleId, HeaderRuleWalker, RequiredFieldSet, RequiredFieldSetId, SchemaWalker, StringId, SubgraphId, UrlId,
 };
 
-#[derive(Default, serde::Serialize, serde::Deserialize, id_derives::IndexImpls)]
+#[derive(Default, serde::Serialize, serde::Deserialize, id_derives::IndexedFields)]
 pub struct GraphqlEndpoints {
     #[indexed_by(GraphqlEndpointId)]
     pub(crate) endpoints: Vec<GraphqlEndpoint>,
@@ -37,12 +37,8 @@ pub struct RetryConfig {
     pub retry_mutations: bool,
 }
 
-#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
+#[id_derives::id]
 pub struct GraphqlEndpointId(std::num::NonZero<u8>);
-
-// id_newtypes::U8! {
-//     GraphqlEndpoints.endpoints[GraphqlEndpointId] => GraphqlEndpoint,
-// }
 
 #[derive(Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct RootFieldResolverDefinition {

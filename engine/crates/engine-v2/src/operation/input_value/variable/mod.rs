@@ -1,13 +1,13 @@
 mod de;
 mod ser;
 
-use id_derives::{Id, IndexImpls};
+use id_derives::{Id, IndexedFields};
 use id_newtypes::IdRange;
 use schema::{EnumValueId, InputValue, InputValueDefinitionId, SchemaInputValue, SchemaInputValueId};
 
 use crate::operation::PreparedOperationWalker;
 
-#[derive(Default, IndexImpls)]
+#[derive(Default, IndexedFields)]
 pub struct VariableInputValues {
     /// Individual input values and list values
     #[indexed_by(VariableInputValueId)]

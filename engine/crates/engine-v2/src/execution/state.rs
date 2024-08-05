@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use id_derives::IndexImpls;
+use id_derives::IndexedFields;
 use schema::Schema;
 
 use crate::response::{InputdResponseObjectSet, ResponseBuilder, ResponseObjectSet, ResponseObjectSetId};
@@ -17,7 +17,7 @@ use super::{ExecutableOperation, ExecutionPlanId, ResponseModifierExecutorId};
 /// Response boundary items, so objects within the response provided by one plan and updated by
 /// other children plans, are also kept in this struct as long as any children plan might need
 /// it.
-#[derive(Clone, IndexImpls)]
+#[derive(Clone, IndexedFields)]
 pub(crate) struct OperationExecutionState<'ctx> {
     schema: &'ctx Schema,
     operation: &'ctx ExecutableOperation,

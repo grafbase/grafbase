@@ -3,7 +3,7 @@ mod builder;
 use std::{mem::take, sync::Arc};
 
 use builder::ExecutionBuilder;
-use id_derives::{Id, IndexImpls};
+use id_derives::{Id, IndexedFields};
 use id_newtypes::IdRange;
 use itertools::Itertools;
 
@@ -41,7 +41,7 @@ impl<'ctx, 'op, R: Runtime> std::ops::DerefMut for ExecutionPlanner<'ctx, 'op, R
 
 // Ideally this BuilderContext would just be inside the ExecutionPlanner. But we do need to modify
 // the ExecutableOperation at some moments (here in the ExecutionPlanner) and at others we rely on it be immutable for walkers (in the builder::ExecutionBuilder)
-#[derive(Default, IndexImpls)]
+#[derive(Default, IndexedFields)]
 struct BuildContext {
     // Either an input or output field of a plan or response modifier
     #[indexed_by(IOFieldId)]
