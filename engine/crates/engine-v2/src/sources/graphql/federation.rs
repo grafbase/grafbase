@@ -331,11 +331,11 @@ async fn cache_fetch<R: Runtime>(
 fn build_cache_key(subgraph_name: &str, headers: &HeaderMap, repr: &RawValue) -> String {
     let mut hasher = blake3::Hasher::new();
     hasher.update(subgraph_name.as_bytes());
-    hasher.update(&headers.len().to_ne_bytes());
+    hasher.update(&headers.len().to_le_bytes());
     for (name, value) in headers {
-        hasher.update(&name.as_str().len().to_ne_bytes());
+        hasher.update(&name.as_str().len().to_le_bytes());
         hasher.update(name.as_str().as_bytes());
-        hasher.update(&value.len().to_ne_bytes());
+        hasher.update(&value.len().to_le_bytes());
         hasher.update(value.as_bytes());
     }
     hasher.update(repr.get().as_bytes());
