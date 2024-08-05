@@ -66,7 +66,12 @@ impl GraphqlResolver {
         })
         .map_err(|err| format!("Failed to serialize query: {err}"))?;
 
-        let cache_ttl_and_key = endpoint.entity_cache_ttl().map(|ttl| (ttl, build_cache_key(&body)));
+        let headers = ctx.subgraph_headers_with_rules(endpoint.header_rules());
+
+        let cache_ttl_and_key = endpoint
+            .entity_cache_ttl()
+            .and_then(|ttl| Some((ttl, build_cache_key(endpoint.subgraph_name(), &body, &headers)?)));
+
         if let Some((_, cache_key)) = &cache_ttl_and_key {
             let cache_entry = ctx
                 .engine
@@ -114,7 +119,7 @@ impl GraphqlResolver {
             retry_budget,
             || FetchRequest {
                 url: endpoint.url(),
-                headers: ctx.subgraph_headers_with_rules(endpoint.header_rules()),
+                headers,
                 json_body: Bytes::from(body),
                 timeout: endpoint.timeout(),
             },
@@ -129,10 +134,18 @@ impl GraphqlResolver {
     }
 }
 
-fn build_cache_key(subgraph_request_body: &[u8]) -> String {
+fn build_cache_key(subgraph_name: &str, subgraph_request_body: &[u8], headers: &http::HeaderMap) -> Option<String> {
     let mut hasher = blake3::Hasher::new();
+    hasher.update(subgraph_name.as_bytes());
+    hasher.update(&headers.len().to_le_bytes());
+    for (name, value) in headers {
+        hasher.update(&name.as_str().len().to_le_bytes());
+        hasher.update(name.as_str().as_bytes());
+        hasher.update(&value.len().to_le_bytes());
+        hasher.update(value.as_bytes());
+    }
     hasher.update(subgraph_request_body);
-    hasher.finalize().to_string()
+    Some(hasher.finalize().to_string())
 }
 
 struct GraphqlIngester<'ctx, R: Runtime> {

@@ -1,6 +1,7 @@
 use bytes::Bytes;
 use futures::future::join_all;
 use grafbase_telemetry::{gql_response_status::GraphqlResponseStatus, span::subgraph::SubgraphRequestSpan};
+use http::HeaderMap;
 use runtime::fetch::FetchRequest;
 use schema::sources::graphql::{FederationEntityResolveDefinitionrWalker, GraphqlEndpointId};
 use serde::{de::DeserializeSeed, Deserialize};
@@ -87,27 +88,27 @@ impl FederationEntityResolver {
                     cache_ttl,
                 };
 
+                let headers = ctx.subgraph_headers_with_rules(endpoint.header_rules());
+
                 if cache_ttl.is_some() {
-                    let fetches = representations
-                        .iter()
-                        .map(|repr| cache_fetch(ctx, endpoint.subgraph_name(), repr));
+                    match cache_fetches(ctx, endpoint, &headers, representations).await {
+                        CacheFetchOutcome::FullyCached { cache_entries } => {
+                            ingester.cache_entries = Some(cache_entries);
 
-                    let cache_entries = join_all(fetches).await;
-                    let fully_cached = !cache_entries.iter().any(CacheEntry::is_miss);
-                    ingester.cache_entries = Some(cache_entries);
-                    if fully_cached {
-                        let (_, response) = ingester
-                            .ingest(Bytes::from_static(br#"{"data": {"_entities": []}}"#))
-                            .await?;
+                            let (_, response) = ingester
+                                .ingest(Bytes::from_static(br#"{"data": {"_entities": []}}"#))
+                                .await?;
 
-                        return Ok(response);
+                            return Ok(response);
+                        }
+                        CacheFetchOutcome::Other {
+                            cache_entries,
+                            filtered_representations,
+                        } => {
+                            ingester.cache_entries = cache_entries;
+                            representations = filtered_representations;
+                        }
                     }
-                    representations = representations
-                        .into_iter()
-                        .zip(ingester.cache_entries.as_ref().unwrap())
-                        .filter(|(_, cache_entry)| cache_entry.is_miss())
-                        .map(|(repr, _)| repr)
-                        .collect();
                 }
                 let variables = SubgraphVariables {
                     plan,
@@ -136,7 +137,7 @@ impl FederationEntityResolver {
                     retry_budget,
                     move || FetchRequest {
                         url: endpoint.url(),
-                        headers: ctx.subgraph_headers_with_rules(endpoint.header_rules()),
+                        headers,
                         json_body: Bytes::from(body),
                         timeout: endpoint.timeout(),
                     },
@@ -149,6 +150,46 @@ impl FederationEntityResolver {
 
         Ok(fut)
     }
+}
+
+async fn cache_fetches<'ctx, R: Runtime>(
+    ctx: ExecutionContext<'ctx, R>,
+    endpoint: schema::SchemaWalker<'_, GraphqlEndpointId>,
+    headers: &http::HeaderMap,
+    representations: Vec<Box<RawValue>>,
+) -> CacheFetchOutcome {
+    let fetches = representations
+        .iter()
+        .map(|repr| cache_fetch(ctx, endpoint.subgraph_name(), headers, repr));
+
+    let cache_entries = join_all(fetches).await;
+    let fully_cached = !cache_entries.iter().any(CacheEntry::is_miss);
+
+    if fully_cached {
+        return CacheFetchOutcome::FullyCached { cache_entries };
+    }
+
+    let filtered_representations = representations
+        .into_iter()
+        .zip(cache_entries.iter())
+        .filter(|(_, cache_entry)| cache_entry.is_miss())
+        .map(|(repr, _)| repr)
+        .collect();
+
+    CacheFetchOutcome::Other {
+        cache_entries: Some(cache_entries),
+        filtered_representations,
+    }
+}
+
+enum CacheFetchOutcome {
+    FullyCached {
+        cache_entries: Vec<CacheEntry>,
+    },
+    Other {
+        cache_entries: Option<Vec<CacheEntry>>,
+        filtered_representations: Vec<Box<RawValue>>,
+    },
 }
 
 struct EntityIngester<'ctx, R: Runtime> {
@@ -263,8 +304,13 @@ struct Data<'a> {
     entities: Vec<&'a serde_json::value::RawValue>,
 }
 
-async fn cache_fetch<R: Runtime>(ctx: ExecutionContext<'_, R>, subgraph_name: &str, repr: &RawValue) -> CacheEntry {
-    let key = build_cache_key(subgraph_name, repr);
+async fn cache_fetch<R: Runtime>(
+    ctx: ExecutionContext<'_, R>,
+    subgraph_name: &str,
+    headers: &HeaderMap,
+    repr: &RawValue,
+) -> CacheEntry {
+    let key = build_cache_key(subgraph_name, headers, repr);
 
     let data = ctx
         .engine
@@ -282,9 +328,16 @@ async fn cache_fetch<R: Runtime>(ctx: ExecutionContext<'_, R>, subgraph_name: &s
     }
 }
 
-fn build_cache_key(subgraph_name: &str, repr: &RawValue) -> String {
+fn build_cache_key(subgraph_name: &str, headers: &HeaderMap, repr: &RawValue) -> String {
     let mut hasher = blake3::Hasher::new();
     hasher.update(subgraph_name.as_bytes());
+    hasher.update(&headers.len().to_le_bytes());
+    for (name, value) in headers {
+        hasher.update(&name.as_str().len().to_le_bytes());
+        hasher.update(name.as_str().as_bytes());
+        hasher.update(&value.len().to_le_bytes());
+        hasher.update(value.as_bytes());
+    }
     hasher.update(repr.get().as_bytes());
     hasher.finalize().to_string()
 }

@@ -299,3 +299,94 @@ fn entity_request_cache_partial_hit() {
         "###);
     })
 }
+
+#[test]
+fn test_headers_impact_root_field_caching() {
+    runtime().block_on(async move {
+        let engine = Engine::builder()
+            .with_subgraph(FederatedProductsSchema)
+            .with_toml_config(
+                r#"
+                [entity_caching]
+                enabled = true
+
+                [[headers]]
+                rule = "forward"
+                name = "authentication"
+                "#,
+            )
+            .build()
+            .await;
+
+        const QUERY: &str = r"query { topProducts { upc name price } }";
+
+        engine.execute(QUERY).await.into_data();
+        engine
+            .execute(QUERY)
+            .header("Authentication", "Bearer 1")
+            .await
+            .into_data();
+        engine
+            .execute(QUERY)
+            .header("Authentication", "Bearer 2")
+            .await
+            .into_data();
+        engine
+            .execute(QUERY)
+            .header("Authentication", "Bearer 2")
+            .await
+            .into_data();
+
+        assert_eq!(
+            engine.drain_graphql_requests_sent_to::<FederatedProductsSchema>().len(),
+            3
+        );
+    });
+}
+
+#[test]
+fn test_headers_impact_entity_field_caching() {
+    runtime().block_on(async move {
+        let engine = Engine::builder()
+            .with_subgraph(FederatedProductsSchema)
+            .with_subgraph(FederatedReviewsSchema)
+            .with_subgraph(FederatedInventorySchema)
+            .with_toml_config(
+                r#"
+                [entity_caching]
+                enabled = true
+
+                [[headers]]
+                rule = "forward"
+                name = "authentication"
+                "#,
+            )
+            .build()
+            .await;
+
+        engine
+            .execute("{ topProducts { upc reviews { id body } } }")
+            .await
+            .into_data();
+        engine
+            .execute("{ topProducts { upc reviews { id body } } }")
+            .header("Authentication", "Bearer 1")
+            .await
+            .into_data();
+        engine
+            .execute("{ topProducts { upc reviews { id body } } }")
+            .header("Authentication", "Bearer 2")
+            .await
+            .into_data();
+        engine
+            .execute("{ topProducts { upc reviews { id body } } }")
+            .header("Authentication", "Bearer 2")
+            .await
+            .into_data();
+
+        assert_eq!(
+            engine.drain_graphql_requests_sent_to::<FederatedReviewsSchema>().len(),
+            3
+        );
+    })
+}
