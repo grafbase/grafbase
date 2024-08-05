@@ -6,7 +6,7 @@ use id_derives::{Id, IndexImpls};
 use id_newtypes::IdRange;
 use schema::{EnumValueId, InputValue, InputValueDefinitionId, InputValueSet, SchemaInputValue, SchemaInputValueId};
 
-use crate::operation::{OperationWalker, VariableDefinitionId, VariableValueWalker};
+use crate::operation::{OperationWalker, PreparedOperationWalker, VariableDefinitionId};
 
 pub(crate) use view::*;
 
@@ -93,7 +93,7 @@ impl QueryInputValues {
     }
 }
 
-pub(crate) type QueryInputValueWalker<'a> = OperationWalker<'a, &'a QueryInputValue, ()>;
+pub(crate) type QueryInputValueWalker<'a> = PreparedOperationWalker<'a, &'a QueryInputValue, ()>;
 
 impl<'a> QueryInputValueWalker<'a> {
     pub fn is_undefined(&self) -> bool {
@@ -140,7 +140,7 @@ impl<'a> QueryInputValueWalker<'a> {
 
 impl<'a> From<QueryInputValueWalker<'a>> for InputValue<'a> {
     fn from(walker: QueryInputValueWalker<'a>) -> Self {
-        let input_value_definitions = &walker.operation.query_input_values;
+        let input_values = &walker.operation.query_input_values;
         match walker.item {
             QueryInputValue::Null => InputValue::Null,
             QueryInputValue::String(s) => InputValue::String(s.as_str()),
@@ -151,11 +151,11 @@ impl<'a> From<QueryInputValueWalker<'a>> for InputValue<'a> {
             QueryInputValue::Boolean(b) => InputValue::Boolean(*b),
             QueryInputValue::InputObject(ids) => {
                 let mut fields = Vec::with_capacity(ids.len());
-                for (input_value_definition_id, value) in &input_value_definitions[*ids] {
+                for (definition_id, value) in &input_values[*ids] {
                     let value = walker.walk(value);
                     // https://spec.graphql.org/October2021/#sec-Input-Objects.Input-Coercion
                     if !value.is_undefined() {
-                        fields.push((*input_value_definition_id, value.into()));
+                        fields.push((*definition_id, value.into()));
                     }
                 }
                 InputValue::InputObject(fields.into_boxed_slice())
@@ -163,13 +163,13 @@ impl<'a> From<QueryInputValueWalker<'a>> for InputValue<'a> {
             QueryInputValue::List(ids) => {
                 let mut values = Vec::with_capacity(ids.len());
                 for id in *ids {
-                    values.push(walker.walk(&input_value_definitions[id]).into());
+                    values.push(walker.walk(&input_values[id]).into());
                 }
                 InputValue::List(values.into_boxed_slice())
             }
             QueryInputValue::Map(ids) => {
                 let mut key_values = Vec::with_capacity(ids.len());
-                for (key, value) in &input_value_definitions[*ids] {
+                for (key, value) in &input_values[*ids] {
                     let value = walker.walk(value);
                     key_values.push((key.as_ref(), value.into()));
                 }
@@ -182,7 +182,7 @@ impl<'a> From<QueryInputValueWalker<'a>> for InputValue<'a> {
     }
 }
 
-impl PartialEq<SchemaInputValue> for QueryInputValueWalker<'_> {
+impl PartialEq<SchemaInputValue> for OperationWalker<'_, &QueryInputValue, ()> {
     fn eq(&self, other: &SchemaInputValue) -> bool {
         let input_values = &self.operation.query_input_values;
         match (self.item, other) {
@@ -198,7 +198,7 @@ impl PartialEq<SchemaInputValue> for QueryInputValueWalker<'_> {
                 let op_input_values = &input_values[*lids];
                 let schema_input_values = &self.schema_walker.as_ref()[*rids];
 
-                if op_input_values.len() < schema_input_values.len() {
+                if op_input_values.len() != schema_input_values.len() {
                     return false;
                 }
 
@@ -208,7 +208,7 @@ impl PartialEq<SchemaInputValue> for QueryInputValueWalker<'_> {
                         if !input_value.eq(&schema_input_values[i].1) {
                             return false;
                         }
-                    } else if !input_value.is_undefined() {
+                    } else {
                         return false;
                     };
                 }
@@ -238,7 +238,7 @@ impl PartialEq<SchemaInputValue> for QueryInputValueWalker<'_> {
                         if !value.eq(&schema_kv[i].1) {
                             return false;
                         }
-                    } else if !value.is_undefined() {
+                    } else {
                         return false;
                     };
                 }
@@ -249,12 +249,7 @@ impl PartialEq<SchemaInputValue> for QueryInputValueWalker<'_> {
                 .schema_walker
                 .walk(&self.schema_walker.as_ref()[*id])
                 .eq(&self.schema_walker.walk(value)),
-            (QueryInputValue::Variable(id), other) => match self.walk(*id).as_value() {
-                VariableValueWalker::Unavailable => false,
-                VariableValueWalker::Undefined => false,
-                VariableValueWalker::VariableInputValue(value) => value.eq(other),
-                VariableValueWalker::DefaultValue(value) => value.eq(other),
-            },
+            (QueryInputValue::Variable(_), _) => false,
             // A bit tedious, but avoids missing a case
             (QueryInputValue::Null, _) => false,
             (QueryInputValue::String(_), _) => false,

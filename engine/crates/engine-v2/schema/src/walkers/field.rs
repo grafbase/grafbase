@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 
-use super::{resolver::ResolverWalker, SchemaWalker};
+use super::{resolver::ResolverDefinitionWalker, SchemaWalker};
 use crate::{
     EntityWalker, FieldDefinitionId, InputValueDefinitionWalker, ProvidableFieldSet, RequiredFieldSet, SubgraphId,
     TypeSystemDirectivesWalker, TypeWalker,
@@ -13,7 +13,7 @@ impl<'a> FieldDefinitionWalker<'a> {
         self.names.field(self.schema, self.item)
     }
 
-    pub fn resolvers(self) -> impl ExactSizeIterator<Item = ResolverWalker<'a>> {
+    pub fn resolvers(self) -> impl ExactSizeIterator<Item = ResolverDefinitionWalker<'a>> {
         self.schema[self.item].resolvers.iter().map(move |id| self.walk(*id))
     }
 
@@ -84,7 +84,7 @@ impl<'a> FieldDefinitionWalker<'a> {
 }
 
 pub struct FieldResolverWalker<'a> {
-    pub resolver: ResolverWalker<'a>,
+    pub resolver: ResolverDefinitionWalker<'a>,
     pub field_requires: &'a RequiredFieldSet,
 }
 

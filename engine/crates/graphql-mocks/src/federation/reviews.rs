@@ -1,9 +1,18 @@
 // See https://github.com/async-graphql/examples
 use async_graphql::{ComplexObject, Context, EmptyMutation, EmptySubscription, Enum, Object, Schema, SimpleObject, ID};
 
-pub struct FakeFederationReviewsSchema;
+pub struct FederatedReviewsSchema;
 
-impl FakeFederationReviewsSchema {
+impl crate::Subgraph for FederatedReviewsSchema {
+    fn name(&self) -> String {
+        "reviews".to_string()
+    }
+    async fn start(self) -> crate::MockGraphQlServer {
+        crate::MockGraphQlServer::new(self).await
+    }
+}
+
+impl FederatedReviewsSchema {
     fn schema() -> Schema<Query, EmptyMutation, EmptySubscription> {
         let reviews =
             vec![
@@ -69,7 +78,7 @@ impl FakeFederationReviewsSchema {
 }
 
 #[async_trait::async_trait]
-impl super::super::Schema for FakeFederationReviewsSchema {
+impl super::super::Schema for FederatedReviewsSchema {
     async fn execute(
         &self,
         _headers: Vec<(String, String)>,

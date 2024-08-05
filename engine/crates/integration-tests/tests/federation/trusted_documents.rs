@@ -1,6 +1,6 @@
 use engine_v2::Engine;
 use futures::Future;
-use graphql_mocks::{FakeGithubSchema, MockGraphQlServer};
+use graphql_mocks::FakeGithubSchema;
 use integration_tests::{
     engine_v1::GraphQlRequest,
     federation::{EngineV2Ext, TestEngineV2},
@@ -29,11 +29,9 @@ where
     Fut: Future<Output = ()>,
 {
     runtime().block_on(async move {
-        let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
-
         let engine = Engine::builder()
-            .with_subgraph("schema", &github_mock)
-            .with_trusted_documents("my-branch-id".to_owned(), TRUSTED_DOCUMENTS.to_owned())
+            .with_subgraph(FakeGithubSchema)
+            .with_mock_trusted_documents("my-branch-id".to_owned(), TRUSTED_DOCUMENTS.to_owned())
             .build()
             .await;
 
@@ -79,7 +77,7 @@ fn apollo_client_style_happy_path() {
             engine
                 .execute("")
                 .extensions(
-                    &json!({"persistedQuery": { "version": 1, "sha256Hash": &TRUSTED_DOCUMENTS[0].document_id }}),
+                    json!({"persistedQuery": { "version": 1, "sha256Hash": &TRUSTED_DOCUMENTS[0].document_id }}),
                 )
                 .header("x-grafbase-client-name", "ios-app")
         };
@@ -125,7 +123,7 @@ fn trusted_document_queries_without_client_name_header_are_rejected() {
     test(|engine| async move {
         let response = engine
             .execute("")
-            .extensions(&json!({"persistedQuery": { "version": 1, "sha256Hash": &TRUSTED_DOCUMENTS[0].document_id }}))
+            .extensions(json!({"persistedQuery": { "version": 1, "sha256Hash": &TRUSTED_DOCUMENTS[0].document_id }}))
             .await;
 
         insta::assert_json_snapshot!(response, @r###"
@@ -148,7 +146,7 @@ fn wrong_client_name() {
     test(|engine| async move {
         let response = engine
             .execute("")
-            .extensions(&json!({"persistedQuery": { "version": 1, "sha256Hash": &TRUSTED_DOCUMENTS[0].document_id }}))
+            .extensions(json!({"persistedQuery": { "version": 1, "sha256Hash": &TRUSTED_DOCUMENTS[0].document_id }}))
             .header("x-grafbase-client-name", "android-app")
             .await;
 

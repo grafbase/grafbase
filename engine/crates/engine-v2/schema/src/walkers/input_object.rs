@@ -1,9 +1,9 @@
 use super::SchemaWalker;
-use crate::{InputObjectId, InputValueDefinitionWalker, TypeSystemDirectivesWalker};
+use crate::{InputObjectDefinitionId, InputValueDefinitionWalker, TypeSystemDirectivesWalker};
 
-pub type InputObjectWalker<'a> = SchemaWalker<'a, InputObjectId>;
+pub type InputObjectDefinitionWalker<'a> = SchemaWalker<'a, InputObjectDefinitionId>;
 
-impl<'a> InputObjectWalker<'a> {
+impl<'a> InputObjectDefinitionWalker<'a> {
     pub fn name(&self) -> &'a str {
         self.names.input_object(self.schema, self.item)
     }
@@ -20,7 +20,7 @@ impl<'a> InputObjectWalker<'a> {
     }
 }
 
-impl<'a> std::fmt::Debug for InputObjectWalker<'a> {
+impl<'a> std::fmt::Debug for InputObjectDefinitionWalker<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("InputObject")
             .field("id", &usize::from(self.item))

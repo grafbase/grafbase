@@ -1,12 +1,11 @@
 use engine_v2::Engine;
-use graphql_mocks::{EchoSchema, FakeGithubSchema, MockGraphQlServer};
+use graphql_mocks::{EchoSchema, FakeGithubSchema};
 use http::HeaderMap;
 use integration_tests::{federation::EngineV2Ext, runtime};
 use runtime::{
     error::{PartialErrorCode, PartialGraphqlError},
     hooks::{DynHookContext, DynHooks},
 };
-use runtime_local::HooksWasiConfig;
 use url::Url;
 
 #[test]
@@ -14,20 +13,17 @@ fn wasi() {
     use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
 
     let mut response = runtime().block_on(async move {
-        let echo_mock = MockGraphQlServer::new(EchoSchema).await;
-
         let engine = Engine::builder()
-            .with_wasi_hooks(HooksWasiConfig::default().with_location("subgraph_request.wasm"))
-            .with_subgraph("echo", &echo_mock)
-            .with_supergraph_config(
-                r#"
-                    extend schema @subgraph(
-                        name: "echo",
-                        headers: [
-                            { name: "hi", forward: "hi" },
-                        ]
-                    )
-                "#,
+            .with_subgraph(EchoSchema)
+            .with_toml_config(
+                r###"
+                [[subgraphs.echo.headers]]
+                rule = "forward"
+                name = "hi"
+
+                [hooks]
+                location = "../wasi-component-loader/examples/target/wasm32-wasip1/debug/subgraph_request.wasm"
+                "###,
             )
             .build()
             .await;
@@ -49,7 +45,8 @@ fn wasi() {
     response["data"]["everything"] = value;
 
     let url_redaction = insta::dynamic_redaction(|value, _path| {
-        assert!(value.as_str().unwrap().starts_with("http://127.0.0.1:"));
+        let url = value.as_str().unwrap();
+        assert!(url.starts_with("http://127.0.0.1:") || url.starts_with("http://localhost:"));
         "[url]"
     });
     // the content of everything has no particular order.
@@ -102,12 +99,10 @@ fn can_modify_headers() {
     }
 
     let response = runtime().block_on(async move {
-        let echo_mock = MockGraphQlServer::new(EchoSchema).await;
-
         let engine = Engine::builder()
-            .with_hooks(TestHooks)
-            .with_subgraph("echo", &echo_mock)
-            .with_supergraph_config(
+            .with_mock_hooks(TestHooks)
+            .with_subgraph(EchoSchema)
+            .with_sdl_config(
                 r#"
                 extend schema @subgraph(
                     name: "echo",
@@ -170,11 +165,9 @@ fn error_is_propagated_back_to_the_user() {
     }
 
     let response = runtime().block_on(async move {
-        let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
-
         let engine = Engine::builder()
-            .with_hooks(TestHooks)
-            .with_subgraph("schema", &github_mock)
+            .with_mock_hooks(TestHooks)
+            .with_subgraph(FakeGithubSchema)
             .build()
             .await;
 
@@ -222,11 +215,9 @@ fn error_code_is_propagated_back_to_the_user() {
     }
 
     let response = runtime().block_on(async move {
-        let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
-
         let engine = Engine::builder()
-            .with_hooks(TestHooks)
-            .with_subgraph("schema", &github_mock)
+            .with_mock_hooks(TestHooks)
+            .with_subgraph(FakeGithubSchema)
             .build()
             .await;
 

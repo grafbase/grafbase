@@ -10,12 +10,59 @@ pub struct GraphqlOperationMetrics {
     latency: Histogram<u64>,
 }
 
-#[derive(Debug)]
-pub struct GraphqlOperationMetricsAttributes {
-    pub ty: &'static str,
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub enum OperationType {
+    Query,
+    Mutation,
+    Subscription,
+}
+
+impl OperationType {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Query => "query",
+            Self::Mutation => "mutation",
+            Self::Subscription => "subscription",
+        }
+    }
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct OperationMetricsAttributes {
+    pub ty: OperationType,
     pub name: Option<String>,
-    pub normalized_query: String,
-    pub normalized_query_hash: [u8; 32],
+    pub sanitized_query: String,
+    pub sanitized_query_hash: [u8; 32],
+    /// For a schema:
+    /// ```ignore
+    /// type Query {
+    ///    user(id: ID!): User
+    /// }
+    ///
+    /// type User {
+    ///   id: ID!
+    ///   name: String
+    /// }
+    /// ```
+    /// and query:
+    /// ```ignore
+    /// query {
+    ///   user(id: "0x1") {
+    ///     id
+    ///     name
+    ///   }
+    /// }
+    /// ```
+    /// We expected the following string
+    /// ```
+    /// "Query.user,User.id+name"
+    /// ```
+    pub used_fields: String,
+}
+
+#[derive(Debug)]
+pub struct GraphqlRequestMetricsAttributes {
+    pub operation: OperationMetricsAttributes,
     pub status: GraphqlResponseStatus,
     pub cache_status: Option<String>,
     pub client: Option<Client>,
@@ -30,23 +77,28 @@ impl GraphqlOperationMetrics {
 
     pub fn record(
         &self,
-        GraphqlOperationMetricsAttributes {
-            name,
-            ty,
-            normalized_query,
-            normalized_query_hash,
+        GraphqlRequestMetricsAttributes {
+            operation:
+                OperationMetricsAttributes {
+                    name,
+                    ty,
+                    sanitized_query,
+                    sanitized_query_hash,
+                    used_fields,
+                },
             status,
             cache_status,
             client,
-        }: GraphqlOperationMetricsAttributes,
+        }: GraphqlRequestMetricsAttributes,
         latency: std::time::Duration,
     ) {
         use base64::{engine::general_purpose::STANDARD, Engine as _};
-        let normalized_query_hash = STANDARD.encode(normalized_query_hash);
+        let sanitized_query_hash = STANDARD.encode(sanitized_query_hash);
         let mut attributes = vec![
-            KeyValue::new("gql.operation.normalized_query_hash", normalized_query_hash),
-            KeyValue::new("gql.operation.normalized_query", normalized_query),
-            KeyValue::new("gql.operation.type", ty),
+            KeyValue::new("gql.operation.query_hash", sanitized_query_hash),
+            KeyValue::new("gql.operation.query", sanitized_query),
+            KeyValue::new("gql.operation.type", ty.as_str()),
+            KeyValue::new("gql.operation.used_fields", used_fields),
         ];
         if let Some(name) = name {
             attributes.push(KeyValue::new("gql.operation.name", name));

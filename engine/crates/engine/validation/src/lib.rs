@@ -10,7 +10,7 @@ pub mod utils;
 mod visitor;
 mod visitors;
 
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 use engine_response::error::ServerError;
 use engine_value::Variables;
@@ -48,6 +48,9 @@ pub struct ValidationResult {
 
     /// Alias  count.
     pub alias_count: usize,
+
+    /// Matches the format specified by OperationMetricsAttributes
+    pub used_fields: Option<String>,
 }
 
 #[derive(Clone, PartialEq, Eq, Debug, serde::Deserialize, serde::Serialize, Hash)]
@@ -69,6 +72,7 @@ pub fn check_strict_rules(
     let mut root_field_count: usize = 0;
     let mut height: usize = 0;
     let mut alias_count: usize = 0;
+    let mut used_fields = HashMap::new();
 
     let mut visitor = VisitorNil
         .with(rules::ArgumentsOfCorrectType::default())
@@ -100,7 +104,8 @@ pub fn check_strict_rules(
         .with(visitors::HeightCalculate::new(&mut height))
         .with(visitors::AliasCountCalculate::new(&mut alias_count))
         .with(visitors::RootFieldCountCalculate::new(&mut root_field_count))
-        .with(visitors::InputValidationVisitor);
+        .with(visitors::InputValidationVisitor)
+        .with(visitors::UsedFieldsAggregator(&mut used_fields));
 
     visit(&mut visitor, &mut ctx, doc);
 
@@ -108,6 +113,7 @@ pub fn check_strict_rules(
         return Err(ctx.errors);
     }
 
+    let used_fields = visitors::UsedFieldsAggregator(&mut used_fields).finalize();
     Ok(ValidationResult {
         cache_control: cache_control.unwrap_or_default(),
         cache_invalidation_policies,
@@ -116,6 +122,7 @@ pub fn check_strict_rules(
         root_field_count,
         height,
         alias_count,
+        used_fields: Some(used_fields),
     })
 }
 
@@ -158,6 +165,7 @@ pub fn check_fast_rules(
         root_field_count,
         height,
         alias_count,
+        used_fields: None,
     })
 }
 

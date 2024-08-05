@@ -12,7 +12,7 @@ pub(crate) enum LogLevel {
     Warn,
     /// Info, warning and error messages from Grafbase libraries
     Info,
-    /// Debug, info, warning and error messages from all dependencies
+    /// Debug, info, warning and error messages from Grafbase libraries
     Debug,
     /// Trace, debug, info, warning and error messages from all dependencies
     Trace,

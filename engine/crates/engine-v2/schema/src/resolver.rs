@@ -8,8 +8,8 @@ use crate::sources::*;
 /// as they can't be mixed together in a single operation. So a resolver id can be used
 /// on both Query and Mutation fields.
 #[derive(Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-pub enum Resolver {
-    Introspection(introspection::Resolver),
-    GraphqlRootField(graphql::RootFieldResolver),
-    GraphqlFederationEntity(graphql::FederationEntityResolver),
+pub enum ResolverDefinition {
+    Introspection(introspection::IntrospectionResolverDefinition),
+    GraphqlRootField(graphql::RootFieldResolverDefinition),
+    GraphqlFederationEntity(graphql::FederationEntityResolverDefinition),
 }

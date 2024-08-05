@@ -1,5 +1,8 @@
 use id_newtypes::IdRange;
-use schema::{FieldDefinitionId, InterfaceId, ObjectId, RequiredFieldId, ScalarType, UnionId, Wrapping};
+use schema::{
+    FieldDefinitionId, InterfaceDefinitionId, ObjectDefinitionId, RequiredFieldId, ScalarType, UnionDefinitionId,
+    Wrapping,
+};
 
 use crate::operation::FieldId;
 
@@ -12,7 +15,7 @@ pub(crate) struct Shapes {
     pub fields: Vec<FieldShape>,
 }
 
-id_newtypes::NonZeroU16! {
+id_newtypes::NonZeroU32! {
     Shapes.concrete[ConcreteObjectShapeId] => ConcreteObjectShape,
     Shapes.polymorphic[PolymorphicObjectShapeId] => PolymorphicObjectShape,
     Shapes.fields[FieldShapeId] => FieldShape,
@@ -48,7 +51,7 @@ impl Shape {
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub(crate) struct PolymorphicObjectShape {
     // Sorted by Object typename
-    pub possibilities: Vec<(ObjectId, ConcreteObjectShapeId)>,
+    pub possibilities: Vec<(ObjectDefinitionId, ConcreteObjectShapeId)>,
 }
 
 /// Being concrete does not mean it's only associated with a single object definition id
@@ -64,8 +67,8 @@ pub(crate) struct ConcreteObjectShape {
 
 #[derive(Debug, Clone, Copy, serde::Serialize, serde::Deserialize)]
 pub enum ObjectIdentifier {
-    Known(ObjectId),
-    UnionTypename(UnionId),
-    InterfaceTypename(InterfaceId),
+    Known(ObjectDefinitionId),
+    UnionTypename(UnionDefinitionId),
+    InterfaceTypename(InterfaceDefinitionId),
     Anonymous,
 }

@@ -2,7 +2,7 @@ use std::future::Future;
 
 #[derive(strum::Display)]
 pub enum CachedDataKind {
-    PersistedQuery,
+    TrustedDocument,
     Operation,
 }
 

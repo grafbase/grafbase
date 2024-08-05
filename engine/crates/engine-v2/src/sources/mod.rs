@@ -44,53 +44,53 @@
 //! executor will have a root for each product in the response.
 use futures::{future::BoxFuture, FutureExt};
 use futures_util::stream::BoxStream;
-use schema::{Resolver, ResolverWalker};
+use schema::{ResolverDefinition, ResolverDefinitionWalker};
 use std::future::Future;
 
 use crate::{
-    execution::{ExecutionContext, ExecutionError, ExecutionResult, PlanWalker, PlanningResult, SubscriptionResponse},
-    operation::OperationType,
+    execution::{ExecutionContext, ExecutionError, ExecutionResult, PlanningResult, SubscriptionResponse},
+    operation::{OperationType, PlanWalker},
     response::{ResponseObjectsView, SubgraphResponse},
     Runtime,
 };
 
 use self::{
-    graphql::{FederationEntityPreparedExecutor, GraphqlPreparedExecutor},
-    introspection::IntrospectionPreparedExecutor,
+    graphql::{FederationEntityResolver, GraphqlResolver},
+    introspection::IntrospectionResolver,
 };
 
 mod graphql;
 mod introspection;
 
-pub(crate) enum PreparedExecutor {
-    GraphQL(GraphqlPreparedExecutor),
-    FederationEntity(FederationEntityPreparedExecutor),
-    Introspection(IntrospectionPreparedExecutor),
+pub(crate) enum Resolver {
+    GraphQL(GraphqlResolver),
+    FederationEntity(FederationEntityResolver),
+    Introspection(IntrospectionResolver),
 }
 
-impl PreparedExecutor {
+impl Resolver {
     pub fn introspection() -> Self {
-        PreparedExecutor::Introspection(IntrospectionPreparedExecutor)
+        Resolver::Introspection(IntrospectionResolver)
     }
 
     pub fn prepare(
-        walker: ResolverWalker<'_>,
+        definition: ResolverDefinitionWalker<'_>,
         operation_type: OperationType,
         plan: PlanWalker<'_>,
     ) -> PlanningResult<Self> {
-        match walker.as_ref() {
-            Resolver::Introspection(_) => Ok(PreparedExecutor::Introspection(IntrospectionPreparedExecutor)),
-            Resolver::GraphqlRootField(resolver) => {
-                GraphqlPreparedExecutor::prepare(walker.walk(resolver), operation_type, plan)
+        match definition.as_ref() {
+            ResolverDefinition::Introspection(_) => Ok(Resolver::Introspection(IntrospectionResolver)),
+            ResolverDefinition::GraphqlRootField(resolver) => {
+                GraphqlResolver::prepare(definition.walk(resolver), operation_type, plan)
             }
-            Resolver::GraphqlFederationEntity(resolver) => {
-                FederationEntityPreparedExecutor::prepare(walker.walk(resolver), plan)
+            ResolverDefinition::GraphqlFederationEntity(resolver) => {
+                FederationEntityResolver::prepare(definition.walk(resolver), plan)
             }
         }
     }
 }
 
-impl PreparedExecutor {
+impl Resolver {
     pub fn execute<'ctx, 'fut, R: Runtime>(
         &'ctx self,
         ctx: ExecutionContext<'ctx, R>,
@@ -105,11 +105,11 @@ impl PreparedExecutor {
         'ctx: 'fut,
     {
         let result: ExecutionResult<BoxFuture<'fut, _>> = match self {
-            PreparedExecutor::GraphQL(prepared) => Ok(prepared.execute(ctx, plan, subgraph_response).boxed()),
-            PreparedExecutor::FederationEntity(prepared) => prepared
+            Resolver::GraphQL(prepared) => Ok(prepared.execute(ctx, plan, subgraph_response).boxed()),
+            Resolver::FederationEntity(prepared) => prepared
                 .execute(ctx, plan, root_response_objects, subgraph_response)
                 .map(FutureExt::boxed),
-            PreparedExecutor::Introspection(prepared) => Ok(prepared.execute(ctx, plan, subgraph_response).boxed()),
+            Resolver::Introspection(prepared) => Ok(prepared.execute(ctx, plan, subgraph_response).boxed()),
         };
 
         async {
@@ -127,11 +127,11 @@ impl PreparedExecutor {
         new_response: impl Fn() -> SubscriptionResponse + Send + 'ctx,
     ) -> ExecutionResult<BoxStream<'ctx, ExecutionResult<SubscriptionResponse>>> {
         match self {
-            PreparedExecutor::GraphQL(prepared) => prepared.execute_subscription(ctx, plan, new_response).await,
-            PreparedExecutor::Introspection(_) => Err(ExecutionError::Internal(
+            Resolver::GraphQL(prepared) => prepared.execute_subscription(ctx, plan, new_response).await,
+            Resolver::Introspection(_) => Err(ExecutionError::Internal(
                 "Subscriptions can't contain introspection".into(),
             )),
-            PreparedExecutor::FederationEntity(_) => Err(ExecutionError::Internal(
+            Resolver::FederationEntity(_) => Err(ExecutionError::Internal(
                 "Subscriptions can only be at the root of a query so can't contain federated entitites".into(),
             )),
         }

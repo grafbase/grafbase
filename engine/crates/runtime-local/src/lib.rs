@@ -1,5 +1,6 @@
 mod bridge;
 mod cache;
+mod entity_cache;
 mod fetch;
 #[cfg(feature = "wasi")]
 mod hooks;
@@ -8,10 +9,15 @@ mod kv;
 mod log;
 mod pg;
 pub mod rate_limiting;
+#[cfg(feature = "redis")]
+pub mod redis;
 mod ufd_invoker;
 
 pub use bridge::Bridge;
 pub use cache::InMemoryCache;
+pub use entity_cache::memory::InMemoryEntityCache;
+#[cfg(feature = "redis")]
+pub use entity_cache::redis::RedisEntityCache;
 pub use fetch::NativeFetcher;
 pub use hot_cache::{InMemoryHotCache, InMemoryHotCacheFactory};
 pub use kv::*;

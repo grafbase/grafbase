@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use id_derives::Id;
 use id_newtypes::IdRange;
-use schema::{EntityId, ObjectId, Schema};
+use schema::{EntityId, ObjectDefinitionId, Schema};
 
 use super::{ResponseObjectId, ResponsePath};
 
@@ -15,7 +15,7 @@ pub struct ResponseObjectSetId(std::num::NonZero<u16>);
 pub struct ResponseObjectRef {
     pub id: ResponseObjectId,
     pub path: ResponsePath,
-    pub definition_id: ObjectId,
+    pub definition_id: ObjectDefinitionId,
 }
 
 /// A ResponseObjectSet hols all the response object references for a given selection sets,

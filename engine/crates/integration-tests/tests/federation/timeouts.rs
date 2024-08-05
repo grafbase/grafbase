@@ -1,14 +1,18 @@
 use engine_v2::Engine;
-use graphql_mocks::{FakeGithubSchema, MockGraphQlServer, SlowSchema};
+use graphql_mocks::{FakeGithubSchema, SlowSchema};
 use integration_tests::{federation::EngineV2Ext, runtime};
 
 #[test]
 fn gateway_timeout() {
     runtime().block_on(async move {
-        let slow_subgraph_mock = MockGraphQlServer::new(SlowSchema).await;
         let engine = Engine::builder()
-            .with_subgraph("slow", &slow_subgraph_mock)
-            .with_timeout(std::time::Duration::from_secs(1))
+            .with_subgraph(SlowSchema)
+            .with_toml_config(
+                r###"
+                [gateway]
+                timeout = "1s"
+                "###,
+            )
             .build()
             .await;
 
@@ -46,12 +50,10 @@ fn gateway_timeout() {
 #[test]
 fn subgraph_timeout() {
     runtime().block_on(async move {
-        let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
-        let slow_subgraph_mock = MockGraphQlServer::new(SlowSchema).await;
         let engine = Engine::builder()
-            .with_subgraph("slow", &slow_subgraph_mock)
-            .with_subgraph("github", &github_mock)
-            .with_supergraph_config(
+            .with_subgraph(SlowSchema)
+            .with_subgraph(FakeGithubSchema)
+            .with_sdl_config(
                 r#"
                 extend schema @subgraph(
                     name: "slow",
@@ -85,7 +87,7 @@ fn subgraph_timeout() {
           "data": null,
           "errors": [
             {
-              "message": "Request to the `slow` subgraph timed out",
+              "message": "Request to subgraph 'slow' failed with: Request timeout",
               "path": [
                 "verySlow"
               ],
@@ -109,7 +111,7 @@ fn subgraph_timeout() {
           },
           "errors": [
             {
-              "message": "Request to the `slow` subgraph timed out",
+              "message": "Request to subgraph 'slow' failed with: Request timeout",
               "path": [
                 "verySlow"
               ],

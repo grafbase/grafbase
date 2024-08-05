@@ -43,6 +43,16 @@ pub enum OperationType {
     Subscription,
 }
 
+impl From<OperationType> for grafbase_telemetry::metrics::OperationType {
+    fn from(value: OperationType) -> Self {
+        match value {
+            OperationType::Query => Self::Query,
+            OperationType::Mutation => Self::Mutation,
+            OperationType::Subscription => Self::Subscription,
+        }
+    }
+}
+
 impl OperationType {
     /// Operation type as str
     pub fn as_str(&self) -> &'static str {
@@ -51,6 +61,14 @@ impl OperationType {
             Self::Mutation => "mutation",
             Self::Subscription => "subscription",
         }
+    }
+
+    /// Returns `true` if the operation type is [`Mutation`].
+    ///
+    /// [`Mutation`]: OperationType::Mutation
+    #[must_use]
+    pub fn is_mutation(&self) -> bool {
+        matches!(self, Self::Mutation)
     }
 }
 

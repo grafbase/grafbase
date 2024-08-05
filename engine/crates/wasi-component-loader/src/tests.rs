@@ -14,7 +14,7 @@ use wiremock::{matchers::method, ResponseTemplate};
 #[tokio::test]
 async fn missing_wasm() {
     let config = Config::default();
-    assert!(!config.location().exists());
+    assert!(!config.location.exists());
 
     let loader = ComponentLoader::new(config).unwrap();
     assert!(loader.is_none());
@@ -31,7 +31,7 @@ async fn missing_hook() {
     "#};
 
     let config: Config = toml::from_str(config).unwrap();
-    assert!(config.location().exists());
+    assert!(config.location.exists());
 
     let loader = ComponentLoader::new(config).unwrap().unwrap();
     let mut hook = GatewayComponentInstance::new(&loader).await.unwrap();
@@ -56,7 +56,7 @@ async fn simple_no_io() {
     "#};
 
     let config: Config = toml::from_str(config).unwrap();
-    assert!(config.location().exists());
+    assert!(config.location.exists());
 
     let loader = ComponentLoader::new(config).unwrap().unwrap();
 
@@ -92,7 +92,7 @@ async fn dir_access_read_only() {
     "#};
 
     let config: Config = toml::from_str(&config).unwrap();
-    assert!(config.location().exists());
+    assert!(config.location.exists());
 
     std::fs::write(path.join("contents.txt"), "test string").unwrap();
 
@@ -130,7 +130,7 @@ async fn dir_access_write() {
     "#};
 
     let config: Config = toml::from_str(&config).unwrap();
-    assert!(config.location().exists());
+    assert!(config.location.exists());
 
     std::fs::write(path.join("contents.txt"), "test string").unwrap();
 
@@ -169,7 +169,7 @@ async fn networking() {
     "#};
 
     let config: Config = toml::from_str(&config).unwrap();
-    assert!(config.location().exists());
+    assert!(config.location.exists());
 
     let loader = ComponentLoader::new(config).unwrap().unwrap();
     let mut hook = GatewayComponentInstance::new(&loader).await.unwrap();
@@ -201,7 +201,7 @@ async fn networking_no_network() {
     "#};
 
     let config: Config = toml::from_str(&config).unwrap();
-    assert!(config.location().exists());
+    assert!(config.location.exists());
 
     let loader = ComponentLoader::new(config).unwrap().unwrap();
     let error = GatewayComponentInstance::new(&loader).await.unwrap_err();
@@ -222,7 +222,7 @@ async fn guest_error() {
     "#};
 
     let config: Config = toml::from_str(config).unwrap();
-    assert!(config.location().exists());
+    assert!(config.location.exists());
 
     let loader = ComponentLoader::new(config).unwrap().unwrap();
     let mut hook = GatewayComponentInstance::new(&loader).await.unwrap();
@@ -248,7 +248,7 @@ async fn authorize_edge_pre_execution_error() {
     "#};
 
     let config: Config = toml::from_str(config).unwrap();
-    assert!(config.location().exists());
+    assert!(config.location.exists());
 
     let mut headers = HeaderMap::new();
     headers.insert("Authorization", HeaderValue::from_static("kekw"));
@@ -287,7 +287,7 @@ async fn authorize_edge_pre_execution_success() {
     "#};
 
     let config: Config = toml::from_str(config).unwrap();
-    assert!(config.location().exists());
+    assert!(config.location.exists());
 
     let mut headers = HeaderMap::new();
     headers.insert("Authorization", HeaderValue::from_static("kekw"));
@@ -318,7 +318,7 @@ async fn authorize_node_pre_execution_error() {
     "#};
 
     let config: Config = toml::from_str(config).unwrap();
-    assert!(config.location().exists());
+    assert!(config.location.exists());
 
     let mut headers = HeaderMap::new();
     headers.insert("Authorization", HeaderValue::from_static("kekw"));
@@ -356,7 +356,7 @@ async fn authorize_node_pre_execution_success() {
     "#};
 
     let config: Config = toml::from_str(config).unwrap();
-    assert!(config.location().exists());
+    assert!(config.location.exists());
 
     let mut headers = HeaderMap::new();
     headers.insert("Authorization", HeaderValue::from_static("kekw"));
@@ -386,7 +386,7 @@ async fn authorize_parent_edge_post_execution() {
     "#};
 
     let config: Config = toml::from_str(config).unwrap();
-    assert!(config.location().exists());
+    assert!(config.location.exists());
 
     let mut headers = HeaderMap::new();
     headers.insert("Authorization", HeaderValue::from_static("kekw"));
@@ -439,7 +439,7 @@ async fn authorize_edge_node_post_execution() {
     "#};
 
     let config: Config = toml::from_str(config).unwrap();
-    assert!(config.location().exists());
+    assert!(config.location.exists());
 
     let mut headers = HeaderMap::new();
     headers.insert("Authorization", HeaderValue::from_static("kekw"));
@@ -492,7 +492,7 @@ async fn authorize_edge_post_execution() {
     "#};
 
     let config: Config = toml::from_str(config).unwrap();
-    assert!(config.location().exists());
+    assert!(config.location.exists());
 
     let mut headers = HeaderMap::new();
     headers.insert("Authorization", HeaderValue::from_static("kekw"));
@@ -564,7 +564,7 @@ async fn on_subgraph_request() {
     "#};
 
     let config: Config = toml::from_str(config).unwrap();
-    assert!(config.location().exists());
+    assert!(config.location.exists());
 
     let mut headers = HeaderMap::new();
     headers.insert("Hi", HeaderValue::from_static("Rusty"));

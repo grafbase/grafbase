@@ -1,5 +1,4 @@
-use std::collections::HashMap;
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc};
 
 use crate::ConfigWatcher;
 
@@ -7,8 +6,9 @@ use super::bus::{EngineSender, GraphWatcher};
 use engine_v2::Engine;
 use futures_concurrency::stream::Merge;
 use futures_util::{future::BoxFuture, stream::BoxStream, FutureExt as _, StreamExt};
-use runtime::rate_limiting::KeyedRateLimitConfig;
-use runtime_local::rate_limiting::in_memory::key_based::InMemoryRateLimiter;
+use gateway_config::GraphRateLimit;
+use runtime::rate_limiting::RateLimitKey;
+use runtime_local::{rate_limiting::in_memory::key_based::InMemoryRateLimiter, InMemoryEntityCache};
 use tokio_stream::wrappers::WatchStream;
 
 /// The GatewayNanny looks after the `Gateway` - on updates to the graph or config it'll
@@ -40,7 +40,7 @@ impl EngineNanny {
                 .graph
                 .borrow()
                 .clone()
-                .map(|graph| engine_config_builder::build_config(&self.config.borrow(), graph));
+                .map(|graph| engine_config_builder::build_with_sdl_config(&self.config.borrow(), graph));
             let gateway = new_gateway(config).await;
             if let Err(error) = self.sender.send(gateway) {
                 log::error!("Couldn't publish new gateway: {error:?}");
@@ -51,19 +51,6 @@ impl EngineNanny {
 
 pub(super) async fn new_gateway(config: Option<engine_v2::VersionedConfig>) -> Option<Arc<Engine<CliRuntime>>> {
     let config = config?.into_latest();
-    let rate_limiting_configs = config
-        .as_keyed_rate_limit_config()
-        .into_iter()
-        .map(|(k, v)| {
-            (
-                k,
-                runtime::rate_limiting::GraphRateLimit {
-                    limit: v.limit,
-                    duration: v.duration,
-                },
-            )
-        })
-        .collect::<HashMap<_, _>>();
 
     let runtime = CliRuntime {
         fetcher: runtime_local::NativeFetcher::runtime_fetcher(),
@@ -72,7 +59,36 @@ pub(super) async fn new_gateway(config: Option<engine_v2::VersionedConfig>) -> O
         ),
         kv: runtime_local::InMemoryKvStore::runtime(),
         meter: grafbase_telemetry::metrics::meter_from_global_provider(),
-        rate_limiter: InMemoryRateLimiter::runtime(KeyedRateLimitConfig { rate_limiting_configs }),
+        // FIXME: God is this ugly
+        rate_limiter: InMemoryRateLimiter::runtime({
+            let mut key_based_config = HashMap::new();
+
+            if let Some(global_config) = config.rate_limit.as_ref().and_then(|c| c.global) {
+                key_based_config.insert(
+                    RateLimitKey::Global,
+                    GraphRateLimit {
+                        limit: global_config.limit,
+                        duration: global_config.duration,
+                    },
+                );
+            }
+
+            for (subgraph_name, subgraph) in config.subgraph_configs.iter() {
+                if let Some(limit) = subgraph.rate_limit {
+                    let name = &config.graph[config.graph[*subgraph_name].name];
+                    key_based_config.insert(
+                        RateLimitKey::Subgraph(name.clone().into()),
+                        GraphRateLimit {
+                            limit: limit.limit,
+                            duration: limit.duration,
+                        },
+                    );
+                }
+            }
+
+            key_based_config
+        }),
+        entity_cache: InMemoryEntityCache::default(),
     };
 
     let schema = config.try_into().ok()?;
@@ -87,6 +103,7 @@ pub struct CliRuntime {
     kv: runtime::kv::KvStore,
     meter: grafbase_telemetry::otel::opentelemetry::metrics::Meter,
     rate_limiter: runtime::rate_limiting::RateLimiter,
+    entity_cache: InMemoryEntityCache,
 }
 
 impl engine_v2::Runtime for CliRuntime {
@@ -123,6 +140,10 @@ impl engine_v2::Runtime for CliRuntime {
 
     fn sleep(&self, duration: std::time::Duration) -> BoxFuture<'static, ()> {
         tokio::time::sleep(duration).boxed()
+    }
+
+    fn entity_cache(&self) -> &dyn runtime::entity_cache::EntityCache {
+        &self.entity_cache
     }
 }
 

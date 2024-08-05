@@ -1,4 +1,4 @@
-use std::time::Duration;
+use crate::telemetry::metrics::METRICS_DELAY;
 
 use super::{with_gateway, ExponentialHistogramRow};
 
@@ -13,7 +13,7 @@ fn basic() {
           }
         }
         "###);
-        tokio::time::sleep(Duration::from_secs(2)).await;
+        tokio::time::sleep(METRICS_DELAY).await;
 
         let row = clickhouse
             .query(
@@ -64,7 +64,7 @@ fn request_error() {
           ]
         }
         "###);
-        tokio::time::sleep(Duration::from_secs(2)).await;
+        tokio::time::sleep(METRICS_DELAY).await;
 
         let row = clickhouse
             .query(
@@ -105,7 +105,7 @@ fn field_error() {
           "data": null,
           "errors": [
             {
-              "message": "error sending request for url (http://127.0.0.1:46697/)",
+              "message": "Request to subgraph 'accounts' failed with: error sending request for url (http://127.0.0.1:46697/)",
               "path": [
                 "me"
               ],
@@ -116,7 +116,7 @@ fn field_error() {
           ]
         }
         "###);
-        tokio::time::sleep(Duration::from_secs(2)).await;
+        tokio::time::sleep(METRICS_DELAY).await;
 
         let row = clickhouse
             .query(
@@ -154,7 +154,7 @@ fn field_error_data_null() {
           "data": null,
           "errors": [
             {
-              "message": "error sending request for url (http://127.0.0.1:46697/)",
+              "message": "Request to subgraph 'accounts' failed with: error sending request for url (http://127.0.0.1:46697/)",
               "path": [
                 "me"
               ],
@@ -165,7 +165,7 @@ fn field_error_data_null() {
           ]
         }
         "###);
-        tokio::time::sleep(Duration::from_secs(2)).await;
+        tokio::time::sleep(METRICS_DELAY).await;
 
         let row = clickhouse
             .query(
@@ -210,7 +210,7 @@ fn client() {
           }
         }
         "###);
-        tokio::time::sleep(Duration::from_secs(2)).await;
+        tokio::time::sleep(METRICS_DELAY).await;
 
         let row = clickhouse
             .query(

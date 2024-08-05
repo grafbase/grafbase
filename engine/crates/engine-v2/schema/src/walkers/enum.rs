@@ -1,10 +1,10 @@
 use super::SchemaWalker;
-use crate::{EnumId, EnumValueId, TypeSystemDirectivesWalker};
+use crate::{EnumDefinitionId, EnumValueId, TypeSystemDirectivesWalker};
 
-pub type EnumWalker<'a> = SchemaWalker<'a, EnumId>;
+pub type EnumDefinitionWalker<'a> = SchemaWalker<'a, EnumDefinitionId>;
 pub type EnumValueWalker<'a> = SchemaWalker<'a, EnumValueId>;
 
-impl<'a> EnumWalker<'a> {
+impl<'a> EnumDefinitionWalker<'a> {
     pub fn name(&self) -> &'a str {
         self.names.r#enum(self.schema, self.item)
     }
@@ -36,7 +36,7 @@ impl<'a> EnumValueWalker<'a> {
     }
 }
 
-impl<'a> std::fmt::Debug for EnumWalker<'a> {
+impl<'a> std::fmt::Debug for EnumDefinitionWalker<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Enum")
             .field("id", &usize::from(self.item))

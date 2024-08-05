@@ -1,9 +1,10 @@
 /// Isolating ids from the rest to prevent misuse of the NonZeroU32.
 /// They can only be created by From<usize>
 use crate::{
-    AuthorizedDirective, CacheControl, Definition, Enum, EnumValue, FieldDefinition, Graph, HeaderRule, InputObject,
-    InputValueDefinition, Interface, Object, RequiredField, RequiredFieldSet, RequiredScopes, Resolver, Scalar, Schema,
-    TypeSystemDirective, Union,
+    AuthorizedDirective, CacheControl, Definition, EnumDefinition, EnumValue, FieldDefinition, Graph, HeaderRule,
+    InputObjectDefinition, InputValueDefinition, InterfaceDefinition, ObjectDefinition, RequiredField,
+    RequiredFieldSet, RequiredScopes, ResolverDefinition, ScalarDefinition, Schema, TypeSystemDirective,
+    UnionDefinition,
 };
 use regex::Regex;
 use url::Url;
@@ -17,15 +18,15 @@ id_newtypes::NonZeroU32! {
     Graph.type_definitions[DefinitionId] => Definition | max(MAX_ID) | proxy(Schema.graph),
     Graph.type_system_directives[TypeSystemDirectiveId] => TypeSystemDirective | max(MAX_ID) | proxy(Schema.graph),
     Graph.enum_value_definitions[EnumValueId] => EnumValue | max(MAX_ID) | proxy(Schema.graph),
-    Graph.enum_definitions[EnumId] => Enum | max(MAX_ID) | proxy(Schema.graph),
+    Graph.enum_definitions[EnumDefinitionId] => EnumDefinition | max(MAX_ID) | proxy(Schema.graph),
     Graph.field_definitions[FieldDefinitionId] => FieldDefinition | max(MAX_ID) | proxy(Schema.graph),
-    Graph.input_object_definitions[InputObjectId] => InputObject | max(MAX_ID) | proxy(Schema.graph),
+    Graph.input_object_definitions[InputObjectDefinitionId] => InputObjectDefinition | max(MAX_ID) | proxy(Schema.graph),
     Graph.input_value_definitions[InputValueDefinitionId] => InputValueDefinition | max(MAX_ID) | proxy(Schema.graph),
-    Graph.interface_definitions[InterfaceId] => Interface | max(MAX_ID) | proxy(Schema.graph),
-    Graph.object_definitions[ObjectId] => Object | max(MAX_ID) | proxy(Schema.graph),
-    Graph.scalar_definitions[ScalarId] => Scalar | max(MAX_ID) | proxy(Schema.graph),
-    Graph.union_definitions[UnionId] => Union | max(MAX_ID) | proxy(Schema.graph),
-    Graph.resolvers[ResolverId] => Resolver | max(MAX_ID) | proxy(Schema.graph),
+    Graph.interface_definitions[InterfaceDefinitionId] => InterfaceDefinition | max(MAX_ID) | proxy(Schema.graph),
+    Graph.object_definitions[ObjectDefinitionId] => ObjectDefinition | max(MAX_ID) | proxy(Schema.graph),
+    Graph.scalar_definitions[ScalarDefinitionId] => ScalarDefinition | max(MAX_ID) | proxy(Schema.graph),
+    Graph.union_definitions[UnionDefinitionId] => UnionDefinition | max(MAX_ID) | proxy(Schema.graph),
+    Graph.resolver_definitions[ResolverDefinitionId] => ResolverDefinition | max(MAX_ID) | proxy(Schema.graph),
     Graph.required_field_sets[RequiredFieldSetId] => RequiredFieldSet | max(MAX_ID) | proxy(Schema.graph),
     Graph.required_fields[RequiredFieldId] => RequiredField | max(MAX_ID) | proxy(Schema.graph),
     Graph.cache_control[CacheControlId] => CacheControl | max(MAX_ID) | proxy(Schema.graph),

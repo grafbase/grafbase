@@ -1,0 +1,18 @@
+---
+source: engine/crates/integration-tests/tests/federation/subgraph_retries.rs
+expression: response
+---
+{
+  "data": null,
+  "errors": [
+    {
+      "message": "REDACTED",
+      "path": [
+        "incrementAndFailIfLessThan"
+      ],
+      "extensions": {
+        "code": "SUBGRAPH_REQUEST_ERROR"
+      }
+    }
+  ]
+}

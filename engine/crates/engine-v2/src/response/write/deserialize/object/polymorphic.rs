@@ -1,6 +1,6 @@
 use std::{collections::VecDeque, fmt};
 
-use schema::ObjectId;
+use schema::ObjectDefinitionId;
 use serde::de::{DeserializeSeed, IgnoredAny, MapAccess, Visitor};
 
 use crate::response::{
@@ -12,7 +12,7 @@ use super::concrete::ConcreteObjectSeed;
 
 pub(crate) struct PolymorphicObjectSeed<'ctx, 'seed> {
     ctx: &'seed SeedContext<'ctx>,
-    possibilities: &'ctx [(ObjectId, ConcreteObjectShapeId)],
+    possibilities: &'ctx [(ObjectDefinitionId, ConcreteObjectShapeId)],
 }
 
 impl<'ctx, 'seed> PolymorphicObjectSeed<'ctx, 'seed> {
@@ -48,7 +48,7 @@ impl<'de, 'ctx, 'parent> Visitor<'de> for PolymorphicObjectSeed<'ctx, 'parent> {
     where
         A: MapAccess<'de>,
     {
-        let schema = self.ctx.plan.schema();
+        let schema = self.ctx.schema;
         let mut content = VecDeque::<(_, serde_value::Value)>::new();
         while let Some(key) = map.next_key::<Key<'de>>()? {
             if key.as_ref() == "__typename" {

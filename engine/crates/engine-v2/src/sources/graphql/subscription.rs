@@ -1,29 +1,30 @@
 use futures_util::{stream::BoxStream, StreamExt};
-use runtime::fetch::GraphqlRequest;
+use runtime::{fetch::GraphqlRequest, rate_limiting::RateLimitKey};
 use serde::de::DeserializeSeed;
 
 use super::{
     deserialize::{GraphqlResponseSeed, RootGraphqlErrors},
-    variables::SubgraphVariables,
-    ExecutionContext, GraphqlPreparedExecutor,
+    request::SubgraphVariables,
+    GraphqlResolver,
 };
 use crate::{
-    execution::{PlanWalker, SubscriptionResponse},
+    execution::{ExecutionContext, ExecutionError, SubscriptionResponse},
+    operation::PlanWalker,
     sources::ExecutionResult,
     Runtime,
 };
 
-impl GraphqlPreparedExecutor {
+impl GraphqlResolver {
     pub async fn execute_subscription<'ctx, R: Runtime>(
         &'ctx self,
         ctx: ExecutionContext<'ctx, R>,
         plan: PlanWalker<'ctx>,
         new_response: impl Fn() -> SubscriptionResponse + Send + 'ctx,
     ) -> ExecutionResult<BoxStream<'ctx, ExecutionResult<SubscriptionResponse>>> {
-        let subgraph = ctx.schema().walk(self.subgraph_id);
+        let endpoint = ctx.schema().walk(self.endpoint_id);
 
         let url = {
-            let mut url = subgraph.websocket_url().clone();
+            let mut url = endpoint.websocket_url().clone();
             // If the user doesn't provide an explicit websocket URL we use the normal URL,
             // so make sure to convert the scheme to something appropriate
             match url.scheme() {
@@ -37,7 +38,7 @@ impl GraphqlPreparedExecutor {
         ctx.engine
             .runtime
             .rate_limiter()
-            .limit(&crate::engine::RateLimitContext::Subgraph(subgraph.name()))
+            .limit(&RateLimitKey::Subgraph(endpoint.subgraph_name().into()))
             .await?;
 
         let stream = ctx
@@ -47,35 +48,43 @@ impl GraphqlPreparedExecutor {
             .stream(GraphqlRequest {
                 url: &url,
                 query: &self.operation.query,
-                variables: serde_json::to_value(&SubgraphVariables {
+                variables: serde_json::to_value(&SubgraphVariables::<()> {
                     plan,
                     variables: &self.operation.variables,
-                    inputs: Vec::new(),
+                    extra_variables: Vec::new(),
                 })
                 .map_err(|error| error.to_string())?,
-                headers: ctx.subgraph_headers_with_rules(subgraph.header_rules()),
+                headers: ctx.subgraph_headers_with_rules(endpoint.header_rules()),
             })
-            .await?;
+            .await
+            .map_err(|error| ExecutionError::Fetch {
+                subgraph_name: endpoint.subgraph_name().to_string(),
+                error,
+            })?;
         Ok(Box::pin(stream.map(move |subgraph_response| {
             let mut subscription_response = new_response();
-            ingest_response(&mut subscription_response, plan, subgraph_response?)?;
+            ingest_response(
+                ctx,
+                &mut subscription_response,
+                subgraph_response.map_err(|error| ExecutionError::Fetch {
+                    subgraph_name: endpoint.subgraph_name().to_string(),
+                    error,
+                })?,
+            )?;
             Ok(subscription_response)
         })))
     }
 }
 
-fn ingest_response(
+fn ingest_response<R: Runtime>(
+    ctx: ExecutionContext<'_, R>,
     subscription_response: &mut SubscriptionResponse,
-    plan: PlanWalker<'_>,
     subgraph_response: serde_json::Value,
 ) -> ExecutionResult<()> {
     let response = subscription_response.root_response();
     GraphqlResponseSeed::new(
-        response.next_seed(plan).expect("Must have a root object to update"),
-        RootGraphqlErrors {
-            response,
-            response_keys: plan.response_keys(),
-        },
+        response.next_seed(ctx).expect("Must have a root object to update"),
+        RootGraphqlErrors::new(ctx, response),
     )
     .deserialize(subgraph_response)?;
     Ok(())

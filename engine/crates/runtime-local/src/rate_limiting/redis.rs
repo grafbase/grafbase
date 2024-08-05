@@ -1,60 +1,16 @@
-mod pool;
+use std::time::{Duration, SystemTime};
 
-use core::fmt;
-use std::{
-    collections::HashMap,
-    fs::File,
-    io::{BufReader, Read},
-    net::IpAddr,
-    path::Path,
-    time::{Duration, SystemTime},
-};
-
-use anyhow::Context;
-use deadpool::managed::Pool;
 use futures_util::future::BoxFuture;
+use gateway_config::Config;
 use grafbase_telemetry::span::GRAFBASE_TARGET;
-use http::{HeaderName, HeaderValue};
-use redis::ClientTlsConfig;
-use runtime::rate_limiting::{Error, GraphRateLimit, RateLimiter, RateLimiterContext};
-use serde_json::Value;
+use runtime::rate_limiting::{Error, RateLimitKey, RateLimiter, RateLimiterContext};
+use tokio::sync::watch;
+
+use crate::redis::Pool;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct RateLimitRedisConfig<'a> {
-    pub url: &'a str,
     pub key_prefix: &'a str,
-    pub tls: Option<RateLimitRedisTlsConfig<'a>>,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub struct RateLimitRedisTlsConfig<'a> {
-    pub cert: Option<&'a Path>,
-    pub key: Option<&'a Path>,
-    pub ca: Option<&'a Path>,
-}
-
-pub struct RateLimitingContext(pub String);
-
-impl RateLimiterContext for RateLimitingContext {
-    fn header(&self, _name: HeaderName) -> Option<&HeaderValue> {
-        None
-    }
-
-    fn graphql_operation_name(&self) -> Option<&str> {
-        None
-    }
-
-    fn ip(&self) -> Option<IpAddr> {
-        None
-    }
-
-    fn jwt_claim(&self, _key: &str) -> Option<&Value> {
-        None
-    }
-
-    fn key(&self) -> Option<&str> {
-        Some(&self.0)
-    }
 }
 
 /// Rate limiter by utilizing Redis as a backend. It uses a averaging fixed window algorithm
@@ -72,126 +28,64 @@ impl RateLimiterContext for RateLimitingContext {
 /// A request must have a unique access to a connection, which means utilizing a connection
 /// pool.
 pub struct RedisRateLimiter {
-    pool: Pool<pool::Manager>,
+    pool: Pool,
     key_prefix: String,
-    subgraph_limits: HashMap<String, GraphRateLimit>,
-}
-
-enum Key<'a> {
-    Graph { name: &'a str },
-}
-
-impl<'a> fmt::Display for Key<'a> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str("rate_limit:")?;
-
-        match self {
-            Key::Graph { name } => {
-                f.write_str(name)?;
-                f.write_str(":all")?;
-            }
-        }
-
-        Ok(())
-    }
+    config_watcher: watch::Receiver<Config>,
 }
 
 impl RedisRateLimiter {
     pub async fn runtime(
         config: RateLimitRedisConfig<'_>,
-        subgraph_limits: impl IntoIterator<Item = (&str, GraphRateLimit)>,
+        pool: Pool,
+        watcher: watch::Receiver<Config>,
     ) -> anyhow::Result<RateLimiter> {
-        let inner = Self::new(config, subgraph_limits).await?;
+        let inner = Self::new(config, pool, watcher).await?;
         Ok(RateLimiter::new(inner))
     }
 
     pub async fn new(
         config: RateLimitRedisConfig<'_>,
-        subgraph_limits: impl IntoIterator<Item = (&str, GraphRateLimit)>,
+        pool: Pool,
+        watcher: watch::Receiver<Config>,
     ) -> anyhow::Result<RedisRateLimiter> {
-        let tls_config = match config.tls {
-            Some(tls) => {
-                let client_tls = match tls.cert.zip(tls.key) {
-                    Some((cert, key)) => {
-                        let mut client_cert = Vec::new();
-
-                        File::open(cert)
-                            .and_then(|file| BufReader::new(file).read_to_end(&mut client_cert))
-                            .context("loading the Redis client certificate")?;
-
-                        let mut client_key = Vec::new();
-
-                        File::open(key)
-                            .and_then(|file| BufReader::new(file).read_to_end(&mut client_key))
-                            .context("loading the Redis client key")?;
-
-                        Some(ClientTlsConfig {
-                            client_cert,
-                            client_key,
-                        })
-                    }
-                    None => None,
-                };
-
-                let root_cert = match tls.ca {
-                    Some(path) => {
-                        let mut ca = Vec::new();
-
-                        File::open(path)
-                            .and_then(|file| BufReader::new(file).read_to_end(&mut ca))
-                            .context("loading the Redis CA certificate")?;
-
-                        Some(ca)
-                    }
-                    None => None,
-                };
-
-                Some(pool::TlsConfig { client_tls, root_cert })
-            }
-            None => None,
-        };
-
-        let manager = match pool::Manager::new(config.url, tls_config) {
-            Ok(manager) => manager,
-            Err(e) => {
-                tracing::error!(target: GRAFBASE_TARGET, "error creating a Redis pool: {e}");
-                return Err(e.into());
-            }
-        };
-
-        let pool = match Pool::builder(manager)
-            .wait_timeout(Some(Duration::from_secs(5)))
-            .create_timeout(Some(Duration::from_secs(10)))
-            .runtime(deadpool::Runtime::Tokio1)
-            .build()
-        {
-            Ok(pool) => pool,
-            Err(e) => {
-                tracing::error!(target: GRAFBASE_TARGET, "error creating a Redis pool: {e}");
-                return Err(e.into());
-            }
-        };
-
-        let subgraph_limits = subgraph_limits
-            .into_iter()
-            .map(|(key, value)| (key.to_string(), value))
-            .collect();
-
         Ok(Self {
             pool,
             key_prefix: config.key_prefix.to_string(),
-            subgraph_limits,
+            config_watcher: watcher,
         })
     }
 
-    fn generate_key(&self, bucket: u64, key: Key<'_>) -> String {
-        format!("{}:{key}:{bucket}", self.key_prefix)
+    fn generate_key(&self, bucket: u64, key: &RateLimitKey<'_>) -> String {
+        match key {
+            RateLimitKey::Global => {
+                format!("{}:rate_limit:global:{bucket}", self.key_prefix)
+            }
+            RateLimitKey::Subgraph(ref graph) => {
+                format!("{}:subgraph:rate_limit:{graph}:{bucket}", self.key_prefix)
+            }
+        }
     }
 
     async fn limit_inner(&self, context: &dyn RateLimiterContext) -> Result<(), Error> {
         let Some(key) = context.key() else { return Ok(()) };
 
-        let Some(config) = self.subgraph_limits.get(key) else {
+        let config = match key {
+            RateLimitKey::Global => self
+                .config_watcher
+                .borrow()
+                .gateway
+                .rate_limit
+                .as_ref()
+                .and_then(|rt| rt.global),
+            RateLimitKey::Subgraph(name) => self
+                .config_watcher
+                .borrow()
+                .subgraphs
+                .get(name.as_ref())
+                .and_then(|sb| sb.rate_limit),
+        };
+
+        let Some(config) = config else {
             return Ok(());
         };
 
@@ -220,9 +114,9 @@ impl RedisRateLimiter {
         let bucket_percentage = (current_ts % duration_ns) as f64 / duration_ns as f64;
 
         // The counter key for the current window.
-        let current_bucket = self.generate_key(current_bucket, Key::Graph { name: key });
+        let current_bucket = self.generate_key(current_bucket, key);
         // The counter key for the previous window.
-        let previous_bucket = self.generate_key(previous_bucket, Key::Graph { name: key });
+        let previous_bucket = self.generate_key(previous_bucket, key);
 
         // We execute multiple commands in one pipelined query to be _fast_.
         let mut pipe = redis::pipe();
@@ -231,25 +125,21 @@ impl RedisRateLimiter {
         pipe.atomic();
 
         pipe.cmd("GET").arg(&previous_bucket);
-        pipe.cmd("INCR").arg(&current_bucket);
-
-        // Sets the timeout to the set. This will delete the data after the duration if we do not modify the value.
-        pipe.cmd("EXPIRE")
-            .arg(&current_bucket)
-            .arg(config.duration.as_secs() * 2)
-            .ignore();
+        pipe.cmd("GET").arg(&current_bucket);
 
         // Execute the whole pipeline in one multiplexed request.
-        match pipe.query_async::<_, (Option<u64>, u64)>(&mut *conn).await {
+        match pipe.query_async::<_, (Option<u64>, Option<u64>)>(&mut *conn).await {
             Ok((previous_count, current_count)) => {
                 let previous_count = previous_count.unwrap_or_default().min(config.limit as u64);
-                let current_count = current_count.min(config.limit as u64);
+                let current_count = current_count.unwrap_or_default().min(config.limit as u64);
 
                 // Sum is a percentage what is left from the previous window, and the count of the
                 // current window.
                 let average = previous_count as f64 * (1.0 - bucket_percentage) + current_count as f64;
 
-                if average <= config.limit as f64 {
+                if average < config.limit as f64 {
+                    tokio::spawn(incr_counter(self.pool.clone(), current_bucket, config.duration));
+
                     Ok(())
                 } else {
                     Err(Error::ExceededCapacity)
@@ -261,6 +151,34 @@ impl RedisRateLimiter {
             }
         }
     }
+}
+
+async fn incr_counter(pool: Pool, current_bucket: String, expire: Duration) -> Result<(), Error> {
+    let mut conn = match pool.get().await {
+        Ok(conn) => conn,
+        Err(error) => {
+            tracing::error!(target: GRAFBASE_TARGET, "error fetching a Redis connection: {error}");
+            return Err(Error::Internal(String::from("rate limit")));
+        }
+    };
+
+    let mut pipe = redis::pipe();
+    pipe.atomic();
+
+    pipe.cmd("INCR").arg(&current_bucket);
+
+    // Sets the timeout to the set. This will delete the data after the duration if we do not modify the value.
+    pipe.cmd("EXPIRE")
+        .arg(&current_bucket)
+        .arg(expire.as_secs() * 2)
+        .ignore();
+
+    if let Err(e) = pipe.query_async::<_, (u64,)>(&mut *conn).await {
+        tracing::error!(target: GRAFBASE_TARGET, "error with Redis query: {e}");
+        return Err(Error::Internal(String::from("rate limit")));
+    }
+
+    Ok(())
 }
 
 impl runtime::rate_limiting::RateLimiterInner for RedisRateLimiter {

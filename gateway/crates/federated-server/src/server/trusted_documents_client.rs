@@ -31,7 +31,7 @@ impl runtime::trusted_documents_client::TrustedDocumentsClient for TrustedDocume
 
         let response = self
             .http_client
-            .get(&url.to_string())
+            .get(url.to_string())
             .send()
             .await
             .map_err(|err| runtime::trusted_documents_client::TrustedDocumentsError::RetrievalError(err.into()))?;

@@ -1,6 +1,6 @@
 [package]
 name = "federated-server"
-version = "0.6.1"
+version = "0.8.0"
 edition.workspace = true
 license = "MPL-2.0"
 homepage.workspace = true
@@ -25,38 +25,30 @@ async-trait = "0.1.80"
 axum = { workspace = true, features = ["macros", "ws", "query", "json"] }
 axum-server = { version = "0.6.0", features = ["tls-rustls"] }
 blake3.workspace = true
-duration-str = "0.11.0"
 engine.workspace = true
 engine-config-builder.workspace = true
 engine-v2.workspace = true
 engine-v2-axum.workspace = true
 futures-util.workspace = true
 grafbase-telemetry = { workspace = true, features = ["tower", "otlp"] }
+gateway-config.workspace = true
 graphql-composition.workspace = true
 http.workspace = true
-parser-sdl = { version = "0.1.0", path = "../../../engine/crates/parser-sdl" }
 reqwest = { workspace = true, features = ["http2", "json", "rustls-tls"] }
 runtime.workspace = true
 runtime-local = { workspace = true, features = ["wasi", "redis"] }
 runtime-noop.workspace = true
 serde.workspace = true
 thiserror.workspace = true
+toml.workspace = true
 tokio = { workspace = true, features = ["signal", "time", "net"] }
 tower-http = { version = "0.5.2", features = ["cors", "timeout"] }
 tracing.workspace = true
 ulid = { workspace = true, features = ["serde"] }
 url = { workspace = true, features = ["serde"] }
-serde-dynamic-string.workspace = true
-regex.workspace = true
+notify = "6.1.1"
 
 # Lambda dependencies
 axum-aws-lambda = { version = "0.7.0", optional = true }
 tower = { workspace = true, optional = true }
 lambda_http = { version = "0.11.1", optional = true }
-serde_regex = "1.1.0"
-
-[dev-dependencies]
-indoc = "2.0.5"
-insta.workspace = true
-temp-env = "0.3.6"
-toml = "0.8.12"

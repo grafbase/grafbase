@@ -2,19 +2,19 @@ mod header;
 mod rate_limit;
 
 use std::{
-    collections::{BTreeMap, HashMap},
+    collections::BTreeMap,
     path::{Path, PathBuf},
     time::Duration,
 };
 
-use crate::GLOBAL_RATE_LIMIT_KEY;
 use federated_graph::{FederatedGraphV3, SubgraphId};
 
 use self::rate_limit::{RateLimitConfigRef, RateLimitRedisConfigRef, RateLimitRedisTlsConfigRef};
 
+pub use super::v2::EntityCaching;
 pub use super::v4::{
     AuthConfig, AuthProviderConfig, CacheConfig, CacheConfigTarget, CacheConfigs, Header, HeaderId, HeaderValue,
-    JwksConfig, JwtConfig, OperationLimits, StringId, SubgraphConfig,
+    JwksConfig, JwtConfig, OperationLimits, RetryConfig, StringId, SubgraphConfig,
 };
 pub use header::{
     HeaderForward, HeaderInsert, HeaderRemove, HeaderRenameDuplicate, HeaderRule, HeaderRuleId, NameOrPattern,
@@ -55,7 +55,7 @@ pub struct Config {
     pub timeout: Option<Duration>,
 
     #[serde(default)]
-    pub enable_entity_caching: bool,
+    pub entity_caching: EntityCaching,
 }
 
 impl Config {
@@ -73,7 +73,7 @@ impl Config {
             disable_introspection: Default::default(),
             rate_limit: Default::default(),
             timeout: None,
-            enable_entity_caching: false,
+            entity_caching: EntityCaching::Disabled,
         }
     }
 
@@ -92,21 +92,28 @@ impl Config {
         })
     }
 
-    pub fn as_keyed_rate_limit_config(&self) -> HashMap<&str, GraphRateLimit> {
-        let mut key_based_config = HashMap::new();
+    pub fn as_keyed_rate_limit_config(&self) -> Vec<(RateLimitKey<'_>, GraphRateLimit)> {
+        let mut key_based_config = Vec::new();
 
         if let Some(global_config) = self.rate_limit.as_ref().and_then(|c| c.global) {
-            key_based_config.insert(GLOBAL_RATE_LIMIT_KEY, global_config);
+            key_based_config.push((RateLimitKey::Global, global_config));
         }
 
         for subgraph in self.subgraph_configs.values() {
             if let Some(subgraph_rate_limit) = subgraph.rate_limit {
-                key_based_config.insert(&self.strings[subgraph.name.0], subgraph_rate_limit);
+                let key = RateLimitKey::Subgraph(&self.strings[subgraph.name.0]);
+                key_based_config.push((key, subgraph_rate_limit));
             }
         }
 
         key_based_config
     }
+}
+
+#[derive(Clone, Copy, Debug)]
+pub enum RateLimitKey<'a> {
+    Global,
+    Subgraph(&'a str),
 }
 
 impl std::ops::Index<StringId> for Config {
@@ -182,7 +189,7 @@ mod tests {
             disable_introspection: Default::default(),
             rate_limit: Default::default(),
             timeout: None,
-            enable_entity_caching: false,
+            entity_caching: Default::default(),
         };
 
         insta::with_settings!({sort_maps => true}, {
@@ -205,7 +212,7 @@ mod tests {
               },
               "default_header_rules": [],
               "disable_introspection": false,
-              "enable_entity_caching": false,
+              "entity_caching": "Disabled",
               "graph": {
                 "authorized_directives": [],
                 "directives": [],

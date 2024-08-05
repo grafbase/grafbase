@@ -2,10 +2,11 @@ mod lambda;
 mod log;
 mod std;
 
-use ::std::net::SocketAddr;
+use ::std::{net::SocketAddr, path::Path};
 
 use clap::Parser;
-use federated_server::{Config, GraphFetchMethod};
+use federated_server::GraphFetchMethod;
+use gateway_config::Config;
 use grafbase_telemetry::otel::layer::BoxedLayer;
 pub(crate) use log::LogLevel;
 use tracing::Subscriber;
@@ -19,6 +20,10 @@ pub(crate) trait Args {
     fn fetch_method(&self) -> anyhow::Result<GraphFetchMethod>;
 
     fn config(&self) -> anyhow::Result<Config>;
+
+    fn config_path(&self) -> Option<&Path>;
+
+    fn hot_reload(&self) -> bool;
 
     fn log_format<S>(&self) -> BoxedLayer<S>
     where

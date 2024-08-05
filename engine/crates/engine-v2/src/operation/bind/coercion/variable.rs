@@ -1,8 +1,8 @@
 use engine_value::ConstValue;
 use id_newtypes::IdRange;
 use schema::{
-    Definition, EnumWalker, InputObjectWalker, InputValueDefinitionId, ListWrapping, ScalarType, ScalarWalker, Schema,
-    Type,
+    Definition, EnumDefinitionWalker, InputObjectDefinitionWalker, InputValueDefinitionId, ListWrapping,
+    ScalarDefinitionWalker, ScalarType, Schema, Type,
 };
 
 use crate::operation::{Location, VariableDefinition, VariableInputValue, VariableInputValueId, VariableInputValues};
@@ -102,7 +102,7 @@ impl<'a> VariableCoercionContext<'a> {
 
     fn coerce_input_objet(
         &mut self,
-        input_object: InputObjectWalker<'_>,
+        input_object: InputObjectDefinitionWalker<'_>,
         value: ConstValue,
     ) -> Result<VariableInputValue, InputValueError> {
         let ConstValue::Object(mut fields) = value else {
@@ -151,7 +151,7 @@ impl<'a> VariableCoercionContext<'a> {
 
     fn coerce_enum(
         &mut self,
-        r#enum: EnumWalker<'_>,
+        r#enum: EnumDefinitionWalker<'_>,
         value: ConstValue,
     ) -> Result<VariableInputValue, InputValueError> {
         let name = match &value {
@@ -181,7 +181,7 @@ impl<'a> VariableCoercionContext<'a> {
 
     fn coerce_scalar(
         &mut self,
-        scalar: ScalarWalker<'_>,
+        scalar: ScalarDefinitionWalker<'_>,
         value: ConstValue,
     ) -> Result<VariableInputValue, InputValueError> {
         match (value, scalar.as_ref().ty) {

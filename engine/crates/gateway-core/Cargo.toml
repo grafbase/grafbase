@@ -12,7 +12,6 @@ keywords = ["graphql", "gateway", "grafbase"]
 
 [features]
 default = []
-partial-caching = ["dep:partial-caching", "dep:cynic-parser", "dep:futures-channel"]
 
 [lints]
 workspace = true
@@ -25,12 +24,12 @@ async-trait = "0.1.80"
 blake3.workspace = true
 bytes.workspace = true
 common-types.workspace = true
-cynic-parser = { workspace = true, optional = true }
+cynic-parser.workspace = true
 engine-parser.workspace = true
 engine-validation.workspace = true
 engine-value.workspace = true
 engine.workspace = true
-futures-channel = { workspace = true, optional = true }
+futures-channel.workspace = true
 futures-util.workspace = true
 grafbase-telemetry.workspace = true
 headers.workspace = true
@@ -39,7 +38,7 @@ mediatype = "0.19.18"
 mime = "0.3.17"
 multipart-stream = "0.1.2"
 operation-normalizer = { path = "../operation-normalizer" }
-partial-caching = { workspace = true, optional = true }
+partial-caching.workspace = true
 registry-for-cache.workspace = true
 runtime = { workspace = true, features = ["test-utils"] }
 serde.workspace = true

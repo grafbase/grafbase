@@ -5,6 +5,7 @@ pub mod ids;
 mod input_value;
 mod location;
 mod logical_planner;
+mod metrics;
 mod modifier;
 mod parse;
 mod path;
@@ -15,6 +16,7 @@ mod walkers;
 
 use crate::response::{ConcreteObjectShapeId, FieldShapeId, ResponseKeys, ResponseObjectSetId, Shapes};
 pub(crate) use engine_parser::types::OperationType;
+use grafbase_telemetry::metrics::OperationMetricsAttributes;
 use id_derives::IndexImpls;
 use id_newtypes::{BitSet, IdRange, IdToMany};
 pub(crate) use ids::*;
@@ -22,7 +24,7 @@ pub(crate) use input_value::*;
 pub(crate) use location::Location;
 pub(crate) use modifier::*;
 pub(crate) use path::QueryPath;
-use schema::{EntityId, ObjectId, RequiredFieldId, ResolverId, SchemaWalker};
+use schema::{EntityId, ObjectDefinitionId, RequiredFieldId, ResolverDefinitionId, SchemaWalker};
 pub(crate) use selection_set::*;
 pub(crate) use variables::*;
 pub(crate) use walkers::*;
@@ -30,7 +32,7 @@ pub(crate) use walkers::*;
 #[derive(serde::Serialize, serde::Deserialize)]
 pub(crate) struct PreparedOperation {
     pub operation: Operation,
-    pub metadata: OperationMetadata,
+    pub metrics_attributes: OperationMetricsAttributes,
     pub plan: OperationPlan,
     pub response_blueprint: ResponseBlueprint,
 }
@@ -63,7 +65,7 @@ where
 #[derive(serde::Serialize, serde::Deserialize)]
 pub(crate) struct Operation {
     pub ty: OperationType,
-    pub root_object_id: ObjectId,
+    pub root_object_id: ObjectDefinitionId,
     pub root_selection_set_id: SelectionSetId,
     // sorted
     pub root_query_modifier_ids: Vec<QueryModifierId>,
@@ -79,17 +81,6 @@ pub(crate) struct Operation {
     // deduplicated by rule
     pub response_modifiers: Vec<ResponseModifier>,
     pub response_modifier_impacted_fields: Vec<FieldId>,
-}
-
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct OperationMetadata {
-    pub ty: OperationType,
-    /// This is a *processed* operation name, it does not strictly reflect the GraphQL operation
-    /// name. Currently, if the latter doesn't exist we take the first field's name as the
-    /// operation name.
-    pub name: Option<String>,
-    pub normalized_query: String,
-    pub normalized_query_hash: [u8; 32],
 }
 
 #[derive(serde::Serialize, serde::Deserialize, IndexImpls)]
@@ -112,7 +103,7 @@ pub(crate) struct OperationPlan {
 
 #[derive(serde::Serialize, serde::Deserialize)]
 pub(crate) struct LogicalPlan {
-    pub resolver_id: ResolverId,
+    pub resolver_id: ResolverDefinitionId,
     pub entity_id: EntityId,
     pub root_field_ids_ordered_by_parent_entity_id_then_position: Vec<FieldId>,
 }
@@ -185,14 +176,12 @@ impl Operation {
     pub fn walker_with<'op, 'schema, SI>(
         &'op self,
         schema_walker: SchemaWalker<'schema, SI>,
-        variables: &'op Variables,
     ) -> OperationWalker<'op, (), SI>
     where
         'schema: 'op,
     {
         OperationWalker {
             operation: self,
-            variables,
             schema_walker,
             item: (),
         }

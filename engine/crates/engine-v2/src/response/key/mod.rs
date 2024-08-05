@@ -45,8 +45,8 @@
 /// Due to bitpacking we have the following constraints on the Query:
 /// - At most 65_536 bound fields (after spreading named fragments)
 /// - At most 32_768 different response keys
-/// Which I consider to be a decent enough margin for any sane query. At worst we'll increase it if
-/// really necessary.
+///   Which I consider to be a decent enough margin for any sane query. At worst we'll increase it if
+///   really necessary.
 const POSITION_MASK: u32 = 0b0111_1111_1111_1111_1000_0000_0000_0000;
 const POSITION_BIT_SHIFT: u32 = POSITION_MASK.trailing_zeros();
 const MAX_RESPONSE_KEY: u32 = (1 << POSITION_BIT_SHIFT) - 1;

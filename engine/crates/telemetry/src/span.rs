@@ -1,7 +1,10 @@
 use http::Response;
 use http_body::Body;
 
-use crate::gql_response_status::{GraphqlResponseStatus, SubgraphResponseStatus};
+use crate::{
+    gql_response_status::{GraphqlResponseStatus, SubgraphResponseStatus},
+    metrics::OperationMetricsAttributes,
+};
 
 /// Tracing target for logging
 pub const GRAFBASE_TARGET: &str = "grafbase";
@@ -54,6 +57,16 @@ pub struct GqlRequestAttributes<'a> {
     pub operation_name: Option<&'a str>,
     /// Must NOT contain any sensitive data
     pub sanitized_query: Option<&'a str>,
+}
+
+impl<'a> From<&'a OperationMetricsAttributes> for GqlRequestAttributes<'a> {
+    fn from(metrics_attributes: &'a OperationMetricsAttributes) -> Self {
+        Self {
+            operation_type: metrics_attributes.ty.as_str(),
+            operation_name: metrics_attributes.name.as_deref(),
+            sanitized_query: Some(&metrics_attributes.sanitized_query),
+        }
+    }
 }
 
 /// Wraps attributes of a graphql response intended to be recorded

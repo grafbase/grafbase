@@ -1,3 +1,4 @@
+use graphql_mocks::SecureSchema;
 use http::HeaderMap;
 use runtime::{
     error::{PartialErrorCode, PartialGraphqlError},
@@ -70,21 +71,22 @@ fn arguments_are_provided() {
         "###);
 
         // We shouldn't have requested the field.
-        insta::assert_json_snapshot!(engine.get_recorded_subrequests(), @r###"
+        let requests = engine.drain_graphql_requests_sent_to::<SecureSchema>();
+        insta::assert_json_snapshot!(requests, @r###"
         [
           {
-            "subgraph_name": "secure",
-            "request_body": {
-              "query": "query {\n  check {\n    __typename\n  }\n}\n",
-              "variables": {}
+            "query": "query($var0: Int!) {\n  check {\n    authorizedWithId(id: $var0)\n  }\n}\n",
+            "operationName": null,
+            "variables": {
+              "var0": 791
             },
-            "response_body": {
-              "data": {
-                "check": {
-                  "__typename": "Check"
-                }
-              }
-            }
+            "extensions": {}
+          },
+          {
+            "query": "query {\n  check {\n    __typename\n  }\n}\n",
+            "operationName": null,
+            "variables": {},
+            "extensions": {}
           }
         ]
         "###);

@@ -74,14 +74,33 @@ impl<'a> Converter<'a> {
             return Ok(None);
         };
 
-        let mut arguments = Vec::with_capacity(item.arguments.len());
-        for (id, value) in item.arguments {
-            let Some(input_value_definition_id) = self.ctx.idmaps.input_value.get(id) else {
-                continue;
-            };
-            let ty = self.graph[input_value_definition_id].ty;
-            let input_value_id = self.coercer.coerce(ty, value)?;
-            arguments.push((input_value_definition_id, input_value_id));
+        let mut federated_arguments = item
+            .arguments
+            .into_iter()
+            .filter_map(|(id, value)| {
+                let input_value_definition_id = self.ctx.idmaps.input_value.get(id)?;
+                Some((input_value_definition_id, value))
+            })
+            .collect::<Vec<_>>();
+        let mut arguments = Vec::with_capacity(federated_arguments.len());
+
+        for input_value_definition_id in self.graph[definition_id].argument_ids {
+            let input_value_definition = &self.graph[input_value_definition_id];
+            if let Some(index) = federated_arguments
+                .iter()
+                .position(|(id, _)| *id == input_value_definition_id)
+            {
+                let (_, value) = federated_arguments.swap_remove(index);
+                let ty = self.graph[input_value_definition_id].ty;
+                let input_value_id = self.coercer.coerce(ty, value)?;
+                arguments.push((input_value_definition_id, input_value_id));
+            } else if let Some(id) = input_value_definition.default_value {
+                arguments.push((input_value_definition_id, id));
+            } else if input_value_definition.ty.wrapping.is_required() {
+                return Err(InputValueError::MissingRequiredArgument(
+                    self.ctx.strings[input_value_definition.name].clone(),
+                ));
+            }
         }
 
         let field = RequiredField {

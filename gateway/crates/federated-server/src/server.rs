@@ -17,31 +17,51 @@ use tokio::sync::watch;
 use tracing::Level;
 use ulid::Ulid;
 
-use crate::config::{Config, TlsConfig};
 use axum::{routing::get, Router};
 use axum_server as _;
 use engine_v2_axum::websocket::{WebsocketAccepter, WebsocketService};
+use gateway_config::{Config, TlsConfig};
 use grafbase_telemetry::span::GRAFBASE_TARGET;
 use state::ServerState;
 use std::{
     net::{IpAddr, Ipv4Addr, SocketAddr},
+    path::PathBuf,
     time::Duration,
 };
 use tokio::sync::mpsc;
 use tower_http::cors::CorsLayer;
 
-use self::gateway::GatewayConfig;
-
 const DEFAULT_LISTEN_ADDRESS: SocketAddr = SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), 5000);
+
+/// Start parameter for the gateway.
+pub struct ServerConfig {
+    /// The GraphQL endpoint listen address.
+    pub listen_addr: Option<SocketAddr>,
+    /// The gateway configuration.
+    pub config: Config,
+    /// The config file path for hot reload.
+    pub config_path: Option<PathBuf>,
+    /// If true, watches changes to the config
+    /// and reloads _some_ of the things.
+    pub config_hot_reload: bool,
+    /// The way of loading the graph for the gateway.
+    pub fetch_method: GraphFetchMethod,
+    /// The opentelemetry tracer.
+    pub otel_tracing: Option<OtelTracing>,
+}
 
 /// Starts the self-hosted Grafbase gateway. If started with a schema path, will
 /// not connect our API for changes in the schema and if started without, we poll
 /// the schema registry every ten second for changes.
 pub async fn serve(
-    listen_addr: Option<SocketAddr>,
-    config: Config,
-    fetch_method: GraphFetchMethod,
-    otel_tracing: Option<OtelTracing>,
+    ServerConfig {
+        listen_addr,
+        config,
+        config_path,
+        fetch_method,
+        otel_tracing,
+        config_hot_reload,
+    }: ServerConfig,
 ) -> crate::Result<()> {
     let path = config.graph.path.as_deref().unwrap_or("/graphql");
 
@@ -63,17 +83,8 @@ pub async fn serve(
 
     fetch_method
         .start(
-            GatewayConfig {
-                enable_introspection: config.graph.introspection,
-                operation_limits: config.operation_limits,
-                authentication: config.authentication,
-                subgraphs: config.subgraphs,
-                trusted_documents: config.trusted_documents,
-                wasi: config.hooks,
-                header_rules: config.headers,
-                rate_limit: config.gateway.rate_limit,
-                timeout: config.gateway.timeout,
-            },
+            &config,
+            config_hot_reload.then_some(config_path).flatten(),
             otel_reload,
             sender,
         )

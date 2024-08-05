@@ -1,23 +1,26 @@
 use std::fmt;
 
 use serde::{
-    de::{DeserializeSeed, IgnoredAny, MapAccess, SeqAccess, Visitor},
+    de::{DeserializeSeed, Error, IgnoredAny, MapAccess, SeqAccess, Visitor},
     Deserializer,
 };
 
 use crate::{
-    execution::PlanWalker,
+    execution::ExecutionContext,
     response::{ErrorCode, GraphqlError, ResponseKeys, ResponsePath, SubgraphResponseRefMut, UnpackedResponseEdge},
+    sources::graphql::CacheEntry,
+    Runtime,
 };
 
 use super::errors::GraphqlErrorsSeed;
 
-pub(in crate::sources::graphql) struct EntitiesDataSeed<'resp> {
+pub(in crate::sources::graphql) struct EntitiesDataSeed<'resp, R: Runtime> {
+    pub ctx: ExecutionContext<'resp, R>,
     pub response: SubgraphResponseRefMut<'resp>,
-    pub plan: PlanWalker<'resp>,
+    pub cache_entries: Option<&'resp [CacheEntry]>,
 }
 
-impl<'resp, 'de> DeserializeSeed<'de> for EntitiesDataSeed<'resp>
+impl<'resp, 'de, R: Runtime> DeserializeSeed<'de> for EntitiesDataSeed<'resp, R>
 where
     'resp: 'de,
 {
@@ -31,7 +34,7 @@ where
     }
 }
 
-impl<'resp, 'de> Visitor<'de> for EntitiesDataSeed<'resp>
+impl<'resp, 'de, R: Runtime> Visitor<'de> for EntitiesDataSeed<'resp, R>
 where
     'resp: 'de,
 {
@@ -49,8 +52,9 @@ where
             match key {
                 EntitiesKey::Entities => {
                     map.next_value_seed(EntitiesSeed {
+                        ctx: self.ctx,
                         response_part: &self.response,
-                        plan: self.plan,
+                        cache_entries: self.cache_entries.map(|slice| slice.iter()),
                     })?;
                 }
                 EntitiesKey::Unknown => {
@@ -70,12 +74,13 @@ enum EntitiesKey {
     Unknown,
 }
 
-struct EntitiesSeed<'resp, 'parent> {
+struct EntitiesSeed<'resp, 'parent, R: Runtime> {
+    ctx: ExecutionContext<'resp, R>,
     response_part: &'parent SubgraphResponseRefMut<'resp>,
-    plan: PlanWalker<'resp>,
+    cache_entries: Option<std::slice::Iter<'parent, CacheEntry>>,
 }
 
-impl<'resp, 'de, 'parent> DeserializeSeed<'de> for EntitiesSeed<'resp, 'parent>
+impl<'resp, 'de, 'parent, R: Runtime> DeserializeSeed<'de> for EntitiesSeed<'resp, 'parent, R>
 where
     'resp: 'de,
 {
@@ -89,7 +94,7 @@ where
     }
 }
 
-impl<'resp, 'de, 'parent> Visitor<'de> for EntitiesSeed<'resp, 'parent>
+impl<'resp, 'de, 'parent, R: Runtime> Visitor<'de> for EntitiesSeed<'resp, 'parent, R>
 where
     'resp: 'de,
 {
@@ -99,12 +104,31 @@ where
         formatter.write_str("a non null entities list")
     }
 
-    fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
+    fn visit_seq<A>(mut self, mut seq: A) -> Result<Self::Value, A::Error>
     where
         A: SeqAccess<'de>,
     {
-        while let Some(seed) = self.response_part.next_seed(self.plan) {
-            match seq.next_element_seed(seed) {
+        while let Some(seed) = self.response_part.next_seed(self.ctx) {
+            let maybe_cache_data = self
+                .cache_entries
+                .as_mut()
+                .map(|some| some.next().expect("cache entries to be the correct length"))
+                .and_then(CacheEntry::as_data);
+
+            let result = match maybe_cache_data {
+                Some(data) => {
+                    // The current element was found in the cache
+                    seed.deserialize(&mut serde_json::Deserializer::from_slice(data))
+                        .map(Some)
+                        .map_err(A::Error::custom)
+                }
+                _ => {
+                    // The current element was not found in the cache so should be read from the response
+                    seq.next_element_seed(seed)
+                }
+            };
+
+            match result {
                 Ok(Some(_)) => continue,
                 Ok(None) => break,
                 Err(err) => {
@@ -128,6 +152,15 @@ where
 pub(in crate::sources::graphql) struct EntitiesErrorsSeed<'resp> {
     pub response: SubgraphResponseRefMut<'resp>,
     pub response_keys: &'resp ResponseKeys,
+}
+
+impl<'resp> EntitiesErrorsSeed<'resp> {
+    pub fn new<R: Runtime>(ctx: ExecutionContext<'resp, R>, response: SubgraphResponseRefMut<'resp>) -> Self {
+        Self {
+            response,
+            response_keys: &ctx.operation.response_keys,
+        }
+    }
 }
 
 impl<'resp> GraphqlErrorsSeed<'resp> for EntitiesErrorsSeed<'resp> {

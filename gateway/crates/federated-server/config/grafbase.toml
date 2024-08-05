@@ -5,7 +5,7 @@ listen_address = "127.0.0.1:4000"
 
 [graph]
 # The path endpoint for the GraphQL gateway
-path = "/graphql"    
+path = "/graphql"
 # Set to true to enable GraphQL introspection
 introspection = false
 
@@ -73,6 +73,10 @@ enabled = false
 # [headers.Authentication]
 # value = "Bearer {{ env.ACCESS_TOKEN }}"
 
+# [entity_caching]
+# enabled = true
+# ttl = "60s"
+
 ## Subgraph level configuration
 # [subgraphs.products]
 ## Custom websocket URL to be used for subscription requests. If not set, the default is the subgraph URL.
@@ -87,3 +91,7 @@ enabled = false
 ## when starting the gateway.
 # [subgraphs.products.headers.Authentication]
 # value = "Bearer {{ env.SUBGRAPH_ACCESS_TOKEN }}"
+## Entity caching can be configured on a per-subgraph basis
+# [subgraphs.products.entity_caching]
+# enabled = true
+# ttl = "30s"

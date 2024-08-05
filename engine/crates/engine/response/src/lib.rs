@@ -24,6 +24,8 @@ mod streaming;
 pub struct GraphqlOperationAnalyticsAttributes {
     pub name: Option<String>,
     pub r#type: common_types::OperationType,
+    #[serde(default)]
+    pub used_fields: String,
 }
 
 /// Query response
@@ -60,18 +62,11 @@ impl Response {
 
     /// Create a new successful response with the data.
     #[must_use]
-    pub fn new(
-        mut data: QueryResponse,
-        operation_name: Option<&str>,
-        operation_type: common_types::OperationType,
-    ) -> Self {
+    pub fn new(mut data: QueryResponse, graphql_operation: GraphqlOperationAnalyticsAttributes) -> Self {
         data.shrink_to_fit();
         Self {
             data,
-            graphql_operation: Some(GraphqlOperationAnalyticsAttributes {
-                name: operation_name.map(str::to_owned),
-                r#type: operation_type,
-            }),
+            graphql_operation: Some(graphql_operation),
             ..Default::default()
         }
     }
@@ -114,6 +109,7 @@ impl Response {
                     OperationType::Mutation => common_types::OperationType::Mutation,
                     OperationType::Subscription => common_types::OperationType::Subscription,
                 },
+                used_fields: String::new(),
             }),
             ..Default::default()
         }

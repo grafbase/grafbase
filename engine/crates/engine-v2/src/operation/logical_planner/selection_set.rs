@@ -7,7 +7,7 @@ use id_newtypes::IdRange;
 use itertools::Itertools;
 use schema::{
     EntityId, FieldDefinitionId, FieldDefinitionWalker, RequiredFieldId, RequiredFieldSet, RequiredFieldSetItemWalker,
-    ResolverId,
+    ResolverDefinitionId,
 };
 use tracing::{instrument, Level};
 
@@ -223,7 +223,7 @@ impl PlannedField {
 /// Potential child plan, but might not be the best one.
 struct ChildPlanCandidate<'schema> {
     entity_id: EntityId,
-    resolver_id: ResolverId,
+    resolver_id: ResolverDefinitionId,
     /// Providable fields by the resolvers with their requirements
     providable_fields: Vec<(FieldId, Cow<'schema, RequiredFieldSet>)>,
 }
@@ -287,7 +287,7 @@ impl<'schema, 'a> SelectionSetLogicalPlanner<'schema, 'a> {
         }
 
         // Actual planning, we plan one child plan at a time.
-        let mut candidates: HashMap<ResolverId, ChildPlanCandidate<'schema>> = HashMap::default();
+        let mut candidates: HashMap<ResolverDefinitionId, ChildPlanCandidate<'schema>> = HashMap::default();
         while !unplanned_fields.is_empty() {
             candidates.clear();
             self.generate_all_candidates(&unplanned_fields, planned_selection_set, &mut candidates)?;
@@ -370,7 +370,7 @@ impl<'schema, 'a> SelectionSetLogicalPlanner<'schema, 'a> {
     fn push_child(
         &mut self,
         planned_selection_set: &mut PlannedSelectionSet,
-        resolver_id: ResolverId,
+        resolver_id: ResolverDefinitionId,
         requires: Cow<'_, RequiredFieldSet>,
         entity_id: EntityId,
         root_field_ids: Vec<FieldId>,
@@ -517,7 +517,7 @@ impl<'schema, 'a> SelectionSetLogicalPlanner<'schema, 'a> {
         &mut self,
         unplanned_fields: &HashMap<FieldId, FieldDefinitionWalker<'schema>>,
         planned_selection_set: &mut PlannedSelectionSet,
-        candidates: &mut HashMap<ResolverId, ChildPlanCandidate<'schema>>,
+        candidates: &mut HashMap<ResolverDefinitionId, ChildPlanCandidate<'schema>>,
     ) -> LogicalPlanningResult<()>
     where
         'schema: 'field,
@@ -791,7 +791,7 @@ impl<'schema, 'a> SelectionSetLogicalPlanner<'schema, 'a> {
 }
 
 fn select_best_child_plan<'c, 'op>(
-    candidates: &'c mut HashMap<ResolverId, ChildPlanCandidate<'op>>,
+    candidates: &'c mut HashMap<ResolverDefinitionId, ChildPlanCandidate<'op>>,
 ) -> Option<&'c mut ChildPlanCandidate<'op>> {
     // We could be smarter, but we need to be sure there is no intersection between
     // candidates (which impacts ordering among other things) and some fields may now be

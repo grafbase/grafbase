@@ -35,14 +35,15 @@ itertools.workspace = true
 lasso2 = { version = "0.8.2", features = ["serialize"] }
 serde = { workspace = true, features = ["rc"] }
 serde-value = "0.7"
-serde_json.workspace = true
+serde_json = { workspace = true, features = ["raw_value"] }
 sha2.workspace = true
 strum.workspace = true
 thiserror.workspace = true
+tower = { workspace = true, features = ["retry"] }
 tracing.workspace = true
 http.workspace = true
 headers.workspace = true
-gateway-core = { path = "../gateway-core" }
+gateway-core.workspace = true
 web-time.workspace = true
 
 gateway-v2-auth = { path = "../gateway-v2/auth" }
@@ -56,6 +57,7 @@ schema = { path = "./schema", package = "engine-v2-schema" }
 # but having more explicit dependencies for now.
 engine = { path = "../engine" }
 runtime.workspace = true
+rand = "0.8.5"
 
 [dev-dependencies]
 pretty_assertions = "1"

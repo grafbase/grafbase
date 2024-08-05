@@ -1,8 +1,9 @@
 use std::{borrow::Cow, sync::Arc, time::Duration};
 
-use super::gateway::{GatewayConfig, GatewaySender};
+use super::gateway::GatewaySender;
 use crate::OtelReload;
 use ascii::AsciiString;
+use gateway_config::Config;
 use grafbase_telemetry::span::GRAFBASE_TARGET;
 use http::{HeaderValue, StatusCode};
 use tokio::sync::oneshot;
@@ -44,7 +45,7 @@ pub(super) struct GraphUpdater {
     access_token: AsciiString,
     sender: GatewaySender,
     current_id: Option<Ulid>,
-    gateway_config: GatewayConfig,
+    gateway_config: Config,
     otel_reload: Option<(oneshot::Sender<OtelReload>, oneshot::Receiver<()>)>,
 }
 
@@ -54,7 +55,7 @@ impl GraphUpdater {
         branch: Option<&str>,
         access_token: AsciiString,
         sender: GatewaySender,
-        gateway_config: GatewayConfig,
+        gateway_config: Config,
         otel_reload: Option<(oneshot::Sender<OtelReload>, oneshot::Receiver<()>)>,
     ) -> crate::Result<Self> {
         let gdn_client = reqwest::ClientBuilder::new()
@@ -182,7 +183,8 @@ impl GraphUpdater {
             let gateway = match super::gateway::generate(
                 &response.sdl,
                 Some(response.branch_id),
-                self.gateway_config.clone(),
+                &self.gateway_config,
+                None,
             )
             .await
             {

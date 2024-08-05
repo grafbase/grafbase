@@ -2,7 +2,7 @@
 //! following:
 //!
 //! - Parse the two schemas and convert them to [Schema] structs, and do the same for all the
-//! relevant [Operation]s.
+//!   relevant [Operation]s.
 //! - Aggregate field usage from the operations with [aggregate_field_usage()].
 //! - Run the checks with [check()].
 

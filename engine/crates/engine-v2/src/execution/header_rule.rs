@@ -163,7 +163,7 @@ fn handle_forward<C>(
 }
 
 fn is_header_denied(name: &HeaderName) -> bool {
-    static DENY_LIST: OnceLock<[&str; 14]> = OnceLock::new();
+    static DENY_LIST: OnceLock<[&str; 15]> = OnceLock::new();
     let blacklist = DENY_LIST.get_or_init(|| {
         let mut blacklist = [
             header::ACCEPT.as_str(),
@@ -181,6 +181,7 @@ fn is_header_denied(name: &HeaderName) -> bool {
             header::TRAILER.as_str(),
             header::TRANSFER_ENCODING.as_str(),
             header::UPGRADE.as_str(),
+            header::HOST.as_str(),
         ];
         blacklist.sort_unstable();
         blacklist

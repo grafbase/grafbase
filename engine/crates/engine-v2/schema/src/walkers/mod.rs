@@ -1,4 +1,7 @@
-use crate::{sources::IntrospectionMetadata, Names, Schema, StringId};
+use crate::{
+    sources::{graphql::GraphqlEndpointWalker, IntrospectionMetadata},
+    Names, Schema, StringId,
+};
 
 mod definition;
 mod directives;
@@ -90,15 +93,15 @@ impl<'a> SchemaWalker<'a, ()> {
         &self.schema.data_sources.introspection
     }
 
-    pub fn query(&self) -> ObjectWalker<'a> {
+    pub fn query(&self) -> ObjectDefinitionWalker<'a> {
         self.walk(self.schema.graph.root_operation_types.query)
     }
 
-    pub fn mutation(&self) -> Option<ObjectWalker<'a>> {
+    pub fn mutation(&self) -> Option<ObjectDefinitionWalker<'a>> {
         self.schema.graph.root_operation_types.mutation.map(|id| self.walk(id))
     }
 
-    pub fn subscription(&self) -> Option<ObjectWalker<'a>> {
+    pub fn subscription(&self) -> Option<ObjectDefinitionWalker<'a>> {
         self.schema
             .graph
             .root_operation_types
@@ -122,6 +125,10 @@ impl<'a> SchemaWalker<'a, ()> {
             .default_header_rules
             .iter()
             .map(move |id| self.walk(*id))
+    }
+
+    pub fn graphql_endpoints(&self) -> impl ExactSizeIterator<Item = GraphqlEndpointWalker<'_>> {
+        (0..self.data_sources.graphql.endpoints.len()).map(|i| GraphqlEndpointWalker::new(i.into(), self, &()))
     }
 }
 

@@ -1,7 +1,7 @@
 use std::{collections::HashMap, ops::Range};
 
 use id_newtypes::IdRange;
-use schema::{Definition, FieldDefinitionWalker, ObjectId, TypeSystemDirective};
+use schema::{Definition, FieldDefinitionWalker, ObjectDefinitionId, TypeSystemDirective};
 
 use crate::operation::{
     FieldArgumentId, FieldId, QueryModifier, QueryModifierId, QueryModifierRule, ResponseModifier, ResponseModifierId,
@@ -86,7 +86,10 @@ impl<'schema, 'p> super::Binder<'schema, 'p> {
         }
     }
 
-    pub(super) fn generate_modifiers_for_root_object(&mut self, root_object_id: ObjectId) -> Vec<QueryModifierId> {
+    pub(super) fn generate_modifiers_for_root_object(
+        &mut self,
+        root_object_id: ObjectDefinitionId,
+    ) -> Vec<QueryModifierId> {
         let mut modifiers = Vec::new();
         for directive in self.schema.walk(root_object_id).directives().as_ref() {
             match directive {

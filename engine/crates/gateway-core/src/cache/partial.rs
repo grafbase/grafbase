@@ -68,7 +68,15 @@ where
             }
 
             Ok(Arc::new(
-                engine::Response::new(body, request.operation_name(), operation_type).http_headers(headers),
+                engine::Response::new(
+                    body,
+                    engine::GraphqlOperationAnalyticsAttributes {
+                        name: request.operation_name().map(str::to_string),
+                        r#type: operation_type,
+                        used_fields: String::new(),
+                    },
+                )
+                .http_headers(headers),
             ))
         }
     }
@@ -118,7 +126,15 @@ where
                     .await;
             }
 
-            let response = engine::Response::new(body, request.operation_name(), operation_type).http_headers(headers);
+            let response = engine::Response::new(
+                body,
+                engine::GraphqlOperationAnalyticsAttributes {
+                    name: request.operation_name().map(str::to_string),
+                    r#type: operation_type,
+                    used_fields: String::new(),
+                },
+            )
+            .http_headers(headers);
 
             Ok(stream::once(async move {
                 engine::StreamingPayload::InitialResponse(InitialResponse {

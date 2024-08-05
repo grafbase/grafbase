@@ -25,7 +25,6 @@ pub struct Variables {
 
 #[derive(Clone)]
 pub enum VariableValue {
-    Unavailable,
     Undefined,
     InputValue(VariableInputValueId),
 }
@@ -57,12 +56,5 @@ impl Variables {
         request_variables: engine::Variables,
     ) -> Result<Self, Vec<VariableError>> {
         bind_variables(schema, operation, request_variables)
-    }
-
-    pub(super) fn create_unavailable_for(operation: &Operation) -> Self {
-        Variables {
-            input_values: VariableInputValues::default(),
-            definition_to_value: vec![VariableValue::Unavailable; operation.variable_definitions.len()],
-        }
     }
 }

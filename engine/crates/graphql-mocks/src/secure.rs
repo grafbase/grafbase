@@ -3,7 +3,19 @@ use async_graphql::{EmptyMutation, EmptySubscription, Object, SimpleObject, Type
 /// A schema that only uses String types.
 ///
 /// This is used to make sure that we're not pruning built in scalars that aren't used
-pub type SecureSchema = async_graphql::Schema<Query, EmptyMutation, EmptySubscription>;
+#[derive(Default)]
+pub struct SecureSchema;
+
+impl crate::Subgraph for SecureSchema {
+    fn name(&self) -> String {
+        "secure".to_string()
+    }
+
+    async fn start(self) -> crate::MockGraphQlServer {
+        let schema = async_graphql::Schema::<Query, EmptyMutation, EmptySubscription>::default();
+        crate::MockGraphQlServer::new(schema).await
+    }
+}
 
 #[TypeDirective(
     location = "FieldDefinition",

@@ -15,15 +15,13 @@ mod streaming;
 mod variables;
 
 use engine_v2::Engine;
-use graphql_mocks::{FakeGithubSchema, MockGraphQlServer};
+use graphql_mocks::FakeGithubSchema;
 use integration_tests::{federation::EngineV2Ext, runtime};
 
 #[test]
 fn single_field_from_single_server() {
     let response = runtime().block_on(async move {
-        let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
-
-        let engine = Engine::builder().with_subgraph("schema", &github_mock).build().await;
+        let engine = Engine::builder().with_subgraph(FakeGithubSchema).build().await;
 
         engine.execute("query { serverVersion }").await
     });
@@ -40,9 +38,7 @@ fn single_field_from_single_server() {
 #[test]
 fn top_level_typename() {
     let response = runtime().block_on(async move {
-        let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
-
-        let engine = Engine::builder().with_subgraph("schema", &github_mock).build().await;
+        let engine = Engine::builder().with_subgraph(FakeGithubSchema).build().await;
 
         engine.execute("query { __typename }").await
     });
@@ -59,9 +55,7 @@ fn top_level_typename() {
 #[test]
 fn only_typename() {
     let response = runtime().block_on(async move {
-        let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
-
-        let engine = Engine::builder().with_subgraph("schema", &github_mock).build().await;
+        let engine = Engine::builder().with_subgraph(FakeGithubSchema).build().await;
 
         engine
             .execute(
@@ -103,9 +97,7 @@ fn only_typename() {
 #[test]
 fn response_with_lists() {
     let response = runtime().block_on(async move {
-        let github_mock = MockGraphQlServer::new(FakeGithubSchema).await;
-
-        let engine = Engine::builder().with_subgraph("schema", &github_mock).build().await;
+        let engine = Engine::builder().with_subgraph(FakeGithubSchema).build().await;
 
         engine.execute("query { allBotPullRequests { title } }").await
     });

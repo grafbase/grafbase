@@ -1,4 +1,4 @@
-use tokio::sync::watch::error::SendError;
+use tokio::sync::{mpsc, watch};
 
 /// The Grafbase gateway error type
 #[derive(Debug, thiserror::Error)]
@@ -17,8 +17,14 @@ pub enum Error {
     Server(#[source] std::io::Error),
 }
 
-impl<T> From<SendError<T>> for Error {
-    fn from(value: SendError<T>) -> Self {
+impl<T> From<watch::error::SendError<T>> for Error {
+    fn from(value: watch::error::SendError<T>) -> Self {
+        Self::InternalError(value.to_string())
+    }
+}
+
+impl<T> From<mpsc::error::SendError<T>> for Error {
+    fn from(value: mpsc::error::SendError<T>) -> Self {
         Self::InternalError(value.to_string())
     }
 }

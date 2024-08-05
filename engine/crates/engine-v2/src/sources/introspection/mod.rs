@@ -1,14 +1,15 @@
 use crate::{
-    execution::{ExecutionContext, ExecutionResult, PlanWalker},
+    execution::{ExecutionContext, ExecutionResult},
+    operation::PlanWalker,
     response::SubgraphResponse,
     Runtime,
 };
 
 mod writer;
 
-pub(crate) struct IntrospectionPreparedExecutor;
+pub(crate) struct IntrospectionResolver;
 
-impl IntrospectionPreparedExecutor {
+impl IntrospectionResolver {
     #[allow(clippy::unnecessary_wraps)]
     pub async fn execute<'ctx, R: Runtime>(
         &'ctx self,

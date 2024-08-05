@@ -7,9 +7,10 @@ use super::{
     bind::{bind_operation, BindError},
     blueprint::ResponseBlueprintBuilder,
     logical_planner::{LogicalPlanner, LogicalPlanningError},
-    parse::{parse_operation, ParseError, ParsedOperation},
+    metrics::{generate_used_fields, prepare_metrics_attributes},
+    parse::{parse_operation, ParseError},
     validation::{validate_operation, ValidationError},
-    Operation, OperationMetadata, PreparedOperation, Variables,
+    Operation, OperationMetricsAttributes, PreparedOperation,
 };
 
 #[derive(Debug, thiserror::Error)]
@@ -18,17 +19,17 @@ pub(crate) enum OperationError {
     Parse(#[from] ParseError),
     #[error("{err}")]
     Bind {
-        operation_metadata: Box<Option<OperationMetadata>>,
+        metrics_attributes: Box<Option<OperationMetricsAttributes>>,
         err: BindError,
     },
     #[error("{err}")]
     Validation {
-        operation_metadata: Box<Option<OperationMetadata>>,
+        metrics_attributes: Box<Option<OperationMetricsAttributes>>,
         err: ValidationError,
     },
     #[error("{err}")]
     LogicalPlanning {
-        operation_metadata: Box<Option<OperationMetadata>>,
+        metrics_attributes: Box<Option<OperationMetricsAttributes>>,
         err: LogicalPlanningError,
     },
     #[error("Failed to normalize query")]
@@ -48,11 +49,11 @@ impl From<OperationError> for GraphqlError {
 }
 
 impl OperationError {
-    pub fn take_operation_metadata(&mut self) -> Option<OperationMetadata> {
+    pub fn take_metrics_attributes(&mut self) -> Option<OperationMetricsAttributes> {
         match self {
-            OperationError::Bind { operation_metadata, .. } => std::mem::take(operation_metadata),
-            OperationError::Validation { operation_metadata, .. } => std::mem::take(operation_metadata),
-            OperationError::LogicalPlanning { operation_metadata, .. } => std::mem::take(operation_metadata),
+            OperationError::Bind { metrics_attributes, .. } => std::mem::take(metrics_attributes),
+            OperationError::Validation { metrics_attributes, .. } => std::mem::take(metrics_attributes),
+            OperationError::LogicalPlanning { metrics_attributes, .. } => std::mem::take(metrics_attributes),
             _ => None,
         }
     }
@@ -67,57 +68,45 @@ impl Operation {
     #[instrument(skip_all)]
     pub fn build(schema: &Schema, request: &engine::Request) -> Result<PreparedOperation, OperationError> {
         let parsed_operation = parse_operation(request)?;
-        let operation_metadata = prepare_metadata(&parsed_operation, request);
+        let metrics_attributes = prepare_metrics_attributes(&parsed_operation, request);
 
         let mut operation = match bind_operation(schema, parsed_operation) {
             Ok(operation) => operation,
             Err(err) => {
                 return Err(OperationError::Bind {
-                    operation_metadata: Box::new(operation_metadata),
+                    metrics_attributes: Box::new(metrics_attributes),
                     err,
                 })
             }
         };
 
-        // At this stage we don't take into account variables so we can cache the result.
-        let variables = Variables::create_unavailable_for(&operation);
-        if let Err(err) = validate_operation(schema, operation.walker_with(schema.walker(), &variables), request) {
+        if let Err(err) = validate_operation(schema, operation.walker_with(schema.walker()), request) {
             return Err(OperationError::Validation {
-                operation_metadata: Box::new(operation_metadata),
+                metrics_attributes: Box::new(metrics_attributes),
                 err,
             });
         }
 
-        let plan = match LogicalPlanner::new(schema, &variables, &mut operation).plan() {
+        let plan = match LogicalPlanner::new(schema, &mut operation).plan() {
             Ok(plan) => plan,
             Err(err) => {
                 return Err(OperationError::LogicalPlanning {
-                    operation_metadata: Box::new(operation_metadata),
+                    metrics_attributes: Box::new(metrics_attributes),
                     err,
                 });
             }
         };
 
-        let response_blueprint = ResponseBlueprintBuilder::new(schema, &variables, &operation, &plan).build();
+        let response_blueprint = ResponseBlueprintBuilder::new(schema, &operation, &plan).build();
+
+        let mut metrics_attributes = metrics_attributes.ok_or(OperationError::NormalizationError)?;
+        metrics_attributes.used_fields = generate_used_fields(schema, &operation);
 
         Ok(PreparedOperation {
             operation,
-            metadata: operation_metadata.ok_or(OperationError::NormalizationError)?,
+            metrics_attributes,
             plan,
             response_blueprint,
         })
     }
-}
-
-fn prepare_metadata(operation: &ParsedOperation, request: &engine::Request) -> Option<OperationMetadata> {
-    operation_normalizer::normalize(request.query(), request.operation_name())
-        .ok()
-        .map(|normalized_query| OperationMetadata {
-            ty: operation.definition.ty,
-            name: operation.name.clone().or_else(|| {
-                engine_parser::find_first_field_name(&operation.fragments, &operation.definition.selection_set)
-            }),
-            normalized_query_hash: blake3::hash(normalized_query.as_bytes()).into(),
-            normalized_query,
-        })
 }

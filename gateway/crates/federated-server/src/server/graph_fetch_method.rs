@@ -1,8 +1,8 @@
 use super::gateway::{self, GatewayRuntime};
-use crate::server::gateway::GatewayConfig;
 use crate::OtelReload;
 use engine_v2::Engine;
-use std::sync::Arc;
+use gateway_config::Config;
+use std::{path::PathBuf, sync::Arc};
 use tokio::sync::{oneshot, watch};
 
 /// The method of running the gateway.
@@ -31,7 +31,8 @@ impl GraphFetchMethod {
     #[cfg_attr(feature = "lambda", allow(unused_variables))]
     pub(crate) async fn start(
         self,
-        config: GatewayConfig,
+        config: &Config,
+        hot_reload_config_path: Option<PathBuf>,
         otel_reload: Option<(oneshot::Sender<OtelReload>, oneshot::Receiver<()>)>,
         sender: watch::Sender<Option<Arc<Engine<GatewayRuntime>>>>,
     ) -> crate::Result<()> {
@@ -41,6 +42,7 @@ impl GraphFetchMethod {
                 graph_name,
                 branch,
             } => {
+                let config = config.clone();
                 #[cfg(not(feature = "lambda"))]
                 tokio::spawn(async move {
                     use super::graph_updater::GraphUpdater;
@@ -60,7 +62,7 @@ impl GraphFetchMethod {
                 });
             }
             GraphFetchMethod::FromLocal { federated_schema } => {
-                let gateway = gateway::generate(&federated_schema, None, config).await?;
+                let gateway = gateway::generate(&federated_schema, None, config, hot_reload_config_path).await?;
 
                 sender.send(Some(Arc::new(gateway)))?;
             }

@@ -2,9 +2,18 @@
 use async_graphql::{ComplexObject, Context, EmptyMutation, Object, Schema, SimpleObject};
 use futures::Stream;
 
-pub struct FakeFederationProductsSchema;
+pub struct FederatedProductsSchema;
 
-impl FakeFederationProductsSchema {
+impl crate::Subgraph for FederatedProductsSchema {
+    fn name(&self) -> String {
+        "products".to_string()
+    }
+    async fn start(self) -> crate::MockGraphQlServer {
+        crate::MockGraphQlServer::new(self).await
+    }
+}
+
+impl FederatedProductsSchema {
     fn schema() -> Schema<Query, EmptyMutation, Subscription> {
         let products = vec![
             Product {
@@ -47,7 +56,7 @@ impl FakeFederationProductsSchema {
 }
 
 #[async_trait::async_trait]
-impl super::super::Schema for FakeFederationProductsSchema {
+impl super::super::Schema for FederatedProductsSchema {
     async fn execute(
         &self,
         _headers: Vec<(String, String)>,
@@ -101,6 +110,11 @@ struct Query;
 impl Query {
     async fn top_products<'a>(&self, ctx: &'a Context<'_>) -> &'a Vec<Product> {
         ctx.data_unchecked::<Vec<Product>>()
+    }
+
+    async fn product<'a>(&self, ctx: &'a Context<'_>, upc: String) -> Option<&'a Product> {
+        let products = ctx.data_unchecked::<Vec<Product>>();
+        products.iter().find(|product| product.upc == upc)
     }
 
     #[graphql(entity)]

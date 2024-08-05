@@ -3,7 +3,7 @@ use engine::parser::types::OperationType;
 use futures_util::FutureExt;
 use grafbase_telemetry::{
     grafbase_client::Client,
-    metrics::{GraphqlOperationMetrics, GraphqlOperationMetricsAttributes},
+    metrics::{GraphqlOperationMetrics, GraphqlRequestMetricsAttributes, OperationMetricsAttributes},
     span::{gql::GqlRequestSpan, GqlRecorderSpanExt, GqlRequestAttributes},
 };
 pub use runtime::context::RequestContext;
@@ -15,9 +15,7 @@ use runtime::{
 use std::sync::Arc;
 use tracing::{info_span, Instrument};
 
-#[cfg(feature = "partial-caching")]
 use engine::{InitialResponse, StreamingPayload};
-#[cfg(feature = "partial-caching")]
 use futures_util::stream::{self, BoxStream, StreamExt};
 
 mod admin;
@@ -203,18 +201,25 @@ where
             }
 
             if let Some((operation, normalized_query)) = response.graphql_operation.as_ref().zip(normalized_query) {
-                let ty = match operation.r#type {
-                    common_types::OperationType::Query { .. } => "query",
-                    common_types::OperationType::Mutation => "mutation",
-                    common_types::OperationType::Subscription => "subscription",
-                };
-
                 self.operation_metrics.record(
-                    GraphqlOperationMetricsAttributes {
-                        ty,
-                        name: operation.name.clone(),
-                        normalized_query_hash: blake3::hash(normalized_query.as_bytes()).into(),
-                        normalized_query,
+                    GraphqlRequestMetricsAttributes {
+                        operation: OperationMetricsAttributes {
+                            ty: match operation.r#type {
+                                common_types::OperationType::Query { .. } => {
+                                    grafbase_telemetry::metrics::OperationType::Query
+                                }
+                                common_types::OperationType::Mutation => {
+                                    grafbase_telemetry::metrics::OperationType::Mutation
+                                }
+                                common_types::OperationType::Subscription => {
+                                    grafbase_telemetry::metrics::OperationType::Subscription
+                                }
+                            },
+                            name: operation.name.clone(),
+                            sanitized_query_hash: blake3::hash(normalized_query.as_bytes()).into(),
+                            sanitized_query: normalized_query,
+                            used_fields: operation.used_fields.clone(),
+                        },
                         status,
                         cache_status: headers
                             .get(X_GRAFBASE_CACHE)
@@ -292,7 +297,6 @@ where
             .await
     }
 
-    #[cfg(feature = "partial-caching")]
     pub async fn execute_stream_v2(
         &self,
         ctx: &Arc<Executor::Context>,
@@ -400,7 +404,6 @@ where
             return Ok((Arc::new(response), Default::default()));
         }
 
-        #[cfg(feature = "partial-caching")]
         if self.cache_config.partial_registry.enable_partial_caching {
             let cache_plan = partial_caching::build_plan(
                 request.query(),
@@ -465,7 +468,6 @@ where
     }
 }
 
-#[cfg(feature = "partial-caching")]
 fn error_stream(response: engine::Response) -> BoxStream<'static, engine::StreamingPayload> {
     stream::once(async move { StreamingPayload::InitialResponse(InitialResponse::error(response)) }).boxed()
 }

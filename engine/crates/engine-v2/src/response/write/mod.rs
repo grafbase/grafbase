@@ -10,7 +10,7 @@ use std::{
 use id_newtypes::IdRange;
 pub use ids::*;
 use itertools::Either;
-use schema::{ObjectId, Schema};
+use schema::{ObjectDefinitionId, Schema};
 
 use self::deserialize::UpdateSeed;
 
@@ -20,8 +20,9 @@ use super::{
     ResponseObjectSet, ResponseObjectSetId, ResponsePath, ResponseValue, UnpackedResponseEdge,
 };
 use crate::{
-    execution::{ExecutionError, PlanWalker},
-    operation::PreparedOperation,
+    execution::{ExecutionContext, ExecutionError},
+    operation::{LogicalPlanId, PreparedOperation},
+    Runtime,
 };
 
 pub(crate) struct ResponseDataPart {
@@ -46,7 +47,7 @@ impl ResponseDataPart {
 
 pub(crate) struct ResponseBuilder {
     // will be None if an error propagated up to the root.
-    pub(super) root: Option<(ResponseObjectId, ObjectId)>,
+    pub(super) root: Option<(ResponseObjectId, ObjectDefinitionId)>,
     parts: Vec<ResponseDataPart>,
     errors: Vec<GraphqlError>,
 }
@@ -57,7 +58,7 @@ pub(crate) struct ResponseBuilder {
 // least wait until we face actual problems. We're focused on OLTP workloads, so might never
 // happen.
 impl ResponseBuilder {
-    pub fn new(root_object_id: ObjectId) -> Self {
+    pub fn new(root_object_id: ObjectDefinitionId) -> Self {
         let mut initial_part = ResponseDataPart {
             id: ResponseDataPartId::from(0),
             objects: Vec::new(),
@@ -86,6 +87,7 @@ impl ResponseBuilder {
 
     pub fn new_subgraph_response(
         &mut self,
+        logical_plan_id: LogicalPlanId,
         root_response_object_set: Arc<InputdResponseObjectSet>,
         tracked_response_object_set_ids: IdRange<ResponseObjectSetId>,
     ) -> SubgraphResponse {
@@ -96,6 +98,7 @@ impl ResponseBuilder {
         self.parts.push(ResponseDataPart::new(id));
         SubgraphResponse::new(
             ResponseDataPart::new(id),
+            logical_plan_id,
             root_response_object_set,
             tracked_response_object_set_ids,
         )
@@ -345,6 +348,7 @@ enum ResponseValueId {
 
 pub(crate) struct SubgraphResponse {
     data: ResponseDataPart,
+    logical_plan_id: LogicalPlanId,
     root_response_object_set: Arc<InputdResponseObjectSet>,
     errors: Vec<GraphqlError>,
     updates: Vec<UpdateSlot>,
@@ -355,11 +359,13 @@ pub(crate) struct SubgraphResponse {
 impl SubgraphResponse {
     fn new(
         data: ResponseDataPart,
+        logical_plan_id: LogicalPlanId,
         root_response_object_set: Arc<InputdResponseObjectSet>,
         tracked_response_object_set_ids: IdRange<ResponseObjectSetId>,
     ) -> Self {
         Self {
             data,
+            logical_plan_id,
             root_response_object_set,
             errors: Vec::new(),
             updates: Vec::new(),
@@ -399,11 +405,12 @@ pub(crate) struct SubgraphResponseRefMut<'resp> {
 }
 
 impl<'resp> SubgraphResponseRefMut<'resp> {
-    pub fn next_seed<'ctx>(&self, plan: PlanWalker<'ctx>) -> Option<UpdateSeed<'resp>>
+    pub fn next_seed<'ctx, R: Runtime>(&self, ctx: ExecutionContext<'ctx, R>) -> Option<UpdateSeed<'resp>>
     where
         'ctx: 'resp,
     {
-        self.next_writer().map(|writer| UpdateSeed::new(plan, writer))
+        self.next_writer()
+            .map(|writer| UpdateSeed::new(ctx, self.inner.borrow().logical_plan_id, writer))
     }
 
     pub fn next_writer(&self) -> Option<ResponseWriter<'resp>> {

@@ -37,23 +37,21 @@ names = { git = "https://github.com/grafbase/names", rev = "443800fbb7bc2936c1f2
 # FIXME: Drop when a new version is released.
 openidconnect = { git = "https://github.com/ramosbugs/openidconnect-rs", rev = "7efc8943a8f699aff2db742827fc3d0fc2b3f34d" } # main
 
-opentelemetry = { git = "https://github.com/grafbase/opentelemetry-rust", rev = "830815740a43f488157e86b0c69b0b86d1aee867" }                    # http-v1
-opentelemetry-otlp = { git = "https://github.com/grafbase/opentelemetry-rust", rev = "830815740a43f488157e86b0c69b0b86d1aee867" }               # http-v1
-opentelemetry-stdout = { git = "https://github.com/grafbase/opentelemetry-rust", rev = "830815740a43f488157e86b0c69b0b86d1aee867" }             # http-v1
-opentelemetry_sdk = { git = "https://github.com/grafbase/opentelemetry-rust", rev = "830815740a43f488157e86b0c69b0b86d1aee867" }                # http-v1
-opentelemetry-appender-tracing = { git = "https://github.com/grafbase/opentelemetry-rust", rev = "830815740a43f488157e86b0c69b0b86d1aee867" }
+opentelemetry = { git = "https://github.com/grafbase/opentelemetry-rust", rev = "f215fe9a391d7d159b9c8a6f8c303d143ba2910f" }                    # http-v1
+opentelemetry-otlp = { git = "https://github.com/grafbase/opentelemetry-rust", rev = "f215fe9a391d7d159b9c8a6f8c303d143ba2910f" }               # http-v1
+opentelemetry-stdout = { git = "https://github.com/grafbase/opentelemetry-rust", rev = "f215fe9a391d7d159b9c8a6f8c303d143ba2910f" }             # http-v1
+opentelemetry_sdk = { git = "https://github.com/grafbase/opentelemetry-rust", rev = "f215fe9a391d7d159b9c8a6f8c303d143ba2910f" }                # http-v1
+opentelemetry-appender-tracing = { git = "https://github.com/grafbase/opentelemetry-rust", rev = "f215fe9a391d7d159b9c8a6f8c303d143ba2910f" }
 
 # FIXME: Uncomment when we upgrade opentelemetry to 0.23.
 # opentelemetry-aws = { git = "https://github.com/open-telemetry/opentelemetry-rust-contrib", rev = "086961e18437743c5ea43c9474cc1a7b13a49c6b" } # main
 ory-client = { git = "https://github.com/grafbase/client-rust", rev = "88ed8f63c1d71b294c2ef64fd80ca654e91ac25f" } # reqwest-0.12
-reqwest = { git = "https://github.com/grafbase/reqwest", rev = "22a7e4f64422b6e710ad703b62edc18301dea320" } # 0.12-with-patches-wasm-timeout
+reqwest = { git = "https://github.com/grafbase/reqwest", rev = "874a6b3c522de296629d4542943934fa20d7ab4d" } # 0.12.5-with-patches-wasm-timeout
 rudderanalytics =  { git = "https://github.com/grafbase/rudder-sdk-rust", rev = "3e994eb4dcc9c580be311ef9eab6e96dd264293b" } # async
 serde_with = { git = "https://github.com/grafbase/serde_with", rev = "06ad277a0e0175c2364d3c065e303a6c8a775c8a" } # minify-field-names
 # Temporary change till https://github.com/alexcrichton/tar-rs/pull/319 is merged and released.
 tar = { git = "https://github.com/grafbase/tar-rs.git", rev = "a889df5bd9fec44faf081f7fade5ec81935c2418" } # overwrite-hard-links
 tokio-postgres = { git = "https://github.com/grafbase/rust-postgres/", branch = "grafbase-rebased" }
-# FIXME: Remove when a new major version is released.
-tonic = { git = "https://github.com/hyperium/tonic", rev = "3457f9203226f88524b31bf5d64ce6e5ec7c993c" } # main
 # FIXME: Uncomment when we upgrade opentelemetry to 0.23.
 # tracing-opentelemetry = { git = "https://github.com/tokio-rs/tracing-opentelemetry", rev = "2539f4f7bde3dc3f320e5fb935d2c13a69a540dd" } # main
 tracing = { git = "https://github.com/tokio-rs/tracing", rev = "6d00d7d9f72dc6797138a1062bc33073afbad5a1" } # v0.1.x
@@ -127,7 +125,9 @@ tokio-postgres = { version = "0.7.10", default-features = false }
 tokio-postgres-rustls = "0.12.0"
 tokio-rustls = { version = "0.26.0", default-features = false }
 tokio-tungstenite = { version = "0.23.0", default-features = false }
+toml = "0.8"
 tungstenite = { version = "0.23.0", default-features = false }
+tonic = "0.12.0"
 tower = "0.4.13"
 tower-http = "0.5.2"
 tower-service = "0.3.2"
@@ -183,11 +183,13 @@ engine-v2 = { path = "engine/crates/engine-v2" }
 engine-v2-axum = { path = "engine/crates/engine-v2/axum" }
 engine-validation = { path = "engine/crates/engine/validation" }
 engine-value = { path = "engine/crates/engine/value" }
+federated-graph = { path = "engine/crates/federated-graph", package = "graphql-federated-graph" }
 gateway-adapter-local = { path = "engine/crates/gateway-adapter-local" }
 gateway-adapter = { path = "engine/crates/gateway-adapter" }
 gateway-core = { path = "engine/crates/gateway-core" }
 gateway-v2-auth = { path = "engine/crates/gateway-v2/auth" }
 gateway-v2-auth-config = { path = "engine/crates/gateway-v2/auth-config" }
+gateway-config = { path = "gateway/crates/config" }
 grafbase-telemetry = { path = "engine/crates/telemetry" }
 graph-entities = { path = "engine/crates/graph-entities" }
 graphql-composition = { path = "engine/crates/composition" }
@@ -215,6 +217,7 @@ worker-env = { path = "engine/crates/worker-env" }
 wrapping = { path = "engine/crates/wrapping", package = "graphql-wrapping-types" }
 
 [profile.bench]
+strip = "none"
 debug = true
 
 [profile.release]
@@ -235,7 +238,7 @@ rust-2018-idioms = "deny"
 unused-crate-dependencies = "deny"
 
 [workspace.lints.clippy]
-all = "deny"
+all = { level = "deny", priority = -1 }
 panic = "deny"
 
 # Opt out of lints that have too many false positives or are yet to be addressed.

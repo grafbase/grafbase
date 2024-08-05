@@ -8,6 +8,8 @@ use serde_json::Value;
 pub enum FetchError {
     #[error("{0}")]
     AnyError(String),
+    #[error("Request timeout")]
+    Timeout,
 }
 
 impl FetchError {
@@ -22,8 +24,7 @@ pub type FetchResult<T> = Result<T, FetchError>;
 pub struct FetchRequest<'a> {
     pub url: &'a url::Url,
     pub headers: http::HeaderMap,
-    pub json_body: String,
-    pub subgraph_name: &'a str,
+    pub json_body: Bytes,
     pub timeout: Duration,
 }
 
@@ -41,7 +42,7 @@ pub struct GraphqlRequest<'a> {
 
 #[async_trait::async_trait]
 pub trait FetcherInner: Send + Sync {
-    async fn post(&self, request: FetchRequest<'_>) -> FetchResult<FetchResponse>;
+    async fn post(&self, request: &FetchRequest<'_>) -> FetchResult<FetchResponse>;
 
     async fn stream(
         &self,

@@ -4,15 +4,15 @@ use std::{
 };
 
 use itertools::Itertools;
-use schema::{RequiredFieldSet, ResolverWalker};
+use schema::{RequiredFieldSet, ResolverDefinitionWalker};
 
 use crate::{
-    execution::{
-        ExecutableOperation, ExecutionPlan, ExecutionPlanId, PlanWalker, PreExecutionContext, ResponseModifierExecutor,
+    execution::{ExecutableOperation, ExecutionPlan, ExecutionPlanId, PreExecutionContext, ResponseModifierExecutor},
+    operation::{
+        FieldId, LogicalPlanId, OperationWalker, PlanWalker, ResponseModifierRule, SelectionSetId, SelectionSetType,
     },
-    operation::{FieldId, LogicalPlanId, OperationWalker, ResponseModifierRule, SelectionSetId, SelectionSetType},
     response::{ResponseObjectSetId, ResponseViewSelection, ResponseViewSelectionSet},
-    sources::PreparedExecutor,
+    sources::Resolver,
     Runtime,
 };
 
@@ -41,11 +41,7 @@ impl<'ctx, 'op, R: Runtime> ExecutionBuilder<'ctx, 'op, R>
 where
     'ctx: 'op,
 {
-    pub(super) fn insert_execution_plan(
-        mut self,
-        execution_plan_id: ExecutionPlanId,
-        logical_plan_id: LogicalPlanId,
-    ) -> PlanningResult<()> {
+    pub(super) fn insert_execution_plan(mut self, logical_plan_id: LogicalPlanId) -> PlanningResult<()> {
         let logical_plan = &self.operation[logical_plan_id];
         let resolver = self
             .ctx
@@ -57,13 +53,15 @@ where
             resolver,
             &logical_plan.root_field_ids_ordered_by_parent_entity_id_then_position,
         );
-        let prepared_executor = PreparedExecutor::prepare(
+        let resolver = Resolver::prepare(
             resolver,
             self.operation.borrow().ty(),
             PlanWalker {
                 schema_walker: resolver.walk(()),
                 operation: self.operation,
-                plan_id: execution_plan_id,
+                variables: &self.operation.variables,
+                query_modifications: &self.operation.query_modifications,
+                logical_plan_id,
                 item: (),
             },
         )?;
@@ -73,10 +71,11 @@ where
             parent_count: 0,
             children: Vec::new(),
             requires,
-            prepared_executor,
+            resolver,
             logical_plan_id,
             dependent_response_modifiers: Vec::new(),
         };
+        let execution_plan_id = ExecutionPlanId::from(self.execution_plans.len());
         self.execution_plans.push(plan);
         self.logical_plan_to_execution_plan_id[usize::from(logical_plan_id)] = Some(execution_plan_id);
         let range = self.push_io_fields(input_fields);
@@ -195,7 +194,7 @@ where
 
     fn create_plan_view_and_list_dependencies(
         &mut self,
-        resolver: ResolverWalker<'_>,
+        resolver: ResolverDefinitionWalker<'_>,
         field_ids: &Vec<FieldId>,
     ) -> (ResponseViewSelectionSet, Vec<FieldId>) {
         let mut required_fields = Cow::Borrowed(resolver.requires());
@@ -270,8 +269,7 @@ where
     }
 
     fn walker(&self) -> OperationWalker<'op, (), ()> {
-        self.operation
-            .walker_with(self.ctx.schema().walker(), &self.operation.variables)
+        self.operation.walker_with(self.ctx.schema().walker())
     }
 
     fn push_view_selection_set(&mut self, mut buffer: Vec<ResponseViewSelection>) -> ResponseViewSelectionSet {

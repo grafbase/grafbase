@@ -7,7 +7,7 @@ mod on_subgraph_request;
 
 use engine_v2::Engine;
 use futures::Future;
-use graphql_mocks::{MockGraphQlServer, SecureSchema};
+use graphql_mocks::SecureSchema;
 use integration_tests::{
     federation::{EngineV2Ext, TestEngineV2},
     runtime,
@@ -19,11 +19,9 @@ where
     F: Future<Output = O>,
 {
     runtime().block_on(async move {
-        let secure_mock = MockGraphQlServer::new(SecureSchema::default()).await;
-
         let engine = Engine::builder()
-            .with_subgraph("secure", &secure_mock)
-            .with_hooks(hooks)
+            .with_subgraph(SecureSchema)
+            .with_mock_hooks(hooks)
             .build()
             .await;
 

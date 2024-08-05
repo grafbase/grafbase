@@ -6,15 +6,13 @@ use std::{
 
 use config::latest::{CacheConfigTarget, Config};
 use id_newtypes::IdRange;
-
-use crate::{
-    sources::{self, graphql::GraphqlEndpointId, introspection::IntrospectionBuilder, IntrospectionMetadata},
-    AuthorizedDirective, CacheControl, CacheControlId, Definition, EntityId, Enum, EnumId, EnumValue, EnumValueId,
-    FieldDefinition, FieldDefinitionId, FieldProvides, FieldRequires, Graph, InputObject, InputObjectId,
-    InputValueDefinition, InputValueSet, InputValueSetItem, Interface, InterfaceId, Object, ObjectId, ProvidableField,
-    ProvidableFieldSet, RequiredScopes, RequiredScopesId, Resolver, ResolverId, RootOperationTypes, Scalar, ScalarId,
-    ScalarType, StringId, Type, TypeSystemDirective, TypeSystemDirectiveId, Union, UnionId,
+use sources::{
+    graphql::{FederationEntityResolverDefinition, FederationKey, GraphqlEndpointId, RootFieldResolverDefinition},
+    introspection::IntrospectionBuilder,
+    IntrospectionMetadata,
 };
+
+use crate::*;
 
 use super::{
     ids::IdMap, interner::Interner, BuildContext, BuildError, ExternalDataSources, RequiredFieldSetBuffer,
@@ -58,7 +56,7 @@ impl<'a> GraphBuilder<'a> {
                 input_object_definitions: Vec::new(),
                 input_value_definitions: Vec::new(),
                 field_definitions: Vec::new(),
-                resolvers: Vec::new(),
+                resolver_definitions: Vec::new(),
                 type_definitions: Vec::new(),
                 type_system_directives: Vec::new(),
                 required_field_sets: Vec::new(),
@@ -128,7 +126,7 @@ impl<'a> GraphBuilder<'a> {
             .enumerate()
             .filter_map(|(idx, definition)| {
                 if self.ctx.idmaps.input_value.contains(idx) {
-                    Some(InputObject {
+                    Some(InputObjectDefinition {
                         name: definition.name.into(),
                         description: definition.description.map(Into::into),
                         input_field_ids: self.ctx.idmaps.input_value.get_range(definition.fields),
@@ -150,7 +148,7 @@ impl<'a> GraphBuilder<'a> {
     fn ingest_unions(&mut self, config: &mut Config) {
         self.graph.union_definitions = take(&mut config.graph.unions)
             .into_iter()
-            .map(|union| Union {
+            .map(|union| UnionDefinition {
                 name: union.name.into(),
                 description: None,
                 possible_types: union
@@ -199,7 +197,7 @@ impl<'a> GraphBuilder<'a> {
 
         self.graph.enum_definitions = take(&mut config.graph.enums)
             .into_iter()
-            .map(|federated_enum| Enum {
+            .map(|federated_enum| EnumDefinition {
                 name: federated_enum.name.into(),
                 description: None,
                 value_ids: {
@@ -225,7 +223,7 @@ impl<'a> GraphBuilder<'a> {
             .into_iter()
             .map(|scalar| {
                 let name = StringId::from(scalar.name);
-                Scalar {
+                ScalarDefinition {
                     name,
                     ty: ScalarType::from_scalar_name(&self.ctx.strings[name]),
                     description: None,
@@ -252,7 +250,7 @@ impl<'a> GraphBuilder<'a> {
         self.graph.object_definitions = Vec::with_capacity(config.graph.objects.len());
         for (federated_id, object) in take(&mut config.graph.objects).into_iter().enumerate() {
             let federated_id = federated_graph::ObjectId(federated_id);
-            let object_id = ObjectId::from(self.graph.object_definitions.len());
+            let object_id = ObjectDefinitionId::from(self.graph.object_definitions.len());
 
             let fields = self
                 .ctx
@@ -284,7 +282,7 @@ impl<'a> GraphBuilder<'a> {
                     },
                 },
             );
-            self.graph.object_definitions.push(Object {
+            self.graph.object_definitions.push(ObjectDefinition {
                 name: object.name.into(),
                 description: None,
                 interfaces: object.implements_interfaces.into_iter().map(Into::into).collect(),
@@ -309,7 +307,7 @@ impl<'a> GraphBuilder<'a> {
 
         self.graph.interface_definitions = Vec::with_capacity(config.graph.interfaces.len());
         for interface in take(&mut config.graph.interfaces) {
-            let interface_id = InterfaceId::from(self.graph.interface_definitions.len());
+            let interface_id = InterfaceDefinitionId::from(self.graph.interface_definitions.len());
             let fields = self.ctx.idmaps.field.get_range((
                 interface.fields.start,
                 interface.fields.end.0 - interface.fields.start.0,
@@ -324,7 +322,7 @@ impl<'a> GraphBuilder<'a> {
                     ..Default::default()
                 },
             );
-            self.graph.interface_definitions.push(Interface {
+            self.graph.interface_definitions.push(InterfaceDefinition {
                 name: interface.name.into(),
                 description: None,
                 interfaces: interface.implements_interfaces.into_iter().map(Into::into).collect(),
@@ -346,7 +344,7 @@ impl<'a> GraphBuilder<'a> {
         }
 
         // Adding all implementations of an interface, used during introspection.
-        for object_id in (0..self.graph.object_definitions.len()).map(ObjectId::from) {
+        for object_id in (0..self.graph.object_definitions.len()).map(ObjectDefinitionId::from) {
             for interface_id in self.graph[object_id].interfaces.clone() {
                 self.graph[interface_id].possible_types.push(object_id);
             }
@@ -375,7 +373,7 @@ impl<'a> GraphBuilder<'a> {
             root_fields
         };
 
-        let mut root_field_resolvers = HashMap::<GraphqlEndpointId, ResolverId>::new();
+        let mut root_field_resolvers = HashMap::<GraphqlEndpointId, ResolverDefinitionId>::new();
         for (federated_id, field) in take(&mut config.graph.fields).into_iter().enumerate() {
             let federated_id = federated_graph::FieldId(federated_id);
             let Some(field_id) = self.ctx.idmaps.field.get(federated_id) else {
@@ -404,7 +402,7 @@ impl<'a> GraphBuilder<'a> {
             if root_fields.binary_search(&field_id).is_ok() {
                 for &endpoint_id in &only_resolvable_in {
                     let resolver_id = *root_field_resolvers.entry(endpoint_id).or_insert_with(|| {
-                        self.push_resolver(Resolver::GraphqlRootField(sources::graphql::RootFieldResolver {
+                        self.push_resolver(ResolverDefinition::GraphqlRootField(RootFieldResolverDefinition {
                             endpoint_id,
                         }))
                     });
@@ -539,14 +537,18 @@ impl<'a> GraphBuilder<'a> {
         );
 
         // Adding all definitions for introspection & query binding
-        definitions.extend((0..graph.scalar_definitions.len()).map(|id| Definition::Scalar(ScalarId::from(id))));
-        definitions.extend((0..graph.object_definitions.len()).map(|id| Definition::Object(ObjectId::from(id))));
         definitions
-            .extend((0..graph.interface_definitions.len()).map(|id| Definition::Interface(InterfaceId::from(id))));
-        definitions.extend((0..graph.union_definitions.len()).map(|id| Definition::Union(UnionId::from(id))));
-        definitions.extend((0..graph.enum_definitions.len()).map(|id| Definition::Enum(EnumId::from(id))));
+            .extend((0..graph.scalar_definitions.len()).map(|id| Definition::Scalar(ScalarDefinitionId::from(id))));
+        definitions
+            .extend((0..graph.object_definitions.len()).map(|id| Definition::Object(ObjectDefinitionId::from(id))));
         definitions.extend(
-            (0..graph.input_object_definitions.len()).map(|id| Definition::InputObject(InputObjectId::from(id))),
+            (0..graph.interface_definitions.len()).map(|id| Definition::Interface(InterfaceDefinitionId::from(id))),
+        );
+        definitions.extend((0..graph.union_definitions.len()).map(|id| Definition::Union(UnionDefinitionId::from(id))));
+        definitions.extend((0..graph.enum_definitions.len()).map(|id| Definition::Enum(EnumDefinitionId::from(id))));
+        definitions.extend(
+            (0..graph.input_object_definitions.len())
+                .map(|id| Definition::InputObject(InputObjectDefinitionId::from(id))),
         );
         definitions.sort_unstable_by_key(|definition| match *definition {
             Definition::Scalar(id) => &ctx.strings[graph[id].name],
@@ -605,12 +607,12 @@ impl<'a> GraphBuilder<'a> {
             let endpoint_id = key.subgraph_id.into();
             if key.resolvable {
                 let providable = self.ctx.idmaps.field.convert_providable_field_set(&key.fields);
-                let key = sources::graphql::FederationKey {
+                let key = FederationKey {
                     fields: self.required_field_sets_buffer.push(location, key.fields),
                 };
 
-                let resolver_id = self.push_resolver(Resolver::GraphqlFederationEntity(
-                    sources::graphql::FederationEntityResolver { endpoint_id, key },
+                let resolver_id = self.push_resolver(ResolverDefinition::GraphqlFederationEntity(
+                    FederationEntityResolverDefinition { endpoint_id, key },
                 ));
                 entity.keys.push((endpoint_id, resolver_id, providable));
             } else {
@@ -634,9 +636,9 @@ impl<'a> GraphBuilder<'a> {
         }
     }
 
-    fn push_resolver(&mut self, resolver: Resolver) -> ResolverId {
-        let resolver_id = ResolverId::from(self.graph.resolvers.len());
-        self.graph.resolvers.push(resolver);
+    fn push_resolver(&mut self, resolver: ResolverDefinition) -> ResolverDefinitionId {
+        let resolver_id = ResolverDefinitionId::from(self.graph.resolver_definitions.len());
+        self.graph.resolver_definitions.push(resolver);
         resolver_id
     }
 
@@ -754,8 +756,8 @@ impl Default for Directives {
 }
 
 struct ObjectMetadata {
-    entities: HashMap<ObjectId, FederationEntity>,
-    field_id_to_maybe_object_id: Vec<Option<ObjectId>>,
+    entities: HashMap<ObjectDefinitionId, FederationEntity>,
+    field_id_to_maybe_object_id: Vec<Option<ObjectDefinitionId>>,
 }
 
 impl ObjectMetadata {
@@ -765,8 +767,8 @@ impl ObjectMetadata {
 }
 
 struct InterfaceMetadata {
-    entities: HashMap<InterfaceId, FederationEntity>,
-    field_id_to_maybe_interface_id: Vec<Option<InterfaceId>>,
+    entities: HashMap<InterfaceDefinitionId, FederationEntity>,
+    field_id_to_maybe_interface_id: Vec<Option<InterfaceDefinitionId>>,
 }
 
 impl InterfaceMetadata {
@@ -777,7 +779,7 @@ impl InterfaceMetadata {
 
 #[derive(Default)]
 struct FederationEntity {
-    keys: Vec<(GraphqlEndpointId, ResolverId, ProvidableFieldSet)>,
+    keys: Vec<(GraphqlEndpointId, ResolverDefinitionId, ProvidableFieldSet)>,
     unresolvable_keys: HashMap<GraphqlEndpointId, ProvidableFieldSet>,
 }
 

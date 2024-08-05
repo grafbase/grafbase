@@ -18,6 +18,7 @@ colored = "2.1.0"
 common-types.workspace = true
 duration-str = "0.11.0"
 engine = { path = "../engine" }
+gateway-config.workspace = true
 registry-v1.workspace = true
 registry-v2.workspace = true
 engine-parser = { path = "../engine/parser" }
@@ -46,6 +47,7 @@ indoc = "2.0.5"
 insta.workspace = true
 pretty_assertions = "1.4.0"
 rstest.workspace = true
+toml.workspace = true
 
 [features]
 default = []

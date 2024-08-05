@@ -1,6 +1,6 @@
 use futures::future::BoxFuture;
 use grafbase_telemetry::otel::opentelemetry::metrics::Meter;
-use runtime::{fetch::Fetcher, kv::KvStore, rate_limiting::RateLimiter};
+use runtime::{entity_cache::EntityCache, fetch::Fetcher, kv::KvStore, rate_limiting::RateLimiter};
 
 pub trait Runtime: Send + Sync + 'static {
     type Hooks: runtime::hooks::Hooks;
@@ -14,4 +14,5 @@ pub trait Runtime: Send + Sync + 'static {
     fn cache_factory(&self) -> &Self::CacheFactory;
     fn rate_limiter(&self) -> &RateLimiter;
     fn sleep(&self, duration: std::time::Duration) -> BoxFuture<'static, ()>;
+    fn entity_cache(&self) -> &dyn EntityCache;
 }

@@ -46,6 +46,8 @@ pub enum InputValueError {
         name: String,
         path: String,
     },
+    #[error("Missing required argument named '{0}'")]
+    MissingRequiredArgument(String),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, strum::Display)]

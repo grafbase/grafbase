@@ -70,7 +70,7 @@ where
                         path.push(index);
                         self.ctx.writer.push_error(
                             GraphqlError::new(err.to_string(), ErrorCode::SubgraphInvalidResponseError)
-                                .with_location(self.ctx.plan[self.field_id].location())
+                                .with_location(self.ctx.operation[self.field_id].location())
                                 .with_path(path),
                         );
                     }

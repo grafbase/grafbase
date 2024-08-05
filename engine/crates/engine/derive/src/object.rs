@@ -121,7 +121,7 @@ pub fn generate(object_args: &args::Object, item_impl: &mut ItemImpl) -> Generat
 
             if !method_args.skip {
                 if method.sig.asyncness.is_none() {
-                    return Err(Error::new_spanned(&method, "Must be asynchronous").into());
+                    return Err(Error::new_spanned(method, "Must be asynchronous").into());
                 }
                 let cfg_attrs = get_cfg_attrs(&method.attrs);
 

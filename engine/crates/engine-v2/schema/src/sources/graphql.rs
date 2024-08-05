@@ -14,12 +14,27 @@ pub struct GraphqlEndpoints {
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct GraphqlEndpoint {
     pub(crate) subgraph_id: SubgraphId,
-    pub(crate) name: StringId,
+    pub(crate) subgraph_name: StringId,
     pub(crate) url: UrlId,
     pub(crate) websocket_url: Option<UrlId>,
     pub(crate) header_rules: Vec<HeaderRuleId>,
     pub(crate) timeout: Duration,
-    pub(crate) entity_cache_ttl: Duration,
+    pub(crate) retry: Option<RetryConfig>,
+    // The ttl to use for caching for this subgraph.
+    // If None then caching is disabled for this subgraph
+    pub(crate) entity_cache_ttl: Option<Duration>,
+}
+
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+pub struct RetryConfig {
+    /// How many retries are available per second, at a minimum.
+    pub min_per_second: Option<u32>,
+    /// Each successful request to the subgraph adds to the retry budget. This setting controls for how long the budget remembers successful requests.
+    pub ttl: Option<Duration>,
+    /// The fraction of the successful requests budget that can be used for retries.
+    pub retry_percent: Option<f32>,
+    /// Whether mutations should be retried at all. False by default.
+    pub retry_mutations: bool,
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
@@ -30,23 +45,26 @@ pub struct GraphqlEndpointId(std::num::NonZero<u8>);
 // }
 
 #[derive(Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-pub struct RootFieldResolver {
+pub struct RootFieldResolverDefinition {
     pub(crate) endpoint_id: GraphqlEndpointId,
 }
 
-pub type RootFieldResolverWalker<'a> = SchemaWalker<'a, &'a RootFieldResolver>;
+pub type RootFieldResolverDefinitionWalker<'a> = SchemaWalker<'a, &'a RootFieldResolverDefinition>;
 
-impl<'a> std::ops::Deref for RootFieldResolverWalker<'a> {
-    type Target = RootFieldResolver;
+impl<'a> std::ops::Deref for RootFieldResolverDefinitionWalker<'a> {
+    type Target = RootFieldResolverDefinition;
 
     fn deref(&self) -> &'a Self::Target {
         self.item
     }
 }
 
-impl<'a> RootFieldResolverWalker<'a> {
+impl<'a> RootFieldResolverDefinitionWalker<'a> {
     pub fn name(&self) -> String {
-        format!("Graphql root field resolver for subgraph '{}'", self.endpoint().name())
+        format!(
+            "Graphql root field resolver for subgraph '{}'",
+            self.endpoint().subgraph_name()
+        )
     }
 
     pub fn subgraph_id(&self) -> SubgraphId {
@@ -58,17 +76,17 @@ impl<'a> RootFieldResolverWalker<'a> {
     }
 }
 
-impl<'a> std::fmt::Debug for RootFieldResolverWalker<'a> {
+impl<'a> std::fmt::Debug for RootFieldResolverDefinitionWalker<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("GraphqlRootField")
-            .field("subgraph", &self.endpoint().name())
+            .field("subgraph", &self.endpoint().subgraph_name())
             .field("subgraph_id", &self.subgraph_id())
             .finish()
     }
 }
 
 #[derive(Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-pub struct FederationEntityResolver {
+pub struct FederationEntityResolverDefinition {
     pub(crate) endpoint_id: GraphqlEndpointId,
     pub(crate) key: FederationKey,
 }
@@ -78,21 +96,21 @@ pub struct FederationKey {
     pub(crate) fields: RequiredFieldSetId,
 }
 
-pub type FederationEntityResolverWalker<'a> = SchemaWalker<'a, &'a FederationEntityResolver>;
+pub type FederationEntityResolveDefinitionrWalker<'a> = SchemaWalker<'a, &'a FederationEntityResolverDefinition>;
 
-impl<'a> std::ops::Deref for FederationEntityResolverWalker<'a> {
-    type Target = FederationEntityResolver;
+impl<'a> std::ops::Deref for FederationEntityResolveDefinitionrWalker<'a> {
+    type Target = FederationEntityResolverDefinition;
 
     fn deref(&self) -> &'a Self::Target {
         self.item
     }
 }
 
-impl<'a> FederationEntityResolverWalker<'a> {
+impl<'a> FederationEntityResolveDefinitionrWalker<'a> {
     pub fn name(&self) -> String {
         format!(
             "Graphql federation entity resolver for subgraph '{}'",
-            self.endpoint().name()
+            self.endpoint().subgraph_name()
         )
     }
 
@@ -109,10 +127,10 @@ impl<'a> FederationEntityResolverWalker<'a> {
     }
 }
 
-impl<'a> std::fmt::Debug for FederationEntityResolverWalker<'a> {
+impl<'a> std::fmt::Debug for FederationEntityResolveDefinitionrWalker<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("GraphqlFederationEntityResolver")
-            .field("subgraph", &self.endpoint().name())
+            .field("subgraph", &self.endpoint().subgraph_name())
             .field("subgraph_id", &self.subgraph_id())
             .field("key", &self.walk(&self.schema[self.key.fields]))
             .finish()
@@ -131,8 +149,8 @@ impl<'a> GraphqlEndpointWalker<'a> {
         &self.schema.data_sources.graphql[self.item]
     }
 
-    pub fn name(&self) -> &'a str {
-        &self.schema[self.as_ref().name]
+    pub fn subgraph_name(&self) -> &'a str {
+        &self.schema[self.as_ref().subgraph_name]
     }
 
     pub fn timeout(self) -> Duration {
@@ -154,15 +172,19 @@ impl<'a> GraphqlEndpointWalker<'a> {
         self.as_ref().header_rules.iter().map(move |id| self.walk(*id))
     }
 
-    pub fn entity_cache_ttl(self) -> Duration {
+    pub fn entity_cache_ttl(self) -> Option<Duration> {
         self.as_ref().entity_cache_ttl
+    }
+
+    pub fn retry_config(self) -> Option<&'a RetryConfig> {
+        self.as_ref().retry.as_ref()
     }
 }
 
 impl<'a> std::fmt::Debug for GraphqlEndpointWalker<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("GraphqlEndpoint")
-            .field("name", &self.name())
+            .field("name", &self.subgraph_name())
             .field("url", &self.url())
             .finish()
     }
