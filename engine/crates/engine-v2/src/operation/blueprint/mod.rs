@@ -8,7 +8,7 @@ use plan::LogicalPlanResponseBlueprintBuilder;
 use schema::Schema;
 
 use crate::{
-    operation::{LogicalPlanResponseBlueprint, Operation, Variables},
+    operation::{LogicalPlanResponseBlueprint, Operation},
     response::{FieldShape, FieldShapeId, ResponseObjectSetId},
     utils::BufferPool,
 };
@@ -19,7 +19,6 @@ use super::{
 
 pub(super) struct ResponseBlueprintBuilder<'schema, 'op> {
     schema: &'schema Schema,
-    variables: &'op Variables,
     operation: &'op Operation,
     plan: &'op OperationPlan,
     to_build_stack: Vec<ToBuild>,
@@ -40,15 +39,9 @@ impl<'schema, 'op> ResponseBlueprintBuilder<'schema, 'op>
 where
     'schema: 'op,
 {
-    pub(super) fn new(
-        schema: &'schema Schema,
-        variables: &'op Variables,
-        operation: &'op Operation,
-        plan: &'op OperationPlan,
-    ) -> Self {
+    pub(super) fn new(schema: &'schema Schema, operation: &'op Operation, plan: &'op OperationPlan) -> Self {
         ResponseBlueprintBuilder {
             schema,
-            variables,
             operation,
             plan,
             to_build_stack: Vec::new(),
@@ -135,7 +128,7 @@ where
     }
 
     pub fn walker(&self) -> OperationWalker<'op, (), ()> {
-        self.operation.walker_with(self.schema.walker(), self.variables)
+        self.operation.walker_with(self.schema.walker())
     }
 
     fn next_response_object_set_id(&mut self, ty: SelectionSetType) -> ResponseObjectSetId {

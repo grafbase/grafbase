@@ -48,8 +48,8 @@ use schema::{Resolver, ResolverWalker};
 use std::future::Future;
 
 use crate::{
-    execution::{ExecutionContext, ExecutionError, ExecutionResult, PlanWalker, PlanningResult, SubscriptionResponse},
-    operation::OperationType,
+    execution::{ExecutionContext, ExecutionError, ExecutionResult, PlanningResult, SubscriptionResponse},
+    operation::{OperationType, PlanWalker},
     response::{ResponseObjectsView, SubgraphResponse},
     Runtime,
 };

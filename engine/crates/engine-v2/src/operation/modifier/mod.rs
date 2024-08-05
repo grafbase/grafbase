@@ -1,7 +1,11 @@
+mod query;
+
 use id_newtypes::IdRange;
 use schema::{AuthorizedDirectiveId, Definition, FieldDefinitionId, RequiredScopesId};
 
 use super::{FieldArgumentId, QueryModifierImpactedFieldId, ResponseModifierImpactedFieldId};
+
+pub(crate) use query::*;
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub(crate) struct QueryModifier {

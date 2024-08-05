@@ -65,7 +65,7 @@ where
                 if self.ctx.stop_propagating_and_should_create_new_graphql_error() {
                     self.ctx.writer.push_error(
                         GraphqlError::new(err.to_string(), ErrorCode::SubgraphInvalidResponseError)
-                            .with_location(self.ctx.plan[self.field_id].location())
+                            .with_location(self.ctx.operation[self.field_id].location())
                             .with_path(self.ctx.response_path()),
                     );
                 }

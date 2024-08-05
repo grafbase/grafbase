@@ -1,6 +1,6 @@
 use serde::ser::SerializeMap;
 
-use crate::execution::PlanWalker;
+use crate::operation::PlanWalker;
 
 use super::QueryVariables;
 

@@ -1,5 +1,4 @@
 mod builder;
-mod query_modifier;
 
 use std::{mem::take, sync::Arc};
 
@@ -8,10 +7,12 @@ use id_newtypes::IdRange;
 use itertools::Itertools;
 
 use crate::{
-    execution::{ExecutionPlan, ExecutionPlanId, PlanningResult, PreExecutionContext, ResponseModifierExecutorId},
+    execution::{
+        ExecutionPlan, ExecutionPlanId, PlanningResult, PreExecutionContext, QueryModifications,
+        ResponseModifierExecutorId,
+    },
     operation::{FieldId, LogicalPlanId, PreparedOperation, Variables},
     response::{ResponseViewSelection, ResponseViews},
-    sources::Executor,
     utils::BufferPool,
     Runtime,
 };
@@ -76,9 +77,7 @@ pub(super) async fn plan<'ctx, R: Runtime>(
     variables: Variables,
 ) -> PlanningResult<ExecutableOperation> {
     let operation = ExecutableOperation {
-        query_modifications: query_modifier::QueryModificationsBuilder::new(ctx, &prepared, &variables)
-            .build()
-            .await?,
+        query_modifications: QueryModifications::build(ctx, &prepared, &variables).await?,
         prepared,
         variables,
         subgraph_default_headers: create_subgraph_headers_with_rules(
@@ -212,19 +211,7 @@ where
     fn insert_execution_plan_for(&mut self, logical_plan_id: LogicalPlanId) -> PlanningResult<()> {
         tracing::trace!("Generating execution plan for {logical_plan_id}");
         // TODO: Skip plan with only skipped fields.
-        // FIXME: HACK to build an Executor, holding the prepared GraphQL query, we rely on a
-        // PlanWalker which needs an ExecutionPlanId. So we reserve the spot with the
-        // LogicalPlanId.
-        self.operation.execution_plans.push(ExecutionPlan {
-            logical_plan_id,
-            parent_count: 0,
-            children: Default::default(),
-            requires: Default::default(),
-            executor: Executor::introspection(),
-            dependent_response_modifiers: Vec::new(),
-        });
-        let id = ExecutionPlanId::from(self.operation.execution_plans.len() - 1);
-        self.builder().insert_execution_plan(id, logical_plan_id)?;
+        self.builder().insert_execution_plan(logical_plan_id)?;
 
         Ok(())
     }

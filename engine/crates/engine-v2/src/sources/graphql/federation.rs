@@ -9,8 +9,8 @@ use std::{borrow::Cow, future::Future, time::Duration};
 use tracing::Instrument;
 
 use crate::{
-    execution::{ExecutionContext, ExecutionError, PlanWalker, PlanningResult},
-    operation::OperationType,
+    execution::{ExecutionContext, ExecutionError, PlanningResult},
+    operation::{OperationType, PlanWalker},
     response::{ResponseObjectsView, SubgraphResponse},
     sources::{
         graphql::{
@@ -79,7 +79,6 @@ impl FederationEntityExecutor {
             async move {
                 let mut ingester = EntityIngester {
                     ctx,
-                    plan,
                     cache_entries: None,
                     subgraph_response,
                     cache_ttl,
@@ -151,7 +150,6 @@ impl FederationEntityExecutor {
 
 struct EntityIngester<'ctx, R: Runtime> {
     ctx: ExecutionContext<'ctx, R>,
-    plan: PlanWalker<'ctx, (), ()>,
     cache_entries: Option<Vec<CacheEntry>>,
     subgraph_response: SubgraphResponse,
     cache_ttl: Option<Duration>,
@@ -182,7 +180,6 @@ where
     async fn ingest(self, bytes: Bytes) -> Result<(GraphqlResponseStatus, SubgraphResponse), ExecutionError> {
         let Self {
             ctx,
-            plan,
             cache_entries,
             mut subgraph_response,
             cache_ttl,
@@ -192,14 +189,11 @@ where
             let response = subgraph_response.as_mut();
             GraphqlResponseSeed::new(
                 EntitiesDataSeed {
+                    ctx,
                     response: response.clone(),
                     cache_entries: cache_entries.as_deref(),
-                    plan,
                 },
-                EntitiesErrorsSeed {
-                    response,
-                    response_keys: plan.response_keys(),
-                },
+                EntitiesErrorsSeed::new(ctx, response),
             )
             .deserialize(&mut serde_json::Deserializer::from_slice(&bytes))?
         };

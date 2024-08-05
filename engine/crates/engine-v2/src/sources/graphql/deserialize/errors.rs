@@ -1,7 +1,9 @@
 use serde::{de::DeserializeSeed, Deserializer};
 
-use crate::response::{
-    ErrorCode, GraphqlError, ResponseKeys, ResponsePath, SubgraphResponseRefMut, UnpackedResponseEdge,
+use crate::{
+    execution::ExecutionContext,
+    response::{ErrorCode, GraphqlError, ResponseKeys, ResponsePath, SubgraphResponseRefMut, UnpackedResponseEdge},
+    Runtime,
 };
 
 pub(super) trait GraphqlErrorsSeed<'resp> {
@@ -10,8 +12,17 @@ pub(super) trait GraphqlErrorsSeed<'resp> {
 }
 
 pub(in crate::sources::graphql) struct RootGraphqlErrors<'resp> {
-    pub response: SubgraphResponseRefMut<'resp>,
-    pub response_keys: &'resp ResponseKeys,
+    response: SubgraphResponseRefMut<'resp>,
+    response_keys: &'resp ResponseKeys,
+}
+
+impl<'resp> RootGraphqlErrors<'resp> {
+    pub fn new<R: Runtime>(ctx: ExecutionContext<'resp, R>, response: SubgraphResponseRefMut<'resp>) -> Self {
+        Self {
+            response,
+            response_keys: &ctx.operation.response_keys,
+        }
+    }
 }
 
 impl<'resp> GraphqlErrorsSeed<'resp> for RootGraphqlErrors<'resp> {

@@ -7,16 +7,12 @@ mod ids;
 mod planner;
 mod response_modifier;
 mod state;
-mod walkers;
 
 use std::sync::Arc;
 
 use crate::{
-    operation::{FieldId, LogicalPlanId, PreparedOperation, ResponseModifierRule, Variables},
-    response::{
-        ConcreteObjectShapeId, FieldShapeId, GraphqlError, ResponseKey, ResponseObjectSetId, ResponseViewSelectionSet,
-        ResponseViews,
-    },
+    operation::{LogicalPlanId, PreparedOperation, QueryModifications, ResponseModifierRule, Variables},
+    response::{ResponseKey, ResponseObjectSetId, ResponseViewSelectionSet, ResponseViews},
     sources::Executor,
     Runtime,
 };
@@ -24,11 +20,9 @@ pub(crate) use context::*;
 pub(crate) use coordinator::*;
 pub(crate) use error::*;
 pub(crate) use hooks::RequestHooks;
-use id_newtypes::{BitSet, IdToMany};
 pub(crate) use ids::*;
 use schema::EntityId;
 use tracing::instrument;
-pub(crate) use walkers::*;
 
 impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
     #[instrument(skip_all)]
@@ -78,15 +72,6 @@ pub(crate) struct ExecutionPlan {
     pub dependent_response_modifiers: Vec<ResponseModifierExecutorId>,
     pub requires: ResponseViewSelectionSet,
     pub executor: Executor,
-}
-
-#[derive(Default)]
-pub(crate) struct QueryModifications {
-    pub skipped_fields: BitSet<FieldId>,
-    pub errors: Vec<GraphqlError>,
-    pub concrete_shape_has_error: BitSet<ConcreteObjectShapeId>,
-    pub field_shape_id_to_error_ids: IdToMany<FieldShapeId, ErrorId>,
-    pub root_error_ids: Vec<ErrorId>,
 }
 
 // Modifies the response based on a given rule

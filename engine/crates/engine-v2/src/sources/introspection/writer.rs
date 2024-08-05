@@ -8,7 +8,7 @@ use schema::{
 };
 
 use crate::{
-    execution::{PlanField, PlanWalker},
+    operation::{PlanField, PlanWalker},
     response::{
         ConcreteObjectShapeId, FieldShape, ResponseObject, ResponseObjectField, ResponseValue, ResponseWriter, Shapes,
     },

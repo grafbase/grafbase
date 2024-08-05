@@ -8,7 +8,8 @@ use super::{
     GraphqlExecutor,
 };
 use crate::{
-    execution::{ExecutionContext, ExecutionError, PlanWalker, SubscriptionResponse},
+    execution::{ExecutionContext, ExecutionError, SubscriptionResponse},
+    operation::PlanWalker,
     sources::ExecutionResult,
     Runtime,
 };
@@ -63,8 +64,8 @@ impl GraphqlExecutor {
         Ok(Box::pin(stream.map(move |subgraph_response| {
             let mut subscription_response = new_response();
             ingest_response(
+                ctx,
                 &mut subscription_response,
-                plan,
                 subgraph_response.map_err(|error| ExecutionError::Fetch {
                     subgraph_name: endpoint.subgraph_name().to_string(),
                     error,
@@ -75,18 +76,15 @@ impl GraphqlExecutor {
     }
 }
 
-fn ingest_response(
+fn ingest_response<R: Runtime>(
+    ctx: ExecutionContext<'_, R>,
     subscription_response: &mut SubscriptionResponse,
-    plan: PlanWalker<'_>,
     subgraph_response: serde_json::Value,
 ) -> ExecutionResult<()> {
     let response = subscription_response.root_response();
     GraphqlResponseSeed::new(
-        response.next_seed(plan).expect("Must have a root object to update"),
-        RootGraphqlErrors {
-            response,
-            response_keys: plan.response_keys(),
-        },
+        response.next_seed(ctx).expect("Must have a root object to update"),
+        RootGraphqlErrors::new(ctx, response),
     )
     .deserialize(subgraph_response)?;
     Ok(())

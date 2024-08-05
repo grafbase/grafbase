@@ -12,8 +12,8 @@ use super::{
     request::{execute_subgraph_request, PreparedGraphqlOperation, ResponseIngester, SubgraphVariables},
 };
 use crate::{
-    execution::{PlanWalker, PlanningResult},
-    operation::OperationType,
+    execution::PlanningResult,
+    operation::{OperationType, PlanWalker},
     response::SubgraphResponse,
     sources::{graphql::request::SubgraphGraphqlRequest, ExecutionContext, ExecutionResult, Executor},
     Runtime,
@@ -82,11 +82,8 @@ impl GraphqlExecutor {
                 let response = subgraph_response.as_mut();
 
                 GraphqlResponseSeed::new(
-                    response.next_seed(plan).ok_or("No object to update")?,
-                    RootGraphqlErrors {
-                        response,
-                        response_keys: plan.response_keys(),
-                    },
+                    response.next_seed(ctx).ok_or("No object to update")?,
+                    RootGraphqlErrors::new(ctx, response),
                 )
                 .deserialize(&mut serde_json::Deserializer::from_slice(&bytes))?;
 
@@ -123,7 +120,6 @@ impl GraphqlExecutor {
             },
             GraphqlIngester {
                 ctx,
-                plan,
                 cache_ttl_and_key,
                 subgraph_response,
             },
@@ -141,7 +137,6 @@ fn build_cache_key(subgraph_request_body: &[u8]) -> String {
 
 struct GraphqlIngester<'ctx, R: Runtime> {
     ctx: ExecutionContext<'ctx, R>,
-    plan: PlanWalker<'ctx, (), ()>,
     subgraph_response: SubgraphResponse,
     cache_ttl_and_key: Option<(Duration, String)>,
 }
@@ -157,11 +152,8 @@ where
         let status = {
             let response = self.subgraph_response.as_mut();
             GraphqlResponseSeed::new(
-                response.next_seed(self.plan).ok_or("No object to update")?,
-                RootGraphqlErrors {
-                    response,
-                    response_keys: self.plan.response_keys(),
-                },
+                response.next_seed(self.ctx).ok_or("No object to update")?,
+                RootGraphqlErrors::new(self.ctx, response),
             )
             .deserialize(&mut serde_json::Deserializer::from_slice(&bytes))?
         };

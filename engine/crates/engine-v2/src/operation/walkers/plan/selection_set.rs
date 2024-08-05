@@ -30,32 +30,29 @@ impl<'a> PlanSelectionSet<'a> {
                 .as_ref()
                 .root_field_ids_ordered_by_parent_entity_id_then_position
                 .iter()
-                .filter(|id| !walker.operation.query_modifications.skipped_fields[**id])
+                .filter(|id| !walker.query_modifications.skipped_fields[**id])
                 .filter_map(move |&id| {
                     walker.operation[id]
                         .definition_id()
                         .map(|definition_id| walker.walk_with(id, definition_id))
                 })
                 .collect::<Vec<_>>(),
-            PlanSelectionSet::SelectionSet(walker) => {
-                let logical_plan_id = walker.operation[walker.plan_id].logical_plan_id;
-                walker
-                    .as_ref()
-                    .field_ids_ordered_by_parent_entity_id_then_position
-                    .iter()
-                    .filter(|id| !walker.operation.query_modifications.skipped_fields[**id])
-                    .filter_map(|id| {
-                        let field_plan_id = walker.operation.plan_id_for(*id);
-                        if field_plan_id == logical_plan_id {
-                            walker.operation[*id]
-                                .definition_id()
-                                .map(|definition_id| walker.walk_with(*id, definition_id))
-                        } else {
-                            None
-                        }
-                    })
-                    .collect::<Vec<_>>()
-            }
+            PlanSelectionSet::SelectionSet(walker) => walker
+                .as_ref()
+                .field_ids_ordered_by_parent_entity_id_then_position
+                .iter()
+                .filter(|id| !walker.query_modifications.skipped_fields[**id])
+                .filter_map(|id| {
+                    let field_plan_id = walker.operation.plan_id_for(*id);
+                    if field_plan_id == walker.logical_plan_id {
+                        walker.operation[*id]
+                            .definition_id()
+                            .map(|definition_id| walker.walk_with(*id, definition_id))
+                    } else {
+                        None
+                    }
+                })
+                .collect::<Vec<_>>(),
         };
         out
     }

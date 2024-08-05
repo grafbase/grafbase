@@ -164,14 +164,12 @@ impl Operation {
     pub fn walker_with<'op, 'schema, SI>(
         &'op self,
         schema_walker: SchemaWalker<'schema, SI>,
-        variables: &'op Variables,
     ) -> OperationWalker<'op, (), SI>
     where
         'schema: 'op,
     {
         OperationWalker {
             operation: self,
-            variables,
             schema_walker,
             item: (),
         }

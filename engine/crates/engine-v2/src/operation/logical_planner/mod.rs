@@ -12,7 +12,7 @@ use tracing::instrument;
 use crate::{
     operation::{
         FieldId, LogicalPlan, LogicalPlanId, Operation, OperationWalker, QueryPath, ResponseModifierRule,
-        SelectionSetId, SolvedRequiredFieldSet, Variables,
+        SelectionSetId, SolvedRequiredFieldSet,
     },
     response::{ErrorCode, GraphqlError},
 };
@@ -48,7 +48,6 @@ pub(super) type LogicalPlanningResult<T> = Result<T, LogicalPlanningError>;
 
 pub(super) struct LogicalPlanner<'a> {
     schema: &'a Schema,
-    variables: &'a Variables,
     operation: &'a mut Operation,
     field_to_logical_plan_id: Vec<Option<LogicalPlanId>>,
     field_to_solved_requirement: Vec<Option<RequiredFieldId>>,
@@ -73,10 +72,9 @@ id_newtypes::index! {
 }
 
 impl<'a> LogicalPlanner<'a> {
-    pub(super) fn new(schema: &'a Schema, variables: &'a Variables, operation: &'a mut Operation) -> Self {
+    pub(super) fn new(schema: &'a Schema, operation: &'a mut Operation) -> Self {
         Self {
             schema,
-            variables,
             field_to_logical_plan_id: vec![None; operation.fields.len()],
             field_to_solved_requirement: vec![None; operation.fields.len()],
             selection_set_to_objects_must_be_tracked: BitSet::init_with(false, operation.selection_sets.len()),
@@ -335,7 +333,7 @@ impl<'a> LogicalPlanner<'a> {
     }
 
     pub fn walker(&self) -> OperationWalker<'_, (), ()> {
-        self.operation.walker_with(self.schema.walker(), self.variables)
+        self.operation.walker_with(self.schema.walker())
     }
 
     pub fn push_plan(

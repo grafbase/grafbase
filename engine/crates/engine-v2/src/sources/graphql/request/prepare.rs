@@ -7,10 +7,7 @@ use engine_parser::types::OperationType;
 use itertools::Itertools;
 use schema::EntityId;
 
-use crate::{
-    execution::{PlanField, PlanSelectionSet, PlanWalker},
-    operation::{FieldArgumentsWalker, QueryInputValueId},
-};
+use crate::operation::{FieldArgumentsWalker, PlanField, PlanSelectionSet, PlanWalker, QueryInputValueId};
 
 const VARIABLE_PREFIX: &str = "var";
 

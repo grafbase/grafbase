@@ -11,7 +11,8 @@ use futures_util::{
 use tracing::instrument;
 
 use crate::{
-    execution::{ExecutableOperation, ExecutionContext, PlanWalker},
+    execution::{ExecutableOperation, ExecutionContext},
+    operation::PlanWalker,
     response::{
         InputdResponseObjectSet, ObjectIdentifier, Response, ResponseBuilder, ResponseEdge, ResponseObjectField,
         ResponseValue, SubgraphResponse, SubgraphResponseRefMut,
@@ -71,7 +72,9 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
         PlanWalker {
             schema_walker: self.engine.schema.walker(),
             operation: self.operation,
-            plan_id,
+            variables: &self.operation.variables,
+            query_modifications: &self.operation.query_modifications,
+            logical_plan_id: self.operation[plan_id].logical_plan_id,
             item: (),
         }
     }
@@ -150,8 +153,11 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
             InputdResponseObjectSet::default()
                 .with_response_objects(Arc::new(response.root_response_object().into_iter().collect())),
         );
-        let root_subgraph_response =
-            response.new_subgraph_response(root_response_object_set, tracked_response_object_set_ids);
+        let root_subgraph_response = response.new_subgraph_response(
+            self.operation[subscription_plan_id].logical_plan_id,
+            root_response_object_set,
+            tracked_response_object_set_ids,
+        );
 
         SubscriptionResponse {
             response,
@@ -395,6 +401,7 @@ where
         self.futures.push_fut({
             let plan = self.ctx.plan_walker(plan_id);
             let subgraph_response = self.response.new_subgraph_response(
+                plan.logical_plan_id,
                 Arc::clone(&root_response_object_set),
                 plan.logical_plan().response_blueprint().output_ids,
             );
