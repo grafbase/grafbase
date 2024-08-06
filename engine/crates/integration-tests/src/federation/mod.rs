@@ -8,6 +8,8 @@ use std::{
 };
 
 pub use builder::*;
+use bytes::Bytes;
+use engine_v2::Body;
 use graphql_mocks::{MockGraphQlServer, ReceivedRequest};
 pub use request::*;
 use url::Url;
@@ -53,12 +55,33 @@ impl DockerSubgraph {
 }
 
 impl TestEngineV2 {
-    pub fn execute(&self, request: impl Into<GraphQlRequest>) -> ExecutionRequest {
-        ExecutionRequest {
-            request: request.into(),
-            headers: Vec::new(),
+    pub fn get(&self, request: impl Into<GraphQlRequest>) -> TestRequest {
+        self.execute(http::Method::GET, request)
+    }
+
+    pub fn post(&self, request: impl Into<GraphQlRequest>) -> TestRequest {
+        self.execute(http::Method::POST, request)
+    }
+
+    pub fn execute(&self, method: http::Method, request: impl Into<GraphQlRequest>) -> TestRequest {
+        let (mut parts, _) = http::Request::new(()).into_parts();
+        parts.method = method;
+        parts.uri = http::Uri::from_static("http://127.0.0.1/graphql");
+
+        TestRequest {
             engine: Arc::clone(&self.engine),
+            parts,
+            body: request.into(),
         }
+    }
+
+    pub async fn raw_execute(&self, request: http::Request<impl Into<Bytes>>) -> http::Response<Body> {
+        let (parts, body) = request.into_parts();
+        let body: Bytes = body.into();
+
+        self.engine
+            .execute(http::Request::from_parts(parts, Box::pin(async move { Ok(body) })))
+            .await
     }
 
     pub fn subgraph<S: graphql_mocks::Subgraph>(&self) -> &MockSubgraph {

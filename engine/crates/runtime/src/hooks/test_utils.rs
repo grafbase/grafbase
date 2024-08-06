@@ -19,7 +19,7 @@ pub trait DynHooks: Send + Sync + 'static {
         &self,
         context: &mut DynHookContext,
         headers: HeaderMap,
-    ) -> Result<HeaderMap, PartialGraphqlError> {
+    ) -> Result<HeaderMap, ErrorResponse> {
         Ok(headers)
     }
 
@@ -171,7 +171,7 @@ impl DynamicHooks {
 impl Hooks for DynamicHooks {
     type Context = DynHookContext;
 
-    async fn on_gateway_request(&self, headers: HeaderMap) -> Result<(Self::Context, HeaderMap), PartialGraphqlError> {
+    async fn on_gateway_request(&self, headers: HeaderMap) -> Result<(Self::Context, HeaderMap), ErrorResponse> {
         let mut context = DynHookContext::default();
         let headers = self.0.on_gateway_request(&mut context, headers).await?;
         Ok((context, headers))
@@ -330,7 +330,7 @@ impl<H: Hooks> DynHooks for DynWrapper<H> {
         &'a self,
         context: &'b mut DynHookContext,
         headers: HeaderMap,
-    ) -> BoxFuture<'fut, Result<HeaderMap, PartialGraphqlError>>
+    ) -> BoxFuture<'fut, Result<HeaderMap, ErrorResponse>>
     where
         'a: 'fut,
         'b: 'fut,

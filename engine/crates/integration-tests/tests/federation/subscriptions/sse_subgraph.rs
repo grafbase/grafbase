@@ -14,7 +14,7 @@ fn docker_see_subgraph_is_working() {
             .await;
 
         engine
-            .execute(
+            .post(
                 r"
                 query {
                     hello
@@ -24,7 +24,7 @@ fn docker_see_subgraph_is_working() {
             .await
     });
 
-    insta::assert_json_snapshot!(response, @r###"
+    insta::assert_json_snapshot!(response.body, @r###"
     {
       "data": {
         "hello": "world"
@@ -42,7 +42,7 @@ fn sse_supgraph_subscription() {
             .await;
 
         let sse_response = engine
-            .execute(
+            .post(
                 r"
                 subscription {
                     greetings
@@ -50,10 +50,9 @@ fn sse_supgraph_subscription() {
                 ",
             )
             .into_sse_stream()
-            .collect::<Vec<_>>()
             .await;
 
-        insta::assert_json_snapshot!(sse_response, @r###"
+        insta::assert_json_snapshot!(sse_response.collected_body, @r###"
         [
           {
             "data": {
@@ -85,7 +84,7 @@ fn sse_supgraph_subscription() {
 
         // Sanity check the client format has no impact.
         let multipart_response = engine
-            .execute(
+            .post(
                 r"
                 subscription {
                     greetings
@@ -93,12 +92,8 @@ fn sse_supgraph_subscription() {
                 ",
             )
             .into_multipart_stream()
-            .collect::<Vec<_>>()
             .await;
 
-        assert_eq!(
-            serde_json::to_value(sse_response).unwrap(),
-            serde_json::to_value(multipart_response).unwrap()
-        );
+        assert_eq!(sse_response.collected_body, multipart_response.collected_body);
     });
 }

@@ -1,25 +1,53 @@
-use axum::response::IntoResponse;
-use engine_v2::{HttpGraphqlResponse, HttpGraphqlResponseBody};
+use std::sync::Arc;
+
+use axum::{response::IntoResponse, Json};
+use engine_v2::{Body, Engine, ErrorCode, Runtime};
+use futures_util::TryFutureExt;
 use runtime::bytes::OwnedOrSharedBytes;
 
 pub mod websocket;
 
-pub fn internal_server_error(message: &str) -> axum::response::Response {
-    into_response(HttpGraphqlResponse::internal_server_error(message))
+pub fn internal_server_error(message: impl ToString) -> axum::response::Response {
+    let body = Json(serde_json::json!({
+        "errors": [
+            {
+                "message": message.to_string(),
+                "extensions": {
+                    "code": ErrorCode::InternalServerError
+                }
+            }
+        ]
+    }));
+
+    (http::StatusCode::INTERNAL_SERVER_ERROR, body).into_response()
 }
 
-pub fn bad_request_error(message: &str) -> axum::response::Response {
-    into_response(HttpGraphqlResponse::bad_request_error(message))
-}
+pub async fn execute<R: Runtime>(
+    engine: Arc<Engine<R>>,
+    request: axum::extract::Request,
+    body_limit_bytes: usize,
+) -> axum::response::Response {
+    let (parts, body) = request.into_parts();
+    let body = axum::body::to_bytes(body, body_limit_bytes).map_err(|error| {
+        if let Some(source) = std::error::Error::source(&error) {
+            if source.is::<http_body_util::LengthLimitError>() {
+                return (
+                    http::StatusCode::PAYLOAD_TOO_LARGE,
+                    format!("Request body exceeded: {}", body_limit_bytes),
+                );
+            }
+        }
+        (http::StatusCode::INTERNAL_SERVER_ERROR, error.to_string())
+    });
 
-pub fn into_response(response: HttpGraphqlResponse) -> axum::response::Response {
-    let HttpGraphqlResponse { headers, body, .. } = response;
+    let response = engine.execute(http::Request::from_parts(parts, body)).await;
 
+    let (parts, body) = response.into_parts();
     match body {
-        HttpGraphqlResponseBody::Bytes(bytes) => match bytes {
-            OwnedOrSharedBytes::Owned(bytes) => (headers, bytes).into_response(),
-            OwnedOrSharedBytes::Shared(bytes) => (headers, bytes).into_response(),
+        Body::Bytes(bytes) => match bytes {
+            OwnedOrSharedBytes::Owned(bytes) => (parts.status, parts.headers, bytes).into_response(),
+            OwnedOrSharedBytes::Shared(bytes) => (parts.status, parts.headers, bytes).into_response(),
         },
-        HttpGraphqlResponseBody::Stream(stream) => (headers, axum::body::Body::from_stream(stream)).into_response(),
+        Body::Stream(stream) => (parts.status, parts.headers, axum::body::Body::from_stream(stream)).into_response(),
     }
 }

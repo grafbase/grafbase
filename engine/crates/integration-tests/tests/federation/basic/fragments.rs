@@ -8,7 +8,7 @@ fn named_fragment_on_object() {
         let engine = Engine::builder().with_subgraph(FakeGithubSchema).build().await;
 
         engine
-            .execute(
+            .post(
                 r"
                     query {
                         allBotPullRequests {
@@ -64,7 +64,7 @@ fn named_fragment_cycle() {
         let engine = Engine::builder().with_subgraph(FakeGithubSchema).build().await;
 
         engine
-            .execute(
+            .post(
                 r"
                     query {
                         allBotPullRequests {
@@ -117,7 +117,7 @@ fn inline_fragment_on_object() {
         let engine = Engine::builder().with_subgraph(FakeGithubSchema).build().await;
 
         engine
-            .execute(
+            .post(
                 r"
                     query {
                         allBotPullRequests {
@@ -160,7 +160,7 @@ fn inline_fragment_on_object_with_type_condition() {
         let engine = Engine::builder().with_subgraph(FakeGithubSchema).build().await;
 
         engine
-            .execute(
+            .post(
                 r"
                     query {
                         allBotPullRequests {
@@ -214,7 +214,7 @@ fn inline_fragments_on_polymorphic_types() {
         let engine = Engine::builder().with_subgraph(FakeGithubSchema).build().await;
 
         engine
-            .execute(
+            .post(
                 r#"
                     query {
                         pullRequestsAndIssues(filter: { search: "1" }) {
@@ -283,7 +283,7 @@ fn named_fragments_on_polymorphic_types() {
         let engine = Engine::builder().with_subgraph(FakeGithubSchema).build().await;
 
         engine
-            .execute(
+            .post(
                 r#"
                     query {
                         pullRequestsAndIssues(filter: { search: "1" }) {

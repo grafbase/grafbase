@@ -1,7 +1,7 @@
 use std::{collections::HashMap, sync::Arc};
 
 use ::axum::extract::ws::{self, WebSocket};
-use engine_v2::{websocket::InitPayload, Engine, Runtime, Session};
+use engine_v2::{websocket::InitPayload, Engine, Runtime, WebsocketSession};
 use futures_util::{pin_mut, stream::SplitStream, SinkExt, Stream, StreamExt};
 use tokio::sync::{mpsc, watch};
 
@@ -56,7 +56,7 @@ impl<R: Runtime> WebsocketAccepter<R> {
 }
 
 /// Message handling loop for a single websocket connection
-async fn websocket_loop<R: Runtime>(socket: WebSocket, session: Session<R>) {
+async fn websocket_loop<R: Runtime>(socket: WebSocket, session: WebsocketSession<R>) {
     let (sender, mut receiver) = {
         let (mut socket_sender, socket_receiver) = socket.split();
 
@@ -104,19 +104,23 @@ async fn websocket_loop<R: Runtime>(socket: WebSocket, session: Session<R>) {
 
 async fn handle_incoming_event<R: Runtime>(
     text: String,
-    session: &Session<R>,
+    session: &WebsocketSession<R>,
     sender: &tokio::sync::mpsc::Sender<Message>,
     tasks: &mut tokio::task::JoinSet<()>,
     subscriptions: &mut HashMap<String, tokio::task::AbortHandle>,
 ) -> Option<Message> {
     let event: Event = serde_json::from_str(&text).ok()?;
     match event {
-        Event::Subscribe { id, payload } => {
-            if subscriptions.contains_key(&id) {
-                return Some(Message::close(4409, format!("Subscriber for {id} already exists")));
+        Event::Subscribe(event) => {
+            if subscriptions.contains_key(&event.id) {
+                return Some(Message::close(
+                    4409,
+                    format!("Subscriber for {} already exists", event.id),
+                ));
             }
 
-            let stream = session.execute_websocket(id.clone(), payload);
+            let id = event.id.clone();
+            let stream = session.execute(event);
             let handle = tasks.spawn(subscription_loop(stream, id.clone(), sender.clone()));
             subscriptions.insert(id, handle);
 
@@ -148,7 +152,10 @@ async fn subscription_loop(stream: impl Stream<Item = Message>, id: String, send
     sender.send(Message::Complete { id }).await.ok();
 }
 
-async fn accept_websocket<R: Runtime>(websocket: &mut WebSocket, engine: &EngineWatcher<R>) -> Option<Session<R>> {
+async fn accept_websocket<R: Runtime>(
+    websocket: &mut WebSocket,
+    engine: &EngineWatcher<R>,
+) -> Option<WebsocketSession<R>> {
     while let Some(text) = websocket.recv_message().await {
         let event: Event = serde_json::from_str(&text).ok()?;
         match event {
@@ -167,7 +174,7 @@ async fn accept_websocket<R: Runtime>(websocket: &mut WebSocket, engine: &Engine
                     return None;
                 };
 
-                let Ok(session) = engine.create_session(headers).await else {
+                let Ok(session) = engine.create_websocket_session(headers).await else {
                     websocket
                         .send(Message::close(4403, "Forbidden").to_axum_message().unwrap())
                         .await

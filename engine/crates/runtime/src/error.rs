@@ -14,6 +14,20 @@ pub enum PartialErrorCode {
     HookError,
 }
 
+pub struct ErrorResponse {
+    pub status: http::StatusCode,
+    pub error: PartialGraphqlError,
+}
+
+impl From<PartialGraphqlError> for ErrorResponse {
+    fn from(error: PartialGraphqlError) -> Self {
+        ErrorResponse {
+            status: http::StatusCode::INTERNAL_SERVER_ERROR,
+            error,
+        }
+    }
+}
+
 /// User facing GraphQL error that will be extended with the right path & location if relevant by
 /// the engine.
 #[derive(Clone, Debug, PartialEq)]

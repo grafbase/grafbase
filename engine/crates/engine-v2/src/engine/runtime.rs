@@ -18,3 +18,27 @@ pub trait Runtime: Send + Sync + 'static {
     fn sleep(&self, duration: std::time::Duration) -> impl Future<Output = ()> + Send;
     fn entity_cache(&self) -> &dyn EntityCache;
 }
+
+pub(crate) trait RuntimeExt: Runtime {
+    async fn with_timeout<T>(&self, timeout: std::time::Duration, fut: impl Future<Output = T> + Send) -> Option<T> {
+        use futures_util::{pin_mut, select, FutureExt};
+
+        let timeout = async move {
+            self.sleep(timeout).await;
+            None
+        }
+        .fuse();
+
+        let fut = fut.map(|output| Some(output)).fuse();
+
+        pin_mut!(timeout);
+        pin_mut!(fut);
+
+        select!(
+           output = timeout => output,
+           output = fut => output
+        )
+    }
+}
+
+impl<T: Runtime> RuntimeExt for T {}

@@ -15,7 +15,7 @@ use schema::{ObjectDefinitionId, Schema};
 use self::deserialize::UpdateSeed;
 
 use super::{
-    value::ResponseObjectField, ErrorCode, GraphqlError, InitialResponse, InputdResponseObjectSet,
+    value::ResponseObjectField, ErrorCode, ExecutedResponse, GraphqlError, InputdResponseObjectSet,
     OutputResponseObjectSets, Response, ResponseData, ResponseEdge, ResponseObject, ResponseObjectRef,
     ResponseObjectSet, ResponseObjectSetId, ResponsePath, ResponseValue, UnpackedResponseEdge,
 };
@@ -234,13 +234,13 @@ impl ResponseBuilder {
     }
 
     pub fn build(self, schema: Arc<Schema>, operation: Arc<PreparedOperation>) -> Response {
-        Response::Initial(InitialResponse {
-            data: ResponseData {
+        Response::Executed(ExecutedResponse {
+            data: Some(ResponseData {
                 schema,
                 operation,
                 root: self.root.map(|(id, _)| id),
                 parts: self.parts,
-            },
+            }),
             errors: self.errors,
         })
     }

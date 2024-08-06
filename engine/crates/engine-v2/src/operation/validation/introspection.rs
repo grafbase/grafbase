@@ -7,19 +7,9 @@ use super::ValidationError;
 pub(super) fn ensure_introspection_is_accepted(
     schema: &Schema,
     operation: OperationWalker<'_>,
-    request: &engine::Request,
 ) -> Result<(), ValidationError> {
-    if operation.is_query() {
-        let selection_set = operation.selection_set();
-        match request.introspection_state() {
-            engine::IntrospectionState::ForceEnabled => {}
-            engine::IntrospectionState::ForceDisabled => detect_introspection(selection_set)?,
-            engine::IntrospectionState::UserPreference => {
-                if schema.settings.disable_introspection {
-                    detect_introspection(selection_set)?;
-                }
-            }
-        };
+    if operation.is_query() && schema.settings.disable_introspection {
+        detect_introspection(operation.selection_set())?;
     }
 
     Ok(())

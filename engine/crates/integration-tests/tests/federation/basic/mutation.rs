@@ -1,17 +1,14 @@
 use engine_v2::Engine;
-use graphql_mocks::StateMutationSchema;
+use graphql_mocks::Stateful;
 use integration_tests::{federation::EngineV2Ext, runtime};
 
 #[test]
 fn mutations_should_be_executed_sequentially() {
     runtime().block_on(async move {
-        let engine = Engine::builder()
-            .with_subgraph(StateMutationSchema::default())
-            .build()
-            .await;
+        let engine = Engine::builder().with_subgraph(Stateful::default()).build().await;
 
         // sanity check
-        let response = engine.execute("query { value }").await;
+        let response = engine.post("query { value }").await;
         insta::assert_json_snapshot!(response, @r###"
         {
           "data": {
@@ -21,7 +18,7 @@ fn mutations_should_be_executed_sequentially() {
         "###);
 
         let response = engine
-            .execute(
+            .post(
                 r"
                 mutation {
                     first: set(val: 1)
@@ -45,7 +42,7 @@ fn mutations_should_be_executed_sequentially() {
         }
         "###);
 
-        let response = engine.execute("query { value }").await;
+        let response = engine.post("query { value }").await;
         insta::assert_json_snapshot!(response, @r###"
         {
           "data": {
@@ -59,13 +56,10 @@ fn mutations_should_be_executed_sequentially() {
 #[test]
 fn mutation_failure_should_stop_later_executions_if_required() {
     runtime().block_on(async move {
-        let engine = Engine::builder()
-            .with_subgraph(StateMutationSchema::default())
-            .build()
-            .await;
+        let engine = Engine::builder().with_subgraph(Stateful::default()).build().await;
 
         // sanity check
-        let response = engine.execute("query { value }").await;
+        let response = engine.post("query { value }").await;
         insta::assert_json_snapshot!(response, @r###"
         {
           "data": {
@@ -75,7 +69,7 @@ fn mutation_failure_should_stop_later_executions_if_required() {
         "###);
 
         let response = engine
-            .execute(
+            .post(
                 r"
                 mutation {
                     first: set(val: 1)
@@ -108,7 +102,7 @@ fn mutation_failure_should_stop_later_executions_if_required() {
         }
         "###);
 
-        let response = engine.execute("query { value }").await;
+        let response = engine.post("query { value }").await;
         insta::assert_json_snapshot!(response, @r###"
         {
           "data": {
@@ -118,7 +112,7 @@ fn mutation_failure_should_stop_later_executions_if_required() {
         "###);
 
         let response = engine
-            .execute(
+            .post(
                 r"
                 mutation {
                     first: set(val: 1)
@@ -148,7 +142,7 @@ fn mutation_failure_should_stop_later_executions_if_required() {
         }
         "###);
 
-        let response = engine.execute("query { value }").await;
+        let response = engine.post("query { value }").await;
         insta::assert_json_snapshot!(response, @r###"
         {
           "data": {

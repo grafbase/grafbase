@@ -8,7 +8,7 @@ fn supports_custom_scalars() {
     let response = runtime().block_on(async move {
         let engine = Engine::builder().with_subgraph(FakeGithubSchema).build().await;
 
-        engine.execute("query { favoriteRepository }").await
+        engine.post("query { favoriteRepository }").await
     });
 
     insta::assert_json_snapshot!(response, @r###"
@@ -29,7 +29,7 @@ fn supports_unused_builtin_scalars() {
         let engine = Engine::builder().with_subgraph(AlmostEmptySchema).build().await;
 
         engine
-            .execute("query Blah($id: ID!) { string(input: $id) }")
+            .post("query Blah($id: ID!) { string(input: $id) }")
             .variables(json!({"id": "1"}))
             .await
     });

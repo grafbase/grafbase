@@ -9,7 +9,7 @@ use std::future::Future;
 
 pub use http::HeaderMap;
 
-use crate::error::{PartialErrorCode, PartialGraphqlError};
+use crate::error::{ErrorResponse, PartialErrorCode, PartialGraphqlError};
 
 pub struct NodeDefinition<'a> {
     pub type_name: &'a str,
@@ -45,7 +45,7 @@ pub trait Hooks: Send + Sync + 'static {
     fn on_gateway_request(
         &self,
         headers: HeaderMap,
-    ) -> impl Future<Output = Result<(Self::Context, HeaderMap), PartialGraphqlError>> + Send;
+    ) -> impl Future<Output = Result<(Self::Context, HeaderMap), ErrorResponse>> + Send;
 
     fn authorized(&self) -> &impl AuthorizedHooks<Self::Context>;
 
@@ -121,7 +121,7 @@ pub trait SubgraphHooks<Context>: Send + Sync + 'static {
 impl Hooks for () {
     type Context = ();
 
-    async fn on_gateway_request(&self, headers: HeaderMap) -> Result<(Self::Context, HeaderMap), PartialGraphqlError> {
+    async fn on_gateway_request(&self, headers: HeaderMap) -> Result<(Self::Context, HeaderMap), ErrorResponse> {
         Ok(((), headers))
     }
 

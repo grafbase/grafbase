@@ -21,7 +21,7 @@ async fn execute(request: &str) -> GraphqlResponse {
         .with_subgraph(FederatedInventorySchema)
         .build()
         .await;
-    engine.execute(request).await
+    engine.post(request).await
 }
 
 #[test]

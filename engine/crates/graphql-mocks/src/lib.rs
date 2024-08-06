@@ -15,12 +15,12 @@ mod fake_github;
 mod federation;
 mod secure;
 mod slow;
-mod state_mutation;
+mod stateful;
 mod tea_shop;
 
 pub use {
     almost_empty::AlmostEmptySchema, echo::EchoSchema, error_schema::ErrorSchema, fake_github::FakeGithubSchema,
-    federation::*, secure::SecureSchema, slow::SlowSchema, state_mutation::StateMutationSchema, tea_shop::TeaShop,
+    federation::*, secure::SecureSchema, slow::SlowSchema, stateful::Stateful, tea_shop::TeaShop,
 };
 
 #[derive(Debug)]

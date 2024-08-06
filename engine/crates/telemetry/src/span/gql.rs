@@ -52,7 +52,7 @@ impl GqlRecorderSpanExt for Span {
     fn record_gql_response(&self, attributes: GqlResponseAttributes) {
         self.record("gql.response.status", attributes.status.as_str());
         match attributes.status {
-            GraphqlResponseStatus::Success => {}
+            GraphqlResponseStatus::Success | GraphqlResponseStatus::RefusedRequest => {}
             GraphqlResponseStatus::FieldError { count, data_is_null } => {
                 self.record("gql.response.field_errors_count", count);
                 self.record("gql.response.data_is_null", data_is_null);

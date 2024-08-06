@@ -1,15 +1,15 @@
 use ::runtime::{
     auth::AccessToken,
+    error::ErrorResponse,
     hooks::Hooks,
     operation_cache::{OperationCache, OperationCacheFactory},
     rate_limiting::RateLimitKey,
 };
 use async_runtime::stream::StreamExt as _;
-use engine::{BatchRequest, Request};
+use bytes::Bytes;
 use engine_parser::types::OperationType;
-use futures::{channel::mpsc, FutureExt, StreamExt};
+use futures::{channel::mpsc, FutureExt, StreamExt, TryFutureExt};
 use futures_util::{SinkExt, Stream};
-use gateway_core::StreamingFormat;
 use gateway_v2_auth::AuthService;
 use grafbase_telemetry::{
     gql_response_status::GraphqlResponseStatus,
@@ -17,28 +17,32 @@ use grafbase_telemetry::{
     metrics::{GraphqlOperationMetrics, GraphqlRequestMetricsAttributes, OperationMetricsAttributes},
     span::{gql::GqlRequestSpan, GqlRecorderSpanExt, GRAFBASE_TARGET},
 };
-use headers::HeaderMapExt;
 use retry_budget::RetryBudgets;
 use schema::Schema;
-use std::{borrow::Cow, sync::Arc};
+use std::{borrow::Cow, future::Future, sync::Arc};
 use tracing::Instrument;
-use trusted_documents::PreparedOperationDocument;
+use trusted_documents::OperationDocument;
 use web_time::Instant;
 
 use crate::{
     execution::{ExecutableOperation, PreExecutionContext},
-    http_response::HttpGraphqlResponse,
+    graphql_over_http::{Http, ResponseFormat, StreamingResponseFormat},
     operation::{Operation, PreparedOperation, Variables},
-    response::{ErrorCode, GraphqlError, Response},
-    websocket,
+    request::{BatchRequest, QueryParamsRequest, Request},
+    response::{GraphqlError, RefusedRequestResponse, RequestErrorResponse, Response},
+    websocket, Body, ErrorCode,
 };
+use runtime::RuntimeExt;
 
 mod cache;
+mod error_responses;
 mod retry_budget;
 mod runtime;
 mod trusted_documents;
 
 pub use runtime::Runtime;
+
+static APPLICATION_JSON: http::HeaderValue = http::HeaderValue::from_static("application/json");
 
 pub(crate) struct SchemaVersion(Vec<u8>);
 
@@ -95,66 +99,97 @@ impl<R: Runtime> Engine<R> {
         }
     }
 
-    pub async fn execute(
-        self: &Arc<Self>,
-        headers: http::HeaderMap,
-        batch_request: BatchRequest,
-    ) -> HttpGraphqlResponse {
-        use futures_util::{pin_mut, select, FutureExt};
-
-        let format = headers.typed_get::<StreamingFormat>();
-        let request_context = match self.create_request_context(headers).await {
-            Ok(context) => context,
-            Err(response) => return HttpGraphqlResponse::build(response, format),
+    pub async fn execute<F>(self: &Arc<Self>, request: http::Request<F>) -> http::Response<Body>
+    where
+        F: Future<Output = Result<Bytes, (http::StatusCode, String)>> + Send,
+    {
+        // Following the recommendation of the GraphQL over HTTP spec to require a valid Accept
+        // header
+        let (parts, body) = request.into_parts();
+        let Some(format) = ResponseFormat::extract_from(&parts.headers) else {
+            // GraphQL-over-HTTP spec:
+            //   In alignment with the HTTP 1.1 Accept specification, when a client does not include at least one supported media type in the Accept HTTP header, the server MUST either:
+            //     1. Respond with a 406 Not Acceptable status code and stop processing the request (RECOMMENDED); OR
+            //     2. Disregard the Accept header and respond with the server's choice of media type (NOT RECOMMENDED).
+            return Http::from(
+                ResponseFormat::application_json(), // assumed default for the error response
+                RefusedRequestResponse::not_acceptable_error(),
+            );
         };
 
-        if let Err(err) = self.runtime.rate_limiter().limit(&RateLimitKey::Global).await {
-            return HttpGraphqlResponse::build(
-                Response::pre_execution_error(GraphqlError::new(err.to_string(), ErrorCode::RateLimited)),
+        if parts.method == http::Method::POST {
+            // GraphQL-over-HTTP spec:
+            //   If the client does not supply a Content-Type header with a POST request,
+            //   the server SHOULD reject the request using the appropriate 4xx status code.
+            if parts.headers.get(http::header::CONTENT_TYPE) != Some(&APPLICATION_JSON) {
+                return Http::from(format, RefusedRequestResponse::unsupported_media_type());
+            }
+        } else if parts.method != http::Method::GET {
+            return Http::from(
                 format,
+                RefusedRequestResponse::method_not_allowed("Only GET or POST are supported."),
             );
         }
 
-        let mut timeout = match format {
-            Some(_) => {
-                // Streaming requests are subscriptions so shouldn't timeout
-                std::future::pending().boxed()
+        let request_context_fut = self
+            .create_request_context(!parts.method.is_safe(), parts.headers, format)
+            .map_err(|response| Http::from(format, response));
+
+        let graphql_request_fut = async move {
+            if parts.method == http::Method::POST {
+                body.await
+                    .map_err(|(status, message)| {
+                        Http::from(
+                            format,
+                            Response::refuse_request_with(status, GraphqlError::new(message, ErrorCode::BadRequest)),
+                        )
+                    })
+                    .and_then(|body| {
+                        serde_json::from_slice(&body).map_err(|err| {
+                            Http::from(
+                                format,
+                                RefusedRequestResponse::not_well_formed_graphql_over_http_request(&err.to_string()),
+                            )
+                        })
+                    })
+            } else {
+                let query = parts.uri.query().unwrap_or_default();
+                serde_urlencoded::from_str::<QueryParamsRequest>(query)
+                    .map(|request| BatchRequest::Single(request.into()))
+                    .map_err(|err| {
+                        Http::from(
+                            format,
+                            RefusedRequestResponse::not_well_formed_graphql_over_http_request(&err.to_string()),
+                        )
+                    })
             }
-            None => async move {
-                self.runtime.sleep(self.schema.settings.timeout).await;
-                HttpGraphqlResponse::build(
-                    Response::execution_error(GraphqlError::new("Gateway timeout", ErrorCode::GatewayTimeout)),
-                    format,
-                )
-            }
-            .boxed(),
+        };
+
+        // Retrieve the request body while processing the headers
+        match futures::try_join!(request_context_fut, graphql_request_fut) {
+            Ok((request_context, request)) => self.execute_well_formed_graphql_request(request_context, request).await,
+            Err(response) => response,
         }
-        .fuse();
-
-        let execution = self.execute_maybe_batch(request_context, batch_request).fuse();
-        pin_mut!(execution);
-
-        select!(
-           response = timeout => response,
-           response = execution => response
-        )
     }
 
-    pub async fn create_session(self: &Arc<Self>, headers: http::HeaderMap) -> Result<Session<R>, Cow<'static, str>> {
-        if let Err(err) = self.runtime.rate_limiter().limit(&RateLimitKey::Global).await {
-            return Err(
-                Response::pre_execution_error(GraphqlError::new(err.to_string(), ErrorCode::RateLimited))
-                    .first_error_message()
-                    .unwrap_or("Internal server error".into()),
-            );
-        }
+    pub async fn create_websocket_session(
+        self: &Arc<Self>,
+        headers: http::HeaderMap,
+    ) -> Result<WebsocketSession<R>, Cow<'static, str>> {
+        let response_format = ResponseFormat::Streaming(StreamingResponseFormat::GraphQLOverWebSocket);
 
-        let request_context = match self.create_request_context(headers).await {
+        let request_context = match self.create_request_context(true, headers, response_format).await {
             Ok(context) => context,
-            Err(response) => return Err(response.first_error_message().unwrap_or("Internal server error".into())),
+            Err(response) => {
+                return Err(response
+                    .errors()
+                    .first()
+                    .map(|error| error.message.clone())
+                    .unwrap_or("Internal server error".into()))
+            }
         };
 
-        Ok(Session {
+        Ok(WebsocketSession {
             engine: Arc::clone(self),
             request_context: Arc::new(request_context),
         })
@@ -162,63 +197,83 @@ impl<R: Runtime> Engine<R> {
 
     async fn create_request_context(
         &self,
+        mutations_allowed: bool,
         headers: http::HeaderMap,
+        response_format: ResponseFormat,
     ) -> Result<RequestContext<<R::Hooks as Hooks>::Context>, Response> {
         let client = Client::extract_from(&headers);
-        let streaming_format = headers.typed_get::<StreamingFormat>();
 
         let (hooks_context, headers) = self
             .runtime
             .hooks()
             .on_gateway_request(headers)
             .await
-            .map_err(Response::pre_execution_error)?;
+            .map_err(|ErrorResponse { status, error }| Response::refuse_request_with(status, error))?;
 
-        if let Some(access_token) = self.auth.authenticate(&headers).await {
-            Ok(RequestContext {
-                headers,
-                streaming_format,
-                client,
-                access_token,
-                hooks_context,
-            })
-        } else {
-            Err(Response::pre_execution_error(GraphqlError::new(
-                "Unauthenticated",
-                ErrorCode::Unauthenticated,
-            )))
+        let Some(access_token) = self.auth.authenticate(&headers).await else {
+            return Err(RefusedRequestResponse::unauthenticated());
+        };
+
+        // Currently it doesn't rely on authentication, but likely will at some point.
+        if self.runtime.rate_limiter().limit(&RateLimitKey::Global).await.is_err() {
+            return Err(RefusedRequestResponse::gateway_rate_limited());
         }
+
+        Ok(RequestContext {
+            mutations_allowed,
+            headers,
+            response_format,
+            client,
+            access_token,
+            hooks_context,
+        })
     }
 
-    async fn execute_maybe_batch(
+    async fn execute_well_formed_graphql_request(
         self: &Arc<Self>,
         request_context: RequestContext<<R::Hooks as Hooks>::Context>,
-        batch_request: BatchRequest,
-    ) -> HttpGraphqlResponse {
-        match batch_request {
+        request: BatchRequest,
+    ) -> http::Response<Body> {
+        match request {
             BatchRequest::Single(request) => {
-                if let Some(streaming_format) = request_context.streaming_format {
-                    convert_stream_to_http_response(
-                        streaming_format,
-                        self.execute_stream(Arc::new(request_context), request),
-                    )
-                    .await
+                if let ResponseFormat::Streaming(format) = request_context.response_format {
+                    Http::stream(format, self.execute_stream(Arc::new(request_context), request)).await
                 } else {
-                    self.execute_single(&request_context, request).await
+                    let Some(response) = self
+                        .runtime
+                        .with_timeout(
+                            self.schema.settings.timeout,
+                            self.execute_single(&request_context, request),
+                        )
+                        .await
+                    else {
+                        return Http::from(request_context.response_format, RequestErrorResponse::gateway_timeout());
+                    };
+                    Http::from(request_context.response_format, response)
                 }
             }
             BatchRequest::Batch(requests) => {
-                if request_context.streaming_format.is_some() {
-                    return HttpGraphqlResponse::bad_request_error(
-                        "batch requests can't use multipart or event-stream responses",
+                let ResponseFormat::Complete(format) = request_context.response_format else {
+                    return Http::from(
+                        request_context.response_format,
+                        RequestErrorResponse::bad_request_but_well_formed_graphql_over_http_request(
+                            "batch requests cannot be returned as multipart or event-stream responses",
+                        ),
                     );
-                }
-                HttpGraphqlResponse::from_batch(
-                    futures_util::stream::iter(requests.into_iter())
-                        .then(|request| self.execute_single(&request_context, request))
-                        .collect::<Vec<_>>()
-                        .await,
-                )
+                };
+                let Some(responses) = self
+                    .runtime
+                    .with_timeout(
+                        self.schema.settings.timeout,
+                        futures_util::stream::iter(requests.into_iter())
+                            .then(|request| self.execute_single(&request_context, request))
+                            .collect::<Vec<_>>(),
+                    )
+                    .await
+                else {
+                    return Http::from(request_context.response_format, RequestErrorResponse::gateway_timeout());
+                };
+                Http::batch(format, responses)
             }
         }
     }
@@ -227,18 +282,17 @@ impl<R: Runtime> Engine<R> {
         &self,
         request_context: &RequestContext<<R::Hooks as Hooks>::Context>,
         request: Request,
-    ) -> HttpGraphqlResponse {
+    ) -> Response {
         let start = Instant::now();
         let span = GqlRequestSpan::create();
         async {
             let ctx = PreExecutionContext::new(self, request_context);
             let (operation_metrics_attributes, response) = ctx.execute_single(request).await;
-            let status = response.status();
-
             let elapsed = start.elapsed();
+            let status = response.graphql_status();
 
             if let Some(operation_metrics_attributes) = operation_metrics_attributes {
-                tracing::Span::current().record_gql_request((&operation_metrics_attributes).into());
+                span.record_gql_request((&operation_metrics_attributes).into());
 
                 self.operation_metrics.record(
                     GraphqlRequestMetricsAttributes {
@@ -251,22 +305,23 @@ impl<R: Runtime> Engine<R> {
                 );
             }
 
+            span.record_gql_status(status);
+
             if status.is_success() {
-                tracing::Span::current().record_gql_status(status);
                 tracing::debug!(target: GRAFBASE_TARGET, "gateway request")
             } else {
                 let message = response
-                    .first_error_message()
-                    .map(|s| s.into_owned())
-                    .unwrap_or_else(|| String::from("gateway error"));
+                    .errors()
+                    .first()
+                    .map(|error| error.message.clone())
+                    .unwrap_or_else(|| String::from("gateway error").into());
 
-                tracing::Span::current().record_gql_status(status);
                 tracing::debug!(target: GRAFBASE_TARGET, "{message}")
             }
 
-            HttpGraphqlResponse::build(response, None)
+            response
         }
-        .instrument(span)
+        .instrument(span.clone())
         .await
     }
 
@@ -314,22 +369,6 @@ impl<R: Runtime> Engine<R> {
     }
 }
 
-async fn convert_stream_to_http_response(
-    streaming_format: StreamingFormat,
-    stream: impl Stream<Item = Response> + Send + 'static,
-) -> HttpGraphqlResponse {
-    let mut stream = Box::pin(stream);
-    let Some(first_response) = stream.next().await else {
-        return HttpGraphqlResponse::internal_server_error("Empty stream");
-    };
-    HttpGraphqlResponse::from_stream(
-        streaming_format,
-        // Not perfect for the errors count, but good enough to detect a request error
-        first_response.status(),
-        futures_util::stream::iter(std::iter::once(first_response)).chain(stream),
-    )
-}
-
 impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
     async fn execute_single(mut self, request: Request) -> (Option<OperationMetricsAttributes>, Response) {
         let operation_plan = match self.prepare_operation(request).await {
@@ -339,10 +378,9 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
 
         let metrics_attributes = Some(operation_plan.metrics_attributes.clone());
         let response = if matches!(operation_plan.ty(), OperationType::Subscription) {
-            Response::pre_execution_error(GraphqlError::new(
+            RequestErrorResponse::bad_request_but_well_formed_graphql_over_http_request(
                 "Subscriptions are only suported on streaming transports. Try making a request with SSE or WebSockets",
-                ErrorCode::BadRequest,
-            ))
+            )
         } else {
             self.execute_query_or_mutation(operation_plan).await
         };
@@ -355,23 +393,41 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
         request: Request,
         mut sender: mpsc::Sender<Response>,
     ) -> (Option<OperationMetricsAttributes>, GraphqlResponseStatus) {
-        let operation_plan = match self.prepare_operation(request).await {
-            Ok(operation_plan) => operation_plan,
-            Err((metadata, response)) => {
-                let status = response.status();
+        // If it's a subscription, we at least have a timeout on the operation preparation.
+        let result = self
+            .engine
+            .runtime
+            .with_timeout(self.engine.schema.settings.timeout, async {
+                let operation_plan = match self.prepare_operation(request).await {
+                    Ok(operation_plan) => operation_plan,
+                    Err((metadata, response)) => {
+                        let status = response.graphql_status();
+                        sender.send(response).await.ok();
+                        return Err((metadata, status));
+                    }
+                };
+                if matches!(operation_plan.ty(), OperationType::Query | OperationType::Mutation) {
+                    let metrics_attributes = Some(operation_plan.metrics_attributes.clone());
+                    let response = self.execute_query_or_mutation(operation_plan).await;
+                    let status = response.graphql_status();
+                    sender.send(response).await.ok();
+                    Err((metrics_attributes, status))
+                } else {
+                    Ok((self, operation_plan))
+                }
+            })
+            .await;
+
+        let (ctx, operation_plan) = match result {
+            Some(Ok((ctx, operation_plan))) => (ctx, operation_plan),
+            Some(Err((metadata, status))) => return (metadata, status),
+            None => {
+                let response = RequestErrorResponse::gateway_timeout();
+                let status = response.graphql_status();
                 sender.send(response).await.ok();
-                return (metadata, status);
+                return (None, status);
             }
         };
-        let operation_type = operation_plan.ty();
-        let metrics_attributes = Some(operation_plan.metrics_attributes.clone());
-
-        if matches!(operation_type, OperationType::Query | OperationType::Mutation) {
-            let response = self.execute_query_or_mutation(operation_plan).await;
-            let status = response.status();
-            sender.send(response).await.ok();
-            return (metrics_attributes, status);
-        }
 
         let mut status: GraphqlResponseStatus = GraphqlResponseStatus::Success;
         struct Sender<'a> {
@@ -382,12 +438,13 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
         impl crate::execution::ResponseSender for Sender<'_> {
             type Error = mpsc::SendError;
             async fn send(&mut self, response: Response) -> Result<(), Self::Error> {
-                *self.status = self.status.union(response.status());
+                *self.status = self.status.union(response.graphql_status());
                 self.sender.send(response).await
             }
         }
 
-        self.execute_subscription(
+        let metrics_attributes = Some(operation_plan.metrics_attributes.clone());
+        ctx.execute_subscription(
             operation_plan,
             Sender {
                 sender,
@@ -400,48 +457,59 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
 
     async fn prepare_operation(
         &mut self,
-        mut request: Request,
+        request: Request,
     ) -> Result<ExecutableOperation, (Option<OperationMetricsAttributes>, Response)> {
         let result = {
-            let PreparedOperationDocument {
-                cache_key,
-                document_fut,
-            } = match self.prepare_operation_document(&request) {
-                Ok(pq) => pq,
-                Err(err) => return Err((None, Response::pre_execution_error(err))),
+            let OperationDocument { cache_key, load_fut } = match self.determine_operation_document(&request) {
+                Ok(doc) => doc,
+                // If we have an error a this stage, it means we couldn't determine what document
+                // to load, so we don't consider it a well-formed GraphQL-over-HTTP request.
+                Err(err) => return Err((None, Response::refuse_request_with(http::StatusCode::BAD_REQUEST, err))),
             };
 
             if let Some(operation) = self.operation_cache.get(&cache_key).await {
                 Ok(operation)
-            } else if let Some(document_fut) = document_fut {
-                match document_fut.await {
-                    Ok(document) => Err((cache_key, Some(document))),
-                    Err(err) => return Err((None, Response::pre_execution_error(err))),
-                }
             } else {
-                Err((cache_key, None))
+                match load_fut.await {
+                    Ok(document) => Err((cache_key, document)),
+                    Err(err) => return Err((None, Response::request_error([err]))),
+                }
             }
         };
 
         let operation = match result {
             Ok(operation) => operation,
             Err((cache_key, document)) => {
-                if let Some(query) = document {
-                    request.query = query
-                }
-                let operation = Operation::build(&self.schema, &request)
+                let operation = Operation::build(&self.schema, &request, &document)
                     .map(Arc::new)
-                    .map_err(|mut err| (err.take_metrics_attributes(), Response::pre_execution_error(err)))?;
+                    .map_err(|mut err| (err.take_metrics_attributes(), Response::request_error([err])))?;
 
                 self.push_background_future(self.engine.operation_cache.insert(cache_key, operation.clone()).boxed());
                 operation
             }
         };
 
+        // GraphQL-over-HTTP spec:
+        //   GET requests MUST NOT be used for executing mutation operations. If the values of {query} and {operationName} indicate that
+        //   a mutation operation is to be executed, the server MUST respond with error status code 405 (Method Not Allowed) and halt
+        //   execution. This restriction is necessary to conform with the long-established semantics of safe methods within HTTP.
+        //
+        // While it's technically a RequestError at this stage, as we have a well-formed GraphQL-over-HTTP request,
+        // we must return a 4xx without regard to the Accept header in all cases, so it's akin to denying the request.
+        //
+        // This error would be confusing for a websocket connection, but today mutation are always
+        // allowed for it.
+        if operation.ty.is_mutation() && !self.request_context.mutations_allowed {
+            return Err((
+                Some(operation.metrics_attributes.clone()),
+                RefusedRequestResponse::method_not_allowed("Mutation is not allowed with a safe method like GET"),
+            ));
+        }
+
         let variables = Variables::build(self.schema.as_ref(), &operation, request.variables).map_err(|errors| {
             (
                 Some(operation.metrics_attributes.clone()),
-                Response::pre_execution_errors(errors),
+                Response::request_error(errors),
             )
         })?;
 
@@ -450,18 +518,18 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
             .map_err(|err| {
                 (
                     Some(operation.metrics_attributes.clone()),
-                    Response::pre_execution_error(err),
+                    Response::request_error([err]),
                 )
             })
     }
 }
 
-pub struct Session<R: Runtime> {
+pub struct WebsocketSession<R: Runtime> {
     engine: Arc<Engine<R>>,
     request_context: Arc<RequestContext<<R::Hooks as Hooks>::Context>>,
 }
 
-impl<R: Runtime> Clone for Session<R> {
+impl<R: Runtime> Clone for WebsocketSession<R> {
     fn clone(&self) -> Self {
         Self {
             engine: Arc::clone(&self.engine),
@@ -471,25 +539,27 @@ impl<R: Runtime> Clone for Session<R> {
 }
 
 pub(crate) struct RequestContext<C> {
+    pub mutations_allowed: bool,
     pub headers: http::HeaderMap,
-    pub streaming_format: Option<StreamingFormat>,
+    pub response_format: ResponseFormat,
     pub client: Option<Client>,
     pub access_token: AccessToken,
     pub hooks_context: C,
 }
 
-impl<R: Runtime> Session<R> {
-    pub fn execute_websocket(&self, id: String, request: Request) -> impl Stream<Item = websocket::Message> {
+impl<R: Runtime> WebsocketSession<R> {
+    pub fn execute(&self, event: websocket::SubscribeEvent) -> impl Stream<Item = websocket::Message> {
+        let websocket::SubscribeEvent { id, payload } = event;
         self.engine
-            .execute_stream(self.request_context.clone(), request)
+            .execute_stream(self.request_context.clone(), payload.0)
             .map(move |response| match response {
-                Response::PreExecutionError(_) => websocket::Message::Error {
+                Response::RefusedRequest(_) => websocket::Message::Error {
                     id: id.clone(),
-                    payload: websocket::Payload(response),
+                    payload: websocket::ResponsePayload(response),
                 },
                 response => websocket::Message::Next {
                     id: id.clone(),
-                    payload: websocket::Payload(response),
+                    payload: websocket::ResponsePayload(response),
                 },
             })
     }

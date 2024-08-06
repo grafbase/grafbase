@@ -16,9 +16,7 @@ fn gateway_timeout() {
             .build()
             .await;
 
-        let response = engine
-            .execute("query { fast: delay(ms: 0) slow: delay(ms: 500) }")
-            .await;
+        let response = engine.post("query { fast: delay(ms: 0) slow: delay(ms: 500) }").await;
 
         insta::assert_json_snapshot!(response, @r###"
         {
@@ -29,11 +27,10 @@ fn gateway_timeout() {
         }
         "###);
 
-        let response = engine.execute("query { verySlow: delay(ms: 1500) }").await;
+        let response = engine.post("query { verySlow: delay(ms: 1500) }").await;
 
         insta::assert_json_snapshot!(response, @r###"
         {
-          "data": null,
           "errors": [
             {
               "message": "Gateway timeout",
@@ -65,7 +62,7 @@ fn subgraph_timeout() {
             .await;
 
         let response = engine
-            .execute("query { serverVersion fast: delay(ms: 0) slow: nullableDelay(ms: 500) }")
+            .post("query { serverVersion fast: delay(ms: 0) slow: nullableDelay(ms: 500) }")
             .await;
 
         insta::assert_json_snapshot!(response, @r###"
@@ -78,9 +75,7 @@ fn subgraph_timeout() {
         }
         "###);
 
-        let response = engine
-            .execute("query { serverVersion verySlow: delay(ms: 1500) }")
-            .await;
+        let response = engine.post("query { serverVersion verySlow: delay(ms: 1500) }").await;
 
         insta::assert_json_snapshot!(response, @r###"
         {
@@ -100,7 +95,7 @@ fn subgraph_timeout() {
         "###);
 
         let response = engine
-            .execute("query { serverVersion verySlow: nullableDelay(ms: 1500) }")
+            .post("query { serverVersion verySlow: nullableDelay(ms: 1500) }")
             .await;
 
         insta::assert_json_snapshot!(response, @r###"

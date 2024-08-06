@@ -617,7 +617,7 @@ fn undefined_variable() {
         async move {
             let engine = Engine::builder().with_subgraph(EchoSchema).build().await;
 
-            engine.execute(query).variables(json!({})).await
+            engine.post(query).variables(json!({})).await
         }
     });
 
@@ -671,7 +671,7 @@ fn run_query(query: &str, input: &serde_json::Value) -> GraphqlResponse {
         async move {
             let engine = Engine::builder().with_subgraph(EchoSchema).build().await;
 
-            engine.execute(query).variables(input).await
+            engine.post(query).variables(input).await
         }
     })
 }

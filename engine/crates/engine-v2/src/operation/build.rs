@@ -1,7 +1,10 @@
 use schema::Schema;
 use tracing::instrument;
 
-use crate::response::{ErrorCode, GraphqlError};
+use crate::{
+    request::Request,
+    response::{ErrorCode, GraphqlError},
+};
 
 use super::{
     bind::{bind_operation, BindError},
@@ -66,9 +69,9 @@ impl Operation {
     /// All field names are mapped to their actual field id in the schema and respective configuration.
     /// At this stage the operation might not be resolvable but it should make sense given the schema types.
     #[instrument(skip_all)]
-    pub fn build(schema: &Schema, request: &engine::Request) -> Result<PreparedOperation, OperationError> {
-        let parsed_operation = parse_operation(request)?;
-        let metrics_attributes = prepare_metrics_attributes(&parsed_operation, request);
+    pub fn build(schema: &Schema, request: &Request, document: &str) -> Result<PreparedOperation, OperationError> {
+        let parsed_operation = parse_operation(request.operation_name.as_deref(), document)?;
+        let metrics_attributes = prepare_metrics_attributes(&parsed_operation, document);
 
         let mut operation = match bind_operation(schema, parsed_operation) {
             Ok(operation) => operation,
@@ -80,7 +83,7 @@ impl Operation {
             }
         };
 
-        if let Err(err) = validate_operation(schema, operation.walker_with(schema.walker()), request) {
+        if let Err(err) = validate_operation(schema, operation.walker_with(schema.walker())) {
             return Err(OperationError::Validation {
                 metrics_attributes: Box::new(metrics_attributes),
                 err,

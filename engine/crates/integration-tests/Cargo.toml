@@ -40,6 +40,7 @@ names = "0.14.1-dev"
 openidconnect.workspace = true
 reqwest.workspace = true
 serde.workspace = true
+serde_urlencoded.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true
 ulid.workspace = true

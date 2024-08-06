@@ -136,7 +136,7 @@ fn test_operation_limits(
             .build()
             .await;
 
-        engine.execute(query).await
+        engine.post(query).await
     });
 
     assert_eq!(

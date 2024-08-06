@@ -284,7 +284,7 @@ impl ComplexSchemaAndQuery {
     }
 
     async fn to_engine(&self) -> DeterministicEngine {
-        DeterministicEngine::builder(&self.schema, self.query.clone())
+        DeterministicEngine::builder(&self.schema, &self.query)
             .without_hot_cache()
             .with_subgraph_response(json!({"data":{"node":{"id":"1234", "__typename": "Nothing"}}}))
             .build()

@@ -6,6 +6,8 @@ use std::{borrow::Cow, collections::HashMap};
 
 use serde::Deserialize;
 
+use crate::request::Request;
+
 #[derive(serde::Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum Event {
@@ -13,10 +15,7 @@ pub enum Event {
         #[serde(default)]
         payload: InitPayload,
     },
-    Subscribe {
-        id: String,
-        payload: crate::Request,
-    },
+    Subscribe(SubscribeEvent),
     Complete {
         id: String,
     },
@@ -27,6 +26,15 @@ pub enum Event {
         payload: Option<serde_json::Value>,
     },
 }
+
+#[derive(serde::Deserialize)]
+pub struct SubscribeEvent {
+    pub id: String,
+    pub payload: RequestPayload,
+}
+
+#[derive(serde::Deserialize, Debug)]
+pub struct RequestPayload(pub(crate) Request);
 
 #[derive(Debug, Default, serde::Deserialize)]
 pub struct InitPayload {
@@ -54,11 +62,11 @@ where
 pub enum Message {
     Next {
         id: String,
-        payload: Payload,
+        payload: ResponsePayload,
     },
     Error {
         id: String,
-        payload: Payload,
+        payload: ResponsePayload,
     },
     Complete {
         id: String,
@@ -82,7 +90,7 @@ pub enum Message {
 }
 
 #[derive(serde::Serialize, Debug)]
-pub struct Payload(pub(super) crate::response::Response);
+pub struct ResponsePayload(pub(super) crate::response::Response);
 
 impl Message {
     pub fn close(code: u16, reason: impl Into<String>) -> Self {

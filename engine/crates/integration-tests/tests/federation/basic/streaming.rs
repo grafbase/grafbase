@@ -3,24 +3,17 @@
 //! Subscrition specific tests will probably live elsewhere
 
 use engine_v2::Engine;
-use graphql_mocks::StateMutationSchema;
+use graphql_mocks::Stateful;
 use integration_tests::{federation::EngineV2Ext, runtime};
 
 #[test]
 fn can_run_a_query_via_execute_stream() {
     runtime().block_on(async move {
-        let engine = Engine::builder()
-            .with_subgraph(StateMutationSchema::default())
-            .build()
-            .await;
+        let engine = Engine::builder().with_subgraph(Stateful::default()).build().await;
 
-        let response = engine
-            .execute("query { value }")
-            .into_multipart_stream()
-            .collect::<Vec<_>>()
-            .await;
+        let response = engine.post("query { value }").into_multipart_stream().await;
 
-        insta::assert_json_snapshot!(response, @r###"
+        insta::assert_json_snapshot!(response.collected_body, @r###"
         [
           {
             "data": {
@@ -35,13 +28,10 @@ fn can_run_a_query_via_execute_stream() {
 #[test]
 fn can_run_a_mutation_via_execute_stream() {
     runtime().block_on(async move {
-        let engine = Engine::builder()
-            .with_subgraph(StateMutationSchema::default())
-            .build()
-            .await;
+        let engine = Engine::builder().with_subgraph(Stateful::default()).build().await;
 
         let response = engine
-            .execute(
+            .post(
                 r"
                 mutation {
                     first: set(val: 1)
@@ -53,10 +43,9 @@ fn can_run_a_mutation_via_execute_stream() {
                 ",
             )
             .into_multipart_stream()
-            .collect::<Vec<_>>()
             .await;
 
-        insta::assert_json_snapshot!(response, @r###"
+        insta::assert_json_snapshot!(response.collected_body, @r###"
         [
           {
             "data": {

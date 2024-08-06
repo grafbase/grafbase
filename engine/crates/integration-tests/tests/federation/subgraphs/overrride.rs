@@ -7,7 +7,7 @@ fn simple_override() {
     let response = runtime().block_on(async {
         let engine = Engine::builder().with_subgraph(FederatedAccountsSchema).build().await;
         engine
-            .execute(
+            .post(
                 r"
                 query ExampleQuery {
                     me {

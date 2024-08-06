@@ -45,6 +45,7 @@ fn graphql_test_with_transforms() {
         type Query {
           allBotPullRequests: [PullRequest!]!
           botPullRequests(bots: [[BotInput!]]!): [PullRequest!]!
+          fail: Int!
           favoriteRepository: CustomRepoId!
           pullRequest(id: ID!): PullRequest
           pullRequestOrIssue(id: ID!): PullRequestOrIssue

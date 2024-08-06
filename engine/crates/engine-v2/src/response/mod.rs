@@ -1,4 +1,4 @@
-use std::{borrow::Cow, sync::Arc};
+use std::sync::Arc;
 
 pub(crate) use error::*;
 use grafbase_telemetry::gql_response_status::GraphqlResponseStatus;
@@ -13,7 +13,7 @@ pub(crate) use write::*;
 
 use crate::operation::PreparedOperation;
 
-mod error;
+pub(crate) mod error;
 mod key;
 mod object_set;
 mod path;
@@ -23,18 +23,30 @@ mod value;
 mod write;
 
 pub(crate) enum Response {
-    Initial(InitialResponse),
-    /// Engine could not process the request at all, but request was valid.
-    /// Meaning `data` field is present, but null.
-    ExecutionFailure(ExecutionFailureResponse),
-    /// Invalid request
-    PreExecutionError(PreExecutionErrorResponse),
+    /// Before or while validating we have a well-formed GraphQL-over-HTTP request, we may
+    /// reject the request with GraphQL errors.
+    /// HTTP status code MUST NOT be 2xx according to the GraphQL-over-HTTP spec
+    RefusedRequest(RefusedRequestResponse),
+    /// We did receive a well-formed GraphQL-over-HTTP request, but preparation failed:
+    /// unknown field, wrong arguments, etc.
+    /// It's a "request error" as defined in the spec (no `data` field)
+    /// HTTP status code MUST be 4xx or 5xx according to the GraphQL-over-HTTP spec for application/graphql-response+json
+    RequestError(RequestErrorResponse),
+    /// We have a well-formed GraphQL-over-HTTP request, and preparation succeeded.
+    /// So `data` is present, even if null. That's considered to be a "partial response" and
+    /// HTTP status code SHOULD be 2xx according to the GraphQL-over-HTTP spec for application/graphql-response+json
+    Executed(ExecutedResponse),
 }
 
-pub(crate) struct InitialResponse {
-    // will be None if an error propagated up to the root.
-    data: ResponseData,
+pub(crate) struct ExecutedResponse {
+    data: Option<ResponseData>,
     errors: Vec<GraphqlError>,
+}
+
+impl ExecutedResponse {
+    pub(crate) fn is_data_null(&self) -> bool {
+        self.data.as_ref().map(|data| data.root.is_none()).unwrap_or(true)
+    }
 }
 
 struct ResponseData {
@@ -44,65 +56,70 @@ struct ResponseData {
     parts: Vec<ResponseDataPart>,
 }
 
-pub(crate) struct PreExecutionErrorResponse {
+pub(crate) struct RequestErrorResponse {
     errors: Vec<GraphqlError>,
 }
 
-pub(crate) struct ExecutionFailureResponse {
-    errors: Vec<GraphqlError>,
+pub(crate) struct RefusedRequestResponse {
+    status: http::StatusCode,
+    error: GraphqlError,
+}
+
+impl RefusedRequestResponse {
+    pub(crate) fn status(&self) -> http::StatusCode {
+        self.status
+    }
 }
 
 impl Response {
-    pub(crate) fn pre_execution_error(error: impl Into<GraphqlError>) -> Self {
-        Self::PreExecutionError(PreExecutionErrorResponse {
-            errors: vec![error.into()],
+    pub(crate) fn refuse_request_with(status: http::StatusCode, error: impl Into<GraphqlError>) -> Self {
+        Self::RefusedRequest(RefusedRequestResponse {
+            status,
+            error: error.into(),
         })
     }
 
-    pub(crate) fn pre_execution_errors<E>(errors: impl IntoIterator<Item = E>) -> Self
+    pub(crate) fn request_error<E>(errors: impl IntoIterator<Item = E>) -> Self
     where
         E: Into<GraphqlError>,
     {
-        Self::PreExecutionError(PreExecutionErrorResponse {
+        Self::RequestError(RequestErrorResponse {
             errors: errors.into_iter().map(Into::into).collect(),
         })
     }
 
-    pub(crate) fn execution_error(error: impl Into<GraphqlError>) -> Self {
-        Self::ExecutionFailure(ExecutionFailureResponse {
-            errors: vec![error.into()],
+    pub(crate) fn execution_error(errors: impl IntoIterator<Item: Into<GraphqlError>>) -> Self {
+        Self::Executed(ExecutedResponse {
+            data: None,
+            errors: errors.into_iter().map(Into::into).collect(),
         })
     }
 
-    pub(crate) fn status(&self) -> GraphqlResponseStatus {
+    pub(crate) fn graphql_status(&self) -> GraphqlResponseStatus {
         match self {
-            Self::Initial(resp) => {
+            Self::Executed(resp) => {
                 if resp.errors.is_empty() {
                     GraphqlResponseStatus::Success
                 } else {
                     GraphqlResponseStatus::FieldError {
                         count: resp.errors.len() as u64,
-                        data_is_null: resp.data.root.is_none(),
+                        data_is_null: resp.is_data_null(),
                     }
                 }
             }
-            Self::ExecutionFailure(resp) => GraphqlResponseStatus::FieldError {
-                count: resp.errors.len() as u64,
-                data_is_null: true,
-            },
-            Self::PreExecutionError(resp) => GraphqlResponseStatus::RequestError {
+            Self::RequestError(resp) => GraphqlResponseStatus::RequestError {
                 count: resp.errors.len() as u64,
             },
+            Self::RefusedRequest(_) => GraphqlResponseStatus::RefusedRequest,
         }
     }
 
-    pub(crate) fn first_error_message(&self) -> Option<Cow<'static, str>> {
+    pub(crate) fn errors(&self) -> &[GraphqlError] {
         match self {
-            Response::Initial(resp) => resp.errors.first(),
-            Response::ExecutionFailure(resp) => resp.errors.first(),
-            Response::PreExecutionError(resp) => resp.errors.first(),
+            Response::RefusedRequest(resp) => std::array::from_ref(&resp.error),
+            Response::RequestError(resp) => &resp.errors,
+            Response::Executed(resp) => &resp.errors,
         }
-        .map(|error| error.message.clone())
     }
 }
 
