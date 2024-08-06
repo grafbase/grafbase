@@ -12,10 +12,10 @@ where
 {
     cfg_if::cfg_if! {
         if #[cfg(feature = "otlp")] {
-            use opentelemetry_sdk::logs::{BatchConfigBuilder, BatchLogProcessor};
+            use opentelemetry_sdk::logs::{BatchConfigBuilder, BatchLogProcessor, Config};
             use std::time::Duration;
 
-            let mut builder = LoggerProvider::builder().with_resource(resource);
+            let mut builder = LoggerProvider::builder().with_config(Config::default().with_resource(resource));
 
             if let Some(config) = config.logs_otlp_config() {
                 use opentelemetry_otlp::LogExporterBuilder;
