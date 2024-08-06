@@ -1,8 +1,9 @@
+use std::borrow::Cow;
+
 use opentelemetry::trace::noop::NoopTracer;
 use opentelemetry::trace::TracerProvider;
 use opentelemetry::KeyValue;
 use opentelemetry_appender_tracing::layer::OpenTelemetryTracingBridge;
-use opentelemetry_sdk::logs::{Logger, LoggerProvider};
 use opentelemetry_sdk::runtime::RuntimeChannel;
 use opentelemetry_sdk::trace::IdGenerator;
 use opentelemetry_sdk::Resource;
@@ -29,7 +30,7 @@ pub struct ReloadableOtelLayers<S> {
     /// A reloadable metrics layer
     pub meter_provider: Option<opentelemetry_sdk::metrics::SdkMeterProvider>,
     /// A reloadable logging layer
-    pub logger: Option<OpenTelemetryTracingBridge<LoggerProvider, Logger>>,
+    pub logger: Option<LoggerLayer>,
 }
 
 /// Holds tracing reloadable layer components
@@ -40,6 +41,11 @@ pub struct ReloadableOtelLayer<Subscriber, Provider> {
     pub layer_reload_handle: reload::Handle<BoxedLayer<Subscriber>, Subscriber>,
     /// The tracer provider used for tracers attached to the layer
     pub provider: Provider,
+}
+
+pub struct LoggerLayer {
+    pub layer: OpenTelemetryTracingBridge<opentelemetry_sdk::logs::LoggerProvider, opentelemetry_sdk::logs::Logger>,
+    pub provider: opentelemetry_sdk::logs::LoggerProvider,
 }
 
 /// Creates a new OTEL tracing layer that doesn't collect or export any tracing data.
@@ -93,17 +99,22 @@ where
     };
 
     let logger = match super::logs::build_logs_provider(runtime.clone(), &config, resource.clone())? {
-        Some(provider) if config.logs_exporters_enabled() => Some(OpenTelemetryTracingBridge::new(&provider)),
+        Some(provider) if config.logs_exporters_enabled() => Some(LoggerLayer {
+            layer: OpenTelemetryTracingBridge::new(&provider),
+            provider,
+        }),
         _ => None,
     };
 
     let tracing_layer = if config.tracing_exporters_enabled() {
         let tracer_provider = super::traces::build_trace_provider(runtime, id_generator, &config, resource.clone())?;
 
-        let tracer = tracer_provider
-            .tracer_builder(crate::SCOPE)
-            .with_version(crate::SCOPE_VERSION)
-            .build();
+        let tracer = tracer_provider.versioned_tracer(
+            crate::SCOPE,
+            Some(crate::SCOPE_VERSION),
+            None::<Cow<'static, str>>,
+            None,
+        );
 
         let tracer_layer = tracing_opentelemetry::layer().with_tracer(tracer);
         let tracer_layer = tracer_layer.boxed();
