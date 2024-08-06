@@ -1,8 +1,8 @@
 use grafbase_telemetry::{metrics, otel::opentelemetry};
 use runtime::{entity_cache::EntityCache, hooks::DynamicHooks, trusted_documents_client};
 use runtime_local::{
-    rate_limiting::in_memory::key_based::InMemoryRateLimiter, InMemoryEntityCache, InMemoryHotCacheFactory,
-    InMemoryKvStore, NativeFetcher,
+    rate_limiting::in_memory::key_based::InMemoryRateLimiter, InMemoryEntityCache, InMemoryKvStore,
+    InMemoryOperationCacheFactory, NativeFetcher,
 };
 use runtime_noop::trusted_documents::NoopTrustedDocuments;
 use tokio::sync::watch;
@@ -11,7 +11,7 @@ pub struct TestRuntime {
     pub fetcher: runtime::fetch::Fetcher,
     pub trusted_documents: trusted_documents_client::Client,
     pub kv: runtime::kv::KvStore,
-    pub hot_cache_factory: InMemoryHotCacheFactory,
+    pub hot_cache_factory: InMemoryOperationCacheFactory,
     pub meter: opentelemetry::metrics::Meter,
     pub hooks: DynamicHooks,
     pub rate_limiter: runtime::rate_limiting::RateLimiter,
@@ -37,7 +37,7 @@ impl Default for TestRuntime {
 
 impl engine_v2::Runtime for TestRuntime {
     type Hooks = DynamicHooks;
-    type CacheFactory = InMemoryHotCacheFactory;
+    type OperationCacheFactory = InMemoryOperationCacheFactory;
 
     fn fetcher(&self) -> &runtime::fetch::Fetcher {
         &self.fetcher
@@ -59,7 +59,7 @@ impl engine_v2::Runtime for TestRuntime {
         &self.hooks
     }
 
-    fn cache_factory(&self) -> &Self::CacheFactory {
+    fn operation_cache_factory(&self) -> &Self::OperationCacheFactory {
         &self.hot_cache_factory
     }
 

@@ -12,17 +12,6 @@ use crate::response::{ErrorCode, Response};
 pub struct HttpGraphqlResponse {
     pub headers: http::HeaderMap,
     pub body: HttpGraphqlResponseBody,
-    // TODO: Used to propagate this metadata to headers for our current analytics on Cloudflare.
-    //       It should not be relied upon otherwise, doesn't work well for batch requests and will
-    //       be removed once we also use otel for the managed version.
-    pub metadata: HttpGraphqlResponseExtraMetadata,
-}
-
-#[derive(Default)]
-pub struct HttpGraphqlResponseExtraMetadata {
-    pub operation_name: Option<String>,
-    pub operation_type: Option<&'static str>,
-    pub has_errors: bool,
 }
 
 pub enum HttpGraphqlResponseBody {
@@ -72,12 +61,8 @@ impl HttpGraphqlResponse {
         )
     }
 
-    pub(crate) fn build(
-        response: Response,
-        format: Option<StreamingFormat>,
-        metadata: HttpGraphqlResponseExtraMetadata,
-    ) -> Self {
-        let mut http_response = if let Some(format) = format {
+    pub(crate) fn build(response: Response, format: Option<StreamingFormat>) -> Self {
+        if let Some(format) = format {
             Self::from_stream(
                 format,
                 response.status(),
@@ -85,9 +70,7 @@ impl HttpGraphqlResponse {
             )
         } else {
             Self::from_json(response.status(), &response)
-        };
-        http_response.metadata = metadata;
-        http_response
+        }
     }
 
     pub(crate) fn from_stream<T>(
@@ -102,7 +85,6 @@ impl HttpGraphqlResponse {
         headers.typed_insert(status);
         Self {
             headers,
-            metadata: HttpGraphqlResponseExtraMetadata::default(),
             body: HttpGraphqlResponseBody::Stream(stream.map_ok(|bytes| bytes.into()).boxed()),
         }
     }
@@ -168,7 +150,6 @@ impl HttpGraphqlResponse {
         headers.typed_insert(headers::ContentLength(bytes.len() as u64));
         HttpGraphqlResponse {
             headers,
-            metadata: HttpGraphqlResponseExtraMetadata::default(),
             body: HttpGraphqlResponseBody::Bytes(bytes),
         }
     }

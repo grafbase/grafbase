@@ -16,7 +16,7 @@ use runtime::{
     fetch::{FetchError, FetchRequest, FetchResponse, FetchResult, GraphqlRequest},
     hooks::DynamicHooks,
 };
-use runtime_local::InMemoryHotCacheFactory;
+use runtime_local::InMemoryOperationCacheFactory;
 
 use crate::federation::{GraphqlResponse, GraphqlStreamingResponse};
 
@@ -51,7 +51,7 @@ impl<'a> DeterministicEngineBuilder<'a> {
     }
 
     pub fn without_hot_cache(mut self) -> Self {
-        self.runtime.hot_cache_factory = InMemoryHotCacheFactory::inactive();
+        self.runtime.hot_cache_factory = InMemoryOperationCacheFactory::inactive();
         self
     }
 

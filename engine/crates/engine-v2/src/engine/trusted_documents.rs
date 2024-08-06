@@ -8,17 +8,17 @@ use crate::{
 use engine::{PersistedQueryRequestExtension, Request};
 use futures::{future::BoxFuture, FutureExt};
 use grafbase_telemetry::grafbase_client::X_GRAFBASE_CLIENT_NAME;
-use runtime::{hot_cache::HotCache, trusted_documents_client::TrustedDocumentsError};
+use runtime::trusted_documents_client::TrustedDocumentsError;
 use std::borrow::Cow;
 use tracing::instrument;
 
 use super::cache::{Document, Key};
 
-type PersistedQueryFuture<'a> = BoxFuture<'a, Result<String, GraphqlError>>;
+type DocumentFuture<'a> = BoxFuture<'a, Result<String, GraphqlError>>;
 
 pub(crate) struct PreparedOperationDocument<'a> {
     pub cache_key: String,
-    pub document_fut: Option<PersistedQueryFuture<'a>>,
+    pub document_fut: Option<DocumentFuture<'a>>,
 }
 
 impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
@@ -65,23 +65,47 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
                     Err(graphql_error)
                 }
             }
-            (true, Some(ext), _) => Ok(PreparedOperationDocument {
+            // Apollo Client style trusted document query
+            (true, maybe_ext, maybe_doc_id) => {
+                let Some(client_name) = client_name else {
+                    return Err(GraphqlError::new(
+                        format!(
+                            "Trusted document queries must include the {} header",
+                            X_GRAFBASE_CLIENT_NAME.as_str()
+                        ),
+                        ErrorCode::TrustedDocumentError,
+                    ));
+                };
+
+                let doc_id = if let Some(ext) = maybe_ext {
+                    Cow::Owned(hex::encode(&ext.sha256_hash))
+                } else if let Some(doc_id) = maybe_doc_id {
+                    doc_id.into()
+                } else {
+                    unreachable!()
+                };
+
+                Ok(PreparedOperationDocument {
+                    cache_key: Key::Operation {
+                        name,
+                        schema_version,
+                        document: Document::TrustedDocumentId {
+                            client_name,
+                            doc_id: doc_id.clone(),
+                        },
+                    }
+                    .to_string(),
+                    document_fut: Some(self.handle_trusted_document_query(client_name, doc_id)?),
+                })
+            }
+            (false, Some(ext), _) => Ok(PreparedOperationDocument {
                 cache_key: Key::Operation {
                     name,
                     schema_version,
-                    document: Document::PersistedQueryExt(ext),
+                    document: Document::AutomaticallyPersistedQuery(ext),
                 }
                 .to_string(),
-                document_fut: Some(self.handle_apollo_client_style_trusted_document_query(ext, client_name)?),
-            }),
-            (true, _, Some(document_id)) => Ok(PreparedOperationDocument {
-                cache_key: Key::Operation {
-                    name,
-                    schema_version,
-                    document: Document::Id(document_id),
-                }
-                .to_string(),
-                document_fut: Some(self.handle_trusted_document_query(document_id.into(), client_name)?),
+                document_fut: self.handle_apq(request, ext)?,
             }),
             (false, None, _) => Ok(PreparedOperationDocument {
                 cache_key: Key::Operation {
@@ -92,74 +116,20 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
                 .to_string(),
                 document_fut: None,
             }),
-            (false, Some(ext), _) => Ok(PreparedOperationDocument {
-                cache_key: Key::Operation {
-                    name,
-                    schema_version,
-                    document: Document::PersistedQueryExt(ext),
-                }
-                .to_string(),
-                document_fut: self.handle_apq(request, ext)?,
-            }),
         }
-    }
-
-    fn handle_apollo_client_style_trusted_document_query<'r, 'f>(
-        &self,
-        ext: &'r PersistedQueryRequestExtension,
-        client_name: Option<&'ctx str>,
-    ) -> Result<PersistedQueryFuture<'f>, GraphqlError>
-    where
-        'r: 'f,
-        'ctx: 'f,
-    {
-        use std::fmt::Write;
-
-        let document_id = {
-            let mut id = String::with_capacity(ext.sha256_hash.len() * 2);
-
-            for byte in &ext.sha256_hash {
-                write!(id, "{byte:02x}").expect("write to String to succeed");
-            }
-
-            id
-        };
-
-        self.handle_trusted_document_query(document_id.into(), client_name)
     }
 
     fn handle_trusted_document_query<'r, 'f>(
         &self,
+        client_name: &'ctx str,
         document_id: Cow<'r, str>,
-        client_name: Option<&'ctx str>,
-    ) -> Result<PersistedQueryFuture<'f>, GraphqlError>
+    ) -> Result<DocumentFuture<'f>, GraphqlError>
     where
         'r: 'f,
         'ctx: 'f,
     {
-        let Some(client_name) = client_name else {
-            return Err(GraphqlError::new(
-                format!(
-                    "Trusted document queries must include the {} header",
-                    X_GRAFBASE_CLIENT_NAME.as_str()
-                ),
-                ErrorCode::TrustedDocumentError,
-            ));
-        };
-
         let engine = self.engine;
         let fut = async move {
-            let key = Key::TrustedDocument {
-                client_name,
-                document_id: &document_id,
-            }
-            .to_string();
-
-            // First try fetching the document from cache.
-            if let Some(document_text) = engine.trusted_documents_cache.get(&key).await {
-                return Ok(document_text);
-            }
-
             match engine
                 .runtime
                 .trusted_documents()
@@ -174,10 +144,7 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
                     format!("Unknown document id: '{document_id}'"),
                     ErrorCode::TrustedDocumentError,
                 )),
-                Ok(document_text) => {
-                    engine.trusted_documents_cache.insert(key, document_text.clone()).await;
-                    Ok(document_text)
-                }
+                Ok(document_text) => Ok(document_text),
             }
         }
         .boxed();
@@ -185,11 +152,13 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
     }
 
     /// Handle a request using Automatic Persisted Queries.
+    /// We don't cache anything here, we only rely on the operation cache. We might want to use an
+    /// external cache for this one day, but not another in-memory cache.
     fn handle_apq<'r, 'f>(
         &mut self,
         request: &'r Request,
         ext: &'r PersistedQueryRequestExtension,
-    ) -> Result<Option<PersistedQueryFuture<'f>>, GraphqlError>
+    ) -> Result<Option<DocumentFuture<'f>>, GraphqlError>
     where
         'r: 'f,
         'ctx: 'f,
@@ -201,8 +170,6 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
             ));
         }
 
-        let key = Key::Apq { ext }.to_string();
-
         if !request.query().is_empty() {
             use sha2::{Digest, Sha256};
             let digest = <Sha256 as Digest>::digest(request.query().as_bytes()).to_vec();
@@ -212,25 +179,14 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
                     ErrorCode::PersistedQueryError,
                 ));
             }
-            self.push_background_future(
-                self.engine
-                    .trusted_documents_cache
-                    .insert(key, request.query().to_string())
-                    .boxed(),
-            );
             return Ok(None);
         }
 
-        let engine = self.engine;
         let fut = async move {
-            if let Some(query) = engine.trusted_documents_cache.get(&key).await {
-                Ok(query)
-            } else {
-                Err(GraphqlError::new(
-                    "Persisted query not found",
-                    ErrorCode::PersistedQueryNotFound,
-                ))
-            }
+            Err(GraphqlError::new(
+                "Persisted query not found",
+                ErrorCode::PersistedQueryNotFound,
+            ))
         }
         .boxed();
 

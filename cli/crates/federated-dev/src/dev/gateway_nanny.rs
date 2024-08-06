@@ -108,7 +108,7 @@ pub struct CliRuntime {
 
 impl engine_v2::Runtime for CliRuntime {
     type Hooks = ();
-    type CacheFactory = ();
+    type OperationCacheFactory = ();
 
     fn fetcher(&self) -> &runtime::fetch::Fetcher {
         &self.fetcher
@@ -130,7 +130,7 @@ impl engine_v2::Runtime for CliRuntime {
         &()
     }
 
-    fn cache_factory(&self) -> &() {
+    fn operation_cache_factory(&self) -> &() {
         &()
     }
 
