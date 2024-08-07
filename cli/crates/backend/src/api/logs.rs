@@ -116,7 +116,7 @@ pub async fn logs_events_by_time_range(
         let response = client.post(api_url()).run_graphql(query).await?;
         let response = response.data.expect("must exist");
 
-        let mut project = response.graph_by_account_slug.ok_or(ApiError::ProjectDoesNotExist)?;
+        let mut project = response.graph_by_account_slug.ok_or(ApiError::GraphDoesNotExist)?;
 
         assert!(project.log_events.page_info.end_cursor >= project.log_events.page_info.start_cursor);
         if project.log_events.page_info.has_next_page {

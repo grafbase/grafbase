@@ -22,3 +22,16 @@ pub async fn list() -> Result<(), CliError> {
 
     Ok(())
 }
+
+#[tokio::main]
+pub async fn create(branch_ref: BranchRef) -> Result<(), CliError> {
+    report::create_branch();
+
+    branch::create(branch_ref.account(), branch_ref.project(), branch_ref.branch())
+        .await
+        .map_err(CliError::BackendApiError)?;
+
+    report::create_branch_success();
+
+    Ok(())
+}
