@@ -214,7 +214,7 @@ pub enum CreateError {
 #[derive(Error, Debug)]
 pub enum PublishError {
     /// returned if provided branch does not exist
-    #[error("provided branch does not exist in the project")]
+    #[error("provided branch does not exist in the graph")]
     BranchDoesNotExist,
 
     /// returned if an unknown error occurs
