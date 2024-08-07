@@ -5,8 +5,8 @@
 cli/ @grafbase/backend
 engine/ @grafbase/backend
 .github/actions/ @grafbase/infrastructure
-examples/ @grafbase/frontend
-packages/ @grafbase/frontend
+examples/ @grafbase/backend
+packages/ @grafbase/backend
 packages/grafbase-sdk @grafbase/backend
-templates/ @grafbase/frontend
+templates/ @grafbase/backend
 
