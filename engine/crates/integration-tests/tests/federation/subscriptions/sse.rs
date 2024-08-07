@@ -25,7 +25,7 @@ fn single_subgraph_subscription() {
                 }
                 ",
             )
-            .into_see_stream()
+            .into_sse_stream()
             .collect::<Vec<_>>()
             .await
     });
@@ -83,7 +83,7 @@ fn actual_federated_subscription() {
                 }
                 ",
             )
-            .into_see_stream()
+            .into_sse_stream()
             .collect::<Vec<_>>()
             .await
     });

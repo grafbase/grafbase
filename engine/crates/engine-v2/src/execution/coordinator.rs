@@ -274,7 +274,7 @@ pub(crate) struct SubscriptionResponse {
 }
 
 impl SubscriptionResponse {
-    pub fn root_response(&mut self) -> SubgraphResponseRefMut<'_> {
+    pub fn as_mut(&mut self) -> SubgraphResponseRefMut<'_> {
         self.root_subgraph_response.as_mut()
     }
 }

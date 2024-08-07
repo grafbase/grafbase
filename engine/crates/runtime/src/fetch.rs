@@ -1,8 +1,9 @@
-use std::{sync::Arc, time::Duration};
+use std::{borrow::Cow, future::Future, time::Duration};
 
 use bytes::Bytes;
-use futures_util::stream::BoxStream;
-use serde_json::Value;
+use futures_util::{stream::BoxStream, Stream, StreamExt, TryFutureExt};
+
+use crate::bytes::OwnedOrSharedBytes;
 
 #[derive(Debug, thiserror::Error)]
 pub enum FetchError {
@@ -20,53 +21,135 @@ impl FetchError {
 
 pub type FetchResult<T> = Result<T, FetchError>;
 
-// very minimal for now, but will be expanded as we need it.
-pub struct FetchRequest<'a> {
-    pub url: &'a url::Url,
+/// reqwest uses Url instead of Uri, so as long as it's the actual implementation underneath it's a
+/// bit of a waste to use http::Request
+#[derive(Clone)]
+pub struct FetchRequest<'a, Body> {
+    pub url: Cow<'a, url::Url>,
+    pub method: http::Method,
     pub headers: http::HeaderMap,
-    pub json_body: Bytes,
+    pub body: Body,
     pub timeout: Duration,
 }
 
-#[derive(Clone)]
-pub struct FetchResponse {
-    pub bytes: Bytes,
-}
-
-pub struct GraphqlRequest<'a> {
-    pub url: &'a url::Url,
-    pub headers: http::HeaderMap,
-    pub query: &'a str,
-    pub variables: Value,
-}
-
-#[async_trait::async_trait]
-pub trait FetcherInner: Send + Sync {
-    async fn post(&self, request: &FetchRequest<'_>) -> FetchResult<FetchResponse>;
-
-    async fn stream(
+pub trait Fetcher: Send + Sync + 'static {
+    fn fetch(
         &self,
-        request: GraphqlRequest<'_>,
-    ) -> FetchResult<BoxStream<'static, Result<serde_json::Value, FetchError>>>;
+        request: FetchRequest<'_, Bytes>,
+    ) -> impl Future<Output = FetchResult<http::Response<OwnedOrSharedBytes>>> + Send;
+
+    fn graphql_over_sse_stream(
+        &self,
+        request: FetchRequest<'_, Bytes>,
+    ) -> impl Future<Output = FetchResult<impl Stream<Item = FetchResult<OwnedOrSharedBytes>> + Send + 'static>> + Send;
+
+    // graphql_ws_client requires a serde::Serialize
+    fn graphql_over_websocket_stream<T>(
+        &self,
+        request: FetchRequest<'_, T>,
+    ) -> impl Future<Output = FetchResult<impl Stream<Item = FetchResult<serde_json::Value>> + Send + 'static>> + Send
+    where
+        T: serde::Serialize + Send;
 }
 
-#[derive(Clone)]
-pub struct Fetcher {
-    inner: Arc<dyn FetcherInner>,
-}
+pub mod dynamic {
+    use super::*;
 
-impl Fetcher {
-    pub fn new(fetcher: impl FetcherInner + 'static) -> Fetcher {
-        Fetcher {
-            inner: Arc::new(fetcher),
+    #[allow(unused_variables)] // makes it easier to copy-paste relevant functions
+    #[async_trait::async_trait]
+    pub trait DynFetcher: Send + Sync + 'static {
+        async fn fetch(&self, request: FetchRequest<'_, Bytes>) -> FetchResult<http::Response<OwnedOrSharedBytes>>;
+
+        async fn graphql_over_sse_stream(
+            &self,
+            request: FetchRequest<'_, Bytes>,
+        ) -> FetchResult<BoxStream<'static, FetchResult<OwnedOrSharedBytes>>> {
+            unreachable!()
+        }
+
+        async fn graphql_over_websocket_stream(
+            &self,
+            request: FetchRequest<'_, serde_json::Value>,
+        ) -> FetchResult<BoxStream<'static, FetchResult<serde_json::Value>>> {
+            unreachable!()
         }
     }
-}
 
-impl std::ops::Deref for Fetcher {
-    type Target = dyn FetcherInner;
+    pub struct DynamicFetcher(Box<dyn DynFetcher>);
 
-    fn deref(&self) -> &Self::Target {
-        self.inner.as_ref()
+    impl<T: DynFetcher> From<T> for DynamicFetcher {
+        fn from(fetcher: T) -> Self {
+            Self::new(fetcher)
+        }
+    }
+
+    impl DynamicFetcher {
+        pub fn wrap(fetcher: impl Fetcher) -> Self {
+            Self::new(DynWrapper(fetcher))
+        }
+
+        pub fn new(fetcher: impl DynFetcher) -> Self {
+            Self(Box::new(fetcher))
+        }
+    }
+
+    impl Fetcher for DynamicFetcher {
+        async fn fetch(&self, request: FetchRequest<'_, Bytes>) -> FetchResult<http::Response<OwnedOrSharedBytes>> {
+            self.0.fetch(request).await
+        }
+
+        async fn graphql_over_sse_stream(
+            &self,
+            request: FetchRequest<'_, Bytes>,
+        ) -> FetchResult<impl Stream<Item = FetchResult<OwnedOrSharedBytes>> + Send + 'static> {
+            self.0.graphql_over_sse_stream(request).await
+        }
+
+        async fn graphql_over_websocket_stream<T>(
+            &self,
+            request: FetchRequest<'_, T>,
+        ) -> FetchResult<impl Stream<Item = FetchResult<serde_json::Value>> + Send + 'static>
+        where
+            T: serde::Serialize + Send,
+        {
+            self.0
+                .graphql_over_websocket_stream(FetchRequest {
+                    method: request.method,
+                    url: request.url,
+                    headers: request.headers,
+                    body: serde_json::to_value(request.body).unwrap(),
+                    timeout: request.timeout,
+                })
+                .await
+        }
+    }
+
+    struct DynWrapper<T>(T);
+
+    #[async_trait::async_trait]
+    impl<T: Fetcher> DynFetcher for DynWrapper<T> {
+        async fn fetch(&self, request: FetchRequest<'_, Bytes>) -> FetchResult<http::Response<OwnedOrSharedBytes>> {
+            self.0.fetch(request).await
+        }
+
+        async fn graphql_over_sse_stream(
+            &self,
+            request: FetchRequest<'_, Bytes>,
+        ) -> FetchResult<BoxStream<'static, FetchResult<OwnedOrSharedBytes>>> {
+            self.0
+                .graphql_over_sse_stream(request)
+                .map_ok(|stream| stream.boxed())
+                .await
+        }
+
+        async fn graphql_over_websocket_stream(
+            &self,
+            request: FetchRequest<'_, serde_json::Value>,
+        ) -> FetchResult<BoxStream<'static, FetchResult<serde_json::Value>>> {
+            self.0
+                .graphql_over_websocket_stream(request)
+                .map_ok(|stream| stream.boxed())
+                .await
+        }
     }
 }

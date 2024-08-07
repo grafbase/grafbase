@@ -74,7 +74,7 @@ impl ExecutionRequest {
         MultipartStreamRequest(self)
     }
 
-    pub fn into_see_stream(self) -> SseStreamRequest {
+    pub fn into_sse_stream(self) -> SseStreamRequest {
         SseStreamRequest(self)
     }
 }

@@ -90,6 +90,14 @@ fn gb6873_wrong_enum_sent_to_subgraph() {
                     [
                       "accept",
                       "application/json"
+                    ],
+                    [
+                      "content-length",
+                      "127"
+                    ],
+                    [
+                      "content-type",
+                      "application/json"
                     ]
                   ]
                 }

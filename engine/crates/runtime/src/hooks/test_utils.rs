@@ -323,7 +323,7 @@ impl SubgraphHooks<DynHookContext> for DynamicHooks {
     }
 }
 
-pub struct DynWrapper<T>(T);
+struct DynWrapper<T>(T);
 
 impl<H: Hooks> DynHooks for DynWrapper<H> {
     fn on_gateway_request<'a, 'b, 'fut>(

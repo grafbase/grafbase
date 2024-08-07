@@ -6,6 +6,7 @@ use async_graphql_axum::{GraphQLRequest, GraphQLResponse, GraphQLSubscription};
 use axum::{extract::State, http::HeaderMap, response::IntoResponse, routing::post, Router};
 use futures::Future;
 use serde::ser::SerializeMap;
+use url::Url;
 
 mod almost_empty;
 mod echo;
@@ -112,16 +113,16 @@ impl MockGraphQlServer {
         self.port
     }
 
-    pub fn url(&self) -> String {
-        format!("http://127.0.0.1:{}", self.port)
+    pub fn url(&self) -> Url {
+        format!("http://127.0.0.1:{}", self.port).parse().unwrap()
     }
 
     pub fn sdl(&self) -> String {
         self.state.schema.sdl()
     }
 
-    pub fn websocket_url(&self) -> String {
-        format!("ws://127.0.0.1:{}/ws", self.port)
+    pub fn websocket_url(&self) -> Url {
+        format!("ws://127.0.0.1:{}/ws", self.port).parse().unwrap()
     }
 
     pub fn drain_received_requests(&self) -> impl Iterator<Item = ReceivedRequest> + '_ {

@@ -1,5 +1,11 @@
-version: '3'
 services:
+  sse-subgraph:
+    restart: unless-stopped
+    build:
+      context: ./data/sse-subgraph
+    ports:
+      - '4092:4092'
+
   # MongoDB
   data-api:
     image: grafbase/mongodb-data-api:latest
