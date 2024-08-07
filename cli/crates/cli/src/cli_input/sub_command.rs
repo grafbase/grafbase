@@ -35,13 +35,13 @@ pub enum SubCommand {
     Login,
     /// Logs out of your Grafbase account
     Logout,
-    /// Set up and deploy a new project
+    /// Set up and deploy a new graph
     Create(CreateCommand),
     /// Deploy your project
     Deploy(DeployCommand),
-    /// Connect a local project to a remote project
+    /// Connect a local graph to a remote graph
     Link(LinkCommand),
-    /// Disconnect a local project from a remote project
+    /// Disconnect a local graph from a remote graph
     Unlink,
     /// Tail logs from a standalone graph
     Logs(LogsCommand),
