@@ -1,5 +1,3 @@
-directive @oneOf on INPUT_OBJECT
-
 type AccessToken implements Node {
   id: ID!
   name: String!
@@ -77,7 +75,7 @@ enum AccessTokenKind {
   ACCOUNT
 }
 
-interface Account implements Node {
+interface Account {
   id: ID!
   slug: String!
   name: String!
@@ -90,9 +88,10 @@ interface Account implements Node {
   graphs(after: String, before: String, first: Int, last: Int): GraphConnection!
   graphsCountStatus: ResourceStatus!
   resources: AccountResources!
-  usage(filter: AccountResourcesUsageDashboardFilter): DatabaseUsage!
   resourcesUsageDashboard(filter: AccountResourcesUsageDashboardFilter): AccountResourcesUsageDashboardPayload!
   accessTokens(after: String, before: String, first: Int, last: Int): AccessTokenConnection!
+  logoUrl: String!
+  logoUploadPresignedUrl: String
 }
 
 input AccountCreationValidateInput {
@@ -137,7 +136,6 @@ input AccountIntegrationAttributesInput @oneOf {
 input AccountIntegrationInput {
   enabled: Boolean!
   graphs: [ID!]
-  projects: [ID!]
   environments: [BranchEnvironment!]
   attributes: AccountIntegrationAttributesInput!
 }
@@ -242,6 +240,10 @@ type Branch implements Node {
   subgraphs: [Subgraph!]!
 }
 
+type BranchAlreadyExistsError {
+  query: Query!
+}
+
 type BranchConnection {
   """
   Information to aid in pagination.
@@ -256,6 +258,14 @@ type BranchConnection {
   """
   nodes: [Branch!]!
 }
+
+input BranchCreateInput {
+  accountSlug: String!
+  graphSlug: String!
+  branchName: String!
+}
+
+union BranchCreatePayload = Query | BranchAlreadyExistsError | GraphDoesNotExistError | GraphNotSelfHostedError
 
 union BranchDeletePayload = Query | BranchDoesNotExistError | CannotDeleteProductionBranchError
 
@@ -280,13 +290,6 @@ type BranchEdge {
 enum BranchEnvironment {
   PREVIEW
   PRODUCTION
-}
-
-union BranchMetricsPayload = BranchMetricsSuccess | GraphDoesNotExistError | ProjectDoesNotExistError
-
-type BranchMetricsSuccess {
-  latency: Distribution!
-  request: Distribution!
 }
 
 type BranchNotDeployedError {
@@ -425,24 +428,6 @@ type DailyDeploymentCountLimitExceededError {
   limit: Int!
 }
 
-type DatabaseUsage {
-  requestCount: Distribution!
-  dbReads: Distribution!
-  dbWrites: Distribution!
-  dbSize: Distribution!
-  buildDuration: Distribution!
-  execUnits: Distribution!
-  udfRequestCount: Distribution!
-  granularity: DatabaseUsageGranularity!
-}
-
-enum DatabaseUsageGranularity {
-  HOURLY
-  DAILY
-  WEEKLY
-  MONTHLY
-}
-
 type DatadogIntegration {
   apiKey: String!
   region: DatadogRegion!
@@ -456,7 +441,6 @@ type DatadogIntegration {
 input DatadogIntegrationInput {
   apiKey: String!
   region: DatadogRegion!
-  environments: [BranchEnvironment!]!
   sampling: Int!
 }
 
@@ -563,6 +547,7 @@ union DeploymentCreatePayload =
   | GraphDoesNotExistError
   | GraphNotManagedError
   | GraphNotStandaloneError
+  | NotAllowedError
 
 type DeploymentCreateSuccess {
   deployment: Deployment!
@@ -609,6 +594,7 @@ union DeploymentRedeployPayload =
   | DeploymentRedeploySuccess
   | DeploymentDoesNotExistError
   | DailyDeploymentCountLimitExceededError
+  | NotAllowedError
 
 type DeploymentRedeploySuccess {
   deployment: Deployment!
@@ -636,14 +622,13 @@ type DisabledAccountError {
   query: Query!
 }
 
-type Distribution {
-  unit: UnitType!
-  values: [DistributionValue!]!
+type DopplerConfig {
+  name: String!
+  projectName: String!
 }
 
-type DistributionValue {
-  bucket: DateTime!
-  value: Int!
+type DopplerProject {
+  name: String!
 }
 
 type DuplicateDatabaseRegionsError {
@@ -669,6 +654,7 @@ input EnviromentVariableUpsertInput {
   name: String!
   value: String!
   environments: [BranchEnvironment!]!
+  sensitive: Boolean
 }
 
 type EnvironmentVariable implements Node {
@@ -709,6 +695,7 @@ input EnvironmentVariableCreateInput {
   name: String!
   value: String!
   environments: [BranchEnvironment!]!
+  sensitive: Boolean
 }
 
 union EnvironmentVariableCreatePayload =
@@ -782,6 +769,7 @@ type EnvironmentVariableEdge {
 input EnvironmentVariableSpecification {
   name: String!
   value: String!
+  sensitive: Boolean
 }
 
 input EnvironmentVariableUpdateInput {
@@ -809,6 +797,35 @@ type EnvironmentVariableUpdateSuccess {
 type FederatedGraphCompositionError {
   query: Query!
   messages: [String!]!
+}
+
+type FieldAnalytics {
+  metrics: FieldMetricsTimeSeries
+  topClients(
+    """
+    Detaults to 10, Max 100
+    """
+    limit: Int
+    """
+    Search over the client names/versions
+    """
+    searchQuery: String
+  ): TopClientsForField
+}
+
+type FieldMetrics {
+  count: Int!
+}
+
+type FieldMetricsTimeSeries {
+  overall: FieldMetrics!
+  points: [FieldMetricsTimeSeriesDataPoint!]!
+  previousPeriod: FieldMetricsTimeSeries
+}
+
+type FieldMetricsTimeSeriesDataPoint {
+  dateTime: DateTime!
+  count: Int!
 }
 
 enum FunctionKind {
@@ -918,6 +935,16 @@ type GithubInstallationInsufficientPermissionsError {
   query: Query!
 }
 
+input GithubUserTokenUpdateE2EInput {
+  token: String!
+}
+
+union GithubUserTokenUpdateE2EPayload = GithubUserTokenUpdateE2ESuccess
+
+type GithubUserTokenUpdateE2ESuccess {
+  query: Query!
+}
+
 input GithubUserTokenUpdateInput {
   code: String!
 }
@@ -945,6 +972,7 @@ type Graph implements Node {
   canBeRenamed: Boolean!
   status: GraphStatus!
   repository: GitRepository
+  owners: [Team!]!
   account: Account!
   branches(after: String, before: String, first: Int, last: Int): BranchConnection!
   apiKeys(after: String, before: String, first: Int, last: Int): GraphApiKeyConnection!
@@ -955,12 +983,113 @@ type Graph implements Node {
   schemaChecks(first: Int, after: String, branch: String): SchemaCheckConnection!
   operationChecksConfiguration: GraphOperationCheckConfiguration!
   logEvents(first: Int, after: String, last: Int, before: String, filter: LogEventFilter!): LogEventConnection!
+  analytics(filters: GraphAnalyticsFilters!): GraphAnalytics
   requestAnalytics(filter: GraphRequestAnalyticsFilter!): RequestAnalytics
-  operationAnalytics(
-    first: Int
-    after: String
-    filter: GraphOperationRequestAnalyticsFilter!
-  ): OperationRequestMetricsConnection!
+    @deprecated(reason: "Use `analytics` instead")
+}
+
+union GraphAddOwnerPayload = GraphAddOwnerSuccess | GraphDoesNotExistError | NotAllowedError
+
+type GraphAddOwnerSuccess {
+  query: Query!
+}
+
+type GraphAnalytics {
+  forField(
+    """
+    Schema path defined as: '<parent-type-name>.<name>'
+    """
+    schemaPath: String!
+  ): FieldAnalytics!
+  requestMetrics(
+    """
+    Latency percentiles to retrieve. Ex: [50, 99, 99.9]
+    """
+    latencyPercentiles: [Float!]
+  ): RequestMetricsTimeSeriesV2
+  topOperations(
+    """
+    If not specified, top operations by latency will be empty. Ex: 95
+    """
+    latencyPercentile: Float
+    """
+    Detaults to 10, Max 100
+    """
+    limit: Int
+    """
+    Search over the opeartion names
+    """
+    searchQuery: String
+  ): TopOperations
+  topClients(
+    """
+    If not specified, top clients by latency will be empty. Ex: 95
+    """
+    latencyPercentile: Float
+    """
+    Detaults to 10, Max 100
+    """
+    limit: Int
+    """
+    Search over the client names/versions
+    """
+    searchQuery: String
+  ): TopClients
+}
+
+input GraphAnalyticsFilters {
+  """
+  Defaults to production branch
+  """
+  branchName: String
+  """
+  Use this if you really care about having a specific duration like 1 hour, 7 days, etc.
+  """
+  range: Duration
+  """
+  Use this if you *at least* the data between `from` and `to` to be provided. You may get
+  more, but never less.
+  """
+  from: DateTime
+  """
+  To be used in conjunction with with either `range` or `from`.
+  """
+  to: DateTime!
+  """
+  If explicitly to false, specifying both `from` and `to` will be treated as if `range: (to - from)`
+  had been specified instead. Meaning only the duration between `from` and `to` matters, not
+  necessarily having a data point for `from` itself.
+  """
+  isCustomRange: Boolean
+  """
+  If specified, overrides approximateNumberOfPoints. Must be in whole minutes.
+  At most 150 points can be returned.
+  """
+  aggregationStep: Duration
+  """
+  Defaults to 100, at most 150 points can be returned.
+  """
+  approximateNumberOfDataPoints: Int
+  """
+  Defaults to true
+  Example: for an aggregationStep of 15 min:
+  - if true, only times with 00, 15, 30 and 45 minutes will appear in the time series
+  - if false, times in the time series will be adjusted to start from the periodStart (~from).
+  So if from = 15:32:00, times will end in 02, 17, 32 and 47.
+  I'll always align to the aggregation step used to store the data though, which
+  is currently in minutes. So cannot have 15:10:20, 15:11:20, etc.
+  """
+  alignPeriodWithAggregationStep: Boolean
+  operationName: String
+  """
+  Only used if operation name is specified.
+  """
+  operationNormalizedQueryHash: OperationNormalizedQueryHash
+  clientName: String
+  """
+  Only used if client name is specified.
+  """
+  clientVersion: String
 }
 
 type GraphApiKey {
@@ -1215,8 +1344,12 @@ type GraphIntegration {
   createdAt: DateTime!
   enabled: Boolean!
   id: ID!
+  branch: Branch
   graph: Graph!
+  attributes: GraphIntegrationAttributes
 }
+
+union GraphIntegrationAttributes = ProjectDopplerIntegration
 
 input GraphIntegrationAttributesInput @oneOf {
   doppler: GraphDopplerIntegrationAttributesInput
@@ -1250,6 +1383,10 @@ type GraphNotFederatedError {
 }
 
 type GraphNotManagedError {
+  query: Query!
+}
+
+type GraphNotSelfHostedError {
   query: Query!
 }
 
@@ -1307,16 +1444,15 @@ input GraphOperationCheckConfigurationInput {
   excludedOperations: [String!]
 }
 
-union GraphOperationCheckConfigurationUpdatePayload = GraphDoesNotExistError | GraphOperationCheckConfiguration
+union GraphOperationCheckConfigurationUpdatePayload =
+  | GraphDoesNotExistError
+  | GraphOperationCheckConfiguration
+  | NotAllowedError
 
-input GraphOperationRequestAnalyticsFilter {
-  branch: String
-  period: GraphRequestAnalyticsPeriod
-  now: DateTime
-  from: DateTime
-  to: DateTime
-  operationName: String
-  operationTypes: [OperationType!]
+union GraphRemoveOwnerPayload = GraphRemoveOwnerSuccess | GraphDoesNotExistError | NotAllowedError
+
+type GraphRemoveOwnerSuccess {
+  query: Query!
 }
 
 input GraphRequestAnalyticsFilter {
@@ -1368,6 +1504,7 @@ union GraphUpdatePayload =
   | SlugInvalidError
   | SlugTooLongError
   | CannotBeRenamedError
+  | NotAllowedError
 
 type GraphUpdateSuccess {
   graph: Graph!
@@ -1380,6 +1517,12 @@ type HasAlreadyPaymentMethodError {
 enum InArrearsCause {
   NEVER_PAID
   UNPAID_INVOICE
+}
+
+type Integration {
+  id: ID!
+  name: String!
+  createdAt: DateTime!
 }
 
 type InvalidAccountError {
@@ -1653,6 +1796,7 @@ type MemberEdge {
 enum MemberRole {
   OWNER
   MEMBER
+  ADMIN
 }
 
 input MemberUpdateInput {
@@ -1700,6 +1844,7 @@ type Mutation {
   personalAccountUpdate(input: PersonalAccountUpdateInput!): PersonalAccountUpdatePayload!
   personalAccountDelete: PersonalAccountDeletePayload!
   organizationDelete(input: OrganizationDeleteInput!): OrganizationDeletePayload!
+  branchCreate(input: BranchCreateInput!): BranchCreatePayload!
   branchUpdate(input: BranchUpdateInput!): BranchUpdatePayload!
   branchDelete(
     """
@@ -1821,6 +1966,8 @@ type Mutation {
     input: GraphOperationCheckConfigurationInput!
   ): GraphOperationCheckConfigurationUpdatePayload!
   graphDelete(input: GraphDeleteInput!): GraphDeletePayload!
+  graphAddOwner(graphId: ID!, ownerId: ID!): GraphAddOwnerPayload!
+  graphRemoveOwner(graphId: ID!, ownerId: ID!): GraphRemoveOwnerPayload!
   inviteSend(input: InviteSendInput!): InviteSendPayload!
   inviteCancel(input: InviteCancelInput!): InviteCancelPayload!
   inviteAccept(input: InviteAcceptInput!): InviteAcceptPayload!
@@ -1897,6 +2044,19 @@ type Mutation {
   slackIntegrationCreate(input: SlackIntegrationCreateInput!): SlackNotificationCreatePayload!
   slackNotificationDelete(id: String!): SlackNotificationDeletePayload!
   stripeSetupIntentCreate: StripeSetupIntentCreatePayload!
+  """
+  Assign a team as the owner of a subgraph
+  """
+  subgraphAddOwner(branchId: ID!, subgraphName: String!, owner: ID!): SubgraphAddOwnerPayload!
+  """
+  Unassign a team's ownership of a subgraph
+  """
+  subgraphRemoveOwner(branchId: ID!, subgraphName: String!): SubgraphRemoveOwnerPayload!
+  teamCreate(organizationId: ID!, name: String!): TeamCreatePayload!
+  teamDelete(teamId: ID!): TeamDeletePayload!
+  teamAddMember(teamId: ID!, memberId: ID!): TeamAddMemberPayload!
+  teamRemoveMember(teamId: ID!, memberId: ID!): TeamRemoveMemberPayload!
+  teamAssignRole(teamId: ID!, memberId: ID!, role: TeamRole!): TeamAssignRolePayload!
   trustedDocumentsSubmit(
     accountSlug: String
     graphSlug: String
@@ -1909,6 +2069,7 @@ type Mutation {
   Fetch and attach a GitHub user token to a user using a code
   """
   githubUserTokenUpdate(input: GithubUserTokenUpdateInput!): GithubUserTokenUpdatePayload!
+  githubUserTokenUpdateE2E(input: GithubUserTokenUpdateE2EInput!): GithubUserTokenUpdateE2EPayload!
 }
 
 type NameAlreadyExistsError {
@@ -1978,54 +2139,10 @@ type OperationCheckError {
   severity: SchemaCheckErrorSeverity!
 }
 
+scalar OperationNormalizedQueryHash
+
 type OperationNotAllowedByPlanError {
   query: Query!
-}
-
-input OperationRequestAnalyticsFilter {
-  branch: String
-  period: ProjectRequestAnalyticsPeriod
-  now: DateTime
-  from: DateTime
-  to: DateTime
-  operationName: String
-  operationTypes: [OperationType!]
-}
-
-type OperationRequestMetrics {
-  operationType: OperationType!
-  operationName: String!
-  operationId: ID!
-  requestCount: Int!
-}
-
-type OperationRequestMetricsConnection {
-  """
-  Information to aid in pagination.
-  """
-  pageInfo: PageInfo!
-  """
-  A list of edges.
-  """
-  edges: [OperationRequestMetricsEdge!]!
-  """
-  A list of nodes.
-  """
-  nodes: [OperationRequestMetrics!]!
-}
-
-"""
-An edge in a connection.
-"""
-type OperationRequestMetricsEdge {
-  """
-  The item at the end of the edge
-  """
-  node: OperationRequestMetrics!
-  """
-  A cursor for use in pagination
-  """
-  cursor: String!
 }
 
 enum OperationType {
@@ -2247,7 +2364,7 @@ type OrbValidationError {
   query: Query!
 }
 
-type Organization implements Account {
+type Organization implements Account & Node {
   id: ID!
   slug: String!
   name: String!
@@ -2273,11 +2390,12 @@ type Organization implements Account {
   account id of the authenticated user.
   """
   addToSlackLink: String!
-  usage(filter: AccountResourcesUsageDashboardFilter): DatabaseUsage!
-    @deprecated(reason: "Use resources_usage_dashboard")
   resourcesUsageDashboard(filter: AccountResourcesUsageDashboardFilter): AccountResourcesUsageDashboardPayload!
   accessTokens(after: String, before: String, first: Int, last: Int): AccessTokenConnection!
   resources: AccountResources! @deprecated(reason: "Not relevant for organizations")
+  teams(after: String, first: Int): TeamConnection!
+  logoUploadPresignedUrl: String
+  logoUrl: String!
 }
 
 type OrganizationConnection {
@@ -2445,11 +2563,11 @@ type PersonalAccount implements Account {
   graphs(after: String, before: String, first: Int, last: Int): GraphConnection!
   graphsCountStatus: ResourceStatus!
   projectsCountStatus: ResourceStatus! @deprecated(reason: "replaced by graphCountStatus")
-  usage(filter: AccountResourcesUsageDashboardFilter): DatabaseUsage!
-    @deprecated(reason: "Use resources_usage_dashboard")
   resourcesUsageDashboard(filter: AccountResourcesUsageDashboardFilter): AccountResourcesUsageDashboardPayload!
   resources: AccountResources! @deprecated(reason: "use projects_count_status")
   accessTokens(after: String, before: String, first: Int, last: Int): AccessTokenConnection!
+  logoUploadPresignedUrl: String
+  logoUrl: String!
 }
 
 union PersonalAccountDeletePayload = PersonalAccountDeleteSuccess | OrganizationOwnershipNotTransferredError
@@ -2507,11 +2625,6 @@ type Project implements Node {
   status: ProjectStatus!
   customDomains: [CustomDomain!]!
   requestAnalytics(filter: ProjectRequestAnalyticsFilter!): RequestAnalytics
-  operationAnalytics(
-    first: Int
-    after: String
-    filter: OperationRequestAnalyticsFilter!
-  ): OperationRequestMetricsConnection!
   schemaChecks(first: Int, after: String, branch: String): SchemaCheckConnection!
   operationChecksConfiguration: ProjectOperationCheckConfiguration!
   logEvents(first: Int, after: String, last: Int, before: String, filter: LogEventFilter!): LogEventConnection!
@@ -2870,7 +2983,10 @@ input ProjectOperationCheckConfigurationInput {
   excludedOperations: [String!]
 }
 
-union ProjectOperationCheckConfigurationUpdatePayload = ProjectDoesNotExistError | ProjectOperationCheckConfiguration
+union ProjectOperationCheckConfigurationUpdatePayload =
+  | ProjectDoesNotExistError
+  | ProjectOperationCheckConfiguration
+  | NotAllowedError
 
 input ProjectRequestAnalyticsFilter {
   branch: String = null
@@ -2921,9 +3037,14 @@ union ProjectUpdatePayload =
   | SlugInvalidError
   | SlugTooLongError
   | CannotBeRenamedError
+  | NotAllowedError
 
 type ProjectUpdateSuccess {
   project: Project!
+  query: Query!
+}
+
+type PublishForbidden {
   query: Query!
 }
 
@@ -2942,6 +3063,7 @@ union PublishPayload =
   | ProjectNotFederatedError
   | FederatedGraphCompositionError
   | SchemaRegistryBranchDoesNotExistError
+  | PublishForbidden
 
 type PublishSuccess {
   query: Query!
@@ -2956,13 +3078,6 @@ type Query {
     slug: String!
   ): Account
   accountCreationValidate(input: AccountCreationValidateInput!): AccountCreationValidatePayload!
-  metricsByBranch(
-    accountSlug: String!
-    projectSlug: String!
-    branch: String!
-    startDate: DateTime!
-    endDate: DateTime!
-  ): BranchMetricsPayload!
   """
   Get branch by account slug, project slug and the name of the branch.
   """
@@ -3126,11 +3241,16 @@ type Query {
     first: Int
     last: Int
   ): SchemaVersionConnection!
+  team(id: ID!): Team
+  teamBySlug(organizationSlug: String!, slug: String!): Team
   """
   Give the actual connected user.
   """
   viewer: User
   node(id: ID!): Node
+  integrations: [Integration!]!
+  dopplerProjects(accountIntegrationId: ID!): [DopplerProject!]!
+  dopplerConfigs(accountIntegrationId: ID!, dopplerProjectName: String!): [DopplerConfig!]!
 }
 
 type RepositoryContainsNoBranchesError {
@@ -3194,6 +3314,35 @@ type RequestMetricsTimeSeriesDataPoint {
   errorGraphqlCount: Int!
   latencyMsP95: Int
   latencyMsP99: Int
+}
+
+type RequestMetricsTimeSeriesDataPointV2 {
+  dateTime: DateTime!
+  count: Int!
+  cacheHitCount: Int!
+  cacheMissCount: Int!
+  cachePassCount: Int!
+  error4XxCount: Int!
+  error5XxCount: Int!
+  errorGraphqlCount: Int!
+  latencyMsPercentiles: [Int!]!
+}
+
+type RequestMetricsTimeSeriesV2 {
+  overall: RequestMetricsV2!
+  points: [RequestMetricsTimeSeriesDataPointV2!]!
+  previousPeriod: RequestMetricsTimeSeriesV2
+}
+
+type RequestMetricsV2 {
+  count: Int!
+  cacheHitCount: Int!
+  cacheMissCount: Int!
+  cachePassCount: Int!
+  error4XxCount: Int!
+  error5XxCount: Int!
+  errorGraphqlCount: Int!
+  latencyMsPercentiles: [Int!]!
 }
 
 type ReservedPrefixError {
@@ -3630,6 +3779,13 @@ type Subgraph {
   schema: String!
   createdAt: DateTime!
   updatedAt: DateTime!
+  owners: [Team!]!
+}
+
+union SubgraphAddOwnerPayload = SubgraphAddOwnerSuccess
+
+type SubgraphAddOwnerSuccess {
+  query: Query!
 }
 
 type SubgraphNameMissingOnFederatedGraphError {
@@ -3654,6 +3810,106 @@ type SubgraphNameProvidedOnStandaloneProjectError {
 
 type SubgraphNotFoundError {
   query: Query!
+}
+
+union SubgraphRemoveOwnerPayload = SubgraphRemoveOwnerSuccess
+
+type SubgraphRemoveOwnerSuccess {
+  query: Query!
+}
+
+type Team implements Node {
+  id: ID!
+  name: String!
+  slug: String!
+  """
+  The users that are part of the team
+  """
+  members(after: String, first: Int): UserConnection!
+  parentTeamId: ID
+  """
+  The team this team is member of, if any.
+  """
+  parent: Team
+  """
+  The teams that are part of the team
+  """
+  subteams(after: String, first: Int): TeamConnection!
+  query: Query!
+}
+
+union TeamAddMemberPayload = TeamAddMemberSuccess | TeamDoesNotExistError
+
+type TeamAddMemberSuccess {
+  query: Query!
+}
+
+union TeamAssignRolePayload = TeamAssignRoleSuccess | TeamDoesNotExistError
+
+type TeamAssignRoleSuccess {
+  query: Query!
+}
+
+type TeamConnection {
+  """
+  Information to aid in pagination.
+  """
+  pageInfo: PageInfo!
+  """
+  A list of edges.
+  """
+  edges: [TeamEdge!]!
+  """
+  A list of nodes.
+  """
+  nodes: [Team!]!
+}
+
+union TeamCreatePayload = Team | OrganizationDoesNotExistError | TeamNameAlreadyTakenError
+
+union TeamDeletePayload = TeamDeleteSuccess | TeamDoesNotExistError
+
+type TeamDeleteSuccess {
+  query: Query!
+}
+
+type TeamDoesNotExistError {
+  query: Query!
+}
+
+"""
+An edge in a connection.
+"""
+type TeamEdge {
+  """
+  The item at the end of the edge
+  """
+  node: Team!
+  """
+  A cursor for use in pagination
+  """
+  cursor: String!
+}
+
+type TeamNameAlreadyTakenError {
+  query: Query!
+}
+
+union TeamRemoveMemberPayload = TeamRemoveMemberSuccess | TeamDoesNotExistError
+
+type TeamRemoveMemberSuccess {
+  query: Query!
+}
+
+enum TeamRole {
+  """
+  __Team__ admin
+  """
+  ADMIN
+  """
+  Regular non-admin member.
+  """
+  MEMBER
 }
 
 type TemplateDoesNotExistError {
@@ -3692,6 +3948,123 @@ type TokenLimitExceededError {
 
 type TooManyCustomDomainsError {
   query: Query!
+}
+
+type TopClientByNameAndVersionOrderedByHighestCount {
+  name: String!
+  version: String!
+  count: Int!
+}
+
+type TopClientByNameAndVersionOrderedByHighestErrorRatio {
+  name: String!
+  version: String!
+  count: Int!
+  errorCount: Int!
+}
+
+type TopClientByNameAndVersionOrderedByHighestLatency {
+  name: String!
+  version: String!
+  latencyMs: Int!
+}
+
+type TopClientByNameOrderedByHighestCount {
+  name: String!
+  count: Int!
+}
+
+type TopClientByNameOrderedByHighestErrorRatio {
+  name: String!
+  count: Int!
+  errorCount: Int!
+}
+
+type TopClientByNameOrderedByHighestLatency {
+  name: String!
+  latencyMs: Int!
+}
+
+type TopClients {
+  byName: TopClientsByName!
+  byNameAndVersion: TopClientsByNameAndVersion!
+}
+
+type TopClientsByName {
+  orderedByHighestLatency: [TopClientByNameOrderedByHighestLatency!]!
+  orderedByHighestCount: [TopClientByNameOrderedByHighestCount!]!
+  orderedByHighestErrorRatio: [TopClientByNameOrderedByHighestErrorRatio!]!
+}
+
+type TopClientsByNameAndVersion {
+  orderedByHighestLatency: [TopClientByNameAndVersionOrderedByHighestLatency!]!
+  orderedByHighestCount: [TopClientByNameAndVersionOrderedByHighestCount!]!
+  orderedByHighestErrorRatio: [TopClientByNameAndVersionOrderedByHighestErrorRatio!]!
+}
+
+type TopClientsForField {
+  byName: TopClientsForFieldByName!
+  byNameAndVersion: TopClientsForFieldByNameAndVersion!
+}
+
+type TopClientsForFieldByName {
+  orderedByHighestCount: [TopClientByNameOrderedByHighestCount!]!
+}
+
+type TopClientsForFieldByNameAndVersion {
+  orderedByHighestCount: [TopClientByNameAndVersionOrderedByHighestCount!]!
+}
+
+type TopOperationByNameAndHashOrderedByHighestCount {
+  name: String!
+  normalizedQueryHash: OperationNormalizedQueryHash!
+  count: Int!
+}
+
+type TopOperationByNameAndHashOrderedByHighestErrorRatio {
+  name: String!
+  normalizedQueryHash: OperationNormalizedQueryHash!
+  count: Int!
+  errorCount: Int!
+}
+
+type TopOperationByNameAndHashOrderedByHighestLatency {
+  name: String!
+  normalizedQueryHash: OperationNormalizedQueryHash!
+  latencyMs: Int!
+}
+
+type TopOperationByNameOrderedByHighestCount {
+  name: String!
+  count: Int!
+}
+
+type TopOperationByNameOrderedByHighestErrorRatio {
+  name: String!
+  count: Int!
+  errorCount: Int!
+}
+
+type TopOperationByNameOrderedByHighestLatency {
+  name: String!
+  latencyMs: Int!
+}
+
+type TopOperations {
+  byName: TopOperationsByName!
+  byNameAndHash: TopOperationsByNameAndHash!
+}
+
+type TopOperationsByName {
+  orderedByHighestLatency: [TopOperationByNameOrderedByHighestLatency!]!
+  orderedByHighestCount: [TopOperationByNameOrderedByHighestCount!]!
+  orderedByHighestErrorRatio: [TopOperationByNameOrderedByHighestErrorRatio!]!
+}
+
+type TopOperationsByNameAndHash {
+  orderedByHighestLatency: [TopOperationByNameAndHashOrderedByHighestLatency!]!
+  orderedByHighestCount: [TopOperationByNameAndHashOrderedByHighestCount!]!
+  orderedByHighestErrorRatio: [TopOperationByNameAndHashOrderedByHighestErrorRatio!]!
 }
 
 type TrustedDocument {
@@ -3739,6 +4112,37 @@ type User implements Node {
   limits: ViewerLimits! @deprecated(reason: "Moved to account level")
 }
 
+type UserConnection {
+  """
+  Information to aid in pagination.
+  """
+  pageInfo: PageInfo!
+  """
+  A list of edges.
+  """
+  edges: [UserEdge!]!
+  """
+  A list of nodes.
+  """
+  nodes: [User!]!
+  totalCount: Int!
+}
+
+"""
+An edge in a connection.
+"""
+type UserEdge {
+  """
+  The item at the end of the edge
+  """
+  node: User!
+  role: TeamRole!
+  """
+  A cursor for use in pagination
+  """
+  cursor: String!
+}
+
 type ValidationCheckError {
   title: String!
   message: String!
@@ -3753,8 +4157,13 @@ type ViewerLimits {
   totalProjects: Int
 }
 
+directive @deprecated(
+  reason: String = "No longer supported"
+) on FIELD_DEFINITION | ARGUMENT_DEFINITION | INPUT_FIELD_DEFINITION | ENUM_VALUE
 directive @include(if: Boolean!) on FIELD | FRAGMENT_SPREAD | INLINE_FRAGMENT
+directive @oneOf on INPUT_OBJECT
 directive @skip(if: Boolean!) on FIELD | FRAGMENT_SPREAD | INLINE_FRAGMENT
+directive @specifiedBy(url: String!) on SCALAR
 schema {
   query: Query
   mutation: Mutation

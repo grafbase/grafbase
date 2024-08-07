@@ -376,6 +376,14 @@ pub fn delete_branch_success() {
     watercolor::output!("\n✨ The branch was successfully deleted!", @BrightBlue);
 }
 
+pub fn create_branch() {
+    watercolor::output!("🕒 Branch is being created...", @BrightBlue);
+}
+
+pub fn create_branch_success() {
+    watercolor::output!("\n✨ The branch was successfully created!", @BrightBlue);
+}
+
 pub fn delete_env_var_success() {
     watercolor::output!("\n✨ The environment variable was successfully deleted!", @BrightBlue);
 }

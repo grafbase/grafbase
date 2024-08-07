@@ -102,7 +102,7 @@ pub async fn log_events_for_time_range(
     let mut log_events: Vec<_> = api::logs_events_by_time_range(account_slug, project_slug, branch, range)
         .await
         .map_err(|err| match err {
-            ApiError::ProjectDoesNotExist => CliError::ProjectNotFound(format!("{account_slug}/{project_slug}")),
+            ApiError::GraphDoesNotExist => CliError::ProjectNotFound(format!("{account_slug}/{project_slug}")),
             other => CliError::BackendApiError(other),
         })?
         .into_iter()
