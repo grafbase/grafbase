@@ -1,19 +1,13 @@
 use std::future::Future;
 
-#[derive(strum::Display)]
-pub enum CachedDataKind {
-    TrustedDocument,
-    Operation,
-}
-
-pub trait HotCacheFactory: Send + Sync + 'static {
-    type Cache<V>: HotCache<V>
+pub trait OperationCacheFactory: Send + Sync + 'static {
+    type Cache<V>: OperationCache<V>
     where
         V: Clone + Send + Sync + 'static + serde::Serialize + serde::de::DeserializeOwned;
 
     /// A new instance provides a convenient interface on how values are handled. Keys
     /// still live in the same namespace and MUST be unique.
-    fn create<V>(&self, kind: CachedDataKind) -> impl Future<Output = Self::Cache<V>> + Send
+    fn create<V>(&self) -> impl Future<Output = Self::Cache<V>> + Send
     where
         V: Clone + Send + Sync + 'static + serde::Serialize + serde::de::DeserializeOwned;
 }
@@ -26,9 +20,8 @@ pub trait HotCacheFactory: Send + Sync + 'static {
 /// - values are immutable for a given key
 /// - values are serialize-able with postcard
 /// - keys are URL-safe strings: ALPHA  DIGIT  "-" / "." / "_" / "~"
-/// - keys will be unique across all instances of HotCache
 ///
-pub trait HotCache<V>: Send + Sync + 'static
+pub trait OperationCache<V>: Send + Sync + 'static
 where
     V: Clone + Send + Sync + 'static + serde::Serialize + serde::de::DeserializeOwned,
 {
@@ -41,19 +34,19 @@ where
 // ---------------------------//
 // -- No-op implementation -- //
 // ---------------------------//
-impl HotCacheFactory for () {
+impl OperationCacheFactory for () {
     type Cache<V> = ()
 where
     V: Clone + Send + Sync + 'static + serde::Serialize + serde::de::DeserializeOwned;
 
-    async fn create<V>(&self, _: CachedDataKind) -> Self::Cache<V>
+    async fn create<V>(&self) -> Self::Cache<V>
     where
         V: Clone + Send + Sync + 'static + serde::Serialize + serde::de::DeserializeOwned,
     {
     }
 }
 
-impl<V> HotCache<V> for ()
+impl<V> OperationCache<V> for ()
 where
     V: Clone + Send + Sync + 'static + serde::Serialize + serde::de::DeserializeOwned,
 {

@@ -1,7 +1,7 @@
 use ::runtime::{
     auth::AccessToken,
     hooks::Hooks,
-    hot_cache::{CachedDataKind, HotCache, HotCacheFactory},
+    operation_cache::{OperationCache, OperationCacheFactory},
     rate_limiting::RateLimitKey,
 };
 use async_runtime::stream::StreamExt as _;
@@ -27,7 +27,7 @@ use web_time::Instant;
 
 use crate::{
     execution::{ExecutableOperation, PreExecutionContext},
-    http_response::{HttpGraphqlResponse, HttpGraphqlResponseExtraMetadata},
+    http_response::HttpGraphqlResponse,
     operation::{Operation, PreparedOperation, Variables},
     response::{ErrorCode, GraphqlError, Response},
     websocket,
@@ -59,8 +59,7 @@ pub struct Engine<R: Runtime> {
     operation_metrics: GraphqlOperationMetrics,
     auth: AuthService,
     retry_budgets: RetryBudgets,
-    trusted_documents_cache: <R::CacheFactory as HotCacheFactory>::Cache<String>,
-    operation_cache: <R::CacheFactory as HotCacheFactory>::Cache<Arc<PreparedOperation>>,
+    operation_cache: <R::OperationCacheFactory as OperationCacheFactory>::Cache<Arc<PreparedOperation>>,
 }
 
 impl<R: Runtime> Engine<R> {
@@ -90,8 +89,7 @@ impl<R: Runtime> Engine<R> {
             auth,
             retry_budgets: RetryBudgets::build(&schema),
             operation_metrics: GraphqlOperationMetrics::build(runtime.meter()),
-            trusted_documents_cache: runtime.cache_factory().create(CachedDataKind::TrustedDocument).await,
-            operation_cache: runtime.cache_factory().create(CachedDataKind::Operation).await,
+            operation_cache: runtime.operation_cache_factory().create().await,
             schema,
             runtime,
         }
@@ -107,14 +105,13 @@ impl<R: Runtime> Engine<R> {
         let format = headers.typed_get::<StreamingFormat>();
         let request_context = match self.create_request_context(headers).await {
             Ok(context) => context,
-            Err(response) => return HttpGraphqlResponse::build(response, format, Default::default()),
+            Err(response) => return HttpGraphqlResponse::build(response, format),
         };
 
         if let Err(err) = self.runtime.rate_limiter().limit(&RateLimitKey::Global).await {
             return HttpGraphqlResponse::build(
                 Response::pre_execution_error(GraphqlError::new(err.to_string(), ErrorCode::RateLimited)),
                 format,
-                Default::default(),
             );
         }
 
@@ -128,7 +125,6 @@ impl<R: Runtime> Engine<R> {
                 HttpGraphqlResponse::build(
                     Response::execution_error(GraphqlError::new("Gateway timeout", ErrorCode::GatewayTimeout)),
                     format,
-                    Default::default(),
                 )
             }
             .boxed(),
@@ -239,21 +235,10 @@ impl<R: Runtime> Engine<R> {
             let (operation_metrics_attributes, response) = ctx.execute_single(request).await;
             let status = response.status();
 
-            let mut response_metadata = HttpGraphqlResponseExtraMetadata {
-                operation_name: None,
-                operation_type: None,
-                has_errors: !status.is_success(),
-            };
-
             let elapsed = start.elapsed();
 
             if let Some(operation_metrics_attributes) = operation_metrics_attributes {
                 tracing::Span::current().record_gql_request((&operation_metrics_attributes).into());
-
-                response_metadata
-                    .operation_name
-                    .clone_from(&operation_metrics_attributes.name);
-                response_metadata.operation_type = Some(operation_metrics_attributes.ty.as_str());
 
                 self.operation_metrics.record(
                     GraphqlRequestMetricsAttributes {
@@ -279,7 +264,7 @@ impl<R: Runtime> Engine<R> {
                 tracing::debug!(target: GRAFBASE_TARGET, "{message}")
             }
 
-            HttpGraphqlResponse::build(response, None, response_metadata)
+            HttpGraphqlResponse::build(response, None)
         }
         .instrument(span)
         .await
@@ -428,9 +413,9 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
 
             if let Some(operation) = self.operation_cache.get(&cache_key).await {
                 Ok(operation)
-            } else if let Some(persisted_query) = document_fut {
-                match persisted_query.await {
-                    Ok(query) => Err((cache_key, Some(query))),
+            } else if let Some(document_fut) = document_fut {
+                match document_fut.await {
+                    Ok(document) => Err((cache_key, Some(document))),
                     Err(err) => return Err((None, Response::pre_execution_error(err))),
                 }
             } else {
@@ -440,8 +425,8 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
 
         let operation = match result {
             Ok(operation) => operation,
-            Err((cache_key, query)) => {
-                if let Some(query) = query {
+            Err((cache_key, document)) => {
+                if let Some(query) = document {
                     request.query = query
                 }
                 let operation = Operation::build(&self.schema, &request)

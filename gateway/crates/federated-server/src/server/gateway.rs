@@ -148,7 +148,7 @@ pub struct GatewayRuntime {
 
 impl engine_v2::Runtime for GatewayRuntime {
     type Hooks = HooksWasi;
-    type CacheFactory = ();
+    type OperationCacheFactory = ();
 
     fn fetcher(&self) -> &runtime::fetch::Fetcher {
         &self.fetcher
@@ -165,7 +165,7 @@ impl engine_v2::Runtime for GatewayRuntime {
     fn hooks(&self) -> &HooksWasi {
         &self.hooks
     }
-    fn cache_factory(&self) -> &Self::CacheFactory {
+    fn operation_cache_factory(&self) -> &Self::OperationCacheFactory {
         &()
     }
 
