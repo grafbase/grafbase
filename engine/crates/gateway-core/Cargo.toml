@@ -19,8 +19,8 @@ workspace = true
 [dependencies]
 async-graphql.workspace = true
 async-runtime.workspace = true
-async-sse = "5.1.0"
-async-trait = "0.1.80"
+async-sse.workspace = true
+async-trait.workspace = true
 blake3.workspace = true
 bytes.workspace = true
 common-types.workspace = true
@@ -36,7 +36,7 @@ headers.workspace = true
 http.workspace = true
 mediatype = "0.19.18"
 mime = "0.3.17"
-multipart-stream = "0.1.2"
+multipart-stream.workspace = true
 operation-normalizer = { path = "../operation-normalizer" }
 partial-caching.workspace = true
 registry-for-cache.workspace = true

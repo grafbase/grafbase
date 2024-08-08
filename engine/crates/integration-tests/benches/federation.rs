@@ -102,7 +102,7 @@ pub fn complex_schema(c: &mut Criterion) {
 }
 
 pub fn cynic_complex_schema(c: &mut Criterion) {
-    let mut group = c.benchmark_group("cynic_complex_schema");
+    let mut group = c.benchmark_group("cynic_schema");
 
     for (size, case) in ComplexSchemaAndQuery::cases() {
         group.throughput(Throughput::Bytes(case.schema.len() as u64));
