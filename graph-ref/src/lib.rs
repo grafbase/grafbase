@@ -1,6 +1,6 @@
-use std::{fmt, str};
+use std::{borrow::Cow, fmt, str};
 
-/// Parsed graph reference. A graph reference is a string of the form `project@branch`.
+/// Parsed graph reference. A graph reference is a string of the form `graph@branch`.
 #[derive(Clone, Debug)]
 pub struct GraphRef {
     graph: String,
@@ -20,7 +20,7 @@ impl GraphRef {
 }
 
 impl str::FromStr for GraphRef {
-    type Err = &'static str;
+    type Err = Cow<'static, str>;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let (graph, branch) = match s.split_once('@') {
@@ -29,7 +29,27 @@ impl str::FromStr for GraphRef {
         };
 
         if graph.is_empty() {
-            return Err("The graph name is missing.");
+            return Err(Cow::Borrowed("The graph name is missing."));
+        }
+
+        if graph.contains('/') {
+            let did_you_mean = 'split: {
+                let Some((_, graph_name)) = graph.split_once('/') else {
+                    break 'split String::new();
+                };
+
+                if graph_name.is_empty() {
+                    break 'split String::new();
+                }
+
+                let branch = branch.map(|branch| format!("@{branch}")).unwrap_or_default();
+
+                format!(" Did you mean: \"{graph_name}{branch}\"")
+            };
+
+            let message = format!("Graph ref should not contain an account name.{did_you_mean}",);
+
+            return Err(Cow::Owned(message));
         }
 
         Ok(GraphRef {
@@ -69,5 +89,15 @@ mod tests {
         for case in cases {
             assert_eq!(case, case.parse::<GraphRef>().unwrap().to_string());
         }
+    }
+
+    #[test]
+    fn account_name_not_allowed() {
+        let err = "cow/bell@main".parse::<GraphRef>().unwrap_err();
+
+        assert_eq!(
+            err,
+            "Graph ref should not contain an account name. Did you mean: \"bell@main\""
+        )
     }
 }

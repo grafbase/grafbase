@@ -1,4 +1,4 @@
-use std::{fmt, str};
+use std::{borrow::Cow, fmt, str};
 
 use graph_ref::GraphRef;
 
@@ -107,11 +107,12 @@ impl ProjectRefOrGraphRef {
 }
 
 impl str::FromStr for ProjectRefOrGraphRef {
-    type Err = &'static str;
+    type Err = Cow<'static, str>;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         ProjectRef::from_str(s)
             .map(ProjectRefOrGraphRef::ProjectRef)
+            .map_err(Cow::Borrowed)
             .or_else(|_| GraphRef::from_str(s).map(ProjectRefOrGraphRef::GraphRef))
     }
 }
