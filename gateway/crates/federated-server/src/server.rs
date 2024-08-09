@@ -28,6 +28,7 @@ use std::{
     path::PathBuf,
     time::Duration,
 };
+use tokio::signal;
 use tokio::sync::mpsc;
 use tower_http::cors::CorsLayer;
 
@@ -152,6 +153,11 @@ pub async fn serve(
 async fn bind(addr: SocketAddr, path: &str, router: Router<()>, tls: Option<&TlsConfig>) -> crate::Result<()> {
     let app = router.into_make_service();
 
+    let handle = axum_server::Handle::new();
+
+    // Spawn a task to gracefully shutdown server.
+    tokio::spawn(graceful_shutdown(handle.clone()));
+
     match tls {
         Some(tls) => {
             tracing::info!(target: GRAFBASE_TARGET, "GraphQL endpoint exposed at https://{addr}{path}");
@@ -161,13 +167,18 @@ async fn bind(addr: SocketAddr, path: &str, router: Router<()>, tls: Option<&Tls
                 .map_err(crate::Error::CertificateError)?;
 
             axum_server::bind_rustls(addr, rustls_config)
+                .handle(handle)
                 .serve(app)
                 .await
                 .map_err(crate::Error::Server)?
         }
         None => {
             tracing::info!(target: GRAFBASE_TARGET, "GraphQL endpoint exposed at http://{addr}{path}");
-            axum_server::bind(addr).serve(app).await.map_err(crate::Error::Server)?
+            axum_server::bind(addr)
+                .handle(handle)
+                .serve(app)
+                .await
+                .map_err(crate::Error::Server)?
         }
     }
 
@@ -184,6 +195,32 @@ async fn bind(_: SocketAddr, path: &str, router: Router<()>, _: Option<&TlsConfi
     lambda_http::run(app).await.expect("cannot start lambda http server");
 
     Ok(())
+}
+
+#[allow(unused)] // I profoundly despise those not(lambda) feature flags...
+async fn graceful_shutdown(handle: axum_server::Handle) {
+    let ctrl_c = async {
+        signal::ctrl_c().await.expect("failed to install Ctrl+C handler");
+    };
+
+    #[cfg(unix)]
+    let terminate = async {
+        signal::unix::signal(signal::unix::SignalKind::terminate())
+            .expect("failed to install signal handler")
+            .recv()
+            .await;
+    };
+
+    #[cfg(not(unix))]
+    let terminate = std::future::pending::<()>();
+
+    tokio::select! {
+        _ = ctrl_c => {},
+        _ = terminate => {},
+    }
+
+    tracing::info!(target: GRAFBASE_TARGET, "Shutting down gracefully...");
+    handle.graceful_shutdown(None);
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
