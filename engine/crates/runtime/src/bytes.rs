@@ -12,6 +12,7 @@ use ::bytes::Bytes;
 /// So this enum allows the engine to return whatever it produced and let the caller deal with it.
 /// Not sure of the impact, but it just profoundly annoyed me that a full response copy would
 /// happen while we put a lot of effort to minimize allocations in the engine.
+#[derive(Clone)]
 pub enum OwnedOrSharedBytes {
     Owned(Vec<u8>),
     Shared(Bytes),

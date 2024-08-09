@@ -34,6 +34,7 @@ headers.workspace = true
 http.workspace = true
 indoc = "2.0.5"
 insta.workspace = true
+itertools.workspace = true
 multipart-stream.workspace = true
 names = "0.14.1-dev"
 openidconnect.workspace = true
@@ -108,7 +109,8 @@ hex.workspace = true
 secrecy.workspace = true
 gateway-v2-auth.workspace = true
 common-types.workspace = true
-itertools.workspace = true
+pretty_assertions = "1"
+
 
 [[bench]]
 name = "federation"

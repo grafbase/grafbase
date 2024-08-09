@@ -2,7 +2,7 @@ use std::{borrow::Cow, time::Duration};
 
 use bytes::Bytes;
 use grafbase_telemetry::{gql_response_status::GraphqlResponseStatus, span::subgraph::SubgraphRequestSpan};
-use runtime::fetch::FetchRequest;
+use runtime::bytes::OwnedOrSharedBytes;
 use schema::sources::graphql::{GraphqlEndpointId, RootFieldResolverDefinitionWalker};
 use serde::de::DeserializeSeed;
 use tracing::Instrument;
@@ -99,7 +99,7 @@ impl GraphqlResolver {
         let retry_budget = if self.operation.ty.is_mutation() {
             ctx.engine.get_retry_budget_for_mutation(self.endpoint_id)
         } else {
-            ctx.engine.get_retry_budget_for_query(self.endpoint_id)
+            ctx.engine.get_retry_budget_for_non_mutation(self.endpoint_id)
         };
 
         let span = SubgraphRequestSpan {
@@ -117,12 +117,8 @@ impl GraphqlResolver {
             span.clone(),
             self.endpoint_id,
             retry_budget,
-            || FetchRequest {
-                url: endpoint.url(),
-                headers,
-                json_body: Bytes::from(body),
-                timeout: endpoint.timeout(),
-            },
+            headers,
+            Bytes::from(body),
             GraphqlIngester {
                 ctx,
                 cache_ttl_and_key,
@@ -160,7 +156,7 @@ where
 {
     async fn ingest(
         mut self,
-        bytes: Bytes,
+        bytes: OwnedOrSharedBytes,
     ) -> Result<(GraphqlResponseStatus, SubgraphResponse), crate::execution::ExecutionError> {
         let status = {
             let response = self.subgraph_response.as_mut();

@@ -157,11 +157,8 @@ impl<'a> GraphqlEndpointWalker<'a> {
         &self.schema[self.as_ref().url]
     }
 
-    pub fn websocket_url(&self) -> &'a Url {
-        match self.as_ref().websocket_url {
-            Some(websocket_id) => &self.schema[websocket_id],
-            None => self.url(),
-        }
+    pub fn websocket_url(&self) -> Option<&'a Url> {
+        self.as_ref().websocket_url.map(|id| &self.schema[id])
     }
 
     pub fn header_rules(self) -> impl Iterator<Item = HeaderRuleWalker<'a>> {

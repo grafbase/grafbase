@@ -2865,7 +2865,6 @@ dependencies = [
  "engine-config-builder",
  "engine-v2",
  "engine-v2-axum",
- "futures-util",
  "gateway-config",
  "grafbase-telemetry",
  "graphql-composition",
@@ -3864,6 +3863,7 @@ dependencies = [
  "serde",
  "serde_json",
  "tokio",
+ "url",
 ]
 
 [[package]]
@@ -4648,6 +4648,7 @@ dependencies = [
  "parser-sdl",
  "postgres-connector-types",
  "pprof",
+ "pretty_assertions",
  "regex",
  "registry-for-cache",
  "registry-upgrade",
@@ -7614,6 +7615,7 @@ dependencies = [
  "async-runtime",
  "async-trait",
  "async-tungstenite",
+ "bytes",
  "deadpool 0.12.1",
  "futures-util",
  "gateway-config",
@@ -7626,6 +7628,7 @@ dependencies = [
  "redis",
  "registry-v2",
  "reqwest",
+ "reqwest-eventsource",
  "runtime",
  "serde",
  "serde_json",

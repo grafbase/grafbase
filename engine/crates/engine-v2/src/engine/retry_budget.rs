@@ -33,7 +33,7 @@ impl RetryBudgets {
 }
 
 impl<R: Runtime> super::Engine<R> {
-    pub(crate) fn get_retry_budget_for_query(&self, endpoint_id: GraphqlEndpointId) -> Option<&Budget> {
+    pub(crate) fn get_retry_budget_for_non_mutation(&self, endpoint_id: GraphqlEndpointId) -> Option<&Budget> {
         self.retry_budgets[endpoint_id].as_ref()
     }
 

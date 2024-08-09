@@ -2,7 +2,7 @@ use bytes::Bytes;
 use futures::future::join_all;
 use grafbase_telemetry::{gql_response_status::GraphqlResponseStatus, span::subgraph::SubgraphRequestSpan};
 use http::HeaderMap;
-use runtime::fetch::FetchRequest;
+use runtime::bytes::OwnedOrSharedBytes;
 use schema::sources::graphql::{FederationEntityResolveDefinitionrWalker, GraphqlEndpointId};
 use serde::{de::DeserializeSeed, Deserialize};
 use serde_json::value::RawValue;
@@ -62,7 +62,7 @@ impl FederationEntityResolver {
         )]);
         let mut representations = root_response_objects
             .iter()
-            .map(|object| serde_json::to_string(&object).and_then(RawValue::from_string))
+            .map(|object| serde_json::value::to_raw_value(&object))
             .collect::<Result<Vec<_>, _>>()?;
 
         let endpoint = ctx.engine.schema.walk(self.endpoint_id);
@@ -96,7 +96,7 @@ impl FederationEntityResolver {
                             ingester.cache_entries = Some(cache_entries);
 
                             let (_, response) = ingester
-                                .ingest(Bytes::from_static(br#"{"data": {"_entities": []}}"#))
+                                .ingest(Bytes::from_static(br#"{"data": {"_entities": []}}"#).into())
                                 .await?;
 
                             return Ok(response);
@@ -128,19 +128,15 @@ impl FederationEntityResolver {
                 })
                 .map_err(|err| format!("Failed to serialize query: {err}"))?;
 
-                let retry_budget = ctx.engine.get_retry_budget_for_query(self.endpoint_id);
+                let retry_budget = ctx.engine.get_retry_budget_for_non_mutation(self.endpoint_id);
 
                 execute_subgraph_request(
                     ctx,
                     span.clone(),
                     self.endpoint_id,
                     retry_budget,
-                    move || FetchRequest {
-                        url: endpoint.url(),
-                        headers,
-                        json_body: Bytes::from(body),
-                        timeout: endpoint.timeout(),
-                    },
+                    headers,
+                    Bytes::from(body),
                     ingester,
                 )
                 .await
@@ -221,7 +217,10 @@ impl<'ctx, R> ResponseIngester for EntityIngester<'ctx, R>
 where
     R: Runtime,
 {
-    async fn ingest(self, bytes: Bytes) -> Result<(GraphqlResponseStatus, SubgraphResponse), ExecutionError> {
+    async fn ingest(
+        self,
+        bytes: OwnedOrSharedBytes,
+    ) -> Result<(GraphqlResponseStatus, SubgraphResponse), ExecutionError> {
         let Self {
             ctx,
             cache_entries,
@@ -255,7 +254,7 @@ where
 async fn update_cache<R: Runtime>(
     ctx: ExecutionContext<'_, R>,
     cache_ttl: Duration,
-    bytes: Bytes,
+    bytes: OwnedOrSharedBytes,
     cache_entries: Vec<CacheEntry>,
 ) {
     let mut entities = match Response::deserialize(&mut serde_json::Deserializer::from_slice(&bytes)) {

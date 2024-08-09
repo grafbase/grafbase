@@ -20,13 +20,15 @@ redis = ["dep:redis"]
 async-runtime.workspace = true
 async-trait = "0.1.80"
 async-tungstenite = { version = "0.26.0", features = ["tokio-runtime", "tokio-rustls-webpki-roots"] }
+bytes.workspace = true
 futures-util.workspace = true
 graphql-ws-client = { version = "0.10.0", features = ["tungstenite"] }
 governor.workspace = true
 http.workspace = true
 ulid.workspace = true
+reqwest-eventsource = "0.6"
 serde.workspace = true
-serde_json.workspace  = true
+serde_json = { workspace  = true, features = ["raw_value"] }
 tracing.workspace = true
 tungstenite = { workspace = true, features = ["url"] }
 tokio = { workspace = true, features = ["macros", "sync"] }
