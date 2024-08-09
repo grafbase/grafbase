@@ -15,7 +15,7 @@ workspace = true
 
 [dependencies]
 async-trait = "0.1.80"
-async-tungstenite = { version = "0.26.0", features = ["tokio-runtime"] }
+async-tungstenite = { version = "0.27.0", features = ["tokio-runtime"] }
 axum.workspace = true
 const_format = "0.2.32"
 cynic-parser = { workspace = true, features = ["print"] }
