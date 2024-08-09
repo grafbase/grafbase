@@ -13,7 +13,7 @@ workspace = true
 [dependencies]
 ctor.workspace = true
 ulid.workspace = true
-bollard = "0.16"
+bollard = "0.17"
 anyhow = "1"
 futures-util.workspace = true
 tempfile = "3"
