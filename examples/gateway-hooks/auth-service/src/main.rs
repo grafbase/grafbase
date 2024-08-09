@@ -1,5 +1,5 @@
 use axum::{response::IntoResponse, routing::post, Json, Router};
-use tokio::net::TcpListener;
+use tokio::{net::TcpListener, signal};
 use tower_http::trace::TraceLayer;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
 
@@ -20,10 +20,35 @@ async fn main() -> anyhow::Result<()> {
         .route("/authorize-address", post(authorize_address))
         .layer(TraceLayer::new_for_http());
 
-    println!("Serving authorization service at 127.0.0.1:4001");
-    axum::serve(TcpListener::bind("127.0.0.1:4001").await?, app).await?;
+    println!("Serving authorization service at 0.0.0.0:4001");
+    axum::serve(TcpListener::bind("0.0.0.0:4001").await?, app)
+        .with_graceful_shutdown(shutdown_signal())
+        .await?;
 
     Ok(())
+}
+
+async fn shutdown_signal() {
+    let ctrl_c = async {
+        signal::ctrl_c().await.expect("failed to install Ctrl+C handler");
+    };
+
+    #[cfg(unix)]
+    let terminate = async {
+        signal::unix::signal(signal::unix::SignalKind::terminate())
+            .expect("failed to install signal handler")
+            .recv()
+            .await;
+    };
+
+    #[cfg(not(unix))]
+    let terminate = std::future::pending::<()>();
+
+    tokio::select! {
+        _ = ctrl_c => {},
+        _ = terminate => {},
+    }
+    println!("Shutting down gracefully...");
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]

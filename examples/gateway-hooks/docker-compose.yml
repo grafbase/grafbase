@@ -1,0 +1,45 @@
+services:
+  users:
+    restart: unless-stopped
+    network_mode: 'host'
+    build:
+      context: ./subgraphs/users
+      args:
+        BINARY_NAME: users-subgraph
+      dockerfile: ../../Dockerfile.rust
+    container_name: users
+  pets:
+    restart: unless-stopped
+    network_mode: 'host'
+    build:
+      context: ./subgraphs/pets
+      args:
+        BINARY_NAME: pets-subgraph
+      dockerfile: ../../Dockerfile.rust
+    container_name: pets
+  auth-service:
+    restart: unless-stopped
+    network_mode: 'host'
+    build:
+      context: ./auth-service
+      args:
+        BINARY_NAME: auth-service
+      dockerfile: ../Dockerfile.rust
+    container_name: auth-service
+  gateway:
+    restart: unless-stopped
+    network_mode: 'host'
+    image: ghcr.io/grafbase/gateway:latest
+    volumes:
+      - type: bind
+        source: ./
+        target: /data
+    command:
+      [
+        '--config',
+        '/data/grafbase.toml',
+        '--schema',
+        '/data/federated-schema.graphql',
+        '--listen-address',
+        '0.0.0.0:5000'
+      ]

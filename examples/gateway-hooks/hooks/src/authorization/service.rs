@@ -19,18 +19,11 @@ struct AuthorizationResponse {
     authorized: bool,
 }
 
-pub(super) async fn authorize_user(
-    current_user_id: usize,
-    user_ids: Vec<usize>,
-) -> Vec<Result<(), Error>> {
+pub(super) async fn authorize_user(current_user_id: usize, user_ids: Vec<usize>) -> Vec<Result<(), Error>> {
     user_ids
         .into_iter()
         .map(|user_id| async move {
-            tracing::info!(
-                "Authorizing access to user {} for user {}",
-                user_id,
-                current_user_id
-            );
+            tracing::info!("Authorizing access to user {} for user {}", user_id, current_user_id);
 
             REQWEST
                 .post("http://localhost:4001/authorize-user")
@@ -42,8 +35,8 @@ pub(super) async fn authorize_user(
                 .and_then(|response| response.bytes())
                 .map(|result| match result {
                     Ok(bytes) => {
-                        let response: AuthorizationResponse = serde_json::from_slice(&bytes)
-                            .expect("Failed to deserialize authorization response");
+                        let response: AuthorizationResponse =
+                            serde_json::from_slice(&bytes).expect("Failed to deserialize authorization response");
                         if response.authorized {
                             Ok(())
                         } else {
@@ -62,10 +55,7 @@ pub(super) async fn authorize_user(
         .await
 }
 
-pub(super) async fn authorize_address(
-    current_user_id: usize,
-    owner_ids: Vec<usize>,
-) -> Vec<Result<(), Error>> {
+pub(super) async fn authorize_address(current_user_id: usize, owner_ids: Vec<usize>) -> Vec<Result<(), Error>> {
     owner_ids
         .into_iter()
         .map(|owner_id| async move {
@@ -85,8 +75,8 @@ pub(super) async fn authorize_address(
                 .and_then(|response| response.bytes())
                 .map(|result| match result {
                     Ok(bytes) => {
-                        let response: AuthorizationResponse = serde_json::from_slice(&bytes)
-                            .expect("Failed to deserialize authorization response");
+                        let response: AuthorizationResponse =
+                            serde_json::from_slice(&bytes).expect("Failed to deserialize authorization response");
                         if response.authorized {
                             Ok(())
                         } else {
