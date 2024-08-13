@@ -1,3 +1,5 @@
+mod subgraph;
+
 use crate::telemetry::metrics::METRICS_DELAY;
 
 use super::{with_gateway, ExponentialHistogramRow};
@@ -121,6 +123,7 @@ fn used_fields_should_be_unique() {
             )
             .send()
             .await;
+
         insta::assert_json_snapshot!(resp, @r###"
         {
           "data": null,
@@ -137,6 +140,7 @@ fn used_fields_should_be_unique() {
           ]
         }
         "###);
+
         tokio::time::sleep(METRICS_DELAY).await;
 
         let row = clickhouse

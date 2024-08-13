@@ -4,6 +4,7 @@ use bytes::Bytes;
 use futures::Future;
 use grafbase_telemetry::{
     gql_response_status::{GraphqlResponseStatus, SubgraphResponseStatus},
+    metrics::SubgraphRequestDurationAttributes,
     span::{GqlRecorderSpanExt, GRAFBASE_TARGET},
 };
 use headers::HeaderMapExt;
@@ -15,7 +16,7 @@ use runtime::{
 use schema::sources::graphql::{GraphqlEndpointId, GraphqlEndpointWalker};
 use tower::retry::budget::Budget;
 use tracing::Span;
-use web_time::Duration;
+use web_time::{Duration, SystemTime};
 
 use crate::{
     execution::{ExecutionContext, ExecutionError, ExecutionResult},
@@ -70,20 +71,42 @@ pub(crate) async fn execute_subgraph_request<'ctx, 'a, R: Runtime>(
         }
     };
 
+    let start = SystemTime::now();
+
     let response = retrying_fetch(ctx, endpoint, retry_budget, move || {
         ctx.engine.runtime.fetcher().fetch(request.clone())
     })
-    .await?;
+    .await;
+
+    let duration = SystemTime::now()
+        .duration_since(start)
+        .unwrap_or(Duration::from_secs(0));
+
+    let response = match response {
+        Ok(response) => response,
+        Err(e) => {
+            let status = SubgraphResponseStatus::HttpError;
+            record_subgraph_duration(ctx, endpoint, status, duration);
+
+            return Err(e);
+        }
+    };
 
     tracing::debug!("{}", String::from_utf8_lossy(response.body()));
 
     let (status, response) = ingester.ingest(response.into_body()).await.inspect_err(|err| {
         let status = SubgraphResponseStatus::InvalidResponseError;
+
         span.record_subgraph_status(status);
+        record_subgraph_duration(ctx, endpoint, status, duration);
+
         tracing::error!(target: GRAFBASE_TARGET, "{err}");
     })?;
 
-    span.record_subgraph_status(SubgraphResponseStatus::GraphqlResponse(status));
+    let status = SubgraphResponseStatus::GraphqlResponse(status);
+
+    span.record_subgraph_status(status);
+    record_subgraph_duration(ctx, endpoint, status, duration);
 
     match response.subgraph_errors().next().map(|e| &e.message) {
         Some(error) => {
@@ -95,6 +118,21 @@ pub(crate) async fn execute_subgraph_request<'ctx, 'a, R: Runtime>(
     }
 
     Ok(response)
+}
+
+fn record_subgraph_duration<R: Runtime>(
+    ctx: ExecutionContext<'_, R>,
+    endpoint: GraphqlEndpointWalker<'_>,
+    status: SubgraphResponseStatus,
+    duration: Duration,
+) {
+    ctx.engine.operation_metrics.record_subgraph_duration(
+        SubgraphRequestDurationAttributes {
+            name: endpoint.subgraph_name().to_string(),
+            status,
+        },
+        duration,
+    );
 }
 
 pub(crate) async fn retrying_fetch<'ctx, R: Runtime, F, T>(

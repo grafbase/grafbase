@@ -60,7 +60,7 @@ pub struct Engine<R: Runtime> {
     pub(crate) schema: Arc<Schema>,
     pub(crate) schema_version: SchemaVersion,
     pub(crate) runtime: R,
-    operation_metrics: GraphqlOperationMetrics,
+    pub(crate) operation_metrics: GraphqlOperationMetrics,
     auth: AuthService,
     retry_budgets: RetryBudgets,
     operation_cache: <R::OperationCacheFactory as OperationCacheFactory>::Cache<Arc<PreparedOperation>>,
@@ -294,7 +294,7 @@ impl<R: Runtime> Engine<R> {
             if let Some(operation_metrics_attributes) = operation_metrics_attributes {
                 span.record_gql_request((&operation_metrics_attributes).into());
 
-                self.operation_metrics.record(
+                self.operation_metrics.record_operation(
                     GraphqlRequestMetricsAttributes {
                         operation: operation_metrics_attributes,
                         status,
@@ -345,7 +345,7 @@ impl<R: Runtime> Engine<R> {
                 if let Some(operation_metrics_attributes) = operation_metrics_attributes {
                     tracing::Span::current().record_gql_request((&operation_metrics_attributes).into());
 
-                    engine.operation_metrics.record(
+                    engine.operation_metrics.record_operation(
                         GraphqlRequestMetricsAttributes {
                             operation: operation_metrics_attributes,
                             status,

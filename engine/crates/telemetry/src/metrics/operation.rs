@@ -3,11 +3,15 @@ use opentelemetry::{
     KeyValue,
 };
 
-use crate::{gql_response_status::GraphqlResponseStatus, grafbase_client::Client};
+use crate::{
+    gql_response_status::{GraphqlResponseStatus, SubgraphResponseStatus},
+    grafbase_client::Client,
+};
 
 #[derive(Clone)]
 pub struct GraphqlOperationMetrics {
-    latency: Histogram<u64>,
+    operation_latency: Histogram<u64>,
+    subgraph_latency: Histogram<u64>,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -68,14 +72,21 @@ pub struct GraphqlRequestMetricsAttributes {
     pub client: Option<Client>,
 }
 
+#[derive(Debug)]
+pub struct SubgraphRequestDurationAttributes {
+    pub name: String,
+    pub status: SubgraphResponseStatus,
+}
+
 impl GraphqlOperationMetrics {
     pub fn build(meter: &Meter) -> Self {
         Self {
-            latency: meter.u64_histogram("gql_operation_latency").init(),
+            operation_latency: meter.u64_histogram("gql_operation_latency").init(),
+            subgraph_latency: meter.u64_histogram("graphql.subgraph.request.duration").init(),
         }
     }
 
-    pub fn record(
+    pub fn record_operation(
         &self,
         GraphqlRequestMetricsAttributes {
             operation:
@@ -94,25 +105,44 @@ impl GraphqlOperationMetrics {
     ) {
         use base64::{engine::general_purpose::STANDARD, Engine as _};
         let sanitized_query_hash = STANDARD.encode(sanitized_query_hash);
+
         let mut attributes = vec![
             KeyValue::new("gql.operation.query_hash", sanitized_query_hash),
             KeyValue::new("gql.operation.query", sanitized_query),
             KeyValue::new("gql.operation.type", ty.as_str()),
             KeyValue::new("gql.operation.used_fields", used_fields),
         ];
+
         if let Some(name) = name {
             attributes.push(KeyValue::new("gql.operation.name", name));
         }
+
         if let Some(cache_status) = cache_status {
             attributes.push(KeyValue::new("gql.response.cache_status", cache_status));
         }
+
         attributes.push(KeyValue::new("gql.response.status", status.as_str()));
+
         if let Some(client) = client {
             attributes.push(KeyValue::new("http.headers.x-grafbase-client-name", client.name));
             if let Some(version) = client.version {
                 attributes.push(KeyValue::new("http.headers.x-grafbase-client-version", version));
             }
         }
-        self.latency.record(latency.as_millis() as u64, &attributes);
+
+        self.operation_latency.record(latency.as_millis() as u64, &attributes);
+    }
+
+    pub fn record_subgraph_duration(
+        &self,
+        SubgraphRequestDurationAttributes { name, status }: SubgraphRequestDurationAttributes,
+        latency: std::time::Duration,
+    ) {
+        let attributes = vec![
+            KeyValue::new("graphql.subgraph.name", name),
+            KeyValue::new("graphql.subgraph.response.status", status.as_str()),
+        ];
+
+        self.subgraph_latency.record(latency.as_millis() as u64, &attributes);
     }
 }
