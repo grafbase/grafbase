@@ -1,9 +1,31 @@
 const GRAFBASE_PRODUCTION_TRUSTED_DOCUMENTS_BUCKET: &str = "https://pub-72f3517515a34104921bb714721a885a.r2.dev";
+const GRAFBASE_ASSETS_URL_ENV_VAR: &str = "GRAFBASE_ASSETS_URL";
 
 pub(crate) struct TrustedDocumentsClient {
-    pub(crate) http_client: reqwest::Client,
-    pub(crate) branch_id: ulid::Ulid,
-    pub(crate) bypass_header: Option<(String, String)>,
+    assets_host: url::Url,
+    http_client: reqwest::Client,
+    branch_id: ulid::Ulid,
+    bypass_header: Option<(String, String)>,
+}
+
+impl TrustedDocumentsClient {
+    pub(crate) fn new(
+        http_client: reqwest::Client,
+        branch_id: ulid::Ulid,
+        bypass_header: Option<(String, String)>,
+    ) -> Self {
+        let assets_host: url::Url = std::env::var(GRAFBASE_ASSETS_URL_ENV_VAR)
+            .unwrap_or(GRAFBASE_PRODUCTION_TRUSTED_DOCUMENTS_BUCKET.to_string())
+            .parse()
+            .expect("assets url should be valid");
+
+        Self {
+            assets_host,
+            http_client,
+            branch_id,
+            bypass_header,
+        }
+    }
 }
 
 #[async_trait::async_trait]
@@ -26,7 +48,7 @@ impl runtime::trusted_documents_client::TrustedDocumentsClient for TrustedDocume
         let branch_id = self.branch_id;
         let key = format!("{branch_id}/{client_name}/{document_id}");
 
-        let mut url: url::Url = GRAFBASE_PRODUCTION_TRUSTED_DOCUMENTS_BUCKET.parse().unwrap();
+        let mut url = self.assets_host.clone();
         url.set_path(&key);
 
         let response = self

@@ -47,9 +47,10 @@ pub(super) async fn generate(
             ));
         };
 
-        runtime::trusted_documents_client::Client::new(super::trusted_documents_client::TrustedDocumentsClient {
-            http_client: Default::default(),
-            bypass_header: gateway_config
+        runtime::trusted_documents_client::Client::new(super::trusted_documents_client::TrustedDocumentsClient::new(
+            Default::default(),
+            branch_id,
+            gateway_config
                 .trusted_documents
                 .bypass_header
                 .bypass_header_name
@@ -62,8 +63,7 @@ pub(super) async fn generate(
                         .as_ref(),
                 )
                 .map(|(name, value)| (name.clone().into(), String::from(value.as_ref()))),
-            branch_id,
-        })
+        ))
     } else {
         runtime::trusted_documents_client::Client::new(NoopTrustedDocuments)
     };
