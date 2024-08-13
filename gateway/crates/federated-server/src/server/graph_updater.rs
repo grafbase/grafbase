@@ -1,24 +1,30 @@
-use std::{borrow::Cow, sync::Arc, time::Duration};
+use std::str::FromStr;
+use std::{sync::Arc, time::Duration};
 
-use super::gateway::GatewaySender;
-use crate::OtelReload;
 use ascii::AsciiString;
-use gateway_config::Config;
-use grafbase_telemetry::span::GRAFBASE_TARGET;
 use http::{HeaderValue, StatusCode};
+use serde::{Deserialize, Serialize};
+use serde_json::json;
 use tokio::sync::oneshot;
 use tokio::time::MissedTickBehavior;
 use tracing::Level;
 use ulid::Ulid;
 use url::Url;
 
-use super::GdnResponse;
+use gateway_config::{Config, PollerType};
+use grafbase_telemetry::span::GRAFBASE_TARGET;
+use graph_ref::GraphRef;
+
+use crate::OtelReload;
+
+use super::gateway::GatewaySender;
+use super::GraphMetadata;
 
 /// How often we poll updates from the schema registry.
 const TICK_INTERVAL: Duration = Duration::from_secs(10);
 
 /// How long we wait for a response from the schema registry.
-const GDN_TIMEOUT: Duration = Duration::from_secs(10);
+const TIMEOUT: Duration = Duration::from_secs(10);
 
 /// How long we wait until a connection is successfully opened.
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(5);
@@ -38,15 +44,22 @@ const USER_AGENT: &str = "grafbase-cli";
 /// The CDN host we load the graphs from.
 const GDN_HOST: &str = "https://gdn.grafbase.com";
 
+/// The API host we load the graphs from.
+const API_HOST: &str = "https://api.grafbase.com";
+
+/// The environment variable to configure the host used when issuing sdl polling requests
+const TARGET_HOST_ENV_VAR: &str = "GRAFBASE_GRAPH_UPDATER_TARGET_HOST";
+
 /// An updater thread for polling graph changes from the API.
 pub(super) struct GraphUpdater {
-    gdn_url: Url,
-    gdn_client: reqwest::Client,
+    url: Url,
+    http_client: reqwest::Client,
     access_token: AsciiString,
     sender: GatewaySender,
-    current_id: Option<Ulid>,
+    current_id: Option<String>,
     gateway_config: Config,
     otel_reload: Option<(oneshot::Sender<OtelReload>, oneshot::Receiver<()>)>,
+    graph_ref: GraphRef,
 }
 
 impl GraphUpdater {
@@ -58,8 +71,11 @@ impl GraphUpdater {
         gateway_config: Config,
         otel_reload: Option<(oneshot::Sender<OtelReload>, oneshot::Receiver<()>)>,
     ) -> crate::Result<Self> {
-        let gdn_client = reqwest::ClientBuilder::new()
-            .timeout(GDN_TIMEOUT)
+        let graph_ref =
+            graph_ref::GraphRef::from_str(graph_ref).map_err(|err| crate::Error::InvalidGraphRef(err.to_string()))?;
+
+        let http_client = reqwest::ClientBuilder::new()
+            .timeout(TIMEOUT)
             .connect_timeout(CONNECT_TIMEOUT)
             .http2_keep_alive_interval(Some(KEEPALIVE_INTERVAL))
             .http2_keep_alive_timeout(KEEPALIVE_TIMEOUT)
@@ -68,28 +84,33 @@ impl GraphUpdater {
             .build()
             .map_err(|e| crate::Error::InternalError(e.to_string()))?;
 
-        let gdn_host = match std::env::var("GRAFBASE_GDN_URL") {
-            Ok(host) => Cow::Owned(host),
-            Err(_) => Cow::Borrowed(GDN_HOST),
+        let url = match &gateway_config.gateway.poller.r#type {
+            PollerType::GDN => {
+                let host = std::env::var(TARGET_HOST_ENV_VAR).unwrap_or(GDN_HOST.to_string());
+                match branch {
+                    Some(branch) => format!("{host}/graphs/{graph_ref}/{branch}/current"),
+                    None => format!("{host}/graphs/{graph_ref}/current"),
+                }
+            }
+            PollerType::API => {
+                let host = std::env::var(TARGET_HOST_ENV_VAR).unwrap_or(API_HOST.to_string());
+                format!("{host}/graphql")
+            }
         };
 
-        let gdn_url = match branch {
-            Some(branch) => format!("{gdn_host}/graphs/{graph_ref}/{branch}/current"),
-            None => format!("{gdn_host}/graphs/{graph_ref}/current"),
-        };
-
-        let gdn_url = gdn_url
+        let url = url
             .parse::<Url>()
             .map_err(|e| crate::Error::InternalError(e.to_string()))?;
 
         Ok(Self {
-            gdn_url,
-            gdn_client,
+            url,
+            http_client,
             access_token,
             sender,
             current_id: None,
             gateway_config,
             otel_reload,
+            graph_ref,
         })
     }
 
@@ -110,65 +131,33 @@ impl GraphUpdater {
         loop {
             interval.tick().await;
 
-            let mut request = self
-                .gdn_client
-                .get(self.gdn_url.as_str())
-                .bearer_auth(&self.access_token);
-
-            if let Some(id) = self.current_id {
-                request = request.header(
-                    "If-None-Match",
-                    HeaderValue::from_bytes(id.to_string().as_bytes()).expect("must be ascii"),
-                );
-            }
-
-            let response = request.send().await;
-
-            let response = match response {
-                Ok(response) => response,
-                Err(e) => {
-                    tracing::event!(target: GRAFBASE_TARGET, Level::ERROR, message = "error updating graph", error = e.to_string());
-                    continue;
+            let graph_metadata: GraphMetadata = match &self.gateway_config.gateway.poller.r#type {
+                PollerType::GDN => {
+                    let Some(graph_metadata) = self.gdn_request().await else {
+                        continue;
+                    };
+                    graph_metadata
                 }
-            };
-
-            if response.status() == StatusCode::NOT_MODIFIED {
-                tracing::debug!(target: GRAFBASE_TARGET, "no updates to the graph");
-                continue;
-            }
-
-            if let Err(e) = response.error_for_status_ref() {
-                match e.status() {
-                    Some(StatusCode::NOT_FOUND) => {
-                        tracing::warn!(target: GRAFBASE_TARGET, "Federated schema not found. Is your graph configured as self-hosted? Did you publish at least one subgraph?");
-                    }
-                    _ => {
-                        tracing::event!(target: GRAFBASE_TARGET, Level::ERROR, message = "error updating graph", error = e.to_string());
-                    }
-                }
-                continue;
-            }
-
-            let response: GdnResponse = match response.json().await {
-                Ok(response) => response,
-                Err(e) => {
-                    tracing::event!(target: GRAFBASE_TARGET, Level::ERROR, message = "error updating graph", error = e.to_string());
-                    continue;
+                PollerType::API => {
+                    let Some(graph_metadata) = self.api_request().await else {
+                        continue;
+                    };
+                    graph_metadata
                 }
             };
 
             tracing::event!(
                 target: GRAFBASE_TARGET,
                 Level::INFO,
-                message = "Graph fetched from GDN",
+                message = "New Graph fetched from remote source",
             );
 
             if let Some((sender, ack_receiver)) = self.otel_reload.take() {
                 if sender
                     .send(OtelReload {
-                        graph_id: response.graph_id,
-                        branch_id: response.branch_id,
-                        branch_name: response.branch.clone(),
+                        graph_id: graph_metadata.graph_id,
+                        branch_id: graph_metadata.branch_id,
+                        branch_name: graph_metadata.branch.clone(),
                     })
                     .is_err()
                 {
@@ -181,8 +170,8 @@ impl GraphUpdater {
             }
 
             let gateway = match super::gateway::generate(
-                &response.sdl,
-                Some(response.branch_id),
+                &graph_metadata.sdl,
+                Some(graph_metadata.branch_id),
                 &self.gateway_config,
                 None,
             )
@@ -196,11 +185,199 @@ impl GraphUpdater {
                 }
             };
 
-            self.current_id = Some(response.version_id);
+            self.current_id = Some(graph_metadata.version_id.to_string());
 
             self.sender
                 .send(Some(Arc::new(gateway)))
                 .expect("internal error: channel closed");
         }
+    }
+
+    async fn gdn_request(&self) -> Option<GraphMetadata> {
+        let mut request = self.http_client.get(self.url.as_str()).bearer_auth(&self.access_token);
+
+        if let Some(id) = &self.current_id {
+            request = request.header(
+                "If-None-Match",
+                HeaderValue::from_bytes(id.as_bytes()).expect("must be ascii"),
+            );
+        }
+
+        let response = request.send().await;
+
+        let response = match response {
+            Ok(response) => response,
+            Err(e) => {
+                tracing::event!(target: GRAFBASE_TARGET, Level::ERROR, message = "error updating graph", error = e.to_string());
+                return None;
+            }
+        };
+
+        if response.status() == StatusCode::NOT_MODIFIED {
+            tracing::debug!(target: GRAFBASE_TARGET, "no updates to the graph");
+            return None;
+        }
+
+        if let Err(e) = response.error_for_status_ref() {
+            match e.status() {
+                Some(StatusCode::NOT_FOUND) => {
+                    tracing::warn!(target: GRAFBASE_TARGET, "Federated schema not found. Is your graph configured as self-hosted? Did you publish at least one subgraph?");
+                }
+                _ => {
+                    tracing::event!(target: GRAFBASE_TARGET, Level::ERROR, message = "error updating graph", error = e.to_string());
+                }
+            }
+            return None;
+        }
+
+        let response: GraphMetadata = match response.json().await {
+            Ok(response) => response,
+            Err(e) => {
+                tracing::event!(target: GRAFBASE_TARGET, Level::ERROR, message = "error updating graph", error = e.to_string());
+                return None;
+            }
+        };
+
+        if let Some(current_id) = &self.current_id {
+            if *current_id == response.version_id {
+                tracing::debug!(target: GRAFBASE_TARGET, "no updates to the graph");
+                return None;
+            }
+        }
+
+        Some(response)
+    }
+
+    async fn api_request(&self) -> Option<GraphMetadata> {
+        #[derive(Debug, Deserialize)]
+        struct QueryResponse {
+            branch: QueryBranch,
+        }
+
+        #[derive(Debug, Deserialize)]
+        #[serde(rename_all = "camelCase")]
+        struct QueryBranch {
+            id: cynic::Id,
+            name: String,
+            federated_schema: String,
+            graph: QueryGraph,
+        }
+
+        #[derive(Debug, Deserialize)]
+        struct QueryAccount {
+            id: cynic::Id,
+        }
+
+        #[derive(Debug, Deserialize)]
+        struct QueryGraph {
+            id: cynic::Id,
+            account: QueryAccount,
+        }
+
+        #[derive(Debug, Serialize)]
+        struct QueryVariables<'a> {
+            graph: &'a str,
+        }
+
+        let query = r#"
+            query pollerFederatedSchemaQuery($graph: String!) {
+                branch(graphSlug: $graph) {
+                    id
+                    name
+                    federatedSchema
+                    graph {
+                        id
+                        account {
+                            id
+                        }
+                    }
+                }
+           }
+        "#;
+
+        let response = match self
+            .http_client
+            .post(self.url.as_str())
+            .bearer_auth(&self.access_token)
+            .json(&json!({
+                "query": query,
+                "variables": QueryVariables {
+                    graph: self.graph_ref.graph()
+                }
+            }))
+            .send()
+            .await
+        {
+            Ok(response) => response,
+            Err(e) => {
+                tracing::event!(target: GRAFBASE_TARGET, Level::ERROR, message = "error updating graph", error = e.to_string());
+                return None;
+            }
+        };
+
+        if let Err(e) = response.error_for_status_ref() {
+            tracing::event!(target: GRAFBASE_TARGET, Level::ERROR, message = "error updating graph", error = e.to_string());
+            return None;
+        }
+
+        let text = response.text().await.unwrap();
+
+        let response = match serde_json::from_str::<cynic::GraphQlResponse<QueryResponse>>(&text) {
+            Ok(response) => response,
+            Err(e) => {
+                tracing::event!(target: GRAFBASE_TARGET, Level::ERROR, message = "error updating graph", error = e.to_string());
+                return None;
+            }
+        };
+
+        if let Some(errors) = response.errors {
+            tracing::event!(target: GRAFBASE_TARGET, Level::ERROR, message = "error updating graph", error = format!("{errors:?}"));
+            return None;
+        };
+
+        let Some(metadata) = response.data else {
+            tracing::event!(target: GRAFBASE_TARGET, Level::ERROR, message = "error updating graph", error = "remote api returned no data");
+            return None;
+        };
+
+        let Some(Ok(account_id)) = metadata
+            .branch
+            .graph
+            .account
+            .id
+            .inner()
+            .split("_")
+            .last()
+            .map(Ulid::from_str)
+        else {
+            tracing::event!(target: GRAFBASE_TARGET, Level::ERROR, message = "error updating graph", error = "remote api returned an invalid account_id");
+            return None;
+        };
+        let Some(Ok(graph_id)) = metadata.branch.graph.id.inner().split("_").last().map(Ulid::from_str) else {
+            tracing::event!(target: GRAFBASE_TARGET, Level::ERROR, message = "error updating graph", error = "remote api returned an invalid graph_id");
+            return None;
+        };
+        let Some(Ok(branch_id)) = metadata.branch.id.inner().split("_").last().map(Ulid::from_str) else {
+            tracing::event!(target: GRAFBASE_TARGET, Level::ERROR, message = "error updating graph", error = "remote api returned an invalid branch_id");
+            return None;
+        };
+
+        let version_id = blake3::hash(metadata.branch.federated_schema.as_bytes()).to_string();
+
+        if let Some(current_version) = &self.current_id {
+            if *current_version == version_id {
+                tracing::debug!(target: GRAFBASE_TARGET, "no updates to the graph");
+                return None;
+            }
+        }
+
+        Some(GraphMetadata {
+            account_id,
+            graph_id,
+            branch: metadata.branch.name,
+            branch_id,
+            sdl: metadata.branch.federated_schema,
+            version_id,
+        })
     }
 }

@@ -102,6 +102,22 @@ pub struct GatewayConfig {
     /// Global retry configuration
     #[serde(default)]
     pub retry: RetryConfig,
+    /// SDL Poller configuration
+    #[serde(default)]
+    pub poller: Poller,
+}
+
+#[derive(Debug, Default, serde::Deserialize, Clone)]
+pub struct Poller {
+    pub r#type: PollerType,
+}
+
+#[derive(Debug, Default, serde::Deserialize, Clone)]
+#[serde(rename_all = "lowercase")]
+pub enum PollerType {
+    #[default]
+    GDN,
+    API,
 }
 
 #[derive(Debug, serde::Deserialize, Clone)]

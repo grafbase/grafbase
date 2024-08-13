@@ -25,6 +25,7 @@ async-trait = "0.1.80"
 axum = { workspace = true, features = ["macros", "ws", "query", "json"] }
 axum-server = { version = "0.6.0", features = ["tls-rustls"] }
 blake3.workspace = true
+cynic = { workspace = true, features = ["serde_json"] }
 engine.workspace = true
 engine-config-builder.workspace = true
 engine-v2.workspace = true
@@ -32,12 +33,14 @@ engine-v2-axum.workspace = true
 grafbase-telemetry = { workspace = true, features = ["tower", "otlp"] }
 gateway-config.workspace = true
 graphql-composition.workspace = true
+graph-ref.workspace = true
 http.workspace = true
 reqwest = { workspace = true, features = ["http2", "json", "rustls-tls"] }
 runtime.workspace = true
 runtime-local = { workspace = true, features = ["wasi", "redis"] }
 runtime-noop.workspace = true
 serde.workspace = true
+serde_json.workspace = true
 thiserror.workspace = true
 toml.workspace = true
 tokio = { workspace = true, features = ["signal", "time", "net"] }

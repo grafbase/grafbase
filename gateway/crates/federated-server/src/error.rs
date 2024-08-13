@@ -6,6 +6,9 @@ pub enum Error {
     #[error("{0}")]
     /// The GraphQL schema validation
     SchemaValidationError(String),
+    #[error("invalid graph_ref: {0}")]
+    /// Provided graph_ref is invalid
+    InvalidGraphRef(String),
     /// Internal error
     #[error("internal error: {0}")]
     InternalError(String),

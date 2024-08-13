@@ -3,12 +3,12 @@ use std::str::FromStr;
 
 use ulid::Ulid;
 
-use federated_server::GdnResponse;
+use federated_server::GraphMetadata;
 
 #[derive(serde::Serialize, serde::Deserialize)]
-pub(crate) struct GdnResponseMock(GdnResponse);
+pub(crate) struct GdnResponseMock(GraphMetadata);
 impl Deref for GdnResponseMock {
-    type Target = GdnResponse;
+    type Target = GraphMetadata;
 
     fn deref(&self) -> &Self::Target {
         &self.0
@@ -17,13 +17,13 @@ impl Deref for GdnResponseMock {
 
 impl GdnResponseMock {
     pub(crate) fn mock(sdl: &str) -> GdnResponseMock {
-        GdnResponseMock(GdnResponse {
+        GdnResponseMock(GraphMetadata {
             account_id: Ulid::from_str("01HR7NP3A4NDVWC10PZW6ZMC5P").unwrap(),
             graph_id: Ulid::from_str("01HR7NPB8E3YW29S5PPSY1AQKR").unwrap(),
             branch: "main".to_string(),
             branch_id: Ulid::from_str("01HR7NPB8E3YW29S5PPSY1AQKA").unwrap(),
             sdl: sdl.to_string(),
-            version_id: Ulid::from_str("01HR7NPYWWM6DEKACKKN3EPFP2").unwrap(),
+            version_id: "01HR7NPYWWM6DEKACKKN3EPFP2".to_string(),
         })
     }
 
