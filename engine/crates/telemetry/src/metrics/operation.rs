@@ -32,7 +32,13 @@ pub struct OperationMetricsAttributes {
     pub ty: OperationType,
     pub name: Option<String>,
     pub sanitized_query: String,
+    pub internal: InternalOperationMetricsAttributes,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct InternalOperationMetricsAttributes {
     pub sanitized_query_hash: [u8; 32],
+    pub operation_name_or_generated_one: String,
     /// For a schema:
     /// ```ignore
     /// type Query {
@@ -83,8 +89,12 @@ impl GraphqlOperationMetrics {
                     name,
                     ty,
                     sanitized_query,
-                    sanitized_query_hash,
-                    used_fields,
+                    internal:
+                        InternalOperationMetricsAttributes {
+                            sanitized_query_hash,
+                            operation_name_or_generated_one,
+                            used_fields,
+                        },
                 },
             status,
             cache_status,
@@ -95,10 +105,15 @@ impl GraphqlOperationMetrics {
         use base64::{engine::general_purpose::STANDARD, Engine as _};
         let sanitized_query_hash = STANDARD.encode(sanitized_query_hash);
         let mut attributes = vec![
-            KeyValue::new("gql.operation.query_hash", sanitized_query_hash),
             KeyValue::new("gql.operation.query", sanitized_query),
             KeyValue::new("gql.operation.type", ty.as_str()),
-            KeyValue::new("gql.operation.used_fields", used_fields),
+            // -- internal processed fields that may be eventually computed separately --
+            KeyValue::new(
+                "__grafbase.gql.operation.inferred_name",
+                operation_name_or_generated_one,
+            ),
+            KeyValue::new("__grafbase.gql.operation.query_hash", sanitized_query_hash),
+            KeyValue::new("__grafbase.gql.operation.used_fields", used_fields),
         ];
         if let Some(name) = name {
             attributes.push(KeyValue::new("gql.operation.name", name));

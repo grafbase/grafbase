@@ -55,6 +55,8 @@ pub struct GqlRequestAttributes<'a> {
     pub operation_type: &'static str,
     /// GraphQL operation name
     pub operation_name: Option<&'a str>,
+    /// OTEL name of the span
+    pub otel_name: &'a str,
     /// Must NOT contain any sensitive data
     pub sanitized_query: Option<&'a str>,
 }
@@ -64,6 +66,7 @@ impl<'a> From<&'a OperationMetricsAttributes> for GqlRequestAttributes<'a> {
         Self {
             operation_type: metrics_attributes.ty.as_str(),
             operation_name: metrics_attributes.name.as_deref(),
+            otel_name: &metrics_attributes.internal.operation_name_or_generated_one,
             sanitized_query: Some(&metrics_attributes.sanitized_query),
         }
     }

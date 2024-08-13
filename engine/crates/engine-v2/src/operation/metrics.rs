@@ -1,4 +1,4 @@
-use grafbase_telemetry::metrics::OperationMetricsAttributes;
+use grafbase_telemetry::metrics::{InternalOperationMetricsAttributes, OperationMetricsAttributes};
 use itertools::Itertools;
 use schema::Schema;
 
@@ -12,13 +12,20 @@ pub(super) fn prepare_metrics_attributes(
         .ok()
         .map(|sanitized_query| OperationMetricsAttributes {
             ty: operation.definition.ty.into(),
-            name: operation.name.clone().or_else(|| {
-                engine_parser::find_first_field_name(&operation.fragments, &operation.definition.selection_set)
-            }),
-            sanitized_query_hash: blake3::hash(sanitized_query.as_bytes()).into(),
+            name: operation.name.clone(),
+            internal: InternalOperationMetricsAttributes {
+                operation_name_or_generated_one: operation
+                    .name
+                    .clone()
+                    .or_else(|| {
+                        engine_parser::find_first_field_name(&operation.fragments, &operation.definition.selection_set)
+                    })
+                    .unwrap_or_default(),
+                sanitized_query_hash: blake3::hash(sanitized_query.as_bytes()).into(),
+                // Added after the binding step
+                used_fields: String::new(),
+            },
             sanitized_query,
-            // Added after the binding step
-            used_fields: String::new(),
         })
 }
 

@@ -23,6 +23,7 @@ mod streaming;
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct GraphqlOperationAnalyticsAttributes {
     pub name: Option<String>,
+    pub name_or_generated_one: String,
     pub r#type: common_types::OperationType,
     #[serde(default)]
     pub used_fields: String,
@@ -102,6 +103,7 @@ impl Response {
             errors,
             graphql_operation: Some(GraphqlOperationAnalyticsAttributes {
                 name: None,
+                name_or_generated_one: String::new(),
                 r#type: match operation_type {
                     OperationType::Query => common_types::OperationType::Query {
                         is_introspection: false,

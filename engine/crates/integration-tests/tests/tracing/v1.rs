@@ -26,10 +26,6 @@ async fn query_bad_request() {
         })
         .new_span(span.clone())
         .enter(span.clone())
-        .record(
-            span.clone(),
-            expect::field("gql.operation.name").with_value(&"__type_name"),
-        )
         .record(span.clone(), expect::field("otel.name").with_value(&"__type_name"))
         .record(
             span.clone(),
@@ -84,7 +80,6 @@ async fn query() {
         .exit(resolver_span.clone())
         .enter(resolver_span.clone())
         .exit(resolver_span.clone())
-        .record(span.clone(), expect::field("gql.operation.name").with_value(&"test"))
         .record(span.clone(), expect::field("otel.name").with_value(&"test"))
         .record(
             span.clone(),
@@ -223,7 +218,6 @@ async fn resolvers_with_error() {
             resolver_span_error.clone(),
             expect::field("resolver.invocation.is_error").with_value(&true),
         )
-        .record(span.clone(), expect::field("gql.operation.name").with_value(&"nope"))
         .record(span.clone(), expect::field("otel.name").with_value(&"nope"))
         .record(
             span.clone(),

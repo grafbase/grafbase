@@ -41,8 +41,8 @@ impl GqlRecorderSpanExt for Span {
     fn record_gql_request(&self, attributes: GqlRequestAttributes<'_>) {
         if let Some(name) = attributes.operation_name {
             self.record("gql.operation.name", name);
-            self.record("otel.name", name);
         }
+        self.record("otel.name", attributes.otel_name);
         if let Some(query) = attributes.sanitized_query {
             self.record("gql.operation.query", query);
         }

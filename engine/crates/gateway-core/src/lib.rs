@@ -194,6 +194,7 @@ where
                         common_types::OperationType::Subscription => "subscription",
                     },
                     operation_name: operation.name.as_deref(),
+                    otel_name: &operation.name_or_generated_one,
                     sanitized_query: normalized_query.as_deref(),
                 });
 
@@ -216,9 +217,12 @@ where
                                 }
                             },
                             name: operation.name.clone(),
-                            sanitized_query_hash: blake3::hash(normalized_query.as_bytes()).into(),
+                            internal: grafbase_telemetry::metrics::InternalOperationMetricsAttributes {
+                                sanitized_query_hash: blake3::hash(normalized_query.as_bytes()).into(),
+                                operation_name_or_generated_one: operation.name_or_generated_one.clone(),
+                                used_fields: operation.used_fields.clone(),
+                            },
                             sanitized_query: normalized_query,
-                            used_fields: operation.used_fields.clone(),
                         },
                         status,
                         cache_status: headers

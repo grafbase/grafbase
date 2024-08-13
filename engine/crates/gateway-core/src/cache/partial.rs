@@ -72,6 +72,7 @@ where
                     body,
                     engine::GraphqlOperationAnalyticsAttributes {
                         name: request.operation_name().map(str::to_string),
+                        name_or_generated_one: request.operation_name().map(str::to_string).unwrap_or_default(),
                         r#type: operation_type,
                         used_fields: String::new(),
                     },
@@ -130,6 +131,7 @@ where
                 body,
                 engine::GraphqlOperationAnalyticsAttributes {
                     name: request.operation_name().map(str::to_string),
+                    name_or_generated_one: request.operation_name().map(str::to_string).unwrap_or_default(),
                     r#type: operation_type,
                     used_fields: String::new(),
                 },

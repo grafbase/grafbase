@@ -100,7 +100,7 @@ impl Operation {
         let response_blueprint = ResponseBlueprintBuilder::new(schema, &operation, &plan).build();
 
         let mut metrics_attributes = metrics_attributes.ok_or(OperationError::NormalizationError)?;
-        metrics_attributes.used_fields = generate_used_fields(schema, &operation);
+        metrics_attributes.internal.used_fields = generate_used_fields(schema, &operation);
 
         Ok(PreparedOperation {
             operation,

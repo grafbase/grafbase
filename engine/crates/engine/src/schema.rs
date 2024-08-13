@@ -7,7 +7,9 @@ use engine_validation::{check_strict_rules, ValidationResult};
 use futures_util::stream::{self, Stream, StreamExt};
 use futures_util::FutureExt;
 use grafbase_telemetry::gql_response_status::GraphqlResponseStatus;
-use grafbase_telemetry::metrics::{GraphqlOperationMetrics, OperationMetricsAttributes};
+use grafbase_telemetry::metrics::{
+    GraphqlOperationMetrics, InternalOperationMetricsAttributes, OperationMetricsAttributes,
+};
 use grafbase_telemetry::span::{gql::GqlRequestSpan, GqlRecorderSpanExt, GqlRequestAttributes};
 use graph_entities::{CompactValue, QueryResponse};
 
@@ -280,6 +282,7 @@ impl Schema {
                         .get(operation_name)
                         .map(|operation| GraphqlOperationAnalyticsAttributes {
                             name: Some(operation_name.to_string()),
+                            name_or_generated_one: operation_name.to_string(),
                             r#type: response_operation_for_definition(&operation.node),
                             used_fields: String::new(),
                         })
@@ -289,7 +292,12 @@ impl Schema {
         } else {
             match &document.operations {
                 DocumentOperations::Single(operation) => Some(GraphqlOperationAnalyticsAttributes {
-                    name: engine_parser::find_first_field_name(&document.fragments, &operation.node.selection_set),
+                    name: None,
+                    name_or_generated_one: engine_parser::find_first_field_name(
+                        &document.fragments,
+                        &operation.node.selection_set,
+                    )
+                    .unwrap_or_default(),
                     r#type: response_operation_for_definition(&operation.node),
                     used_fields: String::new(),
                 }),
@@ -297,6 +305,7 @@ impl Schema {
                     let (operation_name, operation) = operations.iter().next().unwrap();
                     Some(GraphqlOperationAnalyticsAttributes {
                         name: Some(operation_name.to_string()),
+                        name_or_generated_one: operation_name.to_string(),
                         r#type: response_operation_for_definition(&operation.node),
                         used_fields: String::new(),
                     })
@@ -563,6 +572,7 @@ impl Schema {
                     Span::current().record_gql_request(GqlRequestAttributes {
                         operation_type: env.operation.ty.as_str(),
                         operation_name: env.operation_analytics_attributes.name.as_deref(),
+                        otel_name: &env.operation_analytics_attributes.name_or_generated_one,
                         sanitized_query: sanitized_query.as_deref(),
                     });
 
@@ -594,6 +604,7 @@ impl Schema {
                     gql_span.record_gql_request(GqlRequestAttributes {
                         operation_type: env.operation.ty.as_str(),
                         operation_name: env.operation_analytics_attributes.name.as_deref(),
+                        otel_name: &env.operation_analytics_attributes.name_or_generated_one,
                         sanitized_query: sanitized_query.as_deref(),
                     });
 
@@ -628,10 +639,13 @@ impl Schema {
                         grafbase_telemetry::metrics::GraphqlRequestMetricsAttributes {
                             operation: OperationMetricsAttributes {
                                 ty: env.operation.ty.into(),
-                                name: env.operation_analytics_attributes.name.clone(),
-                                sanitized_query_hash: blake3::hash(sanitized_query.as_bytes()).into(),
+                                name: env.operation_name.clone(),
+                                internal: InternalOperationMetricsAttributes {
+                                    operation_name_or_generated_one: env.operation_analytics_attributes.name_or_generated_one.clone(),
+                                    sanitized_query_hash: blake3::hash(sanitized_query.as_bytes()).into(),
+                                    used_fields: env.operation_analytics_attributes.used_fields.clone(),
+                                },
                                 sanitized_query,
-                                used_fields: env.operation_analytics_attributes.used_fields.clone(),
                             },
                             status,
                             cache_status: None,
