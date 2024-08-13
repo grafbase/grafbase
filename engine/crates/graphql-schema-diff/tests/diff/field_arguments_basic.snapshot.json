@@ -2,21 +2,37 @@
   "src → target": [
     {
       "path": "MapleSyrup.pricePerLiter.currency",
-      "kind": "RemoveFieldArgument"
+      "kind": "RemoveFieldArgument",
+      "span": {
+        "start": 0,
+        "end": 0
+      }
     },
     {
       "path": "PriceArgs.currency",
-      "kind": "AddField"
+      "kind": "AddField",
+      "span": {
+        "start": 299,
+        "end": 317
+      }
     }
   ],
   "target → src": [
     {
       "path": "MapleSyrup.pricePerLiter.currency",
-      "kind": "AddFieldArgument"
+      "kind": "AddFieldArgument",
+      "span": {
+        "start": 228,
+        "end": 245
+      }
     },
     {
       "path": "PriceArgs.currency",
-      "kind": "RemoveField"
+      "kind": "RemoveField",
+      "span": {
+        "start": 0,
+        "end": 0
+      }
     }
   ]
 }

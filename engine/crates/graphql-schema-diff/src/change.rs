@@ -11,6 +11,19 @@ pub struct Change {
     pub path: String,
     /// The nature of the change.
     pub kind: ChangeKind,
+    /// Contents depend on the change kind:
+    ///
+    /// - [ChangeQueryType]/[ChangeMutationType]/[ChangeSubscriptionType]: the new type
+    /// - [AddObjectType]/[AddUnion]/[AddEnum]/[AddScalar]/[AddInterface]/[AddInputObject]/[AddSchemaDefinition]/[AddDirectiveDefinition]: the whole definition.
+    /// - [AddInterfaceImplementation]/[RemoveInterfaceImplementation]: empty
+    /// - [ChangeFieldType]/[ChangeFieldArgumentType]: the new type
+    /// - [RemoveObjectType]/[RemoveField]/[RemoveUnion]/[RemoveUnionMember]/[RemoveEnum]/[RemoveScalar]/[RemoveInterface]/[RemoveDirectiveDefinition]/[RemoveSchemaDefinition]/[RemoveInputObject]/[RemoveFieldArgument]/[RemoveFieldArgumentDefault]: empty
+    /// - [AddField]: the whole field definition
+    /// - [AddUnionMember]: the union member added
+    /// - [AddEnumValue]/[RemoveEnumValue]: empty
+    /// - [AddFieldArgument]: the value of the argument, potentially with the default
+    /// - [AddFieldArgumentDefault]/[ChangeFieldArgumentDefault]: the default value of the argument
+    pub span: Span,
 }
 
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Ord, PartialOrd, Debug)]
@@ -53,4 +66,38 @@ pub enum ChangeKind {
     RemoveFieldArgumentDefault,
     ChangeFieldArgumentDefault,
     ChangeFieldArgumentType,
+}
+
+/// A span in a source file.
+#[derive(Clone, Eq, PartialEq, Hash, Ord, PartialOrd, Debug, serde::Serialize, serde::Deserialize, Copy)]
+pub struct Span {
+    /// The byte offset where the span starts.
+    pub start: usize,
+    /// The byte offset where the span stops (exclusive).
+    pub end: usize,
+}
+
+impl Span {
+    /// Create a span from start and end.
+    pub fn new(start: usize, end: usize) -> Self {
+        Span { start, end }
+    }
+
+    pub(crate) const fn empty() -> Span {
+        Span { start: 0, end: 0 }
+    }
+}
+
+impl From<cynic_parser::Span> for Span {
+    fn from(cynic_parser::Span { start, end }: cynic_parser::Span) -> Self {
+        Span { start, end }
+    }
+}
+
+impl std::ops::Index<Span> for str {
+    type Output = str;
+
+    fn index(&self, Span { start, end }: Span) -> &Self::Output {
+        &self[start..end]
+    }
 }

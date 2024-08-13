@@ -97,7 +97,7 @@ features = ["tower"]
 
 [dev-dependencies]
 similar-asserts = "1.5"
-cynic-parser = "0.4"
+cynic-parser.workspace = true
 base64.workspace = true
 rstest.workspace = true
 const_format = "0.2.32"

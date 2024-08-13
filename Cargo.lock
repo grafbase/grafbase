@@ -1804,11 +1804,10 @@ dependencies = [
 [[package]]
 name = "cynic-codegen"
 version = "3.7.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7c0ec86f960a00ce087e96ff6f073f6ff28b6876d69ce8caa06c03fb4143981c"
+source = "git+https://github.com/grafbase/cynic?branch=more-spans#05d60a06ea41c810dcc3023e73147ada38545908"
 dependencies = [
  "counter",
- "cynic-parser 0.4.5",
+ "cynic-parser",
  "darling",
  "once_cell",
  "ouroboros",
@@ -1834,25 +1833,13 @@ dependencies = [
 
 [[package]]
 name = "cynic-parser"
-version = "0.2.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "411ab40d3f72ca1442d50a60e572838e5a2f0719b93a77a29647117ffdf67687"
-dependencies = [
- "indexmap 2.2.6",
- "lalrpop-util",
- "logos 0.13.0",
-]
-
-[[package]]
-name = "cynic-parser"
 version = "0.4.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "718f6cd8c54ae5249fd42b0c86639df0100b8a86eea2e5f1b915cde2e1481453"
+source = "git+https://github.com/grafbase/cynic?branch=more-spans#05d60a06ea41c810dcc3023e73147ada38545908"
 dependencies = [
  "ariadne",
  "indexmap 2.2.6",
  "lalrpop-util",
- "logos 0.14.0",
+ "logos",
  "pretty",
 ]
 
@@ -3271,7 +3258,7 @@ dependencies = [
  "blake3",
  "bytes",
  "common-types",
- "cynic-parser 0.4.5",
+ "cynic-parser",
  "engine",
  "engine-parser",
  "engine-validation",
@@ -3456,7 +3443,7 @@ version = "0.1.1"
 dependencies = [
  "clap",
  "colored",
- "graphql-lint 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "graphql-lint",
  "thiserror",
 ]
 
@@ -3492,7 +3479,7 @@ dependencies = [
  "grafbase-local-common",
  "grafbase-local-server",
  "graph-ref",
- "graphql-lint 0.1.3",
+ "graphql-lint",
  "graphql-mocks",
  "graphql-ws-client",
  "headers",
@@ -3605,7 +3592,7 @@ version = "0.78.0"
 dependencies = [
  "cynic",
  "cynic-introspection",
- "cynic-parser 0.4.5",
+ "cynic-parser",
  "indoc",
  "reqwest",
  "serde",
@@ -3671,7 +3658,7 @@ dependencies = [
  "common-types",
  "const_format",
  "criterion",
- "cynic-parser 0.4.5",
+ "cynic-parser",
  "dotenv",
  "engine",
  "federated-dev",
@@ -3833,18 +3820,7 @@ name = "graphql-lint"
 version = "0.1.3"
 dependencies = [
  "criterion",
- "cynic-parser 0.4.5",
- "heck 0.5.0",
- "thiserror",
-]
-
-[[package]]
-name = "graphql-lint"
-version = "0.1.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f471b7a105553bc432d405b90ea7737b1a611de7d3741718daffa5f62ac4ddde"
-dependencies = [
- "cynic-parser 0.2.6",
+ "cynic-parser",
  "heck 0.5.0",
  "thiserror",
 ]
@@ -3889,7 +3865,7 @@ dependencies = [
 name = "graphql-schema-diff"
 version = "0.2.0"
 dependencies = [
- "cynic-parser 0.4.5",
+ "cynic-parser",
  "datatest-stable",
  "miette 7.2.0",
  "serde",
@@ -4616,7 +4592,7 @@ dependencies = [
  "ctor",
  "cynic",
  "cynic-introspection",
- "cynic-parser 0.4.5",
+ "cynic-parser",
  "engine",
  "engine-config-builder",
  "engine-parser",
@@ -5136,34 +5112,11 @@ checksum = "a7a70ba024b9dc04c27ea2f0c0548feb474ec5c54bba33a7f72f873a39d07b24"
 
 [[package]]
 name = "logos"
-version = "0.13.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c000ca4d908ff18ac99b93a062cb8958d331c3220719c52e77cb19cc6ac5d2c1"
-dependencies = [
- "logos-derive 0.13.0",
-]
-
-[[package]]
-name = "logos"
 version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "161971eb88a0da7ae0c333e1063467c5b5727e7fb6b710b8db4814eade3a42e8"
 dependencies = [
- "logos-derive 0.14.0",
-]
-
-[[package]]
-name = "logos-codegen"
-version = "0.13.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dc487311295e0002e452025d6b580b77bb17286de87b57138f3b5db711cded68"
-dependencies = [
- "beef",
- "fnv",
- "proc-macro2",
- "quote",
- "regex-syntax 0.6.29",
- "syn 2.0.72",
+ "logos-derive",
 ]
 
 [[package]]
@@ -5183,20 +5136,11 @@ dependencies = [
 
 [[package]]
 name = "logos-derive"
-version = "0.13.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dbfc0d229f1f42d790440136d941afd806bc9e949e2bcb8faa813b0f00d1267e"
-dependencies = [
- "logos-codegen 0.13.0",
-]
-
-[[package]]
-name = "logos-derive"
 version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1c2a69b3eb68d5bd595107c9ee58d7e07fe2bb5e360cc85b0f084dedac80de0a"
 dependencies = [
- "logos-codegen 0.14.0",
+ "logos-codegen",
 ]
 
 [[package]]
@@ -6307,7 +6251,7 @@ dependencies = [
  "anyhow",
  "blake3",
  "common-types",
- "cynic-parser 0.4.5",
+ "cynic-parser",
  "engine-value",
  "graph-entities",
  "headers",
@@ -7331,7 +7275,7 @@ name = "registry-v2-generator"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "cynic-parser 0.4.5",
+ "cynic-parser",
  "indexmap 2.2.6",
  "indoc",
  "itertools 0.13.0",

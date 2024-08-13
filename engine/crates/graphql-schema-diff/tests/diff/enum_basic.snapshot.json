@@ -2,21 +2,37 @@
   "src → target": [
     {
       "path": "Color.ALPHA",
-      "kind": "AddEnumValue"
+      "kind": "AddEnumValue",
+      "span": {
+        "start": 50,
+        "end": 56
+      }
     },
     {
       "path": "People",
-      "kind": "RemoveEnum"
+      "kind": "RemoveEnum",
+      "span": {
+        "start": 49,
+        "end": 76
+      }
     }
   ],
   "target → src": [
     {
       "path": "Color.ALPHA",
-      "kind": "RemoveEnumValue"
+      "kind": "RemoveEnumValue",
+      "span": {
+        "start": 0,
+        "end": 0
+      }
     },
     {
       "path": "People",
-      "kind": "AddEnum"
+      "kind": "AddEnum",
+      "span": {
+        "start": 49,
+        "end": 76
+      }
     }
   ]
 }

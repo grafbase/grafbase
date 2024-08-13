@@ -2,21 +2,37 @@
   "src → target": [
     {
       "path": "Mutation.drop",
-      "kind": "ChangeFieldType"
+      "kind": "ChangeFieldType",
+      "span": {
+        "start": 40,
+        "end": 44
+      }
     },
     {
       "path": "Mutation.drop.coin",
-      "kind": "ChangeFieldArgumentType"
+      "kind": "ChangeFieldArgumentType",
+      "span": {
+        "start": 31,
+        "end": 37
+      }
     }
   ],
   "target → src": [
     {
       "path": "Mutation.drop",
-      "kind": "ChangeFieldType"
+      "kind": "ChangeFieldType",
+      "span": {
+        "start": 36,
+        "end": 43
+      }
     },
     {
       "path": "Mutation.drop.coin",
-      "kind": "ChangeFieldArgumentType"
+      "kind": "ChangeFieldArgumentType",
+      "span": {
+        "start": 29,
+        "end": 33
+      }
     }
   ]
 }
