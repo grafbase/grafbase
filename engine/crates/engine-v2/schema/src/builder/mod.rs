@@ -229,6 +229,7 @@ impl BuildContext {
                 auth_config: take(&mut config.auth),
                 operation_limits: take(&mut config.operation_limits),
                 disable_introspection: config.disable_introspection,
+                retry: config.retry,
             },
         })
     }

@@ -56,6 +56,9 @@ pub struct Config {
 
     #[serde(default)]
     pub entity_caching: EntityCaching,
+
+    #[serde(default)]
+    pub retry: Option<RetryConfig>,
 }
 
 impl Config {
@@ -74,6 +77,7 @@ impl Config {
             rate_limit: Default::default(),
             timeout: None,
             entity_caching: EntityCaching::Disabled,
+            retry: None,
         }
     }
 
@@ -190,6 +194,7 @@ mod tests {
             rate_limit: Default::default(),
             timeout: None,
             entity_caching: Default::default(),
+            retry: None,
         };
 
         insta::with_settings!({sort_maps => true}, {
@@ -246,6 +251,7 @@ mod tests {
               },
               "paths": [],
               "rate_limit": null,
+              "retry": null,
               "strings": [],
               "subgraph_configs": {}
             }

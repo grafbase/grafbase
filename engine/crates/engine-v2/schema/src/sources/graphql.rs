@@ -24,7 +24,7 @@ pub struct GraphqlEndpoint {
     pub(crate) entity_cache_ttl: Option<Duration>,
 }
 
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Copy, serde::Serialize, serde::Deserialize)]
 pub struct RetryConfig {
     /// How many retries are available per second, at a minimum.
     pub min_per_second: Option<u32>,
@@ -169,8 +169,8 @@ impl<'a> GraphqlEndpointWalker<'a> {
         self.as_ref().entity_cache_ttl
     }
 
-    pub fn retry_config(self) -> Option<&'a RetryConfig> {
-        self.as_ref().retry.as_ref()
+    pub fn retry_config(self) -> Option<RetryConfig> {
+        self.as_ref().retry
     }
 }
 

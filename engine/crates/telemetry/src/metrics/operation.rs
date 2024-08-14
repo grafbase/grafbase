@@ -1,5 +1,5 @@
 use opentelemetry::{
-    metrics::{Histogram, Meter},
+    metrics::{Counter, Histogram, Meter},
     KeyValue,
 };
 
@@ -12,6 +12,7 @@ use crate::{
 pub struct GraphqlOperationMetrics {
     operation_latency: Histogram<u64>,
     subgraph_latency: Histogram<u64>,
+    subgraph_retries: Counter<u64>,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -78,11 +79,18 @@ pub struct SubgraphRequestDurationAttributes {
     pub status: SubgraphResponseStatus,
 }
 
+#[derive(Debug)]
+pub struct SubgraphRequestRetryAttributes {
+    pub name: String,
+    pub aborted: bool,
+}
+
 impl GraphqlOperationMetrics {
     pub fn build(meter: &Meter) -> Self {
         Self {
             operation_latency: meter.u64_histogram("gql_operation_latency").init(),
             subgraph_latency: meter.u64_histogram("graphql.subgraph.request.duration").init(),
+            subgraph_retries: meter.u64_counter("graphql.subgraph.request.retries").init(),
         }
     }
 
@@ -144,5 +152,17 @@ impl GraphqlOperationMetrics {
         ];
 
         self.subgraph_latency.record(latency.as_millis() as u64, &attributes);
+    }
+
+    pub fn record_subgraph_retry(
+        &self,
+        SubgraphRequestRetryAttributes { name, aborted }: SubgraphRequestRetryAttributes,
+    ) {
+        let attributes = vec![
+            KeyValue::new("graphql.subgraph.name", name),
+            KeyValue::new("graphql.subgraph.aborted", aborted),
+        ];
+
+        self.subgraph_retries.add(1, &attributes);
     }
 }

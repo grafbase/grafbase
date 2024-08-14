@@ -141,6 +141,7 @@ impl VersionedConfig {
                     rate_limit: Default::default(),
                     timeout: None,
                     entity_caching: Default::default(),
+                    retry: None,
                 }
             }
             VersionedConfig::V5(latest) => latest,

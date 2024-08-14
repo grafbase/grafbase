@@ -28,6 +28,7 @@ pub fn build_with_toml_config(config: &Config, graph: FederatedGraph) -> Version
 
     graph_config.rate_limit = config.gateway.rate_limit.clone().map(Into::into);
     graph_config.entity_caching = config.entity_caching.clone().into();
+    graph_config.retry = retry_config(Some(config.gateway.retry));
 
     graph_config.subgraphs = config
         .subgraphs
@@ -48,7 +49,7 @@ pub fn build_with_toml_config(config: &Config, graph: FederatedGraph) -> Version
                 rate_limit: subgraph_config.rate_limit.map(Into::into),
                 timeout: subgraph_config.timeout.or(config.gateway.subgraph_timeout),
                 entity_caching: subgraph_config.entity_caching.map(Into::into),
-                retry: retry_config(subgraph_config.retry, config.gateway.retry),
+                retry: retry_config(subgraph_config.retry),
             };
 
             (name, config)
@@ -58,13 +59,9 @@ pub fn build_with_toml_config(config: &Config, graph: FederatedGraph) -> Version
     build_with_sdl_config(&graph_config, graph)
 }
 
-fn retry_config(
-    subgraph_retry: Option<RetryConfig>,
-    global_retry: RetryConfig,
-) -> Option<parser_sdl::federation::RetryConfig> {
-    let retry = match subgraph_retry {
+fn retry_config(retry_config: Option<RetryConfig>) -> Option<parser_sdl::federation::RetryConfig> {
+    let retry = match retry_config {
         Some(retry) if retry.enabled => Some(retry),
-        None if global_retry.enabled => Some(global_retry),
         _ => None,
     };
 
@@ -74,91 +71,4 @@ fn retry_config(
         retry_percent: retry.retry_percent,
         retry_mutations: retry.retry_mutations,
     })
-}
-
-#[cfg(test)]
-mod tests {
-    use gateway_config::RetryConfig;
-
-    #[test]
-    fn no_retry_enabled() {
-        let result = super::retry_config(None, RetryConfig::default());
-        assert_eq!(None, result);
-    }
-
-    #[test]
-    fn global_retry_enabled() {
-        let result = super::retry_config(
-            None,
-            RetryConfig {
-                enabled: true,
-                ..Default::default()
-            },
-        );
-
-        assert_eq!(Some(parser_sdl::federation::RetryConfig::default()), result);
-    }
-
-    #[test]
-    fn global_retry_enabled_subgraph_retry_disabled() {
-        let global = RetryConfig {
-            enabled: true,
-            ..Default::default()
-        };
-
-        let subgraph = RetryConfig {
-            enabled: false,
-            ..Default::default()
-        };
-
-        let result = super::retry_config(Some(subgraph), global);
-
-        assert_eq!(None, result);
-    }
-
-    #[test]
-    fn global_retry_enabled_subgraph_retry_enabled() {
-        let global = RetryConfig {
-            enabled: true,
-            ..Default::default()
-        };
-
-        let subgraph = RetryConfig {
-            enabled: true,
-            min_per_second: Some(10),
-            ..Default::default()
-        };
-
-        let result = super::retry_config(Some(subgraph), global);
-
-        let expected = parser_sdl::federation::RetryConfig {
-            min_per_second: Some(10),
-            ..Default::default()
-        };
-
-        assert_eq!(Some(expected), result);
-    }
-
-    #[test]
-    fn global_retry_disabled_subgraph_retry_enabled() {
-        let global = RetryConfig {
-            enabled: false,
-            ..Default::default()
-        };
-
-        let subgraph = RetryConfig {
-            enabled: true,
-            min_per_second: Some(10),
-            ..Default::default()
-        };
-
-        let result = super::retry_config(Some(subgraph), global);
-
-        let expected = parser_sdl::federation::RetryConfig {
-            min_per_second: Some(10),
-            ..Default::default()
-        };
-
-        assert_eq!(Some(expected), result);
-    }
 }
