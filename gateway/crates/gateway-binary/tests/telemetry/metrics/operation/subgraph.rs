@@ -1,4 +1,6 @@
-use crate::telemetry::metrics::{with_custom_gateway, with_gateway, ExponentialHistogramRow, SumRow, METRICS_DELAY};
+use crate::telemetry::metrics::{
+    with_custom_gateway, with_gateway, with_small_subgraph, ExponentialHistogramRow, SumRow, METRICS_DELAY,
+};
 
 #[test]
 fn request_duration() {
@@ -239,4 +241,106 @@ fn inflight() {
         ]
         "###);
     });
+}
+
+#[test]
+fn cache_miss_hit() {
+    let config = indoc::indoc! {r#"
+        [entity_caching]
+        enabled = true
+        ttl = "60s"
+    "#};
+
+    with_small_subgraph(
+        config,
+        |service_name, start_time_unix, gateway, clickhouse| async move {
+            let response = gateway
+                .gql::<serde_json::Value>("query Simple { me { id } }")
+                .send()
+                .await;
+
+            insta::assert_json_snapshot!(response, @r###"
+            {
+              "data": {
+                "me": {
+                  "id": "1"
+                }
+              }
+            }
+            "###);
+
+            tokio::time::sleep(METRICS_DELAY).await;
+
+            let rows = clickhouse
+                .query(
+                    r#"
+                    SELECT Value, Attributes
+                    FROM otel_metrics_sum
+                    WHERE ServiceName = ? AND StartTimeUnix >= ?
+                        AND ScopeName = 'grafbase'
+                        AND MetricName = 'graphql.subgraph.request.cache.miss'
+                "#,
+                )
+                .bind(&service_name)
+                .bind(start_time_unix)
+                .fetch_all::<SumRow>()
+                .await
+                .unwrap();
+
+            insta::assert_json_snapshot!(rows, @r###"
+            [
+              {
+                "Value": 1.0,
+                "Attributes": {
+                  "graphql.subgraph.name": "accounts"
+                }
+              }
+            ]
+            "###);
+
+            let response = gateway
+                .gql::<serde_json::Value>("query Simple { me { id } }")
+                .send()
+                .await;
+
+            insta::assert_json_snapshot!(response, @r###"
+            {
+              "data": {
+                "me": {
+                  "id": "1"
+                }
+              }
+            }
+            "###);
+
+            tokio::time::sleep(METRICS_DELAY).await;
+
+            let rows = clickhouse
+                .query(
+                    r#"
+                    SELECT Value, Attributes
+                    FROM otel_metrics_sum
+                    WHERE ServiceName = ? AND StartTimeUnix >= ?
+                        AND ScopeName = 'grafbase'
+                        AND MetricName = 'graphql.subgraph.request.cache.hit'
+                "#,
+                )
+                .bind(&service_name)
+                .bind(start_time_unix)
+                .fetch_all::<SumRow>()
+                .await
+                .unwrap();
+
+            insta::assert_json_snapshot!(rows, @r###"
+            [
+              {
+                "Value": 1.0,
+                "Attributes": {
+                  "graphql.subgraph.name": "accounts"
+                }
+              }
+            ]
+            "###);
+        },
+    );
 }

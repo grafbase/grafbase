@@ -15,7 +15,10 @@ use crate::{
     execution::PlanningResult,
     operation::{OperationType, PlanWalker},
     response::SubgraphResponse,
-    sources::{graphql::request::SubgraphGraphqlRequest, ExecutionContext, ExecutionResult, Resolver},
+    sources::{
+        graphql::{record, request::SubgraphGraphqlRequest},
+        ExecutionContext, ExecutionResult, Resolver,
+    },
     Runtime,
 };
 
@@ -84,6 +87,8 @@ impl GraphqlResolver {
                 .flatten();
 
             if let Some(bytes) = cache_entry {
+                record::record_subgraph_cache_hit(ctx, endpoint);
+
                 let response = subgraph_response.as_mut();
 
                 GraphqlResponseSeed::new(
@@ -93,7 +98,9 @@ impl GraphqlResolver {
                 .deserialize(&mut serde_json::Deserializer::from_slice(&bytes))?;
 
                 return Ok(subgraph_response);
-            };
+            } else {
+                record::record_subgraph_cache_miss(ctx, endpoint);
+            }
         };
 
         let retry_budget = if self.operation.ty.is_mutation() {

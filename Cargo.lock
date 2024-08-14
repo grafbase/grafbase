@@ -3593,6 +3593,7 @@ dependencies = [
  "grafbase-graphql-introspection",
  "grafbase-telemetry",
  "graph-ref",
+ "handlebars",
  "http",
  "indoc",
  "insta",

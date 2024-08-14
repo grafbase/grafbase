@@ -1,0 +1,18 @@
+directive @core(feature: String!) repeatable on SCHEMA
+directive @join__owner(graph: join__Graph!) on OBJECT
+directive @join__type(graph: join__Graph!, key: String!, resolvable: Boolean = true) repeatable on OBJECT | INTERFACE
+directive @join__field(graph: join__Graph, requires: String, provides: String) on FIELD_DEFINITION
+directive @join__graph(name: String!, url: String!) on ENUM_VALUE
+
+enum join__Graph {
+  ACCOUNTS @join__graph(name: "accounts", url: "{{ subgraph_endpoint }}")
+}
+
+type User @join__type(graph: ACCOUNTS, key: "id") {
+  id: ID!
+  username: String! @join__field(graph: ACCOUNTS)
+}
+
+type Query {
+  me: User! @join__field(graph: ACCOUNTS)
+}
