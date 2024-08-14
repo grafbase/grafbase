@@ -201,7 +201,7 @@ where
             }
 
             if let Some((operation, normalized_query)) = response.graphql_operation.as_ref().zip(normalized_query) {
-                self.operation_metrics.record(
+                self.operation_metrics.record_operation(
                     GraphqlRequestMetricsAttributes {
                         operation: OperationMetricsAttributes {
                             ty: match operation.r#type {

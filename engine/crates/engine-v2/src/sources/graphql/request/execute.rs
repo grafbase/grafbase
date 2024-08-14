@@ -1,3 +1,5 @@
+mod record;
+
 use std::borrow::Cow;
 
 use bytes::Bytes;
@@ -15,7 +17,7 @@ use runtime::{
 use schema::sources::graphql::{GraphqlEndpointId, GraphqlEndpointWalker};
 use tower::retry::budget::Budget;
 use tracing::Span;
-use web_time::Duration;
+use web_time::{Duration, SystemTime};
 
 use crate::{
     execution::{ExecutionContext, ExecutionError, ExecutionResult},
@@ -70,20 +72,44 @@ pub(crate) async fn execute_subgraph_request<'ctx, 'a, R: Runtime>(
         }
     };
 
+    let start = SystemTime::now();
+
     let response = retrying_fetch(ctx, endpoint, retry_budget, move || {
+        record::subgraph_request_size(ctx, endpoint, request.body.len());
         ctx.engine.runtime.fetcher().fetch(request.clone())
     })
-    .await?;
+    .await;
+
+    let duration = SystemTime::now()
+        .duration_since(start)
+        .unwrap_or(Duration::from_secs(0));
+
+    let response = match response {
+        Ok(response) => response,
+        Err(e) => {
+            let status = SubgraphResponseStatus::HttpError;
+            record::subgraph_duration(ctx, endpoint, status, duration);
+
+            return Err(e);
+        }
+    };
 
     tracing::debug!("{}", String::from_utf8_lossy(response.body()));
+    record::subgraph_response_size(ctx, endpoint, response.body().len());
 
     let (status, response) = ingester.ingest(response.into_body()).await.inspect_err(|err| {
         let status = SubgraphResponseStatus::InvalidResponseError;
+
         span.record_subgraph_status(status);
+        record::subgraph_duration(ctx, endpoint, status, duration);
+
         tracing::error!(target: GRAFBASE_TARGET, "{err}");
     })?;
 
-    span.record_subgraph_status(SubgraphResponseStatus::GraphqlResponse(status));
+    let status = SubgraphResponseStatus::GraphqlResponse(status);
+
+    span.record_subgraph_status(status);
+    record::subgraph_duration(ctx, endpoint, status, duration);
 
     match response.subgraph_errors().next().map(|e| &e.message) {
         Some(error) => {
@@ -128,11 +154,13 @@ where
                     let backoff_ms = (exp_backoff * jitter).round() as u64;
 
                     ctx.engine.runtime.sleep(Duration::from_millis(backoff_ms)).await;
+                    record::subgraph_retry(ctx, endpoint, false);
 
                     counter += 1;
 
                     result = rate_limited_fetch(ctx, endpoint, &fetch).await;
                 } else {
+                    record::subgraph_retry(ctx, endpoint, true);
                     return Err(err);
                 }
             }
@@ -155,7 +183,11 @@ where
         .limit(&RateLimitKey::Subgraph(endpoint.subgraph_name().into()))
         .await?;
 
-    fetch().await.map_err(|error| ExecutionError::Fetch {
+    record::increment_inflight_requests(ctx, endpoint);
+    let result = fetch().await;
+    record::decrement_inflight_requests(ctx, endpoint);
+
+    result.map_err(|error| ExecutionError::Fetch {
         subgraph_name: endpoint.subgraph_name().to_string(),
         error,
     })

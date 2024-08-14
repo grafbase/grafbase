@@ -20,6 +20,7 @@ pub struct FederatedGraphConfig {
     pub rate_limit: Option<RateLimitConfig>,
     pub timeout: Option<Duration>,
     pub entity_caching: EntityCachingConfig,
+    pub retry: Option<RetryConfig>,
 }
 
 /// Configuration for a subgraph of the current federated graph
@@ -213,7 +214,7 @@ pub struct RedisTlsConfig {
     pub ca: Option<PathBuf>,
 }
 
-#[derive(Debug, Default, Clone, PartialEq, PartialOrd)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, PartialOrd)]
 pub struct RetryConfig {
     /// How many retries are available per second, at a minimum.
     pub min_per_second: Option<u32>,

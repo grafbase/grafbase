@@ -624,7 +624,7 @@ impl Schema {
                 Span::current().record_gql_status(status);
 
                 if let Some(sanitized_query) = sanitized_query {
-                    schema.env.operation_metrics.record(
+                    schema.env.operation_metrics.record_operation(
                         grafbase_telemetry::metrics::GraphqlRequestMetricsAttributes {
                             operation: OperationMetricsAttributes {
                                 ty: env.operation.ty.into(),

@@ -47,6 +47,12 @@ pub fn build_with_sdl_config(config: &FederatedGraphConfig, graph: FederatedGrap
             EntityCachingConfig::Enabled { ttl, .. } => EntityCaching::Enabled { ttl },
             _ => EntityCaching::Disabled,
         },
+        retry: config.retry.map(|config| config::RetryConfig {
+            min_per_second: config.min_per_second,
+            ttl: config.ttl,
+            retry_percent: config.retry_percent,
+            retry_mutations: config.retry_mutations,
+        }),
     })
 }
 

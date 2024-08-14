@@ -78,7 +78,7 @@ impl EntityCaching {
     }
 }
 
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Copy, serde::Serialize, serde::Deserialize)]
 pub struct RetryConfig {
     /// How many retries are available per second, at a minimum.
     pub min_per_second: Option<u32>,
