@@ -50,3 +50,16 @@ pub(super) fn subgraph_request_size<R: Runtime>(
         size,
     );
 }
+
+pub(super) fn subgraph_response_size<R: Runtime>(
+    ctx: ExecutionContext<'_, R>,
+    endpoint: GraphqlEndpointWalker<'_>,
+    size: usize,
+) {
+    ctx.engine.operation_metrics.record_subgraph_response_size(
+        SubgraphResponseBodySizeAttributes {
+            name: endpoint.subgraph_name().to_string(),
+        },
+        size,
+    );
+}

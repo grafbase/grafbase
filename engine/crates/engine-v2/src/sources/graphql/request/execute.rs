@@ -95,6 +95,7 @@ pub(crate) async fn execute_subgraph_request<'ctx, 'a, R: Runtime>(
     };
 
     tracing::debug!("{}", String::from_utf8_lossy(response.body()));
+    record::subgraph_response_size(ctx, endpoint, response.body().len());
 
     let (status, response) = ingester.ingest(response.into_body()).await.inspect_err(|err| {
         let status = SubgraphResponseStatus::InvalidResponseError;
