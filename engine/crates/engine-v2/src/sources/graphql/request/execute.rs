@@ -183,7 +183,11 @@ where
         .limit(&RateLimitKey::Subgraph(endpoint.subgraph_name().into()))
         .await?;
 
-    fetch().await.map_err(|error| ExecutionError::Fetch {
+    record::increment_inflight_requests(ctx, endpoint);
+    let result = fetch().await;
+    record::decrement_inflight_requests(ctx, endpoint);
+
+    result.map_err(|error| ExecutionError::Fetch {
         subgraph_name: endpoint.subgraph_name().to_string(),
         error,
     })

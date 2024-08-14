@@ -1,8 +1,8 @@
 use grafbase_telemetry::{
     gql_response_status::SubgraphResponseStatus,
     metrics::{
-        SubgraphRequestBodySizeAttributes, SubgraphRequestDurationAttributes, SubgraphRequestRetryAttributes,
-        SubgraphResponseBodySizeAttributes,
+        SubgraphInFlightRequestAttributes, SubgraphRequestBodySizeAttributes, SubgraphRequestDurationAttributes,
+        SubgraphRequestRetryAttributes, SubgraphResponseBodySizeAttributes,
     },
 };
 use schema::sources::graphql::GraphqlEndpointWalker;
@@ -62,4 +62,26 @@ pub(super) fn subgraph_response_size<R: Runtime>(
         },
         size,
     );
+}
+
+pub(super) fn increment_inflight_requests<R: Runtime>(
+    ctx: ExecutionContext<'_, R>,
+    endpoint: GraphqlEndpointWalker<'_>,
+) {
+    ctx.engine
+        .operation_metrics
+        .increment_subgraph_inflight_requests(SubgraphInFlightRequestAttributes {
+            name: endpoint.subgraph_name().to_string(),
+        });
+}
+
+pub(super) fn decrement_inflight_requests<R: Runtime>(
+    ctx: ExecutionContext<'_, R>,
+    endpoint: GraphqlEndpointWalker<'_>,
+) {
+    ctx.engine
+        .operation_metrics
+        .decrement_subgraph_inflight_requests(SubgraphInFlightRequestAttributes {
+            name: endpoint.subgraph_name().to_string(),
+        });
 }

@@ -1,5 +1,5 @@
 use opentelemetry::{
-    metrics::{Counter, Histogram, Meter},
+    metrics::{Counter, Histogram, Meter, UpDownCounter},
     KeyValue,
 };
 
@@ -15,6 +15,7 @@ pub struct GraphqlOperationMetrics {
     subgraph_retries: Counter<u64>,
     subgraph_request_body_size: Histogram<u64>,
     subgraph_response_body_size: Histogram<u64>,
+    subgraph_requests_inflight: UpDownCounter<i64>,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -97,6 +98,11 @@ pub struct SubgraphResponseBodySizeAttributes {
     pub name: String,
 }
 
+#[derive(Debug)]
+pub struct SubgraphInFlightRequestAttributes {
+    pub name: String,
+}
+
 impl GraphqlOperationMetrics {
     pub fn build(meter: &Meter) -> Self {
         Self {
@@ -105,6 +111,7 @@ impl GraphqlOperationMetrics {
             subgraph_retries: meter.u64_counter("graphql.subgraph.request.retries").init(),
             subgraph_request_body_size: meter.u64_histogram("graphql.subgraph.request.body.size").init(),
             subgraph_response_body_size: meter.u64_histogram("graphql.subgraph.response.body.size").init(),
+            subgraph_requests_inflight: meter.i64_up_down_counter("graphql.subgraph.request.inflight").init(),
         }
     }
 
@@ -196,5 +203,21 @@ impl GraphqlOperationMetrics {
     ) {
         let attributes = vec![KeyValue::new("graphql.subgraph.name", name)];
         self.subgraph_response_body_size.record(size as u64, &attributes);
+    }
+
+    pub fn increment_subgraph_inflight_requests(
+        &self,
+        SubgraphInFlightRequestAttributes { name }: SubgraphInFlightRequestAttributes,
+    ) {
+        let attributes = vec![KeyValue::new("graphql.subgraph.name", name)];
+        self.subgraph_requests_inflight.add(1, &attributes);
+    }
+
+    pub fn decrement_subgraph_inflight_requests(
+        &self,
+        SubgraphInFlightRequestAttributes { name }: SubgraphInFlightRequestAttributes,
+    ) {
+        let attributes = vec![KeyValue::new("graphql.subgraph.name", name)];
+        self.subgraph_requests_inflight.add(-1, &attributes);
     }
 }
