@@ -2,6 +2,7 @@ mod apq;
 mod auth;
 mod basic;
 mod entity_caching;
+mod graphql_over_http;
 mod hooks;
 mod introspection;
 mod issues;

@@ -14,7 +14,7 @@ fn single_subgraph_subscription() {
             .await;
 
         engine
-            .execute(
+            .post(
                 r"
                 subscription {
                     newProducts {
@@ -26,11 +26,10 @@ fn single_subgraph_subscription() {
                 ",
             )
             .into_multipart_stream()
-            .collect::<Vec<_>>()
             .await
     });
 
-    insta::assert_json_snapshot!(response, @r###"
+    insta::assert_json_snapshot!(response.collected_body, @r###"
     [
       {
         "data": {
@@ -67,7 +66,7 @@ fn actual_federated_subscription() {
             .await;
 
         engine
-            .execute(
+            .post(
                 r"
                 subscription {
                     newProducts {
@@ -84,11 +83,10 @@ fn actual_federated_subscription() {
                 ",
             )
             .into_multipart_stream()
-            .collect::<Vec<_>>()
             .await
     });
 
-    insta::assert_json_snapshot!(response, @r###"
+    insta::assert_json_snapshot!(response.collected_body, @r###"
     [
       {
         "data": {

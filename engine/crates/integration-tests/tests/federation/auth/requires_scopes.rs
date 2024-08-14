@@ -5,7 +5,7 @@ use integration_tests::openid::{CoreClientExt, OryHydraOpenIDProvider, READ_SCOP
 #[test]
 fn anonymous_does_not_any_scope() {
     with_secure_schema(|engine| async move {
-        let response = engine.execute("query { check { mustHaveReadScope } }").await;
+        let response = engine.post("query { check { mustHaveReadScope } }").await;
         insta::assert_json_snapshot!(response, @r###"
         {
           "data": null,
@@ -36,7 +36,7 @@ fn no_scope() {
             .await;
 
         let response = engine
-            .execute("query { check { mustHaveReadScope } }")
+            .post("query { check { mustHaveReadScope } }")
             .header("Authorization", format!("Bearer {token}"))
             .await;
         insta::assert_json_snapshot!(response, @r###"
@@ -82,7 +82,7 @@ fn has_read_scope() {
             .await;
 
         let response = engine
-            .execute("query { check { mustHaveReadScope } }")
+            .post("query { check { mustHaveReadScope } }")
             .header("Authorization", format!("Bearer {token}"))
             .await;
         insta::assert_json_snapshot!(response, @r###"
@@ -96,7 +96,7 @@ fn has_read_scope() {
         "###);
 
         let response = engine
-            .execute("query { check { mustHaveWriteScope } }")
+            .post("query { check { mustHaveWriteScope } }")
             .header("Authorization", format!("Bearer {token}"))
             .await;
         insta::assert_json_snapshot!(response, @r###"
@@ -118,7 +118,7 @@ fn has_read_scope() {
         "###);
 
         let response = engine
-            .execute("query { check { mustHaveReadOrWriteScope } }")
+            .post("query { check { mustHaveReadOrWriteScope } }")
             .header("Authorization", format!("Bearer {token}"))
             .await;
         insta::assert_json_snapshot!(response, @r###"
@@ -132,7 +132,7 @@ fn has_read_scope() {
         "###);
 
         let response = engine
-            .execute("query { check { mustHaveReadAndWriteScope } }")
+            .post("query { check { mustHaveReadAndWriteScope } }")
             .header("Authorization", format!("Bearer {token}"))
             .await;
         insta::assert_json_snapshot!(response, @r###"
@@ -165,7 +165,7 @@ fn has_write_scope() {
             .await;
 
         let response = engine
-            .execute("query { check { mustHaveReadScope } }")
+            .post("query { check { mustHaveReadScope } }")
             .header("Authorization", format!("Bearer {token}"))
             .await;
         insta::assert_json_snapshot!(response, @r###"
@@ -187,7 +187,7 @@ fn has_write_scope() {
         "###);
 
         let response = engine
-            .execute("query { check { mustHaveWriteScope } }")
+            .post("query { check { mustHaveWriteScope } }")
             .header("Authorization", format!("Bearer {token}"))
             .await;
         insta::assert_json_snapshot!(response, @r###"
@@ -201,7 +201,7 @@ fn has_write_scope() {
         "###);
 
         let response = engine
-            .execute("query { check { mustHaveReadOrWriteScope } }")
+            .post("query { check { mustHaveReadOrWriteScope } }")
             .header("Authorization", format!("Bearer {token}"))
             .await;
         insta::assert_json_snapshot!(response, @r###"
@@ -215,7 +215,7 @@ fn has_write_scope() {
         "###);
 
         let response = engine
-            .execute("query { check { mustHaveReadAndWriteScope } }")
+            .post("query { check { mustHaveReadAndWriteScope } }")
             .header("Authorization", format!("Bearer {token}"))
             .await;
         insta::assert_json_snapshot!(response, @r###"
@@ -248,7 +248,7 @@ fn has_read_and_write_scope() {
             .await;
 
         let response = engine
-            .execute("query { check { mustHaveReadScope } }")
+            .post("query { check { mustHaveReadScope } }")
             .header("Authorization", format!("Bearer {token}"))
             .await;
         insta::assert_json_snapshot!(response, @r###"
@@ -262,7 +262,7 @@ fn has_read_and_write_scope() {
         "###);
 
         let response = engine
-            .execute("query { check { mustHaveWriteScope } }")
+            .post("query { check { mustHaveWriteScope } }")
             .header("Authorization", format!("Bearer {token}"))
             .await;
         insta::assert_json_snapshot!(response, @r###"
@@ -276,7 +276,7 @@ fn has_read_and_write_scope() {
         "###);
 
         let response = engine
-            .execute("query { check { mustHaveReadOrWriteScope } }")
+            .post("query { check { mustHaveReadOrWriteScope } }")
             .header("Authorization", format!("Bearer {token}"))
             .await;
         insta::assert_json_snapshot!(response, @r###"
@@ -290,7 +290,7 @@ fn has_read_and_write_scope() {
         "###);
 
         let response = engine
-            .execute("query { check { mustHaveReadAndWriteScope } }")
+            .post("query { check { mustHaveReadAndWriteScope } }")
             .header("Authorization", format!("Bearer {token}"))
             .await;
         insta::assert_json_snapshot!(response, @r###"

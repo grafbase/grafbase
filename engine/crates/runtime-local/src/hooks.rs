@@ -6,7 +6,7 @@ use std::{collections::HashMap, sync::Arc};
 
 use pool::Pool;
 use runtime::{
-    error::{PartialErrorCode, PartialGraphqlError},
+    error::{ErrorResponse, PartialErrorCode, PartialGraphqlError},
     hooks::{AuthorizedHooks, HeaderMap, Hooks, SubgraphHooks},
 };
 use tracing::instrument;
@@ -39,7 +39,7 @@ impl Hooks for HooksWasi {
     type Context = Context;
 
     #[instrument(skip_all)]
-    async fn on_gateway_request(&self, headers: HeaderMap) -> Result<(Self::Context, HeaderMap), PartialGraphqlError> {
+    async fn on_gateway_request(&self, headers: HeaderMap) -> Result<(Self::Context, HeaderMap), ErrorResponse> {
         let Some(ref inner) = self.0 else {
             return Ok((Arc::new(HashMap::new()), headers));
         };
@@ -52,9 +52,11 @@ impl Hooks for HooksWasi {
             .map_err(|err| match err {
                 wasi_component_loader::Error::Internal(err) => {
                     tracing::error!("on_gateway_request error: {err}");
-                    PartialGraphqlError::internal_hook_error()
+                    PartialGraphqlError::internal_hook_error().into()
                 }
-                wasi_component_loader::Error::Guest(err) => guest_error_as_gql(err, PartialErrorCode::BadRequest),
+                wasi_component_loader::Error::Guest(err) => {
+                    guest_error_as_gql(err, PartialErrorCode::BadRequest).into()
+                }
             })
     }
 

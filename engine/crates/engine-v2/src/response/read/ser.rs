@@ -3,8 +3,8 @@ use std::borrow::Cow;
 use serde::ser::{SerializeMap, SerializeSeq};
 
 use crate::response::{
-    value::ResponseObjectField, ErrorCode, ExecutionFailureResponse, GraphqlError, InitialResponse,
-    PreExecutionErrorResponse, Response, ResponseData, ResponseKeys, ResponseListId, ResponseObject, ResponseObjectId,
+    value::ResponseObjectField, ErrorCode, ExecutedResponse, GraphqlError, RefusedRequestResponse,
+    RequestErrorResponse, Response, ResponseData, ResponseKeys, ResponseListId, ResponseObject, ResponseObjectId,
     ResponsePath, ResponseValue, UnpackedResponseEdge,
 };
 
@@ -14,21 +14,27 @@ impl serde::Serialize for Response {
         S: serde::Serializer,
     {
         match self {
-            Response::Initial(InitialResponse { data, errors, .. }) => {
-                let mut map = serializer.serialize_map(Some(1))?;
-                map.serialize_entry("data", &SerializableResponseData { data })?;
+            Response::Executed(ExecutedResponse { data, errors, .. }) => {
+                let mut map = serializer.serialize_map(Some(if errors.is_empty() { 1 } else { 2 }))?;
+                let response_keys = if let Some(data) = data {
+                    map.serialize_entry("data", &SerializableResponseData { data })?;
+                    Cow::Borrowed(&data.operation.response_keys)
+                } else {
+                    map.serialize_entry("data", &())?;
+                    Cow::Owned(ResponseKeys::default())
+                };
                 if !errors.is_empty() {
                     map.serialize_entry(
                         "errors",
                         &SerializableErrors {
-                            keys: &data.operation.response_keys,
+                            keys: &response_keys,
                             errors,
                         },
                     )?;
                 }
                 map.end()
             }
-            Response::PreExecutionError(PreExecutionErrorResponse { errors, .. }) => {
+            Response::RequestError(RequestErrorResponse { errors }) => {
                 let mut map = serializer.serialize_map(Some(1))?;
                 // Shouldn't happen, but better safe than sorry.
                 if !errors.is_empty() {
@@ -43,20 +49,17 @@ impl serde::Serialize for Response {
                 }
                 map.end()
             }
-            Response::ExecutionFailure(ExecutionFailureResponse { errors, .. }) => {
-                let mut map = serializer.serialize_map(Some(2))?;
-                map.serialize_entry("data", &serde_json::Value::Null)?;
+            Response::RefusedRequest(RefusedRequestResponse { error, .. }) => {
+                let mut map = serializer.serialize_map(Some(1))?;
                 // Shouldn't happen, but better safe than sorry.
-                if !errors.is_empty() {
-                    let empty_keys = ResponseKeys::default();
-                    map.serialize_entry(
-                        "errors",
-                        &SerializableErrors {
-                            keys: &empty_keys,
-                            errors,
-                        },
-                    )?;
-                }
+                let empty_keys = ResponseKeys::default();
+                map.serialize_entry(
+                    "errors",
+                    &SerializableErrors {
+                        keys: &empty_keys,
+                        errors: std::array::from_ref(error),
+                    },
+                )?;
                 map.end()
             }
         }

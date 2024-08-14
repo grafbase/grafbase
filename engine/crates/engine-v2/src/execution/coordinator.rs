@@ -251,7 +251,7 @@ where
                             response_futures.push_back(operation_execution.run());
                         }
                         Err(error) => {
-                            if responses.send(Response::execution_error(error)).await.is_err() {
+                            if responses.send(Response::execution_error([error])).await.is_err() {
                                 return;
                             }
                         }

@@ -6,9 +6,9 @@ use super::{parse::ParsedOperation, Operation};
 
 pub(super) fn prepare_metrics_attributes(
     operation: &ParsedOperation,
-    request: &engine::Request,
+    document: &str,
 ) -> Option<OperationMetricsAttributes> {
-    operation_normalizer::normalize(request.query(), request.operation_name())
+    operation_normalizer::normalize(document, operation.name.as_deref())
         .ok()
         .map(|sanitized_query| OperationMetricsAttributes {
             ty: operation.definition.ty.into(),

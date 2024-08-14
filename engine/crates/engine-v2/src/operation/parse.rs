@@ -42,10 +42,10 @@ impl ParsedOperation {
 }
 
 /// Returns a valid GraphQL operation from the query string before.
-pub fn parse_operation(request: &engine::Request) -> ParseResult<ParsedOperation> {
-    let document = engine_parser::parse_query(request.query())?;
+pub fn parse_operation(operation_name: Option<&str>, document: &str) -> ParseResult<ParsedOperation> {
+    let document = engine_parser::parse_query(document)?;
 
-    let (operation_name, operation) = if let Some(operation_name) = request.operation_name() {
+    let (operation_name, operation) = if let Some(operation_name) = operation_name {
         match document.operations {
             DocumentOperations::Single(_) => None,
             DocumentOperations::Multiple(mut operations) => operations

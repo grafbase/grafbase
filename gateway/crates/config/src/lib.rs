@@ -7,6 +7,7 @@ pub mod hooks;
 pub mod rate_limit;
 pub mod telemetry;
 
+use serde_with::DisplayFromStr;
 use std::{collections::BTreeMap, net::SocketAddr, path::PathBuf, time::Duration};
 
 use ascii::AsciiString;
@@ -18,9 +19,11 @@ pub use health::*;
 pub use hooks::*;
 pub use rate_limit::*;
 use serde_dynamic_string::DynamicString;
+use size::Size;
 pub use telemetry::*;
 use url::Url;
 
+#[serde_with::serde_as]
 #[derive(Clone, Debug, Default, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 /// Configuration struct to define settings for self-hosted
@@ -35,6 +38,10 @@ pub struct Config {
     /// General settings for the gateway server
     #[serde(default)]
     pub gateway: GatewayConfig,
+    /// Maximum size of the request body in bytes
+    #[serde_as(as = "DisplayFromStr")]
+    #[serde(default = "default_request_body_limit")]
+    pub request_body_limit: Size,
     /// Cross-site request forgery settings
     #[serde(default)]
     pub csrf: CsrfConfig,
@@ -68,23 +75,9 @@ pub struct Config {
     pub entity_caching: EntityCachingConfig,
 }
 
-impl Config {
-    // /// Load the rate limit configuration for global and subgraph level settings.
-    // pub fn as_keyed_rate_limit_config(&self) -> Vec<(RateLimitKey<'static>, GraphRateLimit)> {
-    //     let mut key_based_config = Vec::new();
-    //
-    //     if let Some(global_config) = self.gateway.rate_limit.as_ref().and_then(|c| c.global) {
-    //         key_based_config.push((RateLimitKey::Global, global_config));
-    //     }
-    //
-    //     for (subgraph_name, subgraph) in self.subgraphs.iter() {
-    //         if let Some(limit) = subgraph.rate_limit {
-    //             key_based_config.push((RateLimitKey::Subgraph(subgraph_name.clone().into()), limit));
-    //         }
-    //     }
-    //
-    //     key_based_config
-    // }
+fn default_request_body_limit() -> Size {
+    // 2 MiB
+    Size::from_mebibytes(2)
 }
 
 #[derive(Clone, Debug, Default, serde::Deserialize)]

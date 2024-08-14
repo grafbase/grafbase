@@ -2510,6 +2510,7 @@ dependencies = [
  "engine-v2-id-newtypes",
  "engine-v2-schema",
  "engine-value",
+ "enumset",
  "futures",
  "futures-util",
  "gateway-core",
@@ -2521,6 +2522,7 @@ dependencies = [
  "im",
  "itertools 0.13.0",
  "lasso2",
+ "mediatype",
  "operation-normalizer",
  "pretty_assertions",
  "rand 0.8.5",
@@ -2528,6 +2530,7 @@ dependencies = [
  "serde",
  "serde-value",
  "serde_json",
+ "serde_urlencoded",
  "sha2",
  "strum",
  "thiserror",
@@ -2546,6 +2549,8 @@ dependencies = [
  "axum",
  "engine-v2",
  "futures-util",
+ "http",
+ "http-body-util",
  "runtime",
  "serde_json",
  "tokio",
@@ -2634,6 +2639,27 @@ dependencies = [
  "indexmap 2.2.6",
  "serde",
  "serde_json",
+]
+
+[[package]]
+name = "enumset"
+version = "1.1.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d07a4b049558765cef5f0c1a273c3fc57084d768b44d2f98127aef4cceb17293"
+dependencies = [
+ "enumset_derive",
+]
+
+[[package]]
+name = "enumset_derive"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "59c3b24c345d8c314966bdc1832f6c2635bfcce8e7cf363bd115987bba2ee242"
+dependencies = [
+ "darling",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.72",
 ]
 
 [[package]]
@@ -2822,7 +2848,6 @@ dependencies = [
  "async-graphql-axum",
  "async-graphql-parser",
  "axum",
- "engine",
  "engine-config-builder",
  "engine-v2",
  "engine-v2-axum",
@@ -2861,7 +2886,6 @@ dependencies = [
  "axum-aws-lambda",
  "axum-server",
  "blake3",
- "engine",
  "engine-config-builder",
  "engine-v2",
  "engine-v2-axum",
@@ -3252,6 +3276,8 @@ dependencies = [
  "serde",
  "serde-dynamic-string",
  "serde_regex",
+ "serde_with",
+ "size",
  "temp-env",
  "tempfile",
  "toml",
@@ -3294,6 +3320,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2",
+ "strum",
  "thiserror",
  "tokio",
  "tracing",
@@ -3748,9 +3775,9 @@ dependencies = [
  "opentelemetry-stdout",
  "opentelemetry_sdk",
  "pin-project-lite",
+ "postcard",
  "serde",
  "serde-dynamic-string",
- "serde_json",
  "tempfile",
  "thiserror",
  "toml",
@@ -4662,6 +4689,7 @@ dependencies = [
  "secrecy",
  "serde",
  "serde_json",
+ "serde_urlencoded",
  "sha2",
  "similar-asserts",
  "thiserror",
@@ -8265,6 +8293,12 @@ name = "siphasher"
 version = "0.3.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "38b58827f4464d87d377d175e90bf58eb00fd8716ff0a62f80356b5e61555d0d"
+
+[[package]]
+name = "size"
+version = "0.5.0-preview2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c6916a53089eff8ecef2b6efe5335365be0f1b80c7b5bc725e9c8e0d9ee05ad5"
 
 [[package]]
 name = "sized-chunks"

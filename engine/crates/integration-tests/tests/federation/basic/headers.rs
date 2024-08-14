@@ -20,7 +20,7 @@ fn test_default_headers() {
             .build()
             .await;
 
-        engine.execute("query { headers { name value }}").await
+        engine.post("query { headers { name value }}").await
     });
 
     insta::assert_json_snapshot!(response, { "data.headers."}, @r###"
@@ -67,7 +67,7 @@ fn test_default_headers_forwarding() {
             .await;
 
         engine
-            .execute("query { headers { name value }}")
+            .post("query { headers { name value }}")
             .header("x-source", "boom")
             .await
     });
@@ -123,7 +123,7 @@ fn test_subgraph_specific_header_forwarding() {
             .await;
 
         engine
-            .execute("query { headers { name value }}")
+            .post("query { headers { name value }}")
             .header("x-source", "boom")
             .await
     });
@@ -184,14 +184,14 @@ fn should_not_propagate_blacklisted_headers() {
             .await;
 
         let response = engine
-            .execute("query { headers { name value }}")
+            .post("query { headers { name value }}")
             .header("User-Agent", "Rusty")
             .header("Accept", "application/json")
             .header("Accept-Encoding", "gzip")
             .header("Accept-Charset", "utf-8")
             .header("Accept-Ranges", "bytes")
             .header("Content-Length", "728")
-            .header("Content-Type", "application/jpeg")
+            .header("Content-Type", "application/json")
             .header("Connection", "keep-alive")
             .header("Keep-Alive", "10")
             .header("Proxy-Authenticate", "Basic")
@@ -245,7 +245,7 @@ fn test_regex_header_forwarding() {
             .await;
 
         engine
-            .execute("query { headers { name value }}")
+            .post("query { headers { name value }}")
             .header("x-source", "boom")
             .header("asdf", "lol")
             .header("x-some", "meow")
@@ -303,7 +303,7 @@ fn test_regex_header_forwarding_should_not_duplicate() {
             .await;
 
         engine
-            .execute("query { headers { name value }}")
+            .post("query { headers { name value }}")
             .header("x-source", "boom")
             .header("asdf", "lol")
             .header("x-some", "meow")
@@ -357,7 +357,7 @@ fn test_header_forwarding_with_rename() {
             .await;
 
         engine
-            .execute("query { headers { name value }}")
+            .post("query { headers { name value }}")
             .header("x-source", "boom")
             .await
     });
@@ -404,7 +404,7 @@ fn test_header_forwarding_with_default() {
             .build()
             .await;
 
-        engine.execute("query { headers { name value }}").await
+        engine.post("query { headers { name value }}").await
     });
 
     insta::assert_json_snapshot!(response, @r###"
@@ -450,7 +450,7 @@ fn test_header_forwarding_with_default_and_existing_header() {
             .await;
 
         engine
-            .execute("query { headers { name value }}")
+            .post("query { headers { name value }}")
             .header("x-source", "kekw")
             .await
     });
@@ -501,7 +501,7 @@ fn test_regex_header_forwarding_then_delete() {
             .await;
 
         engine
-            .execute("query { headers { name value }}")
+            .post("query { headers { name value }}")
             .header("x-source", "boom")
             .header("asdf", "lol")
             .header("x-kekw", "meow")
@@ -554,7 +554,7 @@ fn test_regex_header_forwarding_then_delete_with_regex() {
             .await;
 
         engine
-            .execute("query { headers { name value }}")
+            .post("query { headers { name value }}")
             .header("x-source", "boom")
             .header("x-soup", "kaboom")
             .header("asdf", "lol")
@@ -605,7 +605,7 @@ fn test_rename_duplicate_no_default() {
             .await;
 
         engine
-            .execute("query { headers { name value }}")
+            .post("query { headers { name value }}")
             .header("foo", "lol")
             .await
     });
@@ -658,7 +658,7 @@ fn test_rename_duplicate_default() {
             .await;
 
         engine
-            .execute("query { headers { name value }}")
+            .post("query { headers { name value }}")
             .header("foo", "lol")
             .await
     });
@@ -710,7 +710,7 @@ fn test_rename_duplicate_default_with_missing_value() {
             .build()
             .await;
 
-        engine.execute("query { headers { name value }}").await
+        engine.post("query { headers { name value }}").await
     });
 
     insta::assert_json_snapshot!(response, @r###"
@@ -759,9 +759,9 @@ fn regex_header_regex_forwarding_should_forward_duplicates_too() {
             .await;
 
         engine
-            .execute("query { headers { name value }}")
+            .post("query { headers { name value }}")
             .header("x-source", "boom")
-            .header("x-source", "zoom")
+            .header_append("x-source", "zoom")
             .await
     });
 
@@ -811,9 +811,9 @@ fn regex_header_forwarding_should_forward_duplicates() {
             .await;
 
         engine
-            .execute("query { headers { name value }}")
+            .post("query { headers { name value }}")
             .header("x-source", "boom")
-            .header("x-source", "zoom")
+            .header_append("x-source", "zoom")
             .await
     });
 
@@ -864,9 +864,9 @@ fn regex_header_forwarding_should_forward_duplicates_with_rename() {
             .await;
 
         engine
-            .execute("query { headers { name value }}")
+            .post("query { headers { name value }}")
             .header("x-source", "boom")
-            .header("x-source", "zoom")
+            .header_append("x-source", "zoom")
             .await
     });
 
@@ -916,9 +916,9 @@ fn header_remove_should_remove_duplicates() {
             .await;
 
         engine
-            .execute("query { headers { name value }}")
+            .post("query { headers { name value }}")
             .header("x-source", "boom")
-            .header("x-source", "zoom")
+            .header_append("x-source", "zoom")
             .await
     });
 
@@ -960,9 +960,9 @@ fn header_regex_remove_should_remove_duplicates() {
             .await;
 
         engine
-            .execute("query { headers { name value }}")
+            .post("query { headers { name value }}")
             .header("x-source", "boom")
-            .header("x-source", "zoom")
+            .header_append("x-source", "zoom")
             .await
     });
 

@@ -2,16 +2,17 @@
 
 mod engine;
 mod execution;
-mod http_response;
+mod graphql_over_http;
 mod operation;
+mod request;
 mod response;
 mod sources;
 mod utils;
 pub mod websocket;
 
-pub use ::engine::{BatchRequest, Request};
-pub use engine::{Engine, Runtime, Session};
-pub use http_response::{HttpGraphqlResponse, HttpGraphqlResponseBody};
-pub use schema::{CacheControl, Schema};
+pub use engine::{Engine, Runtime, WebsocketSession};
+pub use graphql_over_http::Body;
+pub use response::error::ErrorCode;
+pub use schema::Schema;
 
 pub use ::config::{latest as config, VersionedConfig};

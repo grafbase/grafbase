@@ -71,6 +71,10 @@ impl Query {
         "1"
     }
 
+    async fn fail(&self) -> async_graphql::Result<usize> {
+        Err("fail".into())
+    }
+
     async fn pull_requests_and_issues(&self, _filter: PullRequestsAndIssuesFilters) -> Vec<PullRequestOrIssue> {
         // This doesn't actually filter anything because I don't need that for my test.
         vec![

@@ -36,7 +36,7 @@ fn query_bad_request() {
         let engine = Engine::builder().with_subgraph(FakeGithubSchema).build().await;
 
         // act
-        let _ = engine.execute("{ __type_name }").await;
+        let _ = engine.post("{ __type_name }").await;
 
         // assert
         handle.assert_finished();

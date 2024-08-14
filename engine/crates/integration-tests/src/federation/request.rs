@@ -4,14 +4,13 @@ use std::{
     borrow::Cow,
     future::IntoFuture,
     ops::{Deref, DerefMut},
-    str::FromStr,
     sync::Arc,
 };
 
-use engine::{BatchRequest, Variables};
-use engine_v2::{HttpGraphqlResponse, HttpGraphqlResponseBody};
+use bytes::Bytes;
+use engine::Variables;
+use engine_v2::Body;
 use futures::future::BoxFuture;
-use http::{header::Entry, HeaderName, HeaderValue};
 use serde::de::Error;
 pub use stream::*;
 
@@ -19,55 +18,55 @@ use crate::engine_v1::GraphQlRequest;
 
 use super::TestRuntime;
 
+type RequestBodyFut = BoxFuture<'static, Result<Bytes, (http::StatusCode, String)>>;
+
 #[must_use]
-pub struct ExecutionRequest {
-    pub(super) request: GraphQlRequest,
-    #[allow(dead_code)]
-    pub(super) headers: Vec<(String, String)>,
+pub struct TestRequest {
     pub(super) engine: Arc<engine_v2::Engine<TestRuntime>>,
+    pub(super) parts: http::request::Parts,
+    pub(super) body: GraphQlRequest,
 }
 
-impl ExecutionRequest {
+impl TestRequest {
     pub fn by_client(self, name: &'static str, version: &'static str) -> Self {
         self.header("x-grafbase-client-name", name)
             .header("x-grafbase-client-version", version)
     }
 
-    /// Adds a header into the request
-    pub fn header(mut self, name: impl Into<String>, value: impl Into<String>) -> Self {
-        self.headers.push((name.into(), value.into()));
+    pub fn header<Name, Value>(mut self, name: Name, value: Value) -> Self
+    where
+        Name: TryInto<http::HeaderName, Error: std::fmt::Debug>,
+        Value: TryInto<http::HeaderValue, Error: std::fmt::Debug>,
+    {
+        self.parts
+            .headers
+            .insert(name.try_into().unwrap(), value.try_into().unwrap());
+        self
+    }
+
+    pub fn header_append<Name, Value>(mut self, name: Name, value: Value) -> Self
+    where
+        Name: TryInto<http::HeaderName, Error: std::fmt::Debug>,
+        Value: TryInto<http::HeaderValue, Error: std::fmt::Debug>,
+    {
+        self.parts
+            .headers
+            .append(name.try_into().unwrap(), value.try_into().unwrap());
         self
     }
 
     pub fn variables(mut self, variables: impl serde::Serialize) -> Self {
-        self.request.variables = Some(Variables::from_json(
+        self.body.variables = Some(Variables::from_json(
             serde_json::to_value(variables).expect("variables to be serializable"),
         ));
         self
     }
 
     pub fn extensions(mut self, extensions: impl serde::Serialize) -> Self {
-        self.request.extensions =
+        self.body.extensions =
             serde_json::from_value(serde_json::to_value(extensions).expect("extensions to be serializable"))
                 .expect("extensions to be deserializable");
         self
-    }
-
-    fn http_headers(&self) -> http::HeaderMap {
-        let mut headers = http::HeaderMap::new();
-
-        for (key, value) in &self.headers {
-            let key = HeaderName::from_str(key).unwrap();
-            let value = HeaderValue::from_str(value).unwrap();
-
-            if let Entry::Occupied(mut e) = headers.entry(key.clone()) {
-                e.append(value);
-            } else {
-                headers.insert(key, value);
-            }
-        }
-
-        headers
     }
 
     pub fn into_multipart_stream(self) -> MultipartStreamRequest {
@@ -77,40 +76,78 @@ impl ExecutionRequest {
     pub fn into_sse_stream(self) -> SseStreamRequest {
         SseStreamRequest(self)
     }
+
+    fn into_engine_and_request(self) -> (Arc<engine_v2::Engine<TestRuntime>>, http::Request<RequestBodyFut>) {
+        let Self {
+            engine,
+            mut parts,
+            body,
+        } = self;
+        if parts.method == http::Method::GET {
+            parts.uri = http::uri::Builder::from(std::mem::take(&mut parts.uri))
+                .path_and_query(format!(
+                    "/graphql?{}",
+                    serde_urlencoded::to_string(body.into_query_params()).unwrap()
+                ))
+                .build()
+                .unwrap();
+            (
+                engine,
+                http::Request::from_parts(parts, Box::pin(async { Ok(Bytes::from_static(b"")) })),
+            )
+        } else {
+            parts
+                .headers
+                .entry(http::header::CONTENT_TYPE)
+                .or_insert(http::HeaderValue::from_static("application/json"));
+            let body = serde_json::to_vec(&body).unwrap();
+            (
+                engine,
+                http::Request::from_parts(parts, Box::pin(async move { Ok(Bytes::from(body)) })),
+            )
+        }
+    }
 }
 
-impl IntoFuture for ExecutionRequest {
+impl IntoFuture for TestRequest {
     type Output = GraphqlResponse;
 
     type IntoFuture = BoxFuture<'static, Self::Output>;
 
     fn into_future(self) -> Self::IntoFuture {
-        let headers = self.http_headers();
-        let request = BatchRequest::Single(self.request.into_engine_request());
-        Box::pin(async move { self.engine.execute(headers, request).await.try_into().unwrap() })
+        Box::pin(async move {
+            let (engine, mut request) = self.into_engine_and_request();
+            request
+                .headers_mut()
+                .entry(http::header::ACCEPT)
+                .or_insert(http::HeaderValue::from_static("application/json"));
+            engine.execute(request).await.try_into().unwrap()
+        })
     }
 }
 
 #[derive(serde::Serialize, Debug)]
 pub struct GraphqlResponse {
-    #[serde(flatten)]
-    pub body: serde_json::Value,
+    #[serde(skip)]
+    pub status: http::StatusCode,
     #[serde(skip)]
     pub headers: http::HeaderMap,
+    #[serde(flatten)]
+    pub body: serde_json::Value,
 }
 
-impl TryFrom<HttpGraphqlResponse> for GraphqlResponse {
+impl TryFrom<http::Response<Body>> for GraphqlResponse {
     type Error = serde_json::Error;
 
-    fn try_from(response: HttpGraphqlResponse) -> Result<Self, Self::Error> {
+    fn try_from(response: http::Response<Body>) -> Result<Self, Self::Error> {
+        let (parts, body) = response.into_parts();
         Ok(GraphqlResponse {
-            body: match response.body {
-                HttpGraphqlResponseBody::Bytes(bytes) => serde_json::from_slice(bytes.as_ref())?,
-                HttpGraphqlResponseBody::Stream(_) => {
-                    return Err(serde_json::Error::custom("Unexpected stream response body"))?
-                }
+            status: parts.status,
+            body: match body {
+                Body::Bytes(bytes) => serde_json::from_slice(bytes.as_ref())?,
+                Body::Stream(_) => return Err(serde_json::Error::custom("Unexpected stream response body"))?,
             },
-            headers: response.headers,
+            headers: parts.headers,
         })
     }
 }

@@ -14,7 +14,7 @@ fn can_run_pathfinder_introspection_query() {
     let response = runtime().block_on(async move {
         let engine = Engine::builder().with_subgraph(FakeGithubSchema).build().await;
 
-        engine.execute(PATHFINDER_INTROSPECTION_QUERY).await
+        engine.post(PATHFINDER_INTROSPECTION_QUERY).await
     });
     assert!(response.errors().is_empty(), "{response}");
 
@@ -54,6 +54,7 @@ fn can_run_pathfinder_introspection_query() {
     type Query {
       allBotPullRequests: [PullRequest!]!
       botPullRequests(bots: [[BotInput!]]!): [PullRequest!]!
+      fail: Int!
       favoriteRepository: CustomRepoId!
       pullRequest(id: ID!): PullRequest
       pullRequestOrIssue(id: ID!): PullRequestOrIssue
@@ -84,7 +85,7 @@ fn can_run_2018_introspection_query() {
         let engine = Engine::builder().with_subgraph(FakeGithubSchema).build().await;
 
         engine
-            .execute(IntrospectionQuery::with_capabilities(
+            .post(IntrospectionQuery::with_capabilities(
                 SpecificationVersion::June2018.capabilities(),
             ))
             .await
@@ -127,6 +128,7 @@ fn can_run_2018_introspection_query() {
     type Query {
       allBotPullRequests: [PullRequest!]!
       botPullRequests(bots: [[BotInput!]]!): [PullRequest!]!
+      fail: Int!
       favoriteRepository: CustomRepoId!
       pullRequest(id: ID!): PullRequest
       pullRequestOrIssue(id: ID!): PullRequestOrIssue
@@ -157,7 +159,7 @@ fn can_run_2021_introspection_query() {
         let engine = Engine::builder().with_subgraph(FakeGithubSchema).build().await;
 
         engine
-            .execute(IntrospectionQuery::with_capabilities(
+            .post(IntrospectionQuery::with_capabilities(
                 SpecificationVersion::October2021.capabilities(),
             ))
             .await
@@ -200,6 +202,7 @@ fn can_run_2021_introspection_query() {
     type Query {
       allBotPullRequests: [PullRequest!]!
       botPullRequests(bots: [[BotInput!]]!): [PullRequest!]!
+      fail: Int!
       favoriteRepository: CustomRepoId!
       pullRequest(id: ID!): PullRequest
       pullRequestOrIssue(id: ID!): PullRequestOrIssue
@@ -230,7 +233,7 @@ fn echo_subgraph_introspection() {
         let engine = Engine::builder().with_subgraph(EchoSchema).build().await;
 
         engine
-            .execute(IntrospectionQuery::with_capabilities(
+            .post(IntrospectionQuery::with_capabilities(
                 SpecificationVersion::October2021.capabilities(),
             ))
             .await
@@ -284,7 +287,7 @@ fn can_run_capability_introspection_query() {
     let response = runtime().block_on(async move {
         let engine = Engine::builder().with_subgraph(FakeGithubSchema).build().await;
 
-        engine.execute(CapabilitiesQuery::build(())).await
+        engine.post(CapabilitiesQuery::build(())).await
     });
     assert!(response.errors().is_empty(), "{response}");
 
@@ -304,7 +307,7 @@ fn introspection_output_matches_source() {
     let (response, _upstream_sdl) = runtime().block_on(async move {
         let engine = Engine::builder().with_subgraph(FakeGithubSchema).build().await;
 
-        let response = engine.execute(IntrospectionQuery::build(())).await;
+        let response = engine.post(IntrospectionQuery::build(())).await;
 
         let upstream_sdl = Client::new()
             .post(engine.subgraph::<FakeGithubSchema>().url())
@@ -335,7 +338,7 @@ fn raw_introspetion_output() {
             .build()
             .await;
 
-        engine.execute(IntrospectionQuery::build(())).await
+        engine.post(IntrospectionQuery::build(())).await
     });
 
     // Some errors are just easier to understand with the actual introspection output.
@@ -351,7 +354,7 @@ fn can_introsect_when_multiple_subgraphs() {
             .build()
             .await;
 
-        engine.execute(IntrospectionQuery::build(())).await
+        engine.post(IntrospectionQuery::build(())).await
     });
     assert!(response.errors().is_empty(), "{response}");
 
@@ -414,6 +417,7 @@ fn can_introsect_when_multiple_subgraphs() {
     type Query {
       allBotPullRequests: [PullRequest!]!
       botPullRequests(bots: [[BotInput!]]!): [PullRequest!]!
+      fail: Int!
       fancyBool(input: FancyBool!): FancyBool!
       favoriteRepository: CustomRepoId!
       float(input: Float!): Float!
@@ -456,7 +460,7 @@ fn supports_the_type_field() {
         let engine = Engine::builder().with_subgraph(FakeGithubSchema).build().await;
 
         engine
-            .execute(
+            .post(
                 r#"
                     query {
                         __type(name: "PullRequest") {
@@ -534,7 +538,7 @@ fn type_field_returns_null_on_missing_type() {
         let engine = Engine::builder().with_subgraph(FakeGithubSchema).build().await;
 
         engine
-            .execute(
+            .post(
                 r#"
                     query {
                         __type(name: "Boom") {
@@ -562,7 +566,7 @@ fn supports_recursing_through_types() {
         let engine = Engine::builder().with_subgraph(FakeGithubSchema).build().await;
 
         engine
-            .execute(
+            .post(
                 r#"
                     query {
                         __type(name: "PullRequestOrIssue") {
@@ -733,7 +737,7 @@ fn rejects_bogus_introspection_queries() {
         let engine = Engine::builder().with_subgraph(FakeGithubSchema).build().await;
 
         engine
-            .execute(
+            .post(
                 r#"
                     query {
                         __type(name: "PullRequestOrIssue") {
@@ -778,7 +782,7 @@ fn introspection_on_multiple_federation_subgraphs() {
             .build()
             .await;
 
-        engine.execute(PATHFINDER_INTROSPECTION_QUERY).await
+        engine.post(PATHFINDER_INTROSPECTION_QUERY).await
     });
     assert!(response.errors().is_empty(), "{response}");
 
@@ -903,7 +907,7 @@ fn introspecting_with_grafbase_openapi_subgraph() {
 
         let engine = Engine::builder().with_subgraph(PetStore(engine_v1)).build().await;
 
-        engine.execute(IntrospectionQuery::build(())).await
+        engine.post(IntrospectionQuery::build(())).await
     });
 
     insta::assert_snapshot!(introspection_to_sdl(response.into_data()));
@@ -915,7 +919,7 @@ fn default_values() {
         let engine = Engine::builder().with_subgraph(FakeGithubSchema).build().await;
 
         engine
-            .execute(
+            .post(
                 r#"
                     query {
                         __type(name: "__Type") {

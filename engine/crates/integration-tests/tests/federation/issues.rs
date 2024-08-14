@@ -47,7 +47,7 @@ fn gb6873_wrong_enum_sent_to_subgraph() {
             .await;
 
         let response = engine
-            .execute(
+            .post(
                 r#"
                 query RequestUserToken {
                     doStuff(

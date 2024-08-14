@@ -101,7 +101,11 @@ pub async fn serve(
         None => CorsLayer::permissive(),
     };
 
-    let state = ServerState::new(gateway.clone(), otel_tracer_provider);
+    let state = ServerState::new(
+        gateway.clone(),
+        otel_tracer_provider,
+        config.request_body_limit.bytes().max(0) as usize,
+    );
 
     // HACK: Wait for the engine to be ready. This ensures we did reload OTEL providers if necessary
     // as we need all resources attributes to be present before creating the tracing layer.
@@ -109,7 +113,7 @@ pub async fn serve(
     gateway.changed().await.ok();
 
     let mut router = Router::new()
-        .route(path, get(engine::get).post(engine::post))
+        .route(path, get(engine::execute).post(engine::execute))
         .route_service("/ws", WebsocketService::new(websocket_sender))
         .layer(grafbase_telemetry::tower::layer(
             grafbase_telemetry::metrics::meter_from_global_provider(),

@@ -14,12 +14,7 @@ pub(crate) enum OperationLimitExceededError {
 pub(super) fn enforce_operation_limits(
     schema: &Schema,
     operation: OperationWalker<'_>,
-    request: &engine::Request,
 ) -> Result<(), OperationLimitExceededError> {
-    if request.operation_limits_disabled() {
-        return Ok(());
-    }
-
     let operation_limits = &schema.settings.operation_limits;
     let selection_set = operation.selection_set();
 

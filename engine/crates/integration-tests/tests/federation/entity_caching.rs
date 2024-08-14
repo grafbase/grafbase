@@ -21,8 +21,8 @@ fn root_level_entity_caching() {
 
         const QUERY: &str = r"query { topProducts { upc name price } }";
 
-        let first_response = engine.execute(QUERY).await.into_data();
-        let second_response = engine.execute(QUERY).await.into_data();
+        let first_response = engine.post(QUERY).await.into_data();
+        let second_response = engine.post(QUERY).await.into_data();
 
         assert_eq!(first_response, second_response);
 
@@ -81,8 +81,8 @@ fn different_queries_dont_share_cache() {
             .build()
             .await;
 
-        let first_response = engine.execute("query { topProducts { upc } }").await.into_data();
-        let second_response = engine.execute("query { topProducts { name } }").await.into_data();
+        let first_response = engine.post("query { topProducts { upc } }").await.into_data();
+        let second_response = engine.post("query { topProducts { name } }").await.into_data();
 
         assert!(first_response != second_response);
 
@@ -112,11 +112,11 @@ fn test_cache_expiry() {
 
         const QUERY: &str = r"query { topProducts { upc name price } }";
 
-        let first_response = engine.execute(QUERY).await.into_data();
+        let first_response = engine.post(QUERY).await.into_data();
 
         tokio::time::sleep(Duration::from_millis(1100)).await;
 
-        let second_response = engine.execute(QUERY).await.into_data();
+        let second_response = engine.post(QUERY).await.into_data();
 
         assert_eq!(first_response, second_response);
 
@@ -177,8 +177,8 @@ fn cache_skipped_if_subgraph_errors() {
 
         const QUERY: &str = "query { brokenField(error: \"blah\") }";
 
-        let first_response = engine.execute(QUERY).await;
-        let second_response = engine.execute(QUERY).await;
+        let first_response = engine.post(QUERY).await;
+        let second_response = engine.post(QUERY).await;
 
         assert!(!first_response.errors().is_empty());
 
@@ -205,14 +205,14 @@ fn entity_request_caching() {
             .await;
 
         let response = engine
-            .execute("{ topProducts { upc reviews { id body } } }")
+            .post("{ topProducts { upc reviews { id body } } }")
             .await
             .into_data();
         let first_product = &response["topProducts"][0];
         let product_upc = &first_product["upc"];
 
         let second_response = engine
-            .execute("query ($upc: String!) { product(upc: $upc) { reviews { id body } } }")
+            .post("query ($upc: String!) { product(upc: $upc) { reviews { id body } } }")
             .variables(json!({ "upc": product_upc }))
             .await
             .into_data();
@@ -243,13 +243,13 @@ fn entity_request_cache_partial_hit() {
             .await;
 
         engine
-            .execute("query ($upc: String!) { product(upc: $upc) { reviews { id body } } }")
+            .post("query ($upc: String!) { product(upc: $upc) { reviews { id body } } }")
             .variables(json!({ "upc": "top-1" }))
             .await
             .into_data();
 
         engine
-            .execute("{ topProducts { upc reviews { id body } } }")
+            .post("{ topProducts { upc reviews { id body } } }")
             .await
             .into_data();
 
@@ -320,19 +320,19 @@ fn test_headers_impact_root_field_caching() {
 
         const QUERY: &str = r"query { topProducts { upc name price } }";
 
-        engine.execute(QUERY).await.into_data();
+        engine.post(QUERY).await.into_data();
         engine
-            .execute(QUERY)
+            .post(QUERY)
             .header("Authentication", "Bearer 1")
             .await
             .into_data();
         engine
-            .execute(QUERY)
+            .post(QUERY)
             .header("Authentication", "Bearer 2")
             .await
             .into_data();
         engine
-            .execute(QUERY)
+            .post(QUERY)
             .header("Authentication", "Bearer 2")
             .await
             .into_data();
@@ -365,21 +365,21 @@ fn test_headers_impact_entity_field_caching() {
             .await;
 
         engine
-            .execute("{ topProducts { upc reviews { id body } } }")
+            .post("{ topProducts { upc reviews { id body } } }")
             .await
             .into_data();
         engine
-            .execute("{ topProducts { upc reviews { id body } } }")
+            .post("{ topProducts { upc reviews { id body } } }")
             .header("Authentication", "Bearer 1")
             .await
             .into_data();
         engine
-            .execute("{ topProducts { upc reviews { id body } } }")
+            .post("{ topProducts { upc reviews { id body } } }")
             .header("Authentication", "Bearer 2")
             .await
             .into_data();
         engine
-            .execute("{ topProducts { upc reviews { id body } } }")
+            .post("{ topProducts { upc reviews { id body } } }")
             .header("Authentication", "Bearer 2")
             .await
             .into_data();

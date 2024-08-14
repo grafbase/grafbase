@@ -201,6 +201,7 @@ impl AsyncClient {
         self.client
             .post(&self.endpoint)
             .headers(self.headers.clone())
+            .header("Accept", "application/json")
             .json(&queries.into_iter().map(|query| json!(query.into())).collect::<Vec<_>>())
             .send()
             .await
@@ -269,12 +270,10 @@ impl<Response> GqlRequestBuilder<Response> {
     pub async fn into_multipart_stream(self) -> impl Stream<Item = serde_json::Value> {
         let response = self
             .into_reqwest_builder()
-            .header("accept", "multipart/mixed")
+            .header("accept", "multipart/mixed,application/json;q=0.9")
             .send()
             .await
             .unwrap();
-
-        assert!(response.status().is_success(), "{}", response.text().await.unwrap());
 
         assert_eq!(
             response.headers().get("content-type").cloned().unwrap(),
@@ -289,6 +288,7 @@ impl<Response> GqlRequestBuilder<Response> {
 
     pub fn into_sse_stream(self) -> impl Stream<Item = serde_json::Value> {
         self.into_reqwest_builder()
+            .header("Accept", "text/event-stream")
             .eventsource()
             .unwrap()
             .take_while(|event| {

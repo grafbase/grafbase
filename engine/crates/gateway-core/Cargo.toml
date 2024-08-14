@@ -34,7 +34,7 @@ futures-util.workspace = true
 grafbase-telemetry.workspace = true
 headers.workspace = true
 http.workspace = true
-mediatype = "0.19.18"
+mediatype.workspace = true
 mime = "0.3.17"
 multipart-stream.workspace = true
 operation-normalizer = { path = "../operation-normalizer" }
@@ -45,6 +45,7 @@ serde.workspace = true
 serde_json.workspace = true
 sha2.workspace = true
 hex.workspace = true
+strum.workspace = true
 thiserror.workspace = true
 tracing.workspace = true
 gateway-v2-auth = { path = "../gateway-v2/auth" }

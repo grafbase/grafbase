@@ -165,7 +165,7 @@ impl Client {
             query: query.into(),
             variables: None,
             phantom: PhantomData,
-            reqwest_builder,
+            reqwest_builder: reqwest_builder.header(http::header::ACCEPT, "application/json"),
             bearer: None,
         }
     }
@@ -810,10 +810,8 @@ fn global_rate_limiting() {
         }
     "#};
 
-    let expected_response = r#"{"errors":[{"message":"Too many requests","extensions":{"code":"RATE_LIMITED"}}]}"#;
-
     with_static_server(config, &schema, None, None, |client| async move {
-        expect_rate_limiting(|| client.gql(query).send().boxed(), expected_response).await;
+        expect_rate_limiting(|| client.gql(query).send().boxed()).await;
     })
 }
 
@@ -835,10 +833,8 @@ fn subgraph_rate_limiting() {
         }
     "#};
 
-    let expected_response = r#"{"data":null,"errors":[{"message":"Too many requests","path":["me"],"extensions":{"code":"RATE_LIMITED"}}]}"#;
-
     with_static_server(config, &schema, None, None, |client| async move {
-        expect_rate_limiting(|| client.gql(query).send().boxed(), expected_response).await;
+        expect_rate_limiting(|| client.gql(query).send().boxed()).await;
     })
 }
 
@@ -863,10 +859,8 @@ fn global_redis_rate_limiting() {
         }
     "#};
 
-    let expected_response = r#"{"errors":[{"message":"Too many requests","extensions":{"code":"RATE_LIMITED"}}]}"#;
-
     with_static_server(config, &schema, None, None, |client| async move {
-        expect_rate_limiting(|| client.gql(query).send().boxed(), expected_response).await;
+        expect_rate_limiting(|| client.gql(query).send().boxed()).await;
     })
 }
 
@@ -891,15 +885,13 @@ fn subgraph_redis_rate_limiting() {
         }
     "#};
 
-    let expected_response = r#"{"data":null,"errors":[{"message":"Too many requests","path":["me"],"extensions":{"code":"RATE_LIMITED"}}]}"#;
-
     with_static_server(config, &schema, None, None, |client| async move {
-        expect_rate_limiting(|| client.gql(query).send().boxed(), expected_response).await;
+        expect_rate_limiting(|| client.gql(query).send().boxed()).await;
     })
 }
 
 #[allow(clippy::panic)]
-async fn expect_rate_limiting<'a, F>(f: F, expected_response: &str)
+async fn expect_rate_limiting<'a, F>(f: F)
 where
     F: Fn() -> BoxFuture<'a, serde_json::Value>,
 {
@@ -908,10 +900,8 @@ where
     loop {
         let response = Box::pin(f());
         let response = response.await;
-        let response = serde_json::to_string(&response).unwrap();
 
-        println!("{response}");
-        if response == expected_response {
+        if response["errors"][0]["extensions"]["code"] == "RATE_LIMITED" {
             break;
         }
 

@@ -14,7 +14,7 @@ fn single_subgraph_subscription() {
             .await;
 
         engine
-            .execute(
+            .post(
                 r"
                 subscription {
                     newProducts {
@@ -26,11 +26,10 @@ fn single_subgraph_subscription() {
                 ",
             )
             .into_sse_stream()
-            .collect::<Vec<_>>()
             .await
     });
 
-    insta::assert_json_snapshot!(response, @r###"
+    insta::assert_json_snapshot!(response.collected_body, @r###"
     [
       {
         "data": {
@@ -55,6 +54,50 @@ fn single_subgraph_subscription() {
 }
 
 #[test]
+fn request_error() {
+    let response = runtime().block_on(async move {
+        let engine = Engine::builder()
+            .with_subgraph(FederatedProductsSchema)
+            .with_sdl_websocket_config()
+            .build()
+            .await;
+
+        engine
+            .post(
+                r"
+                subscription {
+                    unknown
+                }
+                ",
+            )
+            .into_sse_stream()
+            .await
+    });
+
+    insta::assert_json_snapshot!(response.collected_body, @r###"
+    [
+      {
+        "errors": [
+          {
+            "message": "Subscription does not have a field named 'unknown'",
+            "locations": [
+              {
+                "line": 3,
+                "column": 21
+              }
+            ],
+            "extensions": {
+              "code": "OPERATION_VALIDATION_ERROR"
+            }
+          }
+        ]
+      }
+    ]
+    "###);
+    assert_eq!(response.status, http::StatusCode::OK);
+}
+
+#[test]
 fn actual_federated_subscription() {
     let response = runtime().block_on(async move {
         let engine = Engine::builder()
@@ -67,7 +110,7 @@ fn actual_federated_subscription() {
             .await;
 
         engine
-            .execute(
+            .post(
                 r"
                 subscription {
                     newProducts {
@@ -84,11 +127,10 @@ fn actual_federated_subscription() {
                 ",
             )
             .into_sse_stream()
-            .collect::<Vec<_>>()
             .await
     });
 
-    insta::assert_json_snapshot!(response, @r###"
+    insta::assert_json_snapshot!(response.collected_body, @r###"
     [
       {
         "data": {

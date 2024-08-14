@@ -1,7 +1,7 @@
 use graphql_mocks::SecureSchema;
 use http::HeaderMap;
 use runtime::{
-    error::{PartialErrorCode, PartialGraphqlError},
+    error::{ErrorResponse, PartialErrorCode, PartialGraphqlError},
     hooks::{DynHookContext, DynHooks, EdgeDefinition},
 };
 
@@ -38,7 +38,7 @@ fn arguments_are_provided() {
 
     with_engine_for_auth(TestHooks, |engine| async move {
         let response = engine
-            .execute("query { check { authorizedWithId(id: 791) } }")
+            .post("query { check { authorizedWithId(id: 791) } }")
             .by_client("hi", "")
             .await;
         insta::assert_json_snapshot!(response, @r###"
@@ -51,7 +51,7 @@ fn arguments_are_provided() {
         }
         "###);
 
-        let response = engine.execute("query { check { authorizedWithId(id: 0) } }").await;
+        let response = engine.post("query { check { authorizedWithId(id: 0) } }").await;
         insta::assert_json_snapshot!(response, @r###"
         {
           "data": null,
@@ -131,7 +131,7 @@ fn metadata_is_provided() {
 
     with_engine_for_auth(TestHooks, |engine| async move {
         let response = engine
-            .execute(
+            .post(
                 r#"
                 query {
                     ok: nullableCheck {
@@ -195,7 +195,7 @@ fn definition_is_provided() {
 
     with_engine_for_auth(TestHooks, |engine| async move {
         let response = engine
-            .execute(
+            .post(
                 r#"
                 query {
                     ok: nullableCheck {
@@ -257,7 +257,7 @@ fn context_is_propagated() {
             &self,
             context: &mut DynHookContext,
             headers: HeaderMap,
-        ) -> Result<HeaderMap, PartialGraphqlError> {
+        ) -> Result<HeaderMap, ErrorResponse> {
             if let Some(client) = headers
                 .get("x-grafbase-client-name")
                 .and_then(|value| value.to_str().ok())
@@ -286,10 +286,7 @@ fn context_is_propagated() {
     }
 
     with_engine_for_auth(TestHooks, |engine| async move {
-        let response = engine
-            .execute("query { check { authorized } }")
-            .by_client("hi", "")
-            .await;
+        let response = engine.post("query { check { authorized } }").by_client("hi", "").await;
         insta::assert_json_snapshot!(response, @r###"
         {
           "data": {
@@ -300,7 +297,7 @@ fn context_is_propagated() {
         }
         "###);
 
-        let response = engine.execute("query { check { authorized } }").await;
+        let response = engine.post("query { check { authorized } }").await;
         insta::assert_json_snapshot!(response, @r###"
         {
           "data": null,
@@ -340,7 +337,7 @@ fn error_propagation() {
 
     with_engine_for_auth(TestHooks, |engine| async move {
         let response = engine
-            .execute(
+            .post(
                 r#"
                 query {
                     check {

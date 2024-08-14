@@ -29,7 +29,7 @@ fn wasi() {
             .await;
 
         engine
-            .execute(
+            .post(
                 r###"
             query {
                 hi: header(name: "hi")
@@ -118,7 +118,7 @@ fn can_modify_headers() {
             .await;
 
         engine
-            .execute(
+            .post(
                 r###"
             query {
                 unknown: header(name: "unknown")
@@ -171,7 +171,7 @@ fn error_is_propagated_back_to_the_user() {
             .build()
             .await;
 
-        engine.execute("query { serverVersion }").await
+        engine.post("query { serverVersion }").await
     });
 
     insta::assert_json_snapshot!(response, @r###"
@@ -221,7 +221,7 @@ fn error_code_is_propagated_back_to_the_user() {
             .build()
             .await;
 
-        engine.execute("query { serverVersion }").await
+        engine.post("query { serverVersion }").await
     });
 
     insta::assert_json_snapshot!(response, @r###"

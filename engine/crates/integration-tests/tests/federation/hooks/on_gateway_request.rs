@@ -3,7 +3,7 @@ use graphql_mocks::{EchoSchema, FakeGithubSchema};
 use http::HeaderMap;
 use integration_tests::{federation::EngineV2Ext, runtime};
 use runtime::{
-    error::{PartialErrorCode, PartialGraphqlError},
+    error::{ErrorResponse, PartialErrorCode, PartialGraphqlError},
     hooks::{DynHookContext, DynHooks},
 };
 
@@ -17,7 +17,7 @@ fn can_modify_headers() {
             &self,
             _context: &mut DynHookContext,
             mut headers: HeaderMap,
-        ) -> Result<HeaderMap, PartialGraphqlError> {
+        ) -> Result<HeaderMap, ErrorResponse> {
             headers.insert("b", "22".parse().unwrap());
             headers.remove("c");
             Ok(headers)
@@ -44,7 +44,7 @@ fn can_modify_headers() {
             .await;
 
         engine
-            .execute(
+            .post(
                 r###"
             query {
                 unknown: header(name: "unknown")
@@ -82,8 +82,13 @@ fn error_is_propagated_back_to_the_user() {
             &self,
             _context: &mut DynHookContext,
             _headers: HeaderMap,
-        ) -> Result<HeaderMap, PartialGraphqlError> {
-            Err(PartialGraphqlError::new("impossible error", PartialErrorCode::BadRequest).with_extension("foo", "bar"))
+        ) -> Result<HeaderMap, ErrorResponse> {
+            let error =
+                PartialGraphqlError::new("impossible error", PartialErrorCode::BadRequest).with_extension("foo", "bar");
+            Err(ErrorResponse {
+                status: http::StatusCode::BAD_REQUEST,
+                error,
+            })
         }
     }
 
@@ -94,7 +99,7 @@ fn error_is_propagated_back_to_the_user() {
             .build()
             .await;
 
-        engine.execute("query { serverVersion }").await
+        engine.post("query { serverVersion }").await
     });
 
     insta::assert_json_snapshot!(response, @r###"
@@ -122,11 +127,13 @@ fn error_code_is_propagated_back_to_the_user() {
             &self,
             _context: &mut DynHookContext,
             _headers: HeaderMap,
-        ) -> Result<HeaderMap, PartialGraphqlError> {
-            Err(
-                PartialGraphqlError::new("impossible error", PartialErrorCode::BadRequest)
-                    .with_extension("code", "IMPOSSIBLE"),
-            )
+        ) -> Result<HeaderMap, ErrorResponse> {
+            let error = PartialGraphqlError::new("impossible error", PartialErrorCode::BadRequest)
+                .with_extension("code", "IMPOSSIBLE");
+            Err(ErrorResponse {
+                status: http::StatusCode::BAD_REQUEST,
+                error,
+            })
         }
     }
 
@@ -137,7 +144,7 @@ fn error_code_is_propagated_back_to_the_user() {
             .build()
             .await;
 
-        engine.execute("query { serverVersion }").await
+        engine.post("query { serverVersion }").await
     });
 
     insta::assert_json_snapshot!(response, @r###"
