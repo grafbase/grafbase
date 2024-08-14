@@ -1,11 +1,8 @@
 #![allow(unused_crate_dependencies)]
 
-use std::{fs, path::Path, sync::OnceLock};
+use std::{fs, path::Path, sync::LazyLock};
 
-fn update_expect() -> bool {
-    static UPDATE_EXPECT: OnceLock<bool> = OnceLock::new();
-    *UPDATE_EXPECT.get_or_init(|| std::env::var("UPDATE_EXPECT").is_ok())
-}
+static UPDATE_EXPECT: LazyLock<bool> = LazyLock::new(|| std::env::var("UPDATE_EXPECT").is_ok());
 
 fn run_test(case: &Path) -> datatest_stable::Result<()> {
     if cfg!(windows) {
@@ -32,7 +29,7 @@ fn run_test(case: &Path) -> datatest_stable::Result<()> {
 
     let snapshot_file_path = case.with_extension("snapshot.json");
 
-    if update_expect() {
+    if UPDATE_EXPECT {
         fs::write(&snapshot_file_path, &diff).unwrap();
         return Ok(());
     }
