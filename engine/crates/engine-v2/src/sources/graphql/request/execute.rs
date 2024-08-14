@@ -1,10 +1,11 @@
+mod record;
+
 use std::borrow::Cow;
 
 use bytes::Bytes;
 use futures::Future;
 use grafbase_telemetry::{
     gql_response_status::{GraphqlResponseStatus, SubgraphResponseStatus},
-    metrics::{SubgraphRequestDurationAttributes, SubgraphRequestRetryAttributes},
     span::{GqlRecorderSpanExt, GRAFBASE_TARGET},
 };
 use headers::HeaderMapExt;
@@ -74,6 +75,7 @@ pub(crate) async fn execute_subgraph_request<'ctx, 'a, R: Runtime>(
     let start = SystemTime::now();
 
     let response = retrying_fetch(ctx, endpoint, retry_budget, move || {
+        record::subgraph_request_size(ctx, endpoint, request.body.len());
         ctx.engine.runtime.fetcher().fetch(request.clone())
     })
     .await;
@@ -86,7 +88,7 @@ pub(crate) async fn execute_subgraph_request<'ctx, 'a, R: Runtime>(
         Ok(response) => response,
         Err(e) => {
             let status = SubgraphResponseStatus::HttpError;
-            record_subgraph_duration(ctx, endpoint, status, duration);
+            record::subgraph_duration(ctx, endpoint, status, duration);
 
             return Err(e);
         }
@@ -98,7 +100,7 @@ pub(crate) async fn execute_subgraph_request<'ctx, 'a, R: Runtime>(
         let status = SubgraphResponseStatus::InvalidResponseError;
 
         span.record_subgraph_status(status);
-        record_subgraph_duration(ctx, endpoint, status, duration);
+        record::subgraph_duration(ctx, endpoint, status, duration);
 
         tracing::error!(target: GRAFBASE_TARGET, "{err}");
     })?;
@@ -106,7 +108,7 @@ pub(crate) async fn execute_subgraph_request<'ctx, 'a, R: Runtime>(
     let status = SubgraphResponseStatus::GraphqlResponse(status);
 
     span.record_subgraph_status(status);
-    record_subgraph_duration(ctx, endpoint, status, duration);
+    record::subgraph_duration(ctx, endpoint, status, duration);
 
     match response.subgraph_errors().next().map(|e| &e.message) {
         Some(error) => {
@@ -151,42 +153,18 @@ where
                     let backoff_ms = (exp_backoff * jitter).round() as u64;
 
                     ctx.engine.runtime.sleep(Duration::from_millis(backoff_ms)).await;
-                    record_subgraph_retry(ctx, endpoint, false);
+                    record::subgraph_retry(ctx, endpoint, false);
 
                     counter += 1;
 
                     result = rate_limited_fetch(ctx, endpoint, &fetch).await;
                 } else {
-                    record_subgraph_retry(ctx, endpoint, true);
+                    record::subgraph_retry(ctx, endpoint, true);
                     return Err(err);
                 }
             }
         }
     }
-}
-
-fn record_subgraph_retry<R: Runtime>(ctx: ExecutionContext<'_, R>, endpoint: GraphqlEndpointWalker<'_>, aborted: bool) {
-    ctx.engine
-        .operation_metrics
-        .record_subgraph_retry(SubgraphRequestRetryAttributes {
-            name: endpoint.subgraph_name().to_string(),
-            aborted,
-        });
-}
-
-fn record_subgraph_duration<R: Runtime>(
-    ctx: ExecutionContext<'_, R>,
-    endpoint: GraphqlEndpointWalker<'_>,
-    status: SubgraphResponseStatus,
-    duration: Duration,
-) {
-    ctx.engine.operation_metrics.record_subgraph_duration(
-        SubgraphRequestDurationAttributes {
-            name: endpoint.subgraph_name().to_string(),
-            status,
-        },
-        duration,
-    );
 }
 
 async fn rate_limited_fetch<'ctx, R: Runtime, F, T>(

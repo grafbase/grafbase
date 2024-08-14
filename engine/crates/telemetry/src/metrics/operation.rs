@@ -13,6 +13,7 @@ pub struct GraphqlOperationMetrics {
     operation_latency: Histogram<u64>,
     subgraph_latency: Histogram<u64>,
     subgraph_retries: Counter<u64>,
+    subgraph_request_body_size: Histogram<u64>,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -85,12 +86,18 @@ pub struct SubgraphRequestRetryAttributes {
     pub aborted: bool,
 }
 
+#[derive(Debug)]
+pub struct SubgraphRequestBodySizeAttributes {
+    pub name: String,
+}
+
 impl GraphqlOperationMetrics {
     pub fn build(meter: &Meter) -> Self {
         Self {
             operation_latency: meter.u64_histogram("gql_operation_latency").init(),
             subgraph_latency: meter.u64_histogram("graphql.subgraph.request.duration").init(),
             subgraph_retries: meter.u64_counter("graphql.subgraph.request.retries").init(),
+            subgraph_request_body_size: meter.u64_histogram("graphql.subgraph.request.body.size").init(),
         }
     }
 
@@ -164,5 +171,14 @@ impl GraphqlOperationMetrics {
         ];
 
         self.subgraph_retries.add(1, &attributes);
+    }
+
+    pub fn record_subgraph_request_size(
+        &self,
+        SubgraphRequestBodySizeAttributes { name }: SubgraphRequestBodySizeAttributes,
+        size: usize,
+    ) {
+        let attributes = vec![KeyValue::new("graphql.subgraph.name", name)];
+        self.subgraph_request_body_size.record(size as u64, &attributes);
     }
 }
