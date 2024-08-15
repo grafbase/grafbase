@@ -29,7 +29,7 @@ fn run_test(case: &Path) -> datatest_stable::Result<()> {
 
     let snapshot_file_path = case.with_extension("snapshot.json");
 
-    if UPDATE_EXPECT {
+    if *UPDATE_EXPECT {
         fs::write(&snapshot_file_path, &diff).unwrap();
         return Ok(());
     }
