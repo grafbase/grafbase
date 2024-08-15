@@ -468,8 +468,10 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
             };
 
             if let Some(operation) = self.operation_cache.get(&cache_key).await {
+                self.engine.operation_metrics.record_operation_cache_hit();
                 Ok(operation)
             } else {
+                self.engine.operation_metrics.record_operation_cache_miss();
                 match load_fut.await {
                     Ok(document) => Err((cache_key, document)),
                     Err(err) => return Err((None, Response::request_error([err]))),
@@ -484,7 +486,15 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
                     .map(Arc::new)
                     .map_err(|mut err| (err.take_metrics_attributes(), Response::request_error([err])))?;
 
-                self.push_background_future(self.engine.operation_cache.insert(cache_key, operation.clone()).boxed());
+                let gauge = self.engine.operation_metrics.operation_cache_size_gauge();
+                let cache_fut = self
+                    .engine
+                    .operation_cache
+                    .insert(cache_key, operation.clone())
+                    .map(move |size| gauge.record(size, &[]));
+
+                self.push_background_future(cache_fut.boxed());
+
                 operation
             }
         };

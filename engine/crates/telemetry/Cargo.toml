@@ -33,7 +33,7 @@ tracing = { workspace = true }
 tracing-subscriber = { workspace = true, features = ["env-filter"] }
 tracing-opentelemetry.workspace = true
 opentelemetry-appender-tracing = { workspace = true, features = ["experimental_metadata_attributes"] }
-opentelemetry.workspace = true
+opentelemetry = { workspace = true, features = ["otel_unstable"] }
 opentelemetry_sdk = { workspace = true, features = ["rt-tokio", "logs"] }
 opentelemetry-stdout = { workspace = true, features = ["trace", "metrics", "logs"] }
 opentelemetry-otlp = { workspace = true, features = ["grpc-tonic", "tls", "tonic", "http-proto", "logs"], optional = true }

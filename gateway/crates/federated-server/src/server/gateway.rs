@@ -10,7 +10,8 @@ use tokio::sync::watch;
 use engine_v2::Engine;
 use graphql_composition::FederatedGraph;
 use runtime_local::{
-    ComponentLoader, HooksWasi, InMemoryEntityCache, InMemoryKvStore, NativeFetcher, RedisEntityCache,
+    ComponentLoader, HooksWasi, InMemoryEntityCache, InMemoryKvStore, InMemoryOperationCacheFactory, NativeFetcher,
+    RedisEntityCache,
 };
 use runtime_noop::trusted_documents::NoopTrustedDocuments;
 
@@ -129,6 +130,7 @@ pub(super) async fn generate(
         ),
         rate_limiter,
         entity_cache,
+        operation_cache_factory: InMemoryOperationCacheFactory::default(),
     };
 
     let config = config
@@ -146,30 +148,36 @@ pub struct GatewayRuntime {
     hooks: HooksWasi,
     rate_limiter: runtime::rate_limiting::RateLimiter,
     entity_cache: Box<dyn EntityCache>,
+    operation_cache_factory: InMemoryOperationCacheFactory,
 }
 
 impl engine_v2::Runtime for GatewayRuntime {
     type Hooks = HooksWasi;
     type Fetcher = NativeFetcher;
-    type OperationCacheFactory = ();
+    type OperationCacheFactory = InMemoryOperationCacheFactory;
 
     fn fetcher(&self) -> &Self::Fetcher {
         &self.fetcher
     }
+
     fn trusted_documents(&self) -> &runtime::trusted_documents_client::Client {
         &self.trusted_documents
     }
+
     fn kv(&self) -> &runtime::kv::KvStore {
         &self.kv
     }
+
     fn meter(&self) -> &grafbase_telemetry::otel::opentelemetry::metrics::Meter {
         &self.meter
     }
+
     fn hooks(&self) -> &HooksWasi {
         &self.hooks
     }
+
     fn operation_cache_factory(&self) -> &Self::OperationCacheFactory {
-        &()
+        &self.operation_cache_factory
     }
 
     fn rate_limiter(&self) -> &runtime::rate_limiting::RateLimiter {

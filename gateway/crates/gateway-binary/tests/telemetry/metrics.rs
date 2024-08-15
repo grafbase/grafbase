@@ -15,7 +15,7 @@ use crate::{clickhouse_client, load_schema, runtime, with_static_server, Client}
 mod operation;
 mod request;
 
-const METRICS_DELAY: Duration = Duration::from_secs(3);
+const METRICS_DELAY: Duration = Duration::from_secs(2);
 
 #[serde_with::serde_as]
 #[derive(Debug, clickhouse::Row, Deserialize, Serialize, PartialEq)]
