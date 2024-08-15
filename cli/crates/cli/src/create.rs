@@ -3,7 +3,7 @@ use backend::api::{create, types::Account};
 use common::environment::Project;
 use inquire::{validator::Validation, Confirm, Select, Text};
 use slugify::slugify;
-use std::fmt::Display;
+use std::{fmt::Display, str::FromStr};
 
 #[derive(Debug)]
 struct AccountSelection(Account);
@@ -20,6 +20,7 @@ pub struct CreateArguments<'a> {
     pub account_slug: &'a str,
     pub name: &'a str,
     pub env_vars: Vec<(&'a str, &'a str)>,
+    pub(crate) graph_mode: GraphMode,
 }
 
 #[tokio::main]
@@ -48,12 +49,19 @@ async fn from_arguments(arguments: &CreateArguments<'_>) -> Result<(), CliError>
         .ok_or(CliError::NoAccountFound)?
         .id;
 
-    let (domains, deployment_id, project_slug) =
-        create::create(&account_id, arguments.name, arguments.env_vars.iter().copied())
-            .await
-            .map_err(CliError::BackendApiError)?;
+    let (domains, deployment_id, project_slug) = create::create(
+        &account_id,
+        arguments.name,
+        arguments.graph_mode.into(),
+        arguments.env_vars.iter().copied(),
+    )
+    .await
+    .map_err(CliError::BackendApiError)?;
 
-    deploy::report_progress(deployment_id.into_inner()).await?;
+    if let Some(deployment_id) = deployment_id {
+        deploy::report_progress(deployment_id.into_inner()).await?;
+    }
+
     report::create_success(arguments.name, &domains, arguments.account_slug, &project_slug);
 
     Ok(())
@@ -89,6 +97,14 @@ async fn interactive() -> Result<(), CliError> {
         .prompt()
         .map_err(handle_inquire_error)?;
 
+    let graph_mode = Select::new(
+        "Should the graph be managed or self-hosted?",
+        vec![GraphMode::Managed, GraphMode::SelfHosted],
+    )
+    .with_starting_cursor(0)
+    .prompt()
+    .map_err(handle_inquire_error)?;
+
     let confirm_env_vars = Confirm::new("Would you like to add environment variables to the graph?")
         .with_default(false)
         .prompt()
@@ -116,23 +132,73 @@ async fn interactive() -> Result<(), CliError> {
         }
     }
 
-    let confirm = Confirm::new("Please confirm the above to create and deploy your new graph")
-        .with_default(true)
-        .prompt()
-        .map_err(handle_inquire_error)?;
+    let maybe_and_deploy = match graph_mode {
+        GraphMode::Managed => "and deploy ",
+        GraphMode::SelfHosted => "",
+    };
+
+    let confirm = Confirm::new(&format!(
+        "Please confirm the above to create {maybe_and_deploy}your new graph"
+    ))
+    .with_default(true)
+    .prompt()
+    .map_err(handle_inquire_error)?;
 
     if confirm {
         let (domains, deployment_id, project_slug) = create::create(
             &selected_account.id,
             &project_name,
+            graph_mode.into(),
             env_vars.iter().map(|(k, v)| (k.as_str(), v.as_str())),
         )
         .await
         .map_err(CliError::BackendApiError)?;
 
-        deploy::report_progress(deployment_id.into_inner()).await?;
+        if let Some(deployment_id) = deployment_id {
+            deploy::report_progress(deployment_id.into_inner()).await?;
+        }
+
         report::create_success(&project_name, &domains, &selected_account.slug, &project_slug);
     }
 
     Ok(())
+}
+
+#[derive(Debug, Clone, Copy, Default)]
+pub(crate) enum GraphMode {
+    #[default]
+    Managed,
+    SelfHosted,
+}
+
+impl std::fmt::Display for GraphMode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let rendered = match self {
+            GraphMode::Managed => "Managed",
+            GraphMode::SelfHosted => "Self-hosted",
+        };
+
+        f.write_str(rendered)
+    }
+}
+
+impl From<GraphMode> for backend::api::create::GraphMode {
+    fn from(value: GraphMode) -> Self {
+        match value {
+            GraphMode::Managed => backend::api::create::GraphMode::Managed,
+            GraphMode::SelfHosted => backend::api::create::GraphMode::SelfHosted,
+        }
+    }
+}
+
+impl FromStr for GraphMode {
+    type Err = &'static str;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "self-hosted" => Ok(Self::SelfHosted),
+            "managed" => Ok(Self::Managed),
+            _ => Err("mode must be one of 'self-hosted' or 'managed'"),
+        }
+    }
 }

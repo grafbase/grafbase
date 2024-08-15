@@ -11,6 +11,9 @@ pub struct CreateCommand {
     /// The slug of the account in which the new graph should be created
     #[arg(short, long, value_name = "SLUG")]
     pub account: Option<String>,
+    /// Whether the graph is self-hosted or managed. Possible values: self-hosted or managed (default).
+    #[arg(short, long)]
+    pub mode: Option<crate::create::GraphMode>,
     /// Adds an environment variable to the graph
     #[clap(short = 'e', long = "env", value_parser, num_args = 0..)]
     environment_variables: Vec<String>,
@@ -25,6 +28,7 @@ impl CreateCommand {
                 account_slug,
                 name,
                 env_vars: self.environment_variables().collect(),
+                graph_mode: self.mode.unwrap_or_default(),
             })
     }
 
@@ -37,7 +41,7 @@ impl CreateCommand {
 
 impl ArgumentNames for CreateCommand {
     fn argument_names(&self) -> Option<Vec<&'static str>> {
-        let arguments = [(self.name.is_some(), vec!["name", "account"])]
+        let arguments = [(self.name.is_some(), vec!["name", "account", "self-hosted"])]
             .iter()
             .filter(|arguments| arguments.0)
             .flat_map(|arguments| arguments.1.clone())

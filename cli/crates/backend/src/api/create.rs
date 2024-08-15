@@ -17,6 +17,8 @@ use cynic::{MutationBuilder, QueryBuilder};
 use std::iter;
 use tokio::fs;
 
+pub use super::graphql::mutations::GraphMode;
+
 /// # Errors
 ///
 /// See [`ApiError`]
@@ -63,8 +65,9 @@ pub async fn get_viewer_data_for_creation() -> Result<Vec<Account>, ApiError> {
 pub async fn create(
     account_id: &str,
     project_slug: &str,
+    graph_mode: GraphMode,
     env_vars: impl Iterator<Item = (&str, &str)>,
-) -> Result<(Vec<String>, cynic::Id, String), ApiError> {
+) -> Result<(Vec<String>, Option<cynic::Id>, String), ApiError> {
     let project = Project::get();
 
     match project.dot_grafbase_directory_path.try_exists() {
@@ -81,6 +84,7 @@ pub async fn create(
         input: GraphCreateInput {
             account_id: Id::new(account_id),
             graph_slug: project_slug,
+            graph_mode,
             repo_root_path: project
                 .schema_path
                 .path()
@@ -100,19 +104,24 @@ pub async fn create(
     let payload = response.data.ok_or(ApiError::UnauthorizedOrDeletedUser)?.graph_create;
 
     match payload {
-        GraphCreatePayload::GraphCreateSuccess(project_create_success) => {
+        GraphCreatePayload::GraphCreateSuccess(graph_create_success) => {
             let project_metadata_path = project.dot_grafbase_directory_path.join(PROJECT_METADATA_FILE);
 
             tokio::fs::write(
                 &project_metadata_path,
-                ProjectMetadata::new(project_create_success.graph.id.into_inner().clone()).to_string(),
+                ProjectMetadata::new(graph_create_success.graph.id.into_inner().clone()).to_string(),
             )
             .await
             .map_err(ApiError::WriteProjectMetadataFile)?;
 
-            let (deployment_id, _, project_slug) = deploy::deploy(None, None).await?;
+            let deployment_id = if matches!(graph_mode, GraphMode::Managed) {
+                let (deployment_id, _, _) = deploy::deploy(None, None).await?;
+                Some(deployment_id)
+            } else {
+                None
+            };
 
-            let domains = project_create_success
+            let domains = graph_create_success
                 .graph
                 .production_branch
                 .domains
@@ -120,7 +129,7 @@ pub async fn create(
                 .map(|domain| format!("{domain}/graphql"))
                 .collect();
 
-            Ok((domains, deployment_id, project_slug))
+            Ok((domains, deployment_id, graph_create_success.graph.slug))
         }
         GraphCreatePayload::SlugAlreadyExistsError(_) => Err(CreateError::SlugAlreadyExists.into()),
         GraphCreatePayload::SlugInvalidError(_) => Err(CreateError::SlugInvalid.into()),
