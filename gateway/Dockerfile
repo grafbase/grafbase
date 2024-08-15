@@ -36,6 +36,7 @@ LABEL org.opencontainers.image.url='https://grafbase.com' \
     org.opencontainers.image.documentation='https://grafbase.com/docs' \
     org.opencontainers.image.source='https://github.com/grafbase/grafbase/tree/main/gateway' \
     org.opencontainers.image.vendor='Grafbase' \
+    org.opencontainers.image.description='The Grafbase GraphQL Federation Gateway' \
     org.opencontainers.image.licenses='MPL-2.0'
 
 WORKDIR /grafbase
