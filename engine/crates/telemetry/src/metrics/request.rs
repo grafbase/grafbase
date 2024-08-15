@@ -9,6 +9,7 @@ use crate::{gql_response_status::GraphqlResponseStatus, grafbase_client::Client}
 pub struct RequestMetrics {
     latency: Histogram<u64>,
     connected_clients: UpDownCounter<i64>,
+    response_body_sizes: Histogram<u64>,
 }
 
 pub struct RequestMetricsAttributes {
@@ -23,6 +24,7 @@ impl RequestMetrics {
         Self {
             latency: meter.u64_histogram("request_latency").init(),
             connected_clients: meter.i64_up_down_counter("http.server.connected.clients").init(),
+            response_body_sizes: meter.u64_histogram("http.server.response.body.size").init(),
         }
     }
 
@@ -59,5 +61,9 @@ impl RequestMetrics {
 
     pub fn decrement_connected_clients(&self) {
         self.connected_clients.add(-1, &[]);
+    }
+
+    pub fn record_response_body_size(&self, size: u64) {
+        self.response_body_sizes.record(size, &[]);
     }
 }

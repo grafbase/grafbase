@@ -194,6 +194,10 @@ where
                 }
 
                 response.headers_mut().remove(GraphqlResponseStatus::header_name());
+
+                if let Some(size) = response.body().size_hint().exact() {
+                    metrics.record_response_body_size(size);
+                }
             }
             Err(ref err) => {
                 Span::current().record("http.response.status_code", 500);
