@@ -49,7 +49,14 @@ RUN cargo build --release --bin grafbase
 #
 # === Final image ===
 #
-FROM oven/bun:1.1.6-alpine
+FROM oven/bun:1.1.12-alpine
+
+LABEL org.opencontainers.image.url='https://grafbase.com/cli' \
+    org.opencontainers.image.documentation='https://grafbase.com/docs/cli' \
+    org.opencontainers.image.source='https://github.com/grafbase/grafbase/tree/main/cli' \
+    org.opencontainers.image.vendor='Grafbase' \
+    org.opencontainers.image.description='The Grafbase Command Line Interface' \
+    org.opencontainers.image.licenses='Apache-2.0'
 
 # gosu is a better sudo/su to step down from root into the service user in the docker-entrypoint.sh script
 # See https://github.com/tianon/gosu/blob/master/INSTALL.md
