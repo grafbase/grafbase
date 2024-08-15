@@ -25,8 +25,8 @@ pub fn union_output(
         .enumerate()
         .map(|(variant_index, ty)| -> anyhow::Result<TypeEdge> {
             let target = *model_index
-                .get(ty)
-                .ok_or_else(|| anyhow::anyhow!("Could not find type {ty}"))?;
+                .get(ty.name())
+                .ok_or_else(|| anyhow::anyhow!("Could not find type {ty}", ty = ty.name()))?;
 
             Ok(TypeEdge {
                 index: variant_index,

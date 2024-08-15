@@ -2,29 +2,53 @@
   "src → target": [
     {
       "path": "CatInHat.whimsicalQuote",
-      "kind": "AddField"
+      "kind": "AddField",
+      "span": {
+        "start": 154,
+        "end": 180
+      }
     },
     {
       "path": "CreateSeussCharacterInput.favoriteRhyme",
-      "kind": "AddField"
+      "kind": "AddField",
+      "span": {
+        "start": 252,
+        "end": 275
+      }
     },
     {
       "path": "SeussCharacter.whimsicalQuote",
-      "kind": "AddField"
+      "kind": "AddField",
+      "span": {
+        "start": 57,
+        "end": 81
+      }
     }
   ],
   "target → src": [
     {
       "path": "CatInHat.whimsicalQuote",
-      "kind": "RemoveField"
+      "kind": "RemoveField",
+      "span": {
+        "start": 0,
+        "end": 0
+      }
     },
     {
       "path": "CreateSeussCharacterInput.favoriteRhyme",
-      "kind": "RemoveField"
+      "kind": "RemoveField",
+      "span": {
+        "start": 0,
+        "end": 0
+      }
     },
     {
       "path": "SeussCharacter.whimsicalQuote",
-      "kind": "RemoveField"
+      "kind": "RemoveField",
+      "span": {
+        "start": 0,
+        "end": 0
+      }
     }
   ]
 }

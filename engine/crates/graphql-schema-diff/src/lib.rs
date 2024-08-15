@@ -6,7 +6,7 @@ mod change;
 mod state;
 mod traverse_schemas;
 
-pub use change::{Change, ChangeKind};
+pub use change::{Change, ChangeKind, Span};
 
 use self::state::*;
 use cynic_parser::type_system as ast;

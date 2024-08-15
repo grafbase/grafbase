@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Enrich `Change` with spans pointing to the added / changed / removed parts of schemas (https://github.com/grafbase/grafbase/pull/2014)
+
 ## 0.2.0 - 2024-07-16
 
 ### Changed

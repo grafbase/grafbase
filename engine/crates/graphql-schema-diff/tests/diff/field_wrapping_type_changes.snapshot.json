@@ -2,37 +2,69 @@
   "src → target": [
     {
       "path": "Mutation.isTuesday",
-      "kind": "ChangeFieldType"
+      "kind": "ChangeFieldType",
+      "span": {
+        "start": 92,
+        "end": 100
+      }
     },
     {
       "path": "Mutation.isTuesday.exceptions",
-      "kind": "ChangeFieldArgumentType"
+      "kind": "ChangeFieldArgumentType",
+      "span": {
+        "start": 81,
+        "end": 89
+      }
     },
     {
       "path": "Mutation.isTuesday.lat",
-      "kind": "ChangeFieldArgumentType"
+      "kind": "ChangeFieldArgumentType",
+      "span": {
+        "start": 48,
+        "end": 54
+      }
     },
     {
       "path": "Mutation.isTuesday.lon",
-      "kind": "ChangeFieldArgumentType"
+      "kind": "ChangeFieldArgumentType",
+      "span": {
+        "start": 61,
+        "end": 67
+      }
     }
   ],
   "target → src": [
     {
       "path": "Mutation.isTuesday",
-      "kind": "ChangeFieldType"
+      "kind": "ChangeFieldType",
+      "span": {
+        "start": 86,
+        "end": 93
+      }
     },
     {
       "path": "Mutation.isTuesday.exceptions",
-      "kind": "ChangeFieldArgumentType"
+      "kind": "ChangeFieldArgumentType",
+      "span": {
+        "start": 77,
+        "end": 83
+      }
     },
     {
       "path": "Mutation.isTuesday.lat",
-      "kind": "ChangeFieldArgumentType"
+      "kind": "ChangeFieldArgumentType",
+      "span": {
+        "start": 46,
+        "end": 51
+      }
     },
     {
       "path": "Mutation.isTuesday.lon",
-      "kind": "ChangeFieldArgumentType"
+      "kind": "ChangeFieldArgumentType",
+      "span": {
+        "start": 58,
+        "end": 63
+      }
     }
   ]
 }
