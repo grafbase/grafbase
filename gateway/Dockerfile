@@ -32,6 +32,12 @@ RUN cargo build -p grafbase-gateway --release
 #
 FROM alpine:3.20
 
+LABEL org.opencontainers.image.url='https://grafbase.com' \
+    org.opencontainers.image.documentation='https://grafbase.com/docs' \
+    org.opencontainers.image.source='https://github.com/grafbase/grafbase/tree/main/gateway' \
+    org.opencontainers.image.vendor='Grafbase' \
+    org.opencontainers.image.licenses='MPL-2.0'
+
 WORKDIR /grafbase
 
 # used curl to run a health check query against the server in a docker-compose file
