@@ -532,28 +532,5 @@ fn cache_miss_hit() {
           "Attributes": {}
         }
         "###);
-
-        let row = clickhouse
-            .query(
-                r#"
-                SELECT Value, Attributes
-                FROM otel_metrics_gauge
-                WHERE ServiceName = ? AND TimeUnix >= ?
-                    AND ScopeName = 'grafbase'
-                    AND MetricName = 'graphql.operation.cache.in_memory.size'
-                "#,
-            )
-            .bind(&service_name)
-            .bind(start_time_unix)
-            .fetch_optional::<SumRow>()
-            .await
-            .unwrap();
-
-        insta::assert_json_snapshot!(row, @r###"
-        {
-          "Value": 1.0,
-          "Attributes": {}
-        }
-        "###);
     });
 }

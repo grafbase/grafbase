@@ -1,5 +1,5 @@
 use opentelemetry::{
-    metrics::{Counter, Gauge, Histogram, Meter, UpDownCounter},
+    metrics::{Counter, Histogram, Meter, UpDownCounter},
     KeyValue,
 };
 
@@ -20,7 +20,6 @@ pub struct GraphqlOperationMetrics {
     subgraph_cache_misses: Counter<u64>,
     operation_cache_hits: Counter<u64>,
     operation_cache_misses: Counter<u64>,
-    operation_cache_size: Gauge<u64>,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -131,7 +130,6 @@ impl GraphqlOperationMetrics {
             subgraph_cache_misses: meter.u64_counter("graphql.subgraph.request.cache.miss").init(),
             operation_cache_hits: meter.u64_counter("graphql.operation.cache.hit").init(),
             operation_cache_misses: meter.u64_counter("graphql.operation.cache.miss").init(),
-            operation_cache_size: meter.u64_gauge("graphql.operation.cache.in_memory.size").init(),
         }
     }
 
@@ -257,9 +255,5 @@ impl GraphqlOperationMetrics {
 
     pub fn record_operation_cache_miss(&self) {
         self.operation_cache_misses.add(1, &[]);
-    }
-
-    pub fn operation_cache_size_gauge(&self) -> Gauge<u64> {
-        self.operation_cache_size.clone()
     }
 }

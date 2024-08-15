@@ -484,13 +484,7 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
                     .map(Arc::new)
                     .map_err(|mut err| (err.take_metrics_attributes(), Response::request_error([err])))?;
 
-                let gauge = self.engine.operation_metrics.operation_cache_size_gauge();
-                let cache_fut = self
-                    .engine
-                    .operation_cache
-                    .insert(cache_key, operation.clone())
-                    .map(move |size| gauge.record(size, &[]));
-
+                let cache_fut = self.engine.operation_cache.insert(cache_key, operation.clone());
                 self.push_background_future(cache_fut.boxed());
 
                 operation
