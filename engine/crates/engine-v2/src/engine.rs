@@ -138,21 +138,21 @@ impl<R: Runtime> Engine<R> {
 
         let graphql_request_fut = async move {
             if parts.method == http::Method::POST {
-                body.await
-                    .map_err(|(status, message)| {
-                        Http::from(
-                            format,
-                            Response::refuse_request_with(status, GraphqlError::new(message, ErrorCode::BadRequest)),
-                        )
-                    })
-                    .and_then(|body| {
-                        serde_json::from_slice(&body).map_err(|err| {
-                            Http::from(
-                                format,
-                                RefusedRequestResponse::not_well_formed_graphql_over_http_request(&err.to_string()),
-                            )
-                        })
-                    })
+                let body = body.await.map_err(|(status, message)| {
+                    Http::from(
+                        format,
+                        Response::refuse_request_with(status, GraphqlError::new(message, ErrorCode::BadRequest)),
+                    )
+                })?;
+
+                self.operation_metrics.record_request_body_size(body.len());
+
+                serde_json::from_slice(&body).map_err(|err| {
+                    Http::from(
+                        format,
+                        RefusedRequestResponse::not_well_formed_graphql_over_http_request(&err.to_string()),
+                    )
+                })
             } else {
                 let query = parts.uri.query().unwrap_or_default();
                 serde_urlencoded::from_str::<QueryParamsRequest>(query)

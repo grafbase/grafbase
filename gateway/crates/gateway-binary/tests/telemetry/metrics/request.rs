@@ -280,3 +280,43 @@ fn connected_clients() {
         "###);
     });
 }
+
+#[test]
+fn request_body_size() {
+    with_gateway(|service_name, start_time_unix, gateway, clickhouse| async move {
+        let resp = gateway.gql::<serde_json::Value>("{ __typename }").send().await;
+
+        insta::assert_json_snapshot!(resp, @r###"
+        {
+          "data": {
+            "__typename": "Query"
+          }
+        }
+        "###);
+
+        tokio::time::sleep(METRICS_DELAY).await;
+
+        let row = clickhouse
+            .query(
+                r#"
+                SELECT Count, Attributes
+                FROM otel_metrics_exponential_histogram
+                WHERE ServiceName = ? AND StartTimeUnix >= ?
+                    AND ScopeName = 'grafbase'
+                    AND MetricName = 'http.server.request.body.size'
+                "#,
+            )
+            .bind(&service_name)
+            .bind(start_time_unix)
+            .fetch_optional::<ExponentialHistogramRow>()
+            .await
+            .unwrap();
+
+        insta::assert_json_snapshot!(row, @r###"
+        {
+          "Count": 1,
+          "Attributes": {}
+        }
+        "###);
+    });
+}
