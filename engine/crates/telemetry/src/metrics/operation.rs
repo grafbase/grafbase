@@ -21,6 +21,7 @@ pub struct GraphqlOperationMetrics {
     operation_cache_hits: Counter<u64>,
     operation_cache_misses: Counter<u64>,
     query_preparation_latency: Histogram<u64>,
+    batch_sizes: Histogram<u64>,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -139,6 +140,7 @@ impl GraphqlOperationMetrics {
             operation_cache_hits: meter.u64_counter("graphql.operation.cache.hit").init(),
             operation_cache_misses: meter.u64_counter("graphql.operation.cache.miss").init(),
             query_preparation_latency: meter.u64_histogram("graphql.operation.prepare.duration").init(),
+            batch_sizes: meter.u64_histogram("graphql.operation.batch.size").init(),
         }
     }
 
@@ -289,5 +291,9 @@ impl GraphqlOperationMetrics {
 
         self.query_preparation_latency
             .record(latency.as_millis() as u64, &attributes);
+    }
+
+    pub fn record_batch_size(&self, size: usize) {
+        self.batch_sizes.record(size as u64, &[]);
     }
 }

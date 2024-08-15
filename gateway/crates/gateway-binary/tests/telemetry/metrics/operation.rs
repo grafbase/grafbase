@@ -637,3 +637,55 @@ fn prepare_duration_fail() {
         "###);
     });
 }
+
+#[test]
+fn batch() {
+    with_gateway(|service_name, start_time_unix, gateway, clickhouse| async move {
+        let query = String::from("query SimpleQuery { __typename }");
+
+        let resp = gateway
+            .gql_batch::<serde_json::Value, _>(&[query.clone(), query])
+            .send()
+            .await;
+
+        insta::assert_json_snapshot!(resp, @r###"
+        [
+          {
+            "data": {
+              "__typename": "Query"
+            }
+          },
+          {
+            "data": {
+              "__typename": "Query"
+            }
+          }
+        ]
+        "###);
+
+        tokio::time::sleep(METRICS_DELAY).await;
+
+        let row = clickhouse
+            .query(
+                r#"
+                SELECT Count, Attributes
+                FROM otel_metrics_exponential_histogram
+                WHERE ServiceName = ? AND StartTimeUnix >= ?
+                    AND ScopeName = 'grafbase'
+                    AND MetricName = 'graphql.operation.batch.size'
+                "#,
+            )
+            .bind(&service_name)
+            .bind(start_time_unix)
+            .fetch_optional::<ExponentialHistogramRow>()
+            .await
+            .unwrap();
+
+        insta::assert_json_snapshot!(row, @r###"
+        {
+          "Count": 1,
+          "Attributes": {}
+        }
+        "###);
+    });
+}

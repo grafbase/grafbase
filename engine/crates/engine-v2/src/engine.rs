@@ -262,6 +262,9 @@ impl<R: Runtime> Engine<R> {
                         ),
                     );
                 };
+
+                self.operation_metrics.record_batch_size(requests.len());
+
                 let Some(responses) = self
                     .runtime
                     .with_timeout(
@@ -274,6 +277,7 @@ impl<R: Runtime> Engine<R> {
                 else {
                     return Http::from(request_context.response_format, RequestErrorResponse::gateway_timeout());
                 };
+
                 Http::batch(format, responses)
             }
         }
