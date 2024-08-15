@@ -1,5 +1,3 @@
-mod record;
-
 use std::borrow::Cow;
 
 use bytes::Bytes;
@@ -22,6 +20,7 @@ use web_time::{Duration, SystemTime};
 use crate::{
     execution::{ExecutionContext, ExecutionError, ExecutionResult},
     response::SubgraphResponse,
+    sources::graphql::record,
     Runtime,
 };
 

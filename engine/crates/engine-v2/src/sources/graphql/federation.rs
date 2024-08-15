@@ -3,7 +3,7 @@ use futures::future::join_all;
 use grafbase_telemetry::{gql_response_status::GraphqlResponseStatus, span::subgraph::SubgraphRequestSpan};
 use http::HeaderMap;
 use runtime::bytes::OwnedOrSharedBytes;
-use schema::sources::graphql::{FederationEntityResolveDefinitionrWalker, GraphqlEndpointId};
+use schema::sources::graphql::{FederationEntityResolveDefinitionrWalker, GraphqlEndpointId, GraphqlEndpointWalker};
 use serde::{de::DeserializeSeed, Deserialize};
 use serde_json::value::RawValue;
 use std::{borrow::Cow, future::Future, time::Duration};
@@ -25,6 +25,7 @@ use crate::{
 
 use super::{
     deserialize::EntitiesDataSeed,
+    record,
     request::{execute_subgraph_request, PreparedFederationEntityOperation, ResponseIngester},
 };
 
@@ -156,7 +157,7 @@ async fn cache_fetches<'ctx, R: Runtime>(
 ) -> CacheFetchOutcome {
     let fetches = representations
         .iter()
-        .map(|repr| cache_fetch(ctx, endpoint.subgraph_name(), headers, repr));
+        .map(|repr| cache_fetch(ctx, endpoint, headers, repr));
 
     let cache_entries = join_all(fetches).await;
     let fully_cached = !cache_entries.iter().any(CacheEntry::is_miss);
@@ -305,11 +306,11 @@ struct Data<'a> {
 
 async fn cache_fetch<R: Runtime>(
     ctx: ExecutionContext<'_, R>,
-    subgraph_name: &str,
+    endpoint: GraphqlEndpointWalker<'_>,
     headers: &HeaderMap,
     repr: &RawValue,
 ) -> CacheEntry {
-    let key = build_cache_key(subgraph_name, headers, repr);
+    let key = build_cache_key(endpoint.subgraph_name(), headers, repr);
 
     let data = ctx
         .engine
@@ -322,8 +323,14 @@ async fn cache_fetch<R: Runtime>(
         .flatten();
 
     match data {
-        Some(data) => CacheEntry::Hit { data },
-        None => CacheEntry::Miss { key },
+        Some(data) => {
+            record::record_subgraph_cache_hit(ctx, endpoint);
+            CacheEntry::Hit { data }
+        }
+        None => {
+            record::record_subgraph_cache_miss(ctx, endpoint);
+            CacheEntry::Miss { key }
+        }
     }
 }
 

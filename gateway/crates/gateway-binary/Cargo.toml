@@ -54,3 +54,4 @@ serde_json.workspace = true
 tempfile = "3.10.1"
 wiremock.workspace = true
 ulid.workspace = true
+handlebars.workspace = true

@@ -1,3 +1,4 @@
+use mini_moka::sync::ConcurrentCacheExt;
 use runtime::operation_cache::{OperationCache, OperationCacheFactory};
 
 pub struct InMemoryOperationCacheConfig {
@@ -49,8 +50,10 @@ impl<V> OperationCache<V> for InMemoryOperationCache<V>
 where
     V: Clone + Send + Sync + 'static + serde::Serialize + serde::de::DeserializeOwned,
 {
-    async fn insert(&self, key: String, value: V) {
+    async fn insert(&self, key: String, value: V) -> u64 {
         self.inner.insert(key, value);
+        self.inner.sync();
+        self.inner.entry_count()
     }
 
     async fn get(&self, key: &String) -> Option<V> {

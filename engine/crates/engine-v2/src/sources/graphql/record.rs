@@ -1,8 +1,9 @@
 use grafbase_telemetry::{
     gql_response_status::SubgraphResponseStatus,
     metrics::{
-        SubgraphInFlightRequestAttributes, SubgraphRequestBodySizeAttributes, SubgraphRequestDurationAttributes,
-        SubgraphRequestRetryAttributes, SubgraphResponseBodySizeAttributes,
+        SubgraphCacheHitAttributes, SubgraphCacheMissAttributes, SubgraphInFlightRequestAttributes,
+        SubgraphRequestBodySizeAttributes, SubgraphRequestDurationAttributes, SubgraphRequestRetryAttributes,
+        SubgraphResponseBodySizeAttributes,
     },
 };
 use schema::sources::graphql::GraphqlEndpointWalker;
@@ -82,6 +83,25 @@ pub(super) fn decrement_inflight_requests<R: Runtime>(
     ctx.engine
         .operation_metrics
         .decrement_subgraph_inflight_requests(SubgraphInFlightRequestAttributes {
+            name: endpoint.subgraph_name().to_string(),
+        });
+}
+
+pub(super) fn record_subgraph_cache_hit<R: Runtime>(ctx: ExecutionContext<'_, R>, endpoint: GraphqlEndpointWalker<'_>) {
+    ctx.engine
+        .operation_metrics
+        .record_subgraph_cache_hit(SubgraphCacheHitAttributes {
+            name: endpoint.subgraph_name().to_string(),
+        });
+}
+
+pub(super) fn record_subgraph_cache_miss<R: Runtime>(
+    ctx: ExecutionContext<'_, R>,
+    endpoint: GraphqlEndpointWalker<'_>,
+) {
+    ctx.engine
+        .operation_metrics
+        .record_subgraph_cache_miss(SubgraphCacheMissAttributes {
             name: endpoint.subgraph_name().to_string(),
         });
 }

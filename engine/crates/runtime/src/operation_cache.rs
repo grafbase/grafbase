@@ -25,7 +25,8 @@ pub trait OperationCache<V>: Send + Sync + 'static
 where
     V: Clone + Send + Sync + 'static + serde::Serialize + serde::de::DeserializeOwned,
 {
-    fn insert(&self, key: String, value: V) -> impl Future<Output = ()> + Send;
+    // insert a new cache item, return the current cache size
+    fn insert(&self, key: String, value: V) -> impl Future<Output = u64> + Send;
     // moka-cache does require a &String rather than a &str
     #[allow(clippy::ptr_arg)]
     fn get(&self, key: &String) -> impl Future<Output = Option<V>> + Send;
@@ -50,7 +51,9 @@ impl<V> OperationCache<V> for ()
 where
     V: Clone + Send + Sync + 'static + serde::Serialize + serde::de::DeserializeOwned,
 {
-    async fn insert(&self, _: String, _: V) {}
+    async fn insert(&self, _: String, _: V) -> u64 {
+        0
+    }
 
     async fn get(&self, _: &String) -> Option<V> {
         None
