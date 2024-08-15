@@ -42,8 +42,6 @@ mod trusted_documents;
 
 pub use runtime::Runtime;
 
-static APPLICATION_JSON: http::HeaderValue = http::HeaderValue::from_static("application/json");
-
 pub(crate) struct SchemaVersion(Vec<u8>);
 
 impl std::ops::Deref for SchemaVersion {
@@ -121,7 +119,7 @@ impl<R: Runtime> Engine<R> {
             // GraphQL-over-HTTP spec:
             //   If the client does not supply a Content-Type header with a POST request,
             //   the server SHOULD reject the request using the appropriate 4xx status code.
-            if parts.headers.get(http::header::CONTENT_TYPE) != Some(&APPLICATION_JSON) {
+            if !content_type_is_application_json(&parts.headers) {
                 return Http::from(format, RefusedRequestResponse::unsupported_media_type());
             }
         } else if parts.method != http::Method::GET {
@@ -563,4 +561,17 @@ impl<R: Runtime> WebsocketSession<R> {
                 },
             })
     }
+}
+
+fn content_type_is_application_json(headers: &http::HeaderMap) -> bool {
+    static APPLICATION_JSON: http::HeaderValue = http::HeaderValue::from_static("application/json");
+
+    let Some(header) = headers.get(http::header::CONTENT_TYPE) else {
+        return false;
+    };
+
+    let header = header.to_str().unwrap_or_default();
+    let (without_parameters, _) = header.split_once(';').unwrap_or((header, ""));
+
+    without_parameters == APPLICATION_JSON
 }

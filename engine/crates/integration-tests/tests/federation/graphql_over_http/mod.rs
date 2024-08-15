@@ -120,6 +120,48 @@ fn missing_content_type(#[case] accept: &'static str) {
     })
 }
 
+// POST
+#[rstest::rstest]
+#[case::json(APPLICATION_JSON)]
+#[case::gql_json(APPLICATION_GRAPHQL_RESPONSE_JSON)]
+fn content_type_with_parameters(#[case] accept: &'static str) {
+    runtime().block_on(async move {
+        let engine = Engine::builder().with_subgraph(FakeGithubSchema).build().await;
+
+        let response = engine
+            .raw_execute(
+                http::Request::builder()
+                    .method(http::Method::POST)
+                    .header(http::header::ACCEPT, accept)
+                    .header(http::header::CONTENT_TYPE, "application/json; charset=utf-8")
+                    .body(serde_json::to_vec(&serde_json::json!({"query": "__typename"})).unwrap())
+                    .unwrap(),
+            )
+            .await;
+        let status = response.status();
+        let body: serde_json::Value = serde_json::from_slice(&response.into_body().into_bytes().unwrap()).unwrap();
+        insta::assert_json_snapshot!(body, @r###"
+        {
+          "errors": [
+            {
+              "message": " --> 1:1\n  |\n1 | __typename\n  | ^---\n  |\n  = expected executable_definition",
+              "locations": [
+                {
+                  "line": 1,
+                  "column": 1
+                }
+              ],
+              "extensions": {
+                "code": "OPERATION_PARSING_ERROR"
+              }
+            }
+          ]
+        }
+        "###);
+        assert_ne!(status, 405);
+    })
+}
+
 // GET requests MUST NOT be used for executing mutation operations. If the values of {query} and {operationName}
 // indicate that a mutation operation is to be executed, the server MUST respond with error status code 405 (Method Not Allowed)
 // and halt execution. This restriction is necessary to conform with the long-established semantics of safe methods within HTTP.
