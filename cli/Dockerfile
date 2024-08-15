@@ -1,7 +1,7 @@
 #
 # === Pathfinder & UDF wrapper ===
 #
-FROM oven/bun:1.1.6-alpine AS assets
+FROM oven/bun:1.1.12-alpine AS assets
 WORKDIR /grafbase
 COPY ./cli/wrappers ./cli/wrappers
 COPY ./packages/cli-app ./packages/cli-app
@@ -17,7 +17,7 @@ RUN apk add --no-cache git npm && \
 # === Grafbase CLI ===
 #
 # Using the same alpine image as oven/bun
-# https://github.com/oven-sh/bun/blob/bun-v1.1.6/dockerhub/alpine/Dockerfile
+# https://github.com/oven-sh/bun/blob/bun-v1.1.12/dockerhub/alpine/Dockerfile
 FROM rust:1.80-alpine3.20 AS chef
 COPY rust-toolchain.toml rust-toolchain.toml
 RUN apk add --no-cache musl-dev && cargo install cargo-chef
