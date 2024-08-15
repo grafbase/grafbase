@@ -135,7 +135,7 @@ impl GraphqlOperationMetrics {
         }
     }
 
-    pub fn record_operation(
+    pub fn record_operation_duration(
         &self,
         GraphqlRequestMetricsAttributes {
             operation:

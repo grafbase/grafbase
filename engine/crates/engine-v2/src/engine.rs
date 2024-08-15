@@ -292,7 +292,7 @@ impl<R: Runtime> Engine<R> {
             if let Some(operation_metrics_attributes) = operation_metrics_attributes {
                 span.record_gql_request((&operation_metrics_attributes).into());
 
-                self.operation_metrics.record_operation(
+                self.operation_metrics.record_operation_duration(
                     GraphqlRequestMetricsAttributes {
                         operation: operation_metrics_attributes,
                         status,
@@ -343,7 +343,7 @@ impl<R: Runtime> Engine<R> {
                 if let Some(operation_metrics_attributes) = operation_metrics_attributes {
                     tracing::Span::current().record_gql_request((&operation_metrics_attributes).into());
 
-                    engine.operation_metrics.record_operation(
+                    engine.operation_metrics.record_operation_duration(
                         GraphqlRequestMetricsAttributes {
                             operation: operation_metrics_attributes,
                             status,

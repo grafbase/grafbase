@@ -1,4 +1,4 @@
-use crate::telemetry::metrics::METRICS_DELAY;
+use crate::telemetry::metrics::{SumRow, METRICS_DELAY};
 
 use super::{with_gateway, ExponentialHistogramRow};
 
@@ -236,6 +236,46 @@ fn client() {
             "http.headers.x-grafbase-client-version": "1.0.0",
             "http.response.status_code": "200"
           }
+        }
+        "###);
+    });
+}
+
+#[test]
+fn connected_clients() {
+    with_gateway(|service_name, start_time_unix, gateway, clickhouse| async move {
+        let resp = gateway.gql::<serde_json::Value>("{ __typename }").send().await;
+
+        insta::assert_json_snapshot!(resp, @r###"
+        {
+          "data": {
+            "__typename": "Query"
+          }
+        }
+        "###);
+
+        tokio::time::sleep(METRICS_DELAY).await;
+
+        let row = clickhouse
+            .query(
+                r#"
+                SELECT Value, Attributes
+                FROM otel_metrics_sum
+                WHERE ServiceName = ? AND StartTimeUnix >= ?
+                    AND ScopeName = 'grafbase'
+                    AND MetricName = 'http.server.connected.clients'
+                "#,
+            )
+            .bind(&service_name)
+            .bind(start_time_unix)
+            .fetch_optional::<SumRow>()
+            .await
+            .unwrap();
+
+        insta::assert_json_snapshot!(row, @r###"
+        {
+          "Value": 0.0,
+          "Attributes": {}
         }
         "###);
     });
