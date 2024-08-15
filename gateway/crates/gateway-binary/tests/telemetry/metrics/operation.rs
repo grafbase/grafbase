@@ -534,3 +534,106 @@ fn cache_miss_hit() {
         "###);
     });
 }
+
+#[test]
+fn prepare_duration_success() {
+    with_gateway(|service_name, start_time_unix, gateway, clickhouse| async move {
+        let resp = gateway
+            .gql::<serde_json::Value>("query SimpleQuery { __typename }")
+            .send()
+            .await;
+
+        insta::assert_json_snapshot!(resp, @r###"
+        {
+          "data": {
+            "__typename": "Query"
+          }
+        }
+        "###);
+
+        tokio::time::sleep(METRICS_DELAY).await;
+
+        let row = clickhouse
+            .query(
+                r#"
+                SELECT Count, Attributes
+                FROM otel_metrics_exponential_histogram
+                WHERE ServiceName = ? AND StartTimeUnix >= ?
+                    AND ScopeName = 'grafbase'
+                    AND MetricName = 'graphql.operation.prepare.duration'
+                "#,
+            )
+            .bind(&service_name)
+            .bind(start_time_unix)
+            .fetch_optional::<ExponentialHistogramRow>()
+            .await
+            .unwrap();
+
+        insta::assert_json_snapshot!(row, @r###"
+        {
+          "Count": 1,
+          "Attributes": {
+            "graphql.document": "query SimpleQuery {\n  __typename\n}\n",
+            "graphql.operation.name": "SimpleQuery",
+            "graphql.operation.success": "true"
+          }
+        }
+        "###);
+    });
+}
+
+#[test]
+fn prepare_duration_fail() {
+    with_gateway(|service_name, start_time_unix, gateway, clickhouse| async move {
+        let resp = gateway
+            .gql::<serde_json::Value>("query SimpleQuery { __typename")
+            .send()
+            .await;
+
+        insta::assert_json_snapshot!(resp, @r###"
+        {
+          "errors": [
+            {
+              "message": " --> 1:31\n  |\n1 | query SimpleQuery { __typename\n  |                               ^---\n  |\n  = expected selection_set, selection, directive, or arguments",
+              "locations": [
+                {
+                  "line": 1,
+                  "column": 31
+                }
+              ],
+              "extensions": {
+                "code": "OPERATION_PARSING_ERROR"
+              }
+            }
+          ]
+        }
+        "###);
+
+        tokio::time::sleep(METRICS_DELAY).await;
+
+        let row = clickhouse
+            .query(
+                r#"
+                SELECT Count, Attributes
+                FROM otel_metrics_exponential_histogram
+                WHERE ServiceName = ? AND StartTimeUnix >= ?
+                    AND ScopeName = 'grafbase'
+                    AND MetricName = 'graphql.operation.prepare.duration'
+                "#,
+            )
+            .bind(&service_name)
+            .bind(start_time_unix)
+            .fetch_optional::<ExponentialHistogramRow>()
+            .await
+            .unwrap();
+
+        insta::assert_json_snapshot!(row, @r###"
+        {
+          "Count": 1,
+          "Attributes": {
+            "graphql.operation.success": "false"
+          }
+        }
+        "###);
+    });
+}

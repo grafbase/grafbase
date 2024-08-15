@@ -14,7 +14,10 @@ use gateway_v2_auth::AuthService;
 use grafbase_telemetry::{
     gql_response_status::GraphqlResponseStatus,
     grafbase_client::Client,
-    metrics::{GraphqlOperationMetrics, GraphqlRequestMetricsAttributes, OperationMetricsAttributes},
+    metrics::{
+        GraphqlOperationMetrics, GraphqlRequestMetricsAttributes, OperationMetricsAttributes,
+        QueryPreparationAttributes,
+    },
     span::{gql::GqlRequestSpan, GqlRecorderSpanExt, GRAFBASE_TARGET},
 };
 use retry_budget::RetryBudgets;
@@ -22,7 +25,7 @@ use schema::Schema;
 use std::{borrow::Cow, future::Future, sync::Arc};
 use tracing::Instrument;
 use trusted_documents::OperationDocument;
-use web_time::Instant;
+use web_time::{Instant, SystemTime};
 
 use crate::{
     execution::{ExecutableOperation, PreExecutionContext},
@@ -454,6 +457,41 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
     }
 
     async fn prepare_operation(
+        &mut self,
+        request: Request,
+    ) -> Result<ExecutableOperation, (Option<OperationMetricsAttributes>, Response)> {
+        let start = SystemTime::now();
+        let result = self.prepare_operation_inner(request).await;
+        let duration = SystemTime::now().duration_since(start).unwrap_or_default();
+
+        match result {
+            Ok(operation) => {
+                let attributes = QueryPreparationAttributes {
+                    operation_name: operation.prepared.metrics_attributes.name.clone(),
+                    document: Some(operation.prepared.metrics_attributes.sanitized_query.clone()),
+                    success: true,
+                };
+
+                self.operation_metrics.record_preparation_latency(attributes, duration);
+
+                Ok(operation)
+            }
+            Err(e) => {
+                dbg!(1);
+                let attributes = QueryPreparationAttributes {
+                    operation_name: None,
+                    document: None,
+                    success: false,
+                };
+
+                self.operation_metrics.record_preparation_latency(attributes, duration);
+
+                Err(e)
+            }
+        }
+    }
+
+    async fn prepare_operation_inner(
         &mut self,
         request: Request,
     ) -> Result<ExecutableOperation, (Option<OperationMetricsAttributes>, Response)> {
