@@ -14,6 +14,7 @@ use cynic_introspection::{IntrospectionQuery, SpecificationVersion};
 use engine_config_builder::{build_with_sdl_config, build_with_toml_config};
 use federated_graph::FederatedGraphV3;
 use futures::{future::BoxFuture, stream::FuturesUnordered, FutureExt, StreamExt};
+use grafbase_telemetry::metrics::meter_from_global_provider;
 use graphql_composition::FederatedGraph;
 use graphql_mocks::MockGraphQlServer;
 use itertools::Itertools;
@@ -191,15 +192,13 @@ impl EngineV2Builder {
 
 fn update_runtime_with_toml_config(runtime: &mut TestRuntime, config: &gateway_config::Config) {
     if let Some(hooks_config) = config.hooks.clone() {
-        let wasi_hooks = HooksWasi::new(Some(
-                        ComponentLoader::new(
-                            hooks_config
-                        )
-                        .ok()
-                        .flatten()
-                        .expect("Wasm examples weren't built, please run:\ncd engine/crates/wasi-component-loader/examples && cargo component build"),
-                    ));
-        runtime.hooks = DynamicHooks::wrap(wasi_hooks);
+        let loader = ComponentLoader::new(hooks_config)
+            .ok()
+            .flatten()
+            .expect("Wasm examples weren't built, please run:\ncd engine/crates/wasi-component-loader/examples && cargo component build");
+
+        let meter = meter_from_global_provider();
+        runtime.hooks = DynamicHooks::wrap(HooksWasi::new(Some(loader), &meter));
     }
 }
 

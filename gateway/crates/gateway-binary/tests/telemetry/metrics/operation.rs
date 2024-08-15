@@ -1,3 +1,4 @@
+mod hooks;
 mod subgraph;
 
 use crate::telemetry::metrics::{SumRow, METRICS_DELAY};

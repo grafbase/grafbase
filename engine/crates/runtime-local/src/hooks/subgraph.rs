@@ -18,15 +18,17 @@ impl SubgraphHooks<Context> for HooksWasi {
         url: &Url,
         headers: HeaderMap,
     ) -> Result<HeaderMap, PartialGraphqlError> {
-        let Some(ref hooks) = self.0 else {
+        let Some(ref inner) = self.0 else {
             return Ok(headers);
         };
 
-        hooks
-            .subgraph
-            .get()
-            .await
-            .on_subgraph_request(context.clone(), subgraph_name, method, url, headers)
+        let mut hook = inner.subgraph.get().await;
+
+        inner
+            .run_and_measure(
+                "on-subgraph-request",
+                hook.on_subgraph_request(context.clone(), subgraph_name, method, url, headers),
+            )
             .await
             .map_err(|err| match err {
                 wasi_component_loader::Error::Internal(err) => {
