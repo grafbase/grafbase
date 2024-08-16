@@ -224,7 +224,7 @@ async fn graceful_shutdown(handle: axum_server::Handle) {
     }
 
     tracing::info!(target: GRAFBASE_TARGET, "Shutting down gracefully...");
-    handle.graceful_shutdown(None);
+    handle.graceful_shutdown(Some(std::time::Duration::from_secs(3)));
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
