@@ -2394,7 +2394,7 @@ dependencies = [
 
 [[package]]
 name = "engine-config-builder"
-version = "0.78.0"
+version = "0.79.0"
 dependencies = [
  "engine-v2-config",
  "gateway-config",
@@ -2829,7 +2829,7 @@ dependencies = [
 
 [[package]]
 name = "federated-dev"
-version = "0.78.0"
+version = "0.79.0"
 dependencies = [
  "async-graphql",
  "async-graphql-axum",
@@ -3221,7 +3221,7 @@ dependencies = [
 
 [[package]]
 name = "gateway"
-version = "0.78.0"
+version = "0.79.0"
 dependencies = [
  "async-graphql",
  "async-trait",
@@ -3476,7 +3476,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase"
-version = "0.78.0"
+version = "0.79.0"
 dependencies = [
  "assert_matches",
  "async-graphql",
@@ -3559,7 +3559,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-docker-tests"
-version = "0.78.0"
+version = "0.79.0"
 dependencies = [
  "anyhow",
  "bollard",
@@ -3616,7 +3616,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-graphql-introspection"
-version = "0.78.0"
+version = "0.79.0"
 dependencies = [
  "cynic",
  "cynic-introspection",
@@ -3628,7 +3628,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-local-backend"
-version = "0.78.0"
+version = "0.79.0"
 dependencies = [
  "async-compression",
  "axum",
@@ -3658,7 +3658,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-local-common"
-version = "0.78.0"
+version = "0.79.0"
 dependencies = [
  "chrono",
  "common-types",
@@ -3678,7 +3678,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-local-server"
-version = "0.78.0"
+version = "0.79.0"
 dependencies = [
  "async-trait",
  "async-tungstenite",
@@ -3791,7 +3791,7 @@ dependencies = [
 
 [[package]]
 name = "graph-ref"
-version = "0.78.0"
+version = "0.79.0"
 
 [[package]]
 name = "graphql-composition"
@@ -3809,7 +3809,7 @@ dependencies = [
 
 [[package]]
 name = "graphql-cursor"
-version = "0.78.0"
+version = "0.79.0"
 dependencies = [
  "serde",
  "serde_with",
@@ -5993,7 +5993,7 @@ dependencies = [
 
 [[package]]
 name = "operation-checks"
-version = "0.78.0"
+version = "0.79.0"
 dependencies = [
  "async-graphql-parser",
  "async-graphql-value",
@@ -6006,7 +6006,7 @@ dependencies = [
 
 [[package]]
 name = "operation-normalizer"
-version = "0.78.0"
+version = "0.79.0"
 dependencies = [
  "anyhow",
  "expect-test",
@@ -6275,7 +6275,7 @@ dependencies = [
 
 [[package]]
 name = "partial-caching"
-version = "0.78.0"
+version = "0.79.0"
 dependencies = [
  "anyhow",
  "blake3",
@@ -7910,7 +7910,7 @@ dependencies = [
 
 [[package]]
 name = "serde-dynamic-string"
-version = "0.78.0"
+version = "0.79.0"
 dependencies = [
  "ascii 1.1.0",
  "insta",
@@ -9429,7 +9429,7 @@ checksum = "6af6ae20167a9ece4bcb41af5b80f8a1f1df981f6391189ce00fd257af04126a"
 
 [[package]]
 name = "typed-resolvers"
-version = "0.78.0"
+version = "0.79.0"
 dependencies = [
  "datatest-stable",
  "engine-parser",
@@ -9663,7 +9663,7 @@ checksum = "9c8d87e72b64a3b4db28d11ce29237c246188f4f51057d65a7eab63b7987e423"
 
 [[package]]
 name = "wasi-component-loader"
-version = "0.78.0"
+version = "0.79.0"
 dependencies = [
  "anyhow",
  "base64 0.22.1",
