@@ -7,15 +7,13 @@ fn on_gateway_request_success() {
         location = "../../../engine/crates/wasi-component-loader/examples/target/wasm32-wasip1/debug/gateway_request_no_op.wasm"
     "#};
 
-    with_custom_gateway(
-        config,
-        |service_name, start_time_unix, gateway, clickhouse| async move {
-            let resp = gateway
-                .gql::<serde_json::Value>("query SimpleQuery { __typename }")
-                .send()
-                .await;
+    with_custom_gateway(config, |service_name, _, gateway, clickhouse| async move {
+        let resp = gateway
+            .gql::<serde_json::Value>("query SimpleQuery { __typename }")
+            .send()
+            .await;
 
-            insta::assert_json_snapshot!(resp, @r###"
+        insta::assert_json_snapshot!(resp, @r###"
             {
               "data": {
                 "__typename": "Query"
@@ -23,25 +21,24 @@ fn on_gateway_request_success() {
             }
             "###);
 
-            tokio::time::sleep(METRICS_DELAY).await;
+        tokio::time::sleep(METRICS_DELAY).await;
 
-            let query = indoc::indoc! {r#"
+        let query = indoc::indoc! {r#"
                 SELECT Count, Attributes
                 FROM otel_metrics_exponential_histogram
-                WHERE ServiceName = ? AND StartTimeUnix >= ?
+                WHERE ServiceName = ?
                     AND ScopeName = 'grafbase'
                     AND MetricName = 'grafbase.hook.duration'
             "#};
 
-            let row = clickhouse
-                .query(query)
-                .bind(&service_name)
-                .bind(start_time_unix)
-                .fetch_optional::<ExponentialHistogramRow>()
-                .await
-                .unwrap();
+        let row = clickhouse
+            .query(query)
+            .bind(&service_name)
+            .fetch_optional::<ExponentialHistogramRow>()
+            .await
+            .unwrap();
 
-            insta::assert_json_snapshot!(row, @r###"
+        insta::assert_json_snapshot!(row, @r###"
             {
               "Count": 1,
               "Attributes": {
@@ -50,8 +47,7 @@ fn on_gateway_request_success() {
               }
             }
             "###);
-        },
-    );
+    });
 }
 
 #[test]
@@ -61,15 +57,13 @@ fn on_gateway_request_host_error() {
         location = "../../../engine/crates/wasi-component-loader/examples/target/wasm32-wasip1/debug/simple.wasm"
     "#};
 
-    with_custom_gateway(
-        config,
-        |service_name, start_time_unix, gateway, clickhouse| async move {
-            let resp = gateway
-                .gql::<serde_json::Value>("query SimpleQuery { __typename }")
-                .send()
-                .await;
+    with_custom_gateway(config, |service_name, _, gateway, clickhouse| async move {
+        let resp = gateway
+            .gql::<serde_json::Value>("query SimpleQuery { __typename }")
+            .send()
+            .await;
 
-            insta::assert_json_snapshot!(resp, @r###"
+        insta::assert_json_snapshot!(resp, @r###"
             {
               "errors": [
                 {
@@ -82,25 +76,24 @@ fn on_gateway_request_host_error() {
             }
             "###);
 
-            tokio::time::sleep(METRICS_DELAY).await;
+        tokio::time::sleep(METRICS_DELAY).await;
 
-            let query = indoc::indoc! {r#"
+        let query = indoc::indoc! {r#"
                 SELECT Count, Attributes
                 FROM otel_metrics_exponential_histogram
-                WHERE ServiceName = ? AND StartTimeUnix >= ?
+                WHERE ServiceName = ?
                     AND ScopeName = 'grafbase'
                     AND MetricName = 'grafbase.hook.duration'
             "#};
 
-            let row = clickhouse
-                .query(query)
-                .bind(&service_name)
-                .bind(start_time_unix)
-                .fetch_optional::<ExponentialHistogramRow>()
-                .await
-                .unwrap();
+        let row = clickhouse
+            .query(query)
+            .bind(&service_name)
+            .fetch_optional::<ExponentialHistogramRow>()
+            .await
+            .unwrap();
 
-            insta::assert_json_snapshot!(row, @r###"
+        insta::assert_json_snapshot!(row, @r###"
             {
               "Count": 1,
               "Attributes": {
@@ -109,8 +102,7 @@ fn on_gateway_request_host_error() {
               }
             }
             "###);
-        },
-    );
+    });
 }
 
 #[test]
@@ -120,15 +112,13 @@ fn on_gateway_request_guest_error() {
         location = "../../../engine/crates/wasi-component-loader/examples/target/wasm32-wasip1/debug/error.wasm"
     "#};
 
-    with_custom_gateway(
-        config,
-        |service_name, start_time_unix, gateway, clickhouse| async move {
-            let resp = gateway
-                .gql::<serde_json::Value>("query SimpleQuery { __typename }")
-                .send()
-                .await;
+    with_custom_gateway(config, |service_name, _, gateway, clickhouse| async move {
+        let resp = gateway
+            .gql::<serde_json::Value>("query SimpleQuery { __typename }")
+            .send()
+            .await;
 
-            insta::assert_json_snapshot!(resp, @r###"
+        insta::assert_json_snapshot!(resp, @r###"
             {
               "errors": [
                 {
@@ -142,25 +132,24 @@ fn on_gateway_request_guest_error() {
             }
             "###);
 
-            tokio::time::sleep(METRICS_DELAY).await;
+        tokio::time::sleep(METRICS_DELAY).await;
 
-            let query = indoc::indoc! {r#"
+        let query = indoc::indoc! {r#"
                 SELECT Count, Attributes
                 FROM otel_metrics_exponential_histogram
-                WHERE ServiceName = ? AND StartTimeUnix >= ?
+                WHERE ServiceName = ?
                     AND ScopeName = 'grafbase'
                     AND MetricName = 'grafbase.hook.duration'
             "#};
 
-            let row = clickhouse
-                .query(query)
-                .bind(&service_name)
-                .bind(start_time_unix)
-                .fetch_optional::<ExponentialHistogramRow>()
-                .await
-                .unwrap();
+        let row = clickhouse
+            .query(query)
+            .bind(&service_name)
+            .fetch_optional::<ExponentialHistogramRow>()
+            .await
+            .unwrap();
 
-            insta::assert_json_snapshot!(row, @r###"
+        insta::assert_json_snapshot!(row, @r###"
             {
               "Count": 1,
               "Attributes": {
@@ -169,6 +158,5 @@ fn on_gateway_request_guest_error() {
               }
             }
             "###);
-        },
-    );
+    });
 }

@@ -39,7 +39,6 @@ struct BatchQuery {
 #[must_use]
 pub struct GqlBatchBuilder<Response> {
     queries: Vec<BatchQuery>,
-    // These won't
     phantom: PhantomData<fn() -> Response>,
     reqwest_builder: reqwest::RequestBuilder,
     bearer: Option<String>,

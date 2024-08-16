@@ -7,7 +7,7 @@ use super::{with_gateway, ExponentialHistogramRow};
 
 #[test]
 fn basic() {
-    with_gateway(|service_name, start_time_unix, gateway, clickhouse| async move {
+    with_gateway(|service_name, _, gateway, clickhouse| async move {
         let response = gateway
             .gql::<serde_json::Value>("query Simple { __typename }")
             .send()
@@ -25,13 +25,12 @@ fn basic() {
                 r#"
                 SELECT Count, Attributes
                 FROM otel_metrics_exponential_histogram
-                WHERE ServiceName = ? AND StartTimeUnix >= ?
+                WHERE ServiceName = ?
                     AND ScopeName = 'grafbase'
                     AND MetricName = 'gql_operation_latency'
                 "#,
             )
             .bind(&service_name)
-            .bind(start_time_unix)
             .fetch_one::<ExponentialHistogramRow>()
             .await
             .unwrap();
@@ -53,7 +52,7 @@ fn basic() {
 
 #[test]
 fn introspection_should_not_appear_in_used_fields() {
-    with_gateway(|service_name, start_time_unix, gateway, clickhouse| async move {
+    with_gateway(|service_name, _, gateway, clickhouse| async move {
         let response = gateway
             .gql::<serde_json::Value>("query { __schema { description } }")
             .send()
@@ -74,16 +73,16 @@ fn introspection_should_not_appear_in_used_fields() {
                 r#"
                 SELECT Count, Attributes
                 FROM otel_metrics_exponential_histogram
-                WHERE ServiceName = ? AND StartTimeUnix >= ?
+                WHERE ServiceName = ?
                     AND ScopeName = 'grafbase'
                     AND MetricName = 'gql_operation_latency'
                 "#,
             )
             .bind(&service_name)
-            .bind(start_time_unix)
             .fetch_one::<ExponentialHistogramRow>()
             .await
             .unwrap();
+
         insta::assert_json_snapshot!(row, @r###"
         {
           "Count": 1,
@@ -102,7 +101,7 @@ fn introspection_should_not_appear_in_used_fields() {
 
 #[test]
 fn used_fields_should_be_unique() {
-    with_gateway(|service_name, start_time_unix, gateway, clickhouse| async move {
+    with_gateway(|service_name, _, gateway, clickhouse| async move {
         let resp = gateway
             .gql::<serde_json::Value>(
                 r###"
@@ -149,13 +148,12 @@ fn used_fields_should_be_unique() {
                 r#"
                 SELECT Count, Attributes
                 FROM otel_metrics_exponential_histogram
-                WHERE ServiceName = ? AND StartTimeUnix >= ?
+                WHERE ServiceName = ?
                     AND ScopeName = 'grafbase'
                     AND MetricName = 'gql_operation_latency'
                 "#,
             )
             .bind(&service_name)
-            .bind(start_time_unix)
             .fetch_one::<ExponentialHistogramRow>()
             .await
             .unwrap();
@@ -177,11 +175,12 @@ fn used_fields_should_be_unique() {
 
 #[test]
 fn generate_operation_name() {
-    with_gateway(|service_name, start_time_unix, gateway, clickhouse| async move {
+    with_gateway(|service_name, _, gateway, clickhouse| async move {
         let response = gateway
             .gql::<serde_json::Value>("query { myFavoriteField ignoreMe }")
             .send()
             .await;
+
         insta::assert_json_snapshot!(response, @r###"
         {
           "errors": [
@@ -207,16 +206,16 @@ fn generate_operation_name() {
                 r#"
                 SELECT Count, Attributes
                 FROM otel_metrics_exponential_histogram
-                WHERE ServiceName = ? AND StartTimeUnix >= ?
+                WHERE ServiceName = ?
                     AND ScopeName = 'grafbase'
                     AND MetricName = 'gql_operation_latency'
                 "#,
             )
             .bind(&service_name)
-            .bind(start_time_unix)
             .fetch_one::<ExponentialHistogramRow>()
             .await
             .unwrap();
+
         insta::assert_json_snapshot!(row, @r###"
         {
           "Count": 1,
@@ -235,7 +234,7 @@ fn generate_operation_name() {
 
 #[test]
 fn request_error() {
-    with_gateway(|service_name, start_time_unix, gateway, clickhouse| async move {
+    with_gateway(|service_name, _, gateway, clickhouse| async move {
         let resp = gateway
             .gql::<serde_json::Value>("query Faulty { __typ__ename }")
             .send()
@@ -265,16 +264,16 @@ fn request_error() {
                 r#"
                 SELECT Count, Attributes
                 FROM otel_metrics_exponential_histogram
-                WHERE ServiceName = ? AND StartTimeUnix >= ?
+                WHERE ServiceName = ?
                     AND ScopeName = 'grafbase'
                     AND MetricName = 'gql_operation_latency'
                 "#,
             )
             .bind(&service_name)
-            .bind(start_time_unix)
             .fetch_one::<ExponentialHistogramRow>()
             .await
             .unwrap();
+
         insta::assert_json_snapshot!(row, @r###"
         {
           "Count": 1,
@@ -293,11 +292,12 @@ fn request_error() {
 
 #[test]
 fn field_error() {
-    with_gateway(|service_name, start_time_unix, gateway, clickhouse| async move {
+    with_gateway(|service_name, _, gateway, clickhouse| async move {
         let resp = gateway
             .gql::<serde_json::Value>("query Faulty { __typename me { id } }")
             .send()
             .await;
+
         insta::assert_json_snapshot!(resp, @r###"
         {
           "data": null,
@@ -314,6 +314,7 @@ fn field_error() {
           ]
         }
         "###);
+
         tokio::time::sleep(METRICS_DELAY).await;
 
         let row = clickhouse
@@ -321,16 +322,16 @@ fn field_error() {
                 r#"
                 SELECT Count, Attributes
                 FROM otel_metrics_exponential_histogram
-                WHERE ServiceName = ? AND StartTimeUnix >= ?
+                WHERE ServiceName = ?
                     AND ScopeName = 'grafbase'
                     AND MetricName = 'gql_operation_latency'
                 "#,
             )
             .bind(&service_name)
-            .bind(start_time_unix)
             .fetch_one::<ExponentialHistogramRow>()
             .await
             .unwrap();
+
         insta::assert_json_snapshot!(row, @r###"
         {
           "Count": 1,
@@ -349,11 +350,12 @@ fn field_error() {
 
 #[test]
 fn field_error_data_null() {
-    with_gateway(|service_name, start_time_unix, gateway, clickhouse| async move {
+    with_gateway(|service_name, _, gateway, clickhouse| async move {
         let resp = gateway
             .gql::<serde_json::Value>("query Faulty { me { id } }")
             .send()
             .await;
+
         insta::assert_json_snapshot!(resp, @r###"
         {
           "data": null,
@@ -370,6 +372,7 @@ fn field_error_data_null() {
           ]
         }
         "###);
+
         tokio::time::sleep(METRICS_DELAY).await;
 
         let row = clickhouse
@@ -377,16 +380,16 @@ fn field_error_data_null() {
                 r#"
                 SELECT Count, Attributes
                 FROM otel_metrics_exponential_histogram
-                WHERE ServiceName = ? AND StartTimeUnix >= ?
+                WHERE ServiceName = ?
                     AND ScopeName = 'grafbase'
                     AND MetricName = 'gql_operation_latency'
                 "#,
             )
             .bind(&service_name)
-            .bind(start_time_unix)
             .fetch_one::<ExponentialHistogramRow>()
             .await
             .unwrap();
+
         insta::assert_json_snapshot!(row, @r###"
         {
           "Count": 1,
@@ -405,13 +408,14 @@ fn field_error_data_null() {
 
 #[test]
 fn client() {
-    with_gateway(|service_name, start_time_unix, gateway, clickhouse| async move {
+    with_gateway(|service_name, _, gateway, clickhouse| async move {
         let resp = gateway
             .gql::<serde_json::Value>("query SimpleQuery { __typename }")
             .header("x-grafbase-client-name", "test")
             .header("x-grafbase-client-version", "1.0.0")
             .send()
             .await;
+
         insta::assert_json_snapshot!(resp, @r###"
         {
           "data": {
@@ -427,16 +431,16 @@ fn client() {
                 r#"
                 SELECT Count, Attributes
                 FROM otel_metrics_exponential_histogram
-                WHERE ServiceName = ? AND StartTimeUnix >= ?
+                WHERE ServiceName = ?
                     AND ScopeName = 'grafbase'
                     AND MetricName = 'gql_operation_latency'
                 "#,
             )
             .bind(&service_name)
-            .bind(start_time_unix)
             .fetch_optional::<ExponentialHistogramRow>()
             .await
             .unwrap();
+
         insta::assert_json_snapshot!(row, @r###"
         {
           "Count": 1,
@@ -457,7 +461,7 @@ fn client() {
 
 #[test]
 fn cache_miss_hit() {
-    with_gateway(|service_name, start_time_unix, gateway, clickhouse| async move {
+    with_gateway(|service_name, _, gateway, clickhouse| async move {
         let resp = gateway
             .gql::<serde_json::Value>("query SimpleQuery { __typename }")
             .send()
@@ -478,13 +482,12 @@ fn cache_miss_hit() {
                 r#"
                 SELECT Value, Attributes
                 FROM otel_metrics_sum
-                WHERE ServiceName = ? AND StartTimeUnix >= ?
+                WHERE ServiceName = ?
                     AND ScopeName = 'grafbase'
                     AND MetricName = 'graphql.operation.cache.miss'
                 "#,
             )
             .bind(&service_name)
-            .bind(start_time_unix)
             .fetch_optional::<SumRow>()
             .await
             .unwrap();
@@ -516,13 +519,12 @@ fn cache_miss_hit() {
                 r#"
                 SELECT Value, Attributes
                 FROM otel_metrics_sum
-                WHERE ServiceName = ? AND StartTimeUnix >= ?
+                WHERE ServiceName = ?
                     AND ScopeName = 'grafbase'
                     AND MetricName = 'graphql.operation.cache.hit'
                 "#,
             )
             .bind(&service_name)
-            .bind(start_time_unix)
             .fetch_optional::<SumRow>()
             .await
             .unwrap();
@@ -538,7 +540,7 @@ fn cache_miss_hit() {
 
 #[test]
 fn prepare_duration_success() {
-    with_gateway(|service_name, start_time_unix, gateway, clickhouse| async move {
+    with_gateway(|service_name, _, gateway, clickhouse| async move {
         let resp = gateway
             .gql::<serde_json::Value>("query SimpleQuery { __typename }")
             .send()
@@ -559,13 +561,12 @@ fn prepare_duration_success() {
                 r#"
                 SELECT Count, Attributes
                 FROM otel_metrics_exponential_histogram
-                WHERE ServiceName = ? AND StartTimeUnix >= ?
+                WHERE ServiceName = ?
                     AND ScopeName = 'grafbase'
                     AND MetricName = 'graphql.operation.prepare.duration'
                 "#,
             )
             .bind(&service_name)
-            .bind(start_time_unix)
             .fetch_optional::<ExponentialHistogramRow>()
             .await
             .unwrap();
@@ -585,7 +586,7 @@ fn prepare_duration_success() {
 
 #[test]
 fn prepare_duration_fail() {
-    with_gateway(|service_name, start_time_unix, gateway, clickhouse| async move {
+    with_gateway(|service_name, _, gateway, clickhouse| async move {
         let resp = gateway
             .gql::<serde_json::Value>("query SimpleQuery { __typename")
             .send()
@@ -617,13 +618,12 @@ fn prepare_duration_fail() {
                 r#"
                 SELECT Count, Attributes
                 FROM otel_metrics_exponential_histogram
-                WHERE ServiceName = ? AND StartTimeUnix >= ?
+                WHERE ServiceName = ?
                     AND ScopeName = 'grafbase'
                     AND MetricName = 'graphql.operation.prepare.duration'
                 "#,
             )
             .bind(&service_name)
-            .bind(start_time_unix)
             .fetch_optional::<ExponentialHistogramRow>()
             .await
             .unwrap();
@@ -641,7 +641,7 @@ fn prepare_duration_fail() {
 
 #[test]
 fn batch() {
-    with_gateway(|service_name, start_time_unix, gateway, clickhouse| async move {
+    with_gateway(|service_name, _, gateway, clickhouse| async move {
         let query = String::from("query SimpleQuery { __typename }");
 
         let resp = gateway
@@ -671,13 +671,12 @@ fn batch() {
                 r#"
                 SELECT Count, Attributes
                 FROM otel_metrics_exponential_histogram
-                WHERE ServiceName = ? AND StartTimeUnix >= ?
+                WHERE ServiceName = ?
                     AND ScopeName = 'grafbase'
                     AND MetricName = 'graphql.operation.batch.size'
                 "#,
             )
             .bind(&service_name)
-            .bind(start_time_unix)
             .fetch_optional::<ExponentialHistogramRow>()
             .await
             .unwrap();
