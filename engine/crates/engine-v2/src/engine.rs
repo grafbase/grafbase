@@ -481,7 +481,6 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
                 Ok(operation)
             }
             Err(e) => {
-                dbg!(1);
                 let attributes = QueryPreparationAttributes {
                     operation_name: None,
                     document: None,
