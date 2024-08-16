@@ -3,7 +3,7 @@ mod subgraph;
 
 use crate::telemetry::metrics::{SumRow, METRICS_DELAY};
 
-use super::{with_gateway, ExponentialHistogramRow};
+use super::{with_custom_gateway, with_gateway, ExponentialHistogramRow};
 
 #[test]
 fn basic() {
@@ -687,5 +687,58 @@ fn batch() {
           "Attributes": {}
         }
         "###);
+    });
+}
+
+#[test]
+fn rate_limit() {
+    let config = indoc::indoc! {r#"
+        [gateway.rate_limit]
+        storage = "redis"
+
+        [gateway.rate_limit.global]
+        limit = 1
+        duration = "1s"
+    "#};
+
+    with_custom_gateway(config, |service_name, _, gateway, clickhouse| async move {
+        let resp = gateway
+            .gql::<serde_json::Value>("query SimpleQuery { __typename }")
+            .send()
+            .await;
+
+        insta::assert_json_snapshot!(resp, @r###"
+            {
+              "data": {
+                "__typename": "Query"
+              }
+            }
+            "###);
+
+        tokio::time::sleep(METRICS_DELAY).await;
+
+        let query = indoc::indoc! {r#"
+                SELECT Count, Attributes
+                FROM otel_metrics_exponential_histogram
+                WHERE ServiceName = ?
+                    AND ScopeName = 'grafbase'
+                    AND MetricName = 'grafbase.gateway.rate_limit.duration'
+            "#};
+
+        let row = clickhouse
+            .query(query)
+            .bind(&service_name)
+            .fetch_optional::<ExponentialHistogramRow>()
+            .await
+            .unwrap();
+
+        insta::assert_json_snapshot!(row, @r###"
+            {
+              "Count": 1,
+              "Attributes": {
+                "grafbase.redis.status": "SUCCESS"
+              }
+            }
+            "###);
     });
 }
