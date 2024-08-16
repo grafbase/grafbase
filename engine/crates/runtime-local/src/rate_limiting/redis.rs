@@ -2,7 +2,13 @@ use std::time::{Duration, SystemTime};
 
 use futures_util::future::BoxFuture;
 use gateway_config::Config;
-use grafbase_telemetry::span::GRAFBASE_TARGET;
+use grafbase_telemetry::{
+    otel::opentelemetry::{
+        metrics::{Histogram, Meter},
+        KeyValue,
+    },
+    span::GRAFBASE_TARGET,
+};
 use runtime::rate_limiting::{Error, RateLimitKey, RateLimiter, RateLimiterContext};
 use tokio::sync::watch;
 
@@ -31,6 +37,22 @@ pub struct RedisRateLimiter {
     pool: Pool,
     key_prefix: String,
     config_watcher: watch::Receiver<Config>,
+    latencies: Histogram<u64>,
+}
+
+#[derive(Debug, Clone, Copy)]
+enum RedisStatus {
+    Success,
+    Error,
+}
+
+impl RedisStatus {
+    fn as_str(self) -> &'static str {
+        match self {
+            RedisStatus::Success => "SUCCESS",
+            RedisStatus::Error => "ERROR",
+        }
+    }
 }
 
 impl RedisRateLimiter {
@@ -38,20 +60,23 @@ impl RedisRateLimiter {
         config: RateLimitRedisConfig<'_>,
         pool: Pool,
         watcher: watch::Receiver<Config>,
+        meter: &Meter,
     ) -> anyhow::Result<RateLimiter> {
-        let inner = Self::new(config, pool, watcher).await?;
+        let inner = Self::new(config, pool, watcher, meter).await?;
         Ok(RateLimiter::new(inner))
     }
 
-    pub async fn new(
+    async fn new(
         config: RateLimitRedisConfig<'_>,
         pool: Pool,
         watcher: watch::Receiver<Config>,
+        meter: &Meter,
     ) -> anyhow::Result<RedisRateLimiter> {
         Ok(Self {
             pool,
             key_prefix: config.key_prefix.to_string(),
             config_watcher: watcher,
+            latencies: meter.u64_histogram("grafbase.gateway.rate_limit.duration").init(),
         })
     }
 
@@ -64,6 +89,11 @@ impl RedisRateLimiter {
                 format!("{}:subgraph:rate_limit:{graph}:{bucket}", self.key_prefix)
             }
         }
+    }
+
+    fn record_duration(&self, duration: Duration, status: RedisStatus) {
+        let attributes = vec![KeyValue::new("grafbase.redis.status", status.as_str())];
+        self.latencies.record(duration.as_millis() as u64, &attributes);
     }
 
     async fn limit_inner(&self, context: &dyn RateLimiterContext) -> Result<(), Error> {
@@ -127,9 +157,15 @@ impl RedisRateLimiter {
         pipe.cmd("GET").arg(&previous_bucket);
         pipe.cmd("GET").arg(&current_bucket);
 
+        let start = SystemTime::now();
+        let result = pipe.query_async::<_, (Option<u64>, Option<u64>)>(&mut *conn).await;
+        let duration = SystemTime::now().duration_since(start).unwrap_or_default();
+
         // Execute the whole pipeline in one multiplexed request.
-        match pipe.query_async::<_, (Option<u64>, Option<u64>)>(&mut *conn).await {
+        match result {
             Ok((previous_count, current_count)) => {
+                self.record_duration(duration, RedisStatus::Success);
+
                 let previous_count = previous_count.unwrap_or_default().min(config.limit as u64);
                 let current_count = current_count.unwrap_or_default().min(config.limit as u64);
 
@@ -146,6 +182,7 @@ impl RedisRateLimiter {
                 }
             }
             Err(e) => {
+                self.record_duration(duration, RedisStatus::Error);
                 tracing::error!(target: GRAFBASE_TARGET, "error with Redis query: {e}");
                 Err(Error::Internal(String::from("rate limit")))
             }
