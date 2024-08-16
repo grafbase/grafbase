@@ -44,7 +44,7 @@ reqwest = { workspace = true, features = [
   "json",
   "rustls-tls",
 ] }
-wasi-component-loader = { version = "0.78.0", path = "../wasi-component-loader", optional = true }
+wasi-component-loader = { version = "0.79.0", path = "../wasi-component-loader", optional = true }
 deadpool = { version = "0.12.1", features = ["rt_tokio_1"] }
 grafbase-telemetry.workspace = true
 anyhow.workspace = true
