@@ -718,12 +718,12 @@ fn rate_limit() {
         tokio::time::sleep(METRICS_DELAY).await;
 
         let query = indoc::indoc! {r#"
-                SELECT Count, Attributes
-                FROM otel_metrics_exponential_histogram
-                WHERE ServiceName = ?
-                    AND ScopeName = 'grafbase'
-                    AND MetricName = 'grafbase.gateway.rate_limit.duration'
-            "#};
+            SELECT Count, Attributes
+            FROM otel_metrics_exponential_histogram
+            WHERE ServiceName = ?
+                AND ScopeName = 'grafbase'
+                AND MetricName = 'grafbase.gateway.rate_limit.duration'
+        "#};
 
         let row = clickhouse
             .query(query)
