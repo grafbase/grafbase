@@ -198,7 +198,7 @@ impl GraphqlOperationMetrics {
         SubgraphRequestDurationAttributes { name, status }: SubgraphRequestDurationAttributes,
         latency: std::time::Duration,
     ) {
-        let attributes = vec![
+        let attributes = [
             KeyValue::new("graphql.subgraph.name", name),
             KeyValue::new("graphql.subgraph.response.status", status.as_str()),
         ];
@@ -210,7 +210,7 @@ impl GraphqlOperationMetrics {
         &self,
         SubgraphRequestRetryAttributes { name, aborted }: SubgraphRequestRetryAttributes,
     ) {
-        let attributes = vec![
+        let attributes = [
             KeyValue::new("graphql.subgraph.name", name),
             KeyValue::new("graphql.subgraph.aborted", aborted),
         ];
@@ -223,7 +223,7 @@ impl GraphqlOperationMetrics {
         SubgraphRequestBodySizeAttributes { name }: SubgraphRequestBodySizeAttributes,
         size: usize,
     ) {
-        let attributes = vec![KeyValue::new("graphql.subgraph.name", name)];
+        let attributes = [KeyValue::new("graphql.subgraph.name", name)];
         self.subgraph_request_body_size.record(size as u64, &attributes);
     }
 
@@ -232,7 +232,7 @@ impl GraphqlOperationMetrics {
         SubgraphResponseBodySizeAttributes { name }: SubgraphResponseBodySizeAttributes,
         size: usize,
     ) {
-        let attributes = vec![KeyValue::new("graphql.subgraph.name", name)];
+        let attributes = [KeyValue::new("graphql.subgraph.name", name)];
         self.subgraph_response_body_size.record(size as u64, &attributes);
     }
 
@@ -240,7 +240,7 @@ impl GraphqlOperationMetrics {
         &self,
         SubgraphInFlightRequestAttributes { name }: SubgraphInFlightRequestAttributes,
     ) {
-        let attributes = vec![KeyValue::new("graphql.subgraph.name", name)];
+        let attributes = [KeyValue::new("graphql.subgraph.name", name)];
         self.subgraph_requests_inflight.add(1, &attributes);
     }
 
@@ -248,17 +248,17 @@ impl GraphqlOperationMetrics {
         &self,
         SubgraphInFlightRequestAttributes { name }: SubgraphInFlightRequestAttributes,
     ) {
-        let attributes = vec![KeyValue::new("graphql.subgraph.name", name)];
+        let attributes = [KeyValue::new("graphql.subgraph.name", name)];
         self.subgraph_requests_inflight.add(-1, &attributes);
     }
 
     pub fn record_subgraph_cache_hit(&self, SubgraphCacheHitAttributes { name }: SubgraphCacheHitAttributes) {
-        let attributes = vec![KeyValue::new("graphql.subgraph.name", name)];
+        let attributes = [KeyValue::new("graphql.subgraph.name", name)];
         self.subgraph_cache_hits.add(1, &attributes);
     }
 
     pub fn record_subgraph_cache_miss(&self, SubgraphCacheMissAttributes { name }: SubgraphCacheMissAttributes) {
-        let attributes = vec![KeyValue::new("graphql.subgraph.name", name)];
+        let attributes = [KeyValue::new("graphql.subgraph.name", name)];
         self.subgraph_cache_misses.add(1, &attributes);
     }
 

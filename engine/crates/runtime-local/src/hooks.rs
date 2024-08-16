@@ -45,7 +45,7 @@ impl HooksWasiInner {
             Err(wasi_component_loader::Error::Guest(_)) => HookStatus::GuestError,
         };
 
-        let attributes = vec![
+        let attributes = [
             KeyValue::new("grafbase.hook.name", hook_name),
             KeyValue::new("grafbase.hook.status", status.as_str()),
         ];
@@ -74,7 +74,7 @@ impl HooksWasiInner {
             Err(wasi_component_loader::Error::Guest(_)) => HookStatus::GuestError,
         };
 
-        let attributes = vec![
+        let attributes = [
             KeyValue::new("grafbase.hook.name", hook_name),
             KeyValue::new("grafbase.hook.status", status.as_str()),
         ];
