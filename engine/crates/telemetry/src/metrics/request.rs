@@ -1,5 +1,5 @@
 use opentelemetry::{
-    metrics::{Histogram, Meter},
+    metrics::{Histogram, Meter, UpDownCounter},
     KeyValue,
 };
 
@@ -8,6 +8,8 @@ use crate::{gql_response_status::GraphqlResponseStatus, grafbase_client::Client}
 #[derive(Clone)]
 pub struct RequestMetrics {
     latency: Histogram<u64>,
+    connected_clients: UpDownCounter<i64>,
+    response_body_sizes: Histogram<u64>,
 }
 
 pub struct RequestMetricsAttributes {
@@ -21,10 +23,12 @@ impl RequestMetrics {
     pub fn build(meter: &Meter) -> Self {
         Self {
             latency: meter.u64_histogram("request_latency").init(),
+            connected_clients: meter.i64_up_down_counter("http.server.connected.clients").init(),
+            response_body_sizes: meter.u64_histogram("http.server.response.body.size").init(),
         }
     }
 
-    pub fn record(
+    pub fn record_http_duration(
         &self,
         RequestMetricsAttributes {
             status_code,
@@ -49,5 +53,17 @@ impl RequestMetrics {
             attributes.push(KeyValue::new("gql.response.status", status.as_str()));
         }
         self.latency.record(latency.as_millis() as u64, &attributes);
+    }
+
+    pub fn increment_connected_clients(&self) {
+        self.connected_clients.add(1, &[]);
+    }
+
+    pub fn decrement_connected_clients(&self) {
+        self.connected_clients.add(-1, &[]);
+    }
+
+    pub fn record_response_body_size(&self, size: u64) {
+        self.response_body_sizes.record(size, &[]);
     }
 }

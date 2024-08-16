@@ -111,6 +111,9 @@ where
         let client = Client::extract_from(req.headers());
         let metrics = self.metrics.clone();
         let span = self.make_span(&req);
+
+        metrics.increment_connected_clients();
+
         ResponseFuture {
             inner: self.inner.call(req),
             metrics,
@@ -163,7 +166,7 @@ where
 
                 let gql_status = response.headers().typed_get();
 
-                metrics.record(
+                metrics.record_http_duration(
                     RequestMetricsAttributes {
                         status_code: response.status().as_u16(),
                         cache_status,
@@ -191,11 +194,15 @@ where
                 }
 
                 response.headers_mut().remove(GraphqlResponseStatus::header_name());
+
+                if let Some(size) = response.body().size_hint().exact() {
+                    metrics.record_response_body_size(size);
+                }
             }
             Err(ref err) => {
                 Span::current().record("http.response.status_code", 500);
 
-                metrics.record(
+                metrics.record_http_duration(
                     RequestMetricsAttributes {
                         status_code: 500,
                         client,
@@ -209,6 +216,8 @@ where
                 tracing::error!(target: GRAFBASE_TARGET, "{err}");
             }
         }
+
+        metrics.decrement_connected_clients();
 
         Poll::Ready(result)
     }

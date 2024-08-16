@@ -1,5 +1,5 @@
 use opentelemetry::{
-    metrics::{Counter, Gauge, Histogram, Meter, UpDownCounter},
+    metrics::{Counter, Histogram, Meter, UpDownCounter},
     KeyValue,
 };
 
@@ -20,7 +20,9 @@ pub struct GraphqlOperationMetrics {
     subgraph_cache_misses: Counter<u64>,
     operation_cache_hits: Counter<u64>,
     operation_cache_misses: Counter<u64>,
-    operation_cache_size: Gauge<u64>,
+    query_preparation_latency: Histogram<u64>,
+    batch_sizes: Histogram<u64>,
+    request_body_sizes: Histogram<u64>,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -118,6 +120,13 @@ pub struct SubgraphCacheMissAttributes {
     pub name: String,
 }
 
+#[derive(Debug)]
+pub struct QueryPreparationAttributes {
+    pub operation_name: Option<String>,
+    pub document: Option<String>,
+    pub success: bool,
+}
+
 impl GraphqlOperationMetrics {
     pub fn build(meter: &Meter) -> Self {
         Self {
@@ -131,11 +140,13 @@ impl GraphqlOperationMetrics {
             subgraph_cache_misses: meter.u64_counter("graphql.subgraph.request.cache.miss").init(),
             operation_cache_hits: meter.u64_counter("graphql.operation.cache.hit").init(),
             operation_cache_misses: meter.u64_counter("graphql.operation.cache.miss").init(),
-            operation_cache_size: meter.u64_gauge("graphql.operation.cache.in_memory.size").init(),
+            query_preparation_latency: meter.u64_histogram("graphql.operation.prepare.duration").init(),
+            batch_sizes: meter.u64_histogram("graphql.operation.batch.size").init(),
+            request_body_sizes: meter.u64_histogram("http.server.request.body.size").init(),
         }
     }
 
-    pub fn record_operation(
+    pub fn record_operation_duration(
         &self,
         GraphqlRequestMetricsAttributes {
             operation:
@@ -187,7 +198,7 @@ impl GraphqlOperationMetrics {
         SubgraphRequestDurationAttributes { name, status }: SubgraphRequestDurationAttributes,
         latency: std::time::Duration,
     ) {
-        let attributes = vec![
+        let attributes = [
             KeyValue::new("graphql.subgraph.name", name),
             KeyValue::new("graphql.subgraph.response.status", status.as_str()),
         ];
@@ -199,7 +210,7 @@ impl GraphqlOperationMetrics {
         &self,
         SubgraphRequestRetryAttributes { name, aborted }: SubgraphRequestRetryAttributes,
     ) {
-        let attributes = vec![
+        let attributes = [
             KeyValue::new("graphql.subgraph.name", name),
             KeyValue::new("graphql.subgraph.aborted", aborted),
         ];
@@ -212,7 +223,7 @@ impl GraphqlOperationMetrics {
         SubgraphRequestBodySizeAttributes { name }: SubgraphRequestBodySizeAttributes,
         size: usize,
     ) {
-        let attributes = vec![KeyValue::new("graphql.subgraph.name", name)];
+        let attributes = [KeyValue::new("graphql.subgraph.name", name)];
         self.subgraph_request_body_size.record(size as u64, &attributes);
     }
 
@@ -221,7 +232,7 @@ impl GraphqlOperationMetrics {
         SubgraphResponseBodySizeAttributes { name }: SubgraphResponseBodySizeAttributes,
         size: usize,
     ) {
-        let attributes = vec![KeyValue::new("graphql.subgraph.name", name)];
+        let attributes = [KeyValue::new("graphql.subgraph.name", name)];
         self.subgraph_response_body_size.record(size as u64, &attributes);
     }
 
@@ -229,7 +240,7 @@ impl GraphqlOperationMetrics {
         &self,
         SubgraphInFlightRequestAttributes { name }: SubgraphInFlightRequestAttributes,
     ) {
-        let attributes = vec![KeyValue::new("graphql.subgraph.name", name)];
+        let attributes = [KeyValue::new("graphql.subgraph.name", name)];
         self.subgraph_requests_inflight.add(1, &attributes);
     }
 
@@ -237,17 +248,17 @@ impl GraphqlOperationMetrics {
         &self,
         SubgraphInFlightRequestAttributes { name }: SubgraphInFlightRequestAttributes,
     ) {
-        let attributes = vec![KeyValue::new("graphql.subgraph.name", name)];
+        let attributes = [KeyValue::new("graphql.subgraph.name", name)];
         self.subgraph_requests_inflight.add(-1, &attributes);
     }
 
     pub fn record_subgraph_cache_hit(&self, SubgraphCacheHitAttributes { name }: SubgraphCacheHitAttributes) {
-        let attributes = vec![KeyValue::new("graphql.subgraph.name", name)];
+        let attributes = [KeyValue::new("graphql.subgraph.name", name)];
         self.subgraph_cache_hits.add(1, &attributes);
     }
 
     pub fn record_subgraph_cache_miss(&self, SubgraphCacheMissAttributes { name }: SubgraphCacheMissAttributes) {
-        let attributes = vec![KeyValue::new("graphql.subgraph.name", name)];
+        let attributes = [KeyValue::new("graphql.subgraph.name", name)];
         self.subgraph_cache_misses.add(1, &attributes);
     }
 
@@ -259,7 +270,36 @@ impl GraphqlOperationMetrics {
         self.operation_cache_misses.add(1, &[]);
     }
 
-    pub fn operation_cache_size_gauge(&self) -> Gauge<u64> {
-        self.operation_cache_size.clone()
+    pub fn record_preparation_latency(
+        &self,
+        QueryPreparationAttributes {
+            operation_name,
+            document,
+            success,
+        }: QueryPreparationAttributes,
+        latency: std::time::Duration,
+    ) {
+        let mut attributes = Vec::new();
+
+        if let Some(operation_name) = operation_name {
+            attributes.push(KeyValue::new("graphql.operation.name", operation_name));
+        }
+
+        if let Some(document) = document {
+            attributes.push(KeyValue::new("graphql.document", document));
+        }
+
+        attributes.push(KeyValue::new("graphql.operation.success", success));
+
+        self.query_preparation_latency
+            .record(latency.as_millis() as u64, &attributes);
+    }
+
+    pub fn record_batch_size(&self, size: usize) {
+        self.batch_sizes.record(size as u64, &[]);
+    }
+
+    pub fn record_request_body_size(&self, size: usize) {
+        self.request_body_sizes.record(size as u64, &[]);
     }
 }

@@ -114,20 +114,22 @@ pub(super) async fn generate(
         }
     };
 
+    let hooks = gateway_config
+        .hooks
+        .clone()
+        .map(ComponentLoader::new)
+        .transpose()
+        .map_err(|e| crate::Error::InternalError(e.to_string()))?
+        .flatten();
+
+    let meter = grafbase_telemetry::metrics::meter_from_global_provider();
+
     let runtime = GatewayRuntime {
         fetcher: NativeFetcher::default(),
         kv: InMemoryKvStore::runtime(),
         trusted_documents,
-        meter: grafbase_telemetry::metrics::meter_from_global_provider(),
-        hooks: HooksWasi::new(
-            gateway_config
-                .hooks
-                .clone()
-                .map(ComponentLoader::new)
-                .transpose()
-                .map_err(|e| crate::Error::InternalError(e.to_string()))?
-                .flatten(),
-        ),
+        hooks: HooksWasi::new(hooks, &meter),
+        meter,
         rate_limiter,
         entity_cache,
         operation_cache_factory: InMemoryOperationCacheFactory::default(),

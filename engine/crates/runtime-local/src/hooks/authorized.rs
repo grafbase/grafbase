@@ -20,7 +20,7 @@ macro_rules! prepare_authorized {
         let inputs = [$(
             encode($func_name, $definition, $name, $input)?,
         )+];
-        (instance, inputs)
+        (inner, instance, inputs)
     }};
 }
 
@@ -50,10 +50,11 @@ impl AuthorizedHooks<Context> for HooksWasi {
         arguments: impl Anything<'a>,
         metadata: Option<impl Anything<'a>>,
     ) -> AuthorizationVerdict {
-        let (mut instance, [arguments, metadata]) = prepare_authorized!(
+        let (inner, mut instance, [arguments, metadata]) = prepare_authorized!(
             self named "authorize_edge_pre_execution" at &definition;
             [("arguments", [arguments]), ("metadata", metadata),]
         );
+
         let arguments = arguments.into_iter().next().unwrap();
         let metadata = metadata.into_iter().next().unwrap_or_default();
         let definition = wasi_component_loader::EdgeDefinition {
@@ -61,8 +62,11 @@ impl AuthorizedHooks<Context> for HooksWasi {
             field_name: definition.field_name.to_string(),
         };
 
-        instance
-            .authorize_edge_pre_execution(Arc::clone(context), definition, arguments, metadata)
+        inner
+            .run_and_measure(
+                "authorize-edge-pre-execution",
+                instance.authorize_edge_pre_execution(Arc::clone(context), definition, arguments, metadata),
+            )
             .await
             .map_err(|err| match err {
                 wasi_component_loader::Error::Internal(error) => {
@@ -82,7 +86,7 @@ impl AuthorizedHooks<Context> for HooksWasi {
         definition: NodeDefinition<'a>,
         metadata: Option<impl Anything<'a>>,
     ) -> AuthorizationVerdict {
-        let (mut instance, [metadata]) = prepare_authorized!(
+        let (inner, mut instance, [metadata]) = prepare_authorized!(
             self named "authorize_node_pre_execution" at &definition;
             [ ("metadata", metadata),]
         );
@@ -91,8 +95,11 @@ impl AuthorizedHooks<Context> for HooksWasi {
             type_name: definition.type_name.to_string(),
         };
 
-        instance
-            .authorize_node_pre_execution(Arc::clone(context), definition, metadata)
+        inner
+            .run_and_measure(
+                "authorize-node-pre-execution",
+                instance.authorize_node_pre_execution(Arc::clone(context), definition, metadata),
+            )
             .await
             .map_err(|err| match err {
                 wasi_component_loader::Error::Internal(error) => {
@@ -113,7 +120,7 @@ impl AuthorizedHooks<Context> for HooksWasi {
         nodes: impl IntoIterator<Item: Anything<'a>> + Send,
         metadata: Option<impl Anything<'a>>,
     ) -> AuthorizationVerdicts {
-        let (mut _instance, [_nodes, metadata]) = prepare_authorized!(
+        let (_inner, mut _instance, [_nodes, metadata]) = prepare_authorized!(
             self named "authorize_node_post_execution" at &definition;
             [("nodes", nodes), ("metadata", metadata),]
         );
@@ -133,7 +140,7 @@ impl AuthorizedHooks<Context> for HooksWasi {
         parents: impl IntoIterator<Item: Anything<'a>> + Send,
         metadata: Option<impl Anything<'a>>,
     ) -> AuthorizationVerdicts {
-        let (mut instance, [parents, metadata]) = prepare_authorized!(
+        let (inner, mut instance, [parents, metadata]) = prepare_authorized!(
             self named "authorize_parent_edge_post_execution" at &definition;
             [("parents", parents), ("metadata", metadata),]
         );
@@ -143,8 +150,11 @@ impl AuthorizedHooks<Context> for HooksWasi {
             field_name: definition.field_name.to_string(),
         };
 
-        let results = instance
-            .authorize_parent_edge_post_execution(Arc::clone(context), definition, parents, metadata)
+        let results = inner
+            .run_and_measure_multi_error(
+                "authorize-parent-edge-post-execution",
+                instance.authorize_parent_edge_post_execution(Arc::clone(context), definition, parents, metadata),
+            )
             .await
             .map_err(|err| match err {
                 wasi_component_loader::Error::Internal(error) => {
@@ -171,7 +181,7 @@ impl AuthorizedHooks<Context> for HooksWasi {
         nodes: impl IntoIterator<Item: Anything<'a>> + Send,
         metadata: Option<impl Anything<'a>>,
     ) -> AuthorizationVerdicts {
-        let (mut instance, [nodes, metadata]) = prepare_authorized!(
+        let (inner, mut instance, [nodes, metadata]) = prepare_authorized!(
             self named "authorize_edge_node_post_execution" at &definition;
             [("nodes", nodes), ("metadata", metadata),]
         );
@@ -181,8 +191,11 @@ impl AuthorizedHooks<Context> for HooksWasi {
             field_name: definition.field_name.to_string(),
         };
 
-        let result = instance
-            .authorize_edge_node_post_execution(Arc::clone(context), definition, nodes, metadata)
+        let result = inner
+            .run_and_measure_multi_error(
+                "authorize-edge-node-post-execution",
+                instance.authorize_edge_node_post_execution(Arc::clone(context), definition, nodes, metadata),
+            )
             .await
             .map_err(|err| match err {
                 wasi_component_loader::Error::Internal(error) => {
@@ -213,11 +226,13 @@ impl AuthorizedHooks<Context> for HooksWasi {
         Parent: Anything<'a>,
         Nodes: IntoIterator<Item: Anything<'a>> + Send,
     {
-        let (mut instance, [metadata]) = prepare_authorized!(
+        let (inner, mut instance, [metadata]) = prepare_authorized!(
             self named "authorize_edge_post_execution" at &definition;
             [("metadata", metadata),]
         );
+
         let metadata: String = metadata.into_iter().next().unwrap_or_default();
+
         let edges: Vec<(String, Vec<String>)> = edges
             .into_iter()
             .map(|(parent, nodes): (Parent, Nodes)| {
@@ -240,13 +255,17 @@ impl AuthorizedHooks<Context> for HooksWasi {
                 Ok((parent, nodes))
             })
             .collect::<Result<Vec<_>, _>>()?;
+
         let definition = wasi_component_loader::EdgeDefinition {
             parent_type_name: definition.parent_type_name.to_string(),
             field_name: definition.field_name.to_string(),
         };
 
-        let result = instance
-            .authorize_edge_post_execution(Arc::clone(context), definition, edges, metadata)
+        let result = inner
+            .run_and_measure_multi_error(
+                "authorize-edge-post-execution",
+                instance.authorize_edge_post_execution(Arc::clone(context), definition, edges, metadata),
+            )
             .await
             .map_err(|err| match err {
                 wasi_component_loader::Error::Internal(error) => {

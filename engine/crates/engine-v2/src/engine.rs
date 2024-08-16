@@ -14,7 +14,10 @@ use gateway_v2_auth::AuthService;
 use grafbase_telemetry::{
     gql_response_status::GraphqlResponseStatus,
     grafbase_client::Client,
-    metrics::{GraphqlOperationMetrics, GraphqlRequestMetricsAttributes, OperationMetricsAttributes},
+    metrics::{
+        GraphqlOperationMetrics, GraphqlRequestMetricsAttributes, OperationMetricsAttributes,
+        QueryPreparationAttributes,
+    },
     span::{gql::GqlRequestSpan, GqlRecorderSpanExt, GRAFBASE_TARGET},
 };
 use retry_budget::RetryBudgets;
@@ -22,7 +25,7 @@ use schema::Schema;
 use std::{borrow::Cow, future::Future, sync::Arc};
 use tracing::Instrument;
 use trusted_documents::OperationDocument;
-use web_time::Instant;
+use web_time::{Instant, SystemTime};
 
 use crate::{
     execution::{ExecutableOperation, PreExecutionContext},
@@ -135,21 +138,21 @@ impl<R: Runtime> Engine<R> {
 
         let graphql_request_fut = async move {
             if parts.method == http::Method::POST {
-                body.await
-                    .map_err(|(status, message)| {
-                        Http::from(
-                            format,
-                            Response::refuse_request_with(status, GraphqlError::new(message, ErrorCode::BadRequest)),
-                        )
-                    })
-                    .and_then(|body| {
-                        serde_json::from_slice(&body).map_err(|err| {
-                            Http::from(
-                                format,
-                                RefusedRequestResponse::not_well_formed_graphql_over_http_request(&err.to_string()),
-                            )
-                        })
-                    })
+                let body = body.await.map_err(|(status, message)| {
+                    Http::from(
+                        format,
+                        Response::refuse_request_with(status, GraphqlError::new(message, ErrorCode::BadRequest)),
+                    )
+                })?;
+
+                self.operation_metrics.record_request_body_size(body.len());
+
+                serde_json::from_slice(&body).map_err(|err| {
+                    Http::from(
+                        format,
+                        RefusedRequestResponse::not_well_formed_graphql_over_http_request(&err.to_string()),
+                    )
+                })
             } else {
                 let query = parts.uri.query().unwrap_or_default();
                 serde_urlencoded::from_str::<QueryParamsRequest>(query)
@@ -259,6 +262,9 @@ impl<R: Runtime> Engine<R> {
                         ),
                     );
                 };
+
+                self.operation_metrics.record_batch_size(requests.len());
+
                 let Some(responses) = self
                     .runtime
                     .with_timeout(
@@ -271,6 +277,7 @@ impl<R: Runtime> Engine<R> {
                 else {
                     return Http::from(request_context.response_format, RequestErrorResponse::gateway_timeout());
                 };
+
                 Http::batch(format, responses)
             }
         }
@@ -292,7 +299,7 @@ impl<R: Runtime> Engine<R> {
             if let Some(operation_metrics_attributes) = operation_metrics_attributes {
                 span.record_gql_request((&operation_metrics_attributes).into());
 
-                self.operation_metrics.record_operation(
+                self.operation_metrics.record_operation_duration(
                     GraphqlRequestMetricsAttributes {
                         operation: operation_metrics_attributes,
                         status,
@@ -343,7 +350,7 @@ impl<R: Runtime> Engine<R> {
                 if let Some(operation_metrics_attributes) = operation_metrics_attributes {
                     tracing::Span::current().record_gql_request((&operation_metrics_attributes).into());
 
-                    engine.operation_metrics.record_operation(
+                    engine.operation_metrics.record_operation_duration(
                         GraphqlRequestMetricsAttributes {
                             operation: operation_metrics_attributes,
                             status,
@@ -457,6 +464,40 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
         &mut self,
         request: Request,
     ) -> Result<ExecutableOperation, (Option<OperationMetricsAttributes>, Response)> {
+        let start = SystemTime::now();
+        let result = self.prepare_operation_inner(request).await;
+        let duration = SystemTime::now().duration_since(start).unwrap_or_default();
+
+        match result {
+            Ok(operation) => {
+                let attributes = QueryPreparationAttributes {
+                    operation_name: operation.prepared.metrics_attributes.name.clone(),
+                    document: Some(operation.prepared.metrics_attributes.sanitized_query.clone()),
+                    success: true,
+                };
+
+                self.operation_metrics.record_preparation_latency(attributes, duration);
+
+                Ok(operation)
+            }
+            Err(e) => {
+                let attributes = QueryPreparationAttributes {
+                    operation_name: None,
+                    document: None,
+                    success: false,
+                };
+
+                self.operation_metrics.record_preparation_latency(attributes, duration);
+
+                Err(e)
+            }
+        }
+    }
+
+    async fn prepare_operation_inner(
+        &mut self,
+        request: Request,
+    ) -> Result<ExecutableOperation, (Option<OperationMetricsAttributes>, Response)> {
         let result = {
             let OperationDocument { cache_key, load_fut } = match self.determine_operation_document(&request) {
                 Ok(doc) => doc,
@@ -484,13 +525,7 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
                     .map(Arc::new)
                     .map_err(|mut err| (err.take_metrics_attributes(), Response::request_error([err])))?;
 
-                let gauge = self.engine.operation_metrics.operation_cache_size_gauge();
-                let cache_fut = self
-                    .engine
-                    .operation_cache
-                    .insert(cache_key, operation.clone())
-                    .map(move |size| gauge.record(size, &[]));
-
+                let cache_fut = self.engine.operation_cache.insert(cache_key, operation.clone());
                 self.push_background_future(cache_fut.boxed());
 
                 operation

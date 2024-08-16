@@ -30,6 +30,43 @@ use wiremock::{
 const ACCESS_TOKEN: &str = "test";
 
 #[derive(serde::Serialize)]
+struct BatchQuery {
+    query: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    variables: Option<serde_json::Value>,
+}
+
+#[must_use]
+pub struct GqlBatchBuilder<Response> {
+    queries: Vec<BatchQuery>,
+    phantom: PhantomData<fn() -> Response>,
+    reqwest_builder: reqwest::RequestBuilder,
+    bearer: Option<String>,
+}
+
+impl<Response> GqlBatchBuilder<Response> {
+    pub async fn send(self) -> Response
+    where
+        Response: for<'de> serde::de::Deserialize<'de>,
+    {
+        let json = serde_json::to_value(&self.queries).expect("to be able to serialize gql request");
+
+        if let Some(bearer) = self.bearer {
+            self.reqwest_builder.header("authorization", bearer)
+        } else {
+            self.reqwest_builder
+        }
+        .json(&json)
+        .send()
+        .await
+        .unwrap()
+        .json::<Response>()
+        .await
+        .unwrap()
+    }
+}
+
+#[derive(serde::Serialize)]
 #[must_use]
 pub struct GqlRequestBuilder<Response> {
     // These two will be serialized into the request
@@ -164,6 +201,29 @@ impl Client {
         GqlRequestBuilder {
             query: query.into(),
             variables: None,
+            phantom: PhantomData,
+            reqwest_builder: reqwest_builder.header(http::header::ACCEPT, "application/json"),
+            bearer: None,
+        }
+    }
+
+    pub fn gql_batch<Response, T>(&self, queries: impl IntoIterator<Item = T>) -> GqlBatchBuilder<Response>
+    where
+        Response: for<'de> serde::de::Deserialize<'de>,
+        T: Into<String>,
+    {
+        let reqwest_builder = self.client.post(&self.endpoint).headers(self.headers.clone());
+
+        let queries = queries
+            .into_iter()
+            .map(|query| BatchQuery {
+                query: query.into(),
+                variables: None,
+            })
+            .collect();
+
+        GqlBatchBuilder {
+            queries,
             phantom: PhantomData,
             reqwest_builder: reqwest_builder.header(http::header::ACCEPT, "application/json"),
             bearer: None,
