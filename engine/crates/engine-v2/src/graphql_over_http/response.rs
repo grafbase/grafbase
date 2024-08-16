@@ -34,8 +34,10 @@ impl Http {
                 return internal_server_error();
             }
         };
+
         let status_code = compute_status_code(ResponseFormat::Complete(format), &response);
         let mut headers = http::HeaderMap::new();
+
         headers.typed_insert(response.graphql_status());
         headers.insert(http::header::CONTENT_TYPE, format.to_content_type());
         headers.typed_insert(headers::ContentLength(bytes.len() as u64));
@@ -55,6 +57,7 @@ impl Http {
                 return internal_server_error();
             }
         };
+
         let status_code = responses.iter().fold(http::StatusCode::OK, |status, response| {
             if !status.is_client_error() {
                 let other = compute_status_code(ResponseFormat::Complete(format), response);
@@ -64,6 +67,7 @@ impl Http {
             }
             status
         });
+
         let graphql_status = responses
             .iter()
             .fold(GraphqlResponseStatus::Success, |graphql_status, response| {
@@ -72,6 +76,7 @@ impl Http {
 
         let mut headers = http::HeaderMap::new();
         headers.typed_insert(graphql_status);
+
         headers.insert(
             http::header::CONTENT_TYPE,
             match format {
@@ -79,6 +84,7 @@ impl Http {
                 CompleteResponseFormat::GraphqlResponseJson => APPLICATION_GRAPHQL_RESPONSE_JSON,
             },
         );
+
         headers.typed_insert(headers::ContentLength(bytes.len() as u64));
 
         let mut response = http::Response::new(Body::Bytes(bytes));

@@ -742,3 +742,67 @@ fn rate_limit() {
             "###);
     });
 }
+
+#[test]
+fn graphql_errors() {
+    with_gateway(|service_name, _, gateway, clickhouse| async move {
+        let resp = gateway
+            .gql::<serde_json::Value>(
+                r###"
+                query Faulty {
+                    me {
+                        id
+                    }
+                }
+                "###,
+            )
+            .send()
+            .await;
+
+        insta::assert_json_snapshot!(resp, @r###"
+        {
+          "data": null,
+          "errors": [
+            {
+              "message": "Request to subgraph 'accounts' failed with: error sending request for url (http://127.0.0.1:46697/)",
+              "path": [
+                "me"
+              ],
+              "extensions": {
+                "code": "SUBGRAPH_REQUEST_ERROR"
+              }
+            }
+          ]
+        }
+        "###);
+
+        tokio::time::sleep(METRICS_DELAY).await;
+
+        let rows = clickhouse
+            .query(
+                r#"
+                SELECT Value, Attributes
+                FROM otel_metrics_sum
+                WHERE ServiceName = ?
+                    AND ScopeName = 'grafbase'
+                    AND MetricName = 'graphql.operation.errors'
+                "#,
+            )
+            .bind(&service_name)
+            .fetch_all::<SumRow>()
+            .await
+            .unwrap();
+
+        insta::assert_json_snapshot!(rows, @r###"
+        [
+          {
+            "Value": 1.0,
+            "Attributes": {
+              "graphql.operation.name": "Faulty",
+              "graphql.response.error.code": "SUBGRAPH_REQUEST_ERROR"
+            }
+          }
+        ]
+        "###);
+    });
+}

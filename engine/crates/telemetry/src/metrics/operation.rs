@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use opentelemetry::{
     metrics::{Counter, Histogram, Meter, UpDownCounter},
     KeyValue,
@@ -8,8 +10,7 @@ use crate::{
     grafbase_client::Client,
 };
 
-#[derive(Clone)]
-pub struct GraphqlOperationMetrics {
+struct MetricsInner {
     operation_latency: Histogram<u64>,
     subgraph_latency: Histogram<u64>,
     subgraph_retries: Counter<u64>,
@@ -23,6 +24,12 @@ pub struct GraphqlOperationMetrics {
     query_preparation_latency: Histogram<u64>,
     batch_sizes: Histogram<u64>,
     request_body_sizes: Histogram<u64>,
+    graphql_errors: Counter<u64>,
+}
+
+#[derive(Clone)]
+pub struct GraphqlOperationMetrics {
+    inner: Arc<MetricsInner>,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -127,9 +134,16 @@ pub struct QueryPreparationAttributes {
     pub success: bool,
 }
 
+#[derive(Debug)]
+pub struct GraphqlErrorAttributes {
+    pub code: String,
+    pub operation_name: Option<String>,
+    pub client: Option<Client>,
+}
+
 impl GraphqlOperationMetrics {
     pub fn build(meter: &Meter) -> Self {
-        Self {
+        let inner = MetricsInner {
             operation_latency: meter.u64_histogram("gql_operation_latency").init(),
             subgraph_latency: meter.u64_histogram("graphql.subgraph.request.duration").init(),
             subgraph_retries: meter.u64_counter("graphql.subgraph.request.retries").init(),
@@ -143,7 +157,10 @@ impl GraphqlOperationMetrics {
             query_preparation_latency: meter.u64_histogram("graphql.operation.prepare.duration").init(),
             batch_sizes: meter.u64_histogram("graphql.operation.batch.size").init(),
             request_body_sizes: meter.u64_histogram("http.server.request.body.size").init(),
-        }
+            graphql_errors: meter.u64_counter("graphql.operation.errors").init(),
+        };
+
+        Self { inner: Arc::new(inner) }
     }
 
     pub fn record_operation_duration(
@@ -190,7 +207,9 @@ impl GraphqlOperationMetrics {
             }
         }
 
-        self.operation_latency.record(latency.as_millis() as u64, &attributes);
+        self.inner
+            .operation_latency
+            .record(latency.as_millis() as u64, &attributes);
     }
 
     pub fn record_subgraph_duration(
@@ -203,7 +222,9 @@ impl GraphqlOperationMetrics {
             KeyValue::new("graphql.subgraph.response.status", status.as_str()),
         ];
 
-        self.subgraph_latency.record(latency.as_millis() as u64, &attributes);
+        self.inner
+            .subgraph_latency
+            .record(latency.as_millis() as u64, &attributes);
     }
 
     pub fn record_subgraph_retry(
@@ -215,7 +236,7 @@ impl GraphqlOperationMetrics {
             KeyValue::new("graphql.subgraph.aborted", aborted),
         ];
 
-        self.subgraph_retries.add(1, &attributes);
+        self.inner.subgraph_retries.add(1, &attributes);
     }
 
     pub fn record_subgraph_request_size(
@@ -224,7 +245,7 @@ impl GraphqlOperationMetrics {
         size: usize,
     ) {
         let attributes = [KeyValue::new("graphql.subgraph.name", name)];
-        self.subgraph_request_body_size.record(size as u64, &attributes);
+        self.inner.subgraph_request_body_size.record(size as u64, &attributes);
     }
 
     pub fn record_subgraph_response_size(
@@ -233,7 +254,7 @@ impl GraphqlOperationMetrics {
         size: usize,
     ) {
         let attributes = [KeyValue::new("graphql.subgraph.name", name)];
-        self.subgraph_response_body_size.record(size as u64, &attributes);
+        self.inner.subgraph_response_body_size.record(size as u64, &attributes);
     }
 
     pub fn increment_subgraph_inflight_requests(
@@ -241,7 +262,7 @@ impl GraphqlOperationMetrics {
         SubgraphInFlightRequestAttributes { name }: SubgraphInFlightRequestAttributes,
     ) {
         let attributes = [KeyValue::new("graphql.subgraph.name", name)];
-        self.subgraph_requests_inflight.add(1, &attributes);
+        self.inner.subgraph_requests_inflight.add(1, &attributes);
     }
 
     pub fn decrement_subgraph_inflight_requests(
@@ -249,25 +270,25 @@ impl GraphqlOperationMetrics {
         SubgraphInFlightRequestAttributes { name }: SubgraphInFlightRequestAttributes,
     ) {
         let attributes = [KeyValue::new("graphql.subgraph.name", name)];
-        self.subgraph_requests_inflight.add(-1, &attributes);
+        self.inner.subgraph_requests_inflight.add(-1, &attributes);
     }
 
     pub fn record_subgraph_cache_hit(&self, SubgraphCacheHitAttributes { name }: SubgraphCacheHitAttributes) {
         let attributes = [KeyValue::new("graphql.subgraph.name", name)];
-        self.subgraph_cache_hits.add(1, &attributes);
+        self.inner.subgraph_cache_hits.add(1, &attributes);
     }
 
     pub fn record_subgraph_cache_miss(&self, SubgraphCacheMissAttributes { name }: SubgraphCacheMissAttributes) {
         let attributes = [KeyValue::new("graphql.subgraph.name", name)];
-        self.subgraph_cache_misses.add(1, &attributes);
+        self.inner.subgraph_cache_misses.add(1, &attributes);
     }
 
     pub fn record_operation_cache_hit(&self) {
-        self.operation_cache_hits.add(1, &[]);
+        self.inner.operation_cache_hits.add(1, &[]);
     }
 
     pub fn record_operation_cache_miss(&self) {
-        self.operation_cache_misses.add(1, &[]);
+        self.inner.operation_cache_misses.add(1, &[]);
     }
 
     pub fn record_preparation_latency(
@@ -291,15 +312,41 @@ impl GraphqlOperationMetrics {
 
         attributes.push(KeyValue::new("graphql.operation.success", success));
 
-        self.query_preparation_latency
+        self.inner
+            .query_preparation_latency
             .record(latency.as_millis() as u64, &attributes);
     }
 
     pub fn record_batch_size(&self, size: usize) {
-        self.batch_sizes.record(size as u64, &[]);
+        self.inner.batch_sizes.record(size as u64, &[]);
     }
 
     pub fn record_request_body_size(&self, size: usize) {
-        self.request_body_sizes.record(size as u64, &[]);
+        self.inner.request_body_sizes.record(size as u64, &[]);
+    }
+
+    pub fn increment_graphql_errors(
+        &self,
+        GraphqlErrorAttributes {
+            code,
+            operation_name,
+            client,
+        }: GraphqlErrorAttributes,
+    ) {
+        let mut attributes = vec![KeyValue::new("graphql.response.error.code", code)];
+
+        if let Some(name) = operation_name {
+            attributes.push(KeyValue::new("graphql.operation.name", name));
+        }
+
+        if let Some(client) = client {
+            attributes.push(KeyValue::new("http.headers.x-grafbase-client-name", client.name));
+
+            if let Some(version) = client.version {
+                attributes.push(KeyValue::new("http.headers.x-grafbase-client-version", version));
+            }
+        }
+
+        self.inner.graphql_errors.add(1, &attributes);
     }
 }

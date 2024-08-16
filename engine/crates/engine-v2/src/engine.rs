@@ -15,7 +15,7 @@ use grafbase_telemetry::{
     gql_response_status::GraphqlResponseStatus,
     grafbase_client::Client,
     metrics::{
-        GraphqlOperationMetrics, GraphqlRequestMetricsAttributes, OperationMetricsAttributes,
+        GraphqlErrorAttributes, GraphqlOperationMetrics, GraphqlRequestMetricsAttributes, OperationMetricsAttributes,
         QueryPreparationAttributes,
     },
     span::{gql::GqlRequestSpan, GqlRecorderSpanExt, GRAFBASE_TARGET},
@@ -155,6 +155,7 @@ impl<R: Runtime> Engine<R> {
                 })
             } else {
                 let query = parts.uri.query().unwrap_or_default();
+
                 serde_urlencoded::from_str::<QueryParamsRequest>(query)
                     .map(|request| BatchRequest::Single(request.into()))
                     .map_err(|err| {
@@ -290,13 +291,15 @@ impl<R: Runtime> Engine<R> {
     ) -> Response {
         let start = Instant::now();
         let span = GqlRequestSpan::create();
+
         async {
             let ctx = PreExecutionContext::new(self, request_context);
             let (operation_metrics_attributes, response) = ctx.execute_single(request).await;
+
             let elapsed = start.elapsed();
             let status = response.graphql_status();
 
-            if let Some(operation_metrics_attributes) = operation_metrics_attributes {
+            if let Some(operation_metrics_attributes) = operation_metrics_attributes.clone() {
                 span.record_gql_request((&operation_metrics_attributes).into());
 
                 self.operation_metrics.record_operation_duration(
@@ -324,6 +327,16 @@ impl<R: Runtime> Engine<R> {
                 tracing::debug!(target: GRAFBASE_TARGET, "{message}")
             }
 
+            if let Some(attributes) = operation_metrics_attributes {
+                for error in response.errors() {
+                    self.operation_metrics.increment_graphql_errors(GraphqlErrorAttributes {
+                        code: error.code.to_string(),
+                        operation_name: attributes.name.clone(),
+                        client: request_context.client.clone(),
+                    });
+                }
+            }
+
             response
         }
         .instrument(span.clone())
@@ -341,6 +354,7 @@ impl<R: Runtime> Engine<R> {
 
         let span = GqlRequestSpan::create();
         let span_clone = span.clone();
+
         receiver.join(
             async move {
                 let ctx = PreExecutionContext::new(&engine, &request_context);
@@ -398,6 +412,9 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
         request: Request,
         mut sender: mpsc::Sender<Response>,
     ) -> (Option<OperationMetricsAttributes>, GraphqlResponseStatus) {
+        let operation_metrics = self.engine.operation_metrics.clone();
+        let client = self.request_context.client.clone();
+
         // If it's a subscription, we at least have a timeout on the operation preparation.
         let result = self
             .engine
@@ -411,11 +428,14 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
                         return Err((metadata, status));
                     }
                 };
+
                 if matches!(operation_plan.ty(), OperationType::Query | OperationType::Mutation) {
                     let metrics_attributes = Some(operation_plan.metrics_attributes.clone());
                     let response = self.execute_query_or_mutation(operation_plan).await;
                     let status = response.graphql_status();
+
                     sender.send(response).await.ok();
+
                     Err((metrics_attributes, status))
                 } else {
                     Ok((self, operation_plan))
@@ -435,28 +455,46 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
         };
 
         let mut status: GraphqlResponseStatus = GraphqlResponseStatus::Success;
+
         struct Sender<'a> {
             sender: mpsc::Sender<Response>,
             status: &'a mut GraphqlResponseStatus,
+            operation_name: Option<String>,
+            client: Option<Client>,
+            operation_metrics: GraphqlOperationMetrics,
         }
 
         impl crate::execution::ResponseSender for Sender<'_> {
             type Error = mpsc::SendError;
             async fn send(&mut self, response: Response) -> Result<(), Self::Error> {
                 *self.status = self.status.union(response.graphql_status());
+
+                for error in response.errors() {
+                    self.operation_metrics.increment_graphql_errors(GraphqlErrorAttributes {
+                        code: error.code.to_string(),
+                        operation_name: self.operation_name.clone(),
+                        client: self.client.clone(),
+                    })
+                }
+
                 self.sender.send(response).await
             }
         }
 
         let metrics_attributes = Some(operation_plan.metrics_attributes.clone());
+
         ctx.execute_subscription(
             operation_plan,
             Sender {
                 sender,
                 status: &mut status,
+                operation_name: metrics_attributes.as_ref().and_then(|a| a.name.clone()),
+                client: client.clone(),
+                operation_metrics,
             },
         )
         .await;
+
         (metrics_attributes, status)
     }
 
