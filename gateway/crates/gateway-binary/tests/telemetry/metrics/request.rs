@@ -31,7 +31,7 @@ fn basic() {
             .await
             .unwrap();
 
-        assert!(row.attributes.get("server.port").is_some());
+        assert!(row.attributes.contains_key("server.port"));
         row.attributes.insert("server.port".to_string(), "XXXXX".to_string());
 
         insta::assert_json_snapshot!(row, @r###"
@@ -92,7 +92,7 @@ fn request_error() {
             .await
             .unwrap();
 
-        assert!(row.attributes.get("server.port").is_some());
+        assert!(row.attributes.contains_key("server.port"));
         row.attributes.insert("server.port".to_string(), "XXXXX".to_string());
 
         insta::assert_json_snapshot!(row, @r###"
@@ -155,7 +155,7 @@ fn field_error() {
             .await
             .unwrap();
 
-        assert!(row.attributes.get("server.port").is_some());
+        assert!(row.attributes.contains_key("server.port"));
         row.attributes.insert("server.port".to_string(), "XXXXX".to_string());
 
         insta::assert_json_snapshot!(row, @r###"
@@ -214,7 +214,7 @@ fn field_error_data_null() {
             .await
             .unwrap();
 
-        assert!(row.attributes.get("server.port").is_some());
+        assert!(row.attributes.contains_key("server.port"));
         row.attributes.insert("server.port".to_string(), "XXXXX".to_string());
 
         insta::assert_json_snapshot!(row, @r###"
@@ -271,7 +271,7 @@ fn client() {
             .unwrap()
             .unwrap();
 
-        assert!(row.attributes.get("server.port").is_some());
+        assert!(row.attributes.contains_key("server.port"));
         row.attributes.insert("server.port".to_string(), "XXXXX".to_string());
 
         insta::assert_json_snapshot!(row, @r###"

@@ -20,10 +20,10 @@ pub struct RequestMetricsAttributes {
     pub gql_status: Option<GraphqlResponseStatus>,
     pub client: Option<Client>,
     pub url_scheme: Option<String>,
-    pub route: String,
+    pub route: Option<String>,
     pub listen_address: Option<SocketAddr>,
-    pub version: http::Version,
-    pub method: http::Method,
+    pub version: Option<http::Version>,
+    pub method: Option<http::Method>,
 }
 
 impl RequestMetrics {
@@ -50,12 +50,19 @@ impl RequestMetrics {
         }: RequestMetricsAttributes,
         latency: std::time::Duration,
     ) {
-        let mut attributes = vec![
-            KeyValue::new("http.response.status.code", status_code as i64),
-            KeyValue::new("http.request.method", method.to_string()),
-            KeyValue::new("http.route", route),
-            KeyValue::new("network.protocol.version", format!("{version:?}")),
-        ];
+        let mut attributes = vec![KeyValue::new("http.response.status.code", status_code as i64)];
+
+        if let Some(method) = method {
+            attributes.push(KeyValue::new("http.request.method", method.to_string()));
+        }
+
+        if let Some(route) = route {
+            attributes.push(KeyValue::new("http.route", route));
+        }
+
+        if let Some(version) = version {
+            attributes.push(KeyValue::new("network.protocol.version", format!("{version:?}")));
+        }
 
         if let Some(listen_address) = listen_address {
             attributes.push(KeyValue::new("server.address", listen_address.ip().to_string()));
@@ -67,7 +74,7 @@ impl RequestMetrics {
         }
 
         if let Some(cache_status) = cache_status {
-            attributes.push(KeyValue::new("http.response.headers.cache_status", cache_status));
+            attributes.push(KeyValue::new("http.response.headers.cache.status", cache_status));
         }
 
         if let Some(client) = client {
