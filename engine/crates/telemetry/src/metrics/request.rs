@@ -1,3 +1,5 @@
+use std::net::SocketAddr;
+
 use opentelemetry::{
     metrics::{Histogram, Meter, UpDownCounter},
     KeyValue,
@@ -17,12 +19,17 @@ pub struct RequestMetricsAttributes {
     pub cache_status: Option<String>,
     pub gql_status: Option<GraphqlResponseStatus>,
     pub client: Option<Client>,
+    pub url_scheme: Option<String>,
+    pub route: String,
+    pub listen_address: Option<SocketAddr>,
+    pub version: http::Version,
+    pub method: http::Method,
 }
 
 impl RequestMetrics {
     pub fn build(meter: &Meter) -> Self {
         Self {
-            latency: meter.u64_histogram("request_latency").init(),
+            latency: meter.u64_histogram("http.server.request.duration").init(),
             connected_clients: meter.i64_up_down_counter("http.server.connected.clients").init(),
             response_body_sizes: meter.u64_histogram("http.server.response.body.size").init(),
         }
@@ -35,23 +42,46 @@ impl RequestMetrics {
             cache_status,
             gql_status,
             client,
+            method,
+            url_scheme,
+            route,
+            listen_address,
+            version,
         }: RequestMetricsAttributes,
         latency: std::time::Duration,
     ) {
-        let mut attributes = Vec::new();
-        attributes.push(KeyValue::new("http.response.status_code", status_code as i64));
+        let mut attributes = vec![
+            KeyValue::new("http.response.status.code", status_code as i64),
+            KeyValue::new("http.request.method", method.to_string()),
+            KeyValue::new("http.route", route),
+            KeyValue::new("network.protocol.version", format!("{version:?}")),
+        ];
+
+        if let Some(listen_address) = listen_address {
+            attributes.push(KeyValue::new("server.address", listen_address.ip().to_string()));
+            attributes.push(KeyValue::new("server.port", listen_address.port() as i64));
+        }
+
+        if let Some(scheme) = url_scheme {
+            attributes.push(KeyValue::new("url.scheme", scheme.to_string()));
+        }
+
         if let Some(cache_status) = cache_status {
             attributes.push(KeyValue::new("http.response.headers.cache_status", cache_status));
         }
+
         if let Some(client) = client {
             attributes.push(KeyValue::new("http.headers.x-grafbase-client-name", client.name));
+
             if let Some(version) = client.version {
                 attributes.push(KeyValue::new("http.headers.x-grafbase-client-version", version));
             }
         }
+
         if let Some(status) = gql_status {
-            attributes.push(KeyValue::new("gql.response.status", status.as_str()));
+            attributes.push(KeyValue::new("graphql.response.status", status.as_str()));
         }
+
         self.latency.record(latency.as_millis() as u64, &attributes);
     }
 

@@ -27,6 +27,7 @@ async fn expect_gateway_span() {
         .route("/", get(|| async {}))
         .layer(grafbase_telemetry::tower::layer(
             grafbase_telemetry::metrics::meter_from_global_provider(),
+            None,
         ));
 
     let tcp_listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();

@@ -103,6 +103,7 @@ pub(super) async fn run(
         .nest_service("/static", tower_http::services::ServeDir::new(static_asset_path))
         .layer(grafbase_telemetry::tower::layer(
             grafbase_telemetry::metrics::meter_from_global_provider(),
+            None,
         ))
         .layer(CorsLayer::permissive())
         .with_state(ProxyState {
