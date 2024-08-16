@@ -7,7 +7,9 @@ use crate::operation::Location;
 
 use super::ResponsePath;
 
-#[derive(Debug, serde::Serialize, serde::Deserialize, strum::Display, strum::AsRefStr, EnumSetType)]
+#[derive(
+    Debug, serde::Serialize, serde::Deserialize, strum::Display, strum::AsRefStr, strum::IntoStaticStr, EnumSetType,
+)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 #[strum(serialize_all = "SCREAMING_SNAKE_CASE")]
 #[non_exhaustive]

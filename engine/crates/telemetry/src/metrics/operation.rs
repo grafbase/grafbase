@@ -8,7 +8,6 @@ use crate::{
     grafbase_client::Client,
 };
 
-#[derive(Clone)]
 pub struct GraphqlOperationMetrics {
     operation_latency: Histogram<u64>,
     subgraph_latency: Histogram<u64>,
@@ -23,6 +22,7 @@ pub struct GraphqlOperationMetrics {
     query_preparation_latency: Histogram<u64>,
     batch_sizes: Histogram<u64>,
     request_body_sizes: Histogram<u64>,
+    graphql_errors: Counter<u64>,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -127,6 +127,13 @@ pub struct QueryPreparationAttributes {
     pub success: bool,
 }
 
+#[derive(Debug)]
+pub struct GraphqlErrorAttributes {
+    pub code: &'static str,
+    pub operation_name: Option<String>,
+    pub client: Option<Client>,
+}
+
 impl GraphqlOperationMetrics {
     pub fn build(meter: &Meter) -> Self {
         Self {
@@ -143,6 +150,7 @@ impl GraphqlOperationMetrics {
             query_preparation_latency: meter.u64_histogram("graphql.operation.prepare.duration").init(),
             batch_sizes: meter.u64_histogram("graphql.operation.batch.size").init(),
             request_body_sizes: meter.u64_histogram("http.server.request.body.size").init(),
+            graphql_errors: meter.u64_counter("graphql.operation.errors").init(),
         }
     }
 
@@ -301,5 +309,30 @@ impl GraphqlOperationMetrics {
 
     pub fn record_request_body_size(&self, size: usize) {
         self.request_body_sizes.record(size as u64, &[]);
+    }
+
+    pub fn increment_graphql_errors(
+        &self,
+        GraphqlErrorAttributes {
+            code,
+            operation_name,
+            client,
+        }: GraphqlErrorAttributes,
+    ) {
+        let mut attributes = vec![KeyValue::new("graphql.response.error.code", code)];
+
+        if let Some(name) = operation_name {
+            attributes.push(KeyValue::new("graphql.operation.name", name));
+        }
+
+        if let Some(client) = client {
+            attributes.push(KeyValue::new("http.headers.x-grafbase-client-name", client.name));
+
+            if let Some(version) = client.version {
+                attributes.push(KeyValue::new("http.headers.x-grafbase-client-version", version));
+            }
+        }
+
+        self.graphql_errors.add(1, &attributes);
     }
 }
