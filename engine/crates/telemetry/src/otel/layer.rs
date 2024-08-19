@@ -1,5 +1,3 @@
-use std::borrow::Cow;
-
 use opentelemetry::trace::noop::NoopTracer;
 use opentelemetry::trace::TracerProvider;
 use opentelemetry::KeyValue;
@@ -109,12 +107,10 @@ where
     let tracing_layer = if config.tracing_exporters_enabled() {
         let tracer_provider = super::traces::build_trace_provider(runtime, id_generator, &config, resource.clone())?;
 
-        let tracer = tracer_provider.versioned_tracer(
-            crate::SCOPE,
-            Some(crate::SCOPE_VERSION),
-            None::<Cow<'static, str>>,
-            None,
-        );
+        let tracer = tracer_provider
+            .tracer_builder(crate::SCOPE)
+            .with_version(crate::SCOPE_VERSION)
+            .build();
 
         let tracer_layer = tracing_opentelemetry::layer().with_tracer(tracer);
         let tracer_layer = tracer_layer.boxed();

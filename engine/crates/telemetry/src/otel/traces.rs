@@ -23,7 +23,7 @@ where
     I: IdGenerator + 'static,
 {
     let builder = TracerProvider::builder().with_config(
-        opentelemetry_sdk::trace::config()
+        opentelemetry_sdk::trace::Config::default()
             .with_id_generator(id_generator)
             .with_sampler(Sampler::TraceIdRatioBased(config.tracing.sampling))
             .with_max_events_per_span(config.tracing.collect.max_events_per_span as u32)
