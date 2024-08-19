@@ -24,26 +24,21 @@ pub use telemetry::*;
 use url::Url;
 
 #[serde_with::serde_as]
-#[derive(Clone, Debug, Default, serde::Deserialize)]
-#[serde(deny_unknown_fields)]
+#[derive(Clone, Debug, serde::Deserialize)]
+#[serde(default, deny_unknown_fields)]
 /// Configuration struct to define settings for self-hosted
 /// Grafbase gateway.
 pub struct Config {
     /// Graph location and features, such as introspection
-    #[serde(default)]
     pub graph: GraphConfig,
     /// Server bind settings
-    #[serde(default)]
     pub network: NetworkConfig,
     /// General settings for the gateway server
-    #[serde(default)]
     pub gateway: GatewayConfig,
     /// Maximum size of the request body in bytes
     #[serde_as(as = "DisplayFromStr")]
-    #[serde(default = "default_request_body_limit")]
     pub request_body_limit: Size,
     /// Cross-site request forgery settings
-    #[serde(default)]
     pub csrf: CsrfConfig,
     /// Cross-origin resource sharing settings
     pub cors: Option<CorsConfig>,
@@ -54,63 +49,71 @@ pub struct Config {
     /// Telemetry settings
     pub telemetry: Option<TelemetryConfig>,
     /// Configuration for Trusted Documents.
-    #[serde(default)]
     pub trusted_documents: TrustedDocumentsConfig,
     /// Authentication configuration
     pub authentication: Option<AuthenticationConfig>,
     /// Header bypass configuration
-    #[serde(default)]
     pub headers: Vec<HeaderRule>,
     /// Subgraph configuration
-    #[serde(default)]
     pub subgraphs: BTreeMap<String, SubgraphConfig>,
     /// Hooks configuration
-    #[serde(default)]
     pub hooks: Option<HooksWasiConfig>,
     /// Health check endpoint configuration
-    #[serde(default)]
     pub health: HealthConfig,
     /// Global configuration for entity caching
-    #[serde(default)]
     pub entity_caching: EntityCachingConfig,
 }
 
-fn default_request_body_limit() -> Size {
-    // 2 MiB
-    Size::from_mebibytes(2)
+impl Default for Config {
+    fn default() -> Self {
+        Self {
+            graph: Default::default(),
+            network: Default::default(),
+            gateway: Default::default(),
+            request_body_limit: Size::from_mebibytes(2),
+            csrf: Default::default(),
+            cors: Default::default(),
+            tls: Default::default(),
+            operation_limits: Default::default(),
+            telemetry: Default::default(),
+            trusted_documents: Default::default(),
+            authentication: Default::default(),
+            headers: Default::default(),
+            subgraphs: Default::default(),
+            hooks: Default::default(),
+            health: Default::default(),
+            entity_caching: Default::default(),
+        }
+    }
 }
 
 #[derive(Clone, Debug, Default, serde::Deserialize)]
-#[serde(deny_unknown_fields)]
+#[serde(default, deny_unknown_fields)]
 pub struct GatewayConfig {
     /// Timeout for gateway requests.
-    #[serde(deserialize_with = "duration_str::deserialize_option_duration", default)]
+    #[serde(deserialize_with = "duration_str::deserialize_option_duration")]
     pub timeout: Option<Duration>,
     /// Default timeout for subgraph requests.
-    #[serde(deserialize_with = "duration_str::deserialize_option_duration", default)]
+    #[serde(deserialize_with = "duration_str::deserialize_option_duration")]
     pub subgraph_timeout: Option<Duration>,
     /// Global rate limiting configuration
-    #[serde(default)]
     pub rate_limit: Option<RateLimitConfig>,
     /// Global retry configuration
-    #[serde(default)]
     pub retry: RetryConfig,
 }
 
-#[derive(Debug, serde::Deserialize, Clone)]
+#[derive(Debug, Default, serde::Deserialize, Clone)]
+#[serde(default, deny_unknown_fields)]
 pub struct SubgraphConfig {
     /// Header bypass configuration
-    #[serde(default)]
     pub headers: Vec<HeaderRule>,
     /// The URL to use for GraphQL websocket calls.
     pub websocket_url: Option<Url>,
     /// Rate limiting configuration specifically for this Subgraph
-    #[serde(default)]
     pub rate_limit: Option<GraphRateLimit>,
     /// Timeout for subgraph requests in seconds. Default: 30 seconds.
-    #[serde(deserialize_with = "duration_str::deserialize_option_duration", default)]
+    #[serde(deserialize_with = "duration_str::deserialize_option_duration")]
     pub timeout: Option<Duration>,
-    #[serde(default)]
     pub retry: Option<RetryConfig>,
 
     /// Subgraph specific entity caching config  this overrides the global config if there
@@ -119,40 +122,36 @@ pub struct SubgraphConfig {
 }
 
 #[derive(Debug, serde::Deserialize, Clone, Copy, Default, PartialEq)]
+#[serde(default, deny_unknown_fields)]
 pub struct RetryConfig {
     /// Should we retry or not.
     pub enabled: bool,
     /// How many retries are available per second, at a minimum.
-    #[serde(default)]
     pub min_per_second: Option<u32>,
     /// Each successful request to the subgraph adds to the retry budget. This setting controls for how long the budget remembers successful requests.
-    #[serde(default, deserialize_with = "duration_str::deserialize_option_duration")]
+    #[serde(deserialize_with = "duration_str::deserialize_option_duration")]
     pub ttl: Option<Duration>,
     /// The fraction of the successful requests budget that can be used for retries.
-    #[serde(default)]
     pub retry_percent: Option<f32>,
     /// Whether mutations should be retried at all. False by default.
-    #[serde(default)]
     pub retry_mutations: bool,
 }
 
 #[derive(Clone, Debug, Default, serde::Deserialize)]
-#[serde(deny_unknown_fields)]
+#[serde(default, deny_unknown_fields)]
 pub struct GraphConfig {
     pub path: Option<String>,
-    #[serde(default)]
     pub introspection: bool,
 }
 
 #[derive(Clone, Debug, Default, serde::Deserialize)]
-#[serde(deny_unknown_fields)]
+#[serde(default, deny_unknown_fields)]
 pub struct CsrfConfig {
-    #[serde(default)]
     pub enabled: bool,
 }
 
 #[derive(Clone, Debug, Default, serde::Deserialize)]
-#[serde(deny_unknown_fields)]
+#[serde(default, deny_unknown_fields)]
 pub struct NetworkConfig {
     pub listen_address: Option<SocketAddr>,
 }
@@ -165,10 +164,9 @@ pub struct TlsConfig {
 }
 
 #[derive(Debug, serde::Deserialize, Default, Clone)]
-#[serde(deny_unknown_fields)]
+#[serde(default, deny_unknown_fields)]
 pub struct TrustedDocumentsConfig {
     /// If true, the engine will only accept trusted document queries. Default: false.
-    #[serde(default)]
     pub enabled: bool,
     /// See [BypassHeader]
     #[serde(flatten)]
@@ -177,17 +175,16 @@ pub struct TrustedDocumentsConfig {
 
 /// An optional header that can be passed by clients to bypass trusted documents enforcement, allowing arbitrary queries.
 #[derive(Debug, serde::Deserialize, Clone, Default)]
+#[serde(default, deny_unknown_fields)]
 pub struct BypassHeader {
     /// Name of the optional header that can be set to bypass trusted documents enforcement, when `enabled = true`. Only meaningful in combination with `bypass_header_value`.
-    #[serde(default)]
     pub bypass_header_name: Option<AsciiString>,
     /// Value of the optional header that can be set to bypass trusted documents enforcement, when `enabled = true`. Only meaningful in combination with `bypass_header_value`.
-    #[serde(default)]
     pub bypass_header_value: Option<DynamicString<String>>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, serde::Deserialize)]
-#[serde(deny_unknown_fields)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, serde::Deserialize)]
+#[serde(default, deny_unknown_fields)]
 pub struct OperationLimitsConfig {
     /// Limits the deepest nesting of selection sets in an operation,
     /// including fields in fragments.

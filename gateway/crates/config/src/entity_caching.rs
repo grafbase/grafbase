@@ -1,17 +1,14 @@
 use std::{path::PathBuf, time::Duration};
 
 #[derive(Debug, Default, serde::Deserialize, Clone, PartialEq)]
+#[serde(default, deny_unknown_fields)]
 pub struct EntityCachingConfig {
     pub enabled: Option<bool>,
-
-    #[serde(default)]
     pub storage: EntityCachingStorage,
-
-    #[serde(default)]
     pub redis: EntityCachingRedisConfig,
 
     /// The ttl to store cache entries with.  Defaults to 60s
-    #[serde(deserialize_with = "duration_str::deserialize_option_duration", default)]
+    #[serde(deserialize_with = "duration_str::deserialize_option_duration")]
     pub ttl: Option<Duration>,
 }
 
@@ -24,11 +21,9 @@ pub enum EntityCachingStorage {
 }
 
 #[derive(Debug, Clone, PartialEq, serde::Deserialize)]
-#[serde(deny_unknown_fields)]
+#[serde(default, deny_unknown_fields)]
 pub struct EntityCachingRedisConfig {
-    #[serde(default = "EntityCachingRedisConfig::default_url")]
     pub url: url::Url,
-    #[serde(default = "EntityCachingRedisConfig::default_key_prefix")]
     pub key_prefix: String,
     pub tls: Option<EntityCachingRedisTlsConfig>,
 }
@@ -36,20 +31,10 @@ pub struct EntityCachingRedisConfig {
 impl Default for EntityCachingRedisConfig {
     fn default() -> Self {
         Self {
-            url: Self::default_url(),
-            key_prefix: Self::default_key_prefix(),
+            url: url::Url::parse("redis://localhost:6379").expect("must be correct"),
+            key_prefix: String::from("grafbase-cache"),
             tls: None,
         }
-    }
-}
-
-impl EntityCachingRedisConfig {
-    fn default_url() -> url::Url {
-        url::Url::parse("redis://localhost:6379").expect("must be correct")
-    }
-
-    fn default_key_prefix() -> String {
-        String::from("grafbase-cache")
     }
 }
 

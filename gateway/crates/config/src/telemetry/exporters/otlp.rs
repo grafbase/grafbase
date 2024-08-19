@@ -8,18 +8,15 @@ use url::Url;
 
 /// Otlp exporter configuration
 #[derive(Debug, Clone, PartialEq, serde::Deserialize)]
-#[serde(deny_unknown_fields)]
+#[serde(default, deny_unknown_fields)]
 pub struct OtlpExporterConfig {
     /// Enable or disable the exporter
-    #[serde(default)]
     pub enabled: bool,
     /// Endpoint of the otlp collector
     pub endpoint: Url,
     /// Batch export configuration
-    #[serde(default)]
     pub batch_export: BatchExportConfig,
     /// Protocol to use when exporting
-    #[serde(default)]
     pub protocol: OtlpExporterProtocol,
     /// GRPC exporting configuration
     pub grpc: Option<OtlpExporterGrpcConfig>,
@@ -27,7 +24,7 @@ pub struct OtlpExporterConfig {
     pub http: Option<OtlpExporterHttpConfig>,
     /// The maximum duration to export data.
     /// The default value is 60 seconds.
-    #[serde(deserialize_with = "deserialize_duration", default = "default_export_timeout")]
+    #[serde(deserialize_with = "deserialize_duration")]
     pub timeout: chrono::Duration,
 }
 
@@ -58,27 +55,25 @@ pub enum OtlpExporterProtocol {
 
 /// GRPC exporting configuration
 #[derive(Debug, Clone, PartialEq, Default, serde::Deserialize)]
-#[serde(deny_unknown_fields)]
+#[serde(default, deny_unknown_fields)]
 pub struct OtlpExporterGrpcConfig {
     /// Tls configuration to use on export requests
     pub tls: Option<OtlpExporterTlsConfig>,
     /// Headers to send on export requests
-    #[serde(default)]
     pub headers: Headers,
 }
 
 /// OTLP HTTP exporting configuration
 #[derive(Debug, Clone, PartialEq, Default, serde::Deserialize)]
-#[serde(deny_unknown_fields)]
+#[serde(default, deny_unknown_fields)]
 pub struct OtlpExporterHttpConfig {
     /// Http headers to send on export requests
-    #[serde(default)]
     pub headers: Headers,
 }
 
 /// OTLP GRPC TLS export configuration
 #[derive(Debug, Clone, PartialEq, Default, serde::Deserialize)]
-#[serde(deny_unknown_fields)]
+#[serde(default, deny_unknown_fields)]
 /// Wraps tls configuration used when exporting data.
 /// Any files referenced are read in *sync* fashion using `[std::fs::read]`.
 pub struct OtlpExporterTlsConfig {

@@ -18,37 +18,30 @@ use serde::{Deserialize, Deserializer};
 pub use stdout::StdoutExporterConfig;
 
 #[derive(Debug, Clone, PartialEq, Default, Deserialize)]
-#[serde(deny_unknown_fields)]
+#[serde(default, deny_unknown_fields)]
 pub struct ExportersConfig {
-    #[serde(default)]
     pub stdout: Option<StdoutExporterConfig>,
-    #[serde(default)]
     pub otlp: Option<OtlpExporterConfig>,
 }
 
 /// Configuration for batched exports
 #[derive(Debug, Clone, Copy, PartialEq, Deserialize)]
-#[serde(deny_unknown_fields)]
+#[serde(default, deny_unknown_fields)]
 pub struct BatchExportConfig {
     /// The delay, in seconds, between two consecutive processing of batches.
     /// The default value is 5 seconds.
-    #[serde(
-        deserialize_with = "deserialize_duration",
-        default = "BatchExportConfig::default_scheduled_delay"
-    )]
+    #[serde(deserialize_with = "deserialize_duration")]
     pub scheduled_delay: chrono::Duration,
 
     /// The maximum queue size to buffer spans for delayed processing. If the
     /// queue gets full it drops the spans.
     /// The default value of is 2048.
-    #[serde(default = "BatchExportConfig::default_max_queue_size")]
     pub max_queue_size: usize,
 
     /// The maximum number of spans to process in a single batch. If there are
     /// more than one batch worth of spans then it processes multiple batches
     /// of spans one batch after the other without any delay.
     /// The default value is 512.
-    #[serde(default = "BatchExportConfig::default_max_export_batch_size")]
     pub max_export_batch_size: usize,
 
     /// Maximum number of concurrent exports
@@ -57,7 +50,6 @@ pub struct BatchExportConfig {
     /// by an exporter. A value of 1 will cause exports to be performed
     /// synchronously on the [`BatchSpanProcessor`] task.
     /// The default is 1.
-    #[serde(default = "BatchExportConfig::default_max_concurrent_exports")]
     pub max_concurrent_exports: usize,
 }
 

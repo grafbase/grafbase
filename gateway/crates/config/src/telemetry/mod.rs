@@ -15,20 +15,17 @@ pub use exporters::{BatchExportConfig, ExportersConfig, StdoutExporterConfig};
 
 /// Holds telemetry configuration
 #[derive(Default, Debug, Clone, PartialEq, serde::Deserialize)]
-#[serde(deny_unknown_fields)]
+#[serde(default, deny_unknown_fields)]
 pub struct TelemetryConfig {
     /// The name of the service
     pub service_name: String,
     /// Additional resource attributes
-    #[serde(default)]
     pub resource_attributes: HashMap<String, String>,
     /// Global exporters config
-    #[serde(default)]
     pub exporters: ExportersConfig,
     /// Separate configuration for logs exports. If set, overrides the global values.
     pub logs: Option<LogsConfig>,
     /// Separate configuration for traces exports. If set, overrides the global values.
-    #[serde(default)]
     pub tracing: TracingConfig,
     /// Separate configuration for metrics exports. If set, overrides the global values.
     pub metrics: Option<MetricsConfig>,
