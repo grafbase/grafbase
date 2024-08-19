@@ -302,7 +302,10 @@ impl<'schema, 'a> SelectionSetLogicalPlanner<'schema, 'a> {
                         .fields
                         .keys()
                         .map(|id| self.schema.walk(*id))
-                        .format_with("\n", |field, f| f(&format_args!("{field:#?}"))),
+                        .format_with("\n", |field, f| f(&format_args!("{field:#?}")))
+                        // with opentelemetry this string might be formatted more than once... Leading to a
+                        // panic with .format_with()
+                        .to_string(),
                     unplanned_fields
                         .keys()
                         .map(|id| walker.walk(*id).definition().unwrap())
@@ -310,6 +313,9 @@ impl<'schema, 'a> SelectionSetLogicalPlanner<'schema, 'a> {
                             "{field:#?}\n{:#?}",
                             parent_subgraph_id.map(|id| field.required_fields(id))
                         )))
+                        // with opentelemetry this string might be formatted more than once... Leading to a
+                        // panic with .format_with()
+                        .to_string()
                 );
                 return Err(LogicalPlanningError::CouldNotPlanAnyField {
                     missing: unplanned_fields
@@ -350,7 +356,10 @@ impl<'schema, 'a> SelectionSetLogicalPlanner<'schema, 'a> {
                         .fields
                         .keys()
                         .map(|id| self.schema.walk(*id))
-                        .format_with("\n", |field, f| f(&format_args!("{field:#?}"))),
+                        .format_with("\n", |field, f| f(&format_args!("{field:#?}")))
+                        // with opentelemetry this string might be formatted more than once... Leading to a
+                        // panic with .format_with()
+                        .to_string(),
                     walker.walk(parent_field_id).response_key_str(),
                     self.schema.walk(parent_extra_requirements.as_ref())
                 );
