@@ -4,6 +4,7 @@ mod mocks;
 mod telemetry;
 
 use std::{
+    borrow::Cow,
     env, fs,
     marker::PhantomData,
     net::{Ipv4Addr, SocketAddr, SocketAddrV4},
@@ -332,8 +333,28 @@ fn listen_address() -> SocketAddr {
     SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), port))
 }
 
-fn with_static_server<F, T>(
-    config: &str,
+struct ConfigContent<'a>(Option<Cow<'a, str>>);
+
+impl<'a> From<&'a str> for ConfigContent<'a> {
+    fn from(s: &'a str) -> Self {
+        ConfigContent(Some(Cow::Borrowed(s)))
+    }
+}
+
+impl<'a> From<&'a String> for ConfigContent<'a> {
+    fn from(s: &'a String) -> Self {
+        ConfigContent(Some(Cow::Borrowed(s)))
+    }
+}
+
+impl From<String> for ConfigContent<'static> {
+    fn from(s: String) -> Self {
+        ConfigContent(Some(Cow::Owned(s)))
+    }
+}
+
+fn with_static_server<'a, F, T>(
+    config: impl Into<ConfigContent<'a>>,
     schema: &str,
     path: Option<&str>,
     headers: Option<&'static [(&'static str, &'static str)]>,
@@ -343,26 +364,27 @@ fn with_static_server<F, T>(
     F: Future<Output = ()>,
 {
     let temp_dir = tempdir().unwrap();
-
     let config_path = temp_dir.path().join("grafbase.toml");
-    fs::write(&config_path, config).unwrap();
 
     let schema_path = temp_dir.path().join("schema.graphql");
     fs::write(&schema_path, schema).unwrap();
 
     let addr = listen_address();
+    let mut args = vec![
+        "--listen-address".to_string(),
+        addr.to_string(),
+        "--schema".to_string(),
+        schema_path.to_str().unwrap().to_string(),
+    ];
 
-    let command = cmd!(
-        cargo_bin("grafbase-gateway"),
-        "--listen-address",
-        &addr.to_string(),
-        "--config",
-        &config_path.to_str().unwrap(),
-        "--schema",
-        &schema_path.to_str().unwrap(),
-    )
-    .stdout_null()
-    .stderr_null();
+    let config: ConfigContent<'_> = config.into();
+    if let Some(config) = config.0 {
+        fs::write(&config_path, config.as_ref()).unwrap();
+        args.push("--config".to_string());
+        args.push(config_path.to_str().unwrap().to_string());
+    }
+
+    let command = cmd(cargo_bin("grafbase-gateway"), &args).stdout_null().stderr_null();
 
     let endpoint = match path {
         Some(path) => format!("http://{addr}/{path}"),
@@ -478,6 +500,41 @@ pub fn clickhouse_client() -> &'static ::clickhouse::Client {
 #[ctor::ctor]
 fn setup_rustls() {
     rustls::crypto::ring::default_provider().install_default().unwrap();
+}
+
+#[test]
+fn no_config() {
+    let schema = load_schema("big");
+
+    let query = indoc! {r#"
+        query Me {
+          me {
+            id
+          }
+        }
+    "#};
+
+    with_static_server(ConfigContent(None), &schema, None, None, |client| async move {
+        let result: serde_json::Value = client.gql(query).send().await;
+        let result = serde_json::to_string_pretty(&result).unwrap();
+
+        insta::assert_snapshot!(&result, @r###"
+        {
+          "data": null,
+          "errors": [
+            {
+              "message": "Request to subgraph 'accounts' failed with: error sending request for url (http://127.0.0.1:46697/)",
+              "path": [
+                "me"
+              ],
+              "extensions": {
+                "code": "SUBGRAPH_REQUEST_ERROR"
+              }
+            }
+          ]
+        }
+        "###);
+    })
 }
 
 #[test]

@@ -5,16 +5,15 @@ use std::time::Duration;
 use tower_http::cors::{AllowHeaders, AllowMethods, AllowOrigin, ExposeHeaders};
 use url::Url;
 
-#[derive(Clone, Debug, serde::Deserialize)]
-#[serde(deny_unknown_fields)]
+#[derive(Clone, Default, Debug, serde::Deserialize)]
+#[serde(default, deny_unknown_fields)]
 pub struct CorsConfig {
     /// If false (or not defined), credentials are not allowed in requests
-    #[serde(default)]
     pub allow_credentials: bool,
     /// Origins from which we allow requests
     pub allow_origins: Option<AnyOrUrlArray>,
     /// Maximum time between OPTIONS and the next request
-    #[serde(default, deserialize_with = "deserialize_option_duration")]
+    #[serde(deserialize_with = "deserialize_option_duration")]
     pub max_age: Option<Duration>,
     /// HTTP methods allowed to the endpoint.
     pub allow_methods: Option<AnyOrHttpMethodArray>,
@@ -23,7 +22,6 @@ pub struct CorsConfig {
     /// Headers exposed from the OPTIONS request
     pub expose_headers: Option<AnyOrAsciiStringArray>,
     /// If set, allows browsers from private network to connect
-    #[serde(default)]
     pub allow_private_network: bool,
 }
 

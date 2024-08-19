@@ -2,17 +2,13 @@ use std::path::PathBuf;
 
 /// GraphQL WASI component configuration.
 #[derive(Clone, Default, Debug, serde::Deserialize)]
+#[serde(default, deny_unknown_fields)]
 pub struct HooksWasiConfig {
     pub location: PathBuf,
-    #[serde(default)]
     pub networking: bool,
-    #[serde(default)]
     pub environment_variables: bool,
-    #[serde(default)]
     pub stdout: bool,
-    #[serde(default)]
     pub stderr: bool,
-    #[serde(default)]
     pub preopened_directories: Vec<PreopenedDirectory>,
 }
 
