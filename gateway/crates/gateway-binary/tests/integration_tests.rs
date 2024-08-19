@@ -353,6 +353,94 @@ impl From<String> for ConfigContent<'static> {
     }
 }
 
+struct GatewayBuilder<'a> {
+    toml_config: ConfigContent<'a>,
+    schema: &'a str,
+    log_evel: Option<String>,
+    client_url_path: Option<&'a str>,
+    client_headers: Option<&'static [(&'static str, &'static str)]>,
+}
+
+impl<'a> GatewayBuilder<'a> {
+    fn new(schema: &'a str) -> Self {
+        Self {
+            toml_config: ConfigContent(None),
+            schema,
+            log_evel: None,
+            client_url_path: None,
+            client_headers: None,
+        }
+    }
+
+    fn with_log_level(mut self, level: &str) -> Self {
+        self.log_evel = Some(level.to_string());
+        self
+    }
+
+    fn run<F>(self, test: impl FnOnce(Arc<Client>) -> F)
+    where
+        F: Future<Output = ()>,
+    {
+        let temp_dir = tempdir().unwrap();
+        let config_path = temp_dir.path().join("grafbase.toml");
+
+        let schema_path = temp_dir.path().join("schema.graphql");
+        fs::write(&schema_path, self.schema).unwrap();
+
+        let addr = listen_address();
+        let mut args = vec![
+            "--listen-address".to_string(),
+            addr.to_string(),
+            "--schema".to_string(),
+            schema_path.to_str().unwrap().to_string(),
+        ];
+
+        if let Some(config) = self.toml_config.0 {
+            fs::write(&config_path, config.as_ref()).unwrap();
+            args.push("--config".to_string());
+            args.push(config_path.to_str().unwrap().to_string());
+        }
+
+        if let Some(level) = self.log_evel {
+            args.push("--log".to_string());
+            args.push(level);
+        }
+
+        let command = cmd(cargo_bin("grafbase-gateway"), &args).stdout_null().stderr_null();
+
+        let endpoint = match self.client_url_path {
+            Some(path) => format!("http://{addr}/{path}"),
+            None => format!("http://{addr}/graphql"),
+        };
+
+        let mut commands = CommandHandles::new();
+        commands.push(command.start().unwrap());
+
+        let mut client = Client::new(endpoint, commands);
+
+        if let Some(headers) = self.client_headers {
+            for header in headers {
+                client = client.with_header(header.0, header.1);
+            }
+        }
+
+        let client = Arc::new(client);
+
+        let res = catch_unwind(AssertUnwindSafe(|| {
+            runtime().block_on(async {
+                client.poll_endpoint(30, 300).await;
+                test(client.clone()).await
+            })
+        }));
+
+        client.kill_handles();
+
+        if let Err(err) = res {
+            std::panic::resume_unwind(err);
+        }
+    }
+}
+
 fn with_static_server<'a, F, T>(
     config: impl Into<ConfigContent<'a>>,
     schema: &str,
@@ -363,59 +451,14 @@ fn with_static_server<'a, F, T>(
     T: FnOnce(Arc<Client>) -> F,
     F: Future<Output = ()>,
 {
-    let temp_dir = tempdir().unwrap();
-    let config_path = temp_dir.path().join("grafbase.toml");
-
-    let schema_path = temp_dir.path().join("schema.graphql");
-    fs::write(&schema_path, schema).unwrap();
-
-    let addr = listen_address();
-    let mut args = vec![
-        "--listen-address".to_string(),
-        addr.to_string(),
-        "--schema".to_string(),
-        schema_path.to_str().unwrap().to_string(),
-    ];
-
-    let config: ConfigContent<'_> = config.into();
-    if let Some(config) = config.0 {
-        fs::write(&config_path, config.as_ref()).unwrap();
-        args.push("--config".to_string());
-        args.push(config_path.to_str().unwrap().to_string());
+    GatewayBuilder {
+        toml_config: config.into(),
+        schema,
+        log_evel: None,
+        client_url_path: path,
+        client_headers: headers,
     }
-
-    let command = cmd(cargo_bin("grafbase-gateway"), &args).stdout_null().stderr_null();
-
-    let endpoint = match path {
-        Some(path) => format!("http://{addr}/{path}"),
-        None => format!("http://{addr}/graphql"),
-    };
-
-    let mut commands = CommandHandles::new();
-    commands.push(command.start().unwrap());
-
-    let mut client = Client::new(endpoint, commands);
-
-    if let Some(headers) = headers {
-        for header in headers {
-            client = client.with_header(header.0, header.1);
-        }
-    }
-
-    let client = Arc::new(client);
-
-    let res = catch_unwind(AssertUnwindSafe(|| {
-        runtime().block_on(async {
-            client.poll_endpoint(30, 300).await;
-            test(client.clone()).await
-        })
-    }));
-
-    client.kill_handles();
-
-    if let Err(err) = res {
-        std::panic::resume_unwind(err);
-    }
+    .run(test)
 }
 
 fn with_hybrid_server<F, T>(config: &str, graph_ref: &str, sdl: &str, test: T)
@@ -500,6 +543,45 @@ pub fn clickhouse_client() -> &'static ::clickhouse::Client {
 #[ctor::ctor]
 fn setup_rustls() {
     rustls::crypto::ring::default_provider().install_default().unwrap();
+}
+
+// This failed when using `format_with()` inside tracing with opentelemetry. Somehow it gets called
+// multiple times which isn't supported and panics...
+#[test]
+fn trace_log_level() {
+    let schema = load_schema("big");
+
+    let query = indoc! {r#"
+        query Me {
+          me {
+            id
+          }
+        }
+    "#};
+
+    GatewayBuilder::new(&schema)
+        .with_log_level("trace")
+        .run( |client| async move {
+            let result: serde_json::Value = client.gql(query).send().await;
+            let result = serde_json::to_string_pretty(&result).unwrap();
+
+            insta::assert_snapshot!(&result, @r###"
+            {
+              "data": null,
+              "errors": [
+                {
+                  "message": "Request to subgraph 'accounts' failed with: error sending request for url (http://127.0.0.1:46697/)",
+                  "path": [
+                    "me"
+                  ],
+                  "extensions": {
+                    "code": "SUBGRAPH_REQUEST_ERROR"
+                  }
+                }
+              ]
+            }
+            "###);
+        })
 }
 
 #[test]

@@ -347,10 +347,15 @@ impl<'a> LogicalPlanner<'a> {
         tracing::trace!(
             "Creating {id} ({}): {}",
             self.schema.walk(resolver_id).name(),
-            root_field_ids.iter().format_with(", ", |id, f| f(&format_args!(
-                "{}",
-                self.walker().walk(*id).response_key_str()
-            )))
+            root_field_ids
+                .iter()
+                .format_with(", ", |id, f| f(&format_args!(
+                    "{}",
+                    self.walker().walk(*id).response_key_str()
+                )))
+                // with opentelemetry this string might be formatted more than once... Leading to a
+                // panic with .format_with()
+                .to_string()
         );
         self.logical_plans.push(LogicalPlan {
             resolver_id,

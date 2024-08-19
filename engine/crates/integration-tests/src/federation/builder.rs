@@ -118,11 +118,11 @@ impl EngineV2Builder {
     pub async fn build(mut self) -> TestEngineV2 {
         let subgraphs = load_subgraphs(self.mock_subgraphs, self.docker_subgraphs).await;
 
-        let mut graph = self
+        let graph = self
             .federated_sdl
             .map(|sdl| FederatedGraph::from_sdl(&sdl).unwrap())
             .unwrap_or_else(|| {
-                let graph = if !subgraphs.is_empty() {
+                if !subgraphs.is_empty() {
                     graphql_composition::compose(&subgraphs.iter().fold(
                         graphql_composition::Subgraphs::default(),
                         |mut subgraphs, subgraph| {
@@ -136,13 +136,17 @@ impl EngineV2Builder {
                     .expect("schemas to compose succesfully")
                 } else {
                     FederatedGraph::V3(FederatedGraphV3::default())
-                };
-                graph
+                }
             });
 
         // Ensure SDL/JSON serialization work as a expected
-        graph = FederatedGraph::from_sdl(&graph.into_sdl().unwrap()).unwrap();
-        graph = serde_json::from_value(serde_json::to_value(&graph).unwrap()).unwrap();
+        let graph = {
+            let sdl = graph.into_sdl().unwrap();
+            let mut graph = FederatedGraph::from_sdl(&sdl).unwrap();
+            let json = serde_json::to_value(&graph).unwrap();
+            graph = serde_json::from_value(json).unwrap();
+            graph
+        };
 
         let config = match self.config_source {
             Some(ConfigSource::Toml(toml)) => {
