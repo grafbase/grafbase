@@ -27,7 +27,6 @@ struct MetricsInner {
     graphql_errors: Counter<u64>,
 }
 
-#[derive(Clone)]
 pub struct GraphqlOperationMetrics {
     inner: Arc<MetricsInner>,
 }

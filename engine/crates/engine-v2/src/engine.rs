@@ -412,7 +412,7 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
         request: Request,
         mut sender: mpsc::Sender<Response>,
     ) -> (Option<OperationMetricsAttributes>, GraphqlResponseStatus) {
-        let operation_metrics = self.engine.operation_metrics.clone();
+        let engine = self.engine;
         let client = self.request_context.client.clone();
 
         // If it's a subscription, we at least have a timeout on the operation preparation.
@@ -461,7 +461,7 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
             status: &'a mut GraphqlResponseStatus,
             operation_name: Option<String>,
             client: Option<Client>,
-            operation_metrics: GraphqlOperationMetrics,
+            operation_metrics: &'a GraphqlOperationMetrics,
         }
 
         impl crate::execution::ResponseSender for Sender<'_> {
@@ -490,7 +490,7 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
                 status: &mut status,
                 operation_name: metrics_attributes.as_ref().and_then(|a| a.name.clone()),
                 client: client.clone(),
-                operation_metrics,
+                operation_metrics: &engine.operation_metrics,
             },
         )
         .await;
