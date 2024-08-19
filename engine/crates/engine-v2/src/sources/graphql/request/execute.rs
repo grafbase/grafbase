@@ -59,9 +59,11 @@ pub(crate) async fn execute_subgraph_request<'ctx, 'a, R: Runtime>(
             .hooks()
             .on_subgraph_request(endpoint.subgraph_name(), http::Method::POST, endpoint.url(), headers)
             .await?;
+
         headers.typed_insert(headers::ContentType::json());
         headers.typed_insert(headers::ContentLength(body.len() as u64));
         headers.insert(http::header::ACCEPT, http::HeaderValue::from_static("application/json"));
+
         FetchRequest {
             url: Cow::Borrowed(endpoint.url()),
             headers,
@@ -87,7 +89,7 @@ pub(crate) async fn execute_subgraph_request<'ctx, 'a, R: Runtime>(
         Ok(response) => response,
         Err(e) => {
             let status = SubgraphResponseStatus::HttpError;
-            record::subgraph_duration(ctx, endpoint, status, duration);
+            record::subgraph_duration(ctx, endpoint, status, None, duration);
 
             return Err(e);
         }
@@ -96,19 +98,21 @@ pub(crate) async fn execute_subgraph_request<'ctx, 'a, R: Runtime>(
     tracing::debug!("{}", String::from_utf8_lossy(response.body()));
     record::subgraph_response_size(ctx, endpoint, response.body().len());
 
-    let (status, response) = ingester.ingest(response.into_body()).await.inspect_err(|err| {
-        let status = SubgraphResponseStatus::InvalidResponseError;
+    let status_code = response.status();
 
-        span.record_subgraph_status(status);
-        record::subgraph_duration(ctx, endpoint, status, duration);
+    let (status, response) = ingester.ingest(response.into_body()).await.inspect_err(|err| {
+        let subgraph_status = SubgraphResponseStatus::InvalidResponseError;
+
+        span.record_subgraph_status(subgraph_status);
+        record::subgraph_duration(ctx, endpoint, subgraph_status, Some(status_code), duration);
 
         tracing::error!(target: GRAFBASE_TARGET, "{err}");
     })?;
 
-    let status = SubgraphResponseStatus::GraphqlResponse(status);
+    let subgraph_status = SubgraphResponseStatus::GraphqlResponse(status);
 
-    span.record_subgraph_status(status);
-    record::subgraph_duration(ctx, endpoint, status, duration);
+    span.record_subgraph_status(subgraph_status);
+    record::subgraph_duration(ctx, endpoint, subgraph_status, Some(status_code), duration);
 
     match response.subgraph_errors().next().map(|e| &e.message) {
         Some(error) => {

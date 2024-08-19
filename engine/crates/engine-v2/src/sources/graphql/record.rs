@@ -27,13 +27,15 @@ pub(super) fn subgraph_retry<R: Runtime>(
 pub(super) fn subgraph_duration<R: Runtime>(
     ctx: ExecutionContext<'_, R>,
     endpoint: GraphqlEndpointWalker<'_>,
-    status: SubgraphResponseStatus,
+    subgraph_status: SubgraphResponseStatus,
+    status_code: Option<http::StatusCode>,
     duration: Duration,
 ) {
     ctx.engine.operation_metrics.record_subgraph_duration(
         SubgraphRequestDurationAttributes {
             name: endpoint.subgraph_name().to_string(),
-            status,
+            subgraph_status,
+            status_code,
         },
         duration,
     );
