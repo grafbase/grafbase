@@ -3593,6 +3593,7 @@ version = "0.10.0"
 dependencies = [
  "anyhow",
  "ascii 1.1.0",
+ "async-graphql-parser",
  "atty",
  "cfg-if",
  "clap",
@@ -3606,6 +3607,8 @@ dependencies = [
  "grafbase-graphql-introspection",
  "grafbase-telemetry",
  "graph-ref",
+ "graphql-composition",
+ "graphql-mocks",
  "handlebars",
  "http",
  "indoc",

@@ -37,12 +37,15 @@ cfg-if = "1.0.0"
 workspace = true
 
 [dev-dependencies]
+async-graphql-parser.workspace = true
 clickhouse = { version = "0.12" }
 ctor.workspace = true
 duct = "0.13.7"
 fslock = "0.2.1"
 futures-util.workspace = true
+graphql-composition.workspace = true
 grafbase-graphql-introspection.workspace = true
+graphql-mocks.workspace = true
 http.workspace = true
 indoc = "2.0.5"
 insta = { workspace = true, features = ["json", "redactions", "yaml"] }
