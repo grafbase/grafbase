@@ -218,7 +218,7 @@ impl GraphqlOperationMetrics {
         ];
 
         if let Some(status_code) = status_code {
-            attributes.push(KeyValue::new("http.response.status.code", status_code.as_u16() as i64));
+            attributes.push(KeyValue::new("http.response.status_code", status_code.as_u16() as i64));
         }
 
         self.subgraph_latency.record(latency.as_millis() as u64, &attributes);

@@ -40,7 +40,7 @@ fn basic() {
           "Attributes": {
             "graphql.response.status": "SUCCESS",
             "http.request.method": "POST",
-            "http.response.status.code": "200",
+            "http.response.status_code": "200",
             "http.route": "/graphql",
             "network.protocol.version": "HTTP/1.1",
             "server.address": "127.0.0.1",
@@ -101,7 +101,7 @@ fn request_error() {
           "Attributes": {
             "graphql.response.status": "REQUEST_ERROR",
             "http.request.method": "POST",
-            "http.response.status.code": "200",
+            "http.response.status_code": "200",
             "http.route": "/graphql",
             "network.protocol.version": "HTTP/1.1",
             "server.address": "127.0.0.1",
@@ -164,7 +164,7 @@ fn field_error() {
           "Attributes": {
             "graphql.response.status": "FIELD_ERROR_NULL_DATA",
             "http.request.method": "POST",
-            "http.response.status.code": "200",
+            "http.response.status_code": "200",
             "http.route": "/graphql",
             "network.protocol.version": "HTTP/1.1",
             "server.address": "127.0.0.1",
@@ -223,7 +223,7 @@ fn field_error_data_null() {
           "Attributes": {
             "graphql.response.status": "FIELD_ERROR_NULL_DATA",
             "http.request.method": "POST",
-            "http.response.status.code": "200",
+            "http.response.status_code": "200",
             "http.route": "/graphql",
             "network.protocol.version": "HTTP/1.1",
             "server.address": "127.0.0.1",
@@ -282,7 +282,7 @@ fn client() {
             "http.headers.x-grafbase-client-name": "test",
             "http.headers.x-grafbase-client-version": "1.0.0",
             "http.request.method": "POST",
-            "http.response.status.code": "200",
+            "http.response.status_code": "200",
             "http.route": "/graphql",
             "network.protocol.version": "HTTP/1.1",
             "server.address": "127.0.0.1",
