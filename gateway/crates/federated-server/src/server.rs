@@ -224,6 +224,7 @@ async fn graceful_shutdown(handle: axum_server::Handle) {
     }
 
     tracing::info!(target: GRAFBASE_TARGET, "Shutting down gracefully...");
+    grafbase_telemetry::graceful_shutdown();
     handle.graceful_shutdown(Some(std::time::Duration::from_secs(3)));
 }
 
