@@ -86,7 +86,8 @@ pub struct GraphqlRequestMetricsAttributes {
 #[derive(Debug)]
 pub struct SubgraphRequestDurationAttributes {
     pub name: String,
-    pub status: SubgraphResponseStatus,
+    pub subgraph_status: SubgraphResponseStatus,
+    pub status_code: Option<http::StatusCode>,
 }
 
 #[derive(Debug)]
@@ -137,7 +138,7 @@ pub struct GraphqlErrorAttributes {
 impl GraphqlOperationMetrics {
     pub fn build(meter: &Meter) -> Self {
         Self {
-            operation_latency: meter.u64_histogram("gql_operation_latency").init(),
+            operation_latency: meter.u64_histogram("graphql.operation.duration").init(),
             subgraph_latency: meter.u64_histogram("graphql.subgraph.request.duration").init(),
             subgraph_retries: meter.u64_counter("graphql.subgraph.request.retries").init(),
             subgraph_request_body_size: meter.u64_histogram("graphql.subgraph.request.body.size").init(),
@@ -175,24 +176,25 @@ impl GraphqlOperationMetrics {
         let sanitized_query_hash = STANDARD.encode(sanitized_query_hash);
 
         let mut attributes = vec![
-            KeyValue::new("gql.operation.query_hash", sanitized_query_hash),
-            KeyValue::new("gql.operation.query", sanitized_query),
-            KeyValue::new("gql.operation.type", ty.as_str()),
-            KeyValue::new("gql.operation.used_fields", used_fields),
+            KeyValue::new("__grafbase.document.hash", sanitized_query_hash),
+            KeyValue::new("__grafbase.operation.used_fields", used_fields),
+            KeyValue::new("graphql.document", sanitized_query),
+            KeyValue::new("graphql.operation.type", ty.as_str()),
         ];
 
         if let Some(name) = name {
-            attributes.push(KeyValue::new("gql.operation.name", name));
+            attributes.push(KeyValue::new("graphql.operation.name", name));
         }
 
         if let Some(cache_status) = cache_status {
-            attributes.push(KeyValue::new("gql.response.cache_status", cache_status));
+            attributes.push(KeyValue::new("graphql.response.cache.status", cache_status));
         }
 
-        attributes.push(KeyValue::new("gql.response.status", status.as_str()));
+        attributes.push(KeyValue::new("graphql.response.status", status.as_str()));
 
         if let Some(client) = client {
             attributes.push(KeyValue::new("http.headers.x-grafbase-client-name", client.name));
+
             if let Some(version) = client.version {
                 attributes.push(KeyValue::new("http.headers.x-grafbase-client-version", version));
             }
@@ -203,13 +205,21 @@ impl GraphqlOperationMetrics {
 
     pub fn record_subgraph_duration(
         &self,
-        SubgraphRequestDurationAttributes { name, status }: SubgraphRequestDurationAttributes,
+        SubgraphRequestDurationAttributes {
+            name,
+            subgraph_status: status,
+            status_code,
+        }: SubgraphRequestDurationAttributes,
         latency: std::time::Duration,
     ) {
-        let attributes = [
+        let mut attributes = vec![
             KeyValue::new("graphql.subgraph.name", name),
             KeyValue::new("graphql.subgraph.response.status", status.as_str()),
         ];
+
+        if let Some(status_code) = status_code {
+            attributes.push(KeyValue::new("http.response.status.code", status_code.as_u16() as i64));
+        }
 
         self.subgraph_latency.record(latency.as_millis() as u64, &attributes);
     }

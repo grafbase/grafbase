@@ -117,6 +117,7 @@ pub async fn serve(
         .route_service("/ws", WebsocketService::new(websocket_sender))
         .layer(grafbase_telemetry::tower::layer(
             grafbase_telemetry::metrics::meter_from_global_provider(),
+            Some(addr),
         ))
         .layer(tower_http::timeout::RequestBodyTimeoutLayer::new(
             config.gateway.timeout.unwrap_or(DEFAULT_GATEWAY_TIMEOUT),

@@ -27,7 +27,7 @@ fn basic() {
                 FROM otel_metrics_exponential_histogram
                 WHERE ServiceName = ?
                     AND ScopeName = 'grafbase'
-                    AND MetricName = 'gql_operation_latency'
+                    AND MetricName = 'graphql.operation.duration'
                 "#,
             )
             .bind(&service_name)
@@ -38,12 +38,12 @@ fn basic() {
         {
           "Count": 1,
           "Attributes": {
-            "gql.operation.name": "Simple",
-            "gql.operation.query": "query Simple {\n  __typename\n}\n",
-            "gql.operation.query_hash": "cAe1+tBRHQLrF/EO1ul4CTx+q5SB9YD+YtG3VDU6VCM=",
-            "gql.operation.type": "query",
-            "gql.operation.used_fields": "",
-            "gql.response.status": "SUCCESS"
+            "__grafbase.document.hash": "cAe1+tBRHQLrF/EO1ul4CTx+q5SB9YD+YtG3VDU6VCM=",
+            "__grafbase.operation.used_fields": "",
+            "graphql.document": "query Simple {\n  __typename\n}\n",
+            "graphql.operation.name": "Simple",
+            "graphql.operation.type": "query",
+            "graphql.response.status": "SUCCESS"
           }
         }
         "###);
@@ -75,7 +75,7 @@ fn introspection_should_not_appear_in_used_fields() {
                 FROM otel_metrics_exponential_histogram
                 WHERE ServiceName = ?
                     AND ScopeName = 'grafbase'
-                    AND MetricName = 'gql_operation_latency'
+                    AND MetricName = 'graphql.operation.duration'
                 "#,
             )
             .bind(&service_name)
@@ -87,12 +87,12 @@ fn introspection_should_not_appear_in_used_fields() {
         {
           "Count": 1,
           "Attributes": {
-            "gql.operation.name": "__schema",
-            "gql.operation.query": "query {\n  __schema {\n    description\n  }\n}\n",
-            "gql.operation.query_hash": "0AmmdiLirkkd0r11qjmdCjpV7OGLe0J5c4yugMq1oeQ=",
-            "gql.operation.type": "query",
-            "gql.operation.used_fields": "",
-            "gql.response.status": "SUCCESS"
+            "__grafbase.document.hash": "0AmmdiLirkkd0r11qjmdCjpV7OGLe0J5c4yugMq1oeQ=",
+            "__grafbase.operation.used_fields": "",
+            "graphql.document": "query {\n  __schema {\n    description\n  }\n}\n",
+            "graphql.operation.name": "__schema",
+            "graphql.operation.type": "query",
+            "graphql.response.status": "SUCCESS"
           }
         }
         "###);
@@ -150,7 +150,7 @@ fn used_fields_should_be_unique() {
                 FROM otel_metrics_exponential_histogram
                 WHERE ServiceName = ?
                     AND ScopeName = 'grafbase'
-                    AND MetricName = 'gql_operation_latency'
+                    AND MetricName = 'graphql.operation.duration'
                 "#,
             )
             .bind(&service_name)
@@ -161,12 +161,12 @@ fn used_fields_should_be_unique() {
         {
           "Count": 1,
           "Attributes": {
-            "gql.operation.name": "Faulty",
-            "gql.operation.query": "query Faulty {\n  me {\n    id\n    reviews {\n      author {\n        id\n        username\n      }\n      body\n      body\n    }\n    username\n  }\n}\n",
-            "gql.operation.query_hash": "4iL1kpGebrS0NAZQbUo76cwD4SUC5jxtUlCdc2149fg=",
-            "gql.operation.type": "query",
-            "gql.operation.used_fields": "User.id+username+reviews,Review.body+author,Query.me",
-            "gql.response.status": "FIELD_ERROR_NULL_DATA"
+            "__grafbase.document.hash": "4iL1kpGebrS0NAZQbUo76cwD4SUC5jxtUlCdc2149fg=",
+            "__grafbase.operation.used_fields": "User.id+username+reviews,Review.body+author,Query.me",
+            "graphql.document": "query Faulty {\n  me {\n    id\n    reviews {\n      author {\n        id\n        username\n      }\n      body\n      body\n    }\n    username\n  }\n}\n",
+            "graphql.operation.name": "Faulty",
+            "graphql.operation.type": "query",
+            "graphql.response.status": "FIELD_ERROR_NULL_DATA"
           }
         }
         "###);
@@ -208,7 +208,7 @@ fn generate_operation_name() {
                 FROM otel_metrics_exponential_histogram
                 WHERE ServiceName = ?
                     AND ScopeName = 'grafbase'
-                    AND MetricName = 'gql_operation_latency'
+                    AND MetricName = 'graphql.operation.duration'
                 "#,
             )
             .bind(&service_name)
@@ -220,12 +220,12 @@ fn generate_operation_name() {
         {
           "Count": 1,
           "Attributes": {
-            "gql.operation.name": "myFavoriteField",
-            "gql.operation.query": "query {\n  ignoreMe\n  myFavoriteField\n}\n",
-            "gql.operation.query_hash": "WDOyTh2uUUEIkab8iqn+MGWh5J3MntAvRkUy3yEpJS8=",
-            "gql.operation.type": "query",
-            "gql.operation.used_fields": "",
-            "gql.response.status": "REQUEST_ERROR"
+            "__grafbase.document.hash": "WDOyTh2uUUEIkab8iqn+MGWh5J3MntAvRkUy3yEpJS8=",
+            "__grafbase.operation.used_fields": "",
+            "graphql.document": "query {\n  ignoreMe\n  myFavoriteField\n}\n",
+            "graphql.operation.name": "myFavoriteField",
+            "graphql.operation.type": "query",
+            "graphql.response.status": "REQUEST_ERROR"
           }
         }
         "###);
@@ -266,7 +266,7 @@ fn request_error() {
                 FROM otel_metrics_exponential_histogram
                 WHERE ServiceName = ?
                     AND ScopeName = 'grafbase'
-                    AND MetricName = 'gql_operation_latency'
+                    AND MetricName = 'graphql.operation.duration'
                 "#,
             )
             .bind(&service_name)
@@ -278,12 +278,12 @@ fn request_error() {
         {
           "Count": 1,
           "Attributes": {
-            "gql.operation.name": "Faulty",
-            "gql.operation.query": "query Faulty {\n  __typ__ename\n}\n",
-            "gql.operation.query_hash": "er/VMZUszb2iQhlPMx46c+flOdO8hXv8PjV1Pk/6u2A=",
-            "gql.operation.type": "query",
-            "gql.operation.used_fields": "",
-            "gql.response.status": "REQUEST_ERROR"
+            "__grafbase.document.hash": "er/VMZUszb2iQhlPMx46c+flOdO8hXv8PjV1Pk/6u2A=",
+            "__grafbase.operation.used_fields": "",
+            "graphql.document": "query Faulty {\n  __typ__ename\n}\n",
+            "graphql.operation.name": "Faulty",
+            "graphql.operation.type": "query",
+            "graphql.response.status": "REQUEST_ERROR"
           }
         }
         "###);
@@ -324,7 +324,7 @@ fn field_error() {
                 FROM otel_metrics_exponential_histogram
                 WHERE ServiceName = ?
                     AND ScopeName = 'grafbase'
-                    AND MetricName = 'gql_operation_latency'
+                    AND MetricName = 'graphql.operation.duration'
                 "#,
             )
             .bind(&service_name)
@@ -336,12 +336,12 @@ fn field_error() {
         {
           "Count": 1,
           "Attributes": {
-            "gql.operation.name": "Faulty",
-            "gql.operation.query": "query Faulty {\n  __typename\n  me {\n    id\n  }\n}\n",
-            "gql.operation.query_hash": "M4bDtLPhj8uQPEFBdDWqalBphwVy7V5WPXOPHrzyikE=",
-            "gql.operation.type": "query",
-            "gql.operation.used_fields": "User.id,Query.me",
-            "gql.response.status": "FIELD_ERROR_NULL_DATA"
+            "__grafbase.document.hash": "M4bDtLPhj8uQPEFBdDWqalBphwVy7V5WPXOPHrzyikE=",
+            "__grafbase.operation.used_fields": "User.id,Query.me",
+            "graphql.document": "query Faulty {\n  __typename\n  me {\n    id\n  }\n}\n",
+            "graphql.operation.name": "Faulty",
+            "graphql.operation.type": "query",
+            "graphql.response.status": "FIELD_ERROR_NULL_DATA"
           }
         }
         "###);
@@ -382,7 +382,7 @@ fn field_error_data_null() {
                 FROM otel_metrics_exponential_histogram
                 WHERE ServiceName = ?
                     AND ScopeName = 'grafbase'
-                    AND MetricName = 'gql_operation_latency'
+                    AND MetricName = 'graphql.operation.duration'
                 "#,
             )
             .bind(&service_name)
@@ -394,12 +394,12 @@ fn field_error_data_null() {
         {
           "Count": 1,
           "Attributes": {
-            "gql.operation.name": "Faulty",
-            "gql.operation.query": "query Faulty {\n  me {\n    id\n  }\n}\n",
-            "gql.operation.query_hash": "Txoer8zp21WTkEG253qN503QOPQP7Pb9utIDx55IVD8=",
-            "gql.operation.type": "query",
-            "gql.operation.used_fields": "User.id,Query.me",
-            "gql.response.status": "FIELD_ERROR_NULL_DATA"
+            "__grafbase.document.hash": "Txoer8zp21WTkEG253qN503QOPQP7Pb9utIDx55IVD8=",
+            "__grafbase.operation.used_fields": "User.id,Query.me",
+            "graphql.document": "query Faulty {\n  me {\n    id\n  }\n}\n",
+            "graphql.operation.name": "Faulty",
+            "graphql.operation.type": "query",
+            "graphql.response.status": "FIELD_ERROR_NULL_DATA"
           }
         }
         "###);
@@ -433,7 +433,7 @@ fn client() {
                 FROM otel_metrics_exponential_histogram
                 WHERE ServiceName = ?
                     AND ScopeName = 'grafbase'
-                    AND MetricName = 'gql_operation_latency'
+                    AND MetricName = 'graphql.operation.duration'
                 "#,
             )
             .bind(&service_name)
@@ -445,12 +445,12 @@ fn client() {
         {
           "Count": 1,
           "Attributes": {
-            "gql.operation.name": "SimpleQuery",
-            "gql.operation.query": "query SimpleQuery {\n  __typename\n}\n",
-            "gql.operation.query_hash": "qIzPxtWwHz0t+aJjvOljljbR3aGLQAA0LI5VXjW/FwQ=",
-            "gql.operation.type": "query",
-            "gql.operation.used_fields": "",
-            "gql.response.status": "SUCCESS",
+            "__grafbase.document.hash": "qIzPxtWwHz0t+aJjvOljljbR3aGLQAA0LI5VXjW/FwQ=",
+            "__grafbase.operation.used_fields": "",
+            "graphql.document": "query SimpleQuery {\n  __typename\n}\n",
+            "graphql.operation.name": "SimpleQuery",
+            "graphql.operation.type": "query",
+            "graphql.response.status": "SUCCESS",
             "http.headers.x-grafbase-client-name": "test",
             "http.headers.x-grafbase-client-version": "1.0.0"
           }
