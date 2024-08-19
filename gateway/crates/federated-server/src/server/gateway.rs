@@ -72,6 +72,7 @@ pub(super) async fn generate(
     let mut redis_factory = RedisPoolFactory::default();
 
     let watcher = ConfigWatcher::init(gateway_config.clone(), hot_reload_config_path)?;
+    let meter = grafbase_telemetry::metrics::meter_from_global_provider();
 
     let rate_limiter = match config.rate_limit_config() {
         Some(config) if config.storage.is_redis() => {
@@ -89,7 +90,7 @@ pub(super) async fn generate(
                 key_prefix: config.redis.key_prefix,
             };
 
-            RedisRateLimiter::runtime(global_config, pool, watcher)
+            RedisRateLimiter::runtime(global_config, pool, watcher, &meter)
                 .await
                 .map_err(|e| crate::Error::InternalError(e.to_string()))?
         }
@@ -121,8 +122,6 @@ pub(super) async fn generate(
         .transpose()
         .map_err(|e| crate::Error::InternalError(e.to_string()))?
         .flatten();
-
-    let meter = grafbase_telemetry::metrics::meter_from_global_provider();
 
     let runtime = GatewayRuntime {
         fetcher: NativeFetcher::default(),

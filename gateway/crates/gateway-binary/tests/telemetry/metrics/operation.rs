@@ -3,7 +3,7 @@ mod subgraph;
 
 use crate::telemetry::metrics::{SumRow, METRICS_DELAY};
 
-use super::{with_gateway, ExponentialHistogramRow};
+use super::{with_custom_gateway, with_gateway, ExponentialHistogramRow};
 
 #[test]
 fn basic() {
@@ -686,6 +686,123 @@ fn batch() {
           "Count": 1,
           "Attributes": {}
         }
+        "###);
+    });
+}
+
+#[test]
+fn rate_limit() {
+    let config = indoc::indoc! {r#"
+        [gateway.rate_limit]
+        storage = "redis"
+
+        [gateway.rate_limit.global]
+        limit = 1
+        duration = "1s"
+    "#};
+
+    with_custom_gateway(config, |service_name, _, gateway, clickhouse| async move {
+        let resp = gateway
+            .gql::<serde_json::Value>("query SimpleQuery { __typename }")
+            .send()
+            .await;
+
+        insta::assert_json_snapshot!(resp, @r###"
+            {
+              "data": {
+                "__typename": "Query"
+              }
+            }
+            "###);
+
+        tokio::time::sleep(METRICS_DELAY).await;
+
+        let query = indoc::indoc! {r#"
+            SELECT Count, Attributes
+            FROM otel_metrics_exponential_histogram
+            WHERE ServiceName = ?
+                AND ScopeName = 'grafbase'
+                AND MetricName = 'grafbase.gateway.rate_limit.duration'
+        "#};
+
+        let row = clickhouse
+            .query(query)
+            .bind(&service_name)
+            .fetch_optional::<ExponentialHistogramRow>()
+            .await
+            .unwrap();
+
+        insta::assert_json_snapshot!(row, @r###"
+            {
+              "Count": 1,
+              "Attributes": {
+                "grafbase.redis.status": "SUCCESS"
+              }
+            }
+            "###);
+    });
+}
+
+#[test]
+fn graphql_errors() {
+    with_gateway(|service_name, _, gateway, clickhouse| async move {
+        let resp = gateway
+            .gql::<serde_json::Value>(
+                r###"
+                query Faulty {
+                    me {
+                        id
+                    }
+                }
+                "###,
+            )
+            .send()
+            .await;
+
+        insta::assert_json_snapshot!(resp, @r###"
+        {
+          "data": null,
+          "errors": [
+            {
+              "message": "Request to subgraph 'accounts' failed with: error sending request for url (http://127.0.0.1:46697/)",
+              "path": [
+                "me"
+              ],
+              "extensions": {
+                "code": "SUBGRAPH_REQUEST_ERROR"
+              }
+            }
+          ]
+        }
+        "###);
+
+        tokio::time::sleep(METRICS_DELAY).await;
+
+        let rows = clickhouse
+            .query(
+                r#"
+                SELECT Value, Attributes
+                FROM otel_metrics_sum
+                WHERE ServiceName = ?
+                    AND ScopeName = 'grafbase'
+                    AND MetricName = 'graphql.operation.errors'
+                "#,
+            )
+            .bind(&service_name)
+            .fetch_all::<SumRow>()
+            .await
+            .unwrap();
+
+        insta::assert_json_snapshot!(rows, @r###"
+        [
+          {
+            "Value": 1.0,
+            "Attributes": {
+              "graphql.operation.name": "Faulty",
+              "graphql.response.error.code": "SUBGRAPH_REQUEST_ERROR"
+            }
+          }
+        ]
         "###);
     });
 }

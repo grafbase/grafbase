@@ -89,7 +89,7 @@ fn with_otel_reload() {
         { __typename }
     "#};
 
-    with_hybrid_server(config, "test_graph", &schema, |client, _| async move {
+    with_hybrid_server(config, "test_graph", &schema, |client, _, _| async move {
         let result: serde_json::Value = client.gql(query).send().await;
         serde_json::to_string_pretty(&result).unwrap();
 
