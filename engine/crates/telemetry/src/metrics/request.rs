@@ -50,7 +50,7 @@ impl RequestMetrics {
         }: RequestMetricsAttributes,
         latency: std::time::Duration,
     ) {
-        let mut attributes = vec![KeyValue::new("http.response.status.code", status_code as i64)];
+        let mut attributes = vec![KeyValue::new("http.response.status_code", status_code as i64)];
 
         if let Some(method) = method {
             attributes.push(KeyValue::new("http.request.method", method.to_string()));
