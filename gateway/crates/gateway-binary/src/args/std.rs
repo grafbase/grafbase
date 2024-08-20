@@ -71,8 +71,8 @@ impl super::Args for Args {
                     .grafbase_access_token
                     .clone()
                     .expect("present due to the arg group"),
-                graph_name: graph_ref.graph().to_string(),
-                branch: graph_ref.branch().map(ToString::to_string),
+                graph_name: graph_ref.graph_slug().to_string(),
+                branch: graph_ref.branch_name().map(ToString::to_string),
             }),
             None => {
                 let federated_graph =
@@ -103,7 +103,7 @@ impl super::Args for Args {
             None => Config::default(),
         };
 
-        if let Some(ref token) = self.grafbase_access_token {
+        if let Some((token, graph_ref)) = self.grafbase_access_token.as_ref().zip(self.graph_ref.as_ref()) {
             let mut telemetry = std::mem::take(&mut config.telemetry).unwrap_or_default();
 
             telemetry.grafbase = Some(OtlpExporterConfig {
@@ -112,10 +112,16 @@ impl super::Args for Args {
                 protocol: OtlpExporterProtocol::Grpc,
                 grpc: Some(OtlpExporterGrpcConfig {
                     tls: None,
-                    headers: vec![(
-                        AsciiString::from_ascii(b"authorization").context("Invalid auth header name")?,
-                        AsciiString::from_ascii(format!("Bearer {token}")).context("Invalid access token")?,
-                    )]
+                    headers: vec![
+                        (
+                            AsciiString::from_ascii(b"authorization").context("Invalid auth header name")?,
+                            AsciiString::from_ascii(format!("Bearer {token}")).context("Invalid access token")?,
+                        ),
+                        (
+                            AsciiString::from_ascii(b"grafbase-graph-ref").context("Invalid graph ref header name")?,
+                            AsciiString::from_ascii(graph_ref.to_string().into_bytes()).context("Invalid graph ref")?,
+                        ),
+                    ]
                     .into(),
                 }),
                 ..Default::default()
