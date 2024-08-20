@@ -12,7 +12,6 @@ lambda = [
   "federated-server/lambda",
   "tracing-subscriber/json",
   "grafbase-telemetry/lambda",
-  "dep:opentelemetry-aws"
 ]
 
 [dependencies]
@@ -25,7 +24,7 @@ gateway-config.workspace = true
 grafbase-telemetry = { workspace = true, features = ["otlp"] }
 graph-ref.workspace = true
 mimalloc = "0.1.41"
-opentelemetry-aws = { version = "0.10.0", optional = true }
+opentelemetry-aws = { version = "0.10.0" }
 rustls = { workspace = true, features = ["ring"] }
 tokio = { workspace = true, features = ["rt-multi-thread", "signal"] }
 toml = "0.8.12"

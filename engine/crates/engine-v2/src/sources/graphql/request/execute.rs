@@ -4,7 +4,7 @@ use bytes::Bytes;
 use futures::Future;
 use grafbase_telemetry::{
     gql_response_status::{GraphqlResponseStatus, SubgraphResponseStatus},
-    otel::opentelemetry::baggage::BaggageExt,
+    otel::tracing_opentelemetry::OpenTelemetrySpanExt as _,
     span::{GqlRecorderSpanExt, GRAFBASE_TARGET},
 };
 use headers::HeaderMapExt;
@@ -54,10 +54,9 @@ pub(crate) async fn execute_subgraph_request<'ctx, 'a, R: Runtime>(
         headers.insert(http::header::ACCEPT, http::HeaderValue::from_static("application/json"));
 
         grafbase_telemetry::otel::opentelemetry::global::get_text_map_propagator(|propagator| {
-            propagator.inject_context(
-                &grafbase_telemetry::otel::opentelemetry::Context::current(),
-                &mut headers,
-            );
+            let context = tracing::Span::current().context();
+
+            propagator.inject_context(&context, &mut grafbase_telemetry::http::HeaderInjector(&mut headers));
         });
 
         FetchRequest {

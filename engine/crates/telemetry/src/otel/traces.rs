@@ -22,15 +22,23 @@ where
     R: RuntimeChannel,
     I: IdGenerator + 'static,
 {
-    let builder = TracerProvider::builder().with_config(
-        opentelemetry_sdk::trace::config()
-            .with_id_generator(id_generator)
-            .with_sampler(Sampler::TraceIdRatioBased(config.tracing.sampling))
-            .with_max_events_per_span(config.tracing.collect.max_events_per_span as u32)
-            .with_max_attributes_per_span(config.tracing.collect.max_attributes_per_span as u32)
-            .with_max_events_per_span(config.tracing.collect.max_events_per_span as u32)
-            .with_resource(resource),
-    );
+    let base_sampler = Sampler::TraceIdRatioBased(config.tracing.sampling);
+
+    let mut trace_config = opentelemetry_sdk::trace::config().with_id_generator(id_generator);
+
+    if config.tracing.parent_based_sampler {
+        trace_config = trace_config.with_sampler(Sampler::ParentBased(Box::new(base_sampler)));
+    } else {
+        trace_config = trace_config.with_sampler(base_sampler);
+    }
+
+    trace_config = trace_config
+        .with_max_events_per_span(config.tracing.collect.max_events_per_span as u32)
+        .with_max_attributes_per_span(config.tracing.collect.max_attributes_per_span as u32)
+        .with_max_events_per_span(config.tracing.collect.max_events_per_span as u32)
+        .with_resource(resource);
+
+    let builder = TracerProvider::builder().with_config(trace_config);
 
     Ok(setup_exporters(builder, config, runtime)?.build())
 }

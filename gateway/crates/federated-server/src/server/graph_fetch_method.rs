@@ -62,6 +62,8 @@ impl GraphFetchMethod {
                 let gateway = gateway::generate(&federated_schema, None, config, hot_reload_config_path).await?;
 
                 sender.send(Some(Arc::new(gateway)))?;
+
+                std::mem::forget(otel_reload);
             }
         }
 

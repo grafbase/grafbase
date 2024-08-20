@@ -356,7 +356,7 @@ impl From<String> for ConfigContent<'static> {
 struct GatewayBuilder<'a> {
     toml_config: ConfigContent<'a>,
     schema: &'a str,
-    log_evel: Option<String>,
+    log_level: Option<String>,
     client_url_path: Option<&'a str>,
     client_headers: Option<&'static [(&'static str, &'static str)]>,
 }
@@ -366,14 +366,14 @@ impl<'a> GatewayBuilder<'a> {
         Self {
             toml_config: ConfigContent(None),
             schema,
-            log_evel: None,
+            log_level: None,
             client_url_path: None,
             client_headers: None,
         }
     }
 
     fn with_log_level(mut self, level: &str) -> Self {
-        self.log_evel = Some(level.to_string());
+        self.log_level = Some(level.to_string());
         self
     }
 
@@ -401,12 +401,14 @@ impl<'a> GatewayBuilder<'a> {
             args.push(config_path.to_str().unwrap().to_string());
         }
 
-        if let Some(level) = self.log_evel {
+        if let Some(level) = self.log_level {
             args.push("--log".to_string());
             args.push(level);
         }
 
-        let command = cmd(cargo_bin("grafbase-gateway"), &args).stdout_null().stderr_null();
+        let command = cmd(cargo_bin("grafbase-gateway"), &args)
+            .stdout_null()
+            .stderr_path("/home/tom/stderr.txt");
 
         let endpoint = match self.client_url_path {
             Some(path) => format!("http://{addr}/{path}"),
@@ -454,7 +456,7 @@ fn with_static_server<'a, F, T>(
     GatewayBuilder {
         toml_config: config.into(),
         schema,
-        log_evel: None,
+        log_level: None,
         client_url_path: path,
         client_headers: headers,
     }
