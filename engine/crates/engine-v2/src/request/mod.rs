@@ -12,7 +12,7 @@ pub(crate) enum BatchRequest {
 pub(crate) struct Request {
     #[serde(default)]
     pub query: Option<String>,
-    #[serde(default)]
+    #[serde(default, rename = "operationName")]
     pub operation_name: Option<String>,
     #[serde(default)]
     pub doc_id: Option<String>,

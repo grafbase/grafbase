@@ -56,11 +56,12 @@ pub fn parse_operation(operation_name: Option<&str>, document: &str) -> ParseRes
     } else {
         match document.operations {
             DocumentOperations::Single(operation) => (None, operation),
-            DocumentOperations::Multiple(map) => map
+            DocumentOperations::Multiple(map) if map.len() == 1 => map
                 .into_iter()
                 .next()
                 .map(|(name, operation)| (Some(name.to_string()), operation))
-                .ok_or_else(|| ParseError::MissingOperationName)?,
+                .unwrap(),
+            _ => return Err(ParseError::MissingOperationName),
         }
     };
 
