@@ -1,6 +1,7 @@
 use bytes::Bytes;
 use futures::future::join_all;
 use grafbase_telemetry::{gql_response_status::GraphqlResponseStatus, span::subgraph::SubgraphRequestSpan};
+use headers::HeaderMapExt;
 use http::HeaderMap;
 use runtime::bytes::OwnedOrSharedBytes;
 use schema::sources::graphql::{FederationEntityResolveDefinitionrWalker, GraphqlEndpointId, GraphqlEndpointWalker};
@@ -24,9 +25,11 @@ use crate::{
 };
 
 use super::{
+    calculate_cache_ttl,
     deserialize::EntitiesDataSeed,
     record,
     request::{execute_subgraph_request, PreparedFederationEntityOperation, ResponseIngester},
+    should_update_cache,
 };
 
 pub(crate) struct FederationEntityResolver {
@@ -97,7 +100,9 @@ impl FederationEntityResolver {
                             ingester.cache_entries = Some(cache_entries);
 
                             let (_, response) = ingester
-                                .ingest(Bytes::from_static(br#"{"data": {"_entities": []}}"#).into())
+                                .ingest(http::Response::new(
+                                    Bytes::from_static(br#"{"data": {"_entities": []}}"#).into(),
+                                ))
                                 .await?;
 
                             return Ok(response);
@@ -220,7 +225,7 @@ where
 {
     async fn ingest(
         self,
-        bytes: OwnedOrSharedBytes,
+        http_response: http::Response<OwnedOrSharedBytes>,
     ) -> Result<(GraphqlResponseStatus, SubgraphResponse), ExecutionError> {
         let Self {
             ctx,
@@ -239,12 +244,16 @@ where
                 },
                 EntitiesErrorsSeed::new(ctx, response),
             )
-            .deserialize(&mut serde_json::Deserializer::from_slice(&bytes))?
+            .deserialize(&mut serde_json::Deserializer::from_slice(http_response.body()))?
         };
 
+        let cache_control = http_response.headers().typed_get::<headers::CacheControl>();
+        let cache_ttl = calculate_cache_ttl(&http_response, cache_control.as_ref(), cache_ttl);
+
         if let Some(cache_ttl) = cache_ttl {
-            if let Some(cache_entries) = cache_entries.filter(|_| status.is_success()) {
-                update_cache(ctx, cache_ttl, bytes, cache_entries).await
+            let cache_entries = cache_entries.filter(|_| should_update_cache(status, cache_control.as_ref()));
+            if let Some(cache_entries) = cache_entries {
+                update_cache(ctx, cache_ttl, http_response.into_body(), cache_entries).await
             }
         }
 

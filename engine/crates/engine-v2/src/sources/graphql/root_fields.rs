@@ -2,14 +2,17 @@ use std::{borrow::Cow, time::Duration};
 
 use bytes::Bytes;
 use grafbase_telemetry::{gql_response_status::GraphqlResponseStatus, span::subgraph::SubgraphRequestSpan};
+use headers::HeaderMapExt;
 use runtime::bytes::OwnedOrSharedBytes;
 use schema::sources::graphql::{GraphqlEndpointId, RootFieldResolverDefinitionWalker};
 use serde::de::DeserializeSeed;
 use tracing::Instrument;
 
 use super::{
+    calculate_cache_ttl,
     deserialize::{GraphqlResponseSeed, RootGraphqlErrors},
     request::{execute_subgraph_request, PreparedGraphqlOperation, ResponseIngester, SubgraphVariables},
+    should_update_cache,
 };
 use crate::{
     execution::PlanningResult,
@@ -71,11 +74,10 @@ impl GraphqlResolver {
 
         let headers = ctx.subgraph_headers_with_rules(endpoint.header_rules());
 
-        let cache_ttl_and_key = endpoint
-            .entity_cache_ttl()
-            .and_then(|ttl| Some((ttl, build_cache_key(endpoint.subgraph_name(), &body, &headers)?)));
+        let subgraph_cache_ttl = endpoint.entity_cache_ttl();
+        let cache_key = build_cache_key(endpoint.subgraph_name(), &body, &headers);
 
-        if let Some((_, cache_key)) = &cache_ttl_and_key {
+        if let Some((_, cache_key)) = subgraph_cache_ttl.zip(cache_key.as_ref()) {
             let cache_entry = ctx
                 .engine
                 .runtime
@@ -128,7 +130,8 @@ impl GraphqlResolver {
             Bytes::from(body),
             GraphqlIngester {
                 ctx,
-                cache_ttl_and_key,
+                subgraph_cache_ttl,
+                cache_key,
                 subgraph_response,
             },
         )
@@ -154,7 +157,8 @@ fn build_cache_key(subgraph_name: &str, subgraph_request_body: &[u8], headers: &
 struct GraphqlIngester<'ctx, R: Runtime> {
     ctx: ExecutionContext<'ctx, R>,
     subgraph_response: SubgraphResponse,
-    cache_ttl_and_key: Option<(Duration, String)>,
+    subgraph_cache_ttl: Option<Duration>,
+    cache_key: Option<String>,
 }
 
 impl<'ctx, R> ResponseIngester for GraphqlIngester<'ctx, R>
@@ -163,7 +167,7 @@ where
 {
     async fn ingest(
         mut self,
-        bytes: OwnedOrSharedBytes,
+        http_response: http::Response<OwnedOrSharedBytes>,
     ) -> Result<(GraphqlResponseStatus, SubgraphResponse), crate::execution::ExecutionError> {
         let status = {
             let response = self.subgraph_response.as_mut();
@@ -171,20 +175,29 @@ where
                 response.next_seed(self.ctx).ok_or("No object to update")?,
                 RootGraphqlErrors::new(self.ctx, response),
             )
-            .deserialize(&mut serde_json::Deserializer::from_slice(&bytes))?
+            .deserialize(&mut serde_json::Deserializer::from_slice(http_response.body()))?
         };
 
-        if let Some((cache_ttl, cache_key)) = self.cache_ttl_and_key.filter(|_| status.is_success()) {
-            // We could probably put this call into the background at some point, but for
-            // simplicities sake I am not going to do that just now.
-            self.ctx
-                .engine
-                .runtime
-                .entity_cache()
-                .put(&cache_key, Cow::Borrowed(bytes.as_ref()), cache_ttl)
-                .await
-                .inspect_err(|err| tracing::warn!("Failed to write the cache key {cache_key}: {err}"))
-                .ok();
+        let cache_control = http_response.headers().typed_get::<headers::CacheControl>();
+
+        if let Some(cache_key) = self
+            .cache_key
+            .filter(|_| should_update_cache(status, cache_control.as_ref()))
+        {
+            let cache_ttl = calculate_cache_ttl(&http_response, cache_control.as_ref(), self.subgraph_cache_ttl);
+
+            if let Some(cache_ttl) = cache_ttl {
+                // We could probably put this call into the background at some point, but for
+                // simplicities sake I am not going to do that just now.
+                self.ctx
+                    .engine
+                    .runtime
+                    .entity_cache()
+                    .put(&cache_key, Cow::Borrowed(http_response.body().as_ref()), cache_ttl)
+                    .await
+                    .inspect_err(|err| tracing::warn!("Failed to write the cache key {cache_key}: {err}"))
+                    .ok();
+            }
         }
 
         Ok((status, self.subgraph_response))
