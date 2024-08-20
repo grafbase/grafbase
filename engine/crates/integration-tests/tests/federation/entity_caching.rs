@@ -217,12 +217,21 @@ fn entity_request_caching() {
             .await
             .into_data();
 
+        // Re-issuing the first request to make sure the second hasn't somehow messed up the
+        // cache (this doesn't happen but with the way the code is written it would be quite
+        // easy to introduce a regression around this)
+        let third_response = engine
+            .post("{ topProducts { upc reviews { id body } } }")
+            .await
+            .into_data();
+
         assert_eq!(
             engine.drain_graphql_requests_sent_to::<FederatedReviewsSchema>().len(),
             1
         );
 
         assert_eq!(first_product["reviews"], second_response["product"]["reviews"]);
+        assert_eq!(response, third_response);
     })
 }
 
