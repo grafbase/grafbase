@@ -44,7 +44,7 @@ type User @join__type(graph: ACCOUNTS, key: "id") @join__type(graph: REVIEWS, ke
   This used to be part of this subgraph, but is now being overridden from
   `reviews`
   """
-  reviewCount: Int! @join__field(graph: reviews, overrides: "accounts")
+  reviewCount: Int! @join__field(graph: REVIEWS, overrides: "accounts")
   joinedTimestamp: Int! @join__field(graph: ACCOUNTS)
   cart: Cart! @join__field(graph: ACCOUNTS)
   reviews: [Review!]! @join__field(graph: REVIEWS)

@@ -142,6 +142,7 @@ impl EngineV2Builder {
         // Ensure SDL/JSON serialization work as a expected
         let graph = {
             let sdl = graph.into_sdl().unwrap();
+            println!("{sdl}");
             let mut graph = FederatedGraph::from_sdl(&sdl).unwrap();
             let json = serde_json::to_value(&graph).unwrap();
             graph = serde_json::from_value(json).unwrap();

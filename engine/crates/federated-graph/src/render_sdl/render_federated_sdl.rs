@@ -71,17 +71,19 @@ pub fn render_federated_sdl(graph: &FederatedGraphV3) -> Result<String, fmt::Err
         if !object.keys.is_empty() {
             sdl.push('\n');
             for key in &object.keys {
-                let selection_set = FieldSetDisplay(&key.fields, graph);
                 let subgraph_name = GraphEnumVariantName(&graph[graph[key.subgraph_id].name]);
-                if key.resolvable {
+                if key.fields.is_empty() {
                     writeln!(
                         sdl,
-                        r#"{INDENT}@join__type(graph: {subgraph_name}, key: {selection_set})"#
+                        r#"{INDENT}@join__type(graph: {subgraph_name}{resolvable})"#,
+                        resolvable = if key.resolvable { "" } else { ", resolvable: false" }
                     )?;
                 } else {
                     writeln!(
                         sdl,
-                        r#"{INDENT}@join__type(graph: {subgraph_name}, key: {selection_set}, resolvable: false)"#
+                        r#"{INDENT}@join__type(graph: {subgraph_name}, key: {selection_set}{resolvable})"#,
+                        selection_set = FieldSetDisplay(&key.fields, graph),
+                        resolvable = if key.resolvable { "" } else { ", resolvable: false" }
                     )?;
                 }
             }
