@@ -24,6 +24,7 @@ use crate::{
 };
 
 use super::{
+    calculate_cache_ttl,
     deserialize::EntitiesDataSeed,
     record,
     request::{execute_subgraph_request, PreparedFederationEntityOperation, ResponseIngester},
@@ -97,7 +98,9 @@ impl FederationEntityResolver {
                             ingester.cache_entries = Some(cache_entries);
 
                             let (_, response) = ingester
-                                .ingest(Bytes::from_static(br#"{"data": {"_entities": []}}"#).into())
+                                .ingest(http::Response::new(
+                                    Bytes::from_static(br#"{"data": {"_entities": []}}"#).into(),
+                                ))
                                 .await?;
 
                             return Ok(response);
@@ -220,7 +223,7 @@ where
 {
     async fn ingest(
         self,
-        bytes: OwnedOrSharedBytes,
+        http_response: http::Response<OwnedOrSharedBytes>,
     ) -> Result<(GraphqlResponseStatus, SubgraphResponse), ExecutionError> {
         let Self {
             ctx,
@@ -239,13 +242,13 @@ where
                 },
                 EntitiesErrorsSeed::new(ctx, response),
             )
-            .deserialize(&mut serde_json::Deserializer::from_slice(&bytes))?
+            .deserialize(&mut serde_json::Deserializer::from_slice(http_response.body()))?
         };
 
-        if let Some(cache_ttl) = cache_ttl {
-            if let Some(cache_entries) = cache_entries.filter(|_| status.is_success()) {
-                update_cache(ctx, cache_ttl, bytes, cache_entries).await
-            }
+        let cache_ttl = calculate_cache_ttl(status, http_response.headers(), cache_ttl);
+
+        if let Some((cache_ttl, cache_entries)) = cache_ttl.zip(cache_entries) {
+            update_cache(ctx, cache_ttl, http_response.into_body(), cache_entries).await
         }
 
         Ok((status, subgraph_response))

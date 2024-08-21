@@ -27,20 +27,8 @@ use crate::{
 pub trait ResponseIngester: Send {
     fn ingest(
         self,
-        bytes: OwnedOrSharedBytes,
+        bytes: http::Response<OwnedOrSharedBytes>,
     ) -> impl Future<Output = Result<(GraphqlResponseStatus, SubgraphResponse), ExecutionError>> + Send;
-}
-
-impl<T> ResponseIngester for T
-where
-    T: FnOnce(OwnedOrSharedBytes) -> Result<(GraphqlResponseStatus, SubgraphResponse), ExecutionError> + Send,
-{
-    async fn ingest(
-        self,
-        bytes: OwnedOrSharedBytes,
-    ) -> Result<(GraphqlResponseStatus, SubgraphResponse), ExecutionError> {
-        self(bytes)
-    }
 }
 
 pub(crate) async fn execute_subgraph_request<'ctx, 'a, R: Runtime>(
@@ -100,7 +88,7 @@ pub(crate) async fn execute_subgraph_request<'ctx, 'a, R: Runtime>(
 
     let status_code = response.status();
 
-    let (status, response) = ingester.ingest(response.into_body()).await.inspect_err(|err| {
+    let (status, response) = ingester.ingest(response).await.inspect_err(|err| {
         let subgraph_status = SubgraphResponseStatus::InvalidResponseError;
 
         span.record_subgraph_status(subgraph_status);

@@ -5,6 +5,8 @@ use graphql_mocks::{ErrorSchema, FederatedInventorySchema, FederatedProductsSche
 use integration_tests::{federation::EngineV2Ext, runtime};
 use serde_json::json;
 
+mod subgraph_cache_control;
+
 #[test]
 fn root_level_entity_caching() {
     let response = runtime().block_on(async move {
