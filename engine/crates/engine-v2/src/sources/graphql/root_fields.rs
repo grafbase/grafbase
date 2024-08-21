@@ -2,7 +2,6 @@ use std::{borrow::Cow, time::Duration};
 
 use bytes::Bytes;
 use grafbase_telemetry::{gql_response_status::GraphqlResponseStatus, span::subgraph::SubgraphRequestSpan};
-use headers::HeaderMapExt;
 use runtime::bytes::OwnedOrSharedBytes;
 use schema::sources::graphql::{GraphqlEndpointId, RootFieldResolverDefinitionWalker};
 use serde::de::DeserializeSeed;
@@ -12,7 +11,6 @@ use super::{
     calculate_cache_ttl,
     deserialize::{GraphqlResponseSeed, RootGraphqlErrors},
     request::{execute_subgraph_request, PreparedGraphqlOperation, ResponseIngester, SubgraphVariables},
-    should_update_cache,
 };
 use crate::{
     execution::PlanningResult,
@@ -178,13 +176,8 @@ where
             .deserialize(&mut serde_json::Deserializer::from_slice(http_response.body()))?
         };
 
-        let cache_control = http_response.headers().typed_get::<headers::CacheControl>();
-
-        if let Some(cache_key) = self
-            .cache_key
-            .filter(|_| should_update_cache(status, cache_control.as_ref()))
-        {
-            let cache_ttl = calculate_cache_ttl(&http_response, cache_control.as_ref(), self.subgraph_cache_ttl);
+        if let Some(cache_key) = self.cache_key {
+            let cache_ttl = calculate_cache_ttl(status, http_response.headers(), self.subgraph_cache_ttl);
 
             if let Some(cache_ttl) = cache_ttl {
                 // We could probably put this call into the background at some point, but for

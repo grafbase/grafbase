@@ -1,7 +1,6 @@
 use bytes::Bytes;
 use futures::future::join_all;
 use grafbase_telemetry::{gql_response_status::GraphqlResponseStatus, span::subgraph::SubgraphRequestSpan};
-use headers::HeaderMapExt;
 use http::HeaderMap;
 use runtime::bytes::OwnedOrSharedBytes;
 use schema::sources::graphql::{FederationEntityResolveDefinitionrWalker, GraphqlEndpointId, GraphqlEndpointWalker};
@@ -29,7 +28,6 @@ use super::{
     deserialize::EntitiesDataSeed,
     record,
     request::{execute_subgraph_request, PreparedFederationEntityOperation, ResponseIngester},
-    should_update_cache,
 };
 
 pub(crate) struct FederationEntityResolver {
@@ -247,14 +245,10 @@ where
             .deserialize(&mut serde_json::Deserializer::from_slice(http_response.body()))?
         };
 
-        let cache_control = http_response.headers().typed_get::<headers::CacheControl>();
-        let cache_ttl = calculate_cache_ttl(&http_response, cache_control.as_ref(), cache_ttl);
+        let cache_ttl = calculate_cache_ttl(status, http_response.headers(), cache_ttl);
 
-        if let Some(cache_ttl) = cache_ttl {
-            let cache_entries = cache_entries.filter(|_| should_update_cache(status, cache_control.as_ref()));
-            if let Some(cache_entries) = cache_entries {
-                update_cache(ctx, cache_ttl, http_response.into_body(), cache_entries).await
-            }
+        if let Some((cache_ttl, cache_entries)) = cache_ttl.zip(cache_entries) {
+            update_cache(ctx, cache_ttl, http_response.into_body(), cache_entries).await
         }
 
         Ok((status, subgraph_response))
