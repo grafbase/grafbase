@@ -11,7 +11,7 @@ pub struct CreateCommand {
     /// The slug of the account in which the new graph should be created
     #[arg(short, long, value_name = "SLUG")]
     pub account: Option<String>,
-    /// Whether the graph is self-hosted or managed. Possible values: self-hosted or managed (default).
+    /// Whether the graph is self-hosted or managed. Possible values: self-hosted, managed.
     #[arg(short, long)]
     pub mode: Option<crate::create::GraphMode>,
     /// Adds an environment variable to the graph
@@ -20,7 +20,7 @@ pub struct CreateCommand {
 }
 
 impl CreateCommand {
-    pub fn create_arguments(&self) -> Option<CreateArguments<'_>> {
+    pub(crate) fn create_arguments(&self) -> Option<CreateArguments<'_>> {
         self.name
             .as_deref()
             .zip(self.account.as_deref())
