@@ -10,6 +10,7 @@ mod fragments;
 mod headers;
 mod mutation;
 mod operation_limits;
+mod operations;
 mod scalars;
 mod streaming;
 mod variables;

@@ -126,7 +126,7 @@ impl<'a> StreamExecutionRequest<'a> {
 #[derive(serde::Serialize)]
 pub struct GraphQlRequest {
     pub query: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none", rename = "operationName")]
     pub operation_name: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub variables: Option<Variables>,
