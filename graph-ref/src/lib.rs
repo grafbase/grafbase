@@ -10,6 +10,13 @@ pub struct GraphRef {
 impl GraphRef {
     pub const ARG_DESCRIPTION: &'static str = r#"Graph reference following the format "graph@branch""#;
 
+    pub fn new(graph_slug: String, branch_name: Option<String>) -> Self {
+        GraphRef {
+            graph_slug,
+            branch_name,
+        }
+    }
+
     pub fn graph_slug(&self) -> &str {
         self.graph_slug.as_ref()
     }

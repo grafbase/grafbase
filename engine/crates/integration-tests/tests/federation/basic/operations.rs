@@ -3,7 +3,7 @@ use graphql_mocks::FakeGithubSchema;
 use integration_tests::{engine_v1::GraphQlRequest, federation::EngineV2Ext, runtime};
 
 #[test]
-fn multiple_operations_without_name() {
+fn multiple_operations_without_providing_operation_name_in_request() {
     let response = runtime().block_on(async move {
         let engine = Engine::builder().with_subgraph(FakeGithubSchema).build().await;
 
