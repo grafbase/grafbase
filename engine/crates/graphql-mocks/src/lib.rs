@@ -275,7 +275,16 @@ where
     }
 
     fn sdl(&self) -> String {
-        self.sdl_with_options(async_graphql::SDLExportOptions::new())
+        let options = {
+            let names = self.names();
+            if names.iter().any(|name| name == "_Any") && names.iter().any(|name| name == "_service") {
+                async_graphql::SDLExportOptions::new().federation()
+            } else {
+                async_graphql::SDLExportOptions::new()
+            }
+        };
+
+        self.sdl_with_options(options)
     }
 }
 

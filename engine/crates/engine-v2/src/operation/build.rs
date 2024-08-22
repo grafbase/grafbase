@@ -9,6 +9,7 @@ use crate::{
 use super::{
     bind::{bind_operation, BindError},
     blueprint::ResponseBlueprintBuilder,
+    cache_scopes::calculate_cache_scopes,
     logical_planner::{LogicalPlanner, LogicalPlanningError},
     metrics::{generate_used_fields, prepare_metrics_attributes},
     parse::{parse_operation, ParseError},
@@ -100,6 +101,9 @@ impl Operation {
             }
         };
 
+        let (logical_plan_cache_scopes, cache_scopes) =
+            calculate_cache_scopes(operation.walker_with(schema.walker()), &plan);
+
         let response_blueprint = ResponseBlueprintBuilder::new(schema, &operation, &plan).build();
 
         let mut metrics_attributes = metrics_attributes.ok_or(OperationError::NormalizationError)?;
@@ -110,6 +114,8 @@ impl Operation {
             metrics_attributes,
             plan,
             response_blueprint,
+            logical_plan_cache_scopes,
+            cache_scopes,
         })
     }
 }

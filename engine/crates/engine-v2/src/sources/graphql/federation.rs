@@ -11,7 +11,7 @@ use tracing::Instrument;
 
 use crate::{
     execution::{ExecutionContext, ExecutionError, PlanningResult},
-    operation::{OperationType, PlanWalker},
+    operation::{CacheScope, OperationType, PlanWalker},
     response::{ResponseObjectsView, SubgraphResponse},
     sources::{
         graphql::{
@@ -33,6 +33,7 @@ use super::{
 pub(crate) struct FederationEntityResolver {
     endpoint_id: GraphqlEndpointId,
     operation: PreparedFederationEntityOperation,
+    cache_scopes: Vec<String>,
 }
 
 impl FederationEntityResolver {
@@ -45,6 +46,21 @@ impl FederationEntityResolver {
         Ok(Resolver::FederationEntity(Self {
             endpoint_id: definition.endpoint().id(),
             operation,
+            cache_scopes: plan
+                .cache_scopes()
+                .map(|scope| match scope {
+                    CacheScope::Authenticated => "authenticated".into(),
+                    CacheScope::RequiresScopes(scopes) => {
+                        let mut hasher = blake3::Hasher::new();
+                        hasher.update(&scopes.scopes().len().to_le_bytes());
+                        for scope in scopes.scopes() {
+                            hasher.update(&scope.len().to_le_bytes());
+                            hasher.update(scope.as_bytes());
+                        }
+                        hasher.finalize().to_hex().to_string()
+                    }
+                })
+                .collect(),
         }))
     }
 
@@ -93,7 +109,7 @@ impl FederationEntityResolver {
                 let headers = ctx.subgraph_headers_with_rules(endpoint.header_rules());
 
                 if cache_ttl.is_some() {
-                    match cache_fetches(ctx, endpoint, &headers, representations).await {
+                    match cache_fetches(ctx, endpoint, &headers, representations, &self.cache_scopes).await {
                         CacheFetchOutcome::FullyCached { cache_entries } => {
                             ingester.cache_entries = Some(cache_entries);
 
@@ -157,10 +173,11 @@ async fn cache_fetches<'ctx, R: Runtime>(
     endpoint: schema::SchemaWalker<'_, GraphqlEndpointId>,
     headers: &http::HeaderMap,
     representations: Vec<Box<RawValue>>,
+    additional_scopes: &[String],
 ) -> CacheFetchOutcome {
     let fetches = representations
         .iter()
-        .map(|repr| cache_fetch(ctx, endpoint, headers, repr));
+        .map(|repr| cache_fetch(ctx, endpoint, headers, repr, additional_scopes));
 
     let cache_entries = join_all(fetches).await;
     let fully_cached = !cache_entries.iter().any(CacheEntry::is_miss);
@@ -312,8 +329,9 @@ async fn cache_fetch<R: Runtime>(
     endpoint: GraphqlEndpointWalker<'_>,
     headers: &HeaderMap,
     repr: &RawValue,
+    additional_scopes: &[String],
 ) -> CacheEntry {
-    let key = build_cache_key(endpoint.subgraph_name(), headers, repr);
+    let key = build_cache_key(endpoint.subgraph_name(), headers, repr, additional_scopes);
 
     let data = ctx
         .engine
@@ -337,7 +355,7 @@ async fn cache_fetch<R: Runtime>(
     }
 }
 
-fn build_cache_key(subgraph_name: &str, headers: &HeaderMap, repr: &RawValue) -> String {
+fn build_cache_key(subgraph_name: &str, headers: &HeaderMap, repr: &RawValue, additional_scopes: &[String]) -> String {
     let mut hasher = blake3::Hasher::new();
     hasher.update(subgraph_name.as_bytes());
     hasher.update(&headers.len().to_le_bytes());
@@ -346,6 +364,11 @@ fn build_cache_key(subgraph_name: &str, headers: &HeaderMap, repr: &RawValue) ->
         hasher.update(name.as_str().as_bytes());
         hasher.update(&value.len().to_le_bytes());
         hasher.update(value.as_bytes());
+    }
+    hasher.update(&additional_scopes.len().to_le_bytes());
+    for scope in additional_scopes {
+        hasher.update(&scope.len().to_le_bytes());
+        hasher.update(scope.as_bytes());
     }
     hasher.update(repr.get().as_bytes());
     hasher.finalize().to_string()

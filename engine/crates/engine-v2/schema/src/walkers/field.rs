@@ -103,6 +103,7 @@ impl<'a> std::fmt::Debug for FieldDefinitionWalker<'a> {
                     .map(|arg| (arg.name(), arg.ty().to_string()))
                     .collect::<Vec<_>>(),
             )
+            .field("directiives", &self.directives().as_ref().iter().collect::<Vec<_>>())
             .finish()
     }
 }

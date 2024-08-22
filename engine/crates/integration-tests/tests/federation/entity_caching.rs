@@ -5,6 +5,7 @@ use graphql_mocks::{ErrorSchema, FederatedInventorySchema, FederatedProductsSche
 use integration_tests::{federation::EngineV2Ext, runtime};
 use serde_json::json;
 
+mod directive_scopes;
 mod subgraph_cache_control;
 
 #[test]

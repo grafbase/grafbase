@@ -1,6 +1,7 @@
 mod bind;
 mod blueprint;
 mod build;
+mod cache_scopes;
 pub mod ids;
 mod input_value;
 mod location;
@@ -15,6 +16,7 @@ mod variables;
 mod walkers;
 
 use crate::response::{ConcreteObjectShapeId, FieldShapeId, ResponseKeys, ResponseObjectSetId, Shapes};
+pub(crate) use cache_scopes::*;
 pub(crate) use engine_parser::types::OperationType;
 use grafbase_telemetry::metrics::OperationMetricsAttributes;
 use id_derives::IndexedFields;
@@ -35,6 +37,10 @@ pub(crate) struct PreparedOperation {
     pub metrics_attributes: OperationMetricsAttributes,
     pub plan: OperationPlan,
     pub response_blueprint: ResponseBlueprint,
+
+    // Should be sorted by LogicalPlanId
+    logical_plan_cache_scopes: Vec<(LogicalPlanId, cache_scopes::CacheScopeId)>,
+    cache_scopes: Vec<cache_scopes::CacheScopeRecord>,
 }
 
 impl std::ops::Deref for PreparedOperation {
@@ -107,6 +113,12 @@ pub(crate) struct OperationPlan {
     pub in_topological_order: Vec<LogicalPlanId>,
     // Sorted
     pub solved_requirements: Vec<(SelectionSetId, SolvedRequiredFieldSet)>,
+}
+
+impl OperationPlan {
+    pub fn plan_id_for_field(&self, field_id: FieldId) -> LogicalPlanId {
+        self.field_to_logical_plan_id[usize::from(field_id)]
+    }
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]

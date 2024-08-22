@@ -582,7 +582,7 @@ mod tests {
                 on multiple lines.
 
                 yes, way
-                
+
                 """) @dummy(test: "a \"test\"")
             }
             "###,
