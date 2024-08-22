@@ -7,7 +7,7 @@
 mod hot_reload;
 pub use error::Error;
 pub use server::GdnResponse;
-pub use server::{GraphFetchMethod, OtelReload, OtelTracing};
+pub use server::GraphFetchMethod;
 
 mod error;
 mod server;
@@ -15,4 +15,4 @@ mod server;
 /// The crate result type.
 pub type Result<T> = std::result::Result<T, Error>;
 
-pub use server::{serve, ServerConfig};
+pub use server::{serve, ServerConfig, ServerRuntime};

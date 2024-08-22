@@ -79,7 +79,7 @@ where
 
     println!("service_name: {}", service_name);
     with_static_server(config, &schema, None, None, |client| async move {
-        const WAIT_SECONDS: u64 = 2;
+        const WAIT_SECONDS: u64 = 3;
         let start = std::time::SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .unwrap()

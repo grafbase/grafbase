@@ -104,9 +104,7 @@ impl super::Args for Args {
         };
 
         if let Some((token, graph_ref)) = self.grafbase_access_token.as_ref().zip(self.graph_ref.as_ref()) {
-            let mut telemetry = std::mem::take(&mut config.telemetry).unwrap_or_default();
-
-            telemetry.grafbase = Some(OtlpExporterConfig {
+            config.telemetry.grafbase = Some(OtlpExporterConfig {
                 endpoint: "https://otel.grafbase.com".parse().unwrap(),
                 enabled: true,
                 protocol: OtlpExporterProtocol::Grpc,
@@ -126,7 +124,6 @@ impl super::Args for Args {
                 }),
                 ..Default::default()
             });
-            config.telemetry = Some(telemetry);
         }
 
         Ok(config)

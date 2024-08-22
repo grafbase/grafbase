@@ -3,7 +3,7 @@ use std::{collections::HashMap, time::Duration};
 use indoc::{formatdoc, indoc};
 use serde::Deserialize;
 
-use crate::{load_schema, with_hybrid_server, with_static_server};
+use crate::{load_schema, with_static_server};
 
 mod logs;
 mod metrics;
@@ -171,86 +171,5 @@ fn extra_resource_attributes() {
             .unwrap();
 
         assert_eq!(resource_attributes, expected_resource_attributes);
-    });
-}
-
-#[test]
-fn with_otel_reload_tracing() {
-    let service_name = format!("service-{}", rand::random::<u128>());
-    let config = &formatdoc! {r#"
-        [telemetry]
-        service_name = "{service_name}"
-
-        [telemetry.tracing]
-        sampling = 1
-
-        [telemetry.exporters.otlp]
-        enabled = true
-        endpoint = "http://localhost:4318"
-        protocol = "grpc"
-
-        [telemetry.exporters.otlp.batch_export]
-        scheduled_delay = 1
-        max_export_batch_size = 1
-    "#};
-
-    let schema = load_schema("big");
-
-    let query = indoc! {r#"
-        { __typename }
-    "#};
-
-    with_hybrid_server(config, "test_graph", &schema, |client, gdn_mock, _| async move {
-        let result: serde_json::Value = client.gql(query).send().await;
-        serde_json::to_string_pretty(&result).unwrap();
-
-        let client = crate::clickhouse_client();
-
-        #[derive(clickhouse::Row, Deserialize)]
-        struct CountRow {
-            count: u32,
-        }
-
-        // wait at least 2 seconds due to the async batch export config
-        tokio::time::sleep(Duration::from_secs(2)).await;
-
-        let CountRow { count } = client
-            .query(
-                r#"
-                    SELECT COUNT(1) as count FROM otel_traces
-                    WHERE ResourceAttributes['service.name'] = ?
-                    AND ResourceAttributes['grafbase.branch_name'] = ?
-                    AND ResourceAttributes['grafbase.branch_id'] = ?
-                    AND ResourceAttributes['grafbase.graph_id'] = ?
-                "#,
-            )
-            .bind(&service_name)
-            .bind(&gdn_mock.branch)
-            .bind(gdn_mock.branch_id.to_string())
-            .bind(gdn_mock.graph_id.to_string())
-            .fetch_one::<CountRow>()
-            .await
-            .unwrap();
-        assert!(count > 0);
-
-        let CountRow { count } = client
-            .query(
-                r#"
-                    SELECT COUNT(1) as count
-                    FROM otel_metrics_exponential_histogram
-                    WHERE ResourceAttributes['service.name'] = ?
-                    AND ResourceAttributes['grafbase.branch_name'] = ?
-                    AND ResourceAttributes['grafbase.branch_id'] = ?
-                    AND ResourceAttributes['grafbase.graph_id'] = ?
-                "#,
-            )
-            .bind(&service_name)
-            .bind(&gdn_mock.branch)
-            .bind(gdn_mock.branch_id.to_string())
-            .bind(gdn_mock.graph_id.to_string())
-            .fetch_one::<CountRow>()
-            .await
-            .unwrap();
-        assert!(count > 0);
     });
 }

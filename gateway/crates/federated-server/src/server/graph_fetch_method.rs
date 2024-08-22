@@ -1,9 +1,8 @@
 use super::gateway::{self, GatewayRuntime};
-use crate::OtelReload;
 use engine_v2::Engine;
 use gateway_config::Config;
 use std::{path::PathBuf, sync::Arc};
-use tokio::sync::{oneshot, watch};
+use tokio::sync::watch;
 
 /// The method of running the gateway.
 pub enum GraphFetchMethod {
@@ -28,14 +27,19 @@ impl GraphFetchMethod {
     /// in two ways: if providing a graph SDL, we a new gateway immediately. Alternatively,
     /// if a graph ref and access token is provided, the function returns immediately, and
     /// the gateway will be available eventually when the GDN responds with a working graph.
-    #[cfg_attr(feature = "lambda", allow(unused_variables))]
     pub(crate) async fn start(
         self,
         config: &Config,
         hot_reload_config_path: Option<PathBuf>,
-        otel_reload: Option<(oneshot::Sender<OtelReload>, oneshot::Receiver<()>)>,
         sender: watch::Sender<Option<Arc<Engine<GatewayRuntime>>>>,
     ) -> crate::Result<()> {
+        #[cfg(feature = "lambda")]
+        if matches!(self, GraphFetchMethod::FromApi { .. }) {
+            return Err(crate::Error::InternalError(
+                "Cannot fetch schema with graph in lambda mode.".to_string(),
+            ));
+        }
+
         match self {
             GraphFetchMethod::FromApi {
                 access_token,
@@ -43,20 +47,13 @@ impl GraphFetchMethod {
                 branch,
             } => {
                 let config = config.clone();
-                #[cfg(not(feature = "lambda"))]
                 tokio::spawn(async move {
+                    let config = config.clone();
                     use super::graph_updater::GraphUpdater;
 
-                    GraphUpdater::new(
-                        &graph_name,
-                        branch.as_deref(),
-                        access_token,
-                        sender,
-                        config,
-                        otel_reload,
-                    )?
-                    .poll()
-                    .await;
+                    GraphUpdater::new(&graph_name, branch.as_deref(), access_token, sender, config)?
+                        .poll()
+                        .await;
 
                     Ok::<_, crate::Error>(())
                 });

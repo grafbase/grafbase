@@ -47,7 +47,7 @@ pub struct Config {
     /// Graph operation limit settings
     pub operation_limits: Option<OperationLimitsConfig>,
     /// Telemetry settings
-    pub telemetry: Option<TelemetryConfig>,
+    pub telemetry: TelemetryConfig,
     /// Configuration for Trusted Documents.
     pub trusted_documents: TrustedDocumentsConfig,
     /// Authentication configuration
@@ -871,7 +871,7 @@ mod tests {
         let config: Config = toml::from_str(input).unwrap();
 
         // assert
-        assert_eq!(telemetry_config, config.telemetry.unwrap());
+        assert_eq!(telemetry_config, config.telemetry);
     }
 
     #[test]

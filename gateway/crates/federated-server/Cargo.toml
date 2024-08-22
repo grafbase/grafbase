@@ -25,6 +25,7 @@ async-trait = "0.1.80"
 axum = { workspace = true, features = ["macros", "ws", "query", "json"] }
 axum-server = { version = "0.6.0", features = ["tls-rustls"] }
 blake3.workspace = true
+cfg-if = "1"
 engine-config-builder.workspace = true
 engine-v2.workspace = true
 engine-v2-axum.workspace = true
