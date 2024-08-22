@@ -12,16 +12,38 @@ use grafbase_telemetry::otel::opentelemetry::{
 use pool::Pool;
 use runtime::{
     error::{ErrorResponse, PartialErrorCode, PartialGraphqlError},
-    hooks::{AuthorizedHooks, HeaderMap, Hooks, SubgraphHooks},
+    hooks::{AccessLogSender, AuthorizedHooks, HeaderMap, Hooks, SubgraphHooks},
 };
 use tracing::instrument;
 use wasi_component_loader::{
-    AuthorizationComponentInstance, GatewayComponentInstance, GuestError, SubgraphComponentInstance,
+    AuthorizationComponentInstance, GatewayComponentInstance, GuestError, Sender, SubgraphComponentInstance,
 };
 pub use wasi_component_loader::{ComponentLoader, Config as HooksWasiConfig};
 
 pub struct HooksWasi(Option<HooksWasiInner>);
-type Context = Arc<HashMap<String, String>>;
+
+#[derive(Clone)]
+pub struct SharedContext {
+    pub kv: Arc<HashMap<String, String>>,
+    pub access_log: Box<dyn AccessLogSender>,
+    pub lossy_log: bool,
+}
+
+impl From<SharedContext> for wasi_component_loader::SharedContextMap {
+    fn from(
+        SharedContext {
+            kv,
+            access_log,
+            lossy_log,
+        }: SharedContext,
+    ) -> Self {
+        Self {
+            kv,
+            access_log,
+            lossy_log,
+        }
+    }
+}
 
 struct HooksWasiInner {
     gateway: Pool<GatewayComponentInstance>,

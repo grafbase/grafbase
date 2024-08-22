@@ -1236,6 +1236,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "response-hooks"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "wit-bindgen-rt 0.28.0",
+]
+
+[[package]]
 name = "ring"
 version = "0.17.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"

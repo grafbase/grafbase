@@ -7,6 +7,7 @@ pub trait Runtime: Send + Sync + 'static {
     type Hooks: runtime::hooks::Hooks;
     type Fetcher: runtime::fetch::Fetcher;
     type OperationCacheFactory: runtime::operation_cache::OperationCacheFactory;
+    type AccessLogSender: runtime::hooks::AccessLogSender;
 
     fn fetcher(&self) -> &Self::Fetcher;
     fn kv(&self) -> &KvStore;
@@ -17,6 +18,7 @@ pub trait Runtime: Send + Sync + 'static {
     fn rate_limiter(&self) -> &RateLimiter;
     fn sleep(&self, duration: std::time::Duration) -> impl Future<Output = ()> + Send;
     fn entity_cache(&self) -> &dyn EntityCache;
+    fn access_log_sender(&self) -> Self::AccessLogSender;
 }
 
 pub(crate) trait RuntimeExt: Runtime {

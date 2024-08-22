@@ -21,10 +21,15 @@ mod tests;
 
 pub use config::Config;
 pub use context::{ContextMap, SharedContextMap};
+pub use crossbeam::channel::Sender;
 pub use error::{guest::GuestError, Error};
 pub use hooks::{
     authorization::{AuthorizationComponentInstance, EdgeDefinition, NodeDefinition},
     gateway::GatewayComponentInstance,
+    response::{
+        ExecutedGatewayRequest, ExecutedHttpRequest, ExecutedSubgraphRequest, FieldError, GraphqlResponseStatus,
+        Operation, RequestError, ResponsesComponentInstance, SubgraphResponse,
+    },
     subgraph::*,
     RecycleableComponentInstance,
 };
@@ -94,6 +99,7 @@ impl ComponentLoader {
                 headers::map(&mut types)?;
                 context::map(&mut types)?;
                 context::map_shared(&mut types)?;
+                context::map_access_log(&mut types)?;
 
                 Some(Self {
                     engine,

@@ -41,6 +41,7 @@ impl engine_v2::Runtime for TestRuntime {
     type Hooks = DynamicHooks;
     type Fetcher = DynamicFetcher;
     type OperationCacheFactory = InMemoryOperationCacheFactory;
+    type AccessLogSender = ();
 
     fn fetcher(&self) -> &Self::Fetcher {
         &self.fetcher
@@ -76,5 +77,9 @@ impl engine_v2::Runtime for TestRuntime {
 
     fn entity_cache(&self) -> &dyn EntityCache {
         &self.entity_cache
+    }
+
+    fn access_log_sender(&self) -> Self::AccessLogSender {
+        ()
     }
 }

@@ -1,14 +1,16 @@
 use std::{collections::HashMap, sync::Arc};
 
+use crossbeam::channel::{Sender, TrySendError};
+use grafbase_telemetry::span::GRAFBASE_TARGET;
 use wasmtime::{
-    component::{LinkerInstance, Resource, ResourceType},
+    component::{ComponentType, LinkerInstance, Lower, Resource, ResourceType},
     StoreContextMut,
 };
 
 use crate::{
     names::{
-        CONTEXT_DELETE_METHOD, CONTEXT_GET_METHOD, CONTEXT_RESOURCE, CONTEXT_SET_METHOD, SHARED_CONTEXT_GET_METHOD,
-        SHARED_CONTEXT_RESOURCE,
+        CONTEXT_DELETE_METHOD, CONTEXT_GET_METHOD, CONTEXT_RESOURCE, CONTEXT_SET_METHOD,
+        SHARED_CONTEXT_ACCESS_LOG_METHOD, SHARED_CONTEXT_GET_METHOD, SHARED_CONTEXT_RESOURCE,
     },
     state::WasiState,
 };
@@ -17,14 +19,31 @@ use crate::{
 pub type ContextMap = HashMap<String, String>;
 
 /// The internal per-request context storage, read-only.
-pub type SharedContextMap = Arc<HashMap<String, String>>;
+#[derive(Clone)]
+pub struct SharedContextMap {
+    /// Key-value storage.
+    pub kv: Arc<HashMap<String, String>>,
+    /// A log channel for access logs.
+    pub access_log: Sender<Vec<u8>>,
+    /// If true, messages get dropped when the channel is full.
+    pub lossy_log: bool,
+}
+
+#[derive(Debug, ComponentType, Lower)]
+#[component(variant)]
+pub enum LogError {
+    #[component(name = "channel-full")]
+    ChannelFull(Vec<u8>),
+    #[component(name = "channel-closed")]
+    ChannelClosed,
+}
 
 /// Map context resource, with get and set accessors to the guest component.
 ///
 /// ```ignore
 /// interface types {
 ///     resource context {
-///         get: func(key: string) -> option<string>;
+///         get: func(key: string) -> option<strerrorng>;
 ///         set: func(key: string, value: string);
 ///         delete: func(key: string) -> option<string>;
 ///     }    
@@ -56,6 +75,27 @@ pub(crate) fn map_shared(types: &mut LinkerInstance<'_, WasiState>) -> crate::Re
     )?;
 
     types.func_wrap(SHARED_CONTEXT_GET_METHOD, get_shared)?;
+
+    Ok(())
+}
+
+/// Map shared log function, connected to the access log channel.
+///
+/// ```ignore
+/// interface types {
+///     resource shared-context {
+///         access-log: func(data: list<u8>) -> result<_, list<u8>>;
+///     }    
+/// }
+/// ```
+pub(crate) fn map_access_log(types: &mut LinkerInstance<'_, WasiState>) -> crate::Result<()> {
+    types.resource(
+        SHARED_CONTEXT_RESOURCE,
+        ResourceType::host::<SharedContextMap>(),
+        |_, _| Ok(()),
+    )?;
+
+    types.func_wrap(SHARED_CONTEXT_ACCESS_LOG_METHOD, log_access)?;
 
     Ok(())
 }
@@ -94,9 +134,36 @@ fn get_shared(
     (this, key): (Resource<SharedContextMap>, String),
 ) -> anyhow::Result<(Option<String>,)> {
     let context = store.data().get(&this).expect("must exist");
-    let val = context.get(&key).cloned();
+    let val = context.kv.get(&key).cloned();
 
     Ok((val,))
+}
+
+/// Sends data to the access log channel.
+fn log_access(
+    store: StoreContextMut<'_, WasiState>,
+    (this, data): (Resource<SharedContextMap>, Vec<u8>),
+) -> anyhow::Result<(Result<(), LogError>,)> {
+    let context = store.data().get(&this).expect("must exist");
+
+    if context.lossy_log {
+        if let Err(e) = context.access_log.try_send(data) {
+            match e {
+                TrySendError::Full(data) => {
+                    tracing::error!(target: GRAFBASE_TARGET, "access log channel is over capacity");
+                    return Ok((Err(LogError::ChannelFull(data)),));
+                }
+                TrySendError::Disconnected(_) => {
+                    tracing::error!(target: GRAFBASE_TARGET, "access log channel closed");
+                    return Ok((Err(LogError::ChannelClosed),));
+                }
+            }
+        }
+    } else if context.access_log.send(data).is_err() {
+        return Ok((Err(LogError::ChannelClosed),));
+    }
+
+    Ok((Ok(()),))
 }
 
 /// Look for a context value with the given key, returning a copy of the value if found. Will remove

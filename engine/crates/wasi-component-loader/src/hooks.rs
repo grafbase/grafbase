@@ -13,6 +13,7 @@ use crate::{config::build_wasi_context, state::WasiState, ComponentLoader, Confi
 
 pub(crate) mod authorization;
 pub(crate) mod gateway;
+pub(crate) mod response;
 pub(crate) mod subgraph;
 
 /// A trait for components that can be recycled
@@ -102,6 +103,38 @@ impl ComponentInstance {
             function_cache: Default::default(),
             poisoned: false,
         })
+    }
+
+    async fn call1<A1, R>(&mut self, name: &'static str, context: SharedContextMap, arg: A1) -> crate::Result<Option<R>>
+    where
+        (Resource<SharedContextMap>, A1): ComponentNamedList + Lower + Send + Sync + 'static,
+        (R,): ComponentNamedList + Lift + Send + Sync + 'static,
+    {
+        let Some(hook) = self.get_hook::<(Resource<SharedContextMap>, A1), (R,)>(name) else {
+            return Ok(None);
+        };
+
+        let context = self.store.data_mut().push_resource(context)?;
+        let context_rep = context.rep();
+
+        let result = hook.call_async(&mut self.store, (context, arg)).await;
+
+        // We check if the hook call trapped, and if so we mark the instance poisoned.
+        //
+        // If no traps, we mark this hook so it can be called again.
+        if result.is_err() {
+            self.poisoned = true;
+        } else {
+            hook.post_return_async(&mut self.store).await?;
+        }
+
+        let result = result?.0;
+
+        // This is a bit ugly because we don't need it, but we need to clean the shared
+        // resources before exiting or this will leak RAM.
+        let _: SharedContextMap = self.store.data_mut().take_resource(context_rep)?;
+
+        Ok(Some(result))
     }
 
     async fn call2<A1, A2, R>(

@@ -123,6 +123,8 @@ pub(super) async fn generate(
         .map_err(|e| crate::Error::InternalError(e.to_string()))?
         .flatten();
 
+    let (access_log_sender, access_log_receiver) = crossbeam::channel::bounded(100000);
+
     let runtime = GatewayRuntime {
         fetcher: NativeFetcher::default(),
         kv: InMemoryKvStore::runtime(),
@@ -132,6 +134,7 @@ pub(super) async fn generate(
         rate_limiter,
         entity_cache,
         operation_cache_factory: InMemoryOperationCacheFactory::default(),
+        access_log_sender: AccessLogSender(access_log_sender),
     };
 
     let config = config
@@ -150,12 +153,39 @@ pub struct GatewayRuntime {
     rate_limiter: runtime::rate_limiting::RateLimiter,
     entity_cache: Box<dyn EntityCache>,
     operation_cache_factory: InMemoryOperationCacheFactory,
+    access_log_sender: AccessLogSender,
+}
+
+pub enum AccessLog {
+    Data(Vec<u8>),
+    Shutdown,
+}
+
+#[derive(Clone)]
+pub struct AccessLogSender(crossbeam::channel::Sender<AccessLog>);
+
+impl runtime::hooks::AccessLogSender for AccessLogSender {
+    fn send(&self, data: Vec<u8>) -> Result<(), runtime::hooks::AccessLogSendError> {
+        self.0
+            .send(AccessLog::Data(data))
+            .map_err(|e| runtime::hooks::AccessLogSendError::ChannelClosed)
+    }
+
+    fn try_send(&self, data: Vec<u8>) -> Result<(), runtime::hooks::AccessLogSendError> {
+        self.0.try_send(AccessLog::Data(data)).map_err(|e| match e {
+            crossbeam::channel::TrySendError::Full(AccessLog::Data(data)) => {
+                runtime::hooks::AccessLogSendError::ChannelFull(data)
+            }
+            _ => runtime::hooks::AccessLogSendError::ChannelClosed,
+        })
+    }
 }
 
 impl engine_v2::Runtime for GatewayRuntime {
     type Hooks = HooksWasi;
     type Fetcher = NativeFetcher;
     type OperationCacheFactory = InMemoryOperationCacheFactory;
+    type AccessLogSender = AccessLogSender;
 
     fn fetcher(&self) -> &Self::Fetcher {
         &self.fetcher
@@ -191,5 +221,9 @@ impl engine_v2::Runtime for GatewayRuntime {
 
     fn entity_cache(&self) -> &dyn EntityCache {
         self.entity_cache.as_ref()
+    }
+
+    fn access_log_sender(&self) -> Self::AccessLogSender {
+        self.access_log_sender.clone()
     }
 }

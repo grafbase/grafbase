@@ -45,6 +45,7 @@ tracing.workspace = true
 ulid = { workspace = true, features = ["serde"] }
 url = { workspace = true, features = ["serde"] }
 notify = "6.1.1"
+crossbeam = { version = "0.8.4", features = ["crossbeam-channel"] }
 
 # Lambda dependencies
 axum-aws-lambda = { version = "0.7.0", optional = true }
