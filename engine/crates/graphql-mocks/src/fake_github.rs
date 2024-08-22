@@ -212,6 +212,13 @@ impl Query {
             Status::Closed => "woo its open",
         }
     }
+
+    async fn silly_default_value(&self, #[graphql(default_with = "Status::Open")] status: Status) -> &str {
+        match status {
+            Status::Open => "boo its closed",
+            Status::Closed => "woo its open",
+        }
+    }
 }
 
 #[derive(SimpleObject)]
@@ -264,6 +271,8 @@ struct Bot {
 #[derive(InputObject)]
 struct BotInput {
     id: ID,
+    #[graphql(default = false)]
+    sentient: bool,
 }
 
 impl From<&UserOrBot> for UserOrBot {
