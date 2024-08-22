@@ -25,6 +25,7 @@ fn can_run_pathfinder_introspection_query() {
 
     input BotInput {
       id: ID!
+      sentient: Boolean! = false
     }
 
     scalar CustomRepoId
@@ -60,6 +61,7 @@ fn can_run_pathfinder_introspection_query() {
       pullRequestOrIssue(id: ID!): PullRequestOrIssue
       pullRequestsAndIssues(filter: PullRequestsAndIssuesFilters!): [PullRequestOrIssue!]!
       serverVersion: String!
+      sillyDefaultValue(status: Status! = "OPEN"): String!
       statusString(status: Status!): String!
     }
 
@@ -99,6 +101,7 @@ fn can_run_2018_introspection_query() {
 
     input BotInput {
       id: ID!
+      sentient: Boolean! = false
     }
 
     scalar CustomRepoId
@@ -134,6 +137,7 @@ fn can_run_2018_introspection_query() {
       pullRequestOrIssue(id: ID!): PullRequestOrIssue
       pullRequestsAndIssues(filter: PullRequestsAndIssuesFilters!): [PullRequestOrIssue!]!
       serverVersion: String!
+      sillyDefaultValue(status: Status! = "OPEN"): String!
       statusString(status: Status!): String!
     }
 
@@ -173,6 +177,7 @@ fn can_run_2021_introspection_query() {
 
     input BotInput {
       id: ID!
+      sentient: Boolean! = false
     }
 
     scalar CustomRepoId
@@ -208,6 +213,7 @@ fn can_run_2021_introspection_query() {
       pullRequestOrIssue(id: ID!): PullRequestOrIssue
       pullRequestsAndIssues(filter: PullRequestsAndIssuesFilters!): [PullRequestOrIssue!]!
       serverVersion: String!
+      sillyDefaultValue(status: Status! = "OPEN"): String!
       statusString(status: Status!): String!
     }
 
@@ -365,6 +371,7 @@ fn can_introsect_when_multiple_subgraphs() {
 
     input BotInput {
       id: ID!
+      sentient: Boolean! = false
     }
 
     scalar CustomRepoId
@@ -434,6 +441,7 @@ fn can_introsect_when_multiple_subgraphs() {
       pullRequestOrIssue(id: ID!): PullRequestOrIssue
       pullRequestsAndIssues(filter: PullRequestsAndIssuesFilters!): [PullRequestOrIssue!]!
       serverVersion: String!
+      sillyDefaultValue(status: Status! = "OPEN"): String!
       statusString(status: Status!): String!
       string(input: String!): String!
     }
@@ -922,7 +930,7 @@ fn default_values() {
             .post(
                 r#"
                     query {
-                        __type(name: "__Type") {
+                        __type(name: "Query") {
                             kind
                             name
                             fields {
@@ -944,57 +952,77 @@ fn default_values() {
       "data": {
         "__type": {
           "kind": "OBJECT",
-          "name": "__Type",
+          "name": "Query",
           "fields": [
             {
-              "name": "kind",
+              "name": "allBotPullRequests",
               "args": []
             },
             {
-              "name": "name",
-              "args": []
-            },
-            {
-              "name": "description",
-              "args": []
-            },
-            {
-              "name": "inputFields",
-              "args": []
-            },
-            {
-              "name": "specifiedByURL",
-              "args": []
-            },
-            {
-              "name": "fields",
+              "name": "botPullRequests",
               "args": [
                 {
-                  "name": "includeDeprecated",
-                  "defaultValue": "false"
+                  "name": "bots",
+                  "defaultValue": null
                 }
               ]
             },
             {
-              "name": "enumValues",
+              "name": "fail",
+              "args": []
+            },
+            {
+              "name": "favoriteRepository",
+              "args": []
+            },
+            {
+              "name": "pullRequest",
               "args": [
                 {
-                  "name": "includeDeprecated",
-                  "defaultValue": "false"
+                  "name": "id",
+                  "defaultValue": null
                 }
               ]
             },
             {
-              "name": "ofType",
+              "name": "pullRequestOrIssue",
+              "args": [
+                {
+                  "name": "id",
+                  "defaultValue": null
+                }
+              ]
+            },
+            {
+              "name": "pullRequestsAndIssues",
+              "args": [
+                {
+                  "name": "filter",
+                  "defaultValue": null
+                }
+              ]
+            },
+            {
+              "name": "serverVersion",
               "args": []
             },
             {
-              "name": "possibleTypes",
-              "args": []
+              "name": "sillyDefaultValue",
+              "args": [
+                {
+                  "name": "status",
+                  "defaultValue": "\"OPEN\""
+                }
+              ]
             },
             {
-              "name": "interfaces",
-              "args": []
+              "name": "statusString",
+              "args": [
+                {
+                  "name": "status",
+                  "defaultValue": null
+                }
+              ]
             }
           ]
         }
