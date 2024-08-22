@@ -37,5 +37,5 @@ fn run_test(case: &Path) -> datatest_stable::Result<()> {
 }
 
 datatest_stable::harness! {
-    run_test, "./tests/diff", r"^.*\.graphql$",
+    run_test, "./tests/patch", r"^.*\.graphql$",
 }
