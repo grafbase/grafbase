@@ -9,23 +9,23 @@ use std::sync::Arc;
 pub(crate) use admin::AdminBus;
 pub(crate) use compose::ComposeBus;
 use engine_v2::Engine;
+use graphql_federated_graph::FederatedGraphV4;
 pub(crate) use message::*;
 pub(crate) use refresh::RefreshBus;
 pub(crate) use subgraph_config_watcher::SubgraphConfigWatcherBus;
 
 use crate::{dev::composer::Subgraph, error::Error};
 use async_graphql_parser::types::ServiceDocument;
-use graphql_composition::FederatedGraph;
 use tokio::sync::{mpsc, oneshot, watch};
 use url::Url;
 
 use super::{admin::Header, gateway_nanny::CliRuntime, refresher::RefreshMessage};
 
 /// A channel to send composed federated graph, typically to a router.
-pub(crate) type GraphSender = watch::Sender<Option<FederatedGraph>>;
+pub(crate) type GraphSender = watch::Sender<Option<FederatedGraphV4>>;
 
 /// A channel to receive a composed federated graph, typically for a router.
-pub(crate) type GraphWatcher = watch::Receiver<Option<FederatedGraph>>;
+pub(crate) type GraphWatcher = watch::Receiver<Option<FederatedGraphV4>>;
 
 /// A channel to send a refresh message with a collection of graphs.
 pub(crate) type RefreshSender = mpsc::Sender<Vec<RefreshMessage>>;

@@ -9,7 +9,7 @@ use std::{
 
 use federated_graph::{FederatedGraphV3, SubgraphId};
 
-use self::rate_limit::{RateLimitConfigRef, RateLimitRedisConfigRef, RateLimitRedisTlsConfigRef};
+pub(crate) use self::rate_limit::{RateLimitConfigRef, RateLimitRedisConfigRef, RateLimitRedisTlsConfigRef};
 
 pub use super::v2::EntityCaching;
 pub use super::v4::{

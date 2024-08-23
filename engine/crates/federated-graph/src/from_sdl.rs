@@ -1,4 +1,4 @@
-use crate::{federated_graph::*, FederatedGraph};
+use crate::federated_graph::*;
 use async_graphql_parser::{
     types::{self as ast, ConstDirective, FieldDefinition},
     Positioned,
@@ -157,7 +157,7 @@ impl<'a> State<'a> {
     }
 }
 
-pub fn from_sdl(sdl: &str) -> Result<FederatedGraph, DomainError> {
+pub fn from_sdl(sdl: &str) -> Result<FederatedGraphV4, DomainError> {
     let mut state = State::default();
     let parsed = async_graphql_parser::parse_schema(sdl).map_err(|err| DomainError(err.to_string()))?;
 
@@ -196,7 +196,7 @@ pub fn from_sdl(sdl: &str) -> Result<FederatedGraph, DomainError> {
     // This needs to happen after all fields have been ingested, in order to attach selection sets.
     ingest_selection_sets(&parsed, &mut state)?;
 
-    Ok(FederatedGraph::V3(FederatedGraphV3 {
+    Ok(FederatedGraphV4 {
         root_operation_types: state.root_operation_types()?,
         subgraphs: state.subgraphs,
         objects: state.objects,
@@ -214,7 +214,7 @@ pub fn from_sdl(sdl: &str) -> Result<FederatedGraph, DomainError> {
         field_authorized_directives: state.field_authorized_directives,
         object_authorized_directives: state.object_authorized_directives,
         interface_authorized_directives: state.interface_authorized_directives,
-    }))
+    })
 }
 
 fn ingest_schema_definitions<'a>(parsed: &'a ast::ServiceDocument, state: &mut State<'a>) -> Result<(), DomainError> {
@@ -1132,6 +1132,7 @@ fn attach_field_set(
                     (argument, value)
                 })
                 .collect();
+
             Ok(FieldSetItem {
                 field,
                 arguments,
@@ -1472,7 +1473,6 @@ fn test_from_sdl() {
         }
     "#).unwrap();
 
-    let schema = schema.into_latest();
     let query_object = &schema[schema.root_operation_types.query];
 
     for field_name in ["__type", "__schema"] {
@@ -1556,7 +1556,6 @@ fn test_from_sdl_with_empty_query_root() {
     "#,
     ).unwrap();
 
-    let schema = schema.into_latest();
     let query_object = &schema[schema.root_operation_types.query];
 
     for field_name in ["__type", "__schema"] {
@@ -1638,7 +1637,6 @@ fn test_from_sdl_with_missing_query_root() {
     "#,
     ).unwrap();
 
-    let schema = schema.into_latest();
     let query_object = &schema[schema.root_operation_types.query];
 
     for field_name in ["__type", "__schema"] {
@@ -1721,7 +1719,7 @@ fn backwards_compatibility() {
         getMammoth: Mammoth @join__field(graph: MANGROVE, override: "steppe")
     }
     "#]];
-    let actual = super::from_sdl(sdl).unwrap().into_sdl().unwrap();
+    let actual = crate::render_sdl::render_federated_sdl(&super::from_sdl(sdl).unwrap()).unwrap();
 
     expected.assert_eq(&actual);
 }

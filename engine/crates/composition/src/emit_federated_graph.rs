@@ -18,7 +18,7 @@ pub(crate) fn emit_federated_graph(mut ir: CompositionIr, subgraphs: &Subgraphs)
     let __schema = ir.strings.insert("__schema");
     let __type = ir.strings.insert("__type");
 
-    let mut out = federated::FederatedGraphV3 {
+    let mut out = federated::FederatedGraphV4 {
         enums: mem::take(&mut ir.enums),
         enum_values: mem::take(&mut ir.enum_values),
         objects: mem::take(&mut ir.objects),
@@ -61,7 +61,7 @@ pub(crate) fn emit_federated_graph(mut ir: CompositionIr, subgraphs: &Subgraphs)
 
     drop(ctx);
 
-    federated::FederatedGraph::V3(out)
+    federated::FederatedGraph::Sdl(graphql_federated_graph::render_federated_sdl(&out).unwrap())
 }
 
 fn emit_authorized_directives(ir: &CompositionIr, ctx: &mut Context<'_>) {

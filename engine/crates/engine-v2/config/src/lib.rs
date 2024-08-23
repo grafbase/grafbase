@@ -7,6 +7,7 @@ mod v2;
 mod v3;
 mod v4;
 mod v5;
+mod v6;
 
 /// The latest version of the configuration.
 ///
@@ -14,7 +15,7 @@ mod v5;
 /// of older versions isolated in this crate.
 pub mod latest {
     // If you introduce a new version you should update this export to the latest
-    pub use super::v5::*;
+    pub use super::v6::*;
 }
 
 /// Configuration for engine-v2
@@ -36,6 +37,8 @@ pub enum VersionedConfig {
     V4(v4::Config),
     /// V5 is like V4, but with new header handling
     V5(v5::Config),
+    /// V6 is like V5, but with the SDL in the graph field
+    V6(v6::Config),
 }
 
 impl VersionedConfig {
@@ -127,7 +130,7 @@ impl VersionedConfig {
 
                 let default_header_rules = default_headers.into_iter().map(|id| HeaderRuleId(id.0)).collect();
 
-                v5::Config {
+                VersionedConfig::V5(v5::Config {
                     graph,
                     strings,
                     paths: Vec::new(),
@@ -142,9 +145,41 @@ impl VersionedConfig {
                     timeout: None,
                     entity_caching: Default::default(),
                     retry: None,
-                }
+                })
+                .into_latest()
             }
-            VersionedConfig::V5(latest) => latest,
+            VersionedConfig::V5(v5::Config {
+                graph,
+                strings,
+                paths,
+                header_rules,
+                default_header_rules,
+                subgraph_configs,
+                cache,
+                auth,
+                operation_limits,
+                disable_introspection,
+                rate_limit,
+                timeout,
+                entity_caching,
+                retry,
+            }) => v6::Config {
+                graph: federated_graph::FederatedGraph::V3(graph).into_federated_sdl(),
+                strings,
+                paths,
+                header_rules,
+                default_header_rules,
+                subgraph_configs,
+                cache,
+                auth,
+                operation_limits,
+                disable_introspection,
+                rate_limit,
+                timeout,
+                entity_caching,
+                retry,
+            },
+            VersionedConfig::V6(latest) => latest,
         }
     }
 }

@@ -12,26 +12,24 @@ use engine_v2_config::{
     latest::{self as config},
     VersionedConfig,
 };
-use federated_graph::{FederatedGraph, FederatedGraphV3, FieldId, ObjectId, SubgraphId};
+use federated_graph::{FederatedGraphV4, FieldId, ObjectId, SubgraphId};
 use parser_sdl::federation::header::SubgraphHeaderRule;
 use parser_sdl::federation::{EntityCachingConfig, FederatedGraphConfig};
 use parser_sdl::{AuthV2Provider, GlobalCacheTarget};
 
-pub fn build_with_sdl_config(config: &FederatedGraphConfig, graph: FederatedGraph) -> VersionedConfig {
-    let graph = graph.into_latest();
-
+pub fn build_with_sdl_config(config: &FederatedGraphConfig, federated_graph: FederatedGraphV4) -> VersionedConfig {
     let mut context = BuildContext::default();
     let default_header_rules = context.insert_headers(&config.header_rules);
 
-    context.insert_subgraph_configs(&graph, &config.subgraphs);
-    context.insert_cache_config(&graph, &config.global_cache_rules);
+    context.insert_subgraph_configs(&federated_graph, &config.subgraphs);
+    context.insert_cache_config(&federated_graph, &config.global_cache_rules);
 
     if let Some(ref config) = config.rate_limit {
         context.insert_rate_limit(config);
     }
 
-    VersionedConfig::V5(config::Config {
-        graph,
+    VersionedConfig::V6(config::Config {
+        graph: federated_graph::render_federated_sdl(&federated_graph).unwrap(),
         strings: context.strings.into_vec(),
         paths: context.paths.into_vec(),
         header_rules: context.header_rules,
@@ -103,7 +101,7 @@ struct BuildContext<'a> {
 }
 
 impl<'a> BuildContext<'a> {
-    fn insert_cache_config(&mut self, graph: &FederatedGraphV3, rules: &parser_sdl::GlobalCacheRules<'static>) {
+    fn insert_cache_config(&mut self, graph: &FederatedGraphV4, rules: &parser_sdl::GlobalCacheRules<'static>) {
         let mut cache_config = BTreeMap::new();
 
         for (target, cache_control) in rules.iter() {
@@ -166,7 +164,7 @@ impl<'a> BuildContext<'a> {
 
     fn insert_subgraph_configs(
         &mut self,
-        graph: &FederatedGraphV3,
+        graph: &FederatedGraphV4,
         configs: impl IntoIterator<Item = (&'a String, &'a parser_sdl::federation::SubgraphConfig)>,
     ) {
         for (name, config) in configs {
@@ -275,7 +273,7 @@ trait FederatedGraphExt {
     fn find_object_field(&self, object_name: &str, field_name: &str) -> Option<FieldId>;
 }
 
-impl FederatedGraphExt for FederatedGraphV3 {
+impl FederatedGraphExt for FederatedGraphV4 {
     fn find_subgraph(&self, name: &str) -> Option<SubgraphId> {
         self.subgraphs
             .iter()

@@ -11,6 +11,7 @@ use std::mem::take;
 use std::time::Duration;
 
 use config::latest::Config;
+use federated_graph::FederatedGraphV4;
 use sources::graphql::GraphqlEndpointId;
 use url::Url;
 
@@ -27,10 +28,19 @@ use requires::*;
 impl TryFrom<Config> for Schema {
     type Error = BuildError;
 
-    fn try_from(mut config: Config) -> Result<Self, Self::Error> {
-        let mut ctx = BuildContext::new(&mut config);
-        let sources = ExternalDataSources::build(&mut ctx, &mut config);
-        let (graph, introspection) = GraphBuilder::build(&mut ctx, &sources, &mut config)?;
+    fn try_from(config: Config) -> Result<Self, Self::Error> {
+        let graph = federated_graph::from_sdl(&config.graph)?;
+        (config, graph).try_into()
+    }
+}
+
+impl TryFrom<(Config, FederatedGraphV4)> for Schema {
+    type Error = BuildError;
+
+    fn try_from((mut config, mut graph): (Config, FederatedGraphV4)) -> Result<Self, Self::Error> {
+        let mut ctx = BuildContext::new(&mut graph);
+        let sources = ExternalDataSources::build(&mut ctx, &mut config, &mut graph);
+        let (graph, introspection) = GraphBuilder::build(&mut ctx, &sources, &mut config, &mut graph)?;
         let data_sources = DataSources {
             graphql: sources.graphql,
             introspection,
@@ -147,12 +157,12 @@ impl BuildContext {
         (schema, out)
     }
 
-    fn new(config: &mut Config) -> Self {
+    fn new(graph: &mut FederatedGraphV4) -> Self {
         Self {
-            strings: Interner::from_vec(take(&mut config.graph.strings)),
+            strings: Interner::from_vec(take(&mut graph.strings)),
             regexps: Default::default(),
             urls: Interner::default(),
-            idmaps: IdMaps::new(config),
+            idmaps: IdMaps::new(graph),
             next_subraph_id: 0,
         }
     }

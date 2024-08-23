@@ -12,7 +12,7 @@ mod subgraphs;
 mod validate;
 
 pub use self::{diagnostics::Diagnostics, result::CompositionResult, subgraphs::Subgraphs};
-pub use graphql_federated_graph::{render_api_sdl, render_federated_sdl, render_sdl, FederatedGraph};
+pub use graphql_federated_graph::{render_api_sdl, render_federated_sdl, FederatedGraph};
 
 use self::{
     compose::{compose_subgraphs, ComposeContext},

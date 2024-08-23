@@ -1,6 +1,6 @@
 use super::{ComposeMessage, ComposeReceiver, ComposeSender, GraphSender, RefreshMessage, RefreshSender};
 use crate::error::Error;
-use graphql_composition::FederatedGraph;
+use graphql_federated_graph::FederatedGraphV4;
 
 pub(crate) struct ComposeBus {
     graph_sender: GraphSender,
@@ -32,7 +32,7 @@ impl ComposeBus {
         Ok(self.compose_sender.send(message.into()).await?)
     }
 
-    pub async fn send_graph(&self, message: FederatedGraph) -> Result<(), Error> {
+    pub async fn send_graph(&self, message: FederatedGraphV4) -> Result<(), Error> {
         Ok(self.graph_sender.send(Some(message))?)
     }
 

@@ -100,7 +100,7 @@ pub type FieldSet = Vec<FieldSetItem>;
 pub struct FieldSetItem {
     pub field: FieldId,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub arguments: Vec<(super::v3::InputValueDefinitionId, super::v3::Value)>,
+    pub arguments: Vec<(super::v4::InputValueDefinitionId, super::v4::Value)>,
     pub subselection: FieldSet,
 }
 

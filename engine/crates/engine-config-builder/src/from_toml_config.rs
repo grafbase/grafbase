@@ -1,11 +1,11 @@
 use engine_v2_config::VersionedConfig;
-use federated_graph::FederatedGraph;
+use federated_graph::FederatedGraphV4;
 use gateway_config::{Config, RetryConfig};
 use parser_sdl::federation::{header::SubgraphHeaderRule, FederatedGraphConfig};
 
 use crate::build_with_sdl_config;
 
-pub fn build_with_toml_config(config: &Config, graph: FederatedGraph) -> VersionedConfig {
+pub fn build_with_toml_config(config: &Config, graph: FederatedGraphV4) -> VersionedConfig {
     let mut graph_config = FederatedGraphConfig::default();
 
     if let Some(limits_config) = config.operation_limits {

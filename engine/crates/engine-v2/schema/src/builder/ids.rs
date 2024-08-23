@@ -6,7 +6,7 @@
 
 use std::marker::PhantomData;
 
-use config::latest::Config;
+use federated_graph::FederatedGraphV4;
 use id_newtypes::IdRange;
 
 use crate::{FieldDefinitionId, InputValueDefinitionId};
@@ -47,19 +47,19 @@ impl IdMaps {
         }
     }
 
-    pub fn new(config: &Config) -> Self {
+    pub fn new(graph: &FederatedGraphV4) -> Self {
         let mut idmaps = IdMaps {
             field: Default::default(),
             input_value: Default::default(),
         };
 
-        for (i, field) in config.graph.fields.iter().enumerate() {
-            if is_inaccessible(&config.graph, field.composed_directives) {
+        for (i, field) in graph.fields.iter().enumerate() {
+            if is_inaccessible(graph, field.composed_directives) {
                 idmaps.field.skip(federated_graph::FieldId(i))
             }
         }
-        for (i, input_value) in config.graph.input_value_definitions.iter().enumerate() {
-            if is_inaccessible(&config.graph, input_value.directives) {
+        for (i, input_value) in graph.input_value_definitions.iter().enumerate() {
+            if is_inaccessible(graph, input_value.directives) {
                 idmaps.input_value.skip(federated_graph::InputValueDefinitionId(i))
             }
         }

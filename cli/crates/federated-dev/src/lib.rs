@@ -59,7 +59,7 @@ pub use self::{
     events::{subscribe, FederatedDevEvent},
 };
 
-use graphql_composition::FederatedGraph;
+use graphql_federated_graph::FederatedGraphV4;
 use parser_sdl::federation::FederatedGraphConfig;
 use tokio::runtime::Builder;
 use url::Url;
@@ -81,7 +81,7 @@ pub fn add_subgraph(name: &str, url: &Url, dev_api_port: u16, headers: Vec<(&str
 pub async fn run(
     listen_address: SocketAddr,
     config: ConfigWatcher,
-    graph: Option<FederatedGraph>,
+    graph: Option<FederatedGraphV4>,
 ) -> Result<(), Error> {
     dev::run(listen_address, config, graph).await
 }

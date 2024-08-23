@@ -51,6 +51,7 @@ impl EngineNanny {
 
 pub(super) async fn new_gateway(config: Option<engine_v2::VersionedConfig>) -> Option<Arc<Engine<CliRuntime>>> {
     let config = config?.into_latest();
+    let graph = graphql_federated_graph::from_sdl(&config.graph).ok()?;
 
     let runtime = CliRuntime {
         fetcher: NativeFetcher::default(),
@@ -75,7 +76,7 @@ pub(super) async fn new_gateway(config: Option<engine_v2::VersionedConfig>) -> O
 
             for (subgraph_name, subgraph) in config.subgraph_configs.iter() {
                 if let Some(limit) = subgraph.rate_limit {
-                    let name = &config.graph[config.graph[*subgraph_name].name];
+                    let name = &graph[graph[*subgraph_name].name];
                     key_based_config.insert(
                         RateLimitKey::Subgraph(name.clone().into()),
                         GraphRateLimit {
@@ -91,7 +92,7 @@ pub(super) async fn new_gateway(config: Option<engine_v2::VersionedConfig>) -> O
         entity_cache: InMemoryEntityCache::default(),
     };
 
-    let schema = config.try_into().ok()?;
+    let schema = (config, graph).try_into().ok()?;
     let engine = Engine::new(Arc::new(schema), None, runtime).await;
 
     Some(Arc::new(engine))

@@ -57,7 +57,7 @@ impl fmt::Display for Description<'_> {
     }
 }
 
-pub(super) struct ValueDisplay<'a>(pub &'a crate::Value, pub &'a FederatedGraphV3);
+pub(super) struct ValueDisplay<'a>(pub &'a crate::Value, pub &'a FederatedGraphV4);
 
 impl fmt::Display for ValueDisplay<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -99,7 +99,7 @@ impl fmt::Display for ValueDisplay<'_> {
     }
 }
 
-pub(super) struct DirectiveArguments<'a>(pub &'a [(StringId, Value)], pub &'a FederatedGraphV3);
+pub(super) struct DirectiveArguments<'a>(pub &'a [(StringId, Value)], pub &'a FederatedGraphV4);
 
 impl Display for DirectiveArguments<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -140,7 +140,7 @@ impl<T: Display> Display for MaybeDisplay<T> {
 }
 
 /// Displays a field set inside quotes
-pub(super) struct FieldSetDisplay<'a>(pub &'a crate::FieldSet, pub &'a FederatedGraphV3);
+pub(super) struct FieldSetDisplay<'a>(pub &'a crate::FieldSet, pub &'a FederatedGraphV4);
 
 impl Display for FieldSetDisplay<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -149,7 +149,7 @@ impl Display for FieldSetDisplay<'_> {
     }
 }
 
-pub(super) struct BareFieldSetDisplay<'a>(pub &'a crate::FieldSet, pub &'a FederatedGraphV3);
+pub(super) struct BareFieldSetDisplay<'a>(pub &'a crate::FieldSet, pub &'a FederatedGraphV4);
 
 impl Display for BareFieldSetDisplay<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -185,7 +185,7 @@ impl Display for BareFieldSetDisplay<'_> {
 }
 
 /// Displays a input value definition set inside quotes
-pub(super) struct InputValueDefinitionSetDisplay<'a>(pub &'a crate::InputValueDefinitionSet, pub &'a FederatedGraphV3);
+pub(super) struct InputValueDefinitionSetDisplay<'a>(pub &'a crate::InputValueDefinitionSet, pub &'a FederatedGraphV4);
 
 impl Display for InputValueDefinitionSetDisplay<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -196,7 +196,7 @@ impl Display for InputValueDefinitionSetDisplay<'_> {
 
 pub(super) struct BareInputValueDefinitionSetDisplay<'a>(
     pub &'a crate::InputValueDefinitionSet,
-    pub &'a FederatedGraphV3,
+    pub &'a FederatedGraphV4,
 );
 
 impl Display for BareInputValueDefinitionSetDisplay<'_> {
@@ -228,13 +228,13 @@ pub(super) fn write_description(
     f: &mut fmt::Formatter<'_>,
     description: Option<StringId>,
     indent: &str,
-    graph: &FederatedGraphV3,
+    graph: &FederatedGraphV4,
 ) -> fmt::Result {
     let Some(description) = description else { return Ok(()) };
     Display::fmt(&Description(&graph[description], indent), f)
 }
 
-pub(crate) struct DirectiveDisplay<'a>(pub &'a Directive, pub &'a FederatedGraphV3);
+pub(crate) struct DirectiveDisplay<'a>(pub &'a Directive, pub &'a FederatedGraphV4);
 
 impl Display for DirectiveDisplay<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -246,7 +246,7 @@ impl Display for DirectiveDisplay<'_> {
 pub(crate) fn write_composed_directive(
     f: &mut fmt::Formatter<'_>,
     directive: &Directive,
-    graph: &FederatedGraphV3,
+    graph: &FederatedGraphV4,
 ) -> fmt::Result {
     match directive {
         Directive::Authenticated => write_directive(f, "authenticated", iter::empty::<(&str, Value)>(), graph),
@@ -320,7 +320,7 @@ impl<'a> From<InputValueDefinitionSetDisplay<'a>> for DisplayableArgument<'a> {
     }
 }
 
-pub(super) struct AuthorizedDirectiveDisplay<'a>(pub &'a AuthorizedDirective, pub &'a FederatedGraphV3);
+pub(super) struct AuthorizedDirectiveDisplay<'a>(pub &'a AuthorizedDirective, pub &'a FederatedGraphV4);
 
 impl Display for AuthorizedDirectiveDisplay<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -358,7 +358,7 @@ fn write_directive<'a, A>(
     f: &mut fmt::Formatter<'_>,
     directive_name: &str,
     arguments: impl Iterator<Item = (&'a str, A)>,
-    graph: &FederatedGraphV3,
+    graph: &FederatedGraphV4,
 ) -> fmt::Result
 where
     A: Into<DisplayableArgument<'a>>,
@@ -371,7 +371,7 @@ where
 fn write_directive_arguments<'a>(
     f: &mut fmt::Formatter<'_>,
     arguments: impl Iterator<Item = (&'a str, DisplayableArgument<'a>)>,
-    graph: &FederatedGraphV3,
+    graph: &FederatedGraphV4,
 ) -> fmt::Result {
     let mut arguments = arguments.peekable();
 
@@ -405,7 +405,7 @@ fn write_directive_arguments<'a>(
     f.write_str(")")
 }
 
-pub(super) fn render_field_type(field_type: &Type, graph: &FederatedGraphV3) -> String {
+pub(super) fn render_field_type(field_type: &Type, graph: &FederatedGraphV4) -> String {
     let name_id = match field_type.definition {
         Definition::Scalar(scalar_id) => graph[scalar_id].name,
         Definition::Object(object_id) => graph[object_id].name,
