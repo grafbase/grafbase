@@ -19,7 +19,7 @@ impl Fetcher for NativeFetcher {
             if e.is_timeout() {
                 FetchError::Timeout
             } else {
-                FetchError::AnyError(e.to_string())
+                reqwest_error_to_fetch_error(e)
             }
         })?;
 
@@ -27,7 +27,7 @@ impl Fetcher for NativeFetcher {
         let headers = std::mem::take(resp.headers_mut());
         let extensions = std::mem::take(resp.extensions_mut());
         let version = resp.version();
-        let bytes = resp.bytes().await.map_err(|e| FetchError::AnyError(e.to_string()))?;
+        let bytes = resp.bytes().await.map_err(reqwest_error_to_fetch_error)?;
 
         // reqwest transforms the body into a stream with Into
         let mut response = http::Response::new(OwnedOrSharedBytes::Shared(bytes));
@@ -46,7 +46,7 @@ impl Fetcher for NativeFetcher {
         let events = RequestBuilder::from_parts(self.client.clone(), into_reqwest(request))
             .eventsource()
             .unwrap()
-            .map_err(|e| FetchError::AnyError(e.to_string()))
+            .map_err(FetchError::any)
             .try_take_while(|event| {
                 let is_complete = if let reqwest_eventsource::Event::Message(message) = event {
                     message.event == "complete"
@@ -103,6 +103,10 @@ impl Fetcher for NativeFetcher {
                 .map(|item| item.map_err(FetchError::any)))
         }
     }
+}
+
+fn reqwest_error_to_fetch_error(e: reqwest::Error) -> FetchError {
+    FetchError::any(e.without_url())
 }
 
 fn into_reqwest(request: FetchRequest<'_, Bytes>) -> reqwest::Request {

@@ -561,7 +561,7 @@ fn trace_log_level() {
 
     GatewayBuilder::new(&schema)
         .with_log_level("trace")
-        .run( |client| async move {
+        .run(|client| async move {
             let result: serde_json::Value = client.gql(query).send().await;
             let result = serde_json::to_string_pretty(&result).unwrap();
 
@@ -570,7 +570,7 @@ fn trace_log_level() {
               "data": null,
               "errors": [
                 {
-                  "message": "Request to subgraph 'accounts' failed with: error sending request for url (http://127.0.0.1:46697/)",
+                  "message": "Request to subgraph 'accounts' failed with: error sending request",
                   "path": [
                     "me"
                   ],
@@ -605,7 +605,7 @@ fn no_config() {
           "data": null,
           "errors": [
             {
-              "message": "Request to subgraph 'accounts' failed with: error sending request for url (http://127.0.0.1:46697/)",
+              "message": "Request to subgraph 'accounts' failed with: error sending request",
               "path": [
                 "me"
               ],
@@ -640,7 +640,7 @@ fn static_schema() {
           "data": null,
           "errors": [
             {
-              "message": "Request to subgraph 'accounts' failed with: error sending request for url (http://127.0.0.1:46697/)",
+              "message": "Request to subgraph 'accounts' failed with: error sending request",
               "path": [
                 "me"
               ],
@@ -762,7 +762,7 @@ fn custom_path() {
           "data": null,
           "errors": [
             {
-              "message": "Request to subgraph 'accounts' failed with: error sending request for url (http://127.0.0.1:46697/)",
+              "message": "Request to subgraph 'accounts' failed with: error sending request",
               "path": [
                 "me"
               ],
@@ -827,7 +827,7 @@ fn csrf_with_header() {
           "data": null,
           "errors": [
             {
-              "message": "Request to subgraph 'accounts' failed with: error sending request for url (http://127.0.0.1:46697/)",
+              "message": "Request to subgraph 'accounts' failed with: error sending request",
               "path": [
                 "me"
               ],
@@ -862,7 +862,7 @@ fn hybrid_graph() {
           "data": null,
           "errors": [
             {
-              "message": "Request to subgraph 'accounts' failed with: error sending request for url (http://127.0.0.1:46697/)",
+              "message": "Request to subgraph 'accounts' failed with: error sending request",
               "path": [
                 "me"
               ],

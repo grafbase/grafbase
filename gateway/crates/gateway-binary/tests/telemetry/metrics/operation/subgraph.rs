@@ -15,7 +15,7 @@ fn request_duration() {
           "data": null,
           "errors": [
             {
-              "message": "Request to subgraph 'accounts' failed with: error sending request for url (http://127.0.0.1:46697/)",
+              "message": "Request to subgraph 'accounts' failed with: error sending request",
               "path": [
                 "me"
               ],
@@ -144,21 +144,21 @@ fn retries() {
             .await;
 
         insta::assert_json_snapshot!(response, @r###"
+        {
+          "data": null,
+          "errors": [
             {
-              "data": null,
-              "errors": [
-                {
-                  "message": "Request to subgraph 'accounts' failed with: error sending request for url (http://127.0.0.1:46697/)",
-                  "path": [
-                    "me"
-                  ],
-                  "extensions": {
-                    "code": "SUBGRAPH_REQUEST_ERROR"
-                  }
-                }
-              ]
+              "message": "Request to subgraph 'accounts' failed with: error sending request",
+              "path": [
+                "me"
+              ],
+              "extensions": {
+                "code": "SUBGRAPH_REQUEST_ERROR"
+              }
             }
-            "###);
+          ]
+        }
+        "###);
 
         tokio::time::sleep(METRICS_DELAY).await;
 
@@ -207,21 +207,21 @@ fn inflight() {
             .await;
 
         insta::assert_json_snapshot!(response, @r###"
+        {
+          "data": null,
+          "errors": [
             {
-              "data": null,
-              "errors": [
-                {
-                  "message": "Request to subgraph 'accounts' failed with: error sending request for url (http://127.0.0.1:46697/)",
-                  "path": [
-                    "me"
-                  ],
-                  "extensions": {
-                    "code": "SUBGRAPH_REQUEST_ERROR"
-                  }
-                }
-              ]
+              "message": "Request to subgraph 'accounts' failed with: error sending request",
+              "path": [
+                "me"
+              ],
+              "extensions": {
+                "code": "SUBGRAPH_REQUEST_ERROR"
+              }
             }
-            "###);
+          ]
+        }
+        "###);
 
         tokio::time::sleep(METRICS_DELAY).await;
 
