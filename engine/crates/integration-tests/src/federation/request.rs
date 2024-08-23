@@ -116,11 +116,7 @@ impl IntoFuture for TestRequest {
 
     fn into_future(self) -> Self::IntoFuture {
         Box::pin(async move {
-            let (engine, mut request) = self.into_engine_and_request();
-            request
-                .headers_mut()
-                .entry(http::header::ACCEPT)
-                .or_insert(http::HeaderValue::from_static("application/json"));
+            let (engine, request) = self.into_engine_and_request();
             engine.execute(request).await.try_into().unwrap()
         })
     }

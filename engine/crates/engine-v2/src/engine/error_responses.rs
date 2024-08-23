@@ -51,10 +51,13 @@ impl RefusedRequestResponse {
     }
 
     // https://github.com/graphql/graphql-over-http/blob/main/spec/GraphQLOverHTTP.md
-    pub(crate) fn not_well_formed_graphql_over_http_request(message: &str) -> Response {
+    pub(crate) fn not_well_formed_graphql_over_http_request(message: impl std::fmt::Display) -> Response {
         Response::refuse_request_with(
             http::StatusCode::BAD_REQUEST,
-            GraphqlError::new(format!("Bad request: {message}"), ErrorCode::BadRequest),
+            GraphqlError::new(
+                format!("Bad request, GraphQL request is not well formed: {message}"),
+                ErrorCode::BadRequest,
+            ),
         )
     }
 }

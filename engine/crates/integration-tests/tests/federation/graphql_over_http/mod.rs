@@ -1,5 +1,6 @@
 mod application_graphql_response_json;
 mod application_json;
+mod batch;
 
 use engine_v2::Engine;
 use graphql_mocks::{FakeGithubSchema, Stateful};
@@ -45,23 +46,121 @@ fn authentication_returns_401(#[case] method: http::Method, #[case] accept: &'st
     })
 }
 
-// In alignment with the HTTP 1.1 Accept specification, when a client does not include at least one supported media type
-// in the Accept HTTP header, the server MUST either:
-//    1. Respond with a 406 Not Acceptable status code and stop processing the request (RECOMMENDED); OR
-//    2. Disregard the Accept header and respond with the server's choice of media type (NOT RECOMMENDED).
-#[rstest::rstest]
-#[case::get(http::Method::GET)]
-#[case::post(http::Method::POST)]
-fn missing_accept_header(#[case] method: http::Method) {
+// Note: If a client does not supply the Accept header then the server may respond with an error, or with any content type it chooses.
+// To ensure your client gets something useful, it should indicate the media types it supports.
+#[test]
+fn missing_accept_header() {
     runtime().block_on(async move {
         let engine = Engine::builder().with_subgraph(FakeGithubSchema).build().await;
 
         let response = engine
             .raw_execute(
                 http::Request::builder()
-                    .method(method)
+                    .method(http::Method::POST)
                     .header(http::header::CONTENT_TYPE, APPLICATION_JSON)
-                    .body(Vec::<u8>::new())
+                    .body(br###"{"query":"{ __typename }"}"###.to_vec())
+                    .unwrap(),
+            )
+            .await;
+        let status = response.status();
+        assert_eq!(
+            response
+                .headers()
+                .get(http::header::CONTENT_TYPE)
+                .and_then(|value| value.to_str().ok()),
+            Some(APPLICATION_JSON)
+        );
+        let body: serde_json::Value = serde_json::from_slice(&response.into_body().into_bytes().unwrap()).unwrap();
+        insta::assert_json_snapshot!(body, @r###"
+        {
+          "data": {
+            "__typename": "Query"
+          }
+        }
+        "###);
+        assert_eq!(status, 200);
+    })
+}
+
+#[test]
+fn star_accept_header_should_be_accepted() {
+    runtime().block_on(async move {
+        let engine = Engine::builder().with_subgraph(FakeGithubSchema).build().await;
+
+        let response = engine
+            .raw_execute(
+                http::Request::builder()
+                    .method(http::Method::POST)
+                    .header(http::header::CONTENT_TYPE, APPLICATION_JSON)
+                    .header(http::header::ACCEPT, "application/*")
+                    .body(br###"{"query":"{ __typename }"}"###.to_vec())
+                    .unwrap(),
+            )
+            .await;
+        let status = response.status();
+        assert_eq!(
+            response
+                .headers()
+                .get(http::header::CONTENT_TYPE)
+                .and_then(|value| value.to_str().ok()),
+            Some(APPLICATION_JSON)
+        );
+        let body: serde_json::Value = serde_json::from_slice(&response.into_body().into_bytes().unwrap()).unwrap();
+        insta::assert_json_snapshot!(body, @r###"
+        {
+          "data": {
+            "__typename": "Query"
+          }
+        }
+        "###);
+        assert_eq!(status, 200);
+
+        let response = engine
+            .raw_execute(
+                http::Request::builder()
+                    .method(http::Method::POST)
+                    .header(http::header::CONTENT_TYPE, APPLICATION_JSON)
+                    .header(http::header::ACCEPT, "*/*")
+                    .body(br###"{"query":"{ __typename }"}"###.to_vec())
+                    .unwrap(),
+            )
+            .await;
+        let status = response.status();
+        assert_eq!(
+            response
+                .headers()
+                .get(http::header::CONTENT_TYPE)
+                .and_then(|value| value.to_str().ok()),
+            Some(APPLICATION_JSON)
+        );
+        let body: serde_json::Value = serde_json::from_slice(&response.into_body().into_bytes().unwrap()).unwrap();
+        insta::assert_json_snapshot!(body, @r###"
+        {
+          "data": {
+            "__typename": "Query"
+          }
+        }
+        "###);
+        assert_eq!(status, 200);
+    })
+}
+
+// In alignment with the HTTP 1.1 Accept specification, when a client does not include at least one supported media type
+// in the Accept HTTP header, the server MUST either:
+//    1. Respond with a 406 Not Acceptable status code and stop processing the request (RECOMMENDED); OR
+//    2. Disregard the Accept header and respond with the server's choice of media type (NOT RECOMMENDED).
+#[test]
+fn unsupported_accept_header() {
+    runtime().block_on(async move {
+        let engine = Engine::builder().with_subgraph(FakeGithubSchema).build().await;
+
+        let response = engine
+            .raw_execute(
+                http::Request::builder()
+                    .method(http::Method::POST)
+                    .header(http::header::CONTENT_TYPE, APPLICATION_JSON)
+                    .header(http::header::ACCEPT, "application/jpeg")
+                    .body(br###"{"query":"{ __typename }"}"###.to_vec())
                     .unwrap(),
             )
             .await;
@@ -71,7 +170,7 @@ fn missing_accept_header(#[case] method: http::Method) {
         {
           "errors": [
             {
-              "message": "Missing or invalid Accept header. You must specify one of: 'application/json', 'application/graphql-response+json', 'text/event-stream', 'multipart/mixed'.",
+              "message": "Missing or invalid Accept header. You must specify one of: '*/*', 'application/*', 'application/json', 'application/graphql-response+json', 'text/event-stream', 'multipart/mixed'.",
               "extensions": {
                 "code": "BAD_REQUEST"
               }
@@ -80,6 +179,44 @@ fn missing_accept_header(#[case] method: http::Method) {
         }
         "###);
         assert_eq!(status, 406);
+    })
+}
+
+#[test]
+fn one_valid_acccept_header() {
+    runtime().block_on(async move {
+        let engine = Engine::builder().with_subgraph(FakeGithubSchema).build().await;
+
+        let response = engine
+            .raw_execute(
+                http::Request::builder()
+                    .method(http::Method::POST)
+                    .header(http::header::CONTENT_TYPE, APPLICATION_JSON)
+                    .header(
+                        http::header::ACCEPT,
+                        "application/jpeg,image/webp,application/json;q=0.8",
+                    )
+                    .body(br###"{"query":"{ __typename }"}"###.to_vec())
+                    .unwrap(),
+            )
+            .await;
+        let status = response.status();
+        assert_eq!(
+            response
+                .headers()
+                .get(http::header::CONTENT_TYPE)
+                .and_then(|value| value.to_str().ok()),
+            Some(APPLICATION_JSON)
+        );
+        let body: serde_json::Value = serde_json::from_slice(&response.into_body().into_bytes().unwrap()).unwrap();
+        insta::assert_json_snapshot!(body, @r###"
+        {
+          "data": {
+            "__typename": "Query"
+          }
+        }
+        "###);
+        assert_eq!(status, 200);
     })
 }
 
@@ -98,7 +235,7 @@ fn missing_content_type(#[case] accept: &'static str) {
                 http::Request::builder()
                     .method(http::Method::POST)
                     .header(http::header::ACCEPT, accept)
-                    .body(serde_json::to_vec(&serde_json::json!({"query": "__typename"})).unwrap())
+                    .body(br###"{"query":"__typename"}"###.to_vec())
                     .unwrap(),
             )
             .await;
@@ -134,7 +271,7 @@ fn content_type_with_parameters(#[case] accept: &'static str) {
                     .method(http::Method::POST)
                     .header(http::header::ACCEPT, accept)
                     .header(http::header::CONTENT_TYPE, "application/json; charset=utf-8")
-                    .body(serde_json::to_vec(&serde_json::json!({"query": "__typename"})).unwrap())
+                    .body(br###"{"query":"__typename"}"###.to_vec())
                     .unwrap(),
             )
             .await;
