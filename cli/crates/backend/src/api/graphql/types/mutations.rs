@@ -8,7 +8,7 @@ use super::schema;
 pub struct GraphCreateInput<'a> {
     pub account_id: cynic::Id,
     pub graph_slug: &'a str,
-    pub repo_root_path: &'a str,
+    pub repo_root_path: Option<&'a str>,
     pub environment_variables: Vec<EnvironmentVariableSpecification<'a>>,
     pub graph_mode: GraphMode,
 }
