@@ -66,6 +66,7 @@ pub struct Engine<R: Runtime> {
     auth: AuthService,
     retry_budgets: RetryBudgets,
     operation_cache: <R::OperationCacheFactory as OperationCacheFactory>::Cache<Arc<PreparedOperation>>,
+    default_response_format: ResponseFormat,
 }
 
 impl<R: Runtime> Engine<R> {
@@ -98,6 +99,8 @@ impl<R: Runtime> Engine<R> {
             operation_cache: runtime.operation_cache_factory().create().await,
             schema,
             runtime,
+            // Could be coming from configuration one day
+            default_response_format: ResponseFormat::application_json(),
         }
     }
 
@@ -108,13 +111,13 @@ impl<R: Runtime> Engine<R> {
         // Following the recommendation of the GraphQL over HTTP spec to require a valid Accept
         // header
         let (parts, body) = request.into_parts();
-        let Some(format) = ResponseFormat::extract_from(&parts.headers) else {
+        let Some(format) = ResponseFormat::extract_from(&parts.headers, self.default_response_format) else {
             // GraphQL-over-HTTP spec:
             //   In alignment with the HTTP 1.1 Accept specification, when a client does not include at least one supported media type in the Accept HTTP header, the server MUST either:
             //     1. Respond with a 406 Not Acceptable status code and stop processing the request (RECOMMENDED); OR
             //     2. Disregard the Accept header and respond with the server's choice of media type (NOT RECOMMENDED).
             return Http::from(
-                ResponseFormat::application_json(), // assumed default for the error response
+                self.default_response_format,
                 RefusedRequestResponse::not_acceptable_error(),
             );
         };
@@ -151,7 +154,9 @@ impl<R: Runtime> Engine<R> {
                 serde_json::from_slice(&body).map_err(|err| {
                     Http::from(
                         format,
-                        RefusedRequestResponse::not_well_formed_graphql_over_http_request(&err.to_string()),
+                        RefusedRequestResponse::not_well_formed_graphql_over_http_request(format_args!(
+                            "JSON deserialization failure: {err}",
+                        )),
                     )
                 })
             } else {
@@ -162,7 +167,9 @@ impl<R: Runtime> Engine<R> {
                     .map_err(|err| {
                         Http::from(
                             format,
-                            RefusedRequestResponse::not_well_formed_graphql_over_http_request(&err.to_string()),
+                            RefusedRequestResponse::not_well_formed_graphql_over_http_request(format_args!(
+                                "Could not deserialize request from query parameters: {err}"
+                            )),
                         )
                     })
             }

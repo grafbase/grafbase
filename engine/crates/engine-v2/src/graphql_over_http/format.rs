@@ -60,21 +60,23 @@ impl CompleteResponseFormat {
 }
 
 mod mediatypes {
+    use mediatype::names::*;
     use mediatype::MediaType;
 
-    pub const MULTIPART_MIXED: MediaType<'static> =
-        MediaType::new(mediatype::names::MULTIPART, mediatype::names::MIXED);
-    pub const TEXT_EVENT_STREAM: MediaType<'static> =
-        MediaType::new(mediatype::names::TEXT, mediatype::names::EVENT_STREAM);
-    pub const APPLICATION_JSON: MediaType<'static> =
-        MediaType::new(mediatype::names::APPLICATION, mediatype::names::JSON);
+    pub const STAR_STAR: MediaType<'static> = MediaType::new(_STAR, _STAR);
+    pub const APPLICATION_STAR: MediaType<'static> = MediaType::new(APPLICATION, _STAR);
+    pub const MULTIPART_MIXED: MediaType<'static> = MediaType::new(MULTIPART, MIXED);
+    pub const TEXT_EVENT_STREAM: MediaType<'static> = MediaType::new(TEXT, EVENT_STREAM);
+    pub const APPLICATION_JSON: MediaType<'static> = MediaType::new(APPLICATION, JSON);
     pub const APPLICATION_GRAPHQL_RESPONSE_JSON: MediaType<'static> = MediaType::from_parts(
-        mediatype::names::APPLICATION,
+        APPLICATION,
         mediatype::Name::new_unchecked("graphql-response"),
         Some(mediatype::Name::new_unchecked("json")),
         &[],
     );
     pub const SUPPORTED: &[MediaType<'static>] = &[
+        STAR_STAR,
+        APPLICATION_STAR,
         APPLICATION_JSON,
         APPLICATION_GRAPHQL_RESPONSE_JSON,
         TEXT_EVENT_STREAM,
@@ -83,16 +85,15 @@ mod mediatypes {
 }
 
 impl ResponseFormat {
-    pub fn extract_from(headers: &http::HeaderMap) -> Option<Self> {
-        headers
+    pub fn extract_from(headers: &http::HeaderMap, default: ResponseFormat) -> Option<Self> {
+        if !headers.contains_key("accept") {
+            return Some(default);
+        }
+        let (mediatype, _) = headers
             .get_all("accept")
             .into_iter()
-            .filter_map(|value| value.to_str().ok().and_then(Self::from_header))
-            .last()
-    }
-
-    fn from_header(value: &str) -> Option<Self> {
-        let (mediatype, _) = mediatype::MediaTypeList::new(value)
+            .filter_map(|value| value.to_str().ok().map(mediatype::MediaTypeList::new))
+            .flatten()
             .filter_map(Result::ok)
             .filter(|mediatype| {
                 // Get the mediatype without parameters
@@ -111,7 +112,9 @@ impl ResponseFormat {
             .max_by(|(_, lhs), (_, rhs)| lhs.total_cmp(rhs))?;
 
         let essence = mediatype.essence();
-        if essence == mediatypes::APPLICATION_JSON {
+        if essence == mediatypes::STAR_STAR || essence == mediatypes::APPLICATION_STAR {
+            Some(default)
+        } else if essence == mediatypes::APPLICATION_JSON {
             Some(ResponseFormat::Complete(CompleteResponseFormat::Json))
         } else if essence == mediatypes::APPLICATION_GRAPHQL_RESPONSE_JSON {
             Some(ResponseFormat::Complete(CompleteResponseFormat::GraphqlResponseJson))
