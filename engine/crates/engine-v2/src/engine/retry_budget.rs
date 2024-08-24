@@ -3,12 +3,10 @@ use tower::retry::budget::Budget;
 
 use super::Runtime;
 
+#[derive(id_derives::IndexedFields)]
 pub(super) struct RetryBudgets {
+    #[indexed_by(GraphqlEndpointId)]
     by_graphql_endpoints: Vec<Option<Budget>>,
-}
-
-id_newtypes::index! {
-    RetryBudgets.by_graphql_endpoints[GraphqlEndpointId] => Option<Budget>,
 }
 
 impl RetryBudgets {

@@ -175,7 +175,7 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
                 .query_modifications
                 .root_error_ids
                 .iter()
-                .map(|&id| self.operation[id].clone()),
+                .map(|&id| self.operation.query_modifications[id].clone()),
         );
         let schema = self.engine.schema.clone();
         let operation = self.operation.prepared.clone();

@@ -37,7 +37,7 @@ pub struct RetryConfig {
     pub retry_mutations: bool,
 }
 
-#[id_derives::id]
+#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
 pub struct GraphqlEndpointId(std::num::NonZero<u8>);
 
 #[derive(Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]

@@ -82,10 +82,12 @@ pub(crate) struct Operation {
     // deduplicated by rule
     #[indexed_by(QueryModifierId)]
     pub query_modifiers: Vec<QueryModifier>,
+    #[indexed_by(QueryModifierImpactedFieldId)]
     pub query_modifier_impacted_fields: Vec<FieldId>,
     // deduplicated by rule
     #[indexed_by(ResponseModifierId)]
     pub response_modifiers: Vec<ResponseModifier>,
+    #[indexed_by(ResponseModifierImpactedFieldId)]
     pub response_modifier_impacted_fields: Vec<FieldId>,
 }
 

@@ -78,6 +78,48 @@ where
     }
 }
 
+impl std::ops::Index<SchemaInputValueId> for Schema {
+    type Output = SchemaInputValue;
+    fn index(&self, index: SchemaInputValueId) -> &Self::Output {
+        &self.graph.input_values[index]
+    }
+}
+
+impl std::ops::Index<SchemaInputKeyValueId> for Schema {
+    type Output = (StringId, SchemaInputValue);
+    fn index(&self, index: SchemaInputKeyValueId) -> &Self::Output {
+        &self.graph.input_values[index]
+    }
+}
+
+impl std::ops::Index<SchemaInputObjectFieldValueId> for Schema {
+    type Output = (InputValueDefinitionId, SchemaInputValue);
+    fn index(&self, index: SchemaInputObjectFieldValueId) -> &Self::Output {
+        &self.graph.input_values[index]
+    }
+}
+
+impl std::ops::Index<IdRange<SchemaInputValueId>> for Schema {
+    type Output = [SchemaInputValue];
+    fn index(&self, index: IdRange<SchemaInputValueId>) -> &Self::Output {
+        &self.graph.input_values[index]
+    }
+}
+
+impl std::ops::Index<IdRange<SchemaInputKeyValueId>> for Schema {
+    type Output = [(StringId, SchemaInputValue)];
+    fn index(&self, index: IdRange<SchemaInputKeyValueId>) -> &Self::Output {
+        &self.graph.input_values[index]
+    }
+}
+
+impl std::ops::Index<IdRange<SchemaInputObjectFieldValueId>> for Schema {
+    type Output = [(InputValueDefinitionId, SchemaInputValue)];
+    fn index(&self, index: IdRange<SchemaInputObjectFieldValueId>) -> &Self::Output {
+        &self.graph.input_values[index]
+    }
+}
+
 #[derive(Default, serde::Serialize, serde::Deserialize)]
 pub struct Settings {
     default_header_rules: Vec<HeaderRuleId>,

@@ -199,7 +199,7 @@ impl<'de, 'ctx, 'seed> ConcreteObjectFieldsSeed<'ctx, 'seed> {
 
                     self.ctx.writer.push_error(GraphqlError {
                         path: Some(path),
-                        ..self.ctx.operation[error_id].clone()
+                        ..self.ctx.operation.query_modifications[error_id].clone()
                     });
 
                     if field_shape.wrapping.is_required() {

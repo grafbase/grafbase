@@ -86,6 +86,8 @@ impl<'a> AuthorizedDirectiveWalker<'a> {
     }
 
     pub fn metadata(&self) -> Option<SchemaInputValueWalker<'a>> {
-        self.as_ref().metadata.map(|id| self.walk(&self.schema[id]))
+        self.as_ref()
+            .metadata
+            .map(|id| self.walk(&self.schema.graph.input_values[id]))
     }
 }
