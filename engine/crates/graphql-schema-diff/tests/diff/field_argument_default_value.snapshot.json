@@ -2,13 +2,21 @@
   "src → target": [
     {
       "path": "Query.doMop.useMop",
-      "kind": "ChangeFieldArgumentDefault"
+      "kind": "ChangeFieldArgumentDefault",
+      "span": {
+        "start": 35,
+        "end": 42
+      }
     }
   ],
   "target → src": [
     {
       "path": "Query.doMop.useMop",
-      "kind": "ChangeFieldArgumentDefault"
+      "kind": "ChangeFieldArgumentDefault",
+      "span": {
+        "start": 33,
+        "end": 40
+      }
     }
   ]
 }

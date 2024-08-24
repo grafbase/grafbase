@@ -1,11 +1,16 @@
 //! A mock GraphQL server for testing the GraphQL connector
 
-use std::{sync::Arc, time::Duration};
+use std::{
+    sync::{Arc, Mutex},
+    time::Duration,
+};
 
 use async_graphql_axum::{GraphQLRequest, GraphQLResponse, GraphQLSubscription};
 use axum::{extract::State, http::HeaderMap, response::IntoResponse, routing::post, Router};
 use futures::Future;
+use headers::HeaderMapExt;
 use serde::ser::SerializeMap;
+use url::Url;
 
 mod almost_empty;
 mod echo;
@@ -14,12 +19,12 @@ mod fake_github;
 mod federation;
 mod secure;
 mod slow;
-mod state_mutation;
+mod stateful;
 mod tea_shop;
 
 pub use {
     almost_empty::AlmostEmptySchema, echo::EchoSchema, error_schema::ErrorSchema, fake_github::FakeGithubSchema,
-    federation::*, secure::SecureSchema, slow::SlowSchema, state_mutation::StateMutationSchema, tea_shop::TeaShop,
+    federation::*, secure::SecureSchema, slow::SlowSchema, stateful::Stateful, tea_shop::TeaShop,
 };
 
 #[derive(Debug)]
@@ -77,6 +82,7 @@ impl MockGraphQlServer {
             schema: schema.clone(),
             received_requests: Default::default(),
             next_responses: Default::default(),
+            additional_headers: Default::default(),
         };
 
         let app = Router::new()
@@ -90,7 +96,7 @@ impl MockGraphQlServer {
         let (shutdown_sender, shutdown_receiver) = tokio::sync::oneshot::channel::<()>();
 
         tokio::spawn(async move {
-            axum::serve(listener, app.with_state(()))
+            axum::serve(listener, app)
                 .with_graceful_shutdown(async move {
                     shutdown_receiver.await.ok();
                 })
@@ -112,16 +118,16 @@ impl MockGraphQlServer {
         self.port
     }
 
-    pub fn url(&self) -> String {
-        format!("http://127.0.0.1:{}", self.port)
+    pub fn url(&self) -> Url {
+        format!("http://127.0.0.1:{}", self.port).parse().unwrap()
     }
 
     pub fn sdl(&self) -> String {
         self.state.schema.sdl()
     }
 
-    pub fn websocket_url(&self) -> String {
-        format!("ws://127.0.0.1:{}/ws", self.port)
+    pub fn websocket_url(&self) -> Url {
+        format!("ws://127.0.0.1:{}/ws", self.port).parse().unwrap()
     }
 
     pub fn drain_received_requests(&self) -> impl Iterator<Item = ReceivedRequest> + '_ {
@@ -130,6 +136,11 @@ impl MockGraphQlServer {
 
     pub fn force_next_response(&self, response: impl IntoResponse) {
         self.state.next_responses.push(response.into_response());
+    }
+
+    pub fn with_additional_header(self, header: impl headers::Header) -> Self {
+        self.state.additional_headers.lock().unwrap().typed_insert(header);
+        self
     }
 }
 
@@ -157,7 +168,13 @@ async fn graphql_handler(
         .collect();
 
     let response: GraphQLResponse = state.schema.execute(headers, req).await.into();
-    response.into_response()
+    let mut http_response = response.into_response();
+
+    http_response
+        .headers_mut()
+        .extend(state.additional_headers.lock().unwrap().clone());
+
+    http_response
 }
 
 #[derive(Clone)]
@@ -165,6 +182,7 @@ struct AppState {
     schema: Arc<dyn Schema>,
     received_requests: Arc<crossbeam_queue::SegQueue<ReceivedRequest>>,
     next_responses: Arc<crossbeam_queue::SegQueue<axum::response::Response>>,
+    additional_headers: Arc<Mutex<http::HeaderMap>>,
 }
 
 pub trait Subgraph: 'static {

@@ -1,7 +1,7 @@
 #
 # === Pathfinder & UDF wrapper ===
 #
-FROM oven/bun:1.1.6-alpine AS assets
+FROM oven/bun:1.1.12-alpine AS assets
 WORKDIR /grafbase
 COPY ./cli/wrappers ./cli/wrappers
 COPY ./packages/cli-app ./packages/cli-app
@@ -11,14 +11,14 @@ RUN apk add --no-cache git npm && \
     npx --yes pnpm run cli-app:build && \
     cd ../../cli/wrappers && \
     bun i && \
-    bun run build 
+    bun run build
 
 #
 # === Grafbase CLI ===
 #
 # Using the same alpine image as oven/bun
-# https://github.com/oven-sh/bun/blob/bun-v1.1.6/dockerhub/alpine/Dockerfile
-FROM rust:1.78-alpine3.18 AS chef
+# https://github.com/oven-sh/bun/blob/bun-v1.1.12/dockerhub/alpine/Dockerfile
+FROM rust:1.80-alpine3.20 AS chef
 COPY rust-toolchain.toml rust-toolchain.toml
 RUN apk add --no-cache musl-dev && cargo install cargo-chef
 WORKDIR /grafbase
@@ -49,7 +49,14 @@ RUN cargo build --release --bin grafbase
 #
 # === Final image ===
 #
-FROM oven/bun:1.1.6-alpine
+FROM oven/bun:1.1.12-alpine
+
+LABEL org.opencontainers.image.url='https://grafbase.com/cli' \
+    org.opencontainers.image.documentation='https://grafbase.com/docs/cli' \
+    org.opencontainers.image.source='https://github.com/grafbase/grafbase/tree/main/cli' \
+    org.opencontainers.image.vendor='Grafbase' \
+    org.opencontainers.image.description='The Grafbase Command Line Interface' \
+    org.opencontainers.image.licenses='Apache-2.0'
 
 # gosu is a better sudo/su to step down from root into the service user in the docker-entrypoint.sh script
 # See https://github.com/tianon/gosu/blob/master/INSTALL.md
@@ -57,27 +64,27 @@ ENV GOSU_VERSION 1.17
 RUN set -eux; \
     \
     apk add --no-cache --virtual .gosu-deps \
-        ca-certificates \
-        dpkg \
-        gnupg \
+    ca-certificates \
+    dpkg \
+    gnupg \
     ; \
     \
     dpkgArch="$(dpkg --print-architecture | awk -F- '{ print $NF }')"; \
     wget -O /usr/local/bin/gosu "https://github.com/tianon/gosu/releases/download/$GOSU_VERSION/gosu-$dpkgArch"; \
     wget -O /usr/local/bin/gosu.asc "https://github.com/tianon/gosu/releases/download/$GOSU_VERSION/gosu-$dpkgArch.asc"; \
     \
-# verify the signature
+    # verify the signature
     export GNUPGHOME="$(mktemp -d)"; \
     gpg --batch --keyserver hkps://keys.openpgp.org --recv-keys B42F6819007F00F88E364FD4036A9C25BF357DD4; \
     gpg --batch --verify /usr/local/bin/gosu.asc /usr/local/bin/gosu; \
     gpgconf --kill all; \
     rm -rf "$GNUPGHOME" /usr/local/bin/gosu.asc; \
     \
-# clean up fetch dependencies
+    # clean up fetch dependencies
     apk del --no-network .gosu-deps; \
     \
     chmod +x /usr/local/bin/gosu; \
-# verify that the binary works
+    # verify that the binary works
     gosu --version; \
     gosu nobody true
 
@@ -97,5 +104,3 @@ EXPOSE 4000
 
 ENTRYPOINT ["/bin/docker-entrypoint.sh"]
 CMD ["start", "--listen-address", "0.0.0.0:4000"]
-
-

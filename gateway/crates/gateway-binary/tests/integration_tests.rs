@@ -4,6 +4,7 @@ mod mocks;
 mod telemetry;
 
 use std::{
+    borrow::Cow,
     env, fs,
     marker::PhantomData,
     net::{Ipv4Addr, SocketAddr, SocketAddrV4},
@@ -28,6 +29,43 @@ use wiremock::{
 };
 
 const ACCESS_TOKEN: &str = "test";
+
+#[derive(serde::Serialize)]
+struct BatchQuery {
+    query: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    variables: Option<serde_json::Value>,
+}
+
+#[must_use]
+pub struct GqlBatchBuilder<Response> {
+    queries: Vec<BatchQuery>,
+    phantom: PhantomData<fn() -> Response>,
+    reqwest_builder: reqwest::RequestBuilder,
+    bearer: Option<String>,
+}
+
+impl<Response> GqlBatchBuilder<Response> {
+    pub async fn send(self) -> Response
+    where
+        Response: for<'de> serde::de::Deserialize<'de>,
+    {
+        let json = serde_json::to_value(&self.queries).expect("to be able to serialize gql request");
+
+        if let Some(bearer) = self.bearer {
+            self.reqwest_builder.header("authorization", bearer)
+        } else {
+            self.reqwest_builder
+        }
+        .json(&json)
+        .send()
+        .await
+        .unwrap()
+        .json::<Response>()
+        .await
+        .unwrap()
+    }
+}
 
 #[derive(serde::Serialize)]
 #[must_use]
@@ -165,7 +203,30 @@ impl Client {
             query: query.into(),
             variables: None,
             phantom: PhantomData,
-            reqwest_builder,
+            reqwest_builder: reqwest_builder.header(http::header::ACCEPT, "application/json"),
+            bearer: None,
+        }
+    }
+
+    pub fn gql_batch<Response, T>(&self, queries: impl IntoIterator<Item = T>) -> GqlBatchBuilder<Response>
+    where
+        Response: for<'de> serde::de::Deserialize<'de>,
+        T: Into<String>,
+    {
+        let reqwest_builder = self.client.post(&self.endpoint).headers(self.headers.clone());
+
+        let queries = queries
+            .into_iter()
+            .map(|query| BatchQuery {
+                query: query.into(),
+                variables: None,
+            })
+            .collect();
+
+        GqlBatchBuilder {
+            queries,
+            phantom: PhantomData,
+            reqwest_builder: reqwest_builder.header(http::header::ACCEPT, "application/json"),
             bearer: None,
         }
     }
@@ -272,8 +333,116 @@ fn listen_address() -> SocketAddr {
     SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), port))
 }
 
-fn with_static_server<F, T>(
-    config: &str,
+struct ConfigContent<'a>(Option<Cow<'a, str>>);
+
+impl<'a> From<&'a str> for ConfigContent<'a> {
+    fn from(s: &'a str) -> Self {
+        ConfigContent(Some(Cow::Borrowed(s)))
+    }
+}
+
+impl<'a> From<&'a String> for ConfigContent<'a> {
+    fn from(s: &'a String) -> Self {
+        ConfigContent(Some(Cow::Borrowed(s)))
+    }
+}
+
+impl From<String> for ConfigContent<'static> {
+    fn from(s: String) -> Self {
+        ConfigContent(Some(Cow::Owned(s)))
+    }
+}
+
+struct GatewayBuilder<'a> {
+    toml_config: ConfigContent<'a>,
+    schema: &'a str,
+    log_evel: Option<String>,
+    client_url_path: Option<&'a str>,
+    client_headers: Option<&'static [(&'static str, &'static str)]>,
+}
+
+impl<'a> GatewayBuilder<'a> {
+    fn new(schema: &'a str) -> Self {
+        Self {
+            toml_config: ConfigContent(None),
+            schema,
+            log_evel: None,
+            client_url_path: None,
+            client_headers: None,
+        }
+    }
+
+    fn with_log_level(mut self, level: &str) -> Self {
+        self.log_evel = Some(level.to_string());
+        self
+    }
+
+    fn run<F>(self, test: impl FnOnce(Arc<Client>) -> F)
+    where
+        F: Future<Output = ()>,
+    {
+        let temp_dir = tempdir().unwrap();
+        let config_path = temp_dir.path().join("grafbase.toml");
+
+        let schema_path = temp_dir.path().join("schema.graphql");
+        fs::write(&schema_path, self.schema).unwrap();
+
+        let addr = listen_address();
+        let mut args = vec![
+            "--listen-address".to_string(),
+            addr.to_string(),
+            "--schema".to_string(),
+            schema_path.to_str().unwrap().to_string(),
+        ];
+
+        if let Some(config) = self.toml_config.0 {
+            fs::write(&config_path, config.as_ref()).unwrap();
+            args.push("--config".to_string());
+            args.push(config_path.to_str().unwrap().to_string());
+        }
+
+        if let Some(level) = self.log_evel {
+            args.push("--log".to_string());
+            args.push(level);
+        }
+
+        let command = cmd(cargo_bin("grafbase-gateway"), &args).stdout_null().stderr_null();
+
+        let endpoint = match self.client_url_path {
+            Some(path) => format!("http://{addr}/{path}"),
+            None => format!("http://{addr}/graphql"),
+        };
+
+        let mut commands = CommandHandles::new();
+        commands.push(command.start().unwrap());
+
+        let mut client = Client::new(endpoint, commands);
+
+        if let Some(headers) = self.client_headers {
+            for header in headers {
+                client = client.with_header(header.0, header.1);
+            }
+        }
+
+        let client = Arc::new(client);
+
+        let res = catch_unwind(AssertUnwindSafe(|| {
+            runtime().block_on(async {
+                client.poll_endpoint(30, 300).await;
+                test(client.clone()).await
+            })
+        }));
+
+        client.kill_handles();
+
+        if let Err(err) = res {
+            std::panic::resume_unwind(err);
+        }
+    }
+}
+
+fn with_static_server<'a, F, T>(
+    config: impl Into<ConfigContent<'a>>,
     schema: &str,
     path: Option<&str>,
     headers: Option<&'static [(&'static str, &'static str)]>,
@@ -282,63 +451,19 @@ fn with_static_server<F, T>(
     T: FnOnce(Arc<Client>) -> F,
     F: Future<Output = ()>,
 {
-    let temp_dir = tempdir().unwrap();
-
-    let config_path = temp_dir.path().join("grafbase.toml");
-    fs::write(&config_path, config).unwrap();
-
-    let schema_path = temp_dir.path().join("schema.graphql");
-    fs::write(&schema_path, schema).unwrap();
-
-    let addr = listen_address();
-
-    let command = cmd!(
-        cargo_bin("grafbase-gateway"),
-        "--listen-address",
-        &addr.to_string(),
-        "--config",
-        &config_path.to_str().unwrap(),
-        "--schema",
-        &schema_path.to_str().unwrap(),
-    )
-    .stdout_null()
-    .stderr_null();
-
-    let endpoint = match path {
-        Some(path) => format!("http://{addr}/{path}"),
-        None => format!("http://{addr}/graphql"),
-    };
-
-    let mut commands = CommandHandles::new();
-    commands.push(command.start().unwrap());
-
-    let mut client = Client::new(endpoint, commands);
-
-    if let Some(headers) = headers {
-        for header in headers {
-            client = client.with_header(header.0, header.1);
-        }
+    GatewayBuilder {
+        toml_config: config.into(),
+        schema,
+        log_evel: None,
+        client_url_path: path,
+        client_headers: headers,
     }
-
-    let client = Arc::new(client);
-
-    let res = catch_unwind(AssertUnwindSafe(|| {
-        runtime().block_on(async {
-            client.poll_endpoint(30, 300).await;
-            test(client.clone()).await
-        })
-    }));
-
-    client.kill_handles();
-
-    if let Err(err) = res {
-        std::panic::resume_unwind(err);
-    }
+    .run(test)
 }
 
 fn with_hybrid_server<F, T>(config: &str, graph_ref: &str, sdl: &str, test: T)
 where
-    T: FnOnce(Arc<Client>, GdnResponseMock) -> F,
+    T: FnOnce(Arc<Client>, GdnResponseMock, SocketAddr) -> F,
     F: Future<Output = ()>,
 {
     let temp_dir = tempdir().unwrap();
@@ -382,7 +507,7 @@ where
 
         client.poll_endpoint(30, 300).await;
 
-        let res = AssertUnwindSafe(test(client.clone(), gdn_response))
+        let res = AssertUnwindSafe(test(client.clone(), gdn_response, *server.address()))
             .catch_unwind()
             .await;
 
@@ -420,6 +545,80 @@ fn setup_rustls() {
     rustls::crypto::ring::default_provider().install_default().unwrap();
 }
 
+// This failed when using `format_with()` inside tracing with opentelemetry. Somehow it gets called
+// multiple times which isn't supported and panics...
+#[test]
+fn trace_log_level() {
+    let schema = load_schema("big");
+
+    let query = indoc! {r#"
+        query Me {
+          me {
+            id
+          }
+        }
+    "#};
+
+    GatewayBuilder::new(&schema)
+        .with_log_level("trace")
+        .run(|client| async move {
+            let result: serde_json::Value = client.gql(query).send().await;
+            let result = serde_json::to_string_pretty(&result).unwrap();
+
+            insta::assert_snapshot!(&result, @r###"
+            {
+              "data": null,
+              "errors": [
+                {
+                  "message": "Request to subgraph 'accounts' failed with: error sending request",
+                  "path": [
+                    "me"
+                  ],
+                  "extensions": {
+                    "code": "SUBGRAPH_REQUEST_ERROR"
+                  }
+                }
+              ]
+            }
+            "###);
+        })
+}
+
+#[test]
+fn no_config() {
+    let schema = load_schema("big");
+
+    let query = indoc! {r#"
+        query Me {
+          me {
+            id
+          }
+        }
+    "#};
+
+    with_static_server(ConfigContent(None), &schema, None, None, |client| async move {
+        let result: serde_json::Value = client.gql(query).send().await;
+        let result = serde_json::to_string_pretty(&result).unwrap();
+
+        insta::assert_snapshot!(&result, @r###"
+        {
+          "data": null,
+          "errors": [
+            {
+              "message": "Request to subgraph 'accounts' failed with: error sending request",
+              "path": [
+                "me"
+              ],
+              "extensions": {
+                "code": "SUBGRAPH_REQUEST_ERROR"
+              }
+            }
+          ]
+        }
+        "###);
+    })
+}
+
 #[test]
 fn static_schema() {
     let schema = load_schema("big");
@@ -441,7 +640,7 @@ fn static_schema() {
           "data": null,
           "errors": [
             {
-              "message": "Request to subgraph 'accounts' failed with: error sending request for url (http://127.0.0.1:46697/)",
+              "message": "Request to subgraph 'accounts' failed with: error sending request",
               "path": [
                 "me"
               ],
@@ -563,7 +762,7 @@ fn custom_path() {
           "data": null,
           "errors": [
             {
-              "message": "Request to subgraph 'accounts' failed with: error sending request for url (http://127.0.0.1:46697/)",
+              "message": "Request to subgraph 'accounts' failed with: error sending request",
               "path": [
                 "me"
               ],
@@ -628,7 +827,7 @@ fn csrf_with_header() {
           "data": null,
           "errors": [
             {
-              "message": "Request to subgraph 'accounts' failed with: error sending request for url (http://127.0.0.1:46697/)",
+              "message": "Request to subgraph 'accounts' failed with: error sending request",
               "path": [
                 "me"
               ],
@@ -654,7 +853,7 @@ fn hybrid_graph() {
         }
     "#};
 
-    with_hybrid_server("", "test_graph", &schema, |client, _| async move {
+    with_hybrid_server("", "test_graph", &schema, |client, _, _| async move {
         let result: serde_json::Value = client.gql(query).send().await;
         let result = serde_json::to_string_pretty(&result).unwrap();
 
@@ -663,7 +862,7 @@ fn hybrid_graph() {
           "data": null,
           "errors": [
             {
-              "message": "Request to subgraph 'accounts' failed with: error sending request for url (http://127.0.0.1:46697/)",
+              "message": "Request to subgraph 'accounts' failed with: error sending request",
               "path": [
                 "me"
               ],
@@ -810,10 +1009,8 @@ fn global_rate_limiting() {
         }
     "#};
 
-    let expected_response = r#"{"errors":[{"message":"Too many requests","extensions":{"code":"RATE_LIMITED"}}]}"#;
-
     with_static_server(config, &schema, None, None, |client| async move {
-        expect_rate_limiting(|| client.gql(query).send().boxed(), expected_response).await;
+        expect_rate_limiting(|| client.gql(query).send().boxed()).await;
     })
 }
 
@@ -835,10 +1032,8 @@ fn subgraph_rate_limiting() {
         }
     "#};
 
-    let expected_response = r#"{"data":null,"errors":[{"message":"Too many requests","path":["me"],"extensions":{"code":"RATE_LIMITED"}}]}"#;
-
     with_static_server(config, &schema, None, None, |client| async move {
-        expect_rate_limiting(|| client.gql(query).send().boxed(), expected_response).await;
+        expect_rate_limiting(|| client.gql(query).send().boxed()).await;
     })
 }
 
@@ -863,10 +1058,8 @@ fn global_redis_rate_limiting() {
         }
     "#};
 
-    let expected_response = r#"{"errors":[{"message":"Too many requests","extensions":{"code":"RATE_LIMITED"}}]}"#;
-
     with_static_server(config, &schema, None, None, |client| async move {
-        expect_rate_limiting(|| client.gql(query).send().boxed(), expected_response).await;
+        expect_rate_limiting(|| client.gql(query).send().boxed()).await;
     })
 }
 
@@ -891,15 +1084,13 @@ fn subgraph_redis_rate_limiting() {
         }
     "#};
 
-    let expected_response = r#"{"data":null,"errors":[{"message":"Too many requests","path":["me"],"extensions":{"code":"RATE_LIMITED"}}]}"#;
-
     with_static_server(config, &schema, None, None, |client| async move {
-        expect_rate_limiting(|| client.gql(query).send().boxed(), expected_response).await;
+        expect_rate_limiting(|| client.gql(query).send().boxed()).await;
     })
 }
 
 #[allow(clippy::panic)]
-async fn expect_rate_limiting<'a, F>(f: F, expected_response: &str)
+async fn expect_rate_limiting<'a, F>(f: F)
 where
     F: Fn() -> BoxFuture<'a, serde_json::Value>,
 {
@@ -908,10 +1099,8 @@ where
     loop {
         let response = Box::pin(f());
         let response = response.await;
-        let response = serde_json::to_string(&response).unwrap();
 
-        println!("{response}");
-        if response == expected_response {
+        if response["errors"][0]["extensions"]["code"] == "RATE_LIMITED" {
             break;
         }
 

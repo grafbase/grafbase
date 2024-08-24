@@ -1,12 +1,13 @@
 use std::{
     future::Future,
+    net::SocketAddr,
     task::{ready, Context, Poll},
     time::Instant,
 };
 
 use ::tower::{Layer, Service};
 use headers::HeaderMapExt;
-use http::{Request, Response};
+use http::{Request, Response, Uri};
 use http_body::Body;
 use opentelemetry::{metrics::Meter, propagation::Extractor};
 use pin_project_lite::pin_project;
@@ -19,15 +20,17 @@ use crate::{
     span::{request::HttpRequestSpan, GqlRecorderSpanExt, HttpRecorderSpanExt, GRAFBASE_TARGET},
 };
 
-pub fn layer(meter: Meter) -> TelemetryLayer {
+pub fn layer(meter: Meter, listen_address: Option<SocketAddr>) -> TelemetryLayer {
     TelemetryLayer {
         metrics: RequestMetrics::build(&meter),
+        listen_address,
     }
 }
 
 #[derive(Clone)]
 pub struct TelemetryLayer {
     metrics: RequestMetrics,
+    listen_address: Option<SocketAddr>,
 }
 
 impl<S> Layer<S> for TelemetryLayer {
@@ -36,6 +39,7 @@ impl<S> Layer<S> for TelemetryLayer {
         TelemetryService {
             inner,
             metrics: self.metrics.clone(),
+            listen_address: self.listen_address,
         }
     }
 }
@@ -48,6 +52,7 @@ impl<S> Layer<S> for TelemetryLayer {
 pub struct TelemetryService<S> {
     inner: S,
     metrics: RequestMetrics,
+    listen_address: Option<SocketAddr>,
 }
 
 impl<S> TelemetryService<S> {
@@ -111,12 +116,23 @@ where
         let client = Client::extract_from(req.headers());
         let metrics = self.metrics.clone();
         let span = self.make_span(&req);
+        let url = req.uri().clone();
+        let listen_address = self.listen_address;
+        let version = req.version();
+        let method = req.method().clone();
+
+        metrics.increment_connected_clients();
+
         ResponseFuture {
             inner: self.inner.call(req),
             metrics,
             span,
             start,
             client,
+            url,
+            listen_address,
+            version,
+            method,
         }
     }
 }
@@ -129,6 +145,10 @@ pin_project! {
         span: Span,
         start: Instant,
         client: Option<Client>,
+        url: Uri,
+        listen_address: Option<SocketAddr>,
+        version: http::Version,
+        method: http::Method,
     }
 }
 
@@ -163,12 +183,17 @@ where
 
                 let gql_status = response.headers().typed_get();
 
-                metrics.record(
+                metrics.record_http_duration(
                     RequestMetricsAttributes {
                         status_code: response.status().as_u16(),
                         cache_status,
                         gql_status,
                         client,
+                        url_scheme: this.url.scheme_str().map(ToString::to_string),
+                        route: Some(this.url.path().to_string()),
+                        listen_address: *this.listen_address,
+                        version: Some(*this.version),
+                        method: Some(this.method.clone()),
                     },
                     latency,
                 );
@@ -191,16 +216,25 @@ where
                 }
 
                 response.headers_mut().remove(GraphqlResponseStatus::header_name());
+
+                if let Some(size) = response.body().size_hint().exact() {
+                    metrics.record_response_body_size(size);
+                }
             }
             Err(ref err) => {
                 Span::current().record("http.response.status_code", 500);
 
-                metrics.record(
+                metrics.record_http_duration(
                     RequestMetricsAttributes {
                         status_code: 500,
                         client,
                         cache_status: None,
                         gql_status: None,
+                        url_scheme: this.url.scheme_str().map(ToString::to_string),
+                        route: Some(this.url.path().to_string()),
+                        listen_address: *this.listen_address,
+                        version: Some(*this.version),
+                        method: Some(this.method.clone()),
                     },
                     latency,
                 );
@@ -209,6 +243,8 @@ where
                 tracing::error!(target: GRAFBASE_TARGET, "{err}");
             }
         }
+
+        metrics.decrement_connected_clients();
 
         Poll::Ready(result)
     }

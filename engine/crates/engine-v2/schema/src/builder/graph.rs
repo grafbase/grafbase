@@ -104,7 +104,13 @@ impl<'a> GraphBuilder<'a> {
                         name: definition.name.into(),
                         description: definition.description.map(Into::into),
                         ty: definition.r#type.into(),
-                        default_value: None,
+                        default_value: definition.default.map(|default| {
+                            let value = self
+                                .graph
+                                .input_values
+                                .ingest_arbitrary_federated_value(self.ctx, default);
+                            self.graph.input_values.push_value(value)
+                        }),
                         directives: self.push_directives(
                             config,
                             Directives {

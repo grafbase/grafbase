@@ -29,7 +29,7 @@ fn test_provider() {
             .await;
 
         let response: GraphqlResponse = engine
-            .execute("query { serverVersion }")
+            .post("query { serverVersion }")
             .header("Authorization", format!("Bearer {token}"))
             .await;
         insta::assert_json_snapshot!(response, @r###"
@@ -69,7 +69,7 @@ fn test_different_header_location() {
             .await;
 
         let response: GraphqlResponse = engine
-            .execute("query { serverVersion }")
+            .post("query { serverVersion }")
             .header("X-My-JWT", format!("Bearer2 {token}"))
             .await;
         insta::assert_json_snapshot!(response, @r###"
@@ -93,7 +93,7 @@ fn test_unauthorized() {
             .await;
 
         // No token
-        let response: GraphqlResponse = engine.execute("query { serverVersion }").await;
+        let response: GraphqlResponse = engine.post("query { serverVersion }").await;
         insta::assert_json_snapshot!(response, @r###"
         {
           "errors": [
@@ -109,7 +109,7 @@ fn test_unauthorized() {
 
         // Invalid Authorization header
         let response: GraphqlResponse = engine
-            .execute("query { serverVersion }")
+            .post("query { serverVersion }")
             .header("Authorization", "something")
             .await;
         insta::assert_json_snapshot!(response, @r###"
@@ -127,7 +127,7 @@ fn test_unauthorized() {
 
         // Proper HS256 JWT, but unrelated.
         let response: GraphqlResponse = engine
-            .execute("query { serverVersion }")
+            .post("query { serverVersion }")
             .header("Authorization", "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c")
             .await;
         insta::assert_json_snapshot!(response, @r###"
@@ -163,7 +163,7 @@ fn test_tampered_jwt() {
         let token = tamper_jwt(token);
 
         let response: GraphqlResponse = engine
-            .execute("query { serverVersion }")
+            .post("query { serverVersion }")
             .header("Authorization", format!("Bearer {token}"))
             .await;
         insta::assert_json_snapshot!(response, @r###"
@@ -217,7 +217,7 @@ fn test_wrong_provider() {
             .await;
 
         let response: GraphqlResponse = engine
-            .execute("query { serverVersion }")
+            .post("query { serverVersion }")
             .header("Authorization", format!("Bearer {token}"))
             .await;
         insta::assert_json_snapshot!(response, @r###"
@@ -256,7 +256,7 @@ fn test_audience() {
             .await;
 
         let response: GraphqlResponse = engine
-            .execute("query { serverVersion }")
+            .post("query { serverVersion }")
             .header("Authorization", format!("Bearer {token}"))
             .await;
         insta::assert_json_snapshot!(response, @r###"
@@ -275,7 +275,7 @@ fn test_audience() {
             .await;
 
         let response: GraphqlResponse = engine
-            .execute("query { serverVersion }")
+            .post("query { serverVersion }")
             .header("Authorization", format!("Bearer {token}"))
             .await;
         insta::assert_json_snapshot!(response, @r###"
@@ -299,7 +299,7 @@ fn test_audience() {
             .await;
 
         let response: GraphqlResponse = engine
-            .execute("query { serverVersion }")
+            .post("query { serverVersion }")
             .header("Authorization", format!("Bearer {token}"))
             .await;
         insta::assert_json_snapshot!(response, @r###"

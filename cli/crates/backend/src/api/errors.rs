@@ -152,9 +152,12 @@ pub enum ApiError {
     #[error(transparent)]
     EnvironmentVariableError(#[from] EnvironmentVariableError),
 
-    /// returned if the project does not exist
-    #[error("could not find the project")]
-    ProjectDoesNotExist,
+    /// returned if the graph does not exist
+    #[error("could not find the graph")]
+    GraphDoesNotExist,
+
+    #[error("the graph is not self-hosted")]
+    GraphNotSelfHosted,
 
     #[error("{0}")]
     SubgraphsError(String),
@@ -214,7 +217,7 @@ pub enum CreateError {
 #[derive(Error, Debug)]
 pub enum PublishError {
     /// returned if provided branch does not exist
-    #[error("provided branch does not exist in the project")]
+    #[error("provided branch does not exist in the graph")]
     BranchDoesNotExist,
 
     /// returned if an unknown error occurs
@@ -263,6 +266,8 @@ pub enum BranchError {
     /// returned if the given branch does not exist
     #[error("branch {0} does not exist")]
     BranchDoesNotExist(String),
+    #[error("branch {0} already exists")]
+    BranchAlreadyExists(String),
     /// returned, if trying to delete the production branch
     #[error("branch `{0}` is the production branch of the graph, and cannot be deleted")]
     CannotDeleteProductionBranchError(String),

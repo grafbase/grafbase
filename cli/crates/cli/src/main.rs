@@ -207,6 +207,7 @@ fn try_main(args: Args) -> Result<(), CliError> {
         SubCommand::Branch(cmd) => match cmd.command {
             BranchSubCommand::List => branch::list(),
             BranchSubCommand::Delete(cmd) => branch::delete(cmd.branch_ref),
+            BranchSubCommand::Create(cmd) => branch::create(cmd.branch_ref),
         },
         SubCommand::Environment(cmd) => match cmd.command {
             EnvironmentSubCommand::List(cmd) => environment_variables::list(cmd.graph_ref),

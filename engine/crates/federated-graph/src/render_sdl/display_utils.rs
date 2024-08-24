@@ -7,15 +7,15 @@ use std::{
 pub(super) const BUILTIN_SCALARS: &[&str] = &["ID", "String", "Int", "Float", "Boolean"];
 pub(super) const INDENT: &str = "    ";
 
-// Copy-pasted from async-graphql-value
 pub(super) fn write_quoted(sdl: &mut impl Write, s: &str) -> fmt::Result {
     sdl.write_char('"')?;
     for c in s.chars() {
         match c {
-            c @ ('\r' | '\n' | '\t' | '"' | '\\') => {
-                sdl.write_char('\\')?;
-                sdl.write_char(c)
-            }
+            '\r' => sdl.write_str("\\r"),
+            '\n' => sdl.write_str("\\n"),
+            '\t' => sdl.write_str("\\t"),
+            '\\' => sdl.write_str("\\\\"),
+            '"' => sdl.write_str("\\\""),
             c if c.is_control() => write!(sdl, "\\u{:04}", c as u32),
             c => sdl.write_char(c),
         }?
@@ -71,7 +71,20 @@ impl fmt::Display for ValueDisplay<'_> {
             crate::Value::EnumValue(val) => f.write_str(&graph[*val]),
             crate::Value::Boolean(true) => f.write_str("true"),
             crate::Value::Boolean(false) => f.write_str("false"),
-            crate::Value::Object(_) => todo!(),
+            crate::Value::Object(key_values) => {
+                let mut key_values = key_values.iter().peekable();
+
+                f.write_char('{')?;
+                while let Some((key, value)) = key_values.next() {
+                    write_quoted(f, &graph[*key])?;
+                    f.write_str(": ")?;
+                    ValueDisplay(value, graph).fmt(f)?;
+                    if key_values.peek().is_some() {
+                        f.write_str(", ")?;
+                    }
+                }
+                f.write_char('}')
+            }
             crate::Value::List(values) => {
                 f.write_char('[')?;
 

@@ -8,20 +8,20 @@ use std::sync::{
 use async_graphql::{Context, EmptySubscription, FieldResult, Object, Schema};
 
 #[derive(Default)]
-pub struct StateMutationSchema {
+pub struct Stateful {
     state: Arc<AtomicUsize>,
 }
 
-impl crate::Subgraph for StateMutationSchema {
+impl crate::Subgraph for Stateful {
     fn name(&self) -> String {
-        "state-mutation".to_string()
+        "stateful".to_string()
     }
     async fn start(self) -> crate::MockGraphQlServer {
         crate::MockGraphQlServer::new(self).await
     }
 }
 
-impl StateMutationSchema {
+impl Stateful {
     fn schema(&self) -> Schema<Query, Mutation, EmptySubscription> {
         Schema::build(Query, Mutation, EmptySubscription)
             .enable_federation()
@@ -31,7 +31,7 @@ impl StateMutationSchema {
 }
 
 #[async_trait::async_trait]
-impl super::Schema for StateMutationSchema {
+impl super::Schema for Stateful {
     async fn execute(
         &self,
         _headers: Vec<(String, String)>,

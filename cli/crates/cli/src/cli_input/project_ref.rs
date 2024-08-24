@@ -1,4 +1,4 @@
-use std::{fmt, str};
+use std::{borrow::Cow, fmt, str};
 
 use graph_ref::GraphRef;
 
@@ -87,7 +87,7 @@ impl ProjectRefOrGraphRef {
     pub(crate) fn branch(&self) -> Option<&str> {
         match self {
             ProjectRefOrGraphRef::ProjectRef(pr) => pr.branch(),
-            ProjectRefOrGraphRef::GraphRef(gr) => gr.branch(),
+            ProjectRefOrGraphRef::GraphRef(gr) => gr.branch_name(),
         }
     }
 
@@ -101,17 +101,18 @@ impl ProjectRefOrGraphRef {
     pub(crate) fn project(&self) -> &str {
         match self {
             ProjectRefOrGraphRef::ProjectRef(pr) => pr.graph(),
-            ProjectRefOrGraphRef::GraphRef(gr) => gr.graph(),
+            ProjectRefOrGraphRef::GraphRef(gr) => gr.graph_slug(),
         }
     }
 }
 
 impl str::FromStr for ProjectRefOrGraphRef {
-    type Err = &'static str;
+    type Err = Cow<'static, str>;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         ProjectRef::from_str(s)
             .map(ProjectRefOrGraphRef::ProjectRef)
+            .map_err(Cow::Borrowed)
             .or_else(|_| GraphRef::from_str(s).map(ProjectRefOrGraphRef::GraphRef))
     }
 }

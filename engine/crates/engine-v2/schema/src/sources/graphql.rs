@@ -25,7 +25,7 @@ pub struct GraphqlEndpoint {
     pub(crate) entity_cache_ttl: Option<Duration>,
 }
 
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Copy, serde::Serialize, serde::Deserialize)]
 pub struct RetryConfig {
     /// How many retries are available per second, at a minimum.
     pub min_per_second: Option<u32>,
@@ -157,11 +157,8 @@ impl<'a> GraphqlEndpointWalker<'a> {
         &self.schema[self.as_ref().url]
     }
 
-    pub fn websocket_url(&self) -> &'a Url {
-        match self.as_ref().websocket_url {
-            Some(websocket_id) => &self.schema[websocket_id],
-            None => self.url(),
-        }
+    pub fn websocket_url(&self) -> Option<&'a Url> {
+        self.as_ref().websocket_url.map(|id| &self.schema[id])
     }
 
     pub fn header_rules(self) -> impl Iterator<Item = HeaderRuleWalker<'a>> {
@@ -172,8 +169,8 @@ impl<'a> GraphqlEndpointWalker<'a> {
         self.as_ref().entity_cache_ttl
     }
 
-    pub fn retry_config(self) -> Option<&'a RetryConfig> {
-        self.as_ref().retry.as_ref()
+    pub fn retry_config(self) -> Option<RetryConfig> {
+        self.as_ref().retry
     }
 }
 

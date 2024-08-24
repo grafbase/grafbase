@@ -1804,11 +1804,10 @@ dependencies = [
 [[package]]
 name = "cynic-codegen"
 version = "3.7.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7c0ec86f960a00ce087e96ff6f073f6ff28b6876d69ce8caa06c03fb4143981c"
+source = "git+https://github.com/grafbase/cynic?branch=more-spans#05d60a06ea41c810dcc3023e73147ada38545908"
 dependencies = [
  "counter",
- "cynic-parser 0.4.5",
+ "cynic-parser",
  "darling",
  "once_cell",
  "ouroboros",
@@ -1834,25 +1833,13 @@ dependencies = [
 
 [[package]]
 name = "cynic-parser"
-version = "0.2.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "411ab40d3f72ca1442d50a60e572838e5a2f0719b93a77a29647117ffdf67687"
-dependencies = [
- "indexmap 2.2.6",
- "lalrpop-util",
- "logos 0.13.0",
-]
-
-[[package]]
-name = "cynic-parser"
 version = "0.4.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "718f6cd8c54ae5249fd42b0c86639df0100b8a86eea2e5f1b915cde2e1481453"
+source = "git+https://github.com/grafbase/cynic?branch=more-spans#05d60a06ea41c810dcc3023e73147ada38545908"
 dependencies = [
  "ariadne",
  "indexmap 2.2.6",
  "lalrpop-util",
- "logos 0.14.0",
+ "logos",
  "pretty",
 ]
 
@@ -2407,7 +2394,7 @@ dependencies = [
 
 [[package]]
 name = "engine-config-builder"
-version = "0.77.1"
+version = "0.79.1"
 dependencies = [
  "engine-v2-config",
  "gateway-config",
@@ -2511,6 +2498,7 @@ dependencies = [
  "engine-v2-id-newtypes",
  "engine-v2-schema",
  "engine-value",
+ "enumset",
  "futures",
  "futures-util",
  "gateway-core",
@@ -2522,6 +2510,7 @@ dependencies = [
  "im",
  "itertools 0.13.0",
  "lasso2",
+ "mediatype",
  "operation-normalizer",
  "pretty_assertions",
  "rand 0.8.5",
@@ -2529,6 +2518,7 @@ dependencies = [
  "serde",
  "serde-value",
  "serde_json",
+ "serde_urlencoded",
  "sha2",
  "strum",
  "thiserror",
@@ -2547,6 +2537,8 @@ dependencies = [
  "axum",
  "engine-v2",
  "futures-util",
+ "http",
+ "http-body-util",
  "runtime",
  "serde_json",
  "tokio",
@@ -2645,6 +2637,27 @@ dependencies = [
  "indexmap 2.2.6",
  "serde",
  "serde_json",
+]
+
+[[package]]
+name = "enumset"
+version = "1.1.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d07a4b049558765cef5f0c1a273c3fc57084d768b44d2f98127aef4cceb17293"
+dependencies = [
+ "enumset_derive",
+]
+
+[[package]]
+name = "enumset_derive"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "59c3b24c345d8c314966bdc1832f6c2635bfcce8e7cf363bd115987bba2ee242"
+dependencies = [
+ "darling",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.72",
 ]
 
 [[package]]
@@ -2827,13 +2840,12 @@ dependencies = [
 
 [[package]]
 name = "federated-dev"
-version = "0.77.1"
+version = "0.79.1"
 dependencies = [
  "async-graphql",
  "async-graphql-axum",
  "async-graphql-parser",
  "axum",
- "engine",
  "engine-config-builder",
  "engine-v2",
  "engine-v2-axum",
@@ -2864,7 +2876,7 @@ dependencies = [
 
 [[package]]
 name = "federated-server"
-version = "0.8.0"
+version = "0.10.0"
 dependencies = [
  "ascii 1.1.0",
  "async-trait",
@@ -2872,11 +2884,9 @@ dependencies = [
  "axum-aws-lambda",
  "axum-server",
  "blake3",
- "engine",
  "engine-config-builder",
  "engine-v2",
  "engine-v2-axum",
- "futures-util",
  "gateway-config",
  "grafbase-telemetry",
  "graphql-composition",
@@ -3222,7 +3232,7 @@ dependencies = [
 
 [[package]]
 name = "gateway"
-version = "0.77.1"
+version = "0.79.1"
 dependencies = [
  "async-graphql",
  "async-trait",
@@ -3264,6 +3274,8 @@ dependencies = [
  "serde",
  "serde-dynamic-string",
  "serde_regex",
+ "serde_with",
+ "size",
  "temp-env",
  "tempfile",
  "toml",
@@ -3283,7 +3295,7 @@ dependencies = [
  "blake3",
  "bytes",
  "common-types",
- "cynic-parser 0.4.5",
+ "cynic-parser",
  "engine",
  "engine-parser",
  "engine-validation",
@@ -3306,6 +3318,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2",
+ "strum",
  "thiserror",
  "tokio",
  "tracing",
@@ -3468,13 +3481,13 @@ version = "0.1.1"
 dependencies = [
  "clap",
  "colored",
- "graphql-lint 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "graphql-lint",
  "thiserror",
 ]
 
 [[package]]
 name = "grafbase"
-version = "0.77.1"
+version = "0.79.1"
 dependencies = [
  "assert_matches",
  "async-graphql",
@@ -3504,7 +3517,7 @@ dependencies = [
  "grafbase-local-common",
  "grafbase-local-server",
  "graph-ref",
- "graphql-lint 0.1.3",
+ "graphql-lint",
  "graphql-mocks",
  "graphql-ws-client",
  "headers",
@@ -3557,7 +3570,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-docker-tests"
-version = "0.77.1"
+version = "0.79.1"
 dependencies = [
  "anyhow",
  "bollard",
@@ -3574,7 +3587,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-gateway"
-version = "0.8.0"
+version = "0.10.0"
 dependencies = [
  "anyhow",
  "ascii 1.1.0",
@@ -3591,6 +3604,7 @@ dependencies = [
  "grafbase-graphql-introspection",
  "grafbase-telemetry",
  "graph-ref",
+ "handlebars",
  "http",
  "indoc",
  "insta",
@@ -3613,11 +3627,11 @@ dependencies = [
 
 [[package]]
 name = "grafbase-graphql-introspection"
-version = "0.77.1"
+version = "0.79.1"
 dependencies = [
  "cynic",
  "cynic-introspection",
- "cynic-parser 0.4.5",
+ "cynic-parser",
  "indoc",
  "reqwest",
  "serde",
@@ -3625,7 +3639,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-local-backend"
-version = "0.77.1"
+version = "0.79.1"
 dependencies = [
  "async-compression",
  "axum",
@@ -3655,7 +3669,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-local-common"
-version = "0.77.1"
+version = "0.79.1"
 dependencies = [
  "chrono",
  "common-types",
@@ -3675,7 +3689,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-local-server"
-version = "0.77.1"
+version = "0.79.1"
 dependencies = [
  "async-trait",
  "async-tungstenite",
@@ -3683,7 +3697,7 @@ dependencies = [
  "common-types",
  "const_format",
  "criterion",
- "cynic-parser 0.4.5",
+ "cynic-parser",
  "dotenv",
  "engine",
  "federated-dev",
@@ -3760,9 +3774,9 @@ dependencies = [
  "opentelemetry-stdout",
  "opentelemetry_sdk",
  "pin-project-lite",
+ "postcard",
  "serde",
  "serde-dynamic-string",
- "serde_json",
  "tempfile",
  "thiserror",
  "toml",
@@ -3788,7 +3802,7 @@ dependencies = [
 
 [[package]]
 name = "graph-ref"
-version = "0.77.1"
+version = "0.79.1"
 
 [[package]]
 name = "graphql-composition"
@@ -3806,7 +3820,7 @@ dependencies = [
 
 [[package]]
 name = "graphql-cursor"
-version = "0.77.1"
+version = "0.79.1"
 dependencies = [
  "serde",
  "serde_with",
@@ -3845,18 +3859,7 @@ name = "graphql-lint"
 version = "0.1.3"
 dependencies = [
  "criterion",
- "cynic-parser 0.4.5",
- "heck 0.5.0",
- "thiserror",
-]
-
-[[package]]
-name = "graphql-lint"
-version = "0.1.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f471b7a105553bc432d405b90ea7737b1a611de7d3741718daffa5f62ac4ddde"
-dependencies = [
- "cynic-parser 0.2.6",
+ "cynic-parser",
  "heck 0.5.0",
  "thiserror",
 ]
@@ -3871,10 +3874,12 @@ dependencies = [
  "axum",
  "crossbeam-queue",
  "futures",
+ "headers",
  "http",
  "serde",
  "serde_json",
  "tokio",
+ "url",
 ]
 
 [[package]]
@@ -3900,7 +3905,7 @@ dependencies = [
 name = "graphql-schema-diff"
 version = "0.2.0"
 dependencies = [
- "cynic-parser 0.4.5",
+ "cynic-parser",
  "datatest-stable",
  "miette 7.2.0",
  "serde",
@@ -4615,9 +4620,11 @@ dependencies = [
  "async-graphql-parser",
  "async-once-cell",
  "async-runtime",
+ "async-sse",
  "async-trait",
  "axum",
  "base64 0.22.1",
+ "bytes",
  "common-types",
  "const_format",
  "criterion",
@@ -4625,7 +4632,7 @@ dependencies = [
  "ctor",
  "cynic",
  "cynic-introspection",
- "cynic-parser 0.4.5",
+ "cynic-parser",
  "engine",
  "engine-config-builder",
  "engine-parser",
@@ -4657,6 +4664,7 @@ dependencies = [
  "parser-sdl",
  "postgres-connector-types",
  "pprof",
+ "pretty_assertions",
  "regex",
  "registry-for-cache",
  "registry-upgrade",
@@ -4670,6 +4678,7 @@ dependencies = [
  "secrecy",
  "serde",
  "serde_json",
+ "serde_urlencoded",
  "sha2",
  "similar-asserts",
  "thiserror",
@@ -5144,34 +5153,11 @@ checksum = "a7a70ba024b9dc04c27ea2f0c0548feb474ec5c54bba33a7f72f873a39d07b24"
 
 [[package]]
 name = "logos"
-version = "0.13.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c000ca4d908ff18ac99b93a062cb8958d331c3220719c52e77cb19cc6ac5d2c1"
-dependencies = [
- "logos-derive 0.13.0",
-]
-
-[[package]]
-name = "logos"
 version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "161971eb88a0da7ae0c333e1063467c5b5727e7fb6b710b8db4814eade3a42e8"
 dependencies = [
- "logos-derive 0.14.0",
-]
-
-[[package]]
-name = "logos-codegen"
-version = "0.13.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dc487311295e0002e452025d6b580b77bb17286de87b57138f3b5db711cded68"
-dependencies = [
- "beef",
- "fnv",
- "proc-macro2",
- "quote",
- "regex-syntax 0.6.29",
- "syn 2.0.72",
+ "logos-derive",
 ]
 
 [[package]]
@@ -5191,20 +5177,11 @@ dependencies = [
 
 [[package]]
 name = "logos-derive"
-version = "0.13.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dbfc0d229f1f42d790440136d941afd806bc9e949e2bcb8faa813b0f00d1267e"
-dependencies = [
- "logos-codegen 0.13.0",
-]
-
-[[package]]
-name = "logos-derive"
 version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1c2a69b3eb68d5bd595107c9ee58d7e07fe2bb5e360cc85b0f084dedac80de0a"
 dependencies = [
- "logos-codegen 0.14.0",
+ "logos-codegen",
 ]
 
 [[package]]
@@ -6028,7 +6005,7 @@ dependencies = [
 
 [[package]]
 name = "operation-checks"
-version = "0.77.1"
+version = "0.79.1"
 dependencies = [
  "async-graphql-parser",
  "async-graphql-value",
@@ -6041,7 +6018,7 @@ dependencies = [
 
 [[package]]
 name = "operation-normalizer"
-version = "0.77.1"
+version = "0.79.1"
 dependencies = [
  "anyhow",
  "expect-test",
@@ -6075,15 +6052,15 @@ dependencies = [
 
 [[package]]
 name = "ory-client"
-version = "1.9.0"
-source = "git+https://github.com/grafbase/client-rust?rev=88ed8f63c1d71b294c2ef64fd80ca654e91ac25f#88ed8f63c1d71b294c2ef64fd80ca654e91ac25f"
+version = "1.14.3"
+source = "git+https://github.com/ory/client-rust?rev=v1.14.3#f1f1387e91efffe6e4aa2760df981b0dd131d4cd"
 dependencies = [
- "num-traits",
  "reqwest",
  "serde",
- "serde_derive",
  "serde_json",
+ "serde_with",
  "url",
+ "uuid",
 ]
 
 [[package]]
@@ -6310,12 +6287,12 @@ dependencies = [
 
 [[package]]
 name = "partial-caching"
-version = "0.77.1"
+version = "0.79.1"
 dependencies = [
  "anyhow",
  "blake3",
  "common-types",
- "cynic-parser 0.4.5",
+ "cynic-parser",
  "engine-value",
  "graph-entities",
  "headers",
@@ -7339,7 +7316,7 @@ name = "registry-v2-generator"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "cynic-parser 0.4.5",
+ "cynic-parser",
  "indexmap 2.2.6",
  "indoc",
  "itertools 0.13.0",
@@ -7379,6 +7356,7 @@ source = "git+https://github.com/grafbase/reqwest?rev=874a6b3c522de296629d454294
 dependencies = [
  "base64 0.22.1",
  "bytes",
+ "encoding_rs",
  "futures-core",
  "futures-util",
  "h2",
@@ -7404,6 +7382,7 @@ dependencies = [
  "serde_json",
  "serde_urlencoded",
  "sync_wrapper",
+ "system-configuration",
  "tokio",
  "tokio-rustls 0.26.0",
  "tokio-util",
@@ -7621,6 +7600,7 @@ dependencies = [
  "async-runtime",
  "async-trait",
  "async-tungstenite",
+ "bytes",
  "deadpool 0.12.1",
  "futures-util",
  "gateway-config",
@@ -7633,6 +7613,7 @@ dependencies = [
  "redis",
  "registry-v2",
  "reqwest",
+ "reqwest-eventsource",
  "runtime",
  "serde",
  "serde_json",
@@ -7941,7 +7922,7 @@ dependencies = [
 
 [[package]]
 name = "serde-dynamic-string"
-version = "0.77.1"
+version = "0.79.1"
 dependencies = [
  "ascii 1.1.0",
  "insta",
@@ -8269,6 +8250,12 @@ name = "siphasher"
 version = "0.3.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "38b58827f4464d87d377d175e90bf58eb00fd8716ff0a62f80356b5e61555d0d"
+
+[[package]]
+name = "size"
+version = "0.5.0-preview2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c6916a53089eff8ecef2b6efe5335365be0f1b80c7b5bc725e9c8e0d9ee05ad5"
 
 [[package]]
 name = "sized-chunks"
@@ -8771,6 +8758,27 @@ dependencies = [
  "once_cell",
  "rayon",
  "windows 0.52.0",
+]
+
+[[package]]
+name = "system-configuration"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ba3a3adc5c275d719af8cb4272ea1c4a6d668a777f37e115f6d11ddbc1c8e0e7"
+dependencies = [
+ "bitflags 1.3.2",
+ "core-foundation",
+ "system-configuration-sys",
+]
+
+[[package]]
+name = "system-configuration-sys"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a75fb188eb626b924683e3b95e3a48e63551fcfb51949de2f06a9d91dbee93c9"
+dependencies = [
+ "core-foundation-sys",
+ "libc",
 ]
 
 [[package]]
@@ -9433,7 +9441,7 @@ checksum = "6af6ae20167a9ece4bcb41af5b80f8a1f1df981f6391189ce00fd257af04126a"
 
 [[package]]
 name = "typed-resolvers"
-version = "0.77.1"
+version = "0.79.1"
 dependencies = [
  "datatest-stable",
  "engine-parser",
@@ -9601,6 +9609,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "81dfa00651efa65069b0b6b651f4aaa31ba9e3c3ce0137aaad053604ee7e0314"
 dependencies = [
  "getrandom 0.2.15",
+ "serde",
 ]
 
 [[package]]
@@ -9666,7 +9675,7 @@ checksum = "9c8d87e72b64a3b4db28d11ce29237c246188f4f51057d65a7eab63b7987e423"
 
 [[package]]
 name = "wasi-component-loader"
-version = "0.77.1"
+version = "0.79.1"
 dependencies = [
  "anyhow",
  "base64 0.22.1",

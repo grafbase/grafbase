@@ -71,17 +71,19 @@ pub fn render_federated_sdl(graph: &FederatedGraphV3) -> Result<String, fmt::Err
         if !object.keys.is_empty() {
             sdl.push('\n');
             for key in &object.keys {
-                let selection_set = FieldSetDisplay(&key.fields, graph);
                 let subgraph_name = GraphEnumVariantName(&graph[graph[key.subgraph_id].name]);
-                if key.resolvable {
+                if key.fields.is_empty() {
                     writeln!(
                         sdl,
-                        r#"{INDENT}@join__type(graph: {subgraph_name}, key: {selection_set})"#
+                        r#"{INDENT}@join__type(graph: {subgraph_name}{resolvable})"#,
+                        resolvable = if key.resolvable { "" } else { ", resolvable: false" }
                     )?;
                 } else {
                     writeln!(
                         sdl,
-                        r#"{INDENT}@join__type(graph: {subgraph_name}, key: {selection_set}, resolvable: false)"#
+                        r#"{INDENT}@join__type(graph: {subgraph_name}, key: {selection_set}{resolvable})"#,
+                        selection_set = FieldSetDisplay(&key.fields, graph),
+                        resolvable = if key.resolvable { "" } else { ", resolvable: false" }
                     )?;
                 }
             }
@@ -558,6 +560,54 @@ mod tests {
 
             type Query {
                 field: String @deprecated(reason: "This is a \"deprecated\" reason") @dummy(test: "a \"test\"")
+            }
+        "#]];
+
+        expected.assert_eq(&actual);
+    }
+
+    #[test]
+    fn multiline_strings() {
+        use expect_test::expect;
+
+        let empty = from_sdl(
+            r###"
+            directive @dummy(test: String!) on FIELD
+
+            type Query {
+                field: String @deprecated(reason: """This is a "deprecated" reason
+
+                on multiple lines.
+
+                yes, way
+                
+                """) @dummy(test: "a \"test\"")
+            }
+            "###,
+        )
+        .unwrap();
+        let actual = render_federated_sdl(&empty.into_latest()).expect("valid");
+        let expected = expect![[r#"
+            directive @core(feature: String!) repeatable on SCHEMA
+
+            directive @join__owner(graph: join__Graph!) on OBJECT
+
+            directive @join__type(
+                graph: join__Graph!
+                key: String!
+                resolvable: Boolean = true
+            ) repeatable on OBJECT | INTERFACE
+
+            directive @join__field(
+                graph: join__Graph
+                requires: String
+                provides: String
+            ) on FIELD_DEFINITION
+
+            directive @join__graph(name: String!, url: String!) on ENUM_VALUE
+
+            type Query {
+                field: String @deprecated(reason: "This is a \"deprecated\" reason\n\non multiple lines.\n\nyes, way") @dummy(test: "a \"test\"")
             }
         "#]];
 

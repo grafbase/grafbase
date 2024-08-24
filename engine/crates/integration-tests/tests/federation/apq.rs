@@ -9,8 +9,7 @@ fn single_field_from_single_server() {
 
         let query = "query { serverVersion }";
 
-        let execute =
-            |query: &'static str, extensions: &serde_json::Value| engine.execute(query).extensions(extensions);
+        let execute = |query: &'static str, extensions: &serde_json::Value| engine.post(query).extensions(extensions);
 
         let apq_ext = serde_json::json!({
             "persistedQuery": {

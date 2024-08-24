@@ -12,7 +12,9 @@ async-graphql-parser.workspace = true
 async-graphql.workspace = true
 async-once-cell = "0.5.3"
 async-runtime.workspace = true
+async-sse.workspace = true
 async-trait.workspace = true
+bytes.workspace = true
 crossbeam-queue = "0.3"
 cynic.workspace = true
 cynic-introspection.workspace = true
@@ -32,11 +34,13 @@ headers.workspace = true
 http.workspace = true
 indoc = "2.0.5"
 insta.workspace = true
-multipart-stream = "0.1.2"
+itertools.workspace = true
+multipart-stream.workspace = true
 names = "0.14.1-dev"
 openidconnect.workspace = true
 reqwest.workspace = true
 serde.workspace = true
+serde_urlencoded.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true
 ulid.workspace = true
@@ -45,7 +49,7 @@ wiremock.workspace = true
 registry-upgrade.workspace = true
 runtime-local = { workspace = true, features = ["wasi", "redis"] }
 runtime-noop.workspace = true
-ory-client = "1.9.0"
+ory-client = "1.9.0" # overridden by patch, pointing to their last release on GitHub
 tracing-subscriber = { version = "0.3.18", default-features = false, features = [
   "fmt",
   "tracing-log",
@@ -94,7 +98,7 @@ features = ["tower"]
 
 [dev-dependencies]
 similar-asserts = "1.5"
-cynic-parser = "0.4"
+cynic-parser.workspace = true
 base64.workspace = true
 rstest.workspace = true
 const_format = "0.2.32"
@@ -106,7 +110,8 @@ hex.workspace = true
 secrecy.workspace = true
 gateway-v2-auth.workspace = true
 common-types.workspace = true
-itertools.workspace = true
+pretty_assertions = "1"
+
 
 [[bench]]
 name = "federation"

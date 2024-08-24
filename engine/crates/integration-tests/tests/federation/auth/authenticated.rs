@@ -37,7 +37,7 @@ fn authenticated() {
             .await;
 
         let response = engine
-            .execute("query { check { anonymous } }")
+            .post("query { check { anonymous } }")
             .header("Authorization", format!("Bearer {token}"))
             .await;
         insta::assert_json_snapshot!(response, @r###"
@@ -51,7 +51,7 @@ fn authenticated() {
         "###);
 
         let response = engine
-            .execute("query { check { mustBeAuthenticated } }")
+            .post("query { check { mustBeAuthenticated } }")
             .header("Authorization", format!("Bearer {token}"))
             .await;
         insta::assert_json_snapshot!(response, @r###"
@@ -69,7 +69,7 @@ fn authenticated() {
 #[test]
 fn not_authenticated() {
     with_secure_schema(|engine| async move {
-        let response = engine.execute("query { check { anonymous } }").await;
+        let response = engine.post("query { check { anonymous } }").await;
         insta::assert_json_snapshot!(response, @r###"
         {
           "data": {
@@ -80,7 +80,7 @@ fn not_authenticated() {
         }
         "###);
 
-        let response = engine.execute("query { check { mustBeAuthenticated } }").await;
+        let response = engine.post("query { check { mustBeAuthenticated } }").await;
         insta::assert_json_snapshot!(response, @r###"
         {
           "data": null,
@@ -124,7 +124,7 @@ fn not_authenticated() {
 fn faillible_authenticated() {
     with_secure_schema(|engine| async move {
         let response = engine
-            .execute("query { check { anonymous faillibleMustBeAuthenticated } }")
+            .post("query { check { anonymous faillibleMustBeAuthenticated } }")
             .await;
         insta::assert_json_snapshot!(response, @r###"
         {
@@ -154,7 +154,7 @@ fn faillible_authenticated() {
 #[test]
 fn authenticated_on_nullable_field() {
     with_secure_schema(|engine| async move {
-        let response = engine.execute("query { nullableCheck { mustBeAuthenticated } }").await;
+        let response = engine.post("query { nullableCheck { mustBeAuthenticated } }").await;
         insta::assert_json_snapshot!(response, @r###"
         {
           "data": {
@@ -181,7 +181,7 @@ fn authenticated_on_nullable_field() {
 fn authenticated_on_union() {
     with_secure_schema(|engine| async move {
         let response = engine
-            .execute("query { entity(check: false) { __typename ... on Check { mustBeAuthenticated } } }")
+            .post("query { entity(check: false) { __typename ... on Check { mustBeAuthenticated } } }")
             .await;
         insta::assert_json_snapshot!(response, @r###"
         {
@@ -194,7 +194,7 @@ fn authenticated_on_union() {
         "###);
 
         let response = engine
-            .execute("query { entity(check: true) { __typename ... on Check { mustBeAuthenticated } } }")
+            .post("query { entity(check: true) { __typename ... on Check { mustBeAuthenticated } } }")
             .await;
         insta::assert_json_snapshot!(response, @r###"
         {
@@ -215,7 +215,7 @@ fn authenticated_on_union() {
         "###);
 
         let response = engine
-            .execute("query { entity(check: true) { __typename ... on Check { faillibleMustBeAuthenticated } } }")
+            .post("query { entity(check: true) { __typename ... on Check { faillibleMustBeAuthenticated } } }")
             .await;
         insta::assert_json_snapshot!(response, @r###"
         {
@@ -246,7 +246,7 @@ fn authenticated_on_union() {
 fn authenticated_on_list_with_nullable_items() {
     with_secure_schema(|engine| async move {
         let response = engine
-            .execute(
+            .post(
                 r###"
                 query {
                     entitiesNullable(check: false) {
@@ -272,7 +272,7 @@ fn authenticated_on_list_with_nullable_items() {
         "###);
 
         let response = engine
-            .execute(
+            .post(
                 r###"
                 query {
                     entitiesNullable(check: true) {
@@ -312,7 +312,7 @@ fn authenticated_on_list_with_nullable_items() {
         "###);
 
         let response = engine
-            .execute(
+            .post(
                 r###"
                 query {
                     entitiesNullable(check: true) {
@@ -360,7 +360,7 @@ fn authenticated_on_list_with_nullable_items() {
 fn authenticated_on_list_with_required_items() {
     with_secure_schema(|engine| async move {
         let response = engine
-            .execute(
+            .post(
                 r###"
                 query {
                     entities(check: false) {
@@ -386,7 +386,7 @@ fn authenticated_on_list_with_required_items() {
         "###);
 
         let response = engine
-            .execute(
+            .post(
                 r###"
                 query {
                     entities(check: true) {
@@ -418,7 +418,7 @@ fn authenticated_on_list_with_required_items() {
         "###);
 
         let response = engine
-            .execute(
+            .post(
                 r###"
                 query {
                     entities(check: true) {

@@ -8,8 +8,15 @@ use super::schema;
 pub struct GraphCreateInput<'a> {
     pub account_id: cynic::Id,
     pub graph_slug: &'a str,
-    pub repo_root_path: &'a str,
+    pub repo_root_path: Option<&'a str>,
     pub environment_variables: Vec<EnvironmentVariableSpecification<'a>>,
+    pub graph_mode: GraphMode,
+}
+
+#[derive(cynic::Enum, Clone, Debug, Copy)]
+pub enum GraphMode {
+    Managed,
+    SelfHosted,
 }
 
 #[derive(cynic::InputObject, Clone, Debug)]
@@ -146,6 +153,56 @@ pub enum GraphCreatePayload {
 
 #[derive(cynic::QueryFragment, Debug)]
 pub struct ProjectDoesNotExistError {
+    pub __typename: String,
+}
+
+#[derive(cynic::QueryFragment, Debug)]
+pub struct GraphDoesNotExistError {
+    pub __typename: String,
+}
+
+#[derive(cynic::QueryVariables)]
+pub struct BranchCreateArguments<'a> {
+    pub input: BranchCreateInput<'a>,
+}
+
+#[derive(cynic::QueryFragment, Debug)]
+pub struct BranchAlreadyExistsError {
+    pub __typename: String,
+}
+
+#[derive(cynic::QueryFragment, Debug)]
+pub struct GraphNotSelfHostedError {
+    pub __typename: String,
+}
+
+#[derive(cynic::InputObject, Debug)]
+pub struct BranchCreateInput<'a> {
+    pub account_slug: &'a str,
+    pub graph_slug: &'a str,
+    pub branch_name: &'a str,
+}
+
+#[derive(cynic::QueryFragment)]
+#[cynic(graphql_type = "Mutation", variables = "BranchCreateArguments")]
+pub struct BranchCreate {
+    #[arguments(input: $input)]
+    pub branch_create: BranchCreatePayload,
+}
+
+#[derive(cynic::InlineFragments)]
+pub enum BranchCreatePayload {
+    Success(BranchCreateSuccess),
+    BranchAlreadyExists(BranchAlreadyExistsError),
+    GraphDoesNotExist(GraphDoesNotExistError),
+    GraphNotSelfHosted(GraphNotSelfHostedError),
+    #[cynic(fallback)]
+    Unknown(String),
+}
+
+#[derive(cynic::QueryFragment)]
+#[cynic(graphql_type = "Query")]
+pub struct BranchCreateSuccess {
     pub __typename: String,
 }
 

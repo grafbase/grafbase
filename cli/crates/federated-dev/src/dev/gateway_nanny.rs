@@ -5,10 +5,10 @@ use crate::ConfigWatcher;
 use super::bus::{EngineSender, GraphWatcher};
 use engine_v2::Engine;
 use futures_concurrency::stream::Merge;
-use futures_util::{future::BoxFuture, stream::BoxStream, FutureExt as _, StreamExt};
+use futures_util::{stream::BoxStream, StreamExt};
 use gateway_config::GraphRateLimit;
 use runtime::rate_limiting::RateLimitKey;
-use runtime_local::{rate_limiting::in_memory::key_based::InMemoryRateLimiter, InMemoryEntityCache};
+use runtime_local::{rate_limiting::in_memory::key_based::InMemoryRateLimiter, InMemoryEntityCache, NativeFetcher};
 use tokio_stream::wrappers::WatchStream;
 
 /// The GatewayNanny looks after the `Gateway` - on updates to the graph or config it'll
@@ -53,7 +53,7 @@ pub(super) async fn new_gateway(config: Option<engine_v2::VersionedConfig>) -> O
     let config = config?.into_latest();
 
     let runtime = CliRuntime {
-        fetcher: runtime_local::NativeFetcher::runtime_fetcher(),
+        fetcher: NativeFetcher::default(),
         trusted_documents: runtime::trusted_documents_client::Client::new(
             runtime_noop::trusted_documents::NoopTrustedDocuments,
         ),
@@ -98,7 +98,7 @@ pub(super) async fn new_gateway(config: Option<engine_v2::VersionedConfig>) -> O
 }
 
 pub struct CliRuntime {
-    fetcher: runtime::fetch::Fetcher,
+    fetcher: NativeFetcher,
     trusted_documents: runtime::trusted_documents_client::Client,
     kv: runtime::kv::KvStore,
     meter: grafbase_telemetry::otel::opentelemetry::metrics::Meter,
@@ -108,9 +108,10 @@ pub struct CliRuntime {
 
 impl engine_v2::Runtime for CliRuntime {
     type Hooks = ();
-    type CacheFactory = ();
+    type Fetcher = NativeFetcher;
+    type OperationCacheFactory = ();
 
-    fn fetcher(&self) -> &runtime::fetch::Fetcher {
+    fn fetcher(&self) -> &Self::Fetcher {
         &self.fetcher
     }
 
@@ -130,7 +131,7 @@ impl engine_v2::Runtime for CliRuntime {
         &()
     }
 
-    fn cache_factory(&self) -> &() {
+    fn operation_cache_factory(&self) -> &() {
         &()
     }
 
@@ -138,8 +139,8 @@ impl engine_v2::Runtime for CliRuntime {
         &self.rate_limiter
     }
 
-    fn sleep(&self, duration: std::time::Duration) -> BoxFuture<'static, ()> {
-        tokio::time::sleep(duration).boxed()
+    async fn sleep(&self, duration: std::time::Duration) {
+        tokio::time::sleep(duration).await
     }
 
     fn entity_cache(&self) -> &dyn runtime::entity_cache::EntityCache {

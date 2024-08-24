@@ -2,8 +2,8 @@ use bytes::Bytes;
 use futures::future::join_all;
 use grafbase_telemetry::{gql_response_status::GraphqlResponseStatus, span::subgraph::SubgraphRequestSpan};
 use http::HeaderMap;
-use runtime::fetch::FetchRequest;
-use schema::sources::graphql::{FederationEntityResolveDefinitionrWalker, GraphqlEndpointId};
+use runtime::bytes::OwnedOrSharedBytes;
+use schema::sources::graphql::{FederationEntityResolveDefinitionrWalker, GraphqlEndpointId, GraphqlEndpointWalker};
 use serde::{de::DeserializeSeed, Deserialize};
 use serde_json::value::RawValue;
 use std::{borrow::Cow, future::Future, time::Duration};
@@ -24,7 +24,9 @@ use crate::{
 };
 
 use super::{
+    calculate_cache_ttl,
     deserialize::EntitiesDataSeed,
+    record,
     request::{execute_subgraph_request, PreparedFederationEntityOperation, ResponseIngester},
 };
 
@@ -62,7 +64,7 @@ impl FederationEntityResolver {
         )]);
         let mut representations = root_response_objects
             .iter()
-            .map(|object| serde_json::to_string(&object).and_then(RawValue::from_string))
+            .map(|object| serde_json::value::to_raw_value(&object))
             .collect::<Result<Vec<_>, _>>()?;
 
         let endpoint = ctx.engine.schema.walk(self.endpoint_id);
@@ -96,7 +98,9 @@ impl FederationEntityResolver {
                             ingester.cache_entries = Some(cache_entries);
 
                             let (_, response) = ingester
-                                .ingest(Bytes::from_static(br#"{"data": {"_entities": []}}"#))
+                                .ingest(http::Response::new(
+                                    Bytes::from_static(br#"{"data": {"_entities": []}}"#).into(),
+                                ))
                                 .await?;
 
                             return Ok(response);
@@ -128,19 +132,15 @@ impl FederationEntityResolver {
                 })
                 .map_err(|err| format!("Failed to serialize query: {err}"))?;
 
-                let retry_budget = ctx.engine.get_retry_budget_for_query(self.endpoint_id);
+                let retry_budget = ctx.engine.get_retry_budget_for_non_mutation(self.endpoint_id);
 
                 execute_subgraph_request(
                     ctx,
                     span.clone(),
                     self.endpoint_id,
                     retry_budget,
-                    move || FetchRequest {
-                        url: endpoint.url(),
-                        headers,
-                        json_body: Bytes::from(body),
-                        timeout: endpoint.timeout(),
-                    },
+                    headers,
+                    Bytes::from(body),
                     ingester,
                 )
                 .await
@@ -160,7 +160,7 @@ async fn cache_fetches<'ctx, R: Runtime>(
 ) -> CacheFetchOutcome {
     let fetches = representations
         .iter()
-        .map(|repr| cache_fetch(ctx, endpoint.subgraph_name(), headers, repr));
+        .map(|repr| cache_fetch(ctx, endpoint, headers, repr));
 
     let cache_entries = join_all(fetches).await;
     let fully_cached = !cache_entries.iter().any(CacheEntry::is_miss);
@@ -221,7 +221,10 @@ impl<'ctx, R> ResponseIngester for EntityIngester<'ctx, R>
 where
     R: Runtime,
 {
-    async fn ingest(self, bytes: Bytes) -> Result<(GraphqlResponseStatus, SubgraphResponse), ExecutionError> {
+    async fn ingest(
+        self,
+        http_response: http::Response<OwnedOrSharedBytes>,
+    ) -> Result<(GraphqlResponseStatus, SubgraphResponse), ExecutionError> {
         let Self {
             ctx,
             cache_entries,
@@ -239,13 +242,13 @@ where
                 },
                 EntitiesErrorsSeed::new(ctx, response),
             )
-            .deserialize(&mut serde_json::Deserializer::from_slice(&bytes))?
+            .deserialize(&mut serde_json::Deserializer::from_slice(http_response.body()))?
         };
 
-        if let Some(cache_ttl) = cache_ttl {
-            if let Some(cache_entries) = cache_entries.filter(|_| status.is_success()) {
-                update_cache(ctx, cache_ttl, bytes, cache_entries).await
-            }
+        let cache_ttl = calculate_cache_ttl(status, http_response.headers(), cache_ttl);
+
+        if let Some((cache_ttl, cache_entries)) = cache_ttl.zip(cache_entries) {
+            update_cache(ctx, cache_ttl, http_response.into_body(), cache_entries).await
         }
 
         Ok((status, subgraph_response))
@@ -255,7 +258,7 @@ where
 async fn update_cache<R: Runtime>(
     ctx: ExecutionContext<'_, R>,
     cache_ttl: Duration,
-    bytes: Bytes,
+    bytes: OwnedOrSharedBytes,
     cache_entries: Vec<CacheEntry>,
 ) {
     let mut entities = match Response::deserialize(&mut serde_json::Deserializer::from_slice(&bytes)) {
@@ -306,11 +309,11 @@ struct Data<'a> {
 
 async fn cache_fetch<R: Runtime>(
     ctx: ExecutionContext<'_, R>,
-    subgraph_name: &str,
+    endpoint: GraphqlEndpointWalker<'_>,
     headers: &HeaderMap,
     repr: &RawValue,
 ) -> CacheEntry {
-    let key = build_cache_key(subgraph_name, headers, repr);
+    let key = build_cache_key(endpoint.subgraph_name(), headers, repr);
 
     let data = ctx
         .engine
@@ -323,8 +326,14 @@ async fn cache_fetch<R: Runtime>(
         .flatten();
 
     match data {
-        Some(data) => CacheEntry::Hit { data },
-        None => CacheEntry::Miss { key },
+        Some(data) => {
+            record::record_subgraph_cache_hit(ctx, endpoint);
+            CacheEntry::Hit { data }
+        }
+        None => {
+            record::record_subgraph_cache_miss(ctx, endpoint);
+            CacheEntry::Miss { key }
+        }
     }
 }
 

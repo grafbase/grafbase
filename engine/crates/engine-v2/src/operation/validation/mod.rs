@@ -27,13 +27,9 @@ impl From<ValidationError> for GraphqlError {
     }
 }
 
-pub(super) fn validate_operation(
-    schema: &Schema,
-    operation: OperationWalker<'_>,
-    request: &engine::Request,
-) -> Result<(), ValidationError> {
-    enforce_operation_limits(schema, operation, request)?;
-    ensure_introspection_is_accepted(schema, operation, request)?;
+pub(super) fn validate_operation(schema: &Schema, operation: OperationWalker<'_>) -> Result<(), ValidationError> {
+    enforce_operation_limits(schema, operation)?;
+    ensure_introspection_is_accepted(schema, operation)?;
 
     Ok(())
 }

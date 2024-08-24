@@ -110,7 +110,10 @@ pub(super) async fn plan<'ctx, R: Runtime>(
                 "**{id}**\n  input <- {}\n  ouput -> {}",
                 plan.parent_count,
                 plan.children.iter().join(",")
-            ))),
+            )))
+            // with opentelemetry this string might be formatted more than once... Leading to a
+            // panic with .format_with()
+            .to_string()
     );
 
     Ok(operation)

@@ -1,9 +1,15 @@
-version: '3'
 services:
+  sse-subgraph:
+    restart: unless-stopped
+    build:
+      context: ./data/sse-subgraph
+    ports:
+      - '4092:4092'
+
   # MongoDB
   data-api:
     image: grafbase/mongodb-data-api:latest
-    restart: always
+    restart: unless-stopped
     environment:
       MONGODB_DATABASE_URL: 'mongodb://grafbase:grafbase@mongodb:27017'
     ports:
@@ -15,7 +21,7 @@ services:
 
   mongodb:
     image: mongo:latest
-    restart: always
+    restart: unless-stopped
     environment:
       MONGO_INITDB_ROOT_USERNAME: 'grafbase'
       MONGO_INITDB_ROOT_PASSWORD: 'grafbase'
@@ -28,7 +34,7 @@ services:
   # Postgres
   postgres:
     image: postgres:16
-    restart: always
+    restart: unless-stopped
     command: postgres -c 'max_connections=1000'
     environment:
       POSTGRES_PASSWORD: 'grafbase'
@@ -61,7 +67,7 @@ services:
     environment:
       DSN: 'sqlite:///var/lib/sqlite/db.sqlite?_fk=true'
       URLS_SELF_ISSUER: 'http://127.0.0.1:4444'
-    restart: always
+    restart: unless-stopped
     depends_on:
       - hydra-migrate
     networks:
@@ -104,7 +110,7 @@ services:
       URLS_SELF_ISSUER: 'http://127.0.0.1:4454'
       SERVE_PUBLIC_PORT: '4454'
       SERVE_ADMIN_PORT: '4455'
-    restart: always
+    restart: unless-stopped
     depends_on:
       - hydra-migrate
     networks:

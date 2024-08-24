@@ -6,7 +6,7 @@ use crate::{cli_input::BranchRef, errors::CliError, output::report};
 pub async fn delete(branch_ref: BranchRef) -> Result<(), CliError> {
     report::delete_branch();
 
-    branch::delete(branch_ref.account(), branch_ref.project(), branch_ref.branch())
+    branch::delete(branch_ref.account(), branch_ref.graph(), branch_ref.branch())
         .await
         .map_err(CliError::BackendApiError)?;
 
@@ -19,6 +19,19 @@ pub async fn delete(branch_ref: BranchRef) -> Result<(), CliError> {
 pub async fn list() -> Result<(), CliError> {
     let branches = branch::list().await.map_err(CliError::BackendApiError)?;
     report::list_branches(branches);
+
+    Ok(())
+}
+
+#[tokio::main]
+pub async fn create(branch_ref: BranchRef) -> Result<(), CliError> {
+    report::create_branch();
+
+    branch::create(branch_ref.account(), branch_ref.graph(), branch_ref.branch())
+        .await
+        .map_err(CliError::BackendApiError)?;
+
+    report::create_branch_success();
 
     Ok(())
 }

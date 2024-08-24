@@ -3,9 +3,12 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use futures::stream::BoxStream;
+use bytes::Bytes;
 use graphql_mocks::ReceivedRequest;
-use runtime::fetch::{FetchError, FetchRequest, FetchResponse, FetchResult, GraphqlRequest};
+use runtime::{
+    bytes::OwnedOrSharedBytes,
+    fetch::{dynamic::DynFetcher, FetchError, FetchRequest, FetchResult},
+};
 
 #[derive(Clone, Default)]
 pub struct MockFetch {
@@ -31,14 +34,14 @@ impl MockFetch {
 }
 
 #[async_trait::async_trait]
-impl runtime::fetch::FetcherInner for MockFetch {
-    async fn post(&self, request: &FetchRequest<'_>) -> FetchResult<FetchResponse> {
+impl DynFetcher for MockFetch {
+    async fn fetch(&self, request: FetchRequest<'_, Bytes>) -> FetchResult<http::Response<OwnedOrSharedBytes>> {
         let host = request.url.host_str().unwrap();
         self.requests.push((
             host.to_string(),
             ReceivedRequest {
                 headers: request.headers.clone(),
-                body: serde_json::from_slice(&request.json_body).unwrap(),
+                body: serde_json::from_slice(&request.body).unwrap(),
             },
         ));
 
@@ -47,14 +50,7 @@ impl runtime::fetch::FetcherInner for MockFetch {
             .unwrap()
             .get(host)
             .and_then(|responses| responses.pop())
-            .map(|bytes| FetchResponse { bytes: bytes.into() })
+            .map(|bytes| http::Response::builder().body(bytes.into()).unwrap())
             .ok_or(FetchError::any("No more responses"))
-    }
-
-    async fn stream(
-        &self,
-        _request: GraphqlRequest<'_>,
-    ) -> FetchResult<BoxStream<'static, Result<serde_json::Value, FetchError>>> {
-        unreachable!()
     }
 }

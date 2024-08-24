@@ -102,7 +102,7 @@ pub fn complex_schema(c: &mut Criterion) {
 }
 
 pub fn cynic_complex_schema(c: &mut Criterion) {
-    let mut group = c.benchmark_group("cynic_complex_schema");
+    let mut group = c.benchmark_group("cynic_schema");
 
     for (size, case) in ComplexSchemaAndQuery::cases() {
         group.throughput(Throughput::Bytes(case.schema.len() as u64));
@@ -284,7 +284,7 @@ impl ComplexSchemaAndQuery {
     }
 
     async fn to_engine(&self) -> DeterministicEngine {
-        DeterministicEngine::builder(&self.schema, self.query.clone())
+        DeterministicEngine::builder(&self.schema, &self.query)
             .without_hot_cache()
             .with_subgraph_response(json!({"data":{"node":{"id":"1234", "__typename": "Nothing"}}}))
             .build()

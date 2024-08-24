@@ -230,7 +230,7 @@ jobs:
         run: |
           # Re-use the latest layers if possible
           docker pull ghcr.io/grafbase/gateway:latest || true
-          docker build -t ghcr.io/grafbase/gateway:$COMMIT_SHA .
+          docker build -f gateway/Dockerfile -t ghcr.io/grafbase/gateway:$COMMIT_SHA .
 
       - name: Tag latest version
         if: ${{ github.ref == 'refs/heads/main' }}

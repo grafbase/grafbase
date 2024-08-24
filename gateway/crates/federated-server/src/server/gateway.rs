@@ -9,7 +9,10 @@ use tokio::sync::watch;
 
 use engine_v2::Engine;
 use graphql_composition::FederatedGraph;
-use runtime_local::{ComponentLoader, HooksWasi, InMemoryEntityCache, InMemoryKvStore, RedisEntityCache};
+use runtime_local::{
+    ComponentLoader, HooksWasi, InMemoryEntityCache, InMemoryKvStore, InMemoryOperationCacheFactory, NativeFetcher,
+    RedisEntityCache,
+};
 use runtime_noop::trusted_documents::NoopTrustedDocuments;
 
 use gateway_config::{Config, EntityCachingRedisConfig};
@@ -45,9 +48,10 @@ pub(super) async fn generate(
             ));
         };
 
-        runtime::trusted_documents_client::Client::new(super::trusted_documents_client::TrustedDocumentsClient {
-            http_client: Default::default(),
-            bypass_header: gateway_config
+        runtime::trusted_documents_client::Client::new(super::trusted_documents_client::TrustedDocumentsClient::new(
+            Default::default(),
+            branch_id,
+            gateway_config
                 .trusted_documents
                 .bypass_header
                 .bypass_header_name
@@ -60,8 +64,7 @@ pub(super) async fn generate(
                         .as_ref(),
                 )
                 .map(|(name, value)| (name.clone().into(), String::from(value.as_ref()))),
-            branch_id,
-        })
+        ))
     } else {
         runtime::trusted_documents_client::Client::new(NoopTrustedDocuments)
     };
@@ -69,6 +72,7 @@ pub(super) async fn generate(
     let mut redis_factory = RedisPoolFactory::default();
 
     let watcher = ConfigWatcher::init(gateway_config.clone(), hot_reload_config_path)?;
+    let meter = grafbase_telemetry::metrics::meter_from_global_provider();
 
     let rate_limiter = match config.rate_limit_config() {
         Some(config) if config.storage.is_redis() => {
@@ -86,7 +90,7 @@ pub(super) async fn generate(
                 key_prefix: config.redis.key_prefix,
             };
 
-            RedisRateLimiter::runtime(global_config, pool, watcher)
+            RedisRateLimiter::runtime(global_config, pool, watcher, &meter)
                 .await
                 .map_err(|e| crate::Error::InternalError(e.to_string()))?
         }
@@ -111,22 +115,23 @@ pub(super) async fn generate(
         }
     };
 
+    let hooks = gateway_config
+        .hooks
+        .clone()
+        .map(ComponentLoader::new)
+        .transpose()
+        .map_err(|e| crate::Error::InternalError(e.to_string()))?
+        .flatten();
+
     let runtime = GatewayRuntime {
-        fetcher: runtime_local::NativeFetcher::runtime_fetcher(),
+        fetcher: NativeFetcher::default(),
         kv: InMemoryKvStore::runtime(),
         trusted_documents,
-        meter: grafbase_telemetry::metrics::meter_from_global_provider(),
-        hooks: HooksWasi::new(
-            gateway_config
-                .hooks
-                .clone()
-                .map(ComponentLoader::new)
-                .transpose()
-                .map_err(|e| crate::Error::InternalError(e.to_string()))?
-                .flatten(),
-        ),
+        hooks: HooksWasi::new(hooks, &meter),
+        meter,
         rate_limiter,
         entity_cache,
+        operation_cache_factory: InMemoryOperationCacheFactory::default(),
     };
 
     let config = config
@@ -137,44 +142,51 @@ pub(super) async fn generate(
 }
 
 pub struct GatewayRuntime {
-    fetcher: runtime::fetch::Fetcher,
+    fetcher: NativeFetcher,
     trusted_documents: runtime::trusted_documents_client::Client,
     kv: runtime::kv::KvStore,
     meter: grafbase_telemetry::otel::opentelemetry::metrics::Meter,
     hooks: HooksWasi,
     rate_limiter: runtime::rate_limiting::RateLimiter,
     entity_cache: Box<dyn EntityCache>,
+    operation_cache_factory: InMemoryOperationCacheFactory,
 }
 
 impl engine_v2::Runtime for GatewayRuntime {
     type Hooks = HooksWasi;
-    type CacheFactory = ();
+    type Fetcher = NativeFetcher;
+    type OperationCacheFactory = InMemoryOperationCacheFactory;
 
-    fn fetcher(&self) -> &runtime::fetch::Fetcher {
+    fn fetcher(&self) -> &Self::Fetcher {
         &self.fetcher
     }
+
     fn trusted_documents(&self) -> &runtime::trusted_documents_client::Client {
         &self.trusted_documents
     }
+
     fn kv(&self) -> &runtime::kv::KvStore {
         &self.kv
     }
+
     fn meter(&self) -> &grafbase_telemetry::otel::opentelemetry::metrics::Meter {
         &self.meter
     }
+
     fn hooks(&self) -> &HooksWasi {
         &self.hooks
     }
-    fn cache_factory(&self) -> &Self::CacheFactory {
-        &()
+
+    fn operation_cache_factory(&self) -> &Self::OperationCacheFactory {
+        &self.operation_cache_factory
     }
 
     fn rate_limiter(&self) -> &runtime::rate_limiting::RateLimiter {
         &self.rate_limiter
     }
 
-    fn sleep(&self, duration: std::time::Duration) -> futures_util::future::BoxFuture<'static, ()> {
-        Box::pin(tokio::time::sleep(duration))
+    async fn sleep(&self, duration: std::time::Duration) {
+        tokio::time::sleep(duration).await
     }
 
     fn entity_cache(&self) -> &dyn EntityCache {

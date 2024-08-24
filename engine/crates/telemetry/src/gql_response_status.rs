@@ -13,6 +13,7 @@ pub enum GraphqlResponseStatus {
     RequestError {
         count: u64,
     },
+    RefusedRequest,
 }
 
 impl GraphqlResponseStatus {
@@ -27,6 +28,7 @@ impl GraphqlResponseStatus {
                 }
             }
             Self::RequestError { .. } => "REQUEST_ERROR",
+            Self::RefusedRequest => "REFUSED_REQUEST",
         }
     }
 
@@ -41,6 +43,7 @@ impl GraphqlResponseStatus {
     // Used to generate a status for a streaming response or a batch request.
     pub fn union(self, other: Self) -> Self {
         match (self, other) {
+            (Self::RefusedRequest, _) | (_, Self::RefusedRequest) => Self::RefusedRequest,
             (s @ Self::RequestError { .. }, _) => s,
             (_, s @ Self::RequestError { .. }) => s,
             (Self::Success, s @ Self::FieldError { .. }) => s,
@@ -57,13 +60,13 @@ impl GraphqlResponseStatus {
 
     pub fn encode(&self) -> String {
         use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
-        URL_SAFE_NO_PAD.encode(serde_json::to_vec(self).expect("valid json"))
+        URL_SAFE_NO_PAD.encode(postcard::to_stdvec(self).expect("valid json"))
     }
 
     pub fn decode(bytes: &str) -> Option<Self> {
         use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
         let bytes = URL_SAFE_NO_PAD.decode(bytes).ok()?;
-        serde_json::from_slice(&bytes).ok()
+        postcard::from_bytes(&bytes).ok()
     }
 }
 

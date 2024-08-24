@@ -1,6 +1,6 @@
 [package]
 name = "federated-server"
-version = "0.8.0"
+version = "0.10.0"
 edition.workspace = true
 license = "MPL-2.0"
 homepage.workspace = true
@@ -25,11 +25,9 @@ async-trait = "0.1.80"
 axum = { workspace = true, features = ["macros", "ws", "query", "json"] }
 axum-server = { version = "0.6.0", features = ["tls-rustls"] }
 blake3.workspace = true
-engine.workspace = true
 engine-config-builder.workspace = true
 engine-v2.workspace = true
 engine-v2-axum.workspace = true
-futures-util.workspace = true
 grafbase-telemetry = { workspace = true, features = ["tower", "otlp"] }
 gateway-config.workspace = true
 graphql-composition.workspace = true

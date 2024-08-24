@@ -1,4 +1,4 @@
-use crate::telemetry::metrics::METRICS_DELAY;
+use crate::telemetry::metrics::{SumRow, METRICS_DELAY};
 
 use super::{with_gateway, ExponentialHistogramRow};
 
@@ -15,14 +15,14 @@ fn basic() {
         "###);
         tokio::time::sleep(METRICS_DELAY).await;
 
-        let row = clickhouse
+        let mut row = clickhouse
             .query(
                 r#"
                 SELECT Count, Attributes
                 FROM otel_metrics_exponential_histogram
                 WHERE ServiceName = ? AND StartTimeUnix >= ?
                     AND ScopeName = 'grafbase'
-                    AND MetricName = 'request_latency'
+                    AND MetricName = 'http.server.request.duration'
                 "#,
             )
             .bind(&service_name)
@@ -30,12 +30,21 @@ fn basic() {
             .fetch_one::<ExponentialHistogramRow>()
             .await
             .unwrap();
+
+        assert!(row.attributes.contains_key("server.port"));
+        row.attributes.insert("server.port".to_string(), "XXXXX".to_string());
+
         insta::assert_json_snapshot!(row, @r###"
         {
           "Count": 1,
           "Attributes": {
-            "gql.response.status": "SUCCESS",
-            "http.response.status_code": "200"
+            "graphql.response.status": "SUCCESS",
+            "http.request.method": "POST",
+            "http.response.status_code": "200",
+            "http.route": "/graphql",
+            "network.protocol.version": "HTTP/1.1",
+            "server.address": "127.0.0.1",
+            "server.port": "XXXXX"
           }
         }
         "###);
@@ -64,16 +73,17 @@ fn request_error() {
           ]
         }
         "###);
+
         tokio::time::sleep(METRICS_DELAY).await;
 
-        let row = clickhouse
+        let mut row = clickhouse
             .query(
                 r#"
                 SELECT Count, Attributes
                 FROM otel_metrics_exponential_histogram
                 WHERE ServiceName = ? AND StartTimeUnix >= ?
                     AND ScopeName = 'grafbase'
-                    AND MetricName = 'request_latency'
+                    AND MetricName = 'http.server.request.duration'
                 "#,
             )
             .bind(&service_name)
@@ -81,12 +91,21 @@ fn request_error() {
             .fetch_one::<ExponentialHistogramRow>()
             .await
             .unwrap();
+
+        assert!(row.attributes.contains_key("server.port"));
+        row.attributes.insert("server.port".to_string(), "XXXXX".to_string());
+
         insta::assert_json_snapshot!(row, @r###"
         {
           "Count": 1,
           "Attributes": {
-            "gql.response.status": "REQUEST_ERROR",
-            "http.response.status_code": "200"
+            "graphql.response.status": "REQUEST_ERROR",
+            "http.request.method": "POST",
+            "http.response.status_code": "200",
+            "http.route": "/graphql",
+            "network.protocol.version": "HTTP/1.1",
+            "server.address": "127.0.0.1",
+            "server.port": "XXXXX"
           }
         }
         "###);
@@ -100,12 +119,13 @@ fn field_error() {
             .gql::<serde_json::Value>("{ __typename me { id } }")
             .send()
             .await;
+
         insta::assert_json_snapshot!(resp, @r###"
         {
           "data": null,
           "errors": [
             {
-              "message": "Request to subgraph 'accounts' failed with: error sending request for url (http://127.0.0.1:46697/)",
+              "message": "Request to subgraph 'accounts' failed with: error sending request",
               "path": [
                 "me"
               ],
@@ -116,16 +136,17 @@ fn field_error() {
           ]
         }
         "###);
+
         tokio::time::sleep(METRICS_DELAY).await;
 
-        let row = clickhouse
+        let mut row = clickhouse
             .query(
                 r#"
                 SELECT Count, Attributes
                 FROM otel_metrics_exponential_histogram
                 WHERE ServiceName = ? AND StartTimeUnix >= ?
                     AND ScopeName = 'grafbase'
-                    AND MetricName = 'request_latency'
+                    AND MetricName = 'http.server.request.duration'
                 "#,
             )
             .bind(&service_name)
@@ -133,12 +154,21 @@ fn field_error() {
             .fetch_one::<ExponentialHistogramRow>()
             .await
             .unwrap();
+
+        assert!(row.attributes.contains_key("server.port"));
+        row.attributes.insert("server.port".to_string(), "XXXXX".to_string());
+
         insta::assert_json_snapshot!(row, @r###"
         {
           "Count": 1,
           "Attributes": {
-            "gql.response.status": "FIELD_ERROR_NULL_DATA",
-            "http.response.status_code": "200"
+            "graphql.response.status": "FIELD_ERROR_NULL_DATA",
+            "http.request.method": "POST",
+            "http.response.status_code": "200",
+            "http.route": "/graphql",
+            "network.protocol.version": "HTTP/1.1",
+            "server.address": "127.0.0.1",
+            "server.port": "XXXXX"
           }
         }
         "###);
@@ -154,7 +184,7 @@ fn field_error_data_null() {
           "data": null,
           "errors": [
             {
-              "message": "Request to subgraph 'accounts' failed with: error sending request for url (http://127.0.0.1:46697/)",
+              "message": "Request to subgraph 'accounts' failed with: error sending request",
               "path": [
                 "me"
               ],
@@ -165,16 +195,17 @@ fn field_error_data_null() {
           ]
         }
         "###);
+
         tokio::time::sleep(METRICS_DELAY).await;
 
-        let row = clickhouse
+        let mut row = clickhouse
             .query(
                 r#"
                 SELECT Count, Attributes
                 FROM otel_metrics_exponential_histogram
                 WHERE ServiceName = ? AND StartTimeUnix >= ?
                     AND ScopeName = 'grafbase'
-                    AND MetricName = 'request_latency'
+                    AND MetricName = 'http.server.request.duration'
                 "#,
             )
             .bind(&service_name)
@@ -182,12 +213,21 @@ fn field_error_data_null() {
             .fetch_one::<ExponentialHistogramRow>()
             .await
             .unwrap();
+
+        assert!(row.attributes.contains_key("server.port"));
+        row.attributes.insert("server.port".to_string(), "XXXXX".to_string());
+
         insta::assert_json_snapshot!(row, @r###"
         {
           "Count": 1,
           "Attributes": {
-            "gql.response.status": "FIELD_ERROR_NULL_DATA",
-            "http.response.status_code": "200"
+            "graphql.response.status": "FIELD_ERROR_NULL_DATA",
+            "http.request.method": "POST",
+            "http.response.status_code": "200",
+            "http.route": "/graphql",
+            "network.protocol.version": "HTTP/1.1",
+            "server.address": "127.0.0.1",
+            "server.port": "XXXXX"
           }
         }
         "###);
@@ -203,6 +243,7 @@ fn client() {
             .header("x-grafbase-client-version", "1.0.0")
             .send()
             .await;
+
         insta::assert_json_snapshot!(resp, @r###"
         {
           "data": {
@@ -210,6 +251,101 @@ fn client() {
           }
         }
         "###);
+
+        tokio::time::sleep(METRICS_DELAY).await;
+
+        let mut row = clickhouse
+            .query(
+                r#"
+                SELECT Count, Attributes
+                FROM otel_metrics_exponential_histogram
+                WHERE ServiceName = ? AND StartTimeUnix >= ?
+                    AND ScopeName = 'grafbase'
+                    AND MetricName = 'http.server.request.duration'
+                "#,
+            )
+            .bind(&service_name)
+            .bind(start_time_unix)
+            .fetch_optional::<ExponentialHistogramRow>()
+            .await
+            .unwrap()
+            .unwrap();
+
+        assert!(row.attributes.contains_key("server.port"));
+        row.attributes.insert("server.port".to_string(), "XXXXX".to_string());
+
+        insta::assert_json_snapshot!(row, @r###"
+        {
+          "Count": 1,
+          "Attributes": {
+            "graphql.response.status": "SUCCESS",
+            "http.headers.x-grafbase-client-name": "test",
+            "http.headers.x-grafbase-client-version": "1.0.0",
+            "http.request.method": "POST",
+            "http.response.status_code": "200",
+            "http.route": "/graphql",
+            "network.protocol.version": "HTTP/1.1",
+            "server.address": "127.0.0.1",
+            "server.port": "XXXXX"
+          }
+        }
+        "###);
+    });
+}
+
+#[test]
+fn connected_clients() {
+    with_gateway(|service_name, start_time_unix, gateway, clickhouse| async move {
+        let resp = gateway.gql::<serde_json::Value>("{ __typename }").send().await;
+
+        insta::assert_json_snapshot!(resp, @r###"
+        {
+          "data": {
+            "__typename": "Query"
+          }
+        }
+        "###);
+
+        tokio::time::sleep(METRICS_DELAY).await;
+
+        let row = clickhouse
+            .query(
+                r#"
+                SELECT Value, Attributes
+                FROM otel_metrics_sum
+                WHERE ServiceName = ? AND StartTimeUnix >= ?
+                    AND ScopeName = 'grafbase'
+                    AND MetricName = 'http.server.connected.clients'
+                "#,
+            )
+            .bind(&service_name)
+            .bind(start_time_unix)
+            .fetch_optional::<SumRow>()
+            .await
+            .unwrap();
+
+        insta::assert_json_snapshot!(row, @r###"
+        {
+          "Value": 0.0,
+          "Attributes": {}
+        }
+        "###);
+    });
+}
+
+#[test]
+fn request_body_size() {
+    with_gateway(|service_name, start_time_unix, gateway, clickhouse| async move {
+        let resp = gateway.gql::<serde_json::Value>("{ __typename }").send().await;
+
+        insta::assert_json_snapshot!(resp, @r###"
+        {
+          "data": {
+            "__typename": "Query"
+          }
+        }
+        "###);
+
         tokio::time::sleep(METRICS_DELAY).await;
 
         let row = clickhouse
@@ -219,7 +355,7 @@ fn client() {
                 FROM otel_metrics_exponential_histogram
                 WHERE ServiceName = ? AND StartTimeUnix >= ?
                     AND ScopeName = 'grafbase'
-                    AND MetricName = 'request_latency'
+                    AND MetricName = 'http.server.request.body.size'
                 "#,
             )
             .bind(&service_name)
@@ -227,15 +363,51 @@ fn client() {
             .fetch_optional::<ExponentialHistogramRow>()
             .await
             .unwrap();
+
         insta::assert_json_snapshot!(row, @r###"
         {
           "Count": 1,
-          "Attributes": {
-            "gql.response.status": "SUCCESS",
-            "http.headers.x-grafbase-client-name": "test",
-            "http.headers.x-grafbase-client-version": "1.0.0",
-            "http.response.status_code": "200"
+          "Attributes": {}
+        }
+        "###);
+    });
+}
+
+#[test]
+fn response_body_size() {
+    with_gateway(|service_name, start_time_unix, gateway, clickhouse| async move {
+        let resp = gateway.gql::<serde_json::Value>("{ __typename }").send().await;
+
+        insta::assert_json_snapshot!(resp, @r###"
+        {
+          "data": {
+            "__typename": "Query"
           }
+        }
+        "###);
+
+        tokio::time::sleep(METRICS_DELAY).await;
+
+        let row = clickhouse
+            .query(
+                r#"
+                SELECT Count, Attributes
+                FROM otel_metrics_exponential_histogram
+                WHERE ServiceName = ? AND StartTimeUnix >= ?
+                    AND ScopeName = 'grafbase'
+                    AND MetricName = 'http.server.response.body.size'
+                "#,
+            )
+            .bind(&service_name)
+            .bind(start_time_unix)
+            .fetch_optional::<ExponentialHistogramRow>()
+            .await
+            .unwrap();
+
+        insta::assert_json_snapshot!(row, @r###"
+        {
+          "Count": 1,
+          "Attributes": {}
         }
         "###);
     });

@@ -323,6 +323,7 @@ mod tests {
                 rate_limit: None,
                 timeout: None,
                 entity_caching: Disabled,
+                retry: None,
             },
         )
         "###);

@@ -40,6 +40,7 @@ pub(super) async fn introspect(url: &str, headers: &[(impl AsRef<str>, impl AsRe
     let mut request_builder = reqwest::Client::new()
         .post(url)
         .header(USER_AGENT, "Grafbase")
+        .header("Accept", "application/json")
         .json(&request);
 
     for (name, value) in headers {

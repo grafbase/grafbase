@@ -8,7 +8,7 @@ This crate implements diffing of two GraphQL schemas, returning a list of change
 ## Example
 
 ```rust
-use graphql_schema_diff::{diff, Change, ChangeKind};
+use graphql_schema_diff::{diff, Change, ChangeKind, Span};
 
 let source = r#"
   type Pizza {
@@ -49,19 +49,23 @@ assert_eq!(changes,
    &[
         Change {
             path: String::from("Pizza.name"),
-            kind: ChangeKind::ChangeFieldType
+            kind: ChangeKind::ChangeFieldType,
+            span: Span::new(38, 47),
         },
         Change {
             path: String::from("PizzaName"),
-            kind: ChangeKind::AddObjectType
+            kind: ChangeKind::AddObjectType,
+            span: Span::new(81, 142),
         },
         Change {
             path: String::from("Topping.PINEAPPLE"),
-            kind: ChangeKind::RemoveEnumValue
+            kind: ChangeKind::RemoveEnumValue,
+            span: Span::new(0, 0),
         },
         Change {
             path: String::from("Topping.POTATO"),
-            kind: ChangeKind::AddEnumValue
+            kind: ChangeKind::AddEnumValue,
+            span: Span::new(190, 199),
         }
 ]);
 

@@ -44,7 +44,7 @@ fn relay_style_happy_path() {
     test(|engine| async move {
         let send = || {
             engine
-                .execute(GraphQlRequest {
+                .post(GraphQlRequest {
                     query: String::new(),
                     operation_name: None,
                     variables: None,
@@ -75,7 +75,7 @@ fn apollo_client_style_happy_path() {
     test(|engine| async move {
         let send = || {
             engine
-                .execute("")
+                .post("")
                 .extensions(
                     json!({"persistedQuery": { "version": 1, "sha256Hash": &TRUSTED_DOCUMENTS[0].document_id }}),
                 )
@@ -101,7 +101,7 @@ fn apollo_client_style_happy_path() {
 #[test]
 fn regular_non_persisted_queries_are_rejected() {
     test(|engine| async move {
-        let response = engine.execute("query { __typename }").await;
+        let response = engine.post("query { __typename }").await;
 
         insta::assert_json_snapshot!(response, @r###"
         {
@@ -122,7 +122,7 @@ fn regular_non_persisted_queries_are_rejected() {
 fn trusted_document_queries_without_client_name_header_are_rejected() {
     test(|engine| async move {
         let response = engine
-            .execute("")
+            .post("")
             .extensions(json!({"persistedQuery": { "version": 1, "sha256Hash": &TRUSTED_DOCUMENTS[0].document_id }}))
             .await;
 
@@ -145,7 +145,7 @@ fn trusted_document_queries_without_client_name_header_are_rejected() {
 fn wrong_client_name() {
     test(|engine| async move {
         let response = engine
-            .execute("")
+            .post("")
             .extensions(json!({"persistedQuery": { "version": 1, "sha256Hash": &TRUSTED_DOCUMENTS[0].document_id }}))
             .header("x-grafbase-client-name", "android-app")
             .await;
@@ -169,7 +169,7 @@ fn wrong_client_name() {
 fn bypass_header() {
     test(|engine| async move {
         let response = engine
-            .execute("query { pullRequestsAndIssues(filter: { search: \"1\" }) { __typename } }")
+            .post("query { pullRequestsAndIssues(filter: { search: \"1\" }) { __typename } }")
             .header("test-bypass-header", "test-bypass-value")
             .await;
 
@@ -193,7 +193,7 @@ fn bypass_header() {
 
         // Should never be available even if it's cached by the engine.
         let response = engine
-            .execute("query { pullRequestsAndIssues(filter: { search: \"1\" }) { __typename } }")
+            .post("query { pullRequestsAndIssues(filter: { search: \"1\" }) { __typename } }")
             .await;
 
         insta::assert_json_snapshot!(response, @r###"

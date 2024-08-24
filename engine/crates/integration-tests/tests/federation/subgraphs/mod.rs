@@ -1,4 +1,5 @@
 mod interface_object;
+mod not_reachable;
 mod overrride;
 mod requires;
 mod sibling_dependencies;
@@ -21,7 +22,7 @@ async fn execute(request: &str) -> GraphqlResponse {
         .with_subgraph(FederatedInventorySchema)
         .build()
         .await;
-    engine.execute(request).await
+    engine.post(request).await
 }
 
 #[test]

@@ -67,6 +67,20 @@ expression: response
                 }
               },
               "defaultValue": null
+            },
+            {
+              "name": "sentient",
+              "description": null,
+              "type": {
+                "kind": "NON_NULL",
+                "name": null,
+                "ofType": {
+                  "kind": "SCALAR",
+                  "name": "Boolean",
+                  "ofType": null
+                }
+              },
+              "defaultValue": "false"
             }
           ],
           "interfaces": null,
@@ -602,6 +616,22 @@ expression: response
               "deprecationReason": null
             },
             {
+              "name": "fail",
+              "description": null,
+              "args": [],
+              "type": {
+                "kind": "NON_NULL",
+                "name": null,
+                "ofType": {
+                  "kind": "SCALAR",
+                  "name": "Int",
+                  "ofType": null
+                }
+              },
+              "isDeprecated": false,
+              "deprecationReason": null
+            },
+            {
               "name": "fancyBool",
               "description": null,
               "args": [
@@ -1092,6 +1122,37 @@ expression: response
               "name": "serverVersion",
               "description": null,
               "args": [],
+              "type": {
+                "kind": "NON_NULL",
+                "name": null,
+                "ofType": {
+                  "kind": "SCALAR",
+                  "name": "String",
+                  "ofType": null
+                }
+              },
+              "isDeprecated": false,
+              "deprecationReason": null
+            },
+            {
+              "name": "sillyDefaultValue",
+              "description": null,
+              "args": [
+                {
+                  "name": "status",
+                  "description": null,
+                  "type": {
+                    "kind": "NON_NULL",
+                    "name": null,
+                    "ofType": {
+                      "kind": "ENUM",
+                      "name": "Status",
+                      "ofType": null
+                    }
+                  },
+                  "defaultValue": "\"OPEN\""
+                }
+              ],
               "type": {
                 "kind": "NON_NULL",
                 "name": null,

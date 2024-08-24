@@ -1,15 +1,19 @@
 use std::borrow::Cow;
 
+use enumset::EnumSetType;
 use runtime::error::PartialErrorCode;
 
 use crate::operation::Location;
 
 use super::ResponsePath;
 
-#[derive(Clone, Copy, Debug, serde::Serialize, serde::Deserialize, strum::Display, strum::AsRefStr)]
+#[derive(
+    Debug, serde::Serialize, serde::Deserialize, strum::Display, strum::AsRefStr, strum::IntoStaticStr, EnumSetType,
+)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 #[strum(serialize_all = "SCREAMING_SNAKE_CASE")]
-pub(crate) enum ErrorCode {
+#[non_exhaustive]
+pub enum ErrorCode {
     BadRequest,
     InternalServerError,
     TrustedDocumentError,
@@ -33,6 +37,29 @@ pub(crate) enum ErrorCode {
     RateLimited,
     // Timeouts
     GatewayTimeout,
+}
+
+impl ErrorCode {
+    pub fn into_http_status_code_with_priority(self) -> (http::StatusCode, usize) {
+        match self {
+            ErrorCode::OperationParsingError
+            | ErrorCode::OperationValidationError
+            | ErrorCode::OperationPlanningError
+            | ErrorCode::PersistedQueryNotFound
+            | ErrorCode::PersistedQueryError
+            | ErrorCode::TrustedDocumentError
+            | ErrorCode::BadRequest => (http::StatusCode::BAD_REQUEST, 1000),
+            ErrorCode::Unauthenticated => (http::StatusCode::UNAUTHORIZED, 600),
+            ErrorCode::Unauthorized => (http::StatusCode::FORBIDDEN, 600),
+            ErrorCode::RateLimited => (http::StatusCode::TOO_MANY_REQUESTS, 500),
+            ErrorCode::SubgraphError | ErrorCode::SubgraphInvalidResponseError | ErrorCode::SubgraphRequestError => {
+                (http::StatusCode::BAD_GATEWAY, 300)
+            }
+            ErrorCode::GatewayTimeout => (http::StatusCode::GATEWAY_TIMEOUT, 200),
+            // least helpful error codes
+            ErrorCode::HookError | ErrorCode::InternalServerError => (http::StatusCode::INTERNAL_SERVER_ERROR, 0),
+        }
+    }
 }
 
 impl From<PartialErrorCode> for ErrorCode {

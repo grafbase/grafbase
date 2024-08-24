@@ -34,8 +34,7 @@ tokio-stream = { version = "0.1.15", features = ["sync"] }
 tower-http = { workspace = true, features = ["cors", "fs", "trace"] }
 url = "2.5.0"
 
-common = { package = "grafbase-local-common", path = "../common", version = "0.77.1" }
-engine = { path = "../../../engine/crates/engine" }
+common = { package = "grafbase-local-common", path = "../common", version = "0.79.1" }
 engine-config-builder = { path = "../../../engine/crates/engine-config-builder" }
 engine-v2.workspace = true
 engine-v2-axum.workspace = true

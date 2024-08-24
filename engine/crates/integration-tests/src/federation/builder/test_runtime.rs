@@ -1,17 +1,19 @@
 use grafbase_telemetry::{metrics, otel::opentelemetry};
-use runtime::{entity_cache::EntityCache, hooks::DynamicHooks, trusted_documents_client};
+use runtime::{
+    entity_cache::EntityCache, fetch::dynamic::DynamicFetcher, hooks::DynamicHooks, trusted_documents_client,
+};
 use runtime_local::{
-    rate_limiting::in_memory::key_based::InMemoryRateLimiter, InMemoryEntityCache, InMemoryHotCacheFactory,
-    InMemoryKvStore, NativeFetcher,
+    rate_limiting::in_memory::key_based::InMemoryRateLimiter, InMemoryEntityCache, InMemoryKvStore,
+    InMemoryOperationCacheFactory, NativeFetcher,
 };
 use runtime_noop::trusted_documents::NoopTrustedDocuments;
 use tokio::sync::watch;
 
 pub struct TestRuntime {
-    pub fetcher: runtime::fetch::Fetcher,
+    pub fetcher: DynamicFetcher,
     pub trusted_documents: trusted_documents_client::Client,
     pub kv: runtime::kv::KvStore,
-    pub hot_cache_factory: InMemoryHotCacheFactory,
+    pub hot_cache_factory: InMemoryOperationCacheFactory,
     pub meter: opentelemetry::metrics::Meter,
     pub hooks: DynamicHooks,
     pub rate_limiter: runtime::rate_limiting::RateLimiter,
@@ -23,7 +25,7 @@ impl Default for TestRuntime {
         let (_, rx) = watch::channel(Default::default());
 
         Self {
-            fetcher: NativeFetcher::runtime_fetcher(),
+            fetcher: DynamicFetcher::wrap(NativeFetcher::default()),
             trusted_documents: trusted_documents_client::Client::new(NoopTrustedDocuments),
             kv: InMemoryKvStore::runtime(),
             meter: metrics::meter_from_global_provider(),
@@ -37,9 +39,10 @@ impl Default for TestRuntime {
 
 impl engine_v2::Runtime for TestRuntime {
     type Hooks = DynamicHooks;
-    type CacheFactory = InMemoryHotCacheFactory;
+    type Fetcher = DynamicFetcher;
+    type OperationCacheFactory = InMemoryOperationCacheFactory;
 
-    fn fetcher(&self) -> &runtime::fetch::Fetcher {
+    fn fetcher(&self) -> &Self::Fetcher {
         &self.fetcher
     }
 
@@ -59,7 +62,7 @@ impl engine_v2::Runtime for TestRuntime {
         &self.hooks
     }
 
-    fn cache_factory(&self) -> &Self::CacheFactory {
+    fn operation_cache_factory(&self) -> &Self::OperationCacheFactory {
         &self.hot_cache_factory
     }
 
@@ -67,8 +70,8 @@ impl engine_v2::Runtime for TestRuntime {
         &self.rate_limiter
     }
 
-    fn sleep(&self, duration: std::time::Duration) -> futures::prelude::future::BoxFuture<'static, ()> {
-        Box::pin(tokio::time::sleep(duration))
+    async fn sleep(&self, duration: std::time::Duration) {
+        tokio::time::sleep(duration).await
     }
 
     fn entity_cache(&self) -> &dyn EntityCache {

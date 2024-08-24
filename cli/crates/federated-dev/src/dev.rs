@@ -5,11 +5,9 @@ use crate::{
 use async_graphql::{EmptySubscription, Schema};
 use async_graphql_axum::GraphQL;
 use axum::{
-    extract::{Query, State},
-    http::HeaderMap,
+    extract::State,
     response::{Html, IntoResponse},
     routing::get,
-    Json,
 };
 use common::environment::Environment;
 use engine_v2_axum::websocket::{WebsocketAccepter, WebsocketService};
@@ -100,11 +98,12 @@ pub(super) async fn run(
 
     let app = axum::Router::new()
         .route("/admin", get(admin).post_service(GraphQL::new(admin_schema)))
-        .route("/graphql", get(engine_get).post(engine_post))
+        .route("/graphql", get(handle_graphql_request).post(handle_graphql_request))
         .route_service("/ws", WebsocketService::new(websocket_sender))
         .nest_service("/static", tower_http::services::ServeDir::new(static_asset_path))
         .layer(grafbase_telemetry::tower::layer(
             grafbase_telemetry::metrics::meter_from_global_provider(),
+            None,
         ))
         .layer(CorsLayer::permissive())
         .with_state(ProxyState {
@@ -150,30 +149,14 @@ async fn admin(
     admin_pathfinder_html
 }
 
-async fn engine_get(
-    Query(request): Query<engine::QueryParamRequest>,
-    headers: HeaderMap,
+async fn handle_graphql_request(
     State(ProxyState { gateway, .. }): State<ProxyState>,
-) -> impl IntoResponse {
-    handle_engine_request(engine::BatchRequest::Single(request.into()), gateway, headers).await
-}
-
-async fn engine_post(
-    State(ProxyState { gateway, .. }): State<ProxyState>,
-    headers: HeaderMap,
-    Json(request): Json<engine::BatchRequest>,
-) -> impl IntoResponse {
-    handle_engine_request(request, gateway, headers).await
-}
-
-async fn handle_engine_request(
-    request: engine::BatchRequest,
-    engine: EngineWatcher,
-    headers: HeaderMap,
+    request: axum::extract::Request,
 ) -> impl IntoResponse {
     log::debug!("engine request received");
-    let Some(engine) = engine.borrow().clone() else {
+    let Some(engine) = gateway.borrow().clone() else {
         return engine_v2_axum::internal_server_error("there are no subgraphs registered currently");
     };
-    engine_v2_axum::into_response(engine.execute(headers, request).await)
+
+    engine_v2_axum::execute(engine, request, usize::MAX).await
 }

@@ -1,5 +1,8 @@
 use crate::{
-    sources::{graphql::GraphqlEndpointWalker, IntrospectionMetadata},
+    sources::{
+        graphql::{GraphqlEndpointWalker, RetryConfig},
+        IntrospectionMetadata,
+    },
     Names, Schema, StringId,
 };
 
@@ -125,6 +128,15 @@ impl<'a> SchemaWalker<'a, ()> {
             .default_header_rules
             .iter()
             .map(move |id| self.walk(*id))
+    }
+
+    pub fn retry_config(self) -> Option<RetryConfig> {
+        self.settings.retry.map(|retry| RetryConfig {
+            min_per_second: retry.min_per_second,
+            ttl: retry.ttl,
+            retry_percent: retry.retry_percent,
+            retry_mutations: retry.retry_mutations,
+        })
     }
 
     pub fn graphql_endpoints(&self) -> impl ExactSizeIterator<Item = GraphqlEndpointWalker<'_>> {

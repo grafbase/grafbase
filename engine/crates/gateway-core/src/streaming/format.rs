@@ -1,7 +1,8 @@
-use mediatype::{MediaType, MediaTypeList, Name};
+use http::HeaderValue;
+use mediatype::{MediaType, MediaTypeList};
 
 /// The format ExecutionEngine::execute_stream should return
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, strum::EnumIter)]
 pub enum StreamingFormat {
     /// Follow the [incremental delivery spec][1]
     ///
@@ -34,19 +35,13 @@ impl headers::Header for StreamingFormat {
 
     fn encode<E: Extend<http::HeaderValue>>(&self, values: &mut E) {
         values.extend(Some(
-            http::HeaderValue::try_from(match self {
-                StreamingFormat::IncrementalDelivery => INCREMENTAL_MEDIA_TYPE.to_string(),
-                StreamingFormat::GraphQLOverSSE => SSE_MEDIA_TYPE.to_string(),
-            })
-            .unwrap(),
+            HeaderValue::try_from(self.to_string()).expect("valid header value"),
         ))
     }
 }
 
-const INCREMENTAL_MEDIA_TYPE: MediaType<'static> =
-    MediaType::new(Name::new_unchecked("multipart"), Name::new_unchecked("mixed"));
-const SSE_MEDIA_TYPE: MediaType<'static> =
-    MediaType::new(Name::new_unchecked("text"), Name::new_unchecked("event-stream"));
+const INCREMENTAL_MEDIA_TYPE: MediaType<'static> = MediaType::new(mediatype::names::MULTIPART, mediatype::names::MIXED);
+const SSE_MEDIA_TYPE: MediaType<'static> = MediaType::new(mediatype::names::TEXT, mediatype::names::EVENT_STREAM);
 
 impl StreamingFormat {
     pub fn from_accept_header(header: &str) -> Option<Self> {
@@ -78,6 +73,15 @@ impl StreamingFormat {
             Some(Self::GraphQLOverSSE)
         } else {
             None
+        }
+    }
+}
+
+impl std::fmt::Display for StreamingFormat {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            StreamingFormat::IncrementalDelivery => INCREMENTAL_MEDIA_TYPE.fmt(f),
+            StreamingFormat::GraphQLOverSSE => SSE_MEDIA_TYPE.fmt(f),
         }
     }
 }

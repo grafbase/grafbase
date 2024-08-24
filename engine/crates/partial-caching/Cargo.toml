@@ -11,8 +11,7 @@ repository.workspace = true
 anyhow.workspace = true
 blake3.workspace = true
 common-types.workspace = true
-cynic-parser.features = ["print"]
-cynic-parser.workspace = true
+cynic-parser = { workspace = true, features = ["print"] }
 engine-value.workspace = true
 graph-entities.workspace = true
 headers.workspace = true

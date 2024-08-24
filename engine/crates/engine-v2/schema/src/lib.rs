@@ -86,6 +86,7 @@ pub struct Settings {
     pub auth_config: Option<config::latest::AuthConfig>,
     pub operation_limits: config::latest::OperationLimits,
     pub disable_introspection: bool,
+    pub retry: Option<config::latest::RetryConfig>,
 }
 
 #[derive(serde::Serialize, serde::Deserialize, id_derives::IndexedFields)]

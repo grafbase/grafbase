@@ -5,6 +5,7 @@ use std::{collections::HashMap, future::IntoFuture, sync::Arc};
 
 use engine::{Request, RequestExtensions, RequestHeaders, Response, Schema, StreamingPayload, Variables};
 use futures::{future::BoxFuture, Stream, StreamExt};
+use serde::ser::SerializeMap;
 use serde::Deserialize;
 
 pub use self::builder::{EngineBuilder, RequestContext};
@@ -122,11 +123,16 @@ impl<'a> StreamExecutionRequest<'a> {
     }
 }
 
+#[derive(serde::Serialize)]
 pub struct GraphQlRequest {
     pub query: String,
+    #[serde(skip_serializing_if = "Option::is_none", rename = "operationName")]
     pub operation_name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub variables: Option<Variables>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub extensions: Option<RequestExtensions>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub doc_id: Option<String>,
 }
 
@@ -144,6 +150,41 @@ impl GraphQlRequest {
         }
         request.document_id = self.doc_id;
         request
+    }
+
+    pub fn into_query_params(self) -> impl serde::Serialize {
+        QueryParams(self)
+    }
+}
+
+struct QueryParams(GraphQlRequest);
+
+impl serde::Serialize for QueryParams {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let mut map = serializer.serialize_map(None)?;
+        map.serialize_entry("query", &self.0.query)?;
+        if let Some(doc_id) = &self.0.doc_id {
+            map.serialize_entry("doc_id", doc_id)?;
+        }
+        if let Some(operation_name) = &self.0.operation_name {
+            map.serialize_entry("operation_name", operation_name)?;
+        }
+        if let Some(variables) = &self.0.variables {
+            map.serialize_entry(
+                "variables",
+                &serde_json::to_string(variables).map_err(serde::ser::Error::custom)?,
+            )?;
+        }
+        if let Some(extensions) = &self.0.extensions {
+            map.serialize_entry(
+                "extensions",
+                &serde_json::to_string(extensions).map_err(serde::ser::Error::custom)?,
+            )?;
+        }
+        map.end()
     }
 }
 

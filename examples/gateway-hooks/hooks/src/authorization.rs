@@ -5,8 +5,7 @@ use crate::{
         component::grafbase::types::Error,
         exports::component::grafbase::authorization::{self, EdgeDefinition, SharedContext},
     },
-    contract_error, error, init_logging, maybe_read_input, read_input, Component, Metadata,
-    RUNTIME,
+    contract_error, error, init_logging, maybe_read_input, read_input, Component, Metadata, RUNTIME,
 };
 
 mod service;
@@ -20,10 +19,7 @@ impl authorization::Guest for Component {
     ) -> Result<(), Error> {
         init_logging();
 
-        match (
-            definition.parent_type_name.as_str(),
-            definition.field_name.as_str(),
-        ) {
+        match (definition.parent_type_name.as_str(), definition.field_name.as_str()) {
             ("Query", "user") => {
                 tracing::info!("Authorizing access to Query.user with {arguments}",);
 
@@ -33,11 +29,7 @@ impl authorization::Guest for Component {
                 }
                 let arguments: Arguments = read_input(&arguments)?;
 
-                if context
-                    .get("current-user-id")
-                    .and_then(|id| id.parse().ok())
-                    == Some(arguments.id)
-                {
+                if context.get("current-user-id").and_then(|id| id.parse().ok()) == Some(arguments.id) {
                     Ok(())
                 } else {
                     Err(error("Unauthorized"))
@@ -55,15 +47,9 @@ impl authorization::Guest for Component {
     ) -> Vec<Result<(), Error>> {
         init_logging();
 
-        match (
-            definition.parent_type_name.as_str(),
-            definition.field_name.as_str(),
-        ) {
+        match (definition.parent_type_name.as_str(), definition.field_name.as_str()) {
             ("User", "address") => {
-                tracing::info!(
-                    "Authorizing access to User.address for: {}",
-                    parents.iter().join(", ")
-                );
+                tracing::info!("Authorizing access to User.address for: {}", parents.iter().join(", "));
 
                 #[derive(Debug, serde::Deserialize)]
                 struct User {
@@ -84,13 +70,8 @@ impl authorization::Guest for Component {
                     .collect::<Result<_, _>>()
                     .unwrap();
 
-                let Some(current_user_id) = context
-                    .get("current-user-id")
-                    .and_then(|id| id.parse().ok())
-                else {
-                    return (0..parents.len())
-                        .map(|_| Err(error("No current user id")))
-                        .collect();
+                let Some(current_user_id) = context.get("current-user-id").and_then(|id| id.parse().ok()) else {
+                    return (0..parents.len()).map(|_| Err(error("No current user id"))).collect();
                 };
 
                 RUNTIME.block_on(service::authorize_address(
@@ -110,15 +91,9 @@ impl authorization::Guest for Component {
     ) -> Vec<Result<(), Error>> {
         init_logging();
 
-        match (
-            definition.parent_type_name.as_str(),
-            definition.field_name.as_str(),
-        ) {
+        match (definition.parent_type_name.as_str(), definition.field_name.as_str()) {
             ("Query", "users") => {
-                tracing::info!(
-                    "Authorizing access to Query.users for: {}",
-                    nodes.iter().join(", ")
-                );
+                tracing::info!("Authorizing access to Query.users for: {}", nodes.iter().join(", "));
 
                 #[derive(Debug, serde::Deserialize)]
                 struct User {
@@ -139,13 +114,8 @@ impl authorization::Guest for Component {
                     .collect::<Result<_, _>>()
                     .unwrap();
 
-                let Some(current_user_id) = context
-                    .get("current-user-id")
-                    .and_then(|id| id.parse().ok())
-                else {
-                    return (0..nodes.len())
-                        .map(|_| Err(error("No current user id")))
-                        .collect();
+                let Some(current_user_id) = context.get("current-user-id").and_then(|id| id.parse().ok()) else {
+                    return (0..nodes.len()).map(|_| Err(error("No current user id"))).collect();
                 };
 
                 RUNTIME.block_on(service::authorize_user(

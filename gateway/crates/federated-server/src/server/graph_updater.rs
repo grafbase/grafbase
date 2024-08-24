@@ -1,9 +1,13 @@
+use std::time::SystemTime;
 use std::{borrow::Cow, sync::Arc, time::Duration};
 
 use super::gateway::GatewaySender;
 use crate::OtelReload;
 use ascii::AsciiString;
 use gateway_config::Config;
+use grafbase_telemetry::metrics::meter_from_global_provider;
+use grafbase_telemetry::otel::opentelemetry::metrics::Histogram;
+use grafbase_telemetry::otel::opentelemetry::KeyValue;
 use grafbase_telemetry::span::GRAFBASE_TARGET;
 use http::{HeaderValue, StatusCode};
 use tokio::sync::oneshot;
@@ -38,6 +42,30 @@ const USER_AGENT: &str = "grafbase-cli";
 /// The CDN host we load the graphs from.
 const GDN_HOST: &str = "https://gdn.grafbase.com";
 
+#[derive(Debug, Clone, Copy)]
+enum ResponseKind {
+    New,
+    Unchanged,
+    HttpError,
+    GdnError,
+}
+
+impl ResponseKind {
+    fn as_str(self) -> &'static str {
+        match self {
+            ResponseKind::New => "NEW",
+            ResponseKind::Unchanged => "UNCHANGED",
+            ResponseKind::HttpError => "HTTP_ERROR",
+            ResponseKind::GdnError => "GDN_ERROR",
+        }
+    }
+}
+
+struct GdnFetchLatencyAttributes {
+    kind: ResponseKind,
+    status_code: Option<StatusCode>,
+}
+
 /// An updater thread for polling graph changes from the API.
 pub(super) struct GraphUpdater {
     gdn_url: Url,
@@ -47,6 +75,7 @@ pub(super) struct GraphUpdater {
     current_id: Option<Ulid>,
     gateway_config: Config,
     otel_reload: Option<(oneshot::Sender<OtelReload>, oneshot::Receiver<()>)>,
+    latencies: Option<Histogram<u64>>,
 }
 
 impl GraphUpdater {
@@ -90,6 +119,7 @@ impl GraphUpdater {
             current_id: None,
             gateway_config,
             otel_reload,
+            latencies: None,
         })
     }
 
@@ -122,22 +152,48 @@ impl GraphUpdater {
                 );
             }
 
+            let start = SystemTime::now();
             let response = request.send().await;
+            let duration = SystemTime::now().duration_since(start).unwrap_or_default();
 
             let response = match response {
                 Ok(response) => response,
                 Err(e) => {
+                    self.record_duration(
+                        GdnFetchLatencyAttributes {
+                            kind: ResponseKind::HttpError,
+                            status_code: None,
+                        },
+                        duration,
+                    );
+
                     tracing::event!(target: GRAFBASE_TARGET, Level::ERROR, message = "error updating graph", error = e.to_string());
                     continue;
                 }
             };
 
             if response.status() == StatusCode::NOT_MODIFIED {
+                self.record_duration(
+                    GdnFetchLatencyAttributes {
+                        kind: ResponseKind::Unchanged,
+                        status_code: Some(response.status()),
+                    },
+                    duration,
+                );
+
                 tracing::debug!(target: GRAFBASE_TARGET, "no updates to the graph");
                 continue;
             }
 
             if let Err(e) = response.error_for_status_ref() {
+                self.record_duration(
+                    GdnFetchLatencyAttributes {
+                        kind: ResponseKind::GdnError,
+                        status_code: e.status(),
+                    },
+                    duration,
+                );
+
                 match e.status() {
                     Some(StatusCode::NOT_FOUND) => {
                         tracing::warn!(target: GRAFBASE_TARGET, "Federated schema not found. Is your graph configured as self-hosted? Did you publish at least one subgraph?");
@@ -152,6 +208,14 @@ impl GraphUpdater {
             let response: GdnResponse = match response.json().await {
                 Ok(response) => response,
                 Err(e) => {
+                    self.record_duration(
+                        GdnFetchLatencyAttributes {
+                            kind: ResponseKind::GdnError,
+                            status_code: e.status(),
+                        },
+                        duration,
+                    );
+
                     tracing::event!(target: GRAFBASE_TARGET, Level::ERROR, message = "error updating graph", error = e.to_string());
                     continue;
                 }
@@ -178,6 +242,12 @@ impl GraphUpdater {
                 // with the appropriate resource attributes.
                 tracing::event!(target: GRAFBASE_TARGET, Level::DEBUG, "Waiting for OTEL reload...");
                 ack_receiver.await.ok();
+
+                self.latencies = Some(
+                    meter_from_global_provider()
+                        .u64_histogram("gdn.request.duration")
+                        .init(),
+                );
             }
 
             let gateway = match super::gateway::generate(
@@ -190,11 +260,27 @@ impl GraphUpdater {
             {
                 Ok(gateway) => gateway,
                 Err(e) => {
+                    self.record_duration(
+                        GdnFetchLatencyAttributes {
+                            kind: ResponseKind::GdnError,
+                            status_code: None,
+                        },
+                        duration,
+                    );
+
                     tracing::event!(target: GRAFBASE_TARGET, Level::ERROR, message = "error parsing graph", error = e.to_string());
 
                     continue;
                 }
             };
+
+            self.record_duration(
+                GdnFetchLatencyAttributes {
+                    kind: ResponseKind::New,
+                    status_code: None,
+                },
+                duration,
+            );
 
             self.current_id = Some(response.version_id);
 
@@ -202,5 +288,29 @@ impl GraphUpdater {
                 .send(Some(Arc::new(gateway)))
                 .expect("internal error: channel closed");
         }
+    }
+
+    fn record_duration(
+        &self,
+        GdnFetchLatencyAttributes { kind, status_code }: GdnFetchLatencyAttributes,
+        duration: Duration,
+    ) {
+        let Some(ref latencies) = self.latencies else {
+            return;
+        };
+
+        let mut attributes = vec![
+            KeyValue::new("server.address", self.gdn_url.to_string()),
+            KeyValue::new("gdn.response.kind", kind.as_str()),
+        ];
+
+        if let Some(status_code) = status_code {
+            attributes.push(KeyValue::new(
+                "http.response.status.code",
+                status_code.as_u16().to_string(),
+            ));
+        }
+
+        latencies.record(duration.as_millis() as u64, &attributes);
     }
 }

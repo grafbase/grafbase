@@ -30,7 +30,7 @@ fn test_provider() {
             .await;
 
         let response: GraphqlResponse = engine
-            .execute("query { serverVersion }")
+            .post("query { serverVersion }")
             .header("Authorization", format!("Bearer {token}"))
             .await;
         insta::assert_json_snapshot!(response, @r###"
@@ -49,7 +49,7 @@ fn test_provider() {
             .await;
 
         let response: GraphqlResponse = engine
-            .execute("query { serverVersion }")
+            .post("query { serverVersion }")
             .header("Authorization", format!("Bearer {token}"))
             .await;
         insta::assert_json_snapshot!(response, @r###"
@@ -61,7 +61,7 @@ fn test_provider() {
         "###);
 
         // No token
-        let response: GraphqlResponse = engine.execute("query { serverVersion }").await;
+        let response: GraphqlResponse = engine.post("query { serverVersion }").await;
         insta::assert_json_snapshot!(response, @r###"
         {
           "errors": [

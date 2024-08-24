@@ -1,22 +1,18 @@
-use std::{
-    borrow::Cow,
-    sync::{
-        atomic::{AtomicUsize, Ordering},
-        Arc,
-    },
+use std::sync::{
+    atomic::{AtomicUsize, Ordering},
+    Arc,
 };
 
-use engine::BatchRequest;
-use engine_v2::HttpGraphqlResponse;
-use futures::{stream::BoxStream, StreamExt, TryStreamExt};
-use gateway_core::StreamingFormat;
+use bytes::Bytes;
+use engine_v2::Body;
+use futures::{StreamExt, TryStreamExt};
 use graphql_composition::FederatedGraph;
-use headers::HeaderMapExt;
 use runtime::{
-    fetch::{FetchError, FetchRequest, FetchResponse, FetchResult, GraphqlRequest},
+    bytes::OwnedOrSharedBytes,
+    fetch::{dynamic::DynFetcher, FetchRequest, FetchResult},
     hooks::DynamicHooks,
 };
-use runtime_local::InMemoryHotCacheFactory;
+use runtime_local::InMemoryOperationCacheFactory;
 
 use crate::federation::{GraphqlResponse, GraphqlStreamingResponse};
 
@@ -25,14 +21,15 @@ use super::TestRuntime;
 #[derive(Clone)]
 pub struct DeterministicEngine {
     engine: Arc<engine_v2::Engine<TestRuntime>>,
-    query: String,
+    request_parts: http::request::Parts,
+    body: Bytes,
     dummy_responses_index: Arc<AtomicUsize>,
 }
 
 pub struct DeterministicEngineBuilder<'a> {
     runtime: TestRuntime,
     schema: &'a str,
-    query: String,
+    query: &'a str,
     subgraphs_json_responses: Vec<String>,
 }
 
@@ -51,18 +48,16 @@ impl<'a> DeterministicEngineBuilder<'a> {
     }
 
     pub fn without_hot_cache(mut self) -> Self {
-        self.runtime.hot_cache_factory = InMemoryHotCacheFactory::inactive();
+        self.runtime.hot_cache_factory = InMemoryOperationCacheFactory::inactive();
         self
     }
 
     pub async fn build(self) -> DeterministicEngine {
         let dummy_responses_index = Arc::new(AtomicUsize::new(0));
-        let fetcher = DummyFetcher::create(
+        let fetcher = DummyFetcher::new(
             self.subgraphs_json_responses
                 .into_iter()
-                .map(|resp| FetchResponse {
-                    bytes: resp.into_bytes().into(),
-                })
+                .map(|resp| http::Response::builder().body(resp.into_bytes().into()).unwrap())
                 .collect(),
             dummy_responses_index.clone(),
         );
@@ -74,34 +69,42 @@ impl<'a> DeterministicEngineBuilder<'a> {
             Arc::new(config.try_into().unwrap()),
             None,
             TestRuntime {
-                fetcher,
+                fetcher: fetcher.into(),
                 ..self.runtime
             },
         )
         .await;
+        let body = Bytes::from(serde_json::to_vec(&serde_json::json!({"query": self.query})).unwrap());
         DeterministicEngine {
             engine: Arc::new(engine),
-            query: self.query,
+            request_parts: http::Request::builder()
+                .method(http::Method::POST)
+                .header(http::header::ACCEPT, http::HeaderValue::from_static("application/json"))
+                .header(
+                    http::header::CONTENT_TYPE,
+                    http::HeaderValue::from_static("application/json"),
+                )
+                .body(())
+                .unwrap()
+                .into_parts()
+                .0,
+            body,
             dummy_responses_index,
         }
     }
 }
 
 impl DeterministicEngine {
-    pub fn builder(schema: &str, query: impl Into<Cow<'static, str>>) -> DeterministicEngineBuilder<'_> {
+    pub fn builder<'a>(schema: &'a str, query: &'a str) -> DeterministicEngineBuilder<'a> {
         DeterministicEngineBuilder {
             runtime: TestRuntime::default(),
             schema,
-            query: query.into().into_owned(),
+            query,
             subgraphs_json_responses: Vec::new(),
         }
     }
 
-    pub async fn new<T: serde::Serialize, I>(
-        schema: &str,
-        query: impl Into<Cow<'static, str>>,
-        subgraphs_responses: I,
-    ) -> Self
+    pub async fn new<T: serde::Serialize, I>(schema: &str, query: &str, subgraphs_responses: I) -> Self
     where
         I: IntoIterator<Item = T>,
     {
@@ -112,13 +115,13 @@ impl DeterministicEngine {
         builder.build().await
     }
 
-    pub async fn raw_execute(&self) -> HttpGraphqlResponse {
+    pub async fn raw_execute(&self) -> http::Response<Body> {
         self.dummy_responses_index.store(0, Ordering::Relaxed);
         self.engine
-            .execute(
-                http::HeaderMap::new(),
-                BatchRequest::Single(engine::Request::new(&self.query)),
-            )
+            .execute(http::Request::from_parts(
+                self.request_parts.clone(),
+                Box::pin(async { Ok(self.body.clone()) }),
+            ))
             .await
     }
 
@@ -128,49 +131,46 @@ impl DeterministicEngine {
 
     pub async fn execute_stream(&self) -> GraphqlStreamingResponse {
         self.dummy_responses_index.store(0, Ordering::Relaxed);
-        let mut headers = http::HeaderMap::new();
-        headers.typed_insert(StreamingFormat::IncrementalDelivery);
-        let response = self
-            .engine
-            .execute(headers, BatchRequest::Single(engine::Request::new(&self.query)))
-            .await;
-        let stream = multipart_stream::parse(response.body.into_stream().map_ok(Into::into), "-")
+        let request = {
+            let mut parts = self.request_parts.clone();
+            parts.headers.insert(
+                http::header::ACCEPT,
+                http::HeaderValue::from_static("multipart/mixed,application/json;q=0.9"),
+            );
+            http::Request::from_parts(parts, Box::pin(async { Ok(self.body.clone()) }))
+        };
+        let (parts, body) = self.engine.execute(request).await.into_parts();
+        let stream = multipart_stream::parse(body.into_stream().map_ok(Into::into), "-")
             .map(|result| serde_json::from_slice(&result.unwrap().body).unwrap());
         GraphqlStreamingResponse {
-            stream: Box::pin(stream),
-            headers: response.headers,
+            status: parts.status,
+            headers: parts.headers,
+            collected_body: stream.collect().await,
         }
     }
 }
 
 struct DummyFetcher {
-    responses: Arc<Vec<FetchResponse>>,
+    responses: Arc<Vec<http::Response<OwnedOrSharedBytes>>>,
     index: Arc<AtomicUsize>,
 }
 
 impl DummyFetcher {
-    fn create(responses: Vec<FetchResponse>, index: Arc<AtomicUsize>) -> runtime::fetch::Fetcher {
-        runtime::fetch::Fetcher::new(Self {
+    fn new(responses: Vec<http::Response<OwnedOrSharedBytes>>, index: Arc<AtomicUsize>) -> Self {
+        Self {
             responses: Arc::new(responses),
             index,
-        })
+        }
     }
 }
 
 #[async_trait::async_trait]
-impl runtime::fetch::FetcherInner for DummyFetcher {
-    async fn post(&self, _request: &FetchRequest<'_>) -> FetchResult<FetchResponse> {
+impl DynFetcher for DummyFetcher {
+    async fn fetch(&self, _request: FetchRequest<'_, Bytes>) -> FetchResult<http::Response<OwnedOrSharedBytes>> {
         Ok(self
             .responses
             .get(self.index.fetch_add(1, Ordering::Relaxed))
             .cloned()
             .expect("No more responses"))
-    }
-
-    async fn stream(
-        &self,
-        _request: GraphqlRequest<'_>,
-    ) -> FetchResult<BoxStream<'static, Result<serde_json::Value, FetchError>>> {
-        unreachable!()
     }
 }

@@ -199,7 +199,13 @@ fn decode_token(jwks: Vec<Jwk<'_>>, untrusted_token: UntrustedToken<'_>) -> Opti
             token
                 .claims()
                 .validate_expiration(&time_options)
-                .and_then(|claims| claims.validate_maturity(&time_options))
+                .and_then(|claims| {
+                    if claims.not_before.is_some() {
+                        claims.validate_maturity(&time_options)
+                    } else {
+                        Ok(claims)
+                    }
+                })
                 .is_ok()
         })
 }

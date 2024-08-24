@@ -71,6 +71,10 @@ impl Query {
         "1"
     }
 
+    async fn fail(&self) -> async_graphql::Result<usize> {
+        Err("fail".into())
+    }
+
     async fn pull_requests_and_issues(&self, _filter: PullRequestsAndIssuesFilters) -> Vec<PullRequestOrIssue> {
         // This doesn't actually filter anything because I don't need that for my test.
         vec![
@@ -208,6 +212,13 @@ impl Query {
             Status::Closed => "woo its open",
         }
     }
+
+    async fn silly_default_value(&self, #[graphql(default_with = "Status::Open")] status: Status) -> &str {
+        match status {
+            Status::Open => "boo its closed",
+            Status::Closed => "woo its open",
+        }
+    }
 }
 
 #[derive(SimpleObject)]
@@ -260,6 +271,8 @@ struct Bot {
 #[derive(InputObject)]
 struct BotInput {
     id: ID,
+    #[graphql(default = false)]
+    sentient: bool,
 }
 
 impl From<&UserOrBot> for UserOrBot {

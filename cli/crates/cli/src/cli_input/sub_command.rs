@@ -7,6 +7,7 @@ use crate::{
         },
         BranchSubCommand, EnvironmentSubCommand,
     },
+    create::GraphMode,
     is_not_direct_install,
 };
 
@@ -35,13 +36,13 @@ pub enum SubCommand {
     Login,
     /// Logs out of your Grafbase account
     Logout,
-    /// Set up and deploy a new project
+    /// Set up and deploy a new graph
     Create(CreateCommand),
     /// Deploy your project
     Deploy(DeployCommand),
-    /// Connect a local project to a remote project
+    /// Connect a local graph to a remote graph
     Link(LinkCommand),
-    /// Disconnect a local project from a remote project
+    /// Disconnect a local graph from a remote graph
     Unlink,
     /// Tail logs from a standalone graph
     Logs(LogsCommand),
@@ -76,20 +77,18 @@ impl SubCommand {
     pub(crate) fn in_project_context(&self) -> bool {
         matches!(
             self,
-            Self::Create(_)
-                | Self::Branch(BranchCommand {
-                    command: BranchSubCommand::List
-                })
-                | Self::Environment(EnvironmentCommand {
-                    command: EnvironmentSubCommand::List(EnvironmentVariableListCommand { graph_ref: None })
-                })
-                | Self::Environment(EnvironmentCommand {
-                    command: EnvironmentSubCommand::Create(EnvironmentVariableCreateCommand { graph_ref: None, .. })
-                })
-                | Self::Environment(EnvironmentCommand {
-                    command: EnvironmentSubCommand::Delete(EnvironmentVariableDeleteCommand { graph_ref: None, .. })
-                })
-                | Self::Deploy(_)
+            Self::Create(CreateCommand {
+                mode: Some(GraphMode::Managed) | None,
+                ..
+            }) | Self::Branch(BranchCommand {
+                command: BranchSubCommand::List,
+            }) | Self::Environment(EnvironmentCommand {
+                command: EnvironmentSubCommand::List(EnvironmentVariableListCommand { graph_ref: None })
+            }) | Self::Environment(EnvironmentCommand {
+                command: EnvironmentSubCommand::Create(EnvironmentVariableCreateCommand { graph_ref: None, .. })
+            }) | Self::Environment(EnvironmentCommand {
+                command: EnvironmentSubCommand::Delete(EnvironmentVariableDeleteCommand { graph_ref: None, .. })
+            }) | Self::Deploy(_)
                 | Self::Dev(DevCommand { .. })
                 | Self::Link(_)
                 | Self::Logs(LogsCommand {

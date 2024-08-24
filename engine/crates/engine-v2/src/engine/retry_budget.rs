@@ -18,7 +18,7 @@ impl RetryBudgets {
                 .walker()
                 .graphql_endpoints()
                 .map(|endpoint| {
-                    let retry_config = endpoint.retry_config()?;
+                    let retry_config = endpoint.retry_config().or_else(|| schema.walker().retry_config())?;
 
                     // Defaults: https://docs.rs/tower/0.4.13/src/tower/retry/budget.rs.html#137-139
                     let ttl = retry_config.ttl.unwrap_or(std::time::Duration::from_secs(10));
@@ -33,7 +33,7 @@ impl RetryBudgets {
 }
 
 impl<R: Runtime> super::Engine<R> {
-    pub(crate) fn get_retry_budget_for_query(&self, endpoint_id: GraphqlEndpointId) -> Option<&Budget> {
+    pub(crate) fn get_retry_budget_for_non_mutation(&self, endpoint_id: GraphqlEndpointId) -> Option<&Budget> {
         self.retry_budgets[endpoint_id].as_ref()
     }
 

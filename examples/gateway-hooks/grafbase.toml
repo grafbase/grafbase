@@ -7,3 +7,7 @@ stdout = true
 stderr = true
 environment_variables = true
 networking = true
+
+[entity_caching]
+enabled = true
+ttl = "60s"

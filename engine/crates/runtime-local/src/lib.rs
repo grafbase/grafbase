@@ -4,9 +4,9 @@ mod entity_cache;
 mod fetch;
 #[cfg(feature = "wasi")]
 mod hooks;
-mod hot_cache;
 mod kv;
 mod log;
+mod operation_cache;
 mod pg;
 pub mod rate_limiting;
 #[cfg(feature = "redis")]
@@ -19,8 +19,8 @@ pub use entity_cache::memory::InMemoryEntityCache;
 #[cfg(feature = "redis")]
 pub use entity_cache::redis::RedisEntityCache;
 pub use fetch::NativeFetcher;
-pub use hot_cache::{InMemoryHotCache, InMemoryHotCacheFactory};
 pub use kv::*;
+pub use operation_cache::{InMemoryOperationCache, InMemoryOperationCacheFactory};
 pub use pg::{LazyPgConnectionsPool, LocalPgTransportFactory};
 pub use ufd_invoker::UdfInvokerImpl;
 

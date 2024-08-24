@@ -1,88 +1,150 @@
-mod websockets;
+use std::future::Future;
 
-use std::collections::HashMap;
+use bytes::Bytes;
+use futures_util::Stream;
+use futures_util::{StreamExt, TryStreamExt};
+use reqwest::RequestBuilder;
+use reqwest_eventsource::RequestBuilderExt;
+use runtime::bytes::OwnedOrSharedBytes;
+use runtime::fetch::{FetchError, FetchRequest, FetchResult, Fetcher};
 
-use futures_util::stream::BoxStream;
-use runtime::fetch::{FetchError, FetchRequest, FetchResponse, FetchResult, Fetcher, FetcherInner, GraphqlRequest};
-use serde_json::json;
-
-use self::websockets::StreamingRequest;
-
+#[derive(Default, Clone)]
 pub struct NativeFetcher {
     client: reqwest::Client,
 }
 
-impl NativeFetcher {
-    pub fn runtime_fetcher() -> Fetcher {
-        Fetcher::new(Self {
-            client: reqwest::Client::new(),
-        })
+impl Fetcher for NativeFetcher {
+    async fn fetch(&self, request: FetchRequest<'_, Bytes>) -> FetchResult<http::Response<OwnedOrSharedBytes>> {
+        let mut resp = self.client.execute(into_reqwest(request)).await.map_err(|e| {
+            if e.is_timeout() {
+                FetchError::Timeout
+            } else {
+                reqwest_error_to_fetch_error(e)
+            }
+        })?;
+
+        let status = resp.status();
+        let headers = std::mem::take(resp.headers_mut());
+        let extensions = std::mem::take(resp.extensions_mut());
+        let version = resp.version();
+        let bytes = resp.bytes().await.map_err(reqwest_error_to_fetch_error)?;
+
+        // reqwest transforms the body into a stream with Into
+        let mut response = http::Response::new(OwnedOrSharedBytes::Shared(bytes));
+        *response.status_mut() = status;
+        *response.version_mut() = version;
+        *response.extensions_mut() = extensions;
+        *response.headers_mut() = headers;
+
+        Ok(response)
+    }
+
+    async fn graphql_over_sse_stream(
+        &self,
+        request: FetchRequest<'_, Bytes>,
+    ) -> FetchResult<impl Stream<Item = FetchResult<OwnedOrSharedBytes>> + Send + 'static> {
+        let events = RequestBuilder::from_parts(self.client.clone(), into_reqwest(request))
+            .eventsource()
+            .unwrap()
+            .map_err(FetchError::any)
+            .try_take_while(|event| {
+                let is_complete = if let reqwest_eventsource::Event::Message(message) = event {
+                    message.event == "complete"
+                } else {
+                    false
+                };
+                async move { Ok(!is_complete) }
+            })
+            .try_filter_map(|event| async move {
+                let reqwest_eventsource::Event::Message(message) = event else {
+                    return Ok(None);
+                };
+                if message.event == "next" {
+                    Ok(Some(OwnedOrSharedBytes::Owned(message.data.into())))
+                } else {
+                    Err(FetchError::AnyError(format!("Unexpected event: {}", message.event)))
+                }
+            });
+        Ok(events)
+    }
+
+    fn graphql_over_websocket_stream<T>(
+        &self,
+        request: FetchRequest<'_, T>,
+    ) -> impl Future<Output = FetchResult<impl Stream<Item = FetchResult<serde_json::Value>> + Send + 'static>> + Send
+    where
+        T: serde::Serialize + Send,
+    {
+        use tungstenite::{client::IntoClientRequest, http::HeaderValue};
+
+        // graphql_ws_client requires a 'static body which we can't provide.
+        let body = serde_json::value::to_raw_value(&request.body).map_err(|err| FetchError::any(err.to_string()));
+        let headers = Headers(request.headers);
+        let mut ws_request = request.url.as_ref().into_client_request().unwrap();
+
+        async move {
+            let (connection, _) = {
+                ws_request.headers_mut().insert(
+                    "Sec-WebSocket-Protocol",
+                    HeaderValue::from_str("graphql-transport-ws").unwrap(),
+                );
+
+                async_tungstenite::tokio::connect_async(ws_request)
+                    .await
+                    .map_err(FetchError::any)?
+            };
+
+            Ok(graphql_ws_client::Client::build(connection)
+                .payload(headers)
+                .map_err(FetchError::any)?
+                .subscribe(WebsocketRequest(body?))
+                .await
+                .map_err(FetchError::any)?
+                .map(|item| item.map_err(FetchError::any)))
+        }
     }
 }
 
-#[async_trait::async_trait]
-impl FetcherInner for NativeFetcher {
-    async fn post(&self, request: &FetchRequest<'_>) -> FetchResult<FetchResponse> {
-        let n = request.json_body.len();
+fn reqwest_error_to_fetch_error(e: reqwest::Error) -> FetchError {
+    FetchError::any(e.without_url())
+}
 
-        let response = self
-            .client
-            .post(request.url.clone())
-            .body(request.json_body.clone())
-            .headers(request.headers.clone())
-            .header("Content-Type", "application/json")
-            .header("Content-Length", n)
-            .timeout(request.timeout)
-            .send()
-            .await
-            .map_err(|e| {
-                if e.is_timeout() {
-                    FetchError::Timeout
-                } else {
-                    FetchError::AnyError(e.to_string())
-                }
-            })?;
+fn into_reqwest(request: FetchRequest<'_, Bytes>) -> reqwest::Request {
+    let mut req = reqwest::Request::new(request.method, request.url.into_owned());
+    *req.headers_mut() = request.headers;
+    *req.body_mut() = Some(request.body.into());
+    *req.timeout_mut() = Some(request.timeout);
+    req
+}
 
-        let bytes = response
-            .bytes()
-            .await
-            .map_err(|e| FetchError::AnyError(e.to_string()))?;
+struct Headers(http::HeaderMap);
 
-        Ok(FetchResponse { bytes })
+impl serde::Serialize for Headers {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeMap;
+
+        let mut map = serializer.serialize_map(None)?;
+        for (name, value) in self.0.iter() {
+            if let Ok(value) = value.to_str() {
+                map.serialize_entry(name.as_str(), value)?;
+            }
+        }
+        map.end()
     }
+}
 
-    async fn stream(
-        &self,
-        request: GraphqlRequest<'_>,
-    ) -> FetchResult<BoxStream<'static, Result<serde_json::Value, FetchError>>> {
-        use futures_util::StreamExt;
-        use tungstenite::{client::IntoClientRequest, http::HeaderValue};
+#[derive(serde::Serialize)]
+struct WebsocketRequest<T>(T);
 
-        let (connection, _) = {
-            let mut request = request.url.into_client_request().unwrap();
-            request.headers_mut().insert(
-                "Sec-WebSocket-Protocol",
-                HeaderValue::from_str("graphql-transport-ws").unwrap(),
-            );
+impl<T: serde::Serialize> graphql_ws_client::graphql::GraphqlOperation for WebsocketRequest<T> {
+    type Response = serde_json::Value;
 
-            async_tungstenite::tokio::connect_async(request)
-                .await
-                .map_err(FetchError::any)?
-        };
+    type Error = FetchError;
 
-        let headers: HashMap<_, _> = request
-            .headers
-            .iter()
-            .flat_map(|(k, v)| v.to_str().map(|v| (k.as_str(), v)))
-            .collect();
-
-        Ok(graphql_ws_client::Client::build(connection)
-            .payload(json!({"headers": headers}))
-            .map_err(FetchError::any)?
-            .subscribe(StreamingRequest::from(request))
-            .await
-            .map_err(FetchError::any)?
-            .map(|item| item.map_err(FetchError::any))
-            .boxed())
+    fn decode(&self, data: serde_json::Value) -> Result<Self::Response, Self::Error> {
+        Ok(data)
     }
 }

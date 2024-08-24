@@ -21,6 +21,7 @@ pub(super) fn router(gateway: Gateway) -> Router {
         .with_state(gateway)
         .layer(grafbase_telemetry::tower::layer(
             grafbase_telemetry::metrics::meter_from_global_provider(),
+            None,
         ))
         .layer(CorsLayer::permissive())
 }
@@ -32,6 +33,7 @@ async fn post_graphql(State(gateway): State<Gateway>, headers: HeaderMap, body: 
         .get(http::header::ACCEPT)
         .and_then(|value| value.to_str().ok())
         .and_then(StreamingFormat::from_accept_header);
+
     let (sender, receiver) = mpsc::unbounded_channel();
     let ctx = crate::Context::new(headers, sender);
 

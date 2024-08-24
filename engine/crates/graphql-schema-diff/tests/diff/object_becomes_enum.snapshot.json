@@ -2,21 +2,37 @@
   "src → target": [
     {
       "path": "Color",
-      "kind": "RemoveObjectType"
+      "kind": "RemoveObjectType",
+      "span": {
+        "start": 0,
+        "end": 56
+      }
     },
     {
       "path": "Color",
-      "kind": "AddEnum"
+      "kind": "AddEnum",
+      "span": {
+        "start": 2,
+        "end": 43
+      }
     }
   ],
   "target → src": [
     {
       "path": "Color",
-      "kind": "AddObjectType"
+      "kind": "AddObjectType",
+      "span": {
+        "start": 0,
+        "end": 56
+      }
     },
     {
       "path": "Color",
-      "kind": "RemoveEnum"
+      "kind": "RemoveEnum",
+      "span": {
+        "start": 2,
+        "end": 43
+      }
     }
   ]
 }

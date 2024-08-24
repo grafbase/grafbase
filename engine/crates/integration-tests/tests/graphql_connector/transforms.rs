@@ -19,6 +19,7 @@ fn graphql_test_with_transforms() {
         insta::assert_snapshot!(response.into_schema().unwrap().to_sdl(), @r###"
         input BotInput {
           id: ID!
+          sentient: Boolean! = false
         }
 
         scalar CustomRepoId
@@ -45,11 +46,13 @@ fn graphql_test_with_transforms() {
         type Query {
           allBotPullRequests: [PullRequest!]!
           botPullRequests(bots: [[BotInput!]]!): [PullRequest!]!
+          fail: Int!
           favoriteRepository: CustomRepoId!
           pullRequest(id: ID!): PullRequest
           pullRequestOrIssue(id: ID!): PullRequestOrIssue
           pullRequestsAndIssues(filter: PullRequestsAndIssuesFilters!): [PullRequestOrIssue!]!
           serverVersion: String!
+          sillyDefaultValue(status: Status! = OPEN): String!
           statusString(status: Status!): String!
         }
 

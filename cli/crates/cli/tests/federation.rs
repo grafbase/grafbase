@@ -240,7 +240,7 @@ async fn test_sse_transport_with_failed_auth() {
     client.poll_endpoint(30, 300).await;
     env.grafbase_publish_dev("subscriptions", subscription_server.url());
 
-    let events = client
+    let response = client
         .with_header(
             "Authorization",
             identity_server.auth_header_with_claims(json!({"iss": "bogus_issuer"})),
@@ -256,24 +256,13 @@ async fn test_sse_transport_with_failed_auth() {
             }
             ",
         )
-        .into_sse_stream()
-        .collect::<Vec<_>>()
-        .await;
+        .into_reqwest_builder()
+        .header("Accept", "text/event-stream")
+        .send()
+        .await
+        .unwrap();
 
-    insta::assert_json_snapshot!(events, @r###"
-    [
-      {
-        "errors": [
-          {
-            "message": "Unauthenticated",
-            "extensions": {
-              "code": "UNAUTHENTICATED"
-            }
-          }
-        ]
-      }
-    ]
-    "###);
+    assert_eq!(response.status().as_u16(), 401);
 }
 
 #[tokio::test(flavor = "multi_thread")]

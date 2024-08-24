@@ -15,11 +15,13 @@ async-graphql.workspace = true
 async-trait = "0.1.80"
 axum.workspace = true
 futures.workspace = true
+headers.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 tokio.workspace = true
 crossbeam-queue = "0.3"
 http.workspace = true
+url.workspace = true
 
 [lints]
 workspace = true

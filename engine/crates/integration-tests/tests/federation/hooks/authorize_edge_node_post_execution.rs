@@ -1,6 +1,6 @@
 use http::HeaderMap;
 use runtime::{
-    error::{PartialErrorCode, PartialGraphqlError},
+    error::{ErrorResponse, PartialErrorCode, PartialGraphqlError},
     hooks::{DynHookContext, DynHooks, EdgeDefinition},
 };
 
@@ -37,7 +37,7 @@ fn nodes_are_provided() {
 
     with_engine_for_auth(TestHooks, |engine| async move {
         let response = engine
-            .execute(
+            .post(
                 r#"
                 query {
                     yes: nullableCheck {
@@ -133,7 +133,7 @@ fn metadata_is_provided() {
 
     with_engine_for_auth(TestHooks, |engine| async move {
         let response = engine
-            .execute(
+            .post(
                 r#"
                 query {
                     ok: nullableCheck {
@@ -223,7 +223,7 @@ fn definition_is_provided() {
 
     with_engine_for_auth(TestHooks, |engine| async move {
         let response = engine
-            .execute(
+            .post(
                 r#"
                 query {
                     ok: nullableCheck {
@@ -280,7 +280,7 @@ fn context_is_propagated() {
             &self,
             context: &mut DynHookContext,
             headers: HeaderMap,
-        ) -> Result<HeaderMap, PartialGraphqlError> {
+        ) -> Result<HeaderMap, ErrorResponse> {
             if let Some(client) = headers
                 .get("x-grafbase-client-name")
                 .and_then(|value| value.to_str().ok())
@@ -310,7 +310,7 @@ fn context_is_propagated() {
 
     with_engine_for_auth(TestHooks, |engine| async move {
         let response = engine
-            .execute(r###"query { check { authorizedEdgeWithNode(ids: ["1"]) { withId { id } } } }"###)
+            .post(r###"query { check { authorizedEdgeWithNode(ids: ["1"]) { withId { id } } } }"###)
             .by_client("hi", "")
             .await;
         insta::assert_json_snapshot!(response, @r###"
@@ -328,7 +328,7 @@ fn context_is_propagated() {
         "###);
 
         let response = engine
-            .execute(r###"query { check { authorizedEdgeWithNode(ids: ["1"]) { withId { id } } } }"###)
+            .post(r###"query { check { authorizedEdgeWithNode(ids: ["1"]) { withId { id } } } }"###)
             .await;
         insta::assert_json_snapshot!(response, @r###"
         {
@@ -370,7 +370,7 @@ fn error_propagation() {
 
     with_engine_for_auth(TestHooks, |engine| async move {
         let response = engine
-            .execute(
+            .post(
                 r#"
                 query {
                     check {
@@ -400,7 +400,7 @@ fn error_propagation() {
         "###);
 
         let response = engine
-            .execute(
+            .post(
                 r#"
                 query {
                     check {
@@ -465,7 +465,7 @@ fn lists() {
 
     with_engine_for_auth(TestHooks, |engine| async move {
         let response = engine
-            .execute(
+            .post(
                 r#"
                 query {
                     goodIds: check {
@@ -545,7 +545,7 @@ fn lists() {
         "###);
 
         let response = engine
-            .execute(
+            .post(
                 r#"
                 query {
                     check {
@@ -578,7 +578,7 @@ fn lists() {
         "###);
 
         let response = engine
-            .execute(
+            .post(
                 r#"
                 query {
                     check {
@@ -612,7 +612,7 @@ fn lists() {
         "###);
 
         let response = engine
-            .execute(
+            .post(
                 r#"
                 query {
                     check {
@@ -659,7 +659,7 @@ fn lists() {
         "###);
 
         let response = engine
-            .execute(
+            .post(
                 r#"
                 query {
                     check {
@@ -710,7 +710,7 @@ fn lists() {
         }
         "###);
         let response = engine
-            .execute(
+            .post(
                 r#"
                 query {
                     check {

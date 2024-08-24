@@ -10,6 +10,7 @@ mod fragments;
 mod headers;
 mod mutation;
 mod operation_limits;
+mod operations;
 mod scalars;
 mod streaming;
 mod variables;
@@ -23,7 +24,7 @@ fn single_field_from_single_server() {
     let response = runtime().block_on(async move {
         let engine = Engine::builder().with_subgraph(FakeGithubSchema).build().await;
 
-        engine.execute("query { serverVersion }").await
+        engine.post("query { serverVersion }").await
     });
 
     insta::assert_json_snapshot!(response, @r###"
@@ -40,7 +41,7 @@ fn top_level_typename() {
     let response = runtime().block_on(async move {
         let engine = Engine::builder().with_subgraph(FakeGithubSchema).build().await;
 
-        engine.execute("query { __typename }").await
+        engine.post("query { __typename }").await
     });
 
     insta::assert_json_snapshot!(response, @r###"
@@ -58,7 +59,7 @@ fn only_typename() {
         let engine = Engine::builder().with_subgraph(FakeGithubSchema).build().await;
 
         engine
-            .execute(
+            .post(
                 r#"query { 
                     pullRequestsAndIssues(filter: { search: "1" }) { __typename } 
                     allBotPullRequests { __typename } 
@@ -99,7 +100,7 @@ fn response_with_lists() {
     let response = runtime().block_on(async move {
         let engine = Engine::builder().with_subgraph(FakeGithubSchema).build().await;
 
-        engine.execute("query { allBotPullRequests { title } }").await
+        engine.post("query { allBotPullRequests { title } }").await
     });
 
     insta::assert_json_snapshot!(response, @r###"

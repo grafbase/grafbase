@@ -86,7 +86,7 @@ Can access one's own data:
 
 ```sh
 curl -X POST http://127.0.0.1:5000/graphql \
-    --data '{"query": "query { user(id: 3) { name address { street } } }"}' \
+    --data '{"query": "query { user(id: 2) { name address { street } } }"}' \
     -H 'Content-Type: application/json' \
     -H 'x-current-user-id: 2'
 ```

@@ -1,6 +1,6 @@
 use crate::{federated_graph::*, FederatedGraph};
 use async_graphql_parser::{
-    types::{self as ast},
+    types::{self as ast, ConstDirective, FieldDefinition},
     Positioned,
 };
 use indexmap::IndexSet;
@@ -250,7 +250,7 @@ fn ingest_fields<'a>(parsed: &'a ast::ServiceDocument, state: &mut State<'a>) ->
                         ));
                     };
                     ingest_interface_interfaces(interface_id, iface, state)?;
-                    ingest_interface(interface_id, iface, state)?;
+                    ingest_interface_fields(interface_id, &iface.fields, state)?;
                 }
                 ast::TypeKind::Union(union) => {
                     let Definition::Union(union_id) = state.definition_names[typedef.node.name.node.as_str()] else {
@@ -475,34 +475,95 @@ fn ingest_field_directives_after_graph(
     parsed: &ast::ServiceDocument,
     state: &mut State<'_>,
 ) -> Result<(), DomainError> {
-    let all_fields = parsed.definitions.iter().filter_map(|definition| match definition {
-        ast::TypeSystemDefinition::Type(typedef) => {
-            let type_name = typedef.node.name.node.as_str();
-            match &typedef.node.kind {
-                ast::TypeKind::Object(object) => Some((type_name, &object.fields)),
-                ast::TypeKind::Interface(iface) => Some((type_name, &iface.fields)),
-                _ => None,
-            }
-        }
-        _ => None,
-    });
+    for definition in &parsed.definitions {
+        let ast::TypeSystemDefinition::Type(typedef) = definition else {
+            continue;
+        };
+        let fields = match &typedef.node.kind {
+            ast::TypeKind::Object(object) => &object.fields,
+            ast::TypeKind::Interface(iface) => &iface.fields,
+            _ => continue,
+        };
 
-    for (parent_name, field) in
-        all_fields.flat_map(|(parent_name, fields)| fields.iter().map(move |field| (parent_name, &field.node)))
-    {
-        let parent_id = state.definition_names[parent_name];
+        let parent_id = state.definition_names[typedef.node.name.node.as_str()];
+        ingest_join_field_directive(parent_id, &typedef.node.directives, fields, state)?;
+        ingest_authorized_directive(parent_id, fields, state)?;
+    }
+
+    Ok(())
+}
+
+fn ingest_join_field_directive(
+    parent_id: Definition,
+    parent_directives: &[Positioned<ConstDirective>],
+    fields: &[Positioned<FieldDefinition>],
+    state: &mut State<'_>,
+) -> Result<(), DomainError> {
+    let is_federated_entity = parent_directives
+        .iter()
+        .filter(|dir| dir.node.name.node == JOIN_TYPE_DIRECTIVE_NAME)
+        .any(|dir| dir.node.get_argument("key").is_some());
+
+    let type_subgraph_ids = if !is_federated_entity {
+        parent_directives
+            .iter()
+            .filter(|dir| dir.node.name.node == JOIN_TYPE_DIRECTIVE_NAME)
+            .filter_map(|dir| {
+                dir.node.get_argument("graph").and_then(|arg| match &arg.node {
+                    async_graphql_value::ConstValue::Enum(s) => Some(state.graph_sdl_names[s.as_str()]),
+                    _ => None,
+                })
+            })
+            .collect::<Vec<_>>()
+    } else {
+        Vec::new()
+    };
+
+    for field in fields {
+        let field = &field.node;
         let field_id = state.selection_map[&(parent_id, field.name.node.as_str())];
         let field_type = state.fields[field_id.0].r#type.clone();
-        let maybe_subgraph_id = state.fields[field_id.0].resolvable_in.first().copied();
 
-        if let Some((join_field_directive, subgraph_id)) = field
+        let mut resolvable_in = Vec::new();
+        let mut requires = Vec::new();
+        let mut provides = Vec::new();
+
+        for directive in field
             .directives
             .iter()
-            .find(|dir| dir.node.name.node == JOIN_FIELD_DIRECTIVE_NAME)
-            .zip(maybe_subgraph_id)
+            .filter(|dir| dir.node.name.node == JOIN_FIELD_DIRECTIVE_NAME)
         {
-            let provides = join_field_directive
-                .node
+            let directive = &directive.node;
+            let is_external = directive
+                .get_argument("external")
+                .map(|arg| match &arg.node {
+                    async_graphql_value::ConstValue::Boolean(b) => *b,
+                    _ => false,
+                })
+                .unwrap_or_default();
+
+            if is_external {
+                continue;
+            }
+
+            let Some(subgraph_id) = directive.get_argument("graph").and_then(|arg| match &arg.node {
+                async_graphql_value::ConstValue::Enum(s) => state.graph_sdl_names.get(s.as_str()).copied(),
+                _ => None,
+            }) else {
+                continue;
+            };
+
+            // Overrides are handled in a completely different way
+            if directive
+                .get_argument(JOIN_FIELD_DIRECTIVE_OVERRIDE_ARGUMENT)
+                .is_none() &&
+                // We implemented "overrides" by mistake, so we allow it for backwards compatibility..
+                directive.get_argument("overrides").is_none()
+            {
+                resolvable_in.push(subgraph_id);
+            }
+
+            if let Some(field_provides) = directive
                 .get_argument("provides")
                 .and_then(|arg| match &arg.node {
                     async_graphql_value::ConstValue::String(s) => Some(s),
@@ -511,13 +572,14 @@ fn ingest_field_directives_after_graph(
                 .map(|provides| {
                     parse_selection_set(provides)
                         .and_then(|provides| attach_field_set(&provides, field_type.definition, state))
-                        .map(|fields| vec![FieldProvides { subgraph_id, fields }])
+                        .map(|fields| FieldProvides { subgraph_id, fields })
                 })
                 .transpose()?
-                .unwrap_or_default();
+            {
+                provides.push(field_provides)
+            }
 
-            let requires = join_field_directive
-                .node
+            if let Some(field_requies) = directive
                 .get_argument("requires")
                 .and_then(|arg| match &arg.node {
                     async_graphql_value::ConstValue::String(s) => Some(s),
@@ -526,64 +588,86 @@ fn ingest_field_directives_after_graph(
                 .map(|requires| {
                     parse_selection_set(requires)
                         .and_then(|requires| attach_field_set(&requires, parent_id, state))
-                        .map(|fields| vec![FieldRequires { subgraph_id, fields }])
+                        .map(|fields| FieldRequires { subgraph_id, fields })
                 })
                 .transpose()?
-                .unwrap_or_default();
-
-            let field = &mut state.fields[field_id.0];
-            field.provides = provides;
-            field.requires = requires;
+            {
+                requires.push(field_requies);
+            }
         }
 
+        if resolvable_in.is_empty() {
+            resolvable_in = type_subgraph_ids.clone();
+        }
+
+        let field = &mut state.fields[field_id.0];
+        field.provides = provides;
+        field.requires = requires;
+        field.resolvable_in = resolvable_in;
+    }
+
+    Ok(())
+}
+
+fn ingest_authorized_directive(
+    parent_id: Definition,
+    fields: &[Positioned<FieldDefinition>],
+    state: &mut State<'_>,
+) -> Result<(), DomainError> {
+    for field in fields {
+        let field = &field.node;
+        let field_id = state.selection_map[&(parent_id, field.name.node.as_str())];
+        let field_type = state.fields[field_id.0].r#type.clone();
+
         for directive in &field.directives {
-            if let "authorized" = directive.node.name.node.as_str() {
-                let authorized_directive = AuthorizedDirective {
-                    arguments: directive
-                        .node
-                        .get_argument("arguments")
-                        .and_then(|arg| match &arg.node {
-                            async_graphql_value::ConstValue::String(s) => Some(s),
-                            _ => None,
-                        })
-                        .map(|arguments| {
-                            parse_selection_set(arguments).and_then(|fields| {
-                                attach_input_value_set_to_field_arguments(&fields, parent_id, field_id, state)
-                            })
-                        })
-                        .transpose()?,
-                    fields: directive
-                        .node
-                        .get_argument("fields")
-                        .and_then(|arg| match &arg.node {
-                            async_graphql_value::ConstValue::String(s) => Some(s),
-                            _ => None,
-                        })
-                        .map(|fields| {
-                            parse_selection_set(fields).and_then(|fields| attach_field_set(&fields, parent_id, state))
-                        })
-                        .transpose()?,
-                    node: directive
-                        .node
-                        .get_argument("node")
-                        .and_then(|arg| match &arg.node {
-                            async_graphql_value::ConstValue::String(s) => Some(s),
-                            _ => None,
-                        })
-                        .map(|fields| {
-                            parse_selection_set(fields)
-                                .and_then(|fields| attach_field_set(&fields, field_type.definition, state))
-                        })
-                        .transpose()?,
-                    metadata: directive
-                        .node
-                        .get_argument("metadata")
-                        .map(|metadata| state.insert_value(&metadata.node)),
-                };
-                state.authorized_directives.push(authorized_directive);
-                let id = AuthorizedDirectiveId(state.authorized_directives.len() - 1);
-                state.field_authorized_directives.push((field_id, id));
+            if "authorized" != directive.node.name.node.as_str() {
+                continue;
             }
+            let authorized_directive = AuthorizedDirective {
+                arguments: directive
+                    .node
+                    .get_argument("arguments")
+                    .and_then(|arg| match &arg.node {
+                        async_graphql_value::ConstValue::String(s) => Some(s),
+                        _ => None,
+                    })
+                    .map(|arguments| {
+                        parse_selection_set(arguments).and_then(|fields| {
+                            attach_input_value_set_to_field_arguments(&fields, parent_id, field_id, state)
+                        })
+                    })
+                    .transpose()?,
+                fields: directive
+                    .node
+                    .get_argument("fields")
+                    .and_then(|arg| match &arg.node {
+                        async_graphql_value::ConstValue::String(s) => Some(s),
+                        _ => None,
+                    })
+                    .map(|fields| {
+                        parse_selection_set(fields).and_then(|fields| attach_field_set(&fields, parent_id, state))
+                    })
+                    .transpose()?,
+                node: directive
+                    .node
+                    .get_argument("node")
+                    .and_then(|arg| match &arg.node {
+                        async_graphql_value::ConstValue::String(s) => Some(s),
+                        _ => None,
+                    })
+                    .map(|fields| {
+                        parse_selection_set(fields)
+                            .and_then(|fields| attach_field_set(&fields, field_type.definition, state))
+                    })
+                    .transpose()?,
+                metadata: directive
+                    .node
+                    .get_argument("metadata")
+                    .map(|metadata| state.insert_value(&metadata.node)),
+            };
+            state.authorized_directives.push(authorized_directive);
+            let id = AuthorizedDirectiveId(state.authorized_directives.len() - 1);
+            state.field_authorized_directives.push((field_id, id));
         }
     }
 
@@ -719,14 +803,14 @@ fn insert_builtin_scalars(state: &mut State<'_>) {
     }
 }
 
-fn ingest_interface<'a>(
+fn ingest_interface_fields<'a>(
     interface_id: InterfaceId,
-    iface: &'a ast::InterfaceType,
+    fields: &'a [Positioned<ast::FieldDefinition>],
     state: &mut State<'a>,
 ) -> Result<(), DomainError> {
     let [mut start, mut end] = [None; 2];
 
-    for field in &iface.fields {
+    for field in fields {
         let field_id = ingest_field(Definition::Interface(interface_id), &field.node, state)?;
         start = Some(start.unwrap_or(field_id));
         end = Some(field_id);

@@ -2,21 +2,37 @@
   "src → target": [
     {
       "path": "",
-      "kind": "ChangeMutationType"
+      "kind": "ChangeMutationType",
+      "span": {
+        "start": 63,
+        "end": 64
+      }
     },
     {
       "path": "",
-      "kind": "ChangeSubscriptionType"
+      "kind": "ChangeSubscriptionType",
+      "span": {
+        "start": 80,
+        "end": 81
+      }
     }
   ],
   "target → src": [
     {
       "path": "",
-      "kind": "ChangeMutationType"
+      "kind": "ChangeMutationType",
+      "span": {
+        "start": 49,
+        "end": 50
+      }
     },
     {
       "path": "",
-      "kind": "ChangeSubscriptionType"
+      "kind": "ChangeSubscriptionType",
+      "span": {
+        "start": 66,
+        "end": 67
+      }
     }
   ]
 }

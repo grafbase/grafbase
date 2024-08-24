@@ -251,7 +251,7 @@ where
                             response_futures.push_back(operation_execution.run());
                         }
                         Err(error) => {
-                            if responses.send(Response::execution_error(error)).await.is_err() {
+                            if responses.send(Response::execution_error([error])).await.is_err() {
                                 return;
                             }
                         }
@@ -274,7 +274,7 @@ pub(crate) struct SubscriptionResponse {
 }
 
 impl SubscriptionResponse {
-    pub fn root_response(&mut self) -> SubgraphResponseRefMut<'_> {
+    pub fn as_mut(&mut self) -> SubgraphResponseRefMut<'_> {
         self.root_subgraph_response.as_mut()
     }
 }
