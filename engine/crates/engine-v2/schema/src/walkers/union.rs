@@ -5,7 +5,7 @@ pub type UnionDefinitionWalker<'a> = SchemaWalker<'a, UnionDefinitionId>;
 
 impl<'a> UnionDefinitionWalker<'a> {
     pub fn name(&self) -> &'a str {
-        self.names.union(self.schema, self.item)
+        &self.schema[self.as_ref().name]
     }
 
     pub fn possible_types(self) -> impl ExactSizeIterator<Item = ObjectDefinitionWalker<'a>> + 'a {

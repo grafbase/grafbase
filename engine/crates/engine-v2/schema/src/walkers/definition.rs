@@ -12,14 +12,7 @@ impl<'a> DefinitionWalker<'a> {
     }
 
     pub fn name(&self) -> &'a str {
-        match self.item {
-            Definition::Scalar(s) => self.names.scalar(self.schema, s),
-            Definition::Object(o) => self.names.object(self.schema, o),
-            Definition::Interface(i) => self.names.interface(self.schema, i),
-            Definition::Union(u) => self.names.union(self.schema, u),
-            Definition::Enum(e) => self.names.r#enum(self.schema, e),
-            Definition::InputObject(io) => self.names.input_object(self.schema, io),
-        }
+        &self.schema[self.schema_name_id()]
     }
 
     pub fn schema_name_id(&self) -> StringId {

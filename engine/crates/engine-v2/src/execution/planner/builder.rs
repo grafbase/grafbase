@@ -43,12 +43,7 @@ where
 {
     pub(super) fn insert_execution_plan(mut self, logical_plan_id: LogicalPlanId) -> PlanningResult<()> {
         let logical_plan = &self.operation[logical_plan_id];
-        let resolver = self
-            .ctx
-            .schema()
-            .walker()
-            .walk(self.operation[logical_plan_id].resolver_id)
-            .with_own_names();
+        let resolver = self.ctx.schema().walk(self.operation[logical_plan_id].resolver_id);
         let (requires, input_fields) = self.create_plan_view_and_list_dependencies(
             resolver,
             &logical_plan.root_field_ids_ordered_by_parent_entity_id_then_position,

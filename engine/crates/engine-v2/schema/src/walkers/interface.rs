@@ -5,7 +5,7 @@ pub type InterfaceDefinitionWalker<'a> = SchemaWalker<'a, InterfaceDefinitionId>
 
 impl<'a> InterfaceDefinitionWalker<'a> {
     pub fn name(&self) -> &'a str {
-        self.names.interface(self.schema, self.item)
+        &self.schema[self.as_ref().name]
     }
 
     pub fn fields(self) -> impl Iterator<Item = FieldDefinitionWalker<'a>> + 'a {

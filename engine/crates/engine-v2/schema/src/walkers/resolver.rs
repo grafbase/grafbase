@@ -1,6 +1,4 @@
-use crate::{
-    FieldDefinitionId, Names, RequiredFieldSet, ResolverDefinition, ResolverDefinitionId, SchemaWalker, SubgraphId,
-};
+use crate::{FieldDefinitionId, RequiredFieldSet, ResolverDefinition, ResolverDefinitionId, SchemaWalker, SubgraphId};
 
 pub type ResolverDefinitionWalker<'a> = SchemaWalker<'a, ResolverDefinitionId>;
 
@@ -19,14 +17,6 @@ impl<'a> ResolverDefinitionWalker<'a> {
             | ResolverDefinition::Introspection(_)
             | ResolverDefinition::GraphqlFederationEntity(_) => true,
         }
-    }
-
-    pub fn with_own_names(&self) -> Self {
-        self.schema.walker_with(self.names()).walk(self.id())
-    }
-
-    pub fn names(&self) -> &'a dyn Names {
-        &()
     }
 
     pub fn requires(&self) -> &'a RequiredFieldSet {

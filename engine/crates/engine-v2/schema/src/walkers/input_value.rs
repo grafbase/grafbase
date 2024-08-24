@@ -5,7 +5,7 @@ pub type InputValueDefinitionWalker<'a> = SchemaWalker<'a, InputValueDefinitionI
 
 impl<'a> InputValueDefinitionWalker<'a> {
     pub fn name(&self) -> &'a str {
-        self.names.input_value(self.schema, self.item)
+        &self.schema[self.as_ref().name]
     }
 
     pub fn ty(&self) -> TypeWalker<'a> {
