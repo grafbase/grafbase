@@ -1,10 +1,10 @@
 use super::display_utils::*;
-use crate::{federated_graph::*, FederatedGraphV3};
+use crate::federated_graph::*;
 use std::fmt::{self, Display, Write};
 
 /// Render a GraphQL SDL string for a federated graph. It includes [join spec
 /// directives](https://specs.apollo.dev/join/v0.3/) about subgraphs and entities.
-pub fn render_federated_sdl(graph: &FederatedGraphV3) -> Result<String, fmt::Error> {
+pub fn render_federated_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error> {
     let mut sdl = String::new();
 
     write_prelude(&mut sdl)?;
@@ -263,7 +263,7 @@ fn write_prelude(sdl: &mut String) -> fmt::Result {
     Ok(())
 }
 
-fn write_subgraphs_enum(graph: &FederatedGraphV3, sdl: &mut String) -> fmt::Result {
+fn write_subgraphs_enum(graph: &FederatedGraph, sdl: &mut String) -> fmt::Result {
     if graph.subgraphs.is_empty() {
         return Ok(());
     }
@@ -287,7 +287,7 @@ fn write_subgraphs_enum(graph: &FederatedGraphV3, sdl: &mut String) -> fmt::Resu
     Ok(())
 }
 
-fn write_input_field(field: &InputValueDefinition, graph: &FederatedGraphV3, sdl: &mut String) -> fmt::Result {
+fn write_input_field(field: &InputValueDefinition, graph: &FederatedGraph, sdl: &mut String) -> fmt::Result {
     let field_name = &graph[field.name];
     let field_type = render_field_type(&field.r#type, graph);
 
@@ -307,7 +307,7 @@ fn write_input_field(field: &InputValueDefinition, graph: &FederatedGraphV3, sdl
     Ok(())
 }
 
-fn write_field(field_id: FieldId, field: &Field, graph: &FederatedGraphV3, sdl: &mut String) -> fmt::Result {
+fn write_field(field_id: FieldId, field: &Field, graph: &FederatedGraph, sdl: &mut String) -> fmt::Result {
     let field_name = &graph[field.name];
     let field_type = render_field_type(&field.r#type, graph);
     let args = render_field_arguments(&graph[field.arguments], graph);
@@ -332,7 +332,7 @@ fn write_field(field_id: FieldId, field: &Field, graph: &FederatedGraphV3, sdl: 
     Ok(())
 }
 
-fn write_composed_directives(directives: Directives, graph: &FederatedGraphV3, sdl: &mut String) -> fmt::Result {
+fn write_composed_directives(directives: Directives, graph: &FederatedGraph, sdl: &mut String) -> fmt::Result {
     for directive in &graph[directives] {
         write!(sdl, "{}", DirectiveDisplay(directive, graph))?;
     }
@@ -340,7 +340,7 @@ fn write_composed_directives(directives: Directives, graph: &FederatedGraphV3, s
     Ok(())
 }
 
-fn write_resolvable_in(subgraph: SubgraphId, field: &Field, graph: &FederatedGraphV3, sdl: &mut String) -> fmt::Result {
+fn write_resolvable_in(subgraph: SubgraphId, field: &Field, graph: &FederatedGraph, sdl: &mut String) -> fmt::Result {
     let subgraph_name = GraphEnumVariantName(&graph[graph[subgraph].name]);
     let provides = MaybeDisplay(
         field
@@ -361,7 +361,7 @@ fn write_resolvable_in(subgraph: SubgraphId, field: &Field, graph: &FederatedGra
     Ok(())
 }
 
-fn write_overrides(field: &Field, graph: &FederatedGraphV3, sdl: &mut String) -> fmt::Result {
+fn write_overrides(field: &Field, graph: &FederatedGraph, sdl: &mut String) -> fmt::Result {
     for Override {
         graph: overriding_graph,
         label,
@@ -388,7 +388,7 @@ fn write_overrides(field: &Field, graph: &FederatedGraphV3, sdl: &mut String) ->
     Ok(())
 }
 
-fn write_provides(field: &Field, graph: &FederatedGraphV3, sdl: &mut String) -> fmt::Result {
+fn write_provides(field: &Field, graph: &FederatedGraph, sdl: &mut String) -> fmt::Result {
     for provides in field
         .provides
         .iter()
@@ -402,7 +402,7 @@ fn write_provides(field: &Field, graph: &FederatedGraphV3, sdl: &mut String) -> 
     Ok(())
 }
 
-fn write_requires(field: &Field, graph: &FederatedGraphV3, sdl: &mut String) -> fmt::Result {
+fn write_requires(field: &Field, graph: &FederatedGraph, sdl: &mut String) -> fmt::Result {
     for requires in field
         .requires
         .iter()
@@ -416,7 +416,7 @@ fn write_requires(field: &Field, graph: &FederatedGraphV3, sdl: &mut String) -> 
     Ok(())
 }
 
-fn write_authorized(field_id: FieldId, graph: &FederatedGraphV3, sdl: &mut String) -> fmt::Result {
+fn write_authorized(field_id: FieldId, graph: &FederatedGraph, sdl: &mut String) -> fmt::Result {
     let start = graph
         .field_authorized_directives
         .partition_point(|(other_field_id, _)| *other_field_id < field_id);
@@ -433,7 +433,7 @@ fn write_authorized(field_id: FieldId, graph: &FederatedGraphV3, sdl: &mut Strin
     Ok(())
 }
 
-fn render_field_arguments(args: &[InputValueDefinition], graph: &FederatedGraphV3) -> String {
+fn render_field_arguments(args: &[InputValueDefinition], graph: &FederatedGraph) -> String {
     if args.is_empty() {
         String::new()
     } else {
@@ -499,7 +499,9 @@ mod tests {
     fn test_render_empty() {
         use expect_test::expect;
 
-        let empty = crate::FederatedGraph::V3(FederatedGraphV3::default());
+        let empty = crate::VersionedFederatedGraph::Sdl(
+            crate::render_sdl::render_federated_sdl(&FederatedGraph::default()).unwrap(),
+        );
         let actual = render_federated_sdl(&empty.into_latest()).expect("valid");
         let expected = expect![[r#"
             directive @core(feature: String!) repeatable on SCHEMA
@@ -538,7 +540,7 @@ mod tests {
             "###,
         )
         .unwrap();
-        let actual = render_federated_sdl(&empty.into_latest()).expect("valid");
+        let actual = render_federated_sdl(&empty).expect("valid");
         let expected = expect![[r#"
             directive @core(feature: String!) repeatable on SCHEMA
 
@@ -586,7 +588,7 @@ mod tests {
             "###,
         )
         .unwrap();
-        let actual = render_federated_sdl(&empty.into_latest()).expect("valid");
+        let actual = render_federated_sdl(&empty).expect("valid");
         let expected = expect![[r#"
             directive @core(feature: String!) repeatable on SCHEMA
 

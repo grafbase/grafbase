@@ -118,7 +118,7 @@ impl Composer {
                 emit_event(crate::FederatedDevEvent::ComposeAfterAdditionSuccess {
                     subgraph_name: name.clone(),
                 });
-                graph
+                graph.into_latest()
             }
             Err(error) => {
                 emit_event(crate::FederatedDevEvent::ComposeAfterAdditionFailure {
@@ -174,7 +174,7 @@ impl Composer {
                 emit_event(crate::FederatedDevEvent::ComposeAfterRemovalSuccess {
                     subgraph_name: subgraph_name.clone(),
                 });
-                self.bus.send_graph(graph).await?
+                self.bus.send_graph(graph.into_latest()).await?
             }
             Err(error) => {
                 log::warn!("Recomposition failed: {error:?}");

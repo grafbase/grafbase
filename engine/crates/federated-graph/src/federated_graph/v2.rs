@@ -62,6 +62,7 @@ pub struct InputValueDefinition {
 }
 
 #[derive(Default, serde::Serialize, serde::Deserialize, Clone, PartialEq, PartialOrd, Debug)]
+#[allow(clippy::enum_variant_names)]
 pub enum Value {
     #[default]
     Null,

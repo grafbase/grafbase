@@ -2856,6 +2856,7 @@ dependencies = [
  "grafbase-local-common",
  "grafbase-telemetry",
  "graphql-composition",
+ "graphql-federated-graph",
  "handlebars",
  "indoc",
  "log",

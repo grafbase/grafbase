@@ -100,7 +100,7 @@ pub type FieldSet = Vec<FieldSetItem>;
 pub struct FieldSetItem {
     pub field: FieldId,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub arguments: Vec<(super::v3::InputValueDefinitionId, super::v3::Value)>,
+    pub arguments: Vec<(super::v4::InputValueDefinitionId, super::v4::Value)>,
     pub subselection: FieldSet,
 }
 
@@ -459,11 +459,11 @@ id_newtypes! {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::FederatedGraph;
+    use crate::VersionedFederatedGraph;
 
     #[test]
     fn serde_json_backwards_compatibility() {
-        let schema = serde_json::from_str::<FederatedGraph>(
+        let schema = serde_json::from_str::<VersionedFederatedGraph>(
             r#"
             {
               "V1": {

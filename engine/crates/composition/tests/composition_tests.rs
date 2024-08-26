@@ -117,8 +117,7 @@ fn test_sdl_roundtrip(federated_graph_path: &Path) -> datatest_stable::Result<()
 
     let roundtripped = graphql_federated_graph::render_federated_sdl(
         &graphql_federated_graph::from_sdl(&sdl)
-            .map_err(|err| miette::miette!("Error ingesting SDL: {err}\n\nSDL:\n{sdl}"))?
-            .into_latest(),
+            .map_err(|err| miette::miette!("Error ingesting SDL: {err}\n\nSDL:\n{sdl}"))?,
     )?;
 
     if roundtripped == sdl {

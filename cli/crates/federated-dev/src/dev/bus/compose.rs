@@ -1,6 +1,6 @@
 use super::{ComposeMessage, ComposeReceiver, ComposeSender, GraphSender, RefreshMessage, RefreshSender};
 use crate::error::Error;
-use graphql_composition::FederatedGraph;
+use graphql_federated_graph::FederatedGraph;
 
 pub(crate) struct ComposeBus {
     graph_sender: GraphSender,

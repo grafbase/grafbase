@@ -9,13 +9,13 @@ use std::sync::Arc;
 pub(crate) use admin::AdminBus;
 pub(crate) use compose::ComposeBus;
 use engine_v2::Engine;
+use graphql_federated_graph::FederatedGraph;
 pub(crate) use message::*;
 pub(crate) use refresh::RefreshBus;
 pub(crate) use subgraph_config_watcher::SubgraphConfigWatcherBus;
 
 use crate::{dev::composer::Subgraph, error::Error};
 use async_graphql_parser::types::ServiceDocument;
-use graphql_composition::FederatedGraph;
 use tokio::sync::{mpsc, oneshot, watch};
 use url::Url;
 

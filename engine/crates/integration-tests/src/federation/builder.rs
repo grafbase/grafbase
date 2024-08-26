@@ -15,7 +15,7 @@ use engine_config_builder::{build_with_sdl_config, build_with_toml_config};
 use federated_graph::FederatedGraphV3;
 use futures::{future::BoxFuture, stream::FuturesUnordered, FutureExt, StreamExt};
 use grafbase_telemetry::metrics::meter_from_global_provider;
-use graphql_composition::FederatedGraph;
+use graphql_composition::VersionedFederatedGraph;
 use graphql_mocks::MockGraphQlServer;
 use itertools::Itertools;
 use parser_sdl::{connector_parsers::MockConnectorParsers, federation::FederatedGraphConfig};
@@ -120,7 +120,7 @@ impl EngineV2Builder {
 
         let graph = self
             .federated_sdl
-            .map(|sdl| FederatedGraph::from_sdl(&sdl).unwrap())
+            .map(|sdl| VersionedFederatedGraph::from_sdl(&sdl).unwrap())
             .unwrap_or_else(|| {
                 if !subgraphs.is_empty() {
                     graphql_composition::compose(&subgraphs.iter().fold(
@@ -135,15 +135,15 @@ impl EngineV2Builder {
                     .into_result()
                     .expect("schemas to compose succesfully")
                 } else {
-                    FederatedGraph::V3(FederatedGraphV3::default())
+                    VersionedFederatedGraph::V3(FederatedGraphV3::default())
                 }
             });
 
         // Ensure SDL/JSON serialization work as a expected
         let graph = {
-            let sdl = graph.into_sdl().unwrap();
+            let sdl = graph.into_federated_sdl();
             println!("{sdl}");
-            let mut graph = FederatedGraph::from_sdl(&sdl).unwrap();
+            let mut graph = VersionedFederatedGraph::from_sdl(&sdl).unwrap();
             let json = serde_json::to_value(&graph).unwrap();
             graph = serde_json::from_value(json).unwrap();
             graph
@@ -153,12 +153,12 @@ impl EngineV2Builder {
             Some(ConfigSource::Toml(toml)) => {
                 let config: gateway_config::Config = toml::from_str(&toml).unwrap();
                 update_runtime_with_toml_config(&mut self.runtime, &config);
-                build_with_toml_config(&config, graph)
+                build_with_toml_config(&config, graph.into_latest())
             }
             Some(ConfigSource::Sdl(mut sdl)) => {
                 sdl.push_str("\nextend schema @graph(type: federated)");
                 let config = parse_sdl_config(&sdl).await;
-                build_with_sdl_config(&config, graph)
+                build_with_sdl_config(&config, graph.into_latest())
             }
             Some(ConfigSource::SdlWebsocket) => {
                 let mut sdl = String::new();
@@ -172,9 +172,9 @@ impl EngineV2Builder {
                 }
 
                 let config = parse_sdl_config(&sdl).await;
-                build_with_sdl_config(&config, graph)
+                build_with_sdl_config(&config, graph.into_latest())
             }
-            None => build_with_sdl_config(&Default::default(), graph),
+            None => build_with_sdl_config(&Default::default(), graph.into_latest()),
         }
         .into_latest();
 

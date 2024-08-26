@@ -59,7 +59,7 @@ pub use self::{
     events::{subscribe, FederatedDevEvent},
 };
 
-use graphql_composition::FederatedGraph;
+use graphql_federated_graph::FederatedGraph;
 use parser_sdl::federation::FederatedGraphConfig;
 use tokio::runtime::Builder;
 use url::Url;

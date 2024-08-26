@@ -6,7 +6,6 @@ use std::sync::{
 use bytes::Bytes;
 use engine_v2::Body;
 use futures::{StreamExt, TryStreamExt};
-use graphql_composition::FederatedGraph;
 use runtime::{
     bytes::OwnedOrSharedBytes,
     fetch::{dynamic::DynFetcher, FetchRequest, FetchResult},
@@ -61,9 +60,9 @@ impl<'a> DeterministicEngineBuilder<'a> {
                 .collect(),
             dummy_responses_index.clone(),
         );
-        let federated_graph = FederatedGraph::from_sdl(self.schema).unwrap().into_latest();
         let config =
-            engine_v2::VersionedConfig::V5(engine_v2::config::Config::from_graph(federated_graph)).into_latest();
+            engine_v2::VersionedConfig::V6(engine_v2::config::Config::from_federated_sdl(self.schema.to_owned()))
+                .into_latest();
 
         let engine = engine_v2::Engine::new(
             Arc::new(config.try_into().unwrap()),

@@ -18,6 +18,7 @@ futures-concurrency = "7.6.0"
 futures-util = "0.3.30"
 gateway-config.workspace = true
 graphql-composition.workspace = true
+graphql-federated-graph.path = "../../../engine/crates/federated-graph"
 handlebars.workspace = true
 indoc = "2.0.5"
 log = "0.4.21"
