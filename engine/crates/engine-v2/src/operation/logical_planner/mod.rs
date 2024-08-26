@@ -4,6 +4,7 @@ mod selection_set;
 use std::borrow::Cow;
 
 use engine_parser::types::OperationType;
+use id_derives::IndexedFields;
 use id_newtypes::{BitSet, IdToMany};
 use itertools::Itertools;
 use schema::{EntityId, FieldDefinitionId, RequiredFieldId, RequiredFieldSet, ResolverDefinitionId, Schema};
@@ -46,11 +47,14 @@ impl From<LogicalPlanningError> for GraphqlError {
 
 pub(super) type LogicalPlanningResult<T> = Result<T, LogicalPlanningError>;
 
+#[derive(IndexedFields)]
 pub(super) struct LogicalPlanner<'a> {
     schema: &'a Schema,
     operation: &'a mut Operation,
+    #[indexed_by(FieldId)]
     field_to_logical_plan_id: Vec<Option<LogicalPlanId>>,
     field_to_solved_requirement: Vec<Option<RequiredFieldId>>,
+    #[indexed_by(LogicalPlanId)]
     logical_plans: Vec<LogicalPlan>,
     selection_set_to_objects_must_be_tracked: BitSet<SelectionSetId>,
     mutation_fields_plan_order: Vec<LogicalPlanId>,
@@ -64,11 +68,6 @@ pub(super) struct LogicalPlanner<'a> {
 pub(crate) struct ParentToChildEdge {
     pub parent: LogicalPlanId,
     pub child: LogicalPlanId,
-}
-
-id_newtypes::index! {
-    LogicalPlanner<'a>.logical_plans[LogicalPlanId] => LogicalPlan,
-    LogicalPlanner<'a>.field_to_logical_plan_id[FieldId] => Option<LogicalPlanId>,
 }
 
 impl<'a> LogicalPlanner<'a> {

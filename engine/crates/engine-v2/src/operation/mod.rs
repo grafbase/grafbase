@@ -17,6 +17,7 @@ mod walkers;
 use crate::response::{ConcreteObjectShapeId, FieldShapeId, ResponseKeys, ResponseObjectSetId, Shapes};
 pub(crate) use engine_parser::types::OperationType;
 use grafbase_telemetry::metrics::OperationMetricsAttributes;
+use id_derives::IndexedFields;
 use id_newtypes::{BitSet, IdRange, IdToMany};
 pub(crate) use ids::*;
 pub(crate) use input_value::*;
@@ -43,6 +44,14 @@ impl std::ops::Deref for PreparedOperation {
     }
 }
 
+impl std::ops::Index<LogicalPlanId> for PreparedOperation {
+    type Output = LogicalPlan;
+
+    fn index(&self, index: LogicalPlanId) -> &Self::Output {
+        &self.plan[index]
+    }
+}
+
 impl<I> std::ops::Index<I> for PreparedOperation
 where
     Operation: std::ops::Index<I>,
@@ -53,7 +62,7 @@ where
     }
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(serde::Serialize, serde::Deserialize, IndexedFields)]
 pub(crate) struct Operation {
     pub ty: OperationType,
     pub root_object_id: ObjectDefinitionId,
@@ -61,24 +70,34 @@ pub(crate) struct Operation {
     // sorted
     pub root_query_modifier_ids: Vec<QueryModifierId>,
     pub response_keys: ResponseKeys,
+    #[indexed_by(SelectionSetId)]
     pub selection_sets: Vec<SelectionSet>,
+    #[indexed_by(FieldId)]
     pub fields: Vec<Field>,
+    #[indexed_by(VariableDefinitionId)]
     pub variable_definitions: Vec<VariableDefinition>,
+    #[indexed_by(FieldArgumentId)]
     pub field_arguments: Vec<FieldArgument>,
     pub query_input_values: QueryInputValues,
     // deduplicated by rule
+    #[indexed_by(QueryModifierId)]
     pub query_modifiers: Vec<QueryModifier>,
+    #[indexed_by(QueryModifierImpactedFieldId)]
     pub query_modifier_impacted_fields: Vec<FieldId>,
     // deduplicated by rule
+    #[indexed_by(ResponseModifierId)]
     pub response_modifiers: Vec<ResponseModifier>,
+    #[indexed_by(ResponseModifierImpactedFieldId)]
     pub response_modifier_impacted_fields: Vec<FieldId>,
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(serde::Serialize, serde::Deserialize, IndexedFields)]
 pub(crate) struct OperationPlan {
+    #[indexed_by(FieldId)]
     pub field_to_logical_plan_id: Vec<LogicalPlanId>,
     pub field_to_solved_requirement: Vec<Option<RequiredFieldId>>,
     pub selection_set_to_objects_must_be_tracked: BitSet<SelectionSetId>,
+    #[indexed_by(LogicalPlanId)]
     pub logical_plans: Vec<LogicalPlan>,
     pub mutation_fields_plan_order: Vec<LogicalPlanId>,
     pub children: IdToMany<LogicalPlanId, LogicalPlanId>,
@@ -106,11 +125,12 @@ pub(crate) struct SolvedRequiredField {
     pub subselection: SolvedRequiredFieldSet,
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(serde::Serialize, serde::Deserialize, IndexedFields)]
 pub(crate) struct ResponseBlueprint {
     pub shapes: Shapes,
     pub field_to_shape_ids: IdToMany<FieldId, FieldShapeId>,
     pub response_modifier_impacted_field_to_response_object_set: Vec<ResponseObjectSetId>,
+    #[indexed_by(LogicalPlanId)]
     pub logical_plan_to_blueprint: Vec<LogicalPlanResponseBlueprint>,
     pub selection_set_to_requires_typename: BitSet<SelectionSetId>,
     pub response_object_sets_to_type: Vec<SelectionSetType>,

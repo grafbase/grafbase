@@ -30,6 +30,7 @@ futures.workspace = true
 grafbase-telemetry.workspace = true
 hex.workspace = true
 id-newtypes = { path = "./id-newtypes", package = "engine-v2-id-newtypes" }
+id-derives = { path = "./id-derives", package = "engine-v2-id-derives" }
 im = "15.1.0"
 itertools.workspace = true
 lasso2 = { version = "0.8.2", features = ["serialize"] }

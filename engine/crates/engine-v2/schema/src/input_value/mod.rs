@@ -1,4 +1,6 @@
-use crate::{EnumValueId, IdRange, InputValueDefinitionId, Schema, SchemaWalker, StringId};
+use std::num::NonZero;
+
+use crate::{EnumValueId, IdRange, InputValueDefinitionId, SchemaWalker, StringId};
 
 mod de;
 mod display;
@@ -75,21 +77,27 @@ impl serde::Serialize for SchemaWalker<'_, &InputValue<'_>> {
     }
 }
 
-#[derive(Default, serde::Serialize, serde::Deserialize)]
+#[derive(Default, serde::Serialize, serde::Deserialize, id_derives::IndexedFields)]
 pub struct SchemaInputValues {
     /// Individual input values and list values
+    #[indexed_by(SchemaInputValueId)]
     values: Vec<SchemaInputValue>,
     /// InputObject's fields
+    #[indexed_by(SchemaInputObjectFieldValueId)]
     input_fields: Vec<(InputValueDefinitionId, SchemaInputValue)>,
     /// Object's fields (for JSON)
+    #[indexed_by(SchemaInputKeyValueId)]
     key_values: Vec<(StringId, SchemaInputValue)>,
 }
 
-id_newtypes::NonZeroU32! {
-    SchemaInputValues.values[SchemaInputValueId] => SchemaInputValue | proxy(Schema.graph.input_values),
-    SchemaInputValues.input_fields[SchemaInputObjectFieldValueId] => (InputValueDefinitionId, SchemaInputValue) | proxy(Schema.graph.input_values),
-    SchemaInputValues.key_values[SchemaInputKeyValueId] => (StringId, SchemaInputValue) | proxy(Schema.graph.input_values),
-}
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize, id_derives::Id)]
+pub struct SchemaInputValueId(NonZero<u32>);
+
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize, id_derives::Id)]
+pub struct SchemaInputObjectFieldValueId(NonZero<u32>);
+
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize, id_derives::Id)]
+pub struct SchemaInputKeyValueId(NonZero<u32>);
 
 /// Represents a default input value and @requires arguments.
 #[derive(Debug, Copy, Clone, serde::Serialize, serde::Deserialize)]

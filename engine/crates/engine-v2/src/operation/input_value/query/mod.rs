@@ -2,28 +2,37 @@ mod de;
 mod ser;
 mod view;
 
+use id_derives::{Id, IndexedFields};
 use id_newtypes::IdRange;
 use schema::{EnumValueId, InputValue, InputValueDefinitionId, InputValueSet, SchemaInputValue, SchemaInputValueId};
 
-use crate::operation::{Operation, OperationWalker, PreparedOperationWalker, VariableDefinitionId};
+use crate::operation::{OperationWalker, PreparedOperationWalker, VariableDefinitionId};
 
 pub(crate) use view::*;
 
-#[derive(Default, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Default, Clone, serde::Serialize, serde::Deserialize, IndexedFields)]
 pub(crate) struct QueryInputValues {
     /// Individual input values and list values
+    #[indexed_by(QueryInputValueId)]
     values: Vec<QueryInputValue>,
+
     /// InputObject's fields
+    #[indexed_by(QueryInputObjectFieldValueId)]
     input_fields: Vec<(InputValueDefinitionId, QueryInputValue)>,
+
     /// Object's fields (for JSON)
+    #[indexed_by(QueryInputKeyValueId)]
     key_values: Vec<(String, QueryInputValue)>,
 }
 
-id_newtypes::NonZeroU32! {
-    QueryInputValues.values[QueryInputValueId] => QueryInputValue | proxy(Operation.query_input_values),
-    QueryInputValues.input_fields[QueryInputObjectFieldValueId] => (InputValueDefinitionId, QueryInputValue) | proxy(Operation.query_input_values),
-    QueryInputValues.key_values[QueryInputKeyValueId] => (String, QueryInputValue) | proxy(Operation.query_input_values),
-}
+#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, Id)]
+pub struct QueryInputValueId(std::num::NonZero<u32>);
+
+#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, Id)]
+pub struct QueryInputObjectFieldValueId(std::num::NonZero<u32>);
+
+#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, Id)]
+pub struct QueryInputKeyValueId(std::num::NonZero<u32>);
 
 #[derive(Default, Clone, serde::Serialize, serde::Deserialize)]
 pub(crate) enum QueryInputValue {
@@ -131,6 +140,7 @@ impl<'a> QueryInputValueWalker<'a> {
 
 impl<'a> From<QueryInputValueWalker<'a>> for InputValue<'a> {
     fn from(walker: QueryInputValueWalker<'a>) -> Self {
+        let input_values = &walker.operation.query_input_values;
         match walker.item {
             QueryInputValue::Null => InputValue::Null,
             QueryInputValue::String(s) => InputValue::String(s.as_str()),
@@ -141,11 +151,11 @@ impl<'a> From<QueryInputValueWalker<'a>> for InputValue<'a> {
             QueryInputValue::Boolean(b) => InputValue::Boolean(*b),
             QueryInputValue::InputObject(ids) => {
                 let mut fields = Vec::with_capacity(ids.len());
-                for (input_value_definition_id, value) in &walker.operation[*ids] {
+                for (definition_id, value) in &input_values[*ids] {
                     let value = walker.walk(value);
                     // https://spec.graphql.org/October2021/#sec-Input-Objects.Input-Coercion
                     if !value.is_undefined() {
-                        fields.push((*input_value_definition_id, value.into()));
+                        fields.push((*definition_id, value.into()));
                     }
                 }
                 InputValue::InputObject(fields.into_boxed_slice())
@@ -153,13 +163,13 @@ impl<'a> From<QueryInputValueWalker<'a>> for InputValue<'a> {
             QueryInputValue::List(ids) => {
                 let mut values = Vec::with_capacity(ids.len());
                 for id in *ids {
-                    values.push(walker.walk(&walker.operation[id]).into());
+                    values.push(walker.walk(&input_values[id]).into());
                 }
                 InputValue::List(values.into_boxed_slice())
             }
             QueryInputValue::Map(ids) => {
                 let mut key_values = Vec::with_capacity(ids.len());
-                for (key, value) in &walker.operation[*ids] {
+                for (key, value) in &input_values[*ids] {
                     let value = walker.walk(value);
                     key_values.push((key.as_ref(), value.into()));
                 }
@@ -174,6 +184,7 @@ impl<'a> From<QueryInputValueWalker<'a>> for InputValue<'a> {
 
 impl PartialEq<SchemaInputValue> for OperationWalker<'_, &QueryInputValue, ()> {
     fn eq(&self, other: &SchemaInputValue) -> bool {
+        let input_values = &self.operation.query_input_values;
         match (self.item, other) {
             (QueryInputValue::Null, SchemaInputValue::Null) => true,
             (QueryInputValue::String(l), SchemaInputValue::String(r)) => l == &self.schema_walker[*r],
@@ -184,7 +195,7 @@ impl PartialEq<SchemaInputValue> for OperationWalker<'_, &QueryInputValue, ()> {
             (QueryInputValue::Float(l), SchemaInputValue::Float(r)) => l == r,
             (QueryInputValue::Boolean(l), SchemaInputValue::Boolean(r)) => l == r,
             (QueryInputValue::InputObject(lids), SchemaInputValue::InputObject(rids)) => {
-                let op_input_values = &self.operation[*lids];
+                let op_input_values = &input_values[*lids];
                 let schema_input_values = &self.schema_walker.as_ref()[*rids];
 
                 if op_input_values.len() != schema_input_values.len() {
@@ -205,7 +216,7 @@ impl PartialEq<SchemaInputValue> for OperationWalker<'_, &QueryInputValue, ()> {
                 true
             }
             (QueryInputValue::List(lids), SchemaInputValue::List(rids)) => {
-                let left = &self.operation[*lids];
+                let left = &input_values[*lids];
                 let right = &self.schema_walker.as_ref()[*rids];
                 if left.len() != right.len() {
                     return false;
@@ -218,7 +229,7 @@ impl PartialEq<SchemaInputValue> for OperationWalker<'_, &QueryInputValue, ()> {
                 true
             }
             (QueryInputValue::Map(ids), SchemaInputValue::Map(other_ids)) => {
-                let op_kv = &self.operation[*ids];
+                let op_kv = &input_values[*ids];
                 let schema_kv = &self.schema_walker[*other_ids];
 
                 for (key, value) in op_kv {
@@ -257,6 +268,7 @@ impl PartialEq<SchemaInputValue> for OperationWalker<'_, &QueryInputValue, ()> {
 
 impl std::fmt::Debug for QueryInputValueWalker<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let input_values = &self.operation.query_input_values;
         match self.item {
             QueryInputValue::Null => write!(f, "Null"),
             QueryInputValue::String(s) => s.fmt(f),
@@ -271,7 +283,7 @@ impl std::fmt::Debug for QueryInputValueWalker<'_> {
             QueryInputValue::Boolean(b) => b.fmt(f),
             QueryInputValue::InputObject(ids) => {
                 let mut map = f.debug_struct("InputObject");
-                for (input_value_definition_id, value) in &self.operation[*ids] {
+                for (input_value_definition_id, value) in &input_values[*ids] {
                     map.field(
                         self.schema_walker.walk(*input_value_definition_id).name(),
                         &self.walk(value),
@@ -281,14 +293,14 @@ impl std::fmt::Debug for QueryInputValueWalker<'_> {
             }
             QueryInputValue::List(ids) => {
                 let mut seq = f.debug_list();
-                for value in &self.operation[*ids] {
+                for value in &input_values[*ids] {
                     seq.entry(&self.walk(value));
                 }
                 seq.finish()
             }
             QueryInputValue::Map(ids) => {
                 let mut map = f.debug_map();
-                for (key, value) in &self.operation[*ids] {
+                for (key, value) in &input_values[*ids] {
                     map.entry(&key, &self.walk(value));
                 }
                 map.finish()

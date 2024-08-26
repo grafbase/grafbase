@@ -55,7 +55,7 @@ impl PartialEq<RequiredField> for FieldWalker<'_> {
 
         for argument in arguments {
             let definition_id = argument.input_value_definition_id;
-            let input_value = self.walk(&self.operation[argument.input_value_id]);
+            let input_value = self.walk(&self.operation.query_input_values[argument.input_value_id]);
             if let Ok(i) = required.arguments.binary_search_by(|probe| probe.0.cmp(&definition_id)) {
                 if !input_value.eq(&self.schema_walker[required.arguments[i].1]) {
                     return false;

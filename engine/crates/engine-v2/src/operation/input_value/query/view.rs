@@ -29,7 +29,7 @@ impl<'a> serde::Serialize for QueryInputValueView<'a> {
         };
         let mut map = serializer.serialize_map(None)?;
         for item in self.selection_set.iter() {
-            for (id, value) in &self.inner.operation[*fields] {
+            for (id, value) in &self.inner.operation.query_input_values[*fields] {
                 if *id == item.id {
                     map.serialize_key(self.inner.schema_walker.walk(*id).name())?;
                     map.serialize_value(&Self {
@@ -64,18 +64,20 @@ impl<'de> serde::Deserializer<'de> for QueryInputValueView<'de> {
         };
 
         MapDeserializer::new(self.selection_set.iter().filter_map(|item| {
-            self.inner.operation[*fields].iter().find_map(|(id, value)| {
-                if *id == item.id {
-                    let name = self.inner.schema_walker.walk(*id).name();
-                    let value = Self {
-                        inner: self.inner.walk(value),
-                        selection_set: &item.subselection,
-                    };
-                    Some((name, value))
-                } else {
-                    None
-                }
-            })
+            self.inner.operation.query_input_values[*fields]
+                .iter()
+                .find_map(|(id, value)| {
+                    if *id == item.id {
+                        let name = self.inner.schema_walker.walk(*id).name();
+                        let value = Self {
+                            inner: self.inner.walk(value),
+                            selection_set: &item.subselection,
+                        };
+                        Some((name, value))
+                    } else {
+                        None
+                    }
+                })
         }))
         .deserialize_any(visitor)
     }

@@ -16,6 +16,7 @@ impl<'de> serde::Deserializer<'de> for QueryInputValueWalker<'de> {
     where
         V: Visitor<'de>,
     {
+        let input_values = &self.operation.query_input_values;
         match self.item {
             QueryInputValue::Null => visitor.visit_none(),
             QueryInputValue::String(s) => visitor.visit_borrowed_str(s),
@@ -26,11 +27,11 @@ impl<'de> serde::Deserializer<'de> for QueryInputValueWalker<'de> {
             QueryInputValue::Float(n) => visitor.visit_f64(*n),
             QueryInputValue::Boolean(b) => visitor.visit_bool(*b),
             QueryInputValue::List(ids) => {
-                SeqDeserializer::new(self.operation[*ids].iter().map(|value| self.walk(value))).deserialize_any(visitor)
+                SeqDeserializer::new(input_values[*ids].iter().map(|value| self.walk(value))).deserialize_any(visitor)
             }
             QueryInputValue::InputObject(ids) => {
                 MapDeserializer::new(
-                    self.operation[*ids]
+                    input_values[*ids]
                         .iter()
                         .filter_map(|(input_value_definition_id, value)| {
                             let value = self.walk(value);
@@ -45,7 +46,7 @@ impl<'de> serde::Deserializer<'de> for QueryInputValueWalker<'de> {
                 .deserialize_any(visitor)
             }
             QueryInputValue::Map(ids) => MapDeserializer::new(
-                self.operation[*ids]
+                input_values[*ids]
                     .iter()
                     .map(|(key, value)| (key.as_str(), self.walk(value))),
             )

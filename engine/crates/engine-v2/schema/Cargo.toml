@@ -17,6 +17,7 @@ built = {version = "0.7", features = ["git2", "chrono"]}
 [dependencies]
 fnv = "1.0.7"
 hex.workspace = true
+id-derives = { path = "../id-derives", package = "engine-v2-id-derives" }
 id-newtypes = { path = "../id-newtypes", package = "engine-v2-id-newtypes" }
 indexmap.workspace = true
 serde.workspace = true

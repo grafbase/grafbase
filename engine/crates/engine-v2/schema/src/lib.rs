@@ -48,20 +48,76 @@ impl Schema {
 /// /!\ This is *NOT* backwards-compatible. /!\
 /// Only a schema serialized with the exact same version is expected to work. For backwards
 /// compatibility use engine-v2-config instead.
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(serde::Serialize, serde::Deserialize, id_derives::IndexedFields)]
 pub struct Schema {
     data_sources: DataSources,
     pub graph: Graph,
 
     /// All strings deduplicated.
+    #[indexed_by(StringId)]
     strings: Vec<String>,
     #[serde(with = "serde_regex")]
+    #[indexed_by(RegexId)]
     regexps: Vec<Regex>,
+    #[indexed_by(UrlId)]
     urls: Vec<url::Url>,
     /// Headers we might want to send to a subgraph
+    #[indexed_by(HeaderRuleId)]
     header_rules: Vec<HeaderRule>,
 
     pub settings: Settings,
+}
+
+impl<T> std::ops::Index<T> for Schema
+where
+    Graph: std::ops::Index<T>,
+{
+    type Output = <Graph as std::ops::Index<T>>::Output;
+    fn index(&self, index: T) -> &Self::Output {
+        &self.graph[index]
+    }
+}
+
+impl std::ops::Index<SchemaInputValueId> for Schema {
+    type Output = SchemaInputValue;
+    fn index(&self, index: SchemaInputValueId) -> &Self::Output {
+        &self.graph.input_values[index]
+    }
+}
+
+impl std::ops::Index<SchemaInputKeyValueId> for Schema {
+    type Output = (StringId, SchemaInputValue);
+    fn index(&self, index: SchemaInputKeyValueId) -> &Self::Output {
+        &self.graph.input_values[index]
+    }
+}
+
+impl std::ops::Index<SchemaInputObjectFieldValueId> for Schema {
+    type Output = (InputValueDefinitionId, SchemaInputValue);
+    fn index(&self, index: SchemaInputObjectFieldValueId) -> &Self::Output {
+        &self.graph.input_values[index]
+    }
+}
+
+impl std::ops::Index<IdRange<SchemaInputValueId>> for Schema {
+    type Output = [SchemaInputValue];
+    fn index(&self, index: IdRange<SchemaInputValueId>) -> &Self::Output {
+        &self.graph.input_values[index]
+    }
+}
+
+impl std::ops::Index<IdRange<SchemaInputKeyValueId>> for Schema {
+    type Output = [(StringId, SchemaInputValue)];
+    fn index(&self, index: IdRange<SchemaInputKeyValueId>) -> &Self::Output {
+        &self.graph.input_values[index]
+    }
+}
+
+impl std::ops::Index<IdRange<SchemaInputObjectFieldValueId>> for Schema {
+    type Output = [(InputValueDefinitionId, SchemaInputValue)];
+    fn index(&self, index: IdRange<SchemaInputObjectFieldValueId>) -> &Self::Output {
+        &self.graph.input_values[index]
+    }
 }
 
 #[derive(Default, serde::Serialize, serde::Deserialize)]
@@ -75,32 +131,50 @@ pub struct Settings {
     pub retry: Option<config::latest::RetryConfig>,
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(serde::Serialize, serde::Deserialize, id_derives::IndexedFields)]
 pub struct Graph {
     pub description: Option<StringId>,
     pub root_operation_types: RootOperationTypes,
 
     // All type definitions sorted by their name (actual string)
+    #[indexed_by(DefinitionId)]
     type_definitions: Vec<Definition>,
+    #[indexed_by(ObjectDefinitionId)]
     object_definitions: Vec<ObjectDefinition>,
+    #[indexed_by(InterfaceDefinitionId)]
     interface_definitions: Vec<InterfaceDefinition>,
+    #[indexed_by(FieldDefinitionId)]
     field_definitions: Vec<FieldDefinition>,
+    #[indexed_by(EnumDefinitionId)]
     enum_definitions: Vec<EnumDefinition>,
+    #[indexed_by(UnionDefinitionId)]
     union_definitions: Vec<UnionDefinition>,
+    #[indexed_by(ScalarDefinitionId)]
     scalar_definitions: Vec<ScalarDefinition>,
+    #[indexed_by(InputObjectDefinitionId)]
     input_object_definitions: Vec<InputObjectDefinition>,
+    #[indexed_by(InputValueDefinitionId)]
     input_value_definitions: Vec<InputValueDefinition>,
+    #[indexed_by(EnumValueId)]
     enum_value_definitions: Vec<EnumValue>,
 
-    type_system_directives: Vec<TypeSystemDirective>,
+    #[indexed_by(ResolverDefinitionId)]
     resolver_definitions: Vec<ResolverDefinition>,
+    #[indexed_by(RequiredFieldSetId)]
     required_field_sets: Vec<RequiredFieldSet>,
     // deduplicated
+    #[indexed_by(RequiredFieldId)]
     required_fields: Vec<RequiredField>,
     /// Default input values & directive arguments
     input_values: SchemaInputValues,
+
+    #[indexed_by(TypeSystemDirectiveId)]
+    type_system_directives: Vec<TypeSystemDirective>,
+    #[indexed_by(CacheControlId)]
     cache_control: Vec<CacheControl>,
+    #[indexed_by(RequiredScopesId)]
     required_scopes: Vec<RequiredScopes>,
+    #[indexed_by(AuthorizedDirectiveId)]
     authorized_directives: Vec<AuthorizedDirective>,
 }
 

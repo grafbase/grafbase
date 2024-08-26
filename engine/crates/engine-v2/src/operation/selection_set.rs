@@ -1,3 +1,4 @@
+use id_derives::Id;
 use id_newtypes::IdRange;
 use schema::{
     Definition, EntityId, FieldDefinitionId, InputValueDefinitionId, InterfaceDefinitionId, ObjectDefinitionId,
@@ -73,9 +74,8 @@ impl SelectionSetType {
     }
 }
 
-id_newtypes::NonZeroU16! {
-    QueryPosition,
-}
+#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Id)]
+pub struct QueryPosition(std::num::NonZero<u16>);
 
 /// The BoundFieldDefinition defines a field that is part of the actual GraphQL query.
 /// A BoundField is a field in the query *after* spreading all the named fragments.

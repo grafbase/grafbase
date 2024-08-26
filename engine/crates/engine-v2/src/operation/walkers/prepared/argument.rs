@@ -14,7 +14,7 @@ pub type FieldArgumentWalker<'a> = PreparedOperationWalker<'a, FieldArgumentId, 
 
 impl<'a> FieldArgumentWalker<'a> {
     pub fn value(&self) -> Option<QueryInputValueWalker<'a>> {
-        let value = self.walk_with(&self.operation[self.as_ref().input_value_id], ());
+        let value = self.walk_with(&self.operation.query_input_values[self.as_ref().input_value_id], ());
         if value.is_undefined() {
             None
         } else {

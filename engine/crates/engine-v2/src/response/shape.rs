@@ -1,3 +1,5 @@
+use std::num::NonZero;
+
 use id_newtypes::IdRange;
 use schema::{
     FieldDefinitionId, InterfaceDefinitionId, ObjectDefinitionId, RequiredFieldId, ScalarType, UnionDefinitionId,
@@ -8,18 +10,24 @@ use crate::operation::FieldId;
 
 use super::{ResponseEdge, ResponseObjectSetId, SafeResponseKey};
 
-#[derive(Default, serde::Serialize, serde::Deserialize)]
+#[derive(Default, serde::Serialize, serde::Deserialize, id_derives::IndexedFields)]
 pub(crate) struct Shapes {
+    #[indexed_by(PolymorphicObjectShapeId)]
     pub polymorphic: Vec<PolymorphicObjectShape>,
+    #[indexed_by(ConcreteObjectShapeId)]
     pub concrete: Vec<ConcreteObjectShape>,
+    #[indexed_by(FieldShapeId)]
     pub fields: Vec<FieldShape>,
 }
 
-id_newtypes::NonZeroU32! {
-    Shapes.concrete[ConcreteObjectShapeId] => ConcreteObjectShape,
-    Shapes.polymorphic[PolymorphicObjectShapeId] => PolymorphicObjectShape,
-    Shapes.fields[FieldShapeId] => FieldShape,
-}
+#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
+pub struct PolymorphicObjectShapeId(NonZero<u32>);
+
+#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
+pub struct ConcreteObjectShapeId(NonZero<u32>);
+
+#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
+pub struct FieldShapeId(NonZero<u32>);
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub(crate) struct FieldShape {

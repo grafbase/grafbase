@@ -7,6 +7,7 @@ impl<'ctx> serde::Serialize for QueryInputValueWalker<'ctx> {
     where
         S: serde::Serializer,
     {
+        let input_values = &self.operation.query_input_values;
         match self.item {
             QueryInputValue::Null => serializer.serialize_none(),
             QueryInputValue::String(s) => s.serialize(serializer),
@@ -18,7 +19,7 @@ impl<'ctx> serde::Serialize for QueryInputValueWalker<'ctx> {
             QueryInputValue::Boolean(b) => b.serialize(serializer),
             QueryInputValue::InputObject(ids) => {
                 let mut map = serializer.serialize_map(None)?;
-                for (input_value_definition_id, value) in &self.operation[*ids] {
+                for (input_value_definition_id, value) in &input_values[*ids] {
                     let value = self.walk(value);
                     // https://spec.graphql.org/October2021/#sec-Input-Objects.Input-Coercion
                     if !value.is_undefined() {
@@ -30,14 +31,14 @@ impl<'ctx> serde::Serialize for QueryInputValueWalker<'ctx> {
             }
             QueryInputValue::List(ids) => {
                 let mut seq = serializer.serialize_seq(Some(ids.len()))?;
-                for value in &self.operation[*ids] {
+                for value in &input_values[*ids] {
                     seq.serialize_element(&self.walk(value))?;
                 }
                 seq.end()
             }
             QueryInputValue::Map(ids) => {
                 let mut map = serializer.serialize_map(Some(ids.len()))?;
-                for (key, value) in &self.operation[*ids] {
+                for (key, value) in &input_values[*ids] {
                     map.serialize_key(key)?;
                     map.serialize_value(&self.walk(value))?;
                 }

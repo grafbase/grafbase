@@ -1,26 +1,35 @@
 mod de;
 mod ser;
 
+use id_derives::{Id, IndexedFields};
 use id_newtypes::IdRange;
 use schema::{EnumValueId, InputValue, InputValueDefinitionId, SchemaInputValue, SchemaInputValueId};
 
 use crate::operation::PreparedOperationWalker;
 
-#[derive(Default)]
+#[derive(Default, IndexedFields)]
 pub struct VariableInputValues {
     /// Individual input values and list values
+    #[indexed_by(VariableInputValueId)]
     values: Vec<VariableInputValue>,
+
     /// InputObject's fields
+    #[indexed_by(VariableInputObjectFieldValueId)]
     input_fields: Vec<(InputValueDefinitionId, VariableInputValue)>,
+
     /// Object's fields (for JSON)
+    #[indexed_by(VariableInputKeyValueId)]
     key_values: Vec<(String, VariableInputValue)>,
 }
 
-id_newtypes::NonZeroU32! {
-    VariableInputValues.values[VariableInputValueId] => VariableInputValue,
-    VariableInputValues.input_fields[VariableInputObjectFieldValueId] => (InputValueDefinitionId, VariableInputValue),
-    VariableInputValues.key_values[VariableInputKeyValueId] => (String, VariableInputValue),
-}
+#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, Id)]
+pub struct VariableInputValueId(std::num::NonZero<u32>);
+
+#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, Id)]
+pub struct VariableInputObjectFieldValueId(std::num::NonZero<u32>);
+
+#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, Id)]
+pub struct VariableInputKeyValueId(std::num::NonZero<u32>);
 
 #[derive(Default)]
 pub enum VariableInputValue {

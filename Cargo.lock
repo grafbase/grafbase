@@ -2494,6 +2494,7 @@ dependencies = [
  "engine",
  "engine-parser",
  "engine-v2-config",
+ "engine-v2-id-derives",
  "engine-v2-id-newtypes",
  "engine-v2-schema",
  "engine-value",
@@ -2564,6 +2565,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "engine-v2-id-derives"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.72",
+]
+
+[[package]]
 name = "engine-v2-id-newtypes"
 version = "0.0.0"
 dependencies = [
@@ -2577,6 +2587,7 @@ version = "3.0.31"
 dependencies = [
  "built",
  "engine-v2-config",
+ "engine-v2-id-derives",
  "engine-v2-id-newtypes",
  "fnv",
  "graphql-federated-graph",

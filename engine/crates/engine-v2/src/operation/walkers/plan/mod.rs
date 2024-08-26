@@ -92,7 +92,7 @@ impl<'a, I, SI> PlanWalker<'a, I, SI> {
 
 impl<'a> PlanWalker<'a, (), ()> {
     pub fn walk_input_value(&self, input_value_id: QueryInputValueId) -> QueryInputValueWalker<'a> {
-        self.prepared_walk_with(&self.operation[input_value_id], ())
+        self.prepared_walk_with(&self.operation.query_input_values[input_value_id], ())
     }
 }
 
