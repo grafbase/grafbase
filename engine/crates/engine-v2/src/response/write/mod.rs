@@ -50,6 +50,7 @@ pub(crate) struct ResponseBuilder {
     pub(super) root: Option<(ResponseObjectId, ObjectDefinitionId)>,
     parts: Vec<ResponseDataPart>,
     errors: Vec<GraphqlError>,
+    on_subgraph_response_results: Vec<Vec<u8>>,
 }
 
 // Only supporting additions for the current graph. Deletion are... tricky
@@ -64,11 +65,14 @@ impl ResponseBuilder {
             objects: Vec::new(),
             lists: Vec::new(),
         };
+
         let root_id = initial_part.push_object(ResponseObject::default());
+
         Self {
             root: Some((root_id, root_object_id)),
             parts: vec![initial_part],
             errors: Vec::new(),
+            on_subgraph_response_results: Vec::new(),
         }
     }
 
@@ -85,6 +89,10 @@ impl ResponseBuilder {
         self.errors.push(error);
     }
 
+    pub fn push_on_subgraph_response_result(&mut self, result: Vec<u8>) {
+        self.on_subgraph_response_results.push(result);
+    }
+
     pub fn new_subgraph_response(
         &mut self,
         logical_plan_id: LogicalPlanId,
@@ -92,10 +100,12 @@ impl ResponseBuilder {
         tracked_response_object_set_ids: IdRange<ResponseObjectSetId>,
     ) -> SubgraphResponse {
         let id = ResponseDataPartId::from(self.parts.len());
+
         // reserving the spot until the actual data is written. It's safe as no one can reference
         // any data in this part before it's added. And a part can only be overwritten if it's
         // empty.
         self.parts.push(ResponseDataPart::new(id));
+
         SubgraphResponse::new(
             ResponseDataPart::new(id),
             logical_plan_id,
@@ -242,6 +252,7 @@ impl ResponseBuilder {
                 parts: self.parts,
             }),
             errors: self.errors,
+            on_subgraph_response_hook_results: self.on_subgraph_response_results,
         })
     }
 

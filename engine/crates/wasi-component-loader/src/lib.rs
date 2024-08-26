@@ -24,13 +24,14 @@ pub use context::{
     create_log_channel, AccessLogMessage, ChannelLogReceiver, ChannelLogSender, ContextMap, SharedContext,
 };
 pub use crossbeam::channel::Sender;
+pub use crossbeam::sync::WaitGroup;
 pub use error::{guest::GuestError, Error};
 pub use hooks::{
     authorization::{AuthorizationComponentInstance, EdgeDefinition, NodeDefinition},
     gateway::GatewayComponentInstance,
     response::{
-        ExecutedGatewayRequest, ExecutedHttpRequest, ExecutedSubgraphRequest, FieldError, GraphqlResponseStatus,
-        Operation, RequestError, ResponsesComponentInstance, SubgraphResponseInfo,
+        CacheStatus, ExecutedGatewayRequest, ExecutedHttpRequest, ExecutedSubgraphRequest, FieldError,
+        GraphqlResponseStatus, Operation, RequestError, ResponseInfo, ResponseKind, ResponsesComponentInstance,
     },
     subgraph::*,
     RecycleableComponentInstance,

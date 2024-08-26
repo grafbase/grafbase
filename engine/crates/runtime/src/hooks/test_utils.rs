@@ -110,6 +110,31 @@ pub trait DynHooks: Send + Sync + 'static {
     ) -> Result<HeaderMap, PartialGraphqlError> {
         Ok(headers)
     }
+
+    async fn on_subgraph_response(
+        &self,
+        context: &DynHookContext,
+        request: ExecutedSubgraphRequest<'_>,
+    ) -> Result<Vec<u8>, PartialGraphqlError> {
+        Ok(Vec::new())
+    }
+
+    async fn on_gateway_response(
+        &self,
+        context: &DynHookContext,
+        operation: Operation<'_>,
+        request: ExecutedGatewayRequest,
+    ) -> Result<Vec<u8>, PartialGraphqlError> {
+        Ok(Vec::new())
+    }
+
+    async fn on_http_response(
+        &self,
+        context: &DynHookContext,
+        request: ExecutedHttpRequest<'_>,
+    ) -> Result<(), PartialGraphqlError> {
+        Ok(())
+    }
 }
 
 #[derive(Default)]
@@ -182,6 +207,10 @@ impl Hooks for DynamicHooks {
     }
 
     fn subgraph(&self) -> &impl SubgraphHooks<Self::Context> {
+        self
+    }
+
+    fn responses(&self) -> &impl ResponseHooks<Self::Context> {
         self
     }
 }
@@ -320,6 +349,33 @@ impl SubgraphHooks<DynHookContext> for DynamicHooks {
         self.0
             .on_subgraph_request(context, subgraph_name, method, url, headers)
             .await
+    }
+}
+
+impl ResponseHooks<DynHookContext> for DynamicHooks {
+    async fn on_subgraph_response(
+        &self,
+        context: &DynHookContext,
+        request: ExecutedSubgraphRequest<'_>,
+    ) -> Result<Vec<u8>, PartialGraphqlError> {
+        self.0.on_subgraph_response(context, request).await
+    }
+
+    async fn on_gateway_response(
+        &self,
+        context: &DynHookContext,
+        operation: Operation<'_>,
+        request: ExecutedGatewayRequest,
+    ) -> Result<Vec<u8>, PartialGraphqlError> {
+        self.0.on_gateway_response(context, operation, request).await
+    }
+
+    async fn on_http_response(
+        &self,
+        context: &DynHookContext,
+        request: ExecutedHttpRequest<'_>,
+    ) -> Result<(), PartialGraphqlError> {
+        self.0.on_http_response(context, request).await
     }
 }
 

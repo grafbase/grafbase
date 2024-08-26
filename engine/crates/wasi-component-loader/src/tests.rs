@@ -1,14 +1,10 @@
 use std::{collections::HashMap, sync::Arc};
 
 use crate::{
-    create_log_channel,
-    hooks::{
-        response::{CacheStatus, SubgraphResponseInfo},
-        subgraph::SubgraphComponentInstance,
-    },
-    AuthorizationComponentInstance, ComponentLoader, Config, EdgeDefinition, ExecutedGatewayRequest,
-    ExecutedHttpRequest, ExecutedSubgraphRequest, GatewayComponentInstance, GuestError, NodeDefinition, Operation,
-    RecycleableComponentInstance, ResponsesComponentInstance, SharedContext,
+    create_log_channel, hooks::subgraph::SubgraphComponentInstance, AuthorizationComponentInstance, CacheStatus,
+    ComponentLoader, Config, EdgeDefinition, ExecutedGatewayRequest, ExecutedHttpRequest, ExecutedSubgraphRequest,
+    GatewayComponentInstance, GuestError, NodeDefinition, Operation, RecycleableComponentInstance, ResponseInfo,
+    ResponsesComponentInstance, SharedContext,
 };
 use expect_test::expect;
 use http::{HeaderMap, HeaderValue};
@@ -686,11 +682,11 @@ async fn response_hooks() {
         url: String::from("https://example.com"),
         total_duration: 10,
         has_errors: false,
-        response_infos: vec![SubgraphResponseInfo {
+        responses: vec![crate::ResponseKind::Responsed(ResponseInfo {
             connection_time: 10,
             response_time: 4,
             status_code: 200,
-        }],
+        })],
         cache_status: CacheStatus::Miss,
     };
 

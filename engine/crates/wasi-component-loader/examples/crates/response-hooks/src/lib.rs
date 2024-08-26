@@ -1,9 +1,8 @@
-use bindings::{
-    component::grafbase::types::{
-        CacheStatus, ExecutedGatewayRequest, ExecutedHttpRequest, ExecutedSubgraphRequest, Operation, SharedContext,
-    },
-    exports::component::grafbase::responses::Guest,
+use bindings::component::grafbase::types::{
+    CacheStatus, ExecutedGatewayRequest, ExecutedHttpRequest, ExecutedSubgraphRequest, Operation, ResponseKind,
+    SharedContext,
 };
+use bindings::exports::component::grafbase::responses::Guest;
 
 #[allow(warnings)]
 mod bindings;
@@ -67,15 +66,35 @@ impl Guest for Component {
             subgraph_name,
             method,
             url,
-            response_infos,
+            responses,
             cache_status,
             total_duration,
             has_errors,
         } = request;
 
-        let connection_times = response_infos.iter().map(|r| r.connection_time).collect();
-        let response_times = response_infos.iter().map(|r| r.response_time).collect();
-        let status_codes = response_infos.iter().map(|r| r.status_code).collect();
+        let connection_times = responses
+            .iter()
+            .map(|r| match r {
+                ResponseKind::Responded(info) => info.connection_time,
+                _ => unreachable!(),
+            })
+            .collect();
+
+        let response_times = responses
+            .iter()
+            .map(|r| match r {
+                ResponseKind::Responded(info) => info.response_time,
+                _ => unreachable!(),
+            })
+            .collect();
+
+        let status_codes = responses
+            .iter()
+            .map(|r| match r {
+                ResponseKind::Responded(info) => info.status_code,
+                _ => unreachable!(),
+            })
+            .collect();
 
         let info = SubgraphInfo {
             subgraph_name,

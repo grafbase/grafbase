@@ -8,6 +8,7 @@ use grafbase_telemetry::metrics::meter_from_global_provider;
 use grafbase_telemetry::otel::opentelemetry::metrics::Histogram;
 use grafbase_telemetry::otel::opentelemetry::KeyValue;
 use http::{HeaderValue, StatusCode};
+use runtime_local::hooks::ChannelLogSender;
 use tokio::time::MissedTickBehavior;
 use ulid::Ulid;
 use url::Url;
@@ -71,6 +72,7 @@ pub(super) struct GraphUpdater {
     current_id: Option<Ulid>,
     gateway_config: Config,
     latencies: Histogram<u64>,
+    access_log_sender: ChannelLogSender,
 }
 
 impl GraphUpdater {
@@ -80,6 +82,7 @@ impl GraphUpdater {
         access_token: AsciiString,
         sender: GatewaySender,
         gateway_config: Config,
+        access_log_sender: ChannelLogSender,
     ) -> crate::Result<Self> {
         let gdn_client = reqwest::ClientBuilder::new()
             .timeout(GDN_TIMEOUT)
@@ -115,6 +118,7 @@ impl GraphUpdater {
             latencies: meter_from_global_provider()
                 .u64_histogram("gdn.request.duration")
                 .init(),
+            access_log_sender,
         })
     }
 
@@ -223,6 +227,7 @@ impl GraphUpdater {
                 Some(response.branch_id),
                 &self.gateway_config,
                 None,
+                self.access_log_sender.clone(),
             )
             .await
             {

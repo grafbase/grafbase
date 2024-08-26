@@ -1,3 +1,4 @@
+mod access_logs;
 mod cors;
 mod csrf;
 mod engine;
@@ -8,8 +9,10 @@ mod health;
 mod state;
 mod trusted_documents_client;
 
+use crossbeam::sync::WaitGroup;
 use grafbase_telemetry::gql_response_status::GraphqlResponseStatus;
 pub use graph_fetch_method::GraphFetchMethod;
+use runtime_local::hooks::{create_log_channel, AccessLogMessage, ChannelLogSender};
 use tokio::sync::watch;
 use ulid::Ulid;
 
@@ -80,9 +83,20 @@ pub async fn serve(
     let (sender, mut gateway) = watch::channel(None);
     gateway.mark_unchanged();
 
+    let (access_log_sender, access_log_receiver) = create_log_channel(config.gateway.access_logs.lossy_log());
+
     fetch_method
-        .start(&config, config_hot_reload.then_some(config_path).flatten(), sender)
+        .start(
+            &config,
+            config_hot_reload.then_some(config_path).flatten(),
+            sender,
+            access_log_sender.clone(),
+        )
         .await?;
+
+    if config.gateway.access_logs.enabled {
+        access_logs::start(&config.gateway.access_logs, access_log_receiver)?;
+    }
 
     let (websocket_sender, websocket_receiver) = mpsc::channel(16);
     let websocket_accepter = WebsocketAccepter::new(websocket_receiver, gateway.clone());
@@ -144,7 +158,7 @@ pub async fn serve(
         if #[cfg(feature = "lambda")] {
             lambda_bind(path, router).await?;
         } else {
-            bind(addr, path, router, config.tls.as_ref()).await?;
+            bind(addr, path, router, config.tls.as_ref(), access_log_sender).await?;
         }
     }
 
@@ -155,13 +169,19 @@ pub async fn serve(
 }
 
 #[cfg_attr(feature = "lambda", allow(unused))]
-async fn bind(addr: SocketAddr, path: &str, router: Router<()>, tls: Option<&TlsConfig>) -> crate::Result<()> {
+async fn bind(
+    addr: SocketAddr,
+    path: &str,
+    router: Router<()>,
+    tls: Option<&TlsConfig>,
+    access_log_sender: ChannelLogSender,
+) -> crate::Result<()> {
     let app = router.into_make_service();
 
     let handle = axum_server::Handle::new();
 
     // Spawn a task to gracefully shutdown server.
-    tokio::spawn(graceful_shutdown(handle.clone()));
+    tokio::spawn(graceful_shutdown(handle.clone(), access_log_sender));
 
     match tls {
         Some(tls) => {
@@ -202,7 +222,7 @@ async fn lambda_bind(path: &str, router: Router<()>) -> crate::Result<()> {
     Ok(())
 }
 
-async fn graceful_shutdown(handle: axum_server::Handle) {
+async fn graceful_shutdown(handle: axum_server::Handle, access_log_sender: ChannelLogSender) {
     let ctrl_c = async {
         signal::ctrl_c().await.expect("failed to install Ctrl+C handler");
     };
@@ -225,6 +245,11 @@ async fn graceful_shutdown(handle: axum_server::Handle) {
 
     tracing::info!("Shutting down gracefully...");
     handle.graceful_shutdown(Some(std::time::Duration::from_secs(3)));
+
+    let wg = WaitGroup::new();
+    access_log_sender.send(AccessLogMessage::Shutdown(wg.clone())).unwrap();
+
+    wg.wait();
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]

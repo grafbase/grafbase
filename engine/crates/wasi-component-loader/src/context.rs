@@ -123,7 +123,8 @@ pub(crate) fn map(types: &mut LinkerInstance<'_, WasiState>) -> crate::Result<()
 /// interface types {
 ///     resource shared-context {
 ///         get: func(key: string) -> option<string>;
-///     }    
+///         access-log: func(data: list<u8>) -> result<_, log-error>;
+///     }
 /// }
 /// ```
 pub(crate) fn map_shared(types: &mut LinkerInstance<'_, WasiState>) -> crate::Result<()> {

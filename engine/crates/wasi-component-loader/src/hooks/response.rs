@@ -104,7 +104,7 @@ pub struct ExecutedGatewayRequest {
 /// A response info from an executed subgraph request.
 #[derive(Debug, Clone, Copy, Lower, ComponentType)]
 #[component(record)]
-pub struct SubgraphResponseInfo {
+pub struct ResponseInfo {
     /// Time it took to connect to the subgraph endpoint, in milliseconds.
     #[component(name = "connection-time")]
     pub connection_time: u64,
@@ -131,6 +131,27 @@ pub enum CacheStatus {
     Miss,
 }
 
+/// Response data from a subgraph request.
+#[derive(Debug, Clone, Copy, Lower, ComponentType)]
+#[component(variant)]
+pub enum ResponseKind {
+    /// Error in response serialization.
+    #[component(name = "serialization-error")]
+    SerializationError,
+    /// Response prevented by a hook.
+    #[component(name = "hook-error")]
+    HookError,
+    /// Request failed.
+    #[component(name = "request-error")]
+    RequestError,
+    /// Request was rate-limited.
+    #[component(name = "rate-limited")]
+    RateLimited,
+    /// A response was received.
+    #[component(name = "responded")]
+    Responsed(ResponseInfo),
+}
+
 /// A response info from subgraph fetch.
 #[derive(Debug, Clone, Lower, ComponentType)]
 #[component(record)]
@@ -145,8 +166,8 @@ pub struct ExecutedSubgraphRequest {
     #[component(name = "url")]
     pub url: String,
     /// The subgraph response(s).
-    #[component(name = "response-infos")]
-    pub response_infos: Vec<SubgraphResponseInfo>,
+    #[component(name = "responses")]
+    pub responses: Vec<ResponseKind>,
     /// If anything in the request was cached.
     #[component(name = "cache-status")]
     pub cache_status: CacheStatus,

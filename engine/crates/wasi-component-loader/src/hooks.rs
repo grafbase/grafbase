@@ -263,6 +263,7 @@ impl ComponentInstance {
         {
             return cached.as_ref().and_then(|func| func.downcast_ref().copied());
         }
+
         let mut exports = self.instance.exports(&mut self.store);
         let mut root = exports.root();
 

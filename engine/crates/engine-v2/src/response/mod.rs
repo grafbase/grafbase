@@ -42,6 +42,9 @@ pub(crate) enum Response {
 pub(crate) struct ExecutedResponse {
     data: Option<ResponseData>,
     errors: Vec<GraphqlError>,
+    // TODO: next PR
+    #[allow(dead_code)]
+    on_subgraph_response_hook_results: Vec<Vec<u8>>,
 }
 
 impl ExecutedResponse {
@@ -93,6 +96,7 @@ impl Response {
         Self::Executed(ExecutedResponse {
             data: None,
             errors: errors.into_iter().map(Into::into).collect(),
+            on_subgraph_response_hook_results: Vec::new(),
         })
     }
 
@@ -130,6 +134,16 @@ impl Response {
                 set |= error.code;
                 set
             })
+    }
+
+    /// TODO: This one might be the way of getting the response data for the next hook. We need a mutable response
+    /// at this point.
+    pub(crate) fn _take_subgraph_response_hook_results(&mut self) -> Vec<Vec<u8>> {
+        match self {
+            Response::RefusedRequest(_) => Vec::new(),
+            Response::RequestError(_) => Vec::new(),
+            Response::Executed(response) => std::mem::take(&mut response.on_subgraph_response_hook_results),
+        }
     }
 }
 

@@ -1,17 +1,23 @@
 use std::borrow::Cow;
 
 use bytes::Bytes;
-use futures::TryStreamExt;
+use futures::{Future, TryStreamExt};
 use futures_util::{stream::BoxStream, StreamExt};
 use headers::HeaderMapExt;
-use runtime::fetch::{FetchRequest, Fetcher};
+use runtime::{
+    fetch::{FetchRequest, FetchResult, Fetcher},
+    rate_limiting::RateLimitKey,
+};
 use schema::sources::graphql::GraphqlEndpointWalker;
 use serde::de::DeserializeSeed;
+use tower::retry::budget::Budget;
 use url::Url;
+use web_time::Duration;
 
 use super::{
     deserialize::{GraphqlResponseSeed, RootGraphqlErrors},
-    request::{retrying_fetch, SubgraphGraphqlRequest, SubgraphVariables},
+    record,
+    request::{SubgraphGraphqlRequest, SubgraphVariables},
     GraphqlResolver,
 };
 use crate::{
@@ -185,4 +191,74 @@ impl GraphqlResolver {
 
         Ok(Box::pin(stream))
     }
+}
+
+async fn retrying_fetch<'ctx, R: Runtime, F, T>(
+    ctx: ExecutionContext<'ctx, R>,
+    endpoint: GraphqlEndpointWalker<'_>,
+    retry_budget: Option<&Budget>,
+    fetch: impl Fn() -> F + Send + Sync,
+) -> ExecutionResult<T>
+where
+    F: Future<Output = FetchResult<T>> + Send,
+    T: Send,
+{
+    let mut result = rate_limited_fetch(ctx, endpoint, &fetch).await;
+
+    let Some(retry_budget) = retry_budget else {
+        return result;
+    };
+
+    let mut counter = 0;
+
+    loop {
+        match result {
+            Ok(bytes) => {
+                retry_budget.deposit();
+                return Ok(bytes);
+            }
+            Err(err) => {
+                if retry_budget.withdraw().is_ok() {
+                    let jitter = rand::random::<f64>() * 2.0;
+                    let exp_backoff = (100 * 2u64.pow(counter)) as f64;
+                    let backoff_ms = (exp_backoff * jitter).round() as u64;
+
+                    ctx.engine.runtime.sleep(Duration::from_millis(backoff_ms)).await;
+                    record::subgraph_retry(ctx, endpoint, false);
+
+                    counter += 1;
+
+                    result = rate_limited_fetch(ctx, endpoint, &fetch).await;
+                } else {
+                    record::subgraph_retry(ctx, endpoint, true);
+                    return Err(err);
+                }
+            }
+        }
+    }
+}
+
+async fn rate_limited_fetch<'ctx, R: Runtime, F, T>(
+    ctx: ExecutionContext<'ctx, R>,
+    endpoint: GraphqlEndpointWalker<'ctx>,
+    fetch: impl Fn() -> F + Send,
+) -> ExecutionResult<T>
+where
+    F: Future<Output = FetchResult<T>> + Send,
+    T: Send,
+{
+    ctx.engine
+        .runtime
+        .rate_limiter()
+        .limit(&RateLimitKey::Subgraph(endpoint.subgraph_name().into()))
+        .await?;
+
+    record::increment_inflight_requests(ctx, endpoint);
+    let result = fetch().await;
+    record::decrement_inflight_requests(ctx, endpoint);
+
+    result.map_err(|error| ExecutionError::Fetch {
+        subgraph_name: endpoint.subgraph_name().to_string(),
+        error,
+    })
 }
