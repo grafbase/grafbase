@@ -8,7 +8,7 @@ use crate::{
     grafbase_client::Client,
 };
 
-pub struct GraphqlOperationMetrics {
+pub struct EngineMetrics {
     operation_latency: Histogram<u64>,
     subgraph_latency: Histogram<u64>,
     subgraph_retries: Counter<u64>,
@@ -135,7 +135,7 @@ pub struct GraphqlErrorAttributes {
     pub client: Option<Client>,
 }
 
-impl GraphqlOperationMetrics {
+impl EngineMetrics {
     pub fn build(meter: &Meter) -> Self {
         Self {
             operation_latency: meter.u64_histogram("graphql.operation.duration").init(),

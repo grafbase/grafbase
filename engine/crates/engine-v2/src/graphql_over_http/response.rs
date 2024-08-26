@@ -1,5 +1,4 @@
 use bytes::Bytes;
-use enumset::EnumSet;
 use futures::{StreamExt, TryStreamExt};
 use futures_util::Stream;
 use grafbase_telemetry::gql_response_status::GraphqlResponseStatus;
@@ -167,12 +166,7 @@ fn compute_status_code(format: ResponseFormat, response: &Response) -> http::Sta
                 //   If the GraphQL response does not contain the {data} entry then
                 //   the server MUST reply with a 4xx or 5xx status code as appropriate.
                 ResponseFormat::Complete(CompleteResponseFormat::GraphqlResponseJson) => response
-                    .errors()
-                    .iter()
-                    .fold(EnumSet::<ErrorCode>::empty(), |mut set, error| {
-                        set |= error.code;
-                        set
-                    })
+                    .distinct_error_codes()
                     .into_iter()
                     .map(ErrorCode::into_http_status_code_with_priority)
                     .max_by_key(|(_, priority)| *priority)

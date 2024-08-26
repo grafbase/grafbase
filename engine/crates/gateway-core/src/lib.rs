@@ -3,7 +3,7 @@ use engine::parser::types::OperationType;
 use futures_util::FutureExt;
 use grafbase_telemetry::{
     grafbase_client::Client,
-    metrics::{GraphqlOperationMetrics, GraphqlRequestMetricsAttributes, OperationMetricsAttributes},
+    metrics::{EngineMetrics, GraphqlRequestMetricsAttributes, OperationMetricsAttributes},
     span::{gql::GqlRequestSpan, GqlRecorderSpanExt, GqlRequestAttributes},
 };
 pub use runtime::context::RequestContext;
@@ -65,7 +65,7 @@ pub struct Gateway<Executor: self::Executor> {
     auth: AuthService,
     trusted_documents: runtime::trusted_documents_client::Client,
     authorizer: Box<dyn Authorizer<Context = Executor::Context>>,
-    operation_metrics: GraphqlOperationMetrics,
+    operation_metrics: EngineMetrics,
     rate_limiter: Box<dyn RateLimiterInner>,
 }
 
@@ -94,7 +94,7 @@ where
             auth,
             authorizer,
             trusted_documents,
-            operation_metrics: GraphqlOperationMetrics::build(&meter),
+            operation_metrics: EngineMetrics::build(&meter),
             rate_limiter,
         }
     }

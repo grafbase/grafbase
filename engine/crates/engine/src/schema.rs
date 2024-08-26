@@ -7,7 +7,7 @@ use engine_validation::{check_strict_rules, ValidationResult};
 use futures_util::stream::{self, Stream, StreamExt};
 use futures_util::FutureExt;
 use grafbase_telemetry::gql_response_status::GraphqlResponseStatus;
-use grafbase_telemetry::metrics::{GraphqlOperationMetrics, OperationMetricsAttributes};
+use grafbase_telemetry::metrics::{EngineMetrics, OperationMetricsAttributes};
 use grafbase_telemetry::span::{gql::GqlRequestSpan, GqlRecorderSpanExt, GqlRequestAttributes};
 use graph_entities::{CompactValue, QueryResponse};
 
@@ -43,7 +43,7 @@ pub struct SchemaBuilder {
     registry: Arc<registry_v2::Registry>,
     data: Data,
     extensions: Vec<Box<dyn ExtensionFactory>>,
-    operation_metrics: GraphqlOperationMetrics,
+    operation_metrics: EngineMetrics,
 }
 
 impl SchemaBuilder {
@@ -97,7 +97,7 @@ impl SchemaBuilder {
 #[doc(hidden)]
 pub struct SchemaEnvInner {
     pub registry: Arc<registry_v2::Registry>,
-    pub operation_metrics: GraphqlOperationMetrics,
+    pub operation_metrics: EngineMetrics,
     pub data: Data,
 }
 
@@ -153,7 +153,7 @@ impl Schema {
             registry,
             data: Default::default(),
             extensions: Default::default(),
-            operation_metrics: GraphqlOperationMetrics::build(&meter),
+            operation_metrics: EngineMetrics::build(&meter),
         }
     }
 
