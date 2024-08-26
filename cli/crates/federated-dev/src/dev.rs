@@ -11,7 +11,7 @@ use axum::{
 };
 use common::environment::Environment;
 use engine_v2_axum::websocket::{WebsocketAccepter, WebsocketService};
-use graphql_federated_graph::FederatedGraphV4;
+use graphql_federated_graph::FederatedGraph;
 use handlebars::Handlebars;
 use serde_json::json;
 use std::{net::SocketAddr, time::Duration};
@@ -44,7 +44,7 @@ struct ProxyState {
 pub(super) async fn run(
     listen_address: SocketAddr,
     config: ConfigWatcher,
-    graph: Option<FederatedGraphV4>,
+    graph: Option<FederatedGraph>,
 ) -> Result<(), crate::Error> {
     log::trace!("starting the federated dev server");
 

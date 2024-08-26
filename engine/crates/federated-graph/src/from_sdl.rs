@@ -157,7 +157,7 @@ impl<'a> State<'a> {
     }
 }
 
-pub fn from_sdl(sdl: &str) -> Result<FederatedGraphV4, DomainError> {
+pub fn from_sdl(sdl: &str) -> Result<FederatedGraph, DomainError> {
     let mut state = State::default();
     let parsed = async_graphql_parser::parse_schema(sdl).map_err(|err| DomainError(err.to_string()))?;
 
@@ -196,7 +196,7 @@ pub fn from_sdl(sdl: &str) -> Result<FederatedGraphV4, DomainError> {
     // This needs to happen after all fields have been ingested, in order to attach selection sets.
     ingest_selection_sets(&parsed, &mut state)?;
 
-    Ok(FederatedGraphV4 {
+    Ok(FederatedGraph {
         root_operation_types: state.root_operation_types()?,
         subgraphs: state.subgraphs,
         objects: state.objects,

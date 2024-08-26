@@ -18,7 +18,7 @@ pub use super::v5::{
 /// Configuration for a federated graph
 #[derive(serde::Serialize, serde::Deserialize, Debug)]
 pub struct Config {
-    pub graph: String,
+    pub federated_sdl: String,
     pub strings: Vec<String>,
     #[serde(default)]
     pub paths: Vec<PathBuf>,
@@ -56,7 +56,7 @@ pub struct Config {
 impl Config {
     pub fn from_federated_sdl(graph: String) -> Self {
         Config {
-            graph,
+            federated_sdl: graph,
             strings: Vec::new(),
             paths: Vec::new(),
             header_rules: Vec::new(),

@@ -6,7 +6,7 @@
 
 use std::marker::PhantomData;
 
-use federated_graph::FederatedGraphV4;
+use federated_graph::FederatedGraph;
 use id_newtypes::IdRange;
 
 use crate::{FieldDefinitionId, InputValueDefinitionId};
@@ -47,7 +47,7 @@ impl IdMaps {
         }
     }
 
-    pub fn new(graph: &FederatedGraphV4) -> Self {
+    pub fn new(graph: &FederatedGraph) -> Self {
         let mut idmaps = IdMaps {
             field: Default::default(),
             input_value: Default::default(),

@@ -8,7 +8,7 @@ use runtime_local::redis::{RedisPoolFactory, RedisTlsConfig};
 use tokio::sync::watch;
 
 use engine_v2::Engine;
-use graphql_composition::FederatedGraph;
+use graphql_composition::VersionedFederatedGraph;
 use runtime_local::{
     ComponentLoader, HooksWasi, InMemoryEntityCache, InMemoryKvStore, InMemoryOperationCacheFactory, NativeFetcher,
     RedisEntityCache,
@@ -36,8 +36,8 @@ pub(super) async fn generate(
     hot_reload_config_path: Option<PathBuf>,
 ) -> crate::Result<Engine<GatewayRuntime>> {
     let schema_version = blake3::hash(federated_schema.as_bytes());
-    let graph =
-        FederatedGraph::from_sdl(federated_schema).map_err(|e| crate::Error::SchemaValidationError(e.to_string()))?;
+    let graph = VersionedFederatedGraph::from_sdl(federated_schema)
+        .map_err(|e| crate::Error::SchemaValidationError(e.to_string()))?;
     let config = engine_config_builder::build_with_toml_config(gateway_config, graph.into_latest()).into_latest();
 
     // TODO: https://linear.app/grafbase/issue/GB-6168/support-trusted-documents-in-air-gapped-mode

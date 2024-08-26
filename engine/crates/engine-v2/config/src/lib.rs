@@ -164,7 +164,7 @@ impl VersionedConfig {
                 entity_caching,
                 retry,
             }) => v6::Config {
-                graph: federated_graph::FederatedGraph::V3(graph).into_federated_sdl(),
+                federated_sdl: federated_graph::VersionedFederatedGraph::V3(graph).into_federated_sdl(),
                 strings,
                 paths,
                 header_rules,

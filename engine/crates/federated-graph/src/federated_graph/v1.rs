@@ -459,11 +459,11 @@ id_newtypes! {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::FederatedGraph;
+    use crate::VersionedFederatedGraph;
 
     #[test]
     fn serde_json_backwards_compatibility() {
-        let schema = serde_json::from_str::<FederatedGraph>(
+        let schema = serde_json::from_str::<VersionedFederatedGraph>(
             r#"
             {
               "V1": {

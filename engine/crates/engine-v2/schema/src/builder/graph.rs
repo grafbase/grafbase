@@ -5,7 +5,7 @@ use std::{
 };
 
 use config::latest::{CacheConfigTarget, Config};
-use federated_graph::FederatedGraphV4;
+use federated_graph::FederatedGraph;
 use id_newtypes::IdRange;
 use sources::{
     graphql::{FederationEntityResolverDefinition, FederationKey, GraphqlEndpointId, RootFieldResolverDefinition},
@@ -34,7 +34,7 @@ impl<'a> GraphBuilder<'a> {
         ctx: &'a mut BuildContext,
         sources: &ExternalDataSources,
         config: &mut Config,
-        graph: &mut FederatedGraphV4,
+        graph: &mut FederatedGraph,
     ) -> Result<(Graph, IntrospectionMetadata), BuildError> {
         let mut builder = GraphBuilder {
             ctx,
@@ -73,7 +73,7 @@ impl<'a> GraphBuilder<'a> {
         builder.finalize()
     }
 
-    fn ingest_config(&mut self, config: &mut Config, graph: &mut FederatedGraphV4) {
+    fn ingest_config(&mut self, config: &mut Config, graph: &mut FederatedGraph) {
         self.ingest_input_values(config, graph);
         self.ingest_input_objects(config, graph);
         self.ingest_unions(config, graph);
@@ -90,7 +90,7 @@ impl<'a> GraphBuilder<'a> {
         self.ingest_fields_after_input_values(config, object_metadata, interface_metadata, graph);
     }
 
-    fn ingest_input_values(&mut self, config: &mut Config, graph: &mut FederatedGraphV4) {
+    fn ingest_input_values(&mut self, config: &mut Config, graph: &mut FederatedGraph) {
         self.graph.input_value_definitions = take(&mut graph.input_value_definitions)
             .into_iter()
             .enumerate()
@@ -123,7 +123,7 @@ impl<'a> GraphBuilder<'a> {
             .collect();
     }
 
-    fn ingest_input_objects(&mut self, config: &mut Config, graph: &mut FederatedGraphV4) {
+    fn ingest_input_objects(&mut self, config: &mut Config, graph: &mut FederatedGraph) {
         self.graph.input_object_definitions = take(&mut graph.input_objects)
             .into_iter()
             .enumerate()
@@ -149,7 +149,7 @@ impl<'a> GraphBuilder<'a> {
             .collect();
     }
 
-    fn ingest_unions(&mut self, config: &mut Config, graph: &mut FederatedGraphV4) {
+    fn ingest_unions(&mut self, config: &mut Config, graph: &mut FederatedGraph) {
         self.graph.union_definitions = take(&mut graph.unions)
             .into_iter()
             .map(|union| UnionDefinition {
@@ -175,7 +175,7 @@ impl<'a> GraphBuilder<'a> {
             .collect();
     }
 
-    fn ingest_enums(&mut self, config: &mut Config, graph: &mut FederatedGraphV4) {
+    fn ingest_enums(&mut self, config: &mut Config, graph: &mut FederatedGraph) {
         let mut idmap = IdMap::<federated_graph::EnumValueId, EnumValueId>::default();
         self.graph.enum_value_definitions = take(&mut graph.enum_values)
             .into_iter()
@@ -225,7 +225,7 @@ impl<'a> GraphBuilder<'a> {
             .collect();
     }
 
-    fn ingest_scalars(&mut self, config: &mut Config, graph: &mut FederatedGraphV4) {
+    fn ingest_scalars(&mut self, config: &mut Config, graph: &mut FederatedGraph) {
         self.graph.scalar_definitions = take(&mut graph.scalars)
             .into_iter()
             .map(|scalar| {
@@ -248,7 +248,7 @@ impl<'a> GraphBuilder<'a> {
             .collect();
     }
 
-    fn ingest_objects(&mut self, config: &mut Config, graph: &mut FederatedGraphV4) -> ObjectMetadata {
+    fn ingest_objects(&mut self, config: &mut Config, graph: &mut FederatedGraph) -> ObjectMetadata {
         let mut entities_metadata = ObjectMetadata {
             entities: Default::default(),
             // At most we have as many field as the FederatedGraph
@@ -310,7 +310,7 @@ impl<'a> GraphBuilder<'a> {
     fn ingest_interfaces_after_objects(
         &mut self,
         config: &mut Config,
-        graph: &mut FederatedGraphV4,
+        graph: &mut FederatedGraph,
     ) -> InterfaceMetadata {
         let mut entities_metadata = InterfaceMetadata {
             entities: Default::default(),
@@ -372,7 +372,7 @@ impl<'a> GraphBuilder<'a> {
         config: &mut Config,
         object_metadata: ObjectMetadata,
         interface_metadata: InterfaceMetadata,
-        graph: &mut FederatedGraphV4,
+        graph: &mut FederatedGraph,
     ) {
         let root_fields = {
             let mut root_fields = vec![];
@@ -662,7 +662,7 @@ impl<'a> GraphBuilder<'a> {
         &mut self,
         config: &Config,
         directives: Directives,
-        graph: &mut FederatedGraphV4,
+        graph: &FederatedGraph,
     ) -> IdRange<TypeSystemDirectiveId> {
         let start = self.graph.type_system_directives.len();
 
@@ -805,7 +805,7 @@ struct FederationEntity {
 }
 
 pub(super) fn is_inaccessible(
-    graph: &federated_graph::FederatedGraphV4,
+    graph: &federated_graph::FederatedGraph,
     directives: federated_graph::Directives,
 ) -> bool {
     graph[directives]

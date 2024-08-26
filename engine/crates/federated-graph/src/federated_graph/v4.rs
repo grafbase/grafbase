@@ -10,7 +10,7 @@ pub use super::v3::{
 };
 
 #[derive(Clone)]
-pub struct FederatedGraphV4 {
+pub struct FederatedGraph {
     pub subgraphs: Vec<Subgraph>,
     pub root_operation_types: RootOperationTypes,
     pub objects: Vec<Object>,
@@ -39,13 +39,13 @@ pub struct FederatedGraphV4 {
     pub interface_authorized_directives: Vec<(InterfaceId, AuthorizedDirectiveId)>,
 }
 
-impl std::fmt::Debug for FederatedGraphV4 {
+impl std::fmt::Debug for FederatedGraph {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct(std::any::type_name::<Self>()).finish_non_exhaustive()
     }
 }
 
-impl FederatedGraphV4 {
+impl FederatedGraph {
     pub fn iter_interfaces(&self) -> impl ExactSizeIterator<Item = (InterfaceId, &Interface)> {
         self.interfaces
             .iter()
@@ -147,9 +147,9 @@ pub struct InputValueDefinition {
     pub default: Option<Value>,
 }
 
-impl Default for FederatedGraphV4 {
+impl Default for FederatedGraph {
     fn default() -> Self {
-        FederatedGraphV4 {
+        FederatedGraph {
             subgraphs: Vec::new(),
             root_operation_types: RootOperationTypes {
                 query: ObjectId(0),
@@ -217,7 +217,7 @@ impl Default for FederatedGraphV4 {
 macro_rules! id_newtypes {
     ($($name:ident + $storage:ident + $out:ident,)*) => {
         $(
-            impl std::ops::Index<$name> for FederatedGraphV4 {
+            impl std::ops::Index<$name> for FederatedGraph {
                 type Output = $out;
 
                 fn index(&self, index: $name) -> &$out {
@@ -225,7 +225,7 @@ macro_rules! id_newtypes {
                 }
             }
 
-            impl std::ops::IndexMut<$name> for FederatedGraphV4 {
+            impl std::ops::IndexMut<$name> for FederatedGraph {
                 fn index_mut(&mut self, index: $name) -> &mut $out {
                     &mut self.$storage[index.0]
                 }
@@ -248,7 +248,7 @@ id_newtypes! {
     UnionId + unions + Union,
 }
 
-impl From<super::FederatedGraphV3> for FederatedGraphV4 {
+impl From<super::FederatedGraphV3> for FederatedGraph {
     fn from(
         crate::FederatedGraphV3 {
             subgraphs,
@@ -270,7 +270,7 @@ impl From<super::FederatedGraphV3> for FederatedGraphV4 {
             interface_authorized_directives,
         }: super::FederatedGraphV3,
     ) -> Self {
-        FederatedGraphV4 {
+        FederatedGraph {
             subgraphs,
             root_operation_types,
             objects,
@@ -362,7 +362,7 @@ impl From<super::v3::Value> for Value {
     }
 }
 
-impl std::ops::Index<Directives> for FederatedGraphV4 {
+impl std::ops::Index<Directives> for FederatedGraph {
     type Output = [Directive];
 
     fn index(&self, index: Directives) -> &Self::Output {
@@ -371,7 +371,7 @@ impl std::ops::Index<Directives> for FederatedGraphV4 {
     }
 }
 
-impl std::ops::Index<InputValueDefinitions> for FederatedGraphV4 {
+impl std::ops::Index<InputValueDefinitions> for FederatedGraph {
     type Output = [InputValueDefinition];
 
     fn index(&self, index: InputValueDefinitions) -> &Self::Output {
@@ -380,7 +380,7 @@ impl std::ops::Index<InputValueDefinitions> for FederatedGraphV4 {
     }
 }
 
-impl std::ops::Index<EnumValues> for FederatedGraphV4 {
+impl std::ops::Index<EnumValues> for FederatedGraph {
     type Output = [EnumValue];
 
     fn index(&self, index: EnumValues) -> &Self::Output {
@@ -389,7 +389,7 @@ impl std::ops::Index<EnumValues> for FederatedGraphV4 {
     }
 }
 
-impl std::ops::Index<Fields> for FederatedGraphV4 {
+impl std::ops::Index<Fields> for FederatedGraph {
     type Output = [Field];
 
     fn index(&self, index: Fields) -> &Self::Output {

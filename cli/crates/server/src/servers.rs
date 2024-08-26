@@ -11,7 +11,7 @@ use common::channels::constant_watch_receiver;
 use common::consts::MAX_PORT;
 use common::consts::{GRAFBASE_SCHEMA_FILE_NAME, GRAFBASE_TS_CONFIG_FILE_NAME};
 use common::environment::{Environment, Project};
-use federated_graph::FederatedGraphV4;
+use federated_graph::FederatedGraph;
 use flate2::read::GzDecoder;
 use futures_util::StreamExt;
 use std::collections::HashMap;
@@ -44,7 +44,7 @@ pub enum ProductionServer {
     Federated {
         message_sender: MessageSender,
         config: parser_sdl::federation::FederatedGraphConfig,
-        graph: Option<FederatedGraphV4>,
+        graph: Option<FederatedGraph>,
     },
 }
 

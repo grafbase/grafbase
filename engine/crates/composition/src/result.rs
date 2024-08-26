@@ -1,10 +1,10 @@
-use graphql_federated_graph::FederatedGraph;
+use graphql_federated_graph::VersionedFederatedGraph;
 
 use crate::Diagnostics;
 
 /// The result of a [`compose()`](crate::compose()) invocation.
 pub struct CompositionResult {
-    pub(crate) federated_graph: Option<FederatedGraph>,
+    pub(crate) federated_graph: Option<VersionedFederatedGraph>,
     pub(crate) diagnostics: Diagnostics,
 }
 
@@ -13,7 +13,7 @@ impl CompositionResult {
     ///
     /// `Ok()` contains the [FederatedGraph].
     /// `Err()` contains all [Diagnostics].
-    pub fn into_result(self) -> Result<FederatedGraph, Diagnostics> {
+    pub fn into_result(self) -> Result<VersionedFederatedGraph, Diagnostics> {
         if let Some(federated_graph) = self.federated_graph {
             Ok(federated_graph)
         } else {

@@ -1,16 +1,16 @@
 use super::display_utils::*;
-use crate::{federated_graph::*, FederatedGraphV4};
+use crate::{federated_graph::*, FederatedGraph};
 use std::fmt::{self, Write as _};
 
 /// Render a GraphQL SDL string for a federated graph. It does not include any
 /// federation-specific directives, it only reflects the final API schema as visible
 /// for consumers.
-pub fn render_api_sdl(graph: &FederatedGraphV4) -> String {
+pub fn render_api_sdl(graph: &FederatedGraph) -> String {
     Renderer { graph }.to_string()
 }
 
 struct Renderer<'a> {
-    graph: &'a FederatedGraphV4,
+    graph: &'a FederatedGraph,
 }
 
 impl fmt::Display for Renderer<'_> {
@@ -227,17 +227,13 @@ impl fmt::Display for Renderer<'_> {
     }
 }
 
-fn has_inaccessible(directives: &Directives, graph: &FederatedGraphV4) -> bool {
+fn has_inaccessible(directives: &Directives, graph: &FederatedGraph) -> bool {
     graph[*directives]
         .iter()
         .any(|directive| matches!(directive, Directive::Inaccessible))
 }
 
-fn write_public_directives(
-    f: &mut fmt::Formatter<'_>,
-    directives: Directives,
-    graph: &FederatedGraphV4,
-) -> fmt::Result {
+fn write_public_directives(f: &mut fmt::Formatter<'_>, directives: Directives, graph: &FederatedGraph) -> fmt::Result {
     for directive in graph[directives].iter().filter(|directive| match directive {
         Directive::Inaccessible | Directive::Policy(_) => false,
 
@@ -253,7 +249,7 @@ fn write_public_directives(
     Ok(())
 }
 
-fn write_enum_variant(f: &mut fmt::Formatter<'_>, enum_variant: &EnumValue, graph: &FederatedGraphV4) -> fmt::Result {
+fn write_enum_variant(f: &mut fmt::Formatter<'_>, enum_variant: &EnumValue, graph: &FederatedGraph) -> fmt::Result {
     f.write_str(INDENT)?;
     write_description(f, enum_variant.description, INDENT, graph)?;
     f.write_str(&graph[enum_variant.value])?;
@@ -264,7 +260,7 @@ fn write_enum_variant(f: &mut fmt::Formatter<'_>, enum_variant: &EnumValue, grap
 fn write_field_arguments(
     f: &mut fmt::Formatter<'_>,
     args: &[InputValueDefinition],
-    graph: &FederatedGraphV4,
+    graph: &FederatedGraph,
 ) -> fmt::Result {
     if args.is_empty() {
         return Ok(());
@@ -308,7 +304,7 @@ mod tests {
 
     #[test]
     fn test_empty() {
-        let empty = FederatedGraphV4::default();
+        let empty = FederatedGraph::default();
         let sdl = render_api_sdl(&empty);
         assert!(sdl.is_empty());
     }
