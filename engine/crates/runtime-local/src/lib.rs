@@ -3,7 +3,7 @@ mod cache;
 mod entity_cache;
 mod fetch;
 #[cfg(feature = "wasi")]
-mod hooks;
+pub mod hooks;
 mod kv;
 mod log;
 mod operation_cache;

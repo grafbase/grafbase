@@ -64,6 +64,30 @@ pub mod component {
                 }
             }
 
+            /// Error variant sent if failing to write to access log.
+            #[derive(Clone)]
+            pub enum LogError {
+                /// The log channel is over capacity. The data is returned to the caller.
+                ChannelFull(_rt::Vec<u8>),
+                /// The channel is closed.
+                ChannelClosed,
+            }
+            impl ::core::fmt::Debug for LogError {
+                fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
+                    match self {
+                        LogError::ChannelFull(e) => f.debug_tuple("LogError::ChannelFull").field(e).finish(),
+                        LogError::ChannelClosed => f.debug_tuple("LogError::ChannelClosed").finish(),
+                    }
+                }
+            }
+            impl ::core::fmt::Display for LogError {
+                fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
+                    write!(f, "{:?}", self)
+                }
+            }
+
+            impl std::error::Error for LogError {}
+
             #[derive(Debug)]
             #[repr(transparent)]
             pub struct Context {
@@ -361,6 +385,65 @@ pub mod component {
                                     _rt::string_lift(bytes5)
                                 };
                                 Some(e)
+                            }
+                            _ => _rt::invalid_enum_discriminant(),
+                        }
+                    }
+                }
+            }
+            impl SharedContext {
+                #[allow(unused_unsafe, clippy::all)]
+                /// Sends the data to the access log.
+                pub fn log_access(&self, data: &[u8]) -> Result<(), LogError> {
+                    unsafe {
+                        #[repr(align(4))]
+                        struct RetArea([::core::mem::MaybeUninit<u8>; 16]);
+                        let mut ret_area = RetArea([::core::mem::MaybeUninit::uninit(); 16]);
+                        let vec0 = data;
+                        let ptr0 = vec0.as_ptr().cast::<u8>();
+                        let len0 = vec0.len();
+                        let ptr1 = ret_area.0.as_mut_ptr().cast::<u8>();
+                        #[cfg(target_arch = "wasm32")]
+                        #[link(wasm_import_module = "component:grafbase/types")]
+                        extern "C" {
+                            #[link_name = "[method]shared-context.log-access"]
+                            fn wit_import(_: i32, _: *mut u8, _: usize, _: *mut u8);
+                        }
+
+                        #[cfg(not(target_arch = "wasm32"))]
+                        fn wit_import(_: i32, _: *mut u8, _: usize, _: *mut u8) {
+                            unreachable!()
+                        }
+                        wit_import((self).handle() as i32, ptr0.cast_mut(), len0, ptr1);
+                        let l2 = i32::from(*ptr1.add(0).cast::<u8>());
+                        match l2 {
+                            0 => {
+                                let e = ();
+                                Ok(e)
+                            }
+                            1 => {
+                                let e = {
+                                    let l3 = i32::from(*ptr1.add(4).cast::<u8>());
+                                    let v7 = match l3 {
+                                        0 => {
+                                            let e7 = {
+                                                let l4 = *ptr1.add(8).cast::<*mut u8>();
+                                                let l5 = *ptr1.add(12).cast::<usize>();
+                                                let len6 = l5;
+
+                                                _rt::Vec::from_raw_parts(l4.cast(), len6, len6)
+                                            };
+                                            LogError::ChannelFull(e7)
+                                        }
+                                        n => {
+                                            debug_assert_eq!(n, 1, "invalid enum discriminant");
+                                            LogError::ChannelClosed
+                                        }
+                                    };
+
+                                    v7
+                                };
+                                Err(e)
                             }
                             _ => _rt::invalid_enum_discriminant(),
                         }
@@ -689,6 +772,7 @@ pub mod exports {
     }
 }
 mod _rt {
+    pub use alloc_crate::vec::Vec;
 
     use core::fmt;
     use core::marker;
@@ -783,7 +867,6 @@ mod _rt {
         }
     }
     pub use alloc_crate::string::String;
-    pub use alloc_crate::vec::Vec;
     pub unsafe fn string_lift(bytes: Vec<u8>) -> String {
         if cfg!(debug_assertions) {
             String::from_utf8(bytes).unwrap()
@@ -845,28 +928,30 @@ pub(crate) use __export_hooks_impl as export;
 #[cfg(target_arch = "wasm32")]
 #[link_section = "component-type:wit-bindgen:0.25.0:hooks:encoded world"]
 #[doc(hidden)]
-pub static __WIT_BINDGEN_COMPONENT_TYPE: [u8; 949] = *b"\
-\0asm\x0d\0\x01\0\0\x19\x16wit-component-encoding\x04\0\x07\xb9\x06\x01A\x02\x01\
-A\x07\x01B\x20\x01m\x02\x14invalid-header-value\x13invalid-header-name\x04\0\x0c\
-header-error\x03\0\0\x04\0\x07context\x03\x01\x04\0\x0eshared-context\x03\x01\x04\
-\0\x07headers\x03\x01\x01r\x02\x10parent-type-names\x0afield-names\x04\0\x0fedge\
--definition\x03\0\x05\x01r\x01\x09type-names\x04\0\x0fnode-definition\x03\0\x07\x01\
-o\x02ss\x01p\x09\x01r\x02\x0aextensions\x0a\x07messages\x04\0\x05error\x03\0\x0b\
-\x01h\x02\x01ks\x01@\x02\x04self\x0d\x04names\0\x0e\x04\0\x13[method]context.get\
-\x01\x0f\x01@\x03\x04self\x0d\x04names\x05values\x01\0\x04\0\x13[method]context.\
-set\x01\x10\x04\0\x16[method]context.delete\x01\x0f\x01h\x03\x01@\x02\x04self\x11\
-\x04names\0\x0e\x04\0\x1a[method]shared-context.get\x01\x12\x01h\x04\x01@\x02\x04\
-self\x13\x04names\0\x0e\x04\0\x13[method]headers.get\x01\x14\x01j\0\x01\x01\x01@\
-\x03\x04self\x13\x04names\x05values\0\x15\x04\0\x13[method]headers.set\x01\x16\x04\
-\0\x16[method]headers.delete\x01\x14\x01@\x01\x04self\x13\0\x0a\x04\0\x17[method\
-]headers.entries\x01\x17\x03\x01\x18component:grafbase/types\x05\0\x02\x03\0\0\x07\
-headers\x02\x03\0\0\x05error\x02\x03\0\0\x07context\x01B\x0b\x02\x03\x02\x01\x01\
-\x04\0\x07headers\x03\0\0\x02\x03\x02\x01\x02\x04\0\x05error\x03\0\x02\x02\x03\x02\
-\x01\x03\x04\0\x07context\x03\0\x04\x01i\x05\x01i\x01\x01j\0\x01\x03\x01@\x02\x07\
-context\x06\x07headers\x07\0\x08\x04\0\x12on-gateway-request\x01\x09\x04\x01\"co\
-mponent:grafbase/gateway-request\x05\x04\x04\x01\x18component:grafbase/hooks\x04\
-\0\x0b\x0b\x01\0\x05hooks\x03\0\0\0G\x09producers\x01\x0cprocessed-by\x02\x0dwit\
--component\x070.208.1\x10wit-bindgen-rust\x060.25.0";
+pub static __WIT_BINDGEN_COMPONENT_TYPE: [u8; 1063] = *b"\
+\0asm\x0d\0\x01\0\0\x19\x16wit-component-encoding\x04\0\x07\xab\x07\x01A\x02\x01\
+A\x07\x01B&\x01m\x02\x14invalid-header-value\x13invalid-header-name\x04\0\x0chea\
+der-error\x03\0\0\x01p}\x01q\x02\x0cchannel-full\x01\x02\0\x0echannel-closed\0\0\
+\x04\0\x09log-error\x03\0\x03\x04\0\x07context\x03\x01\x04\0\x0eshared-context\x03\
+\x01\x04\0\x07headers\x03\x01\x01r\x02\x10parent-type-names\x0afield-names\x04\0\
+\x0fedge-definition\x03\0\x08\x01r\x01\x09type-names\x04\0\x0fnode-definition\x03\
+\0\x0a\x01o\x02ss\x01p\x0c\x01r\x02\x0aextensions\x0d\x07messages\x04\0\x05error\
+\x03\0\x0e\x01h\x05\x01ks\x01@\x02\x04self\x10\x04names\0\x11\x04\0\x13[method]c\
+ontext.get\x01\x12\x01@\x03\x04self\x10\x04names\x05values\x01\0\x04\0\x13[metho\
+d]context.set\x01\x13\x04\0\x16[method]context.delete\x01\x12\x01h\x06\x01@\x02\x04\
+self\x14\x04names\0\x11\x04\0\x1a[method]shared-context.get\x01\x15\x01j\0\x01\x04\
+\x01@\x02\x04self\x14\x04data\x02\0\x16\x04\0![method]shared-context.log-access\x01\
+\x17\x01h\x07\x01@\x02\x04self\x18\x04names\0\x11\x04\0\x13[method]headers.get\x01\
+\x19\x01j\0\x01\x01\x01@\x03\x04self\x18\x04names\x05values\0\x1a\x04\0\x13[meth\
+od]headers.set\x01\x1b\x04\0\x16[method]headers.delete\x01\x19\x01@\x01\x04self\x18\
+\0\x0d\x04\0\x17[method]headers.entries\x01\x1c\x03\x01\x18component:grafbase/ty\
+pes\x05\0\x02\x03\0\0\x07headers\x02\x03\0\0\x05error\x02\x03\0\0\x07context\x01\
+B\x0b\x02\x03\x02\x01\x01\x04\0\x07headers\x03\0\0\x02\x03\x02\x01\x02\x04\0\x05\
+error\x03\0\x02\x02\x03\x02\x01\x03\x04\0\x07context\x03\0\x04\x01i\x05\x01i\x01\
+\x01j\0\x01\x03\x01@\x02\x07context\x06\x07headers\x07\0\x08\x04\0\x12on-gateway\
+-request\x01\x09\x04\x01\"component:grafbase/gateway-request\x05\x04\x04\x01\x18\
+component:grafbase/hooks\x04\0\x0b\x0b\x01\0\x05hooks\x03\0\0\0G\x09producers\x01\
+\x0cprocessed-by\x02\x0dwit-component\x070.208.1\x10wit-bindgen-rust\x060.25.0";
 
 #[inline(never)]
 #[doc(hidden)]

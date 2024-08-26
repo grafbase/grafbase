@@ -1,6 +1,6 @@
 use std::{collections::HashMap, sync::Arc};
 
-use crossbeam::channel::{Sender, TrySendError};
+use crossbeam::{channel::TrySendError, sync::WaitGroup};
 use grafbase_telemetry::span::GRAFBASE_TARGET;
 use wasmtime::{
     component::{ComponentType, LinkerInstance, Lower, Resource, ResourceType},
@@ -15,18 +15,61 @@ use crate::{
     state::WasiState,
 };
 
+/// Sender for a wasi hook to send logs to the writer.
+pub type ChannelLogSender = crossbeam::channel::Sender<AccessLogMessage>;
+
+/// A receiver for the logger to receive messages and write them somewhere.
+pub type ChannelLogReceiver = crossbeam::channel::Receiver<AccessLogMessage>;
+
+/// https://github.com/tokio-rs/tracing/blob/master/tracing-appender/src/non_blocking.rs#L61-L70
+const DEFAULT_BUFFERED_LINES_LIMIT: usize = 128_000;
+
+/// Creates a new channel for access logs.
+pub fn create_log_channel() -> (ChannelLogSender, ChannelLogReceiver) {
+    crossbeam::channel::bounded(DEFAULT_BUFFERED_LINES_LIMIT)
+}
+
+/// A message sent through access log channel.
+pub enum AccessLogMessage {
+    /// Write data to the logs.
+    Data(Vec<u8>),
+    /// Shutdown the channel.
+    Shutdown(WaitGroup),
+}
+
+impl AccessLogMessage {
+    /// Convert the message into data bytes, if present.
+    pub fn into_data(self) -> Option<Vec<u8>> {
+        match self {
+            AccessLogMessage::Data(data) => Some(data),
+            AccessLogMessage::Shutdown(_) => None,
+        }
+    }
+}
+
 /// The internal per-request context storage. Accessible from all hooks throughout a single request
 pub type ContextMap = HashMap<String, String>;
 
 /// The internal per-request context storage, read-only.
 #[derive(Clone)]
-pub struct SharedContextMap {
+pub struct SharedContext {
     /// Key-value storage.
-    pub kv: Arc<HashMap<String, String>>,
+    kv: Arc<HashMap<String, String>>,
     /// A log channel for access logs.
-    pub access_log: Sender<Vec<u8>>,
+    access_log: ChannelLogSender,
     /// If true, messages get dropped when the channel is full.
-    pub lossy_log: bool,
+    lossy_log: bool,
+}
+
+impl SharedContext {
+    /// Creates a new shared context.
+    pub fn new(kv: Arc<HashMap<String, String>>, access_log: ChannelLogSender, lossy_log: bool) -> Self {
+        Self {
+            kv,
+            access_log,
+            lossy_log,
+        }
+    }
 }
 
 #[derive(Debug, ComponentType, Lower)]
@@ -64,37 +107,18 @@ pub(crate) fn map(types: &mut LinkerInstance<'_, WasiState>) -> crate::Result<()
 /// interface types {
 ///     resource shared-context {
 ///         get: func(key: string) -> option<string>;
-///     }    
+///         access-log: func(data: list<u8>) -> result<_, log-error>;
+///     }
 /// }
 /// ```
 pub(crate) fn map_shared(types: &mut LinkerInstance<'_, WasiState>) -> crate::Result<()> {
     types.resource(
         SHARED_CONTEXT_RESOURCE,
-        ResourceType::host::<SharedContextMap>(),
+        ResourceType::host::<SharedContext>(),
         |_, _| Ok(()),
     )?;
 
     types.func_wrap(SHARED_CONTEXT_GET_METHOD, get_shared)?;
-
-    Ok(())
-}
-
-/// Map shared log function, connected to the access log channel.
-///
-/// ```ignore
-/// interface types {
-///     resource shared-context {
-///         access-log: func(data: list<u8>) -> result<_, list<u8>>;
-///     }    
-/// }
-/// ```
-pub(crate) fn map_access_log(types: &mut LinkerInstance<'_, WasiState>) -> crate::Result<()> {
-    types.resource(
-        SHARED_CONTEXT_RESOURCE,
-        ResourceType::host::<SharedContextMap>(),
-        |_, _| Ok(()),
-    )?;
-
     types.func_wrap(SHARED_CONTEXT_ACCESS_LOG_METHOD, log_access)?;
 
     Ok(())
@@ -131,7 +155,7 @@ fn get(
 /// `get: func(key: string) -> option<string>`
 fn get_shared(
     store: StoreContextMut<'_, WasiState>,
-    (this, key): (Resource<SharedContextMap>, String),
+    (this, key): (Resource<SharedContext>, String),
 ) -> anyhow::Result<(Option<String>,)> {
     let context = store.data().get(&this).expect("must exist");
     let val = context.kv.get(&key).cloned();
@@ -142,18 +166,19 @@ fn get_shared(
 /// Sends data to the access log channel.
 fn log_access(
     store: StoreContextMut<'_, WasiState>,
-    (this, data): (Resource<SharedContextMap>, Vec<u8>),
+    (this, data): (Resource<SharedContext>, Vec<u8>),
 ) -> anyhow::Result<(Result<(), LogError>,)> {
     let context = store.data().get(&this).expect("must exist");
+    let data = AccessLogMessage::Data(data);
 
     if context.lossy_log {
         if let Err(e) = context.access_log.try_send(data) {
             match e {
-                TrySendError::Full(data) => {
+                TrySendError::Full(AccessLogMessage::Data(data)) => {
                     tracing::error!(target: GRAFBASE_TARGET, "access log channel is over capacity");
                     return Ok((Err(LogError::ChannelFull(data)),));
                 }
-                TrySendError::Disconnected(_) => {
+                _ => {
                     tracing::error!(target: GRAFBASE_TARGET, "access log channel closed");
                     return Ok((Err(LogError::ChannelClosed),));
                 }

@@ -1,3 +1,4 @@
+mod access_logs;
 mod cors;
 mod csrf;
 mod engine;
@@ -10,9 +11,11 @@ mod otel;
 mod state;
 mod trusted_documents_client;
 
+use crossbeam::sync::WaitGroup;
 use grafbase_telemetry::gql_response_status::GraphqlResponseStatus;
 pub use graph_fetch_method::GraphFetchMethod;
 pub use otel::{OtelReload, OtelTracing};
+use runtime_local::hooks::{create_log_channel, AccessLogMessage, ChannelLogSender};
 use tokio::sync::watch;
 use tracing::Level;
 use ulid::Ulid;
@@ -82,14 +85,19 @@ pub async fn serve(
     let (sender, mut gateway) = watch::channel(None);
     gateway.mark_unchanged();
 
+    let (access_log_sender, access_log_receiver) = create_log_channel();
+
     fetch_method
         .start(
             &config,
             config_hot_reload.then_some(config_path).flatten(),
             otel_reload,
+            access_log_sender.clone(),
             sender,
         )
         .await?;
+
+    access_logs::start(&config.gateway.access_logs, access_log_receiver)?;
 
     let (websocket_sender, websocket_receiver) = mpsc::channel(16);
     let websocket_accepter = WebsocketAccepter::new(websocket_receiver, gateway.clone());
@@ -149,19 +157,25 @@ pub async fn serve(
         router = csrf::inject_layer(router);
     }
 
-    bind(addr, path, router, config.tls.as_ref()).await?;
+    bind(addr, path, router, config.tls.as_ref(), access_log_sender).await?;
 
     Ok(())
 }
 
 #[cfg(not(feature = "lambda"))]
-async fn bind(addr: SocketAddr, path: &str, router: Router<()>, tls: Option<&TlsConfig>) -> crate::Result<()> {
+async fn bind(
+    addr: SocketAddr,
+    path: &str,
+    router: Router<()>,
+    tls: Option<&TlsConfig>,
+    log_sender: ChannelLogSender,
+) -> crate::Result<()> {
     let app = router.into_make_service();
 
     let handle = axum_server::Handle::new();
 
     // Spawn a task to gracefully shutdown server.
-    tokio::spawn(graceful_shutdown(handle.clone()));
+    tokio::spawn(graceful_shutdown(handle.clone(), log_sender));
 
     match tls {
         Some(tls) => {
@@ -191,7 +205,13 @@ async fn bind(addr: SocketAddr, path: &str, router: Router<()>, tls: Option<&Tls
 }
 
 #[cfg(feature = "lambda")]
-async fn bind(_: SocketAddr, path: &str, router: Router<()>, _: Option<&TlsConfig>) -> crate::Result<()> {
+async fn bind(
+    _: SocketAddr,
+    path: &str,
+    router: Router<()>,
+    _: Option<&TlsConfig>,
+    _: ChannelLogSender,
+) -> crate::Result<()> {
     let app = tower::ServiceBuilder::new()
         .layer(axum_aws_lambda::LambdaLayer::default())
         .service(router);
@@ -203,7 +223,7 @@ async fn bind(_: SocketAddr, path: &str, router: Router<()>, _: Option<&TlsConfi
 }
 
 #[allow(unused)] // I profoundly despise those not(lambda) feature flags...
-async fn graceful_shutdown(handle: axum_server::Handle) {
+async fn graceful_shutdown(handle: axum_server::Handle, log_sender: ChannelLogSender) {
     let ctrl_c = async {
         signal::ctrl_c().await.expect("failed to install Ctrl+C handler");
     };
@@ -227,6 +247,11 @@ async fn graceful_shutdown(handle: axum_server::Handle) {
     tracing::info!(target: GRAFBASE_TARGET, "Shutting down gracefully...");
     grafbase_telemetry::graceful_shutdown();
     handle.graceful_shutdown(Some(std::time::Duration::from_secs(3)));
+
+    let wg = WaitGroup::new();
+    log_sender.send(AccessLogMessage::Shutdown(wg.clone())).unwrap();
+
+    wg.wait();
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]

@@ -2,6 +2,7 @@ use super::gateway::{self, GatewayRuntime};
 use crate::OtelReload;
 use engine_v2::Engine;
 use gateway_config::Config;
+use runtime_local::hooks::ChannelLogSender;
 use std::{path::PathBuf, sync::Arc};
 use tokio::sync::{oneshot, watch};
 
@@ -34,6 +35,7 @@ impl GraphFetchMethod {
         config: &Config,
         hot_reload_config_path: Option<PathBuf>,
         otel_reload: Option<(oneshot::Sender<OtelReload>, oneshot::Receiver<()>)>,
+        access_log_sender: ChannelLogSender,
         sender: watch::Sender<Option<Arc<Engine<GatewayRuntime>>>>,
     ) -> crate::Result<()> {
         match self {
@@ -54,6 +56,7 @@ impl GraphFetchMethod {
                         sender,
                         config,
                         otel_reload,
+                        access_log_sender,
                     )?
                     .poll()
                     .await;
@@ -62,7 +65,14 @@ impl GraphFetchMethod {
                 });
             }
             GraphFetchMethod::FromLocal { federated_schema } => {
-                let gateway = gateway::generate(&federated_schema, None, config, hot_reload_config_path).await?;
+                let gateway = gateway::generate(
+                    &federated_schema,
+                    None,
+                    config,
+                    hot_reload_config_path,
+                    access_log_sender,
+                )
+                .await?;
 
                 sender.send(Some(Arc::new(gateway)))?;
             }

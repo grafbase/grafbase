@@ -2,7 +2,7 @@ use wasmtime::component::{ComponentType, Lower};
 
 use super::{component_instance, ComponentInstance};
 use crate::{
-    context::SharedContextMap,
+    context::SharedContext,
     names::{
         ON_GATEWAY_RESPONSE_FUNCTION, ON_HTTP_RESPONSE_FUNCTION, ON_SUBGRAPH_RESPONSE_FUNCTION, RESPONSES_INTERFACE,
     },
@@ -23,7 +23,7 @@ pub struct ExecutedHttpRequest {
     pub url: String,
     /// The response status code.
     #[component(name = "status-code")]
-    pub status_code: u64,
+    pub status_code: u16,
     /// Results from on-gateway-response hooks.
     #[component(name = "on-gateway-response-outputs")]
     pub on_gateway_response_outputs: Vec<Vec<u8>>,
@@ -102,9 +102,9 @@ pub struct ExecutedGatewayRequest {
 }
 
 /// A response info from an executed subgraph request.
-#[derive(Debug, Clone, Lower, ComponentType)]
+#[derive(Debug, Clone, Copy, Lower, ComponentType)]
 #[component(record)]
-pub struct Response {
+pub struct SubgraphResponseInfo {
     /// Time it took to connect to the subgraph endpoint, in milliseconds.
     #[component(name = "connection-time")]
     pub connection_time: u64,
@@ -116,16 +116,19 @@ pub struct Response {
     pub status_code: u16,
 }
 
-/// A subgraph response variant.
+/// The subgraph cache status.
 #[derive(Debug, Clone, Lower, ComponentType)]
-#[component(variant)]
-pub enum SubgraphResponse {
-    /// All responses from possible retries.
-    #[component(name = "responses")]
-    Responses(Vec<Response>),
-    /// The response was taken from cache.
-    #[component(name = "cached")]
-    Cached,
+#[component(enum)]
+pub enum CacheStatus {
+    /// Everything was taken from cache.
+    #[component(name = "hit")]
+    Hit,
+    /// Parts of the data was taken from cache.
+    #[component(name = "partial-hit")]
+    PartialHit,
+    /// No data was taken from cache.
+    #[component(name = "miss")]
+    Miss,
 }
 
 /// A response info from subgraph fetch.
@@ -141,6 +144,10 @@ pub struct ExecutedSubgraphRequest {
     /// The URL of the subgraph.
     #[component(name = "url")]
     pub url: String,
+    /// The subgraph response(s).
+    pub response_infos: Vec<SubgraphResponseInfo>,
+    /// If anything in the request was cached.
+    pub cache_status: CacheStatus,
     /// Total time taken to get a response, retries included. In milliseconds.
     #[component(name = "total-duration")]
     pub total_duration: u64,
@@ -153,7 +160,7 @@ impl ResponsesComponentInstance {
     /// Called right after a subgraph request.
     pub async fn on_subgraph_response(
         &mut self,
-        context: SharedContextMap,
+        context: SharedContext,
         request: ExecutedSubgraphRequest,
     ) -> crate::Result<Vec<u8>> {
         self.call1(ON_SUBGRAPH_RESPONSE_FUNCTION, context, request)
@@ -165,7 +172,7 @@ impl ResponsesComponentInstance {
     /// Called right after a gateway request.
     pub async fn on_gateway_response(
         &mut self,
-        context: SharedContextMap,
+        context: SharedContext,
         operation: Operation,
         request: ExecutedGatewayRequest,
     ) -> crate::Result<Vec<u8>> {
@@ -178,12 +185,9 @@ impl ResponsesComponentInstance {
     /// Called right after a HTTP request.
     pub async fn on_http_response(
         &mut self,
-        context: SharedContextMap,
+        context: SharedContext,
         request: ExecutedHttpRequest,
     ) -> crate::Result<()> {
-        self.call1(ON_HTTP_RESPONSE_FUNCTION, context, request)
-            .await?
-            .map(|_: ()| Ok(()))
-            .unwrap_or(Ok(()))
+        self.call1_0(ON_HTTP_RESPONSE_FUNCTION, context, request).await
     }
 }

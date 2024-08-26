@@ -19,16 +19,20 @@ mod state;
 #[cfg(test)]
 mod tests;
 
+use core::fmt;
+
 pub use config::Config;
-pub use context::{ContextMap, SharedContextMap};
+pub use context::{
+    create_log_channel, AccessLogMessage, ChannelLogReceiver, ChannelLogSender, ContextMap, SharedContext,
+};
 pub use crossbeam::channel::Sender;
 pub use error::{guest::GuestError, Error};
 pub use hooks::{
     authorization::{AuthorizationComponentInstance, EdgeDefinition, NodeDefinition},
     gateway::GatewayComponentInstance,
     response::{
-        ExecutedGatewayRequest, ExecutedHttpRequest, ExecutedSubgraphRequest, FieldError, GraphqlResponseStatus,
-        Operation, RequestError, ResponsesComponentInstance, SubgraphResponse,
+        CacheStatus, ExecutedGatewayRequest, ExecutedHttpRequest, ExecutedSubgraphRequest, FieldError,
+        GraphqlResponseStatus, Operation, RequestError, ResponsesComponentInstance, SubgraphResponseInfo,
     },
     subgraph::*,
     RecycleableComponentInstance,
@@ -55,6 +59,12 @@ pub struct ComponentLoader {
     linker: Linker<WasiState>,
     component: Component,
     config: Config,
+}
+
+impl fmt::Debug for ComponentLoader {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("lol")
+    }
 }
 
 impl ComponentLoader {
@@ -99,7 +109,6 @@ impl ComponentLoader {
                 headers::map(&mut types)?;
                 context::map(&mut types)?;
                 context::map_shared(&mut types)?;
-                context::map_access_log(&mut types)?;
 
                 Some(Self {
                     engine,

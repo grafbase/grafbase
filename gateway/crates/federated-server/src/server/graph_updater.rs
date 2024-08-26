@@ -10,6 +10,7 @@ use grafbase_telemetry::otel::opentelemetry::metrics::Histogram;
 use grafbase_telemetry::otel::opentelemetry::KeyValue;
 use grafbase_telemetry::span::GRAFBASE_TARGET;
 use http::{HeaderValue, StatusCode};
+use runtime_local::hooks::ChannelLogSender;
 use tokio::sync::oneshot;
 use tokio::time::MissedTickBehavior;
 use tracing::Level;
@@ -76,6 +77,7 @@ pub(super) struct GraphUpdater {
     gateway_config: Config,
     otel_reload: Option<(oneshot::Sender<OtelReload>, oneshot::Receiver<()>)>,
     latencies: Option<Histogram<u64>>,
+    access_log_sender: ChannelLogSender,
 }
 
 impl GraphUpdater {
@@ -86,6 +88,7 @@ impl GraphUpdater {
         sender: GatewaySender,
         gateway_config: Config,
         otel_reload: Option<(oneshot::Sender<OtelReload>, oneshot::Receiver<()>)>,
+        access_log_sender: ChannelLogSender,
     ) -> crate::Result<Self> {
         let gdn_client = reqwest::ClientBuilder::new()
             .timeout(GDN_TIMEOUT)
@@ -120,6 +123,7 @@ impl GraphUpdater {
             gateway_config,
             otel_reload,
             latencies: None,
+            access_log_sender,
         })
     }
 
@@ -255,6 +259,7 @@ impl GraphUpdater {
                 Some(response.branch_id),
                 &self.gateway_config,
                 None,
+                self.access_log_sender.clone(),
             )
             .await
             {

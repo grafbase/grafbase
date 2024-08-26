@@ -100,6 +100,41 @@ pub struct GatewayConfig {
     pub rate_limit: Option<RateLimitConfig>,
     /// Global retry configuration
     pub retry: RetryConfig,
+    /// Access logs configuration
+    pub access_logs: AccessLogsConfig,
+}
+
+#[derive(Debug, Default, serde::Deserialize, Clone, Copy)]
+#[serde(rename_all = "lowercase", deny_unknown_fields)]
+pub enum RotateMode {
+    /// Never rotate
+    #[default]
+    Never,
+    /// A new file every minute
+    Minutely,
+    /// A new file every hour
+    Hourly,
+    /// A new file every day
+    Daily,
+}
+
+#[derive(Debug, Default, serde::Deserialize, Clone, Copy)]
+#[serde(rename_all = "snake_case", deny_unknown_fields)]
+pub enum LogMode {
+    #[default]
+    Blocking,
+    NonBlocking,
+}
+
+#[derive(Debug, Default, serde::Deserialize, Clone)]
+#[serde(default, deny_unknown_fields)]
+pub struct AccessLogsConfig {
+    /// The path to the access log files
+    pub path: PathBuf,
+    /// How often logs are rotated.
+    pub rotate: RotateMode,
+    /// What happens if the log channel is full
+    pub mode: LogMode,
 }
 
 #[derive(Debug, Default, serde::Deserialize, Clone)]
@@ -115,7 +150,6 @@ pub struct SubgraphConfig {
     #[serde(deserialize_with = "duration_str::deserialize_option_duration")]
     pub timeout: Option<Duration>,
     pub retry: Option<RetryConfig>,
-
     /// Subgraph specific entity caching config  this overrides the global config if there
     /// is any
     pub entity_caching: Option<EntityCachingConfig>,
@@ -1384,6 +1418,11 @@ mod tests {
                 ttl: None,
                 retry_percent: None,
                 retry_mutations: false,
+            },
+            access_logs: AccessLogsConfig {
+                path: "",
+                rotate: Never,
+                mode: Blocking,
             },
         }
         "###);

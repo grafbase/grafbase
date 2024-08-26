@@ -68,6 +68,29 @@ pub mod component {
                 }
             }
 
+            /// Error variant sent if failing to write to access log.
+            #[derive(Clone)]
+            pub enum LogError {
+                /// The log channel is over capacity. The data is returned to the caller.
+                ChannelFull(_rt::Vec<u8>),
+                /// The channel is closed.
+                ChannelClosed,
+            }
+            impl ::core::fmt::Debug for LogError {
+                fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
+                    match self {
+                        LogError::ChannelFull(e) => f.debug_tuple("LogError::ChannelFull").field(e).finish(),
+                        LogError::ChannelClosed => f.debug_tuple("LogError::ChannelClosed").finish(),
+                    }
+                }
+            }
+            impl ::core::fmt::Display for LogError {
+                fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
+                    write!(f, "{:?}", self)
+                }
+            }
+
+            impl std::error::Error for LogError {}
             /// A context object is available in all hooks during the whole request
             /// lifecycle. It can be used to store custom data in one hook and make it
             /// available in the hooks executed later in the request.
@@ -555,24 +578,60 @@ pub mod component {
             }
             impl SharedContext {
                 #[allow(unused_unsafe, clippy::all)]
-                pub fn log_access(&self, data: &[u8]) {
+                /// Sends the data to the access log.
+                pub fn log_access(&self, data: &[u8]) -> Result<(), LogError> {
                     unsafe {
+                        #[repr(align(4))]
+                        struct RetArea([::core::mem::MaybeUninit<u8>; 16]);
+                        let mut ret_area = RetArea([::core::mem::MaybeUninit::uninit(); 16]);
                         let vec0 = data;
                         let ptr0 = vec0.as_ptr().cast::<u8>();
                         let len0 = vec0.len();
-
+                        let ptr1 = ret_area.0.as_mut_ptr().cast::<u8>();
                         #[cfg(target_arch = "wasm32")]
                         #[link(wasm_import_module = "component:grafbase/types")]
                         extern "C" {
                             #[link_name = "[method]shared-context.log-access"]
-                            fn wit_import(_: i32, _: *mut u8, _: usize);
+                            fn wit_import(_: i32, _: *mut u8, _: usize, _: *mut u8);
                         }
 
                         #[cfg(not(target_arch = "wasm32"))]
-                        fn wit_import(_: i32, _: *mut u8, _: usize) {
+                        fn wit_import(_: i32, _: *mut u8, _: usize, _: *mut u8) {
                             unreachable!()
                         }
-                        wit_import((self).handle() as i32, ptr0.cast_mut(), len0);
+                        wit_import((self).handle() as i32, ptr0.cast_mut(), len0, ptr1);
+                        let l2 = i32::from(*ptr1.add(0).cast::<u8>());
+                        match l2 {
+                            0 => {
+                                let e = ();
+                                Ok(e)
+                            }
+                            1 => {
+                                let e = {
+                                    let l3 = i32::from(*ptr1.add(4).cast::<u8>());
+                                    let v7 = match l3 {
+                                        0 => {
+                                            let e7 = {
+                                                let l4 = *ptr1.add(8).cast::<*mut u8>();
+                                                let l5 = *ptr1.add(12).cast::<usize>();
+                                                let len6 = l5;
+
+                                                _rt::Vec::from_raw_parts(l4.cast(), len6, len6)
+                                            };
+                                            LogError::ChannelFull(e7)
+                                        }
+                                        n => {
+                                            debug_assert_eq!(n, 1, "invalid enum discriminant");
+                                            LogError::ChannelClosed
+                                        }
+                                    };
+
+                                    v7
+                                };
+                                Err(e)
+                            }
+                            _ => _rt::invalid_enum_discriminant(),
+                        }
                     }
                 }
             }
@@ -1042,6 +1101,7 @@ pub mod exports {
     }
 }
 mod _rt {
+    pub use alloc_crate::vec::Vec;
 
     use core::fmt;
     use core::marker;
@@ -1136,7 +1196,6 @@ mod _rt {
         }
     }
     pub use alloc_crate::string::String;
-    pub use alloc_crate::vec::Vec;
     pub unsafe fn string_lift(bytes: Vec<u8>) -> String {
         if cfg!(debug_assertions) {
             String::from_utf8(bytes).unwrap()
@@ -1209,45 +1268,46 @@ pub(crate) use __export_hooks_impl as export;
 #[cfg(target_arch = "wasm32")]
 #[link_section = "component-type:wit-bindgen:0.25.0:hooks:encoded world"]
 #[doc(hidden)]
-pub static __WIT_BINDGEN_COMPONENT_TYPE: [u8; 1855] = *b"\
-\0asm\x0d\0\x01\0\0\x19\x16wit-component-encoding\x04\0\x07\xc3\x0d\x01A\x02\x01\
-A\x09\x01B6\x01m\x02\x14invalid-header-value\x13invalid-header-name\x04\0\x0chea\
-der-error\x03\0\0\x04\0\x07context\x03\x01\x04\0\x0eshared-context\x03\x01\x04\0\
-\x07headers\x03\x01\x01r\x02\x10parent-type-names\x0afield-names\x04\0\x0fedge-d\
-efinition\x03\0\x05\x01r\x01\x09type-names\x04\0\x0fnode-definition\x03\0\x07\x01\
-p}\x01p\x09\x01r\x04\x06methods\x03urls\x0bstatus-code{\x1bon-gateway-response-o\
-utputs\x0a\x04\0\x15executed-http-request\x03\0\x0b\x01ks\x01r\x04\x04name\x0d\x08\
-documents\x10prepare-durationw\x06cached\x7f\x04\0\x09operation\x03\0\x0e\x01r\x02\
-\x05countw\x0cdata-is-null\x7f\x04\0\x0bfield-error\x03\0\x10\x01r\x01\x05countw\
-\x04\0\x0drequest-error\x03\0\x12\x01q\x04\x07success\0\0\x0bfield-error\x01\x11\
-\0\x0drequest-error\x01\x13\0\x0frefused-request\0\0\x04\0\x17graphql-response-s\
-tatus\x03\0\x14\x01r\x03\x08durationw\x06status\x15\x1bon-subgraph-request-outpu\
-ts\x0a\x04\0\x18executed-gateway-request\x03\0\x16\x01r\x03\x0fconnection-timew\x0d\
-response-timew\x0bstatus-code{\x04\0\x0dresponse-info\x03\0\x18\x01p\x19\x01q\x02\
-\x09responses\x01\x1a\0\x06cached\0\0\x04\0\x11subgraph-response\x03\0\x1b\x01r\x06\
-\x0dsubgraph-names\x06methods\x03urls\x08response\x1c\x0etotal-durationw\x0ahas-\
-errors\x7f\x04\0\x19executed-subgraph-request\x03\0\x1d\x01o\x02ss\x01p\x1f\x01r\
-\x02\x0aextensions\x20\x07messages\x04\0\x05error\x03\0!\x01h\x02\x01@\x02\x04se\
-lf#\x04names\0\x0d\x04\0\x13[method]context.get\x01$\x01@\x03\x04self#\x04names\x05\
-values\x01\0\x04\0\x13[method]context.set\x01%\x04\0\x16[method]context.delete\x01\
-$\x01h\x03\x01@\x02\x04self&\x04names\0\x0d\x04\0\x1a[method]shared-context.get\x01\
-'\x01@\x02\x04self&\x04data\x09\x01\0\x04\0![method]shared-context.log-access\x01\
-(\x01h\x04\x01j\x01\x0d\x01\x01\x01@\x02\x04self)\x04names\0*\x04\0\x13[method]h\
-eaders.get\x01+\x01j\0\x01\x01\x01@\x03\x04self)\x04names\x05values\0,\x04\0\x13\
-[method]headers.set\x01-\x04\0\x16[method]headers.delete\x01+\x03\x01\x18compone\
-nt:grafbase/types\x05\0\x02\x03\0\0\x0eshared-context\x02\x03\0\0\x18executed-ga\
-teway-request\x02\x03\0\0\x19executed-subgraph-request\x02\x03\0\0\x15executed-h\
-ttp-request\x02\x03\0\0\x09operation\x01B\x12\x02\x03\x02\x01\x01\x04\0\x0eshare\
-d-context\x03\0\0\x02\x03\x02\x01\x02\x04\0\x18executed-gateway-request\x03\0\x02\
-\x02\x03\x02\x01\x03\x04\0\x19executed-subgraph-request\x03\0\x04\x02\x03\x02\x01\
-\x04\x04\0\x15executed-http-request\x03\0\x06\x02\x03\x02\x01\x05\x04\0\x09opera\
-tion\x03\0\x08\x01i\x01\x01p}\x01@\x02\x07context\x0a\x07request\x05\0\x0b\x04\0\
-\x14on-subgraph-response\x01\x0c\x01@\x03\x07context\x0a\x09operation\x09\x07req\
-uest\x03\0\x0b\x04\0\x13on-gateway-response\x01\x0d\x01@\x02\x07context\x0a\x07r\
-equest\x07\x01\0\x04\0\x10on-http-response\x01\x0e\x04\x01\x1ccomponent:grafbase\
-/responses\x05\x06\x04\x01\x18component:grafbase/hooks\x04\0\x0b\x0b\x01\0\x05ho\
-oks\x03\0\0\0G\x09producers\x01\x0cprocessed-by\x02\x0dwit-component\x070.208.1\x10\
-wit-bindgen-rust\x060.25.0";
+pub static __WIT_BINDGEN_COMPONENT_TYPE: [u8; 1911] = *b"\
+\0asm\x0d\0\x01\0\0\x19\x16wit-component-encoding\x04\0\x07\xfb\x0d\x01A\x02\x01\
+A\x09\x01B9\x01m\x02\x14invalid-header-value\x13invalid-header-name\x04\0\x0chea\
+der-error\x03\0\0\x01p}\x01q\x02\x0cchannel-full\x01\x02\0\x0echannel-closed\0\0\
+\x04\0\x09log-error\x03\0\x03\x04\0\x07context\x03\x01\x04\0\x0eshared-context\x03\
+\x01\x04\0\x07headers\x03\x01\x01r\x02\x10parent-type-names\x0afield-names\x04\0\
+\x0fedge-definition\x03\0\x08\x01r\x01\x09type-names\x04\0\x0fnode-definition\x03\
+\0\x0a\x01p\x02\x01r\x04\x06methods\x03urls\x0bstatus-code{\x1bon-gateway-respon\
+se-outputs\x0c\x04\0\x15executed-http-request\x03\0\x0d\x01ks\x01r\x04\x04name\x0f\
+\x08documents\x10prepare-durationw\x06cached\x7f\x04\0\x09operation\x03\0\x10\x01\
+r\x02\x05countw\x0cdata-is-null\x7f\x04\0\x0bfield-error\x03\0\x12\x01r\x01\x05c\
+ountw\x04\0\x0drequest-error\x03\0\x14\x01q\x04\x07success\0\0\x0bfield-error\x01\
+\x13\0\x0drequest-error\x01\x15\0\x0frefused-request\0\0\x04\0\x17graphql-respon\
+se-status\x03\0\x16\x01r\x03\x08durationw\x06status\x17\x1bon-subgraph-request-o\
+utputs\x0c\x04\0\x18executed-gateway-request\x03\0\x18\x01r\x03\x0fconnection-ti\
+mew\x0dresponse-timew\x0bstatus-code{\x04\0\x0dresponse-info\x03\0\x1a\x01p\x1b\x01\
+q\x02\x09responses\x01\x1c\0\x06cached\0\0\x04\0\x11subgraph-response\x03\0\x1d\x01\
+r\x06\x0dsubgraph-names\x06methods\x03urls\x08response\x1e\x0etotal-durationw\x0a\
+has-errors\x7f\x04\0\x19executed-subgraph-request\x03\0\x1f\x01o\x02ss\x01p!\x01\
+r\x02\x0aextensions\"\x07messages\x04\0\x05error\x03\0#\x01h\x05\x01@\x02\x04sel\
+f%\x04names\0\x0f\x04\0\x13[method]context.get\x01&\x01@\x03\x04self%\x04names\x05\
+values\x01\0\x04\0\x13[method]context.set\x01'\x04\0\x16[method]context.delete\x01\
+&\x01h\x06\x01@\x02\x04self(\x04names\0\x0f\x04\0\x1a[method]shared-context.get\x01\
+)\x01j\0\x01\x04\x01@\x02\x04self(\x04data\x02\0*\x04\0![method]shared-context.l\
+og-access\x01+\x01h\x07\x01j\x01\x0f\x01\x01\x01@\x02\x04self,\x04names\0-\x04\0\
+\x13[method]headers.get\x01.\x01j\0\x01\x01\x01@\x03\x04self,\x04names\x05values\
+\0/\x04\0\x13[method]headers.set\x010\x04\0\x16[method]headers.delete\x01.\x03\x01\
+\x18component:grafbase/types\x05\0\x02\x03\0\0\x0eshared-context\x02\x03\0\0\x18\
+executed-gateway-request\x02\x03\0\0\x19executed-subgraph-request\x02\x03\0\0\x15\
+executed-http-request\x02\x03\0\0\x09operation\x01B\x12\x02\x03\x02\x01\x01\x04\0\
+\x0eshared-context\x03\0\0\x02\x03\x02\x01\x02\x04\0\x18executed-gateway-request\
+\x03\0\x02\x02\x03\x02\x01\x03\x04\0\x19executed-subgraph-request\x03\0\x04\x02\x03\
+\x02\x01\x04\x04\0\x15executed-http-request\x03\0\x06\x02\x03\x02\x01\x05\x04\0\x09\
+operation\x03\0\x08\x01i\x01\x01p}\x01@\x02\x07context\x0a\x07request\x05\0\x0b\x04\
+\0\x14on-subgraph-response\x01\x0c\x01@\x03\x07context\x0a\x09operation\x09\x07r\
+equest\x03\0\x0b\x04\0\x13on-gateway-response\x01\x0d\x01@\x02\x07context\x0a\x07\
+request\x07\x01\0\x04\0\x10on-http-response\x01\x0e\x04\x01\x1ccomponent:grafbas\
+e/responses\x05\x06\x04\x01\x18component:grafbase/hooks\x04\0\x0b\x0b\x01\0\x05h\
+ooks\x03\0\0\0G\x09producers\x01\x0cprocessed-by\x02\x0dwit-component\x070.208.1\
+\x10wit-bindgen-rust\x060.25.0";
 
 #[inline(never)]
 #[doc(hidden)]

@@ -1,8 +1,7 @@
 use bindings::{
     component::grafbase::types::SubgraphResponse,
     exports::component::grafbase::responses::{
-        ExecutedGatewayRequest, ExecutedHttpRequest, ExecutedSubgraphRequest, Guest, Operation,
-        SharedContext,
+        ExecutedGatewayRequest, ExecutedHttpRequest, ExecutedSubgraphRequest, Guest, Operation, SharedContext,
     },
 };
 
@@ -74,23 +73,17 @@ impl Guest for Component {
         } = request;
 
         let connection_times = match response {
-            SubgraphResponse::Responses(ref responses) => {
-                responses.iter().map(|r| r.connection_time).collect()
-            }
+            SubgraphResponse::Responses(ref responses) => responses.iter().map(|r| r.connection_time).collect(),
             SubgraphResponse::Cached => Vec::new(),
         };
 
         let response_times = match response {
-            SubgraphResponse::Responses(ref responses) => {
-                responses.iter().map(|r| r.response_time).collect()
-            }
+            SubgraphResponse::Responses(ref responses) => responses.iter().map(|r| r.response_time).collect(),
             SubgraphResponse::Cached => Vec::new(),
         };
 
         let status_codes = match response {
-            SubgraphResponse::Responses(ref responses) => {
-                responses.iter().map(|r| r.status_code).collect()
-            }
+            SubgraphResponse::Responses(ref responses) => responses.iter().map(|r| r.status_code).collect(),
             SubgraphResponse::Cached => Vec::new(),
         };
 
@@ -109,11 +102,7 @@ impl Guest for Component {
         serde_json::to_vec(&info).unwrap()
     }
 
-    fn on_gateway_response(
-        _: SharedContext,
-        operation: Operation,
-        request: ExecutedGatewayRequest,
-    ) -> Vec<u8> {
+    fn on_gateway_response(_: SharedContext, operation: Operation, request: ExecutedGatewayRequest) -> Vec<u8> {
         let info = OperationInfo {
             name: operation.name,
             document: operation.document,
@@ -121,9 +110,7 @@ impl Guest for Component {
             cached: operation.cached,
             duration: request.duration,
             status: match request.status {
-                bindings::component::grafbase::types::GraphqlResponseStatus::Success => {
-                    GraphqlResponseStatus::Success
-                }
+                bindings::component::grafbase::types::GraphqlResponseStatus::Success => GraphqlResponseStatus::Success,
                 bindings::component::grafbase::types::GraphqlResponseStatus::FieldError(e) => {
                     GraphqlResponseStatus::FieldError(FieldError {
                         count: e.count,
@@ -159,7 +146,7 @@ impl Guest for Component {
                 .collect(),
         };
 
-        context.log_access(&serde_json::to_vec(&info).unwrap());
+        context.log_access(&serde_json::to_vec(&info).unwrap()).unwrap();
     }
 }
 

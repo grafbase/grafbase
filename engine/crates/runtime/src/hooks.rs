@@ -1,6 +1,7 @@
 #[cfg(feature = "test-utils")]
 mod test_utils;
 
+use grafbase_telemetry::gql_response_status::GraphqlResponseStatus;
 #[cfg(feature = "test-utils")]
 pub use test_utils::*;
 use url::Url;
@@ -39,6 +40,11 @@ impl<'a, T> Anything<'a> for T where T: serde::Serialize + serde::de::Deserializ
 pub type AuthorizationVerdict = Result<(), PartialGraphqlError>;
 pub type AuthorizationVerdicts = Result<Vec<AuthorizationVerdict>, PartialGraphqlError>;
 
+pub struct ChannelBuilder<'a, Sender: Clone> {
+    pub sender: &'a Sender,
+    pub lossy_log: bool,
+}
+
 pub trait Hooks: Send + Sync + 'static {
     type Context: Send + Sync + 'static;
 
@@ -50,6 +56,8 @@ pub trait Hooks: Send + Sync + 'static {
     fn authorized(&self) -> &impl AuthorizedHooks<Self::Context>;
 
     fn subgraph(&self) -> &impl SubgraphHooks<Self::Context>;
+
+    fn responses(&self) -> &impl ResponseHooks<Self::Context>;
 }
 
 pub trait AuthorizedHooks<Context>: Send + Sync + 'static {
@@ -115,6 +123,75 @@ pub trait SubgraphHooks<Context>: Send + Sync + 'static {
     ) -> impl Future<Output = Result<HeaderMap, PartialGraphqlError>> + Send;
 }
 
+#[derive(Debug, Clone, Copy)]
+pub struct SubgraphResponseInfo {
+    pub connection_time: u64,
+    pub response_time: u64,
+    pub status_code: u16,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum CacheStatus {
+    Hit,
+    PartialHit,
+    Miss,
+}
+
+#[derive(Debug, Clone)]
+pub struct ExecutedSubgraphRequest<'a> {
+    pub subgraph_name: &'a str,
+    pub method: &'a str,
+    pub url: &'a str,
+    pub response_infos: Vec<SubgraphResponseInfo>,
+    pub cache_status: CacheStatus,
+    pub total_duration: u64,
+    pub has_errors: bool,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct Operation<'a> {
+    pub name: Option<&'a str>,
+    pub document: &'a str,
+    pub prepare_duration: u64,
+    pub cached: bool,
+}
+
+#[derive(Debug, Clone)]
+pub struct ExecutedGatewayRequest {
+    pub duration: u64,
+    pub status: GraphqlResponseStatus,
+    pub on_subgraph_request_outputs: Vec<Vec<u8>>,
+}
+
+#[derive(Debug, Clone)]
+pub struct ExecutedHttpRequest<'a> {
+    pub method: &'a str,
+    pub url: &'a str,
+    pub status_code: http::StatusCode,
+    pub on_gateway_response_outputs: Vec<Vec<u8>>,
+}
+
+pub trait ResponseHooks<Context>: Send + Sync + 'static {
+    fn on_subgraph_response(
+        &self,
+        context: &Context,
+        request: ExecutedSubgraphRequest<'_>,
+    ) -> impl Future<Output = Result<Vec<u8>, ErrorResponse>> + Send;
+
+    fn on_gateway_response(
+        &self,
+        context: &Context,
+        operation: Operation<'_>,
+        request: ExecutedGatewayRequest,
+    ) -> impl Future<Output = Result<Vec<u8>, ErrorResponse>> + Send;
+
+    fn on_http_response(
+        &self,
+        context: &Context,
+        request: ExecutedHttpRequest<'_>,
+    ) -> impl Future<Output = Result<(), ErrorResponse>> + Send;
+}
+
 // ---------------------------//
 // -- No-op implementation -- //
 // ---------------------------//
@@ -130,6 +207,10 @@ impl Hooks for () {
     }
 
     fn subgraph(&self) -> &impl SubgraphHooks<()> {
+        self
+    }
+
+    fn responses(&self) -> &impl ResponseHooks<Self::Context> {
         self
     }
 }
@@ -227,5 +308,24 @@ impl SubgraphHooks<()> for () {
         headers: HeaderMap,
     ) -> Result<HeaderMap, PartialGraphqlError> {
         Ok(headers)
+    }
+}
+
+impl ResponseHooks<()> for () {
+    async fn on_subgraph_response(&self, _: &(), _: ExecutedSubgraphRequest<'_>) -> Result<Vec<u8>, ErrorResponse> {
+        Ok(Vec::new())
+    }
+
+    async fn on_gateway_response(
+        &self,
+        _: &(),
+        _: Operation<'_>,
+        _: ExecutedGatewayRequest,
+    ) -> Result<Vec<u8>, ErrorResponse> {
+        Ok(Vec::new())
+    }
+
+    async fn on_http_response(&self, _: &(), _: ExecutedHttpRequest<'_>) -> Result<(), ErrorResponse> {
+        Ok(())
     }
 }
