@@ -34,12 +34,6 @@ pub enum InputValueError {
         actual: ValueKind,
         path: String,
     },
-    #[error("Unknown enum value '{value}' for enum {r#enum}{path}")]
-    UnknownEnumValue {
-        r#enum: String,
-        value: String,
-        path: String,
-    },
     #[error("Input object {input_object} does not have a field named '{name}'{path}")]
     UnknownInputField {
         input_object: String,
@@ -78,7 +72,7 @@ impl From<&Value> for ValueKind {
             Value::Null => ValueKind::Null,
             Value::List(_) => ValueKind::List,
             Value::Object(_) => ValueKind::Object,
-            Value::EnumValue(_) => ValueKind::Enum,
+            Value::UnboundEnumValue(_) | Value::EnumValue(_) => ValueKind::Enum,
         }
     }
 }

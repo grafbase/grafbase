@@ -16,9 +16,9 @@ impl<'a> EnumDefinitionWalker<'a> {
     pub fn find_value_by_name(&self, name: &str) -> Option<EnumValueId> {
         let ids = self.as_ref().value_ids;
         self.schema[ids]
-            .binary_search_by(|enum_value| self.schema[enum_value.name].as_str().cmp(name))
-            .ok()
-            .and_then(|i| ids.get(i))
+            .iter()
+            .position(|enum_value| self.schema[enum_value.name].as_str() == name)
+            .and_then(|idx| ids.get(idx))
     }
 
     pub fn directives(&self) -> TypeSystemDirectivesWalker<'a> {

@@ -128,7 +128,7 @@ pub struct Enum {
     pub description: Option<StringId>,
 }
 
-#[derive(serde::Serialize, serde::Deserialize, Clone)]
+#[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
 pub struct EnumValue {
     pub value: StringId,
 
@@ -243,7 +243,7 @@ pub struct InputObject {
 /// A (start, len) range in FederatedSchema.
 pub type Directives = (DirectiveId, usize);
 
-#[derive(serde::Serialize, serde::Deserialize, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(serde::Serialize, serde::Deserialize, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug)]
 pub struct DirectiveId(pub usize);
 
 impl From<DirectiveId> for usize {
@@ -273,7 +273,7 @@ impl From<usize> for InputValueDefinitionId {
 
 pub const NO_INPUT_VALUE_DEFINITION: InputValueDefinitions = (InputValueDefinitionId(0), 0);
 
-#[derive(serde::Serialize, serde::Deserialize, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(serde::Serialize, serde::Deserialize, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug)]
 pub struct EnumValueId(pub usize);
 
 impl From<EnumValueId> for usize {

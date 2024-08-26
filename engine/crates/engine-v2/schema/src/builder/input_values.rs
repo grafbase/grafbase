@@ -8,11 +8,14 @@ impl SchemaInputValues {
     pub(crate) fn ingest_arbitrary_federated_value(&mut self, ctx: &BuildContext, value: Value) -> SchemaInputValue {
         match value {
             Value::Null => SchemaInputValue::Null,
-            Value::String(id) => SchemaInputValue::String(id.into()),
+            Value::String(id) | Value::UnboundEnumValue(id) => SchemaInputValue::String(id.into()),
             Value::Int(n) => SchemaInputValue::BigInt(n),
             Value::Float(f) => SchemaInputValue::Float(f),
             Value::Boolean(b) => SchemaInputValue::Boolean(b),
-            Value::EnumValue(id) => SchemaInputValue::String(id.into()),
+            Value::EnumValue(id) => {
+                let id = ctx.idmaps.enum_values.get(id).expect("enum ids to be valid");
+                SchemaInputValue::EnumValue(id)
+            }
             Value::Object(fields) => {
                 let ids = self.reserve_map(fields.len());
                 for ((name, value), id) in fields.into_vec().into_iter().zip(ids) {

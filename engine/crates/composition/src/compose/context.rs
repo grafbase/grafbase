@@ -35,7 +35,7 @@ impl<'a> Context<'a> {
         self.ir
     }
 
-    pub(crate) fn insert_directive(&mut self, directive: federated::Directive) -> federated::DirectiveId {
+    pub(crate) fn insert_directive(&mut self, directive: ir::Directive) -> federated::DirectiveId {
         federated::DirectiveId(self.ir.directives.push_return_idx(directive))
     }
 

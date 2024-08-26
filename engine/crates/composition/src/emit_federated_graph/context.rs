@@ -34,7 +34,11 @@ impl<'a> Context<'a> {
         self.strings_ir.insert(string.as_str())
     }
 
-    pub(crate) fn insert_value(&mut self, value: &subgraphs::Value) -> federated::Value {
+    pub(crate) fn insert_value(
+        &mut self,
+        value: &subgraphs::Value,
+        enum_type: Option<federated::EnumId>,
+    ) -> federated::Value {
         match value {
             subgraphs::Value::String(value) => {
                 federated::Value::String(self.insert_string(self.subgraphs.walk(*value)))
@@ -43,16 +47,34 @@ impl<'a> Context<'a> {
             subgraphs::Value::Float(value) => federated::Value::Float(*value),
             subgraphs::Value::Boolean(value) => federated::Value::Boolean(*value),
             subgraphs::Value::Enum(value) => {
-                federated::Value::EnumValue(self.insert_string(self.subgraphs.walk(*value)))
+                let value_name = self.insert_string(self.subgraphs.walk(*value));
+                let enum_value = enum_type.and_then(|enum_id| {
+                    let values = self.out[enum_id].values;
+                    let position = self.out[values]
+                        .iter()
+                        .position(|enum_value| enum_value.value == value_name)?;
+                    Some(federated::EnumValueId(values.0 .0 + position))
+                });
+
+                if let Some(enum_value) = enum_value {
+                    federated::Value::EnumValue(enum_value)
+                } else {
+                    federated::Value::UnboundEnumValue(value_name)
+                }
             }
             subgraphs::Value::Object(value) => federated::Value::Object(
                 value
                     .iter()
-                    .map(|(k, v)| (self.insert_string(self.subgraphs.walk(*k)), self.insert_value(v)))
+                    .map(|(k, v)| {
+                        (
+                            self.insert_string(self.subgraphs.walk(*k)),
+                            self.insert_value(v, enum_type),
+                        )
+                    })
                     .collect(),
             ),
             subgraphs::Value::List(value) => {
-                federated::Value::List(value.iter().map(|v| self.insert_value(v)).collect())
+                federated::Value::List(value.iter().map(|v| self.insert_value(v, enum_type)).collect())
             }
         }
     }

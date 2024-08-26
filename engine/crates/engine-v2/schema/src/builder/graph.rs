@@ -1,7 +1,6 @@
 use std::{
     collections::{HashMap, HashSet},
     mem::take,
-    ops::Range,
 };
 
 use config::latest::{CacheConfigTarget, Config};
@@ -74,10 +73,10 @@ impl<'a> GraphBuilder<'a> {
     }
 
     fn ingest_config(&mut self, config: &mut Config, graph: &mut FederatedGraph) {
+        self.ingest_enums(config, graph);
         self.ingest_input_values(config, graph);
         self.ingest_input_objects(config, graph);
         self.ingest_unions(config, graph);
-        self.ingest_enums(config, graph);
         self.ingest_scalars(config, graph);
         // Not guaranteed to be sorted and rely on binary search to find the directives for a
         // field.
@@ -105,6 +104,7 @@ impl<'a> GraphBuilder<'a> {
                                 .graph
                                 .input_values
                                 .ingest_arbitrary_federated_value(self.ctx, default);
+
                             self.graph.input_values.push_value(value)
                         }),
                         directives: self.push_directives(
@@ -176,13 +176,12 @@ impl<'a> GraphBuilder<'a> {
     }
 
     fn ingest_enums(&mut self, config: &mut Config, graph: &mut FederatedGraph) {
-        let mut idmap = IdMap::<federated_graph::EnumValueId, EnumValueId>::default();
         self.graph.enum_value_definitions = take(&mut graph.enum_values)
             .into_iter()
             .enumerate()
             .filter_map(|(idx, enum_value)| {
                 if is_inaccessible(graph, enum_value.composed_directives) {
-                    idmap.skip(federated_graph::EnumValueId(idx));
+                    self.ctx.idmaps.enum_values.skip(federated_graph::EnumValueId(idx));
                     None
                 } else {
                     Some(EnumValue {
@@ -206,13 +205,7 @@ impl<'a> GraphBuilder<'a> {
             .map(|federated_enum| EnumDefinition {
                 name: federated_enum.name.into(),
                 description: None,
-                value_ids: {
-                    let range = idmap.get_range(federated_enum.values);
-                    self.graph.enum_value_definitions[Range::<usize>::from(range)]
-                        .sort_unstable_by(|a, b| self.ctx.strings[a.name].cmp(&self.ctx.strings[b.name]));
-                    // The range is still valid even if individual ids don't match anymore.
-                    range
-                },
+                value_ids: self.ctx.idmaps.enum_values.get_range(federated_enum.values),
                 directives: self.push_directives(
                     config,
                     Directives {

@@ -68,7 +68,8 @@ impl fmt::Display for ValueDisplay<'_> {
             crate::Value::String(s) => write_quoted(f, &graph[*s]),
             crate::Value::Int(i) => Display::fmt(i, f),
             crate::Value::Float(val) => Display::fmt(val, f),
-            crate::Value::EnumValue(val) => f.write_str(&graph[*val]),
+            crate::Value::UnboundEnumValue(val) => f.write_str(&graph[*val]),
+            crate::Value::EnumValue(val) => f.write_str(&graph[graph[*val].value]),
             crate::Value::Boolean(true) => f.write_str("true"),
             crate::Value::Boolean(false) => f.write_str("false"),
             crate::Value::Object(key_values) => {

@@ -702,9 +702,9 @@ fn introspect_enabled() {
         }
 
         enum Trustworthiness {
+          REALLY_TRUSTED
           KINDA_TRUSTED
           NOT_TRUSTED
-          REALLY_TRUSTED
         }
 
         type User {

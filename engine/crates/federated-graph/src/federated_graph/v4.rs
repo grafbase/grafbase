@@ -114,7 +114,10 @@ pub enum Value {
     /// Different from `String`.
     ///
     /// `@tag(name: "SOMETHING")` vs `@tag(name: SOMETHING)`
-    EnumValue(StringId),
+    ///
+    /// FIXME: This is currently required because we do not keep accurate track of the directives in use in the schema, but we should strive towards removing UnboundEnumValue in favour of EnumValue.
+    UnboundEnumValue(StringId),
+    EnumValue(EnumValueId),
     Object(Box<[(StringId, Value)]>),
     List(Box<[Value]>),
 }
@@ -237,6 +240,7 @@ macro_rules! id_newtypes {
 id_newtypes! {
     AuthorizedDirectiveId + authorized_directives + AuthorizedDirective,
     EnumId + enums + Enum,
+    EnumValueId + enum_values + EnumValue,
     FieldId + fields + Field,
     InputValueDefinitionId + input_value_definitions + InputValueDefinition,
     InputObjectId + input_objects + InputObject,
@@ -345,7 +349,7 @@ impl From<super::v3::Value> for Value {
             super::v3::Value::Int(i) => Value::Int(i),
             super::v3::Value::Float(i) => Value::Float(i),
             super::v3::Value::Boolean(b) => Value::Boolean(b),
-            super::v3::Value::EnumValue(i) => Value::EnumValue(i),
+            super::v3::Value::EnumValue(i) => Value::String(i),
             super::v3::Value::Object(obj) => Value::Object(
                 obj.iter()
                     .map(|(k, v)| (*k, v.clone().into()))

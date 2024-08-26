@@ -9,7 +9,7 @@ pub(super) fn collect_composed_directives<'a>(
     let mut authenticated = false;
     let mut extra_directives = Vec::new();
     let mut ids: Option<federated::Directives> = None;
-    let mut push_directive = |ctx: &mut ComposeContext<'_>, directive| {
+    let mut push_directive = |ctx: &mut ComposeContext<'_>, directive: ir::Directive| {
         let id = ctx.insert_directive(directive);
         if let Some((_start, len)) = &mut ids {
             *len += 1;
@@ -19,7 +19,7 @@ pub(super) fn collect_composed_directives<'a>(
     };
 
     if let Some(deprecated) = sites.clone().find_map(|directives| directives.deprecated()) {
-        let directive = federated::Directive::Deprecated {
+        let directive = ir::Directive::Deprecated {
             reason: deprecated.reason().map(|reason| ctx.insert_string(reason.id)),
         };
         push_directive(ctx, directive);
@@ -36,19 +36,19 @@ pub(super) fn collect_composed_directives<'a>(
             let name = ctx.insert_string(name);
             let arguments = arguments
                 .iter()
-                .map(|(name, value)| (ctx.insert_string(*name), subgraphs_value_to_federated_value(value, ctx)))
+                .map(|(name, value)| (ctx.insert_string(*name), value.clone()))
                 .collect();
 
-            extra_directives.push(federated::Directive::Other { name, arguments });
+            extra_directives.push(ir::Directive::Other { name, arguments });
         }
     }
 
     if is_inaccessible {
-        push_directive(ctx, federated::Directive::Inaccessible);
+        push_directive(ctx, ir::Directive::Inaccessible);
     }
 
     if authenticated {
-        push_directive(ctx, federated::Directive::Authenticated)
+        push_directive(ctx, ir::Directive::Authenticated)
     }
 
     // @requiresScopes
@@ -68,7 +68,7 @@ pub(super) fn collect_composed_directives<'a>(
         scopes.dedup();
 
         if !scopes.is_empty() {
-            push_directive(ctx, federated::Directive::RequiresScopes(scopes));
+            push_directive(ctx, ir::Directive::RequiresScopes(scopes));
         }
     }
 
@@ -89,15 +89,14 @@ pub(super) fn collect_composed_directives<'a>(
         policies.dedup();
 
         if !policies.is_empty() {
-            push_directive(ctx, federated::Directive::Policy(policies));
+            push_directive(ctx, ir::Directive::Policy(policies));
         }
     }
 
     for tag in tags {
-        let name = ctx.insert_string(tag);
-        let directive = federated::Directive::Other {
+        let directive = ir::Directive::Other {
             name: ctx.insert_static_str("tag"),
-            arguments: vec![(ctx.insert_static_str("name"), federated::Value::String(name))],
+            arguments: vec![(ctx.insert_static_str("name"), subgraphs::Value::String(tag))],
         };
         push_directive(ctx, directive);
     }
@@ -111,24 +110,25 @@ pub(super) fn collect_composed_directives<'a>(
     ids.unwrap_or((federated::DirectiveId(0), 0))
 }
 
-fn subgraphs_value_to_federated_value(value: &subgraphs::Value, ctx: &mut ComposeContext<'_>) -> federated::Value {
-    match value {
-        subgraphs::Value::String(value) => federated::Value::String(ctx.insert_string(*value)),
-        subgraphs::Value::Int(value) => federated::Value::Int(*value),
-        subgraphs::Value::Float(value) => federated::Value::Float(*value),
-        subgraphs::Value::Boolean(value) => federated::Value::Boolean(*value),
-        subgraphs::Value::Enum(value) => federated::Value::EnumValue(ctx.insert_string(*value)),
-        subgraphs::Value::Object(value) => federated::Value::Object(
-            value
-                .iter()
-                .map(|(k, v)| (ctx.insert_string(*k), subgraphs_value_to_federated_value(v, ctx)))
-                .collect(),
-        ),
-        subgraphs::Value::List(value) => federated::Value::List(
-            value
-                .iter()
-                .map(|v| subgraphs_value_to_federated_value(v, ctx))
-                .collect(),
-        ),
-    }
-}
+// fn subgraphs_value_to_federated_value(value: &subgraphs::Value, ctx: &mut ComposeContext<'_>) -> federated::Value {
+//     match value {
+//         subgraphs::Value::String(value) => federated::Value::String(ctx.insert_string(*value)),
+//         subgraphs::Value::Int(value) => federated::Value::Int(*value),
+//         subgraphs::Value::Float(value) => federated::Value::Float(*value),
+//         subgraphs::Value::Boolean(value) => federated::Value::Boolean(*value),
+//         subgraphs::Value::UnboundEnum(value) => federated::Value::UnboundEnumValue(ctx.insert_string(*value)),
+//         subgraphs::Value::Enum(value) => federated::Value::EnumValue(ctx.insert_string(*value)),
+//         subgraphs::Value::Object(value) => federated::Value::Object(
+//             value
+//                 .iter()
+//                 .map(|(k, v)| (ctx.insert_string(*k), subgraphs_value_to_federated_value(v, ctx)))
+//                 .collect(),
+//         ),
+//         subgraphs::Value::List(value) => federated::Value::List(
+//             value
+//                 .iter()
+//                 .map(|v| subgraphs_value_to_federated_value(v, ctx))
+//                 .collect(),
+//         ),
+//     }
+// }

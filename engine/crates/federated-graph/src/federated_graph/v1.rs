@@ -183,6 +183,14 @@ impl Definition {
             None
         }
     }
+
+    pub fn as_enum(&self) -> Option<&EnumId> {
+        if let Self::Enum(v) = self {
+            Some(v)
+        } else {
+            None
+        }
+    }
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Hash, PartialEq, Eq, Clone)]

@@ -160,24 +160,11 @@ impl<'a> InputValueCoercer<'a> {
 
     fn coerce_enum(&mut self, enum_id: EnumDefinitionId, value: Value) -> Result<SchemaInputValue, InputValueError> {
         let r#enum = &self.graph[enum_id];
-        let name = match &value {
-            Value::EnumValue(id) => &self.ctx.strings[StringId::from(*id)],
-            value => {
-                return Err(InputValueError::IncorrectEnumValueType {
-                    r#enum: self.ctx.strings[r#enum.name].to_string(),
-                    actual: value.into(),
-                    path: self.path(),
-                })
-            }
-        };
-
-        let value_ids = r#enum.value_ids;
-        match self.graph[value_ids].binary_search_by(|enum_value| self.ctx.strings[enum_value.name].as_str().cmp(name))
-        {
-            Ok(id) => Ok(SchemaInputValue::EnumValue(r#enum.value_ids.get(id).unwrap())),
-            Err(_) => Err(InputValueError::UnknownEnumValue {
+        match &value {
+            Value::EnumValue(id) => Ok(SchemaInputValue::EnumValue(crate::EnumValueId::from(id.0))),
+            value => Err(InputValueError::IncorrectEnumValueType {
                 r#enum: self.ctx.strings[r#enum.name].to_string(),
-                value: name.to_string(),
+                actual: value.into(),
                 path: self.path(),
             }),
         }
