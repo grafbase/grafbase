@@ -393,8 +393,7 @@ where
         graphql_composition::compose(&subgraphs)
             .into_result()
             .unwrap()
-            .into_sdl()
-            .unwrap()
+            .into_federated_sdl()
     };
 
     crate::GatewayBuilder {
