@@ -15,48 +15,14 @@ pub(crate) struct OpenTelemetryProviders {
 }
 
 pub(crate) fn init(args: &impl Args, config: TelemetryConfig) -> anyhow::Result<OpenTelemetryProviders> {
-    use grafbase_telemetry::otel::opentelemetry::propagation::TextMapPropagator;
     use grafbase_telemetry::otel::opentelemetry_sdk::trace::RandomIdGenerator;
-    use opentelemetry_aws::trace::XrayPropagator;
     use tracing_subscriber::layer::SubscriberExt;
     use tracing_subscriber::util::SubscriberInitExt;
 
     let filter = args.log_level().map(|l| l.as_filter_str()).unwrap_or("info");
     let env_filter = EnvFilter::new(filter);
 
-    {
-        let mut propagators: Vec<Box<dyn TextMapPropagator + Send + Sync>> = Vec::new();
-
-        let mut xray_propagator_added = false;
-
-        let tracing_config = &config.tracing;
-        if tracing_config.propagation.trace_context {
-            propagators.push(Box::new(
-                grafbase_telemetry::otel::opentelemetry_sdk::propagation::TraceContextPropagator::new(),
-            ));
-        }
-
-        if tracing_config.propagation.baggage {
-            propagators.push(Box::new(
-                grafbase_telemetry::otel::opentelemetry_sdk::propagation::BaggagePropagator::new(),
-            ))
-        }
-
-        if tracing_config.propagation.aws_xray {
-            propagators.push(Box::new(XrayPropagator::default()));
-            xray_propagator_added = true;
-        }
-
-        if cfg!(feature = "lambda") && !xray_propagator_added {
-            propagators.push(Box::new(XrayPropagator::default()))
-        }
-
-        if !propagators.is_empty() {
-            let propagator =
-                grafbase_telemetry::otel::opentelemetry::propagation::TextMapCompositePropagator::new(propagators);
-            grafbase_telemetry::otel::opentelemetry::global::set_text_map_propagator(propagator);
-        }
-    }
+    init_propagators(&config.tracing);
 
     cfg_if::cfg_if! {
       if #[cfg(feature = "lambda")] {
@@ -116,4 +82,34 @@ pub(crate) fn init(args: &impl Args, config: TelemetryConfig) -> anyhow::Result<
         meter: meter_provider,
         tracer: tracer_provider,
     })
+}
+
+fn init_propagators(tracing_config: &gateway_config::TracingConfig) {
+    use grafbase_telemetry::otel::opentelemetry::propagation::TextMapPropagator;
+    use opentelemetry_aws::trace::XrayPropagator;
+
+    let mut propagators: Vec<Box<dyn TextMapPropagator + Send + Sync>> = Vec::new();
+
+    if tracing_config.propagation.trace_context {
+        propagators.push(Box::new(
+            grafbase_telemetry::otel::opentelemetry_sdk::propagation::TraceContextPropagator::new(),
+        ));
+    }
+
+    if tracing_config.propagation.baggage {
+        propagators.push(Box::new(
+            grafbase_telemetry::otel::opentelemetry_sdk::propagation::BaggagePropagator::new(),
+        ))
+    }
+
+    if tracing_config.propagation.aws_xray {
+        propagators.push(Box::new(XrayPropagator::default()));
+    }
+
+    if !propagators.is_empty() {
+        let propagator =
+            grafbase_telemetry::otel::opentelemetry::propagation::TextMapCompositePropagator::new(propagators);
+
+        grafbase_telemetry::otel::opentelemetry::global::set_text_map_propagator(propagator);
+    }
 }
