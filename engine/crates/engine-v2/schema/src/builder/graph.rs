@@ -73,7 +73,8 @@ impl<'a> GraphBuilder<'a> {
     }
 
     fn ingest_config(&mut self, config: &mut Config, graph: &mut FederatedGraph) {
-        self.ingest_enums(config, graph);
+        self.ingest_enums_before_input_values(config, graph);
+
         self.ingest_input_values(config, graph);
         self.ingest_input_objects(config, graph);
         self.ingest_unions(config, graph);
@@ -175,7 +176,7 @@ impl<'a> GraphBuilder<'a> {
             .collect();
     }
 
-    fn ingest_enums(&mut self, config: &mut Config, graph: &mut FederatedGraph) {
+    fn ingest_enums_before_input_values(&mut self, config: &mut Config, graph: &mut FederatedGraph) {
         self.graph.enum_value_definitions = take(&mut graph.enum_values)
             .into_iter()
             .enumerate()
