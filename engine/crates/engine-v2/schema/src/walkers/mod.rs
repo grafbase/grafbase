@@ -3,7 +3,7 @@ use crate::{
         graphql::{GraphqlEndpointWalker, RetryConfig},
         IntrospectionMetadata,
     },
-    Names, Schema, StringId,
+    Schema, StringId,
 };
 
 mod definition;
@@ -45,19 +45,17 @@ pub struct SchemaWalker<'a, I = ()> {
     // 'item' instead of 'inner' to avoid confusion with TypeWalker.inner()
     pub(crate) item: I,
     pub(crate) schema: &'a Schema,
-    pub(crate) names: &'a dyn Names,
 }
 
 impl<'a, I> SchemaWalker<'a, I> {
-    pub fn new(item: I, schema: &'a Schema, names: &'a dyn Names) -> Self {
-        Self { item, schema, names }
+    pub fn new(item: I, schema: &'a Schema) -> Self {
+        Self { item, schema }
     }
 
     pub fn walk<Other>(&self, item: Other) -> SchemaWalker<'a, Other> {
         SchemaWalker {
             item,
             schema: self.schema,
-            names: self.names,
         }
     }
 }
@@ -112,10 +110,6 @@ impl<'a> SchemaWalker<'a, ()> {
             .map(|id| self.walk(id))
     }
 
-    pub fn names(&self) -> &'a dyn Names {
-        self.names
-    }
-
     // See further up
     #[allow(clippy::should_implement_trait)]
     pub fn as_ref(&self) -> &'a Schema {
@@ -140,7 +134,7 @@ impl<'a> SchemaWalker<'a, ()> {
     }
 
     pub fn graphql_endpoints(&self) -> impl ExactSizeIterator<Item = GraphqlEndpointWalker<'_>> {
-        (0..self.data_sources.graphql.endpoints.len()).map(|i| GraphqlEndpointWalker::new(i.into(), self, &()))
+        (0..self.data_sources.graphql.endpoints.len()).map(|i| GraphqlEndpointWalker::new(i.into(), self))
     }
 }
 

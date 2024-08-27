@@ -10,7 +10,7 @@ pub type FieldDefinitionWalker<'a> = SchemaWalker<'a, FieldDefinitionId>;
 
 impl<'a> FieldDefinitionWalker<'a> {
     pub fn name(&self) -> &'a str {
-        self.names.field(self.schema, self.item)
+        &self.schema[self.as_ref().name]
     }
 
     pub fn resolvers(self) -> impl ExactSizeIterator<Item = ResolverDefinitionWalker<'a>> {

@@ -5,7 +5,7 @@ pub type ScalarDefinitionWalker<'a> = SchemaWalker<'a, ScalarDefinitionId>;
 
 impl<'a> ScalarDefinitionWalker<'a> {
     pub fn name(&self) -> &'a str {
-        self.names.scalar(self.schema, self.item)
+        &self.schema[self.as_ref().name]
     }
 
     pub fn directives(&self) -> TypeSystemDirectivesWalker<'a> {

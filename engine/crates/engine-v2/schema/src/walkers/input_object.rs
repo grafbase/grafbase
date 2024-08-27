@@ -5,7 +5,7 @@ pub type InputObjectDefinitionWalker<'a> = SchemaWalker<'a, InputObjectDefinitio
 
 impl<'a> InputObjectDefinitionWalker<'a> {
     pub fn name(&self) -> &'a str {
-        self.names.input_object(self.schema, self.item)
+        &self.schema[self.as_ref().name]
     }
 
     pub fn input_fields(self) -> impl ExactSizeIterator<Item = InputValueDefinitionWalker<'a>> + 'a {

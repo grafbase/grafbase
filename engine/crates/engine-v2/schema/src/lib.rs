@@ -5,7 +5,6 @@ mod directives;
 mod ids;
 mod input_value;
 mod input_value_set;
-mod names;
 mod provides;
 mod requires;
 mod resolver;
@@ -17,7 +16,6 @@ use id_newtypes::IdRange;
 pub use ids::*;
 pub use input_value::*;
 pub use input_value_set::*;
-pub use names::Names;
 pub use provides::*;
 use regex::Regex;
 pub use requires::*;
@@ -487,15 +485,11 @@ pub struct InputValueDefinition {
 
 impl Schema {
     pub fn walk<I>(&self, item: I) -> SchemaWalker<'_, I> {
-        SchemaWalker::new(item, self, &())
+        SchemaWalker::new(item, self)
     }
 
     pub fn walker(&self) -> SchemaWalker<'_, ()> {
-        self.walker_with(&())
-    }
-
-    pub fn walker_with<'a>(&'a self, names: &'a dyn Names) -> SchemaWalker<'a, ()> {
-        SchemaWalker::new((), self, names)
+        SchemaWalker::new((), self)
     }
 }
 

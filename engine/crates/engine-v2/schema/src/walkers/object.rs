@@ -5,7 +5,7 @@ pub type ObjectDefinitionWalker<'a> = SchemaWalker<'a, ObjectDefinitionId>;
 
 impl<'a> ObjectDefinitionWalker<'a> {
     pub fn name(&self) -> &'a str {
-        self.names.object(self.schema, self.item)
+        &self.schema[self.as_ref().name]
     }
 
     pub fn fields(self) -> impl Iterator<Item = FieldDefinitionWalker<'a>> + 'a {
