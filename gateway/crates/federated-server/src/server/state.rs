@@ -1,52 +1,41 @@
 use std::sync::Arc;
-use tokio::sync::watch;
-
-use grafbase_telemetry::otel::opentelemetry_sdk::trace::TracerProvider;
 
 use super::gateway::EngineWatcher;
 
-struct ServerStateInner {
-    gateway: EngineWatcher,
-    tracer_provider: Option<watch::Receiver<TracerProvider>>,
-    request_body_limit_bytes: usize,
+pub(super) struct ServerStateInner<SR> {
+    pub gateway: EngineWatcher,
+    pub request_body_limit_bytes: usize,
+    #[cfg_attr(not(feature = "lambda"), allow(unused))]
+    pub server_runtime: SR,
 }
 
-#[derive(Clone)]
-pub(super) struct ServerState {
-    inner: Arc<ServerStateInner>,
+pub(super) struct ServerState<SR> {
+    inner: Arc<ServerStateInner<SR>>,
 }
 
-impl ServerState {
-    pub(super) fn new(
-        gateway: EngineWatcher,
-        tracer_provider: Option<watch::Receiver<TracerProvider>>,
-        request_body_limit_bytes: usize,
-    ) -> Self {
+impl<SR> Clone for ServerState<SR> {
+    fn clone(&self) -> Self {
+        Self {
+            inner: self.inner.clone(),
+        }
+    }
+}
+
+impl<SR> ServerState<SR> {
+    pub(super) fn new(gateway: EngineWatcher, request_body_limit_bytes: usize, server_runtime: SR) -> Self {
         Self {
             inner: Arc::new(ServerStateInner {
                 gateway,
-                tracer_provider,
+                server_runtime,
                 request_body_limit_bytes,
             }),
         }
     }
+}
 
-    pub(crate) fn request_body_limit_bytes(&self) -> usize {
-        self.inner.request_body_limit_bytes
-    }
-
-    pub(crate) fn gateway(&self) -> &EngineWatcher {
-        &self.inner.gateway
-    }
-
-    #[allow(unused)] // courtesy of not(lambda) feature flag
-    pub(crate) fn tracer_provider(&self) -> Option<TracerProvider> {
-        // notes on the clone:
-        // - avoid long borrows that could block the producer
-        // - tracer provider is backed by an arc so its cheaply cloned
-        self.inner
-            .tracer_provider
-            .as_ref()
-            .map(|receiver| receiver.borrow().clone())
+impl<SR> std::ops::Deref for ServerState<SR> {
+    type Target = ServerStateInner<SR>;
+    fn deref(&self) -> &Self::Target {
+        self.inner.as_ref()
     }
 }

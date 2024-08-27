@@ -2,7 +2,7 @@ use std::net::SocketAddr;
 
 use gateway_config::{HealthConfig, TlsConfig};
 
-use super::state::ServerState;
+use super::{state::ServerState, ServerRuntime};
 use axum::{extract::State, routing::get, Json, Router};
 use grafbase_telemetry::span::GRAFBASE_TARGET;
 use http::StatusCode;
@@ -14,19 +14,19 @@ pub(crate) enum HealthState {
     Unhealthy,
 }
 
-pub(crate) async fn health(State(state): State<ServerState>) -> (StatusCode, Json<HealthState>) {
-    if state.gateway().borrow().is_some() {
+pub(crate) async fn health<SR>(State(state): State<ServerState<SR>>) -> (StatusCode, Json<HealthState>) {
+    if state.gateway.borrow().is_some() {
         (StatusCode::OK, Json(HealthState::Healthy))
     } else {
         (StatusCode::SERVICE_UNAVAILABLE, Json(HealthState::Unhealthy))
     }
 }
 
-pub(super) async fn bind_health_endpoint(
+pub(super) async fn bind_health_endpoint<SR: ServerRuntime>(
     addr: SocketAddr,
     tls_config: Option<TlsConfig>,
     health_config: HealthConfig,
-    state: ServerState,
+    state: ServerState<SR>,
 ) -> crate::Result<()> {
     let scheme = if tls_config.is_some() { "https" } else { "http" };
     let path = &health_config.path;

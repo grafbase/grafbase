@@ -2,7 +2,6 @@ use std::time::SystemTime;
 use std::{borrow::Cow, sync::Arc, time::Duration};
 
 use super::gateway::GatewaySender;
-use crate::OtelReload;
 use ascii::AsciiString;
 use gateway_config::Config;
 use grafbase_telemetry::metrics::meter_from_global_provider;
@@ -10,7 +9,6 @@ use grafbase_telemetry::otel::opentelemetry::metrics::Histogram;
 use grafbase_telemetry::otel::opentelemetry::KeyValue;
 use grafbase_telemetry::span::GRAFBASE_TARGET;
 use http::{HeaderValue, StatusCode};
-use tokio::sync::oneshot;
 use tokio::time::MissedTickBehavior;
 use tracing::Level;
 use ulid::Ulid;
@@ -74,8 +72,7 @@ pub(super) struct GraphUpdater {
     sender: GatewaySender,
     current_id: Option<Ulid>,
     gateway_config: Config,
-    otel_reload: Option<(oneshot::Sender<OtelReload>, oneshot::Receiver<()>)>,
-    latencies: Option<Histogram<u64>>,
+    latencies: Histogram<u64>,
 }
 
 impl GraphUpdater {
@@ -85,7 +82,6 @@ impl GraphUpdater {
         access_token: AsciiString,
         sender: GatewaySender,
         gateway_config: Config,
-        otel_reload: Option<(oneshot::Sender<OtelReload>, oneshot::Receiver<()>)>,
     ) -> crate::Result<Self> {
         let gdn_client = reqwest::ClientBuilder::new()
             .timeout(GDN_TIMEOUT)
@@ -118,8 +114,9 @@ impl GraphUpdater {
             sender,
             current_id: None,
             gateway_config,
-            otel_reload,
-            latencies: None,
+            latencies: meter_from_global_provider()
+                .u64_histogram("gdn.request.duration")
+                .init(),
         })
     }
 
@@ -227,29 +224,6 @@ impl GraphUpdater {
                 message = "Graph fetched from GDN",
             );
 
-            if let Some((sender, ack_receiver)) = self.otel_reload.take() {
-                if sender
-                    .send(OtelReload {
-                        graph_id: response.graph_id,
-                        branch_id: response.branch_id,
-                        branch_name: response.branch.clone(),
-                    })
-                    .is_err()
-                {
-                    tracing::event!(target: GRAFBASE_TARGET, Level::ERROR, "Error sending otel reload event");
-                };
-                // HACK: Waiting for the OTEL to properly happen ensures we do create engine metrics
-                // with the appropriate resource attributes.
-                tracing::event!(target: GRAFBASE_TARGET, Level::DEBUG, "Waiting for OTEL reload...");
-                ack_receiver.await.ok();
-
-                self.latencies = Some(
-                    meter_from_global_provider()
-                        .u64_histogram("gdn.request.duration")
-                        .init(),
-                );
-            }
-
             let gateway = match super::gateway::generate(
                 &response.sdl,
                 Some(response.branch_id),
@@ -295,10 +269,6 @@ impl GraphUpdater {
         GdnFetchLatencyAttributes { kind, status_code }: GdnFetchLatencyAttributes,
         duration: Duration,
     ) {
-        let Some(ref latencies) = self.latencies else {
-            return;
-        };
-
         let mut attributes = vec![
             KeyValue::new("server.address", self.gdn_url.to_string()),
             KeyValue::new("gdn.response.kind", kind.as_str()),
@@ -311,6 +281,6 @@ impl GraphUpdater {
             ));
         }
 
-        latencies.record(duration.as_millis() as u64, &attributes);
+        self.latencies.record(duration.as_millis() as u64, &attributes);
     }
 }

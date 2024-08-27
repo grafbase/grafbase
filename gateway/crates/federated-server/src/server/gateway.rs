@@ -20,7 +20,6 @@ use gateway_config::{Config, EntityCachingRedisConfig};
 use crate::hot_reload::ConfigWatcher;
 
 /// Send half of the gateway watch channel
-#[cfg(not(feature = "lambda"))]
 pub(crate) type GatewaySender = watch::Sender<Option<Arc<Engine<GatewayRuntime>>>>;
 
 /// Receive half of the gateway watch channel.

@@ -3,16 +3,13 @@ mod csrf;
 mod engine;
 mod gateway;
 mod graph_fetch_method;
-#[cfg(not(feature = "lambda"))]
 mod graph_updater;
 mod health;
-mod otel;
 mod state;
 mod trusted_documents_client;
 
 use grafbase_telemetry::gql_response_status::GraphqlResponseStatus;
 pub use graph_fetch_method::GraphFetchMethod;
-pub use otel::{OtelReload, OtelTracing};
 use tokio::sync::watch;
 use tracing::Level;
 use ulid::Ulid;
@@ -24,6 +21,7 @@ use gateway_config::{Config, TlsConfig};
 use grafbase_telemetry::span::GRAFBASE_TARGET;
 use state::ServerState;
 use std::{
+    future::Future,
     net::{IpAddr, Ipv4Addr, SocketAddr},
     path::PathBuf,
     time::Duration,
@@ -47,8 +45,19 @@ pub struct ServerConfig {
     pub config_hot_reload: bool,
     /// The way of loading the graph for the gateway.
     pub fetch_method: GraphFetchMethod,
-    /// The opentelemetry tracer.
-    pub otel_tracing: Option<OtelTracing>,
+}
+
+/// Trait for server runtime.
+pub trait ServerRuntime: Send + Sync + 'static + Clone {
+    /// Called when the server shutdowns gracefully.
+    fn graceful_shutdown(&self) -> impl Future<Output = ()> + Send;
+    /// Called after each request
+    fn after_request(&self);
+}
+
+impl ServerRuntime for () {
+    async fn graceful_shutdown(&self) {}
+    fn after_request(&self) {}
 }
 
 /// Starts the self-hosted Grafbase gateway. If started with a schema path, will
@@ -60,9 +69,9 @@ pub async fn serve(
         config,
         config_path,
         fetch_method,
-        otel_tracing,
         config_hot_reload,
     }: ServerConfig,
+    server_runtime: impl ServerRuntime,
 ) -> crate::Result<()> {
     let path = config.graph.path.as_deref().unwrap_or("/graphql");
 
@@ -70,25 +79,11 @@ pub async fn serve(
         .or(config.network.listen_address)
         .unwrap_or(DEFAULT_LISTEN_ADDRESS);
 
-    let (otel_tracer_provider, otel_reload) = otel_tracing
-        .map(|otel| {
-            (
-                Some(otel.tracer_provider),
-                Some((otel.reload_trigger, otel.reload_ack_receiver)),
-            )
-        })
-        .unwrap_or((None, None));
-
     let (sender, mut gateway) = watch::channel(None);
     gateway.mark_unchanged();
 
     fetch_method
-        .start(
-            &config,
-            config_hot_reload.then_some(config_path).flatten(),
-            otel_reload,
-            sender,
-        )
+        .start(&config, config_hot_reload.then_some(config_path).flatten(), sender)
         .await?;
 
     let (websocket_sender, websocket_receiver) = mpsc::channel(16);
@@ -103,8 +98,8 @@ pub async fn serve(
 
     let state = ServerState::new(
         gateway.clone(),
-        otel_tracer_provider,
         config.request_body_limit.bytes().max(0) as usize,
+        server_runtime.clone(),
     );
 
     // HACK: Wait for the engine to be ready. This ensures we did reload OTEL providers if necessary
@@ -149,12 +144,21 @@ pub async fn serve(
         router = csrf::inject_layer(router);
     }
 
-    bind(addr, path, router, config.tls.as_ref()).await?;
+    cfg_if::cfg_if! {
+        if #[cfg(feature = "lambda")] {
+            lambda_bind(path, router).await?;
+        } else {
+            bind(addr, path, router, config.tls.as_ref()).await?;
+        }
+    }
+
+    // Once all pending requests have been dealt with, we shutdown everything else left (telemetry)
+    server_runtime.graceful_shutdown().await;
 
     Ok(())
 }
 
-#[cfg(not(feature = "lambda"))]
+#[cfg_attr(feature = "lambda", allow(unused))]
 async fn bind(addr: SocketAddr, path: &str, router: Router<()>, tls: Option<&TlsConfig>) -> crate::Result<()> {
     let app = router.into_make_service();
 
@@ -191,7 +195,7 @@ async fn bind(addr: SocketAddr, path: &str, router: Router<()>, tls: Option<&Tls
 }
 
 #[cfg(feature = "lambda")]
-async fn bind(_: SocketAddr, path: &str, router: Router<()>, _: Option<&TlsConfig>) -> crate::Result<()> {
+async fn lambda_bind(path: &str, router: Router<()>) -> crate::Result<()> {
     let app = tower::ServiceBuilder::new()
         .layer(axum_aws_lambda::LambdaLayer::default())
         .service(router);
@@ -202,7 +206,6 @@ async fn bind(_: SocketAddr, path: &str, router: Router<()>, _: Option<&TlsConfi
     Ok(())
 }
 
-#[allow(unused)] // I profoundly despise those not(lambda) feature flags...
 async fn graceful_shutdown(handle: axum_server::Handle) {
     let ctrl_c = async {
         signal::ctrl_c().await.expect("failed to install Ctrl+C handler");
@@ -225,7 +228,6 @@ async fn graceful_shutdown(handle: axum_server::Handle) {
     }
 
     tracing::info!(target: GRAFBASE_TARGET, "Shutting down gracefully...");
-    grafbase_telemetry::graceful_shutdown();
     handle.graceful_shutdown(Some(std::time::Duration::from_secs(3)));
 }
 

@@ -2885,6 +2885,7 @@ dependencies = [
  "axum-aws-lambda",
  "axum-server",
  "blake3",
+ "cfg-if",
  "engine-config-builder",
  "engine-v2",
  "engine-v2-axum",
