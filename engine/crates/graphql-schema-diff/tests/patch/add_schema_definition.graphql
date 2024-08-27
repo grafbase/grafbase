@@ -1,0 +1,32 @@
+type Kwery {
+  ping: Pong
+}
+
+enum Pong {
+  Yes
+  NO
+}
+
+type Myutation {
+  recordScore(score: Int): Boolean
+}
+
+# --- #
+
+type Kwery {
+  ping: Pong
+}
+
+enum Pong {
+  Yes
+  NO
+}
+
+type Myutation {
+  recordScore(score: Int): Boolean
+}
+
+schema {
+  query: Kwery
+  mutation: Myutation
+}

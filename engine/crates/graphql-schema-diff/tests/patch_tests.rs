@@ -2,21 +2,34 @@
 
 use std::{fs, path::Path};
 
-fn run_test(case: &Path) -> datatest_stable::Result<()> {
+fn read_schemas(case: &Path) -> datatest_stable::Result<(String, String)> {
     let schemas = fs::read_to_string(case)?;
     let mut schemas = schemas.split("# --- #");
     let source = schemas.next().expect("Can't find first schema in test case.");
     let target = schemas.next().expect("Can't find second schema in test case.");
 
-    let forward_diff = graphql_schema_diff::diff(source, target).unwrap();
-    let backward_diff = graphql_schema_diff::diff(target, source).unwrap();
+    Ok((source.to_owned(), target.to_owned()))
+}
 
-    // Applying the forward diff to source should give target.
+fn run_test_backwards(case: &Path) -> datatest_stable::Result<()> {
+    let (source, target) = read_schemas(case)?;
+    run_test_impl(target, source)
+}
+
+fn run_test(case: &Path) -> datatest_stable::Result<()> {
+    let (source, target) = read_schemas(case)?;
+    run_test_impl(source, target)
+}
+
+fn run_test_impl(source: String, target: String) -> datatest_stable::Result<()> {
+    let diff = graphql_schema_diff::diff(&source, &target).unwrap();
+
+    // Applying the diff to source should give target.
     {
-        let resolved_spans: Vec<_> = graphql_schema_diff::resolve_spans(source, target, &forward_diff).collect();
-        let patched = graphql_schema_diff::patch(source, &forward_diff, &resolved_spans).unwrap();
+        let resolved_spans: Vec<_> = graphql_schema_diff::resolve_spans(&source, &target, &diff).collect();
+        let patched = graphql_schema_diff::patch(&source, &diff, &resolved_spans).unwrap();
 
-        if patched.schema() != target {
+        if patched.schema().trim() != target.trim() {
             return Err(miette::miette!(
                 "{}",
                 similar::udiff::unified_diff(
@@ -31,11 +44,10 @@ fn run_test(case: &Path) -> datatest_stable::Result<()> {
         }
     }
 
-    // TODO: test that applying forward diff to source gives target, and then backwards we're back to source
-
     Ok(())
 }
 
 datatest_stable::harness! {
     run_test, "./tests/patch", r"^.*\.graphql$",
+    run_test_backwards, "./tests/patch", r"^.*\.graphql$",
 }
