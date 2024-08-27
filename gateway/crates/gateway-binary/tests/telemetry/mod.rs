@@ -7,6 +7,7 @@ use crate::{load_schema, with_static_server};
 
 mod logs;
 mod metrics;
+mod tracing;
 
 #[test]
 fn with_stdout_telemetry() {

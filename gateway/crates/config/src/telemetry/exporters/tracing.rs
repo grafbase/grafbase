@@ -14,10 +14,14 @@ pub struct TracingConfig {
     /// Default is 0.15.
     #[serde(deserialize_with = "deserialize_sampling")]
     pub sampling: f64,
+    /// Allow clients to specify sampling rate. Enable only if you are not exposing the gateway directly to clients. Default: false.
+    pub parent_based_sampler: bool,
     /// Collection configuration
     pub collect: TracingCollectConfig,
     /// Exporters configurations
     pub exporters: ExportersConfig,
+    /// Trace parent and context propagation configuration
+    pub propagation: PropagationConfig,
 }
 
 impl Default for TracingConfig {
@@ -26,6 +30,8 @@ impl Default for TracingConfig {
             sampling: DEFAULT_SAMPLING,
             collect: Default::default(),
             exporters: Default::default(),
+            propagation: Default::default(),
+            parent_based_sampler: false,
         }
     }
 }
@@ -61,6 +67,22 @@ impl Default for TracingCollectConfig {
             max_attributes_per_link: DEFAULT_COLLECT_VALUE,
         }
     }
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Deserialize, Default)]
+#[serde(default, deny_unknown_fields)]
+pub struct PropagationConfig {
+    /// Enable [TraceContext](https://www.w3.org/TR/trace-context/) propagation through the `traceparent` header. This is the standard trace parent propagation mechanism in OpenTelemetry.
+    pub trace_context: bool,
+    /// Enable Baggage context propagation through the `baggage` header. This is the standard context propagation mechanism in OpenTelemetry.
+    ///
+    /// Resources:
+    ///
+    /// - https://www.w3.org/TR/baggage/
+    /// - https://opentelemetry.io/docs/concepts/signals/baggage/
+    pub baggage: bool,
+    /// Enable AWS X-Ray propagation through the `x-amzn-trace-id` header. This is the standard trace parent propagation mechanism for AWS X-Ray. https://docs.aws.amazon.com/xray/latest/devguide/xray-concepts.html#xray-concepts-tracingheader
+    pub aws_xray: bool,
 }
 
 fn deserialize_sampling<'de, D>(deserializer: D) -> Result<f64, D::Error>

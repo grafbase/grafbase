@@ -6,6 +6,7 @@ pub use gateway_config::telemetry as config;
 pub mod error;
 pub mod gql_response_status;
 pub mod grafbase_client;
+pub mod http;
 pub mod metrics;
 /// Otel integration
 pub mod otel;

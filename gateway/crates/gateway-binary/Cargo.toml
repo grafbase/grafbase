@@ -12,7 +12,6 @@ lambda = [
   "federated-server/lambda",
   "tracing-subscriber/json",
   "grafbase-telemetry/lambda",
-  "dep:opentelemetry-aws"
 ]
 
 [dependencies]
@@ -25,7 +24,7 @@ gateway-config.workspace = true
 grafbase-telemetry = { workspace = true, features = ["otlp"] }
 graph-ref.workspace = true
 mimalloc = "0.1.41"
-opentelemetry-aws = { version = "0.10.0", optional = true }
+opentelemetry-aws = { version = "0.10.0" }
 rustls = { workspace = true, features = ["ring"] }
 tokio = { workspace = true, features = ["rt-multi-thread", "signal"] }
 toml = "0.8.12"
@@ -37,12 +36,15 @@ cfg-if = "1.0.0"
 workspace = true
 
 [dev-dependencies]
+async-graphql-parser.workspace = true
 clickhouse = { version = "0.12" }
 ctor.workspace = true
 duct = "0.13.7"
 fslock = "0.2.1"
 futures-util.workspace = true
+graphql-composition.workspace = true
 grafbase-graphql-introspection.workspace = true
+graphql-mocks.workspace = true
 http.workspace = true
 indoc = "2.0.5"
 insta = { workspace = true, features = ["json", "redactions", "yaml"] }
