@@ -109,26 +109,3 @@ pub(super) fn collect_composed_directives<'a>(
 
     ids.unwrap_or((federated::DirectiveId(0), 0))
 }
-
-// fn subgraphs_value_to_federated_value(value: &subgraphs::Value, ctx: &mut ComposeContext<'_>) -> federated::Value {
-//     match value {
-//         subgraphs::Value::String(value) => federated::Value::String(ctx.insert_string(*value)),
-//         subgraphs::Value::Int(value) => federated::Value::Int(*value),
-//         subgraphs::Value::Float(value) => federated::Value::Float(*value),
-//         subgraphs::Value::Boolean(value) => federated::Value::Boolean(*value),
-//         subgraphs::Value::UnboundEnum(value) => federated::Value::UnboundEnumValue(ctx.insert_string(*value)),
-//         subgraphs::Value::Enum(value) => federated::Value::EnumValue(ctx.insert_string(*value)),
-//         subgraphs::Value::Object(value) => federated::Value::Object(
-//             value
-//                 .iter()
-//                 .map(|(k, v)| (ctx.insert_string(*k), subgraphs_value_to_federated_value(v, ctx)))
-//                 .collect(),
-//         ),
-//         subgraphs::Value::List(value) => federated::Value::List(
-//             value
-//                 .iter()
-//                 .map(|v| subgraphs_value_to_federated_value(v, ctx))
-//                 .collect(),
-//         ),
-//     }
-// }
