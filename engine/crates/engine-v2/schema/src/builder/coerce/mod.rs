@@ -209,7 +209,14 @@ impl<'a> InputValueCoercer<'a> {
                 _ => None,
             }
             .map(SchemaInputValue::Boolean),
-            ScalarType::JSON => return Ok(self.input_values.ingest_arbitrary_federated_value(self.ctx, value)),
+            ScalarType::JSON => {
+                return Ok(self
+                    .input_values
+                    .ingest_arbitrary_federated_value(self.ctx, value)
+                    .map_err(|_: super::input_values::InaccessibleEnumValue| {
+                        InputValueError::InaccessibleEnumValue { path: self.path() }
+                    }))?
+            }
         }
         .ok_or_else(|| InputValueError::IncorrectScalarType {
             actual: value.into(),

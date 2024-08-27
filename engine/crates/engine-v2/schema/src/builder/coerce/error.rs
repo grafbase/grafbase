@@ -42,6 +42,8 @@ pub enum InputValueError {
     },
     #[error("Missing required argument named '{0}'")]
     MissingRequiredArgument(String),
+    #[error("Used an inaccessible enum value{path}")]
+    InaccessibleEnumValue { path: String },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, strum::Display)]

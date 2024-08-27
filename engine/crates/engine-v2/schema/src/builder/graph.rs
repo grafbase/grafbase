@@ -100,13 +100,14 @@ impl<'a> GraphBuilder<'a> {
                         name: definition.name.into(),
                         description: definition.description.map(Into::into),
                         ty: definition.r#type.into(),
-                        default_value: definition.default.map(|default| {
+                        default_value: definition.default.and_then(|default| {
                             let value = self
                                 .graph
                                 .input_values
-                                .ingest_arbitrary_federated_value(self.ctx, default);
+                                .ingest_arbitrary_federated_value(self.ctx, default)
+                                .ok()?;
 
-                            self.graph.input_values.push_value(value)
+                            Some(self.graph.input_values.push_value(value))
                         }),
                         directives: self.push_directives(
                             config,
@@ -717,12 +718,14 @@ impl<'a> GraphBuilder<'a> {
                     node: node
                         .as_ref()
                         .map(|field_set| self.required_field_sets_buffer.push(schema_location, field_set.clone())),
-                    metadata: metadata.clone().map(|value| {
+                    metadata: metadata.clone().and_then(|value| {
                         let value = self
                             .graph
                             .input_values
-                            .ingest_arbitrary_federated_value(self.ctx, value);
-                        self.graph.input_values.push_value(value)
+                            .ingest_arbitrary_federated_value(self.ctx, value)
+                            .ok()?;
+
+                        Some(self.graph.input_values.push_value(value))
                     }),
                 });
 
