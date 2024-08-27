@@ -49,6 +49,7 @@ struct State<'a> {
     definition_names: HashMap<&'a str, Definition>,
     selection_map: HashMap<(Definition, &'a str), FieldId>,
     input_values_map: HashMap<(InputObjectId, &'a str), InputValueDefinitionId>,
+    enum_values_map: HashMap<(EnumId, &'a str), EnumValueId>,
 
     /// The key is the name of the graph in the join__Graph enum.
     graph_sdl_names: HashMap<&'a str, SubgraphId>,
@@ -95,7 +96,7 @@ impl<'a> State<'a> {
         StringId(self.strings.insert_full(s.to_owned()).0)
     }
 
-    fn insert_value(&mut self, node: &async_graphql_value::ConstValue) -> Value {
+    fn insert_value(&mut self, node: &async_graphql_value::ConstValue, expected_enum_type: Option<EnumId>) -> Value {
         match node {
             async_graphql_value::ConstValue::Null => Value::String(self.insert_string("null")),
             async_graphql_value::ConstValue::Number(number) => {
@@ -109,14 +110,21 @@ impl<'a> State<'a> {
             }
             async_graphql_value::ConstValue::String(s) => Value::String(self.insert_string(s)),
             async_graphql_value::ConstValue::Boolean(b) => Value::Boolean(*b),
-            async_graphql_value::ConstValue::Enum(enm) => Value::EnumValue(self.insert_string(enm)),
+            async_graphql_value::ConstValue::Enum(enm) => expected_enum_type
+                .and_then(|enum_id| {
+                    let enum_value_id = self.enum_values_map.get(&(enum_id, enm.as_str()))?;
+                    Some(Value::EnumValue(*enum_value_id))
+                })
+                .unwrap_or(Value::UnboundEnumValue(self.insert_string(enm))),
             async_graphql_value::ConstValue::Binary(_) => unreachable!(),
-            async_graphql_value::ConstValue::List(list) => {
-                Value::List(list.iter().map(|value| self.insert_value(value)).collect())
-            }
+            async_graphql_value::ConstValue::List(list) => Value::List(
+                list.iter()
+                    .map(|value| self.insert_value(value, expected_enum_type))
+                    .collect(),
+            ),
             async_graphql_value::ConstValue::Object(obj) => Value::Object(
                 obj.into_iter()
-                    .map(|(k, v)| (self.insert_string(k), self.insert_value(v)))
+                    .map(|(k, v)| (self.insert_string(k), self.insert_value(v, expected_enum_type)))
                     .collect::<Vec<_>>()
                     .into_boxed_slice(),
             ),
@@ -371,7 +379,7 @@ fn ingest_authorized_directives(parsed: &ast::ServiceDocument, state: &mut State
         let metadata = authorized
             .node
             .get_argument("metadata")
-            .map(|metadata| state.insert_value(&metadata.node));
+            .map(|metadata| state.insert_value(&metadata.node, None));
 
         let idx = state.authorized_directives.push_return_idx(AuthorizedDirective {
             fields,
@@ -663,7 +671,7 @@ fn ingest_authorized_directive(
                 metadata: directive
                     .node
                     .get_argument("metadata")
-                    .map(|metadata| state.insert_value(&metadata.node)),
+                    .map(|metadata| state.insert_value(&metadata.node, None)),
             };
             state.authorized_directives.push(authorized_directive);
             let id = AuthorizedDirectiveId(state.authorized_directives.len() - 1);
@@ -741,6 +749,14 @@ fn ingest_definitions<'a>(document: &'a ast::ServiceDocument, state: &mut State<
                         ingest_join_graph_enum(enm, state)?;
                     }
                     ast::TypeKind::Enum(enm) => {
+                        let enum_id = EnumId(state.enums.push_return_idx(Enum {
+                            name: type_name_id,
+                            values: NO_ENUM_VALUE,
+                            composed_directives,
+                            description,
+                        }));
+                        state.definition_names.insert(type_name, Definition::Enum(enum_id));
+
                         let values = {
                             let start = state.enum_values.len();
 
@@ -751,6 +767,12 @@ fn ingest_definitions<'a>(document: &'a ast::ServiceDocument, state: &mut State<
                                     .description
                                     .as_ref()
                                     .map(|description| state.insert_string(description.node.as_str()));
+
+                                state.enum_values_map.insert(
+                                    (enum_id, value.node.value.node.as_str()),
+                                    EnumValueId(state.enum_values.len()),
+                                );
+
                                 let value = state.insert_string(value.node.value.node.as_str());
                                 state.enum_values.push(EnumValue {
                                     value,
@@ -762,13 +784,7 @@ fn ingest_definitions<'a>(document: &'a ast::ServiceDocument, state: &mut State<
                             (EnumValueId(start), state.enum_values.len() - start)
                         };
 
-                        let enum_id = EnumId(state.enums.push_return_idx(Enum {
-                            name: type_name_id,
-                            values,
-                            composed_directives,
-                            description,
-                        }));
-                        state.definition_names.insert(type_name, Definition::Enum(enum_id));
+                        state.enums[enum_id.0].values = values;
                     }
                     ast::TypeKind::InputObject(_) => {
                         let input_object_id = InputObjectId(state.input_objects.push_return_idx(InputObject {
@@ -848,7 +864,7 @@ fn ingest_field<'a>(
             .node
             .default_value
             .as_ref()
-            .map(|default| state.insert_value(&default.node));
+            .map(|default| state.insert_value(&default.node, r#type.definition.as_enum().copied()));
 
         state.input_value_definitions.push(InputValueDefinition {
             name,
@@ -1003,7 +1019,7 @@ fn ingest_input_object<'a>(
             .node
             .default_value
             .as_ref()
-            .map(|default| state.insert_value(&default.node));
+            .map(|default| state.insert_value(&default.node, r#type.definition.as_enum().copied()));
 
         state.input_value_definitions.push(InputValueDefinition {
             name,
@@ -1128,7 +1144,17 @@ fn attach_field_set(
                         .position(|arg| arg.name == name)
                         .map(|idx| InputValueDefinitionId(start.0 + idx))
                         .expect("unknown argument");
-                    let value = state.insert_value(&value.node.clone().into_const().expect("Value -> ConstValue"));
+
+                    let argument_type = state.input_value_definitions[argument.0]
+                        .r#type
+                        .definition
+                        .as_enum()
+                        .copied();
+
+                    let raw_value = value.node.clone().into_const().expect("Value -> ConstValue");
+
+                    let value = state.insert_value(&raw_value, argument_type);
+
                     (argument, value)
                 })
                 .collect();
@@ -1365,7 +1391,10 @@ fn collect_composed_directives(directives: &[Positioned<ast::ConstDirective>], s
                     .arguments
                     .iter()
                     .map(|(name, value)| -> (StringId, Value) {
-                        (state.insert_string(name.node.as_str()), state.insert_value(&value.node))
+                        (
+                            state.insert_string(name.node.as_str()),
+                            state.insert_value(&value.node, None),
+                        )
                     })
                     .collect();
 

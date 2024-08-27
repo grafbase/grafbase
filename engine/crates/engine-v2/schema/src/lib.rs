@@ -164,7 +164,7 @@ pub struct Graph {
     #[indexed_by(RequiredFieldId)]
     required_fields: Vec<RequiredField>,
     /// Default input values & directive arguments
-    input_values: SchemaInputValues,
+    pub input_values: SchemaInputValues,
 
     #[indexed_by(TypeSystemDirectiveId)]
     type_system_directives: Vec<TypeSystemDirective>,

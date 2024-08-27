@@ -4,6 +4,7 @@ pub use non_ord::ProxyKeyInterner;
 
 use std::{borrow::Borrow, marker::PhantomData};
 
+#[derive(Debug)]
 pub struct Interner<T, Id>(indexmap::IndexSet<T, fnv::FnvBuildHasher>, PhantomData<Id>);
 
 impl<T, Id> Default for Interner<T, Id> {

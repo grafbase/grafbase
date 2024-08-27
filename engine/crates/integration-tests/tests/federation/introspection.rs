@@ -61,13 +61,13 @@ fn can_run_pathfinder_introspection_query() {
       pullRequestOrIssue(id: ID!): PullRequestOrIssue
       pullRequestsAndIssues(filter: PullRequestsAndIssuesFilters!): [PullRequestOrIssue!]!
       serverVersion: String!
-      sillyDefaultValue(status: Status! = "OPEN"): String!
+      sillyDefaultValue(status: Status! = OPEN): String!
       statusString(status: Status!): String!
     }
 
     enum Status {
-      CLOSED
       OPEN
+      CLOSED
     }
 
     type User {
@@ -137,13 +137,13 @@ fn can_run_2018_introspection_query() {
       pullRequestOrIssue(id: ID!): PullRequestOrIssue
       pullRequestsAndIssues(filter: PullRequestsAndIssuesFilters!): [PullRequestOrIssue!]!
       serverVersion: String!
-      sillyDefaultValue(status: Status! = "OPEN"): String!
+      sillyDefaultValue(status: Status! = OPEN): String!
       statusString(status: Status!): String!
     }
 
     enum Status {
-      CLOSED
       OPEN
+      CLOSED
     }
 
     type User {
@@ -213,13 +213,13 @@ fn can_run_2021_introspection_query() {
       pullRequestOrIssue(id: ID!): PullRequestOrIssue
       pullRequestsAndIssues(filter: PullRequestsAndIssuesFilters!): [PullRequestOrIssue!]!
       serverVersion: String!
-      sillyDefaultValue(status: Status! = "OPEN"): String!
+      sillyDefaultValue(status: Status! = OPEN): String!
       statusString(status: Status!): String!
     }
 
     enum Status {
-      CLOSED
       OPEN
+      CLOSED
     }
 
     type User {
@@ -248,8 +248,8 @@ fn echo_subgraph_introspection() {
 
     insta::assert_snapshot!(introspection_to_sdl(response.into_data()), @r###"
     enum FancyBool {
-      NO
       YES
+      NO
     }
 
     type Header {
@@ -377,8 +377,8 @@ fn can_introsect_when_multiple_subgraphs() {
     scalar CustomRepoId
 
     enum FancyBool {
-      NO
       YES
+      NO
     }
 
     type Header {
@@ -441,14 +441,14 @@ fn can_introsect_when_multiple_subgraphs() {
       pullRequestOrIssue(id: ID!): PullRequestOrIssue
       pullRequestsAndIssues(filter: PullRequestsAndIssuesFilters!): [PullRequestOrIssue!]!
       serverVersion: String!
-      sillyDefaultValue(status: Status! = "OPEN"): String!
+      sillyDefaultValue(status: Status! = OPEN): String!
       statusString(status: Status!): String!
       string(input: String!): String!
     }
 
     enum Status {
-      CLOSED
       OPEN
+      CLOSED
     }
 
     type User {
@@ -856,9 +856,9 @@ fn introspection_on_multiple_federation_subgraphs() {
     }
 
     enum Trustworthiness {
+      REALLY_TRUSTED
       KINDA_TRUSTED
       NOT_TRUSTED
-      REALLY_TRUSTED
     }
 
     type User {
@@ -873,8 +873,8 @@ fn introspection_on_multiple_federation_subgraphs() {
     }
 
     enum WeightUnit {
-      GRAM
       KILOGRAM
+      GRAM
     }
 
     "###)
@@ -1011,7 +1011,7 @@ fn default_values() {
               "args": [
                 {
                   "name": "status",
-                  "defaultValue": "\"OPEN\""
+                  "defaultValue": "OPEN"
                 }
               ]
             },

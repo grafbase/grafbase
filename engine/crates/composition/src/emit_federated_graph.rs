@@ -5,7 +5,7 @@ mod field_types_map;
 
 use self::context::Context;
 use crate::{
-    composition_ir::{CompositionIr, FieldIr, InputValueDefinitionIr, KeyIr},
+    composition_ir::{self as ir, CompositionIr, FieldIr, InputValueDefinitionIr, KeyIr},
     subgraphs, Subgraphs, VecExt,
 };
 use federated::RootOperationTypes;
@@ -26,13 +26,13 @@ pub(crate) fn emit_federated_graph(mut ir: CompositionIr, subgraphs: &Subgraphs)
         unions: mem::take(&mut ir.unions),
         scalars: mem::take(&mut ir.scalars),
         input_objects: mem::take(&mut ir.input_objects),
-        directives: mem::take(&mut ir.directives),
         root_operation_types: RootOperationTypes {
             query: ir.query_type.unwrap(),
             mutation: ir.mutation_type,
             subscription: ir.subscription_type,
         },
 
+        directives: vec![],
         subgraphs: vec![],
         fields: vec![],
         input_value_definitions: vec![],
@@ -45,6 +45,7 @@ pub(crate) fn emit_federated_graph(mut ir: CompositionIr, subgraphs: &Subgraphs)
 
     let mut ctx = Context::new(&mut ir, subgraphs, &mut out);
 
+    emit_directives(&mut ir.directives, &mut ctx);
     emit_subgraphs(&mut ctx);
     emit_interface_impls(&mut ctx);
     emit_input_value_definitions(&ir.input_value_definitions, &mut ctx);
@@ -62,6 +63,29 @@ pub(crate) fn emit_federated_graph(mut ir: CompositionIr, subgraphs: &Subgraphs)
     drop(ctx);
 
     federated::VersionedFederatedGraph::Sdl(graphql_federated_graph::render_federated_sdl(&out).unwrap())
+}
+
+fn emit_directives(ir: &mut Vec<ir::Directive>, ctx: &mut Context<'_>) {
+    ctx.out.directives.reserve(ir.len());
+
+    for directive in ir.drain(..) {
+        let converted = match directive {
+            ir::Directive::Authenticated => federated::Directive::Authenticated,
+            ir::Directive::Deprecated { reason } => federated::Directive::Deprecated { reason },
+            ir::Directive::Inaccessible => federated::Directive::Inaccessible,
+            ir::Directive::Policy(policies) => federated::Directive::Policy(policies),
+            ir::Directive::RequiresScopes(scopes) => federated::Directive::RequiresScopes(scopes),
+            ir::Directive::Other { name, arguments } => federated::Directive::Other {
+                name,
+                arguments: arguments
+                    .into_iter()
+                    .map(|(name, value)| (name, ctx.insert_value(&value)))
+                    .collect(),
+            },
+        };
+
+        ctx.out.directives.push(converted);
+    }
 }
 
 fn emit_authorized_directives(ir: &CompositionIr, ctx: &mut Context<'_>) {
@@ -126,12 +150,19 @@ fn emit_input_value_definitions(input_value_definitions: &[InputValueDefinitionI
                  directives,
                  description,
                  default,
-             }| federated::InputValueDefinition {
-                name: *name,
-                r#type: ctx.insert_field_type(ctx.subgraphs.walk(*r#type)),
-                directives: *directives,
-                description: *description,
-                default: default.as_ref().map(|default| ctx.insert_value(default)),
+             }| {
+                let r#type = ctx.insert_field_type(ctx.subgraphs.walk(*r#type));
+                let default = default
+                    .as_ref()
+                    .map(|default| ctx.insert_value_with_type(default, r#type.definition.as_enum().copied()));
+
+                federated::InputValueDefinition {
+                    name: *name,
+                    r#type,
+                    directives: *directives,
+                    description: *description,
+                    default,
+                }
             },
         )
         .collect()
@@ -456,7 +487,10 @@ fn attach_selection(
                         .position(|arg| arg.name == arg_name)
                         .map(|idx| federated::InputValueDefinitionId(field_arguments_start + idx))
                         .unwrap();
-                    let value = ctx.insert_value(value);
+
+                    let argument_enum_type = ctx.out[argument].r#type.definition.as_enum().copied();
+                    let value = ctx.insert_value_with_type(value, argument_enum_type);
+
                     (argument, value)
                 })
                 .collect();

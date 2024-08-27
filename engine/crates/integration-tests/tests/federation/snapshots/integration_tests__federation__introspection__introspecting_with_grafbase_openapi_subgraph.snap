@@ -83,7 +83,7 @@ enum PetStatus {
 }
 
 type Query {
-  findPetsByStatus(status: FindPetsByStatusStatus = "AVAILABLE"): [Pet!]
+  findPetsByStatus(status: FindPetsByStatusStatus = AVAILABLE): [Pet!]
   findPetsByTags(tags: [String!]): [Pet!]
   inventory: JSON
   loginUser(password: String, username: String): String

@@ -106,13 +106,13 @@ expression: response
           "interfaces": null,
           "enumValues": [
             {
-              "name": "NO",
+              "name": "YES",
               "description": null,
               "isDeprecated": false,
               "deprecationReason": null
             },
             {
-              "name": "YES",
+              "name": "NO",
               "description": null,
               "isDeprecated": false,
               "deprecationReason": null
@@ -1150,7 +1150,7 @@ expression: response
                       "ofType": null
                     }
                   },
-                  "defaultValue": "\"OPEN\""
+                  "defaultValue": "OPEN"
                 }
               ],
               "type": {
@@ -1242,13 +1242,13 @@ expression: response
           "interfaces": null,
           "enumValues": [
             {
-              "name": "CLOSED",
+              "name": "OPEN",
               "description": null,
               "isDeprecated": false,
               "deprecationReason": null
             },
             {
-              "name": "OPEN",
+              "name": "CLOSED",
               "description": null,
               "isDeprecated": false,
               "deprecationReason": null

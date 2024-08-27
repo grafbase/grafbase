@@ -9,7 +9,7 @@ use std::marker::PhantomData;
 use federated_graph::FederatedGraph;
 use id_newtypes::IdRange;
 
-use crate::{FieldDefinitionId, InputValueDefinitionId};
+use crate::{EnumValueId, FieldDefinitionId, InputValueDefinitionId};
 
 use super::graph::is_inaccessible;
 
@@ -36,6 +36,7 @@ where
 pub(super) struct IdMaps {
     pub field: IdMap<federated_graph::FieldId, FieldDefinitionId>,
     pub input_value: IdMap<federated_graph::InputValueDefinitionId, InputValueDefinitionId>,
+    pub enum_values: IdMap<federated_graph::EnumValueId, EnumValueId>,
 }
 
 impl IdMaps {
@@ -44,6 +45,7 @@ impl IdMaps {
         IdMaps {
             field: IdMap::default(),
             input_value: IdMap::default(),
+            enum_values: IdMap::default(),
         }
     }
 
@@ -51,6 +53,7 @@ impl IdMaps {
         let mut idmaps = IdMaps {
             field: Default::default(),
             input_value: Default::default(),
+            enum_values: IdMap::default(),
         };
 
         for (i, field) in graph.fields.iter().enumerate() {
