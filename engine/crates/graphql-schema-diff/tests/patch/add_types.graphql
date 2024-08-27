@@ -1,0 +1,23 @@
+type Query {
+  hi: String!
+}
+
+# --- #
+
+input TheInputType {
+  enumField: TheEnum
+}
+
+enum TheEnum {
+  YEA
+  NAY
+}
+
+type Query {
+  hi: String!
+  test(in: TheInputType): TheObjectType
+}
+
+type TheObjectType {
+  theory: String
+}
