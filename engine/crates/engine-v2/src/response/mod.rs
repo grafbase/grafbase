@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use enumset::EnumSet;
 pub(crate) use error::*;
 use grafbase_telemetry::gql_response_status::GraphqlResponseStatus;
 pub(crate) use key::*;
@@ -120,6 +121,15 @@ impl Response {
             Response::RequestError(resp) => &resp.errors,
             Response::Executed(resp) => &resp.errors,
         }
+    }
+
+    pub(crate) fn distinct_error_codes(&self) -> EnumSet<ErrorCode> {
+        self.errors()
+            .iter()
+            .fold(EnumSet::<ErrorCode>::empty(), |mut set, error| {
+                set |= error.code;
+                set
+            })
     }
 }
 
