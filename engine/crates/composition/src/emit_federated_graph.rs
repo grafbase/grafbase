@@ -79,7 +79,7 @@ fn emit_directives(ir: &mut Vec<ir::Directive>, ctx: &mut Context<'_>) {
                 name,
                 arguments: arguments
                     .into_iter()
-                    .map(|(name, value)| (name, ctx.insert_value(&value, None)))
+                    .map(|(name, value)| (name, ctx.insert_value(&value)))
                     .collect(),
             },
         };
@@ -91,10 +91,7 @@ fn emit_directives(ir: &mut Vec<ir::Directive>, ctx: &mut Context<'_>) {
 fn emit_authorized_directives(ir: &CompositionIr, ctx: &mut Context<'_>) {
     for (object_id, authorized) in &ir.object_authorized_directives {
         let authorized = ctx.subgraphs.walk(*authorized).authorized().unwrap();
-        let metadata = authorized
-            .metadata
-            .as_ref()
-            .map(|metadata| ctx.insert_value(metadata, None));
+        let metadata = authorized.metadata.as_ref().map(|metadata| ctx.insert_value(metadata));
         let fields = authorized
             .fields
             .as_ref()
@@ -119,10 +116,7 @@ fn emit_authorized_directives(ir: &CompositionIr, ctx: &mut Context<'_>) {
 
     for (interface_id, authorized) in &ir.interface_authorized_directives {
         let authorized = ctx.subgraphs.walk(*authorized).authorized().unwrap();
-        let metadata = authorized
-            .metadata
-            .as_ref()
-            .map(|metadata| ctx.insert_value(metadata, None));
+        let metadata = authorized.metadata.as_ref().map(|metadata| ctx.insert_value(metadata));
         let fields = authorized
             .fields
             .as_ref()
@@ -160,7 +154,7 @@ fn emit_input_value_definitions(input_value_definitions: &[InputValueDefinitionI
                 let r#type = ctx.insert_field_type(ctx.subgraphs.walk(*r#type));
                 let default = default
                     .as_ref()
-                    .map(|default| ctx.insert_value(default, r#type.definition.as_enum().copied()));
+                    .map(|default| ctx.insert_value_with_type(default, r#type.definition.as_enum().copied()));
 
                 federated::InputValueDefinition {
                     name: *name,
@@ -399,10 +393,7 @@ fn emit_fields<'a>(
             .node
             .as_ref()
             .map(|field_set| attach_selection(field_set, output, ctx));
-        let metadata = directive
-            .metadata
-            .as_ref()
-            .map(|metadata| ctx.insert_value(metadata, None));
+        let metadata = directive.metadata.as_ref().map(|metadata| ctx.insert_value(metadata));
 
         let arguments = directive
             .arguments
@@ -498,7 +489,7 @@ fn attach_selection(
                         .unwrap();
 
                     let argument_enum_type = ctx.out[argument].r#type.definition.as_enum().copied();
-                    let value = ctx.insert_value(value, argument_enum_type);
+                    let value = ctx.insert_value_with_type(value, argument_enum_type);
 
                     (argument, value)
                 })

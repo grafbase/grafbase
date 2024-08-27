@@ -34,7 +34,11 @@ impl<'a> Context<'a> {
         self.strings_ir.insert(string.as_str())
     }
 
-    pub(crate) fn insert_value(
+    pub(crate) fn insert_value(&mut self, value: &subgraphs::Value) -> federated::Value {
+        self.insert_value_with_type(value, None)
+    }
+
+    pub(crate) fn insert_value_with_type(
         &mut self,
         value: &subgraphs::Value,
         enum_type: Option<federated::EnumId>,
@@ -68,14 +72,17 @@ impl<'a> Context<'a> {
                     .map(|(k, v)| {
                         (
                             self.insert_string(self.subgraphs.walk(*k)),
-                            self.insert_value(v, enum_type),
+                            self.insert_value_with_type(v, enum_type),
                         )
                     })
                     .collect(),
             ),
-            subgraphs::Value::List(value) => {
-                federated::Value::List(value.iter().map(|v| self.insert_value(v, enum_type)).collect())
-            }
+            subgraphs::Value::List(value) => federated::Value::List(
+                value
+                    .iter()
+                    .map(|v| self.insert_value_with_type(v, enum_type))
+                    .collect(),
+            ),
         }
     }
 }
