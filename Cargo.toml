@@ -175,6 +175,7 @@ graphql-lint = { path = "graphql-lint" }
 
 # Gateway
 federated-server = { path = "gateway/crates/federated-server" }
+grafbase-gateway = { path = "gateway/crates/gateway-binary" }
 
 # Engine
 async-runtime = { path = "engine/crates/async-runtime" }

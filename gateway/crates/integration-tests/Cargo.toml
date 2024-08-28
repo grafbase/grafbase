@@ -27,6 +27,7 @@ ulid.workspace = true
 [dev-dependencies]
 async-graphql-parser.workspace = true
 futures-util.workspace = true
+grafbase-gateway.workspace = true
 grafbase-graphql-introspection.workspace = true
 graphql-composition.workspace = true
 graphql-mocks.workspace = true

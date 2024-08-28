@@ -3339,6 +3339,7 @@ dependencies = [
  "fslock",
  "futures-lite 2.3.0",
  "futures-util",
+ "grafbase-gateway",
  "grafbase-graphql-introspection",
  "graphql-composition",
  "graphql-mocks",
