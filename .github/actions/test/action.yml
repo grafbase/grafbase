@@ -78,9 +78,9 @@ runs:
       if: ${{ inputs.with-integration-tests == 'true' }}
       shell: bash
       run: |
-        docker-compose -f engine/crates/integration-tests/docker-compose.yml up -d
+        docker compose -f engine/crates/integration-tests/docker-compose.yml up -d
         RUST_BACKTRACE=1 cargo nextest run --workspace --profile ci --exclude grafbase-gateway --exclude grafbase-docker-tests
-        docker-compose -f engine/crates/integration-tests/docker-compose.yml stop -t 3
+        docker compose -f engine/crates/integration-tests/docker-compose.yml stop -t 3
 
     - name: Upload the JUnit files
       if: ${{ inputs.with-integration-tests == 'true' && ( success() || failure() ) && !contains(steps.all_tests.outputs.exitcode, '101') }}
@@ -95,7 +95,7 @@ runs:
       if: ${{ inputs.with-integration-tests == 'true' }}
       shell: bash
       run: |
-        docker-compose -f gateway/crates/gateway-binary/docker-compose.yml up -d
+        docker compose -f gateway/crates/gateway-binary/docker-compose.yml up -d
         RUST_BACKTRACE=1 cargo nextest run -p grafbase-gateway --profile ci
 
     - name: Upload the gateway junit files
