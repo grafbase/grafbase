@@ -3328,6 +3328,37 @@ dependencies = [
 ]
 
 [[package]]
+name = "gateway-integration-tests"
+version = "0.79.1"
+dependencies = [
+ "async-graphql-parser",
+ "clickhouse",
+ "ctor",
+ "duct",
+ "federated-server",
+ "fslock",
+ "futures-lite 2.3.0",
+ "futures-util",
+ "grafbase-graphql-introspection",
+ "graphql-composition",
+ "graphql-mocks",
+ "handlebars",
+ "http",
+ "indoc",
+ "insta",
+ "rand 0.8.5",
+ "reqwest",
+ "rustls 0.23.12",
+ "serde",
+ "serde_json",
+ "serde_with",
+ "tempfile",
+ "tokio",
+ "ulid",
+ "wiremock",
+]
+
+[[package]]
 name = "gateway-v2-auth"
 version = "0.1.0"
 dependencies = [

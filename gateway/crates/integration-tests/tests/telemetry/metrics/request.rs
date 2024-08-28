@@ -5,7 +5,7 @@ use super::{with_gateway, ExponentialHistogramRow};
 #[test]
 fn basic() {
     with_gateway(|service_name, start_time_unix, gateway, clickhouse| async move {
-        let resp = gateway.gql::<serde_json::Value>("{ __typename }").send().await;
+        let resp = gateway.execute("{ __typename }").await.into_body();
         insta::assert_json_snapshot!(resp, @r###"
         {
           "data": {
@@ -54,7 +54,7 @@ fn basic() {
 #[test]
 fn request_error() {
     with_gateway(|service_name, start_time_unix, gateway, clickhouse| async move {
-        let resp = gateway.gql::<serde_json::Value>(" __typ__ename }").send().await;
+        let resp = gateway.execute(" __typ__ename }").await.into_body();
         insta::assert_json_snapshot!(resp, @r###"
         {
           "errors": [
@@ -115,10 +115,7 @@ fn request_error() {
 #[test]
 fn field_error() {
     with_gateway(|service_name, start_time_unix, gateway, clickhouse| async move {
-        let resp = gateway
-            .gql::<serde_json::Value>("{ __typename me { id } }")
-            .send()
-            .await;
+        let resp = gateway.execute("{ __typename me { id } }").await.into_body();
 
         insta::assert_json_snapshot!(resp, @r###"
         {
@@ -178,7 +175,7 @@ fn field_error() {
 #[test]
 fn field_error_data_null() {
     with_gateway(|service_name, start_time_unix, gateway, clickhouse| async move {
-        let resp = gateway.gql::<serde_json::Value>("{ me { id } }").send().await;
+        let resp = gateway.execute("{ me { id } }").await.into_body();
         insta::assert_json_snapshot!(resp, @r###"
         {
           "data": null,
@@ -238,11 +235,11 @@ fn field_error_data_null() {
 fn client() {
     with_gateway(|service_name, start_time_unix, gateway, clickhouse| async move {
         let resp = gateway
-            .gql::<serde_json::Value>("{ __typename }")
+            .execute("{ __typename }")
             .header("x-grafbase-client-name", "test")
             .header("x-grafbase-client-version", "1.0.0")
-            .send()
-            .await;
+            .await
+            .into_body();
 
         insta::assert_json_snapshot!(resp, @r###"
         {
@@ -296,7 +293,7 @@ fn client() {
 #[test]
 fn connected_clients() {
     with_gateway(|service_name, start_time_unix, gateway, clickhouse| async move {
-        let resp = gateway.gql::<serde_json::Value>("{ __typename }").send().await;
+        let resp = gateway.execute("{ __typename }").await.into_body();
 
         insta::assert_json_snapshot!(resp, @r###"
         {
@@ -336,7 +333,7 @@ fn connected_clients() {
 #[test]
 fn request_body_size() {
     with_gateway(|service_name, start_time_unix, gateway, clickhouse| async move {
-        let resp = gateway.gql::<serde_json::Value>("{ __typename }").send().await;
+        let resp = gateway.execute("{ __typename }").await.into_body();
 
         insta::assert_json_snapshot!(resp, @r###"
         {
@@ -376,7 +373,7 @@ fn request_body_size() {
 #[test]
 fn response_body_size() {
     with_gateway(|service_name, start_time_unix, gateway, clickhouse| async move {
-        let resp = gateway.gql::<serde_json::Value>("{ __typename }").send().await;
+        let resp = gateway.execute("{ __typename }").await.into_body();
 
         insta::assert_json_snapshot!(resp, @r###"
         {

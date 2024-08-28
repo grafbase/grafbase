@@ -8,10 +8,8 @@ use super::{with_custom_gateway, with_gateway, ExponentialHistogramRow};
 #[test]
 fn basic() {
     with_gateway(|service_name, _, gateway, clickhouse| async move {
-        let response = gateway
-            .gql::<serde_json::Value>("query Simple { __typename }")
-            .send()
-            .await;
+        let response = gateway.execute("query Simple { __typename }").await.into_body();
+
         insta::assert_json_snapshot!(response, @r###"
         {
           "data": {
@@ -53,10 +51,8 @@ fn basic() {
 #[test]
 fn introspection_should_not_appear_in_used_fields() {
     with_gateway(|service_name, _, gateway, clickhouse| async move {
-        let response = gateway
-            .gql::<serde_json::Value>("query { __schema { description } }")
-            .send()
-            .await;
+        let response = gateway.execute("query { __schema { description } }").await.into_body();
+
         insta::assert_json_snapshot!(response, @r###"
         {
           "data": {
@@ -103,7 +99,7 @@ fn introspection_should_not_appear_in_used_fields() {
 fn used_fields_should_be_unique() {
     with_gateway(|service_name, _, gateway, clickhouse| async move {
         let resp = gateway
-            .gql::<serde_json::Value>(
+            .execute(
                 r###"
                 query Faulty {
                     me {
@@ -121,8 +117,8 @@ fn used_fields_should_be_unique() {
                 }
                 "###,
             )
-            .send()
-            .await;
+            .await
+            .into_body();
 
         insta::assert_json_snapshot!(resp, @r###"
         {
@@ -176,10 +172,7 @@ fn used_fields_should_be_unique() {
 #[test]
 fn generate_operation_name() {
     with_gateway(|service_name, _, gateway, clickhouse| async move {
-        let response = gateway
-            .gql::<serde_json::Value>("query { myFavoriteField ignoreMe }")
-            .send()
-            .await;
+        let response = gateway.execute("query { myFavoriteField ignoreMe }").await.into_body();
 
         insta::assert_json_snapshot!(response, @r###"
         {
@@ -235,10 +228,8 @@ fn generate_operation_name() {
 #[test]
 fn request_error() {
     with_gateway(|service_name, _, gateway, clickhouse| async move {
-        let resp = gateway
-            .gql::<serde_json::Value>("query Faulty { __typ__ename }")
-            .send()
-            .await;
+        let resp = gateway.execute("query Faulty { __typ__ename }").await.into_body();
+
         insta::assert_json_snapshot!(resp, @r###"
         {
           "errors": [
@@ -294,9 +285,9 @@ fn request_error() {
 fn field_error() {
     with_gateway(|service_name, _, gateway, clickhouse| async move {
         let resp = gateway
-            .gql::<serde_json::Value>("query Faulty { __typename me { id } }")
-            .send()
-            .await;
+            .execute("query Faulty { __typename me { id } }")
+            .await
+            .into_body();
 
         insta::assert_json_snapshot!(resp, @r###"
         {
@@ -351,10 +342,7 @@ fn field_error() {
 #[test]
 fn field_error_data_null() {
     with_gateway(|service_name, _, gateway, clickhouse| async move {
-        let resp = gateway
-            .gql::<serde_json::Value>("query Faulty { me { id } }")
-            .send()
-            .await;
+        let resp = gateway.execute("query Faulty { me { id } }").await.into_body();
 
         insta::assert_json_snapshot!(resp, @r###"
         {
@@ -410,11 +398,11 @@ fn field_error_data_null() {
 fn client() {
     with_gateway(|service_name, _, gateway, clickhouse| async move {
         let resp = gateway
-            .gql::<serde_json::Value>("query SimpleQuery { __typename }")
+            .execute("query SimpleQuery { __typename }")
             .header("x-grafbase-client-name", "test")
             .header("x-grafbase-client-version", "1.0.0")
-            .send()
-            .await;
+            .await
+            .into_body();
 
         insta::assert_json_snapshot!(resp, @r###"
         {
@@ -462,10 +450,7 @@ fn client() {
 #[test]
 fn cache_miss_hit() {
     with_gateway(|service_name, _, gateway, clickhouse| async move {
-        let resp = gateway
-            .gql::<serde_json::Value>("query SimpleQuery { __typename }")
-            .send()
-            .await;
+        let resp = gateway.execute("query SimpleQuery { __typename }").await.into_body();
 
         insta::assert_json_snapshot!(resp, @r###"
         {
@@ -499,10 +484,7 @@ fn cache_miss_hit() {
         }
         "###);
 
-        let resp = gateway
-            .gql::<serde_json::Value>("query SimpleQuery { __typename }")
-            .send()
-            .await;
+        let resp = gateway.execute("query SimpleQuery { __typename }").await.into_body();
 
         insta::assert_json_snapshot!(resp, @r###"
         {
@@ -541,10 +523,7 @@ fn cache_miss_hit() {
 #[test]
 fn prepare_duration_success() {
     with_gateway(|service_name, _, gateway, clickhouse| async move {
-        let resp = gateway
-            .gql::<serde_json::Value>("query SimpleQuery { __typename }")
-            .send()
-            .await;
+        let resp = gateway.execute("query SimpleQuery { __typename }").await.into_body();
 
         insta::assert_json_snapshot!(resp, @r###"
         {
@@ -587,10 +566,7 @@ fn prepare_duration_success() {
 #[test]
 fn prepare_duration_fail() {
     with_gateway(|service_name, _, gateway, clickhouse| async move {
-        let resp = gateway
-            .gql::<serde_json::Value>("query SimpleQuery { __typename")
-            .send()
-            .await;
+        let resp = gateway.execute("query SimpleQuery { __typename").await.into_body();
 
         insta::assert_json_snapshot!(resp, @r###"
         {
@@ -644,10 +620,7 @@ fn batch() {
     with_gateway(|service_name, _, gateway, clickhouse| async move {
         let query = String::from("query SimpleQuery { __typename }");
 
-        let resp = gateway
-            .gql_batch::<serde_json::Value, _>(&[query.clone(), query])
-            .send()
-            .await;
+        let resp = gateway.execute_batch(&[query.clone(), query]).await.into_body();
 
         insta::assert_json_snapshot!(resp, @r###"
         [
@@ -702,10 +675,7 @@ fn rate_limit() {
     "#};
 
     with_custom_gateway(config, |service_name, _, gateway, clickhouse| async move {
-        let resp = gateway
-            .gql::<serde_json::Value>("query SimpleQuery { __typename }")
-            .send()
-            .await;
+        let resp = gateway.execute("query SimpleQuery { __typename }").await.into_body();
 
         insta::assert_json_snapshot!(resp, @r###"
             {
@@ -747,7 +717,7 @@ fn rate_limit() {
 fn graphql_errors() {
     with_gateway(|service_name, _, gateway, clickhouse| async move {
         let resp = gateway
-            .gql::<serde_json::Value>(
+            .execute(
                 r###"
                 query Faulty {
                     me {
@@ -756,8 +726,8 @@ fn graphql_errors() {
                 }
                 "###,
             )
-            .send()
-            .await;
+            .await
+            .into_body();
 
         insta::assert_json_snapshot!(resp, @r###"
         {

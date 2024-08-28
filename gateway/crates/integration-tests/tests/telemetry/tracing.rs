@@ -4,9 +4,10 @@ use std::{
 };
 
 use futures_util::Future;
+use gateway_integration_tests::clickhouse_client;
 use indoc::formatdoc;
 
-use crate::{clickhouse_client, runtime, Client};
+use crate::{runtime, Client};
 
 const TRACE_INGESTION_DELAY: std::time::Duration = std::time::Duration::from_secs(2);
 
@@ -28,13 +29,13 @@ fn no_traceparent_no_propagation() {
                 }
             "#;
 
-            let response: HeadersResponse = gateway
-                .gql(request)
+            let response: HeadersResponseData = gateway
+                .execute(request)
                 .header("traceparent", "00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01") // should not be included
                 .header("baggage", "userId=Am%C3%A9lie,serverNode=DF%2028,isProduction=false") // should not be included
                 .header("x-amzn-trace-id", "Root=1-5759e988-bd862e3fe1be46a994272793;Sampled=1") // should not be included
-                .send()
-                .await;
+                .await
+                .deserialize_data();
 
             response.assert_header_names(&["accept", "content-length", "content-type"]);
         },
@@ -59,13 +60,13 @@ fn tracecontext_traceparent_propagation() {
                 }
             "#;
 
-            let response: HeadersResponse = gateway
-                .gql(request)
+            let response: HeadersResponseData = gateway
+                .execute(request)
                 .header("traceparent", "00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01")
                 .header("baggage", "userId=Am%C3%A9lie,serverNode=DF%2028,isProduction=false") // should not be included
                 .header("x-amzn-trace-id", "Root=1-5759e988-bd862e3fe1be46a994272793;Sampled=1") // should not be included
-                .send()
-                .await;
+                .await
+                .deserialize_data();
 
             response.assert_header_names(&["accept", "content-length", "content-type", "traceparent", "tracestate"]);
             response.assert_header_content("tracestate", "");
@@ -124,13 +125,13 @@ fn tracecontext_and_baggage_propagation() {
                 }
             "#;
 
-            let response: HeadersResponse = gateway
-                .gql(request)
+            let response: HeadersResponseData = gateway
+                .execute(request)
                 .header("traceparent", "00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01")
                 .header("baggage", "userId=Am%C3%A9lie,serverNode=DF%2028,isProduction=false")
                 .header("x-amzn-trace-id", "Root=1-5759e988-bd862e3fe1be46a994272793;Sampled=1") // should not be included
-                .send()
-                .await;
+                .await
+                .deserialize_data();
 
             response.assert_header_names(&[
                 "accept",
@@ -223,13 +224,13 @@ fn baggage_propagation() {
                 }
             "#;
 
-            let response: HeadersResponse = gateway
-                .gql(request)
+            let response: HeadersResponseData = gateway
+                .execute(request)
                 .header("traceparent", "00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01") // should not be included
                 .header("baggage", "userId=Am%C3%A9lie,serverNode=DF%2028,isProduction=false")
                 .header("baggage", "userName=alice") // FIXME: this should also be included (https://www.w3.org/TR/baggage/#examples-of-http-headers)
-                .send()
-                .await;
+                .await
+                .deserialize_data();
 
             response.assert_header_names(&["accept", "baggage", "content-length", "content-type"]);
             let values = response.assert_header("baggage");
@@ -261,13 +262,13 @@ fn aws_xray_propagation() {
                 }
             "#;
 
-            let response: HeadersResponse = gateway
-                .gql(request)
+            let response: HeadersResponseData = gateway
+                .execute(request)
                 .header("traceparent", "00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01")
                 .header("baggage", "userId=Am%C3%A9lie,serverNode=DF%2028,isProduction=false") // should not be included
                 .header("x-amzn-trace-id", "Root=1-5759e988-bd862e3fe1be46a994272793;Sampled=1") // should not be included
-                .send()
-                .await;
+                .await
+                .deserialize_data();
 
             response.assert_header_names(&["accept", "content-length", "content-type", "traceparent", "tracestate"]);
             response.assert_header_content("tracestate", "");
@@ -303,14 +304,14 @@ fn traceparent_deterministic_part(traceparent: &str) -> String {
 }
 
 #[derive(Debug, serde::Deserialize)]
-struct HeadersResponse {
-    data: HeadersResponseData,
+struct HeadersResponseData {
+    headers: Vec<Header>,
 }
 
-impl HeadersResponse {
+impl HeadersResponseData {
     #[track_caller]
     fn assert_header_names(&self, expected: &[&str]) {
-        let actual: Vec<_> = self.data.headers.iter().map(|h| h.name.as_str()).collect();
+        let actual: Vec<_> = self.headers.iter().map(|h| h.name.as_str()).collect();
         assert_eq!(actual, expected);
     }
 
@@ -323,7 +324,6 @@ impl HeadersResponse {
     #[track_caller]
     fn assert_header<'a>(&'a self, header_name: &str) -> &'a str {
         let header = self
-            .data
             .headers
             .iter()
             .find(|h| h.name == header_name)
@@ -331,11 +331,6 @@ impl HeadersResponse {
 
         &header.value
     }
-}
-
-#[derive(Debug, serde::Deserialize)]
-struct HeadersResponseData {
-    headers: Vec<Header>,
 }
 
 #[derive(Debug, serde::Deserialize)]

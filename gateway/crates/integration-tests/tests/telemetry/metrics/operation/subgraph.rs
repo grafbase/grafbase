@@ -5,10 +5,7 @@ use crate::telemetry::metrics::{
 #[test]
 fn request_duration() {
     with_gateway(|service_name, _, gateway, clickhouse| async move {
-        let response = gateway
-            .gql::<serde_json::Value>("query Simple { me { id } }")
-            .send()
-            .await;
+        let response = gateway.execute("query Simple { me { id } }").await.into_body();
 
         insta::assert_json_snapshot!(response, @r###"
         {
@@ -59,10 +56,7 @@ fn request_duration() {
 #[test]
 fn body_size() {
     with_small_subgraph("", |service_name, _, gateway, clickhouse| async move {
-        let response = gateway
-            .gql::<serde_json::Value>("query Simple { me { id } }")
-            .send()
-            .await;
+        let response = gateway.execute("query Simple { me { id } }").await.into_body();
 
         insta::assert_json_snapshot!(response, @r###"
         {
@@ -129,7 +123,7 @@ fn body_size() {
 #[test]
 fn retries() {
     let config = indoc::indoc! {r#"
-        [gateway.retry]            
+        [gateway.retry]
         enabled = true
         min_per_second = 1
         ttl = "1s"
@@ -138,10 +132,7 @@ fn retries() {
     "#};
 
     with_custom_gateway(config, |service_name, _, gateway, clickhouse| async move {
-        let response = gateway
-            .gql::<serde_json::Value>("query Simple { me { id } }")
-            .send()
-            .await;
+        let response = gateway.execute("query Simple { me { id } }").await.into_body();
 
         insta::assert_json_snapshot!(response, @r###"
         {
@@ -201,10 +192,7 @@ fn retries() {
 #[test]
 fn inflight() {
     with_gateway(|service_name, _, gateway, clickhouse| async move {
-        let response = gateway
-            .gql::<serde_json::Value>("query Simple { me { id } }")
-            .send()
-            .await;
+        let response = gateway.execute("query Simple { me { id } }").await.into_body();
 
         insta::assert_json_snapshot!(response, @r###"
         {
@@ -262,10 +250,7 @@ fn cache_miss_hit() {
     "#};
 
     with_small_subgraph(config, |service_name, _, gateway, clickhouse| async move {
-        let response = gateway
-            .gql::<serde_json::Value>("query Simple { me { id } }")
-            .send()
-            .await;
+        let response = gateway.execute("query Simple { me { id } }").await.into_body();
 
         insta::assert_json_snapshot!(response, @r###"
             {
@@ -305,10 +290,7 @@ fn cache_miss_hit() {
             ]
             "###);
 
-        let response = gateway
-            .gql::<serde_json::Value>("query Simple { me { id } }")
-            .send()
-            .await;
+        let response = gateway.execute("query Simple { me { id } }").await.into_body();
 
         insta::assert_json_snapshot!(response, @r###"
             {

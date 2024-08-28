@@ -6,7 +6,8 @@ use ulid::Ulid;
 use federated_server::GdnResponse;
 
 #[derive(serde::Serialize, serde::Deserialize)]
-pub(crate) struct GdnResponseMock(GdnResponse);
+pub struct GdnResponseMock(GdnResponse);
+
 impl Deref for GdnResponseMock {
     type Target = GdnResponse;
 
@@ -16,7 +17,7 @@ impl Deref for GdnResponseMock {
 }
 
 impl GdnResponseMock {
-    pub(crate) fn mock(sdl: &str) -> GdnResponseMock {
+    pub fn mock(sdl: &str) -> GdnResponseMock {
         GdnResponseMock(GdnResponse {
             account_id: Ulid::from_str("01HR7NP3A4NDVWC10PZW6ZMC5P").unwrap(),
             graph_id: Ulid::from_str("01HR7NPB8E3YW29S5PPSY1AQKR").unwrap(),
@@ -27,7 +28,7 @@ impl GdnResponseMock {
         })
     }
 
-    pub(crate) fn as_json(&self) -> serde_json::Value {
+    pub fn as_json(&self) -> serde_json::Value {
         serde_json::to_value(self).unwrap()
     }
 }

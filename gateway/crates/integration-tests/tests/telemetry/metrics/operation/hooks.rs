@@ -8,10 +8,7 @@ fn on_gateway_request_success() {
     "#};
 
     with_custom_gateway(config, |service_name, _, gateway, clickhouse| async move {
-        let resp = gateway
-            .gql::<serde_json::Value>("query SimpleQuery { __typename }")
-            .send()
-            .await;
+        let resp = gateway.execute("query SimpleQuery { __typename }").await.into_body();
 
         insta::assert_json_snapshot!(resp, @r###"
             {
@@ -58,10 +55,7 @@ fn on_gateway_request_host_error() {
     "#};
 
     with_custom_gateway(config, |service_name, _, gateway, clickhouse| async move {
-        let resp = gateway
-            .gql::<serde_json::Value>("query SimpleQuery { __typename }")
-            .send()
-            .await;
+        let resp = gateway.execute("query SimpleQuery { __typename }").await.into_body();
 
         insta::assert_json_snapshot!(resp, @r###"
             {
@@ -113,10 +107,7 @@ fn on_gateway_request_guest_error() {
     "#};
 
     with_custom_gateway(config, |service_name, _, gateway, clickhouse| async move {
-        let resp = gateway
-            .gql::<serde_json::Value>("query SimpleQuery { __typename }")
-            .send()
-            .await;
+        let resp = gateway.execute("query SimpleQuery { __typename }").await.into_body();
 
         insta::assert_json_snapshot!(resp, @r###"
             {

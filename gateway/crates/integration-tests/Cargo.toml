@@ -1,0 +1,42 @@
+[package]
+name = "gateway-integration-tests"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+homepage.workspace = true
+keywords.workspace = true
+repository.workspace = true
+publish = false
+
+[dependencies]
+clickhouse = { version = "0.12" }
+ctor.workspace = true
+duct = "0.13.7"
+http.workspace = true
+federated-server.workspace = true
+fslock = "0.2.1"
+futures-lite = "2"
+reqwest.workspace = true
+rustls = { workspace = true, features = ["ring"] }
+serde.workspace = true
+serde_json.workspace = true
+tempfile = "3.10.1"
+tokio.workspace = true
+ulid.workspace = true
+
+[dev-dependencies]
+async-graphql-parser.workspace = true
+futures-util.workspace = true
+grafbase-graphql-introspection.workspace = true
+graphql-composition.workspace = true
+graphql-mocks.workspace = true
+handlebars.workspace = true
+indoc = "2.0.5"
+insta = { workspace = true, features = ["json", "redactions", "yaml"] }
+rand = "0.8.5"
+serde_with.workspace = true
+wiremock.workspace = true
+
+
+[lints]
+workspace = true

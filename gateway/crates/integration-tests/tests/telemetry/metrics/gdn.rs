@@ -1,9 +1,11 @@
+use gateway_integration_tests::clickhouse_client;
+use indoc::formatdoc;
+
 use crate::{
-    clickhouse_client, load_schema,
+    load_schema,
     telemetry::metrics::{ExponentialHistogramRow, METRICS_DELAY},
     with_hybrid_server,
 };
-use indoc::formatdoc;
 
 #[test]
 fn gdn_update() {
@@ -32,10 +34,7 @@ fn gdn_update() {
     "#};
 
     with_hybrid_server(config, "test_graph", &schema, |client, _, addr| async move {
-        let resp = client
-            .gql::<serde_json::Value>("query SimpleQuery { __typename }")
-            .send()
-            .await;
+        let resp = client.execute("query SimpleQuery { __typename }").await.into_body();
 
         insta::assert_json_snapshot!(resp, @r###"
             {

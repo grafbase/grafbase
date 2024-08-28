@@ -1,16 +1,17 @@
 use std::{
     collections::BTreeMap,
+    future::Future,
     sync::Arc,
     time::{Duration, UNIX_EPOCH},
 };
 
-use futures_util::Future;
+use gateway_integration_tests::clickhouse_client;
 use handlebars::Handlebars;
 use indoc::formatdoc;
 use serde::{Deserialize, Serialize};
 use wiremock::{matchers::method, Mock, ResponseTemplate};
 
-use crate::{clickhouse_client, load_schema, runtime, with_static_server, Client};
+use crate::{load_schema, runtime, with_static_server, Client};
 
 mod gdn;
 mod operation;
