@@ -1,0 +1,22 @@
+{
+  "src → target": [
+    {
+      "path": "",
+      "kind": "AddSchemaDefinition",
+      "span": {
+        "start": 57,
+        "end": 104
+      }
+    }
+  ],
+  "target → src": [
+    {
+      "path": "",
+      "kind": "RemoveSchemaDefinition",
+      "span": {
+        "start": 0,
+        "end": 0
+      }
+    }
+  ]
+}

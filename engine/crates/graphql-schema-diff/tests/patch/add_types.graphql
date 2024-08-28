@@ -4,20 +4,28 @@ type Query {
 
 # --- #
 
-input TheInputType {
-  enumField: TheEnum
+scalar ISBN @domain
+
+interface TestInterface {
+  theory: String
 }
 
 enum TheEnum {
   YEA
-  NAY
+  NAY @default
 }
+
+input TheInputType {
+  enumField: TheEnum
+}
+
+type TheObjectType implements TestInterface
+@domain {
+  theory: String
+}
+
+directive @domain on ENUM_VALUE
 
 type Query {
   hi: String!
-  test(in: TheInputType): TheObjectType
-}
-
-type TheObjectType {
-  theory: String
 }

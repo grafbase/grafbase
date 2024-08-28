@@ -13,11 +13,6 @@ type Myutation {
 
 # --- #
 
-schema {
-  query: Kwery
-  mutation: Myutation
-}
-
 type Kwery {
   ping: Pong
 }
@@ -27,7 +22,13 @@ enum Pong {
   NO
 }
 
+schema {
+  query: Kwery
+  mutation: Myutation
+}
+
 type Myutation {
   recordScore(score: Int): Boolean
 }
+
 
