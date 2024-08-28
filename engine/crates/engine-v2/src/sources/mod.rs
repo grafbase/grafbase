@@ -112,7 +112,7 @@ impl Resolver {
         // This cannot be kept in the future, it locks the whole the response to have this view.
         // So an executor is expected to prepare whatever it required from the response before
         // awaiting anything.
-        root_response_objects: ResponseObjectsView<'fut>,
+        root_response_objects: ResponseObjectsView<'_>,
         subgraph_response: SubgraphResponse,
     ) -> impl Future<Output = ExecutionFutureResult> + Send + 'fut
     where
@@ -140,6 +140,7 @@ impl Resolver {
             }
             Resolver::FederationEntity(prepared) => {
                 let hooks = ctx.hooks();
+                let request = prepared.prepare_request(ctx, plan, root_response_objects, subgraph_response);
 
                 async move {
                     let endpoint = prepared.endpoint(ctx);
@@ -147,9 +148,10 @@ impl Resolver {
                     let mut request_info =
                         ExecutedSubgraphRequest::builder(endpoint.subgraph_name(), "POST", endpoint.url().as_str());
 
-                    let result = prepared
-                        .execute(ctx, plan, root_response_objects, subgraph_response, &mut request_info)
-                        .await;
+                    let result = match request {
+                        Ok(request) => request.execute(&mut request_info).await,
+                        Err(error) => Err(error),
+                    };
 
                     let hook_result = hooks.on_subgraph_response(request_info.build()).await.unwrap();
 
