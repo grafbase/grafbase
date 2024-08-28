@@ -9,7 +9,6 @@ use std::{
 };
 
 use anyhow::Context;
-use grafbase_telemetry::span::GRAFBASE_TARGET;
 use redis::ClientTlsConfig;
 
 pub type Pool = deadpool::managed::Pool<pool::Manager>;
@@ -114,7 +113,7 @@ fn new_pool(url: &str, tls_config: Option<RedisTlsConfig<'_>>) -> anyhow::Result
     let manager = match pool::Manager::new(url, tls_config) {
         Ok(manager) => manager,
         Err(e) => {
-            tracing::error!(target: GRAFBASE_TARGET, "error creating a Redis pool: {e}");
+            tracing::error!("error creating a Redis pool: {e}");
             return Err(e.into());
         }
     };
@@ -127,7 +126,7 @@ fn new_pool(url: &str, tls_config: Option<RedisTlsConfig<'_>>) -> anyhow::Result
     {
         Ok(pool) => Ok(pool),
         Err(e) => {
-            tracing::error!(target: GRAFBASE_TARGET, "error creating a Redis pool: {e}");
+            tracing::error!("error creating a Redis pool: {e}");
             Err(e.into())
         }
     }

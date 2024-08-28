@@ -6,7 +6,6 @@ use futures_util::future::BoxFuture;
 use futures_util::FutureExt;
 use gateway_config::{Config, GraphRateLimit};
 use governor::Quota;
-use grafbase_telemetry::span::GRAFBASE_TARGET;
 
 use runtime::rate_limiting::{Error, RateLimitKey, RateLimiter, RateLimiterContext};
 use tokio::sync::watch;
@@ -93,12 +92,12 @@ impl InMemoryRateLimiter {
 
 fn create_limiter(rate_limit_config: GraphRateLimit) -> Option<governor::DefaultKeyedRateLimiter<usize>> {
     let Some(quota) = (rate_limit_config.limit as u64).checked_div(rate_limit_config.duration.as_secs()) else {
-        tracing::error!(target: GRAFBASE_TARGET, "the duration for rate limit cannot be zero");
+        tracing::error!("the duration for rate limit cannot be zero");
         return None;
     };
 
     let Some(quota) = NonZeroU32::new(quota as u32) else {
-        tracing::error!(target: GRAFBASE_TARGET, "the limit is too low per defined duration");
+        tracing::error!("the limit is too low per defined duration");
         return None;
     };
 

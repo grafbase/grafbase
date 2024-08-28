@@ -43,7 +43,6 @@ impl GraphqlResolver {
         }))
     }
 
-    #[tracing::instrument(skip_all)]
     pub async fn execute<'ctx, R: Runtime>(
         &'ctx self,
         ctx: ExecutionContext<'ctx, R>,
@@ -58,7 +57,7 @@ impl GraphqlResolver {
         };
 
         tracing::debug!(
-            "Query {}\n{}\n{}",
+            "Executing request to subgraph named '{}' with query and variables:\n{}\n{}",
             endpoint.subgraph_name(),
             self.operation.query,
             serde_json::to_string_pretty(&variables).unwrap_or_default()

@@ -2,12 +2,9 @@ use std::time::{Duration, SystemTime};
 
 use futures_util::future::BoxFuture;
 use gateway_config::Config;
-use grafbase_telemetry::{
-    otel::opentelemetry::{
-        metrics::{Histogram, Meter},
-        KeyValue,
-    },
-    span::GRAFBASE_TARGET,
+use grafbase_telemetry::otel::opentelemetry::{
+    metrics::{Histogram, Meter},
+    KeyValue,
 };
 use runtime::rate_limiting::{Error, RateLimitKey, RateLimiter, RateLimiterContext};
 use tokio::sync::watch;
@@ -124,7 +121,7 @@ impl RedisRateLimiter {
         let current_ts = match now.duration_since(SystemTime::UNIX_EPOCH) {
             Ok(ts) => ts.as_nanos() as u64,
             Err(error) => {
-                tracing::error!(target: GRAFBASE_TARGET, "error with rate limit duration: {error}");
+                tracing::error!("error with rate limit duration: {error}");
                 return Err(Error::Internal(String::from("rate limit")));
             }
         };
@@ -132,7 +129,7 @@ impl RedisRateLimiter {
         let mut conn = match self.pool.get().await {
             Ok(conn) => conn,
             Err(error) => {
-                tracing::error!(target: GRAFBASE_TARGET, "error fetching a Redis connection: {error}");
+                tracing::error!("error fetching a Redis connection: {error}");
                 return Err(Error::Internal(String::from("rate limit")));
             }
         };
@@ -183,7 +180,7 @@ impl RedisRateLimiter {
             }
             Err(e) => {
                 self.record_duration(duration, RedisStatus::Error);
-                tracing::error!(target: GRAFBASE_TARGET, "error with Redis query: {e}");
+                tracing::error!("error with Redis query: {e}");
                 Err(Error::Internal(String::from("rate limit")))
             }
         }
@@ -194,7 +191,7 @@ async fn incr_counter(pool: Pool, current_bucket: String, expire: Duration) -> R
     let mut conn = match pool.get().await {
         Ok(conn) => conn,
         Err(error) => {
-            tracing::error!(target: GRAFBASE_TARGET, "error fetching a Redis connection: {error}");
+            tracing::error!("error fetching a Redis connection: {error}");
             return Err(Error::Internal(String::from("rate limit")));
         }
     };
@@ -211,7 +208,7 @@ async fn incr_counter(pool: Pool, current_bucket: String, expire: Duration) -> R
         .ignore();
 
     if let Err(e) = pipe.query_async::<_, (u64,)>(&mut *conn).await {
-        tracing::error!(target: GRAFBASE_TARGET, "error with Redis query: {e}");
+        tracing::error!("error with Redis query: {e}");
         return Err(Error::Internal(String::from("rate limit")));
     }
 

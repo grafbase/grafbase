@@ -4,7 +4,6 @@ use gateway_config::{HealthConfig, TlsConfig};
 
 use super::{state::ServerState, ServerRuntime};
 use axum::{extract::State, routing::get, Json, Router};
-use grafbase_telemetry::span::GRAFBASE_TARGET;
 use http::StatusCode;
 
 #[derive(Debug, serde::Serialize)]
@@ -35,7 +34,7 @@ pub(super) async fn bind_health_endpoint<SR: ServerRuntime>(
         .with_state(state)
         .into_make_service();
 
-    tracing::info!(target: GRAFBASE_TARGET, "Health check endpoint exposed at {scheme}://{addr}{path}");
+    tracing::info!("Health check endpoint exposed at {scheme}://{addr}{path}");
 
     match tls_config {
         Some(tls) => {

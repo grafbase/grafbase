@@ -7,10 +7,8 @@ use gateway_config::Config;
 use grafbase_telemetry::metrics::meter_from_global_provider;
 use grafbase_telemetry::otel::opentelemetry::metrics::Histogram;
 use grafbase_telemetry::otel::opentelemetry::KeyValue;
-use grafbase_telemetry::span::GRAFBASE_TARGET;
 use http::{HeaderValue, StatusCode};
 use tokio::time::MissedTickBehavior;
-use tracing::Level;
 use ulid::Ulid;
 use url::Url;
 
@@ -164,7 +162,7 @@ impl GraphUpdater {
                         duration,
                     );
 
-                    tracing::event!(target: GRAFBASE_TARGET, Level::ERROR, message = "error updating graph", error = e.to_string());
+                    tracing::error!("Failed to update graph: {e}");
                     continue;
                 }
             };
@@ -178,7 +176,7 @@ impl GraphUpdater {
                     duration,
                 );
 
-                tracing::debug!(target: GRAFBASE_TARGET, "no updates to the graph");
+                tracing::trace!("no updates to the graph");
                 continue;
             }
 
@@ -193,10 +191,10 @@ impl GraphUpdater {
 
                 match e.status() {
                     Some(StatusCode::NOT_FOUND) => {
-                        tracing::warn!(target: GRAFBASE_TARGET, "Federated schema not found. Is your graph configured as self-hosted? Did you publish at least one subgraph?");
+                        tracing::warn!("Federated schema not found. Is your graph configured as self-hosted? Did you publish at least one subgraph?");
                     }
                     _ => {
-                        tracing::event!(target: GRAFBASE_TARGET, Level::ERROR, message = "error updating graph", error = e.to_string());
+                        tracing::error!("Failed to update graph: {e}");
                     }
                 }
                 continue;
@@ -213,16 +211,12 @@ impl GraphUpdater {
                         duration,
                     );
 
-                    tracing::event!(target: GRAFBASE_TARGET, Level::ERROR, message = "error updating graph", error = e.to_string());
+                    tracing::error!("Failed to update graph: {e}");
                     continue;
                 }
             };
 
-            tracing::event!(
-                target: GRAFBASE_TARGET,
-                Level::INFO,
-                message = "Graph fetched from GDN",
-            );
+            tracing::info!("Fetched new Graph");
 
             let gateway = match super::gateway::generate(
                 response.sdl,
@@ -242,8 +236,7 @@ impl GraphUpdater {
                         duration,
                     );
 
-                    tracing::event!(target: GRAFBASE_TARGET, Level::ERROR, message = "error parsing graph", error = e.to_string());
-
+                    tracing::error!("Failed to process received graph: {e}");
                     continue;
                 }
             };

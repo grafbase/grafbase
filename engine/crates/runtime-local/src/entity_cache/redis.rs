@@ -1,6 +1,5 @@
 use deadpool::managed::Object;
 use futures_util::future::BoxFuture;
-use grafbase_telemetry::span::GRAFBASE_TARGET;
 use redis::{AsyncCommands, SetOptions};
 
 use crate::redis::{Manager, Pool};
@@ -50,7 +49,7 @@ impl RedisEntityCache {
         match self.pool.get().await {
             Ok(conn) => Ok(conn),
             Err(error) => {
-                tracing::error!(target: GRAFBASE_TARGET, "error fetching a Redis connection: {error}");
+                tracing::error!("error fetching a Redis connection: {error}");
                 anyhow::bail!("error fetching a redis connection: {error}");
             }
         }

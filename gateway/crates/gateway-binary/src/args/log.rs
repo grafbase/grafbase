@@ -2,39 +2,23 @@ use std::fmt;
 
 use clap::ValueEnum;
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
+#[derive(Default, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
 pub(crate) enum LogLevel {
-    /// Completely disables logging
+    /// Completely disables logging.
     Off,
-    /// Only errors from Grafbase libraries
+    /// Only errors.
     Error,
-    /// Warnings and errors from Grafbase libraries
+    /// Warnings and errors.
     Warn,
-    /// Info, warning and error messages from Grafbase libraries
+    /// Info, warning and error messages.
+    #[default]
     Info,
-    /// Debug, info, warning and error messages from Grafbase libraries
+    /// Debug, info, warning and error messages. Beware that debug messages will include sensitive
+    /// information like request variables, responses, etc. Do not use it in production.
     Debug,
-    /// Trace, debug, info, warning and error messages from all dependencies
+    /// Trace, debug, info, warning and error messages. Similar to debug, this will include
+    /// sensitive information and should not be used in production.
     Trace,
-}
-
-impl Default for LogLevel {
-    fn default() -> Self {
-        Self::Info
-    }
-}
-
-impl LogLevel {
-    pub(crate) fn as_filter_str(&self) -> &'static str {
-        match self {
-            LogLevel::Off => "off",
-            LogLevel::Error => "grafbase=error,off",
-            LogLevel::Warn => "grafbase=warn,off",
-            LogLevel::Info => "grafbase=info,off",
-            LogLevel::Debug => "grafbase=debug,off",
-            LogLevel::Trace => "trace",
-        }
-    }
 }
 
 impl AsRef<str> for LogLevel {
@@ -57,16 +41,30 @@ impl fmt::Display for LogLevel {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
-pub(super) enum LogStyle {
-    /// Standard text
+pub(crate) enum LogStyle {
+    /// Pretty printed logs, used as the default in the terminal
+    Pretty,
+    /// Standard text, used as the default when piping stdout to a file.
     Text,
     /// JSON objects
     Json,
 }
 
+impl Default for LogStyle {
+    fn default() -> Self {
+        let is_terminal = atty::is(atty::Stream::Stdout);
+        if is_terminal {
+            LogStyle::Pretty
+        } else {
+            LogStyle::Text
+        }
+    }
+}
+
 impl AsRef<str> for LogStyle {
     fn as_ref(&self) -> &str {
         match self {
+            LogStyle::Pretty => "pretty",
             LogStyle::Text => "text",
             LogStyle::Json => "json",
         }

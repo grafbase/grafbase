@@ -1,7 +1,6 @@
 use std::{fs, path::PathBuf, sync::OnceLock, time::Duration};
 
 use gateway_config::Config;
-use grafbase_telemetry::span::GRAFBASE_TARGET;
 use notify::{EventHandler, EventKind, PollWatcher, Watcher};
 use tokio::sync::watch;
 
@@ -41,7 +40,7 @@ impl ConfigWatcher {
         let config = match fs::read_to_string(&self.path) {
             Ok(config) => config,
             Err(e) => {
-                tracing::error!(target: GRAFBASE_TARGET, "error reading gateway config: {e}");
+                tracing::error!("error reading gateway config: {e}");
 
                 return Ok(());
             }
@@ -50,7 +49,7 @@ impl ConfigWatcher {
         let config: Config = match toml::from_str(&config) {
             Ok(config) => config,
             Err(e) => {
-                tracing::error!(target: GRAFBASE_TARGET, "error parsing gateway config: {e}");
+                tracing::error!("error parsing gateway config: {e}");
 
                 return Ok(());
             }
@@ -66,15 +65,15 @@ impl EventHandler for ConfigWatcher {
     fn handle_event(&mut self, event: notify::Result<notify::Event>) {
         match event.map(|e| e.kind) {
             Ok(EventKind::Any | EventKind::Create(_) | EventKind::Modify(_) | EventKind::Other) => {
-                tracing::debug!(target: GRAFBASE_TARGET, "reloading configuration file");
+                tracing::debug!("reloading configuration file");
 
                 if let Err(e) = self.reload_config() {
-                    tracing::error!(target: GRAFBASE_TARGET, "error reloading gateway config: {e}");
+                    tracing::error!("error reloading gateway config: {e}");
                 };
             }
             Ok(_) => (),
             Err(e) => {
-                tracing::error!(target: GRAFBASE_TARGET, "error reading gateway config: {e}");
+                tracing::error!("error reading gateway config: {e}");
             }
         }
     }

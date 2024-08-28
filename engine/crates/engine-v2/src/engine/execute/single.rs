@@ -2,7 +2,7 @@ use ::runtime::hooks::Hooks;
 use engine_parser::types::OperationType;
 use grafbase_telemetry::{
     metrics::{GraphqlErrorAttributes, GraphqlRequestMetricsAttributes, OperationMetricsAttributes},
-    span::{gql::GqlRequestSpan, GqlRecorderSpanExt, GRAFBASE_TARGET},
+    span::{gql::GqlRequestSpan, GqlRecorderSpanExt},
 };
 use tracing::Instrument;
 use web_time::Instant;
@@ -47,18 +47,6 @@ impl<R: Runtime> Engine<R> {
 
             span.record_gql_status(status);
 
-            if status.is_success() {
-                tracing::debug!(target: GRAFBASE_TARGET, "gateway request")
-            } else {
-                let message = response
-                    .errors()
-                    .first()
-                    .map(|error| error.message.clone())
-                    .unwrap_or_else(|| String::from("gateway error").into());
-
-                tracing::debug!(target: GRAFBASE_TARGET, "{message}")
-            }
-
             if let Some(attributes) = operation_metrics_attributes {
                 for error_code in response.distinct_error_codes() {
                     self.metrics.increment_graphql_errors(GraphqlErrorAttributes {
@@ -69,6 +57,8 @@ impl<R: Runtime> Engine<R> {
                 }
             }
 
+            // After recording all operation metadata
+            tracing::debug!("Executed operation");
             response
         }
         .instrument(span.clone())

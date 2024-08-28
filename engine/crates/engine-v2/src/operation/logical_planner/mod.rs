@@ -8,7 +8,6 @@ use id_derives::IndexedFields;
 use id_newtypes::{BitSet, IdToMany};
 use itertools::Itertools;
 use schema::{EntityId, FieldDefinitionId, RequiredFieldId, RequiredFieldSet, ResolverDefinitionId, Schema};
-use tracing::instrument;
 
 use crate::{
     operation::{
@@ -85,7 +84,6 @@ impl<'a> LogicalPlanner<'a> {
         }
     }
 
-    #[instrument(skip_all)]
     pub(super) fn plan(mut self) -> LogicalPlanningResult<OperationPlan> {
         tracing::trace!("Logical Planning");
         self.plan_all_fields()?;

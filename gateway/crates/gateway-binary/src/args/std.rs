@@ -9,13 +9,8 @@ use ascii::AsciiString;
 use clap::{ArgGroup, Parser};
 use federated_server::GraphFetchMethod;
 use gateway_config::Config;
-use grafbase_telemetry::{
-    config::{OtlpExporterConfig, OtlpExporterGrpcConfig, OtlpExporterProtocol},
-    otel::layer::BoxedLayer,
-};
+use grafbase_telemetry::config::{OtlpExporterConfig, OtlpExporterGrpcConfig, OtlpExporterProtocol};
 use graph_ref::GraphRef;
-use tracing::Subscriber;
-use tracing_subscriber::{registry::LookupSpan, Layer};
 
 use super::{log::LogStyle, LogLevel};
 
@@ -52,10 +47,10 @@ pub struct Args {
     #[arg(long, short, env = "GRAFBASE_SCHEMA_PATH")]
     pub schema: Option<PathBuf>,
     /// Set the logging level
-    #[arg(long = "log", env = "GRAFBASE_LOG")]
-    pub log_level: Option<LogLevel>,
+    #[arg(long = "log", env = "GRAFBASE_LOG", default_value_t = LogLevel::default())]
+    pub log_level: LogLevel,
     /// Set the style of log output
-    #[arg(long, env = "GRAFBASE_LOG_STYLE", default_value_t = LogStyle::Text)]
+    #[arg(long, env = "GRAFBASE_LOG_STYLE", default_value_t = LogStyle::default())]
     log_style: LogStyle,
     /// If set, parts of the configuration will get reloaded when changed.
     #[arg(long, action)]
@@ -129,26 +124,15 @@ impl super::Args for Args {
         Ok(config)
     }
 
-    fn log_format<S>(&self) -> BoxedLayer<S>
-    where
-        S: Subscriber + for<'span> LookupSpan<'span> + Send + Sync,
-    {
-        let layer = tracing_subscriber::fmt::layer();
-
-        match self.log_style {
-            // for interactive terminals we provide colored output
-            LogStyle::Text if atty::is(atty::Stream::Stdout) => layer.with_ansi(true).with_target(false).boxed(),
-            // for server logs, colors are off
-            LogStyle::Text => layer.with_ansi(false).with_target(false).boxed(),
-            LogStyle::Json => layer.json().boxed(),
-        }
+    fn log_style(&self) -> LogStyle {
+        self.log_style
     }
 
     fn listen_address(&self) -> Option<SocketAddr> {
         self.listen_address
     }
 
-    fn log_level(&self) -> Option<LogLevel> {
+    fn log_level(&self) -> LogLevel {
         self.log_level
     }
 }

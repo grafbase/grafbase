@@ -5,7 +5,7 @@ use futures::Future;
 use grafbase_telemetry::{
     gql_response_status::{GraphqlResponseStatus, SubgraphResponseStatus},
     otel::tracing_opentelemetry::OpenTelemetrySpanExt as _,
-    span::{GqlRecorderSpanExt, GRAFBASE_TARGET},
+    span::GqlRecorderSpanExt,
 };
 use headers::HeaderMapExt;
 use runtime::{
@@ -90,7 +90,7 @@ pub(crate) async fn execute_subgraph_request<'ctx, 'a, R: Runtime>(
         }
     };
 
-    tracing::debug!("{}", String::from_utf8_lossy(response.body()));
+    tracing::debug!("Received response:\n{}", String::from_utf8_lossy(response.body()));
     record::subgraph_response_size(ctx, endpoint, response.body().len());
 
     let status_code = response.status();
@@ -101,22 +101,13 @@ pub(crate) async fn execute_subgraph_request<'ctx, 'a, R: Runtime>(
         span.record_subgraph_status(subgraph_status);
         record::subgraph_duration(ctx, endpoint, subgraph_status, Some(status_code), duration);
 
-        tracing::error!(target: GRAFBASE_TARGET, "{err}");
+        tracing::debug!("invalid subgraph response: {err}");
     })?;
 
     let subgraph_status = SubgraphResponseStatus::GraphqlResponse(status);
 
     span.record_subgraph_status(subgraph_status);
     record::subgraph_duration(ctx, endpoint, subgraph_status, Some(status_code), duration);
-
-    match response.subgraph_errors().next().map(|e| &e.message) {
-        Some(error) => {
-            tracing::error!(target: GRAFBASE_TARGET, "{error}");
-        }
-        None => {
-            tracing::debug!(target: GRAFBASE_TARGET, "subgraph request")
-        }
-    }
 
     Ok(response)
 }

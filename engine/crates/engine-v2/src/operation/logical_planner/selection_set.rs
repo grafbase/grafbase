@@ -295,7 +295,7 @@ impl<'schema, 'a> SelectionSetLogicalPlanner<'schema, 'a> {
             let Some(candidate) = select_best_child_plan(&mut candidates) else {
                 let walker = self.walker();
                 let parent_subgraph_id = self.maybe_parent.map(|parent| parent.resolver().subgraph_id());
-                tracing::debug!(
+                tracing::error!(
                     "Could not plan fields:\n=== PARENT ===\n{:#?}\n=== CURRENT ===\n{}\n=== MISSING ===\n{}",
                     self.maybe_parent.map(|parent| parent.resolver()),
                     planned_selection_set
@@ -349,7 +349,7 @@ impl<'schema, 'a> SelectionSetLogicalPlanner<'schema, 'a> {
                 self.register_necessary_extra_fields(None, planned_selection_set, &parent_extra_requirements);
             } else {
                 let walker = self.walker();
-                tracing::debug!(
+                tracing::error!(
                     "Could not plan extra requirements:\n=== PARENT ===\n{:#?}\n=== CURRENT ===\n{}\n=== MISSING ===\nFor {}\n{:#?}",
                     self.maybe_parent.map(|parent| parent.resolver()),
                     planned_selection_set

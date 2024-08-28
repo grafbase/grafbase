@@ -41,7 +41,6 @@ pub type Result<T> = std::result::Result<T, Error>;
 /// The guest result type
 pub type GuestResult<T> = std::result::Result<T, GuestError>;
 
-use grafbase_telemetry::span::GRAFBASE_TARGET;
 use state::WasiState;
 use wasmtime::{
     component::{Component, Linker},
@@ -81,9 +80,8 @@ impl ComponentLoader {
         let this = match Component::from_file(&engine, &config.location) {
             Ok(component) => {
                 tracing::debug!(
-                    target: GRAFBASE_TARGET,
-                    message = "loaded the provided web assembly component successfully",
                     location = config.location.to_str(),
+                    "loaded the provided web assembly component successfully",
                 );
 
                 let mut linker = Linker::<WasiState>::new(&engine);
@@ -111,10 +109,8 @@ impl ComponentLoader {
             }
             Err(e) => {
                 tracing::error!(
-                    target: GRAFBASE_TARGET,
-                    message = "error loading web assembly component",
                     location = config.location.to_str(),
-                    error = e.to_string(),
+                    "error loading web assembly component: {e}",
                 );
 
                 None

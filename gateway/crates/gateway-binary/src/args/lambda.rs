@@ -8,9 +8,6 @@ use anyhow::Context;
 use clap::Parser;
 use federated_server::GraphFetchMethod;
 use gateway_config::Config;
-use grafbase_telemetry::otel::layer::BoxedLayer;
-use tracing::Subscriber;
-use tracing_subscriber::{registry::LookupSpan, Layer};
 
 use super::{log::LogStyle, LogLevel};
 
@@ -26,8 +23,8 @@ pub struct Args {
     #[arg(env = "GRAFBASE_SCHEMA_PATH", default_value = "./federated.graphql")]
     pub schema: PathBuf,
     /// Set the logging level
-    #[arg(env = "GRAFBASE_LOG")]
-    pub log_level: Option<LogLevel>,
+    #[arg(env = "GRAFBASE_LOG", default_value_t = LogLevel::default())]
+    pub log_level: LogLevel,
     /// Set the style of log output
     #[arg(env = "GRAFBASE_LOG_STYLE", default_value_t = LogStyle::Text)]
     log_style: LogStyle,
@@ -58,19 +55,8 @@ impl super::Args for Args {
         Some(&self.config)
     }
 
-    fn log_format<S>(&self) -> BoxedLayer<S>
-    where
-        S: Subscriber + for<'span> LookupSpan<'span> + Send + Sync,
-    {
-        let layer = tracing_subscriber::fmt::layer();
-
-        match self.log_style {
-            // for interactive terminals we provide colored output
-            LogStyle::Text if atty::is(atty::Stream::Stdout) => layer.with_ansi(true).with_target(false).boxed(),
-            // for server logs, colors are off
-            LogStyle::Text => layer.with_ansi(false).with_target(false).boxed(),
-            LogStyle::Json => layer.json().boxed(),
-        }
+    fn log_style(&self) -> LogStyle {
+        self.log_style
     }
 
     fn hot_reload(&self) -> bool {
@@ -81,7 +67,7 @@ impl super::Args for Args {
         None
     }
 
-    fn log_level(&self) -> Option<LogLevel> {
+    fn log_level(&self) -> LogLevel {
         self.log_level
     }
 }

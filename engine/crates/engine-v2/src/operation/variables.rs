@@ -1,5 +1,4 @@
 use schema::Schema;
-use tracing::instrument;
 
 use super::{
     bind::{bind_variables, VariableError},
@@ -49,7 +48,6 @@ where
 }
 
 impl Variables {
-    #[instrument(skip_all)]
     pub(crate) fn build(
         schema: &Schema,
         operation: &Operation,

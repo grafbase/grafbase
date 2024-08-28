@@ -7,15 +7,12 @@ use ::std::{net::SocketAddr, path::Path};
 use clap::Parser;
 use federated_server::GraphFetchMethod;
 use gateway_config::Config;
-use grafbase_telemetry::otel::layer::BoxedLayer;
-pub(crate) use log::LogLevel;
-use tracing::Subscriber;
-use tracing_subscriber::registry::LookupSpan;
+pub(crate) use log::*;
 
 pub(crate) trait Args {
     fn listen_address(&self) -> Option<SocketAddr>;
 
-    fn log_level(&self) -> Option<LogLevel>;
+    fn log_level(&self) -> LogLevel;
 
     fn fetch_method(&self) -> anyhow::Result<GraphFetchMethod>;
 
@@ -25,9 +22,7 @@ pub(crate) trait Args {
 
     fn hot_reload(&self) -> bool;
 
-    fn log_format<S>(&self) -> BoxedLayer<S>
-    where
-        S: Subscriber + for<'span> LookupSpan<'span> + Send + Sync;
+    fn log_style(&self) -> LogStyle;
 }
 
 pub(crate) fn parse() -> impl Args {

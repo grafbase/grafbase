@@ -9,7 +9,7 @@ use grafbase_telemetry::{
     gql_response_status::GraphqlResponseStatus,
     grafbase_client::Client,
     metrics::{EngineMetrics, GraphqlErrorAttributes, GraphqlRequestMetricsAttributes, OperationMetricsAttributes},
-    span::{gql::GqlRequestSpan, GqlRecorderSpanExt, GRAFBASE_TARGET},
+    span::{gql::GqlRequestSpan, GqlRecorderSpanExt},
 };
 use tracing::Instrument;
 use web_time::Instant;
@@ -42,7 +42,7 @@ impl<R: Runtime> Engine<R> {
                 let elapsed = start.elapsed();
 
                 if let Some(operation_metrics_attributes) = operation_metrics_attributes {
-                    tracing::Span::current().record_gql_request((&operation_metrics_attributes).into());
+                    span.record_gql_request((&operation_metrics_attributes).into());
 
                     engine.metrics.record_operation_duration(
                         GraphqlRequestMetricsAttributes {
@@ -56,12 +56,8 @@ impl<R: Runtime> Engine<R> {
                 }
 
                 span.record_gql_status(status);
-
-                if status.is_success() {
-                    tracing::debug!(target: GRAFBASE_TARGET, "gateway request")
-                } else {
-                    tracing::debug!(target: GRAFBASE_TARGET, "gateway error")
-                }
+                // After recording all operation metadata
+                tracing::debug!("Executed operation in stream.")
             }
             .instrument(span_clone),
         )

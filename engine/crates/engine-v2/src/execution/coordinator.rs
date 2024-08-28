@@ -8,7 +8,8 @@ use futures_util::{
     stream::{BoxStream, FuturesUnordered},
     StreamExt,
 };
-use tracing::instrument;
+use grafbase_telemetry::span::GRAFBASE_TARGET;
+use tracing::Instrument;
 
 use crate::{
     execution::{ExecutableOperation, ExecutionContext},
@@ -28,7 +29,6 @@ pub(crate) trait ResponseSender: Send {
 }
 
 impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
-    #[instrument(skip_all)]
     pub async fn execute_query_or_mutation(self, operation: ExecutableOperation) -> Response {
         let background_futures: FuturesUnordered<_> = self.background_futures.into_iter().collect();
         let background_fut = background_futures.collect::<Vec<_>>();
@@ -46,7 +46,6 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
         response
     }
 
-    #[instrument(skip_all)]
     pub async fn execute_subscription(self, operation: ExecutableOperation, responses: impl ResponseSender) {
         let background_futures: FuturesUnordered<_> = self.background_futures.into_iter().collect();
         let background_fut = background_futures.collect::<Vec<_>>();
@@ -399,6 +398,9 @@ where
         }
 
         self.futures.push_fut({
+            let span =
+                tracing::debug_span!(target: GRAFBASE_TARGET, "resolver", "plan_id" = usize::from(plan_id)).entered();
+
             let plan = self.ctx.plan_walker(plan_id);
             let subgraph_response = self.response.new_subgraph_response(
                 plan.logical_plan_id,
@@ -415,10 +417,15 @@ where
                 self.operation[plan_id]
                     .resolver
                     .execute(self.ctx, plan, root_response_objects, subgraph_response);
-            make_send_on_wasm(fut.map(move |result| ResolverFutureResult {
-                plan_id,
-                result: result.map_err(|err| (root_response_object_set, err)),
-            }))
+
+            let span = span.exit();
+            make_send_on_wasm(
+                fut.map(move |result| ResolverFutureResult {
+                    plan_id,
+                    result: result.map_err(|err| (root_response_object_set, err)),
+                })
+                .instrument(span),
+            )
             .boxed()
         });
     }

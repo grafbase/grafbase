@@ -11,14 +11,12 @@ mod trusted_documents_client;
 use grafbase_telemetry::gql_response_status::GraphqlResponseStatus;
 pub use graph_fetch_method::GraphFetchMethod;
 use tokio::sync::watch;
-use tracing::Level;
 use ulid::Ulid;
 
 use axum::{routing::get, Router};
 use axum_server as _;
 use engine_v2_axum::websocket::{WebsocketAccepter, WebsocketService};
 use gateway_config::{Config, TlsConfig};
-use grafbase_telemetry::span::GRAFBASE_TARGET;
 use state::ServerState;
 use std::{
     future::Future,
@@ -102,9 +100,7 @@ pub async fn serve(
         server_runtime.clone(),
     );
 
-    // HACK: Wait for the engine to be ready. This ensures we did reload OTEL providers if necessary
-    // as we need all resources attributes to be present before creating the tracing layer.
-    tracing::event!(target: GRAFBASE_TARGET, Level::DEBUG, "waiting for engine to be ready...");
+    tracing::debug!("Waiting for the engine to be ready...");
     gateway.changed().await.ok();
 
     let mut router = Router::new()
@@ -169,7 +165,7 @@ async fn bind(addr: SocketAddr, path: &str, router: Router<()>, tls: Option<&Tls
 
     match tls {
         Some(tls) => {
-            tracing::info!(target: GRAFBASE_TARGET, "GraphQL endpoint exposed at https://{addr}{path}");
+            tracing::info!("GraphQL endpoint exposed at https://{addr}{path}");
 
             let rustls_config = axum_server::tls_rustls::RustlsConfig::from_pem_file(&tls.certificate, &tls.key)
                 .await
@@ -182,7 +178,7 @@ async fn bind(addr: SocketAddr, path: &str, router: Router<()>, tls: Option<&Tls
                 .map_err(crate::Error::Server)?
         }
         None => {
-            tracing::info!(target: GRAFBASE_TARGET, "GraphQL endpoint exposed at http://{addr}{path}");
+            tracing::info!("GraphQL endpoint exposed at http://{addr}{path}");
             axum_server::bind(addr)
                 .handle(handle)
                 .serve(app)
@@ -200,7 +196,7 @@ async fn lambda_bind(path: &str, router: Router<()>) -> crate::Result<()> {
         .layer(axum_aws_lambda::LambdaLayer::default())
         .service(router);
 
-    tracing::info!(target: GRAFBASE_TARGET, "GraphQL endpoint exposed at {path}");
+    tracing::info!("GraphQL endpoint exposed at {path}");
     lambda_http::run(app).await.expect("cannot start lambda http server");
 
     Ok(())
@@ -227,7 +223,7 @@ async fn graceful_shutdown(handle: axum_server::Handle) {
         _ = terminate => {},
     }
 
-    tracing::info!(target: GRAFBASE_TARGET, "Shutting down gracefully...");
+    tracing::info!("Shutting down gracefully...");
     handle.graceful_shutdown(Some(std::time::Duration::from_secs(3)));
 }
 
