@@ -2,7 +2,10 @@ use bytes::Bytes;
 use futures::future::join_all;
 use grafbase_telemetry::{gql_response_status::GraphqlResponseStatus, span::subgraph::SubgraphRequestSpan};
 use http::HeaderMap;
-use runtime::bytes::OwnedOrSharedBytes;
+use runtime::{
+    bytes::OwnedOrSharedBytes,
+    hooks::{CacheStatus, ExecutedSubgraphRequest, ExecutedSubgraphRequestBuilder, ResponseKind},
+};
 use schema::sources::graphql::{FederationEntityResolveDefinitionrWalker, GraphqlEndpointId, GraphqlEndpointWalker};
 use serde::{de::DeserializeSeed, Deserialize};
 use serde_json::value::RawValue;
@@ -16,7 +19,7 @@ use crate::{
     sources::{
         graphql::{
             deserialize::{EntitiesErrorsSeed, GraphqlResponseSeed},
-            request::{SubgraphGraphqlRequest, SubgraphVariables},
+            request::{SubgraphGraphqlRequest, SubgraphRequest, SubgraphVariables},
         },
         ExecutionResult, Resolver,
     },
@@ -42,6 +45,7 @@ impl FederationEntityResolver {
     ) -> PlanningResult<Resolver> {
         let operation =
             PreparedFederationEntityOperation::build(plan).map_err(|err| format!("Failed to build query: {err}"))?;
+
         Ok(Resolver::FederationEntity(Self {
             endpoint_id: definition.endpoint().id(),
             operation,
@@ -54,6 +58,7 @@ impl FederationEntityResolver {
         plan: PlanWalker<'ctx, (), ()>,
         root_response_objects: ResponseObjectsView<'_>,
         subgraph_response: SubgraphResponse,
+        request_info: &mut ExecutedSubgraphRequestBuilder<'_>,
     ) -> ExecutionResult<impl Future<Output = ExecutionResult<SubgraphResponse>> + Send + 'fut>
     where
         'ctx: 'fut,
@@ -62,12 +67,14 @@ impl FederationEntityResolver {
             "__typename".to_string(),
             serde_json::Value::String(entity_name(ctx, plan)),
         )]);
+
         let mut representations = root_response_objects
             .iter()
             .map(|object| serde_json::value::to_raw_value(&object))
             .collect::<Result<Vec<_>, _>>()?;
 
         let endpoint = ctx.engine.schema.walk(self.endpoint_id);
+
         let span = SubgraphRequestSpan {
             name: endpoint.subgraph_name(),
             operation_type: OperationType::Query.as_str(),
@@ -82,6 +89,7 @@ impl FederationEntityResolver {
 
         let fut = {
             let span = span.clone();
+
             async move {
                 let mut ingester = EntityIngester {
                     ctx,
@@ -95,13 +103,17 @@ impl FederationEntityResolver {
                 if cache_ttl.is_some() {
                     match cache_fetches(ctx, endpoint, &headers, representations).await {
                         CacheFetchOutcome::FullyCached { cache_entries } => {
+                            request_info.set_cache_status(CacheStatus::Hit);
                             ingester.cache_entries = Some(cache_entries);
 
-                            let (_, response) = ingester
+                            let (_, mut response) = ingester
                                 .ingest(http::Response::new(
                                     Bytes::from_static(br#"{"data": {"_entities": []}}"#).into(),
                                 ))
                                 .await?;
+
+                            let subgraph_info = ctx.hooks().on_subgraph_response(request_info.build()).await?;
+                            response.as_mut().add_on_subgraph_response_data(subgraph_info);
 
                             return Ok(response);
                         }
@@ -109,11 +121,19 @@ impl FederationEntityResolver {
                             cache_entries,
                             filtered_representations,
                         } => {
+                            match cache_entries {
+                                Some(ref entries) if entries.iter().any(|e| e.is_hit()) => {
+                                    request_info.set_cache_status(CacheStatus::PartialHit)
+                                }
+                                _ => request_info.set_cache_status(CacheStatus::Miss),
+                            }
+
                             ingester.cache_entries = cache_entries;
                             representations = filtered_representations;
                         }
                     }
                 }
+
                 let variables = SubgraphVariables {
                     plan,
                     variables: &self.operation.variables,
@@ -126,29 +146,47 @@ impl FederationEntityResolver {
                     self.operation.query,
                     serde_json::to_string_pretty(&variables).unwrap_or_default()
                 );
-                let body = serde_json::to_vec(&SubgraphGraphqlRequest {
+
+                let result = serde_json::to_vec(&SubgraphGraphqlRequest {
                     query: &self.operation.query,
                     variables,
                 })
-                .map_err(|err| format!("Failed to serialize query: {err}"))?;
+                .map_err(|err| format!("Failed to serialize query: {err}"));
+
+                if let Err(error) = result {
+                    request_info.set_graphql_status(
+                        grafbase_telemetry::gql_response_status::SubgraphResponseStatus::InvalidResponseError,
+                    );
+
+                    return Err(error.into());
+                }
 
                 let retry_budget = ctx.engine.get_retry_budget_for_non_mutation(self.endpoint_id);
 
-                execute_subgraph_request(
+                let request = SubgraphRequest {
                     ctx,
-                    span.clone(),
-                    self.endpoint_id,
+                    span,
+                    endpoint_id: self.endpoint_id,
                     retry_budget,
                     headers,
-                    Bytes::from(body),
-                    ingester,
-                )
-                .await
+                    body: Bytes::from(body),
+                };
+
+                let result = execute_subgraph_request(request, &mut request_info, ingester).await;
+
+                let subgraph_info = ctx.hooks().on_subgraph_response(request_info.build()).await?;
+                ingester.add_on_subgraph_response_data(subgraph_info);
+
+                result
             }
         }
         .instrument(span);
 
         Ok(fut)
+    }
+
+    pub(crate) fn endpoint<'ctx, R: Runtime>(&self, ctx: ExecutionContext<'ctx, R>) -> GraphqlEndpointWalker<'ctx> {
+        ctx.engine.schema.walk(self.endpoint_id)
     }
 }
 
@@ -209,6 +247,10 @@ impl CacheEntry {
         matches!(self, CacheEntry::Miss { .. })
     }
 
+    pub fn is_hit(&self) -> bool {
+        matches!(self, CacheEntry::Hit { .. })
+    }
+
     pub fn as_data(&self) -> Option<&[u8]> {
         match self {
             CacheEntry::Hit { data } => Some(data),
@@ -234,7 +276,7 @@ where
 
         let status = {
             let response = subgraph_response.as_mut();
-            GraphqlResponseSeed::new(
+            let result = GraphqlResponseSeed::new(
                 EntitiesDataSeed {
                     ctx,
                     response: response.clone(),
@@ -242,7 +284,12 @@ where
                 },
                 EntitiesErrorsSeed::new(ctx, response),
             )
-            .deserialize(&mut serde_json::Deserializer::from_slice(http_response.body()))?
+            .deserialize(&mut serde_json::Deserializer::from_slice(http_response.body()));
+
+            match result {
+                Ok(status) => status,
+                Err(error) => todo!(),
+            }
         };
 
         let cache_ttl = calculate_cache_ttl(status, http_response.headers(), cache_ttl);
@@ -252,6 +299,10 @@ where
         }
 
         Ok((status, subgraph_response))
+    }
+
+    fn add_on_subgraph_response_data(&mut self, data: Vec<u8>) {
+        self.subgraph_response.as_mut().add_on_subgraph_response_data(data);
     }
 }
 

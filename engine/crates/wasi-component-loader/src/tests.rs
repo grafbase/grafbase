@@ -2,7 +2,7 @@ use std::{collections::HashMap, sync::Arc};
 
 use crate::{
     create_log_channel,
-    hooks::{response::Response, subgraph::SubgraphComponentInstance},
+    hooks::{response::SubgraphResponseInfo, subgraph::SubgraphComponentInstance},
     AuthorizationComponentInstance, ComponentLoader, Config, EdgeDefinition, ExecutedGatewayRequest,
     ExecutedHttpRequest, ExecutedSubgraphRequest, GatewayComponentInstance, GuestError, NodeDefinition, Operation,
     RecycleableComponentInstance, ResponsesComponentInstance, SharedContext,
@@ -683,7 +683,7 @@ async fn response_hooks() {
         url: String::from("https://example.com"),
         total_duration: 10,
         has_errors: false,
-        response: crate::SubgraphResponse::Responses(vec![Response {
+        response: crate::SubgraphResponse::Responses(vec![SubgraphResponseInfo {
             connection_time: 10,
             response_time: 4,
             status_code: 200,

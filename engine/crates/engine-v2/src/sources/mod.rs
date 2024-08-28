@@ -44,7 +44,8 @@
 //! executor will have a root for each product in the response.
 use futures::{future::BoxFuture, FutureExt};
 use futures_util::stream::BoxStream;
-use schema::{ResolverDefinition, ResolverDefinitionWalker};
+use runtime::hooks::ExecutedSubgraphRequestBuilder;
+use schema::{sources::graphql::GraphqlEndpointWalker, ResolverDefinition, ResolverDefinitionWalker};
 use std::future::Future;
 
 use crate::{
@@ -88,6 +89,14 @@ impl Resolver {
             }
         }
     }
+
+    pub fn endpoint<'ctx, R: Runtime>(&self, ctx: ExecutionContext<'ctx, R>) -> Option<GraphqlEndpointWalker<'ctx>> {
+        match self {
+            Resolver::GraphQL(ref prepared) => Some(prepared.endpoint(ctx)),
+            Resolver::FederationEntity(ref prepared) => Some(prepared.endpoint(ctx)),
+            Resolver::Introspection(_) => None,
+        }
+    }
 }
 
 impl Resolver {
@@ -100,14 +109,15 @@ impl Resolver {
         // awaiting anything.
         root_response_objects: ResponseObjectsView<'_>,
         subgraph_response: SubgraphResponse,
+        request_info: &mut ExecutedSubgraphRequestBuilder<'_>,
     ) -> impl Future<Output = ExecutionResult<SubgraphResponse>> + Send + 'fut
     where
         'ctx: 'fut,
     {
         let result: ExecutionResult<BoxFuture<'fut, _>> = match self {
-            Resolver::GraphQL(prepared) => Ok(prepared.execute(ctx, plan, subgraph_response).boxed()),
+            Resolver::GraphQL(prepared) => Ok(prepared.execute(ctx, plan, subgraph_response, request_info).boxed()),
             Resolver::FederationEntity(prepared) => prepared
-                .execute(ctx, plan, root_response_objects, subgraph_response)
+                .execute(ctx, plan, root_response_objects, subgraph_response, request_info)
                 .map(FutureExt::boxed),
             Resolver::Introspection(prepared) => Ok(prepared.execute(ctx, plan, subgraph_response).boxed()),
         };

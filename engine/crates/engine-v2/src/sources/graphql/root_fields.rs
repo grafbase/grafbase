@@ -2,7 +2,10 @@ use std::{borrow::Cow, time::Duration};
 
 use bytes::Bytes;
 use grafbase_telemetry::{gql_response_status::GraphqlResponseStatus, span::subgraph::SubgraphRequestSpan};
-use runtime::bytes::OwnedOrSharedBytes;
+use runtime::{
+    bytes::OwnedOrSharedBytes,
+    hooks::{ExecutedSubgraphRequest, ExecutedSubgraphRequestBuilder, ResponseInfo},
+};
 use schema::sources::graphql::{GraphqlEndpointId, RootFieldResolverDefinitionWalker};
 use serde::de::DeserializeSeed;
 use tracing::Instrument;
@@ -17,7 +20,10 @@ use crate::{
     operation::{OperationType, PlanWalker},
     response::SubgraphResponse,
     sources::{
-        graphql::{record, request::SubgraphGraphqlRequest},
+        graphql::{
+            record,
+            request::{SubgraphGraphqlRequest, SubgraphRequest},
+        },
         ExecutionContext, ExecutionResult, Resolver,
     },
     Runtime,
@@ -51,6 +57,7 @@ impl GraphqlResolver {
         mut subgraph_response: SubgraphResponse,
     ) -> ExecutionResult<SubgraphResponse> {
         let endpoint = plan.schema().walk(self.endpoint_id);
+
         let variables = SubgraphVariables::<()> {
             plan,
             variables: &self.operation.variables,
@@ -119,13 +126,20 @@ impl GraphqlResolver {
         }
         .into_span();
 
-        execute_subgraph_request(
+        let request = SubgraphRequest {
             ctx,
-            span.clone(),
-            self.endpoint_id,
+            span: span.clone(),
+            endpoint_id: self.endpoint_id,
             retry_budget,
             headers,
-            Bytes::from(body),
+            body: Bytes::from(body),
+        };
+
+        let mut info = ExecutedSubgraphRequest::builder(endpoint.subgraph_name(), "POST", endpoint.url().as_str());
+
+        execute_subgraph_request(
+            request,
+            &mut info,
             GraphqlIngester {
                 ctx,
                 subgraph_cache_ttl,

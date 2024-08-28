@@ -7,6 +7,7 @@ use reqwest::RequestBuilder;
 use reqwest_eventsource::RequestBuilderExt;
 use runtime::bytes::OwnedOrSharedBytes;
 use runtime::fetch::{FetchError, FetchRequest, FetchResult, Fetcher};
+use runtime::hooks::ResponseInfo;
 
 #[derive(Default, Clone)]
 pub struct NativeFetcher {
@@ -15,19 +16,29 @@ pub struct NativeFetcher {
 
 impl Fetcher for NativeFetcher {
     async fn fetch(&self, request: FetchRequest<'_, Bytes>) -> FetchResult<http::Response<OwnedOrSharedBytes>> {
-        let mut resp = self.client.execute(into_reqwest(request)).await.map_err(|e| {
+        let mut info = ResponseInfo::builder();
+
+        let result = self.client.execute(into_reqwest(request)).await.map_err(|e| {
             if e.is_timeout() {
                 FetchError::Timeout
             } else {
                 FetchError::AnyError(e.to_string())
             }
-        })?;
+        });
+
+        info.track_connection();
+
+        let mut resp = result?;
 
         let status = resp.status();
         let headers = std::mem::take(resp.headers_mut());
         let extensions = std::mem::take(resp.extensions_mut());
         let version = resp.version();
-        let bytes = resp.bytes().await.map_err(|e| FetchError::AnyError(e.to_string()))?;
+        let result = resp.bytes().await.map_err(|e| FetchError::AnyError(e.to_string()));
+
+        info.track_response();
+
+        let bytes = result?;
 
         // reqwest transforms the body into a stream with Into
         let mut response = http::Response::new(OwnedOrSharedBytes::Shared(bytes));
@@ -35,6 +46,8 @@ impl Fetcher for NativeFetcher {
         *response.version_mut() = version;
         *response.extensions_mut() = extensions;
         *response.headers_mut() = headers;
+
+        response.extensions_mut().insert(info.finalize(status.as_u16()));
 
         Ok(response)
     }

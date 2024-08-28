@@ -97,6 +97,7 @@ pub enum SubgraphResponseStatus {
     GraphqlResponse(GraphqlResponseStatus),
     HttpError,
     InvalidResponseError,
+    InvalidRequestError,
 }
 
 impl SubgraphResponseStatus {
@@ -105,6 +106,7 @@ impl SubgraphResponseStatus {
             SubgraphResponseStatus::GraphqlResponse(response) => response.as_str(),
             SubgraphResponseStatus::HttpError => "HTTP_ERROR",
             SubgraphResponseStatus::InvalidResponseError => "INVALID_RESPONSE",
+            SubgraphResponseStatus::InvalidRequestError => "INVALID_REQUEST",
         }
     }
 
@@ -113,6 +115,7 @@ impl SubgraphResponseStatus {
             SubgraphResponseStatus::GraphqlResponse(response) => response.is_success(),
             SubgraphResponseStatus::HttpError => false,
             SubgraphResponseStatus::InvalidResponseError => false,
+            SubgraphResponseStatus::InvalidRequestError => false,
         }
     }
 }

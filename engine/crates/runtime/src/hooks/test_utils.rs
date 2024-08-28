@@ -115,7 +115,7 @@ pub trait DynHooks: Send + Sync + 'static {
         &self,
         context: &DynHookContext,
         request: ExecutedSubgraphRequest<'_>,
-    ) -> Result<Vec<u8>, ErrorResponse> {
+    ) -> Result<Vec<u8>, PartialGraphqlError> {
         Ok(Vec::new())
     }
 
@@ -124,7 +124,7 @@ pub trait DynHooks: Send + Sync + 'static {
         context: &DynHookContext,
         operation: Operation<'_>,
         request: ExecutedGatewayRequest,
-    ) -> Result<Vec<u8>, ErrorResponse> {
+    ) -> Result<Vec<u8>, PartialGraphqlError> {
         Ok(Vec::new())
     }
 
@@ -132,7 +132,7 @@ pub trait DynHooks: Send + Sync + 'static {
         &self,
         context: &DynHookContext,
         request: ExecutedHttpRequest<'_>,
-    ) -> Result<(), ErrorResponse> {
+    ) -> Result<(), PartialGraphqlError> {
         Ok(())
     }
 }
@@ -357,7 +357,7 @@ impl ResponseHooks<DynHookContext> for DynamicHooks {
         &self,
         context: &DynHookContext,
         request: ExecutedSubgraphRequest<'_>,
-    ) -> Result<Vec<u8>, ErrorResponse> {
+    ) -> Result<Vec<u8>, PartialGraphqlError> {
         self.0.on_subgraph_response(context, request).await
     }
 
@@ -366,7 +366,7 @@ impl ResponseHooks<DynHookContext> for DynamicHooks {
         context: &DynHookContext,
         operation: Operation<'_>,
         request: ExecutedGatewayRequest,
-    ) -> Result<Vec<u8>, ErrorResponse> {
+    ) -> Result<Vec<u8>, PartialGraphqlError> {
         self.0.on_gateway_response(context, operation, request).await
     }
 
@@ -374,7 +374,7 @@ impl ResponseHooks<DynHookContext> for DynamicHooks {
         &self,
         context: &DynHookContext,
         request: ExecutedHttpRequest<'_>,
-    ) -> Result<(), ErrorResponse> {
+    ) -> Result<(), PartialGraphqlError> {
         self.0.on_http_response(context, request).await
     }
 }

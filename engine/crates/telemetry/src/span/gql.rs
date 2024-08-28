@@ -68,7 +68,9 @@ impl GqlRecorderSpanExt for Span {
             SubgraphResponseStatus::GraphqlResponse(status) => {
                 self.record_gql_response(GqlResponseAttributes { status })
             }
-            SubgraphResponseStatus::HttpError | SubgraphResponseStatus::InvalidResponseError => {
+            SubgraphResponseStatus::HttpError
+            | SubgraphResponseStatus::InvalidResponseError
+            | SubgraphResponseStatus::InvalidRequestError => {
                 self.record("gql.response.status", attributes.status.as_str());
             }
         }

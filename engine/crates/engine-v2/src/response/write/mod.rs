@@ -354,6 +354,7 @@ pub(crate) struct SubgraphResponse {
     updates: Vec<UpdateSlot>,
     tracked_response_object_set_ids: IdRange<ResponseObjectSetId>,
     tracked_response_object_sets: Vec<ResponseObjectSet>,
+    on_subgraph_response_data: Vec<u8>,
 }
 
 impl SubgraphResponse {
@@ -374,6 +375,7 @@ impl SubgraphResponse {
                 .into_iter()
                 .map(|_| (Vec::new()))
                 .collect(),
+            on_subgraph_response_data: Vec::new(),
         }
     }
 
@@ -438,6 +440,10 @@ impl<'resp> SubgraphResponseRefMut<'resp> {
 
     pub fn push_errors(&self, errors: Vec<GraphqlError>) {
         self.inner.borrow_mut().errors.extend(errors);
+    }
+
+    pub fn add_on_subgraph_response_data(&self, data: Vec<u8>) {
+        self.inner.borrow_mut().on_subgraph_response_data = data;
     }
 }
 

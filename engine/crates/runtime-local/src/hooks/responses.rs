@@ -16,7 +16,7 @@ impl ResponseHooks<Context> for HooksWasi {
         &self,
         context: &Context,
         request: runtime::hooks::ExecutedSubgraphRequest<'_>,
-    ) -> Result<Vec<u8>, ErrorResponse> {
+    ) -> Result<Vec<u8>, PartialGraphqlError> {
         let Some(ref inner) = self.0 else {
             return Ok(Vec::new());
         };
@@ -60,12 +60,9 @@ impl ResponseHooks<Context> for HooksWasi {
                 hook.on_subgraph_response(inner.shared_context(context), request),
             )
             .await
-            .map_err(|err| match err {
-                wasi_component_loader::Error::Internal(err) => {
-                    tracing::error!("on_subgraph_response error: {err}");
-                    PartialGraphqlError::internal_hook_error().into()
-                }
-                wasi_component_loader::Error::Guest(err) => guest_error_as_gql(err, PartialErrorCode::HookError).into(),
+            .map_err(|err| {
+                tracing::error!("on_subgraph_response error: {err}");
+                PartialGraphqlError::internal_hook_error()
             })
     }
 
@@ -74,7 +71,7 @@ impl ResponseHooks<Context> for HooksWasi {
         context: &Context,
         operation: runtime::hooks::Operation<'_>,
         request: runtime::hooks::ExecutedGatewayRequest,
-    ) -> Result<Vec<u8>, ErrorResponse> {
+    ) -> Result<Vec<u8>, PartialGraphqlError> {
         let Some(ref inner) = self.0 else {
             return Ok(Vec::new());
         };
@@ -126,12 +123,9 @@ impl ResponseHooks<Context> for HooksWasi {
                 hook.on_gateway_response(inner.shared_context(context), operation, request),
             )
             .await
-            .map_err(|err| match err {
-                wasi_component_loader::Error::Internal(err) => {
-                    tracing::error!("on_gateway_response error: {err}");
-                    PartialGraphqlError::internal_hook_error().into()
-                }
-                wasi_component_loader::Error::Guest(err) => guest_error_as_gql(err, PartialErrorCode::HookError).into(),
+            .map_err(|err| {
+                tracing::error!("on_gateway_response error: {err}");
+                PartialGraphqlError::internal_hook_error()
             })
     }
 
@@ -139,7 +133,7 @@ impl ResponseHooks<Context> for HooksWasi {
         &self,
         context: &Context,
         request: runtime::hooks::ExecutedHttpRequest<'_>,
-    ) -> Result<(), ErrorResponse> {
+    ) -> Result<(), PartialGraphqlError> {
         let Some(ref inner) = self.0 else {
             return Ok(());
         };
@@ -166,12 +160,9 @@ impl ResponseHooks<Context> for HooksWasi {
                 hook.on_http_response(inner.shared_context(context), request),
             )
             .await
-            .map_err(|err| match err {
-                wasi_component_loader::Error::Internal(err) => {
-                    tracing::error!("on_http_response error: {err}");
-                    PartialGraphqlError::internal_hook_error().into()
-                }
-                wasi_component_loader::Error::Guest(err) => guest_error_as_gql(err, PartialErrorCode::HookError).into(),
+            .map_err(|err| {
+                tracing::error!("on_http_response error: {err}");
+                PartialGraphqlError::internal_hook_error()
             })
     }
 }

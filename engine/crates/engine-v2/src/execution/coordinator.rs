@@ -8,6 +8,7 @@ use futures_util::{
     stream::{BoxStream, FuturesUnordered},
     StreamExt,
 };
+use runtime::hooks::{ExecutedSubgraphRequest, ExecutedSubgraphRequestBuilder};
 use tracing::instrument;
 
 use crate::{
@@ -411,15 +412,45 @@ where
                 Arc::clone(&root_response_object_set),
                 self.operation[plan_id].requires,
             );
-            let fut =
-                self.operation[plan_id]
-                    .resolver
-                    .execute(self.ctx, plan, root_response_objects, subgraph_response);
-            make_send_on_wasm(fut.map(move |result| ResolverFutureResult {
-                plan_id,
-                result: result.map_err(|err| (root_response_object_set, err)),
-            }))
-            .boxed()
+
+            let resolver = &self.operation[plan_id].resolver;
+            let mut request_info = match resolver.endpoint(self.ctx) {
+                Some(endpoint) => {
+                    ExecutedSubgraphRequest::builder(endpoint.subgraph_name(), "POST", endpoint.url().as_str())
+                }
+                None => ExecutedSubgraphRequest::builder("introspection", "POST", ""),
+            };
+
+            let fut = resolver.execute(
+                self.ctx,
+                plan,
+                root_response_objects,
+                subgraph_response,
+                &mut request_info,
+            );
+
+            let hooks = self.hooks();
+            let fut = async move {
+                let result = fut.await;
+
+                match hooks.on_subgraph_response(request_info.build()).await {
+                    Ok(on_subgraph_response_hook_result) => ResolverFutureResult {
+                        plan_id,
+                        result: result.map_err(|err| (root_response_object_set, err)),
+                        on_subgraph_result_hook_result: Some(on_subgraph_response_hook_result),
+                    },
+                    Err(error) => ResolverFutureResult {
+                        plan_id,
+                        result: Err((
+                            root_response_object_set,
+                            ExecutionError::Internal(error.to_string().into()),
+                        )),
+                        on_subgraph_result_hook_result: None,
+                    },
+                }
+            };
+
+            make_send_on_wasm(fut).boxed()
         });
     }
 }
@@ -451,4 +482,5 @@ impl<'exec> ResolverFutureSet<'exec> {
 struct ResolverFutureResult {
     plan_id: ExecutionPlanId,
     result: Result<SubgraphResponse, (Arc<InputdResponseObjectSet>, ExecutionError)>,
+    on_subgraph_result_hook_result: Option<Vec<u8>>,
 }

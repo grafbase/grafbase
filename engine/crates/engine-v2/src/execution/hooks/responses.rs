@@ -26,10 +26,16 @@ impl<'ctx, H: Hooks> super::RequestHooks<'ctx, H> {
         self.hooks
             .responses()
             .on_gateway_response(self.context, operation, request)
+            .await
+            .map_err(Into::into)
     }
 
     #[instrument(skip_all, ret(level = Level::DEBUG))]
     pub async fn on_http_response(&self, request: ExecutedHttpRequest<'_>) -> Result<(), GraphqlError> {
-        self.hooks.responses().on_http_response(self.context, request)
+        self.hooks
+            .responses()
+            .on_http_response(self.context, request)
+            .await
+            .map_err(Into::into)
     }
 }
