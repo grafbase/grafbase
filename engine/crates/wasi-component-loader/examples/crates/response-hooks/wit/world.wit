@@ -17,7 +17,7 @@ interface types {
         // The channel is closed.
         channel-closed,
     }
-
+    
     // A context object is available in all hooks during the whole request
     // lifecycle. It can be used to store custom data in one hook and make it
     // available in the hooks executed later in the request.
@@ -38,7 +38,6 @@ interface types {
     resource shared-context {
         // Fetches a context value with the given name, if existing.
         get: func(name: string) -> option<string>;
-
         // Sends the data to the access log.
         log-access: func(data: list<u8>) -> result<_, log-error>;
     }
@@ -138,13 +137,10 @@ interface types {
         status-code: u16
     }
 
-    // A variant of a subgraph response.
-    variant subgraph-response {
-        // Response info for non-cached subgraph request. If more than
-        // one items, the request was retried.
-        responses(list<response-info>),
-        // The response was taken from the cache.
-        cached
+    enum cache-status {
+        hit,
+        partial-hit,
+        miss,
     }
 
     // Info about an executed subgraph request.
@@ -159,7 +155,9 @@ interface types {
         url: string,
        
         // The subgraph response info
-        response: subgraph-response,
+        response-infos: list<response-info>,
+
+        cache-status: cache-status,
 
         // The time in milliseconds taken for the whole operation.
         total-duration: u64,

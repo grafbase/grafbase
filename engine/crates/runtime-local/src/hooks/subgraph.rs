@@ -27,7 +27,7 @@ impl SubgraphHooks<Context> for HooksWasi {
         inner
             .run_and_measure(
                 "on-subgraph-request",
-                hook.on_subgraph_request(context.clone(), subgraph_name, method, url, headers),
+                hook.on_subgraph_request(inner.shared_context(context), subgraph_name, method, url, headers),
             )
             .await
             .map_err(|err| match err {

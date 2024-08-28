@@ -6,6 +6,14 @@ interface types {
         invalid-header-name,
     }
 
+    // Error variant sent if failing to write to access log.
+    variant log-error {
+        // The log channel is over capacity. The data is returned to the caller.
+        channel-full(list<u8>),
+        // The channel is closed.
+        channel-closed,
+    }
+
     resource context {
         get: func(name: string) -> option<string>;
         set: func(name: string, value: string);
@@ -14,6 +22,8 @@ interface types {
 
     resource shared-context {
         get: func(name: string) -> option<string>;
+        // Sends the data to the access log.
+        log-access: func(data: list<u8>) -> result<_, log-error>;
     }
 
     resource headers {

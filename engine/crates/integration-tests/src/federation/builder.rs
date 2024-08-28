@@ -205,7 +205,12 @@ fn update_runtime_with_toml_config(runtime: &mut TestRuntime, config: &gateway_c
             .expect("Wasm examples weren't built, please run:\ncd engine/crates/wasi-component-loader/examples && cargo component build");
 
         let meter = meter_from_global_provider();
-        runtime.hooks = DynamicHooks::wrap(HooksWasi::new(Some(loader), &meter));
+        runtime.hooks = DynamicHooks::wrap(HooksWasi::new(
+            Some(loader),
+            &meter,
+            runtime.access_log_sender.clone(),
+            false,
+        ));
     }
 }
 

@@ -10,6 +10,14 @@ interface types {
         invalid-header-name,
     }
 
+    // Error variant sent if failing to write to access log.
+    variant log-error {
+        // The log channel is over capacity. The data is returned to the caller.
+        channel-full(list<u8>),
+        // The channel is closed.
+        channel-closed,
+    }
+
     // A context object is available in all hooks during the whole request
     // lifecycle. It can be used to store custom data in one hook and make it
     // available in the hooks executed later in the request.
@@ -30,6 +38,9 @@ interface types {
     resource shared-context {
         // Fetches a context value with the given name, if existing.
         get: func(name: string) -> option<string>;
+
+        // Sends the data to the access log.
+        log-access: func(data: list<u8>) -> result<_, log-error>;
     }
 
     // Provides access to the request headers. Available in a mutable form

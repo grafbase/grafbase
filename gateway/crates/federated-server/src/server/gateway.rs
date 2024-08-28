@@ -2,6 +2,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 use runtime::entity_cache::EntityCache;
+use runtime_local::hooks::create_log_channel;
 use runtime_local::rate_limiting::in_memory::key_based::InMemoryRateLimiter;
 use runtime_local::rate_limiting::redis::RedisRateLimiter;
 use runtime_local::redis::{RedisPoolFactory, RedisTlsConfig};
@@ -123,11 +124,14 @@ pub(super) async fn generate(
         .map_err(|e| crate::Error::InternalError(e.to_string()))?
         .flatten();
 
+    // TODO:
+    let (access_log_sender, _) = create_log_channel();
+
     let runtime = GatewayRuntime {
         fetcher: NativeFetcher::default(),
         kv: InMemoryKvStore::runtime(),
         trusted_documents,
-        hooks: HooksWasi::new(hooks, &meter),
+        hooks: HooksWasi::new(hooks, &meter, access_log_sender, false),
         meter,
         rate_limiter,
         entity_cache,
