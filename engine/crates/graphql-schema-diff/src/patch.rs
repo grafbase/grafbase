@@ -6,6 +6,8 @@ mod type_definitions;
 use self::paths::Paths;
 use crate::{Change, ChangeKind};
 
+const INDENTATION: &str = "  ";
+
 /// Apply a diff to a source schema. The spans in the diff from the original target schema must have been resolved by [resolve_spans()] and not sorted.
 pub fn patch<S>(source: &str, diff: &[Change], resolved_spans: &[S]) -> Result<PatchedSchema, cynic_parser::Error>
 where

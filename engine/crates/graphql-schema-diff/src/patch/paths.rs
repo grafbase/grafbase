@@ -40,6 +40,13 @@ where
             .map(|(_, idx)| ChangeView { paths: self, idx: *idx })
     }
 
+    pub(super) fn iter_second_level<'b: 'a>(&'b self, parent: &'b str) -> impl Iterator<Item = ChangeView<'a, T>> + 'b {
+        self.paths
+            .iter()
+            .filter(move |(change, _)| change[0] == parent && !change[1].is_empty() && change[2].is_empty())
+            .map(|(_, idx)| ChangeView { paths: self, idx: *idx })
+    }
+
     pub(super) fn iter_exact<'b: 'a>(&'b self, path: [&'b str; 3]) -> impl Iterator<Item = ChangeView<'a, T>> + 'b {
         let first = self.paths.partition_point(|(diff_path, _)| diff_path < &path);
         self.paths[first..]
@@ -65,20 +72,39 @@ where
     idx: usize,
 }
 
+impl<'a, T: AsRef<str>> Clone for ChangeView<'a, T> {
+    fn clone(&self) -> Self {
+        ChangeView {
+            paths: self.paths,
+            idx: self.idx,
+        }
+    }
+}
+
+impl<'a, T: AsRef<str>> Copy for ChangeView<'a, T> {}
+
 impl<'a, T> ChangeView<'a, T>
 where
     T: AsRef<str>,
 {
-    pub(crate) fn kind(&self) -> ChangeKind {
+    pub(crate) fn kind(self) -> ChangeKind {
         self.paths.diff[self.idx].kind
     }
 
-    pub(crate) fn resolved_str(&self) -> &'a str {
+    pub(crate) fn resolved_str(self) -> &'a str {
         self.paths.resolved_spans[self.idx].as_ref()
     }
 
-    pub(crate) fn path(&self) -> &'a str {
+    pub(crate) fn path(self) -> &'a str {
         &self.paths.diff[self.idx].path
+    }
+
+    /// The second part of the path. E.g. "foo.bar" -> "bar".
+    pub(crate) fn second_level(self) -> Option<&'a str>
+    where
+        T: AsRef<str>,
+    {
+        Some(split_path(&self.paths.diff[self.idx].path)[1]).filter(|s| !s.is_empty())
     }
 }
 

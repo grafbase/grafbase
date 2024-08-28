@@ -1,0 +1,52 @@
+type Fruit implements Foo @froot @key(fields: "id") {
+  id: ID! @pk
+  kcal: Int!
+  name: String!
+}
+
+interface Food implements Node @nestedInterface {
+  kcal: Int!
+}
+
+input FruitCreateInput {
+  name: String!
+  kcal: Int
+}
+
+interface Node {
+  id: ID!
+}
+
+type Query {
+  fruitCreate(input: FruitCreateInput! = {kcal: 46}, dryRun: Boolean): Fruit
+}
+
+# --- #
+
+type Fruit implements Foo @froot @key(fields: "id") {
+  fibers: Int
+  id: ID! @pk
+  kcal: Int!
+  name: String!
+}
+
+interface Food implements Node @nestedInterface {
+  fibers: Int @important
+  id: ID!
+  kcal: Int!
+}
+
+input FruitCreateInput {
+  fibers: Int
+  name: String!
+  kcal: Int
+}
+
+interface Node {
+  id: ID!
+}
+
+type Query {
+  fruitDelete(id: ID!): Boolean
+  fruitCreate(input: FruitCreateInput! = {kcal: 46}, dryRun: Boolean): Fruit
+}
