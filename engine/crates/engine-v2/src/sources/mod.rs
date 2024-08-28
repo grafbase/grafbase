@@ -42,9 +42,9 @@
 //!
 //! The executor for the catalog plan would have a single response object root and the price plan
 //! executor will have a root for each product in the response.
-use futures::{future::BoxFuture, FutureExt};
+use futures::FutureExt;
 use futures_util::stream::BoxStream;
-use runtime::hooks::ExecutedSubgraphRequestBuilder;
+use runtime::hooks::ExecutedSubgraphRequest;
 use schema::{sources::graphql::GraphqlEndpointWalker, ResolverDefinition, ResolverDefinitionWalker};
 use std::future::Future;
 
@@ -99,6 +99,11 @@ impl Resolver {
     }
 }
 
+pub struct ExecutionFutureResult {
+    pub result: ExecutionResult<SubgraphResponse>,
+    pub on_subgraph_response_hook_result: Option<Vec<u8>>,
+}
+
 impl Resolver {
     pub fn execute<'ctx, 'fut, R: Runtime>(
         &'ctx self,
@@ -107,26 +112,63 @@ impl Resolver {
         // This cannot be kept in the future, it locks the whole the response to have this view.
         // So an executor is expected to prepare whatever it required from the response before
         // awaiting anything.
-        root_response_objects: ResponseObjectsView<'_>,
+        root_response_objects: ResponseObjectsView<'fut>,
         subgraph_response: SubgraphResponse,
-        request_info: &mut ExecutedSubgraphRequestBuilder<'_>,
-    ) -> impl Future<Output = ExecutionResult<SubgraphResponse>> + Send + 'fut
+    ) -> impl Future<Output = ExecutionFutureResult> + Send + 'fut
     where
         'ctx: 'fut,
     {
-        let result: ExecutionResult<BoxFuture<'fut, _>> = match self {
-            Resolver::GraphQL(prepared) => Ok(prepared.execute(ctx, plan, subgraph_response, request_info).boxed()),
-            Resolver::FederationEntity(prepared) => prepared
-                .execute(ctx, plan, root_response_objects, subgraph_response, request_info)
-                .map(FutureExt::boxed),
-            Resolver::Introspection(prepared) => Ok(prepared.execute(ctx, plan, subgraph_response).boxed()),
-        };
+        match self {
+            Resolver::GraphQL(prepared) => {
+                let hooks = ctx.hooks();
 
-        async {
-            match result {
-                Ok(future) => future.await,
-                Err(err) => Err(err),
+                async move {
+                    let endpoint = prepared.endpoint(ctx);
+
+                    let mut request_info =
+                        ExecutedSubgraphRequest::builder(endpoint.subgraph_name(), "POST", endpoint.url().as_str());
+
+                    let result = prepared.execute(ctx, plan, subgraph_response, &mut request_info).await;
+                    let hook_result = hooks.on_subgraph_response(request_info.build()).await.unwrap();
+
+                    ExecutionFutureResult {
+                        result,
+                        on_subgraph_response_hook_result: Some(hook_result),
+                    }
+                }
+                .boxed()
             }
+            Resolver::FederationEntity(prepared) => {
+                let hooks = ctx.hooks();
+
+                async move {
+                    let endpoint = prepared.endpoint(ctx);
+
+                    let mut request_info =
+                        ExecutedSubgraphRequest::builder(endpoint.subgraph_name(), "POST", endpoint.url().as_str());
+
+                    let result = prepared
+                        .execute(ctx, plan, root_response_objects, subgraph_response, &mut request_info)
+                        .await;
+
+                    let hook_result = hooks.on_subgraph_response(request_info.build()).await.unwrap();
+
+                    ExecutionFutureResult {
+                        result,
+                        on_subgraph_response_hook_result: Some(hook_result),
+                    }
+                }
+                .boxed()
+            }
+            Resolver::Introspection(prepared) => async move {
+                let result = prepared.execute(ctx, plan, subgraph_response).await;
+
+                ExecutionFutureResult {
+                    result,
+                    on_subgraph_response_hook_result: None,
+                }
+            }
+            .boxed(),
         }
     }
 

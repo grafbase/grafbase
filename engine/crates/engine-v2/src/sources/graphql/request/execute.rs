@@ -30,8 +30,6 @@ pub trait ResponseIngester: Send {
         self,
         bytes: http::Response<OwnedOrSharedBytes>,
     ) -> impl Future<Output = Result<(GraphqlResponseStatus, SubgraphResponse), ExecutionError>> + Send;
-
-    fn add_on_subgraph_response_data(&mut self, data: Vec<u8>) {}
 }
 
 pub(crate) struct SubgraphRequest<'ctx, 'a, R: Runtime> {
@@ -58,7 +56,7 @@ pub(crate) async fn execute_subgraph_request<'ctx, 'a, R: Runtime>(
     let endpoint = ctx.schema().walk(endpoint_id);
 
     let request = {
-        let headers = ctx
+        let mut headers = ctx
             .hooks()
             .on_subgraph_request(endpoint.subgraph_name(), http::Method::POST, endpoint.url(), headers)
             .await
@@ -97,7 +95,7 @@ pub(crate) async fn execute_subgraph_request<'ctx, 'a, R: Runtime>(
         Err(e) => {
             let status = SubgraphResponseStatus::HttpError;
 
-            request_info.set_graphql_status(subgraph_status);
+            request_info.set_graphql_status(status);
             record::subgraph_duration(ctx, endpoint, status, None, duration);
 
             return Err(e);

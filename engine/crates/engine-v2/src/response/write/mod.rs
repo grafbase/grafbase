@@ -50,6 +50,7 @@ pub(crate) struct ResponseBuilder {
     pub(super) root: Option<(ResponseObjectId, ObjectDefinitionId)>,
     parts: Vec<ResponseDataPart>,
     errors: Vec<GraphqlError>,
+    on_subgraph_response_results: Vec<Vec<u8>>,
 }
 
 // Only supporting additions for the current graph. Deletion are... tricky
@@ -64,11 +65,14 @@ impl ResponseBuilder {
             objects: Vec::new(),
             lists: Vec::new(),
         };
+
         let root_id = initial_part.push_object(ResponseObject::default());
+
         Self {
             root: Some((root_id, root_object_id)),
             parts: vec![initial_part],
             errors: Vec::new(),
+            on_subgraph_response_results: Vec::new(),
         }
     }
 
@@ -83,6 +87,10 @@ impl ResponseBuilder {
             self.propagate_error(path);
         }
         self.errors.push(error);
+    }
+
+    pub fn push_on_subgraph_response_result(&mut self, result: Vec<u8>) {
+        self.on_subgraph_response_results.push(result);
     }
 
     pub fn new_subgraph_response(

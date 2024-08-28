@@ -4,12 +4,12 @@ use grafbase_telemetry::{gql_response_status::GraphqlResponseStatus, span::subgr
 use http::HeaderMap;
 use runtime::{
     bytes::OwnedOrSharedBytes,
-    hooks::{CacheStatus, ExecutedSubgraphRequest, ExecutedSubgraphRequestBuilder, ResponseKind},
+    hooks::{CacheStatus, ExecutedSubgraphRequestBuilder},
 };
 use schema::sources::graphql::{FederationEntityResolveDefinitionrWalker, GraphqlEndpointId, GraphqlEndpointWalker};
 use serde::{de::DeserializeSeed, Deserialize};
 use serde_json::value::RawValue;
-use std::{borrow::Cow, future::Future, time::Duration};
+use std::{borrow::Cow, time::Duration};
 use tracing::Instrument;
 
 use crate::{
@@ -52,17 +52,15 @@ impl FederationEntityResolver {
         }))
     }
 
-    pub fn execute<'ctx, 'fut, R: Runtime>(
+    #[tracing::instrument(skip_all)]
+    pub async fn execute<'ctx, R: Runtime>(
         &'ctx self,
         ctx: ExecutionContext<'ctx, R>,
         plan: PlanWalker<'ctx, (), ()>,
         root_response_objects: ResponseObjectsView<'_>,
         subgraph_response: SubgraphResponse,
         request_info: &mut ExecutedSubgraphRequestBuilder<'_>,
-    ) -> ExecutionResult<impl Future<Output = ExecutionResult<SubgraphResponse>> + Send + 'fut>
-    where
-        'ctx: 'fut,
-    {
+    ) -> ExecutionResult<SubgraphResponse> {
         let root_response_objects = root_response_objects.with_extra_constant_fields(vec![(
             "__typename".to_string(),
             serde_json::Value::String(entity_name(ctx, plan)),
@@ -87,102 +85,79 @@ impl FederationEntityResolver {
 
         let cache_ttl = endpoint.entity_cache_ttl();
 
-        let fut = {
-            let span = span.clone();
+        let mut ingester = EntityIngester {
+            ctx,
+            cache_entries: None,
+            subgraph_response,
+            cache_ttl,
+        };
 
-            async move {
-                let mut ingester = EntityIngester {
-                    ctx,
-                    cache_entries: None,
-                    subgraph_response,
-                    cache_ttl,
-                };
+        let headers = ctx.subgraph_headers_with_rules(endpoint.header_rules());
 
-                let headers = ctx.subgraph_headers_with_rules(endpoint.header_rules());
+        if cache_ttl.is_some() {
+            match cache_fetches(ctx, endpoint, &headers, representations).await {
+                CacheFetchOutcome::FullyCached { cache_entries } => {
+                    request_info.set_cache_status(CacheStatus::Hit);
+                    ingester.cache_entries = Some(cache_entries);
 
-                if cache_ttl.is_some() {
-                    match cache_fetches(ctx, endpoint, &headers, representations).await {
-                        CacheFetchOutcome::FullyCached { cache_entries } => {
-                            request_info.set_cache_status(CacheStatus::Hit);
-                            ingester.cache_entries = Some(cache_entries);
+                    let (_, response) = ingester
+                        .ingest(http::Response::new(
+                            Bytes::from_static(br#"{"data": {"_entities": []}}"#).into(),
+                        ))
+                        .await?;
 
-                            let (_, mut response) = ingester
-                                .ingest(http::Response::new(
-                                    Bytes::from_static(br#"{"data": {"_entities": []}}"#).into(),
-                                ))
-                                .await?;
-
-                            let subgraph_info = ctx.hooks().on_subgraph_response(request_info.build()).await?;
-                            response.as_mut().add_on_subgraph_response_data(subgraph_info);
-
-                            return Ok(response);
+                    return Ok(response);
+                }
+                CacheFetchOutcome::Other {
+                    cache_entries,
+                    filtered_representations,
+                } => {
+                    match cache_entries {
+                        Some(ref entries) if entries.iter().any(|e| e.is_hit()) => {
+                            request_info.set_cache_status(CacheStatus::PartialHit)
                         }
-                        CacheFetchOutcome::Other {
-                            cache_entries,
-                            filtered_representations,
-                        } => {
-                            match cache_entries {
-                                Some(ref entries) if entries.iter().any(|e| e.is_hit()) => {
-                                    request_info.set_cache_status(CacheStatus::PartialHit)
-                                }
-                                _ => request_info.set_cache_status(CacheStatus::Miss),
-                            }
-
-                            ingester.cache_entries = cache_entries;
-                            representations = filtered_representations;
-                        }
+                        _ => request_info.set_cache_status(CacheStatus::Miss),
                     }
+
+                    ingester.cache_entries = cache_entries;
+                    representations = filtered_representations;
                 }
-
-                let variables = SubgraphVariables {
-                    plan,
-                    variables: &self.operation.variables,
-                    extra_variables: vec![(&self.operation.entities_variable_name, representations)],
-                };
-
-                tracing::debug!(
-                    "Query {}\n{}\n{}",
-                    endpoint.subgraph_name(),
-                    self.operation.query,
-                    serde_json::to_string_pretty(&variables).unwrap_or_default()
-                );
-
-                let result = serde_json::to_vec(&SubgraphGraphqlRequest {
-                    query: &self.operation.query,
-                    variables,
-                })
-                .map_err(|err| format!("Failed to serialize query: {err}"));
-
-                if let Err(error) = result {
-                    request_info.set_graphql_status(
-                        grafbase_telemetry::gql_response_status::SubgraphResponseStatus::InvalidResponseError,
-                    );
-
-                    return Err(error.into());
-                }
-
-                let retry_budget = ctx.engine.get_retry_budget_for_non_mutation(self.endpoint_id);
-
-                let request = SubgraphRequest {
-                    ctx,
-                    span,
-                    endpoint_id: self.endpoint_id,
-                    retry_budget,
-                    headers,
-                    body: Bytes::from(body),
-                };
-
-                let result = execute_subgraph_request(request, &mut request_info, ingester).await;
-
-                let subgraph_info = ctx.hooks().on_subgraph_response(request_info.build()).await?;
-                ingester.add_on_subgraph_response_data(subgraph_info);
-
-                result
             }
         }
-        .instrument(span);
 
-        Ok(fut)
+        let variables = SubgraphVariables {
+            plan,
+            variables: &self.operation.variables,
+            extra_variables: vec![(&self.operation.entities_variable_name, representations)],
+        };
+
+        tracing::debug!(
+            "Query {}\n{}\n{}",
+            endpoint.subgraph_name(),
+            self.operation.query,
+            serde_json::to_string_pretty(&variables).unwrap_or_default()
+        );
+
+        let body = serde_json::to_vec(&SubgraphGraphqlRequest {
+            query: &self.operation.query,
+            variables,
+        })
+        .map_err(|err| format!("Failed to serialize query: {err}"))?;
+
+        let retry_budget = ctx.engine.get_retry_budget_for_non_mutation(self.endpoint_id);
+
+        let request = SubgraphRequest {
+            ctx,
+            span: span.clone(),
+            endpoint_id: self.endpoint_id,
+            retry_budget,
+            headers,
+            body: Bytes::from(body),
+        };
+
+        execute_subgraph_request(request, request_info, ingester)
+            .instrument(span)
+            .await
     }
 
     pub(crate) fn endpoint<'ctx, R: Runtime>(&self, ctx: ExecutionContext<'ctx, R>) -> GraphqlEndpointWalker<'ctx> {
@@ -276,7 +251,7 @@ where
 
         let status = {
             let response = subgraph_response.as_mut();
-            let result = GraphqlResponseSeed::new(
+            GraphqlResponseSeed::new(
                 EntitiesDataSeed {
                     ctx,
                     response: response.clone(),
@@ -284,12 +259,7 @@ where
                 },
                 EntitiesErrorsSeed::new(ctx, response),
             )
-            .deserialize(&mut serde_json::Deserializer::from_slice(http_response.body()));
-
-            match result {
-                Ok(status) => status,
-                Err(error) => todo!(),
-            }
+            .deserialize(&mut serde_json::Deserializer::from_slice(http_response.body()))?
         };
 
         let cache_ttl = calculate_cache_ttl(status, http_response.headers(), cache_ttl);
@@ -299,10 +269,6 @@ where
         }
 
         Ok((status, subgraph_response))
-    }
-
-    fn add_on_subgraph_response_data(&mut self, data: Vec<u8>) {
-        self.subgraph_response.as_mut().add_on_subgraph_response_data(data);
     }
 }
 

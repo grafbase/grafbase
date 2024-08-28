@@ -1,7 +1,5 @@
-use http::HeaderMap;
 use runtime::hooks::{
     ExecutedGatewayRequest, ExecutedHttpRequest, ExecutedSubgraphRequest, Hooks, Operation, ResponseHooks,
-    SubgraphHooks,
 };
 use tracing::{instrument, Level};
 
