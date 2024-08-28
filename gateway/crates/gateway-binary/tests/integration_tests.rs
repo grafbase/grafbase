@@ -1,5 +1,6 @@
 #![allow(unused_crate_dependencies, clippy::panic)]
 
+mod entity_caching;
 mod mocks;
 mod telemetry;
 
