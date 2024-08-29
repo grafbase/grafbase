@@ -1,5 +1,5 @@
 use cynic_parser::type_system::{
-    Directive, EnumValueDefinition, FieldDefinition, InputValueDefinition, TypeDefinition, Value,
+    Directive, EnumValueDefinition, FieldDefinition, InputValueDefinition, TypeDefinition,
 };
 
 use crate::ChangeKind;
@@ -61,7 +61,7 @@ pub(super) fn patch_type_definition<T: AsRef<str>>(ty: TypeDefinition<'_>, schem
         TypeDefinition::Object(object) => patch_fields(object.fields(), ty.name(), schema, paths),
         TypeDefinition::Interface(interface) => patch_fields(interface.fields(), ty.name(), schema, paths),
         TypeDefinition::Union(_) => todo!(),
-        TypeDefinition::Enum(r#enum) => patch_enum_values(r#enum.values(), schema, paths),
+        TypeDefinition::Enum(r#enum) => patch_enum_values(r#enum.values(), ty.name(), schema, paths),
         TypeDefinition::InputObject(input_object) => {
             patch_input_object(input_object.fields(), ty.name(), schema, paths)
         }
@@ -124,6 +124,15 @@ fn patch_input_object<'a, T: AsRef<str>>(
     }
 
     schema.push_str("}");
+}
+
+fn patch_directives<'a, T>(directives: impl Iterator<Item = Directive<'a>>, schema: &mut String, paths: &Paths<'_, T>)
+where
+    T: AsRef<str>,
+{
+    for directive in directives {
+        render_directive(directive, schema, paths);
+    }
 }
 
 fn render_directive<T: AsRef<str>>(directive: Directive<'_>, schema: &mut String, paths: &Paths<'_, T>) {
@@ -247,20 +256,44 @@ fn patch_fields<'a, T>(
 
 fn patch_enum_values<'a, T>(
     values: impl Iterator<Item = EnumValueDefinition<'a>>,
+    enum_name: &str,
     schema: &mut String,
     paths: &Paths<'a, T>,
 ) where
     T: AsRef<str>,
 {
+    let mut removed_enum_values = Vec::new();
+
     schema.push_str(" {\n");
 
+    for change in paths.iter_second_level(enum_name) {
+        match change.kind() {
+            ChangeKind::AddEnumValue => {
+                schema.push_str(INDENTATION);
+                schema.push_str(change.resolved_str().trim());
+                schema.push('\n');
+            }
+            ChangeKind::RemoveEnumValue => {
+                let value = change.second_level().expect("RemoveEnumValue without value");
+                removed_enum_values.push(value);
+            }
+            kind => {
+                debug_assert!(false, "Unhandled change at `{path}`: {kind:?}", path = change.path())
+            }
+        }
+    }
+
+    removed_enum_values.sort();
+
     for value in values {
+        if removed_enum_values.binary_search(&value.value()).is_ok() {
+            continue;
+        }
+
         schema.push_str(INDENTATION);
         schema.push_str(value.value());
 
-        for directive in value.directives() {
-            render_directive(directive, schema, paths);
-        }
+        patch_directives(value.directives(), schema, paths);
 
         schema.push('\n');
     }
