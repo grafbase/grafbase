@@ -4670,6 +4670,7 @@ dependencies = [
  "postgres-connector-types",
  "pprof",
  "pretty_assertions",
+ "rand 0.8.5",
  "regex",
  "registry-for-cache",
  "registry-upgrade",

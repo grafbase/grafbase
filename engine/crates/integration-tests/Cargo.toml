@@ -97,20 +97,21 @@ workspace = true
 features = ["tower"]
 
 [dev-dependencies]
-similar-asserts = "1.5"
-cynic-parser.workspace = true
 base64.workspace = true
-rstest.workspace = true
-const_format = "0.2.32"
-headers.workspace = true
-criterion = { version = "0.5.1", features = ["async_tokio"] }
-pprof = { version = "0.13", features = ["criterion", "flamegraph"] }
-sha2.workspace = true
-hex.workspace = true
-secrecy.workspace = true
-gateway-v2-auth.workspace = true
 common-types.workspace = true
+const_format = "0.2.32"
+criterion = { version = "0.5.1", features = ["async_tokio"] }
+cynic-parser.workspace = true
+gateway-v2-auth.workspace = true
+headers.workspace = true
+hex.workspace = true
+pprof = { version = "0.13", features = ["criterion", "flamegraph"] }
 pretty_assertions = "1"
+rand = "0.8"
+rstest.workspace = true
+secrecy.workspace = true
+sha2.workspace = true
+similar-asserts = "1.5"
 
 
 [[bench]]
