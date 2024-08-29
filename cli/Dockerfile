@@ -19,8 +19,16 @@ RUN apk add --no-cache git npm && \
 # Using the same alpine image as oven/bun
 # https://github.com/oven-sh/bun/blob/bun-v1.1.12/dockerhub/alpine/Dockerfile
 FROM rust:1.80-alpine3.20 AS chef
+
+# Patching musl to use mimalloc, see docker/README.md.
+# Source: https://github.com/tweag/rust-alpine-mimalloc
+COPY docker/build.sh docker/mimalloc.diff /tmp/
+RUN /tmp/build.sh
+ENV LD_PRELOAD=/usr/lib/libmimalloc.so
+ENV RUSTFLAGS="-C target-feature=+crt-static"
+
 COPY rust-toolchain.toml rust-toolchain.toml
-RUN apk add --no-cache musl-dev && cargo install cargo-chef
+RUN apk add --no-cache musl-dev && cargo install --target "$(rustc -vV | sed -n "s|host: ||p")" cargo-chef
 WORKDIR /grafbase
 
 FROM chef AS planner
@@ -30,21 +38,22 @@ RUN cargo chef prepare --recipe-path recipe.json
 
 FROM chef AS builder
 COPY --from=planner /grafbase/recipe.json recipe.json
-RUN cargo chef cook --release --recipe-path recipe.json
+RUN cargo chef cook --target "$(rustc -vV | sed -n "s|host: ||p")" --release --recipe-path recipe.json
 
 COPY Cargo.lock Cargo.lock
 COPY Cargo.toml Cargo.toml
-COPY ./gateway ./gateway
+COPY ./gateway/crates ./gateway/crates
 COPY ./cli ./cli
 COPY ./graphql-introspection ./graphql-introspection
 COPY ./graph-ref ./graph-ref
 COPY ./graphql-lint ./graphql-lint
 COPY ./gqlint ./gqlint
-COPY ./engine ./engine
+COPY ./engine/crates ./engine/crates
 COPY ./packages/grafbase-sdk/package.json ./packages/grafbase-sdk/package.json
 COPY --from=assets /grafbase/packages/cli-app/dist ./packages/cli-app/dist
 COPY --from=assets /grafbase/cli/wrappers/dist.js ./cli/wrappers/dist.js
-RUN cargo build --release --bin grafbase
+RUN cargo build --release --target "$(rustc -vV | sed -n "s|host: ||p")" --bin grafbase &&\
+    mv "/grafbase/target/$(rustc -vV | sed -n "s|host: ||p")/release/grafbase" /grafbase/target/release/grafbase
 
 #
 # === Final image ===
@@ -60,7 +69,7 @@ LABEL org.opencontainers.image.url='https://grafbase.com/cli' \
 
 # gosu is a better sudo/su to step down from root into the service user in the docker-entrypoint.sh script
 # See https://github.com/tianon/gosu/blob/master/INSTALL.md
-ENV GOSU_VERSION 1.17
+ENV GOSU_VERSION=1.17
 RUN set -eux; \
     \
     apk add --no-cache --virtual .gosu-deps \

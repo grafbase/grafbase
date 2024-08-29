@@ -1,0 +1,34 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 2bcd1ef..6521343 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -422,7 +422,6 @@ endif()
+ # static library
+ if (MI_BUILD_STATIC)
+   add_library(mimalloc-static STATIC ${mi_sources})
+-  set_property(TARGET mimalloc-static PROPERTY POSITION_INDEPENDENT_CODE ON)
+   target_compile_definitions(mimalloc-static PRIVATE ${mi_defines} MI_STATIC_LIB)
+   target_compile_options(mimalloc-static PRIVATE ${mi_cflags})
+   target_link_libraries(mimalloc-static PRIVATE ${mi_libraries})
+diff --git a/src/alloc-override.c b/src/alloc-override.c
+index 873065d..10a1709 100644
+--- a/src/alloc-override.c
++++ b/src/alloc-override.c
+@@ -181,7 +181,7 @@ typedef struct mi_nothrow_s { int _tag; } mi_nothrow_t;
+   void* operator new[](std::size_t n, std::align_val_t al, const std::nothrow_t&) noexcept { return mi_new_aligned_nothrow(n, static_cast<size_t>(al)); }
+   #endif
+ 
+-#elif (defined(__GNUC__) || defined(__clang__))
++#elif 0
+   // ------------------------------------------------------
+   // Override by defining the mangled C++ names of the operators (as
+   // used by GCC and CLang).
+@@ -272,7 +272,7 @@ void* _aligned_malloc(size_t alignment, size_t size)    { return mi_aligned_allo
+   void  __libc_free(void* p)                            MI_FORWARD0(mi_free, p)
+   void* __libc_memalign(size_t alignment, size_t size)  { return mi_memalign(alignment, size); }
+ 
+-#elif defined(__GLIBC__) && defined(__linux__)
++#elif defined(__linux__)
+   // forward __libc interface (needed for glibc-based Linux distributions)
+   void* __libc_malloc(size_t size)                      MI_FORWARD1(mi_malloc,size)
+   void* __libc_calloc(size_t count, size_t size)        MI_FORWARD2(mi_calloc,count,size)

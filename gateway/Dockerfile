@@ -2,8 +2,16 @@
 # === Build image ===
 #
 FROM rust:1.80-alpine3.20 AS chef
+
+# Patching musl to use mimalloc, see docker/README.md.
+# Source: https://github.com/tweag/rust-alpine-mimalloc
+COPY docker/build.sh docker/mimalloc.diff /tmp/
+RUN /tmp/build.sh
+ENV LD_PRELOAD=/usr/lib/libmimalloc.so
+ENV RUSTFLAGS="-C target-feature=+crt-static"
+
 COPY rust-toolchain.toml rust-toolchain.toml
-RUN apk add --no-cache musl-dev && cargo install cargo-chef
+RUN apk add --no-cache musl-dev && cargo install --target "$(rustc -vV | sed -n "s|host: ||p")" cargo-chef
 WORKDIR /grafbase
 
 FROM chef AS planner
@@ -13,19 +21,20 @@ RUN cargo chef prepare --recipe-path recipe.json
 
 FROM chef AS builder
 COPY --from=planner /grafbase/recipe.json recipe.json
-RUN cargo chef cook --release --recipe-path recipe.json
+RUN cargo chef cook --target "$(rustc -vV | sed -n "s|host: ||p")" --release --recipe-path recipe.json
 
 COPY Cargo.lock Cargo.lock
 COPY Cargo.toml Cargo.toml
-COPY ./gateway ./gateway
+COPY ./gateway/crates ./gateway/crates
 COPY ./cli ./cli
 COPY ./graphql-introspection ./graphql-introspection
 COPY ./graph-ref ./graph-ref
 COPY ./graphql-lint ./graphql-lint
 COPY ./gqlint ./gqlint
-COPY ./engine ./engine
+COPY ./engine/crates ./engine/crates
 
-RUN cargo build -p grafbase-gateway --release
+RUN cargo build --release --target "$(rustc -vV | sed -n "s|host: ||p")" --bin grafbase-gateway &&\
+    mv "/grafbase/target/$(rustc -vV | sed -n "s|host: ||p")/release/grafbase-gateway" /grafbase/target/release/grafbase-gateway
 
 #
 # === Final image ===
@@ -49,10 +58,6 @@ USER grafbase
 
 COPY --from=builder /grafbase/target/release/grafbase-gateway /bin/grafbase-gateway
 COPY --from=builder /grafbase/gateway/crates/federated-server/config/grafbase.toml /etc/grafbase.toml
-
-# these args should be set so the binary can start, they have to be changed for successfully running the gateway
-ARG GRAFBASE_GRAPH_REF
-ARG GRAFBASE_ACCESS_TOKEN
 
 VOLUME /data
 WORKDIR /data
