@@ -5,7 +5,7 @@ use parser_sdl::federation::{header::SubgraphHeaderRule, FederatedGraphConfig};
 
 use crate::build_with_sdl_config;
 
-pub fn build_with_toml_config(config: &Config, graph: FederatedGraph, federated_sdl: String) -> VersionedConfig {
+pub fn build_with_toml_config(config: &Config, graph: FederatedGraph) -> VersionedConfig {
     let mut graph_config = FederatedGraphConfig::default();
 
     if let Some(limits_config) = config.operation_limits {
@@ -56,7 +56,7 @@ pub fn build_with_toml_config(config: &Config, graph: FederatedGraph, federated_
         })
         .collect();
 
-    build_with_sdl_config(&graph_config, graph, federated_sdl)
+    build_with_sdl_config(&graph_config, graph)
 }
 
 fn retry_config(retry_config: Option<RetryConfig>) -> Option<parser_sdl::federation::RetryConfig> {

@@ -37,8 +37,7 @@ pub(super) async fn generate(
     let schema_version = blake3::hash(federated_schema.as_bytes());
     let graph = VersionedFederatedGraph::from_sdl(&federated_schema)
         .map_err(|e| crate::Error::SchemaValidationError(e.to_string()))?;
-    let config = engine_config_builder::build_with_toml_config(gateway_config, graph.into_latest(), federated_schema)
-        .into_latest();
+    let config = engine_config_builder::build_with_toml_config(gateway_config, graph.into_latest()).into_latest();
 
     // TODO: https://linear.app/grafbase/issue/GB-6168/support-trusted-documents-in-air-gapped-mode
     let trusted_documents = if gateway_config.trusted_documents.enabled {

@@ -1,7 +1,6 @@
 use std::{mem::take, time::Duration};
 
 use config::latest::Config;
-use federated_graph::FederatedGraph;
 
 use super::{
     sources::{
@@ -16,8 +15,8 @@ pub struct ExternalDataSources {
 }
 
 impl ExternalDataSources {
-    pub(super) fn build(ctx: &mut BuildContext, config: &mut Config, graph: &mut FederatedGraph) -> Self {
-        let endpoints = take(&mut graph.subgraphs)
+    pub(super) fn build(ctx: &mut BuildContext, config: &mut Config) -> Self {
+        let endpoints = take(&mut config.graph.subgraphs)
             .into_iter()
             .enumerate()
             .map(|(index, subgraph)| {

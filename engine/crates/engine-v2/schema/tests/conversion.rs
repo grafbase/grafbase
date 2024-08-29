@@ -1,5 +1,6 @@
 use config::latest::{HeaderRemove, HeaderRule, NameOrPattern};
 use engine_v2_schema::{Definition, Schema};
+use federated_graph::from_sdl;
 use pretty_assertions::assert_eq;
 use regex::Regex;
 
@@ -97,8 +98,8 @@ type User
 
 #[test]
 fn should_not_fail() {
-    let config =
-        config::VersionedConfig::V6(config::latest::Config::from_federated_sdl(SCHEMA.to_owned())).into_latest();
+    let graph = from_sdl(SCHEMA).unwrap();
+    let config = config::VersionedConfig::V6(config::latest::Config::from_graph(graph)).into_latest();
     let _schema = Schema::try_from(config).unwrap();
 }
 
@@ -230,10 +231,8 @@ input BookInput2 {
 
 #[test]
 fn should_remove_all_inaccessible_items() {
-    let config = config::VersionedConfig::V6(config::latest::Config::from_federated_sdl(
-        SCHEMA_WITH_INACCESSIBLES.to_owned(),
-    ))
-    .into_latest();
+    let graph = from_sdl(SCHEMA_WITH_INACCESSIBLES).unwrap();
+    let config = config::VersionedConfig::V6(config::latest::Config::from_graph(graph)).into_latest();
     let schema = Schema::try_from(config).unwrap();
 
     // Inaccessible types are still in the schema, they're just not reachable through input and output fields.
@@ -309,8 +308,8 @@ fn should_remove_all_inaccessible_items() {
 #[case(SCHEMA)]
 #[case(SCHEMA_WITH_INACCESSIBLES)]
 fn serde_roundtrip(#[case] sdl: &str) {
-    let mut config =
-        config::VersionedConfig::V6(config::latest::Config::from_federated_sdl(sdl.to_owned())).into_latest();
+    let graph = from_sdl(sdl).unwrap();
+    let mut config = config::VersionedConfig::V6(config::latest::Config::from_graph(graph)).into_latest();
 
     config.header_rules.push(HeaderRule::Remove(HeaderRemove {
         name: NameOrPattern::Pattern(Regex::new("^foo*").unwrap()),

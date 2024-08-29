@@ -36,10 +36,11 @@ impl EngineNanny {
 
         while let Some(message) = stream.next().await {
             log::trace!("nanny received a {message:?}");
-            let config = self.graph.borrow().clone().map(|graph| {
-                let federated_sdl = graphql_federated_graph::render_federated_sdl(&graph).unwrap();
-                engine_config_builder::build_with_sdl_config(&self.config.borrow(), graph, federated_sdl)
-            });
+            let config = self
+                .graph
+                .borrow()
+                .clone()
+                .map(|graph| engine_config_builder::build_with_sdl_config(&self.config.borrow(), graph));
             let gateway = new_gateway(config).await;
             if let Err(error) = self.sender.send(gateway) {
                 log::error!("Couldn't publish new gateway: {error:?}");
@@ -50,7 +51,7 @@ impl EngineNanny {
 
 pub(super) async fn new_gateway(config: Option<engine_v2::VersionedConfig>) -> Option<Arc<Engine<CliRuntime>>> {
     let config = config?.into_latest();
-    let graph = graphql_federated_graph::from_sdl(&config.federated_sdl).ok()?;
+    let graph = &config.graph;
 
     let runtime = CliRuntime {
         fetcher: NativeFetcher::default(),
