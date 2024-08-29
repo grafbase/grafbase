@@ -1,4 +1,4 @@
-use cynic_parser::type_system::DirectiveDefinition;
+use cynic_parser::type_system::{Directive, DirectiveDefinition};
 
 use crate::ChangeKind;
 
@@ -20,4 +20,38 @@ pub(super) fn patch_directive_definition<T: AsRef<str>>(
 
     schema.push_str(&paths.source()[span.start..span.end]);
     schema.push_str("\n\n");
+}
+
+pub(in crate::patch) fn patch_directives<'a, T>(
+    directives: impl Iterator<Item = Directive<'a>>,
+    schema: &mut String,
+    paths: &Paths<'_, T>,
+) where
+    T: AsRef<str>,
+{
+    // TODO: patching. Depends on thorough diffing implementation, which is missing.
+
+    for directive in directives {
+        render_directive(directive, schema, paths);
+    }
+}
+
+fn render_directive<T: AsRef<str>>(directive: Directive<'_>, schema: &mut String, paths: &Paths<'_, T>) {
+    schema.push_str(" @");
+    schema.push_str(directive.name());
+
+    let mut arguments = directive.arguments().peekable();
+
+    if arguments.peek().is_none() {
+        return;
+    }
+
+    schema.push('(');
+
+    while let Some(argument) = arguments.next() {
+        let span = argument.span();
+        schema.push_str(&paths.source()[span.start..span.end])
+    }
+
+    schema.push(')');
 }

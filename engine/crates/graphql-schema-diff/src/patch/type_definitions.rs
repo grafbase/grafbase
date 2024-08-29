@@ -1,10 +1,8 @@
-use cynic_parser::type_system::{
-    Directive, EnumValueDefinition, FieldDefinition, InputValueDefinition, TypeDefinition,
-};
+use cynic_parser::type_system::{EnumValueDefinition, FieldDefinition, InputValueDefinition, TypeDefinition};
 
 use crate::ChangeKind;
 
-use super::{paths::Paths, INDENTATION};
+use super::{directives::patch_directives, paths::Paths, INDENTATION};
 
 pub(super) fn patch_type_definition<T: AsRef<str>>(ty: TypeDefinition<'_>, schema: &mut String, paths: &Paths<'_, T>) {
     for change in paths.iter_exact([ty.name(), "", ""]) {
@@ -52,9 +50,7 @@ pub(super) fn patch_type_definition<T: AsRef<str>>(ty: TypeDefinition<'_>, schem
         schema.push_str(&implements.join(" & "));
     }
 
-    for directive in ty.directives() {
-        render_directive(directive, schema, paths);
-    }
+    patch_directives(ty.directives(), schema, paths);
 
     match ty {
         TypeDefinition::Scalar(_) => (),
@@ -124,41 +120,6 @@ fn patch_input_object<'a, T: AsRef<str>>(
     }
 
     schema.push_str("}");
-}
-
-fn patch_directives<'a, T>(
-    directives: impl Iterator<Item = Directive<'a>>,
-    path: [&str; 3],
-    schema: &mut String,
-    paths: &Paths<'_, T>,
-) where
-    T: AsRef<str>,
-{
-    // TODO: patching. Depends on thorough diffing implementation, which is missing.
-
-    for directive in directives {
-        render_directive(directive, schema, paths);
-    }
-}
-
-fn render_directive<T: AsRef<str>>(directive: Directive<'_>, schema: &mut String, paths: &Paths<'_, T>) {
-    schema.push_str(" @");
-    schema.push_str(directive.name());
-
-    let mut arguments = directive.arguments().peekable();
-
-    if arguments.peek().is_none() {
-        return;
-    }
-
-    schema.push('(');
-
-    while let Some(argument) = arguments.next() {
-        let span = argument.span();
-        schema.push_str(&paths.source()[span.start..span.end])
-    }
-
-    schema.push(')');
 }
 
 fn patch_fields<'a, T>(
@@ -250,9 +211,7 @@ fn patch_fields<'a, T>(
             schema.push_str(&field.ty().to_string());
         }
 
-        for directive in field.directives() {
-            render_directive(directive, schema, paths);
-        }
+        patch_directives(field.directives(), schema, paths);
 
         schema.push('\n');
     }

@@ -1,0 +1,37 @@
+type T1 {
+  a: String!
+}
+
+type T2 {
+  a: String!
+}
+
+type T3 {
+  a: String!
+}
+
+schema {
+  query: T1
+  mutation: T2
+  subscription: T3
+}
+
+# --- #
+
+type T1 {
+  a: String!
+}
+
+type T2 {
+  a: String!
+}
+
+type T3 {
+  a: String!
+}
+
+schema {
+  query: T3
+  mutation: T1
+  subscription: T2
+}

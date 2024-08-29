@@ -4,11 +4,10 @@ type Query {
 
 scalar Pong
 
-enum Test @fst {
-  YES
+enum Test @fst @snd(name: "test") @third {
+  YES # removed value
   NO @default @negative
   NOWAY @negative
-  NOPE
 }
 
 # --- #
@@ -22,6 +21,5 @@ scalar Pong
 enum Test @fst @snd(name: "test") @third {
   DEFINITELY # added value
   NO @default @negative
-  NOWAY @negative @maybeRude
-  NOPE @negative
+  NOWAY @negative
 }
