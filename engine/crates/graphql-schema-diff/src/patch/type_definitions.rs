@@ -134,44 +134,7 @@ fn patch_directives<'a, T>(
 ) where
     T: AsRef<str>,
 {
-    for change in paths.iter_exact(path) {
-        match change.kind() {
-            ChangeKind::ChangeQueryType => todo!(),
-            ChangeKind::ChangeMutationType => todo!(),
-            ChangeKind::ChangeSubscriptionType => todo!(),
-            ChangeKind::RemoveObjectType => todo!(),
-            ChangeKind::AddObjectType => todo!(),
-            ChangeKind::AddInterfaceImplementation => todo!(),
-            ChangeKind::RemoveInterfaceImplementation => todo!(),
-            ChangeKind::ChangeFieldType => todo!(),
-            ChangeKind::RemoveField => todo!(),
-            ChangeKind::AddField => todo!(),
-            ChangeKind::AddUnion => todo!(),
-            ChangeKind::RemoveUnion => todo!(),
-            ChangeKind::AddUnionMember => todo!(),
-            ChangeKind::RemoveUnionMember => todo!(),
-            ChangeKind::AddEnum => todo!(),
-            ChangeKind::RemoveEnum => todo!(),
-            ChangeKind::AddEnumValue => todo!(),
-            ChangeKind::RemoveEnumValue => todo!(),
-            ChangeKind::AddScalar => todo!(),
-            ChangeKind::RemoveScalar => todo!(),
-            ChangeKind::AddInterface => todo!(),
-            ChangeKind::RemoveInterface => todo!(),
-            ChangeKind::AddDirectiveDefinition => todo!(),
-            ChangeKind::RemoveDirectiveDefinition => todo!(),
-            ChangeKind::AddSchemaDefinition => todo!(),
-            ChangeKind::RemoveSchemaDefinition => todo!(),
-            ChangeKind::AddInputObject => todo!(),
-            ChangeKind::RemoveInputObject => todo!(),
-            ChangeKind::AddFieldArgument => todo!(),
-            ChangeKind::RemoveFieldArgument => todo!(),
-            ChangeKind::AddFieldArgumentDefault => todo!(),
-            ChangeKind::RemoveFieldArgumentDefault => todo!(),
-            ChangeKind::ChangeFieldArgumentDefault => todo!(),
-            ChangeKind::ChangeFieldArgumentType => todo!(),
-        }
-    }
+    // TODO: patching. Depends on thorough diffing implementation, which is missing.
 
     for directive in directives {
         render_directive(directive, schema, paths);
