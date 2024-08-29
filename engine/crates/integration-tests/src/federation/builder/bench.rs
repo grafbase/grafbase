@@ -60,9 +60,8 @@ impl<'a> DeterministicEngineBuilder<'a> {
                 .collect(),
             dummy_responses_index.clone(),
         );
-        let config =
-            engine_v2::VersionedConfig::V6(engine_v2::config::Config::from_federated_sdl(self.schema.to_owned()))
-                .into_latest();
+        let graph = federated_graph::from_sdl(self.schema).unwrap();
+        let config = engine_v2::VersionedConfig::V6(engine_v2::config::Config::from_graph(graph)).into_latest();
 
         let engine = engine_v2::Engine::new(
             Arc::new(config.try_into().unwrap()),
