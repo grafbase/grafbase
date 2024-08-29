@@ -35,7 +35,7 @@ fn run_test_impl(source: String, target: String) -> datatest_stable::Result<()> 
                 similar::udiff::unified_diff(
                     similar::Algorithm::default(),
                     &target,
-                    &patched.schema(),
+                    patched.schema(),
                     5,
                     Some(("Original target", "Patched"))
                 )

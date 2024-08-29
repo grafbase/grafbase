@@ -74,10 +74,7 @@ where
 
 impl<'a, T: AsRef<str>> Clone for ChangeView<'a, T> {
     fn clone(&self) -> Self {
-        ChangeView {
-            paths: self.paths,
-            idx: self.idx,
-        }
+        *self
     }
 }
 

@@ -1,4 +1,6 @@
-use cynic_parser::type_system::{EnumValueDefinition, FieldDefinition, InputValueDefinition, TypeDefinition};
+use cynic_parser::type_system::{
+    EnumValueDefinition, FieldDefinition, InputValueDefinition, TypeDefinition, UnionMember,
+};
 
 use crate::ChangeKind;
 
@@ -56,7 +58,7 @@ pub(super) fn patch_type_definition<T: AsRef<str>>(ty: TypeDefinition<'_>, schem
         TypeDefinition::Scalar(_) => (),
         TypeDefinition::Object(object) => patch_fields(object.fields(), ty.name(), schema, paths),
         TypeDefinition::Interface(interface) => patch_fields(interface.fields(), ty.name(), schema, paths),
-        TypeDefinition::Union(_) => todo!(),
+        TypeDefinition::Union(union) => patch_union(union.members(), ty.name(), schema, paths),
         TypeDefinition::Enum(r#enum) => patch_enum_values(r#enum.values(), ty.name(), schema, paths),
         TypeDefinition::InputObject(input_object) => {
             patch_input_object(input_object.fields(), ty.name(), schema, paths)
@@ -119,7 +121,7 @@ fn patch_input_object<'a, T: AsRef<str>>(
         schema.push('\n');
     }
 
-    schema.push_str("}");
+    schema.push('}');
 }
 
 fn patch_fields<'a, T>(
@@ -190,7 +192,7 @@ fn patch_fields<'a, T>(
                 schema.push_str(&argument.ty().to_string());
 
                 if argument.default_value().is_some() {
-                    schema.push_str(" ");
+                    schema.push(' ');
                     let span = argument.default_value_span();
                     schema.push_str(&paths.source()[span.start..span.end]);
                 }
@@ -216,7 +218,7 @@ fn patch_fields<'a, T>(
         schema.push('\n');
     }
 
-    schema.push_str("}");
+    schema.push('}');
 }
 
 fn patch_enum_values<'a, T>(
@@ -263,5 +265,49 @@ fn patch_enum_values<'a, T>(
         schema.push('\n');
     }
 
-    schema.push_str("}");
+    schema.push('}');
+}
+
+fn patch_union<'a, T>(
+    members: impl Iterator<Item = UnionMember<'a>>,
+    union_name: &str,
+    schema: &mut String,
+    paths: &Paths<'a, T>,
+) where
+    T: AsRef<str>,
+{
+    let mut removed_members = Vec::new();
+    let mut added_members = Vec::new();
+
+    for change in paths.iter_second_level(union_name) {
+        match change.kind() {
+            ChangeKind::AddUnionMember => {
+                added_members.push(change.second_level().expect("AddUnionMember without member name"))
+            }
+            ChangeKind::RemoveUnionMember => {
+                removed_members.push(change.second_level().expect("RemoveUnionMember without member name"))
+            }
+            _ => (),
+        }
+    }
+
+    removed_members.sort();
+
+    let mut members = members
+        .map(|member| member.name())
+        .filter(|name| removed_members.binary_search(name).is_err())
+        .chain(added_members.into_iter())
+        .peekable();
+
+    if members.peek().is_some() {
+        schema.push_str(" = ");
+    }
+
+    while let Some(member) = members.next() {
+        schema.push_str(member);
+
+        if members.peek().is_some() {
+            schema.push_str(" | ");
+        }
+    }
 }

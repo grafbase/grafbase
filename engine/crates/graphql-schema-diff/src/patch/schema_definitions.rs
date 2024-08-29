@@ -45,7 +45,7 @@ pub(super) fn patch_schema_definition<T: AsRef<str>>(
             schema.push_str(operation_name);
             schema.push_str(": ");
             schema.push_str(type_name);
-            schema.push_str("\n")
+            schema.push('\n')
         }
     }
 
