@@ -20,7 +20,10 @@ use graphql_mocks::MockGraphQlServer;
 use itertools::Itertools;
 use parser_sdl::{connector_parsers::MockConnectorParsers, federation::FederatedGraphConfig};
 use runtime::{fetch::dynamic::DynamicFetcher, hooks::DynamicHooks, trusted_documents_client};
-use runtime_local::{ComponentLoader, HooksWasi};
+use runtime_local::{
+    hooks::{self, ChannelLogSender},
+    ComponentLoader, HooksWasi,
+};
 pub use test_runtime::*;
 use url::Url;
 
@@ -149,10 +152,13 @@ impl EngineV2Builder {
             graph
         };
 
+        let (access_log_sender, access_log_receiver) = hooks::create_log_channel(false);
+
         let config = match self.config_source {
             Some(ConfigSource::Toml(toml)) => {
                 let config: gateway_config::Config = toml::from_str(&toml).unwrap();
-                update_runtime_with_toml_config(&mut self.runtime, &config);
+
+                update_runtime_with_toml_config(&mut self.runtime, &config, access_log_sender);
                 build_with_toml_config(&config, graph.into_latest())
             }
             Some(ConfigSource::Sdl(mut sdl)) => {
@@ -187,15 +193,21 @@ impl EngineV2Builder {
                 Subgraph::Docker { subgraph, .. } => Err(subgraph),
             })
             .partition_result();
+
         TestEngineV2 {
             engine: Arc::new(engine),
             mock_subgraphs,
             docker_subgraphs,
+            access_log_receiver,
         }
     }
 }
 
-fn update_runtime_with_toml_config(runtime: &mut TestRuntime, config: &gateway_config::Config) {
+fn update_runtime_with_toml_config(
+    runtime: &mut TestRuntime,
+    config: &gateway_config::Config,
+    access_log_sender: ChannelLogSender,
+) {
     if let Some(hooks_config) = config.hooks.clone() {
         let loader = ComponentLoader::new(hooks_config)
             .ok()
@@ -203,7 +215,7 @@ fn update_runtime_with_toml_config(runtime: &mut TestRuntime, config: &gateway_c
             .expect("Wasm examples weren't built, please run:\ncd engine/crates/wasi-component-loader/examples && cargo component build");
 
         let meter = meter_from_global_provider();
-        runtime.hooks = DynamicHooks::wrap(HooksWasi::new(Some(loader), &meter));
+        runtime.hooks = DynamicHooks::wrap(HooksWasi::new(Some(loader), &meter, access_log_sender));
     }
 }
 

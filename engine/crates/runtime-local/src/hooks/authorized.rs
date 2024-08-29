@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use runtime::{
     error::{PartialErrorCode, PartialGraphqlError},
     hooks::{Anything, AuthorizationVerdict, AuthorizationVerdicts, AuthorizedHooks, EdgeDefinition, NodeDefinition},
@@ -65,7 +63,7 @@ impl AuthorizedHooks<Context> for HooksWasi {
         inner
             .run_and_measure(
                 "authorize-edge-pre-execution",
-                instance.authorize_edge_pre_execution(Arc::clone(context), definition, arguments, metadata),
+                instance.authorize_edge_pre_execution(inner.shared_context(context), definition, arguments, metadata),
             )
             .await
             .map_err(|err| match err {
@@ -98,7 +96,7 @@ impl AuthorizedHooks<Context> for HooksWasi {
         inner
             .run_and_measure(
                 "authorize-node-pre-execution",
-                instance.authorize_node_pre_execution(Arc::clone(context), definition, metadata),
+                instance.authorize_node_pre_execution(inner.shared_context(context), definition, metadata),
             )
             .await
             .map_err(|err| match err {
@@ -153,7 +151,12 @@ impl AuthorizedHooks<Context> for HooksWasi {
         let results = inner
             .run_and_measure_multi_error(
                 "authorize-parent-edge-post-execution",
-                instance.authorize_parent_edge_post_execution(Arc::clone(context), definition, parents, metadata),
+                instance.authorize_parent_edge_post_execution(
+                    inner.shared_context(context),
+                    definition,
+                    parents,
+                    metadata,
+                ),
             )
             .await
             .map_err(|err| match err {
@@ -194,7 +197,7 @@ impl AuthorizedHooks<Context> for HooksWasi {
         let result = inner
             .run_and_measure_multi_error(
                 "authorize-edge-node-post-execution",
-                instance.authorize_edge_node_post_execution(Arc::clone(context), definition, nodes, metadata),
+                instance.authorize_edge_node_post_execution(inner.shared_context(context), definition, nodes, metadata),
             )
             .await
             .map_err(|err| match err {
@@ -264,7 +267,7 @@ impl AuthorizedHooks<Context> for HooksWasi {
         let result = inner
             .run_and_measure_multi_error(
                 "authorize-edge-post-execution",
-                instance.authorize_edge_post_execution(Arc::clone(context), definition, edges, metadata),
+                instance.authorize_edge_post_execution(inner.shared_context(context), definition, edges, metadata),
             )
             .await
             .map_err(|err| match err {

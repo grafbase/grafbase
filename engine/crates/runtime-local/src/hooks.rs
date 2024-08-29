@@ -15,12 +15,16 @@ use runtime::{
     hooks::{AuthorizedHooks, HeaderMap, Hooks, SubgraphHooks},
 };
 use tracing::instrument;
-use wasi_component_loader::{
-    AuthorizationComponentInstance, GatewayComponentInstance, GuestError, SubgraphComponentInstance,
+pub use wasi_component_loader::{
+    create_log_channel, AccessLogMessage, ChannelLogReceiver, ChannelLogSender, ComponentLoader,
+    Config as HooksWasiConfig,
 };
-pub use wasi_component_loader::{ComponentLoader, Config as HooksWasiConfig};
+use wasi_component_loader::{
+    AuthorizationComponentInstance, GatewayComponentInstance, GuestError, SharedContext, SubgraphComponentInstance,
+};
 
 pub struct HooksWasi(Option<HooksWasiInner>);
+
 type Context = Arc<HashMap<String, String>>;
 
 struct HooksWasiInner {
@@ -28,9 +32,14 @@ struct HooksWasiInner {
     authorization: Pool<AuthorizationComponentInstance>,
     subgraph: Pool<SubgraphComponentInstance>,
     hook_latencies: Histogram<u64>,
+    sender: ChannelLogSender,
 }
 
 impl HooksWasiInner {
+    pub fn shared_context(&self, kv: &Arc<HashMap<String, String>>) -> SharedContext {
+        SharedContext::new(Arc::clone(kv), self.sender.clone())
+    }
+
     async fn run_and_measure<F, T>(&self, hook_name: &'static str, hook: F) -> Result<T, wasi_component_loader::Error>
     where
         F: Future<Output = Result<T, wasi_component_loader::Error>>,
@@ -103,13 +112,14 @@ impl HookStatus {
 }
 
 impl HooksWasi {
-    pub fn new(loader: Option<ComponentLoader>, meter: &Meter) -> Self {
+    pub fn new(loader: Option<ComponentLoader>, meter: &Meter, sender: ChannelLogSender) -> Self {
         match loader.map(Arc::new) {
             Some(loader) => Self(Some(HooksWasiInner {
                 gateway: Pool::new(&loader),
                 authorization: Pool::new(&loader),
                 subgraph: Pool::new(&loader),
                 hook_latencies: meter.u64_histogram("grafbase.hook.duration").init(),
+                sender,
             })),
             None => Self(None),
         }

@@ -1,0 +1,21 @@
+[package]
+name = "response-hooks"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+homepage.workspace = true
+keywords.workspace = true
+repository.workspace = true
+
+[dependencies]
+wit-bindgen-rt = { workspace = true, features = ["bitflags"] }
+serde_json.workspace = true
+serde.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+
+[package.metadata.component]
+package = "component:response-hooks"
+
+[package.metadata.component.dependencies]

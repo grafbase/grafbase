@@ -12,6 +12,7 @@ use bytes::Bytes;
 use engine_v2::Body;
 use graphql_mocks::{MockGraphQlServer, ReceivedRequest};
 pub use request::*;
+use runtime_local::hooks::ChannelLogReceiver;
 use url::Url;
 
 use crate::engine_v1::GraphQlRequest;
@@ -21,6 +22,8 @@ pub struct TestEngineV2 {
     mock_subgraphs: HashMap<TypeId, MockSubgraph>,
     #[allow(unused)]
     docker_subgraphs: HashSet<DockerSubgraph>,
+    #[allow(unused)]
+    access_log_receiver: ChannelLogReceiver,
 }
 
 pub struct MockSubgraph {

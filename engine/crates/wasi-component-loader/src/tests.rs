@@ -1,8 +1,14 @@
 use std::{collections::HashMap, sync::Arc};
 
 use crate::{
-    hooks::subgraph::SubgraphComponentInstance, AuthorizationComponentInstance, ComponentLoader, Config,
-    EdgeDefinition, GatewayComponentInstance, GuestError, NodeDefinition, RecycleableComponentInstance,
+    create_log_channel,
+    hooks::{
+        response::{CacheStatus, SubgraphResponseInfo},
+        subgraph::SubgraphComponentInstance,
+    },
+    AuthorizationComponentInstance, ComponentLoader, Config, EdgeDefinition, ExecutedGatewayRequest,
+    ExecutedHttpRequest, ExecutedSubgraphRequest, GatewayComponentInstance, GuestError, NodeDefinition, Operation,
+    RecycleableComponentInstance, ResponsesComponentInstance, SharedContext,
 };
 use expect_test::expect;
 use http::{HeaderMap, HeaderValue};
@@ -256,7 +262,7 @@ async fn authorize_edge_pre_execution_error() {
     let loader = ComponentLoader::new(config).unwrap().unwrap();
 
     let mut hook = GatewayComponentInstance::new(&loader).await.unwrap();
-    let (context, _) = hook.on_gateway_request(HashMap::new(), headers).await.unwrap();
+    let (kv, _) = hook.on_gateway_request(HashMap::new(), headers).await.unwrap();
 
     let mut hook = AuthorizationComponentInstance::new(&loader).await.unwrap();
 
@@ -265,8 +271,11 @@ async fn authorize_edge_pre_execution_error() {
         field_name: String::new(),
     };
 
+    let (access_log, _) = create_log_channel(false);
+    let context = SharedContext::new(Arc::new(kv), access_log);
+
     let error = hook
-        .authorize_edge_pre_execution(Arc::new(context), definition, String::new(), String::new())
+        .authorize_edge_pre_execution(context, definition, String::new(), String::new())
         .await
         .unwrap_err();
 
@@ -304,7 +313,10 @@ async fn authorize_edge_pre_execution_success() {
         field_name: String::new(),
     };
 
-    hook.authorize_edge_pre_execution(Arc::new(context), definition, String::from("kekw"), String::new())
+    let (access_log, _) = create_log_channel(false);
+    let context = SharedContext::new(Arc::new(context), access_log);
+
+    hook.authorize_edge_pre_execution(context, definition, String::from("kekw"), String::new())
         .await
         .unwrap();
 }
@@ -334,8 +346,11 @@ async fn authorize_node_pre_execution_error() {
         type_name: String::new(),
     };
 
+    let (access_log, _) = create_log_channel(false);
+    let context = SharedContext::new(Arc::new(context), access_log);
+
     let error = hook
-        .authorize_node_pre_execution(Arc::new(context), definition, String::new())
+        .authorize_node_pre_execution(context, definition, String::new())
         .await
         .unwrap_err();
 
@@ -372,7 +387,10 @@ async fn authorize_node_pre_execution_success() {
         type_name: String::new(),
     };
 
-    hook.authorize_node_pre_execution(Arc::new(context), definition, String::from("kekw"))
+    let (access_log, _) = create_log_channel(false);
+    let context = SharedContext::new(Arc::new(context), access_log);
+
+    hook.authorize_node_pre_execution(context, definition, String::from("kekw"))
         .await
         .unwrap();
 }
@@ -408,8 +426,11 @@ async fn authorize_parent_edge_post_execution() {
         serde_json::to_string(&json!({ "value": "lol" })).unwrap(),
     ];
 
+    let (access_log, _) = create_log_channel(false);
+    let context = SharedContext::new(Arc::new(context), access_log);
+
     let result = hook
-        .authorize_parent_edge_post_execution(Arc::new(context), definition, parents, String::new())
+        .authorize_parent_edge_post_execution(context, definition, parents, String::new())
         .await
         .unwrap();
 
@@ -461,8 +482,11 @@ async fn authorize_edge_node_post_execution() {
         serde_json::to_string(&json!({ "value": "lol" })).unwrap(),
     ];
 
+    let (access_log, _) = create_log_channel(false);
+    let context = SharedContext::new(Arc::new(context), access_log);
+
     let result = hook
-        .authorize_edge_node_post_execution(Arc::new(context), definition, nodes, String::new())
+        .authorize_edge_node_post_execution(context, definition, nodes, String::new())
         .await
         .unwrap();
 
@@ -519,9 +543,12 @@ async fn authorize_edge_post_execution() {
         serde_json::to_string(&json!({ "value": "lol" })).unwrap(),
     ];
 
+    let (access_log, _) = create_log_channel(false);
+    let context = SharedContext::new(Arc::new(context), access_log);
+
     let result = hook
         .authorize_edge_post_execution(
-            Arc::new(context),
+            context,
             definition,
             vec![(String::new(), nodes1), (String::new(), nodes2)],
             String::new(),
@@ -576,9 +603,12 @@ async fn on_subgraph_request() {
 
     let mut hook = SubgraphComponentInstance::new(&loader).await.unwrap();
 
+    let (access_log, _) = create_log_channel(false);
+    let context = SharedContext::new(Arc::new(context), access_log);
+
     let headers = hook
         .on_subgraph_request(
-            Arc::new(context),
+            context,
             "dummy",
             http::Method::POST,
             &"http://example.com".parse().unwrap(),
@@ -607,9 +637,13 @@ async fn on_subgraph_request() {
     "###);
 
     let context = HashMap::from_iter([("should-fail".into(), "yes".into())]);
+
+    let (access_log, _) = create_log_channel(false);
+    let context = SharedContext::new(Arc::new(context), access_log);
+
     let error = hook
         .on_subgraph_request(
-            Arc::new(context),
+            context,
             "dummy",
             http::Method::POST,
             &"http://example.com".parse().unwrap(),
@@ -625,5 +659,107 @@ async fn on_subgraph_request() {
             message: "failure",
         },
     )
+    "###);
+}
+
+#[tokio::test]
+async fn response_hooks() {
+    let config = indoc! {r#"
+        location = "examples/target/wasm32-wasip1/debug/response_hooks.wasm"
+        stdout = true
+        stderr = true
+    "#};
+
+    let config: Config = toml::from_str(config).unwrap();
+    assert!(config.location.exists());
+
+    let loader = ComponentLoader::new(config).unwrap().unwrap();
+
+    let mut hook = ResponsesComponentInstance::new(&loader).await.unwrap();
+
+    let (access_log, receiver) = create_log_channel(false);
+    let context = SharedContext::new(Arc::new(HashMap::new()), access_log);
+
+    let request = ExecutedSubgraphRequest {
+        subgraph_name: String::from("kekw"),
+        method: String::from("POST"),
+        url: String::from("https://example.com"),
+        total_duration: 10,
+        has_errors: false,
+        response_infos: vec![SubgraphResponseInfo {
+            connection_time: 10,
+            response_time: 4,
+            status_code: 200,
+        }],
+        cache_status: CacheStatus::Miss,
+    };
+
+    let subgraph_info = hook.on_subgraph_response(context.clone(), request).await.unwrap();
+
+    let request = ExecutedGatewayRequest {
+        duration: 5,
+        status: crate::GraphqlResponseStatus::Success,
+        on_subgraph_request_outputs: vec![subgraph_info],
+    };
+
+    let operation = Operation {
+        name: Some(String::from("kekw")),
+        document: String::from("query { me { 1 } }"),
+        prepare_duration: 3,
+        cached: false,
+    };
+
+    let op_info = hook
+        .on_gateway_response(context.clone(), operation, request)
+        .await
+        .unwrap();
+
+    let request = ExecutedHttpRequest {
+        method: String::from("POST"),
+        url: String::from("https://example.com/graphql"),
+        status_code: 200,
+        on_gateway_response_outputs: vec![op_info],
+    };
+
+    hook.on_http_response(context.clone(), request).await.unwrap();
+
+    let data = receiver.recv().unwrap().into_data().unwrap();
+    let data: serde_json::Value = serde_json::from_slice(&data).unwrap();
+
+    insta::assert_json_snapshot!(&data, @r###"
+    {
+      "method": "POST",
+      "url": "https://example.com/graphql",
+      "status_code": 200,
+      "operations": [
+        {
+          "name": "kekw",
+          "document": "query { me { 1 } }",
+          "prepare_duration": 3,
+          "cached": false,
+          "duration": 5,
+          "status": "Success",
+          "subgraphs": [
+            {
+              "subgraph_name": "kekw",
+              "method": "POST",
+              "url": "https://example.com",
+              "connection_times": [
+                10
+              ],
+              "response_times": [
+                4
+              ],
+              "status_codes": [
+                200
+              ],
+              "total_duration": 10,
+              "has_errors": false,
+              "cached": false
+            }
+          ]
+        }
+      ]
+    }
     "###);
 }

@@ -1,7 +1,7 @@
 use url::Url;
 
 use crate::{
-    context::SharedContextMap,
+    context::SharedContext,
     names::{ON_SUBGRAGH_REQUEST_HOOK_FUNCTION, SUBGRAPH_REQUEST_INTERFACE},
     ComponentLoader, GuestResult,
 };
@@ -14,7 +14,7 @@ impl SubgraphComponentInstance {
     /// Called just before sending a HTTP request to a subgraph
     pub async fn on_subgraph_request(
         &mut self,
-        context: SharedContextMap,
+        context: SharedContext,
         subgraph_name: &str,
         method: http::Method,
         url: &Url,
@@ -49,7 +49,7 @@ impl SubgraphComponentInstance {
         result?.0?;
 
         // take the data back from the shared memory
-        self.store.data_mut().take_resource::<SharedContextMap>(context_rep)?;
+        self.store.data_mut().take_resource::<SharedContext>(context_rep)?;
         let headers = self.store.data_mut().take_resource(headers_rep)?;
 
         Ok(headers)

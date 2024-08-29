@@ -1,7 +1,7 @@
 use wasmtime::component::{ComponentType, Lower};
 
 use crate::{
-    context::SharedContextMap,
+    context::SharedContext,
     names::{
         AUTHORIZATION_INTERFACE, AUTHORIZE_EDGE_NODE_POST_EXECUTION_HOOK_FUNCTION,
         AUTHORIZE_EDGE_POST_EXECUTION_HOOK_FUNCTION, AUTHORIZE_EDGE_PRE_EXECUTION_HOOK_FUNCTION,
@@ -39,12 +39,12 @@ impl AuthorizationComponentInstance {
     /// Calls the pre authorize hook for an edge
     pub async fn authorize_edge_pre_execution(
         &mut self,
-        context: SharedContextMap,
+        context: SharedContext,
         definition: EdgeDefinition,
         arguments: String,
         metadata: String,
     ) -> crate::Result<()> {
-        self.call3(
+        self.call3_effect1(
             AUTHORIZE_EDGE_PRE_EXECUTION_HOOK_FUNCTION,
             context,
             (definition, arguments, metadata),
@@ -61,11 +61,11 @@ impl AuthorizationComponentInstance {
     /// Calls the pre authorize hook for a node
     pub async fn authorize_node_pre_execution(
         &mut self,
-        context: SharedContextMap,
+        context: SharedContext,
         definition: NodeDefinition,
         metadata: String,
     ) -> crate::Result<()> {
-        self.call2(
+        self.call2_effect1(
             AUTHORIZE_NODE_PRE_EXECUTION_HOOK_FUNCTION,
             context,
             (definition, metadata),
@@ -82,12 +82,12 @@ impl AuthorizationComponentInstance {
     /// Calls the post authorize hook for parent edge
     pub async fn authorize_parent_edge_post_execution(
         &mut self,
-        context: SharedContextMap,
+        context: SharedContext,
         definition: EdgeDefinition,
         parents: Vec<String>,
         metadata: String,
     ) -> crate::Result<Vec<Result<(), crate::GuestError>>> {
-        self.call3(
+        self.call3_effect1(
             AUTHORIZE_PARENT_EDGE_POST_EXECUTION_HOOK_FUNCTION,
             context,
             (definition, parents, metadata),
@@ -104,12 +104,12 @@ impl AuthorizationComponentInstance {
     /// Calls the post authorize hook for parent edge
     pub async fn authorize_edge_node_post_execution(
         &mut self,
-        context: SharedContextMap,
+        context: SharedContext,
         definition: EdgeDefinition,
         nodes: Vec<String>,
         metadata: String,
     ) -> crate::Result<Vec<Result<(), crate::GuestError>>> {
-        self.call3(
+        self.call3_effect1(
             AUTHORIZE_EDGE_NODE_POST_EXECUTION_HOOK_FUNCTION,
             context,
             (definition, nodes, metadata),
@@ -126,12 +126,12 @@ impl AuthorizationComponentInstance {
     /// Calls the post authorize hook for parent edge
     pub async fn authorize_edge_post_execution(
         &mut self,
-        context: SharedContextMap,
+        context: SharedContext,
         definition: EdgeDefinition,
         edges: Vec<(String, Vec<String>)>,
         metadata: String,
     ) -> crate::Result<Vec<Result<(), crate::GuestError>>> {
-        self.call3(
+        self.call3_effect1(
             AUTHORIZE_EDGE_POST_EXECUTION_HOOK_FUNCTION,
             context,
             (definition, edges, metadata),
