@@ -1,11 +1,27 @@
 use crate::*;
-use std::{
-    fmt::{self, Display, Write},
-    iter,
-};
+use std::fmt::{self, Display, Write};
 
 pub(super) const BUILTIN_SCALARS: &[&str] = &["ID", "String", "Int", "Float", "Boolean"];
 pub(super) const INDENT: &str = "    ";
+
+/// Lets you take a routine that expects a formatter, and use it on a string.
+pub(in crate::render_sdl) fn with_formatter<F>(out: &mut String, action: F) -> fmt::Result
+where
+    F: Fn(&mut fmt::Formatter<'_>) -> fmt::Result,
+{
+    struct Helper<T>(T);
+
+    impl<T> Display for Helper<T>
+    where
+        T: Fn(&mut fmt::Formatter<'_>) -> fmt::Result,
+    {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            (self.0)(f)
+        }
+    }
+
+    out.write_fmt(format_args!("{}", Helper(action)))
+}
 
 pub(super) fn write_quoted(sdl: &mut impl Write, s: &str) -> fmt::Result {
     sdl.write_char('"')?;
@@ -100,11 +116,11 @@ impl fmt::Display for ValueDisplay<'_> {
     }
 }
 
-pub(super) struct DirectiveArguments<'a>(pub &'a [(StringId, Value)], pub &'a FederatedGraph);
+struct Arguments<'a>(pub &'a [(StringId, Value)], pub &'a FederatedGraph);
 
-impl Display for DirectiveArguments<'_> {
+impl Display for Arguments<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let DirectiveArguments(arguments, graph) = self;
+        let Arguments(arguments, graph) = self;
 
         if arguments.is_empty() {
             return Ok(());
@@ -168,7 +184,7 @@ impl Display for BareFieldSetDisplay<'_> {
                 .map(|(arg, value)| (graph[*arg].name, value.clone()))
                 .collect::<Vec<_>>();
 
-            DirectiveArguments(&arguments, graph).fmt(f)?;
+            Arguments(&arguments, graph).fmt(f)?;
 
             if !field.subselection.is_empty() {
                 f.write_str(" { ")?;
@@ -235,72 +251,80 @@ pub(super) fn write_description(
     Display::fmt(&Description(&graph[description], indent), f)
 }
 
-pub(crate) struct DirectiveDisplay<'a>(pub &'a Directive, pub &'a FederatedGraph);
-
-impl Display for DirectiveDisplay<'_> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let DirectiveDisplay(directive, graph) = self;
-        write_composed_directive(f, directive, graph)
-    }
-}
-
-pub(crate) fn write_composed_directive(
-    f: &mut fmt::Formatter<'_>,
+pub(crate) fn write_composed_directive<'a, 'b: 'a>(
+    f: &'a mut fmt::Formatter<'b>,
     directive: &Directive,
-    graph: &FederatedGraph,
+    graph: &'a FederatedGraph,
 ) -> fmt::Result {
     match directive {
-        Directive::Authenticated => write_directive(f, "authenticated", iter::empty::<(&str, Value)>(), graph),
-        Directive::Inaccessible => write_directive(f, "inaccessible", iter::empty::<(&str, Value)>(), graph),
-        Directive::Deprecated { reason } => write_directive(
-            f,
-            "deprecated",
-            reason.iter().map(|reason| ("reason", Value::String(*reason))),
-            graph,
-        ),
-        Directive::Policy(policies) => write_directive(
-            f,
-            "policy",
-            std::iter::once((
-                "policies",
-                Value::List(
-                    policies
-                        .iter()
-                        .map(|p| Value::List(p.iter().map(|p| Value::String(*p)).collect()))
-                        .collect(),
-                ),
-            )),
-            graph,
-        ),
-        Directive::RequiresScopes(scopes) => write_directive(
-            f,
-            "requiresScopes",
-            std::iter::once((
-                "scopes",
-                Value::List(
-                    scopes
-                        .iter()
-                        .map(|p| Value::List(p.iter().map(|p| Value::String(*p)).collect()))
-                        .collect(),
-                ),
-            )),
-            graph,
-        ),
-        Directive::Other { name, arguments } => write_directive(
-            f,
-            &graph[*name],
-            arguments
-                .iter()
-                .map(|(name, value)| (graph[*name].as_str(), value.clone())),
-            graph,
-        ),
+        Directive::Authenticated => {
+            DirectiveWriter::new("authenticated", f, graph)?;
+        }
+        Directive::Inaccessible => {
+            DirectiveWriter::new("inaccessible", f, graph)?;
+        }
+        Directive::Deprecated { reason } => {
+            let directive = DirectiveWriter::new("deprecated", f, graph)?;
+
+            if let Some(reason) = reason {
+                directive.arg("reason", Value::String(*reason))?;
+            }
+        }
+        Directive::Policy(policies) => {
+            let policies = Value::List(
+                policies
+                    .iter()
+                    .map(|p| Value::List(p.iter().map(|p| Value::String(*p)).collect()))
+                    .collect(),
+            );
+
+            DirectiveWriter::new("policy", f, graph)?.arg("policies", policies)?;
+        }
+
+        Directive::RequiresScopes(scopes) => {
+            let scopes = Value::List(
+                scopes
+                    .iter()
+                    .map(|p| Value::List(p.iter().map(|p| Value::String(*p)).collect()))
+                    .collect(),
+            );
+
+            DirectiveWriter::new("requiresScopes", f, graph)?.arg("scopes", scopes)?;
+        }
+        Directive::Other { name, arguments } => {
+            let mut directive = DirectiveWriter::new(&graph[*name], f, graph)?;
+
+            for (name, value) in arguments {
+                directive = directive.arg(&graph[*name], value.clone())?;
+            }
+        }
     }
+
+    Ok(())
 }
 
-enum DisplayableArgument<'a> {
+pub(crate) enum DisplayableArgument<'a> {
     Value(Value),
     FieldSet(FieldSetDisplay<'a>),
     InputValueDefinitionSet(InputValueDefinitionSetDisplay<'a>),
+    GraphEnumVariantName(GraphEnumVariantName<'a>),
+}
+
+impl<'a> DisplayableArgument<'a> {
+    pub(crate) fn display(&self, f: &mut fmt::Formatter<'_>, graph: &FederatedGraph) -> fmt::Result {
+        match self {
+            DisplayableArgument::Value(v) => ValueDisplay(v, graph).fmt(f),
+            DisplayableArgument::FieldSet(v) => v.fmt(f),
+            DisplayableArgument::InputValueDefinitionSet(v) => v.fmt(f),
+            DisplayableArgument::GraphEnumVariantName(inner) => inner.fmt(f),
+        }
+    }
+}
+
+impl<'a> From<GraphEnumVariantName<'a>> for DisplayableArgument<'a> {
+    fn from(value: GraphEnumVariantName<'a>) -> Self {
+        DisplayableArgument::GraphEnumVariantName(value)
+    }
 }
 
 impl From<Value> for DisplayableArgument<'_> {
@@ -321,89 +345,52 @@ impl<'a> From<InputValueDefinitionSetDisplay<'a>> for DisplayableArgument<'a> {
     }
 }
 
-pub(super) struct AuthorizedDirectiveDisplay<'a>(pub &'a AuthorizedDirective, pub &'a FederatedGraph);
+pub(crate) struct DirectiveWriter<'a, 'b> {
+    f: &'a mut fmt::Formatter<'b>,
+    graph: &'a FederatedGraph,
+    paren_open: bool,
+}
 
-impl Display for AuthorizedDirectiveDisplay<'_> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let AuthorizedDirectiveDisplay(directive, graph) = self;
+impl<'a, 'b> DirectiveWriter<'a, 'b> {
+    pub(crate) fn new(
+        directive_name: &str,
+        f: &'a mut fmt::Formatter<'b>,
+        graph: &'a FederatedGraph,
+    ) -> Result<Self, fmt::Error> {
+        f.write_str("@")?;
+        f.write_str(directive_name)?;
 
-        let fields = directive
-            .fields
-            .as_ref()
-            .map(|fields| ("fields", DisplayableArgument::from(FieldSetDisplay(fields, graph))));
+        Ok(DirectiveWriter {
+            f,
+            graph,
+            paren_open: false,
+        })
+    }
 
-        let node = directive
-            .node
-            .as_ref()
-            .map(|fields| ("node", DisplayableArgument::from(FieldSetDisplay(fields, graph))));
+    pub(crate) fn arg<'c>(mut self, name: &str, value: impl Into<DisplayableArgument<'c>>) -> Result<Self, fmt::Error> {
+        if !self.paren_open {
+            self.f.write_str("(")?;
+            self.paren_open = true;
+        } else {
+            self.f.write_str(", ")?;
+        }
 
-        let arguments = directive.arguments.as_ref().map(|arguments| {
-            (
-                "arguments",
-                DisplayableArgument::from(InputValueDefinitionSetDisplay(arguments, graph)),
-            )
-        });
+        let value = value.into();
 
-        let metadata = directive
-            .metadata
-            .as_ref()
-            .map(|metadata| ("metadata", DisplayableArgument::Value(metadata.clone())));
+        self.f.write_str(name)?;
+        self.f.write_str(": ")?;
+        value.display(self.f, self.graph)?;
 
-        let arguments = [fields, node, arguments, metadata];
-
-        write_directive(f, "authorized", arguments.into_iter().flatten(), graph)
+        Ok(self)
     }
 }
 
-fn write_directive<'a, A>(
-    f: &mut fmt::Formatter<'_>,
-    directive_name: &str,
-    arguments: impl Iterator<Item = (&'a str, A)>,
-    graph: &FederatedGraph,
-) -> fmt::Result
-where
-    A: Into<DisplayableArgument<'a>>,
-{
-    f.write_str(" @")?;
-    f.write_str(directive_name)?;
-    write_directive_arguments(f, arguments.map(|(name, value)| (name, value.into())), graph)
-}
-
-fn write_directive_arguments<'a>(
-    f: &mut fmt::Formatter<'_>,
-    arguments: impl Iterator<Item = (&'a str, DisplayableArgument<'a>)>,
-    graph: &FederatedGraph,
-) -> fmt::Result {
-    let mut arguments = arguments.peekable();
-
-    if arguments.peek().is_none() {
-        return Ok(());
-    }
-
-    f.write_str("(")?;
-
-    while let Some((name, value)) = arguments.next() {
-        f.write_str(name)?;
-        f.write_str(": ")?;
-
-        match value {
-            DisplayableArgument::Value(v) => {
-                ValueDisplay(&v, graph).fmt(f)?;
-            }
-            DisplayableArgument::FieldSet(v) => {
-                v.fmt(f)?;
-            }
-            DisplayableArgument::InputValueDefinitionSet(v) => {
-                v.fmt(f)?;
-            }
-        }
-
-        if arguments.peek().is_some() {
-            f.write_str(", ")?;
+impl Drop for DirectiveWriter<'_, '_> {
+    fn drop(&mut self) {
+        if self.paren_open {
+            self.f.write_str(")").ok();
         }
     }
-
-    f.write_str(")")
 }
 
 pub(super) fn render_field_type(field_type: &Type, graph: &FederatedGraph) -> String {
@@ -435,4 +422,23 @@ pub(super) fn render_field_type(field_type: &Type, graph: &FederatedGraph) -> St
     }
 
     out
+}
+
+pub(in crate::render_sdl) struct GraphEnumVariantName<'a>(pub &'a str);
+
+impl Display for GraphEnumVariantName<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        for char in self.0.chars() {
+            match char {
+                '-' | '_' | ' ' => f.write_char('_')?,
+                other => {
+                    for char in other.to_uppercase() {
+                        f.write_char(char)?;
+                    }
+                }
+            }
+        }
+
+        Ok(())
+    }
 }
