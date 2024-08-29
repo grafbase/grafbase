@@ -6,12 +6,12 @@ use std::{fs, net::SocketAddr, panic::AssertUnwindSafe, sync::Arc, time::Duratio
 
 use duct::cmd;
 use futures_util::{Future, FutureExt};
-use gateway_integration_tests::mocks::gdn::GdnResponseMock;
-use gateway_integration_tests::{
-    cargo_bin, listen_address, runtime, Client, CommandHandles, ConfigContent, GatewayBuilder, TestRequest,
-};
 use indoc::indoc;
 use tempfile::tempdir;
+use test_helpers::mocks::gdn::GdnResponseMock;
+use test_helpers::{
+    cargo_bin, listen_address, runtime, Client, CommandHandles, ConfigContent, GatewayBuilder, TestRequest,
+};
 use tokio::time::Instant;
 use wiremock::{
     matchers::{header, method, path},

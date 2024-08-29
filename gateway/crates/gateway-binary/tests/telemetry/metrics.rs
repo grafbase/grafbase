@@ -5,7 +5,7 @@ use std::{
     time::{Duration, UNIX_EPOCH},
 };
 
-use gateway_integration_tests::clickhouse_client;
+use test_helpers::clickhouse_client;
 use handlebars::Handlebars;
 use indoc::formatdoc;
 use serde::{Deserialize, Serialize};

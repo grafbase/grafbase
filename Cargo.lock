@@ -3328,9 +3328,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "gateway-integration-tests"
+name = "gateway-integration-test-helpers"
 version = "0.79.1"
 dependencies = [
+ "anyhow",
  "async-graphql-parser",
  "clickhouse",
  "ctor",
@@ -3636,6 +3637,7 @@ dependencies = [
  "fslock",
  "futures-util",
  "gateway-config",
+ "gateway-integration-test-helpers",
  "grafbase-graphql-introspection",
  "grafbase-telemetry",
  "graph-ref",

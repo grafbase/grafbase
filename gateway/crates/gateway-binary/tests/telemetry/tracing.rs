@@ -4,8 +4,8 @@ use std::{
 };
 
 use futures_util::Future;
-use gateway_integration_tests::clickhouse_client;
 use indoc::formatdoc;
+use test_helpers::clickhouse_client;
 
 use crate::{runtime, Client};
 

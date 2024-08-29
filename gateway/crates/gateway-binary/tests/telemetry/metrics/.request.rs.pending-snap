@@ -1,0 +1,4 @@
+{"run_id":"c0e04acd-a547-43c8-97fd-c16e842470f5","line":324,"new":{"module_name":"integration_tests__telemetry__metrics__request","snapshot_name":"connected_clients-2","metadata":{"source":"gateway/crates/gateway-binary/tests/telemetry/metrics/request.rs","assertion_line":324,"expression":"row"},"snapshot":"null"},"old":{"module_name":"integration_tests__telemetry__metrics__request","metadata":{},"snapshot":"{\n  \"Value\": 0.0,\n  \"Attributes\": {}\n}"}}
+{"run_id":"c0e04acd-a547-43c8-97fd-c16e842470f5","line":217,"new":null,"old":null}
+{"run_id":"c0e04acd-a547-43c8-97fd-c16e842470f5","line":364,"new":null,"old":null}
+{"run_id":"c0e04acd-a547-43c8-97fd-c16e842470f5","line":404,"new":null,"old":null}

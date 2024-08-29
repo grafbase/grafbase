@@ -70,6 +70,7 @@ impl Client {
         let (mut parts, _) = http::Request::new(()).into_parts();
         parts.method = http::Method::POST;
         parts.uri = self.endpoint.parse().unwrap();
+        parts.headers = self.headers.clone();
 
         TestRequest {
             client: self.client.clone(),
@@ -86,6 +87,7 @@ impl Client {
         let (mut parts, _) = http::Request::new(()).into_parts();
         parts.method = http::Method::POST;
         parts.uri = self.endpoint.parse().unwrap();
+        parts.headers = self.headers.clone();
 
         TestBatchRequest {
             client: self.client.clone(),

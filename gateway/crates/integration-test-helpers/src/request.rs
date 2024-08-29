@@ -96,7 +96,7 @@ impl IntoFuture for TestRequest {
             GraphqlHttpResponse {
                 status: response.status(),
                 headers: response.headers().clone(),
-                body: response.json().await.expect("a json response"),
+                body: response.json().await.map_err(Into::into),
             }
         }
         .boxed()

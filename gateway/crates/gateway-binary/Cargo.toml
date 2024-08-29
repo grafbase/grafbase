@@ -53,6 +53,7 @@ reqwest.workspace = true
 serde.workspace = true
 serde_with.workspace = true
 serde_json.workspace = true
+test-helpers = { path = "../integration-test-helpers", package = "gateway-integration-test-helpers" }
 tempfile = "3.10.1"
 wiremock.workspace = true
 ulid.workspace = true

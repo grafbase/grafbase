@@ -1,5 +1,6 @@
 use std::{collections::HashMap, time::Duration};
 
+use test_helpers::clickhouse_client;
 use indoc::{formatdoc, indoc};
 use serde::Deserialize;
 
@@ -30,7 +31,7 @@ fn with_stdout_telemetry() {
     "#};
 
     with_static_server(config, &schema, None, None, |client| async move {
-        let result: serde_json::Value = client.gql(query).send().await;
+        let result = client.execute(query).await.into_body();
         serde_json::to_string_pretty(&result).unwrap();
     })
 }
@@ -70,12 +71,12 @@ fn with_otel() {
     "#};
 
     with_static_server(config, &schema, None, None, |client| async move {
-        let result: serde_json::Value = client.gql(query).send().await;
+        let result = client.execute(query).await.into_body();
         serde_json::to_string_pretty(&result).unwrap();
 
         tokio::time::sleep(Duration::from_secs(2)).await;
 
-        let client = crate::clickhouse_client();
+        let client = clickhouse_client();
 
         let Row { resource_attributes } = client
             .query("SELECT ResourceAttributes FROM otel_traces WHERE ServiceName = ?")
@@ -134,7 +135,7 @@ fn extra_resource_attributes() {
     "#};
 
     with_static_server(config, &schema, None, None, |client| async move {
-        let response: serde_json::Value = client.gql(query).send().await;
+        let response = client.execute(query).await.into_body();
         insta::assert_json_snapshot!(response, @r###"
         {
           "data": {
@@ -145,7 +146,7 @@ fn extra_resource_attributes() {
 
         tokio::time::sleep(Duration::from_secs(2)).await;
 
-        let client = crate::clickhouse_client();
+        let client = clickhouse_client();
 
         let Row { resource_attributes } = client
             .query("SELECT ResourceAttributes FROM otel_traces WHERE ServiceName = ?")
@@ -174,4 +175,3 @@ fn extra_resource_attributes() {
         assert_eq!(resource_attributes, expected_resource_attributes);
     });
 }
-
