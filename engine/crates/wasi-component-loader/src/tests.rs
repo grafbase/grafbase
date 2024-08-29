@@ -271,8 +271,8 @@ async fn authorize_edge_pre_execution_error() {
         field_name: String::new(),
     };
 
-    let (access_log, _) = create_log_channel();
-    let context = SharedContext::new(Arc::new(kv), access_log, false);
+    let (access_log, _) = create_log_channel(false);
+    let context = SharedContext::new(Arc::new(kv), access_log);
 
     let error = hook
         .authorize_edge_pre_execution(context, definition, String::new(), String::new())
@@ -313,8 +313,8 @@ async fn authorize_edge_pre_execution_success() {
         field_name: String::new(),
     };
 
-    let (access_log, _) = create_log_channel();
-    let context = SharedContext::new(Arc::new(context), access_log, false);
+    let (access_log, _) = create_log_channel(false);
+    let context = SharedContext::new(Arc::new(context), access_log);
 
     hook.authorize_edge_pre_execution(context, definition, String::from("kekw"), String::new())
         .await
@@ -346,8 +346,8 @@ async fn authorize_node_pre_execution_error() {
         type_name: String::new(),
     };
 
-    let (access_log, _) = create_log_channel();
-    let context = SharedContext::new(Arc::new(context), access_log, false);
+    let (access_log, _) = create_log_channel(false);
+    let context = SharedContext::new(Arc::new(context), access_log);
 
     let error = hook
         .authorize_node_pre_execution(context, definition, String::new())
@@ -387,8 +387,8 @@ async fn authorize_node_pre_execution_success() {
         type_name: String::new(),
     };
 
-    let (access_log, _) = create_log_channel();
-    let context = SharedContext::new(Arc::new(context), access_log, false);
+    let (access_log, _) = create_log_channel(false);
+    let context = SharedContext::new(Arc::new(context), access_log);
 
     hook.authorize_node_pre_execution(context, definition, String::from("kekw"))
         .await
@@ -426,8 +426,8 @@ async fn authorize_parent_edge_post_execution() {
         serde_json::to_string(&json!({ "value": "lol" })).unwrap(),
     ];
 
-    let (access_log, _) = create_log_channel();
-    let context = SharedContext::new(Arc::new(context), access_log, false);
+    let (access_log, _) = create_log_channel(false);
+    let context = SharedContext::new(Arc::new(context), access_log);
 
     let result = hook
         .authorize_parent_edge_post_execution(context, definition, parents, String::new())
@@ -482,8 +482,8 @@ async fn authorize_edge_node_post_execution() {
         serde_json::to_string(&json!({ "value": "lol" })).unwrap(),
     ];
 
-    let (access_log, _) = create_log_channel();
-    let context = SharedContext::new(Arc::new(context), access_log, false);
+    let (access_log, _) = create_log_channel(false);
+    let context = SharedContext::new(Arc::new(context), access_log);
 
     let result = hook
         .authorize_edge_node_post_execution(context, definition, nodes, String::new())
@@ -543,8 +543,8 @@ async fn authorize_edge_post_execution() {
         serde_json::to_string(&json!({ "value": "lol" })).unwrap(),
     ];
 
-    let (access_log, _) = create_log_channel();
-    let context = SharedContext::new(Arc::new(context), access_log, false);
+    let (access_log, _) = create_log_channel(false);
+    let context = SharedContext::new(Arc::new(context), access_log);
 
     let result = hook
         .authorize_edge_post_execution(
@@ -603,8 +603,8 @@ async fn on_subgraph_request() {
 
     let mut hook = SubgraphComponentInstance::new(&loader).await.unwrap();
 
-    let (access_log, _) = create_log_channel();
-    let context = SharedContext::new(Arc::new(context), access_log, false);
+    let (access_log, _) = create_log_channel(false);
+    let context = SharedContext::new(Arc::new(context), access_log);
 
     let headers = hook
         .on_subgraph_request(
@@ -638,8 +638,8 @@ async fn on_subgraph_request() {
 
     let context = HashMap::from_iter([("should-fail".into(), "yes".into())]);
 
-    let (access_log, _) = create_log_channel();
-    let context = SharedContext::new(Arc::new(context), access_log, false);
+    let (access_log, _) = create_log_channel(false);
+    let context = SharedContext::new(Arc::new(context), access_log);
 
     let error = hook
         .on_subgraph_request(
@@ -677,8 +677,8 @@ async fn response_hooks() {
 
     let mut hook = ResponsesComponentInstance::new(&loader).await.unwrap();
 
-    let (access_log, receiver) = create_log_channel();
-    let context = SharedContext::new(Arc::new(HashMap::new()), access_log, false);
+    let (access_log, receiver) = create_log_channel(false);
+    let context = SharedContext::new(Arc::new(HashMap::new()), access_log);
 
     let request = ExecutedSubgraphRequest {
         subgraph_name: String::from("kekw"),

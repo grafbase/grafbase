@@ -165,7 +165,7 @@ impl ResponsesComponentInstance {
         context: SharedContext,
         request: ExecutedSubgraphRequest,
     ) -> crate::Result<Vec<u8>> {
-        self.call1(ON_SUBGRAPH_RESPONSE_FUNCTION, context, request)
+        self.call1_effect1(ON_SUBGRAPH_RESPONSE_FUNCTION, context, request)
             .await?
             .map(|result: Vec<u8>| Ok(result))
             .unwrap_or_else(|| Ok(Vec::new()))
@@ -178,7 +178,7 @@ impl ResponsesComponentInstance {
         operation: Operation,
         request: ExecutedGatewayRequest,
     ) -> crate::Result<Vec<u8>> {
-        self.call2(ON_GATEWAY_RESPONSE_FUNCTION, context, (operation, request))
+        self.call2_effect1(ON_GATEWAY_RESPONSE_FUNCTION, context, (operation, request))
             .await?
             .map(|result: Vec<u8>| Ok(result))
             .unwrap_or_else(|| Ok(Vec::new()))
@@ -190,6 +190,6 @@ impl ResponsesComponentInstance {
         context: SharedContext,
         request: ExecutedHttpRequest,
     ) -> crate::Result<()> {
-        self.call1_0(ON_HTTP_RESPONSE_FUNCTION, context, request).await
+        self.call1_effect0(ON_HTTP_RESPONSE_FUNCTION, context, request).await
     }
 }

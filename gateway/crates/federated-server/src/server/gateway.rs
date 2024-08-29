@@ -125,13 +125,13 @@ pub(super) async fn generate(
         .flatten();
 
     // TODO:
-    let (access_log_sender, _) = create_log_channel();
+    let (access_log_sender, _) = create_log_channel(false);
 
     let runtime = GatewayRuntime {
         fetcher: NativeFetcher::default(),
         kv: InMemoryKvStore::runtime(),
         trusted_documents,
-        hooks: HooksWasi::new(hooks, &meter, access_log_sender, false),
+        hooks: HooksWasi::new(hooks, &meter, access_log_sender),
         meter,
         rate_limiter,
         entity_cache,

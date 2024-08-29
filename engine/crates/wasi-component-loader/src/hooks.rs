@@ -105,7 +105,7 @@ impl ComponentInstance {
         })
     }
 
-    async fn call1_0<A1>(&mut self, name: &'static str, context: SharedContext, arg: A1) -> crate::Result<()>
+    async fn call1_effect0<A1>(&mut self, name: &'static str, context: SharedContext, arg: A1) -> crate::Result<()>
     where
         (Resource<SharedContext>, A1): ComponentNamedList + Lower + Send + Sync + 'static,
     {
@@ -136,7 +136,12 @@ impl ComponentInstance {
         Ok(())
     }
 
-    async fn call1<A1, R>(&mut self, name: &'static str, context: SharedContext, arg: A1) -> crate::Result<Option<R>>
+    async fn call1_effect1<A1, R>(
+        &mut self,
+        name: &'static str,
+        context: SharedContext,
+        arg: A1,
+    ) -> crate::Result<Option<R>>
     where
         (Resource<SharedContext>, A1): ComponentNamedList + Lower + Send + Sync + 'static,
         (R,): ComponentNamedList + Lift + Send + Sync + 'static,
@@ -168,7 +173,7 @@ impl ComponentInstance {
         Ok(Some(result))
     }
 
-    async fn call2<A1, A2, R>(
+    async fn call2_effect1<A1, A2, R>(
         &mut self,
         name: &'static str,
         context: SharedContext,
@@ -205,7 +210,7 @@ impl ComponentInstance {
         Ok(Some(result))
     }
 
-    async fn call3<A1, A2, A3, R>(
+    async fn call3_effect1<A1, A2, A3, R>(
         &mut self,
         name: &'static str,
         context: SharedContext,

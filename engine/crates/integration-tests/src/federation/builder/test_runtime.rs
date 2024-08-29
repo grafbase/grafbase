@@ -18,14 +18,11 @@ pub struct TestRuntime {
     pub hooks: DynamicHooks,
     pub rate_limiter: runtime::rate_limiting::RateLimiter,
     pub entity_cache: InMemoryEntityCache,
-    pub access_log_sender: runtime_local::hooks::ChannelLogSender,
-    pub access_log_receiver: runtime_local::hooks::ChannelLogReceiver,
 }
 
 impl Default for TestRuntime {
     fn default() -> Self {
         let (_, rx) = watch::channel(Default::default());
-        let (access_log_sender, access_log_receiver) = runtime_local::hooks::create_log_channel();
 
         Self {
             fetcher: DynamicFetcher::wrap(NativeFetcher::default()),
@@ -36,8 +33,6 @@ impl Default for TestRuntime {
             rate_limiter: InMemoryRateLimiter::runtime_with_watcher(rx),
             entity_cache: InMemoryEntityCache::default(),
             hot_cache_factory: Default::default(),
-            access_log_sender,
-            access_log_receiver,
         }
     }
 }

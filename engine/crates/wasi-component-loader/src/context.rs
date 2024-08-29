@@ -16,7 +16,29 @@ use crate::{
 };
 
 /// Sender for a wasi hook to send logs to the writer.
-pub type ChannelLogSender = crossbeam::channel::Sender<AccessLogMessage>;
+#[derive(Clone)]
+pub struct ChannelLogSender {
+    sender: crossbeam::channel::Sender<AccessLogMessage>,
+    lossy_log: bool,
+}
+
+impl ChannelLogSender {
+    /// Sends the given access log message to the access log.
+    pub fn send(&self, data: AccessLogMessage) -> Result<(), LogError> {
+        if self.lossy_log {
+            if let Err(e) = self.sender.try_send(data) {
+                match e {
+                    TrySendError::Full(AccessLogMessage::Data(data)) => return Err(LogError::ChannelFull(data)),
+                    _ => return Err(LogError::ChannelClosed),
+                }
+            }
+        } else if self.sender.send(data).is_err() {
+            return Err(LogError::ChannelClosed);
+        }
+
+        Ok(())
+    }
+}
 
 /// A receiver for the logger to receive messages and write them somewhere.
 pub type ChannelLogReceiver = crossbeam::channel::Receiver<AccessLogMessage>;
@@ -25,8 +47,9 @@ pub type ChannelLogReceiver = crossbeam::channel::Receiver<AccessLogMessage>;
 const DEFAULT_BUFFERED_LINES_LIMIT: usize = 128_000;
 
 /// Creates a new channel for access logs.
-pub fn create_log_channel() -> (ChannelLogSender, ChannelLogReceiver) {
-    crossbeam::channel::bounded(DEFAULT_BUFFERED_LINES_LIMIT)
+pub fn create_log_channel(lossy_log: bool) -> (ChannelLogSender, ChannelLogReceiver) {
+    let (sender, receiver) = crossbeam::channel::bounded(DEFAULT_BUFFERED_LINES_LIMIT);
+    (ChannelLogSender { sender, lossy_log }, receiver)
 }
 
 /// A message sent through access log channel.
@@ -57,18 +80,12 @@ pub struct SharedContext {
     kv: Arc<HashMap<String, String>>,
     /// A log channel for access logs.
     access_log: ChannelLogSender,
-    /// If true, messages get dropped when the channel is full.
-    lossy_log: bool,
 }
 
 impl SharedContext {
     /// Creates a new shared context.
-    pub fn new(kv: Arc<HashMap<String, String>>, access_log: ChannelLogSender, lossy_log: bool) -> Self {
-        Self {
-            kv,
-            access_log,
-            lossy_log,
-        }
+    pub fn new(kv: Arc<HashMap<String, String>>, access_log: ChannelLogSender) -> Self {
+        Self { kv, access_log }
     }
 }
 
@@ -170,24 +187,21 @@ fn log_access(
     let context = store.data().get(&this).expect("must exist");
     let data = AccessLogMessage::Data(data);
 
-    if context.lossy_log {
-        if let Err(e) = context.access_log.try_send(data) {
+    match context.access_log.send(data) {
+        Ok(()) => Ok((Ok(()),)),
+        Err(e) => {
             match e {
-                TrySendError::Full(AccessLogMessage::Data(data)) => {
+                LogError::ChannelFull(_) => {
                     tracing::error!(target: GRAFBASE_TARGET, "access log channel is over capacity");
-                    return Ok((Err(LogError::ChannelFull(data)),));
                 }
-                _ => {
+                LogError::ChannelClosed => {
                     tracing::error!(target: GRAFBASE_TARGET, "access log channel closed");
-                    return Ok((Err(LogError::ChannelClosed),));
                 }
             }
-        }
-    } else if context.access_log.send(data).is_err() {
-        return Ok((Err(LogError::ChannelClosed),));
-    }
 
-    Ok((Ok(()),))
+            Ok((Err(e),))
+        }
+    }
 }
 
 /// Look for a context value with the given key, returning a copy of the value if found. Will remove

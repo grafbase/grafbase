@@ -33,12 +33,11 @@ struct HooksWasiInner {
     subgraph: Pool<SubgraphComponentInstance>,
     hook_latencies: Histogram<u64>,
     sender: ChannelLogSender,
-    lossy_log: bool,
 }
 
 impl HooksWasiInner {
     pub fn shared_context(&self, kv: &Arc<HashMap<String, String>>) -> SharedContext {
-        SharedContext::new(Arc::clone(kv), self.sender.clone(), self.lossy_log)
+        SharedContext::new(Arc::clone(kv), self.sender.clone())
     }
 
     async fn run_and_measure<F, T>(&self, hook_name: &'static str, hook: F) -> Result<T, wasi_component_loader::Error>
@@ -113,7 +112,7 @@ impl HookStatus {
 }
 
 impl HooksWasi {
-    pub fn new(loader: Option<ComponentLoader>, meter: &Meter, sender: ChannelLogSender, lossy_log: bool) -> Self {
+    pub fn new(loader: Option<ComponentLoader>, meter: &Meter, sender: ChannelLogSender) -> Self {
         match loader.map(Arc::new) {
             Some(loader) => Self(Some(HooksWasiInner {
                 gateway: Pool::new(&loader),
@@ -121,7 +120,6 @@ impl HooksWasi {
                 subgraph: Pool::new(&loader),
                 hook_latencies: meter.u64_histogram("grafbase.hook.duration").init(),
                 sender,
-                lossy_log,
             })),
             None => Self(None),
         }
