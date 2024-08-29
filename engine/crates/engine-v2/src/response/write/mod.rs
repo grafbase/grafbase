@@ -449,10 +449,6 @@ impl<'resp> SubgraphResponseRefMut<'resp> {
     pub fn push_errors(&self, errors: Vec<GraphqlError>) {
         self.inner.borrow_mut().errors.extend(errors);
     }
-
-    pub fn add_on_subgraph_response_data(&self, data: Vec<u8>) {
-        self.inner.borrow_mut().on_subgraph_response_data = data;
-    }
 }
 
 pub struct ResponseWriter<'resp> {

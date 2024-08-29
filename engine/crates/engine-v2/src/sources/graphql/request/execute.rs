@@ -10,10 +10,10 @@ use headers::HeaderMapExt;
 use runtime::{
     bytes::OwnedOrSharedBytes,
     fetch::{FetchRequest, FetchResult, Fetcher},
-    hooks::{ExecutedSubgraphRequestBuilder, ResponseInfo, ResponseKind},
+    hooks::{ResponseInfo, ResponseKind},
     rate_limiting::RateLimitKey,
 };
-use schema::sources::graphql::{GraphqlEndpointId, GraphqlEndpointWalker};
+use schema::sources::graphql::GraphqlEndpointId;
 use tower::retry::budget::Budget;
 use tracing::Span;
 use web_time::{Duration, SystemTime};
@@ -21,7 +21,7 @@ use web_time::{Duration, SystemTime};
 use crate::{
     execution::{ExecutionContext, ExecutionError, ExecutionResult},
     response::SubgraphResponse,
-    sources::graphql::record,
+    sources::{graphql::record, SubgraphRequestContext},
     Runtime,
 };
 
@@ -42,18 +42,13 @@ pub(crate) struct SubgraphRequest<'ctx, 'a, R: Runtime> {
 }
 
 pub(crate) async fn execute_subgraph_request<'ctx, 'a, R: Runtime>(
-    SubgraphRequest {
-        ctx,
-        span,
-        endpoint_id,
-        retry_budget,
-        headers,
-        body,
-    }: SubgraphRequest<'ctx, 'a, R>,
-    request_info: &mut ExecutedSubgraphRequestBuilder<'_>,
+    ctx: &mut SubgraphRequestContext<'ctx, R>,
+    span: Span,
+    headers: http::HeaderMap,
+    body: Bytes,
     ingester: impl ResponseIngester,
 ) -> ExecutionResult<SubgraphResponse> {
-    let endpoint = ctx.schema().walk(endpoint_id);
+    let endpoint = ctx.endpoint();
 
     let request = {
         let mut headers = ctx
@@ -61,7 +56,7 @@ pub(crate) async fn execute_subgraph_request<'ctx, 'a, R: Runtime>(
             .on_subgraph_request(endpoint.subgraph_name(), http::Method::POST, endpoint.url(), headers)
             .await
             .map_err(|error| {
-                request_info.push_response(ResponseKind::HookError);
+                ctx.request_info().push_response(ResponseKind::HookError);
                 error
             })?;
 
@@ -79,10 +74,11 @@ pub(crate) async fn execute_subgraph_request<'ctx, 'a, R: Runtime>(
     };
 
     let start = SystemTime::now();
+    let execution_context = ctx.execution_context();
 
-    let response = retrying_fetch(ctx, endpoint, retry_budget, request_info, move || {
-        record::subgraph_request_size(ctx, endpoint, request.body.len());
-        ctx.engine.runtime.fetcher().fetch(request.clone())
+    let response = retrying_fetch(ctx, move || {
+        record::subgraph_request_size(execution_context, endpoint, request.body.len());
+        execution_context.engine.runtime.fetcher().fetch(request.clone())
     })
     .await;
 
@@ -95,33 +91,47 @@ pub(crate) async fn execute_subgraph_request<'ctx, 'a, R: Runtime>(
         Err(e) => {
             let status = SubgraphResponseStatus::HttpError;
 
-            request_info.set_graphql_status(status);
-            record::subgraph_duration(ctx, endpoint, status, None, duration);
+            ctx.request_info().set_graphql_status(status);
+            record::subgraph_duration(execution_context, endpoint, status, None, duration);
 
             return Err(e);
         }
     };
 
     tracing::debug!("{}", String::from_utf8_lossy(response.body()));
-    record::subgraph_response_size(ctx, endpoint, response.body().len());
+    record::subgraph_response_size(execution_context, endpoint, response.body().len());
 
     let status_code = response.status();
 
     let (status, response) = ingester.ingest(response).await.inspect_err(|err| {
         let subgraph_status = SubgraphResponseStatus::InvalidResponseError;
-        request_info.set_graphql_status(subgraph_status);
 
+        ctx.request_info().set_graphql_status(subgraph_status);
         span.record_subgraph_status(subgraph_status);
-        record::subgraph_duration(ctx, endpoint, subgraph_status, Some(status_code), duration);
+
+        record::subgraph_duration(
+            execution_context,
+            endpoint,
+            subgraph_status,
+            Some(status_code),
+            duration,
+        );
 
         tracing::error!(target: GRAFBASE_TARGET, "{err}");
     })?;
 
     let subgraph_status = SubgraphResponseStatus::GraphqlResponse(status);
-    request_info.set_graphql_status(subgraph_status);
+    ctx.request_info().set_graphql_status(subgraph_status);
 
     span.record_subgraph_status(subgraph_status);
-    record::subgraph_duration(ctx, endpoint, subgraph_status, Some(status_code), duration);
+
+    record::subgraph_duration(
+        execution_context,
+        endpoint,
+        subgraph_status,
+        Some(status_code),
+        duration,
+    );
 
     match response.subgraph_errors().next().map(|e| &e.message) {
         Some(error) => {
@@ -136,19 +146,16 @@ pub(crate) async fn execute_subgraph_request<'ctx, 'a, R: Runtime>(
 }
 
 async fn retrying_fetch<'ctx, R: Runtime, F, T>(
-    ctx: ExecutionContext<'ctx, R>,
-    endpoint: GraphqlEndpointWalker<'_>,
-    retry_budget: Option<&Budget>,
-    request_info: &mut ExecutedSubgraphRequestBuilder<'_>,
+    ctx: &mut SubgraphRequestContext<'ctx, R>,
     fetch: impl Fn() -> F + Send + Sync,
 ) -> ExecutionResult<http::Response<T>>
 where
     F: Future<Output = FetchResult<http::Response<T>>> + Send,
     T: Send,
 {
-    let mut result = rate_limited_fetch(ctx, endpoint, request_info, &fetch).await;
+    let mut result = rate_limited_fetch(ctx, &fetch).await;
 
-    let Some(retry_budget) = retry_budget else {
+    if ctx.retry_budget().is_none() {
         return result;
     };
 
@@ -157,23 +164,26 @@ where
     loop {
         match result {
             Ok(bytes) => {
-                retry_budget.deposit();
+                ctx.retry_budget().map(|b| b.deposit());
                 return Ok(bytes);
             }
             Err(err) => {
-                if retry_budget.withdraw().is_ok() {
+                let withdraw = ctx.retry_budget().and_then(|b| b.withdraw().ok());
+
+                if withdraw.is_some() {
                     let jitter = rand::random::<f64>() * 2.0;
                     let exp_backoff = (100 * 2u64.pow(counter)) as f64;
                     let backoff_ms = (exp_backoff * jitter).round() as u64;
 
-                    ctx.engine.runtime.sleep(Duration::from_millis(backoff_ms)).await;
-                    record::subgraph_retry(ctx, endpoint, false);
+                    ctx.engine().runtime.sleep(Duration::from_millis(backoff_ms)).await;
+                    record::subgraph_retry(ctx.execution_context(), ctx.endpoint(), false);
 
                     counter += 1;
 
-                    result = rate_limited_fetch(ctx, endpoint, request_info, &fetch).await;
+                    result = rate_limited_fetch(ctx, &fetch).await;
                 } else {
-                    record::subgraph_retry(ctx, endpoint, true);
+                    record::subgraph_retry(ctx.execution_context(), ctx.endpoint(), true);
+
                     return Err(err);
                 }
             }
@@ -182,42 +192,40 @@ where
 }
 
 async fn rate_limited_fetch<'ctx, R: Runtime, F, T>(
-    ctx: ExecutionContext<'ctx, R>,
-    endpoint: GraphqlEndpointWalker<'ctx>,
-    request_info: &mut ExecutedSubgraphRequestBuilder<'_>,
+    ctx: &mut SubgraphRequestContext<'ctx, R>,
     fetch: impl Fn() -> F + Send,
 ) -> ExecutionResult<http::Response<T>>
 where
     F: Future<Output = FetchResult<http::Response<T>>> + Send,
     T: Send,
 {
-    ctx.engine
+    ctx.engine()
         .runtime
         .rate_limiter()
-        .limit(&RateLimitKey::Subgraph(endpoint.subgraph_name().into()))
+        .limit(&RateLimitKey::Subgraph(ctx.endpoint().subgraph_name().into()))
         .await
         .map_err(|e| {
-            request_info.push_response(ResponseKind::RateLimited);
+            ctx.request_info().push_response(ResponseKind::RateLimited);
             e
         })?;
 
-    record::increment_inflight_requests(ctx, endpoint);
+    record::increment_inflight_requests(ctx.execution_context(), ctx.endpoint());
     let mut result = fetch().await;
-    record::decrement_inflight_requests(ctx, endpoint);
+    record::decrement_inflight_requests(ctx.execution_context(), ctx.endpoint());
 
     match result {
         Ok(ref mut response) => {
             if let Some(info) = response.extensions_mut().remove::<ResponseInfo>() {
-                request_info.push_response(ResponseKind::Responsed(info));
+                ctx.request_info().push_response(ResponseKind::Responsed(info));
             }
         }
         Err(_) => {
-            request_info.push_response(ResponseKind::RequestError);
+            ctx.request_info().push_response(ResponseKind::RequestError);
         }
     }
 
     result.map_err(|error| ExecutionError::Fetch {
-        subgraph_name: endpoint.subgraph_name().to_string(),
+        subgraph_name: ctx.endpoint().subgraph_name().to_string(),
         error,
     })
 }

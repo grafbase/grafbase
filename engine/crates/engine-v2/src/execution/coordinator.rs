@@ -144,15 +144,18 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
 
     fn new_subscription_response(&self, subscription_plan_id: ExecutionPlanId) -> SubscriptionResponse {
         let mut response = ResponseBuilder::new(self.operation.root_object_id);
+
         let tracked_response_object_set_ids = self
             .plan_walker(subscription_plan_id)
             .logical_plan()
             .response_blueprint()
             .output_ids;
+
         let root_response_object_set = Arc::new(
             InputdResponseObjectSet::default()
                 .with_response_objects(Arc::new(response.root_response_object().into_iter().collect())),
         );
+
         let root_subgraph_response = response.new_subgraph_response(
             self.operation[subscription_plan_id].logical_plan_id,
             root_response_object_set,

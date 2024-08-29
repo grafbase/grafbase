@@ -44,15 +44,19 @@
 //! executor will have a root for each product in the response.
 use futures::FutureExt;
 use futures_util::stream::BoxStream;
-use runtime::hooks::ExecutedSubgraphRequest;
+use grafbase_telemetry::span::GRAFBASE_TARGET;
+use runtime::hooks::{ExecutedSubgraphRequest, ExecutedSubgraphRequestBuilder};
 use schema::{sources::graphql::GraphqlEndpointWalker, ResolverDefinition, ResolverDefinitionWalker};
 use std::future::Future;
+use tower::retry::budget::Budget;
 
 use crate::{
-    execution::{ExecutionContext, ExecutionError, ExecutionResult, PlanningResult, SubscriptionResponse},
+    execution::{
+        ExecutionContext, ExecutionError, ExecutionResult, PlanningResult, RequestHooks, SubscriptionResponse,
+    },
     operation::{OperationType, PlanWalker},
     response::{ResponseObjectsView, SubgraphResponse},
-    Runtime,
+    Engine, Runtime,
 };
 
 use self::{
@@ -89,19 +93,97 @@ impl Resolver {
             }
         }
     }
-
-    pub fn endpoint<'ctx, R: Runtime>(&self, ctx: ExecutionContext<'ctx, R>) -> Option<GraphqlEndpointWalker<'ctx>> {
-        match self {
-            Resolver::GraphQL(ref prepared) => Some(prepared.endpoint(ctx)),
-            Resolver::FederationEntity(ref prepared) => Some(prepared.endpoint(ctx)),
-            Resolver::Introspection(_) => None,
-        }
-    }
 }
 
 pub struct ExecutionFutureResult {
     pub result: ExecutionResult<SubgraphResponse>,
     pub on_subgraph_response_hook_result: Option<Vec<u8>>,
+}
+
+#[derive(Clone)]
+pub(crate) struct SubgraphRequestContext<'ctx, R: Runtime> {
+    execution_context: ExecutionContext<'ctx, R>,
+    operation_type: OperationType,
+    plan: PlanWalker<'ctx, (), ()>,
+    request_info: ExecutedSubgraphRequestBuilder<'ctx>,
+    endpoint: GraphqlEndpointWalker<'ctx>,
+}
+
+impl<'ctx, R: Runtime> SubgraphRequestContext<'ctx, R> {
+    pub fn new(
+        execution_context: ExecutionContext<'ctx, R>,
+        operation_type: OperationType,
+        plan: PlanWalker<'ctx, (), ()>,
+        endpoint: GraphqlEndpointWalker<'ctx>,
+    ) -> Self {
+        let request_info = ExecutedSubgraphRequest::builder(endpoint.subgraph_name(), "POST", endpoint.url().as_str());
+
+        Self {
+            execution_context,
+            operation_type,
+            plan,
+            request_info,
+            endpoint,
+        }
+    }
+
+    pub fn execution_context(&self) -> ExecutionContext<'ctx, R> {
+        self.execution_context
+    }
+
+    pub fn engine(&self) -> &Engine<R> {
+        self.execution_context().engine
+    }
+
+    pub fn schema(&self) -> &crate::Schema {
+        &*self.engine().schema
+    }
+
+    pub fn plan(&self) -> PlanWalker<'ctx, (), ()> {
+        self.plan
+    }
+
+    pub fn request_info(&mut self) -> &mut ExecutedSubgraphRequestBuilder<'ctx> {
+        &mut self.request_info
+    }
+
+    pub fn endpoint(&self) -> GraphqlEndpointWalker<'ctx> {
+        self.endpoint
+    }
+
+    pub fn hooks(&self) -> RequestHooks<'ctx, R::Hooks> {
+        self.execution_context().hooks()
+    }
+
+    pub fn retry_budget(&self) -> Option<&Budget> {
+        match self.operation_type {
+            OperationType::Mutation => self.engine().get_retry_budget_for_mutation(self.endpoint.id()),
+            _ => self.engine().get_retry_budget_for_non_mutation(self.endpoint().id()),
+        }
+    }
+
+    pub async fn finalize(self, subgraph_result: ExecutionResult<SubgraphResponse>) -> ExecutionFutureResult {
+        let hook_result = self
+            .execution_context
+            .hooks()
+            .on_subgraph_response(self.request_info.build())
+            .await
+            .map_err(|e| {
+                tracing::error!(target: GRAFBASE_TARGET, message = "error in on-subgraph-response hook", error = ?e);
+                ExecutionError::Internal("internal error".into())
+            });
+
+        match hook_result {
+            Ok(hook_result) => ExecutionFutureResult {
+                result: subgraph_result,
+                on_subgraph_response_hook_result: Some(hook_result),
+            },
+            Err(e) => ExecutionFutureResult {
+                result: Err(e),
+                on_subgraph_response_hook_result: None,
+            },
+        }
+    }
 }
 
 impl Resolver {
@@ -119,46 +201,27 @@ impl Resolver {
         'ctx: 'fut,
     {
         match self {
-            Resolver::GraphQL(prepared) => {
-                let hooks = ctx.hooks();
+            Resolver::GraphQL(prepared) => async move {
+                let mut context =
+                    SubgraphRequestContext::new(ctx, prepared.operation_type(), plan, prepared.endpoint(ctx));
 
-                async move {
-                    let endpoint = prepared.endpoint(ctx);
-
-                    let mut request_info =
-                        ExecutedSubgraphRequest::builder(endpoint.subgraph_name(), "POST", endpoint.url().as_str());
-
-                    let result = prepared.execute(ctx, plan, subgraph_response, &mut request_info).await;
-                    let hook_result = hooks.on_subgraph_response(request_info.build()).await.unwrap();
-
-                    ExecutionFutureResult {
-                        result,
-                        on_subgraph_response_hook_result: Some(hook_result),
-                    }
-                }
-                .boxed()
+                let subgraph_result = prepared.execute(&mut context, subgraph_response).await;
+                context.finalize(subgraph_result).await
             }
+            .boxed(),
             Resolver::FederationEntity(prepared) => {
-                let hooks = ctx.hooks();
                 let request = prepared.prepare_request(ctx, plan, root_response_objects, subgraph_response);
 
                 async move {
-                    let endpoint = prepared.endpoint(ctx);
+                    let mut context =
+                        SubgraphRequestContext::new(ctx, OperationType::Query, plan, prepared.endpoint(ctx));
 
-                    let mut request_info =
-                        ExecutedSubgraphRequest::builder(endpoint.subgraph_name(), "POST", endpoint.url().as_str());
-
-                    let result = match request {
-                        Ok(request) => request.execute(&mut request_info).await,
+                    let subgraph_result = match request {
+                        Ok(request) => request.execute(&mut context).await,
                         Err(error) => Err(error),
                     };
 
-                    let hook_result = hooks.on_subgraph_response(request_info.build()).await.unwrap();
-
-                    ExecutionFutureResult {
-                        result,
-                        on_subgraph_response_hook_result: Some(hook_result),
-                    }
+                    context.finalize(subgraph_result).await
                 }
                 .boxed()
             }
