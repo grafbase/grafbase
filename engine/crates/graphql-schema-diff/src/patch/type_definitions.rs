@@ -15,12 +15,36 @@ pub(super) fn patch_type_definition<T: AsRef<str>>(ty: TypeDefinition<'_>, schem
             | ChangeKind::RemoveScalar
             | ChangeKind::RemoveInterface
             | ChangeKind::RemoveInputObject => return,
-            ChangeKind::AddInterfaceImplementation | ChangeKind::RemoveInterfaceImplementation => todo!(),
             kind => {
                 debug_assert!(false, "Unhandled change at `{path}`: {kind:?}", path = change.path())
             }
         }
     }
+
+    let mut added_interface_implementations = Vec::new();
+    let mut removed_interface_implementations = Vec::new();
+
+    for change in paths.iter_second_level(ty.name()) {
+        match dbg!(change.kind()) {
+            ChangeKind::AddInterfaceImplementation => {
+                added_interface_implementations.push(
+                    change
+                        .second_level()
+                        .expect("No interface name for AddInterfaceImplementation"),
+                );
+            }
+            ChangeKind::RemoveInterfaceImplementation => {
+                removed_interface_implementations.push(
+                    change
+                        .second_level()
+                        .expect("No interface name for RemoveInterfaceImplementation"),
+                );
+            }
+            _ => (),
+        }
+    }
+
+    removed_interface_implementations.sort();
 
     if let Some(description) = ty.description() {
         let span = description.span();
@@ -41,13 +65,21 @@ pub(super) fn patch_type_definition<T: AsRef<str>>(ty: TypeDefinition<'_>, schem
     schema.push(' ');
     schema.push_str(ty.name());
 
-    let implements: Option<Vec<&str>> = match ty {
-        TypeDefinition::Object(obj) => Some(obj.implements_interfaces().collect()),
-        TypeDefinition::Interface(interface) => Some(interface.implements_interfaces().collect()),
-        _ => None,
+    let mut implements: Vec<&str> = match ty {
+        TypeDefinition::Object(obj) => obj.implements_interfaces().collect(),
+        TypeDefinition::Interface(interface) => interface.implements_interfaces().collect(),
+        _ => Vec::new(),
     };
 
-    if let Some(implements) = implements.filter(|implements| !implements.is_empty()) {
+    dbg!(&implements);
+
+    implements.extend(added_interface_implementations.into_iter());
+    implements.retain(|name| removed_interface_implementations.binary_search(name).is_err());
+    implements.sort();
+    implements.dedup();
+    dbg!(&implements);
+
+    if !implements.is_empty() {
         schema.push_str(" implements ");
         schema.push_str(&implements.join(" & "));
     }
@@ -152,6 +184,7 @@ fn patch_fields<'a, T>(
                 schema.push_str(change.resolved_str().trim());
                 schema.push('\n');
             }
+            ChangeKind::AddInterfaceImplementation | ChangeKind::RemoveInterfaceImplementation => (), // already handled
             kind => {
                 debug_assert!(false, "Unhandled change at `{path}`: {kind:?}", path = change.path())
             }

@@ -1,5 +1,49 @@
-TODO
+interface Parent @test {
+  id: ID!
+}
+
+interface GrandParent @test {
+  id: ID!
+}
+
+interface Fst implements Parent @test2 {
+  id: ID!
+}
+
+interface Snd {
+  id: ID!
+}
+
+type Primo implements Fst {
+  id: ID!
+}
+
+type Secundo @test3 {
+  id: ID!
+}
 
 # --- #
 
- TODO
+interface Parent @test {
+  id: ID!
+}
+
+interface GrandParent @test {
+  id: ID!
+}
+
+interface Fst implements GrandParent & Parent @test2 {
+  id: ID!
+}
+
+interface Snd implements GrandParent {
+  id: ID!
+}
+
+type Primo {
+  id: ID!
+}
+
+type Secundo implements Fst & Snd @test3 {
+  id: ID!
+}
