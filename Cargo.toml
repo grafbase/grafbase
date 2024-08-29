@@ -61,7 +61,7 @@ tracing-core = { git = "https://github.com/tokio-rs/tracing", rev = "6d00d7d9f72
 tracing-mock = { git = "https://github.com/tokio-rs/tracing", rev = "6d00d7d9f72dc6797138a1062bc33073afbad5a1" } # v0.1.x
 
 [workspace.package]
-version = "0.79.1"
+version = "0.79.2"
 edition = "2021"
 license = "Apache-2.0"
 homepage = "https://grafbase.com"
