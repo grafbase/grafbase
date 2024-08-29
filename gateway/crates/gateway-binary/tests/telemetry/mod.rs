@@ -1,8 +1,8 @@
 use std::{collections::HashMap, time::Duration};
 
-use test_helpers::clickhouse_client;
 use indoc::{formatdoc, indoc};
 use serde::Deserialize;
+use test_helpers::clickhouse_client;
 
 use crate::{load_schema, with_static_server};
 

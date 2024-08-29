@@ -1,5 +1,5 @@
-use test_helpers::clickhouse_client;
 use indoc::formatdoc;
+use test_helpers::clickhouse_client;
 
 use crate::{
     load_schema,

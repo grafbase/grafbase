@@ -5,10 +5,10 @@ use std::{
     time::{Duration, UNIX_EPOCH},
 };
 
-use test_helpers::clickhouse_client;
 use handlebars::Handlebars;
 use indoc::formatdoc;
 use serde::{Deserialize, Serialize};
+use test_helpers::clickhouse_client;
 use wiremock::{matchers::method, Mock, ResponseTemplate};
 
 use crate::{load_schema, runtime, with_static_server, Client};
