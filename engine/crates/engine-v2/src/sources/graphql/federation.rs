@@ -52,6 +52,7 @@ impl FederationEntityResolver {
                     CacheScope::Authenticated => "authenticated".into(),
                     CacheScope::RequiresScopes(scopes) => {
                         let mut hasher = blake3::Hasher::new();
+                        hasher.update(b"requiresScopes");
                         hasher.update(&scopes.scopes().len().to_le_bytes());
                         for scope in scopes.scopes() {
                             hasher.update(&scope.len().to_le_bytes());
@@ -357,6 +358,7 @@ async fn cache_fetch<R: Runtime>(
 
 fn build_cache_key(subgraph_name: &str, headers: &HeaderMap, repr: &RawValue, additional_scopes: &[String]) -> String {
     let mut hasher = blake3::Hasher::new();
+    hasher.update(b"v1");
     hasher.update(subgraph_name.as_bytes());
     hasher.update(&headers.len().to_le_bytes());
     for (name, value) in headers {

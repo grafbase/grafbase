@@ -1,5 +1,6 @@
 use std::collections::HashSet;
 
+use id_newtypes::IdToMany;
 use schema::{RequiredScopeSetIndex, RequiredScopesId, RequiredScopesWalker, TypeSystemDirectivesWalker};
 
 use super::{LogicalPlanId, OperationPlan, OperationWalker, PlanWalker, SelectionSetWalker};
@@ -12,44 +13,35 @@ impl<'a, Item, SchemaItem> PlanWalker<'a, Item, SchemaItem> {
     pub fn cache_scopes(self) -> CacheScopes<'a> {
         CacheScopes {
             walker: self.walk_with((), ()),
-            current_index: self
-                .operation
-                .logical_plan_cache_scopes
-                .binary_search_by(|(plan_id, _)| plan_id.cmp(&self.logical_plan_id))
-                .unwrap_or(self.operation.logical_plan_cache_scopes.len()),
+            iterator: Box::new(
+                self.operation
+                    .logical_plan_cache_scopes
+                    .find_all(self.logical_plan_id)
+                    .copied(),
+            ),
         }
     }
 }
 
 pub struct CacheScopes<'a> {
     walker: PlanWalker<'a>,
-    current_index: usize,
+    iterator: Box<dyn Iterator<Item = CacheScopeId> + 'a>,
 }
 
 impl<'a> Iterator for CacheScopes<'a> {
     type Item = CacheScope<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let current = self
-            .walker
-            .operation
-            .logical_plan_cache_scopes
-            .get(self.current_index)?;
+        let next = self.iterator.next()?;
 
-        if current.0 != self.walker.logical_plan_id {
-            return None;
-        }
-
-        self.current_index += 1;
-
-        Some(match self.walker.operation.cache_scopes[current.1 .0 as usize] {
+        Some(match self.walker.operation.cache_scopes[next.0 as usize] {
             CacheScopeRecord::Authenticated => CacheScope::Authenticated,
             CacheScopeRecord::RequiresScopes(required_scopes_id) => CacheScope::RequiresScopes(RequiredScopeSet {
                 walker: self.walker.schema_walker.walk(required_scopes_id),
                 scope_set: self
                     .walker
                     .query_modifications
-                    .selected_scope_set(required_scopes_id)
+                    .matched_scope_set(required_scopes_id)
                     .expect("a scope set to be selected"),
             }),
         })
@@ -81,21 +73,19 @@ pub(super) enum CacheScopeRecord {
 pub(super) fn calculate_cache_scopes(
     operation: OperationWalker<'_>,
     operation_plan: &OperationPlan,
-) -> (Vec<(LogicalPlanId, CacheScopeId)>, Vec<CacheScopeRecord>) {
+) -> (IdToMany<LogicalPlanId, CacheScopeId>, Vec<CacheScopeRecord>) {
     let mut builder = CacheScopeBuilder::default();
 
     calculate_cache_scopes_for_selection_set(operation.selection_set(), None, operation_plan, &mut builder);
 
     let CacheScopeBuilder {
-        mut plan_id_to_cache_scope_id,
+        plan_id_to_cache_scope_id,
         cache_scopes,
         plans_handled: _,
         scope_stack: _,
     } = builder;
 
-    plan_id_to_cache_scope_id.sort_by_key(|(plan_id, _)| *plan_id);
-
-    (plan_id_to_cache_scope_id, cache_scopes)
+    (plan_id_to_cache_scope_id.into(), cache_scopes)
 }
 
 fn calculate_cache_scopes_for_selection_set(
@@ -107,10 +97,9 @@ fn calculate_cache_scopes_for_selection_set(
     let mut last_parent_entity_id = None;
     let mut parent_entity_scopes_added = 0;
 
-    for field in selection_set.fields() {
+    for field in selection_set.fields_ordered_by_parent_entity_id() {
         let Some(definition) = field.definition() else { continue };
 
-        // This takes advantage of fields being ordered by parent entity Id
         let parent_entity_id = definition.parent_entity().id();
         if Some(parent_entity_id) != last_parent_entity_id {
             last_parent_entity_id = Some(parent_entity_id);

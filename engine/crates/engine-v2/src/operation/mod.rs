@@ -38,8 +38,7 @@ pub(crate) struct PreparedOperation {
     pub plan: OperationPlan,
     pub response_blueprint: ResponseBlueprint,
 
-    // Should be sorted by LogicalPlanId
-    logical_plan_cache_scopes: Vec<(LogicalPlanId, cache_scopes::CacheScopeId)>,
+    logical_plan_cache_scopes: id_newtypes::IdToMany<LogicalPlanId, cache_scopes::CacheScopeId>,
     cache_scopes: Vec<cache_scopes::CacheScopeRecord>,
 }
 

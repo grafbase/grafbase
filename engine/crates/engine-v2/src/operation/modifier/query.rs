@@ -20,7 +20,7 @@ pub(crate) struct QueryModifications {
     pub concrete_shape_has_error: BitSet<ConcreteObjectShapeId>,
     pub field_shape_id_to_error_ids: IdToMany<FieldShapeId, ErrorId>,
     pub root_error_ids: Vec<ErrorId>,
-    selected_scope_sets: Vec<(RequiredScopesId, RequiredScopeSetIndex)>,
+    matched_scopes: Vec<(RequiredScopesId, RequiredScopeSetIndex)>,
 }
 
 impl QueryModifications {
@@ -48,20 +48,20 @@ impl QueryModifications {
             errors: Vec::new(),
             field_shape_id_to_error_ids: Default::default(),
             root_error_ids: Vec::new(),
-            selected_scope_sets: vec![],
+            matched_scopes: vec![],
         }
     }
 
-    pub(in crate::operation) fn selected_scope_set(
+    pub(in crate::operation) fn matched_scope_set(
         &self,
         required_scope: RequiredScopesId,
     ) -> Option<RequiredScopeSetIndex> {
         let index = self
-            .selected_scope_sets
+            .matched_scopes
             .binary_search_by_key(&required_scope, |(id, _)| *id)
             .ok()?;
 
-        Some(self.selected_scope_sets[index].1)
+        Some(self.matched_scopes[index].1)
     }
 }
 
@@ -190,7 +190,7 @@ where
         drop(field_shape_ids_with_errors);
 
         self.modifications
-            .selected_scope_sets
+            .matched_scopes
             .sort_unstable_by_key(|(scope_id, _)| *scope_id);
 
         self.modifications
@@ -236,6 +236,6 @@ where
     }
 
     fn record_selected_scope_set(&mut self, id: RequiredScopesId, selected_scope_set: schema::RequiredScopeSetIndex) {
-        self.modifications.selected_scope_sets.push((id, selected_scope_set));
+        self.modifications.matched_scopes.push((id, selected_scope_set));
     }
 }
