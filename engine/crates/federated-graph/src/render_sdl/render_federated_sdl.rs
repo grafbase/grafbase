@@ -1,6 +1,6 @@
 use super::display_utils::*;
 use crate::federated_graph::*;
-use std::fmt::{self, Display, Write};
+use std::fmt::{self, Write};
 
 /// Render a GraphQL SDL string for a federated graph. It includes [join spec
 /// directives](https://specs.apollo.dev/join/v0.3/) about subgraphs and entities.
@@ -62,34 +62,24 @@ pub fn render_federated_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error
             }
         }
 
-        write_composed_directives(object.composed_directives, graph, &mut sdl)?;
+        with_formatter(&mut sdl, |f| {
+            render_composed_directives(object.composed_directives, f, graph)?;
 
-        for authorized_directive in graph.object_authorized_directives(object_id) {
-            write!(sdl, "{}", AuthorizedDirectiveDisplay(authorized_directive, graph))?;
-        }
-
-        if !object.keys.is_empty() {
-            sdl.push('\n');
-            for key in &object.keys {
-                let subgraph_name = GraphEnumVariantName(&graph[graph[key.subgraph_id].name]);
-                if key.fields.is_empty() {
-                    writeln!(
-                        sdl,
-                        r#"{INDENT}@join__type(graph: {subgraph_name}{resolvable})"#,
-                        resolvable = if key.resolvable { "" } else { ", resolvable: false" }
-                    )?;
-                } else {
-                    writeln!(
-                        sdl,
-                        r#"{INDENT}@join__type(graph: {subgraph_name}, key: {selection_set}{resolvable})"#,
-                        selection_set = FieldSetDisplay(&key.fields, graph),
-                        resolvable = if key.resolvable { "" } else { ", resolvable: false" }
-                    )?;
-                }
+            for authorized_directive in graph.object_authorized_directives(object_id) {
+                render_authorized_directive(authorized_directive, f, graph)?;
             }
-        } else {
-            sdl.push(' ');
-        }
+
+            if !object.keys.is_empty() {
+                f.write_str("\n")?;
+                for key in &object.keys {
+                    render_join_field(key, f, graph)?;
+                }
+            } else {
+                f.write_str(" ")?;
+            }
+
+            Ok(())
+        })?;
 
         sdl.push_str("{\n");
 
@@ -123,39 +113,24 @@ pub fn render_federated_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error
             }
         }
 
-        for authorized_directive in graph.interface_authorized_directives(interface_id) {
-            write!(sdl, "{}", AuthorizedDirectiveDisplay(authorized_directive, graph))?;
-        }
-
-        write_composed_directives(interface.composed_directives, graph, &mut sdl)?;
-
-        if interface.keys.is_empty() {
-            sdl.push_str(" {\n");
-        } else {
-            sdl.push('\n');
-            for resolvable_key in &interface.keys {
-                let selection_set = FieldSetDisplay(&resolvable_key.fields, graph);
-                let subgraph_name = GraphEnumVariantName(&graph[graph[resolvable_key.subgraph_id].name]);
-                let is_interface_object = if resolvable_key.is_interface_object {
-                    ", isInterfaceObject: true"
-                } else {
-                    ""
-                };
-
-                let key = if resolvable_key.fields.is_empty() {
-                    String::from("")
-                } else {
-                    format!(", key: {selection_set}")
-                };
-
-                writeln!(
-                    sdl,
-                    r#"{INDENT}@join__type(graph: {subgraph_name}{key}{is_interface_object})"#
-                )?;
+        with_formatter(&mut sdl, |f| {
+            for authorized_directive in graph.interface_authorized_directives(interface_id) {
+                render_authorized_directive(authorized_directive, f, graph)?;
             }
 
-            sdl.push_str("{\n");
-        }
+            render_composed_directives(interface.composed_directives, f, graph)?;
+
+            if interface.keys.is_empty() {
+                f.write_str(" {\n")
+            } else {
+                f.write_str("\n")?;
+                for key in &interface.keys {
+                    render_join_field(key, f, graph)?;
+                }
+
+                f.write_str("{\n")
+            }
+        })?;
 
         for (idx, field) in graph[interface.fields.clone()].iter().enumerate() {
             let field_id = FieldId(interface.fields.start.0 + idx);
@@ -339,12 +314,21 @@ fn write_field(field_id: FieldId, field: &Field, graph: &FederatedGraph, sdl: &m
     Ok(())
 }
 
-fn write_composed_directives(directives: Directives, graph: &FederatedGraph, sdl: &mut String) -> fmt::Result {
+fn render_composed_directives(
+    directives: Directives,
+    f: &mut fmt::Formatter<'_>,
+    graph: &FederatedGraph,
+) -> fmt::Result {
     for directive in &graph[directives] {
-        write!(sdl, "{}", DirectiveDisplay(directive, graph))?;
+        f.write_str(" ")?;
+        write_composed_directive(f, directive, graph)?;
     }
 
     Ok(())
+}
+
+fn write_composed_directives(directives: Directives, graph: &FederatedGraph, sdl: &mut String) -> fmt::Result {
+    with_formatter(sdl, |f| render_composed_directives(directives, f, graph))
 }
 
 fn write_resolvable_in(subgraph: SubgraphId, field: &Field, graph: &FederatedGraph, sdl: &mut String) -> fmt::Result {
@@ -434,7 +418,7 @@ fn write_authorized(field_id: FieldId, graph: &FederatedGraph, sdl: &mut String)
         .map(|(_, authorized_directive_id)| &graph[*authorized_directive_id]);
 
     for directive in directives {
-        write!(sdl, "{}", AuthorizedDirectiveDisplay(directive, graph))?;
+        with_formatter(sdl, |f| render_authorized_directive(directive, f, graph))?;
     }
 
     Ok(())
@@ -477,23 +461,58 @@ fn render_field_arguments(args: &[InputValueDefinition], graph: &FederatedGraph)
     }
 }
 
-struct GraphEnumVariantName<'a>(&'a str);
+/// Render an @join__field directive.
+fn render_join_field(key: &Key, f: &mut fmt::Formatter<'_>, graph: &FederatedGraph) -> fmt::Result {
+    let subgraph_name = GraphEnumVariantName(&graph[graph[key.subgraph_id].name]);
 
-impl Display for GraphEnumVariantName<'_> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        for char in self.0.chars() {
-            match char {
-                '-' | '_' | ' ' => f.write_char('_')?,
-                other => {
-                    for char in other.to_uppercase() {
-                        f.write_char(char)?;
-                    }
-                }
-            }
-        }
+    f.write_str(INDENT)?;
 
-        Ok(())
+    let mut writer = DirectiveWriter::new("join__type", f, graph)?.arg("graph", subgraph_name)?;
+
+    if !key.fields.is_empty() {
+        writer = writer.arg("key", FieldSetDisplay(&key.fields, graph))?;
     }
+
+    if !key.resolvable {
+        writer = writer.arg("resolvable", Value::Boolean(false))?;
+    }
+
+    if key.is_interface_object {
+        writer = writer.arg("isInterfaceObject", Value::Boolean(true))?;
+    }
+
+    drop(writer);
+
+    f.write_str("\n")
+}
+
+/// Render an `@authorized` directive
+fn render_authorized_directive(
+    directive: &AuthorizedDirective,
+    f: &mut fmt::Formatter<'_>,
+    graph: &FederatedGraph,
+) -> fmt::Result {
+    f.write_str(" ")?;
+
+    let mut writer = DirectiveWriter::new("authorized", f, graph)?;
+
+    if let Some(fields) = directive.fields.as_ref() {
+        writer = writer.arg("fields", FieldSetDisplay(fields, graph))?;
+    }
+
+    if let Some(node) = directive.node.as_ref() {
+        writer = writer.arg("node", FieldSetDisplay(node, graph))?;
+    }
+
+    if let Some(arguments) = directive.arguments.as_ref() {
+        writer = writer.arg("arguments", InputValueDefinitionSetDisplay(arguments, graph))?;
+    }
+
+    if let Some(metadata) = directive.metadata.as_ref() {
+        writer.arg("metadata", metadata.clone())?;
+    }
+
+    Ok(())
 }
 
 #[cfg(test)]

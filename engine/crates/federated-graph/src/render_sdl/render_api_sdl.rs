@@ -233,7 +233,11 @@ fn has_inaccessible(directives: &Directives, graph: &FederatedGraph) -> bool {
         .any(|directive| matches!(directive, Directive::Inaccessible))
 }
 
-fn write_public_directives(f: &mut fmt::Formatter<'_>, directives: Directives, graph: &FederatedGraph) -> fmt::Result {
+fn write_public_directives<'a, 'b: 'a>(
+    f: &'a mut fmt::Formatter<'b>,
+    directives: Directives,
+    graph: &'a FederatedGraph,
+) -> fmt::Result {
     for directive in graph[directives].iter().filter(|directive| match directive {
         Directive::Inaccessible | Directive::Policy(_) => false,
 
@@ -243,13 +247,18 @@ fn write_public_directives(f: &mut fmt::Formatter<'_>, directives: Directives, g
         | Directive::Deprecated { .. }
         | Directive::Other { .. } => true,
     }) {
+        f.write_str(" ")?;
         write_composed_directive(f, directive, graph)?;
     }
 
     Ok(())
 }
 
-fn write_enum_variant(f: &mut fmt::Formatter<'_>, enum_variant: &EnumValue, graph: &FederatedGraph) -> fmt::Result {
+fn write_enum_variant<'a, 'b: 'a>(
+    f: &'a mut fmt::Formatter<'b>,
+    enum_variant: &EnumValue,
+    graph: &'a FederatedGraph,
+) -> fmt::Result {
     f.write_str(INDENT)?;
     write_description(f, enum_variant.description, INDENT, graph)?;
     f.write_str(&graph[enum_variant.value])?;
@@ -257,10 +266,10 @@ fn write_enum_variant(f: &mut fmt::Formatter<'_>, enum_variant: &EnumValue, grap
     f.write_char('\n')
 }
 
-fn write_field_arguments(
-    f: &mut fmt::Formatter<'_>,
+fn write_field_arguments<'a, 'b: 'a>(
+    f: &'a mut fmt::Formatter<'b>,
     args: &[InputValueDefinition],
-    graph: &FederatedGraph,
+    graph: &'a FederatedGraph,
 ) -> fmt::Result {
     if args.is_empty() {
         return Ok(());
