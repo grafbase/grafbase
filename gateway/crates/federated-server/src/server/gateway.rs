@@ -29,15 +29,16 @@ pub(crate) type EngineWatcher = watch::Receiver<Option<Arc<Engine<GatewayRuntime
 
 /// Creates a new gateway from federated schema.
 pub(super) async fn generate(
-    federated_schema: &str,
+    federated_schema: String,
     branch_id: Option<ulid::Ulid>,
     gateway_config: &Config,
     hot_reload_config_path: Option<PathBuf>,
 ) -> crate::Result<Engine<GatewayRuntime>> {
     let schema_version = blake3::hash(federated_schema.as_bytes());
-    let graph = VersionedFederatedGraph::from_sdl(federated_schema)
+    let graph = VersionedFederatedGraph::from_sdl(&federated_schema)
         .map_err(|e| crate::Error::SchemaValidationError(e.to_string()))?;
-    let config = engine_config_builder::build_with_toml_config(gateway_config, graph.into_latest()).into_latest();
+    let config = engine_config_builder::build_with_toml_config(gateway_config, graph.into_latest(), federated_schema)
+        .into_latest();
 
     // TODO: https://linear.app/grafbase/issue/GB-6168/support-trusted-documents-in-air-gapped-mode
     let trusted_documents = if gateway_config.trusted_documents.enabled {
@@ -133,9 +134,12 @@ pub(super) async fn generate(
         operation_cache_factory: InMemoryOperationCacheFactory::default(),
     };
 
-    let config = config
-        .try_into()
-        .map_err(|err| crate::Error::InternalError(format!("Failed to generate engine Schema: {err}")))?;
+    let config = config.try_into().map_err(|err| match err {
+        err @ engine_v2::BuildError::RequiredFieldArgumentCoercionError { .. } => {
+            crate::Error::InternalError(format!("Failed to generate engine Schema: {err}"))
+        }
+        engine_v2::BuildError::GraphFromSdlError(err) => crate::Error::SchemaValidationError(err.to_string()),
+    })?;
 
     Ok(Engine::new(Arc::new(config), Some(schema_version.as_bytes()), runtime).await)
 }

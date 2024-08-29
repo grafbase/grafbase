@@ -36,11 +36,10 @@ impl EngineNanny {
 
         while let Some(message) = stream.next().await {
             log::trace!("nanny received a {message:?}");
-            let config = self
-                .graph
-                .borrow()
-                .clone()
-                .map(|graph| engine_config_builder::build_with_sdl_config(&self.config.borrow(), graph));
+            let config = self.graph.borrow().clone().map(|graph| {
+                let federated_sdl = graphql_federated_graph::render_federated_sdl(&graph).unwrap();
+                engine_config_builder::build_with_sdl_config(&self.config.borrow(), graph, federated_sdl)
+            });
             let gateway = new_gateway(config).await;
             if let Err(error) = self.sender.send(gateway) {
                 log::error!("Couldn't publish new gateway: {error:?}");
