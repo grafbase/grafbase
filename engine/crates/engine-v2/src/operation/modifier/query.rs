@@ -1,5 +1,5 @@
 use id_newtypes::{BitSet, IdRange, IdToMany};
-use schema::Schema;
+use schema::{RequiredScopeSetIndex, RequiredScopesId, Schema};
 
 use crate::{
     execution::{ErrorId, PlanningResult, PreExecutionContext},
@@ -20,6 +20,7 @@ pub(crate) struct QueryModifications {
     pub concrete_shape_has_error: BitSet<ConcreteObjectShapeId>,
     pub field_shape_id_to_error_ids: IdToMany<FieldShapeId, ErrorId>,
     pub root_error_ids: Vec<ErrorId>,
+    matched_scopes: Vec<(RequiredScopesId, RequiredScopeSetIndex)>,
 }
 
 impl QueryModifications {
@@ -47,7 +48,20 @@ impl QueryModifications {
             errors: Vec::new(),
             field_shape_id_to_error_ids: Default::default(),
             root_error_ids: Vec::new(),
+            matched_scopes: vec![],
         }
+    }
+
+    pub(in crate::operation) fn matched_scope_set(
+        &self,
+        required_scope: RequiredScopesId,
+    ) -> Option<RequiredScopeSetIndex> {
+        let index = self
+            .matched_scopes
+            .binary_search_by_key(&required_scope, |(id, _)| *id)
+            .ok()?;
+
+        Some(self.matched_scopes[index].1)
     }
 }
 
@@ -89,13 +103,16 @@ where
                             .unwrap_or_default()
                     });
 
-                    if !self.schema().walk(id).matches(scopes) {
+                    let Some(selected_scope_set) = self.schema().walk(id).matches(scopes) else {
                         self.handle_modifier_resulted_in_error(
                             modifier_id,
                             modifier.impacted_fields,
                             GraphqlError::new("Insufficient scopes", ErrorCode::Unauthorized),
-                        )
-                    }
+                        );
+                        continue;
+                    };
+
+                    self.record_selected_scope_set(id, selected_scope_set);
                 }
                 QueryModifierRule::AuthorizedField {
                     directive_id,
@@ -171,6 +188,11 @@ where
             }
         }
         drop(field_shape_ids_with_errors);
+
+        self.modifications
+            .matched_scopes
+            .sort_unstable_by_key(|(scope_id, _)| *scope_id);
+
         self.modifications
     }
 
@@ -211,5 +233,9 @@ where
 
     fn schema(&self) -> &'ctx Schema {
         &self.ctx.engine.schema
+    }
+
+    fn record_selected_scope_set(&mut self, id: RequiredScopesId, selected_scope_set: schema::RequiredScopeSetIndex) {
+        self.modifications.matched_scopes.push((id, selected_scope_set));
     }
 }

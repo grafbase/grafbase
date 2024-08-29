@@ -1,8 +1,5 @@
 use async_graphql::{EmptyMutation, EmptySubscription, Object, SimpleObject, TypeDirective, Union};
 
-/// A schema that only uses String types.
-///
-/// This is used to make sure that we're not pruning built in scalars that aren't used
 #[derive(Default)]
 pub struct SecureSchema;
 

@@ -100,7 +100,7 @@ impl std::fmt::Debug for FederatedGraphV3 {
     }
 }
 
-#[derive(serde::Serialize, serde::Deserialize, Clone, PartialEq, PartialOrd)]
+#[derive(serde::Serialize, serde::Deserialize, Clone, PartialEq, PartialOrd, Debug)]
 pub enum Directive {
     Authenticated,
     Deprecated {

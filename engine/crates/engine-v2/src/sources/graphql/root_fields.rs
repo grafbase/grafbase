@@ -140,6 +140,7 @@ impl GraphqlResolver {
 
 fn build_cache_key(subgraph_name: &str, subgraph_request_body: &[u8], headers: &http::HeaderMap) -> Option<String> {
     let mut hasher = blake3::Hasher::new();
+    hasher.update(b"v1");
     hasher.update(subgraph_name.as_bytes());
     hasher.update(&headers.len().to_le_bytes());
     for (name, value) in headers {
