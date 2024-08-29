@@ -4,7 +4,7 @@ use std::{
     time::Duration,
 };
 
-use federated_graph::SubgraphId;
+use federated_graph::{FederatedGraph, SubgraphId};
 
 use crate::v5::{RateLimitConfigRef, RateLimitRedisConfigRef, RateLimitRedisTlsConfigRef};
 
@@ -18,7 +18,12 @@ pub use super::v5::{
 /// Configuration for a federated graph
 #[derive(serde::Serialize, serde::Deserialize, Debug)]
 pub struct Config {
-    pub federated_sdl: String,
+    #[serde(
+        serialize_with = "serialize_to_federated_sdl",
+        deserialize_with = "deserialize_from_federated_sdl",
+        rename = "federated_sdl"
+    )]
+    pub graph: FederatedGraph,
     pub strings: Vec<String>,
     #[serde(default)]
     pub paths: Vec<PathBuf>,
@@ -54,9 +59,9 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn from_federated_sdl(graph: String) -> Self {
+    pub fn from_graph(graph: FederatedGraph) -> Self {
         Config {
-            federated_sdl: graph,
+            graph,
             strings: Vec::new(),
             paths: Vec::new(),
             header_rules: Vec::new(),
@@ -120,4 +125,35 @@ impl std::ops::Index<PathId> for Config {
     fn index(&self, index: PathId) -> &Path {
         &self.paths[index.0]
     }
+}
+
+pub(crate) fn serialize_to_federated_sdl<S>(graph: &FederatedGraph, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: serde::Serializer,
+{
+    let rendered = federated_graph::render_federated_sdl(graph)
+        .map_err(|err| serde::ser::Error::custom(format!("Failed to render federated SDL: {err}",)))?;
+
+    serializer.serialize_str(&rendered)
+}
+
+pub(crate) fn deserialize_from_federated_sdl<'de, D>(deserializer: D) -> Result<FederatedGraph, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    struct FederatedSdlVisitor;
+
+    impl<'a> serde::de::Visitor<'a> for FederatedSdlVisitor {
+        type Value = FederatedGraph;
+
+        fn visit_str<E: serde::de::Error>(self, v: &str) -> Result<Self::Value, E> {
+            federated_graph::from_sdl(v).map_err(E::custom)
+        }
+
+        fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+            formatter.write_str("a federated SDL string")
+        }
+    }
+
+    deserializer.deserialize_str(FederatedSdlVisitor)
 }

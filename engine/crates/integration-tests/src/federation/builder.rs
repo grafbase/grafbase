@@ -142,13 +142,11 @@ impl EngineV2Builder {
                 }
             });
 
-        let federated_sdl = graph.into_federated_sdl();
-
         // Ensure SDL/JSON serialization work as a expected
         let graph = {
-            let sdl = &federated_sdl;
+            let sdl = graph.into_federated_sdl();
             println!("{sdl}");
-            let mut graph = VersionedFederatedGraph::from_sdl(sdl).unwrap();
+            let mut graph = VersionedFederatedGraph::from_sdl(&sdl).unwrap();
             let json = serde_json::to_value(&graph).unwrap();
             graph = serde_json::from_value(json).unwrap();
             graph
@@ -159,13 +157,14 @@ impl EngineV2Builder {
         let config = match self.config_source {
             Some(ConfigSource::Toml(toml)) => {
                 let config: gateway_config::Config = toml::from_str(&toml).unwrap();
+
                 update_runtime_with_toml_config(&mut self.runtime, &config, access_log_sender);
-                build_with_toml_config(&config, graph.into_latest(), federated_sdl)
+                build_with_toml_config(&config, graph.into_latest())
             }
             Some(ConfigSource::Sdl(mut sdl)) => {
                 sdl.push_str("\nextend schema @graph(type: federated)");
                 let config = parse_sdl_config(&sdl).await;
-                build_with_sdl_config(&config, graph.into_latest(), federated_sdl)
+                build_with_sdl_config(&config, graph.into_latest())
             }
             Some(ConfigSource::SdlWebsocket) => {
                 let mut sdl = String::new();
@@ -179,9 +178,9 @@ impl EngineV2Builder {
                 }
 
                 let config = parse_sdl_config(&sdl).await;
-                build_with_sdl_config(&config, graph.into_latest(), federated_sdl)
+                build_with_sdl_config(&config, graph.into_latest())
             }
-            None => build_with_sdl_config(&Default::default(), graph.into_latest(), federated_sdl),
+            None => build_with_sdl_config(&Default::default(), graph.into_latest()),
         }
         .into_latest();
 
