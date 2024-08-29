@@ -133,9 +133,12 @@ pub(super) async fn generate(
         operation_cache_factory: InMemoryOperationCacheFactory::default(),
     };
 
-    let config = config
-        .try_into()
-        .map_err(|err| crate::Error::InternalError(format!("Failed to generate engine Schema: {err}")))?;
+    let config = config.try_into().map_err(|err| match err {
+        err @ engine_v2::BuildError::RequiredFieldArgumentCoercionError { .. } => {
+            crate::Error::InternalError(format!("Failed to generate engine Schema: {err}"))
+        }
+        engine_v2::BuildError::GraphFromSdlError(err) => crate::Error::SchemaValidationError(err.to_string()),
+    })?;
 
     Ok(Engine::new(Arc::new(config), Some(schema_version.as_bytes()), runtime).await)
 }

@@ -1089,7 +1089,7 @@ fn parse_selection_set(fields: &str) -> Result<Vec<Positioned<ast::Selection>>, 
     // Cheating for now, we should port the parser from engines instead.
     let fields = format!("{{ {fields} }}");
     let parsed = async_graphql_parser::parse_query(fields)
-        .map_err(|err| err.to_string())
+        .map_err(|err| format!("Error parsing a selection from a federated directive: {err}"))
         .map_err(DomainError)?;
 
     let ast::ExecutableDocument {

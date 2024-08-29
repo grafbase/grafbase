@@ -3,7 +3,7 @@ use tokio::sync::{mpsc, watch};
 /// The Grafbase gateway error type
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
-    #[error("{0}")]
+    #[error("Error validating federated SDL: {0}")]
     /// The GraphQL schema validation
     SchemaValidationError(String),
     /// Internal error

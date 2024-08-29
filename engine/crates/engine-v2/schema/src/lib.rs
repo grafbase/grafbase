@@ -11,6 +11,7 @@ mod resolver;
 pub mod sources;
 mod walkers;
 
+pub use self::builder::BuildError;
 pub use directives::*;
 use id_newtypes::IdRange;
 pub use ids::*;
