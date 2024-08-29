@@ -56,18 +56,11 @@ pub struct TelemetryService<S> {
 }
 
 impl<S> TelemetryService<S> {
-    #[cfg(not(feature = "lambda"))]
-    fn make_span<B: Body>(&mut self, request: &Request<B>) -> Span {
-        HttpRequestSpan::from_http(request).into_span()
-    }
-
-    #[cfg(feature = "lambda")]
     fn make_span<B: Body>(&self, request: &Request<B>) -> Span {
-        use opentelemetry::Context;
         use tracing_opentelemetry::OpenTelemetrySpanExt;
 
         let parent_ctx = opentelemetry::global::get_text_map_propagator(|propagator| {
-            propagator.extract_with_context(&Context::current(), &HeaderExtractor(request.headers()))
+            propagator.extract(&HeaderExtractor(request.headers()))
         });
 
         let span = HttpRequestSpan::from_http(request).into_span();

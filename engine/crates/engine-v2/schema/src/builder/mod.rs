@@ -15,13 +15,15 @@ use federated_graph::FederatedGraph;
 use sources::graphql::GraphqlEndpointId;
 use url::Url;
 
+use self::error::*;
 use self::external_sources::ExternalDataSources;
 use self::graph::GraphBuilder;
 use self::ids::IdMaps;
 use self::interner::ProxyKeyInterner;
 
+pub use self::error::BuildError;
+
 use crate::*;
-use error::*;
 use interner::Interner;
 use requires::*;
 

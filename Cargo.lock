@@ -1804,7 +1804,7 @@ dependencies = [
 [[package]]
 name = "cynic-codegen"
 version = "3.7.3"
-source = "git+https://github.com/grafbase/cynic?branch=more-spans#05d60a06ea41c810dcc3023e73147ada38545908"
+source = "git+https://github.com/grafbase/cynic?branch=more-spans#1c94229efa280a1bc2c77a71bdb7fbf863475bde"
 dependencies = [
  "counter",
  "cynic-parser",
@@ -1834,7 +1834,7 @@ dependencies = [
 [[package]]
 name = "cynic-parser"
 version = "0.4.5"
-source = "git+https://github.com/grafbase/cynic?branch=more-spans#05d60a06ea41c810dcc3023e73147ada38545908"
+source = "git+https://github.com/grafbase/cynic?branch=more-spans#1c94229efa280a1bc2c77a71bdb7fbf863475bde"
 dependencies = [
  "ariadne",
  "indexmap 2.2.6",
@@ -2877,7 +2877,7 @@ dependencies = [
 
 [[package]]
 name = "federated-server"
-version = "0.10.0"
+version = "0.11.0"
 dependencies = [
  "ascii 1.1.0",
  "async-trait",
@@ -3589,10 +3589,11 @@ dependencies = [
 
 [[package]]
 name = "grafbase-gateway"
-version = "0.10.0"
+version = "0.11.0"
 dependencies = [
  "anyhow",
  "ascii 1.1.0",
+ "async-graphql-parser",
  "atty",
  "cfg-if",
  "clap",
@@ -3606,6 +3607,8 @@ dependencies = [
  "grafbase-graphql-introspection",
  "grafbase-telemetry",
  "graph-ref",
+ "graphql-composition",
+ "graphql-mocks",
  "handlebars",
  "http",
  "indoc",
@@ -4667,6 +4670,7 @@ dependencies = [
  "postgres-connector-types",
  "pprof",
  "pretty_assertions",
+ "rand 0.8.5",
  "regex",
  "registry-for-cache",
  "registry-upgrade",

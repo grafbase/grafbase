@@ -8,7 +8,7 @@ pub use exporters::{
     OtlpExporterTlsConfig,
 };
 pub use exporters::{
-    LogsConfig, MetricsConfig, {TracingCollectConfig, TracingConfig, DEFAULT_SAMPLING},
+    LogsConfig, MetricsConfig, PropagationConfig, {TracingCollectConfig, TracingConfig, DEFAULT_SAMPLING},
 };
 
 pub use exporters::{BatchExportConfig, ExportersConfig, StdoutExporterConfig};
@@ -1201,5 +1201,42 @@ mod tests {
         };
         let result = ClientTlsConfig::try_from(tls_config);
         assert!(result.is_ok());
+    }
+
+    #[test]
+    fn tracing_with_parent_based_sampling_and_propagation() {
+        let input = indoc! {r#"
+            [tracing]
+            parent_based_sampler = true
+
+            [tracing.propagation]
+            trace_context = true
+            baggage = true
+        "#};
+
+        let config: TelemetryConfig = toml::from_str(input).unwrap();
+
+        assert_eq!(
+            TelemetryConfig {
+                service_name: String::from(""),
+                resource_attributes: Default::default(),
+                exporters: Default::default(),
+                logs: Default::default(),
+                metrics: Default::default(),
+                grafbase: None,
+                tracing: TracingConfig {
+                    sampling: 0.15,
+                    parent_based_sampler: true,
+                    collect: Default::default(),
+                    exporters: Default::default(),
+                    propagation: exporters::PropagationConfig {
+                        trace_context: true,
+                        baggage: true,
+                        aws_xray: false
+                    },
+                },
+            },
+            config
+        );
     }
 }

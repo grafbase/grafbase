@@ -141,9 +141,16 @@ pub fn render_federated_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error
                 } else {
                     ""
                 };
+
+                let key = if resolvable_key.fields.is_empty() {
+                    String::from("")
+                } else {
+                    format!(", key: {selection_set}")
+                };
+
                 writeln!(
                     sdl,
-                    r#"{INDENT}@join__type(graph: {subgraph_name}, key: {selection_set}{is_interface_object})"#
+                    r#"{INDENT}@join__type(graph: {subgraph_name}{key}{is_interface_object})"#
                 )?;
             }
 
@@ -614,5 +621,61 @@ mod tests {
         "#]];
 
         expected.assert_eq(&actual);
+    }
+
+    #[test]
+    fn regression_empty_keys() {
+        // Types that have a @join__type without a key argument should _not_ render with an empty string as a key.
+        let schema = r##"
+            enum join__Graph {
+              a @join__graph(name: "mocksubgraph", url: "https://mock.example.com/todo/graphql")
+            }
+
+            interface b @join__type(graph: a) {
+              c: String
+            }
+        "##;
+
+        let parsed = from_sdl(schema).unwrap();
+        let rendered = render_federated_sdl(&parsed).unwrap();
+
+        let expected = expect_test::expect![[r#"
+            directive @core(feature: String!) repeatable on SCHEMA
+
+            directive @join__owner(graph: join__Graph!) on OBJECT
+
+            directive @join__type(
+                graph: join__Graph!
+                key: String!
+                resolvable: Boolean = true
+            ) repeatable on OBJECT | INTERFACE
+
+            directive @join__field(
+                graph: join__Graph
+                requires: String
+                provides: String
+            ) on FIELD_DEFINITION
+
+            directive @join__graph(name: String!, url: String!) on ENUM_VALUE
+
+            enum join__Graph {
+                MOCKSUBGRAPH @join__graph(name: "mocksubgraph", url: "https://mock.example.com/todo/graphql")
+            }
+
+
+
+            interface b
+                @join__type(graph: MOCKSUBGRAPH)
+            {
+                c: String @join__field(graph: MOCKSUBGRAPH)
+            }
+        "#]];
+
+        expected.assert_eq(&rendered);
+
+        // Check that from_sdl accepts the rendered sdl
+        {
+            from_sdl(&rendered).unwrap();
+        }
     }
 }

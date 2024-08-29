@@ -6,6 +6,7 @@ use integration_tests::{federation::EngineV2Ext, runtime};
 use serde_json::json;
 
 mod directive_scopes;
+mod redis;
 mod subgraph_cache_control;
 
 #[test]

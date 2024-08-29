@@ -49,9 +49,10 @@ pub(super) async fn run(
     log::trace!("starting the federated dev server");
 
     let (gateway_sender, gateway) = watch::channel(
-        gateway_nanny::new_gateway(
-            graph.map(|graph| engine_config_builder::build_with_sdl_config(&config.borrow(), graph)),
-        )
+        gateway_nanny::new_gateway(graph.map(|graph| {
+            let federated_sdl = graphql_federated_graph::render_federated_sdl(&graph).unwrap();
+            engine_config_builder::build_with_sdl_config(&config.borrow(), graph, federated_sdl)
+        }))
         .await,
     );
     let (websocket_sender, websocket_receiver) = mpsc::channel(16);
