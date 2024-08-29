@@ -126,10 +126,53 @@ fn patch_input_object<'a, T: AsRef<str>>(
     schema.push_str("}");
 }
 
-fn patch_directives<'a, T>(directives: impl Iterator<Item = Directive<'a>>, schema: &mut String, paths: &Paths<'_, T>)
-where
+fn patch_directives<'a, T>(
+    directives: impl Iterator<Item = Directive<'a>>,
+    path: [&str; 3],
+    schema: &mut String,
+    paths: &Paths<'_, T>,
+) where
     T: AsRef<str>,
 {
+    for change in paths.iter_exact(path) {
+        match change.kind() {
+            ChangeKind::ChangeQueryType => todo!(),
+            ChangeKind::ChangeMutationType => todo!(),
+            ChangeKind::ChangeSubscriptionType => todo!(),
+            ChangeKind::RemoveObjectType => todo!(),
+            ChangeKind::AddObjectType => todo!(),
+            ChangeKind::AddInterfaceImplementation => todo!(),
+            ChangeKind::RemoveInterfaceImplementation => todo!(),
+            ChangeKind::ChangeFieldType => todo!(),
+            ChangeKind::RemoveField => todo!(),
+            ChangeKind::AddField => todo!(),
+            ChangeKind::AddUnion => todo!(),
+            ChangeKind::RemoveUnion => todo!(),
+            ChangeKind::AddUnionMember => todo!(),
+            ChangeKind::RemoveUnionMember => todo!(),
+            ChangeKind::AddEnum => todo!(),
+            ChangeKind::RemoveEnum => todo!(),
+            ChangeKind::AddEnumValue => todo!(),
+            ChangeKind::RemoveEnumValue => todo!(),
+            ChangeKind::AddScalar => todo!(),
+            ChangeKind::RemoveScalar => todo!(),
+            ChangeKind::AddInterface => todo!(),
+            ChangeKind::RemoveInterface => todo!(),
+            ChangeKind::AddDirectiveDefinition => todo!(),
+            ChangeKind::RemoveDirectiveDefinition => todo!(),
+            ChangeKind::AddSchemaDefinition => todo!(),
+            ChangeKind::RemoveSchemaDefinition => todo!(),
+            ChangeKind::AddInputObject => todo!(),
+            ChangeKind::RemoveInputObject => todo!(),
+            ChangeKind::AddFieldArgument => todo!(),
+            ChangeKind::RemoveFieldArgument => todo!(),
+            ChangeKind::AddFieldArgumentDefault => todo!(),
+            ChangeKind::RemoveFieldArgumentDefault => todo!(),
+            ChangeKind::ChangeFieldArgumentDefault => todo!(),
+            ChangeKind::ChangeFieldArgumentType => todo!(),
+        }
+    }
+
     for directive in directives {
         render_directive(directive, schema, paths);
     }
