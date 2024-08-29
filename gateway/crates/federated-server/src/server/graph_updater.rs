@@ -225,7 +225,7 @@ impl GraphUpdater {
             );
 
             let gateway = match super::gateway::generate(
-                &response.sdl,
+                response.sdl,
                 Some(response.branch_id),
                 &self.gateway_config,
                 None,

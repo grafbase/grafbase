@@ -17,7 +17,11 @@ use parser_sdl::federation::header::SubgraphHeaderRule;
 use parser_sdl::federation::{EntityCachingConfig, FederatedGraphConfig};
 use parser_sdl::{AuthV2Provider, GlobalCacheTarget};
 
-pub fn build_with_sdl_config(config: &FederatedGraphConfig, federated_graph: FederatedGraph) -> VersionedConfig {
+pub fn build_with_sdl_config(
+    config: &FederatedGraphConfig,
+    federated_graph: FederatedGraph,
+    federated_sdl: String,
+) -> VersionedConfig {
     let mut context = BuildContext::default();
     let default_header_rules = context.insert_headers(&config.header_rules);
 
@@ -29,7 +33,7 @@ pub fn build_with_sdl_config(config: &FederatedGraphConfig, federated_graph: Fed
     }
 
     VersionedConfig::V6(config::Config {
-        federated_sdl: federated_graph::render_federated_sdl(&federated_graph).unwrap(),
+        federated_sdl,
         strings: context.strings.into_vec(),
         paths: context.paths.into_vec(),
         header_rules: context.header_rules,
