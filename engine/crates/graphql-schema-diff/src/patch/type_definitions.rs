@@ -21,31 +21,6 @@ pub(super) fn patch_type_definition<T: AsRef<str>>(ty: TypeDefinition<'_>, schem
         }
     }
 
-    let mut added_interface_implementations = Vec::new();
-    let mut removed_interface_implementations = Vec::new();
-
-    for change in paths.iter_second_level(ty.name()) {
-        match dbg!(change.kind()) {
-            ChangeKind::AddInterfaceImplementation => {
-                added_interface_implementations.push(
-                    change
-                        .second_level()
-                        .expect("No interface name for AddInterfaceImplementation"),
-                );
-            }
-            ChangeKind::RemoveInterfaceImplementation => {
-                removed_interface_implementations.push(
-                    change
-                        .second_level()
-                        .expect("No interface name for RemoveInterfaceImplementation"),
-                );
-            }
-            _ => (),
-        }
-    }
-
-    removed_interface_implementations.sort();
-
     if let Some(description) = ty.description() {
         let span = description.span();
         schema.push_str(&paths.source()[span.start..span.end]);
@@ -71,13 +46,10 @@ pub(super) fn patch_type_definition<T: AsRef<str>>(ty: TypeDefinition<'_>, schem
         _ => Vec::new(),
     };
 
-    dbg!(&implements);
-
-    implements.extend(added_interface_implementations.into_iter());
-    implements.retain(|name| removed_interface_implementations.binary_search(name).is_err());
+    implements.extend(paths.added_interface_impls(ty.name()));
+    implements.retain(|interface| !paths.is_interface_impl_removed(ty.name(), interface));
     implements.sort();
     implements.dedup();
-    dbg!(&implements);
 
     if !implements.is_empty() {
         schema.push_str(" implements ");

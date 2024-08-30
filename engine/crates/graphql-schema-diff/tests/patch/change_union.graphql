@@ -14,8 +14,7 @@ type D {
   id: ID!
 }
 
-
-union Test = A | B | D
+union Test = B | A | D
 
 # --- #
 

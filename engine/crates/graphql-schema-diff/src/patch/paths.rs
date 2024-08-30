@@ -84,6 +84,22 @@ where
     pub(crate) fn source(&self) -> &'a str {
         self.source
     }
+
+    pub(crate) fn added_interface_impls<'b>(&'b self, prefix: &'b str) -> impl Iterator<Item = &'a str> + 'b {
+        let start = self.interface_impls.partition_point(|([found, _], _)| *found < prefix);
+
+        self.interface_impls[start..]
+            .iter()
+            .take_while(move |([name, _], _)| *name == prefix)
+            .filter(|(_, kind)| *kind == InterfaceImplementationChange::Added)
+            .map(|([_, interface], _)| *interface)
+    }
+
+    pub(crate) fn is_interface_impl_removed(&self, prefix: &str, interface: &str) -> bool {
+        self.interface_impls
+            .binary_search(&([prefix, interface], InterfaceImplementationChange::Removed))
+            .is_ok()
+    }
 }
 
 pub(super) struct ChangeView<'a, T>
@@ -135,7 +151,7 @@ fn split_path(path: &str) -> [&str; 3] {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub(in crate::patch) enum InterfaceImplementationChange {
+enum InterfaceImplementationChange {
     Added,
     Removed,
 }
