@@ -1,0 +1,25 @@
+type Query {
+  ping: Pong
+}
+
+scalar Pong
+
+enum Test @fst @snd(name: "test") @third {
+  YES # removed value
+  NO @default @negative
+  NOWAY @negative
+}
+
+# --- #
+
+type Query {
+  ping: Pong
+}
+
+scalar Pong
+
+enum Test @fst @snd(name: "test") @third {
+  DEFINITELY # added value
+  NO @default @negative
+  NOWAY @negative
+}

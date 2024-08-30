@@ -1817,7 +1817,7 @@ dependencies = [
 [[package]]
 name = "cynic-codegen"
 version = "3.7.3"
-source = "git+https://github.com/grafbase/cynic?branch=more-spans#1c94229efa280a1bc2c77a71bdb7fbf863475bde"
+source = "git+https://github.com/grafbase/cynic?branch=more-spans#920dd202101a0643a0c29031e1cfa0f20031c2d6"
 dependencies = [
  "counter",
  "cynic-parser",
@@ -1847,7 +1847,7 @@ dependencies = [
 [[package]]
 name = "cynic-parser"
 version = "0.4.5"
-source = "git+https://github.com/grafbase/cynic?branch=more-spans#1c94229efa280a1bc2c77a71bdb7fbf863475bde"
+source = "git+https://github.com/grafbase/cynic?branch=more-spans#920dd202101a0643a0c29031e1cfa0f20031c2d6"
 dependencies = [
  "ariadne",
  "indexmap 2.2.6",

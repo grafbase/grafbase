@@ -27,3 +27,7 @@ serde_json.workspace = true
 [[test]]
 name = "diff_tests"
 harness = false
+
+[[test]]
+name = "patch_tests"
+harness = false

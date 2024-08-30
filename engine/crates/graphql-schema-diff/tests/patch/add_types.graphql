@@ -1,0 +1,31 @@
+type Query {
+  hi: String!
+}
+
+# --- #
+
+scalar ISBN @domain
+
+interface TestInterface {
+  theory: String
+}
+
+enum TheEnum {
+  YEA
+  NAY @default
+}
+
+input TheInputType {
+  enumField: TheEnum
+}
+
+type TheObjectType implements TestInterface
+@domain {
+  theory: String
+}
+
+directive @domain on ENUM_VALUE
+
+type Query {
+  hi: String!
+}

@@ -1,0 +1,37 @@
+type A {
+  id: ID!
+}
+
+type B {
+  id: ID!
+}
+
+type C {
+  id: ID!
+}
+
+type D {
+  id: ID!
+}
+
+union Test = B | A | D
+
+# --- #
+
+type A {
+  id: ID!
+}
+
+type B {
+  id: ID!
+}
+
+type C {
+  id: ID!
+}
+
+type D {
+  id: ID!
+}
+
+union Test = B | C

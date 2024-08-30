@@ -1,0 +1,25 @@
+type Query {
+  random(seed: Int): Float
+}
+
+interface Node {
+  random(seed: Int): Float
+}
+
+input Quantity {
+  n: Float
+}
+
+# --- #
+
+type Query {
+  random(seed: Int): Int
+}
+
+interface Node {
+  random(seed: Int): Int
+}
+
+input Quantity {
+  n: Int
+}
