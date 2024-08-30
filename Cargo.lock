@@ -2638,7 +2638,6 @@ name = "engine-v2-schema"
 version = "3.0.31"
 dependencies = [
  "anyhow",
- "chrono",
  "engine-v2-config",
  "engine-v2-id-derives",
  "engine-v2-id-newtypes",
@@ -2652,6 +2651,7 @@ dependencies = [
  "insta",
  "postcard",
  "pretty_assertions",
+ "rand 0.8.5",
  "regex",
  "rstest",
  "serde",
@@ -5332,6 +5332,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c15da26e5af7e25c90b37a2d75cdbf940cf4a55316de9d84c679c9b8bfabf82e"
 dependencies = [
  "cc",
+ "libc",
  "pkg-config",
  "vcpkg",
 ]

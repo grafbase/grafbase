@@ -79,7 +79,6 @@ indexmap = { version = "2", features = ["serde"] }
 insta = { version = "1", features = ["json", "redactions", "yaml"] }
 jwt-compact = { version = "0.8", features = ["ed25519-compact", "p256", "rsa"] }
 lazy_static = { version = "1", default-features = false, features = ["spin_no_std"] }
-libz-sys = { version = "1", default-features = false, features = ["libc"] }
 log = { version = "0.4", default-features = false, features = ["std"] }
 lru = { version = "0.12" }
 memchr = { version = "2", features = ["use_std"] }
@@ -209,7 +208,6 @@ indexmap = { version = "2", features = ["serde"] }
 insta = { version = "1", features = ["json", "redactions", "yaml"] }
 jwt-compact = { version = "0.8", features = ["ed25519-compact", "p256", "rsa"] }
 lazy_static = { version = "1", default-features = false, features = ["spin_no_std"] }
-libz-sys = { version = "1", default-features = false, features = ["libc"] }
 log = { version = "0.4", default-features = false, features = ["std"] }
 lru = { version = "0.12" }
 memchr = { version = "2", features = ["use_std"] }

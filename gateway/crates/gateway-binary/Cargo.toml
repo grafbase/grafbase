@@ -51,7 +51,7 @@ graphql-mocks.workspace = true
 http.workspace = true
 indoc = "2.0.5"
 insta = { workspace = true, features = ["json", "redactions", "yaml"] }
-rand = "0.8.5"
+rand.workspace = true
 reqwest.workspace = true
 serde.workspace = true
 serde_with.workspace = true

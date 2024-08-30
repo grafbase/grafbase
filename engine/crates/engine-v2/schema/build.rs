@@ -1,16 +1,21 @@
 use std::{fmt::Write, process::Command};
 
+use rand::{distributions::Alphanumeric, Rng};
+
 fn main() -> anyhow::Result<()> {
     // Note: the built crate puportes to do this, but it pulls in libgit2
     // for git info which adds minutes onto build time on windows at least,
     // and just seems overkill for what we need
     let mut output = String::new();
 
-    writeln!(
-        &mut output,
-        r#"pub const BUILT_TIME_UTC: &str = "{}";"#,
-        chrono::Utc::now().to_rfc2822()
-    )?;
+    let token = rand::thread_rng()
+        .sample_iter(&Alphanumeric)
+        .take(32)
+        .map(char::from)
+        .collect::<String>();
+
+    // A random token we can use to tell if a build has changed or not.
+    writeln!(&mut output, r#"pub const BUILD_TOKEN: &str = "{}";"#, token)?;
 
     write!(&mut output, r#"pub const GIT_COMMIT_HASH: Option<&str> = "#)?;
 
