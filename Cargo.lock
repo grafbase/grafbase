@@ -9701,7 +9701,6 @@ dependencies = [
  "crossbeam",
  "expect-test",
  "gateway-config",
- "grafbase-telemetry",
  "http",
  "indoc",
  "insta",

@@ -3,7 +3,6 @@ use std::future::Future;
 use std::sync::RwLock;
 
 use anyhow::anyhow;
-use grafbase_telemetry::span::GRAFBASE_TARGET;
 use wasmtime::{
     component::{ComponentNamedList, Instance, Lift, Lower, Resource, TypedFunc},
     Engine, Store,
@@ -268,14 +267,14 @@ impl ComponentInstance {
         let mut root = exports.root();
 
         let Some(mut interface) = root.instance(self.interface_name) else {
-            tracing::debug!(target: GRAFBASE_TARGET, "could not find export for {} interface", self.interface_name);
+            tracing::debug!("could not find export for {} interface", self.interface_name);
             self.function_cache.write().unwrap().push((function_name, None));
             return None;
         };
 
         match interface.typed_func(function_name) {
             Ok(hook) => {
-                tracing::debug!(target: GRAFBASE_TARGET, "instantized the {function_name} hook Wasm function");
+                tracing::debug!("instantized the {function_name} hook Wasm function");
                 self.function_cache
                     .write()
                     .unwrap()
@@ -284,7 +283,7 @@ impl ComponentInstance {
             }
             Err(e) => {
                 // Shouldn't happen, so we keep spamming errors to be sure it's seen.
-                tracing::error!(target: GRAFBASE_TARGET, "error instantizing the {function_name} hook Wasm function: {e}");
+                tracing::error!("error instantizing the {function_name} hook Wasm function: {e}");
                 None
             }
         }

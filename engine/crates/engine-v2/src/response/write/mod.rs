@@ -384,15 +384,6 @@ impl SubgraphResponse {
             inner: Rc::new(RefCell::new(self)),
         }
     }
-
-    pub fn subgraph_errors(&self) -> impl Iterator<Item = &GraphqlError> + '_ {
-        self.errors.iter().filter(|e| {
-            matches!(
-                e.code,
-                ErrorCode::SubgraphError | ErrorCode::SubgraphInvalidResponseError | ErrorCode::SubgraphRequestError
-            )
-        })
-    }
 }
 
 #[derive(Clone)]

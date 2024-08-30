@@ -9,7 +9,6 @@ repository.workspace = true
 
 [dependencies]
 anyhow.workspace = true
-grafbase-telemetry.workspace = true
 http.workspace = true
 thiserror.workspace = true
 tracing.workspace = true

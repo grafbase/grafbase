@@ -6,7 +6,6 @@ use mimalloc::MiMalloc;
 use tokio::runtime;
 
 use federated_server::ServerConfig;
-use grafbase_telemetry::span::GRAFBASE_TARGET;
 
 #[global_allocator]
 static GLOBAL: MiMalloc = MiMalloc;
@@ -50,7 +49,7 @@ fn main() -> anyhow::Result<()> {
         };
 
         let crate_version = crate_version!();
-        tracing::info!(target: GRAFBASE_TARGET, "Grafbase Gateway {crate_version}");
+        tracing::info!("Grafbase Gateway {crate_version}");
 
         let config = ServerConfig {
             listen_addr: args.listen_address(),

@@ -22,10 +22,8 @@ pub(crate) use error::*;
 pub(crate) use hooks::RequestHooks;
 pub(crate) use ids::*;
 use schema::EntityId;
-use tracing::instrument;
 
 impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
-    #[instrument(skip_all)]
     pub(crate) async fn finalize_operation(
         &self,
         operation: Arc<PreparedOperation>,

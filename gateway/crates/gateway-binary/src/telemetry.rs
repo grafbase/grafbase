@@ -1,12 +1,12 @@
 use grafbase_telemetry::otel::opentelemetry_sdk::metrics::SdkMeterProvider;
-use tracing_subscriber::EnvFilter;
 
 use grafbase_telemetry::config::TelemetryConfig;
 use grafbase_telemetry::otel::layer::OtelTelemetry;
 use grafbase_telemetry::otel::opentelemetry_sdk::runtime::Tokio;
 use grafbase_telemetry::otel::opentelemetry_sdk::trace::TracerProvider;
+use tracing_subscriber::EnvFilter;
 
-use crate::args::Args;
+use crate::args::{Args, LogStyle};
 
 #[derive(Default, Clone)]
 pub(crate) struct OpenTelemetryProviders {
@@ -15,12 +15,10 @@ pub(crate) struct OpenTelemetryProviders {
 }
 
 pub(crate) fn init(args: &impl Args, config: TelemetryConfig) -> anyhow::Result<OpenTelemetryProviders> {
-    use grafbase_telemetry::otel::opentelemetry_sdk::trace::RandomIdGenerator;
     use tracing_subscriber::layer::SubscriberExt;
     use tracing_subscriber::util::SubscriberInitExt;
 
-    let filter = args.log_level().map(|l| l.as_filter_str()).unwrap_or("info");
-    let env_filter = EnvFilter::new(filter);
+    let env_filter = EnvFilter::new(args.log_level().as_ref());
 
     init_propagators(&config.tracing);
 
@@ -28,6 +26,7 @@ pub(crate) fn init(args: &impl Args, config: TelemetryConfig) -> anyhow::Result<
       if #[cfg(feature = "lambda")] {
             let id_generator = opentelemetry_aws::trace::XrayIdGenerator::default();
         } else {
+            use grafbase_telemetry::otel::opentelemetry_sdk::trace::RandomIdGenerator;
             let id_generator = RandomIdGenerator::default();
         }
     }
@@ -47,36 +46,36 @@ pub(crate) fn init(args: &impl Args, config: TelemetryConfig) -> anyhow::Result<
     }
     let tracer_provider = tracer.as_ref().map(|t| t.provider.clone());
 
-    match (logger, tracer) {
-        (None, None) => {
-            tracing_subscriber::registry()
-                .with(args.log_format())
-                .with(env_filter)
-                .init();
-        }
-        (None, Some(tracer)) => {
-            tracing_subscriber::registry()
-                .with(tracer.layer)
-                .with(args.log_format())
-                .with(env_filter)
-                .init();
-        }
-        (Some(logger), None) => {
-            tracing_subscriber::registry()
-                .with(logger.layer)
-                .with(args.log_format())
-                .with(env_filter)
-                .init();
-        }
-        (Some(logger), Some(tracer)) => {
-            tracing_subscriber::registry()
-                .with(tracer.layer)
-                .with(logger.layer)
-                .with(args.log_format())
-                .with(env_filter)
-                .init();
-        }
-    }
+    let registry = tracing_subscriber::registry()
+        .with(tracer.map(|t| t.layer))
+        .with(logger.map(|l| l.layer));
+
+    let is_terminal = atty::is(atty::Stream::Stdout);
+    match args.log_style() {
+        // for interactive terminals we provide colored output
+        LogStyle::Pretty => registry
+            .with(
+                tracing_subscriber::fmt::layer()
+                    .pretty()
+                    .with_ansi(is_terminal)
+                    .with_target(false),
+            )
+            .with(env_filter)
+            .init(),
+        // for server logs, colors are off
+        LogStyle::Text => registry
+            .with(
+                tracing_subscriber::fmt::layer()
+                    .with_ansi(is_terminal)
+                    .with_target(false),
+            )
+            .with(env_filter)
+            .init(),
+        LogStyle::Json => registry
+            .with(tracing_subscriber::fmt::layer().json())
+            .with(env_filter)
+            .init(),
+    };
 
     Ok(OpenTelemetryProviders {
         meter: meter_provider,

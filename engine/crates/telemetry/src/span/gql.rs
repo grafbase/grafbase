@@ -25,7 +25,7 @@ impl GqlRequestSpan {
         info_span!(
             target: crate::span::GRAFBASE_TARGET,
             GRAPHQL_SPAN_NAME,
-            "otel.name"  = GRAPHQL_SPAN_NAME,
+            "otel.name"  = Empty,
             "gql.operation.name"  = Empty,
             "gql.operation.type"  = Empty,
             "gql.operation.query"  = Empty,

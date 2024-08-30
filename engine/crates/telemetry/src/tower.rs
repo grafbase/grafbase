@@ -194,17 +194,13 @@ where
                 match gql_status {
                     Some(status) if status.is_success() => {
                         Span::current().record_gql_status(status);
-                        tracing::debug!(target: GRAFBASE_TARGET, "gateway response");
                     }
                     Some(status) => {
                         Span::current().record_gql_status(status);
-                        tracing::debug!(target: GRAFBASE_TARGET, "responding a GraphQL error");
                     }
                     None => {
                         let status = GraphqlResponseStatus::RequestError { count: 1 };
                         Span::current().record_gql_status(status);
-
-                        tracing::debug!(target: GRAFBASE_TARGET, "responding a GraphQL error");
                     }
                 }
 
@@ -233,7 +229,7 @@ where
                 );
 
                 Span::current().record_failure(err.to_string());
-                tracing::error!(target: GRAFBASE_TARGET, "{err}");
+                tracing::error!(target: GRAFBASE_TARGET, "Internal server error: {err}");
             }
         }
 

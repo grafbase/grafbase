@@ -1,7 +1,6 @@
 use std::{collections::HashMap, sync::Arc};
 
 use crossbeam::{channel::TrySendError, sync::WaitGroup};
-use grafbase_telemetry::span::GRAFBASE_TARGET;
 use wasmtime::{
     component::{ComponentType, LinkerInstance, Lower, Resource, ResourceType},
     StoreContextMut,
@@ -192,10 +191,10 @@ fn log_access(
         Err(e) => {
             match e {
                 LogError::ChannelFull(_) => {
-                    tracing::error!(target: GRAFBASE_TARGET, "access log channel is over capacity");
+                    tracing::error!("access log channel is over capacity");
                 }
                 LogError::ChannelClosed => {
-                    tracing::error!(target: GRAFBASE_TARGET, "access log channel closed");
+                    tracing::error!("access log channel closed");
                 }
             }
 
