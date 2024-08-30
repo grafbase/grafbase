@@ -22,9 +22,16 @@ pub struct Args {
     /// to the Grafbase API.
     #[arg(env = "GRAFBASE_SCHEMA_PATH", default_value = "./federated.graphql")]
     pub schema: PathBuf,
-    /// Set the logging level
-    #[arg(env = "GRAFBASE_LOG", default_value_t = LogLevel::default())]
-    pub log_level: LogLevel,
+    /// Set the logging level, this applies to all spans, logs and trace events.
+    ///
+    /// Beware that *only* 'off', 'error', 'warn' and 'info' can be used safely in production. More
+    /// verbose levels, such as 'debug', will include sensitive information like request variables, responses, etc.
+    ///
+    /// Possible values are: 'off', 'error', 'warn', 'info', 'debug', 'trace' or a custom string.
+    /// In the last case, the string is passed on to [`tracing_subscriber::EnvFilter`] as is and is
+    /// only meant for debugging purposes. No stability guarantee is made on the format.
+    #[arg(long = "log", env = "GRAFBASE_LOG", default_value = "info")]
+    pub log_level: String,
     /// Set the style of log output
     #[arg(env = "GRAFBASE_LOG_STYLE", default_value_t = LogStyle::Text)]
     log_style: LogStyle,
@@ -67,7 +74,7 @@ impl super::Args for Args {
         None
     }
 
-    fn log_level(&self) -> LogLevel {
-        self.log_level
+    fn log_level(&self) -> LogLevel<'_> {
+        LogLevel(&self.log_level)
     }
 }

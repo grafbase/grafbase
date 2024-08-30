@@ -1,42 +1,30 @@
 use std::fmt;
 
 use clap::ValueEnum;
+use itertools::Itertools;
+use tracing_subscriber::EnvFilter;
 
-#[derive(Default, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
-pub(crate) enum LogLevel {
-    /// Completely disables logging.
-    Off,
-    /// Only errors.
-    Error,
-    /// Warnings and errors.
-    Warn,
-    /// Info, warning and error messages.
-    #[default]
-    Info,
-    /// Debug, info, warning and error messages. Beware that debug messages will include sensitive
-    /// information like request variables, responses, etc. Do not use it in production.
-    Debug,
-    /// Trace, debug, info, warning and error messages. Similar to debug, this will include
-    /// sensitive information and should not be used in production.
-    Trace,
-}
+pub struct LogLevel<'a>(pub(super) &'a str);
 
-impl AsRef<str> for LogLevel {
-    fn as_ref(&self) -> &str {
-        match self {
-            LogLevel::Off => "off",
-            LogLevel::Error => "error",
-            LogLevel::Warn => "warn",
-            LogLevel::Info => "info",
-            LogLevel::Debug => "debug",
-            LogLevel::Trace => "trace",
-        }
-    }
-}
+// Verbose libraries in debug/trace mode which are rarely actually useful.
+const LIBS: &[&str] = &["h2", "tower", "rustls", "hyper_util", "hyper", "reqwest"];
 
-impl fmt::Display for LogLevel {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(self.as_ref())
+impl<'a> From<LogLevel<'a>> for EnvFilter {
+    fn from(level: LogLevel<'a>) -> Self {
+        EnvFilter::new(match level.0 {
+            "off" | "error" | "warn" | "info" => level.0.to_string(),
+            "debug" => format!(
+                "debug,{}",
+                LIBS.iter()
+                    .format_with(",", |target, f| f(&format_args!("{target}=info")))
+            ),
+            "trace" => format!(
+                "trace,{}",
+                LIBS.iter()
+                    .format_with(",", |target, f| f(&format_args!("{target}=info")))
+            ),
+            custom => custom.to_string(),
+        })
     }
 }
 

@@ -30,23 +30,7 @@ fn main() -> anyhow::Result<()> {
         .build()?;
 
     runtime.block_on(async move {
-        let telemetry = if std::env::var("__GRAFBASE_RUST_LOG").is_ok() {
-            let filter = tracing_subscriber::filter::EnvFilter::try_from_env("__GRAFBASE_RUST_LOG").unwrap_or_default();
-
-            tracing_subscriber::fmt()
-                .pretty()
-                .with_env_filter(filter)
-                .with_file(true)
-                .with_line_number(true)
-                .with_target(true)
-                .without_time()
-                .init();
-
-            tracing::warn!("Skipping OTEL configuration.");
-            Default::default()
-        } else {
-            telemetry::init(&args, config.telemetry.clone())?
-        };
+        let telemetry = telemetry::init(&args, &config.telemetry)?;
 
         let crate_version = crate_version!();
         tracing::info!("Grafbase Gateway {crate_version}");

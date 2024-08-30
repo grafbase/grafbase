@@ -12,7 +12,7 @@ pub(crate) use log::*;
 pub(crate) trait Args {
     fn listen_address(&self) -> Option<SocketAddr>;
 
-    fn log_level(&self) -> LogLevel;
+    fn log_level(&self) -> LogLevel<'_>;
 
     fn fetch_method(&self) -> anyhow::Result<GraphFetchMethod>;
 
