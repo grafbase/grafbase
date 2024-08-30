@@ -26,7 +26,7 @@ where
             .map(|(idx, diff)| (split_path(&diff.path), idx))
             .collect::<Vec<_>>();
 
-        paths.sort();
+        paths.sort_unstable();
 
         let mut interface_impls: Vec<_> = diff
             .iter()
@@ -43,7 +43,7 @@ where
             })
             .collect();
 
-        interface_impls.sort();
+        interface_impls.sort_unstable();
 
         Paths {
             diff,

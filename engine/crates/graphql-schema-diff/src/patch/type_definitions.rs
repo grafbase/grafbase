@@ -48,7 +48,7 @@ pub(super) fn patch_type_definition<T: AsRef<str>>(ty: TypeDefinition<'_>, schem
 
     implements.extend(paths.added_interface_impls(ty.name()));
     implements.retain(|interface| !paths.is_interface_impl_removed(ty.name(), interface));
-    implements.sort();
+    implements.sort_unstable();
     implements.dedup();
 
     if !implements.is_empty() {
@@ -104,7 +104,7 @@ fn patch_input_object<'a, T: AsRef<str>>(
         }
     }
 
-    removed_fields.sort();
+    removed_fields.sort_unstable();
 
     for field in fields {
         if removed_fields.binary_search(&field.name()).is_ok() {
@@ -163,7 +163,7 @@ fn patch_fields<'a, T>(
         }
     }
 
-    removed_fields.sort();
+    removed_fields.sort_unstable();
 
     for field in fields {
         if removed_fields.binary_search(&field.name()).is_ok() {
@@ -255,7 +255,7 @@ fn patch_enum_values<'a, T>(
         }
     }
 
-    removed_enum_values.sort();
+    removed_enum_values.sort_unstable();
 
     for value in values {
         if removed_enum_values.binary_search(&value.value()).is_ok() {
@@ -296,12 +296,12 @@ fn patch_union<'a, T>(
         }
     }
 
-    removed_members.sort();
+    removed_members.sort_unstable();
 
     let mut members = members
         .map(|member| member.name())
         .filter(|name| removed_members.binary_search(name).is_err())
-        .chain(added_members.into_iter())
+        .chain(added_members)
         .peekable();
 
     if members.peek().is_some() {
