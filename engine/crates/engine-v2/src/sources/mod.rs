@@ -259,7 +259,12 @@ impl Resolver {
         new_response: impl Fn() -> SubscriptionResponse + Send + 'ctx,
     ) -> ExecutionResult<BoxStream<'ctx, ExecutionResult<SubscriptionResponse>>> {
         match self {
-            Resolver::GraphQL(prepared) => prepared.execute_subscription(ctx, plan, new_response).await,
+            Resolver::GraphQL(prepared) => {
+                // TODO: for now we do not finalize this, e.g. we do not call the subgraph response hook. We should figure
+                // out later what kind of data that hook would contain.
+                let mut context = SubgraphRequestContext::new(ctx, OperationType::Query, plan, prepared.endpoint(ctx));
+                prepared.execute_subscription(&mut context, new_response).await
+            }
             Resolver::Introspection(_) => Err(ExecutionError::Internal(
                 "Subscriptions can't contain introspection".into(),
             )),

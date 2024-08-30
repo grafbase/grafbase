@@ -3,7 +3,7 @@ use std::{borrow::Cow, future::Future, time::Duration};
 use bytes::Bytes;
 use futures_util::{stream::BoxStream, Stream, StreamExt, TryFutureExt};
 
-use crate::bytes::OwnedOrSharedBytes;
+use crate::{bytes::OwnedOrSharedBytes, hooks::ResponseInfo};
 
 #[derive(Debug, thiserror::Error)]
 pub enum FetchError {
@@ -36,7 +36,7 @@ pub trait Fetcher: Send + Sync + 'static {
     fn fetch(
         &self,
         request: FetchRequest<'_, Bytes>,
-    ) -> impl Future<Output = FetchResult<http::Response<OwnedOrSharedBytes>>> + Send;
+    ) -> impl Future<Output = (FetchResult<http::Response<OwnedOrSharedBytes>>, Option<ResponseInfo>)> + Send;
 
     fn graphql_over_sse_stream(
         &self,
@@ -58,7 +58,10 @@ pub mod dynamic {
     #[allow(unused_variables)] // makes it easier to copy-paste relevant functions
     #[async_trait::async_trait]
     pub trait DynFetcher: Send + Sync + 'static {
-        async fn fetch(&self, request: FetchRequest<'_, Bytes>) -> FetchResult<http::Response<OwnedOrSharedBytes>>;
+        async fn fetch(
+            &self,
+            request: FetchRequest<'_, Bytes>,
+        ) -> (FetchResult<http::Response<OwnedOrSharedBytes>>, Option<ResponseInfo>);
 
         async fn graphql_over_sse_stream(
             &self,
@@ -94,7 +97,10 @@ pub mod dynamic {
     }
 
     impl Fetcher for DynamicFetcher {
-        async fn fetch(&self, request: FetchRequest<'_, Bytes>) -> FetchResult<http::Response<OwnedOrSharedBytes>> {
+        async fn fetch(
+            &self,
+            request: FetchRequest<'_, Bytes>,
+        ) -> (FetchResult<http::Response<OwnedOrSharedBytes>>, Option<ResponseInfo>) {
             self.0.fetch(request).await
         }
 
@@ -128,7 +134,10 @@ pub mod dynamic {
 
     #[async_trait::async_trait]
     impl<T: Fetcher> DynFetcher for DynWrapper<T> {
-        async fn fetch(&self, request: FetchRequest<'_, Bytes>) -> FetchResult<http::Response<OwnedOrSharedBytes>> {
+        async fn fetch(
+            &self,
+            request: FetchRequest<'_, Bytes>,
+        ) -> (FetchResult<http::Response<OwnedOrSharedBytes>>, Option<ResponseInfo>) {
             self.0.fetch(request).await
         }
 

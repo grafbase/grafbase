@@ -15,7 +15,10 @@ pub struct NativeFetcher {
 }
 
 impl Fetcher for NativeFetcher {
-    async fn fetch(&self, request: FetchRequest<'_, Bytes>) -> FetchResult<http::Response<OwnedOrSharedBytes>> {
+    async fn fetch(
+        &self,
+        request: FetchRequest<'_, Bytes>,
+    ) -> (FetchResult<http::Response<OwnedOrSharedBytes>>, Option<ResponseInfo>) {
         let mut info = ResponseInfo::builder();
 
         let result = self.client.execute(into_reqwest(request)).await.map_err(|e| {
@@ -28,7 +31,12 @@ impl Fetcher for NativeFetcher {
 
         info.track_connection();
 
-        let mut resp = result?;
+        let mut resp = match result {
+            Ok(response) => response,
+            Err(e) => {
+                return (Err(e), Some(info.finalize(0)));
+            }
+        };
 
         let status = resp.status();
         let headers = std::mem::take(resp.headers_mut());
@@ -38,7 +46,10 @@ impl Fetcher for NativeFetcher {
 
         info.track_response();
 
-        let bytes = result?;
+        let bytes = match result {
+            Ok(bytes) => bytes,
+            Err(e) => return (Err(e), Some(info.finalize(0))),
+        };
 
         // reqwest transforms the body into a stream with Into
         let mut response = http::Response::new(OwnedOrSharedBytes::Shared(bytes));
@@ -47,9 +58,7 @@ impl Fetcher for NativeFetcher {
         *response.extensions_mut() = extensions;
         *response.headers_mut() = headers;
 
-        response.extensions_mut().insert(info.finalize(status.as_u16()));
-
-        Ok(response)
+        (Ok(response), Some(info.finalize(status.as_u16())))
     }
 
     async fn graphql_over_sse_stream(

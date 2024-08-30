@@ -9,7 +9,7 @@ use futures::{StreamExt, TryStreamExt};
 use runtime::{
     bytes::OwnedOrSharedBytes,
     fetch::{dynamic::DynFetcher, FetchRequest, FetchResult},
-    hooks::DynamicHooks,
+    hooks::{DynamicHooks, ResponseInfo},
 };
 use runtime_local::InMemoryOperationCacheFactory;
 
@@ -164,11 +164,16 @@ impl DummyFetcher {
 
 #[async_trait::async_trait]
 impl DynFetcher for DummyFetcher {
-    async fn fetch(&self, _request: FetchRequest<'_, Bytes>) -> FetchResult<http::Response<OwnedOrSharedBytes>> {
-        Ok(self
+    async fn fetch(
+        &self,
+        _request: FetchRequest<'_, Bytes>,
+    ) -> (FetchResult<http::Response<OwnedOrSharedBytes>>, Option<ResponseInfo>) {
+        let result = Ok(self
             .responses
             .get(self.index.fetch_add(1, Ordering::Relaxed))
             .cloned()
-            .expect("No more responses"))
+            .expect("No more responses"));
+
+        (result, None)
     }
 }

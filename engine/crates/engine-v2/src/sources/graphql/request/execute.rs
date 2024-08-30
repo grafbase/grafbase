@@ -132,12 +132,12 @@ pub(crate) async fn execute_subgraph_request<'ctx, 'a, R: Runtime>(
     Ok(response)
 }
 
-async fn retrying_fetch<'ctx, R: Runtime, F, T>(
+pub(crate) async fn retrying_fetch<'ctx, R: Runtime, F, T>(
     ctx: &mut SubgraphRequestContext<'ctx, R>,
     fetch: impl Fn() -> F + Send + Sync,
-) -> ExecutionResult<http::Response<T>>
+) -> ExecutionResult<T>
 where
-    F: Future<Output = FetchResult<http::Response<T>>> + Send,
+    F: Future<Output = (FetchResult<T>, Option<ResponseInfo>)> + Send,
     T: Send,
 {
     let mut result = rate_limited_fetch(ctx, &fetch).await;
@@ -183,9 +183,9 @@ where
 async fn rate_limited_fetch<'ctx, R: Runtime, F, T>(
     ctx: &mut SubgraphRequestContext<'ctx, R>,
     fetch: impl Fn() -> F + Send,
-) -> ExecutionResult<http::Response<T>>
+) -> ExecutionResult<T>
 where
-    F: Future<Output = FetchResult<http::Response<T>>> + Send,
+    F: Future<Output = (FetchResult<T>, Option<ResponseInfo>)> + Send,
     T: Send,
 {
     ctx.engine()
@@ -199,18 +199,13 @@ where
         })?;
 
     record::increment_inflight_requests(ctx.execution_context(), ctx.endpoint());
-    let mut result = fetch().await;
+    let (result, response_info) = fetch().await;
     record::decrement_inflight_requests(ctx.execution_context(), ctx.endpoint());
 
-    match result {
-        Ok(ref mut response) => {
-            if let Some(info) = response.extensions_mut().remove::<ResponseInfo>() {
-                ctx.request_info().push_response(ResponseKind::Responsed(info));
-            }
-        }
-        Err(_) => {
-            ctx.request_info().push_response(ResponseKind::RequestError);
-        }
+    match response_info {
+        Some(response_info) => ctx.request_info().push_response(ResponseKind::Responsed(response_info)),
+        None if result.is_err() => ctx.request_info().push_response(ResponseKind::RequestError),
+        None => (),
     }
 
     result.map_err(|error| ExecutionError::Fetch {

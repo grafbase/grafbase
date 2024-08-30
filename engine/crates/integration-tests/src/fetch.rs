@@ -8,6 +8,7 @@ use graphql_mocks::ReceivedRequest;
 use runtime::{
     bytes::OwnedOrSharedBytes,
     fetch::{dynamic::DynFetcher, FetchError, FetchRequest, FetchResult},
+    hooks::ResponseInfo,
 };
 
 #[derive(Clone, Default)]
@@ -35,7 +36,10 @@ impl MockFetch {
 
 #[async_trait::async_trait]
 impl DynFetcher for MockFetch {
-    async fn fetch(&self, request: FetchRequest<'_, Bytes>) -> FetchResult<http::Response<OwnedOrSharedBytes>> {
+    async fn fetch(
+        &self,
+        request: FetchRequest<'_, Bytes>,
+    ) -> (FetchResult<http::Response<OwnedOrSharedBytes>>, Option<ResponseInfo>) {
         let host = request.url.host_str().unwrap();
         self.requests.push((
             host.to_string(),
@@ -45,12 +49,15 @@ impl DynFetcher for MockFetch {
             },
         ));
 
-        self.responses
+        let result = self
+            .responses
             .lock()
             .unwrap()
             .get(host)
             .and_then(|responses| responses.pop())
             .map(|bytes| http::Response::builder().body(bytes.into()).unwrap())
-            .ok_or(FetchError::any("No more responses"))
+            .ok_or(FetchError::any("No more responses"));
+
+        (result, None)
     }
 }
