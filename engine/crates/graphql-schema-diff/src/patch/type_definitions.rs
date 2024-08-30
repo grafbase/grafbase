@@ -122,6 +122,8 @@ fn patch_input_object<'a, T: AsRef<str>>(
             schema.push_str(&field.ty().to_string());
         }
 
+        patch_directives(field.directives(), schema, paths);
+
         schema.push('\n');
     }
 
@@ -201,6 +203,8 @@ fn patch_fields<'a, T>(
                     let span = argument.default_value_span();
                     schema.push_str(&paths.source()[span.start..span.end]);
                 }
+
+                patch_directives(argument.directives(), schema, paths);
 
                 if arguments.peek().is_some() {
                     schema.push_str(", ");
