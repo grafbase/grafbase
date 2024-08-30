@@ -7,6 +7,7 @@ use reqwest::RequestBuilder;
 use reqwest_eventsource::RequestBuilderExt;
 use runtime::bytes::OwnedOrSharedBytes;
 use runtime::fetch::{FetchError, FetchRequest, FetchResult, Fetcher};
+use runtime::hooks::ResponseInfo;
 
 #[derive(Default, Clone)]
 pub struct NativeFetcher {
@@ -14,20 +15,41 @@ pub struct NativeFetcher {
 }
 
 impl Fetcher for NativeFetcher {
-    async fn fetch(&self, request: FetchRequest<'_, Bytes>) -> FetchResult<http::Response<OwnedOrSharedBytes>> {
-        let mut resp = self.client.execute(into_reqwest(request)).await.map_err(|e| {
+    async fn fetch(
+        &self,
+        request: FetchRequest<'_, Bytes>,
+    ) -> (FetchResult<http::Response<OwnedOrSharedBytes>>, Option<ResponseInfo>) {
+        let mut info = ResponseInfo::builder();
+
+        let result = self.client.execute(into_reqwest(request)).await.map_err(|e| {
             if e.is_timeout() {
                 FetchError::Timeout
             } else {
                 reqwest_error_to_fetch_error(e)
             }
-        })?;
+        });
+
+        info.track_connection();
+
+        let mut resp = match result {
+            Ok(response) => response,
+            Err(e) => {
+                return (Err(e), Some(info.finalize(0)));
+            }
+        };
 
         let status = resp.status();
         let headers = std::mem::take(resp.headers_mut());
         let extensions = std::mem::take(resp.extensions_mut());
         let version = resp.version();
-        let bytes = resp.bytes().await.map_err(reqwest_error_to_fetch_error)?;
+        let result = resp.bytes().await.map_err(reqwest_error_to_fetch_error);
+
+        info.track_response();
+
+        let bytes = match result {
+            Ok(bytes) => bytes,
+            Err(e) => return (Err(e), Some(info.finalize(0))),
+        };
 
         // reqwest transforms the body into a stream with Into
         let mut response = http::Response::new(OwnedOrSharedBytes::Shared(bytes));
@@ -36,7 +58,7 @@ impl Fetcher for NativeFetcher {
         *response.extensions_mut() = extensions;
         *response.headers_mut() = headers;
 
-        Ok(response)
+        (Ok(response), Some(info.finalize(status.as_u16())))
     }
 
     async fn graphql_over_sse_stream(

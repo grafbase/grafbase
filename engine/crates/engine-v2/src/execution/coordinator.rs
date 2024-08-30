@@ -143,15 +143,18 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
 
     fn new_subscription_response(&self, subscription_plan_id: ExecutionPlanId) -> SubscriptionResponse {
         let mut response = ResponseBuilder::new(self.operation.root_object_id);
+
         let tracked_response_object_set_ids = self
             .plan_walker(subscription_plan_id)
             .logical_plan()
             .response_blueprint()
             .output_ids;
+
         let root_response_object_set = Arc::new(
             InputdResponseObjectSet::default()
                 .with_response_objects(Arc::new(response.root_response_object().into_iter().collect())),
         );
+
         let root_subgraph_response = response.new_subgraph_response(
             self.operation[subscription_plan_id].logical_plan_id,
             root_response_object_set,
@@ -245,6 +248,7 @@ where
                             operation_execution.futures.push_result(ResolverFutureResult {
                                 plan_id: self.subscription_plan_id,
                                 result: Ok(root_subgraph_response),
+                                on_subgraph_response_hook_result: None,
                             });
 
                             response_futures.push_back(operation_execution.run());
@@ -302,20 +306,28 @@ where
             self.spawn_resolver(plan_id);
         }
 
-        while let Some(ResolverFutureResult { plan_id, result }) = self.futures.next().await {
+        while let Some(ResolverFutureResult {
+            plan_id,
+            result,
+            on_subgraph_response_hook_result,
+        }) = self.futures.next().await
+        {
             // Retrieving the first edge (response key) appearing in the query to provide a better
             // error path if necessary.
             let (any_edge, default_fields) = self.get_first_edge_and_default_object(plan_id);
             match result {
                 Ok(subgraph_response) => {
                     tracing::trace!(%plan_id, "Succeeded");
+
                     let tracked_response_object_sets =
                         self.response.ingest(subgraph_response, any_edge, default_fields);
+
                     for (set_id, response_object_refs) in tracked_response_object_sets.into_iter() {
                         self.state.push_response_objects(set_id, response_object_refs);
                     }
 
                     let response_modifier_executor_ids = self.state.get_next_executable_response_modifiers(plan_id);
+
                     for id in &response_modifier_executor_ids {
                         self.ctx
                             .execute_response_modifier(&mut self.state, &mut self.response, *id)
@@ -334,6 +346,10 @@ where
                     self.response
                         .propagate_execution_error(root_response_object_set, error, any_edge, default_fields);
                 }
+            }
+
+            if let Some(result) = on_subgraph_response_hook_result {
+                self.response.push_on_subgraph_response_result(result);
             }
         }
 
@@ -402,31 +418,31 @@ where
                 tracing::debug_span!(target: GRAFBASE_TARGET, "resolver", "plan_id" = usize::from(plan_id)).entered();
 
             let plan = self.ctx.plan_walker(plan_id);
+
             let subgraph_response = self.response.new_subgraph_response(
                 plan.logical_plan_id,
                 Arc::clone(&root_response_object_set),
                 plan.logical_plan().response_blueprint().output_ids,
             );
+
             let root_response_objects = self.response.read(
                 self.ctx.schema(),
                 &self.ctx.operation.response_views,
                 Arc::clone(&root_response_object_set),
                 self.operation[plan_id].requires,
             );
-            let fut =
-                self.operation[plan_id]
-                    .resolver
-                    .execute(self.ctx, plan, root_response_objects, subgraph_response);
+
+            let fut = self.operation[plan_id]
+                .resolver
+                .execute(self.ctx, plan, root_response_objects, subgraph_response)
+                .map(move |result| ResolverFutureResult {
+                    plan_id,
+                    result: result.result.map_err(|err| (root_response_object_set, err)),
+                    on_subgraph_response_hook_result: result.on_subgraph_response_hook_result,
+                });
 
             let span = span.exit();
-            make_send_on_wasm(
-                fut.map(move |result| ResolverFutureResult {
-                    plan_id,
-                    result: result.map_err(|err| (root_response_object_set, err)),
-                })
-                .instrument(span),
-            )
-            .boxed()
+            make_send_on_wasm(fut.instrument(span)).boxed()
         });
     }
 }
@@ -455,7 +471,8 @@ impl<'exec> ResolverFutureSet<'exec> {
     }
 }
 
-struct ResolverFutureResult {
+pub(crate) struct ResolverFutureResult {
     plan_id: ExecutionPlanId,
     result: Result<SubgraphResponse, (Arc<InputdResponseObjectSet>, ExecutionError)>,
+    on_subgraph_response_hook_result: Option<Vec<u8>>,
 }

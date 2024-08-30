@@ -1,5 +1,6 @@
 mod authorized;
 mod pool;
+mod responses;
 mod subgraph;
 
 use std::{collections::HashMap, sync::Arc, time::SystemTime};
@@ -15,12 +16,11 @@ use runtime::{
     hooks::{AuthorizedHooks, HeaderMap, Hooks, SubgraphHooks},
 };
 use tracing::instrument;
+use wasi_component_loader::ResponsesComponentInstance;
 pub use wasi_component_loader::{
-    create_log_channel, AccessLogMessage, ChannelLogReceiver, ChannelLogSender, ComponentLoader,
-    Config as HooksWasiConfig,
-};
-use wasi_component_loader::{
-    AuthorizationComponentInstance, GatewayComponentInstance, GuestError, SharedContext, SubgraphComponentInstance,
+    create_log_channel, AccessLogMessage, AuthorizationComponentInstance, ChannelLogReceiver, ChannelLogSender,
+    ComponentLoader, Config as HooksWasiConfig, GatewayComponentInstance, GuestError, SharedContext,
+    SubgraphComponentInstance,
 };
 
 pub struct HooksWasi(Option<HooksWasiInner>);
@@ -31,6 +31,7 @@ struct HooksWasiInner {
     gateway: Pool<GatewayComponentInstance>,
     authorization: Pool<AuthorizationComponentInstance>,
     subgraph: Pool<SubgraphComponentInstance>,
+    responses: Pool<ResponsesComponentInstance>,
     hook_latencies: Histogram<u64>,
     sender: ChannelLogSender,
 }
@@ -118,6 +119,7 @@ impl HooksWasi {
                 gateway: Pool::new(&loader),
                 authorization: Pool::new(&loader),
                 subgraph: Pool::new(&loader),
+                responses: Pool::new(&loader),
                 hook_latencies: meter.u64_histogram("grafbase.hook.duration").init(),
                 sender,
             })),
@@ -131,20 +133,22 @@ impl Hooks for HooksWasi {
 
     #[instrument(skip_all)]
     async fn on_gateway_request(&self, headers: HeaderMap) -> Result<(Self::Context, HeaderMap), ErrorResponse> {
+        let context = HashMap::new();
+
         let Some(ref inner) = self.0 else {
-            return Ok((Arc::new(HashMap::new()), headers));
+            return Ok((Arc::new(context), headers));
         };
 
         let mut hook = inner.gateway.get().await;
 
         inner
-            .run_and_measure("on-gateway-request", hook.on_gateway_request(HashMap::new(), headers))
+            .run_and_measure("on-gateway-request", hook.on_gateway_request(context, headers))
             .await
-            .map(|(ctx, headers)| (Arc::new(ctx), headers))
+            .map(|(kv, headers)| (Arc::new(kv), headers))
             .map_err(|err| match err {
                 wasi_component_loader::Error::Internal(err) => {
                     tracing::error!("on_gateway_request error: {err}");
-                    PartialGraphqlError::internal_hook_error().into()
+                    ErrorResponse::from(PartialGraphqlError::internal_hook_error())
                 }
                 wasi_component_loader::Error::Guest(err) => {
                     guest_error_as_gql(err, PartialErrorCode::BadRequest).into()
@@ -157,6 +161,10 @@ impl Hooks for HooksWasi {
     }
 
     fn subgraph(&self) -> &impl SubgraphHooks<Self::Context> {
+        self
+    }
+
+    fn responses(&self) -> &impl runtime::hooks::ResponseHooks<Self::Context> {
         self
     }
 }

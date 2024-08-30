@@ -37,6 +37,17 @@ impl ChannelLogSender {
 
         Ok(())
     }
+
+    /// Wait until all access logs are written to the file.
+    pub async fn graceful_shutdown(&self) {
+        let wg = WaitGroup::new();
+
+        if self.sender.send(AccessLogMessage::Shutdown(wg.clone())).is_err() {
+            tracing::debug!("access log receiver is already dead, cannot empty log channel");
+        }
+
+        tokio::task::spawn_blocking(|| wg.wait()).await.unwrap();
+    }
 }
 
 /// A receiver for the logger to receive messages and write them somewhere.
@@ -123,7 +134,8 @@ pub(crate) fn map(types: &mut LinkerInstance<'_, WasiState>) -> crate::Result<()
 /// interface types {
 ///     resource shared-context {
 ///         get: func(key: string) -> option<string>;
-///     }    
+///         access-log: func(data: list<u8>) -> result<_, log-error>;
+///     }
 /// }
 /// ```
 pub(crate) fn map_shared(types: &mut LinkerInstance<'_, WasiState>) -> crate::Result<()> {

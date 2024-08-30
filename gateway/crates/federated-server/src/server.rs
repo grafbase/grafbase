@@ -1,3 +1,4 @@
+mod access_logs;
 mod cors;
 mod csrf;
 mod engine;
@@ -10,6 +11,7 @@ mod trusted_documents_client;
 
 use grafbase_telemetry::gql_response_status::GraphqlResponseStatus;
 pub use graph_fetch_method::GraphFetchMethod;
+use runtime_local::hooks;
 use tokio::sync::watch;
 use ulid::Ulid;
 
@@ -80,9 +82,20 @@ pub async fn serve(
     let (sender, mut gateway) = watch::channel(None);
     gateway.mark_unchanged();
 
+    let (access_log_sender, access_log_receiver) = hooks::create_log_channel(config.gateway.access_logs.lossy_log());
+
     fetch_method
-        .start(&config, config_hot_reload.then_some(config_path).flatten(), sender)
+        .start(
+            &config,
+            config_hot_reload.then_some(config_path).flatten(),
+            sender,
+            access_log_sender.clone(),
+        )
         .await?;
+
+    if config.gateway.access_logs.enabled {
+        access_logs::start(&config.gateway.access_logs, access_log_receiver)?;
+    }
 
     let (websocket_sender, websocket_receiver) = mpsc::channel(16);
     let websocket_accepter = WebsocketAccepter::new(websocket_receiver, gateway.clone());
@@ -148,8 +161,9 @@ pub async fn serve(
         }
     }
 
-    // Once all pending requests have been dealt with, we shutdown everything else left (telemetry)
+    // Once all pending requests have been dealt with, we shutdown everything else left (telemetry, logs)
     server_runtime.graceful_shutdown().await;
+    access_log_sender.graceful_shutdown().await;
 
     Ok(())
 }

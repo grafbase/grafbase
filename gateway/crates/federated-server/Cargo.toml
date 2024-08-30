@@ -43,6 +43,7 @@ toml.workspace = true
 tokio = { workspace = true, features = ["signal", "time", "net"] }
 tower-http = { version = "0.5.2", features = ["cors", "timeout"] }
 tracing.workspace = true
+tracing-appender = { version = "0.2.3", features = ["parking_lot"] }
 ulid = { workspace = true, features = ["serde"] }
 url = { workspace = true, features = ["serde"] }
 notify = "6.1.1"

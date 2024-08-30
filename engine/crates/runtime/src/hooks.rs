@@ -1,11 +1,12 @@
 #[cfg(feature = "test-utils")]
 mod test_utils;
 
+use grafbase_telemetry::gql_response_status::{GraphqlResponseStatus, SubgraphResponseStatus};
 #[cfg(feature = "test-utils")]
 pub use test_utils::*;
 use url::Url;
 
-use std::future::Future;
+use std::{future::Future, time::Instant};
 
 pub use http::HeaderMap;
 
@@ -50,6 +51,8 @@ pub trait Hooks: Send + Sync + 'static {
     fn authorized(&self) -> &impl AuthorizedHooks<Self::Context>;
 
     fn subgraph(&self) -> &impl SubgraphHooks<Self::Context>;
+
+    fn responses(&self) -> &impl ResponseHooks<Self::Context>;
 }
 
 pub trait AuthorizedHooks<Context>: Send + Sync + 'static {
@@ -115,6 +118,180 @@ pub trait SubgraphHooks<Context>: Send + Sync + 'static {
     ) -> impl Future<Output = Result<HeaderMap, PartialGraphqlError>> + Send;
 }
 
+#[derive(Debug, Clone, Copy)]
+pub struct ResponseInfo {
+    pub connection_time: u64,
+    pub response_time: u64,
+    pub status_code: u16,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum ResponseKind {
+    SerializationError,
+    HookError,
+    RequestError,
+    RateLimited,
+    Responsed(ResponseInfo),
+}
+
+impl ResponseInfo {
+    pub fn builder() -> ResponseInfoBuilder {
+        ResponseInfoBuilder {
+            start: Instant::now(),
+            connection_time: None,
+            response_time: None,
+        }
+    }
+}
+
+pub struct ResponseInfoBuilder {
+    start: Instant,
+    connection_time: Option<u64>,
+    response_time: Option<u64>,
+}
+
+pub struct OnSubgraphResponseOutput(pub Vec<u8>);
+
+impl ResponseInfoBuilder {
+    /// Stops the clock for connection time. This is typically the time the request gets
+    /// sent, but no data is fetched back.
+    pub fn track_connection(&mut self) {
+        self.connection_time = Some(self.start.elapsed().as_millis() as u64);
+    }
+
+    /// Stops the clock for response time. This time is the time it takes to initialize
+    /// a connection and waiting to get all the data back.
+    pub fn track_response(&mut self) {
+        self.response_time = Some(self.start.elapsed().as_millis() as u64);
+    }
+
+    pub fn finalize(self, status_code: u16) -> ResponseInfo {
+        ResponseInfo {
+            connection_time: self.connection_time.unwrap_or_default(),
+            response_time: self.response_time.unwrap_or_default(),
+            status_code,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum CacheStatus {
+    Hit,
+    PartialHit,
+    Miss,
+}
+
+#[derive(Debug, Clone)]
+pub struct ExecutedSubgraphRequest<'a> {
+    pub subgraph_name: &'a str,
+    pub method: &'a str,
+    pub url: &'a str,
+    pub responses: Vec<ResponseKind>,
+    pub cache_status: CacheStatus,
+    pub total_duration: u64,
+    pub has_errors: bool,
+}
+
+#[derive(Debug, Clone)]
+pub struct ExecutedSubgraphRequestBuilder<'a> {
+    subgraph_name: &'a str,
+    method: &'a str,
+    url: &'a str,
+    responses: Vec<ResponseKind>,
+    cache_status: CacheStatus,
+    start_time: Instant,
+    status: SubgraphResponseStatus,
+}
+
+impl<'a> ExecutedSubgraphRequestBuilder<'a> {
+    pub fn push_response(&mut self, kind: ResponseKind) {
+        self.responses.push(kind);
+    }
+
+    pub fn set_cache_status(&mut self, status: CacheStatus) {
+        self.cache_status = status;
+    }
+
+    pub fn set_graphql_status(&mut self, status: SubgraphResponseStatus) {
+        self.status = status;
+    }
+
+    pub fn build(self) -> ExecutedSubgraphRequest<'a> {
+        let is_success = matches!(
+            self.status,
+            SubgraphResponseStatus::GraphqlResponse(GraphqlResponseStatus::Success)
+        );
+
+        ExecutedSubgraphRequest {
+            subgraph_name: self.subgraph_name,
+            method: self.method,
+            url: self.url,
+            responses: self.responses,
+            cache_status: self.cache_status,
+            total_duration: self.start_time.elapsed().as_millis() as u64,
+            has_errors: !is_success,
+        }
+    }
+}
+
+impl<'a> ExecutedSubgraphRequest<'a> {
+    pub fn builder(subgraph_name: &'a str, method: &'a str, url: &'a str) -> ExecutedSubgraphRequestBuilder<'a> {
+        ExecutedSubgraphRequestBuilder {
+            subgraph_name,
+            method,
+            url,
+            responses: Vec::new(),
+            cache_status: CacheStatus::Miss,
+            start_time: Instant::now(),
+            status: SubgraphResponseStatus::GraphqlResponse(GraphqlResponseStatus::Success),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct Operation<'a> {
+    pub name: Option<&'a str>,
+    pub document: &'a str,
+    pub prepare_duration: u64,
+    pub cached: bool,
+}
+
+#[derive(Debug, Clone)]
+pub struct ExecutedGatewayRequest {
+    pub duration: u64,
+    pub status: GraphqlResponseStatus,
+    pub on_subgraph_request_outputs: Vec<Vec<u8>>,
+}
+
+#[derive(Debug, Clone)]
+pub struct ExecutedHttpRequest<'a> {
+    pub method: &'a str,
+    pub url: &'a str,
+    pub status_code: http::StatusCode,
+    pub on_gateway_response_outputs: Vec<Vec<u8>>,
+}
+
+pub trait ResponseHooks<Context>: Send + Sync + 'static {
+    fn on_subgraph_response(
+        &self,
+        context: &Context,
+        request: ExecutedSubgraphRequest<'_>,
+    ) -> impl Future<Output = Result<Vec<u8>, PartialGraphqlError>> + Send;
+
+    fn on_gateway_response(
+        &self,
+        context: &Context,
+        operation: Operation<'_>,
+        request: ExecutedGatewayRequest,
+    ) -> impl Future<Output = Result<Vec<u8>, PartialGraphqlError>> + Send;
+
+    fn on_http_response(
+        &self,
+        context: &Context,
+        request: ExecutedHttpRequest<'_>,
+    ) -> impl Future<Output = Result<(), PartialGraphqlError>> + Send;
+}
+
 // ---------------------------//
 // -- No-op implementation -- //
 // ---------------------------//
@@ -130,6 +307,10 @@ impl Hooks for () {
     }
 
     fn subgraph(&self) -> &impl SubgraphHooks<()> {
+        self
+    }
+
+    fn responses(&self) -> &impl ResponseHooks<Self::Context> {
         self
     }
 }
@@ -227,5 +408,28 @@ impl SubgraphHooks<()> for () {
         headers: HeaderMap,
     ) -> Result<HeaderMap, PartialGraphqlError> {
         Ok(headers)
+    }
+}
+
+impl ResponseHooks<()> for () {
+    async fn on_subgraph_response(
+        &self,
+        _: &(),
+        _: ExecutedSubgraphRequest<'_>,
+    ) -> Result<Vec<u8>, PartialGraphqlError> {
+        Ok(Vec::new())
+    }
+
+    async fn on_gateway_response(
+        &self,
+        _: &(),
+        _: Operation<'_>,
+        _: ExecutedGatewayRequest,
+    ) -> Result<Vec<u8>, PartialGraphqlError> {
+        Ok(Vec::new())
+    }
+
+    async fn on_http_response(&self, _: &(), _: ExecutedHttpRequest<'_>) -> Result<(), PartialGraphqlError> {
+        Ok(())
     }
 }

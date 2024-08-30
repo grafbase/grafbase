@@ -1,6 +1,7 @@
 use super::gateway::{self, GatewayRuntime};
 use engine_v2::Engine;
 use gateway_config::Config;
+use runtime_local::hooks::ChannelLogSender;
 use std::{path::PathBuf, sync::Arc};
 use tokio::sync::watch;
 
@@ -32,6 +33,7 @@ impl GraphFetchMethod {
         config: &Config,
         hot_reload_config_path: Option<PathBuf>,
         sender: watch::Sender<Option<Arc<Engine<GatewayRuntime>>>>,
+        access_log_sender: ChannelLogSender,
     ) -> crate::Result<()> {
         #[cfg(feature = "lambda")]
         if matches!(self, GraphFetchMethod::FromApi { .. }) {
@@ -51,15 +53,29 @@ impl GraphFetchMethod {
                     let config = config.clone();
                     use super::graph_updater::GraphUpdater;
 
-                    GraphUpdater::new(&graph_name, branch.as_deref(), access_token, sender, config)?
-                        .poll()
-                        .await;
+                    GraphUpdater::new(
+                        &graph_name,
+                        branch.as_deref(),
+                        access_token,
+                        sender,
+                        config,
+                        access_log_sender,
+                    )?
+                    .poll()
+                    .await;
 
                     Ok::<_, crate::Error>(())
                 });
             }
             GraphFetchMethod::FromLocal { federated_schema } => {
-                let gateway = gateway::generate(federated_schema, None, config, hot_reload_config_path).await?;
+                let gateway = gateway::generate(
+                    federated_schema,
+                    None,
+                    config,
+                    hot_reload_config_path,
+                    access_log_sender,
+                )
+                .await?;
 
                 sender.send(Some(Arc::new(gateway)))?;
             }

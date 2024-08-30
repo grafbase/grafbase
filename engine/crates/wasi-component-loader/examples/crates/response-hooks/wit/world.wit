@@ -137,10 +137,28 @@ interface types {
         status-code: u16
     }
 
+    // Cache status of a subgraph call.
     enum cache-status {
+        // All data fetched from cache.
         hit,
+        // Some data fetched from cache.
         partial-hit,
+        // Cache miss
         miss,
+    }
+
+    // Subgraph response variant.
+    variant response-kind {
+        // Error in response serialization.
+        serialization-error,
+        // Response prevented by subgraph request hook.
+        hook-error,
+        // HTTP request failed.
+        request-error,
+        // Request was rate-limited.
+        rate-limited,
+        // A response was received.
+        responded(response-info),
     }
 
     // Info about an executed subgraph request.
@@ -154,9 +172,10 @@ interface types {
         // The subgraph URL.
         url: string,
        
-        // The subgraph response info
-        response-infos: list<response-info>,
+        // The subgraph responses
+        responses: list<response-kind>,
 
+        // The cache status of the subgraph call.
         cache-status: cache-status,
 
         // The time in milliseconds taken for the whole operation.
