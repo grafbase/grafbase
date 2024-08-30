@@ -2899,7 +2899,6 @@ dependencies = [
  "axum-server",
  "blake3",
  "cfg-if",
- "crossbeam",
  "engine-config-builder",
  "engine-v2",
  "engine-v2-axum",

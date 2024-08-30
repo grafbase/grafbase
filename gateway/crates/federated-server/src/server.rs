@@ -9,10 +9,9 @@ mod health;
 mod state;
 mod trusted_documents_client;
 
-use crossbeam::sync::WaitGroup;
 use grafbase_telemetry::gql_response_status::GraphqlResponseStatus;
 pub use graph_fetch_method::GraphFetchMethod;
-use runtime_local::hooks::{create_log_channel, AccessLogMessage, ChannelLogSender};
+use runtime_local::hooks;
 use tokio::sync::watch;
 use ulid::Ulid;
 
@@ -83,7 +82,7 @@ pub async fn serve(
     let (sender, mut gateway) = watch::channel(None);
     gateway.mark_unchanged();
 
-    let (access_log_sender, access_log_receiver) = create_log_channel(config.gateway.access_logs.lossy_log());
+    let (access_log_sender, access_log_receiver) = hooks::create_log_channel(config.gateway.access_logs.lossy_log());
 
     fetch_method
         .start(
@@ -158,30 +157,25 @@ pub async fn serve(
         if #[cfg(feature = "lambda")] {
             lambda_bind(path, router).await?;
         } else {
-            bind(addr, path, router, config.tls.as_ref(), access_log_sender).await?;
+            bind(addr, path, router, config.tls.as_ref()).await?;
         }
     }
 
-    // Once all pending requests have been dealt with, we shutdown everything else left (telemetry)
+    // Once all pending requests have been dealt with, we shutdown everything else left (telemetry, logs)
     server_runtime.graceful_shutdown().await;
+    access_log_sender.graceful_shutdown().await;
 
     Ok(())
 }
 
 #[cfg_attr(feature = "lambda", allow(unused))]
-async fn bind(
-    addr: SocketAddr,
-    path: &str,
-    router: Router<()>,
-    tls: Option<&TlsConfig>,
-    access_log_sender: ChannelLogSender,
-) -> crate::Result<()> {
+async fn bind(addr: SocketAddr, path: &str, router: Router<()>, tls: Option<&TlsConfig>) -> crate::Result<()> {
     let app = router.into_make_service();
 
     let handle = axum_server::Handle::new();
 
     // Spawn a task to gracefully shutdown server.
-    tokio::spawn(graceful_shutdown(handle.clone(), access_log_sender));
+    tokio::spawn(graceful_shutdown(handle.clone()));
 
     match tls {
         Some(tls) => {
@@ -222,7 +216,7 @@ async fn lambda_bind(path: &str, router: Router<()>) -> crate::Result<()> {
     Ok(())
 }
 
-async fn graceful_shutdown(handle: axum_server::Handle, access_log_sender: ChannelLogSender) {
+async fn graceful_shutdown(handle: axum_server::Handle) {
     let ctrl_c = async {
         signal::ctrl_c().await.expect("failed to install Ctrl+C handler");
     };
@@ -245,11 +239,6 @@ async fn graceful_shutdown(handle: axum_server::Handle, access_log_sender: Chann
 
     tracing::info!("Shutting down gracefully...");
     handle.graceful_shutdown(Some(std::time::Duration::from_secs(3)));
-
-    let wg = WaitGroup::new();
-    access_log_sender.send(AccessLogMessage::Shutdown(wg.clone())).unwrap();
-
-    wg.wait();
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]

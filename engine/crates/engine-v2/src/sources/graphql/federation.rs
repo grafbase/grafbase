@@ -117,9 +117,7 @@ impl<'ctx> FederationEntityRequest<'ctx> {
                 cache_ttl,
             };
 
-            let headers = ctx
-                .execution_context()
-                .subgraph_headers_with_rules(ctx.endpoint().header_rules());
+            let headers = ctx.subgraph_headers_with_rules(ctx.endpoint().header_rules());
 
             if cache_ttl.is_some() {
                 match cache_fetches(

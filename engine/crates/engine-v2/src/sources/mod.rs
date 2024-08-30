@@ -44,10 +44,9 @@
 //! executor will have a root for each product in the response.
 use futures::FutureExt;
 use futures_util::stream::BoxStream;
-use grafbase_telemetry::span::GRAFBASE_TARGET;
 use runtime::hooks::{ExecutedSubgraphRequest, ExecutedSubgraphRequestBuilder};
 use schema::{sources::graphql::GraphqlEndpointWalker, ResolverDefinition, ResolverDefinitionWalker};
-use std::future::Future;
+use std::{future::Future, ops::Deref};
 use tower::retry::budget::Budget;
 
 use crate::{
@@ -103,10 +102,18 @@ pub struct ExecutionFutureResult {
 #[derive(Clone)]
 pub(crate) struct SubgraphRequestContext<'ctx, R: Runtime> {
     execution_context: ExecutionContext<'ctx, R>,
-    operation_type: OperationType,
     plan: PlanWalker<'ctx, (), ()>,
     request_info: ExecutedSubgraphRequestBuilder<'ctx>,
     endpoint: GraphqlEndpointWalker<'ctx>,
+    retry_budget: Option<&'ctx Budget>,
+}
+
+impl<'ctx, R: Runtime> Deref for SubgraphRequestContext<'ctx, R> {
+    type Target = ExecutionContext<'ctx, R>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.execution_context
+    }
 }
 
 impl<'ctx, R: Runtime> SubgraphRequestContext<'ctx, R> {
@@ -118,12 +125,19 @@ impl<'ctx, R: Runtime> SubgraphRequestContext<'ctx, R> {
     ) -> Self {
         let request_info = ExecutedSubgraphRequest::builder(endpoint.subgraph_name(), "POST", endpoint.url().as_str());
 
+        let retry_budget = match operation_type {
+            OperationType::Mutation => execution_context.engine.get_retry_budget_for_mutation(endpoint.id()),
+            _ => execution_context
+                .engine
+                .get_retry_budget_for_non_mutation(endpoint.id()),
+        };
+
         Self {
             execution_context,
-            operation_type,
             plan,
             request_info,
             endpoint,
+            retry_budget,
         }
     }
 
@@ -171,10 +185,7 @@ impl<'ctx, R: Runtime> SubgraphRequestContext<'ctx, R> {
     }
 
     pub fn retry_budget(&self) -> Option<&Budget> {
-        match self.operation_type {
-            OperationType::Mutation => self.engine().get_retry_budget_for_mutation(self.endpoint.id()),
-            _ => self.engine().get_retry_budget_for_non_mutation(self.endpoint().id()),
-        }
+        self.retry_budget
     }
 
     pub async fn finalize(self, subgraph_result: ExecutionResult<SubgraphResponse>) -> ExecutionFutureResult {
@@ -184,7 +195,7 @@ impl<'ctx, R: Runtime> SubgraphRequestContext<'ctx, R> {
             .on_subgraph_response(self.request_info.build())
             .await
             .map_err(|e| {
-                tracing::error!(target: GRAFBASE_TARGET, message = "error in on-subgraph-response hook", error = ?e);
+                tracing::error!("error in on-subgraph-response hook: {e}");
                 ExecutionError::Internal("internal error".into())
             });
 

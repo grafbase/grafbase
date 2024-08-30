@@ -6,7 +6,7 @@ use grafbase_telemetry::gql_response_status::{GraphqlResponseStatus, SubgraphRes
 pub use test_utils::*;
 use url::Url;
 
-use std::{future::Future, time::SystemTime};
+use std::{future::Future, time::Instant};
 
 pub use http::HeaderMap;
 
@@ -39,11 +39,6 @@ impl<'a, T> Anything<'a> for T where T: serde::Serialize + serde::de::Deserializ
 
 pub type AuthorizationVerdict = Result<(), PartialGraphqlError>;
 pub type AuthorizationVerdicts = Result<Vec<AuthorizationVerdict>, PartialGraphqlError>;
-
-pub struct ChannelBuilder<'a, Sender: Clone> {
-    pub sender: &'a Sender,
-    pub lossy_log: bool,
-}
 
 pub trait Hooks: Send + Sync + 'static {
     type Context: Send + Sync + 'static;
@@ -142,7 +137,7 @@ pub enum ResponseKind {
 impl ResponseInfo {
     pub fn builder() -> ResponseInfoBuilder {
         ResponseInfoBuilder {
-            start: SystemTime::now(),
+            start: Instant::now(),
             connection_time: None,
             response_time: None,
         }
@@ -150,32 +145,24 @@ impl ResponseInfo {
 }
 
 pub struct ResponseInfoBuilder {
-    start: SystemTime,
+    start: Instant,
     connection_time: Option<u64>,
     response_time: Option<u64>,
 }
+
+pub struct OnSubgraphResponseOutput(pub Vec<u8>);
 
 impl ResponseInfoBuilder {
     /// Stops the clock for connection time. This is typically the time the request gets
     /// sent, but no data is fetched back.
     pub fn track_connection(&mut self) {
-        self.connection_time = Some(
-            SystemTime::now()
-                .duration_since(self.start)
-                .unwrap_or_default()
-                .as_millis() as u64,
-        );
+        self.connection_time = Some(self.start.elapsed().as_millis() as u64);
     }
 
     /// Stops the clock for response time. This time is the time it takes to initialize
     /// a connection and waiting to get all the data back.
     pub fn track_response(&mut self) {
-        self.response_time = Some(
-            SystemTime::now()
-                .duration_since(self.start)
-                .unwrap_or_default()
-                .as_millis() as u64,
-        );
+        self.response_time = Some(self.start.elapsed().as_millis() as u64);
     }
 
     pub fn finalize(self, status_code: u16) -> ResponseInfo {
@@ -212,7 +199,7 @@ pub struct ExecutedSubgraphRequestBuilder<'a> {
     url: &'a str,
     responses: Vec<ResponseKind>,
     cache_status: CacheStatus,
-    start_time: SystemTime,
+    start_time: Instant,
     status: SubgraphResponseStatus,
 }
 
@@ -241,10 +228,7 @@ impl<'a> ExecutedSubgraphRequestBuilder<'a> {
             url: self.url,
             responses: self.responses,
             cache_status: self.cache_status,
-            total_duration: SystemTime::now()
-                .duration_since(self.start_time)
-                .unwrap_or_default()
-                .as_millis() as u64,
+            total_duration: self.start_time.elapsed().as_millis() as u64,
             has_errors: !is_success,
         }
     }
@@ -258,7 +242,7 @@ impl<'a> ExecutedSubgraphRequest<'a> {
             url,
             responses: Vec::new(),
             cache_status: CacheStatus::Miss,
-            start_time: SystemTime::now(),
+            start_time: Instant::now(),
             status: SubgraphResponseStatus::GraphqlResponse(GraphqlResponseStatus::Success),
         }
     }
