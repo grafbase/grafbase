@@ -32,6 +32,15 @@ runs:
         toolchain: ${{ env.RUST_VERSION }}
         components: clippy, rustfmt
 
+    - name: Setup sccache
+      uses: mozilla-actions/sccache-action@v0.0.5
+
+    - name: Add sccache env vars
+      shell: bash
+      run: |
+        echo "SCCACHE_GHA_ENABLED=true" >> $GITHUB_ENV
+        echo "RUSTC_WRAPPER=sccache" >> $GITHUB_ENV
+
     - name: rustup
       shell: bash
       run: |
