@@ -20,6 +20,7 @@ COPY . .
 RUN cargo chef prepare --recipe-path recipe.json
 
 FROM chef AS builder
+ENV CARGO_INCREMENTAL=0
 COPY --from=planner /grafbase/recipe.json recipe.json
 RUN cargo chef cook --target "$(rustc -vV | sed -n "s|host: ||p")" --release --recipe-path recipe.json
 
