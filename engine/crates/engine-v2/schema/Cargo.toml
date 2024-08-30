@@ -12,7 +12,9 @@ version = "3.0.31"
 build = "build.rs"
 
 [build-dependencies]
-built = {version = "0.7", features = ["git2", "chrono"]}
+anyhow.workspace = true
+chrono.workspace = true
+chrono.features = ["now"]
 
 [dependencies]
 fnv = "1.0.7"
