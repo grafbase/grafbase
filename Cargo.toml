@@ -32,10 +32,8 @@ exclude = ["engine/crates/gateway-v2", "engine/crates/wasi-component-loader/exam
 axum = { git = "https://github.com/grafbase/axum", rev = "c3146f9ca921907d9884fbf7549a1520e9e72eac" } # axum-tungstenite-upgrade
 # Drop when https://github.com/programatik29/axum-server/pull/112 is merged.
 axum-server = { git = "https://github.com/grafbase/axum-server", rev = "bc0c489c82e6fa76648f0d47191330ef4e125347" } # rustls-0.23-tokio-rustls-0.26
-cynic-parser = { path = "../../cynic/cynic-parser" }
-cynic-codegen = { path = "../../cynic/cynic-codegen" }
-# cynic-parser = { git = "https://github.com/grafbase/cynic", branch = "more-spans" }
-# cynic-codegen = { git = "https://github.com/grafbase/cynic", branch = "more-spans" }
+cynic-parser = { git = "https://github.com/grafbase/cynic", branch = "more-spans" }
+cynic-codegen = { git = "https://github.com/grafbase/cynic", branch = "more-spans" }
 multipart-stream = { git = "https://github.com/grafbase/multipart-stream-rs-fork", rev = "06ff198e4041c8a8c1c93e580c260d597727c193" } # http-1.0-fix-multipart-mixed
 names = { git = "https://github.com/grafbase/names", rev = "443800fbb7bc2936c1f2c16f3a5e116698b1454a" } # main
 # FIXME: Drop when a new version is released.
