@@ -13,7 +13,7 @@ pub(crate) static AUTHORIZE_EDGE_POST_EXECUTION_HOOK_FUNCTION: &str = "authorize
 pub(crate) static ON_SUBGRAGH_REQUEST_HOOK_FUNCTION: &str = "on-subgraph-request";
 
 pub(crate) static ON_SUBGRAPH_RESPONSE_FUNCTION: &str = "on-subgraph-response";
-pub(crate) static ON_GATEWAY_RESPONSE_FUNCTION: &str = "on-gateway-response";
+pub(crate) static ON_OPERATION_RESPONSE_FUNCTION: &str = "on-operation-response";
 pub(crate) static ON_HTTP_RESPONSE_FUNCTION: &str = "on-http-response";
 
 pub(crate) static HEADERS_RESOURCE: &str = "headers";

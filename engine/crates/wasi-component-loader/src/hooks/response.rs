@@ -4,7 +4,7 @@ use super::{component_instance, ComponentInstance};
 use crate::{
     context::SharedContext,
     names::{
-        ON_GATEWAY_RESPONSE_FUNCTION, ON_HTTP_RESPONSE_FUNCTION, ON_SUBGRAPH_RESPONSE_FUNCTION, RESPONSES_INTERFACE,
+        ON_HTTP_RESPONSE_FUNCTION, ON_OPERATION_RESPONSE_FUNCTION, ON_SUBGRAPH_RESPONSE_FUNCTION, RESPONSES_INTERFACE,
     },
     ComponentLoader,
 };
@@ -25,8 +25,8 @@ pub struct ExecutedHttpRequest {
     #[component(name = "status-code")]
     pub status_code: u16,
     /// Results from on-gateway-response hooks.
-    #[component(name = "on-gateway-response-outputs")]
-    pub on_gateway_response_outputs: Vec<Vec<u8>>,
+    #[component(name = "on-operation-response-outputs")]
+    pub on_operation_response_outputs: Vec<Vec<u8>>,
 }
 
 /// Information on a GraphQL operation.
@@ -89,7 +89,7 @@ pub enum GraphqlResponseStatus {
 /// Data from an executed full operation.
 #[derive(Debug, Clone, Lower, ComponentType)]
 #[component(record)]
-pub struct ExecutedGatewayRequest {
+pub struct ExecutedOperationRequest {
     /// The duration it took to execute the operation.
     #[component(name = "duration")]
     pub duration: u64,
@@ -193,13 +193,13 @@ impl ResponsesComponentInstance {
     }
 
     /// Called right after a gateway request.
-    pub async fn on_gateway_response(
+    pub async fn on_operation_response(
         &mut self,
         context: SharedContext,
         operation: Operation,
-        request: ExecutedGatewayRequest,
+        request: ExecutedOperationRequest,
     ) -> crate::Result<Vec<u8>> {
-        self.call2_effect1(ON_GATEWAY_RESPONSE_FUNCTION, context, (operation, request))
+        self.call2_effect1(ON_OPERATION_RESPONSE_FUNCTION, context, (operation, request))
             .await?
             .map(|result: Vec<u8>| Ok(result))
             .unwrap_or_else(|| Ok(Vec::new()))

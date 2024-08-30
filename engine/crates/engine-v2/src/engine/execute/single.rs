@@ -4,6 +4,7 @@ use grafbase_telemetry::{
     metrics::{GraphqlErrorAttributes, GraphqlRequestMetricsAttributes, OperationMetricsAttributes},
     span::{gql::GqlRequestSpan, GqlRecorderSpanExt},
 };
+use runtime::hooks::{self, ExecutedOperationRequest};
 use tracing::Instrument;
 use web_time::Instant;
 
@@ -20,13 +21,15 @@ impl<R: Runtime> Engine<R> {
         &self,
         request_context: &RequestContext<<R::Hooks as Hooks>::Context>,
         request: Request,
-    ) -> Response {
+    ) -> (Response, Option<Vec<u8>>) {
         let start = Instant::now();
         let span = GqlRequestSpan::create();
 
         async {
             let ctx = PreExecutionContext::new(self, request_context);
-            let (operation_metrics_attributes, response) = ctx.execute_single(request).await;
+
+            let (operation_metrics_attributes, on_operation_response_output, response) =
+                ctx.execute_single(request).await;
 
             let elapsed = start.elapsed();
             let status = response.graphql_status();
@@ -59,7 +62,8 @@ impl<R: Runtime> Engine<R> {
 
             // After recording all operation metadata
             tracing::debug!("Executed operation");
-            response
+
+            (response, on_operation_response_output)
         }
         .instrument(span.clone())
         .await
@@ -67,21 +71,47 @@ impl<R: Runtime> Engine<R> {
 }
 
 impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
-    async fn execute_single(mut self, request: Request) -> (Option<OperationMetricsAttributes>, Response) {
-        let operation_plan = match self.prepare_operation(request).await {
+    async fn execute_single(
+        mut self,
+        request: Request,
+    ) -> (Option<OperationMetricsAttributes>, Option<Vec<u8>>, Response) {
+        let mut operation_info = hooks::Operation::builder();
+
+        let operation_plan = match self.prepare_operation(request, &mut operation_info).await {
             Ok(operation_plan) => operation_plan,
-            Err((metadata, response)) => return (metadata, response),
+            Err((metadata, response)) => return (metadata, None, response),
         };
 
-        let metrics_attributes = Some(operation_plan.metrics_attributes.clone());
-        let response = if matches!(operation_plan.ty(), OperationType::Subscription) {
-            RequestErrorResponse::bad_request_but_well_formed_graphql_over_http_request(
+        let metrics_attributes = operation_plan.metrics_attributes.clone();
+
+        if matches!(operation_plan.ty(), OperationType::Subscription) {
+            let response = RequestErrorResponse::bad_request_but_well_formed_graphql_over_http_request(
                 "Subscriptions are only suported on streaming transports. Try making a request with SSE or WebSockets",
-            )
-        } else {
-            self.execute_query_or_mutation(operation_plan).await
-        };
+            );
 
-        (metrics_attributes, response)
+            (Some(metrics_attributes), None, response)
+        } else {
+            if let Some(ref name) = metrics_attributes.name {
+                operation_info.set_name(name.clone());
+            }
+
+            let operation = operation_info.finalize(&metrics_attributes.sanitized_query);
+
+            let mut execution_info = ExecutedOperationRequest::builder();
+            let hooks = self.hooks();
+            let mut response = self.execute_query_or_mutation(operation_plan).await;
+
+            execution_info.set_on_subgraph_response_outputs(response.take_on_subgraph_response_outputs());
+            let executed_operation = execution_info.finalize(response.graphql_status());
+
+            match hooks.on_operation_response(operation, executed_operation).await {
+                Ok(operation_result) => (
+                    Some(metrics_attributes.clone()),
+                    Some(operation_result),
+                    Response::Executed(response),
+                ),
+                Err(e) => (Some(metrics_attributes), None, Response::execution_error([e])),
+            }
+        }
     }
 }

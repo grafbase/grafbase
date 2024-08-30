@@ -15,8 +15,8 @@ use crate::{
     execution::{ExecutableOperation, ExecutionContext},
     operation::PlanWalker,
     response::{
-        InputdResponseObjectSet, ObjectIdentifier, Response, ResponseBuilder, ResponseEdge, ResponseObjectField,
-        ResponseValue, SubgraphResponse, SubgraphResponseRefMut,
+        ExecutedResponse, InputdResponseObjectSet, ObjectIdentifier, Response, ResponseBuilder, ResponseEdge,
+        ResponseObjectField, ResponseValue, SubgraphResponse, SubgraphResponseRefMut,
     },
     Runtime,
 };
@@ -29,7 +29,7 @@ pub(crate) trait ResponseSender: Send {
 }
 
 impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
-    pub async fn execute_query_or_mutation(self, operation: ExecutableOperation) -> Response {
+    pub async fn execute_query_or_mutation(self, operation: ExecutableOperation) -> ExecutedResponse {
         let background_futures: FuturesUnordered<_> = self.background_futures.into_iter().collect();
         let background_fut = background_futures.collect::<Vec<_>>();
 
@@ -43,6 +43,7 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
 
         tracing::trace!("Starting execution...");
         let (response, _) = futures_util::join!(response_fut, background_fut);
+
         response
     }
 
@@ -78,7 +79,7 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
         }
     }
 
-    async fn execute(self) -> Response {
+    async fn execute(self) -> ExecutedResponse {
         assert!(
             !matches!(self.operation.ty(), OperationType::Subscription),
             "execute shouldn't be called for subscriptions"
@@ -102,7 +103,7 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
         assert!(matches!(self.operation.ty(), OperationType::Subscription));
 
         if let Some(response) = self.response_if_root_errors() {
-            let _ = responses.send(response).await;
+            let _ = responses.send(Response::Executed(response)).await;
             return;
         }
 
@@ -167,7 +168,7 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
         }
     }
 
-    fn response_if_root_errors(&self) -> Option<Response> {
+    fn response_if_root_errors(&self) -> Option<ExecutedResponse> {
         if self.operation.query_modifications.root_error_ids.is_empty() {
             return None;
         }
@@ -212,13 +213,14 @@ where
                     // We try to finish ongoing responses first, but while waiting we continue
                     // polling the stream for the next one.
                     futures_util::select_biased! {
-                        response = response_futures.next() => Ok(response),
+                        response = response_futures.next() => Ok(response.map(Response::Executed)),
                         execution = subscription_stream.next() => Err(execution),
                     }
                 } else {
-                    Ok(response_futures.next().await)
+                    Ok(response_futures.next().await.map(Response::Executed))
                 }
             };
+
             match next_task {
                 Ok(response) => {
                     // Should never be None as we only wait for the futures if there is something
@@ -264,7 +266,7 @@ where
         }
         // Finishing any remaining responses after the subscription stream ended.
         while let Some(response) = response_futures.next().await {
-            if responses.send(response).await.is_err() {
+            if responses.send(Response::Executed(response)).await.is_err() {
                 return;
             }
         }
@@ -301,7 +303,7 @@ where
     'ctx: 'exec,
 {
     /// Runs a single execution to completion, returning its response
-    async fn run(mut self) -> Response {
+    async fn run(mut self) -> ExecutedResponse {
         for plan_id in self.state.get_executable_plans() {
             self.spawn_resolver(plan_id);
         }

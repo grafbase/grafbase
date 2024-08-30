@@ -16,8 +16,8 @@ use self::deserialize::UpdateSeed;
 
 use super::{
     value::ResponseObjectField, ErrorCode, ExecutedResponse, GraphqlError, InputdResponseObjectSet,
-    OutputResponseObjectSets, Response, ResponseData, ResponseEdge, ResponseObject, ResponseObjectRef,
-    ResponseObjectSet, ResponseObjectSetId, ResponsePath, ResponseValue, UnpackedResponseEdge,
+    OutputResponseObjectSets, ResponseData, ResponseEdge, ResponseObject, ResponseObjectRef, ResponseObjectSet,
+    ResponseObjectSetId, ResponsePath, ResponseValue, UnpackedResponseEdge,
 };
 use crate::{
     execution::{ExecutionContext, ExecutionError},
@@ -243,8 +243,8 @@ impl ResponseBuilder {
         }
     }
 
-    pub fn build(self, schema: Arc<Schema>, operation: Arc<PreparedOperation>) -> Response {
-        Response::Executed(ExecutedResponse {
+    pub fn build(self, schema: Arc<Schema>, operation: Arc<PreparedOperation>) -> ExecutedResponse {
+        ExecutedResponse {
             data: Some(ResponseData {
                 schema,
                 operation,
@@ -252,8 +252,8 @@ impl ResponseBuilder {
                 parts: self.parts,
             }),
             errors: self.errors,
-            on_subgraph_response_hook_results: self.on_subgraph_response_results,
-        })
+            on_subgraph_response_outputs: self.on_subgraph_response_results,
+        }
     }
 
     // The path corresponds to place where a plan failed but couldn't go propagate higher as data

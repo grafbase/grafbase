@@ -1,6 +1,6 @@
 use runtime::{error::PartialGraphqlError, hooks::ResponseHooks};
 use wasi_component_loader::{
-    CacheStatus, ExecutedGatewayRequest, ExecutedHttpRequest, ExecutedSubgraphRequest, FieldError,
+    CacheStatus, ExecutedHttpRequest, ExecutedOperationRequest, ExecutedSubgraphRequest, FieldError,
     GraphqlResponseStatus, Operation, RequestError, ResponseInfo, ResponseKind,
 };
 
@@ -69,11 +69,11 @@ impl ResponseHooks<Context> for HooksWasi {
             })
     }
 
-    async fn on_gateway_response(
+    async fn on_operation_response(
         &self,
         context: &Context,
         operation: runtime::hooks::Operation<'_>,
-        request: runtime::hooks::ExecutedGatewayRequest,
+        request: runtime::hooks::ExecutedOperationRequest,
     ) -> Result<Vec<u8>, PartialGraphqlError> {
         let Some(ref inner) = self.0 else {
             return Ok(Vec::new());
@@ -88,20 +88,20 @@ impl ResponseHooks<Context> for HooksWasi {
             cached,
         } = operation;
 
-        let runtime::hooks::ExecutedGatewayRequest {
+        let runtime::hooks::ExecutedOperationRequest {
             duration,
             status,
-            on_subgraph_request_outputs,
+            on_subgraph_response_outputs: on_subgraph_request_outputs,
         } = request;
 
         let operation = Operation {
-            name: name.map(ToString::to_string),
+            name,
             document: document.to_string(),
             prepare_duration,
             cached,
         };
 
-        let request = ExecutedGatewayRequest {
+        let request = ExecutedOperationRequest {
             duration,
             status: match status {
                 grafbase_telemetry::gql_response_status::GraphqlResponseStatus::Success => {
@@ -122,8 +122,8 @@ impl ResponseHooks<Context> for HooksWasi {
 
         inner
             .run_and_measure(
-                "on-gateway-response",
-                hook.on_gateway_response(inner.shared_context(context), operation, request),
+                "on-operation-response",
+                hook.on_operation_response(inner.shared_context(context), operation, request),
             )
             .await
             .map_err(|err| {
@@ -147,14 +147,14 @@ impl ResponseHooks<Context> for HooksWasi {
             method,
             url,
             status_code,
-            on_gateway_response_outputs,
+            on_operation_response_outputs,
         } = request;
 
         let request = ExecutedHttpRequest {
             method: method.to_string(),
             url: url.to_string(),
             status_code: status_code.as_u16(),
-            on_gateway_response_outputs,
+            on_operation_response_outputs,
         };
 
         inner

@@ -150,7 +150,7 @@ impl<R: Runtime> Engine<R> {
                 if let ResponseFormat::Streaming(format) = request_context.response_format {
                     Http::stream(format, self.execute_stream(Arc::new(request_context), request)).await
                 } else {
-                    let Some(response) = self
+                    let Some((response, operation_hook_result)) = self
                         .runtime
                         .with_timeout(
                             self.schema.settings.timeout,
@@ -160,7 +160,14 @@ impl<R: Runtime> Engine<R> {
                     else {
                         return Http::from(request_context.response_format, RequestErrorResponse::gateway_timeout());
                     };
-                    Http::from(request_context.response_format, response)
+
+                    let mut response = Http::from(request_context.response_format, response);
+
+                    if let Some(result) = operation_hook_result {
+                        response.extensions_mut().insert(vec![result]);
+                    };
+
+                    response
                 }
             }
             BatchRequest::Batch(requests) => {
@@ -175,20 +182,26 @@ impl<R: Runtime> Engine<R> {
 
                 self.metrics.record_batch_size(requests.len());
 
-                let Some(responses) = self
+                let Some((responses, operation_hook_results)): Option<(Vec<_>, Vec<_>)> = self
                     .runtime
                     .with_timeout(
                         self.schema.settings.timeout,
                         futures_util::stream::iter(requests.into_iter())
                             .then(|request| self.execute_single(&request_context, request))
-                            .collect::<Vec<_>>(),
+                            .unzip(),
                     )
                     .await
                 else {
                     return Http::from(request_context.response_format, RequestErrorResponse::gateway_timeout());
                 };
 
-                Http::batch(format, responses)
+                let mut response = Http::batch(format, responses);
+
+                response
+                    .extensions_mut()
+                    .insert(operation_hook_results.into_iter().flatten().collect::<Vec<_>>());
+
+                response
             }
         }
     }

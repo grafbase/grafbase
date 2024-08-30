@@ -42,14 +42,27 @@ pub(crate) enum Response {
 pub(crate) struct ExecutedResponse {
     data: Option<ResponseData>,
     errors: Vec<GraphqlError>,
-    // TODO: next PR
-    #[allow(dead_code)]
-    on_subgraph_response_hook_results: Vec<Vec<u8>>,
+    on_subgraph_response_outputs: Vec<Vec<u8>>,
 }
 
 impl ExecutedResponse {
     pub(crate) fn is_data_null(&self) -> bool {
         self.data.as_ref().map(|data| data.root.is_none()).unwrap_or(true)
+    }
+
+    pub(crate) fn graphql_status(&self) -> GraphqlResponseStatus {
+        if self.errors.is_empty() {
+            GraphqlResponseStatus::Success
+        } else {
+            GraphqlResponseStatus::FieldError {
+                count: self.errors.len() as u64,
+                data_is_null: self.is_data_null(),
+            }
+        }
+    }
+
+    pub(crate) fn take_on_subgraph_response_outputs(&mut self) -> Vec<Vec<u8>> {
+        std::mem::take(&mut self.on_subgraph_response_outputs)
     }
 }
 
@@ -96,22 +109,13 @@ impl Response {
         Self::Executed(ExecutedResponse {
             data: None,
             errors: errors.into_iter().map(Into::into).collect(),
-            on_subgraph_response_hook_results: Vec::new(),
+            on_subgraph_response_outputs: Vec::new(),
         })
     }
 
     pub(crate) fn graphql_status(&self) -> GraphqlResponseStatus {
         match self {
-            Self::Executed(resp) => {
-                if resp.errors.is_empty() {
-                    GraphqlResponseStatus::Success
-                } else {
-                    GraphqlResponseStatus::FieldError {
-                        count: resp.errors.len() as u64,
-                        data_is_null: resp.is_data_null(),
-                    }
-                }
-            }
+            Self::Executed(resp) => resp.graphql_status(),
             Self::RequestError(resp) => GraphqlResponseStatus::RequestError {
                 count: resp.errors.len() as u64,
             },
@@ -142,7 +146,7 @@ impl Response {
         match self {
             Response::RefusedRequest(_) => Vec::new(),
             Response::RequestError(_) => Vec::new(),
-            Response::Executed(response) => std::mem::take(&mut response.on_subgraph_response_hook_results),
+            Response::Executed(response) => std::mem::take(&mut response.on_subgraph_response_outputs),
         }
     }
 }

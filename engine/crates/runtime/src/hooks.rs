@@ -248,19 +248,84 @@ impl<'a> ExecutedSubgraphRequest<'a> {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct Operation<'a> {
-    pub name: Option<&'a str>,
+    pub name: Option<String>,
     pub document: &'a str,
     pub prepare_duration: u64,
     pub cached: bool,
 }
 
+#[derive(Debug)]
+pub struct OperationBuilder {
+    name: Option<String>,
+    prepare_start: Instant,
+    cached: bool,
+}
+
+impl<'a> Operation<'a> {
+    pub fn builder() -> OperationBuilder {
+        OperationBuilder {
+            name: None,
+            prepare_start: Instant::now(),
+            cached: false,
+        }
+    }
+}
+
+impl OperationBuilder {
+    pub fn set_cached(&mut self) {
+        self.cached = true;
+    }
+
+    pub fn set_name(&mut self, name: String) {
+        self.name = Some(name);
+    }
+
+    pub fn finalize(self, document: &str) -> Operation<'_> {
+        Operation {
+            name: self.name,
+            document,
+            prepare_duration: self.prepare_start.elapsed().as_millis() as u64,
+            cached: self.cached,
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
-pub struct ExecutedGatewayRequest {
+pub struct ExecutedOperationRequest {
     pub duration: u64,
     pub status: GraphqlResponseStatus,
-    pub on_subgraph_request_outputs: Vec<Vec<u8>>,
+    pub on_subgraph_response_outputs: Vec<Vec<u8>>,
+}
+
+impl ExecutedOperationRequest {
+    pub fn builder() -> ExecutedOperationRequestBuilder {
+        ExecutedOperationRequestBuilder {
+            start_time: Instant::now(),
+            on_subgraph_response_outputs: Vec::new(),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct ExecutedOperationRequestBuilder {
+    start_time: Instant,
+    on_subgraph_response_outputs: Vec<Vec<u8>>,
+}
+
+impl ExecutedOperationRequestBuilder {
+    pub fn set_on_subgraph_response_outputs(&mut self, outputs: Vec<Vec<u8>>) {
+        self.on_subgraph_response_outputs = outputs;
+    }
+
+    pub fn finalize(self, status: GraphqlResponseStatus) -> ExecutedOperationRequest {
+        ExecutedOperationRequest {
+            duration: self.start_time.elapsed().as_millis() as u64,
+            status,
+            on_subgraph_response_outputs: self.on_subgraph_response_outputs,
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -268,7 +333,7 @@ pub struct ExecutedHttpRequest<'a> {
     pub method: &'a str,
     pub url: &'a str,
     pub status_code: http::StatusCode,
-    pub on_gateway_response_outputs: Vec<Vec<u8>>,
+    pub on_operation_response_outputs: Vec<Vec<u8>>,
 }
 
 pub trait ResponseHooks<Context>: Send + Sync + 'static {
@@ -278,11 +343,11 @@ pub trait ResponseHooks<Context>: Send + Sync + 'static {
         request: ExecutedSubgraphRequest<'_>,
     ) -> impl Future<Output = Result<Vec<u8>, PartialGraphqlError>> + Send;
 
-    fn on_gateway_response(
+    fn on_operation_response(
         &self,
         context: &Context,
         operation: Operation<'_>,
-        request: ExecutedGatewayRequest,
+        request: ExecutedOperationRequest,
     ) -> impl Future<Output = Result<Vec<u8>, PartialGraphqlError>> + Send;
 
     fn on_http_response(
@@ -420,11 +485,11 @@ impl ResponseHooks<()> for () {
         Ok(Vec::new())
     }
 
-    async fn on_gateway_response(
+    async fn on_operation_response(
         &self,
         _: &(),
         _: Operation<'_>,
-        _: ExecutedGatewayRequest,
+        _: ExecutedOperationRequest,
     ) -> Result<Vec<u8>, PartialGraphqlError> {
         Ok(Vec::new())
     }
