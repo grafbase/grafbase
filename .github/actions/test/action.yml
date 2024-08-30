@@ -65,12 +65,16 @@ runs:
         username: ${{ inputs.dockerhub-username }}
         password: ${{ inputs.dockerhub-token }}
 
+    - name: Install cargo binstall
+      if: ${{ inputs.with-integration-tests == 'true' }}
+      uses: cargo-bins/cargo-binstall@v1.10.3
+
     - name: Build the WASI components for tests
       if: ${{ inputs.with-integration-tests == 'true' }}
       working-directory: engine/crates/wasi-component-loader/examples
       shell: bash
       run: |
-        cargo install cargo-component
+        cargo binstall -y cargo-component
         cargo component build
 
     - name: Run all non-gateway tests
