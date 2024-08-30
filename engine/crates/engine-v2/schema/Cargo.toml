@@ -13,8 +13,7 @@ build = "build.rs"
 
 [build-dependencies]
 anyhow.workspace = true
-chrono.workspace = true
-chrono.features = ["now"]
+rand.workspace = true
 
 [dependencies]
 fnv = "1.0.7"
