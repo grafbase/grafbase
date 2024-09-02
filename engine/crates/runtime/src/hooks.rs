@@ -42,7 +42,7 @@ pub type AuthorizationVerdict = Result<(), PartialGraphqlError>;
 pub type AuthorizationVerdicts = Result<Vec<AuthorizationVerdict>, PartialGraphqlError>;
 
 pub trait Hooks: Send + Sync + 'static {
-    type Context: Send + Sync + 'static;
+    type Context: Clone + Send + Sync + 'static;
 
     fn on_gateway_request(
         &self,
@@ -330,9 +330,9 @@ impl ExecutedOperationRequestBuilder {
 }
 
 #[derive(Debug, Clone)]
-pub struct ExecutedHttpRequest<'a> {
-    pub method: &'a str,
-    pub url: &'a str,
+pub struct ExecutedHttpRequest {
+    pub method: http::Method,
+    pub url: http::Uri,
     pub status_code: http::StatusCode,
     pub on_operation_response_outputs: Vec<Vec<u8>>,
 }
@@ -354,7 +354,7 @@ pub trait ResponseHooks<Context>: Send + Sync + 'static {
     fn on_http_response(
         &self,
         context: &Context,
-        request: ExecutedHttpRequest<'_>,
+        request: ExecutedHttpRequest,
     ) -> impl Future<Output = Result<(), PartialGraphqlError>> + Send;
 }
 
@@ -495,7 +495,7 @@ impl ResponseHooks<()> for () {
         Ok(Vec::new())
     }
 
-    async fn on_http_response(&self, _: &(), _: ExecutedHttpRequest<'_>) -> Result<(), PartialGraphqlError> {
+    async fn on_http_response(&self, _: &(), _: ExecutedHttpRequest) -> Result<(), PartialGraphqlError> {
         Ok(())
     }
 }

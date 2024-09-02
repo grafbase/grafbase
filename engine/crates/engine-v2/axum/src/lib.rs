@@ -5,6 +5,7 @@ use engine_v2::{Body, Engine, ErrorCode, Runtime};
 use futures_util::TryFutureExt;
 use runtime::bytes::OwnedOrSharedBytes;
 
+pub mod middleware;
 pub mod websocket;
 
 pub fn internal_server_error(message: impl ToString) -> axum::response::Response {

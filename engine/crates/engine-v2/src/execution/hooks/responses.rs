@@ -29,7 +29,7 @@ impl<'ctx, H: Hooks> super::RequestHooks<'ctx, H> {
     }
 
     #[instrument(skip_all, ret(level = Level::DEBUG))]
-    pub async fn on_http_response(&self, request: ExecutedHttpRequest<'_>) -> Result<(), GraphqlError> {
+    pub async fn on_http_response(&self, request: ExecutedHttpRequest) -> Result<(), GraphqlError> {
         self.hooks
             .responses()
             .on_http_response(self.context, request)

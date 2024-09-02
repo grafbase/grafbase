@@ -94,7 +94,6 @@ path = "../parser-openapi"
 
 [dependencies.grafbase-telemetry]
 workspace = true
-features = ["tower"]
 
 [dev-dependencies]
 base64.workspace = true

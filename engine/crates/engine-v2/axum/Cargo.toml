@@ -15,7 +15,7 @@ workspace = true
 
 [dependencies]
 async-trait = { version = "0.1.80" }
-axum = { workspace = true, features = ["ws"] }
+axum = { workspace = true, features = ["ws", "json"] }
 http-body-util = "0.1"
 engine-v2.workspace = true
 futures-util.workspace = true
@@ -25,3 +25,11 @@ tokio.workspace = true
 tower-service.workspace = true
 http.workspace = true
 tracing.workspace = true
+tower.workspace = true
+grafbase-telemetry.workspace = true
+headers.workspace = true
+http-body = "1.0.1"
+
+[features]
+default = []
+lambda = []

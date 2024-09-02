@@ -1,6 +1,7 @@
 use std::{
     any::{Any, TypeId},
     collections::HashMap,
+    sync::Arc,
 };
 
 use futures_util::{future::BoxFuture, FutureExt};
@@ -131,15 +132,15 @@ pub trait DynHooks: Send + Sync + 'static {
     async fn on_http_response(
         &self,
         context: &DynHookContext,
-        request: ExecutedHttpRequest<'_>,
+        request: ExecutedHttpRequest,
     ) -> Result<(), PartialGraphqlError> {
         Ok(())
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct DynHookContext {
-    by_type: HashMap<TypeId, Box<dyn Any + Sync + Send>>,
+    by_type: HashMap<TypeId, Arc<dyn Any + Sync + Send>>,
     by_name: HashMap<String, String>,
 }
 
@@ -157,7 +158,7 @@ impl DynHookContext {
     where
         T: 'static + Send + Sync,
     {
-        self.by_type.insert(TypeId::of::<T>(), Box::new(value));
+        self.by_type.insert(TypeId::of::<T>(), Arc::new(value));
     }
 
     pub fn get(&self, name: &str) -> Option<&String> {
@@ -373,7 +374,7 @@ impl ResponseHooks<DynHookContext> for DynamicHooks {
     async fn on_http_response(
         &self,
         context: &DynHookContext,
-        request: ExecutedHttpRequest<'_>,
+        request: ExecutedHttpRequest,
     ) -> Result<(), PartialGraphqlError> {
         self.0.on_http_response(context, request).await
     }

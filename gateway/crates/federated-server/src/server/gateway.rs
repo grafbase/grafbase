@@ -1,25 +1,17 @@
-use std::path::PathBuf;
-use std::sync::Arc;
-
-use grafbase_telemetry::metrics::EngineMetrics;
-use runtime::entity_cache::EntityCache;
-use runtime_local::hooks::ChannelLogSender;
-use runtime_local::rate_limiting::in_memory::key_based::InMemoryRateLimiter;
-use runtime_local::rate_limiting::redis::RedisRateLimiter;
-use runtime_local::redis::{RedisPoolFactory, RedisTlsConfig};
-use tokio::sync::watch;
-
+use crate::hot_reload::ConfigWatcher;
 use engine_v2::Engine;
+use gateway_config::{Config, EntityCachingRedisConfig};
+use grafbase_telemetry::metrics::EngineMetrics;
 use graphql_composition::VersionedFederatedGraph;
+use runtime::entity_cache::EntityCache;
 use runtime_local::{
-    ComponentLoader, HooksWasi, InMemoryEntityCache, InMemoryKvStore, InMemoryOperationCacheFactory, NativeFetcher,
-    RedisEntityCache,
+    rate_limiting::{in_memory::key_based::InMemoryRateLimiter, redis::RedisRateLimiter},
+    redis::{RedisPoolFactory, RedisTlsConfig},
+    HooksWasi, InMemoryEntityCache, InMemoryKvStore, InMemoryOperationCacheFactory, NativeFetcher, RedisEntityCache,
 };
 use runtime_noop::trusted_documents::NoopTrustedDocuments;
-
-use gateway_config::{Config, EntityCachingRedisConfig};
-
-use crate::hot_reload::ConfigWatcher;
+use std::{path::PathBuf, sync::Arc};
+use tokio::sync::watch;
 
 use super::GdnResponse;
 
@@ -41,7 +33,7 @@ pub(super) async fn generate(
     graph_definition: GraphDefinition,
     gateway_config: &Config,
     hot_reload_config_path: Option<PathBuf>,
-    access_log_sender: ChannelLogSender,
+    hooks: HooksWasi,
 ) -> crate::Result<Engine<GatewayRuntime>> {
     let (federated_sdl, schema_version, version_id, trusted_documents) = match graph_definition {
         GraphDefinition::Gdn(GdnResponse {
@@ -101,17 +93,11 @@ pub(super) async fn generate(
     let config = {
         let graph = VersionedFederatedGraph::from_sdl(&federated_sdl)
             .map_err(|e| crate::Error::SchemaValidationError(e.to_string()))?;
+
         engine_config_builder::build_with_toml_config(gateway_config, graph.into_latest()).into_latest()
     };
 
-    let mut runtime = GatewayRuntime::build(
-        gateway_config,
-        hot_reload_config_path,
-        &config,
-        version_id,
-        access_log_sender,
-    )
-    .await?;
+    let mut runtime = GatewayRuntime::build(gateway_config, hot_reload_config_path, &config, version_id, hooks).await?;
 
     if let Some(trusted_documents) = trusted_documents {
         runtime.trusted_documents = trusted_documents;
@@ -144,7 +130,7 @@ impl GatewayRuntime {
         hot_reload_config_path: Option<PathBuf>,
         config: &engine_v2::config::Config,
         version_id: Option<ulid::Ulid>,
-        access_log_sender: ChannelLogSender,
+        hooks: HooksWasi,
     ) -> Result<GatewayRuntime, crate::Error> {
         let mut redis_factory = RedisPoolFactory::default();
         let watcher = ConfigWatcher::init(gateway_config.clone(), hot_reload_config_path)?;
@@ -188,23 +174,18 @@ impl GatewayRuntime {
                 Box::new(RedisEntityCache::new(pool, key_prefix))
             }
         };
-        let hooks = gateway_config
-            .hooks
-            .clone()
-            .map(ComponentLoader::new)
-            .transpose()
-            .map_err(|e| crate::Error::InternalError(e.to_string()))?
-            .flatten();
+
         let runtime = GatewayRuntime {
             fetcher: NativeFetcher::default(),
             kv: InMemoryKvStore::runtime(),
             trusted_documents: runtime::trusted_documents_client::Client::new(NoopTrustedDocuments),
-            hooks: HooksWasi::new(hooks, &meter, access_log_sender),
+            hooks,
             metrics: EngineMetrics::build(&meter, version_id.map(|id| id.to_string())),
             rate_limiter,
             entity_cache,
             operation_cache_factory: InMemoryOperationCacheFactory::default(),
         };
+
         Ok(runtime)
     }
 }

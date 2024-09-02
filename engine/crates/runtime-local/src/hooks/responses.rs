@@ -135,7 +135,7 @@ impl ResponseHooks<Context> for HooksWasi {
     async fn on_http_response(
         &self,
         context: &Context,
-        request: runtime::hooks::ExecutedHttpRequest<'_>,
+        request: runtime::hooks::ExecutedHttpRequest,
     ) -> Result<(), PartialGraphqlError> {
         let Some(ref inner) = self.0 else {
             return Ok(());

@@ -23,7 +23,8 @@ pub use wasi_component_loader::{
     SubgraphComponentInstance,
 };
 
-pub struct HooksWasi(Option<HooksWasiInner>);
+#[derive(Clone)]
+pub struct HooksWasi(Option<Arc<HooksWasiInner>>);
 
 type Context = Arc<HashMap<String, String>>;
 
@@ -115,14 +116,14 @@ impl HookStatus {
 impl HooksWasi {
     pub fn new(loader: Option<ComponentLoader>, meter: &Meter, sender: ChannelLogSender) -> Self {
         match loader.map(Arc::new) {
-            Some(loader) => Self(Some(HooksWasiInner {
+            Some(loader) => Self(Some(Arc::new(HooksWasiInner {
                 gateway: Pool::new(&loader),
                 authorization: Pool::new(&loader),
                 subgraph: Pool::new(&loader),
                 responses: Pool::new(&loader),
                 hook_latencies: meter.u64_histogram("grafbase.hook.duration").init(),
                 sender,
-            })),
+            }))),
             None => Self(None),
         }
     }

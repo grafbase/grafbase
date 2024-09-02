@@ -1,17 +1,20 @@
-use std::time::SystemTime;
-use std::{borrow::Cow, sync::Arc, time::Duration};
-
 use crate::server::gateway::GraphDefinition;
 
 use super::gateway::GatewaySender;
 use ascii::AsciiString;
 use gateway_config::Config;
-use grafbase_telemetry::metrics::meter_from_global_provider;
-use grafbase_telemetry::otel::opentelemetry::metrics::Histogram;
-use grafbase_telemetry::otel::opentelemetry::KeyValue;
+use grafbase_telemetry::{
+    metrics::meter_from_global_provider,
+    otel::opentelemetry::{metrics::Histogram, KeyValue},
+};
 use graph_ref::GraphRef;
 use http::{HeaderValue, StatusCode};
-use runtime_local::hooks::ChannelLogSender;
+use runtime_local::HooksWasi;
+use std::{
+    borrow::Cow,
+    sync::Arc,
+    time::{Duration, SystemTime},
+};
 use tokio::time::MissedTickBehavior;
 use ulid::Ulid;
 use url::Url;
@@ -75,7 +78,7 @@ pub(super) struct GraphUpdater {
     current_id: Option<Ulid>,
     gateway_config: Config,
     latencies: Histogram<u64>,
-    access_log_sender: ChannelLogSender,
+    hooks: HooksWasi,
 }
 
 impl GraphUpdater {
@@ -84,7 +87,7 @@ impl GraphUpdater {
         access_token: AsciiString,
         sender: GatewaySender,
         gateway_config: Config,
-        access_log_sender: ChannelLogSender,
+        hooks: HooksWasi,
     ) -> crate::Result<Self> {
         let gdn_client = reqwest::ClientBuilder::new()
             .timeout(GDN_TIMEOUT)
@@ -128,7 +131,7 @@ impl GraphUpdater {
             latencies: meter_from_global_provider()
                 .u64_histogram("gdn.request.duration")
                 .init(),
-            access_log_sender,
+            hooks,
         })
     }
 
@@ -233,11 +236,12 @@ impl GraphUpdater {
             tracing::info!("Fetched new Graph");
 
             let version_id = response.version_id;
+
             let gateway = match super::gateway::generate(
                 GraphDefinition::Gdn(response),
                 &self.gateway_config,
                 None,
-                self.access_log_sender.clone(),
+                self.hooks.clone(),
             )
             .await
             {
