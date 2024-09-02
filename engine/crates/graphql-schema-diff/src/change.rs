@@ -68,6 +68,94 @@ pub enum ChangeKind {
     ChangeFieldArgumentType,
 }
 
+impl ChangeKind {
+    /// The change kind as a string.
+    pub fn as_str(&self) -> &'static str {
+        use ChangeKind::*;
+
+        match self {
+            ChangeQueryType => "ChangeQueryType",
+            ChangeMutationType => "ChangeMutationType",
+            ChangeSubscriptionType => "ChangeSubscriptionType",
+            RemoveObjectType => "RemoveObjectType",
+            AddObjectType => "AddObjectType",
+            AddInterfaceImplementation => "AddInterfaceImplementation",
+            RemoveInterfaceImplementation => "RemoveInterfaceImplementation",
+            ChangeFieldType => "ChangeFieldType",
+            RemoveField => "RemoveField",
+            AddField => "AddField",
+            AddUnion => "AddUnion",
+            RemoveUnion => "RemoveUnion",
+            AddUnionMember => "AddUnionMember",
+            RemoveUnionMember => "RemoveUnionMember",
+            AddEnum => "AddEnum",
+            RemoveEnum => "RemoveEnum",
+            AddEnumValue => "AddEnumValue",
+            RemoveEnumValue => "RemoveEnumValue",
+            AddScalar => "AddScalar",
+            RemoveScalar => "RemoveScalar",
+            AddInterface => "AddInterface",
+            RemoveInterface => "RemoveInterface",
+            AddDirectiveDefinition => "AddDirectiveDefinition",
+            RemoveDirectiveDefinition => "RemoveDirectiveDefinition",
+            AddSchemaDefinition => "AddSchemaDefinition",
+            RemoveSchemaDefinition => "RemoveSchemaDefinition",
+            AddInputObject => "AddInputObject",
+            RemoveInputObject => "RemoveInputObject",
+            AddFieldArgument => "AddFieldArgument",
+            RemoveFieldArgument => "RemoveFieldArgument",
+            AddFieldArgumentDefault => "AddFieldArgumentDefault",
+            RemoveFieldArgumentDefault => "RemoveFieldArgumentDefault",
+            ChangeFieldArgumentDefault => "ChangeFieldArgumentDefault",
+            ChangeFieldArgumentType => "ChangeFieldArgumentType",
+        }
+    }
+}
+
+impl std::str::FromStr for ChangeKind {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(match s {
+            "ChangeQueryType" => Self::ChangeQueryType,
+            "ChangeMutationType" => Self::ChangeMutationType,
+            "ChangeSubscriptionType" => Self::ChangeSubscriptionType,
+            "RemoveObjectType" => Self::RemoveObjectType,
+            "AddObjectType" => Self::AddObjectType,
+            "AddInterfaceImplementation" => Self::AddInterfaceImplementation,
+            "RemoveInterfaceImplementation" => Self::RemoveInterfaceImplementation,
+            "ChangeFieldType" => Self::ChangeFieldType,
+            "RemoveField" => Self::RemoveField,
+            "AddField" => Self::AddField,
+            "AddUnion" => Self::AddUnion,
+            "RemoveUnion" => Self::RemoveUnion,
+            "AddUnionMember" => Self::AddUnionMember,
+            "RemoveUnionMember" => Self::RemoveUnionMember,
+            "AddEnum" => Self::AddEnum,
+            "RemoveEnum" => Self::RemoveEnum,
+            "AddEnumValue" => Self::AddEnumValue,
+            "RemoveEnumValue" => Self::RemoveEnumValue,
+            "AddScalar" => Self::AddScalar,
+            "RemoveScalar" => Self::RemoveScalar,
+            "AddInterface" => Self::AddInterface,
+            "RemoveInterface" => Self::RemoveInterface,
+            "AddDirectiveDefinition" => Self::AddDirectiveDefinition,
+            "RemoveDirectiveDefinition" => Self::RemoveDirectiveDefinition,
+            "AddSchemaDefinition" => Self::AddSchemaDefinition,
+            "RemoveSchemaDefinition" => Self::RemoveSchemaDefinition,
+            "AddInputObject" => Self::AddInputObject,
+            "RemoveInputObject" => Self::RemoveInputObject,
+            "AddFieldArgument" => Self::AddFieldArgument,
+            "RemoveFieldArgument" => Self::RemoveFieldArgument,
+            "AddFieldArgumentDefault" => Self::AddFieldArgumentDefault,
+            "RemoveFieldArgumentDefault" => Self::RemoveFieldArgumentDefault,
+            "ChangeFieldArgumentDefault" => Self::ChangeFieldArgumentDefault,
+            "ChangeFieldArgumentType" => Self::ChangeFieldArgumentType,
+            _ => return Err(()),
+        })
+    }
+}
+
 /// A span in a source file.
 #[derive(Clone, Eq, PartialEq, Hash, Ord, PartialOrd, Debug, serde::Serialize, serde::Deserialize, Copy)]
 pub struct Span {
