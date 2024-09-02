@@ -46,6 +46,13 @@ pub struct HttpRequestSpan<'a> {
 }
 
 impl<'a> HttpRequestSpan<'a> {
+    /// Sets the span ray_id
+    pub fn with_ray_id(mut self, ray_id: impl Into<Option<Cow<'a, http::HeaderValue>>>) -> Self {
+        self.header_ray_id = ray_id.into();
+
+        self
+    }
+
     /// Sets the span git_branch
     pub fn with_git_branch(mut self, git_branch: impl Into<Option<Cow<'a, http::HeaderValue>>>) -> Self {
         self.git_branch = git_branch.into();
@@ -66,9 +73,7 @@ impl<'a> HttpRequestSpan<'a> {
 
         self
     }
-}
 
-impl<'a> HttpRequestSpan<'a> {
     /// Create a new instance from a reference of [http::Request]
     pub fn from_http<B>(request: &'a http::Request<B>) -> Self
     where
