@@ -2,7 +2,7 @@ use std::{collections::HashMap, sync::Arc};
 
 use crate::{
     create_log_channel, hooks::subgraph::SubgraphComponentInstance, AuthorizationComponentInstance, CacheStatus,
-    ComponentLoader, Config, EdgeDefinition, ExecutedGatewayRequest, ExecutedHttpRequest, ExecutedSubgraphRequest,
+    ComponentLoader, Config, EdgeDefinition, ExecutedHttpRequest, ExecutedOperationRequest, ExecutedSubgraphRequest,
     GatewayComponentInstance, GuestError, NodeDefinition, Operation, RecycleableComponentInstance, ResponseInfo,
     ResponsesComponentInstance, SharedContext,
 };
@@ -692,7 +692,7 @@ async fn response_hooks() {
 
     let subgraph_info = hook.on_subgraph_response(context.clone(), request).await.unwrap();
 
-    let request = ExecutedGatewayRequest {
+    let request = ExecutedOperationRequest {
         duration: 5,
         status: crate::GraphqlResponseStatus::Success,
         on_subgraph_request_outputs: vec![subgraph_info],
@@ -706,7 +706,7 @@ async fn response_hooks() {
     };
 
     let op_info = hook
-        .on_gateway_response(context.clone(), operation, request)
+        .on_operation_response(context.clone(), operation, request)
         .await
         .unwrap();
 
@@ -714,7 +714,7 @@ async fn response_hooks() {
         method: String::from("POST"),
         url: String::from("https://example.com/graphql"),
         status_code: 200,
-        on_gateway_response_outputs: vec![op_info],
+        on_operation_response_outputs: vec![op_info],
     };
 
     hook.on_http_response(context.clone(), request).await.unwrap();

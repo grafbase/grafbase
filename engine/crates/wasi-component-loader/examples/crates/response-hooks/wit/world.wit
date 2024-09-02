@@ -78,8 +78,8 @@ interface types {
         url: string,
         // The response status code.
         status-code: u16,
-        // The outputs of executed on-gateway-response hooks for every operation of the request.
-        on-gateway-response-outputs: list<list<u8>>,
+        // The outputs of executed on-operation-response hooks for every operation of the request.
+        on-operation-response-outputs: list<list<u8>>,
     }
 
     record operation { 
@@ -116,8 +116,8 @@ interface types {
         refused-request,
     }
 
-    // Info about an executed gateway operation.
-    record executed-gateway-request {
+    // Info about an executed operation.
+    record executed-operation-request {
         // Time in milliseconds spent executing the operation.
         duration: u64,
         // The status of the operation.
@@ -333,7 +333,7 @@ interface authorization {
 }
 
 interface responses {
-    use types.{shared-context, executed-gateway-request, executed-subgraph-request, executed-http-request, operation};
+    use types.{shared-context, executed-operation-request, executed-subgraph-request, executed-http-request, operation};
 
     // The hook is called after a subgraph entity has been either requested or fetched from cache.
     // The output is a list of bytes, which will be available in the on-gateway-response hook.
@@ -344,10 +344,10 @@ interface responses {
 
     // The hook is called after a request is handled in the gateway. The output is a list of bytes,
     // which will be available in the on-http-response hook.
-    on-gateway-response: func(
+    on-operation-response: func(
         context: shared-context,
         operation: operation,
-        request: executed-gateway-request,
+        request: executed-operation-request,
     ) -> list<u8>;
 
     // The hook is called right before a response is sent to the user.

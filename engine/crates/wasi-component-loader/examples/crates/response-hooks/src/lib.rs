@@ -1,5 +1,5 @@
 use bindings::component::grafbase::types::{
-    CacheStatus, ExecutedGatewayRequest, ExecutedHttpRequest, ExecutedSubgraphRequest, Operation, ResponseKind,
+    CacheStatus, ExecutedHttpRequest, ExecutedOperationRequest, ExecutedSubgraphRequest, Operation, ResponseKind,
     SharedContext,
 };
 use bindings::exports::component::grafbase::responses::Guest;
@@ -111,7 +111,7 @@ impl Guest for Component {
         serde_json::to_vec(&info).unwrap()
     }
 
-    fn on_gateway_response(_: SharedContext, operation: Operation, request: ExecutedGatewayRequest) -> Vec<u8> {
+    fn on_operation_response(_: SharedContext, operation: Operation, request: ExecutedOperationRequest) -> Vec<u8> {
         let info = OperationInfo {
             name: operation.name,
             document: operation.document,
@@ -149,7 +149,7 @@ impl Guest for Component {
             url: request.url,
             status_code: request.status_code,
             operations: request
-                .on_gateway_response_outputs
+                .on_operation_response_outputs
                 .iter()
                 .filter_map(|bytes| serde_json::from_slice(bytes).ok())
                 .collect(),

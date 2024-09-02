@@ -11,6 +11,7 @@ use grafbase_telemetry::{
     metrics::{EngineMetrics, GraphqlErrorAttributes, GraphqlRequestMetricsAttributes, OperationMetricsAttributes},
     span::{gql::GqlRequestSpan, GqlRecorderSpanExt},
 };
+use runtime::hooks;
 use tracing::Instrument;
 use web_time::Instant;
 
@@ -77,7 +78,10 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
         let result = engine
             .runtime
             .with_timeout(self.engine.schema.settings.timeout, async {
-                let operation_plan = match self.prepare_operation(request).await {
+                // TODO: we should figure out how the access logs look like for subscriptions in another PR.
+                let mut operation_info = hooks::Operation::builder();
+
+                let operation_plan = match self.prepare_operation(request, &mut operation_info).await {
                     Ok(operation_plan) => operation_plan,
                     Err((metadata, response)) => {
                         let status = response.graphql_status();
@@ -91,7 +95,7 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
                     let response = self.execute_query_or_mutation(operation_plan).await;
                     let status = response.graphql_status();
 
-                    sender.send(response).await.ok();
+                    sender.send(Response::Executed(response)).await.ok();
 
                     Err((metrics_attributes, status))
                 } else {

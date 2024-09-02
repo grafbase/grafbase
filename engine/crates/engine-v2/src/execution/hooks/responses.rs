@@ -1,5 +1,5 @@
 use runtime::hooks::{
-    ExecutedGatewayRequest, ExecutedHttpRequest, ExecutedSubgraphRequest, Hooks, Operation, ResponseHooks,
+    ExecutedHttpRequest, ExecutedOperationRequest, ExecutedSubgraphRequest, Hooks, Operation, ResponseHooks,
 };
 use tracing::{instrument, Level};
 
@@ -16,14 +16,14 @@ impl<'ctx, H: Hooks> super::RequestHooks<'ctx, H> {
     }
 
     #[instrument(skip_all, ret(level = Level::DEBUG))]
-    pub async fn on_gateway_response(
+    pub async fn on_operation_response(
         &self,
         operation: Operation<'_>,
-        request: ExecutedGatewayRequest,
+        request: ExecutedOperationRequest,
     ) -> Result<Vec<u8>, GraphqlError> {
         self.hooks
             .responses()
-            .on_gateway_response(self.context, operation, request)
+            .on_operation_response(self.context, operation, request)
             .await
             .map_err(Into::into)
     }
