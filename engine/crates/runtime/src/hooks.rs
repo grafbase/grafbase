@@ -257,15 +257,15 @@ pub struct Operation<'a> {
 }
 
 #[derive(Debug)]
-pub struct OperationBuilder {
+pub struct OperationHookInfoBuilder {
     name: Option<String>,
     prepare_start: Instant,
     cached: bool,
 }
 
 impl<'a> Operation<'a> {
-    pub fn builder() -> OperationBuilder {
-        OperationBuilder {
+    pub fn builder() -> OperationHookInfoBuilder {
+        OperationHookInfoBuilder {
             name: None,
             prepare_start: Instant::now(),
             cached: false,
@@ -273,7 +273,7 @@ impl<'a> Operation<'a> {
     }
 }
 
-impl OperationBuilder {
+impl OperationHookInfoBuilder {
     pub fn set_cached(&mut self) {
         self.cached = true;
     }

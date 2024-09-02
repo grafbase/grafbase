@@ -70,11 +70,17 @@ impl<R: Runtime> Engine<R> {
     }
 }
 
+type OperationResponseHookResult = Vec<u8>;
+
 impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
     async fn execute_single(
         mut self,
         request: Request,
-    ) -> (Option<OperationMetricsAttributes>, Option<Vec<u8>>, Response) {
+    ) -> (
+        Option<OperationMetricsAttributes>,
+        Option<OperationResponseHookResult>,
+        Response,
+    ) {
         let mut operation_info = hooks::Operation::builder();
 
         let operation_plan = match self.prepare_operation(request, &mut operation_info).await {

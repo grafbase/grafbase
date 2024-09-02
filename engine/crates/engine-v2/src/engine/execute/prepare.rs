@@ -1,7 +1,7 @@
 use ::runtime::operation_cache::OperationCache;
 use futures::FutureExt;
 use grafbase_telemetry::metrics::{OperationMetricsAttributes, QueryPreparationAttributes};
-use runtime::hooks::OperationBuilder;
+use runtime::hooks::OperationHookInfoBuilder;
 use std::sync::Arc;
 use web_time::Instant;
 
@@ -18,7 +18,7 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
     pub(super) async fn prepare_operation(
         &mut self,
         request: Request,
-        operation_info: &mut OperationBuilder,
+        operation_info: &mut OperationHookInfoBuilder,
     ) -> Result<ExecutableOperation, (Option<OperationMetricsAttributes>, Response)> {
         let start = Instant::now();
         let result = self.prepare_operation_inner(request, operation_info).await;
@@ -53,7 +53,7 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
     async fn prepare_operation_inner(
         &mut self,
         request: Request,
-        operation_info: &mut OperationBuilder,
+        operation_info: &mut OperationHookInfoBuilder,
     ) -> Result<ExecutableOperation, (Option<OperationMetricsAttributes>, Response)> {
         let result = {
             let OperationDocument { cache_key, load_fut } = match self.determine_operation_document(&request) {
