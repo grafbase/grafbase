@@ -14,11 +14,11 @@ pub(crate) struct OpenTelemetryProviders {
     pub tracer: Option<TracerProvider>,
 }
 
-pub(crate) fn init(args: &impl Args, config: TelemetryConfig) -> anyhow::Result<OpenTelemetryProviders> {
+pub(crate) fn init(args: &impl Args, config: &TelemetryConfig) -> anyhow::Result<OpenTelemetryProviders> {
     use tracing_subscriber::layer::SubscriberExt;
     use tracing_subscriber::util::SubscriberInitExt;
 
-    let env_filter = EnvFilter::new(args.log_level().as_ref());
+    let env_filter = EnvFilter::from(args.log_level());
 
     init_propagators(&config.tracing);
 

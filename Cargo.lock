@@ -3627,6 +3627,7 @@ dependencies = [
  "http",
  "indoc",
  "insta",
+ "itertools 0.13.0",
  "mimalloc",
  "opentelemetry-aws",
  "rand 0.8.5",

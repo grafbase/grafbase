@@ -55,19 +55,16 @@ where
 
 /// Creates a new OTEL tracing layer that uses a [`BatchSpanProcessor`] to collect and export traces.
 /// It's wrapped in a [`reload::Layer`] enabling its replacement.
-pub fn build<S, R, I>(
-    mut config: TelemetryConfig,
-    id_generator: I,
-    runtime: R,
-) -> Result<OtelTelemetry<S>, TracingError>
+pub fn build<S, R, I>(config: &TelemetryConfig, id_generator: I, runtime: R) -> Result<OtelTelemetry<S>, TracingError>
 where
     S: Subscriber + for<'span> LookupSpan<'span> + Send + Sync,
     R: RuntimeChannel,
     I: IdGenerator + 'static,
 {
-    let mut resource_attributes: Vec<_> = std::mem::take(&mut config.resource_attributes)
-        .into_iter()
-        .map(|(key, value)| KeyValue::new(key, value))
+    let mut resource_attributes: Vec<_> = config
+        .resource_attributes
+        .iter()
+        .map(|(key, value)| KeyValue::new(key.clone(), value.clone()))
         .collect();
 
     resource_attributes.push(KeyValue::new("service.name", config.service_name.clone()));
@@ -75,11 +72,11 @@ where
 
     let meter_provider = Some(super::metrics::build_meter_provider(
         runtime.clone(),
-        &config,
+        config,
         resource.clone(),
     )?);
 
-    let logger = match super::logs::build_logs_provider(runtime.clone(), &config, resource.clone())? {
+    let logger = match super::logs::build_logs_provider(runtime.clone(), config, resource.clone())? {
         Some(provider) if config.logs_exporters_enabled() => Some(Logger {
             layer: OpenTelemetryTracingBridge::new(&provider),
             provider,
@@ -88,7 +85,7 @@ where
     };
 
     let tracer = if config.tracing_exporters_enabled() {
-        let provider = super::traces::build_trace_provider(runtime, id_generator, &config, resource.clone())?;
+        let provider = super::traces::build_trace_provider(runtime, id_generator, config, resource.clone())?;
         let layer = tracing_opentelemetry::layer().with_tracer(provider.versioned_tracer(
             crate::SCOPE,
             Some(crate::SCOPE_VERSION),
