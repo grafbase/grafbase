@@ -179,7 +179,10 @@ pub async fn serve(
 
     // Once all pending requests have been dealt with, we shutdown everything else left (telemetry, logs)
     server_runtime.graceful_shutdown().await;
-    access_log_sender.graceful_shutdown().await;
+
+    if config.gateway.access_logs.enabled {
+        access_log_sender.graceful_shutdown().await;
+    }
 
     Ok(())
 }

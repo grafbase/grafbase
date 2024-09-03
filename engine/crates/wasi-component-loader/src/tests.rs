@@ -727,6 +727,7 @@ async fn response_hooks() {
       "method": "POST",
       "url": "https://example.com/graphql",
       "status_code": 200,
+      "trace_id": "00000000000000000000000000000000",
       "operations": [
         {
           "name": "kekw",

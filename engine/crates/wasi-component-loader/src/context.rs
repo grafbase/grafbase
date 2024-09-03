@@ -1,6 +1,9 @@
 use std::{collections::HashMap, sync::Arc};
 
 use crossbeam::{channel::TrySendError, sync::WaitGroup};
+use opentelemetry::trace::TraceContextExt;
+use tracing::Span;
+use tracing_opentelemetry::OpenTelemetrySpanExt;
 use wasmtime::{
     component::{ComponentType, LinkerInstance, Lower, Resource, ResourceType},
     StoreContextMut,
@@ -10,6 +13,7 @@ use crate::{
     names::{
         CONTEXT_DELETE_METHOD, CONTEXT_GET_METHOD, CONTEXT_RESOURCE, CONTEXT_SET_METHOD,
         SHARED_CONTEXT_ACCESS_LOG_METHOD, SHARED_CONTEXT_GET_METHOD, SHARED_CONTEXT_RESOURCE,
+        SHARED_CONTEXT_TRACE_ID_METHOD,
     },
     state::WasiState,
 };
@@ -90,12 +94,13 @@ pub struct SharedContext {
     kv: Arc<HashMap<String, String>>,
     /// A log channel for access logs.
     access_log: ChannelLogSender,
+    span: Span,
 }
 
 impl SharedContext {
     /// Creates a new shared context.
-    pub fn new(kv: Arc<HashMap<String, String>>, access_log: ChannelLogSender) -> Self {
-        Self { kv, access_log }
+    pub fn new(kv: Arc<HashMap<String, String>>, access_log: ChannelLogSender, span: Span) -> Self {
+        Self { kv, access_log, span }
     }
 }
 
@@ -147,6 +152,7 @@ pub(crate) fn map_shared(types: &mut LinkerInstance<'_, WasiState>) -> crate::Re
 
     types.func_wrap(SHARED_CONTEXT_GET_METHOD, get_shared)?;
     types.func_wrap(SHARED_CONTEXT_ACCESS_LOG_METHOD, log_access)?;
+    types.func_wrap(SHARED_CONTEXT_TRACE_ID_METHOD, trace_id)?;
 
     Ok(())
 }
@@ -213,6 +219,14 @@ fn log_access(
             Ok((Err(e),))
         }
     }
+}
+
+/// Gives the current opentelemetry trace id.
+fn trace_id(store: StoreContextMut<'_, WasiState>, (this,): (Resource<SharedContext>,)) -> anyhow::Result<(String,)> {
+    let context = store.data().get(&this).expect("must exist");
+    let trace_id = context.span.context().span().span_context().trace_id();
+
+    Ok((trace_id.to_string(),))
 }
 
 /// Look for a context value with the given key, returning a copy of the value if found. Will remove

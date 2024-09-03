@@ -16,6 +16,8 @@ url.workspace = true
 gateway-config.workspace = true
 crossbeam = { version = "0.8.4", features = ["crossbeam-channel"] }
 tokio = { workspace = true, features = ["time", "rt"] }
+opentelemetry.workspace = true
+tracing-opentelemetry.workspace = true
 
 [dependencies.wasmtime]
 git = "https://github.com/grafbase/wasmtime"

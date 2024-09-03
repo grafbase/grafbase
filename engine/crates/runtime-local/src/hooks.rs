@@ -15,7 +15,7 @@ use runtime::{
     error::{ErrorResponse, PartialErrorCode, PartialGraphqlError},
     hooks::{AuthorizedHooks, HeaderMap, Hooks, SubgraphHooks},
 };
-use tracing::instrument;
+use tracing::{instrument, Span};
 use wasi_component_loader::ResponsesComponentInstance;
 pub use wasi_component_loader::{
     create_log_channel, AccessLogMessage, AuthorizationComponentInstance, ChannelLogReceiver, ChannelLogSender,
@@ -26,7 +26,7 @@ pub use wasi_component_loader::{
 #[derive(Clone)]
 pub struct HooksWasi(Option<Arc<HooksWasiInner>>);
 
-type Context = Arc<HashMap<String, String>>;
+type Context = (Arc<HashMap<String, String>>, Span);
 
 struct HooksWasiInner {
     gateway: Pool<GatewayComponentInstance>,
@@ -38,8 +38,8 @@ struct HooksWasiInner {
 }
 
 impl HooksWasiInner {
-    pub fn shared_context(&self, kv: &Arc<HashMap<String, String>>) -> SharedContext {
-        SharedContext::new(Arc::clone(kv), self.sender.clone())
+    pub fn shared_context(&self, (kv, span): &(Arc<HashMap<String, String>>, Span)) -> SharedContext {
+        SharedContext::new(Arc::clone(kv), self.sender.clone(), span.clone())
     }
 
     async fn run_and_measure<F, T>(&self, hook_name: &'static str, hook: F) -> Result<T, wasi_component_loader::Error>
@@ -135,9 +135,10 @@ impl Hooks for HooksWasi {
     #[instrument(skip_all)]
     async fn on_gateway_request(&self, headers: HeaderMap) -> Result<(Self::Context, HeaderMap), ErrorResponse> {
         let context = HashMap::new();
+        let span = Span::current();
 
         let Some(ref inner) = self.0 else {
-            return Ok((Arc::new(context), headers));
+            return Ok(((Arc::new(context), span), headers));
         };
 
         let mut hook = inner.gateway.get().await;
@@ -145,7 +146,7 @@ impl Hooks for HooksWasi {
         inner
             .run_and_measure("on-gateway-request", hook.on_gateway_request(context, headers))
             .await
-            .map(|(kv, headers)| (Arc::new(kv), headers))
+            .map(|(kv, headers)| ((Arc::new(kv), span), headers))
             .map_err(|err| match err {
                 wasi_component_loader::Error::Internal(err) => {
                     tracing::error!("on_gateway_request error: {err}");

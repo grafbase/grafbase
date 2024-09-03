@@ -57,6 +57,7 @@ struct AuditInfo {
     method: String,
     url: String,
     status_code: u16,
+    trace_id: String,
     operations: Vec<OperationInfo>,
 }
 
@@ -148,6 +149,7 @@ impl Guest for Component {
             method: request.method,
             url: request.url,
             status_code: request.status_code,
+            trace_id: context.trace_id(),
             operations: request
                 .on_operation_response_outputs
                 .iter()
