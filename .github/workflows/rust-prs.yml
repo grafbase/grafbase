@@ -89,8 +89,33 @@ jobs:
 
   build-and-test:
     needs: [what-changed]
-    # TODO: make this a matrix at some point
-    runs-on: ubicloud-standard-8
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          [
+            {
+              'target': 'x86_64-unknown-linux-musl',
+              'runner': 'ubicloud-standard-8'
+            },
+            {
+              'target': 'aarch64-unknown-linux-musl',
+              'runner': 'ubicloud-standard-8-arm'
+            },
+            {
+              'target': 'aarch64-apple-darwin',
+              'runner': 'macos-latest-xlarge'
+            },
+            {
+              'target': 'x86_64-apple-darwin',
+              'runner': 'macos-latest-xlarge'
+            },
+            {
+              'target': 'x86_64-pc-windows-msvc',
+              'runner': 'windows-latest-8-cores'
+            }
+          ]
+    runs-on: ${{ matrix.platform.runner }}
     steps:
       - name: Get sources
         uses: actions/checkout@v4
@@ -122,7 +147,7 @@ jobs:
         if: fromJson(needs.what-changed.outputs.rust).cargo-package-specs
         shell: bash
         run: |
-          cargo clippy ${{ fromJson(needs.what-changed.outputs.rust).cargo-package-specs }}
+          cargo clippy --target ${{ matrix.platform.target }} ${{ fromJson(needs.what-changed.outputs.rust).cargo-package-specs }}
 
       - name: Install cargo binstall
         if: fromJson(needs.what-changed.outputs.rust).cargo-bin-specs
@@ -176,6 +201,11 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      - name: Install musl-tools
+        if: ${{ contains(matrix.platform.target, 'linux') }}
+        shell: bash
+        run: sudo apt-get install musl-tools
+
       - name: Build the WASI components for tests
         if: contains(fromJson(needs.what-changed.outputs.rust).changed-packages, 'integration-tests')
         shell: bash
@@ -202,14 +232,14 @@ jobs:
         if: fromJson(needs.what-changed.outputs.rust).cargo-package-specs
         shell: bash
         run: |
-          cargo nextest run --no-run --profile ci ${{ fromJson(needs.what-changed.outputs.rust).cargo-package-specs }}
+          cargo nextest run --target ${{ matrix.platform.target }} --no-run --profile ci ${{ fromJson(needs.what-changed.outputs.rust).cargo-package-specs }}
 
       - name: Run tests
         id: tests
         if: fromJson(needs.what-changed.outputs.rust).cargo-package-specs
         shell: bash
         run: |
-          cargo nextest run --profile ci ${{ fromJson(needs.what-changed.outputs.rust).cargo-package-specs }}
+          cargo nextest run --target ${{ matrix.platform.target }} --profile ci ${{ fromJson(needs.what-changed.outputs.rust).cargo-package-specs }}
 
       - name: Upload the JUnit files
         if: ${{ ( success() || failure() ) && !contains(steps.tests.outputs.exitcode, '101') }}
@@ -249,7 +279,7 @@ jobs:
         if: fromJson(needs.what-changed.outputs.rust).cargo-bin-specs
         shell: bash
         run: |
-          cargo build ${{ fromJson(needs.what-changed.outputs.rust).cargo-bin-specs }}
+          cargo build --target ${{ matrix.platform.target }} ${{ fromJson(needs.what-changed.outputs.rust).cargo-bin-specs }}
 
       # TODO: Add timings to the above and upload as an artifact
 
