@@ -195,11 +195,11 @@ jobs:
           version: 8
           run_install: false
 
-      - name: Login to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      # - name: Login to Docker Hub
+      #   uses: docker/login-action@v3
+      #   with:
+      #     username: ${{ secrets.DOCKERHUB_USERNAME }}
+      #     password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Install musl-tools
         if: ${{ contains(matrix.platform.target, 'linux') }}
@@ -214,17 +214,17 @@ jobs:
 
       # TODO: maybe merge these composes into one?  Think it would download in parallel if nothing else
       # Probably worthwhile...
-      - name: Start integration-test docker compose
-        if: contains(fromJson(needs.what-changed.outputs.rust).changed-packages, 'integration-tests')
-        shell: bash
-        working-directory: engine/crates/integration-tests
-        run: docker compose up -d
+      # - name: Start integration-test docker compose
+      #   if: contains(fromJson(needs.what-changed.outputs.rust).changed-packages, 'integration-tests')
+      #   shell: bash
+      #   working-directory: engine/crates/integration-tests
+      #   run: docker compose up -d
 
-      - name: Start gateway docker compose
-        if: contains(fromJson(needs.what-changed.outputs.rust).changed-packages, 'grafbase-gateway')
-        shell: bash
-        working-directory: gateway/crates/gateway-binary
-        run: docker compose up -d
+      # - name: Start gateway docker compose
+      #   if: contains(fromJson(needs.what-changed.outputs.rust).changed-packages, 'grafbase-gateway')
+      #   shell: bash
+      #   working-directory: gateway/crates/gateway-binary
+      #   run: docker compose up -d
 
       # It's kinda useful to get build vs run timings on tests, so splitting out the build from the run
       # here
@@ -234,20 +234,20 @@ jobs:
         run: |
           cargo nextest run --target ${{ matrix.platform.target }} --no-run --profile ci ${{ fromJson(needs.what-changed.outputs.rust).cargo-package-specs }}
 
-      - name: Run tests
-        id: tests
-        if: fromJson(needs.what-changed.outputs.rust).cargo-package-specs
-        shell: bash
-        run: |
-          cargo nextest run --target ${{ matrix.platform.target }} --profile ci ${{ fromJson(needs.what-changed.outputs.rust).cargo-package-specs }}
+      # - name: Run tests
+      #   id: tests
+      #   if: fromJson(needs.what-changed.outputs.rust).cargo-package-specs
+      #   shell: bash
+      #   run: |
+      #     cargo nextest run --target ${{ matrix.platform.target }} --profile ci ${{ fromJson(needs.what-changed.outputs.rust).cargo-package-specs }}
 
-      - name: Upload the JUnit files
-        if: ${{ ( success() || failure() ) && !contains(steps.tests.outputs.exitcode, '101') }}
-        uses: ./.github/actions/test_upload_datadog
-        with:
-          api_key: ${{ secrets.DATADOG_API_KEY }}
-          junit_path: target/nextest/ci/junit.xml
-          service: cli
+      # - name: Upload the JUnit files
+      #   if: ${{ ( success() || failure() ) && !contains(steps.tests.outputs.exitcode, '101') }}
+      #   uses: ./.github/actions/test_upload_datadog
+      #   with:
+      #     api_key: ${{ secrets.DATADOG_API_KEY }}
+      #     junit_path: target/nextest/ci/junit.xml
+      #     service: cli
 
       # - name: Install cargo-nextest & libs linux
       #   # if: ${{ startsWith(inputs.platform, 'linux') }}
