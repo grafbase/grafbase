@@ -8,7 +8,7 @@ use anyhow::Context;
 use ascii::AsciiString;
 use clap::{ArgGroup, Parser};
 use federated_server::GraphFetchMethod;
-use gateway_config::Config;
+use gateway_config::{BatchExportConfig, Config};
 use grafbase_telemetry::config::{OtlpExporterConfig, OtlpExporterGrpcConfig, OtlpExporterProtocol};
 use graph_ref::GraphRef;
 
@@ -104,7 +104,10 @@ impl super::Args for Args {
 
         if let Some((token, graph_ref)) = self.grafbase_access_token.as_ref().zip(self.graph_ref.as_ref()) {
             config.telemetry.grafbase = Some(OtlpExporterConfig {
-                endpoint: "https://otel.grafbase.com".parse().unwrap(),
+                endpoint: std::env::var("__GRAFBASE_OTEL_URL")
+                    .unwrap_or("https://otel.grafbase.com".to_string())
+                    .parse()
+                    .unwrap(),
                 enabled: true,
                 protocol: OtlpExporterProtocol::Grpc,
                 grpc: Some(OtlpExporterGrpcConfig {
@@ -121,6 +124,17 @@ impl super::Args for Args {
                     ]
                     .into(),
                 }),
+                batch_export: if let Some(seconds) = std::env::var("__GRAFBASE_OTEL_EXPORT_DELAY")
+                    .ok()
+                    .and_then(|v| v.parse::<usize>().ok())
+                {
+                    BatchExportConfig {
+                        scheduled_delay: chrono::Duration::seconds(seconds as i64),
+                        ..Default::default()
+                    }
+                } else {
+                    Default::default()
+                },
                 ..Default::default()
             });
         }

@@ -68,7 +68,7 @@ impl Operation {
     ///
     /// All field names are mapped to their actual field id in the schema and respective configuration.
     /// At this stage the operation might not be resolvable but it should make sense given the schema types.
-    pub fn build(schema: &Schema, request: &Request, document: &str) -> Result<PreparedOperation, OperationError> {
+    pub fn prepare(schema: &Schema, request: &Request, document: &str) -> Result<PreparedOperation, OperationError> {
         let parsed_operation = parse_operation(request.operation_name.as_deref(), document)?;
         let metrics_attributes = prepare_metrics_attributes(&parsed_operation, document);
 
