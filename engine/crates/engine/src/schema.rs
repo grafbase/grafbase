@@ -153,7 +153,7 @@ impl Schema {
             registry,
             data: Default::default(),
             extensions: Default::default(),
-            operation_metrics: EngineMetrics::build(&meter),
+            operation_metrics: EngineMetrics::build(&meter, None),
         }
     }
 

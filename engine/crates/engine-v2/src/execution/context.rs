@@ -1,5 +1,6 @@
 use ::runtime::hooks::Hooks;
 use futures::future::BoxFuture;
+use grafbase_telemetry::metrics::EngineMetrics;
 use runtime::auth::AccessToken;
 use schema::{HeaderRuleWalker, Schema};
 
@@ -44,12 +45,9 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
     pub fn hooks(&self) -> RequestHooks<'ctx, R::Hooks> {
         self.into()
     }
-}
 
-impl<'ctx, R: Runtime> std::ops::Deref for PreExecutionContext<'ctx, R> {
-    type Target = Engine<R>;
-    fn deref(&self) -> &'ctx Self::Target {
-        self.engine
+    pub fn metrics(&self) -> &'ctx EngineMetrics {
+        self.engine.runtime.metrics()
     }
 }
 
@@ -89,5 +87,9 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
 
     pub fn schema(&self) -> &'ctx Schema {
         &self.engine.schema
+    }
+
+    pub fn metrics(&self) -> &'ctx EngineMetrics {
+        self.engine.runtime.metrics()
     }
 }

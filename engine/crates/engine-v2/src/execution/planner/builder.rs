@@ -239,8 +239,8 @@ where
             tracing::trace!(
                 "requires {} in ({id}) {:#?}",
                 self.ctx
-                    .schema
-                    .walk(self.ctx.schema[required_field.id].definition_id)
+                    .schema()
+                    .walk(self.ctx.schema()[required_field.id].definition_id)
                     .name(),
                 self.walker().walk(*solved_requirements)
             );

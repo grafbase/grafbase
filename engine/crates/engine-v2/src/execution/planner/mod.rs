@@ -80,7 +80,7 @@ pub(super) async fn plan<'ctx, R: Runtime>(
         variables,
         subgraph_default_headers: create_subgraph_headers_with_rules(
             ctx.request_context,
-            ctx.schema.walker().default_header_rules(),
+            ctx.schema().walker().default_header_rules(),
             http::HeaderMap::new(),
         ),
         execution_plans: Default::default(),

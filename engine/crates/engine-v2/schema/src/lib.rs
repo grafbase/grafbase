@@ -44,6 +44,22 @@ impl Schema {
     }
 }
 
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct Version(Vec<u8>);
+
+impl<T: AsRef<[u8]>> From<T> for Version {
+    fn from(value: T) -> Self {
+        Version(value.as_ref().to_vec())
+    }
+}
+
+impl std::ops::Deref for Version {
+    type Target = [u8];
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
 /// /!\ This is *NOT* backwards-compatible. /!\
 /// Only a schema serialized with the exact same version is expected to work. For backwards
 /// compatibility use engine-v2-config instead.
@@ -51,6 +67,7 @@ impl Schema {
 pub struct Schema {
     data_sources: DataSources,
     pub graph: Graph,
+    pub version: Version,
 
     /// All strings deduplicated.
     #[indexed_by(StringId)]
@@ -65,6 +82,12 @@ pub struct Schema {
     header_rules: Vec<HeaderRule>,
 
     pub settings: Settings,
+}
+
+impl Schema {
+    pub fn build(config: config::latest::Config, version: Version) -> Result<Schema, BuildError> {
+        builder::build(config, version)
+    }
 }
 
 impl<T> std::ops::Index<T> for Schema

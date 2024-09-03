@@ -30,6 +30,7 @@ engine-config-builder.workspace = true
 engine-v2.workspace = true
 engine-v2-axum.workspace = true
 grafbase-telemetry = { workspace = true, features = ["tower", "otlp"] }
+graph-ref.workspace = true
 gateway-config.workspace = true
 graphql-composition.workspace = true
 http.workspace = true

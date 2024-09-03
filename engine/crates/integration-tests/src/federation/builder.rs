@@ -184,7 +184,9 @@ impl EngineV2Builder {
         }
         .into_latest();
 
-        let engine = engine_v2::Engine::new(Arc::new(config.try_into().unwrap()), None, self.runtime).await;
+        let schema =
+            engine_v2::Schema::build(config, engine_v2::SchemaVersion::from(ulid::Ulid::new().to_bytes())).unwrap();
+        let engine = engine_v2::Engine::new(Arc::new(schema), self.runtime).await;
 
         let (mock_subgraphs, docker_subgraphs) = subgraphs
             .into_iter()

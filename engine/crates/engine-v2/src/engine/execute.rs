@@ -114,7 +114,7 @@ impl<R: Runtime> Engine<R> {
                 )
             })?;
 
-            self.metrics.record_request_body_size(body.len());
+            self.runtime.metrics().record_request_body_size(body.len());
 
             serde_json::from_slice(&body).map_err(|err| {
                 Http::from(
@@ -180,7 +180,7 @@ impl<R: Runtime> Engine<R> {
                     );
                 };
 
-                self.metrics.record_batch_size(requests.len());
+                self.runtime.metrics().record_batch_size(requests.len());
 
                 let Some((responses, operation_hook_results)): Option<(Vec<_>, Vec<_>)> = self
                     .runtime

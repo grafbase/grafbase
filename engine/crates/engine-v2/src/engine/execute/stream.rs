@@ -45,7 +45,7 @@ impl<R: Runtime> Engine<R> {
                 if let Some(operation_metrics_attributes) = operation_metrics_attributes {
                     span.record_gql_request((&operation_metrics_attributes).into());
 
-                    engine.metrics.record_operation_duration(
+                    engine.runtime.metrics().record_operation_duration(
                         GraphqlRequestMetricsAttributes {
                             operation: operation_metrics_attributes,
                             status,
@@ -151,7 +151,7 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
                 status: &mut status,
                 operation_name: metrics_attributes.as_ref().and_then(|a| a.name.clone()),
                 client: client.clone(),
-                metrics: &engine.metrics,
+                metrics: engine.runtime.metrics(),
             },
         )
         .await;

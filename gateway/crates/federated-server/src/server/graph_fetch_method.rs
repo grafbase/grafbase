@@ -1,6 +1,7 @@
-use super::gateway::{self, GatewayRuntime};
+use super::gateway::{self, GatewayRuntime, GraphDefinition};
 use engine_v2::Engine;
 use gateway_config::Config;
+use graph_ref::GraphRef;
 use runtime_local::hooks::ChannelLogSender;
 use std::{path::PathBuf, sync::Arc};
 use tokio::sync::watch;
@@ -8,18 +9,15 @@ use tokio::sync::watch;
 /// The method of running the gateway.
 pub enum GraphFetchMethod {
     /// The schema is fetched in regular intervals from the Grafbase API.
-    FromApi {
+    FromGraphRef {
         /// The access token for accessing the the API.
         access_token: ascii::AsciiString,
-        /// The name of the graph
-        graph_name: String,
-        /// The graph branch
-        branch: Option<String>,
+        graph_ref: GraphRef,
     },
     /// The schema is loaded from disk. No access to the Grafbase API.
-    FromLocal {
+    FromSchema {
         /// Static federated graph from a file
-        federated_schema: String,
+        federated_sdl: String,
     },
 }
 
@@ -36,41 +34,32 @@ impl GraphFetchMethod {
         access_log_sender: ChannelLogSender,
     ) -> crate::Result<()> {
         #[cfg(feature = "lambda")]
-        if matches!(self, GraphFetchMethod::FromApi { .. }) {
+        if matches!(self, GraphFetchMethod::FromGraphRef { .. }) {
             return Err(crate::Error::InternalError(
                 "Cannot fetch schema with graph in lambda mode.".to_string(),
             ));
         }
 
         match self {
-            GraphFetchMethod::FromApi {
+            GraphFetchMethod::FromGraphRef {
                 access_token,
-                graph_name,
-                branch,
+                graph_ref,
             } => {
                 let config = config.clone();
                 tokio::spawn(async move {
                     let config = config.clone();
                     use super::graph_updater::GraphUpdater;
 
-                    GraphUpdater::new(
-                        &graph_name,
-                        branch.as_deref(),
-                        access_token,
-                        sender,
-                        config,
-                        access_log_sender,
-                    )?
-                    .poll()
-                    .await;
+                    GraphUpdater::new(graph_ref, access_token, sender, config, access_log_sender)?
+                        .poll()
+                        .await;
 
                     Ok::<_, crate::Error>(())
                 });
             }
-            GraphFetchMethod::FromLocal { federated_schema } => {
+            GraphFetchMethod::FromSchema { federated_sdl } => {
                 let gateway = gateway::generate(
-                    federated_schema,
-                    None,
+                    GraphDefinition::Sdl(federated_sdl),
                     config,
                     hot_reload_config_path,
                     access_log_sender,

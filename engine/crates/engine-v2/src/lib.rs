@@ -13,6 +13,6 @@ pub mod websocket;
 pub use engine::{Engine, Runtime, WebsocketSession};
 pub use graphql_over_http::Body;
 pub use response::error::ErrorCode;
-pub use schema::{BuildError, Schema};
+pub use schema::{BuildError, Schema, Version as SchemaVersion};
 
 pub use ::config::{latest as config, VersionedConfig};

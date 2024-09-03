@@ -67,23 +67,20 @@ pub struct Args {
 impl super::Args for Args {
     /// The method of fetching a graph
     fn fetch_method(&self) -> anyhow::Result<GraphFetchMethod> {
-        match self.graph_ref.as_ref() {
-            Some(graph_ref) => Ok(GraphFetchMethod::FromApi {
+        match self.graph_ref.clone() {
+            Some(graph_ref) => Ok(GraphFetchMethod::FromGraphRef {
                 access_token: self
                     .grafbase_access_token
                     .clone()
                     .expect("present due to the arg group"),
-                graph_name: graph_ref.graph_slug().to_string(),
-                branch: graph_ref.branch_name().map(ToString::to_string),
+                graph_ref,
             }),
             None => {
-                let federated_graph =
+                let federated_sdl =
                     fs::read_to_string(self.schema.as_ref().expect("must exist if graph-ref is not defined"))
                         .context("could not read federated schema file")?;
 
-                Ok(GraphFetchMethod::FromLocal {
-                    federated_schema: federated_graph,
-                })
+                Ok(GraphFetchMethod::FromSchema { federated_sdl })
             }
         }
     }

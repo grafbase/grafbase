@@ -4,8 +4,6 @@ use base64::{display::Base64Display, engine::general_purpose::URL_SAFE_NO_PAD};
 use engine::PersistedQueryRequestExtension;
 use schema::Schema;
 
-use super::SchemaVersion;
-
 mod namespaces {
     pub const OPERATION: &str = "op";
 }
@@ -15,7 +13,7 @@ mod namespaces {
 pub(super) enum Key<'a> {
     Operation {
         name: Option<&'a str>,
-        schema_version: &'a SchemaVersion,
+        schema: &'a Schema,
         document: Document<'a>,
     },
 }
@@ -31,16 +29,12 @@ impl std::fmt::Display for Key<'_> {
         match self {
             // Schema version + Commit SHA ensures we don't need to care about
             // backwards-compatibility
-            Key::Operation {
-                name,
-                schema_version,
-                document,
-            } => {
+            Key::Operation { name, schema, document } => {
                 let mut hasher = blake3::Hasher::new();
                 hasher.update(&Schema::build_identifier().len().to_ne_bytes());
                 hasher.update(Schema::build_identifier());
-                hasher.update(&schema_version.len().to_ne_bytes());
-                hasher.update(schema_version);
+                hasher.update(&schema.version.len().to_ne_bytes());
+                hasher.update(&schema.version);
 
                 if let Some(name) = name {
                     hasher.update(name.as_bytes());

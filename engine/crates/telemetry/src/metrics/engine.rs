@@ -9,6 +9,7 @@ use crate::{
 };
 
 pub struct EngineMetrics {
+    graph_version: Option<String>,
     operation_latency: Histogram<u64>,
     subgraph_latency: Histogram<u64>,
     subgraph_retries: Counter<u64>,
@@ -136,8 +137,9 @@ pub struct GraphqlErrorAttributes {
 }
 
 impl EngineMetrics {
-    pub fn build(meter: &Meter) -> Self {
+    pub fn build(meter: &Meter, graph_version: Option<String>) -> Self {
         Self {
+            graph_version,
             operation_latency: meter.u64_histogram("graphql.operation.duration").init(),
             subgraph_latency: meter.u64_histogram("graphql.subgraph.request.duration").init(),
             subgraph_retries: meter.u64_counter("graphql.subgraph.request.retries").init(),
@@ -186,6 +188,11 @@ impl EngineMetrics {
             attributes.push(KeyValue::new("graphql.operation.name", name));
         }
 
+        if let Some(version) = self.graph_version.clone() {
+            attributes.push(KeyValue::new("grafbase.graph_version", version))
+        }
+
+        // Used for v1
         if let Some(cache_status) = cache_status {
             attributes.push(KeyValue::new("graphql.response.cache.status", cache_status));
         }

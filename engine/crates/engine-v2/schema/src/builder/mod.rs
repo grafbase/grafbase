@@ -26,19 +26,15 @@ use crate::*;
 use interner::Interner;
 use requires::*;
 
-impl TryFrom<Config> for Schema {
-    type Error = BuildError;
-
-    fn try_from(mut config: Config) -> Result<Self, Self::Error> {
-        let mut ctx = BuildContext::new(&mut config);
-        let sources = ExternalDataSources::build(&mut ctx, &mut config);
-        let (graph, introspection) = GraphBuilder::build(&mut ctx, &sources, &mut config)?;
-        let data_sources = DataSources {
-            graphql: sources.graphql,
-            introspection,
-        };
-        ctx.finalize(data_sources, graph, config)
-    }
+pub(crate) fn build(mut config: Config, version: Version) -> Result<Schema, BuildError> {
+    let mut ctx = BuildContext::new(&mut config);
+    let sources = ExternalDataSources::build(&mut ctx, &mut config);
+    let (graph, introspection) = GraphBuilder::build(&mut ctx, &sources, &mut config)?;
+    let data_sources = DataSources {
+        graphql: sources.graphql,
+        introspection,
+    };
+    ctx.finalize(data_sources, graph, config, version)
 }
 
 pub(crate) struct BuildContext {
@@ -138,6 +134,7 @@ impl BuildContext {
                 graphql: Default::default(),
                 introspection,
             },
+            version: Version(Vec::new()),
             graph,
             strings: ctx.strings.into(),
             regexps: Default::default(),
@@ -165,7 +162,13 @@ impl BuildContext {
         id
     }
 
-    fn finalize(mut self, data_sources: DataSources, graph: Graph, mut config: Config) -> Result<Schema, BuildError> {
+    fn finalize(
+        mut self,
+        data_sources: DataSources,
+        graph: Graph,
+        mut config: Config,
+        version: Version,
+    ) -> Result<Schema, BuildError> {
         let header_rules: Vec<_> = take(&mut config.header_rules)
             .into_iter()
             .map(|rule| -> HeaderRule {
@@ -221,6 +224,7 @@ impl BuildContext {
         Ok(Schema {
             data_sources,
             graph,
+            version,
             strings: self.strings.into(),
             regexps: self.regexps.into(),
             urls: self.urls.into(),

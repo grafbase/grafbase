@@ -1,6 +1,6 @@
 use std::future::Future;
 
-use grafbase_telemetry::otel::opentelemetry::metrics::Meter;
+use grafbase_telemetry::metrics::EngineMetrics;
 use runtime::{entity_cache::EntityCache, kv::KvStore, rate_limiting::RateLimiter};
 
 pub trait Runtime: Send + Sync + 'static {
@@ -11,7 +11,7 @@ pub trait Runtime: Send + Sync + 'static {
     fn fetcher(&self) -> &Self::Fetcher;
     fn kv(&self) -> &KvStore;
     fn trusted_documents(&self) -> &runtime::trusted_documents_client::Client;
-    fn meter(&self) -> &Meter;
+    fn metrics(&self) -> &EngineMetrics;
     fn hooks(&self) -> &Self::Hooks;
     fn operation_cache_factory(&self) -> &Self::OperationCacheFactory;
     fn rate_limiter(&self) -> &RateLimiter;
