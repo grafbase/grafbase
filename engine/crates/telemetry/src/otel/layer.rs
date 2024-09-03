@@ -24,7 +24,7 @@ pub type BoxedFilter<S> = Box<dyn Filter<S> + Send + Sync + 'static>;
 pub type FilteredLayer<S> = Filtered<BoxedLayer<S>, BoxedFilter<S>, S>;
 
 pub struct OtelTelemetry<Subscriber> {
-    pub tracer: Option<Tracer<Subscriber>>,
+    pub tracer: Tracer<Subscriber>,
     pub meter_provider: Option<opentelemetry_sdk::metrics::SdkMeterProvider>,
     pub logger: Option<Logger>,
 }
@@ -47,10 +47,25 @@ where
     S: Subscriber + for<'span> LookupSpan<'span> + Send + Sync,
 {
     OtelTelemetry {
-        tracer: None,
+        tracer: noop_tracer(),
         meter_provider: None,
         logger: None,
     }
+}
+
+fn noop_tracer<S>() -> Tracer<S>
+where
+    S: Subscriber + for<'span> LookupSpan<'span> + Send + Sync,
+{
+    let provider = opentelemetry_sdk::trace::TracerProvider::builder().build();
+    let layer = tracing_opentelemetry::layer().with_tracer(provider.versioned_tracer(
+        crate::SCOPE,
+        Some(crate::SCOPE_VERSION),
+        None::<Cow<'static, str>>,
+        None,
+    ));
+
+    Tracer { layer, provider }
 }
 
 /// Creates a new OTEL tracing layer that uses a [`BatchSpanProcessor`] to collect and export traces.
@@ -93,9 +108,9 @@ where
             None,
         ));
 
-        Some(Tracer { layer, provider })
+        Tracer { layer, provider }
     } else {
-        None
+        noop_tracer()
     };
 
     Ok(OtelTelemetry {

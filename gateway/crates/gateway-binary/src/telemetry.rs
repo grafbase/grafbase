@@ -11,7 +11,7 @@ use crate::args::{Args, LogStyle};
 #[derive(Default, Clone)]
 pub(crate) struct OpenTelemetryProviders {
     pub meter: Option<SdkMeterProvider>,
-    pub tracer: Option<TracerProvider>,
+    pub tracer: TracerProvider,
 }
 
 pub(crate) fn init(args: &impl Args, config: &TelemetryConfig) -> anyhow::Result<OpenTelemetryProviders> {
@@ -41,13 +41,12 @@ pub(crate) fn init(args: &impl Args, config: &TelemetryConfig) -> anyhow::Result
         grafbase_telemetry::otel::opentelemetry::global::set_meter_provider(meter_provider.clone());
     }
 
-    if let Some(ref tracer) = tracer {
-        grafbase_telemetry::otel::opentelemetry::global::set_tracer_provider(tracer.provider.clone());
-    }
-    let tracer_provider = tracer.as_ref().map(|t| t.provider.clone());
+    grafbase_telemetry::otel::opentelemetry::global::set_tracer_provider(tracer.provider.clone());
+
+    let tracer_provider = tracer.provider.clone();
 
     let registry = tracing_subscriber::registry()
-        .with(tracer.map(|t| t.layer))
+        .with(tracer.layer)
         .with(logger.map(|l| l.layer));
 
     let is_terminal = atty::is(atty::Stream::Stdout);
