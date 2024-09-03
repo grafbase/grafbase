@@ -1,0 +1,83 @@
+name: rust-pr workflow
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - 'obmarg/ysrtktmxktrp'
+  pull_request:
+  # TODO: Maybe add branches in here?  Not sure...
+
+permissions:
+  checks: write
+
+env:
+  GRAFBASE_SKIP_ASSET_VERSION_CHECK: 'true'
+  CARGO_INCREMENTAL: 0
+  CARGO_PROFILE_DEV_DEBUG: 0
+  CARGO_PROFILE_TEST_DEBUG: 0
+  CARGO_TERM_COLOR: 'always'
+  DO_NOT_TRACK: 1
+  GRAFBASE_RUDDERSTACK_WRITE_KEY: ${{ secrets.GRAFBASE_RUDDERSTACK_WRITE_KEY }}
+  GRAFBASE_RUDDERSTACK_DATAPLANE_URL: ${{ secrets.GRAFBASE_RUDDERSTACK_DATAPLANE_URL }}
+
+  # TODO: Suspect these might not be needed - look into it.
+  CLI_RELEASE_CLOUDFLARE_R2_ENDPOINT_URL: https://d267a8ab95268b272f5147e8939c9d38.r2.cloudflarestorage.com
+  CLI_RELEASE_CLOUDFLARE_R2_PUBLIC_URL: https://pub-b0013effd6614b32a4fb9bf338b90658.r2.dev
+  CLI_RELEASE_CLOUDFLARE_R2_BUCKET_NAME: cli-releases
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  what-changed:
+    runs-on: ubicloud-standard-2
+    outputs:
+      rust: ${{ steps.rust.outputs.rust }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          # Fetch a few commits to help calculate whats changed
+          # This number is 100% guesswork
+          # TODO: Figure out how to not make this zero
+          # Possibly with github API magic...
+          fetch-depth: 0
+
+      - name: Extract the Rust version to use from the `rust-toolchain.toml` file
+        shell: bash
+        run: |
+          rust_version=$(grep "channel" rust-toolchain.toml | cut -d "=" -f 2 | cut -d " " -f 2)
+          echo "RUST_VERSION=$rust_version" >> $GITHUB_ENV
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+
+      - name: Install what-rust-changed
+        shell: bash
+        run: cargo install --locked --git https://github.com/grafbase/what-rust-changed.git
+
+      - name: Run what-rust-changed
+        shell: bash
+        # Note: this can all be done much nicer, i'm just hacking things together
+        # to see if this works well
+        run: |
+          set -euo pipefail
+          HEAD_REF="${GITHUB_HEAD_REF:-HEAD}"
+          BASE_REF="${GITHUB_BASE_REF:-remotes/origin/main}"
+          MERGE_BASE=$(git merge-base $BASE_REF $HEAD_REF)
+          git checkout $MERGE_BASE
+          cargo metadata > /tmp/base.metadata.json
+          git checkout $HEAD_REF
+          cargo metadata > /tmp/target.metadata.json
+          CHANGED_FILES=$(git diff --no-commit-id --name-only -r $MERGE_BASE HEAD)
+          echo "Changed files: $CHANGED_FILES"
+          echo ""
+          CHANGES=$(echo $CHANGED_FILES | xargs what-rust-changed /tmp/base.metadata.json /tmp/target.metadata.json)
+          echo "rust=$CHANGES" >> "$GITHUB_OUTPUT"
+          echo "Done.  Output Contents:"
+          echo ""
+          cat $GITHUB_OUTPUT
