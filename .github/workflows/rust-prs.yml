@@ -20,6 +20,7 @@ env:
   DO_NOT_TRACK: 1
   GRAFBASE_RUDDERSTACK_WRITE_KEY: ${{ secrets.GRAFBASE_RUDDERSTACK_WRITE_KEY }}
   GRAFBASE_RUDDERSTACK_DATAPLANE_URL: ${{ secrets.GRAFBASE_RUDDERSTACK_DATAPLANE_URL }}
+  RUST_BACKTRACE: 1
 
   # TODO: Suspect these might not be needed - look into it.
   CLI_RELEASE_CLOUDFLARE_R2_ENDPOINT_URL: https://d267a8ab95268b272f5147e8939c9d38.r2.cloudflarestorage.com
@@ -34,7 +35,7 @@ jobs:
   what-changed:
     runs-on: ubicloud-standard-2
     outputs:
-      rust: ${{ steps.rust.outputs.rust }}
+      rust: ${{ steps.what-rust-changed.outputs.rust }}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -58,17 +59,21 @@ jobs:
 
       - name: Install what-rust-changed
         shell: bash
-        run: cargo install --locked --git https://github.com/grafbase/what-rust-changed.git
+        run: cargo install --locked --git https://github.com/grafbase/what-rust-changed.git --branch obmarg/qmtxorwqlrtl
 
       - name: Run what-rust-changed
+        id: what-rust-changed
         shell: bash
         # Note: this can all be done much nicer, i'm just hacking things together
         # to see if this works well
         run: |
           set -euo pipefail
-          HEAD_REF="${GITHUB_HEAD_REF:-HEAD}"
+          HEAD_REF="${GITHUB_HEAD_REF:-$(git rev-parse HEAD)}"
           BASE_REF="${GITHUB_BASE_REF:-remotes/origin/main}"
           MERGE_BASE=$(git merge-base $BASE_REF $HEAD_REF)
+          echo "Head: $HEAD_REF"
+          echo "Base: $BASE_REF"
+          echo "Merge Base: $MERGE_BASE"
           git checkout $MERGE_BASE
           cargo metadata > /tmp/base.metadata.json
           git checkout $HEAD_REF
@@ -81,3 +86,171 @@ jobs:
           echo "Done.  Output Contents:"
           echo ""
           cat $GITHUB_OUTPUT
+
+  build-and-test:
+    needs: [what-changed]
+    # TODO: make this a matrix at some point
+    runs-on: ubicloud-standard-8
+    steps:
+      - name: Get sources
+        uses: actions/checkout@v4
+
+      - name: Dump inputs for debugging
+        shell: bash
+        run: |
+          echo ${{ needs.what-changed.outputs.rust }}
+
+      - name: Extract the Rust version to use from the `rust-toolchain.toml` file
+        shell: bash
+        run: |
+          rust_version=$(grep "channel" rust-toolchain.toml | cut -d "=" -f 2 | cut -d " " -f 2)
+          echo "RUST_VERSION=$rust_version" >> $GITHUB_ENV
+
+      # TODO: Maybe refactor this?  Not sure
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+          components: clippy, rustfmt
+
+      # TODO: Would be real nice to only do this once per run not on every platform
+      # (also only if the package that needs it is in the build set)
+      - name: Build assets
+        uses: ./.github/actions/cli_assets
+
+      - name: Clippy
+        if: fromJson(needs.what-changed.outputs.rust).cargo-package-specs
+        shell: bash
+        run: |
+          cargo clippy ${{ fromJson(needs.what-changed.outputs.rust).cargo-package-specs }}
+
+      - name: Install cargo binstall
+        if: fromJson(needs.what-changed.outputs.rust).cargo-bin-specs
+        uses: cargo-bins/cargo-binstall@v1.10.3
+
+      - name: Install cargo-nextest & cargo-component
+        if: fromJson(needs.what-changed.outputs.rust).cargo-bin-specs
+        shell: bash
+        run: |
+          cargo binstall cargo-nextest --secure -y
+          cargo binstall cargo-component --secure -y
+
+      # Sensibly refactor all this setup shit into an action or something...
+      - name: Build wrappers (non windows)
+        shell: bash
+        if: runner.os != 'Windows'
+        working-directory: './cli/wrappers'
+        run: |
+          bun i
+          bun run build
+
+      - name: Build wrappers (windows)
+        shell: bash
+        if: runner.os == 'Windows'
+        working-directory: './cli/wrappers'
+        run: |
+          powershell -c "irm bun.sh/install.ps1 | iex"
+          ~/.bun/bin/bun.exe i
+          ~/.bun/bin/bun.exe build udf.ts --external="\${UDF_MAIN_FILE_PATH}" --minify --target=bun > dist.js
+
+      # https://github.com/actions/setup-node/issues/899
+      - name: Enable Corepack before setting up Node
+        shell: bash
+        run: corepack enable
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v3
+        id: pnpm-install
+        with:
+          version: 8
+          run_install: false
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build the WASI components for tests
+        if: contains(fromJson(needs.what-changed.outputs.rust).changed-packages, 'integration-tests')
+        shell: bash
+        working-directory: engine/crates/wasi-component-loader/examples
+        run: cargo component build
+
+      # TODO: maybe merge these composes into one?  Think it would download in parallel if nothing else
+      # Probably worthwhile...
+      - name: Start integration-test docker compose
+        if: contains(fromJson(needs.what-changed.outputs.rust).changed-packages, 'integration-tests')
+        shell: bash
+        working-directory: engine/crates/integration-tests
+        run: docker compose up -d
+
+      - name: Start gateway docker compose
+        if: contains(fromJson(needs.what-changed.outputs.rust).changed-packages, 'grafbase-gateway')
+        shell: bash
+        working-directory: gateway/crates/gateway-binary
+        run: docker compose up -d
+
+      # It's kinda useful to get build vs run timings on tests, so splitting out the build from the run
+      # here
+      - name: Build tests
+        if: fromJson(needs.what-changed.outputs.rust).cargo-package-specs
+        shell: bash
+        run: |
+          cargo nextest run --no-run --profile ci ${{ fromJson(needs.what-changed.outputs.rust).cargo-package-specs }}
+
+      - name: Run tests
+        id: tests
+        if: fromJson(needs.what-changed.outputs.rust).cargo-package-specs
+        shell: bash
+        run: |
+          cargo nextest run --profile ci ${{ fromJson(needs.what-changed.outputs.rust).cargo-package-specs }}
+
+      - name: Upload the JUnit files
+        if: ${{ ( success() || failure() ) && !contains(steps.tests.outputs.exitcode, '101') }}
+        uses: ./.github/actions/test_upload_datadog
+        with:
+          api_key: ${{ secrets.DATADOG_API_KEY }}
+          junit_path: target/nextest/ci/junit.xml
+          service: cli
+
+      # - name: Install cargo-nextest & libs linux
+      #   # if: ${{ startsWith(inputs.platform, 'linux') }}
+      #   shell: bash
+      #   run: |
+      #     curl -LsSf https://get.nexte.st/latest/${{ inputs.platform }} | tar zxf - -C ${CARGO_HOME:-~/.cargo}/bin
+      #     sudo apt-get install musl-tools
+
+      # Ok, so this is tricky.
+      # Need to:
+      # - Install all the udf/bun BS
+      # - Login to docker hub
+      # - Build WASI components if they are required by the package set
+      #   (TODO: Figure out some way to avoid doing this all the time maybe?)
+      # - Run tests _except gateway & docker tests
+      #   - Starting & stopping docker-compos if integration-tests are in the selected set.
+      #   - Upload junit
+      # - If gateway is in the build set
+      #   - Start docker comppose for gateway
+      #   - Run gateway tests
+      #   - Upload junit
+      # - name: Tests
+      #   shell: bash
+      #   run: |
+      #     # TODO: this is obviously a terrible name if I'm using clippy for the test targets...
+      #     cargo clippy ${{ fromJson(needs.what-changed.outputs.rust).cargo-package-specs }}
+
+      - name: Build debug binaries
+        if: fromJson(needs.what-changed.outputs.rust).cargo-bin-specs
+        shell: bash
+        run: |
+          cargo build ${{ fromJson(needs.what-changed.outputs.rust).cargo-bin-specs }}
+
+      # TODO: Add timings to the above and upload as an artifact
+
+      # TODO: Make sure this all appears in datadog once ready

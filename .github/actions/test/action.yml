@@ -103,7 +103,7 @@ runs:
         RUST_BACKTRACE=1 cargo nextest run -p grafbase-gateway --profile ci
 
     - name: Upload the gateway junit files
-      if: ${{ inputs.with-integration-tests == 'true' && ( success() || failure() ) && !contains(steps.gateway_tests.outputs.exitcode, '101') }}
+      if: ${{ inputs.with-integration-tests == 'true' && (success() || failure() ) && !contains(steps.gateway_tests.outputs.exitcode, '101') }}
       uses: ./.github/actions/test_upload_datadog
       with:
         api_key: ${{ inputs.datadog-api-key }}
