@@ -31,6 +31,7 @@ ulid.workspace = true
 tracing.workspace = true
 tracing-futures.workspace = true
 url.workspace = true
+web-time.workspace = true
 
 postgres-connector-types = { path = "../postgres-connector-types" }
 common-types.workspace = true

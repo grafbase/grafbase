@@ -6,7 +6,8 @@ use grafbase_telemetry::gql_response_status::{GraphqlResponseStatus, SubgraphRes
 pub use test_utils::*;
 use url::Url;
 
-use std::{future::Future, time::Instant};
+use std::future::Future;
+use web_time::Instant;
 
 pub use http::HeaderMap;
 
