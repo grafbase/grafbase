@@ -41,7 +41,7 @@ engine-config-builder = { path = "../../../engine/crates/engine-config-builder" 
 engine-v2.workspace = true
 engine-v2-axum.workspace = true
 grafbase-graphql-introspection.workspace = true
-grafbase-telemetry = { workspace = true , features = ["tower"] }
+grafbase-telemetry.workspace = true
 parser-sdl = { path = "../../../engine/crates/parser-sdl" }
 
 [lints]

@@ -1,6 +1,7 @@
 use std::{collections::HashMap, sync::Arc};
 
 use crossbeam::{channel::TrySendError, sync::WaitGroup};
+use grafbase_telemetry::otel::opentelemetry::{metrics::UpDownCounter, trace::TraceId};
 use wasmtime::{
     component::{ComponentType, LinkerInstance, Lower, Resource, ResourceType},
     StoreContextMut,
@@ -10,6 +11,7 @@ use crate::{
     names::{
         CONTEXT_DELETE_METHOD, CONTEXT_GET_METHOD, CONTEXT_RESOURCE, CONTEXT_SET_METHOD,
         SHARED_CONTEXT_ACCESS_LOG_METHOD, SHARED_CONTEXT_GET_METHOD, SHARED_CONTEXT_RESOURCE,
+        SHARED_CONTEXT_TRACE_ID_METHOD,
     },
     state::WasiState,
 };
@@ -19,21 +21,23 @@ use crate::{
 pub struct ChannelLogSender {
     sender: crossbeam::channel::Sender<AccessLogMessage>,
     lossy_log: bool,
+    pending_logs_counter: UpDownCounter<i64>,
 }
 
 impl ChannelLogSender {
     /// Sends the given access log message to the access log.
     pub fn send(&self, data: AccessLogMessage) -> Result<(), LogError> {
         if self.lossy_log {
-            if let Err(e) = self.sender.try_send(data) {
-                match e {
-                    TrySendError::Full(AccessLogMessage::Data(data)) => return Err(LogError::ChannelFull(data)),
-                    _ => return Err(LogError::ChannelClosed),
-                }
+            match self.sender.try_send(data) {
+                Ok(_) => (),
+                Err(TrySendError::Full(AccessLogMessage::Data(data))) => return Err(LogError::ChannelFull(data)),
+                Err(_) => return Err(LogError::ChannelClosed),
             }
         } else if self.sender.send(data).is_err() {
             return Err(LogError::ChannelClosed);
         }
+
+        self.pending_logs_counter.add(1, &[]);
 
         Ok(())
     }
@@ -57,9 +61,20 @@ pub type ChannelLogReceiver = crossbeam::channel::Receiver<AccessLogMessage>;
 const DEFAULT_BUFFERED_LINES_LIMIT: usize = 128_000;
 
 /// Creates a new channel for access logs.
-pub fn create_log_channel(lossy_log: bool) -> (ChannelLogSender, ChannelLogReceiver) {
+pub fn create_log_channel(
+    lossy_log: bool,
+    pending_logs_counter: UpDownCounter<i64>,
+) -> (ChannelLogSender, ChannelLogReceiver) {
     let (sender, receiver) = crossbeam::channel::bounded(DEFAULT_BUFFERED_LINES_LIMIT);
-    (ChannelLogSender { sender, lossy_log }, receiver)
+
+    (
+        ChannelLogSender {
+            sender,
+            lossy_log,
+            pending_logs_counter,
+        },
+        receiver,
+    )
 }
 
 /// A message sent through access log channel.
@@ -90,12 +105,17 @@ pub struct SharedContext {
     kv: Arc<HashMap<String, String>>,
     /// A log channel for access logs.
     access_log: ChannelLogSender,
+    trace_id: TraceId,
 }
 
 impl SharedContext {
     /// Creates a new shared context.
-    pub fn new(kv: Arc<HashMap<String, String>>, access_log: ChannelLogSender) -> Self {
-        Self { kv, access_log }
+    pub fn new(kv: Arc<HashMap<String, String>>, access_log: ChannelLogSender, trace_id: TraceId) -> Self {
+        Self {
+            kv,
+            access_log,
+            trace_id,
+        }
     }
 }
 
@@ -147,6 +167,7 @@ pub(crate) fn map_shared(types: &mut LinkerInstance<'_, WasiState>) -> crate::Re
 
     types.func_wrap(SHARED_CONTEXT_GET_METHOD, get_shared)?;
     types.func_wrap(SHARED_CONTEXT_ACCESS_LOG_METHOD, log_access)?;
+    types.func_wrap(SHARED_CONTEXT_TRACE_ID_METHOD, trace_id)?;
 
     Ok(())
 }
@@ -213,6 +234,12 @@ fn log_access(
             Ok((Err(e),))
         }
     }
+}
+
+/// Gives the current opentelemetry trace id.
+fn trace_id(store: StoreContextMut<'_, WasiState>, (this,): (Resource<SharedContext>,)) -> anyhow::Result<(String,)> {
+    let context = store.data().get(&this).expect("must exist");
+    Ok((context.trace_id.to_string(),))
 }
 
 /// Look for a context value with the given key, returning a copy of the value if found. Will remove

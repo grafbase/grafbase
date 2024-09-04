@@ -5,6 +5,7 @@ use engine_v2::{Body, Engine, ErrorCode, Runtime};
 use futures_util::TryFutureExt;
 use runtime::bytes::OwnedOrSharedBytes;
 
+pub mod middleware;
 pub mod websocket;
 
 pub fn internal_server_error(message: impl ToString) -> axum::response::Response {
@@ -45,9 +46,15 @@ pub async fn execute<R: Runtime>(
     let (parts, body) = response.into_parts();
     match body {
         Body::Bytes(bytes) => match bytes {
-            OwnedOrSharedBytes::Owned(bytes) => (parts.status, parts.headers, bytes).into_response(),
-            OwnedOrSharedBytes::Shared(bytes) => (parts.status, parts.headers, bytes).into_response(),
+            OwnedOrSharedBytes::Owned(bytes) => (parts.status, parts.headers, parts.extensions, bytes).into_response(),
+            OwnedOrSharedBytes::Shared(bytes) => (parts.status, parts.headers, parts.extensions, bytes).into_response(),
         },
-        Body::Stream(stream) => (parts.status, parts.headers, axum::body::Body::from_stream(stream)).into_response(),
+        Body::Stream(stream) => (
+            parts.status,
+            parts.headers,
+            parts.extensions,
+            axum::body::Body::from_stream(stream),
+        )
+            .into_response(),
     }
 }

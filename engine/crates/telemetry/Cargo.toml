@@ -19,11 +19,9 @@ http-body = "1.0"
 serde.workspace = true
 thiserror.workspace = true
 tonic = { workspace = true, optional = true, features = ["tls-roots"] }
-tower = { workspace = true, optional = true }
 url = { workspace = true, features = ["serde"] }
 worker = { workspace = true, optional = true }
 headers.workspace = true
-pin-project-lite = { version = "0.2", optional = true }
 serde-dynamic-string.workspace = true
 postcard.workspace = true
 gateway-config.workspace = true
@@ -43,7 +41,6 @@ either = "1.13.0"
 
 [features]
 default = []
-tower = ["dep:tower", "dep:pin-project-lite"]
 otlp = ["dep:opentelemetry-otlp", "dep:tonic", "gateway-config/otlp"]
 worker = ["dep:worker"]
 lambda = []

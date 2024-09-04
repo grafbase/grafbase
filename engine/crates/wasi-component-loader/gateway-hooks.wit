@@ -41,6 +41,10 @@ interface types {
 
         // Sends the data to the access log.
         log-access: func(data: list<u8>) -> result<_, log-error>;
+
+        // For systems enabling OpenTelemetry, the function returns the current trace id.
+        // If OpenTelemetry is disabled, the return value is a series of zeroes.
+        trace-id: func() -> string;
     }
 
     // Provides access to the request headers. Available in a mutable form
@@ -79,8 +83,8 @@ interface types {
         url: string,
         // The response status code.
         status-code: u16,
-        // The outputs of executed on-gateway-response hooks for every operation of the request.
-        on-gateway-response-outputs: list<list<u8>>,
+        // The outputs of executed on-operation-response hooks for every operation of the request.
+        on-operation-response-outputs: list<list<u8>>,
     }
 
     record operation { 
@@ -118,14 +122,14 @@ interface types {
     }
 
     // Info about an executed gateway operation.
-    record executed-gateway-request {
+    record executed-operation {
         // Time in milliseconds spent executing the operation.
         duration: u64,
         // The status of the operation.
         status: graphql-response-status,
         // If queried any subgraphs, the outputs of on-subgraph-response hooks.
         // Will be empty if no subgraphs were called.
-        on-subgraph-request-outputs: list<list<u8>>,
+        on-subgraph-response-outputs: list<list<u8>>,
     }
     
     // Information on a response
@@ -138,13 +142,28 @@ interface types {
         status-code: u16
     }
 
-    // A variant of a subgraph response.
-    variant subgraph-response {
-        // Response info for non-cached subgraph request. If more than
-        // one items, the request was retried.
-        responses(list<response-info>),
-        // The response was taken from the cache.
-        cached
+    // Cache status of a subgraph call.
+    enum cache-status {
+        // Cache hit
+        hit,
+        // Some data fetched from cache.
+        partial-hit,
+        // Cache miss
+        miss,
+    }
+
+    // Subgraph response variant.
+    variant response-kind {
+        // Error in response serialization.
+        serialization-error,
+        // Response prevented by subgraph request hook.
+        hook-error,
+        // HTTP request failed.
+        request-error,
+        // Request was rate-limited.
+        rate-limited,
+        // A response was received.
+        responded(response-info),
     }
 
     // Info about an executed subgraph request.
@@ -158,8 +177,8 @@ interface types {
         // The subgraph URL.
         url: string,
        
-        // The subgraph response info
-        response: subgraph-response,
+        // The subgraph responses
+        responses: list<response-kind>,
 
         // The time in milliseconds taken for the whole operation.
         total-duration: u64,
@@ -316,10 +335,10 @@ interface authorization {
 }
 
 interface responses {
-    use types.{shared-context, executed-gateway-request, executed-subgraph-request, executed-http-request, operation};
+    use types.{shared-context, executed-operation, executed-subgraph-request, executed-http-request, operation};
 
     // The hook is called after a subgraph entity has been either requested or fetched from cache.
-    // The output is a list of bytes, which will be available in the on-gateway-response hook.
+    // The output is a list of bytes, which will be available in the on-operation-response hook.
     on-subgraph-response: func(
         context: shared-context,
         request: executed-subgraph-request,
@@ -327,10 +346,10 @@ interface responses {
 
     // The hook is called after a request is handled in the gateway. The output is a list of bytes,
     // which will be available in the on-http-response hook.
-    on-gateway-response: func(
+    on-operation-response: func(
         context: shared-context,
         operation: operation,
-        request: executed-gateway-request,
+        request: executed-operation,
     ) -> list<u8>;
 
     // The hook is called right before a response is sent to the user.
@@ -345,5 +364,8 @@ interface responses {
 //
 // The guest must implement all exported hooks defined in the world.
 world hooks {
+    export gateway-request;
+    export subgraph-request;
+    export authorization;
     export responses;
 }

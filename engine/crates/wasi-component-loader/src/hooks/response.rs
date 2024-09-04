@@ -89,16 +89,16 @@ pub enum GraphqlResponseStatus {
 /// Data from an executed full operation.
 #[derive(Debug, Clone, Lower, ComponentType)]
 #[component(record)]
-pub struct ExecutedOperationRequest {
+pub struct ExecutedOperation {
     /// The duration it took to execute the operation.
     #[component(name = "duration")]
     pub duration: u64,
     /// The status of the operation.
     #[component(name = "status")]
     pub status: GraphqlResponseStatus,
-    /// The outputs of on-subgraph-request hooks.
-    #[component(name = "on-subgraph-request-outputs")]
-    pub on_subgraph_request_outputs: Vec<Vec<u8>>,
+    /// The outputs of on-subgraph-response hooks.
+    #[component(name = "on-subgraph-response-outputs")]
+    pub on_subgraph_response_outputs: Vec<Vec<u8>>,
 }
 
 /// A response info from an executed subgraph request.
@@ -197,7 +197,7 @@ impl ResponsesComponentInstance {
         &mut self,
         context: SharedContext,
         operation: Operation,
-        request: ExecutedOperationRequest,
+        request: ExecutedOperation,
     ) -> crate::Result<Vec<u8>> {
         self.call2_one_output(ON_OPERATION_RESPONSE_FUNCTION, context, (operation, request))
             .await?

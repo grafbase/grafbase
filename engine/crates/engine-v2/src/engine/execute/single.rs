@@ -4,7 +4,7 @@ use grafbase_telemetry::{
     metrics::{GraphqlErrorAttributes, GraphqlRequestMetricsAttributes, OperationMetricsAttributes},
     span::{gql::GqlRequestSpan, GqlRecorderSpanExt},
 };
-use runtime::hooks::{self, ExecutedOperationRequest};
+use runtime::hooks::{self, ExecutedOperation};
 use tracing::Instrument;
 use web_time::Instant;
 
@@ -103,7 +103,7 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
 
             let operation = operation_info.finalize(&metrics_attributes.sanitized_query);
 
-            let mut execution_info = ExecutedOperationRequest::builder();
+            let mut execution_info = ExecutedOperation::builder();
             let hooks = self.hooks();
             let mut response = self.execute_query_or_mutation(operation_plan).await;
 

@@ -1,5 +1,5 @@
 use bindings::component::grafbase::types::{
-    CacheStatus, ExecutedHttpRequest, ExecutedOperationRequest, ExecutedSubgraphRequest, Operation, ResponseKind,
+    CacheStatus, ExecutedHttpRequest, ExecutedOperation, ExecutedSubgraphRequest, Operation, ResponseKind,
     SharedContext,
 };
 use bindings::exports::component::grafbase::responses::Guest;
@@ -10,13 +10,27 @@ mod bindings;
 struct Component;
 
 #[derive(serde::Serialize, serde::Deserialize)]
+pub struct ResponseInfo {
+    pub connection_time: u64,
+    pub response_time: u64,
+    pub status_code: u16,
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub enum ResponseData {
+    SerializationError,
+    HookError,
+    RequestError,
+    RateLimited,
+    Responsed(ResponseInfo),
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
 struct SubgraphInfo {
     subgraph_name: String,
     method: String,
     url: String,
-    connection_times: Vec<u64>,
-    response_times: Vec<u64>,
-    status_codes: Vec<u16>,
+    responses: Vec<ResponseData>,
     total_duration: u64,
     has_errors: bool,
     cached: bool,
@@ -57,6 +71,7 @@ struct AuditInfo {
     method: String,
     url: String,
     status_code: u16,
+    trace_id: String,
     operations: Vec<OperationInfo>,
 }
 
@@ -72,27 +87,18 @@ impl Guest for Component {
             has_errors,
         } = request;
 
-        let connection_times = responses
-            .iter()
+        let responses = responses
+            .into_iter()
             .map(|r| match r {
-                ResponseKind::Responded(info) => info.connection_time,
-                _ => unreachable!(),
-            })
-            .collect();
-
-        let response_times = responses
-            .iter()
-            .map(|r| match r {
-                ResponseKind::Responded(info) => info.response_time,
-                _ => unreachable!(),
-            })
-            .collect();
-
-        let status_codes = responses
-            .iter()
-            .map(|r| match r {
-                ResponseKind::Responded(info) => info.status_code,
-                _ => unreachable!(),
+                ResponseKind::Responded(info) => ResponseData::Responsed(ResponseInfo {
+                    connection_time: info.connection_time,
+                    response_time: info.response_time,
+                    status_code: info.status_code,
+                }),
+                ResponseKind::SerializationError => ResponseData::SerializationError,
+                ResponseKind::HookError => ResponseData::HookError,
+                ResponseKind::RequestError => ResponseData::RequestError,
+                ResponseKind::RateLimited => ResponseData::RateLimited,
             })
             .collect();
 
@@ -100,9 +106,7 @@ impl Guest for Component {
             subgraph_name,
             method,
             url,
-            connection_times,
-            response_times,
-            status_codes,
+            responses,
             total_duration,
             has_errors,
             cached: matches!(cache_status, CacheStatus::Hit),
@@ -111,7 +115,7 @@ impl Guest for Component {
         serde_json::to_vec(&info).unwrap()
     }
 
-    fn on_operation_response(_: SharedContext, operation: Operation, request: ExecutedOperationRequest) -> Vec<u8> {
+    fn on_operation_response(_: SharedContext, operation: Operation, request: ExecutedOperation) -> Vec<u8> {
         let info = OperationInfo {
             name: operation.name,
             document: operation.document,
@@ -134,7 +138,7 @@ impl Guest for Component {
                 }
             },
             subgraphs: request
-                .on_subgraph_request_outputs
+                .on_subgraph_response_outputs
                 .iter()
                 .filter_map(|bytes| serde_json::from_slice(bytes).ok())
                 .collect(),
@@ -148,6 +152,7 @@ impl Guest for Component {
             method: request.method,
             url: request.url,
             status_code: request.status_code,
+            trace_id: context.trace_id(),
             operations: request
                 .on_operation_response_outputs
                 .iter()

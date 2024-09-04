@@ -2,7 +2,7 @@ use super::gateway::{self, GatewayRuntime, GraphDefinition};
 use engine_v2::Engine;
 use gateway_config::Config;
 use graph_ref::GraphRef;
-use runtime_local::hooks::ChannelLogSender;
+use runtime_local::HooksWasi;
 use std::{path::PathBuf, sync::Arc};
 use tokio::sync::watch;
 
@@ -31,7 +31,7 @@ impl GraphFetchMethod {
         config: &Config,
         hot_reload_config_path: Option<PathBuf>,
         sender: watch::Sender<Option<Arc<Engine<GatewayRuntime>>>>,
-        access_log_sender: ChannelLogSender,
+        hooks: HooksWasi,
     ) -> crate::Result<()> {
         #[cfg(feature = "lambda")]
         if matches!(self, GraphFetchMethod::FromGraphRef { .. }) {
@@ -50,7 +50,7 @@ impl GraphFetchMethod {
                     let config = config.clone();
                     use super::graph_updater::GraphUpdater;
 
-                    GraphUpdater::new(graph_ref, access_token, sender, config, access_log_sender)?
+                    GraphUpdater::new(graph_ref, access_token, sender, config, hooks)?
                         .poll()
                         .await;
 
@@ -62,7 +62,7 @@ impl GraphFetchMethod {
                     GraphDefinition::Sdl(federated_sdl),
                     config,
                     hot_reload_config_path,
-                    access_log_sender,
+                    hooks,
                 )
                 .await?;
 

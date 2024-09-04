@@ -30,7 +30,7 @@ pub use hooks::{
     authorization::{AuthorizationComponentInstance, EdgeDefinition, NodeDefinition},
     gateway::GatewayComponentInstance,
     response::{
-        CacheStatus, ExecutedHttpRequest, ExecutedOperationRequest, ExecutedSubgraphRequest, FieldError,
+        CacheStatus, ExecutedHttpRequest, ExecutedOperation, ExecutedSubgraphRequest, FieldError,
         GraphqlResponseStatus, Operation, RequestError, ResponseInfo, ResponseKind, ResponsesComponentInstance,
     },
     subgraph::*,

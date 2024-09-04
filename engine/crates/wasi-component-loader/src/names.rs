@@ -30,3 +30,4 @@ pub(crate) static CONTEXT_DELETE_METHOD: &str = "[method]context.delete";
 pub(crate) static SHARED_CONTEXT_RESOURCE: &str = "shared-context";
 pub(crate) static SHARED_CONTEXT_GET_METHOD: &str = "[method]shared-context.get";
 pub(crate) static SHARED_CONTEXT_ACCESS_LOG_METHOD: &str = "[method]shared-context.log-access";
+pub(crate) static SHARED_CONTEXT_TRACE_ID_METHOD: &str = "[method]shared-context.trace-id";

@@ -11,13 +11,16 @@ mod trusted_documents_client;
 
 use grafbase_telemetry::gql_response_status::GraphqlResponseStatus;
 pub use graph_fetch_method::GraphFetchMethod;
-use runtime_local::hooks;
-use tokio::sync::watch;
+use runtime_local::{hooks, ComponentLoader, HooksWasi};
+use tokio::{join, sync::watch};
 use ulid::Ulid;
 
 use axum::{routing::get, Router};
 use axum_server as _;
-use engine_v2_axum::websocket::{WebsocketAccepter, WebsocketService};
+use engine_v2_axum::{
+    middleware::{ResponseHookLayer, TelemetryLayer},
+    websocket::{WebsocketAccepter, WebsocketService},
+};
 use gateway_config::{Config, TlsConfig};
 use state::ServerState;
 use std::{
@@ -28,7 +31,7 @@ use std::{
 };
 use tokio::signal;
 use tokio::sync::mpsc;
-use tower_http::cors::CorsLayer;
+use tower_http::{cors::CorsLayer, timeout::RequestBodyTimeoutLayer};
 
 const DEFAULT_LISTEN_ADDRESS: SocketAddr = SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), 5000);
 
@@ -82,19 +85,33 @@ pub async fn serve(
     let (sender, mut gateway) = watch::channel(None);
     gateway.mark_unchanged();
 
-    let (access_log_sender, access_log_receiver) = hooks::create_log_channel(config.gateway.access_logs.lossy_log());
+    let meter = grafbase_telemetry::metrics::meter_from_global_provider();
+    let pending_logs_counter = meter.i64_up_down_counter("grafbase.gateway.access_log.pending").init();
+
+    let (access_log_sender, access_log_receiver) =
+        hooks::create_log_channel(config.gateway.access_logs.lossy_log(), pending_logs_counter.clone());
+
+    let loader = config
+        .hooks
+        .clone()
+        .map(ComponentLoader::new)
+        .transpose()
+        .map_err(|e| crate::Error::InternalError(e.to_string()))?
+        .flatten();
+
+    let hooks = HooksWasi::new(loader, &meter, access_log_sender.clone());
 
     fetch_method
         .start(
             &config,
             config_hot_reload.then_some(config_path).flatten(),
             sender,
-            access_log_sender.clone(),
+            hooks.clone(),
         )
         .await?;
 
     if config.gateway.access_logs.enabled {
-        access_logs::start(&config.gateway.access_logs, access_log_receiver)?;
+        access_logs::start(&config.gateway.access_logs, access_log_receiver, pending_logs_counter)?;
     }
 
     let (websocket_sender, websocket_receiver) = mpsc::channel(16);
@@ -119,11 +136,12 @@ pub async fn serve(
     let mut router = Router::new()
         .route(path, get(engine::execute).post(engine::execute))
         .route_service("/ws", WebsocketService::new(websocket_sender))
-        .layer(grafbase_telemetry::tower::layer(
+        .layer(ResponseHookLayer::new(hooks))
+        .layer(TelemetryLayer::new(
             grafbase_telemetry::metrics::meter_from_global_provider(),
-            Some(addr),
+            listen_addr,
         ))
-        .layer(tower_http::timeout::RequestBodyTimeoutLayer::new(
+        .layer(RequestBodyTimeoutLayer::new(
             config.gateway.timeout.unwrap_or(DEFAULT_GATEWAY_TIMEOUT),
         ))
         .layer(axum::middleware::map_response(
@@ -162,8 +180,14 @@ pub async fn serve(
     }
 
     // Once all pending requests have been dealt with, we shutdown everything else left (telemetry, logs)
-    server_runtime.graceful_shutdown().await;
-    access_log_sender.graceful_shutdown().await;
+    if config.gateway.access_logs.enabled {
+        join!(
+            server_runtime.graceful_shutdown(),
+            access_log_sender.graceful_shutdown()
+        );
+    } else {
+        server_runtime.graceful_shutdown().await;
+    }
 
     Ok(())
 }

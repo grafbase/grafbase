@@ -16,7 +16,6 @@ lambda = [
   "dep:axum-aws-lambda",
   "dep:tower",
   "dep:lambda_http",
-  "grafbase-telemetry/lambda"
 ]
 
 [dependencies]
@@ -29,7 +28,7 @@ cfg-if = "1"
 engine-config-builder.workspace = true
 engine-v2.workspace = true
 engine-v2-axum.workspace = true
-grafbase-telemetry = { workspace = true, features = ["tower", "otlp"] }
+grafbase-telemetry = { workspace = true, features = ["otlp"] }
 graph-ref.workspace = true
 gateway-config.workspace = true
 graphql-composition.workspace = true

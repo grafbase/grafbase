@@ -152,7 +152,11 @@ impl EngineV2Builder {
             graph
         };
 
-        let (access_log_sender, access_log_receiver) = hooks::create_log_channel(false);
+        let counter = grafbase_telemetry::metrics::meter_from_global_provider()
+            .i64_up_down_counter("grafbase.gateway.access_log.pending")
+            .init();
+
+        let (access_log_sender, access_log_receiver) = hooks::create_log_channel(false, counter);
 
         let config = match self.config_source {
             Some(ConfigSource::Toml(toml)) => {

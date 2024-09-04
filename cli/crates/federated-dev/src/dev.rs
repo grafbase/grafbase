@@ -10,7 +10,10 @@ use axum::{
     routing::get,
 };
 use common::environment::Environment;
-use engine_v2_axum::websocket::{WebsocketAccepter, WebsocketService};
+use engine_v2_axum::{
+    middleware,
+    websocket::{WebsocketAccepter, WebsocketService},
+};
 use graphql_federated_graph::FederatedGraph;
 use handlebars::Handlebars;
 use serde_json::json;
@@ -101,7 +104,7 @@ pub(super) async fn run(
         .route("/graphql", get(handle_graphql_request).post(handle_graphql_request))
         .route_service("/ws", WebsocketService::new(websocket_sender))
         .nest_service("/static", tower_http::services::ServeDir::new(static_asset_path))
-        .layer(grafbase_telemetry::tower::layer(
+        .layer(middleware::TelemetryLayer::new(
             grafbase_telemetry::metrics::meter_from_global_provider(),
             None,
         ))

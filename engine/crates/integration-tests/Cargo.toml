@@ -64,6 +64,7 @@ tracing.workspace = true
 tracing-mock.workspace = true
 runtime = { workspace = true, features = ["test-utils"]}
 regex.workspace = true
+engine-v2-axum.workspace = true
 
 [dependencies.tokio]
 version = "1.37"
@@ -94,7 +95,6 @@ path = "../parser-openapi"
 
 [dependencies.grafbase-telemetry]
 workspace = true
-features = ["tower"]
 
 [dev-dependencies]
 base64.workspace = true

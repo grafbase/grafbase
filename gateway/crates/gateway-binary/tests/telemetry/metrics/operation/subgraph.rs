@@ -129,7 +129,7 @@ fn body_size() {
 #[test]
 fn retries() {
     let config = indoc::indoc! {r#"
-        [gateway.retry]            
+        [gateway.retry]
         enabled = true
         min_per_second = 1
         ttl = "1s"

@@ -41,20 +41,24 @@ interface types {
 
         // Sends the data to the access log.
         log-access: func(data: list<u8>) -> result<_, log-error>;
+
+        // For systems enabling OpenTelemetry, the function returns the current trace id.
+        // If OpenTelemetry is disabled, the return value is a series of zeroes.
+        trace-id: func() -> string;
     }
 
     // Provides access to the request headers. Available in a mutable form
     // only in the gateway request hook.
     resource headers {
-        // Gets a header value with the given name if it exists.
-        get: func(name: string) -> option<string>;
+        // Gets a header value with the given name. Returns an error if
+        // the name is not a valid header name. Returns none if the header does not exist.
+        get: func(name: string) -> result<option<string>, header-error>;
         // Sets the header value with the given name. Returns an error if the given name
         // is not a valid header name.
         set: func(name: string, value: string) -> result<_, header-error>;
-        // Deletes a header value with the given name. Returns the value if it existed.
-        delete: func(name: string) -> option<string>;
-        // Lists all header key value pairs.
-        entries: func() -> list<tuple<string, string>>;
+        // Deletes a header value with the given name. Returns an error if
+        // the given name is not a valid header name. Returns the value if ixisting.
+        delete: func(name: string) -> result<option<string>, header-error>;
     }
 
     // Defines an edge in a type
@@ -69,6 +73,118 @@ interface types {
     record node-definition {
         // The name of the type of this node
         type-name: string,
+    }
+
+    // Info about an executed HTTP request.
+    record executed-http-request {
+        // The request method.
+        method: string,
+        // The request URL.
+        url: string,
+        // The response status code.
+        status-code: u16,
+        // The outputs of executed on-operation-response hooks for every operation of the request.
+        on-operation-response-outputs: list<list<u8>>,
+    }
+
+    record operation { 
+        // The name of the operation, if present.
+        name: option<string>,
+        // The operation document in sanitized form.
+        document: string,
+        // The time taken in preparing.
+        prepare-duration: u64,
+        // True, if the plan was taken from cache.
+        cached: bool,
+    }
+
+    record field-error {
+        // The number of errors.
+        count: u64,
+        // The returned data is null.
+        data-is-null: bool,
+    }
+
+    record request-error {
+        // The number of errors.
+        count: u64,
+    }
+
+    variant graphql-response-status {
+        // Request was successful.
+        success,
+        // A field returned an error.
+        field-error(field-error),
+        // A request error.
+        request-error(request-error),
+        // The request was refused.
+        refused-request,
+    }
+
+    // Info about an executed gateway operation.
+    record executed-operation {
+        // Time in milliseconds spent executing the operation.
+        duration: u64,
+        // The status of the operation.
+        status: graphql-response-status,
+        // If queried any subgraphs, the outputs of on-subgraph-response hooks.
+        // Will be empty if no subgraphs were called.
+        on-subgraph-response-outputs: list<list<u8>>,
+    }
+    
+    // Information on a response
+    record response-info {
+        // The milliseconds it took to connect to the host.
+        connection-time: u64,
+        // The milliseconds it took for the host to respond with data.
+        response-time: u64,
+        // The response status code
+        status-code: u16
+    }
+
+    // Cache status of a subgraph call.
+    enum cache-status {
+        // Cache hit
+        hit,
+        // Some data fetched from cache.
+        partial-hit,
+        // Cache miss
+        miss,
+    }
+
+    // Subgraph response variant.
+    variant response-kind {
+        // Error in response serialization.
+        serialization-error,
+        // Response prevented by subgraph request hook.
+        hook-error,
+        // HTTP request failed.
+        request-error,
+        // Request was rate-limited.
+        rate-limited,
+        // A response was received.
+        responded(response-info),
+    }
+
+    // Info about an executed subgraph request.
+    record executed-subgraph-request {
+        // The name of the subgraph.
+        subgraph-name: string,
+
+        // The request method.
+        method: string,
+
+        // The subgraph URL.
+        url: string,
+       
+        // The subgraph responses
+        responses: list<response-kind>,
+
+        // The time in milliseconds taken for the whole operation.
+        total-duration: u64,
+
+        // True, if the subgraph returned any errors.
+        has-errors: bool,
     }
 
     // An error response can be used to inject an error to the GraphQL response.
@@ -99,7 +215,8 @@ interface gateway-request {
 interface subgraph-request {
     use types.{shared-context, headers, error};
 
-    // The hook is called just before sending the HTTP request to the subgraph.
+    // The hook is called just before requesting a subgraph, after rate limiting is done. It can be used
+    // to read and modify the subgraph request headers. If returning an error, the subgraph is not requested.
     on-subgraph-request: func(
         context: shared-context,
         subgraph-name: string,
@@ -127,41 +244,6 @@ interface authorization {
         metadata: string
     ) -> result<_, error>;
 
-    // Called when `@authorized` is used on a field with `fields` argument:
-    //
-    // type User {
-    //    id: ID!
-    //    address: Address @authorized(fields: "id")
-    // }
-    //
-    // The engine calls the hook after the subgraph response has arrived with the list of parent fields for 
-    // every node containing the address field.
-    authorize-parent-edge-post-execution: func(
-        context: shared-context,
-        definition: edge-definition,
-        parents: list<string>,
-        metadata: string
-    ) -> list<result<_, error>>;
-
-    // Called when `@authorized` is used on a field with `node` argument:
-    //
-    // type User {
-    //    id: ID!
-    // }
-    //
-    // type Query {
-    //    users: [User]! @authorized(node: "id")
-    // }
-    //
-    // The engine calls the hook after the subgraph response has arrived with the list of nodes (User here) for the
-    // field.
-    authorize-edge-node-post-execution: func(
-        context: shared-context,
-        definition: edge-definition,
-        nodes: list<string>,
-        metadata: string
-    ) -> list<result<_, error>>;
-
     // The hook is called in the request cycle if the schema defines an authorization directive to
     // a node, providing the definition of the node and the metadata of the directive to the hook.
     //
@@ -174,6 +256,107 @@ interface authorization {
         definition: node-definition,
         metadata: string
     ) -> result<_, error>;
+
+    // The hook is called in the request cycle if the schema defines an authorization directive on
+    // an edge with the fields argument, providing fields from the parent node. The hook gets the
+    // parent type information, and a list of data with the defined fields of the parent for every
+    // child loaded by the parent query.
+    //
+    // The hook is run after fetching the data.
+    //
+    // The result can be one of the following:
+    //
+    // - A list of one item, which dictates the result for every child loaded from the edge
+    // - A list of many items, each one defining if the child should be shown or not
+    //
+    // Providing any other response will lead to the whole authorization hook failing and data not
+    // returned to the user.
+    //
+    // The list item can either be an empty Ok, which returns the edge data to the client. Or the
+    // item can be an error and the edge access is denied. The error data will be propagated to the
+    // response errors.
+    authorize-parent-edge-post-execution: func(
+        context: shared-context,
+        definition: edge-definition,
+        parents: list<string>,
+        metadata: string
+    ) -> list<result<_, error>>;
+
+    // The hook is called in the request cycle if the schema defines an authorization directive on
+    // an edge with the node argument, providing fields from the child node. The hook gets the parent type information,
+    // and a list of data with the defined fields for every child loaded by the parent query.
+    //
+    // The hook is run after fetching the data.
+    //
+    // The result can be one of the following:
+    //
+    // - A list of one item, which dictates the result for every child loaded from the edge
+    // - A list of many items, each one defining if the child should be shown or not
+    //
+    // Providing any other response will lead to the whole authorization hook failing and data not
+    // returned to the user.
+    //
+    // The list item can either be an empty Ok, which returns the edge data to the client. Or the
+    // item can be an error and the edge access is denied. The error data will be propagated to the
+    // response errors.
+    authorize-edge-node-post-execution: func(
+        context: shared-context,
+        definition: edge-definition,
+        nodes: list<string>,
+        metadata: string
+    ) -> list<result<_, error>>;
+
+    // The hook is called in the request cycle if the schema defines an authorization directive on
+    // an edge with the node and fields arguments, providing fields from the child node. The hook gets
+    // the parent type information, and a list of data with tuples of the parent data and a list of child data.
+    //
+    // The first part of the tuple is defined by the directive's fields argument and the second part by
+    // the node argument.
+    //
+    // The hook is run after fetching the data.
+    //
+    // The result can be one of the following:
+    //
+    // - A list of one item, which dictates the result for every child loaded from the edge
+    // - A list of many items, each one defining if the child should be shown or not
+    //
+    // Providing any other response will lead to the whole authorization hook failing and data not
+    // returned to the user.
+    //
+    // The list item can either be an empty Ok, which returns the edge data to the client. Or the
+    // item can be an error and the edge access is denied. The error data will be propagated to the
+    // response errors.
+    authorize-edge-post-execution: func(
+        context: shared-context,
+        definition: edge-definition,
+        edges: list<tuple<string, list<string>>>,
+        metadata: string
+    ) -> list<result<_, error>>;
+}
+
+interface responses {
+    use types.{shared-context, executed-operation, executed-subgraph-request, executed-http-request, operation};
+
+    // The hook is called after a subgraph entity has been either requested or fetched from cache.
+    // The output is a list of bytes, which will be available in the on-operation-response hook.
+    on-subgraph-response: func(
+        context: shared-context,
+        request: executed-subgraph-request,
+    ) -> list<u8>;
+
+    // The hook is called after a request is handled in the gateway. The output is a list of bytes,
+    // which will be available in the on-http-response hook.
+    on-operation-response: func(
+        context: shared-context,
+        operation: operation,
+        request: executed-operation,
+    ) -> list<u8>;
+
+    // The hook is called right before a response is sent to the user.
+    on-http-response: func(
+        context: shared-context,
+        request: executed-http-request,
+    );
 }
 
 // Export here all the hooks the guest wants to implement. If a hook interface is not exported in the world,

@@ -42,7 +42,7 @@ pub type AuthorizationVerdict = Result<(), PartialGraphqlError>;
 pub type AuthorizationVerdicts = Result<Vec<AuthorizationVerdict>, PartialGraphqlError>;
 
 pub trait Hooks: Send + Sync + 'static {
-    type Context: Send + Sync + 'static;
+    type Context: Clone + Send + Sync + 'static;
 
     fn on_gateway_request(
         &self,
@@ -294,15 +294,15 @@ impl OperationHookInfoBuilder {
 }
 
 #[derive(Debug, Clone)]
-pub struct ExecutedOperationRequest {
+pub struct ExecutedOperation {
     pub duration: u64,
     pub status: GraphqlResponseStatus,
     pub on_subgraph_response_outputs: Vec<Vec<u8>>,
 }
 
-impl ExecutedOperationRequest {
-    pub fn builder() -> ExecutedOperationRequestBuilder {
-        ExecutedOperationRequestBuilder {
+impl ExecutedOperation {
+    pub fn builder() -> ExecutedOperationBuilder {
+        ExecutedOperationBuilder {
             start_time: Instant::now(),
             on_subgraph_response_outputs: Vec::new(),
         }
@@ -310,18 +310,18 @@ impl ExecutedOperationRequest {
 }
 
 #[derive(Debug)]
-pub struct ExecutedOperationRequestBuilder {
+pub struct ExecutedOperationBuilder {
     start_time: Instant,
     on_subgraph_response_outputs: Vec<Vec<u8>>,
 }
 
-impl ExecutedOperationRequestBuilder {
+impl ExecutedOperationBuilder {
     pub fn set_on_subgraph_response_outputs(&mut self, outputs: Vec<Vec<u8>>) {
         self.on_subgraph_response_outputs = outputs;
     }
 
-    pub fn finalize(self, status: GraphqlResponseStatus) -> ExecutedOperationRequest {
-        ExecutedOperationRequest {
+    pub fn finalize(self, status: GraphqlResponseStatus) -> ExecutedOperation {
+        ExecutedOperation {
             duration: self.start_time.elapsed().as_millis() as u64,
             status,
             on_subgraph_response_outputs: self.on_subgraph_response_outputs,
@@ -330,9 +330,9 @@ impl ExecutedOperationRequestBuilder {
 }
 
 #[derive(Debug, Clone)]
-pub struct ExecutedHttpRequest<'a> {
-    pub method: &'a str,
-    pub url: &'a str,
+pub struct ExecutedHttpRequest {
+    pub method: http::Method,
+    pub url: http::Uri,
     pub status_code: http::StatusCode,
     pub on_operation_response_outputs: Vec<Vec<u8>>,
 }
@@ -348,13 +348,13 @@ pub trait ResponseHooks<Context>: Send + Sync + 'static {
         &self,
         context: &Context,
         operation: Operation<'_>,
-        request: ExecutedOperationRequest,
+        request: ExecutedOperation,
     ) -> impl Future<Output = Result<Vec<u8>, PartialGraphqlError>> + Send;
 
     fn on_http_response(
         &self,
         context: &Context,
-        request: ExecutedHttpRequest<'_>,
+        request: ExecutedHttpRequest,
     ) -> impl Future<Output = Result<(), PartialGraphqlError>> + Send;
 }
 
@@ -490,12 +490,12 @@ impl ResponseHooks<()> for () {
         &self,
         _: &(),
         _: Operation<'_>,
-        _: ExecutedOperationRequest,
+        _: ExecutedOperation,
     ) -> Result<Vec<u8>, PartialGraphqlError> {
         Ok(Vec::new())
     }
 
-    async fn on_http_response(&self, _: &(), _: ExecutedHttpRequest<'_>) -> Result<(), PartialGraphqlError> {
+    async fn on_http_response(&self, _: &(), _: ExecutedHttpRequest) -> Result<(), PartialGraphqlError> {
         Ok(())
     }
 }
