@@ -91,7 +91,7 @@ impl ResponseHooks<Context> for HooksWasi {
         let runtime::hooks::ExecutedOperationRequest {
             duration,
             status,
-            on_subgraph_response_outputs: on_subgraph_request_outputs,
+            on_subgraph_response_outputs,
         } = request;
 
         let operation = Operation {
@@ -117,7 +117,7 @@ impl ResponseHooks<Context> for HooksWasi {
                     GraphqlResponseStatus::RefusedRequest
                 }
             },
-            on_subgraph_request_outputs,
+            on_subgraph_response_outputs,
         };
 
         inner

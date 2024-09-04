@@ -96,9 +96,9 @@ pub struct ExecutedOperationRequest {
     /// The status of the operation.
     #[component(name = "status")]
     pub status: GraphqlResponseStatus,
-    /// The outputs of on-subgraph-request hooks.
-    #[component(name = "on-subgraph-request-outputs")]
-    pub on_subgraph_request_outputs: Vec<Vec<u8>>,
+    /// The outputs of on-subgraph-response hooks.
+    #[component(name = "on-subgraph-response-outputs")]
+    pub on_subgraph_response_outputs: Vec<Vec<u8>>,
 }
 
 /// A response info from an executed subgraph request.

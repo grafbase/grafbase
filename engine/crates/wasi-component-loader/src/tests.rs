@@ -696,7 +696,7 @@ async fn response_hooks() {
     let request = ExecutedOperationRequest {
         duration: 5,
         status: crate::GraphqlResponseStatus::Success,
-        on_subgraph_request_outputs: vec![subgraph_info],
+        on_subgraph_response_outputs: vec![subgraph_info],
     };
 
     let operation = Operation {

@@ -138,7 +138,7 @@ impl Guest for Component {
                 }
             },
             subgraphs: request
-                .on_subgraph_request_outputs
+                .on_subgraph_response_outputs
                 .iter()
                 .filter_map(|bytes| serde_json::from_slice(bytes).ok())
                 .collect(),

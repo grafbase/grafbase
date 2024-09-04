@@ -126,7 +126,7 @@ interface types {
         status: graphql-response-status,
         // If queried any subgraphs, the outputs of on-subgraph-response hooks.
         // Will be empty if no subgraphs were called.
-        on-subgraph-request-outputs: list<list<u8>>,
+        on-subgraph-response-outputs: list<list<u8>>,
     }
     
     // Information on a response
