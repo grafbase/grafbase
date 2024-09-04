@@ -214,9 +214,15 @@ jobs:
         with:
           target: ${{ matrix.platform.target }}
           components: clippy, rustfmt
+          targets: ${{ matrix.platform.target }}
 
-      # TODO: Configure rustup to avoid downloading all the extra toolchains, its just a waste
-      # of time...
+      - name: Rustup overridpe
+        shell: bash
+        # Adding this override prevents rust from reading rust-toolchain
+        # We want to do this because rust-toolchain has a bunch of targets in it
+        # we don't need here - I'm hoping this setting will prevent those from
+        # downloading
+        run: rustup override set ${{ env.RUST_VERSION }}
 
       - name: Install musl-tools
         if: ${{ contains(matrix.platform.target, 'linux') }}
