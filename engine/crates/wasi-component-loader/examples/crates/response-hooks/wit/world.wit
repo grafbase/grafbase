@@ -173,7 +173,7 @@ interface types {
 
         // The subgraph URL.
         url: string,
-       
+
         // The subgraph responses
         responses: list<response-kind>,
 

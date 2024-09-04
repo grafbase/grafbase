@@ -87,7 +87,7 @@ interface types {
         on-operation-response-outputs: list<list<u8>>,
     }
 
-    record operation { 
+    record operation {
         // The name of the operation, if present.
         name: option<string>,
         // The operation document in sanitized form.
@@ -131,7 +131,7 @@ interface types {
         // Will be empty if no subgraphs were called.
         on-subgraph-response-outputs: list<list<u8>>,
     }
-    
+
     // Information on a response
     record response-info {
         // The milliseconds it took to connect to the host.
@@ -176,9 +176,12 @@ interface types {
 
         // The subgraph URL.
         url: string,
-       
+
         // The subgraph responses
         responses: list<response-kind>,
+
+        // The cache status of the subgraph call.
+        cache-status: cache-status,
 
         // The time in milliseconds taken for the whole operation.
         total-duration: u64,
