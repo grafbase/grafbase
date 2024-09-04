@@ -56,6 +56,7 @@ fn missing_accept_header() {
         let response = engine
             .raw_execute(
                 http::Request::builder()
+                    .uri("http://localhost/graphql")
                     .method(http::Method::POST)
                     .header(http::header::CONTENT_TYPE, APPLICATION_JSON)
                     .body(br###"{"query":"{ __typename }"}"###.to_vec())
@@ -70,7 +71,7 @@ fn missing_accept_header() {
                 .and_then(|value| value.to_str().ok()),
             Some(APPLICATION_JSON)
         );
-        let body: serde_json::Value = serde_json::from_slice(&response.into_body().into_bytes().unwrap()).unwrap();
+        let body: serde_json::Value = serde_json::from_slice(&response.into_body()).unwrap();
         insta::assert_json_snapshot!(body, @r###"
         {
           "data": {
@@ -90,6 +91,7 @@ fn star_accept_header_should_be_accepted() {
         let response = engine
             .raw_execute(
                 http::Request::builder()
+                    .uri("http://localhost/graphql")
                     .method(http::Method::POST)
                     .header(http::header::CONTENT_TYPE, APPLICATION_JSON)
                     .header(http::header::ACCEPT, "application/*")
@@ -105,7 +107,7 @@ fn star_accept_header_should_be_accepted() {
                 .and_then(|value| value.to_str().ok()),
             Some(APPLICATION_JSON)
         );
-        let body: serde_json::Value = serde_json::from_slice(&response.into_body().into_bytes().unwrap()).unwrap();
+        let body: serde_json::Value = serde_json::from_slice(&response.into_body()).unwrap();
         insta::assert_json_snapshot!(body, @r###"
         {
           "data": {
@@ -118,6 +120,7 @@ fn star_accept_header_should_be_accepted() {
         let response = engine
             .raw_execute(
                 http::Request::builder()
+                    .uri("http://localhost/graphql")
                     .method(http::Method::POST)
                     .header(http::header::CONTENT_TYPE, APPLICATION_JSON)
                     .header(http::header::ACCEPT, "*/*")
@@ -133,7 +136,7 @@ fn star_accept_header_should_be_accepted() {
                 .and_then(|value| value.to_str().ok()),
             Some(APPLICATION_JSON)
         );
-        let body: serde_json::Value = serde_json::from_slice(&response.into_body().into_bytes().unwrap()).unwrap();
+        let body: serde_json::Value = serde_json::from_slice(&response.into_body()).unwrap();
         insta::assert_json_snapshot!(body, @r###"
         {
           "data": {
@@ -157,6 +160,7 @@ fn unsupported_accept_header() {
         let response = engine
             .raw_execute(
                 http::Request::builder()
+                    .uri("http://localhost/graphql")
                     .method(http::Method::POST)
                     .header(http::header::CONTENT_TYPE, APPLICATION_JSON)
                     .header(http::header::ACCEPT, "application/jpeg")
@@ -165,7 +169,7 @@ fn unsupported_accept_header() {
             )
             .await;
         let status = response.status();
-        let body: serde_json::Value = serde_json::from_slice(&response.into_body().into_bytes().unwrap()).unwrap();
+        let body: serde_json::Value = serde_json::from_slice(&response.into_body()).unwrap();
         insta::assert_json_snapshot!(body, @r###"
         {
           "errors": [
@@ -190,6 +194,7 @@ fn one_valid_acccept_header() {
         let response = engine
             .raw_execute(
                 http::Request::builder()
+                    .uri("http://localhost/graphql")
                     .method(http::Method::POST)
                     .header(http::header::CONTENT_TYPE, APPLICATION_JSON)
                     .header(
@@ -208,7 +213,7 @@ fn one_valid_acccept_header() {
                 .and_then(|value| value.to_str().ok()),
             Some(APPLICATION_JSON)
         );
-        let body: serde_json::Value = serde_json::from_slice(&response.into_body().into_bytes().unwrap()).unwrap();
+        let body: serde_json::Value = serde_json::from_slice(&response.into_body()).unwrap();
         insta::assert_json_snapshot!(body, @r###"
         {
           "data": {
@@ -233,6 +238,7 @@ fn missing_content_type(#[case] accept: &'static str) {
         let response = engine
             .raw_execute(
                 http::Request::builder()
+                    .uri("http://localhost/graphql")
                     .method(http::Method::POST)
                     .header(http::header::ACCEPT, accept)
                     .body(br###"{"query":"__typename"}"###.to_vec())
@@ -240,7 +246,7 @@ fn missing_content_type(#[case] accept: &'static str) {
             )
             .await;
         let status = response.status();
-        let body: serde_json::Value = serde_json::from_slice(&response.into_body().into_bytes().unwrap()).unwrap();
+        let body: serde_json::Value = serde_json::from_slice(&response.into_body()).unwrap();
         insta::assert_json_snapshot!(body, @r###"
         {
           "errors": [
@@ -268,6 +274,7 @@ fn content_type_with_parameters(#[case] accept: &'static str) {
         let response = engine
             .raw_execute(
                 http::Request::builder()
+                    .uri("http://localhost/graphql")
                     .method(http::Method::POST)
                     .header(http::header::ACCEPT, accept)
                     .header(http::header::CONTENT_TYPE, "application/json; charset=utf-8")
@@ -276,7 +283,7 @@ fn content_type_with_parameters(#[case] accept: &'static str) {
             )
             .await;
         let status = response.status();
-        let body: serde_json::Value = serde_json::from_slice(&response.into_body().into_bytes().unwrap()).unwrap();
+        let body: serde_json::Value = serde_json::from_slice(&response.into_body()).unwrap();
         insta::assert_json_snapshot!(body, @r###"
         {
           "errors": [

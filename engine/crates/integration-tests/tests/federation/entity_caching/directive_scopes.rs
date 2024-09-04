@@ -4,7 +4,7 @@
 use engine_v2::Engine;
 use graphql_mocks::{FederatedInventorySchema, FederatedProductsSchema, FederatedReviewsSchema, SecureFederatedSchema};
 use integration_tests::{
-    federation::{EngineV2Ext, TestEngineV2},
+    federation::{EngineV2Ext, TestGateway},
     openid::{CoreClientExt, OryHydraOpenIDProvider, JWKS_URI},
     runtime,
 };
@@ -163,7 +163,7 @@ async fn jwt_token(scope: &str) -> String {
         .await
 }
 
-async fn engine() -> TestEngineV2 {
+async fn engine() -> TestGateway {
     Engine::builder()
         .with_subgraph(FederatedProductsSchema)
         .with_subgraph(FederatedReviewsSchema)
