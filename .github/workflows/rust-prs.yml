@@ -215,6 +215,9 @@ jobs:
           target: ${{ matrix.platform.target }}
           components: clippy, rustfmt
 
+      # TODO: Configure rustup to avoid downloading all the extra toolchains, its just a waste
+      # of time...
+
       - name: Install musl-tools
         if: ${{ contains(matrix.platform.target, 'linux') }}
         shell: bash
@@ -288,6 +291,12 @@ jobs:
         with:
           name: wrappers-dist.js
           path: cli/wrappers/
+
+      - name: Build
+        if: fromJson(needs.what-changed.outputs.rust).cargo-build-specs
+        shell: bash
+        run: |
+          cargo build --target ${{ matrix.platform.target }} ${{ fromJson(needs.what-changed.outputs.rust).cargo-build-specs }}
 
       # TODO: Add timing reports in here somehow...
 
