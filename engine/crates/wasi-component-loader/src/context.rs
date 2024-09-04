@@ -1,10 +1,7 @@
 use std::{collections::HashMap, sync::Arc};
 
 use crossbeam::{channel::TrySendError, sync::WaitGroup};
-use grafbase_telemetry::{
-    metrics::meter_from_global_provider,
-    otel::opentelemetry::{metrics::UpDownCounter, trace::TraceId},
-};
+use grafbase_telemetry::otel::opentelemetry::{metrics::UpDownCounter, trace::TraceId};
 use wasmtime::{
     component::{ComponentType, LinkerInstance, Lower, Resource, ResourceType},
     StoreContextMut,
@@ -24,7 +21,7 @@ use crate::{
 pub struct ChannelLogSender {
     sender: crossbeam::channel::Sender<AccessLogMessage>,
     lossy_log: bool,
-    log_queue_length_counter: UpDownCounter<i64>,
+    pending_logs_counter: UpDownCounter<i64>,
 }
 
 impl ChannelLogSender {
@@ -40,7 +37,7 @@ impl ChannelLogSender {
             return Err(LogError::ChannelClosed);
         }
 
-        self.log_queue_length_counter.add(1, &[]);
+        self.pending_logs_counter.add(1, &[]);
 
         Ok(())
     }
@@ -64,18 +61,17 @@ pub type ChannelLogReceiver = crossbeam::channel::Receiver<AccessLogMessage>;
 const DEFAULT_BUFFERED_LINES_LIMIT: usize = 128_000;
 
 /// Creates a new channel for access logs.
-pub fn create_log_channel(lossy_log: bool) -> (ChannelLogSender, ChannelLogReceiver) {
+pub fn create_log_channel(
+    lossy_log: bool,
+    pending_logs_counter: UpDownCounter<i64>,
+) -> (ChannelLogSender, ChannelLogReceiver) {
     let (sender, receiver) = crossbeam::channel::bounded(DEFAULT_BUFFERED_LINES_LIMIT);
-
-    let log_queue_length_counter = meter_from_global_provider()
-        .i64_up_down_counter("grafbase.gateway.access_log.pending")
-        .init();
 
     (
         ChannelLogSender {
             sender,
             lossy_log,
-            log_queue_length_counter,
+            pending_logs_counter,
         },
         receiver,
     )

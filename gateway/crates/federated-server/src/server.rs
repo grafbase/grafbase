@@ -85,7 +85,11 @@ pub async fn serve(
     let (sender, mut gateway) = watch::channel(None);
     gateway.mark_unchanged();
 
-    let (access_log_sender, access_log_receiver) = hooks::create_log_channel(config.gateway.access_logs.lossy_log());
+    let meter = grafbase_telemetry::metrics::meter_from_global_provider();
+    let pending_logs_counter = meter.i64_up_down_counter("grafbase.gateway.access_log.pending").init();
+
+    let (access_log_sender, access_log_receiver) =
+        hooks::create_log_channel(config.gateway.access_logs.lossy_log(), pending_logs_counter.clone());
 
     let loader = config
         .hooks
@@ -94,8 +98,6 @@ pub async fn serve(
         .transpose()
         .map_err(|e| crate::Error::InternalError(e.to_string()))?
         .flatten();
-
-    let meter = grafbase_telemetry::metrics::meter_from_global_provider();
 
     let hooks = HooksWasi::new(loader, &meter, access_log_sender.clone());
 
@@ -109,7 +111,7 @@ pub async fn serve(
         .await?;
 
     if config.gateway.access_logs.enabled {
-        access_logs::start(&config.gateway.access_logs, access_log_receiver)?;
+        access_logs::start(&config.gateway.access_logs, access_log_receiver, pending_logs_counter)?;
     }
 
     let (websocket_sender, websocket_receiver) = mpsc::channel(16);
