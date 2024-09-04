@@ -1,7 +1,7 @@
 use runtime::{error::PartialGraphqlError, hooks::ResponseHooks};
 use wasi_component_loader::{
-    CacheStatus, ExecutedHttpRequest, ExecutedOperationRequest, ExecutedSubgraphRequest, FieldError,
-    GraphqlResponseStatus, Operation, RequestError, ResponseInfo, ResponseKind,
+    CacheStatus, ExecutedHttpRequest, ExecutedOperation, ExecutedSubgraphRequest, FieldError, GraphqlResponseStatus,
+    Operation, RequestError, ResponseInfo, ResponseKind,
 };
 
 use crate::HooksWasi;
@@ -73,7 +73,7 @@ impl ResponseHooks<Context> for HooksWasi {
         &self,
         context: &Context,
         operation: runtime::hooks::Operation<'_>,
-        request: runtime::hooks::ExecutedOperationRequest,
+        request: runtime::hooks::ExecutedOperation,
     ) -> Result<Vec<u8>, PartialGraphqlError> {
         let Some(ref inner) = self.0 else {
             return Ok(Vec::new());
@@ -88,7 +88,7 @@ impl ResponseHooks<Context> for HooksWasi {
             cached,
         } = operation;
 
-        let runtime::hooks::ExecutedOperationRequest {
+        let runtime::hooks::ExecutedOperation {
             duration,
             status,
             on_subgraph_response_outputs,
@@ -101,7 +101,7 @@ impl ResponseHooks<Context> for HooksWasi {
             cached,
         };
 
-        let request = ExecutedOperationRequest {
+        let request = ExecutedOperation {
             duration,
             status: match status {
                 grafbase_telemetry::gql_response_status::GraphqlResponseStatus::Success => {

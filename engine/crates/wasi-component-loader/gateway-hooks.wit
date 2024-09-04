@@ -122,7 +122,7 @@ interface types {
     }
 
     // Info about an executed gateway operation.
-    record executed-operation-request {
+    record executed-operation {
         // Time in milliseconds spent executing the operation.
         duration: u64,
         // The status of the operation.
@@ -335,7 +335,7 @@ interface authorization {
 }
 
 interface responses {
-    use types.{shared-context, executed-operation-request, executed-subgraph-request, executed-http-request, operation};
+    use types.{shared-context, executed-operation, executed-subgraph-request, executed-http-request, operation};
 
     // The hook is called after a subgraph entity has been either requested or fetched from cache.
     // The output is a list of bytes, which will be available in the on-operation-response hook.
@@ -349,7 +349,7 @@ interface responses {
     on-operation-response: func(
         context: shared-context,
         operation: operation,
-        request: executed-operation-request,
+        request: executed-operation,
     ) -> list<u8>;
 
     // The hook is called right before a response is sent to the user.

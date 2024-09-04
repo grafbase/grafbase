@@ -294,15 +294,15 @@ impl OperationHookInfoBuilder {
 }
 
 #[derive(Debug, Clone)]
-pub struct ExecutedOperationRequest {
+pub struct ExecutedOperation {
     pub duration: u64,
     pub status: GraphqlResponseStatus,
     pub on_subgraph_response_outputs: Vec<Vec<u8>>,
 }
 
-impl ExecutedOperationRequest {
-    pub fn builder() -> ExecutedOperationRequestBuilder {
-        ExecutedOperationRequestBuilder {
+impl ExecutedOperation {
+    pub fn builder() -> ExecutedOperationBuilder {
+        ExecutedOperationBuilder {
             start_time: Instant::now(),
             on_subgraph_response_outputs: Vec::new(),
         }
@@ -310,18 +310,18 @@ impl ExecutedOperationRequest {
 }
 
 #[derive(Debug)]
-pub struct ExecutedOperationRequestBuilder {
+pub struct ExecutedOperationBuilder {
     start_time: Instant,
     on_subgraph_response_outputs: Vec<Vec<u8>>,
 }
 
-impl ExecutedOperationRequestBuilder {
+impl ExecutedOperationBuilder {
     pub fn set_on_subgraph_response_outputs(&mut self, outputs: Vec<Vec<u8>>) {
         self.on_subgraph_response_outputs = outputs;
     }
 
-    pub fn finalize(self, status: GraphqlResponseStatus) -> ExecutedOperationRequest {
-        ExecutedOperationRequest {
+    pub fn finalize(self, status: GraphqlResponseStatus) -> ExecutedOperation {
+        ExecutedOperation {
             duration: self.start_time.elapsed().as_millis() as u64,
             status,
             on_subgraph_response_outputs: self.on_subgraph_response_outputs,
@@ -348,7 +348,7 @@ pub trait ResponseHooks<Context>: Send + Sync + 'static {
         &self,
         context: &Context,
         operation: Operation<'_>,
-        request: ExecutedOperationRequest,
+        request: ExecutedOperation,
     ) -> impl Future<Output = Result<Vec<u8>, PartialGraphqlError>> + Send;
 
     fn on_http_response(
@@ -490,7 +490,7 @@ impl ResponseHooks<()> for () {
         &self,
         _: &(),
         _: Operation<'_>,
-        _: ExecutedOperationRequest,
+        _: ExecutedOperation,
     ) -> Result<Vec<u8>, PartialGraphqlError> {
         Ok(Vec::new())
     }

@@ -89,7 +89,7 @@ pub enum GraphqlResponseStatus {
 /// Data from an executed full operation.
 #[derive(Debug, Clone, Lower, ComponentType)]
 #[component(record)]
-pub struct ExecutedOperationRequest {
+pub struct ExecutedOperation {
     /// The duration it took to execute the operation.
     #[component(name = "duration")]
     pub duration: u64,
@@ -197,7 +197,7 @@ impl ResponsesComponentInstance {
         &mut self,
         context: SharedContext,
         operation: Operation,
-        request: ExecutedOperationRequest,
+        request: ExecutedOperation,
     ) -> crate::Result<Vec<u8>> {
         self.call2_one_output(ON_OPERATION_RESPONSE_FUNCTION, context, (operation, request))
             .await?

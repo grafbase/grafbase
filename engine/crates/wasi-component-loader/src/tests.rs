@@ -2,7 +2,7 @@ use std::{collections::HashMap, sync::Arc};
 
 use crate::{
     create_log_channel, hooks::subgraph::SubgraphComponentInstance, AuthorizationComponentInstance, CacheStatus,
-    ComponentLoader, Config, EdgeDefinition, ExecutedHttpRequest, ExecutedOperationRequest, ExecutedSubgraphRequest,
+    ComponentLoader, Config, EdgeDefinition, ExecutedHttpRequest, ExecutedOperation, ExecutedSubgraphRequest,
     GatewayComponentInstance, GuestError, NodeDefinition, Operation, RecycleableComponentInstance, ResponseInfo,
     ResponsesComponentInstance, SharedContext,
 };
@@ -693,7 +693,7 @@ async fn response_hooks() {
 
     let subgraph_info = hook.on_subgraph_response(context.clone(), request).await.unwrap();
 
-    let request = ExecutedOperationRequest {
+    let request = ExecutedOperation {
         duration: 5,
         status: crate::GraphqlResponseStatus::Success,
         on_subgraph_response_outputs: vec![subgraph_info],

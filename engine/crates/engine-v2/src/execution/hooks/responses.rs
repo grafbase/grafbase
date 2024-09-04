@@ -1,5 +1,5 @@
 use runtime::hooks::{
-    ExecutedHttpRequest, ExecutedOperationRequest, ExecutedSubgraphRequest, Hooks, Operation, ResponseHooks,
+    ExecutedHttpRequest, ExecutedOperation, ExecutedSubgraphRequest, Hooks, Operation, ResponseHooks,
 };
 use tracing::{instrument, Level};
 
@@ -19,7 +19,7 @@ impl<'ctx, H: Hooks> super::RequestHooks<'ctx, H> {
     pub async fn on_operation_response(
         &self,
         operation: Operation<'_>,
-        request: ExecutedOperationRequest,
+        request: ExecutedOperation,
     ) -> Result<Vec<u8>, GraphqlError> {
         self.hooks
             .responses()
