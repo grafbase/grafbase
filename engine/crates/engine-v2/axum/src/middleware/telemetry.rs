@@ -21,7 +21,7 @@ use grafbase_telemetry::{
 use headers::HeaderMapExt;
 use http::{Request, Response};
 use http_body::Body;
-use tracing::Span;
+use tracing::{Instrument, Span};
 
 #[derive(Clone)]
 pub struct TelemetryLayer {
@@ -123,17 +123,17 @@ where
         let metrics = self.metrics.clone();
         let span = self.make_span(&req);
         let listen_address = self.listen_address;
-        let client = Client::extract_from(req.headers());
-        let version = req.version();
-
-        let method = req.method().clone();
-        let url = req.uri().clone();
 
         metrics.increment_connected_clients();
 
-        Box::pin(async move {
-            let _guard = span.enter();
+        let fut = async move {
             let start = Instant::now();
+
+            let client = Client::extract_from(req.headers());
+            let version = req.version();
+
+            let method = req.method().clone();
+            let url = req.uri().clone();
 
             let mut result = inner.call(req).await;
             let latency = start.elapsed();
@@ -199,6 +199,8 @@ where
             metrics.decrement_connected_clients();
 
             result
-        })
+        };
+
+        Box::pin(fut.instrument(span))
     }
 }
