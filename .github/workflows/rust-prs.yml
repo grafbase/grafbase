@@ -204,7 +204,7 @@ jobs:
       - name: Install musl-tools
         if: ${{ contains(matrix.platform.target, 'linux') }}
         shell: bash
-        run: sudo apt-get install musl-tools
+        run: sudo apt-get install musl musl-tools
 
       - name: Build the WASI components for tests
         if: contains(fromJson(needs.what-changed.outputs.rust).changed-packages, 'integration-tests')
