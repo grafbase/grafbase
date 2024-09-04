@@ -138,24 +138,23 @@ where
             let mut result = inner.call(req).await;
             let latency = start.elapsed();
 
+            let metrics_attributes = |status_code, gql_status, cache_status| RequestMetricsAttributes {
+                status_code,
+                client,
+                cache_status,
+                gql_status,
+                url_scheme: url.scheme_str().map(ToString::to_string),
+                route: Some(url.path().to_string()),
+                listen_address,
+                version: Some(version),
+                method: Some(method.clone()),
+            };
+
             match result {
                 Err(ref err) => {
                     Span::current().record("http.response.status_code", 500);
 
-                    metrics.record_http_duration(
-                        RequestMetricsAttributes {
-                            status_code: 500,
-                            client,
-                            cache_status: None,
-                            gql_status: None,
-                            url_scheme: url.scheme_str().map(ToString::to_string),
-                            route: Some(url.path().to_string()),
-                            listen_address,
-                            version: Some(version),
-                            method: Some(method.clone()),
-                        },
-                        latency,
-                    );
+                    metrics.record_http_duration(metrics_attributes(500, None, None), latency);
 
                     Span::current().record_failure(err.to_string());
                     tracing::error!(target: GRAFBASE_TARGET, "Internal server error: {err}");
@@ -172,17 +171,7 @@ where
                     let gql_status = response.headers().typed_get();
 
                     metrics.record_http_duration(
-                        RequestMetricsAttributes {
-                            status_code: response.status().as_u16(),
-                            cache_status,
-                            gql_status,
-                            client,
-                            url_scheme: url.scheme_str().map(ToString::to_string),
-                            route: Some(url.path().to_string()),
-                            listen_address,
-                            version: Some(version),
-                            method: Some(method),
-                        },
+                        metrics_attributes(response.status().as_u16(), gql_status, cache_status),
                         latency,
                     );
 
