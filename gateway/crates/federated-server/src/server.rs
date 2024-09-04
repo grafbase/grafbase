@@ -12,7 +12,7 @@ mod trusted_documents_client;
 use grafbase_telemetry::gql_response_status::GraphqlResponseStatus;
 pub use graph_fetch_method::GraphFetchMethod;
 use runtime_local::{hooks, ComponentLoader, HooksWasi};
-use tokio::sync::watch;
+use tokio::{join, sync::watch};
 use ulid::Ulid;
 
 use axum::{routing::get, Router};
@@ -180,10 +180,13 @@ pub async fn serve(
     }
 
     // Once all pending requests have been dealt with, we shutdown everything else left (telemetry, logs)
-    server_runtime.graceful_shutdown().await;
-
     if config.gateway.access_logs.enabled {
-        access_log_sender.graceful_shutdown().await;
+        join!(
+            server_runtime.graceful_shutdown(),
+            access_log_sender.graceful_shutdown()
+        );
+    } else {
+        server_runtime.graceful_shutdown().await;
     }
 
     Ok(())
