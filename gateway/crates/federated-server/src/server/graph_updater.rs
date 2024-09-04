@@ -1,12 +1,15 @@
 use std::time::SystemTime;
 use std::{borrow::Cow, sync::Arc, time::Duration};
 
+use crate::server::gateway::GraphDefinition;
+
 use super::gateway::GatewaySender;
 use ascii::AsciiString;
 use gateway_config::Config;
 use grafbase_telemetry::metrics::meter_from_global_provider;
 use grafbase_telemetry::otel::opentelemetry::metrics::Histogram;
 use grafbase_telemetry::otel::opentelemetry::KeyValue;
+use graph_ref::GraphRef;
 use http::{HeaderValue, StatusCode};
 use runtime_local::hooks::ChannelLogSender;
 use tokio::time::MissedTickBehavior;
@@ -77,8 +80,7 @@ pub(super) struct GraphUpdater {
 
 impl GraphUpdater {
     pub fn new(
-        graph_ref: &str,
-        branch: Option<&str>,
+        graph_ref: GraphRef,
         access_token: AsciiString,
         sender: GatewaySender,
         gateway_config: Config,
@@ -99,9 +101,17 @@ impl GraphUpdater {
             Err(_) => Cow::Borrowed(GDN_HOST),
         };
 
-        let gdn_url = match branch {
-            Some(branch) => format!("{gdn_host}/graphs/{graph_ref}/{branch}/current"),
-            None => format!("{gdn_host}/graphs/{graph_ref}/current"),
+        let gdn_url = match graph_ref {
+            GraphRef::LatestProductionVersion { graph_slug } => format!("{gdn_host}/graphs/{graph_slug}/current"),
+            GraphRef::LatestVersion {
+                graph_slug,
+                branch_name,
+            } => format!("{gdn_host}/graphs/{graph_slug}/{branch_name}/current"),
+            GraphRef::Id {
+                graph_slug,
+                branch_name,
+                version,
+            } => format!("{gdn_host}/graphs/{graph_slug}/{branch_name}/{version}"),
         };
 
         let gdn_url = gdn_url
@@ -222,9 +232,9 @@ impl GraphUpdater {
 
             tracing::info!("Fetched new Graph");
 
+            let version_id = response.version_id;
             let gateway = match super::gateway::generate(
-                response.sdl,
-                Some(response.branch_id),
+                GraphDefinition::Gdn(response),
                 &self.gateway_config,
                 None,
                 self.access_log_sender.clone(),
@@ -254,7 +264,7 @@ impl GraphUpdater {
                 duration,
             );
 
-            self.current_id = Some(response.version_id);
+            self.current_id = Some(version_id);
 
             self.sender
                 .send(Some(Arc::new(gateway)))

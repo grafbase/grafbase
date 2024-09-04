@@ -87,7 +87,7 @@ impl ProjectRefOrGraphRef {
     pub(crate) fn branch(&self) -> Option<&str> {
         match self {
             ProjectRefOrGraphRef::ProjectRef(pr) => pr.branch(),
-            ProjectRefOrGraphRef::GraphRef(gr) => gr.branch_name(),
+            ProjectRefOrGraphRef::GraphRef(gr) => gr.branch(),
         }
     }
 
@@ -101,7 +101,7 @@ impl ProjectRefOrGraphRef {
     pub(crate) fn project(&self) -> &str {
         match self {
             ProjectRefOrGraphRef::ProjectRef(pr) => pr.graph(),
-            ProjectRefOrGraphRef::GraphRef(gr) => gr.graph_slug(),
+            ProjectRefOrGraphRef::GraphRef(gr) => gr.slug(),
         }
     }
 }

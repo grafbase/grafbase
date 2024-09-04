@@ -1,4 +1,4 @@
-use grafbase_telemetry::{metrics, otel::opentelemetry};
+use grafbase_telemetry::metrics::{self, EngineMetrics};
 use runtime::{
     entity_cache::EntityCache, fetch::dynamic::DynamicFetcher, hooks::DynamicHooks, trusted_documents_client,
 };
@@ -14,7 +14,7 @@ pub struct TestRuntime {
     pub trusted_documents: trusted_documents_client::Client,
     pub kv: runtime::kv::KvStore,
     pub hot_cache_factory: InMemoryOperationCacheFactory,
-    pub meter: opentelemetry::metrics::Meter,
+    pub metrics: EngineMetrics,
     pub hooks: DynamicHooks,
     pub rate_limiter: runtime::rate_limiting::RateLimiter,
     pub entity_cache: InMemoryEntityCache,
@@ -28,7 +28,7 @@ impl Default for TestRuntime {
             fetcher: DynamicFetcher::wrap(NativeFetcher::default()),
             trusted_documents: trusted_documents_client::Client::new(NoopTrustedDocuments),
             kv: InMemoryKvStore::runtime(),
-            meter: metrics::meter_from_global_provider(),
+            metrics: EngineMetrics::build(&metrics::meter_from_global_provider(), None),
             hooks: Default::default(),
             rate_limiter: InMemoryRateLimiter::runtime_with_watcher(rx),
             entity_cache: InMemoryEntityCache::default(),
@@ -54,10 +54,6 @@ impl engine_v2::Runtime for TestRuntime {
         &self.trusted_documents
     }
 
-    fn meter(&self) -> &opentelemetry::metrics::Meter {
-        &self.meter
-    }
-
     fn hooks(&self) -> &Self::Hooks {
         &self.hooks
     }
@@ -76,5 +72,9 @@ impl engine_v2::Runtime for TestRuntime {
 
     fn entity_cache(&self) -> &dyn EntityCache {
         &self.entity_cache
+    }
+
+    fn metrics(&self) -> &EngineMetrics {
+        &self.metrics
     }
 }

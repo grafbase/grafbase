@@ -1,5 +1,5 @@
 use config::latest::{HeaderRemove, HeaderRule, NameOrPattern};
-use engine_v2_schema::{Definition, Schema};
+use engine_v2_schema::{Definition, Schema, Version};
 use federated_graph::from_sdl;
 use pretty_assertions::assert_eq;
 use regex::Regex;
@@ -100,7 +100,7 @@ type User
 fn should_not_fail() {
     let graph = from_sdl(SCHEMA).unwrap();
     let config = config::VersionedConfig::V6(config::latest::Config::from_graph(graph)).into_latest();
-    let _schema = Schema::try_from(config).unwrap();
+    let _schema = Schema::build(config, Version::from("random")).unwrap();
 }
 
 const SCHEMA_WITH_INACCESSIBLES: &str = r#"
@@ -233,7 +233,7 @@ input BookInput2 {
 fn should_remove_all_inaccessible_items() {
     let graph = from_sdl(SCHEMA_WITH_INACCESSIBLES).unwrap();
     let config = config::VersionedConfig::V6(config::latest::Config::from_graph(graph)).into_latest();
-    let schema = Schema::try_from(config).unwrap();
+    let schema = Schema::build(config, Version::from("random")).unwrap();
 
     // Inaccessible types are still in the schema, they're just not reachable through input and output fields.
     assert!(schema.walker().definition_by_name("BookInput").is_some());
@@ -315,7 +315,7 @@ fn serde_roundtrip(#[case] sdl: &str) {
         name: NameOrPattern::Pattern(Regex::new("^foo*").unwrap()),
     }));
 
-    let schema = Schema::try_from(config).unwrap();
+    let schema = Schema::build(config, Version::from("random")).unwrap();
 
     let bytes = postcard::to_stdvec(&schema).unwrap();
     postcard::from_bytes::<Schema>(&bytes).unwrap();

@@ -7,6 +7,7 @@ use engine_v2::Engine;
 use futures_concurrency::stream::Merge;
 use futures_util::{stream::BoxStream, StreamExt};
 use gateway_config::GraphRateLimit;
+use grafbase_telemetry::metrics::EngineMetrics;
 use runtime::rate_limiting::RateLimitKey;
 use runtime_local::{rate_limiting::in_memory::key_based::InMemoryRateLimiter, InMemoryEntityCache, NativeFetcher};
 use tokio_stream::wrappers::WatchStream;
@@ -59,7 +60,7 @@ pub(super) async fn new_gateway(config: Option<engine_v2::VersionedConfig>) -> O
             runtime_noop::trusted_documents::NoopTrustedDocuments,
         ),
         kv: runtime_local::InMemoryKvStore::runtime(),
-        meter: grafbase_telemetry::metrics::meter_from_global_provider(),
+        metrics: EngineMetrics::build(&grafbase_telemetry::metrics::meter_from_global_provider(), None),
         // FIXME: God is this ugly
         rate_limiter: InMemoryRateLimiter::runtime({
             let mut key_based_config = HashMap::new();
@@ -92,8 +93,8 @@ pub(super) async fn new_gateway(config: Option<engine_v2::VersionedConfig>) -> O
         entity_cache: InMemoryEntityCache::default(),
     };
 
-    let schema = config.try_into().ok()?;
-    let engine = Engine::new(Arc::new(schema), None, runtime).await;
+    let schema = engine_v2::Schema::build(config, engine_v2::SchemaVersion::from(ulid::Ulid::new().to_bytes())).ok()?;
+    let engine = Engine::new(Arc::new(schema), runtime).await;
 
     Some(Arc::new(engine))
 }
@@ -102,7 +103,7 @@ pub struct CliRuntime {
     fetcher: NativeFetcher,
     trusted_documents: runtime::trusted_documents_client::Client,
     kv: runtime::kv::KvStore,
-    meter: grafbase_telemetry::otel::opentelemetry::metrics::Meter,
+    metrics: EngineMetrics,
     rate_limiter: runtime::rate_limiting::RateLimiter,
     entity_cache: InMemoryEntityCache,
 }
@@ -124,8 +125,8 @@ impl engine_v2::Runtime for CliRuntime {
         &self.kv
     }
 
-    fn meter(&self) -> &grafbase_telemetry::otel::opentelemetry::metrics::Meter {
-        &self.meter
+    fn metrics(&self) -> &EngineMetrics {
+        &self.metrics
     }
 
     fn hooks(&self) -> &() {

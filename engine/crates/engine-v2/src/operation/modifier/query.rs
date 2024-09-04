@@ -143,7 +143,7 @@ where
                     let result = self
                         .ctx
                         .hooks()
-                        .authorize_node_pre_execution(self.ctx.schema.walk(definition), directive.metadata())
+                        .authorize_node_pre_execution(self.ctx.schema().walk(definition), directive.metadata())
                         .await;
 
                     if let Err(err) = result {
@@ -224,7 +224,7 @@ where
 
     fn walker(&self) -> PreparedOperationWalker<'op, (), ()> {
         PreparedOperationWalker {
-            schema_walker: self.ctx.schema.walker(),
+            schema_walker: self.ctx.schema().walker(),
             operation: self.operation,
             variables: self.variables,
             item: (),

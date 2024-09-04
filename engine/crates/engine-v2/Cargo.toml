@@ -21,7 +21,6 @@ async-runtime.workspace = true
 base64.workspace = true
 blake3.workspace = true
 bytes.workspace = true
-ulid.workspace = true
 url.workspace = true
 crossbeam-queue = "0.3.11"
 enumset = "1"

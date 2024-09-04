@@ -32,7 +32,7 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
                     success: true,
                 };
 
-                self.metrics.record_preparation_latency(attributes, duration);
+                self.metrics().record_preparation_latency(attributes, duration);
 
                 Ok(operation)
             }
@@ -43,7 +43,7 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
                     success: false,
                 };
 
-                self.metrics.record_preparation_latency(attributes, duration);
+                self.metrics().record_preparation_latency(attributes, duration);
 
                 Err(e)
             }
@@ -63,13 +63,13 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
                 Err(err) => return Err((None, Response::refuse_request_with(http::StatusCode::BAD_REQUEST, err))),
             };
 
-            if let Some(operation) = self.operation_cache.get(&cache_key).await {
+            if let Some(operation) = self.engine.operation_cache.get(&cache_key).await {
                 operation_info.set_cached();
-                self.engine.metrics.record_operation_cache_hit();
+                self.metrics().record_operation_cache_hit();
 
                 Ok(operation)
             } else {
-                self.engine.metrics.record_operation_cache_miss();
+                self.metrics().record_operation_cache_miss();
                 match load_fut.await {
                     Ok(document) => Err((cache_key, document)),
                     Err(err) => return Err((None, Response::request_error([err]))),
@@ -80,7 +80,7 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
         let operation = match result {
             Ok(operation) => operation,
             Err((cache_key, document)) => {
-                let operation = Operation::build(&self.schema, &request, &document)
+                let operation = Operation::build(self.schema(), &request, &document)
                     .map(Arc::new)
                     .map_err(|mut err| (err.take_metrics_attributes(), Response::request_error([err])))?;
 
@@ -108,7 +108,7 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
             ));
         }
 
-        let variables = Variables::build(self.schema.as_ref(), &operation, request.variables).map_err(|errors| {
+        let variables = Variables::build(self.schema(), &operation, request.variables).map_err(|errors| {
             (
                 Some(operation.metrics_attributes.clone()),
                 Response::request_error(errors),

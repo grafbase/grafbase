@@ -37,7 +37,7 @@ impl<R: Runtime> Engine<R> {
             if let Some(operation_metrics_attributes) = operation_metrics_attributes.clone() {
                 span.record_gql_request((&operation_metrics_attributes).into());
 
-                self.metrics.record_operation_duration(
+                self.runtime.metrics().record_operation_duration(
                     GraphqlRequestMetricsAttributes {
                         operation: operation_metrics_attributes,
                         status,
@@ -52,7 +52,7 @@ impl<R: Runtime> Engine<R> {
 
             if let Some(attributes) = operation_metrics_attributes {
                 for error_code in response.distinct_error_codes() {
-                    self.metrics.increment_graphql_errors(GraphqlErrorAttributes {
+                    self.runtime.metrics().increment_graphql_errors(GraphqlErrorAttributes {
                         code: error_code.into(),
                         operation_name: attributes.name.clone(),
                         client: request_context.client.clone(),

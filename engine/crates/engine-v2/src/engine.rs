@@ -3,7 +3,6 @@ use bytes::Bytes;
 use futures::{StreamExt, TryFutureExt};
 use futures_util::Stream;
 use gateway_v2_auth::AuthService;
-use grafbase_telemetry::metrics::EngineMetrics;
 use retry_budget::RetryBudgets;
 use schema::Schema;
 use std::{borrow::Cow, future::Future, sync::Arc};
@@ -26,23 +25,11 @@ mod trusted_documents;
 
 pub use runtime::Runtime;
 
-pub(crate) struct SchemaVersion(Vec<u8>);
-
-impl std::ops::Deref for SchemaVersion {
-    type Target = [u8];
-
-    fn deref(&self) -> &Self::Target {
-        self.0.as_ref()
-    }
-}
-
 pub struct Engine<R: Runtime> {
     // We use an Arc for the schema to have a self-contained response which may still
     // needs access to the schema strings
     pub(crate) schema: Arc<Schema>,
-    pub(crate) schema_version: SchemaVersion,
     pub(crate) runtime: R,
-    pub(crate) metrics: EngineMetrics,
     auth: AuthService,
     retry_budgets: RetryBudgets,
     operation_cache: <R::OperationCacheFactory as OperationCacheFactory>::Cache<Arc<PreparedOperation>>,
@@ -52,30 +39,15 @@ pub struct Engine<R: Runtime> {
 impl<R: Runtime> Engine<R> {
     /// schema_version is used in operation cache key which ensures we only retrieve cached
     /// operation for the same schema version. If none is provided, a random one is generated.
-    pub async fn new(schema: Arc<Schema>, schema_version: Option<&[u8]>, runtime: R) -> Self {
+    pub async fn new(schema: Arc<Schema>, runtime: R) -> Self {
         let auth = gateway_v2_auth::AuthService::new_v2(
             schema.settings.auth_config.clone().unwrap_or_default(),
             runtime.kv().clone(),
         );
 
         Self {
-            schema_version: SchemaVersion({
-                let mut out = Vec::new();
-                match schema_version {
-                    Some(version) => {
-                        out.push(0x00);
-                        out.extend_from_slice(version);
-                    }
-                    None => {
-                        out.push(0x01);
-                        out.extend_from_slice(&ulid::Ulid::new().to_bytes());
-                    }
-                }
-                out
-            }),
             auth,
             retry_budgets: RetryBudgets::build(&schema),
-            metrics: EngineMetrics::build(runtime.meter()),
             operation_cache: runtime.operation_cache_factory().create().await,
             schema,
             runtime,

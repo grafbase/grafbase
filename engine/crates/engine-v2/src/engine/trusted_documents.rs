@@ -38,17 +38,15 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
         'r: 'f,
     {
         let client_name = self.request_context.client.as_ref().map(|c| c.name.as_ref());
-        let trusted_documents_enabled = self.runtime.trusted_documents().is_enabled();
+        let trusted_documents = self.engine.runtime.trusted_documents();
         let persisted_query_extension = request.extensions.persisted_query.as_ref();
         let doc_id = request.doc_id.as_ref();
         let name = request.operation_name.as_deref();
-        let schema_version = &self.engine.schema_version;
+        let schema = &self.engine.schema;
 
-        match (trusted_documents_enabled, persisted_query_extension, doc_id) {
+        match (trusted_documents.is_enabled(), persisted_query_extension, doc_id) {
             (true, None, None) => {
-                if self
-                    .runtime
-                    .trusted_documents()
+                if trusted_documents
                     .bypass_header()
                     .map(|(name, value)| self.headers().get(name).and_then(|v| v.to_str().ok()) == Some(value))
                     .unwrap_or_default()
@@ -60,7 +58,7 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
                     Ok(OperationDocument {
                         cache_key: Key::Operation {
                             name,
-                            schema_version,
+                            schema,
                             document: Document::Text(document),
                         }
                         .to_string(),
@@ -97,7 +95,7 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
                 Ok(OperationDocument {
                     cache_key: Key::Operation {
                         name,
-                        schema_version,
+                        schema,
                         document: Document::TrustedDocumentId {
                             client_name,
                             doc_id: doc_id.clone(),
@@ -116,7 +114,7 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
                 Ok(OperationDocument {
                     cache_key: Key::Operation {
                         name,
-                        schema_version,
+                        schema,
                         document: Document::AutomaticallyPersistedQuery(ext),
                     }
                     .to_string(),
@@ -132,7 +130,7 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
                 Ok(OperationDocument {
                     cache_key: Key::Operation {
                         name,
-                        schema_version,
+                        schema,
                         document: Document::Text(document),
                     }
                     .to_string(),

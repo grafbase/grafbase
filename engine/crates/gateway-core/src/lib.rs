@@ -94,7 +94,7 @@ where
             auth,
             authorizer,
             trusted_documents,
-            operation_metrics: EngineMetrics::build(&meter),
+            operation_metrics: EngineMetrics::build(&meter, None),
             rate_limiter,
         }
     }

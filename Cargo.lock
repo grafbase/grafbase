@@ -2537,7 +2537,6 @@ dependencies = [
  "thiserror",
  "tower",
  "tracing",
- "ulid",
  "url",
  "web-time",
 ]
@@ -2885,6 +2884,7 @@ dependencies = [
  "tokio-stream",
  "tower-http",
  "tracing",
+ "ulid",
  "url",
 ]
 
@@ -2904,6 +2904,7 @@ dependencies = [
  "engine-v2-axum",
  "gateway-config",
  "grafbase-telemetry",
+ "graph-ref",
  "graphql-composition",
  "http",
  "lambda_http",

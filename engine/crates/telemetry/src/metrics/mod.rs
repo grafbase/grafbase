@@ -1,10 +1,10 @@
-mod operation;
+mod engine;
 mod request;
 
 use std::borrow::Cow;
 
+pub use engine::*;
 use opentelemetry::metrics::{Meter, MeterProvider};
-pub use operation::*;
 pub use request::*;
 
 pub fn meter_from_global_provider() -> Meter {
