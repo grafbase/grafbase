@@ -159,11 +159,11 @@ jobs:
           cargo clippy --target ${{ matrix.platform.target }} ${{ fromJson(needs.what-changed.outputs.rust).cargo-package-specs }}
 
       - name: Install cargo binstall
-        if: fromJson(needs.what-changed.outputs.rust).cargo-bin-specs
+        if: fromJson(needs.what-changed.outputs.rust).cargo-docker-test-specs
         uses: cargo-bins/cargo-binstall@v1.10.3
 
       - name: Install cargo-nextest & cargo-component
-        if: fromJson(needs.what-changed.outputs.rust).cargo-bin-specs
+        if: fromJson(needs.what-changed.outputs.rust).cargo-docker-test-specs
         shell: bash
         run: |
           cargo binstall cargo-nextest --secure -y
@@ -204,54 +204,68 @@ jobs:
           version: 8
           run_install: false
 
-      # - name: Login to Docker Hub
-      #   uses: docker/login-action@v3
-      #   with:
-      #     username: ${{ secrets.DOCKERHUB_USERNAME }}
-      #     password: ${{ secrets.DOCKERHUB_TOKEN }}
-
       - name: Build the WASI components for tests
         if: contains(fromJson(needs.what-changed.outputs.rust).changed-packages, 'integration-tests')
         shell: bash
         working-directory: engine/crates/wasi-component-loader/examples
         run: cargo component build
 
+      - name: Login to Docker Hub
+        if: runner.os == 'Linux'
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
       # TODO: maybe merge these composes into one?  Think it would download in parallel if nothing else
       # Probably worthwhile...
-      # - name: Start integration-test docker compose
-      #   if: contains(fromJson(needs.what-changed.outputs.rust).changed-packages, 'integration-tests')
-      #   shell: bash
-      #   working-directory: engine/crates/integration-tests
-      #   run: docker compose up -d
+      - name: Start integration-test docker compose
+        if: runner.os == 'Linux' && contains(fromJson(needs.what-changed.outputs.rust).changed-packages, 'integration-tests')
+        shell: bash
+        working-directory: engine/crates/integration-tests
+        run: docker compose up -d
 
-      # - name: Start gateway docker compose
-      #   if: contains(fromJson(needs.what-changed.outputs.rust).changed-packages, 'grafbase-gateway')
-      #   shell: bash
-      #   working-directory: gateway/crates/gateway-binary
-      #   run: docker compose up -d
+      - name: Start gateway docker compose
+        if: runner.os == 'Linux' && contains(fromJson(needs.what-changed.outputs.rust).changed-packages, 'grafbase-gateway')
+        shell: bash
+        working-directory: gateway/crates/gateway-binary
+        run: docker compose up -d
 
       # It's kinda useful to get build vs run timings on tests, so splitting out the build from the run
       # here
-      - name: Build tests
-        if: fromJson(needs.what-changed.outputs.rust).cargo-package-specs
+      - name: Build tests (non docker platforms)
+        if: fromJson(needs.what-changed.outputs.rust).cargo-test-specs && runner.os != 'Linux'
         shell: bash
         run: |
-          cargo nextest run --target ${{ matrix.platform.target }} --no-run --profile ci ${{ fromJson(needs.what-changed.outputs.rust).cargo-package-specs }}
+          cargo nextest run --target ${{ matrix.platform.target }} --no-run --profile ci ${{ fromJson(needs.what-changed.outputs.rust).cargo-test-specs }}
 
-      # - name: Run tests
-      #   id: tests
-      #   if: fromJson(needs.what-changed.outputs.rust).cargo-package-specs
-      #   shell: bash
-      #   run: |
-      #     cargo nextest run --target ${{ matrix.platform.target }} --profile ci ${{ fromJson(needs.what-changed.outputs.rust).cargo-package-specs }}
+      - name: Run tests (non docker platforms)
+        id: tests
+        if: fromJson(needs.what-changed.outputs.rust).cargo-test-specs && runner.os != 'Linux'
+        shell: bash
+        run: |
+          cargo nextest run --target ${{ matrix.platform.target }} --profile ci ${{ fromJson(needs.what-changed.outputs.rust).cargo-test-specs }}
 
-      # - name: Upload the JUnit files
-      #   if: ${{ ( success() || failure() ) && !contains(steps.tests.outputs.exitcode, '101') }}
-      #   uses: ./.github/actions/test_upload_datadog
-      #   with:
-      #     api_key: ${{ secrets.DATADOG_API_KEY }}
-      #     junit_path: target/nextest/ci/junit.xml
-      #     service: cli
+      - name: Build tests (docker platforms)
+        if: fromJson(needs.what-changed.outputs.rust).cargo-docker-test-specs && runner.os == 'Linux'
+        shell: bash
+        run: |
+          cargo nextest run --target ${{ matrix.platform.target }} --no-run --profile ci ${{ fromJson(needs.what-changed.outputs.rust).cargo-test-specs }}
+
+      - name: Run tests (docker platforms)
+        id: tests_docker
+        if: fromJson(needs.what-changed.outputs.rust).cargo-docker-test-specs && runner.os == 'Linux'
+        shell: bash
+        run: |
+          cargo nextest run --target ${{ matrix.platform.target }} --profile ci ${{ fromJson(needs.what-changed.outputs.rust).cargo-test-specs }}
+
+      - name: Upload the JUnit files
+        if: ${{ ( success() || failure() ) && !contains(steps.tests.outputs.exitcode, '101') && !contains(steps.tests_docker.outputs.exitcode, '101')}}
+        uses: ./.github/actions/test_upload_datadog
+        with:
+          api_key: ${{ secrets.DATADOG_API_KEY }}
+          junit_path: target/nextest/ci/junit.xml
+          service: cli
 
       # - name: Install cargo-nextest & libs linux
       #   # if: ${{ startsWith(inputs.platform, 'linux') }}
@@ -285,6 +299,8 @@ jobs:
         run: |
           cargo build --target ${{ matrix.platform.target }} ${{ fromJson(needs.what-changed.outputs.rust).cargo-bin-specs }}
 
-      # TODO: Add timings to the above and upload as an artifact
+# TODO: Test the docker builds as well?
 
-      # TODO: Make sure this all appears in datadog once ready
+# TODO: Add timings to the above and upload as an artifact
+
+# TODO: Make sure this all appears in datadog once ready
