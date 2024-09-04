@@ -70,7 +70,7 @@ pub enum EntityCachingConfig {
 pub enum EntityCacheStorage {
     #[default]
     Memory,
-    Redis(RedisConfig),
+    Redis(Box<RedisConfig>),
 }
 
 impl From<gateway_config::EntityCachingConfig> for EntityCachingConfig {
@@ -96,7 +96,7 @@ fn entity_cache_storage(
 ) -> EntityCacheStorage {
     match storage {
         gateway_config::EntityCachingStorage::Memory => EntityCacheStorage::Memory,
-        gateway_config::EntityCachingStorage::Redis => EntityCacheStorage::Redis(redis.into()),
+        gateway_config::EntityCachingStorage::Redis => EntityCacheStorage::Redis(Box::new(redis.into())),
     }
 }
 
