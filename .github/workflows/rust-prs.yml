@@ -146,7 +146,10 @@ jobs:
       - name: Install musl-tools
         if: ${{ contains(matrix.platform.target, 'linux') }}
         shell: bash
-        run: sudo apt-get install musl musl-tools
+        run: |
+          sudo apt-get install musl musl-tools
+          # This seems like a horrible hack that might come back to bite, but lets see!
+          sudo ln -s /bin/g++ /bin/musl-g++
 
       - name: Clippy
         if: fromJson(needs.what-changed.outputs.rust).cargo-package-specs
