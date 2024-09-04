@@ -150,6 +150,7 @@ jobs:
           sudo apt-get install musl musl-tools
           # This seems like a horrible hack that might come back to bite, but lets see!
           sudo ln -s /bin/g++ /bin/musl-g++
+          sudo ln -s /bin/g++ /bin/aarch64-linux-musl-g++
 
       - name: Clippy
         if: fromJson(needs.what-changed.outputs.rust).cargo-package-specs
