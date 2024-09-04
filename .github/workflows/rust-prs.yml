@@ -25,7 +25,7 @@ env:
   CLI_RELEASE_CLOUDFLARE_R2_BUCKET_NAME: cli-releases
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}-fucksake
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -33,6 +33,8 @@ jobs:
     runs-on: ubicloud-standard-2
     outputs:
       rust: ${{ steps.what-rust-changed.outputs.rust }}
+      grafbase-docker: ${{ steps.paths-changed.outputs.grafbase-docker }}
+      gateway-docker: ${{ steps.paths-changed.outputs.gateway-docker }}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -83,6 +85,16 @@ jobs:
           echo "Done.  Output Contents:"
           echo ""
           cat $GITHUB_OUTPUT
+
+      - name: Check paths changed
+        uses: dorny/paths-filter@v3
+        id: paths-changed
+        with:
+          filters: |
+            grafbase-docker:
+              - cli/Dockerfile
+            gateway-docker:
+              - gateway/Dockerfile
 
   example-component:
     if: contains(fromJson(needs.what-changed.outputs.rust).changed-packages, 'integration-tests')
@@ -146,7 +158,7 @@ jobs:
           path: cli/wrappers/dist.js
           retention-days: 5
 
-  build-and-test:
+  builds:
     needs: [what-changed, example-component, cli-assets]
     if: |
       always()
@@ -211,15 +223,10 @@ jobs:
           sudo ln -s /bin/g++ /bin/musl-g++
           sudo ln -s /bin/g++ /bin/aarch64-linux-musl-g++
 
-      - name: Install cargo binstall
-        if: fromJson(needs.what-changed.outputs.rust).cargo-docker-test-specs
-        uses: cargo-bins/cargo-binstall@v1.10.3
-
       - name: Install cargo-nextest
-        if: fromJson(needs.what-changed.outputs.rust).cargo-docker-test-specs
-        shell: bash
-        run: |
-          cargo binstall cargo-nextest --secure -y
+        uses: taiki-e/install-action@v2
+        with:
+          tool: nextest
 
       # https://github.com/actions/setup-node/issues/899
       - name: Enable Corepack before setting up Node
@@ -277,6 +284,7 @@ jobs:
           name: wrappers-dist.js
           path: cli/wrappers/
 
+      # TODO: Add timing reports in here somehow...
       - name: Clippy
         if: fromJson(needs.what-changed.outputs.rust).cargo-build-specs
         shell: bash
@@ -346,8 +354,94 @@ jobs:
         run: |
           cargo build --target ${{ matrix.platform.target }} ${{ fromJson(needs.what-changed.outputs.rust).cargo-bin-specs }}
 
-# TODO: Test the docker builds as well?
+  docker-gateway:
+    needs: [what-changed]
+    if: |
+      needs.what-changed.outputs.gateway-docker == 'true'
+      || contains(fromJson(needs.what-changed.outputs.rust).changed-packages, 'grafbase-gateway')
+    runs-on: ubicloud-standard-16
+    permissions:
+      packages: write
+    env:
+      COMMIT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - name: Get sources
+        uses: actions/checkout@v4
 
-# TODO: Add timings to the above and upload as an artifact
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-# TODO: Make sure this all appears in datadog once ready
+      - name: Build docker images
+        run: |
+          # Re-use the latest layers if possible
+          docker pull ghcr.io/grafbase/gateway:latest || true
+          docker build -f gateway/Dockerfile -t ghcr.io/grafbase/gateway:$COMMIT_SHA .
+
+      - name: Push docker image
+        run: |
+          docker push --all-tags ghcr.io/grafbase/gateway
+
+  docker-grafbase:
+    needs: [what-changed]
+    if: |
+      needs.what-changed.outputs.grafbase-docker == 'true'
+      || contains(fromJson(needs.what-changed.outputs.rust).changed-packages, 'grafbase')
+    runs-on: ubicloud-standard-16
+    permissions:
+      packages: write
+    env:
+      COMMIT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - name: Get sources
+        uses: actions/checkout@v4
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build docker images
+        run: |
+          # Re-use the latest layers if possible
+          docker pull ghcr.io/grafbase/grafbase:latest || true
+          docker build -f cli/Dockerfile -t ghcr.io/grafbase/grafbase:$COMMIT_SHA .
+
+      - name: Extract the Rust version to use from the `rust-toolchain.toml` file
+        shell: bash
+        run: |
+          rust_version=$(grep "channel" rust-toolchain.toml | cut -d "=" -f 2 | cut -d " " -f 2)
+          echo "RUST_VERSION=$rust_version" >> $GITHUB_ENV
+
+      # TODO: Maybe refactor this?  Not sure
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+          components: clippy, rustfmt
+
+      - name: Install cargo-nextest
+        uses: taiki-e/install-action@v2
+        with:
+          tool: nextest
+
+      - name: Docker tests
+        run: |
+          GRAFBASE_DOCKER_IMAGE="ghcr.io/grafbase/grafbase:$COMMIT_SHA" RUST_BACKTRACE=1 cargo nextest run -p grafbase-docker-tests
+
+  after-build:
+    # This job is responsible for reacting to build success or failure. It must
+    # happen after the builds, hence the `needs`. But it must not be skipped
+    # when the builds are cancelled or fail (hence the `if: ${{ always() }}`).
+    needs: [builds, docker-grafbase, docker-gateway]
+    runs-on: ubicloud-standard-2
+    if: ${{ always() }}
+    steps:
+      - name: Check that the builds succeeded
+        run: exit 1
+        if: ${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}
