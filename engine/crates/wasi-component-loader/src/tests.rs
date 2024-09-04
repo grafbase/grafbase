@@ -7,6 +7,7 @@ use crate::{
     ResponsesComponentInstance, SharedContext,
 };
 use expect_test::expect;
+use grafbase_telemetry::otel::opentelemetry::trace::TraceId;
 use http::{HeaderMap, HeaderValue};
 use indoc::{formatdoc, indoc};
 use serde_json::json;
@@ -268,7 +269,7 @@ async fn authorize_edge_pre_execution_error() {
     };
 
     let (access_log, _) = create_log_channel(false);
-    let context = SharedContext::new(Arc::new(kv), access_log);
+    let context = SharedContext::new(Arc::new(kv), access_log, TraceId::INVALID);
 
     let error = hook
         .authorize_edge_pre_execution(context, definition, String::new(), String::new())
@@ -310,7 +311,7 @@ async fn authorize_edge_pre_execution_success() {
     };
 
     let (access_log, _) = create_log_channel(false);
-    let context = SharedContext::new(Arc::new(context), access_log);
+    let context = SharedContext::new(Arc::new(context), access_log, TraceId::INVALID);
 
     hook.authorize_edge_pre_execution(context, definition, String::from("kekw"), String::new())
         .await
@@ -343,7 +344,7 @@ async fn authorize_node_pre_execution_error() {
     };
 
     let (access_log, _) = create_log_channel(false);
-    let context = SharedContext::new(Arc::new(context), access_log);
+    let context = SharedContext::new(Arc::new(context), access_log, TraceId::INVALID);
 
     let error = hook
         .authorize_node_pre_execution(context, definition, String::new())
@@ -384,7 +385,7 @@ async fn authorize_node_pre_execution_success() {
     };
 
     let (access_log, _) = create_log_channel(false);
-    let context = SharedContext::new(Arc::new(context), access_log);
+    let context = SharedContext::new(Arc::new(context), access_log, TraceId::INVALID);
 
     hook.authorize_node_pre_execution(context, definition, String::from("kekw"))
         .await
@@ -423,7 +424,7 @@ async fn authorize_parent_edge_post_execution() {
     ];
 
     let (access_log, _) = create_log_channel(false);
-    let context = SharedContext::new(Arc::new(context), access_log);
+    let context = SharedContext::new(Arc::new(context), access_log, TraceId::INVALID);
 
     let result = hook
         .authorize_parent_edge_post_execution(context, definition, parents, String::new())
@@ -479,7 +480,7 @@ async fn authorize_edge_node_post_execution() {
     ];
 
     let (access_log, _) = create_log_channel(false);
-    let context = SharedContext::new(Arc::new(context), access_log);
+    let context = SharedContext::new(Arc::new(context), access_log, TraceId::INVALID);
 
     let result = hook
         .authorize_edge_node_post_execution(context, definition, nodes, String::new())
@@ -540,7 +541,7 @@ async fn authorize_edge_post_execution() {
     ];
 
     let (access_log, _) = create_log_channel(false);
-    let context = SharedContext::new(Arc::new(context), access_log);
+    let context = SharedContext::new(Arc::new(context), access_log, TraceId::INVALID);
 
     let result = hook
         .authorize_edge_post_execution(
@@ -600,7 +601,7 @@ async fn on_subgraph_request() {
     let mut hook = SubgraphComponentInstance::new(&loader).await.unwrap();
 
     let (access_log, _) = create_log_channel(false);
-    let context = SharedContext::new(Arc::new(context), access_log);
+    let context = SharedContext::new(Arc::new(context), access_log, TraceId::INVALID);
 
     let headers = hook
         .on_subgraph_request(
@@ -635,7 +636,7 @@ async fn on_subgraph_request() {
     let context = HashMap::from_iter([("should-fail".into(), "yes".into())]);
 
     let (access_log, _) = create_log_channel(false);
-    let context = SharedContext::new(Arc::new(context), access_log);
+    let context = SharedContext::new(Arc::new(context), access_log, TraceId::INVALID);
 
     let error = hook
         .on_subgraph_request(
@@ -674,7 +675,7 @@ async fn response_hooks() {
     let mut hook = ResponsesComponentInstance::new(&loader).await.unwrap();
 
     let (access_log, receiver) = create_log_channel(false);
-    let context = SharedContext::new(Arc::new(HashMap::new()), access_log);
+    let context = SharedContext::new(Arc::new(HashMap::new()), access_log, TraceId::INVALID);
 
     let request = ExecutedSubgraphRequest {
         subgraph_name: String::from("kekw"),
@@ -741,14 +742,14 @@ async fn response_hooks() {
               "subgraph_name": "kekw",
               "method": "POST",
               "url": "https://example.com",
-              "connection_times": [
-                10
-              ],
-              "response_times": [
-                4
-              ],
-              "status_codes": [
-                200
+              "responses": [
+                {
+                  "Responsed": {
+                    "connection_time": 10,
+                    "response_time": 4,
+                    "status_code": 200
+                  }
+                }
               ],
               "total_duration": 10,
               "has_errors": false,

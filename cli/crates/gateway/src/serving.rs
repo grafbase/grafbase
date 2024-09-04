@@ -7,6 +7,7 @@ use axum::{
     Router,
 };
 use bytes::Bytes;
+use engine_v2_axum::middleware;
 use futures_util::future::{join_all, BoxFuture};
 use gateway_core::{encode_stream_response, StreamingFormat};
 use http::{HeaderMap, StatusCode};
@@ -19,7 +20,7 @@ pub(super) fn router(gateway: Gateway) -> Router {
     Router::new()
         .route("/graphql", post(post_graphql).options(options_any).get(get_graphql))
         .with_state(gateway)
-        .layer(grafbase_telemetry::tower::layer(
+        .layer(middleware::TelemetryLayer::new(
             grafbase_telemetry::metrics::meter_from_global_provider(),
             None,
         ))

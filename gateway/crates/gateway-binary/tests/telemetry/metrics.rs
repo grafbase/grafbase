@@ -12,11 +12,12 @@ use wiremock::{matchers::method, Mock, ResponseTemplate};
 
 use crate::{clickhouse_client, load_schema, runtime, with_static_server, Client};
 
+mod access_log;
 mod gdn;
 mod operation;
 mod request;
 
-const METRICS_DELAY: Duration = Duration::from_secs(2);
+const METRICS_DELAY: Duration = Duration::from_secs(5);
 
 #[serde_with::serde_as]
 #[derive(Debug, clickhouse::Row, Deserialize, Serialize, PartialEq)]

@@ -36,6 +36,7 @@ runtime-local = { path = "../../../engine/crates/runtime-local", features = ["wa
 common-types = { path = "../../../engine/crates/common-types" }
 postgres-connector-types = { path = "../../../engine/crates/postgres-connector-types", features = ["pooling"] }
 gateway-v2-auth.workspace = true
+engine-v2-axum.workspace = true
 
 [features]
 default = []

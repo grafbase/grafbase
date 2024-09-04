@@ -1,10 +1,15 @@
 use std::io::Write;
 
 use gateway_config::{AccessLogsConfig, RotateMode};
+use grafbase_telemetry::metrics::meter_from_global_provider;
 use runtime_local::hooks::{AccessLogMessage, ChannelLogReceiver};
 use tracing_appender::rolling::{RollingFileAppender, Rotation};
 
 pub(crate) fn start(config: &AccessLogsConfig, access_log_receiver: ChannelLogReceiver) -> crate::Result<()> {
+    let log_queue_length = meter_from_global_provider()
+        .i64_up_down_counter("grafbase.gateway.access_log.pending")
+        .init();
+
     let rotation = match config.rotate {
         RotateMode::Never => Rotation::NEVER,
         RotateMode::Minutely => Rotation::MINUTELY,
@@ -21,11 +26,11 @@ pub(crate) fn start(config: &AccessLogsConfig, access_log_receiver: ChannelLogRe
 
     tokio::task::spawn_blocking(move || {
         while let Ok(msg) = access_log_receiver.recv() {
-            match msg {
-                AccessLogMessage::Data(mut data) => {
-                    data.push(b'\n');
+            log_queue_length.add(-1, &[]);
 
-                    if let Err(e) = log.write_all(&data) {
+            match msg {
+                AccessLogMessage::Data(data) => {
+                    if let Err(e) = log.write_all(&data).and_then(|_| log.write(&[b'\n'])) {
                         tracing::error!("error writing to access log: {e}");
                     }
                 }

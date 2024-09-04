@@ -6,9 +6,13 @@ mod subgraph;
 use std::{collections::HashMap, sync::Arc, time::SystemTime};
 
 use futures_util::Future;
-use grafbase_telemetry::otel::opentelemetry::{
-    metrics::{Histogram, Meter},
-    KeyValue,
+use grafbase_telemetry::otel::{
+    opentelemetry::{
+        metrics::{Histogram, Meter},
+        trace::{TraceContextExt, TraceId},
+        KeyValue,
+    },
+    tracing_opentelemetry::OpenTelemetrySpanExt,
 };
 use pool::Pool;
 use runtime::{
@@ -26,7 +30,7 @@ pub use wasi_component_loader::{
 #[derive(Clone)]
 pub struct HooksWasi(Option<Arc<HooksWasiInner>>);
 
-type Context = (Arc<HashMap<String, String>>, Span);
+type Context = (Arc<HashMap<String, String>>, TraceId);
 
 struct HooksWasiInner {
     gateway: Pool<GatewayComponentInstance>,
@@ -38,8 +42,8 @@ struct HooksWasiInner {
 }
 
 impl HooksWasiInner {
-    pub fn shared_context(&self, (kv, span): &(Arc<HashMap<String, String>>, Span)) -> SharedContext {
-        SharedContext::new(Arc::clone(kv), self.sender.clone(), span.clone())
+    pub fn shared_context(&self, (kv, trace_id): &(Arc<HashMap<String, String>>, TraceId)) -> SharedContext {
+        SharedContext::new(Arc::clone(kv), self.sender.clone(), *trace_id)
     }
 
     async fn run_and_measure<F, T>(&self, hook_name: &'static str, hook: F) -> Result<T, wasi_component_loader::Error>
@@ -135,10 +139,10 @@ impl Hooks for HooksWasi {
     #[instrument(skip_all)]
     async fn on_gateway_request(&self, headers: HeaderMap) -> Result<(Self::Context, HeaderMap), ErrorResponse> {
         let context = HashMap::new();
-        let span = Span::current();
+        let trace_id = Span::current().context().span().span_context().trace_id();
 
         let Some(ref inner) = self.0 else {
-            return Ok(((Arc::new(context), span), headers));
+            return Ok(((Arc::new(context), trace_id), headers));
         };
 
         let mut hook = inner.gateway.get().await;
@@ -146,7 +150,7 @@ impl Hooks for HooksWasi {
         inner
             .run_and_measure("on-gateway-request", hook.on_gateway_request(context, headers))
             .await
-            .map(|(kv, headers)| ((Arc::new(kv), span), headers))
+            .map(|(kv, headers)| ((Arc::new(kv), trace_id), headers))
             .map_err(|err| match err {
                 wasi_component_loader::Error::Internal(err) => {
                     tracing::error!("on_gateway_request error: {err}");

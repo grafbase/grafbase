@@ -1,9 +1,10 @@
 use std::{collections::HashMap, sync::Arc};
 
 use crossbeam::{channel::TrySendError, sync::WaitGroup};
-use opentelemetry::trace::TraceContextExt;
-use tracing::Span;
-use tracing_opentelemetry::OpenTelemetrySpanExt;
+use grafbase_telemetry::{
+    metrics::meter_from_global_provider,
+    otel::opentelemetry::{metrics::UpDownCounter, trace::TraceId},
+};
 use wasmtime::{
     component::{ComponentType, LinkerInstance, Lower, Resource, ResourceType},
     StoreContextMut,
@@ -23,21 +24,23 @@ use crate::{
 pub struct ChannelLogSender {
     sender: crossbeam::channel::Sender<AccessLogMessage>,
     lossy_log: bool,
+    log_queue_length_counter: UpDownCounter<i64>,
 }
 
 impl ChannelLogSender {
     /// Sends the given access log message to the access log.
     pub fn send(&self, data: AccessLogMessage) -> Result<(), LogError> {
         if self.lossy_log {
-            if let Err(e) = self.sender.try_send(data) {
-                match e {
-                    TrySendError::Full(AccessLogMessage::Data(data)) => return Err(LogError::ChannelFull(data)),
-                    _ => return Err(LogError::ChannelClosed),
-                }
+            match self.sender.try_send(data) {
+                Ok(_) => (),
+                Err(TrySendError::Full(AccessLogMessage::Data(data))) => return Err(LogError::ChannelFull(data)),
+                Err(_) => return Err(LogError::ChannelClosed),
             }
         } else if self.sender.send(data).is_err() {
             return Err(LogError::ChannelClosed);
         }
+
+        self.log_queue_length_counter.add(1, &[]);
 
         Ok(())
     }
@@ -63,7 +66,19 @@ const DEFAULT_BUFFERED_LINES_LIMIT: usize = 128_000;
 /// Creates a new channel for access logs.
 pub fn create_log_channel(lossy_log: bool) -> (ChannelLogSender, ChannelLogReceiver) {
     let (sender, receiver) = crossbeam::channel::bounded(DEFAULT_BUFFERED_LINES_LIMIT);
-    (ChannelLogSender { sender, lossy_log }, receiver)
+
+    let log_queue_length_counter = meter_from_global_provider()
+        .i64_up_down_counter("grafbase.gateway.access_log.pending")
+        .init();
+
+    (
+        ChannelLogSender {
+            sender,
+            lossy_log,
+            log_queue_length_counter,
+        },
+        receiver,
+    )
 }
 
 /// A message sent through access log channel.
@@ -94,13 +109,17 @@ pub struct SharedContext {
     kv: Arc<HashMap<String, String>>,
     /// A log channel for access logs.
     access_log: ChannelLogSender,
-    span: Span,
+    trace_id: TraceId,
 }
 
 impl SharedContext {
     /// Creates a new shared context.
-    pub fn new(kv: Arc<HashMap<String, String>>, access_log: ChannelLogSender, span: Span) -> Self {
-        Self { kv, access_log, span }
+    pub fn new(kv: Arc<HashMap<String, String>>, access_log: ChannelLogSender, trace_id: TraceId) -> Self {
+        Self {
+            kv,
+            access_log,
+            trace_id,
+        }
     }
 }
 
@@ -224,9 +243,7 @@ fn log_access(
 /// Gives the current opentelemetry trace id.
 fn trace_id(store: StoreContextMut<'_, WasiState>, (this,): (Resource<SharedContext>,)) -> anyhow::Result<(String,)> {
     let context = store.data().get(&this).expect("must exist");
-    let trace_id = context.span.context().span().span_context().trace_id();
-
-    Ok((trace_id.to_string(),))
+    Ok((context.trace_id.to_string(),))
 }
 
 /// Look for a context value with the given key, returning a copy of the value if found. Will remove

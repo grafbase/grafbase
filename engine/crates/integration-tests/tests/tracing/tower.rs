@@ -2,6 +2,7 @@ use std::time::Duration;
 
 use axum::routing::get;
 use axum::Router;
+use engine_v2_axum::middleware;
 use tracing::Level;
 use tracing_mock::{expect, subscriber};
 
@@ -25,7 +26,7 @@ async fn expect_gateway_span() {
     // axum server with our tower layer
     let app = Router::new()
         .route("/", get(|| async {}))
-        .layer(grafbase_telemetry::tower::layer(
+        .layer(middleware::TelemetryLayer::new(
             grafbase_telemetry::metrics::meter_from_global_provider(),
             None,
         ));
