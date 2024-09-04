@@ -234,14 +234,14 @@ jobs:
       # It's kinda useful to get build vs run timings on tests, so splitting out the build from the run
       # here
       - name: Build tests (non docker platforms)
-        if: fromJson(needs.what-changed.outputs.rust).cargo-test-specs && runner.os != 'Linux'
+        if: fromJson(needs.what-changed.outputs.rust).cargo-test-specs && runner.os != 'Linux' && matrix.platform.target != 'x86_64-apple-darwin'
         shell: bash
         run: |
           cargo nextest run --target ${{ matrix.platform.target }} --no-run --profile ci ${{ fromJson(needs.what-changed.outputs.rust).cargo-test-specs }}
 
       - name: Run tests (non docker platforms)
         id: tests
-        if: fromJson(needs.what-changed.outputs.rust).cargo-test-specs && runner.os != 'Linux'
+        if: fromJson(needs.what-changed.outputs.rust).cargo-test-specs && runner.os != 'Linux' && matrix.platform.target != 'x86_64-apple-darwin'
         shell: bash
         run: |
           cargo nextest run --target ${{ matrix.platform.target }} --profile ci ${{ fromJson(needs.what-changed.outputs.rust).cargo-test-specs }}
@@ -260,7 +260,7 @@ jobs:
           cargo nextest run --target ${{ matrix.platform.target }} --profile ci ${{ fromJson(needs.what-changed.outputs.rust).cargo-test-specs }}
 
       - name: Upload the JUnit files
-        if: ${{ ( success() || failure() ) && !contains(steps.tests.outputs.exitcode, '101') && !contains(steps.tests_docker.outputs.exitcode, '101')}}
+        if: ${{ ( success() || failure() ) && !contains(steps.tests.outputs.exitcode, '101') && !contains(steps.tests_docker.outputs.exitcode, '101') && matrix.platform.target != 'x86_64-apple-darwin'}}
         uses: ./.github/actions/test_upload_datadog
         with:
           api_key: ${{ secrets.DATADOG_API_KEY }}
