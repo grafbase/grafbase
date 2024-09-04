@@ -8,9 +8,6 @@ on:
   pull_request:
   # TODO: Maybe add branches in here?  Not sure...
 
-permissions:
-  checks: write
-
 env:
   GRAFBASE_SKIP_ASSET_VERSION_CHECK: 'true'
   CARGO_INCREMENTAL: 0
@@ -28,7 +25,7 @@ env:
   CLI_RELEASE_CLOUDFLARE_R2_BUCKET_NAME: cli-releases
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}-fucksake
   cancel-in-progress: true
 
 jobs:
@@ -114,12 +111,48 @@ jobs:
           path: engine/crates/wasi-component-loader/examples/target/wasm32-wasip1/debug/*.wasm
           retention-days: 5
 
+  cli-assets:
+    if: contains(fromJson(needs.what-changed.outputs.rust).changed-packages, 'grafbase')
+    needs: [what-changed]
+    runs-on: ubicloud-standard-8
+    steps:
+      - name: Get sources
+        uses: actions/checkout@v4
+
+      - name: Build assets
+        uses: ./.github/actions/cli_assets
+
+      - name: Copy ~/.grafbase for upload
+        shell: bash
+        run: |
+          mkdir home-dot-grafbase
+          cp -r ~/.grafbase/* home-dot-grafbase/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: home-dot-grafbase
+          path: home-dot-grafbase
+          retention-days: 5
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cli-app-dist
+          path: packages/cli-app/dist
+          retention-days: 5
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wrappers-dist.js
+          path: cli/wrappers/dist.js
+          retention-days: 5
+
   build-and-test:
-    needs: [what-changed, example-component]
+    needs: [what-changed, example-component, cli-assets]
     if: |
-      always() &&
-      fromJson(needs.what-changed.outputs.rust).changed-packages &&
-      (needs.example-component.result == 'skipped' || needs.example-component.result == 'success')
+      always()
+      && fromJson(needs.what-changed.outputs.rust).changed-packages
+      && (needs.example-component.result == 'skipped' || needs.example-component.result == 'success')
+      && (needs.cli-assets.result == 'skipped' || needs.cli-assets.result == 'success')
     strategy:
       fail-fast: false
       matrix:
@@ -205,17 +238,44 @@ jobs:
           version: 8
           run_install: false
 
-      - name: Download the pre-built example component
+      - uses: oven-sh/setup-bun@v2
+        if: runner.os != 'Windows'
+        with:
+          bun-version: latest
+
+      - name: Download pre-built example component
         if: contains(fromJson(needs.what-changed.outputs.rust).changed-packages, 'integration-tests')
         uses: actions/download-artifact@v4
         with:
           name: example-component
           path: engine/crates/wasi-component-loader/examples/target/wasm32-wasip1/debug
 
-      # TODO: Would be real nice to only do this once per run not on every platform
-      # (also only if the package that needs it is in the build set)
-      - name: Build assets
-        uses: ./.github/actions/cli_assets
+      - name: Download pre-built ~/.grafbase
+        if: contains(fromJson(needs.what-changed.outputs.rust).changed-packages, 'grafbase')
+        uses: actions/download-artifact@v4
+        with:
+          name: home-dot-grafbase
+          path: ../home-dot-grafbase
+
+      - name: Copy ~/.grafbase into place
+        shell: bash
+        run: |
+          mkdir ~/.grafbase
+          cp -r ../home-dot-grafbase/* ~/.grafbase/
+
+      - name: Download pre-built cli-app
+        if: contains(fromJson(needs.what-changed.outputs.rust).changed-packages, 'grafbase')
+        uses: actions/download-artifact@v4
+        with:
+          name: cli-app-dist
+          path: packages/cli-app/dist
+
+      - name: Download pre-built wrappers
+        if: contains(fromJson(needs.what-changed.outputs.rust).changed-packages, 'grafbase')
+        uses: actions/download-artifact@v4
+        with:
+          name: wrappers-dist.js
+          path: cli/wrappers/
 
       - name: Clippy
         if: fromJson(needs.what-changed.outputs.rust).cargo-build-specs
