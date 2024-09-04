@@ -153,10 +153,10 @@ jobs:
           sudo ln -s /bin/g++ /bin/aarch64-linux-musl-g++
 
       - name: Clippy
-        if: fromJson(needs.what-changed.outputs.rust).cargo-package-specs
+        if: fromJson(needs.what-changed.outputs.rust).cargo-build-specs
         shell: bash
         run: |
-          cargo clippy --target ${{ matrix.platform.target }} ${{ fromJson(needs.what-changed.outputs.rust).cargo-package-specs }}
+          cargo clippy --target ${{ matrix.platform.target }} ${{ fromJson(needs.what-changed.outputs.rust).cargo-build-specs }}
 
       - name: Install cargo binstall
         if: fromJson(needs.what-changed.outputs.rust).cargo-docker-test-specs
@@ -266,32 +266,6 @@ jobs:
           api_key: ${{ secrets.DATADOG_API_KEY }}
           junit_path: target/nextest/ci/junit.xml
           service: cli
-
-      # - name: Install cargo-nextest & libs linux
-      #   # if: ${{ startsWith(inputs.platform, 'linux') }}
-      #   shell: bash
-      #   run: |
-      #     curl -LsSf https://get.nexte.st/latest/${{ inputs.platform }} | tar zxf - -C ${CARGO_HOME:-~/.cargo}/bin
-      #     sudo apt-get install musl-tools
-
-      # Ok, so this is tricky.
-      # Need to:
-      # - Install all the udf/bun BS
-      # - Login to docker hub
-      # - Build WASI components if they are required by the package set
-      #   (TODO: Figure out some way to avoid doing this all the time maybe?)
-      # - Run tests _except gateway & docker tests
-      #   - Starting & stopping docker-compos if integration-tests are in the selected set.
-      #   - Upload junit
-      # - If gateway is in the build set
-      #   - Start docker comppose for gateway
-      #   - Run gateway tests
-      #   - Upload junit
-      # - name: Tests
-      #   shell: bash
-      #   run: |
-      #     # TODO: this is obviously a terrible name if I'm using clippy for the test targets...
-      #     cargo clippy ${{ fromJson(needs.what-changed.outputs.rust).cargo-package-specs }}
 
       - name: Build debug binaries
         if: fromJson(needs.what-changed.outputs.rust).cargo-bin-specs
