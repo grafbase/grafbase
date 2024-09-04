@@ -22,7 +22,9 @@ pub(crate) fn start(config: &AccessLogsConfig, access_log_receiver: ChannelLogRe
     tokio::task::spawn_blocking(move || {
         while let Ok(msg) = access_log_receiver.recv() {
             match msg {
-                AccessLogMessage::Data(data) => {
+                AccessLogMessage::Data(mut data) => {
+                    data.push(b'\n');
+
                     if let Err(e) = log.write_all(&data) {
                         tracing::error!("error writing to access log: {e}");
                     }

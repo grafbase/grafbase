@@ -44,6 +44,7 @@ pub(crate) fn init(args: &impl Args, config: &TelemetryConfig) -> anyhow::Result
     if let Some(ref tracer) = tracer {
         grafbase_telemetry::otel::opentelemetry::global::set_tracer_provider(tracer.provider.clone());
     }
+
     let tracer_provider = tracer.as_ref().map(|t| t.provider.clone());
 
     let registry = tracing_subscriber::registry()
