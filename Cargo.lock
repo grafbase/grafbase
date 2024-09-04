@@ -3822,6 +3822,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "grafbase-workspace-hack"
+version = "0.1.0"
+
+[[package]]
 name = "graph-entities"
 version = "0.1.0"
 dependencies = [

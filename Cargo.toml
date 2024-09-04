@@ -25,6 +25,7 @@ members = [
   "graph-ref",
   "graphql-lint",
   "gqlint",
+  "workspace-hack",
 ]
 exclude = ["engine/crates/gateway-v2", "engine/crates/wasi-component-loader/examples"]
 
