@@ -14,6 +14,7 @@ fn ill_formed_graphql_over_http_request(#[case] method: http::Method) {
         let response = engine
             .raw_execute(
                 http::Request::builder()
+                    .uri("http://localhost/graphql")
                     .method(method)
                     .header(http::header::CONTENT_TYPE, APPLICATION_JSON)
                     .header(http::header::ACCEPT, APPLICATION_JSON)
@@ -22,7 +23,7 @@ fn ill_formed_graphql_over_http_request(#[case] method: http::Method) {
             )
             .await;
         let status = response.status();
-        let body: serde_json::Value = serde_json::from_slice(&response.into_body().into_bytes().unwrap()).unwrap();
+        let body: serde_json::Value = serde_json::from_slice(&response.into_body()).unwrap();
         insta::assert_json_snapshot!(body, @r###"
         {
           "errors": [

@@ -1,7 +1,7 @@
 use std::future::IntoFuture;
 
-use bytes::Bytes;
 use futures::{future::BoxFuture, StreamExt, TryStreamExt};
+use tower::ServiceExt;
 
 pub struct MultipartStreamRequest(pub(super) super::TestRequest);
 
@@ -11,21 +11,20 @@ impl IntoFuture for MultipartStreamRequest {
     type IntoFuture = BoxFuture<'static, Self::Output>;
 
     fn into_future(self) -> Self::IntoFuture {
-        let (engine, mut request) = self.0.into_engine_and_request();
+        let (router, mut request) = self.0.into_router_and_request();
         request
             .headers_mut()
             .entry(http::header::ACCEPT)
             .or_insert(http::HeaderValue::from_static("multipart/mixed,application/json;q=0.9"));
         Box::pin(async move {
-            let (parts, body) = engine.execute(request).await.into_parts();
-            let stream =
-                multipart_stream::parse(body.into_stream().map_ok(Into::into), "-").map(|result| match result {
-                    Ok(part) => match serde_json::from_slice(&part.body) {
-                        Ok(value) => value,
-                        Err(error) => serde_json::Value::String(format!("JSON serialization error: {error}")),
-                    },
-                    Err(error) => serde_json::Value::String(format!("Multipart error: {error}")),
-                });
+            let (parts, body) = router.oneshot(request).await.unwrap().into_parts();
+            let stream = multipart_stream::parse(body.into_data_stream(), "-").map(|result| match result {
+                Ok(part) => match serde_json::from_slice(&part.body) {
+                    Ok(value) => value,
+                    Err(error) => serde_json::Value::String(format!("JSON serialization error: {error}")),
+                },
+                Err(error) => serde_json::Value::String(format!("Multipart error: {error}")),
+            });
             GraphqlStreamingResponse {
                 status: parts.status,
                 headers: parts.headers,
@@ -41,17 +40,16 @@ impl IntoFuture for SseStreamRequest {
     type Output = GraphqlStreamingResponse;
     type IntoFuture = BoxFuture<'static, Self::Output>;
     fn into_future(self) -> Self::IntoFuture {
-        let (engine, mut request) = self.0.into_engine_and_request();
+        let (router, mut request) = self.0.into_router_and_request();
         request
             .headers_mut()
             .entry(http::header::ACCEPT)
             .or_insert(http::HeaderValue::from_static("text/event-stream"));
         Box::pin(async move {
-            let (parts, body) = engine.execute(request).await.into_parts();
-            let stream = body.into_stream().map(|result| match result {
-                Ok(bytes) => Ok(Bytes::from(bytes)),
-                Err(e) => Err(std::io::Error::new(std::io::ErrorKind::Other, e)),
-            });
+            let (parts, body) = router.oneshot(request).await.unwrap().into_parts();
+            let stream = body
+                .into_data_stream()
+                .map_err(|err| std::io::Error::new(std::io::ErrorKind::Other, err));
             let stream = async_sse::decode(stream.into_async_read())
                 .into_stream()
                 .try_take_while(|event| {

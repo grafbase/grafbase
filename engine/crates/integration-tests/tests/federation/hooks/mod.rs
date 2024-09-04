@@ -9,12 +9,12 @@ use engine_v2::Engine;
 use futures::Future;
 use graphql_mocks::SecureSchema;
 use integration_tests::{
-    federation::{EngineV2Ext, TestEngineV2},
+    federation::{EngineV2Ext, TestGateway},
     runtime,
 };
 use runtime::hooks::DynamicHooks;
 
-fn with_engine_for_auth<F, O>(hooks: impl Into<DynamicHooks>, f: impl FnOnce(TestEngineV2) -> F) -> O
+fn with_engine_for_auth<F, O>(hooks: impl Into<DynamicHooks>, f: impl FnOnce(TestGateway) -> F) -> O
 where
     F: Future<Output = O>,
 {

@@ -20,6 +20,7 @@ cynic.workspace = true
 cynic-introspection.workspace = true
 engine-parser.workspace = true
 engine-v2.workspace = true
+engine-v2-axum.workspace = true
 graphql-mocks.workspace = true
 engine-config-builder = { path = "../engine-config-builder" }
 expect-test = "1.5"
@@ -32,6 +33,7 @@ federated-graph.workspace = true
 graphql-parser = "0.4.0"
 headers.workspace = true
 http.workspace = true
+http-body-util = "0.1.0"
 indoc = "2.0.5"
 insta.workspace = true
 itertools.workspace = true
@@ -60,11 +62,11 @@ ctor.workspace = true
 registry-v2.workspace = true
 rustls = { workspace = true, features = ["ring"] }
 toml.workspace = true
+tower.workspace = true
 tracing.workspace = true
 tracing-mock.workspace = true
 runtime = { workspace = true, features = ["test-utils"]}
 regex.workspace = true
-engine-v2-axum.workspace = true
 
 [dependencies.tokio]
 version = "1.37"

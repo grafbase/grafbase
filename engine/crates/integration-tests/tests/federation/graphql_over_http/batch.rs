@@ -11,6 +11,7 @@ fn success() {
         let response = engine
             .raw_execute(
                 http::Request::builder()
+                    .uri("http://localhost/graphql")
                     .method(http::Method::POST)
                     .header(http::header::ACCEPT, "application/json")
                     .header(http::header::CONTENT_TYPE, "application/json")
@@ -26,7 +27,7 @@ fn success() {
             .await;
 
         let status = response.status();
-        let body: serde_json::Value = serde_json::from_slice(&response.into_body().into_bytes().unwrap()).unwrap();
+        let body: serde_json::Value = serde_json::from_slice(&response.into_body()).unwrap();
         insta::assert_json_snapshot!(body, @r###"
         [
           {
@@ -54,6 +55,7 @@ fn invalid_request() {
         let response = engine
             .raw_execute(
                 http::Request::builder()
+                    .uri("http://localhost/graphql")
                     .method(http::Method::POST)
                     .header(http::header::ACCEPT, "application/json")
                     .header(http::header::CONTENT_TYPE, "application/json")
@@ -69,7 +71,7 @@ fn invalid_request() {
             .await;
 
         let status = response.status();
-        let body: serde_json::Value = serde_json::from_slice(&response.into_body().into_bytes().unwrap()).unwrap();
+        let body: serde_json::Value = serde_json::from_slice(&response.into_body()).unwrap();
         insta::assert_json_snapshot!(body, @r###"
         [
           {
@@ -102,6 +104,7 @@ fn request_error() {
         let response = engine
             .raw_execute(
                 http::Request::builder()
+                    .uri("http://localhost/graphql")
                     .method(http::Method::POST)
                     .header(http::header::ACCEPT, "application/json")
                     .header(http::header::CONTENT_TYPE, "application/json")
@@ -117,7 +120,7 @@ fn request_error() {
             .await;
 
         let status = response.status();
-        let body: serde_json::Value = serde_json::from_slice(&response.into_body().into_bytes().unwrap()).unwrap();
+        let body: serde_json::Value = serde_json::from_slice(&response.into_body()).unwrap();
         insta::assert_json_snapshot!(body, @r###"
         [
           {

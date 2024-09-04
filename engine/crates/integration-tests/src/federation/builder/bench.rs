@@ -125,7 +125,9 @@ impl DeterministicEngine {
     }
 
     pub async fn execute(&self) -> GraphqlResponse {
-        self.raw_execute().await.try_into().unwrap()
+        let (parts, body) = self.raw_execute().await.into_parts();
+        let bytes = Bytes::from(body.into_bytes().unwrap());
+        http::Response::from_parts(parts, bytes).try_into().unwrap()
     }
 
     pub async fn execute_stream(&self) -> GraphqlStreamingResponse {

@@ -4,25 +4,21 @@ use std::{
     borrow::Cow,
     future::IntoFuture,
     ops::{Deref, DerefMut},
-    sync::Arc,
 };
 
+use axum::body::Body;
 use bytes::Bytes;
 use engine::Variables;
-use engine_v2::Body;
 use futures::future::BoxFuture;
-use serde::de::Error;
+use http_body_util::BodyExt;
 pub use stream::*;
+use tower::ServiceExt;
 
 use crate::engine_v1::GraphQlRequest;
 
-use super::TestRuntime;
-
-type RequestBodyFut = BoxFuture<'static, Result<Bytes, (http::StatusCode, String)>>;
-
 #[must_use]
 pub struct TestRequest {
-    pub(super) engine: Arc<engine_v2::Engine<TestRuntime>>,
+    pub(super) router: axum::Router,
     pub(super) parts: http::request::Parts,
     pub(super) body: GraphQlRequest,
 }
@@ -77,9 +73,9 @@ impl TestRequest {
         SseStreamRequest(self)
     }
 
-    fn into_engine_and_request(self) -> (Arc<engine_v2::Engine<TestRuntime>>, http::Request<RequestBodyFut>) {
+    fn into_router_and_request(self) -> (axum::Router, http::Request<Body>) {
         let Self {
-            engine,
+            router,
             mut parts,
             body,
         } = self;
@@ -92,8 +88,8 @@ impl TestRequest {
                 .build()
                 .unwrap();
             (
-                engine,
-                http::Request::from_parts(parts, Box::pin(async { Ok(Bytes::from_static(b"")) })),
+                router,
+                http::Request::from_parts(parts, Body::from(Bytes::from_static(b""))),
             )
         } else {
             parts
@@ -101,10 +97,7 @@ impl TestRequest {
                 .entry(http::header::CONTENT_TYPE)
                 .or_insert(http::HeaderValue::from_static("application/json"));
             let body = serde_json::to_vec(&body).unwrap();
-            (
-                engine,
-                http::Request::from_parts(parts, Box::pin(async move { Ok(Bytes::from(body)) })),
-            )
+            (router, http::Request::from_parts(parts, Body::from(Bytes::from(body))))
         }
     }
 }
@@ -116,8 +109,10 @@ impl IntoFuture for TestRequest {
 
     fn into_future(self) -> Self::IntoFuture {
         Box::pin(async move {
-            let (engine, request) = self.into_engine_and_request();
-            engine.execute(request).await.try_into().unwrap()
+            let (router, request) = self.into_router_and_request();
+            let (parts, body) = router.oneshot(request).await.unwrap().into_parts();
+            let bytes = body.collect().await.unwrap().to_bytes();
+            http::Response::from_parts(parts, bytes).try_into().unwrap()
         })
     }
 }
@@ -132,17 +127,15 @@ pub struct GraphqlResponse {
     pub body: serde_json::Value,
 }
 
-impl TryFrom<http::Response<Body>> for GraphqlResponse {
+impl TryFrom<http::Response<Bytes>> for GraphqlResponse {
     type Error = serde_json::Error;
 
-    fn try_from(response: http::Response<Body>) -> Result<Self, Self::Error> {
+    fn try_from(response: http::Response<Bytes>) -> Result<Self, Self::Error> {
         let (parts, body) = response.into_parts();
+
         Ok(GraphqlResponse {
             status: parts.status,
-            body: match body {
-                Body::Bytes(bytes) => serde_json::from_slice(bytes.as_ref())?,
-                Body::Stream(_) => return Err(serde_json::Error::custom("Unexpected stream response body"))?,
-            },
+            body: serde_json::from_slice(body.as_ref())?,
             headers: parts.headers,
         })
     }

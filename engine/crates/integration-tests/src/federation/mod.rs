@@ -1,29 +1,31 @@
 mod builder;
 mod request;
+mod subgraph;
 
-use std::{
-    any::TypeId,
-    collections::{HashMap, HashSet},
-    sync::Arc,
-};
+use std::sync::Arc;
 
 pub use builder::*;
 use bytes::Bytes;
-use engine_v2::Body;
 use graphql_mocks::{MockGraphQlServer, ReceivedRequest};
+use http_body_util::BodyExt;
 pub use request::*;
 use runtime_local::hooks::ChannelLogReceiver;
+use tower::ServiceExt;
 use url::Url;
 
 use crate::engine_v1::GraphQlRequest;
 
-pub struct TestEngineV2 {
+pub struct TestGateway {
+    router: axum::Router,
+    #[allow(unused)]
     engine: Arc<engine_v2::Engine<TestRuntime>>,
-    mock_subgraphs: HashMap<TypeId, MockSubgraph>,
     #[allow(unused)]
-    docker_subgraphs: HashSet<DockerSubgraph>,
-    #[allow(unused)]
-    access_log_receiver: ChannelLogReceiver,
+    context: TestRuntimeContext,
+    subgraphs: subgraph::Subgraphs,
+}
+
+pub struct TestRuntimeContext {
+    pub access_log_receiver: ChannelLogReceiver,
 }
 
 pub struct MockSubgraph {
@@ -57,7 +59,7 @@ impl DockerSubgraph {
     }
 }
 
-impl TestEngineV2 {
+impl TestGateway {
     pub fn get(&self, request: impl Into<GraphQlRequest>) -> TestRequest {
         self.execute(http::Method::GET, request)
     }
@@ -72,23 +74,27 @@ impl TestEngineV2 {
         parts.uri = http::Uri::from_static("http://127.0.0.1/graphql");
 
         TestRequest {
-            engine: Arc::clone(&self.engine),
+            router: self.router.clone(),
             parts,
             body: request.into(),
         }
     }
 
-    pub async fn raw_execute(&self, request: http::Request<impl Into<Bytes>>) -> http::Response<Body> {
+    pub async fn raw_execute(&self, request: http::Request<impl Into<axum::body::Body>>) -> http::Response<Bytes> {
         let (parts, body) = request.into_parts();
-        let body: Bytes = body.into();
-
-        self.engine
-            .execute(http::Request::from_parts(parts, Box::pin(async move { Ok(body) })))
+        let (parts, body) = self
+            .router
+            .clone()
+            .oneshot(http::Request::from_parts(parts, body.into()))
             .await
+            .unwrap()
+            .into_parts();
+        let bytes = body.collect().await.unwrap().to_bytes();
+        http::Response::from_parts(parts, bytes)
     }
 
     pub fn subgraph<S: graphql_mocks::Subgraph>(&self) -> &MockSubgraph {
-        self.mock_subgraphs.get(&std::any::TypeId::of::<S>()).unwrap()
+        self.subgraphs.get_mock_by_type::<S>().unwrap()
     }
 
     pub fn drain_http_requests_sent_to<S: graphql_mocks::Subgraph>(&self) -> Vec<ReceivedRequest> {
