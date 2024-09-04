@@ -16,7 +16,6 @@ lambda = [
   "dep:axum-aws-lambda",
   "dep:tower",
   "dep:lambda_http",
-  "engine-v2-axum/lambda"
 ]
 
 [dependencies]

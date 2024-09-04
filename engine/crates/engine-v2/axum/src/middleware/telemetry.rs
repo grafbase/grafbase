@@ -86,7 +86,6 @@ where
 }
 
 // From opentelemetry-http which still uses http 0.X as of 2024/05/17
-#[cfg_attr(not(feature = "lambda"), allow(unused))]
 struct HeaderExtractor<'a>(pub &'a http::HeaderMap);
 
 impl<'a> Extractor for HeaderExtractor<'a> {
