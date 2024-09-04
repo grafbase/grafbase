@@ -5,11 +5,11 @@ on:
   pull_request:
 
 env:
-  GRAFBASE_SKIP_ASSET_VERSION_CHECK: 'true'
+  GRAFBASE_SKIP_ASSET_VERSION_CHECK: "true"
   CARGO_INCREMENTAL: 0
   CARGO_PROFILE_DEV_DEBUG: 0
   CARGO_PROFILE_TEST_DEBUG: 0
-  CARGO_TERM_COLOR: 'always'
+  CARGO_TERM_COLOR: "always"
   DO_NOT_TRACK: 1
   GRAFBASE_RUDDERSTACK_WRITE_KEY: ${{ secrets.GRAFBASE_RUDDERSTACK_WRITE_KEY }}
   GRAFBASE_RUDDERSTACK_DATAPLANE_URL: ${{ secrets.GRAFBASE_RUDDERSTACK_DATAPLANE_URL }}
@@ -179,25 +179,25 @@ jobs:
         platform:
           [
             {
-              'target': 'x86_64-unknown-linux-musl',
-              'runner': 'ubicloud-standard-8'
+              "target": "x86_64-unknown-linux-musl",
+              "runner": "ubicloud-standard-8",
             },
             {
-              'target': 'aarch64-unknown-linux-musl',
-              'runner': 'ubicloud-standard-8-arm'
+              "target": "aarch64-unknown-linux-musl",
+              "runner": "ubicloud-standard-8-arm",
             },
             {
-              'target': 'aarch64-apple-darwin',
-              'runner': 'macos-latest-xlarge'
+              "target": "aarch64-apple-darwin",
+              "runner": "macos-latest-xlarge",
             },
             {
-              'target': 'x86_64-apple-darwin',
-              'runner': 'macos-latest-xlarge'
+              "target": "x86_64-apple-darwin",
+              "runner": "macos-latest-xlarge",
             },
             {
-              'target': 'x86_64-pc-windows-msvc',
-              'runner': 'windows-latest-8-cores'
-            }
+              "target": "x86_64-pc-windows-msvc",
+              "runner": "windows-latest-8-cores",
+            },
           ]
     runs-on: ${{ matrix.platform.runner }}
     steps:

@@ -33,6 +33,7 @@ COPY ./graph-ref ./graph-ref
 COPY ./graphql-lint ./graphql-lint
 COPY ./gqlint ./gqlint
 COPY ./engine/crates ./engine/crates
+COPY ./workspace-hack ./workspace-hack
 
 RUN cargo build --release --target "$(rustc -vV | sed -n "s|host: ||p")" --bin grafbase-gateway &&\
     mv "/grafbase/target/$(rustc -vV | sed -n "s|host: ||p")/release/grafbase-gateway" /grafbase/target/release/grafbase-gateway
