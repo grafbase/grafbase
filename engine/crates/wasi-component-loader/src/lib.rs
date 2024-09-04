@@ -74,6 +74,7 @@ impl ComponentLoader {
         wasm_config.consume_fuel(true);
 
         // https://github.com/bytecodealliance/wasmtime/issues/8897
+        #[cfg(not(target_os = "windows"))]
         wasm_config.native_unwind_info(false);
 
         let engine = Engine::new(&wasm_config)?;
