@@ -70,11 +70,11 @@ where
                 Err(e) => return Err(e),
             };
 
-            let Some((ctx, on_operation_response_outputs)) =
-                response.extensions_mut().remove::<(Hooks::Context, Vec<Vec<u8>>)>()
-            else {
+            let Some(ctx) = response.extensions_mut().remove::<Hooks::Context>() else {
                 return Ok(response);
             };
+
+            let on_operation_response_outputs = response.extensions_mut().remove::<Vec<Vec<u8>>>().unwrap_or_default();
 
             let request_info = ExecutedHttpRequest {
                 method,

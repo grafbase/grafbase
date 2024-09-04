@@ -45,6 +45,7 @@ struct Log {
     method: String,
     url: String,
     trace_id: String,
+    status_code: u16,
     operations: Vec<Operation>,
 }
 
@@ -87,6 +88,7 @@ fn with_working_subgraph() {
       "method": "POST",
       "url": "/graphql",
       "trace_id": "0af7651916cd43dd8448eb211c80319c",
+      "status_code": 200,
       "operations": [
         {
           "name": "Simple",
@@ -110,6 +112,61 @@ fn with_working_subgraph() {
           ]
         }
       ]
+    }
+    "###);
+}
+
+#[test]
+fn with_broken_query() {
+    let tmpdir = TempDir::new().unwrap();
+    let path = tmpdir.path().to_str().unwrap();
+
+    let config = indoc::formatdoc! {r#"
+        [gateway.access_logs]
+        enabled = true
+        path = "{path}"
+    "#};
+
+    with_gateway(&config, None, |gateway| async move {
+        let resp = gateway
+            .gql::<serde_json::Value>("query Simple { ")
+            .header("traceparent", "00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01")
+            .header("accept", "application/graphql-response+json")
+            .send()
+            .await;
+
+        insta::assert_json_snapshot!(resp, @r###"
+        {
+          "errors": [
+            {
+              "message": " --> 1:16\n  |\n1 | query Simple { \n  |                ^---\n  |\n  = expected selection",
+              "locations": [
+                {
+                  "line": 1,
+                  "column": 16
+                }
+              ],
+              "extensions": {
+                "code": "OPERATION_PARSING_ERROR"
+              }
+            }
+          ]
+        }
+        "###);
+    });
+
+    let result = dbg!(std::fs::read_to_string(tmpdir.path().join("access.log")).unwrap());
+    let result = serde_json::from_str::<Log>(&result).unwrap();
+
+    let result = serde_json::to_string_pretty(&result).unwrap();
+
+    insta::assert_snapshot!(&result, @r###"
+    {
+      "method": "POST",
+      "url": "/graphql",
+      "trace_id": "0af7651916cd43dd8448eb211c80319c",
+      "status_code": 400,
+      "operations": []
     }
     "###);
 }
@@ -185,6 +242,7 @@ fn with_working_subgraph_rate_limited() {
       "method": "POST",
       "url": "/graphql",
       "trace_id": "0af7651916cd43dd8448eb211c80319c",
+      "status_code": 200,
       "operations": [
         {
           "name": "Simple",
@@ -216,6 +274,7 @@ fn with_working_subgraph_rate_limited() {
       "method": "POST",
       "url": "/graphql",
       "trace_id": "0af7651916cd43dd8448eb211c80319c",
+      "status_code": 200,
       "operations": [
         {
           "name": "Simple",
@@ -290,6 +349,7 @@ fn with_broken_subgraph() {
       "method": "POST",
       "url": "/graphql",
       "trace_id": "0af7651916cd43dd8448eb211c80319c",
+      "status_code": 200,
       "operations": [
         {
           "name": "Simple",
@@ -375,6 +435,7 @@ fn with_broken_subgraph_retried() {
       "method": "POST",
       "url": "/graphql",
       "trace_id": "0af7651916cd43dd8448eb211c80319c",
+      "status_code": 200,
       "operations": [
         {
           "name": "Simple",
@@ -463,6 +524,7 @@ fn with_caching() {
       "method": "POST",
       "url": "/graphql",
       "trace_id": "0af7651916cd43dd8448eb211c80319c",
+      "status_code": 200,
       "operations": [
         {
           "name": "Simple",
@@ -494,6 +556,7 @@ fn with_caching() {
       "method": "POST",
       "url": "/graphql",
       "trace_id": "0af7651916cd43dd8448eb211c80319c",
+      "status_code": 200,
       "operations": [
         {
           "name": "Simple",
@@ -558,6 +621,7 @@ fn with_subgraph_status_500() {
       "method": "POST",
       "url": "/graphql",
       "trace_id": "0af7651916cd43dd8448eb211c80319c",
+      "status_code": 200,
       "operations": [
         {
           "name": "Simple",
@@ -640,6 +704,7 @@ fn with_subgraph_status_500_retried() {
       "method": "POST",
       "url": "/graphql",
       "trace_id": "0af7651916cd43dd8448eb211c80319c",
+      "status_code": 200,
       "operations": [
         {
           "name": "Simple",

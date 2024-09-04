@@ -162,11 +162,10 @@ impl<R: Runtime> Engine<R> {
                     };
 
                     let mut response = Http::from(request_context.response_format, response);
+                    response.extensions_mut().insert(request_context.hooks_context.clone());
 
                     if let Some(result) = operation_hook_result {
-                        response
-                            .extensions_mut()
-                            .insert((request_context.hooks_context.clone(), vec![result]));
+                        response.extensions_mut().insert(vec![result]);
                     };
 
                     response
@@ -198,11 +197,11 @@ impl<R: Runtime> Engine<R> {
                 };
 
                 let mut response = Http::batch(format, responses);
+                response.extensions_mut().insert(request_context.hooks_context.clone());
 
-                response.extensions_mut().insert((
-                    request_context.hooks_context.clone(),
-                    operation_hook_results.into_iter().flatten().collect::<Vec<_>>(),
-                ));
+                response
+                    .extensions_mut()
+                    .insert(operation_hook_results.into_iter().flatten().collect::<Vec<_>>());
 
                 response
             }

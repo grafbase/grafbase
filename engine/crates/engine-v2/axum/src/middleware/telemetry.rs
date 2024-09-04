@@ -207,6 +207,8 @@ where
                 }
             }
 
+            metrics.decrement_connected_clients();
+
             result
         })
     }
