@@ -143,6 +143,11 @@ jobs:
       - name: Build assets
         uses: ./.github/actions/cli_assets
 
+      - name: Install musl-tools
+        if: ${{ contains(matrix.platform.target, 'linux') }}
+        shell: bash
+        run: sudo apt-get install musl musl-tools
+
       - name: Clippy
         if: fromJson(needs.what-changed.outputs.rust).cargo-package-specs
         shell: bash
@@ -200,11 +205,6 @@ jobs:
       #   with:
       #     username: ${{ secrets.DOCKERHUB_USERNAME }}
       #     password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Install musl-tools
-        if: ${{ contains(matrix.platform.target, 'linux') }}
-        shell: bash
-        run: sudo apt-get install musl musl-tools
 
       - name: Build the WASI components for tests
         if: contains(fromJson(needs.what-changed.outputs.rust).changed-packages, 'integration-tests')
