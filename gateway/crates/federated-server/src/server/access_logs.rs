@@ -30,7 +30,7 @@ pub(crate) fn start(
 
             match msg {
                 AccessLogMessage::Data(data) => {
-                    if let Err(e) = log.write_all(&data).and_then(|_| log.write(&[b'\n'])) {
+                    if let Err(e) = log.write_all(&data).and_then(|_| log.write(b"\n")) {
                         tracing::error!("error writing to access log: {e}");
                     }
                 }

@@ -99,10 +99,6 @@ impl<'a> PlanWalker<'a, (), ()> {
 type LogicalPlanWalker<'a> = PlanWalker<'a, LogicalPlanId, ()>;
 
 impl<'a> LogicalPlanWalker<'a> {
-    pub fn id(&self) -> LogicalPlanId {
-        self.item
-    }
-
     pub fn response_blueprint(&self) -> &LogicalPlanResponseBlueprint {
         &self.operation.response_blueprint[self.item]
     }

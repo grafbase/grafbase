@@ -45,10 +45,9 @@ pub(crate) async fn execute_subgraph_request<'ctx, 'a, R: Runtime>(
             .hooks()
             .on_subgraph_request(endpoint.subgraph_name(), http::Method::POST, endpoint.url(), headers)
             .await
-            .map_err(|error| {
+            .inspect_err(|_| {
                 ctx.request_info()
                     .push_execution(SubgraphRequestExecutionKind::HookError);
-                error
             })?;
 
         headers.typed_insert(headers::ContentType::json());
@@ -194,10 +193,9 @@ where
         .rate_limiter()
         .limit(&RateLimitKey::Subgraph(ctx.endpoint().subgraph_name().into()))
         .await
-        .map_err(|e| {
+        .inspect_err(|_| {
             ctx.request_info()
                 .push_execution(SubgraphRequestExecutionKind::RateLimited);
-            e
         })?;
 
     record::increment_inflight_requests(ctx.execution_context(), ctx.endpoint());
