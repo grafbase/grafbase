@@ -94,7 +94,7 @@ impl ComponentLoader {
 
                 if config.networking {
                     // adds the wasi http interfaces to our component
-                    wasmtime_wasi_http::proxy::add_only_http_to_linker(&mut linker)?;
+                    wasmtime_wasi_http::add_only_http_to_linker_async(&mut linker)?;
                 }
 
                 let mut types = linker.instance(COMPONENT_TYPES)?;

@@ -19,17 +19,14 @@ tokio = { workspace = true, features = ["time", "rt"] }
 grafbase-telemetry.workspace = true
 
 [dependencies.wasmtime]
-git = "https://github.com/grafbase/wasmtime"
-branch = "fix-linking-issues-with-musl"
+version = "24.0.0"
 
 [dependencies.wasmtime-wasi]
-git = "https://github.com/grafbase/wasmtime"
-branch = "fix-linking-issues-with-musl"
+version = "24.0.0"
 default-features = false
 
 [dependencies.wasmtime-wasi-http]
-git = "https://github.com/grafbase/wasmtime"
-branch = "fix-linking-issues-with-musl"
+version = "24.0.0"
 
 [lints]
 workspace = true
