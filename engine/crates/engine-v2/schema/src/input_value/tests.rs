@@ -14,21 +14,21 @@ fn create_schema_and_input_value() -> (Schema, SchemaInputValueId) {
                 name_id: ctx.strings.get_or_new("fieldA"),
                 description_id: None,
                 ty: TypeRecord {
-                    definition_id: crate::Definition::Object(0.into()),
+                    definition_id: crate::DefinitionId::Object(0.into()),
                     wrapping: Wrapping::new(false),
                 }, // not used
                 default_value_id: None,
-                directive_ids: IdRange::empty(),
+                directive_ids: Vec::new(),
             },
             InputValueDefinitionRecord {
                 name_id: ctx.strings.get_or_new("fieldB"),
                 description_id: None,
                 ty: TypeRecord {
-                    definition_id: crate::Definition::Object(0.into()),
+                    definition_id: crate::DefinitionId::Object(0.into()),
                     wrapping: Wrapping::new(false),
                 }, // not used
                 default_value_id: None,
-                directive_ids: IdRange::empty(),
+                directive_ids: Vec::new(),
             },
         ]);
         graph.enum_value_definitions.extend([
@@ -92,17 +92,17 @@ fn create_schema_and_input_value() -> (Schema, SchemaInputValueId) {
 #[test]
 fn test_display() {
     let (schema, id) = create_schema_and_input_value();
-    let walker = schema.walk(&schema[id]);
+    let value = id.read(&schema);
 
-    insta::assert_snapshot!(walker, @r###"{inputObject:{fieldA:INACTIVE,fieldB:"some string value"},list:[null,ACTIVE,73],object:{null:null,string:"some string value",enumValue:ACTIVE,int:7,bigInt:8,u64:9,float:10,boolean:true}}"###);
+    insta::assert_snapshot!(value, @r###"{inputObject:{fieldA:INACTIVE,fieldB:"some string value"},list:[null,ACTIVE,73],object:{null:null,string:"some string value",enumValue:ACTIVE,int:7,bigInt:8,u64:9,float:10,boolean:true}}"###);
 }
 
 #[test]
 fn test_serialize() {
     let (schema, id) = create_schema_and_input_value();
-    let walker = schema.walk(&schema[id]);
+    let value = id.read(&schema);
 
-    insta::assert_json_snapshot!(walker, @r###"
+    insta::assert_json_snapshot!(value, @r###"
         {
           "inputObject": {
             "fieldA": "INACTIVE",
@@ -130,9 +130,9 @@ fn test_serialize() {
 #[test]
 fn test_deserializer() {
     let (schema, id) = create_schema_and_input_value();
-    let walker = schema.walk(&schema[id]);
+    let value = id.read(&schema);
 
-    let value = serde_json::Value::deserialize(walker).unwrap();
+    let value = serde_json::Value::deserialize(value).unwrap();
 
     insta::assert_json_snapshot!(value, @r###"
         {
@@ -162,8 +162,8 @@ fn test_deserializer() {
 #[test]
 fn test_input_value() {
     let (schema, id) = create_schema_and_input_value();
-    let walker = schema.walk(&schema[id]);
-    let input_value = InputValue::from(walker);
+    let value = id.read(&schema);
+    let input_value = InputValue::from(value);
 
     insta::assert_debug_snapshot!(input_value, @r###"
     Map(
@@ -258,7 +258,7 @@ fn test_input_value() {
     )
     "###);
 
-    insta::assert_json_snapshot!(schema.walk(&input_value), @r###"
+    insta::assert_json_snapshot!(input_value, @r###"
         {
           "inputObject": {
             "fieldA": "INACTIVE",
@@ -286,7 +286,7 @@ fn test_input_value() {
 #[test]
 fn test_struct_deserializer() {
     let (schema, id) = create_schema_and_input_value();
-    let walker = schema.walk(&schema[id]);
+    let value = id.read(&schema);
 
     #[allow(unused)]
     #[derive(Debug, serde::Deserialize)]
@@ -321,7 +321,7 @@ fn test_struct_deserializer() {
         object: Object,
     }
 
-    let input = Input::deserialize(walker).unwrap();
+    let input = Input::deserialize(value).unwrap();
 
     insta::assert_debug_snapshot!(input, @r###"
         Input {
@@ -349,5 +349,5 @@ fn test_struct_deserializer() {
         }
         "###);
 
-    serde::de::IgnoredAny::deserialize(walker).unwrap();
+    serde::de::IgnoredAny::deserialize(value).unwrap();
 }

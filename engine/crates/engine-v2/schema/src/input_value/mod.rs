@@ -1,81 +1,19 @@
 use std::num::NonZero;
 
-use crate::{EnumValueId, IdRange, InputValueDefinitionId, SchemaWalker, StringId};
+use crate::{EnumValueId, IdRange, InputValueDefinition, InputValueDefinitionId, Schema, StringId};
 
-mod de;
-mod display;
 mod error;
-mod ser;
+mod reader;
+mod set;
 #[cfg(test)]
 mod tests;
-mod walker;
+mod value;
 
 pub use error::*;
-pub use walker::*;
-
-/// implement a Deserializer & Serialize trait, but if you need to traverse a dynamic type,
-/// this will be the one to use. All input values can be converted to it.
-#[derive(Default, Debug, Clone)]
-pub enum InputValue<'a> {
-    #[default]
-    Null,
-    String(&'a str),
-    EnumValue(EnumValueId),
-    Int(i32),
-    BigInt(i64),
-    Float(f64),
-    Boolean(bool),
-    // There is no guarantee on the ordering.
-    InputObject(Box<[(InputValueDefinitionId, InputValue<'a>)]>),
-    List(Box<[InputValue<'a>]>),
-
-    /// for JSON
-    Map(Box<[(&'a str, InputValue<'a>)]>), // no guarantee on the ordering
-    U64(u64),
-}
-
-/// Provided if you need to serialize only a part of an input value.
-impl serde::Serialize for SchemaWalker<'_, &InputValue<'_>> {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        match &self.item {
-            InputValue::Null => serializer.serialize_none(),
-            InputValue::String(s) => s.serialize(serializer),
-            InputValue::EnumValue(id) => self.walk(*id).name().serialize(serializer),
-            InputValue::Int(n) => n.serialize(serializer),
-            InputValue::BigInt(n) => n.serialize(serializer),
-            InputValue::Float(f) => f.serialize(serializer),
-            InputValue::U64(n) => n.serialize(serializer),
-            InputValue::Boolean(b) => b.serialize(serializer),
-            InputValue::InputObject(fields) => {
-                use serde::ser::SerializeMap;
-                let mut map = serializer.serialize_map(Some(fields.len()))?;
-                for (key, value) in fields.iter() {
-                    map.serialize_entry(&self.walk(*key).name(), &self.walk(value))?;
-                }
-                map.end()
-            }
-            InputValue::List(list) => {
-                use serde::ser::SerializeSeq;
-                let mut seq = serializer.serialize_seq(Some(list.len()))?;
-                for value in list.iter() {
-                    seq.serialize_element(&self.walk(value))?;
-                }
-                seq.end()
-            }
-            InputValue::Map(key_values) => {
-                use serde::ser::SerializeMap;
-                let mut map = serializer.serialize_map(Some(key_values.len()))?;
-                for (key, value) in key_values.iter() {
-                    map.serialize_entry(key, &self.walk(value))?;
-                }
-                map.end()
-            }
-        }
-    }
-}
+use readable::Readable;
+pub use reader::*;
+pub use set::*;
+pub use value::*;
 
 #[derive(Default, serde::Serialize, serde::Deserialize, id_derives::IndexedFields)]
 pub struct SchemaInputValues {
@@ -93,11 +31,49 @@ pub struct SchemaInputValues {
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize, id_derives::Id)]
 pub struct SchemaInputValueId(NonZero<u32>);
 
+impl Readable<Schema> for SchemaInputValueId {
+    type Reader<'a> = SchemaInputValue<'a>;
+
+    fn read<'s>(self, schema: &'s Schema) -> Self::Reader<'s>
+    where
+        Self: 's,
+    {
+        SchemaInputValue {
+            schema,
+            value: &schema[self],
+        }
+    }
+}
+
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize, id_derives::Id)]
 pub struct SchemaInputObjectFieldValueId(NonZero<u32>);
 
+impl Readable<Schema> for SchemaInputObjectFieldValueId {
+    type Reader<'a> = (InputValueDefinition<'a>, SchemaInputValue<'a>);
+
+    fn read<'s>(self, schema: &'s Schema) -> Self::Reader<'s>
+    where
+        Self: 's,
+    {
+        let (input_value_definition, value) = &schema[self];
+        (input_value_definition.read(schema), value.read(schema))
+    }
+}
+
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize, id_derives::Id)]
 pub struct SchemaInputKeyValueId(NonZero<u32>);
+
+impl Readable<Schema> for SchemaInputKeyValueId {
+    type Reader<'a> = (&'a str, SchemaInputValue<'a>);
+
+    fn read<'s>(self, schema: &'s Schema) -> Self::Reader<'s>
+    where
+        Self: 's,
+    {
+        let (key, value) = &schema[self];
+        (key.read(schema), value.read(schema))
+    }
+}
 
 /// Represents a default input value and @requires arguments.
 #[derive(Debug, Copy, Clone, serde::Serialize, serde::Deserialize)]
@@ -117,6 +93,16 @@ pub enum SchemaInputValueRecord {
     // sorted by the key (actual String, not the StringId)
     Map(IdRange<SchemaInputKeyValueId>),
     U64(u64),
+}
+
+impl Readable<Schema> for &SchemaInputValueRecord {
+    type Reader<'a> = SchemaInputValue<'a> where Self: 'a;
+    fn read<'s>(self, schema: &'s Schema) -> Self::Reader<'s>
+    where
+        Self: 's,
+    {
+        SchemaInputValue { schema, value: self }
+    }
 }
 
 impl SchemaInputValueRecord {

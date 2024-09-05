@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use id_newtypes::IdToMany;
-use schema::{RequiredScopeSetIndex, RequiredScopesId, RequiredScopesWalker, TypeSystemDirectivesWalker};
+use schema::{RequiredScopesId, RequiredScopesWalker, RequiresScopeSetIndex, TypeSystemDirectivesWalker};
 
 use super::{LogicalPlanId, OperationPlan, OperationWalker, PlanWalker, SelectionSetWalker};
 
@@ -55,7 +55,7 @@ pub enum CacheScope<'a> {
 
 pub struct RequiredScopeSet<'a> {
     walker: RequiredScopesWalker<'a>,
-    scope_set: RequiredScopeSetIndex,
+    scope_set: RequiresScopeSetIndex,
 }
 
 impl<'a> RequiredScopeSet<'a> {

@@ -11,11 +11,10 @@ use std::mem::take;
 use std::time::Duration;
 
 use config::latest::Config;
-use sources::graphql::GraphqlEndpointId;
+use external_sources::ExternalDataSources;
 use url::Url;
 
 use self::error::*;
-use self::external_sources::ExternalDataSources;
 use self::graph::GraphBuilder;
 use self::ids::IdMaps;
 use self::interner::ProxyKeyInterner;
@@ -29,12 +28,12 @@ use requires::*;
 pub(crate) fn build(mut config: Config, version: Version) -> Result<Schema, BuildError> {
     let mut ctx = BuildContext::new(&mut config);
     let sources = ExternalDataSources::build(&mut ctx, &mut config);
-    let (graph, introspection) = GraphBuilder::build(&mut ctx, &sources, &mut config)?;
-    let data_sources = DataSources {
-        graphql: sources.graphql,
+    let (graph, introspection) = GraphBuilder::build(&mut ctx, &mut config)?;
+    let subgraphs = SubGraphs {
+        graphql_endpoints: sources.graphql_endpoints,
         introspection,
     };
-    ctx.finalize(data_sources, graph, config, version)
+    ctx.finalize(subgraphs, graph, config, version)
 }
 
 pub(crate) struct BuildContext {
@@ -42,13 +41,12 @@ pub(crate) struct BuildContext {
     pub regexps: ProxyKeyInterner<Regex, RegexId>,
     urls: Interner<Url, UrlId>,
     idmaps: IdMaps,
-    next_subraph_id: usize,
 }
 
 impl BuildContext {
     #[cfg(test)]
     pub fn build_with<T>(build: impl FnOnce(&mut Self, &mut Graph) -> T) -> (Schema, T) {
-        use sources::introspection::IntrospectionBuilder;
+        use introspection::IntrospectionBuilder;
 
         use crate::builder::interner::ProxyKeyInterner;
 
@@ -57,17 +55,16 @@ impl BuildContext {
             regexps: ProxyKeyInterner::default(),
             urls: Interner::default(),
             idmaps: IdMaps::empty(),
-            next_subraph_id: 0,
         };
 
         let mut graph = Graph {
             description: None,
-            root_operation_types: RootOperationTypes {
+            root_operation_types: RootOperationTypesRecord {
                 query_id: ObjectDefinitionId::from(0),
                 mutation_id: None,
                 subscription_id: None,
             },
-            type_definitions: Vec::new(),
+            type_definitions_ordered_by_name: Vec::new(),
             object_definitions: vec![ObjectDefinitionRecord {
                 name_id: ctx.strings.get_or_new("Query"),
                 description_id: None,
@@ -83,7 +80,7 @@ impl BuildContext {
                     description_id: None,
                     // will be replaced by introspection, doesn't matter.
                     ty: TypeRecord {
-                        definition_id: Definition::Object(ObjectDefinitionId::from(0)),
+                        definition_id: DefinitionId::Object(ObjectDefinitionId::from(0)),
                         wrapping: Default::default(),
                     },
                     resolver_ids: Default::default(),
@@ -99,7 +96,7 @@ impl BuildContext {
                     description_id: None,
                     // will be replaced by introspection, doesn't matter.
                     ty: TypeRecord {
-                        definition_id: Definition::Object(ObjectDefinitionId::from(0)),
+                        definition_id: DefinitionId::Object(ObjectDefinitionId::from(0)),
                         wrapping: Default::default(),
                     },
                     resolver_ids: Default::default(),
@@ -115,12 +112,10 @@ impl BuildContext {
             scalar_definitions: Vec::new(),
             input_object_definitions: Vec::new(),
             input_value_definitions: Vec::new(),
-            type_system_directives: Vec::new(),
             enum_value_definitions: Vec::new(),
             resolver_definitions: Vec::new(),
             required_field_sets: Vec::new(),
             required_fields: Vec::new(),
-            cache_control: Vec::new(),
             input_values: Default::default(),
             required_scopes: Vec::new(),
             authorized_directives: Vec::new(),
@@ -130,8 +125,8 @@ impl BuildContext {
         let introspection = IntrospectionBuilder::create_data_source_and_insert_fields(&mut ctx, &mut graph);
 
         let schema = Schema {
-            data_sources: DataSources {
-                graphql: Default::default(),
+            subgraphs: SubGraphs {
+                graphql_endpoints: Default::default(),
                 introspection,
             },
             version: Version(Vec::new()),
@@ -152,19 +147,12 @@ impl BuildContext {
             regexps: Default::default(),
             urls: Interner::default(),
             idmaps: IdMaps::new(&config.graph),
-            next_subraph_id: 0,
         }
-    }
-
-    pub fn next_subgraph_id(&mut self) -> SubgraphId {
-        let id = SubgraphId::from(self.next_subraph_id);
-        self.next_subraph_id += 1;
-        id
     }
 
     fn finalize(
         mut self,
-        data_sources: DataSources,
+        subgraphs: SubGraphs,
         graph: Graph,
         mut config: Config,
         version: Version,
@@ -174,47 +162,49 @@ impl BuildContext {
             .map(|rule| -> HeaderRuleRecord {
                 match rule {
                     config::latest::HeaderRule::Forward(rule) => {
-                        let name = match rule.name {
+                        let name_id = match rule.name {
                             config::latest::NameOrPattern::Pattern(regex) => {
-                                NameOrPattern::Pattern(self.regexps.get_or_insert(regex))
+                                NameOrPatternId::Pattern(self.regexps.get_or_insert(regex))
                             }
                             config::latest::NameOrPattern::Name(name) => {
-                                NameOrPattern::Name(self.strings.get_or_new(&config[name]))
+                                NameOrPatternId::Name(self.strings.get_or_new(&config[name]))
                             }
                         };
 
-                        let default = rule.default.map(|id| self.strings.get_or_new(&config[id]));
-                        let rename = rule.rename.map(|id| self.strings.get_or_new(&config[id]));
+                        let default_id = rule.default.map(|id| self.strings.get_or_new(&config[id]));
+                        let rename_id = rule.rename.map(|id| self.strings.get_or_new(&config[id]));
 
-                        HeaderRuleRecord::Forward {
-                            name_id: name,
-                            default,
-                            rename,
-                        }
+                        HeaderRuleRecord::Forward(ForwardHeaderRuleRecord {
+                            name_id,
+                            default_id,
+                            rename_id,
+                        })
                     }
                     config::latest::HeaderRule::Insert(rule) => {
-                        let name = self.strings.get_or_new(&config[rule.name]);
-                        let value = self.strings.get_or_new(&config[rule.value]);
+                        let name_id = self.strings.get_or_new(&config[rule.name]);
+                        let value_id = self.strings.get_or_new(&config[rule.value]);
 
-                        HeaderRuleRecord::Insert { name_id: name, value }
+                        HeaderRuleRecord::Insert(InsertHeaderRuleRecord { name_id, value_id })
                     }
                     config::latest::HeaderRule::Remove(rule) => {
-                        let name = match rule.name {
+                        let name_id = match rule.name {
                             config::latest::NameOrPattern::Pattern(regex) => {
-                                NameOrPattern::Pattern(self.regexps.get_or_insert(regex))
+                                NameOrPatternId::Pattern(self.regexps.get_or_insert(regex))
                             }
                             config::latest::NameOrPattern::Name(name) => {
-                                NameOrPattern::Name(self.strings.get_or_new(&config[name]))
+                                NameOrPatternId::Name(self.strings.get_or_new(&config[name]))
                             }
                         };
 
-                        HeaderRuleRecord::Remove { name_id: name }
+                        HeaderRuleRecord::Remove(RemoveHeaderRuleRecord { name_id })
                     }
-                    config::latest::HeaderRule::RenameDuplicate(rule) => HeaderRuleRecord::RenameDuplicate {
-                        name_id: self.strings.get_or_new(&config[rule.name]),
-                        default: rule.default.map(|id| self.strings.get_or_new(&config[id])),
-                        rename: self.strings.get_or_new(&config[rule.rename]),
-                    },
+                    config::latest::HeaderRule::RenameDuplicate(rule) => {
+                        HeaderRuleRecord::RenameDuplicate(RenameDuplicateHeaderRuleRecord {
+                            name_id: self.strings.get_or_new(&config[rule.name]),
+                            default_id: rule.default.map(|id| self.strings.get_or_new(&config[id])),
+                            rename_id: self.strings.get_or_new(&config[rule.rename]),
+                        })
+                    }
                 }
             })
             .collect();
@@ -226,7 +216,7 @@ impl BuildContext {
             .collect();
 
         Ok(Schema {
-            data_sources,
+            subgraphs,
             graph,
             version,
             strings: self.strings.into(),

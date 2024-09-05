@@ -13,5 +13,6 @@ workspace = true
 
 [dependencies]
 serde.workspace = true
+readable = { path = "../readable", package = "engine-v2-readable" }
 bitvec = { version = "1", features = ["serde"]}
 

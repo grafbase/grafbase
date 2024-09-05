@@ -1,7 +1,8 @@
 use config::latest::{HeaderRemove, HeaderRule, NameOrPattern};
-use engine_v2_schema::{Definition, Schema, Version};
+use engine_v2_schema::{DefinitionId, Schema, Version};
 use federated_graph::from_sdl;
 use pretty_assertions::assert_eq;
+use readable::Readable;
 use regex::Regex;
 
 const SCHEMA: &str = r#"
@@ -236,29 +237,29 @@ fn should_remove_all_inaccessible_items() {
     let schema = Schema::build(config, Version::from("random")).unwrap();
 
     // Inaccessible types are still in the schema, they're just not reachable through input and output fields.
-    assert!(schema.walker().definition_by_name("BookInput").is_some());
-    assert!(schema.walker().definition_by_name("TVContent").is_some());
-    assert!(schema.walker().definition_by_name("UngulateType").is_some());
-    assert!(schema.walker().definition_by_name("Old").is_some());
+    assert!(schema.definition_by_name("BookInput").is_some());
+    assert!(schema.definition_by_name("TVContent").is_some());
+    assert!(schema.definition_by_name("UngulateType").is_some());
+    assert!(schema.definition_by_name("Old").is_some());
 
     // Input object fields
     {
-        let Some(Definition::InputObject(book_input_2)) = schema.walker().definition_by_name("BookInput2") else {
+        let Some(DefinitionId::InputObject(book_input_2)) = schema.definition_by_name("BookInput2") else {
             panic!("missing BookInput2");
         };
 
-        let book_input_2 = schema.walk(book_input_2);
+        let book_input_2 = book_input_2.read(&schema);
 
         assert!(!book_input_2.input_fields().any(|field| field.name() == "author"));
     }
 
     // Field arguments
     {
-        let Some(Definition::Object(mutation)) = schema.walker().definition_by_name("Mutation") else {
+        let Some(DefinitionId::Object(mutation)) = schema.definition_by_name("Mutation") else {
             panic!("missing Mutation");
         };
 
-        let mutation = schema.walk(mutation);
+        let mutation = mutation.read(&schema);
 
         let field = mutation.fields().find(|field| field.name() == "addBook").unwrap();
 
@@ -267,11 +268,11 @@ fn should_remove_all_inaccessible_items() {
 
     // Object fields
     {
-        let Some(Definition::Object(query)) = schema.walker().definition_by_name("Query") else {
+        let Some(DefinitionId::Object(query)) = schema.definition_by_name("Query") else {
             panic!("missing Query");
         };
 
-        let query = schema.walk(query);
+        let query = query.read(&schema);
 
         assert!(!query.fields().any(|f| f.name() == "currentTime"));
         assert!(query.fields().any(|f| f.name() == "getNew"));
@@ -279,23 +280,23 @@ fn should_remove_all_inaccessible_items() {
 
     // Enum values
     {
-        let Some(Definition::Enum(ungulate_type)) = schema.definition_by_name("UngulateType") else {
+        let Some(DefinitionId::Enum(ungulate_type)) = schema.definition_by_name("UngulateType") else {
             panic!("Expected UngulateType to be defined");
         };
 
-        let r#enum = schema.walk(ungulate_type);
+        let r#enum = ungulate_type.read(&schema);
         assert!(r#enum.values().any(|value| value.name() == "GIRAFFE"));
         assert!(!r#enum.values().any(|value| value.name() == "HORSE"));
     }
 
     // Union members
     {
-        let Some(Definition::Union(continent)) = schema.definition_by_name("Continent") else {
+        let Some(DefinitionId::Union(continent)) = schema.definition_by_name("Continent") else {
             panic!("Expected Continent to be defined");
         };
 
-        let members = schema
-            .walk(continent)
+        let members = continent
+            .read(&schema)
             .possible_types()
             .map(|t| t.name())
             .collect::<Vec<_>>();

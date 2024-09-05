@@ -1,0 +1,22 @@
+[package]
+edition = "2021"
+name = "engine-v2-codegen"
+publish = false
+version = "0.1.0"
+
+[dependencies]
+anyhow = "1"
+cynic-parser = { workspace = true, features = ["report"] }
+indoc = "2"
+itertools = "0.13"
+proc-macro2 = "1"
+quote = "1"
+regex.workspace = true
+tracing.workspace = true
+tracing-subscriber = { workspace = true, features = [
+  "fmt",
+  "tracing-log",
+  "env-filter",
+  "ansi",
+] }
+xshell = "0.2"

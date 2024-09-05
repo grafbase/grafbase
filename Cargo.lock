@@ -2575,6 +2575,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "engine-v2-codegen"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "cynic-parser",
+ "indoc",
+ "itertools 0.13.0",
+ "proc-macro2",
+ "quote",
+ "regex",
+ "tracing",
+ "tracing-subscriber",
+ "xshell",
+]
+
+[[package]]
 name = "engine-v2-config"
 version = "0.1.0"
 dependencies = [
@@ -2606,8 +2622,13 @@ name = "engine-v2-id-newtypes"
 version = "0.0.0"
 dependencies = [
  "bitvec",
+ "engine-v2-readable",
  "serde",
 ]
+
+[[package]]
+name = "engine-v2-readable"
+version = "0.1.0"
 
 [[package]]
 name = "engine-v2-schema"
@@ -2617,6 +2638,7 @@ dependencies = [
  "engine-v2-config",
  "engine-v2-id-derives",
  "engine-v2-id-newtypes",
+ "engine-v2-readable",
  "fnv",
  "graphql-federated-graph",
  "graphql-wrapping-types",

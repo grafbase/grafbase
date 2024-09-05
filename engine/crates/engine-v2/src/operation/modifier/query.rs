@@ -1,5 +1,5 @@
 use id_newtypes::{BitSet, IdRange, IdToMany};
-use schema::{RequiredScopeSetIndex, RequiredScopesId, Schema};
+use schema::{RequiredScopesId, RequiresScopeSetIndex, Schema};
 
 use crate::{
     execution::{ErrorId, PlanningResult, PreExecutionContext},
@@ -20,7 +20,7 @@ pub(crate) struct QueryModifications {
     pub concrete_shape_has_error: BitSet<ConcreteObjectShapeId>,
     pub field_shape_id_to_error_ids: IdToMany<FieldShapeId, ErrorId>,
     pub root_error_ids: Vec<ErrorId>,
-    matched_scopes: Vec<(RequiredScopesId, RequiredScopeSetIndex)>,
+    matched_scopes: Vec<(RequiredScopesId, RequiresScopeSetIndex)>,
 }
 
 impl QueryModifications {
@@ -55,7 +55,7 @@ impl QueryModifications {
     pub(in crate::operation) fn matched_scope_set(
         &self,
         required_scope: RequiredScopesId,
-    ) -> Option<RequiredScopeSetIndex> {
+    ) -> Option<RequiresScopeSetIndex> {
         let index = self
             .matched_scopes
             .binary_search_by_key(&required_scope, |(id, _)| *id)
@@ -235,7 +235,7 @@ where
         &self.ctx.engine.schema
     }
 
-    fn record_selected_scope_set(&mut self, id: RequiredScopesId, selected_scope_set: schema::RequiredScopeSetIndex) {
+    fn record_selected_scope_set(&mut self, id: RequiredScopesId, selected_scope_set: schema::RequiresScopeSetIndex) {
         self.modifications.matched_scopes.push((id, selected_scope_set));
     }
 }

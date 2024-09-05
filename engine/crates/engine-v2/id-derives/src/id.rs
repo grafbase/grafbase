@@ -27,11 +27,27 @@ pub fn derive_id(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     ));
 
     let output = quote! {
+        impl #impl_generics From<i32> for #ident #ty_generics #where_clause {
+            fn from(value: i32) -> Self {
+                Self::from(
+                    #inner_ty::try_from(value).expect("Value mismatch")
+                )
+            }
+        }
+
         impl #impl_generics From<usize> for #ident #ty_generics #where_clause {
             fn from(value: usize) -> Self {
+                Self::from(
+                    #inner_ty::try_from(value).expect("Too big")
+                )
+            }
+        }
+
+        impl #impl_generics From<#inner_ty> for #ident #ty_generics #where_clause {
+            fn from(value: #inner_ty) -> Self {
                 #max_check
                 Self(
-                    #inner_ty::try_from(value + 1).ok().and_then(|value| value.try_into().ok()).expect(#too_many_error)
+                    (value + 1).try_into().expect(#too_many_error)
                 )
             }
         }
@@ -58,6 +74,8 @@ pub fn derive_id(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
                 write!(f, #name_format_str, usize::from(*self))
             }
         }
+
+        impl id_newtypes::IdOperations for #ident {}
     };
 
     proc_macro::TokenStream::from(output)

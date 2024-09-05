@@ -1,57 +1,13 @@
 use std::num::NonZero;
 
+use readable::Readable;
+
+use crate::Schema;
+
 /// Reserving the 4 upper bits for some fun with bit packing. It still leaves 268 million possible values.
 /// And it's way easier to increase that limit if needed that to reserve some bits later!
 /// Currently, we use the two upper bits of the FieldId for the ResponseEdge in the engine.
-pub(crate) const MAX_ID: usize = (1 << 29) - 1;
-
-#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
-#[max(MAX_ID)]
-pub struct DefinitionId(NonZero<u32>);
-
-#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
-#[max(MAX_ID)]
-pub struct TypeSystemDirectiveId(NonZero<u32>);
-
-#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
-#[max(MAX_ID)]
-pub struct EnumValueId(NonZero<u32>);
-
-#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
-#[max(MAX_ID)]
-pub struct EnumDefinitionId(NonZero<u32>);
-
-#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
-#[max(MAX_ID)]
-pub struct FieldDefinitionId(NonZero<u32>);
-
-#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
-#[max(MAX_ID)]
-pub struct InputObjectDefinitionId(NonZero<u32>);
-
-#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
-#[max(MAX_ID)]
-pub struct InputValueDefinitionId(NonZero<u32>);
-
-#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
-#[max(MAX_ID)]
-pub struct InterfaceDefinitionId(NonZero<u32>);
-
-#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
-#[max(MAX_ID)]
-pub struct ObjectDefinitionId(NonZero<u32>);
-
-#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
-#[max(MAX_ID)]
-pub struct ScalarDefinitionId(NonZero<u32>);
-
-#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
-#[max(MAX_ID)]
-pub struct UnionDefinitionId(NonZero<u32>);
-
-#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
-#[max(MAX_ID)]
-pub struct ResolverDefinitionId(NonZero<u32>);
+pub(crate) const MAX_ID: u32 = (1 << 29) - 1;
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
 #[max(MAX_ID)]
@@ -60,18 +16,6 @@ pub struct RequiredFieldSetId(NonZero<u32>);
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
 #[max(MAX_ID)]
 pub struct RequiredFieldId(NonZero<u32>);
-
-#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
-#[max(MAX_ID)]
-pub struct CacheControlId(NonZero<u32>);
-
-#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
-#[max(MAX_ID)]
-pub struct RequiredScopesId(NonZero<u32>);
-
-#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
-#[max(MAX_ID)]
-pub struct AuthorizedDirectiveId(NonZero<u32>);
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
 #[max(MAX_ID)]
@@ -85,10 +29,13 @@ pub struct StringId(NonZero<u32>);
 #[max(MAX_ID)]
 pub struct RegexId(NonZero<u32>);
 
-#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
-#[max(MAX_ID)]
-pub struct HeaderRuleId(NonZero<u32>);
+impl Readable<Schema> for StringId {
+    type Reader<'a> = &'a str;
 
-#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
-#[max(MAX_ID)]
-pub struct SubgraphId(NonZero<u16>);
+    fn read<'s>(self, schema: &'s Schema) -> Self::Reader<'s>
+    where
+        Self: 's,
+    {
+        &schema[self]
+    }
+}

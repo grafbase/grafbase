@@ -2,8 +2,8 @@ mod error;
 mod path;
 
 use crate::{
-    Definition, EnumDefinitionId, Graph, InputObjectDefinitionId, InputValueDefinitionId, ScalarDefinitionId,
-    ScalarType, SchemaInputValueId, SchemaInputValueRecord, SchemaInputValues, StringId, TypeRecord,
+    EnumDefinitionId, Graph, InputObjectDefinitionId, InputValueDefinitionId, ScalarDefinitionId, ScalarType,
+    SchemaInputValueId, SchemaInputValueRecord, SchemaInputValues, StringId, TypeRecord,
 };
 pub use error::*;
 use federated_graph::Value;
@@ -11,7 +11,7 @@ use id_newtypes::IdRange;
 use path::*;
 use wrapping::ListWrapping;
 
-use super::BuildContext;
+use super::{BuildContext, DefinitionId};
 
 pub(super) struct InputValueCoercer<'a> {
     ctx: &'a BuildContext,
@@ -89,9 +89,9 @@ impl<'a> InputValueCoercer<'a> {
         }
 
         match ty.definition_id {
-            Definition::Scalar(id) => self.coerce_scalar(id, value),
-            Definition::Enum(id) => self.coerce_enum(id, value),
-            Definition::InputObject(id) => self.coerce_input_objet(id, value),
+            DefinitionId::Scalar(id) => self.coerce_scalar(id, value),
+            DefinitionId::Enum(id) => self.coerce_enum(id, value),
+            DefinitionId::InputObject(id) => self.coerce_input_objet(id, value),
             _ => unreachable!("Cannot be an output type."),
         }
     }
@@ -235,12 +235,12 @@ impl<'a> InputValueCoercer<'a> {
             s.push('[');
         }
         s.push_str(match ty.definition_id {
-            Definition::Scalar(id) => &self.ctx.strings[self.graph[id].name_id],
-            Definition::Object(id) => &self.ctx.strings[self.graph[id].name_id],
-            Definition::Interface(id) => &self.ctx.strings[self.graph[id].name_id],
-            Definition::Union(id) => &self.ctx.strings[self.graph[id].name_id],
-            Definition::Enum(id) => &self.ctx.strings[self.graph[id].name_id],
-            Definition::InputObject(id) => &self.ctx.strings[self.graph[id].name_id],
+            DefinitionId::Scalar(id) => &self.ctx.strings[self.graph[id].name_id],
+            DefinitionId::Object(id) => &self.ctx.strings[self.graph[id].name_id],
+            DefinitionId::Interface(id) => &self.ctx.strings[self.graph[id].name_id],
+            DefinitionId::Union(id) => &self.ctx.strings[self.graph[id].name_id],
+            DefinitionId::Enum(id) => &self.ctx.strings[self.graph[id].name_id],
+            DefinitionId::InputObject(id) => &self.ctx.strings[self.graph[id].name_id],
         });
         if ty.wrapping.inner_is_required() {
             s.push('!');

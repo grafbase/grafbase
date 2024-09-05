@@ -3,45 +3,29 @@ use std::{
     mem::take,
 };
 
-use config::latest::{CacheConfigTarget, Config};
-use id_newtypes::IdRange;
-use sources::{
-    graphql::{FederationEntityResolverDefinition, FederationKey, GraphqlEndpointId, RootFieldResolverDefinition},
-    introspection::IntrospectionBuilder,
-    IntrospectionMetadata,
-};
+use config::latest::Config;
+use introspection::IntrospectionBuilder;
 
 use crate::*;
 
-use super::{
-    ids::IdMap, interner::Interner, BuildContext, BuildError, ExternalDataSources, RequiredFieldSetBuffer,
-    SchemaLocation,
-};
+use super::{ids::IdMap, interner::Interner, BuildContext, BuildError, RequiredFieldSetBuffer, SchemaLocation};
 
 pub(crate) struct GraphBuilder<'a> {
     ctx: &'a mut BuildContext,
-    sources: &'a ExternalDataSources,
     required_field_sets_buffer: RequiredFieldSetBuffer,
-    cache_control: Interner<CacheControl, CacheControlId>,
-    required_scopes: Interner<RequiredScopesRecord, RequiredScopesId>,
+    required_scopes: Interner<RequiresScopesDirectiveRecord, RequiresScopesDirectiveId>,
     graph: Graph,
 }
 
 impl<'a> GraphBuilder<'a> {
-    pub fn build(
-        ctx: &'a mut BuildContext,
-        sources: &ExternalDataSources,
-        config: &mut Config,
-    ) -> Result<(Graph, IntrospectionMetadata), BuildError> {
+    pub fn build(ctx: &'a mut BuildContext, config: &mut Config) -> Result<(Graph, IntrospectionMetadata), BuildError> {
         let mut builder = GraphBuilder {
             ctx,
-            sources,
             required_field_sets_buffer: Default::default(),
-            cache_control: Default::default(),
             required_scopes: Default::default(),
             graph: Graph {
                 description: None,
-                root_operation_types: RootOperationTypes {
+                root_operation_types: RootOperationTypesRecord {
                     query_id: config.graph.root_operation_types.query.into(),
                     mutation_id: config.graph.root_operation_types.mutation.map(Into::into),
                     subscription_id: config.graph.root_operation_types.subscription.map(Into::into),
@@ -56,11 +40,9 @@ impl<'a> GraphBuilder<'a> {
                 input_value_definitions: Vec::new(),
                 field_definitions: Vec::new(),
                 resolver_definitions: Vec::new(),
-                type_definitions: Vec::new(),
-                type_system_directives: Vec::new(),
+                type_definitions_ordered_by_name: Vec::new(),
                 required_field_sets: Vec::new(),
                 required_fields: Vec::new(),
-                cache_control: Vec::new(),
                 input_values: Default::default(),
                 required_scopes: Vec::new(),
                 authorized_directives: Vec::new(),
@@ -274,7 +256,6 @@ impl<'a> GraphBuilder<'a> {
                 config,
                 Directives {
                     federated: object.composed_directives,
-                    cache_config_target: Some(CacheConfigTarget::Object(federated_id)),
                     authorized_directives: {
                         let mapping = &config.graph.object_authorized_directives;
                         let mut i = mapping.partition_point(|(id, _)| *id < federated_id);
@@ -408,7 +389,7 @@ impl<'a> GraphBuilder<'a> {
                 for &endpoint_id in &only_resolvable_in {
                     let resolver_id = *root_field_resolvers.entry(endpoint_id).or_insert_with(|| {
                         self.push_resolver(ResolverDefinitionRecord::GraphqlRootField(
-                            RootFieldResolverDefinition { endpoint_id },
+                            GraphqlRootFieldResolverDefinitionRecord { endpoint_id },
                         ))
                     });
                     resolvers.push(resolver_id);
@@ -465,7 +446,6 @@ impl<'a> GraphBuilder<'a> {
                 config,
                 Directives {
                     federated: field.composed_directives,
-                    cache_config_target: Some(CacheConfigTarget::Field(federated_id)),
                     authorized_directives: {
                         let mapping = &config.graph.field_authorized_directives;
                         let mut i = mapping.partition_point(|(id, _)| *id < federated_id);
@@ -486,17 +466,19 @@ impl<'a> GraphBuilder<'a> {
                 ty: field.r#type.into(),
                 only_resolvable_in_ids: only_resolvable_in
                     .into_iter()
-                    .map(|endpoint_id| self.sources.graphql[endpoint_id].subgraph_id)
+                    .map(SubgraphId::GraphqlEndpoint)
                     .collect(),
                 resolver_ids: resolvers,
                 provides: field
                     .provides
                     .into_iter()
                     .filter(|provides| !provides.fields.is_empty())
-                    .map(|federated_graph::FieldProvides { subgraph_id, fields }| FieldProvides {
-                        subgraph_id: self.sources.graphql[GraphqlEndpointId::from(subgraph_id)].subgraph_id,
-                        field_set: self.ctx.idmaps.field.convert_providable_field_set(&fields),
-                    })
+                    .map(
+                        |federated_graph::FieldProvides { subgraph_id, fields }| FieldProvidesRecord {
+                            subgraph_id: SubgraphId::GraphqlEndpoint(GraphqlEndpointId::from(subgraph_id)),
+                            field_set: self.ctx.idmaps.field.convert_providable_field_set(&fields),
+                        },
+                    )
                     .collect(),
                 requires: field
                     .requires
@@ -504,8 +486,8 @@ impl<'a> GraphBuilder<'a> {
                     .filter(|requires| !requires.fields.is_empty())
                     .map(|federated_graph::FieldRequires { subgraph_id, fields }| {
                         let field_set_id = self.required_field_sets_buffer.push(schema_location, fields);
-                        FieldRequires {
-                            subgraph_id: self.sources.graphql[GraphqlEndpointId::from(subgraph_id)].subgraph_id,
+                        FieldRequiresRecord {
+                            subgraph_id: SubgraphId::GraphqlEndpoint(GraphqlEndpointId::from(subgraph_id)),
                             field_set_id,
                         }
                     })
@@ -520,50 +502,54 @@ impl<'a> GraphBuilder<'a> {
         let Self {
             ctx,
             required_field_sets_buffer,
-            cache_control,
             required_scopes,
             mut graph,
-            sources: _,
         } = self;
 
-        graph.cache_control = cache_control.into();
         graph.required_scopes = required_scopes.into();
         required_field_sets_buffer.try_insert_into(ctx, &mut graph)?;
 
         let introspection = IntrospectionBuilder::create_data_source_and_insert_fields(ctx, &mut graph);
 
-        let mut definitions = Vec::with_capacity(
-            graph.scalar_definitions.len()
-                + graph.object_definitions.len()
-                + graph.interface_definitions.len()
-                + graph.union_definitions.len()
-                + graph.enum_definitions.len()
-                + graph.input_object_definitions.len(),
-        );
+        graph.type_definitions_ordered_by_name = {
+            let mut definitions = Vec::with_capacity(
+                graph.scalar_definitions.len()
+                    + graph.object_definitions.len()
+                    + graph.interface_definitions.len()
+                    + graph.union_definitions.len()
+                    + graph.enum_definitions.len()
+                    + graph.input_object_definitions.len(),
+            );
 
-        // Adding all definitions for introspection & query binding
-        definitions
-            .extend((0..graph.scalar_definitions.len()).map(|id| Definition::Scalar(ScalarDefinitionId::from(id))));
-        definitions
-            .extend((0..graph.object_definitions.len()).map(|id| Definition::Object(ObjectDefinitionId::from(id))));
-        definitions.extend(
-            (0..graph.interface_definitions.len()).map(|id| Definition::Interface(InterfaceDefinitionId::from(id))),
-        );
-        definitions.extend((0..graph.union_definitions.len()).map(|id| Definition::Union(UnionDefinitionId::from(id))));
-        definitions.extend((0..graph.enum_definitions.len()).map(|id| Definition::Enum(EnumDefinitionId::from(id))));
-        definitions.extend(
-            (0..graph.input_object_definitions.len())
-                .map(|id| Definition::InputObject(InputObjectDefinitionId::from(id))),
-        );
-        definitions.sort_unstable_by_key(|definition| match *definition {
-            Definition::Scalar(id) => &ctx.strings[graph[id].name_id],
-            Definition::Object(id) => &ctx.strings[graph[id].name_id],
-            Definition::Interface(id) => &ctx.strings[graph[id].name_id],
-            Definition::Union(id) => &ctx.strings[graph[id].name_id],
-            Definition::Enum(id) => &ctx.strings[graph[id].name_id],
-            Definition::InputObject(id) => &ctx.strings[graph[id].name_id],
-        });
-        graph.type_definitions = definitions;
+            // Adding all definitions for introspection & query binding
+            definitions.extend(
+                (0..graph.scalar_definitions.len()).map(|id| DefinitionId::Scalar(ScalarDefinitionId::from(id))),
+            );
+            definitions.extend(
+                (0..graph.object_definitions.len()).map(|id| DefinitionId::Object(ObjectDefinitionId::from(id))),
+            );
+            definitions.extend(
+                (0..graph.interface_definitions.len())
+                    .map(|id| DefinitionId::Interface(InterfaceDefinitionId::from(id))),
+            );
+            definitions
+                .extend((0..graph.union_definitions.len()).map(|id| DefinitionId::Union(UnionDefinitionId::from(id))));
+            definitions
+                .extend((0..graph.enum_definitions.len()).map(|id| DefinitionId::Enum(EnumDefinitionId::from(id))));
+            definitions.extend(
+                (0..graph.input_object_definitions.len())
+                    .map(|id| DefinitionId::InputObject(InputObjectDefinitionId::from(id))),
+            );
+            definitions.sort_unstable_by_key(|definition| match *definition {
+                DefinitionId::Scalar(id) => &ctx.strings[graph[id].name_id],
+                DefinitionId::Object(id) => &ctx.strings[graph[id].name_id],
+                DefinitionId::Interface(id) => &ctx.strings[graph[id].name_id],
+                DefinitionId::Union(id) => &ctx.strings[graph[id].name_id],
+                DefinitionId::Enum(id) => &ctx.strings[graph[id].name_id],
+                DefinitionId::InputObject(id) => &ctx.strings[graph[id].name_id],
+            });
+            definitions
+        };
 
         let mut interface_definitions = std::mem::take(&mut graph.interface_definitions);
         for interface in &mut interface_definitions {
@@ -612,12 +598,12 @@ impl<'a> GraphBuilder<'a> {
             let endpoint_id = key.subgraph_id.into();
             if key.resolvable {
                 let providable = self.ctx.idmaps.field.convert_providable_field_set(&key.fields);
-                let key = FederationKey {
-                    fields: self.required_field_sets_buffer.push(location, key.fields),
-                };
-
+                let key_fields_id = self.required_field_sets_buffer.push(location, key.fields);
                 let resolver_id = self.push_resolver(ResolverDefinitionRecord::GraphqlFederationEntity(
-                    FederationEntityResolverDefinition { endpoint_id, key },
+                    GraphqlFederationEntityResolverDefinitionRecord {
+                        endpoint_id,
+                        key_fields_id,
+                    },
                 ));
                 entity.keys.push((endpoint_id, resolver_id, providable));
             } else {
@@ -647,44 +633,31 @@ impl<'a> GraphBuilder<'a> {
         resolver_id
     }
 
-    fn push_directives(&mut self, config: &Config, directives: Directives) -> IdRange<TypeSystemDirectiveId> {
-        let start = self.graph.type_system_directives.len();
+    fn push_directives(&mut self, config: &Config, directives: Directives) -> Vec<TypeSystemDirectiveId> {
+        let mut directive_ids = Vec::new();
 
         for directive in &config.graph[directives.federated] {
-            let directive = match directive {
-                federated_graph::Directive::Authenticated => TypeSystemDirective::Authenticated,
+            let id = match directive {
+                federated_graph::Directive::Authenticated => TypeSystemDirectiveId::Authenticated,
                 federated_graph::Directive::RequiresScopes(federated_scopes) => {
-                    let id = self.required_scopes.get_or_insert(RequiredScopesRecord::new(
+                    let id = self.required_scopes.get_or_insert(RequiresScopesDirectiveRecord::new(
                         federated_scopes
                             .iter()
                             .map(|scopes| scopes.iter().copied().map(Into::into).collect())
                             .collect(),
                     ));
-                    TypeSystemDirective::RequiresScopes(id)
+                    TypeSystemDirectiveId::RequiresScopes(id)
                 }
                 federated_graph::Directive::Deprecated { reason } => {
-                    TypeSystemDirective::Deprecated(crate::Deprecated {
-                        reason: reason.map(Into::into),
+                    TypeSystemDirectiveId::Deprecated(DeprecatedDirectiveRecord {
+                        reason_id: reason.map(Into::into),
                     })
                 }
                 federated_graph::Directive::Other { .. }
                 | federated_graph::Directive::Inaccessible
                 | federated_graph::Directive::Policy(_) => continue,
             };
-            self.graph.type_system_directives.push(directive);
-        }
-
-        if let Some(config) = directives
-            .cache_config_target
-            .and_then(|target| config.cache.rule(target))
-        {
-            let cache_control_id = self.cache_control.get_or_insert(CacheControl {
-                max_age: config.max_age,
-                stale_while_revalidate: config.stale_while_revalidate,
-            });
-            self.graph
-                .type_system_directives
-                .push(TypeSystemDirective::CacheControl(cache_control_id));
+            directive_ids.push(id);
         }
 
         if let Some((schema_location, directives)) = directives.authorized_directives {
@@ -701,13 +674,13 @@ impl<'a> GraphBuilder<'a> {
                         .as_ref()
                         .map(|args| self.convert_input_value_set(args))
                         .unwrap_or_default(),
-                    fields: fields
+                    fields_id: fields
                         .as_ref()
                         .map(|field_set| self.required_field_sets_buffer.push(schema_location, field_set.clone())),
-                    node: node
+                    node_id: node
                         .as_ref()
                         .map(|field_set| self.required_field_sets_buffer.push(schema_location, field_set.clone())),
-                    metadata: metadata.clone().and_then(|value| {
+                    metadata_id: metadata.clone().and_then(|value| {
                         let value = self
                             .graph
                             .input_values
@@ -719,14 +692,11 @@ impl<'a> GraphBuilder<'a> {
                 });
 
                 let authorized_id = (self.graph.authorized_directives.len() - 1).into();
-                self.graph
-                    .type_system_directives
-                    .push(TypeSystemDirective::Authorized(authorized_id));
+                directive_ids.push(TypeSystemDirectiveId::Authorized(authorized_id));
             }
         }
 
-        let end = self.graph.type_system_directives.len();
-        (start..end).into()
+        directive_ids
     }
 
     fn convert_input_value_set(&self, input_value_set: &federated_graph::InputValueDefinitionSet) -> InputValueSet {
@@ -748,7 +718,6 @@ impl<'a> GraphBuilder<'a> {
 
 struct Directives {
     federated: federated_graph::Directives,
-    cache_config_target: Option<CacheConfigTarget>,
     authorized_directives: Option<(SchemaLocation, Vec<federated_graph::AuthorizedDirectiveId>)>,
 }
 
@@ -756,7 +725,6 @@ impl Default for Directives {
     fn default() -> Self {
         Self {
             federated: (federated_graph::DirectiveId(0), 0),
-            cache_config_target: None,
             authorized_directives: None,
         }
     }
@@ -799,15 +767,15 @@ pub(super) fn is_inaccessible(
         .any(|directive| matches!(directive, federated_graph::Directive::Inaccessible))
 }
 
-impl From<federated_graph::Definition> for Definition {
+impl From<federated_graph::Definition> for DefinitionId {
     fn from(definition: federated_graph::Definition) -> Self {
         match definition {
-            federated_graph::Definition::Scalar(id) => Definition::Scalar(id.into()),
-            federated_graph::Definition::Object(id) => Definition::Object(id.into()),
-            federated_graph::Definition::Interface(id) => Definition::Interface(id.into()),
-            federated_graph::Definition::Union(id) => Definition::Union(id.into()),
-            federated_graph::Definition::Enum(id) => Definition::Enum(id.into()),
-            federated_graph::Definition::InputObject(id) => Definition::InputObject(id.into()),
+            federated_graph::Definition::Scalar(id) => DefinitionId::Scalar(id.into()),
+            federated_graph::Definition::Object(id) => DefinitionId::Object(id.into()),
+            federated_graph::Definition::Interface(id) => DefinitionId::Interface(id.into()),
+            federated_graph::Definition::Union(id) => DefinitionId::Union(id.into()),
+            federated_graph::Definition::Enum(id) => DefinitionId::Enum(id.into()),
+            federated_graph::Definition::InputObject(id) => DefinitionId::InputObject(id.into()),
         }
     }
 }
