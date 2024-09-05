@@ -1,4 +1,4 @@
-name: rust-pr workflow
+name: rust-prs
 
 on:
   workflow_dispatch:
@@ -59,11 +59,11 @@ jobs:
         # (or it could have its own action) but don't have time for that right now.
         run: |
           set -euo pipefail
-          HEAD_REF="${GITHUB_HEAD_REF:-$(git rev-parse HEAD)}"
-          BASE_REF="${GITHUB_BASE_REF:-remotes/origin/main}"
-          MERGE_BASE=$(git merge-base $BASE_REF $HEAD_REF)
+          HEAD_REF="$(git rev-parse HEAD)"
+          BASE_REF="remotes/origin/${GITHUB_BASE_REF:-main}"
           echo "Head: $HEAD_REF"
           echo "Base: $BASE_REF"
+          MERGE_BASE=$(git merge-base $BASE_REF $HEAD_REF)
           echo "Merge Base: $MERGE_BASE"
           git checkout $MERGE_BASE
           cargo metadata > /tmp/base.metadata.json
