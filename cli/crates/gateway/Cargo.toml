@@ -42,7 +42,7 @@ postgres-connector-types = { path = "../../../engine/crates/postgres-connector-t
 ] }
 gateway-v2-auth.workspace = true
 engine-v2-axum.workspace = true
-grafbase-workspace-hack = { version = "0.1", path = "../../../workspace-hack" }
+grafbase-workspace-hack.workspace = true
 
 [features]
 default = []

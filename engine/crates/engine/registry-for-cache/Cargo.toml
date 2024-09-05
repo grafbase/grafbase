@@ -13,4 +13,4 @@ registry-v2.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 wrapping.workspace = true
-grafbase-workspace-hack = { version = "0.1", path = "../../../../workspace-hack" }
+grafbase-workspace-hack.workspace = true

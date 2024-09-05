@@ -20,7 +20,7 @@ futures-timer = { version = "3.0.3", default-features = false, features = ["wasm
 futures-util = { workspace = true, features = ["io", "sink"] }
 lru = { version = "0.12.3", default-features = false }
 tracing = { workspace = true, optional = true }
-grafbase-workspace-hack = { version = "0.1", path = "../../../workspace-hack" }
+grafbase-workspace-hack.workspace = true
 
 [dev-dependencies]
 tokio = { version = "1.37", features = [

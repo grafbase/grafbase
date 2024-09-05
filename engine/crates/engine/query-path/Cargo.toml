@@ -16,4 +16,4 @@ publish = false
 im = { version = "15", features = ["serde"] }
 internment.workspace = true
 serde.workspace = true
-grafbase-workspace-hack = { version = "0.1", path = "../../../../workspace-hack" }
+grafbase-workspace-hack.workspace = true

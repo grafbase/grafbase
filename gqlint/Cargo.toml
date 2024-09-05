@@ -14,7 +14,7 @@ clap = {version = "4.5.4", features = ["derive"] }
 colored = "2.1.0"
 graphql-lint = { path = "../graphql-lint", version = "0.1.3" }
 thiserror.workspace = true
-grafbase-workspace-hack = { version = "0.1", path = "../workspace-hack" }
+grafbase-workspace-hack.workspace = true
 
 [lints]
 workspace = true

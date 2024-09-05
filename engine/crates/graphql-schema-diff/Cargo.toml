@@ -11,7 +11,7 @@ repository = "https://github.com/grafbase/grafbase/tree/main/engine/crates/graph
 [dependencies]
 cynic-parser.workspace = true
 serde = { workspace = true, optional = true, features = ["derive"] }
-grafbase-workspace-hack = { version = "0.1", path = "../../../workspace-hack" }
+grafbase-workspace-hack.workspace = true
 
 [features]
 default = ["serde"]

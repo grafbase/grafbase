@@ -22,7 +22,7 @@ swc_common = "0.36.2"
 miette = { version = "7.2.0", features = ["fancy"] }
 thiserror = "1.0.59"
 walkdir = "2.5.0"
-grafbase-workspace-hack = { version = "0.1", path = "../../../workspace-hack" }
+grafbase-workspace-hack.workspace = true
 
 [dev-dependencies]
 similar = "2.5.0"

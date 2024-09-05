@@ -13,4 +13,4 @@ registry-v1.workspace = true
 registry-v2.workspace = true
 tracing.workspace = true
 wrapping.workspace = true
-grafbase-workspace-hack = { version = "0.1", path = "../../../../workspace-hack" }
+grafbase-workspace-hack.workspace = true

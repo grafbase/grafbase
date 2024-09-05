@@ -23,5 +23,7 @@ platforms = [
     "wasm32-unknown-unknown",     # Cloudflare Workers
 ]
 
+workspace-hack-line-style = "workspace-dotted"
+
 # Write out exact versions rather than a semver range. (Defaults to false.)
 # exact-versions = true

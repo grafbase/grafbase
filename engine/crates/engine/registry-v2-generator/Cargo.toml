@@ -18,4 +18,4 @@ xshell = "0.2.6"
 cynic-parser.workspace = true
 
 cynic-parser.features = ["report"]
-grafbase-workspace-hack = { version = "0.1", path = "../../../../workspace-hack" }
+grafbase-workspace-hack.workspace = true

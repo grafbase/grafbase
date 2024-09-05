@@ -27,7 +27,7 @@ ulid = { version = "1.1.2", features = ["serde"] }
 which.workspace = true
 
 common-types = { path = "../../../engine/crates/common-types" }
-grafbase-workspace-hack = { version = "0.1", path = "../../../workspace-hack" }
+grafbase-workspace-hack.workspace = true
 
 [build-dependencies]
 serde_json.workspace = true

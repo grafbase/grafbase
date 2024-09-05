@@ -17,4 +17,4 @@ async-trait = "0.1.80"
 thiserror.workspace = true
 runtime.workspace = true
 futures.workspace = true
-grafbase-workspace-hack = { version = "0.1", path = "../../../workspace-hack" }
+grafbase-workspace-hack.workspace = true
