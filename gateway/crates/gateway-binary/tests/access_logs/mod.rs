@@ -186,7 +186,7 @@ fn with_working_subgraph_rate_limited() {
 
         [subgraphs.accounts.rate_limit]
         limit = 1
-        duration = "10s"
+        duration = "1m"
     "#};
 
     with_gateway(&config, Some(200), |gateway| async move {

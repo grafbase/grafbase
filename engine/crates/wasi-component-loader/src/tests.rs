@@ -3,8 +3,8 @@ use std::{collections::HashMap, sync::Arc};
 use crate::{
     hooks::subgraph::SubgraphComponentInstance, AuthorizationComponentInstance, CacheStatus, ChannelLogReceiver,
     ChannelLogSender, ComponentLoader, Config, EdgeDefinition, ExecutedHttpRequest, ExecutedOperation,
-    ExecutedSubgraphRequest, GatewayComponentInstance, GuestError, NodeDefinition, Operation,
-    RecycleableComponentInstance, ResponseInfo, ResponsesComponentInstance, SharedContext,
+    ExecutedSubgraphRequest, GatewayComponentInstance, GuestError, NodeDefinition, RecycleableComponentInstance,
+    ResponsesComponentInstance, SharedContext, SubgraphResponse,
 };
 use expect_test::expect;
 use grafbase_telemetry::otel::opentelemetry::trace::TraceId;
@@ -690,11 +690,11 @@ async fn response_hooks() {
         subgraph_name: String::from("kekw"),
         method: String::from("POST"),
         url: String::from("https://example.com"),
-        total_duration: 10,
+        total_duration_ms: 10,
         has_errors: false,
-        responses: vec![crate::ResponseKind::Responsed(ResponseInfo {
-            connection_time: 10,
-            response_time: 4,
+        executions: vec![crate::SubgraphRequestExecutionKind::Response(SubgraphResponse {
+            connection_time_ms: 10,
+            response_time_ms: 4,
             status_code: 200,
         })],
         cache_status: CacheStatus::Miss,
@@ -702,23 +702,17 @@ async fn response_hooks() {
 
     let subgraph_info = hook.on_subgraph_response(context.clone(), request).await.unwrap();
 
-    let request = ExecutedOperation {
-        duration: 5,
+    let operation = ExecutedOperation {
+        duration_ms: 5,
         status: crate::GraphqlResponseStatus::Success,
         on_subgraph_response_outputs: vec![subgraph_info],
-    };
-
-    let operation = Operation {
         name: Some(String::from("kekw")),
         document: String::from("query { me { 1 } }"),
-        prepare_duration: 3,
-        cached: false,
+        prepare_duration_ms: 3,
+        cached_plan: false,
     };
 
-    let op_info = hook
-        .on_operation_response(context.clone(), operation, request)
-        .await
-        .unwrap();
+    let op_info = hook.on_operation_response(context.clone(), operation).await.unwrap();
 
     let request = ExecutedHttpRequest {
         method: String::from("POST"),

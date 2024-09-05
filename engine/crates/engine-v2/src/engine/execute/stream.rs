@@ -79,7 +79,7 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
             .runtime
             .with_timeout(self.engine.schema.settings.timeout, async {
                 // TODO: we should figure out how the access logs look like for subscriptions in another PR.
-                let mut operation_info = hooks::Operation::builder();
+                let mut operation_info = hooks::ExecutedOperation::builder();
 
                 let operation_plan = match self.prepare_operation(request, &mut operation_info).await {
                     Ok(operation_plan) => operation_plan,

@@ -1,7 +1,7 @@
 use runtime::{error::PartialGraphqlError, hooks::ResponseHooks};
 use wasi_component_loader::{
     CacheStatus, ExecutedHttpRequest, ExecutedOperation, ExecutedSubgraphRequest, FieldError, GraphqlResponseStatus,
-    Operation, RequestError, ResponseInfo, ResponseKind,
+    RequestError, SubgraphRequestExecutionKind, SubgraphResponse,
 };
 
 use crate::HooksWasi;
@@ -24,9 +24,9 @@ impl ResponseHooks<Context> for HooksWasi {
             subgraph_name,
             method,
             url,
-            responses,
+            executions,
             cache_status,
-            total_duration,
+            total_duration_ms,
             has_errors,
         } = request;
 
@@ -34,18 +34,26 @@ impl ResponseHooks<Context> for HooksWasi {
             subgraph_name: subgraph_name.to_string(),
             method: method.to_string(),
             url: url.to_string(),
-            responses: responses
+            executions: executions
                 .into_iter()
-                .map(|response| match response {
-                    runtime::hooks::ResponseKind::SerializationError => ResponseKind::SerializationError,
-                    runtime::hooks::ResponseKind::HookError => ResponseKind::HookError,
-                    runtime::hooks::ResponseKind::RequestError => ResponseKind::RequestError,
-                    runtime::hooks::ResponseKind::RateLimited => ResponseKind::RateLimited,
-                    runtime::hooks::ResponseKind::Responsed(info) => ResponseKind::Responsed(ResponseInfo {
-                        connection_time: info.connection_time,
-                        response_time: info.response_time,
-                        status_code: info.status_code,
-                    }),
+                .map(|execution| match execution {
+                    runtime::hooks::SubgraphRequestExecutionKind::InternalServerError => {
+                        SubgraphRequestExecutionKind::InternalServerError
+                    }
+                    runtime::hooks::SubgraphRequestExecutionKind::HookError => SubgraphRequestExecutionKind::HookError,
+                    runtime::hooks::SubgraphRequestExecutionKind::RequestError => {
+                        SubgraphRequestExecutionKind::RequestError
+                    }
+                    runtime::hooks::SubgraphRequestExecutionKind::RateLimited => {
+                        SubgraphRequestExecutionKind::RateLimited
+                    }
+                    runtime::hooks::SubgraphRequestExecutionKind::Responsed(info) => {
+                        SubgraphRequestExecutionKind::Response(SubgraphResponse {
+                            connection_time_ms: info.connection_time_ms,
+                            response_time_ms: info.response_time_ms,
+                            status_code: info.status_code,
+                        })
+                    }
                 })
                 .collect(),
             cache_status: match cache_status {
@@ -53,7 +61,7 @@ impl ResponseHooks<Context> for HooksWasi {
                 runtime::hooks::CacheStatus::PartialHit => CacheStatus::PartialHit,
                 runtime::hooks::CacheStatus::Miss => CacheStatus::Miss,
             },
-            total_duration,
+            total_duration_ms,
             has_errors,
         };
 
@@ -72,8 +80,7 @@ impl ResponseHooks<Context> for HooksWasi {
     async fn on_operation_response(
         &self,
         context: &Context,
-        operation: runtime::hooks::Operation<'_>,
-        request: runtime::hooks::ExecutedOperation,
+        operation: runtime::hooks::ExecutedOperation<'_>,
     ) -> Result<Vec<u8>, PartialGraphqlError> {
         let Some(ref inner) = self.0 else {
             return Ok(Vec::new());
@@ -81,28 +88,18 @@ impl ResponseHooks<Context> for HooksWasi {
 
         let mut hook = inner.responses.get().await;
 
-        let runtime::hooks::Operation {
-            name,
-            document,
-            prepare_duration,
-            cached,
-        } = operation;
-
         let runtime::hooks::ExecutedOperation {
-            duration,
+            duration_ms,
             status,
             on_subgraph_response_outputs,
-        } = request;
-
-        let operation = Operation {
             name,
-            document: document.to_string(),
-            prepare_duration,
-            cached,
-        };
+            document,
+            prepare_duration_ms,
+            cached_plan: cached,
+        } = operation;
 
-        let request = ExecutedOperation {
-            duration,
+        let operation = ExecutedOperation {
+            duration_ms,
             status: match status {
                 grafbase_telemetry::gql_response_status::GraphqlResponseStatus::Success => {
                     GraphqlResponseStatus::Success
@@ -118,12 +115,16 @@ impl ResponseHooks<Context> for HooksWasi {
                 }
             },
             on_subgraph_response_outputs,
+            name,
+            document: document.to_string(),
+            prepare_duration_ms,
+            cached_plan: cached,
         };
 
         inner
             .run_and_measure(
                 "on-operation-response",
-                hook.on_operation_response(inner.shared_context(context), operation, request),
+                hook.on_operation_response(inner.shared_context(context), operation),
             )
             .await
             .map_err(|err| {

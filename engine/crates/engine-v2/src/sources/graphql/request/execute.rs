@@ -11,7 +11,7 @@ use headers::HeaderMapExt;
 use runtime::{
     bytes::OwnedOrSharedBytes,
     fetch::{FetchRequest, FetchResult, Fetcher},
-    hooks::{ResponseInfo, ResponseKind},
+    hooks::{ResponseInfo, SubgraphRequestExecutionKind},
     rate_limiting::RateLimitKey,
 };
 use tracing::Span;
@@ -46,7 +46,8 @@ pub(crate) async fn execute_subgraph_request<'ctx, 'a, R: Runtime>(
             .on_subgraph_request(endpoint.subgraph_name(), http::Method::POST, endpoint.url(), headers)
             .await
             .map_err(|error| {
-                ctx.request_info().push_response(ResponseKind::HookError);
+                ctx.request_info()
+                    .push_execution(SubgraphRequestExecutionKind::HookError);
                 error
             })?;
 
@@ -194,7 +195,8 @@ where
         .limit(&RateLimitKey::Subgraph(ctx.endpoint().subgraph_name().into()))
         .await
         .map_err(|e| {
-            ctx.request_info().push_response(ResponseKind::RateLimited);
+            ctx.request_info()
+                .push_execution(SubgraphRequestExecutionKind::RateLimited);
             e
         })?;
 
@@ -203,8 +205,12 @@ where
     record::decrement_inflight_requests(ctx.execution_context(), ctx.endpoint());
 
     match response_info {
-        Some(response_info) => ctx.request_info().push_response(ResponseKind::Responsed(response_info)),
-        None if result.is_err() => ctx.request_info().push_response(ResponseKind::RequestError),
+        Some(response_info) => ctx
+            .request_info()
+            .push_execution(SubgraphRequestExecutionKind::Responsed(response_info)),
+        None if result.is_err() => ctx
+            .request_info()
+            .push_execution(SubgraphRequestExecutionKind::RequestError),
         None => (),
     }
 
