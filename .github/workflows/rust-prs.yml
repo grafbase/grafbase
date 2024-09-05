@@ -55,6 +55,7 @@ jobs:
         uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ env.RUST_VERSION }}
+          components: clippy, rustfmt
 
       - name: Install what-rust-changed
         shell: bash
@@ -95,6 +96,29 @@ jobs:
               - cli/Dockerfile
             gateway-docker:
               - gateway/Dockerfile
+
+  format:
+    if: fromJson(needs.what-changed.outputs.rust).changed-packages
+    needs: [what-changed]
+    runs-on: ubicloud-standard-2
+    steps:
+      - name: Get sources
+        uses: actions/checkout@v4
+
+      - name: Extract the Rust version to use from the `rust-toolchain.toml` file
+        shell: bash
+        run: |
+          rust_version=$(grep "channel" rust-toolchain.toml | cut -d "=" -f 2 | cut -d " " -f 2)
+          echo "RUST_VERSION=$rust_version" >> $GITHUB_ENV
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+
+      - name: cargo fmt
+        shell: bash
+        run: cargo fmt --check
 
   example-component:
     if: contains(fromJson(needs.what-changed.outputs.rust).changed-packages, 'integration-tests')
@@ -161,7 +185,7 @@ jobs:
   builds:
     needs: [what-changed, example-component, cli-assets]
     if: |
-      always()
+      (!cancelled())
       && fromJson(needs.what-changed.outputs.rust).changed-packages
       && (needs.example-component.result == 'skipped' || needs.example-component.result == 'success')
       && (needs.cli-assets.result == 'skipped' || needs.cli-assets.result == 'success')
@@ -438,7 +462,7 @@ jobs:
     # This job is responsible for reacting to build success or failure. It must
     # happen after the builds, hence the `needs`. But it must not be skipped
     # when the builds are cancelled or fail (hence the `if: ${{ always() }}`).
-    needs: [builds, docker-grafbase, docker-gateway]
+    needs: [format, builds, docker-grafbase, docker-gateway]
     runs-on: ubicloud-standard-2
     if: ${{ always() }}
     steps:
