@@ -51,8 +51,6 @@ jobs:
         uses: ./.github/actions/init_rust_job
         with:
           platform: linux
-          cache-key: ${{ runner.os }}-${{ runner.arch }}-cargo-release-${{ hashFiles('Cargo.lock') }}
-          restore-key: ${{ runner.os }}-${{ runner.arch }}-cargo-release
 
       # This is annoying, but github doesn't pass env vars down to child workflows,
       # and you can't use them as input parameters either so lets read them out the
