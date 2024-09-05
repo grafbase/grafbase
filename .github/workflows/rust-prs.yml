@@ -88,7 +88,7 @@ jobs:
 
   check-format:
     needs: [what-changed]
-    if: fromJson(needs.what-changed.outputs.rust).changed-packages
+    if: toJson(fromJson(needs.what-changed.outputs.rust).changed-packages) != '[]'
     runs-on: ubicloud-standard-2
     steps:
       - name: Get sources
@@ -112,7 +112,10 @@ jobs:
           cargo fmt --check
 
   example-component:
-    if: contains(fromJson(needs.what-changed.outputs.rust).changed-packages, 'integration-tests')
+    if: |
+      contains(fromJson(needs.what-changed.outputs.rust).changed-packages, 'integration-tests')
+      || contains(fromJson(needs.what-changed.outputs.rust).changed-packages, 'gateway-binary')
+      || contains(fromJson(needs.what-changed.outputs.rust).changed-packages, 'wasi-component-loader')
     needs: [what-changed]
     runs-on: ubicloud-standard-8
     steps:
@@ -175,11 +178,14 @@ jobs:
 
   builds:
     needs: [what-changed, example-component, cli-assets]
+    # We need the cancelled & result checks of this if to make sure that we
+    # run even if some of our needs were skipped.
+    # In particular we need `cancelled()` because `always()` (the other way of doing this)
+    # makes this job uncancellable - which is not great.
     if: |
-      (!cancelled())
-      && fromJson(needs.what-changed.outputs.rust).changed-packages
-      && (needs.example-component.result == 'skipped' || needs.example-component.result == 'success')
-      && (needs.cli-assets.result == 'skipped' || needs.cli-assets.result == 'success')
+      toJson(fromJson(needs.what-changed.outputs.rust).changed-packages) != '[]'
+      && !(cancelled())
+      && !(contains(needs.*.result, 'failure'))
     strategy:
       fail-fast: false
       matrix:
@@ -265,7 +271,10 @@ jobs:
           bun-version: latest
 
       - name: Download pre-built example component
-        if: contains(fromJson(needs.what-changed.outputs.rust).changed-packages, 'integration-tests')
+        if: |
+          contains(fromJson(needs.what-changed.outputs.rust).changed-packages, 'integration-tests')
+          || contains(fromJson(needs.what-changed.outputs.rust).changed-packages, 'gateway-binary')
+          || contains(fromJson(needs.what-changed.outputs.rust).changed-packages, 'wasi-component-loader')
         uses: actions/download-artifact@v4
         with:
           name: example-component
@@ -279,6 +288,7 @@ jobs:
           path: ../home-dot-grafbase
 
       - name: Copy ~/.grafbase into place
+        if: contains(fromJson(needs.what-changed.outputs.rust).changed-packages, 'grafbase')
         shell: bash
         run: |
           mkdir ~/.grafbase
