@@ -24,6 +24,7 @@ cynic = { workspace = true, features = ["http-reqwest"] }
 cynic-introspection.workspace = true
 http.workspace = true
 Inflector = { version = "0.11.4", default-features = false }
+grafbase-workspace-hack = { version = "0.1", path = "../../../workspace-hack" }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 reqwest = { workspace = true, features = [

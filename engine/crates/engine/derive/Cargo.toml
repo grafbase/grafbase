@@ -25,3 +25,4 @@ Inflector = { version = "0.11.4", default-features = false }
 proc-macro-crate = "3.1.0"
 darling = "0.20.8"
 thiserror.workspace = true
+grafbase-workspace-hack = { version = "0.1", path = "../../../../workspace-hack" }

@@ -24,6 +24,7 @@ tracing-subscriber = { version = "0.3", default-features = false, features = [
   "env-filter",
   "ansi",
 ] }
+grafbase-workspace-hack = { version = "0.1", path = "../../../workspace-hack" }
 
 [dev-dependencies]
 reqwest = { workspace = true, features = ["json"] }

@@ -49,6 +49,7 @@ thiserror.workspace = true
 tracing.workspace = true
 gateway-v2-auth = { path = "../gateway-v2/auth" }
 web-time.workspace = true
+grafbase-workspace-hack = { version = "0.1", path = "../../../workspace-hack" }
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["macros"] }

@@ -49,3 +49,4 @@ wasi-component-loader = { version = "0.79.2", path = "../wasi-component-loader",
 deadpool = { version = "0.12.1", features = ["rt_tokio_1"] , optional = true }
 grafbase-telemetry.workspace = true
 anyhow.workspace = true
+grafbase-workspace-hack = { version = "0.1", path = "../../../workspace-hack" }

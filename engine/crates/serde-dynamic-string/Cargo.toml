@@ -12,6 +12,7 @@ itertools.workspace = true
 regex.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_with.workspace = true
+grafbase-workspace-hack = { version = "0.1", path = "../../../workspace-hack" }
 
 [lints]
 workspace = true

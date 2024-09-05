@@ -29,3 +29,4 @@ tower.workspace = true
 grafbase-telemetry.workspace = true
 headers.workspace = true
 http-body = "1.0.1"
+grafbase-workspace-hack = { version = "0.1", path = "../../../../workspace-hack" }

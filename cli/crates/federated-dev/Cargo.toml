@@ -43,6 +43,7 @@ engine-v2-axum.workspace = true
 grafbase-graphql-introspection.workspace = true
 grafbase-telemetry.workspace = true
 parser-sdl = { path = "../../../engine/crates/parser-sdl" }
+grafbase-workspace-hack = { version = "0.1", path = "../../../workspace-hack" }
 
 [lints]
 workspace = true

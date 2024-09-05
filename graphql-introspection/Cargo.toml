@@ -17,3 +17,4 @@ cynic = { workspace = true, features = ["http-reqwest"] }
 cynic-introspection.workspace = true
 cynic-parser = { workspace = true,  features = ["pretty"] }
 serde = "1.0.199"
+grafbase-workspace-hack = { version = "0.1", path = "../workspace-hack" }

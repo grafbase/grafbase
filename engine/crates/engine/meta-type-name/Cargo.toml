@@ -13,3 +13,4 @@ publish = false
 [features]
 
 [dependencies]
+grafbase-workspace-hack = { version = "0.1", path = "../../../../workspace-hack" }

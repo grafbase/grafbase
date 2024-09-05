@@ -17,6 +17,7 @@ gateway-config.workspace = true
 crossbeam = { version = "0.8.4", features = ["crossbeam-channel"] }
 tokio = { workspace = true, features = ["time", "rt"] }
 grafbase-telemetry.workspace = true
+grafbase-workspace-hack = { version = "0.1", path = "../../../workspace-hack" }
 
 [dependencies.wasmtime]
 version = "24.0.0"
