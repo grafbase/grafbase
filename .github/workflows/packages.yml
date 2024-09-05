@@ -121,3 +121,15 @@ jobs:
 
       - name: Run tests
         run: pnpm turbo test
+
+  after-build-packages:
+    # This job is responsible for reacting to build success or failure. It must
+    # happen after the builds, hence the `needs`. But it must not be skipped
+    # when the builds are cancelled or fail (hence the `if: ${{ always() }}`).
+    needs: [build-and-test]
+    runs-on: ubicloud-standard-2
+    if: ${{ always() }}
+    steps:
+      - name: Check that the builds succeeded
+        run: exit 1
+        if: ${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}
