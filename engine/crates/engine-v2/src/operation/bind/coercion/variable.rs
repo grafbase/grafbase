@@ -1,7 +1,7 @@
 use engine_value::ConstValue;
 use id_newtypes::IdRange;
 use schema::{
-    Definition, EnumDefinitionWalker, InputObjectDefinition, InputValueDefinitionId, ListWrapping, ScalarDefinition,
+    DefinitionId, EnumDefinition, InputObjectDefinition, InputValueDefinitionId, ListWrapping, ScalarDefinition,
     ScalarType, Schema, TypeRecord,
 };
 
@@ -93,9 +93,9 @@ impl<'a> VariableCoercionContext<'a> {
         }
 
         match ty.definition_id {
-            Definition::Scalar(scalar) => self.coerce_scalar(self.schema.walk(scalar), value),
-            Definition::Enum(r#enum) => self.coerce_enum(self.schema.walk(r#enum), value),
-            Definition::InputObject(input_object) => self.coerce_input_objet(self.schema.walk(input_object), value),
+            DefinitionId::Scalar(scalar) => self.coerce_scalar(self.schema.walk(scalar), value),
+            DefinitionId::Enum(r#enum) => self.coerce_enum(self.schema.walk(r#enum), value),
+            DefinitionId::InputObject(input_object) => self.coerce_input_objet(self.schema.walk(input_object), value),
             _ => unreachable!("Cannot be an output type."),
         }
     }
@@ -120,7 +120,7 @@ impl<'a> VariableCoercionContext<'a> {
                 None => {
                     if let Some(default_value_id) = input_field.as_ref().default_value_id {
                         fields_buffer.push((input_field.id(), VariableInputValue::DefaultValue(default_value_id)));
-                    } else if input_field.ty().wrapping().is_required() {
+                    } else if input_field.ty().wrapping.is_required() {
                         return Err(InputValueError::UnexpectedNull {
                             expected: input_field.ty().to_string(),
                             path: self.path(),
@@ -151,7 +151,7 @@ impl<'a> VariableCoercionContext<'a> {
 
     fn coerce_enum(
         &mut self,
-        r#enum: EnumDefinitionWalker<'_>,
+        r#enum: EnumDefinition<'_>,
         value: ConstValue,
     ) -> Result<VariableInputValue, InputValueError> {
         let name = match &value {

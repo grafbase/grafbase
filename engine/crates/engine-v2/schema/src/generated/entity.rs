@@ -8,6 +8,13 @@ use crate::{
 };
 use readable::Readable;
 
+/// Generated from:
+///
+/// ```custom,{.language-graphql}
+/// union EntityDefinition @id @meta(module: "entity") @variants(names: ["Object", "Interface"]) =
+///   | ObjectDefinition
+///   | InterfaceDefinition
+/// ```
 #[derive(serde::Serialize, serde::Deserialize, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub enum EntityDefinitionId {
     Interface(InterfaceDefinitionId),
@@ -40,6 +47,15 @@ impl Readable<Schema> for EntityDefinitionId {
         match self {
             EntityDefinitionId::Interface(id) => EntityDefinition::Interface(id.read(schema)),
             EntityDefinitionId::Object(id) => EntityDefinition::Object(id.read(schema)),
+        }
+    }
+}
+
+impl EntityDefinition<'_> {
+    pub fn id(&self) -> EntityDefinitionId {
+        match self {
+            EntityDefinition::Interface(reader) => EntityDefinitionId::Interface(reader.id),
+            EntityDefinition::Object(reader) => EntityDefinitionId::Object(reader.id),
         }
     }
 }

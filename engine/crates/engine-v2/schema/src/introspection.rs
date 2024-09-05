@@ -578,7 +578,7 @@ impl<'a> IntrospectionBuilder<'a> {
             wrapping: Wrapping::required(),
         };
         let [Some(__schema_field_id), Some(__type_field_id)] = ["__schema", "__type"].map(|name| {
-            let fields = self[self.root_operation_types.query_id].field_ids;
+            let fields = self[self.root_operation_types_record.query_id].field_ids;
             let idx = usize::from(fields.start)
                 + self[fields]
                     .iter()
@@ -587,7 +587,7 @@ impl<'a> IntrospectionBuilder<'a> {
         }) else {
             panic!("Invariant broken: missing Query.__type or Query.__schema");
         };
-        self[__schema_field_id].ty = field_type_id;
+        self[__schema_field_id].ty_record = field_type_id;
         self[__schema_field_id].resolver_ids.push(resolver_id);
 
         /*
@@ -597,11 +597,11 @@ impl<'a> IntrospectionBuilder<'a> {
             definition_id: __type.id.into(),
             wrapping: Wrapping::nullable(),
         };
-        self[__type_field_id].ty = field_type_id;
+        self[__type_field_id].ty_record = field_type_id;
         self[__type_field_id].resolver_ids.push(resolver_id);
 
         self.set_field_arguments(
-            self.root_operation_types.query_id,
+            self.root_operation_types_record.query_id,
             "__type",
             std::iter::once(("name", required_string, None)),
         );
@@ -682,11 +682,11 @@ impl<'a> IntrospectionBuilder<'a> {
             self.field_definitions.push(FieldDefinitionRecord {
                 name_id,
                 description_id: None,
-                ty: r#type,
+                ty_record: r#type,
                 parent_entity_id: EntityDefinitionId::Object(object_id),
                 only_resolvable_in_ids: vec![SubgraphId::Introspection],
-                requires: Vec::new(),
-                provides: Vec::new(),
+                requires_records: Vec::new(),
+                provides_records: Vec::new(),
                 directive_ids: Vec::new(),
                 resolver_ids: Vec::new(),
                 argument_ids: IdRange::empty(),
@@ -751,7 +751,7 @@ impl<'a> IntrospectionBuilder<'a> {
             name_id,
             description_id: None,
             default_value_id,
-            ty,
+            ty_record: ty,
             directive_ids: Vec::new(),
         });
         InputValueDefinitionId::from(self.input_value_definitions.len() - 1)

@@ -1,3 +1,4 @@
+use readable::Readable;
 use schema::InputValueSerdeError;
 use serde::{
     de::{
@@ -20,7 +21,7 @@ impl<'de> serde::Deserializer<'de> for QueryInputValueWalker<'de> {
         match self.item {
             QueryInputValue::Null => visitor.visit_none(),
             QueryInputValue::String(s) => visitor.visit_borrowed_str(s),
-            QueryInputValue::EnumValue(id) => visitor.visit_borrowed_str(self.schema_walker.walk(*id).name()),
+            QueryInputValue::EnumValue(id) => visitor.visit_borrowed_str(self.schema.walk(*id).name()),
             QueryInputValue::Int(n) => visitor.visit_i32(*n),
             QueryInputValue::BigInt(n) => visitor.visit_i64(*n),
             QueryInputValue::U64(n) => visitor.visit_u64(*n),
@@ -39,7 +40,7 @@ impl<'de> serde::Deserializer<'de> for QueryInputValueWalker<'de> {
                             if value.is_undefined() {
                                 None
                             } else {
-                                Some((self.schema_walker.walk(*input_value_definition_id).name(), value))
+                                Some((self.schema.walk(*input_value_definition_id).name(), value))
                             }
                         }),
                 )
@@ -51,10 +52,7 @@ impl<'de> serde::Deserializer<'de> for QueryInputValueWalker<'de> {
                     .map(|(key, value)| (key.as_str(), self.walk(value))),
             )
             .deserialize_any(visitor),
-            QueryInputValue::DefaultValue(id) => self
-                .schema_walker
-                .walk(&self.schema_walker.as_ref()[*id])
-                .deserialize_any(visitor),
+            QueryInputValue::DefaultValue(id) => id.read(self.schema).deserialize_any(visitor),
             QueryInputValue::Variable(id) => self.walk(*id).deserialize_any(visitor),
         }
     }

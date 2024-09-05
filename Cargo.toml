@@ -229,7 +229,6 @@ strip = "none"
 debug = true
 
 [profile.release]
-strip = "symbols"
 # by enabling link-time optimization, we can reduce size even further
 # by telling cargo to optimize at the link stage (in addition to the
 # normal optimizations during the compilation stage)

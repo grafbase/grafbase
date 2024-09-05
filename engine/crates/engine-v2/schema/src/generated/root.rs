@@ -8,6 +8,15 @@ use crate::{
 };
 use readable::Readable;
 
+/// Generated from:
+///
+/// ```custom,{.language-graphql}
+/// type RootOperationTypes @meta(module: "root") {
+///   query: ObjectDefinition!
+///   mutation: ObjectDefinition
+///   subscription: ObjectDefinition
+/// }
+/// ```
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct RootOperationTypesRecord {
     pub query_id: ObjectDefinitionId,
@@ -17,8 +26,15 @@ pub struct RootOperationTypesRecord {
 
 #[derive(Clone, Copy)]
 pub struct RootOperationTypes<'a> {
-    schema: &'a Schema,
-    ref_: &'a RootOperationTypesRecord,
+    pub(crate) schema: &'a Schema,
+    pub(crate) ref_: &'a RootOperationTypesRecord,
+}
+
+impl std::ops::Deref for RootOperationTypes<'_> {
+    type Target = RootOperationTypesRecord;
+    fn deref(&self) -> &Self::Target {
+        self.ref_
+    }
 }
 
 impl<'a> RootOperationTypes<'a> {

@@ -1,7 +1,7 @@
 use id_derives::Id;
 use id_newtypes::IdRange;
 use schema::{
-    Definition, EntityDefinitionId, FieldDefinitionId, InputValueDefinitionId, InterfaceDefinitionId,
+    DefinitionId, EntityDefinitionId, FieldDefinitionId, InputValueDefinitionId, InterfaceDefinitionId,
     ObjectDefinitionId, UnionDefinitionId,
 };
 
@@ -38,7 +38,7 @@ impl From<EntityDefinitionId> for SelectionSetType {
     }
 }
 
-impl From<SelectionSetType> for Definition {
+impl From<SelectionSetType> for DefinitionId {
     fn from(parent: SelectionSetType) -> Self {
         match parent {
             SelectionSetType::Interface(id) => Self::Interface(id),
@@ -49,11 +49,11 @@ impl From<SelectionSetType> for Definition {
 }
 
 impl SelectionSetType {
-    pub fn maybe_from(definition: Definition) -> Option<Self> {
+    pub fn maybe_from(definition: DefinitionId) -> Option<Self> {
         match definition {
-            Definition::Object(id) => Some(SelectionSetType::Object(id)),
-            Definition::Interface(id) => Some(Self::Interface(id)),
-            Definition::Union(id) => Some(Self::Union(id)),
+            DefinitionId::Object(id) => Some(SelectionSetType::Object(id)),
+            DefinitionId::Interface(id) => Some(Self::Interface(id)),
+            DefinitionId::Union(id) => Some(Self::Union(id)),
             _ => None,
         }
     }

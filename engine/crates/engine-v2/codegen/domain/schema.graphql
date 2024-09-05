@@ -10,7 +10,6 @@ scalar Url @indexed(deduplicated: true)
 # ---------
 
 scalar InputValueSet
-scalar RequiredFieldSet @indexed
 scalar SchemaInputValue @indexed @record
 scalar ProvidableFieldSet
 
@@ -67,8 +66,8 @@ type FieldDefinition @meta(module: "field") @indexed(id_size: "u32", max_id: "MA
   will be specified in this Vec.
   """
   only_resolvable_in: [Subgraph!]!
-  requires: [FieldRequires!]!
-  provides: [FieldProvides!]!
+  requires: [FieldRequires!]! @field(record_field_name: "requires_records")
+  provides: [FieldProvides!]! @field(record_field_name: "provides_records")
   "The arguments referenced by this range are sorted by their name (string)"
   arguments: [InputValueDefinition!]!
   directives: [TypeSystemDirective!]!
@@ -136,6 +135,24 @@ type InputValueDefinition @meta(module: "input_value") @indexed(id_size: "u32", 
   directives: [TypeSystemDirective!]!
 }
 
+# ------------
+# - FieldSet -
+# ------------
+
+scalar RequiredFieldSet @indexed @record
+
+type RequiredField
+  @meta(module: "field_set", derive: ["PartialEq", "Eq", "PartialOrd", "Ord"], debug: false)
+  @indexed(id_size: "u32", deduplicated: true) {
+  definition: FieldDefinition!
+  arguments: [RequiredFieldArgument!]!
+}
+
+type RequiredFieldArgument @meta(module: "field_set", derive: ["PartialEq", "Eq", "PartialOrd", "Ord"]) @copy {
+  definition: InputValueDefinition!
+  value: SchemaInputValue!
+}
+
 # --------------
 # - Directives -
 # --------------
@@ -157,8 +174,8 @@ type DeprecatedDirective
 scalar RequiresScopesDirective @indexed @record
 
 type AuthorizedDirective @meta(module: "directive/authorized") @indexed(id_size: "u32", max_id: "MAX_ID") {
-  arguments: InputValueSet! @inline
-  fields: RequiredFieldSet
+  arguments: InputValueSet!
+  fields: RequiredFieldSet @field(record_field_name: "fields_id")
   node: RequiredFieldSet
   metadata: SchemaInputValue
 }

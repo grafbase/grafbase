@@ -12,6 +12,17 @@ use crate::{
 };
 use readable::Readable;
 
+/// Generated from:
+///
+/// ```custom,{.language-graphql}
+/// union Definition @id @meta(module: "definition") @variants(remove_suffix: true) =
+///   | ObjectDefinition
+///   | InterfaceDefinition
+///   | UnionDefinition
+///   | EnumDefinition
+///   | InputObjectDefinition
+///   | ScalarDefinition
+/// ```
 #[derive(serde::Serialize, serde::Deserialize, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub enum DefinitionId {
     Enum(EnumDefinitionId),
@@ -76,6 +87,19 @@ impl Readable<Schema> for DefinitionId {
             DefinitionId::Object(id) => Definition::Object(id.read(schema)),
             DefinitionId::Scalar(id) => Definition::Scalar(id.read(schema)),
             DefinitionId::Union(id) => Definition::Union(id.read(schema)),
+        }
+    }
+}
+
+impl Definition<'_> {
+    pub fn id(&self) -> DefinitionId {
+        match self {
+            Definition::Enum(reader) => DefinitionId::Enum(reader.id),
+            Definition::InputObject(reader) => DefinitionId::InputObject(reader.id),
+            Definition::Interface(reader) => DefinitionId::Interface(reader.id),
+            Definition::Object(reader) => DefinitionId::Object(reader.id),
+            Definition::Scalar(reader) => DefinitionId::Scalar(reader.id),
+            Definition::Union(reader) => DefinitionId::Union(reader.id),
         }
     }
 }

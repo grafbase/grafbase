@@ -8,6 +8,16 @@ use crate::prelude::*;
 pub use graphql::*;
 use readable::Readable;
 
+/// Generated from:
+///
+/// ```custom,{.language-graphql}
+/// union ResolverDefinition
+///   @meta(module: "resolver")
+///   @variants(empty: ["Introspection"], remove_suffix: true)
+///   @indexed(deduplicated: true, id_size: "u32", max_id: "MAX_ID") =
+///   | GraphqlRootFieldResolverDefinition
+///   | GraphqlFederationEntityResolverDefinition
+/// ```
 #[derive(serde::Serialize, serde::Deserialize)]
 pub enum ResolverDefinitionRecord {
     GraphqlFederationEntity(GraphqlFederationEntityResolverDefinitionRecord),
@@ -19,11 +29,46 @@ pub enum ResolverDefinitionRecord {
 #[max(MAX_ID)]
 pub struct ResolverDefinitionId(std::num::NonZero<u32>);
 
+#[derive(Clone, Copy)]
+pub struct ResolverDefinition<'a> {
+    pub(crate) schema: &'a Schema,
+    pub(crate) id: ResolverDefinitionId,
+}
+
 #[derive(Clone, Copy, Debug)]
-pub enum ResolverDefinition<'a> {
+pub enum ResolverDefinitionVariant<'a> {
     GraphqlFederationEntity(GraphqlFederationEntityResolverDefinition<'a>),
     GraphqlRootField(GraphqlRootFieldResolverDefinition<'a>),
     Introspection,
+}
+
+impl std::ops::Deref for ResolverDefinition<'_> {
+    type Target = ResolverDefinitionRecord;
+    fn deref(&self) -> &Self::Target {
+        self.as_ref()
+    }
+}
+
+impl<'a> ResolverDefinition<'a> {
+    #[allow(clippy::should_implement_trait)]
+    pub fn as_ref(&self) -> &'a ResolverDefinitionRecord {
+        &self.schema[self.id]
+    }
+    pub fn id(&self) -> ResolverDefinitionId {
+        self.id
+    }
+    pub fn variant(&self) -> ResolverDefinitionVariant<'a> {
+        let schema = self.schema;
+        match self.as_ref() {
+            ResolverDefinitionRecord::GraphqlFederationEntity(item) => {
+                ResolverDefinitionVariant::GraphqlFederationEntity(item.read(schema))
+            }
+            ResolverDefinitionRecord::GraphqlRootField(item) => {
+                ResolverDefinitionVariant::GraphqlRootField(item.read(schema))
+            }
+            ResolverDefinitionRecord::Introspection => ResolverDefinitionVariant::Introspection,
+        }
+    }
 }
 
 impl Readable<Schema> for ResolverDefinitionId {
@@ -32,12 +77,12 @@ impl Readable<Schema> for ResolverDefinitionId {
     where
         Self: 's,
     {
-        match schema[self] {
-            ResolverDefinitionRecord::GraphqlFederationEntity(item) => {
-                ResolverDefinition::GraphqlFederationEntity(item.read(schema))
-            }
-            ResolverDefinitionRecord::GraphqlRootField(item) => ResolverDefinition::GraphqlRootField(item.read(schema)),
-            ResolverDefinitionRecord::Introspection => ResolverDefinition::Introspection,
-        }
+        ResolverDefinition { schema, id: self }
+    }
+}
+
+impl std::fmt::Debug for ResolverDefinition<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.variant().fmt(f)
     }
 }

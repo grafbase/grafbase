@@ -1,4 +1,6 @@
-use crate::{DefinitionId, EntityDefinitionId};
+use readable::{Iter, Readable};
+
+use crate::{DefinitionId, EntityDefinition, EntityDefinitionId, TypeSystemDirective};
 
 impl From<EntityDefinitionId> for DefinitionId {
     fn from(value: EntityDefinitionId) -> Self {
@@ -20,5 +22,22 @@ impl EntityDefinitionId {
 
     pub fn is_object(&self) -> bool {
         matches!(self, EntityDefinitionId::Object(_))
+    }
+}
+
+impl<'a> EntityDefinition<'a> {
+    pub fn name(&self) -> &'a str {
+        match self {
+            EntityDefinition::Object(item) => item.name(),
+            EntityDefinition::Interface(item) => item.name(),
+        }
+    }
+
+    pub fn directives(&self) -> impl Iter<Item = TypeSystemDirective<'a>> + 'a {
+        let (schema, directive_ids) = match self {
+            EntityDefinition::Object(item) => (item.schema, &item.as_ref().directive_ids),
+            EntityDefinition::Interface(item) => (item.schema, &item.as_ref().directive_ids),
+        };
+        directive_ids.read(schema)
     }
 }

@@ -1,5 +1,5 @@
 use id_newtypes::{BitSet, IdRange, IdToMany};
-use schema::{RequiredScopesId, RequiresScopeSetIndex, Schema};
+use schema::{RequiresScopeSetIndex, RequiresScopesDirectiveId, Schema};
 
 use crate::{
     execution::{ErrorId, PlanningResult, PreExecutionContext},
@@ -20,7 +20,7 @@ pub(crate) struct QueryModifications {
     pub concrete_shape_has_error: BitSet<ConcreteObjectShapeId>,
     pub field_shape_id_to_error_ids: IdToMany<FieldShapeId, ErrorId>,
     pub root_error_ids: Vec<ErrorId>,
-    matched_scopes: Vec<(RequiredScopesId, RequiresScopeSetIndex)>,
+    matched_scopes: Vec<(RequiresScopesDirectiveId, RequiresScopeSetIndex)>,
 }
 
 impl QueryModifications {
@@ -54,7 +54,7 @@ impl QueryModifications {
 
     pub(in crate::operation) fn matched_scope_set(
         &self,
-        required_scope: RequiredScopesId,
+        required_scope: RequiresScopesDirectiveId,
     ) -> Option<RequiresScopeSetIndex> {
         let index = self
             .matched_scopes
@@ -127,7 +127,7 @@ where
                             self.schema().walk(definition_id),
                             self.walker()
                                 .walk(argument_ids)
-                                .with_selection_set(directive.arguments()),
+                                .with_selection_set(&directive.arguments),
                             directive.metadata(),
                         )
                         .await;
@@ -137,7 +137,7 @@ where
                 }
                 QueryModifierRule::AuthorizedDefinition {
                     directive_id,
-                    definition,
+                    definition_id: definition,
                 } => {
                     let directive = &self.schema().walk(directive_id);
                     let result = self
@@ -222,9 +222,9 @@ where
         id
     }
 
-    fn walker(&self) -> PreparedOperationWalker<'op, (), ()> {
+    fn walker(&self) -> PreparedOperationWalker<'op, ()> {
         PreparedOperationWalker {
-            schema_walker: self.ctx.schema().walker(),
+            schema: self.ctx.schema(),
             operation: self.operation,
             variables: self.variables,
             item: (),
@@ -235,7 +235,11 @@ where
         &self.ctx.engine.schema
     }
 
-    fn record_selected_scope_set(&mut self, id: RequiredScopesId, selected_scope_set: schema::RequiresScopeSetIndex) {
+    fn record_selected_scope_set(
+        &mut self,
+        id: RequiresScopesDirectiveId,
+        selected_scope_set: schema::RequiresScopeSetIndex,
+    ) {
         self.modifications.matched_scopes.push((id, selected_scope_set));
     }
 }

@@ -13,7 +13,7 @@ fn main() -> anyhow::Result<()> {
     let engine_v2_dir = code_gen_dir.parent().unwrap();
 
     let filter = tracing_subscriber::filter::EnvFilter::builder()
-        .parse(std::env::var("RUST_LOG").unwrap_or("engine_v2_code_generator=debug".to_string()))
+        .parse(std::env::var("RUST_LOG").unwrap_or("engine_v2_codegen=debug".to_string()))
         .unwrap();
 
     tracing_subscriber::fmt()

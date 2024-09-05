@@ -1,10 +1,12 @@
 use std::collections::BTreeMap;
 
-use crate::{Graph, RequiredField, RequiredFieldId, RequiredFieldSet, RequiredFieldSetId, RequiredFieldSetItem};
+use crate::{
+    Graph, RequiredFieldId, RequiredFieldRecord, RequiredFieldSetId, RequiredFieldSetItemRecord, RequiredFieldSetRecord,
+};
 
 use super::{
     coerce::{InputValueCoercer, InputValueError},
-    BuildContext, BuildError, SchemaLocation,
+    BuildContext, BuildError, RequiredFieldArgumentRecord, SchemaLocation,
 };
 
 #[derive(Default)]
@@ -55,11 +57,11 @@ struct Converter<'a> {
     ctx: &'a BuildContext,
     graph: &'a Graph,
     coercer: InputValueCoercer<'a>,
-    deduplicated_fields: BTreeMap<RequiredField, RequiredFieldId>,
+    deduplicated_fields: BTreeMap<RequiredFieldRecord, RequiredFieldId>,
 }
 
 impl<'a> Converter<'a> {
-    fn convert_set(&mut self, field_set: federated_graph::FieldSet) -> Result<RequiredFieldSet, InputValueError> {
+    fn convert_set(&mut self, field_set: federated_graph::FieldSet) -> Result<RequiredFieldSetRecord, InputValueError> {
         field_set
             .into_iter()
             .filter_map(|item| self.convert_item(item).transpose())
@@ -69,7 +71,7 @@ impl<'a> Converter<'a> {
     fn convert_item(
         &mut self,
         item: federated_graph::FieldSetItem,
-    ) -> Result<Option<RequiredFieldSetItem>, InputValueError> {
+    ) -> Result<Option<RequiredFieldSetItemRecord>, InputValueError> {
         let Some(definition_id) = self.ctx.idmaps.field.get(item.field) else {
             return Ok(None);
         };
@@ -78,35 +80,36 @@ impl<'a> Converter<'a> {
             .arguments
             .into_iter()
             .filter_map(|(id, value)| {
-                let input_value_definition_id = self.ctx.idmaps.input_value.get(id)?;
-                Some((input_value_definition_id, value))
+                let definition_id = self.ctx.idmaps.input_value.get(id)?;
+                Some((definition_id, value))
             })
             .collect::<Vec<_>>();
-        let mut arguments = Vec::with_capacity(federated_arguments.len());
+        let mut field = RequiredFieldRecord {
+            definition_id,
+            argument_records: Vec::with_capacity(federated_arguments.len()),
+        };
 
-        for input_value_definition_id in self.graph[definition_id].argument_ids {
-            let input_value_definition = &self.graph[input_value_definition_id];
-            if let Some(index) = federated_arguments
-                .iter()
-                .position(|(id, _)| *id == input_value_definition_id)
-            {
+        for definition_id in self.graph[definition_id].argument_ids {
+            let input_value_definition = &self.graph[definition_id];
+            if let Some(index) = federated_arguments.iter().position(|(id, _)| *id == definition_id) {
                 let (_, value) = federated_arguments.swap_remove(index);
-                let ty = self.graph[input_value_definition_id].ty;
-                let input_value_id = self.coercer.coerce(ty, value)?;
-                arguments.push((input_value_definition_id, input_value_id));
-            } else if let Some(id) = input_value_definition.default_value_id {
-                arguments.push((input_value_definition_id, id));
-            } else if input_value_definition.ty.wrapping.is_required() {
+                let ty = self.graph[definition_id].ty_record;
+                let value_id = self.coercer.coerce(ty, value)?;
+                field.argument_records.push(RequiredFieldArgumentRecord {
+                    definition_id,
+                    value_id,
+                });
+            } else if let Some(value_id) = input_value_definition.default_value_id {
+                field.argument_records.push(RequiredFieldArgumentRecord {
+                    definition_id,
+                    value_id,
+                });
+            } else if input_value_definition.ty_record.wrapping.is_required() {
                 return Err(InputValueError::MissingRequiredArgument(
                     self.ctx.strings[input_value_definition.name_id].clone(),
                 ));
             }
         }
-
-        let field = RequiredField {
-            definition_id,
-            arguments,
-        };
 
         let n = self.deduplicated_fields.len();
         // Deduplicating arguments allows us to cheaply merge field sets at runtime
@@ -115,8 +118,8 @@ impl<'a> Converter<'a> {
             .entry(field)
             .or_insert_with(|| RequiredFieldId::from(n));
 
-        Ok(Some(RequiredFieldSetItem {
-            id,
+        Ok(Some(RequiredFieldSetItemRecord {
+            field_id: id,
             subselection: self.convert_set(item.subselection)?,
         }))
     }

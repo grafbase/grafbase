@@ -19,7 +19,7 @@ pub fn generate_reader(
     let reader_name = Ident::new(object.reader_name(), Span::call_site());
     let readable_trait = Ident::new(domain.readable_trait(), Span::call_site());
 
-    let reader_field_methods = fields.iter().copied().map(ReaderFieldMethod);
+    let reader_field_methods = fields.iter().filter(|field| field.has_reader).map(ReaderFieldMethod);
     let mut code_sections = Vec::new();
 
     if let Some(indexed) = &object.indexed {
@@ -28,12 +28,21 @@ pub fn generate_reader(
         code_sections.push(quote! {
             #[derive(Clone, Copy)]
             pub struct #reader_name<'a> {
-                #container_name: &'a #container_type,
-                id: #id_struct_name,
+                pub(crate) #container_name: &'a #container_type,
+                pub(crate) id: #id_struct_name,
+            }
+        });
+        code_sections.push(quote! {
+            impl std::ops::Deref for #reader_name<'_> {
+                type Target = #struct_name;
+                fn deref(&self) -> &Self::Target {
+                    self.as_ref()
+                }
             }
         });
         code_sections.push(quote! {
             impl <'a> #reader_name<'a> {
+                #[doc = "Prefer using Deref unless you need the 'a lifetime."]
                 #[allow(clippy::should_implement_trait)]
                 pub fn as_ref(&self) -> &'a #struct_name {
                     &self.#container_name[self.id]
@@ -63,8 +72,16 @@ pub fn generate_reader(
         code_sections.push(quote! {
             #[derive(Clone, Copy)]
             pub struct #reader_name<'a> {
-                #container_name: &'a #container_type,
-                item: #struct_name,
+                pub(crate) #container_name: &'a #container_type,
+                pub(crate) item: #struct_name,
+            }
+        });
+        code_sections.push(quote! {
+            impl std::ops::Deref for #reader_name<'_> {
+                type Target = #struct_name;
+                fn deref(&self) -> &Self::Target {
+                    &self.item
+                }
             }
         });
         code_sections.push(quote! {
@@ -95,8 +112,16 @@ pub fn generate_reader(
         code_sections.push(quote! {
             #[derive(Clone, Copy)]
             pub struct #reader_name<'a> {
-                #container_name: &'a #container_type,
-                ref_: &'a #struct_name,
+                pub(crate) #container_name: &'a #container_type,
+                pub(crate) ref_: &'a #struct_name,
+            }
+        });
+        code_sections.push(quote! {
+            impl std::ops::Deref for #reader_name<'_> {
+                type Target = #struct_name;
+                fn deref(&self) -> &Self::Target {
+                    self.ref_
+                }
             }
         });
         code_sections.push(quote! {
@@ -134,117 +159,117 @@ pub fn generate_reader(
     Ok(code_sections)
 }
 
-pub struct ReaderFieldMethod<'a>(FieldContext<'a>);
+pub struct ReaderFieldMethod<'a>(&'a FieldContext<'a>);
 
 impl quote::ToTokens for ReaderFieldMethod<'_> {
     #[instrument(name = "reader_field_method", skip_all, fields(field = ?self.0.field))]
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         let container = Ident::new(&self.0.domain.world_name, Span::call_site());
-        let field = Ident::new(&self.0.struct_field_name(), Span::call_site());
+        let field = Ident::new(&self.0.record_field_name, Span::call_site());
         let method = Ident::new(&self.0.reader_method_name(), Span::call_site());
         let ty = Ident::new(self.0.ty.reader_name(), Span::call_site());
         let kind = self.0.ty.reader_kind();
 
-        let method = match self.0.wrapping[..] {
+        let return_type_and_body = match self.0.wrapping[..] {
             [] => match kind {
                 ReaderKind::Copy => quote! {
-                    pub fn #method(&self) -> Option<#ty> {
+                    Option<#ty> {
                         self.as_ref().#field
                     }
                 },
                 ReaderKind::Ref => quote! {
-                    pub fn #method(&self) -> Option<&'a #ty> {
+                    Option<&'a #ty> {
                         self.as_ref().#field.as_ref()
                     }
                 },
                 ReaderKind::IdRef if self.0.ty.name() != self.0.ty.reader_name() => quote! {
-                    pub fn #method(&self) -> Option<&'a #ty> {
+                    Option<&'a #ty> {
                         self.as_ref().#field.map(|id| self.#container[id].as_ref())
                     }
                 },
                 ReaderKind::IdRef => quote! {
-                    pub fn #method(&self) -> Option<&'a #ty> {
+                    Option<&'a #ty> {
                         self.as_ref().#field.map(|id| &self.#container[id])
                     }
                 },
                 ReaderKind::IdReader => quote! {
-                    pub fn #method(&self) -> Option<#ty<'a>> {
+                    Option<#ty<'a>> {
                         self.as_ref().#field.as_ref().read(self.#container)
                     }
                 },
                 ReaderKind::ItemReader => quote! {
-                    pub fn #method(&self) -> Option<#ty<'a>> {
+                    Option<#ty<'a>> {
                         self.as_ref().#field.as_ref().read(self.#container)
                     }
                 },
                 ReaderKind::RefReader => quote! {
-                    pub fn #method(&self) -> Option<#ty<'a>> {
+                    Option<#ty<'a>> {
                         self.as_ref().#field.as_ref().read(self.#container)
                     }
                 },
             },
             [WrappingType::NonNull] => match kind {
                 ReaderKind::Copy => quote! {
-                    pub fn #method(&self) -> #ty {
+                    #ty {
                         self.as_ref().#field
                     }
                 },
                 ReaderKind::Ref => quote! {
-                    pub fn #method(&self) -> &'a #ty {
+                    &'a #ty {
                         &self.as_ref().#field
                     }
                 },
                 ReaderKind::IdRef => quote! {
-                    pub fn #method(&self) -> &'a #ty {
+                    &'a #ty {
                         &self.#container[self.as_ref().#field]
                     }
                 },
                 ReaderKind::IdReader => quote! {
-                    pub fn #method(&self) -> #ty<'a> {
+                    #ty<'a> {
                         self.as_ref().#field.read(self.#container)
                     }
                 },
                 ReaderKind::ItemReader => quote! {
-                    pub fn #method(&self) -> #ty<'a> {
+                    #ty<'a> {
                         self.as_ref().#field.read(self.#container)
                     }
                 },
                 ReaderKind::RefReader => quote! {
-                    pub fn #method(&self) -> #ty<'a> {
+                    #ty<'a> {
                         self.as_ref().#field.as_ref().read(self.#container)
                     }
                 },
             },
             [WrappingType::NonNull, WrappingType::List, WrappingType::NonNull] => match kind {
                 ReaderKind::Copy => quote! {
-                    pub fn #method(&self) -> impl Iter<Item = #ty> + 'a {
+                    impl Iter<Item = #ty> + 'a {
                         self.as_ref().#field.iter().copied()
                     }
                 },
                 ReaderKind::Ref => quote! {
-                    pub fn #method(&self) -> impl Iter<Item = &'a #ty> + 'a {
+                    impl Iter<Item = &'a #ty> + 'a {
                         self.as_ref().#field.iter()
                     }
                 },
                 ReaderKind::IdRef => quote! {
-                    pub fn #method(&self) -> impl Iter<Item = &'a #ty> + 'a {
+                    impl Iter<Item = &'a #ty> + 'a {
                         self.as_ref().#field.read(self.#container)
                     }
                 },
                 ReaderKind::IdReader => {
                     quote! {
-                        pub fn #method(&self) -> impl Iter<Item =  #ty<'a>> + 'a {
+                        impl Iter<Item =  #ty<'a>> + 'a {
                             self.as_ref().#field.read(self.#container)
                         }
                     }
                 }
                 ReaderKind::ItemReader => quote! {
-                    pub fn #method(&self) -> impl Iter<Item =  #ty<'a>> + 'a {
+                    impl Iter<Item =  #ty<'a>> + 'a {
                         self.as_ref().#field.read(self.#container)
                     }
                 },
                 ReaderKind::RefReader => quote! {
-                    pub fn #method(&self) -> impl Iter<Item = #ty<'a>> + 'a {
+                    impl Iter<Item = #ty<'a>> + 'a {
                         self.as_ref().#field.read(self.#container)
                     }
                 },
@@ -252,13 +277,13 @@ impl quote::ToTokens for ReaderFieldMethod<'_> {
             [WrappingType::NonNull, WrappingType::List, WrappingType::NonNull, WrappingType::List, WrappingType::NonNull] => {
                 match kind {
                     ReaderKind::IdRef if self.0.ty.name() != self.0.ty.reader_name() => quote! {
-                        pub fn #method(&self) -> impl Iter<Item: Iter<Item = &'a #ty> + 'a> + 'a {
+                        impl Iter<Item: Iter<Item = &'a #ty> + 'a> + 'a {
                             let #container = self.#container;
                             self.as_ref().#field.iter().map(move |items| items.iter().map(move |id| #container[*id].as_ref()))
                         }
                     },
                     ReaderKind::IdRef => quote! {
-                        pub fn #method(&self) -> impl Iter<Item: Iter<Item = &'a #ty> + 'a> + 'a {
+                        impl Iter<Item: Iter<Item = &'a #ty> + 'a> + 'a {
                             let #container = self.#container;
                             self.as_ref().#field.iter().map(move |items| items.iter().map(move |id| &#container[*id]))
                         }
@@ -275,6 +300,20 @@ impl quote::ToTokens for ReaderFieldMethod<'_> {
             }
         };
 
-        tokens.append_all(method);
+        let doc = self
+            .0
+            .field
+            .description
+            .as_ref()
+            .map(|desc| {
+                let desc = proc_macro2::Literal::string(desc);
+                quote! { #[doc = #desc] }
+            })
+            .unwrap_or_default();
+
+        tokens.append_all(quote! {
+            #doc
+            pub fn #method(&self) -> #return_type_and_body
+        });
     }
 }

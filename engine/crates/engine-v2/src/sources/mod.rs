@@ -45,7 +45,7 @@
 use futures::FutureExt;
 use futures_util::stream::BoxStream;
 use runtime::hooks::{ExecutedSubgraphRequest, ExecutedSubgraphRequestBuilder};
-use schema::{sources::graphql::GraphqlEndpointWalker, ResolverDefinition, ResolverDefinitionRecord};
+use schema::{GraphqlEndpoint, ResolverDefinition, ResolverDefinitionVariant};
 use std::{future::Future, ops::Deref};
 use tower::retry::budget::Budget;
 
@@ -78,13 +78,13 @@ impl Resolver {
         operation_type: OperationType,
         plan: PlanWalker<'_>,
     ) -> PlanningResult<Self> {
-        match definition.as_ref() {
-            ResolverDefinitionRecord::Introspection(_) => Ok(Resolver::Introspection(IntrospectionResolver)),
-            ResolverDefinitionRecord::GraphqlRootField(resolver) => {
-                GraphqlResolver::prepare(definition.walk(resolver), operation_type, plan)
+        match definition.variant() {
+            ResolverDefinitionVariant::Introspection => Ok(Resolver::Introspection(IntrospectionResolver)),
+            ResolverDefinitionVariant::GraphqlRootField(resolver) => {
+                GraphqlResolver::prepare(resolver, operation_type, plan)
             }
-            ResolverDefinitionRecord::GraphqlFederationEntity(resolver) => {
-                FederationEntityResolver::prepare(definition.walk(resolver), plan)
+            ResolverDefinitionVariant::GraphqlFederationEntity(resolver) => {
+                FederationEntityResolver::prepare(resolver, plan)
             }
         }
     }
@@ -98,9 +98,9 @@ pub struct ExecutionFutureResult {
 #[derive(Clone)]
 pub(crate) struct SubgraphRequestContext<'ctx, R: Runtime> {
     execution_context: ExecutionContext<'ctx, R>,
-    plan: PlanWalker<'ctx, (), ()>,
+    plan: PlanWalker<'ctx, ()>,
     request_info: ExecutedSubgraphRequestBuilder<'ctx>,
-    endpoint: GraphqlEndpointWalker<'ctx>,
+    endpoint: GraphqlEndpoint<'ctx>,
     retry_budget: Option<&'ctx Budget>,
 }
 
@@ -116,8 +116,8 @@ impl<'ctx, R: Runtime> SubgraphRequestContext<'ctx, R> {
     pub fn new(
         execution_context: ExecutionContext<'ctx, R>,
         operation_type: OperationType,
-        plan: PlanWalker<'ctx, (), ()>,
-        endpoint: GraphqlEndpointWalker<'ctx>,
+        plan: PlanWalker<'ctx, ()>,
+        endpoint: GraphqlEndpoint<'ctx>,
     ) -> Self {
         let request_info = ExecutedSubgraphRequest::builder(endpoint.subgraph_name(), "POST", endpoint.url().as_str());
 
@@ -145,7 +145,7 @@ impl<'ctx, R: Runtime> SubgraphRequestContext<'ctx, R> {
         self.execution_context().engine
     }
 
-    pub fn plan(&self) -> PlanWalker<'ctx, (), ()> {
+    pub fn plan(&self) -> PlanWalker<'ctx, ()> {
         self.plan
     }
 
@@ -153,7 +153,7 @@ impl<'ctx, R: Runtime> SubgraphRequestContext<'ctx, R> {
         &mut self.request_info
     }
 
-    pub fn endpoint(&self) -> GraphqlEndpointWalker<'ctx> {
+    pub fn endpoint(&self) -> GraphqlEndpoint<'ctx> {
         self.endpoint
     }
 
@@ -212,7 +212,7 @@ impl Resolver {
     pub fn execute<'ctx, 'fut, R: Runtime>(
         &'ctx self,
         ctx: ExecutionContext<'ctx, R>,
-        plan: PlanWalker<'ctx, (), ()>,
+        plan: PlanWalker<'ctx, ()>,
         // This cannot be kept in the future, it locks the whole the response to have this view.
         // So an executor is expected to prepare whatever it required from the response before
         // awaiting anything.

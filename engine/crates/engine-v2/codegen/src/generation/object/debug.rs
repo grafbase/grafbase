@@ -20,7 +20,7 @@ impl ToTokens for ReaderDebug<'_> {
         let reader_struct = Ident::new(object.reader_name(), Span::call_site());
         let name_string = proc_macro2::Literal::string(object.reader_name());
 
-        let fields = fields.iter().copied().map(DebugField);
+        let fields = fields.iter().map(DebugField);
 
         tokens.append_all(quote! {
             impl std::fmt::Debug for #reader_struct<'_> {
@@ -33,7 +33,7 @@ impl ToTokens for ReaderDebug<'_> {
     }
 }
 
-pub struct DebugField<'a>(FieldContext<'a>);
+pub struct DebugField<'a>(&'a FieldContext<'a>);
 
 impl ToTokens for DebugField<'_> {
     #[instrument(name = "debug", skip_all, fields(field = ?self.0.field))]
@@ -44,27 +44,31 @@ impl ToTokens for DebugField<'_> {
         let name_string = proc_macro2::Literal::string(&field.name);
         let kind = self.0.ty.reader_kind();
 
-        let tt = match kind {
-            ReaderKind::Copy | ReaderKind::Ref | ReaderKind::IdRef => match field.wrapping[..] {
-                [] | [WrappingType::NonNull] => {
+        let tt = if field.has_reader {
+            match kind {
+                ReaderKind::Copy | ReaderKind::Ref | ReaderKind::IdRef => match field.wrapping[..] {
+                    [] | [WrappingType::NonNull] => {
+                        quote! { .field(#name_string, &self.#name()) }
+                    }
+                    [WrappingType::NonNull, WrappingType::List, WrappingType::NonNull]
+                    | [WrappingType::NonNull, WrappingType::List] => {
+                        quote! { .field(#name_string, &self.#name()).collect::<Vec<_>>() }
+                    }
+                    [WrappingType::NonNull, WrappingType::List, WrappingType::NonNull, WrappingType::List, WrappingType::NonNull]
+                    | [WrappingType::NonNull, WrappingType::List, WrappingType::NonNull, WrappingType::List] => {
+                        quote! { .field(#name_string, &self.#name().map(|items| items.collect::<Vec<_>>()).collect::<Vec<_>>()) }
+                    }
+                    _ => {
+                        tracing::error!("Unsupported wrapping {:?}", self.0.wrapping);
+                        unimplemented!()
+                    }
+                },
+                ReaderKind::IdReader | ReaderKind::RefReader | ReaderKind::ItemReader => {
                     quote! { .field(#name_string, &self.#name()) }
                 }
-                [WrappingType::NonNull, WrappingType::List, WrappingType::NonNull]
-                | [WrappingType::NonNull, WrappingType::List] => {
-                    quote! { .field(#name_string, &self.#name()).collect::<Vec<_>>() }
-                }
-                [WrappingType::NonNull, WrappingType::List, WrappingType::NonNull, WrappingType::List, WrappingType::NonNull]
-                | [WrappingType::NonNull, WrappingType::List, WrappingType::NonNull, WrappingType::List] => {
-                    quote! { .field(#name_string, &self.#name().map(|items| items.collect::<Vec<_>>()).collect::<Vec<_>>()) }
-                }
-                _ => {
-                    tracing::error!("Unsupported wrapping {:?}", self.0.wrapping);
-                    unimplemented!()
-                }
-            },
-            ReaderKind::IdReader | ReaderKind::RefReader | ReaderKind::ItemReader => {
-                quote! { .field(#name_string, &self.#name()) }
             }
+        } else {
+            quote! { .field(#name_string, &self.#name) }
         };
 
         tokens.append_all(tt);

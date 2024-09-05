@@ -10,7 +10,7 @@ impl Formatter {
     pub(super) fn new() -> anyhow::Result<Self> {
         Ok(Self {
             shell: xshell::Shell::new()?,
-            doc_re: Regex::new(r#"(?<spaces>\s+)#\[doc\s*=\s*"(?<doc>.*)"\]"#)?,
+            doc_re: Regex::new(r#"(?m)^(?<spaces>\s*)#\[doc\s*=\s*"(?<doc>.*)"\]$"#)?,
         })
     }
 
@@ -29,14 +29,33 @@ impl Formatter {
             .doc_re
             .replace_all(&code, |caps: &Captures| {
                 let spaces = caps.name("spaces").unwrap().as_str();
-                caps.name("doc")
+                let doc_indent = spaces.replace("\n", "");
+                let lines = caps
+                    .name("doc")
                     .unwrap()
                     .as_str()
                     .split(r"\n")
-                    .map(|s| s.trim())
-                    .filter(|s| !s.is_empty())
-                    .format_with("", |s, f| f(&format_args!(r"{spaces}/// {s}")))
-                    .to_string()
+                    .map(|line| line.replace(r#"\""#, r#"""#))
+                    .collect::<Vec<_>>();
+
+                let comment_indent = lines
+                    .iter()
+                    .map(|line| {
+                        line.char_indices()
+                            .find(|(_, ch)| !ch.is_whitespace())
+                            .map(|(i, _)| i)
+                            .unwrap_or_else(|| line.len())
+                    })
+                    .min()
+                    .unwrap_or(0);
+                format!(
+                    "{}{}",
+                    caps.name("spaces").unwrap().as_str(),
+                    lines.into_iter().format_with("\n", |line, f| f(&format_args!(
+                        r"{doc_indent}/// {}",
+                        &line[comment_indent..]
+                    )))
+                )
             })
             .to_string();
 

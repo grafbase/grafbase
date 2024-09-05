@@ -125,16 +125,16 @@ impl<'a> InputValueCoercer<'a> {
                 Ok(i) => {
                     let value = std::mem::take(&mut fields[i].1).unwrap();
                     self.value_path.push(input_field.name_id.into());
-                    let value = self.coerce_input_value(input_field.ty, value)?;
+                    let value = self.coerce_input_value(input_field.ty_record, value)?;
                     fields_buffer.push((input_field_id, value));
                     self.value_path.pop();
                 }
                 Err(_) => {
                     if let Some(default_value_id) = input_field.default_value_id {
                         fields_buffer.push((input_field_id, self.graph.input_values[default_value_id]));
-                    } else if input_field.ty.wrapping.is_required() {
+                    } else if input_field.ty_record.wrapping.is_required() {
                         return Err(InputValueError::UnexpectedNull {
-                            expected: self.type_name(input_field.ty),
+                            expected: self.type_name(input_field.ty_record),
                             path: self.path(),
                         });
                     }

@@ -14,12 +14,12 @@ impl IntrospectionResolver {
     pub async fn execute<'ctx, R: Runtime>(
         &'ctx self,
         ctx: ExecutionContext<'ctx, R>,
-        plan: PlanWalker<'ctx, (), ()>,
+        plan: PlanWalker<'ctx, ()>,
         mut subgraph_response: SubgraphResponse,
     ) -> ExecutionResult<SubgraphResponse> {
         writer::IntrospectionWriter {
-            schema: ctx.engine.schema.walker(),
-            metadata: ctx.engine.schema.walker().introspection_metadata(),
+            schema: &ctx.engine.schema,
+            metadata: &ctx.engine.schema.subgraphs.introspection,
             shapes: &plan.blueprint().shapes,
             plan,
             response: subgraph_response.as_mut().next_writer().ok_or("No objects to update")?,

@@ -9,6 +9,17 @@ use crate::{
 };
 use readable::{Iter, Readable};
 
+/// Generated from:
+///
+/// ```custom,{.language-graphql}
+/// type UnionDefinition @meta(module: "union", debug: false) @indexed(id_size: "u32", max_id: "MAX_ID") {
+///   name: String!
+///   description: String
+///   possible_types: [ObjectDefinition!]!
+///   possible_types_ordered_by_typename: [ObjectDefinition!]!
+///   directives: [TypeSystemDirective!]!
+/// }
+/// ```
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct UnionDefinitionRecord {
     pub name_id: StringId,
@@ -24,11 +35,19 @@ pub struct UnionDefinitionId(std::num::NonZero<u32>);
 
 #[derive(Clone, Copy)]
 pub struct UnionDefinition<'a> {
-    schema: &'a Schema,
-    id: UnionDefinitionId,
+    pub(crate) schema: &'a Schema,
+    pub(crate) id: UnionDefinitionId,
+}
+
+impl std::ops::Deref for UnionDefinition<'_> {
+    type Target = UnionDefinitionRecord;
+    fn deref(&self) -> &Self::Target {
+        self.as_ref()
+    }
 }
 
 impl<'a> UnionDefinition<'a> {
+    /// Prefer using Deref unless you need the 'a lifetime.
     #[allow(clippy::should_implement_trait)]
     pub fn as_ref(&self) -> &'a UnionDefinitionRecord {
         &self.schema[self.id]

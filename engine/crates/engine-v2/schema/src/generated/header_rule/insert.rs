@@ -5,6 +5,14 @@
 use crate::{prelude::*, StringId};
 use readable::Readable;
 
+/// Generated from:
+///
+/// ```custom,{.language-graphql}
+/// type InsertHeaderRule @meta(module: "header_rule/insert") @copy {
+///   name: String!
+///   value: String!
+/// }
+/// ```
 #[derive(serde::Serialize, serde::Deserialize, Clone, Copy)]
 pub struct InsertHeaderRuleRecord {
     pub name_id: StringId,
@@ -13,8 +21,15 @@ pub struct InsertHeaderRuleRecord {
 
 #[derive(Clone, Copy)]
 pub struct InsertHeaderRule<'a> {
-    schema: &'a Schema,
-    item: InsertHeaderRuleRecord,
+    pub(crate) schema: &'a Schema,
+    pub(crate) item: InsertHeaderRuleRecord,
+}
+
+impl std::ops::Deref for InsertHeaderRule<'_> {
+    type Target = InsertHeaderRuleRecord;
+    fn deref(&self) -> &Self::Target {
+        &self.item
+    }
 }
 
 impl<'a> InsertHeaderRule<'a> {

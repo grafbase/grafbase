@@ -4,7 +4,7 @@ use std::{
 };
 
 use config::latest::Config;
-use introspection::IntrospectionBuilder;
+use introspection::{IntrospectionBuilder, IntrospectionMetadata};
 
 use crate::*;
 
@@ -24,8 +24,8 @@ impl<'a> GraphBuilder<'a> {
             required_field_sets_buffer: Default::default(),
             required_scopes: Default::default(),
             graph: Graph {
-                description: None,
-                root_operation_types: RootOperationTypesRecord {
+                description_id: None,
+                root_operation_types_record: RootOperationTypesRecord {
                     query_id: config.graph.root_operation_types.query.into(),
                     mutation_id: config.graph.root_operation_types.mutation.map(Into::into),
                     subscription_id: config.graph.root_operation_types.subscription.map(Into::into),
@@ -89,7 +89,7 @@ impl<'a> GraphBuilder<'a> {
                     Some(InputValueDefinitionRecord {
                         name_id: definition.name.into(),
                         description_id: definition.description.map(Into::into),
-                        ty: definition.r#type.into(),
+                        ty_record: definition.r#type.into(),
                         default_value_id: definition.default.and_then(|default| {
                             let value = self
                                 .graph
@@ -347,12 +347,12 @@ impl<'a> GraphBuilder<'a> {
     ) {
         let root_fields = {
             let mut root_fields = vec![];
-            root_fields.extend(self.graph[self.graph.root_operation_types.query_id].field_ids);
+            root_fields.extend(self.graph[self.graph.root_operation_types_record.query_id].field_ids);
 
-            if let Some(mutation) = self.graph.root_operation_types.mutation_id {
+            if let Some(mutation) = self.graph.root_operation_types_record.mutation_id {
                 root_fields.extend(self.graph[mutation].field_ids);
             }
-            if let Some(subscription) = self.graph.root_operation_types.subscription_id {
+            if let Some(subscription) = self.graph.root_operation_types_record.subscription_id {
                 root_fields.extend(self.graph[subscription].field_ids);
             }
             root_fields.sort_unstable();
@@ -463,13 +463,13 @@ impl<'a> GraphBuilder<'a> {
                 name_id: field.name.into(),
                 description_id: None,
                 parent_entity_id,
-                ty: field.r#type.into(),
+                ty_record: field.r#type.into(),
                 only_resolvable_in_ids: only_resolvable_in
                     .into_iter()
                     .map(SubgraphId::GraphqlEndpoint)
                     .collect(),
                 resolver_ids: resolvers,
-                provides: field
+                provides_records: field
                     .provides
                     .into_iter()
                     .filter(|provides| !provides.fields.is_empty())
@@ -480,7 +480,7 @@ impl<'a> GraphBuilder<'a> {
                         },
                     )
                     .collect(),
-                requires: field
+                requires_records: field
                     .requires
                     .into_iter()
                     .filter(|requires| !requires.fields.is_empty())

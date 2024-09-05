@@ -29,8 +29,8 @@ pub struct RequiresScopeSetIndex(u16);
 
 #[derive(Clone, Copy)]
 pub struct RequiresScopesDirective<'a> {
-    schema: &'a Schema,
-    id: RequiresScopesDirectiveId,
+    pub(crate) schema: &'a Schema,
+    pub(crate) id: RequiresScopesDirectiveId,
 }
 
 impl<'a> RequiresScopesDirective<'a> {

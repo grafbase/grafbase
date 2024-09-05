@@ -5,12 +5,12 @@ use cynic_parser::type_system::{iter::Iter, Definition, Directive, TypeDefinitio
 use crate::domain::{self};
 
 pub(super) fn load(path: PathBuf) -> anyhow::Result<domain::Domain> {
-    let document = std::fs::read_to_string(&path)?;
-    let document = match cynic_parser::parse_type_system_document(&document) {
+    let sdl = std::fs::read_to_string(&path)?;
+    let document = match cynic_parser::parse_type_system_document(&sdl) {
         Ok(document) => document,
         Err(error) => {
             println!("Error parsing document");
-            println!("{}", error.to_report(&document));
+            println!("{}", error.to_report(&sdl));
             return Err(anyhow::anyhow!(""));
         }
     };
@@ -27,6 +27,7 @@ pub(super) fn load(path: PathBuf) -> anyhow::Result<domain::Domain> {
             assert!(domain.is_none(), "Only one scalar can have the directive @world");
             let dir = env!("CARGO_MANIFEST_DIR");
             domain = Some(domain::Domain {
+                sdl: sdl.clone(),
                 source: path.strip_prefix(dir).unwrap().to_path_buf(),
                 destination_path: {
                     let path = directive
@@ -54,19 +55,21 @@ pub(super) fn load(path: PathBuf) -> anyhow::Result<domain::Domain> {
         let def: domain::Definition = match ty {
             TypeDefinition::Scalar(scalar) => domain::Scalar {
                 indexed: parse_indexed(scalar.name(), scalar.directives()),
+                span: scalar.span(),
                 name: scalar.name().to_string(),
                 struct_name: if is_record(scalar.directives()) {
                     format!("{}Record", scalar.name())
                 } else {
                     scalar.name().to_string()
                 },
-                has_custom_reader: is_record(scalar.directives()),
+                is_record: is_record(scalar.directives()),
                 copy: is_copy(scalar.directives()),
             }
             .into(),
             TypeDefinition::Object(object) => domain::Object {
                 meta: parse_meta(object.directives()).unwrap_or_default(),
                 indexed: parse_indexed(object.name(), object.directives()),
+                span: object.span(),
                 name: object.name().to_string(),
                 struct_name: format!("{}Record", object.name()),
                 copy: is_copy(object.directives()),
@@ -74,6 +77,9 @@ pub(super) fn load(path: PathBuf) -> anyhow::Result<domain::Domain> {
                     .fields()
                     .map(|field| domain::Field {
                         name: field.name().to_string(),
+                        // Add any explicitly defined field name or leave empty to be generated
+                        // afterwards.
+                        record_field_name: parse_record_field_name(field.directives()).unwrap_or_default(),
                         description: field.description().map(|s| s.description().to_cow().into_owned()),
                         type_name: field.ty().name().to_string(),
                         wrapping: field.ty().wrappers().collect(),
@@ -83,6 +89,7 @@ pub(super) fn load(path: PathBuf) -> anyhow::Result<domain::Domain> {
             .into(),
             TypeDefinition::Union(union) => domain::Union {
                 meta: parse_meta(union.directives()).unwrap_or_default(),
+                span: union.span(),
                 kind: parse_union_kind(union.name(), union.directives()),
                 variants: {
                     let variant = parse_variants(union.directives()).unwrap_or_default();
@@ -129,9 +136,73 @@ pub(super) fn load(path: PathBuf) -> anyhow::Result<domain::Domain> {
     }
 
     let mut domain = domain.expect("Missing scalar with @world directive");
-    domain.definitions_by_name = definitions_by_name;
+    domain.definitions_by_name = finalize_field_struct_names(definitions_by_name);
 
     Ok(domain)
+}
+
+fn finalize_field_struct_names(
+    mut definitions_by_name: HashMap<String, domain::Definition>,
+) -> HashMap<String, domain::Definition> {
+    let suffixes = definitions_by_name
+        .iter()
+        .map(|(name, definition)| {
+            let suffix = match definition {
+                domain::Definition::Union(union) => match &union.kind {
+                    domain::UnionKind::Record(union) => {
+                        if union.indexed.is_some() {
+                            Some("id")
+                        } else {
+                            Some("value")
+                        }
+                    }
+                    domain::UnionKind::Id(_) | domain::UnionKind::BitpackedId(_) => Some("id"),
+                },
+                domain::Definition::Scalar(scalar) => {
+                    if scalar.indexed.is_some() {
+                        Some("id")
+                    } else if scalar.is_record {
+                        Some("record")
+                    } else {
+                        // We don't generate a reader for those fields. The Deref & as_ref()
+                        // are enough.
+                        None
+                    }
+                }
+                domain::Definition::Object(object) => {
+                    if object.indexed.is_some() {
+                        Some("id")
+                    } else {
+                        Some("record")
+                    }
+                }
+            };
+            (name.to_string(), suffix)
+        })
+        .collect::<HashMap<_, _>>();
+
+    for definition in definitions_by_name.values_mut() {
+        let domain::Definition::Object(ref mut object) = definition else {
+            continue;
+        };
+        for field in &mut object.fields {
+            if !field.record_field_name.is_empty() {
+                continue;
+            }
+            let Some(suffix) = suffixes.get(&field.type_name).cloned().flatten() else {
+                field.record_field_name = field.name.clone();
+                continue;
+            };
+            let record_field_name = if field.has_list_wrapping() {
+                format!("{}_{suffix}s", field.name.strip_suffix("s").unwrap_or(&field.name))
+            } else {
+                format!("{}_{suffix}", field.name)
+            };
+            field.record_field_name = record_field_name;
+        }
+    }
+
+    definitions_by_name
 }
 
 fn parse_union_kind(name: &str, directives: Iter<'_, Directive<'_>>) -> domain::UnionKind {
@@ -157,6 +228,7 @@ fn parse_union_kind(name: &str, directives: Iter<'_, Directive<'_>>) -> domain::
             indexed: parse_indexed(name, directives),
             copy: is_copy(directives),
             name: name.to_string(),
+            reader_enum_name: format!("{name}Variant"),
             enum_name: format!("{name}Record"),
         })
     }
@@ -222,6 +294,18 @@ fn parse_variants(mut directives: Iter<'_, Directive<'_>>) -> Option<VariantDire
         empty,
         names,
     })
+}
+
+fn parse_record_field_name(mut directives: Iter<'_, Directive<'_>>) -> Option<String> {
+    directives
+        .find(|directive| directive.name() == "field")
+        .and_then(|directive| {
+            directive
+                .arguments()
+                .find(|arg| arg.name() == "record_field_name")
+                .and_then(|arg| arg.value().as_str())
+                .map(str::to_string)
+        })
 }
 
 fn parse_meta(mut directives: Iter<'_, Directive<'_>>) -> Option<domain::Meta> {

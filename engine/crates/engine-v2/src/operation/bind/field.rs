@@ -1,7 +1,7 @@
 use engine_parser::Positioned;
 use engine_value::Name;
 use id_newtypes::IdRange;
-use schema::{Definition, FieldDefinition, FieldDefinitionId};
+use schema::{DefinitionId, FieldDefinition, FieldDefinitionId};
 
 use super::{coercion::coerce_query_value, BindError, BindResult, Binder};
 use crate::{
@@ -42,18 +42,18 @@ impl<'schema, 'p> Binder<'schema, 'p> {
         // We don't bother processing the selection set if it's not a union/interface/object, so we
         // need to rely on the parsed data rather than selection_set_id.
         let has_selection_set = !field.selection_set.node.items.is_empty();
-        match definition.ty().inner().id() {
-            Definition::Scalar(_) | Definition::Enum(_) if has_selection_set => {
+        match definition.ty().as_ref().definition_id {
+            DefinitionId::Scalar(_) | DefinitionId::Enum(_) if has_selection_set => {
                 return Err(BindError::CannotHaveSelectionSet {
                     name: definition.name().to_string(),
                     ty: definition.ty().to_string(),
                     location,
                 })
             }
-            Definition::Object(_) | Definition::Interface(_) | Definition::Union(_) if !has_selection_set => {
+            DefinitionId::Object(_) | DefinitionId::Interface(_) | DefinitionId::Union(_) if !has_selection_set => {
                 return Err(BindError::LeafMustBeAScalarOrEnum {
                     name: definition.name().to_string(),
-                    ty: definition.ty().inner().name().to_string(),
+                    ty: definition.ty().definition().name().to_string(),
                     location,
                 });
             }
@@ -120,7 +120,7 @@ impl<'schema, 'p> Binder<'schema, 'p> {
                     input_value_definition_id: argument_def.id(),
                     input_value_id: self.input_values.push_value(QueryInputValue::DefaultValue(id)),
                 });
-            } else if argument_def.ty().wrapping().is_required() {
+            } else if argument_def.ty().wrapping.is_required() {
                 return Err(BindError::MissingArgument {
                     field: definition.name().to_string(),
                     name: argument_def.name().to_string(),

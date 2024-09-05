@@ -9,6 +9,16 @@ use crate::{
 };
 use readable::{Iter, Readable};
 
+/// Generated from:
+///
+/// ```custom,{.language-graphql}
+/// type InputObjectDefinition @meta(module: "input_object") @indexed(id_size: "u32", max_id: "MAX_ID") {
+///   name: String!
+///   description: String
+///   input_fields: [InputValueDefinition!]!
+///   directives: [TypeSystemDirective!]!
+/// }
+/// ```
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct InputObjectDefinitionRecord {
     pub name_id: StringId,
@@ -23,11 +33,19 @@ pub struct InputObjectDefinitionId(std::num::NonZero<u32>);
 
 #[derive(Clone, Copy)]
 pub struct InputObjectDefinition<'a> {
-    schema: &'a Schema,
-    id: InputObjectDefinitionId,
+    pub(crate) schema: &'a Schema,
+    pub(crate) id: InputObjectDefinitionId,
+}
+
+impl std::ops::Deref for InputObjectDefinition<'_> {
+    type Target = InputObjectDefinitionRecord;
+    fn deref(&self) -> &Self::Target {
+        self.as_ref()
+    }
 }
 
 impl<'a> InputObjectDefinition<'a> {
+    /// Prefer using Deref unless you need the 'a lifetime.
     #[allow(clippy::should_implement_trait)]
     pub fn as_ref(&self) -> &'a InputObjectDefinitionRecord {
         &self.schema[self.id]

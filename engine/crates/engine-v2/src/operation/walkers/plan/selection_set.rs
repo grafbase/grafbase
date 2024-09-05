@@ -4,8 +4,8 @@ use super::{PlanField, PlanWalker};
 
 #[derive(Clone, Copy)]
 pub enum PlanSelectionSet<'a> {
-    RootFields(PlanWalker<'a, (), ()>),
-    SelectionSet(PlanWalker<'a, SelectionSetId, ()>),
+    RootFields(PlanWalker<'a, ()>),
+    SelectionSet(PlanWalker<'a, SelectionSetId>),
 }
 
 impl<'a> PlanSelectionSet<'a> {
@@ -14,7 +14,7 @@ impl<'a> PlanSelectionSet<'a> {
         match self {
             PlanSelectionSet::RootFields(_) => false,
             PlanSelectionSet::SelectionSet(walker) => {
-                walker.walk_with((), ()).blueprint().selection_set_to_requires_typename[walker.item]
+                walker.walk(()).blueprint().selection_set_to_requires_typename[walker.item]
             }
         }
     }
@@ -31,11 +31,7 @@ impl<'a> PlanSelectionSet<'a> {
                 .root_field_ids_ordered_by_parent_entity_id_then_position
                 .iter()
                 .filter(|id| !walker.query_modifications.skipped_fields[**id])
-                .filter_map(move |&id| {
-                    walker.operation[id]
-                        .definition_id()
-                        .map(|definition_id| walker.walk_with(id, definition_id))
-                })
+                .filter_map(move |&id| walker.operation[id].definition_id().map(|_| walker.walk(id)))
                 .collect::<Vec<_>>(),
             PlanSelectionSet::SelectionSet(walker) => walker
                 .as_ref()
@@ -45,9 +41,7 @@ impl<'a> PlanSelectionSet<'a> {
                 .filter_map(|id| {
                     let field_plan_id = walker.operation.plan_id_for(*id);
                     if field_plan_id == walker.logical_plan_id {
-                        walker.operation[*id]
-                            .definition_id()
-                            .map(|definition_id| walker.walk_with(*id, definition_id))
+                        walker.operation[*id].definition_id().map(|_| walker.walk(*id))
                     } else {
                         None
                     }
@@ -57,10 +51,10 @@ impl<'a> PlanSelectionSet<'a> {
         out
     }
 
-    pub fn walker(&self) -> PlanWalker<'a, (), ()> {
+    pub fn walker(&self) -> PlanWalker<'a, ()> {
         match self {
-            PlanSelectionSet::RootFields(walker) => walker.walk_with((), ()),
-            PlanSelectionSet::SelectionSet(walker) => walker.walk_with((), ()),
+            PlanSelectionSet::RootFields(walker) => walker.walk(()),
+            PlanSelectionSet::SelectionSet(walker) => walker.walk(()),
         }
     }
 }

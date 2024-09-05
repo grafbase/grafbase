@@ -9,6 +9,14 @@ use crate::{
 };
 use readable::Readable;
 
+/// Generated from:
+///
+/// ```custom,{.language-graphql}
+/// type FieldProvides @meta(module: "field/provides") {
+///   subgraph: Subgraph!
+///   field_set: ProvidableFieldSet!
+/// }
+/// ```
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct FieldProvidesRecord {
     pub subgraph_id: SubgraphId,
@@ -17,8 +25,15 @@ pub struct FieldProvidesRecord {
 
 #[derive(Clone, Copy)]
 pub struct FieldProvides<'a> {
-    schema: &'a Schema,
-    ref_: &'a FieldProvidesRecord,
+    pub(crate) schema: &'a Schema,
+    pub(crate) ref_: &'a FieldProvidesRecord,
+}
+
+impl std::ops::Deref for FieldProvides<'_> {
+    type Target = FieldProvidesRecord;
+    fn deref(&self) -> &Self::Target {
+        self.ref_
+    }
 }
 
 impl<'a> FieldProvides<'a> {
@@ -28,9 +43,6 @@ impl<'a> FieldProvides<'a> {
     }
     pub fn subgraph(&self) -> Subgraph<'a> {
         self.as_ref().subgraph_id.read(self.schema)
-    }
-    pub fn field_set(&self) -> &'a ProvidableFieldSet {
-        &self.as_ref().field_set
     }
 }
 
@@ -48,7 +60,7 @@ impl std::fmt::Debug for FieldProvides<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("FieldProvides")
             .field("subgraph", &self.subgraph())
-            .field("field_set", &self.field_set())
+            .field("field_set", &self.field_set)
             .finish()
     }
 }

@@ -9,6 +9,17 @@ use crate::{
 };
 use readable::{Iter, Readable};
 
+/// Generated from:
+///
+/// ```custom,{.language-graphql}
+/// type GraphqlEndpoint @meta(module: "subgraph/graphql") @indexed(id_size: "u32", max_id: "MAX_ID") {
+///   subgraph_name: String!
+///   url: Url!
+///   websocket_url: Url
+///   header_rules: [HeaderRule!]!
+///   config: SubgraphConfig!
+/// }
+/// ```
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct GraphqlEndpointRecord {
     pub subgraph_name_id: StringId,
@@ -24,11 +35,19 @@ pub struct GraphqlEndpointId(std::num::NonZero<u32>);
 
 #[derive(Clone, Copy)]
 pub struct GraphqlEndpoint<'a> {
-    schema: &'a Schema,
-    id: GraphqlEndpointId,
+    pub(crate) schema: &'a Schema,
+    pub(crate) id: GraphqlEndpointId,
+}
+
+impl std::ops::Deref for GraphqlEndpoint<'_> {
+    type Target = GraphqlEndpointRecord;
+    fn deref(&self) -> &Self::Target {
+        self.as_ref()
+    }
 }
 
 impl<'a> GraphqlEndpoint<'a> {
+    /// Prefer using Deref unless you need the 'a lifetime.
     #[allow(clippy::should_implement_trait)]
     pub fn as_ref(&self) -> &'a GraphqlEndpointRecord {
         &self.schema[self.id]
@@ -47,9 +66,6 @@ impl<'a> GraphqlEndpoint<'a> {
     }
     pub fn header_rules(&self) -> impl Iter<Item = HeaderRule<'a>> + 'a {
         self.as_ref().header_rule_ids.read(self.schema)
-    }
-    pub fn config(&self) -> &'a SubgraphConfig {
-        &self.as_ref().config
     }
 }
 
@@ -70,7 +86,7 @@ impl std::fmt::Debug for GraphqlEndpoint<'_> {
             .field("url", &self.url())
             .field("websocket_url", &self.websocket_url())
             .field("header_rules", &self.header_rules())
-            .field("config", &self.config())
+            .field("config", &self.config)
             .finish()
     }
 }

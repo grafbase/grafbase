@@ -1,3 +1,4 @@
+mod docstr;
 mod id;
 mod imports;
 mod module;
@@ -51,7 +52,17 @@ pub struct GeneratedModule {
 
 pub fn generate_modules(formatter: &Formatter, domain: &Domain) -> anyhow::Result<Vec<GeneratedModule>> {
     let mut modules = BTreeMap::<_, Module<'_>>::new();
-    for definition in domain.definitions_by_name.values() {
+    let mut names = domain
+        .definitions_by_name
+        .iter()
+        .map(|(name, definition)| (definition.span().start, name))
+        .collect::<Vec<_>>();
+
+    // Ensure consistent ordering of generated code despite the hashmap
+    names.sort_unstable_by_key(|(start, _)| *start);
+
+    for (_, name) in names {
+        let definition = &domain.definitions_by_name[name];
         let generated_code = match definition {
             Definition::Scalar(_) => continue,
             Definition::Object(object) => generate_object(domain, object)?,
@@ -91,10 +102,12 @@ pub fn generate_modules(formatter: &Formatter, domain: &Domain) -> anyhow::Resul
                 let _guard = info_span!("module_generation", ?module_path).entered();
                 let mut contents = generate_module_base_content(domain, &submodules);
 
-                write!(contents, "{}", generate_imports(domain, module_path, imports)?)?;
+                if !code_sections.is_empty() {
+                    write!(contents, "{}", generate_imports(domain, module_path, imports)?)?;
 
-                for code_section in code_sections {
-                    write!(contents, "\n\n{}", code_section)?;
+                    for code_section in code_sections {
+                        write!(contents, "\n\n{}", code_section)?;
+                    }
                 }
 
                 let contents = formatter.format(contents)?;

@@ -68,9 +68,9 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
         OperationExecutionState::new(&self.engine.schema, self.operation)
     }
 
-    pub(super) fn plan_walker(&self, plan_id: ExecutionPlanId) -> PlanWalker<'ctx, (), ()> {
+    pub(super) fn plan_walker(&self, plan_id: ExecutionPlanId) -> PlanWalker<'ctx, ()> {
         PlanWalker {
-            schema_walker: self.engine.schema.walker(),
+            schema: &self.engine.schema,
             operation: self.operation,
             variables: &self.operation.variables,
             query_modifications: &self.operation.query_modifications,

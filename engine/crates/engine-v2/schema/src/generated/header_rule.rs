@@ -14,6 +14,11 @@ use readable::Readable;
 pub use remove::*;
 pub use rename_duplicate::*;
 
+/// Generated from:
+///
+/// ```custom,{.language-graphql}
+/// union NameOrPattern @id @meta(module: "header_rule") @variants(names: ["Pattern", "Name"]) = Regex | String
+/// ```
 #[derive(serde::Serialize, serde::Deserialize, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub enum NameOrPatternId {
     Name(StringId),
@@ -50,6 +55,18 @@ impl Readable<Schema> for NameOrPatternId {
     }
 }
 
+/// Generated from:
+///
+/// ```custom,{.language-graphql}
+/// union HeaderRule
+///   @meta(module: "header_rule")
+///   @variants(remove_suffix: true)
+///   @indexed(id_size: "u32", max_id: "MAX_ID", deduplicated: true) =
+///   | ForwardHeaderRule
+///   | InsertHeaderRule
+///   | RemoveHeaderRule
+///   | RenameDuplicateHeaderRule
+/// ```
 #[derive(serde::Serialize, serde::Deserialize)]
 pub enum HeaderRuleRecord {
     Forward(ForwardHeaderRuleRecord),
@@ -62,12 +79,44 @@ pub enum HeaderRuleRecord {
 #[max(MAX_ID)]
 pub struct HeaderRuleId(std::num::NonZero<u32>);
 
+#[derive(Clone, Copy)]
+pub struct HeaderRule<'a> {
+    pub(crate) schema: &'a Schema,
+    pub(crate) id: HeaderRuleId,
+}
+
 #[derive(Clone, Copy, Debug)]
-pub enum HeaderRule<'a> {
+pub enum HeaderRuleVariant<'a> {
     Forward(ForwardHeaderRule<'a>),
     Insert(InsertHeaderRule<'a>),
     Remove(RemoveHeaderRule<'a>),
     RenameDuplicate(RenameDuplicateHeaderRule<'a>),
+}
+
+impl std::ops::Deref for HeaderRule<'_> {
+    type Target = HeaderRuleRecord;
+    fn deref(&self) -> &Self::Target {
+        self.as_ref()
+    }
+}
+
+impl<'a> HeaderRule<'a> {
+    #[allow(clippy::should_implement_trait)]
+    pub fn as_ref(&self) -> &'a HeaderRuleRecord {
+        &self.schema[self.id]
+    }
+    pub fn id(&self) -> HeaderRuleId {
+        self.id
+    }
+    pub fn variant(&self) -> HeaderRuleVariant<'a> {
+        let schema = self.schema;
+        match self.as_ref() {
+            HeaderRuleRecord::Forward(item) => HeaderRuleVariant::Forward(item.read(schema)),
+            HeaderRuleRecord::Insert(item) => HeaderRuleVariant::Insert(item.read(schema)),
+            HeaderRuleRecord::Remove(item) => HeaderRuleVariant::Remove(item.read(schema)),
+            HeaderRuleRecord::RenameDuplicate(item) => HeaderRuleVariant::RenameDuplicate(item.read(schema)),
+        }
+    }
 }
 
 impl Readable<Schema> for HeaderRuleId {
@@ -76,11 +125,12 @@ impl Readable<Schema> for HeaderRuleId {
     where
         Self: 's,
     {
-        match schema[self] {
-            HeaderRuleRecord::Forward(item) => HeaderRule::Forward(item.read(schema)),
-            HeaderRuleRecord::Insert(item) => HeaderRule::Insert(item.read(schema)),
-            HeaderRuleRecord::Remove(item) => HeaderRule::Remove(item.read(schema)),
-            HeaderRuleRecord::RenameDuplicate(item) => HeaderRule::RenameDuplicate(item.read(schema)),
-        }
+        HeaderRule { schema, id: self }
+    }
+}
+
+impl std::fmt::Debug for HeaderRule<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.variant().fmt(f)
     }
 }

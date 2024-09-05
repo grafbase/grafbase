@@ -12,6 +12,22 @@ use crate::{
 };
 use readable::{Iter, Readable};
 
+/// Generated from:
+///
+/// ```custom,{.language-graphql}
+/// type InterfaceDefinition
+///   @meta(module: "interface", debug: false)
+///   @indexed(deduplicated: true, id_size: "u32", max_id: "MAX_ID") {
+///   name: String!
+///   description: String
+///   fields: [FieldDefinition!]!
+///   interfaces: [InterfaceDefinition!]!
+///   "sorted by ObjectId"
+///   possible_types: [ObjectDefinition!]!
+///   possible_types_ordered_by_typename: [ObjectDefinition!]!
+///   directives: [TypeSystemDirective!]!
+/// }
+/// ```
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct InterfaceDefinitionRecord {
     pub name_id: StringId,
@@ -30,11 +46,19 @@ pub struct InterfaceDefinitionId(std::num::NonZero<u32>);
 
 #[derive(Clone, Copy)]
 pub struct InterfaceDefinition<'a> {
-    schema: &'a Schema,
-    id: InterfaceDefinitionId,
+    pub(crate) schema: &'a Schema,
+    pub(crate) id: InterfaceDefinitionId,
+}
+
+impl std::ops::Deref for InterfaceDefinition<'_> {
+    type Target = InterfaceDefinitionRecord;
+    fn deref(&self) -> &Self::Target {
+        self.as_ref()
+    }
 }
 
 impl<'a> InterfaceDefinition<'a> {
+    /// Prefer using Deref unless you need the 'a lifetime.
     #[allow(clippy::should_implement_trait)]
     pub fn as_ref(&self) -> &'a InterfaceDefinitionRecord {
         &self.schema[self.id]
@@ -54,6 +78,7 @@ impl<'a> InterfaceDefinition<'a> {
     pub fn interfaces(&self) -> impl Iter<Item = InterfaceDefinition<'a>> + 'a {
         self.as_ref().interface_ids.read(self.schema)
     }
+    /// sorted by ObjectId
     pub fn possible_types(&self) -> impl Iter<Item = ObjectDefinition<'a>> + 'a {
         self.as_ref().possible_type_ids.read(self.schema)
     }

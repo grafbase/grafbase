@@ -5,7 +5,7 @@ use crate::operation::{QueryInputValueWalker, VariableDefinitionId, VariableInpu
 
 use super::PreparedOperationWalker;
 
-pub type VariableWalker<'a> = PreparedOperationWalker<'a, VariableDefinitionId, ()>;
+pub type VariableWalker<'a> = PreparedOperationWalker<'a, VariableDefinitionId>;
 
 impl<'a> VariableWalker<'a> {
     // FIXME: Unnecessary indirection...

@@ -28,7 +28,7 @@ pub(crate) use location::Location;
 pub(crate) use modifier::*;
 pub(crate) use parse::{parse_operation, ParsedOperation};
 pub(crate) use path::QueryPath;
-use schema::{EntityDefinitionId, ObjectDefinitionId, RequiredFieldId, ResolverDefinitionId, SchemaWalker};
+use schema::{EntityDefinitionId, ObjectDefinitionId, RequiredFieldId, ResolverDefinitionId, Schema};
 pub(crate) use selection_set::*;
 pub(crate) use variables::*;
 pub(crate) use walkers::*;
@@ -194,16 +194,13 @@ impl PreparedOperation {
 }
 
 impl Operation {
-    pub fn walker_with<'op, 'schema, SI>(
-        &'op self,
-        schema_walker: SchemaWalker<'schema, SI>,
-    ) -> OperationWalker<'op, (), SI>
+    pub fn walker_with<'op, 'schema>(&'op self, schema: &'schema Schema) -> OperationWalker<'op, ()>
     where
         'schema: 'op,
     {
         OperationWalker {
+            schema,
             operation: self,
-            schema_walker,
             item: (),
         }
     }

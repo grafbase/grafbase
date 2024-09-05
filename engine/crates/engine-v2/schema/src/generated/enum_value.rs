@@ -9,6 +9,15 @@ use crate::{
 };
 use readable::{Iter, Readable};
 
+/// Generated from:
+///
+/// ```custom,{.language-graphql}
+/// type EnumValue @meta(module: "enum_value") @indexed(id_size: "u32", max_id: "MAX_ID") {
+///   name: String!
+///   description: String
+///   directives: [TypeSystemDirective!]!
+/// }
+/// ```
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct EnumValueRecord {
     pub name_id: StringId,
@@ -22,11 +31,19 @@ pub struct EnumValueId(std::num::NonZero<u32>);
 
 #[derive(Clone, Copy)]
 pub struct EnumValue<'a> {
-    schema: &'a Schema,
-    id: EnumValueId,
+    pub(crate) schema: &'a Schema,
+    pub(crate) id: EnumValueId,
+}
+
+impl std::ops::Deref for EnumValue<'_> {
+    type Target = EnumValueRecord;
+    fn deref(&self) -> &Self::Target {
+        self.as_ref()
+    }
 }
 
 impl<'a> EnumValue<'a> {
+    /// Prefer using Deref unless you need the 'a lifetime.
     #[allow(clippy::should_implement_trait)]
     pub fn as_ref(&self) -> &'a EnumValueRecord {
         &self.schema[self.id]

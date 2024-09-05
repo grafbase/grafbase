@@ -6,7 +6,7 @@ use std::{borrow::Cow, collections::HashSet};
 
 use tracing::instrument;
 
-use crate::domain::{Definition, Domain, Field, Object, StorageType, Union, UnionKind};
+use crate::domain::{Definition, Domain, Field, Object};
 
 use super::{id::generate_id, GeneratedCode, Imports};
 
@@ -19,13 +19,18 @@ pub fn generate_object<'a>(domain: &'a Domain, object: &'a Object) -> anyhow::Re
         .iter()
         .map(|field| -> anyhow::Result<FieldContext> {
             imported_definition_names.insert(field.type_name.as_str());
+            let ty = domain
+                .definitions_by_name
+                .get(&field.type_name)
+                .ok_or_else(|| anyhow::anyhow!("Could not find type {}", field.type_name))?;
             Ok(FieldContext {
                 domain,
                 field,
-                ty: domain
-                    .definitions_by_name
-                    .get(&field.type_name)
-                    .ok_or_else(|| anyhow::anyhow!("Could not find type {}", field.type_name))?,
+                // A reader is generated whenever the field name, as defined in the GraphQL SDL
+                // isn't the same as the struct field name. This only happens if we have a proper
+                // Reader type do not return a simple ref.
+                has_reader: field.record_field_name != field.name,
+                ty,
             })
         })
         .collect::<Result<Vec<_>, _>>()
@@ -52,9 +57,9 @@ pub fn generate_object<'a>(domain: &'a Domain, object: &'a Object) -> anyhow::Re
     })
 }
 
-#[derive(Clone, Copy)]
 pub struct FieldContext<'a> {
     domain: &'a Domain,
+    has_reader: bool,
     field: &'a Field,
     ty: &'a Definition,
 }
@@ -67,28 +72,6 @@ impl<'a> std::ops::Deref for FieldContext<'a> {
 }
 
 impl FieldContext<'_> {
-    pub fn struct_field_name(&self) -> Cow<'_, str> {
-        let name = &self.name;
-        if matches!(self.ty.storage_type(), StorageType::Id { .. })
-            || matches!(
-                self.ty,
-                Definition::Union(Union {
-                    kind: UnionKind::Id(_),
-                    ..
-                })
-            )
-        {
-            if self.has_list_wrapping() {
-                let name = name.strip_suffix("s").unwrap_or(name);
-                Cow::Owned(format!("{name}_ids"))
-            } else {
-                Cow::Owned(format!("{name}_id"))
-            }
-        } else {
-            name.into()
-        }
-    }
-
     pub fn reader_method_name(&self) -> Cow<'_, str> {
         (&self.name).into()
     }

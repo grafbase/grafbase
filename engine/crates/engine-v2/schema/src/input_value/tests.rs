@@ -13,7 +13,7 @@ fn create_schema_and_input_value() -> (Schema, SchemaInputValueId) {
             InputValueDefinitionRecord {
                 name_id: ctx.strings.get_or_new("fieldA"),
                 description_id: None,
-                ty: TypeRecord {
+                ty_record: TypeRecord {
                     definition_id: crate::DefinitionId::Object(0.into()),
                     wrapping: Wrapping::new(false),
                 }, // not used
@@ -23,7 +23,7 @@ fn create_schema_and_input_value() -> (Schema, SchemaInputValueId) {
             InputValueDefinitionRecord {
                 name_id: ctx.strings.get_or_new("fieldB"),
                 description_id: None,
-                ty: TypeRecord {
+                ty_record: TypeRecord {
                     definition_id: crate::DefinitionId::Object(0.into()),
                     wrapping: Wrapping::new(false),
                 }, // not used

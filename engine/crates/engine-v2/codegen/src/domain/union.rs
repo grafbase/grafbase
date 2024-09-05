@@ -4,6 +4,7 @@ use super::{Definition, Indexed, Meta};
 pub struct Union {
     pub meta: Meta,
     pub kind: UnionKind,
+    pub span: cynic_parser::Span,
     pub variants: Vec<Variant>,
 }
 
@@ -46,7 +47,15 @@ impl Union {
 
     pub fn reader_name(&self) -> &str {
         match &self.kind {
-            UnionKind::Record(record_union) => record_union.reader_name(),
+            UnionKind::Record(record_union) => record_union.read_name(),
+            UnionKind::Id(id_union) => id_union.reader_name(),
+            UnionKind::BitpackedId(bitpacked_id_union) => bitpacked_id_union.reader_name(),
+        }
+    }
+
+    pub fn reader_enum_name(&self) -> &str {
+        match &self.kind {
+            UnionKind::Record(record_union) => record_union.reader_enum_name(),
             UnionKind::Id(id_union) => id_union.reader_name(),
             UnionKind::BitpackedId(bitpacked_id_union) => bitpacked_id_union.reader_name(),
         }
@@ -65,12 +74,17 @@ pub struct RecordUnion {
     pub indexed: Option<Indexed>,
     pub copy: bool,
     pub name: String,
+    pub reader_enum_name: String,
     pub enum_name: String,
 }
 
 impl RecordUnion {
-    pub fn reader_name(&self) -> &str {
+    pub fn read_name(&self) -> &str {
         &self.name
+    }
+
+    pub fn reader_enum_name(&self) -> &str {
+        &self.reader_enum_name
     }
 }
 

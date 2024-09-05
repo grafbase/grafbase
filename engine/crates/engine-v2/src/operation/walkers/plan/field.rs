@@ -1,4 +1,4 @@
-use schema::{FieldDefinition, FieldDefinitionId};
+use schema::FieldDefinition;
 
 use crate::{
     operation::{FieldArgumentsWalker, FieldId, QueryInputValueWalker},
@@ -7,13 +7,17 @@ use crate::{
 
 use super::{PlanSelectionSet, PlanWalker};
 
-pub type PlanField<'a> = PlanWalker<'a, FieldId, FieldDefinitionId>;
+pub type PlanField<'a> = PlanWalker<'a, FieldId>;
 
 impl<'a> PlanField<'a> {
     pub fn selection_set(&self) -> Option<PlanSelectionSet<'a>> {
         self.as_ref()
             .selection_set_id()
-            .map(|id| PlanSelectionSet::SelectionSet(self.walk_with(id, ())))
+            .map(|id| PlanSelectionSet::SelectionSet(self.walk(id)))
+    }
+
+    pub fn definition(&self) -> FieldDefinition<'a> {
+        self.schema.walk(self.as_ref().definition_id().unwrap())
     }
 
     pub fn response_key(&self) -> ResponseKey {
@@ -25,13 +29,17 @@ impl<'a> PlanField<'a> {
     }
 
     pub fn arguments(self) -> FieldArgumentsWalker<'a> {
-        self.prepared_walk_with(self.as_ref().argument_ids(), ())
+        self.prepared_walk_with(self.as_ref().argument_ids())
     }
 
     pub fn get_arg_value_opt(&self, name: &str) -> Option<QueryInputValueWalker<'a>> {
-        self.arguments()
-            .into_iter()
-            .find_map(|arg| if arg.name() == name { arg.value() } else { None })
+        self.arguments().into_iter().find_map(|arg| {
+            if arg.definition().name() == name {
+                arg.value()
+            } else {
+                None
+            }
+        })
     }
 
     #[allow(unused)]
@@ -55,18 +63,10 @@ impl<'a> PlanField<'a> {
     }
 }
 
-impl<'a> std::ops::Deref for PlanField<'a> {
-    type Target = FieldDefinition<'a>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.schema_walker
-    }
-}
-
 impl<'a> std::fmt::Debug for PlanField<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut fmt = f.debug_struct("PlanField");
-        let name = self.name();
+        let name = self.definition().name();
         let response_key = self.response_key_str();
         if response_key != name {
             fmt.field("key", &response_key);

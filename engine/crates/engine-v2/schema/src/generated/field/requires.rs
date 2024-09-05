@@ -5,10 +5,18 @@
 use crate::{
     generated::{Subgraph, SubgraphId},
     prelude::*,
-    RequiredFieldSetId,
+    RequiredFieldSet, RequiredFieldSetId,
 };
 use readable::Readable;
 
+/// Generated from:
+///
+/// ```custom,{.language-graphql}
+/// type FieldRequires @meta(module: "field/requires") @copy {
+///   subgraph: Subgraph!
+///   field_set: RequiredFieldSet!
+/// }
+/// ```
 #[derive(serde::Serialize, serde::Deserialize, Clone, Copy)]
 pub struct FieldRequiresRecord {
     pub subgraph_id: SubgraphId,
@@ -17,8 +25,15 @@ pub struct FieldRequiresRecord {
 
 #[derive(Clone, Copy)]
 pub struct FieldRequires<'a> {
-    schema: &'a Schema,
-    item: FieldRequiresRecord,
+    pub(crate) schema: &'a Schema,
+    pub(crate) item: FieldRequiresRecord,
+}
+
+impl std::ops::Deref for FieldRequires<'_> {
+    type Target = FieldRequiresRecord;
+    fn deref(&self) -> &Self::Target {
+        &self.item
+    }
 }
 
 impl<'a> FieldRequires<'a> {
@@ -29,8 +44,8 @@ impl<'a> FieldRequires<'a> {
     pub fn subgraph(&self) -> Subgraph<'a> {
         self.as_ref().subgraph_id.read(self.schema)
     }
-    pub fn field_set(&self) -> &'a RequiredFieldSet {
-        &self.schema[self.as_ref().field_set_id]
+    pub fn field_set(&self) -> RequiredFieldSet<'a> {
+        self.as_ref().field_set_id.read(self.schema)
     }
 }
 

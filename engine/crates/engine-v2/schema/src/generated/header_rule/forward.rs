@@ -9,6 +9,15 @@ use crate::{
 };
 use readable::Readable;
 
+/// Generated from:
+///
+/// ```custom,{.language-graphql}
+/// type ForwardHeaderRule @meta(module: "header_rule/forward") @copy {
+///   name: NameOrPattern!
+///   default: String
+///   rename: String
+/// }
+/// ```
 #[derive(serde::Serialize, serde::Deserialize, Clone, Copy)]
 pub struct ForwardHeaderRuleRecord {
     pub name_id: NameOrPatternId,
@@ -18,8 +27,15 @@ pub struct ForwardHeaderRuleRecord {
 
 #[derive(Clone, Copy)]
 pub struct ForwardHeaderRule<'a> {
-    schema: &'a Schema,
-    item: ForwardHeaderRuleRecord,
+    pub(crate) schema: &'a Schema,
+    pub(crate) item: ForwardHeaderRuleRecord,
+}
+
+impl std::ops::Deref for ForwardHeaderRule<'_> {
+    type Target = ForwardHeaderRuleRecord;
+    fn deref(&self) -> &Self::Target {
+        &self.item
+    }
 }
 
 impl<'a> ForwardHeaderRule<'a> {

@@ -5,6 +5,15 @@
 use crate::{prelude::*, StringId};
 use readable::Readable;
 
+/// Generated from:
+///
+/// ```custom,{.language-graphql}
+/// type DeprecatedDirective
+///   @meta(module: "directive/deprecated", derive: ["PartialEq", "Eq", "PartialOrd", "Ord", "Hash", "Debug"])
+///   @copy {
+///   reason: String
+/// }
+/// ```
 #[derive(serde::Serialize, serde::Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Clone, Copy)]
 pub struct DeprecatedDirectiveRecord {
     pub reason_id: Option<StringId>,
@@ -12,8 +21,15 @@ pub struct DeprecatedDirectiveRecord {
 
 #[derive(Clone, Copy)]
 pub struct DeprecatedDirective<'a> {
-    schema: &'a Schema,
-    item: DeprecatedDirectiveRecord,
+    pub(crate) schema: &'a Schema,
+    pub(crate) item: DeprecatedDirectiveRecord,
+}
+
+impl std::ops::Deref for DeprecatedDirective<'_> {
+    type Target = DeprecatedDirectiveRecord;
+    fn deref(&self) -> &Self::Target {
+        &self.item
+    }
 }
 
 impl<'a> DeprecatedDirective<'a> {

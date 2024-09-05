@@ -1,3 +1,4 @@
+use readable::Readable;
 use serde::ser::{SerializeMap, SerializeSeq};
 
 use super::{QueryInputValue, QueryInputValueWalker};
@@ -11,7 +12,7 @@ impl<'ctx> serde::Serialize for QueryInputValueWalker<'ctx> {
         match self.item {
             QueryInputValue::Null => serializer.serialize_none(),
             QueryInputValue::String(s) => s.serialize(serializer),
-            QueryInputValue::EnumValue(id) => self.schema_walker.walk(*id).name().serialize(serializer),
+            QueryInputValue::EnumValue(id) => self.schema.walk(*id).name().serialize(serializer),
             QueryInputValue::Int(n) => n.serialize(serializer),
             QueryInputValue::BigInt(n) => n.serialize(serializer),
             QueryInputValue::Float(f) => f.serialize(serializer),
@@ -23,7 +24,7 @@ impl<'ctx> serde::Serialize for QueryInputValueWalker<'ctx> {
                     let value = self.walk(value);
                     // https://spec.graphql.org/October2021/#sec-Input-Objects.Input-Coercion
                     if !value.is_undefined() {
-                        map.serialize_key(self.schema_walker.walk(*input_value_definition_id).name())?;
+                        map.serialize_key(self.schema.walk(*input_value_definition_id).name())?;
                         map.serialize_value(&value)?;
                     }
                 }
@@ -44,10 +45,7 @@ impl<'ctx> serde::Serialize for QueryInputValueWalker<'ctx> {
                 }
                 map.end()
             }
-            QueryInputValue::DefaultValue(id) => self
-                .schema_walker
-                .walk(&self.schema_walker.as_ref()[*id])
-                .serialize(serializer),
+            QueryInputValue::DefaultValue(id) => id.read(self.schema).serialize(serializer),
             QueryInputValue::Variable(id) => self.walk(*id).serialize(serializer),
         }
     }

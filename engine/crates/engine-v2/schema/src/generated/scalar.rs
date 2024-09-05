@@ -9,6 +9,17 @@ use crate::{
 };
 use readable::{Iter, Readable};
 
+/// Generated from:
+///
+/// ```custom,{.language-graphql}
+/// type ScalarDefinition @meta(module: "scalar") @indexed(id_size: "u32", max_id: "MAX_ID") {
+///   name: String!
+///   ty: ScalarType!
+///   description: String
+///   specified_by_url: String
+///   directives: [TypeSystemDirective!]!
+/// }
+/// ```
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct ScalarDefinitionRecord {
     pub name_id: StringId,
@@ -24,11 +35,19 @@ pub struct ScalarDefinitionId(std::num::NonZero<u32>);
 
 #[derive(Clone, Copy)]
 pub struct ScalarDefinition<'a> {
-    schema: &'a Schema,
-    id: ScalarDefinitionId,
+    pub(crate) schema: &'a Schema,
+    pub(crate) id: ScalarDefinitionId,
+}
+
+impl std::ops::Deref for ScalarDefinition<'_> {
+    type Target = ScalarDefinitionRecord;
+    fn deref(&self) -> &Self::Target {
+        self.as_ref()
+    }
 }
 
 impl<'a> ScalarDefinition<'a> {
+    /// Prefer using Deref unless you need the 'a lifetime.
     #[allow(clippy::should_implement_trait)]
     pub fn as_ref(&self) -> &'a ScalarDefinitionRecord {
         &self.schema[self.id]
@@ -38,9 +57,6 @@ impl<'a> ScalarDefinition<'a> {
     }
     pub fn name(&self) -> &'a str {
         &self.schema[self.as_ref().name_id]
-    }
-    pub fn ty(&self) -> ScalarType {
-        self.as_ref().ty
     }
     pub fn description(&self) -> Option<&'a str> {
         self.as_ref().description_id.map(|id| self.schema[id].as_ref())
@@ -67,7 +83,7 @@ impl std::fmt::Debug for ScalarDefinition<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("ScalarDefinition")
             .field("name", &self.name())
-            .field("ty", &self.ty())
+            .field("ty", &self.ty)
             .field("description", &self.description())
             .field("specified_by_url", &self.specified_by_url())
             .field("directives", &self.directives())

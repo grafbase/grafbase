@@ -1,7 +1,10 @@
 use std::{borrow::Cow, str::FromStr, sync::OnceLock};
 
 use http::{header, HeaderName};
-use schema::{HeaderRule, NameOrPatternRef};
+use schema::{
+    ForwardHeaderRule, HeaderRule, HeaderRuleVariant, InsertHeaderRule, NameOrPattern, RemoveHeaderRule,
+    RenameDuplicateHeaderRule,
+};
 
 use crate::engine::RequestContext;
 
@@ -12,17 +15,17 @@ pub(super) fn create_subgraph_headers_with_rules<'ctx, C>(
 ) -> http::HeaderMap {
     let mut headers = default;
 
-    for header in rules {
-        match header.rule() {
-            schema::HeaderRuleRef::Forward { name, default, rename } => {
-                handle_forward(&mut headers, name, request_context, rename, default);
+    for rule in rules {
+        match rule.variant() {
+            HeaderRuleVariant::Forward(rule) => {
+                handle_forward(&mut headers, request_context, rule);
             }
-            schema::HeaderRuleRef::Insert { name, value } => {
-                handle_insert(&mut headers, name, value);
+            HeaderRuleVariant::Insert(rule) => {
+                handle_insert(&mut headers, rule);
             }
-            schema::HeaderRuleRef::Remove { name } => handle_remove(&mut headers, name),
-            schema::HeaderRuleRef::RenameDuplicate { name, default, rename } => {
-                handle_rename_duplicate(&mut headers, name, rename, request_context, default);
+            HeaderRuleVariant::Remove(rule) => handle_remove(&mut headers, rule),
+            HeaderRuleVariant::RenameDuplicate(rule) => {
+                handle_rename_duplicate(&mut headers, request_context, rule);
             }
         }
     }
@@ -32,16 +35,14 @@ pub(super) fn create_subgraph_headers_with_rules<'ctx, C>(
 
 fn handle_rename_duplicate<C>(
     headers: &mut http::HeaderMap,
-    name: &str,
-    rename: &str,
     request_context: &RequestContext<C>,
-    default: Option<&str>,
+    rule: RenameDuplicateHeaderRule<'_>,
 ) {
-    let Ok(name) = http::HeaderName::from_str(name) else {
+    let Ok(name) = http::HeaderName::from_str(rule.name()) else {
         return;
     };
 
-    let Ok(rename) = http::HeaderName::from_str(rename) else {
+    let Ok(rename) = http::HeaderName::from_str(rule.rename()) else {
         return;
     };
 
@@ -50,7 +51,7 @@ fn handle_rename_duplicate<C>(
     }
 
     let value = request_context.headers.get(&name).map(Cow::Borrowed).or_else(|| {
-        default
+        rule.default()
             .and_then(|d| http::HeaderValue::from_str(d).ok())
             .map(Cow::Owned)
     });
@@ -61,9 +62,9 @@ fn handle_rename_duplicate<C>(
     }
 }
 
-fn handle_remove(headers: &mut http::HeaderMap, name: NameOrPatternRef<'_>) {
-    match name {
-        schema::NameOrPatternRef::Pattern(regex) => {
+fn handle_remove(headers: &mut http::HeaderMap, rule: RemoveHeaderRule<'_>) {
+    match rule.name() {
+        NameOrPattern::Pattern(regex) => {
             // https://github.com/hyperium/http/issues/632
             let delete_list: Vec<_> = headers
                 .keys()
@@ -75,15 +76,15 @@ fn handle_remove(headers: &mut http::HeaderMap, name: NameOrPatternRef<'_>) {
                 headers.remove(key);
             }
         }
-        schema::NameOrPatternRef::Name(name) => {
+        NameOrPattern::Name(name) => {
             headers.remove(name);
         }
     }
 }
 
-fn handle_insert(headers: &mut http::HeaderMap, name: &str, value: &str) {
-    let name = http::HeaderName::from_bytes(name.as_bytes()).ok();
-    let value = http::HeaderValue::from_str(value).ok();
+fn handle_insert(headers: &mut http::HeaderMap, rule: InsertHeaderRule<'_>) {
+    let name = http::HeaderName::from_bytes(rule.name().as_bytes()).ok();
+    let value = http::HeaderValue::from_str(rule.value()).ok();
 
     if let Some((name, value)) = name.zip(value) {
         if is_header_denied(&name) {
@@ -94,15 +95,9 @@ fn handle_insert(headers: &mut http::HeaderMap, name: &str, value: &str) {
     }
 }
 
-fn handle_forward<C>(
-    headers: &mut http::HeaderMap,
-    name: NameOrPatternRef<'_>,
-    request_context: &RequestContext<C>,
-    rename: Option<&str>,
-    default: Option<&str>,
-) {
-    match name {
-        NameOrPatternRef::Pattern(regex) => {
+fn handle_forward<C>(headers: &mut http::HeaderMap, request_context: &RequestContext<C>, rule: ForwardHeaderRule<'_>) {
+    match rule.name() {
+        NameOrPattern::Pattern(regex) => {
             let filtered = request_context
                 .headers
                 .iter()
@@ -110,7 +105,7 @@ fn handle_forward<C>(
                 .filter(|(name, _)| regex.is_match(name.as_str()));
 
             for (name, value) in filtered {
-                match rename.and_then(|s| http::HeaderName::from_str(s).ok()) {
+                match rule.rename().and_then(|s| http::HeaderName::from_str(s).ok()) {
                     Some(rename) => {
                         headers.append(rename, value.clone());
                     }
@@ -120,7 +115,7 @@ fn handle_forward<C>(
                 }
             }
         }
-        NameOrPatternRef::Name(name) => {
+        NameOrPattern::Name(name) => {
             let Ok(name) = http::HeaderName::from_str(name) else {
                 return;
             };
@@ -130,7 +125,7 @@ fn handle_forward<C>(
 
             let found = request_context.headers.get_all(&name);
 
-            let name = match rename {
+            let name = match rule.rename() {
                 Some(rename) => match http::HeaderName::from_str(rename) {
                     Ok(name) => name,
                     Err(_) => {
@@ -144,7 +139,7 @@ fn handle_forward<C>(
                 return;
             }
 
-            let default = default.and_then(|d| http::HeaderValue::from_str(d).ok());
+            let default = rule.default().and_then(|d| http::HeaderValue::from_str(d).ok());
             let mut inserted = false;
 
             for header in found {

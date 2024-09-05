@@ -2,13 +2,16 @@ use proc_macro2::{Ident, Span, TokenStream};
 use quote::{quote, TokenStreamExt};
 use tracing::instrument;
 
-use crate::domain::{Domain, Union, UnionKind};
+use crate::{
+    domain::{Domain, Union, UnionKind},
+    generation::docstr,
+};
 
 use super::VariantContext;
 
 #[instrument(skip_all)]
 pub fn generate_enum(
-    _domain: &Domain,
+    domain: &Domain,
     union: &Union,
     variants: &[VariantContext<'_>],
 ) -> anyhow::Result<Vec<TokenStream>> {
@@ -30,8 +33,10 @@ pub fn generate_enum(
         derives
     };
 
+    let docstr = proc_macro2::Literal::string(&docstr::generated_from(domain, union.span));
     let enum_variants = variants.iter().copied().map(EnumVariant);
     let union_enum = quote! {
+        #[doc = #docstr]
         #[derive(serde::Serialize, serde::Deserialize #additional_derives)]
         pub enum #enum_name {
             #(#enum_variants),*

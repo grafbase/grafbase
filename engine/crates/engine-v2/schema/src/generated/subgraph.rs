@@ -8,6 +8,11 @@ use crate::prelude::*;
 pub use graphql::*;
 use readable::Readable;
 
+/// Generated from:
+///
+/// ```custom,{.language-graphql}
+/// union Subgraph @id @meta(module: "subgraph") @variants(empty: ["Introspection"]) = GraphqlEndpoint
+/// ```
 #[derive(serde::Serialize, serde::Deserialize, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub enum SubgraphId {
     GraphqlEndpoint(GraphqlEndpointId),
@@ -35,6 +40,15 @@ impl Readable<Schema> for SubgraphId {
         match self {
             SubgraphId::GraphqlEndpoint(id) => Subgraph::GraphqlEndpoint(id.read(schema)),
             SubgraphId::Introspection => Subgraph::Introspection,
+        }
+    }
+}
+
+impl Subgraph<'_> {
+    pub fn id(&self) -> SubgraphId {
+        match self {
+            Subgraph::GraphqlEndpoint(reader) => SubgraphId::GraphqlEndpoint(reader.id),
+            Subgraph::Introspection => SubgraphId::Introspection,
         }
     }
 }

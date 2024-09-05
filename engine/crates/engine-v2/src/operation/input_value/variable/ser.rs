@@ -1,3 +1,4 @@
+use readable::Readable;
 use serde::ser::{SerializeMap, SerializeSeq};
 
 use super::{VariableInputValue, VariableInputValueWalker};
@@ -10,7 +11,7 @@ impl<'ctx> serde::Serialize for VariableInputValueWalker<'ctx> {
         match self.item {
             VariableInputValue::Null => serializer.serialize_none(),
             VariableInputValue::String(s) => s.serialize(serializer),
-            VariableInputValue::EnumValue(id) => self.schema_walker.walk(*id).name().serialize(serializer),
+            VariableInputValue::EnumValue(id) => self.schema.walk(*id).name().serialize(serializer),
             VariableInputValue::Int(n) => n.serialize(serializer),
             VariableInputValue::BigInt(n) => n.serialize(serializer),
             VariableInputValue::Float(f) => f.serialize(serializer),
@@ -19,7 +20,7 @@ impl<'ctx> serde::Serialize for VariableInputValueWalker<'ctx> {
             VariableInputValue::InputObject(ids) => {
                 let mut map = serializer.serialize_map(Some(ids.len()))?;
                 for (input_value_definition_id, value) in &self.variables[*ids] {
-                    map.serialize_key(self.schema_walker.walk(*input_value_definition_id).name())?;
+                    map.serialize_key(self.schema.walk(*input_value_definition_id).name())?;
                     map.serialize_value(&self.walk(value))?;
                 }
                 map.end()
@@ -40,10 +41,7 @@ impl<'ctx> serde::Serialize for VariableInputValueWalker<'ctx> {
                 }
                 map.end()
             }
-            VariableInputValue::DefaultValue(id) => self
-                .schema_walker
-                .walk(&self.schema_walker.as_ref()[*id])
-                .serialize(serializer),
+            VariableInputValue::DefaultValue(id) => id.read(self.schema).serialize(serializer),
         }
     }
 }

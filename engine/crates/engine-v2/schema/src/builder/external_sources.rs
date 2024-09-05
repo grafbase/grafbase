@@ -2,7 +2,7 @@ use std::{mem::take, time::Duration};
 
 use config::latest::Config;
 
-use super::{BuildContext, GraphqlEndpointRecord, RetryConfig};
+use super::{BuildContext, GraphqlEndpointRecord};
 
 pub struct ExternalDataSources {
     pub graphql_endpoints: Vec<GraphqlEndpointRecord>,
@@ -34,19 +34,7 @@ impl ExternalDataSources {
                         header_rule_ids: headers.into_iter().map(Into::into).collect(),
                         config: super::SubgraphConfig {
                             timeout: timeout.unwrap_or(DEFAULT_SUBGRAPH_TIMEOUT),
-                            retry: retry.map(
-                                |config::latest::RetryConfig {
-                                     min_per_second,
-                                     ttl,
-                                     retry_percent,
-                                     retry_mutations,
-                                 }| RetryConfig {
-                                    min_per_second,
-                                    ttl,
-                                    retry_percent,
-                                    retry_mutations,
-                                },
-                            ),
+                            retry: retry.map(Into::into),
                             cache_ttl: entity_caching.as_ref().unwrap_or(&config.entity_caching).ttl(),
                         },
                     },

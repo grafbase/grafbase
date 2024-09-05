@@ -2521,6 +2521,7 @@ dependencies = [
  "engine-v2-config",
  "engine-v2-id-derives",
  "engine-v2-id-newtypes",
+ "engine-v2-readable",
  "engine-v2-schema",
  "engine-value",
  "enumset",

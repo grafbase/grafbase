@@ -82,7 +82,7 @@ impl Operation {
             }
         };
 
-        if let Err(err) = validate_operation(schema, operation.walker_with(schema.walker())) {
+        if let Err(err) = validate_operation(schema, operation.walker_with(schema)) {
             return Err(OperationError::Validation {
                 metrics_attributes: Box::new(metrics_attributes),
                 err,
@@ -99,8 +99,7 @@ impl Operation {
             }
         };
 
-        let (logical_plan_cache_scopes, cache_scopes) =
-            calculate_cache_scopes(operation.walker_with(schema.walker()), &plan);
+        let (logical_plan_cache_scopes, cache_scopes) = calculate_cache_scopes(operation.walker_with(schema), &plan);
 
         let response_blueprint = ResponseBlueprintBuilder::new(schema, &operation, &plan).build();
 

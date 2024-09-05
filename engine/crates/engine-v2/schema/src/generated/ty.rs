@@ -9,6 +9,14 @@ use crate::{
 };
 use readable::Readable;
 
+/// Generated from:
+///
+/// ```custom,{.language-graphql}
+/// type Type @meta(module: "ty") @copy {
+///   definition: Definition!
+///   wrapping: Wrapping!
+/// }
+/// ```
 #[derive(serde::Serialize, serde::Deserialize, Clone, Copy)]
 pub struct TypeRecord {
     pub definition_id: DefinitionId,
@@ -17,8 +25,15 @@ pub struct TypeRecord {
 
 #[derive(Clone, Copy)]
 pub struct Type<'a> {
-    schema: &'a Schema,
-    item: TypeRecord,
+    pub(crate) schema: &'a Schema,
+    pub(crate) item: TypeRecord,
+}
+
+impl std::ops::Deref for Type<'_> {
+    type Target = TypeRecord;
+    fn deref(&self) -> &Self::Target {
+        &self.item
+    }
 }
 
 impl<'a> Type<'a> {
@@ -28,9 +43,6 @@ impl<'a> Type<'a> {
     }
     pub fn definition(&self) -> Definition<'a> {
         self.as_ref().definition_id.read(self.schema)
-    }
-    pub fn wrapping(&self) -> Wrapping {
-        self.as_ref().wrapping
     }
 }
 
@@ -48,7 +60,7 @@ impl std::fmt::Debug for Type<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Type")
             .field("definition", &self.definition())
-            .field("wrapping", &self.wrapping())
+            .field("wrapping", &self.wrapping)
             .finish()
     }
 }

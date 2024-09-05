@@ -4,15 +4,17 @@ mod builder;
 mod definition;
 mod directive;
 mod entity;
+mod enum_def;
 mod field;
 mod field_set;
 mod generated;
 mod ids;
 mod input_value;
 mod interface;
-mod introspection;
+pub mod introspection;
 mod object;
 mod prelude;
+mod resolver;
 mod subgraph;
 mod ty;
 mod union;
@@ -24,8 +26,7 @@ pub use generated::*;
 use id_newtypes::IdRange;
 pub use ids::*;
 pub use input_value::*;
-pub use introspection::IntrospectionMetadata;
-use readable::Readable;
+use readable::{Iter, Readable};
 use regex::Regex;
 pub use subgraph::*;
 pub use wrapping::*;
@@ -49,6 +50,8 @@ impl Schema {
     }
 }
 
+pub type Reader<'a, T> = readable::Reader<'a, T, Schema>;
+
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct Version(Vec<u8>);
 
@@ -70,7 +73,7 @@ impl std::ops::Deref for Version {
 /// compatibility use engine-v2-config instead.
 #[derive(serde::Serialize, serde::Deserialize, id_derives::IndexedFields)]
 pub struct Schema {
-    subgraphs: SubGraphs,
+    pub subgraphs: SubGraphs,
     pub graph: Graph,
     pub version: Version,
 
@@ -120,13 +123,13 @@ pub struct Settings {
     pub auth_config: Option<config::latest::AuthConfig>,
     pub operation_limits: config::latest::OperationLimits,
     pub disable_introspection: bool,
-    pub retry: Option<config::latest::RetryConfig>,
+    pub retry: Option<RetryConfig>,
 }
 
 #[derive(serde::Serialize, serde::Deserialize, id_derives::IndexedFields)]
 pub struct Graph {
-    pub description: Option<StringId>,
-    pub root_operation_types: RootOperationTypesRecord,
+    pub description_id: Option<StringId>,
+    pub root_operation_types_record: RootOperationTypesRecord,
 
     // All type definitions sorted by their name (actual string)
     type_definitions_ordered_by_name: Vec<DefinitionId>,
@@ -152,10 +155,10 @@ pub struct Graph {
     #[indexed_by(ResolverDefinitionId)]
     resolver_definitions: Vec<ResolverDefinitionRecord>,
     #[indexed_by(RequiredFieldSetId)]
-    required_field_sets: Vec<RequiredFieldSet>,
+    required_field_sets: Vec<RequiredFieldSetRecord>,
     // deduplicated
     #[indexed_by(RequiredFieldId)]
-    required_fields: Vec<RequiredField>,
+    required_fields: Vec<RequiredFieldRecord>,
     /// Default input values & directive arguments
     pub input_values: SchemaInputValues,
 
@@ -169,10 +172,18 @@ pub struct Graph {
 pub struct SubGraphs {
     #[indexed_by(GraphqlEndpointId)]
     graphql_endpoints: Vec<GraphqlEndpointRecord>,
-    pub introspection: IntrospectionMetadata,
+    pub introspection: introspection::IntrospectionMetadata,
 }
 
 impl Schema {
+    pub fn walk<T: Readable<Self>>(&self, item: T) -> Reader<'_, T> {
+        item.read(self)
+    }
+
+    pub fn definitions(&self) -> impl Iter<Item = Definition<'_>> + '_ {
+        self.graph.type_definitions_ordered_by_name.read(self)
+    }
+
     pub fn definition_by_name(&self, name: &str) -> Option<DefinitionId> {
         self.graph
             .type_definitions_ordered_by_name
@@ -201,8 +212,31 @@ impl Schema {
             .map(|pos| FieldDefinitionId::from(usize::from(fields.start) + pos))
     }
 
+    pub fn default_header_rules(&self) -> impl Iter<Item = HeaderRule<'_>> + '_ {
+        self.settings.default_header_rules.read(self)
+    }
+
     fn definition_name(&self, definition: DefinitionId) -> &str {
         definition.read(self).name()
+    }
+
+    pub fn query(&self) -> ObjectDefinition<'_> {
+        self.graph.root_operation_types_record.query_id.read(self)
+    }
+
+    pub fn mutation(&self) -> Option<ObjectDefinition<'_>> {
+        self.graph.root_operation_types_record.mutation_id.read(self)
+    }
+
+    pub fn subscription(&self) -> Option<ObjectDefinition<'_>> {
+        self.graph.root_operation_types_record.subscription_id.read(self)
+    }
+
+    pub fn graphql_endpoints(&self) -> impl ExactSizeIterator<Item = GraphqlEndpoint<'_>> {
+        (0..self.subgraphs.graphql_endpoints.len()).map(|i| {
+            let id = GraphqlEndpointId::from(i);
+            id.read(self)
+        })
     }
 }
 

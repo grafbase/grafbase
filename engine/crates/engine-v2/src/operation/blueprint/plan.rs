@@ -221,7 +221,7 @@ where
             match &self.operation[*field_id] {
                 Field::TypeName(TypeNameField { type_condition, .. }) => type_conditions.push(*type_condition),
                 Field::Query(QueryField { definition_id, .. }) | Field::Extra(ExtraField { definition_id, .. }) => {
-                    type_conditions.push(self.schema.walk(*definition_id).parent_entity().id().into())
+                    type_conditions.push(self.schema.walk(*definition_id).as_ref().parent_entity_id.into())
                 }
             }
         }
@@ -337,14 +337,14 @@ where
                 .iter()
                 .find_map(|field| self.plan.field_to_solved_requirement[usize::from(field.id())]),
             definition_id: definition.id(),
-            shape: match ty.inner().scalar_type() {
+            shape: match ty.definition().scalar_type() {
                 Some(scalar) => Shape::Scalar(scalar),
                 None => self.create_object_shape(
-                    SelectionSetType::maybe_from(ty.inner().id()).unwrap(),
+                    SelectionSetType::maybe_from(ty.as_ref().definition_id).unwrap(),
                     fields.iter().map(|field| field.selection_set().unwrap().id()).collect(),
                 ),
             },
-            wrapping: ty.wrapping(),
+            wrapping: ty.wrapping,
         }
     }
 

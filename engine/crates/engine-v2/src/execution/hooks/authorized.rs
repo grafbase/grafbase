@@ -3,7 +3,7 @@ use runtime::{
     error::PartialGraphqlError,
     hooks::{AuthorizedHooks, EdgeDefinition, Hooks, NodeDefinition},
 };
-use schema::{DefinitionWalker, FieldDefinition, SchemaInputValueWalker};
+use schema::{Definition, FieldDefinition, SchemaInputValue};
 use tracing::{instrument, Level};
 
 use crate::{
@@ -17,7 +17,7 @@ impl<'ctx, H: Hooks> super::RequestHooks<'ctx, H> {
         &self,
         definition: FieldDefinition<'_>,
         arguments: FieldArgumentsView<'_>,
-        metadata: Option<SchemaInputValueWalker<'_>>,
+        metadata: Option<SchemaInputValue<'_>>,
     ) -> Result<(), GraphqlError> {
         self.hooks
             .authorized()
@@ -43,7 +43,7 @@ impl<'ctx, H: Hooks> super::RequestHooks<'ctx, H> {
         &self,
         definition: FieldDefinition<'_>,
         parents: ResponseObjectsView<'_>,
-        metadata: Option<SchemaInputValueWalker<'_>>,
+        metadata: Option<SchemaInputValue<'_>>,
     ) -> Result<Vec<Result<(), PartialGraphqlError>>, GraphqlError> {
         self.hooks
             .authorized()
@@ -69,7 +69,7 @@ impl<'ctx, H: Hooks> super::RequestHooks<'ctx, H> {
         &self,
         definition: FieldDefinition<'_>,
         nodes: ResponseObjectsView<'_>,
-        metadata: Option<SchemaInputValueWalker<'_>>,
+        metadata: Option<SchemaInputValue<'_>>,
     ) -> Result<Vec<Result<(), PartialGraphqlError>>, GraphqlError> {
         self.hooks
             .authorized()
@@ -93,8 +93,8 @@ impl<'ctx, H: Hooks> super::RequestHooks<'ctx, H> {
     #[instrument(skip_all, ret(level = Level::DEBUG))]
     pub async fn authorize_node_pre_execution(
         &self,
-        definition: DefinitionWalker<'_>,
-        metadata: Option<SchemaInputValueWalker<'_>>,
+        definition: Definition<'_>,
+        metadata: Option<SchemaInputValue<'_>>,
     ) -> Result<(), GraphqlError> {
         self.hooks
             .authorized()

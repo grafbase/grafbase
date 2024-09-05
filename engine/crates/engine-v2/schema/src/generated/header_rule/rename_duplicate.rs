@@ -5,6 +5,15 @@
 use crate::{prelude::*, StringId};
 use readable::Readable;
 
+/// Generated from:
+///
+/// ```custom,{.language-graphql}
+/// type RenameDuplicateHeaderRule @meta(module: "header_rule/rename_duplicate") @copy {
+///   name: String!
+///   default: String
+///   rename: String!
+/// }
+/// ```
 #[derive(serde::Serialize, serde::Deserialize, Clone, Copy)]
 pub struct RenameDuplicateHeaderRuleRecord {
     pub name_id: StringId,
@@ -14,8 +23,15 @@ pub struct RenameDuplicateHeaderRuleRecord {
 
 #[derive(Clone, Copy)]
 pub struct RenameDuplicateHeaderRule<'a> {
-    schema: &'a Schema,
-    item: RenameDuplicateHeaderRuleRecord,
+    pub(crate) schema: &'a Schema,
+    pub(crate) item: RenameDuplicateHeaderRuleRecord,
+}
+
+impl std::ops::Deref for RenameDuplicateHeaderRule<'_> {
+    type Target = RenameDuplicateHeaderRuleRecord;
+    fn deref(&self) -> &Self::Target {
+        &self.item
+    }
 }
 
 impl<'a> RenameDuplicateHeaderRule<'a> {

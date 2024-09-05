@@ -17,19 +17,41 @@ pub use provides::*;
 use readable::{Iter, Readable};
 pub use requires::*;
 
+/// Generated from:
+///
+/// ```custom,{.language-graphql}
+/// type FieldDefinition @meta(module: "field") @indexed(id_size: "u32", max_id: "MAX_ID") {
+///   name: String!
+///   description: String
+///   parent_entity: EntityDefinition!
+///   ty: Type!
+///   resolvers: [ResolverDefinition!]!
+///   """
+///   By default a field is considered shared and providable by *any* subgraph that exposes it.
+///   It's up to the composition to ensure it. If this field is specific to some subgraphs, they
+///   will be specified in this Vec.
+///   """
+///   only_resolvable_in: [Subgraph!]!
+///   requires: [FieldRequires!]! @field(record_field_name: "requires_records")
+///   provides: [FieldProvides!]! @field(record_field_name: "provides_records")
+///   "The arguments referenced by this range are sorted by their name (string)"
+///   arguments: [InputValueDefinition!]!
+///   directives: [TypeSystemDirective!]!
+/// }
+/// ```
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct FieldDefinitionRecord {
     pub name_id: StringId,
     pub description_id: Option<StringId>,
     pub parent_entity_id: EntityDefinitionId,
-    pub ty: TypeRecord,
+    pub ty_record: TypeRecord,
     pub resolver_ids: Vec<ResolverDefinitionId>,
     /// By default a field is considered shared and providable by *any* subgraph that exposes it.
     /// It's up to the composition to ensure it. If this field is specific to some subgraphs, they
     /// will be specified in this Vec.
     pub only_resolvable_in_ids: Vec<SubgraphId>,
-    pub requires: Vec<FieldRequiresRecord>,
-    pub provides: Vec<FieldProvidesRecord>,
+    pub requires_records: Vec<FieldRequiresRecord>,
+    pub provides_records: Vec<FieldProvidesRecord>,
     /// The arguments referenced by this range are sorted by their name (string)
     pub argument_ids: IdRange<InputValueDefinitionId>,
     pub directive_ids: Vec<TypeSystemDirectiveId>,
@@ -41,11 +63,19 @@ pub struct FieldDefinitionId(std::num::NonZero<u32>);
 
 #[derive(Clone, Copy)]
 pub struct FieldDefinition<'a> {
-    schema: &'a Schema,
-    id: FieldDefinitionId,
+    pub(crate) schema: &'a Schema,
+    pub(crate) id: FieldDefinitionId,
+}
+
+impl std::ops::Deref for FieldDefinition<'_> {
+    type Target = FieldDefinitionRecord;
+    fn deref(&self) -> &Self::Target {
+        self.as_ref()
+    }
 }
 
 impl<'a> FieldDefinition<'a> {
+    /// Prefer using Deref unless you need the 'a lifetime.
     #[allow(clippy::should_implement_trait)]
     pub fn as_ref(&self) -> &'a FieldDefinitionRecord {
         &self.schema[self.id]
@@ -63,20 +93,24 @@ impl<'a> FieldDefinition<'a> {
         self.as_ref().parent_entity_id.read(self.schema)
     }
     pub fn ty(&self) -> Type<'a> {
-        self.as_ref().ty.read(self.schema)
+        self.as_ref().ty_record.read(self.schema)
     }
     pub fn resolvers(&self) -> impl Iter<Item = ResolverDefinition<'a>> + 'a {
         self.as_ref().resolver_ids.read(self.schema)
     }
+    /// By default a field is considered shared and providable by *any* subgraph that exposes it.
+    /// It's up to the composition to ensure it. If this field is specific to some subgraphs, they
+    /// will be specified in this Vec.
     pub fn only_resolvable_in(&self) -> impl Iter<Item = Subgraph<'a>> + 'a {
         self.as_ref().only_resolvable_in_ids.read(self.schema)
     }
     pub fn requires(&self) -> impl Iter<Item = FieldRequires<'a>> + 'a {
-        self.as_ref().requires.read(self.schema)
+        self.as_ref().requires_records.read(self.schema)
     }
     pub fn provides(&self) -> impl Iter<Item = FieldProvides<'a>> + 'a {
-        self.as_ref().provides.read(self.schema)
+        self.as_ref().provides_records.read(self.schema)
     }
+    /// The arguments referenced by this range are sorted by their name (string)
     pub fn arguments(&self) -> impl Iter<Item = InputValueDefinition<'a>> + 'a {
         self.as_ref().argument_ids.read(self.schema)
     }

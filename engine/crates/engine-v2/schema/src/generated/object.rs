@@ -12,6 +12,19 @@ use crate::{
 };
 use readable::{Iter, Readable};
 
+/// Generated from:
+///
+/// ```custom,{.language-graphql}
+/// type ObjectDefinition
+///   @meta(module: "object", debug: false)
+///   @indexed(deduplicated: true, id_size: "u32", max_id: "MAX_ID") {
+///   name: String!
+///   description: String
+///   interfaces: [InterfaceDefinition!]!
+///   directives: [TypeSystemDirective!]!
+///   fields: [FieldDefinition!]!
+/// }
+/// ```
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct ObjectDefinitionRecord {
     pub name_id: StringId,
@@ -27,11 +40,19 @@ pub struct ObjectDefinitionId(std::num::NonZero<u32>);
 
 #[derive(Clone, Copy)]
 pub struct ObjectDefinition<'a> {
-    schema: &'a Schema,
-    id: ObjectDefinitionId,
+    pub(crate) schema: &'a Schema,
+    pub(crate) id: ObjectDefinitionId,
+}
+
+impl std::ops::Deref for ObjectDefinition<'_> {
+    type Target = ObjectDefinitionRecord;
+    fn deref(&self) -> &Self::Target {
+        self.as_ref()
+    }
 }
 
 impl<'a> ObjectDefinition<'a> {
+    /// Prefer using Deref unless you need the 'a lifetime.
     #[allow(clippy::should_implement_trait)]
     pub fn as_ref(&self) -> &'a ObjectDefinitionRecord {
         &self.schema[self.id]

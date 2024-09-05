@@ -3,9 +3,10 @@ use super::{Definition, Indexed};
 #[derive(Debug)]
 pub struct Scalar {
     pub indexed: Option<Indexed>,
+    pub span: cynic_parser::Span,
     pub name: String,
     pub struct_name: String,
-    pub has_custom_reader: bool,
+    pub is_record: bool,
     pub copy: bool,
 }
 

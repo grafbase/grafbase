@@ -8,6 +8,13 @@ use crate::{
 };
 use readable::Readable;
 
+/// Generated from:
+///
+/// ```custom,{.language-graphql}
+/// type RemoveHeaderRule @meta(module: "header_rule/remove") @copy {
+///   name: NameOrPattern!
+/// }
+/// ```
 #[derive(serde::Serialize, serde::Deserialize, Clone, Copy)]
 pub struct RemoveHeaderRuleRecord {
     pub name_id: NameOrPatternId,
@@ -15,8 +22,15 @@ pub struct RemoveHeaderRuleRecord {
 
 #[derive(Clone, Copy)]
 pub struct RemoveHeaderRule<'a> {
-    schema: &'a Schema,
-    item: RemoveHeaderRuleRecord,
+    pub(crate) schema: &'a Schema,
+    pub(crate) item: RemoveHeaderRuleRecord,
+}
+
+impl std::ops::Deref for RemoveHeaderRule<'_> {
+    type Target = RemoveHeaderRuleRecord;
+    fn deref(&self) -> &Self::Target {
+        &self.item
+    }
 }
 
 impl<'a> RemoveHeaderRule<'a> {

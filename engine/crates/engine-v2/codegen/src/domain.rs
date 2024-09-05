@@ -11,6 +11,7 @@ pub use union::*;
 #[derive(Debug)]
 pub struct Domain {
     pub source: PathBuf,
+    pub sdl: String,
     pub destination_path: PathBuf,
     pub root_module: Vec<String>,
     pub world_name: String,
@@ -37,6 +38,14 @@ impl Definition {
             Definition::Scalar(scalar) => &scalar.name,
             Definition::Object(object) => &object.name,
             Definition::Union(union) => union.name(),
+        }
+    }
+
+    pub fn span(&self) -> &cynic_parser::Span {
+        match self {
+            Definition::Scalar(scalar) => &scalar.span,
+            Definition::Object(object) => &object.span,
+            Definition::Union(union) => &union.span,
         }
     }
 
@@ -92,7 +101,7 @@ impl Definition {
     pub fn reader_kind(&self) -> ReaderKind {
         match self {
             Definition::Scalar(scalar) => {
-                if scalar.has_custom_reader {
+                if scalar.is_record {
                     if scalar.copy {
                         ReaderKind::ItemReader
                     } else if scalar.indexed.is_some() {

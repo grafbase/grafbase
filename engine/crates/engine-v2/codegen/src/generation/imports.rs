@@ -32,7 +32,7 @@ pub(super) fn generate_imports<'a>(
             Definition::Scalar(scalar) => {
                 let name = Ident::new(definition.storage_type().name(), Span::call_site());
                 scalar_imports.push(quote! { ,#name });
-                if scalar.has_custom_reader {
+                if scalar.is_record {
                     let name = Ident::new(&scalar.name, Span::call_site());
                     scalar_imports.push(quote! { ,#name })
                 }

@@ -58,8 +58,8 @@ impl BuildContext {
         };
 
         let mut graph = Graph {
-            description: None,
-            root_operation_types: RootOperationTypesRecord {
+            description_id: None,
+            root_operation_types_record: RootOperationTypesRecord {
                 query_id: ObjectDefinitionId::from(0),
                 mutation_id: None,
                 subscription_id: None,
@@ -79,14 +79,14 @@ impl BuildContext {
                     parent_entity_id: EntityDefinitionId::Object(0.into()),
                     description_id: None,
                     // will be replaced by introspection, doesn't matter.
-                    ty: TypeRecord {
+                    ty_record: TypeRecord {
                         definition_id: DefinitionId::Object(ObjectDefinitionId::from(0)),
                         wrapping: Default::default(),
                     },
                     resolver_ids: Default::default(),
                     only_resolvable_in_ids: Default::default(),
-                    requires: Default::default(),
-                    provides: Default::default(),
+                    requires_records: Default::default(),
+                    provides_records: Default::default(),
                     argument_ids: Default::default(),
                     directive_ids: Default::default(),
                 },
@@ -95,14 +95,14 @@ impl BuildContext {
                     parent_entity_id: EntityDefinitionId::Object(0.into()),
                     description_id: None,
                     // will be replaced by introspection, doesn't matter.
-                    ty: TypeRecord {
+                    ty_record: TypeRecord {
                         definition_id: DefinitionId::Object(ObjectDefinitionId::from(0)),
                         wrapping: Default::default(),
                     },
                     resolver_ids: Default::default(),
                     only_resolvable_in_ids: Default::default(),
-                    requires: Default::default(),
-                    provides: Default::default(),
+                    requires_records: Default::default(),
+                    provides_records: Default::default(),
                     argument_ids: Default::default(),
                     directive_ids: Default::default(),
                 },
@@ -229,7 +229,7 @@ impl BuildContext {
                 auth_config: take(&mut config.auth),
                 operation_limits: take(&mut config.operation_limits),
                 disable_introspection: config.disable_introspection,
-                retry: config.retry,
+                retry: config.retry.map(Into::into),
             },
         })
     }

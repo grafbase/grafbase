@@ -10,6 +10,17 @@ pub use authorized::*;
 pub use deprecated::*;
 use readable::Readable;
 
+/// Generated from:
+///
+/// ```custom,{.language-graphql}
+/// union TypeSystemDirective
+///   @id
+///   @meta(module: "directive")
+///   @variants(empty: ["Authenticated"], remove_suffix: "Directive") =
+///   | DeprecatedDirective
+///   | RequiresScopesDirective
+///   | AuthorizedDirective
+/// ```
 #[derive(serde::Serialize, serde::Deserialize, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub enum TypeSystemDirectiveId {
     Authenticated,
@@ -53,6 +64,17 @@ impl Readable<Schema> for TypeSystemDirectiveId {
             TypeSystemDirectiveId::Authorized(id) => TypeSystemDirective::Authorized(id.read(schema)),
             TypeSystemDirectiveId::Deprecated(item) => TypeSystemDirective::Deprecated(item.read(schema)),
             TypeSystemDirectiveId::RequiresScopes(id) => TypeSystemDirective::RequiresScopes(id.read(schema)),
+        }
+    }
+}
+
+impl TypeSystemDirective<'_> {
+    pub fn id(&self) -> TypeSystemDirectiveId {
+        match self {
+            TypeSystemDirective::Authenticated => TypeSystemDirectiveId::Authenticated,
+            TypeSystemDirective::Authorized(reader) => TypeSystemDirectiveId::Authorized(reader.id),
+            TypeSystemDirective::Deprecated(reader) => TypeSystemDirectiveId::Deprecated(reader.item),
+            TypeSystemDirective::RequiresScopes(reader) => TypeSystemDirectiveId::RequiresScopes(reader.id),
         }
     }
 }

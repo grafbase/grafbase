@@ -20,3 +20,14 @@ pub struct RetryConfig {
     /// Whether mutations should be retried at all. False by default.
     pub retry_mutations: bool,
 }
+
+impl From<config::latest::RetryConfig> for RetryConfig {
+    fn from(config: config::latest::RetryConfig) -> Self {
+        Self {
+            min_per_second: config.min_per_second,
+            ttl: config.ttl,
+            retry_percent: config.retry_percent,
+            retry_mutations: config.retry_mutations,
+        }
+    }
+}

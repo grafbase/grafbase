@@ -2,7 +2,13 @@ use std::cmp::Ordering;
 
 use crate::FieldDefinitionId;
 
-pub(crate) static EMPTY: ProvidableFieldSet = ProvidableFieldSet(Vec::new());
+static EMPTY: ProvidableFieldSet = ProvidableFieldSet(Vec::new());
+
+impl ProvidableFieldSet {
+    pub fn empty() -> &'static ProvidableFieldSet {
+        &EMPTY
+    }
+}
 
 #[derive(Default, Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct ProvidableFieldSet(Vec<ProvidableField>);

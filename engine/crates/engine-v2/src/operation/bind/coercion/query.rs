@@ -1,7 +1,7 @@
 use engine_value::{ConstValue, Name, Value};
 use id_newtypes::IdRange;
 use schema::{
-    Definition, EnumDefinitionWalker, InputObjectDefinition, InputValueDefinitionId, ListWrapping, ScalarDefinition,
+    DefinitionId, EnumDefinition, InputObjectDefinition, InputValueDefinitionId, ListWrapping, ScalarDefinition,
     ScalarType, TypeRecord, Wrapping,
 };
 
@@ -176,9 +176,9 @@ impl<'binder, 'schema, 'parsed> QueryValueCoercionContext<'binder, 'schema, 'par
         }
 
         match ty.definition_id {
-            Definition::Scalar(scalar) => self.coerce_scalar(self.schema.walk(scalar), value),
-            Definition::Enum(r#enum) => self.coerce_enum(self.schema.walk(r#enum), value),
-            Definition::InputObject(input_object) => self.coerce_input_objet(self.schema.walk(input_object), value),
+            DefinitionId::Scalar(scalar) => self.coerce_scalar(self.schema.walk(scalar), value),
+            DefinitionId::Enum(r#enum) => self.coerce_enum(self.schema.walk(r#enum), value),
+            DefinitionId::InputObject(input_object) => self.coerce_input_objet(self.schema.walk(input_object), value),
             _ => unreachable!("Cannot be an output type."),
         }
     }
@@ -203,7 +203,7 @@ impl<'binder, 'schema, 'parsed> QueryValueCoercionContext<'binder, 'schema, 'par
                 None => {
                     if let Some(default_value_id) = input_field.as_ref().default_value_id {
                         fields_buffer.push((input_field.id(), QueryInputValue::DefaultValue(default_value_id)));
-                    } else if input_field.ty().wrapping().is_required() {
+                    } else if input_field.ty().wrapping.is_required() {
                         return Err(InputValueError::UnexpectedNull {
                             expected: input_field.ty().to_string(),
                             path: self.path(),
@@ -232,11 +232,7 @@ impl<'binder, 'schema, 'parsed> QueryValueCoercionContext<'binder, 'schema, 'par
         Ok(QueryInputValue::InputObject(ids))
     }
 
-    fn coerce_enum(
-        &mut self,
-        r#enum: EnumDefinitionWalker<'_>,
-        value: Value,
-    ) -> Result<QueryInputValue, InputValueError> {
+    fn coerce_enum(&mut self, r#enum: EnumDefinition<'_>, value: Value) -> Result<QueryInputValue, InputValueError> {
         let name = match &value {
             Value::Enum(value) => value.as_str(),
             value => {
@@ -343,7 +339,7 @@ impl<'binder, 'schema, 'parsed> QueryValueCoercionContext<'binder, 'schema, 'par
             (Value::Variable(name), _) => self.variable_ref(
                 name,
                 TypeRecord {
-                    definition_id: Definition::Scalar(scalar.id()),
+                    definition_id: DefinitionId::Scalar(scalar.id()),
                     wrapping: Wrapping::nullable(),
                 },
             ),

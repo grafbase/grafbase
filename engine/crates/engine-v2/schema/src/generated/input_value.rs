@@ -9,11 +9,22 @@ use crate::{
 };
 use readable::{Iter, Readable};
 
+/// Generated from:
+///
+/// ```custom,{.language-graphql}
+/// type InputValueDefinition @meta(module: "input_value") @indexed(id_size: "u32", max_id: "MAX_ID") {
+///   name: String!
+///   description: String
+///   ty: Type!
+///   default_value: SchemaInputValue
+///   directives: [TypeSystemDirective!]!
+/// }
+/// ```
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct InputValueDefinitionRecord {
     pub name_id: StringId,
     pub description_id: Option<StringId>,
-    pub ty: TypeRecord,
+    pub ty_record: TypeRecord,
     pub default_value_id: Option<SchemaInputValueId>,
     pub directive_ids: Vec<TypeSystemDirectiveId>,
 }
@@ -24,11 +35,19 @@ pub struct InputValueDefinitionId(std::num::NonZero<u32>);
 
 #[derive(Clone, Copy)]
 pub struct InputValueDefinition<'a> {
-    schema: &'a Schema,
-    id: InputValueDefinitionId,
+    pub(crate) schema: &'a Schema,
+    pub(crate) id: InputValueDefinitionId,
+}
+
+impl std::ops::Deref for InputValueDefinition<'_> {
+    type Target = InputValueDefinitionRecord;
+    fn deref(&self) -> &Self::Target {
+        self.as_ref()
+    }
 }
 
 impl<'a> InputValueDefinition<'a> {
+    /// Prefer using Deref unless you need the 'a lifetime.
     #[allow(clippy::should_implement_trait)]
     pub fn as_ref(&self) -> &'a InputValueDefinitionRecord {
         &self.schema[self.id]
@@ -43,7 +62,7 @@ impl<'a> InputValueDefinition<'a> {
         self.as_ref().description_id.map(|id| self.schema[id].as_ref())
     }
     pub fn ty(&self) -> Type<'a> {
-        self.as_ref().ty.read(self.schema)
+        self.as_ref().ty_record.read(self.schema)
     }
     pub fn default_value(&self) -> Option<SchemaInputValue<'a>> {
         self.as_ref().default_value_id.as_ref().read(self.schema)

@@ -3,6 +3,7 @@ mod ser;
 
 use id_derives::{Id, IndexedFields};
 use id_newtypes::IdRange;
+use readable::Readable;
 use schema::{EnumValueId, InputValue, InputValueDefinitionId, SchemaInputValueId, SchemaInputValueRecord};
 
 use crate::operation::PreparedOperationWalker;
@@ -91,14 +92,14 @@ impl VariableInputValues {
     }
 }
 
-pub type VariableInputValueWalker<'a> = PreparedOperationWalker<'a, &'a VariableInputValue, ()>;
+pub type VariableInputValueWalker<'a> = PreparedOperationWalker<'a, &'a VariableInputValue>;
 
 impl<'a> From<VariableInputValueWalker<'a>> for InputValue<'a> {
     fn from(walker: VariableInputValueWalker<'a>) -> Self {
         match walker.item {
             VariableInputValue::Null => InputValue::Null,
             VariableInputValue::String(s) => InputValue::String(s.as_str()),
-            VariableInputValue::EnumValue(id) => InputValue::EnumValue(*id),
+            VariableInputValue::EnumValue(id) => InputValue::EnumValue(id.read(walker.schema)),
             VariableInputValue::Int(n) => InputValue::Int(*n),
             VariableInputValue::BigInt(n) => InputValue::BigInt(*n),
             VariableInputValue::Float(f) => InputValue::Float(*f),
@@ -106,29 +107,26 @@ impl<'a> From<VariableInputValueWalker<'a>> for InputValue<'a> {
             VariableInputValue::InputObject(ids) => {
                 let mut fields = Vec::with_capacity(ids.len());
                 for (input_value_definition_id, value) in &walker.variables[*ids] {
-                    fields.push((*input_value_definition_id, walker.walk(value).into()));
+                    fields.push((input_value_definition_id.read(walker.schema), walker.walk(value).into()));
                 }
-                InputValue::InputObject(fields.into_boxed_slice())
+                InputValue::InputObject(fields)
             }
             VariableInputValue::List(ids) => {
                 let mut values = Vec::with_capacity(ids.len());
                 for id in *ids {
                     values.push(walker.walk(&walker.variables[id]).into());
                 }
-                InputValue::List(values.into_boxed_slice())
+                InputValue::List(values)
             }
             VariableInputValue::Map(ids) => {
                 let mut key_values = Vec::with_capacity(ids.len());
                 for (key, value) in &walker.variables[*ids] {
                     key_values.push((key.as_ref(), walker.walk(value).into()));
                 }
-                InputValue::Map(key_values.into_boxed_slice())
+                InputValue::Map(key_values)
             }
             VariableInputValue::U64(n) => InputValue::U64(*n),
-            VariableInputValue::DefaultValue(id) => {
-                let value: &'a SchemaInputValueRecord = &walker.schema_walker.as_ref()[*id];
-                walker.schema_walker.walk(value).into()
-            }
+            VariableInputValue::DefaultValue(id) => id.read(walker.schema).into(),
         }
     }
 }
@@ -137,7 +135,7 @@ impl PartialEq<SchemaInputValueRecord> for VariableInputValueWalker<'_> {
     fn eq(&self, other: &SchemaInputValueRecord) -> bool {
         match (self.item, other) {
             (VariableInputValue::Null, SchemaInputValueRecord::Null) => true,
-            (VariableInputValue::String(l), SchemaInputValueRecord::String(r)) => l == &self.schema_walker[*r],
+            (VariableInputValue::String(l), SchemaInputValueRecord::String(r)) => l == &self.schema[*r],
             (VariableInputValue::EnumValue(l), SchemaInputValueRecord::EnumValue(r)) => l == r,
             (VariableInputValue::Int(l), SchemaInputValueRecord::Int(r)) => l == r,
             (VariableInputValue::BigInt(l), SchemaInputValueRecord::BigInt(r)) => l == r,
@@ -146,7 +144,7 @@ impl PartialEq<SchemaInputValueRecord> for VariableInputValueWalker<'_> {
             (VariableInputValue::Boolean(l), SchemaInputValueRecord::Boolean(r)) => l == r,
             (VariableInputValue::InputObject(lids), SchemaInputValueRecord::InputObject(rids)) => {
                 let op_input_values = &self.variables[*lids];
-                let schema_input_values = &self.schema_walker.as_ref()[*rids];
+                let schema_input_values = &self.schema[*rids];
 
                 if op_input_values.len() < schema_input_values.len() {
                     return false;
@@ -167,7 +165,7 @@ impl PartialEq<SchemaInputValueRecord> for VariableInputValueWalker<'_> {
             }
             (VariableInputValue::List(lids), SchemaInputValueRecord::List(rids)) => {
                 let left = &self.variables[*lids];
-                let right = &self.schema_walker.as_ref()[*rids];
+                let right = &self.schema[*rids];
                 if left.len() != right.len() {
                     return false;
                 }
@@ -180,11 +178,11 @@ impl PartialEq<SchemaInputValueRecord> for VariableInputValueWalker<'_> {
             }
             (VariableInputValue::Map(ids), SchemaInputValueRecord::Map(other_ids)) => {
                 let op_kv = &self.variables[*ids];
-                let schema_kv = &self.schema_walker[*other_ids];
+                let schema_kv = &self.schema[*other_ids];
 
                 for (key, value) in op_kv {
                     let value = self.walk(value);
-                    if let Ok(i) = schema_kv.binary_search_by(|probe| self.schema_walker[probe.0].cmp(key)) {
+                    if let Ok(i) = schema_kv.binary_search_by(|probe| self.schema[probe.0].cmp(key)) {
                         if !value.eq(&schema_kv[i].1) {
                             return false;
                         }
@@ -195,10 +193,7 @@ impl PartialEq<SchemaInputValueRecord> for VariableInputValueWalker<'_> {
 
                 true
             }
-            (VariableInputValue::DefaultValue(id), value) => self
-                .schema_walker
-                .walk(&self.schema_walker.as_ref()[*id])
-                .eq(&self.schema_walker.walk(value)),
+            (VariableInputValue::DefaultValue(id), value) => id.read(self.schema).eq(&value.read(self.schema)),
             // A bit tedious, but avoids missing a case
             (VariableInputValue::Null, _) => false,
             (VariableInputValue::String(_), _) => false,
@@ -220,10 +215,9 @@ impl std::fmt::Debug for VariableInputValueWalker<'_> {
         match self.item {
             VariableInputValue::Null => write!(f, "Null"),
             VariableInputValue::String(s) => s.fmt(f),
-            VariableInputValue::EnumValue(id) => f
-                .debug_tuple("EnumValue")
-                .field(&self.schema_walker.walk(*id).name())
-                .finish(),
+            VariableInputValue::EnumValue(id) => {
+                f.debug_tuple("EnumValue").field(&self.schema.walk(*id).name()).finish()
+            }
             VariableInputValue::Int(n) => f.debug_tuple("Int").field(n).finish(),
             VariableInputValue::BigInt(n) => f.debug_tuple("BigInt").field(n).finish(),
             VariableInputValue::U64(n) => f.debug_tuple("U64").field(n).finish(),
@@ -232,10 +226,7 @@ impl std::fmt::Debug for VariableInputValueWalker<'_> {
             VariableInputValue::InputObject(ids) => {
                 let mut map = f.debug_struct("InputObject");
                 for (input_value_definition_id, value) in &self.variables[*ids] {
-                    map.field(
-                        self.schema_walker.walk(*input_value_definition_id).name(),
-                        &self.walk(value),
-                    );
+                    map.field(self.schema.walk(*input_value_definition_id).name(), &self.walk(value));
                 }
                 map.finish()
             }
@@ -253,10 +244,7 @@ impl std::fmt::Debug for VariableInputValueWalker<'_> {
                 }
                 map.finish()
             }
-            VariableInputValue::DefaultValue(id) => f
-                .debug_tuple("DefaultValue")
-                .field(&self.schema_walker.walk(&self.schema_walker.as_ref()[*id]))
-                .finish(),
+            VariableInputValue::DefaultValue(id) => f.debug_tuple("DefaultValue").field(&id.read(self.schema)).finish(),
         }
     }
 }

@@ -4,7 +4,8 @@ use std::{
 };
 
 use itertools::Itertools;
-use schema::{RequiredFieldSet, ResolverDefinition};
+use readable::Readable;
+use schema::{RequiredFieldSetRecord, ResolverDefinition};
 
 use crate::{
     execution::{ExecutableOperation, ExecutionPlan, ExecutionPlanId, PreExecutionContext, ResponseModifierExecutor},
@@ -52,7 +53,7 @@ where
             resolver,
             self.operation.borrow().ty(),
             PlanWalker {
-                schema_walker: resolver.walk(()),
+                schema: self.ctx.schema(),
                 operation: self.operation,
                 variables: &self.operation.variables,
                 query_modifications: &self.operation.query_modifications,
@@ -131,7 +132,7 @@ where
             // FIXME: split me into different functions
             let required_fields = match rule {
                 ResponseModifierRule::AuthorizedParentEdge { directive_id, .. } => {
-                    let required_fields = &schema[schema[directive_id].fields.unwrap()];
+                    let required_fields = directive_id.read(schema).fields().unwrap().as_ref();
                     for ImpactedField { set_id, field_id, .. } in chunk {
                         let field = walker.walk(field_id);
 
@@ -151,13 +152,13 @@ where
                     required_fields
                 }
                 ResponseModifierRule::AuthorizedEdgeChild { directive_id, .. } => {
-                    let required_fields = &schema[schema[directive_id].node.unwrap()];
+                    let required_fields = directive_id.read(schema).node().unwrap().as_ref();
                     for ImpactedField { set_id, field_id, .. } in chunk {
                         let field = walker.walk(field_id);
 
                         let set_ty =
                             self.operation.response_blueprint.response_object_sets_to_type[usize::from(set_id)];
-                        let entity_id = field.definition().unwrap().ty().inner().as_entity().unwrap().id();
+                        let entity_id = field.definition().unwrap().ty().definition().as_entity().unwrap().id();
                         let type_condition = (set_ty != SelectionSetType::from(entity_id)).then_some(entity_id);
                         on.push((set_id, type_condition, field.response_key()));
 
@@ -197,12 +198,12 @@ where
         for field_id in field_ids {
             let field = self.walker().walk(*field_id);
             if let Some(definition) = field.definition() {
-                let field_requirements = definition.required_fields(resolver.subgraph_id());
-                required_fields = RequiredFieldSet::union_cow(required_fields, field_requirements.clone());
+                let field_requirements = definition.requires_for_subgraph(resolver.as_ref().subgraph_id());
+                required_fields = RequiredFieldSetRecord::union_cow(required_fields, field_requirements.clone());
                 let value = required_fields_by_selection_set_id
                     .entry(field.as_ref().parent_selection_set_id())
                     .or_insert_with(|| Cow::Borrowed(resolver.requires()));
-                *value = RequiredFieldSet::union_cow(std::mem::take(value), field_requirements);
+                *value = RequiredFieldSetRecord::union_cow(std::mem::take(value), field_requirements);
             }
         }
         let mut dependencies = self.io_fields_buffer_pool.pop();
@@ -213,15 +214,15 @@ where
         (view, dependencies)
     }
 
-    pub fn build_view(&mut self, required: &RequiredFieldSet) -> ResponseViewSelectionSet {
+    pub fn build_view(&mut self, required: &RequiredFieldSetRecord) -> ResponseViewSelectionSet {
         let schema = self.ctx.schema();
         let mut buffer = self.response_view_selection_buffer_pool.pop();
 
         buffer.extend(required.iter().map(|item| {
-            let name = schema[schema[item.id].definition_id].name_id;
+            let name = schema[schema[item.field_id].definition_id].name_id;
             ResponseViewSelection {
                 name,
-                id: item.id,
+                id: item.field_id,
                 subselection: self.build_view(&item.subselection),
             }
         }));
@@ -231,7 +232,7 @@ where
     fn collect_dependencies(
         &mut self,
         id: SelectionSetId,
-        required_fields: &RequiredFieldSet,
+        required_fields: &RequiredFieldSetRecord,
         dependencies: &mut Vec<FieldId>,
     ) {
         for required_field in required_fields {
@@ -240,13 +241,13 @@ where
                 "requires {} in ({id}) {:#?}",
                 self.ctx
                     .schema()
-                    .walk(self.ctx.schema()[required_field.id].definition_id)
+                    .walk(self.ctx.schema()[required_field.field_id].definition_id)
                     .name(),
                 self.walker().walk(*solved_requirements)
             );
             let solved = solved_requirements
                 .iter()
-                .find(|solved| solved.id == required_field.id)
+                .find(|solved| solved.id == required_field.field_id)
                 .expect("Solver did its job");
             let field_id = solved.field_id;
             dependencies.push(field_id);
@@ -263,8 +264,8 @@ where
         }
     }
 
-    fn walker(&self) -> OperationWalker<'op, (), ()> {
-        self.operation.walker_with(self.ctx.schema().walker())
+    fn walker(&self) -> OperationWalker<'op, ()> {
+        self.operation.walker_with(self.ctx.schema())
     }
 
     fn push_view_selection_set(&mut self, mut buffer: Vec<ResponseViewSelection>) -> ResponseViewSelectionSet {

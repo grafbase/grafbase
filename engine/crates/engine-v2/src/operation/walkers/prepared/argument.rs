@@ -1,5 +1,5 @@
 use id_newtypes::{IdRange, IdRangeIterator};
-use schema::{InputValueDefinition, InputValueDefinitionId, InputValueSerdeError, InputValueSet};
+use schema::{InputValueDefinition, InputValueSerdeError, InputValueSet};
 use serde::{de::value::MapDeserializer, forward_to_deserialize_any};
 
 use crate::operation::{FieldArgumentId, QueryInputValueWalker};
@@ -10,37 +10,33 @@ pub(crate) use view::*;
 
 use super::PreparedOperationWalker;
 
-pub type FieldArgumentWalker<'a> = PreparedOperationWalker<'a, FieldArgumentId, InputValueDefinitionId>;
+pub type FieldArgumentWalker<'a> = PreparedOperationWalker<'a, FieldArgumentId>;
 
 impl<'a> FieldArgumentWalker<'a> {
     pub fn value(&self) -> Option<QueryInputValueWalker<'a>> {
-        let value = self.walk_with(&self.operation.query_input_values[self.as_ref().input_value_id], ());
+        let value = self.walk(&self.operation.query_input_values[self.as_ref().input_value_id]);
         if value.is_undefined() {
             None
         } else {
             Some(value)
         }
     }
-}
 
-impl<'a> std::ops::Deref for FieldArgumentWalker<'a> {
-    type Target = InputValueDefinition<'a>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.schema_walker
+    pub fn definition(&self) -> InputValueDefinition<'a> {
+        self.schema.walk(self.operation[self.item].input_value_definition_id)
     }
 }
 
 impl std::fmt::Debug for FieldArgumentWalker<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("FieldArgumentWalker")
-            .field("name", &self.name())
+            .field("name", &self.definition().name())
             .field("value", &self.value())
             .finish()
     }
 }
 
-pub type FieldArgumentsWalker<'a> = PreparedOperationWalker<'a, IdRange<FieldArgumentId>, ()>;
+pub type FieldArgumentsWalker<'a> = PreparedOperationWalker<'a, IdRange<FieldArgumentId>>;
 
 impl<'a> FieldArgumentsWalker<'a> {
     pub fn is_empty(&self) -> bool {
@@ -65,16 +61,13 @@ impl<'a> IntoIterator for FieldArgumentsWalker<'a> {
     }
 }
 
-pub(crate) struct FieldArgumentsIterator<'a>(PreparedOperationWalker<'a, IdRangeIterator<FieldArgumentId>, ()>);
+pub(crate) struct FieldArgumentsIterator<'a>(PreparedOperationWalker<'a, IdRangeIterator<FieldArgumentId>>);
 
 impl<'a> Iterator for FieldArgumentsIterator<'a> {
     type Item = FieldArgumentWalker<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.0
-            .item
-            .next()
-            .map(|id| self.0.walk_with(id, self.0.operation[id].input_value_definition_id))
+        self.0.item.next().map(|id| self.0.walk(id))
     }
 }
 
@@ -93,7 +86,7 @@ impl<'de> serde::Deserializer<'de> for FieldArgumentsWalker<'de> {
     {
         MapDeserializer::new(self.into_iter().filter_map(|arg| {
             let value = arg.value()?;
-            Some((arg.name(), value))
+            Some((arg.definition().name(), value))
         }))
         .deserialize_any(visitor)
     }

@@ -3,13 +3,16 @@ use proc_macro2::{Ident, Span, TokenStream};
 use quote::{quote, TokenStreamExt};
 use tracing::instrument;
 
-use crate::domain::{Domain, Object};
+use crate::{
+    domain::{Domain, Object},
+    generation::docstr,
+};
 
 use super::FieldContext;
 
 #[instrument(skip_all)]
 pub fn generate_struct(
-    _domain: &Domain,
+    domain: &Domain,
     object: &Object,
     fields: &[FieldContext<'_>],
 ) -> anyhow::Result<Vec<TokenStream>> {
@@ -31,8 +34,10 @@ pub fn generate_struct(
         derives
     };
 
-    let struct_fields = fields.iter().copied().map(StructField);
+    let struct_fields = fields.iter().map(StructField);
+    let docstr = proc_macro2::Literal::string(&docstr::generated_from(domain, object.span));
     let object_struct = quote! {
+        #[doc = #docstr]
         #[derive(serde::Serialize, serde::Deserialize #additional_derives)]
         pub struct #struct_name {
             #(#struct_fields),*
@@ -42,12 +47,12 @@ pub fn generate_struct(
     Ok(vec![object_struct])
 }
 
-struct StructField<'a>(FieldContext<'a>);
+struct StructField<'a>(&'a FieldContext<'a>);
 
 impl quote::ToTokens for StructField<'_> {
     #[instrument(name = "struct_field", skip_all, fields(field = ?self.0.field))]
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        let field_name = Ident::new(&self.0.struct_field_name(), Span::call_site());
+        let field_name = Ident::new(&self.0.record_field_name, Span::call_site());
 
         let storage_type = self.0.ty.storage_type();
         let ty = Ident::new(&storage_type.to_string(), Span::call_site());
