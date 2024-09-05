@@ -456,7 +456,7 @@ jobs:
         run: |
           GRAFBASE_DOCKER_IMAGE="ghcr.io/grafbase/grafbase:$COMMIT_SHA" RUST_BACKTRACE=1 cargo nextest run -p grafbase-docker-tests
 
-  after-build:
+  after-build-rust:
     # This job is responsible for reacting to build success or failure. It must
     # happen after the builds, hence the `needs`. But it must not be skipped
     # when the builds are cancelled or fail (hence the `if: ${{ always() }}`).
