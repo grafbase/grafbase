@@ -4,7 +4,7 @@ use std::sync::RwLock;
 
 use anyhow::anyhow;
 use wasmtime::{
-    component::{ComponentNamedList, Instance, Lift, Lower, Resource, TypedFunc},
+    component::{Component, ComponentNamedList, Instance, Lift, Lower, Resource, TypedFunc},
     Engine, Store,
 };
 
@@ -80,6 +80,7 @@ type FunctionCache = RwLock<Vec<(&'static str, Option<Box<dyn Any + Send + Sync 
 pub struct ComponentInstance {
     store: Store<WasiState>,
     instance: Instance,
+    component: Component,
     interface_name: &'static str,
     function_cache: FunctionCache,
     poisoned: bool,
@@ -95,9 +96,12 @@ impl ComponentInstance {
             .instantiate_async(&mut store, loader.component())
             .await?;
 
+        let component = loader.component().clone();
+
         Ok(Self {
             store,
             instance,
+            component,
             interface_name,
             function_cache: Default::default(),
             poisoned: false,
@@ -269,27 +273,39 @@ impl ComponentInstance {
             return cached.as_ref().and_then(|func| func.downcast_ref().copied());
         }
 
-        let mut exports = self.instance.exports(&mut self.store);
-        let mut root = exports.root();
-
-        let Some(mut interface) = root.instance(self.interface_name) else {
+        let Some((_, interface_idx)) = self.component.export_index(None, self.interface_name) else {
             tracing::debug!("could not find export for {} interface", self.interface_name);
+            self.function_cache.write().unwrap().push((function_name, None));
+
+            return None;
+        };
+
+        let Some((_, func_idx)) = self.component.export_index(Some(&interface_idx), function_name) else {
+            tracing::debug!(
+                "could not find function {} in interface {}",
+                function_name,
+                self.interface_name
+            );
+
             self.function_cache.write().unwrap().push((function_name, None));
             return None;
         };
 
-        match interface.typed_func(function_name) {
+        match self.instance.get_typed_func(&mut self.store, func_idx) {
             Ok(hook) => {
                 tracing::debug!("instantized the {function_name} hook Wasm function");
+
                 self.function_cache
                     .write()
                     .unwrap()
                     .push((function_name, Some(Box::new(hook))));
+
                 Some(hook)
             }
             Err(e) => {
                 // Shouldn't happen, so we keep spamming errors to be sure it's seen.
                 tracing::error!("error instantizing the {function_name} hook Wasm function: {e}");
+
                 None
             }
         }
