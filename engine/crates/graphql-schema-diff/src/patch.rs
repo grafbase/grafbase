@@ -13,7 +13,12 @@ pub fn patch<S>(source: &str, diff: &[Change], resolved_spans: &[S]) -> Result<P
 where
     S: AsRef<str>,
 {
-    let parsed = cynic_parser::parse_type_system_document(source)?;
+    let parsed = Some(source)
+        .filter(|source| !source.trim().is_empty()) // FIXME: doesn't take comments into account
+        .map(cynic_parser::parse_type_system_document)
+        .transpose()?
+        .unwrap_or_default();
+
     let mut schema = String::with_capacity(source.len() / 2);
     let paths = Paths::new(diff, resolved_spans, source);
 
