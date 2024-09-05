@@ -1,3 +1,5 @@
+use grafbase_workspace_hack as _;
+
 pub mod authentication;
 pub mod cors;
 pub mod entity_caching;

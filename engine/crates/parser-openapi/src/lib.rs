@@ -1,3 +1,5 @@
+use grafbase_workspace_hack as _;
+
 use std::borrow::Cow;
 
 use graph::OpenApiGraph;

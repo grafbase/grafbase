@@ -2,6 +2,8 @@
 //! where we contact the schema registry in the API to fetch the latest schema
 //! and send tracing and metrics to either our own or a 3rd party collector.
 
+use grafbase_workspace_hack as _;
+
 mod hot_reload;
 pub use error::Error;
 pub use server::GdnResponse;

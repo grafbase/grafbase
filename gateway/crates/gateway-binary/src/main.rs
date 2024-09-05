@@ -1,5 +1,7 @@
 #![cfg_attr(test, allow(unused_crate_dependencies))]
 
+use grafbase_workspace_hack as _;
+
 use args::Args;
 use clap::crate_version;
 use mimalloc::MiMalloc;

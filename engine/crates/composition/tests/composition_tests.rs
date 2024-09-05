@@ -1,3 +1,5 @@
+use grafbase_workspace_hack as _;
+
 use async_graphql_value as _;
 use indexmap as _;
 use itertools::{self as _, Itertools as _};

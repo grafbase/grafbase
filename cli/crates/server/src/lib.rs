@@ -18,6 +18,8 @@ let server_handle = server::start(PORT).unwrap();
 
 #![forbid(unsafe_code)]
 
+use grafbase_workspace_hack as _;
+
 #[macro_use]
 extern crate log;
 

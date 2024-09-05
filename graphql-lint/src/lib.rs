@@ -1,3 +1,5 @@
+use grafbase_workspace_hack as _;
+
 use cynic_parser::type_system::{
     Definition, Directive, DirectiveDefinition, EnumDefinition, EnumValueDefinition, FieldDefinition,
     InputObjectDefinition, InputValueDefinition, InterfaceDefinition, ObjectDefinition, ScalarDefinition,
@@ -459,7 +461,7 @@ fn linter() {
         enum lowercase_Enum {
           an_enum_member @deprecated
         }
-        
+
         type Query {
           __test: String,
           getHello(name: String!): Enum_lowercase!

@@ -47,6 +47,8 @@
 
 #![deny(missing_docs)]
 
+use grafbase_workspace_hack as _;
+
 mod dev;
 mod error;
 mod events;

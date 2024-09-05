@@ -2,6 +2,8 @@
 #![allow(clippy::option_option)]
 #![doc = include_str!("../README.md")]
 
+use grafbase_workspace_hack as _;
+
 mod compose;
 mod composition_ir;
 mod diagnostics;

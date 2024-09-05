@@ -12,6 +12,8 @@
 //! 3. Then we run an ExecutionPhase if it's required.
 //! 4. Then we have a CacheUpdatePhase that runs after the response is retunred
 
+use grafbase_workspace_hack as _;
+
 use std::fmt;
 
 use cynic_parser::{

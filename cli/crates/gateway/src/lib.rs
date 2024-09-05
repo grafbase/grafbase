@@ -1,3 +1,5 @@
+use grafbase_workspace_hack as _;
+
 use auth::AnyApiKeyProvider;
 use gateway_core::CacheConfig;
 use runtime_local::{rate_limiting::in_memory::rules_based::InMemoryRateLimiter, InMemoryCache, InMemoryKvStore};

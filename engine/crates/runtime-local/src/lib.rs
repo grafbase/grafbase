@@ -1,3 +1,5 @@
+use grafbase_workspace_hack as _;
+
 mod bridge;
 mod cache;
 mod entity_cache;
