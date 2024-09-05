@@ -24,9 +24,9 @@ jobs:
         with:
           filters: |
             cargo:
-              - Cargo.lock
-              - Cargo.toml
-              - **/Cargo.toml
+              - 'Cargo.lock'
+              - 'Cargo.toml'
+              - '**/Cargo.toml'
 
   hakari:
     needs: [what-changed]
@@ -38,8 +38,8 @@ jobs:
 
       - name: Install cargo-hakari
         uses: taiki-e/install-action@v2
-         with:
-           tool: cargo-hakari
+        with:
+          tool: cargo-hakari
 
       - name: Ensure grafbase-worksace-hack is up to date
         shell: bash
