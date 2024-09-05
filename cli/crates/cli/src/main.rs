@@ -1,6 +1,8 @@
 #![cfg_attr(test, allow(unused_crate_dependencies))]
 #![forbid(unsafe_code)]
 
+use grafbase_workspace_hack as _;
+
 mod branch;
 mod build;
 mod check;
