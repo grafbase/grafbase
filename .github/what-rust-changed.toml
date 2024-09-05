@@ -11,12 +11,17 @@ mark-changed = ["grafbase"]
 
 [[path-rule]]
 # Trigger all for this GHA workflow
-globs = [".github/workflows/rust-prs.yaml"]
+globs = [".github/workflows/rust-prs.yml"]
 mark-changed = "all"
 
 [[path-rule]]
 # Ignore other github stuff
-globs = [".github/workflows/**", ".github/what-rust-changed.toml", ".github/ISSUE_TEMPLATE/**", ".github/CODEOWNERS"]
+globs = [
+    ".github/workflows/**",
+    ".github/what-rust-changed.toml",
+    ".github/ISSUE_TEMPLATE/**",
+    ".github/CODEOWNERS",
+]
 mark-changed = []
 
 [[path-rule]]
