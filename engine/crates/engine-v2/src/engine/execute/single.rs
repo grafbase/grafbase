@@ -4,7 +4,7 @@ use grafbase_telemetry::{
     metrics::{GraphqlErrorAttributes, GraphqlRequestMetricsAttributes, OperationMetricsAttributes},
     span::{gql::GqlRequestSpan, GqlRecorderSpanExt},
 };
-use runtime::hooks::{self, ExecutedOperation};
+use runtime::hooks;
 use tracing::Instrument;
 use web_time::Instant;
 
@@ -81,12 +81,14 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
         Option<OperationResponseHookResult>,
         Response,
     ) {
-        let mut operation_info = hooks::Operation::builder();
+        let mut operation_info = hooks::ExecutedOperation::builder();
 
         let operation_plan = match self.prepare_operation(request, &mut operation_info).await {
             Ok(operation_plan) => operation_plan,
             Err((metadata, response)) => return (metadata, None, response),
         };
+
+        operation_info.track_prepare();
 
         let metrics_attributes = operation_plan.metrics_attributes.clone();
 
@@ -97,22 +99,19 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
 
             (Some(metrics_attributes), None, response)
         } else {
-            if let Some(ref name) = metrics_attributes.name {
-                operation_info.set_name(name.clone());
-            }
+            operation_info.set_name(metrics_attributes.name.as_ref());
 
-            let operation = operation_info.finalize(&metrics_attributes.sanitized_query);
-
-            let mut execution_info = ExecutedOperation::builder();
             let hooks = self.hooks();
             let mut response = self.execute_query_or_mutation(operation_plan).await;
 
-            execution_info.set_on_subgraph_response_outputs(response.take_on_subgraph_response_outputs());
-            let executed_operation = execution_info.finalize(response.graphql_status());
+            operation_info.set_on_subgraph_response_outputs(response.take_on_subgraph_response_outputs());
 
-            match hooks.on_operation_response(operation, executed_operation).await {
+            let executed_operation =
+                operation_info.finalize(&metrics_attributes.sanitized_query, response.graphql_status());
+
+            match hooks.on_operation_response(executed_operation).await {
                 Ok(operation_result) => (
-                    Some(metrics_attributes.clone()),
+                    Some(metrics_attributes),
                     Some(operation_result),
                     Response::Executed(response),
                 ),

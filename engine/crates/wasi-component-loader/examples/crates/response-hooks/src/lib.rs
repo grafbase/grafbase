@@ -1,6 +1,5 @@
 use bindings::component::grafbase::types::{
-    CacheStatus, ExecutedHttpRequest, ExecutedOperation, ExecutedSubgraphRequest, Operation, ResponseKind,
-    SharedContext,
+    CacheStatus, ExecutedHttpRequest, ExecutedOperation, ExecutedSubgraphRequest, ResponseKind, SharedContext,
 };
 use bindings::exports::component::grafbase::responses::Guest;
 
@@ -115,14 +114,14 @@ impl Guest for Component {
         serde_json::to_vec(&info).unwrap()
     }
 
-    fn on_operation_response(_: SharedContext, operation: Operation, request: ExecutedOperation) -> Vec<u8> {
+    fn on_operation_response(_: SharedContext, operation: ExecutedOperation) -> Vec<u8> {
         let info = OperationInfo {
             name: operation.name,
             document: operation.document,
             prepare_duration: operation.prepare_duration,
             cached: operation.cached,
-            duration: request.duration,
-            status: match request.status {
+            duration: operation.duration,
+            status: match operation.status {
                 bindings::component::grafbase::types::GraphqlResponseStatus::Success => GraphqlResponseStatus::Success,
                 bindings::component::grafbase::types::GraphqlResponseStatus::FieldError(e) => {
                     GraphqlResponseStatus::FieldError(FieldError {
@@ -137,7 +136,7 @@ impl Guest for Component {
                     GraphqlResponseStatus::RefusedRequest
                 }
             },
-            subgraphs: request
+            subgraphs: operation
                 .on_subgraph_response_outputs
                 .iter()
                 .filter_map(|bytes| serde_json::from_slice(bytes).ok())

@@ -250,67 +250,33 @@ impl<'a> ExecutedSubgraphRequest<'a> {
 }
 
 #[derive(Debug, Clone)]
-pub struct Operation<'a> {
+pub struct ExecutedOperation<'a> {
     pub name: Option<String>,
     pub document: &'a str,
     pub prepare_duration: u64,
     pub cached: bool,
-}
-
-#[derive(Debug)]
-pub struct OperationHookInfoBuilder {
-    name: Option<String>,
-    prepare_start: Instant,
-    cached: bool,
-}
-
-impl<'a> Operation<'a> {
-    pub fn builder() -> OperationHookInfoBuilder {
-        OperationHookInfoBuilder {
-            name: None,
-            prepare_start: Instant::now(),
-            cached: false,
-        }
-    }
-}
-
-impl OperationHookInfoBuilder {
-    pub fn set_cached(&mut self) {
-        self.cached = true;
-    }
-
-    pub fn set_name(&mut self, name: String) {
-        self.name = Some(name);
-    }
-
-    pub fn finalize(self, document: &str) -> Operation<'_> {
-        Operation {
-            name: self.name,
-            document,
-            prepare_duration: self.prepare_start.elapsed().as_millis() as u64,
-            cached: self.cached,
-        }
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct ExecutedOperation {
     pub duration: u64,
     pub status: GraphqlResponseStatus,
     pub on_subgraph_response_outputs: Vec<Vec<u8>>,
 }
 
-impl ExecutedOperation {
+impl<'a> ExecutedOperation<'a> {
     pub fn builder() -> ExecutedOperationBuilder {
         ExecutedOperationBuilder {
             start_time: Instant::now(),
             on_subgraph_response_outputs: Vec::new(),
+            name: None,
+            prepare_duration: None,
+            cached: false,
         }
     }
 }
 
 #[derive(Debug)]
 pub struct ExecutedOperationBuilder {
+    name: Option<String>,
+    prepare_duration: Option<u64>,
+    cached: bool,
     start_time: Instant,
     on_subgraph_response_outputs: Vec<Vec<u8>>,
 }
@@ -320,11 +286,27 @@ impl ExecutedOperationBuilder {
         self.on_subgraph_response_outputs = outputs;
     }
 
-    pub fn finalize(self, status: GraphqlResponseStatus) -> ExecutedOperation {
+    pub fn set_name(&mut self, name: Option<impl Into<String>>) {
+        self.name = name.map(Into::into)
+    }
+
+    pub fn track_prepare(&mut self) {
+        self.prepare_duration = Some(self.start_time.elapsed().as_millis() as u64);
+    }
+
+    pub fn set_cached(&mut self) {
+        self.cached = true;
+    }
+
+    pub fn finalize(self, document: &str, status: GraphqlResponseStatus) -> ExecutedOperation<'_> {
         ExecutedOperation {
             duration: self.start_time.elapsed().as_millis() as u64,
             status,
             on_subgraph_response_outputs: self.on_subgraph_response_outputs,
+            name: self.name,
+            document,
+            prepare_duration: self.prepare_duration.unwrap_or_default(),
+            cached: self.cached,
         }
     }
 }
@@ -347,8 +329,7 @@ pub trait ResponseHooks<Context>: Send + Sync + 'static {
     fn on_operation_response(
         &self,
         context: &Context,
-        operation: Operation<'_>,
-        request: ExecutedOperation,
+        operation: ExecutedOperation<'_>,
     ) -> impl Future<Output = Result<Vec<u8>, PartialGraphqlError>> + Send;
 
     fn on_http_response(
@@ -486,12 +467,7 @@ impl ResponseHooks<()> for () {
         Ok(Vec::new())
     }
 
-    async fn on_operation_response(
-        &self,
-        _: &(),
-        _: Operation<'_>,
-        _: ExecutedOperation,
-    ) -> Result<Vec<u8>, PartialGraphqlError> {
+    async fn on_operation_response(&self, _: &(), _: ExecutedOperation<'_>) -> Result<Vec<u8>, PartialGraphqlError> {
         Ok(Vec::new())
     }
 

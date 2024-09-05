@@ -3,8 +3,8 @@ use std::{collections::HashMap, sync::Arc};
 use crate::{
     hooks::subgraph::SubgraphComponentInstance, AuthorizationComponentInstance, CacheStatus, ChannelLogReceiver,
     ChannelLogSender, ComponentLoader, Config, EdgeDefinition, ExecutedHttpRequest, ExecutedOperation,
-    ExecutedSubgraphRequest, GatewayComponentInstance, GuestError, NodeDefinition, Operation,
-    RecycleableComponentInstance, ResponseInfo, ResponsesComponentInstance, SharedContext,
+    ExecutedSubgraphRequest, GatewayComponentInstance, GuestError, NodeDefinition, RecycleableComponentInstance,
+    ResponseInfo, ResponsesComponentInstance, SharedContext,
 };
 use expect_test::expect;
 use grafbase_telemetry::otel::opentelemetry::trace::TraceId;
@@ -702,23 +702,17 @@ async fn response_hooks() {
 
     let subgraph_info = hook.on_subgraph_response(context.clone(), request).await.unwrap();
 
-    let request = ExecutedOperation {
+    let operation = ExecutedOperation {
         duration: 5,
         status: crate::GraphqlResponseStatus::Success,
         on_subgraph_response_outputs: vec![subgraph_info],
-    };
-
-    let operation = Operation {
         name: Some(String::from("kekw")),
         document: String::from("query { me { 1 } }"),
         prepare_duration: 3,
         cached: false,
     };
 
-    let op_info = hook
-        .on_operation_response(context.clone(), operation, request)
-        .await
-        .unwrap();
+    let op_info = hook.on_operation_response(context.clone(), operation).await.unwrap();
 
     let request = ExecutedHttpRequest {
         method: String::from("POST"),

@@ -1,6 +1,4 @@
-use runtime::hooks::{
-    ExecutedHttpRequest, ExecutedOperation, ExecutedSubgraphRequest, Hooks, Operation, ResponseHooks,
-};
+use runtime::hooks::{ExecutedHttpRequest, ExecutedOperation, ExecutedSubgraphRequest, Hooks, ResponseHooks};
 use tracing::{instrument, Level};
 
 use crate::response::GraphqlError;
@@ -16,14 +14,10 @@ impl<'ctx, H: Hooks> super::RequestHooks<'ctx, H> {
     }
 
     #[instrument(skip_all, ret(level = Level::DEBUG))]
-    pub async fn on_operation_response(
-        &self,
-        operation: Operation<'_>,
-        request: ExecutedOperation,
-    ) -> Result<Vec<u8>, GraphqlError> {
+    pub async fn on_operation_response(&self, operation: ExecutedOperation<'_>) -> Result<Vec<u8>, GraphqlError> {
         self.hooks
             .responses()
-            .on_operation_response(self.context, operation, request)
+            .on_operation_response(self.context, operation)
             .await
             .map_err(Into::into)
     }

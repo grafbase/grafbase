@@ -84,17 +84,6 @@ interface types {
         on-operation-response-outputs: list<list<u8>>,
     }
 
-    record operation { 
-        // The name of the operation, if present.
-        name: option<string>,
-        // The operation document in sanitized form.
-        document: string,
-        // The time taken in preparing.
-        prepare-duration: u64,
-        // True, if the plan was taken from cache.
-        cached: bool,
-    }
-
     record field-error {
         // The number of errors.
         count: u64,
@@ -120,6 +109,14 @@ interface types {
 
     // Info about an executed operation.
     record executed-operation {
+        // The name of the operation, if present.
+        name: option<string>,
+        // The operation document in sanitized form.
+        document: string,
+        // The time taken in preparing.
+        prepare-duration: u64,
+        // True, if the plan was taken from cache.
+        cached: bool,
         // Time in milliseconds spent executing the operation.
         duration: u64,
         // The status of the operation.
@@ -335,7 +332,7 @@ interface authorization {
 }
 
 interface responses {
-    use types.{shared-context, executed-operation, executed-subgraph-request, executed-http-request, operation};
+    use types.{shared-context, executed-operation, executed-subgraph-request, executed-http-request};
 
     // The hook is called after a subgraph entity has been either requested or fetched from cache.
     // The output is a list of bytes, which will be available in the on-gateway-response hook.
@@ -348,7 +345,6 @@ interface responses {
     // which will be available in the on-http-response hook.
     on-operation-response: func(
         context: shared-context,
-        operation: operation,
         request: executed-operation,
     ) -> list<u8>;
 

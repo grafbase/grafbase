@@ -29,24 +29,6 @@ pub struct ExecutedHttpRequest {
     pub on_operation_response_outputs: Vec<Vec<u8>>,
 }
 
-/// Information on a GraphQL operation.
-#[derive(Debug, Clone, Lower, ComponentType)]
-#[component(record)]
-pub struct Operation {
-    /// The name of the operation, if present.
-    #[component(name = "name")]
-    pub name: Option<String>,
-    /// The sanitized query document.
-    #[component(name = "document")]
-    pub document: String,
-    /// The duration taken by operation preparation in milliseconds.
-    #[component(name = "prepare-duration")]
-    pub prepare_duration: u64,
-    /// If the operation plan was taken from cache.
-    #[component(name = "cached")]
-    pub cached: bool,
-}
-
 /// Error from fetching a subgraph field.
 #[derive(Debug, Clone, Copy, Lower, ComponentType)]
 #[component(record)]
@@ -90,6 +72,18 @@ pub enum GraphqlResponseStatus {
 #[derive(Debug, Clone, Lower, ComponentType)]
 #[component(record)]
 pub struct ExecutedOperation {
+    /// The name of the operation, if present.
+    #[component(name = "name")]
+    pub name: Option<String>,
+    /// The sanitized query document.
+    #[component(name = "document")]
+    pub document: String,
+    /// The duration taken by operation preparation in milliseconds.
+    #[component(name = "prepare-duration")]
+    pub prepare_duration: u64,
+    /// If the operation plan was taken from cache.
+    #[component(name = "cached")]
+    pub cached: bool,
     /// The duration it took to execute the operation.
     #[component(name = "duration")]
     pub duration: u64,
@@ -196,10 +190,9 @@ impl ResponsesComponentInstance {
     pub async fn on_operation_response(
         &mut self,
         context: SharedContext,
-        operation: Operation,
         request: ExecutedOperation,
     ) -> crate::Result<Vec<u8>> {
-        self.call2_one_output(ON_OPERATION_RESPONSE_FUNCTION, context, (operation, request))
+        self.call1_one_output(ON_OPERATION_RESPONSE_FUNCTION, context, request)
             .await?
             .map(|result: Vec<u8>| Ok(result))
             .unwrap_or_else(|| Ok(Vec::new()))

@@ -31,7 +31,7 @@ pub use hooks::{
     gateway::GatewayComponentInstance,
     response::{
         CacheStatus, ExecutedHttpRequest, ExecutedOperation, ExecutedSubgraphRequest, FieldError,
-        GraphqlResponseStatus, Operation, RequestError, ResponseInfo, ResponseKind, ResponsesComponentInstance,
+        GraphqlResponseStatus, RequestError, ResponseInfo, ResponseKind, ResponsesComponentInstance,
     },
     subgraph::*,
     RecycleableComponentInstance,

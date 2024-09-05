@@ -123,8 +123,7 @@ pub trait DynHooks: Send + Sync + 'static {
     async fn on_gateway_response(
         &self,
         context: &DynHookContext,
-        operation: Operation<'_>,
-        request: ExecutedOperation,
+        request: ExecutedOperation<'_>,
     ) -> Result<Vec<u8>, PartialGraphqlError> {
         Ok(Vec::new())
     }
@@ -365,10 +364,9 @@ impl ResponseHooks<DynHookContext> for DynamicHooks {
     async fn on_operation_response(
         &self,
         context: &DynHookContext,
-        operation: Operation<'_>,
-        request: ExecutedOperation,
+        operation: ExecutedOperation<'_>,
     ) -> Result<Vec<u8>, PartialGraphqlError> {
-        self.0.on_gateway_response(context, operation, request).await
+        self.0.on_gateway_response(context, operation).await
     }
 
     async fn on_http_response(

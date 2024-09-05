@@ -1,7 +1,7 @@
 use runtime::{error::PartialGraphqlError, hooks::ResponseHooks};
 use wasi_component_loader::{
     CacheStatus, ExecutedHttpRequest, ExecutedOperation, ExecutedSubgraphRequest, FieldError, GraphqlResponseStatus,
-    Operation, RequestError, ResponseInfo, ResponseKind,
+    RequestError, ResponseInfo, ResponseKind,
 };
 
 use crate::HooksWasi;
@@ -72,8 +72,7 @@ impl ResponseHooks<Context> for HooksWasi {
     async fn on_operation_response(
         &self,
         context: &Context,
-        operation: runtime::hooks::Operation<'_>,
-        request: runtime::hooks::ExecutedOperation,
+        operation: runtime::hooks::ExecutedOperation<'_>,
     ) -> Result<Vec<u8>, PartialGraphqlError> {
         let Some(ref inner) = self.0 else {
             return Ok(Vec::new());
@@ -81,27 +80,17 @@ impl ResponseHooks<Context> for HooksWasi {
 
         let mut hook = inner.responses.get().await;
 
-        let runtime::hooks::Operation {
+        let runtime::hooks::ExecutedOperation {
+            duration,
+            status,
+            on_subgraph_response_outputs,
             name,
             document,
             prepare_duration,
             cached,
         } = operation;
 
-        let runtime::hooks::ExecutedOperation {
-            duration,
-            status,
-            on_subgraph_response_outputs,
-        } = request;
-
-        let operation = Operation {
-            name,
-            document: document.to_string(),
-            prepare_duration,
-            cached,
-        };
-
-        let request = ExecutedOperation {
+        let operation = ExecutedOperation {
             duration,
             status: match status {
                 grafbase_telemetry::gql_response_status::GraphqlResponseStatus::Success => {
@@ -118,12 +107,16 @@ impl ResponseHooks<Context> for HooksWasi {
                 }
             },
             on_subgraph_response_outputs,
+            name,
+            document: document.to_string(),
+            prepare_duration,
+            cached,
         };
 
         inner
             .run_and_measure(
                 "on-operation-response",
-                hook.on_operation_response(inner.shared_context(context), operation, request),
+                hook.on_operation_response(inner.shared_context(context), operation),
             )
             .await
             .map_err(|err| {
