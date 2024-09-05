@@ -4,7 +4,7 @@ use std::{
 };
 
 use itertools::Itertools;
-use schema::{RequiredFieldSet, ResolverDefinitionWalker};
+use schema::{RequiredFieldSet, ResolverDefinition};
 
 use crate::{
     execution::{ExecutableOperation, ExecutionPlan, ExecutionPlanId, PreExecutionContext, ResponseModifierExecutor},
@@ -189,7 +189,7 @@ where
 
     fn create_plan_view_and_list_dependencies(
         &mut self,
-        resolver: ResolverDefinitionWalker<'_>,
+        resolver: ResolverDefinition<'_>,
         field_ids: &Vec<FieldId>,
     ) -> (ResponseViewSelectionSet, Vec<FieldId>) {
         let mut required_fields = Cow::Borrowed(resolver.requires());
@@ -218,7 +218,7 @@ where
         let mut buffer = self.response_view_selection_buffer_pool.pop();
 
         buffer.extend(required.iter().map(|item| {
-            let name = schema[schema[item.id].definition_id].name;
+            let name = schema[schema[item.id].definition_id].name_id;
             ResponseViewSelection {
                 name,
                 id: item.id,

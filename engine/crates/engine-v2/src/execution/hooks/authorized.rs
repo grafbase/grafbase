@@ -3,7 +3,7 @@ use runtime::{
     error::PartialGraphqlError,
     hooks::{AuthorizedHooks, EdgeDefinition, Hooks, NodeDefinition},
 };
-use schema::{DefinitionWalker, FieldDefinitionWalker, SchemaInputValueWalker};
+use schema::{DefinitionWalker, FieldDefinition, SchemaInputValueWalker};
 use tracing::{instrument, Level};
 
 use crate::{
@@ -15,7 +15,7 @@ impl<'ctx, H: Hooks> super::RequestHooks<'ctx, H> {
     #[instrument(skip_all, ret(level = Level::DEBUG))]
     pub async fn authorize_edge_pre_execution(
         &self,
-        definition: FieldDefinitionWalker<'_>,
+        definition: FieldDefinition<'_>,
         arguments: FieldArgumentsView<'_>,
         metadata: Option<SchemaInputValueWalker<'_>>,
     ) -> Result<(), GraphqlError> {
@@ -41,7 +41,7 @@ impl<'ctx, H: Hooks> super::RequestHooks<'ctx, H> {
     #[instrument(skip_all, ret(level = Level::DEBUG))]
     pub async fn authorize_parent_edge_post_execution(
         &self,
-        definition: FieldDefinitionWalker<'_>,
+        definition: FieldDefinition<'_>,
         parents: ResponseObjectsView<'_>,
         metadata: Option<SchemaInputValueWalker<'_>>,
     ) -> Result<Vec<Result<(), PartialGraphqlError>>, GraphqlError> {
@@ -67,7 +67,7 @@ impl<'ctx, H: Hooks> super::RequestHooks<'ctx, H> {
     #[instrument(skip_all, ret(level = Level::DEBUG))]
     pub async fn authorize_edge_node_post_execution(
         &self,
-        definition: FieldDefinitionWalker<'_>,
+        definition: FieldDefinition<'_>,
         nodes: ResponseObjectsView<'_>,
         metadata: Option<SchemaInputValueWalker<'_>>,
     ) -> Result<Vec<Result<(), PartialGraphqlError>>, GraphqlError> {

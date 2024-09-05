@@ -81,13 +81,13 @@ impl serde::Serialize for SchemaWalker<'_, &InputValue<'_>> {
 pub struct SchemaInputValues {
     /// Individual input values and list values
     #[indexed_by(SchemaInputValueId)]
-    values: Vec<SchemaInputValue>,
+    values: Vec<SchemaInputValueRecord>,
     /// InputObject's fields
     #[indexed_by(SchemaInputObjectFieldValueId)]
-    input_fields: Vec<(InputValueDefinitionId, SchemaInputValue)>,
+    input_fields: Vec<(InputValueDefinitionId, SchemaInputValueRecord)>,
     /// Object's fields (for JSON)
     #[indexed_by(SchemaInputKeyValueId)]
-    key_values: Vec<(StringId, SchemaInputValue)>,
+    key_values: Vec<(StringId, SchemaInputValueRecord)>,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize, id_derives::Id)]
@@ -101,7 +101,7 @@ pub struct SchemaInputKeyValueId(NonZero<u32>);
 
 /// Represents a default input value and @requires arguments.
 #[derive(Debug, Copy, Clone, serde::Serialize, serde::Deserialize)]
-pub enum SchemaInputValue {
+pub enum SchemaInputValueRecord {
     Null,
     String(StringId),
     EnumValue(EnumValueId),
@@ -119,26 +119,26 @@ pub enum SchemaInputValue {
     U64(u64),
 }
 
-impl SchemaInputValue {
+impl SchemaInputValueRecord {
     fn discriminant(&self) -> u8 {
         match self {
-            SchemaInputValue::Null => 0,
-            SchemaInputValue::String(_) => 1,
-            SchemaInputValue::EnumValue(_) => 2,
-            SchemaInputValue::Int(_) => 3,
-            SchemaInputValue::BigInt(_) => 4,
-            SchemaInputValue::Float(_) => 5,
-            SchemaInputValue::Boolean(_) => 6,
-            SchemaInputValue::InputObject(_) => 7,
-            SchemaInputValue::List(_) => 8,
-            SchemaInputValue::Map(_) => 9,
-            SchemaInputValue::U64(_) => 10,
+            SchemaInputValueRecord::Null => 0,
+            SchemaInputValueRecord::String(_) => 1,
+            SchemaInputValueRecord::EnumValue(_) => 2,
+            SchemaInputValueRecord::Int(_) => 3,
+            SchemaInputValueRecord::BigInt(_) => 4,
+            SchemaInputValueRecord::Float(_) => 5,
+            SchemaInputValueRecord::Boolean(_) => 6,
+            SchemaInputValueRecord::InputObject(_) => 7,
+            SchemaInputValueRecord::List(_) => 8,
+            SchemaInputValueRecord::Map(_) => 9,
+            SchemaInputValueRecord::U64(_) => 10,
         }
     }
 }
 
 impl SchemaInputValues {
-    pub(crate) fn push_value(&mut self, value: SchemaInputValue) -> SchemaInputValueId {
+    pub(crate) fn push_value(&mut self, value: SchemaInputValueRecord) -> SchemaInputValueId {
         let id = SchemaInputValueId::from(self.values.len());
         self.values.push(value);
         id
@@ -150,7 +150,7 @@ impl SchemaInputValues {
         let start = self.values.len();
         self.values.reserve(n);
         for _ in 0..n {
-            self.values.push(SchemaInputValue::Null);
+            self.values.push(SchemaInputValueRecord::Null);
         }
         (start..self.values.len()).into()
     }
@@ -161,14 +161,14 @@ impl SchemaInputValues {
         let start = self.key_values.len();
         self.key_values.reserve(n);
         for _ in 0..n {
-            self.key_values.push((StringId::from(0), SchemaInputValue::Null));
+            self.key_values.push((StringId::from(0), SchemaInputValueRecord::Null));
         }
         (start..self.key_values.len()).into()
     }
 
     pub(crate) fn append_input_object(
         &mut self,
-        fields: &mut Vec<(InputValueDefinitionId, SchemaInputValue)>,
+        fields: &mut Vec<(InputValueDefinitionId, SchemaInputValueRecord)>,
     ) -> IdRange<SchemaInputObjectFieldValueId> {
         let start = self.input_fields.len();
         self.input_fields.append(fields);
@@ -178,13 +178,13 @@ impl SchemaInputValues {
 
 #[cfg(test)]
 impl SchemaInputValues {
-    pub fn push_list(&mut self, values: Vec<SchemaInputValue>) -> IdRange<SchemaInputValueId> {
+    pub fn push_list(&mut self, values: Vec<SchemaInputValueRecord>) -> IdRange<SchemaInputValueId> {
         let start = self.values.len();
         self.values.extend(values);
         (start..self.values.len()).into()
     }
 
-    pub fn push_map(&mut self, fields: Vec<(StringId, SchemaInputValue)>) -> IdRange<SchemaInputKeyValueId> {
+    pub fn push_map(&mut self, fields: Vec<(StringId, SchemaInputValueRecord)>) -> IdRange<SchemaInputKeyValueId> {
         let start = self.key_values.len();
         self.key_values.extend(fields);
         (start..self.key_values.len()).into()
@@ -192,7 +192,7 @@ impl SchemaInputValues {
 
     pub fn push_input_object(
         &mut self,
-        fields: impl IntoIterator<Item = (InputValueDefinitionId, SchemaInputValue)>,
+        fields: impl IntoIterator<Item = (InputValueDefinitionId, SchemaInputValueRecord)>,
     ) -> IdRange<SchemaInputObjectFieldValueId> {
         let start = self.input_fields.len();
         self.input_fields.extend(fields);

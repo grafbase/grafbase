@@ -1,25 +1,33 @@
-use crate::{HeaderRule, HeaderRuleId, NameOrPattern, SchemaWalker};
+use crate::{HeaderRuleId, HeaderRuleRecord, NameOrPattern, SchemaWalker};
 use regex::Regex;
 use std::fmt;
 
-pub type HeaderRuleWalker<'a> = SchemaWalker<'a, HeaderRuleId>;
+pub type HeaderRule<'a> = SchemaWalker<'a, HeaderRuleId>;
 
-impl<'a> HeaderRuleWalker<'a> {
+impl<'a> HeaderRule<'a> {
     pub fn rule(&self) -> HeaderRuleRef<'a> {
         match &self.schema[self.item] {
-            HeaderRule::Forward { name, default, rename } => HeaderRuleRef::Forward {
+            HeaderRuleRecord::Forward {
+                name_id: name,
+                default,
+                rename,
+            } => HeaderRuleRef::Forward {
                 name: self.name_or_pattern_ref(name),
                 default: default.map(|id| self.schema[id].as_str()),
                 rename: rename.map(|id| self.schema[id].as_str()),
             },
-            HeaderRule::Insert { name, value } => HeaderRuleRef::Insert {
+            HeaderRuleRecord::Insert { name_id: name, value } => HeaderRuleRef::Insert {
                 name: self.schema[*name].as_str(),
                 value: self.schema[*value].as_str(),
             },
-            HeaderRule::Remove { name } => HeaderRuleRef::Remove {
+            HeaderRuleRecord::Remove { name_id: name } => HeaderRuleRef::Remove {
                 name: self.name_or_pattern_ref(name),
             },
-            HeaderRule::RenameDuplicate { name, default, rename } => HeaderRuleRef::RenameDuplicate {
+            HeaderRuleRecord::RenameDuplicate {
+                name_id: name,
+                default,
+                rename,
+            } => HeaderRuleRef::RenameDuplicate {
                 name: self.schema[*name].as_str(),
                 default: default.map(|id| self.schema[id].as_str()),
                 rename: self.schema[*rename].as_str(),
@@ -62,7 +70,7 @@ pub enum HeaderRuleRef<'a> {
     },
 }
 
-impl<'a> fmt::Debug for HeaderRuleWalker<'a> {
+impl<'a> fmt::Debug for HeaderRule<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("SubgraphHeaderWalker")
             .field("rule", &self.rule())

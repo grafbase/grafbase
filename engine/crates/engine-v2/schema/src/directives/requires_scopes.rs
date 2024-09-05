@@ -1,7 +1,7 @@
 use crate::{RequiredScopesId, SchemaWalker, StringId};
 
 #[derive(Debug, Hash, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-pub struct RequiredScopes(Vec<Vec<StringId>>);
+pub struct RequiredScopesRecord(Vec<Vec<StringId>>);
 
 /// An index into the outer vector of an instance of RequiredScopes
 ///
@@ -9,7 +9,7 @@ pub struct RequiredScopes(Vec<Vec<StringId>>);
 #[derive(Clone, Copy, Debug)]
 pub struct RequiredScopeSetIndex(u16);
 
-impl RequiredScopes {
+impl RequiredScopesRecord {
     pub fn new(mut scopes: Vec<Vec<StringId>>) -> Self {
         for scopes in &mut scopes {
             scopes.sort_unstable();

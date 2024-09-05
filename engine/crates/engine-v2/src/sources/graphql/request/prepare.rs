@@ -5,7 +5,7 @@ use std::{
 
 use engine_parser::types::OperationType;
 use itertools::Itertools;
-use schema::EntityId;
+use schema::EntityDefinitionId;
 
 use crate::operation::{FieldArgumentsWalker, PlanField, PlanSelectionSet, PlanWalker, QueryInputValueId};
 
@@ -33,10 +33,16 @@ impl PreparedGraphqlOperation {
         // Generating the selection set first as this will define all the operation arguments
         let selection_set = {
             let mut buffer = Buffer::with_capacity(256);
-            let entity_id = EntityId::Object(match operation_type {
-                OperationType::Query => plan.schema().as_ref().graph.root_operation_types.query,
-                OperationType::Mutation => plan.schema().as_ref().graph.root_operation_types.mutation.unwrap(),
-                OperationType::Subscription => plan.schema().as_ref().graph.root_operation_types.subscription.unwrap(),
+            let entity_id = EntityDefinitionId::Object(match operation_type {
+                OperationType::Query => plan.schema().as_ref().graph.root_operation_types.query_id,
+                OperationType::Mutation => plan.schema().as_ref().graph.root_operation_types.mutation_id.unwrap(),
+                OperationType::Subscription => plan
+                    .schema()
+                    .as_ref()
+                    .graph
+                    .root_operation_types
+                    .subscription_id
+                    .unwrap(),
             });
             ctx.write_selection_set(Some(entity_id), &mut buffer, plan.selection_set())?;
             buffer.into_string()
@@ -164,7 +170,7 @@ impl QueryBuilderContext {
 
     fn write_selection_set(
         &mut self,
-        maybe_entity_id: Option<EntityId>,
+        maybe_entity_id: Option<EntityDefinitionId>,
         buffer: &mut Buffer,
         selection_set: PlanSelectionSet<'_>,
     ) -> Result<(), Error> {
@@ -188,7 +194,7 @@ impl QueryBuilderContext {
 
     fn write_selection_set_fields(
         &mut self,
-        maybe_entity_id: Option<EntityId>,
+        maybe_entity_id: Option<EntityDefinitionId>,
         buffer: &mut Buffer,
         selection_set: PlanSelectionSet<'_>,
     ) -> Result<(), Error> {
@@ -226,7 +232,11 @@ impl QueryBuilderContext {
         }
         self.write_arguments(buffer, field.arguments())?;
         if let Some(selection_set) = field.selection_set() {
-            self.write_selection_set(EntityId::maybe_from(field.ty().inner().id()), buffer, selection_set)?;
+            self.write_selection_set(
+                EntityDefinitionId::maybe_from(field.ty().inner().id()),
+                buffer,
+                selection_set,
+            )?;
         } else {
             buffer.push('\n');
         }

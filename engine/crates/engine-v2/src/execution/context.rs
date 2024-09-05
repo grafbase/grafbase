@@ -2,7 +2,7 @@ use ::runtime::hooks::Hooks;
 use futures::future::BoxFuture;
 use grafbase_telemetry::metrics::EngineMetrics;
 use runtime::auth::AccessToken;
-use schema::{HeaderRuleWalker, Schema};
+use schema::{HeaderRule, Schema};
 
 use crate::{engine::RequestContext, Engine, Runtime};
 
@@ -72,7 +72,7 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
         &self.request_context.access_token
     }
 
-    pub fn subgraph_headers_with_rules(&self, rules: impl Iterator<Item = HeaderRuleWalker<'ctx>>) -> http::HeaderMap {
+    pub fn subgraph_headers_with_rules(&self, rules: impl Iterator<Item = HeaderRule<'ctx>>) -> http::HeaderMap {
         create_subgraph_headers_with_rules(
             self.request_context,
             rules,

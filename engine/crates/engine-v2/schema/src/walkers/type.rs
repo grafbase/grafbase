@@ -1,21 +1,21 @@
 use super::SchemaWalker;
-use crate::{DefinitionWalker, ListWrapping, Type, Wrapping};
+use crate::{DefinitionWalker, ListWrapping, TypeRecord, Wrapping};
 
-pub type TypeWalker<'a> = SchemaWalker<'a, Type>;
-pub type InputTypeWalker<'a> = SchemaWalker<'a, Type>;
+pub type Type<'a> = SchemaWalker<'a, TypeRecord>;
+pub type InputTypeWalker<'a> = SchemaWalker<'a, TypeRecord>;
 
-impl<'a> TypeWalker<'a> {
+impl<'a> Type<'a> {
     pub fn wrapping(&self) -> Wrapping {
         self.item.wrapping
     }
 
     pub fn inner(&self) -> DefinitionWalker<'a> {
-        self.walk(self.item.inner)
+        self.walk(self.item.definition_id)
     }
 }
 
-impl From<TypeWalker<'_>> for Type {
-    fn from(input: TypeWalker) -> Self {
+impl From<Type<'_>> for TypeRecord {
+    fn from(input: Type) -> Self {
         input.item
     }
 }
@@ -25,8 +25,8 @@ struct Ty<'a> {
     wrapping: Wrapping,
 }
 
-impl<'a> From<TypeWalker<'a>> for Ty<'a> {
-    fn from(input: TypeWalker<'a>) -> Self {
+impl<'a> From<Type<'a>> for Ty<'a> {
+    fn from(input: Type<'a>) -> Self {
         Ty {
             inner: input.inner(),
             wrapping: input.wrapping(),
@@ -34,7 +34,7 @@ impl<'a> From<TypeWalker<'a>> for Ty<'a> {
     }
 }
 
-impl std::fmt::Display for TypeWalker<'_> {
+impl std::fmt::Display for Type<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         Ty::from(*self).fmt(f)
     }
@@ -59,7 +59,7 @@ impl std::fmt::Display for Ty<'_> {
     }
 }
 
-impl std::fmt::Debug for SchemaWalker<'_, Type> {
+impl std::fmt::Debug for SchemaWalker<'_, TypeRecord> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         Ty::from(*self).fmt(f)
     }

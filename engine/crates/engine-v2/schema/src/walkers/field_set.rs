@@ -1,4 +1,4 @@
-use crate::{FieldDefinitionId, FieldDefinitionWalker, ProvidableField, ProvidableFieldSet, SchemaWalker};
+use crate::{FieldDefinition, FieldDefinitionId, ProvidableField, ProvidableFieldSet, SchemaWalker};
 
 pub type FieldSetWalker<'a> = SchemaWalker<'a, &'a ProvidableFieldSet>;
 pub type FieldSetItemWalker<'a> = SchemaWalker<'a, &'a ProvidableField>;
@@ -18,7 +18,7 @@ impl<'a> FieldSetItemWalker<'a> {
         self.item.id
     }
 
-    pub fn field(&self) -> FieldDefinitionWalker<'a> {
+    pub fn field(&self) -> FieldDefinition<'a> {
         self.walk(self.item.id)
     }
 

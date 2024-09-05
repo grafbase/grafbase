@@ -94,11 +94,11 @@ impl<'a> Converter<'a> {
                 let ty = self.graph[input_value_definition_id].ty;
                 let input_value_id = self.coercer.coerce(ty, value)?;
                 arguments.push((input_value_definition_id, input_value_id));
-            } else if let Some(id) = input_value_definition.default_value {
+            } else if let Some(id) = input_value_definition.default_value_id {
                 arguments.push((input_value_definition_id, id));
             } else if input_value_definition.ty.wrapping.is_required() {
                 return Err(InputValueError::MissingRequiredArgument(
-                    self.ctx.strings[input_value_definition.name].clone(),
+                    self.ctx.strings[input_value_definition.name_id].clone(),
                 ));
             }
         }

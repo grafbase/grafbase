@@ -1,7 +1,7 @@
 use engine_parser::Positioned;
 use engine_value::Name;
 use id_newtypes::IdRange;
-use schema::{Definition, FieldDefinitionId, FieldDefinitionWalker};
+use schema::{Definition, FieldDefinition, FieldDefinitionId};
 
 use super::{coercion::coerce_query_value, BindError, BindResult, Binder};
 use crate::{
@@ -37,7 +37,7 @@ impl<'schema, 'p> Binder<'schema, 'p> {
         selection_set_id: Option<SelectionSetId>,
     ) -> BindResult<FieldId> {
         let location: Location = (*pos).try_into()?;
-        let definition: FieldDefinitionWalker<'_> = self.schema.walk(definition_id);
+        let definition: FieldDefinition<'_> = self.schema.walk(definition_id);
 
         // We don't bother processing the selection set if it's not a union/interface/object, so we
         // need to rely on the parsed data rather than selection_set_id.
@@ -83,7 +83,7 @@ impl<'schema, 'p> Binder<'schema, 'p> {
 
     fn bind_field_arguments(
         &mut self,
-        definition: FieldDefinitionWalker<'_>,
+        definition: FieldDefinition<'_>,
         field_id: FieldId,
         location: Location,
         arguments: &[(Positioned<Name>, Positioned<engine_value::Value>)],
@@ -113,7 +113,7 @@ impl<'schema, 'p> Binder<'schema, 'p> {
                     input_value_definition_id: argument_def.id(),
                     input_value_id,
                 });
-            } else if let Some(id) = argument_def.as_ref().default_value {
+            } else if let Some(id) = argument_def.as_ref().default_value_id {
                 self.field_arguments.push(FieldArgument {
                     name_location: None,
                     value_location: None,

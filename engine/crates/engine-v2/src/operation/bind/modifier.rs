@@ -1,7 +1,7 @@
 use std::{collections::HashMap, ops::Range};
 
 use id_newtypes::IdRange;
-use schema::{Definition, FieldDefinitionWalker, ObjectDefinitionId, TypeSystemDirective};
+use schema::{Definition, FieldDefinition, ObjectDefinitionId, TypeSystemDirective};
 
 use crate::operation::{
     FieldArgumentId, FieldId, QueryModifier, QueryModifierId, QueryModifierRule, ResponseModifier, ResponseModifierId,
@@ -13,7 +13,7 @@ impl<'schema, 'p> super::Binder<'schema, 'p> {
         &mut self,
         field_id: FieldId,
         argument_ids: IdRange<FieldArgumentId>,
-        definition: FieldDefinitionWalker<'_>,
+        definition: FieldDefinition<'_>,
     ) {
         for directive in definition.directives().as_ref().iter() {
             match directive {

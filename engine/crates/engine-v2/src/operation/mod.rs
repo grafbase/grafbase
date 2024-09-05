@@ -28,7 +28,7 @@ pub(crate) use location::Location;
 pub(crate) use modifier::*;
 pub(crate) use parse::{parse_operation, ParsedOperation};
 pub(crate) use path::QueryPath;
-use schema::{EntityId, ObjectDefinitionId, RequiredFieldId, ResolverDefinitionId, SchemaWalker};
+use schema::{EntityDefinitionId, ObjectDefinitionId, RequiredFieldId, ResolverDefinitionId, SchemaWalker};
 pub(crate) use selection_set::*;
 pub(crate) use variables::*;
 pub(crate) use walkers::*;
@@ -125,7 +125,7 @@ impl OperationPlan {
 #[derive(serde::Serialize, serde::Deserialize)]
 pub(crate) struct LogicalPlan {
     pub resolver_id: ResolverDefinitionId,
-    pub entity_id: EntityId,
+    pub entity_id: EntityDefinitionId,
     pub root_field_ids_ordered_by_parent_entity_id_then_position: Vec<FieldId>,
 }
 

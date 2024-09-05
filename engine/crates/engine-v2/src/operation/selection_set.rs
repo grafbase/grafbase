@@ -1,8 +1,8 @@
 use id_derives::Id;
 use id_newtypes::IdRange;
 use schema::{
-    Definition, EntityId, FieldDefinitionId, InputValueDefinitionId, InterfaceDefinitionId, ObjectDefinitionId,
-    UnionDefinitionId,
+    Definition, EntityDefinitionId, FieldDefinitionId, InputValueDefinitionId, InterfaceDefinitionId,
+    ObjectDefinitionId, UnionDefinitionId,
 };
 
 use crate::response::{BoundResponseKey, ResponseEdge, ResponseKey};
@@ -29,11 +29,11 @@ impl SelectionSetType {
     }
 }
 
-impl From<EntityId> for SelectionSetType {
-    fn from(value: EntityId) -> Self {
+impl From<EntityDefinitionId> for SelectionSetType {
+    fn from(value: EntityDefinitionId) -> Self {
         match value {
-            EntityId::Object(id) => Self::Object(id),
-            EntityId::Interface(id) => Self::Interface(id),
+            EntityDefinitionId::Object(id) => Self::Object(id),
+            EntityDefinitionId::Interface(id) => Self::Interface(id),
         }
     }
 }
@@ -65,10 +65,10 @@ impl SelectionSetType {
         }
     }
 
-    pub fn as_entity_id(&self) -> Option<EntityId> {
+    pub fn as_entity_id(&self) -> Option<EntityDefinitionId> {
         match self {
-            SelectionSetType::Object(id) => Some(EntityId::Object(*id)),
-            SelectionSetType::Interface(id) => Some(EntityId::Interface(*id)),
+            SelectionSetType::Object(id) => Some(EntityDefinitionId::Object(*id)),
+            SelectionSetType::Interface(id) => Some(EntityDefinitionId::Interface(*id)),
             SelectionSetType::Union(_) => None,
         }
     }

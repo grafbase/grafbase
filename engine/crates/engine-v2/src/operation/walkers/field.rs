@@ -1,4 +1,4 @@
-use schema::{FieldDefinitionWalker, RequiredField};
+use schema::{FieldDefinition, RequiredField};
 
 use super::{OperationWalker, SelectionSetWalker};
 use crate::{
@@ -16,7 +16,7 @@ impl<'a> FieldWalker<'a> {
             .unwrap_or("__typename")
     }
 
-    pub fn definition(&self) -> Option<FieldDefinitionWalker<'a>> {
+    pub fn definition(&self) -> Option<FieldDefinition<'a>> {
         self.as_ref().definition_id().map(|id| self.schema_walker.walk(id))
     }
 

@@ -63,51 +63,51 @@ impl BuildContext {
         let mut graph = Graph {
             description: None,
             root_operation_types: RootOperationTypes {
-                query: ObjectDefinitionId::from(0),
-                mutation: None,
-                subscription: None,
+                query_id: ObjectDefinitionId::from(0),
+                mutation_id: None,
+                subscription_id: None,
             },
             type_definitions: Vec::new(),
-            object_definitions: vec![ObjectDefinition {
-                name: ctx.strings.get_or_new("Query"),
-                description: None,
-                interfaces: Default::default(),
-                directives: Default::default(),
-                fields: IdRange::from_start_and_length((0, 2)),
+            object_definitions: vec![ObjectDefinitionRecord {
+                name_id: ctx.strings.get_or_new("Query"),
+                description_id: None,
+                interface_ids: Default::default(),
+                directive_ids: Default::default(),
+                field_ids: IdRange::from_start_and_length((0, 2)),
             }],
             interface_definitions: Vec::new(),
             field_definitions: vec![
-                FieldDefinition {
-                    name: ctx.strings.get_or_new("__type"),
-                    parent_entity: EntityId::Object(0.into()),
-                    description: None,
+                FieldDefinitionRecord {
+                    name_id: ctx.strings.get_or_new("__type"),
+                    parent_entity_id: EntityDefinitionId::Object(0.into()),
+                    description_id: None,
                     // will be replaced by introspection, doesn't matter.
-                    ty: Type {
-                        inner: Definition::Object(ObjectDefinitionId::from(0)),
+                    ty: TypeRecord {
+                        definition_id: Definition::Object(ObjectDefinitionId::from(0)),
                         wrapping: Default::default(),
                     },
-                    resolvers: Default::default(),
-                    only_resolvable_in: Default::default(),
+                    resolver_ids: Default::default(),
+                    only_resolvable_in_ids: Default::default(),
                     requires: Default::default(),
                     provides: Default::default(),
                     argument_ids: Default::default(),
-                    directives: Default::default(),
+                    directive_ids: Default::default(),
                 },
-                FieldDefinition {
-                    name: ctx.strings.get_or_new("__schema"),
-                    parent_entity: EntityId::Object(0.into()),
-                    description: None,
+                FieldDefinitionRecord {
+                    name_id: ctx.strings.get_or_new("__schema"),
+                    parent_entity_id: EntityDefinitionId::Object(0.into()),
+                    description_id: None,
                     // will be replaced by introspection, doesn't matter.
-                    ty: Type {
-                        inner: Definition::Object(ObjectDefinitionId::from(0)),
+                    ty: TypeRecord {
+                        definition_id: Definition::Object(ObjectDefinitionId::from(0)),
                         wrapping: Default::default(),
                     },
-                    resolvers: Default::default(),
-                    only_resolvable_in: Default::default(),
+                    resolver_ids: Default::default(),
+                    only_resolvable_in_ids: Default::default(),
                     requires: Default::default(),
                     provides: Default::default(),
                     argument_ids: Default::default(),
-                    directives: Default::default(),
+                    directive_ids: Default::default(),
                 },
             ],
             enum_definitions: Vec::new(),
@@ -171,7 +171,7 @@ impl BuildContext {
     ) -> Result<Schema, BuildError> {
         let header_rules: Vec<_> = take(&mut config.header_rules)
             .into_iter()
-            .map(|rule| -> HeaderRule {
+            .map(|rule| -> HeaderRuleRecord {
                 match rule {
                     config::latest::HeaderRule::Forward(rule) => {
                         let name = match rule.name {
@@ -186,13 +186,17 @@ impl BuildContext {
                         let default = rule.default.map(|id| self.strings.get_or_new(&config[id]));
                         let rename = rule.rename.map(|id| self.strings.get_or_new(&config[id]));
 
-                        HeaderRule::Forward { name, default, rename }
+                        HeaderRuleRecord::Forward {
+                            name_id: name,
+                            default,
+                            rename,
+                        }
                     }
                     config::latest::HeaderRule::Insert(rule) => {
                         let name = self.strings.get_or_new(&config[rule.name]);
                         let value = self.strings.get_or_new(&config[rule.value]);
 
-                        HeaderRule::Insert { name, value }
+                        HeaderRuleRecord::Insert { name_id: name, value }
                     }
                     config::latest::HeaderRule::Remove(rule) => {
                         let name = match rule.name {
@@ -204,10 +208,10 @@ impl BuildContext {
                             }
                         };
 
-                        HeaderRule::Remove { name }
+                        HeaderRuleRecord::Remove { name_id: name }
                     }
-                    config::latest::HeaderRule::RenameDuplicate(rule) => HeaderRule::RenameDuplicate {
-                        name: self.strings.get_or_new(&config[rule.name]),
+                    config::latest::HeaderRule::RenameDuplicate(rule) => HeaderRuleRecord::RenameDuplicate {
+                        name_id: self.strings.get_or_new(&config[rule.name]),
                         default: rule.default.map(|id| self.strings.get_or_new(&config[id])),
                         rename: self.strings.get_or_new(&config[rule.rename]),
                     },

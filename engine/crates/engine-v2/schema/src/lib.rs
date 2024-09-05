@@ -79,7 +79,7 @@ pub struct Schema {
     urls: Vec<url::Url>,
     /// Headers we might want to send to a subgraph
     #[indexed_by(HeaderRuleId)]
-    header_rules: Vec<HeaderRule>,
+    header_rules: Vec<HeaderRuleRecord>,
 
     pub settings: Settings,
 }
@@ -101,42 +101,42 @@ where
 }
 
 impl std::ops::Index<SchemaInputValueId> for Schema {
-    type Output = SchemaInputValue;
+    type Output = SchemaInputValueRecord;
     fn index(&self, index: SchemaInputValueId) -> &Self::Output {
         &self.graph.input_values[index]
     }
 }
 
 impl std::ops::Index<SchemaInputKeyValueId> for Schema {
-    type Output = (StringId, SchemaInputValue);
+    type Output = (StringId, SchemaInputValueRecord);
     fn index(&self, index: SchemaInputKeyValueId) -> &Self::Output {
         &self.graph.input_values[index]
     }
 }
 
 impl std::ops::Index<SchemaInputObjectFieldValueId> for Schema {
-    type Output = (InputValueDefinitionId, SchemaInputValue);
+    type Output = (InputValueDefinitionId, SchemaInputValueRecord);
     fn index(&self, index: SchemaInputObjectFieldValueId) -> &Self::Output {
         &self.graph.input_values[index]
     }
 }
 
 impl std::ops::Index<IdRange<SchemaInputValueId>> for Schema {
-    type Output = [SchemaInputValue];
+    type Output = [SchemaInputValueRecord];
     fn index(&self, index: IdRange<SchemaInputValueId>) -> &Self::Output {
         &self.graph.input_values[index]
     }
 }
 
 impl std::ops::Index<IdRange<SchemaInputKeyValueId>> for Schema {
-    type Output = [(StringId, SchemaInputValue)];
+    type Output = [(StringId, SchemaInputValueRecord)];
     fn index(&self, index: IdRange<SchemaInputKeyValueId>) -> &Self::Output {
         &self.graph.input_values[index]
     }
 }
 
 impl std::ops::Index<IdRange<SchemaInputObjectFieldValueId>> for Schema {
-    type Output = [(InputValueDefinitionId, SchemaInputValue)];
+    type Output = [(InputValueDefinitionId, SchemaInputValueRecord)];
     fn index(&self, index: IdRange<SchemaInputObjectFieldValueId>) -> &Self::Output {
         &self.graph.input_values[index]
     }
@@ -162,26 +162,26 @@ pub struct Graph {
     #[indexed_by(DefinitionId)]
     type_definitions: Vec<Definition>,
     #[indexed_by(ObjectDefinitionId)]
-    object_definitions: Vec<ObjectDefinition>,
+    object_definitions: Vec<ObjectDefinitionRecord>,
     #[indexed_by(InterfaceDefinitionId)]
-    interface_definitions: Vec<InterfaceDefinition>,
+    interface_definitions: Vec<InterfaceDefinitionRecord>,
     #[indexed_by(FieldDefinitionId)]
-    field_definitions: Vec<FieldDefinition>,
+    field_definitions: Vec<FieldDefinitionRecord>,
     #[indexed_by(EnumDefinitionId)]
-    enum_definitions: Vec<EnumDefinition>,
+    enum_definitions: Vec<EnumDefinitionRecord>,
     #[indexed_by(UnionDefinitionId)]
-    union_definitions: Vec<UnionDefinition>,
+    union_definitions: Vec<UnionDefinitionRecord>,
     #[indexed_by(ScalarDefinitionId)]
-    scalar_definitions: Vec<ScalarDefinition>,
+    scalar_definitions: Vec<ScalarDefinitionRecord>,
     #[indexed_by(InputObjectDefinitionId)]
-    input_object_definitions: Vec<InputObjectDefinition>,
+    input_object_definitions: Vec<InputObjectDefinitionRecord>,
     #[indexed_by(InputValueDefinitionId)]
-    input_value_definitions: Vec<InputValueDefinition>,
+    input_value_definitions: Vec<InputValueDefinitionRecord>,
     #[indexed_by(EnumValueId)]
-    enum_value_definitions: Vec<EnumValue>,
+    enum_value_definitions: Vec<EnumValueRecord>,
 
     #[indexed_by(ResolverDefinitionId)]
-    resolver_definitions: Vec<ResolverDefinition>,
+    resolver_definitions: Vec<ResolverDefinitionRecord>,
     #[indexed_by(RequiredFieldSetId)]
     required_field_sets: Vec<RequiredFieldSet>,
     // deduplicated
@@ -195,9 +195,9 @@ pub struct Graph {
     #[indexed_by(CacheControlId)]
     cache_control: Vec<CacheControl>,
     #[indexed_by(RequiredScopesId)]
-    required_scopes: Vec<RequiredScopes>,
+    required_scopes: Vec<RequiredScopesRecord>,
     #[indexed_by(AuthorizedDirectiveId)]
-    authorized_directives: Vec<AuthorizedDirective>,
+    authorized_directives: Vec<AuthorizedDirectiveRecord>,
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]
@@ -216,10 +216,10 @@ impl Schema {
     }
 
     pub fn object_field_by_name(&self, object_id: ObjectDefinitionId, name: &str) -> Option<FieldDefinitionId> {
-        let fields = self[object_id].fields;
+        let fields = self[object_id].field_ids;
         self[fields]
             .iter()
-            .position(|field| self[field.name] == name)
+            .position(|field| self[field.name_id] == name)
             .map(|pos| FieldDefinitionId::from(usize::from(fields.start) + pos))
     }
 
@@ -228,21 +228,21 @@ impl Schema {
         interface_id: InterfaceDefinitionId,
         name: &str,
     ) -> Option<FieldDefinitionId> {
-        let fields = self[interface_id].fields;
+        let fields = self[interface_id].field_ids;
         self[fields]
             .iter()
-            .position(|field| self[field.name] == name)
+            .position(|field| self[field.name_id] == name)
             .map(|pos| FieldDefinitionId::from(usize::from(fields.start) + pos))
     }
 
     fn definition_name(&self, definition: Definition) -> &str {
         let name = match definition {
-            Definition::Scalar(s) => self[s].name,
-            Definition::Object(o) => self[o].name,
-            Definition::Interface(i) => self[i].name,
-            Definition::Union(u) => self[u].name,
-            Definition::Enum(e) => self[e].name,
-            Definition::InputObject(io) => self[io].name,
+            Definition::Scalar(s) => self[s].name_id,
+            Definition::Object(o) => self[o].name_id,
+            Definition::Interface(i) => self[i].name_id,
+            Definition::Union(u) => self[u].name_id,
+            Definition::Enum(e) => self[e].name_id,
+            Definition::InputObject(io) => self[io].name_id,
         };
         &self[name]
     }
@@ -250,9 +250,9 @@ impl Schema {
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct RootOperationTypes {
-    pub query: ObjectDefinitionId,
-    pub mutation: Option<ObjectDefinitionId>,
-    pub subscription: Option<ObjectDefinitionId>,
+    pub query_id: ObjectDefinitionId,
+    pub mutation_id: Option<ObjectDefinitionId>,
+    pub subscription_id: Option<ObjectDefinitionId>,
 }
 
 impl std::fmt::Debug for Schema {
@@ -262,30 +262,30 @@ impl std::fmt::Debug for Schema {
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
-pub struct ObjectDefinition {
-    pub name: StringId,
-    pub description: Option<StringId>,
-    pub interfaces: Vec<InterfaceDefinitionId>,
-    pub directives: IdRange<TypeSystemDirectiveId>,
-    pub fields: IdRange<FieldDefinitionId>,
+pub struct ObjectDefinitionRecord {
+    pub name_id: StringId,
+    pub description_id: Option<StringId>,
+    pub interface_ids: Vec<InterfaceDefinitionId>,
+    pub directive_ids: IdRange<TypeSystemDirectiveId>,
+    pub field_ids: IdRange<FieldDefinitionId>,
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
-pub struct FieldDefinition {
-    pub name: StringId,
-    pub parent_entity: EntityId,
-    pub description: Option<StringId>,
-    pub ty: Type,
-    pub resolvers: Vec<ResolverDefinitionId>,
+pub struct FieldDefinitionRecord {
+    pub name_id: StringId,
+    pub parent_entity_id: EntityDefinitionId,
+    pub description_id: Option<StringId>,
+    pub ty: TypeRecord,
+    pub resolver_ids: Vec<ResolverDefinitionId>,
     /// By default a field is considered shared and providable by *any* subgraph that exposes it.
     /// It's up to the composition to ensure it. If this field is specific to some subgraphs, they
     /// will be specified in this Vec.
-    pub only_resolvable_in: Vec<SubgraphId>,
+    pub only_resolvable_in_ids: Vec<SubgraphId>,
     pub requires: Vec<FieldRequires>,
     pub provides: Vec<FieldProvides>,
     /// The arguments referenced by this range are sorted by their name (string)
     pub argument_ids: IdRange<InputValueDefinitionId>,
-    pub directives: IdRange<TypeSystemDirectiveId>,
+    pub directive_ids: IdRange<TypeSystemDirectiveId>,
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
@@ -301,43 +301,43 @@ pub struct FieldRequires {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize)]
-pub enum EntityId {
+pub enum EntityDefinitionId {
     Object(ObjectDefinitionId),
     Interface(InterfaceDefinitionId),
 }
 
-impl From<ObjectDefinitionId> for EntityId {
+impl From<ObjectDefinitionId> for EntityDefinitionId {
     fn from(id: ObjectDefinitionId) -> Self {
-        EntityId::Object(id)
+        EntityDefinitionId::Object(id)
     }
 }
 
-impl From<InterfaceDefinitionId> for EntityId {
+impl From<InterfaceDefinitionId> for EntityDefinitionId {
     fn from(id: InterfaceDefinitionId) -> Self {
-        EntityId::Interface(id)
+        EntityDefinitionId::Interface(id)
     }
 }
 
-impl From<EntityId> for Definition {
-    fn from(value: EntityId) -> Self {
+impl From<EntityDefinitionId> for Definition {
+    fn from(value: EntityDefinitionId) -> Self {
         match value {
-            EntityId::Interface(id) => Definition::Interface(id),
-            EntityId::Object(id) => Definition::Object(id),
+            EntityDefinitionId::Interface(id) => Definition::Interface(id),
+            EntityDefinitionId::Object(id) => Definition::Object(id),
         }
     }
 }
 
-impl EntityId {
-    pub fn maybe_from(definition: Definition) -> Option<EntityId> {
+impl EntityDefinitionId {
+    pub fn maybe_from(definition: Definition) -> Option<EntityDefinitionId> {
         match definition {
-            Definition::Object(id) => Some(EntityId::Object(id)),
-            Definition::Interface(id) => Some(EntityId::Interface(id)),
+            Definition::Object(id) => Some(EntityDefinitionId::Object(id)),
+            Definition::Interface(id) => Some(EntityDefinitionId::Interface(id)),
             _ => None,
         }
     }
 
     pub fn is_object(&self) -> bool {
-        matches!(self, EntityId::Object(_))
+        matches!(self, EntityDefinitionId::Object(_))
     }
 }
 
@@ -394,15 +394,15 @@ impl From<InputObjectDefinitionId> for Definition {
 }
 
 #[derive(Debug, Clone, Copy, serde::Serialize, serde::Deserialize)]
-pub struct Type {
-    pub inner: Definition,
+pub struct TypeRecord {
+    pub definition_id: Definition,
     pub wrapping: Wrapping,
 }
 
-impl Type {
+impl TypeRecord {
     /// Determines whether a varia
-    pub fn is_compatible_with(&self, other: Type) -> bool {
-        self.inner == other.inner
+    pub fn is_compatible_with(&self, other: TypeRecord) -> bool {
+        self.definition_id == other.definition_id
             // if not a list, the current type can be coerced into the proper list wrapping.
             && (!self.wrapping.is_list()
                 || self.wrapping.list_wrappings().len() == other.wrapping.list_wrappings().len())
@@ -411,58 +411,58 @@ impl Type {
 
     pub fn wrapped_by(self, list_wrapping: ListWrapping) -> Self {
         Self {
-            inner: self.inner,
+            definition_id: self.definition_id,
             wrapping: self.wrapping.wrapped_by(list_wrapping),
         }
     }
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
-pub struct InterfaceDefinition {
-    pub name: StringId,
-    pub description: Option<StringId>,
-    pub interfaces: Vec<InterfaceDefinitionId>,
+pub struct InterfaceDefinitionRecord {
+    pub name_id: StringId,
+    pub description_id: Option<StringId>,
+    pub interface_ids: Vec<InterfaceDefinitionId>,
 
     /// sorted by ObjectId
-    pub possible_types: Vec<ObjectDefinitionId>,
-    pub possible_types_ordered_by_typename: Vec<ObjectDefinitionId>,
-    pub directives: IdRange<TypeSystemDirectiveId>,
-    pub fields: IdRange<FieldDefinitionId>,
+    pub possible_type_ids: Vec<ObjectDefinitionId>,
+    pub possible_types_ordered_by_typename_ids: Vec<ObjectDefinitionId>,
+    pub directive_ids: IdRange<TypeSystemDirectiveId>,
+    pub field_ids: IdRange<FieldDefinitionId>,
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
-pub struct EnumDefinition {
-    pub name: StringId,
-    pub description: Option<StringId>,
+pub struct EnumDefinitionRecord {
+    pub name_id: StringId,
+    pub description_id: Option<StringId>,
     /// The enum values referenced by this range are sorted by their name (string)
     pub value_ids: IdRange<EnumValueId>,
-    pub directives: IdRange<TypeSystemDirectiveId>,
+    pub directive_ids: IdRange<TypeSystemDirectiveId>,
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
-pub struct EnumValue {
-    pub name: StringId,
-    pub description: Option<StringId>,
-    pub directives: IdRange<TypeSystemDirectiveId>,
+pub struct EnumValueRecord {
+    pub name_id: StringId,
+    pub description_id: Option<StringId>,
+    pub directive_ids: IdRange<TypeSystemDirectiveId>,
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
-pub struct UnionDefinition {
-    pub name: StringId,
-    pub description: Option<StringId>,
+pub struct UnionDefinitionRecord {
+    pub name_id: StringId,
+    pub description_id: Option<StringId>,
     /// sorted by ObjectId
-    pub possible_types: Vec<ObjectDefinitionId>,
-    pub possible_types_ordered_by_typename: Vec<ObjectDefinitionId>,
-    pub directives: IdRange<TypeSystemDirectiveId>,
+    pub possible_type_ids: Vec<ObjectDefinitionId>,
+    pub possible_types_ordered_by_typename_ids: Vec<ObjectDefinitionId>,
+    pub directive_ids: IdRange<TypeSystemDirectiveId>,
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
-pub struct ScalarDefinition {
-    pub name: StringId,
+pub struct ScalarDefinitionRecord {
+    pub name_id: StringId,
     pub ty: ScalarType,
-    pub description: Option<StringId>,
-    pub specified_by_url: Option<StringId>,
-    pub directives: IdRange<TypeSystemDirectiveId>,
+    pub description_id: Option<StringId>,
+    pub specified_by_url_id: Option<StringId>,
+    pub directive_ids: IdRange<TypeSystemDirectiveId>,
 }
 
 /// Defines how a scalar should be represented and validated by the engine. They're almost the same
@@ -490,21 +490,21 @@ impl ScalarType {
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
-pub struct InputObjectDefinition {
-    pub name: StringId,
-    pub description: Option<StringId>,
+pub struct InputObjectDefinitionRecord {
+    pub name_id: StringId,
+    pub description_id: Option<StringId>,
     /// The input fields referenced by this range are sorted by their name (string)
     pub input_field_ids: IdRange<InputValueDefinitionId>,
-    pub directives: IdRange<TypeSystemDirectiveId>,
+    pub directive_ids: IdRange<TypeSystemDirectiveId>,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct InputValueDefinition {
-    pub name: StringId,
-    pub description: Option<StringId>,
-    pub ty: Type,
-    pub default_value: Option<SchemaInputValueId>,
-    pub directives: IdRange<TypeSystemDirectiveId>,
+pub struct InputValueDefinitionRecord {
+    pub name_id: StringId,
+    pub description_id: Option<StringId>,
+    pub ty: TypeRecord,
+    pub default_value_id: Option<SchemaInputValueId>,
+    pub directive_ids: IdRange<TypeSystemDirectiveId>,
 }
 
 impl Schema {
@@ -526,21 +526,21 @@ pub enum NameOrPattern {
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub enum HeaderRule {
+pub enum HeaderRuleRecord {
     Forward {
-        name: NameOrPattern,
+        name_id: NameOrPattern,
         default: Option<StringId>,
         rename: Option<StringId>,
     },
     Insert {
-        name: StringId,
+        name_id: StringId,
         value: StringId,
     },
     Remove {
-        name: NameOrPattern,
+        name_id: NameOrPattern,
     },
     RenameDuplicate {
-        name: StringId,
+        name_id: StringId,
         default: Option<StringId>,
         rename: StringId,
     },

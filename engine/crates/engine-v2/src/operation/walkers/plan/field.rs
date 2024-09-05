@@ -1,4 +1,4 @@
-use schema::{FieldDefinitionId, FieldDefinitionWalker};
+use schema::{FieldDefinition, FieldDefinitionId};
 
 use crate::{
     operation::{FieldArgumentsWalker, FieldId, QueryInputValueWalker},
@@ -56,7 +56,7 @@ impl<'a> PlanField<'a> {
 }
 
 impl<'a> std::ops::Deref for PlanField<'a> {
-    type Target = FieldDefinitionWalker<'a>;
+    type Target = FieldDefinition<'a>;
 
     fn deref(&self) -> &Self::Target {
         &self.schema_walker

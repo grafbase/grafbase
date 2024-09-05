@@ -1,40 +1,40 @@
 use std::fmt::{Display, Formatter, Result, Write};
 
-use crate::{SchemaInputValue, SchemaInputValueWalker};
+use crate::{SchemaInputValueRecord, SchemaInputValueWalker};
 
 /// Displays the input value with GraphQL syntax.
 impl<'a> Display for SchemaInputValueWalker<'a> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         match self.item {
-            SchemaInputValue::Null => f.write_str("null"),
-            SchemaInputValue::String(id) => write_quoted(&self.schema[*id], f),
-            SchemaInputValue::Int(n) => write!(f, "{}", n),
-            SchemaInputValue::BigInt(n) => write!(f, "{}", n),
-            SchemaInputValue::Float(n) => write!(f, "{}", n),
-            SchemaInputValue::U64(n) => write!(f, "{}", n),
-            SchemaInputValue::Boolean(b) => {
+            SchemaInputValueRecord::Null => f.write_str("null"),
+            SchemaInputValueRecord::String(id) => write_quoted(&self.schema[*id], f),
+            SchemaInputValueRecord::Int(n) => write!(f, "{}", n),
+            SchemaInputValueRecord::BigInt(n) => write!(f, "{}", n),
+            SchemaInputValueRecord::Float(n) => write!(f, "{}", n),
+            SchemaInputValueRecord::U64(n) => write!(f, "{}", n),
+            SchemaInputValueRecord::Boolean(b) => {
                 if *b {
                     f.write_str("true")
                 } else {
                     f.write_str("false")
                 }
             }
-            SchemaInputValue::InputObject(ids) => write_object(
+            SchemaInputValueRecord::InputObject(ids) => write_object(
                 self.schema[*ids].iter().map(|(input_value_definition_id, value)| {
                     let value = self.walk(value);
                     (self.walk(*input_value_definition_id).name(), value)
                 }),
                 f,
             ),
-            SchemaInputValue::Map(ids) => write_object(
+            SchemaInputValueRecord::Map(ids) => write_object(
                 self.schema[*ids].iter().map(|(key, value)| {
                     let value = self.walk(value);
                     (&self.schema[*key], value)
                 }),
                 f,
             ),
-            SchemaInputValue::List(ids) => write_list(self.schema[*ids].iter().map(|value| self.walk(value)), f),
-            SchemaInputValue::EnumValue(id) => write!(f, "{}", self.walk(*id).name()),
+            SchemaInputValueRecord::List(ids) => write_list(self.schema[*ids].iter().map(|value| self.walk(value)), f),
+            SchemaInputValueRecord::EnumValue(id) => write!(f, "{}", self.walk(*id).name()),
         }
     }
 }

@@ -1,13 +1,13 @@
 use std::{borrow::Cow, str::FromStr, sync::OnceLock};
 
 use http::{header, HeaderName};
-use schema::{HeaderRuleWalker, NameOrPatternRef};
+use schema::{HeaderRule, NameOrPatternRef};
 
 use crate::engine::RequestContext;
 
 pub(super) fn create_subgraph_headers_with_rules<'ctx, C>(
     request_context: &'ctx RequestContext<C>,
-    rules: impl Iterator<Item = HeaderRuleWalker<'ctx>>,
+    rules: impl Iterator<Item = HeaderRule<'ctx>>,
     default: http::HeaderMap,
 ) -> http::HeaderMap {
     let mut headers = default;

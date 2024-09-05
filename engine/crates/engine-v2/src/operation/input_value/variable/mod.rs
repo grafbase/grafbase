@@ -3,7 +3,7 @@ mod ser;
 
 use id_derives::{Id, IndexedFields};
 use id_newtypes::IdRange;
-use schema::{EnumValueId, InputValue, InputValueDefinitionId, SchemaInputValue, SchemaInputValueId};
+use schema::{EnumValueId, InputValue, InputValueDefinitionId, SchemaInputValueId, SchemaInputValueRecord};
 
 use crate::operation::PreparedOperationWalker;
 
@@ -126,25 +126,25 @@ impl<'a> From<VariableInputValueWalker<'a>> for InputValue<'a> {
             }
             VariableInputValue::U64(n) => InputValue::U64(*n),
             VariableInputValue::DefaultValue(id) => {
-                let value: &'a SchemaInputValue = &walker.schema_walker.as_ref()[*id];
+                let value: &'a SchemaInputValueRecord = &walker.schema_walker.as_ref()[*id];
                 walker.schema_walker.walk(value).into()
             }
         }
     }
 }
 
-impl PartialEq<SchemaInputValue> for VariableInputValueWalker<'_> {
-    fn eq(&self, other: &SchemaInputValue) -> bool {
+impl PartialEq<SchemaInputValueRecord> for VariableInputValueWalker<'_> {
+    fn eq(&self, other: &SchemaInputValueRecord) -> bool {
         match (self.item, other) {
-            (VariableInputValue::Null, SchemaInputValue::Null) => true,
-            (VariableInputValue::String(l), SchemaInputValue::String(r)) => l == &self.schema_walker[*r],
-            (VariableInputValue::EnumValue(l), SchemaInputValue::EnumValue(r)) => l == r,
-            (VariableInputValue::Int(l), SchemaInputValue::Int(r)) => l == r,
-            (VariableInputValue::BigInt(l), SchemaInputValue::BigInt(r)) => l == r,
-            (VariableInputValue::U64(l), SchemaInputValue::U64(r)) => l == r,
-            (VariableInputValue::Float(l), SchemaInputValue::Float(r)) => l == r,
-            (VariableInputValue::Boolean(l), SchemaInputValue::Boolean(r)) => l == r,
-            (VariableInputValue::InputObject(lids), SchemaInputValue::InputObject(rids)) => {
+            (VariableInputValue::Null, SchemaInputValueRecord::Null) => true,
+            (VariableInputValue::String(l), SchemaInputValueRecord::String(r)) => l == &self.schema_walker[*r],
+            (VariableInputValue::EnumValue(l), SchemaInputValueRecord::EnumValue(r)) => l == r,
+            (VariableInputValue::Int(l), SchemaInputValueRecord::Int(r)) => l == r,
+            (VariableInputValue::BigInt(l), SchemaInputValueRecord::BigInt(r)) => l == r,
+            (VariableInputValue::U64(l), SchemaInputValueRecord::U64(r)) => l == r,
+            (VariableInputValue::Float(l), SchemaInputValueRecord::Float(r)) => l == r,
+            (VariableInputValue::Boolean(l), SchemaInputValueRecord::Boolean(r)) => l == r,
+            (VariableInputValue::InputObject(lids), SchemaInputValueRecord::InputObject(rids)) => {
                 let op_input_values = &self.variables[*lids];
                 let schema_input_values = &self.schema_walker.as_ref()[*rids];
 
@@ -165,7 +165,7 @@ impl PartialEq<SchemaInputValue> for VariableInputValueWalker<'_> {
 
                 true
             }
-            (VariableInputValue::List(lids), SchemaInputValue::List(rids)) => {
+            (VariableInputValue::List(lids), SchemaInputValueRecord::List(rids)) => {
                 let left = &self.variables[*lids];
                 let right = &self.schema_walker.as_ref()[*rids];
                 if left.len() != right.len() {
@@ -178,7 +178,7 @@ impl PartialEq<SchemaInputValue> for VariableInputValueWalker<'_> {
                 }
                 true
             }
-            (VariableInputValue::Map(ids), SchemaInputValue::Map(other_ids)) => {
+            (VariableInputValue::Map(ids), SchemaInputValueRecord::Map(other_ids)) => {
                 let op_kv = &self.variables[*ids];
                 let schema_kv = &self.schema_walker[*other_ids];
 

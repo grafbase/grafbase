@@ -1,24 +1,24 @@
 use std::borrow::Cow;
 
-use super::{resolver::ResolverDefinitionWalker, SchemaWalker};
+use super::{resolver::ResolverDefinition, SchemaWalker};
 use crate::{
-    EntityWalker, FieldDefinitionId, InputValueDefinitionWalker, ProvidableFieldSet, RequiredFieldSet, SubgraphId,
-    TypeSystemDirectivesWalker, TypeWalker,
+    EntityWalker, FieldDefinitionId, InputValueDefinition, ProvidableFieldSet, RequiredFieldSet, SubgraphId, Type,
+    TypeSystemDirectivesWalker,
 };
 
-pub type FieldDefinitionWalker<'a> = SchemaWalker<'a, FieldDefinitionId>;
+pub type FieldDefinition<'a> = SchemaWalker<'a, FieldDefinitionId>;
 
-impl<'a> FieldDefinitionWalker<'a> {
+impl<'a> FieldDefinition<'a> {
     pub fn name(&self) -> &'a str {
-        &self.schema[self.as_ref().name]
+        &self.schema[self.as_ref().name_id]
     }
 
-    pub fn resolvers(self) -> impl ExactSizeIterator<Item = ResolverDefinitionWalker<'a>> {
-        self.schema[self.item].resolvers.iter().map(move |id| self.walk(*id))
+    pub fn resolvers(self) -> impl ExactSizeIterator<Item = ResolverDefinition<'a>> {
+        self.schema[self.item].resolver_ids.iter().map(move |id| self.walk(*id))
     }
 
     pub fn is_resolvable_in(&self, subgraph_id: SubgraphId) -> bool {
-        let r = &self.as_ref().only_resolvable_in;
+        let r = &self.as_ref().only_resolvable_in_ids;
         r.is_empty() || r.contains(&subgraph_id)
     }
 
@@ -60,41 +60,41 @@ impl<'a> FieldDefinitionWalker<'a> {
     }
 
     pub fn parent_entity(&self) -> EntityWalker<'a> {
-        self.walk(self.as_ref().parent_entity)
+        self.walk(self.as_ref().parent_entity_id)
     }
 
-    pub fn arguments(self) -> impl ExactSizeIterator<Item = InputValueDefinitionWalker<'a>> + 'a {
+    pub fn arguments(self) -> impl ExactSizeIterator<Item = InputValueDefinition<'a>> + 'a {
         self.schema[self.item]
             .argument_ids
             .into_iter()
             .map(move |id| self.walk(id))
     }
 
-    pub fn ty(self) -> TypeWalker<'a> {
+    pub fn ty(self) -> Type<'a> {
         self.walk(self.as_ref().ty)
     }
 
     pub fn directives(&self) -> TypeSystemDirectivesWalker<'a> {
-        self.walk(self.as_ref().directives)
+        self.walk(self.as_ref().directive_ids)
     }
 
-    pub fn argument_by_name(&self, name: &str) -> Option<InputValueDefinitionWalker<'a>> {
+    pub fn argument_by_name(&self, name: &str) -> Option<InputValueDefinition<'a>> {
         self.arguments().find(|arg| arg.name() == name)
     }
 }
 
 pub struct FieldResolverWalker<'a> {
-    pub resolver: ResolverDefinitionWalker<'a>,
+    pub resolver: ResolverDefinition<'a>,
     pub field_requires: &'a RequiredFieldSet,
 }
 
-impl<'a> std::fmt::Debug for FieldDefinitionWalker<'a> {
+impl<'a> std::fmt::Debug for FieldDefinition<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Field")
             .field("id", &usize::from(self.item))
             .field("name", &self.name())
             .field("type", &self.ty().to_string())
-            .field("resolvable_in", &self.as_ref().only_resolvable_in)
+            .field("resolvable_in", &self.as_ref().only_resolvable_in_ids)
             .field("resolvers", &self.resolvers().collect::<Vec<_>>())
             .field(
                 "arguments",

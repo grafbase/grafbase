@@ -7,7 +7,7 @@ use engine_parser::types::OperationType;
 use id_derives::IndexedFields;
 use id_newtypes::{BitSet, IdToMany};
 use itertools::Itertools;
-use schema::{EntityId, FieldDefinitionId, RequiredFieldId, RequiredFieldSet, ResolverDefinitionId, Schema};
+use schema::{EntityDefinitionId, FieldDefinitionId, RequiredFieldId, RequiredFieldSet, ResolverDefinitionId, Schema};
 
 use crate::{
     operation::{
@@ -121,7 +121,7 @@ impl<'a> LogicalPlanner<'a> {
                 .sort_unstable_by_key(|id| {
                     let field = &operation[*id];
                     (
-                        field.definition_id().map(|id| schema[id].parent_entity),
+                        field.definition_id().map(|id| schema[id].parent_entity_id),
                         field.query_position(),
                     )
                 });
@@ -337,7 +337,7 @@ impl<'a> LogicalPlanner<'a> {
         &mut self,
         query_path: QueryPath,
         resolver_id: ResolverDefinitionId,
-        entity_id: EntityId,
+        entity_id: EntityDefinitionId,
         root_field_ids: &[FieldId],
     ) -> LogicalPlanningResult<LogicalPlanId> {
         let id = LogicalPlanId::from(self.logical_plans.len());

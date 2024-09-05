@@ -1,5 +1,5 @@
 use id_newtypes::{IdRange, IdRangeIterator};
-use schema::{InputValueDefinitionId, InputValueDefinitionWalker, InputValueSerdeError, InputValueSet};
+use schema::{InputValueDefinition, InputValueDefinitionId, InputValueSerdeError, InputValueSet};
 use serde::{de::value::MapDeserializer, forward_to_deserialize_any};
 
 use crate::operation::{FieldArgumentId, QueryInputValueWalker};
@@ -24,7 +24,7 @@ impl<'a> FieldArgumentWalker<'a> {
 }
 
 impl<'a> std::ops::Deref for FieldArgumentWalker<'a> {
-    type Target = InputValueDefinitionWalker<'a>;
+    type Target = InputValueDefinition<'a>;
 
     fn deref(&self) -> &Self::Target {
         &self.schema_walker

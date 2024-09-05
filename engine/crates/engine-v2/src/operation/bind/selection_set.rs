@@ -74,7 +74,7 @@ impl<'schema, 'p, 'binder> SelectionSetBinder<'schema, 'p, 'binder> {
         field_ids.sort_unstable_by_key(|id| {
             let field = &self[*id];
             (
-                field.definition_id().map(|id| self.schema[id].parent_entity),
+                field.definition_id().map(|id| self.schema[id].parent_entity_id),
                 field.query_position(),
             )
         });
@@ -307,8 +307,8 @@ impl<'schema, 'p, 'binder> SelectionSetBinder<'schema, 'p, 'binder> {
     fn get_possible_types(&self, ty: SelectionSetType) -> Cow<'schema, [ObjectDefinitionId]> {
         match ty {
             SelectionSetType::Object(id) => Cow::Owned(vec![id]),
-            SelectionSetType::Interface(id) => Cow::Borrowed(&self.schema[id].possible_types),
-            SelectionSetType::Union(id) => Cow::Borrowed(&self.schema[id].possible_types),
+            SelectionSetType::Interface(id) => Cow::Borrowed(&self.schema[id].possible_type_ids),
+            SelectionSetType::Union(id) => Cow::Borrowed(&self.schema[id].possible_type_ids),
         }
     }
 

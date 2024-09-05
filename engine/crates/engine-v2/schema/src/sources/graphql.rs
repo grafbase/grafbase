@@ -2,7 +2,7 @@ use std::time::Duration;
 use url::Url;
 
 use crate::{
-    HeaderRuleId, HeaderRuleWalker, RequiredFieldSet, RequiredFieldSetId, SchemaWalker, StringId, SubgraphId, UrlId,
+    HeaderRule, HeaderRuleId, RequiredFieldSet, RequiredFieldSetId, SchemaWalker, StringId, SubgraphId, UrlId,
 };
 
 #[derive(Default, serde::Serialize, serde::Deserialize, id_derives::IndexedFields)]
@@ -161,7 +161,7 @@ impl<'a> GraphqlEndpointWalker<'a> {
         self.as_ref().websocket_url.map(|id| &self.schema[id])
     }
 
-    pub fn header_rules(self) -> impl Iterator<Item = HeaderRuleWalker<'a>> {
+    pub fn header_rules(self) -> impl Iterator<Item = HeaderRule<'a>> {
         self.as_ref().header_rules.iter().map(move |id| self.walk(*id))
     }
 

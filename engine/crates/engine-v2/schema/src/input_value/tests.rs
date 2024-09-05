@@ -3,86 +3,89 @@ use std::borrow::Cow;
 use serde::Deserialize;
 use wrapping::Wrapping;
 
-use crate::{builder::BuildContext, EnumValue, InputValue, InputValueDefinition, Schema, Type};
+use crate::{builder::BuildContext, EnumValueRecord, InputValue, InputValueDefinitionRecord, Schema, TypeRecord};
 
 use super::*;
 
 fn create_schema_and_input_value() -> (Schema, SchemaInputValueId) {
     BuildContext::build_with(|ctx, graph| {
         graph.input_value_definitions.extend([
-            InputValueDefinition {
-                name: ctx.strings.get_or_new("fieldA"),
-                description: None,
-                ty: Type {
-                    inner: crate::Definition::Object(0.into()),
+            InputValueDefinitionRecord {
+                name_id: ctx.strings.get_or_new("fieldA"),
+                description_id: None,
+                ty: TypeRecord {
+                    definition_id: crate::Definition::Object(0.into()),
                     wrapping: Wrapping::new(false),
                 }, // not used
-                default_value: None,
-                directives: IdRange::empty(),
+                default_value_id: None,
+                directive_ids: IdRange::empty(),
             },
-            InputValueDefinition {
-                name: ctx.strings.get_or_new("fieldB"),
-                description: None,
-                ty: Type {
-                    inner: crate::Definition::Object(0.into()),
+            InputValueDefinitionRecord {
+                name_id: ctx.strings.get_or_new("fieldB"),
+                description_id: None,
+                ty: TypeRecord {
+                    definition_id: crate::Definition::Object(0.into()),
                     wrapping: Wrapping::new(false),
                 }, // not used
-                default_value: None,
-                directives: IdRange::empty(),
+                default_value_id: None,
+                directive_ids: IdRange::empty(),
             },
         ]);
         graph.enum_value_definitions.extend([
-            EnumValue {
-                name: ctx.strings.get_or_new("ACTIVE"),
-                description: None,
-                directives: Default::default(),
+            EnumValueRecord {
+                name_id: ctx.strings.get_or_new("ACTIVE"),
+                description_id: None,
+                directive_ids: Default::default(),
             },
-            EnumValue {
-                name: ctx.strings.get_or_new("INACTIVE"),
-                description: None,
-                directives: Default::default(),
+            EnumValueRecord {
+                name_id: ctx.strings.get_or_new("INACTIVE"),
+                description_id: None,
+                directive_ids: Default::default(),
             },
         ]);
         let list = graph.input_values.push_list(vec![
-            SchemaInputValue::Null,
-            SchemaInputValue::EnumValue(EnumValueId::from(0)),
-            SchemaInputValue::Int(73),
+            SchemaInputValueRecord::Null,
+            SchemaInputValueRecord::EnumValue(EnumValueId::from(0)),
+            SchemaInputValueRecord::Int(73),
         ]);
         let input_fields = graph.input_values.push_input_object(vec![
             (
                 InputValueDefinitionId::from(0),
-                SchemaInputValue::EnumValue(EnumValueId::from(1)),
+                SchemaInputValueRecord::EnumValue(EnumValueId::from(1)),
             ),
             (
                 InputValueDefinitionId::from(1),
-                SchemaInputValue::String(ctx.strings.get_or_new("some string value")),
+                SchemaInputValueRecord::String(ctx.strings.get_or_new("some string value")),
             ),
         ]);
         let nested_fields = graph.input_values.push_map(vec![
-            (ctx.strings.get_or_new("null"), SchemaInputValue::Null),
+            (ctx.strings.get_or_new("null"), SchemaInputValueRecord::Null),
             (
                 ctx.strings.get_or_new("string"),
-                SchemaInputValue::String(ctx.strings.get_or_new("some string value")),
+                SchemaInputValueRecord::String(ctx.strings.get_or_new("some string value")),
             ),
             (
                 ctx.strings.get_or_new("enumValue"),
-                SchemaInputValue::EnumValue(EnumValueId::from(0)),
+                SchemaInputValueRecord::EnumValue(EnumValueId::from(0)),
             ),
-            (ctx.strings.get_or_new("int"), SchemaInputValue::Int(7)),
-            (ctx.strings.get_or_new("bigInt"), SchemaInputValue::BigInt(8)),
-            (ctx.strings.get_or_new("u64"), SchemaInputValue::U64(9)),
-            (ctx.strings.get_or_new("float"), SchemaInputValue::Float(10.0)),
-            (ctx.strings.get_or_new("boolean"), SchemaInputValue::Boolean(true)),
+            (ctx.strings.get_or_new("int"), SchemaInputValueRecord::Int(7)),
+            (ctx.strings.get_or_new("bigInt"), SchemaInputValueRecord::BigInt(8)),
+            (ctx.strings.get_or_new("u64"), SchemaInputValueRecord::U64(9)),
+            (ctx.strings.get_or_new("float"), SchemaInputValueRecord::Float(10.0)),
+            (ctx.strings.get_or_new("boolean"), SchemaInputValueRecord::Boolean(true)),
         ]);
         let fields = graph.input_values.push_map(vec![
             (
                 ctx.strings.get_or_new("inputObject"),
-                SchemaInputValue::InputObject(input_fields),
+                SchemaInputValueRecord::InputObject(input_fields),
             ),
-            (ctx.strings.get_or_new("list"), SchemaInputValue::List(list)),
-            (ctx.strings.get_or_new("object"), SchemaInputValue::Map(nested_fields)),
+            (ctx.strings.get_or_new("list"), SchemaInputValueRecord::List(list)),
+            (
+                ctx.strings.get_or_new("object"),
+                SchemaInputValueRecord::Map(nested_fields),
+            ),
         ]);
-        graph.input_values.push_value(SchemaInputValue::Map(fields))
+        graph.input_values.push_value(SchemaInputValueRecord::Map(fields))
     })
 }
 

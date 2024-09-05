@@ -45,7 +45,7 @@
 use futures::FutureExt;
 use futures_util::stream::BoxStream;
 use runtime::hooks::{ExecutedSubgraphRequest, ExecutedSubgraphRequestBuilder};
-use schema::{sources::graphql::GraphqlEndpointWalker, ResolverDefinition, ResolverDefinitionWalker};
+use schema::{sources::graphql::GraphqlEndpointWalker, ResolverDefinition, ResolverDefinitionRecord};
 use std::{future::Future, ops::Deref};
 use tower::retry::budget::Budget;
 
@@ -74,16 +74,16 @@ pub(crate) enum Resolver {
 
 impl Resolver {
     pub fn prepare(
-        definition: ResolverDefinitionWalker<'_>,
+        definition: ResolverDefinition<'_>,
         operation_type: OperationType,
         plan: PlanWalker<'_>,
     ) -> PlanningResult<Self> {
         match definition.as_ref() {
-            ResolverDefinition::Introspection(_) => Ok(Resolver::Introspection(IntrospectionResolver)),
-            ResolverDefinition::GraphqlRootField(resolver) => {
+            ResolverDefinitionRecord::Introspection(_) => Ok(Resolver::Introspection(IntrospectionResolver)),
+            ResolverDefinitionRecord::GraphqlRootField(resolver) => {
                 GraphqlResolver::prepare(definition.walk(resolver), operation_type, plan)
             }
-            ResolverDefinition::GraphqlFederationEntity(resolver) => {
+            ResolverDefinitionRecord::GraphqlFederationEntity(resolver) => {
                 FederationEntityResolver::prepare(definition.walk(resolver), plan)
             }
         }

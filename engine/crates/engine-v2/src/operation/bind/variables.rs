@@ -131,7 +131,7 @@ impl<'schema, 'p> Binder<'schema, 'p> {
         variable_name: &str,
         location: Location,
         ty: engine_parser::types::Type,
-    ) -> BindResult<schema::Type> {
+    ) -> BindResult<schema::TypeRecord> {
         match ty.base {
             engine_parser::types::BaseType::Named(type_name) => {
                 let definition =
@@ -151,8 +151,8 @@ impl<'schema, 'p> Binder<'schema, 'p> {
                         location,
                     });
                 }
-                Ok(schema::Type {
-                    inner: definition,
+                Ok(schema::TypeRecord {
+                    definition_id: definition,
                     wrapping: schema::Wrapping::new(!ty.nullable),
                 })
             }

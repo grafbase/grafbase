@@ -6,7 +6,7 @@ pub type EnumValueWalker<'a> = SchemaWalker<'a, EnumValueId>;
 
 impl<'a> EnumDefinitionWalker<'a> {
     pub fn name(&self) -> &'a str {
-        &self.schema[self.as_ref().name]
+        &self.schema[self.as_ref().name_id]
     }
 
     pub fn values(self) -> impl ExactSizeIterator<Item = EnumValueWalker<'a>> + 'a {
@@ -17,22 +17,22 @@ impl<'a> EnumDefinitionWalker<'a> {
         let ids = self.as_ref().value_ids;
         self.schema[ids]
             .iter()
-            .position(|enum_value| self.schema[enum_value.name].as_str() == name)
+            .position(|enum_value| self.schema[enum_value.name_id].as_str() == name)
             .and_then(|idx| ids.get(idx))
     }
 
     pub fn directives(&self) -> TypeSystemDirectivesWalker<'a> {
-        self.walk(self.as_ref().directives)
+        self.walk(self.as_ref().directive_ids)
     }
 }
 
 impl<'a> EnumValueWalker<'a> {
     pub fn name(&self) -> &'a str {
-        &self.schema[self.as_ref().name]
+        &self.schema[self.as_ref().name_id]
     }
 
     pub fn directives(&self) -> TypeSystemDirectivesWalker<'a> {
-        self.walk(self.as_ref().directives)
+        self.walk(self.as_ref().directive_ids)
     }
 }
 

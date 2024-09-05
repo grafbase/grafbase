@@ -1,4 +1,4 @@
-use crate::{FieldDefinitionWalker, RequiredFieldId, RequiredFieldSet, RequiredFieldSetItem, SchemaWalker};
+use crate::{FieldDefinition, RequiredFieldId, RequiredFieldSet, RequiredFieldSetItem, SchemaWalker};
 
 pub type RequiredFieldsWalker<'a> = SchemaWalker<'a, &'a RequiredFieldSet>;
 pub type RequiredFieldSetItemWalker<'a> = SchemaWalker<'a, &'a RequiredFieldSetItem>;
@@ -20,7 +20,7 @@ impl<'a> RequiredFieldSetItemWalker<'a> {
         self.definition().name()
     }
 
-    pub fn definition(&self) -> FieldDefinitionWalker<'a> {
+    pub fn definition(&self) -> FieldDefinition<'a> {
         self.walk(self.schema[self.item.id].definition_id)
     }
 

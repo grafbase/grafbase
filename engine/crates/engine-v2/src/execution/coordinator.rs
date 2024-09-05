@@ -382,7 +382,7 @@ where
         let mut fields = Vec::new();
         if !shape.typename_response_edges.is_empty() {
             if let ObjectIdentifier::Known(object_id) = shape.identifier {
-                let name: ResponseValue = self.schema().walk(object_id).as_ref().name.into();
+                let name: ResponseValue = self.schema().walk(object_id).as_ref().name_id.into();
                 fields.extend(shape.typename_response_edges.iter().map(|&edge| ResponseObjectField {
                     edge,
                     required_field_id: None,

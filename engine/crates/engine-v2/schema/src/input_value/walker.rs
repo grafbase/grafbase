@@ -1,41 +1,41 @@
 use std::cmp::Ordering;
 
-use crate::{InputValue, SchemaInputValue, SchemaWalker};
+use crate::{InputValue, SchemaInputValueRecord, SchemaWalker};
 
-pub type SchemaInputValueWalker<'a> = SchemaWalker<'a, &'a SchemaInputValue>;
+pub type SchemaInputValueWalker<'a> = SchemaWalker<'a, &'a SchemaInputValueRecord>;
 
 impl<'a> From<SchemaInputValueWalker<'a>> for InputValue<'a> {
     fn from(walker: SchemaInputValueWalker<'a>) -> Self {
         match walker.item {
-            SchemaInputValue::Null => InputValue::Null,
-            SchemaInputValue::String(id) => InputValue::String(&walker.schema[*id]),
-            SchemaInputValue::EnumValue(id) => InputValue::EnumValue(*id),
-            SchemaInputValue::Int(n) => InputValue::Int(*n),
-            SchemaInputValue::BigInt(n) => InputValue::BigInt(*n),
-            SchemaInputValue::Float(f) => InputValue::Float(*f),
-            SchemaInputValue::Boolean(b) => InputValue::Boolean(*b),
-            SchemaInputValue::InputObject(ids) => {
+            SchemaInputValueRecord::Null => InputValue::Null,
+            SchemaInputValueRecord::String(id) => InputValue::String(&walker.schema[*id]),
+            SchemaInputValueRecord::EnumValue(id) => InputValue::EnumValue(*id),
+            SchemaInputValueRecord::Int(n) => InputValue::Int(*n),
+            SchemaInputValueRecord::BigInt(n) => InputValue::BigInt(*n),
+            SchemaInputValueRecord::Float(f) => InputValue::Float(*f),
+            SchemaInputValueRecord::Boolean(b) => InputValue::Boolean(*b),
+            SchemaInputValueRecord::InputObject(ids) => {
                 let mut fields = Vec::with_capacity(ids.len());
                 for (input_value_definition_id, value) in &walker.schema[*ids] {
                     fields.push((*input_value_definition_id, walker.walk(value).into()));
                 }
                 InputValue::InputObject(fields.into_boxed_slice())
             }
-            SchemaInputValue::List(ids) => {
+            SchemaInputValueRecord::List(ids) => {
                 let mut values = Vec::with_capacity(ids.len());
                 for value in &walker.schema[*ids] {
                     values.push(walker.walk(value).into());
                 }
                 InputValue::List(values.into_boxed_slice())
             }
-            SchemaInputValue::Map(ids) => {
+            SchemaInputValueRecord::Map(ids) => {
                 let mut key_values = Vec::with_capacity(ids.len());
                 for (key, value) in &walker.schema[*ids] {
                     key_values.push((walker.schema[*key].as_str(), Self::from(walker.walk(value))));
                 }
                 InputValue::Map(key_values.into_boxed_slice())
             }
-            SchemaInputValue::U64(n) => InputValue::U64(*n),
+            SchemaInputValueRecord::U64(n) => InputValue::U64(*n),
         }
     }
 }
@@ -46,15 +46,15 @@ impl Ord for SchemaInputValueWalker<'_> {
     fn cmp(&self, other: &Self) -> Ordering {
         self.item.discriminant().cmp(&other.item.discriminant()).then_with(|| {
             match (self.item, other.item) {
-                (SchemaInputValue::Null, SchemaInputValue::Null) => Ordering::Equal,
-                (SchemaInputValue::String(l), SchemaInputValue::String(r)) => l.cmp(r),
-                (SchemaInputValue::EnumValue(l), SchemaInputValue::EnumValue(r)) => l.cmp(r),
-                (SchemaInputValue::Int(l), SchemaInputValue::Int(r)) => l.cmp(r),
-                (SchemaInputValue::BigInt(l), SchemaInputValue::BigInt(r)) => l.cmp(r),
-                (SchemaInputValue::U64(l), SchemaInputValue::U64(r)) => l.cmp(r),
-                (SchemaInputValue::Float(l), SchemaInputValue::Float(r)) => l.total_cmp(r),
-                (SchemaInputValue::Boolean(l), SchemaInputValue::Boolean(r)) => l.cmp(r),
-                (SchemaInputValue::InputObject(lids), SchemaInputValue::InputObject(rids)) => {
+                (SchemaInputValueRecord::Null, SchemaInputValueRecord::Null) => Ordering::Equal,
+                (SchemaInputValueRecord::String(l), SchemaInputValueRecord::String(r)) => l.cmp(r),
+                (SchemaInputValueRecord::EnumValue(l), SchemaInputValueRecord::EnumValue(r)) => l.cmp(r),
+                (SchemaInputValueRecord::Int(l), SchemaInputValueRecord::Int(r)) => l.cmp(r),
+                (SchemaInputValueRecord::BigInt(l), SchemaInputValueRecord::BigInt(r)) => l.cmp(r),
+                (SchemaInputValueRecord::U64(l), SchemaInputValueRecord::U64(r)) => l.cmp(r),
+                (SchemaInputValueRecord::Float(l), SchemaInputValueRecord::Float(r)) => l.total_cmp(r),
+                (SchemaInputValueRecord::Boolean(l), SchemaInputValueRecord::Boolean(r)) => l.cmp(r),
+                (SchemaInputValueRecord::InputObject(lids), SchemaInputValueRecord::InputObject(rids)) => {
                     let left = &self.schema[*lids];
                     let right = &self.schema[*rids];
                     left.len().cmp(&right.len()).then_with(|| {
@@ -70,7 +70,7 @@ impl Ord for SchemaInputValueWalker<'_> {
                         Ordering::Equal
                     })
                 }
-                (SchemaInputValue::List(lids), SchemaInputValue::List(rids)) => {
+                (SchemaInputValueRecord::List(lids), SchemaInputValueRecord::List(rids)) => {
                     let left = &self.schema[*lids];
                     let right = &self.schema[*rids];
                     left.len().cmp(&right.len()).then_with(|| {
@@ -83,7 +83,7 @@ impl Ord for SchemaInputValueWalker<'_> {
                         Ordering::Equal
                     })
                 }
-                (SchemaInputValue::Map(lids), SchemaInputValue::Map(rids)) => {
+                (SchemaInputValueRecord::Map(lids), SchemaInputValueRecord::Map(rids)) => {
                     let left = &self.schema[*lids];
                     let right = &self.schema[*rids];
                     left.len().cmp(&right.len()).then_with(|| {
@@ -123,29 +123,29 @@ impl PartialOrd for SchemaInputValueWalker<'_> {
 impl std::fmt::Debug for SchemaInputValueWalker<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self.item {
-            SchemaInputValue::Null => write!(f, "Null"),
-            SchemaInputValue::String(s) => s.fmt(f),
-            SchemaInputValue::EnumValue(id) => f.debug_tuple("EnumValue").field(&self.walk(*id).name()).finish(),
-            SchemaInputValue::Int(n) => f.debug_tuple("Int").field(n).finish(),
-            SchemaInputValue::BigInt(n) => f.debug_tuple("BigInt").field(n).finish(),
-            SchemaInputValue::U64(n) => f.debug_tuple("U64").field(n).finish(),
-            SchemaInputValue::Float(n) => f.debug_tuple("Float").field(n).finish(),
-            SchemaInputValue::Boolean(b) => b.fmt(f),
-            SchemaInputValue::InputObject(ids) => {
+            SchemaInputValueRecord::Null => write!(f, "Null"),
+            SchemaInputValueRecord::String(s) => s.fmt(f),
+            SchemaInputValueRecord::EnumValue(id) => f.debug_tuple("EnumValue").field(&self.walk(*id).name()).finish(),
+            SchemaInputValueRecord::Int(n) => f.debug_tuple("Int").field(n).finish(),
+            SchemaInputValueRecord::BigInt(n) => f.debug_tuple("BigInt").field(n).finish(),
+            SchemaInputValueRecord::U64(n) => f.debug_tuple("U64").field(n).finish(),
+            SchemaInputValueRecord::Float(n) => f.debug_tuple("Float").field(n).finish(),
+            SchemaInputValueRecord::Boolean(b) => b.fmt(f),
+            SchemaInputValueRecord::InputObject(ids) => {
                 let mut map = f.debug_struct("InputObject");
                 for (input_value_definition_id, value) in &self.schema[*ids] {
                     map.field(self.walk(*input_value_definition_id).name(), &self.walk(value));
                 }
                 map.finish()
             }
-            SchemaInputValue::List(ids) => {
+            SchemaInputValueRecord::List(ids) => {
                 let mut seq = f.debug_list();
                 for value in &self.schema[*ids] {
                     seq.entry(&self.walk(value));
                 }
                 seq.finish()
             }
-            SchemaInputValue::Map(ids) => {
+            SchemaInputValueRecord::Map(ids) => {
                 let mut map = f.debug_map();
                 for (key, value) in &self.schema[*ids] {
                     map.entry(&key, &self.walk(value));

@@ -1,6 +1,6 @@
 use federated_graph::Value;
 
-use crate::{SchemaInputValue, SchemaInputValues};
+use crate::{SchemaInputValueRecord, SchemaInputValues};
 
 use super::BuildContext;
 
@@ -12,19 +12,19 @@ impl SchemaInputValues {
         &mut self,
         ctx: &BuildContext,
         value: Value,
-    ) -> Result<SchemaInputValue, InaccessibleEnumValue> {
+    ) -> Result<SchemaInputValueRecord, InaccessibleEnumValue> {
         Ok(match value {
-            Value::Null => SchemaInputValue::Null,
-            Value::String(id) | Value::UnboundEnumValue(id) => SchemaInputValue::String(id.into()),
-            Value::Int(n) => SchemaInputValue::BigInt(n),
-            Value::Float(f) => SchemaInputValue::Float(f),
-            Value::Boolean(b) => SchemaInputValue::Boolean(b),
+            Value::Null => SchemaInputValueRecord::Null,
+            Value::String(id) | Value::UnboundEnumValue(id) => SchemaInputValueRecord::String(id.into()),
+            Value::Int(n) => SchemaInputValueRecord::BigInt(n),
+            Value::Float(f) => SchemaInputValueRecord::Float(f),
+            Value::Boolean(b) => SchemaInputValueRecord::Boolean(b),
             Value::EnumValue(id) => {
                 let Some(id) = ctx.idmaps.enum_values.get(id) else {
                     return Err(InaccessibleEnumValue);
                 };
 
-                SchemaInputValue::EnumValue(id)
+                SchemaInputValueRecord::EnumValue(id)
             }
             Value::Object(fields) => {
                 let ids = self.reserve_map(fields.len());
@@ -34,7 +34,7 @@ impl SchemaInputValues {
                 self[ids].sort_unstable_by(|(left_key, _), (right_key, _)| {
                     ctx.strings.get_by_id(*left_key).cmp(&ctx.strings.get_by_id(*right_key))
                 });
-                SchemaInputValue::Map(ids)
+                SchemaInputValueRecord::Map(ids)
             }
             Value::List(list) => {
                 let ids = self.reserve_list(list.len());
@@ -42,7 +42,7 @@ impl SchemaInputValues {
                     let value = self.ingest_arbitrary_federated_value(ctx, value)?;
                     self[id] = value;
                 }
-                SchemaInputValue::List(ids)
+                SchemaInputValueRecord::List(ids)
             }
         })
     }

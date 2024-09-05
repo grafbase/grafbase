@@ -1,8 +1,8 @@
 use engine_value::ConstValue;
 use id_newtypes::IdRange;
 use schema::{
-    Definition, EnumDefinitionWalker, InputObjectDefinitionWalker, InputValueDefinitionId, ListWrapping,
-    ScalarDefinitionWalker, ScalarType, Schema, Type,
+    Definition, EnumDefinitionWalker, InputObjectDefinition, InputValueDefinitionId, ListWrapping, ScalarDefinition,
+    ScalarType, Schema, TypeRecord,
 };
 
 use crate::operation::{Location, VariableDefinition, VariableInputValue, VariableInputValueId, VariableInputValues};
@@ -38,7 +38,7 @@ struct VariableCoercionContext<'a> {
 }
 
 impl<'a> VariableCoercionContext<'a> {
-    fn coerce_input_value(&mut self, ty: Type, value: ConstValue) -> Result<VariableInputValue, InputValueError> {
+    fn coerce_input_value(&mut self, ty: TypeRecord, value: ConstValue) -> Result<VariableInputValue, InputValueError> {
         if ty.wrapping.is_list() && !value.is_array() && !value.is_null() {
             let mut value = self.coerce_named_type(ty, value)?;
             for _ in 0..ty.wrapping.list_wrappings().len() {
@@ -50,7 +50,7 @@ impl<'a> VariableCoercionContext<'a> {
         self.coerce_list(ty, value)
     }
 
-    fn coerce_list(&mut self, mut ty: Type, value: ConstValue) -> Result<VariableInputValue, InputValueError> {
+    fn coerce_list(&mut self, mut ty: TypeRecord, value: ConstValue) -> Result<VariableInputValue, InputValueError> {
         let Some(list_wrapping) = ty.wrapping.pop_list_wrapping() else {
             return self.coerce_named_type(ty, value);
         };
@@ -80,7 +80,7 @@ impl<'a> VariableCoercionContext<'a> {
         }
     }
 
-    fn coerce_named_type(&mut self, ty: Type, value: ConstValue) -> Result<VariableInputValue, InputValueError> {
+    fn coerce_named_type(&mut self, ty: TypeRecord, value: ConstValue) -> Result<VariableInputValue, InputValueError> {
         if value.is_null() {
             if ty.wrapping.is_required() {
                 return Err(InputValueError::UnexpectedNull {
@@ -92,7 +92,7 @@ impl<'a> VariableCoercionContext<'a> {
             return Ok(VariableInputValue::Null);
         }
 
-        match ty.inner {
+        match ty.definition_id {
             Definition::Scalar(scalar) => self.coerce_scalar(self.schema.walk(scalar), value),
             Definition::Enum(r#enum) => self.coerce_enum(self.schema.walk(r#enum), value),
             Definition::InputObject(input_object) => self.coerce_input_objet(self.schema.walk(input_object), value),
@@ -102,7 +102,7 @@ impl<'a> VariableCoercionContext<'a> {
 
     fn coerce_input_objet(
         &mut self,
-        input_object: InputObjectDefinitionWalker<'_>,
+        input_object: InputObjectDefinition<'_>,
         value: ConstValue,
     ) -> Result<VariableInputValue, InputValueError> {
         let ConstValue::Object(mut fields) = value else {
@@ -118,7 +118,7 @@ impl<'a> VariableCoercionContext<'a> {
         for input_field in input_object.input_fields() {
             match fields.swap_remove(input_field.name()) {
                 None => {
-                    if let Some(default_value_id) = input_field.as_ref().default_value {
+                    if let Some(default_value_id) = input_field.as_ref().default_value_id {
                         fields_buffer.push((input_field.id(), VariableInputValue::DefaultValue(default_value_id)));
                     } else if input_field.ty().wrapping().is_required() {
                         return Err(InputValueError::UnexpectedNull {
@@ -129,7 +129,7 @@ impl<'a> VariableCoercionContext<'a> {
                     }
                 }
                 Some(value) => {
-                    self.value_path.push(input_field.as_ref().name.into());
+                    self.value_path.push(input_field.as_ref().name_id.into());
                     let value = self.coerce_input_value(input_field.ty().into(), value)?;
                     fields_buffer.push((input_field.id(), value));
                     self.value_path.pop();
@@ -181,7 +181,7 @@ impl<'a> VariableCoercionContext<'a> {
 
     fn coerce_scalar(
         &mut self,
-        scalar: ScalarDefinitionWalker<'_>,
+        scalar: ScalarDefinition<'_>,
         value: ConstValue,
     ) -> Result<VariableInputValue, InputValueError> {
         match (value, scalar.as_ref().ty) {

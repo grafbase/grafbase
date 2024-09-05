@@ -1,4 +1,4 @@
-use schema::{FieldDefinitionId, ProvidableFieldSet, ResolverDefinitionWalker};
+use schema::{FieldDefinitionId, ProvidableFieldSet, ResolverDefinition};
 
 use crate::operation::LogicalPlanId;
 
@@ -9,13 +9,13 @@ pub(super) enum PlanningLogic<'schema> {
     /// Having a resolver in the same group or having no resolver at all.
     SameSubgrah {
         id: LogicalPlanId,
-        resolver: ResolverDefinitionWalker<'schema>,
+        resolver: ResolverDefinition<'schema>,
         providable: ProvidableFieldSet,
     },
     /// Only an explicitly providable (@provide) field can be provided.
     OnlyProvidable {
         id: LogicalPlanId,
-        resolver: ResolverDefinitionWalker<'schema>,
+        resolver: ResolverDefinition<'schema>,
         providable: ProvidableFieldSet,
     },
 }
@@ -27,7 +27,7 @@ impl std::fmt::Display for PlanningLogic<'_> {
 }
 
 impl<'schema> PlanningLogic<'schema> {
-    pub(super) fn new(id: LogicalPlanId, resolver: ResolverDefinitionWalker<'schema>) -> Self {
+    pub(super) fn new(id: LogicalPlanId, resolver: ResolverDefinition<'schema>) -> Self {
         PlanningLogic::SameSubgrah {
             id,
             resolver,
@@ -85,7 +85,7 @@ impl<'schema> PlanningLogic<'schema> {
         }
     }
 
-    pub(super) fn resolver(&self) -> &ResolverDefinitionWalker<'schema> {
+    pub(super) fn resolver(&self) -> &ResolverDefinition<'schema> {
         match self {
             PlanningLogic::SameSubgrah { resolver, .. } => resolver,
             PlanningLogic::OnlyProvidable { resolver, .. } => resolver,

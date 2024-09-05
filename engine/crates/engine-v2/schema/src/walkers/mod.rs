@@ -94,19 +94,23 @@ impl<'a> SchemaWalker<'a, ()> {
         &self.schema.data_sources.introspection
     }
 
-    pub fn query(&self) -> ObjectDefinitionWalker<'a> {
-        self.walk(self.schema.graph.root_operation_types.query)
+    pub fn query(&self) -> ObjectDefinition<'a> {
+        self.walk(self.schema.graph.root_operation_types.query_id)
     }
 
-    pub fn mutation(&self) -> Option<ObjectDefinitionWalker<'a>> {
-        self.schema.graph.root_operation_types.mutation.map(|id| self.walk(id))
-    }
-
-    pub fn subscription(&self) -> Option<ObjectDefinitionWalker<'a>> {
+    pub fn mutation(&self) -> Option<ObjectDefinition<'a>> {
         self.schema
             .graph
             .root_operation_types
-            .subscription
+            .mutation_id
+            .map(|id| self.walk(id))
+    }
+
+    pub fn subscription(&self) -> Option<ObjectDefinition<'a>> {
+        self.schema
+            .graph
+            .root_operation_types
+            .subscription_id
             .map(|id| self.walk(id))
     }
 
@@ -116,7 +120,7 @@ impl<'a> SchemaWalker<'a, ()> {
         self.schema
     }
 
-    pub fn default_header_rules(self) -> impl ExactSizeIterator<Item = HeaderRuleWalker<'a>> {
+    pub fn default_header_rules(self) -> impl ExactSizeIterator<Item = HeaderRule<'a>> {
         self.as_ref()
             .settings
             .default_header_rules

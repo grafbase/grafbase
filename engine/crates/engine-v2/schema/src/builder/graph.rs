@@ -23,7 +23,7 @@ pub(crate) struct GraphBuilder<'a> {
     sources: &'a ExternalDataSources,
     required_field_sets_buffer: RequiredFieldSetBuffer,
     cache_control: Interner<CacheControl, CacheControlId>,
-    required_scopes: Interner<RequiredScopes, RequiredScopesId>,
+    required_scopes: Interner<RequiredScopesRecord, RequiredScopesId>,
     graph: Graph,
 }
 
@@ -42,9 +42,9 @@ impl<'a> GraphBuilder<'a> {
             graph: Graph {
                 description: None,
                 root_operation_types: RootOperationTypes {
-                    query: config.graph.root_operation_types.query.into(),
-                    mutation: config.graph.root_operation_types.mutation.map(Into::into),
-                    subscription: config.graph.root_operation_types.subscription.map(Into::into),
+                    query_id: config.graph.root_operation_types.query.into(),
+                    mutation_id: config.graph.root_operation_types.mutation.map(Into::into),
+                    subscription_id: config.graph.root_operation_types.subscription.map(Into::into),
                 },
                 object_definitions: Vec::new(),
                 interface_definitions: Vec::new(),
@@ -104,11 +104,11 @@ impl<'a> GraphBuilder<'a> {
             .enumerate()
             .filter_map(|(idx, definition)| {
                 if self.ctx.idmaps.input_value.contains(idx) {
-                    Some(InputValueDefinition {
-                        name: definition.name.into(),
-                        description: definition.description.map(Into::into),
+                    Some(InputValueDefinitionRecord {
+                        name_id: definition.name.into(),
+                        description_id: definition.description.map(Into::into),
                         ty: definition.r#type.into(),
-                        default_value: definition.default.and_then(|default| {
+                        default_value_id: definition.default.and_then(|default| {
                             let value = self
                                 .graph
                                 .input_values
@@ -117,7 +117,7 @@ impl<'a> GraphBuilder<'a> {
 
                             Some(self.graph.input_values.push_value(value))
                         }),
-                        directives: self.push_directives(
+                        directive_ids: self.push_directives(
                             config,
                             Directives {
                                 federated: definition.directives,
@@ -138,11 +138,11 @@ impl<'a> GraphBuilder<'a> {
             .enumerate()
             .filter_map(|(idx, definition)| {
                 if self.ctx.idmaps.input_value.contains(idx) {
-                    Some(InputObjectDefinition {
-                        name: definition.name.into(),
-                        description: definition.description.map(Into::into),
+                    Some(InputObjectDefinitionRecord {
+                        name_id: definition.name.into(),
+                        description_id: definition.description.map(Into::into),
                         input_field_ids: self.ctx.idmaps.input_value.get_range(definition.fields),
-                        directives: self.push_directives(
+                        directive_ids: self.push_directives(
                             config,
                             Directives {
                                 federated: definition.composed_directives,
@@ -160,18 +160,18 @@ impl<'a> GraphBuilder<'a> {
     fn ingest_unions(&mut self, config: &mut Config) {
         self.graph.union_definitions = take(&mut config.graph.unions)
             .into_iter()
-            .map(|union| UnionDefinition {
-                name: union.name.into(),
-                description: None,
-                possible_types: union
+            .map(|union| UnionDefinitionRecord {
+                name_id: union.name.into(),
+                description_id: None,
+                possible_type_ids: union
                     .members
                     .into_iter()
                     .filter(|object_id| !is_inaccessible(&config.graph, config.graph[*object_id].composed_directives))
                     .map(Into::into)
                     .collect(),
                 // Added at the end.
-                possible_types_ordered_by_typename: Vec::new(),
-                directives: self.push_directives(
+                possible_types_ordered_by_typename_ids: Vec::new(),
+                directive_ids: self.push_directives(
                     config,
                     Directives {
                         federated: union.composed_directives,
@@ -191,10 +191,10 @@ impl<'a> GraphBuilder<'a> {
                     self.ctx.idmaps.enum_values.skip(federated_graph::EnumValueId(idx));
                     None
                 } else {
-                    Some(EnumValue {
-                        name: enum_value.value.into(),
-                        description: None,
-                        directives: self.push_directives(
+                    Some(EnumValueRecord {
+                        name_id: enum_value.value.into(),
+                        description_id: None,
+                        directive_ids: self.push_directives(
                             config,
                             Directives {
                                 federated: enum_value.composed_directives,
@@ -208,11 +208,11 @@ impl<'a> GraphBuilder<'a> {
 
         self.graph.enum_definitions = take(&mut config.graph.enums)
             .into_iter()
-            .map(|federated_enum| EnumDefinition {
-                name: federated_enum.name.into(),
-                description: None,
+            .map(|federated_enum| EnumDefinitionRecord {
+                name_id: federated_enum.name.into(),
+                description_id: None,
                 value_ids: self.ctx.idmaps.enum_values.get_range(federated_enum.values),
-                directives: self.push_directives(
+                directive_ids: self.push_directives(
                     config,
                     Directives {
                         federated: federated_enum.composed_directives,
@@ -228,12 +228,12 @@ impl<'a> GraphBuilder<'a> {
             .into_iter()
             .map(|scalar| {
                 let name = StringId::from(scalar.name);
-                ScalarDefinition {
-                    name,
+                ScalarDefinitionRecord {
+                    name_id: name,
                     ty: ScalarType::from_scalar_name(&self.ctx.strings[name]),
-                    description: None,
-                    specified_by_url: None,
-                    directives: self.push_directives(
+                    description_id: None,
+                    specified_by_url_id: None,
+                    directive_ids: self.push_directives(
                         config,
                         Directives {
                             federated: scalar.composed_directives,
@@ -287,12 +287,12 @@ impl<'a> GraphBuilder<'a> {
                     },
                 },
             );
-            self.graph.object_definitions.push(ObjectDefinition {
-                name: object.name.into(),
-                description: None,
-                interfaces: object.implements_interfaces.into_iter().map(Into::into).collect(),
-                directives,
-                fields,
+            self.graph.object_definitions.push(ObjectDefinitionRecord {
+                name_id: object.name.into(),
+                description_id: None,
+                interface_ids: object.implements_interfaces.into_iter().map(Into::into).collect(),
+                directive_ids: directives,
+                field_ids: fields,
             });
 
             if let Some(entity) = self.generate_federation_entity_from_keys(schema_location, object.keys) {
@@ -327,15 +327,15 @@ impl<'a> GraphBuilder<'a> {
                     ..Default::default()
                 },
             );
-            self.graph.interface_definitions.push(InterfaceDefinition {
-                name: interface.name.into(),
-                description: None,
-                interfaces: interface.implements_interfaces.into_iter().map(Into::into).collect(),
-                possible_types: Vec::new(),
+            self.graph.interface_definitions.push(InterfaceDefinitionRecord {
+                name_id: interface.name.into(),
+                description_id: None,
+                interface_ids: interface.implements_interfaces.into_iter().map(Into::into).collect(),
+                possible_type_ids: Vec::new(),
                 // Added at the end.
-                possible_types_ordered_by_typename: Vec::new(),
-                directives,
-                fields,
+                possible_types_ordered_by_typename_ids: Vec::new(),
+                directive_ids: directives,
+                field_ids: fields,
             });
 
             if let Some(entity) = self.generate_federation_entity_from_keys(
@@ -350,8 +350,8 @@ impl<'a> GraphBuilder<'a> {
 
         // Adding all implementations of an interface, used during introspection.
         for object_id in (0..self.graph.object_definitions.len()).map(ObjectDefinitionId::from) {
-            for interface_id in self.graph[object_id].interfaces.clone() {
-                self.graph[interface_id].possible_types.push(object_id);
+            for interface_id in self.graph[object_id].interface_ids.clone() {
+                self.graph[interface_id].possible_type_ids.push(object_id);
             }
         }
 
@@ -366,13 +366,13 @@ impl<'a> GraphBuilder<'a> {
     ) {
         let root_fields = {
             let mut root_fields = vec![];
-            root_fields.extend(self.graph[self.graph.root_operation_types.query].fields);
+            root_fields.extend(self.graph[self.graph.root_operation_types.query_id].field_ids);
 
-            if let Some(mutation) = self.graph.root_operation_types.mutation {
-                root_fields.extend(self.graph[mutation].fields);
+            if let Some(mutation) = self.graph.root_operation_types.mutation_id {
+                root_fields.extend(self.graph[mutation].field_ids);
             }
-            if let Some(subscription) = self.graph.root_operation_types.subscription {
-                root_fields.extend(self.graph[subscription].fields);
+            if let Some(subscription) = self.graph.root_operation_types.subscription_id {
+                root_fields.extend(self.graph[subscription].field_ids);
             }
             root_fields.sort_unstable();
             root_fields
@@ -407,9 +407,9 @@ impl<'a> GraphBuilder<'a> {
             if root_fields.binary_search(&field_id).is_ok() {
                 for &endpoint_id in &only_resolvable_in {
                     let resolver_id = *root_field_resolvers.entry(endpoint_id).or_insert_with(|| {
-                        self.push_resolver(ResolverDefinition::GraphqlRootField(RootFieldResolverDefinition {
-                            endpoint_id,
-                        }))
+                        self.push_resolver(ResolverDefinitionRecord::GraphqlRootField(
+                            RootFieldResolverDefinition { endpoint_id },
+                        ))
                     });
                     resolvers.push(resolver_id);
                 }
@@ -445,18 +445,18 @@ impl<'a> GraphBuilder<'a> {
             let parent_entity_id = if let Some(object_id) =
                 object_metadata.field_id_to_maybe_object_id[usize::from(field_id)]
             {
-                EntityId::Object(object_id)
+                EntityDefinitionId::Object(object_id)
             } else if let Some(interface_id) = interface_metadata.field_id_to_maybe_interface_id[usize::from(field_id)]
             {
-                EntityId::Interface(interface_id)
+                EntityDefinitionId::Interface(interface_id)
             } else {
                 // TODO: better guarantee this never fails.
                 unreachable!()
             };
             let schema_location = SchemaLocation::Field {
                 ty: match parent_entity_id {
-                    EntityId::Object(id) => self.graph[id].name,
-                    EntityId::Interface(id) => self.graph[id].name,
+                    EntityDefinitionId::Object(id) => self.graph[id].name_id,
+                    EntityDefinitionId::Interface(id) => self.graph[id].name_id,
                 },
                 name: field.name.into(),
             };
@@ -479,16 +479,16 @@ impl<'a> GraphBuilder<'a> {
                 },
             );
 
-            self.graph.field_definitions.push(FieldDefinition {
-                name: field.name.into(),
-                description: None,
-                parent_entity: parent_entity_id,
+            self.graph.field_definitions.push(FieldDefinitionRecord {
+                name_id: field.name.into(),
+                description_id: None,
+                parent_entity_id,
                 ty: field.r#type.into(),
-                only_resolvable_in: only_resolvable_in
+                only_resolvable_in_ids: only_resolvable_in
                     .into_iter()
                     .map(|endpoint_id| self.sources.graphql[endpoint_id].subgraph_id)
                     .collect(),
-                resolvers,
+                resolver_ids: resolvers,
                 provides: field
                     .provides
                     .into_iter()
@@ -511,7 +511,7 @@ impl<'a> GraphBuilder<'a> {
                     })
                     .collect(),
                 argument_ids: self.ctx.idmaps.input_value.get_range(field.arguments),
-                directives,
+                directive_ids: directives,
             })
         }
     }
@@ -556,36 +556,36 @@ impl<'a> GraphBuilder<'a> {
                 .map(|id| Definition::InputObject(InputObjectDefinitionId::from(id))),
         );
         definitions.sort_unstable_by_key(|definition| match *definition {
-            Definition::Scalar(id) => &ctx.strings[graph[id].name],
-            Definition::Object(id) => &ctx.strings[graph[id].name],
-            Definition::Interface(id) => &ctx.strings[graph[id].name],
-            Definition::Union(id) => &ctx.strings[graph[id].name],
-            Definition::Enum(id) => &ctx.strings[graph[id].name],
-            Definition::InputObject(id) => &ctx.strings[graph[id].name],
+            Definition::Scalar(id) => &ctx.strings[graph[id].name_id],
+            Definition::Object(id) => &ctx.strings[graph[id].name_id],
+            Definition::Interface(id) => &ctx.strings[graph[id].name_id],
+            Definition::Union(id) => &ctx.strings[graph[id].name_id],
+            Definition::Enum(id) => &ctx.strings[graph[id].name_id],
+            Definition::InputObject(id) => &ctx.strings[graph[id].name_id],
         });
         graph.type_definitions = definitions;
 
         let mut interface_definitions = std::mem::take(&mut graph.interface_definitions);
         for interface in &mut interface_definitions {
-            interface.possible_types.sort_unstable();
+            interface.possible_type_ids.sort_unstable();
             interface
-                .possible_types_ordered_by_typename
-                .clone_from(&interface.possible_types);
+                .possible_types_ordered_by_typename_ids
+                .clone_from(&interface.possible_type_ids);
             interface
-                .possible_types_ordered_by_typename
-                .sort_unstable_by_key(|id| &ctx.strings[graph[*id].name]);
+                .possible_types_ordered_by_typename_ids
+                .sort_unstable_by_key(|id| &ctx.strings[graph[*id].name_id]);
         }
         graph.interface_definitions = interface_definitions;
 
         let mut union_definitions = std::mem::take(&mut graph.union_definitions);
         for union in &mut union_definitions {
-            union.possible_types.sort_unstable();
+            union.possible_type_ids.sort_unstable();
             union
-                .possible_types_ordered_by_typename
-                .clone_from(&union.possible_types);
+                .possible_types_ordered_by_typename_ids
+                .clone_from(&union.possible_type_ids);
             union
-                .possible_types_ordered_by_typename
-                .sort_unstable_by_key(|id| &ctx.strings[graph[*id].name]);
+                .possible_types_ordered_by_typename_ids
+                .sort_unstable_by_key(|id| &ctx.strings[graph[*id].name_id]);
         }
         graph.union_definitions = union_definitions;
 
@@ -616,7 +616,7 @@ impl<'a> GraphBuilder<'a> {
                     fields: self.required_field_sets_buffer.push(location, key.fields),
                 };
 
-                let resolver_id = self.push_resolver(ResolverDefinition::GraphqlFederationEntity(
+                let resolver_id = self.push_resolver(ResolverDefinitionRecord::GraphqlFederationEntity(
                     FederationEntityResolverDefinition { endpoint_id, key },
                 ));
                 entity.keys.push((endpoint_id, resolver_id, providable));
@@ -641,7 +641,7 @@ impl<'a> GraphBuilder<'a> {
         }
     }
 
-    fn push_resolver(&mut self, resolver: ResolverDefinition) -> ResolverDefinitionId {
+    fn push_resolver(&mut self, resolver: ResolverDefinitionRecord) -> ResolverDefinitionId {
         let resolver_id = ResolverDefinitionId::from(self.graph.resolver_definitions.len());
         self.graph.resolver_definitions.push(resolver);
         resolver_id
@@ -654,7 +654,7 @@ impl<'a> GraphBuilder<'a> {
             let directive = match directive {
                 federated_graph::Directive::Authenticated => TypeSystemDirective::Authenticated,
                 federated_graph::Directive::RequiresScopes(federated_scopes) => {
-                    let id = self.required_scopes.get_or_insert(RequiredScopes::new(
+                    let id = self.required_scopes.get_or_insert(RequiredScopesRecord::new(
                         federated_scopes
                             .iter()
                             .map(|scopes| scopes.iter().copied().map(Into::into).collect())
@@ -696,7 +696,7 @@ impl<'a> GraphBuilder<'a> {
                     node,
                 } = &config.graph[id];
 
-                self.graph.authorized_directives.push(AuthorizedDirective {
+                self.graph.authorized_directives.push(AuthorizedDirectiveRecord {
                     arguments: arguments
                         .as_ref()
                         .map(|args| self.convert_input_value_set(args))
@@ -812,10 +812,10 @@ impl From<federated_graph::Definition> for Definition {
     }
 }
 
-impl From<federated_graph::Type> for Type {
+impl From<federated_graph::Type> for TypeRecord {
     fn from(field_type: federated_graph::Type) -> Self {
-        Type {
-            inner: field_type.definition.into(),
+        TypeRecord {
+            definition_id: field_type.definition.into(),
             wrapping: field_type.wrapping,
         }
     }

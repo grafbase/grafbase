@@ -3,8 +3,8 @@ use schema::{
         introspection::{IntrospectionField, IntrospectionObject, _Field, __EnumValue, __InputValue, __Schema, __Type},
         IntrospectionMetadata,
     },
-    Definition, DefinitionWalker, EnumValueWalker, FieldDefinitionWalker, InputValueDefinitionWalker, ListWrapping,
-    SchemaWalker, TypeWalker, Wrapping,
+    Definition, DefinitionWalker, EnumValueWalker, FieldDefinition, InputValueDefinition, ListWrapping, SchemaWalker,
+    Type, Wrapping,
 };
 
 use crate::{
@@ -96,7 +96,7 @@ impl<'a> IntrospectionWriter<'a> {
             });
         }
         if !shape.typename_response_edges.is_empty() {
-            let name = self.schema.walk(object.id).as_ref().name;
+            let name = self.schema.walk(object.id).as_ref().name_id;
             for edge in &shape.typename_response_edges {
                 fields.push(ResponseObjectField {
                     edge: *edge,
@@ -143,7 +143,7 @@ impl<'a> IntrospectionWriter<'a> {
         })
     }
 
-    fn __type(&self, ty: TypeWalker<'a>, shape_id: ConcreteObjectShapeId) -> ResponseValue {
+    fn __type(&self, ty: Type<'a>, shape_id: ConcreteObjectShapeId) -> ResponseValue {
         self.__type_list_wrapping(ty.inner(), ty.wrapping(), shape_id)
     }
 
@@ -272,15 +272,15 @@ impl<'a> IntrospectionWriter<'a> {
             __Type::OfType => ResponseValue::Null,
             __Type::SpecifiedByURL => definition
                 .as_scalar()
-                .and_then(|scalar| scalar.as_ref().specified_by_url)
+                .and_then(|scalar| scalar.as_ref().specified_by_url_id)
                 .into(),
         })
     }
 
-    fn __field(&self, target: FieldDefinitionWalker<'a>, shape_id: ConcreteObjectShapeId) -> ResponseValue {
+    fn __field(&self, target: FieldDefinition<'a>, shape_id: ConcreteObjectShapeId) -> ResponseValue {
         self.object(&self.metadata.__field, shape_id, |field, __field| match __field {
-            _Field::Name => target.as_ref().name.into(),
-            _Field::Description => target.as_ref().description.into(),
+            _Field::Name => target.as_ref().name_id.into(),
+            _Field::Description => target.as_ref().description_id.into(),
             _Field::Args => {
                 let shape_id = field.shape.as_concrete_object().unwrap();
                 let values = target
@@ -296,17 +296,17 @@ impl<'a> IntrospectionWriter<'a> {
         })
     }
 
-    fn __input_value(&self, target: InputValueDefinitionWalker<'a>, shape_id: ConcreteObjectShapeId) -> ResponseValue {
+    fn __input_value(&self, target: InputValueDefinition<'a>, shape_id: ConcreteObjectShapeId) -> ResponseValue {
         self.object(
             &self.metadata.__input_value,
             shape_id,
             |field, __input_value| match __input_value {
-                __InputValue::Name => target.as_ref().name.into(),
-                __InputValue::Description => target.as_ref().description.into(),
+                __InputValue::Name => target.as_ref().name_id.into(),
+                __InputValue::Description => target.as_ref().description_id.into(),
                 __InputValue::Type => self.__type(target.ty(), field.shape.as_concrete_object().unwrap()),
                 __InputValue::DefaultValue => target
                     .as_ref()
-                    .default_value
+                    .default_value_id
                     .map(|id| self.schema.walk(&self.schema[id]).to_string())
                     .into(),
             },
@@ -318,8 +318,8 @@ impl<'a> IntrospectionWriter<'a> {
             &self.metadata.__enum_value,
             shape_id,
             |_, __enum_value| match __enum_value {
-                __EnumValue::Name => target.as_ref().name.into(),
-                __EnumValue::Description => target.as_ref().description.into(),
+                __EnumValue::Name => target.as_ref().name_id.into(),
+                __EnumValue::Description => target.as_ref().description_id.into(),
                 __EnumValue::IsDeprecated => target.directives().has_deprecated().into(),
                 __EnumValue::DeprecationReason => target.directives().deprecated().map(|d| d.reason).into(),
             },

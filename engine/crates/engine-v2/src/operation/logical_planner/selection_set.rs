@@ -6,8 +6,8 @@ use std::{
 use id_newtypes::IdRange;
 use itertools::Itertools;
 use schema::{
-    EntityId, FieldDefinitionId, FieldDefinitionWalker, RequiredFieldId, RequiredFieldSet, RequiredFieldSetItemWalker,
-    ResolverDefinitionId,
+    EntityDefinitionId, FieldDefinition, FieldDefinitionId, RequiredFieldId, RequiredFieldSet,
+    RequiredFieldSetItemWalker, ResolverDefinitionId,
 };
 use tracing::{instrument, Level};
 
@@ -157,10 +157,7 @@ impl<'schema, 'a> SelectionSetLogicalPlanner<'schema, 'a> {
         PlannedSelectionSet { id: Some(id), fields }
     }
 
-    fn build_unplanned_fields(
-        &self,
-        unplanned_field_ids: Vec<FieldId>,
-    ) -> HashMap<FieldId, FieldDefinitionWalker<'schema>> {
+    fn build_unplanned_fields(&self, unplanned_field_ids: Vec<FieldId>) -> HashMap<FieldId, FieldDefinition<'schema>> {
         unplanned_field_ids
             .into_iter()
             .map(|field_id| {
@@ -222,7 +219,7 @@ impl PlannedField {
 
 /// Potential child plan, but might not be the best one.
 struct ChildPlanCandidate<'schema> {
-    entity_id: EntityId,
+    entity_id: EntityDefinitionId,
     resolver_id: ResolverDefinitionId,
     /// Providable fields by the resolvers with their requirements
     providable_fields: Vec<(FieldId, Cow<'schema, RequiredFieldSet>)>,
@@ -238,7 +235,7 @@ impl<'schema, 'a> SelectionSetLogicalPlanner<'schema, 'a> {
         &mut self,
         planned_selection_set: &mut PlannedSelectionSet,
         mut parent_field_requirements: Option<(FieldId, Cow<'schema, RequiredFieldSet>)>,
-        mut unplanned_fields: HashMap<FieldId, FieldDefinitionWalker<'schema>>,
+        mut unplanned_fields: HashMap<FieldId, FieldDefinition<'schema>>,
     ) -> LogicalPlanningResult<()> {
         // unplanned_field may be still be provided by the parent plan, but at this stage it
         // means they had requirements.
@@ -381,7 +378,7 @@ impl<'schema, 'a> SelectionSetLogicalPlanner<'schema, 'a> {
         planned_selection_set: &mut PlannedSelectionSet,
         resolver_id: ResolverDefinitionId,
         requires: Cow<'_, RequiredFieldSet>,
-        entity_id: EntityId,
+        entity_id: EntityDefinitionId,
         root_field_ids: Vec<FieldId>,
     ) -> LogicalPlanningResult<()> {
         let path = self.query_path.clone();
@@ -506,14 +503,14 @@ impl<'schema, 'a> SelectionSetLogicalPlanner<'schema, 'a> {
         let mut field_ids = std::mem::take(
             &mut self.operation[parent_selection_set_id].field_ids_ordered_by_parent_entity_id_then_position,
         );
-        let extra_parent_entity_id = Some(self.schema[definition_id].parent_entity);
+        let extra_parent_entity_id = Some(self.schema[definition_id].parent_entity_id);
         let extra_query_position = self.operation[id].query_position();
         let i = field_ids
             .binary_search_by(|probe_id| {
                 let probe_field = &self.operation[*probe_id];
                 probe_field
                     .definition_id()
-                    .map(|id| self.schema[id].parent_entity)
+                    .map(|id| self.schema[id].parent_entity_id)
                     .cmp(&extra_parent_entity_id)
                     .then(probe_field.query_position().cmp(&extra_query_position))
             })
@@ -524,7 +521,7 @@ impl<'schema, 'a> SelectionSetLogicalPlanner<'schema, 'a> {
 
     fn generate_all_candidates<'field>(
         &mut self,
-        unplanned_fields: &HashMap<FieldId, FieldDefinitionWalker<'schema>>,
+        unplanned_fields: &HashMap<FieldId, FieldDefinition<'schema>>,
         planned_selection_set: &mut PlannedSelectionSet,
         candidates: &mut HashMap<ResolverDefinitionId, ChildPlanCandidate<'schema>>,
     ) -> LogicalPlanningResult<()>
