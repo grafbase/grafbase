@@ -51,8 +51,6 @@ jobs:
         uses: ./.github/actions/init_rust_job
         with:
           platform: linux
-          cache-key: ${{ runner.os }}-${{ runner.arch }}-cargo-release-${{ hashFiles('Cargo.lock') }}
-          restore-key: ${{ runner.os }}-${{ runner.arch }}-cargo-release
 
       - name: Create release directories
         shell: bash
