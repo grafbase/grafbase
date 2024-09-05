@@ -189,7 +189,7 @@ impl EngineMetrics {
         }
 
         if let Some(version) = self.graph_version.clone() {
-            attributes.push(KeyValue::new("grafbase.graph_version", version))
+            attributes.push(KeyValue::new("grafbase.graph.version", version))
         }
 
         // Used for v1

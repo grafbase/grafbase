@@ -100,7 +100,7 @@ type User
 fn should_not_fail() {
     let graph = from_sdl(SCHEMA).unwrap();
     let config = config::VersionedConfig::V6(config::latest::Config::from_graph(graph)).into_latest();
-    let _schema = Schema::build(config, Version::from("random")).unwrap();
+    let _schema = Schema::build(config, Version::from(Vec::new())).unwrap();
 }
 
 const SCHEMA_WITH_INACCESSIBLES: &str = r#"

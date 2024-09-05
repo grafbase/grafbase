@@ -32,7 +32,7 @@ impl GraphRef {
         GraphRef::LatestProductionVersion { graph_slug }
     }
 
-    pub fn lastest_version(graph_slug: String, branch_name: String) -> Self {
+    pub fn latest_version(graph_slug: String, branch_name: String) -> Self {
         GraphRef::LatestVersion {
             graph_slug,
             branch_name,
