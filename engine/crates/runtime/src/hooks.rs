@@ -254,7 +254,7 @@ pub struct ExecutedOperation<'a> {
     pub name: Option<String>,
     pub document: &'a str,
     pub prepare_duration_ms: u64,
-    pub cached: bool,
+    pub cached_plan: bool,
     pub duration_ms: u64,
     pub status: GraphqlResponseStatus,
     pub on_subgraph_response_outputs: Vec<Vec<u8>>,
@@ -267,7 +267,7 @@ impl<'a> ExecutedOperation<'a> {
             on_subgraph_response_outputs: Vec::new(),
             name: None,
             prepare_duration_ms: None,
-            cached: false,
+            cached_plan: false,
         }
     }
 }
@@ -276,7 +276,7 @@ impl<'a> ExecutedOperation<'a> {
 pub struct ExecutedOperationBuilder {
     name: Option<String>,
     prepare_duration_ms: Option<u64>,
-    cached: bool,
+    cached_plan: bool,
     start_time: Instant,
     on_subgraph_response_outputs: Vec<Vec<u8>>,
 }
@@ -294,8 +294,8 @@ impl ExecutedOperationBuilder {
         self.prepare_duration_ms = Some(self.start_time.elapsed().as_millis() as u64);
     }
 
-    pub fn set_cached(&mut self) {
-        self.cached = true;
+    pub fn set_cached_plan(&mut self) {
+        self.cached_plan = true;
     }
 
     pub fn finalize(self, document: &str, status: GraphqlResponseStatus) -> ExecutedOperation<'_> {
@@ -306,7 +306,7 @@ impl ExecutedOperationBuilder {
             name: self.name,
             document,
             prepare_duration_ms: self.prepare_duration_ms.unwrap_or_default(),
-            cached: self.cached,
+            cached_plan: self.cached_plan,
         }
     }
 }

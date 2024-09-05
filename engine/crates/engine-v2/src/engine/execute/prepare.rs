@@ -64,7 +64,7 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
             };
 
             if let Some(operation) = self.engine.operation_cache.get(&cache_key).await {
-                operation_info.set_cached();
+                operation_info.set_cached_plan();
                 self.metrics().record_operation_cache_hit();
 
                 Ok(operation)

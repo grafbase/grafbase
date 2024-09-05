@@ -117,7 +117,7 @@ interface types {
         // The time taken in preparing.
         prepare-duration-ms: u64,
         // True, if the plan was taken from cache.
-        cached: bool,
+        cached-plan: bool,
         // Time in milliseconds spent executing the operation.
         duration-ms: u64,
         // The status of the operation.

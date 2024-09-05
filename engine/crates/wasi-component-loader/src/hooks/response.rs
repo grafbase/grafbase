@@ -82,8 +82,8 @@ pub struct ExecutedOperation {
     #[component(name = "prepare-duration-ms")]
     pub prepare_duration_ms: u64,
     /// If the operation plan was taken from cache.
-    #[component(name = "cached")]
-    pub cached: bool,
+    #[component(name = "cached-plan")]
+    pub cached_plan: bool,
     /// The duration it took to execute the operation.
     #[component(name = "duration-ms")]
     pub duration_ms: u64,

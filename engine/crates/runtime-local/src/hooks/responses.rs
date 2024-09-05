@@ -95,7 +95,7 @@ impl ResponseHooks<Context> for HooksWasi {
             name,
             document,
             prepare_duration_ms,
-            cached,
+            cached_plan: cached,
         } = operation;
 
         let operation = ExecutedOperation {
@@ -118,7 +118,7 @@ impl ResponseHooks<Context> for HooksWasi {
             name,
             document: document.to_string(),
             prepare_duration_ms,
-            cached,
+            cached_plan: cached,
         };
 
         inner

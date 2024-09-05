@@ -709,7 +709,7 @@ async fn response_hooks() {
         name: Some(String::from("kekw")),
         document: String::from("query { me { 1 } }"),
         prepare_duration_ms: 3,
-        cached: false,
+        cached_plan: false,
     };
 
     let op_info = hook.on_operation_response(context.clone(), operation).await.unwrap();

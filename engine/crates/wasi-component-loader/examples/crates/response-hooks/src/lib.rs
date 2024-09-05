@@ -120,7 +120,7 @@ impl Guest for Component {
             name: operation.name,
             document: operation.document,
             prepare_duration: operation.prepare_duration_ms,
-            cached: operation.cached,
+            cached: operation.cached_plan,
             duration: operation.duration_ms,
             status: match operation.status {
                 bindings::component::grafbase::types::GraphqlResponseStatus::Success => GraphqlResponseStatus::Success,
