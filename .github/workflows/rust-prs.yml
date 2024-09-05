@@ -2,11 +2,7 @@ name: rust-pr workflow
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - 'obmarg/ysrtktmxktrp'
   pull_request:
-  # TODO: Maybe add branches in here?  Not sure...
 
 env:
   GRAFBASE_SKIP_ASSET_VERSION_CHECK: 'true'
@@ -18,11 +14,6 @@ env:
   GRAFBASE_RUDDERSTACK_WRITE_KEY: ${{ secrets.GRAFBASE_RUDDERSTACK_WRITE_KEY }}
   GRAFBASE_RUDDERSTACK_DATAPLANE_URL: ${{ secrets.GRAFBASE_RUDDERSTACK_DATAPLANE_URL }}
   RUST_BACKTRACE: 1
-
-  # TODO: Suspect these might not be needed - look into it.
-  CLI_RELEASE_CLOUDFLARE_R2_ENDPOINT_URL: https://d267a8ab95268b272f5147e8939c9d38.r2.cloudflarestorage.com
-  CLI_RELEASE_CLOUDFLARE_R2_PUBLIC_URL: https://pub-b0013effd6614b32a4fb9bf338b90658.r2.dev
-  CLI_RELEASE_CLOUDFLARE_R2_BUCKET_NAME: cli-releases
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-rust-pr
@@ -231,7 +222,6 @@ jobs:
           rust_version=$(grep "channel" rust-toolchain.toml | cut -d "=" -f 2 | cut -d " " -f 2)
           echo "RUST_VERSION=$rust_version" >> $GITHUB_ENV
 
-      # TODO: Maybe refactor this?  Not sure
       - name: Install Rust
         uses: dtolnay/rust-toolchain@master
         with:
@@ -322,8 +312,6 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # TODO: maybe merge these composes into one?  Think it would download in parallel if nothing else
-      # Probably worthwhile...
       - name: Start integration-test docker compose
         if: runner.os == 'Linux' && contains(fromJson(needs.what-changed.outputs.rust).changed-packages, 'integration-tests')
         shell: bash

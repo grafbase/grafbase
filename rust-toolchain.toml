@@ -2,7 +2,6 @@
 profile = "default"
 channel = "1.80.0"
 targets = [
-    # TODO: Figure out how to not install these everywhere, it's a bit crap.
     "aarch64-apple-darwin",
     "x86_64-apple-darwin",
     "x86_64-pc-windows-msvc",
