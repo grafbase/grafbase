@@ -46,9 +46,14 @@ jobs:
           toolchain: ${{ env.RUST_VERSION }}
           components: clippy, rustfmt
 
+      # If you're iterating on this you may want to change this to a cargo install
+      # while you work
       - name: Install what-rust-changed
-        shell: bash
-        run: cargo install --locked --git https://github.com/grafbase/what-rust-changed.git --branch obmarg/qmtxorwqlrtl
+        uses: jaxxstorm/action-install-gh-release@v1.12.0
+        with:
+          repo: grafbase/what-rust-changed
+          tag: v0.1.0
+          cache: enable
 
       - name: Run what-rust-changed
         id: what-rust-changed
