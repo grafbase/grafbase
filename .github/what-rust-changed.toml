@@ -1,0 +1,44 @@
+# Packages that should not have their tests run automatically
+ignore-test-packages = ["grafbase-docker-tests"]
+
+# Test suites that depend on docker so should only be run on linux
+docker-test-packages = ["integration-tests", "grafbase-gateway"]
+
+[[path-rule]]
+# The JS files should trigger a grafbase rebuild
+globs = ["cli/wrappers/**", "cli/udf-wrapper/**"]
+mark-changed = ["grafbase"]
+
+[[path-rule]]
+# Ignore markdown and such
+globs = ["**/*.md"]
+mark-changed = []
+
+[[path-rule]]
+# Ignore various root files
+globs = [
+    "LICENSE",
+    ".editorconfig",
+    ".envrc",
+    ".envrc.example",
+    ".prettierrc.js",
+    "renovate.json",
+    "flake.nix",
+    "flake.lock",
+]
+mark-changed = []
+
+[[path-rule]]
+# Ignore various folders
+globs = ["auth-testing", "packages/", "nix/", "examples/", "docker/", ".vscode"]
+mark-changed = []
+
+[[path-rule]]
+# Ignore dockerfiles
+globs = ["**/Dockerfile", "**/docker-entryoint.sh"]
+mark-changed = []
+
+[[path-rule]]
+# Ignore makefiles
+globs = ["Makefile", "Makefile.toml"]
+mark-changed = []

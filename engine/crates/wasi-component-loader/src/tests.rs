@@ -89,7 +89,7 @@ async fn dir_access_read_only() {
 
     let dir = TempDir::new("test").unwrap();
     let path = dir.path();
-    let path_str = path.to_str().unwrap();
+    let path_str = path.to_str().unwrap().escape_default();
 
     let config = formatdoc! {r#"
         location = "examples/target/wasm32-wasip1/debug/dir_access.wasm"
@@ -127,7 +127,7 @@ async fn dir_access_write() {
 
     let dir = TempDir::new("test").unwrap();
     let path = dir.path();
-    let path_str = path.to_str().unwrap();
+    let path_str = path.to_str().unwrap().escape_default();
 
     let config = formatdoc! {r#"
         location = "examples/target/wasm32-wasip1/debug/dir_access.wasm"

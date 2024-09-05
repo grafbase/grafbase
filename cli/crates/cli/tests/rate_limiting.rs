@@ -55,8 +55,8 @@ async fn rate_limiting() {
                         }
                     ]
                   },
-                  limit: 1000,
-                  duration: 10
+                  limit: 10,
+                  duration: 1
                 }
               ]
             )
@@ -83,7 +83,7 @@ async fn rate_limiting() {
         (response.headers().clone(), response.json::<Value>().await.unwrap())
     };
 
-    let destiny = Instant::now().checked_add(Duration::from_secs(60)).unwrap();
+    let destiny = Instant::now().checked_add(Duration::from_secs(10)).unwrap();
 
     loop {
         let response = Box::pin(call());

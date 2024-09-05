@@ -107,7 +107,6 @@ cynic-parser.workspace = true
 gateway-v2-auth.workspace = true
 headers.workspace = true
 hex.workspace = true
-pprof = { version = "0.13", features = ["criterion", "flamegraph"] }
 pretty_assertions = "1"
 rand = "0.8"
 rstest.workspace = true
@@ -115,6 +114,8 @@ secrecy.workspace = true
 sha2.workspace = true
 similar-asserts = "1.5"
 
+[target.'cfg(unix)'.dependencies]
+pprof = { version = "0.13", features = ["criterion", "flamegraph"] }
 
 [[bench]]
 name = "federation"

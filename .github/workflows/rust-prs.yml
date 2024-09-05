@@ -1,0 +1,469 @@
+name: rust-prs
+
+on:
+  workflow_dispatch:
+  pull_request:
+
+env:
+  GRAFBASE_SKIP_ASSET_VERSION_CHECK: 'true'
+  CARGO_INCREMENTAL: 0
+  CARGO_PROFILE_DEV_DEBUG: 0
+  CARGO_PROFILE_TEST_DEBUG: 0
+  CARGO_TERM_COLOR: 'always'
+  DO_NOT_TRACK: 1
+  GRAFBASE_RUDDERSTACK_WRITE_KEY: ${{ secrets.GRAFBASE_RUDDERSTACK_WRITE_KEY }}
+  GRAFBASE_RUDDERSTACK_DATAPLANE_URL: ${{ secrets.GRAFBASE_RUDDERSTACK_DATAPLANE_URL }}
+  RUST_BACKTRACE: 1
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-rust-pr
+  cancel-in-progress: true
+
+jobs:
+  what-changed:
+    runs-on: ubicloud-standard-2
+    outputs:
+      rust: ${{ steps.what-rust-changed.outputs.rust }}
+      grafbase-docker: ${{ steps.paths-changed.outputs.grafbase-docker }}
+      gateway-docker: ${{ steps.paths-changed.outputs.gateway-docker }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          # TODO: Figure out how to not make this zero
+          # Seems like if it's not zero you dont get branches
+          fetch-depth: 0
+
+      - name: Extract the Rust version to use from the `rust-toolchain.toml` file
+        shell: bash
+        run: |
+          rust_version=$(grep "channel" rust-toolchain.toml | cut -d "=" -f 2 | cut -d " " -f 2)
+          echo "RUST_VERSION=$rust_version" >> $GITHUB_ENV
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+          components: clippy, rustfmt
+
+      - name: Install what-rust-changed
+        shell: bash
+        run: cargo install --locked --git https://github.com/grafbase/what-rust-changed.git --branch obmarg/qmtxorwqlrtl
+
+      - name: Run what-rust-changed
+        id: what-rust-changed
+        shell: bash
+        env:
+          WHAT_RUST_CHANGED_CONFIG: .github/what-rust-changed.toml
+        # TODO: Much of this script could be moved into the what-rust-changed code
+        # (or it could have its own action) but don't have time for that right now.
+        run: |
+          set -euo pipefail
+          HEAD_REF="$(git rev-parse HEAD)"
+          BASE_REF="remotes/origin/${GITHUB_BASE_REF:-main}"
+          echo "Head: $HEAD_REF"
+          echo "Base: $BASE_REF"
+          MERGE_BASE=$(git merge-base $BASE_REF $HEAD_REF)
+          echo "Merge Base: $MERGE_BASE"
+          git checkout $MERGE_BASE
+          cargo metadata > /tmp/base.metadata.json
+          git checkout $HEAD_REF
+          cargo metadata > /tmp/target.metadata.json
+          CHANGED_FILES=$(git diff --no-commit-id --name-only -r $MERGE_BASE HEAD)
+          CHANGES=$(echo $CHANGED_FILES | xargs what-rust-changed /tmp/base.metadata.json /tmp/target.metadata.json)
+          echo "rust=$CHANGES" >> "$GITHUB_OUTPUT"
+          echo "Done.  Output Contents:"
+          echo ""
+          cat $GITHUB_OUTPUT
+
+      - name: Check paths changed
+        uses: dorny/paths-filter@v3
+        id: paths-changed
+        with:
+          filters: |
+            grafbase-docker:
+              - cli/Dockerfile
+            gateway-docker:
+              - gateway/Dockerfile
+
+  check-format:
+    needs: [what-changed]
+    if: toJson(fromJson(needs.what-changed.outputs.rust).changed-packages) != '[]'
+    runs-on: ubicloud-standard-2
+    steps:
+      - name: Get sources
+        uses: actions/checkout@v4
+
+      - name: Extract the Rust version to use from the `rust-toolchain.toml` file
+        shell: bash
+        run: |
+          rust_version=$(grep "channel" rust-toolchain.toml | cut -d "=" -f 2 | cut -d " " -f 2)
+          echo "RUST_VERSION=$rust_version" >> $GITHUB_ENV
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+          components: rustfmt
+
+      - name: cargo fmt
+        shell: bash
+        run: |
+          cargo fmt --check
+
+  example-component:
+    if: |
+      contains(fromJson(needs.what-changed.outputs.rust).changed-packages, 'integration-tests')
+      || contains(fromJson(needs.what-changed.outputs.rust).changed-packages, 'gateway-binary')
+      || contains(fromJson(needs.what-changed.outputs.rust).changed-packages, 'wasi-component-loader')
+    needs: [what-changed]
+    runs-on: ubicloud-standard-8
+    steps:
+      - name: Get sources
+        uses: actions/checkout@v4
+
+      - name: Install cargo binstall
+        uses: cargo-bins/cargo-binstall@v1.10.3
+
+      - name: Install cargo-component
+        shell: bash
+        run: |
+          cargo binstall cargo-component --secure -y
+
+      - name: Build the WASI components for tests
+        shell: bash
+        working-directory: engine/crates/wasi-component-loader/examples
+        run: cargo component build
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: example-component
+          path: engine/crates/wasi-component-loader/examples/target/wasm32-wasip1/debug/*.wasm
+          retention-days: 5
+
+  cli-assets:
+    if: contains(fromJson(needs.what-changed.outputs.rust).changed-packages, 'grafbase')
+    needs: [what-changed]
+    runs-on: ubicloud-standard-8
+    steps:
+      - name: Get sources
+        uses: actions/checkout@v4
+
+      - name: Build assets
+        uses: ./.github/actions/cli_assets
+
+      - name: Copy ~/.grafbase for upload
+        shell: bash
+        run: |
+          mkdir home-dot-grafbase
+          cp -r ~/.grafbase/* home-dot-grafbase/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: home-dot-grafbase
+          path: home-dot-grafbase
+          retention-days: 5
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cli-app-dist
+          path: packages/cli-app/dist
+          retention-days: 5
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wrappers-dist.js
+          path: cli/wrappers/dist.js
+          retention-days: 5
+
+  builds:
+    needs: [what-changed, example-component, cli-assets]
+    # We need the cancelled & result checks of this if to make sure that we
+    # run even if some of our needs were skipped.
+    # In particular we need `cancelled()` because `always()` (the other way of doing this)
+    # makes this job uncancellable - which is not great.
+    if: |
+      toJson(fromJson(needs.what-changed.outputs.rust).changed-packages) != '[]'
+      && !(cancelled())
+      && !(contains(needs.*.result, 'failure'))
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          [
+            {
+              'target': 'x86_64-unknown-linux-musl',
+              'runner': 'ubicloud-standard-8'
+            },
+            {
+              'target': 'aarch64-unknown-linux-musl',
+              'runner': 'ubicloud-standard-8-arm'
+            },
+            {
+              'target': 'aarch64-apple-darwin',
+              'runner': 'macos-latest-xlarge'
+            },
+            {
+              'target': 'x86_64-apple-darwin',
+              'runner': 'macos-latest-xlarge'
+            },
+            {
+              'target': 'x86_64-pc-windows-msvc',
+              'runner': 'windows-latest-8-cores'
+            }
+          ]
+    runs-on: ${{ matrix.platform.runner }}
+    steps:
+      - name: Get sources
+        uses: actions/checkout@v4
+
+      - name: Dump inputs for debugging
+        shell: bash
+        run: |
+          echo ${{ needs.what-changed.outputs.rust }}
+
+      - name: Extract the Rust version to use from the `rust-toolchain.toml` file
+        shell: bash
+        run: |
+          rust_version=$(grep "channel" rust-toolchain.toml | cut -d "=" -f 2 | cut -d " " -f 2)
+          echo "RUST_VERSION=$rust_version" >> $GITHUB_ENV
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+          components: clippy, rustfmt
+
+      - name: Install musl-tools
+        if: ${{ contains(matrix.platform.target, 'linux') }}
+        shell: bash
+        run: |
+          sudo apt-get install musl musl-tools
+          # This seems like a horrible hack that might come back to bite, but lets see!
+          sudo ln -s /bin/g++ /bin/musl-g++
+          sudo ln -s /bin/g++ /bin/aarch64-linux-musl-g++
+
+      - name: Install cargo-nextest
+        uses: taiki-e/install-action@v2
+        with:
+          tool: nextest
+
+      # https://github.com/actions/setup-node/issues/899
+      - name: Enable Corepack before setting up Node
+        shell: bash
+        run: corepack enable
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v3
+        id: pnpm-install
+        with:
+          version: 8
+          run_install: false
+
+      - uses: oven-sh/setup-bun@v2
+        if: runner.os != 'Windows'
+        with:
+          bun-version: latest
+
+      - name: Download pre-built example component
+        if: |
+          contains(fromJson(needs.what-changed.outputs.rust).changed-packages, 'integration-tests')
+          || contains(fromJson(needs.what-changed.outputs.rust).changed-packages, 'gateway-binary')
+          || contains(fromJson(needs.what-changed.outputs.rust).changed-packages, 'wasi-component-loader')
+        uses: actions/download-artifact@v4
+        with:
+          name: example-component
+          path: engine/crates/wasi-component-loader/examples/target/wasm32-wasip1/debug
+
+      - name: Download pre-built ~/.grafbase
+        if: contains(fromJson(needs.what-changed.outputs.rust).changed-packages, 'grafbase')
+        uses: actions/download-artifact@v4
+        with:
+          name: home-dot-grafbase
+          path: ../home-dot-grafbase
+
+      - name: Copy ~/.grafbase into place
+        if: contains(fromJson(needs.what-changed.outputs.rust).changed-packages, 'grafbase')
+        shell: bash
+        run: |
+          mkdir ~/.grafbase
+          cp -r ../home-dot-grafbase/* ~/.grafbase/
+
+      - name: Download pre-built cli-app
+        if: contains(fromJson(needs.what-changed.outputs.rust).changed-packages, 'grafbase')
+        uses: actions/download-artifact@v4
+        with:
+          name: cli-app-dist
+          path: packages/cli-app/dist
+
+      - name: Download pre-built wrappers
+        if: contains(fromJson(needs.what-changed.outputs.rust).changed-packages, 'grafbase')
+        uses: actions/download-artifact@v4
+        with:
+          name: wrappers-dist.js
+          path: cli/wrappers/
+
+      # TODO: Add timing reports in here somehow...
+      - name: Clippy
+        if: fromJson(needs.what-changed.outputs.rust).cargo-build-specs
+        shell: bash
+        run: |
+          cargo clippy --target ${{ matrix.platform.target }} ${{ fromJson(needs.what-changed.outputs.rust).cargo-build-specs }}
+
+      - name: Login to Docker Hub
+        if: runner.os == 'Linux'
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Start integration-test docker compose
+        if: runner.os == 'Linux' && contains(fromJson(needs.what-changed.outputs.rust).changed-packages, 'integration-tests')
+        shell: bash
+        working-directory: engine/crates/integration-tests
+        run: docker compose up -d
+
+      - name: Start gateway docker compose
+        if: runner.os == 'Linux' && contains(fromJson(needs.what-changed.outputs.rust).changed-packages, 'grafbase-gateway')
+        shell: bash
+        working-directory: gateway/crates/gateway-binary
+        run: docker compose up -d
+
+      # It's kinda useful to get build vs run timings on tests, so splitting out the build from the run
+      # here
+      - name: Build tests (non docker platforms)
+        if: fromJson(needs.what-changed.outputs.rust).cargo-test-specs && runner.os != 'Linux' && matrix.platform.target != 'x86_64-apple-darwin'
+        shell: bash
+        run: |
+          cargo nextest run --target ${{ matrix.platform.target }} --no-run --profile ci ${{ fromJson(needs.what-changed.outputs.rust).cargo-test-specs }}
+
+      - name: Run tests (non docker platforms)
+        id: tests
+        if: fromJson(needs.what-changed.outputs.rust).cargo-test-specs && runner.os != 'Linux' && matrix.platform.target != 'x86_64-apple-darwin'
+        shell: bash
+        run: |
+          cargo nextest run --target ${{ matrix.platform.target }} --profile ci ${{ fromJson(needs.what-changed.outputs.rust).cargo-test-specs }}
+
+      - name: Build tests (docker platforms)
+        if: fromJson(needs.what-changed.outputs.rust).cargo-docker-test-specs && runner.os == 'Linux'
+        shell: bash
+        run: |
+          cargo nextest run --target ${{ matrix.platform.target }} --no-run --profile ci ${{ fromJson(needs.what-changed.outputs.rust).cargo-test-specs }}
+
+      - name: Run tests (docker platforms)
+        id: tests_docker
+        if: fromJson(needs.what-changed.outputs.rust).cargo-docker-test-specs && runner.os == 'Linux'
+        shell: bash
+        run: |
+          cargo nextest run --target ${{ matrix.platform.target }} --profile ci ${{ fromJson(needs.what-changed.outputs.rust).cargo-test-specs }}
+
+      - name: Upload the JUnit files
+        if: ${{ ( success() || failure() ) && !contains(steps.tests.outputs.exitcode, '101') && !contains(steps.tests_docker.outputs.exitcode, '101') && matrix.platform.target != 'x86_64-apple-darwin'}}
+        uses: ./.github/actions/test_upload_datadog
+        with:
+          api_key: ${{ secrets.DATADOG_API_KEY }}
+          junit_path: target/nextest/ci/junit.xml
+          service: cli
+
+      - name: Build debug binaries
+        if: fromJson(needs.what-changed.outputs.rust).cargo-bin-specs
+        shell: bash
+        run: |
+          cargo build --target ${{ matrix.platform.target }} ${{ fromJson(needs.what-changed.outputs.rust).cargo-bin-specs }}
+
+  docker-gateway:
+    needs: [what-changed]
+    if: |
+      needs.what-changed.outputs.gateway-docker == 'true'
+      || contains(fromJson(needs.what-changed.outputs.rust).changed-packages, 'grafbase-gateway')
+    runs-on: ubicloud-standard-16
+    permissions:
+      packages: write
+    env:
+      COMMIT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - name: Get sources
+        uses: actions/checkout@v4
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build docker images
+        run: |
+          # Re-use the latest layers if possible
+          docker pull ghcr.io/grafbase/gateway:latest || true
+          docker build -f gateway/Dockerfile -t ghcr.io/grafbase/gateway:$COMMIT_SHA .
+
+      - name: Push docker image
+        run: |
+          docker push --all-tags ghcr.io/grafbase/gateway
+
+  docker-grafbase:
+    needs: [what-changed]
+    if: |
+      needs.what-changed.outputs.grafbase-docker == 'true'
+      || contains(fromJson(needs.what-changed.outputs.rust).changed-packages, 'grafbase')
+    runs-on: ubicloud-standard-16
+    permissions:
+      packages: write
+    env:
+      COMMIT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - name: Get sources
+        uses: actions/checkout@v4
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build docker images
+        run: |
+          # Re-use the latest layers if possible
+          docker pull ghcr.io/grafbase/grafbase:latest || true
+          docker build -f cli/Dockerfile -t ghcr.io/grafbase/grafbase:$COMMIT_SHA .
+
+      - name: Extract the Rust version to use from the `rust-toolchain.toml` file
+        shell: bash
+        run: |
+          rust_version=$(grep "channel" rust-toolchain.toml | cut -d "=" -f 2 | cut -d " " -f 2)
+          echo "RUST_VERSION=$rust_version" >> $GITHUB_ENV
+
+      # TODO: Maybe refactor this?  Not sure
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+          components: clippy, rustfmt
+
+      - name: Install cargo-nextest
+        uses: taiki-e/install-action@v2
+        with:
+          tool: nextest
+
+      - name: Docker tests
+        run: |
+          GRAFBASE_DOCKER_IMAGE="ghcr.io/grafbase/grafbase:$COMMIT_SHA" RUST_BACKTRACE=1 cargo nextest run -p grafbase-docker-tests
+
+  after-build:
+    # This job is responsible for reacting to build success or failure. It must
+    # happen after the builds, hence the `needs`. But it must not be skipped
+    # when the builds are cancelled or fail (hence the `if: ${{ always() }}`).
+    needs: [check-format, builds, docker-grafbase, docker-gateway]
+    runs-on: ubicloud-standard-2
+    if: ${{ always() }}
+    steps:
+      - name: Check that the builds succeeded
+        run: exit 1
+        if: ${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}
