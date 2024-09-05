@@ -68,7 +68,7 @@ impl<'de, 'ctx, 'parent> DeserializeSeed<'de> for FieldSeed<'ctx, 'parent> {
             }
         };
 
-        result.map_err(move |err| {
+        result.inspect_err(move |err| {
             if self.ctx.should_create_new_graphql_error() {
                 self.ctx.writer.push_error(
                     GraphqlError::new(err.to_string(), ErrorCode::SubgraphInvalidResponseError)
@@ -76,7 +76,6 @@ impl<'de, 'ctx, 'parent> DeserializeSeed<'de> for FieldSeed<'ctx, 'parent> {
                         .with_path(self.ctx.response_path()),
                 );
             }
-            err
         })
     }
 }

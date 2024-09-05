@@ -308,25 +308,28 @@ pub mod vectorize {
 
 /// A collection of support functions for the legacy registry
 pub trait LegacyRegistryExt {
-    fn create_input_type<T: LegacyInputType + ?Sized, F: FnOnce(&mut Registry) -> MetaType>(
+    fn create_input_type<T: LegacyInputType + Sized, F: FnOnce(&mut Registry) -> MetaType>(
         &mut self,
         f: F,
     ) -> InputValueType;
+
     fn create_output_type<T: LegacyOutputType + ?Sized, F: FnOnce(&mut Registry) -> MetaType>(
         &mut self,
         f: F,
     ) -> MetaFieldType;
+
     fn create_subscription_type<T: SubscriptionType + ?Sized, F: FnOnce(&mut Registry) -> MetaType>(
         &mut self,
         f: F,
     ) -> String;
+
     fn create_fake_output_type<T: LegacyOutputType>(&mut self) -> MetaType;
     fn create_fake_input_type<T: LegacyInputType>(&mut self) -> MetaType;
     fn create_fake_subscription_type<T: SubscriptionType>(&mut self) -> MetaType;
 }
 
 impl LegacyRegistryExt for registry_v1::Registry {
-    fn create_input_type<T: LegacyInputType + ?Sized, F: FnOnce(&mut Registry) -> MetaType>(
+    fn create_input_type<T: LegacyInputType + Sized, F: FnOnce(&mut Registry) -> MetaType>(
         &mut self,
         f: F,
     ) -> InputValueType {

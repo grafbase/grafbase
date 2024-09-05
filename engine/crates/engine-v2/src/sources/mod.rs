@@ -73,10 +73,6 @@ pub(crate) enum Resolver {
 }
 
 impl Resolver {
-    pub fn introspection() -> Self {
-        Resolver::Introspection(IntrospectionResolver)
-    }
-
     pub fn prepare(
         definition: ResolverDefinitionWalker<'_>,
         operation_type: OperationType,
