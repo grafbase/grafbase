@@ -25,7 +25,7 @@ env:
   CLI_RELEASE_CLOUDFLARE_R2_BUCKET_NAME: cli-releases
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}-rust-pr
   cancel-in-progress: true
 
 jobs:
@@ -97,9 +97,9 @@ jobs:
             gateway-docker:
               - gateway/Dockerfile
 
-  format:
-    if: fromJson(needs.what-changed.outputs.rust).changed-packages
+  check-format:
     needs: [what-changed]
+    if: fromJson(needs.what-changed.outputs.rust).changed-packages
     runs-on: ubicloud-standard-2
     steps:
       - name: Get sources
@@ -115,10 +115,12 @@ jobs:
         uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ env.RUST_VERSION }}
+          components: rustfmt
 
       - name: cargo fmt
         shell: bash
-        run: cargo fmt --check
+        run: |
+          cargo fmt --check
 
   example-component:
     if: contains(fromJson(needs.what-changed.outputs.rust).changed-packages, 'integration-tests')
@@ -462,7 +464,7 @@ jobs:
     # This job is responsible for reacting to build success or failure. It must
     # happen after the builds, hence the `needs`. But it must not be skipped
     # when the builds are cancelled or fail (hence the `if: ${{ always() }}`).
-    needs: [format, builds, docker-grafbase, docker-gateway]
+    needs: [check-format, builds, docker-grafbase, docker-gateway]
     runs-on: ubicloud-standard-2
     if: ${{ always() }}
     steps:
