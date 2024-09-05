@@ -114,11 +114,11 @@ interface types {
         // The operation document in sanitized form.
         document: string,
         // The time taken in preparing.
-        prepare-duration: u64,
+        prepare-duration-ms: u64,
         // True, if the plan was taken from cache.
         cached: bool,
         // Time in milliseconds spent executing the operation.
-        duration: u64,
+        duration-ms: u64,
         // The status of the operation.
         status: graphql-response-status,
         // If queried any subgraphs, the outputs of on-subgraph-response hooks.
@@ -127,11 +127,11 @@ interface types {
     }
     
     // Information on a response
-    record response-info {
+    record subgraph-response {
         // The milliseconds it took to connect to the host.
-        connection-time: u64,
+        connection-time-ms: u64,
         // The milliseconds it took for the host to respond with data.
-        response-time: u64,
+        response-time-ms: u64,
         // The response status code
         status-code: u16
     }
@@ -147,9 +147,9 @@ interface types {
     }
 
     // Subgraph response variant.
-    variant response-kind {
-        // Error in response serialization.
-        serialization-error,
+    variant subgraph-request-execution-kind {
+        // Internal server error in the gateway.
+        internal-server-error,
         // Response prevented by subgraph request hook.
         hook-error,
         // HTTP request failed.
@@ -157,7 +157,7 @@ interface types {
         // Request was rate-limited.
         rate-limited,
         // A response was received.
-        responded(response-info),
+        response(subgraph-response),
     }
 
     // Info about an executed subgraph request.
@@ -172,13 +172,13 @@ interface types {
         url: string,
 
         // The subgraph responses
-        responses: list<response-kind>,
+        executions: list<subgraph-request-execution-kind>,
 
         // The cache status of the subgraph call.
         cache-status: cache-status,
 
         // The time in milliseconds taken for the whole operation.
-        total-duration: u64,
+        total-duration-ms: u64,
 
         // True, if the subgraph returned any errors.
         has-errors: bool,

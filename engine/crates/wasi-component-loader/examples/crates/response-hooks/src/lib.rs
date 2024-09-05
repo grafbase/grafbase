@@ -1,5 +1,6 @@
 use bindings::component::grafbase::types::{
-    CacheStatus, ExecutedHttpRequest, ExecutedOperation, ExecutedSubgraphRequest, ResponseKind, SharedContext,
+    CacheStatus, ExecutedHttpRequest, ExecutedOperation, ExecutedSubgraphRequest, SharedContext,
+    SubgraphRequestExecutionKind,
 };
 use bindings::exports::component::grafbase::responses::Guest;
 
@@ -17,7 +18,7 @@ pub struct ResponseInfo {
 
 #[derive(serde::Serialize, serde::Deserialize)]
 pub enum ResponseData {
-    SerializationError,
+    InternalServerError,
     HookError,
     RequestError,
     RateLimited,
@@ -80,24 +81,24 @@ impl Guest for Component {
             subgraph_name,
             method,
             url,
-            responses,
+            executions,
             cache_status,
-            total_duration,
+            total_duration_ms,
             has_errors,
         } = request;
 
-        let responses = responses
+        let responses = executions
             .into_iter()
             .map(|r| match r {
-                ResponseKind::Responded(info) => ResponseData::Responsed(ResponseInfo {
-                    connection_time: info.connection_time,
-                    response_time: info.response_time,
+                SubgraphRequestExecutionKind::Response(info) => ResponseData::Responsed(ResponseInfo {
+                    connection_time: info.connection_time_ms,
+                    response_time: info.response_time_ms,
                     status_code: info.status_code,
                 }),
-                ResponseKind::SerializationError => ResponseData::SerializationError,
-                ResponseKind::HookError => ResponseData::HookError,
-                ResponseKind::RequestError => ResponseData::RequestError,
-                ResponseKind::RateLimited => ResponseData::RateLimited,
+                SubgraphRequestExecutionKind::InternalServerError => ResponseData::InternalServerError,
+                SubgraphRequestExecutionKind::HookError => ResponseData::HookError,
+                SubgraphRequestExecutionKind::RequestError => ResponseData::RequestError,
+                SubgraphRequestExecutionKind::RateLimited => ResponseData::RateLimited,
             })
             .collect();
 
@@ -106,7 +107,7 @@ impl Guest for Component {
             method,
             url,
             responses,
-            total_duration,
+            total_duration: total_duration_ms,
             has_errors,
             cached: matches!(cache_status, CacheStatus::Hit),
         };
@@ -118,9 +119,9 @@ impl Guest for Component {
         let info = OperationInfo {
             name: operation.name,
             document: operation.document,
-            prepare_duration: operation.prepare_duration,
+            prepare_duration: operation.prepare_duration_ms,
             cached: operation.cached,
-            duration: operation.duration,
+            duration: operation.duration_ms,
             status: match operation.status {
                 bindings::component::grafbase::types::GraphqlResponseStatus::Success => GraphqlResponseStatus::Success,
                 bindings::component::grafbase::types::GraphqlResponseStatus::FieldError(e) => {

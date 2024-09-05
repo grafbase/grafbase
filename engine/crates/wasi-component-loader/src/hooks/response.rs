@@ -79,14 +79,14 @@ pub struct ExecutedOperation {
     #[component(name = "document")]
     pub document: String,
     /// The duration taken by operation preparation in milliseconds.
-    #[component(name = "prepare-duration")]
-    pub prepare_duration: u64,
+    #[component(name = "prepare-duration-ms")]
+    pub prepare_duration_ms: u64,
     /// If the operation plan was taken from cache.
     #[component(name = "cached")]
     pub cached: bool,
     /// The duration it took to execute the operation.
-    #[component(name = "duration")]
-    pub duration: u64,
+    #[component(name = "duration-ms")]
+    pub duration_ms: u64,
     /// The status of the operation.
     #[component(name = "status")]
     pub status: GraphqlResponseStatus,
@@ -98,13 +98,13 @@ pub struct ExecutedOperation {
 /// A response info from an executed subgraph request.
 #[derive(Debug, Clone, Copy, Lower, ComponentType)]
 #[component(record)]
-pub struct ResponseInfo {
+pub struct SubgraphResponse {
     /// Time it took to connect to the subgraph endpoint, in milliseconds.
-    #[component(name = "connection-time")]
-    pub connection_time: u64,
+    #[component(name = "connection-time-ms")]
+    pub connection_time_ms: u64,
     /// Time it took to fetch the response from the subgraph, in milliseconds.
-    #[component(name = "response-time")]
-    pub response_time: u64,
+    #[component(name = "response-time-ms")]
+    pub response_time_ms: u64,
     /// The response status code from subgraph.
     #[component(name = "status-code")]
     pub status_code: u16,
@@ -128,10 +128,10 @@ pub enum CacheStatus {
 /// Response data from a subgraph request.
 #[derive(Debug, Clone, Copy, Lower, ComponentType)]
 #[component(variant)]
-pub enum ResponseKind {
-    /// Error in response serialization.
-    #[component(name = "serialization-error")]
-    SerializationError,
+pub enum SubgraphRequestExecutionKind {
+    /// Internal error in the host.
+    #[component(name = "internal-server-error")]
+    InternalServerError,
     /// Response prevented by a hook.
     #[component(name = "hook-error")]
     HookError,
@@ -142,8 +142,8 @@ pub enum ResponseKind {
     #[component(name = "rate-limited")]
     RateLimited,
     /// A response was received.
-    #[component(name = "responded")]
-    Responsed(ResponseInfo),
+    #[component(name = "response")]
+    Response(SubgraphResponse),
 }
 
 /// A response info from subgraph fetch.
@@ -159,15 +159,15 @@ pub struct ExecutedSubgraphRequest {
     /// The URL of the subgraph.
     #[component(name = "url")]
     pub url: String,
-    /// The subgraph response(s).
-    #[component(name = "responses")]
-    pub responses: Vec<ResponseKind>,
+    /// The subgraph executions(s).
+    #[component(name = "executions")]
+    pub executions: Vec<SubgraphRequestExecutionKind>,
     /// If anything in the request was cached.
     #[component(name = "cache-status")]
     pub cache_status: CacheStatus,
     /// Total time taken to get a response, retries included. In milliseconds.
-    #[component(name = "total-duration")]
-    pub total_duration: u64,
+    #[component(name = "total-duration-ms")]
+    pub total_duration_ms: u64,
     /// True, if the response has any GraphQL errors.
     #[component(name = "has-errors")]
     pub has_errors: bool,

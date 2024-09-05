@@ -121,14 +121,14 @@ pub trait SubgraphHooks<Context>: Send + Sync + 'static {
 
 #[derive(Debug, Clone, Copy)]
 pub struct ResponseInfo {
-    pub connection_time: u64,
-    pub response_time: u64,
+    pub connection_time_ms: u64,
+    pub response_time_ms: u64,
     pub status_code: u16,
 }
 
 #[derive(Debug, Clone, Copy)]
-pub enum ResponseKind {
-    SerializationError,
+pub enum SubgraphRequestExecutionKind {
+    InternalServerError,
     HookError,
     RequestError,
     RateLimited,
@@ -139,16 +139,16 @@ impl ResponseInfo {
     pub fn builder() -> ResponseInfoBuilder {
         ResponseInfoBuilder {
             start: Instant::now(),
-            connection_time: None,
-            response_time: None,
+            connection_time_ms: None,
+            response_time_ms: None,
         }
     }
 }
 
 pub struct ResponseInfoBuilder {
     start: Instant,
-    connection_time: Option<u64>,
-    response_time: Option<u64>,
+    connection_time_ms: Option<u64>,
+    response_time_ms: Option<u64>,
 }
 
 pub struct OnSubgraphResponseOutput(pub Vec<u8>);
@@ -157,19 +157,19 @@ impl ResponseInfoBuilder {
     /// Stops the clock for connection time. This is typically the time the request gets
     /// sent, but no data is fetched back.
     pub fn track_connection(&mut self) {
-        self.connection_time = Some(self.start.elapsed().as_millis() as u64);
+        self.connection_time_ms = Some(self.start.elapsed().as_millis() as u64);
     }
 
     /// Stops the clock for response time. This time is the time it takes to initialize
     /// a connection and waiting to get all the data back.
     pub fn track_response(&mut self) {
-        self.response_time = Some(self.start.elapsed().as_millis() as u64);
+        self.response_time_ms = Some(self.start.elapsed().as_millis() as u64);
     }
 
     pub fn finalize(self, status_code: u16) -> ResponseInfo {
         ResponseInfo {
-            connection_time: self.connection_time.unwrap_or_default(),
-            response_time: self.response_time.unwrap_or_default(),
+            connection_time_ms: self.connection_time_ms.unwrap_or_default(),
+            response_time_ms: self.response_time_ms.unwrap_or_default(),
             status_code,
         }
     }
@@ -187,9 +187,9 @@ pub struct ExecutedSubgraphRequest<'a> {
     pub subgraph_name: &'a str,
     pub method: &'a str,
     pub url: &'a str,
-    pub responses: Vec<ResponseKind>,
+    pub executions: Vec<SubgraphRequestExecutionKind>,
     pub cache_status: CacheStatus,
-    pub total_duration: u64,
+    pub total_duration_ms: u64,
     pub has_errors: bool,
 }
 
@@ -198,15 +198,15 @@ pub struct ExecutedSubgraphRequestBuilder<'a> {
     subgraph_name: &'a str,
     method: &'a str,
     url: &'a str,
-    responses: Vec<ResponseKind>,
+    executions: Vec<SubgraphRequestExecutionKind>,
     cache_status: CacheStatus,
     start_time: Instant,
     status: SubgraphResponseStatus,
 }
 
 impl<'a> ExecutedSubgraphRequestBuilder<'a> {
-    pub fn push_response(&mut self, kind: ResponseKind) {
-        self.responses.push(kind);
+    pub fn push_execution(&mut self, kind: SubgraphRequestExecutionKind) {
+        self.executions.push(kind);
     }
 
     pub fn set_cache_status(&mut self, status: CacheStatus) {
@@ -227,9 +227,9 @@ impl<'a> ExecutedSubgraphRequestBuilder<'a> {
             subgraph_name: self.subgraph_name,
             method: self.method,
             url: self.url,
-            responses: self.responses,
+            executions: self.executions,
             cache_status: self.cache_status,
-            total_duration: self.start_time.elapsed().as_millis() as u64,
+            total_duration_ms: self.start_time.elapsed().as_millis() as u64,
             has_errors: !is_success,
         }
     }
@@ -241,7 +241,7 @@ impl<'a> ExecutedSubgraphRequest<'a> {
             subgraph_name,
             method,
             url,
-            responses: Vec::new(),
+            executions: Vec::new(),
             cache_status: CacheStatus::Miss,
             start_time: Instant::now(),
             status: SubgraphResponseStatus::GraphqlResponse(GraphqlResponseStatus::Success),
@@ -253,9 +253,9 @@ impl<'a> ExecutedSubgraphRequest<'a> {
 pub struct ExecutedOperation<'a> {
     pub name: Option<String>,
     pub document: &'a str,
-    pub prepare_duration: u64,
+    pub prepare_duration_ms: u64,
     pub cached: bool,
-    pub duration: u64,
+    pub duration_ms: u64,
     pub status: GraphqlResponseStatus,
     pub on_subgraph_response_outputs: Vec<Vec<u8>>,
 }
@@ -266,7 +266,7 @@ impl<'a> ExecutedOperation<'a> {
             start_time: Instant::now(),
             on_subgraph_response_outputs: Vec::new(),
             name: None,
-            prepare_duration: None,
+            prepare_duration_ms: None,
             cached: false,
         }
     }
@@ -275,7 +275,7 @@ impl<'a> ExecutedOperation<'a> {
 #[derive(Debug)]
 pub struct ExecutedOperationBuilder {
     name: Option<String>,
-    prepare_duration: Option<u64>,
+    prepare_duration_ms: Option<u64>,
     cached: bool,
     start_time: Instant,
     on_subgraph_response_outputs: Vec<Vec<u8>>,
@@ -291,7 +291,7 @@ impl ExecutedOperationBuilder {
     }
 
     pub fn track_prepare(&mut self) {
-        self.prepare_duration = Some(self.start_time.elapsed().as_millis() as u64);
+        self.prepare_duration_ms = Some(self.start_time.elapsed().as_millis() as u64);
     }
 
     pub fn set_cached(&mut self) {
@@ -300,12 +300,12 @@ impl ExecutedOperationBuilder {
 
     pub fn finalize(self, document: &str, status: GraphqlResponseStatus) -> ExecutedOperation<'_> {
         ExecutedOperation {
-            duration: self.start_time.elapsed().as_millis() as u64,
+            duration_ms: self.start_time.elapsed().as_millis() as u64,
             status,
             on_subgraph_response_outputs: self.on_subgraph_response_outputs,
             name: self.name,
             document,
-            prepare_duration: self.prepare_duration.unwrap_or_default(),
+            prepare_duration_ms: self.prepare_duration_ms.unwrap_or_default(),
             cached: self.cached,
         }
     }

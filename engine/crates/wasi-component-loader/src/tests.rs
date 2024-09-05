@@ -4,7 +4,7 @@ use crate::{
     hooks::subgraph::SubgraphComponentInstance, AuthorizationComponentInstance, CacheStatus, ChannelLogReceiver,
     ChannelLogSender, ComponentLoader, Config, EdgeDefinition, ExecutedHttpRequest, ExecutedOperation,
     ExecutedSubgraphRequest, GatewayComponentInstance, GuestError, NodeDefinition, RecycleableComponentInstance,
-    ResponseInfo, ResponsesComponentInstance, SharedContext,
+    ResponsesComponentInstance, SharedContext, SubgraphResponse,
 };
 use expect_test::expect;
 use grafbase_telemetry::otel::opentelemetry::trace::TraceId;
@@ -690,11 +690,11 @@ async fn response_hooks() {
         subgraph_name: String::from("kekw"),
         method: String::from("POST"),
         url: String::from("https://example.com"),
-        total_duration: 10,
+        total_duration_ms: 10,
         has_errors: false,
-        responses: vec![crate::ResponseKind::Responsed(ResponseInfo {
-            connection_time: 10,
-            response_time: 4,
+        executions: vec![crate::SubgraphRequestExecutionKind::Response(SubgraphResponse {
+            connection_time_ms: 10,
+            response_time_ms: 4,
             status_code: 200,
         })],
         cache_status: CacheStatus::Miss,
@@ -703,12 +703,12 @@ async fn response_hooks() {
     let subgraph_info = hook.on_subgraph_response(context.clone(), request).await.unwrap();
 
     let operation = ExecutedOperation {
-        duration: 5,
+        duration_ms: 5,
         status: crate::GraphqlResponseStatus::Success,
         on_subgraph_response_outputs: vec![subgraph_info],
         name: Some(String::from("kekw")),
         document: String::from("query { me { 1 } }"),
-        prepare_duration: 3,
+        prepare_duration_ms: 3,
         cached: false,
     };
 
