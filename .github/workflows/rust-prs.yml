@@ -39,10 +39,8 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
         with:
-          # Fetch a few commits to help calculate whats changed
-          # This number is 100% guesswork
           # TODO: Figure out how to not make this zero
-          # Possibly with github API magic...
+          # Seems like if it's not zero you dont get branches
           fetch-depth: 0
 
       - name: Extract the Rust version to use from the `rust-toolchain.toml` file
@@ -64,8 +62,10 @@ jobs:
       - name: Run what-rust-changed
         id: what-rust-changed
         shell: bash
-        # Note: this can all be done much nicer, i'm just hacking things together
-        # to see if this works well
+        env:
+          WHAT_RUST_CHANGED_CONFIG: .github/what-rust-changed.toml
+        # TODO: Much of this script could be moved into the what-rust-changed code
+        # (or it could have its own action) but don't have time for that right now.
         run: |
           set -euo pipefail
           HEAD_REF="${GITHUB_HEAD_REF:-$(git rev-parse HEAD)}"
@@ -79,8 +79,6 @@ jobs:
           git checkout $HEAD_REF
           cargo metadata > /tmp/target.metadata.json
           CHANGED_FILES=$(git diff --no-commit-id --name-only -r $MERGE_BASE HEAD)
-          echo "Changed files: $CHANGED_FILES"
-          echo ""
           CHANGES=$(echo $CHANGED_FILES | xargs what-rust-changed /tmp/base.metadata.json /tmp/target.metadata.json)
           echo "rust=$CHANGES" >> "$GITHUB_OUTPUT"
           echo "Done.  Output Contents:"
