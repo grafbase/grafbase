@@ -369,7 +369,7 @@ fn ingest_authorized_directives(parsed: &ast::TypeSystemDocument, state: &mut St
         let fields = authorized
             .get_argument("fields")
             .and_then(|arg| match arg.value() {
-                ast::Value::String(s) => Some(s),
+                ast::Value::String(s) | ast::Value::BlockString(s) => Some(s),
                 _ => None,
             })
             .map(|fields| parse_selection_set(fields).and_then(|doc| attach_field_set(&doc, definition, state)))
@@ -426,7 +426,7 @@ fn ingest_entity_keys(parsed: &ast::TypeSystemDocument, state: &mut State<'_>) -
             let fields = join_type
                 .get_argument("key")
                 .and_then(|arg| match arg.value() {
-                    ast::Value::String(s) => Some(s),
+                    ast::Value::String(s) | ast::Value::BlockString(s) => Some(s),
                     _ => None,
                 })
                 .map(|fields| parse_selection_set(fields).and_then(|doc| attach_field_set(&doc, definition, state)))
@@ -478,13 +478,14 @@ fn ingest_field_directives_after_graph<'a>(
         let ast::Definition::Type(typedef) = definition else {
             continue;
         };
-        let parent_id = state.definition_names[typedef.name()];
 
         let fields = match typedef {
             ast::TypeDefinition::Object(object) => object.fields(),
             ast::TypeDefinition::Interface(iface) => iface.fields(),
             _ => continue,
         };
+
+        let parent_id = state.definition_names[typedef.name()];
 
         ingest_join_field_directive(parent_id, || typedef.directives(), fields, state)?;
         ingest_authorized_directive(parent_id, fields, state)?;
@@ -561,7 +562,7 @@ where
             if let Some(field_provides) = directive
                 .get_argument("provides")
                 .and_then(|arg| match arg.value() {
-                    ast::Value::String(s) => Some(s),
+                    ast::Value::String(s) | ast::Value::BlockString(s) => Some(s),
                     _ => None,
                 })
                 .map(|provides| {
@@ -577,7 +578,7 @@ where
             if let Some(field_requires) = directive
                 .get_argument("requires")
                 .and_then(|arg| match arg.value() {
-                    ast::Value::String(s) => Some(s),
+                    ast::Value::String(s) | ast::Value::BlockString(s) => Some(s),
                     _ => None,
                 })
                 .map(|requires| {
@@ -621,7 +622,7 @@ fn ingest_authorized_directive<'a>(
                 arguments: directive
                     .get_argument("arguments")
                     .and_then(|arg| match arg.value() {
-                        ast::Value::String(s) => Some(s),
+                        ast::Value::String(s) | ast::Value::BlockString(s) => Some(s),
                         _ => None,
                     })
                     .map(|arguments| {
@@ -633,7 +634,7 @@ fn ingest_authorized_directive<'a>(
                 fields: directive
                     .get_argument("fields")
                     .and_then(|arg| match arg.value() {
-                        ast::Value::String(s) => Some(s),
+                        ast::Value::String(s) | ast::Value::BlockString(s) => Some(s),
                         _ => None,
                     })
                     .map(|fields| {
@@ -643,7 +644,7 @@ fn ingest_authorized_directive<'a>(
                 node: directive
                     .get_argument("node")
                     .and_then(|arg| match arg.value() {
-                        ast::Value::String(s) => Some(s),
+                        ast::Value::String(s) | ast::Value::BlockString(s) => Some(s),
                         _ => None,
                     })
                     .map(|fields| {
@@ -1243,7 +1244,7 @@ fn ingest_join_graph_enum<'a>(enm: ast::EnumDefinition<'a>, state: &mut State<'a
                 )
             })
             .and_then(|arg| match arg.value() {
-                ast::Value::String(s) => Ok(s),
+                ast::Value::String(s) | ast::Value::BlockString(s) => Ok(s),
                 _ => Err(DomainError(
                     "Unexpected type for `name` argument in `@join__graph` directive on `join__Graph` enum value."
                         .to_owned(),
@@ -1257,7 +1258,7 @@ fn ingest_join_graph_enum<'a>(enm: ast::EnumDefinition<'a>, state: &mut State<'a
                 )
             })
             .and_then(|arg| match arg.value() {
-                ast::Value::String(s) => Ok(s),
+                ast::Value::String(s) | ast::Value::BlockString(s) => Ok(s),
                 _ => Err(DomainError(
                     "Unexpected type for `url` argument in `@join__graph` directive on `join__Graph` enum value."
                         .to_owned(),
@@ -1300,7 +1301,7 @@ fn collect_composed_directives<'a>(
             "deprecated" => {
                 let directive = Directive::Deprecated {
                     reason: directive.get_argument("reason").and_then(|value| match value.value() {
-                        ast::Value::String(s) => Some(state.insert_string(s)),
+                        ast::Value::String(s) | ast::Value::BlockString(s) => Some(state.insert_string(s)),
                         _ => None,
                     }),
                 };
