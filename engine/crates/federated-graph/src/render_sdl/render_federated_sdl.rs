@@ -635,7 +635,7 @@ mod tests {
             directive @join__graph(name: String!, url: String!) on ENUM_VALUE
 
             type Query {
-                field: String @deprecated(reason: "This is a \"deprecated\" reason\n\non multiple lines.\n\nyes, way") @dummy(test: "a \"test\"")
+                field: String @deprecated(reason: "This is a \"deprecated\" reason\n\n                on multiple lines.\n\n                yes, way\n\n                ") @dummy(test: "a \"test\"")
             }
         "#]];
 

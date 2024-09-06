@@ -3876,8 +3876,7 @@ dependencies = [
 name = "graphql-federated-graph"
 version = "0.4.0"
 dependencies = [
- "async-graphql-parser",
- "async-graphql-value",
+ "cynic-parser",
  "expect-test",
  "graphql-wrapping-types",
  "indexmap 2.2.6",
