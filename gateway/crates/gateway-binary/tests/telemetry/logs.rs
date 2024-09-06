@@ -43,7 +43,7 @@ fn with_otel() {
         let result: serde_json::Value = client.gql(query).send().await;
         serde_json::to_string_pretty(&result).unwrap();
 
-        tokio::time::sleep(Duration::from_secs(2)).await;
+        tokio::time::sleep(Duration::from_secs(3)).await;
 
         let client = crate::clickhouse_client();
 
@@ -93,7 +93,7 @@ fn with_otel_reload() {
         let result: serde_json::Value = client.gql(query).send().await;
         serde_json::to_string_pretty(&result).unwrap();
 
-        tokio::time::sleep(Duration::from_secs(2)).await;
+        tokio::time::sleep(Duration::from_secs(3)).await;
 
         let client = crate::clickhouse_client();
 
@@ -152,7 +152,7 @@ fn with_otel_with_different_endpoint() {
         let result: serde_json::Value = client.gql(query).send().await;
         serde_json::to_string_pretty(&result).unwrap();
 
-        tokio::time::sleep(Duration::from_secs(2)).await;
+        tokio::time::sleep(Duration::from_secs(3)).await;
 
         let client = crate::clickhouse_client();
 

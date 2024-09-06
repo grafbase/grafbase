@@ -17,7 +17,7 @@ mod gdn;
 mod operation;
 mod request;
 
-const METRICS_DELAY: Duration = Duration::from_secs(2);
+const METRICS_DELAY: Duration = Duration::from_secs(3);
 
 #[serde_with::serde_as]
 #[derive(Debug, clickhouse::Row, Deserialize, Serialize, PartialEq)]

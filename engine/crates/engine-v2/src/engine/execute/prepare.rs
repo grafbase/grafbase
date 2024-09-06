@@ -27,7 +27,7 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
         match result {
             Ok(operation) => {
                 let attributes = QueryPreparationAttributes {
-                    operation: operation.prepared.metrics_attributes.clone(),
+                    operation: Some(operation.prepared.metrics_attributes.clone()),
                     success: true,
                 };
 
@@ -36,14 +36,12 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
                 Ok(operation)
             }
             Err((metrics_attributes, response)) => {
-                if let Some(operation) = metrics_attributes.clone() {
-                    let attributes = QueryPreparationAttributes {
-                        operation,
-                        success: false,
-                    };
+                let attributes = QueryPreparationAttributes {
+                    operation: metrics_attributes.clone(),
+                    success: false,
+                };
 
-                    self.metrics().record_preparation_latency(attributes, duration);
-                }
+                self.metrics().record_preparation_latency(attributes, duration);
 
                 Err((metrics_attributes, response))
             }

@@ -29,6 +29,7 @@ fn on_gateway_request_success() {
                 WHERE ServiceName = ?
                     AND ScopeName = 'grafbase'
                     AND MetricName = 'grafbase.hook.duration'
+                    AND Attributes['grafbase.hook.name'] = 'on-gateway-request'
             "#};
 
         let row = clickhouse
@@ -84,6 +85,7 @@ fn on_gateway_request_host_error() {
                 WHERE ServiceName = ?
                     AND ScopeName = 'grafbase'
                     AND MetricName = 'grafbase.hook.duration'
+                    AND Attributes['grafbase.hook.name'] = 'on-gateway-request'
             "#};
 
         let row = clickhouse
@@ -140,6 +142,7 @@ fn on_gateway_request_guest_error() {
                 WHERE ServiceName = ?
                     AND ScopeName = 'grafbase'
                     AND MetricName = 'grafbase.hook.duration'
+                    AND Attributes['grafbase.hook.name'] = 'on-gateway-request'
             "#};
 
         let row = clickhouse
