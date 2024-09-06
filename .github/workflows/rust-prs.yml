@@ -341,7 +341,7 @@ jobs:
         if: fromJson(needs.what-changed.outputs.rust).cargo-docker-test-specs && runner.os == 'Linux'
         shell: bash
         run: |
-          cargo nextest run --target ${{ matrix.platform.target }} --no-run --profile ci ${{ fromJson(needs.what-changed.outputs.rust).cargo-test-specs }}
+          cargo nextest run --target ${{ matrix.platform.target }} --no-run --profile ci ${{ fromJson(needs.what-changed.outputs.rust).cargo-docker-test-specs }}
 
       - name: Run tests (docker platforms)
         id: tests_docker
