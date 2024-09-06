@@ -15,8 +15,19 @@ runs:
   using: 'composite'
   steps:
     - name: Get Datadog CLI
+      if: runner.os != 'Windows'
       shell: bash
       run: npm install -g @datadog/datadog-ci@2.10.0
+
+    # npm install takes seems to take 2 minutes on windows
+    # so lets download a binary instead...
+    - name: Download datadog CLI on windows
+      if: runner.os == 'Windows'
+      shell: bash
+      run: |
+        mkdir bin
+        echo "$PWD/bin" >> $GITHUB_PATH
+        curl -L "https://github.com/DataDog/datadog-ci/releases/download/v2.42.0/datadog-ci_win-x64" --output "bin/datadog-ci"
 
     - name: Upload the JUnit files
       shell: bash
