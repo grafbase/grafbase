@@ -1,0 +1,21 @@
+schema {
+  query: Root
+}
+
+type Root {
+  ping: Pong
+}
+
+scalar Pong
+
+# --- #
+
+schema {
+  mutation: Root
+}
+
+type Root {
+  pong: Pong
+}
+
+scalar Pong

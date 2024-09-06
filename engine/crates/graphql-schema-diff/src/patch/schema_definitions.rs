@@ -40,7 +40,10 @@ pub(super) fn patch_schema_definition<T: AsRef<str>>(
         ("mutation", new_mutation_type, definition.mutation_type()),
         ("subscription", new_subscription_type, definition.subscription_type()),
     ] {
-        if let Some(type_name) = maybe_replacement.or_else(|| in_source.map(|ty| ty.named_type())) {
+        if let Some(type_name) = maybe_replacement
+            .or_else(|| in_source.map(|ty| ty.named_type()))
+            .filter(|name| !name.is_empty())
+        {
             schema.push_str(INDENTATION);
             schema.push_str(operation_name);
             schema.push_str(": ");
