@@ -18,4 +18,4 @@ pub use graphql_over_http::Body;
 pub use response::error::ErrorCode;
 pub use schema::{BuildError, Schema, Version as SchemaVersion};
 
-pub use config::{latest as config, VersionedConfig};
+pub use ::config::{latest as config, VersionedConfig};

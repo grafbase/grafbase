@@ -214,7 +214,6 @@ jobs:
         with:
           target: ${{ matrix.platform.target }}
           components: clippy, rustfmt
-          targets: ${{ matrix.platform.target }}
 
       - name: Rustup overridpe
         shell: bash
