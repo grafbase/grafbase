@@ -29,11 +29,3 @@ runs:
           rm wrc.tar.gz
         fi
         echo "$HOME/.local/what-rust-changed" >> $GITHUB_PATH
-        cat $GITHUB_PATH
-        ls $HOME/.local/what-rust-changed
-
-    - name: Install what-rust-changed
-      shell: bash
-      run: |
-        echo "in the next step"
-        echo $PATH
