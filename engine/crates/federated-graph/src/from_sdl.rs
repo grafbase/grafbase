@@ -1,8 +1,5 @@
 use crate::federated_graph::*;
-use async_graphql_parser::{
-    types::{self as ast, ConstDirective, FieldDefinition},
-    Positioned,
-};
+use cynic_parser::{common::WrappingType, type_system as ast};
 use indexmap::IndexSet;
 use std::{collections::HashMap, error::Error as StdError, fmt, ops::Range};
 
@@ -58,32 +55,42 @@ struct State<'a> {
     field_authorized_directives: Vec<(FieldId, AuthorizedDirectiveId)>,
     object_authorized_directives: Vec<(ObjectId, AuthorizedDirectiveId)>,
     interface_authorized_directives: Vec<(InterfaceId, AuthorizedDirectiveId)>,
+
+    type_wrappers: Vec<WrappingType>,
 }
 
 impl<'a> State<'a> {
-    fn field_type(&mut self, field_type: &'a ast::Type) -> Result<Type, DomainError> {
-        fn unfurl(state: &State<'_>, inner: &ast::Type) -> Result<(wrapping::Wrapping, Definition), DomainError> {
-            match &inner.base {
-                ast::BaseType::Named(name) => Ok((
-                    wrapping::Wrapping::new(!inner.nullable),
-                    *state
-                        .definition_names
-                        .get(name.as_str())
-                        .ok_or_else(|| DomainError(format!("Unknown type '{name}'")))?,
-                )),
-                ast::BaseType::List(new_inner) => {
-                    let (wrapping, definition) = unfurl(state, new_inner)?;
-                    let wrapping = if inner.nullable {
-                        wrapping.wrapped_by_nullable_list()
-                    } else {
-                        wrapping.wrapped_by_required_list()
-                    };
-                    Ok((wrapping, definition))
+    fn field_type(&mut self, field_type: &'a ast::Type<'a>) -> Result<Type, DomainError> {
+        use cynic_parser::{common::WrappingType, type_system as ast};
+
+        self.type_wrappers.clear();
+        self.type_wrappers.extend(field_type.wrappers());
+        self.type_wrappers.reverse();
+
+        let mut wrappers = self.type_wrappers.iter().peekable();
+
+        let mut wrapping = match wrappers.next() {
+            Some(WrappingType::List) => wrapping::Wrapping::new(false).wrapped_by_nullable_list(),
+            Some(WrappingType::NonNull) => wrapping::Wrapping::new(true),
+            None => wrapping::Wrapping::new(false),
+        };
+
+        while let Some(next) = wrappers.next() {
+            debug_assert_eq!(*next, WrappingType::List, "double non-null wrapping type not possible");
+
+            wrapping = match wrappers.peek() {
+                Some(WrappingType::NonNull) => {
+                    wrappers.next();
+                    wrapping.wrapped_by_required_list()
                 }
+                None | Some(WrappingType::List) => wrapping.wrapped_by_nullable_list(),
             }
         }
 
-        let (wrapping, definition) = unfurl(self, field_type)?;
+        let definition = *self
+            .definition_names
+            .get(field_type.name())
+            .ok_or_else(|| DomainError(format!("Unknown type '{}'", field_type.name())))?;
 
         Ok(Type { definition, wrapping })
     }
@@ -96,38 +103,31 @@ impl<'a> State<'a> {
         StringId(self.strings.insert_full(s.to_owned()).0)
     }
 
-    fn insert_value(&mut self, node: &async_graphql_value::ConstValue, expected_enum_type: Option<EnumId>) -> Value {
+    fn insert_value(&mut self, node: &ast::Value<'_>, expected_enum_type: Option<EnumId>) -> Value {
         match node {
-            async_graphql_value::ConstValue::Null => Value::String(self.insert_string("null")),
-            async_graphql_value::ConstValue::Number(number) => {
-                if let Some(number) = number.as_i64() {
-                    Value::Int(number)
-                } else if let Some(number) = number.as_f64() {
-                    Value::Float(number)
-                } else {
-                    unreachable!()
-                }
-            }
-            async_graphql_value::ConstValue::String(s) => Value::String(self.insert_string(s)),
-            async_graphql_value::ConstValue::Boolean(b) => Value::Boolean(*b),
-            async_graphql_value::ConstValue::Enum(enm) => expected_enum_type
+            ast::Value::Null => Value::String(self.insert_string("null")),
+            ast::Value::Int(n) => Value::Int(i64::from(*n)),
+            ast::Value::Float(n) => Value::Float(f64::from(*n)),
+            ast::Value::String(s) | ast::Value::BlockString(s) => Value::String(self.insert_string(s)),
+            ast::Value::Boolean(b) => Value::Boolean(*b),
+            ast::Value::Enum(enm) => expected_enum_type
                 .and_then(|enum_id| {
-                    let enum_value_id = self.enum_values_map.get(&(enum_id, enm.as_str()))?;
+                    let enum_value_id = self.enum_values_map.get(&(enum_id, enm))?;
                     Some(Value::EnumValue(*enum_value_id))
                 })
                 .unwrap_or(Value::UnboundEnumValue(self.insert_string(enm))),
-            async_graphql_value::ConstValue::Binary(_) => unreachable!(),
-            async_graphql_value::ConstValue::List(list) => Value::List(
+            ast::Value::List(list) => Value::List(
                 list.iter()
                     .map(|value| self.insert_value(value, expected_enum_type))
                     .collect(),
             ),
-            async_graphql_value::ConstValue::Object(obj) => Value::Object(
+            ast::Value::Object(obj) => Value::Object(
                 obj.into_iter()
                     .map(|(k, v)| (self.insert_string(k), self.insert_value(v, expected_enum_type)))
                     .collect::<Vec<_>>()
                     .into_boxed_slice(),
             ),
+            ast::Value::Variable(_) => unreachable!("variable in type system document"), // not possible in type system documents
         }
     }
 
@@ -167,7 +167,7 @@ impl<'a> State<'a> {
 
 pub fn from_sdl(sdl: &str) -> Result<FederatedGraph, DomainError> {
     let mut state = State::default();
-    let parsed = async_graphql_parser::parse_schema(sdl).map_err(|err| DomainError(err.to_string()))?;
+    let parsed = cynic_parser::parse_type_system_document(sdl).map_err(|err| DomainError(err.to_string()))?;
 
     ingest_definitions(&parsed, &mut state)?;
     ingest_schema_definitions(&parsed, &mut state)?;
@@ -225,9 +225,12 @@ pub fn from_sdl(sdl: &str) -> Result<FederatedGraph, DomainError> {
     })
 }
 
-fn ingest_schema_definitions<'a>(parsed: &'a ast::ServiceDocument, state: &mut State<'a>) -> Result<(), DomainError> {
-    for definition in &parsed.definitions {
-        if let ast::TypeSystemDefinition::Schema(Positioned { node: schema, .. }) = definition {
+fn ingest_schema_definitions<'a>(
+    parsed: &'a ast::TypeSystemDocument,
+    state: &mut State<'a>,
+) -> Result<(), DomainError> {
+    for definition in parsed.definitions() {
+        if let ast::Definition::Schema(schema) = definition {
             ingest_schema_definition(schema, state)?;
         }
     }
@@ -235,14 +238,14 @@ fn ingest_schema_definitions<'a>(parsed: &'a ast::ServiceDocument, state: &mut S
     Ok(())
 }
 
-fn ingest_fields<'a>(parsed: &'a ast::ServiceDocument, state: &mut State<'a>) -> Result<(), DomainError> {
-    for definition in &parsed.definitions {
+fn ingest_fields<'a>(parsed: &'a ast::TypeSystemDocument, state: &mut State<'a>) -> Result<(), DomainError> {
+    for definition in parsed.definitions() {
         match definition {
-            ast::TypeSystemDefinition::Schema(_) | ast::TypeSystemDefinition::Directive(_) => (),
-            ast::TypeSystemDefinition::Type(typedef) => match &typedef.node.kind {
-                ast::TypeKind::Scalar => (),
-                ast::TypeKind::Object(object) => {
-                    let Definition::Object(object_id) = state.definition_names[typedef.node.name.node.as_str()] else {
+            ast::Definition::Schema(_) | ast::Definition::SchemaExtension(_) | ast::Definition::Directive(_) => (),
+            ast::Definition::Type(typedef) | ast::Definition::TypeExtension(typedef) => match &typedef {
+                ast::TypeDefinition::Scalar(_) => (),
+                ast::TypeDefinition::Object(object) => {
+                    let Definition::Object(object_id) = state.definition_names[typedef.name()] else {
                         return Err(DomainError(
                             "Broken invariant: object id behind object name.".to_owned(),
                         ));
@@ -250,7 +253,7 @@ fn ingest_fields<'a>(parsed: &'a ast::ServiceDocument, state: &mut State<'a>) ->
                     ingest_object_interfaces(object_id, object, state)?;
                     ingest_object_fields(object_id, &object.fields, state)?;
                 }
-                ast::TypeKind::Interface(iface) => {
+                ast::TypeDefinition::Interface(iface) => {
                     let Definition::Interface(interface_id) = state.definition_names[typedef.node.name.node.as_str()]
                     else {
                         return Err(DomainError(
@@ -260,14 +263,14 @@ fn ingest_fields<'a>(parsed: &'a ast::ServiceDocument, state: &mut State<'a>) ->
                     ingest_interface_interfaces(interface_id, iface, state)?;
                     ingest_interface_fields(interface_id, &iface.fields, state)?;
                 }
-                ast::TypeKind::Union(union) => {
+                ast::TypeDefinition::Union(union) => {
                     let Definition::Union(union_id) = state.definition_names[typedef.node.name.node.as_str()] else {
                         return Err(DomainError("Broken invariant: UnionId behind union name.".to_owned()));
                     };
                     ingest_union_members(union_id, union, state)?;
                 }
-                ast::TypeKind::Enum(_) => {}
-                ast::TypeKind::InputObject(input_object) => {
+                ast::TypeDefinition::Enum(_) => {}
+                ast::TypeDefinition::InputObject(input_object) => {
                     let Definition::InputObject(input_object_id) =
                         state.definition_names[typedef.node.name.node.as_str()]
                     else {
@@ -284,22 +287,24 @@ fn ingest_fields<'a>(parsed: &'a ast::ServiceDocument, state: &mut State<'a>) ->
     Ok(())
 }
 
-fn ingest_schema_definition(schema: &ast::SchemaDefinition, state: &mut State<'_>) -> Result<(), DomainError> {
-    for Positioned { node: directive, .. } in &schema.directives {
+fn ingest_schema_definition(schema: ast::SchemaDefinition<'_>, state: &mut State<'_>) -> Result<(), DomainError> {
+    for directive in schema.directives() {
         let name = directive.name.node.as_str();
         if name != "link" {
             return Err(DomainError(format!("Unsupported directive {name} on schema.")));
         }
     }
 
-    if let Some(Positioned { node: name, .. }) = &schema.query {
-        state.query_type_name = Some(name.to_string());
+    if let Some(query) = schema.query_type() {
+        state.query_type_name = Some(query.named_type().to_owned());
     }
-    if let Some(Positioned { node: name, .. }) = &schema.mutation {
-        state.mutation_type_name = Some(name.to_string());
+
+    if let Some(mutation) = schema.mutation_type() {
+        state.mutation_type_name = Some(mutation.named_type().to_owned());
     }
-    if let Some(Positioned { node: name, .. }) = &schema.subscription {
-        state.subscription_type_name = Some(name.to_string());
+
+    if let Some(subscription) = schema.subscription_type() {
+        state.subscription_type_name = Some(subscription.named_type().to_owned());
     }
 
     Ok(())
@@ -307,7 +312,7 @@ fn ingest_schema_definition(schema: &ast::SchemaDefinition, state: &mut State<'_
 
 fn ingest_interface_interfaces(
     interface_id: InterfaceId,
-    interface: &ast::InterfaceType,
+    interface: ast::InterfaceDefinition<'_>,
     state: &mut State<'_>,
 ) -> Result<(), DomainError> {
     state.interfaces[interface_id.0].implements_interfaces = interface
@@ -326,7 +331,7 @@ fn ingest_interface_interfaces(
 
 fn ingest_object_interfaces(
     object_id: ObjectId,
-    object: &ast::ObjectType,
+    object: &ast::ObjectDefinition<'_>,
     state: &mut State<'_>,
 ) -> Result<(), DomainError> {
     state.objects[object_id.0].implements_interfaces = object
@@ -343,13 +348,13 @@ fn ingest_object_interfaces(
     Ok(())
 }
 
-fn ingest_selection_sets(parsed: &ast::ServiceDocument, state: &mut State<'_>) -> Result<(), DomainError> {
+fn ingest_selection_sets(parsed: &ast::TypeSystemDocument, state: &mut State<'_>) -> Result<(), DomainError> {
     ingest_field_directives_after_graph(parsed, state)?;
     ingest_authorized_directives(parsed, state)?;
     ingest_entity_keys(parsed, state)
 }
 
-fn ingest_authorized_directives(parsed: &ast::ServiceDocument, state: &mut State<'_>) -> Result<(), DomainError> {
+fn ingest_authorized_directives(parsed: &ast::TypeSystemDocument, state: &mut State<'_>) -> Result<(), DomainError> {
     for typedef in parsed.definitions.iter().filter_map(|def| match def {
         ast::TypeSystemDefinition::Type(ty) => Some(&ty.node),
         _ => None,
@@ -685,8 +690,8 @@ fn ingest_authorized_directive(
 fn ingest_definitions<'a>(document: &'a ast::ServiceDocument, state: &mut State<'a>) -> Result<(), DomainError> {
     for definition in &document.definitions {
         match definition {
-            ast::TypeSystemDefinition::Schema(_) | ast::TypeSystemDefinition::Directive(_) => (),
-            ast::TypeSystemDefinition::Type(typedef) => {
+            ast::Definition::Schema(_) | ast::Definition::Directive(_) => (),
+            ast::Definition::Type(typedef) => {
                 let type_name = typedef.node.name.node.as_str();
                 let type_name_id = state.insert_string(type_name);
                 let description = typedef
@@ -696,12 +701,10 @@ fn ingest_definitions<'a>(document: &'a ast::ServiceDocument, state: &mut State<
                     .map(|description| state.insert_string(description.node.as_str()));
                 let composed_directives = collect_composed_directives(&typedef.node.directives, state);
 
-                match &typedef.node.kind {
-                    ast::TypeKind::Scalar => {
-                        let description = typedef
-                            .node
-                            .description
-                            .as_ref()
+                match typedef {
+                    ast::TypeDefinition::Scalar(scalar) => {
+                        let description = scalar
+                            .description()
                             .map(|description| state.insert_string(description.node.as_str()));
 
                         let scalar_id = ScalarId(state.scalars.push_return_idx(Scalar {
@@ -711,7 +714,7 @@ fn ingest_definitions<'a>(document: &'a ast::ServiceDocument, state: &mut State<
                         }));
                         state.definition_names.insert(type_name, Definition::Scalar(scalar_id));
                     }
-                    ast::TypeKind::Object(_) => {
+                    ast::TypeDefinition::Object(_) => {
                         let object_id = ObjectId(state.objects.push_return_idx(Object {
                             name: type_name_id,
                             implements_interfaces: Vec::new(),
@@ -723,7 +726,7 @@ fn ingest_definitions<'a>(document: &'a ast::ServiceDocument, state: &mut State<
 
                         state.definition_names.insert(type_name, Definition::Object(object_id));
                     }
-                    ast::TypeKind::Interface(_) => {
+                    ast::TypeDefinition::Interface(_) => {
                         let interface_id = InterfaceId(state.interfaces.push_return_idx(Interface {
                             name: type_name_id,
                             implements_interfaces: Vec::new(),
@@ -736,7 +739,7 @@ fn ingest_definitions<'a>(document: &'a ast::ServiceDocument, state: &mut State<
                             .definition_names
                             .insert(type_name, Definition::Interface(interface_id));
                     }
-                    ast::TypeKind::Union(_) => {
+                    ast::TypeDefinition::Union(_) => {
                         let union_id = UnionId(state.unions.push_return_idx(Union {
                             name: type_name_id,
                             members: Vec::new(),
@@ -745,10 +748,10 @@ fn ingest_definitions<'a>(document: &'a ast::ServiceDocument, state: &mut State<
                         }));
                         state.definition_names.insert(type_name, Definition::Union(union_id));
                     }
-                    ast::TypeKind::Enum(enm) if type_name == JOIN_GRAPH_ENUM_NAME => {
+                    ast::TypeDefinition::Enum(enm) if type_name == JOIN_GRAPH_ENUM_NAME => {
                         ingest_join_graph_enum(enm, state)?;
                     }
-                    ast::TypeKind::Enum(enm) => {
+                    ast::TypeDefinition::Enum(enm) => {
                         let enum_id = EnumId(state.enums.push_return_idx(Enum {
                             name: type_name_id,
                             values: NO_ENUM_VALUE,
@@ -786,7 +789,7 @@ fn ingest_definitions<'a>(document: &'a ast::ServiceDocument, state: &mut State<
 
                         state.enums[enum_id.0].values = values;
                     }
-                    ast::TypeKind::InputObject(_) => {
+                    ast::TypeDefinition::InputObject(_) => {
                         let input_object_id = InputObjectId(state.input_objects.push_return_idx(InputObject {
                             name: type_name_id,
                             fields: NO_INPUT_VALUE_DEFINITION,
