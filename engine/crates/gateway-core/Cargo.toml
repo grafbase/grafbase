@@ -21,7 +21,6 @@ async-graphql.workspace = true
 async-runtime.workspace = true
 async-sse.workspace = true
 async-trait.workspace = true
-blake3.workspace = true
 bytes.workspace = true
 common-types.workspace = true
 cynic-parser.workspace = true

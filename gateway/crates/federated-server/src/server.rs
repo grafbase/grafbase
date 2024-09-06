@@ -12,7 +12,7 @@ mod trusted_documents_client;
 use grafbase_telemetry::gql_response_status::GraphqlResponseStatus;
 pub use graph_fetch_method::GraphFetchMethod;
 use runtime_local::{hooks, ComponentLoader, HooksWasi};
-use tokio::{join, sync::watch};
+use tokio::sync::watch;
 use ulid::Ulid;
 
 use axum::{routing::get, Router};
@@ -24,7 +24,6 @@ use engine_v2_axum::{
 use gateway_config::{Config, TlsConfig};
 use state::ServerState;
 use std::{
-    future::Future,
     net::{IpAddr, Ipv4Addr, SocketAddr},
     path::PathBuf,
     time::Duration,
@@ -52,14 +51,11 @@ pub struct ServerConfig {
 
 /// Trait for server runtime.
 pub trait ServerRuntime: Send + Sync + 'static + Clone {
-    /// Called when the server shutdowns gracefully.
-    fn graceful_shutdown(&self) -> impl Future<Output = ()> + Send;
     /// Called after each request
     fn after_request(&self);
 }
 
 impl ServerRuntime for () {
-    async fn graceful_shutdown(&self) {}
     fn after_request(&self) {}
 }
 
@@ -181,12 +177,7 @@ pub async fn serve(
 
     // Once all pending requests have been dealt with, we shutdown everything else left (telemetry, logs)
     if config.gateway.access_logs.enabled {
-        join!(
-            server_runtime.graceful_shutdown(),
-            access_log_sender.graceful_shutdown()
-        );
-    } else {
-        server_runtime.graceful_shutdown().await;
+        access_log_sender.graceful_shutdown().await;
     }
 
     Ok(())
