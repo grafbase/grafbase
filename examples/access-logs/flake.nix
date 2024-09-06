@@ -38,10 +38,6 @@
               category = "development";
             }
             {
-              package = pkgs.jq;
-              category = "development";
-            }
-            {
               package = pkgs.rustup;
               category = "development";
             }
