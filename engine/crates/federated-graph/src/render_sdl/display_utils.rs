@@ -65,7 +65,15 @@ impl fmt::Display for Description<'_> {
 
         writeln!(f, r#"{indentation}""""#)?;
 
-        for line in description.lines() {
+        let mut lines = description.lines().skip_while(|line| line.is_empty()).peekable();
+
+        while let Some(line) = lines.next() {
+            let line = line.trim();
+
+            if line.is_empty() && lines.peek().map(|next| next.is_empty()).unwrap_or(true) {
+                continue;
+            }
+
             writeln!(f, r#"{indentation}{line}"#)?;
         }
 
