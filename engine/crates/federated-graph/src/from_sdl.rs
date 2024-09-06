@@ -61,7 +61,7 @@ struct State<'a> {
 
 impl<'a> State<'a> {
     fn field_type(&mut self, field_type: &'a ast::Type<'a>) -> Result<Type, DomainError> {
-        use cynic_parser::{common::WrappingType, type_system as ast};
+        use cynic_parser::common::WrappingType;
 
         self.type_wrappers.clear();
         self.type_wrappers.extend(field_type.wrappers());
@@ -251,29 +251,26 @@ fn ingest_fields<'a>(parsed: &'a ast::TypeSystemDocument, state: &mut State<'a>)
                         ));
                     };
                     ingest_object_interfaces(object_id, object, state)?;
-                    ingest_object_fields(object_id, &object.fields, state)?;
+                    ingest_object_fields(object_id, object.fields(), state)?;
                 }
                 ast::TypeDefinition::Interface(iface) => {
-                    let Definition::Interface(interface_id) = state.definition_names[typedef.node.name.node.as_str()]
-                    else {
+                    let Definition::Interface(interface_id) = state.definition_names[typedef.name()] else {
                         return Err(DomainError(
                             "Broken invariant: interface id behind interface name.".to_owned(),
                         ));
                     };
                     ingest_interface_interfaces(interface_id, iface, state)?;
-                    ingest_interface_fields(interface_id, &iface.fields, state)?;
+                    ingest_interface_fields(interface_id, iface.fields(), state)?;
                 }
                 ast::TypeDefinition::Union(union) => {
-                    let Definition::Union(union_id) = state.definition_names[typedef.node.name.node.as_str()] else {
+                    let Definition::Union(union_id) = state.definition_names[typedef.name()] else {
                         return Err(DomainError("Broken invariant: UnionId behind union name.".to_owned()));
                     };
                     ingest_union_members(union_id, union, state)?;
                 }
                 ast::TypeDefinition::Enum(_) => {}
                 ast::TypeDefinition::InputObject(input_object) => {
-                    let Definition::InputObject(input_object_id) =
-                        state.definition_names[typedef.node.name.node.as_str()]
-                    else {
+                    let Definition::InputObject(input_object_id) = state.definition_names[typedef.name()] else {
                         return Err(DomainError(
                             "Broken invariant: InputObjectId behind input object name.".to_owned(),
                         ));
@@ -289,7 +286,7 @@ fn ingest_fields<'a>(parsed: &'a ast::TypeSystemDocument, state: &mut State<'a>)
 
 fn ingest_schema_definition(schema: ast::SchemaDefinition<'_>, state: &mut State<'_>) -> Result<(), DomainError> {
     for directive in schema.directives() {
-        let name = directive.name.node.as_str();
+        let name = directive.name();
         if name != "link" {
             return Err(DomainError(format!("Unsupported directive {name} on schema.")));
         }
@@ -312,13 +309,12 @@ fn ingest_schema_definition(schema: ast::SchemaDefinition<'_>, state: &mut State
 
 fn ingest_interface_interfaces(
     interface_id: InterfaceId,
-    interface: ast::InterfaceDefinition<'_>,
+    interface: &ast::InterfaceDefinition<'_>,
     state: &mut State<'_>,
 ) -> Result<(), DomainError> {
     state.interfaces[interface_id.0].implements_interfaces = interface
-        .implements
-        .iter()
-        .map(|name| match state.definition_names[name.node.as_str()] {
+        .implements_interfaces()
+        .map(|name| match state.definition_names[name] {
             Definition::Interface(interface_id) => Ok(interface_id),
             _ => Err(DomainError(
                 "Broken invariant: object implements non-interface type".to_owned(),
@@ -335,9 +331,8 @@ fn ingest_object_interfaces(
     state: &mut State<'_>,
 ) -> Result<(), DomainError> {
     state.objects[object_id.0].implements_interfaces = object
-        .implements
-        .iter()
-        .map(|name| match state.definition_names[name.node.as_str()] {
+        .implements_interfaces()
+        .map(|name| match state.definition_names[name] {
             Definition::Interface(interface_id) => Ok(interface_id),
             _ => Err(DomainError(
                 "Broken invariant: object implements non-interface type".to_owned(),
@@ -355,19 +350,15 @@ fn ingest_selection_sets(parsed: &ast::TypeSystemDocument, state: &mut State<'_>
 }
 
 fn ingest_authorized_directives(parsed: &ast::TypeSystemDocument, state: &mut State<'_>) -> Result<(), DomainError> {
-    for typedef in parsed.definitions.iter().filter_map(|def| match def {
-        ast::TypeSystemDefinition::Type(ty) => Some(&ty.node),
+    for typedef in parsed.definitions().filter_map(|def| match def {
+        ast::Definition::Type(ty) => Some(ty),
         _ => None,
     }) {
-        let Some(authorized) = typedef
-            .directives
-            .iter()
-            .find(|directive| directive.node.name.node == "authorized")
-        else {
+        let Some(authorized) = typedef.directives().find(|directive| directive.name() == "authorized") else {
             continue;
         };
 
-        let Some(definition) = state.definition_names.get(typedef.name.node.as_str()).copied() else {
+        let Some(definition) = state.definition_names.get(typedef.name()).copied() else {
             continue;
         };
 
@@ -411,9 +402,9 @@ fn ingest_authorized_directives(parsed: &ast::TypeSystemDocument, state: &mut St
     Ok(())
 }
 
-fn ingest_entity_keys(parsed: &ast::ServiceDocument, state: &mut State<'_>) -> Result<(), DomainError> {
+fn ingest_entity_keys(parsed: &ast::TypeSystemDocument, state: &mut State<'_>) -> Result<(), DomainError> {
     for typedef in parsed.definitions.iter().filter_map(|def| match def {
-        ast::TypeSystemDefinition::Type(ty) => Some(&ty.node),
+        ast::Definition::Type(ty) => Some(&ty.node),
         _ => None,
     }) {
         let Some(definition) = state.definition_names.get(typedef.name.node.as_str()).copied() else {
@@ -485,21 +476,22 @@ fn ingest_entity_keys(parsed: &ast::ServiceDocument, state: &mut State<'_>) -> R
 }
 
 fn ingest_field_directives_after_graph(
-    parsed: &ast::ServiceDocument,
+    parsed: &ast::TypeSystemDocument,
     state: &mut State<'_>,
 ) -> Result<(), DomainError> {
-    for definition in &parsed.definitions {
-        let ast::TypeSystemDefinition::Type(typedef) = definition else {
+    for definition in parsed.definitions() {
+        let ast::Definition::Type(typedef) = definition else {
             continue;
         };
-        let fields = match &typedef.node.kind {
-            ast::TypeKind::Object(object) => &object.fields,
-            ast::TypeKind::Interface(iface) => &iface.fields,
+        let parent_id = state.definition_names[typedef.name()];
+
+        let fields = match typedef {
+            ast::TypeDefinition::Object(object) => object.fields(),
+            ast::TypeDefinition::Interface(iface) => iface.fields(),
             _ => continue,
         };
 
-        let parent_id = state.definition_names[typedef.node.name.node.as_str()];
-        ingest_join_field_directive(parent_id, &typedef.node.directives, fields, state)?;
+        ingest_join_field_directive(parent_id, typedef.directives(), fields, state)?;
         ingest_authorized_directive(parent_id, fields, state)?;
     }
 
@@ -550,7 +542,7 @@ fn ingest_join_field_directive(
             let is_external = directive
                 .get_argument("external")
                 .map(|arg| match &arg.node {
-                    async_graphql_value::ConstValue::Boolean(b) => *b,
+                    ast::Value::Boolean(b) => *b,
                     _ => false,
                 })
                 .unwrap_or_default();
@@ -560,7 +552,7 @@ fn ingest_join_field_directive(
             }
 
             let Some(subgraph_id) = directive.get_argument("graph").and_then(|arg| match &arg.node {
-                async_graphql_value::ConstValue::Enum(s) => state.graph_sdl_names.get(s.as_str()).copied(),
+                ast::Value::Enum(s) => state.graph_sdl_names.get(s.as_str()).copied(),
                 _ => None,
             }) else {
                 continue;
@@ -579,7 +571,7 @@ fn ingest_join_field_directive(
             if let Some(field_provides) = directive
                 .get_argument("provides")
                 .and_then(|arg| match &arg.node {
-                    async_graphql_value::ConstValue::String(s) => Some(s),
+                    ast::Value::String(s) => Some(s),
                     _ => None,
                 })
                 .map(|provides| {
@@ -595,7 +587,7 @@ fn ingest_join_field_directive(
             if let Some(field_requies) = directive
                 .get_argument("requires")
                 .and_then(|arg| match &arg.node {
-                    async_graphql_value::ConstValue::String(s) => Some(s),
+                    ast::Value::String(s) => Some(s),
                     _ => None,
                 })
                 .map(|requires| {
@@ -687,7 +679,7 @@ fn ingest_authorized_directive(
     Ok(())
 }
 
-fn ingest_definitions<'a>(document: &'a ast::ServiceDocument, state: &mut State<'a>) -> Result<(), DomainError> {
+fn ingest_definitions<'a>(document: &'a ast::TypeSystemDocument, state: &mut State<'a>) -> Result<(), DomainError> {
     for definition in &document.definitions {
         match definition {
             ast::Definition::Schema(_) | ast::Definition::Directive(_) => (),
@@ -695,17 +687,15 @@ fn ingest_definitions<'a>(document: &'a ast::ServiceDocument, state: &mut State<
                 let type_name = typedef.node.name.node.as_str();
                 let type_name_id = state.insert_string(type_name);
                 let description = typedef
-                    .node
-                    .description
-                    .as_ref()
-                    .map(|description| state.insert_string(description.node.as_str()));
-                let composed_directives = collect_composed_directives(&typedef.node.directives, state);
+                    .description()
+                    .map(|description| state.insert_string(description.descrsiption().raw_str()));
+                let composed_directives = collect_composed_directives(typedef.directives(), state);
 
                 match typedef {
                     ast::TypeDefinition::Scalar(scalar) => {
                         let description = scalar
                             .description()
-                            .map(|description| state.insert_string(description.node.as_str()));
+                            .map(|description| state.insert_string(description.description().raw_str()));
 
                         let scalar_id = ScalarId(state.scalars.push_return_idx(Scalar {
                             name: type_name_id,
@@ -846,11 +836,11 @@ fn ingest_interface_fields<'a>(
 
 fn ingest_field<'a>(
     parent_id: Definition,
-    ast_field: &'a ast::FieldDefinition,
+    ast_field: &'a ast::FieldDefinition<'a>,
     state: &mut State<'a>,
 ) -> Result<FieldId, DomainError> {
-    let field_name = ast_field.name.node.as_str();
-    let r#type = state.field_type(&ast_field.ty.node)?;
+    let field_name = ast_field.name();
+    let r#type = state.field_type(ast_field.ty())?;
     let name = state.insert_string(field_name);
     let args_start = state.input_value_definitions.len();
 
@@ -1265,8 +1255,8 @@ fn attach_input_value_set(
         .collect()
 }
 
-fn ingest_join_graph_enum<'a>(enm: &'a ast::EnumType, state: &mut State<'a>) -> Result<(), DomainError> {
-    for value in &enm.values {
+fn ingest_join_graph_enum<'a>(enm: ast::EnumDefinition«'a>, state: &mut State<'a>) -> Result<(), DomainError> {
+    for value in enm.values() {
         let sdl_name = value.node.value.node.as_str();
         let directive = value
             .node
