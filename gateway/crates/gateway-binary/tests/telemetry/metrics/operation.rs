@@ -38,8 +38,6 @@ fn basic() {
         {
           "Count": 1,
           "Attributes": {
-            "__grafbase.document.hash": "cAe1+tBRHQLrF/EO1ul4CTx+q5SB9YD+YtG3VDU6VCM=",
-            "__grafbase.operation.used_fields": "",
             "graphql.document": "query Simple {\n  __typename\n}\n",
             "graphql.operation.name": "Simple",
             "graphql.operation.type": "query",
@@ -87,10 +85,7 @@ fn introspection_should_not_appear_in_used_fields() {
         {
           "Count": 1,
           "Attributes": {
-            "__grafbase.document.hash": "0AmmdiLirkkd0r11qjmdCjpV7OGLe0J5c4yugMq1oeQ=",
-            "__grafbase.operation.used_fields": "",
             "graphql.document": "query {\n  __schema {\n    description\n  }\n}\n",
-            "graphql.operation.name": "__schema",
             "graphql.operation.type": "query",
             "graphql.response.status": "SUCCESS"
           }
@@ -161,8 +156,6 @@ fn used_fields_should_be_unique() {
         {
           "Count": 1,
           "Attributes": {
-            "__grafbase.document.hash": "4iL1kpGebrS0NAZQbUo76cwD4SUC5jxtUlCdc2149fg=",
-            "__grafbase.operation.used_fields": "User.id+username+reviews,Review.body+author,Query.me",
             "graphql.document": "query Faulty {\n  me {\n    id\n    reviews {\n      author {\n        id\n        username\n      }\n      body\n      body\n    }\n    username\n  }\n}\n",
             "graphql.operation.name": "Faulty",
             "graphql.operation.type": "query",
@@ -220,10 +213,7 @@ fn generate_operation_name() {
         {
           "Count": 1,
           "Attributes": {
-            "__grafbase.document.hash": "WDOyTh2uUUEIkab8iqn+MGWh5J3MntAvRkUy3yEpJS8=",
-            "__grafbase.operation.used_fields": "",
             "graphql.document": "query {\n  ignoreMe\n  myFavoriteField\n}\n",
-            "graphql.operation.name": "myFavoriteField",
             "graphql.operation.type": "query",
             "graphql.response.status": "REQUEST_ERROR"
           }
@@ -278,8 +268,6 @@ fn request_error() {
         {
           "Count": 1,
           "Attributes": {
-            "__grafbase.document.hash": "er/VMZUszb2iQhlPMx46c+flOdO8hXv8PjV1Pk/6u2A=",
-            "__grafbase.operation.used_fields": "",
             "graphql.document": "query Faulty {\n  __typ__ename\n}\n",
             "graphql.operation.name": "Faulty",
             "graphql.operation.type": "query",
@@ -336,8 +324,6 @@ fn field_error() {
         {
           "Count": 1,
           "Attributes": {
-            "__grafbase.document.hash": "M4bDtLPhj8uQPEFBdDWqalBphwVy7V5WPXOPHrzyikE=",
-            "__grafbase.operation.used_fields": "User.id,Query.me",
             "graphql.document": "query Faulty {\n  __typename\n  me {\n    id\n  }\n}\n",
             "graphql.operation.name": "Faulty",
             "graphql.operation.type": "query",
@@ -394,8 +380,6 @@ fn field_error_data_null() {
         {
           "Count": 1,
           "Attributes": {
-            "__grafbase.document.hash": "Txoer8zp21WTkEG253qN503QOPQP7Pb9utIDx55IVD8=",
-            "__grafbase.operation.used_fields": "User.id,Query.me",
             "graphql.document": "query Faulty {\n  me {\n    id\n  }\n}\n",
             "graphql.operation.name": "Faulty",
             "graphql.operation.type": "query",
@@ -445,8 +429,6 @@ fn client() {
         {
           "Count": 1,
           "Attributes": {
-            "__grafbase.document.hash": "qIzPxtWwHz0t+aJjvOljljbR3aGLQAA0LI5VXjW/FwQ=",
-            "__grafbase.operation.used_fields": "",
             "graphql.document": "query SimpleQuery {\n  __typename\n}\n",
             "graphql.operation.name": "SimpleQuery",
             "graphql.operation.type": "query",
@@ -577,7 +559,8 @@ fn prepare_duration_success() {
           "Attributes": {
             "graphql.document": "query SimpleQuery {\n  __typename\n}\n",
             "graphql.operation.name": "SimpleQuery",
-            "graphql.operation.success": "true"
+            "graphql.operation.success": "true",
+            "graphql.operation.type": "query"
           }
         }
         "###);

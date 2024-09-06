@@ -169,9 +169,9 @@ pub async fn serve(
 
     cfg_if::cfg_if! {
         if #[cfg(feature = "lambda")] {
-            lambda_bind(path, router).await?;
+            let result = lambda_bind(path, router).await;
         } else {
-            bind(addr, path, router, config.tls.as_ref()).await?;
+            let result = bind(addr, path, router, config.tls.as_ref()).await;
         }
     }
 
@@ -180,7 +180,7 @@ pub async fn serve(
         access_log_sender.graceful_shutdown().await;
     }
 
-    Ok(())
+    result
 }
 
 #[cfg_attr(feature = "lambda", allow(unused))]

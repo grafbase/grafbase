@@ -100,7 +100,7 @@ pub struct SubgraphCacheMissAttributes {
 
 #[derive(Debug)]
 pub struct QueryPreparationAttributes {
-    pub operation: OperationMetricsAttributes,
+    pub operation: Option<OperationMetricsAttributes>,
     pub success: bool,
 }
 
@@ -269,7 +269,9 @@ impl EngineMetrics {
         QueryPreparationAttributes { operation, success }: QueryPreparationAttributes,
         latency: std::time::Duration,
     ) {
-        let mut attributes = self.create_operation_key_values(operation);
+        let mut attributes = operation
+            .map(|op| self.create_operation_key_values(op))
+            .unwrap_or_default();
 
         attributes.push(KeyValue::new("graphql.operation.success", success));
 
