@@ -74,11 +74,7 @@ where
         self.paths[first..]
             .iter()
             .take_while(move |(diff_path, _)| diff_path == &path)
-            .enumerate()
-            .map(move |(idx, _)| ChangeView {
-                paths: self,
-                idx: first + idx,
-            })
+            .map(move |(_, idx)| ChangeView { paths: self, idx: *idx })
     }
 
     pub(crate) fn source(&self) -> &'a str {

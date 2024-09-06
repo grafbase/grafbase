@@ -7,7 +7,6 @@ use crate::ChangeKind;
 use super::{directives::patch_directives, paths::Paths, INDENTATION};
 
 pub(super) fn patch_type_definition<T: AsRef<str>>(ty: TypeDefinition<'_>, schema: &mut String, paths: &Paths<'_, T>) {
-    dbg!(ty.name());
     for change in paths.iter_exact([ty.name(), "", ""]) {
         match change.kind() {
             ChangeKind::RemoveObjectType
