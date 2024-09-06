@@ -1,9 +1,21 @@
-type Query {
-  SecondSubgraph: String!
+schema {
+  query: Root
 }
 
-scalar SecondSubgraph
+type Root {
+  ping: Pong
+}
+
+scalar Pong
 
 # --- #
 
-scalar EditedNow
+schema {
+  mutation: Root
+}
+
+type Root {
+  pong: Pong
+}
+
+scalar Pong
