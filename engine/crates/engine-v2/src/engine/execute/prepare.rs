@@ -27,8 +27,7 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
         match result {
             Ok(operation) => {
                 let attributes = QueryPreparationAttributes {
-                    operation_name: operation.prepared.metrics_attributes.name.clone(),
-                    document: Some(operation.prepared.metrics_attributes.sanitized_query.clone()),
+                    operation: operation.prepared.metrics_attributes.clone(),
                     success: true,
                 };
 
@@ -36,16 +35,17 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
 
                 Ok(operation)
             }
-            Err(e) => {
-                let attributes = QueryPreparationAttributes {
-                    operation_name: None,
-                    document: None,
-                    success: false,
-                };
+            Err((metrics_attributes, response)) => {
+                if let Some(operation) = metrics_attributes.clone() {
+                    let attributes = QueryPreparationAttributes {
+                        operation,
+                        success: false,
+                    };
 
-                self.metrics().record_preparation_latency(attributes, duration);
+                    self.metrics().record_preparation_latency(attributes, duration);
+                }
 
-                Err(e)
+                Err((metrics_attributes, response))
             }
         }
     }

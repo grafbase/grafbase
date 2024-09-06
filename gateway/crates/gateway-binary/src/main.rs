@@ -42,11 +42,15 @@ fn main() -> anyhow::Result<()> {
             config_hot_reload: args.hot_reload(),
             fetch_method: args.fetch_method()?,
         };
-        let runtime = server_runtime::build(telemetry);
+        let server_runtime = server_runtime::build(telemetry.clone());
 
-        federated_server::serve(config, runtime).await?;
+        let result = federated_server::serve(config, server_runtime)
+            .await
+            .map_err(anyhow::Error::from);
 
-        Ok::<(), anyhow::Error>(())
+        telemetry.graceful_shutdown().await;
+
+        result
     })?;
 
     Ok(())

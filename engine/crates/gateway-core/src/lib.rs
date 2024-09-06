@@ -200,7 +200,7 @@ where
                 gql_span.record_gql_status(status);
             }
 
-            if let Some((operation, normalized_query)) = response.graphql_operation.as_ref().zip(normalized_query) {
+            if let Some((operation, sanitized_query)) = response.graphql_operation.as_ref().zip(normalized_query) {
                 self.operation_metrics.record_operation_duration(
                     GraphqlRequestMetricsAttributes {
                         operation: OperationMetricsAttributes {
@@ -216,9 +216,7 @@ where
                                 }
                             },
                             name: operation.name.clone(),
-                            sanitized_query_hash: blake3::hash(normalized_query.as_bytes()).into(),
-                            sanitized_query: normalized_query,
-                            used_fields: operation.used_fields.clone(),
+                            sanitized_query: sanitized_query.into(),
                         },
                         status,
                         cache_status: headers

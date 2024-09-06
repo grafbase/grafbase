@@ -10,7 +10,7 @@ use super::{
     blueprint::ResponseBlueprintBuilder,
     cache_scopes::calculate_cache_scopes,
     logical_planner::{LogicalPlanner, LogicalPlanningError},
-    metrics::{generate_used_fields, prepare_metrics_attributes},
+    metrics::prepare_metrics_attributes,
     parse::{parse_operation, ParseError},
     validation::{validate_operation, ValidationError},
     Operation, OperationMetricsAttributes, PreparedOperation,
@@ -104,8 +104,7 @@ impl Operation {
 
         let response_blueprint = ResponseBlueprintBuilder::new(schema, &operation, &plan).build();
 
-        let mut metrics_attributes = metrics_attributes.ok_or(OperationError::NormalizationError)?;
-        metrics_attributes.used_fields = generate_used_fields(schema, &operation);
+        let metrics_attributes = metrics_attributes.ok_or(OperationError::NormalizationError)?;
 
         Ok(PreparedOperation {
             operation,

@@ -629,9 +629,7 @@ impl Schema {
                             operation: OperationMetricsAttributes {
                                 ty: env.operation.ty.into(),
                                 name: env.operation_analytics_attributes.name.clone(),
-                                sanitized_query_hash: blake3::hash(sanitized_query.as_bytes()).into(),
-                                sanitized_query,
-                                used_fields: env.operation_analytics_attributes.used_fields.clone(),
+                                sanitized_query: sanitized_query.into(),
                             },
                             status,
                             cache_status: None,

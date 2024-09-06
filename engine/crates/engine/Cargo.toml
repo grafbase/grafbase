@@ -18,7 +18,6 @@ async-lock = "3.3.0"
 async-recursion = "1.1.1"
 async-stream = "0.3.5"
 async-trait = "0.1.80"
-blake3.workspace = true
 common-types.workspace = true
 grafbase-sql-ast = "0.1.9"
 postgres-connector-types = { path = "../postgres-connector-types" }

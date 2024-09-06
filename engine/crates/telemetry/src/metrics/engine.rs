@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use opentelemetry::{
     metrics::{Counter, Histogram, Meter, UpDownCounter},
     KeyValue,
@@ -47,33 +49,7 @@ impl OperationType {
 pub struct OperationMetricsAttributes {
     pub ty: OperationType,
     pub name: Option<String>,
-    pub sanitized_query: String,
-    pub sanitized_query_hash: [u8; 32],
-    /// For a schema:
-    /// ```ignore
-    /// type Query {
-    ///    user(id: ID!): User
-    /// }
-    ///
-    /// type User {
-    ///   id: ID!
-    ///   name: String
-    /// }
-    /// ```
-    /// and query:
-    /// ```ignore
-    /// query {
-    ///   user(id: "0x1") {
-    ///     id
-    ///     name
-    ///   }
-    /// }
-    /// ```
-    /// We expected the following string
-    /// ```
-    /// "Query.user,User.id+name"
-    /// ```
-    pub used_fields: String,
+    pub sanitized_query: Arc<str>,
 }
 
 #[derive(Debug)]
@@ -124,8 +100,7 @@ pub struct SubgraphCacheMissAttributes {
 
 #[derive(Debug)]
 pub struct QueryPreparationAttributes {
-    pub operation_name: Option<String>,
-    pub document: Option<String>,
+    pub operation: OperationMetricsAttributes,
     pub success: bool,
 }
 
@@ -157,36 +132,30 @@ impl EngineMetrics {
         }
     }
 
+    fn create_operation_key_values(&self, operation: OperationMetricsAttributes) -> Vec<KeyValue> {
+        let mut attributes = vec![
+            KeyValue::new("graphql.document", operation.sanitized_query.clone()),
+            KeyValue::new("graphql.operation.type", operation.ty.as_str()),
+        ];
+
+        if let Some(name) = operation.name {
+            attributes.push(KeyValue::new("graphql.operation.name", name));
+        }
+
+        attributes
+    }
+
     pub fn record_operation_duration(
         &self,
         GraphqlRequestMetricsAttributes {
-            operation:
-                OperationMetricsAttributes {
-                    name,
-                    ty,
-                    sanitized_query,
-                    sanitized_query_hash,
-                    used_fields,
-                },
+            operation,
             status,
             cache_status,
             client,
         }: GraphqlRequestMetricsAttributes,
         latency: std::time::Duration,
     ) {
-        use base64::{engine::general_purpose::STANDARD, Engine as _};
-        let sanitized_query_hash = STANDARD.encode(sanitized_query_hash);
-
-        let mut attributes = vec![
-            KeyValue::new("__grafbase.document.hash", sanitized_query_hash),
-            KeyValue::new("__grafbase.operation.used_fields", used_fields),
-            KeyValue::new("graphql.document", sanitized_query),
-            KeyValue::new("graphql.operation.type", ty.as_str()),
-        ];
-
-        if let Some(name) = name {
-            attributes.push(KeyValue::new("graphql.operation.name", name));
-        }
+        let mut attributes = self.create_operation_key_values(operation);
 
         if let Some(version) = self.graph_version.clone() {
             attributes.push(KeyValue::new("grafbase.graph.version", version))
@@ -297,22 +266,10 @@ impl EngineMetrics {
 
     pub fn record_preparation_latency(
         &self,
-        QueryPreparationAttributes {
-            operation_name,
-            document,
-            success,
-        }: QueryPreparationAttributes,
+        QueryPreparationAttributes { operation, success }: QueryPreparationAttributes,
         latency: std::time::Duration,
     ) {
-        let mut attributes = Vec::new();
-
-        if let Some(operation_name) = operation_name {
-            attributes.push(KeyValue::new("graphql.operation.name", operation_name));
-        }
-
-        if let Some(document) = document {
-            attributes.push(KeyValue::new("graphql.document", document));
-        }
+        let mut attributes = self.create_operation_key_values(operation);
 
         attributes.push(KeyValue::new("graphql.operation.success", success));
 

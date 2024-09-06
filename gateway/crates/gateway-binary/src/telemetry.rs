@@ -14,6 +14,23 @@ pub(crate) struct OpenTelemetryProviders {
     pub tracer: Option<TracerProvider>,
 }
 
+impl OpenTelemetryProviders {
+    pub(crate) async fn graceful_shutdown(&self) {
+        use grafbase_telemetry::otel::opentelemetry::global::{shutdown_logger_provider, shutdown_tracer_provider};
+        use tokio::task::spawn_blocking;
+
+        let _ = tokio::join!(
+            spawn_blocking(shutdown_tracer_provider),
+            spawn_blocking(shutdown_logger_provider),
+            async {
+                if let Some(provider) = &self.meter {
+                    let _ = provider.shutdown().await;
+                }
+            }
+        );
+    }
+}
+
 pub(crate) fn init(args: &impl Args, config: &TelemetryConfig) -> anyhow::Result<OpenTelemetryProviders> {
     use tracing_subscriber::layer::SubscriberExt;
     use tracing_subscriber::util::SubscriberInitExt;
