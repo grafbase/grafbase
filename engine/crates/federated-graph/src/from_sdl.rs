@@ -73,10 +73,12 @@ impl<'a> State<'a> {
 
         let mut wrappers = self.type_wrappers.iter().peekable();
 
-        let mut wrapping = match wrappers.next() {
-            Some(WrappingType::List) => wrapping::Wrapping::new(false).wrapped_by_nullable_list(),
-            Some(WrappingType::NonNull) => wrapping::Wrapping::new(true),
-            None => wrapping::Wrapping::new(false),
+        let mut wrapping = match wrappers.peek() {
+            Some(WrappingType::NonNull) => {
+                wrappers.next();
+                wrapping::Wrapping::new(true)
+            }
+            _ => wrapping::Wrapping::new(false),
         };
 
         while let Some(next) = wrappers.next() {
