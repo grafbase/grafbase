@@ -311,13 +311,17 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Start integration-test docker compose
-        if: runner.os == 'Linux' && contains(fromJson(needs.what-changed.outputs.rust).changed-packages, 'integration-tests')
+        if: |
+          contains(fromJson(needs.what-changed.outputs.rust).changed-packages, 'integration-tests')
+          && matrix.platform.target == 'x86_64-unknown-linux-musl'
         shell: bash
         working-directory: engine/crates/integration-tests
         run: docker compose up -d
 
       - name: Start gateway docker compose
-        if: runner.os == 'Linux' && contains(fromJson(needs.what-changed.outputs.rust).changed-packages, 'grafbase-gateway')
+        if: |
+          contains(fromJson(needs.what-changed.outputs.rust).changed-packages, 'grafbase-gateway')
+          && matrix.platform.target == 'x86_64-unknown-linux-musl'
         shell: bash
         working-directory: gateway/crates/gateway-binary
         run: docker compose up -d
@@ -325,27 +329,37 @@ jobs:
       # It's kinda useful to get build vs run timings on tests, so splitting out the build from the run
       # here
       - name: Build tests (non docker platforms)
-        if: fromJson(needs.what-changed.outputs.rust).cargo-test-specs && runner.os != 'Linux' && matrix.platform.target != 'x86_64-apple-darwin'
+        if: |
+          fromJson(needs.what-changed.outputs.rust).cargo-test-specs
+          && matrix.platform.target != 'x86_64-unknown-linux-musl'
+          && matrix.platform.target != 'x86_64-apple-darwin'
         shell: bash
         run: |
           cargo nextest run --target ${{ matrix.platform.target }} --no-run --profile ci ${{ fromJson(needs.what-changed.outputs.rust).cargo-test-specs }}
 
       - name: Run tests (non docker platforms)
         id: tests
-        if: fromJson(needs.what-changed.outputs.rust).cargo-test-specs && runner.os != 'Linux' && matrix.platform.target != 'x86_64-apple-darwin'
+        if: |
+          fromJson(needs.what-changed.outputs.rust).cargo-test-specs
+          && matrix.platform.target != 'x86_64-unknown-linux-musl'
+          && matrix.platform.target != 'x86_64-apple-darwin'
         shell: bash
         run: |
           cargo nextest run --target ${{ matrix.platform.target }} --profile ci ${{ fromJson(needs.what-changed.outputs.rust).cargo-test-specs }}
 
       - name: Build tests (docker platforms)
-        if: fromJson(needs.what-changed.outputs.rust).cargo-docker-test-specs && runner.os == 'Linux'
+        if: |
+          fromJson(needs.what-changed.outputs.rust).cargo-docker-test-specs
+          && matrix.platform.target == 'x86_64-unknown-linux-musl'
         shell: bash
         run: |
           cargo nextest run --target ${{ matrix.platform.target }} --no-run --profile ci ${{ fromJson(needs.what-changed.outputs.rust).cargo-docker-test-specs }}
 
       - name: Run tests (docker platforms)
         id: tests_docker
-        if: fromJson(needs.what-changed.outputs.rust).cargo-docker-test-specs && runner.os == 'Linux'
+        if: |
+          fromJson(needs.what-changed.outputs.rust).cargo-docker-test-specs
+          && matrix.platform.target == 'x86_64-unknown-linux-musl'
         shell: bash
         run: |
           cargo nextest run --target ${{ matrix.platform.target }} --profile ci ${{ fromJson(needs.what-changed.outputs.rust).cargo-docker-test-specs }}
