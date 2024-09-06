@@ -1,0 +1,38 @@
+name: Install rust
+description: Pretty self explanitory I hope
+
+inputs:
+  components:
+    required: false
+    description: Comma separated list of rust components to install (e.g. clippy, rustfmt)
+  target:
+    required: false
+    description: A target to install if not the native target
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Extract the Rust version to use from the `rust-toolchain.toml` file
+      shell: bash
+      run: |
+        rust_version=$(grep "channel" rust-toolchain.toml | cut -d "=" -f 2 | cut -d " " -f 2)
+        echo "RUST_VERSION=$rust_version" >> $GITHUB_ENV
+
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@master
+      with:
+        toolchain: ${{ env.RUST_VERSION }}
+        components: ${{ inputs.components }}
+
+    # Adding this override prevents rust from reading rust-toolchain
+    # We want to do this because rust-toolchain has a bunch of targets in it
+    # we don't need here - I'm hoping this setting will prevent those from
+    # downloading automatically
+    - name: Set a rustup override
+      shell: bash
+      run: rustup override set ${{ env.RUST_VERSION }}
+
+    - name: Install target
+      if: ${{ inputs.target }}
+      shell: bash
+      run: rustup target add ${{ inputs.target }}

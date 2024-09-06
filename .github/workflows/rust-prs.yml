@@ -34,26 +34,15 @@ jobs:
           # Seems like if it's not zero you dont get branches
           fetch-depth: 0
 
-      - name: Extract the Rust version to use from the `rust-toolchain.toml` file
-        shell: bash
-        run: |
-          rust_version=$(grep "channel" rust-toolchain.toml | cut -d "=" -f 2 | cut -d " " -f 2)
-          echo "RUST_VERSION=$rust_version" >> $GITHUB_ENV
-
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@master
-        with:
-          toolchain: ${{ env.RUST_VERSION }}
-          components: clippy, rustfmt
+      - name: Install rust
+        uses: ./.github/actions/install-rust
 
       # If you're iterating on this you may want to change this to a cargo install
       # while you work
       - name: Install what-rust-changed
-        uses: jaxxstorm/action-install-gh-release@v1.12.0
+        uses: ./.github/actions/install-what-rust-changed
         with:
-          repo: grafbase/what-rust-changed
-          tag: v0.1.0
-          cache: enable
+          version: v0.1.0
 
       - name: Run what-rust-changed
         id: what-rust-changed
@@ -99,16 +88,9 @@ jobs:
       - name: Get sources
         uses: actions/checkout@v4
 
-      - name: Extract the Rust version to use from the `rust-toolchain.toml` file
-        shell: bash
-        run: |
-          rust_version=$(grep "channel" rust-toolchain.toml | cut -d "=" -f 2 | cut -d " " -f 2)
-          echo "RUST_VERSION=$rust_version" >> $GITHUB_ENV
-
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@master
+      - name: Install rust
+        uses: ./.github/actions/install-rust
         with:
-          toolchain: ${{ env.RUST_VERSION }}
           components: rustfmt
 
       - name: cargo fmt
@@ -227,16 +209,10 @@ jobs:
         run: |
           echo ${{ needs.what-changed.outputs.rust }}
 
-      - name: Extract the Rust version to use from the `rust-toolchain.toml` file
-        shell: bash
-        run: |
-          rust_version=$(grep "channel" rust-toolchain.toml | cut -d "=" -f 2 | cut -d " " -f 2)
-          echo "RUST_VERSION=$rust_version" >> $GITHUB_ENV
-
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@master
+      - name: Install rust
+        uses: ./.github/actions/install-rust
         with:
-          toolchain: ${{ env.RUST_VERSION }}
+          target: ${{ matrix.platform.target }}
           components: clippy, rustfmt
 
       - name: Install musl-tools
@@ -446,12 +422,8 @@ jobs:
           rust_version=$(grep "channel" rust-toolchain.toml | cut -d "=" -f 2 | cut -d " " -f 2)
           echo "RUST_VERSION=$rust_version" >> $GITHUB_ENV
 
-      # TODO: Maybe refactor this?  Not sure
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@master
-        with:
-          toolchain: ${{ env.RUST_VERSION }}
-          components: clippy, rustfmt
+      - name: Install rust
+        uses: ./.github/actions/install-rust
 
       - name: Install cargo-nextest
         uses: taiki-e/install-action@v2
