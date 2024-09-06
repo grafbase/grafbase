@@ -1,0 +1,9 @@
+type Query {
+  SecondSubgraph: String!
+}
+
+scalar SecondSubgraph
+
+# --- #
+
+scalar EditedNow
