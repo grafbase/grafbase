@@ -109,7 +109,7 @@ impl<'a> State<'a> {
 
     fn insert_value(&mut self, node: ast::Value<'_>, expected_enum_type: Option<EnumId>) -> Value {
         match node {
-            ast::Value::Null => Value::String(self.insert_string("null")),
+            ast::Value::Null => Value::Null,
             ast::Value::Int(n) => Value::Int(i64::from(n)),
             ast::Value::Float(n) => Value::Float(f64::from(n)),
             ast::Value::String(s) | ast::Value::BlockString(s) => Value::String(self.insert_string(s)),
