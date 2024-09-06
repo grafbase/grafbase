@@ -1,6 +1,7 @@
 mod arguments;
+mod value;
 
-use self::arguments::*;
+use self::{arguments::*, value::*};
 use crate::federated_graph::*;
 use cynic_parser::{common::WrappingType, executable as executable_ast, type_system as ast};
 use indexmap::IndexSet;
@@ -625,7 +626,7 @@ fn ingest_authorized_directive<'a>(
                     })
                     .map(|arguments| {
                         parse_selection_set(arguments).and_then(|fields| {
-                            attach_input_value_set_to_field_arguments(&fields, parent_id, field_id, state)
+                            attach_input_value_set_to_field_arguments(fields, parent_id, field_id, state)
                         })
                     })
                     .transpose()?,
@@ -912,7 +913,7 @@ fn ingest_field<'a>(
                         from: state
                             .subgraphs
                             .iter()
-                            .position(|subgraph| &state.strings[subgraph.name.0] == overrides)
+                            .position(|subgraph| state.strings[subgraph.name.0] == overrides)
                             .map(SubgraphId)
                             .map(OverrideSource::Subgraph)
                             .unwrap_or_else(|| OverrideSource::Missing(state.insert_string(overrides))),
@@ -1055,10 +1056,10 @@ fn parse_selection_set(fields: &str) -> Result<executable_ast::ExecutableDocumen
 
 /// Attach a selection set defined in strings to a FederatedGraph, transforming the strings into
 /// field ids.
-fn attach_field_set<'a>(
+fn attach_field_set(
     selection_set: &executable_ast::ExecutableDocument,
     target: Definition,
-    state: &mut State<'a>,
+    state: &mut State<'_>,
 ) -> Result<FieldSet, DomainError> {
     let operation = selection_set
         .operations()
@@ -1104,7 +1105,7 @@ fn attach_field_set_rec<'a>(
                         .as_enum()
                         .copied();
 
-                    let converted_value = argument.value().into();
+                    let converted_value = executable_value_to_type_system_value(argument.value());
 
                     let value = state.insert_value(converted_value, argument_type);
 
@@ -1122,16 +1123,29 @@ fn attach_field_set_rec<'a>(
 }
 
 fn attach_input_value_set_to_field_arguments(
-    selection_set: &[Positioned<ast::Selection>],
+    selection_set: executable_ast::ExecutableDocument,
+    parent: Definition,
+    field_id: FieldId,
+    state: &mut State<'_>,
+) -> Result<InputValueDefinitionSet, DomainError> {
+    let operation = selection_set
+        .operations()
+        .next()
+        .expect("first operation is there by construction");
+
+    attach_input_value_set_to_field_arguments_rec(operation.selection_set(), parent, field_id, state)
+}
+
+fn attach_input_value_set_to_field_arguments_rec<'a>(
+    selection_set: impl Iterator<Item = executable_ast::Selection<'a>>,
     parent: Definition,
     field_id: FieldId,
     state: &mut State<'_>,
 ) -> Result<InputValueDefinitionSet, DomainError> {
     let (start, len) = state.fields[field_id.0].arguments;
     selection_set
-        .iter()
         .map(|selection| {
-            let executable_ast::Selection::Field(ast_arg) = &selection.node else {
+            let executable_ast::Selection::Field(ast_arg) = selection else {
                 return Err(DomainError("Unsupported fragment spread in selection set".to_owned()));
             };
 
@@ -1142,15 +1156,15 @@ fn attach_input_value_set_to_field_arguments(
                 .find(|(_, arg)| state.strings.get_index(arg.name.0).unwrap() == ast_arg.name())
             else {
                 return Err(DomainError(format!(
-                    "Argument '{}' does not exist for the field '{}.{}' at {}",
+                    "Argument '{}' does not exist for the field '{}.{}'",
                     ast_arg.name(),
                     state.get_definition_name(parent),
                     state.strings.get_index(state.fields[field_id.0].name.0).unwrap(),
-                    selection.pos,
                 )));
             };
 
-            let ast_subselection = ast_arg.selection_set().peekable();
+            let mut ast_subselection = ast_arg.selection_set().peekable();
+
             let subselection = if let Definition::InputObject(input_object_id) = arg.r#type.definition {
                 if ast_subselection.peek().is_none() {
                     return Err(DomainError("InputObject must have a subselection".to_owned()));
@@ -1168,19 +1182,6 @@ fn attach_input_value_set_to_field_arguments(
             })
         })
         .collect()
-}
-
-fn attach_input_value_set(
-    selection_set: executable_ast::ExecutableDocument,
-    input_object_id: InputObjectId,
-    state: &mut State<'_>,
-) -> Result<InputValueDefinitionSet, DomainError> {
-    let operation = selection_set
-        .operations()
-        .next()
-        .expect("first operation is there by construction");
-
-    attach_input_value_set_rec(operation.selection_set(), input_object_id, state)
 }
 
 fn attach_input_value_set_rec<'a>(
@@ -1309,7 +1310,7 @@ fn collect_composed_directives<'a>(
             "requiresScopes" => {
                 let scopes: Option<Vec<Vec<String>>> = directive
                     .get_argument("scopes")
-                    .and_then(|scopes| scopes.value().into_json().ok())
+                    .and_then(|scopes| scopes.value().into_json())
                     .and_then(|scopes| serde_json::from_value(scopes).ok());
 
                 if let Some(scopes) = scopes {
@@ -1323,7 +1324,7 @@ fn collect_composed_directives<'a>(
             "policy" => {
                 let policies: Option<Vec<Vec<String>>> = directive
                     .get_argument("policies")
-                    .and_then(|policies| policies.value().into_json().ok())
+                    .and_then(|policies| policies.value().into_json())
                     .and_then(|policies| serde_json::from_value(policies).ok());
 
                 if let Some(policies) = policies {
