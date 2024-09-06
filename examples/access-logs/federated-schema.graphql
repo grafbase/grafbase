@@ -1,0 +1,36 @@
+directive @core(feature: String!) repeatable on SCHEMA
+
+directive @join__owner(graph: join__Graph!) on OBJECT
+
+directive @join__type(
+  graph: join__Graph!
+  key: String!
+  resolvable: Boolean = true
+) repeatable on OBJECT | INTERFACE
+
+directive @join__field(
+  graph: join__Graph
+  requires: String
+  provides: String
+) on FIELD_DEFINITION
+
+directive @join__graph(name: String!, url: String!) on ENUM_VALUE
+
+enum join__Graph {
+  USERS @join__graph(name: "users", url: "http://localhost:4000/graphql")
+}
+
+type Address {
+  street: String! @join__field(graph: USERS)
+}
+
+type User {
+  id: Int! @join__field(graph: USERS)
+  name: String! @join__field(graph: USERS)
+  address: Address! @join__field(graph: USERS)
+}
+
+type Query {
+  user(id: Int!): User @join__field(graph: USERS)
+  users: [User!]! @join__field(graph: USERS)
+}
