@@ -348,7 +348,7 @@ jobs:
         if: fromJson(needs.what-changed.outputs.rust).cargo-docker-test-specs && runner.os == 'Linux'
         shell: bash
         run: |
-          cargo nextest run --target ${{ matrix.platform.target }} --profile ci ${{ fromJson(needs.what-changed.outputs.rust).cargo-test-specs }}
+          cargo nextest run --target ${{ matrix.platform.target }} --profile ci ${{ fromJson(needs.what-changed.outputs.rust).cargo-docker-test-specs }}
 
       - name: Upload the JUnit files
         if: ${{ ( success() || failure() ) && !contains(steps.tests.outputs.exitcode, '101') && !contains(steps.tests_docker.outputs.exitcode, '101') && matrix.platform.target != 'x86_64-apple-darwin'}}
