@@ -11,6 +11,7 @@ repository.workspace = true
 wit-bindgen-rt = { workspace = true, features = ["bitflags"] }
 serde_json.workspace = true
 serde.workspace = true
+postcard = { version = "1.0.10", features = ["use-std"] }
 
 [lib]
 crate-type = ["cdylib"]

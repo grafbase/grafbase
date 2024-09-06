@@ -26,10 +26,10 @@ pub enum ResponseData {
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]
-struct SubgraphInfo {
-    subgraph_name: String,
-    method: String,
-    url: String,
+struct SubgraphInfo<'a> {
+    subgraph_name: &'a str,
+    method: &'a str,
+    url: &'a str,
     responses: Vec<ResponseData>,
     total_duration: u64,
     has_errors: bool,
@@ -56,23 +56,23 @@ enum GraphqlResponseStatus {
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]
-struct OperationInfo {
-    name: Option<String>,
-    document: String,
+struct OperationInfo<'a> {
+    name: Option<&'a str>,
+    document: &'a str,
     prepare_duration: u64,
     cached: bool,
     duration: u64,
     status: GraphqlResponseStatus,
-    subgraphs: Vec<SubgraphInfo>,
+    subgraphs: Vec<SubgraphInfo<'a>>,
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]
-struct AuditInfo {
-    method: String,
-    url: String,
+struct AuditInfo<'a> {
+    method: &'a str,
+    url: &'a str,
     status_code: u16,
-    trace_id: String,
-    operations: Vec<OperationInfo>,
+    trace_id: &'a str,
+    operations: Vec<OperationInfo<'a>>,
 }
 
 impl Guest for Component {
@@ -103,22 +103,22 @@ impl Guest for Component {
             .collect();
 
         let info = SubgraphInfo {
-            subgraph_name,
-            method,
-            url,
+            subgraph_name: &subgraph_name,
+            method: &method,
+            url: &url,
             responses,
             total_duration: total_duration_ms,
             has_errors,
             cached: matches!(cache_status, CacheStatus::Hit),
         };
 
-        serde_json::to_vec(&info).unwrap()
+        postcard::to_stdvec(&info).unwrap()
     }
 
     fn on_operation_response(_: SharedContext, operation: ExecutedOperation) -> Vec<u8> {
         let info = OperationInfo {
-            name: operation.name,
-            document: operation.document,
+            name: operation.name.as_deref(),
+            document: &operation.document,
             prepare_duration: operation.prepare_duration_ms,
             cached: operation.cached_plan,
             duration: operation.duration_ms,
@@ -140,23 +140,23 @@ impl Guest for Component {
             subgraphs: operation
                 .on_subgraph_response_outputs
                 .iter()
-                .filter_map(|bytes| serde_json::from_slice(bytes).ok())
+                .filter_map(|bytes| postcard::from_bytes(bytes).ok())
                 .collect(),
         };
 
-        serde_json::to_vec(&info).unwrap()
+        postcard::to_stdvec(&info).unwrap()
     }
 
     fn on_http_response(context: SharedContext, request: ExecutedHttpRequest) {
         let info = AuditInfo {
-            method: request.method,
-            url: request.url,
+            method: &request.method,
+            url: &request.url,
             status_code: request.status_code,
-            trace_id: context.trace_id(),
+            trace_id: &context.trace_id(),
             operations: request
                 .on_operation_response_outputs
                 .iter()
-                .filter_map(|bytes| serde_json::from_slice(bytes).ok())
+                .filter_map(|bytes| postcard::from_bytes(bytes).ok())
                 .collect(),
         };
 
