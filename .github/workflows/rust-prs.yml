@@ -314,6 +314,13 @@ jobs:
           path: cli/wrappers/
 
       # TODO: Add timing reports in here somehow...
+
+      - name: Build debug binaries
+        if: fromJson(needs.what-changed.outputs.rust).cargo-bin-specs
+        shell: bash
+        run: |
+          cargo build --target ${{ matrix.platform.target }} ${{ fromJson(needs.what-changed.outputs.rust).cargo-bin-specs }}
+
       - name: Clippy
         if: fromJson(needs.what-changed.outputs.rust).cargo-build-specs
         shell: bash
@@ -374,12 +381,6 @@ jobs:
           api_key: ${{ secrets.DATADOG_API_KEY }}
           junit_path: target/nextest/ci/junit.xml
           service: cli
-
-      - name: Build debug binaries
-        if: fromJson(needs.what-changed.outputs.rust).cargo-bin-specs
-        shell: bash
-        run: |
-          cargo build --target ${{ matrix.platform.target }} ${{ fromJson(needs.what-changed.outputs.rust).cargo-bin-specs }}
 
   docker-gateway:
     needs: [what-changed]
