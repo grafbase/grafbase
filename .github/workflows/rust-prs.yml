@@ -210,6 +210,8 @@ jobs:
           echo ${{ needs.what-changed.outputs.rust }}
 
       - uses: Swatinem/rust-cache@v2
+        with:
+          cache-provider: buildjet
 
       - name: Install rust
         uses: ./.github/actions/install-rust
