@@ -1,7 +1,7 @@
 use std::fmt::{Display, Formatter, Result, Write};
 
 use crate::SchemaInputValueRecord;
-use readable::Readable;
+use walker::Walk;
 
 use super::SchemaInputValue;
 
@@ -24,13 +24,13 @@ impl<'a> Display for SchemaInputValue<'a> {
                 }
             }
             SchemaInputValueRecord::InputObject(ids) => write_object(
-                ids.read(schema)
+                ids.walk(schema)
                     .map(|(input_value_definition, value)| (input_value_definition.name(), value)),
                 f,
             ),
-            SchemaInputValueRecord::Map(ids) => write_object(ids.read(schema), f),
-            SchemaInputValueRecord::List(ids) => write_list(ids.read(schema), f),
-            SchemaInputValueRecord::EnumValue(id) => write!(f, "{}", id.read(schema).name()),
+            SchemaInputValueRecord::Map(ids) => write_object(ids.walk(schema), f),
+            SchemaInputValueRecord::List(ids) => write_list(ids.walk(schema), f),
+            SchemaInputValueRecord::EnumValue(id) => write!(f, "{}", id.walk(schema).name()),
         }
     }
 }

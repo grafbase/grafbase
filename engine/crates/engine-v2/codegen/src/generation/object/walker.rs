@@ -3,23 +3,26 @@ use proc_macro2::{Ident, Span, TokenStream};
 use quote::{quote, ToTokens, TokenStreamExt};
 use tracing::instrument;
 
-use crate::domain::{Domain, Object, ReaderKind};
+use crate::{
+    domain::{AccessKind, Domain, Object},
+    WALKER_TRAIT,
+};
 
-use super::{debug::ReaderDebug, FieldContext};
+use super::{debug::WalkerDebug, FieldContext};
 
 #[instrument(skip_all)]
-pub fn generate_reader(
+pub fn generate_walker(
     domain: &Domain,
     object: &Object,
     fields: &[FieldContext<'_>],
 ) -> anyhow::Result<Vec<TokenStream>> {
-    let container_name = Ident::new(&domain.world_name, Span::call_site());
-    let container_type = Ident::new(&domain.world_type_name, Span::call_site());
+    let graph_name = Ident::new(&domain.graph_var_name, Span::call_site());
+    let graph_type = Ident::new(&domain.graph_type_name, Span::call_site());
     let struct_name = Ident::new(&object.struct_name, Span::call_site());
-    let reader_name = Ident::new(object.reader_name(), Span::call_site());
-    let readable_trait = Ident::new(domain.readable_trait(), Span::call_site());
+    let walker_name = Ident::new(object.walker_name(), Span::call_site());
+    let walk_trait = Ident::new(WALKER_TRAIT, Span::call_site());
 
-    let reader_field_methods = fields.iter().filter(|field| field.has_reader).map(ReaderFieldMethod);
+    let walker_field_methods = fields.iter().filter(|field| field.has_walker).map(WalkerFieldMethod);
     let mut code_sections = Vec::new();
 
     if let Some(indexed) = &object.indexed {
@@ -27,13 +30,13 @@ pub fn generate_reader(
 
         code_sections.push(quote! {
             #[derive(Clone, Copy)]
-            pub struct #reader_name<'a> {
-                pub(crate) #container_name: &'a #container_type,
+            pub struct #walker_name<'a> {
+                pub(crate) #graph_name: &'a #graph_type,
                 pub(crate) id: #id_struct_name,
             }
         });
         code_sections.push(quote! {
-            impl std::ops::Deref for #reader_name<'_> {
+            impl std::ops::Deref for #walker_name<'_> {
                 type Target = #struct_name;
                 fn deref(&self) -> &Self::Target {
                     self.as_ref()
@@ -41,28 +44,28 @@ pub fn generate_reader(
             }
         });
         code_sections.push(quote! {
-            impl <'a> #reader_name<'a> {
+            impl <'a> #walker_name<'a> {
                 #[doc = "Prefer using Deref unless you need the 'a lifetime."]
                 #[allow(clippy::should_implement_trait)]
                 pub fn as_ref(&self) -> &'a #struct_name {
-                    &self.#container_name[self.id]
+                    &self.#graph_name[self.id]
                 }
                 pub fn id(&self) -> #id_struct_name {
                     self.id
                 }
-                #(#reader_field_methods)*
+                #(#walker_field_methods)*
             }
         });
         code_sections.push(quote! {
-            impl #readable_trait<#container_type> for #id_struct_name {
-                type Reader<'a> = #reader_name<'a>;
+            impl #walk_trait<#graph_type> for #id_struct_name {
+                type Walker<'a> = #walker_name<'a>;
 
-                fn read<'s>(self, #container_name: &'s #container_type) -> Self::Reader<'s>
+                fn walk<'a>(self, #graph_name: &'a #graph_type) -> Self::Walker<'a>
                 where
-                    Self: 's
+                    Self: 'a
                 {
-                    #reader_name {
-                        #container_name,
+                    #walker_name {
+                        #graph_name,
                         id: self,
                     }
                 }
@@ -71,13 +74,13 @@ pub fn generate_reader(
     } else if object.copy {
         code_sections.push(quote! {
             #[derive(Clone, Copy)]
-            pub struct #reader_name<'a> {
-                pub(crate) #container_name: &'a #container_type,
+            pub struct #walker_name<'a> {
+                pub(crate) #graph_name: &'a #graph_type,
                 pub(crate) item: #struct_name,
             }
         });
         code_sections.push(quote! {
-            impl std::ops::Deref for #reader_name<'_> {
+            impl std::ops::Deref for #walker_name<'_> {
                 type Target = #struct_name;
                 fn deref(&self) -> &Self::Target {
                     &self.item
@@ -85,24 +88,24 @@ pub fn generate_reader(
             }
         });
         code_sections.push(quote! {
-            impl <'a> #reader_name<'a> {
+            impl <'a> #walker_name<'a> {
                 #[allow(clippy::should_implement_trait)]
                 pub fn as_ref(&self) -> &#struct_name {
                     &self.item
                 }
-                #(#reader_field_methods)*
+                #(#walker_field_methods)*
             }
         });
         code_sections.push(quote! {
-            impl #readable_trait<#container_type> for #struct_name {
-                type Reader<'a> = #reader_name<'a>;
+            impl #walk_trait<#graph_type> for #struct_name {
+                type Walker<'a> = #walker_name<'a>;
 
-                fn read<'s>(self, #container_name: &'s #container_type) -> Self::Reader<'s>
+                fn walk<'a>(self, #graph_name: &'a #graph_type) -> Self::Walker<'a>
                 where
-                    Self: 's
+                    Self: 'a
                 {
-                    #reader_name {
-                        #container_name,
+                    #walker_name {
+                        #graph_name,
                         item: self,
                     }
                 }
@@ -111,13 +114,13 @@ pub fn generate_reader(
     } else {
         code_sections.push(quote! {
             #[derive(Clone, Copy)]
-            pub struct #reader_name<'a> {
-                pub(crate) #container_name: &'a #container_type,
+            pub struct #walker_name<'a> {
+                pub(crate) #graph_name: &'a #graph_type,
                 pub(crate) ref_: &'a #struct_name,
             }
         });
         code_sections.push(quote! {
-            impl std::ops::Deref for #reader_name<'_> {
+            impl std::ops::Deref for #walker_name<'_> {
                 type Target = #struct_name;
                 fn deref(&self) -> &Self::Target {
                     self.ref_
@@ -125,26 +128,26 @@ pub fn generate_reader(
             }
         });
         code_sections.push(quote! {
-            impl <'a> #reader_name<'a> {
+            impl <'a> #walker_name<'a> {
                 #[allow(clippy::should_implement_trait)]
                 pub fn as_ref(&self) -> &'a #struct_name {
                     self.ref_
                 }
-                #(#reader_field_methods)*
+                #(#walker_field_methods)*
             }
         });
         code_sections.push(quote! {
-            impl #readable_trait<#container_type> for &#struct_name {
-                type Reader<'a> = #reader_name<'a>
+            impl #walk_trait<#graph_type> for &#struct_name {
+                type Walker<'a> = #walker_name<'a>
                 where
                     Self: 'a;
 
-                fn read<'s>(self, #container_name: &'s #container_type) -> Self::Reader<'s>
+                fn walk<'a>(self, #graph_name: &'a #graph_type) -> Self::Walker<'a>
                 where
-                    Self: 's
+                    Self: 'a
                 {
-                    #reader_name {
-                        #container_name,
+                    #walker_name {
+                        #graph_name,
                         ref_: self,
                     }
                 }
@@ -153,139 +156,139 @@ pub fn generate_reader(
     }
 
     if object.meta.debug {
-        code_sections.push(ReaderDebug { object, fields }.to_token_stream());
+        code_sections.push(WalkerDebug { object, fields }.to_token_stream());
     }
 
     Ok(code_sections)
 }
 
-pub struct ReaderFieldMethod<'a>(&'a FieldContext<'a>);
+pub struct WalkerFieldMethod<'a>(&'a FieldContext<'a>);
 
-impl quote::ToTokens for ReaderFieldMethod<'_> {
-    #[instrument(name = "reader_field_method", skip_all, fields(field = ?self.0.field))]
+impl quote::ToTokens for WalkerFieldMethod<'_> {
+    #[instrument(name = "walker_field_method", skip_all, fields(field = ?self.0.field))]
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        let container = Ident::new(&self.0.domain.world_name, Span::call_site());
+        let graph = Ident::new(&self.0.domain.graph_var_name, Span::call_site());
         let field = Ident::new(&self.0.record_field_name, Span::call_site());
-        let method = Ident::new(&self.0.reader_method_name(), Span::call_site());
-        let ty = Ident::new(self.0.ty.reader_name(), Span::call_site());
-        let kind = self.0.ty.reader_kind();
+        let method = Ident::new(&self.0.walker_method_name(), Span::call_site());
+        let ty = Ident::new(self.0.ty.walker_name(), Span::call_site());
+        let kind = self.0.ty.access_kind();
 
         let return_type_and_body = match self.0.wrapping[..] {
             [] => match kind {
-                ReaderKind::Copy => quote! {
+                AccessKind::Copy => quote! {
                     Option<#ty> {
                         self.as_ref().#field
                     }
                 },
-                ReaderKind::Ref => quote! {
+                AccessKind::Ref => quote! {
                     Option<&'a #ty> {
                         self.as_ref().#field.as_ref()
                     }
                 },
-                ReaderKind::IdRef if self.0.ty.name() != self.0.ty.reader_name() => quote! {
+                AccessKind::IdRef if self.0.ty.name() != self.0.ty.walker_name() => quote! {
                     Option<&'a #ty> {
-                        self.as_ref().#field.map(|id| self.#container[id].as_ref())
+                        self.as_ref().#field.map(|id| self.#graph[id].as_ref())
                     }
                 },
-                ReaderKind::IdRef => quote! {
+                AccessKind::IdRef => quote! {
                     Option<&'a #ty> {
-                        self.as_ref().#field.map(|id| &self.#container[id])
+                        self.as_ref().#field.map(|id| &self.#graph[id])
                     }
                 },
-                ReaderKind::IdReader => quote! {
+                AccessKind::IdWalker => quote! {
                     Option<#ty<'a>> {
-                        self.as_ref().#field.as_ref().read(self.#container)
+                        self.as_ref().#field.as_ref().walk(self.#graph)
                     }
                 },
-                ReaderKind::ItemReader => quote! {
+                AccessKind::ItemWalker => quote! {
                     Option<#ty<'a>> {
-                        self.as_ref().#field.as_ref().read(self.#container)
+                        self.as_ref().#field.as_ref().walk(self.#graph)
                     }
                 },
-                ReaderKind::RefReader => quote! {
+                AccessKind::RefWalker => quote! {
                     Option<#ty<'a>> {
-                        self.as_ref().#field.as_ref().read(self.#container)
+                        self.as_ref().#field.as_ref().walk(self.#graph)
                     }
                 },
             },
             [WrappingType::NonNull] => match kind {
-                ReaderKind::Copy => quote! {
+                AccessKind::Copy => quote! {
                     #ty {
                         self.as_ref().#field
                     }
                 },
-                ReaderKind::Ref => quote! {
+                AccessKind::Ref => quote! {
                     &'a #ty {
                         &self.as_ref().#field
                     }
                 },
-                ReaderKind::IdRef => quote! {
+                AccessKind::IdRef => quote! {
                     &'a #ty {
-                        &self.#container[self.as_ref().#field]
+                        &self.#graph[self.as_ref().#field]
                     }
                 },
-                ReaderKind::IdReader => quote! {
+                AccessKind::IdWalker => quote! {
                     #ty<'a> {
-                        self.as_ref().#field.read(self.#container)
+                        self.as_ref().#field.walk(self.#graph)
                     }
                 },
-                ReaderKind::ItemReader => quote! {
+                AccessKind::ItemWalker => quote! {
                     #ty<'a> {
-                        self.as_ref().#field.read(self.#container)
+                        self.as_ref().#field.walk(self.#graph)
                     }
                 },
-                ReaderKind::RefReader => quote! {
+                AccessKind::RefWalker => quote! {
                     #ty<'a> {
-                        self.as_ref().#field.as_ref().read(self.#container)
+                        self.as_ref().#field.as_ref().walk(self.#graph)
                     }
                 },
             },
             [WrappingType::NonNull, WrappingType::List, WrappingType::NonNull] => match kind {
-                ReaderKind::Copy => quote! {
+                AccessKind::Copy => quote! {
                     impl Iter<Item = #ty> + 'a {
                         self.as_ref().#field.iter().copied()
                     }
                 },
-                ReaderKind::Ref => quote! {
+                AccessKind::Ref => quote! {
                     impl Iter<Item = &'a #ty> + 'a {
                         self.as_ref().#field.iter()
                     }
                 },
-                ReaderKind::IdRef => quote! {
+                AccessKind::IdRef => quote! {
                     impl Iter<Item = &'a #ty> + 'a {
-                        self.as_ref().#field.read(self.#container)
+                        self.as_ref().#field.walk(self.#graph)
                     }
                 },
-                ReaderKind::IdReader => {
+                AccessKind::IdWalker => {
                     quote! {
                         impl Iter<Item =  #ty<'a>> + 'a {
-                            self.as_ref().#field.read(self.#container)
+                            self.as_ref().#field.walk(self.#graph)
                         }
                     }
                 }
-                ReaderKind::ItemReader => quote! {
+                AccessKind::ItemWalker => quote! {
                     impl Iter<Item =  #ty<'a>> + 'a {
-                        self.as_ref().#field.read(self.#container)
+                        self.as_ref().#field.walk(self.#graph)
                     }
                 },
-                ReaderKind::RefReader => quote! {
+                AccessKind::RefWalker => quote! {
                     impl Iter<Item = #ty<'a>> + 'a {
-                        self.as_ref().#field.read(self.#container)
+                        self.as_ref().#field.walk(self.#graph)
                     }
                 },
             },
             [WrappingType::NonNull, WrappingType::List, WrappingType::NonNull, WrappingType::List, WrappingType::NonNull] => {
                 match kind {
-                    ReaderKind::IdRef if self.0.ty.name() != self.0.ty.reader_name() => quote! {
+                    AccessKind::IdRef if self.0.ty.name() != self.0.ty.walker_name() => quote! {
                         impl Iter<Item: Iter<Item = &'a #ty> + 'a> + 'a {
-                            let #container = self.#container;
-                            self.as_ref().#field.iter().map(move |items| items.iter().map(move |id| #container[*id].as_ref()))
+                            let #graph = self.#graph;
+                            self.as_ref().#field.iter().map(move |items| items.iter().map(move |id| #graph[*id].as_ref()))
                         }
                     },
-                    ReaderKind::IdRef => quote! {
+                    AccessKind::IdRef => quote! {
                         impl Iter<Item: Iter<Item = &'a #ty> + 'a> + 'a {
-                            let #container = self.#container;
-                            self.as_ref().#field.iter().map(move |items| items.iter().map(move |id| &#container[*id]))
+                            let #graph = self.#graph;
+                            self.as_ref().#field.iter().map(move |items| items.iter().map(move |id| &#graph[*id]))
                         }
                     },
                     accessor => {

@@ -59,11 +59,15 @@ impl Formatter {
             })
             .to_string();
 
-        Ok(cmd!(self.shell, "rustfmt")
+        let mut contents = cmd!(self.shell, "rustfmt")
             .stdin(code.clone())
             .read()
             .inspect_err(|_| {
                 tracing::error!("Failed to format file:\n{code}");
-            })?)
+            })?;
+
+        // Running cargo fmt manually adds it
+        contents.push('\n');
+        Ok(contents)
     }
 }

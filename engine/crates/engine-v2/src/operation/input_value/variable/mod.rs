@@ -3,8 +3,8 @@ mod ser;
 
 use id_derives::{Id, IndexedFields};
 use id_newtypes::IdRange;
-use readable::Readable;
 use schema::{EnumValueId, InputValue, InputValueDefinitionId, SchemaInputValueId, SchemaInputValueRecord};
+use walker::Walk;
 
 use crate::operation::PreparedOperationWalker;
 
@@ -99,7 +99,7 @@ impl<'a> From<VariableInputValueWalker<'a>> for InputValue<'a> {
         match walker.item {
             VariableInputValue::Null => InputValue::Null,
             VariableInputValue::String(s) => InputValue::String(s.as_str()),
-            VariableInputValue::EnumValue(id) => InputValue::EnumValue(id.read(walker.schema)),
+            VariableInputValue::EnumValue(id) => InputValue::EnumValue(id.walk(walker.schema)),
             VariableInputValue::Int(n) => InputValue::Int(*n),
             VariableInputValue::BigInt(n) => InputValue::BigInt(*n),
             VariableInputValue::Float(f) => InputValue::Float(*f),
@@ -107,7 +107,7 @@ impl<'a> From<VariableInputValueWalker<'a>> for InputValue<'a> {
             VariableInputValue::InputObject(ids) => {
                 let mut fields = Vec::with_capacity(ids.len());
                 for (input_value_definition_id, value) in &walker.variables[*ids] {
-                    fields.push((input_value_definition_id.read(walker.schema), walker.walk(value).into()));
+                    fields.push((input_value_definition_id.walk(walker.schema), walker.walk(value).into()));
                 }
                 InputValue::InputObject(fields)
             }
@@ -126,7 +126,7 @@ impl<'a> From<VariableInputValueWalker<'a>> for InputValue<'a> {
                 InputValue::Map(key_values)
             }
             VariableInputValue::U64(n) => InputValue::U64(*n),
-            VariableInputValue::DefaultValue(id) => id.read(walker.schema).into(),
+            VariableInputValue::DefaultValue(id) => id.walk(walker.schema).into(),
         }
     }
 }
@@ -193,7 +193,7 @@ impl PartialEq<SchemaInputValueRecord> for VariableInputValueWalker<'_> {
 
                 true
             }
-            (VariableInputValue::DefaultValue(id), value) => id.read(self.schema).eq(&value.read(self.schema)),
+            (VariableInputValue::DefaultValue(id), value) => id.walk(self.schema).eq(&value.walk(self.schema)),
             // A bit tedious, but avoids missing a case
             (VariableInputValue::Null, _) => false,
             (VariableInputValue::String(_), _) => false,
@@ -244,7 +244,7 @@ impl std::fmt::Debug for VariableInputValueWalker<'_> {
                 }
                 map.finish()
             }
-            VariableInputValue::DefaultValue(id) => f.debug_tuple("DefaultValue").field(&id.read(self.schema)).finish(),
+            VariableInputValue::DefaultValue(id) => f.debug_tuple("DefaultValue").field(&id.walk(self.schema)).finish(),
         }
     }
 }

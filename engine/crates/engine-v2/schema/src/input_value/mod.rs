@@ -3,17 +3,17 @@ use std::num::NonZero;
 use crate::{EnumValueId, IdRange, InputValueDefinition, InputValueDefinitionId, Schema, StringId};
 
 mod error;
-mod reader;
 mod set;
 #[cfg(test)]
 mod tests;
 mod value;
+mod walker;
 
+use ::walker::Walk;
 pub use error::*;
-use readable::Readable;
-pub use reader::*;
 pub use set::*;
 pub use value::*;
+pub use walker::*;
 
 #[derive(Default, serde::Serialize, serde::Deserialize, id_derives::IndexedFields)]
 pub struct SchemaInputValues {
@@ -31,10 +31,10 @@ pub struct SchemaInputValues {
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize, id_derives::Id)]
 pub struct SchemaInputValueId(NonZero<u32>);
 
-impl Readable<Schema> for SchemaInputValueId {
-    type Reader<'a> = SchemaInputValue<'a>;
+impl Walk<Schema> for SchemaInputValueId {
+    type Walker<'a> = SchemaInputValue<'a>;
 
-    fn read<'s>(self, schema: &'s Schema) -> Self::Reader<'s>
+    fn walk<'s>(self, schema: &'s Schema) -> Self::Walker<'s>
     where
         Self: 's,
     {
@@ -48,30 +48,30 @@ impl Readable<Schema> for SchemaInputValueId {
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize, id_derives::Id)]
 pub struct SchemaInputObjectFieldValueId(NonZero<u32>);
 
-impl Readable<Schema> for SchemaInputObjectFieldValueId {
-    type Reader<'a> = (InputValueDefinition<'a>, SchemaInputValue<'a>);
+impl Walk<Schema> for SchemaInputObjectFieldValueId {
+    type Walker<'a> = (InputValueDefinition<'a>, SchemaInputValue<'a>);
 
-    fn read<'s>(self, schema: &'s Schema) -> Self::Reader<'s>
+    fn walk<'s>(self, schema: &'s Schema) -> Self::Walker<'s>
     where
         Self: 's,
     {
         let (input_value_definition, value) = &schema[self];
-        (input_value_definition.read(schema), value.read(schema))
+        (input_value_definition.walk(schema), value.walk(schema))
     }
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize, id_derives::Id)]
 pub struct SchemaInputKeyValueId(NonZero<u32>);
 
-impl Readable<Schema> for SchemaInputKeyValueId {
-    type Reader<'a> = (&'a str, SchemaInputValue<'a>);
+impl Walk<Schema> for SchemaInputKeyValueId {
+    type Walker<'a> = (&'a str, SchemaInputValue<'a>);
 
-    fn read<'s>(self, schema: &'s Schema) -> Self::Reader<'s>
+    fn walk<'s>(self, schema: &'s Schema) -> Self::Walker<'s>
     where
         Self: 's,
     {
         let (key, value) = &schema[self];
-        (key.read(schema), value.read(schema))
+        (key.walk(schema), value.walk(schema))
     }
 }
 
@@ -95,9 +95,9 @@ pub enum SchemaInputValueRecord {
     U64(u64),
 }
 
-impl Readable<Schema> for &SchemaInputValueRecord {
-    type Reader<'a> = SchemaInputValue<'a> where Self: 'a;
-    fn read<'s>(self, schema: &'s Schema) -> Self::Reader<'s>
+impl Walk<Schema> for &SchemaInputValueRecord {
+    type Walker<'a> = SchemaInputValue<'a> where Self: 'a;
+    fn walk<'s>(self, schema: &'s Schema) -> Self::Walker<'s>
     where
         Self: 's,
     {

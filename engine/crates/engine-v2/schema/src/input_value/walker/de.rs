@@ -1,4 +1,3 @@
-use readable::Readable;
 use serde::{
     de::{
         value::{MapDeserializer, SeqDeserializer},
@@ -6,6 +5,7 @@ use serde::{
     },
     forward_to_deserialize_any,
 };
+use walker::Walk;
 
 use crate::{InputValueSerdeError, SchemaInputValueRecord};
 
@@ -22,19 +22,19 @@ impl<'de> serde::Deserializer<'de> for SchemaInputValue<'de> {
         match value {
             SchemaInputValueRecord::Null => visitor.visit_none(),
             SchemaInputValueRecord::String(id) => visitor.visit_borrowed_str(&schema[*id]),
-            SchemaInputValueRecord::EnumValue(id) => visitor.visit_borrowed_str(id.read(schema).name()),
+            SchemaInputValueRecord::EnumValue(id) => visitor.visit_borrowed_str(id.walk(schema).name()),
             SchemaInputValueRecord::Int(n) => visitor.visit_i32(*n),
             SchemaInputValueRecord::BigInt(n) => visitor.visit_i64(*n),
             SchemaInputValueRecord::U64(n) => visitor.visit_u64(*n),
             SchemaInputValueRecord::Float(n) => visitor.visit_f64(*n),
             SchemaInputValueRecord::Boolean(b) => visitor.visit_bool(*b),
-            SchemaInputValueRecord::List(ids) => SeqDeserializer::new(ids.read(schema)).deserialize_any(visitor),
+            SchemaInputValueRecord::List(ids) => SeqDeserializer::new(ids.walk(schema)).deserialize_any(visitor),
             SchemaInputValueRecord::InputObject(ids) => MapDeserializer::new(
-                ids.read(schema)
+                ids.walk(schema)
                     .map(|(input_value_definition, value)| (input_value_definition.name(), value)),
             )
             .deserialize_any(visitor),
-            SchemaInputValueRecord::Map(ids) => MapDeserializer::new(ids.read(schema)).deserialize_any(visitor),
+            SchemaInputValueRecord::Map(ids) => MapDeserializer::new(ids.walk(schema)).deserialize_any(visitor),
         }
     }
 

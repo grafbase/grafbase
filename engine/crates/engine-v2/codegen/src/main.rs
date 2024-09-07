@@ -5,6 +5,7 @@ mod formatter;
 mod generation;
 mod loader;
 
+const WALKER_TRAIT: &str = "Walk";
 const DOMAIN_DIR: &str = "domain";
 const GENERATED_MODULE: &str = "generated";
 

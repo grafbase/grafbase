@@ -3,27 +3,27 @@ use proc_macro2::{Ident, Span};
 use quote::{quote, ToTokens, TokenStreamExt};
 use tracing::instrument;
 
-use crate::domain::{Object, ReaderKind};
+use crate::domain::{AccessKind, Object};
 
 use super::FieldContext;
 
 #[derive(Clone, Copy)]
-pub struct ReaderDebug<'a> {
+pub struct WalkerDebug<'a> {
     pub object: &'a Object,
     pub fields: &'a [FieldContext<'a>],
 }
 
-impl ToTokens for ReaderDebug<'_> {
+impl ToTokens for WalkerDebug<'_> {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        let ReaderDebug { object, fields } = *self;
+        let WalkerDebug { object, fields } = *self;
 
-        let reader_struct = Ident::new(object.reader_name(), Span::call_site());
-        let name_string = proc_macro2::Literal::string(object.reader_name());
+        let walker_struct = Ident::new(object.walker_name(), Span::call_site());
+        let name_string = proc_macro2::Literal::string(object.walker_name());
 
         let fields = fields.iter().map(DebugField);
 
         tokens.append_all(quote! {
-            impl std::fmt::Debug for #reader_struct<'_> {
+            impl std::fmt::Debug for #walker_struct<'_> {
                 fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
                     f.debug_struct(#name_string)
                         #(#fields)*.finish()
@@ -42,11 +42,11 @@ impl ToTokens for DebugField<'_> {
 
         let name = Ident::new(&field.name, Span::call_site());
         let name_string = proc_macro2::Literal::string(&field.name);
-        let kind = self.0.ty.reader_kind();
+        let kind = self.0.ty.access_kind();
 
-        let tt = if field.has_reader {
+        let tt = if field.has_walker {
             match kind {
-                ReaderKind::Copy | ReaderKind::Ref | ReaderKind::IdRef => match field.wrapping[..] {
+                AccessKind::Copy | AccessKind::Ref | AccessKind::IdRef => match field.wrapping[..] {
                     [] | [WrappingType::NonNull] => {
                         quote! { .field(#name_string, &self.#name()) }
                     }
@@ -63,7 +63,7 @@ impl ToTokens for DebugField<'_> {
                         unimplemented!()
                     }
                 },
-                ReaderKind::IdReader | ReaderKind::RefReader | ReaderKind::ItemReader => {
+                AccessKind::IdWalker | AccessKind::RefWalker | AccessKind::ItemWalker => {
                     quote! { .field(#name_string, &self.#name()) }
                 }
             }

@@ -6,7 +6,7 @@ use crate::{
     generated::{InterfaceDefinition, InterfaceDefinitionId, ObjectDefinition, ObjectDefinitionId},
     prelude::*,
 };
-use readable::Readable;
+use walker::Walk;
 
 /// Generated from:
 ///
@@ -38,15 +38,15 @@ pub enum EntityDefinition<'a> {
     Object(ObjectDefinition<'a>),
 }
 
-impl Readable<Schema> for EntityDefinitionId {
-    type Reader<'a> = EntityDefinition<'a>;
-    fn read<'s>(self, schema: &'s Schema) -> Self::Reader<'s>
+impl Walk<Schema> for EntityDefinitionId {
+    type Walker<'a> = EntityDefinition<'a>;
+    fn walk<'a>(self, schema: &'a Schema) -> Self::Walker<'a>
     where
-        Self: 's,
+        Self: 'a,
     {
         match self {
-            EntityDefinitionId::Interface(id) => EntityDefinition::Interface(id.read(schema)),
-            EntityDefinitionId::Object(id) => EntityDefinition::Object(id.read(schema)),
+            EntityDefinitionId::Interface(id) => EntityDefinition::Interface(id.walk(schema)),
+            EntityDefinitionId::Object(id) => EntityDefinition::Object(id.walk(schema)),
         }
     }
 }
@@ -54,8 +54,8 @@ impl Readable<Schema> for EntityDefinitionId {
 impl EntityDefinition<'_> {
     pub fn id(&self) -> EntityDefinitionId {
         match self {
-            EntityDefinition::Interface(reader) => EntityDefinitionId::Interface(reader.id),
-            EntityDefinition::Object(reader) => EntityDefinitionId::Object(reader.id),
+            EntityDefinition::Interface(walker) => EntityDefinitionId::Interface(walker.id),
+            EntityDefinition::Object(walker) => EntityDefinitionId::Object(walker.id),
         }
     }
 }

@@ -1,4 +1,4 @@
-use readable::Readable;
+use walker::Walk;
 
 use crate::{Definition, EntityDefinition, ScalarType, TypeSystemDirective};
 
@@ -23,7 +23,7 @@ impl<'a> Definition<'a> {
             Definition::Scalar(item) => (item.schema, &item.as_ref().directive_ids),
             Definition::Union(item) => (item.schema, &item.as_ref().directive_ids),
         };
-        directive_ids.read(schema)
+        directive_ids.walk(schema)
     }
 
     pub fn scalar_type(&self) -> Option<ScalarType> {

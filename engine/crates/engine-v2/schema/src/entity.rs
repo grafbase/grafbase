@@ -1,4 +1,4 @@
-use readable::{Iter, Readable};
+use walker::{Iter, Walk};
 
 use crate::{DefinitionId, EntityDefinition, EntityDefinitionId, TypeSystemDirective};
 
@@ -38,6 +38,6 @@ impl<'a> EntityDefinition<'a> {
             EntityDefinition::Object(item) => (item.schema, &item.as_ref().directive_ids),
             EntityDefinition::Interface(item) => (item.schema, &item.as_ref().directive_ids),
         };
-        directive_ids.read(schema)
+        directive_ids.walk(schema)
     }
 }

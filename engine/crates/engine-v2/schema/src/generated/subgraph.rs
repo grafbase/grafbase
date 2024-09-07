@@ -6,7 +6,7 @@ mod graphql;
 
 use crate::prelude::*;
 pub use graphql::*;
-use readable::Readable;
+use walker::Walk;
 
 /// Generated from:
 ///
@@ -31,14 +31,14 @@ pub enum Subgraph<'a> {
     Introspection,
 }
 
-impl Readable<Schema> for SubgraphId {
-    type Reader<'a> = Subgraph<'a>;
-    fn read<'s>(self, schema: &'s Schema) -> Self::Reader<'s>
+impl Walk<Schema> for SubgraphId {
+    type Walker<'a> = Subgraph<'a>;
+    fn walk<'a>(self, schema: &'a Schema) -> Self::Walker<'a>
     where
-        Self: 's,
+        Self: 'a,
     {
         match self {
-            SubgraphId::GraphqlEndpoint(id) => Subgraph::GraphqlEndpoint(id.read(schema)),
+            SubgraphId::GraphqlEndpoint(id) => Subgraph::GraphqlEndpoint(id.walk(schema)),
             SubgraphId::Introspection => Subgraph::Introspection,
         }
     }
@@ -47,7 +47,7 @@ impl Readable<Schema> for SubgraphId {
 impl Subgraph<'_> {
     pub fn id(&self) -> SubgraphId {
         match self {
-            Subgraph::GraphqlEndpoint(reader) => SubgraphId::GraphqlEndpoint(reader.id),
+            Subgraph::GraphqlEndpoint(walker) => SubgraphId::GraphqlEndpoint(walker.id),
             Subgraph::Introspection => SubgraphId::Introspection,
         }
     }

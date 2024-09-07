@@ -7,7 +7,7 @@ use crate::{
     prelude::*,
     StringId,
 };
-use readable::{Iter, Readable};
+use walker::{Iter, Walk};
 
 /// Generated from:
 ///
@@ -58,15 +58,15 @@ impl<'a> EnumValue<'a> {
         self.as_ref().description_id.map(|id| self.schema[id].as_ref())
     }
     pub fn directives(&self) -> impl Iter<Item = TypeSystemDirective<'a>> + 'a {
-        self.as_ref().directive_ids.read(self.schema)
+        self.as_ref().directive_ids.walk(self.schema)
     }
 }
 
-impl Readable<Schema> for EnumValueId {
-    type Reader<'a> = EnumValue<'a>;
-    fn read<'s>(self, schema: &'s Schema) -> Self::Reader<'s>
+impl Walk<Schema> for EnumValueId {
+    type Walker<'a> = EnumValue<'a>;
+    fn walk<'a>(self, schema: &'a Schema) -> Self::Walker<'a>
     where
-        Self: 's,
+        Self: 'a,
     {
         EnumValue { schema, id: self }
     }

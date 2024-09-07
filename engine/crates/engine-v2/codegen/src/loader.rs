@@ -23,8 +23,8 @@ pub(super) fn load(path: PathBuf) -> anyhow::Result<domain::Domain> {
             anyhow::bail!("unsupported definition");
         };
 
-        if let Some(directive) = ty.directives().find(|d| d.name() == "world") {
-            assert!(domain.is_none(), "Only one scalar can have the directive @world");
+        if let Some(directive) = ty.directives().find(|d| d.name() == "graph") {
+            assert!(domain.is_none(), "Only one scalar can have the directive @graph");
             let dir = env!("CARGO_MANIFEST_DIR");
             domain = Some(domain::Domain {
                 sdl: sdl.clone(),
@@ -34,9 +34,9 @@ pub(super) fn load(path: PathBuf) -> anyhow::Result<domain::Domain> {
                         .arguments()
                         .find(|arg| arg.name() == "destination")
                         .and_then(|arg| arg.value().as_str())
-                        .expect("Missing destination in @world")
+                        .expect("Missing destination in @graph")
                         .to_string();
-                    assert!(!path.is_empty(), "Missing or empty destination in @world");
+                    assert!(!path.is_empty(), "Missing or empty destination in @graph");
                     path.into()
                 },
                 root_module: directive
@@ -45,8 +45,8 @@ pub(super) fn load(path: PathBuf) -> anyhow::Result<domain::Domain> {
                     .and_then(|arg| arg.value().as_str())
                     .map(|value| value.split('/').map(str::to_string).collect::<Vec<_>>())
                     .unwrap_or_default(),
-                world_name: ty.name().to_lowercase(),
-                world_type_name: ty.name().to_string(),
+                graph_var_name: ty.name().to_lowercase(),
+                graph_type_name: ty.name().to_string(),
                 definitions_by_name: Default::default(),
             });
             continue;
@@ -135,7 +135,7 @@ pub(super) fn load(path: PathBuf) -> anyhow::Result<domain::Domain> {
         definitions_by_name.insert(def.name().to_string(), def);
     }
 
-    let mut domain = domain.expect("Missing scalar with @world directive");
+    let mut domain = domain.expect("Missing scalar with @graph directive");
     domain.definitions_by_name = finalize_field_struct_names(definitions_by_name);
 
     Ok(domain)
@@ -164,7 +164,7 @@ fn finalize_field_struct_names(
                     } else if scalar.is_record {
                         Some("record")
                     } else {
-                        // We don't generate a reader for those fields. The Deref & as_ref()
+                        // We don't generate a walker for those fields. The Deref & as_ref()
                         // are enough.
                         None
                     }
@@ -228,7 +228,7 @@ fn parse_union_kind(name: &str, directives: Iter<'_, Directive<'_>>) -> domain::
             indexed: parse_indexed(name, directives),
             copy: is_copy(directives),
             name: name.to_string(),
-            reader_enum_name: format!("{name}Variant"),
+            walker_enum_name: format!("{name}Variant"),
             enum_name: format!("{name}Record"),
         })
     }

@@ -1,4 +1,4 @@
-use readable::{Iter, Readable};
+use walker::{Iter, Walk};
 
 use crate::{RequiredField, RequiredFieldId, Schema};
 use std::{borrow::Cow, cmp::Ordering};
@@ -20,9 +20,9 @@ pub struct RequiredFieldSetRecord(Vec<RequiredFieldSetItemRecord>);
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
 pub struct RequiredFieldSetId(std::num::NonZero<u32>);
 
-impl Readable<Schema> for RequiredFieldSetId {
-    type Reader<'a> = RequiredFieldSet<'a>;
-    fn read<'s>(self, schema: &'s Schema) -> Self::Reader<'s>
+impl Walk<Schema> for RequiredFieldSetId {
+    type Walker<'a> = RequiredFieldSet<'a>;
+    fn walk<'s>(self, schema: &'s Schema) -> Self::Walker<'s>
     where
         Self: 's,
     {
@@ -33,9 +33,9 @@ impl Readable<Schema> for RequiredFieldSetId {
     }
 }
 
-impl Readable<Schema> for &RequiredFieldSetRecord {
-    type Reader<'a> = RequiredFieldSet<'a> where Self: 'a;
-    fn read<'s>(self, schema: &'s Schema) -> Self::Reader<'s>
+impl Walk<Schema> for &RequiredFieldSetRecord {
+    type Walker<'a> = RequiredFieldSet<'a> where Self: 'a;
+    fn walk<'s>(self, schema: &'s Schema) -> Self::Walker<'s>
     where
         Self: 's,
     {
@@ -56,7 +56,7 @@ impl<'a> RequiredFieldSet<'a> {
     }
 
     pub fn items(&self) -> impl Iter<Item = RequiredFieldSetItem<'a>> + 'a {
-        self.ref_.0.read(self.schema)
+        self.ref_.0.walk(self.schema)
     }
 }
 
@@ -75,9 +75,9 @@ pub struct RequiredFieldSetItemRecord {
     pub subselection: RequiredFieldSetRecord,
 }
 
-impl Readable<Schema> for &RequiredFieldSetItemRecord {
-    type Reader<'a> = RequiredFieldSetItem<'a> where Self: 'a;
-    fn read<'s>(self, schema: &'s Schema) -> Self::Reader<'s>
+impl Walk<Schema> for &RequiredFieldSetItemRecord {
+    type Walker<'a> = RequiredFieldSetItem<'a> where Self: 'a;
+    fn walk<'s>(self, schema: &'s Schema) -> Self::Walker<'s>
     where
         Self: 's,
     {
@@ -93,10 +93,10 @@ pub struct RequiredFieldSetItem<'a> {
 
 impl<'a> RequiredFieldSetItem<'a> {
     pub fn field(&self) -> RequiredField<'a> {
-        self.ref_.field_id.read(self.schema)
+        self.ref_.field_id.walk(self.schema)
     }
     pub fn subselection(&self) -> RequiredFieldSet<'_> {
-        self.ref_.subselection.read(self.schema)
+        self.ref_.subselection.walk(self.schema)
     }
 }
 

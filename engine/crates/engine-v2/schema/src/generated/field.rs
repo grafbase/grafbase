@@ -14,8 +14,8 @@ use crate::{
     StringId,
 };
 pub use provides::*;
-use readable::{Iter, Readable};
 pub use requires::*;
+use walker::{Iter, Walk};
 
 /// Generated from:
 ///
@@ -90,40 +90,40 @@ impl<'a> FieldDefinition<'a> {
         self.as_ref().description_id.map(|id| self.schema[id].as_ref())
     }
     pub fn parent_entity(&self) -> EntityDefinition<'a> {
-        self.as_ref().parent_entity_id.read(self.schema)
+        self.as_ref().parent_entity_id.walk(self.schema)
     }
     pub fn ty(&self) -> Type<'a> {
-        self.as_ref().ty_record.read(self.schema)
+        self.as_ref().ty_record.walk(self.schema)
     }
     pub fn resolvers(&self) -> impl Iter<Item = ResolverDefinition<'a>> + 'a {
-        self.as_ref().resolver_ids.read(self.schema)
+        self.as_ref().resolver_ids.walk(self.schema)
     }
     /// By default a field is considered shared and providable by *any* subgraph that exposes it.
     /// It's up to the composition to ensure it. If this field is specific to some subgraphs, they
     /// will be specified in this Vec.
     pub fn only_resolvable_in(&self) -> impl Iter<Item = Subgraph<'a>> + 'a {
-        self.as_ref().only_resolvable_in_ids.read(self.schema)
+        self.as_ref().only_resolvable_in_ids.walk(self.schema)
     }
     pub fn requires(&self) -> impl Iter<Item = FieldRequires<'a>> + 'a {
-        self.as_ref().requires_records.read(self.schema)
+        self.as_ref().requires_records.walk(self.schema)
     }
     pub fn provides(&self) -> impl Iter<Item = FieldProvides<'a>> + 'a {
-        self.as_ref().provides_records.read(self.schema)
+        self.as_ref().provides_records.walk(self.schema)
     }
     /// The arguments referenced by this range are sorted by their name (string)
     pub fn arguments(&self) -> impl Iter<Item = InputValueDefinition<'a>> + 'a {
-        self.as_ref().argument_ids.read(self.schema)
+        self.as_ref().argument_ids.walk(self.schema)
     }
     pub fn directives(&self) -> impl Iter<Item = TypeSystemDirective<'a>> + 'a {
-        self.as_ref().directive_ids.read(self.schema)
+        self.as_ref().directive_ids.walk(self.schema)
     }
 }
 
-impl Readable<Schema> for FieldDefinitionId {
-    type Reader<'a> = FieldDefinition<'a>;
-    fn read<'s>(self, schema: &'s Schema) -> Self::Reader<'s>
+impl Walk<Schema> for FieldDefinitionId {
+    type Walker<'a> = FieldDefinition<'a>;
+    fn walk<'a>(self, schema: &'a Schema) -> Self::Walker<'a>
     where
-        Self: 's,
+        Self: 'a,
     {
         FieldDefinition { schema, id: self }
     }

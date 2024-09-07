@@ -9,7 +9,7 @@ members = [
   "engine/crates/engine-v2/config",
   "engine/crates/engine-v2/axum",
   "engine/crates/engine-v2/codegen",
-  "engine/crates/engine-v2/readable",
+  "engine/crates/engine-v2/walker",
   "engine/crates/engine-v2/schema",
   "engine/crates/engine-v2/id-derives",
   "engine/crates/engine-v2/id-newtypes",

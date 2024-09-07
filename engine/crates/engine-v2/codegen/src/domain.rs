@@ -14,15 +14,9 @@ pub struct Domain {
     pub sdl: String,
     pub destination_path: PathBuf,
     pub root_module: Vec<String>,
-    pub world_name: String,
-    pub world_type_name: String,
+    pub graph_var_name: String,
+    pub graph_type_name: String,
     pub definitions_by_name: HashMap<String, Definition>,
-}
-
-impl Domain {
-    pub fn readable_trait(&self) -> &str {
-        "Readable"
-    }
 }
 
 #[derive(Debug)]
@@ -49,11 +43,11 @@ impl Definition {
         }
     }
 
-    pub fn reader_name(&self) -> &str {
+    pub fn walker_name(&self) -> &str {
         match self {
-            Definition::Scalar(scalar) => scalar.reader_name(),
-            Definition::Object(object) => object.reader_name(),
-            Definition::Union(union) => union.reader_name(),
+            Definition::Scalar(scalar) => scalar.walker_name(),
+            Definition::Object(object) => object.walker_name(),
+            Definition::Union(union) => union.walker_name(),
         }
     }
 
@@ -98,45 +92,45 @@ impl Definition {
         }
     }
 
-    pub fn reader_kind(&self) -> ReaderKind {
+    pub fn access_kind(&self) -> AccessKind {
         match self {
             Definition::Scalar(scalar) => {
                 if scalar.is_record {
                     if scalar.copy {
-                        ReaderKind::ItemReader
+                        AccessKind::ItemWalker
                     } else if scalar.indexed.is_some() {
-                        ReaderKind::IdReader
+                        AccessKind::IdWalker
                     } else {
-                        ReaderKind::RefReader
+                        AccessKind::RefWalker
                     }
                 } else if scalar.copy {
-                    ReaderKind::Copy
+                    AccessKind::Copy
                 } else if scalar.indexed.is_some() {
-                    ReaderKind::IdRef
+                    AccessKind::IdRef
                 } else {
-                    ReaderKind::Ref
+                    AccessKind::Ref
                 }
             }
             Definition::Object(record) => {
                 if record.indexed.is_some() {
-                    ReaderKind::IdReader
+                    AccessKind::IdWalker
                 } else if record.copy {
-                    ReaderKind::ItemReader
+                    AccessKind::ItemWalker
                 } else {
-                    ReaderKind::RefReader
+                    AccessKind::RefWalker
                 }
             }
             Definition::Union(union) => match &union.kind {
                 UnionKind::Record(record) => {
                     if record.indexed.is_some() {
-                        ReaderKind::IdReader
+                        AccessKind::IdWalker
                     } else if record.copy {
-                        ReaderKind::ItemReader
+                        AccessKind::ItemWalker
                     } else {
-                        ReaderKind::RefReader
+                        AccessKind::RefWalker
                     }
                 }
-                UnionKind::Id(_) | UnionKind::BitpackedId(_) => ReaderKind::ItemReader,
+                UnionKind::Id(_) | UnionKind::BitpackedId(_) => AccessKind::ItemWalker,
             },
         }
     }
@@ -183,13 +177,13 @@ impl std::fmt::Display for StorageType<'_> {
 }
 
 #[derive(Debug)]
-pub enum ReaderKind {
+pub enum AccessKind {
     Copy,
     Ref,
     IdRef,
-    IdReader,
-    RefReader,
-    ItemReader,
+    IdWalker,
+    RefWalker,
+    ItemWalker,
 }
 
 #[derive(Default, Debug)]

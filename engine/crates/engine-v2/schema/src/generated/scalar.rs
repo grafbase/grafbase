@@ -7,7 +7,7 @@ use crate::{
     prelude::*,
     ScalarType, StringId,
 };
-use readable::{Iter, Readable};
+use walker::{Iter, Walk};
 
 /// Generated from:
 ///
@@ -65,15 +65,15 @@ impl<'a> ScalarDefinition<'a> {
         self.as_ref().specified_by_url_id.map(|id| self.schema[id].as_ref())
     }
     pub fn directives(&self) -> impl Iter<Item = TypeSystemDirective<'a>> + 'a {
-        self.as_ref().directive_ids.read(self.schema)
+        self.as_ref().directive_ids.walk(self.schema)
     }
 }
 
-impl Readable<Schema> for ScalarDefinitionId {
-    type Reader<'a> = ScalarDefinition<'a>;
-    fn read<'s>(self, schema: &'s Schema) -> Self::Reader<'s>
+impl Walk<Schema> for ScalarDefinitionId {
+    type Walker<'a> = ScalarDefinition<'a>;
+    fn walk<'a>(self, schema: &'a Schema) -> Self::Walker<'a>
     where
-        Self: 's,
+        Self: 'a,
     {
         ScalarDefinition { schema, id: self }
     }

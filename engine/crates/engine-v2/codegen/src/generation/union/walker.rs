@@ -2,50 +2,53 @@ use proc_macro2::{Ident, Span, TokenStream};
 use quote::{quote, TokenStreamExt};
 use tracing::instrument;
 
-use crate::domain::{Definition, Domain, ReaderKind, Union, UnionKind};
+use crate::{
+    domain::{AccessKind, Definition, Domain, Union, UnionKind},
+    WALKER_TRAIT,
+};
 
 use super::VariantContext;
 
 #[instrument(skip_all)]
-pub fn generate_reader(
+pub fn generate_walker(
     domain: &Domain,
     union: &Union,
     variants: &[VariantContext<'_>],
 ) -> anyhow::Result<Vec<TokenStream>> {
     let enum_name = Ident::new(union.enum_name(), Span::call_site());
-    let container_name = Ident::new(&domain.world_name, Span::call_site());
-    let container_type = Ident::new(&domain.world_type_name, Span::call_site());
-    let reader_enum_name = Ident::new(union.reader_enum_name(), Span::call_site());
-    let readable_trait = Ident::new(domain.readable_trait(), Span::call_site());
+    let graph_name = Ident::new(&domain.graph_var_name, Span::call_site());
+    let graph_type = Ident::new(&domain.graph_type_name, Span::call_site());
+    let walker_enum_name = Ident::new(union.walker_enum_name(), Span::call_site());
+    let walk_trait = Ident::new(WALKER_TRAIT, Span::call_site());
 
     let mut code_sections = Vec::new();
 
-    let reader_variants = variants.iter().copied().map(ReaderVariant);
+    let walker_variants = variants.iter().copied().map(WalkerVariant);
     code_sections.push(quote! {
         #[derive(Clone, Copy, Debug)]
-        pub enum #reader_enum_name<'a> {
-            #(#reader_variants),*
+        pub enum #walker_enum_name<'a> {
+            #(#walker_variants),*
         }
     });
 
     match &union.kind {
         UnionKind::Record(record) => {
             if let Some(indexed) = &record.indexed {
-                let reader_name = Ident::new(union.reader_name(), Span::call_site());
+                let walker_name = Ident::new(union.walker_name(), Span::call_site());
                 let id_struct_name = Ident::new(&indexed.id_struct_name, Span::call_site());
 
                 code_sections.insert(
                     0,
                     quote! {
                         #[derive(Clone, Copy)]
-                        pub struct #reader_name<'a> {
-                            pub(crate) #container_name: &'a #container_type,
+                        pub struct #walker_name<'a> {
+                            pub(crate) #graph_name: &'a #graph_type,
                             pub(crate) id: #id_struct_name,
                         }
                     },
                 );
                 code_sections.push(quote! {
-                    impl std::ops::Deref for #reader_name<'_> {
+                    impl std::ops::Deref for #walker_name<'_> {
                         type Target = #enum_name;
                         fn deref(&self) -> &Self::Target {
                             self.as_ref()
@@ -53,39 +56,39 @@ pub fn generate_reader(
                     }
                 });
 
-                let read_branches = variants.iter().copied().map(|variant| RecordUnionReaderBranch {
+                let walk_branches = variants.iter().copied().map(|variant| RecordUnionWalkerBranch {
                     variant,
-                    reader_enum_name: union.reader_enum_name(),
+                    walker_enum_name: union.walker_enum_name(),
                     enum_name: union.enum_name(),
                 });
                 code_sections.push(quote! {
-                    impl<'a> #reader_name<'a> {
+                    impl<'a> #walker_name<'a> {
                         #[allow(clippy::should_implement_trait)]
                         pub fn as_ref(&self) -> &'a #enum_name {
-                            &self.#container_name[self.id]
+                            &self.#graph_name[self.id]
                         }
                         pub fn id(&self) -> #id_struct_name {
                             self.id
                         }
-                        pub fn variant(&self) -> #reader_enum_name<'a> {
-                            let #container_name = self.#container_name;
+                        pub fn variant(&self) -> #walker_enum_name<'a> {
+                            let #graph_name = self.#graph_name;
                             match self.as_ref() {
-                                #(#read_branches),*
+                                #(#walk_branches),*
                             }
                         }
                     }
                 });
 
                 code_sections.push(quote! {
-                    impl #readable_trait<#container_type> for #id_struct_name {
-                        type Reader<'a> = #reader_name<'a>;
+                    impl #walk_trait<#graph_type> for #id_struct_name {
+                        type Walker<'a> = #walker_name<'a>;
 
-                        fn read<'s>(self, #container_name: &'s #container_type) -> Self::Reader<'s>
+                        fn walk<'a>(self, #graph_name: &'a #graph_type) -> Self::Walker<'a>
                         where
-                            Self: 's
+                            Self: 'a
                         {
-                            #reader_name {
-                                #container_name,
+                            #walker_name {
+                                #graph_name,
                                 id: self,
                             }
                         }
@@ -93,34 +96,34 @@ pub fn generate_reader(
                 });
 
                 code_sections.push(quote! {
-                    impl std::fmt::Debug for #reader_name<'_> {
+                    impl std::fmt::Debug for #walker_name<'_> {
                         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
                             self.variant().fmt(f)
                         }
                     }
                 });
             } else {
-                tracing::error!("Could not generate a reader, it's neither an @id nor @indexed.",);
+                tracing::error!("Could not generate a walker, it's neither an @id nor @indexed.",);
                 unimplemented!()
             }
         }
         UnionKind::Id(_) | UnionKind::BitpackedId(_) => {
-            let read_branches = variants.iter().copied().map(|variant| IdUnionReaderBranch {
+            let walk_branches = variants.iter().copied().map(|variant| IdUnionWalkerBranch {
                 variant,
-                reader_enum_name: union.reader_enum_name(),
+                walker_enum_name: union.walker_enum_name(),
                 enum_name: union.enum_name(),
             });
 
             code_sections.push(quote! {
-                impl #readable_trait<#container_type> for #enum_name {
-                    type Reader<'a> = #reader_enum_name<'a>;
+                impl #walk_trait<#graph_type> for #enum_name {
+                    type Walker<'a> = #walker_enum_name<'a>;
 
-                    fn read<'s>(self, #container_name: &'s #container_type) -> Self::Reader<'s>
+                    fn walk<'a>(self, #graph_name: &'a #graph_type) -> Self::Walker<'a>
                     where
-                        Self: 's
+                        Self: 'a
                     {
                         match self {
-                            #(#read_branches),*
+                            #(#walk_branches),*
                         }
                     }
                 }
@@ -130,9 +133,9 @@ pub fn generate_reader(
                 .iter()
                 .copied()
                 .map(|variant| {
-                    IdUnionReaderIdMethodBranch {
+                    IdUnionWalkerIdMethodBranch {
                         variant,
-                        reader_enum_name: union.reader_enum_name(),
+                        walker_enum_name: union.walker_enum_name(),
                         enum_name: union.enum_name(),
                     }
                     .try_to_tokens()
@@ -141,7 +144,7 @@ pub fn generate_reader(
             {
                 Ok(id_branches) => {
                     code_sections.push(quote! {
-                        impl #reader_enum_name<'_> {
+                        impl #walker_enum_name<'_> {
                             pub fn id(&self) -> #enum_name {
                                 match self {
                                     #(#id_branches),*
@@ -152,7 +155,7 @@ pub fn generate_reader(
                 }
                 Err((variant_name, value_name)) => {
                     tracing::warn!(
-                        "Could not generate id() method for reader '{}' because variant '{}' has a value '{}' which doesn't have any.",
+                        "Could not generate id() method for walker '{}' because variant '{}' has a value '{}' which doesn't have any.",
                         union.name(),
                         variant_name,
                         value_name
@@ -165,24 +168,24 @@ pub fn generate_reader(
     Ok(code_sections)
 }
 
-struct ReaderVariant<'a>(VariantContext<'a>);
+struct WalkerVariant<'a>(VariantContext<'a>);
 
-impl quote::ToTokens for ReaderVariant<'_> {
-    #[instrument(name = "reader_variant", skip_all, fields(variant = ?self.0.variant))]
+impl quote::ToTokens for WalkerVariant<'_> {
+    #[instrument(name = "walker_variant", skip_all, fields(variant = ?self.0.variant))]
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         let variant = Ident::new(&self.0.name, Span::call_site());
         let tt = if let Some(value) = self.0.value {
-            let reader = Ident::new(value.reader_name(), Span::call_site());
+            let walker = Ident::new(value.walker_name(), Span::call_site());
             match value {
                 Definition::Scalar(scalar) if !scalar.is_record => {
                     if scalar.copy {
-                        quote! { #variant(#reader) }
+                        quote! { #variant(#walker) }
                     } else {
-                        quote! { #variant(&'a #reader) }
+                        quote! { #variant(&'a #walker) }
                     }
                 }
                 _ => {
-                    quote! { #variant(#reader<'a>) }
+                    quote! { #variant(#walker<'a>) }
                 }
             }
         } else {
@@ -192,82 +195,82 @@ impl quote::ToTokens for ReaderVariant<'_> {
     }
 }
 
-struct RecordUnionReaderBranch<'a> {
+struct RecordUnionWalkerBranch<'a> {
     variant: VariantContext<'a>,
     enum_name: &'a str,
-    reader_enum_name: &'a str,
+    walker_enum_name: &'a str,
 }
 
-impl quote::ToTokens for RecordUnionReaderBranch<'_> {
-    #[instrument(name = "record_union_reader_branch", skip_all, fields(variant = ?self.variant.variant))]
+impl quote::ToTokens for RecordUnionWalkerBranch<'_> {
+    #[instrument(name = "record_union_walker_branch", skip_all, fields(variant = ?self.variant.variant))]
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         let enum_ = Ident::new(self.enum_name, Span::call_site());
         let variant = Ident::new(&self.variant.name, Span::call_site());
-        let reader = Ident::new(self.reader_enum_name, Span::call_site());
+        let walker = Ident::new(self.walker_enum_name, Span::call_site());
 
         let tt = if let Some(value) = self.variant.value {
-            let container = Ident::new(&self.variant.domain.world_name, Span::call_site());
-            match value.reader_kind() {
-                ReaderKind::Copy => {
-                    quote! { #enum_::#variant(item) => #reader::#variant(item) }
+            let graph = Ident::new(&self.variant.domain.graph_var_name, Span::call_site());
+            match value.access_kind() {
+                AccessKind::Copy => {
+                    quote! { #enum_::#variant(item) => #walker::#variant(item) }
                 }
-                ReaderKind::Ref => {
-                    quote! { #enum_::#variant(item) => #reader::#variant(&item) }
+                AccessKind::Ref => {
+                    quote! { #enum_::#variant(item) => #walker::#variant(&item) }
                 }
-                ReaderKind::IdRef => {
-                    quote! { #enum_::#variant(id) => #reader::#variant(&#container[id]) }
+                AccessKind::IdRef => {
+                    quote! { #enum_::#variant(id) => #walker::#variant(&#graph[id]) }
                 }
-                ReaderKind::IdReader => {
-                    quote! { #enum_::#variant(id) => #reader::#variant(id.read(#container)) }
+                AccessKind::IdWalker => {
+                    quote! { #enum_::#variant(id) => #walker::#variant(id.walk(#graph)) }
                 }
-                ReaderKind::ItemReader => {
-                    quote! { #enum_::#variant(item) => #reader::#variant(item.read(#container)) }
+                AccessKind::ItemWalker => {
+                    quote! { #enum_::#variant(item) => #walker::#variant(item.walk(#graph)) }
                 }
-                ReaderKind::RefReader => {
-                    quote! { #enum_::#variant(ref item) => #reader::#variant(item.read(#container)) }
+                AccessKind::RefWalker => {
+                    quote! { #enum_::#variant(ref item) => #walker::#variant(item.walk(#graph)) }
                 }
             }
         } else {
-            quote! { #enum_::#variant => #reader::#variant }
+            quote! { #enum_::#variant => #walker::#variant }
         };
         tokens.append_all(tt);
     }
 }
 
-struct IdUnionReaderBranch<'a> {
+struct IdUnionWalkerBranch<'a> {
     variant: VariantContext<'a>,
     enum_name: &'a str,
-    reader_enum_name: &'a str,
+    walker_enum_name: &'a str,
 }
 
-impl quote::ToTokens for IdUnionReaderBranch<'_> {
-    #[instrument(name = "id_union_reader_branch", skip_all, fields(variant = ?self.variant.variant))]
+impl quote::ToTokens for IdUnionWalkerBranch<'_> {
+    #[instrument(name = "id_union_walker_branch", skip_all, fields(variant = ?self.variant.variant))]
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         let enum_ = Ident::new(self.enum_name, Span::call_site());
-        let reader = Ident::new(self.reader_enum_name, Span::call_site());
+        let walker = Ident::new(self.walker_enum_name, Span::call_site());
         let variant = Ident::new(&self.variant.name, Span::call_site());
-        let container = Ident::new(&self.variant.domain.world_name, Span::call_site());
+        let graph = Ident::new(&self.variant.domain.graph_var_name, Span::call_site());
 
         let tt = match self.variant.value {
             Some(Definition::Scalar(scalar)) if !scalar.is_record => {
                 quote! {
-                    #enum_::#variant(id) => #reader::#variant(&#container[id])
+                    #enum_::#variant(id) => #walker::#variant(&#graph[id])
                 }
             }
             Some(value) => {
                 if value.storage_type().is_id() {
                     quote! {
-                        #enum_::#variant(id) => #reader::#variant(id.read(#container))
+                        #enum_::#variant(id) => #walker::#variant(id.walk(#graph))
                     }
                 } else {
                     quote! {
-                        #enum_::#variant(item) => #reader::#variant(item.read(#container))
+                        #enum_::#variant(item) => #walker::#variant(item.walk(#graph))
                     }
                 }
             }
             _ => {
                 quote! {
-                    #enum_::#variant => #reader::#variant
+                    #enum_::#variant => #walker::#variant
                 }
             }
         };
@@ -275,27 +278,27 @@ impl quote::ToTokens for IdUnionReaderBranch<'_> {
     }
 }
 
-struct IdUnionReaderIdMethodBranch<'a> {
+struct IdUnionWalkerIdMethodBranch<'a> {
     variant: VariantContext<'a>,
     enum_name: &'a str,
-    reader_enum_name: &'a str,
+    walker_enum_name: &'a str,
 }
 
-impl<'a> IdUnionReaderIdMethodBranch<'a> {
+impl<'a> IdUnionWalkerIdMethodBranch<'a> {
     fn try_to_tokens(&self) -> Result<TokenStream, (&'a str, &'a str)> {
         let enum_ = Ident::new(self.enum_name, Span::call_site());
-        let reader = Ident::new(self.reader_enum_name, Span::call_site());
+        let walker = Ident::new(self.walker_enum_name, Span::call_site());
         let variant = Ident::new(&self.variant.name, Span::call_site());
 
         let tt = match self.variant.value {
             Some(Definition::Scalar(scalar)) => {
                 if scalar.is_record && scalar.indexed.is_some() {
                     quote! {
-                        #reader::#variant(reader) => #enum_::#variant(reader.id)
+                        #walker::#variant(walker) => #enum_::#variant(walker.id)
                     }
                 } else if scalar.copy {
                     quote! {
-                        #reader::#variant(item) => #enum_::#variant(item)
+                        #walker::#variant(item) => #enum_::#variant(item)
                     }
                 } else {
                     return Err((&self.variant.variant.name, &scalar.name));
@@ -304,11 +307,11 @@ impl<'a> IdUnionReaderIdMethodBranch<'a> {
             Some(Definition::Object(object)) => {
                 if object.indexed.is_some() {
                     quote! {
-                        #reader::#variant(reader) => #enum_::#variant(reader.id)
+                        #walker::#variant(walker) => #enum_::#variant(walker.id)
                     }
                 } else if object.copy {
                     quote! {
-                        #reader::#variant(reader) => #enum_::#variant(reader.item)
+                        #walker::#variant(walker) => #enum_::#variant(walker.item)
                     }
                 } else {
                     return Err((&self.variant.variant.name, &object.name));
@@ -319,7 +322,7 @@ impl<'a> IdUnionReaderIdMethodBranch<'a> {
             }
             None => {
                 quote! {
-                    #reader::#variant => #enum_::#variant
+                    #walker::#variant => #enum_::#variant
                 }
             }
         };

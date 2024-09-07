@@ -1,4 +1,3 @@
-use readable::Iter;
 use schema::{
     introspection::{
         IntrospectionField, IntrospectionMetadata, IntrospectionObject, _Field, __EnumValue, __InputValue, __Schema,
@@ -7,6 +6,7 @@ use schema::{
     Definition, EntityDefinition, EnumValue, FieldDefinition, InputValueDefinition, InterfaceDefinition, ListWrapping,
     ObjectDefinition, Schema, StringId, Type, TypeSystemDirective, Wrapping,
 };
+use walker::Iter;
 
 use crate::{
     operation::{PlanField, PlanWalker},

@@ -2521,8 +2521,8 @@ dependencies = [
  "engine-v2-config",
  "engine-v2-id-derives",
  "engine-v2-id-newtypes",
- "engine-v2-readable",
  "engine-v2-schema",
+ "engine-v2-walker",
  "engine-value",
  "enumset",
  "futures",
@@ -2623,13 +2623,9 @@ name = "engine-v2-id-newtypes"
 version = "0.0.0"
 dependencies = [
  "bitvec",
- "engine-v2-readable",
+ "engine-v2-walker",
  "serde",
 ]
-
-[[package]]
-name = "engine-v2-readable"
-version = "0.1.0"
 
 [[package]]
 name = "engine-v2-schema"
@@ -2639,7 +2635,7 @@ dependencies = [
  "engine-v2-config",
  "engine-v2-id-derives",
  "engine-v2-id-newtypes",
- "engine-v2-readable",
+ "engine-v2-walker",
  "fnv",
  "graphql-federated-graph",
  "graphql-wrapping-types",
@@ -2659,6 +2655,10 @@ dependencies = [
  "thiserror",
  "url",
 ]
+
+[[package]]
+name = "engine-v2-walker"
+version = "0.1.0"
 
 [[package]]
 name = "engine-validation"

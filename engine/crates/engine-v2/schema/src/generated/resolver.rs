@@ -6,7 +6,7 @@ mod graphql;
 
 use crate::prelude::*;
 pub use graphql::*;
-use readable::Readable;
+use walker::Walk;
 
 /// Generated from:
 ///
@@ -61,21 +61,21 @@ impl<'a> ResolverDefinition<'a> {
         let schema = self.schema;
         match self.as_ref() {
             ResolverDefinitionRecord::GraphqlFederationEntity(item) => {
-                ResolverDefinitionVariant::GraphqlFederationEntity(item.read(schema))
+                ResolverDefinitionVariant::GraphqlFederationEntity(item.walk(schema))
             }
             ResolverDefinitionRecord::GraphqlRootField(item) => {
-                ResolverDefinitionVariant::GraphqlRootField(item.read(schema))
+                ResolverDefinitionVariant::GraphqlRootField(item.walk(schema))
             }
             ResolverDefinitionRecord::Introspection => ResolverDefinitionVariant::Introspection,
         }
     }
 }
 
-impl Readable<Schema> for ResolverDefinitionId {
-    type Reader<'a> = ResolverDefinition<'a>;
-    fn read<'s>(self, schema: &'s Schema) -> Self::Reader<'s>
+impl Walk<Schema> for ResolverDefinitionId {
+    type Walker<'a> = ResolverDefinition<'a>;
+    fn walk<'a>(self, schema: &'a Schema) -> Self::Walker<'a>
     where
-        Self: 's,
+        Self: 'a,
     {
         ResolverDefinition { schema, id: self }
     }

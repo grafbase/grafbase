@@ -17,7 +17,7 @@ impl From<Scalar> for Definition {
 }
 
 impl Scalar {
-    pub fn reader_name(&self) -> &str {
+    pub fn walker_name(&self) -> &str {
         match self.name.as_str() {
             "String" => "str",
             s => s,

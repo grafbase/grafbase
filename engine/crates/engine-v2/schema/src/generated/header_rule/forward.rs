@@ -7,7 +7,7 @@ use crate::{
     prelude::*,
     StringId,
 };
-use readable::Readable;
+use walker::Walk;
 
 /// Generated from:
 ///
@@ -44,7 +44,7 @@ impl<'a> ForwardHeaderRule<'a> {
         &self.item
     }
     pub fn name(&self) -> NameOrPattern<'a> {
-        self.as_ref().name_id.read(self.schema)
+        self.as_ref().name_id.walk(self.schema)
     }
     pub fn default(&self) -> Option<&'a str> {
         self.as_ref().default_id.map(|id| self.schema[id].as_ref())
@@ -54,11 +54,11 @@ impl<'a> ForwardHeaderRule<'a> {
     }
 }
 
-impl Readable<Schema> for ForwardHeaderRuleRecord {
-    type Reader<'a> = ForwardHeaderRule<'a>;
-    fn read<'s>(self, schema: &'s Schema) -> Self::Reader<'s>
+impl Walk<Schema> for ForwardHeaderRuleRecord {
+    type Walker<'a> = ForwardHeaderRule<'a>;
+    fn walk<'a>(self, schema: &'a Schema) -> Self::Walker<'a>
     where
-        Self: 's,
+        Self: 'a,
     {
         ForwardHeaderRule { schema, item: self }
     }

@@ -1,6 +1,6 @@
 mod debug;
-mod reader;
 mod struct_;
+mod walker;
 
 use std::{borrow::Cow, collections::HashSet};
 
@@ -26,10 +26,10 @@ pub fn generate_object<'a>(domain: &'a Domain, object: &'a Object) -> anyhow::Re
             Ok(FieldContext {
                 domain,
                 field,
-                // A reader is generated whenever the field name, as defined in the GraphQL SDL
+                // A walker is generated whenever the field name, as defined in the GraphQL SDL
                 // isn't the same as the struct field name. This only happens if we have a proper
-                // Reader type do not return a simple ref.
-                has_reader: field.record_field_name != field.name,
+                // Walker type do not return a simple ref.
+                has_walker: field.record_field_name != field.name,
                 ty,
             })
         })
@@ -41,14 +41,14 @@ pub fn generate_object<'a>(domain: &'a Domain, object: &'a Object) -> anyhow::Re
     if let Some(indexed) = &object.indexed {
         code_sections.extend(generate_id(domain, indexed)?);
     }
-    code_sections.extend(reader::generate_reader(domain, object, &fields)?);
+    code_sections.extend(walker::generate_walker(domain, object, &fields)?);
 
     Ok(GeneratedCode {
         module_path: &object.meta.module_path,
         code_sections,
         imports: Imports {
             generated: imported_definition_names,
-            readable: if object.fields.iter().any(|field| field.has_list_wrapping()) {
+            walker_lib: if object.fields.iter().any(|field| field.has_list_wrapping()) {
                 HashSet::from_iter(["Iter"])
             } else {
                 Default::default()
@@ -59,7 +59,7 @@ pub fn generate_object<'a>(domain: &'a Domain, object: &'a Object) -> anyhow::Re
 
 pub struct FieldContext<'a> {
     domain: &'a Domain,
-    has_reader: bool,
+    has_walker: bool,
     field: &'a Field,
     ty: &'a Definition,
 }
@@ -72,7 +72,7 @@ impl<'a> std::ops::Deref for FieldContext<'a> {
 }
 
 impl FieldContext<'_> {
-    pub fn reader_method_name(&self) -> Cow<'_, str> {
+    pub fn walker_method_name(&self) -> Cow<'_, str> {
         (&self.name).into()
     }
 }

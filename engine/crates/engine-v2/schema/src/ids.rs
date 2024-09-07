@@ -1,6 +1,6 @@
 use std::num::NonZero;
 
-use readable::Readable;
+use walker::Walk;
 
 use crate::Schema;
 
@@ -21,10 +21,10 @@ pub struct StringId(NonZero<u32>);
 #[max(MAX_ID)]
 pub struct RegexId(NonZero<u32>);
 
-impl Readable<Schema> for StringId {
-    type Reader<'a> = &'a str;
+impl Walk<Schema> for StringId {
+    type Walker<'a> = &'a str;
 
-    fn read<'s>(self, schema: &'s Schema) -> Self::Reader<'s>
+    fn walk<'s>(self, schema: &'s Schema) -> Self::Walker<'s>
     where
         Self: 's,
     {

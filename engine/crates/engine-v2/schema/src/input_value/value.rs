@@ -1,4 +1,4 @@
-use readable::Readable;
+use walker::Walk;
 
 use crate::{EnumValue, InputValueDefinition};
 
@@ -55,20 +55,20 @@ impl<'a> From<SchemaInputValue<'a>> for InputValue<'a> {
     fn from(SchemaInputValue { schema, value }: SchemaInputValue<'a>) -> Self {
         match value {
             SchemaInputValueRecord::Null => InputValue::Null,
-            SchemaInputValueRecord::String(id) => InputValue::String(id.read(schema)),
-            SchemaInputValueRecord::EnumValue(id) => InputValue::EnumValue(id.read(schema)),
+            SchemaInputValueRecord::String(id) => InputValue::String(id.walk(schema)),
+            SchemaInputValueRecord::EnumValue(id) => InputValue::EnumValue(id.walk(schema)),
             SchemaInputValueRecord::Int(n) => InputValue::Int(*n),
             SchemaInputValueRecord::BigInt(n) => InputValue::BigInt(*n),
             SchemaInputValueRecord::Float(f) => InputValue::Float(*f),
             SchemaInputValueRecord::Boolean(b) => InputValue::Boolean(*b),
             SchemaInputValueRecord::InputObject(ids) => InputValue::InputObject(
-                ids.read(schema)
+                ids.walk(schema)
                     .map(|(input_value_definition, value)| (input_value_definition, value.into()))
                     .collect(),
             ),
-            SchemaInputValueRecord::List(ids) => InputValue::List(ids.read(schema).map(Into::into).collect()),
+            SchemaInputValueRecord::List(ids) => InputValue::List(ids.walk(schema).map(Into::into).collect()),
             SchemaInputValueRecord::Map(ids) => {
-                InputValue::Map(ids.read(schema).map(|(key, value)| (key, value.into())).collect())
+                InputValue::Map(ids.walk(schema).map(|(key, value)| (key, value.into())).collect())
             }
             SchemaInputValueRecord::U64(n) => InputValue::U64(*n),
         }

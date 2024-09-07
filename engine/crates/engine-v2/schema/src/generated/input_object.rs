@@ -7,7 +7,7 @@ use crate::{
     prelude::*,
     StringId,
 };
-use readable::{Iter, Readable};
+use walker::{Iter, Walk};
 
 /// Generated from:
 ///
@@ -60,18 +60,18 @@ impl<'a> InputObjectDefinition<'a> {
         self.as_ref().description_id.map(|id| self.schema[id].as_ref())
     }
     pub fn input_fields(&self) -> impl Iter<Item = InputValueDefinition<'a>> + 'a {
-        self.as_ref().input_field_ids.read(self.schema)
+        self.as_ref().input_field_ids.walk(self.schema)
     }
     pub fn directives(&self) -> impl Iter<Item = TypeSystemDirective<'a>> + 'a {
-        self.as_ref().directive_ids.read(self.schema)
+        self.as_ref().directive_ids.walk(self.schema)
     }
 }
 
-impl Readable<Schema> for InputObjectDefinitionId {
-    type Reader<'a> = InputObjectDefinition<'a>;
-    fn read<'s>(self, schema: &'s Schema) -> Self::Reader<'s>
+impl Walk<Schema> for InputObjectDefinitionId {
+    type Walker<'a> = InputObjectDefinition<'a>;
+    fn walk<'a>(self, schema: &'a Schema) -> Self::Walker<'a>
     where
-        Self: 's,
+        Self: 'a,
     {
         InputObjectDefinition { schema, id: self }
     }

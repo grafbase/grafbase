@@ -10,9 +10,9 @@ mod rename_duplicate;
 use crate::{prelude::*, RegexId, StringId};
 pub use forward::*;
 pub use insert::*;
-use readable::Readable;
 pub use remove::*;
 pub use rename_duplicate::*;
+use walker::Walk;
 
 /// Generated from:
 ///
@@ -42,11 +42,11 @@ pub enum NameOrPattern<'a> {
     Pattern(&'a Regex),
 }
 
-impl Readable<Schema> for NameOrPatternId {
-    type Reader<'a> = NameOrPattern<'a>;
-    fn read<'s>(self, schema: &'s Schema) -> Self::Reader<'s>
+impl Walk<Schema> for NameOrPatternId {
+    type Walker<'a> = NameOrPattern<'a>;
+    fn walk<'a>(self, schema: &'a Schema) -> Self::Walker<'a>
     where
-        Self: 's,
+        Self: 'a,
     {
         match self {
             NameOrPatternId::Name(id) => NameOrPattern::Name(&schema[id]),
@@ -111,19 +111,19 @@ impl<'a> HeaderRule<'a> {
     pub fn variant(&self) -> HeaderRuleVariant<'a> {
         let schema = self.schema;
         match self.as_ref() {
-            HeaderRuleRecord::Forward(item) => HeaderRuleVariant::Forward(item.read(schema)),
-            HeaderRuleRecord::Insert(item) => HeaderRuleVariant::Insert(item.read(schema)),
-            HeaderRuleRecord::Remove(item) => HeaderRuleVariant::Remove(item.read(schema)),
-            HeaderRuleRecord::RenameDuplicate(item) => HeaderRuleVariant::RenameDuplicate(item.read(schema)),
+            HeaderRuleRecord::Forward(item) => HeaderRuleVariant::Forward(item.walk(schema)),
+            HeaderRuleRecord::Insert(item) => HeaderRuleVariant::Insert(item.walk(schema)),
+            HeaderRuleRecord::Remove(item) => HeaderRuleVariant::Remove(item.walk(schema)),
+            HeaderRuleRecord::RenameDuplicate(item) => HeaderRuleVariant::RenameDuplicate(item.walk(schema)),
         }
     }
 }
 
-impl Readable<Schema> for HeaderRuleId {
-    type Reader<'a> = HeaderRule<'a>;
-    fn read<'s>(self, schema: &'s Schema) -> Self::Reader<'s>
+impl Walk<Schema> for HeaderRuleId {
+    type Walker<'a> = HeaderRule<'a>;
+    fn walk<'a>(self, schema: &'a Schema) -> Self::Walker<'a>
     where
-        Self: 's,
+        Self: 'a,
     {
         HeaderRule { schema, id: self }
     }

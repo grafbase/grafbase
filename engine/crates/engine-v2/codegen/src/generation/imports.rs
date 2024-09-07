@@ -3,7 +3,7 @@ use quote::{quote, TokenStreamExt};
 
 use crate::{
     domain::{Definition, Domain},
-    GENERATED_MODULE,
+    GENERATED_MODULE, WALKER_TRAIT,
 };
 
 use super::Imports;
@@ -45,11 +45,11 @@ pub(super) fn generate_imports<'a>(
         }
 
         let storage_name = Ident::new(definition.storage_type().name(), Span::call_site());
-        let reader_name = Ident::new(definition.reader_name(), Span::call_site());
+        let walker_name = Ident::new(definition.walker_name(), Span::call_site());
         if generated_imports.is_empty() {
-            generated_imports.push(quote! { #storage_name, #reader_name })
+            generated_imports.push(quote! { #storage_name, #walker_name })
         } else {
-            generated_imports.push(quote! { ,#storage_name, #reader_name })
+            generated_imports.push(quote! { ,#storage_name, #walker_name })
         }
     }
     let generated_imports = if !generated_imports.is_empty() {
@@ -59,14 +59,14 @@ pub(super) fn generate_imports<'a>(
         quote! {}
     };
 
-    imports.readable.insert("Readable");
-    let readable_imports = imports
-        .readable
+    imports.walker_lib.insert(WALKER_TRAIT);
+    let walker_lib_imports = imports
+        .walker_lib
         .into_iter()
         .map(|name| Ident::new(name, Span::call_site()));
 
     Ok(quote! {
-        use readable::{#(#readable_imports),*};
+        use walker::{#(#walker_lib_imports),*};
         use #root{
             prelude::*
             #generated_imports

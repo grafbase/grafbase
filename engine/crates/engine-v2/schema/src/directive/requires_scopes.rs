@@ -1,4 +1,4 @@
-use readable::{Iter, Readable};
+use walker::{Iter, Walk};
 
 use crate::{Schema, StringId, MAX_ID};
 
@@ -51,7 +51,7 @@ impl<'a> RequiresScopesDirective<'a> {
     }
 
     pub fn get_scopes(&self, index: RequiresScopeSetIndex) -> impl ExactSizeIterator<Item = &'a str> {
-        self.as_ref().scope_ids[index.0 as usize].read(self.schema)
+        self.as_ref().scope_ids[index.0 as usize].walk(self.schema)
     }
 
     pub fn matches(&self, scopes: &[&str]) -> Option<RequiresScopeSetIndex> {
@@ -65,9 +65,9 @@ impl<'a> RequiresScopesDirective<'a> {
     }
 }
 
-impl Readable<Schema> for RequiresScopesDirectiveId {
-    type Reader<'a> = RequiresScopesDirective<'a>;
-    fn read<'s>(self, schema: &'s Schema) -> Self::Reader<'s>
+impl Walk<Schema> for RequiresScopesDirectiveId {
+    type Walker<'a> = RequiresScopesDirective<'a>;
+    fn walk<'s>(self, schema: &'s Schema) -> Self::Walker<'s>
     where
         Self: 's,
     {

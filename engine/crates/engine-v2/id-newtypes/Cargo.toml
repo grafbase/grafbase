@@ -13,6 +13,6 @@ workspace = true
 
 [dependencies]
 serde.workspace = true
-readable = { path = "../readable", package = "engine-v2-readable" }
+walker = { path = "../walker", package = "engine-v2-walker" }
 bitvec = { version = "1", features = ["serde"]}
 

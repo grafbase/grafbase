@@ -92,7 +92,7 @@ fn create_schema_and_input_value() -> (Schema, SchemaInputValueId) {
 #[test]
 fn test_display() {
     let (schema, id) = create_schema_and_input_value();
-    let value = id.read(&schema);
+    let value = id.walk(&schema);
 
     insta::assert_snapshot!(value, @r###"{inputObject:{fieldA:INACTIVE,fieldB:"some string value"},list:[null,ACTIVE,73],object:{null:null,string:"some string value",enumValue:ACTIVE,int:7,bigInt:8,u64:9,float:10,boolean:true}}"###);
 }
@@ -100,7 +100,7 @@ fn test_display() {
 #[test]
 fn test_serialize() {
     let (schema, id) = create_schema_and_input_value();
-    let value = id.read(&schema);
+    let value = id.walk(&schema);
 
     insta::assert_json_snapshot!(value, @r###"
         {
@@ -130,7 +130,7 @@ fn test_serialize() {
 #[test]
 fn test_deserializer() {
     let (schema, id) = create_schema_and_input_value();
-    let value = id.read(&schema);
+    let value = id.walk(&schema);
 
     let value = serde_json::Value::deserialize(value).unwrap();
 
@@ -162,7 +162,7 @@ fn test_deserializer() {
 #[test]
 fn test_input_value() {
     let (schema, id) = create_schema_and_input_value();
-    let value = id.read(&schema);
+    let value = id.walk(&schema);
     let input_value = InputValue::from(value);
 
     insta::assert_debug_snapshot!(input_value, @r###"
@@ -286,7 +286,7 @@ fn test_input_value() {
 #[test]
 fn test_struct_deserializer() {
     let (schema, id) = create_schema_and_input_value();
-    let value = id.read(&schema);
+    let value = id.walk(&schema);
 
     #[allow(unused)]
     #[derive(Debug, serde::Deserialize)]

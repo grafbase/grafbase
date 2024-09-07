@@ -28,13 +28,13 @@ struct GeneratedCode<'a> {
 #[derive(Default)]
 struct Imports<'a> {
     generated: HashSet<&'a str>,
-    readable: HashSet<&'a str>,
+    walker_lib: HashSet<&'a str>,
 }
 
 impl<'a> Imports<'a> {
     fn extend(&mut self, other: Self) {
         self.generated.extend(other.generated);
-        self.readable.extend(other.readable);
+        self.walker_lib.extend(other.walker_lib);
     }
 }
 

@@ -1,5 +1,5 @@
-use readable::Readable;
 use serde::ser::{SerializeMap, SerializeSeq};
+use walker::Walk;
 
 use super::{VariableInputValue, VariableInputValueWalker};
 
@@ -41,7 +41,7 @@ impl<'ctx> serde::Serialize for VariableInputValueWalker<'ctx> {
                 }
                 map.end()
             }
-            VariableInputValue::DefaultValue(id) => id.read(self.schema).serialize(serializer),
+            VariableInputValue::DefaultValue(id) => id.walk(self.schema).serialize(serializer),
         }
     }
 }

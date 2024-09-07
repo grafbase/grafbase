@@ -1,6 +1,6 @@
 use std::cmp::Ordering;
 
-use readable::Readable;
+use walker::Walk;
 
 use crate::SchemaInputValueRecord;
 
@@ -25,8 +25,8 @@ impl Ord for SchemaInputValue<'_> {
                     (SchemaInputValueRecord::Float(l), SchemaInputValueRecord::Float(r)) => l.total_cmp(r),
                     (SchemaInputValueRecord::Boolean(l), SchemaInputValueRecord::Boolean(r)) => l.cmp(r),
                     (SchemaInputValueRecord::InputObject(lids), SchemaInputValueRecord::InputObject(rids)) => {
-                        let left = lids.read(schema);
-                        let right = rids.read(schema);
+                        let left = lids.walk(schema);
+                        let right = rids.walk(schema);
                         left.len().cmp(&right.len()).then_with(|| {
                             for ((left_def, left_value), (right_def, right_value)) in left.zip(right) {
                                 match left_def
@@ -42,10 +42,10 @@ impl Ord for SchemaInputValue<'_> {
                         })
                     }
                     (SchemaInputValueRecord::List(lids), SchemaInputValueRecord::List(rids)) => {
-                        lids.read(schema).cmp(rids.read(schema))
+                        lids.walk(schema).cmp(rids.walk(schema))
                     }
                     (SchemaInputValueRecord::Map(lids), SchemaInputValueRecord::Map(rids)) => {
-                        lids.read(schema).cmp(rids.read(schema))
+                        lids.walk(schema).cmp(rids.walk(schema))
                     }
                     _ => unreachable!(),
                 }

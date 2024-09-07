@@ -2,8 +2,8 @@ use config::latest::{HeaderRemove, HeaderRule, NameOrPattern};
 use engine_v2_schema::{DefinitionId, Schema, Version};
 use federated_graph::from_sdl;
 use pretty_assertions::assert_eq;
-use readable::Readable;
 use regex::Regex;
+use walker::Walk;
 
 const SCHEMA: &str = r#"
 schema
@@ -248,7 +248,7 @@ fn should_remove_all_inaccessible_items() {
             panic!("missing BookInput2");
         };
 
-        let book_input_2 = book_input_2.read(&schema);
+        let book_input_2 = book_input_2.walk(&schema);
 
         assert!(!book_input_2.input_fields().any(|field| field.name() == "author"));
     }
@@ -259,7 +259,7 @@ fn should_remove_all_inaccessible_items() {
             panic!("missing Mutation");
         };
 
-        let mutation = mutation.read(&schema);
+        let mutation = mutation.walk(&schema);
 
         let field = mutation.fields().find(|field| field.name() == "addBook").unwrap();
 
@@ -272,7 +272,7 @@ fn should_remove_all_inaccessible_items() {
             panic!("missing Query");
         };
 
-        let query = query.read(&schema);
+        let query = query.walk(&schema);
 
         assert!(!query.fields().any(|f| f.name() == "currentTime"));
         assert!(query.fields().any(|f| f.name() == "getNew"));
@@ -284,7 +284,7 @@ fn should_remove_all_inaccessible_items() {
             panic!("Expected UngulateType to be defined");
         };
 
-        let r#enum = ungulate_type.read(&schema);
+        let r#enum = ungulate_type.walk(&schema);
         assert!(r#enum.values().any(|value| value.name() == "GIRAFFE"));
         assert!(!r#enum.values().any(|value| value.name() == "HORSE"));
     }
@@ -296,7 +296,7 @@ fn should_remove_all_inaccessible_items() {
         };
 
         let members = continent
-            .read(&schema)
+            .walk(&schema)
             .possible_types()
             .map(|t| t.name())
             .collect::<Vec<_>>();

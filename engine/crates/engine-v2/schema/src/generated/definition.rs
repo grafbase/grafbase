@@ -10,7 +10,7 @@ use crate::{
     },
     prelude::*,
 };
-use readable::Readable;
+use walker::Walk;
 
 /// Generated from:
 ///
@@ -74,19 +74,19 @@ pub enum Definition<'a> {
     Union(UnionDefinition<'a>),
 }
 
-impl Readable<Schema> for DefinitionId {
-    type Reader<'a> = Definition<'a>;
-    fn read<'s>(self, schema: &'s Schema) -> Self::Reader<'s>
+impl Walk<Schema> for DefinitionId {
+    type Walker<'a> = Definition<'a>;
+    fn walk<'a>(self, schema: &'a Schema) -> Self::Walker<'a>
     where
-        Self: 's,
+        Self: 'a,
     {
         match self {
-            DefinitionId::Enum(id) => Definition::Enum(id.read(schema)),
-            DefinitionId::InputObject(id) => Definition::InputObject(id.read(schema)),
-            DefinitionId::Interface(id) => Definition::Interface(id.read(schema)),
-            DefinitionId::Object(id) => Definition::Object(id.read(schema)),
-            DefinitionId::Scalar(id) => Definition::Scalar(id.read(schema)),
-            DefinitionId::Union(id) => Definition::Union(id.read(schema)),
+            DefinitionId::Enum(id) => Definition::Enum(id.walk(schema)),
+            DefinitionId::InputObject(id) => Definition::InputObject(id.walk(schema)),
+            DefinitionId::Interface(id) => Definition::Interface(id.walk(schema)),
+            DefinitionId::Object(id) => Definition::Object(id.walk(schema)),
+            DefinitionId::Scalar(id) => Definition::Scalar(id.walk(schema)),
+            DefinitionId::Union(id) => Definition::Union(id.walk(schema)),
         }
     }
 }
@@ -94,12 +94,12 @@ impl Readable<Schema> for DefinitionId {
 impl Definition<'_> {
     pub fn id(&self) -> DefinitionId {
         match self {
-            Definition::Enum(reader) => DefinitionId::Enum(reader.id),
-            Definition::InputObject(reader) => DefinitionId::InputObject(reader.id),
-            Definition::Interface(reader) => DefinitionId::Interface(reader.id),
-            Definition::Object(reader) => DefinitionId::Object(reader.id),
-            Definition::Scalar(reader) => DefinitionId::Scalar(reader.id),
-            Definition::Union(reader) => DefinitionId::Union(reader.id),
+            Definition::Enum(walker) => DefinitionId::Enum(walker.id),
+            Definition::InputObject(walker) => DefinitionId::InputObject(walker.id),
+            Definition::Interface(walker) => DefinitionId::Interface(walker.id),
+            Definition::Object(walker) => DefinitionId::Object(walker.id),
+            Definition::Scalar(walker) => DefinitionId::Scalar(walker.id),
+            Definition::Union(walker) => DefinitionId::Union(walker.id),
         }
     }
 }

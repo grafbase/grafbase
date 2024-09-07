@@ -1,75 +1,75 @@
 use std::cmp::Ordering;
 
-use crate::{Readable, Reader};
+use crate::{Walk, Walker};
 
-pub struct ReadableIterator<'w, I, W> {
+pub struct WalkIterator<'g, I, G> {
     iter: I,
-    world: &'w W,
+    graph: &'g G,
 }
 
-impl<'w, I, W> Clone for ReadableIterator<'w, I, W>
+impl<'g, I, G> Clone for WalkIterator<'g, I, G>
 where
     I: Clone,
 {
     fn clone(&self) -> Self {
         Self {
             iter: self.iter.clone(),
-            world: self.world,
+            graph: self.graph,
         }
     }
 }
 
-impl<'w, I, W> Copy for ReadableIterator<'w, I, W> where I: Copy {}
+impl<'g, I, G> Copy for WalkIterator<'g, I, G> where I: Copy {}
 
-impl<'w, I, W> ReadableIterator<'w, I, W> {
-    pub fn new(iter: I, world: &'w W) -> Self {
-        Self { iter, world }
+impl<'g, I, G> WalkIterator<'g, I, G> {
+    pub fn new(iter: I, graph: &'g G) -> Self {
+        Self { iter, graph }
     }
 }
 
-impl<'w, I, W> Iterator for ReadableIterator<'w, I, W>
+impl<'g, I, G> Iterator for WalkIterator<'g, I, G>
 where
     I: Iterator,
-    <I as Iterator>::Item: Readable<W> + 'w,
+    <I as Iterator>::Item: Walk<G> + 'g,
 {
-    type Item = Reader<'w, <I as Iterator>::Item, W>;
+    type Item = Walker<'g, <I as Iterator>::Item, G>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.iter.next().map(|item| item.read(self.world))
+        self.iter.next().map(|item| item.walk(self.graph))
     }
 }
 
-impl<'w, I, W> ExactSizeIterator for ReadableIterator<'w, I, W>
+impl<'g, I, G> ExactSizeIterator for WalkIterator<'g, I, G>
 where
     I: ExactSizeIterator,
-    <I as Iterator>::Item: Readable<W> + 'w,
+    <I as Iterator>::Item: Walk<G> + 'g,
 {
     fn len(&self) -> usize {
         self.iter.len()
     }
 }
 
-impl<'w, I, W> std::iter::FusedIterator for ReadableIterator<'w, I, W>
+impl<'g, I, G> std::iter::FusedIterator for WalkIterator<'g, I, G>
 where
     I: std::iter::FusedIterator,
-    <I as Iterator>::Item: Readable<W> + 'w,
+    <I as Iterator>::Item: Walk<G> + 'g,
 {
 }
 
-impl<'w, I, W> std::iter::DoubleEndedIterator for ReadableIterator<'w, I, W>
+impl<'g, I, G> std::iter::DoubleEndedIterator for WalkIterator<'g, I, G>
 where
     I: std::iter::DoubleEndedIterator,
-    <I as Iterator>::Item: Readable<W> + 'w,
+    <I as Iterator>::Item: Walk<G> + 'g,
 {
     fn next_back(&mut self) -> Option<Self::Item> {
-        self.iter.next_back().map(|item| item.read(self.world))
+        self.iter.next_back().map(|item| item.walk(self.graph))
     }
 }
 
-impl<'w, I, W> std::fmt::Debug for ReadableIterator<'w, I, W>
+impl<'g, I, G> std::fmt::Debug for WalkIterator<'g, I, G>
 where
     I: std::iter::ExactSizeIterator,
-    <I as Iterator>::Item: Readable<W> + 'w,
+    <I as Iterator>::Item: Walk<G> + 'g,
     I: Clone,
     <Self as Iterator>::Item: std::fmt::Debug,
 {
@@ -78,10 +78,10 @@ where
     }
 }
 
-impl<'w, I, W> std::cmp::Ord for ReadableIterator<'w, I, W>
+impl<'g, I, G> std::cmp::Ord for WalkIterator<'g, I, G>
 where
     I: std::iter::ExactSizeIterator,
-    <I as Iterator>::Item: Readable<W> + 'w,
+    <I as Iterator>::Item: Walk<G> + 'g,
     I: Clone,
     <Self as Iterator>::Item: std::cmp::Ord,
 {
@@ -98,10 +98,10 @@ where
     }
 }
 
-impl<'w, I, W> std::cmp::PartialEq for ReadableIterator<'w, I, W>
+impl<'g, I, G> std::cmp::PartialEq for WalkIterator<'g, I, G>
 where
     I: std::iter::ExactSizeIterator,
-    <I as Iterator>::Item: Readable<W> + 'w,
+    <I as Iterator>::Item: Walk<G> + 'g,
     I: Clone,
     <Self as Iterator>::Item: std::cmp::PartialEq,
 {
@@ -110,19 +110,19 @@ where
     }
 }
 
-impl<'w, I, W> std::cmp::Eq for ReadableIterator<'w, I, W>
+impl<'g, I, G> std::cmp::Eq for WalkIterator<'g, I, G>
 where
     I: std::iter::ExactSizeIterator,
-    <I as Iterator>::Item: Readable<W> + 'w,
+    <I as Iterator>::Item: Walk<G> + 'g,
     I: Clone,
     <Self as Iterator>::Item: std::cmp::Eq,
 {
 }
 
-impl<'w, I, W> std::cmp::PartialOrd for ReadableIterator<'w, I, W>
+impl<'g, I, G> std::cmp::PartialOrd for WalkIterator<'g, I, G>
 where
     I: std::iter::ExactSizeIterator,
-    <I as Iterator>::Item: Readable<W> + 'w,
+    <I as Iterator>::Item: Walk<G> + 'g,
     I: Clone,
     <Self as Iterator>::Item: std::cmp::PartialOrd,
 {

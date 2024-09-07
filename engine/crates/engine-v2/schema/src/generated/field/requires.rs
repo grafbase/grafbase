@@ -7,7 +7,7 @@ use crate::{
     prelude::*,
     RequiredFieldSet, RequiredFieldSetId,
 };
-use readable::Readable;
+use walker::Walk;
 
 /// Generated from:
 ///
@@ -42,18 +42,18 @@ impl<'a> FieldRequires<'a> {
         &self.item
     }
     pub fn subgraph(&self) -> Subgraph<'a> {
-        self.as_ref().subgraph_id.read(self.schema)
+        self.as_ref().subgraph_id.walk(self.schema)
     }
     pub fn field_set(&self) -> RequiredFieldSet<'a> {
-        self.as_ref().field_set_id.read(self.schema)
+        self.as_ref().field_set_id.walk(self.schema)
     }
 }
 
-impl Readable<Schema> for FieldRequiresRecord {
-    type Reader<'a> = FieldRequires<'a>;
-    fn read<'s>(self, schema: &'s Schema) -> Self::Reader<'s>
+impl Walk<Schema> for FieldRequiresRecord {
+    type Walker<'a> = FieldRequires<'a>;
+    fn walk<'a>(self, schema: &'a Schema) -> Self::Walker<'a>
     where
-        Self: 's,
+        Self: 'a,
     {
         FieldRequires { schema, item: self }
     }

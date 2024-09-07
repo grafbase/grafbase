@@ -7,7 +7,7 @@ use crate::{
     prelude::*,
     StringId,
 };
-use readable::{Iter, Readable};
+use walker::{Iter, Walk};
 
 /// Generated from:
 ///
@@ -62,21 +62,21 @@ impl<'a> UnionDefinition<'a> {
         self.as_ref().description_id.map(|id| self.schema[id].as_ref())
     }
     pub fn possible_types(&self) -> impl Iter<Item = ObjectDefinition<'a>> + 'a {
-        self.as_ref().possible_type_ids.read(self.schema)
+        self.as_ref().possible_type_ids.walk(self.schema)
     }
     pub fn possible_types_ordered_by_typename(&self) -> impl Iter<Item = ObjectDefinition<'a>> + 'a {
-        self.as_ref().possible_types_ordered_by_typename_ids.read(self.schema)
+        self.as_ref().possible_types_ordered_by_typename_ids.walk(self.schema)
     }
     pub fn directives(&self) -> impl Iter<Item = TypeSystemDirective<'a>> + 'a {
-        self.as_ref().directive_ids.read(self.schema)
+        self.as_ref().directive_ids.walk(self.schema)
     }
 }
 
-impl Readable<Schema> for UnionDefinitionId {
-    type Reader<'a> = UnionDefinition<'a>;
-    fn read<'s>(self, schema: &'s Schema) -> Self::Reader<'s>
+impl Walk<Schema> for UnionDefinitionId {
+    type Walker<'a> = UnionDefinition<'a>;
+    fn walk<'a>(self, schema: &'a Schema) -> Self::Walker<'a>
     where
-        Self: 's,
+        Self: 'a,
     {
         UnionDefinition { schema, id: self }
     }

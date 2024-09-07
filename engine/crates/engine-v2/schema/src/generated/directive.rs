@@ -8,7 +8,7 @@ mod deprecated;
 use crate::{prelude::*, RequiresScopesDirective, RequiresScopesDirectiveId};
 pub use authorized::*;
 pub use deprecated::*;
-use readable::Readable;
+use walker::Walk;
 
 /// Generated from:
 ///
@@ -53,17 +53,17 @@ pub enum TypeSystemDirective<'a> {
     RequiresScopes(RequiresScopesDirective<'a>),
 }
 
-impl Readable<Schema> for TypeSystemDirectiveId {
-    type Reader<'a> = TypeSystemDirective<'a>;
-    fn read<'s>(self, schema: &'s Schema) -> Self::Reader<'s>
+impl Walk<Schema> for TypeSystemDirectiveId {
+    type Walker<'a> = TypeSystemDirective<'a>;
+    fn walk<'a>(self, schema: &'a Schema) -> Self::Walker<'a>
     where
-        Self: 's,
+        Self: 'a,
     {
         match self {
             TypeSystemDirectiveId::Authenticated => TypeSystemDirective::Authenticated,
-            TypeSystemDirectiveId::Authorized(id) => TypeSystemDirective::Authorized(id.read(schema)),
-            TypeSystemDirectiveId::Deprecated(item) => TypeSystemDirective::Deprecated(item.read(schema)),
-            TypeSystemDirectiveId::RequiresScopes(id) => TypeSystemDirective::RequiresScopes(id.read(schema)),
+            TypeSystemDirectiveId::Authorized(id) => TypeSystemDirective::Authorized(id.walk(schema)),
+            TypeSystemDirectiveId::Deprecated(item) => TypeSystemDirective::Deprecated(item.walk(schema)),
+            TypeSystemDirectiveId::RequiresScopes(id) => TypeSystemDirective::RequiresScopes(id.walk(schema)),
         }
     }
 }
@@ -72,9 +72,9 @@ impl TypeSystemDirective<'_> {
     pub fn id(&self) -> TypeSystemDirectiveId {
         match self {
             TypeSystemDirective::Authenticated => TypeSystemDirectiveId::Authenticated,
-            TypeSystemDirective::Authorized(reader) => TypeSystemDirectiveId::Authorized(reader.id),
-            TypeSystemDirective::Deprecated(reader) => TypeSystemDirectiveId::Deprecated(reader.item),
-            TypeSystemDirective::RequiresScopes(reader) => TypeSystemDirectiveId::RequiresScopes(reader.id),
+            TypeSystemDirective::Authorized(walker) => TypeSystemDirectiveId::Authorized(walker.id),
+            TypeSystemDirective::Deprecated(walker) => TypeSystemDirectiveId::Deprecated(walker.item),
+            TypeSystemDirective::RequiresScopes(walker) => TypeSystemDirectiveId::RequiresScopes(walker.id),
         }
     }
 }

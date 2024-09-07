@@ -7,7 +7,7 @@ use crate::{
     prelude::*,
     ProvidableFieldSet,
 };
-use readable::Readable;
+use walker::Walk;
 
 /// Generated from:
 ///
@@ -42,15 +42,15 @@ impl<'a> FieldProvides<'a> {
         self.ref_
     }
     pub fn subgraph(&self) -> Subgraph<'a> {
-        self.as_ref().subgraph_id.read(self.schema)
+        self.as_ref().subgraph_id.walk(self.schema)
     }
 }
 
-impl Readable<Schema> for &FieldProvidesRecord {
-    type Reader < 'a > = FieldProvides < 'a > where Self : 'a ;
-    fn read<'s>(self, schema: &'s Schema) -> Self::Reader<'s>
+impl Walk<Schema> for &FieldProvidesRecord {
+    type Walker < 'a > = FieldProvides < 'a > where Self : 'a ;
+    fn walk<'a>(self, schema: &'a Schema) -> Self::Walker<'a>
     where
-        Self: 's,
+        Self: 'a,
     {
         FieldProvides { schema, ref_: self }
     }

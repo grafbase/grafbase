@@ -1,6 +1,6 @@
 use std::ops::Range;
 
-use readable::{Readable, ReadableIterator};
+use walker::{Walk, WalkIterator};
 
 // Not necessary anymore when Rust stabilize std::iter::Step
 #[derive(Debug, Hash, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, serde::Serialize, serde::Deserialize)]
@@ -121,15 +121,15 @@ where
     }
 }
 
-impl<W, Id: Readable<W> + IdOperations + 'static> Readable<W> for IdRange<Id> {
-    type Reader<'a> = ReadableIterator<'a, IdRangeIterator<Id>, W>
-    where W: 'a;
+impl<G, Id: Walk<G> + IdOperations + 'static> Walk<G> for IdRange<Id> {
+    type Walker<'a> = WalkIterator<'a, IdRangeIterator<Id>, G>
+    where G: 'a;
 
-    fn read<'w>(self, world: &'w W) -> Self::Reader<'w>
+    fn walk<'a>(self, graph: &'a G) -> Self::Walker<'a>
     where
-        Self: 'w,
+        Self: 'a,
     {
-        ReadableIterator::new(self.into_iter(), world)
+        WalkIterator::new(self.into_iter(), graph)
     }
 }
 

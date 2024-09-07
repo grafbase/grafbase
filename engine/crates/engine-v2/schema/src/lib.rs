@@ -26,9 +26,9 @@ pub use generated::*;
 use id_newtypes::IdRange;
 pub use ids::*;
 pub use input_value::*;
-use readable::{Iter, Readable};
 use regex::Regex;
 pub use subgraph::*;
+use walker::{Iter, Walk};
 pub use wrapping::*;
 
 mod built_info {
@@ -50,7 +50,7 @@ impl Schema {
     }
 }
 
-pub type Reader<'a, T> = readable::Reader<'a, T, Schema>;
+pub type Walker<'a, T> = walker::Walker<'a, T, Schema>;
 
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct Version(Vec<u8>);
@@ -176,12 +176,12 @@ pub struct SubGraphs {
 }
 
 impl Schema {
-    pub fn walk<T: Readable<Self>>(&self, item: T) -> Reader<'_, T> {
-        item.read(self)
+    pub fn walk<T: Walk<Self>>(&self, item: T) -> Walker<'_, T> {
+        item.walk(self)
     }
 
     pub fn definitions(&self) -> impl Iter<Item = Definition<'_>> + '_ {
-        self.graph.type_definitions_ordered_by_name.read(self)
+        self.graph.type_definitions_ordered_by_name.walk(self)
     }
 
     pub fn definition_by_name(&self, name: &str) -> Option<DefinitionId> {
@@ -213,29 +213,29 @@ impl Schema {
     }
 
     pub fn default_header_rules(&self) -> impl Iter<Item = HeaderRule<'_>> + '_ {
-        self.settings.default_header_rules.read(self)
+        self.settings.default_header_rules.walk(self)
     }
 
     fn definition_name(&self, definition: DefinitionId) -> &str {
-        definition.read(self).name()
+        definition.walk(self).name()
     }
 
     pub fn query(&self) -> ObjectDefinition<'_> {
-        self.graph.root_operation_types_record.query_id.read(self)
+        self.graph.root_operation_types_record.query_id.walk(self)
     }
 
     pub fn mutation(&self) -> Option<ObjectDefinition<'_>> {
-        self.graph.root_operation_types_record.mutation_id.read(self)
+        self.graph.root_operation_types_record.mutation_id.walk(self)
     }
 
     pub fn subscription(&self) -> Option<ObjectDefinition<'_>> {
-        self.graph.root_operation_types_record.subscription_id.read(self)
+        self.graph.root_operation_types_record.subscription_id.walk(self)
     }
 
     pub fn graphql_endpoints(&self) -> impl ExactSizeIterator<Item = GraphqlEndpoint<'_>> {
         (0..self.subgraphs.graphql_endpoints.len()).map(|i| {
             let id = GraphqlEndpointId::from(i);
-            id.read(self)
+            id.walk(self)
         })
     }
 }

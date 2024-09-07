@@ -20,7 +20,7 @@ impl From<Object> for Definition {
 }
 
 impl Object {
-    pub fn reader_name(&self) -> &str {
+    pub fn walker_name(&self) -> &str {
         &self.name
     }
 }

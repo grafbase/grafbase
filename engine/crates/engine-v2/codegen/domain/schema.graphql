@@ -1,4 +1,4 @@
-scalar Schema @world(destination: "schema/src")
+scalar Schema @graph(destination: "schema/src")
 
 # std / lib
 scalar String @indexed(deduplicated: true)

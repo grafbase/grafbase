@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 
-use readable::Readable;
+use walker::Walk;
 
 use crate::{
     FieldDefinitionId, GraphqlFederationEntityResolverDefinition, GraphqlRootFieldResolverDefinition,
@@ -29,13 +29,13 @@ impl ResolverDefinitionRecord {
 
 impl<'a> ResolverDefinition<'a> {
     pub fn subgraph(&self) -> Subgraph<'a> {
-        self.as_ref().subgraph_id().read(self.schema)
+        self.as_ref().subgraph_id().walk(self.schema)
     }
 
     pub fn requires(&self) -> &'a RequiredFieldSetRecord {
         self.as_ref()
             .requires()
-            .map(|id| id.read(self.schema).as_ref())
+            .map(|id| id.walk(self.schema).as_ref())
             .unwrap_or(RequiredFieldSetRecord::empty())
     }
 
@@ -48,7 +48,7 @@ impl<'a> ResolverDefinition<'a> {
     }
 
     pub fn can_provide(&self, field_id: FieldDefinitionId) -> bool {
-        field_id.read(self.schema).is_resolvable_in(self.subgraph_id())
+        field_id.walk(self.schema).is_resolvable_in(self.subgraph_id())
     }
 }
 

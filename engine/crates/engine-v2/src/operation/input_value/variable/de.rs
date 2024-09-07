@@ -1,4 +1,3 @@
-use readable::Readable;
 use schema::InputValueSerdeError;
 use serde::{
     de::{
@@ -7,6 +6,7 @@ use serde::{
     },
     forward_to_deserialize_any,
 };
+use walker::Walk;
 
 use super::{VariableInputValue, VariableInputValueWalker};
 
@@ -41,7 +41,7 @@ impl<'de> serde::Deserializer<'de> for VariableInputValueWalker<'de> {
                     .map(|(key, value)| (key.as_str(), self.walk(value))),
             )
             .deserialize_any(visitor),
-            VariableInputValue::DefaultValue(id) => id.read(self.schema).deserialize_any(visitor),
+            VariableInputValue::DefaultValue(id) => id.walk(self.schema).deserialize_any(visitor),
         }
     }
 

@@ -4,8 +4,8 @@ use std::{
 };
 
 use itertools::Itertools;
-use readable::Readable;
 use schema::{RequiredFieldSetRecord, ResolverDefinition};
+use walker::Walk;
 
 use crate::{
     execution::{ExecutableOperation, ExecutionPlan, ExecutionPlanId, PreExecutionContext, ResponseModifierExecutor},
@@ -132,7 +132,7 @@ where
             // FIXME: split me into different functions
             let required_fields = match rule {
                 ResponseModifierRule::AuthorizedParentEdge { directive_id, .. } => {
-                    let required_fields = directive_id.read(schema).fields().unwrap().as_ref();
+                    let required_fields = directive_id.walk(schema).fields().unwrap().as_ref();
                     for ImpactedField { set_id, field_id, .. } in chunk {
                         let field = walker.walk(field_id);
 
@@ -152,7 +152,7 @@ where
                     required_fields
                 }
                 ResponseModifierRule::AuthorizedEdgeChild { directive_id, .. } => {
-                    let required_fields = directive_id.read(schema).node().unwrap().as_ref();
+                    let required_fields = directive_id.walk(schema).node().unwrap().as_ref();
                     for ImpactedField { set_id, field_id, .. } in chunk {
                         let field = walker.walk(field_id);
 

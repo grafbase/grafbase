@@ -4,10 +4,10 @@ mod view;
 
 use id_derives::{Id, IndexedFields};
 use id_newtypes::IdRange;
-use readable::Readable;
 use schema::{
     EnumValueId, InputValue, InputValueDefinitionId, InputValueSet, SchemaInputValueId, SchemaInputValueRecord,
 };
+use walker::Walk;
 
 use crate::operation::{OperationWalker, PreparedOperationWalker, VariableDefinitionId};
 
@@ -179,7 +179,7 @@ impl<'a> From<QueryInputValueWalker<'a>> for InputValue<'a> {
                 InputValue::Map(key_values)
             }
             QueryInputValue::U64(n) => InputValue::U64(*n),
-            QueryInputValue::DefaultValue(id) => id.read(walker.schema).into(),
+            QueryInputValue::DefaultValue(id) => id.walk(walker.schema).into(),
             QueryInputValue::Variable(id) => walker.walk(*id).as_value().to_input_value().unwrap_or_default(),
         }
     }
@@ -248,7 +248,7 @@ impl PartialEq<SchemaInputValueRecord> for OperationWalker<'_, &QueryInputValue>
 
                 true
             }
-            (QueryInputValue::DefaultValue(id), value) => id.read(self.schema).eq(&value.read(self.schema)),
+            (QueryInputValue::DefaultValue(id), value) => id.walk(self.schema).eq(&value.walk(self.schema)),
             (QueryInputValue::Variable(_), _) => false,
             // A bit tedious, but avoids missing a case
             (QueryInputValue::Null, _) => false,
@@ -299,7 +299,7 @@ impl std::fmt::Debug for QueryInputValueWalker<'_> {
                 }
                 map.finish()
             }
-            QueryInputValue::DefaultValue(id) => f.debug_tuple("DefaultValue").field(&id.read(self.schema)).finish(),
+            QueryInputValue::DefaultValue(id) => f.debug_tuple("DefaultValue").field(&id.walk(self.schema)).finish(),
             QueryInputValue::Variable(id) => f.debug_tuple("Variable").field(&self.walk(*id)).finish(),
         }
     }

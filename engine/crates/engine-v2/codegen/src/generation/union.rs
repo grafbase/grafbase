@@ -1,6 +1,6 @@
 mod bitpacked;
 mod enum_;
-mod reader;
+mod walker;
 
 use std::collections::HashSet;
 
@@ -45,7 +45,7 @@ pub fn generate_union<'a>(domain: &'a Domain, union: &'a Union) -> anyhow::Resul
     if let Some(indexed) = union.indexed() {
         code_sections.extend(generate_id(domain, indexed)?);
     }
-    code_sections.extend(reader::generate_reader(domain, union, &variants)?);
+    code_sections.extend(walker::generate_walker(domain, union, &variants)?);
     if let UnionKind::BitpackedId(bitpacked) = &union.kind {
         code_sections.extend(generate_bitpacked_id_union(bitpacked, &variants)?);
     }
