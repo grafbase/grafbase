@@ -118,5 +118,5 @@ similar-asserts = "1.5"
 pprof = { version = "0.13", features = ["criterion", "flamegraph"] }
 
 [[bench]]
-name = "federation"
+name = "bench"
 harness = false
