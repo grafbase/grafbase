@@ -7,7 +7,7 @@ use crate::{
     WALKER_TRAIT,
 };
 
-use super::VariantContext;
+use super::{debug::DebugVariantBranch, VariantContext};
 
 #[instrument(skip_all)]
 pub fn generate_walker(
@@ -25,9 +25,23 @@ pub fn generate_walker(
 
     let walker_variants = variants.iter().copied().map(WalkerVariant);
     code_sections.push(quote! {
-        #[derive(Clone, Copy, Debug)]
+        #[derive(Clone, Copy)]
         pub enum #walker_enum_name<'a> {
             #(#walker_variants),*
+        }
+    });
+
+    let debug_variants = variants.iter().copied().map(|variant| DebugVariantBranch {
+        variant,
+        enum_name: union.walker_enum_name(),
+    });
+    code_sections.push(quote! {
+        impl std::fmt::Debug for #walker_enum_name<'_> {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                match self {
+                    #(#debug_variants)*
+                }
+            }
         }
     });
 

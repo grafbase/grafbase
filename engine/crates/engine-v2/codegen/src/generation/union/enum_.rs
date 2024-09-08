@@ -7,7 +7,7 @@ use crate::{
     generation::docstr,
 };
 
-use super::VariantContext;
+use super::{debug::DebugVariantBranch, VariantContext};
 
 #[instrument(skip_all)]
 pub fn generate_enum(
@@ -26,7 +26,7 @@ pub fn generate_enum(
         match &union.kind {
             UnionKind::Record(record) if record.copy => derives.extend(quote! { , Clone, Copy }),
             UnionKind::Id(_) | UnionKind::BitpackedId(_) => {
-                derives.extend(quote! { , Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug })
+                derives.extend(quote! { , Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash })
             }
             _ => {}
         }
@@ -44,6 +44,20 @@ pub fn generate_enum(
     };
 
     let mut code_sections = vec![union_enum];
+
+    let debug_variants = variants.iter().copied().map(|variant| DebugVariantBranch {
+        variant,
+        enum_name: union.enum_name(),
+    });
+    code_sections.push(quote! {
+        impl std::fmt::Debug for #enum_name {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                match self {
+                    #(#debug_variants)*
+                }
+            }
+        }
+    });
 
     if let UnionKind::Id(union) = &union.kind {
         let from_variants = variants.iter().copied().map(|variant| FromVariant {

@@ -1,4 +1,5 @@
 mod bitpacked;
+mod debug;
 mod enum_;
 mod walker;
 

@@ -40,15 +40,6 @@ pub(super) struct IdMaps {
 }
 
 impl IdMaps {
-    #[cfg(test)]
-    pub fn empty() -> Self {
-        IdMaps {
-            field: IdMap::default(),
-            input_value: IdMap::default(),
-            enum_values: IdMap::default(),
-        }
-    }
-
     pub fn new(graph: &FederatedGraph) -> Self {
         let mut idmaps = IdMaps {
             field: Default::default(),

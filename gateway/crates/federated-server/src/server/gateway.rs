@@ -103,12 +103,8 @@ pub(super) async fn generate(
         runtime.trusted_documents = trusted_documents;
     }
 
-    let schema = engine_v2::Schema::build(config, schema_version).map_err(|err| match err {
-        err @ engine_v2::BuildError::RequiredFieldArgumentCoercionError { .. } => {
-            crate::Error::InternalError(format!("Failed to generate engine Schema: {err}"))
-        }
-        engine_v2::BuildError::GraphFromSdlError(err) => crate::Error::SchemaValidationError(err.to_string()),
-    })?;
+    let schema = engine_v2::Schema::build(config, schema_version)
+        .map_err(|err| crate::Error::SchemaValidationError(err.to_string()))?;
 
     Ok(Engine::new(Arc::new(schema), runtime).await)
 }

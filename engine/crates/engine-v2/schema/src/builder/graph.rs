@@ -3,6 +3,7 @@ use std::{
     mem::take,
 };
 
+use builder::coerce::InputValueCoercer;
 use config::latest::Config;
 use introspection::{IntrospectionBuilder, IntrospectionMetadata};
 
@@ -48,17 +49,18 @@ impl<'a> GraphBuilder<'a> {
                 authorized_directives: Vec::new(),
             },
         };
-        builder.ingest_config(config);
+        builder.ingest_config(config)?;
         builder.finalize()
     }
 
-    fn ingest_config(&mut self, config: &mut Config) {
+    fn ingest_config(&mut self, config: &mut Config) -> Result<(), BuildError> {
         self.ingest_enums_before_input_values(config);
 
-        self.ingest_input_values(config);
-        self.ingest_input_objects(config);
-        self.ingest_unions(config);
         self.ingest_scalars(config);
+        self.ingest_input_objects(config);
+        self.ingest_input_values_after_scalars_and_input_objects_and_enums(config)?;
+
+        self.ingest_unions(config);
 
         // Not guaranteed to be sorted and rely on binary search to find the directives for a
         // field.
@@ -78,40 +80,66 @@ impl<'a> GraphBuilder<'a> {
             .sort_unstable_by_key(|(id, _)| *id);
 
         self.ingest_fields_after_input_values(config, object_metadata, interface_metadata);
+
+        Ok(())
     }
 
-    fn ingest_input_values(&mut self, config: &mut Config) {
-        self.graph.input_value_definitions = take(&mut config.graph.input_value_definitions)
-            .into_iter()
-            .enumerate()
-            .filter_map(|(idx, definition)| {
-                if self.ctx.idmaps.input_value.contains(idx) {
-                    Some(InputValueDefinitionRecord {
-                        name_id: definition.name.into(),
-                        description_id: definition.description.map(Into::into),
-                        ty_record: definition.r#type.into(),
-                        default_value_id: definition.default.and_then(|default| {
-                            let value = self
-                                .graph
-                                .input_values
-                                .ingest_arbitrary_federated_value(self.ctx, default)
-                                .ok()?;
+    fn ingest_input_values_after_scalars_and_input_objects_and_enums(
+        &mut self,
+        config: &mut Config,
+    ) -> Result<(), BuildError> {
+        // Arbitrary initial capacity, to make it at least proportional to the input_values count.
+        let mut default_values = Vec::with_capacity(config.graph.input_value_definitions.len() / 20);
+        let mut input_value_definitions = Vec::new();
+        for (idx, definition) in take(&mut config.graph.input_value_definitions).into_iter().enumerate() {
+            if !self.ctx.idmaps.input_value.contains(idx) {
+                continue;
+            }
+            if let Some(value) = definition.default {
+                default_values.push((input_value_definitions.len(), value));
+            }
+            input_value_definitions.push(InputValueDefinitionRecord {
+                name_id: definition.name.into(),
+                description_id: definition.description.map(Into::into),
+                ty_record: definition.r#type.into(),
+                // Adding after ingesting all input values as input object fields are input values.
+                // So we need them for coercion.
+                default_value_id: None,
+                directive_ids: self.push_directives(
+                    config,
+                    Directives {
+                        federated: definition.directives,
+                        ..Default::default()
+                    },
+                ),
+            });
+        }
+        self.graph.input_value_definitions = input_value_definitions;
 
-                            Some(self.graph.input_values.push_value(value))
-                        }),
-                        directive_ids: self.push_directives(
-                            config,
-                            Directives {
-                                federated: definition.directives,
-                                ..Default::default()
-                            },
-                        ),
-                    })
-                } else {
-                    None
-                }
+        let mut input_values = take(&mut self.graph.input_values);
+        let mut coercer = InputValueCoercer::new(self.ctx, &self.graph, &mut input_values);
+
+        let default_values = default_values
+            .into_iter()
+            .map(|(idx, value)| {
+                let input_value_definition = &self.graph.input_value_definitions[idx];
+                let value = coercer.coerce(input_value_definition.ty_record, value).map_err(|err| {
+                    BuildError::DefaultValueCoercionError {
+                        err,
+                        name: self.ctx.strings[input_value_definition.name_id].to_string(),
+                    }
+                })?;
+                Ok((idx, value))
             })
-            .collect();
+            .collect::<Result<Vec<_>, BuildError>>()?;
+
+        for (idx, value_id) in default_values {
+            self.graph.input_value_definitions[idx].default_value_id = Some(value_id);
+        }
+
+        self.graph.input_values = input_values;
+
+        Ok(())
     }
 
     fn ingest_input_objects(&mut self, config: &mut Config) {
@@ -681,11 +709,7 @@ impl<'a> GraphBuilder<'a> {
                         .as_ref()
                         .map(|field_set| self.required_field_sets_buffer.push(schema_location, field_set.clone())),
                     metadata_id: metadata.clone().and_then(|value| {
-                        let value = self
-                            .graph
-                            .input_values
-                            .ingest_arbitrary_federated_value(self.ctx, value)
-                            .ok()?;
+                        let value = self.graph.input_values.ingest_as_json(self.ctx, value).ok()?;
 
                         Some(self.graph.input_values.push_value(value))
                     }),

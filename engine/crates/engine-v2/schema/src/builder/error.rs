@@ -21,6 +21,8 @@ impl SchemaLocation {
 pub enum BuildError {
     #[error("At {location}, a required field argument is invalid: {err}")]
     RequiredFieldArgumentCoercionError { location: String, err: InputValueError },
+    #[error("An input value named '{name}' has an invalid default value: {err}")]
+    DefaultValueCoercionError { name: String, err: InputValueError },
     #[error(transparent)]
     GraphFromSdlError(#[from] federated_graph::DomainError),
 }

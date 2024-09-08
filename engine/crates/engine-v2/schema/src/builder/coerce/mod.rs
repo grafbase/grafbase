@@ -166,6 +166,19 @@ impl<'a> InputValueCoercer<'a> {
         let r#enum = &self.graph[enum_id];
         match &value {
             Value::EnumValue(id) => Ok(SchemaInputValueRecord::EnumValue(crate::EnumValueId::from(id.0))),
+            Value::UnboundEnumValue(id) => {
+                let string_value = &self.ctx.strings[(*id).into()];
+                for id in r#enum.value_ids {
+                    if &self.ctx.strings[self.graph[id].name_id] == string_value {
+                        return Ok(SchemaInputValueRecord::EnumValue(id));
+                    }
+                }
+                Err(InputValueError::UnknownEnumValue {
+                    r#enum: self.ctx.strings[r#enum.name_id].to_string(),
+                    value: string_value.to_string(),
+                    path: self.path(),
+                })
+            }
             value => Err(InputValueError::IncorrectEnumValueType {
                 r#enum: self.ctx.strings[r#enum.name_id].to_string(),
                 actual: value.into(),
@@ -214,12 +227,11 @@ impl<'a> InputValueCoercer<'a> {
             }
             .map(SchemaInputValueRecord::Boolean),
             ScalarType::JSON => {
-                return Ok(self
-                    .input_values
-                    .ingest_arbitrary_federated_value(self.ctx, value)
-                    .map_err(|_: super::input_values::InaccessibleEnumValue| {
-                        InputValueError::InaccessibleEnumValue { path: self.path() }
-                    }))?
+                return Ok(self.input_values.ingest_as_json(self.ctx, value).map_err(
+                    |_: super::input_values::InaccessibleEnumValue| InputValueError::InaccessibleEnumValue {
+                        path: self.path(),
+                    },
+                ))?
             }
         }
         .ok_or_else(|| InputValueError::IncorrectScalarType {

@@ -166,7 +166,7 @@ union TypeSystemDirective
   | AuthorizedDirective
 
 type DeprecatedDirective
-  @meta(module: "directive/deprecated", derive: ["PartialEq", "Eq", "PartialOrd", "Ord", "Hash", "Debug"])
+  @meta(module: "directive/deprecated", derive: ["PartialEq", "Eq", "PartialOrd", "Ord", "Hash"])
   @copy {
   reason: String
 }
