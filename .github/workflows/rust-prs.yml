@@ -219,14 +219,6 @@ jobs:
           target: ${{ matrix.platform.target }}
           components: clippy, rustfmt
 
-      - name: Rustup overridpe
-        shell: bash
-        # Adding this override prevents rust from reading rust-toolchain
-        # We want to do this because rust-toolchain has a bunch of targets in it
-        # we don't need here - I'm hoping this setting will prevent those from
-        # downloading
-        run: rustup override set ${{ env.RUST_VERSION }}
-
       - name: Install musl-tools
         if: ${{ contains(matrix.platform.target, 'linux') }}
         shell: bash
@@ -300,12 +292,6 @@ jobs:
         with:
           name: wrappers-dist.js
           path: cli/wrappers/
-
-      - name: Build
-        if: fromJson(needs.what-changed.outputs.rust).cargo-build-specs
-        shell: bash
-        run: |
-          cargo build --target ${{ matrix.platform.target }} ${{ fromJson(needs.what-changed.outputs.rust).cargo-build-specs }}
 
       # TODO: Add timing reports in here somehow...
 
