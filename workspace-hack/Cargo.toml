@@ -44,7 +44,6 @@ concurrent-queue = { version = "2" }
 console = { version = "0.15", default-features = false, features = ["ansi-parsing", "unicode-width"] }
 crc32fast = { version = "1" }
 criterion = { version = "0.5", features = ["async_tokio", "html_reports"] }
-crossbeam-channel = { version = "0.5" }
 crossbeam-queue = { version = "0.3" }
 crossbeam-utils = { version = "0.8" }
 cynic-parser = { git = "https://github.com/grafbase/cynic", branch = "more-spans", features = ["pretty", "report"] }
@@ -94,7 +93,6 @@ phf = { version = "0.11", features = ["macros"] }
 phf_shared = { version = "0.11", default-features = false, features = ["std"] }
 pkcs1 = { version = "0.7", default-features = false, features = ["pem", "pkcs8", "std"] }
 pkcs8 = { version = "0.10", default-features = false, features = ["pem", "std"] }
-postcard = { version = "1", features = ["use-std"] }
 proc-macro2 = { version = "1" }
 prost = { version = "0.13" }
 ptr_meta = { version = "0.1" }
@@ -111,7 +109,7 @@ rustls = { version = "0.23", default-features = false, features = ["logging", "r
 rustls-pki-types = { version = "1", features = ["std"] }
 rustls-webpki = { version = "0.102", default-features = false, features = ["ring", "std"] }
 sec1 = { version = "0.7", features = ["pem", "std", "subtle"] }
-semver = { version = "1" }
+semver = { version = "1", features = ["serde"] }
 serde = { version = "1", features = ["alloc", "derive", "rc"] }
 serde_json = { version = "1", features = ["alloc", "preserve_order", "raw_value"] }
 serde_with = { git = "https://github.com/grafbase/serde_with", rev = "06ad277a0e0175c2364d3c065e303a6c8a775c8a", features = ["base64", "hex"] }
@@ -143,7 +141,7 @@ unicode-bidi = { version = "0.3" }
 unicode-normalization = { version = "0.1" }
 url = { version = "2", features = ["serde"] }
 uuid = { version = "1", features = ["serde", "v4"] }
-wasmparser = { version = "0.209", default-features = false, features = ["serde", "std", "validate"] }
+wasmparser = { version = "0.215", default-features = false, features = ["serde", "std", "validate"] }
 web-sys = { version = "0.3", default-features = false, features = ["AbortController", "AbortSignal", "BinaryType", "Cache", "CacheQueryOptions", "CacheStorage", "CloseEvent", "ErrorEvent", "File", "FormData", "Headers", "MessageEvent", "ProgressEvent", "QueuingStrategy", "ReadableByteStreamController", "ReadableStream", "ReadableStreamByobReader", "ReadableStreamByobRequest", "ReadableStreamDefaultController", "ReadableStreamDefaultReader", "ReadableStreamGetReaderOptions", "ReadableStreamReadResult", "ReadableStreamReaderMode", "ReadableStreamType", "ReadableWritablePair", "Request", "RequestInit", "RequestRedirect", "Response", "ResponseInit", "StreamPipeOptions", "TransformStream", "TransformStreamDefaultController", "Transformer", "UnderlyingSink", "UnderlyingSource", "WebSocket", "WorkerGlobalScope", "WritableStream", "WritableStreamDefaultController", "WritableStreamDefaultWriter", "console"] }
 zerocopy = { version = "0.7", features = ["simd"] }
 zeroize = { version = "1", features = ["zeroize_derive"] }
@@ -175,7 +173,6 @@ concurrent-queue = { version = "2" }
 console = { version = "0.15", default-features = false, features = ["ansi-parsing", "unicode-width"] }
 crc32fast = { version = "1" }
 criterion = { version = "0.5", features = ["async_tokio", "html_reports"] }
-crossbeam-channel = { version = "0.5" }
 crossbeam-queue = { version = "0.3" }
 crossbeam-utils = { version = "0.8" }
 cynic-codegen = { git = "https://github.com/grafbase/cynic", branch = "more-spans", features = ["rkyv"] }
@@ -226,7 +223,6 @@ phf = { version = "0.11", features = ["macros"] }
 phf_shared = { version = "0.11", default-features = false, features = ["std"] }
 pkcs1 = { version = "0.7", default-features = false, features = ["pem", "pkcs8", "std"] }
 pkcs8 = { version = "0.10", default-features = false, features = ["pem", "std"] }
-postcard = { version = "1", features = ["use-std"] }
 proc-macro2 = { version = "1" }
 prost = { version = "0.13" }
 ptr_meta = { version = "0.1" }
@@ -243,7 +239,7 @@ rustls = { version = "0.23", default-features = false, features = ["logging", "r
 rustls-pki-types = { version = "1", features = ["std"] }
 rustls-webpki = { version = "0.102", default-features = false, features = ["ring", "std"] }
 sec1 = { version = "0.7", features = ["pem", "std", "subtle"] }
-semver = { version = "1" }
+semver = { version = "1", features = ["serde"] }
 serde = { version = "1", features = ["alloc", "derive", "rc"] }
 serde_json = { version = "1", features = ["alloc", "preserve_order", "raw_value"] }
 serde_with = { git = "https://github.com/grafbase/serde_with", rev = "06ad277a0e0175c2364d3c065e303a6c8a775c8a", features = ["base64", "hex"] }
@@ -277,12 +273,14 @@ unicode-bidi = { version = "0.3" }
 unicode-normalization = { version = "0.1" }
 url = { version = "2", features = ["serde"] }
 uuid = { version = "1", features = ["serde", "v4"] }
+wasmparser = { version = "0.215", default-features = false, features = ["serde", "std", "validate"] }
 web-sys = { version = "0.3", default-features = false, features = ["AbortController", "AbortSignal", "BinaryType", "Cache", "CacheQueryOptions", "CacheStorage", "CloseEvent", "ErrorEvent", "File", "FormData", "Headers", "MessageEvent", "ProgressEvent", "QueuingStrategy", "ReadableByteStreamController", "ReadableStream", "ReadableStreamByobReader", "ReadableStreamByobRequest", "ReadableStreamDefaultController", "ReadableStreamDefaultReader", "ReadableStreamGetReaderOptions", "ReadableStreamReadResult", "ReadableStreamReaderMode", "ReadableStreamType", "ReadableWritablePair", "Request", "RequestInit", "RequestRedirect", "Response", "ResponseInit", "StreamPipeOptions", "TransformStream", "TransformStreamDefaultController", "Transformer", "UnderlyingSink", "UnderlyingSource", "WebSocket", "WorkerGlobalScope", "WritableStream", "WritableStreamDefaultController", "WritableStreamDefaultWriter", "console"] }
 zerocopy = { version = "0.7", features = ["simd"] }
 zeroize = { version = "1", features = ["zeroize_derive"] }
 
 [target.aarch64-apple-darwin.dependencies]
 deadpool = { version = "0.12", features = ["rt_tokio_1"] }
+gimli = { version = "0.29", default-features = false, features = ["read", "std", "write"] }
 hyper-rustls = { version = "0.27", default-features = false, features = ["http1", "http2", "ring", "tls12", "webpki-tokio"] }
 iana-time-zone = { version = "0.1", default-features = false, features = ["fallback"] }
 libc = { version = "0.2", features = ["extra_traits"] }
@@ -296,6 +294,7 @@ zeroize = { version = "1", default-features = false, features = ["derive"] }
 
 [target.aarch64-apple-darwin.build-dependencies]
 deadpool = { version = "0.12", features = ["rt_tokio_1"] }
+gimli = { version = "0.29", default-features = false, features = ["read", "std", "write"] }
 hyper-rustls = { version = "0.27", default-features = false, features = ["http1", "http2", "ring", "tls12", "webpki-tokio"] }
 iana-time-zone = { version = "0.1", default-features = false, features = ["fallback"] }
 libc = { version = "0.2", features = ["extra_traits"] }
@@ -309,6 +308,7 @@ zeroize = { version = "1", default-features = false, features = ["derive"] }
 
 [target.x86_64-apple-darwin.dependencies]
 deadpool = { version = "0.12", features = ["rt_tokio_1"] }
+gimli = { version = "0.29", default-features = false, features = ["read", "std", "write"] }
 hyper-rustls = { version = "0.27", default-features = false, features = ["http1", "http2", "ring", "tls12", "webpki-tokio"] }
 iana-time-zone = { version = "0.1", default-features = false, features = ["fallback"] }
 libc = { version = "0.2", features = ["extra_traits"] }
@@ -323,6 +323,7 @@ zeroize = { version = "1", default-features = false, features = ["derive"] }
 
 [target.x86_64-apple-darwin.build-dependencies]
 deadpool = { version = "0.12", features = ["rt_tokio_1"] }
+gimli = { version = "0.29", default-features = false, features = ["read", "std", "write"] }
 hyper-rustls = { version = "0.27", default-features = false, features = ["http1", "http2", "ring", "tls12", "webpki-tokio"] }
 iana-time-zone = { version = "0.1", default-features = false, features = ["fallback"] }
 libc = { version = "0.2", features = ["extra_traits"] }
@@ -359,6 +360,7 @@ zeroize = { version = "1", default-features = false, features = ["derive"] }
 
 [target.x86_64-unknown-linux-musl.dependencies]
 deadpool = { version = "0.12", features = ["rt_tokio_1"] }
+gimli = { version = "0.29", default-features = false, features = ["read", "std", "write"] }
 hyper-rustls = { version = "0.27", default-features = false, features = ["http1", "http2", "ring", "tls12", "webpki-tokio"] }
 iana-time-zone = { version = "0.1", default-features = false, features = ["fallback"] }
 libc = { version = "0.2", features = ["extra_traits"] }
@@ -375,6 +377,7 @@ zeroize = { version = "1", default-features = false, features = ["derive"] }
 
 [target.x86_64-unknown-linux-musl.build-dependencies]
 deadpool = { version = "0.12", features = ["rt_tokio_1"] }
+gimli = { version = "0.29", default-features = false, features = ["read", "std", "write"] }
 hyper-rustls = { version = "0.27", default-features = false, features = ["http1", "http2", "ring", "tls12", "webpki-tokio"] }
 iana-time-zone = { version = "0.1", default-features = false, features = ["fallback"] }
 libc = { version = "0.2", features = ["extra_traits"] }
@@ -391,6 +394,7 @@ zeroize = { version = "1", default-features = false, features = ["derive"] }
 
 [target.aarch64-unknown-linux-musl.dependencies]
 deadpool = { version = "0.12", features = ["rt_tokio_1"] }
+gimli = { version = "0.29", default-features = false, features = ["read", "std", "write"] }
 hyper-rustls = { version = "0.27", default-features = false, features = ["http1", "http2", "ring", "tls12", "webpki-tokio"] }
 iana-time-zone = { version = "0.1", default-features = false, features = ["fallback"] }
 libc = { version = "0.2", features = ["extra_traits"] }
@@ -406,6 +410,7 @@ zeroize = { version = "1", default-features = false, features = ["derive"] }
 
 [target.aarch64-unknown-linux-musl.build-dependencies]
 deadpool = { version = "0.12", features = ["rt_tokio_1"] }
+gimli = { version = "0.29", default-features = false, features = ["read", "std", "write"] }
 hyper-rustls = { version = "0.27", default-features = false, features = ["http1", "http2", "ring", "tls12", "webpki-tokio"] }
 iana-time-zone = { version = "0.1", default-features = false, features = ["fallback"] }
 libc = { version = "0.2", features = ["extra_traits"] }
@@ -421,6 +426,7 @@ zeroize = { version = "1", default-features = false, features = ["derive"] }
 
 [target.wasm32-unknown-unknown.dependencies]
 getrandom = { version = "0.2", default-features = false, features = ["js"] }
+gimli = { version = "0.29", default-features = false, features = ["read", "std", "write"] }
 libc = { version = "0.2", features = ["extra_traits"] }
 miniz_oxide = { version = "0.7", default-features = false, features = ["with-alloc"] }
 object = { version = "0.36", default-features = false, features = ["archive", "read_core", "unaligned", "write"] }
@@ -429,6 +435,7 @@ web-sys = { version = "0.3", default-features = false, features = ["BlobProperty
 
 [target.wasm32-unknown-unknown.build-dependencies]
 getrandom = { version = "0.2", default-features = false, features = ["js"] }
+gimli = { version = "0.29", default-features = false, features = ["read", "std", "write"] }
 libc = { version = "0.2", features = ["extra_traits"] }
 miniz_oxide = { version = "0.7", default-features = false, features = ["with-alloc"] }
 object = { version = "0.36", default-features = false, features = ["archive", "read_core", "unaligned", "write"] }

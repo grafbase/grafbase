@@ -1585,7 +1585,7 @@ dependencies = [
  "itertools 0.12.1",
  "log",
  "smallvec",
- "wasmparser 0.215.0",
+ "wasmparser",
  "wasmtime-types",
 ]
 
@@ -3885,7 +3885,6 @@ dependencies = [
  "console",
  "crc32fast",
  "criterion",
- "crossbeam-channel",
  "crossbeam-queue",
  "crossbeam-utils",
  "cynic-codegen",
@@ -3912,6 +3911,7 @@ dependencies = [
  "futures-util",
  "generic-array",
  "getrandom 0.2.15",
+ "gimli",
  "group",
  "hashbrown 0.12.3",
  "hashbrown 0.14.5",
@@ -3944,7 +3944,6 @@ dependencies = [
  "phf_shared",
  "pkcs1",
  "pkcs8",
- "postcard",
  "proc-macro2",
  "prost",
  "ptr_meta",
@@ -3998,7 +3997,7 @@ dependencies = [
  "unicode-normalization",
  "url",
  "uuid",
- "wasmparser 0.209.1",
+ "wasmparser",
  "web-sys",
  "winapi",
  "windows-sys 0.48.0",
@@ -10068,20 +10067,6 @@ dependencies = [
 
 [[package]]
 name = "wasmparser"
-version = "0.209.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "07035cc9a9b41e62d3bb3a3815a66ab87c993c06fe1cf6b2a3f2a18499d937db"
-dependencies = [
- "ahash 0.8.11",
- "bitflags 2.6.0",
- "hashbrown 0.14.5",
- "indexmap 2.2.6",
- "semver",
- "serde",
-]
-
-[[package]]
-name = "wasmparser"
 version = "0.215.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "53fbde0881f24199b81cf49b6ff8f9c145ac8eb1b7fc439adb5c099734f7d90e"
@@ -10102,7 +10087,7 @@ checksum = "d8e9a325d85053408209b3d2ce5eaddd0dd6864d1cff7a007147ba073157defc"
 dependencies = [
  "anyhow",
  "termcolor",
- "wasmparser 0.215.0",
+ "wasmparser",
 ]
 
 [[package]]
@@ -10144,7 +10129,7 @@ dependencies = [
  "sptr",
  "target-lexicon",
  "wasm-encoder 0.215.0",
- "wasmparser 0.215.0",
+ "wasmparser",
  "wasmtime-asm-macros",
  "wasmtime-cache",
  "wasmtime-component-macro",
@@ -10230,7 +10215,7 @@ dependencies = [
  "object",
  "target-lexicon",
  "thiserror",
- "wasmparser 0.215.0",
+ "wasmparser",
  "wasmtime-environ",
  "wasmtime-versioned-export-macros",
 ]
@@ -10256,7 +10241,7 @@ dependencies = [
  "serde_derive",
  "target-lexicon",
  "wasm-encoder 0.215.0",
- "wasmparser 0.215.0",
+ "wasmparser",
  "wasmprinter",
  "wasmtime-component-util",
  "wasmtime-types",
@@ -10318,7 +10303,7 @@ dependencies = [
  "serde",
  "serde_derive",
  "smallvec",
- "wasmparser 0.215.0",
+ "wasmparser",
 ]
 
 [[package]]
@@ -10396,7 +10381,7 @@ dependencies = [
  "gimli",
  "object",
  "target-lexicon",
- "wasmparser 0.215.0",
+ "wasmparser",
  "wasmtime-cranelift",
  "wasmtime-environ",
  "winch-codegen",
@@ -10549,7 +10534,7 @@ dependencies = [
  "regalloc2",
  "smallvec",
  "target-lexicon",
- "wasmparser 0.215.0",
+ "wasmparser",
  "wasmtime-cranelift",
  "wasmtime-environ",
 ]
@@ -10914,7 +10899,7 @@ dependencies = [
  "serde_derive",
  "serde_json",
  "unicode-xid",
- "wasmparser 0.215.0",
+ "wasmparser",
 ]
 
 [[package]]
