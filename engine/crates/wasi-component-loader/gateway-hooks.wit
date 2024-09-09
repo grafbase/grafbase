@@ -47,15 +47,13 @@ interface types {
     // Provides access to the request headers. Available in a mutable form
     // only in the gateway request hook.
     resource headers {
-        // Gets a header value with the given name. Returns an error if
-        // the name is not a valid header name. Returns none if the header does not exist.
-        get: func(name: string) -> result<option<string>, header-error>;
+        // Gets a header value with the given name.
+        get: func(name: string) -> option<string>;
         // Sets the header value with the given name. Returns an error if the given name
         // is not a valid header name.
         set: func(name: string, value: string) -> result<_, header-error>;
-        // Deletes a header value with the given name. Returns an error if
-        // the given name is not a valid header name. Returns the value if ixisting.
-        delete: func(name: string) -> result<option<string>, header-error>;
+        // Deletes a header value with the given name.
+        delete: func(name: string) -> option<string>;
     }
 
     // Defines an edge in a type
