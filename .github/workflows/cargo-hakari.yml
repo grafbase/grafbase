@@ -41,10 +41,10 @@ jobs:
         with:
           tool: cargo-hakari
 
-      - name: Ensure grafbase-worksace-hack is up to date
+      - name: Ensure grafbase-workspace-hack is up to date
         shell: bash
         run: cargo hakari generate --diff
 
       - name: Ensure all packages are using grafbase-workspace-hack
         shell: bash
-        run: cargo hakari generate --diff
+        run: cargo hakari manage-deps --dry-run
