@@ -1,5 +1,5 @@
 ---
-source: engine/crates/integration-tests/benches/federation.rs
+source: engine/crates/integration-tests/benches/federation/complex_shape.rs
 expression: response
 ---
 {

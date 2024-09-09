@@ -46,7 +46,7 @@ impl<'a> DeterministicEngineBuilder<'a> {
         self
     }
 
-    pub fn without_hot_cache(mut self) -> Self {
+    pub fn without_operation_cache(mut self) -> Self {
         self.runtime.hot_cache_factory = InMemoryOperationCacheFactory::inactive();
         self
     }

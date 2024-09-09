@@ -1,5 +1,5 @@
 ---
-source: engine/crates/integration-tests/benches/federation.rs
+source: engine/crates/integration-tests/benches/federation/introspection.rs
 expression: response
 ---
 {
@@ -434,6 +434,12 @@ expression: response
           "interfaces": null,
           "enumValues": [
             {
+              "name": "REALLY_TRUSTED",
+              "description": null,
+              "isDeprecated": false,
+              "deprecationReason": null
+            },
+            {
               "name": "KINDA_TRUSTED",
               "description": null,
               "isDeprecated": false,
@@ -441,12 +447,6 @@ expression: response
             },
             {
               "name": "NOT_TRUSTED",
-              "description": null,
-              "isDeprecated": false,
-              "deprecationReason": null
-            },
-            {
-              "name": "REALLY_TRUSTED",
               "description": null,
               "isDeprecated": false,
               "deprecationReason": null
