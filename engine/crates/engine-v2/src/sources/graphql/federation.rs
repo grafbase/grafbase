@@ -3,7 +3,7 @@ use futures::future::join_all;
 use grafbase_telemetry::{gql_response_status::GraphqlResponseStatus, span::subgraph::SubgraphRequestSpan};
 use http::HeaderMap;
 use runtime::{bytes::OwnedOrSharedBytes, hooks::CacheStatus};
-use schema::sources::graphql::{FederationEntityResolveDefinitionrWalker, GraphqlEndpointId, GraphqlEndpointWalker};
+use schema::{GraphqlEndpoint, GraphqlEndpointId, GraphqlFederationEntityResolverDefinition};
 use serde::{de::DeserializeSeed, Deserialize};
 use serde_json::value::RawValue;
 use std::{borrow::Cow, time::Duration};
@@ -37,7 +37,7 @@ pub(crate) struct FederationEntityResolver {
 
 impl FederationEntityResolver {
     pub fn prepare(
-        definition: FederationEntityResolveDefinitionrWalker<'_>,
+        definition: GraphqlFederationEntityResolverDefinition<'_>,
         plan: PlanWalker<'_>,
     ) -> PlanningResult<Resolver> {
         let operation =
@@ -53,7 +53,7 @@ impl FederationEntityResolver {
     pub fn prepare_request<'ctx, R: Runtime>(
         &'ctx self,
         ctx: ExecutionContext<'ctx, R>,
-        plan: PlanWalker<'ctx, (), ()>,
+        plan: PlanWalker<'ctx, ()>,
         root_response_objects: ResponseObjectsView<'_>,
         subgraph_response: SubgraphResponse,
     ) -> ExecutionResult<FederationEntityRequest<'ctx>> {
@@ -74,7 +74,7 @@ impl FederationEntityResolver {
         })
     }
 
-    pub(crate) fn endpoint<'ctx, R: Runtime>(&self, ctx: ExecutionContext<'ctx, R>) -> GraphqlEndpointWalker<'ctx> {
+    pub(crate) fn endpoint<'ctx, R: Runtime>(&self, ctx: ExecutionContext<'ctx, R>) -> GraphqlEndpoint<'ctx> {
         ctx.engine.schema.walk(self.endpoint_id)
     }
 }
@@ -106,7 +106,7 @@ impl<'ctx> FederationEntityRequest<'ctx> {
         }
         .into_span();
 
-        let cache_ttl = ctx.endpoint().entity_cache_ttl();
+        let cache_ttl = ctx.endpoint().config.cache_ttl;
         let span_clone = span.clone();
 
         async move {
@@ -188,7 +188,7 @@ impl<'ctx> FederationEntityRequest<'ctx> {
 
 async fn cache_fetches<'ctx, R: Runtime>(
     ctx: ExecutionContext<'ctx, R>,
-    endpoint: schema::SchemaWalker<'_, GraphqlEndpointId>,
+    endpoint: GraphqlEndpoint<'ctx>,
     headers: &http::HeaderMap,
     representations: Vec<Box<RawValue>>,
     additional_scopes: &[String],
@@ -348,7 +348,7 @@ struct Data<'a> {
 
 async fn cache_fetch<'ctx, R: Runtime>(
     ctx: ExecutionContext<'ctx, R>,
-    endpoint: GraphqlEndpointWalker<'ctx>,
+    endpoint: GraphqlEndpoint<'ctx>,
     headers: &HeaderMap,
     repr: &RawValue,
     additional_scopes: &[String],
@@ -397,11 +397,10 @@ fn build_cache_key(subgraph_name: &str, headers: &HeaderMap, repr: &RawValue, ad
     hasher.finalize().to_string()
 }
 
-fn entity_name<R: Runtime>(ctx: ExecutionContext<'_, R>, plan: PlanWalker<'_, (), ()>) -> String {
+fn entity_name<R: Runtime>(ctx: ExecutionContext<'_, R>, plan: PlanWalker<'_, ()>) -> String {
     ctx.engine
         .schema
-        .walker()
-        .walk(schema::Definition::from(plan.logical_plan().as_ref().entity_id))
+        .walk(plan.logical_plan().as_ref().entity_id)
         .name()
         .to_string()
 }

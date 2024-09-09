@@ -1,7 +1,7 @@
 mod query;
 
 use id_newtypes::IdRange;
-use schema::{AuthorizedDirectiveId, Definition, FieldDefinitionId, RequiredScopesId};
+use schema::{AuthorizedDirectiveId, DefinitionId, FieldDefinitionId, RequiresScopesDirectiveId};
 
 use super::{FieldArgumentId, QueryModifierImpactedFieldId, ResponseModifierImpactedFieldId};
 
@@ -16,7 +16,7 @@ pub(crate) struct QueryModifier {
 #[derive(Debug, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub(crate) enum QueryModifierRule {
     Authenticated,
-    RequiresScopes(RequiredScopesId),
+    RequiresScopes(RequiresScopesDirectiveId),
     AuthorizedField {
         directive_id: AuthorizedDirectiveId,
         definition_id: FieldDefinitionId,
@@ -24,7 +24,7 @@ pub(crate) enum QueryModifierRule {
     },
     AuthorizedDefinition {
         directive_id: AuthorizedDirectiveId,
-        definition: Definition,
+        definition_id: DefinitionId,
     },
 }
 

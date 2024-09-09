@@ -1,18 +1,18 @@
 use std::collections::HashSet;
 
 use id_newtypes::IdToMany;
-use schema::{RequiredScopeSetIndex, RequiredScopesId, RequiredScopesWalker, TypeSystemDirectivesWalker};
+use schema::{RequiresScopeSetIndex, RequiresScopesDirective, RequiresScopesDirectiveId, TypeSystemDirective};
 
 use super::{LogicalPlanId, OperationPlan, OperationWalker, PlanWalker, SelectionSetWalker};
 
 #[derive(Clone, Copy, Debug, serde::Serialize, serde::Deserialize)]
 pub struct CacheScopeId(u16);
 
-impl<'a, Item, SchemaItem> PlanWalker<'a, Item, SchemaItem> {
+impl<'a, Item> PlanWalker<'a, Item> {
     /// The cache scopes that should be applied to the current plans cache
     pub fn cache_scopes(self) -> CacheScopes<'a> {
         CacheScopes {
-            walker: self.walk_with((), ()),
+            walker: self.walk(()),
             iterator: Box::new(
                 self.operation
                     .logical_plan_cache_scopes
@@ -37,7 +37,7 @@ impl<'a> Iterator for CacheScopes<'a> {
         Some(match self.walker.operation.cache_scopes[next.0 as usize] {
             CacheScopeRecord::Authenticated => CacheScope::Authenticated,
             CacheScopeRecord::RequiresScopes(required_scopes_id) => CacheScope::RequiresScopes(RequiredScopeSet {
-                walker: self.walker.schema_walker.walk(required_scopes_id),
+                walker: self.walker.schema.walk(required_scopes_id),
                 scope_set: self
                     .walker
                     .query_modifications
@@ -54,20 +54,20 @@ pub enum CacheScope<'a> {
 }
 
 pub struct RequiredScopeSet<'a> {
-    walker: RequiredScopesWalker<'a>,
-    scope_set: RequiredScopeSetIndex,
+    walker: RequiresScopesDirective<'a>,
+    scope_set: RequiresScopeSetIndex,
 }
 
 impl<'a> RequiredScopeSet<'a> {
     pub fn scopes(&self) -> impl ExactSizeIterator<Item = &'a str> {
-        self.walker.scopes(self.scope_set)
+        self.walker.get_scopes(self.scope_set)
     }
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Debug)]
 pub(super) enum CacheScopeRecord {
     Authenticated,
-    RequiresScopes(RequiredScopesId),
+    RequiresScopes(RequiresScopesDirectiveId),
 }
 
 pub(super) fn calculate_cache_scopes(
@@ -100,7 +100,7 @@ fn calculate_cache_scopes_for_selection_set(
     for field in selection_set.fields_ordered_by_parent_entity_id() {
         let Some(definition) = field.definition() else { continue };
 
-        let parent_entity_id = definition.parent_entity().id();
+        let parent_entity_id = definition.as_ref().parent_entity_id;
         if Some(parent_entity_id) != last_parent_entity_id {
             last_parent_entity_id = Some(parent_entity_id);
             builder.pop_scopes(parent_entity_scopes_added);
@@ -129,21 +129,22 @@ fn calculate_cache_scopes_for_selection_set(
     builder.pop_scopes(parent_entity_scopes_added);
 }
 
-fn add_directive_scopes(directives: TypeSystemDirectivesWalker<'_>, builder: &mut CacheScopeBuilder) -> usize {
+fn add_directive_scopes<'a>(
+    directives: impl Iterator<Item = TypeSystemDirective<'a>>,
+    builder: &mut CacheScopeBuilder,
+) -> usize {
     let mut scopes_added = 0;
-    for directive in directives.as_ref().iter() {
+    for directive in directives {
         match directive {
-            schema::TypeSystemDirective::Deprecated(_)
-            | schema::TypeSystemDirective::CacheControl(_)
-            | schema::TypeSystemDirective::Authorized(_) => {}
+            schema::TypeSystemDirective::Deprecated(_) | schema::TypeSystemDirective::Authorized(_) => {}
 
             schema::TypeSystemDirective::Authenticated => {
                 scopes_added += 1;
                 builder.insert_scope(CacheScopeRecord::Authenticated);
             }
-            schema::TypeSystemDirective::RequiresScopes(requires_scope_id) => {
+            schema::TypeSystemDirective::RequiresScopes(requires_scope) => {
                 scopes_added += 1;
-                builder.insert_scope(CacheScopeRecord::RequiresScopes(*requires_scope_id));
+                builder.insert_scope(CacheScopeRecord::RequiresScopes(requires_scope.id()));
             }
         }
     }

@@ -1,5 +1,3 @@
-use schema::SchemaWalker;
-
 use crate::operation::{
     LogicalPlanId, LogicalPlanResponseBlueprint, PreparedOperation, QueryInputValueId, QueryInputValueWalker,
     QueryModifications, ResponseBlueprint, Variables,
@@ -9,14 +7,15 @@ mod field;
 mod selection_set;
 
 pub use field::*;
+use schema::Schema;
 pub use selection_set::*;
 
 use super::PreparedOperationWalker;
 
 /// TODO: Context is really big...
 #[derive(Clone, Copy)]
-pub(crate) struct PlanWalker<'a, Item = (), SchemaItem = ()> {
-    pub schema_walker: SchemaWalker<'a, SchemaItem>,
+pub(crate) struct PlanWalker<'a, Item = ()> {
+    pub schema: &'a Schema,
     pub operation: &'a PreparedOperation,
     pub query_modifications: &'a QueryModifications,
     pub variables: &'a Variables,
@@ -25,7 +24,7 @@ pub(crate) struct PlanWalker<'a, Item = (), SchemaItem = ()> {
 }
 
 // really weird to index through a walker, need to be reworked
-impl<'a, I> std::ops::Index<I> for PlanWalker<'a, (), ()>
+impl<'a, I> std::ops::Index<I> for PlanWalker<'a, ()>
 where
     PreparedOperation: std::ops::Index<I>,
 {
@@ -41,7 +40,7 @@ impl<'a> std::fmt::Debug for PlanWalker<'a> {
     }
 }
 
-impl<'a, I: Copy, SI> PlanWalker<'a, I, SI>
+impl<'a, I: Copy> PlanWalker<'a, I>
 where
     PreparedOperation: std::ops::Index<I>,
 {
@@ -50,9 +49,9 @@ where
     }
 }
 
-impl<'a> PlanWalker<'a, (), ()> {
-    pub fn schema(&self) -> SchemaWalker<'a, ()> {
-        self.schema_walker
+impl<'a> PlanWalker<'a, ()> {
+    pub fn schema(&self) -> &'a Schema {
+        self.schema
     }
 
     pub fn blueprint(&self) -> &'a ResponseBlueprint {
@@ -60,7 +59,7 @@ impl<'a> PlanWalker<'a, (), ()> {
     }
 
     pub fn logical_plan(&self) -> LogicalPlanWalker<'a> {
-        self.walk_with(self.logical_plan_id, ())
+        self.walk(self.logical_plan_id)
     }
 
     pub fn selection_set(self) -> PlanSelectionSet<'a> {
@@ -68,21 +67,21 @@ impl<'a> PlanWalker<'a, (), ()> {
     }
 }
 
-impl<'a, I, SI> PlanWalker<'a, I, SI> {
-    pub fn walk_with<I2, SI2>(&self, item: I2, schema_item: SI2) -> PlanWalker<'a, I2, SI2> {
+impl<'a, I> PlanWalker<'a, I> {
+    pub fn walk<I2>(&self, item: I2) -> PlanWalker<'a, I2> {
         PlanWalker {
+            schema: self.schema,
             operation: self.operation,
             variables: self.variables,
             query_modifications: self.query_modifications,
             logical_plan_id: self.logical_plan_id,
-            schema_walker: self.schema_walker.walk(schema_item),
             item,
         }
     }
 
-    fn prepared_walk_with<I2, SI2: Copy>(&self, item: I2, schema_item: SI2) -> PreparedOperationWalker<'a, I2, SI2> {
+    fn prepared_walk_with<I2>(&self, item: I2) -> PreparedOperationWalker<'a, I2> {
         PreparedOperationWalker {
-            schema_walker: self.schema_walker.walk(schema_item),
+            schema: self.schema,
             operation: self.operation,
             variables: self.variables,
             item,
@@ -90,13 +89,13 @@ impl<'a, I, SI> PlanWalker<'a, I, SI> {
     }
 }
 
-impl<'a> PlanWalker<'a, (), ()> {
+impl<'a> PlanWalker<'a, ()> {
     pub fn walk_input_value(&self, input_value_id: QueryInputValueId) -> QueryInputValueWalker<'a> {
-        self.prepared_walk_with(&self.operation.query_input_values[input_value_id], ())
+        self.prepared_walk_with(&self.operation.query_input_values[input_value_id])
     }
 }
 
-type LogicalPlanWalker<'a> = PlanWalker<'a, LogicalPlanId, ()>;
+type LogicalPlanWalker<'a> = PlanWalker<'a, LogicalPlanId>;
 
 impl<'a> LogicalPlanWalker<'a> {
     pub fn response_blueprint(&self) -> &LogicalPlanResponseBlueprint {

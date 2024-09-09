@@ -31,7 +31,7 @@ impl<'a> serde::Serialize for QueryInputValueView<'a> {
         for item in self.selection_set.iter() {
             for (id, value) in &self.inner.operation.query_input_values[*fields] {
                 if *id == item.id {
-                    map.serialize_key(self.inner.schema_walker.walk(*id).name())?;
+                    map.serialize_key(self.inner.schema.walk(*id).name())?;
                     map.serialize_value(&Self {
                         inner: self.inner.walk(value),
                         selection_set: &item.subselection,
@@ -68,7 +68,7 @@ impl<'de> serde::Deserializer<'de> for QueryInputValueView<'de> {
                 .iter()
                 .find_map(|(id, value)| {
                     if *id == item.id {
-                        let name = self.inner.schema_walker.walk(*id).name();
+                        let name = self.inner.schema.walk(*id).name();
                         let value = Self {
                             inner: self.inner.walk(value),
                             selection_set: &item.subselection,

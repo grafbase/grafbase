@@ -6,6 +6,7 @@ use serde::{
     },
     forward_to_deserialize_any,
 };
+use walker::Walk;
 
 use super::{VariableInputValue, VariableInputValueWalker};
 
@@ -19,7 +20,7 @@ impl<'de> serde::Deserializer<'de> for VariableInputValueWalker<'de> {
         match self.item {
             VariableInputValue::Null => visitor.visit_none(),
             VariableInputValue::String(s) => visitor.visit_borrowed_str(s),
-            VariableInputValue::EnumValue(id) => visitor.visit_borrowed_str(self.schema_walker.walk(*id).name()),
+            VariableInputValue::EnumValue(id) => visitor.visit_borrowed_str(self.schema.walk(*id).name()),
             VariableInputValue::Int(n) => visitor.visit_i32(*n),
             VariableInputValue::BigInt(n) => visitor.visit_i64(*n),
             VariableInputValue::U64(n) => visitor.visit_u64(*n),
@@ -30,10 +31,7 @@ impl<'de> serde::Deserializer<'de> for VariableInputValueWalker<'de> {
             }
             VariableInputValue::InputObject(ids) => {
                 MapDeserializer::new(self.variables[*ids].iter().map(|(input_value_definition_id, value)| {
-                    (
-                        self.schema_walker.walk(*input_value_definition_id).name(),
-                        self.walk(value),
-                    )
+                    (self.schema.walk(*input_value_definition_id).name(), self.walk(value))
                 }))
                 .deserialize_any(visitor)
             }
@@ -43,10 +41,7 @@ impl<'de> serde::Deserializer<'de> for VariableInputValueWalker<'de> {
                     .map(|(key, value)| (key.as_str(), self.walk(value))),
             )
             .deserialize_any(visitor),
-            VariableInputValue::DefaultValue(id) => self
-                .schema_walker
-                .walk(&self.schema_walker.as_ref()[*id])
-                .deserialize_any(visitor),
+            VariableInputValue::DefaultValue(id) => id.walk(self.schema).deserialize_any(visitor),
         }
     }
 

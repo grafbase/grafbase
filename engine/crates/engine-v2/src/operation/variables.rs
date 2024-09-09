@@ -14,7 +14,7 @@ pub struct VariableDefinition {
     /// Used to know whether the variable is used, not much more as of today.
     /// Sorted.
     pub used_by: Vec<FieldId>,
-    pub ty: schema::Type,
+    pub ty: schema::TypeRecord,
 }
 
 pub struct Variables {

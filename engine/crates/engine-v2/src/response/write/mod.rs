@@ -22,6 +22,7 @@ use super::{
 use crate::{
     execution::{ExecutionContext, ExecutionError},
     operation::{LogicalPlanId, PreparedOperation},
+    utils::BufferPool,
     Runtime,
 };
 
@@ -365,6 +366,7 @@ pub(crate) struct SubgraphResponse {
     updates: Vec<UpdateSlot>,
     tracked_response_object_set_ids: IdRange<ResponseObjectSetId>,
     tracked_response_object_sets: Vec<ResponseObjectSet>,
+    buffers: BufferPool<ResponseValue>,
 }
 
 impl SubgraphResponse {
@@ -385,6 +387,7 @@ impl SubgraphResponse {
                 .into_iter()
                 .map(|_| (Vec::new()))
                 .collect(),
+            buffers: Default::default(),
         }
     }
 
@@ -463,8 +466,20 @@ impl<'resp> ResponseWriter<'resp> {
         self.part().data.push_object(object)
     }
 
-    pub fn push_list(&self, value: &[ResponseValue]) -> ResponseListId {
-        self.part().data.push_list(value)
+    pub fn new_list(&self) -> Vec<ResponseValue> {
+        self.part().buffers.pop()
+    }
+
+    // Create a Vec with `new_list` before to re-use an existing Vec.
+    pub fn push_list(&self, values: Vec<ResponseValue>) -> ResponseListId {
+        let mut part = self.part();
+        let id = part.data.push_list(&values);
+        part.buffers.push(values);
+        id
+    }
+
+    pub fn push_empty_list(&self) -> ResponseListId {
+        self.part().data.push_list(&[])
     }
 
     pub fn update_root_object_with(&self, fields: Vec<ResponseObjectField>) {

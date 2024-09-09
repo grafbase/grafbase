@@ -7,7 +7,10 @@ use engine_parser::types::OperationType;
 use id_derives::IndexedFields;
 use id_newtypes::{BitSet, IdToMany};
 use itertools::Itertools;
-use schema::{EntityId, FieldDefinitionId, RequiredFieldId, RequiredFieldSet, ResolverDefinitionId, Schema};
+use schema::{
+    EntityDefinitionId, FieldDefinitionId, RequiredFieldId, RequiredFieldSetRecord, ResolverDefinitionId, Schema,
+    TypeSystemDirective,
+};
 
 use crate::{
     operation::{
@@ -121,7 +124,7 @@ impl<'a> LogicalPlanner<'a> {
                 .sort_unstable_by_key(|id| {
                     let field = &operation[*id];
                     (
-                        field.definition_id().map(|id| schema[id].parent_entity),
+                        field.definition_id().map(|id| schema[id].parent_entity_id),
                         field.query_position(),
                     )
                 });
@@ -173,7 +176,7 @@ impl<'a> LogicalPlanner<'a> {
     fn plan_all_fields(&mut self) -> LogicalPlanningResult<()> {
         // The root plan is always introspection which also lets us handle operations like:
         // query { __typename }
-        let introspection = self.schema.walker().introspection_metadata();
+        let introspection = &self.schema.subgraphs.introspection;
 
         let walker = self.walker();
         let (introspection_field_ids, field_ids): (Vec<_>, Vec<_>) = walker
@@ -235,16 +238,12 @@ impl<'a> LogicalPlanner<'a> {
                 .definition_id()
                 .expect("Introspection resolver should have taken metadata fields");
 
-            let resolver = self
-                .schema
-                .walker()
-                .walk(definition_id)
-                .resolvers()
-                .next()
-                .ok_or_else(|| LogicalPlanningError::CouldNotPlanAnyField {
+            let resolver = self.schema.walk(definition_id).resolvers().next().ok_or_else(|| {
+                LogicalPlanningError::CouldNotPlanAnyField {
                     missing: vec![self.operation.response_keys[field.response_key()].to_string()],
                     query_path: vec![],
-                })?;
+                }
+            })?;
 
             let plan_id = self.push_plan(
                 QueryPath::default(),
@@ -302,7 +301,7 @@ impl<'a> LogicalPlanner<'a> {
             .partition(|field_id| {
                 if let Some(definition) = walker.walk(*field_id).definition() {
                     logic.is_providable(definition.id())
-                        && !definition.has_required_fields(logic.resolver().subgraph_id())
+                        && !definition.has_required_fields_for_subgraph(logic.resolver().subgraph_id())
                 } else {
                     true
                 }
@@ -314,9 +313,16 @@ impl<'a> LogicalPlanner<'a> {
             .schema
             .walk(parent_definition_id)
             .directives()
-            .authorized()
+            .filter_map(|directive| match directive {
+                TypeSystemDirective::Authorized(directive) => Some(directive),
+                _ => None,
+            })
             .fold(Default::default(), |acc, directive| {
-                RequiredFieldSet::union_cow(acc, Cow::Borrowed(directive.node()))
+                if let Some(node) = directive.node() {
+                    RequiredFieldSetRecord::union_cow(acc, Cow::Borrowed(node.as_ref()))
+                } else {
+                    acc
+                }
             });
         if !unplanned_field_ids.is_empty() || !parent_extra_requirements.is_empty() {
             SelectionSetLogicalPlanner::new(self, path, Some(logic)).solve(
@@ -329,15 +335,15 @@ impl<'a> LogicalPlanner<'a> {
         Ok(())
     }
 
-    pub fn walker(&self) -> OperationWalker<'_, (), ()> {
-        self.operation.walker_with(self.schema.walker())
+    pub fn walker(&self) -> OperationWalker<'_, ()> {
+        self.operation.walker_with(self.schema)
     }
 
     pub fn push_plan(
         &mut self,
         query_path: QueryPath,
         resolver_id: ResolverDefinitionId,
-        entity_id: EntityId,
+        entity_id: EntityDefinitionId,
         root_field_ids: &[FieldId],
     ) -> LogicalPlanningResult<LogicalPlanId> {
         let id = LogicalPlanId::from(self.logical_plans.len());
@@ -360,7 +366,7 @@ impl<'a> LogicalPlanner<'a> {
             // Sorted at the end as may need to add extra fields.
             root_field_ids_ordered_by_parent_entity_id_then_position: root_field_ids.to_vec(),
         });
-        let logic = PlanningLogic::new(id, self.schema.walk(resolver_id));
+        let logic = PlanningLogic::new(id, self.schema, self.schema.walk(resolver_id));
         self.grow_with_obviously_providable_subselections(&query_path, &logic, root_field_ids)?;
         Ok(id)
     }

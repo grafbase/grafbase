@@ -78,7 +78,7 @@ impl GraphqlResolver {
                     extra_variables: Vec::new(),
                 },
             },
-            timeout: endpoint.timeout(),
+            timeout: endpoint.config.timeout,
         };
 
         let execution_ctx = ctx.execution_context();
@@ -158,7 +158,7 @@ impl GraphqlResolver {
                 method: http::Method::POST,
                 headers,
                 body: Bytes::from(body),
-                timeout: endpoint.timeout(),
+                timeout: endpoint.config.timeout,
             }
         };
 

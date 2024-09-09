@@ -5,7 +5,7 @@ use std::{
 
 use engine_parser::types::OperationType;
 use itertools::Itertools;
-use schema::EntityId;
+use schema::EntityDefinitionId;
 
 use crate::operation::{FieldArgumentsWalker, PlanField, PlanSelectionSet, PlanWalker, QueryInputValueId};
 
@@ -33,10 +33,10 @@ impl PreparedGraphqlOperation {
         // Generating the selection set first as this will define all the operation arguments
         let selection_set = {
             let mut buffer = Buffer::with_capacity(256);
-            let entity_id = EntityId::Object(match operation_type {
-                OperationType::Query => plan.schema().as_ref().graph.root_operation_types.query,
-                OperationType::Mutation => plan.schema().as_ref().graph.root_operation_types.mutation.unwrap(),
-                OperationType::Subscription => plan.schema().as_ref().graph.root_operation_types.subscription.unwrap(),
+            let entity_id = EntityDefinitionId::Object(match operation_type {
+                OperationType::Query => plan.schema().query().id(),
+                OperationType::Mutation => plan.schema().mutation().unwrap().id(),
+                OperationType::Subscription => plan.schema().subscription().unwrap().id(),
             });
             ctx.write_selection_set(Some(entity_id), &mut buffer, plan.selection_set())?;
             buffer.into_string()
@@ -164,7 +164,7 @@ impl QueryBuilderContext {
 
     fn write_selection_set(
         &mut self,
-        maybe_entity_id: Option<EntityId>,
+        maybe_entity_id: Option<EntityDefinitionId>,
         buffer: &mut Buffer,
         selection_set: PlanSelectionSet<'_>,
     ) -> Result<(), Error> {
@@ -188,14 +188,14 @@ impl QueryBuilderContext {
 
     fn write_selection_set_fields(
         &mut self,
-        maybe_entity_id: Option<EntityId>,
+        maybe_entity_id: Option<EntityDefinitionId>,
         buffer: &mut Buffer,
         selection_set: PlanSelectionSet<'_>,
     ) -> Result<(), Error> {
         let entity_to_fields = selection_set
             .fields_ordered_by_parent_entity_id_then_position()
             .into_iter()
-            .chunk_by(|field| field.parent_entity().id());
+            .chunk_by(|field| field.definition().parent_entity_id);
         for (entity_id, fields) in entity_to_fields.into_iter() {
             if maybe_entity_id != Some(entity_id) {
                 indent_write!(
@@ -218,7 +218,7 @@ impl QueryBuilderContext {
 
     fn write_field(&mut self, buffer: &mut Buffer, field: PlanField<'_>) -> Result<(), Error> {
         let response_key = field.response_key_str();
-        let name = field.name();
+        let name = field.definition().name();
         if response_key == name {
             indent_write!(buffer, "{name}")?;
         } else {
@@ -226,7 +226,11 @@ impl QueryBuilderContext {
         }
         self.write_arguments(buffer, field.arguments())?;
         if let Some(selection_set) = field.selection_set() {
-            self.write_selection_set(EntityId::maybe_from(field.ty().inner().id()), buffer, selection_set)?;
+            self.write_selection_set(
+                EntityDefinitionId::maybe_from(field.definition().ty().definition().id()),
+                buffer,
+                selection_set,
+            )?;
         } else {
             buffer.push('\n');
         }
@@ -245,16 +249,20 @@ impl QueryBuilderContext {
                         .value()
                         .and_then(|value| value.to_normalized_query_const_value_str())
                     {
-                        f(&format_args!("{}: {}", arg.name(), value))
+                        f(&format_args!("{}: {}", arg.definition().name(), value))
                     } else {
                         let idx = self.variables.len();
                         let var = self.variables.entry(arg.as_ref().input_value_id).or_insert_with(|| {
-                            let ty = arg.ty().to_string();
+                            let ty = arg.definition().ty().to_string();
                             // prefix + ': ' + index (2) + ',' + ty.len()
                             self.estimated_variable_definitions_string_len += VARIABLE_PREFIX.len() + 5 + ty.len();
                             QueryVariable { idx, ty }
                         });
-                        f(&format_args!("{}: ${VARIABLE_PREFIX}{}", arg.name(), var.idx))
+                        f(&format_args!(
+                            "{}: ${VARIABLE_PREFIX}{}",
+                            arg.definition().name(),
+                            var.idx
+                        ))
                     }
                 })
             )?;

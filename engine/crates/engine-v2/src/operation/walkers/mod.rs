@@ -9,25 +9,25 @@ use engine_parser::types::OperationType;
 pub(crate) use field::*;
 pub(crate) use plan::*;
 pub(crate) use prepared::*;
-use schema::SchemaWalker;
+use schema::Schema;
 pub(crate) use selection_set::*;
 
 use super::Operation;
 
 #[derive(Clone, Copy)]
-pub(crate) struct OperationWalker<'a, Item = (), SchemaItem = ()> {
-    pub(super) schema_walker: SchemaWalker<'a, SchemaItem>,
+pub(crate) struct OperationWalker<'a, Item = ()> {
+    pub(super) schema: &'a Schema,
     pub(super) operation: &'a Operation,
     pub(super) item: Item,
 }
 
-impl<'a> std::fmt::Debug for OperationWalker<'a, (), ()> {
+impl<'a> std::fmt::Debug for OperationWalker<'a, ()> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("OperationWalker").finish_non_exhaustive()
     }
 }
 
-impl<'a, I: Copy, SI> OperationWalker<'a, I, SI>
+impl<'a, I: Copy> OperationWalker<'a, I>
 where
     Operation: std::ops::Index<I>,
 {
@@ -40,7 +40,7 @@ where
     }
 }
 
-impl<'a> OperationWalker<'a, (), ()> {
+impl<'a> OperationWalker<'a, ()> {
     pub(crate) fn as_ref(&self) -> &'a Operation {
         self.operation
     }
@@ -54,21 +54,10 @@ impl<'a> OperationWalker<'a, (), ()> {
     }
 }
 
-impl<'a, I, SI> OperationWalker<'a, I, SI> {
-    pub(crate) fn walk<I2>(&self, item: I2) -> OperationWalker<'a, I2, SI>
-    where
-        SI: Copy,
-    {
+impl<'a, I> OperationWalker<'a, I> {
+    pub(crate) fn walk<I2>(&self, item: I2) -> OperationWalker<'a, I2> {
         OperationWalker {
-            schema_walker: self.schema_walker,
-            operation: self.operation,
-            item,
-        }
-    }
-
-    pub fn walk_with<I2, SI2>(&self, item: I2, schema_item: SI2) -> OperationWalker<'a, I2, SI2> {
-        OperationWalker {
-            schema_walker: self.schema_walker.walk(schema_item),
+            schema: self.schema,
             operation: self.operation,
             item,
         }

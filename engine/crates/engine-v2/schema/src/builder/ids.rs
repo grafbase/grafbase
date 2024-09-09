@@ -40,15 +40,6 @@ pub(super) struct IdMaps {
 }
 
 impl IdMaps {
-    #[cfg(test)]
-    pub fn empty() -> Self {
-        IdMaps {
-            field: IdMap::default(),
-            input_value: IdMap::default(),
-            enum_values: IdMap::default(),
-        }
-    }
-
     pub fn new(graph: &FederatedGraph) -> Self {
         let mut idmaps = IdMaps {
             field: Default::default(),
@@ -73,7 +64,7 @@ impl IdMaps {
 
 impl<FgId, Id> IdMap<FgId, Id>
 where
-    FgId: Into<usize>,
+    usize: From<FgId>,
     Id: From<usize> + Copy,
 {
     /// Mark an id as skipped in the target schema. The element has to be actually filtered out, separately.
@@ -92,7 +83,7 @@ where
 
     /// Map a federated_graph id to an engine_schema id taking the skipped IDs into account.
     pub(super) fn get(&self, id: impl Into<FgId>) -> Option<Id> {
-        let idx: usize = id.into().into();
+        let idx = usize::from(id.into());
         let skipped = self.skipped_ids.partition_point(|skipped| *skipped <= idx);
 
         if let Some(last) = self.skipped_ids[..skipped].last().copied() {
@@ -136,9 +127,9 @@ mod tests {
     fn skip_basic() {
         let id = federated_graph::InputValueDefinitionId(2);
         let mut mapper = IdMapper::default();
-        assert_eq!(InputValueDefinitionId::from(2), mapper.get(id).unwrap());
+        assert_eq!(InputValueDefinitionId::from(2usize), mapper.get(id).unwrap());
         mapper.skip(federated_graph::InputValueDefinitionId(1));
-        assert_eq!(InputValueDefinitionId::from(1), mapper.get(id).unwrap());
+        assert_eq!(InputValueDefinitionId::from(1usize), mapper.get(id).unwrap());
     }
 
     #[test]
@@ -155,8 +146,8 @@ mod tests {
         let mut mapper = IdMapper::default();
         assert_eq!(
             IdRange {
-                start: InputValueDefinitionId::from(6),
-                end: InputValueDefinitionId::from(16)
+                start: InputValueDefinitionId::from(6usize),
+                end: InputValueDefinitionId::from(16usize)
             },
             mapper.get_range(range)
         );
@@ -165,8 +156,8 @@ mod tests {
 
         assert_eq!(
             IdRange {
-                start: InputValueDefinitionId::from(5),
-                end: InputValueDefinitionId::from(15)
+                start: InputValueDefinitionId::from(5usize),
+                end: InputValueDefinitionId::from(15usize)
             },
             mapper.get_range(range)
         );
@@ -175,8 +166,8 @@ mod tests {
 
         assert_eq!(
             IdRange {
-                start: InputValueDefinitionId::from(5),
-                end: InputValueDefinitionId::from(14)
+                start: InputValueDefinitionId::from(5usize),
+                end: InputValueDefinitionId::from(14usize)
             },
             mapper.get_range(range)
         );
@@ -185,8 +176,8 @@ mod tests {
 
         assert_eq!(
             IdRange {
-                start: InputValueDefinitionId::from(5),
-                end: InputValueDefinitionId::from(13)
+                start: InputValueDefinitionId::from(5usize),
+                end: InputValueDefinitionId::from(13usize)
             },
             mapper.get_range(range)
         );
@@ -195,8 +186,8 @@ mod tests {
 
         assert_eq!(
             IdRange {
-                start: InputValueDefinitionId::from(5),
-                end: InputValueDefinitionId::from(13)
+                start: InputValueDefinitionId::from(5usize),
+                end: InputValueDefinitionId::from(13usize)
             },
             mapper.get_range(range)
         );

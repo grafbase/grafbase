@@ -164,13 +164,9 @@ pub fn bind_operation(schema: &Schema, mut parsed_operation: ParsedOperation) ->
     validate_parsed_operation(&parsed_operation, &schema.settings.operation_limits)?;
 
     let root_object_id = match parsed_operation.definition.ty {
-        OperationType::Query => schema.walker().query().id(),
-        OperationType::Mutation => schema.walker().mutation().ok_or(BindError::NoMutationDefined)?.id(),
-        OperationType::Subscription => schema
-            .walker()
-            .subscription()
-            .ok_or(BindError::NoSubscriptionDefined)?
-            .id(),
+        OperationType::Query => schema.query().id(),
+        OperationType::Mutation => schema.mutation().ok_or(BindError::NoMutationDefined)?.id(),
+        OperationType::Subscription => schema.subscription().ok_or(BindError::NoSubscriptionDefined)?.id(),
     };
 
     let variable_definitions = std::mem::take(&mut parsed_operation.definition.variable_definitions);

@@ -8,6 +8,8 @@ members = [
   "engine/crates/gateway-v2/auth-config",
   "engine/crates/engine-v2/config",
   "engine/crates/engine-v2/axum",
+  "engine/crates/engine-v2/codegen",
+  "engine/crates/engine-v2/walker",
   "engine/crates/engine-v2/schema",
   "engine/crates/engine-v2/id-derives",
   "engine/crates/engine-v2/id-newtypes",
@@ -227,7 +229,6 @@ strip = "none"
 debug = true
 
 [profile.release]
-strip = "symbols"
 # by enabling link-time optimization, we can reduce size even further
 # by telling cargo to optimize at the link stage (in addition to the
 # normal optimizations during the compilation stage)

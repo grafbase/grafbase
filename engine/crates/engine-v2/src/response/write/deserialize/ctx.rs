@@ -18,7 +18,7 @@ pub(super) struct SeedContext<'ctx> {
 
 impl<'ctx> SeedContext<'ctx> {
     pub(super) fn missing_field_error_message(&self, shape: &FieldShape) -> String {
-        let field = self.operation.walker_with(self.schema.walker()).walk(shape.id);
+        let field = self.operation.walker_with(self.schema).walk(shape.id);
         let response_keys = &self.operation.response_keys;
         if field.response_key() == shape.expected_key.into() {
             format!(

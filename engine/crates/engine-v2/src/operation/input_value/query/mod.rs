@@ -4,7 +4,10 @@ mod view;
 
 use id_derives::{Id, IndexedFields};
 use id_newtypes::IdRange;
-use schema::{EnumValueId, InputValue, InputValueDefinitionId, InputValueSet, SchemaInputValue, SchemaInputValueId};
+use schema::{
+    EnumValueId, InputValue, InputValueDefinitionId, InputValueSet, SchemaInputValueId, SchemaInputValueRecord,
+};
+use walker::Walk;
 
 use crate::operation::{OperationWalker, PreparedOperationWalker, VariableDefinitionId};
 
@@ -51,6 +54,10 @@ pub(crate) enum QueryInputValue {
     Map(IdRange<QueryInputKeyValueId>),
     U64(u64),
 
+    /// We may encounter unbound enum values within a scalar for which we have no definition. In
+    /// this case we keep track of it.
+    UnboundEnumValue(String),
+
     DefaultValue(SchemaInputValueId),
     Variable(VariableDefinitionId),
 }
@@ -93,7 +100,7 @@ impl QueryInputValues {
     }
 }
 
-pub(crate) type QueryInputValueWalker<'a> = PreparedOperationWalker<'a, &'a QueryInputValue, ()>;
+pub(crate) type QueryInputValueWalker<'a> = PreparedOperationWalker<'a, &'a QueryInputValue>;
 
 impl<'a> QueryInputValueWalker<'a> {
     pub fn is_undefined(&self) -> bool {
@@ -107,7 +114,7 @@ impl<'a> QueryInputValueWalker<'a> {
     /// present after query normalization.
     pub fn to_normalized_query_const_value_str(self) -> Option<&'a str> {
         Some(match self.item {
-            QueryInputValue::EnumValue(id) => self.schema_walker.walk(*id).name(),
+            QueryInputValue::EnumValue(id) => self.schema.walk(*id).name(),
             QueryInputValue::Boolean(b) => {
                 if *b {
                     "true"
@@ -115,9 +122,9 @@ impl<'a> QueryInputValueWalker<'a> {
                     "false"
                 }
             }
-            QueryInputValue::DefaultValue(id) => match &self.schema_walker.as_ref()[*id] {
-                SchemaInputValue::EnumValue(id) => self.schema_walker.walk(*id).name(),
-                SchemaInputValue::Boolean(b) => {
+            QueryInputValue::DefaultValue(id) => match &self.schema[*id] {
+                SchemaInputValueRecord::EnumValue(id) => self.schema.walk(*id).name(),
+                SchemaInputValueRecord::Boolean(b) => {
                     if *b {
                         "true"
                     } else {
@@ -144,7 +151,8 @@ impl<'a> From<QueryInputValueWalker<'a>> for InputValue<'a> {
         match walker.item {
             QueryInputValue::Null => InputValue::Null,
             QueryInputValue::String(s) => InputValue::String(s.as_str()),
-            QueryInputValue::EnumValue(id) => InputValue::EnumValue(*id),
+            QueryInputValue::EnumValue(id) => InputValue::EnumValue(walker.schema.walk(*id)),
+            QueryInputValue::UnboundEnumValue(s) => InputValue::UnboundEnumValue(s.as_str()),
             QueryInputValue::Int(n) => InputValue::Int(*n),
             QueryInputValue::BigInt(n) => InputValue::BigInt(*n),
             QueryInputValue::Float(f) => InputValue::Float(*f),
@@ -155,17 +163,17 @@ impl<'a> From<QueryInputValueWalker<'a>> for InputValue<'a> {
                     let value = walker.walk(value);
                     // https://spec.graphql.org/October2021/#sec-Input-Objects.Input-Coercion
                     if !value.is_undefined() {
-                        fields.push((*definition_id, value.into()));
+                        fields.push((walker.schema.walk(definition_id), value.into()));
                     }
                 }
-                InputValue::InputObject(fields.into_boxed_slice())
+                InputValue::InputObject(fields)
             }
             QueryInputValue::List(ids) => {
                 let mut values = Vec::with_capacity(ids.len());
                 for id in *ids {
                     values.push(walker.walk(&input_values[id]).into());
                 }
-                InputValue::List(values.into_boxed_slice())
+                InputValue::List(values)
             }
             QueryInputValue::Map(ids) => {
                 let mut key_values = Vec::with_capacity(ids.len());
@@ -173,30 +181,33 @@ impl<'a> From<QueryInputValueWalker<'a>> for InputValue<'a> {
                     let value = walker.walk(value);
                     key_values.push((key.as_ref(), value.into()));
                 }
-                InputValue::Map(key_values.into_boxed_slice())
+                InputValue::Map(key_values)
             }
             QueryInputValue::U64(n) => InputValue::U64(*n),
-            QueryInputValue::DefaultValue(id) => walker.schema_walker.walk(&walker.schema_walker.as_ref()[*id]).into(),
+            QueryInputValue::DefaultValue(id) => id.walk(walker.schema).into(),
             QueryInputValue::Variable(id) => walker.walk(*id).as_value().to_input_value().unwrap_or_default(),
         }
     }
 }
 
-impl PartialEq<SchemaInputValue> for OperationWalker<'_, &QueryInputValue, ()> {
-    fn eq(&self, other: &SchemaInputValue) -> bool {
+impl PartialEq<SchemaInputValueRecord> for OperationWalker<'_, &QueryInputValue> {
+    fn eq(&self, other: &SchemaInputValueRecord) -> bool {
         let input_values = &self.operation.query_input_values;
         match (self.item, other) {
-            (QueryInputValue::Null, SchemaInputValue::Null) => true,
-            (QueryInputValue::String(l), SchemaInputValue::String(r)) => l == &self.schema_walker[*r],
-            (QueryInputValue::EnumValue(l), SchemaInputValue::EnumValue(r)) => l == r,
-            (QueryInputValue::Int(l), SchemaInputValue::Int(r)) => l == r,
-            (QueryInputValue::BigInt(l), SchemaInputValue::BigInt(r)) => l == r,
-            (QueryInputValue::U64(l), SchemaInputValue::U64(r)) => l == r,
-            (QueryInputValue::Float(l), SchemaInputValue::Float(r)) => l == r,
-            (QueryInputValue::Boolean(l), SchemaInputValue::Boolean(r)) => l == r,
-            (QueryInputValue::InputObject(lids), SchemaInputValue::InputObject(rids)) => {
+            (QueryInputValue::Null, SchemaInputValueRecord::Null) => true,
+            (QueryInputValue::String(l), SchemaInputValueRecord::String(r)) => l == &self.schema[*r],
+            (QueryInputValue::EnumValue(l), SchemaInputValueRecord::EnumValue(r)) => l == r,
+            (QueryInputValue::UnboundEnumValue(l), SchemaInputValueRecord::UnboundEnumValue(r)) => {
+                l == &self.schema[*r]
+            }
+            (QueryInputValue::Int(l), SchemaInputValueRecord::Int(r)) => l == r,
+            (QueryInputValue::BigInt(l), SchemaInputValueRecord::BigInt(r)) => l == r,
+            (QueryInputValue::U64(l), SchemaInputValueRecord::U64(r)) => l == r,
+            (QueryInputValue::Float(l), SchemaInputValueRecord::Float(r)) => l == r,
+            (QueryInputValue::Boolean(l), SchemaInputValueRecord::Boolean(r)) => l == r,
+            (QueryInputValue::InputObject(lids), SchemaInputValueRecord::InputObject(rids)) => {
                 let op_input_values = &input_values[*lids];
-                let schema_input_values = &self.schema_walker.as_ref()[*rids];
+                let schema_input_values = &self.schema[*rids];
 
                 if op_input_values.len() != schema_input_values.len() {
                     return false;
@@ -215,9 +226,9 @@ impl PartialEq<SchemaInputValue> for OperationWalker<'_, &QueryInputValue, ()> {
 
                 true
             }
-            (QueryInputValue::List(lids), SchemaInputValue::List(rids)) => {
+            (QueryInputValue::List(lids), SchemaInputValueRecord::List(rids)) => {
                 let left = &input_values[*lids];
-                let right = &self.schema_walker.as_ref()[*rids];
+                let right = &self.schema[*rids];
                 if left.len() != right.len() {
                     return false;
                 }
@@ -228,13 +239,13 @@ impl PartialEq<SchemaInputValue> for OperationWalker<'_, &QueryInputValue, ()> {
                 }
                 true
             }
-            (QueryInputValue::Map(ids), SchemaInputValue::Map(other_ids)) => {
+            (QueryInputValue::Map(ids), SchemaInputValueRecord::Map(other_ids)) => {
                 let op_kv = &input_values[*ids];
-                let schema_kv = &self.schema_walker[*other_ids];
+                let schema_kv = &self.schema[*other_ids];
 
                 for (key, value) in op_kv {
                     let value = self.walk(value);
-                    if let Ok(i) = schema_kv.binary_search_by(|probe| self.schema_walker[probe.0].cmp(key)) {
+                    if let Ok(i) = schema_kv.binary_search_by(|probe| self.schema[probe.0].cmp(key)) {
                         if !value.eq(&schema_kv[i].1) {
                             return false;
                         }
@@ -245,15 +256,13 @@ impl PartialEq<SchemaInputValue> for OperationWalker<'_, &QueryInputValue, ()> {
 
                 true
             }
-            (QueryInputValue::DefaultValue(id), value) => self
-                .schema_walker
-                .walk(&self.schema_walker.as_ref()[*id])
-                .eq(&self.schema_walker.walk(value)),
+            (QueryInputValue::DefaultValue(id), value) => id.walk(self.schema).eq(&value.walk(self.schema)),
             (QueryInputValue::Variable(_), _) => false,
             // A bit tedious, but avoids missing a case
             (QueryInputValue::Null, _) => false,
             (QueryInputValue::String(_), _) => false,
             (QueryInputValue::EnumValue(_), _) => false,
+            (QueryInputValue::UnboundEnumValue(_), _) => false,
             (QueryInputValue::Int(_), _) => false,
             (QueryInputValue::BigInt(_), _) => false,
             (QueryInputValue::U64(_), _) => false,
@@ -272,10 +281,8 @@ impl std::fmt::Debug for QueryInputValueWalker<'_> {
         match self.item {
             QueryInputValue::Null => write!(f, "Null"),
             QueryInputValue::String(s) => s.fmt(f),
-            QueryInputValue::EnumValue(id) => f
-                .debug_tuple("EnumValue")
-                .field(&self.schema_walker.walk(*id).name())
-                .finish(),
+            QueryInputValue::EnumValue(id) => f.debug_tuple("EnumValue").field(&self.schema.walk(*id).name()).finish(),
+            QueryInputValue::UnboundEnumValue(s) => f.debug_tuple("UnboundEnumValue").field(&s).finish(),
             QueryInputValue::Int(n) => f.debug_tuple("Int").field(n).finish(),
             QueryInputValue::BigInt(n) => f.debug_tuple("BigInt").field(n).finish(),
             QueryInputValue::U64(n) => f.debug_tuple("U64").field(n).finish(),
@@ -284,10 +291,7 @@ impl std::fmt::Debug for QueryInputValueWalker<'_> {
             QueryInputValue::InputObject(ids) => {
                 let mut map = f.debug_struct("InputObject");
                 for (input_value_definition_id, value) in &input_values[*ids] {
-                    map.field(
-                        self.schema_walker.walk(*input_value_definition_id).name(),
-                        &self.walk(value),
-                    );
+                    map.field(self.schema.walk(*input_value_definition_id).name(), &self.walk(value));
                 }
                 map.finish()
             }
@@ -305,10 +309,7 @@ impl std::fmt::Debug for QueryInputValueWalker<'_> {
                 }
                 map.finish()
             }
-            QueryInputValue::DefaultValue(id) => f
-                .debug_tuple("DefaultValue")
-                .field(&self.schema_walker.walk(&self.schema_walker.as_ref()[*id]))
-                .finish(),
+            QueryInputValue::DefaultValue(id) => f.debug_tuple("DefaultValue").field(&id.walk(self.schema)).finish(),
             QueryInputValue::Variable(id) => f.debug_tuple("Variable").field(&self.walk(*id)).finish(),
         }
     }

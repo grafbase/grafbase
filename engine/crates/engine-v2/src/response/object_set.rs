@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use id_derives::Id;
 use id_newtypes::IdRange;
-use schema::{EntityId, ObjectDefinitionId, Schema};
+use schema::{EntityDefinitionId, ObjectDefinitionId, Schema};
 
 use super::{ResponseObjectId, ResponsePath};
 
@@ -89,7 +89,7 @@ impl InputdResponseObjectSet {
     pub(crate) fn with_filtered_response_objects(
         mut self,
         schema: &Schema,
-        entity_id: EntityId,
+        entity_id: EntityDefinitionId,
         refs: Arc<ResponseObjectSet>,
     ) -> Self {
         let n = self.indices.len();
@@ -100,15 +100,15 @@ impl InputdResponseObjectSet {
         assert!(set_idx < MAX_SET_INDEX, "Too many sets");
 
         match entity_id {
-            EntityId::Interface(id) => {
-                let possible_types = &schema[id].possible_types;
+            EntityDefinitionId::Interface(id) => {
+                let possible_types = &schema[id].possible_type_ids;
                 for (i, item) in self.sets[set_idx].iter().enumerate() {
                     if possible_types.binary_search(&item.definition_id).is_ok() {
                         self.indices.push((set_idx << SET_INDEX_SHIFT) as u32 | i as u32);
                     }
                 }
             }
-            EntityId::Object(id) => {
+            EntityDefinitionId::Object(id) => {
                 for (i, item) in self.sets[set_idx].iter().enumerate() {
                     if item.definition_id == id {
                         self.indices.push((set_idx << SET_INDEX_SHIFT) as u32 | i as u32);

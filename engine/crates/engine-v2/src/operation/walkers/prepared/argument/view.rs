@@ -21,9 +21,9 @@ impl<'a> serde::Serialize for FieldArgumentsView<'a> {
         for item in self.selection_set.iter() {
             for id in self.inner.item {
                 if self.inner.operation[id].input_value_definition_id == item.id {
-                    let arg = self.inner.walk_with(id, item.id);
+                    let arg = self.inner.walk(id);
                     if let Some(value) = arg.value() {
-                        map.serialize_key(arg.name())?;
+                        map.serialize_key(arg.definition().name())?;
                         map.serialize_value(&value.with_selection_set(&item.subselection))?;
                     }
                     continue;
@@ -44,9 +44,9 @@ impl<'de> serde::Deserializer<'de> for FieldArgumentsView<'de> {
         MapDeserializer::new(self.selection_set.iter().filter_map(|item| {
             self.inner.item.into_iter().find_map(|id| {
                 if self.inner.operation[id].input_value_definition_id == item.id {
-                    let arg = self.inner.walk_with(id, item.id);
+                    let arg = self.inner.walk(id);
                     let value = arg.value()?;
-                    Some((arg.name(), value.with_selection_set(&item.subselection)))
+                    Some((arg.definition().name(), value.with_selection_set(&item.subselection)))
                 } else {
                     None
                 }

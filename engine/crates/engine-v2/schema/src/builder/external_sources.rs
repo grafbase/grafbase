@@ -2,27 +2,20 @@ use std::{mem::take, time::Duration};
 
 use config::latest::Config;
 
-use super::{
-    sources::{
-        graphql::{GraphqlEndpoint, RetryConfig},
-        GraphqlEndpoints,
-    },
-    BuildContext,
-};
+use super::{BuildContext, GraphqlEndpointRecord};
 
 pub struct ExternalDataSources {
-    pub graphql: GraphqlEndpoints,
+    pub graphql_endpoints: Vec<GraphqlEndpointRecord>,
 }
 
 impl ExternalDataSources {
     pub(super) fn build(ctx: &mut BuildContext, config: &mut Config) -> Self {
-        let endpoints = take(&mut config.graph.subgraphs)
+        let graphql_endpoints = take(&mut config.graph.subgraphs)
             .into_iter()
             .enumerate()
             .map(|(index, subgraph)| {
-                let subgraph_id = ctx.next_subgraph_id();
-                let name = subgraph.name.into();
-                let url = ctx
+                let subgraph_name_id = subgraph.name.into();
+                let url_id = ctx
                     .urls
                     .insert(url::Url::parse(&ctx.strings[subgraph.url.into()]).expect("valid url"));
                 match config.subgraph_configs.remove(&federated_graph::SubgraphId(index)) {
@@ -33,46 +26,34 @@ impl ExternalDataSources {
                         retry,
                         entity_caching,
                         ..
-                    }) => GraphqlEndpoint {
-                        subgraph_name: name,
-                        subgraph_id,
-                        url,
-                        websocket_url: websocket_url
+                    }) => GraphqlEndpointRecord {
+                        subgraph_name_id,
+                        url_id,
+                        websocket_url_id: websocket_url
                             .map(|url| ctx.urls.insert(url::Url::parse(&config[url]).expect("valid url"))),
-                        header_rules: headers.into_iter().map(Into::into).collect(),
-                        timeout: timeout.unwrap_or(DEFAULT_SUBGRAPH_TIMEOUT),
-                        retry: retry.map(
-                            |config::latest::RetryConfig {
-                                 min_per_second,
-                                 ttl,
-                                 retry_percent,
-                                 retry_mutations,
-                             }| RetryConfig {
-                                min_per_second,
-                                ttl,
-                                retry_percent,
-                                retry_mutations,
-                            },
-                        ),
-                        entity_cache_ttl: entity_caching.as_ref().unwrap_or(&config.entity_caching).ttl(),
+                        header_rule_ids: headers.into_iter().map(Into::into).collect(),
+                        config: super::SubgraphConfig {
+                            timeout: timeout.unwrap_or(DEFAULT_SUBGRAPH_TIMEOUT),
+                            retry: retry.map(Into::into),
+                            cache_ttl: entity_caching.as_ref().unwrap_or(&config.entity_caching).ttl(),
+                        },
                     },
 
-                    None => GraphqlEndpoint {
-                        subgraph_name: name,
-                        subgraph_id,
-                        url,
-                        websocket_url: None,
-                        header_rules: Vec::new(),
-                        timeout: DEFAULT_SUBGRAPH_TIMEOUT,
-                        retry: None,
-                        entity_cache_ttl: config.entity_caching.ttl(),
+                    None => GraphqlEndpointRecord {
+                        subgraph_name_id,
+                        url_id,
+                        websocket_url_id: None,
+                        header_rule_ids: Vec::new(),
+                        config: super::SubgraphConfig {
+                            timeout: DEFAULT_SUBGRAPH_TIMEOUT,
+                            retry: None,
+                            cache_ttl: config.entity_caching.ttl(),
+                        },
                     },
                 }
             })
             .collect();
-        ExternalDataSources {
-            graphql: GraphqlEndpoints { endpoints },
-        }
+        ExternalDataSources { graphql_endpoints }
     }
 }
 
