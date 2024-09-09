@@ -12,7 +12,7 @@ use walker::Walk;
 /// Generated from:
 ///
 /// ```custom,{.language-graphql}
-/// union EntityDefinition @id @meta(module: "entity") @variants(names: ["Object", "Interface"]) =
+/// union EntityDefinition @id @meta(module: "entity") @variants(remove_suffix: "Definition") =
 ///   | ObjectDefinition
 ///   | InterfaceDefinition
 /// ```

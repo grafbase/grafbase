@@ -27,7 +27,7 @@ union Definition @id @meta(module: "definition") @variants(remove_suffix: true) 
   | InputObjectDefinition
   | ScalarDefinition
 
-union EntityDefinition @id @meta(module: "entity") @variants(names: ["Object", "Interface"]) =
+union EntityDefinition @id @meta(module: "entity") @variants(remove_suffix: "Definition") =
   | ObjectDefinition
   | InterfaceDefinition
 
