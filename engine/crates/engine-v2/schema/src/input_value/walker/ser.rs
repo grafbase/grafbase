@@ -12,7 +12,9 @@ impl<'a> serde::Serialize for SchemaInputValue<'a> {
         let SchemaInputValue { schema, value } = *self;
         match value {
             SchemaInputValueRecord::Null => serializer.serialize_none(),
-            SchemaInputValueRecord::String(id) => schema[*id].serialize(serializer),
+            SchemaInputValueRecord::String(id) | SchemaInputValueRecord::UnboundEnumValue(id) => {
+                schema[*id].serialize(serializer)
+            }
             SchemaInputValueRecord::EnumValue(id) => id.walk(schema).name().serialize(serializer),
             SchemaInputValueRecord::Int(n) => n.serialize(serializer),
             SchemaInputValueRecord::BigInt(n) => n.serialize(serializer),

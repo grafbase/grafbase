@@ -20,7 +20,7 @@ impl<'de> serde::Deserializer<'de> for QueryInputValueWalker<'de> {
         let input_values = &self.operation.query_input_values;
         match self.item {
             QueryInputValue::Null => visitor.visit_none(),
-            QueryInputValue::String(s) => visitor.visit_borrowed_str(s),
+            QueryInputValue::String(s) | QueryInputValue::UnboundEnumValue(s) => visitor.visit_borrowed_str(s),
             QueryInputValue::EnumValue(id) => visitor.visit_borrowed_str(self.schema.walk(*id).name()),
             QueryInputValue::Int(n) => visitor.visit_i32(*n),
             QueryInputValue::BigInt(n) => visitor.visit_i64(*n),

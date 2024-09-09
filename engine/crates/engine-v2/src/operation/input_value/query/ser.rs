@@ -11,7 +11,7 @@ impl<'ctx> serde::Serialize for QueryInputValueWalker<'ctx> {
         let input_values = &self.operation.query_input_values;
         match self.item {
             QueryInputValue::Null => serializer.serialize_none(),
-            QueryInputValue::String(s) => s.serialize(serializer),
+            QueryInputValue::String(s) | QueryInputValue::UnboundEnumValue(s) => s.serialize(serializer),
             QueryInputValue::EnumValue(id) => self.schema.walk(*id).name().serialize(serializer),
             QueryInputValue::Int(n) => n.serialize(serializer),
             QueryInputValue::BigInt(n) => n.serialize(serializer),

@@ -21,7 +21,9 @@ impl<'de> serde::Deserializer<'de> for SchemaInputValue<'de> {
         let SchemaInputValue { schema, value } = self;
         match value {
             SchemaInputValueRecord::Null => visitor.visit_none(),
-            SchemaInputValueRecord::String(id) => visitor.visit_borrowed_str(&schema[*id]),
+            SchemaInputValueRecord::String(id) | SchemaInputValueRecord::UnboundEnumValue(id) => {
+                visitor.visit_borrowed_str(&schema[*id])
+            }
             SchemaInputValueRecord::EnumValue(id) => visitor.visit_borrowed_str(id.walk(schema).name()),
             SchemaInputValueRecord::Int(n) => visitor.visit_i32(*n),
             SchemaInputValueRecord::BigInt(n) => visitor.visit_i64(*n),

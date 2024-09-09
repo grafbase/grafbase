@@ -31,6 +31,7 @@ impl<'a> Display for SchemaInputValue<'a> {
             SchemaInputValueRecord::Map(ids) => write_object(ids.walk(schema), f),
             SchemaInputValueRecord::List(ids) => write_list(ids.walk(schema), f),
             SchemaInputValueRecord::EnumValue(id) => write!(f, "{}", id.walk(schema).name()),
+            SchemaInputValueRecord::UnboundEnumValue(id) => write!(f, "{}", id.walk(schema)),
         }
     }
 }

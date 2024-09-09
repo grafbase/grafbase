@@ -93,6 +93,10 @@ pub enum SchemaInputValueRecord {
     // sorted by the key (actual String, not the StringId)
     Map(IdRange<SchemaInputKeyValueId>),
     U64(u64),
+
+    /// We may encounter unbound enum values within a scalar for which we have no definition. In
+    /// this case we keep track of it.
+    UnboundEnumValue(StringId),
 }
 
 impl Walk<Schema> for &SchemaInputValueRecord {
@@ -119,6 +123,7 @@ impl SchemaInputValueRecord {
             SchemaInputValueRecord::List(_) => 8,
             SchemaInputValueRecord::Map(_) => 9,
             SchemaInputValueRecord::U64(_) => 10,
+            SchemaInputValueRecord::UnboundEnumValue(_) => 11,
         }
     }
 }
@@ -147,7 +152,8 @@ impl SchemaInputValues {
         let start = self.key_values.len();
         self.key_values.reserve(n);
         for _ in 0..n {
-            self.key_values.push((StringId::from(0), SchemaInputValueRecord::Null));
+            self.key_values
+                .push((StringId::from(0usize), SchemaInputValueRecord::Null));
         }
         (start..self.key_values.len()).into()
     }

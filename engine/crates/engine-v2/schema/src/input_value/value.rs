@@ -23,6 +23,10 @@ pub enum InputValue<'a> {
     /// for JSON
     Map(Vec<(&'a str, InputValue<'a>)>), // no guarantee on the ordering
     U64(u64),
+
+    /// We may encounter unbound enum values within a scalar for which we have no definition. In
+    /// this case we keep track of it.
+    UnboundEnumValue(&'a str),
 }
 
 /// Provided if you need to serialize only a part of an input value.
@@ -33,7 +37,7 @@ impl serde::Serialize for InputValue<'_> {
     {
         match self {
             InputValue::Null => serializer.serialize_none(),
-            InputValue::String(s) => s.serialize(serializer),
+            InputValue::String(s) | InputValue::UnboundEnumValue(s) => s.serialize(serializer),
             InputValue::EnumValue(enum_) => enum_.name().serialize(serializer),
             InputValue::Int(n) => n.serialize(serializer),
             InputValue::BigInt(n) => n.serialize(serializer),
@@ -57,6 +61,7 @@ impl<'a> From<SchemaInputValue<'a>> for InputValue<'a> {
             SchemaInputValueRecord::Null => InputValue::Null,
             SchemaInputValueRecord::String(id) => InputValue::String(id.walk(schema)),
             SchemaInputValueRecord::EnumValue(id) => InputValue::EnumValue(id.walk(schema)),
+            SchemaInputValueRecord::UnboundEnumValue(id) => InputValue::UnboundEnumValue(id.walk(schema)),
             SchemaInputValueRecord::Int(n) => InputValue::Int(*n),
             SchemaInputValueRecord::BigInt(n) => InputValue::BigInt(*n),
             SchemaInputValueRecord::Float(f) => InputValue::Float(*f),

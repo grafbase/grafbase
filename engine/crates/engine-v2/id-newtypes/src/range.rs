@@ -9,9 +9,11 @@ pub struct IdRange<Id: Copy> {
     pub end: Id,
 }
 
-pub trait IdOperations: Copy + From<usize> + Into<usize> {}
-
-impl<Id: IdOperations> Default for IdRange<Id> {
+impl<Id> Default for IdRange<Id>
+where
+    Id: From<usize> + Copy,
+    usize: From<Id>,
+{
     fn default() -> Self {
         Self {
             start: Id::from(0),
@@ -20,7 +22,11 @@ impl<Id: IdOperations> Default for IdRange<Id> {
     }
 }
 
-impl<Id: IdOperations> From<IdRange<Id>> for Range<usize> {
+impl<Id> From<IdRange<Id>> for Range<usize>
+where
+    Id: From<usize> + Copy,
+    usize: From<Id>,
+{
     fn from(value: IdRange<Id>) -> Self {
         Range {
             start: value.start.into(),
@@ -29,13 +35,17 @@ impl<Id: IdOperations> From<IdRange<Id>> for Range<usize> {
     }
 }
 
-impl<Id: IdOperations> IdRange<Id> {
+impl<Id> IdRange<Id>
+where
+    Id: From<usize> + Copy,
+    usize: From<Id>,
+{
     pub fn empty() -> Self {
         Self::default()
     }
 
     pub fn len(&self) -> usize {
-        self.end.into() - self.start.into()
+        usize::from(self.end) - usize::from(self.start)
     }
 
     pub fn is_empty(&self) -> bool {
@@ -43,8 +53,8 @@ impl<Id: IdOperations> IdRange<Id> {
     }
 
     pub fn get(&self, i: usize) -> Option<Id> {
-        let i = self.start.into() + i;
-        if i < self.end.into() {
+        let i = usize::from(self.start) + i;
+        if i < usize::from(self.end) {
             Some(Id::from(i))
         } else {
             None
@@ -52,9 +62,9 @@ impl<Id: IdOperations> IdRange<Id> {
     }
 
     pub fn index_of(&self, id: Id) -> Option<usize> {
-        let id = id.into();
-        let start = self.start.into();
-        if id >= start && id < self.end.into() {
+        let id = usize::from(id);
+        let start = usize::from(self.start);
+        if id >= start && id < usize::from(self.end) {
             Some(id - start)
         } else {
             None
@@ -70,14 +80,14 @@ impl<Id: IdOperations> IdRange<Id> {
         let start = Id::from(start);
         Self {
             start,
-            end: Id::from(start.into() + len),
+            end: Id::from(usize::from(start) + len),
         }
     }
 
     pub fn from_single(id: Id) -> Self {
         Self {
             start: id,
-            end: Id::from(id.into() + 1),
+            end: Id::from(usize::from(id) + 1),
         }
     }
 
@@ -86,10 +96,10 @@ impl<Id: IdOperations> IdRange<Id> {
         let Some(first) = ids.next() else {
             return Some(Self::empty());
         };
-        let start: usize = (*first).into();
+        let start = usize::from(*first);
         let mut end = start;
         for id in ids {
-            if (*id).into() != end + 1 {
+            if usize::from(*id) != end + 1 {
                 return None;
             }
             end += 1;
@@ -121,7 +131,11 @@ where
     }
 }
 
-impl<G, Id: Walk<G> + IdOperations + 'static> Walk<G> for IdRange<Id> {
+impl<G, Id: Walk<G> + 'static> Walk<G> for IdRange<Id>
+where
+    Id: From<usize> + Copy,
+    usize: From<Id>,
+{
     type Walker<'a> = WalkIterator<'a, IdRangeIterator<Id>, G>
     where G: 'a;
 
@@ -133,7 +147,11 @@ impl<G, Id: Walk<G> + IdOperations + 'static> Walk<G> for IdRange<Id> {
     }
 }
 
-impl<Id: IdOperations> IntoIterator for IdRange<Id> {
+impl<Id> IntoIterator for IdRange<Id>
+where
+    Id: From<usize> + Copy,
+    usize: From<Id>,
+{
     type Item = Id;
     type IntoIter = IdRangeIterator<Id>;
 
@@ -145,13 +163,17 @@ impl<Id: IdOperations> IntoIterator for IdRange<Id> {
 #[derive(Clone)]
 pub struct IdRangeIterator<Id: Copy>(IdRange<Id>);
 
-impl<Id: IdOperations> Iterator for IdRangeIterator<Id> {
+impl<Id> Iterator for IdRangeIterator<Id>
+where
+    Id: From<usize> + Copy,
+    usize: From<Id>,
+{
     type Item = Id;
 
     fn next(&mut self) -> Option<Self::Item> {
         if !self.0.is_empty() {
             let id = self.0.start;
-            self.0.start = Id::from(id.into() + 1);
+            self.0.start = Id::from(usize::from(id) + 1);
             Some(id)
         } else {
             None
@@ -164,16 +186,24 @@ impl<Id: IdOperations> Iterator for IdRangeIterator<Id> {
     }
 }
 
-impl<Id: IdOperations> ExactSizeIterator for IdRangeIterator<Id> {
+impl<Id> ExactSizeIterator for IdRangeIterator<Id>
+where
+    Id: From<usize> + Copy,
+    usize: From<Id>,
+{
     fn len(&self) -> usize {
         self.0.len()
     }
 }
 
-impl<Id: IdOperations> DoubleEndedIterator for IdRangeIterator<Id> {
+impl<Id> DoubleEndedIterator for IdRangeIterator<Id>
+where
+    Id: From<usize> + Copy,
+    usize: From<Id>,
+{
     fn next_back(&mut self) -> Option<Self::Item> {
         if !self.0.is_empty() {
-            self.0.end = Id::from(self.0.end.into() - 1);
+            self.0.end = Id::from(usize::from(self.0.end) - 1);
             Some(self.0.end)
         } else {
             None
@@ -181,4 +211,9 @@ impl<Id: IdOperations> DoubleEndedIterator for IdRangeIterator<Id> {
     }
 }
 
-impl<Id: IdOperations> std::iter::FusedIterator for IdRangeIterator<Id> {}
+impl<Id> std::iter::FusedIterator for IdRangeIterator<Id>
+where
+    Id: From<usize> + Copy,
+    usize: From<Id>,
+{
+}

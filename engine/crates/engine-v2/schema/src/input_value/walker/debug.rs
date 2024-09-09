@@ -11,6 +11,9 @@ impl std::fmt::Debug for SchemaInputValue<'_> {
             SchemaInputValueRecord::Null => write!(f, "Null"),
             SchemaInputValueRecord::String(s) => s.fmt(f),
             SchemaInputValueRecord::EnumValue(id) => f.debug_tuple("EnumValue").field(&id.walk(schema).name()).finish(),
+            SchemaInputValueRecord::UnboundEnumValue(id) => {
+                f.debug_tuple("UnknownEnumValue").field(&id.walk(schema)).finish()
+            }
             SchemaInputValueRecord::Int(n) => f.debug_tuple("Int").field(n).finish(),
             SchemaInputValueRecord::BigInt(n) => f.debug_tuple("BigInt").field(n).finish(),
             SchemaInputValueRecord::U64(n) => f.debug_tuple("U64").field(n).finish(),

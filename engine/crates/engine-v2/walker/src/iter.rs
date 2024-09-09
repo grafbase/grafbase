@@ -78,6 +78,9 @@ where
     }
 }
 
+// `@requires` fields can have arguments and we intern each individual field to allow quick
+// comparison of fields when merging field sets. So we rely on the Ord here to compare argument
+// lists.
 impl<'g, I, G> std::cmp::Ord for WalkIterator<'g, I, G>
 where
     I: std::iter::ExactSizeIterator,

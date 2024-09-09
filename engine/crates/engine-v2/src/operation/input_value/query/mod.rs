@@ -54,6 +54,10 @@ pub(crate) enum QueryInputValue {
     Map(IdRange<QueryInputKeyValueId>),
     U64(u64),
 
+    /// We may encounter unbound enum values within a scalar for which we have no definition. In
+    /// this case we keep track of it.
+    UnboundEnumValue(String),
+
     DefaultValue(SchemaInputValueId),
     Variable(VariableDefinitionId),
 }
@@ -148,6 +152,7 @@ impl<'a> From<QueryInputValueWalker<'a>> for InputValue<'a> {
             QueryInputValue::Null => InputValue::Null,
             QueryInputValue::String(s) => InputValue::String(s.as_str()),
             QueryInputValue::EnumValue(id) => InputValue::EnumValue(walker.schema.walk(*id)),
+            QueryInputValue::UnboundEnumValue(s) => InputValue::UnboundEnumValue(s.as_str()),
             QueryInputValue::Int(n) => InputValue::Int(*n),
             QueryInputValue::BigInt(n) => InputValue::BigInt(*n),
             QueryInputValue::Float(f) => InputValue::Float(*f),
@@ -192,6 +197,9 @@ impl PartialEq<SchemaInputValueRecord> for OperationWalker<'_, &QueryInputValue>
             (QueryInputValue::Null, SchemaInputValueRecord::Null) => true,
             (QueryInputValue::String(l), SchemaInputValueRecord::String(r)) => l == &self.schema[*r],
             (QueryInputValue::EnumValue(l), SchemaInputValueRecord::EnumValue(r)) => l == r,
+            (QueryInputValue::UnboundEnumValue(l), SchemaInputValueRecord::UnboundEnumValue(r)) => {
+                l == &self.schema[*r]
+            }
             (QueryInputValue::Int(l), SchemaInputValueRecord::Int(r)) => l == r,
             (QueryInputValue::BigInt(l), SchemaInputValueRecord::BigInt(r)) => l == r,
             (QueryInputValue::U64(l), SchemaInputValueRecord::U64(r)) => l == r,
@@ -254,6 +262,7 @@ impl PartialEq<SchemaInputValueRecord> for OperationWalker<'_, &QueryInputValue>
             (QueryInputValue::Null, _) => false,
             (QueryInputValue::String(_), _) => false,
             (QueryInputValue::EnumValue(_), _) => false,
+            (QueryInputValue::UnboundEnumValue(_), _) => false,
             (QueryInputValue::Int(_), _) => false,
             (QueryInputValue::BigInt(_), _) => false,
             (QueryInputValue::U64(_), _) => false,
@@ -273,6 +282,7 @@ impl std::fmt::Debug for QueryInputValueWalker<'_> {
             QueryInputValue::Null => write!(f, "Null"),
             QueryInputValue::String(s) => s.fmt(f),
             QueryInputValue::EnumValue(id) => f.debug_tuple("EnumValue").field(&self.schema.walk(*id).name()).finish(),
+            QueryInputValue::UnboundEnumValue(s) => f.debug_tuple("UnboundEnumValue").field(&s).finish(),
             QueryInputValue::Int(n) => f.debug_tuple("Int").field(n).finish(),
             QueryInputValue::BigInt(n) => f.debug_tuple("BigInt").field(n).finish(),
             QueryInputValue::U64(n) => f.debug_tuple("U64").field(n).finish(),
