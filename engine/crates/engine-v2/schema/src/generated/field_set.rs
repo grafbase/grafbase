@@ -52,7 +52,7 @@ impl<'a> RequiredField<'a> {
         self.id
     }
     pub fn definition(&self) -> FieldDefinition<'a> {
-        self.as_ref().definition_id.walk(self.schema)
+        self.definition_id.walk(self.schema)
     }
     pub fn arguments(&self) -> impl Iter<Item = RequiredFieldArgument<'a>> + 'a {
         self.as_ref().argument_records.walk(self.schema)
@@ -102,10 +102,10 @@ impl<'a> RequiredFieldArgument<'a> {
         &self.item
     }
     pub fn definition(&self) -> InputValueDefinition<'a> {
-        self.as_ref().definition_id.walk(self.schema)
+        self.definition_id.walk(self.schema)
     }
     pub fn value(&self) -> SchemaInputValue<'a> {
-        self.as_ref().value_id.walk(self.schema)
+        self.value_id.walk(self.schema)
     }
 }
 

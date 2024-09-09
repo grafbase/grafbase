@@ -43,7 +43,7 @@ impl<'a> FieldProvides<'a> {
         self.ref_
     }
     pub fn subgraph(&self) -> Subgraph<'a> {
-        self.as_ref().subgraph_id.walk(self.schema)
+        self.subgraph_id.walk(self.schema)
     }
 }
 

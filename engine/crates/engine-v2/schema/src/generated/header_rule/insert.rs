@@ -39,10 +39,10 @@ impl<'a> InsertHeaderRule<'a> {
         &self.item
     }
     pub fn name(&self) -> &'a str {
-        &self.schema[self.as_ref().name_id]
+        self.name_id.walk(self.schema)
     }
     pub fn value(&self) -> &'a str {
-        &self.schema[self.as_ref().value_id]
+        self.value_id.walk(self.schema)
     }
 }
 

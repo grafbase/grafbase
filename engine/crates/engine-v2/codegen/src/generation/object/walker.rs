@@ -172,12 +172,13 @@ impl quote::ToTokens for WalkerFieldMethod<'_> {
         let method = Ident::new(&self.0.walker_method_name(), Span::call_site());
         let ty = Ident::new(self.0.ty.walker_name(), Span::call_site());
         let kind = self.0.ty.access_kind();
+        let list_as_id_range = self.0.ty.storage_type().list_as_id_range();
 
         let return_type_and_body = match self.0.wrapping[..] {
             [] => match kind {
                 AccessKind::Copy => quote! {
                     Option<#ty> {
-                        self.as_ref().#field
+                        self.#field
                     }
                 },
                 AccessKind::Ref => quote! {
@@ -185,36 +186,31 @@ impl quote::ToTokens for WalkerFieldMethod<'_> {
                         self.as_ref().#field.as_ref()
                     }
                 },
-                AccessKind::IdRef if self.0.ty.name() != self.0.ty.walker_name() => quote! {
-                    Option<&'a #ty> {
-                        self.as_ref().#field.map(|id| self.#graph[id].as_ref())
-                    }
-                },
                 AccessKind::IdRef => quote! {
                     Option<&'a #ty> {
-                        self.as_ref().#field.map(|id| &self.#graph[id])
+                        self.#field.walk(self.#graph)
                     }
                 },
                 AccessKind::IdWalker => quote! {
                     Option<#ty<'a>> {
-                        self.as_ref().#field.as_ref().walk(self.#graph)
+                        self.#field.walk(self.#graph)
                     }
                 },
                 AccessKind::ItemWalker => quote! {
                     Option<#ty<'a>> {
-                        self.as_ref().#field.as_ref().walk(self.#graph)
+                        self.as_ref().#field.walk(self.#graph)
                     }
                 },
                 AccessKind::RefWalker => quote! {
                     Option<#ty<'a>> {
-                        self.as_ref().#field.as_ref().walk(self.#graph)
+                        self.as_ref().#field.walk(self.#graph)
                     }
                 },
             },
             [WrappingType::NonNull] => match kind {
                 AccessKind::Copy => quote! {
                     #ty {
-                        self.as_ref().#field
+                        self.#field
                     }
                 },
                 AccessKind::Ref => quote! {
@@ -224,17 +220,17 @@ impl quote::ToTokens for WalkerFieldMethod<'_> {
                 },
                 AccessKind::IdRef => quote! {
                     &'a #ty {
-                        &self.#graph[self.as_ref().#field]
+                        self.#field.walk(self.#graph)
                     }
                 },
                 AccessKind::IdWalker => quote! {
                     #ty<'a> {
-                        self.as_ref().#field.walk(self.#graph)
+                        self.#field.walk(self.#graph)
                     }
                 },
                 AccessKind::ItemWalker => quote! {
                     #ty<'a> {
-                        self.as_ref().#field.walk(self.#graph)
+                        self.#field.walk(self.#graph)
                     }
                 },
                 AccessKind::RefWalker => quote! {
@@ -254,15 +250,33 @@ impl quote::ToTokens for WalkerFieldMethod<'_> {
                         self.as_ref().#field.iter()
                     }
                 },
-                AccessKind::IdRef => quote! {
-                    impl Iter<Item = &'a #ty> + 'a {
-                        self.as_ref().#field.walk(self.#graph)
+                AccessKind::IdRef => {
+                    if list_as_id_range {
+                        quote! {
+                            impl Iter<Item = &'a #ty> + 'a {
+                                self.#field.walk(self.#graph)
+                            }
+                        }
+                    } else {
+                        quote! {
+                            impl Iter<Item = &'a #ty> + 'a {
+                                self.as_ref().#field.walk(self.#graph)
+                            }
+                        }
                     }
-                },
+                }
                 AccessKind::IdWalker => {
-                    quote! {
-                        impl Iter<Item =  #ty<'a>> + 'a {
-                            self.as_ref().#field.walk(self.#graph)
+                    if list_as_id_range {
+                        quote! {
+                            impl Iter<Item =  #ty<'a>> + 'a {
+                                self.#field.walk(self.#graph)
+                            }
+                        }
+                    } else {
+                        quote! {
+                            impl Iter<Item = #ty<'a>> + 'a {
+                                self.as_ref().#field.walk(self.#graph)
+                            }
                         }
                     }
                 }
@@ -279,16 +293,9 @@ impl quote::ToTokens for WalkerFieldMethod<'_> {
             },
             [WrappingType::NonNull, WrappingType::List, WrappingType::NonNull, WrappingType::List, WrappingType::NonNull] => {
                 match kind {
-                    AccessKind::IdRef if self.0.ty.name() != self.0.ty.walker_name() => quote! {
-                        impl Iter<Item: Iter<Item = &'a #ty> + 'a> + 'a {
-                            let #graph = self.#graph;
-                            self.as_ref().#field.iter().map(move |items| items.iter().map(move |id| #graph[*id].as_ref()))
-                        }
-                    },
                     AccessKind::IdRef => quote! {
                         impl Iter<Item: Iter<Item = &'a #ty> + 'a> + 'a {
-                            let #graph = self.#graph;
-                            self.as_ref().#field.iter().map(move |items| items.iter().map(move |id| &#graph[*id]))
+                            self.as_ref().#field.walk(self.#graph)
                         }
                     },
                     accessor => {

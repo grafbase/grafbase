@@ -1,5 +1,7 @@
 use std::num::NonZero;
 
+use regex::Regex;
+use url::Url;
 use walker::Walk;
 
 use crate::Schema;
@@ -13,16 +15,37 @@ pub(crate) const MAX_ID: u32 = (1 << 29) - 1;
 #[max(MAX_ID)]
 pub struct UrlId(NonZero<u32>);
 
+impl Walk<Schema> for UrlId {
+    type Walker<'a> = &'a Url;
+    fn walk<'s>(self, schema: &'s Schema) -> Self::Walker<'s>
+    where
+        Self: 's,
+    {
+        &schema[self]
+    }
+}
+
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
 #[max(MAX_ID)]
 pub struct StringId(NonZero<u32>);
+
+impl Walk<Schema> for StringId {
+    type Walker<'a> = &'a str;
+
+    fn walk<'s>(self, schema: &'s Schema) -> Self::Walker<'s>
+    where
+        Self: 's,
+    {
+        &schema[self]
+    }
+}
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
 #[max(MAX_ID)]
 pub struct RegexId(NonZero<u32>);
 
-impl Walk<Schema> for StringId {
-    type Walker<'a> = &'a str;
+impl Walk<Schema> for RegexId {
+    type Walker<'a> = &'a Regex;
 
     fn walk<'s>(self, schema: &'s Schema) -> Self::Walker<'s>
     where

@@ -85,16 +85,16 @@ impl<'a> FieldDefinition<'a> {
         self.id
     }
     pub fn name(&self) -> &'a str {
-        &self.schema[self.as_ref().name_id]
+        self.name_id.walk(self.schema)
     }
     pub fn description(&self) -> Option<&'a str> {
-        self.as_ref().description_id.map(|id| self.schema[id].as_ref())
+        self.description_id.walk(self.schema)
     }
     pub fn parent_entity(&self) -> EntityDefinition<'a> {
-        self.as_ref().parent_entity_id.walk(self.schema)
+        self.parent_entity_id.walk(self.schema)
     }
     pub fn ty(&self) -> Type<'a> {
-        self.as_ref().ty_record.walk(self.schema)
+        self.ty_record.walk(self.schema)
     }
     pub fn resolvers(&self) -> impl Iter<Item = ResolverDefinition<'a>> + 'a {
         self.as_ref().resolver_ids.walk(self.schema)
@@ -113,7 +113,7 @@ impl<'a> FieldDefinition<'a> {
     }
     /// The arguments referenced by this range are sorted by their name (string)
     pub fn arguments(&self) -> impl Iter<Item = InputValueDefinition<'a>> + 'a {
-        self.as_ref().argument_ids.walk(self.schema)
+        self.argument_ids.walk(self.schema)
     }
     pub fn directives(&self) -> impl Iter<Item = TypeSystemDirective<'a>> + 'a {
         self.as_ref().directive_ids.walk(self.schema)

@@ -53,10 +53,10 @@ impl<'a> EnumValue<'a> {
         self.id
     }
     pub fn name(&self) -> &'a str {
-        &self.schema[self.as_ref().name_id]
+        self.name_id.walk(self.schema)
     }
     pub fn description(&self) -> Option<&'a str> {
-        self.as_ref().description_id.map(|id| self.schema[id].as_ref())
+        self.description_id.walk(self.schema)
     }
     pub fn directives(&self) -> impl Iter<Item = TypeSystemDirective<'a>> + 'a {
         self.as_ref().directive_ids.walk(self.schema)

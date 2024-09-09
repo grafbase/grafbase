@@ -39,7 +39,7 @@ impl<'a> DeprecatedDirective<'a> {
         &self.item
     }
     pub fn reason(&self) -> Option<&'a str> {
-        self.as_ref().reason_id.map(|id| self.schema[id].as_ref())
+        self.reason_id.walk(self.schema)
     }
 }
 

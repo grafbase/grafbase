@@ -51,13 +51,13 @@ impl<'a> AuthorizedDirective<'a> {
         self.id
     }
     pub fn fields(&self) -> Option<RequiredFieldSet<'a>> {
-        self.as_ref().fields_id.as_ref().walk(self.schema)
+        self.fields_id.walk(self.schema)
     }
     pub fn node(&self) -> Option<RequiredFieldSet<'a>> {
-        self.as_ref().node_id.as_ref().walk(self.schema)
+        self.node_id.walk(self.schema)
     }
     pub fn metadata(&self) -> Option<SchemaInputValue<'a>> {
-        self.as_ref().metadata_id.as_ref().walk(self.schema)
+        self.metadata_id.walk(self.schema)
     }
 }
 

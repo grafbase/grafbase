@@ -43,7 +43,7 @@ impl<'a> Type<'a> {
         &self.item
     }
     pub fn definition(&self) -> Definition<'a> {
-        self.as_ref().definition_id.walk(self.schema)
+        self.definition_id.walk(self.schema)
     }
 }
 

@@ -43,10 +43,10 @@ impl<'a> FieldRequires<'a> {
         &self.item
     }
     pub fn subgraph(&self) -> Subgraph<'a> {
-        self.as_ref().subgraph_id.walk(self.schema)
+        self.subgraph_id.walk(self.schema)
     }
     pub fn field_set(&self) -> RequiredFieldSet<'a> {
-        self.as_ref().field_set_id.walk(self.schema)
+        self.field_set_id.walk(self.schema)
     }
 }
 

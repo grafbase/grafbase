@@ -44,13 +44,13 @@ impl<'a> RootOperationTypes<'a> {
         self.ref_
     }
     pub fn query(&self) -> ObjectDefinition<'a> {
-        self.as_ref().query_id.walk(self.schema)
+        self.query_id.walk(self.schema)
     }
     pub fn mutation(&self) -> Option<ObjectDefinition<'a>> {
-        self.as_ref().mutation_id.as_ref().walk(self.schema)
+        self.mutation_id.walk(self.schema)
     }
     pub fn subscription(&self) -> Option<ObjectDefinition<'a>> {
-        self.as_ref().subscription_id.as_ref().walk(self.schema)
+        self.subscription_id.walk(self.schema)
     }
 }
 

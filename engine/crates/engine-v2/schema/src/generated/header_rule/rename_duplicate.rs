@@ -41,13 +41,13 @@ impl<'a> RenameDuplicateHeaderRule<'a> {
         &self.item
     }
     pub fn name(&self) -> &'a str {
-        &self.schema[self.as_ref().name_id]
+        self.name_id.walk(self.schema)
     }
     pub fn default(&self) -> Option<&'a str> {
-        self.as_ref().default_id.map(|id| self.schema[id].as_ref())
+        self.default_id.walk(self.schema)
     }
     pub fn rename(&self) -> &'a str {
-        &self.schema[self.as_ref().rename_id]
+        self.rename_id.walk(self.schema)
     }
 }
 

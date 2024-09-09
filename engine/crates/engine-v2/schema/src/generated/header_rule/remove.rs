@@ -40,7 +40,7 @@ impl<'a> RemoveHeaderRule<'a> {
         &self.item
     }
     pub fn name(&self) -> NameOrPattern<'a> {
-        self.as_ref().name_id.walk(self.schema)
+        self.name_id.walk(self.schema)
     }
 }
 

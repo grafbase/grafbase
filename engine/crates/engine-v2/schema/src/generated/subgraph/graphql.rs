@@ -57,13 +57,13 @@ impl<'a> GraphqlEndpoint<'a> {
         self.id
     }
     pub fn subgraph_name(&self) -> &'a str {
-        &self.schema[self.as_ref().subgraph_name_id]
+        self.subgraph_name_id.walk(self.schema)
     }
     pub fn url(&self) -> &'a Url {
-        &self.schema[self.as_ref().url_id]
+        self.url_id.walk(self.schema)
     }
     pub fn websocket_url(&self) -> Option<&'a Url> {
-        self.as_ref().websocket_url_id.map(|id| &self.schema[id])
+        self.websocket_url_id.walk(self.schema)
     }
     pub fn header_rules(&self) -> impl Iter<Item = HeaderRule<'a>> + 'a {
         self.as_ref().header_rule_ids.walk(self.schema)

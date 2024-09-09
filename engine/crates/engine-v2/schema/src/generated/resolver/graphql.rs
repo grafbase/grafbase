@@ -41,7 +41,7 @@ impl<'a> GraphqlRootFieldResolverDefinition<'a> {
         &self.item
     }
     pub fn endpoint(&self) -> GraphqlEndpoint<'a> {
-        self.as_ref().endpoint_id.walk(self.schema)
+        self.endpoint_id.walk(self.schema)
     }
 }
 
@@ -96,10 +96,10 @@ impl<'a> GraphqlFederationEntityResolverDefinition<'a> {
         &self.item
     }
     pub fn endpoint(&self) -> GraphqlEndpoint<'a> {
-        self.as_ref().endpoint_id.walk(self.schema)
+        self.endpoint_id.walk(self.schema)
     }
     pub fn key_fields(&self) -> RequiredFieldSet<'a> {
-        self.as_ref().key_fields_id.walk(self.schema)
+        self.key_fields_id.walk(self.schema)
     }
 }
 

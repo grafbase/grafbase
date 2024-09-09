@@ -45,13 +45,13 @@ impl<'a> ForwardHeaderRule<'a> {
         &self.item
     }
     pub fn name(&self) -> NameOrPattern<'a> {
-        self.as_ref().name_id.walk(self.schema)
+        self.name_id.walk(self.schema)
     }
     pub fn default(&self) -> Option<&'a str> {
-        self.as_ref().default_id.map(|id| self.schema[id].as_ref())
+        self.default_id.walk(self.schema)
     }
     pub fn rename(&self) -> Option<&'a str> {
-        self.as_ref().rename_id.map(|id| self.schema[id].as_ref())
+        self.rename_id.walk(self.schema)
     }
 }
 
