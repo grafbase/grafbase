@@ -5,7 +5,7 @@ use opentelemetry::{
     KeyValue,
 };
 
-use crate::{grafbase_client::Client, graphql::GraphqlResponseStatus};
+use crate::grafbase_client::Client;
 
 #[derive(Clone)]
 pub struct RequestMetrics {
@@ -17,7 +17,6 @@ pub struct RequestMetrics {
 pub struct RequestMetricsAttributes {
     pub status_code: u16,
     pub cache_status: Option<String>,
-    pub gql_status: Option<GraphqlResponseStatus>,
     pub client: Option<Client>,
     pub url_scheme: Option<String>,
     pub route: Option<String>,
@@ -40,7 +39,6 @@ impl RequestMetrics {
         RequestMetricsAttributes {
             status_code,
             cache_status,
-            gql_status,
             client,
             method,
             url_scheme,
@@ -48,7 +46,7 @@ impl RequestMetrics {
             listen_address,
             version,
         }: RequestMetricsAttributes,
-        latency: std::time::Duration,
+        duration: std::time::Duration,
     ) {
         let mut attributes = vec![KeyValue::new("http.response.status_code", status_code as i64)];
 
@@ -85,11 +83,7 @@ impl RequestMetrics {
             }
         }
 
-        if let Some(status) = gql_status {
-            attributes.push(KeyValue::new("graphql.response.status", status.as_str()));
-        }
-
-        self.latency.record(latency.as_millis() as u64, &attributes);
+        self.latency.record(duration.as_millis() as u64, &attributes);
     }
 
     pub fn increment_connected_clients(&self) {

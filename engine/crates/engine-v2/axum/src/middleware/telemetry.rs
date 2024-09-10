@@ -8,20 +8,19 @@ use std::{
 };
 
 use ::tower::Layer;
+use engine_v2::TelemetryExtension;
 use grafbase_telemetry::{
     grafbase_client::Client,
-    graphql::GraphqlResponseStatus,
     metrics::{RequestMetrics, RequestMetricsAttributes},
     otel::{
         opentelemetry::{self, metrics::Meter, propagation::Extractor},
-        tracing_opentelemetry,
+        tracing_opentelemetry::OpenTelemetrySpanExt,
     },
-    span::{request::HttpRequestSpan, HttpRecorderSpanExt, GRAFBASE_TARGET},
+    span::http_request::{HttpRequestSpan, HttpRequestSpanBuilder},
 };
-use headers::HeaderMapExt;
 use http::{Request, Response};
 use http_body::Body;
-use tracing::{Instrument, Span};
+use tracing::Instrument;
 
 #[derive(Clone)]
 pub struct TelemetryLayer {
@@ -71,14 +70,12 @@ impl<Service> TelemetryService<Service>
 where
     Service: Send + Clone,
 {
-    fn make_span<B: Body>(&self, request: &Request<B>) -> Span {
-        use tracing_opentelemetry::OpenTelemetrySpanExt;
-
+    fn make_span<B: Body>(&self, request: &Request<B>) -> HttpRequestSpan {
         let parent_ctx = opentelemetry::global::get_text_map_propagator(|propagator| {
             propagator.extract(&HeaderExtractor(request.headers()))
         });
 
-        let span = HttpRequestSpan::from_http(request).into_span();
+        let span = HttpRequestSpanBuilder::from_http(request).build();
         span.set_parent(parent_ctx);
 
         span
@@ -120,11 +117,12 @@ where
     fn call(&mut self, req: Request<ReqBody>) -> Self::Future {
         let mut inner = self.inner.clone();
         let metrics = self.metrics.clone();
-        let span = self.make_span(&req);
+        let http_span = self.make_span(&req);
         let listen_address = self.listen_address;
 
         metrics.increment_connected_clients();
 
+        let span = http_span.span.clone();
         let fut = async move {
             let start = Instant::now();
 
@@ -135,49 +133,71 @@ where
             let url = req.uri().clone();
 
             let mut result = inner.call(req).await;
-            let latency = start.elapsed();
-
-            let metrics_attributes = |status_code, gql_status, cache_status| RequestMetricsAttributes {
-                status_code,
-                client,
-                cache_status,
-                gql_status,
-                url_scheme: url.scheme_str().map(ToString::to_string),
-                route: Some(url.path().to_string()),
-                listen_address,
-                version: Some(version),
-                method: Some(method.clone()),
-            };
 
             match result {
                 Err(ref err) => {
-                    Span::current().record("http.response.status_code", 500);
+                    metrics.record_http_duration(
+                        RequestMetricsAttributes {
+                            status_code: 500,
+                            client,
+                            cache_status: None,
+                            url_scheme: url.scheme_str().map(ToString::to_string),
+                            route: Some(url.path().to_string()),
+                            listen_address,
+                            version: Some(version),
+                            method: Some(method.clone()),
+                        },
+                        start.elapsed(),
+                    );
 
-                    metrics.record_http_duration(metrics_attributes(500, None, None), latency);
-
-                    Span::current().record_failure(err.to_string());
-                    tracing::error!(target: GRAFBASE_TARGET, "Internal server error: {err}");
+                    http_span.record_internal_server_error();
+                    tracing::error!("Internal server error: {err}");
                 }
                 Ok(ref mut response) => {
+                    if let Some(size) = response.body().size_hint().exact() {
+                        metrics.record_response_body_size(size);
+                    }
+                    http_span.record_response(response);
                     let cache_status = response
                         .headers()
                         .get("x-grafbase-cache")
                         .and_then(|value| value.to_str().ok())
                         .map(str::to_string);
 
-                    Span::current().record("http.response.status_code", response.status().as_u16());
+                    let attributes = RequestMetricsAttributes {
+                        status_code: response.status().as_u16(),
+                        client,
+                        cache_status,
+                        url_scheme: url.scheme_str().map(ToString::to_string),
+                        route: Some(url.path().to_string()),
+                        listen_address,
+                        version: Some(version),
+                        method: Some(method.clone()),
+                    };
 
-                    let gql_status = response.headers().typed_get();
+                    let telemetry = response
+                        .extensions_mut()
+                        .remove::<TelemetryExtension>()
+                        .unwrap_or_default();
 
-                    metrics.record_http_duration(
-                        metrics_attributes(response.status().as_u16(), gql_status, cache_status),
-                        latency,
-                    );
-
-                    response.headers_mut().remove(GraphqlResponseStatus::header_name());
-
-                    if let Some(size) = response.body().size_hint().exact() {
-                        metrics.record_response_body_size(size);
+                    match telemetry {
+                        TelemetryExtension::Ready(telemetry) => {
+                            http_span.record_graphql_execution_telemetry(&telemetry);
+                            metrics.record_http_duration(attributes, start.elapsed());
+                        }
+                        TelemetryExtension::Future(channel) => {
+                            let metrics = metrics.clone();
+                            let span = http_span.span.clone();
+                            tokio::spawn(
+                                async move {
+                                    let telemetry = channel.await.unwrap_or_default();
+                                    http_span.record_graphql_execution_telemetry(&telemetry);
+                                    metrics.record_http_duration(attributes, start.elapsed());
+                                }
+                                // Ensures the span will have the proper end time.
+                                .instrument(span),
+                            );
+                        }
                     }
                 }
             }

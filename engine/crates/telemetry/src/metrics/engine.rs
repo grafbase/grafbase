@@ -38,7 +38,7 @@ pub struct GraphqlRequestMetricsAttributes {
 #[derive(Debug)]
 pub struct SubgraphRequestDurationAttributes {
     pub name: String,
-    pub subgraph_status: SubgraphResponseStatus,
+    pub status: SubgraphResponseStatus,
     pub http_status_code: Option<http::StatusCode>,
 }
 
@@ -159,14 +159,14 @@ impl EngineMetrics {
         &self,
         SubgraphRequestDurationAttributes {
             name,
-            subgraph_status,
+            status,
             http_status_code,
         }: SubgraphRequestDurationAttributes,
         duration: std::time::Duration,
     ) {
         let mut attributes = vec![
             KeyValue::new("graphql.subgraph.name", name),
-            KeyValue::new("graphql.subgraph.response.status", subgraph_status.as_str()),
+            KeyValue::new("graphql.subgraph.response.status", status.as_str()),
         ];
 
         if let Some(code) = http_status_code {

@@ -122,7 +122,14 @@ impl BuildContext {
             subgraphs,
             graph,
             version,
-            strings: self.strings.into(),
+            strings: self
+                .strings
+                .into_iter()
+                .map(|mut s| {
+                    s.shrink_to_fit();
+                    s
+                })
+                .collect(),
             regexps: self.regexps.into(),
             urls: self.urls.into(),
             header_rules,

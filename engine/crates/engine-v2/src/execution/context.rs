@@ -1,10 +1,15 @@
-use ::runtime::hooks::Hooks;
 use futures::future::BoxFuture;
 use grafbase_telemetry::metrics::EngineMetrics;
-use runtime::auth::AccessToken;
+use runtime::{
+    auth::AccessToken,
+    hooks::{ExecutedOperation, ExecutedOperationBuilder},
+};
 use schema::{HeaderRule, Schema};
 
-use crate::{engine::RequestContext, Engine, Runtime};
+use crate::{
+    engine::{HooksContext, RequestContext},
+    Engine, Runtime,
+};
 
 use super::{header_rule::create_subgraph_headers_with_rules, ExecutableOperation, RequestHooks};
 
@@ -12,16 +17,20 @@ use super::{header_rule::create_subgraph_headers_with_rules, ExecutableOperation
 /// Background futures will be started in parallel to avoid delaying the plan.
 pub(crate) struct PreExecutionContext<'ctx, R: Runtime> {
     pub(crate) engine: &'ctx Engine<R>,
-    pub(crate) request_context: &'ctx RequestContext<<R::Hooks as Hooks>::Context>,
+    pub(crate) request_context: &'ctx RequestContext,
+    pub(crate) hooks_context: HooksContext<R>,
+    pub(crate) executed_operation_builder: ExecutedOperationBuilder,
     // needs to be Send so that futures are Send.
     pub(super) background_futures: crossbeam_queue::SegQueue<BoxFuture<'ctx, ()>>,
 }
 
 impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
-    pub fn new(engine: &'ctx Engine<R>, request_context: &'ctx RequestContext<<R::Hooks as Hooks>::Context>) -> Self {
+    pub fn new(engine: &'ctx Engine<R>, request_context: &'ctx RequestContext, hooks_context: HooksContext<R>) -> Self {
         Self {
             engine,
             request_context,
+            hooks_context,
+            executed_operation_builder: ExecutedOperation::builder(),
             background_futures: Default::default(),
         }
     }
@@ -42,7 +51,7 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
         &self.request_context.headers
     }
 
-    pub fn hooks(&self) -> RequestHooks<'ctx, R::Hooks> {
+    pub fn hooks(&self) -> RequestHooks<'_, R::Hooks> {
         self.into()
     }
 
@@ -55,7 +64,8 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
 pub(crate) struct ExecutionContext<'ctx, R: Runtime> {
     pub engine: &'ctx Engine<R>,
     pub operation: &'ctx ExecutableOperation,
-    pub(super) request_context: &'ctx RequestContext<<R::Hooks as Hooks>::Context>,
+    pub(super) request_context: &'ctx RequestContext,
+    pub(super) hooks_context: &'ctx HooksContext<R>,
 }
 
 impl<R: Runtime> Clone for ExecutionContext<'_, R> {

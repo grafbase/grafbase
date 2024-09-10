@@ -10,6 +10,7 @@ use std::{
 
 use async_lock::Mutex as AsyncMutex;
 use engine_parser::types::OperationType;
+use engine_response::GraphqlOperationAnalyticsAttributes;
 use engine_validation::CacheInvalidation;
 use engine_value::{ConstValue as Value, Variables};
 use fnv::FnvHashMap;
@@ -34,7 +35,7 @@ use crate::{
     registry::type_kinds::SelectionSetTarget,
     request::IntrospectionState,
     schema::SchemaEnv,
-    GraphqlOperationAnalyticsAttributes, Name, Positioned, Result, ServerError, ServerResult, UploadValue,
+    Name, Positioned, Result, ServerError, ServerResult, UploadValue,
 };
 pub use ext::TraceId;
 

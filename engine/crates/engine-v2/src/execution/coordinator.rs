@@ -8,15 +8,16 @@ use futures_util::{
     stream::{BoxStream, FuturesUnordered},
     StreamExt,
 };
-use grafbase_telemetry::span::GRAFBASE_TARGET;
+use grafbase_telemetry::graphql::GraphqlResponseStatus;
+use runtime::hooks::ExecutedOperationBuilder;
 use tracing::Instrument;
 
 use crate::{
     execution::{ExecutableOperation, ExecutionContext},
     operation::PlanWalker,
     response::{
-        ExecutedResponse, InputdResponseObjectSet, ObjectIdentifier, Response, ResponseBuilder, ResponseEdge,
-        ResponseObjectField, ResponseValue, SubgraphResponse, SubgraphResponseRefMut,
+        InputdResponseObjectSet, ObjectIdentifier, Response, ResponseBuilder, ResponseEdge, ResponseObjectField,
+        ResponseValue, SubgraphResponse, SubgraphResponseRefMut,
     },
     sources::ResolverResult,
     Runtime,
@@ -30,37 +31,76 @@ pub(crate) trait ResponseSender: Send {
 }
 
 impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
-    pub async fn execute_query_or_mutation(self, operation: ExecutableOperation) -> ExecutedResponse {
-        let background_futures: FuturesUnordered<_> = self.background_futures.into_iter().collect();
+    pub async fn execute_query_or_mutation(mut self, operation: ExecutableOperation) -> Response {
+        let background_futures: FuturesUnordered<_> =
+            std::mem::take(&mut self.background_futures).into_iter().collect();
         let background_fut = background_futures.collect::<Vec<_>>();
 
-        let ctx = ExecutionContext {
-            engine: self.engine,
-            operation: &operation,
-            request_context: self.request_context,
-        };
-
-        let response_fut = ctx.execute();
-
         tracing::trace!("Starting execution...");
-        let (response, _) = futures_util::join!(response_fut, background_fut);
-
-        response
+        if operation.query_modifications.root_error_ids.is_empty() {
+            let ctx = ExecutionContext {
+                engine: self.engine,
+                operation: &operation,
+                request_context: self.request_context,
+                hooks_context: &self.hooks_context,
+            };
+            let response_fut = ctx.execute(self.executed_operation_builder);
+            let (response, _) = futures_util::join!(response_fut, background_fut);
+            response
+        } else {
+            let response_fut = self.response_for_root_errors(operation);
+            let (response, _) = futures_util::join!(response_fut, background_fut);
+            response
+        }
     }
 
-    pub async fn execute_subscription(self, operation: ExecutableOperation, responses: impl ResponseSender) {
-        let background_futures: FuturesUnordered<_> = self.background_futures.into_iter().collect();
+    pub async fn execute_subscription(mut self, operation: ExecutableOperation, mut responses: impl ResponseSender) {
+        let background_futures: FuturesUnordered<_> =
+            std::mem::take(&mut self.background_futures).into_iter().collect();
         let background_fut = background_futures.collect::<Vec<_>>();
-        let ctx = ExecutionContext {
-            engine: self.engine,
-            operation: &operation,
-            request_context: self.request_context,
-        };
-
-        let subscription_fut = ctx.execute_subscription(responses);
 
         tracing::trace!("Starting execution...");
-        futures_util::join!(subscription_fut, background_fut);
+        if operation.query_modifications.root_error_ids.is_empty() {
+            let ctx = ExecutionContext {
+                engine: self.engine,
+                operation: &operation,
+                request_context: self.request_context,
+                hooks_context: &self.hooks_context,
+            };
+
+            let subscription_fut = ctx.execute_subscription(self.executed_operation_builder, responses);
+
+            futures_util::join!(subscription_fut, background_fut);
+        } else {
+            let response_fut = self.response_for_root_errors(operation);
+            let (response, _) = futures_util::join!(response_fut, background_fut);
+            responses.send(response).await.ok();
+        }
+    }
+
+    async fn response_for_root_errors(self, operation: ExecutableOperation) -> Response {
+        let executed_operation = self.executed_operation_builder.clone().build(
+            operation.attributes.name.original(),
+            &operation.attributes.sanitized_query,
+            GraphqlResponseStatus::FieldError {
+                count: operation.query_modifications.root_error_ids.len() as u64,
+                data_is_null: true,
+            },
+        );
+
+        match self.hooks().on_operation_response(executed_operation).await {
+            Ok(output) => Response::execution_error(
+                operation.prepared.clone(),
+                Some(output),
+                operation
+                    .query_modifications
+                    .root_error_ids
+                    .iter()
+                    .copied()
+                    .map(|id| operation.query_modifications[id].clone()),
+            ),
+            Err(err) => Response::execution_error(operation.prepared.clone(), None, [err]),
+        }
     }
 }
 
@@ -80,19 +120,16 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
         }
     }
 
-    async fn execute(self) -> ExecutedResponse {
+    async fn execute(self, executed_operation_builder: ExecutedOperationBuilder) -> Response {
         assert!(
             !matches!(self.operation.ty(), OperationType::Subscription),
             "execute shouldn't be called for subscriptions"
         );
 
-        if let Some(response) = self.response_if_root_errors() {
-            return response;
-        }
-
         OperationExecution {
             futures: ExecutionPlanFutureSet::new(),
             state: self.new_execution_state(),
+            executed_operation_builder,
             response: ResponseBuilder::new(self.operation.root_object_id),
             ctx: self,
         }
@@ -100,13 +137,12 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
         .await
     }
 
-    async fn execute_subscription(self, mut responses: impl ResponseSender) {
+    async fn execute_subscription(
+        self,
+        executed_operation_builder: ExecutedOperationBuilder,
+        responses: impl ResponseSender,
+    ) {
         assert!(matches!(self.operation.ty(), OperationType::Subscription));
-
-        if let Some(response) = self.response_if_root_errors() {
-            let _ = responses.send(Response::Executed(response)).await;
-            return;
-        }
 
         let (initial_state, subscription_plan_id) = {
             let mut state = self.new_execution_state();
@@ -122,6 +158,7 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
         SubscriptionExecution {
             ctx: self,
             subscription_plan_id,
+            initial_executed_operation_builder: executed_operation_builder,
             initial_state,
             stream,
         }
@@ -168,29 +205,13 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
             root_subgraph_response,
         }
     }
-
-    fn response_if_root_errors(&self) -> Option<ExecutedResponse> {
-        if self.operation.query_modifications.root_error_ids.is_empty() {
-            return None;
-        }
-        let mut response = ResponseBuilder::new(self.operation.root_object_id);
-        response.push_root_errors(
-            self.operation
-                .query_modifications
-                .root_error_ids
-                .iter()
-                .map(|&id| self.operation.query_modifications[id].clone()),
-        );
-        let schema = self.engine.schema.clone();
-        let operation = self.operation.prepared.clone();
-        Some(response.build(schema, operation))
-    }
 }
 
 struct SubscriptionExecution<'ctx, R: Runtime, S> {
     ctx: ExecutionContext<'ctx, R>,
     subscription_plan_id: ExecutionPlanId,
     initial_state: OperationExecutionState<'ctx>,
+    initial_executed_operation_builder: ExecutedOperationBuilder,
     stream: S,
 }
 
@@ -214,11 +235,11 @@ where
                     // We try to finish ongoing responses first, but while waiting we continue
                     // polling the stream for the next one.
                     futures_util::select_biased! {
-                        response = response_futures.next() => Ok(response.map(Response::Executed)),
+                        response = response_futures.next() => Ok(response),
                         execution = subscription_stream.next() => Err(execution),
                     }
                 } else {
-                    Ok(response_futures.next().await.map(Response::Executed))
+                    Ok(response_futures.next().await)
                 }
             };
 
@@ -243,8 +264,9 @@ where
                         }) => {
                             let mut operation_execution = OperationExecution {
                                 futures: ExecutionPlanFutureSet::new(),
-                                state: self.initial_state.clone(),
                                 ctx: self.ctx,
+                                executed_operation_builder: self.initial_executed_operation_builder.clone(),
+                                state: self.initial_state.clone(),
                                 response,
                             };
 
@@ -256,8 +278,23 @@ where
 
                             response_futures.push_back(operation_execution.run());
                         }
-                        Err(error) => {
-                            if responses.send(Response::execution_error([error])).await.is_err() {
+                        Err(err) => {
+                            let operation = self.ctx.operation.prepared.clone();
+                            let executed_operation = self.initial_executed_operation_builder.clone().build(
+                                operation.attributes.name.original(),
+                                &operation.attributes.sanitized_query,
+                                GraphqlResponseStatus::FieldError {
+                                    count: 1,
+                                    data_is_null: true,
+                                },
+                            );
+
+                            let response = match self.ctx.hooks().on_operation_response(executed_operation).await {
+                                Ok(output) => Response::execution_error(operation, Some(output), [err]),
+                                Err(err) => Response::execution_error(operation, None, [err]),
+                            };
+
+                            if responses.send(response).await.is_err() {
                                 return;
                             }
                         }
@@ -267,7 +304,7 @@ where
         }
         // Finishing any remaining responses after the subscription stream ended.
         while let Some(response) = response_futures.next().await {
-            if responses.send(Response::Executed(response)).await.is_err() {
+            if responses.send(response).await.is_err() {
                 return;
             }
         }
@@ -288,6 +325,7 @@ impl SubscriptionResponse {
 struct OperationExecution<'ctx, 'exec, R: Runtime> {
     ctx: ExecutionContext<'ctx, R>,
     futures: ExecutionPlanFutureSet<'exec>,
+    executed_operation_builder: ExecutedOperationBuilder,
     state: OperationExecutionState<'ctx>,
     response: ResponseBuilder,
 }
@@ -304,7 +342,7 @@ where
     'ctx: 'exec,
 {
     /// Runs a single execution to completion, returning its response
-    async fn run(mut self) -> ExecutedResponse {
+    async fn run(mut self) -> Response {
         for plan_id in self.state.get_executable_plans() {
             self.spawn_resolver(plan_id);
         }
@@ -312,7 +350,7 @@ where
         while let Some(ExecutionPlanResult {
             plan_id,
             result,
-            on_subgraph_response_hook_output: on_subgraph_response_hook_result,
+            on_subgraph_response_hook_output,
         }) = self.futures.next().await
         {
             // Retrieving the first edge (response key) appearing in the query to provide a better
@@ -351,14 +389,23 @@ where
                 }
             }
 
-            if let Some(result) = on_subgraph_response_hook_result {
-                self.response.push_on_subgraph_response_result(result);
+            if let Some(output) = on_subgraph_response_hook_output {
+                self.executed_operation_builder.push_on_subgraph_response_output(output);
             }
         }
 
-        let schema = self.engine.schema.clone();
-        let operation = self.operation.prepared.clone();
-        self.response.build(schema, operation)
+        let schema = self.ctx.engine.schema.clone();
+        let operation = self.ctx.operation.prepared.clone();
+        let executed_operation = self.executed_operation_builder.build(
+            operation.attributes.name.original(),
+            &operation.attributes.sanitized_query,
+            self.response.graphql_status(),
+        );
+
+        match self.ctx.hooks().on_operation_response(executed_operation).await {
+            Ok(output) => self.response.build(schema, operation, output),
+            Err(err) => Response::execution_error(operation, None, [err]),
+        }
     }
 
     fn get_first_edge_and_default_object(
@@ -417,8 +464,7 @@ where
         }
 
         self.futures.push_fut({
-            let span =
-                tracing::debug_span!(target: GRAFBASE_TARGET, "resolver", "plan_id" = usize::from(plan_id)).entered();
+            let span = tracing::debug_span!("resoler", "plan_id" = usize::from(plan_id)).entered();
 
             let plan = self.ctx.plan_walker(plan_id);
 

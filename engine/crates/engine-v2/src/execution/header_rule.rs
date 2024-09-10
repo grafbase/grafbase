@@ -8,8 +8,8 @@ use schema::{
 
 use crate::engine::RequestContext;
 
-pub(super) fn create_subgraph_headers_with_rules<'ctx, C>(
-    request_context: &'ctx RequestContext<C>,
+pub(super) fn create_subgraph_headers_with_rules<'ctx>(
+    request_context: &'ctx RequestContext,
     rules: impl Iterator<Item = HeaderRule<'ctx>>,
     default: http::HeaderMap,
 ) -> http::HeaderMap {
@@ -33,9 +33,9 @@ pub(super) fn create_subgraph_headers_with_rules<'ctx, C>(
     headers
 }
 
-fn handle_rename_duplicate<C>(
+fn handle_rename_duplicate(
     headers: &mut http::HeaderMap,
-    request_context: &RequestContext<C>,
+    request_context: &RequestContext,
     rule: RenameDuplicateHeaderRule<'_>,
 ) {
     let Ok(name) = http::HeaderName::from_str(rule.name()) else {
@@ -95,7 +95,7 @@ fn handle_insert(headers: &mut http::HeaderMap, rule: InsertHeaderRule<'_>) {
     }
 }
 
-fn handle_forward<C>(headers: &mut http::HeaderMap, request_context: &RequestContext<C>, rule: ForwardHeaderRule<'_>) {
+fn handle_forward(headers: &mut http::HeaderMap, request_context: &RequestContext, rule: ForwardHeaderRule<'_>) {
     match rule.name() {
         NameOrPattern::Pattern(regex) => {
             let filtered = request_context

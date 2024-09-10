@@ -45,14 +45,14 @@ impl ParsedOperation {
 pub fn parse_operation(operation_name: Option<&str>, document: &str) -> ParseResult<ParsedOperation> {
     let document = engine_parser::parse_query(document)?;
 
-    let (operation_name, operation) = if let Some(operation_name) = operation_name {
+    let (name, operation) = if let Some(name) = operation_name {
         match document.operations {
             DocumentOperations::Single(_) => None,
             DocumentOperations::Multiple(mut operations) => operations
-                .remove(operation_name)
-                .map(|operation| (Some(operation_name.to_string()), operation)),
+                .remove(name)
+                .map(|operation| (Some(name.to_string()), operation)),
         }
-        .ok_or_else(|| ParseError::UnknowOperation(operation_name.to_string()))?
+        .ok_or_else(|| ParseError::UnknowOperation(name.to_string()))?
     } else {
         match document.operations {
             DocumentOperations::Single(operation) => (None, operation),
@@ -66,7 +66,7 @@ pub fn parse_operation(operation_name: Option<&str>, document: &str) -> ParseRes
     };
 
     Ok(ParsedOperation {
-        name: operation_name,
+        name,
         definition: operation.node,
         fragments: document.fragments,
     })

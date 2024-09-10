@@ -105,12 +105,12 @@ impl<'ctx, R: Runtime> SubgraphContext<'ctx, R> {
 
     pub async fn finalize(self, subgraph_result: ExecutionResult<SubgraphResponse>) -> ResolverResult {
         let duration = self.start.elapsed();
-        if let Some(subgraph_status) = self.status {
-            self.span.record_graphql_response_status(subgraph_status);
+        if let Some(status) = self.status {
+            self.span.record_graphql_response_status(status);
             self.metrics().record_subgraph_request_duration(
                 SubgraphRequestDurationAttributes {
                     name: self.endpoint.subgraph_name().to_string(),
-                    subgraph_status,
+                    status,
                     http_status_code: self.http_status_code,
                 },
                 duration,

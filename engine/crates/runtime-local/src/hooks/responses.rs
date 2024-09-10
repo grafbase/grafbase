@@ -27,7 +27,7 @@ impl ResponseHooks<Context> for HooksWasi {
             executions,
             cache_status,
             total_duration,
-            has_graphql_errors: has_errors,
+            has_graphql_errors,
         } = request;
 
         let request = ExecutedSubgraphRequest {
@@ -62,7 +62,7 @@ impl ResponseHooks<Context> for HooksWasi {
                 runtime::hooks::CacheStatus::Miss => CacheStatus::Miss,
             },
             total_duration_ms: total_duration.as_millis() as u64,
-            has_errors,
+            has_errors: has_graphql_errors,
         };
 
         inner
@@ -89,17 +89,17 @@ impl ResponseHooks<Context> for HooksWasi {
         let mut hook = inner.responses.get().await;
 
         let runtime::hooks::ExecutedOperation {
-            duration_ms,
+            duration,
             status,
             on_subgraph_response_outputs,
             name,
             document,
-            prepare_duration_ms,
-            cached_plan: cached,
+            prepare_duration,
+            cached_plan,
         } = operation;
 
         let operation = ExecutedOperation {
-            duration_ms,
+            duration_ms: duration.as_millis() as u64,
             status: match status {
                 grafbase_telemetry::graphql::GraphqlResponseStatus::Success => GraphqlResponseStatus::Success,
                 grafbase_telemetry::graphql::GraphqlResponseStatus::FieldError { count, data_is_null } => {
@@ -113,10 +113,10 @@ impl ResponseHooks<Context> for HooksWasi {
                 }
             },
             on_subgraph_response_outputs,
-            name,
+            name: name.map(str::to_string),
             document: document.to_string(),
-            prepare_duration_ms,
-            cached_plan: cached,
+            prepare_duration_ms: prepare_duration.as_millis() as u64,
+            cached_plan,
         };
 
         inner

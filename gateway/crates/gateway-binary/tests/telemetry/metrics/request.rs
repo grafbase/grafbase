@@ -38,7 +38,6 @@ fn basic() {
         {
           "Count": 1,
           "Attributes": {
-            "graphql.response.status": "SUCCESS",
             "http.request.method": "POST",
             "http.response.status_code": "200",
             "http.route": "/graphql",
@@ -99,7 +98,6 @@ fn request_error() {
         {
           "Count": 1,
           "Attributes": {
-            "graphql.response.status": "REQUEST_ERROR",
             "http.request.method": "POST",
             "http.response.status_code": "200",
             "http.route": "/graphql",
@@ -162,7 +160,6 @@ fn field_error() {
         {
           "Count": 1,
           "Attributes": {
-            "graphql.response.status": "FIELD_ERROR_NULL_DATA",
             "http.request.method": "POST",
             "http.response.status_code": "200",
             "http.route": "/graphql",
@@ -221,7 +218,6 @@ fn field_error_data_null() {
         {
           "Count": 1,
           "Attributes": {
-            "graphql.response.status": "FIELD_ERROR_NULL_DATA",
             "http.request.method": "POST",
             "http.response.status_code": "200",
             "http.route": "/graphql",
@@ -278,7 +274,6 @@ fn client() {
         {
           "Count": 1,
           "Attributes": {
-            "graphql.response.status": "SUCCESS",
             "http.headers.x-grafbase-client-name": "test",
             "http.headers.x-grafbase-client-version": "1.0.0",
             "http.request.method": "POST",

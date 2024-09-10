@@ -7,6 +7,7 @@ use std::{
     sync::Arc,
 };
 
+use grafbase_telemetry::graphql::GraphqlResponseStatus;
 use id_newtypes::IdRange;
 pub use ids::*;
 use itertools::Either;
@@ -16,8 +17,8 @@ use self::deserialize::UpdateSeed;
 
 use super::{
     value::ResponseObjectField, ErrorCode, ExecutedResponse, GraphqlError, InputdResponseObjectSet,
-    OutputResponseObjectSets, ResponseData, ResponseEdge, ResponseObject, ResponseObjectRef, ResponseObjectSet,
-    ResponseObjectSetId, ResponsePath, ResponseValue, UnpackedResponseEdge,
+    OutputResponseObjectSets, Response, ResponseData, ResponseEdge, ResponseObject, ResponseObjectRef,
+    ResponseObjectSet, ResponseObjectSetId, ResponsePath, ResponseValue, UnpackedResponseEdge,
 };
 use crate::{
     execution::{ExecutionContext, ExecutionError},
@@ -51,7 +52,6 @@ pub(crate) struct ResponseBuilder {
     pub(super) root: Option<(ResponseObjectId, ObjectDefinitionId)>,
     parts: Vec<ResponseDataPart>,
     errors: Vec<GraphqlError>,
-    on_subgraph_response_results: Vec<Vec<u8>>,
 }
 
 // Only supporting additions for the current graph. Deletion are... tricky
@@ -73,25 +73,15 @@ impl ResponseBuilder {
             root: Some((root_id, root_object_id)),
             parts: vec![initial_part],
             errors: Vec::new(),
-            on_subgraph_response_results: Vec::new(),
         }
     }
 
-    pub fn push_root_errors(&mut self, errors: impl IntoIterator<Item = GraphqlError>) {
-        self.errors.extend(errors);
-        self.root = None;
-    }
-
     pub fn push_error(&mut self, error: impl Into<GraphqlError>) {
-        let error = error.into();
+        let error: GraphqlError = error.into();
         if let Some(path) = error.path.as_ref() {
             self.propagate_error(path);
         }
         self.errors.push(error);
-    }
-
-    pub fn push_on_subgraph_response_result(&mut self, result: Vec<u8>) {
-        self.on_subgraph_response_results.push(result);
     }
 
     pub fn new_subgraph_response(
@@ -244,17 +234,33 @@ impl ResponseBuilder {
         }
     }
 
-    pub fn build(self, schema: Arc<Schema>, operation: Arc<PreparedOperation>) -> ExecutedResponse {
-        ExecutedResponse {
-            data: Some(ResponseData {
+    pub fn graphql_status(&self) -> GraphqlResponseStatus {
+        if self.errors.is_empty() {
+            GraphqlResponseStatus::Success
+        } else {
+            GraphqlResponseStatus::FieldError {
+                count: self.errors.len() as u64,
+                data_is_null: self.root.is_none(),
+            }
+        }
+    }
+
+    pub fn build(
+        self,
+        schema: Arc<Schema>,
+        operation: Arc<PreparedOperation>,
+        on_operation_response_output: Vec<u8>,
+    ) -> Response {
+        Response::Executed(ExecutedResponse {
+            operation,
+            data: self.root.map(|(root, _)| ResponseData {
                 schema,
-                operation,
-                root: self.root.map(|(id, _)| id),
+                root,
                 parts: self.parts,
             }),
             errors: self.errors,
-            on_subgraph_response_outputs: self.on_subgraph_response_results,
-        }
+            on_operation_response_output: Some(on_operation_response_output),
+        })
     }
 
     // The path corresponds to place where a plan failed but couldn't go propagate higher as data
