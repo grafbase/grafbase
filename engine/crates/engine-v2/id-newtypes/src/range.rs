@@ -1,5 +1,7 @@
 use std::ops::Range;
 
+use walker::{Walk, WalkIterator};
+
 // Not necessary anymore when Rust stabilize std::iter::Step
 #[derive(Debug, Hash, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, serde::Serialize, serde::Deserialize)]
 pub struct IdRange<Id: Copy> {
@@ -7,7 +9,11 @@ pub struct IdRange<Id: Copy> {
     pub end: Id,
 }
 
-impl<Id: Copy + From<usize>> Default for IdRange<Id> {
+impl<Id> Default for IdRange<Id>
+where
+    Id: From<usize> + Copy,
+    usize: From<Id>,
+{
     fn default() -> Self {
         Self {
             start: Id::from(0),
@@ -16,7 +22,11 @@ impl<Id: Copy + From<usize>> Default for IdRange<Id> {
     }
 }
 
-impl<Id: Copy + Into<usize>> From<IdRange<Id>> for Range<usize> {
+impl<Id> From<IdRange<Id>> for Range<usize>
+where
+    Id: From<usize> + Copy,
+    usize: From<Id>,
+{
     fn from(value: IdRange<Id>) -> Self {
         Range {
             start: value.start.into(),
@@ -121,9 +131,25 @@ where
     }
 }
 
+impl<G, Id: Walk<G> + 'static> Walk<G> for IdRange<Id>
+where
+    Id: From<usize> + Copy,
+    usize: From<Id>,
+{
+    type Walker<'a> = WalkIterator<'a, IdRangeIterator<Id>, G>
+    where G: 'a;
+
+    fn walk<'a>(self, graph: &'a G) -> Self::Walker<'a>
+    where
+        Self: 'a,
+    {
+        WalkIterator::new(self.into_iter(), graph)
+    }
+}
+
 impl<Id> IntoIterator for IdRange<Id>
 where
-    Id: Copy + From<usize>,
+    Id: From<usize> + Copy,
     usize: From<Id>,
 {
     type Item = Id;
@@ -134,11 +160,12 @@ where
     }
 }
 
+#[derive(Clone)]
 pub struct IdRangeIterator<Id: Copy>(IdRange<Id>);
 
 impl<Id> Iterator for IdRangeIterator<Id>
 where
-    Id: Copy + From<usize>,
+    Id: From<usize> + Copy,
     usize: From<Id>,
 {
     type Item = Id;
@@ -161,10 +188,32 @@ where
 
 impl<Id> ExactSizeIterator for IdRangeIterator<Id>
 where
-    Id: Copy + From<usize>,
+    Id: From<usize> + Copy,
     usize: From<Id>,
 {
     fn len(&self) -> usize {
         self.0.len()
     }
+}
+
+impl<Id> DoubleEndedIterator for IdRangeIterator<Id>
+where
+    Id: From<usize> + Copy,
+    usize: From<Id>,
+{
+    fn next_back(&mut self) -> Option<Self::Item> {
+        if !self.0.is_empty() {
+            self.0.end = Id::from(usize::from(self.0.end) - 1);
+            Some(self.0.end)
+        } else {
+            None
+        }
+    }
+}
+
+impl<Id> std::iter::FusedIterator for IdRangeIterator<Id>
+where
+    Id: From<usize> + Copy,
+    usize: From<Id>,
+{
 }

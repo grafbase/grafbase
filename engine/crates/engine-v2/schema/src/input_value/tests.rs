@@ -1,182 +1,283 @@
 use std::borrow::Cow;
 
 use serde::Deserialize;
-use wrapping::Wrapping;
 
-use crate::{builder::BuildContext, EnumValue, InputValue, InputValueDefinition, Schema, Type};
+use crate::{InputValue, Schema, Version};
 
 use super::*;
 
 fn create_schema_and_input_value() -> (Schema, SchemaInputValueId) {
-    BuildContext::build_with(|ctx, graph| {
-        graph.input_value_definitions.extend([
-            InputValueDefinition {
-                name: ctx.strings.get_or_new("fieldA"),
-                description: None,
-                ty: Type {
-                    inner: crate::Definition::Object(0.into()),
-                    wrapping: Wrapping::new(false),
-                }, // not used
-                default_value: None,
-                directives: IdRange::empty(),
-            },
-            InputValueDefinition {
-                name: ctx.strings.get_or_new("fieldB"),
-                description: None,
-                ty: Type {
-                    inner: crate::Definition::Object(0.into()),
-                    wrapping: Wrapping::new(false),
-                }, // not used
-                default_value: None,
-                directives: IdRange::empty(),
-            },
-        ]);
-        graph.enum_value_definitions.extend([
-            EnumValue {
-                name: ctx.strings.get_or_new("ACTIVE"),
-                description: None,
-                directives: Default::default(),
-            },
-            EnumValue {
-                name: ctx.strings.get_or_new("INACTIVE"),
-                description: None,
-                directives: Default::default(),
-            },
-        ]);
-        let list = graph.input_values.push_list(vec![
-            SchemaInputValue::Null,
-            SchemaInputValue::EnumValue(EnumValueId::from(0)),
-            SchemaInputValue::Int(73),
-        ]);
-        let input_fields = graph.input_values.push_input_object(vec![
-            (
-                InputValueDefinitionId::from(0),
-                SchemaInputValue::EnumValue(EnumValueId::from(1)),
-            ),
-            (
-                InputValueDefinitionId::from(1),
-                SchemaInputValue::String(ctx.strings.get_or_new("some string value")),
-            ),
-        ]);
-        let nested_fields = graph.input_values.push_map(vec![
-            (ctx.strings.get_or_new("null"), SchemaInputValue::Null),
-            (
-                ctx.strings.get_or_new("string"),
-                SchemaInputValue::String(ctx.strings.get_or_new("some string value")),
-            ),
-            (
-                ctx.strings.get_or_new("enumValue"),
-                SchemaInputValue::EnumValue(EnumValueId::from(0)),
-            ),
-            (ctx.strings.get_or_new("int"), SchemaInputValue::Int(7)),
-            (ctx.strings.get_or_new("bigInt"), SchemaInputValue::BigInt(8)),
-            (ctx.strings.get_or_new("u64"), SchemaInputValue::U64(9)),
-            (ctx.strings.get_or_new("float"), SchemaInputValue::Float(10.0)),
-            (ctx.strings.get_or_new("boolean"), SchemaInputValue::Boolean(true)),
-        ]);
-        let fields = graph.input_values.push_map(vec![
-            (
-                ctx.strings.get_or_new("inputObject"),
-                SchemaInputValue::InputObject(input_fields),
-            ),
-            (ctx.strings.get_or_new("list"), SchemaInputValue::List(list)),
-            (ctx.strings.get_or_new("object"), SchemaInputValue::Map(nested_fields)),
-        ]);
-        graph.input_values.push_value(SchemaInputValue::Map(fields))
-    })
+    const SDL: &str = r###"
+    input InputObject {
+        fieldA: State 
+        fieldB: String
+    }
+
+    input ComplexObject {
+        null: String
+        string: String
+        enumValue: State
+        int: Int
+        bigInt: BigInt
+        float: Float
+        boolean: Boolean
+    }
+
+    input All {
+        inputObject: InputObject
+        list: [Any]
+        object: ComplexObject
+    }
+
+    enum State {
+        ACTIVE
+        INACTIVE
+    }
+
+    scalar Any
+    scalar BigInt
+
+    type Query {
+        dummy(all: All = {
+            inputObject: { fieldA: INACTIVE, fieldB: "some string value" }
+            list: [null, ACTIVE, 73]
+            object: {
+                null: null
+                string: "some string value"
+                enumValue: ACTIVE
+                int: 7
+                bigInt: 8
+                float: 10
+                boolean: true
+            }
+        }): String
+    }
+    "###;
+
+    let graph = federated_graph::from_sdl(SDL).unwrap();
+    let config = config::VersionedConfig::V6(config::latest::Config::from_graph(graph)).into_latest();
+    let schema = Schema::build(config, Version::from(Vec::new())).unwrap();
+
+    let id = schema
+        .query()
+        .fields()
+        .find(|field| field.name() == "dummy")
+        .unwrap()
+        .argument_by_name("all")
+        .unwrap()
+        .default_value_id
+        .unwrap();
+
+    (schema, id)
 }
 
 #[test]
 fn test_display() {
     let (schema, id) = create_schema_and_input_value();
-    let walker = schema.walk(&schema[id]);
+    let value = id.walk(&schema);
 
-    insta::assert_snapshot!(walker, @r###"{inputObject:{fieldA:INACTIVE,fieldB:"some string value"},list:[null,ACTIVE,73],object:{null:null,string:"some string value",enumValue:ACTIVE,int:7,bigInt:8,u64:9,float:10,boolean:true}}"###);
+    insta::assert_snapshot!(value, @r###"{inputObject:{fieldA:INACTIVE,fieldB:"some string value"},list:[null,"ACTIVE",73],object:{null:null,string:"some string value",enumValue:ACTIVE,int:7,bigInt:8,float:10,boolean:true}}"###);
 }
 
 #[test]
 fn test_serialize() {
     let (schema, id) = create_schema_and_input_value();
-    let walker = schema.walk(&schema[id]);
+    let value = id.walk(&schema);
 
-    insta::assert_json_snapshot!(walker, @r###"
-        {
-          "inputObject": {
-            "fieldA": "INACTIVE",
-            "fieldB": "some string value"
-          },
-          "list": [
-            null,
-            "ACTIVE",
-            73
-          ],
-          "object": {
-            "null": null,
-            "string": "some string value",
-            "enumValue": "ACTIVE",
-            "int": 7,
-            "bigInt": 8,
-            "u64": 9,
-            "float": 10.0,
-            "boolean": true
-          }
-        }
-        "###);
+    insta::assert_json_snapshot!(value, @r###"
+    {
+      "inputObject": {
+        "fieldA": "INACTIVE",
+        "fieldB": "some string value"
+      },
+      "list": [
+        null,
+        "ACTIVE",
+        73
+      ],
+      "object": {
+        "null": null,
+        "string": "some string value",
+        "enumValue": "ACTIVE",
+        "int": 7,
+        "bigInt": 8,
+        "float": 10.0,
+        "boolean": true
+      }
+    }
+    "###);
 }
 
 #[test]
 fn test_deserializer() {
     let (schema, id) = create_schema_and_input_value();
-    let walker = schema.walk(&schema[id]);
+    let value = id.walk(&schema);
 
-    let value = serde_json::Value::deserialize(walker).unwrap();
+    let value = serde_json::Value::deserialize(value).unwrap();
 
     insta::assert_json_snapshot!(value, @r###"
-        {
-          "inputObject": {
-            "fieldA": "INACTIVE",
-            "fieldB": "some string value"
-          },
-          "list": [
-            null,
-            "ACTIVE",
-            73
-          ],
-          "object": {
-            "null": null,
-            "string": "some string value",
-            "enumValue": "ACTIVE",
-            "int": 7,
-            "bigInt": 8,
-            "u64": 9,
-            "float": 10.0,
-            "boolean": true
-          }
-        }
-        "###);
+    {
+      "inputObject": {
+        "fieldA": "INACTIVE",
+        "fieldB": "some string value"
+      },
+      "list": [
+        null,
+        "ACTIVE",
+        73
+      ],
+      "object": {
+        "null": null,
+        "string": "some string value",
+        "enumValue": "ACTIVE",
+        "int": 7,
+        "bigInt": 8,
+        "float": 10.0,
+        "boolean": true
+      }
+    }
+    "###);
 }
 
 #[test]
 fn test_input_value() {
     let (schema, id) = create_schema_and_input_value();
-    let walker = schema.walk(&schema[id]);
-    let input_value = InputValue::from(walker);
+    let value = id.walk(&schema);
+    let input_value = InputValue::from(value);
+
+    println!("hello");
 
     insta::assert_debug_snapshot!(input_value, @r###"
-    Map(
+    InputObject(
         [
             (
-                "inputObject",
+                InputValueDefinition {
+                    name: "inputObject",
+                    description: None,
+                    ty: Type {
+                        definition: InputObjectDefinition {
+                            name: "InputObject",
+                            description: None,
+                            input_fields: [
+                                InputValueDefinition {
+                                    name: "fieldA",
+                                    description: None,
+                                    ty: Type {
+                                        definition: EnumDefinition {
+                                            name: "State",
+                                            description: None,
+                                            values: [
+                                                EnumValue {
+                                                    name: "ACTIVE",
+                                                    description: None,
+                                                    directives: [],
+                                                },
+                                                EnumValue {
+                                                    name: "INACTIVE",
+                                                    description: None,
+                                                    directives: [],
+                                                },
+                                            ],
+                                            directives: [],
+                                        },
+                                        wrapping: Wrapping {
+                                            inner_is_required: false,
+                                            list_wrappings: [],
+                                        },
+                                    },
+                                    default_value: None,
+                                    directives: [],
+                                },
+                                InputValueDefinition {
+                                    name: "fieldB",
+                                    description: None,
+                                    ty: Type {
+                                        definition: ScalarDefinition {
+                                            name: "String",
+                                            ty: String,
+                                            description: None,
+                                            specified_by_url: None,
+                                            directives: [],
+                                        },
+                                        wrapping: Wrapping {
+                                            inner_is_required: false,
+                                            list_wrappings: [],
+                                        },
+                                    },
+                                    default_value: None,
+                                    directives: [],
+                                },
+                            ],
+                            directives: [],
+                        },
+                        wrapping: Wrapping {
+                            inner_is_required: false,
+                            list_wrappings: [],
+                        },
+                    },
+                    default_value: None,
+                    directives: [],
+                },
                 InputObject(
                     [
                         (
-                            InputValueDefinition#0,
+                            InputValueDefinition {
+                                name: "fieldA",
+                                description: None,
+                                ty: Type {
+                                    definition: EnumDefinition {
+                                        name: "State",
+                                        description: None,
+                                        values: [
+                                            EnumValue {
+                                                name: "ACTIVE",
+                                                description: None,
+                                                directives: [],
+                                            },
+                                            EnumValue {
+                                                name: "INACTIVE",
+                                                description: None,
+                                                directives: [],
+                                            },
+                                        ],
+                                        directives: [],
+                                    },
+                                    wrapping: Wrapping {
+                                        inner_is_required: false,
+                                        list_wrappings: [],
+                                    },
+                                },
+                                default_value: None,
+                                directives: [],
+                            },
                             EnumValue(
-                                EnumValue#1,
+                                EnumValue {
+                                    name: "INACTIVE",
+                                    description: None,
+                                    directives: [],
+                                },
                             ),
                         ),
                         (
-                            InputValueDefinition#1,
+                            InputValueDefinition {
+                                name: "fieldB",
+                                description: None,
+                                ty: Type {
+                                    definition: ScalarDefinition {
+                                        name: "String",
+                                        ty: String,
+                                        description: None,
+                                        specified_by_url: None,
+                                        directives: [],
+                                    },
+                                    wrapping: Wrapping {
+                                        inner_is_required: false,
+                                        list_wrappings: [],
+                                    },
+                                },
+                                default_value: None,
+                                directives: [],
+                            },
                             String(
                                 "some string value",
                             ),
@@ -185,65 +286,380 @@ fn test_input_value() {
                 ),
             ),
             (
-                "list",
+                InputValueDefinition {
+                    name: "list",
+                    description: None,
+                    ty: Type {
+                        definition: ScalarDefinition {
+                            name: "Any",
+                            ty: JSON,
+                            description: None,
+                            specified_by_url: None,
+                            directives: [],
+                        },
+                        wrapping: Wrapping {
+                            inner_is_required: false,
+                            list_wrappings: [
+                                NullableList,
+                            ],
+                        },
+                    },
+                    default_value: None,
+                    directives: [],
+                },
                 List(
                     [
                         Null,
-                        EnumValue(
-                            EnumValue#0,
+                        String(
+                            "ACTIVE",
                         ),
-                        Int(
+                        BigInt(
                             73,
                         ),
                     ],
                 ),
             ),
             (
-                "object",
-                Map(
+                InputValueDefinition {
+                    name: "object",
+                    description: None,
+                    ty: Type {
+                        definition: InputObjectDefinition {
+                            name: "ComplexObject",
+                            description: None,
+                            input_fields: [
+                                InputValueDefinition {
+                                    name: "null",
+                                    description: None,
+                                    ty: Type {
+                                        definition: ScalarDefinition {
+                                            name: "String",
+                                            ty: String,
+                                            description: None,
+                                            specified_by_url: None,
+                                            directives: [],
+                                        },
+                                        wrapping: Wrapping {
+                                            inner_is_required: false,
+                                            list_wrappings: [],
+                                        },
+                                    },
+                                    default_value: None,
+                                    directives: [],
+                                },
+                                InputValueDefinition {
+                                    name: "string",
+                                    description: None,
+                                    ty: Type {
+                                        definition: ScalarDefinition {
+                                            name: "String",
+                                            ty: String,
+                                            description: None,
+                                            specified_by_url: None,
+                                            directives: [],
+                                        },
+                                        wrapping: Wrapping {
+                                            inner_is_required: false,
+                                            list_wrappings: [],
+                                        },
+                                    },
+                                    default_value: None,
+                                    directives: [],
+                                },
+                                InputValueDefinition {
+                                    name: "enumValue",
+                                    description: None,
+                                    ty: Type {
+                                        definition: EnumDefinition {
+                                            name: "State",
+                                            description: None,
+                                            values: [
+                                                EnumValue {
+                                                    name: "ACTIVE",
+                                                    description: None,
+                                                    directives: [],
+                                                },
+                                                EnumValue {
+                                                    name: "INACTIVE",
+                                                    description: None,
+                                                    directives: [],
+                                                },
+                                            ],
+                                            directives: [],
+                                        },
+                                        wrapping: Wrapping {
+                                            inner_is_required: false,
+                                            list_wrappings: [],
+                                        },
+                                    },
+                                    default_value: None,
+                                    directives: [],
+                                },
+                                InputValueDefinition {
+                                    name: "int",
+                                    description: None,
+                                    ty: Type {
+                                        definition: ScalarDefinition {
+                                            name: "Int",
+                                            ty: Int,
+                                            description: None,
+                                            specified_by_url: None,
+                                            directives: [],
+                                        },
+                                        wrapping: Wrapping {
+                                            inner_is_required: false,
+                                            list_wrappings: [],
+                                        },
+                                    },
+                                    default_value: None,
+                                    directives: [],
+                                },
+                                InputValueDefinition {
+                                    name: "bigInt",
+                                    description: None,
+                                    ty: Type {
+                                        definition: ScalarDefinition {
+                                            name: "BigInt",
+                                            ty: BigInt,
+                                            description: None,
+                                            specified_by_url: None,
+                                            directives: [],
+                                        },
+                                        wrapping: Wrapping {
+                                            inner_is_required: false,
+                                            list_wrappings: [],
+                                        },
+                                    },
+                                    default_value: None,
+                                    directives: [],
+                                },
+                                InputValueDefinition {
+                                    name: "float",
+                                    description: None,
+                                    ty: Type {
+                                        definition: ScalarDefinition {
+                                            name: "Float",
+                                            ty: Float,
+                                            description: None,
+                                            specified_by_url: None,
+                                            directives: [],
+                                        },
+                                        wrapping: Wrapping {
+                                            inner_is_required: false,
+                                            list_wrappings: [],
+                                        },
+                                    },
+                                    default_value: None,
+                                    directives: [],
+                                },
+                                InputValueDefinition {
+                                    name: "boolean",
+                                    description: None,
+                                    ty: Type {
+                                        definition: ScalarDefinition {
+                                            name: "Boolean",
+                                            ty: Boolean,
+                                            description: None,
+                                            specified_by_url: None,
+                                            directives: [],
+                                        },
+                                        wrapping: Wrapping {
+                                            inner_is_required: false,
+                                            list_wrappings: [],
+                                        },
+                                    },
+                                    default_value: None,
+                                    directives: [],
+                                },
+                            ],
+                            directives: [],
+                        },
+                        wrapping: Wrapping {
+                            inner_is_required: false,
+                            list_wrappings: [],
+                        },
+                    },
+                    default_value: None,
+                    directives: [],
+                },
+                InputObject(
                     [
                         (
-                            "null",
+                            InputValueDefinition {
+                                name: "null",
+                                description: None,
+                                ty: Type {
+                                    definition: ScalarDefinition {
+                                        name: "String",
+                                        ty: String,
+                                        description: None,
+                                        specified_by_url: None,
+                                        directives: [],
+                                    },
+                                    wrapping: Wrapping {
+                                        inner_is_required: false,
+                                        list_wrappings: [],
+                                    },
+                                },
+                                default_value: None,
+                                directives: [],
+                            },
                             Null,
                         ),
                         (
-                            "string",
+                            InputValueDefinition {
+                                name: "string",
+                                description: None,
+                                ty: Type {
+                                    definition: ScalarDefinition {
+                                        name: "String",
+                                        ty: String,
+                                        description: None,
+                                        specified_by_url: None,
+                                        directives: [],
+                                    },
+                                    wrapping: Wrapping {
+                                        inner_is_required: false,
+                                        list_wrappings: [],
+                                    },
+                                },
+                                default_value: None,
+                                directives: [],
+                            },
                             String(
                                 "some string value",
                             ),
                         ),
                         (
-                            "enumValue",
+                            InputValueDefinition {
+                                name: "enumValue",
+                                description: None,
+                                ty: Type {
+                                    definition: EnumDefinition {
+                                        name: "State",
+                                        description: None,
+                                        values: [
+                                            EnumValue {
+                                                name: "ACTIVE",
+                                                description: None,
+                                                directives: [],
+                                            },
+                                            EnumValue {
+                                                name: "INACTIVE",
+                                                description: None,
+                                                directives: [],
+                                            },
+                                        ],
+                                        directives: [],
+                                    },
+                                    wrapping: Wrapping {
+                                        inner_is_required: false,
+                                        list_wrappings: [],
+                                    },
+                                },
+                                default_value: None,
+                                directives: [],
+                            },
                             EnumValue(
-                                EnumValue#0,
+                                EnumValue {
+                                    name: "ACTIVE",
+                                    description: None,
+                                    directives: [],
+                                },
                             ),
                         ),
                         (
-                            "int",
+                            InputValueDefinition {
+                                name: "int",
+                                description: None,
+                                ty: Type {
+                                    definition: ScalarDefinition {
+                                        name: "Int",
+                                        ty: Int,
+                                        description: None,
+                                        specified_by_url: None,
+                                        directives: [],
+                                    },
+                                    wrapping: Wrapping {
+                                        inner_is_required: false,
+                                        list_wrappings: [],
+                                    },
+                                },
+                                default_value: None,
+                                directives: [],
+                            },
                             Int(
                                 7,
                             ),
                         ),
                         (
-                            "bigInt",
+                            InputValueDefinition {
+                                name: "bigInt",
+                                description: None,
+                                ty: Type {
+                                    definition: ScalarDefinition {
+                                        name: "BigInt",
+                                        ty: BigInt,
+                                        description: None,
+                                        specified_by_url: None,
+                                        directives: [],
+                                    },
+                                    wrapping: Wrapping {
+                                        inner_is_required: false,
+                                        list_wrappings: [],
+                                    },
+                                },
+                                default_value: None,
+                                directives: [],
+                            },
                             BigInt(
                                 8,
                             ),
                         ),
                         (
-                            "u64",
-                            U64(
-                                9,
-                            ),
-                        ),
-                        (
-                            "float",
+                            InputValueDefinition {
+                                name: "float",
+                                description: None,
+                                ty: Type {
+                                    definition: ScalarDefinition {
+                                        name: "Float",
+                                        ty: Float,
+                                        description: None,
+                                        specified_by_url: None,
+                                        directives: [],
+                                    },
+                                    wrapping: Wrapping {
+                                        inner_is_required: false,
+                                        list_wrappings: [],
+                                    },
+                                },
+                                default_value: None,
+                                directives: [],
+                            },
                             Float(
                                 10.0,
                             ),
                         ),
                         (
-                            "boolean",
+                            InputValueDefinition {
+                                name: "boolean",
+                                description: None,
+                                ty: Type {
+                                    definition: ScalarDefinition {
+                                        name: "Boolean",
+                                        ty: Boolean,
+                                        description: None,
+                                        specified_by_url: None,
+                                        directives: [],
+                                    },
+                                    wrapping: Wrapping {
+                                        inner_is_required: false,
+                                        list_wrappings: [],
+                                    },
+                                },
+                                default_value: None,
+                                directives: [],
+                            },
                             Boolean(
                                 true,
                             ),
@@ -255,35 +671,34 @@ fn test_input_value() {
     )
     "###);
 
-    insta::assert_json_snapshot!(schema.walk(&input_value), @r###"
-        {
-          "inputObject": {
-            "fieldA": "INACTIVE",
-            "fieldB": "some string value"
-          },
-          "list": [
-            null,
-            "ACTIVE",
-            73
-          ],
-          "object": {
-            "null": null,
-            "string": "some string value",
-            "enumValue": "ACTIVE",
-            "int": 7,
-            "bigInt": 8,
-            "u64": 9,
-            "float": 10.0,
-            "boolean": true
-          }
-        }
-        "###);
+    insta::assert_json_snapshot!(input_value, @r###"
+    {
+      "inputObject": {
+        "fieldA": "INACTIVE",
+        "fieldB": "some string value"
+      },
+      "list": [
+        null,
+        "ACTIVE",
+        73
+      ],
+      "object": {
+        "null": null,
+        "string": "some string value",
+        "enumValue": "ACTIVE",
+        "int": 7,
+        "bigInt": 8,
+        "float": 10.0,
+        "boolean": true
+      }
+    }
+    "###);
 }
 
 #[test]
 fn test_struct_deserializer() {
     let (schema, id) = create_schema_and_input_value();
-    let walker = schema.walk(&schema[id]);
+    let value = id.walk(&schema);
 
     #[allow(unused)]
     #[derive(Debug, serde::Deserialize)]
@@ -303,7 +718,6 @@ fn test_struct_deserializer() {
         enum_value: Option<String>,
         int: i32,
         big_int: i64,
-        u64: u64,
         float: f64,
         boolean: bool,
     }
@@ -318,7 +732,7 @@ fn test_struct_deserializer() {
         object: Object,
     }
 
-    let input = Input::deserialize(walker).unwrap();
+    let input = Input::deserialize(value).unwrap();
 
     insta::assert_debug_snapshot!(input, @r###"
         Input {
@@ -339,12 +753,11 @@ fn test_struct_deserializer() {
                 ),
                 int: 7,
                 big_int: 8,
-                u64: 9,
                 float: 10.0,
                 boolean: true,
             },
         }
         "###);
 
-    serde::de::IgnoredAny::deserialize(walker).unwrap();
+    serde::de::IgnoredAny::deserialize(value).unwrap();
 }

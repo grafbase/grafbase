@@ -65,7 +65,7 @@ pub(crate) async fn execute_subgraph_request<'ctx, 'a, R: Runtime>(
             headers,
             method: http::Method::POST,
             body,
-            timeout: endpoint.timeout(),
+            timeout: endpoint.config.timeout,
         }
     };
 

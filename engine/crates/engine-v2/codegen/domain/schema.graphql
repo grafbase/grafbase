@@ -1,0 +1,252 @@
+scalar Schema @graph(destination: "schema/src")
+
+# std / lib
+scalar String @indexed(deduplicated: true)
+scalar Regex @indexed(deduplicated: true)
+scalar Url @indexed(deduplicated: true)
+
+# ---------
+# - Graph -
+# ---------
+
+scalar InputValueSet
+scalar SchemaInputValue @indexed @record
+scalar ProvidableFieldSet
+
+type RootOperationTypes @meta(module: "root") {
+  query: ObjectDefinition!
+  mutation: ObjectDefinition
+  subscription: ObjectDefinition
+}
+
+union Definition @id @meta(module: "definition") @variants(remove_suffix: true) =
+  | ObjectDefinition
+  | InterfaceDefinition
+  | UnionDefinition
+  | EnumDefinition
+  | InputObjectDefinition
+  | ScalarDefinition
+
+union EntityDefinition @id @meta(module: "entity") @variants(remove_suffix: "Definition") =
+  | ObjectDefinition
+  | InterfaceDefinition
+
+type ObjectDefinition
+  @meta(module: "object", debug: false)
+  @indexed(deduplicated: true, id_size: "u32", max_id: "MAX_ID") {
+  name: String!
+  description: String
+  interfaces: [InterfaceDefinition!]!
+  directives: [TypeSystemDirective!]!
+  fields: [FieldDefinition!]!
+}
+
+type InterfaceDefinition
+  @meta(module: "interface", debug: false)
+  @indexed(deduplicated: true, id_size: "u32", max_id: "MAX_ID") {
+  name: String!
+  description: String
+  fields: [FieldDefinition!]!
+  interfaces: [InterfaceDefinition!]!
+  "sorted by ObjectId"
+  possible_types: [ObjectDefinition!]!
+  possible_types_ordered_by_typename: [ObjectDefinition!]!
+  directives: [TypeSystemDirective!]!
+}
+
+type FieldDefinition @meta(module: "field") @indexed(id_size: "u32", max_id: "MAX_ID") {
+  name: String!
+  description: String
+  parent_entity: EntityDefinition!
+  ty: Type!
+  resolvers: [ResolverDefinition!]!
+  """
+  By default a field is considered shared and providable by *any* subgraph that exposes it.
+  It's up to the composition to ensure it. If this field is specific to some subgraphs, they
+  will be specified in this Vec.
+  """
+  only_resolvable_in: [Subgraph!]!
+  requires: [FieldRequires!]! @field(record_field_name: "requires_records")
+  provides: [FieldProvides!]! @field(record_field_name: "provides_records")
+  "The arguments referenced by this range are sorted by their name (string)"
+  arguments: [InputValueDefinition!]!
+  directives: [TypeSystemDirective!]!
+}
+
+type FieldProvides @meta(module: "field/provides") {
+  subgraph: Subgraph!
+  field_set: ProvidableFieldSet!
+}
+
+type FieldRequires @meta(module: "field/requires") @copy {
+  subgraph: Subgraph!
+  field_set: RequiredFieldSet!
+}
+
+type Type @meta(module: "ty") @copy {
+  definition: Definition!
+  wrapping: Wrapping!
+}
+scalar Wrapping @copy
+
+type EnumDefinition @meta(module: "enum_def") @indexed(id_size: "u32", max_id: "MAX_ID") {
+  name: String!
+  description: String
+  values: [EnumValue!]!
+  directives: [TypeSystemDirective!]!
+}
+
+type EnumValue @meta(module: "enum_value") @indexed(id_size: "u32", max_id: "MAX_ID") {
+  name: String!
+  description: String
+  directives: [TypeSystemDirective!]!
+}
+
+type UnionDefinition @meta(module: "union", debug: false) @indexed(id_size: "u32", max_id: "MAX_ID") {
+  name: String!
+  description: String
+  possible_types: [ObjectDefinition!]!
+  possible_types_ordered_by_typename: [ObjectDefinition!]!
+  directives: [TypeSystemDirective!]!
+}
+
+type ScalarDefinition @meta(module: "scalar") @indexed(id_size: "u32", max_id: "MAX_ID") {
+  name: String!
+  ty: ScalarType!
+  description: String
+  specified_by_url: String
+  directives: [TypeSystemDirective!]!
+}
+
+scalar ScalarType @copy
+
+type InputObjectDefinition @meta(module: "input_object") @indexed(id_size: "u32", max_id: "MAX_ID") {
+  name: String!
+  description: String
+  input_fields: [InputValueDefinition!]!
+  directives: [TypeSystemDirective!]!
+}
+
+type InputValueDefinition @meta(module: "input_value") @indexed(id_size: "u32", max_id: "MAX_ID") {
+  name: String!
+  description: String
+  ty: Type!
+  default_value: SchemaInputValue
+  directives: [TypeSystemDirective!]!
+}
+
+# ------------
+# - FieldSet -
+# ------------
+
+scalar RequiredFieldSet @indexed @record
+
+type RequiredField
+  @meta(module: "field_set", derive: ["PartialEq", "Eq", "PartialOrd", "Ord"], debug: false)
+  @indexed(id_size: "u32", deduplicated: true) {
+  definition: FieldDefinition!
+  arguments: [RequiredFieldArgument!]!
+}
+
+type RequiredFieldArgument @meta(module: "field_set", derive: ["PartialEq", "Eq", "PartialOrd", "Ord"]) @copy {
+  definition: InputValueDefinition!
+  value: SchemaInputValue!
+}
+
+# --------------
+# - Directives -
+# --------------
+
+union TypeSystemDirective
+  @id
+  @meta(module: "directive")
+  @variants(empty: ["Authenticated"], remove_suffix: "Directive") =
+  | DeprecatedDirective
+  | RequiresScopesDirective
+  | AuthorizedDirective
+
+type DeprecatedDirective
+  @meta(module: "directive/deprecated", derive: ["PartialEq", "Eq", "PartialOrd", "Ord", "Hash"])
+  @copy {
+  reason: String
+}
+
+scalar RequiresScopesDirective @indexed @record
+
+type AuthorizedDirective @meta(module: "directive/authorized") @indexed(id_size: "u32", max_id: "MAX_ID") {
+  arguments: InputValueSet!
+  fields: RequiredFieldSet @field(record_field_name: "fields_id")
+  node: RequiredFieldSet
+  metadata: SchemaInputValue
+}
+
+# -------------
+# - Subgraphs -
+# -------------
+
+scalar SubgraphConfig
+
+union Subgraph @id @meta(module: "subgraph") @variants(empty: ["Introspection"]) = GraphqlEndpoint
+
+type GraphqlEndpoint @meta(module: "subgraph/graphql") @indexed(id_size: "u32", max_id: "MAX_ID") {
+  subgraph_name: String!
+  url: Url!
+  websocket_url: Url
+  header_rules: [HeaderRule!]!
+  config: SubgraphConfig!
+}
+
+# ----------------
+# - Header Rules -
+# ----------------
+
+union NameOrPattern @id @meta(module: "header_rule") @variants(names: ["Pattern", "Name"]) = Regex | String
+union HeaderRule
+  @meta(module: "header_rule")
+  @variants(remove_suffix: true)
+  @indexed(id_size: "u32", max_id: "MAX_ID", deduplicated: true) =
+  | ForwardHeaderRule
+  | InsertHeaderRule
+  | RemoveHeaderRule
+  | RenameDuplicateHeaderRule
+
+type ForwardHeaderRule @meta(module: "header_rule/forward") @copy {
+  name: NameOrPattern!
+  default: String
+  rename: String
+}
+
+type InsertHeaderRule @meta(module: "header_rule/insert") @copy {
+  name: String!
+  value: String!
+}
+
+type RemoveHeaderRule @meta(module: "header_rule/remove") @copy {
+  name: NameOrPattern!
+}
+
+type RenameDuplicateHeaderRule @meta(module: "header_rule/rename_duplicate") @copy {
+  name: String!
+  default: String
+  rename: String!
+}
+
+# -------------
+# - Resolvers -
+# -------------
+
+union ResolverDefinition
+  @meta(module: "resolver")
+  @variants(empty: ["Introspection"], remove_suffix: true)
+  @indexed(deduplicated: true, id_size: "u32", max_id: "MAX_ID") =
+  | GraphqlRootFieldResolverDefinition
+  | GraphqlFederationEntityResolverDefinition
+
+type GraphqlRootFieldResolverDefinition @meta(module: "resolver/graphql") @copy {
+  endpoint: GraphqlEndpoint!
+}
+
+type GraphqlFederationEntityResolverDefinition @meta(module: "resolver/graphql") @copy {
+  endpoint: GraphqlEndpoint!
+  key_fields: RequiredFieldSet!
+}

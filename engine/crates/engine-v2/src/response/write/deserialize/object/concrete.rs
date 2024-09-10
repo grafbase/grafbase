@@ -144,14 +144,14 @@ impl<'de, 'ctx, 'seed> Visitor<'de> for ConcreteObjectFieldsSeed<'ctx, 'seed> {
             ObjectIdentifier::UnionTypename(id) => {
                 maybe_object_id = Some(self.visit_fields_with_typename_detection(
                     &mut map,
-                    &schema[id].possible_types_ordered_by_typename,
+                    &schema[id].possible_types_ordered_by_typename_ids,
                     &mut response_fields,
                 )?);
             }
             ObjectIdentifier::InterfaceTypename(id) => {
                 maybe_object_id = Some(self.visit_fields_with_typename_detection(
                     &mut map,
-                    &schema[id].possible_types_ordered_by_typename,
+                    &schema[id].possible_types_ordered_by_typename_ids,
                     &mut response_fields,
                 )?);
             }
@@ -163,7 +163,7 @@ impl<'de, 'ctx, 'seed> Visitor<'de> for ConcreteObjectFieldsSeed<'ctx, 'seed> {
             let Some(object_id) = maybe_object_id else {
                 return Err(serde::de::Error::custom("Could not determine the "));
             };
-            let name_id = schema[object_id].name;
+            let name_id = schema[object_id].name_id;
             for edge in self.typename_response_edges {
                 response_fields.push(ResponseObjectField {
                     edge: *edge,
@@ -269,7 +269,7 @@ impl<'de, 'ctx, 'seed> ConcreteObjectFieldsSeed<'ctx, 'seed> {
                 let value = map.next_value::<Key<'_>>()?;
                 let typename = value.as_ref();
                 maybe_object_id = possible_types_ordered_by_typename
-                    .binary_search_by(|probe| schema[schema[*probe].name].as_str().cmp(typename))
+                    .binary_search_by(|probe| schema[schema[*probe].name_id].as_str().cmp(typename))
                     .ok();
             } else {
                 // Skipping the value.

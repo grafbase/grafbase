@@ -1,94 +1,56 @@
 use std::num::NonZero;
 
+use regex::Regex;
+use url::Url;
+use walker::Walk;
+
+use crate::Schema;
+
 /// Reserving the 4 upper bits for some fun with bit packing. It still leaves 268 million possible values.
 /// And it's way easier to increase that limit if needed that to reserve some bits later!
 /// Currently, we use the two upper bits of the FieldId for the ResponseEdge in the engine.
-pub(crate) const MAX_ID: usize = (1 << 29) - 1;
-
-#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
-#[max(MAX_ID)]
-pub struct DefinitionId(NonZero<u32>);
-
-#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
-#[max(MAX_ID)]
-pub struct TypeSystemDirectiveId(NonZero<u32>);
-
-#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
-#[max(MAX_ID)]
-pub struct EnumValueId(NonZero<u32>);
-
-#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
-#[max(MAX_ID)]
-pub struct EnumDefinitionId(NonZero<u32>);
-
-#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
-#[max(MAX_ID)]
-pub struct FieldDefinitionId(NonZero<u32>);
-
-#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
-#[max(MAX_ID)]
-pub struct InputObjectDefinitionId(NonZero<u32>);
-
-#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
-#[max(MAX_ID)]
-pub struct InputValueDefinitionId(NonZero<u32>);
-
-#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
-#[max(MAX_ID)]
-pub struct InterfaceDefinitionId(NonZero<u32>);
-
-#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
-#[max(MAX_ID)]
-pub struct ObjectDefinitionId(NonZero<u32>);
-
-#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
-#[max(MAX_ID)]
-pub struct ScalarDefinitionId(NonZero<u32>);
-
-#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
-#[max(MAX_ID)]
-pub struct UnionDefinitionId(NonZero<u32>);
-
-#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
-#[max(MAX_ID)]
-pub struct ResolverDefinitionId(NonZero<u32>);
-
-#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
-#[max(MAX_ID)]
-pub struct RequiredFieldSetId(NonZero<u32>);
-
-#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
-#[max(MAX_ID)]
-pub struct RequiredFieldId(NonZero<u32>);
-
-#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
-#[max(MAX_ID)]
-pub struct CacheControlId(NonZero<u32>);
-
-#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
-#[max(MAX_ID)]
-pub struct RequiredScopesId(NonZero<u32>);
-
-#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
-#[max(MAX_ID)]
-pub struct AuthorizedDirectiveId(NonZero<u32>);
+pub(crate) const MAX_ID: u32 = (1 << 29) - 1;
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
 #[max(MAX_ID)]
 pub struct UrlId(NonZero<u32>);
 
+impl Walk<Schema> for UrlId {
+    type Walker<'a> = &'a Url;
+    fn walk<'s>(self, schema: &'s Schema) -> Self::Walker<'s>
+    where
+        Self: 's,
+    {
+        &schema[self]
+    }
+}
+
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
 #[max(MAX_ID)]
 pub struct StringId(NonZero<u32>);
+
+impl Walk<Schema> for StringId {
+    type Walker<'a> = &'a str;
+
+    fn walk<'s>(self, schema: &'s Schema) -> Self::Walker<'s>
+    where
+        Self: 's,
+    {
+        &schema[self]
+    }
+}
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
 #[max(MAX_ID)]
 pub struct RegexId(NonZero<u32>);
 
-#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
-#[max(MAX_ID)]
-pub struct HeaderRuleId(NonZero<u32>);
+impl Walk<Schema> for RegexId {
+    type Walker<'a> = &'a Regex;
 
-#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
-#[max(MAX_ID)]
-pub struct SubgraphId(NonZero<u16>);
+    fn walk<'s>(self, schema: &'s Schema) -> Self::Walker<'s>
+    where
+        Self: 's,
+    {
+        &schema[self]
+    }
+}

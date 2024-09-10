@@ -1,7 +1,7 @@
 use std::{collections::HashMap, ops::Range};
 
 use id_newtypes::IdRange;
-use schema::{Definition, FieldDefinitionWalker, ObjectDefinitionId, TypeSystemDirective};
+use schema::{DefinitionId, FieldDefinition, ObjectDefinitionId, TypeSystemDirective};
 
 use crate::operation::{
     FieldArgumentId, FieldId, QueryModifier, QueryModifierId, QueryModifierRule, ResponseModifier, ResponseModifierId,
@@ -13,27 +13,29 @@ impl<'schema, 'p> super::Binder<'schema, 'p> {
         &mut self,
         field_id: FieldId,
         argument_ids: IdRange<FieldArgumentId>,
-        definition: FieldDefinitionWalker<'_>,
+        field_definition: FieldDefinition<'_>,
     ) {
-        for directive in definition.directives().as_ref().iter() {
+        for directive in field_definition.directives() {
             match directive {
                 TypeSystemDirective::Authenticated => {
                     self.register_field_impacted_by_query_modifier(QueryModifierRule::Authenticated, field_id);
                 }
-                TypeSystemDirective::RequiresScopes(id) => {
-                    self.register_field_impacted_by_query_modifier(QueryModifierRule::RequiresScopes(*id), field_id);
+                TypeSystemDirective::RequiresScopes(directive) => {
+                    self.register_field_impacted_by_query_modifier(
+                        QueryModifierRule::RequiresScopes(directive.id()),
+                        field_id,
+                    );
                 }
-                TypeSystemDirective::Authorized(id) => {
-                    let directive = &self.schema[*id];
-                    match (directive.fields.is_some(), directive.node.is_some()) {
+                TypeSystemDirective::Authorized(directive) => {
+                    match (directive.fields().is_some(), directive.node().is_some()) {
                         (true, true) => {
                             unreachable!("Authorized directive with both fields and node isn't supported yet");
                         }
                         (true, false) => {
                             self.register_field_impacted_by_response_modifier(
                                 ResponseModifierRule::AuthorizedParentEdge {
-                                    directive_id: *id,
-                                    definition_id: definition.id(),
+                                    directive_id: directive.id(),
+                                    definition_id: field_definition.id(),
                                 },
                                 field_id,
                             );
@@ -41,8 +43,8 @@ impl<'schema, 'p> super::Binder<'schema, 'p> {
                         (false, true) => {
                             self.register_field_impacted_by_response_modifier(
                                 ResponseModifierRule::AuthorizedEdgeChild {
-                                    directive_id: *id,
-                                    definition_id: definition.id(),
+                                    directive_id: directive.id(),
+                                    definition_id: field_definition.id(),
                                 },
                                 field_id,
                             );
@@ -50,8 +52,8 @@ impl<'schema, 'p> super::Binder<'schema, 'p> {
                         (false, false) => {
                             self.register_field_impacted_by_query_modifier(
                                 QueryModifierRule::AuthorizedField {
-                                    directive_id: *id,
-                                    definition_id: definition.id(),
+                                    directive_id: directive.id(),
+                                    definition_id: field_definition.id(),
                                     argument_ids,
                                 },
                                 field_id,
@@ -63,20 +65,22 @@ impl<'schema, 'p> super::Binder<'schema, 'p> {
             }
         }
 
-        let output_definition = definition.ty().inner();
-        for directive in output_definition.directives().as_ref() {
+        for directive in field_definition.ty().definition().directives() {
             match directive {
                 TypeSystemDirective::Authenticated => {
                     self.register_field_impacted_by_query_modifier(QueryModifierRule::Authenticated, field_id);
                 }
-                TypeSystemDirective::RequiresScopes(id) => {
-                    self.register_field_impacted_by_query_modifier(QueryModifierRule::RequiresScopes(*id), field_id);
+                TypeSystemDirective::RequiresScopes(directive) => {
+                    self.register_field_impacted_by_query_modifier(
+                        QueryModifierRule::RequiresScopes(directive.id()),
+                        field_id,
+                    );
                 }
-                TypeSystemDirective::Authorized(id) => {
+                TypeSystemDirective::Authorized(directive) => {
                     self.register_field_impacted_by_query_modifier(
                         QueryModifierRule::AuthorizedDefinition {
-                            directive_id: *id,
-                            definition: output_definition.id(),
+                            directive_id: directive.id(),
+                            definition_id: field_definition.ty().as_ref().definition_id,
                         },
                         field_id,
                     );
@@ -91,19 +95,20 @@ impl<'schema, 'p> super::Binder<'schema, 'p> {
         root_object_id: ObjectDefinitionId,
     ) -> Vec<QueryModifierId> {
         let mut modifiers = Vec::new();
-        for directive in self.schema.walk(root_object_id).directives().as_ref() {
+        for directive in self.schema.walk(root_object_id).directives() {
             match directive {
                 TypeSystemDirective::Authenticated => {
                     modifiers.push(self.push_root_object_query_modifier(QueryModifierRule::Authenticated));
                 }
-                TypeSystemDirective::RequiresScopes(id) => {
-                    modifiers.push(self.push_root_object_query_modifier(QueryModifierRule::RequiresScopes(*id)));
+                TypeSystemDirective::RequiresScopes(directive) => {
+                    modifiers
+                        .push(self.push_root_object_query_modifier(QueryModifierRule::RequiresScopes(directive.id())));
                 }
-                TypeSystemDirective::Authorized(id) => {
+                TypeSystemDirective::Authorized(directive) => {
                     modifiers.push(
                         self.push_root_object_query_modifier(QueryModifierRule::AuthorizedDefinition {
-                            directive_id: *id,
-                            definition: Definition::Object(root_object_id),
+                            directive_id: directive.id(),
+                            definition_id: DefinitionId::Object(root_object_id),
                         }),
                     );
                 }

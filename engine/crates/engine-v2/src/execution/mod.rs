@@ -21,7 +21,7 @@ pub(crate) use coordinator::*;
 pub(crate) use error::*;
 pub(crate) use hooks::RequestHooks;
 pub(crate) use ids::*;
-use schema::EntityId;
+use schema::EntityDefinitionId;
 
 impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
     pub(crate) async fn finalize_operation(
@@ -80,7 +80,7 @@ pub(crate) struct ResponseModifierExecutor {
     pub rule: ResponseModifierRule,
     /// Which object & fields are impacted
     /// sorted by natural order
-    pub on: Vec<(ResponseObjectSetId, Option<EntityId>, ResponseKey)>,
+    pub on: Vec<(ResponseObjectSetId, Option<EntityDefinitionId>, ResponseKey)>,
     /// What fields the hook requires
     pub requires: ResponseViewSelectionSet,
     /// Dependency count

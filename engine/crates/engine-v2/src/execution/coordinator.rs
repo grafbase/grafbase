@@ -68,9 +68,9 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
         OperationExecutionState::new(&self.engine.schema, self.operation)
     }
 
-    pub(super) fn plan_walker(&self, plan_id: ExecutionPlanId) -> PlanWalker<'ctx, (), ()> {
+    pub(super) fn plan_walker(&self, plan_id: ExecutionPlanId) -> PlanWalker<'ctx, ()> {
         PlanWalker {
-            schema_walker: self.engine.schema.walker(),
+            schema: &self.engine.schema,
             operation: self.operation,
             variables: &self.operation.variables,
             query_modifications: &self.operation.query_modifications,
@@ -382,7 +382,7 @@ where
         let mut fields = Vec::new();
         if !shape.typename_response_edges.is_empty() {
             if let ObjectIdentifier::Known(object_id) = shape.identifier {
-                let name: ResponseValue = self.schema().walk(object_id).as_ref().name.into();
+                let name: ResponseValue = self.schema().walk(object_id).as_ref().name_id.into();
                 fields.extend(shape.typename_response_edges.iter().map(|&edge| ResponseObjectField {
                     edge,
                     required_field_id: None,

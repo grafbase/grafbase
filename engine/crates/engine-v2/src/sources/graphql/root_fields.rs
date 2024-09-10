@@ -3,7 +3,7 @@ use std::{borrow::Cow, time::Duration};
 use bytes::Bytes;
 use grafbase_telemetry::{gql_response_status::GraphqlResponseStatus, span::subgraph::SubgraphRequestSpan};
 use runtime::{bytes::OwnedOrSharedBytes, hooks::CacheStatus};
-use schema::sources::graphql::{GraphqlEndpointId, GraphqlEndpointWalker, RootFieldResolverDefinitionWalker};
+use schema::{GraphqlEndpoint, GraphqlEndpointId, GraphqlRootFieldResolverDefinition};
 use serde::de::DeserializeSeed;
 use tracing::Instrument;
 
@@ -30,7 +30,7 @@ pub(crate) struct GraphqlResolver {
 
 impl GraphqlResolver {
     pub fn prepare(
-        definition: RootFieldResolverDefinitionWalker<'_>,
+        definition: GraphqlRootFieldResolverDefinition<'_>,
         operation_type: OperationType,
         plan: PlanWalker<'_>,
     ) -> PlanningResult<Resolver> {
@@ -71,7 +71,7 @@ impl GraphqlResolver {
             .execution_context()
             .subgraph_headers_with_rules(ctx.endpoint().header_rules());
 
-        let subgraph_cache_ttl = ctx.endpoint().entity_cache_ttl();
+        let subgraph_cache_ttl = ctx.endpoint().config.cache_ttl;
         let cache_key = build_cache_key(ctx.endpoint().subgraph_name(), &body, &headers);
 
         if let Some((_, cache_key)) = subgraph_cache_ttl.zip(cache_key.as_ref()) {
@@ -128,7 +128,7 @@ impl GraphqlResolver {
             .await
     }
 
-    pub fn endpoint<'ctx, R: Runtime>(&self, ctx: ExecutionContext<'ctx, R>) -> GraphqlEndpointWalker<'ctx> {
+    pub fn endpoint<'ctx, R: Runtime>(&self, ctx: ExecutionContext<'ctx, R>) -> GraphqlEndpoint<'ctx> {
         ctx.schema().walk(self.endpoint_id)
     }
 

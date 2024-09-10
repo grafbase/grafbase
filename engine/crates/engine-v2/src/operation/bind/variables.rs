@@ -1,7 +1,7 @@
 use std::collections::{btree_map::Entry, HashSet};
 
 use engine::Positioned;
-use schema::{Definition, Schema};
+use schema::{DefinitionId, Schema};
 
 use crate::{
     operation::{Location, Operation, VariableDefinition, VariableInputValues, VariableValue, Variables},
@@ -131,7 +131,7 @@ impl<'schema, 'p> Binder<'schema, 'p> {
         variable_name: &str,
         location: Location,
         ty: engine_parser::types::Type,
-    ) -> BindResult<schema::Type> {
+    ) -> BindResult<schema::TypeRecord> {
         match ty.base {
             engine_parser::types::BaseType::Named(type_name) => {
                 let definition =
@@ -143,16 +143,16 @@ impl<'schema, 'p> Binder<'schema, 'p> {
                         })?;
                 if !matches!(
                     definition,
-                    Definition::Enum(_) | Definition::Scalar(_) | Definition::InputObject(_)
+                    DefinitionId::Enum(_) | DefinitionId::Scalar(_) | DefinitionId::InputObject(_)
                 ) {
                     return Err(BindError::InvalidVariableType {
                         name: variable_name.to_string(),
-                        ty: self.schema.walker().walk(definition).name().to_string(),
+                        ty: self.schema.walk(definition).name().to_string(),
                         location,
                     });
                 }
-                Ok(schema::Type {
-                    inner: definition,
+                Ok(schema::TypeRecord {
+                    definition_id: definition,
                     wrapping: schema::Wrapping::new(!ty.nullable),
                 })
             }

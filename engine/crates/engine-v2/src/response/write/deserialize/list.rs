@@ -46,11 +46,10 @@ where
         A: SeqAccess<'de>,
     {
         let mut index: usize = 0;
-        let mut values = if let Some(size_hint) = seq.size_hint() {
-            Vec::<ResponseValue>::with_capacity(size_hint)
-        } else {
-            Vec::<ResponseValue>::new()
-        };
+        let mut values = self.ctx.writer.new_list();
+        if let Some(size_hint) = seq.size_hint() {
+            values.reserve(size_hint);
+        }
 
         loop {
             self.ctx.push_edge(index.into());
@@ -81,6 +80,6 @@ where
             }
         }
 
-        Ok(self.ctx.writer.push_list(&values).into())
+        Ok(self.ctx.writer.push_list(values).into())
     }
 }

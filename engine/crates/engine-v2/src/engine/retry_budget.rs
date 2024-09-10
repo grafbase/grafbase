@@ -1,4 +1,4 @@
-use schema::{sources::graphql::GraphqlEndpointId, Schema};
+use schema::{GraphqlEndpointId, Schema};
 use tower::retry::budget::Budget;
 
 use super::Runtime;
@@ -13,10 +13,9 @@ impl RetryBudgets {
     pub fn build(schema: &Schema) -> Self {
         Self {
             by_graphql_endpoints: schema
-                .walker()
                 .graphql_endpoints()
                 .map(|endpoint| {
-                    let retry_config = endpoint.retry_config().or_else(|| schema.walker().retry_config())?;
+                    let retry_config = endpoint.config.retry.as_ref().or(schema.settings.retry.as_ref())?;
 
                     // Defaults: https://docs.rs/tower/0.4.13/src/tower/retry/budget.rs.html#137-139
                     let ttl = retry_config.ttl.unwrap_or(std::time::Duration::from_secs(10));
@@ -39,7 +38,9 @@ impl<R: Runtime> super::Engine<R> {
         if self
             .schema
             .walk(endpoint_id)
-            .retry_config()
+            .config
+            .retry
+            .as_ref()
             .map(|config| config.retry_mutations)
             .unwrap_or_default()
         {

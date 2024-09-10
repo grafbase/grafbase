@@ -1,7 +1,7 @@
 use super::{FieldWalker, OperationWalker};
 use crate::operation::SelectionSetId;
 
-pub type SelectionSetWalker<'a> = OperationWalker<'a, SelectionSetId, ()>;
+pub type SelectionSetWalker<'a> = OperationWalker<'a, SelectionSetId>;
 
 impl<'a> SelectionSetWalker<'a> {
     pub fn fields(self) -> impl Iterator<Item = FieldWalker<'a>> + 'a {
@@ -9,7 +9,7 @@ impl<'a> SelectionSetWalker<'a> {
     }
 
     pub fn fields_ordered_by_parent_entity_id(self) -> impl Iterator<Item = FieldWalker<'a>> + 'a {
-        let walker = self.walk_with((), ());
+        let walker = self.walk(());
         self.as_ref()
             .field_ids_ordered_by_parent_entity_id_then_position
             .iter()

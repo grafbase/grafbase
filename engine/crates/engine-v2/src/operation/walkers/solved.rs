@@ -2,8 +2,8 @@ use crate::operation::{SolvedRequiredField, SolvedRequiredFieldSet};
 
 use super::OperationWalker;
 
-pub type SolvedRequiredFieldSetWalker<'a> = OperationWalker<'a, &'a SolvedRequiredFieldSet, ()>;
-pub type SolvedRequiredFieldWalker<'a> = OperationWalker<'a, &'a SolvedRequiredField, ()>;
+pub type SolvedRequiredFieldSetWalker<'a> = OperationWalker<'a, &'a SolvedRequiredFieldSet>;
+pub type SolvedRequiredFieldWalker<'a> = OperationWalker<'a, &'a SolvedRequiredField>;
 
 impl std::fmt::Debug for SolvedRequiredFieldSetWalker<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

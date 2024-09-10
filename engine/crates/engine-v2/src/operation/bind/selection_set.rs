@@ -2,7 +2,7 @@ use std::borrow::Cow;
 
 use engine_parser::Positioned;
 use im::HashMap;
-use schema::{Definition, FieldDefinitionId, ObjectDefinitionId};
+use schema::{DefinitionId, FieldDefinitionId, ObjectDefinitionId};
 
 use crate::{
     operation::{FieldId, Location, QueryPosition, SelectionSet, SelectionSetId, SelectionSetType},
@@ -74,7 +74,7 @@ impl<'schema, 'p, 'binder> SelectionSetBinder<'schema, 'p, 'binder> {
         field_ids.sort_unstable_by_key(|id| {
             let field = &self[*id];
             (
-                field.definition_id().map(|id| self.schema[id].parent_entity),
+                field.definition_id().map(|id| self.schema[id].parent_entity_id),
                 field.query_position(),
             )
         });
@@ -96,15 +96,16 @@ impl<'schema, 'p, 'binder> SelectionSetBinder<'schema, 'p, 'binder> {
                 .ok_or(BindError::TooManyFields {
                     location: field.pos.try_into()?,
                 })?;
-            let selection_set_id = SelectionSetType::maybe_from(self.schema.walk(definition_id).ty().inner().id())
-                .map(|ty| {
-                    let merged_selection_sets = fields
-                        .into_iter()
-                        .map(|field| &field.node.selection_set)
-                        .collect::<Vec<_>>();
-                    self.binder.bind_merged_selection_sets(ty, &merged_selection_sets)
-                })
-                .transpose()?;
+            let selection_set_id =
+                SelectionSetType::maybe_from(self.schema.walk(definition_id).ty().as_ref().definition_id)
+                    .map(|ty| {
+                        let merged_selection_sets = fields
+                            .into_iter()
+                            .map(|field| &field.node.selection_set)
+                            .collect::<Vec<_>>();
+                        self.binder.bind_merged_selection_sets(ty, &merged_selection_sets)
+                    })
+                    .transpose()?;
 
             field_ids.push(self.bind_field(id, bound_response_key, definition_id, field, selection_set_id)?)
         }
@@ -174,7 +175,6 @@ impl<'schema, 'p, 'binder> SelectionSetBinder<'schema, 'p, 'binder> {
         field: &'p Positioned<engine_parser::types::Field>,
     ) -> BindResult<()> {
         let name_location: Location = field.pos.try_into()?;
-        let walker = self.schema.walker();
         let name = field.name.node.as_str();
         let response_key = self.response_keys.get_or_intern(
             field
@@ -200,13 +200,13 @@ impl<'schema, 'p, 'binder> SelectionSetBinder<'schema, 'p, 'binder> {
             SelectionSetType::Union(union_id) => {
                 return Err(BindError::UnionHaveNoFields {
                     name: name.to_string(),
-                    ty: walker.walk(union_id).name().to_string(),
+                    ty: self.schema.walk(union_id).name().to_string(),
                     location: name_location,
                 });
             }
         }
         .ok_or_else(|| BindError::UnknownField {
-            container: walker.walk(Definition::from(parent)).name().to_string(),
+            container: self.schema.walk(DefinitionId::from(parent)).name().to_string(),
             name: name.to_string(),
             location: name_location,
         })?;
@@ -272,9 +272,9 @@ impl<'schema, 'p, 'binder> SelectionSetBinder<'schema, 'p, 'binder> {
                 location,
             })?;
         let fragment_ty = match definition {
-            Definition::Object(object_id) => SelectionSetType::Object(object_id),
-            Definition::Interface(interface_id) => SelectionSetType::Interface(interface_id),
-            Definition::Union(union_id) => SelectionSetType::Union(union_id),
+            DefinitionId::Object(object_id) => SelectionSetType::Object(object_id),
+            DefinitionId::Interface(interface_id) => SelectionSetType::Interface(interface_id),
+            DefinitionId::Union(union_id) => SelectionSetType::Union(union_id),
             _ => {
                 return Err(BindError::InvalidTypeConditionTargetType {
                     name: name.to_string(),
@@ -296,9 +296,8 @@ impl<'schema, 'p, 'binder> SelectionSetBinder<'schema, 'p, 'binder> {
             }
         }
 
-        let walker = self.schema.walker();
         Err(BindError::DisjointTypeCondition {
-            parent: walker.walk(Definition::from(parent)).name().to_string(),
+            parent: self.schema.walk(DefinitionId::from(parent)).name().to_string(),
             name: name.to_string(),
             location,
         })
@@ -307,8 +306,8 @@ impl<'schema, 'p, 'binder> SelectionSetBinder<'schema, 'p, 'binder> {
     fn get_possible_types(&self, ty: SelectionSetType) -> Cow<'schema, [ObjectDefinitionId]> {
         match ty {
             SelectionSetType::Object(id) => Cow::Owned(vec![id]),
-            SelectionSetType::Interface(id) => Cow::Borrowed(&self.schema[id].possible_types),
-            SelectionSetType::Union(id) => Cow::Borrowed(&self.schema[id].possible_types),
+            SelectionSetType::Interface(id) => Cow::Borrowed(&self.schema[id].possible_type_ids),
+            SelectionSetType::Union(id) => Cow::Borrowed(&self.schema[id].possible_type_ids),
         }
     }
 

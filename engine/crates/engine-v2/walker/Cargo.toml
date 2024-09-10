@@ -1,0 +1,6 @@
+[package]
+edition = "2021"
+name = "engine-v2-walker"
+publish = false
+version = "0.1.0"
+

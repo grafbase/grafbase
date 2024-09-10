@@ -34,6 +34,12 @@ pub enum InputValueError {
         actual: ValueKind,
         path: String,
     },
+    #[error("Found an unknown enum value '{value}' for the enum {r#enum}{path}")]
+    UnknownEnumValue {
+        r#enum: String,
+        value: String,
+        path: String,
+    },
     #[error("Input object {input_object} does not have a field named '{name}'{path}")]
     UnknownInputField {
         input_object: String,

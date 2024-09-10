@@ -29,9 +29,19 @@ pub fn derive_id(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let output = quote! {
         impl #impl_generics From<usize> for #ident #ty_generics #where_clause {
             fn from(value: usize) -> Self {
+                let value = #inner_ty::try_from(value).expect("Too big");
                 #max_check
                 Self(
-                    #inner_ty::try_from(value + 1).ok().and_then(|value| value.try_into().ok()).expect(#too_many_error)
+                    (value + 1).try_into().expect(#too_many_error)
+                )
+            }
+        }
+
+        impl #impl_generics From<#inner_ty> for #ident #ty_generics #where_clause {
+            fn from(value: #inner_ty) -> Self {
+                #max_check
+                Self(
+                    (value + 1).try_into().expect(#too_many_error)
                 )
             }
         }

@@ -1,7 +1,7 @@
 use id_newtypes::IdRange;
 use im::HashMap;
 use itertools::Itertools;
-use schema::{EntityId, FieldDefinitionWalker, ObjectDefinitionId, Schema};
+use schema::{EntityDefinitionId, FieldDefinition, ObjectDefinitionId, Schema};
 
 use crate::{
     operation::{
@@ -62,10 +62,14 @@ where
         }
     }
 
-    fn create_root_shape_for(&mut self, entity_id: EntityId, root_field_ids: &[FieldId]) -> ConcreteObjectShapeId {
+    fn create_root_shape_for(
+        &mut self,
+        entity_id: EntityDefinitionId,
+        root_field_ids: &[FieldId],
+    ) -> ConcreteObjectShapeId {
         let exemplar = match entity_id {
-            EntityId::Object(id) => id,
-            EntityId::Interface(id) => self.schema[id].possible_types[0],
+            EntityDefinitionId::Object(id) => id,
+            EntityDefinitionId::Interface(id) => self.schema[id].possible_type_ids[0],
         };
 
         let walker = self.walker();
@@ -146,8 +150,8 @@ where
     ) -> Shape {
         let output: &[ObjectDefinitionId] = match &ty {
             SelectionSetType::Object(id) => std::array::from_ref(id),
-            SelectionSetType::Interface(id) => &self.schema[*id].possible_types,
-            SelectionSetType::Union(id) => &self.schema[*id].possible_types,
+            SelectionSetType::Interface(id) => &self.schema[*id].possible_type_ids,
+            SelectionSetType::Union(id) => &self.schema[*id].possible_type_ids,
         };
         let shape_partitions = self.compute_shape_partitions(output, &field_ids);
 
@@ -217,7 +221,7 @@ where
             match &self.operation[*field_id] {
                 Field::TypeName(TypeNameField { type_condition, .. }) => type_conditions.push(*type_condition),
                 Field::Query(QueryField { definition_id, .. }) | Field::Extra(ExtraField { definition_id, .. }) => {
-                    type_conditions.push(self.schema.walk(*definition_id).parent_entity().id().into())
+                    type_conditions.push(self.schema.walk(*definition_id).as_ref().parent_entity_id.into())
                 }
             }
         }
@@ -228,9 +232,9 @@ where
             match type_condition {
                 SelectionSetType::Object(id) => single_object_ids.push(id),
                 SelectionSetType::Interface(id) => {
-                    other_type_conditions.push(self.schema[id].possible_types.as_slice())
+                    other_type_conditions.push(self.schema[id].possible_type_ids.as_slice())
                 }
-                SelectionSetType::Union(id) => other_type_conditions.push(self.schema[id].possible_types.as_slice()),
+                SelectionSetType::Union(id) => other_type_conditions.push(self.schema[id].possible_type_ids.as_slice()),
             }
         }
 
@@ -317,7 +321,7 @@ where
     fn create_field_shape(
         &mut self,
         response_key: ResponseKey,
-        definition: FieldDefinitionWalker<'_>,
+        definition: FieldDefinition<'_>,
         fields: &[&FieldWalker<'_>],
     ) -> FieldShape {
         let field = fields
@@ -333,14 +337,14 @@ where
                 .iter()
                 .find_map(|field| self.plan.field_to_solved_requirement[usize::from(field.id())]),
             definition_id: definition.id(),
-            shape: match ty.inner().scalar_type() {
+            shape: match ty.definition().scalar_type() {
                 Some(scalar) => Shape::Scalar(scalar),
                 None => self.create_object_shape(
-                    SelectionSetType::maybe_from(ty.inner().id()).unwrap(),
+                    SelectionSetType::maybe_from(ty.as_ref().definition_id).unwrap(),
                     fields.iter().map(|field| field.selection_set().unwrap().id()).collect(),
                 ),
             },
-            wrapping: ty.wrapping(),
+            wrapping: ty.wrapping,
         }
     }
 
@@ -354,8 +358,8 @@ where
         let id = self.blueprint.shapes.polymorphic.len().into();
         let schema = self.schema;
         shape.possibilities.sort_unstable_by(|a, b| {
-            let a = &schema[schema[a.0].name];
-            let b = &schema[schema[b.0].name];
+            let a = &schema[schema[a.0].name_id];
+            let b = &schema[schema[b.0].name_id];
             a.cmp(b)
         });
         self.blueprint.shapes.polymorphic.push(shape);
@@ -367,13 +371,13 @@ fn is_field_of(schema: &Schema, field: &FieldWalker<'_>, object_id: ObjectDefini
     match field.as_ref() {
         Field::TypeName(TypeNameField { type_condition, .. }) => match type_condition {
             SelectionSetType::Object(id) => *id == object_id,
-            SelectionSetType::Interface(id) => schema[*id].possible_types.binary_search(&object_id).is_ok(),
-            SelectionSetType::Union(id) => schema[*id].possible_types.binary_search(&object_id).is_ok(),
+            SelectionSetType::Interface(id) => schema[*id].possible_type_ids.binary_search(&object_id).is_ok(),
+            SelectionSetType::Union(id) => schema[*id].possible_type_ids.binary_search(&object_id).is_ok(),
         },
         Field::Query(QueryField { definition_id, .. }) | Field::Extra(ExtraField { definition_id, .. }) => {
-            match schema[*definition_id].parent_entity {
-                EntityId::Object(id) => id == object_id,
-                EntityId::Interface(id) => schema[id].possible_types.binary_search(&object_id).is_ok(),
+            match schema[*definition_id].parent_entity_id {
+                EntityDefinitionId::Object(id) => id == object_id,
+                EntityDefinitionId::Interface(id) => schema[id].possible_type_ids.binary_search(&object_id).is_ok(),
             }
         }
     }

@@ -2,8 +2,8 @@ mod error;
 mod path;
 
 use crate::{
-    Definition, EnumDefinitionId, Graph, InputObjectDefinitionId, InputValueDefinitionId, ScalarDefinitionId,
-    ScalarType, SchemaInputValue, SchemaInputValueId, SchemaInputValues, StringId, Type,
+    EnumDefinitionId, Graph, InputObjectDefinitionId, InputValueDefinitionId, ScalarDefinitionId, ScalarType,
+    SchemaInputValueId, SchemaInputValueRecord, SchemaInputValues, StringId, TypeRecord,
 };
 pub use error::*;
 use federated_graph::Value;
@@ -11,14 +11,14 @@ use id_newtypes::IdRange;
 use path::*;
 use wrapping::ListWrapping;
 
-use super::BuildContext;
+use super::{BuildContext, DefinitionId};
 
 pub(super) struct InputValueCoercer<'a> {
     ctx: &'a BuildContext,
     graph: &'a Graph,
     input_values: &'a mut SchemaInputValues,
     value_path: Vec<ValuePathSegment>,
-    input_fields_buffer_pool: Vec<Vec<(InputValueDefinitionId, SchemaInputValue)>>,
+    input_fields_buffer_pool: Vec<Vec<(InputValueDefinitionId, SchemaInputValueRecord)>>,
 }
 
 impl<'a> InputValueCoercer<'a> {
@@ -32,16 +32,16 @@ impl<'a> InputValueCoercer<'a> {
         }
     }
 
-    pub fn coerce(&mut self, ty: Type, value: Value) -> Result<SchemaInputValueId, InputValueError> {
+    pub fn coerce(&mut self, ty: TypeRecord, value: Value) -> Result<SchemaInputValueId, InputValueError> {
         let value = self.coerce_input_value(ty, value)?;
         Ok(self.input_values.push_value(value))
     }
 
-    fn coerce_input_value(&mut self, ty: Type, value: Value) -> Result<SchemaInputValue, InputValueError> {
+    fn coerce_input_value(&mut self, ty: TypeRecord, value: Value) -> Result<SchemaInputValueRecord, InputValueError> {
         if ty.wrapping.is_list() && !value.is_list() && !value.is_null() {
             let mut value = self.coerce_named_type(ty, value)?;
             for _ in 0..ty.wrapping.list_wrappings().len() {
-                value = SchemaInputValue::List(IdRange::from_single(self.input_values.push_value(value)));
+                value = SchemaInputValueRecord::List(IdRange::from_single(self.input_values.push_value(value)));
             }
             return Ok(value);
         }
@@ -49,7 +49,7 @@ impl<'a> InputValueCoercer<'a> {
         self.coerce_list(ty, value)
     }
 
-    fn coerce_list(&mut self, mut ty: Type, value: Value) -> Result<SchemaInputValue, InputValueError> {
+    fn coerce_list(&mut self, mut ty: TypeRecord, value: Value) -> Result<SchemaInputValueRecord, InputValueError> {
         let Some(list_wrapping) = ty.wrapping.pop_list_wrapping() else {
             return self.coerce_named_type(ty, value);
         };
@@ -59,7 +59,7 @@ impl<'a> InputValueCoercer<'a> {
                 expected: self.type_name(ty.wrapped_by(list_wrapping)),
                 path: self.path(),
             }),
-            (Value::Null, ListWrapping::NullableList) => Ok(SchemaInputValue::Null),
+            (Value::Null, ListWrapping::NullableList) => Ok(SchemaInputValueRecord::Null),
             (Value::List(array), _) => {
                 let ids = self.input_values.reserve_list(array.len());
                 for ((idx, value), id) in array.into_vec().into_iter().enumerate().zip(ids) {
@@ -67,7 +67,7 @@ impl<'a> InputValueCoercer<'a> {
                     self.input_values[id] = self.coerce_list(ty, value)?;
                     self.value_path.pop();
                 }
-                Ok(SchemaInputValue::List(ids))
+                Ok(SchemaInputValueRecord::List(ids))
             }
             (value, _) => Err(InputValueError::MissingList {
                 actual: value.into(),
@@ -77,7 +77,7 @@ impl<'a> InputValueCoercer<'a> {
         }
     }
 
-    fn coerce_named_type(&mut self, ty: Type, value: Value) -> Result<SchemaInputValue, InputValueError> {
+    fn coerce_named_type(&mut self, ty: TypeRecord, value: Value) -> Result<SchemaInputValueRecord, InputValueError> {
         if value.is_null() {
             if ty.wrapping.is_required() {
                 return Err(InputValueError::UnexpectedNull {
@@ -85,13 +85,13 @@ impl<'a> InputValueCoercer<'a> {
                     path: self.path(),
                 });
             }
-            return Ok(SchemaInputValue::Null);
+            return Ok(SchemaInputValueRecord::Null);
         }
 
-        match ty.inner {
-            Definition::Scalar(id) => self.coerce_scalar(id, value),
-            Definition::Enum(id) => self.coerce_enum(id, value),
-            Definition::InputObject(id) => self.coerce_input_objet(id, value),
+        match ty.definition_id {
+            DefinitionId::Scalar(id) => self.coerce_scalar(id, value),
+            DefinitionId::Enum(id) => self.coerce_enum(id, value),
+            DefinitionId::InputObject(id) => self.coerce_input_objet(id, value),
             _ => unreachable!("Cannot be an output type."),
         }
     }
@@ -100,11 +100,11 @@ impl<'a> InputValueCoercer<'a> {
         &mut self,
         input_object_id: InputObjectDefinitionId,
         value: Value,
-    ) -> Result<SchemaInputValue, InputValueError> {
+    ) -> Result<SchemaInputValueRecord, InputValueError> {
         let input_object = &self.graph[input_object_id];
         let Value::Object(fields) = value else {
             return Err(InputValueError::MissingObject {
-                name: self.ctx.strings[input_object.name].to_string(),
+                name: self.ctx.strings[input_object.name_id].to_string(),
                 actual: value.into(),
                 path: self.path(),
             });
@@ -121,20 +121,20 @@ impl<'a> InputValueCoercer<'a> {
             .iter()
             .zip(input_object.input_field_ids)
         {
-            match fields.binary_search_by_key(&input_field.name, |(id, _)| StringId::from(*id)) {
+            match fields.binary_search_by_key(&input_field.name_id, |(id, _)| StringId::from(*id)) {
                 Ok(i) => {
                     let value = std::mem::take(&mut fields[i].1).unwrap();
-                    self.value_path.push(input_field.name.into());
-                    let value = self.coerce_input_value(input_field.ty, value)?;
+                    self.value_path.push(input_field.name_id.into());
+                    let value = self.coerce_input_value(input_field.ty_record, value)?;
                     fields_buffer.push((input_field_id, value));
                     self.value_path.pop();
                 }
                 Err(_) => {
-                    if let Some(default_value_id) = input_field.default_value {
+                    if let Some(default_value_id) = input_field.default_value_id {
                         fields_buffer.push((input_field_id, self.graph.input_values[default_value_id]));
-                    } else if input_field.ty.wrapping.is_required() {
+                    } else if input_field.ty_record.wrapping.is_required() {
                         return Err(InputValueError::UnexpectedNull {
-                            expected: self.type_name(input_field.ty),
+                            expected: self.type_name(input_field.ty_record),
                             path: self.path(),
                         });
                     }
@@ -147,7 +147,7 @@ impl<'a> InputValueCoercer<'a> {
             .next()
         {
             return Err(InputValueError::UnknownInputField {
-                input_object: self.ctx.strings[input_object.name].to_string(),
+                input_object: self.ctx.strings[input_object.name_id].to_string(),
                 name: self.ctx.strings[StringId::from(id)].to_string(),
                 path: self.path(),
             });
@@ -155,15 +155,32 @@ impl<'a> InputValueCoercer<'a> {
         fields_buffer.sort_unstable_by_key(|(id, _)| *id);
         let ids = self.input_values.append_input_object(&mut fields_buffer);
         self.input_fields_buffer_pool.push(fields_buffer);
-        Ok(SchemaInputValue::InputObject(ids))
+        Ok(SchemaInputValueRecord::InputObject(ids))
     }
 
-    fn coerce_enum(&mut self, enum_id: EnumDefinitionId, value: Value) -> Result<SchemaInputValue, InputValueError> {
+    fn coerce_enum(
+        &mut self,
+        enum_id: EnumDefinitionId,
+        value: Value,
+    ) -> Result<SchemaInputValueRecord, InputValueError> {
         let r#enum = &self.graph[enum_id];
         match &value {
-            Value::EnumValue(id) => Ok(SchemaInputValue::EnumValue(crate::EnumValueId::from(id.0))),
+            Value::EnumValue(id) => Ok(SchemaInputValueRecord::EnumValue(crate::EnumValueId::from(id.0))),
+            Value::UnboundEnumValue(id) => {
+                let string_value = &self.ctx.strings[(*id).into()];
+                for id in r#enum.value_ids {
+                    if &self.ctx.strings[self.graph[id].name_id] == string_value {
+                        return Ok(SchemaInputValueRecord::EnumValue(id));
+                    }
+                }
+                Err(InputValueError::UnknownEnumValue {
+                    r#enum: self.ctx.strings[r#enum.name_id].to_string(),
+                    value: string_value.to_string(),
+                    path: self.path(),
+                })
+            }
             value => Err(InputValueError::IncorrectEnumValueType {
-                r#enum: self.ctx.strings[r#enum.name].to_string(),
+                r#enum: self.ctx.strings[r#enum.name_id].to_string(),
                 actual: value.into(),
                 path: self.path(),
             }),
@@ -174,69 +191,68 @@ impl<'a> InputValueCoercer<'a> {
         &mut self,
         scalar_id: ScalarDefinitionId,
         value: Value,
-    ) -> Result<SchemaInputValue, InputValueError> {
+    ) -> Result<SchemaInputValueRecord, InputValueError> {
         match self.graph[scalar_id].ty {
             ScalarType::String => match value {
                 Value::String(id) => Some(id.into()),
                 _ => None,
             }
-            .map(SchemaInputValue::String),
+            .map(SchemaInputValueRecord::String),
             ScalarType::Float => match value {
                 Value::Int(n) => Some(n as f64),
                 Value::Float(f) => Some(f),
                 _ => None,
             }
-            .map(SchemaInputValue::Float),
+            .map(SchemaInputValueRecord::Float),
             ScalarType::Int => match value {
                 Value::Int(n) => {
                     let n = i32::try_from(n).map_err(|_| InputValueError::IncorrectScalarValue {
                         actual: n.to_string(),
-                        expected: self.ctx.strings[self.graph[scalar_id].name].to_string(),
+                        expected: self.ctx.strings[self.graph[scalar_id].name_id].to_string(),
                         path: self.path(),
                     })?;
                     Some(n)
                 }
                 _ => None,
             }
-            .map(SchemaInputValue::Int),
+            .map(SchemaInputValueRecord::Int),
             ScalarType::BigInt => match value {
                 Value::Int(n) => Some(n),
                 _ => None,
             }
-            .map(SchemaInputValue::BigInt),
+            .map(SchemaInputValueRecord::BigInt),
             ScalarType::Boolean => match value {
                 Value::Boolean(b) => Some(b),
                 _ => None,
             }
-            .map(SchemaInputValue::Boolean),
+            .map(SchemaInputValueRecord::Boolean),
             ScalarType::JSON => {
-                return Ok(self
-                    .input_values
-                    .ingest_arbitrary_federated_value(self.ctx, value)
-                    .map_err(|_: super::input_values::InaccessibleEnumValue| {
-                        InputValueError::InaccessibleEnumValue { path: self.path() }
-                    }))?
+                return Ok(self.input_values.ingest_as_json(self.ctx, value).map_err(
+                    |_: super::input_values::InaccessibleEnumValue| InputValueError::InaccessibleEnumValue {
+                        path: self.path(),
+                    },
+                ))?
             }
         }
         .ok_or_else(|| InputValueError::IncorrectScalarType {
             actual: value.into(),
-            expected: self.ctx.strings[self.graph[scalar_id].name].to_string(),
+            expected: self.ctx.strings[self.graph[scalar_id].name_id].to_string(),
             path: self.path(),
         })
     }
 
-    fn type_name(&self, ty: Type) -> String {
+    fn type_name(&self, ty: TypeRecord) -> String {
         let mut s = String::new();
         for _ in 0..ty.wrapping.list_wrappings().len() {
             s.push('[');
         }
-        s.push_str(match ty.inner {
-            Definition::Scalar(id) => &self.ctx.strings[self.graph[id].name],
-            Definition::Object(id) => &self.ctx.strings[self.graph[id].name],
-            Definition::Interface(id) => &self.ctx.strings[self.graph[id].name],
-            Definition::Union(id) => &self.ctx.strings[self.graph[id].name],
-            Definition::Enum(id) => &self.ctx.strings[self.graph[id].name],
-            Definition::InputObject(id) => &self.ctx.strings[self.graph[id].name],
+        s.push_str(match ty.definition_id {
+            DefinitionId::Scalar(id) => &self.ctx.strings[self.graph[id].name_id],
+            DefinitionId::Object(id) => &self.ctx.strings[self.graph[id].name_id],
+            DefinitionId::Interface(id) => &self.ctx.strings[self.graph[id].name_id],
+            DefinitionId::Union(id) => &self.ctx.strings[self.graph[id].name_id],
+            DefinitionId::Enum(id) => &self.ctx.strings[self.graph[id].name_id],
+            DefinitionId::InputObject(id) => &self.ctx.strings[self.graph[id].name_id],
         });
         if ty.wrapping.inner_is_required() {
             s.push('!');

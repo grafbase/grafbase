@@ -127,8 +127,8 @@ where
             .push((to_build.logical_plan_id, blueprint))
     }
 
-    pub fn walker(&self) -> OperationWalker<'op, (), ()> {
-        self.operation.walker_with(self.schema.walker())
+    pub fn walker(&self) -> OperationWalker<'op, ()> {
+        self.operation.walker_with(self.schema)
     }
 
     fn next_response_object_set_id(&mut self, ty: SelectionSetType) -> ResponseObjectSetId {

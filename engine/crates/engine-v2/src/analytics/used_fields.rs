@@ -1,13 +1,13 @@
 use std::fmt::Write;
 
 use itertools::Itertools;
-use schema::{EntityId, FieldDefinitionId, Schema};
+use schema::{EntityDefinitionId, FieldDefinitionId, Schema};
 
 use crate::operation::Operation;
 
 pub struct UsedFields<'a> {
     schema: &'a Schema,
-    fields: Vec<(EntityId, FieldDefinitionId)>,
+    fields: Vec<(EntityDefinitionId, FieldDefinitionId)>,
 }
 
 pub(super) fn compute<'s>(schema: &'s Schema, operation: &Operation) -> UsedFields<'s> {
@@ -77,7 +77,7 @@ impl<'a> IntoIterator for UsedFields<'a> {
 
 pub struct UsedFieldsIntoIter<'a> {
     schema: &'a Schema,
-    fields: std::vec::IntoIter<(EntityId, FieldDefinitionId)>,
+    fields: std::vec::IntoIter<(EntityDefinitionId, FieldDefinitionId)>,
 }
 
 impl<'a> Iterator for UsedFieldsIntoIter<'a> {

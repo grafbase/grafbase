@@ -1,15 +1,71 @@
-use crate::sources::*;
+use std::borrow::Cow;
 
-/// A resolver is assumed to be specific to an object or an interface.
-/// So multiple fields within an interface/object can share a resolver (like federation `@key`)
-/// but different objects/interfaces MUST NOT share resolvers. To be more precise, they MUST NOT
-/// share resolver *ids*. Resolvers are grouped and planned together by their id.
-/// The only exception to this rule are resolvers on Mutation, Query and Subscription root types
-/// as they can't be mixed together in a single operation. So a resolver id can be used
-/// on both Query and Mutation fields.
-#[derive(Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-pub enum ResolverDefinition {
-    Introspection(introspection::IntrospectionResolverDefinition),
-    GraphqlRootField(graphql::RootFieldResolverDefinition),
-    GraphqlFederationEntity(graphql::FederationEntityResolverDefinition),
+use walker::Walk;
+
+use crate::{
+    FieldDefinitionId, GraphqlFederationEntityResolverDefinition, GraphqlRootFieldResolverDefinition,
+    RequiredFieldSetId, RequiredFieldSetRecord, ResolverDefinition, ResolverDefinitionRecord,
+    ResolverDefinitionVariant, Subgraph, SubgraphId,
+};
+
+impl ResolverDefinitionRecord {
+    pub fn subgraph_id(&self) -> SubgraphId {
+        match self {
+            ResolverDefinitionRecord::GraphqlFederationEntity(resolver) => {
+                SubgraphId::GraphqlEndpoint(resolver.endpoint_id)
+            }
+            ResolverDefinitionRecord::GraphqlRootField(resolver) => SubgraphId::GraphqlEndpoint(resolver.endpoint_id),
+            ResolverDefinitionRecord::Introspection => SubgraphId::Introspection,
+        }
+    }
+
+    pub fn requires(&self) -> Option<RequiredFieldSetId> {
+        match self {
+            ResolverDefinitionRecord::GraphqlFederationEntity(resolver) => Some(resolver.key_fields_id),
+            ResolverDefinitionRecord::GraphqlRootField(_) | ResolverDefinitionRecord::Introspection => None,
+        }
+    }
+}
+
+impl<'a> ResolverDefinition<'a> {
+    pub fn subgraph(&self) -> Subgraph<'a> {
+        self.as_ref().subgraph_id().walk(self.schema)
+    }
+
+    pub fn requires(&self) -> &'a RequiredFieldSetRecord {
+        self.as_ref()
+            .requires()
+            .map(|id| id.walk(self.schema).as_ref())
+            .unwrap_or(RequiredFieldSetRecord::empty())
+    }
+
+    pub fn name(&self) -> Cow<'static, str> {
+        match self.variant() {
+            ResolverDefinitionVariant::Introspection => "Introspection".into(),
+            ResolverDefinitionVariant::GraphqlRootField(resolver) => resolver.name().into(),
+            ResolverDefinitionVariant::GraphqlFederationEntity(resolver) => resolver.name().into(),
+        }
+    }
+
+    pub fn can_provide(&self, field_id: FieldDefinitionId) -> bool {
+        field_id.walk(self.schema).is_resolvable_in(self.subgraph_id())
+    }
+}
+
+impl<'a> GraphqlRootFieldResolverDefinition<'a> {
+    pub fn name(&self) -> String {
+        format!(
+            "Graphql root field resolver for subgraph '{}'",
+            self.endpoint().subgraph_name()
+        )
+    }
+}
+
+impl<'a> GraphqlFederationEntityResolverDefinition<'a> {
+    pub fn name(&self) -> String {
+        format!(
+            "Graphql federation entity resolver for subgraph '{}'",
+            self.endpoint().subgraph_name()
+        )
+    }
 }

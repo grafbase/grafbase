@@ -1,4 +1,4 @@
-use schema::{FieldDefinitionId, ProvidableFieldSet, ResolverDefinitionWalker};
+use schema::{FieldDefinitionId, ProvidableFieldSet, ResolverDefinition, Schema};
 
 use crate::operation::LogicalPlanId;
 
@@ -9,13 +9,15 @@ pub(super) enum PlanningLogic<'schema> {
     /// Having a resolver in the same group or having no resolver at all.
     SameSubgrah {
         id: LogicalPlanId,
-        resolver: ResolverDefinitionWalker<'schema>,
+        schema: &'schema Schema,
+        resolver: ResolverDefinition<'schema>,
         providable: ProvidableFieldSet,
     },
     /// Only an explicitly providable (@provide) field can be provided.
     OnlyProvidable {
         id: LogicalPlanId,
-        resolver: ResolverDefinitionWalker<'schema>,
+        schema: &'schema Schema,
+        resolver: ResolverDefinition<'schema>,
         providable: ProvidableFieldSet,
     },
 }
@@ -27,9 +29,10 @@ impl std::fmt::Display for PlanningLogic<'_> {
 }
 
 impl<'schema> PlanningLogic<'schema> {
-    pub(super) fn new(id: LogicalPlanId, resolver: ResolverDefinitionWalker<'schema>) -> Self {
+    pub(super) fn new(id: LogicalPlanId, schema: &'schema Schema, resolver: ResolverDefinition<'schema>) -> Self {
         PlanningLogic::SameSubgrah {
             id,
+            schema,
             resolver,
             providable: Default::default(),
         }
@@ -48,23 +51,26 @@ impl<'schema> PlanningLogic<'schema> {
         match self {
             PlanningLogic::SameSubgrah {
                 id,
+                schema,
                 resolver,
                 providable,
             } => {
                 let subgraph_id = resolver.subgraph_id();
                 let providable = ProvidableFieldSet::union_opt(
                     providable.get(field_id).map(|s| &s.subselection),
-                    Some(resolver.walk(field_id).provides(subgraph_id)),
+                    Some(schema.walk(field_id).provides_for_subgraph(subgraph_id)),
                 );
                 if resolver.can_provide(field_id) {
                     PlanningLogic::SameSubgrah {
                         id: *id,
+                        schema,
                         resolver: *resolver,
                         providable,
                     }
                 } else {
                     PlanningLogic::OnlyProvidable {
                         id: *id,
+                        schema,
                         resolver: *resolver,
                         providable,
                     }
@@ -72,10 +78,12 @@ impl<'schema> PlanningLogic<'schema> {
             }
             PlanningLogic::OnlyProvidable {
                 resolver,
+                schema,
                 providable,
                 id,
             } => PlanningLogic::OnlyProvidable {
                 id: *id,
+                schema,
                 resolver: *resolver,
                 providable: providable
                     .get(field_id)
@@ -85,7 +93,7 @@ impl<'schema> PlanningLogic<'schema> {
         }
     }
 
-    pub(super) fn resolver(&self) -> &ResolverDefinitionWalker<'schema> {
+    pub(super) fn resolver(&self) -> &ResolverDefinition<'schema> {
         match self {
             PlanningLogic::SameSubgrah { resolver, .. } => resolver,
             PlanningLogic::OnlyProvidable { resolver, .. } => resolver,
