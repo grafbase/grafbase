@@ -19,6 +19,7 @@ thiserror = "1.0.59"
 url = { workspace = true, features = ["serde"] }
 runtime.workspace = true
 tracing.workspace = true
+grafbase-workspace-hack.workspace = true
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 reqwest = { workspace = true, features = ["json"] }

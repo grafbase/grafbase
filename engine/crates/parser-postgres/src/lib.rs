@@ -1,3 +1,5 @@
+use grafbase_workspace_hack as _;
+
 use parser_sdl::Registry;
 use postgres_connector_types::{transport::Transport, Result};
 

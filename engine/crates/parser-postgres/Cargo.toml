@@ -24,3 +24,4 @@ Inflector = "0.11.4"
 itertools.workspace = true
 common-types.workspace = true
 indexmap.workspace = true
+grafbase-workspace-hack.workspace = true

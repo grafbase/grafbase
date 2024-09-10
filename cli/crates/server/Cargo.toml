@@ -82,6 +82,7 @@ registry-for-cache.workspace = true
 registry-upgrade.workspace = true
 registry-v2.workspace = true
 common-types = { path = "../../../engine/crates/common-types" }
+grafbase-workspace-hack.workspace = true
 
 [dev-dependencies]
 serde_json = "1.0.116"

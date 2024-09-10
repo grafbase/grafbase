@@ -16,6 +16,7 @@ query-path.path = "../query-path"
 registry-v2.workspace = true
 registry-for-cache.workspace = true
 serde.workspace = true
+grafbase-workspace-hack.workspace = true
 
 [dev-dependencies]
 engine.workspace = true

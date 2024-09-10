@@ -11,6 +11,7 @@ repository.workspace = true
 cynic-parser.workspace = true
 heck = "0.5.0"
 thiserror.workspace = true
+grafbase-workspace-hack.workspace = true
 
 [dev-dependencies]
 criterion = { version = "0.5.1", features = ["html_reports"] }

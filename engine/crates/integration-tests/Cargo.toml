@@ -67,6 +67,7 @@ tracing.workspace = true
 tracing-mock.workspace = true
 runtime = { workspace = true, features = ["test-utils"]}
 regex.workspace = true
+grafbase-workspace-hack.workspace = true
 
 [dependencies.tokio]
 version = "1.37"

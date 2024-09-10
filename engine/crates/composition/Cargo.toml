@@ -16,6 +16,7 @@ async-graphql-parser.workspace = true
 async-graphql-value.workspace = true
 indexmap.workspace = true
 itertools.workspace = true
+grafbase-workspace-hack.workspace = true
 
 [dev-dependencies]
 datatest-stable = "0.2.9"

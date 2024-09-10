@@ -13,3 +13,4 @@ publish = false
 [features]
 
 [dependencies]
+grafbase-workspace-hack.workspace = true

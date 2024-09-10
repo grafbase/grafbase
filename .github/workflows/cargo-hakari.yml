@@ -1,0 +1,50 @@
+name: cargo-hakari
+
+on:
+  workflow_dispatch:
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  what-changed:
+    runs-on: ubicloud-standard-2
+    outputs:
+      cargo: ${{ steps.paths-changed.outputs.cargo }}
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Check paths changed
+        uses: dorny/paths-filter@v3
+        id: paths-changed
+        with:
+          filters: |
+            cargo:
+              - 'Cargo.lock'
+              - 'Cargo.toml'
+              - '**/Cargo.toml'
+
+  hakari:
+    needs: [what-changed]
+    runs-on: ubicloud-standard-2
+    if: needs.what-changed.outputs.cargo == 'true'
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install cargo-hakari
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-hakari
+
+      - name: Ensure grafbase-workspace-hack is up to date
+        shell: bash
+        run: cargo hakari generate --diff
+
+      - name: Ensure all packages are using grafbase-workspace-hack
+        shell: bash
+        run: cargo hakari manage-deps --dry-run

@@ -21,4 +21,5 @@ serde_with.workspace = true
 common-types.workspace = true
 secrecy = { workspace = true, features = ["serde"] }
 url = { workspace = true, features = ["serde"] }
+grafbase-workspace-hack.workspace = true
 

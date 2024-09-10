@@ -419,6 +419,7 @@ name = "async-runtime"
 version = "0.1.0"
 dependencies = [
  "futures-util",
+ "grafbase-workspace-hack",
  "send_wrapper 0.6.0",
  "tokio",
  "wasm-bindgen-futures",
@@ -1362,6 +1363,7 @@ name = "common-types"
 version = "0.1.0"
 dependencies = [
  "bitflags 2.6.0",
+ "grafbase-workspace-hack",
  "serde",
  "serde_json",
  "serde_with",
@@ -1945,6 +1947,7 @@ dependencies = [
  "futures-channel",
  "futures-timer",
  "futures-util",
+ "grafbase-workspace-hack",
  "lru",
  "tokio",
  "tracing",
@@ -2381,6 +2384,7 @@ dependencies = [
  "getrandom 0.2.15",
  "grafbase-sql-ast",
  "grafbase-telemetry",
+ "grafbase-workspace-hack",
  "graph-entities",
  "graphql-cursor",
  "http",
@@ -2423,6 +2427,7 @@ version = "0.79.2"
 dependencies = [
  "engine-v2-config",
  "gateway-config",
+ "grafbase-workspace-hack",
  "graphql-federated-graph",
  "indexmap 2.2.6",
  "parser-sdl",
@@ -2434,6 +2439,7 @@ version = "3.0.31"
 dependencies = [
  "Inflector",
  "darling",
+ "grafbase-workspace-hack",
  "proc-macro-crate 3.1.0",
  "proc-macro2",
  "quote",
@@ -2449,6 +2455,7 @@ dependencies = [
  "common-types",
  "engine-value",
  "gateway-v2-auth-config",
+ "grafbase-workspace-hack",
  "indexmap 2.2.6",
  "postgres-connector-types",
  "serde",
@@ -2463,6 +2470,7 @@ version = "3.0.31"
 dependencies = [
  "engine-value",
  "grafbase-telemetry",
+ "grafbase-workspace-hack",
  "pest",
  "pest_derive",
  "serde",
@@ -2476,6 +2484,7 @@ dependencies = [
  "engine-parser",
  "engine-value",
  "grafbase-telemetry",
+ "grafbase-workspace-hack",
  "graph-entities",
  "http",
  "query-path",
@@ -2495,6 +2504,7 @@ dependencies = [
  "chrono",
  "engine-value",
  "fast_chemail",
+ "grafbase-workspace-hack",
  "hex",
  "insta",
  "ipnet",
@@ -2530,6 +2540,7 @@ dependencies = [
  "gateway-core",
  "gateway-v2-auth",
  "grafbase-telemetry",
+ "grafbase-workspace-hack",
  "headers",
  "hex",
  "http",
@@ -2563,6 +2574,7 @@ dependencies = [
  "engine-v2",
  "futures-util",
  "grafbase-telemetry",
+ "grafbase-workspace-hack",
  "headers",
  "http",
  "http-body",
@@ -2581,6 +2593,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "cynic-parser",
+ "grafbase-workspace-hack",
  "indoc",
  "itertools 0.13.0",
  "proc-macro2",
@@ -2597,6 +2610,7 @@ version = "0.1.0"
 dependencies = [
  "base64 0.22.1",
  "gateway-v2-auth-config",
+ "grafbase-workspace-hack",
  "graphql-federated-graph",
  "insta",
  "regex",
@@ -2613,6 +2627,7 @@ dependencies = [
 name = "engine-v2-id-derives"
 version = "0.1.0"
 dependencies = [
+ "grafbase-workspace-hack",
  "proc-macro2",
  "quote",
  "syn 2.0.72",
@@ -2624,6 +2639,7 @@ version = "0.0.0"
 dependencies = [
  "bitvec",
  "engine-v2-walker",
+ "grafbase-workspace-hack",
  "serde",
 ]
 
@@ -2637,6 +2653,7 @@ dependencies = [
  "engine-v2-id-newtypes",
  "engine-v2-walker",
  "fnv",
+ "grafbase-workspace-hack",
  "graphql-federated-graph",
  "graphql-wrapping-types",
  "hex",
@@ -2659,6 +2676,9 @@ dependencies = [
 [[package]]
 name = "engine-v2-walker"
 version = "0.1.0"
+dependencies = [
+ "grafbase-workspace-hack",
+]
 
 [[package]]
 name = "engine-validation"
@@ -2669,6 +2689,7 @@ dependencies = [
  "engine-response",
  "engine-scalars",
  "engine-value",
+ "grafbase-workspace-hack",
  "indexmap 2.2.6",
  "insta",
  "meta-type-name",
@@ -2685,6 +2706,7 @@ name = "engine-value"
 version = "3.0.31"
 dependencies = [
  "bytes",
+ "grafbase-workspace-hack",
  "indexmap 2.2.6",
  "serde",
  "serde_json",
@@ -2906,6 +2928,7 @@ dependencies = [
  "grafbase-graphql-introspection",
  "grafbase-local-common",
  "grafbase-telemetry",
+ "grafbase-workspace-hack",
  "graphql-composition",
  "graphql-federated-graph",
  "handlebars",
@@ -2943,6 +2966,7 @@ dependencies = [
  "engine-v2-axum",
  "gateway-config",
  "grafbase-telemetry",
+ "grafbase-workspace-hack",
  "graph-ref",
  "graphql-composition",
  "http",
@@ -3301,6 +3325,7 @@ dependencies = [
  "gateway-core",
  "gateway-v2-auth",
  "grafbase-telemetry",
+ "grafbase-workspace-hack",
  "graphql-extensions",
  "http",
  "postgres-connector-types",
@@ -3324,6 +3349,7 @@ dependencies = [
  "cfg-if",
  "chrono",
  "duration-str",
+ "grafbase-workspace-hack",
  "http",
  "indoc",
  "insta",
@@ -3360,6 +3386,7 @@ dependencies = [
  "futures-util",
  "gateway-v2-auth",
  "grafbase-telemetry",
+ "grafbase-workspace-hack",
  "headers",
  "hex",
  "http",
@@ -3391,6 +3418,7 @@ dependencies = [
  "futures-util",
  "gateway-v2-auth-config",
  "getrandom 0.2.15",
+ "grafbase-workspace-hack",
  "http",
  "jwt-compact",
  "jwt-verifier",
@@ -3409,6 +3437,7 @@ name = "gateway-v2-auth-config"
 version = "0.1.0"
 dependencies = [
  "common-types",
+ "grafbase-workspace-hack",
  "secrecy",
  "serde",
  "serde_with",
@@ -3531,6 +3560,7 @@ version = "0.1.1"
 dependencies = [
  "clap",
  "colored",
+ "grafbase-workspace-hack",
  "graphql-lint",
  "thiserror",
 ]
@@ -3566,6 +3596,7 @@ dependencies = [
  "grafbase-local-backend",
  "grafbase-local-common",
  "grafbase-local-server",
+ "grafbase-workspace-hack",
  "graph-ref",
  "graphql-lint",
  "graphql-mocks",
@@ -3626,6 +3657,7 @@ dependencies = [
  "bollard",
  "ctor",
  "futures-util",
+ "grafbase-workspace-hack",
  "insta",
  "reqwest",
  "serde_json",
@@ -3655,6 +3687,7 @@ dependencies = [
  "gateway-config",
  "grafbase-graphql-introspection",
  "grafbase-telemetry",
+ "grafbase-workspace-hack",
  "graph-ref",
  "graphql-composition",
  "graphql-mocks",
@@ -3687,6 +3720,7 @@ dependencies = [
  "cynic",
  "cynic-introspection",
  "cynic-parser",
+ "grafbase-workspace-hack",
  "indoc",
  "reqwest",
  "serde",
@@ -3704,6 +3738,7 @@ dependencies = [
  "dirs",
  "grafbase-local-common",
  "grafbase-local-server",
+ "grafbase-workspace-hack",
  "http-cache-reqwest",
  "ignore",
  "reqwest",
@@ -3732,6 +3767,7 @@ dependencies = [
  "derivative",
  "dirs",
  "expect-test",
+ "grafbase-workspace-hack",
  "rudderanalytics",
  "serde",
  "serde_json",
@@ -3761,6 +3797,7 @@ dependencies = [
  "futures-util",
  "gateway",
  "grafbase-local-common",
+ "grafbase-workspace-hack",
  "graphql-federated-graph",
  "graphql-schema-validation",
  "handlebars",
@@ -3819,6 +3856,7 @@ dependencies = [
  "chrono",
  "either",
  "gateway-config",
+ "grafbase-workspace-hack",
  "headers",
  "hex",
  "http",
@@ -3845,10 +3883,162 @@ dependencies = [
 ]
 
 [[package]]
+name = "grafbase-workspace-hack"
+version = "0.1.0"
+dependencies = [
+ "Inflector",
+ "ahash 0.8.11",
+ "aho-corasick",
+ "anyhow",
+ "arrayvec 0.7.4",
+ "ascii 1.1.0",
+ "async-graphql",
+ "axum",
+ "axum-core",
+ "base16ct",
+ "base64 0.22.1",
+ "bitflags 2.6.0",
+ "bstr",
+ "bumpalo",
+ "byteorder",
+ "bytes",
+ "cc",
+ "chrono",
+ "ciborium",
+ "clap",
+ "clap_builder",
+ "combine 4.6.7",
+ "concurrent-queue",
+ "console",
+ "crc32fast",
+ "criterion",
+ "crossbeam-queue",
+ "crossbeam-utils",
+ "cynic-codegen",
+ "cynic-parser",
+ "deadpool 0.12.1",
+ "deadpool-runtime",
+ "der",
+ "deranged",
+ "digest",
+ "ecdsa",
+ "either",
+ "elliptic-curve",
+ "fastrand 2.1.0",
+ "ff",
+ "flate2",
+ "futures",
+ "futures-channel",
+ "futures-core",
+ "futures-executor",
+ "futures-io",
+ "futures-sink",
+ "futures-task",
+ "futures-timer",
+ "futures-util",
+ "generic-array",
+ "getrandom 0.2.15",
+ "gimli",
+ "group",
+ "hashbrown 0.12.3",
+ "hashbrown 0.14.5",
+ "hex",
+ "hmac",
+ "hyper",
+ "hyper-rustls",
+ "hyper-util",
+ "iana-time-zone",
+ "indexmap 2.2.6",
+ "insta",
+ "jwt-compact",
+ "lazy_static",
+ "libc",
+ "libz-sys",
+ "linux-raw-sys",
+ "log",
+ "lru",
+ "memchr",
+ "miette 7.2.0",
+ "miniz_oxide",
+ "mio 0.8.11",
+ "num-bigint-dig",
+ "num-integer",
+ "num-traits",
+ "object",
+ "p256",
+ "percent-encoding",
+ "phf",
+ "phf_shared",
+ "pkcs1",
+ "pkcs8",
+ "proc-macro2",
+ "prost",
+ "ptr_meta",
+ "quote",
+ "rand 0.8.5",
+ "rand_core 0.6.4",
+ "regex",
+ "regex-automata 0.4.7",
+ "regex-syntax 0.8.4",
+ "reqwest",
+ "rsa",
+ "rust_decimal",
+ "rustix",
+ "rustls 0.23.12",
+ "rustls-pki-types",
+ "rustls-webpki",
+ "sec1",
+ "semver",
+ "serde",
+ "serde_json",
+ "serde_with",
+ "sha2",
+ "signature",
+ "similar",
+ "smallvec",
+ "socket2",
+ "spin",
+ "spki",
+ "stable_deref_trait",
+ "subtle",
+ "syn 1.0.109",
+ "syn 2.0.72",
+ "sync_wrapper",
+ "time",
+ "tokio",
+ "tokio-postgres",
+ "tokio-rustls 0.26.0",
+ "tokio-stream",
+ "tokio-util",
+ "toml_datetime",
+ "tower",
+ "tower-http",
+ "tracing",
+ "tracing-core",
+ "tracing-log",
+ "tracing-subscriber",
+ "triomphe",
+ "tungstenite",
+ "ulid",
+ "unicode-bidi",
+ "unicode-normalization",
+ "url",
+ "uuid",
+ "wasmparser",
+ "web-sys",
+ "winapi",
+ "windows-sys 0.48.0",
+ "windows-sys 0.52.0",
+ "zerocopy",
+ "zeroize",
+]
+
+[[package]]
 name = "graph-entities"
 version = "0.1.0"
 dependencies = [
  "engine-value",
+ "grafbase-workspace-hack",
  "internment",
  "serde",
  "serde_json",
@@ -3858,6 +4048,9 @@ dependencies = [
 [[package]]
 name = "graph-ref"
 version = "0.79.2"
+dependencies = [
+ "grafbase-workspace-hack",
+]
 
 [[package]]
 name = "graphql-composition"
@@ -3866,6 +4059,7 @@ dependencies = [
  "async-graphql-parser",
  "async-graphql-value",
  "datatest-stable",
+ "grafbase-workspace-hack",
  "graphql-federated-graph",
  "indexmap 2.2.6",
  "itertools 0.13.0",
@@ -3877,6 +4071,7 @@ dependencies = [
 name = "graphql-cursor"
 version = "0.79.2"
 dependencies = [
+ "grafbase-workspace-hack",
  "serde",
  "serde_with",
 ]
@@ -3889,6 +4084,7 @@ dependencies = [
  "common-types",
  "engine",
  "engine-value",
+ "grafbase-workspace-hack",
  "registry-v2",
  "runtime",
  "tracing",
@@ -3901,6 +4097,7 @@ version = "0.4.0"
 dependencies = [
  "cynic-parser",
  "expect-test",
+ "grafbase-workspace-hack",
  "graphql-wrapping-types",
  "indexmap 2.2.6",
  "indoc",
@@ -3914,6 +4111,7 @@ version = "0.1.3"
 dependencies = [
  "criterion",
  "cynic-parser",
+ "grafbase-workspace-hack",
  "heck 0.5.0",
  "thiserror",
 ]
@@ -3928,6 +4126,7 @@ dependencies = [
  "axum",
  "crossbeam-queue",
  "futures",
+ "grafbase-workspace-hack",
  "headers",
  "http",
  "serde",
@@ -3961,6 +4160,7 @@ version = "0.2.0"
 dependencies = [
  "cynic-parser",
  "datatest-stable",
+ "grafbase-workspace-hack",
  "miette 7.2.0",
  "serde",
  "serde_json",
@@ -3975,6 +4175,7 @@ dependencies = [
  "async-graphql-value",
  "bitflags 2.6.0",
  "datatest-stable",
+ "grafbase-workspace-hack",
  "miette 7.2.0",
  "similar",
 ]
@@ -3983,6 +4184,7 @@ dependencies = [
 name = "graphql-wrapping-types"
 version = "0.1.0"
 dependencies = [
+ "grafbase-workspace-hack",
  "serde",
 ]
 
@@ -4699,6 +4901,7 @@ dependencies = [
  "gateway-v2-auth",
  "grafbase-graphql-introspection",
  "grafbase-telemetry",
+ "grafbase-workspace-hack",
  "graphql-composition",
  "graphql-federated-graph",
  "graphql-mocks",
@@ -4955,6 +5158,7 @@ dependencies = [
  "chrono",
  "ctor",
  "futures-util",
+ "grafbase-workspace-hack",
  "json_dotpath",
  "jwt-compact",
  "reqwest",
@@ -5363,6 +5567,9 @@ dependencies = [
 [[package]]
 name = "meta-type-name"
 version = "0.1.0"
+dependencies = [
+ "grafbase-workspace-hack",
+]
 
 [[package]]
 name = "miette"
@@ -6060,6 +6267,7 @@ dependencies = [
  "async-graphql-value",
  "datatest-stable",
  "expect-test",
+ "grafbase-workspace-hack",
  "graphql-schema-diff",
  "miette 7.2.0",
  "similar",
@@ -6071,6 +6279,7 @@ version = "0.79.2"
 dependencies = [
  "anyhow",
  "expect-test",
+ "grafbase-workspace-hack",
  "graphql-parser 0.4.0 (git+https://github.com/graphql-rust/graphql-parser)",
  "indoc",
 ]
@@ -6231,6 +6440,7 @@ dependencies = [
  "cynic-introspection",
  "engine",
  "engine-parser",
+ "grafbase-workspace-hack",
  "graphql-schema-validation",
  "http",
  "insta",
@@ -6253,6 +6463,7 @@ dependencies = [
  "engine",
  "engine-scalars",
  "engine-value",
+ "grafbase-workspace-hack",
  "graphql-schema-validation",
  "indexmap 2.2.6",
  "insta",
@@ -6283,6 +6494,7 @@ version = "0.1.0"
 dependencies = [
  "Inflector",
  "common-types",
+ "grafbase-workspace-hack",
  "indexmap 2.2.6",
  "indoc",
  "itertools 0.13.0",
@@ -6311,6 +6523,7 @@ dependencies = [
  "engine-value",
  "futures",
  "gateway-config",
+ "grafbase-workspace-hack",
  "if_chain",
  "indexmap 2.2.6",
  "indoc",
@@ -6343,6 +6556,7 @@ dependencies = [
  "common-types",
  "cynic-parser",
  "engine-value",
+ "grafbase-workspace-hack",
  "graph-entities",
  "headers",
  "http",
@@ -6639,6 +6853,7 @@ dependencies = [
  "deadpool-postgres",
  "flexbuffers",
  "futures",
+ "grafbase-workspace-hack",
  "graphql-cursor",
  "indexmap 2.2.6",
  "itertools 0.13.0",
@@ -6910,6 +7125,7 @@ dependencies = [
 name = "query-path"
 version = "0.1.0"
 dependencies = [
+ "grafbase-workspace-hack",
  "im",
  "internment",
  "serde",
@@ -7304,6 +7520,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "engine-id-newtypes",
+ "grafbase-workspace-hack",
  "graphql-wrapping-types",
  "indexmap 2.2.6",
  "registry-v2",
@@ -7316,6 +7533,7 @@ name = "registry-upgrade"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "grafbase-workspace-hack",
  "graphql-wrapping-types",
  "indexmap 2.2.6",
  "registry-for-cache",
@@ -7332,6 +7550,7 @@ dependencies = [
  "derivative",
  "engine-value",
  "gateway-v2-auth-config",
+ "grafbase-workspace-hack",
  "indexmap 2.2.6",
  "indoc",
  "petgraph",
@@ -7352,6 +7571,7 @@ dependencies = [
  "engine-value",
  "gateway-config",
  "gateway-v2-auth-config",
+ "grafbase-workspace-hack",
  "indexmap 2.2.6",
  "postgres-connector-types",
  "serde",
@@ -7366,6 +7586,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "cynic-parser",
+ "grafbase-workspace-hack",
  "indexmap 2.2.6",
  "indoc",
  "itertools 0.13.0",
@@ -7626,6 +7847,7 @@ dependencies = [
  "derive_more",
  "futures-util",
  "grafbase-telemetry",
+ "grafbase-workspace-hack",
  "headers",
  "http",
  "postgres-connector-types",
@@ -7656,6 +7878,7 @@ dependencies = [
  "gateway-config",
  "governor",
  "grafbase-telemetry",
+ "grafbase-workspace-hack",
  "graphql-ws-client",
  "http",
  "mini-moka",
@@ -7681,6 +7904,7 @@ version = "0.1.0"
 dependencies = [
  "async-trait",
  "futures",
+ "grafbase-workspace-hack",
  "runtime",
  "thiserror",
 ]
@@ -7975,6 +8199,7 @@ name = "serde-dynamic-string"
 version = "0.79.2"
 dependencies = [
  "ascii 1.1.0",
+ "grafbase-workspace-hack",
  "insta",
  "itertools 0.13.0",
  "regex",
@@ -9509,6 +9734,7 @@ dependencies = [
  "datatest-stable",
  "engine-parser",
  "engine-value",
+ "grafbase-workspace-hack",
  "miette 7.2.0",
  "similar",
  "swc_common",
@@ -9746,6 +9972,7 @@ dependencies = [
  "expect-test",
  "gateway-config",
  "grafbase-telemetry",
+ "grafbase-workspace-hack",
  "http",
  "indoc",
  "insta",

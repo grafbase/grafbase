@@ -10,6 +10,7 @@ repository.workspace = true
 
 [dependencies]
 serde.workspace = true
+grafbase-workspace-hack.workspace = true
 
 [lints]
 workspace = true

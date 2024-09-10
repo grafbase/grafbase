@@ -12,6 +12,7 @@ repository.workspace = true
 [dependencies]
 serde.workspace = true
 serde_with = { workspace = true, features = ["base64"] }
+grafbase-workspace-hack.workspace = true
 
 [lints]
 workspace = true

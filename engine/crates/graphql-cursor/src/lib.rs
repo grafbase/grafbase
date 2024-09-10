@@ -1,3 +1,5 @@
+use grafbase_workspace_hack as _;
+
 use serde::{Deserialize, Serialize};
 use serde_with::{
     base64::{Base64, UrlSafe},

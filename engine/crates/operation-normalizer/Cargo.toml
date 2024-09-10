@@ -12,6 +12,7 @@ repository.workspace = true
 [dependencies]
 anyhow = "1.0.82"
 graphql-parser = { git = "https://github.com/graphql-rust/graphql-parser", version = "0.4.0" }
+grafbase-workspace-hack.workspace = true
 
 [lints]
 workspace = true

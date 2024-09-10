@@ -14,6 +14,7 @@ workspace = true
 
 [dependencies]
 futures-util.workspace = true
+grafbase-workspace-hack.workspace = true
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 wasm-bindgen-futures = { version = "0.4.42" }

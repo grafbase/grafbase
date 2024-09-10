@@ -209,6 +209,14 @@ jobs:
         run: |
           echo ${{ needs.what-changed.outputs.rust }}
 
+      - uses: Swatinem/rust-cache@v2
+        if: ${{ !startsWith(github.head_ref, 'renovate-') }}
+        with:
+          # Our windows & mac runners are hosted by github, so using github for
+          # their cache makes sense.  Buildjet is faster (and offers more storage) for
+          # others though.
+          cache-provider: ${{ contains(matrix.platform.target, 'linux') && 'buildjet' || 'github' }}
+
       - name: Install rust
         uses: ./.github/actions/install-rust
         with:

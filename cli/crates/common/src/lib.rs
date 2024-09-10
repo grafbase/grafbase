@@ -4,6 +4,8 @@ The common crate provides shared functionality for Grafbase developer tools
 
 #![forbid(unsafe_code)]
 
+use grafbase_workspace_hack as _;
+
 #[cfg(not(test))]
 use expect_test as _;
 

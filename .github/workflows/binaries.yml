@@ -72,8 +72,6 @@ jobs:
         uses: ./.github/actions/init_rust_job
         with:
           platform: linux
-          cache-key: ${{ runner.os }}-${{ runner.arch }}-cargo-dev-${{ hashFiles('Cargo.lock') }}
-          restore-key: ${{ runner.os }}-${{ runner.arch }}-cargo-dev
 
       - name: Prepare Grafbase assets
         uses: ./.github/actions/cli_assets
@@ -94,8 +92,6 @@ jobs:
         uses: ./.github/actions/init_rust_job
         with:
           platform: linux
-          cache-key: ${{ runner.os }}-${{ runner.arch }}-cargo-dev-${{ hashFiles('Cargo.lock') }}
-          restore-key: ${{ runner.os }}-${{ runner.arch }}-cargo-dev
 
       - name: Prepare Grafbase assets
         uses: ./.github/actions/cli_assets
@@ -131,8 +127,6 @@ jobs:
         uses: ./.github/actions/init_rust_job
         with:
           platform: linux
-          cache-key: ${{ runner.os }}-${{ runner.arch }}-cargo-build-${{ matrix.package }}-${{ hashFiles('Cargo.lock') }}
-          restore-key: ${{ runner.os }}-${{ runner.arch }}-cargo-build
 
       - name: Build assets
         if: ${{ matrix.package != 'grafbase-gateway' }}
@@ -184,8 +178,6 @@ jobs:
         uses: ./.github/actions/init_rust_job
         with:
           platform: linux
-          cache-key: ${{ runner.os }}-${{ runner.arch }}-cargo-dev-${{ hashFiles('Cargo.lock') }}
-          restore-key: ${{ runner.os }}-${{ runner.arch }}-cargo-dev
 
       - name: Docker tests
         run: |
@@ -275,8 +267,6 @@ jobs:
         uses: ./.github/actions/init_rust_job
         with:
           platform: ${{ matrix.archs.platform }}
-          cache-key: ${{ runner.os }}-${{ runner.arch }}-cargo-release-${{ hashFiles('Cargo.lock') }}
-          restore-key: ${{ runner.os }}-${{ runner.arch }}-cargo-release
 
       - name: Prepare Grafbase assets
         uses: ./.github/actions/cli_assets
@@ -391,8 +381,6 @@ jobs:
         uses: ./.github/actions/init_rust_job
         with:
           platform: windows
-          cache-key: ${{ runner.os }}-${{ runner.arch }}-x86_64-pc-windows-msvc-cargo-release-${{ hashFiles('Cargo.lock') }}
-          restore-key: ${{ runner.os }}-${{ runner.arch }}-cargo-release
 
       - name: Prepare Grafbase assets
         uses: ./.github/actions/cli_assets
@@ -447,8 +435,6 @@ jobs:
         uses: ./.github/actions/init_rust_job
         with:
           platform: macos
-          cache-key: ${{ runner.os }}-${{ runner.arch }}-${{ matrix.target }}-cargo-release-${{ hashFiles('Cargo.lock') }}
-          restore-key: ${{ runner.os }}-${{ runner.arch }}-cargo-release
 
       - name: Prepare Grafbase assets
         uses: ./.github/actions/cli_assets

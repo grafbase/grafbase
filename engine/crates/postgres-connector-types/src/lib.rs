@@ -1,3 +1,5 @@
+use grafbase_workspace_hack as _;
+
 pub mod cursor;
 pub mod database_definition;
 pub mod error;

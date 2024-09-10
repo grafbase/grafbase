@@ -33,6 +33,7 @@ federated-graph.workspace = true
 wrapping.workspace = true
 regex.workspace = true
 serde_regex = "1.1.0"
+grafbase-workspace-hack.workspace = true
 
 [dev-dependencies]
 insta.workspace = true

@@ -61,6 +61,7 @@ walker = {path = "./walker", package = "engine-v2-walker" }
 engine = { path = "../engine" }
 runtime.workspace = true
 rand = "0.8.5"
+grafbase-workspace-hack.workspace = true
 
 [dev-dependencies]
 pretty_assertions = "1"

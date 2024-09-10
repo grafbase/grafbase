@@ -35,6 +35,7 @@ web-time.workspace = true
 
 postgres-connector-types = { path = "../postgres-connector-types" }
 common-types.workspace = true
+grafbase-workspace-hack.workspace = true
 
 [features]
 test-utils = []

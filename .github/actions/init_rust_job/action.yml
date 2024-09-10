@@ -2,12 +2,6 @@ name: CLI rust job init
 description: Base steps for CLI jobs
 
 inputs:
-  cache-key:
-    required: true
-    description: The cache key used on buildjet/cache
-  restore-key:
-    required: true
-    description: A cache key prefix to fall back on if the above isnt found
   platform:
     type: choice
     description: Target platform to use when installing nextest
@@ -20,16 +14,6 @@ inputs:
 runs:
   using: 'composite'
   steps:
-    - name: Cargo cache
-      uses: actions/cache@v4
-      continue-on-error: false
-      with:
-        key: ${{ inputs.cache-key }}
-        restore-keys: ${{ inputs.restore-key }}
-        path: |
-          ~/.cargo/
-          !~/.cargo/registry/src
-
     - name: Extract the Rust version to use from the `rust-toolchain.toml` file
       shell: bash
       run: |

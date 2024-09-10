@@ -28,6 +28,9 @@
 //! The list_wrapping is stored from innermost to outermost and use the start and end
 //! as the positions within the list_wrapping bits. Acting like a simplified fixed capacity VecDeque.
 //! For simplicity of bit shifts the list wrapping is stored from right to left.
+
+use grafbase_workspace_hack as _;
+
 const START_MASK: u32 = 0b0111_1100_0000_0000_0000_0000_0000_0000;
 const START_SHIFT: u32 = START_MASK.trailing_zeros();
 const END_MASK: u32 = 0b0000_0011_1110_0000_0000_0000_0000_0000;

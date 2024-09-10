@@ -1,3 +1,5 @@
+use grafbase_workspace_hack as _;
+
 pub mod stream;
 
 use core::future::Future;

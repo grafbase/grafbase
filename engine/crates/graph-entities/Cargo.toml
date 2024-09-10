@@ -19,3 +19,4 @@ internment.workspace = true
 serde_json.workspace = true
 serde.workspace = true
 thiserror.workspace = true
+grafbase-workspace-hack.workspace = true
