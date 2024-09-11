@@ -12,7 +12,9 @@ impl<'de> DeserializeSeed<'de> for ScalarTypeSeed {
     where
         D: serde::Deserializer<'de>,
     {
-        match self.0 {
+        let ScalarTypeSeed(ty) = self;
+
+        match ty {
             ScalarType::String => String::deserialize(deserializer).map(Into::into),
             ScalarType::Float => f64::deserialize(deserializer).map(Into::into),
             ScalarType::Int => i32::deserialize(deserializer).map(Into::into),

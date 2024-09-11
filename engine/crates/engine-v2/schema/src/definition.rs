@@ -29,7 +29,6 @@ impl<'a> Definition<'a> {
     pub fn scalar_type(&self) -> Option<ScalarType> {
         match self {
             Definition::Scalar(scalar) => Some(scalar.ty),
-            Definition::Enum(_) => Some(ScalarType::String),
             _ => None,
         }
     }

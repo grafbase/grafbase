@@ -2,8 +2,8 @@ use std::num::NonZero;
 
 use id_newtypes::IdRange;
 use schema::{
-    FieldDefinitionId, InterfaceDefinitionId, ObjectDefinitionId, RequiredFieldId, ScalarType, UnionDefinitionId,
-    Wrapping,
+    EnumDefinitionId, FieldDefinitionId, InterfaceDefinitionId, ObjectDefinitionId, RequiredFieldId, ScalarType,
+    UnionDefinitionId, Wrapping,
 };
 
 use crate::operation::FieldId;
@@ -43,6 +43,7 @@ pub(crate) struct FieldShape {
 #[derive(Debug, Clone, Copy, serde::Serialize, serde::Deserialize)]
 pub(crate) enum Shape {
     Scalar(ScalarType),
+    Enum(EnumDefinitionId),
     ConcreteObject(ConcreteObjectShapeId),
     PolymorphicObject(PolymorphicObjectShapeId),
 }

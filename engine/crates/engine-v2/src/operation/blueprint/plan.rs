@@ -1,7 +1,7 @@
 use id_newtypes::IdRange;
 use im::HashMap;
 use itertools::Itertools;
-use schema::{EntityDefinitionId, FieldDefinition, ObjectDefinitionId, Schema};
+use schema::{Definition, EntityDefinitionId, FieldDefinition, ObjectDefinitionId, Schema};
 
 use crate::{
     operation::{
@@ -122,7 +122,7 @@ where
 
         let shape = self.collect_object_shapes(ty, maybe_response_object_set_id, plan_field_ids);
         match shape {
-            Shape::Scalar(_) => {}
+            Shape::Scalar(_) | Shape::Enum(_) => {}
             Shape::ConcreteObject(id) => {
                 if matches!(
                     self.blueprint[id].identifier,
@@ -329,6 +329,8 @@ where
             .min_by_key(|field| field.response_edge())
             .expect("At least one field");
         let ty = definition.ty();
+        let ty_definition = ty.definition();
+
         FieldShape {
             expected_key: self.operation.response_keys.ensure_safety(response_key),
             edge: field.response_edge(),
@@ -337,12 +339,18 @@ where
                 .iter()
                 .find_map(|field| self.plan.field_to_solved_requirement[usize::from(field.id())]),
             definition_id: definition.id(),
-            shape: match ty.definition().scalar_type() {
+            shape: match ty_definition.scalar_type() {
                 Some(scalar) => Shape::Scalar(scalar),
-                None => self.create_object_shape(
-                    SelectionSetType::maybe_from(ty.as_ref().definition_id).unwrap(),
-                    fields.iter().map(|field| field.selection_set().unwrap().id()).collect(),
-                ),
+                None => {
+                    if let Definition::Enum(enum_definition) = ty_definition {
+                        Shape::Enum(enum_definition.id())
+                    } else {
+                        self.create_object_shape(
+                            SelectionSetType::maybe_from(ty.as_ref().definition_id).unwrap(),
+                            fields.iter().map(|field| field.selection_set().unwrap().id()).collect(),
+                        )
+                    }
+                }
             },
             wrapping: ty.wrapping,
         }

@@ -5,6 +5,7 @@
 
 // mod caching;
 mod empty_config;
+mod enums;
 mod errors;
 mod fragments;
 mod headers;
@@ -60,9 +61,9 @@ fn only_typename() {
 
         engine
             .post(
-                r#"query { 
-                    pullRequestsAndIssues(filter: { search: "1" }) { __typename } 
-                    allBotPullRequests { __typename } 
+                r#"query {
+                    pullRequestsAndIssues(filter: { search: "1" }) { __typename }
+                    allBotPullRequests { __typename }
                 }"#,
             )
             .await

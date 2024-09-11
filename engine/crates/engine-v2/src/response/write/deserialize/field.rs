@@ -3,7 +3,7 @@ use serde::de::DeserializeSeed;
 
 use super::{
     object::{ConcreteObjectSeed, PolymorphicObjectSeed},
-    ListSeed, NullableSeed, ScalarTypeSeed, SeedContext,
+    EnumValueSeed, ListSeed, NullableSeed, ScalarTypeSeed, SeedContext,
 };
 use crate::response::{ErrorCode, FieldShape, GraphqlError, ResponseValue, Shape};
 
@@ -38,6 +38,7 @@ impl<'de, 'ctx, 'parent> DeserializeSeed<'de> for FieldSeed<'ctx, 'parent> {
         } else if self.wrapping.inner_is_required() {
             match self.field.shape {
                 Shape::Scalar(ty) => ScalarTypeSeed(ty).deserialize(deserializer),
+                Shape::Enum(id) => EnumValueSeed(self.ctx, id).deserialize(deserializer),
                 Shape::ConcreteObject(shape_id) => {
                     ConcreteObjectSeed::new(self.ctx, shape_id).deserialize(deserializer)
                 }
@@ -51,6 +52,12 @@ impl<'de, 'ctx, 'parent> DeserializeSeed<'de> for FieldSeed<'ctx, 'parent> {
                     ctx: self.ctx,
                     field_id: self.field.id,
                     seed: ScalarTypeSeed(ty),
+                }
+                .deserialize(deserializer),
+                Shape::Enum(enum_definition_id) => NullableSeed {
+                    ctx: self.ctx,
+                    field_id: self.field.id,
+                    seed: EnumValueSeed(self.ctx, enum_definition_id),
                 }
                 .deserialize(deserializer),
                 Shape::ConcreteObject(shape_id) => NullableSeed {

@@ -17,6 +17,7 @@ use crate::{
 };
 
 mod ctx;
+mod r#enum;
 mod field;
 mod key;
 mod list;
@@ -24,6 +25,7 @@ mod nullable;
 mod object;
 mod scalar;
 
+use self::r#enum::*;
 use ctx::*;
 use list::ListSeed;
 use nullable::NullableSeed;
