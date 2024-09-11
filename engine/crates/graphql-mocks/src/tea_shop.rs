@@ -93,30 +93,42 @@ impl Default for Data {
                 Tea {
                     id: 0,
                     name: "Earl Grey".to_string(),
+                    style: Some(TeaStyle::Black),
                 },
                 Tea {
                     id: 1,
                     name: "Darjeeling".to_string(),
+                    style: Some(TeaStyle::Black),
                 },
                 Tea {
                     id: 2,
                     name: "Assam".to_string(),
+                    style: Some(TeaStyle::Black),
                 },
                 Tea {
                     id: 3,
                     name: "Ceylon".to_string(),
+                    style: Some(TeaStyle::Black),
                 },
                 Tea {
                     id: 4,
                     name: "Matcha".to_string(),
+                    style: Some(TeaStyle::Green),
                 },
                 Tea {
                     id: 5,
                     name: "Sencha".to_string(),
+                    style: Some(TeaStyle::Green),
                 },
                 Tea {
                     id: 6,
                     name: "Gyokuro".to_string(),
+                    style: Some(TeaStyle::Green),
+                },
+                Tea {
+                    id: 7,
+                    name: "Tuóchá".to_string(),
+                    style: Some(TeaStyle::Puer),
                 },
             ],
         }
@@ -130,6 +142,14 @@ pub struct Query;
 struct Tea {
     id: usize,
     name: String,
+    style: Option<TeaStyle>,
+}
+
+/// A type with a _required_ style, to test nullability bubbling.
+#[derive(SimpleObject, Clone)]
+struct StyleContainer {
+    name: String,
+    style: TeaStyle,
 }
 
 #[derive(Clone)]
@@ -212,4 +232,28 @@ impl Query {
     async fn users(&self, ctx: &Context<'_>) -> Vec<User> {
         ctx.data_unchecked::<Data>().users.clone()
     }
+
+    async fn recommended_teas(&self, ctx: &Context<'_>) -> Vec<Tea> {
+        let data = ctx.data_unchecked::<Data>();
+        vec![data.teas[0].clone(), data.teas[7].clone()]
+    }
+
+    async fn tea_with_inaccessible_style(&self) -> Option<StyleContainer> {
+        Some(StyleContainer {
+            name: "Pu'er".to_string(),
+            style: TeaStyle::Puer,
+        })
+    }
+}
+
+#[derive(async_graphql::Enum, Clone, Copy, Debug, PartialEq, Eq)]
+enum TeaStyle {
+    White,
+    Oolong,
+    Green,
+    Yellow,
+    Black,
+    #[graphql(inaccessible)]
+    Puer,
+    PostFermented,
 }
