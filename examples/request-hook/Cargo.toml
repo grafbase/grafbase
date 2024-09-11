@@ -1,0 +1,22 @@
+[workspace]
+resolver = "2"
+members = [
+  "request-hook", "subgraph"
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+homepage = "https://grafbase.com"
+keywords = ["grafbase"]
+repository = "https://github.com/grafbase/grafbase"
+
+[profile.release]
+codegen-units = 1
+opt-level = "s"
+debug = false
+strip = true
+lto = true
+
+[workspace.dependencies]
