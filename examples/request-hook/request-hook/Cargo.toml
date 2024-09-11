@@ -1,0 +1,15 @@
+[package]
+name = "request-hook"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+wit-bindgen-rt = { version = "0.31.0", features = ["bitflags"] }
+
+[lib]
+crate-type = ["cdylib"]
+
+[package.metadata.component]
+package = "component:request-hook"
+
+[package.metadata.component.dependencies]

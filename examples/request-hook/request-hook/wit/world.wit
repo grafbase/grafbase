@@ -1,0 +1,363 @@
+package component:grafbase;
+
+interface types {
+    // Error thrown when accessing the headers. Headers names or values
+    // must not contain any special characters.
+    enum header-error {
+        // the given header value is not valid
+        invalid-header-value,
+        // the given header name is not valid
+        invalid-header-name,
+    }
+
+    // Error variant sent if failing to write to access log.
+    variant log-error {
+        // The log channel is over capacity. The data is returned to the caller.
+        channel-full(list<u8>),
+        // The channel is closed.
+        channel-closed,
+    }
+    
+    // A context object is available in all hooks during the whole request
+    // lifecycle. It can be used to store custom data in one hook and make it
+    // available in the hooks executed later in the request.
+    //
+    // This resource provides mutable access to the context and is available only
+    // in the gateway request hook.
+    resource context {
+        // Fetches a context value with the given name, if existing.
+        get: func(name: string) -> option<string>;
+        // Stores a context value with the given name.
+        set: func(name: string, value: string);
+        // Deletes a context value with the given name. Returns the value
+        // if existing.
+        delete: func(name: string) -> option<string>;
+    }
+
+    // The context as a read-only object.
+    resource shared-context {
+        // Fetches a context value with the given name, if existing.
+        get: func(name: string) -> option<string>;
+        // Sends the data to the access log.
+        log-access: func(data: list<u8>) -> result<_, log-error>;
+        // Gets the current trace-id.
+        trace-id: func() -> string;
+    }
+
+    // Provides access to the request headers. Available in a mutable form
+    // only in the gateway request hook.
+    resource headers {
+        // Gets a header value with the given name.
+        get: func(name: string) -> option<string>;
+        // Sets the header value with the given name. Returns an error if the given name
+        // is not a valid header name.
+        set: func(name: string, value: string) -> result<_, header-error>;
+        // Deletes a header value with the given name.
+        delete: func(name: string) -> option<string>;
+    }
+
+    // Defines an edge in a type
+    record edge-definition {
+        // The name of the type the edge is part of
+        parent-type-name: string,
+        // The name of the field of this edge
+        field-name: string,
+    }
+
+    // Defines a node
+    record node-definition {
+        // The name of the type of this node
+        type-name: string,
+    }
+
+    // Info about an executed HTTP request.
+    record executed-http-request {
+        // The request method.
+        method: string,
+        // The request URL.
+        url: string,
+        // The response status code.
+        status-code: u16,
+        // The outputs of executed on-operation-response hooks for every operation of the request.
+        on-operation-response-outputs: list<list<u8>>,
+    }
+
+    record field-error {
+        // The number of errors.
+        count: u64,
+        // The returned data is null.
+        data-is-null: bool,
+    }
+
+    record request-error {
+        // The number of errors.
+        count: u64,
+    }
+
+    variant graphql-response-status {
+        // Request was successful.
+        success,
+        // A field returned an error.
+        field-error(field-error),
+        // A request error.
+        request-error(request-error),
+        // The request was refused.
+        refused-request,
+    }
+
+    // Info about an executed operation.
+    record executed-operation {
+        // The name of the operation, if present.
+        name: option<string>,
+        // The operation document in sanitized form.
+        document: string,
+        // The time taken in preparing.
+        prepare-duration-ms: u64,
+        // True, if the plan was taken from cache.
+        cached-plan: bool,
+        // Time in milliseconds spent executing the operation.
+        duration-ms: u64,
+        // The status of the operation.
+        status: graphql-response-status,
+        // If queried any subgraphs, the outputs of on-subgraph-response hooks.
+        // Will be empty if no subgraphs were called.
+        on-subgraph-response-outputs: list<list<u8>>,
+    }
+    
+    // Information on a response
+    record subgraph-response {
+        // The milliseconds it took to connect to the host.
+        connection-time-ms: u64,
+        // The milliseconds it took for the host to respond with data.
+        response-time-ms: u64,
+        // The response status code
+        status-code: u16
+    }
+
+    // Cache status of a subgraph call.
+    enum cache-status {
+        // All data fetched from cache.
+        hit,
+        // Some data fetched from cache.
+        partial-hit,
+        // Cache miss
+        miss,
+    }
+
+    // Subgraph response variant.
+    variant subgraph-request-execution-kind {
+        // Internal server error in the gateway.
+        internal-server-error,
+        // Response prevented by subgraph request hook.
+        hook-error,
+        // HTTP request failed.
+        request-error,
+        // Request was rate-limited.
+        rate-limited,
+        // A response was received.
+        response(subgraph-response),
+    }
+
+    // Info about an executed subgraph request.
+    record executed-subgraph-request {
+        // The name of the subgraph.
+        subgraph-name: string,
+
+        // The request method.
+        method: string,
+
+        // The subgraph URL.
+        url: string,
+
+        // The subgraph responses
+        executions: list<subgraph-request-execution-kind>,
+
+        // The cache status of the subgraph call.
+        cache-status: cache-status,
+
+        // The time in milliseconds taken for the whole operation.
+        total-duration-ms: u64,
+
+        // True, if the subgraph returned any errors.
+        has-errors: bool,
+    }
+
+    // An error response can be used to inject an error to the GraphQL response.
+    record error {
+        // Adds the given extensions to the response extensions. The first item in
+        // the tuple is the extension key, and the second item is the extension value.
+        // The extension value can be string-encoded JSON, which will be converted as
+        // JSON in the response. It can also be just a string, which will be converted as
+        // a JSON string in the response.
+        extensions: list<tuple<string, string>>,
+        // The error message.
+        message: string,
+    }
+}
+
+interface subgraph-request {
+    use types.{shared-context, headers, error};
+
+    // The hook is called just before requesting a subgraph, after rate limiting is done. It can be used
+    // to read and modify the subgraph request headers. If returning an error, the subgraph is not requested.
+    on-subgraph-request: func(
+        context: shared-context,
+        subgraph-name: string,
+        method: string,
+        url: string,
+        headers: headers
+    ) -> result<_, error>;
+}
+
+interface authorization {
+    use types.{error, shared-context, edge-definition, node-definition};
+
+    // The hook is called in the request cycle if the schema defines an authorization directive on
+    // an edge, providing the arguments of the edge selected in the directive, the definition of the esge
+    // and the metadata of the directive to the hook.
+    //
+    // The hook is run before fetching any data.
+    //
+    // The result, if an error, will stop the request execution and return an error back to the user.
+    // Result of the edge will be null for an error response.
+    authorize-edge-pre-execution: func(
+        context: shared-context,
+        definition: edge-definition,
+        arguments: string,
+        metadata: string
+    ) -> result<_, error>;
+
+    // The hook is called in the request cycle if the schema defines an authorization directive to
+    // a node, providing the definition of the node and the metadata of the directive to the hook.
+    //
+    // The hook is run before fetching any data.
+    //
+    // The result, if an error, will stop the request execution and return an error back to the user.
+    // Result of the edge will be null for an error response.
+    authorize-node-pre-execution: func(
+        context: shared-context,
+        definition: node-definition,
+        metadata: string
+    ) -> result<_, error>;
+
+    // The hook is called in the request cycle if the schema defines an authorization directive on
+    // an edge with the fields argument, providing fields from the parent node. The hook gets the
+    // parent type information, and a list of data with the defined fields of the parent for every
+    // child loaded by the parent query.
+    //
+    // The hook is run after fetching the data.
+    //
+    // The result can be one of the following:
+    //
+    // - A list of one item, which dictates the result for every child loaded from the edge
+    // - A list of many items, each one defining if the child should be shown or not
+    //
+    // Providing any other response will lead to the whole authorization hook failing and data not
+    // returned to the user.
+    //
+    // The list item can either be an empty Ok, which returns the edge data to the client. Or the
+    // item can be an error and the edge access is denied. The error data will be propagated to the
+    // response errors.
+    authorize-parent-edge-post-execution: func(
+        context: shared-context,
+        definition: edge-definition,
+        parents: list<string>,
+        metadata: string
+    ) -> list<result<_, error>>;
+
+    // The hook is called in the request cycle if the schema defines an authorization directive on
+    // an edge with the node argument, providing fields from the child node. The hook gets the parent type information,
+    // and a list of data with the defined fields for every child loaded by the parent query.
+    //
+    // The hook is run after fetching the data.
+    //
+    // The result can be one of the following:
+    //
+    // - A list of one item, which dictates the result for every child loaded from the edge
+    // - A list of many items, each one defining if the child should be shown or not
+    //
+    // Providing any other response will lead to the whole authorization hook failing and data not
+    // returned to the user.
+    //
+    // The list item can either be an empty Ok, which returns the edge data to the client. Or the
+    // item can be an error and the edge access is denied. The error data will be propagated to the
+    // response errors.
+    authorize-edge-node-post-execution: func(
+        context: shared-context,
+        definition: edge-definition,
+        nodes: list<string>,
+        metadata: string
+    ) -> list<result<_, error>>;
+
+    // The hook is called in the request cycle if the schema defines an authorization directive on
+    // an edge with the node and fields arguments, providing fields from the child node. The hook gets
+    // the parent type information, and a list of data with tuples of the parent data and a list of child data.
+    //
+    // The first part of the tuple is defined by the directive's fields argument and the second part by
+    // the node argument.
+    //
+    // The hook is run after fetching the data.
+    //
+    // The result can be one of the following:
+    //
+    // - A list of one item, which dictates the result for every child loaded from the edge
+    // - A list of many items, each one defining if the child should be shown or not
+    //
+    // Providing any other response will lead to the whole authorization hook failing and data not
+    // returned to the user.
+    //
+    // The list item can either be an empty Ok, which returns the edge data to the client. Or the
+    // item can be an error and the edge access is denied. The error data will be propagated to the
+    // response errors.
+    authorize-edge-post-execution: func(
+        context: shared-context,
+        definition: edge-definition,
+        edges: list<tuple<string, list<string>>>,
+        metadata: string
+    ) -> list<result<_, error>>;
+}
+
+interface responses {
+    use types.{shared-context, executed-operation, executed-subgraph-request, executed-http-request};
+
+    // The hook is called after a subgraph entity has been either requested or fetched from cache.
+    // The output is a list of bytes, which will be available in the on-operation-response hook.
+    on-subgraph-response: func(
+        context: shared-context,
+        request: executed-subgraph-request,
+    ) -> list<u8>;
+
+    // The hook is called after a request is handled in the gateway. The output is a list of bytes,
+    // which will be available in the on-http-response hook.
+    on-operation-response: func(
+        context: shared-context,
+        request: executed-operation,
+    ) -> list<u8>;
+
+    // The hook is called right before a response is sent to the user.
+    on-http-response: func(
+        context: shared-context,
+        request: executed-http-request,
+    );
+}
+
+interface gateway-request {
+    use types.{headers, error, context};
+
+    // The hook is called in the federated gateway just before authentication. It can be used
+    // to read and modify the request headers. The context object is provided in a mutable form,
+    // allowing storage for the subsequent hooks to read.
+    //
+    // If returning an error from the hook, the request processing is stopped and the given error
+    // returned to the client.
+    on-gateway-request: func(context: context, headers: headers) -> result<_, error>;
+}
+
+
+// Export here all the hooks the guest wants to implement. If a hook interface is not exported in the world,
+// the execution in the engine will be a no-op.
+//
+// The guest must implement all exported hooks defined in the world.
+world hooks {
+    export gateway-request;
+}
