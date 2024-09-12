@@ -32,6 +32,12 @@ pub use variables::*;
 pub enum BindError {
     #[error("Unknown type named '{name}'")]
     UnknownType { name: String, location: Location },
+    #[error("The field `{field_name}` does not have an argument named `{argument_name}")]
+    UnknownArgument {
+        field_name: String,
+        argument_name: String,
+        location: Location,
+    },
     #[error("{container} does not have a field named '{name}'")]
     UnknownField {
         container: String,
@@ -114,6 +120,7 @@ impl From<BindError> for GraphqlError {
     fn from(err: BindError) -> Self {
         let locations = match err {
             BindError::UnknownField { location, .. }
+            | BindError::UnknownArgument { location, .. }
             | BindError::UnknownType { location, .. }
             | BindError::UnknownFragment { location, .. }
             | BindError::UnionHaveNoFields { location, .. }

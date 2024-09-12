@@ -86,7 +86,7 @@ impl FederatedGraph {
     }
 }
 
-#[derive(PartialEq, PartialOrd, Clone)]
+#[derive(PartialEq, PartialOrd, Clone, Debug)]
 pub enum Directive {
     Authenticated,
     Deprecated {
