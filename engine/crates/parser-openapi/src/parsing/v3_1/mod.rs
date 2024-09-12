@@ -1,13 +1,13 @@
 //! This module handles parsing a v3.1 OpenAPI spec into our intermediate graph
 
 use inflector::Inflector;
-use once_cell::sync::Lazy;
 use openapiv3::{
     schemars::schema::{InstanceType, ObjectValidation, Schema, SchemaObject, SingleOrVec},
     v3_1::{self as openapiv3_1},
 };
 use regex::Regex;
 use serde_json::Value;
+use std::sync::LazyLock;
 use url::Url;
 
 use self::{components::Components, operations::OperationDetails};
@@ -427,7 +427,7 @@ fn extract_object(
 // OpenAPI enums can be basically any string, but we're much more limited
 /// in GraphQL.  This checks if this value is valid in GraphQL or not.
 fn is_valid_enum_value(value: &Value) -> bool {
-    static REGEX: Lazy<Regex> = Lazy::new(|| Regex::new("^[A-Z_][A-Z0-9_]*$").unwrap());
+    static REGEX: LazyLock<Regex> = LazyLock::new(|| Regex::new("^[A-Z_][A-Z0-9_]*$").unwrap());
 
     value
         .as_str()

@@ -1,7 +1,6 @@
 use std::{borrow::Cow, fmt::Debug};
 
 use inflector::Inflector;
-use once_cell::sync::Lazy;
 use petgraph::{
     graph::NodeIndex,
     visit::{EdgeFiltered, EdgeRef, IntoEdges, Reversed},
@@ -9,6 +8,7 @@ use petgraph::{
 };
 use regex::Regex;
 use registry_v2::resolvers::http::{ExpectedStatusCode, QueryParameterEncodingStyle, RequestBodyContentType};
+use std::sync::LazyLock;
 
 mod enums;
 mod input_object;
@@ -554,7 +554,7 @@ impl<'a> FieldName<'a> {
     }
 
     pub fn will_be_valid_graphql(&self) -> bool {
-        static REGEX: Lazy<Regex> = Lazy::new(|| Regex::new("^[A-Za-z_][A-Za-z0-9_]*$").unwrap());
+        static REGEX: LazyLock<Regex> = LazyLock::new(|| Regex::new("^[A-Za-z_][A-Za-z0-9_]*$").unwrap());
         REGEX.is_match(&self.0.to_camel_case())
     }
 }

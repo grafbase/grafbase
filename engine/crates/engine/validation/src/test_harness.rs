@@ -5,7 +5,7 @@
 
 use std::sync::Arc;
 
-use once_cell::sync::Lazy;
+use std::sync::LazyLock;
 
 use crate::visitor::{visit, RuleError, Visitor, VisitorContext};
 use engine::{Enum, InputObject, Interface, Object, Schema, Union, ID};
@@ -324,7 +324,7 @@ impl Mutation {
 
 pub struct Subscription;
 
-static TEST_HARNESS: Lazy<Schema> = Lazy::new(|| {
+static TEST_HARNESS: LazyLock<Schema> = LazyLock::new(|| {
     let v1 = Schema::create_registry_static::<Query, Mutation, engine::EmptySubscription>();
     let v2 = registry_upgrade::convert_v1_to_v2(v1).unwrap();
     Schema::new(Arc::new(v2))

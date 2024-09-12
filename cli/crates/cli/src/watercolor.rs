@@ -1,10 +1,10 @@
 pub use colored;
 pub use colored::control::ShouldColorize;
 
-use once_cell::sync::Lazy;
+use std::sync::LazyLock;
 
 #[allow(dead_code)]
-pub static TRUECOLOR_SUPPORTED: Lazy<bool> = Lazy::new(|| {
+pub static TRUECOLOR_SUPPORTED: LazyLock<bool> = LazyLock::new(|| {
     let colorterm = std::env::var("COLORTERM").ok();
     colorterm.as_deref() == Some("truecolor") || colorterm.as_deref() == Some("24bit")
 });

@@ -21,5 +21,4 @@ grafbase-workspace-hack.workspace = true
 [dev-dependencies]
 engine.workspace = true
 insta.workspace = true
-once_cell = "1.19"
 registry-upgrade.workspace = true
