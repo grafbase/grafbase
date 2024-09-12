@@ -6,7 +6,6 @@ homepage = "https://grafbase.com"
 keywords = ["graphql", "engine", "grafbase"]
 license = "MPL-2.0"
 name = "engine-v2"
-readme = "README.md"
 repository = "https://github.com/grafbase/grafbase"
 version = "3.0.31"
 
