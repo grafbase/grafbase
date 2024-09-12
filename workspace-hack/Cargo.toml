@@ -10,6 +10,7 @@ homepage = "https://grafbase.com"
 repository = "https://github.com/grafbase/grafbase"
 readme = "README"
 license = "Apache-2.0"
+edition = "2021"
 
 # You can choose to publish this crate: see https://docs.rs/cargo-hakari/latest/cargo_hakari/publishing.
 publish = false
@@ -87,6 +88,7 @@ miette = { version = "7", features = ["fancy"] }
 num-bigint-dig = { version = "0.8", default-features = false, features = ["i128", "prime", "u64_digit", "zeroize"] }
 num-integer = { version = "0.1", default-features = false, features = ["i128", "std"] }
 num-traits = { version = "0.2", features = ["i128", "libm"] }
+once_cell = { version = "1" }
 p256 = { version = "0.13" }
 percent-encoding = { version = "2" }
 phf = { version = "0.11", features = ["macros"] }
@@ -217,6 +219,7 @@ miette = { version = "7", features = ["fancy"] }
 num-bigint-dig = { version = "0.8", default-features = false, features = ["i128", "prime", "u64_digit", "zeroize"] }
 num-integer = { version = "0.1", default-features = false, features = ["i128", "std"] }
 num-traits = { version = "0.2", features = ["i128", "libm"] }
+once_cell = { version = "1" }
 p256 = { version = "0.13" }
 percent-encoding = { version = "2" }
 phf = { version = "0.11", features = ["macros"] }

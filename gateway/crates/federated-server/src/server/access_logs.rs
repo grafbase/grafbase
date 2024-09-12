@@ -1,28 +1,28 @@
-use std::io::Write;
+use std::{
+    any::Any,
+    io::{self, Write},
+};
 
 use gateway_config::{AccessLogsConfig, RotateMode};
 use grafbase_telemetry::otel::opentelemetry::metrics::UpDownCounter;
+use rolling_logger::{RollingLogger, RotateStrategy};
 use runtime_local::hooks::{AccessLogMessage, ChannelLogReceiver};
-use tracing_appender::rolling::{RollingFileAppender, Rotation};
 
 pub(crate) fn start(
     config: &AccessLogsConfig,
     access_log_receiver: ChannelLogReceiver,
     pending_logs_counter: UpDownCounter<i64>,
 ) -> crate::Result<()> {
-    let rotation = match config.rotate {
-        RotateMode::Never => Rotation::NEVER,
-        RotateMode::Minutely => Rotation::MINUTELY,
-        RotateMode::Hourly => Rotation::HOURLY,
-        RotateMode::Daily => Rotation::DAILY,
+    let strategy = match config.rotate {
+        RotateMode::Never => RotateStrategy::never(),
+        RotateMode::Minutely => RotateStrategy::minutely(),
+        RotateMode::Hourly => RotateStrategy::hourly(),
+        RotateMode::Daily => RotateStrategy::daily(),
+        RotateMode::Size(max_size) => RotateStrategy::size(max_size),
     };
 
-    let mut log = RollingFileAppender::builder()
-        .rotation(rotation)
-        .filename_prefix("access")
-        .filename_suffix("log")
-        .build(&config.path)
-        .map_err(|e| crate::Error::InternalError(e.to_string()))?;
+    let mut log = RollingLogger::new(&config.path.join("access.log"), strategy)
+        .map_err(|e| crate::Error::InternalError(format!("unable to initialize access logs: {e}")))?;
 
     tokio::task::spawn_blocking(move || {
         while let Ok(msg) = access_log_receiver.recv() {
