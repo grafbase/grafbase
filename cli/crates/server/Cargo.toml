@@ -23,7 +23,6 @@ dotenv = "0.15"
 flate2 = "1.0.30"
 fslock = "0.2.1"
 futures-util.workspace = true
-handlebars.workspace = true
 hyper.workspace = true
 hyper-util = { workspace = true, features = [
     "client",

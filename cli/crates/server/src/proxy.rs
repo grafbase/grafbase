@@ -15,9 +15,7 @@ use axum::{
 };
 use common::environment::Environment;
 use futures_util::stream::StreamExt;
-use handlebars::Handlebars;
 use hyper::{Request, StatusCode};
-use serde_json::json;
 use tokio::{
     task::{JoinError, JoinSet},
     time::sleep,
@@ -67,22 +65,9 @@ async fn start_inner(listener: TcpListener) -> Result<(), ServerError> {
         .http1_preserve_header_case(true)
         .build_http();
 
-    let mut handlebars = Handlebars::new();
-    let template = include_str!("../templates/pathfinder.hbs");
-    handlebars
-        .register_template_string("pathfinder.html", template)
-        .expect("must be valid");
     let proxied_graphql_url = "/graphql".to_string();
     let asset_url = format!("http://127.0.0.1:{port}/static");
-    let pathfinder_html = handlebars
-        .render(
-            "pathfinder.html",
-            &json!({
-                "ASSET_URL": asset_url,
-                "GRAPHQL_URL": proxied_graphql_url
-            }),
-        )
-        .expect("must render");
+    let pathfinder_html = common::pathfinder::index_html(&proxied_graphql_url, &asset_url);
 
     let environment = Environment::get();
     let static_asset_path = environment.user_dot_grafbase_path.join("static");
