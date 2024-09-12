@@ -82,7 +82,7 @@ fn subgraph_timeout() {
           "data": null,
           "errors": [
             {
-              "message": "Request to subgraph 'slow' failed with: Request timeout",
+              "message": "Request to subgraph 'slow' failed with: Timeout",
               "path": [
                 "verySlow"
               ],
@@ -106,7 +106,7 @@ fn subgraph_timeout() {
           },
           "errors": [
             {
-              "message": "Request to subgraph 'slow' failed with: Request timeout",
+              "message": "Request to subgraph 'slow' failed with: Timeout",
               "path": [
                 "verySlow"
               ],

@@ -2,37 +2,32 @@ use std::borrow::Cow;
 
 use bytes::Bytes;
 use futures::Future;
-use grafbase_telemetry::{
-    graphql::{GraphqlResponseStatus, SubgraphResponseStatus},
-    otel::tracing_opentelemetry::OpenTelemetrySpanExt as _,
-};
+use grafbase_telemetry::{graphql::GraphqlResponseStatus, otel::tracing_opentelemetry::OpenTelemetrySpanExt as _};
 use headers::HeaderMapExt;
 use runtime::{
     bytes::OwnedOrSharedBytes,
-    fetch::{FetchRequest, FetchResult, Fetcher},
+    fetch::{FetchError, FetchRequest, FetchResult, Fetcher},
     hooks::{ResponseInfo, SubgraphRequestExecutionKind},
     rate_limiting::RateLimitKey,
 };
-use tracing::Span;
-use web_time::{Duration, SystemTime};
+use web_time::Duration;
 
 use crate::{
     execution::{ExecutionError, ExecutionResult},
-    response::SubgraphResponse,
-    sources::{graphql::record, SubgraphRequestContext},
-    Runtime,
+    response::{GraphqlError, SubgraphResponse},
+    sources::graphql::SubgraphContext,
+    ErrorCode, Runtime,
 };
 
 pub trait ResponseIngester: Send {
     fn ingest(
         self,
-        bytes: http::Response<OwnedOrSharedBytes>,
+        response: http::Response<OwnedOrSharedBytes>,
     ) -> impl Future<Output = Result<(GraphqlResponseStatus, SubgraphResponse), ExecutionError>> + Send;
 }
 
 pub(crate) async fn execute_subgraph_request<'ctx, 'a, R: Runtime>(
-    ctx: &mut SubgraphRequestContext<'ctx, R>,
-    _span: Span,
+    ctx: &mut SubgraphContext<'ctx, R>,
     headers: http::HeaderMap,
     body: Bytes,
     ingester: impl ResponseIngester,
@@ -45,8 +40,8 @@ pub(crate) async fn execute_subgraph_request<'ctx, 'a, R: Runtime>(
             .on_subgraph_request(endpoint.subgraph_name(), http::Method::POST, endpoint.url(), headers)
             .await
             .inspect_err(|_| {
-                ctx.request_info()
-                    .push_execution(SubgraphRequestExecutionKind::HookError);
+                ctx.set_as_hook_error();
+                ctx.push_request_execution(SubgraphRequestExecutionKind::HookError);
             })?;
 
         headers.typed_insert(headers::ContentType::json());
@@ -67,90 +62,83 @@ pub(crate) async fn execute_subgraph_request<'ctx, 'a, R: Runtime>(
             timeout: endpoint.config.timeout,
         }
     };
+    ctx.record_request(&request);
 
-    let start = SystemTime::now();
-    let execution_context = ctx.execution_context();
-
-    let response = retrying_fetch(ctx, move || {
-        record::subgraph_request_size(execution_context, endpoint, request.body.len());
-        execution_context.engine.runtime.fetcher().fetch(request.clone())
+    let fetcher = ctx.engine.runtime.fetcher();
+    let fetch_result = retrying_fetch(ctx, || async {
+        let (fetch_result, info) = fetcher.fetch(request.clone()).await;
+        let fetch_result = fetch_result.and_then(|response| {
+            tracing::debug!("Received response:\n{}", String::from_utf8_lossy(response.body()));
+            // For those status codes we want to retry the request, so marking the request as
+            // failed.
+            let status = response.status();
+            if status.is_server_error() || status == http::StatusCode::TOO_MANY_REQUESTS {
+                Err(FetchError::InvalidStatusCode(status))
+            } else {
+                Ok(response)
+            }
+        });
+        (fetch_result, info)
     })
     .await;
 
-    let duration = SystemTime::now()
-        .duration_since(start)
-        .unwrap_or(Duration::from_secs(0));
-
-    let response = match response {
-        Ok(response) => response,
-        Err(e) => {
-            let status = SubgraphResponseStatus::HttpError;
-
-            ctx.request_info().set_graphql_status(status);
-            record::subgraph_duration(execution_context, endpoint, status, None, duration);
-
-            return Err(e);
+    let response = match fetch_result {
+        Ok(response) => {
+            ctx.record_http_response(&response);
+            response
+        }
+        Err(err) => {
+            ctx.set_as_http_error(err.as_fetch_invalid_status_code());
+            return Err(err);
         }
     };
 
-    tracing::debug!("Received response:\n{}", String::from_utf8_lossy(response.body()));
-    record::subgraph_response_size(execution_context, endpoint, response.body().len());
+    // If the status code isn't a success as this point it means it's either a client error or
+    // we've exhausted our retry budget for server errors.
+    if !response.status().is_success() {
+        return Err(GraphqlError::new(
+            format!("Request failed with status code: {}", response.status().as_u16()),
+            ErrorCode::SubgraphRequestError,
+        )
+        .into());
+    }
 
-    let status_code = response.status();
-
-    let (status, response) = ingester.ingest(response).await.inspect_err(|err| {
-        let subgraph_status = SubgraphResponseStatus::InvalidGraphqlResponseError;
-
-        ctx.request_info().set_graphql_status(subgraph_status);
-
-        record::subgraph_duration(
-            execution_context,
-            endpoint,
-            subgraph_status,
-            Some(status_code),
-            duration,
-        );
-
-        tracing::debug!("invalid subgraph response: {err}");
-    })?;
-
-    let subgraph_status = SubgraphResponseStatus::WellFormedGraphqlResponse(status);
-    ctx.request_info().set_graphql_status(subgraph_status);
-
-    record::subgraph_duration(
-        execution_context,
-        endpoint,
-        subgraph_status,
-        Some(status_code),
-        duration,
-    );
-
-    Ok(response)
+    match ingester.ingest(response).await {
+        Ok((status, response)) => {
+            ctx.set_graphql_response_status(status);
+            Ok(response)
+        }
+        Err(err) => {
+            ctx.set_as_invalid_response();
+            tracing::debug!("invalid subgraph response: {err}");
+            Err(err)
+        }
+    }
 }
 
 pub(crate) async fn retrying_fetch<'ctx, R: Runtime, F, T>(
-    ctx: &mut SubgraphRequestContext<'ctx, R>,
+    ctx: &mut SubgraphContext<'ctx, R>,
     fetch: impl Fn() -> F + Send + Sync,
 ) -> ExecutionResult<T>
 where
     F: Future<Output = (FetchResult<T>, Option<ResponseInfo>)> + Send,
     T: Send,
 {
-    let mut result = rate_limited_fetch(ctx, &fetch).await;
+    let mut fetch_result = rate_limited_fetch(ctx, &fetch).await;
 
     if ctx.retry_budget().is_none() {
-        return result;
+        return fetch_result;
     };
 
     let mut counter = 0;
 
     loop {
-        match result {
-            Ok(bytes) => {
+        match fetch_result {
+            Ok(response) => {
                 if let Some(b) = ctx.retry_budget() {
                     b.deposit()
                 }
-                return Ok(bytes);
+                return Ok(response);
             }
             Err(err) => {
                 let withdraw = ctx.retry_budget().and_then(|b| b.withdraw().ok());
@@ -161,13 +149,13 @@ where
                     let backoff_ms = (exp_backoff * jitter).round() as u64;
 
                     ctx.engine().runtime.sleep(Duration::from_millis(backoff_ms)).await;
-                    record::subgraph_retry(ctx.execution_context(), ctx.endpoint(), false);
+                    ctx.record_request_retry();
 
                     counter += 1;
 
-                    result = rate_limited_fetch(ctx, &fetch).await;
+                    fetch_result = rate_limited_fetch(ctx, &fetch).await;
                 } else {
-                    record::subgraph_retry(ctx.execution_context(), ctx.endpoint(), true);
+                    ctx.record_aborted_request_retry();
 
                     return Err(err);
                 }
@@ -177,7 +165,7 @@ where
 }
 
 async fn rate_limited_fetch<'ctx, R: Runtime, F, T>(
-    ctx: &mut SubgraphRequestContext<'ctx, R>,
+    ctx: &mut SubgraphContext<'ctx, R>,
     fetch: impl Fn() -> F + Send,
 ) -> ExecutionResult<T>
 where
@@ -190,21 +178,16 @@ where
         .limit(&RateLimitKey::Subgraph(ctx.endpoint().subgraph_name().into()))
         .await
         .inspect_err(|_| {
-            ctx.request_info()
-                .push_execution(SubgraphRequestExecutionKind::RateLimited);
+            ctx.push_request_execution(SubgraphRequestExecutionKind::RateLimited);
         })?;
 
-    record::increment_inflight_requests(ctx.execution_context(), ctx.endpoint());
+    ctx.increment_inflight_requests();
     let (result, response_info) = fetch().await;
-    record::decrement_inflight_requests(ctx.execution_context(), ctx.endpoint());
+    ctx.decrement_inflight_requests();
 
     match response_info {
-        Some(response_info) => ctx
-            .request_info()
-            .push_execution(SubgraphRequestExecutionKind::Responsed(response_info)),
-        None if result.is_err() => ctx
-            .request_info()
-            .push_execution(SubgraphRequestExecutionKind::RequestError),
+        Some(response_info) => ctx.push_request_execution(SubgraphRequestExecutionKind::Responsed(response_info)),
+        None if result.is_err() => ctx.push_request_execution(SubgraphRequestExecutionKind::RequestError),
         None => (),
     }
 

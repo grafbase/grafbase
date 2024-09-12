@@ -1,5 +1,7 @@
 use std::borrow::Cow;
 
+use runtime::fetch::FetchError;
+
 use crate::response::{ErrorCode, GraphqlError};
 
 pub(crate) type PlanningResult<T> = Result<T, PlanningError>;
@@ -35,14 +37,23 @@ pub enum ExecutionError {
     #[error("Deserialization error: {0}")]
     DeserializationError(String),
     #[error("Request to subgraph '{subgraph_name}' failed with: {error}")]
-    Fetch {
-        subgraph_name: String,
-        error: runtime::fetch::FetchError,
-    },
+    Fetch { subgraph_name: String, error: FetchError },
     #[error(transparent)]
     RateLimit(#[from] runtime::rate_limiting::Error),
     #[error("{0}")]
     Graphql(GraphqlError),
+}
+
+impl ExecutionError {
+    pub fn as_fetch_invalid_status_code(&self) -> Option<http::StatusCode> {
+        match self {
+            Self::Fetch {
+                error: FetchError::InvalidStatusCode(code),
+                ..
+            } => Some(*code),
+            _ => None,
+        }
+    }
 }
 
 pub type ExecutionResult<T> = Result<T, ExecutionError>;

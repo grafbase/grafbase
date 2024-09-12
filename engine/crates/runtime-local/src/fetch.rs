@@ -68,7 +68,12 @@ impl Fetcher for NativeFetcher {
         let events = RequestBuilder::from_parts(self.client.clone(), into_reqwest(request))
             .eventsource()
             .unwrap()
-            .map_err(FetchError::any)
+            .map_err(|err| match err {
+                reqwest_eventsource::Error::InvalidStatusCode(status_code, _) => {
+                    FetchError::InvalidStatusCode(status_code)
+                }
+                err => FetchError::AnyError(err.to_string()),
+            })
             .try_take_while(|event| {
                 let is_complete = if let reqwest_eventsource::Event::Message(message) = event {
                     message.event == "complete"

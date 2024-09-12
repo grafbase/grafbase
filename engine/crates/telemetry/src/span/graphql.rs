@@ -58,21 +58,25 @@ impl GraphqlOperationSpan {
     }
 
     pub fn record_response_status(&self, status: GraphqlResponseStatus) {
-        match status {
-            GraphqlResponseStatus::Success => {
-                self.record("graphql.response.data.is_present", true);
+        record_graphql_response_status(&self.span, status);
+    }
+}
+
+pub(crate) fn record_graphql_response_status(span: &Span, status: GraphqlResponseStatus) {
+    match status {
+        GraphqlResponseStatus::Success => {
+            span.record("graphql.response.data.is_present", true);
+        }
+        GraphqlResponseStatus::RefusedRequest => {}
+        GraphqlResponseStatus::FieldError { count, data_is_null } => {
+            span.record("graphql.response.errors.count", count);
+            span.record("graphql.response.data.is_present", true);
+            if data_is_null {
+                span.record("graphql.response.data.is_null", true);
             }
-            GraphqlResponseStatus::RefusedRequest => {}
-            GraphqlResponseStatus::FieldError { count, data_is_null } => {
-                self.record("graphql.response.errors.count", count);
-                self.record("graphql.response.data.is_present", true);
-                if data_is_null {
-                    self.record("graphql.response.data.is_null", true);
-                }
-            }
-            GraphqlResponseStatus::RequestError { count } => {
-                self.record("graphql.response.errors.count", count);
-            }
+        }
+        GraphqlResponseStatus::RequestError { count } => {
+            span.record("graphql.response.errors.count", count);
         }
     }
 }

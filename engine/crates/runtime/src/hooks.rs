@@ -1,12 +1,12 @@
 #[cfg(feature = "test-utils")]
 mod test_utils;
 
-use grafbase_telemetry::graphql::{GraphqlResponseStatus, SubgraphResponseStatus};
+use grafbase_telemetry::graphql::GraphqlResponseStatus;
 #[cfg(feature = "test-utils")]
 pub use test_utils::*;
 use url::Url;
 
-use std::future::Future;
+use std::{future::Future, time::Duration};
 use web_time::Instant;
 
 pub use http::HeaderMap;
@@ -189,8 +189,8 @@ pub struct ExecutedSubgraphRequest<'a> {
     pub url: &'a str,
     pub executions: Vec<SubgraphRequestExecutionKind>,
     pub cache_status: CacheStatus,
-    pub total_duration_ms: u64,
-    pub has_errors: bool,
+    pub total_duration: Duration,
+    pub has_graphql_errors: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -199,9 +199,8 @@ pub struct ExecutedSubgraphRequestBuilder<'a> {
     method: &'a str,
     url: &'a str,
     executions: Vec<SubgraphRequestExecutionKind>,
-    cache_status: CacheStatus,
-    start_time: Instant,
-    status: SubgraphResponseStatus,
+    cache_status: Option<CacheStatus>,
+    status: Option<GraphqlResponseStatus>,
 }
 
 impl<'a> ExecutedSubgraphRequestBuilder<'a> {
@@ -210,27 +209,22 @@ impl<'a> ExecutedSubgraphRequestBuilder<'a> {
     }
 
     pub fn set_cache_status(&mut self, status: CacheStatus) {
-        self.cache_status = status;
+        self.cache_status = Some(status);
     }
 
-    pub fn set_graphql_status(&mut self, status: SubgraphResponseStatus) {
-        self.status = status;
+    pub fn set_graphql_response_status(&mut self, status: GraphqlResponseStatus) {
+        self.status = Some(status);
     }
 
-    pub fn build(self) -> ExecutedSubgraphRequest<'a> {
-        let is_success = matches!(
-            self.status,
-            SubgraphResponseStatus::WellFormedGraphqlResponse(GraphqlResponseStatus::Success)
-        );
-
+    pub fn build(self, duration: Duration) -> ExecutedSubgraphRequest<'a> {
         ExecutedSubgraphRequest {
             subgraph_name: self.subgraph_name,
             method: self.method,
             url: self.url,
             executions: self.executions,
-            cache_status: self.cache_status,
-            total_duration_ms: self.start_time.elapsed().as_millis() as u64,
-            has_errors: !is_success,
+            cache_status: self.cache_status.unwrap_or(CacheStatus::Miss),
+            total_duration: duration,
+            has_graphql_errors: self.status.map(|status| !status.is_success()).unwrap_or_default(),
         }
     }
 }
@@ -242,9 +236,8 @@ impl<'a> ExecutedSubgraphRequest<'a> {
             method,
             url,
             executions: Vec::new(),
-            cache_status: CacheStatus::Miss,
-            start_time: Instant::now(),
-            status: SubgraphResponseStatus::WellFormedGraphqlResponse(GraphqlResponseStatus::Success),
+            cache_status: None,
+            status: None,
         }
     }
 }

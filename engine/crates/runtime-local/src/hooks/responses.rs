@@ -26,8 +26,8 @@ impl ResponseHooks<Context> for HooksWasi {
             url,
             executions,
             cache_status,
-            total_duration_ms,
-            has_errors,
+            total_duration,
+            has_graphql_errors: has_errors,
         } = request;
 
         let request = ExecutedSubgraphRequest {
@@ -61,7 +61,7 @@ impl ResponseHooks<Context> for HooksWasi {
                 runtime::hooks::CacheStatus::PartialHit => CacheStatus::PartialHit,
                 runtime::hooks::CacheStatus::Miss => CacheStatus::Miss,
             },
-            total_duration_ms,
+            total_duration_ms: total_duration.as_millis() as u64,
             has_errors,
         };
 

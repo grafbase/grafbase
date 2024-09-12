@@ -9,13 +9,22 @@ use crate::{bytes::OwnedOrSharedBytes, hooks::ResponseInfo};
 pub enum FetchError {
     #[error("{0}")]
     AnyError(String),
-    #[error("Request timeout")]
+    #[error("Timeout")]
     Timeout,
+    #[error("Invalid status code: {0:?}")]
+    InvalidStatusCode(http::StatusCode),
 }
 
 impl FetchError {
     pub fn any(error: impl ToString) -> Self {
         FetchError::AnyError(error.to_string())
+    }
+
+    pub fn as_invalid_status_code(&self) -> Option<http::StatusCode> {
+        match self {
+            FetchError::InvalidStatusCode(status) => Some(*status),
+            _ => None,
+        }
     }
 }
 

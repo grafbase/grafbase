@@ -18,6 +18,7 @@ use crate::{
         ExecutedResponse, InputdResponseObjectSet, ObjectIdentifier, Response, ResponseBuilder, ResponseEdge,
         ResponseObjectField, ResponseValue, SubgraphResponse, SubgraphResponseRefMut,
     },
+    sources::ResolverResult,
     Runtime,
 };
 
@@ -90,7 +91,7 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
         }
 
         OperationExecution {
-            futures: ResolverFutureSet::new(),
+            futures: ExecutionPlanFutureSet::new(),
             state: self.new_execution_state(),
             response: ResponseBuilder::new(self.operation.root_object_id),
             ctx: self,
@@ -241,16 +242,16 @@ where
                             root_subgraph_response,
                         }) => {
                             let mut operation_execution = OperationExecution {
-                                futures: ResolverFutureSet::new(),
+                                futures: ExecutionPlanFutureSet::new(),
                                 state: self.initial_state.clone(),
                                 ctx: self.ctx,
                                 response,
                             };
 
-                            operation_execution.futures.push_result(ResolverFutureResult {
+                            operation_execution.futures.push_result(ExecutionPlanResult {
                                 plan_id: self.subscription_plan_id,
                                 result: Ok(root_subgraph_response),
-                                on_subgraph_response_hook_result: None,
+                                on_subgraph_response_hook_output: None,
                             });
 
                             response_futures.push_back(operation_execution.run());
@@ -286,7 +287,7 @@ impl SubscriptionResponse {
 
 struct OperationExecution<'ctx, 'exec, R: Runtime> {
     ctx: ExecutionContext<'ctx, R>,
-    futures: ResolverFutureSet<'exec>,
+    futures: ExecutionPlanFutureSet<'exec>,
     state: OperationExecutionState<'ctx>,
     response: ResponseBuilder,
 }
@@ -308,10 +309,10 @@ where
             self.spawn_resolver(plan_id);
         }
 
-        while let Some(ResolverFutureResult {
+        while let Some(ExecutionPlanResult {
             plan_id,
             result,
-            on_subgraph_response_hook_result,
+            on_subgraph_response_hook_output: on_subgraph_response_hook_result,
         }) = self.futures.next().await
         {
             // Retrieving the first edge (response key) appearing in the query to provide a better
@@ -437,11 +438,16 @@ where
             let fut = self.operation[plan_id]
                 .resolver
                 .execute(self.ctx, plan, root_response_objects, subgraph_response)
-                .map(move |result| ResolverFutureResult {
-                    plan_id,
-                    result: result.result.map_err(|err| (root_response_object_set, err)),
-                    on_subgraph_response_hook_result: result.on_subgraph_response_hook_result,
-                });
+                .map(
+                    move |ResolverResult {
+                              execution,
+                              on_subgraph_response_hook_output,
+                          }| ExecutionPlanResult {
+                        plan_id,
+                        result: execution.map_err(|err| (root_response_object_set, err)),
+                        on_subgraph_response_hook_output,
+                    },
+                );
 
             let span = span.exit();
             make_send_on_wasm(fut.instrument(span)).boxed()
@@ -449,32 +455,32 @@ where
     }
 }
 
-struct ResolverFutureSet<'exec> {
-    futures: FuturesUnordered<BoxFuture<'exec, ResolverFutureResult>>,
+struct ExecutionPlanFutureSet<'exec> {
+    futures: FuturesUnordered<BoxFuture<'exec, ExecutionPlanResult>>,
 }
 
-impl<'exec> ResolverFutureSet<'exec> {
+impl<'exec> ExecutionPlanFutureSet<'exec> {
     fn new() -> Self {
         Self {
             futures: FuturesUnordered::new(),
         }
     }
 
-    fn push_fut(&mut self, fut: BoxFuture<'exec, ResolverFutureResult>) {
+    fn push_fut(&mut self, fut: BoxFuture<'exec, ExecutionPlanResult>) {
         self.futures.push(fut);
     }
 
-    fn push_result(&mut self, result: ResolverFutureResult) {
+    fn push_result(&mut self, result: ExecutionPlanResult) {
         self.futures.push(Box::pin(async move { result }));
     }
 
-    async fn next(&mut self) -> Option<ResolverFutureResult> {
+    async fn next(&mut self) -> Option<ExecutionPlanResult> {
         self.futures.next().await
     }
 }
 
-pub(crate) struct ResolverFutureResult {
+pub(crate) struct ExecutionPlanResult {
     plan_id: ExecutionPlanId,
     result: Result<SubgraphResponse, (Arc<InputdResponseObjectSet>, ExecutionError)>,
-    on_subgraph_response_hook_result: Option<Vec<u8>>,
+    on_subgraph_response_hook_output: Option<Vec<u8>>,
 }
