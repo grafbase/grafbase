@@ -37,7 +37,7 @@ impl LogFile {
             StrategyKind::Minutely => self.rotate_strategy.lifetime().as_secs() >= MINUTE_SECS,
             StrategyKind::Hourly => self.rotate_strategy.lifetime().as_secs() >= HOUR_SECS,
             StrategyKind::Daily => self.rotate_strategy.lifetime().as_secs() >= DAY_SECS,
-            StrategyKind::MaxSize(max_size) => self.size >= max_size,
+            StrategyKind::Size(max_size) => self.size >= max_size,
         }
     }
 

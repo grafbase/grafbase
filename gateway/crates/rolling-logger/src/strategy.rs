@@ -2,11 +2,17 @@ use std::time::{Duration, SystemTime};
 
 #[derive(Debug, Clone, Copy)]
 pub(crate) enum StrategyKind {
+    /// Never rotate.
     Never,
+    /// Rotates after a minute the logger has started.
     Minutely,
+    /// Rotates after an hour the logger has started.
     Hourly,
+    /// Rotates after a day the logger has started.
     Daily,
-    MaxSize(u64),
+    /// Rotates when the log reaches the given size in bytes.
+    /// We write first and if the next write is over, we rotate.
+    Size(u64),
 }
 
 /// Defines a strategy when a log file gets rotated.
@@ -39,7 +45,7 @@ impl RotateStrategy {
 
     /// Rotates when the file is either the given size or over.
     pub fn size(max_size: u64) -> Self {
-        Self::new(StrategyKind::MaxSize(max_size))
+        Self::new(StrategyKind::Size(max_size))
     }
 
     fn new(kind: StrategyKind) -> Self {
