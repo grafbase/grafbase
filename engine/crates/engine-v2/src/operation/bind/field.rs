@@ -128,6 +128,15 @@ impl<'schema, 'p> Binder<'schema, 'p> {
                 });
             }
         }
+
+        if let Some(first_unknown_argument) = arguments.first() {
+            return Err(BindError::UnknownArgument {
+                field_name: format!("{}.{}", definition.parent_entity().name(), definition.name()),
+                argument_name: first_unknown_argument.0.node.to_string(),
+                location,
+            });
+        }
+
         let end = self.field_arguments.len();
         Ok((start..end).into())
     }

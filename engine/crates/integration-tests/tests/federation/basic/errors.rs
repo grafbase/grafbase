@@ -1,4 +1,8 @@
-use integration_tests::federation::DeterministicEngine;
+use engine_v2::Engine;
+use integration_tests::{
+    federation::{DeterministicEngine, EngineV2Ext as _},
+    runtime,
+};
 use serde_json::json;
 
 const SCHEMA: &str = include_str!("../../../data/federated-graph-schema.graphql");
@@ -425,4 +429,32 @@ fn null_entity_with_error() {
       ]
     }
     "###);
+}
+
+#[test]
+fn unknown_argument() {
+    let response = runtime().block_on(async move {
+        let engine = Engine::builder().with_federated_sdl(SCHEMA).build().await;
+
+        engine.post(r#"query { me(name: "Tom") { id } }"#).await
+    });
+
+    insta::assert_json_snapshot!(response, @r#"
+    {
+      "errors": [
+        {
+          "message": "The field `Query.me` does not have an argument named `name",
+          "locations": [
+            {
+              "line": 1,
+              "column": 9
+            }
+          ],
+          "extensions": {
+            "code": "OPERATION_VALIDATION_ERROR"
+          }
+        }
+      ]
+    }
+    "#);
 }
