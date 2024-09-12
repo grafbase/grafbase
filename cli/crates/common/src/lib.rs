@@ -15,6 +15,7 @@ pub mod consts;
 pub mod debug_macros;
 pub mod environment;
 pub mod errors;
+pub mod pathfinder;
 pub mod trusted_documents;
 pub mod types;
 pub mod utils;

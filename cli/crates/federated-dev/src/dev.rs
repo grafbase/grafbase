@@ -15,8 +15,6 @@ use engine_v2_axum::{
     websocket::{WebsocketAccepter, WebsocketService},
 };
 use graphql_federated_graph::FederatedGraph;
-use handlebars::Handlebars;
-use serde_json::json;
 use std::{net::SocketAddr, time::Duration};
 use tokio::sync::{mpsc, watch};
 use tower_http::cors::CorsLayer;
@@ -123,24 +121,9 @@ pub(super) async fn run(
 }
 
 fn render_pathfinder(port: u16, graphql_url: &str) -> String {
-    let mut handlebars = Handlebars::new();
-    let template = include_str!("../../server/templates/pathfinder.hbs");
-
-    handlebars
-        .register_template_string("pathfinder.html", template)
-        .expect("must be valid");
-
     let asset_url = format!("http://127.0.0.1:{port}/static");
 
-    handlebars
-        .render(
-            "pathfinder.html",
-            &json!({
-                "ASSET_URL": asset_url,
-                "GRAPHQL_URL": graphql_url
-            }),
-        )
-        .expect("must render")
+    common::pathfinder::index_html(graphql_url, &asset_url)
 }
 
 #[allow(clippy::unused_async)]
