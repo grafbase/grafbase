@@ -120,7 +120,6 @@ governor = "0.6"
 multipart-stream = "0.1.2"
 mediatype = "0.19"
 num-traits = "0.2.18"
-once_cell = "1.19.0"
 openidconnect = "4.0.0-alpha.1"
 postcard = { version = "1", features = ["use-std"] }
 regex = "1.10.4"

@@ -5,11 +5,11 @@ mod components;
 use std::collections::BTreeMap;
 
 use inflector::Inflector;
-use once_cell::sync::Lazy;
 use openapi::v2::{Operation, PathItem};
 use petgraph::{graph::NodeIndex, visit::EdgeRef};
 use regex::Regex;
 use registry_v2::resolvers::http::{ExpectedStatusCode, QueryParameterEncodingStyle, RequestBodyContentType};
+use std::sync::LazyLock;
 use url::Url;
 
 use self::components::Components;
@@ -369,7 +369,7 @@ fn is_valid_enum_value(value: &serde_json::Value) -> bool {
         return false;
     };
 
-    static REGEX: Lazy<Regex> = Lazy::new(|| Regex::new("^[A-Z_][A-Z0-9_]*$").unwrap());
+    static REGEX: LazyLock<Regex> = LazyLock::new(|| Regex::new("^[A-Z_][A-Z0-9_]*$").unwrap());
     let string = string.to_screaming_snake_case();
 
     REGEX.is_match(&string)
