@@ -9,7 +9,7 @@ mod health;
 mod state;
 mod trusted_documents_client;
 
-use grafbase_telemetry::gql_response_status::GraphqlResponseStatus;
+use grafbase_telemetry::graphql::GraphqlResponseStatus;
 pub use graph_fetch_method::GraphFetchMethod;
 use runtime_local::{hooks, ComponentLoader, HooksWasi};
 use tokio::sync::watch;

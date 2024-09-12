@@ -8,7 +8,7 @@ mod subscription;
 pub(crate) use federation::*;
 pub(crate) use root_fields::*;
 
-use grafbase_telemetry::gql_response_status::GraphqlResponseStatus;
+use grafbase_telemetry::graphql::GraphqlResponseStatus;
 use headers::HeaderMapExt;
 use http::HeaderMap;
 use std::time::Duration;

@@ -1,6 +1,6 @@
 use std::fmt;
 
-use grafbase_telemetry::gql_response_status::GraphqlResponseStatus;
+use grafbase_telemetry::graphql::GraphqlResponseStatus;
 use serde::{
     de::{DeserializeSeed, IgnoredAny, MapAccess, Visitor},
     Deserializer,

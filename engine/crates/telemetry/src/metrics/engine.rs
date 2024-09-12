@@ -1,13 +1,11 @@
-use std::sync::Arc;
-
 use opentelemetry::{
     metrics::{Counter, Histogram, Meter, UpDownCounter},
     KeyValue,
 };
 
 use crate::{
-    gql_response_status::{GraphqlResponseStatus, SubgraphResponseStatus},
     grafbase_client::Client,
+    graphql::{GraphqlOperationAttributes, GraphqlResponseStatus, OperationName, SubgraphResponseStatus},
 };
 
 pub struct EngineMetrics {
@@ -19,6 +17,7 @@ pub struct EngineMetrics {
     subgraph_response_body_size: Histogram<u64>,
     subgraph_requests_inflight: UpDownCounter<i64>,
     subgraph_cache_hits: Counter<u64>,
+    subgraph_cache_partial_hits: Counter<u64>,
     subgraph_cache_misses: Counter<u64>,
     operation_cache_hits: Counter<u64>,
     operation_cache_misses: Counter<u64>,
@@ -28,33 +27,9 @@ pub struct EngineMetrics {
     graphql_errors: Counter<u64>,
 }
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub enum OperationType {
-    Query,
-    Mutation,
-    Subscription,
-}
-
-impl OperationType {
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            Self::Query => "query",
-            Self::Mutation => "mutation",
-            Self::Subscription => "subscription",
-        }
-    }
-}
-
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct OperationMetricsAttributes {
-    pub ty: OperationType,
-    pub name: Option<String>,
-    pub sanitized_query: Arc<str>,
-}
-
 #[derive(Debug)]
 pub struct GraphqlRequestMetricsAttributes {
-    pub operation: OperationMetricsAttributes,
+    pub operation: GraphqlOperationAttributes,
     pub status: GraphqlResponseStatus,
     pub cache_status: Option<String>,
     pub client: Option<Client>,
@@ -64,7 +39,7 @@ pub struct GraphqlRequestMetricsAttributes {
 pub struct SubgraphRequestDurationAttributes {
     pub name: String,
     pub subgraph_status: SubgraphResponseStatus,
-    pub status_code: Option<http::StatusCode>,
+    pub http_status_code: Option<http::StatusCode>,
 }
 
 #[derive(Debug)]
@@ -100,7 +75,7 @@ pub struct SubgraphCacheMissAttributes {
 
 #[derive(Debug)]
 pub struct QueryPreparationAttributes {
-    pub operation: Option<OperationMetricsAttributes>,
+    pub operation: Option<GraphqlOperationAttributes>,
     pub success: bool,
 }
 
@@ -122,6 +97,7 @@ impl EngineMetrics {
             subgraph_response_body_size: meter.u64_histogram("graphql.subgraph.response.body.size").init(),
             subgraph_requests_inflight: meter.i64_up_down_counter("graphql.subgraph.request.inflight").init(),
             subgraph_cache_hits: meter.u64_counter("graphql.subgraph.request.cache.hit").init(),
+            subgraph_cache_partial_hits: meter.u64_counter("graphql.subgraph.request.cache.partial_hit").init(),
             subgraph_cache_misses: meter.u64_counter("graphql.subgraph.request.cache.miss").init(),
             operation_cache_hits: meter.u64_counter("graphql.operation.cache.hit").init(),
             operation_cache_misses: meter.u64_counter("graphql.operation.cache.miss").init(),
@@ -132,13 +108,13 @@ impl EngineMetrics {
         }
     }
 
-    fn create_operation_key_values(&self, operation: OperationMetricsAttributes) -> Vec<KeyValue> {
+    fn create_operation_key_values(&self, operation: GraphqlOperationAttributes) -> Vec<KeyValue> {
         let mut attributes = vec![
             KeyValue::new("graphql.document", operation.sanitized_query.clone()),
             KeyValue::new("graphql.operation.type", operation.ty.as_str()),
         ];
 
-        if let Some(name) = operation.name {
+        if let OperationName::Original(name) = operation.name {
             attributes.push(KeyValue::new("graphql.operation.name", name));
         }
 
@@ -179,25 +155,25 @@ impl EngineMetrics {
         self.operation_latency.record(latency.as_millis() as u64, &attributes);
     }
 
-    pub fn record_subgraph_duration(
+    pub fn record_subgraph_request_duration(
         &self,
         SubgraphRequestDurationAttributes {
             name,
-            subgraph_status: status,
-            status_code,
+            subgraph_status,
+            http_status_code,
         }: SubgraphRequestDurationAttributes,
-        latency: std::time::Duration,
+        duration: std::time::Duration,
     ) {
         let mut attributes = vec![
             KeyValue::new("graphql.subgraph.name", name),
-            KeyValue::new("graphql.subgraph.response.status", status.as_str()),
+            KeyValue::new("graphql.subgraph.response.status", subgraph_status.as_str()),
         ];
 
-        if let Some(status_code) = status_code {
-            attributes.push(KeyValue::new("http.response.status_code", status_code.as_u16() as i64));
+        if let Some(code) = http_status_code {
+            attributes.push(KeyValue::new("http.response.status_code", code.as_u16() as i64));
         }
 
-        self.subgraph_latency.record(latency.as_millis() as u64, &attributes);
+        self.subgraph_latency.record(duration.as_millis() as u64, &attributes);
     }
 
     pub fn record_subgraph_retry(
@@ -251,6 +227,11 @@ impl EngineMetrics {
         self.subgraph_cache_hits.add(1, &attributes);
     }
 
+    pub fn record_subgraph_cache_partial_hit(&self, subgraph_name: String) {
+        let attributes = [KeyValue::new("graphql.subgraph.name", subgraph_name)];
+        self.subgraph_cache_partial_hits.add(1, &attributes);
+    }
+
     pub fn record_subgraph_cache_miss(&self, SubgraphCacheMissAttributes { name }: SubgraphCacheMissAttributes) {
         let attributes = [KeyValue::new("graphql.subgraph.name", name)];
         self.subgraph_cache_misses.add(1, &attributes);
@@ -264,19 +245,30 @@ impl EngineMetrics {
         self.operation_cache_misses.add(1, &[]);
     }
 
-    pub fn record_preparation_latency(
+    pub fn record_failed_preparation_duration(
         &self,
-        QueryPreparationAttributes { operation, success }: QueryPreparationAttributes,
-        latency: std::time::Duration,
+        operation: Option<GraphqlOperationAttributes>,
+        duration: std::time::Duration,
     ) {
         let mut attributes = operation
             .map(|op| self.create_operation_key_values(op))
             .unwrap_or_default();
 
-        attributes.push(KeyValue::new("graphql.operation.success", success));
+        attributes.push(KeyValue::new("graphql.operation.success", false));
 
         self.query_preparation_latency
-            .record(latency.as_millis() as u64, &attributes);
+            .record(duration.as_millis() as u64, &attributes);
+    }
+
+    pub fn record_successful_preparation_duration(
+        &self,
+        operation: GraphqlOperationAttributes,
+        duration: std::time::Duration,
+    ) {
+        let mut attributes = self.create_operation_key_values(operation);
+        attributes.push(KeyValue::new("graphql.operation.success", true));
+        self.query_preparation_latency
+            .record(duration.as_millis() as u64, &attributes);
     }
 
     pub fn record_batch_size(&self, size: usize) {

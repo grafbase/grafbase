@@ -6,13 +6,13 @@ use engine_response::{IncrementalPayload, StreamingPayload};
 use engine_validation::{check_strict_rules, ValidationResult};
 use futures_util::stream::{self, Stream, StreamExt};
 use futures_util::FutureExt;
-use grafbase_telemetry::gql_response_status::GraphqlResponseStatus;
-use grafbase_telemetry::metrics::{EngineMetrics, OperationMetricsAttributes};
-use grafbase_telemetry::span::{gql::GqlRequestSpan, GqlRecorderSpanExt, GqlRequestAttributes};
+use grafbase_telemetry::graphql::{GraphqlOperationAttributes, GraphqlResponseStatus, OperationName};
+use grafbase_telemetry::metrics::EngineMetrics;
+use grafbase_telemetry::span::graphql::GraphqlOperationSpan;
 use graph_entities::{CompactValue, QueryResponse};
 
 use registry_v2::OperationLimits;
-use tracing::{Instrument, Span};
+use tracing::Instrument;
 
 use crate::registry::type_kinds::SelectionSetTarget;
 use crate::{
@@ -279,7 +279,7 @@ impl Schema {
                     operations
                         .get(operation_name)
                         .map(|operation| GraphqlOperationAnalyticsAttributes {
-                            name: Some(operation_name.to_string()),
+                            name: OperationName::Original(operation_name.to_string()),
                             r#type: response_operation_for_definition(&operation.node),
                             used_fields: String::new(),
                         })
@@ -289,14 +289,16 @@ impl Schema {
         } else {
             match &document.operations {
                 DocumentOperations::Single(operation) => Some(GraphqlOperationAnalyticsAttributes {
-                    name: engine_parser::find_first_field_name(&document.fragments, &operation.node.selection_set),
+                    name: engine_parser::find_first_field_name(&document.fragments, &operation.node.selection_set)
+                        .map(OperationName::Computed)
+                        .unwrap_or_default(),
                     r#type: response_operation_for_definition(&operation.node),
                     used_fields: String::new(),
                 }),
                 DocumentOperations::Multiple(operations) if operations.len() == 1 => {
                     let (operation_name, operation) = operations.iter().next().unwrap();
                     Some(GraphqlOperationAnalyticsAttributes {
-                        name: Some(operation_name.to_string()),
+                        name: OperationName::Original(operation_name.to_string()),
                         r#type: response_operation_for_definition(&operation.node),
                         used_fields: String::new(),
                     })
@@ -529,7 +531,7 @@ impl Schema {
         let schema = self.clone();
         let request: Request = request.into();
         let extensions = self.create_extensions(session_data.clone());
-        let gql_span = GqlRequestSpan::create();
+        let graphql_span = GraphqlOperationSpan::default();
         let client = schema
             .env
             .data
@@ -539,14 +541,14 @@ impl Schema {
 
         let sanitized_query = operation_normalizer::normalize(request.query(), request.operation_name()).ok();
 
-        let gql_span_clone = gql_span.clone();
+        let span = graphql_span.span.clone();
         let request = futures_util::stream::StreamExt::boxed({
             let extensions = extensions.clone();
             async_stream::stream! {
                 let (env_builder, futures_waiter) = match schema.prepare_request(extensions, request, session_data).await {
                     Ok(res) => res,
                     Err((operation_metadata, errors)) => {
-                        gql_span.record_gql_status(
+                        graphql_span.record_response_status(
                             GraphqlResponseStatus::RequestError { count: errors.len() as u64 },
                         );
 
@@ -560,10 +562,10 @@ impl Schema {
                     let (sender, mut receiver) = deferred::workload_channel();
                     let env = env_builder.with_deferred_sender(sender).build();
 
-                    Span::current().record_gql_request(GqlRequestAttributes {
-                        operation_type: env.operation.ty.as_str(),
-                        operation_name: env.operation_analytics_attributes.name.as_deref(),
-                        sanitized_query: sanitized_query.as_deref(),
+                    graphql_span.record_operation(&GraphqlOperationAttributes {
+                        ty: env.operation.ty.into(),
+                        name: env.operation_analytics_attributes.name.clone(),
+                        sanitized_query: sanitized_query.clone().map(Into::into).unwrap_or_default(),
                     });
 
                     let initial_response = schema
@@ -591,10 +593,10 @@ impl Schema {
                 } else {
                     let env = env_builder.build();
 
-                    gql_span.record_gql_request(GqlRequestAttributes {
-                        operation_type: env.operation.ty.as_str(),
-                        operation_name: env.operation_analytics_attributes.name.as_deref(),
-                        sanitized_query: sanitized_query.as_deref(),
+                    graphql_span.record_operation(&GraphqlOperationAttributes {
+                        ty: env.operation.ty.into(),
+                        name: env.operation_analytics_attributes.name.clone(),
+                        sanitized_query: sanitized_query.clone().map(Into::into).unwrap_or_default(),
                     });
 
                     let ctx = env.create_context(
@@ -621,15 +623,15 @@ impl Schema {
 
                 let elapsed = start.elapsed();
 
-                Span::current().record_gql_status(status);
+                graphql_span.record_response_status(status);
 
                 if let Some(sanitized_query) = sanitized_query {
                     schema.env.operation_metrics.record_operation_duration(
                         grafbase_telemetry::metrics::GraphqlRequestMetricsAttributes {
-                            operation: OperationMetricsAttributes {
+                            operation: GraphqlOperationAttributes {
                                 ty: env.operation.ty.into(),
                                 name: env.operation_analytics_attributes.name.clone(),
-                                sanitized_query: sanitized_query.into(),
+                        sanitized_query: sanitized_query.into()
                             },
                             status,
                             cache_status: None,
@@ -641,7 +643,7 @@ impl Schema {
             }
         });
 
-        request.instrument(gql_span_clone).into_inner()
+        request.instrument(span).into_inner()
     }
 
     /// Execute a GraphQL streaming request.

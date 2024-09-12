@@ -6,10 +6,10 @@ use engine_parser::types::OperationType;
 use futures::channel::mpsc;
 use futures_util::{SinkExt, Stream};
 use grafbase_telemetry::{
-    gql_response_status::GraphqlResponseStatus,
     grafbase_client::Client,
-    metrics::{EngineMetrics, GraphqlErrorAttributes, GraphqlRequestMetricsAttributes, OperationMetricsAttributes},
-    span::{gql::GqlRequestSpan, GqlRecorderSpanExt},
+    graphql::{GraphqlOperationAttributes, GraphqlResponseStatus},
+    metrics::{EngineMetrics, GraphqlErrorAttributes, GraphqlRequestMetricsAttributes},
+    span::graphql::GraphqlOperationSpan,
 };
 use runtime::hooks;
 use tracing::Instrument;
@@ -33,21 +33,21 @@ impl<R: Runtime> Engine<R> {
         let engine = Arc::clone(self);
         let (sender, receiver) = mpsc::channel(2);
 
-        let span = GqlRequestSpan::create();
+        let span = GraphqlOperationSpan::default();
         let span_clone = span.clone();
 
         receiver.join(
             async move {
                 let ctx = PreExecutionContext::new(&engine, &request_context);
-                let (operation_metrics_attributes, status) = ctx.execute_stream(request, sender).await;
+                let (operation_attributes, status) = ctx.execute_stream(request, sender).await;
                 let elapsed = start.elapsed();
 
-                if let Some(operation_metrics_attributes) = operation_metrics_attributes {
-                    span.record_gql_request((&operation_metrics_attributes).into());
+                if let Some(attributes) = operation_attributes {
+                    span.record_operation(&attributes);
 
                     engine.runtime.metrics().record_operation_duration(
                         GraphqlRequestMetricsAttributes {
-                            operation: operation_metrics_attributes,
+                            operation: attributes,
                             status,
                             cache_status: None,
                             client: request_context.client.clone(),
@@ -56,7 +56,7 @@ impl<R: Runtime> Engine<R> {
                     );
                 }
 
-                span.record_gql_status(status);
+                span.record_response_status(status);
                 // After recording all operation metadata
                 tracing::debug!("Executed operation in stream.")
             }
@@ -70,7 +70,7 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
         mut self,
         request: Request,
         mut sender: mpsc::Sender<Response>,
-    ) -> (Option<OperationMetricsAttributes>, GraphqlResponseStatus) {
+    ) -> (Option<GraphqlOperationAttributes>, GraphqlResponseStatus) {
         let engine = self.engine;
         let client = self.request_context.client.clone();
 
@@ -81,8 +81,8 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
                 // TODO: we should figure out how the access logs look like for subscriptions in another PR.
                 let mut operation_info = hooks::ExecutedOperation::builder();
 
-                let operation_plan = match self.prepare_operation(request, &mut operation_info).await {
-                    Ok(operation_plan) => operation_plan,
+                let operation = match self.prepare_operation(request, &mut operation_info).await {
+                    Ok(operation) => operation,
                     Err((metadata, response)) => {
                         let status = response.graphql_status();
                         sender.send(response).await.ok();
@@ -90,22 +90,22 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
                     }
                 };
 
-                if matches!(operation_plan.ty(), OperationType::Query | OperationType::Mutation) {
-                    let metrics_attributes = Some(operation_plan.metrics_attributes.clone());
-                    let response = self.execute_query_or_mutation(operation_plan).await;
+                if matches!(operation.ty(), OperationType::Query | OperationType::Mutation) {
+                    let metrics_attributes = Some(operation.attributes.clone());
+                    let response = self.execute_query_or_mutation(operation).await;
                     let status = response.graphql_status();
 
                     sender.send(Response::Executed(response)).await.ok();
 
                     Err((metrics_attributes, status))
                 } else {
-                    Ok((self, operation_plan))
+                    Ok((self, operation))
                 }
             })
             .await;
 
-        let (ctx, operation_plan) = match result {
-            Some(Ok((ctx, operation_plan))) => (ctx, operation_plan),
+        let (ctx, operation) = match result {
+            Some(Ok((ctx, operation))) => (ctx, operation),
             Some(Err((metadata, status))) => return (metadata, status),
             None => {
                 let response = RequestErrorResponse::gateway_timeout();
@@ -142,14 +142,16 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
             }
         }
 
-        let metrics_attributes = Some(operation_plan.metrics_attributes.clone());
+        let metrics_attributes = Some(operation.attributes.clone());
 
         ctx.execute_subscription(
-            operation_plan,
+            operation,
             Sender {
                 sender,
                 status: &mut status,
-                operation_name: metrics_attributes.as_ref().and_then(|a| a.name.clone()),
+                operation_name: metrics_attributes
+                    .as_ref()
+                    .and_then(|a| a.name.original().map(str::to_string)),
                 client: client.clone(),
                 metrics: engine.runtime.metrics(),
             },

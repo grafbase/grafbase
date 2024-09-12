@@ -9,6 +9,7 @@ use futures_util::{
     stream::{self, BoxStream, StreamExt},
     FutureExt, SinkExt,
 };
+use grafbase_telemetry::graphql::OperationName;
 use partial_caching::{CacheUpdatePhase, CachingPlan, FetchPhaseResult, StreamingExecutionPhase, TypeRelationships};
 use registry_for_cache::PartialCacheRegistry;
 use runtime::{
@@ -71,7 +72,11 @@ where
                 engine::Response::new(
                     body,
                     engine::GraphqlOperationAnalyticsAttributes {
-                        name: request.operation_name().map(str::to_string),
+                        name: request
+                            .operation_name()
+                            .map(str::to_string)
+                            .map(OperationName::Original)
+                            .unwrap_or_default(),
                         r#type: operation_type,
                         used_fields: String::new(),
                     },
@@ -129,7 +134,11 @@ where
             let response = engine::Response::new(
                 body,
                 engine::GraphqlOperationAnalyticsAttributes {
-                    name: request.operation_name().map(str::to_string),
+                    name: request
+                        .operation_name()
+                        .map(str::to_string)
+                        .map(OperationName::Original)
+                        .unwrap_or_default(),
                     r#type: operation_type,
                     used_fields: String::new(),
                 },

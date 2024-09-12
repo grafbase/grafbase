@@ -10,10 +10,10 @@ use super::{
     blueprint::ResponseBlueprintBuilder,
     cache_scopes::calculate_cache_scopes,
     logical_planner::{LogicalPlanner, LogicalPlanningError},
-    metrics::prepare_metrics_attributes,
+    metrics::extract_attributes,
     parse::{parse_operation, ParseError},
     validation::{validate_operation, ValidationError},
-    Operation, OperationMetricsAttributes, PreparedOperation,
+    GraphqlOperationAttributes, Operation, PreparedOperation,
 };
 
 #[derive(Debug, thiserror::Error)]
@@ -22,17 +22,17 @@ pub(crate) enum OperationError {
     Parse(#[from] ParseError),
     #[error("{err}")]
     Bind {
-        metrics_attributes: Box<Option<OperationMetricsAttributes>>,
+        attributes: Box<Option<GraphqlOperationAttributes>>,
         err: BindError,
     },
     #[error("{err}")]
     Validation {
-        metrics_attributes: Box<Option<OperationMetricsAttributes>>,
+        attributes: Box<Option<GraphqlOperationAttributes>>,
         err: ValidationError,
     },
     #[error("{err}")]
     LogicalPlanning {
-        metrics_attributes: Box<Option<OperationMetricsAttributes>>,
+        attributes: Box<Option<GraphqlOperationAttributes>>,
         err: LogicalPlanningError,
     },
     #[error("Failed to normalize query")]
@@ -52,11 +52,11 @@ impl From<OperationError> for GraphqlError {
 }
 
 impl OperationError {
-    pub fn take_metrics_attributes(&mut self) -> Option<OperationMetricsAttributes> {
+    pub fn take_operation_attributes(&mut self) -> Option<GraphqlOperationAttributes> {
         match self {
-            OperationError::Bind { metrics_attributes, .. } => std::mem::take(metrics_attributes),
-            OperationError::Validation { metrics_attributes, .. } => std::mem::take(metrics_attributes),
-            OperationError::LogicalPlanning { metrics_attributes, .. } => std::mem::take(metrics_attributes),
+            OperationError::Bind { attributes, .. } => std::mem::take(attributes),
+            OperationError::Validation { attributes, .. } => std::mem::take(attributes),
+            OperationError::LogicalPlanning { attributes, .. } => std::mem::take(attributes),
             _ => None,
         }
     }
@@ -70,13 +70,13 @@ impl Operation {
     /// At this stage the operation might not be resolvable but it should make sense given the schema types.
     pub fn prepare(schema: &Schema, request: &Request, document: &str) -> Result<PreparedOperation, OperationError> {
         let parsed_operation = parse_operation(request.operation_name.as_deref(), document)?;
-        let metrics_attributes = prepare_metrics_attributes(&parsed_operation, document);
+        let attributes = extract_attributes(&parsed_operation, document);
 
         let mut operation = match bind_operation(schema, parsed_operation) {
             Ok(operation) => operation,
             Err(err) => {
                 return Err(OperationError::Bind {
-                    metrics_attributes: Box::new(metrics_attributes),
+                    attributes: Box::new(attributes),
                     err,
                 })
             }
@@ -84,7 +84,7 @@ impl Operation {
 
         if let Err(err) = validate_operation(schema, operation.walker_with(schema)) {
             return Err(OperationError::Validation {
-                metrics_attributes: Box::new(metrics_attributes),
+                attributes: Box::new(attributes),
                 err,
             });
         }
@@ -93,7 +93,7 @@ impl Operation {
             Ok(plan) => plan,
             Err(err) => {
                 return Err(OperationError::LogicalPlanning {
-                    metrics_attributes: Box::new(metrics_attributes),
+                    attributes: Box::new(attributes),
                     err,
                 });
             }
@@ -103,11 +103,11 @@ impl Operation {
 
         let response_blueprint = ResponseBlueprintBuilder::new(schema, &operation, &plan).build();
 
-        let metrics_attributes = metrics_attributes.ok_or(OperationError::NormalizationError)?;
+        let attributes = attributes.ok_or(OperationError::NormalizationError)?;
 
         Ok(PreparedOperation {
             operation,
-            metrics_attributes,
+            attributes,
             plan,
             response_blueprint,
             logical_plan_cache_scopes,

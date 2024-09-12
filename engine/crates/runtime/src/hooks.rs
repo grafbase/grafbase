@@ -1,7 +1,7 @@
 #[cfg(feature = "test-utils")]
 mod test_utils;
 
-use grafbase_telemetry::gql_response_status::{GraphqlResponseStatus, SubgraphResponseStatus};
+use grafbase_telemetry::graphql::{GraphqlResponseStatus, SubgraphResponseStatus};
 #[cfg(feature = "test-utils")]
 pub use test_utils::*;
 use url::Url;
@@ -220,7 +220,7 @@ impl<'a> ExecutedSubgraphRequestBuilder<'a> {
     pub fn build(self) -> ExecutedSubgraphRequest<'a> {
         let is_success = matches!(
             self.status,
-            SubgraphResponseStatus::GraphqlResponse(GraphqlResponseStatus::Success)
+            SubgraphResponseStatus::WellFormedGraphqlResponse(GraphqlResponseStatus::Success)
         );
 
         ExecutedSubgraphRequest {
@@ -244,7 +244,7 @@ impl<'a> ExecutedSubgraphRequest<'a> {
             executions: Vec::new(),
             cache_status: CacheStatus::Miss,
             start_time: Instant::now(),
-            status: SubgraphResponseStatus::GraphqlResponse(GraphqlResponseStatus::Success),
+            status: SubgraphResponseStatus::WellFormedGraphqlResponse(GraphqlResponseStatus::Success),
         }
     }
 }

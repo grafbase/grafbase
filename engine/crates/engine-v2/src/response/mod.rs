@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use enumset::EnumSet;
 pub(crate) use error::*;
-use grafbase_telemetry::gql_response_status::GraphqlResponseStatus;
+use grafbase_telemetry::graphql::GraphqlResponseStatus;
 pub(crate) use key::*;
 pub(crate) use object_set::*;
 pub(crate) use path::*;

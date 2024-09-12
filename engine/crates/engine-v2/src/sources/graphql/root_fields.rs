@@ -1,7 +1,7 @@
 use std::{borrow::Cow, time::Duration};
 
 use bytes::Bytes;
-use grafbase_telemetry::{gql_response_status::GraphqlResponseStatus, span::subgraph::SubgraphRequestSpan};
+use grafbase_telemetry::{graphql::GraphqlResponseStatus, span::subgraph::SubgraphRequestSpan};
 use runtime::{bytes::OwnedOrSharedBytes, hooks::CacheStatus};
 use schema::{GraphqlEndpoint, GraphqlEndpointId, GraphqlRootFieldResolverDefinition};
 use serde::de::DeserializeSeed;

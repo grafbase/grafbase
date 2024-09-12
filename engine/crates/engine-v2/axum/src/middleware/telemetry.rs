@@ -9,14 +9,14 @@ use std::{
 
 use ::tower::Layer;
 use grafbase_telemetry::{
-    gql_response_status::GraphqlResponseStatus,
     grafbase_client::Client,
+    graphql::GraphqlResponseStatus,
     metrics::{RequestMetrics, RequestMetricsAttributes},
     otel::{
         opentelemetry::{self, metrics::Meter, propagation::Extractor},
         tracing_opentelemetry,
     },
-    span::{request::HttpRequestSpan, GqlRecorderSpanExt, HttpRecorderSpanExt, GRAFBASE_TARGET},
+    span::{request::HttpRequestSpan, HttpRecorderSpanExt, GRAFBASE_TARGET},
 };
 use headers::HeaderMapExt;
 use http::{Request, Response};
@@ -173,19 +173,6 @@ where
                         metrics_attributes(response.status().as_u16(), gql_status, cache_status),
                         latency,
                     );
-
-                    match gql_status {
-                        Some(status) if status.is_success() => {
-                            Span::current().record_gql_status(status);
-                        }
-                        Some(status) => {
-                            Span::current().record_gql_status(status);
-                        }
-                        None => {
-                            let status = GraphqlResponseStatus::RequestError { count: 1 };
-                            Span::current().record_gql_status(status);
-                        }
-                    }
 
                     response.headers_mut().remove(GraphqlResponseStatus::header_name());
 

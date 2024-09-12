@@ -5,7 +5,7 @@ use opentelemetry::{
     KeyValue,
 };
 
-use crate::{gql_response_status::GraphqlResponseStatus, grafbase_client::Client};
+use crate::{grafbase_client::Client, graphql::GraphqlResponseStatus};
 
 #[derive(Clone)]
 pub struct RequestMetrics {

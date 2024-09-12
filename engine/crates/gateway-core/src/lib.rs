@@ -5,8 +5,9 @@ use engine::parser::types::OperationType;
 use futures_util::FutureExt;
 use grafbase_telemetry::{
     grafbase_client::Client,
-    metrics::{EngineMetrics, GraphqlRequestMetricsAttributes, OperationMetricsAttributes},
-    span::{gql::GqlRequestSpan, GqlRecorderSpanExt, GqlRequestAttributes},
+    graphql::GraphqlOperationAttributes,
+    metrics::{EngineMetrics, GraphqlRequestMetricsAttributes},
+    span::graphql::GraphqlOperationSpan,
 };
 pub use runtime::context::RequestContext;
 use runtime::rate_limiting::RateLimiterInner;
@@ -162,7 +163,7 @@ where
             unreachable!("auth must be AccessToken::V1 at this point");
         };
 
-        let gql_span = GqlRequestSpan::create();
+        let graphql_span = GraphqlOperationSpan::default();
         let start = web_time::Instant::now();
 
         async {
@@ -188,38 +189,23 @@ where
             let status = response.status();
             let elapsed = start.elapsed();
 
-            if let Some(operation) = &response.graphql_operation {
-                gql_span.record_gql_request(GqlRequestAttributes {
-                    operation_type: match operation.r#type {
-                        common_types::OperationType::Query { .. } => "query",
-                        common_types::OperationType::Mutation => "mutation",
-                        common_types::OperationType::Subscription => "subscription",
-                    },
-                    operation_name: operation.name.as_deref(),
-                    sanitized_query: normalized_query.as_deref(),
-                });
-
-                gql_span.record_gql_status(status);
-            }
-
+            graphql_span.record_response_status(status);
             if let Some((operation, sanitized_query)) = response.graphql_operation.as_ref().zip(normalized_query) {
+                let operation = GraphqlOperationAttributes {
+                    ty: match operation.r#type {
+                        common_types::OperationType::Query { .. } => grafbase_telemetry::graphql::OperationType::Query,
+                        common_types::OperationType::Mutation => grafbase_telemetry::graphql::OperationType::Mutation,
+                        common_types::OperationType::Subscription => {
+                            grafbase_telemetry::graphql::OperationType::Subscription
+                        }
+                    },
+                    name: operation.name.clone(),
+                    sanitized_query: sanitized_query.into(),
+                };
+                graphql_span.record_operation(&operation);
                 self.operation_metrics.record_operation_duration(
                     GraphqlRequestMetricsAttributes {
-                        operation: OperationMetricsAttributes {
-                            ty: match operation.r#type {
-                                common_types::OperationType::Query { .. } => {
-                                    grafbase_telemetry::metrics::OperationType::Query
-                                }
-                                common_types::OperationType::Mutation => {
-                                    grafbase_telemetry::metrics::OperationType::Mutation
-                                }
-                                common_types::OperationType::Subscription => {
-                                    grafbase_telemetry::metrics::OperationType::Subscription
-                                }
-                            },
-                            name: operation.name.clone(),
-                            sanitized_query: sanitized_query.into(),
-                        },
+                        operation,
                         status,
                         cache_status: headers
                             .get(X_GRAFBASE_CACHE)
@@ -231,7 +217,7 @@ where
             }
             Ok((response, headers))
         }
-        .instrument(gql_span.clone())
+        .instrument(graphql_span.span.clone())
         .await
     }
 

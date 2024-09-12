@@ -3,9 +3,8 @@ use std::borrow::Cow;
 use bytes::Bytes;
 use futures::Future;
 use grafbase_telemetry::{
-    gql_response_status::{GraphqlResponseStatus, SubgraphResponseStatus},
+    graphql::{GraphqlResponseStatus, SubgraphResponseStatus},
     otel::tracing_opentelemetry::OpenTelemetrySpanExt as _,
-    span::GqlRecorderSpanExt,
 };
 use headers::HeaderMapExt;
 use runtime::{
@@ -33,7 +32,7 @@ pub trait ResponseIngester: Send {
 
 pub(crate) async fn execute_subgraph_request<'ctx, 'a, R: Runtime>(
     ctx: &mut SubgraphRequestContext<'ctx, R>,
-    span: Span,
+    _span: Span,
     headers: http::HeaderMap,
     body: Bytes,
     ingester: impl ResponseIngester,
@@ -100,10 +99,9 @@ pub(crate) async fn execute_subgraph_request<'ctx, 'a, R: Runtime>(
     let status_code = response.status();
 
     let (status, response) = ingester.ingest(response).await.inspect_err(|err| {
-        let subgraph_status = SubgraphResponseStatus::InvalidResponseError;
+        let subgraph_status = SubgraphResponseStatus::InvalidGraphqlResponseError;
 
         ctx.request_info().set_graphql_status(subgraph_status);
-        span.record_subgraph_status(subgraph_status);
 
         record::subgraph_duration(
             execution_context,
@@ -116,10 +114,8 @@ pub(crate) async fn execute_subgraph_request<'ctx, 'a, R: Runtime>(
         tracing::debug!("invalid subgraph response: {err}");
     })?;
 
-    let subgraph_status = SubgraphResponseStatus::GraphqlResponse(status);
+    let subgraph_status = SubgraphResponseStatus::WellFormedGraphqlResponse(status);
     ctx.request_info().set_graphql_status(subgraph_status);
-
-    span.record_subgraph_status(subgraph_status);
 
     record::subgraph_duration(
         execution_context,
