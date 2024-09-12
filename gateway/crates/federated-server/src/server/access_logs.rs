@@ -2,7 +2,7 @@ use gateway_config::{AccessLogsConfig, RotateMode};
 use grafbase_telemetry::otel::opentelemetry::metrics::UpDownCounter;
 use rolling_logger::{RollingLogger, RotateStrategy};
 use runtime_local::hooks::{AccessLogMessage, ChannelLogReceiver};
-use std::io::{self, Write};
+use std::io::Write;
 
 pub(crate) fn start(
     config: &AccessLogsConfig,
