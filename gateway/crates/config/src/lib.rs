@@ -118,6 +118,8 @@ pub enum RotateMode {
     Hourly,
     /// A new file every day
     Daily,
+    /// A new size when the current file has reached a certain size
+    Size(u64),
 }
 
 #[derive(Debug, Default, serde::Deserialize, Clone, Copy)]
@@ -1807,6 +1809,70 @@ mod tests {
                 ),
                 entity_caching: None,
             },
+        }
+        "###);
+    }
+
+    #[test]
+    fn access_logs_default() {
+        let input = indoc! {r#"
+            [gateway.access_logs]
+            enabled = true
+            path = "/path"
+        "#};
+
+        let config: Config = toml::from_str(input).unwrap();
+
+        insta::assert_debug_snapshot!(&config.gateway.access_logs, @r###"
+        AccessLogsConfig {
+            enabled: true,
+            path: "/path",
+            rotate: Never,
+            mode: Blocking,
+        }
+        "###);
+    }
+
+    #[test]
+    fn access_logs_rotate_minutely() {
+        let input = indoc! {r#"
+            [gateway.access_logs]
+            enabled = true
+            path = "/path"
+            rotate = "minutely"
+        "#};
+
+        let config: Config = toml::from_str(input).unwrap();
+
+        insta::assert_debug_snapshot!(&config.gateway.access_logs, @r###"
+        AccessLogsConfig {
+            enabled: true,
+            path: "/path",
+            rotate: Minutely,
+            mode: Blocking,
+        }
+        "###);
+    }
+
+    #[test]
+    fn access_logs_rotate_max_size() {
+        let input = indoc! {r#"
+            [gateway.access_logs]
+            enabled = true
+            path = "/path"
+            rotate.size = 1024
+        "#};
+
+        let config: Config = toml::from_str(input).unwrap();
+
+        insta::assert_debug_snapshot!(&config.gateway.access_logs, @r###"
+        AccessLogsConfig {
+            enabled: true,
+            path: "/path",
+            rotate: Size(
+                1024,
+            ),
+            mode: Blocking,
         }
         "###);
     }

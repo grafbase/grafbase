@@ -1,0 +1,18 @@
+[package]
+name = "rolling-logger"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+homepage.workspace = true
+keywords.workspace = true
+repository.workspace = true
+
+[dependencies]
+grafbase-workspace-hack.workspace = true
+
+[lints]
+workspace = true
+
+[dev-dependencies]
+insta.workspace = true
+tempfile = "3.12.0"
