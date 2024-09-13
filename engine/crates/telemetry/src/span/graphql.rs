@@ -1,13 +1,10 @@
 use itertools::Itertools;
 use tracing::{info_span, Span};
 
-use crate::graphql::{GraphqlOperationAttributes, GraphqlResponseStatus, OperationName};
-
-/// The name of the GraphQL span
-pub const GRAPHQL_SPAN_NAME: &str = "graphql";
-
-/// Attribute key under which the gql operation name is recorded
-pub const GRAPHQL_OPERATION_NAME_ATTRIBUTE: &str = "gql.operation.name";
+use crate::{
+    graphql::{GraphqlOperationAttributes, GraphqlResponseStatus, OperationName},
+    span::kind::GrafbaseSpanKind,
+};
 
 /// A span for a graphql request
 pub struct GraphqlOperationSpan {
@@ -25,9 +22,11 @@ impl Default for GraphqlOperationSpan {
     fn default() -> Self {
         use tracing::field::Empty;
 
+        let kind: &'static str = GrafbaseSpanKind::GraphqlOperation.into();
         let span = info_span!(
             target: crate::span::GRAFBASE_TARGET,
-            GRAPHQL_SPAN_NAME,
+            "graphql",
+            "grafbase.kind" = kind,
             "otel.name"  = Empty,
             "otel.kind" = "Server",
             "graphql.operation.name"  = Empty,

@@ -7,6 +7,7 @@ pub mod cache;
 pub mod graphql;
 /// Request span
 pub mod http_request;
+mod kind;
 /// Resolver span
 pub mod resolver;
 /// Subgraph span

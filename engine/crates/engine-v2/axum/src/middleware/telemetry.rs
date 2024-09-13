@@ -146,6 +146,7 @@ where
                             listen_address,
                             version: Some(version),
                             method: Some(method.clone()),
+                            has_graphql_errors: false,
                         },
                         start.elapsed(),
                     );
@@ -164,7 +165,7 @@ where
                         .and_then(|value| value.to_str().ok())
                         .map(str::to_string);
 
-                    let attributes = RequestMetricsAttributes {
+                    let mut attributes = RequestMetricsAttributes {
                         status_code: response.status().as_u16(),
                         client,
                         cache_status,
@@ -173,6 +174,7 @@ where
                         listen_address,
                         version: Some(version),
                         method: Some(method.clone()),
+                        has_graphql_errors: false,
                     };
 
                     let telemetry = response
@@ -183,6 +185,7 @@ where
                     match telemetry {
                         TelemetryExtension::Ready(telemetry) => {
                             http_span.record_graphql_execution_telemetry(&telemetry);
+                            attributes.has_graphql_errors = telemetry.errors_count > 0;
                             metrics.record_http_duration(attributes, start.elapsed());
                         }
                         TelemetryExtension::Future(channel) => {
@@ -191,6 +194,7 @@ where
                             tokio::spawn(
                                 async move {
                                     let telemetry = channel.await.unwrap_or_default();
+                                    attributes.has_graphql_errors = telemetry.errors_count > 0;
                                     http_span.record_graphql_execution_telemetry(&telemetry);
                                     metrics.record_http_duration(attributes, start.elapsed());
                                 }

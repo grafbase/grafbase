@@ -3844,6 +3844,7 @@ dependencies = [
  "postcard",
  "serde",
  "serde-dynamic-string",
+ "strum",
  "tempfile",
  "thiserror",
  "toml",
@@ -3926,7 +3927,6 @@ dependencies = [
  "jwt-compact",
  "lazy_static",
  "libc",
- "libz-sys",
  "linux-raw-sys",
  "log",
  "lru",
@@ -3974,6 +3974,7 @@ dependencies = [
  "spin",
  "spki",
  "stable_deref_trait",
+ "strum",
  "subtle",
  "syn 1.0.109",
  "syn 2.0.72",
@@ -5330,7 +5331,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c15da26e5af7e25c90b37a2d75cdbf940cf4a55316de9d84c679c9b8bfabf82e"
 dependencies = [
  "cc",
- "libc",
  "pkg-config",
  "vcpkg",
 ]

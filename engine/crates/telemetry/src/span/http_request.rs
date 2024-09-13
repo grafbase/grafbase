@@ -1,4 +1,4 @@
-use std::borrow::Cow;
+use std::borrow::{Borrow, Cow};
 
 use crate::grafbase_client::Client;
 use crate::graphql::GraphqlExecutionTelemetry;
@@ -9,8 +9,8 @@ use itertools::Itertools;
 use tracing::field::Empty;
 use tracing::{info_span, Span};
 
-/// The name of the span that represents the root of an incoming request
-pub const GATEWAY_SPAN_NAME: &str = "gateway";
+use super::kind::GrafbaseSpanKind;
+
 pub(crate) const X_FORWARDED_FOR_HEADER: &str = "X-Forwarded-For";
 
 /// A span for a http request
@@ -42,6 +42,12 @@ pub struct HttpRequestSpan {
 impl std::ops::Deref for HttpRequestSpan {
     type Target = Span;
     fn deref(&self) -> &Self::Target {
+        &self.span
+    }
+}
+
+impl Borrow<Span> for HttpRequestSpan {
+    fn borrow(&self) -> &Span {
         &self.span
     }
 }
@@ -117,11 +123,14 @@ impl<'a> HttpRequestSpanBuilder<'a> {
     pub fn build(self) -> HttpRequestSpan {
         // We follow the HTTP server span conventions:
         // https://opentelemetry.io/docs/specs/semconv/http/http-spans/#http-server
+        let kind: &'static str = GrafbaseSpanKind::HttpRequest.into();
         let span = info_span!(
             target: crate::span::GRAFBASE_TARGET,
-            GATEWAY_SPAN_NAME,
+            "http-request",
+            "grafbase.kind" = kind,
             "otel.status_code" = Empty,
             "otel.kind" = "Server",
+            "otel.name" = format!("{} {}", self.request_method, self.url.path()),
             // "Describes a class of error the operation ended with."
             "error.type" = Empty,
             "server.address" = self.server_address.as_ref().and_then(|v| v.to_str().ok()),

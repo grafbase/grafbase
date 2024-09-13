@@ -28,6 +28,7 @@ serde-dynamic-string.workspace = true
 postcard.workspace = true
 gateway-config.workspace = true
 itertools.workspace = true
+strum.workspace = true
 
 # tracing
 tracing = { workspace = true }
