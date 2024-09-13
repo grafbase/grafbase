@@ -260,38 +260,35 @@ jobs:
           bun-version: latest
 
       - name: Download pre-built example component
-        if: |
-          contains(fromJson(needs.what-changed.outputs.rust).changed-packages, 'integration-tests')
-          || contains(fromJson(needs.what-changed.outputs.rust).changed-packages, 'gateway-binary')
-          || contains(fromJson(needs.what-changed.outputs.rust).changed-packages, 'wasi-component-loader')
+        if: needs.example-component.result != 'skipped'
         uses: actions/download-artifact@v4
         with:
           name: example-component
           path: engine/crates/wasi-component-loader/examples/target/wasm32-wasip1/debug
 
       - name: Download pre-built ~/.grafbase
-        if: contains(fromJson(needs.what-changed.outputs.rust).changed-packages, 'grafbase')
+        if: needs.cli-assets.result != 'skipped'
         uses: actions/download-artifact@v4
         with:
           name: home-dot-grafbase
           path: ../home-dot-grafbase
 
       - name: Copy ~/.grafbase into place
-        if: contains(fromJson(needs.what-changed.outputs.rust).changed-packages, 'grafbase')
+        if: needs.cli-assets.result != 'skipped'
         shell: bash
         run: |
           mkdir ~/.grafbase
           cp -r ../home-dot-grafbase/* ~/.grafbase/
 
       - name: Download pre-built cli-app
-        if: contains(fromJson(needs.what-changed.outputs.rust).changed-packages, 'grafbase')
+        if: needs.cli-assets.result != 'skipped'
         uses: actions/download-artifact@v4
         with:
           name: cli-app-dist
           path: packages/cli-app/dist
 
       - name: Download pre-built wrappers
-        if: contains(fromJson(needs.what-changed.outputs.rust).changed-packages, 'grafbase')
+        if: needs.cli-assets.result != 'skipped'
         uses: actions/download-artifact@v4
         with:
           name: wrappers-dist.js
