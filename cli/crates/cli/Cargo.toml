@@ -90,7 +90,7 @@ jwt-compact = { version = "0.8.0", default-features = false, features = [
 ] }
 more-asserts = "0.3.1"
 multipart-stream = "0.1.2"
-rand = "0.8.5"
+rand.workspace = true
 regex = "1.10.4"
 reqwest = { workspace = true, features = [
   "rustls-tls",

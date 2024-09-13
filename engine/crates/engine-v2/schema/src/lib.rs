@@ -45,7 +45,7 @@ impl Schema {
 
         SHA.get_or_init(|| match built_info::GIT_COMMIT_HASH {
             Some(hash) => hex::decode(hash).expect("Expect hex format"),
-            None => built_info::BUILT_TIME_UTC.as_bytes().to_vec(),
+            None => built_info::BUILD_TOKEN.as_bytes().to_vec(),
         })
     }
 }
