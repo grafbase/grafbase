@@ -14,7 +14,7 @@ pub(crate) fn start(
         RotateMode::Minutely => RotateStrategy::minutely(),
         RotateMode::Hourly => RotateStrategy::hourly(),
         RotateMode::Daily => RotateStrategy::daily(),
-        RotateMode::Size(max_size) => RotateStrategy::size(max_size),
+        RotateMode::Size(max_size) => RotateStrategy::size(max_size.bytes().max(0).unsigned_abs()),
     };
 
     let mut log = RollingLogger::new(&config.path.join("access.log"), strategy)

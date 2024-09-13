@@ -22,7 +22,6 @@ duration-str = "0.11.0"
 http.workspace = true
 regex.workspace = true
 serde.workspace = true
-serde_with.workspace = true
 serde-dynamic-string.workspace = true
 serde_regex = "1.1.0"
 size = "0.5.0-preview2"
