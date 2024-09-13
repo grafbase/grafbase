@@ -293,7 +293,7 @@ fn with_working_subgraph_rate_limited() {
               "responses": [
                 "RateLimited"
               ],
-              "has_errors": true,
+              "has_errors": false,
               "cached": false
             }
           ]
@@ -372,7 +372,7 @@ fn with_broken_subgraph() {
                   }
                 }
               ],
-              "has_errors": true,
+              "has_errors": false,
               "cached": false
             }
           ]
@@ -463,7 +463,7 @@ fn with_broken_subgraph_retried() {
                   }
                 }
               ],
-              "has_errors": true,
+              "has_errors": false,
               "cached": false
             }
           ]
@@ -601,9 +601,12 @@ fn with_subgraph_status_500() {
           "data": null,
           "errors": [
             {
-              "message": "FAILED",
+              "message": "Request to subgraph 'accounts' failed with: Invalid status code: 500",
+              "path": [
+                "me"
+              ],
               "extensions": {
-                "code": "SUBGRAPH_ERROR"
+                "code": "SUBGRAPH_REQUEST_ERROR"
               }
             }
           ]
@@ -644,7 +647,7 @@ fn with_subgraph_status_500() {
                   }
                 }
               ],
-              "has_errors": true,
+              "has_errors": false,
               "cached": false
             }
           ]
@@ -684,9 +687,12 @@ fn with_subgraph_status_500_retried() {
           "data": null,
           "errors": [
             {
-              "message": "FAILED",
+              "message": "Request to subgraph 'accounts' failed with: Invalid status code: 500",
+              "path": [
+                "me"
+              ],
               "extensions": {
-                "code": "SUBGRAPH_ERROR"
+                "code": "SUBGRAPH_REQUEST_ERROR"
               }
             }
           ]
@@ -725,9 +731,14 @@ fn with_subgraph_status_500_retried() {
                   "Responsed": {
                     "status_code": 500
                   }
+                },
+                {
+                  "Responsed": {
+                    "status_code": 500
+                  }
                 }
               ],
-              "has_errors": true,
+              "has_errors": false,
               "cached": false
             }
           ]

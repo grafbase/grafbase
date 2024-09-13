@@ -17,7 +17,7 @@ pub(in crate::sources::graphql) struct RootGraphqlErrors<'resp> {
 }
 
 impl<'resp> RootGraphqlErrors<'resp> {
-    pub fn new<R: Runtime>(ctx: ExecutionContext<'resp, R>, response: SubgraphResponseRefMut<'resp>) -> Self {
+    pub fn new<R: Runtime>(ctx: &ExecutionContext<'resp, R>, response: SubgraphResponseRefMut<'resp>) -> Self {
         Self {
             response,
             response_keys: &ctx.operation.response_keys,

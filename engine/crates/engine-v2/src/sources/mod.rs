@@ -44,18 +44,14 @@
 //! executor will have a root for each product in the response.
 use futures::FutureExt;
 use futures_util::stream::BoxStream;
-use runtime::hooks::{ExecutedSubgraphRequest, ExecutedSubgraphRequestBuilder};
-use schema::{GraphqlEndpoint, ResolverDefinition, ResolverDefinitionVariant};
-use std::{future::Future, ops::Deref};
-use tower::retry::budget::Budget;
+use schema::{ResolverDefinition, ResolverDefinitionVariant};
+use std::future::Future;
 
 use crate::{
-    execution::{
-        ExecutionContext, ExecutionError, ExecutionResult, PlanningResult, RequestHooks, SubscriptionResponse,
-    },
-    operation::{CacheScope, OperationType, PlanWalker},
+    execution::{ExecutionContext, ExecutionError, ExecutionResult, PlanningResult, SubscriptionResponse},
+    operation::{OperationType, PlanWalker},
     response::{ResponseObjectsView, SubgraphResponse},
-    Engine, Runtime,
+    Runtime,
 };
 
 use self::{
@@ -90,122 +86,9 @@ impl Resolver {
     }
 }
 
-pub struct ExecutionFutureResult {
-    pub result: ExecutionResult<SubgraphResponse>,
-    pub on_subgraph_response_hook_result: Option<Vec<u8>>,
-}
-
-#[derive(Clone)]
-pub(crate) struct SubgraphRequestContext<'ctx, R: Runtime> {
-    execution_context: ExecutionContext<'ctx, R>,
-    plan: PlanWalker<'ctx, ()>,
-    request_info: ExecutedSubgraphRequestBuilder<'ctx>,
-    endpoint: GraphqlEndpoint<'ctx>,
-    retry_budget: Option<&'ctx Budget>,
-}
-
-impl<'ctx, R: Runtime> Deref for SubgraphRequestContext<'ctx, R> {
-    type Target = ExecutionContext<'ctx, R>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.execution_context
-    }
-}
-
-impl<'ctx, R: Runtime> SubgraphRequestContext<'ctx, R> {
-    pub fn new(
-        execution_context: ExecutionContext<'ctx, R>,
-        operation_type: OperationType,
-        plan: PlanWalker<'ctx, ()>,
-        endpoint: GraphqlEndpoint<'ctx>,
-    ) -> Self {
-        let request_info = ExecutedSubgraphRequest::builder(endpoint.subgraph_name(), "POST", endpoint.url().as_str());
-
-        let retry_budget = match operation_type {
-            OperationType::Mutation => execution_context.engine.get_retry_budget_for_mutation(endpoint.id()),
-            _ => execution_context
-                .engine
-                .get_retry_budget_for_non_mutation(endpoint.id()),
-        };
-
-        Self {
-            execution_context,
-            plan,
-            request_info,
-            endpoint,
-            retry_budget,
-        }
-    }
-
-    pub fn execution_context(&self) -> ExecutionContext<'ctx, R> {
-        self.execution_context
-    }
-
-    pub fn engine(&self) -> &Engine<R> {
-        self.execution_context().engine
-    }
-
-    pub fn plan(&self) -> PlanWalker<'ctx, ()> {
-        self.plan
-    }
-
-    pub fn request_info(&mut self) -> &mut ExecutedSubgraphRequestBuilder<'ctx> {
-        &mut self.request_info
-    }
-
-    pub fn endpoint(&self) -> GraphqlEndpoint<'ctx> {
-        self.endpoint
-    }
-
-    pub fn hooks(&self) -> RequestHooks<'ctx, R::Hooks> {
-        self.execution_context().hooks()
-    }
-
-    pub fn cache_scopes(&self) -> Vec<String> {
-        self.plan()
-            .cache_scopes()
-            .map(|scope| match scope {
-                CacheScope::Authenticated => "authenticated".into(),
-                CacheScope::RequiresScopes(scopes) => {
-                    let mut hasher = blake3::Hasher::new();
-                    hasher.update(b"requiresScopes");
-                    hasher.update(&scopes.scopes().len().to_le_bytes());
-                    for scope in scopes.scopes() {
-                        hasher.update(&scope.len().to_le_bytes());
-                        hasher.update(scope.as_bytes());
-                    }
-                    hasher.finalize().to_hex().to_string()
-                }
-            })
-            .collect()
-    }
-
-    pub fn retry_budget(&self) -> Option<&Budget> {
-        self.retry_budget
-    }
-
-    pub async fn finalize(self, subgraph_result: ExecutionResult<SubgraphResponse>) -> ExecutionFutureResult {
-        let hook_result = self
-            .execution_context
-            .hooks()
-            .on_subgraph_response(self.request_info.build())
-            .await
-            .map_err(|e| {
-                tracing::error!("error in on-subgraph-response hook: {e}");
-                ExecutionError::Internal("internal error".into())
-            });
-
-        match hook_result {
-            Ok(hook_result) => ExecutionFutureResult {
-                result: subgraph_result,
-                on_subgraph_response_hook_result: Some(hook_result),
-            },
-            Err(e) => ExecutionFutureResult {
-                result: Err(e),
-                on_subgraph_response_hook_result: None,
-            },
-        }
-    }
+pub struct ResolverResult {
+    pub execution: ExecutionResult<SubgraphResponse>,
+    pub on_subgraph_response_hook_output: Option<Vec<u8>>,
 }
 
 impl Resolver {
@@ -218,41 +101,37 @@ impl Resolver {
         // awaiting anything.
         root_response_objects: ResponseObjectsView<'_>,
         subgraph_response: SubgraphResponse,
-    ) -> impl Future<Output = ExecutionFutureResult> + Send + 'fut
+    ) -> impl Future<Output = ResolverResult> + Send + 'fut
     where
         'ctx: 'fut,
     {
         match self {
             Resolver::GraphQL(prepared) => async move {
-                let mut context =
-                    SubgraphRequestContext::new(ctx, prepared.operation_type(), plan, prepared.endpoint(ctx));
-
-                let subgraph_result = prepared.execute(&mut context, subgraph_response).await;
-                context.finalize(subgraph_result).await
+                let mut ctx = prepared.build_subgraph_context(ctx);
+                let subgraph_result = prepared.execute(&mut ctx, plan, subgraph_response).await;
+                ctx.finalize(subgraph_result).await
             }
             .boxed(),
             Resolver::FederationEntity(prepared) => {
-                let request = prepared.prepare_request(ctx, plan, root_response_objects, subgraph_response);
+                let mut ctx = prepared.build_subgraph_context(ctx);
+                let request = prepared.prepare_request(&ctx, plan, root_response_objects, subgraph_response);
 
                 async move {
-                    let mut context =
-                        SubgraphRequestContext::new(ctx, OperationType::Query, plan, prepared.endpoint(ctx));
-
                     let subgraph_result = match request {
-                        Ok(request) => request.execute(&mut context).await,
+                        Ok(request) => request.execute(&mut ctx).await,
                         Err(error) => Err(error),
                     };
 
-                    context.finalize(subgraph_result).await
+                    ctx.finalize(subgraph_result).await
                 }
                 .boxed()
             }
             Resolver::Introspection(prepared) => async move {
                 let result = prepared.execute(ctx, plan, subgraph_response).await;
 
-                ExecutionFutureResult {
-                    result,
-                    on_subgraph_response_hook_result: None,
+                ResolverResult {
+                    execution: result,
+                    on_subgraph_response_hook_output: None,
                 }
             }
             .boxed(),
@@ -269,8 +148,8 @@ impl Resolver {
             Resolver::GraphQL(prepared) => {
                 // TODO: for now we do not finalize this, e.g. we do not call the subgraph response hook. We should figure
                 // out later what kind of data that hook would contain.
-                let mut context = SubgraphRequestContext::new(ctx, OperationType::Query, plan, prepared.endpoint(ctx));
-                prepared.execute_subscription(&mut context, new_response).await
+                let mut ctx = prepared.build_subgraph_context(ctx);
+                prepared.execute_subscription(&mut ctx, plan, new_response).await
             }
             Resolver::Introspection(_) => Err(ExecutionError::Internal(
                 "Subscriptions can't contain introspection".into(),

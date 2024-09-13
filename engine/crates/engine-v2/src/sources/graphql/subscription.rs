@@ -11,31 +11,34 @@ use url::Url;
 use super::{
     deserialize::{GraphqlResponseSeed, RootGraphqlErrors},
     request::{retrying_fetch, SubgraphGraphqlRequest, SubgraphVariables},
-    GraphqlResolver,
+    GraphqlResolver, SubgraphContext,
 };
 use crate::{
     execution::{ExecutionError, SubscriptionResponse},
-    sources::{ExecutionResult, SubgraphRequestContext},
+    operation::PlanWalker,
+    sources::ExecutionResult,
     Runtime,
 };
 
 impl GraphqlResolver {
     pub async fn execute_subscription<'ctx, R: Runtime>(
         &'ctx self,
-        ctx: &mut SubgraphRequestContext<'ctx, R>,
+        ctx: &mut SubgraphContext<'ctx, R>,
+        plan: PlanWalker<'ctx>,
         new_response: impl Fn() -> SubscriptionResponse + Send + 'ctx,
     ) -> ExecutionResult<BoxStream<'ctx, ExecutionResult<SubscriptionResponse>>> {
         if let Some(websocket_url) = ctx.endpoint().websocket_url() {
-            self.execute_websocket_subscription(ctx, new_response, websocket_url)
+            self.execute_websocket_subscription(ctx, plan, new_response, websocket_url)
                 .await
         } else {
-            self.execute_sse_subscription(ctx, new_response).await
+            self.execute_sse_subscription(ctx, plan, new_response).await
         }
     }
 
     async fn execute_websocket_subscription<'ctx, R: Runtime>(
         &'ctx self,
-        ctx: &mut SubgraphRequestContext<'ctx, R>,
+        ctx: &mut SubgraphContext<'ctx, R>,
+        plan: PlanWalker<'ctx>,
         new_response: impl Fn() -> SubscriptionResponse + Send + 'ctx,
         websocket_url: &'ctx Url,
     ) -> ExecutionResult<BoxStream<'ctx, ExecutionResult<SubscriptionResponse>>> {
@@ -57,9 +60,7 @@ impl GraphqlResolver {
             _ => Cow::Borrowed(websocket_url),
         };
 
-        let header_rules = ctx
-            .execution_context()
-            .subgraph_headers_with_rules(endpoint.header_rules());
+        let header_rules = ctx.subgraph_headers_with_rules(endpoint.header_rules());
 
         let headers = ctx
             .hooks()
@@ -73,7 +74,7 @@ impl GraphqlResolver {
             body: &SubgraphGraphqlRequest {
                 query: &self.operation.query,
                 variables: SubgraphVariables::<()> {
-                    plan: ctx.plan(),
+                    plan,
                     variables: &self.operation.variables,
                     extra_variables: Vec::new(),
                 },
@@ -81,19 +82,19 @@ impl GraphqlResolver {
             timeout: endpoint.config.timeout,
         };
 
-        let execution_ctx = ctx.execution_context();
-        let fetch = move || {
-            let result = execution_ctx
-                .engine
-                .runtime
-                .fetcher()
-                .graphql_over_websocket_stream(request.clone());
+        let fetcher = ctx.engine.runtime.fetcher();
+        let stream = retrying_fetch(ctx, move || {
+            fetcher
+                .graphql_over_websocket_stream(request.clone())
+                .then(|res| async { (res, None) })
+        })
+        .await
+        .inspect_err(|_| {
+            ctx.set_as_http_error(None);
+        })?;
 
-            result.then(|res| async { (res, None) })
-        };
-
-        let stream = retrying_fetch(ctx, fetch)
-            .await?
+        let ctx = ctx.execution_context();
+        let stream = stream
             .map_err(move |error| ExecutionError::Fetch {
                 subgraph_name: endpoint.subgraph_name().to_string(),
                 error,
@@ -103,9 +104,8 @@ impl GraphqlResolver {
 
                 let resp = subscription_response.as_mut();
                 GraphqlResponseSeed::new(
-                    resp.next_seed(execution_ctx)
-                        .expect("Must have a root object to update"),
-                    RootGraphqlErrors::new(execution_ctx, resp),
+                    resp.next_seed(&ctx).expect("Must have a root object to update"),
+                    RootGraphqlErrors::new(&ctx, resp),
                 )
                 .deserialize(subgraph_response?)?;
 
@@ -117,7 +117,8 @@ impl GraphqlResolver {
 
     async fn execute_sse_subscription<'ctx, R: Runtime>(
         &'ctx self,
-        ctx: &mut SubgraphRequestContext<'ctx, R>,
+        ctx: &mut SubgraphContext<'ctx, R>,
+        plan: PlanWalker<'ctx>,
         new_response: impl Fn() -> SubscriptionResponse + Send + 'ctx,
     ) -> ExecutionResult<BoxStream<'ctx, ExecutionResult<SubscriptionResponse>>> {
         let endpoint = ctx.endpoint();
@@ -126,25 +127,18 @@ impl GraphqlResolver {
             let body = serde_json::to_vec(&SubgraphGraphqlRequest {
                 query: &self.operation.query,
                 variables: SubgraphVariables::<()> {
-                    plan: ctx.plan(),
+                    plan,
                     variables: &self.operation.variables,
                     extra_variables: Vec::new(),
                 },
             })
             .map_err(|err| format!("Failed to serialize query: {err}"))?;
 
-            let header_rules = ctx
-                .execution_context()
-                .subgraph_headers_with_rules(endpoint.header_rules());
+            let headers = ctx.subgraph_headers_with_rules(endpoint.header_rules());
 
             let mut headers = ctx
                 .hooks()
-                .on_subgraph_request(
-                    endpoint.subgraph_name(),
-                    http::Method::POST,
-                    endpoint.url(),
-                    header_rules,
-                )
+                .on_subgraph_request(endpoint.subgraph_name(), http::Method::POST, endpoint.url(), headers)
                 .await?;
 
             headers.typed_insert(headers::ContentType::json());
@@ -162,19 +156,18 @@ impl GraphqlResolver {
             }
         };
 
-        let execution_ctx = ctx.execution_context();
-        let fetch = move || {
-            let result = execution_ctx
-                .engine
-                .runtime
-                .fetcher()
-                .graphql_over_sse_stream(request.clone());
+        ctx.record_request(&request);
+        let fetcher = ctx.engine.runtime.fetcher();
+        let stream = retrying_fetch(ctx, move || {
+            fetcher
+                .graphql_over_sse_stream(request.clone())
+                .then(|result| async { (result, None) })
+        })
+        .await
+        .inspect_err(|err| ctx.set_as_http_error(err.as_fetch_invalid_status_code()))?;
 
-            result.then(|result| async { (result, None) })
-        };
-
-        let stream = retrying_fetch(ctx, fetch)
-            .await?
+        let ctx = ctx.execution_context();
+        let stream = stream
             .map_err(move |error| ExecutionError::Fetch {
                 subgraph_name: endpoint.subgraph_name().to_string(),
                 error,
@@ -184,9 +177,8 @@ impl GraphqlResolver {
                 let resp = subscription_response.as_mut();
 
                 GraphqlResponseSeed::new(
-                    resp.next_seed(execution_ctx)
-                        .expect("Must have a root object to update"),
-                    RootGraphqlErrors::new(execution_ctx, resp),
+                    resp.next_seed(&ctx).expect("Must have a root object to update"),
+                    RootGraphqlErrors::new(&ctx, resp),
                 )
                 .deserialize(&mut serde_json::Deserializer::from_slice(&subgraph_response?))?;
 

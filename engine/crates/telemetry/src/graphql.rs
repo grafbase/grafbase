@@ -105,6 +105,10 @@ impl GraphqlResponseStatus {
         matches!(self, Self::Success)
     }
 
+    pub fn is_request_error(&self) -> bool {
+        matches!(self, Self::RequestError { .. })
+    }
+
     // Used to generate a status for a streaming response in engine-v1
     pub fn union(self, other: Self) -> Self {
         match (self, other) {

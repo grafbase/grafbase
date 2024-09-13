@@ -410,12 +410,12 @@ pub(crate) struct SubgraphResponseRefMut<'resp> {
 }
 
 impl<'resp> SubgraphResponseRefMut<'resp> {
-    pub fn next_seed<'ctx, R: Runtime>(&self, ctx: ExecutionContext<'ctx, R>) -> Option<UpdateSeed<'resp>>
+    pub fn next_seed<'ctx, R: Runtime>(&self, ctx: &ExecutionContext<'ctx, R>) -> Option<UpdateSeed<'resp>>
     where
         'ctx: 'resp,
     {
         self.next_writer()
-            .map(|writer| UpdateSeed::new(ctx, self.inner.borrow().logical_plan_id, writer))
+            .map(|writer| UpdateSeed::new(*ctx, self.inner.borrow().logical_plan_id, writer))
     }
 
     pub fn next_writer(&self) -> Option<ResponseWriter<'resp>> {

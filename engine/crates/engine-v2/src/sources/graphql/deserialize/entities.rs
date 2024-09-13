@@ -108,7 +108,7 @@ where
     where
         A: SeqAccess<'de>,
     {
-        while let Some(seed) = self.response_part.next_seed(self.ctx) {
+        while let Some(seed) = self.response_part.next_seed(&self.ctx) {
             let maybe_cache_data = self
                 .cache_entries
                 .as_mut()
