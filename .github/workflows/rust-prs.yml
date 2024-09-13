@@ -61,8 +61,10 @@ jobs:
           echo "Merge Base: $MERGE_BASE"
           git checkout $MERGE_BASE
           cargo metadata > /tmp/base.metadata.json
+          # Temp hack to get CI to pass
+          git checkout -- Cargo.lock
           git checkout $HEAD_REF
-          cargo metadata > /tmp/target.metadata.json
+          cargo metadata --locked > /tmp/target.metadata.json
           CHANGED_FILES=$(git diff --no-commit-id --name-only -r $MERGE_BASE HEAD)
           CHANGES=$(echo $CHANGED_FILES | xargs what-rust-changed /tmp/base.metadata.json /tmp/target.metadata.json)
           echo "rust=$CHANGES" >> "$GITHUB_OUTPUT"
@@ -306,7 +308,10 @@ jobs:
         if: fromJson(needs.what-changed.outputs.rust).cargo-build-specs
         shell: bash
         run: |
-          cargo clippy --target ${{ matrix.platform.target }} ${{ fromJson(needs.what-changed.outputs.rust).cargo-build-specs }}
+          cargo clippy \
+            --locked \
+            --target ${{ matrix.platform.target }} \
+            ${{ fromJson(needs.what-changed.outputs.rust).cargo-build-specs }}
 
       - name: Login to Docker Hub
         if: runner.os == 'Linux'
