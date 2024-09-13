@@ -7,9 +7,9 @@ pub mod header;
 pub mod health;
 pub mod hooks;
 pub mod rate_limit;
+mod size_ext;
 pub mod telemetry;
 
-use serde_with::DisplayFromStr;
 use std::{collections::BTreeMap, net::SocketAddr, path::PathBuf, time::Duration};
 
 use ascii::AsciiString;
@@ -25,7 +25,6 @@ use size::Size;
 pub use telemetry::*;
 use url::Url;
 
-#[serde_with::serde_as]
 #[derive(Clone, Debug, serde::Deserialize)]
 #[serde(default, deny_unknown_fields)]
 /// Configuration struct to define settings for self-hosted
@@ -38,7 +37,7 @@ pub struct Config {
     /// General settings for the gateway server
     pub gateway: GatewayConfig,
     /// Maximum size of the request body in bytes
-    #[serde_as(as = "DisplayFromStr")]
+    #[serde(deserialize_with = "size_ext::deserialize_positive_size")]
     pub request_body_limit: Size,
     /// Cross-site request forgery settings
     pub csrf: CsrfConfig,
@@ -119,7 +118,8 @@ pub enum RotateMode {
     /// A new file every day
     Daily,
     /// A new size when the current file has reached a certain size
-    Size(u64),
+    #[serde(deserialize_with = "size_ext::deserialize_positive_size")]
+    Size(Size),
 }
 
 #[derive(Debug, Default, serde::Deserialize, Clone, Copy)]
@@ -263,6 +263,46 @@ mod tests {
     use indoc::indoc;
     use std::net::{Ipv4Addr, Ipv6Addr, SocketAddr};
     use std::time::Duration;
+
+    #[test]
+    fn request_body_limit() {
+        let config: Config = toml::from_str(indoc! {r#"
+            request_body_limit = "2mB"
+        "#})
+        .unwrap();
+        assert_eq!(Size::from_megabytes(2), config.request_body_limit);
+
+        let config: Config = toml::from_str(indoc! {r#"
+            request_body_limit = 2_000_000
+        "#})
+        .unwrap();
+        assert_eq!(Size::from_megabytes(2), config.request_body_limit);
+
+        let config: Config = toml::from_str(indoc! {r#"
+            request_body_limit = "2000kB"
+        "#})
+        .unwrap();
+        assert_eq!(Size::from_megabytes(2), config.request_body_limit);
+
+        let config: Config = toml::from_str(indoc! {r#"
+            request_body_limit = "2MiB"
+        "#})
+        .unwrap();
+        assert_eq!(Size::from_mebibytes(2), config.request_body_limit);
+
+        let error = toml::from_str::<Config>(indoc! {r#"
+            request_body_limit = -123
+        "#})
+        .unwrap_err();
+
+        insta::assert_snapshot!(&error.to_string(), @r###"
+        TOML parse error at line 1, column 22
+          |
+        1 | request_body_limit = -123
+          |                      ^^^^
+        size must be positive
+        "###);
+    }
 
     #[test]
     fn network_ipv4() {
@@ -1870,7 +1910,27 @@ mod tests {
             enabled: true,
             path: "/path",
             rotate: Size(
-                1024,
+                1024 bytes,
+            ),
+            mode: Blocking,
+        }
+        "###);
+
+        let input = indoc! {r#"
+            [gateway.access_logs]
+            enabled = true
+            path = "/path"
+            rotate.size = "1kiB"
+        "#};
+
+        let config: Config = toml::from_str(input).unwrap();
+
+        insta::assert_debug_snapshot!(&config.gateway.access_logs, @r###"
+        AccessLogsConfig {
+            enabled: true,
+            path: "/path",
+            rotate: Size(
+                1024 bytes,
             ),
             mode: Blocking,
         }

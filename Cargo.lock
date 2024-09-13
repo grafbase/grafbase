@@ -3355,7 +3355,6 @@ dependencies = [
  "serde",
  "serde-dynamic-string",
  "serde_regex",
- "serde_with",
  "size",
  "temp-env",
  "tempfile",
