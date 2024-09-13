@@ -198,6 +198,8 @@ jobs:
             }
           ]
     runs-on: ${{ matrix.platform.runner }}
+    env:
+      RUSTFLAGS: '-D warnings'
     steps:
       - name: Get sources
         uses: actions/checkout@v4
