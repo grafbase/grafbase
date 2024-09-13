@@ -100,12 +100,7 @@ jobs:
 
   example-component:
     if: |
-      contains(fromJson(needs.what-changed.outputs.rust).changed-packages, 'integration-tests')
-      || contains(fromJson(needs.what-changed.outputs.rust).changed-packages, 'gateway-binary')
-      || contains(fromJson(needs.what-changed.outputs.rust).changed-packages, 'federated-server')
-      || contains(fromJson(needs.what-changed.outputs.rust).changed-packages, 'gateway-config')
-      || contains(fromJson(needs.what-changed.outputs.rust).changed-packages, 'rolling-logger')
-      || contains(fromJson(needs.what-changed.outputs.rust).changed-packages, 'wasi-component-loader')
+      toJson(fromJson(needs.what-changed.outputs.rust).changed-packages) != '[]'
     needs: [what-changed]
     runs-on: ubicloud-standard-8
     steps:
