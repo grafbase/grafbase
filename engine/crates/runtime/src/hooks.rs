@@ -244,11 +244,11 @@ impl<'a> ExecutedSubgraphRequest<'a> {
 
 #[derive(Debug, Clone)]
 pub struct ExecutedOperation<'a> {
-    pub name: Option<String>,
+    pub name: Option<&'a str>,
     pub document: &'a str,
-    pub prepare_duration_ms: u64,
+    pub prepare_duration: Duration,
     pub cached_plan: bool,
-    pub duration_ms: u64,
+    pub duration: Duration,
     pub status: GraphqlResponseStatus,
     pub on_subgraph_response_outputs: Vec<Vec<u8>>,
 }
@@ -258,47 +258,48 @@ impl<'a> ExecutedOperation<'a> {
         ExecutedOperationBuilder {
             start_time: Instant::now(),
             on_subgraph_response_outputs: Vec::new(),
-            name: None,
-            prepare_duration_ms: None,
+            prepare_duration: None,
             cached_plan: false,
         }
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ExecutedOperationBuilder {
-    name: Option<String>,
-    prepare_duration_ms: Option<u64>,
-    cached_plan: bool,
     start_time: Instant,
+    prepare_duration: Option<Duration>,
+    cached_plan: bool,
     on_subgraph_response_outputs: Vec<Vec<u8>>,
 }
 
 impl ExecutedOperationBuilder {
-    pub fn set_on_subgraph_response_outputs(&mut self, outputs: Vec<Vec<u8>>) {
-        self.on_subgraph_response_outputs = outputs;
+    pub fn push_on_subgraph_response_output(&mut self, output: Vec<u8>) {
+        self.on_subgraph_response_outputs.push(output);
     }
 
-    pub fn set_name(&mut self, name: Option<impl Into<String>>) {
-        self.name = name.map(Into::into)
-    }
-
-    pub fn track_prepare(&mut self) {
-        self.prepare_duration_ms = Some(self.start_time.elapsed().as_millis() as u64);
+    pub fn track_prepare(&mut self) -> Duration {
+        let prepare_duration = self.start_time.elapsed();
+        self.prepare_duration = Some(prepare_duration);
+        prepare_duration
     }
 
     pub fn set_cached_plan(&mut self) {
         self.cached_plan = true;
     }
 
-    pub fn finalize(self, document: &str, status: GraphqlResponseStatus) -> ExecutedOperation<'_> {
+    pub fn build<'a>(
+        self,
+        name: Option<&'a str>,
+        document: &'a str,
+        status: GraphqlResponseStatus,
+    ) -> ExecutedOperation<'a> {
         ExecutedOperation {
-            duration_ms: self.start_time.elapsed().as_millis() as u64,
+            duration: self.start_time.elapsed(),
             status,
             on_subgraph_response_outputs: self.on_subgraph_response_outputs,
-            name: self.name,
+            name,
             document,
-            prepare_duration_ms: self.prepare_duration_ms.unwrap_or_default(),
+            prepare_duration: self.prepare_duration.unwrap_or_default(),
             cached_plan: self.cached_plan,
         }
     }

@@ -1,7 +1,6 @@
 use ::runtime::{error::ErrorResponse, hooks::Hooks, rate_limiting::RateLimitKey};
 use bytes::Bytes;
 use futures::StreamExt;
-use futures_util::Stream;
 use grafbase_telemetry::grafbase_client::Client;
 use runtime::auth::AccessToken;
 use std::{future::Future, sync::Arc};
@@ -9,23 +8,24 @@ use std::{future::Future, sync::Arc};
 use crate::{
     graphql_over_http::{Http, ResponseFormat},
     request::{BatchRequest, QueryParamsRequest, Request},
-    response::{GraphqlError, RefusedRequestResponse, RequestErrorResponse, Response},
+    response::{GraphqlError, Response},
     Body, ErrorCode,
 };
 
-use super::{Engine, Runtime, RuntimeExt};
+use super::{runtime::HooksContext, Engine, Runtime, RuntimeExt};
 
 mod prepare;
 mod single;
 mod stream;
 
-pub(crate) struct RequestContext<C> {
+pub(crate) use stream::StreamResponse;
+
+pub(crate) struct RequestContext {
     pub mutations_allowed: bool,
     pub headers: http::HeaderMap,
     pub response_format: ResponseFormat,
     pub client: Option<Client>,
     pub access_token: AccessToken,
-    pub hooks_context: C,
 }
 
 impl<R: Runtime> Engine<R> {
@@ -39,9 +39,9 @@ impl<R: Runtime> Engine<R> {
             //   In alignment with the HTTP 1.1 Accept specification, when a client does not include at least one supported media type in the Accept HTTP header, the server MUST either:
             //     1. Respond with a 406 Not Acceptable status code and stop processing the request (RECOMMENDED); OR
             //     2. Disregard the Accept header and respond with the server's choice of media type (NOT RECOMMENDED).
-            return Err(Http::from(
+            return Err(Http::error(
                 self.default_response_format,
-                RefusedRequestResponse::not_acceptable_error(),
+                Response::not_acceptable_error(),
             ));
         };
 
@@ -50,12 +50,12 @@ impl<R: Runtime> Engine<R> {
             //   If the client does not supply a Content-Type header with a POST request,
             //   the server SHOULD reject the request using the appropriate 4xx status code.
             if !content_type_is_application_json(&parts.headers) {
-                return Err(Http::from(format, RefusedRequestResponse::unsupported_media_type()));
+                return Err(Http::error(format, Response::unsupported_media_type()));
             }
         } else if parts.method != http::Method::GET {
-            return Err(Http::from(
+            return Err(Http::error(
                 format,
-                RefusedRequestResponse::method_not_allowed("Only GET or POST are supported."),
+                Response::method_not_allowed("Only GET or POST are supported."),
             ));
         }
 
@@ -67,7 +67,7 @@ impl<R: Runtime> Engine<R> {
         mutations_allowed: bool,
         headers: http::HeaderMap,
         response_format: ResponseFormat,
-    ) -> Result<RequestContext<<R::Hooks as Hooks>::Context>, Response> {
+    ) -> Result<(RequestContext, HooksContext<R>), Response> {
         let client = Client::extract_from(&headers);
 
         let (hooks_context, headers) = self
@@ -78,22 +78,24 @@ impl<R: Runtime> Engine<R> {
             .map_err(|ErrorResponse { status, error }| Response::refuse_request_with(status, error))?;
 
         let Some(access_token) = self.auth.authenticate(&headers).await else {
-            return Err(RefusedRequestResponse::unauthenticated());
+            return Err(Response::unauthenticated());
         };
 
         // Currently it doesn't rely on authentication, but likely will at some point.
         if self.runtime.rate_limiter().limit(&RateLimitKey::Global).await.is_err() {
-            return Err(RefusedRequestResponse::gateway_rate_limited());
+            return Err(Response::gateway_rate_limited());
         }
 
-        Ok(RequestContext {
-            mutations_allowed,
-            headers,
-            response_format,
-            client,
-            access_token,
+        Ok((
+            RequestContext {
+                mutations_allowed,
+                headers,
+                response_format,
+                client,
+                access_token,
+            },
             hooks_context,
-        })
+        ))
     }
 
     pub(super) async fn extract_well_formed_graphql_over_http_request<F>(
@@ -108,7 +110,7 @@ impl<R: Runtime> Engine<R> {
     {
         if method == http::Method::POST {
             let body = body.await.map_err(|(status, message)| {
-                Http::from(
+                Http::error(
                     response_format,
                     Response::refuse_request_with(status, GraphqlError::new(message, ErrorCode::BadRequest)),
                 )
@@ -117,9 +119,9 @@ impl<R: Runtime> Engine<R> {
             self.runtime.metrics().record_request_body_size(body.len());
 
             serde_json::from_slice(&body).map_err(|err| {
-                Http::from(
+                Http::error(
                     response_format,
-                    RefusedRequestResponse::not_well_formed_graphql_over_http_request(format_args!(
+                    Response::not_well_formed_graphql_over_http_request(format_args!(
                         "JSON deserialization failure: {err}",
                     )),
                 )
@@ -130,9 +132,9 @@ impl<R: Runtime> Engine<R> {
             serde_urlencoded::from_str::<QueryParamsRequest>(query)
                 .map(|request| BatchRequest::Single(request.into()))
                 .map_err(|err| {
-                    Http::from(
+                    Http::error(
                         response_format,
-                        RefusedRequestResponse::not_well_formed_graphql_over_http_request(format_args!(
+                        Response::not_well_formed_graphql_over_http_request(format_args!(
                             "Could not deserialize request from query parameters: {err}"
                         )),
                     )
@@ -142,40 +144,40 @@ impl<R: Runtime> Engine<R> {
 
     pub(super) async fn execute_well_formed_graphql_request(
         self: &Arc<Self>,
-        request_context: RequestContext<<R::Hooks as Hooks>::Context>,
+        request_context: RequestContext,
+        hooks_context: HooksContext<R>,
         request: BatchRequest,
     ) -> http::Response<Body> {
         match request {
-            BatchRequest::Single(request) => {
-                if let ResponseFormat::Streaming(format) = request_context.response_format {
-                    Http::stream(format, self.execute_stream(Arc::new(request_context), request)).await
-                } else {
-                    let Some((response, operation_hook_result)) = self
+            BatchRequest::Single(request) => match request_context.response_format {
+                ResponseFormat::Streaming(format) => {
+                    Http::stream(
+                        format,
+                        hooks_context.clone(),
+                        self.execute_stream(Arc::new(request_context), hooks_context, request),
+                    )
+                    .await
+                }
+                ResponseFormat::Complete(format) => {
+                    let Some(response) = self
                         .runtime
                         .with_timeout(
                             self.schema.settings.timeout,
-                            self.execute_single(&request_context, request),
+                            self.execute_single(&request_context, hooks_context.clone(), request),
                         )
                         .await
                     else {
-                        return Http::from(request_context.response_format, RequestErrorResponse::gateway_timeout());
+                        return Http::error(request_context.response_format, Response::gateway_timeout());
                     };
 
-                    let mut response = Http::from(request_context.response_format, response);
-                    response.extensions_mut().insert(request_context.hooks_context.clone());
-
-                    if let Some(result) = operation_hook_result {
-                        response.extensions_mut().insert(vec![result]);
-                    };
-
-                    response
+                    Http::single(format, hooks_context, response)
                 }
-            }
+            },
             BatchRequest::Batch(requests) => {
                 let ResponseFormat::Complete(format) = request_context.response_format else {
-                    return Http::from(
+                    return Http::error(
                         request_context.response_format,
-                        RequestErrorResponse::bad_request_but_well_formed_graphql_over_http_request(
+                        Response::bad_request_but_well_formed_graphql_over_http_request(
                             "batch requests cannot be returned as multipart or event-stream responses",
                         ),
                     );
@@ -183,37 +185,31 @@ impl<R: Runtime> Engine<R> {
 
                 self.runtime.metrics().record_batch_size(requests.len());
 
-                let Some((responses, operation_hook_results)): Option<(Vec<_>, Vec<_>)> = self
+                let Some(responses) = self
                     .runtime
                     .with_timeout(
                         self.schema.settings.timeout,
                         futures_util::stream::iter(requests.into_iter())
-                            .then(|request| self.execute_single(&request_context, request))
-                            .unzip(),
+                            .then(|request| self.execute_single(&request_context, hooks_context.clone(), request))
+                            .collect::<Vec<_>>(),
                     )
                     .await
                 else {
-                    return Http::from(request_context.response_format, RequestErrorResponse::gateway_timeout());
+                    return Http::error(request_context.response_format, Response::gateway_timeout());
                 };
 
-                let mut response = Http::batch(format, responses);
-                response.extensions_mut().insert(request_context.hooks_context.clone());
-
-                response
-                    .extensions_mut()
-                    .insert(operation_hook_results.into_iter().flatten().collect::<Vec<_>>());
-
-                response
+                Http::batch(format, hooks_context, responses)
             }
         }
     }
 
     pub(super) fn execute_websocket_well_formed_graphql_request(
         self: &Arc<Self>,
-        request_context: Arc<RequestContext<<R::Hooks as Hooks>::Context>>,
+        request_context: Arc<RequestContext>,
+        hooks_context: HooksContext<R>,
         request: Request,
-    ) -> impl Stream<Item = Response> + Send + 'static {
-        self.execute_stream(request_context, request)
+    ) -> StreamResponse {
+        self.execute_stream(request_context, hooks_context, request)
     }
 }
 

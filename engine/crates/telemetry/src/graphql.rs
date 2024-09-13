@@ -1,8 +1,5 @@
 use std::sync::Arc;
 
-static X_GRAFBASE_GQL_RESPONSE_STATUS: http::HeaderName =
-    http::HeaderName::from_static("x-grafbase-graphql-response-status");
-
 #[derive(Clone, Debug)]
 pub struct GraphqlExecutionTelemetry<ErrorCode> {
     pub operations: Vec<(OperationType, OperationName)>,
@@ -25,6 +22,12 @@ pub enum OperationType {
     Query,
     Mutation,
     Subscription,
+}
+
+impl std::fmt::Display for OperationType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.as_str().fmt(f)
+    }
 }
 
 impl OperationType {
@@ -50,6 +53,16 @@ pub enum OperationName {
     Unknown,
 }
 
+impl std::fmt::Display for OperationName {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            OperationName::Original(name) => name.fmt(f),
+            OperationName::Computed(name) => name.fmt(f),
+            OperationName::Unknown => Ok(()),
+        }
+    }
+}
+
 impl OperationName {
     pub fn original(&self) -> Option<&str> {
         match self {
@@ -66,7 +79,7 @@ pub struct GraphqlOperationAttributes {
     pub sanitized_query: Arc<str>,
 }
 
-#[derive(Clone, Copy, Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Copy, Debug)]
 pub enum GraphqlResponseStatus {
     Success,
     /// Error happened during the execution of the query
@@ -97,10 +110,6 @@ impl GraphqlResponseStatus {
         }
     }
 
-    pub fn header_name() -> &'static http::HeaderName {
-        &X_GRAFBASE_GQL_RESPONSE_STATUS
-    }
-
     pub fn is_success(&self) -> bool {
         matches!(self, Self::Success)
     }
@@ -125,39 +134,6 @@ impl GraphqlResponseStatus {
             }
             (Self::Success, Self::Success) => Self::Success,
         }
-    }
-
-    pub fn encode(&self) -> String {
-        use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
-        URL_SAFE_NO_PAD.encode(postcard::to_stdvec(self).expect("valid json"))
-    }
-
-    pub fn decode(bytes: &str) -> Option<Self> {
-        use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
-        let bytes = URL_SAFE_NO_PAD.decode(bytes).ok()?;
-        postcard::from_bytes(&bytes).ok()
-    }
-}
-
-impl headers::Header for GraphqlResponseStatus {
-    fn name() -> &'static http::HeaderName {
-        &X_GRAFBASE_GQL_RESPONSE_STATUS
-    }
-
-    fn decode<'i, I>(values: &mut I) -> Result<Self, headers::Error>
-    where
-        Self: Sized,
-        I: Iterator<Item = &'i http::HeaderValue>,
-    {
-        values
-            .next()
-            .and_then(|value| value.to_str().ok())
-            .and_then(GraphqlResponseStatus::decode)
-            .ok_or_else(headers::Error::invalid)
-    }
-
-    fn encode<E: Extend<http::HeaderValue>>(&self, values: &mut E) {
-        values.extend(Some(GraphqlResponseStatus::encode(self).try_into().unwrap()))
     }
 }
 

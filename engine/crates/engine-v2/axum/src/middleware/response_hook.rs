@@ -1,4 +1,5 @@
-use futures_util::Future;
+use engine_v2::HooksExtension;
+use futures_util::{Future, StreamExt};
 use http::{response, Request, Response};
 use http_body::Body;
 use runtime::hooks::{self, ExecutedHttpRequest, ResponseHooks};
@@ -70,11 +71,33 @@ where
                 Err(e) => return Err(e),
             };
 
-            let Some(ctx) = response.extensions_mut().remove::<Hooks::Context>() else {
+            let Some(extension) = response.extensions_mut().remove::<HooksExtension<Hooks::Context>>() else {
                 return Ok(response);
             };
 
-            let on_operation_response_outputs = response.extensions_mut().remove::<Vec<Vec<u8>>>().unwrap_or_default();
+            let (context, on_operation_response_outputs) = match extension {
+                HooksExtension::Single {
+                    context,
+                    on_operation_response_output,
+                } => (context, on_operation_response_output.into_iter().collect()),
+                HooksExtension::Batch {
+                    context,
+                    on_operation_response_outputs,
+                } => (context, on_operation_response_outputs),
+                HooksExtension::Stream {
+                    context,
+                    mut on_operation_response_outputs,
+                } => (
+                    context,
+                    // TODO: Currently we only handle query/mutations which return the complete
+                    // response at once and errors.
+                    on_operation_response_outputs
+                        .next()
+                        .await
+                        .map(|out| vec![out])
+                        .unwrap_or_default(),
+                ),
+            };
 
             let request_info = ExecutedHttpRequest {
                 method,
@@ -83,7 +106,7 @@ where
                 on_operation_response_outputs,
             };
 
-            let response = match hooks.responses().on_http_response(&ctx, request_info).await {
+            let response = match hooks.responses().on_http_response(&context, request_info).await {
                 Ok(_) => response,
                 Err(e) => {
                     tracing::error!("error calling on-http-response hook: {e}");

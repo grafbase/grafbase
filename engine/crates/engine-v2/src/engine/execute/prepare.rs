@@ -1,28 +1,21 @@
 use ::runtime::operation_cache::OperationCache;
 use futures::FutureExt;
-use grafbase_telemetry::graphql::GraphqlOperationAttributes;
-use runtime::hooks::ExecutedOperationBuilder;
 use std::sync::Arc;
-use web_time::Instant;
 
 use crate::{
     engine::trusted_documents::OperationDocument,
     execution::{ExecutableOperation, PreExecutionContext},
     operation::{Operation, Variables},
     request::Request,
-    response::{RefusedRequestResponse, Response},
+    response::Response,
     Runtime,
 };
 
 impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
-    pub(super) async fn prepare_operation(
-        &mut self,
-        request: Request,
-        operation_info: &mut ExecutedOperationBuilder,
-    ) -> Result<ExecutableOperation, (Option<GraphqlOperationAttributes>, Response)> {
-        let start = Instant::now();
-        let result = self.prepare_operation_inner(request, operation_info).await;
-        let duration = start.elapsed();
+    pub(super) async fn prepare_operation(&mut self, request: Request) -> Result<ExecutableOperation, Response> {
+        let result = self.prepare_operation_inner(request).await;
+        let duration = self.executed_operation_builder.track_prepare();
+
         match result {
             Ok(operation) => {
                 self.metrics()
@@ -30,30 +23,26 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
 
                 Ok(operation)
             }
-            Err((operation_attributes, response)) => {
+            Err(response) => {
                 self.metrics()
-                    .record_failed_preparation_duration(operation_attributes.clone(), duration);
+                    .record_failed_preparation_duration(response.operation_attributes().cloned(), duration);
 
-                Err((operation_attributes, response))
+                Err(response)
             }
         }
     }
 
-    async fn prepare_operation_inner(
-        &mut self,
-        request: Request,
-        operation_info: &mut ExecutedOperationBuilder,
-    ) -> Result<ExecutableOperation, (Option<GraphqlOperationAttributes>, Response)> {
+    async fn prepare_operation_inner(&mut self, request: Request) -> Result<ExecutableOperation, Response> {
         let result = {
             let OperationDocument { cache_key, load_fut } = match self.determine_operation_document(&request) {
                 Ok(doc) => doc,
                 // If we have an error a this stage, it means we couldn't determine what document
                 // to load, so we don't consider it a well-formed GraphQL-over-HTTP request.
-                Err(err) => return Err((None, Response::refuse_request_with(http::StatusCode::BAD_REQUEST, err))),
+                Err(err) => return Err(Response::refuse_request_with(http::StatusCode::BAD_REQUEST, err)),
             };
 
             if let Some(operation) = self.engine.operation_cache.get(&cache_key).await {
-                operation_info.set_cached_plan();
+                self.executed_operation_builder.set_cached_plan();
                 self.metrics().record_operation_cache_hit();
 
                 Ok(operation)
@@ -61,7 +50,7 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
                 self.metrics().record_operation_cache_miss();
                 match load_fut.await {
                     Ok(document) => Err((cache_key, document)),
-                    Err(err) => return Err((None, Response::request_error([err]))),
+                    Err(err) => return Err(Response::request_error(None, [err])),
                 }
             }
         };
@@ -71,7 +60,10 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
             Err((cache_key, document)) => {
                 let operation = Operation::prepare(self.schema(), &request, &document)
                     .map(Arc::new)
-                    .map_err(|mut err| (err.take_operation_attributes(), Response::request_error([err])))?;
+                    .map_err(|mut err| {
+                        let attributes = err.take_operation_attributes();
+                        Response::request_error(attributes, [err])
+                    })?;
 
                 let cache_fut = self.engine.operation_cache.insert(cache_key, operation.clone());
                 self.push_background_future(cache_fut.boxed());
@@ -91,17 +83,16 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
         // This error would be confusing for a websocket connection, but today mutation are always
         // allowed for it.
         if operation.ty.is_mutation() && !self.request_context.mutations_allowed {
-            return Err((
-                Some(operation.attributes.clone()),
-                RefusedRequestResponse::method_not_allowed("Mutation is not allowed with a safe method like GET"),
+            return Err(Response::method_not_allowed(
+                "Mutation is not allowed with a safe method like GET",
             ));
         }
 
         let variables = Variables::build(self.schema(), &operation, request.variables)
-            .map_err(|errors| (Some(operation.attributes.clone()), Response::request_error(errors)))?;
+            .map_err(|errors| Response::request_error(Some(operation.attributes.clone()), errors))?;
 
         self.finalize_operation(Arc::clone(&operation), variables)
             .await
-            .map_err(|err| (Some(operation.attributes.clone()), Response::request_error([err])))
+            .map_err(|err| Response::request_error(Some(operation.attributes.clone()), [err]))
     }
 }

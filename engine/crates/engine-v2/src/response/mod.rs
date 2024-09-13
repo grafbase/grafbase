@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use enumset::EnumSet;
 pub(crate) use error::*;
-use grafbase_telemetry::graphql::GraphqlResponseStatus;
+use grafbase_telemetry::graphql::{GraphqlExecutionTelemetry, GraphqlOperationAttributes, GraphqlResponseStatus};
 pub(crate) use key::*;
 pub(crate) use object_set::*;
 pub(crate) use path::*;
@@ -40,14 +40,15 @@ pub(crate) enum Response {
 }
 
 pub(crate) struct ExecutedResponse {
+    operation: Arc<PreparedOperation>,
     data: Option<ResponseData>,
     errors: Vec<GraphqlError>,
-    on_subgraph_response_outputs: Vec<Vec<u8>>,
+    on_operation_response_output: Option<Vec<u8>>,
 }
 
 impl ExecutedResponse {
     pub(crate) fn is_data_null(&self) -> bool {
-        self.data.as_ref().map(|data| data.root.is_none()).unwrap_or(true)
+        self.data.is_none()
     }
 
     pub(crate) fn graphql_status(&self) -> GraphqlResponseStatus {
@@ -60,21 +61,23 @@ impl ExecutedResponse {
             }
         }
     }
-
-    pub(crate) fn take_on_subgraph_response_outputs(&mut self) -> Vec<Vec<u8>> {
-        std::mem::take(&mut self.on_subgraph_response_outputs)
-    }
 }
 
 struct ResponseData {
     schema: Arc<Schema>,
-    operation: Arc<PreparedOperation>,
-    root: Option<ResponseObjectId>,
+    root: ResponseObjectId,
     parts: Vec<ResponseDataPart>,
 }
 
 pub(crate) struct RequestErrorResponse {
+    operation_attributes: Option<GraphqlOperationAttributes>,
     errors: Vec<GraphqlError>,
+}
+
+impl From<RequestErrorResponse> for Response {
+    fn from(resp: RequestErrorResponse) -> Self {
+        Self::RequestError(resp)
+    }
 }
 
 pub(crate) struct RefusedRequestResponse {
@@ -96,21 +99,57 @@ impl Response {
         })
     }
 
-    pub(crate) fn request_error<E>(errors: impl IntoIterator<Item = E>) -> Self
+    pub(crate) fn request_error<E>(
+        operation_attributes: Option<GraphqlOperationAttributes>,
+        errors: impl IntoIterator<Item = E>,
+    ) -> Self
     where
         E: Into<GraphqlError>,
     {
         Self::RequestError(RequestErrorResponse {
+            operation_attributes,
             errors: errors.into_iter().map(Into::into).collect(),
         })
     }
 
-    pub(crate) fn execution_error(errors: impl IntoIterator<Item: Into<GraphqlError>>) -> Self {
+    pub(crate) fn execution_error(
+        operation: Arc<PreparedOperation>,
+        on_operation_response_output: Option<Vec<u8>>,
+        errors: impl IntoIterator<Item: Into<GraphqlError>>,
+    ) -> Self {
         Self::Executed(ExecutedResponse {
+            operation,
             data: None,
+            on_operation_response_output,
             errors: errors.into_iter().map(Into::into).collect(),
-            on_subgraph_response_outputs: Vec::new(),
         })
+    }
+
+    pub(crate) fn take_on_operation_response_output(&mut self) -> Option<Vec<u8>> {
+        match self {
+            Self::Executed(resp) => std::mem::take(&mut resp.on_operation_response_output),
+            _ => None,
+        }
+    }
+
+    pub(crate) fn execution_telemetry(&self) -> GraphqlExecutionTelemetry<ErrorCode> {
+        GraphqlExecutionTelemetry {
+            errors_count: self.errors().len() as u64,
+            distinct_error_codes: self.distinct_error_codes().into_iter().collect(),
+            operations: self
+                .operation_attributes()
+                .into_iter()
+                .map(|attributes| (attributes.ty, attributes.name.clone()))
+                .collect(),
+        }
+    }
+
+    pub(crate) fn operation_attributes(&self) -> Option<&GraphqlOperationAttributes> {
+        match self {
+            Self::RefusedRequest(_) => None,
+            Self::RequestError(resp) => resp.operation_attributes.as_ref(),
+            Self::Executed(resp) => Some(&resp.operation.attributes),
+        }
     }
 
     pub(crate) fn graphql_status(&self) -> GraphqlResponseStatus {
@@ -138,16 +177,6 @@ impl Response {
                 set |= error.code;
                 set
             })
-    }
-
-    /// TODO: This one might be the way of getting the response data for the next hook. We need a mutable response
-    /// at this point.
-    pub(crate) fn _take_subgraph_response_hook_results(&mut self) -> Vec<Vec<u8>> {
-        match self {
-            Response::RefusedRequest(_) => Vec::new(),
-            Response::RequestError(_) => Vec::new(),
-            Response::Executed(response) => std::mem::take(&mut response.on_subgraph_response_outputs),
-        }
     }
 }
 

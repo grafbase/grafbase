@@ -2,10 +2,10 @@ use itertools::Itertools;
 
 use crate::{
     graphql_over_http::ResponseFormat,
-    response::{ErrorCode, GraphqlError, RefusedRequestResponse, RequestErrorResponse, Response},
+    response::{ErrorCode, GraphqlError, Response},
 };
 
-impl RefusedRequestResponse {
+impl Response {
     pub(crate) fn not_acceptable_error() -> Response {
         let message = format!(
             "Missing or invalid Accept header. You must specify one of: {}.",
@@ -60,19 +60,19 @@ impl RefusedRequestResponse {
             ),
         )
     }
-}
-
-impl RequestErrorResponse {
     // We assume any invalid request error would be raised before the timeout expires. So if we do
     // end up sending this error it means operation was valid and the query was just slow.
     pub(crate) fn gateway_timeout() -> Response {
-        Response::request_error([GraphqlError::new("Gateway timeout", ErrorCode::GatewayTimeout)])
+        Response::request_error(None, [GraphqlError::new("Gateway timeout", ErrorCode::GatewayTimeout)])
     }
 
     pub(crate) fn bad_request_but_well_formed_graphql_over_http_request(message: &str) -> Response {
-        Response::request_error([GraphqlError::new(
-            format!("Bad request: {message}"),
-            ErrorCode::BadRequest,
-        )])
+        Response::request_error(
+            None,
+            [GraphqlError::new(
+                format!("Bad request: {message}"),
+                ErrorCode::BadRequest,
+            )],
+        )
     }
 }

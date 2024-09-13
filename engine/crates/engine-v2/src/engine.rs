@@ -1,4 +1,4 @@
-use ::runtime::{hooks::Hooks, operation_cache::OperationCacheFactory};
+use ::runtime::operation_cache::OperationCacheFactory;
 use bytes::Bytes;
 use futures::{StreamExt, TryFutureExt};
 use futures_util::Stream;
@@ -13,8 +13,8 @@ use crate::{
     response::Response,
     websocket, Body,
 };
-pub(crate) use execute::RequestContext;
-use runtime::RuntimeExt;
+pub(crate) use execute::*;
+pub(crate) use runtime::*;
 
 mod cache;
 mod error_responses;
@@ -73,14 +73,17 @@ impl<R: Runtime> Engine<R> {
 
         let request_context_fut = self
             .create_request_context(!method.is_safe(), headers, response_format)
-            .map_err(|response| Http::from(response_format, response));
+            .map_err(|response| Http::error(response_format, response));
 
         let graphql_request_fut =
             self.extract_well_formed_graphql_over_http_request(method, uri, response_format, body);
 
         // Retrieve the request body while processing the headers
         match futures::try_join!(request_context_fut, graphql_request_fut) {
-            Ok((request_context, request)) => self.execute_well_formed_graphql_request(request_context, request).await,
+            Ok(((request_context, hooks_context), request)) => {
+                self.execute_well_formed_graphql_request(request_context, hooks_context, request)
+                    .await
+            }
             Err(response) => response,
         }
     }
@@ -91,7 +94,7 @@ impl<R: Runtime> Engine<R> {
     ) -> Result<WebsocketSession<R>, Cow<'static, str>> {
         let response_format = ResponseFormat::Streaming(StreamingResponseFormat::GraphQLOverWebSocket);
 
-        let request_context = match self.create_request_context(true, headers, response_format).await {
+        let (request_context, hooks_context) = match self.create_request_context(true, headers, response_format).await {
             Ok(context) => context,
             Err(response) => {
                 return Err(response
@@ -105,13 +108,15 @@ impl<R: Runtime> Engine<R> {
         Ok(WebsocketSession {
             engine: Arc::clone(self),
             request_context: Arc::new(request_context),
+            hooks_context,
         })
     }
 }
 
 pub struct WebsocketSession<R: Runtime> {
     engine: Arc<Engine<R>>,
-    request_context: Arc<RequestContext<<R::Hooks as Hooks>::Context>>,
+    request_context: Arc<RequestContext>,
+    hooks_context: HooksContext<R>,
 }
 
 impl<R: Runtime> Clone for WebsocketSession<R> {
@@ -119,6 +124,7 @@ impl<R: Runtime> Clone for WebsocketSession<R> {
         Self {
             engine: Arc::clone(&self.engine),
             request_context: Arc::clone(&self.request_context),
+            hooks_context: self.hooks_context.clone(),
         }
     }
 }
@@ -126,17 +132,22 @@ impl<R: Runtime> Clone for WebsocketSession<R> {
 impl<R: Runtime> WebsocketSession<R> {
     pub fn execute(&self, event: websocket::SubscribeEvent) -> impl Stream<Item = websocket::Message> {
         let websocket::SubscribeEvent { id, payload } = event;
-        self.engine
-            .execute_websocket_well_formed_graphql_request(self.request_context.clone(), payload.0)
-            .map(move |response| match response {
-                Response::RefusedRequest(_) => websocket::Message::Error {
-                    id: id.clone(),
-                    payload: websocket::ResponsePayload(response),
-                },
-                response => websocket::Message::Next {
-                    id: id.clone(),
-                    payload: websocket::ResponsePayload(response),
-                },
-            })
+        // TODO: Call a websocket hook?
+        let StreamResponse { stream, .. } = self.engine.execute_websocket_well_formed_graphql_request(
+            self.request_context.clone(),
+            self.hooks_context.clone(),
+            payload.0,
+        );
+
+        stream.map(move |response| match response {
+            Response::RefusedRequest(_) => websocket::Message::Error {
+                id: id.clone(),
+                payload: websocket::ResponsePayload(response),
+            },
+            response => websocket::Message::Next {
+                id: id.clone(),
+                payload: websocket::ResponsePayload(response),
+            },
+        })
     }
 }

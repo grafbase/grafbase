@@ -1,3 +1,4 @@
+use itertools::Itertools;
 use tracing::{info_span, Span};
 
 use crate::graphql::{GraphqlOperationAttributes, GraphqlResponseStatus, OperationName};
@@ -28,6 +29,7 @@ impl Default for GraphqlOperationSpan {
             target: crate::span::GRAFBASE_TARGET,
             GRAPHQL_SPAN_NAME,
             "otel.name"  = Empty,
+            "otel.kind" = "Server",
             "graphql.operation.name"  = Empty,
             "grafbase.operation.computed_name" = Empty,
             "graphql.operation.type"  = Empty,
@@ -35,6 +37,7 @@ impl Default for GraphqlOperationSpan {
             "graphql.response.data.is_present"  = Empty,
             "graphql.response.data.is_null"  = Empty,
             "graphql.response.errors.count" = Empty,
+            "graphql.response.errors.distinct_codes" = Empty,
         );
         GraphqlOperationSpan { span }
     }
@@ -59,6 +62,13 @@ impl GraphqlOperationSpan {
 
     pub fn record_response_status(&self, status: GraphqlResponseStatus) {
         record_graphql_response_status(&self.span, status);
+    }
+
+    pub fn record_distinct_error_codes(&self, distinct_error_codes: impl IntoIterator<Item: std::fmt::Display>) {
+        self.record(
+            "graphql.response.errors.distinct_codes",
+            distinct_error_codes.into_iter().join(","),
+        );
     }
 }
 

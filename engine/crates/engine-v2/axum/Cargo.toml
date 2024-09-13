@@ -26,6 +26,5 @@ http.workspace = true
 tracing.workspace = true
 tower.workspace = true
 grafbase-telemetry.workspace = true
-headers.workspace = true
 http-body = "1.0.1"
 grafbase-workspace-hack.workspace = true

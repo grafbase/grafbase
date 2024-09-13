@@ -1,13 +1,19 @@
 use bytes::Bytes;
+use enumset::EnumSet;
 use futures::{StreamExt, TryStreamExt};
 use futures_util::Stream;
-use grafbase_telemetry::graphql::GraphqlResponseStatus;
+use grafbase_telemetry::graphql::GraphqlExecutionTelemetry;
 use headers::HeaderMapExt;
 use runtime::bytes::OwnedOrSharedBytes;
 
-use crate::response::{ErrorCode, Response};
+use crate::{
+    engine::StreamResponse,
+    response::{ErrorCode, Response},
+};
 
-use super::{Body, CompleteResponseFormat, ResponseFormat, StreamingResponseFormat};
+use super::{
+    Body, CompleteResponseFormat, HooksExtension, ResponseFormat, StreamingResponseFormat, TelemetryExtension,
+};
 
 const APPLICATION_JSON: http::HeaderValue = http::HeaderValue::from_static("application/json");
 const APPLICATION_GRAPHQL_RESPONSE_JSON: http::HeaderValue =
@@ -16,39 +22,34 @@ const APPLICATION_GRAPHQL_RESPONSE_JSON: http::HeaderValue =
 pub(crate) struct Http;
 
 impl Http {
-    pub(crate) fn from(format: ResponseFormat, response: Response) -> http::Response<Body> {
+    pub(crate) fn error(format: ResponseFormat, response: Response) -> http::Response<Body> {
         match format {
-            ResponseFormat::Complete(format) => Self::single(format, response),
+            ResponseFormat::Complete(format) => Self::from_complete_response(format, &response),
             ResponseFormat::Streaming(format) => {
                 Self::stream_from_first_response_and_rest(format, response, futures_util::stream::empty())
             }
         }
     }
 
-    pub(crate) fn single(format: CompleteResponseFormat, response: Response) -> http::Response<Body> {
-        let bytes = match serde_json::to_vec(&response) {
-            Ok(bytes) => OwnedOrSharedBytes::Owned(bytes),
-            Err(err) => {
-                tracing::error!("Failed to serialize response: {err}");
-                return internal_server_error();
-            }
-        };
+    pub(crate) fn single<C: Send + Sync + 'static>(
+        format: CompleteResponseFormat,
+        hooks_context: C,
+        mut response: Response,
+    ) -> http::Response<Body> {
+        let mut http_response = Self::from_complete_response(format, &response);
+        http_response.extensions_mut().insert(HooksExtension::Single {
+            context: hooks_context,
+            on_operation_response_output: response.take_on_operation_response_output(),
+        });
 
-        let status_code = compute_status_code(ResponseFormat::Complete(format), &response);
-        let mut headers = http::HeaderMap::new();
-
-        headers.typed_insert(response.graphql_status());
-        headers.insert(http::header::CONTENT_TYPE, format.to_content_type());
-        headers.typed_insert(headers::ContentLength(bytes.len() as u64));
-
-        let mut response = http::Response::new(Body::Bytes(bytes));
-        *response.status_mut() = status_code;
-        *response.headers_mut() = headers;
-
-        response
+        http_response
     }
 
-    pub(crate) fn batch(format: CompleteResponseFormat, responses: Vec<Response>) -> http::Response<Body> {
+    pub(crate) fn batch<C: Send + Sync + 'static>(
+        format: CompleteResponseFormat,
+        hooks_context: C,
+        mut responses: Vec<Response>,
+    ) -> http::Response<Body> {
         let bytes = match serde_json::to_vec(&responses) {
             Ok(bytes) => OwnedOrSharedBytes::Owned(bytes),
             Err(err) => {
@@ -67,15 +68,35 @@ impl Http {
             status
         });
 
-        let graphql_status = responses
-            .iter()
-            .fold(GraphqlResponseStatus::Success, |graphql_status, response| {
-                graphql_status.union(response.graphql_status())
-            });
+        let telemetry = {
+            let (count, distinct_error_codes) = responses.iter().fold(
+                (0, EnumSet::default()),
+                |(mut count, mut distinct_error_codes), response| {
+                    count += response.errors().len();
+                    distinct_error_codes |= response.distinct_error_codes();
+                    (count, distinct_error_codes)
+                },
+            );
+            Some(TelemetryExtension::Ready(GraphqlExecutionTelemetry {
+                errors_count: count as u64,
+                distinct_error_codes: distinct_error_codes.into_iter().collect(),
+                operations: responses
+                    .iter()
+                    .filter_map(|response| response.operation_attributes())
+                    .map(|attributes| (attributes.ty, attributes.name.clone()))
+                    .collect(),
+            }))
+        };
+
+        let hooks = Some(HooksExtension::Batch {
+            context: hooks_context,
+            on_operation_response_outputs: responses
+                .iter_mut()
+                .filter_map(|response| response.take_on_operation_response_output())
+                .collect(),
+        });
 
         let mut headers = http::HeaderMap::new();
-        headers.typed_insert(graphql_status);
-
         headers.insert(
             http::header::CONTENT_TYPE,
             match format {
@@ -83,39 +104,52 @@ impl Http {
                 CompleteResponseFormat::GraphqlResponseJson => APPLICATION_GRAPHQL_RESPONSE_JSON,
             },
         );
-
         headers.typed_insert(headers::ContentLength(bytes.len() as u64));
 
-        let mut response = http::Response::new(Body::Bytes(bytes));
-        *response.status_mut() = status_code;
-        *response.headers_mut() = headers;
+        let mut http_response = http::Response::new(Body::Bytes(bytes));
+        *http_response.status_mut() = status_code;
+        *http_response.headers_mut() = headers;
+        http_response.extensions_mut().insert(telemetry);
+        http_response.extensions_mut().insert(hooks);
 
-        response
+        http_response
     }
 
-    pub(crate) async fn stream(
+    pub(crate) async fn stream<C: Send + Sync + 'static>(
         format: StreamingResponseFormat,
-        stream: impl Stream<Item = Response> + 'static + Send,
+        hooks_context: C,
+        stream: StreamResponse,
     ) -> http::Response<Body> {
-        let mut stream = Box::pin(stream);
+        let StreamResponse {
+            mut stream,
+            telemetry,
+            on_operation_response_outputs,
+        } = stream;
         let Some(first_response) = stream.next().await else {
             tracing::error!("Empty stream");
             return internal_server_error();
         };
 
-        Self::stream_from_first_response_and_rest(format, first_response, stream)
+        let mut http_response = Self::stream_from_first_response_and_rest(format, first_response, stream);
+        http_response
+            .extensions_mut()
+            .insert(TelemetryExtension::Future(telemetry));
+        http_response.extensions_mut().insert(HooksExtension::Stream {
+            context: hooks_context,
+            on_operation_response_outputs,
+        });
+        http_response
     }
 
     fn stream_from_first_response_and_rest(
         format: StreamingResponseFormat,
-        first: Response,
+        response: Response,
         rest: impl Stream<Item = Response> + 'static + Send,
     ) -> http::Response<Body> {
-        let graphql_status = first.graphql_status();
-        let status = compute_status_code(ResponseFormat::Streaming(format), &first);
+        let status = compute_status_code(ResponseFormat::Streaming(format), &response);
 
-        let (mut headers, stream) = gateway_core::encode_stream_response(
-            futures_util::stream::iter(std::iter::once(first)).chain(rest),
+        let (headers, stream) = gateway_core::encode_stream_response(
+            futures_util::stream::iter(std::iter::once(response)).chain(rest),
             match format {
                 StreamingResponseFormat::IncrementalDelivery => gateway_core::StreamingFormat::IncrementalDelivery,
                 StreamingResponseFormat::GraphQLOverSSE => gateway_core::StreamingFormat::GraphQLOverSSE,
@@ -124,13 +158,36 @@ impl Http {
                 }
             },
         );
-        headers.typed_insert(graphql_status);
 
-        let mut response = http::Response::new(Body::Stream(stream.map_ok(|bytes| bytes.into()).boxed()));
-        *response.status_mut() = status;
-        *response.headers_mut() = headers;
+        let body = Body::Stream(stream.map_ok(|bytes| bytes.into()).boxed());
+        let mut http_response = http::Response::new(body);
+        *http_response.status_mut() = status;
+        *http_response.headers_mut() = headers;
 
-        response
+        http_response
+    }
+
+    fn from_complete_response(format: CompleteResponseFormat, response: &Response) -> http::Response<Body> {
+        let telemetry = Some(TelemetryExtension::Ready(response.execution_telemetry()));
+        let bytes = match serde_json::to_vec(response) {
+            Ok(bytes) => OwnedOrSharedBytes::Owned(bytes),
+            Err(err) => {
+                tracing::error!("Failed to serialize response: {err}");
+                return internal_server_error();
+            }
+        };
+
+        let status_code = compute_status_code(ResponseFormat::Complete(format), response);
+        let mut headers = http::HeaderMap::new();
+
+        headers.insert(http::header::CONTENT_TYPE, format.to_content_type());
+        headers.typed_insert(headers::ContentLength(bytes.len() as u64));
+
+        let mut http_response = http::Response::new(Body::Bytes(bytes));
+        *http_response.status_mut() = status_code;
+        *http_response.headers_mut() = headers;
+        http_response.extensions_mut().insert(telemetry);
+        http_response
     }
 }
 

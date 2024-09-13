@@ -9,7 +9,6 @@ mod health;
 mod state;
 mod trusted_documents_client;
 
-use grafbase_telemetry::graphql::GraphqlResponseStatus;
 pub use graph_fetch_method::GraphFetchMethod;
 use runtime_local::{hooks, ComponentLoader, HooksWasi};
 use tokio::sync::watch;
@@ -129,12 +128,6 @@ pub async fn serve(
         ))
         .layer(RequestBodyTimeoutLayer::new(
             config.gateway.timeout.unwrap_or(DEFAULT_GATEWAY_TIMEOUT),
-        ))
-        .layer(axum::middleware::map_response(
-            |mut response: axum::response::Response<_>| async {
-                response.headers_mut().remove(GraphqlResponseStatus::header_name());
-                response
-            },
         ))
         .layer(cors);
 

@@ -1,10 +1,11 @@
 use std::borrow::Cow;
 
 use crate::grafbase_client::Client;
-use crate::span::HttpRecorderSpanExt;
+use crate::graphql::GraphqlExecutionTelemetry;
 use http::header::{HOST, USER_AGENT};
 use http::{Response, StatusCode};
 use http_body::Body;
+use itertools::Itertools;
 use tracing::field::Empty;
 use tracing::{info_span, Span};
 
@@ -13,17 +14,11 @@ pub const GATEWAY_SPAN_NAME: &str = "gateway";
 pub(crate) const X_FORWARDED_FOR_HEADER: &str = "X-Forwarded-For";
 
 /// A span for a http request
-pub struct HttpRequestSpan<'a> {
+pub struct HttpRequestSpanBuilder<'a> {
     /// The size of the request payload body in bytes
     request_body_size: Option<usize>,
     /// HTTP request method
     request_method: Cow<'a, http::Method>,
-    /// The size of the response payload body in bytes
-    response_body_size: Option<usize>,
-    /// HTTP response status code
-    response_status_code: Option<Cow<'a, http::StatusCode>>,
-    /// HTTP response error
-    response_error: Option<Cow<'a, str>>,
     /// Value of the HTTP User-Agent header sent by the client
     header_user_agent: Option<Cow<'a, http::HeaderValue>>,
     /// If the request has an X-ForwardedFor header, this will have the first value that is a valid address and not private/internal
@@ -37,39 +32,24 @@ pub struct HttpRequestSpan<'a> {
     server_port: Option<u16>,
     /// The URI of the request
     url: Cow<'a, http::Uri>,
-    /// The git branch this deployment belongs to
-    git_branch: Option<Cow<'a, http::HeaderValue>>,
-    /// The git hash this deployment corresponds to
-    git_hash: Option<Cow<'a, http::HeaderValue>>,
-    /// The environment this deployment belongs to
-    environment: Option<Cow<'a, http::HeaderValue>>,
 }
 
-impl<'a> HttpRequestSpan<'a> {
+#[derive(Clone)]
+pub struct HttpRequestSpan {
+    pub span: Span,
+}
+
+impl std::ops::Deref for HttpRequestSpan {
+    type Target = Span;
+    fn deref(&self) -> &Self::Target {
+        &self.span
+    }
+}
+
+impl<'a> HttpRequestSpanBuilder<'a> {
     /// Sets the span ray_id
     pub fn with_ray_id(mut self, ray_id: impl Into<Option<Cow<'a, http::HeaderValue>>>) -> Self {
         self.header_ray_id = ray_id.into();
-
-        self
-    }
-
-    /// Sets the span git_branch
-    pub fn with_git_branch(mut self, git_branch: impl Into<Option<Cow<'a, http::HeaderValue>>>) -> Self {
-        self.git_branch = git_branch.into();
-
-        self
-    }
-
-    /// Sets the span git_hash
-    pub fn with_git_hash(mut self, git_hash: impl Into<Option<Cow<'a, http::HeaderValue>>>) -> Self {
-        self.git_hash = git_hash.into();
-
-        self
-    }
-
-    /// Sets the span environment
-    pub fn with_environment(mut self, environment: impl Into<Option<Cow<'a, http::HeaderValue>>>) -> Self {
-        self.environment = environment.into();
 
         self
     }
@@ -79,7 +59,7 @@ impl<'a> HttpRequestSpan<'a> {
     where
         B: Body,
     {
-        HttpRequestSpan {
+        HttpRequestSpanBuilder {
             request_body_size: request.body().size_hint().upper().map(|v| v as usize),
             request_method: Cow::Borrowed(request.method()),
             header_user_agent: request.headers().get(USER_AGENT).map(Cow::Borrowed),
@@ -87,14 +67,8 @@ impl<'a> HttpRequestSpan<'a> {
             header_x_grafbase_client: Client::extract_from(request.headers()),
             header_ray_id: None,
             url: Cow::Borrowed(request.uri()),
-            response_body_size: None,
-            response_status_code: None,
-            response_error: None,
             server_address: request.headers().get(HOST).map(Cow::Borrowed),
             server_port: None,
-            environment: None,
-            git_branch: None,
-            git_hash: None,
         }
     }
 
@@ -123,7 +97,7 @@ impl<'a> HttpRequestSpan<'a> {
 
         let uri = http::Uri::try_from(request.url()?.as_str()).map_err(|e| worker::Error::RustError(e.to_string()))?;
 
-        Ok(HttpRequestSpan {
+        Ok(HttpRequestSpanBuilder {
             request_body_size: None,
             request_method: Cow::Owned(method),
             header_user_agent: user_agent,
@@ -134,63 +108,87 @@ impl<'a> HttpRequestSpan<'a> {
             ),
             header_ray_id: None,
             url: Cow::Owned(uri),
-            response_body_size: None,
-            response_status_code: None,
-            response_error: None,
             server_address: None,
             server_port: None,
-            environment: None,
-            git_branch: None,
-            git_hash: None,
         })
     }
 
     /// Consume self and turn into a [Span]
-    pub fn into_span(self) -> Span {
-        info_span!(
+    pub fn build(self) -> HttpRequestSpan {
+        // We follow the HTTP server span conventions:
+        // https://opentelemetry.io/docs/specs/semconv/http/http-spans/#http-server
+        let span = info_span!(
             target: crate::span::GRAFBASE_TARGET,
             GATEWAY_SPAN_NAME,
-            "http.request.body.size" = self.request_body_size,
-            "http.request.method" = self.request_method.as_str(),
-            "http.response.body.size" = self.response_body_size,
-            "http.response.status_code" = self.response_status_code.map(|v| v.as_u16()),
-            "http.response.error" = self.response_error.as_ref().map(|v| v.as_ref()),
-            "http.header.user_agent" = self.header_user_agent.as_ref().and_then(|v| v.to_str().ok()),
-            "http.header.x_forwarded_for" = self.header_x_forwarded_for.as_ref().and_then(|v| v.to_str().ok()),
-            "http.header.x-grafbase-client-name" = self.header_x_grafbase_client.as_ref().map(|client| client.name.as_str()),
-            "http.header.x-grafbase-client-version" = self.header_x_grafbase_client.as_ref().and_then(|client| client.version.as_deref()),
-            "http.header.ray_id" = self.header_ray_id.as_ref().and_then(|v| v.to_str().ok()),
+            "otel.status_code" = Empty,
+            "otel.kind" = "Server",
+            // "Describes a class of error the operation ended with."
+            "error.type" = Empty,
             "server.address" = self.server_address.as_ref().and_then(|v| v.to_str().ok()),
             "server.port" = self.server_port,
             "url.path" = self.url.path(),
             "url.scheme" = self.url.scheme().map(|v| v.as_str()),
-            "url.host" = self.url.host(),
-            "git.branch" = self.git_branch.as_ref().and_then(|v| v.to_str().ok()),
-            "git.hash" = self.git_hash.as_ref().and_then(|v| v.to_str().ok()),
-            "environment" = self.environment.as_ref().and_then(|v| v.to_str().ok()),
-            "gql.response.field_errors_count" = Empty,
-            "gql.response.data_is_null" = Empty,
-            "gql.response.request_errors_count" = Empty,
-            "gql.response.error" = Empty,
-        )
+            // Request
+            "http.request.body.size" = self.request_body_size,
+            "http.request.method" = self.request_method.as_str(),
+            "user_agent.original" = self.header_user_agent.as_ref().and_then(|v| v.to_str().ok()),
+            "http.request.header.x-forwarded-for" = self.header_x_forwarded_for.as_ref().and_then(|v| v.to_str().ok()),
+            "http.request.header.x-grafbase-client-name" = self.header_x_grafbase_client.as_ref().map(|client| client.name.as_str()),
+            "http.request.header.x-grafbase-client-version" = self.header_x_grafbase_client.as_ref().and_then(|client| client.version.as_deref()),
+            // Response
+            "http.response.status_code" = Empty,
+            "http.response.body.size" = Empty,
+            "http.response.header.ray_id" = self.header_ray_id.as_ref().and_then(|v| v.to_str().ok()),
+            "graphql.operations.name" = Empty,
+            "graphql.operations.type" = Empty,
+            "graphql.response.errors.count" = Empty,
+            "graphql.response.errors.distinct_codes" = Empty,
+        );
+        HttpRequestSpan { span }
     }
 }
 
-impl HttpRecorderSpanExt for Span {
-    fn record_response<B: Body>(&self, response: &Response<B>) {
-        self.record(
-            "http.response.body.size",
-            response.body().size_hint().upper().unwrap_or(0),
-        );
+impl HttpRequestSpan {
+    pub fn record_response<B: Body>(&self, response: &Response<B>) {
         self.record("http.response.status_code", response.status().as_str());
+        if let Some(size) = response.body().size_hint().exact() {
+            self.record("http.response.body.size", size);
+        }
+        if response.status().is_server_error() {
+            self.record("otel.status_code", "Error");
+            self.record("error.type", response.status().as_str());
+        } else {
+            self.record("otel.status_code", "Ok");
+        }
     }
 
-    fn record_failure(&self, error: String) {
+    pub fn record_graphql_execution_telemetry<ErrorCode: std::fmt::Display>(
+        &self,
+        telemetry: &GraphqlExecutionTelemetry<ErrorCode>,
+    ) {
+        self.record(
+            "graphql.operations.name",
+            telemetry.operations.iter().map(|(_, name)| name).join(","),
+        );
+        self.record(
+            "graphql.operations.type",
+            telemetry.operations.iter().map(|(ty, _)| ty).join(","),
+        );
+        self.record("graphql.response.errors.count", telemetry.errors_count);
+        self.record(
+            "graphql.response.errors.distinct_codes",
+            telemetry.distinct_error_codes.iter().join(","),
+        );
+    }
+
+    pub fn record_internal_server_error(&self) {
+        self.record("otel.status_code", "Error");
+        self.record("error.type", "500");
         self.record("http.response.status_code", "500");
-        self.record("http.response.error", error);
     }
 
-    fn record_status_code(&self, status_code: StatusCode) {
+    // Used in workers
+    pub fn record_status_code(&self, status_code: StatusCode) {
         self.record("http.response.status_code", status_code.as_str());
     }
 }

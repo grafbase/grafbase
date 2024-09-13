@@ -6,7 +6,7 @@ use engine_v2_axum::middleware;
 use tracing::Level;
 use tracing_mock::{expect, subscriber};
 
-use grafbase_telemetry::span::request::GATEWAY_SPAN_NAME;
+use grafbase_telemetry::span::http_request::GATEWAY_SPAN_NAME;
 
 // when using the tower layer there should be a span named gateway
 #[tokio::test(flavor = "current_thread")]

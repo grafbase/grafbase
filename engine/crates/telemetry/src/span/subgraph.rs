@@ -35,6 +35,7 @@ impl<'a> SubgraphRequestSpanBuilder<'a> {
             target: crate::span::GRAFBASE_TARGET,
             SUBGRAPH_SPAN_NAME,
             "otel.name" = format!("{SUBGRAPH_SPAN_NAME}:{}", self.subgraph_name),
+            "otel.kind" = "Client",
             "otel.status_code" = Empty,
             "subgraph.name" = self.subgraph_name,
             // "Describes a class of error the operation ended with."

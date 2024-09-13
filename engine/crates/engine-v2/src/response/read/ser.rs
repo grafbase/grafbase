@@ -14,28 +14,26 @@ impl serde::Serialize for Response {
         S: serde::Serializer,
     {
         match self {
-            Response::Executed(ExecutedResponse { data, errors, .. }) => {
-                let mut map = serializer.serialize_map(Some(if errors.is_empty() { 1 } else { 2 }))?;
-                let response_keys = if let Some(data) = data {
-                    map.serialize_entry("data", &SerializableResponseData { data })?;
-                    Cow::Borrowed(&data.operation.response_keys)
+            Response::Executed(ExecutedResponse {
+                operation,
+                data,
+                errors,
+                ..
+            }) => {
+                let mut map = serializer.serialize_map(None)?;
+                let keys = &operation.response_keys;
+                if let Some(data) = data {
+                    map.serialize_entry("data", &SerializableResponseData { keys, data })?;
                 } else {
                     map.serialize_entry("data", &())?;
-                    Cow::Owned(ResponseKeys::default())
-                };
+                }
                 if !errors.is_empty() {
-                    map.serialize_entry(
-                        "errors",
-                        &SerializableErrors {
-                            keys: &response_keys,
-                            errors,
-                        },
-                    )?;
+                    map.serialize_entry("errors", &SerializableErrors { keys, errors })?;
                 }
                 map.end()
             }
-            Response::RequestError(RequestErrorResponse { errors }) => {
-                let mut map = serializer.serialize_map(Some(1))?;
+            Response::RequestError(RequestErrorResponse { errors, .. }) => {
+                let mut map = serializer.serialize_map(None)?;
                 // Shouldn't happen, but better safe than sorry.
                 if !errors.is_empty() {
                     let empty_keys = ResponseKeys::default();
@@ -50,7 +48,7 @@ impl serde::Serialize for Response {
                 map.end()
             }
             Response::RefusedRequest(RefusedRequestResponse { error, .. }) => {
-                let mut map = serializer.serialize_map(Some(1))?;
+                let mut map = serializer.serialize_map(None)?;
                 // Shouldn't happen, but better safe than sorry.
                 let empty_keys = ResponseKeys::default();
                 map.serialize_entry(
@@ -174,6 +172,7 @@ impl<'a> serde::Serialize for SerializableResponsePath<'a> {
 }
 
 struct SerializableResponseData<'a> {
+    keys: &'a ResponseKeys,
     data: &'a ResponseData,
 }
 
@@ -182,18 +181,17 @@ impl<'a> serde::Serialize for SerializableResponseData<'a> {
     where
         S: serde::Serializer,
     {
-        self.data
-            .root
-            .as_ref()
-            .map(|root_id| SerializableResponseObject {
-                data: self.data,
-                object: &self.data[*root_id],
-            })
-            .serialize(serializer)
+        SerializableResponseObject {
+            keys: self.keys,
+            data: self.data,
+            object: &self.data[self.data.root],
+        }
+        .serialize(serializer)
     }
 }
 
 struct SerializableResponseObject<'a> {
+    keys: &'a ResponseKeys,
     data: &'a ResponseData,
     object: &'a ResponseObject,
 }
@@ -204,7 +202,6 @@ impl<'a> serde::Serialize for SerializableResponseObject<'a> {
         S: serde::Serializer,
     {
         let mut map = serializer.serialize_map(Some(self.object.len()))?;
-        let keys = &self.data.operation.response_keys;
         // Thanks to the BoundResponseKey starting with the position and the fields being a BTreeMap
         // we're ensuring the fields are serialized in the order they appear in the query.
         for ResponseObjectField { edge, value, .. } in self.object.fields() {
@@ -213,7 +210,7 @@ impl<'a> serde::Serialize for SerializableResponseObject<'a> {
                 // don't need to be serialized.
                 break;
             };
-            map.serialize_key(&keys[key])?;
+            map.serialize_key(&self.keys[key])?;
             match value {
                 ResponseValue::Null => map.serialize_value(&())?,
                 ResponseValue::Boolean { value, .. } => map.serialize_value(value)?,
@@ -228,6 +225,7 @@ impl<'a> serde::Serialize for SerializableResponseObject<'a> {
                     length,
                     ..
                 } => map.serialize_value(&SerializableResponseList {
+                    keys: self.keys,
                     data: self.data,
                     value: &self.data[ResponseListId {
                         part_id,
@@ -236,6 +234,7 @@ impl<'a> serde::Serialize for SerializableResponseObject<'a> {
                     }],
                 })?,
                 &ResponseValue::Object { part_id, index, .. } => map.serialize_value(&SerializableResponseObject {
+                    keys: self.keys,
                     data: self.data,
                     object: &self.data[ResponseObjectId { part_id, index }],
                 })?,
@@ -247,6 +246,7 @@ impl<'a> serde::Serialize for SerializableResponseObject<'a> {
 }
 
 struct SerializableResponseList<'a> {
+    keys: &'a ResponseKeys,
     data: &'a ResponseData,
     value: &'a [ResponseValue],
 }
@@ -272,6 +272,7 @@ impl<'a> serde::Serialize for SerializableResponseList<'a> {
                     length,
                     ..
                 } => seq.serialize_element(&SerializableResponseList {
+                    keys: self.keys,
                     data: self.data,
                     value: &self.data[ResponseListId {
                         part_id,
@@ -281,6 +282,7 @@ impl<'a> serde::Serialize for SerializableResponseList<'a> {
                 })?,
                 &ResponseValue::Object { part_id, index, .. } => {
                     seq.serialize_element(&SerializableResponseObject {
+                        keys: self.keys,
                         data: self.data,
                         object: &self.data[ResponseObjectId { part_id, index }],
                     })?
