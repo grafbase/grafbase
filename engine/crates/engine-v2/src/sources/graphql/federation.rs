@@ -1,6 +1,6 @@
 use bytes::Bytes;
 use futures::future::join_all;
-use grafbase_telemetry::{gql_response_status::GraphqlResponseStatus, span::subgraph::SubgraphRequestSpan};
+use grafbase_telemetry::{graphql::GraphqlResponseStatus, span::subgraph::SubgraphRequestSpan};
 use http::HeaderMap;
 use runtime::{bytes::OwnedOrSharedBytes, hooks::CacheStatus};
 use schema::{GraphqlEndpoint, GraphqlEndpointId, GraphqlFederationEntityResolverDefinition};

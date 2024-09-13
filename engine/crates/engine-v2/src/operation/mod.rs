@@ -19,7 +19,7 @@ use crate::response::{ConcreteObjectShapeId, FieldShapeId, ResponseKeys, Respons
 pub(crate) use bind::bind_operation;
 pub(crate) use cache_scopes::*;
 pub(crate) use engine_parser::types::OperationType;
-use grafbase_telemetry::metrics::OperationMetricsAttributes;
+use grafbase_telemetry::graphql::GraphqlOperationAttributes;
 use id_derives::IndexedFields;
 use id_newtypes::{BitSet, IdRange, IdToMany};
 pub(crate) use ids::*;
@@ -36,7 +36,7 @@ pub(crate) use walkers::*;
 #[derive(serde::Serialize, serde::Deserialize)]
 pub(crate) struct PreparedOperation {
     pub operation: Operation,
-    pub metrics_attributes: OperationMetricsAttributes,
+    pub attributes: GraphqlOperationAttributes,
     pub plan: OperationPlan,
     pub response_blueprint: ResponseBlueprint,
 

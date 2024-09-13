@@ -1,8 +1,9 @@
 use ::runtime::hooks::Hooks;
 use engine_parser::types::OperationType;
 use grafbase_telemetry::{
-    metrics::{GraphqlErrorAttributes, GraphqlRequestMetricsAttributes, OperationMetricsAttributes},
-    span::{gql::GqlRequestSpan, GqlRecorderSpanExt},
+    graphql::GraphqlOperationAttributes,
+    metrics::{GraphqlErrorAttributes, GraphqlRequestMetricsAttributes},
+    span::graphql::GraphqlOperationSpan,
 };
 use runtime::hooks;
 use tracing::Instrument;
@@ -23,23 +24,30 @@ impl<R: Runtime> Engine<R> {
         request: Request,
     ) -> (Response, Option<Vec<u8>>) {
         let start = Instant::now();
-        let span = GqlRequestSpan::create();
+        let span = GraphqlOperationSpan::default();
 
         async {
             let ctx = PreExecutionContext::new(self, request_context);
 
-            let (operation_metrics_attributes, on_operation_response_output, response) =
-                ctx.execute_single(request).await;
+            let (operation_attributes, on_operation_response_output, response) = ctx.execute_single(request).await;
 
             let elapsed = start.elapsed();
             let status = response.graphql_status();
 
-            if let Some(operation_metrics_attributes) = operation_metrics_attributes.clone() {
-                span.record_gql_request((&operation_metrics_attributes).into());
+            if let Some(attributes) = operation_attributes.clone() {
+                span.record_operation(&attributes);
+
+                for error_code in response.distinct_error_codes() {
+                    self.runtime.metrics().increment_graphql_errors(GraphqlErrorAttributes {
+                        code: error_code.into(),
+                        operation_name: attributes.name.original().map(str::to_string),
+                        client: request_context.client.clone(),
+                    });
+                }
 
                 self.runtime.metrics().record_operation_duration(
                     GraphqlRequestMetricsAttributes {
-                        operation: operation_metrics_attributes,
+                        operation: attributes,
                         status,
                         cache_status: None,
                         client: request_context.client.clone(),
@@ -48,17 +56,7 @@ impl<R: Runtime> Engine<R> {
                 );
             }
 
-            span.record_gql_status(status);
-
-            if let Some(attributes) = operation_metrics_attributes {
-                for error_code in response.distinct_error_codes() {
-                    self.runtime.metrics().increment_graphql_errors(GraphqlErrorAttributes {
-                        code: error_code.into(),
-                        operation_name: attributes.name.clone(),
-                        client: request_context.client.clone(),
-                    });
-                }
-            }
+            span.record_response_status(status);
 
             // After recording all operation metadata
             tracing::debug!("Executed operation");
@@ -77,32 +75,32 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
         mut self,
         request: Request,
     ) -> (
-        Option<OperationMetricsAttributes>,
+        Option<GraphqlOperationAttributes>,
         Option<OperationResponseHookResult>,
         Response,
     ) {
         let mut operation_info = hooks::ExecutedOperation::builder();
 
-        let operation_plan = match self.prepare_operation(request, &mut operation_info).await {
-            Ok(operation_plan) => operation_plan,
+        let operation = match self.prepare_operation(request, &mut operation_info).await {
+            Ok(operation) => operation,
             Err((metadata, response)) => return (metadata, None, response),
         };
 
         operation_info.track_prepare();
 
-        let metrics_attributes = operation_plan.metrics_attributes.clone();
+        let metrics_attributes = operation.attributes.clone();
 
-        if matches!(operation_plan.ty(), OperationType::Subscription) {
+        if matches!(operation.ty(), OperationType::Subscription) {
             let response = RequestErrorResponse::bad_request_but_well_formed_graphql_over_http_request(
                 "Subscriptions are only suported on streaming transports. Try making a request with SSE or WebSockets",
             );
 
             (Some(metrics_attributes), None, response)
         } else {
-            operation_info.set_name(metrics_attributes.name.as_ref());
+            operation_info.set_name(metrics_attributes.name.original());
 
             let hooks = self.hooks();
-            let mut response = self.execute_query_or_mutation(operation_plan).await;
+            let mut response = self.execute_query_or_mutation(operation).await;
 
             operation_info.set_on_subgraph_response_outputs(response.take_on_subgraph_response_outputs());
 

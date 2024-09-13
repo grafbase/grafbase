@@ -168,7 +168,6 @@ impl<'a> HttpRequestSpan<'a> {
             "git.branch" = self.git_branch.as_ref().and_then(|v| v.to_str().ok()),
             "git.hash" = self.git_hash.as_ref().and_then(|v| v.to_str().ok()),
             "environment" = self.environment.as_ref().and_then(|v| v.to_str().ok()),
-            "gql.response.status" = Empty,
             "gql.response.field_errors_count" = Empty,
             "gql.response.data_is_null" = Empty,
             "gql.response.request_errors_count" = Empty,

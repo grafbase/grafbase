@@ -1,5 +1,5 @@
 use grafbase_telemetry::{
-    gql_response_status::SubgraphResponseStatus,
+    graphql::SubgraphResponseStatus,
     metrics::{
         SubgraphCacheHitAttributes, SubgraphCacheMissAttributes, SubgraphInFlightRequestAttributes,
         SubgraphRequestBodySizeAttributes, SubgraphRequestDurationAttributes, SubgraphRequestRetryAttributes,
@@ -22,14 +22,14 @@ pub(super) fn subgraph_duration<R: Runtime>(
     ctx: ExecutionContext<'_, R>,
     endpoint: GraphqlEndpoint<'_>,
     subgraph_status: SubgraphResponseStatus,
-    status_code: Option<http::StatusCode>,
+    http_status_code: Option<http::StatusCode>,
     duration: Duration,
 ) {
-    ctx.metrics().record_subgraph_duration(
+    ctx.metrics().record_subgraph_request_duration(
         SubgraphRequestDurationAttributes {
             name: endpoint.subgraph_name().to_string(),
             subgraph_status,
-            status_code,
+            http_status_code,
         },
         duration,
     );

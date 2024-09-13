@@ -1,7 +1,7 @@
 use bytes::Bytes;
 use futures::{StreamExt, TryStreamExt};
 use futures_util::Stream;
-use grafbase_telemetry::gql_response_status::GraphqlResponseStatus;
+use grafbase_telemetry::graphql::GraphqlResponseStatus;
 use headers::HeaderMapExt;
 use runtime::bytes::OwnedOrSharedBytes;
 

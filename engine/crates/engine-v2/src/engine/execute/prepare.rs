@@ -1,6 +1,6 @@
 use ::runtime::operation_cache::OperationCache;
 use futures::FutureExt;
-use grafbase_telemetry::metrics::{OperationMetricsAttributes, QueryPreparationAttributes};
+use grafbase_telemetry::graphql::GraphqlOperationAttributes;
 use runtime::hooks::ExecutedOperationBuilder;
 use std::sync::Arc;
 use web_time::Instant;
@@ -19,31 +19,22 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
         &mut self,
         request: Request,
         operation_info: &mut ExecutedOperationBuilder,
-    ) -> Result<ExecutableOperation, (Option<OperationMetricsAttributes>, Response)> {
+    ) -> Result<ExecutableOperation, (Option<GraphqlOperationAttributes>, Response)> {
         let start = Instant::now();
         let result = self.prepare_operation_inner(request, operation_info).await;
         let duration = start.elapsed();
-
         match result {
             Ok(operation) => {
-                let attributes = QueryPreparationAttributes {
-                    operation: Some(operation.prepared.metrics_attributes.clone()),
-                    success: true,
-                };
-
-                self.metrics().record_preparation_latency(attributes, duration);
+                self.metrics()
+                    .record_successful_preparation_duration(operation.attributes.clone(), duration);
 
                 Ok(operation)
             }
-            Err((metrics_attributes, response)) => {
-                let attributes = QueryPreparationAttributes {
-                    operation: metrics_attributes.clone(),
-                    success: false,
-                };
+            Err((operation_attributes, response)) => {
+                self.metrics()
+                    .record_failed_preparation_duration(operation_attributes.clone(), duration);
 
-                self.metrics().record_preparation_latency(attributes, duration);
-
-                Err((metrics_attributes, response))
+                Err((operation_attributes, response))
             }
         }
     }
@@ -52,7 +43,7 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
         &mut self,
         request: Request,
         operation_info: &mut ExecutedOperationBuilder,
-    ) -> Result<ExecutableOperation, (Option<OperationMetricsAttributes>, Response)> {
+    ) -> Result<ExecutableOperation, (Option<GraphqlOperationAttributes>, Response)> {
         let result = {
             let OperationDocument { cache_key, load_fut } = match self.determine_operation_document(&request) {
                 Ok(doc) => doc,
@@ -80,7 +71,7 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
             Err((cache_key, document)) => {
                 let operation = Operation::prepare(self.schema(), &request, &document)
                     .map(Arc::new)
-                    .map_err(|mut err| (err.take_metrics_attributes(), Response::request_error([err])))?;
+                    .map_err(|mut err| (err.take_operation_attributes(), Response::request_error([err])))?;
 
                 let cache_fut = self.engine.operation_cache.insert(cache_key, operation.clone());
                 self.push_background_future(cache_fut.boxed());
@@ -101,25 +92,16 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
         // allowed for it.
         if operation.ty.is_mutation() && !self.request_context.mutations_allowed {
             return Err((
-                Some(operation.metrics_attributes.clone()),
+                Some(operation.attributes.clone()),
                 RefusedRequestResponse::method_not_allowed("Mutation is not allowed with a safe method like GET"),
             ));
         }
 
-        let variables = Variables::build(self.schema(), &operation, request.variables).map_err(|errors| {
-            (
-                Some(operation.metrics_attributes.clone()),
-                Response::request_error(errors),
-            )
-        })?;
+        let variables = Variables::build(self.schema(), &operation, request.variables)
+            .map_err(|errors| (Some(operation.attributes.clone()), Response::request_error(errors)))?;
 
         self.finalize_operation(Arc::clone(&operation), variables)
             .await
-            .map_err(|err| {
-                (
-                    Some(operation.metrics_attributes.clone()),
-                    Response::request_error([err]),
-                )
-            })
+            .map_err(|err| (Some(operation.attributes.clone()), Response::request_error([err])))
     }
 }

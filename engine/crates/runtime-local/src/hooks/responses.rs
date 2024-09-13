@@ -101,16 +101,14 @@ impl ResponseHooks<Context> for HooksWasi {
         let operation = ExecutedOperation {
             duration_ms,
             status: match status {
-                grafbase_telemetry::gql_response_status::GraphqlResponseStatus::Success => {
-                    GraphqlResponseStatus::Success
-                }
-                grafbase_telemetry::gql_response_status::GraphqlResponseStatus::FieldError { count, data_is_null } => {
+                grafbase_telemetry::graphql::GraphqlResponseStatus::Success => GraphqlResponseStatus::Success,
+                grafbase_telemetry::graphql::GraphqlResponseStatus::FieldError { count, data_is_null } => {
                     GraphqlResponseStatus::FieldError(FieldError { count, data_is_null })
                 }
-                grafbase_telemetry::gql_response_status::GraphqlResponseStatus::RequestError { count } => {
+                grafbase_telemetry::graphql::GraphqlResponseStatus::RequestError { count } => {
                     GraphqlResponseStatus::RequestError(RequestError { count })
                 }
-                grafbase_telemetry::gql_response_status::GraphqlResponseStatus::RefusedRequest => {
+                grafbase_telemetry::graphql::GraphqlResponseStatus::RefusedRequest => {
                     GraphqlResponseStatus::RefusedRequest
                 }
             },

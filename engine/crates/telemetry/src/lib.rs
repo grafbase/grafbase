@@ -4,8 +4,8 @@
 pub use gateway_config::telemetry as config;
 /// Potential errors from this crate
 pub mod error;
-pub mod gql_response_status;
 pub mod grafbase_client;
+pub mod graphql;
 pub mod http;
 pub mod metrics;
 /// Otel integration

@@ -1,5 +1,70 @@
+use std::sync::Arc;
+
 static X_GRAFBASE_GQL_RESPONSE_STATUS: http::HeaderName =
     http::HeaderName::from_static("x-grafbase-graphql-response-status");
+
+#[derive(Clone, Debug)]
+pub struct GraphqlExecutionTelemetry<ErrorCode> {
+    pub operations: Vec<(OperationType, OperationName)>,
+    pub errors_count: u64,
+    pub distinct_error_codes: Vec<ErrorCode>,
+}
+
+impl<ErrorCode> Default for GraphqlExecutionTelemetry<ErrorCode> {
+    fn default() -> Self {
+        Self {
+            operations: Vec::new(),
+            errors_count: 0,
+            distinct_error_codes: Vec::new(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, serde::Serialize, serde::Deserialize)]
+pub enum OperationType {
+    Query,
+    Mutation,
+    Subscription,
+}
+
+impl OperationType {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Query => "query",
+            Self::Mutation => "mutation",
+            Self::Subscription => "subscription",
+        }
+    }
+
+    // for engine-v1
+    pub fn is_mutation(&self) -> bool {
+        matches!(self, Self::Mutation)
+    }
+}
+
+#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+pub enum OperationName {
+    Original(String),
+    Computed(String),
+    #[default]
+    Unknown,
+}
+
+impl OperationName {
+    pub fn original(&self) -> Option<&str> {
+        match self {
+            OperationName::Original(name) => Some(name),
+            OperationName::Computed(_) | OperationName::Unknown => None,
+        }
+    }
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct GraphqlOperationAttributes {
+    pub ty: OperationType,
+    pub name: OperationName,
+    pub sanitized_query: Arc<str>,
+}
 
 #[derive(Clone, Copy, Debug, serde::Serialize, serde::Deserialize)]
 pub enum GraphqlResponseStatus {
@@ -40,7 +105,7 @@ impl GraphqlResponseStatus {
         matches!(self, Self::Success)
     }
 
-    // Used to generate a status for a streaming response or a batch request.
+    // Used to generate a status for a streaming response in engine-v1
     pub fn union(self, other: Self) -> Self {
         match (self, other) {
             (Self::RefusedRequest, _) | (_, Self::RefusedRequest) => Self::RefusedRequest,
@@ -94,25 +159,19 @@ impl headers::Header for GraphqlResponseStatus {
 
 #[derive(Clone, Copy, Debug)]
 pub enum SubgraphResponseStatus {
-    GraphqlResponse(GraphqlResponseStatus),
+    HookError,
     HttpError,
-    InvalidResponseError,
+    InvalidGraphqlResponseError,
+    WellFormedGraphqlResponse(GraphqlResponseStatus),
 }
 
 impl SubgraphResponseStatus {
     pub fn as_str(self) -> &'static str {
         match self {
-            SubgraphResponseStatus::GraphqlResponse(response) => response.as_str(),
+            SubgraphResponseStatus::HookError => "HOOK_ERROR",
             SubgraphResponseStatus::HttpError => "HTTP_ERROR",
-            SubgraphResponseStatus::InvalidResponseError => "INVALID_RESPONSE",
-        }
-    }
-
-    pub fn is_success(self) -> bool {
-        match self {
-            SubgraphResponseStatus::GraphqlResponse(response) => response.is_success(),
-            SubgraphResponseStatus::HttpError => false,
-            SubgraphResponseStatus::InvalidResponseError => false,
+            SubgraphResponseStatus::InvalidGraphqlResponseError => "INVALID_RESPONSE",
+            SubgraphResponseStatus::WellFormedGraphqlResponse(response) => response.as_str(),
         }
     }
 }
