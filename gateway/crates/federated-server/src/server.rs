@@ -23,16 +23,10 @@ use engine_v2_axum::{
 };
 use gateway_config::{Config, TlsConfig};
 use state::ServerState;
-use std::{
-    net::{IpAddr, Ipv4Addr, SocketAddr},
-    path::PathBuf,
-    time::Duration,
-};
+use std::{net::SocketAddr, path::PathBuf, time::Duration};
 use tokio::signal;
 use tokio::sync::mpsc;
 use tower_http::{cors::CorsLayer, timeout::RequestBodyTimeoutLayer};
-
-const DEFAULT_LISTEN_ADDRESS: SocketAddr = SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), 5000);
 
 /// Start parameter for the gateway.
 pub struct ServerConfig {
@@ -73,10 +67,6 @@ pub async fn serve(
     server_runtime: impl ServerRuntime,
 ) -> crate::Result<()> {
     let path = config.graph.path.as_deref().unwrap_or("/graphql");
-
-    let addr = listen_addr
-        .or(config.network.listen_address)
-        .unwrap_or(DEFAULT_LISTEN_ADDRESS);
 
     let (sender, mut gateway) = watch::channel(None);
     gateway.mark_unchanged();
@@ -171,6 +161,14 @@ pub async fn serve(
         if #[cfg(feature = "lambda")] {
             let result = lambda_bind(path, router).await;
         } else {
+            use std::net::{IpAddr, Ipv4Addr};
+
+            const DEFAULT_LISTEN_ADDRESS: SocketAddr = SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), 5000);
+
+            let addr = listen_addr
+                .or(config.network.listen_address)
+                .unwrap_or(DEFAULT_LISTEN_ADDRESS);
+
             let result = bind(addr, path, router, config.tls.as_ref()).await;
         }
     }
