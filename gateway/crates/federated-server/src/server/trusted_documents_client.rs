@@ -22,7 +22,7 @@ impl TrustedDocumentsClient {
     ///
     /// - `http_client`: The HTTP client used for making requests.
     /// - `branch_id`: The unique identifier for the branch associated with the client.
-    /// - `bypass_header`: Optional header for bypassing into trusted document storage.
+    /// - `bypass_header`: Optional header. When provided, requests containing the header with the corresponding value can execute arbitrary queries.
     ///
     /// # Returns
     ///
