@@ -1,7 +1,6 @@
 mod access_logs;
 mod cors;
 mod csrf;
-mod engine;
 mod gateway;
 mod graph_fetch_method;
 mod graph_updater;
@@ -14,7 +13,7 @@ use runtime_local::{hooks, ComponentLoader, HooksWasi};
 use tokio::sync::watch;
 use ulid::Ulid;
 
-use axum::{routing::get, Router};
+use axum::{extract::State, response::IntoResponse, routing::get, Router};
 use axum_server as _;
 use engine_v2_axum::{
     middleware::{ResponseHookLayer, TelemetryLayer},
@@ -52,9 +51,25 @@ impl ServerRuntime for () {
     fn after_request(&self) {}
 }
 
-/// Starts the self-hosted Grafbase gateway. If started with a schema path, will
-/// not connect our API for changes in the schema and if started without, we poll
-/// the schema registry every ten second for changes.
+/// Starts the server and listens for incoming requests.
+///
+/// # Arguments
+///
+/// * `ServerConfig` - A configuration struct containing settings for the server, including:
+///   - `listen_addr`: The address to listen on for incoming requests.
+///   - `config`: The gateway configuration.
+///   - `config_path`: Optional path for the config file for hot reload.
+///   - `config_hot_reload`: A boolean indicating if the server should watch for config changes.
+///   - `fetch_method`: The method used to load the graph for the gateway.
+/// * `server_runtime`: An implementation of the `ServerRuntime` trait, providing hooks for request handling.
+///
+/// # Returns
+///
+/// This function returns a `Result` indicating success or failure. On success, it will return `Ok(())`.
+///
+/// # Errors
+///
+/// This function may return errors related to configuration loading, server binding, or request handling.
 pub async fn serve(
     ServerConfig {
         listen_addr,
@@ -119,7 +134,7 @@ pub async fn serve(
     gateway.changed().await.ok();
 
     let mut router = Router::new()
-        .route(path, get(engine::execute).post(engine::execute))
+        .route(path, get(engine_execute).post(engine_execute))
         .route_service("/ws", WebsocketService::new(websocket_sender))
         .layer(ResponseHookLayer::new(hooks))
         .layer(TelemetryLayer::new(
@@ -222,6 +237,54 @@ async fn lambda_bind(path: &str, router: Router<()>) -> crate::Result<()> {
     Ok(())
 }
 
+/// Executes a GraphQL request against the registered engine.
+///
+/// # Arguments
+///
+/// * `State(state)`: The server state containing the gateway.
+/// * `request`: The incoming Axum request containing the GraphQL query.
+///
+/// # Returns
+///
+/// This function returns an implementation of `IntoResponse`, which represents
+/// the HTTP response to be sent back to the client.
+///
+/// # Errors
+///
+/// If there are no subgraphs registered, an internal server error response will
+/// be returned.
+async fn engine_execute<T>(State(state): State<ServerState<T>>, request: axum::extract::Request) -> impl IntoResponse
+where
+    T: ServerRuntime,
+{
+    let Some(engine) = state.gateway.borrow().clone() else {
+        return engine_v2_axum::internal_server_error("there are no subgraphs registered currently");
+    };
+
+    let response = engine_v2_axum::execute(engine, request, state.request_body_limit_bytes).await;
+
+    // lambda must flush the trace events here, otherwise the
+    // function might fall asleep and the events are pending until
+    // the next wake-up.
+    //
+    // read more: https://github.com/open-telemetry/opentelemetry-lambda/blob/main/docs/design_proposal.md
+    #[cfg(feature = "lambda")]
+    state.server_runtime.after_request();
+
+    response
+}
+
+/// Waits for a termination signal and initiates a graceful shutdown of the server.
+///
+/// # Arguments
+///
+/// * `handle`: The handle for the server to manage graceful shutdown.
+///
+/// # Description
+///
+/// This function listens for termination signals (Ctrl+C or Unix termination signals)
+/// and triggers a graceful shutdown of the server, allowing ongoing requests to complete
+/// before shutting down.
 async fn graceful_shutdown(handle: axum_server::Handle) {
     let ctrl_c = async {
         signal::ctrl_c().await.expect("failed to install Ctrl+C handler");

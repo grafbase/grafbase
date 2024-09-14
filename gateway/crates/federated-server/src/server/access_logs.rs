@@ -4,6 +4,31 @@ use rolling_logger::{RollingLogger, RotateStrategy};
 use runtime_local::hooks::{AccessLogMessage, ChannelLogReceiver};
 use std::io::Write;
 
+/// Starts the access logging process.
+///
+/// This function initializes the logging mechanism based on the provided
+/// configuration and begins receiving log messages from the specified
+/// channel. It handles different rotation strategies for the log files
+/// and ensures that logs are written correctly. The function runs in a
+/// blocking task to allow asynchronous operations to continue.
+///
+/// # Parameters
+///
+/// - `config`: The configuration for the access logs, which includes
+///   the path and rotation settings.
+/// - `access_log_receiver`: A channel receiver to receive log messages.
+/// - `pending_logs_counter`: A counter to track the number of pending
+///   logs for monitoring purposes.
+///
+/// # Returns
+///
+/// This function returns a `Result` indicating success or failure. An
+/// error will be returned if the logger cannot be initialized.
+///
+/// # Errors
+///
+/// This function may return an error if there are issues with the
+/// logger initialization or during log writing operations.
 pub(crate) fn start(
     config: &AccessLogsConfig,
     access_log_receiver: ChannelLogReceiver,

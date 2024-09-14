@@ -2,13 +2,31 @@ const GRAFBASE_PRODUCTION_TRUSTED_DOCUMENTS_BUCKET: &str = "https://pub-72f35175
 const GRAFBASE_ASSETS_URL_ENV_VAR: &str = "GRAFBASE_ASSETS_URL";
 
 pub(crate) struct TrustedDocumentsClient {
+    /// The base URL for the assets host.
     assets_host: url::Url,
+
+    /// The HTTP client used for making requests.
     http_client: reqwest::Client,
+
+    /// The unique identifier for the branch associated with the client.
     branch_id: ulid::Ulid,
+
+    /// Optional header for bypassing into trusted document storage.
     bypass_header: Option<(String, String)>,
 }
 
 impl TrustedDocumentsClient {
+    /// Creates a new instance of `TrustedDocumentsClient`.
+    ///
+    /// # Parameters
+    ///
+    /// - `http_client`: The HTTP client used for making requests.
+    /// - `branch_id`: The unique identifier for the branch associated with the client.
+    /// - `bypass_header`: Optional header for bypassing into trusted document storage.
+    ///
+    /// # Returns
+    ///
+    /// A new instance of `TrustedDocumentsClient`.
     pub(crate) fn new(
         http_client: reqwest::Client,
         branch_id: ulid::Ulid,

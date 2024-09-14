@@ -9,10 +9,22 @@ use http::StatusCode;
 #[derive(Debug, serde::Serialize)]
 #[serde(tag = "status", rename_all = "lowercase")]
 pub(crate) enum HealthState {
+    /// Indicates that the server is healthy and operational.
     Healthy,
+
+    /// Indicates that the server is unhealthy and not operational.
     Unhealthy,
 }
 
+/// Handles health check requests and returns the current health status of the server.
+///
+/// # Parameters
+///
+/// - `State(state)`: The server state containing the gateway information.
+///
+/// # Returns
+///
+/// A tuple containing the HTTP status code and a JSON representation of the health status.
 pub(crate) async fn health<SR>(State(state): State<ServerState<SR>>) -> (StatusCode, Json<HealthState>) {
     if state.gateway.borrow().is_some() {
         (StatusCode::OK, Json(HealthState::Healthy))
@@ -21,6 +33,18 @@ pub(crate) async fn health<SR>(State(state): State<ServerState<SR>>) -> (StatusC
     }
 }
 
+/// Binds the health check endpoint to the specified address and configuration.
+///
+/// # Parameters
+///
+/// - `addr`: The socket address to bind the server to.
+/// - `tls_config`: Optional TLS configuration for secure connections.
+/// - `health_config`: Configuration for health check settings.
+/// - `state`: The current state of the server.
+///
+/// # Returns
+///
+/// A `Result` indicating success or failure of binding the endpoint.
 pub(super) async fn bind_health_endpoint<SR: ServerRuntime>(
     addr: SocketAddr,
     tls_config: Option<TlsConfig>,
