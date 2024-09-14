@@ -11,7 +11,20 @@ use super::{component_instance, ComponentInstance};
 component_instance!(SubgraphComponentInstance: SUBGRAPH_REQUEST_INTERFACE);
 
 impl SubgraphComponentInstance {
-    /// Called just before sending a HTTP request to a subgraph
+    /// A hook called just before executing a subgraph request.
+    ///
+    /// # Arguments
+    ///
+    /// * `context` - A shared context for the request.
+    /// * `subgraph_name` - The name of the subgraph being requested.
+    /// * `method` - The HTTP method of the request (e.g., GET, POST).
+    /// * `url` - The URL for the subgraph request.
+    /// * `headers` - The headers associated with the subgraph request.
+    ///
+    /// # Returns
+    ///
+    /// Returns a result containing the headers if the subgraph request should continue, or an
+    /// error if the execution should abort.
     pub async fn on_subgraph_request(
         &mut self,
         context: SharedContext,

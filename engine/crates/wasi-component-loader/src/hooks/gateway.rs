@@ -10,11 +10,17 @@ use super::{component_instance, ComponentInstance};
 component_instance!(GatewayComponentInstance: GATEWAY_REQUEST_INTERFACE);
 
 impl GatewayComponentInstance {
-    /// The gateway hook is called right after authentication.
+    /// Called just before parsing and executing a gateway operation.
     ///
-    /// An instance of a function to be called from the Gateway level for the request.
-    /// The instance is meant to be separate for every request. The instance shares a memory space
-    /// with the guest, and cannot be shared with multiple requests.
+    /// # Arguments
+    ///
+    /// * `context` - A map containing the key-value context store for the request.
+    /// * `headers` - A map containing the request headers.
+    ///
+    /// # Returns
+    ///
+    /// Returns a result containing a tuple of the processed context and headers,
+    /// or an error if the operation fails.
     pub async fn on_gateway_request(
         &mut self,
         context: ContextMap,
