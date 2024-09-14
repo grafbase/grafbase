@@ -39,7 +39,7 @@ struct Graph {
 /// This function takes a `GraphDefinition`, which can be either a response from GDN or a static SDL string,
 /// and constructs an `Engine<GatewayRuntime>` based on the provided gateway configuration and optional hot reload settings.
 ///
-/// # Parameters
+/// # Arguments
 ///
 /// - `graph_definition`: The definition of the graph, either from GDN or a static SDL string.
 /// - `gateway_config`: The configuration settings for the gateway.

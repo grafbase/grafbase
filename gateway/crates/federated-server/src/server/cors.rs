@@ -3,7 +3,7 @@ use tower_http::cors::CorsLayer;
 
 /// Generates a CORS layer based on the provided configuration.
 ///
-/// # Parameters
+/// # Arguments
 ///
 /// - `CorsConfig`: A configuration struct that contains the following fields:
 ///   - `allow_credentials`: Indicates whether to allow credentials.

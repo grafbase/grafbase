@@ -18,7 +18,7 @@ pub(crate) enum HealthState {
 
 /// Handles health check requests and returns the current health status of the server.
 ///
-/// # Parameters
+/// # Arguments
 ///
 /// - `State(state)`: The server state containing the gateway information.
 ///
@@ -35,7 +35,7 @@ pub(crate) async fn health<SR>(State(state): State<ServerState<SR>>) -> (StatusC
 
 /// Binds the health check endpoint to the specified address and configuration.
 ///
-/// # Parameters
+/// # Arguments
 ///
 /// - `addr`: The socket address to bind the server to.
 /// - `tls_config`: Optional TLS configuration for secure connections.
