@@ -78,7 +78,7 @@ impl ComponentLoader {
     /// WASI interfaces. If the component is loaded successfully, it returns an instance of
     /// `ComponentLoader`; otherwise, it returns `None`.
     ///
-    /// # Parameters
+    /// # Arguments
     ///
     /// - `config`: The configuration settings for the component loader.
     ///
