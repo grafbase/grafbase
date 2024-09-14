@@ -66,7 +66,7 @@ impl RotateStrategy {
     /// This strategy will trigger a rotation when the log file exceeds the specified maximum size.
     /// The rotation occurs after the next log write that exceeds this size.
     ///
-    /// # Parameters
+    /// # Arguments
     ///
     /// - `max_size`: The maximum size in bytes when rotation occurs.
     ///
@@ -79,7 +79,7 @@ impl RotateStrategy {
 
     /// Creates a new `RotateStrategy` with the specified kind of rotation.
     ///
-    /// # Parameters
+    /// # Arguments
     ///
     /// - `kind`: The kind of rotation strategy to use.
     ///
