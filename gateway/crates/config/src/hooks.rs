@@ -18,7 +18,7 @@ pub struct HooksWasiConfig {
     pub preopened_directories: Vec<PreopenedDirectory>,
 }
 
-/// Represents a directory that is preopened for the WASI component.
+/// Configuration for a directory that is preopened for the WASI component.
 #[derive(Clone, Debug, serde::Deserialize)]
 pub struct PreopenedDirectory {
     /// The path on the host system that is preopened.

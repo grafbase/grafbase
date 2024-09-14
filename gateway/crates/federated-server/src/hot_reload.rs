@@ -21,7 +21,7 @@ impl ConfigWatcher {
     /// This function creates a new `ConfigWatcher` instance that monitors the specified configuration file.
     /// If a `hot_reload_config_path` is provided, it starts watching that file for changes.
     ///
-    /// # Parameters
+    /// # Arguments
     ///
     /// - `config`: The initial configuration to be used.
     /// - `hot_reload_config_path`: An optional path to a configuration file that should be watched for changes.
