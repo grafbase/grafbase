@@ -44,6 +44,7 @@ fn main() -> anyhow::Result<()> {
             config_hot_reload: args.hot_reload(),
             fetch_method: args.fetch_method()?,
         };
+
         let server_runtime = server_runtime::build(telemetry.clone());
 
         let result = federated_server::serve(config, server_runtime)
