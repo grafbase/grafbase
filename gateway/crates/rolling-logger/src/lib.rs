@@ -1,9 +1,16 @@
-//! # Simple rolling logger
+//! This module provides a rolling logger that can rotate log files based on
+//! different strategies such as file size or time duration. It includes a
+//! `RollingLogger` struct that implements the `Write` trait, allowing it to
+//! be used as a standard writer.
 //!
-//! Provides a logger with rotation. Rotates either based on time duration, or file size.
-//! The currently written log is the given base file name. Rotated logs get the start timestamp
-//! added to the suffix. E.g. if the logging started at timestamp 1, after the first rotation the
-//! previous log filename is log_file.1.
+//! The `RollingLogger` struct contains the following key components:
+//!
+//! * `path`: The base file path for the current log file.
+//! * `file`: The current log file being written to.
+//!
+//! The `RollingLogger` struct provides methods to create a new logger,
+//! write data to the log, flush the log, and rotate the log file based on
+//! the specified strategy.
 
 #![deny(missing_docs)]
 
@@ -19,7 +26,12 @@ use std::{
     path::{Path, PathBuf},
 };
 
-/// A simple rolling logger.
+/// A logger that rolls over based on a specified strategy (time duration or file size).
+///
+/// # Fields
+///
+/// * `path` - The base file path for the current log file.
+/// * `file` - The current log file being written to.
 #[derive(Debug)]
 pub struct RollingLogger {
     path: PathBuf,
@@ -27,7 +39,17 @@ pub struct RollingLogger {
 }
 
 impl RollingLogger {
-    /// Creates a new rolling logger. The path should point to a file.
+    /// Creates a new `RollingLogger` with the given path and rotation strategy.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - A reference to the base file path for the current log file.
+    /// * `rotate_strategy` - The strategy to use for rotating the log file.
+    ///
+    /// # Returns
+    ///
+    /// An `io::Result` which is `Ok` if the `RollingLogger` was successfully created,
+    /// or an `io::Error` if there was a problem creating the log file.
     pub fn new(path: &Path, rotate_strategy: RotateStrategy) -> io::Result<Self> {
         let file = LogFile::new(path, rotate_strategy)?;
 
@@ -37,8 +59,16 @@ impl RollingLogger {
         })
     }
 
-    /// Flush all buffered data to the file, move the file to an archive with a timestamp and start
-    /// a new empty file.
+    /// Flushes the current log file and rotates it according to the specified strategy.
+    ///
+    /// This method first flushes the current log file to ensure all pending data is written.
+    /// It then renames the current log file by appending a timestamp to its name and creates
+    /// a new log file to continue logging.
+    ///
+    /// # Returns
+    ///
+    /// An `io::Result<()>` which is `Ok` if the operation was successful, or an `io::Error`
+    /// if there was a problem during the flush, rename, or creation of the new log file.
     fn flush_and_rotate(&mut self) -> io::Result<()> {
         self.flush()?;
 
@@ -59,6 +89,18 @@ impl RollingLogger {
 }
 
 impl Write for RollingLogger {
+    /// Writes a buffer into the current log file. If the log file needs to be rotated
+    /// according to the specified strategy, it flushes and rotates the log file before
+    /// writing the buffer.
+    ///
+    /// # Arguments
+    ///
+    /// * `buf` - A byte slice that contains the data to be written to the log file.
+    ///
+    /// # Returns
+    ///
+    /// An `io::Result<usize>` which is `Ok` containing the number of bytes written, or
+    /// an `io::Error` if there was a problem during the write operation.
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         if self.file.needs_rotation() {
             self.flush_and_rotate()?;
@@ -67,6 +109,15 @@ impl Write for RollingLogger {
         self.file.write(buf)
     }
 
+    /// Flushes the current log file, ensuring all buffered data is written to the file.
+    ///
+    /// This method is called automatically by the `RollingLogger` when needed, but can
+    /// also be called manually if necessary.
+    ///
+    /// # Returns
+    ///
+    /// An `io::Result<()>` which is `Ok` if the flush operation was successful, or an
+    /// `io::Error` if there was a problem during the flush operation.
     fn flush(&mut self) -> io::Result<()> {
         self.file.flush()
     }
