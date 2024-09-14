@@ -8,6 +8,17 @@ use schema::{
 
 use crate::engine::RequestContext;
 
+/// Creates a set of subgraph headers based on the provided rules.
+///
+/// # Parameters
+///
+/// - `request_context`: A reference to the request context containing the original headers.
+/// - `rules`: An iterator of header rules that specify how to modify the headers.
+/// - `default`: A default set of headers to start with.
+///
+/// # Returns
+///
+/// Returns a `HeaderMap` containing the modified headers according to the rules.
 pub(super) fn create_subgraph_headers_with_rules<'ctx>(
     request_context: &'ctx RequestContext,
     rules: impl Iterator<Item = HeaderRule<'ctx>>,

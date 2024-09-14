@@ -19,6 +19,18 @@ impl From<StringId> for ValuePathSegment {
     }
 }
 
+/// Converts a series of `ValuePathSegment` into a human-readable string representation
+/// based on the provided `Schema`.
+///
+/// # Arguments
+///
+/// * `schema` - A reference to the `Schema` that provides the mapping of `StringId` to string values.
+/// * `values` - A slice of `ValuePathSegment` representing the path to convert.
+///
+/// # Returns
+///
+/// A `String` representing the value path, formatted as a dot-separated string,
+/// prefixed with " at path '" and suffixed with "'".
 pub(super) fn value_path_to_string(schema: &Schema, values: &[ValuePathSegment]) -> String {
     let mut output = String::new();
     if values.is_empty() {

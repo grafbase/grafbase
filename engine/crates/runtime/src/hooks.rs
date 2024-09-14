@@ -244,16 +244,30 @@ impl<'a> ExecutedSubgraphRequest<'a> {
 
 #[derive(Debug, Clone)]
 pub struct ExecutedOperation<'a> {
+    /// An optional name for the operation.
     pub name: Option<&'a str>,
+
+    /// The normalized GraphQL document associated with the operation.
     pub document: &'a str,
+
+    /// The duration taken to prepare the operation.
     pub prepare_duration: Duration,
+
+    /// A flag indicating whether the execution plan was cached.
     pub cached_plan: bool,
+
+    /// The total duration of the operation.
     pub duration: Duration,
+
+    /// The status of the GraphQL response resulting from the operation.
     pub status: GraphqlResponseStatus,
+
+    /// Outputs from the subgraph responses collected during execution.
     pub on_subgraph_response_outputs: Vec<Vec<u8>>,
 }
 
 impl<'a> ExecutedOperation<'a> {
+    /// Constructs a new `ExecutedOperationBuilder` for preparing an `ExecutedOperation`.
     pub fn builder() -> ExecutedOperationBuilder {
         ExecutedOperationBuilder {
             start_time: Instant::now(),
@@ -273,20 +287,48 @@ pub struct ExecutedOperationBuilder {
 }
 
 impl ExecutedOperationBuilder {
+    /// Adds a response output from a `on-subgraph-response` hook to the builder.
+    ///
+    /// # Arguments
+    ///
+    /// * `output` - A `Vec<u8>` representing the raw output data from the `on-subgraph-response` hook.
     pub fn push_on_subgraph_response_output(&mut self, output: Vec<u8>) {
         self.on_subgraph_response_outputs.push(output);
     }
 
+    /// Tracks the preparation duration for the operation.
+    ///
+    /// This function measures the elapsed time since the `ExecutedOperationBuilder` was created,
+    /// marking the moment preparation started. The duration is stored for later access.
+    ///
+    /// # Returns
+    ///
+    /// Returns the `Duration` that represents how long the preparation took.
     pub fn track_prepare(&mut self) -> Duration {
         let prepare_duration = self.start_time.elapsed();
         self.prepare_duration = Some(prepare_duration);
         prepare_duration
     }
 
+    /// Marks the operation as having a cached execution plan.
+    ///
+    /// This method sets the `cached_plan` flag to true, indicating that the execution plan
+    /// for this operation was retrieved from a cache, potentially optimizing execution time.
     pub fn set_cached_plan(&mut self) {
         self.cached_plan = true;
     }
 
+    /// Constructs an `ExecutedOperation` from the builder's parameters.
+    ///
+    /// # Arguments
+    ///
+    /// * `name` - An optional name for the operation.
+    /// * `document` - A string slice representing the GraphQL document.
+    /// * `status` - The status of the GraphQL response.
+    ///
+    /// # Returns
+    ///
+    /// Returns an `ExecutedOperation` instance populated with the data from the builder.
     pub fn build<'a>(
         self,
         name: Option<&'a str>,

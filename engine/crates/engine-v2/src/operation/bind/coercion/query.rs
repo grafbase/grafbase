@@ -12,6 +12,31 @@ use super::{
 };
 use crate::operation::{FieldId, Location, QueryInputValue, QueryInputValueId};
 
+/// Coerces the default value of a variable into a `QueryInputValueId`.
+///
+/// This function is typically used when handling variable default values in
+/// GraphQL queries. It takes the binder, the location in the AST (Abstract
+/// Syntax Tree), the type record of the input value, and the default value
+/// itself. The coercion process involves validating the value against the
+/// expected type, handling any necessary type conversion, and returning
+/// the corresponding `QueryInputValueId`.
+///
+/// # Parameters
+///
+/// - `binder`: A mutable reference to the Binder for managing variable context.
+/// - `location`: A `Location` indicating where in the query the value resides.
+/// - `ty`: The `TypeRecord` representing the expected type of the value.
+/// - `value`: The default value as a `ConstValue` that needs coercion.
+///
+/// # Returns
+///
+/// - Ok if the coercion is successful, or an `InputValueError` if coercion fails.
+///
+/// # Errors
+///
+/// Possible errors include `InputValueError::UnknownVariable`,
+/// `InputValueError::IncorrectVariableType`, and others related to
+/// mismatched types or null values.
 pub fn coerce_variable_default_value(
     binder: &mut Binder<'_, '_>,
     location: Location,
@@ -70,6 +95,31 @@ impl<'binder, 'schema, 'parsed> std::ops::DerefMut for QueryValueCoercionContext
 }
 
 impl<'binder, 'schema, 'parsed> QueryValueCoercionContext<'binder, 'schema, 'parsed> {
+    /// Retrieves a reference to a variable by name and type, coercing it into a `QueryInputValue`.
+    ///
+    /// This function attempts to find the variable definition in the context and checks if its type
+    /// is compatible with the given type. If the variable is not found, or if its type is incorrect,
+    /// an appropriate `InputValueError` is returned.
+    ///
+    /// # Parameters
+    ///
+    /// - `name`: The name of the variable to reference.
+    /// - `ty`: The expected type of the variable as a `TypeRecord`.
+    ///
+    /// # Returns
+    ///
+    /// Returns `Ok(QueryInputValue)` containing the variable ID if the coercion is successful.
+    /// Returns an `InputValueError` if the variable definition is unknown or the type is incorrect.
+    ///
+    /// # Errors
+    ///
+    /// Possible errors include:
+    ///
+    /// - `InputValueError::VariableDefaultValueReliesOnAnotherVariable`: if the variable ID is not
+    ///   available.
+    /// - `InputValueError::UnknownVariable`: if the variable cannot be found in the current context.
+    /// - `InputValueError::IncorrectVariableType`: if the variable type is not compatible with the
+    ///   specified type.
     fn variable_ref(&mut self, name: Name, ty: TypeRecord) -> Result<QueryInputValue, InputValueError> {
         // field_id is not provided for variable default values.
         let Some(field_id) = self.field_id else {
@@ -113,6 +163,25 @@ impl<'binder, 'schema, 'parsed> QueryValueCoercionContext<'binder, 'schema, 'par
         Ok(QueryInputValue::Variable(id.into()))
     }
 
+    /// Coerces an input value into a `QueryInputValue`, validating its type against the expected `TypeRecord`.
+    ///
+    /// This function takes a value and attempts to coerce it to the expected type defined in `ty`.
+    /// It handles types including lists and named types, ensuring that the coercion is valid and
+    /// raising errors if the provided value does not match the expected type.
+    ///
+    /// # Parameters
+    ///
+    /// - `ty`: The `TypeRecord` representing the expected type of the value.
+    /// - `value`: The value to be coerced as a `Value`.
+    ///
+    /// # Returns
+    ///
+    /// Returns `Ok(QueryInputValue)` if coercion is successful. If coercion fails, it returns an
+    /// `InputValueError`.
+    ///
+    /// # Errors
+    ///
+    /// Possible errors include type mismatches and unexpected null values.
     fn coerce_input_value(&mut self, ty: TypeRecord, value: Value) -> Result<QueryInputValue, InputValueError> {
         if ty.wrapping.is_list() && !value.is_array() && !value.is_null() && !value.is_variable() {
             let mut value = self.coerce_named_type(ty, value)?;
@@ -125,6 +194,25 @@ impl<'binder, 'schema, 'parsed> QueryValueCoercionContext<'binder, 'schema, 'par
         self.coerce_list(ty, value)
     }
 
+    /// Coerces an input value into a list of `QueryInputValue`, validating its type against the expected `TypeRecord`.
+    ///
+    /// This function takes a value and attempts to coerce it to a list type defined in `ty`.
+    /// It handles scenarios where the expected type is a list and ensures that the coercion
+    /// is valid and raises errors if the provided value does not match the expected type.
+    ///
+    /// # Parameters
+    ///
+    /// - `ty`: The `TypeRecord` representing the expected type of the value.
+    /// - `value`: The value to be coerced as a `Value`.
+    ///
+    /// # Returns
+    ///
+    /// Returns `Ok(QueryInputValue)` if coercion is successful. If coercion fails, it returns an
+    /// `InputValueError`.
+    ///
+    /// # Errors
+    ///
+    /// Possible errors include type mismatches and unexpected null values.
     fn coerce_list(&mut self, mut ty: TypeRecord, value: Value) -> Result<QueryInputValue, InputValueError> {
         if let Value::Variable(name) = value {
             return self.variable_ref(name, ty);
@@ -159,6 +247,25 @@ impl<'binder, 'schema, 'parsed> QueryValueCoercionContext<'binder, 'schema, 'par
         }
     }
 
+    /// Coerces an input value into a `QueryInputValue` given a named type, validating its type against the expected `TypeRecord`.
+    ///
+    /// This function takes a value and attempts to coerce it to the expected type defined in `ty`.
+    /// It handles named types, ensuring that the coercion is valid and raises errors if the provided value
+    /// does not match the expected type.
+    ///
+    /// # Parameters
+    ///
+    /// - `ty`: The `TypeRecord` representing the expected type of the value.
+    /// - `value`: The value to be coerced as a `Value`.
+    ///
+    /// # Returns
+    ///
+    /// Returns `Ok(QueryInputValue)` if coercion is successful. If coercion fails, it returns an
+    /// `InputValueError`.
+    ///
+    /// # Errors
+    ///
+    /// Possible errors include mismatched types and unexpected null values.
     fn coerce_named_type(&mut self, ty: TypeRecord, value: Value) -> Result<QueryInputValue, InputValueError> {
         if let Value::Variable(name) = value {
             return self.variable_ref(name, ty);
@@ -172,6 +279,7 @@ impl<'binder, 'schema, 'parsed> QueryValueCoercionContext<'binder, 'schema, 'par
                     location: self.location,
                 });
             }
+
             return Ok(QueryInputValue::Null);
         }
 
@@ -183,6 +291,29 @@ impl<'binder, 'schema, 'parsed> QueryValueCoercionContext<'binder, 'schema, 'par
         }
     }
 
+    /// Coerces an input value into a `QueryInputValue`, validating its type against the expected `TypeRecord`.
+    ///
+    /// This function takes a value and attempts to coerce it to the expected type defined in `input_object`.
+    /// It handles scenarios where the value is expected to be an object, ensuring that the coercion
+    /// is valid and raising errors if the provided value does not match the expected type.
+    ///
+    /// # Parameters
+    ///
+    /// - `input_object`: The `InputObjectDefinition` representing the expected type of the value.
+    /// - `value`: The value to be coerced as a `Value`.
+    ///
+    /// # Returns
+    ///
+    /// Returns `Ok(QueryInputValue)` if coercion is successful. If coercion fails, it returns an
+    /// `InputValueError`.
+    ///
+    /// # Errors
+    ///
+    /// Possible errors include:
+    ///
+    /// - `InputValueError::MissingObject`: if the value is not an object when an object is expected.
+    /// - `InputValueError::UnknownInputField`: if an input field is provided that does not exist in the input object.
+    /// - `InputValueError::UnexpectedNull`: if a required field has a null value.
     fn coerce_input_objet(
         &mut self,
         input_object: InputObjectDefinition<'_>,
@@ -232,6 +363,28 @@ impl<'binder, 'schema, 'parsed> QueryValueCoercionContext<'binder, 'schema, 'par
         Ok(QueryInputValue::InputObject(ids))
     }
 
+    /// Coerces an input value into a `QueryInputValue`, validating its type against the expected `EnumDefinition`.
+    ///
+    /// This function takes a value and attempts to coerce it to the expected enum type defined in `r#enum`.
+    /// It checks if the provided value matches one of the defined enum variants and raises errors
+    /// if the provided value does not match the expected type.
+    ///
+    /// # Parameters
+    ///
+    /// - `r#enum`: The `EnumDefinition` representing the expected type of the value.
+    /// - `value`: The value to be coerced as a `Value`.
+    ///
+    /// # Returns
+    ///
+    /// Returns `Ok(QueryInputValue)` if coercion is successful. If coercion fails, it returns an
+    /// `InputValueError`.
+    ///
+    /// # Errors
+    ///
+    /// Possible errors include:
+    ///
+    /// - `InputValueError::IncorrectEnumValueType`: if the value does not match an enum variant.
+    /// - `InputValueError::UnknownEnumValue`: if the enum value is not defined in the enum variants.
     fn coerce_enum(&mut self, r#enum: EnumDefinition<'_>, value: Value) -> Result<QueryInputValue, InputValueError> {
         let name = match &value {
             Value::Enum(value) => value.as_str(),
@@ -257,6 +410,29 @@ impl<'binder, 'schema, 'parsed> QueryValueCoercionContext<'binder, 'schema, 'par
         Ok(QueryInputValue::EnumValue(id))
     }
 
+    /// Coerces an input value into a `QueryInputValue`, validating its type against the expected `ScalarDefinition`.
+    ///
+    /// This function takes a value and attempts to coerce it to the expected scalar type defined in
+    /// `scalar`. It handles different scalar types, including `JSON`, `Int`, `BigInt`, `Float`,
+    /// `String`, and `Boolean`. If the provided value does not match the expected scalar type, an
+    /// appropriate `InputValueError` is returned.
+    ///
+    /// # Parameters
+    ///
+    /// - `scalar`: The `ScalarDefinition` representing the expected type of the value.
+    /// - `value`: The value to be coerced as a `Value`.
+    ///
+    /// # Returns
+    ///
+    /// Returns `Ok(QueryInputValue)` if coercion is successful. If coercion fails, it returns an
+    /// `InputValueError`.
+    ///
+    /// # Errors
+    ///
+    /// Possible errors include:
+    ///
+    /// - `InputValueError::IncorrectScalarType`: if the actual value type does not match the expected scalar type.
+    /// - `InputValueError::IncorrectScalarValue`: if the value does not correspond to the expected format for the scalar.
     fn coerce_scalar(
         &mut self,
         scalar: ScalarDefinition<'_>,
@@ -352,6 +528,15 @@ impl<'binder, 'schema, 'parsed> QueryValueCoercionContext<'binder, 'schema, 'par
         }
     }
 
+    /// Retrieves the string representation of the current value path, which helps
+    /// in error reporting and tracing the location of input values within the
+    /// GraphQL query structure.
+    ///
+    /// # Returns
+    ///
+    /// A `String` that represents the path of the value being coerced. This
+    /// path can be useful for debugging and understanding where a value
+    /// was found in the query.
     fn path(&self) -> String {
         value_path_to_string(self.schema, &self.value_path)
     }

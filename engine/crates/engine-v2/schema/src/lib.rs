@@ -176,14 +176,53 @@ pub struct SubGraphs {
 }
 
 impl Schema {
+    /// Walks the given item within the context of the schema.
+    ///
+    /// This method allows traversal of the schema structure using the
+    /// `Walk` trait, enabling access to related entities and data.
+    ///
+    /// # Type Parameters
+    ///
+    /// - `T`: A type that implements the `Walk` trait, allowing for
+    ///   traversal.
+    ///
+    /// # Parameters
+    ///
+    /// - `item`: The item to walk through the schema.
+    ///
+    /// # Returns
+    ///
+    /// A `Walker` object that can be used to navigate the schema based
+    /// on the provided item.
     pub fn walk<T: Walk<Self>>(&self, item: T) -> Walker<'_, T> {
         item.walk(self)
     }
 
+    /// Retrieves an iterator over all defined types within the schema.
+    ///
+    /// This method allows you to access the various type definitions that are part of the schema,
+    /// returning an iterator that can be used to traverse through each `Definition`.
+    ///
+    /// # Returns
+    ///
+    /// An iterator that yields `Definition` instances, providing access to the schema's types.
     pub fn definitions(&self) -> impl Iter<Item = Definition<'_>> + '_ {
         self.graph.type_definitions_ordered_by_name.walk(self)
     }
 
+    /// Retrieves the identifier of a type definition by its name.
+    ///
+    /// This method searches for a type definition within the schema using the provided `name`.
+    /// If a matching definition is found, its ID is returned; otherwise, `None` is returned.
+    ///
+    /// # Parameters
+    ///
+    /// - `name`: A string slice representing the name of the type definition to search for.
+    ///
+    /// # Returns
+    ///
+    /// An `Option<DefinitionId>`, which contains the identifier of the matching definition if found,
+    /// or `None` if no definition exists with the specified name.
     pub fn definition_by_name(&self, name: &str) -> Option<DefinitionId> {
         self.graph
             .type_definitions_ordered_by_name
@@ -192,6 +231,20 @@ impl Schema {
             .ok()
     }
 
+    /// Retrieves the identifier of a field within an object by its name.
+    ///
+    /// This method searches for a field within the specified object definition using the provided `name`.
+    /// If a matching field is found, its ID is returned; otherwise, `None` is returned.
+    ///
+    /// # Parameters
+    ///
+    /// - `object_id`: The identifier of the object definition to search within.
+    /// - `name`: A string slice representing the name of the field to search for.
+    ///
+    /// # Returns
+    ///
+    /// An `Option<FieldDefinitionId>`, which contains the identifier of the matching field if found,
+    /// or `None` if no field exists with the specified name.
     pub fn object_field_by_name(&self, object_id: ObjectDefinitionId, name: &str) -> Option<FieldDefinitionId> {
         let fields = self[object_id].field_ids;
         self[fields]
@@ -200,6 +253,20 @@ impl Schema {
             .map(|pos| FieldDefinitionId::from(usize::from(fields.start) + pos))
     }
 
+    /// Retrieves the identifier of a field within an interface by its name.
+    ///
+    /// This method searches for a field within the specified interface definition using the provided `name`.
+    /// If a matching field is found, its ID is returned; otherwise, `None` is returned.
+    ///
+    /// # Parameters
+    ///
+    /// - `interface_id`: The identifier of the interface definition to search within.
+    /// - `name`: A string slice representing the name of the field to search for.
+    ///
+    /// # Returns
+    ///
+    /// An `Option<FieldDefinitionId>`, which contains the identifier of the matching field if found,
+    /// or `None` if no field exists with the specified name.
     pub fn interface_field_by_name(
         &self,
         interface_id: InterfaceDefinitionId,
@@ -212,26 +279,69 @@ impl Schema {
             .map(|pos| FieldDefinitionId::from(usize::from(fields.start) + pos))
     }
 
+    /// Retrieves an iterator over the default header rules specified in the schema settings.
+    ///
+    /// This method provides access to all default header rules defined within the schema's settings,
+    /// allowing you to iterate through each `HeaderRule` that may be applied.
+    ///
+    /// # Returns
+    ///
+    /// An iterator that yields `HeaderRule` instances, providing access to the default header rules.
     pub fn default_header_rules(&self) -> impl Iter<Item = HeaderRule<'_>> + '_ {
         self.settings.default_header_rules.walk(self)
     }
 
+    /// Retrieves the name of the specified definition.
+    ///
+    /// # Parameters
+    ///
+    /// - `definition`: The identifier of the definition for which the name is requested.
+    ///
+    /// # Returns
+    ///
+    /// A string slice representing the name of the definition.
     fn definition_name(&self, definition: DefinitionId) -> &str {
         definition.walk(self).name()
     }
 
+    /// Retrieves the root query type defined in the schema.
+    ///
+    /// # Returns
+    ///
+    /// An `ObjectDefinition` corresponding to the root query type.
     pub fn query(&self) -> ObjectDefinition<'_> {
         self.graph.root_operation_types_record.query_id.walk(self)
     }
 
+    /// Retrieves the root mutation type defined in the schema, if available.
+    ///
+    /// # Returns
+    ///
+    /// An `Option<ObjectDefinition>`, which is `Some` if a mutation type
+    /// is defined, or `None` if it is not.
     pub fn mutation(&self) -> Option<ObjectDefinition<'_>> {
         self.graph.root_operation_types_record.mutation_id.walk(self)
     }
 
+    /// Retrieves the root subscription type defined in the schema, if available.
+    ///
+    /// # Returns
+    ///
+    /// An `Option<ObjectDefinition>`, which is `Some` if a subscription type
+    /// is defined, or `None` if it is not.
     pub fn subscription(&self) -> Option<ObjectDefinition<'_>> {
         self.graph.root_operation_types_record.subscription_id.walk(self)
     }
 
+    /// Retrieves an iterator over all GraphQL endpoints defined in the schema.
+    ///
+    /// This method provides access to all GraphQL endpoints associated with the schema,
+    /// allowing you to iterate through each `GraphqlEndpoint` instance.
+    ///
+    /// # Returns
+    ///
+    /// An iterator that yields `GraphqlEndpoint` instances, representing the
+    /// available endpoints defined within the schema.
     pub fn graphql_endpoints(&self) -> impl ExactSizeIterator<Item = GraphqlEndpoint<'_>> {
         (0..self.subgraphs.graphql_endpoints.len()).map(|i| {
             let id = GraphqlEndpointId::from(i);
@@ -262,6 +372,20 @@ pub enum ScalarType {
 }
 
 impl ScalarType {
+    /// Creates a `ScalarType` from a given scalar name.
+    ///
+    /// This function attempts to convert a scalar name into its corresponding `ScalarType`.
+    /// If the name matches a known scalar type, the appropriate `ScalarType` variant is returned.
+    /// If the name is "ID", it returns `ScalarType::String`, as ID scalars are treated as strings.
+    /// If the name does not match any known scalar types, `ScalarType::JSON` is returned by default.
+    ///
+    /// # Parameters
+    ///
+    /// - `name`: A string slice representing the name of the scalar.
+    ///
+    /// # Returns
+    ///
+    /// A `ScalarType` corresponding to the provided scalar name.
     pub fn from_scalar_name(name: &str) -> ScalarType {
         ScalarType::from_str(name).ok().unwrap_or(match name {
             "ID" => ScalarType::String,

@@ -75,9 +75,7 @@ impl<'schema, 'a> SelectionSetLogicalPlanner<'schema, 'a> {
                 // Except the parent plan, all others have for root this selection set.
                 if Some(extra.logical_plan_id) != maybe_parent_plan_id {
                     // Sorted at the end.
-                    self.planner[extra.logical_plan_id]
-                        .root_field_ids_ordered_by_parent_entity_id_then_position
-                        .push(field_id);
+                    self.planner[extra.logical_plan_id].root_field_ids.push(field_id);
                 }
             }
         }

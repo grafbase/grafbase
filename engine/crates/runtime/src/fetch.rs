@@ -30,8 +30,15 @@ impl FetchError {
 
 pub type FetchResult<T> = Result<T, FetchError>;
 
-/// reqwest uses Url instead of Uri, so as long as it's the actual implementation underneath it's a
-/// bit of a waste to use http::Request
+/// Represents a request to be fetched, including the URL, HTTP method, headers, body, and timeout duration.
+///
+/// # Fields
+///
+/// - `url`: The target URL for the request, represented as a `Cow` of `url::Url`.
+/// - `method`: The HTTP method to be used for the request (e.g., GET, POST).
+/// - `headers`: The headers to include with the request, represented as an `http::HeaderMap`.
+/// - `body`: The body of the request, which can be of any type defined by `Body`.
+/// - `timeout`: The duration after which the request will timeout.
 #[derive(Clone)]
 pub struct FetchRequest<'a, Body> {
     pub url: Cow<'a, url::Url>,

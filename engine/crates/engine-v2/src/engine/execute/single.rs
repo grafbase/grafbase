@@ -15,6 +15,27 @@ use crate::{
 };
 
 impl<R: Runtime> Engine<R> {
+    /// Executes a single GraphQL request and returns the corresponding response.
+    ///
+    /// This function processes the request in the context of the provided
+    /// request and hooks contexts, recording relevant performance metrics
+    /// and any errors that occur during the execution of the operation.
+    ///
+    /// # Parameters
+    ///
+    /// * `request_context`: The context for the current request, providing
+    ///   necessary information such as client details.
+    /// * `hooks_context`: The context object populated in on-gateway-request hook.
+    /// * `request`: The GraphQL request to be executed.
+    ///
+    /// # Returns
+    ///
+    /// Returns a `Response` containing the result of the request execution.
+    ///
+    /// # Errors
+    ///
+    /// If there are errors during the execution, they will be included in
+    /// the returned response.
     pub(super) async fn execute_single(
         &self,
         request_context: &RequestContext,
@@ -65,6 +86,24 @@ impl<R: Runtime> Engine<R> {
 }
 
 impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
+    /// Executes a single GraphQL operation (query or mutation) using
+    /// the provided request.
+    ///
+    /// # Parameters
+    ///
+    /// * `request`: The GraphQL request to be executed. It should
+    ///   contain either a query or mutation to be processed.
+    ///
+    /// # Returns
+    ///
+    /// Returns a `Response` containing the results of the execution.
+    ///
+    /// # Errors
+    ///
+    /// If preparation of the operation fails, an error response will be
+    /// returned. Additionally, if the operation is a subscription,
+    /// a request error will indicate that subscriptions are not supported
+    /// on non-streaming transports.
     async fn execute_single(mut self, request: Request) -> Response {
         let operation = match self.prepare_operation(request).await {
             Ok(operation) => operation,

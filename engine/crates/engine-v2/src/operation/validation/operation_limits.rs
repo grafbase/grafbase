@@ -11,6 +11,22 @@ pub(crate) enum OperationLimitExceededError {
     QueryTooHigh,
 }
 
+/// Enforces the operation limits specified in the schema settings.
+///
+/// This function checks the height of the operation's selection set against
+/// the configured maximum height. If the height exceeds the allowed limit,
+/// an `OperationLimitExceededError` is returned.
+///
+/// # Arguments
+///
+/// * `schema` - A reference to the schema containing the operation limits.
+/// * `operation` - The operation walker that provides access to the selection
+///   set.
+///
+/// # Returns
+///
+/// Returns `Ok(())` if the operation does not exceed the limits, or
+/// `Err(OperationLimitExceededError::QueryTooHigh)` if the limits are exceeded.
 pub(super) fn enforce_operation_limits(
     schema: &Schema,
     operation: OperationWalker<'_>,

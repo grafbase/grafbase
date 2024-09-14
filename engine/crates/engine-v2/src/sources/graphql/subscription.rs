@@ -21,6 +21,24 @@ use crate::{
 };
 
 impl GraphqlResolver {
+    /// Executes a GraphQL subscription based on the provided context and plan.
+    ///
+    /// This method will determine if the subscription should be executed via
+    /// WebSocket or Server-Sent Events (SSE) based on the availability of a
+    /// WebSocket URL in the context.
+    ///
+    /// # Parameters
+    ///
+    /// - `ctx`: The mutable context for the subgraph which contains runtime
+    ///   information and endpoints.
+    /// - `plan`: The execution plan for the subscription.
+    /// - `new_response`: A closure that generates a new `SubscriptionResponse`
+    ///   for each item received from the subscription.
+    ///
+    /// # Returns
+    ///
+    /// A `BoxStream` that yields `ExecutionResult<SubscriptionResponse>` for
+    /// each response received from the subscription.
     pub async fn execute_subscription<'ctx, R: Runtime>(
         &'ctx self,
         ctx: &mut SubgraphContext<'ctx, R>,
@@ -35,6 +53,25 @@ impl GraphqlResolver {
         }
     }
 
+    /// Executes a GraphQL subscription over a WebSocket connection.
+    ///
+    /// This function handles creating and managing a WebSocket subscription
+    /// using the provided context, execution plan, and response generator.
+    /// It transforms the provided WebSocket URL to the appropriate format
+    /// if necessary and sets up the required headers for the request.
+    ///
+    /// # Parameters
+    ///
+    /// - `ctx`: The mutable context for the subgraph containing runtime information and endpoints.
+    /// - `plan`: The execution plan for the subscription.
+    /// - `new_response`: A closure that generates a new `SubscriptionResponse` for each item
+    ///   received from the subscription.
+    /// - `websocket_url`: The URL of the WebSocket connection.
+    ///
+    /// # Returns
+    ///
+    /// A `BoxStream` that yields `ExecutionResult<SubscriptionResponse>` for each response
+    /// received from the WebSocket subscription.
     async fn execute_websocket_subscription<'ctx, R: Runtime>(
         &'ctx self,
         ctx: &mut SubgraphContext<'ctx, R>,
@@ -115,6 +152,19 @@ impl GraphqlResolver {
         Ok(Box::pin(stream))
     }
 
+    /// Executes a GraphQL subscription over a Server-Sent Events (SSE) connection.
+    ///
+    /// # Parameters
+    ///
+    /// - `ctx`: The mutable context for the subgraph containing runtime information and endpoints.
+    /// - `plan`: The execution plan for the subscription.
+    /// - `new_response`: A closure that generates a new `SubscriptionResponse` for each item
+    ///   received from the subscription.
+    ///
+    /// # Returns
+    ///
+    /// A `BoxStream` that yields `ExecutionResult<SubscriptionResponse>` for each response
+    /// received from the SSE subscription.
     async fn execute_sse_subscription<'ctx, R: Runtime>(
         &'ctx self,
         ctx: &mut SubgraphContext<'ctx, R>,
@@ -143,10 +193,12 @@ impl GraphqlResolver {
 
             headers.typed_insert(headers::ContentType::json());
             headers.typed_insert(headers::ContentLength(body.len() as u64));
+
             headers.insert(
                 http::header::ACCEPT,
                 http::HeaderValue::from_static("text/even-stream,application/json;q=0.9"),
             );
+
             FetchRequest {
                 url: Cow::Borrowed(endpoint.url()),
                 method: http::Method::POST,
@@ -157,7 +209,9 @@ impl GraphqlResolver {
         };
 
         ctx.record_request(&request);
+
         let fetcher = ctx.engine.runtime.fetcher();
+
         let stream = retrying_fetch(ctx, move || {
             fetcher
                 .graphql_over_sse_stream(request.clone())

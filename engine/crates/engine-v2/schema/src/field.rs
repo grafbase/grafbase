@@ -48,6 +48,20 @@ impl<'a> FieldDefinition<'a> {
         self.only_resolvable_in_ids.is_empty() || self.only_resolvable_in_ids.contains(&subgraph_id)
     }
 
+    /// Checks if the field has required fields for a specific subgraph.
+    ///
+    /// This method examines the `requires_records` and the directives associated
+    /// with the field to determine if any of the requirements belong to the given
+    /// subgraph identified by `subgraph_id`.
+    ///
+    /// # Parameters
+    ///
+    /// - `subgraph_id`: The ID of the subgraph to check against.
+    ///
+    /// # Returns
+    ///
+    /// Returns `true` if there are required fields for the specified subgraph;
+    /// otherwise, returns `false`.
     pub fn has_required_fields_for_subgraph(&self, subgraph_id: SubgraphId) -> bool {
         self.as_ref()
             .requires_records

@@ -151,22 +151,68 @@ pub type BindResult<T> = Result<T, BindError>;
 
 #[derive(IndexedFields)]
 pub(crate) struct Binder<'schema, 'p> {
+    /// A reference to the GraphQL schema that this binder operates on.
     schema: &'schema Schema,
+
+    /// A reference to the parsed operation being bound.
     parsed_operation: &'p ParsedOperation,
+
+    /// The name of the operation for generating error messages.
     operation_name: ErrorOperationName,
+
+    /// The response keys generated during binding.
     response_keys: ResponseKeys,
+
+    /// A vector of field arguments to be applied to the operation.
     field_arguments: Vec<FieldArgument>,
+
+    /// A mapping from locations to field arguments for quick lookup.
     location_to_field_arguments: HashMap<Location, IdRange<FieldArgumentId>>,
+
+    /// A vector of fields included in the bound operation, indexed by FieldId.
     #[indexed_by(FieldId)]
     fields: Vec<Field>,
+
+    /// A vector of selection sets included in the bound operation, indexed by SelectionSetId.
     #[indexed_by(SelectionSetId)]
     selection_sets: Vec<SelectionSet>,
+
+    /// A vector of variable definitions found in the parsed operation.
     variable_definitions: Vec<VariableDefinition>,
+
+    /// Input values for variables that will be used in the operation.
     input_values: QueryInputValues,
+
+    /// A mapping of query modifiers and their impacted fields.
     query_modifiers: HashMap<QueryModifierRule, (QueryModifierId, Vec<FieldId>)>,
+
+    /// A mapping of response modifiers and their impacted fields.
     response_modifiers: HashMap<ResponseModifierRule, (ResponseModifierId, Vec<FieldId>)>,
 }
 
+/// Binds a parsed operation to the schema and generates the corresponding operation.
+///
+/// # Arguments
+///
+/// * `schema` - A reference to the schema to which the operation will be bound.
+/// * `parsed_operation` - The parsed operation that needs to be bound.
+///
+/// # Errors
+///
+/// Returns a `BindResult<Operation>`, which will contain a `BindError` if:
+///
+/// * The operation type is invalid (e.g., no mutations defined or subscriptions defined).
+/// * The parsed operation has a field that doesn't exist or is not valid.
+/// * There's a problem with variable definitions or arguments.
+///
+/// This function performs several steps, including:
+///
+/// 1. Validating the parsed operation against the schema's settings.
+/// 2. Identifying and binding variable definitions.
+/// 3. Merging selection sets and ensuring all variables are used.
+/// 4. Finalizing any query and response modifiers.
+///
+/// The resulting `Operation` will include all necessary data required for execution.
 pub fn bind_operation(schema: &Schema, mut parsed_operation: ParsedOperation) -> BindResult<Operation> {
     validate_parsed_operation(&parsed_operation, &schema.settings.operation_limits)?;
 
@@ -177,6 +223,7 @@ pub fn bind_operation(schema: &Schema, mut parsed_operation: ParsedOperation) ->
     };
 
     let variable_definitions = std::mem::take(&mut parsed_operation.definition.variable_definitions);
+
     let mut binder = Binder {
         schema,
         parsed_operation: &parsed_operation,
@@ -204,8 +251,10 @@ pub fn bind_operation(schema: &Schema, mut parsed_operation: ParsedOperation) ->
 
     let root_query_modifier_ids = binder.generate_modifiers_for_root_object(root_object_id);
     let (query_modifiers, query_modifier_impacted_fields) = finalize_query_modifiers(binder.query_modifiers);
+
     let (response_modifiers, response_modifier_impacted_fields) =
         finalize_response_modifiers(binder.response_modifiers);
+
     Ok(Operation {
         ty: parsed_operation.definition.ty,
         root_object_id,

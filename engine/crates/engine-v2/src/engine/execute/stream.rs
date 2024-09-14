@@ -33,6 +33,24 @@ pub(crate) struct StreamResponse {
 }
 
 impl<R: Runtime> Engine<R> {
+    /// Executes a stream of responses based on the provided request.
+    ///
+    /// This function takes a request and returns a `StreamResponse`, which contains a stream of
+    /// responses, telemetry information, and outputs from operation responses. The operation may
+    /// involve multiple asynchronous events, and telemetry is collected to monitor the execution
+    /// details and performance.
+    ///
+    /// # Parameters
+    /// - `self`: An `Arc` reference to the `Engine` instance.
+    /// - `request_context`: A context object containing information about the request.
+    /// - `hooks_context`: A context for executing hooks that may alter or respond to the request.
+    /// - `request`: The `Request` object that contains the details about the operation to be executed.
+    ///
+    /// # Returns
+    /// A `StreamResponse` containing:
+    /// - `stream`: A boxed stream of `Response` events.
+    /// - `telemetry`: A receiver for telemetry data related to the execution.
+    /// - `on_operation_response_outputs`: A receiver for results from `on-operation-response` hook calls.
     pub(super) fn execute_stream(
         self: &Arc<Self>,
         request_context: Arc<RequestContext>,

@@ -55,15 +55,19 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
                         .query
                         .as_deref()
                         .ok_or_else(|| GraphqlError::new("Missing query", ErrorCode::BadRequest))?;
-                    Ok(OperationDocument {
-                        cache_key: Key::Operation {
-                            name,
-                            schema,
-                            document: Document::Text(document),
-                        }
-                        .to_string(),
+
+                    let cache_key = Key::Operation {
+                        name,
+                        schema,
+                        document: Document::Text(document),
+                    };
+
+                    let operation_document = OperationDocument {
+                        cache_key: cache_key.to_string(),
                         load_fut: Box::pin(std::future::ready(Ok(Cow::Borrowed(document)))),
-                    })
+                    };
+
+                    Ok(operation_document)
                 } else {
                     let graphql_error = GraphqlError::new(
                         "Cannot execute a trusted document query: missing documentId, doc_id or the persistedQuery extension.",

@@ -23,12 +23,29 @@ use http_body::Body;
 use tracing::Instrument;
 
 #[derive(Clone)]
+/// A layer for collecting telemetry metrics for HTTP requests.
+///
+/// This layer wraps a service and is responsible for tracking request metrics such as
+/// duration, response sizes, and client connections.
 pub struct TelemetryLayer {
     metrics: RequestMetrics,
     listen_address: Option<SocketAddr>,
 }
 
 impl TelemetryLayer {
+    /// Creates a new instance of the `TelemetryLayer`.
+    ///
+    /// This function initializes the `TelemetryLayer` with a given `Meter` for reporting telemetry
+    /// metrics and an optional `SocketAddr` the gateway listens on.
+    ///
+    /// # Arguments
+    ///
+    /// * `meter` - A `Meter` instance used for creating and reporting metrics.
+    /// * `listen_address` - An optional socket address the gateway listens on.
+    ///
+    /// # Returns
+    ///
+    /// Returns a new `TelemetryLayer` instance configured with the provided `meter` and `listen_address`.
     pub fn new(meter: Meter, listen_address: Option<SocketAddr>) -> Self {
         Self {
             metrics: RequestMetrics::build(&meter),
@@ -70,6 +87,22 @@ impl<Service> TelemetryService<Service>
 where
     Service: Send + Clone,
 {
+    /// Creates a telemetry span for the given HTTP request.
+    ///
+    /// This method constructs a `HttpRequestSpan` using the provided request. The span is
+    /// set up to track the duration and details of the request for telemetry purposes.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `B` - The type of the body of the HTTP request, which must implement the `Body` trait.
+    ///
+    /// # Arguments
+    ///
+    /// * `request` - A reference to the HTTP request for which the span is being created.
+    ///
+    /// # Returns
+    ///
+    /// Returns a `HttpRequestSpan` that can be used for tracing the request lifecycle.
     fn make_span<B: Body>(&self, request: &Request<B>) -> HttpRequestSpan {
         let parent_ctx = opentelemetry::global::get_text_map_propagator(|propagator| {
             propagator.extract(&HeaderExtractor(request.headers()))
@@ -114,6 +147,18 @@ where
         self.inner.poll_ready(cx)
     }
 
+    /// Processes an HTTP request and returns a future that resolves to the HTTP response.
+    ///
+    /// This method is called when an incoming HTTP request is received. It records telemetry metrics
+    /// for the request, including duration, response size, and any errors that occur during processing.
+    ///
+    /// # Arguments
+    ///
+    /// * `req` - The HTTP request to be processed.
+    ///
+    /// # Returns
+    ///
+    /// A future that resolves to a result containing either the HTTP response or an error.
     fn call(&mut self, req: Request<ReqBody>) -> Self::Future {
         let mut inner = self.inner.clone();
         let metrics = self.metrics.clone();

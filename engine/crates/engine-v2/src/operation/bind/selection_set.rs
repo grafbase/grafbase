@@ -12,6 +12,23 @@ use crate::{
 use super::{BindError, BindResult, Binder};
 
 impl<'schema, 'p> Binder<'schema, 'p> {
+    /// Binds merged selection sets of a specified type.
+    ///
+    /// This function takes a selection set type and an array of merged selection sets,
+    /// then performs the necessary bindings while collecting field definitions and
+    /// query positions. It returns a result containing the unique identifier for the
+    /// resulting selection set.
+    ///
+    /// # Parameters
+    ///
+    /// - `ty`: The type of the selection set being bound.
+    /// - `merged_selection_sets`: A slice of references to positioned selection sets
+    ///   that are to be merged.
+    ///
+    /// # Returns
+    ///
+    /// Returns a `BindResult<SelectionSetId>` which contains the identifier for the
+    /// newly bound selection set or an error if the binding fails.
     pub(super) fn bind_merged_selection_sets(
         &mut self,
         ty: SelectionSetType,
@@ -21,14 +38,32 @@ impl<'schema, 'p> Binder<'schema, 'p> {
     }
 }
 
+/// A struct that facilitates the binding of selection sets during the
+/// query parsing process. It holds a mutable reference to a `Binder`,
+/// maintains the next query position, and manages fields defined within
+/// the selection sets.
+///
+/// # Type Parameters
+///
+/// - `'schema`: A lifetime for the schema reference.
+/// - `'parsed`: A lifetime for the parsed selection sets.
+/// - `'binder`: A lifetime for the Binder instance.
 pub(super) struct SelectionSetBinder<'schema, 'parsed, 'binder> {
+    /// A mutable reference to the Binder that handles the overall binding process.
     binder: &'binder mut Binder<'schema, 'parsed>,
+
+    /// The next available query position within the selection set binding.
     next_query_position: usize,
+
+    /// A mapping of fields to their query positions and a vector of positioned fields.
     #[allow(clippy::type_complexity)]
     fields: HashMap<
         (SafeResponseKey, FieldDefinitionId),
         (QueryPosition, Vec<&'parsed Positioned<engine_parser::types::Field>>),
     >,
+
+    /// A mapping of typename fields to their respective query positions for multiple
+    /// selection set types.
     #[allow(clippy::type_complexity)]
     typename_fields: HashMap<
         SafeResponseKey,
@@ -51,6 +86,12 @@ impl<'s, 'p, 'b> std::ops::DerefMut for SelectionSetBinder<'s, 'p, 'b> {
 }
 
 impl<'schema, 'p, 'binder> SelectionSetBinder<'schema, 'p, 'binder> {
+    /// Creates a new instance of `SelectionSetBinder`.
+    ///
+    /// # Parameters
+    ///
+    /// - `binder`: A mutable reference to a `Binder` that will manage the binding
+    ///   process.
     fn new(binder: &'binder mut Binder<'schema, 'p>) -> Self {
         Self {
             binder,
@@ -60,6 +101,23 @@ impl<'schema, 'p, 'binder> SelectionSetBinder<'schema, 'p, 'binder> {
         }
     }
 
+    /// Binds the selection sets of a specified type by processing the merged selection sets.
+    ///
+    /// This method handles the binding of fields from the provided selection sets, registering
+    /// each field, and generating a unique identifier for the resulting selection set. It also
+    /// ensures that the selection sets are correctly integrated and maintains the order of fields
+    /// based on their parent entity.
+    ///
+    /// # Parameters
+    ///
+    /// - `ty`: The type of the selection set being bound.
+    /// - `merged_selection_sets`: A slice of references to positioned selection sets that are to
+    ///   be merged.
+    ///
+    /// # Returns
+    ///
+    /// Returns a `BindResult<SelectionSetId>` which contains the identifier for the newly bound
+    /// selection set or an error if the binding fails.
     fn bind(
         mut self,
         ty: SelectionSetType,

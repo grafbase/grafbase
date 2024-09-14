@@ -75,6 +75,19 @@ pub fn bind_variables(
 }
 
 impl<'schema, 'p> Binder<'schema, 'p> {
+    /// Binds the variable definitions provided in a list of `VariableDefinition` to their corresponding
+    /// types and default values. While binding, it also checks for duplicate variable names and validates the variable
+    /// types against the schema. If a duplicate name is encountered, an error is returned. The function returns a
+    /// vector of successfully bound `VariableDefinition` objects.
+    ///
+    /// # Parameters
+    ///
+    /// - `variables`: A vector of `Positioned<VariableDefinition>` that represents the variable definitions to be bound.
+    ///
+    /// # Returns
+    ///
+    /// Returns a `BindResult` containing a vector of bound `VariableDefinition` objects on success, or a `BindError`
+    /// on failure.
     pub(super) fn bind_variable_definitions(
         &mut self,
         variables: Vec<Positioned<engine_parser::types::VariableDefinition>>,
@@ -112,6 +125,16 @@ impl<'schema, 'p> Binder<'schema, 'p> {
         Ok(bound_variables)
     }
 
+    /// Validates that all variable definitions have been used.
+    ///
+    /// This function checks each variable definition in the binder. If any variable is found to be unused,
+    /// an error is returned indicating the variable's name, the operation in which it was defined,
+    /// and its location in the source.
+    ///
+    /// # Returns
+    ///
+    /// Returns a `BindResult` which is `Ok(())` if all variables have been used,
+    /// or a `BindError` if there are unused variables.
     pub(super) fn validate_all_variables_used(&self) -> BindResult<()> {
         for variable in &self.variable_definitions {
             if variable.used_by.is_empty() {
@@ -126,6 +149,23 @@ impl<'schema, 'p> Binder<'schema, 'p> {
         Ok(())
     }
 
+    /// Converts the provided variable type into a corresponding `schema::TypeRecord`.
+    ///
+    /// This function evaluates the base type of the variable and checks if it is a valid
+    /// named type (such as an enum, scalar, or input object). If the type is a list, it
+    /// recursively converts the nested type. It also considers whether the type is nullable
+    /// or not and adjusts the wrapping appropriately.
+    ///
+    /// # Parameters
+    ///
+    /// - `variable_name`: The name of the variable being converted.
+    /// - `location`: The location in the source where the type is defined.
+    /// - `ty`: The type definition that needs to be converted.
+    ///
+    /// # Returns
+    ///
+    /// Returns a `BindResult<schema::TypeRecord>` containing the converted type record if
+    /// successful, or a `BindError` if the type is unknown or invalid.
     fn convert_type(
         &self,
         variable_name: &str,

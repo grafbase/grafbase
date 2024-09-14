@@ -31,12 +31,22 @@ pub(crate) trait ResponseSender: Send {
 }
 
 impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
+    /// Executes a query or mutation operation asynchronously and returns the corresponding response.
+    ///
+    /// # Parameters
+    ///
+    /// - `operation`: The executable operation that represents the query or mutation to be executed.
+    ///
+    /// # Returns
+    ///
+    /// A [`Response`] object containing the result of the execution. This may include errors if the operation cannot be successfully executed.
     pub async fn execute_query_or_mutation(mut self, operation: ExecutableOperation) -> Response {
         let background_futures: FuturesUnordered<_> =
             std::mem::take(&mut self.background_futures).into_iter().collect();
-        let background_fut = background_futures.collect::<Vec<_>>();
 
+        let background_fut = background_futures.collect::<Vec<_>>();
         tracing::trace!("Starting execution...");
+
         if operation.query_modifications.root_error_ids.is_empty() {
             let ctx = ExecutionContext {
                 engine: self.engine,
@@ -44,22 +54,34 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
                 request_context: self.request_context,
                 hooks_context: &self.hooks_context,
             };
+
             let response_fut = ctx.execute(self.executed_operation_builder);
             let (response, _) = futures_util::join!(response_fut, background_fut);
+
             response
         } else {
             let response_fut = self.response_for_root_errors(operation);
             let (response, _) = futures_util::join!(response_fut, background_fut);
+
             response
         }
     }
 
+    /// Executes a subscription operation asynchronously and sends responses to the provided sender.
+    ///
+    /// # Parameters
+    ///
+    /// - `operation`: The executable operation that represents the subscription to be executed.
+    /// - `responses`: An channel that implements the `ResponseSender` trait, used to send the subscription responses.
+    ///
+    /// This function will start executing the subscription and handle responses until the subscription stream is completed or an error occurs.
     pub async fn execute_subscription(mut self, operation: ExecutableOperation, mut responses: impl ResponseSender) {
         let background_futures: FuturesUnordered<_> =
             std::mem::take(&mut self.background_futures).into_iter().collect();
-        let background_fut = background_futures.collect::<Vec<_>>();
 
+        let background_fut = background_futures.collect::<Vec<_>>();
         tracing::trace!("Starting execution...");
+
         if operation.query_modifications.root_error_ids.is_empty() {
             let ctx = ExecutionContext {
                 engine: self.engine,
@@ -69,15 +91,29 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
             };
 
             let subscription_fut = ctx.execute_subscription(self.executed_operation_builder, responses);
-
             futures_util::join!(subscription_fut, background_fut);
         } else {
             let response_fut = self.response_for_root_errors(operation);
             let (response, _) = futures_util::join!(response_fut, background_fut);
+
             responses.send(response).await.ok();
         }
     }
 
+    /// Generates a response for root errors encountered during the execution of an
+    /// operation. This function creates an execution error response that includes
+    /// details about the errors associated with the root fields of the operation.
+    ///
+    /// # Parameters
+    ///
+    /// - `operation`: The executable operation that contains details about the
+    ///   errors associated with the root fields.
+    ///
+    /// # Returns
+    ///
+    /// A [`Response`] object containing the execution error details, including any
+    /// custom output provided by the hooks system, and the identifiers of the root
+    /// errors that were triggered during the execution.
     async fn response_for_root_errors(self, operation: ExecutableOperation) -> Response {
         let executed_operation = self.executed_operation_builder.clone().build(
             operation.attributes.name.original(),
@@ -105,10 +141,26 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
 }
 
 impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
+    /// Creates a new execution state for the operation.
+    ///
+    /// # Returns
+    ///
+    /// A new instance of [`OperationExecutionState`] that represents the current execution context
+    /// for the operation being executed.
     fn new_execution_state(&self) -> OperationExecutionState<'ctx> {
         OperationExecutionState::new(&self.engine.schema, self.operation)
     }
 
+    /// Creates a [`PlanWalker`] instance for the given execution plan ID.
+    ///
+    /// # Parameters
+    ///
+    /// - `plan_id`: The ID of the execution plan to create a walker for.
+    ///
+    /// # Returns
+    ///
+    /// A [`PlanWalker`] that provides access to the logical plan and variables corresponding
+    /// to the specified execution plan ID.
     pub(super) fn plan_walker(&self, plan_id: ExecutionPlanId) -> PlanWalker<'ctx, ()> {
         PlanWalker {
             schema: &self.engine.schema,
@@ -120,6 +172,15 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
         }
     }
 
+    /// Executes the operation and returns the corresponding response.
+    ///
+    /// # Parameters
+    ///
+    /// - `executed_operation_builder`: The builder for gathering data for the `on-operation-response` hook.
+    ///
+    /// # Returns
+    ///
+    /// A [`Response`] object containing the result of the operation execution.
     async fn execute(self, executed_operation_builder: ExecutedOperationBuilder) -> Response {
         assert!(
             !matches!(self.operation.ty(), OperationType::Subscription),
@@ -137,6 +198,18 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
         .await
     }
 
+    /// Executes a subscription operation asynchronously and sends responses to the provided sender.
+    ///
+    /// # Parameters
+    ///
+    /// - `executed_operation_builder`: The builder for gathering data for the `on-operation-response` hook.
+    /// - `responses`: A channel that implements the `ResponseSender` trait, used to send the subscription responses.
+    ///
+    /// This function will start executing the subscription and handle responses until the subscription stream is completed or an error occurs.
+    ///
+    /// # Returns
+    ///
+    /// This method does not return a value. It triggers sending responses through the `responses` channel as the subscription executes.
     async fn execute_subscription(
         self,
         executed_operation_builder: ExecutedOperationBuilder,
@@ -166,6 +239,18 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
         .await
     }
 
+    /// Constructs a subscription stream for the given subscription plan ID.
+    ///
+    /// This function builds and returns a stream that yields `ExecutionResult` objects encapsulating
+    /// `SubscriptionResponse` results.
+    ///
+    /// # Parameters
+    ///
+    /// - `subscription_plan_id`: The ID of the execution plan representing the subscription.
+    ///
+    /// # Returns
+    ///
+    /// A stream of results.
     async fn build_subscription_stream<'exec>(
         self,
         subscription_plan_id: ExecutionPlanId,
@@ -180,6 +265,19 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
             .await
     }
 
+    /// Creates a new subscription response for the given subscription plan ID.
+    ///
+    /// This function constructs a [`SubscriptionResponse`] that encapsulates the
+    /// response handling for the specified subscription plan. It builds a response
+    /// object and a subgraph response that will be sent back to the client.
+    ///
+    /// # Parameters
+    ///
+    /// - `subscription_plan_id`: The ID of the execution plan representing the subscription.
+    ///
+    /// # Returns
+    ///
+    /// A [`SubscriptionResponse`] object containing the constructed responses.
     fn new_subscription_response(&self, subscription_plan_id: ExecutionPlanId) -> SubscriptionResponse {
         let mut response = ResponseBuilder::new(self.operation.root_object_id);
 
@@ -220,6 +318,16 @@ where
     'ctx: 'exec,
     S: Stream<Item = ExecutionResult<SubscriptionResponse>> + Send + 'exec,
 {
+    /// Executes the subscription and sends responses to the provided sender.
+    ///
+    /// This asynchronous function continuously polls the subscription stream for results
+    /// and sends them to the `responses` channel. It handles both successful
+    /// `SubscriptionResponse` results and any errors encountered during execution.
+    ///
+    /// # Parameters
+    ///
+    /// - `responses`: An implementation of the `ResponseSender` trait, used to send
+    ///   the subscription responses.
     async fn execute(self, mut responses: impl ResponseSender) {
         let subscription_stream = self.stream.fuse();
         futures_util::pin_mut!(subscription_stream);
@@ -341,7 +449,15 @@ impl<'ctx, 'exec, R: Runtime> OperationExecution<'ctx, 'exec, R>
 where
     'ctx: 'exec,
 {
-    /// Runs a single execution to completion, returning its response
+    /// Executes the operation and returns the corresponding response.
+    ///
+    /// This function runs the operation within its execution context, handling
+    /// the necessary futures and processing the results.
+    ///
+    /// # Returns
+    ///
+    /// A [`Response`] object containing the result of the operation execution,
+    /// including any errors encountered.
     async fn run(mut self) -> Response {
         for plan_id in self.state.get_executable_plans() {
             self.spawn_resolver(plan_id);
@@ -408,6 +524,22 @@ where
         }
     }
 
+    /// Retrieves the first edge and the default object fields associated with the specified execution plan ID.
+    ///
+    /// This function examines the response blueprint and associated shapes
+    /// to determine the first edge and the default object fields that should
+    /// be used in the response.
+    ///
+    /// # Parameters
+    ///
+    /// - `plan_id`: The ID of the execution plan for which to retrieve the first edge and default object fields.
+    ///
+    /// # Returns
+    ///
+    /// A tuple consisting of:
+    /// - A `ResponseEdge` that represents the first edge in the query response.
+    /// - An optional `Vec<ResponseObjectField>` containing the default object fields;
+    ///   returns `None` if no default fields exist.
     fn get_first_edge_and_default_object(
         &self,
         plan_id: ExecutionPlanId,
@@ -454,6 +586,18 @@ where
         (first_edge, Some(fields))
     }
 
+    /// Spawns a resolver for the specified execution plan ID.
+    ///
+    /// This function initiates the execution of the resolver corresponding to
+    /// the given `plan_id`, managing the state and resources necessary for
+    /// processing the response objects and handling the associated futures.
+    ///
+    /// E.g. call a subgraph or instropect.
+    ///
+    /// # Parameters
+    ///
+    /// - `plan_id`: The ID of the execution plan for which the resolver should
+    ///   be spawned.
     fn spawn_resolver(&mut self, plan_id: ExecutionPlanId) {
         tracing::trace!(%plan_id, "Starting plan");
         let root_response_object_set = Arc::new(self.state.get_input(&self.response, plan_id));
@@ -464,7 +608,7 @@ where
         }
 
         self.futures.push_fut({
-            let span = tracing::debug_span!("resoler", "plan_id" = usize::from(plan_id)).entered();
+            let span = tracing::debug_span!("resolver", "plan_id" = usize::from(plan_id)).entered();
 
             let plan = self.ctx.plan_walker(plan_id);
 
@@ -501,32 +645,74 @@ where
     }
 }
 
+/// A structure that manages a collection of futures representing execution plans.
+///
+/// This struct holds a `FuturesUnordered` collection of `BoxFuture` objects,
+/// each of which is an asynchronous computation that results in an
+/// `ExecutionPlanResult`. The futures can be awaited and processed as they
+/// complete, allowing the execution of multiple plans to be handled concurrently.
 struct ExecutionPlanFutureSet<'exec> {
     futures: FuturesUnordered<BoxFuture<'exec, ExecutionPlanResult>>,
 }
 
 impl<'exec> ExecutionPlanFutureSet<'exec> {
+    /// Creates a new instance of `ExecutionPlanFutureSet`.
+    ///
+    /// This function initializes an empty collection of futures representing
+    /// execution plans. It is used to manage and execute multiple asynchronous
+    /// computations concurrently.
+    ///
+    /// # Returns
+    ///
+    /// A new instance of `ExecutionPlanFutureSet` containing an empty
+    /// `FuturesUnordered` collection.
     fn new() -> Self {
         Self {
             futures: FuturesUnordered::new(),
         }
     }
 
+    /// Pushes a future representing the execution of an execution plan to the set.
+    ///
+    /// # Parameters
+    ///
+    /// - `fut`: A boxed future that will be pushed onto the set of futures.
     fn push_fut(&mut self, fut: BoxFuture<'exec, ExecutionPlanResult>) {
         self.futures.push(fut);
     }
 
+    /// Pushes a result representing the execution of an execution plan to the set.
+    ///
+    /// # Parameters
+    ///
+    /// - `result`: The result of the executed execution plan. This can be a successful
+    ///   response or an error indicating the execution failed.
     fn push_result(&mut self, result: ExecutionPlanResult) {
         self.futures.push(Box::pin(async move { result }));
     }
 
+    /// Retrieves the next execution plan result from the set of futures.
+    ///
+    /// # Returns
+    ///
+    /// An `Option<ExecutionPlanResult>`, which will be `Some(result)` if a
+    /// future has completed and there is a result available, or `None` if no more
+    /// results are available (i.e., all futures have completed).
     async fn next(&mut self) -> Option<ExecutionPlanResult> {
         self.futures.next().await
     }
 }
 
 pub(crate) struct ExecutionPlanResult {
+    /// The ID of the execution plan that this result corresponds to.
     plan_id: ExecutionPlanId,
+
+    /// The result of executing the execution plan. This can either be a successful
+    /// `SubgraphResponse` or an error, which includes the root response object set
+    /// and the corresponding `ExecutionError`.
     result: Result<SubgraphResponse, (Arc<InputdResponseObjectSet>, ExecutionError)>,
+
+    /// Optional output from the `on-subgraph-response` hook. This may contain
+    /// additional data that was generated during the execution of the plan.
     on_subgraph_response_hook_output: Option<Vec<u8>>,
 }

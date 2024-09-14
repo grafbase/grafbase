@@ -81,16 +81,22 @@ pub struct GraphqlOperationAttributes {
 
 #[derive(Clone, Copy, Debug)]
 pub enum GraphqlResponseStatus {
+    /// Indicates a successful response.
     Success,
-    /// Error happened during the execution of the query
+    /// An error occurred during the execution of the query.
     FieldError {
+        /// The number of field errors encountered.
         count: u64,
+        /// Indicates whether the data is null.
         data_is_null: bool,
     },
-    /// Bad request, failed before the execution and `data` field isn't present.
+    /// Represents a bad request that failed before execution,
+    /// and the `data` field isn't present.
     RequestError {
+        /// The number of request errors encountered.
         count: u64,
     },
+    /// Indicates that the request was refused.
     RefusedRequest,
 }
 
@@ -110,10 +116,16 @@ impl GraphqlResponseStatus {
         }
     }
 
+    /// Returns `true` if the response status indicates success.
     pub fn is_success(&self) -> bool {
         matches!(self, Self::Success)
     }
 
+    /// Checks if the response status indicates a request error.
+    ///
+    /// A request error occurs when there are issues with the request
+    /// before it can be executed. This may include invalid input
+    /// or misformatted requests.
     pub fn is_request_error(&self) -> bool {
         matches!(self, Self::RequestError { .. })
     }
@@ -139,9 +151,13 @@ impl GraphqlResponseStatus {
 
 #[derive(Clone, Copy, Debug)]
 pub enum SubgraphResponseStatus {
+    /// An error that occurred during `on-subgraph-request` hook execution.
     HookError,
+    /// An error that occurred during the HTTP request.
     HttpError,
+    /// Represents an invalid GraphQL response format.
     InvalidGraphqlResponseError,
+    /// A well-formed GraphQL response containing a status.
     WellFormedGraphqlResponse(GraphqlResponseStatus),
 }
 

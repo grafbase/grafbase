@@ -37,6 +37,11 @@ pub(crate) struct FederationEntityResolver {
 }
 
 impl FederationEntityResolver {
+    /// Prepares a `FederationEntityResolver` from the provided definition and plan.
+    ///
+    /// This function builds the underlying GraphQL operation for the federation entity.
+    /// It captures any errors that occur during the building process, returning a
+    /// `PlanningResult` that can either yield a `Resolver` or an error message.
     pub fn prepare(
         definition: GraphqlFederationEntityResolverDefinition<'_>,
         plan: PlanWalker<'_>,
@@ -50,6 +55,19 @@ impl FederationEntityResolver {
         }))
     }
 
+    /// Builds a `SubgraphContext` using the provided `ExecutionContext`.
+    ///
+    /// This function constructs a new context specifically for the subgraph,
+    /// utilizing the endpoint associated with the federation entity resolver.
+    ///
+    /// # Parameters
+    ///
+    /// - `ctx`: The execution context containing the runtime and other execution-related details.
+    ///
+    /// # Returns
+    ///
+    /// A `SubgraphContext` that holds the necessary information for making requests
+    /// to the specified subgraph and state data tracking the request execution.
     pub fn build_subgraph_context<'ctx, R: Runtime>(&self, ctx: ExecutionContext<'ctx, R>) -> SubgraphContext<'ctx, R> {
         let endpoint = self.endpoint_id.walk(ctx.schema());
         SubgraphContext::new(
@@ -64,6 +82,27 @@ impl FederationEntityResolver {
     }
 
     #[tracing::instrument(skip_all)]
+    /// Prepares a request for the federation entity.
+    ///
+    /// This function constructs a `FederationEntityRequest` which encapsulates the necessary
+    /// information required to execute a request against the specified subgraph. It takes in
+    /// various parameters including the execution context, plan, root response objects, and
+    /// the initial subgraph response.
+    ///
+    /// # Parameters
+    ///
+    /// - `ctx`: The context for the subgraph, providing access to the execution context and
+    ///   associated endpoint.
+    /// - `plan`: A `PlanWalker` describing the plan for the current execution.
+    /// - `root_response_objects`: The root response objects added to the subgraph query.
+    /// - `subgraph_response`: The initial response from the subgraph which is modified during
+    ///   processing.
+    ///
+    /// # Returns
+    ///
+    /// Returns an `ExecutionResult` containing a `FederationEntityRequest`, which can be
+    /// executed to obtain data from the subgraph. In case of an error, it will contain the
+    /// relevant error information.
     pub fn prepare_request<'ctx, R: Runtime>(
         &'ctx self,
         ctx: &SubgraphContext<'ctx, R>,
@@ -100,6 +139,27 @@ pub(crate) struct FederationEntityRequest<'ctx> {
 }
 
 impl<'ctx> FederationEntityRequest<'ctx> {
+    /// Executes the federation entity request against the subgraph.
+    ///
+    /// This function sends a request to the specified subgraph using the
+    /// representations provided during the preparation of the request. It retrieves the
+    /// associated data from the subgraph and returns the processed response.
+    ///
+    /// # Type Parameters
+    ///
+    /// - `'ctx`: The lifetime of the request context.
+    /// - `R`: The execution runtime.
+    ///
+    /// # Parameters
+    ///
+    /// - `ctx`: A mutable reference to the `SubgraphContext` which contains the execution
+    ///   context and related information needed for making the request.
+    ///
+    /// # Returns
+    ///
+    /// Returns an `ExecutionResult` containing the `SubgraphResponse` upon successful
+    /// execution of the request. In case of any errors during the execution, the result will
+    /// contain the corresponding error information.
     pub async fn execute<R: Runtime>(self, ctx: &mut SubgraphContext<'ctx, R>) -> ExecutionResult<SubgraphResponse> {
         let Self {
             resolver: FederationEntityResolver { operation, .. },
@@ -196,6 +256,27 @@ impl<'ctx> FederationEntityRequest<'ctx> {
     }
 }
 
+/// Fetches cache entries for the given representations.
+///
+/// This function attempts to retrieve cached entries for a list of representations from the
+/// given subgraph context, headers, and additional scopes.
+///
+/// # Type Parameters
+///
+/// - `'ctx`: The lifetime of the request context.
+/// - `R`: The execution runtime.
+///
+/// # Parameters
+///
+/// - `ctx`: A mutable reference to the `SubgraphContext` containing the execution context.
+/// - `headers`: A reference to the HTTP headers used in the request.
+/// - `representations`: A vector of representations for which cache entries are requested.
+/// - `additional_scopes`: An array of additional cache scopes to consider.
+///
+/// # Returns
+///
+/// Returns a `CacheFetchOutcome`, indicating whether all requested cache entries were
+/// fully cached, or if some were missing, along with the relevant cache entries.
 async fn cache_fetches<'ctx, R: Runtime>(
     ctx: &mut SubgraphContext<'ctx, R>,
     headers: &http::HeaderMap,
@@ -227,36 +308,83 @@ async fn cache_fetches<'ctx, R: Runtime>(
 }
 
 enum CacheFetchOutcome {
+    /// Indicates that all requested cache entries were successfully retrieved from cache.
     FullyCached {
+        /// A vector containing the cache entries that were retrieved.
         cache_entries: Vec<CacheEntry>,
     },
+    /// Represents a scenario where not all cache entries were available.
     Other {
+        /// An optional vector of cache entries that were retrieved, if any.
         cache_entries: Option<Vec<CacheEntry>>,
+        /// A vector of representations for which cache entries were not found.
         filtered_representations: Vec<Box<RawValue>>,
     },
 }
 
 struct EntityIngester<'ctx, R: Runtime> {
+    /// The execution context for the federation entity.
+    ///
+    /// This provides access to runtime execution and schema related operations.
     ctx: ExecutionContext<'ctx, R>,
+
+    /// An optional vector of cache entries.
+    ///
+    /// This holds the cache entries that may have been retrieved during processing.
     cache_entries: Option<Vec<CacheEntry>>,
+
+    /// The response from the subgraph.
+    ///
+    /// This contains the data returned by the subgraph for the entity request.
     subgraph_response: SubgraphResponse,
+
+    /// An optional time-to-live for the cache.
+    ///
+    /// This specifies the duration for which cache entries are considered valid.
     cache_ttl: Option<Duration>,
 }
 
 pub enum CacheEntry {
+    /// Represents a cache miss scenario, containing the key that was not found.
     Miss { key: String },
+
+    /// Represents a cache hit scenario, containing the data retrieved from the cache.
     Hit { data: Vec<u8> },
 }
 
 impl CacheEntry {
+    /// Determines whether the cache entry represents a miss scenario.
+    ///
+    /// A cache miss occurs when the requested data could not be found in the cache.
+    ///
+    /// # Returns
+    ///
+    /// Returns `true` if the cache entry is a miss; otherwise, it returns `false`.
     pub fn is_miss(&self) -> bool {
         matches!(self, CacheEntry::Miss { .. })
     }
 
+    /// Determines whether the cache entry represents a hit scenario.
+    ///
+    /// A cache hit occurs when the requested data was successfully found in the cache.
+    ///
+    /// # Returns
+    ///
+    /// Returns `true` if the cache entry is a hit; otherwise, it returns `false`.
     pub fn is_hit(&self) -> bool {
         matches!(self, CacheEntry::Hit { .. })
     }
 
+    /// Returns the underlying data of the cache entry if it's a hit.
+    ///
+    /// This method provides access to the cached data in cases where the entry
+    /// was successfully retrieved from the cache. If the entry represents a miss,
+    /// it returns `None`.
+    ///
+    /// # Returns
+    ///
+    /// An `Option` containing a reference to the data as a byte slice if the cache entry
+    /// is a hit, or `None` if it is a miss.
     pub fn as_data(&self) -> Option<&[u8]> {
         match self {
             CacheEntry::Hit { data } => Some(data),
@@ -303,6 +431,23 @@ where
     }
 }
 
+/// Updates the cache with entities retrieved from the subgraph response.
+///
+/// This function iterates over cache entries and attempts to update the
+/// cache with corresponding entity data. If a cache entry represents a miss,
+/// it retrieves the appropriate entity from the response and caches it with
+/// the specified time-to-live (TTL).
+///
+/// # Type Parameters
+///
+/// - `R`: The execution runtime used during the caching process.
+///
+/// # Parameters
+///
+/// - `ctx`: The execution context providing access to runtime operations.
+/// - `cache_ttl`: The duration for which the cache entries are valid.
+/// - `bytes`: The raw bytes of the response body to deserialize entities from.
+/// - `cache_entries`: A vector of cache entries to check and update.
 async fn update_cache<R: Runtime>(
     ctx: ExecutionContext<'_, R>,
     cache_ttl: Duration,
@@ -355,6 +500,24 @@ struct Data<'a> {
     entities: Vec<&'a serde_json::value::RawValue>,
 }
 
+/// Fetches a cache entry for a given representation.
+///
+/// This function attempts to retrieve a cached entity based on the provided representation's
+/// details, including the subgraph name, headers, and additional scopes.
+///
+/// # Parameters
+///
+/// - `ctx`: The execution context containing the runtime operations.
+/// - `endpoint`: The endpoint of the GraphQL subgraph being queried.
+/// - `headers`: The HTTP headers associated with the request.
+/// - `repr`: A raw value representing the entity to be fetched from the cache.
+/// - `additional_scopes`: A list of additional cache scopes to consider during the fetch.
+///
+/// # Returns
+///
+/// Returns a `CacheEntry`, indicating whether the requested entity was found in the cache,
+/// and, if so, the associated data, or a cache miss indicating the key associated with the
+/// request.
 async fn cache_fetch<'ctx, R: Runtime>(
     ctx: &ExecutionContext<'ctx, R>,
     endpoint: GraphqlEndpoint<'ctx>,
@@ -380,6 +543,22 @@ async fn cache_fetch<'ctx, R: Runtime>(
     }
 }
 
+/// Constructs a cache key for the given representation based on the provided parameters.
+///
+/// This function generates a unique string key that combines the subgraph name, HTTP headers,
+/// the raw representation of the entity, and any additional scopes. This key is used for
+/// accessing cached entries related to the specified entity in the subgraph.
+///
+/// # Parameters
+///
+/// - `subgraph_name`: The name of the subgraph to which the entity belongs.
+/// - `headers`: The HTTP headers associated with the request, which may affect caching behavior.
+/// - `repr`: A raw value representing the entity whose cache entry is being built.
+/// - `additional_scopes`: A list of additional scopes that can influence cache access.
+///
+/// # Returns
+///
+/// A `String` containing the generated cache key, which uniquely identifies the cached entry.
 fn build_cache_key(subgraph_name: &str, headers: &HeaderMap, repr: &RawValue, additional_scopes: &[String]) -> String {
     let mut hasher = blake3::Hasher::new();
     hasher.update(b"v1");

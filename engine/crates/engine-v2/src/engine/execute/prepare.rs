@@ -12,6 +12,16 @@ use crate::{
 };
 
 impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
+    /// Prepares an operation for execution based on the provided request.
+    ///
+    /// # Arguments
+    ///
+    /// - `request`: The incoming request containing the necessary details to prepare the operation.
+    ///
+    /// # Returns
+    ///
+    /// - Returns Ok containing the prepared operation if successful, or an Err containing a response
+    ///   indicating the failure reason.
     pub(super) async fn prepare_operation(&mut self, request: Request) -> Result<ExecutableOperation, Response> {
         let result = self.prepare_operation_inner(request).await;
         let duration = self.executed_operation_builder.track_prepare();

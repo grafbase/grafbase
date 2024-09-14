@@ -30,8 +30,13 @@ impl From<ParseError> for GraphqlError {
 }
 
 pub struct ParsedOperation {
+    /// The name of the operation, if specified.
     pub name: Option<String>,
+
+    /// The definition of the operation.
     pub definition: OperationDefinition,
+
+    /// A mapping of fragment names to their definitions.
     pub fragments: HashMap<engine_value::Name, Positioned<engine_parser::types::FragmentDefinition>>,
 }
 
@@ -41,7 +46,24 @@ impl ParsedOperation {
     }
 }
 
-/// Returns a valid GraphQL operation from the query string before.
+/// Parses a GraphQL operation from the provided document string.
+///
+/// This function takes an optional operation name and the document string,
+/// attempting to parse the operation from the string. If the operation name
+/// is provided, it will look for that specific operation. If no name is
+/// specified, it will attempt to extract a single operation from the document.
+///
+/// # Arguments
+///
+/// * `operation_name` - An optional string slice representing the name
+///   of the operation to parse.
+/// * `document` - A string slice containing the GraphQL document to parse.
+///
+/// # Returns
+///
+/// This function returns a `ParseResult<ParsedOperation>`, which is either
+/// a `ParsedOperation` if the parsing is successful, or a `ParseError`
+/// if there is an error in parsing the operation.
 pub fn parse_operation(operation_name: Option<&str>, document: &str) -> ParseResult<ParsedOperation> {
     let document = engine_parser::parse_query(document)?;
 

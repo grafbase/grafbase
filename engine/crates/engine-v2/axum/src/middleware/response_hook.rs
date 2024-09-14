@@ -7,6 +7,7 @@ use std::{fmt::Display, pin::Pin};
 use tower::Layer;
 
 #[derive(Clone)]
+/// A layer that adds calling the `on-http-response` hook to a service.
 pub struct ResponseHookLayer<Hooks> {
     hooks: Hooks,
 }
@@ -15,6 +16,11 @@ impl<Hooks> ResponseHookLayer<Hooks>
 where
     Hooks: hooks::Hooks + Clone,
 {
+    /// Creates a new `ResponseHookLayer` with the provided hooks.
+    ///
+    /// # Arguments
+    ///
+    /// * `hooks` - An instance of the hooks to be used by this layer.
     pub fn new(hooks: Hooks) -> Self {
         Self { hooks }
     }
@@ -36,6 +42,17 @@ where
 }
 
 #[derive(Clone)]
+/// A service that handles HTTP requests and applies the `on-http-response` hook.
+///
+/// The `ResponseHookService` wraps a service and invokes the provided hook
+/// when it receives an HTTP response. It can be used to add custom behavior
+/// after an HTTP response is generated, such as logging or modifying the
+/// response before it is sent to the client.
+///
+/// # Type Parameters
+///
+/// * `Service` - The type of the inner service being wrapped.
+/// * `Hooks` - The type of hooks that will be called upon receiving the response.
 pub struct ResponseHookService<Service, Hooks> {
     inner: Service,
     hooks: Hooks,
@@ -58,6 +75,18 @@ where
         self.inner.poll_ready(cx)
     }
 
+    /// Calls the inner service with the provided HTTP request, invoking the
+    /// `on-http-response` hook upon receiving the response.
+    ///
+    /// # Arguments
+    ///
+    /// * `req` - The HTTP request to be processed by the inner service.
+    ///
+    /// # Returns
+    ///
+    /// This method returns a future that resolves to either the HTTP response
+    /// returned by the inner service or an error if the service fails to process
+    /// the request.
     fn call(&mut self, req: Request<ReqBody>) -> Self::Future {
         let mut inner = self.inner.clone();
 

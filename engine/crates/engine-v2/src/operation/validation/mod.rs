@@ -27,6 +27,21 @@ impl From<ValidationError> for GraphqlError {
     }
 }
 
+/// Validates a GraphQL operation against the provided schema.
+///
+/// This function checks the operation for compliance with operation limits
+/// and ensures that introspection queries are allowed if required.
+///
+/// # Arguments
+///
+/// * `schema` - A reference to the schema used for validation.
+/// * `operation` - An `OperationWalker` representing the operation to validate.
+///
+/// # Returns
+///
+/// Returns `Ok(())` if the operation is valid.
+/// If the operation exceeds limits or contains disallowed introspection,
+/// it returns a `ValidationError`.
 pub(super) fn validate_operation(schema: &Schema, operation: OperationWalker<'_>) -> Result<(), ValidationError> {
     enforce_operation_limits(schema, operation)?;
     ensure_introspection_is_accepted(schema, operation)?;

@@ -28,7 +28,7 @@ impl<'a> PlanSelectionSet<'a> {
             PlanSelectionSet::RootFields(walker) => walker
                 .logical_plan()
                 .as_ref()
-                .root_field_ids_ordered_by_parent_entity_id_then_position
+                .root_field_ids
                 .iter()
                 .filter(|id| !walker.query_modifications.skipped_fields[**id])
                 .filter_map(move |&id| walker.operation[id].definition_id().map(|_| walker.walk(id)))

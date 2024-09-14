@@ -51,28 +51,59 @@ pub(super) type LogicalPlanningResult<T> = Result<T, LogicalPlanningError>;
 
 #[derive(IndexedFields)]
 pub(super) struct LogicalPlanner<'a> {
+    /// A reference to the schema used for planning.
     schema: &'a Schema,
+
+    /// A mutable reference to the current operation being planned.
     operation: &'a mut Operation,
+
+    /// Maps each field ID to its corresponding logical plan ID, if one exists.
     #[indexed_by(FieldId)]
     field_to_logical_plan_id: Vec<Option<LogicalPlanId>>,
+
+    /// Maps each field ID to its corresponding solved requirement ID, if one exists.
     field_to_solved_requirement: Vec<Option<RequiredFieldId>>,
+
+    /// A collection of logical plans generated during the planning process.
     #[indexed_by(LogicalPlanId)]
     logical_plans: Vec<LogicalPlan>,
+
+    /// A bitset indicating which selection sets must be tracked for object resolution.
     selection_set_to_objects_must_be_tracked: BitSet<SelectionSetId>,
+
+    /// The order in which logical plans for mutation fields will be executed.
     mutation_fields_plan_order: Vec<LogicalPlanId>,
-    // May have duplicates, parent may be equal to child (if we, as the supergraph, need the dependencies)
-    // (parent, child)
+
+    /// A builder that holds dependencies between logical plans in terms of parent-child relationships.
+    /// May have duplicates; parent may be equal to child (if we, as the supergraph, need the dependencies) (parent, child).
     dependents_builder: Vec<(LogicalPlanId, LogicalPlanId)>,
+
+    /// A collection of solved requirements for selection sets, mapped to their IDs.
     solved_requirements: Vec<(SelectionSetId, SolvedRequiredFieldSet)>,
 }
 
+/// A struct representing a directed edge from a parent logical plan to a child logical plan.
+///
+/// This edge helps in maintaining the relationship between parent and child plans during the
+/// logical planning process. It requires that any logical plan is distinct from its child plan
+/// to avoid self-dependencies.
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub(crate) struct ParentToChildEdge {
+    /// The ID of the parent logical plan.
     pub parent: LogicalPlanId,
+    /// The ID of the child logical plan.
     pub child: LogicalPlanId,
 }
 
 impl<'a> LogicalPlanner<'a> {
+    /// Creates a new instance of `LogicalPlanner`.
+    ///
+    /// This function initializes the `LogicalPlanner` with the provided schema and operation.
+    ///
+    /// # Parameters
+    ///
+    /// - `schema`: A reference to the schema used for planning.
+    /// - `operation`: A mutable reference to the current operation being planned.
     pub(super) fn new(schema: &'a Schema, operation: &'a mut Operation) -> Self {
         Self {
             schema,
@@ -87,6 +118,17 @@ impl<'a> LogicalPlanner<'a> {
         }
     }
 
+    /// Plans the operation by generating a logical plan based on the current schema and operation.
+    ///
+    /// # Returns
+    ///
+    /// This function returns a `LogicalPlanningResult` containing the resulting `OperationPlan` if successful,
+    /// or a `LogicalPlanningError` if planning fails.
+    ///
+    /// # Errors
+    ///
+    /// This function may return an error if any fields could not be planned or if there are issues with
+    /// the response modifiers.
     pub(super) fn plan(mut self) -> LogicalPlanningResult<OperationPlan> {
         tracing::trace!("Logical Planning");
         self.plan_all_fields()?;
@@ -119,15 +161,15 @@ impl<'a> LogicalPlanner<'a> {
             mut dependents_builder,
             ..
         } = self;
+
         for plan in &mut logical_plans {
-            plan.root_field_ids_ordered_by_parent_entity_id_then_position
-                .sort_unstable_by_key(|id| {
-                    let field = &operation[*id];
-                    (
-                        field.definition_id().map(|id| schema[id].parent_entity_id),
-                        field.query_position(),
-                    )
-                });
+            plan.root_field_ids.sort_unstable_by_key(|id| {
+                let field = &operation[*id];
+                (
+                    field.definition_id().map(|id| schema[id].parent_entity_id),
+                    field.query_position(),
+                )
+            });
         }
 
         solved_requirements.sort_unstable_by_key(|(id, _)| *id);
@@ -172,7 +214,15 @@ impl<'a> LogicalPlanner<'a> {
         Ok(plan)
     }
 
-    /// Step 1 of the planning, attributed all fields to a plan and satisfying their requirements.
+    /// Plans all fields for the current operation, attributing each field to a logical plan while
+    /// satisfying their requirements. This function serves as the first step in the logical planning
+    /// process and ensures that all fields are properly associated with their respective plans.
+    ///
+    /// # Returns
+    ///
+    /// This function returns a `LogicalPlanningResult` indicating success or failure. If successful,
+    /// it will simply return `Ok(())`, otherwise, an error will be returned detailing which fields
+    /// could not be planned or any issues encountered during the planning.
     fn plan_all_fields(&mut self) -> LogicalPlanningResult<()> {
         // The root plan is always introspection which also lets us handle operations like:
         // query { __typename }
@@ -212,15 +262,39 @@ impl<'a> LogicalPlanner<'a> {
         Ok(())
     }
 
-    /// A query is simply treated as a plan boundary with no parent.
+    /// Plans a query operation as a plan boundary, indicating that it has no parent in the logical planning structure.
+    ///
+    /// This function takes a vector of field IDs that represent the fields involved in the query.
+    /// It sets up the necessary logical plan to execute these fields, ensuring the planning respects
+    /// the structure of the provided schema and the current operation context.
+    ///
+    /// # Parameters
+    ///
+    /// - `field_ids`: A vector of field IDs that are part of the query operation being planned.
+    ///
+    /// # Returns
+    ///
+    /// This function returns a `LogicalPlanningResult<()>`, indicating whether the planning was
+    /// successful or if an error occurred during the process.
     fn plan_query(&mut self, field_ids: Vec<FieldId>) -> LogicalPlanningResult<()> {
         let id = self.operation.root_selection_set_id;
         SelectionSetLogicalPlanner::new(self, &QueryPath::default(), None).solve(id, None, Vec::new(), field_ids)
     }
 
-    /// Mutation is a special case because root fields need to execute in order. So planning each
-    /// field individually and setting up plan dependencies between them to ensures proper
-    /// execution order.
+    /// Plans the mutation operation by establishing an execution order for the root fields.
+    ///
+    /// In a mutation, it is crucial for root fields to execute in a specified order. This function
+    /// plans each field individually while setting up dependencies between them, ensuring that
+    /// the execution order is correctly maintained throughout the mutation process.
+    ///
+    /// # Parameters
+    ///
+    /// - `field_ids`: A vector of field IDs representing the fields involved in the mutation.
+    ///
+    /// # Returns
+    ///
+    /// This function returns a `LogicalPlanningResult<()>`, indicating success or failure of the
+    /// planning operation.
     fn plan_mutation(&mut self, field_ids: Vec<FieldId>) -> LogicalPlanningResult<()> {
         let mut groups = field_ids
             .into_iter()
@@ -256,8 +330,23 @@ impl<'a> LogicalPlanner<'a> {
         Ok(())
     }
 
-    /// Obviously providable fields have no requirements and can be provided by the current
-    /// resolver.
+    /// Grows the selection set by adding obviously providable sub-selections.
+    ///
+    /// This function identifies fields that have no requirements and can be resolved
+    /// directly by the current resolver. For each of these fields, it attributes them to
+    /// the logical planning context, and if the fields have nested selection sets, it
+    /// plans those as well.
+    ///
+    /// # Parameters
+    ///
+    /// - `path`: The current path in the query being processed.
+    /// - `logic`: The planning logic context used to determine field providability.
+    /// - `field_ids`: A slice of field IDs that are being evaluated for sub-selections.
+    ///
+    /// # Returns
+    ///
+    /// This function returns a `LogicalPlanningResult<()>`, indicating success or failure
+    /// of the planning operation.
     fn grow_with_obviously_providable_subselections(
         &mut self,
         path: &QueryPath,
@@ -324,6 +413,7 @@ impl<'a> LogicalPlanner<'a> {
                     acc
                 }
             });
+
         if !unplanned_field_ids.is_empty() || !parent_extra_requirements.is_empty() {
             SelectionSetLogicalPlanner::new(self, path, Some(logic)).solve(
                 selection_set_id,
@@ -332,13 +422,33 @@ impl<'a> LogicalPlanner<'a> {
                 unplanned_field_ids,
             )?;
         }
+
         Ok(())
     }
 
+    /// Retrieves a walker for the current operation, allowing traversal and inspection of fields.
     pub fn walker(&self) -> OperationWalker<'_, ()> {
         self.operation.walker_with(self.schema)
     }
 
+    /// Pushes a new logical plan into the planner with the specified parameters.
+    ///
+    /// This function creates a new logical plan associated with the given query path, resolver ID,
+    /// entity ID, and root field IDs. It also attempts to grow the selection set by adding fields
+    /// that can be providable by the resolver.
+    ///
+    /// # Parameters
+    ///
+    /// - `query_path`: The path in the query where this logical plan is being defined.
+    /// - `resolver_id`: The ID of the resolver responsible for this logical plan.
+    /// - `entity_id`: The ID of the entity related to this logical plan.
+    /// - `root_field_ids`: A slice of field IDs that are the root fields for this logical plan.
+    ///
+    /// # Returns
+    ///
+    /// This function returns a `LogicalPlanningResult<LogicalPlanId>`, which contains the ID of the
+    /// newly created logical plan if successful, or a `LogicalPlanningError` if there was a failure
+    /// in planning.
     pub fn push_plan(
         &mut self,
         query_path: QueryPath,
@@ -364,13 +474,28 @@ impl<'a> LogicalPlanner<'a> {
             resolver_id,
             entity_id,
             // Sorted at the end as may need to add extra fields.
-            root_field_ids_ordered_by_parent_entity_id_then_position: root_field_ids.to_vec(),
+            root_field_ids: root_field_ids.to_vec(),
         });
         let logic = PlanningLogic::new(id, self.schema, self.schema.walk(resolver_id));
         self.grow_with_obviously_providable_subselections(&query_path, &logic, root_field_ids)?;
         Ok(id)
     }
 
+    /// Registers a child logical plan as a dependent of a parent logical plan.
+    ///
+    /// This function takes a directed edge representing the relationship between a parent
+    /// logical plan and its child. If the parent and child are the same, it indicates a
+    /// self-dependency, which is considered an error.
+    ///
+    /// # Parameters
+    ///
+    /// - `edge`: A `ParentToChildEdge` instance representing the parent-child relationship
+    ///   between logical plans.
+    ///
+    /// # Panics
+    ///
+    /// This function will panic if the parent plan ID is the same as the child plan ID, indicating
+    /// a self-dependency which is not allowed.
     pub fn register_plan_child(&mut self, edge: ParentToChildEdge) {
         // Not a big deal if that happens, we would just ignore the edge. But would indicate a bug
         // somewhere.
@@ -378,6 +503,15 @@ impl<'a> LogicalPlanner<'a> {
         self.dependents_builder.push((edge.parent, edge.child));
     }
 
+    /// Attributes the specified fields to a given logical plan ID.
+    ///
+    /// This function establishes a relationship between the provided field IDs and the specified
+    /// logical plan ID, meaning that the given fields are mapped to the logical plan they belong to.
+    ///
+    /// # Parameters
+    ///
+    /// - `fields`: A slice of field IDs that need to be attributed to a logical plan.
+    /// - `id`: The ID of the logical plan that the fields are associated with.
     pub fn attribute_fields(&mut self, fields: &[FieldId], id: LogicalPlanId) {
         for field_id in fields {
             self[*field_id] = Some(id);
@@ -385,6 +519,27 @@ impl<'a> LogicalPlanner<'a> {
     }
 }
 
+/// Computes the logical plan IDs in topological order.
+///
+/// This function takes a reference to an `OperationPlan` and returns a vector of
+/// `LogicalPlanId`s sorted in topological order. The sorting is based on the
+/// parent-child relationship of the logical plans. Each logical plan can have
+/// one or more child plans, and the topological order ensures that a plan appears
+/// before any of its children in the sorted output.
+///
+/// # Parameters
+///
+/// - `plan`: A reference to the `OperationPlan` which contains the logical plans
+///   and their relationships.
+///
+/// # Returns
+///
+/// A vector of `LogicalPlanId`s sorted in topological order.
+///
+/// # Panics
+///
+/// This function will panic if the topological sort cannot account for all logical plans,
+/// indicating a cyclic dependency in the plan relationships.
 fn sorted_plan_ids_by_topological_order(plan: &OperationPlan) -> Vec<LogicalPlanId> {
     let mut parent_count = plan.parent_count.clone();
     let mut out = parent_count

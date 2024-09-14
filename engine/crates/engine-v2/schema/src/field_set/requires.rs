@@ -136,6 +136,19 @@ impl<'a> IntoIterator for &'a RequiredFieldSetRecord {
 }
 
 impl RequiredFieldSetRecord {
+    /// Creates a union of two `RequiredFieldSetRecord`.
+    ///
+    /// If either `left` or `right` is empty, the other is returned. If neither is empty,
+    /// a new `RequiredFieldSetRecord` is created containing unique items from both sets.
+    ///
+    /// # Parameters
+    ///
+    /// - `left`: A `Cow` representing the left set to union.
+    /// - `right`: A `Cow` representing the right set to union.
+    ///
+    /// # Returns
+    ///
+    /// A `Cow` containing the union of the two sets.
     pub fn union_cow<'a>(left: Cow<'a, Self>, right: Cow<'a, Self>) -> Cow<'a, Self> {
         if left.is_empty() {
             return right;
@@ -143,28 +156,43 @@ impl RequiredFieldSetRecord {
         if right.is_empty() {
             return left;
         }
+
         Cow::Owned(left.union(&right))
     }
 
+    /// Creates a union of two `RequiredFieldSetRecord`.
+    ///
+    /// If either `self` or `right_set` is empty, the other is returned. If neither is empty,
+    /// a new `RequiredFieldSetRecord` is created containing unique items from both sets.
+    ///
+    /// # Parameters
+    ///
+    /// - `right_set`: A reference to another `RequiredFieldSetRecord` to union with this one.
+    ///
+    /// # Returns
+    ///
+    /// A new `RequiredFieldSetRecord` containing the union of the two sets.
     pub fn union(&self, right_set: &Self) -> Self {
         let left_set = &self.0;
         let right_set = &right_set.0;
+
         // Allocating too much, but doesn't really matter. FieldSet will always be relatively small
         // anyway.
         let mut fields = Vec::with_capacity(left_set.len() + right_set.len());
-        let mut l = 0;
-        let mut r = 0;
-        while l < left_set.len() && r < right_set.len() {
-            let left = &left_set[l];
-            let right = &right_set[r];
+        let mut left_index = 0;
+        let mut right_index = 0;
+
+        while left_index < left_set.len() && right_index < right_set.len() {
+            let left = &left_set[left_index];
+            let right = &right_set[right_index];
             match left.field_id.cmp(&right.field_id) {
                 Ordering::Less => {
                     fields.push(left.clone());
-                    l += 1;
+                    left_index += 1;
                 }
                 Ordering::Greater => {
                     fields.push(right.clone());
-                    r += 1;
+                    right_index += 1;
                 }
                 Ordering::Equal => {
                     fields.push(RequiredFieldSetItemRecord {
@@ -177,16 +205,18 @@ impl RequiredFieldSetRecord {
                             left.subselection.union(&right.subselection)
                         },
                     });
-                    l += 1;
-                    r += 1;
+                    left_index += 1;
+                    right_index += 1;
                 }
             }
         }
-        if l < left_set.len() {
-            fields.extend_from_slice(&left_set[l..]);
-        } else if r < right_set.len() {
-            fields.extend_from_slice(&right_set[r..]);
+
+        if left_index < left_set.len() {
+            fields.extend_from_slice(&left_set[left_index..]);
+        } else if right_index < right_set.len() {
+            fields.extend_from_slice(&right_set[right_index..]);
         }
+
         Self(fields)
     }
 }

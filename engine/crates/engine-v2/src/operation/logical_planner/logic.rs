@@ -38,6 +38,15 @@ impl<'schema> PlanningLogic<'schema> {
         }
     }
 
+    /// Checks whether the specified field can be provided based on the planning logic.
+    ///
+    /// # Parameters
+    ///
+    /// - `field_id`: The identifier for the field to check for providability.
+    ///
+    /// # Returns
+    ///
+    /// Returns `true` if the field can be provided, otherwise returns `false`.
     pub(super) fn is_providable(&self, field_id: FieldDefinitionId) -> bool {
         match self {
             PlanningLogic::SameSubgrah {
@@ -47,6 +56,15 @@ impl<'schema> PlanningLogic<'schema> {
         }
     }
 
+    /// Retrieves a child planning logic based on the specified field identifier.
+    ///
+    /// # Parameters
+    ///
+    /// - `field_id`: The identifier for the field to retrieve child planning logic for.
+    ///
+    /// # Returns
+    ///
+    /// A new instance of `PlanningLogic` representing the child planning logic.
     pub(super) fn child(&self, field_id: FieldDefinitionId) -> Self {
         match self {
             PlanningLogic::SameSubgrah {

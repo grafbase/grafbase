@@ -69,6 +69,21 @@ pub(crate) enum Resolver {
 }
 
 impl Resolver {
+    /// Prepares a resolver based on the provided definition, operation type, and plan.
+    ///
+    /// # Parameters
+    ///
+    /// - `definition`: The definition of the resolver, containing information about its type.
+    /// - `operation_type`: The type of the operation being prepared (e.g., query, mutation).
+    /// - `plan`: The plan walker that defines the execution plan for the resolver.
+    ///
+    /// # Returns
+    ///
+    /// This function returns a `PlanningResult<Self>` which on success contains the prepared resolver.
+    ///
+    /// # Errors
+    ///
+    /// This function may return errors related to the preparation of the resolver based on the definition provided.
     pub fn prepare(
         definition: ResolverDefinition<'_>,
         operation_type: OperationType,
@@ -92,6 +107,30 @@ pub struct ResolverResult {
 }
 
 impl Resolver {
+    /// Executes the resolver for the given plan and context.
+    ///
+    /// # Type Parameters
+    ///
+    /// - `'ctx`: The lifetime of the execution context.
+    /// - `'fut`: The lifetime of the future returned by this function.
+    /// - `R`: A specific runtime for the target platform the engine is running on.
+    ///
+    /// # Parameters
+    ///
+    /// - `ctx`: The execution context containing information about the current execution.
+    /// - `plan`: The plan walker that defines the execution plan.
+    /// - `root_response_objects`: The view of the response objects at the root.
+    /// - `subgraph_response`: The response from the subgraph to be processed.
+    ///
+    /// # Returns
+    ///
+    /// This function returns a future that resolves to a `ResolverResult`, encapsulating
+    /// the execution result and additional output from the subgraph response hook.
+    ///
+    /// # Errors
+    ///
+    /// This function may return errors that occur during execution, which are contained
+    /// in the `ExecutionResult<SubgraphResponse>` in `ResolverResult`.
     pub fn execute<'ctx, 'fut, R: Runtime>(
         &'ctx self,
         ctx: ExecutionContext<'ctx, R>,
@@ -138,6 +177,28 @@ impl Resolver {
         }
     }
 
+    /// Executes a subscription for the given resolver.
+    ///
+    /// # Type Parameters
+    ///
+    /// - `'ctx`: The lifetime of the execution context.
+    /// - `R`: A specific runtime for the target platform the engine is running on.
+    ///
+    /// # Parameters
+    ///
+    /// - `ctx`: The execution context containing information about the current execution.
+    /// - `plan`: The plan walker that defines the execution plan.
+    /// - `new_response`: A function that generates a new `SubscriptionResponse` when called.
+    ///
+    /// # Returns
+    ///
+    /// This function returns a future that resolves to an `ExecutionResult` containing a `BoxStream`
+    /// of `ExecutionResult<SubscriptionResponse>`, representing the outcome of the subscription execution.
+    ///
+    /// # Errors
+    ///
+    /// This function may return errors that occur during execution, which are contained
+    /// in the `ExecutionResult<SubscriptionResponse>`.
     pub async fn execute_subscription<'ctx, R: Runtime>(
         &'ctx self,
         ctx: ExecutionContext<'ctx, R>,

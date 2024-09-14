@@ -42,6 +42,20 @@ impl GraphqlResolver {
         }))
     }
 
+    /// Builds the subgraph context for the resolver.
+    ///
+    /// This method creates a new `SubgraphContext` using the provided execution context,
+    /// endpoint information, and operation details. It sets up the context required for
+    /// executing GraphQL requests against the subgraph.
+    ///
+    /// # Parameters
+    ///
+    /// - `ctx`: The execution context that carries state and configurations needed
+    ///   throughout the lifecycle of the operation.
+    ///
+    /// # Returns
+    ///
+    /// Returns a `SubgraphContext` that carries state over this specific request.
     pub fn build_subgraph_context<'ctx, R: Runtime>(&self, ctx: ExecutionContext<'ctx, R>) -> SubgraphContext<'ctx, R> {
         let endpoint = self.endpoint_id.walk(ctx.schema());
         SubgraphContext::new(
@@ -55,6 +69,22 @@ impl GraphqlResolver {
         )
     }
 
+    /// Executes the GraphQL operation against the subgraph.
+    ///
+    /// This asynchronous function prepares and sends a GraphQL request to the subgraph,
+    /// processes the response, and handles caching.
+    ///
+    /// # Parameters
+    ///
+    /// - `ctx`: A mutable reference to the `SubgraphContext` that contains state
+    ///   and configuration for the execution.
+    /// - `plan`: A `PlanWalker` that represents the plan for executing the operation.
+    /// - `subgraph_response`: A `SubgraphResponse` instance that holds the response
+    ///   data from the subgraph.
+    ///
+    /// # Returns
+    ///
+    /// Returns an `ExecutionResult` which wraps the resulting `SubgraphResponse`.
     pub async fn execute<'ctx, R: Runtime>(
         &'ctx self,
         ctx: &mut SubgraphContext<'ctx, R>,
@@ -86,7 +116,7 @@ impl GraphqlResolver {
             let headers = ctx.subgraph_headers_with_rules(ctx.endpoint().header_rules());
 
             let cache_ttl = ctx.endpoint().config.cache_ttl;
-            let cache_key = build_cache_key(ctx.endpoint().subgraph_name(), &body, &headers);
+            let cache_key = Some(build_cache_key(ctx.endpoint().subgraph_name(), &body, &headers));
 
             if let Some((_, cache_key)) = cache_ttl.zip(cache_key.as_ref()) {
                 let cache_entry = ctx
@@ -130,7 +160,23 @@ impl GraphqlResolver {
     }
 }
 
-fn build_cache_key(subgraph_name: &str, subgraph_request_body: &[u8], headers: &http::HeaderMap) -> Option<String> {
+/// Builds a unique cache key for the subgraph request.
+///
+/// This function takes the name of the subgraph, the body of the request, and the
+/// headers, and generates a cache key using a hashing algorithm. The cache key can
+/// be used to store and retrieve cached responses for the same request parameters.
+///
+/// # Parameters
+///
+/// - `subgraph_name`: The name of the subgraph being requested.
+/// - `subgraph_request_body`: The serialized body of the GraphQL request as a byte slice.
+/// - `headers`: The HTTP headers associated with the request.
+///
+/// # Returns
+///
+/// Returns an `Option<String>` containing the generated cache key, or `None` if
+/// the key could not be generated.
+fn build_cache_key(subgraph_name: &str, subgraph_request_body: &[u8], headers: &http::HeaderMap) -> String {
     let mut hasher = blake3::Hasher::new();
     hasher.update(b"v1");
     hasher.update(subgraph_name.as_bytes());
@@ -142,13 +188,24 @@ fn build_cache_key(subgraph_name: &str, subgraph_request_body: &[u8], headers: &
         hasher.update(value.as_bytes());
     }
     hasher.update(subgraph_request_body);
-    Some(hasher.finalize().to_string())
+    hasher.finalize().to_string()
 }
 
+/// A structure responsible for ingesting GraphQL responses from the subgraph.
+///
+/// This struct manages the execution context, the response received from the subgraph,
+/// and caching behavior based on the GraphQL response's status and provided cache settings.
 struct GraphqlIngester<'ctx, R: Runtime> {
+    /// The execution context for the GraphQL request, which holds state and configuration.
     ctx: ExecutionContext<'ctx, R>,
+
+    /// The response from the subgraph that will be processed.
     subgraph_response: SubgraphResponse,
+
+    /// Optional duration specifying the cache time-to-live.
     cache_ttl: Option<Duration>,
+
+    /// Optional cache key used for storing and retrieving the response in the cache.
     cache_key: Option<String>,
 }
 
