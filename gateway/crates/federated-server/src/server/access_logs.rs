@@ -12,7 +12,7 @@ use std::io::Write;
 /// and ensures that logs are written correctly. The function runs in a
 /// blocking task to allow asynchronous operations to continue.
 ///
-/// # Parameters
+/// # Arguments
 ///
 /// - `config`: The configuration for the access logs, which includes
 ///   the path and rotation settings.

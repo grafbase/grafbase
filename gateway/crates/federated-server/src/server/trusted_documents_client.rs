@@ -18,7 +18,7 @@ pub(crate) struct TrustedDocumentsClient {
 impl TrustedDocumentsClient {
     /// Creates a new instance of `TrustedDocumentsClient`.
     ///
-    /// # Parameters
+    /// # Arguments
     ///
     /// - `http_client`: The HTTP client used for making requests.
     /// - `branch_id`: The unique identifier for the branch associated with the client.
