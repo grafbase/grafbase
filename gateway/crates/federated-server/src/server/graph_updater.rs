@@ -47,9 +47,13 @@ const GDN_HOST: &str = "https://gdn.grafbase.com";
 
 #[derive(Debug, Clone, Copy)]
 enum ResponseKind {
+    /// Indicates that a new graph version has been fetched.
     New,
+    /// Indicates that there are no changes to the current graph version.
     Unchanged,
+    /// Indicates that an HTTP error occurred while fetching the graph.
     HttpError,
+    /// Indicates that a Grafbase-specific error occurred.
     GdnError,
 }
 
@@ -65,11 +69,14 @@ impl ResponseKind {
 }
 
 struct GdnFetchLatencyAttributes {
+    /// The kind of response received from the server.
     kind: ResponseKind,
+    /// The HTTP status code of the response, if applicable.
     status_code: Option<StatusCode>,
 }
 
-/// An updater thread for polling graph changes from the API.
+/// A struct representing a GraphUpdater, which is responsible for polling updates
+/// from the Graph Delivery Network and managing the associated state.
 pub(super) struct GraphUpdater {
     gdn_url: Url,
     gdn_client: reqwest::Client,
@@ -82,6 +89,19 @@ pub(super) struct GraphUpdater {
 }
 
 impl GraphUpdater {
+    /// Creates a new instance of `GraphUpdater`.
+    ///
+    /// # Arguments
+    ///
+    /// * `graph_ref` - A reference to the graph to be updated.
+    /// * `access_token` - The access token for authentication with the GDN.
+    /// * `sender` - The sender used to send a new instance of the gateway to the server.
+    /// * `gateway_config` - Configuration settings for the gateway.
+    /// * `hooks` - Hooks for custom behavior during operation execution.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the HTTP client cannot be built or if the URL parsing fails.
     pub fn new(
         graph_ref: GraphRef,
         access_token: AsciiString,

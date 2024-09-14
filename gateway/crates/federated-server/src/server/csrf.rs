@@ -19,6 +19,12 @@ use axum::{
 
 const GRAFBASE_CSRF_HEADER: &str = "X-Grafbase-CSRF-Protection";
 
+/// Injects a middleware layer into the given router for CSRF protection.
+///
+/// This middleware checks for the presence of a custom CSRF header in incoming requests
+/// to prevent Cross-Site Request Forgery (CSRF) attacks. If the header is missing and the
+/// request is not a pre-flight `OPTIONS` request, the middleware responds with a 403 Forbidden
+/// status.
 pub(super) fn inject_layer(mut router: Router) -> Router {
     router = router.layer(middleware::from_fn(csrf_middleware));
     router

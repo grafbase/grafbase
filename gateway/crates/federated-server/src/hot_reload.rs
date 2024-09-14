@@ -4,20 +4,50 @@ use gateway_config::Config;
 use notify::{EventHandler, EventKind, PollWatcher, Watcher};
 use tokio::sync::watch;
 
+/// A watcher for configuration files that monitors changes and sends updates.
+///
+/// The `ConfigWatcher` struct holds the path to the configuration file and a sender
+/// channel that notifies subscribers of changes to the configuration.
 pub(crate) struct ConfigWatcher {
-    path: PathBuf,
-    sender: watch::Sender<Config>,
+    /// The path to the configuration file being watched.
+    pub(crate) path: PathBuf,
+    /// The sender for the watch channel used to notify about configuration updates.
+    pub(crate) sender: watch::Sender<Config>,
 }
 
 impl ConfigWatcher {
+    /// Initializes the `ConfigWatcher` with the given configuration and optional path for hot reloading.
+    ///
+    /// This function creates a new `ConfigWatcher` instance that monitors the specified configuration file.
+    /// If a `hot_reload_config_path` is provided, it starts watching that file for changes.
+    ///
+    /// # Parameters
+    ///
+    /// - `config`: The initial configuration to be used.
+    /// - `hot_reload_config_path`: An optional path to a configuration file that should be watched for changes.
+    ///
+    /// # Returns
+    ///
+    /// A `Result` containing a `watch::Receiver<Config>` for receiving configuration updates,
+    /// or an error if initialization fails.
     pub fn init(config: Config, hot_reload_config_path: Option<PathBuf>) -> crate::Result<watch::Receiver<Config>> {
         let (sender, receiver) = watch::channel(config);
+
         if let Some(path) = hot_reload_config_path {
             Self { path, sender }.start()?
         }
+
         Ok(receiver)
     }
 
+    /// Starts the configuration watcher, initializing the file watching process.
+    ///
+    /// This function sets up the watcher to monitor the specified configuration file for changes.
+    /// It uses a polling mechanism to check for modifications and triggers the appropriate events.
+    ///
+    /// # Returns
+    ///
+    /// A `Result` indicating success or failure of the watcher initialization.
     fn start(self) -> crate::Result<()> {
         static WATCHER: OnceLock<PollWatcher> = OnceLock::new();
 
@@ -36,6 +66,16 @@ impl ConfigWatcher {
         Ok(())
     }
 
+    /// Reloads the configuration from the specified file path.
+    ///
+    /// This function reads the configuration file, parses its contents, and sends the new configuration
+    /// to the subscribers through the sender channel. If an error occurs while reading or parsing the
+    /// configuration file, it logs the error but does not propagate it upwards.
+    ///
+    /// # Returns
+    ///
+    /// A `Result` indicating success or failure of the reload operation. If an error occurs, it is logged
+    /// but the function returns `Ok(())` to indicate that the operation completed without crashing.
     fn reload_config(&self) -> crate::Result<()> {
         let config = match fs::read_to_string(&self.path) {
             Ok(config) => config,

@@ -3,8 +3,13 @@ use std::sync::Arc;
 use super::gateway::EngineWatcher;
 
 pub(super) struct ServerStateInner<SR> {
+    /// The gateway responsible for handling engine communication.
     pub gateway: EngineWatcher,
+
+    /// The maximum size in bytes for the request body.
     pub request_body_limit_bytes: usize,
+
+    /// The server runtime, defining how to trigger IO depending on the platform.
     #[cfg_attr(not(feature = "lambda"), allow(unused))]
     pub server_runtime: SR,
 }
