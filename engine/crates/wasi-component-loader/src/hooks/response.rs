@@ -174,7 +174,17 @@ pub struct ExecutedSubgraphRequest {
 }
 
 impl ResponsesComponentInstance {
-    /// Called right after a subgraph request.
+    /// Allows inspection of the response from a subgraph request.
+    ///
+    /// # Arguments
+    ///
+    /// * `context` - A shared context for the operation.
+    /// * `request` - The executed subgraph request containing details of the request.
+    ///
+    /// # Returns
+    ///
+    /// A `Result` containing a serialized vector of bytes from the user on success,
+    /// or an error on failure.
     pub async fn on_subgraph_response(
         &mut self,
         context: SharedContext,
@@ -186,7 +196,17 @@ impl ResponsesComponentInstance {
             .unwrap_or_else(|| Ok(Vec::new()))
     }
 
-    /// Called right after a gateway request.
+    /// Allows inspection of the response from an executed operation.
+    ///
+    /// # Arguments
+    ///
+    /// * `context` - A shared context for the operation.
+    /// * `request` - The executed operation containing details of the operation.
+    ///
+    /// # Returns
+    ///
+    /// A `Result` containing a serialized vector of bytes from the user on success,
+    /// or an error on failure.
     pub async fn on_operation_response(
         &mut self,
         context: SharedContext,
@@ -198,7 +218,12 @@ impl ResponsesComponentInstance {
             .unwrap_or_else(|| Ok(Vec::new()))
     }
 
-    /// Called right after a HTTP request.
+    /// Allows inspection of the response from an executed HTTP request.
+    ///
+    /// # Arguments
+    ///
+    /// * `context` - A shared context for the operation.
+    /// * `request` - The executed HTTP request containing details of the request.
     pub async fn on_http_response(
         &mut self,
         context: SharedContext,

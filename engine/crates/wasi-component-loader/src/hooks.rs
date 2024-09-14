@@ -17,15 +17,32 @@ pub(crate) mod subgraph;
 
 /// A trait for components that can be recycled
 pub trait RecycleableComponentInstance: Sized + Send + 'static {
-    /// Creates a new instance of the component
+    /// Creates a new instance of the component.
     fn new(loader: &ComponentLoader) -> impl Future<Output = crate::Result<Self>> + Send;
+
     /// Resets the store to the original state. This must be called if wanting to reuse this instance.
     fn recycle(&mut self) -> crate::Result<()>;
 }
 
+/// A macro to define a component instance.
+///
+/// This macro generates a struct representing a component instance along with the necessary
+/// implementations for `Debug`, `Deref`, and `DerefMut` traits. It also implements the
+/// `RecycleableComponentInstance` trait for the generated struct, allowing for creation and
+/// recycling of the component instance.
+///
+/// # Arguments
+///
+/// * `$ty` - The identifier for the generated struct.
+/// * `$name` - The name of the component that will be instantiated.
 macro_rules! component_instance {
     ($ty:ident: $name:expr) => {
-        /// A component instance
+        /// A struct representing an instance of the component.
+        ///
+        /// This struct wraps the `ComponentInstance` and provides the necessary
+        /// implementations for various traits, including `Debug`, `Deref`, and
+        /// `DerefMut`. It also implements the `RecycleableComponentInstance` trait,
+        /// allowing for the creation and recycling of the component instance.
         pub struct $ty(ComponentInstance);
 
         impl std::fmt::Debug for $ty {
@@ -61,7 +78,19 @@ macro_rules! component_instance {
 
 pub(crate) use component_instance;
 
-/// Generic initialization of WASI components for all hooks.
+/// Initializes a new `Store<WasiState>` with the given configuration and engine.
+///
+/// # Arguments
+///
+/// * `config` - A reference to the configuration used to build the WASI context.
+/// * `engine` - A reference to the Wasmtime engine used for creating the store.
+///
+/// # Returns
+///
+/// A `Result` containing a `Store<WasiState>` on success, or an error if initialization fails.
+///
+/// This function creates a new `WasiState` using the provided configuration, initializes the store
+/// with the maximum fuel, and sets a yield interval how often to allow the main thread to be yielded.
 fn initialize_store(config: &Config, engine: &Engine) -> crate::Result<Store<WasiState>> {
     let state = WasiState::new(build_wasi_context(config));
 
@@ -76,18 +105,32 @@ fn initialize_store(config: &Config, engine: &Engine) -> crate::Result<Store<Was
 
 type FunctionCache = RwLock<Vec<(&'static str, Option<Box<dyn Any + Send + Sync + 'static>>)>>;
 
-/// Component instance for hooks
 pub struct ComponentInstance {
+    /// The store associated with the WASI state.
     store: Store<WasiState>,
+    /// The instance of the component.
     instance: Instance,
+    /// The guest component.
     component: Component,
+    /// The name of the interface this component implements.
     interface_name: &'static str,
+    /// A cache for storing instantiated hook functions.
     function_cache: FunctionCache,
+    /// Indicates whether the instance has encountered a fatal error.
     poisoned: bool,
 }
 
 impl ComponentInstance {
-    /// Creates a new instance of the authorization hook
+    /// Creates a new instance of the component.
+    ///
+    /// # Arguments
+    ///
+    /// * `loader` - A reference to the `ComponentLoader` used to load the component.
+    /// * `interface_name` - The name of the interface this component implements.
+    ///
+    /// # Returns
+    ///
+    /// A `Result` containing the newly created component instance on success, or an error on failure.
     async fn new(loader: &ComponentLoader, interface_name: &'static str) -> crate::Result<Self> {
         let mut store = initialize_store(loader.config(), loader.engine())?;
 
@@ -108,6 +151,21 @@ impl ComponentInstance {
         })
     }
 
+    /// Calls a function with one input argument and no output.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `A1` - The type of the first argument.
+    ///
+    /// # Arguments
+    ///
+    /// * `name` - The name of the function to call.
+    /// * `context` - A shared context resource.
+    /// * `arg` - The first argument to pass to the function.
+    ///
+    /// # Returns
+    ///
+    /// A `Result` indicating success or failure. If the function call is successful, it returns `Ok(())`.
     async fn call1_without_output<A1>(
         &mut self,
         name: &'static str,
@@ -144,6 +202,24 @@ impl ComponentInstance {
         Ok(())
     }
 
+    /// Calls a function with one input argument and one output.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `A1` - The type of the first argument.
+    /// * `R` - The type of the output.
+    ///
+    /// # Arguments
+    ///
+    /// * `name` - The name of the function to call.
+    /// * `context` - A shared context resource.
+    /// * `arg` - The first argument to pass to the function.
+    ///
+    /// # Returns
+    ///
+    /// A `Result` containing an `Option<R>`. If the function call is successful, it returns `Ok(Some(result))`,
+    /// where `result` is the output of the function. If the function call fails, it returns an error. If the
+    /// function does not exist, it returns `Ok(None)`.
     async fn call1_one_output<A1, R>(
         &mut self,
         name: &'static str,
@@ -181,6 +257,25 @@ impl ComponentInstance {
         Ok(Some(result))
     }
 
+    /// Calls a function with two input arguments and one output.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `A1` - The type of the first argument.
+    /// * `A2` - The type of the second argument.
+    /// * `R` - The type of the output.
+    ///
+    /// # Arguments
+    ///
+    /// * `name` - The name of the function to call.
+    /// * `context` - A shared context resource.
+    /// * `args` - A tuple containing the two arguments to pass to the function.
+    ///
+    /// # Returns
+    ///
+    /// A `Result` containing an `Option<R>`. If the function call is successful, it returns `Ok(Some(result))`,
+    /// where `result` is the output of the function. If the function call fails, it returns an error. If the
+    /// function does not exist, it returns `Ok(None)`.
     async fn call2_one_output<A1, A2, R>(
         &mut self,
         name: &'static str,
@@ -218,6 +313,26 @@ impl ComponentInstance {
         Ok(Some(result))
     }
 
+    /// Calls a function with three input arguments and one output.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `A1` - The type of the first argument.
+    /// * `A2` - The type of the second argument.
+    /// * `A3` - The type of the third argument.
+    /// * `R` - The type of the output.
+    ///
+    /// # Arguments
+    ///
+    /// * `name` - The name of the function to call.
+    /// * `context` - A shared context resource.
+    /// * `args` - A tuple containing the three arguments to pass to the function.
+    ///
+    /// # Returns
+    ///
+    /// A `Result` containing an `Option<R>`. If the function call is successful, it returns `Ok(Some(result))`,
+    /// where `result` is the output of the function. If the function call fails, it returns an error. If the
+    /// function does not exist, it returns `Ok(None)`.
     async fn call3_one_output<A1, A2, A3, R>(
         &mut self,
         name: &'static str,
@@ -257,7 +372,21 @@ impl ComponentInstance {
         Ok(Some(result))
     }
 
-    /// A generic get hook we can use to find a different function from the interface.
+    /// Retrieves a typed function (hook) by its name from the component instance.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `I` - The input type for the function.
+    /// * `O` - The output type for the function.
+    ///
+    /// # Arguments
+    ///
+    /// * `function_name` - The name of the function to retrieve.
+    ///
+    /// # Returns
+    ///
+    /// An `Option<TypedFunc<I, O>>`, which is `Some` if the function was found and can be cast to the expected types,
+    /// or `None` if the function does not exist or could not be retrieved.
     fn get_hook<I, O>(&mut self, function_name: &'static str) -> Option<TypedFunc<I, O>>
     where
         I: ComponentNamedList + Lower + Send + Sync + 'static,
@@ -311,9 +440,19 @@ impl ComponentInstance {
         }
     }
 
-    /// Resets the store to the original state. This must be called if wanting to reuse this instance.
+    /// Resets the component instance for reuse.
     ///
-    /// If the cleanup fails, the instance is gone and must be dropped.
+    /// This function sets the fuel of the store to its maximum value, allowing
+    /// the instance to be recycled for future calls. If the instance has
+    /// encountered a fatal error (marked as poisoned), this function will
+    /// return an error instead.
+    ///
+    /// This function must be called before reusing for another request.
+    ///
+    /// # Returns
+    ///
+    /// A `Result` indicating success or failure. On success, it returns `Ok(())`.
+    /// On failure, it returns an error if the instance is poisoned.
     pub fn recycle(&mut self) -> crate::Result<()> {
         if self.poisoned {
             return Err(anyhow!("this instance is poisoned").into());

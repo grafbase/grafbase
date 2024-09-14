@@ -53,17 +53,39 @@ use wasmtime::{
 
 use crate::names::COMPONENT_TYPES;
 
-/// A loader for Grafbase WASI components. This is supposed to be reused for
-/// the whole lifetime of the Grafbase Gateway.
+/// A structure responsible for loading and managing WebAssembly components.
+///
+/// The `ComponentLoader` is designed to facilitate the loading and execution of
+/// WebAssembly components within the Wasmtime environment. It manages the
+/// configuration, engine, linker, and the component itself, providing the necessary
+/// interfaces for interaction with the loaded component.
 pub struct ComponentLoader {
+    /// The Wasmtime engine used for running the WebAssembly component.
     engine: Engine,
+    /// The linker that connects the component to its dependencies.
     linker: Linker<WasiState>,
+    /// The WebAssembly component being loaded.
     component: Component,
+    /// Configuration settings for the component loader.
     config: Config,
 }
 
 impl ComponentLoader {
-    /// Initialize a new loader with the given config.
+    /// Creates a new instance of `ComponentLoader` with the specified configuration.
+    ///
+    /// This function initializes the Wasmtime engine and linker, loads the WebAssembly
+    /// component from the specified location in the configuration, and sets up the necessary
+    /// WASI interfaces. If the component is loaded successfully, it returns an instance of
+    /// `ComponentLoader`; otherwise, it returns `None`.
+    ///
+    /// # Parameters
+    ///
+    /// - `config`: The configuration settings for the component loader.
+    ///
+    /// # Returns
+    ///
+    /// Returns a `Result` containing an `Option<Self>`. The `Option` will be `Some` if the
+    /// component is loaded successfully, or `None` if there was an error during loading.
     pub fn new(config: Config) -> Result<Option<Self>> {
         let mut wasm_config = wasmtime::Config::new();
 
@@ -125,18 +147,38 @@ impl ComponentLoader {
         Ok(this)
     }
 
+    /// Returns a reference to the configuration settings for this component loader.
+    ///
+    /// This function provides access to the `Config` structure, which contains the
+    /// configuration settings that were used to initialize the `ComponentLoader`.
     pub(crate) fn config(&self) -> &Config {
         &self.config
     }
 
+    /// Returns a reference to the Wasmtime engine used by this component loader.
+    ///
+    /// This function provides access to the `Engine` instance, which is responsible
+    /// for running the WebAssembly component. The engine is initialized with the
+    /// configuration settings specified during the creation of the `ComponentLoader`.
     pub(crate) fn engine(&self) -> &Engine {
         &self.engine
     }
 
+    /// Returns a reference to the linker used by this component loader.
+    ///
+    /// This function provides access to the `Linker<WasiState>` instance, which connects
+    /// the loaded WebAssembly component to its dependencies, including the necessary WASI
+    /// interfaces. It is essential for executing the component correctly within the Wasmtime
+    /// environment.
     pub(crate) fn linker(&self) -> &Linker<WasiState> {
         &self.linker
     }
 
+    /// Returns a reference to the loaded WebAssembly component.
+    ///
+    /// This function provides access to the `Component` instance, which represents
+    /// the WebAssembly component that has been loaded into the `ComponentLoader`.
+    /// It is used to interact with the component's exported functions and types.
     pub(crate) fn component(&self) -> &Component {
         &self.component
     }

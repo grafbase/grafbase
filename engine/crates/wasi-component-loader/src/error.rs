@@ -1,12 +1,12 @@
 pub mod guest;
 
-/// The error type from a WASI call
+/// The error type from a WASI call.
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     /// Error on initialization or mishandling of WASI components.
     #[error("{0}")]
     Internal(#[from] anyhow::Error),
-    /// User-thrown error of the WASI guest
+    /// User-thrown error of the WASI guest.
     #[error("{0}")]
     Guest(#[from] guest::GuestError),
 }

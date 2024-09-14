@@ -136,7 +136,7 @@ pub enum LogError {
 ///         get: func(key: string) -> option<string>;
 ///         set: func(key: string, value: string);
 ///         delete: func(key: string) -> option<string>;
-///     }    
+///     }
 /// }
 /// ```
 pub(crate) fn map(types: &mut LinkerInstance<'_, WasiState>) -> crate::Result<()> {
@@ -154,6 +154,7 @@ pub(crate) fn map(types: &mut LinkerInstance<'_, WasiState>) -> crate::Result<()
 /// interface types {
 ///     resource shared-context {
 ///         get: func(key: string) -> option<string>;
+///         trace-id: func() -> string;
 ///         access-log: func(data: list<u8>) -> result<_, log-error>;
 ///     }
 /// }
