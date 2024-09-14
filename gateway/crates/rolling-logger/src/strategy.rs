@@ -106,16 +106,6 @@ impl RotateStrategy {
     }
 
     /// Returns a copy of the current `RotateStrategy` with a new rotation start time.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use std::time::{Duration, SystemTime};
-    ///
-    /// let strategy = RotateStrategy::daily();
-    /// let new_strategy = strategy.copy_new_start(SystemTime::now());
-    /// assert!(new_strategy.rotate_start > strategy.rotate_start);
-    /// ```
     pub(crate) fn copy_new_start(self) -> Self {
         Self {
             kind: self.kind,

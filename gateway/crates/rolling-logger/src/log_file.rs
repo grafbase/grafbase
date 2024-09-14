@@ -66,20 +66,13 @@ impl LogFile {
         }
     }
 
-    /// Returns the current timestamp associated with the log file's rotation strategy.
-    ///
-    /// # Returns
-    ///
-    /// Returns a `u128` representing the timestamp in milliseconds since the epoch.
+    /// Returns the timestamp of the rotation strategy in milliseconds since the epoch.
+    /// The timestamp marks the point in time when the file was created.
     pub fn timestamp(&self) -> u128 {
         self.rotate_strategy.start_timestamp()
     }
 
-    /// Creates a new `RotateStrategy` based on the current rotation strategy.
-    ///
-    /// # Returns
-    ///
-    /// Returns a `RotateStrategy` that represents the new rotation configuration.
+    /// Returns a copy of the current `RotateStrategy` with a new rotation start time.
     pub fn copy_new_rotate(&self) -> RotateStrategy {
         self.rotate_strategy.copy_new_start()
     }
