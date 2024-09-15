@@ -36,8 +36,6 @@ exclude = [
 
 [patch.crates-io]
 axum = { git = "https://github.com/grafbase/axum", rev = "c3146f9ca921907d9884fbf7549a1520e9e72eac" } # axum-tungstenite-upgrade
-# Drop when https://github.com/programatik29/axum-server/pull/112 is merged.
-axum-server = { git = "https://github.com/grafbase/axum-server", rev = "bc0c489c82e6fa76648f0d47191330ef4e125347" }                   # rustls-0.23-tokio-rustls-0.26
 cynic-parser = { git = "https://github.com/grafbase/cynic", branch = "more-spans" }
 cynic-codegen = { git = "https://github.com/grafbase/cynic", branch = "more-spans" }
 multipart-stream = { git = "https://github.com/grafbase/multipart-stream-rs-fork", rev = "06ff198e4041c8a8c1c93e580c260d597727c193" } # http-1.0-fix-multipart-mixed
