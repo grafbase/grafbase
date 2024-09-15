@@ -36,8 +36,8 @@ exclude = [
 
 [patch.crates-io]
 axum = { git = "https://github.com/grafbase/axum", rev = "c3146f9ca921907d9884fbf7549a1520e9e72eac" } # axum-tungstenite-upgrade
-cynic-parser = { git = "https://github.com/grafbase/cynic", branch = "more-spans" }
-cynic-codegen = { git = "https://github.com/grafbase/cynic", branch = "more-spans" }
+cynic-parser = { git = "https://github.com/grafbase/cynic", rev = "15c409ff9515ad1c38c6cc760709545c549e7ccf" } # more-spans-rebased
+cynic-codegen = { git = "https://github.com/grafbase/cynic", rev = "15c409ff9515ad1c38c6cc760709545c549e7ccf" } # more-spans-rebased
 multipart-stream = { git = "https://github.com/grafbase/multipart-stream-rs-fork", rev = "06ff198e4041c8a8c1c93e580c260d597727c193" } # http-1.0-fix-multipart-mixed
 names = { git = "https://github.com/grafbase/names", rev = "443800fbb7bc2936c1f2c16f3a5e116698b1454a" }                               # main
 # FIXME: Drop when a new version is released.
@@ -93,7 +93,7 @@ blake3 = "1.5.1"
 bytes = "1.6.0"
 chrono = { version = "0.4.38", default-features = false }
 ctor = "0.2.8"
-cynic = "3.7.0"
+cynic = "3.8.0"
 cynic-introspection = "3.7.0"
 cynic-parser = "0.4.0"
 deadpool-postgres = "0.14"
