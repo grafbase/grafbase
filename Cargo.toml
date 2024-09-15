@@ -64,7 +64,7 @@ tracing = { git = "https://github.com/tokio-rs/tracing", rev = "6d00d7d9f72dc679
 tracing-core = { git = "https://github.com/tokio-rs/tracing", rev = "6d00d7d9f72dc6797138a1062bc33073afbad5a1" } # v0.1.x
 tracing-mock = { git = "https://github.com/tokio-rs/tracing", rev = "6d00d7d9f72dc6797138a1062bc33073afbad5a1" } # v0.1.x
 
-# Make sure we use the worksace-hack package when building
+# Make sure we use the workspace-hack package when building
 # this repo, but not when pulling it in
 # See https://docs.rs/cargo-hakari/0.9.30/cargo_hakari/patch_directive/index.html for details
 grafbase-workspace-hack.path = "workspace-hack"
