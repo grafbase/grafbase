@@ -56,8 +56,10 @@ reqwest = { git = "https://github.com/grafbase/reqwest", rev = "874a6b3c522de296
 rudderanalytics = { git = "https://github.com/grafbase/rudder-sdk-rust", rev = "3e994eb4dcc9c580be311ef9eab6e96dd264293b" } # async
 serde_with = { git = "https://github.com/grafbase/serde_with", rev = "06ad277a0e0175c2364d3c065e303a6c8a775c8a" }           # minify-field-names
 # Temporary change till https://github.com/alexcrichton/tar-rs/pull/319 is merged and released.
-tar = { git = "https://github.com/grafbase/tar-rs.git", rev = "a889df5bd9fec44faf081f7fade5ec81935c2418" } # overwrite-hard-links
+tar = { git = "https://github.com/grafbase/tar-rs", rev = "a889df5bd9fec44faf081f7fade5ec81935c2418" } # overwrite-hard-links
 tokio-postgres = { git = "https://github.com/grafbase/rust-postgres/", branch = "grafbase-rebased" }
+# Upgrade 0.4.13 only to get rid of indexmap 1.9.
+tower = { git = "https://github.com/grafbase/tower", rev = "7202cfeecd13ad6bbecd537d9799244313600db5" } # upgrade-indexmap
 # FIXME: Uncomment when we upgrade opentelemetry to 0.23.
 # tracing-opentelemetry = { git = "https://github.com/tokio-rs/tracing-opentelemetry", rev = "2539f4f7bde3dc3f320e5fb935d2c13a69a540dd" } # main
 tracing = { git = "https://github.com/tokio-rs/tracing", rev = "6d00d7d9f72dc6797138a1062bc33073afbad5a1" }      # v0.1.x
