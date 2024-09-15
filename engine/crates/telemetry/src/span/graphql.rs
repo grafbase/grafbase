@@ -36,7 +36,7 @@ impl Default for GraphqlOperationSpan {
             "graphql.response.data.is_present"  = Empty,
             "graphql.response.data.is_null"  = Empty,
             "graphql.response.errors.count" = Empty,
-            "graphql.response.errors.distinct_codes" = Empty,
+            "graphql.response.errors.count_by_code" = Empty,
         );
         GraphqlOperationSpan { span }
     }
@@ -59,14 +59,18 @@ impl GraphqlOperationSpan {
         self.record("graphql.operation.type", operation.ty.as_str());
     }
 
-    pub fn record_response_status(&self, status: GraphqlResponseStatus) {
+    pub fn record_response<ErrorCode: std::fmt::Display>(
+        &self,
+        status: GraphqlResponseStatus,
+        errors_count_by_code: &[(ErrorCode, u16)],
+    ) {
         record_graphql_response_status(&self.span, status);
-    }
-
-    pub fn record_distinct_error_codes(&self, distinct_error_codes: impl IntoIterator<Item: std::fmt::Display>) {
         self.record(
-            "graphql.response.errors.distinct_codes",
-            distinct_error_codes.into_iter().join(","),
+            "graphql.response.errors.count_by_code",
+            errors_count_by_code
+                .iter()
+                .format_with(",", |(code, count), f| f(&format_args!("{}:{}", code, count)))
+                .to_string(),
         );
     }
 }

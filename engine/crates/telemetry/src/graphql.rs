@@ -3,16 +3,20 @@ use std::sync::Arc;
 #[derive(Clone, Debug)]
 pub struct GraphqlExecutionTelemetry<ErrorCode> {
     pub operations: Vec<(OperationType, OperationName)>,
-    pub errors_count: u64,
-    pub distinct_error_codes: Vec<ErrorCode>,
+    pub errors_count_by_code: Vec<(ErrorCode, u16)>,
+}
+
+impl<E> GraphqlExecutionTelemetry<E> {
+    pub fn errors_count(&self) -> u64 {
+        self.errors_count_by_code.iter().map(|(_, count)| *count as u64).sum()
+    }
 }
 
 impl<ErrorCode> Default for GraphqlExecutionTelemetry<ErrorCode> {
     fn default() -> Self {
         Self {
             operations: Vec::new(),
-            errors_count: 0,
-            distinct_error_codes: Vec::new(),
+            errors_count_by_code: Vec::new(),
         }
     }
 }

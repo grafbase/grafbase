@@ -22,7 +22,6 @@ blake3.workspace = true
 bytes.workspace = true
 url.workspace = true
 crossbeam-queue = "0.3.11"
-enumset = "1"
 futures-util.workspace = true
 futures.workspace = true
 grafbase-telemetry.workspace = true
@@ -38,6 +37,7 @@ serde-value = "0.7"
 serde_urlencoded.workspace = true
 serde_json = { workspace = true, features = ["raw_value"] }
 sha2.workspace = true
+strum_macros.workspace = true
 strum.workspace = true
 thiserror.workspace = true
 tower = { workspace = true, features = ["retry"] }

@@ -189,7 +189,7 @@ where
             let status = response.status();
             let elapsed = start.elapsed();
 
-            graphql_span.record_response_status(status);
+            graphql_span.record_response::<String>(status, &[]);
             if let Some((operation, sanitized_query)) = response.graphql_operation.as_ref().zip(normalized_query) {
                 let operation = GraphqlOperationAttributes {
                     ty: match operation.r#type {

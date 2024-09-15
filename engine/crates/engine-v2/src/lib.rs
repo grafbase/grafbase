@@ -14,8 +14,7 @@ mod utils;
 pub mod websocket;
 
 pub use engine::{Engine, Runtime, WebsocketSession};
-pub use graphql_over_http::{Body, HooksExtension, TelemetryExtension};
-pub use response::error::ErrorCode;
+pub use graphql_over_http::{Body, ErrorCode, HooksExtension, TelemetryExtension};
 pub use schema::{BuildError, Schema, Version as SchemaVersion};
 
 pub use ::config::{latest as config, VersionedConfig};

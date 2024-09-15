@@ -546,8 +546,9 @@ impl Schema {
                 let (env_builder, futures_waiter) = match schema.prepare_request(extensions, request, session_data).await {
                     Ok(res) => res,
                     Err((operation_metadata, errors)) => {
-                        graphql_span.record_response_status(
+                        graphql_span.record_response::<String>(
                             GraphqlResponseStatus::RequestError { count: errors.len() as u64 },
+                            &[]
                         );
 
                         yield Response::bad_request(errors, operation_metadata).into_streaming_payload(false);
@@ -621,7 +622,7 @@ impl Schema {
 
                 let elapsed = start.elapsed();
 
-                graphql_span.record_response_status(status);
+                graphql_span.record_response::<String>(status, &[]);
 
                 if let Some(sanitized_query) = sanitized_query {
                     schema.env.operation_metrics.record_operation_duration(

@@ -1,5 +1,4 @@
 use bytes::Bytes;
-use enumset::EnumSet;
 use futures::{StreamExt, TryStreamExt};
 use futures_util::Stream;
 use grafbase_telemetry::graphql::GraphqlExecutionTelemetry;
@@ -8,7 +7,7 @@ use runtime::bytes::OwnedOrSharedBytes;
 
 use crate::{
     engine::StreamResponse,
-    response::{ErrorCode, Response},
+    response::{ErrorCode, ErrorCodeCounter, Response},
 };
 
 use super::{
@@ -76,17 +75,14 @@ impl Http {
         });
 
         let telemetry = {
-            let (count, distinct_error_codes) = responses.iter().fold(
-                (0, EnumSet::default()),
-                |(mut count, mut distinct_error_codes), response| {
-                    count += response.errors().len();
-                    distinct_error_codes |= response.distinct_error_codes();
-                    (count, distinct_error_codes)
-                },
-            );
+            let counter = responses
+                .iter()
+                .fold(ErrorCodeCounter::default(), |mut counter, response| {
+                    counter.add(response.error_code_counter());
+                    counter
+                });
             TelemetryExtension::Ready(GraphqlExecutionTelemetry {
-                errors_count: count as u64,
-                distinct_error_codes: distinct_error_codes.into_iter().collect(),
+                errors_count_by_code: counter.to_vec(),
                 operations: responses
                     .iter()
                     .filter_map(|response| response.operation_attributes())
@@ -234,9 +230,9 @@ fn compute_status_code(format: ResponseFormat, response: &Response) -> http::Sta
                 //   If the GraphQL response does not contain the {data} entry then
                 //   the server MUST reply with a 4xx or 5xx status code as appropriate.
                 ResponseFormat::Complete(CompleteResponseFormat::GraphqlResponseJson) => response
-                    .distinct_error_codes()
-                    .into_iter()
-                    .map(ErrorCode::into_http_status_code_with_priority)
+                    .error_code_counter()
+                    .iter()
+                    .map(|(code, _)| code.into_http_status_code_with_priority())
                     .max_by_key(|(_, priority)| *priority)
                     .map(|(status, _)| status)
                     .unwrap_or(http::StatusCode::INTERNAL_SERVER_ERROR),
@@ -274,8 +270,7 @@ fn internal_server_error() -> http::Response<Body> {
     response
         .extensions_mut()
         .insert(TelemetryExtension::Ready(GraphqlExecutionTelemetry {
-            errors_count: 1,
-            distinct_error_codes: vec![ErrorCode::InternalServerError],
+            errors_count_by_code: vec![(ErrorCode::InternalServerError, 1)],
             operations: Vec::new(),
         }));
 

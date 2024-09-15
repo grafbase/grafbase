@@ -151,7 +151,7 @@ impl<'a> HttpRequestSpanBuilder<'a> {
             "graphql.operations.name" = Empty,
             "graphql.operations.type" = Empty,
             "graphql.response.errors.count" = Empty,
-            "graphql.response.errors.distinct_codes" = Empty,
+            "graphql.response.errors.count_by_code" = Empty,
         );
         HttpRequestSpan { span }
     }
@@ -183,10 +183,14 @@ impl HttpRequestSpan {
             "graphql.operations.type",
             telemetry.operations.iter().map(|(ty, _)| ty).join(","),
         );
-        self.record("graphql.response.errors.count", telemetry.errors_count);
+        self.record("graphql.response.errors.count", telemetry.errors_count());
         self.record(
-            "graphql.response.errors.distinct_codes",
-            telemetry.distinct_error_codes.iter().join(","),
+            "graphql.response.errors.count_by_code",
+            telemetry
+                .errors_count_by_code
+                .iter()
+                .format_with(",", |(code, count), f| f(&format_args!("{}:{}", code, count)))
+                .to_string(),
         );
     }
 
