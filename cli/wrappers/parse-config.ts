@@ -4,7 +4,7 @@ import path from 'path'
 const configFile = process.argv.slice(2)[0]
 const resultFile = process.argv.slice(2)[1]
 
-process.env.GRAFBASE_PROJECT_GRAFBASE_DIR = path.dirname(configFile)
+process.env['GRAFBASE_PROJECT_GRAFBASE_DIR'] = path.dirname(configFile)
 
 let config
 try {

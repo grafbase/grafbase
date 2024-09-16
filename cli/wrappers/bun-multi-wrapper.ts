@@ -86,7 +86,7 @@ const server = Bun.serve({
       return router(request, Route.Health)
     }
     const [, kind, name, action] = url.pathname.split('/', 4)
-    if ([kind, name, action].some((part) => part == null) || udfs[toUdfKey(name, kind)] == null) {
+    if ([kind, name, action].some((part) => part == null)) {
       const url = new URL(request.url)
       return new Response(toErrorResponse(`${url.pathname} not found`), {
         status: HttpStatus.NotFound,
@@ -96,7 +96,6 @@ const server = Bun.serve({
   },
 })
 
-// @ts-expect-error incorrect typing
 await Bun.write(Bun.stdout, `${server.port}\n`)
 
 // patches console.* to return the logs in the response
@@ -173,7 +172,13 @@ const router = (request: Request, action: string, invoke?: (request: Request) =>
     case Route.Invoke:
       switch (request.method) {
         case HttpMethod.Post:
-          return invoke?.(request)
+          if (invoke == null) {
+            const url = new URL(request.url)
+            return new Response(toErrorResponse(`${url.pathname} not found`), {
+              status: HttpStatus.NotFound,
+            })
+          }
+          return invoke(request)
         default:
           return new Response(toErrorResponse(`method not allowed for ${Route.Invoke}`), {
             status: HttpStatus.MethodNotAllowed,

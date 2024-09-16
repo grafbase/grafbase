@@ -1,6 +1,3 @@
-// import { IncomingMessage, ServerResponse, createServer } from 'http'
-// import { Readable } from 'stream'
-
 interface LogEntry {
   loggedAt: number
   level: string
@@ -24,10 +21,6 @@ interface UdfRequestPayload {
   args: unknown
   secrets: object
 }
-
-// type NodeResponse = ServerResponse<IncomingMessage> & { req: IncomingMessage }
-
-// type Headers = Record<string, string | string[]>
 
 enum HttpMethod {
   Get = 'GET',
@@ -65,18 +58,7 @@ enum Header {
   ContentType = 'content-type',
 }
 
-// enum Duplex {
-//   Half = 'half',
-// }
-
-// enum StreamEvent {
-//   Data = 'data',
-//   End = 'end',
-// }
-
 const PORT = 0
-// const HOST = '127.0.0.1'
-// const DUMMY_HOST = 'https://grafbase-cli'
 const MIME_PROPERTY_SEPARATOR = ';'
 
 const originalFetch = globalThis.fetch
@@ -84,61 +66,12 @@ const originalFetch = globalThis.fetch
 let logEntries: Array<LogEntry> = []
 let fetchRequests: Array<FetchRequest> = []
 
-// // Node.js:
-
-// const server = createServer((request, response) => {
-//   const routerResponse = router(nodeRequestToWeb(request))
-
-//   if (routerResponse instanceof Promise) {
-//     routerResponse.then((routerResponse) => webResponseToNode(routerResponse, response))
-//   } else {
-//     webResponseToNode(routerResponse, response)
-//   }
-// })
-
-// server.listen(PORT, HOST, () => {
-//   // @ts-expect-error incorrectly typed for the `.port` property, `.address()` must exist at this point
-//   const port = server.address().port
-//   originalConsoleLog(port)
-// })
-
-// const nodeRequestToWeb = (request: IncomingMessage) =>
-//   new Request(`${DUMMY_HOST}${request.url}`, {
-//     method: request.method,
-//     // the cast here is likely required because of node fetch still being experimental
-//     headers: request.headers as Headers,
-//     body: request.method === HttpMethod.Post ? Readable.toWeb(request) : undefined,
-//     duplex: Duplex.Half,
-//   })
-
-// const webResponseToNode = (webResponse: Response, response: NodeResponse) => {
-//   webResponse.headers.forEach((value, key) => response.setHeader(key, value))
-//   response.statusMessage = webResponse.statusText
-//   response.statusCode = webResponse.status
-//   if (webResponse.body !== null) {
-//     Readable.fromWeb(webResponse.body)
-//       .on(StreamEvent.Data, (chunk) => response.write(chunk))
-//       .on(StreamEvent.End, () => response.end())
-//   } else {
-//     response.end()
-//   }
-// }
-
-// Deno:
-
-// Deno.serve(
-//   { port: PORT, onListen: (path: { hostname: string; port: number }) => originalConsoleLog(path.port) },
-//   (request: Request) => router(request),
-// )
-
-// Bun:
 if (import.meta.main) {
   const server = Bun.serve({
     port: PORT,
     fetch: (request: Request) => router(request),
   })
 
-  // @ts-expect-error incorrect typing
   await Bun.write(Bun.stdout, `${server.port}\n`)
 
   // patches console.* to return the logs in the response

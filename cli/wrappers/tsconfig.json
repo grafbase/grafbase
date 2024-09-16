@@ -1,18 +1,23 @@
 {
   "$schema": "https://json.schemastore.org/tsconfig",
-  "display": "Node 18",
-
-  "_version": "18.2.0",
+  "docs": "https://bun.sh/docs/typescript",
 
   "compilerOptions": {
-    "lib": ["es2023"],
-    "module": "node16",
-    "target": "es2022",
-
+    "lib": ["ESNext"],
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleDetection": "force",
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true,
+    "noEmit": true,
     "strict": true,
-    "esModuleInterop": true,
     "skipLibCheck": true,
+    "noFallthroughCasesInSwitch": true,
     "forceConsistentCasingInFileNames": true,
-    "moduleResolution": "node16"
+    "esModuleInterop": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noPropertyAccessFromIndexSignature": true
   }
 }
