@@ -1,6 +1,6 @@
 [package]
 name = "rolling-logger"
-version = "0.13.0"
+version = "0.13.1"
 edition.workspace = true
 license.workspace = true
 homepage.workspace = true
