@@ -4,7 +4,7 @@ pub fn kill_with_children(pid: u32) {
     let target_id = Pid::from(pid as usize);
 
     let mut sys = System::new();
-    sys.refresh_processes();
+    sys.refresh_processes(sysinfo::ProcessesToUpdate::All);
 
     let signal_preference = [Signal::Interrupt, Signal::Kill];
     let signal = signal_preference
