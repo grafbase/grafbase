@@ -10,7 +10,7 @@ impl std::fmt::Debug for ObjectDefinition<'_> {
                 &self.interfaces().map(|interface| interface.name()).collect::<Vec<_>>(),
             )
             .field("directives", &self.directives())
-            .field("fields", &self.fields().collect::<Vec<_>>())
+            .field("fields", &self.fields().map(|f| f.name()).collect::<Vec<_>>())
             .finish()
     }
 }
