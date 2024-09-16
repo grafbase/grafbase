@@ -18,7 +18,7 @@ RUN apk add --no-cache git npm && \
 #
 # Using the same alpine image as oven/bun
 # https://github.com/oven-sh/bun/blob/bun-v1.1.12/dockerhub/alpine/Dockerfile
-FROM rust:1.81-alpine3.20 AS chef
+FROM rust:1.80-alpine3.20 AS chef
 
 # Patching musl to use mimalloc, see docker/README.md.
 # Source: https://github.com/tweag/rust-alpine-mimalloc
