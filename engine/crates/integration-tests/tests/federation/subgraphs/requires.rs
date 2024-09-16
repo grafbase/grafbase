@@ -1,3 +1,4 @@
+use indoc::indoc;
 use integration_tests::runtime;
 
 #[test]
@@ -71,6 +72,24 @@ fn simple_requires() {
       }
     }
     "###);
+}
+
+#[test]
+fn requires_fields_not_part_of_the_parent() {
+    let response = runtime().block_on(super::execute(indoc! {r#"
+        query ExampleQuery {
+            me {
+                reviews {
+                    product {
+                        shippingEstimate
+                    }
+                }
+            }
+        }
+    "#}));
+
+    // This cannot be an error.
+    insta::assert_json_snapshot!(response, @r###""###);
 }
 
 #[test]
