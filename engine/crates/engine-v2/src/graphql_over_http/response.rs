@@ -24,9 +24,16 @@ pub(crate) struct Http;
 impl Http {
     pub(crate) fn error(format: ResponseFormat, response: Response) -> http::Response<Body> {
         match format {
-            ResponseFormat::Complete(format) => Self::from_complete_response(format, &response),
+            ResponseFormat::Complete(format) => Self::from_complete_response_with_telemetry(format, &response),
             ResponseFormat::Streaming(format) => {
-                Self::stream_from_first_response_and_rest(format, response, futures_util::stream::empty())
+                let telemetry = TelemetryExtension::Ready(response.execution_telemetry());
+                let mut http_response = Self::stream_from_first_response_and_rest_without_extensions(
+                    format,
+                    response,
+                    futures_util::stream::empty(),
+                );
+                http_response.extensions_mut().insert(telemetry);
+                http_response
             }
         }
     }
@@ -36,7 +43,7 @@ impl Http {
         hooks_context: C,
         mut response: Response,
     ) -> http::Response<Body> {
-        let mut http_response = Self::from_complete_response(format, &response);
+        let mut http_response = Self::from_complete_response_with_telemetry(format, &response);
         http_response.extensions_mut().insert(HooksExtension::Single {
             context: hooks_context,
             on_operation_response_output: response.take_on_operation_response_output(),
@@ -77,7 +84,7 @@ impl Http {
                     (count, distinct_error_codes)
                 },
             );
-            Some(TelemetryExtension::Ready(GraphqlExecutionTelemetry {
+            TelemetryExtension::Ready(GraphqlExecutionTelemetry {
                 errors_count: count as u64,
                 distinct_error_codes: distinct_error_codes.into_iter().collect(),
                 operations: responses
@@ -85,16 +92,16 @@ impl Http {
                     .filter_map(|response| response.operation_attributes())
                     .map(|attributes| (attributes.ty, attributes.name.clone()))
                     .collect(),
-            }))
+            })
         };
 
-        let hooks = Some(HooksExtension::Batch {
+        let hooks = HooksExtension::Batch {
             context: hooks_context,
             on_operation_response_outputs: responses
                 .iter_mut()
                 .filter_map(|response| response.take_on_operation_response_output())
                 .collect(),
-        });
+        };
 
         let mut headers = http::HeaderMap::new();
         headers.insert(
@@ -130,7 +137,8 @@ impl Http {
             return internal_server_error();
         };
 
-        let mut http_response = Self::stream_from_first_response_and_rest(format, first_response, stream);
+        let mut http_response =
+            Self::stream_from_first_response_and_rest_without_extensions(format, first_response, stream);
         http_response
             .extensions_mut()
             .insert(TelemetryExtension::Future(telemetry));
@@ -141,7 +149,7 @@ impl Http {
         http_response
     }
 
-    fn stream_from_first_response_and_rest(
+    fn stream_from_first_response_and_rest_without_extensions(
         format: StreamingResponseFormat,
         response: Response,
         rest: impl Stream<Item = Response> + 'static + Send,
@@ -167,8 +175,11 @@ impl Http {
         http_response
     }
 
-    fn from_complete_response(format: CompleteResponseFormat, response: &Response) -> http::Response<Body> {
-        let telemetry = Some(TelemetryExtension::Ready(response.execution_telemetry()));
+    fn from_complete_response_with_telemetry(
+        format: CompleteResponseFormat,
+        response: &Response,
+    ) -> http::Response<Body> {
+        let telemetry = TelemetryExtension::Ready(response.execution_telemetry());
         let bytes = match serde_json::to_vec(response) {
             Ok(bytes) => OwnedOrSharedBytes::Owned(bytes),
             Err(err) => {
@@ -260,6 +271,13 @@ fn internal_server_error() -> http::Response<Body> {
     let mut response = http::Response::new(Body::Bytes(OwnedOrSharedBytes::Shared(body)));
     *response.status_mut() = http::StatusCode::INTERNAL_SERVER_ERROR;
     *response.headers_mut() = headers;
+    response
+        .extensions_mut()
+        .insert(TelemetryExtension::Ready(GraphqlExecutionTelemetry {
+            errors_count: 1,
+            distinct_error_codes: vec![ErrorCode::InternalServerError],
+            operations: Vec::new(),
+        }));
 
     response
 }

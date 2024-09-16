@@ -86,7 +86,7 @@ fn tracecontext_traceparent_propagation() {
                 FROM otel_traces
                 WHERE ServiceName = ?
                     AND Timestamp >= ?
-                    AND SpanName = 'gateway'
+                    AND SpanAttributes['grafbase.kind'] = 'http-request'
                     AND TraceId = '0af7651916cd43dd8448eb211c80319c'
                 "#,
                 )
@@ -186,7 +186,7 @@ fn tracecontext_and_baggage_propagation() {
                 FROM otel_traces
                 WHERE ServiceName = ?
                     AND Timestamp >= ?
-                    AND SpanName = 'gateway'
+                    AND SpanAttributes['grafbase.kind'] = 'http-request'
                     AND TraceId = '0af7651916cd43dd8448eb211c80319c'
                 "#,
                 )

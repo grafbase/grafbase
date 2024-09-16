@@ -23,6 +23,7 @@ pub struct RequestMetricsAttributes {
     pub listen_address: Option<SocketAddr>,
     pub version: Option<http::Version>,
     pub method: Option<http::Method>,
+    pub has_graphql_errors: bool,
 }
 
 impl RequestMetrics {
@@ -45,6 +46,7 @@ impl RequestMetrics {
             route,
             listen_address,
             version,
+            has_graphql_errors,
         }: RequestMetricsAttributes,
         duration: std::time::Duration,
     ) {
@@ -81,6 +83,10 @@ impl RequestMetrics {
             if let Some(version) = client.version {
                 attributes.push(KeyValue::new("http.headers.x-grafbase-client-version", version));
             }
+        }
+
+        if has_graphql_errors {
+            attributes.push(KeyValue::new("graphql.response.has_errors", true));
         }
 
         self.latency.record(duration.as_millis() as u64, &attributes);

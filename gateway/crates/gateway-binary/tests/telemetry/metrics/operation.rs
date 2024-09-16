@@ -85,6 +85,7 @@ fn introspection_should_not_appear_in_used_fields() {
         {
           "Count": 1,
           "Attributes": {
+            "grafbase.operation.computed_name": "__schema",
             "graphql.document": "query {\n  __schema {\n    description\n  }\n}\n",
             "graphql.operation.type": "query",
             "graphql.response.status": "SUCCESS"
@@ -213,6 +214,7 @@ fn generate_operation_name() {
         {
           "Count": 1,
           "Attributes": {
+            "grafbase.operation.computed_name": "myFavoriteField",
             "graphql.document": "query {\n  ignoreMe\n  myFavoriteField\n}\n",
             "graphql.operation.type": "query",
             "graphql.response.status": "REQUEST_ERROR"

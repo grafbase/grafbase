@@ -116,6 +116,8 @@ impl EngineMetrics {
 
         if let OperationName::Original(name) = operation.name {
             attributes.push(KeyValue::new("graphql.operation.name", name));
+        } else if let OperationName::Computed(name) = operation.name {
+            attributes.push(KeyValue::new("grafbase.operation.computed_name", name));
         }
 
         attributes

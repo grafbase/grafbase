@@ -3,10 +3,7 @@ use url::Url;
 
 use crate::graphql::SubgraphResponseStatus;
 
-use super::graphql::record_graphql_response_status;
-
-/// Subgraph request span name
-pub const SUBGRAPH_SPAN_NAME: &str = "subgraph";
+use super::{graphql::record_graphql_response_status, kind::GrafbaseSpanKind};
 
 /// A span for a subgraph request
 pub struct SubgraphRequestSpanBuilder<'a> {
@@ -31,10 +28,12 @@ impl<'a> SubgraphRequestSpanBuilder<'a> {
     pub fn build(self) -> SubgraphGraphqlRequestSpan {
         // We follow the HTTP client span conventions:
         // https://opentelemetry.io/docs/specs/semconv/http/http-spans/#http-client
+        let kind: &'static str = GrafbaseSpanKind::SubgraphGraphqlRequest.into();
         let span = info_span!(
             target: crate::span::GRAFBASE_TARGET,
-            SUBGRAPH_SPAN_NAME,
-            "otel.name" = format!("{SUBGRAPH_SPAN_NAME}:{}", self.subgraph_name),
+            "subgraph-request",
+            "grafbase.kind" = kind,
+            "otel.name" = Empty,
             "otel.kind" = "Client",
             "otel.status_code" = Empty,
             "subgraph.name" = self.subgraph_name,
@@ -61,6 +60,7 @@ impl<'a> SubgraphRequestSpanBuilder<'a> {
 
 impl SubgraphGraphqlRequestSpan {
     pub fn record_http_request(&self, url: &Url, method: &http::Method) {
+        self.record("otel.name", format!("{} {}", method.as_str(), url.path()));
         self.record("http.request.method", method.as_str());
         self.record("server.address", url.host_str());
         self.record("server.port", url.port());

@@ -98,6 +98,7 @@ fn request_error() {
         {
           "Count": 1,
           "Attributes": {
+            "graphql.response.has_errors": "true",
             "http.request.method": "POST",
             "http.response.status_code": "200",
             "http.route": "/graphql",
@@ -160,6 +161,7 @@ fn field_error() {
         {
           "Count": 1,
           "Attributes": {
+            "graphql.response.has_errors": "true",
             "http.request.method": "POST",
             "http.response.status_code": "200",
             "http.route": "/graphql",
@@ -218,6 +220,7 @@ fn field_error_data_null() {
         {
           "Count": 1,
           "Attributes": {
+            "graphql.response.has_errors": "true",
             "http.request.method": "POST",
             "http.response.status_code": "200",
             "http.route": "/graphql",
