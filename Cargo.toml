@@ -59,7 +59,7 @@ serde_with = { git = "https://github.com/grafbase/serde_with", rev = "06ad277a0e
 tar = { git = "https://github.com/grafbase/tar-rs", rev = "a889df5bd9fec44faf081f7fade5ec81935c2418" } # overwrite-hard-links
 tokio-postgres = { git = "https://github.com/grafbase/rust-postgres/", branch = "grafbase-rebased" }
 # Upgrade 0.4.13 only to get rid of indexmap 1.9.
-tower = { git = "https://github.com/grafbase/tower", rev = "7202cfeecd13ad6bbecd537d9799244313600db5" } # upgrade-indexmap
+# tower = { git = "https://github.com/grafbase/tower", rev = "7202cfeecd13ad6bbecd537d9799244313600db5" } # upgrade-indexmap
 # FIXME: Uncomment when we upgrade opentelemetry to 0.23.
 # tracing-opentelemetry = { git = "https://github.com/tokio-rs/tracing-opentelemetry", rev = "2539f4f7bde3dc3f320e5fb935d2c13a69a540dd" } # main
 tracing = { git = "https://github.com/tokio-rs/tracing", rev = "6d00d7d9f72dc6797138a1062bc33073afbad5a1" }      # v0.1.x
@@ -87,6 +87,7 @@ async-graphql-parser = "7.0.3"
 async-graphql-value = "7.0.3"
 async-sse = "5"
 async-trait = "0.1.80"
+async-tungstenite = "0.26.0"
 axum = { version = "0.7.5", default-features = false }
 axum-server = { version = "0.7", default-features = false }
 base64 = "0.22.1"
@@ -140,9 +141,9 @@ tokio = "1.37.0"
 tokio-postgres = { version = "0.7.10", default-features = false }
 tokio-postgres-rustls = "0.12.0"
 tokio-rustls = { version = "0.26.0", default-features = false }
-tokio-tungstenite = { version = "0.24.0", default-features = false }
+tokio-tungstenite = { version = "0.23.0", default-features = false }
 toml = "0.8"
-tungstenite = { version = "0.24.0", default-features = false }
+tungstenite = { version = "0.23.0", default-features = false }
 tonic = "0.12.0"
 tower = "0.5.0"
 tower-http = "0.5.2"
