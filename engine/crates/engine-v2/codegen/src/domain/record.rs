@@ -1,6 +1,6 @@
 use cynic_parser::common::WrappingType;
 
-use super::{Definition, Indexed, Meta};
+use super::{Definition, FieldMeta, Indexed, Meta};
 
 #[derive(Debug)]
 pub struct Object {
@@ -27,6 +27,7 @@ impl Object {
 
 #[derive(Debug)]
 pub struct Field {
+    pub meta: FieldMeta,
     pub name: String,
     pub description: Option<String>,
     pub record_field_name: String,

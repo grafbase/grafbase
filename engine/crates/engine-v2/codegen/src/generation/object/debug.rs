@@ -20,7 +20,7 @@ impl ToTokens for WalkerDebug<'_> {
         let walker_struct = Ident::new(object.walker_name(), Span::call_site());
         let name_string = proc_macro2::Literal::string(object.walker_name());
 
-        let fields = fields.iter().map(DebugField);
+        let fields = fields.iter().filter(|field| field.meta.debug).map(DebugField);
 
         tokens.append_all(quote! {
             impl std::fmt::Debug for #walker_struct<'_> {

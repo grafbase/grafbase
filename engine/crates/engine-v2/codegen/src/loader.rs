@@ -76,6 +76,7 @@ pub(super) fn load(path: PathBuf) -> anyhow::Result<domain::Domain> {
                 fields: object
                     .fields()
                     .map(|field| domain::Field {
+                        meta: parse_field_meta(field.directives()).unwrap_or_default(),
                         name: field.name().to_string(),
                         // Add any explicitly defined field name or leave empty to be generated
                         // afterwards.
@@ -306,6 +307,21 @@ fn parse_record_field_name(mut directives: Iter<'_, Directive<'_>>) -> Option<St
                 .and_then(|arg| arg.value().as_str())
                 .map(str::to_string)
         })
+}
+
+fn parse_field_meta(mut directives: Iter<'_, Directive<'_>>) -> Option<domain::FieldMeta> {
+    let directive = directives.find(|directive| directive.name() == "meta")?;
+
+    let debug = directive
+        .arguments()
+        .find(|arg| arg.name() == "debug")
+        .and_then(|arg| match arg.value() {
+            Value::Boolean(value) => Some(value),
+            _ => None,
+        })
+        .unwrap_or(true);
+
+    Some(domain::FieldMeta { debug })
 }
 
 fn parse_meta(mut directives: Iter<'_, Directive<'_>>) -> Option<domain::Meta> {
