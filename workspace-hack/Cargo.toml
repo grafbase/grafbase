@@ -367,7 +367,7 @@ iana-time-zone = { version = "0.1", default-features = false, features = ["fallb
 libc = { version = "0.2", features = ["extra_traits"] }
 linux-raw-sys = { version = "0.4", default-features = false, features = ["elf", "errno", "general", "if_ether", "ioctl", "net", "netlink", "no_std", "prctl", "std", "xdp"] }
 miniz_oxide = { version = "0.7", default-features = false, features = ["with-alloc"] }
-mio = { version = "0.8", features = ["net", "os-ext"] }
+mio = { version = "1.0", features = ["net", "os-ext"] }
 object = { version = "0.36", default-features = false, features = ["archive", "read_core", "unaligned", "write"] }
 rustix = { version = "0.38", features = ["event", "mm", "net", "param", "process", "procfs", "termios", "thread", "time"] }
 spin = { version = "0.9" }
@@ -384,7 +384,7 @@ iana-time-zone = { version = "0.1", default-features = false, features = ["fallb
 libc = { version = "0.2", features = ["extra_traits"] }
 linux-raw-sys = { version = "0.4", default-features = false, features = ["elf", "errno", "general", "if_ether", "ioctl", "net", "netlink", "no_std", "prctl", "std", "xdp"] }
 miniz_oxide = { version = "0.7", default-features = false, features = ["with-alloc"] }
-mio = { version = "0.8", features = ["net", "os-ext"] }
+mio = { version = "1.0", features = ["net", "os-ext"] }
 object = { version = "0.36", default-features = false, features = ["archive", "read_core", "unaligned", "write"] }
 rustix = { version = "0.38", features = ["event", "mm", "net", "param", "process", "procfs", "termios", "thread", "time"] }
 spin = { version = "0.9" }
@@ -401,7 +401,7 @@ iana-time-zone = { version = "0.1", default-features = false, features = ["fallb
 libc = { version = "0.2", features = ["extra_traits"] }
 linux-raw-sys = { version = "0.4", default-features = false, features = ["elf", "errno", "general", "if_ether", "ioctl", "net", "netlink", "no_std", "prctl", "std", "xdp"] }
 miniz_oxide = { version = "0.7", default-features = false, features = ["with-alloc"] }
-mio = { version = "0.8", features = ["net", "os-ext"] }
+mio = { version = "1.0", features = ["net", "os-ext"] }
 object = { version = "0.36", default-features = false, features = ["archive", "read_core", "unaligned", "write"] }
 rustix = { version = "0.38", features = ["event", "mm", "net", "param", "process", "procfs", "termios", "thread", "time"] }
 stable_deref_trait = { version = "1" }
@@ -417,7 +417,7 @@ iana-time-zone = { version = "0.1", default-features = false, features = ["fallb
 libc = { version = "0.2", features = ["extra_traits"] }
 linux-raw-sys = { version = "0.4", default-features = false, features = ["elf", "errno", "general", "if_ether", "ioctl", "net", "netlink", "no_std", "prctl", "std", "xdp"] }
 miniz_oxide = { version = "0.7", default-features = false, features = ["with-alloc"] }
-mio = { version = "0.8", features = ["net", "os-ext"] }
+mio = { version = "1.0", features = ["net", "os-ext"] }
 object = { version = "0.36", default-features = false, features = ["archive", "read_core", "unaligned", "write"] }
 rustix = { version = "0.38", features = ["event", "mm", "net", "param", "process", "procfs", "termios", "thread", "time"] }
 stable_deref_trait = { version = "1" }
