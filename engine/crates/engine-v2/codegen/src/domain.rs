@@ -194,6 +194,17 @@ pub struct Meta {
 }
 
 #[derive(Debug)]
+pub struct FieldMeta {
+    pub debug: bool,
+}
+
+impl Default for FieldMeta {
+    fn default() -> Self {
+        Self { debug: true }
+    }
+}
+
+#[derive(Debug)]
 pub struct Indexed {
     pub id_struct_name: String,
     pub id_size: Option<String>,

@@ -5,7 +5,7 @@ impl std::fmt::Debug for InterfaceDefinition<'_> {
         f.debug_struct("InterfaceDefinition")
             .field("name", &self.name())
             .field("description", &self.description())
-            .field("fields", &self.fields())
+            .field("fields", &self.fields().map(|field| field.name()))
             .field(
                 "interfaces",
                 &self.interfaces().map(|interface| interface.name()).collect::<Vec<_>>(),
