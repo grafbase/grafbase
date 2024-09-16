@@ -47,7 +47,7 @@ crc32fast = { version = "1" }
 criterion = { version = "0.5", features = ["async_tokio", "html_reports"] }
 crossbeam-queue = { version = "0.3" }
 crossbeam-utils = { version = "0.8" }
-cynic-parser = { git = "https://github.com/grafbase/cynic", rev = "15c409ff9515ad1c38c6cc760709545c549e7ccf", features = ["pretty", "report"] }
+cynic-parser = { git = "https://github.com/grafbase/cynic", rev = "920dd202101a0643a0c29031e1cfa0f20031c2d6", features = ["pretty", "report"] }
 deadpool-runtime = { version = "0.1", default-features = false, features = ["tokio_1"] }
 der = { version = "0.7", default-features = false, features = ["oid", "pem", "std"] }
 deranged = { version = "0.3", default-features = false, features = ["powerfmt", "std"] }
@@ -177,8 +177,8 @@ crc32fast = { version = "1" }
 criterion = { version = "0.5", features = ["async_tokio", "html_reports"] }
 crossbeam-queue = { version = "0.3" }
 crossbeam-utils = { version = "0.8" }
-cynic-codegen = { git = "https://github.com/grafbase/cynic", rev = "15c409ff9515ad1c38c6cc760709545c549e7ccf", features = ["rkyv"] }
-cynic-parser = { git = "https://github.com/grafbase/cynic", rev = "15c409ff9515ad1c38c6cc760709545c549e7ccf", features = ["pretty", "report"] }
+cynic-codegen = { git = "https://github.com/grafbase/cynic", rev = "920dd202101a0643a0c29031e1cfa0f20031c2d6", features = ["rkyv"] }
+cynic-parser = { git = "https://github.com/grafbase/cynic", rev = "920dd202101a0643a0c29031e1cfa0f20031c2d6", features = ["pretty", "report"] }
 deadpool-runtime = { version = "0.1", default-features = false, features = ["tokio_1"] }
 der = { version = "0.7", default-features = false, features = ["oid", "pem", "std"] }
 deranged = { version = "0.3", default-features = false, features = ["powerfmt", "std"] }
