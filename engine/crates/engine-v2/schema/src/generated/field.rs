@@ -24,7 +24,7 @@ use walker::{Iter, Walk};
 /// type FieldDefinition @meta(module: "field") @indexed(id_size: "u32", max_id: "MAX_ID") {
 ///   name: String!
 ///   description: String
-///   parent_entity: EntityDefinition!
+///   parent_entity: EntityDefinition! @meta(debug: false)
 ///   ty: Type!
 ///   resolvers: [ResolverDefinition!]!
 ///   """
@@ -135,7 +135,6 @@ impl std::fmt::Debug for FieldDefinition<'_> {
         f.debug_struct("FieldDefinition")
             .field("name", &self.name())
             .field("description", &self.description())
-            .field("parent_entity", &self.parent_entity())
             .field("ty", &self.ty())
             .field("resolvers", &self.resolvers())
             .field("only_resolvable_in", &self.only_resolvable_in())
