@@ -122,7 +122,7 @@ impl Walk<Schema> for RequiredFieldArgumentRecord {
 impl std::fmt::Debug for RequiredFieldArgument<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("RequiredFieldArgument")
-            .field("definition", &self.definition())
+            .field("definition", &self.definition().to_string())
             .field("value", &self.value())
             .finish()
     }

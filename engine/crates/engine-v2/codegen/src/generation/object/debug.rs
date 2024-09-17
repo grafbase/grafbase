@@ -3,7 +3,7 @@ use proc_macro2::{Ident, Span};
 use quote::{quote, ToTokens, TokenStreamExt};
 use tracing::instrument;
 
-use crate::domain::{AccessKind, Object};
+use crate::domain::{AccessKind, Definition, Object};
 
 use super::FieldContext;
 
@@ -40,7 +40,7 @@ impl ToTokens for DebugField<'_> {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         let DebugField(field) = self;
 
-        let name = Ident::new(&field.name, Span::call_site());
+        let field_name = Ident::new(&field.name, Span::call_site());
         let name_string = proc_macro2::Literal::string(&field.name);
         let kind = self.0.ty.access_kind();
 
@@ -48,27 +48,45 @@ impl ToTokens for DebugField<'_> {
             match kind {
                 AccessKind::Copy | AccessKind::Ref | AccessKind::IdRef => match field.wrapping[..] {
                     [] | [WrappingType::NonNull] => {
-                        quote! { .field(#name_string, &self.#name()) }
+                        quote! { .field(#name_string, &self.#field_name()) }
                     }
                     [WrappingType::NonNull, WrappingType::List, WrappingType::NonNull]
                     | [WrappingType::NonNull, WrappingType::List] => {
-                        quote! { .field(#name_string, &self.#name()).collect::<Vec<_>>() }
+                        quote! { .field(#name_string, &self.#field_name().collect::<Vec<_>>()) }
                     }
                     [WrappingType::NonNull, WrappingType::List, WrappingType::NonNull, WrappingType::List, WrappingType::NonNull]
                     | [WrappingType::NonNull, WrappingType::List, WrappingType::NonNull, WrappingType::List] => {
-                        quote! { .field(#name_string, &self.#name().map(|items| items.collect::<Vec<_>>()).collect::<Vec<_>>()) }
+                        quote! { .field(#name_string, &self.#field_name().map(|items| items.collect::<Vec<_>>()).collect::<Vec<_>>()) }
                     }
                     _ => {
                         tracing::error!("Unsupported wrapping {:?}", self.0.wrapping);
                         unimplemented!()
                     }
                 },
-                AccessKind::IdWalker | AccessKind::RefWalker | AccessKind::ItemWalker => {
-                    quote! { .field(#name_string, &self.#name()) }
+                AccessKind::IdWalker | AccessKind::RefWalker | AccessKind::ItemWalker if self.0.ty.is_scalar() => {
+                    quote! { .field(#name_string, &self.#field_name()) }
                 }
+                AccessKind::IdWalker | AccessKind::RefWalker | AccessKind::ItemWalker => match field.wrapping[..] {
+                    [] => {
+                        quote! { .field(#name_string, &self.#field_name().map(|walker| walker.to_string())) }
+                    }
+                    [WrappingType::NonNull] => {
+                        quote! { .field(#name_string, &self.#field_name().to_string()) }
+                    }
+                    [WrappingType::NonNull, WrappingType::List] => {
+                        quote! { .field(#name_string, &self.#field_name().map(|walkers| walkers.map(|walker| walker.to_string()).collect::<Vec<_>>())) }
+                    }
+                    [WrappingType::NonNull, WrappingType::List, WrappingType::NonNull] => {
+                        quote! { .field(#name_string, &self.#field_name().map(|walker| walker.to_string()).collect::<Vec<_>>()) }
+                    }
+                    _ => {
+                        tracing::error!("Unsupported wrapping {:?}", self.0.wrapping);
+                        unimplemented!()
+                    }
+                },
             }
         } else {
-            quote! { .field(#name_string, &self.#name) }
+            quote! { .field(#name_string, &self.#field_name) }
         };
 
         tokens.append_all(tt);

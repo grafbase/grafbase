@@ -303,7 +303,7 @@ impl<'a> LogicalPlanner<'a> {
                     logic.is_providable(definition.id())
                         && !definition.has_required_fields_for_subgraph(logic.resolver().subgraph_id())
                 } else {
-                    true
+                    true // __typename
                 }
             });
 

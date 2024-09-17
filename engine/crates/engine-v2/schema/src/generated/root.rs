@@ -67,9 +67,9 @@ impl Walk<Schema> for &RootOperationTypesRecord {
 impl std::fmt::Debug for RootOperationTypes<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("RootOperationTypes")
-            .field("query", &self.query())
-            .field("mutation", &self.mutation())
-            .field("subscription", &self.subscription())
+            .field("query", &self.query().to_string())
+            .field("mutation", &self.mutation().map(|walker| walker.to_string()))
+            .field("subscription", &self.subscription().map(|walker| walker.to_string()))
             .finish()
     }
 }

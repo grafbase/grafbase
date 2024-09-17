@@ -88,9 +88,12 @@ impl std::fmt::Debug for InputValueDefinition<'_> {
         f.debug_struct("InputValueDefinition")
             .field("name", &self.name())
             .field("description", &self.description())
-            .field("ty", &self.ty())
+            .field("ty", &self.ty().to_string())
             .field("default_value", &self.default_value())
-            .field("directives", &self.directives())
+            .field(
+                "directives",
+                &self.directives().map(|walker| walker.to_string()).collect::<Vec<_>>(),
+            )
             .finish()
     }
 }

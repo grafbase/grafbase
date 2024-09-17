@@ -63,7 +63,7 @@ impl Walk<Schema> for FieldRequiresRecord {
 impl std::fmt::Debug for FieldRequires<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("FieldRequires")
-            .field("subgraph", &self.subgraph())
+            .field("subgraph", &self.subgraph().to_string())
             .field("field_set", &self.field_set())
             .finish()
     }

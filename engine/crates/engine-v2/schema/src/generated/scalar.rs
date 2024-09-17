@@ -87,7 +87,10 @@ impl std::fmt::Debug for ScalarDefinition<'_> {
             .field("ty", &self.ty)
             .field("description", &self.description())
             .field("specified_by_url", &self.specified_by_url())
-            .field("directives", &self.directives())
+            .field(
+                "directives",
+                &self.directives().map(|walker| walker.to_string()).collect::<Vec<_>>(),
+            )
             .finish()
     }
 }

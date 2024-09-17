@@ -43,6 +43,13 @@ impl<'schema, 'a> SelectionSetLogicalPlanner<'schema, 'a> {
         }
     }
 
+    /// {
+    ///  a @join_type(graph: A){
+    ///    a2 @join_type(graph: A)
+    ///    b @join_type(graph: B)
+    ///  }
+    /// }
+
     #[instrument(
         level = Level::DEBUG,
         skip_all,
@@ -553,6 +560,10 @@ impl<'schema, 'a> SelectionSetLogicalPlanner<'schema, 'a> {
                     }
                 }
             }
+        }
+
+        if candidates.is_empty() {
+            // create plans
         }
         Ok(())
     }

@@ -58,7 +58,7 @@ impl Walk<Schema> for GraphqlRootFieldResolverDefinitionRecord {
 impl std::fmt::Debug for GraphqlRootFieldResolverDefinition<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("GraphqlRootFieldResolverDefinition")
-            .field("endpoint", &self.endpoint())
+            .field("endpoint", &self.endpoint().to_string())
             .finish()
     }
 }
@@ -116,7 +116,7 @@ impl Walk<Schema> for GraphqlFederationEntityResolverDefinitionRecord {
 impl std::fmt::Debug for GraphqlFederationEntityResolverDefinition<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("GraphqlFederationEntityResolverDefinition")
-            .field("endpoint", &self.endpoint())
+            .field("endpoint", &self.endpoint().to_string())
             .field("key_fields", &self.key_fields())
             .finish()
     }

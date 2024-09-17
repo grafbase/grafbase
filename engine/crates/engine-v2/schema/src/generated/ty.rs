@@ -60,7 +60,7 @@ impl Walk<Schema> for TypeRecord {
 impl std::fmt::Debug for Type<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Type")
-            .field("definition", &self.definition())
+            .field("definition", &self.definition().to_string())
             .field("wrapping", &self.wrapping)
             .finish()
     }

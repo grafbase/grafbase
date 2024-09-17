@@ -27,6 +27,10 @@ pub enum Definition {
 }
 
 impl Definition {
+    pub fn is_scalar(&self) -> bool {
+        matches!(self, Definition::Scalar(_))
+    }
+
     pub fn name(&self) -> &str {
         match self {
             Definition::Scalar(scalar) => &scalar.name,

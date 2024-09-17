@@ -83,8 +83,14 @@ impl std::fmt::Debug for EnumDefinition<'_> {
         f.debug_struct("EnumDefinition")
             .field("name", &self.name())
             .field("description", &self.description())
-            .field("values", &self.values())
-            .field("directives", &self.directives())
+            .field(
+                "values",
+                &self.values().map(|walker| walker.to_string()).collect::<Vec<_>>(),
+            )
+            .field(
+                "directives",
+                &self.directives().map(|walker| walker.to_string()).collect::<Vec<_>>(),
+            )
             .finish()
     }
 }

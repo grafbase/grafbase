@@ -60,7 +60,7 @@ impl Walk<Schema> for &FieldProvidesRecord {
 impl std::fmt::Debug for FieldProvides<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("FieldProvides")
-            .field("subgraph", &self.subgraph())
+            .field("subgraph", &self.subgraph().to_string())
             .field("field_set", &self.field_set)
             .finish()
     }

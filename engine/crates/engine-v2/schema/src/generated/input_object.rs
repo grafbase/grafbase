@@ -83,8 +83,14 @@ impl std::fmt::Debug for InputObjectDefinition<'_> {
         f.debug_struct("InputObjectDefinition")
             .field("name", &self.name())
             .field("description", &self.description())
-            .field("input_fields", &self.input_fields())
-            .field("directives", &self.directives())
+            .field(
+                "input_fields",
+                &self.input_fields().map(|walker| walker.to_string()).collect::<Vec<_>>(),
+            )
+            .field(
+                "directives",
+                &self.directives().map(|walker| walker.to_string()).collect::<Vec<_>>(),
+            )
             .finish()
     }
 }

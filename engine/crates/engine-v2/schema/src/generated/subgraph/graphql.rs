@@ -86,7 +86,10 @@ impl std::fmt::Debug for GraphqlEndpoint<'_> {
             .field("subgraph_name", &self.subgraph_name())
             .field("url", &self.url())
             .field("websocket_url", &self.websocket_url())
-            .field("header_rules", &self.header_rules())
+            .field(
+                "header_rules",
+                &self.header_rules().map(|walker| walker.to_string()).collect::<Vec<_>>(),
+            )
             .field("config", &self.config)
             .finish()
     }

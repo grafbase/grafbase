@@ -78,7 +78,10 @@ impl std::fmt::Debug for EnumValue<'_> {
         f.debug_struct("EnumValue")
             .field("name", &self.name())
             .field("description", &self.description())
-            .field("directives", &self.directives())
+            .field(
+                "directives",
+                &self.directives().map(|walker| walker.to_string()).collect::<Vec<_>>(),
+            )
             .finish()
     }
 }

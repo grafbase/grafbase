@@ -135,13 +135,34 @@ impl std::fmt::Debug for FieldDefinition<'_> {
         f.debug_struct("FieldDefinition")
             .field("name", &self.name())
             .field("description", &self.description())
-            .field("ty", &self.ty())
-            .field("resolvers", &self.resolvers())
-            .field("only_resolvable_in", &self.only_resolvable_in())
-            .field("requires", &self.requires())
-            .field("provides", &self.provides())
-            .field("arguments", &self.arguments())
-            .field("directives", &self.directives())
+            .field("ty", &self.ty().to_string())
+            .field(
+                "resolvers",
+                &self.resolvers().map(|walker| walker.to_string()).collect::<Vec<_>>(),
+            )
+            .field(
+                "only_resolvable_in",
+                &self
+                    .only_resolvable_in()
+                    .map(|walker| walker.to_string())
+                    .collect::<Vec<_>>(),
+            )
+            .field(
+                "requires",
+                &self.requires().map(|walker| walker.to_string()).collect::<Vec<_>>(),
+            )
+            .field(
+                "provides",
+                &self.provides().map(|walker| walker.to_string()).collect::<Vec<_>>(),
+            )
+            .field(
+                "arguments",
+                &self.arguments().map(|walker| walker.to_string()).collect::<Vec<_>>(),
+            )
+            .field(
+                "directives",
+                &self.directives().map(|walker| walker.to_string()).collect::<Vec<_>>(),
+            )
             .finish()
     }
 }

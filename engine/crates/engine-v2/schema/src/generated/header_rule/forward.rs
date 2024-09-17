@@ -68,7 +68,7 @@ impl Walk<Schema> for ForwardHeaderRuleRecord {
 impl std::fmt::Debug for ForwardHeaderRule<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("ForwardHeaderRule")
-            .field("name", &self.name())
+            .field("name", &self.name().to_string())
             .field("default", &self.default())
             .field("rename", &self.rename())
             .finish()
