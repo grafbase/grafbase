@@ -5,7 +5,7 @@ use engine::parser::types::OperationType;
 use futures_util::FutureExt;
 use grafbase_telemetry::{
     grafbase_client::Client,
-    graphql::GraphqlOperationAttributes,
+    graphql::{GraphqlOperationAttributes, OperationName},
     metrics::{EngineMetrics, GraphqlRequestMetricsAttributes},
     span::graphql::GraphqlOperationSpan,
 };
@@ -199,7 +199,7 @@ where
                             grafbase_telemetry::graphql::OperationType::Subscription
                         }
                     },
-                    name: operation.name.clone(),
+                    name: operation.name.clone().map(OperationName::Original).unwrap_or_default(),
                     sanitized_query: sanitized_query.into(),
                 };
                 graphql_span.record_operation(&operation);

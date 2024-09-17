@@ -279,7 +279,7 @@ impl Schema {
                     operations
                         .get(operation_name)
                         .map(|operation| GraphqlOperationAnalyticsAttributes {
-                            name: OperationName::Original(operation_name.to_string()),
+                            name: Some(operation_name.to_string()),
                             r#type: response_operation_for_definition(&operation.node),
                             used_fields: String::new(),
                         })
@@ -289,16 +289,14 @@ impl Schema {
         } else {
             match &document.operations {
                 DocumentOperations::Single(operation) => Some(GraphqlOperationAnalyticsAttributes {
-                    name: engine_parser::find_first_field_name(&document.fragments, &operation.node.selection_set)
-                        .map(OperationName::Computed)
-                        .unwrap_or_default(),
+                    name: engine_parser::find_first_field_name(&document.fragments, &operation.node.selection_set),
                     r#type: response_operation_for_definition(&operation.node),
                     used_fields: String::new(),
                 }),
                 DocumentOperations::Multiple(operations) if operations.len() == 1 => {
                     let (operation_name, operation) = operations.iter().next().unwrap();
                     Some(GraphqlOperationAnalyticsAttributes {
-                        name: OperationName::Original(operation_name.to_string()),
+                        name: Some(operation_name.to_string()),
                         r#type: response_operation_for_definition(&operation.node),
                         used_fields: String::new(),
                     })
@@ -564,7 +562,7 @@ impl Schema {
 
                     graphql_span.record_operation(&GraphqlOperationAttributes {
                         ty: env.operation.ty.into(),
-                        name: env.operation_analytics_attributes.name.clone(),
+                        name: env.operation_analytics_attributes.name.clone().map(OperationName::Original).unwrap_or_default(),
                         sanitized_query: sanitized_query.clone().map(Into::into).unwrap_or_default(),
                     });
 
@@ -595,7 +593,7 @@ impl Schema {
 
                     graphql_span.record_operation(&GraphqlOperationAttributes {
                         ty: env.operation.ty.into(),
-                        name: env.operation_analytics_attributes.name.clone(),
+                        name: env.operation_analytics_attributes.name.clone().map(OperationName::Original).unwrap_or_default(),
                         sanitized_query: sanitized_query.clone().map(Into::into).unwrap_or_default(),
                     });
 
@@ -630,7 +628,7 @@ impl Schema {
                         grafbase_telemetry::metrics::GraphqlRequestMetricsAttributes {
                             operation: GraphqlOperationAttributes {
                                 ty: env.operation.ty.into(),
-                                name: env.operation_analytics_attributes.name.clone(),
+                        name: env.operation_analytics_attributes.name.clone().map(OperationName::Original).unwrap_or_default(),
                         sanitized_query: sanitized_query.into()
                             },
                             status,

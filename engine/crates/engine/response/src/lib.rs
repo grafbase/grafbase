@@ -3,7 +3,7 @@ use std::{collections::BTreeMap, time::Duration};
 use engine_parser::types::OperationType;
 use engine_value::Value;
 use error::ServerError;
-use grafbase_telemetry::graphql::{GraphqlResponseStatus, OperationName};
+use grafbase_telemetry::graphql::GraphqlResponseStatus;
 use graph_entities::QueryResponse;
 use http::{
     header::{HeaderMap, HeaderName},
@@ -22,7 +22,7 @@ mod streaming;
 /// GraphQL operation used in the request.
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct GraphqlOperationAnalyticsAttributes {
-    pub name: OperationName,
+    pub name: Option<String>,
     pub r#type: common_types::OperationType,
     #[serde(default)]
     pub used_fields: String,
