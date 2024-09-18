@@ -201,7 +201,7 @@ impl Display for BareSelectionSetDisplay<'_> {
 
                     if !subselection.is_empty() {
                         f.write_str(" { ")?;
-                        BareSelectionSetDisplay(&subselection, graph).fmt(f)?;
+                        BareSelectionSetDisplay(subselection, graph).fmt(f)?;
                         f.write_str(" }")?;
                     }
 
@@ -213,7 +213,7 @@ impl Display for BareSelectionSetDisplay<'_> {
                     f.write_str("... on ")?;
                     f.write_str(graph.definition_name(*on))?;
                     f.write_str(" { ")?;
-                    BareSelectionSetDisplay(&subselection, graph).fmt(f)?;
+                    BareSelectionSetDisplay(subselection, graph).fmt(f)?;
                     f.write_str(" }")?;
                 }
             }

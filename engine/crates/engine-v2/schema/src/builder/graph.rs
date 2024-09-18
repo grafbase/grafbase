@@ -829,7 +829,7 @@ impl IdMap<federated_graph::FieldId, FieldDefinitionId> {
                 subselection,
             } => ProvidableField {
                 id: self.get(*field)?,
-                subselection: self.convert_providable_field_set(&subselection),
+                subselection: self.convert_providable_field_set(subselection),
             },
             federated_graph::Selection::InlineFragment { .. } => todo!(),
         })

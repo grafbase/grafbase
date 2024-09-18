@@ -30,7 +30,7 @@ pub(super) fn attach_argument_selection(
 
             let subselection: federated::InputValueDefinitionSet =
                 if let federated::Definition::InputObject(input_object_id) = ctx.out[argument_id].r#type.definition {
-                    attach_selection_on_input_object(&subselection, input_object_id, ctx)
+                    attach_selection_on_input_object(subselection, input_object_id, ctx)
                 } else {
                     Vec::new()
                 };

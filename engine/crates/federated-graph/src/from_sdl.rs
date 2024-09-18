@@ -1085,7 +1085,7 @@ fn attach_selection_set_rec<'a>(
                 attach_inline_fragment(inline_fragment, state)
             }
             executable_ast::Selection::FragmentSpread(_) => {
-                return Err(DomainError("Unsupported fragment spread in selection set".to_owned()));
+                Err(DomainError("Unsupported fragment spread in selection set".to_owned()))
             }
         })
         .collect()
@@ -1147,9 +1147,9 @@ fn attach_inline_fragment(
             .get(type_name)
             .ok_or_else(|| DomainError(format!("Type '{}' in type condition does not exist", type_name)))?,
         None => {
-            return Err(DomainError(format!(
-                "Fragments without type condition are not supported"
-            )))
+            return Err(DomainError(
+                "Fragments without type condition are not supported".to_owned(),
+            ))
         }
     };
 

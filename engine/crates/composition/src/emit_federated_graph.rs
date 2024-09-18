@@ -503,7 +503,7 @@ fn attach_selection(
                     federated::Selection::Field {
                         field,
                         arguments,
-                        subselection: attach_selection(&subselection, field_ty, ctx),
+                        subselection: attach_selection(subselection, field_ty, ctx),
                     }
                 }
                 subgraphs::Selection::InlineFragment { on, subselection } => {
