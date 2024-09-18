@@ -111,13 +111,11 @@ impl DeliveryCompany {
 struct ShippingOptions {
     modalities: Vec<ShippingModality>,
     default_delivery_company: DeliveryCompany,
-    #[graphql(provides = "... on BusinessAccount { email } ... on User { reviewCount }")]
-    seller: Account,
 }
 
 #[ComplexObject]
 impl ShippingOptions {
-    // #[graphql(requires = "modalities { ... on HomingPigeon { nickname } ...on DeliveryCompany { companyType } }")]
+    #[graphql(requires = "modalities { ... on HomingPigeon { nickname } ...on DeliveryCompany { companyType } }")]
     async fn summary(&self) -> String {
         format!(
             "Shipping options: {}",
@@ -239,11 +237,6 @@ impl Query {
                 ShippingModality::DeliveryCompany(c) => c,
                 _ => panic!("default shipping modality should be a delivery company"),
             },
-            seller: Account::BusinessAccount(BusinessAccount {
-                id: "ba_2".into(),
-                email: "email@from-shipping-subgraph.net".to_owned(),
-                joined_timestamp: 1234567890,
-            }),
         }
     }
 }

@@ -75,15 +75,24 @@ impl<'a> Converter<'a> {
         &mut self,
         item: federated_graph::Selection,
     ) -> Result<Option<RequiredFieldSetItemRecord>, InputValueError> {
-        let federated_graph::Selection::Field {
-            field,
-            arguments,
-            subselection,
-        } = item
-        else {
-            todo!()
-        };
+        match item {
+            federated_graph::Selection::Field {
+                field,
+                arguments,
+                subselection,
+            } => self.convert_field_selection(field, arguments, subselection),
+            federated_graph::Selection::InlineFragment { on, subselection } => {
+                self.convert_inline_fragment(on, subselection)
+            }
+        }
+    }
 
+    fn convert_field_selection(
+        &mut self,
+        field: federated_graph::FieldId,
+        arguments: Vec<(federated_graph::InputValueDefinitionId, federated_graph::Value)>,
+        subselection: federated_graph::SelectionSet,
+    ) -> Result<Option<RequiredFieldSetItemRecord>, InputValueError> {
         let Some(definition_id) = self.ctx.idmaps.field.get(field) else {
             return Ok(None);
         };
@@ -129,9 +138,31 @@ impl<'a> Converter<'a> {
             .entry(field)
             .or_insert_with(|| RequiredFieldId::from(n));
 
+<<<<<<< HEAD
         Ok(Some(RequiredFieldSetItemRecord {
             field_id: id,
             subselection: self.convert_set(subselection)?,
         }))
+=======
+        Ok(Some(RequiredFieldSetItemRecord::Field(
+            super::RequiredFieldSetFieldRecord {
+                field_id: id,
+                subselection: self.convert_set(subselection)?,
+            },
+        )))
+    }
+
+    fn convert_inline_fragment(
+        &mut self,
+        on: federated_graph::Definition,
+        subselection: Vec<federated_graph::Selection>,
+    ) -> Result<Option<RequiredFieldSetItemRecord>, InputValueError> {
+        Ok(Some(RequiredFieldSetItemRecord::InlineFragment(
+            super::RequiredFieldSetInlineFragmentRecord {
+                on: on.into(),
+                subselection: self.convert_set(subselection)?,
+            },
+        )))
+>>>>>>> df73acdd7 (wip)
     }
 }

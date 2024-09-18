@@ -121,3 +121,28 @@ fn requires_with_arguments() {
     }
     "###);
 }
+
+#[test]
+fn requires_with_fragment_spread() {
+    let response = runtime().block_on(super::execute(
+        r##"
+        query ExampleQuery {
+            shippingOptions {
+                summary
+                defaultDeliveryCompany {
+                    id
+                    name
+                    companyType
+                }
+                modalities {
+                    id
+                    name
+                    qualifiedName
+                }
+            }
+        }
+        "##,
+    ));
+
+    insta::assert_json_snapshot!(response, @"");
+}
