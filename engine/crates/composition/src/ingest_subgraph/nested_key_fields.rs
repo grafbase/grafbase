@@ -5,7 +5,9 @@ pub(super) fn ingest_nested_key_fields(subgraph_id: SubgraphId, subgraphs: &mut 
     subgraphs.with_nested_key_fields(|subgraphs, nested_key_fields| {
         for definition in subgraphs.walk_subgraph(subgraph_id).definitions() {
             for key in definition.entity_keys() {
-                for field in key.fields() {
+                for selection in key.fields() {
+                    let Selection::Field(field) = selection else { continue };
+
                     let Some(field_type) = definition
                         .find_field(field.field)
                         .and_then(|field| field.r#type().definition(subgraph_id))
@@ -27,13 +29,22 @@ fn ingest_nested_key_fields_rec(
     selection: &Selection,
     nested_key_fields: &mut NestedKeyFields,
 ) {
-    let Some(field) = parent_definition.find_field(selection.field) else {
+    let Selection::Field(FieldSelection {
+        field,
+        arguments: _,
+        subselection,
+    }) = selection
+    else {
+        return;
+    };
+
+    let Some(field) = parent_definition.find_field(*field) else {
         return;
     };
 
     nested_key_fields.insert(field);
 
-    if selection.subselection.is_empty() {
+    if subselection.is_empty() {
         return;
     }
 
@@ -41,7 +52,7 @@ fn ingest_nested_key_fields_rec(
         return;
     };
 
-    for subselection in &selection.subselection {
+    for subselection in subselection {
         ingest_nested_key_fields_rec(selection_field_type, subselection, nested_key_fields);
     }
 }

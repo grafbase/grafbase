@@ -40,6 +40,36 @@ fn validate_selection(
     directive_path: &dyn Fn() -> String,
     directive_name: &str,
 ) {
+    match selection {
+        subgraphs::Selection::Field(field_selection) => {
+            validate_field_selection(ctx, field_selection, on_definition, directive_path, directive_name)
+        }
+        subgraphs::Selection::InlineFragment { on, subselection } => {
+            let subgraph_id = on_definition.subgraph_id();
+            let Some(on) = ctx.subgraphs.definition_by_name_id(*on, subgraph_id) else {
+                let directive_path = directive_path();
+                ctx.diagnostics.push_fatal(format!(
+                    "Error in {directive_name} at {directive_path}: type condition `... {on}` is invalid on {parent_definition}",
+                    on = ctx.subgraphs.walk(*on).as_str(),
+                    parent_definition = on_definition.name().as_str()
+                ));
+                return;
+            };
+
+            for selection in subselection {
+                validate_selection(ctx, selection, ctx.subgraphs.walk(on), directive_path, directive_name);
+            }
+        }
+    }
+}
+
+fn validate_field_selection(
+    ctx: &mut ValidateContext<'_>,
+    selection: &subgraphs::FieldSelection,
+    on_definition: subgraphs::DefinitionWalker<'_>,
+    directive_path: &dyn Fn() -> String,
+    directive_name: &str,
+) {
     // The selected field must exist.
     let Some(field) = on_definition.find_field(selection.field) else {
         return ctx.diagnostics.push_fatal(format!(

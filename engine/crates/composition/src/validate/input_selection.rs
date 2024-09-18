@@ -15,13 +15,19 @@ pub(super) fn validate_input_selections(ctx: &mut ValidateContext<'_>, field: su
                 field.name().as_str()
             )
         };
-        validate_input_selection_on_arguments(ctx, selection, field, &directive_path, directive_name);
+
+        match selection {
+            subgraphs::Selection::Field(field_selection) => {
+                validate_input_selection_on_arguments(ctx, field_selection, field, &directive_path, directive_name);
+            }
+            subgraphs::Selection::InlineFragment { .. } => todo!(),
+        }
     }
 }
 
 fn validate_input_selection_on_arguments(
     ctx: &mut ValidateContext<'_>,
-    selection: &subgraphs::Selection,
+    selection: &subgraphs::FieldSelection,
     field: subgraphs::FieldWalker<'_>,
     directive_path: &dyn Fn() -> String,
     directive_name: &str,

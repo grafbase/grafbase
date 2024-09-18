@@ -1,0 +1,31 @@
+type Producer {
+    albumsProduced: [String!]!
+    id: ID!
+    name: String!
+    studioName: String!
+}
+
+type Band {
+    genre: String!
+    id: ID!
+    members: [String!]!
+    name: String!
+}
+
+type Payroll {
+    amount: Int!
+    id: ID!
+    musicEntity: MusicEntity!
+}
+
+type Query {
+    getAllMusicEntities: [MusicEntity!]!
+    getBand(id: ID!): Band
+    getPayroll: [Payroll]
+    getProducer(id: ID!): Producer
+}
+
+interface MusicEntity {
+    id: ID!
+    name: String!
+}

@@ -1,7 +1,7 @@
 pub use super::v1::{
-    Definition, EnumId, FieldId, FieldProvides, FieldRequires, FieldSet, FieldSetItem, FieldType, InputObjectId,
-    InterfaceField, InterfaceId, Key, ListWrapper, ObjectField, ObjectId, Override, OverrideLabel, OverrideSource,
-    RootOperationTypes, ScalarId, StringId, Subgraph, SubgraphId, TypeId, UnionId,
+    Definition, EnumId, FieldId, FieldProvides, FieldRequires, FieldSet, FieldType, InputObjectId, InterfaceField,
+    InterfaceId, Key, ListWrapper, ObjectField, ObjectId, Override, OverrideLabel, OverrideSource, RootOperationTypes,
+    ScalarId, StringId, Subgraph, SubgraphId, TypeId, UnionId,
 };
 
 /// A composed federated graph.

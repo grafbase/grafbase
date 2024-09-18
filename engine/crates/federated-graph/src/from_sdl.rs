@@ -374,7 +374,7 @@ fn ingest_authorized_directives(parsed: &ast::TypeSystemDocument, state: &mut St
                 ast::Value::String(s) | ast::Value::BlockString(s) => Some(s),
                 _ => None,
             })
-            .map(|fields| parse_selection_set(fields).and_then(|doc| attach_field_set(&doc, definition, state)))
+            .map(|fields| parse_selection_set(fields).and_then(|doc| attach_selection_set(&doc, definition, state)))
             .transpose()?;
 
         let metadata = authorized
@@ -431,7 +431,7 @@ fn ingest_entity_keys(parsed: &ast::TypeSystemDocument, state: &mut State<'_>) -
                     ast::Value::String(s) | ast::Value::BlockString(s) => Some(s),
                     _ => None,
                 })
-                .map(|fields| parse_selection_set(fields).and_then(|doc| attach_field_set(&doc, definition, state)))
+                .map(|fields| parse_selection_set(fields).and_then(|doc| attach_selection_set(&doc, definition, state)))
                 .transpose()?
                 .unwrap_or_default();
             let resolvable = join_type
@@ -569,7 +569,7 @@ where
                 })
                 .map(|provides| {
                     parse_selection_set(provides)
-                        .and_then(|doc| attach_field_set(&doc, field_type.definition, state))
+                        .and_then(|doc| attach_selection_set(&doc, field_type.definition, state))
                         .map(|fields| FieldProvides { subgraph_id, fields })
                 })
                 .transpose()?
@@ -585,7 +585,7 @@ where
                 })
                 .map(|requires| {
                     parse_selection_set(requires)
-                        .and_then(|doc| attach_field_set(&doc, parent_id, state))
+                        .and_then(|doc| attach_selection_set(&doc, parent_id, state))
                         .map(|fields| FieldRequires { subgraph_id, fields })
                 })
                 .transpose()?
@@ -640,7 +640,7 @@ fn ingest_authorized_directive<'a>(
                         _ => None,
                     })
                     .map(|fields| {
-                        parse_selection_set(fields).and_then(|fields| attach_field_set(&fields, parent_id, state))
+                        parse_selection_set(fields).and_then(|fields| attach_selection_set(&fields, parent_id, state))
                     })
                     .transpose()?,
                 node: directive
@@ -651,7 +651,7 @@ fn ingest_authorized_directive<'a>(
                     })
                     .map(|fields| {
                         parse_selection_set(fields)
-                            .and_then(|fields| attach_field_set(&fields, field_type.definition, state))
+                            .and_then(|fields| attach_selection_set(&fields, field_type.definition, state))
                     })
                     .transpose()?,
                 metadata: directive
@@ -1050,6 +1050,7 @@ fn ingest_object_fields<'a>(
 }
 
 fn parse_selection_set(fields: &str) -> Result<executable_ast::ExecutableDocument, DomainError> {
+    dbg!(fields);
     let fields = format!("{{ {fields} }}");
 
     cynic_parser::parse_executable_document(&fields)
@@ -1059,70 +1060,102 @@ fn parse_selection_set(fields: &str) -> Result<executable_ast::ExecutableDocumen
 
 /// Attach a selection set defined in strings to a FederatedGraph, transforming the strings into
 /// field ids.
-fn attach_field_set(
+fn attach_selection_set(
     selection_set: &executable_ast::ExecutableDocument,
     target: Definition,
     state: &mut State<'_>,
-) -> Result<FieldSet, DomainError> {
+) -> Result<SelectionSet, DomainError> {
     let operation = selection_set
         .operations()
         .next()
         .expect("first operation is there by construction");
 
-    attach_field_set_rec(operation.selection_set(), target, state)
+    attach_selection_set_rec(operation.selection_set(), target, state)
 }
 
-fn attach_field_set_rec<'a>(
+fn attach_selection_set_rec<'a>(
     selection_set: impl Iterator<Item = executable_ast::Selection<'a>>,
     target: Definition,
     state: &mut State<'_>,
-) -> Result<FieldSet, DomainError> {
+) -> Result<SelectionSet, DomainError> {
     selection_set
-        .map(|selection| {
-            let executable_ast::Selection::Field(ast_field) = &selection else {
-                return Err(DomainError("Unsupported fragment spread in selection set".to_owned()));
-            };
-            let field: FieldId = *state.selection_map.get(&(target, ast_field.name())).ok_or_else(|| {
-                DomainError(format!(
-                    "Field '{}.{}' does not exist",
-                    state.get_definition_name(target),
-                    ast_field.name(),
-                ))
-            })?;
-            let field_ty = state.fields[field.0].r#type.definition;
-            let arguments = ast_field
-                .arguments()
-                .map(|argument| {
-                    let name = state.insert_string(argument.name());
-                    let (start, len) = state.fields[field.0].arguments;
-                    let arguments = &state.input_value_definitions[start.0..start.0 + len];
-                    let argument_id = arguments
-                        .iter()
-                        .position(|arg| arg.name == name)
-                        .map(|idx| InputValueDefinitionId(start.0 + idx))
-                        .expect("unknown argument");
-
-                    let argument_type = state.input_value_definitions[argument_id.0]
-                        .r#type
-                        .definition
-                        .as_enum()
-                        .copied();
-
-                    let converted_value = executable_value_to_type_system_value(argument.value());
-
-                    let value = state.insert_value(converted_value, argument_type);
-
-                    (argument_id, value)
-                })
-                .collect();
-
-            Ok(FieldSetItem {
-                field,
-                arguments,
-                subselection: attach_field_set_rec(ast_field.selection_set(), field_ty, state)?,
-            })
+        .map(|selection| match selection {
+            executable_ast::Selection::Field(ast_field) => attach_selection_field(ast_field, target, state),
+            executable_ast::Selection::InlineFragment(inline_fragment) => {
+                attach_inline_fragment(inline_fragment, state)
+            }
+            executable_ast::Selection::FragmentSpread(_) => {
+                Err(DomainError("Unsupported fragment spread in selection set".to_owned()))
+            }
         })
         .collect()
+}
+
+fn attach_selection_field(
+    ast_field: executable_ast::FieldSelection<'_>,
+    target: Definition,
+    state: &mut State<'_>,
+) -> Result<Selection, DomainError> {
+    let field: FieldId = *state.selection_map.get(&(target, ast_field.name())).ok_or_else(|| {
+        DomainError(format!(
+            "Field '{}.{}' does not exist",
+            state.get_definition_name(target),
+            ast_field.name(),
+        ))
+    })?;
+    let field_ty = state.fields[field.0].r#type.definition;
+    let arguments = ast_field
+        .arguments()
+        .map(|argument| {
+            let name = state.insert_string(argument.name());
+            let (start, len) = state.fields[field.0].arguments;
+            let arguments = &state.input_value_definitions[start.0..start.0 + len];
+            let argument_id = arguments
+                .iter()
+                .position(|arg| arg.name == name)
+                .map(|idx| InputValueDefinitionId(start.0 + idx))
+                .expect("unknown argument");
+
+            let argument_type = state.input_value_definitions[argument_id.0]
+                .r#type
+                .definition
+                .as_enum()
+                .copied();
+
+            let converted_value = executable_value_to_type_system_value(argument.value());
+
+            let value = state.insert_value(converted_value, argument_type);
+
+            (argument_id, value)
+        })
+        .collect();
+
+    Ok(Selection::Field {
+        field,
+        arguments,
+        subselection: attach_selection_set_rec(ast_field.selection_set(), field_ty, state)?,
+    })
+}
+
+fn attach_inline_fragment(
+    inline_fragment: executable_ast::InlineFragment<'_>,
+    state: &mut State<'_>,
+) -> Result<Selection, DomainError> {
+    let on: Definition = match inline_fragment.type_condition() {
+        Some(type_name) => *state
+            .definition_names
+            .get(type_name)
+            .ok_or_else(|| DomainError(format!("Type '{}' in type condition does not exist", type_name)))?,
+        None => {
+            return Err(DomainError(
+                "Fragments without type condition are not supported".to_owned(),
+            ))
+        }
+    };
+
+    let subselection = attach_selection_set_rec(inline_fragment.selection_set(), on, state)?;
+
+    Ok(Selection::InlineFragment { on, subselection })
 }
 
 fn attach_input_value_set_to_field_arguments(

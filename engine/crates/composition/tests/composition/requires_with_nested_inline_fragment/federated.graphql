@@ -1,0 +1,60 @@
+directive @core(feature: String!) repeatable on SCHEMA
+
+directive @join__owner(graph: join__Graph!) on OBJECT
+
+directive @join__type(
+    graph: join__Graph!
+    key: String!
+    resolvable: Boolean = true
+) repeatable on OBJECT | INTERFACE
+
+directive @join__field(
+    graph: join__Graph
+    requires: String
+    provides: String
+) on FIELD_DEFINITION
+
+directive @join__graph(name: String!, url: String!) on ENUM_VALUE
+
+enum join__Graph {
+    PAYROLL @join__graph(name: "payroll", url: "http://example.com/payroll")
+    REGISTRY @join__graph(name: "registry", url: "http://example.com/registry")
+}
+
+type Producer implements MusicEntity
+    @join__type(graph: PAYROLL, key: "id")
+    @join__type(graph: REGISTRY, key: "id")
+{
+    albumsProduced: [String!]! @join__field(graph: REGISTRY)
+    id: ID!
+    name: String! @join__field(graph: PAYROLL) @join__field(graph: REGISTRY)
+    studioName: String! @join__field(graph: REGISTRY)
+}
+
+type Band implements MusicEntity
+    @join__type(graph: PAYROLL, key: "id")
+    @join__type(graph: REGISTRY, key: "id")
+{
+    genre: String! @join__field(graph: REGISTRY)
+    id: ID!
+    members: [String!]! @join__field(graph: REGISTRY)
+    name: String! @join__field(graph: PAYROLL) @join__field(graph: REGISTRY)
+}
+
+type Payroll {
+    amount: Int! @join__field(graph: PAYROLL, requires: "musicEntity { ... on Producer { studioName }... on Band { members } }")
+    id: ID! @join__field(graph: PAYROLL)
+    musicEntity: MusicEntity! @join__field(graph: PAYROLL)
+}
+
+type Query {
+    getAllMusicEntities: [MusicEntity!]! @join__field(graph: REGISTRY)
+    getBand(id: ID!): Band @join__field(graph: REGISTRY)
+    getPayroll: [Payroll] @join__field(graph: PAYROLL)
+    getProducer(id: ID!): Producer @join__field(graph: REGISTRY)
+}
+
+interface MusicEntity {
+    id: ID!
+    name: String!
+}

@@ -65,7 +65,9 @@ pub(super) fn ingest_directives(
             let Some(ConstValue::String(fields_arg)) = fields_arg else {
                 continue;
             };
-            subgraphs.insert_requires(directive_site_id, fields_arg).ok();
+            if let Err(err) = subgraphs.insert_requires(directive_site_id, fields_arg) {
+                subgraphs.push_ingestion_diagnostic(subgraph, err.to_string());
+            };
             continue;
         }
 
@@ -74,7 +76,9 @@ pub(super) fn ingest_directives(
             let Some(ConstValue::String(fields_arg)) = fields_arg else {
                 continue;
             };
-            subgraphs.insert_provides(directive_site_id, fields_arg).ok();
+            if let Err(err) = subgraphs.insert_provides(directive_site_id, fields_arg) {
+                subgraphs.push_ingestion_diagnostic(subgraph, err.to_string());
+            }
             continue;
         }
 
@@ -329,7 +333,7 @@ impl<'a> DirectiveMatcher<'a> {
             .unwrap_or_default()
     }
 
-    /// Matcher for federation directives in a given subgraph. See [DirectiveMatcher] for more docs.        
+    /// Matcher for federation directives in a given subgraph. See [DirectiveMatcher] for more docs.
     pub(crate) fn new(directive: &'a ast::ConstDirective) -> DirectiveMatcher<'a> {
         let mut r#as = None;
         let mut imported: Vec<(&str, &str)> = Vec::new();

@@ -2,11 +2,10 @@ use std::ops::Range;
 
 pub use super::v3::{
     AuthorizedDirectiveId, Definition, DirectiveId, Directives, Enum, EnumId, EnumValue, EnumValueId, EnumValues,
-    Field, FieldId, FieldProvides, FieldRequires, FieldSet, FieldSetItem, Fields, InputObject, InputObjectId,
-    InputValueDefinitionId, InputValueDefinitionSet, InputValueDefinitionSetItem, InputValueDefinitions, Interface,
-    InterfaceId, Key, Object, ObjectId, Override, OverrideLabel, OverrideSource, RootOperationTypes, Scalar, ScalarId,
-    StringId, Subgraph, SubgraphId, Type, Union, UnionId, Wrapping, NO_DIRECTIVES, NO_ENUM_VALUE, NO_FIELDS,
-    NO_INPUT_VALUE_DEFINITION,
+    FieldId, Fields, InputObject, InputObjectId, InputValueDefinitionId, InputValueDefinitionSet,
+    InputValueDefinitionSetItem, InputValueDefinitions, InterfaceId, ObjectId, Override, OverrideLabel, OverrideSource,
+    RootOperationTypes, Scalar, ScalarId, StringId, Subgraph, SubgraphId, Type, Union, UnionId, Wrapping,
+    NO_DIRECTIVES, NO_ENUM_VALUE, NO_FIELDS, NO_INPUT_VALUE_DEFINITION,
 };
 
 #[derive(Clone)]
@@ -46,6 +45,19 @@ impl std::fmt::Debug for FederatedGraph {
 }
 
 impl FederatedGraph {
+    pub fn definition_name(&self, definition: Definition) -> &str {
+        let name_id = match definition {
+            Definition::Scalar(scalar_id) => self[scalar_id].name,
+            Definition::Object(object_id) => self[object_id].name,
+            Definition::Interface(interface_id) => self[interface_id].name,
+            Definition::Union(union_id) => self[union_id].name,
+            Definition::Enum(enum_id) => self[enum_id].name,
+            Definition::InputObject(input_object_id) => self[input_object_id].name,
+        };
+
+        &self[name_id]
+    }
+
     pub fn iter_interfaces(&self) -> impl ExactSizeIterator<Item = (InterfaceId, &Interface)> {
         self.interfaces
             .iter()
@@ -122,6 +134,73 @@ pub enum Value {
     List(Box<[Value]>),
 }
 
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
+pub struct Object {
+    pub name: StringId,
+
+    pub implements_interfaces: Vec<InterfaceId>,
+
+    pub keys: Vec<Key>,
+
+    /// All directives that made it through composition.
+    pub composed_directives: Directives,
+
+    pub fields: Fields,
+
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub description: Option<StringId>,
+}
+
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
+pub struct Interface {
+    pub name: StringId,
+
+    pub implements_interfaces: Vec<InterfaceId>,
+
+    /// All keys, for entity interfaces.
+    pub keys: Vec<Key>,
+
+    /// All directives that made it through composition.
+    pub composed_directives: Directives,
+
+    pub fields: Fields,
+
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub description: Option<StringId>,
+}
+
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
+pub struct Field {
+    pub name: StringId,
+    pub r#type: Type,
+
+    pub arguments: InputValueDefinitions,
+
+    /// This is populated only of fields of entities. The Vec includes all subgraphs the field can
+    /// be resolved in. For a regular field of an entity, it will be one subgraph, the subgraph
+    /// where the entity field is defined. For a shareable field in an entity, this contains the
+    /// subgraphs where the shareable field is defined on the entity. It may not be all the
+    /// subgraphs.
+    ///
+    /// On fields of value types and input types, this is empty.
+    pub resolvable_in: Vec<SubgraphId>,
+
+    /// See [FieldProvides].
+    pub provides: Vec<FieldProvides>,
+
+    /// See [FieldRequires]
+    pub requires: Vec<FieldRequires>,
+
+    /// See [Override].
+    pub overrides: Vec<Override>,
+
+    /// All directives that made it through composition.
+    pub composed_directives: Directives,
+
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub description: Option<StringId>,
+}
+
 impl Value {
     pub fn is_list(&self) -> bool {
         matches!(self, Value::List(_))
@@ -134,8 +213,8 @@ impl Value {
 
 #[derive(serde::Serialize, serde::Deserialize, Clone, PartialEq, PartialOrd)]
 pub struct AuthorizedDirective {
-    pub fields: Option<FieldSet>,
-    pub node: Option<FieldSet>,
+    pub fields: Option<SelectionSet>,
+    pub node: Option<SelectionSet>,
     pub arguments: Option<InputValueDefinitionSet>,
     pub metadata: Option<Value>,
 }
@@ -148,6 +227,55 @@ pub struct InputValueDefinition {
     pub description: Option<StringId>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub default: Option<Value>,
+}
+
+/// Represents an `@provides` directive on a field in a subgraph.
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
+pub struct FieldProvides {
+    pub subgraph_id: SubgraphId,
+    pub fields: SelectionSet,
+}
+
+/// Represents an `@requires` directive on a field in a subgraph.
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
+pub struct FieldRequires {
+    pub subgraph_id: SubgraphId,
+    pub fields: SelectionSet,
+}
+
+pub type SelectionSet = Vec<Selection>;
+
+#[derive(serde::Serialize, serde::Deserialize, Clone, Debug, PartialEq, PartialOrd)]
+pub enum Selection {
+    Field {
+        field: FieldId,
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        arguments: Vec<(super::v4::InputValueDefinitionId, super::v4::Value)>,
+        subselection: SelectionSet,
+    },
+    InlineFragment {
+        on: Definition,
+        subselection: SelectionSet,
+    },
+}
+
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
+pub struct Key {
+    /// The subgraph that can resolve the entity with the fields in [Key::fields].
+    pub subgraph_id: SubgraphId,
+
+    /// Corresponds to the fields argument in an `@key` directive.
+    pub fields: SelectionSet,
+
+    /// Correspond to the `@join__type(isInterfaceObject: true)` directive argument.
+    pub is_interface_object: bool,
+
+    #[serde(default = "default_true")]
+    pub resolvable: bool,
+}
+
+fn default_true() -> bool {
+    true
 }
 
 impl Default for FederatedGraph {
@@ -277,9 +405,86 @@ impl From<super::FederatedGraphV3> for FederatedGraph {
         FederatedGraph {
             subgraphs,
             root_operation_types,
-            objects,
-            interfaces,
-            fields,
+            objects: objects
+                .into_iter()
+                .map(
+                    |super::v3::Object {
+                         name,
+                         implements_interfaces,
+                         keys,
+                         composed_directives,
+                         fields,
+                         description,
+                     }| Object {
+                        name,
+                        implements_interfaces,
+                        keys: convert_keys(keys),
+                        composed_directives,
+                        fields,
+                        description,
+                    },
+                )
+                .collect(),
+            interfaces: interfaces
+                .into_iter()
+                .map(
+                    |super::v3::Interface {
+                         name,
+                         implements_interfaces,
+                         keys,
+                         composed_directives,
+                         fields,
+                         description,
+                     }| {
+                        Interface {
+                            name,
+                            implements_interfaces,
+                            keys: convert_keys(keys),
+                            composed_directives,
+                            fields,
+                            description,
+                        }
+                    },
+                )
+                .collect(),
+            fields: fields
+                .into_iter()
+                .map(
+                    |super::v3::Field {
+                         name,
+                         r#type,
+                         arguments,
+                         resolvable_in,
+                         provides,
+                         requires,
+                         overrides,
+                         composed_directives,
+                         description,
+                     }| Field {
+                        name,
+                        r#type,
+                        arguments,
+                        resolvable_in,
+                        provides: provides
+                            .into_iter()
+                            .map(|super::v1::FieldProvides { subgraph_id, fields }| FieldProvides {
+                                subgraph_id,
+                                fields: field_set_to_selection_set(fields),
+                            })
+                            .collect(),
+                        requires: requires
+                            .into_iter()
+                            .map(|super::v1::FieldRequires { subgraph_id, fields }| FieldRequires {
+                                subgraph_id,
+                                fields: field_set_to_selection_set(fields),
+                            })
+                            .collect(),
+                        overrides,
+                        composed_directives,
+                        description,
+                    },
+                )
+                .collect(),
             enums,
             unions,
             scalars,
@@ -327,8 +532,8 @@ impl From<super::FederatedGraphV3> for FederatedGraph {
                          arguments,
                          metadata,
                      }| AuthorizedDirective {
-                        fields,
-                        node,
+                        fields: fields.map(field_set_to_selection_set),
+                        node: node.map(field_set_to_selection_set),
                         arguments,
                         metadata: metadata.map(From::from),
                     },
@@ -339,6 +544,43 @@ impl From<super::FederatedGraphV3> for FederatedGraph {
             interface_authorized_directives,
         }
     }
+}
+
+fn convert_keys(keys: Vec<super::v1::Key>) -> Vec<Key> {
+    keys.into_iter()
+        .map(
+            |super::v1::Key {
+                 subgraph_id,
+                 fields,
+                 is_interface_object,
+                 resolvable,
+             }| Key {
+                subgraph_id,
+                fields: field_set_to_selection_set(fields),
+                is_interface_object,
+                resolvable,
+            },
+        )
+        .collect()
+}
+
+fn field_set_to_selection_set(field_set: Vec<super::v1::FieldSetItem>) -> SelectionSet {
+    field_set
+        .into_iter()
+        .map(
+            |super::v1::FieldSetItem {
+                 field,
+                 arguments,
+                 subselection,
+             }| {
+                Selection::Field {
+                    field,
+                    arguments,
+                    subselection: field_set_to_selection_set(subselection),
+                }
+            },
+        )
+        .collect()
 }
 
 impl From<super::v3::Value> for Value {

@@ -1,0 +1,27 @@
+interface MusicEntity {
+  id: ID!
+  name: String!
+}
+
+# Define the Band type that implements MusicEntity
+type Band implements MusicEntity @key(fields: "id") {
+  id: ID!
+  name: String! @shareable
+  genre: String!
+  members: [String!]!
+}
+
+# Define the Producer type that implements MusicEntity
+type Producer implements MusicEntity @key(fields: "id") {
+  id: ID!
+  name: String! @shareable
+  studioName: String!
+  albumsProduced: [String!]!
+}
+
+# Define the Query type for fetching data
+type Query {
+  getBand(id: ID!): Band
+  getProducer(id: ID!): Producer
+  getAllMusicEntities: [MusicEntity!]!
+}
