@@ -382,6 +382,8 @@ jobs:
         with:
           platform: windows
 
+      - uses: ilammy/setup-nasm@v1
+
       - name: Prepare Grafbase assets
         uses: ./.github/actions/cli_assets
 
