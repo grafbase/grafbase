@@ -10,13 +10,13 @@ use super::{
 };
 
 #[derive(Default)]
-pub(super) struct RequiredFieldSetBuffer(Vec<(SchemaLocation, federated_graph::SelectionSet)>);
+pub(super) struct RequiredFieldSetBuffer(Vec<(SchemaLocation, federated_graph::FieldSet)>);
 
 impl RequiredFieldSetBuffer {
     pub(super) fn push(
         &mut self,
         location: SchemaLocation,
-        field_set: federated_graph::SelectionSet,
+        field_set: federated_graph::FieldSet,
     ) -> RequiredFieldSetId {
         let id = RequiredFieldSetId::from(self.0.len());
         self.0.push((location, field_set));
@@ -61,10 +61,7 @@ struct Converter<'a> {
 }
 
 impl<'a> Converter<'a> {
-    fn convert_set(
-        &mut self,
-        field_set: federated_graph::SelectionSet,
-    ) -> Result<RequiredFieldSetRecord, InputValueError> {
+    fn convert_set(&mut self, field_set: federated_graph::FieldSet) -> Result<RequiredFieldSetRecord, InputValueError> {
         field_set
             .into_iter()
             .filter_map(|item| self.convert_item(item).transpose())
@@ -73,22 +70,14 @@ impl<'a> Converter<'a> {
 
     fn convert_item(
         &mut self,
-        item: federated_graph::Selection,
+        item: federated_graph::FieldSetItem,
     ) -> Result<Option<RequiredFieldSetItemRecord>, InputValueError> {
-        let federated_graph::Selection::Field {
-            field,
-            arguments,
-            subselection,
-        } = item
-        else {
-            todo!()
-        };
-
-        let Some(definition_id) = self.ctx.idmaps.field.get(field) else {
+        let Some(definition_id) = self.ctx.idmaps.field.get(item.field) else {
             return Ok(None);
         };
 
-        let mut federated_arguments = arguments
+        let mut federated_arguments = item
+            .arguments
             .into_iter()
             .filter_map(|(id, value)| {
                 let definition_id = self.ctx.idmaps.input_value.get(id)?;
@@ -131,7 +120,7 @@ impl<'a> Converter<'a> {
 
         Ok(Some(RequiredFieldSetItemRecord {
             field_id: id,
-            subselection: self.convert_set(subselection)?,
+            subselection: self.convert_set(item.subselection)?,
         }))
     }
 }

@@ -21,12 +21,10 @@ impl FederatedInventorySchema {
             ShippingService::DeliveryCompany(DeliveryCompany {
                 id: "1".into(),
                 name: "Planet Express".to_string(),
-                company_type: "GmbH".to_string(),
             }),
             ShippingService::HomingPigeon(HomingPigeon {
                 id: "0".into(),
                 name: "Cher Ami".to_string(),
-                nickname: "CA".to_string(),
             }),
         ];
         Schema::build(Query, EmptyMutation, EmptySubscription)
@@ -106,14 +104,12 @@ impl Product {
 struct HomingPigeon {
     id: String,
     name: String,
-    nickname: String,
 }
 
 #[derive(Clone, SimpleObject)]
 struct DeliveryCompany {
     id: String,
     name: String,
-    company_type: String,
 }
 
 #[derive(Clone, Interface)]
