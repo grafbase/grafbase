@@ -41,7 +41,7 @@ server = { package = "grafbase-local-server", path = "../server", version = "0.7
 grafbase-workspace-hack.workspace = true
 
 [build-dependencies]
-cynic-codegen = { version = "3.7.0", features = ["rkyv"] }
+cynic-codegen = { version = "=3.7.3", features = ["rkyv"] }
 
 [features]
 default = []

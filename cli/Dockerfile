@@ -1,7 +1,7 @@
 #
 # === Pathfinder & UDF wrapper ===
 #
-FROM oven/bun:1.1.12-alpine AS assets
+FROM oven/bun:1.1.27-alpine AS assets
 WORKDIR /grafbase
 COPY ./cli/wrappers ./cli/wrappers
 COPY ./packages/cli-app ./packages/cli-app
@@ -60,7 +60,7 @@ RUN cargo build --release --target "$(rustc -vV | sed -n "s|host: ||p")" --bin g
 #
 # === Final image ===
 #
-FROM oven/bun:1.1.12-alpine
+FROM oven/bun:1.1.27-alpine
 
 LABEL org.opencontainers.image.url='https://grafbase.com/cli' \
     org.opencontainers.image.documentation='https://grafbase.com/docs/cli' \

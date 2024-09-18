@@ -10,6 +10,7 @@ use runtime::{
     hooks::{ResponseInfo, SubgraphRequestExecutionKind},
     rate_limiting::RateLimitKey,
 };
+use tower::retry::budget::Budget;
 use web_time::Duration;
 
 use crate::{
@@ -141,9 +142,9 @@ where
                 return Ok(response);
             }
             Err(err) => {
-                let withdraw = ctx.retry_budget().and_then(|b| b.withdraw().ok());
+                let withdraw = ctx.retry_budget().map(|b| b.withdraw()).unwrap_or_default();
 
-                if withdraw.is_some() {
+                if withdraw {
                     let jitter = rand::random::<f64>() * 2.0;
                     let exp_backoff = (100 * 2u64.pow(counter)) as f64;
                     let backoff_ms = (exp_backoff * jitter).round() as u64;

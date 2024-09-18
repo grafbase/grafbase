@@ -36,10 +36,8 @@ exclude = [
 
 [patch.crates-io]
 axum = { git = "https://github.com/grafbase/axum", rev = "c3146f9ca921907d9884fbf7549a1520e9e72eac" } # axum-tungstenite-upgrade
-# Drop when https://github.com/programatik29/axum-server/pull/112 is merged.
-axum-server = { git = "https://github.com/grafbase/axum-server", rev = "bc0c489c82e6fa76648f0d47191330ef4e125347" }                   # rustls-0.23-tokio-rustls-0.26
-cynic-parser = { git = "https://github.com/grafbase/cynic", branch = "more-spans" }
-cynic-codegen = { git = "https://github.com/grafbase/cynic", branch = "more-spans" }
+cynic-parser = { git = "https://github.com/grafbase/cynic", rev = "920dd202101a0643a0c29031e1cfa0f20031c2d6" } # more-spans
+cynic-codegen = { git = "https://github.com/grafbase/cynic", rev = "920dd202101a0643a0c29031e1cfa0f20031c2d6" } # more-spans
 multipart-stream = { git = "https://github.com/grafbase/multipart-stream-rs-fork", rev = "06ff198e4041c8a8c1c93e580c260d597727c193" } # http-1.0-fix-multipart-mixed
 names = { git = "https://github.com/grafbase/names", rev = "443800fbb7bc2936c1f2c16f3a5e116698b1454a" }                               # main
 # FIXME: Drop when a new version is released.
@@ -58,15 +56,17 @@ reqwest = { git = "https://github.com/grafbase/reqwest", rev = "874a6b3c522de296
 rudderanalytics = { git = "https://github.com/grafbase/rudder-sdk-rust", rev = "3e994eb4dcc9c580be311ef9eab6e96dd264293b" } # async
 serde_with = { git = "https://github.com/grafbase/serde_with", rev = "06ad277a0e0175c2364d3c065e303a6c8a775c8a" }           # minify-field-names
 # Temporary change till https://github.com/alexcrichton/tar-rs/pull/319 is merged and released.
-tar = { git = "https://github.com/grafbase/tar-rs.git", rev = "a889df5bd9fec44faf081f7fade5ec81935c2418" } # overwrite-hard-links
+tar = { git = "https://github.com/grafbase/tar-rs", rev = "a889df5bd9fec44faf081f7fade5ec81935c2418" } # overwrite-hard-links
 tokio-postgres = { git = "https://github.com/grafbase/rust-postgres/", branch = "grafbase-rebased" }
+# Upgrade 0.4.13 only to get rid of indexmap 1.9.
+# tower = { git = "https://github.com/grafbase/tower", rev = "7202cfeecd13ad6bbecd537d9799244313600db5" } # upgrade-indexmap
 # FIXME: Uncomment when we upgrade opentelemetry to 0.23.
 # tracing-opentelemetry = { git = "https://github.com/tokio-rs/tracing-opentelemetry", rev = "2539f4f7bde3dc3f320e5fb935d2c13a69a540dd" } # main
 tracing = { git = "https://github.com/tokio-rs/tracing", rev = "6d00d7d9f72dc6797138a1062bc33073afbad5a1" }      # v0.1.x
 tracing-core = { git = "https://github.com/tokio-rs/tracing", rev = "6d00d7d9f72dc6797138a1062bc33073afbad5a1" } # v0.1.x
 tracing-mock = { git = "https://github.com/tokio-rs/tracing", rev = "6d00d7d9f72dc6797138a1062bc33073afbad5a1" } # v0.1.x
 
-# Make sure we use the worksace-hack package when building
+# Make sure we use the workspace-hack package when building
 # this repo, but not when pulling it in
 # See https://docs.rs/cargo-hakari/0.9.30/cargo_hakari/patch_directive/index.html for details
 grafbase-workspace-hack.path = "workspace-hack"
@@ -87,17 +87,18 @@ async-graphql-parser = "7.0.3"
 async-graphql-value = "7.0.3"
 async-sse = "5"
 async-trait = "0.1.80"
+async-tungstenite = "0.26.0"
 axum = { version = "0.7.5", default-features = false }
-axum-server = { version = "0.6", default-features = false }
+axum-server = { version = "0.7", default-features = false }
 base64 = "0.22.1"
 bitflags = "2.5.0"
 blake3 = "1.5.1"
 bytes = "1.6.0"
 chrono = { version = "0.4.38", default-features = false }
 ctor = "0.2.8"
-cynic = "3.7.0"
-cynic-introspection = "3.7.0"
-cynic-parser = "0.4.0"
+cynic = "=3.7.3"
+cynic-introspection = "=3.7.3"
+cynic-parser = "=0.4.5"
 deadpool-postgres = "0.14"
 derive_more = "1.0.0-beta.6"
 jwt-compact = "0.8"
@@ -126,7 +127,7 @@ rand = "0.8"
 regex = "1.10.4"
 reqwest = { version = "0.12.4", default-features = false, features = ["http2"] }
 rmp-serde = "1.3.0"
-rstest = "0.21"
+rstest = "0.22"
 rustls = { version = "0.23.5", default-features = false }
 rustls-pemfile = { version = "2.1.2", default-features = false }
 rustls-webpki = { version = "0.102.3", default-features = false }
@@ -144,7 +145,7 @@ tokio-tungstenite = { version = "0.23.0", default-features = false }
 toml = "0.8"
 tungstenite = { version = "0.23.0", default-features = false }
 tonic = "0.12.0"
-tower = "0.4.13"
+tower = "0.5.0"
 tower-http = "0.5.2"
 tower-service = "0.3.2"
 url = "2.5.0"
@@ -154,7 +155,7 @@ wasm-bindgen = "0.2.92"
 web-time = "1.1.0"
 which = "6.0.1"
 wiremock = "0.6.0"
-worker = "0.3.0"
+worker = "0.4.0"
 fnv = "1.0.7"
 sha2 = "0.10.8"
 

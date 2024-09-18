@@ -19,7 +19,7 @@ redis = ["dep:redis", "dep:deadpool"]
 [dependencies]
 async-runtime.workspace = true
 async-trait = "0.1.80"
-async-tungstenite = { version = "0.26.0", features = ["tokio-runtime", "tokio-rustls-webpki-roots"] }
+async-tungstenite = { workspace = true, features = ["tokio-runtime", "tokio-rustls-webpki-roots"] }
 bytes.workspace = true
 futures-util.workspace = true
 graphql-ws-client = { version = "0.10.0", features = ["tungstenite"] }
@@ -38,7 +38,7 @@ gateway-config.workspace = true
 url = { workspace = true, optional = true }
 postgres-connector-types = { path = "../postgres-connector-types" }
 mini-moka = "0.10"
-redis = { version = "0.25.4", features = ["tokio-rustls-comp", "connection-manager"], optional = true }
+redis = { version = "0.25.3", features = ["tokio-rustls-comp", "connection-manager"], optional = true }
 
 reqwest = { workspace = true, features = [
   "json",

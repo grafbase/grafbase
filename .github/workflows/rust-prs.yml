@@ -110,7 +110,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install cargo binstall
-        uses: cargo-bins/cargo-binstall@v1.10.3
+        uses: cargo-bins/cargo-binstall@v1.10.5
 
       - name: Install cargo-component
         shell: bash
@@ -297,6 +297,9 @@ jobs:
           path: cli/wrappers/
 
       # TODO: Add timing reports in here somehow...
+
+      - if: runner.os == 'Windows'
+        uses: ilammy/setup-nasm@v1
 
       - name: Build debug binaries
         if: fromJson(needs.what-changed.outputs.rust).cargo-bin-specs

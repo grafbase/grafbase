@@ -1,12 +1,12 @@
 use schema::{GraphqlEndpointId, Schema};
-use tower::retry::budget::Budget;
+use tower::retry::budget::TpsBudget;
 
 use super::Runtime;
 
 #[derive(id_derives::IndexedFields)]
 pub(super) struct RetryBudgets {
     #[indexed_by(GraphqlEndpointId)]
-    by_graphql_endpoints: Vec<Option<Budget>>,
+    by_graphql_endpoints: Vec<Option<TpsBudget>>,
 }
 
 impl RetryBudgets {
@@ -22,7 +22,7 @@ impl RetryBudgets {
                     let min_per_second = retry_config.min_per_second.unwrap_or(10);
                     let retry_percent = retry_config.retry_percent.unwrap_or(0.2);
 
-                    Some(Budget::new(ttl, min_per_second, retry_percent))
+                    Some(TpsBudget::new(ttl, min_per_second, retry_percent))
                 })
                 .collect(),
         }
@@ -30,11 +30,11 @@ impl RetryBudgets {
 }
 
 impl<R: Runtime> super::Engine<R> {
-    pub(crate) fn get_retry_budget_for_non_mutation(&self, endpoint_id: GraphqlEndpointId) -> Option<&Budget> {
+    pub(crate) fn get_retry_budget_for_non_mutation(&self, endpoint_id: GraphqlEndpointId) -> Option<&TpsBudget> {
         self.retry_budgets[endpoint_id].as_ref()
     }
 
-    pub(crate) fn get_retry_budget_for_mutation(&self, endpoint_id: GraphqlEndpointId) -> Option<&Budget> {
+    pub(crate) fn get_retry_budget_for_mutation(&self, endpoint_id: GraphqlEndpointId) -> Option<&TpsBudget> {
         if self
             .schema
             .walk(endpoint_id)

@@ -10,7 +10,7 @@ use runtime::{
 };
 use schema::GraphqlEndpoint;
 use std::ops::Deref;
-use tower::retry::budget::Budget;
+use tower::retry::budget::TpsBudget;
 use tracing::Span;
 use web_time::Instant;
 
@@ -34,7 +34,7 @@ use crate::{
 pub(crate) struct SubgraphContext<'ctx, R: Runtime> {
     pub(super) ctx: ExecutionContext<'ctx, R>,
     pub(super) endpoint: GraphqlEndpoint<'ctx>,
-    pub(super) retry_budget: Option<&'ctx Budget>,
+    pub(super) retry_budget: Option<&'ctx TpsBudget>,
     span: SubgraphGraphqlRequestSpan,
     start: Instant,
     executed_request_builder: ExecutedSubgraphRequestBuilder<'ctx>,
@@ -99,7 +99,7 @@ impl<'ctx, R: Runtime> SubgraphContext<'ctx, R> {
         self.execution_context().hooks()
     }
 
-    pub fn retry_budget(&self) -> Option<&Budget> {
+    pub fn retry_budget(&self) -> Option<&TpsBudget> {
         self.retry_budget
     }
 
