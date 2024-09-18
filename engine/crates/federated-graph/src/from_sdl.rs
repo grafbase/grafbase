@@ -1050,6 +1050,7 @@ fn ingest_object_fields<'a>(
 }
 
 fn parse_selection_set(fields: &str) -> Result<executable_ast::ExecutableDocument, DomainError> {
+    dbg!(fields);
     let fields = format!("{{ {fields} }}");
 
     cynic_parser::parse_executable_document(&fields)
@@ -1078,51 +1079,83 @@ fn attach_selection_set_rec<'a>(
     state: &mut State<'_>,
 ) -> Result<SelectionSet, DomainError> {
     selection_set
-        .map(|selection| {
-            let executable_ast::Selection::Field(ast_field) = &selection else {
+        .map(|selection| match selection {
+            executable_ast::Selection::Field(ast_field) => attach_selection_field(ast_field, target, state),
+            executable_ast::Selection::InlineFragment(inline_fragment) => {
+                attach_inline_fragment(inline_fragment, state)
+            }
+            executable_ast::Selection::FragmentSpread(_) => {
                 return Err(DomainError("Unsupported fragment spread in selection set".to_owned()));
-            };
-            let field: FieldId = *state.selection_map.get(&(target, ast_field.name())).ok_or_else(|| {
-                DomainError(format!(
-                    "Field '{}.{}' does not exist",
-                    state.get_definition_name(target),
-                    ast_field.name(),
-                ))
-            })?;
-            let field_ty = state.fields[field.0].r#type.definition;
-            let arguments = ast_field
-                .arguments()
-                .map(|argument| {
-                    let name = state.insert_string(argument.name());
-                    let (start, len) = state.fields[field.0].arguments;
-                    let arguments = &state.input_value_definitions[start.0..start.0 + len];
-                    let argument_id = arguments
-                        .iter()
-                        .position(|arg| arg.name == name)
-                        .map(|idx| InputValueDefinitionId(start.0 + idx))
-                        .expect("unknown argument");
-
-                    let argument_type = state.input_value_definitions[argument_id.0]
-                        .r#type
-                        .definition
-                        .as_enum()
-                        .copied();
-
-                    let converted_value = executable_value_to_type_system_value(argument.value());
-
-                    let value = state.insert_value(converted_value, argument_type);
-
-                    (argument_id, value)
-                })
-                .collect();
-
-            Ok(Selection::Field {
-                field,
-                arguments,
-                subselection: attach_selection_set_rec(ast_field.selection_set(), field_ty, state)?,
-            })
+            }
         })
         .collect()
+}
+
+fn attach_selection_field(
+    ast_field: executable_ast::FieldSelection<'_>,
+    target: Definition,
+    state: &mut State<'_>,
+) -> Result<Selection, DomainError> {
+    let field: FieldId = *state.selection_map.get(&(target, ast_field.name())).ok_or_else(|| {
+        DomainError(format!(
+            "Field '{}.{}' does not exist",
+            state.get_definition_name(target),
+            ast_field.name(),
+        ))
+    })?;
+    let field_ty = state.fields[field.0].r#type.definition;
+    let arguments = ast_field
+        .arguments()
+        .map(|argument| {
+            let name = state.insert_string(argument.name());
+            let (start, len) = state.fields[field.0].arguments;
+            let arguments = &state.input_value_definitions[start.0..start.0 + len];
+            let argument_id = arguments
+                .iter()
+                .position(|arg| arg.name == name)
+                .map(|idx| InputValueDefinitionId(start.0 + idx))
+                .expect("unknown argument");
+
+            let argument_type = state.input_value_definitions[argument_id.0]
+                .r#type
+                .definition
+                .as_enum()
+                .copied();
+
+            let converted_value = executable_value_to_type_system_value(argument.value());
+
+            let value = state.insert_value(converted_value, argument_type);
+
+            (argument_id, value)
+        })
+        .collect();
+
+    Ok(Selection::Field {
+        field,
+        arguments,
+        subselection: attach_selection_set_rec(ast_field.selection_set(), field_ty, state)?,
+    })
+}
+
+fn attach_inline_fragment(
+    inline_fragment: executable_ast::InlineFragment<'_>,
+    state: &mut State<'_>,
+) -> Result<Selection, DomainError> {
+    let on: Definition = match inline_fragment.type_condition() {
+        Some(type_name) => *state
+            .definition_names
+            .get(type_name)
+            .ok_or_else(|| DomainError(format!("Type '{}' in type condition does not exist", type_name)))?,
+        None => {
+            return Err(DomainError(format!(
+                "Fragments without type condition are not supported"
+            )))
+        }
+    };
+
+    let subselection = attach_selection_set_rec(inline_fragment.selection_set(), on, state)?;
+
+    Ok(Selection::InlineFragment { on, subselection })
 }
 
 fn attach_input_value_set_to_field_arguments(

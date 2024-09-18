@@ -169,43 +169,53 @@ pub(super) struct SelectionSetDisplay<'a>(pub &'a crate::SelectionSet, pub &'a F
 
 impl Display for SelectionSetDisplay<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let out = format!("{}", BareFieldSetDisplay(self.0, self.1));
+        let out = format!("{}", BareSelectionSetDisplay(self.0, self.1));
         write_quoted(f, &out)
     }
 }
 
-pub(super) struct BareFieldSetDisplay<'a>(pub &'a crate::SelectionSet, pub &'a FederatedGraph);
+pub(super) struct BareSelectionSetDisplay<'a>(pub &'a crate::SelectionSet, pub &'a FederatedGraph);
 
-impl Display for BareFieldSetDisplay<'_> {
+impl Display for BareSelectionSetDisplay<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let BareFieldSetDisplay(selection_set, graph) = self;
-        let mut selection = selection_set.iter().peekable();
+        let BareSelectionSetDisplay(selection_set, graph) = self;
+        let mut selections = selection_set.iter().peekable();
 
-        while let Some(Selection::Field {
-            field,
-            arguments,
-            subselection,
-        }) = selection.next()
-        {
-            let name = &graph[graph[*field].name];
+        while let Some(selection) = selections.next() {
+            match selection {
+                Selection::Field {
+                    field,
+                    arguments,
+                    subselection,
+                } => {
+                    let name = &graph[graph[*field].name];
 
-            f.write_str(name)?;
+                    f.write_str(name)?;
 
-            let arguments = arguments
-                .iter()
-                .map(|(arg, value)| (graph[*arg].name, value.clone()))
-                .collect::<Vec<_>>();
+                    let arguments = arguments
+                        .iter()
+                        .map(|(arg, value)| (graph[*arg].name, value.clone()))
+                        .collect::<Vec<_>>();
 
-            Arguments(&arguments, graph).fmt(f)?;
+                    Arguments(&arguments, graph).fmt(f)?;
 
-            if !subselection.is_empty() {
-                f.write_str(" { ")?;
-                BareFieldSetDisplay(&subselection, graph).fmt(f)?;
-                f.write_str(" }")?;
-            }
+                    if !subselection.is_empty() {
+                        f.write_str(" { ")?;
+                        BareSelectionSetDisplay(&subselection, graph).fmt(f)?;
+                        f.write_str(" }")?;
+                    }
 
-            if selection.peek().is_some() {
-                f.write_char(' ')?;
+                    if selections.peek().is_some() {
+                        f.write_char(' ')?;
+                    }
+                }
+                Selection::InlineFragment { on, subselection } => {
+                    f.write_str("... on ")?;
+                    f.write_str(graph.definition_name(*on))?;
+                    f.write_str(" { ")?;
+                    BareSelectionSetDisplay(&subselection, graph).fmt(f)?;
+                    f.write_str(" }")?;
+                }
             }
         }
 

@@ -45,6 +45,19 @@ impl std::fmt::Debug for FederatedGraph {
 }
 
 impl FederatedGraph {
+    pub fn definition_name(&self, definition: Definition) -> &str {
+        let name_id = match definition {
+            Definition::Scalar(scalar_id) => self[scalar_id].name,
+            Definition::Object(object_id) => self[object_id].name,
+            Definition::Interface(interface_id) => self[interface_id].name,
+            Definition::Union(union_id) => self[union_id].name,
+            Definition::Enum(enum_id) => self[enum_id].name,
+            Definition::InputObject(input_object_id) => self[input_object_id].name,
+        };
+
+        &self[name_id]
+    }
+
     pub fn iter_interfaces(&self) -> impl ExactSizeIterator<Item = (InterfaceId, &Interface)> {
         self.interfaces
             .iter()

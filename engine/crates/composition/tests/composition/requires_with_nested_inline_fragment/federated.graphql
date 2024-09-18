@@ -42,7 +42,7 @@ type Band implements MusicEntity
 }
 
 type Payroll {
-    amount: Int! @join__field(graph: PAYROLL)
+    amount: Int! @join__field(graph: PAYROLL, requires: "musicEntity { ... on Producer { studioName }... on Band { members } }")
     id: ID! @join__field(graph: PAYROLL)
     musicEntity: MusicEntity! @join__field(graph: PAYROLL)
 }
