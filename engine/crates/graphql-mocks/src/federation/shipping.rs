@@ -122,8 +122,6 @@ impl Query {
         #[graphql(key)] id: String,
         nickname: Option<String>,
     ) -> HomingPigeon {
-        dbg!("called here!");
-
         let mut pigeon = ctx
             .data_unchecked::<Vec<ShippingModality>>()
             .iter()
@@ -164,8 +162,6 @@ impl Query {
     }
 
     async fn shipping_modalities(&self, ctx: &Context<'_>) -> Vec<ShippingModality> {
-        dbg!("called here!");
-
         ctx.data_unchecked::<Vec<ShippingModality>>().clone()
     }
 }

@@ -1050,7 +1050,6 @@ fn ingest_object_fields<'a>(
 }
 
 fn parse_selection_set(fields: &str) -> Result<executable_ast::ExecutableDocument, DomainError> {
-    dbg!(fields);
     let fields = format!("{{ {fields} }}");
 
     cynic_parser::parse_executable_document(&fields)
