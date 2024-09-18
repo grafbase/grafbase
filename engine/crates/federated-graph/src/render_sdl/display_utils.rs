@@ -165,38 +165,42 @@ impl<T: Display> Display for MaybeDisplay<T> {
 }
 
 /// Displays a field set inside quotes
-pub(super) struct FieldSetDisplay<'a>(pub &'a crate::FieldSet, pub &'a FederatedGraph);
+pub(super) struct SelectionSetDisplay<'a>(pub &'a crate::SelectionSet, pub &'a FederatedGraph);
 
-impl Display for FieldSetDisplay<'_> {
+impl Display for SelectionSetDisplay<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let out = format!("{}", BareFieldSetDisplay(self.0, self.1));
         write_quoted(f, &out)
     }
 }
 
-pub(super) struct BareFieldSetDisplay<'a>(pub &'a crate::FieldSet, pub &'a FederatedGraph);
+pub(super) struct BareFieldSetDisplay<'a>(pub &'a crate::SelectionSet, pub &'a FederatedGraph);
 
 impl Display for BareFieldSetDisplay<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let BareFieldSetDisplay(selection_set, graph) = self;
         let mut selection = selection_set.iter().peekable();
 
-        while let Some(field) = selection.next() {
-            let name = &graph[graph[field.field].name];
+        while let Some(Selection::Field {
+            field,
+            arguments,
+            subselection,
+        }) = selection.next()
+        {
+            let name = &graph[graph[*field].name];
 
             f.write_str(name)?;
 
-            let arguments = field
-                .arguments
+            let arguments = arguments
                 .iter()
                 .map(|(arg, value)| (graph[*arg].name, value.clone()))
                 .collect::<Vec<_>>();
 
             Arguments(&arguments, graph).fmt(f)?;
 
-            if !field.subselection.is_empty() {
+            if !subselection.is_empty() {
                 f.write_str(" { ")?;
-                BareFieldSetDisplay(&field.subselection, graph).fmt(f)?;
+                BareFieldSetDisplay(&subselection, graph).fmt(f)?;
                 f.write_str(" }")?;
             }
 
@@ -313,7 +317,7 @@ pub(crate) fn write_composed_directive<'a, 'b: 'a>(
 
 pub(crate) enum DisplayableArgument<'a> {
     Value(Value),
-    FieldSet(FieldSetDisplay<'a>),
+    FieldSet(SelectionSetDisplay<'a>),
     InputValueDefinitionSet(InputValueDefinitionSetDisplay<'a>),
     GraphEnumVariantName(GraphEnumVariantName<'a>),
 }
@@ -341,8 +345,8 @@ impl From<Value> for DisplayableArgument<'_> {
     }
 }
 
-impl<'a> From<FieldSetDisplay<'a>> for DisplayableArgument<'a> {
-    fn from(value: FieldSetDisplay<'a>) -> Self {
+impl<'a> From<SelectionSetDisplay<'a>> for DisplayableArgument<'a> {
+    fn from(value: SelectionSetDisplay<'a>) -> Self {
         DisplayableArgument::FieldSet(value)
     }
 }

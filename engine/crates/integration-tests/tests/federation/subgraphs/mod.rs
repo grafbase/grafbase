@@ -8,6 +8,7 @@ mod simple_key;
 use engine_v2::Engine;
 use graphql_mocks::{
     FederatedAccountsSchema, FederatedInventorySchema, FederatedProductsSchema, FederatedReviewsSchema,
+    FederatedShippingSchema,
 };
 use integration_tests::{
     federation::{EngineV2Ext, GraphqlResponse},
@@ -20,6 +21,7 @@ async fn execute(request: &str) -> GraphqlResponse {
         .with_subgraph(FederatedProductsSchema)
         .with_subgraph(FederatedReviewsSchema)
         .with_subgraph(FederatedInventorySchema)
+        .with_subgraph(FederatedShippingSchema)
         .build()
         .await;
     engine.post(request).await

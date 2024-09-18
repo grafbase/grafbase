@@ -1,0 +1,27 @@
+type Query {
+  getPayroll: [Payroll]
+}
+
+interface MusicEntity {
+  id: ID!
+  name: String!
+}
+
+type Producer implements MusicEntity @key(fields: "id") {
+  id: ID!
+  name: String! @shareable
+  studioName: String! @external
+  albumsProduced: [String!]! @external
+}
+
+type Band implements MusicEntity @key(fields: "id") {
+  id: ID!
+  name: String! @shareable
+  members: [String!]! @external
+}
+
+type Payroll {
+  id: ID!
+  musicEntity: MusicEntity!
+  amount: Int! @requires(fields: "musicEntity { ... on Producer { studioName } ... on Band { members } }")
+}

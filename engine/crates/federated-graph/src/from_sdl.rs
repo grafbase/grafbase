@@ -374,7 +374,7 @@ fn ingest_authorized_directives(parsed: &ast::TypeSystemDocument, state: &mut St
                 ast::Value::String(s) | ast::Value::BlockString(s) => Some(s),
                 _ => None,
             })
-            .map(|fields| parse_selection_set(fields).and_then(|doc| attach_field_set(&doc, definition, state)))
+            .map(|fields| parse_selection_set(fields).and_then(|doc| attach_selection_set(&doc, definition, state)))
             .transpose()?;
 
         let metadata = authorized
@@ -431,7 +431,7 @@ fn ingest_entity_keys(parsed: &ast::TypeSystemDocument, state: &mut State<'_>) -
                     ast::Value::String(s) | ast::Value::BlockString(s) => Some(s),
                     _ => None,
                 })
-                .map(|fields| parse_selection_set(fields).and_then(|doc| attach_field_set(&doc, definition, state)))
+                .map(|fields| parse_selection_set(fields).and_then(|doc| attach_selection_set(&doc, definition, state)))
                 .transpose()?
                 .unwrap_or_default();
             let resolvable = join_type
@@ -569,7 +569,7 @@ where
                 })
                 .map(|provides| {
                     parse_selection_set(provides)
-                        .and_then(|doc| attach_field_set(&doc, field_type.definition, state))
+                        .and_then(|doc| attach_selection_set(&doc, field_type.definition, state))
                         .map(|fields| FieldProvides { subgraph_id, fields })
                 })
                 .transpose()?
@@ -585,7 +585,7 @@ where
                 })
                 .map(|requires| {
                     parse_selection_set(requires)
-                        .and_then(|doc| attach_field_set(&doc, parent_id, state))
+                        .and_then(|doc| attach_selection_set(&doc, parent_id, state))
                         .map(|fields| FieldRequires { subgraph_id, fields })
                 })
                 .transpose()?
@@ -640,7 +640,7 @@ fn ingest_authorized_directive<'a>(
                         _ => None,
                     })
                     .map(|fields| {
-                        parse_selection_set(fields).and_then(|fields| attach_field_set(&fields, parent_id, state))
+                        parse_selection_set(fields).and_then(|fields| attach_selection_set(&fields, parent_id, state))
                     })
                     .transpose()?,
                 node: directive
@@ -651,7 +651,7 @@ fn ingest_authorized_directive<'a>(
                     })
                     .map(|fields| {
                         parse_selection_set(fields)
-                            .and_then(|fields| attach_field_set(&fields, field_type.definition, state))
+                            .and_then(|fields| attach_selection_set(&fields, field_type.definition, state))
                     })
                     .transpose()?,
                 metadata: directive
@@ -1059,24 +1059,24 @@ fn parse_selection_set(fields: &str) -> Result<executable_ast::ExecutableDocumen
 
 /// Attach a selection set defined in strings to a FederatedGraph, transforming the strings into
 /// field ids.
-fn attach_field_set(
+fn attach_selection_set(
     selection_set: &executable_ast::ExecutableDocument,
     target: Definition,
     state: &mut State<'_>,
-) -> Result<FieldSet, DomainError> {
+) -> Result<SelectionSet, DomainError> {
     let operation = selection_set
         .operations()
         .next()
         .expect("first operation is there by construction");
 
-    attach_field_set_rec(operation.selection_set(), target, state)
+    attach_selection_set_rec(operation.selection_set(), target, state)
 }
 
-fn attach_field_set_rec<'a>(
+fn attach_selection_set_rec<'a>(
     selection_set: impl Iterator<Item = executable_ast::Selection<'a>>,
     target: Definition,
     state: &mut State<'_>,
-) -> Result<FieldSet, DomainError> {
+) -> Result<SelectionSet, DomainError> {
     selection_set
         .map(|selection| {
             let executable_ast::Selection::Field(ast_field) = &selection else {
@@ -1116,10 +1116,10 @@ fn attach_field_set_rec<'a>(
                 })
                 .collect();
 
-            Ok(FieldSetItem {
+            Ok(Selection::Field {
                 field,
                 arguments,
-                subselection: attach_field_set_rec(ast_field.selection_set(), field_ty, state)?,
+                subselection: attach_selection_set_rec(ast_field.selection_set(), field_ty, state)?,
             })
         })
         .collect()

@@ -467,38 +467,54 @@ fn attach_selection(
     selection_set: &[subgraphs::Selection],
     target: federated::Definition,
     ctx: &mut Context<'_>,
-) -> federated::FieldSet {
+) -> federated::SelectionSet {
     selection_set
         .iter()
         .map(|selection| {
-            let selection_field = ctx.insert_string(ctx.subgraphs.walk(selection.field));
-            let field = ctx.selection_map[&(target, selection_field)];
-            let field_ty = ctx.out[field].r#type.definition;
-            let field_arguments = ctx.out[field].arguments;
-            let (federated::InputValueDefinitionId(field_arguments_start), _) = field_arguments;
-            let arguments = selection
-                .arguments
-                .iter()
-                .map(|(name, value)| {
-                    // Here we assume the arguments are validated previously.
-                    let arg_name = ctx.insert_string(ctx.subgraphs.walk(*name));
-                    let argument = ctx.out[field_arguments]
+            match selection {
+                subgraphs::Selection::Field(subgraphs::FieldSelection {
+                    field,
+                    arguments,
+                    subselection,
+                }) => {
+                    let selection_field = ctx.insert_string(ctx.subgraphs.walk(*field));
+                    let field = ctx.selection_map[&(target, selection_field)];
+                    let field_ty = ctx.out[field].r#type.definition;
+                    let field_arguments = ctx.out[field].arguments;
+                    let (federated::InputValueDefinitionId(field_arguments_start), _) = field_arguments;
+                    let arguments = arguments
                         .iter()
-                        .position(|arg| arg.name == arg_name)
-                        .map(|idx| federated::InputValueDefinitionId(field_arguments_start + idx))
-                        .unwrap();
+                        .map(|(name, value)| {
+                            // Here we assume the arguments are validated previously.
+                            let arg_name = ctx.insert_string(ctx.subgraphs.walk(*name));
+                            let argument = ctx.out[field_arguments]
+                                .iter()
+                                .position(|arg| arg.name == arg_name)
+                                .map(|idx| federated::InputValueDefinitionId(field_arguments_start + idx))
+                                .unwrap();
 
-                    let argument_enum_type = ctx.out[argument].r#type.definition.as_enum().copied();
-                    let value = ctx.insert_value_with_type(value, argument_enum_type);
+                            let argument_enum_type = ctx.out[argument].r#type.definition.as_enum().copied();
+                            let value = ctx.insert_value_with_type(value, argument_enum_type);
 
-                    (argument, value)
-                })
-                .collect();
+                            (argument, value)
+                        })
+                        .collect();
 
-            federated::FieldSetItem {
-                field,
-                arguments,
-                subselection: attach_selection(&selection.subselection, field_ty, ctx),
+                    federated::Selection::Field {
+                        field,
+                        arguments,
+                        subselection: attach_selection(&subselection, field_ty, ctx),
+                    }
+                }
+                subgraphs::Selection::InlineFragment { on, subselection } => {
+                    let on = ctx.insert_string(ctx.subgraphs.walk(*on));
+                    let on = ctx.definitions[&on];
+
+                    federated::Selection::InlineFragment {
+                        on,
+                        subselection: attach_selection(subselection, on, ctx),
+                    }
+                }
             }
         })
         .collect()

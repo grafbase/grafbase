@@ -7,6 +7,7 @@ mod reviews;
 mod secure;
 mod shipping;
 
+pub use self::shipping::FederatedShippingSchema;
 pub use accounts::FederatedAccountsSchema;
 pub use inventory::FederatedInventorySchema;
 pub use products::FederatedProductsSchema;

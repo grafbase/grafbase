@@ -30,7 +30,6 @@ impl Subgraphs {
     }
 
     pub(crate) fn selection_set_from_str(&mut self, fields: &str) -> Result<Vec<Selection>, String> {
-        // Cheating for now, we should port the parser from engines instead.
         let fields = format!("{{ {fields} }}");
         let parsed = async_graphql_parser::parse_query(fields).map_err(|err| err.to_string())?;
 
@@ -68,15 +67,32 @@ impl Subgraphs {
                             })
                             .collect();
                         let subselection = build_selection_set(&item.node.selection_set.node.items, subgraphs)?;
-                        Ok(Selection {
+                        Ok(Selection::Field(FieldSelection {
                             field,
                             arguments,
                             subselection,
+                        }))
+                    }
+                    ast::Selection::InlineFragment(async_graphql_parser::Positioned {
+                        node:
+                            ast::InlineFragment {
+                                type_condition:
+                                    Some(async_graphql_parser::Positioned {
+                                        node: ast::TypeCondition { on },
+                                        ..
+                                    }),
+                                selection_set,
+                                ..
+                            },
+                        ..
+                    }) => {
+                        let subselection = build_selection_set(&selection_set.node.items, subgraphs)?;
+                        Ok(Selection::InlineFragment {
+                            on: subgraphs.strings.intern(on.node.as_str()),
+                            subselection,
                         })
                     }
-                    ast::Selection::FragmentSpread(_) | ast::Selection::InlineFragment(_) => {
-                        Err("Fragments not allowed in key definitions.".to_owned())
-                    }
+                    _ => Err("Fragment spreads not allowed in key definitions.".to_owned()),
                 })
                 .collect()
         }
@@ -146,7 +162,13 @@ pub(crate) struct Key {
 }
 
 #[derive(PartialEq, PartialOrd, Debug)]
-pub(crate) struct Selection {
+pub(crate) enum Selection {
+    Field(FieldSelection),
+    InlineFragment { on: StringId, subselection: Vec<Selection> },
+}
+
+#[derive(PartialEq, PartialOrd, Debug)]
+pub(crate) struct FieldSelection {
     pub(crate) field: StringId,
     pub(crate) arguments: Vec<(StringId, Value)>,
     pub(crate) subselection: Vec<Selection>,
@@ -205,7 +227,11 @@ impl<'a> FieldWalker<'a> {
         self.parent_definition()
             .entity_keys()
             .flat_map(|key| key.fields().iter())
-            .any(|key_field| key_field.field == field_name)
+            .filter_map(|selection| match selection {
+                Selection::Field(FieldSelection { field, .. }) => Some(field),
+                _ => None,
+            })
+            .any(|key_field| *key_field == field_name)
             || self.subgraphs.keys.nested_key_fields.fields.contains(&field_id)
     }
 }

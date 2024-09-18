@@ -338,14 +338,14 @@ fn write_resolvable_in(subgraph: SubgraphId, field: &Field, graph: &FederatedGra
             .provides
             .iter()
             .find(|provides| provides.subgraph_id == subgraph)
-            .map(|fieldset| format!(", provides: {}", FieldSetDisplay(&fieldset.fields, graph))),
+            .map(|fieldset| format!(", provides: {}", SelectionSetDisplay(&fieldset.fields, graph))),
     );
     let requires = MaybeDisplay(
         field
             .requires
             .iter()
             .find(|requires| requires.subgraph_id == subgraph)
-            .map(|fieldset| format!(", requires: {}", FieldSetDisplay(&fieldset.fields, graph))),
+            .map(|fieldset| format!(", requires: {}", SelectionSetDisplay(&fieldset.fields, graph))),
     );
     write!(sdl, " @join__field(graph: {subgraph_name}{provides}{requires})")?;
 
@@ -386,7 +386,7 @@ fn write_provides(field: &Field, graph: &FederatedGraph, sdl: &mut String) -> fm
         .filter(|provide| !field.resolvable_in.contains(&provide.subgraph_id))
     {
         let subgraph_name = GraphEnumVariantName(&graph[graph[provides.subgraph_id].name]);
-        let fields = FieldSetDisplay(&provides.fields, graph);
+        let fields = SelectionSetDisplay(&provides.fields, graph);
         write!(sdl, " @join__field(graph: {subgraph_name}, provides: {fields}")?;
     }
 
@@ -400,7 +400,7 @@ fn write_requires(field: &Field, graph: &FederatedGraph, sdl: &mut String) -> fm
         .filter(|requires| !field.resolvable_in.contains(&requires.subgraph_id))
     {
         let subgraph_name = GraphEnumVariantName(&graph[graph[requires.subgraph_id].name]);
-        let fields = FieldSetDisplay(&requires.fields, graph);
+        let fields = SelectionSetDisplay(&requires.fields, graph);
         write!(sdl, " @join__field(graph: {subgraph_name}, requires: {fields}")?;
     }
 
@@ -470,7 +470,7 @@ fn render_join_field(key: &Key, f: &mut fmt::Formatter<'_>, graph: &FederatedGra
     let mut writer = DirectiveWriter::new("join__type", f, graph)?.arg("graph", subgraph_name)?;
 
     if !key.fields.is_empty() {
-        writer = writer.arg("key", FieldSetDisplay(&key.fields, graph))?;
+        writer = writer.arg("key", SelectionSetDisplay(&key.fields, graph))?;
     }
 
     if !key.resolvable {
@@ -497,11 +497,11 @@ fn render_authorized_directive(
     let mut writer = DirectiveWriter::new("authorized", f, graph)?;
 
     if let Some(fields) = directive.fields.as_ref() {
-        writer = writer.arg("fields", FieldSetDisplay(fields, graph))?;
+        writer = writer.arg("fields", SelectionSetDisplay(fields, graph))?;
     }
 
     if let Some(node) = directive.node.as_ref() {
-        writer = writer.arg("node", FieldSetDisplay(node, graph))?;
+        writer = writer.arg("node", SelectionSetDisplay(node, graph))?;
     }
 
     if let Some(arguments) = directive.arguments.as_ref() {

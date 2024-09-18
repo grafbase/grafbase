@@ -814,17 +814,24 @@ impl From<federated_graph::Type> for TypeRecord {
 }
 
 impl IdMap<federated_graph::FieldId, FieldDefinitionId> {
-    fn convert_providable_field_set(&self, field_set: &federated_graph::FieldSet) -> ProvidableFieldSet {
+    fn convert_providable_field_set(&self, field_set: &federated_graph::SelectionSet) -> ProvidableFieldSet {
         field_set
             .iter()
             .filter_map(|item| self.convert_providable_field_set_item(item))
             .collect()
     }
 
-    fn convert_providable_field_set_item(&self, item: &federated_graph::FieldSetItem) -> Option<ProvidableField> {
-        Some(ProvidableField {
-            id: self.get(item.field)?,
-            subselection: self.convert_providable_field_set(&item.subselection),
+    fn convert_providable_field_set_item(&self, item: &federated_graph::Selection) -> Option<ProvidableField> {
+        Some(match item {
+            federated_graph::Selection::Field {
+                field,
+                arguments: _,
+                subselection,
+            } => ProvidableField {
+                id: self.get(*field)?,
+                subselection: self.convert_providable_field_set(&subselection),
+            },
+            federated_graph::Selection::InlineFragment { .. } => todo!(),
         })
     }
 }
