@@ -185,7 +185,7 @@ where
                     match telemetry {
                         TelemetryExtension::Ready(telemetry) => {
                             http_span.record_graphql_execution_telemetry(&telemetry);
-                            attributes.has_graphql_errors = telemetry.errors_count > 0;
+                            attributes.has_graphql_errors = telemetry.errors_count() > 0;
                             metrics.record_http_duration(attributes, start.elapsed());
                         }
                         TelemetryExtension::Future(channel) => {
@@ -194,7 +194,7 @@ where
                             tokio::spawn(
                                 async move {
                                     let telemetry = channel.await.unwrap_or_default();
-                                    attributes.has_graphql_errors = telemetry.errors_count > 0;
+                                    attributes.has_graphql_errors = telemetry.errors_count() > 0;
                                     http_span.record_graphql_execution_telemetry(&telemetry);
                                     metrics.record_http_duration(attributes, start.elapsed());
                                 }

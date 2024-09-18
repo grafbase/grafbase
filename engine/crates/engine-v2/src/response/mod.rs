@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use enumset::EnumSet;
 pub(crate) use error::*;
 use grafbase_telemetry::graphql::{GraphqlExecutionTelemetry, GraphqlOperationAttributes, GraphqlResponseStatus};
 pub(crate) use key::*;
@@ -43,6 +42,7 @@ pub(crate) struct ExecutedResponse {
     operation: Arc<PreparedOperation>,
     data: Option<ResponseData>,
     errors: Vec<GraphqlError>,
+    error_code_counter: ErrorCodeCounter,
     on_operation_response_output: Option<Vec<u8>>,
 }
 
@@ -72,6 +72,7 @@ struct ResponseData {
 pub(crate) struct RequestErrorResponse {
     operation_attributes: Option<GraphqlOperationAttributes>,
     errors: Vec<GraphqlError>,
+    error_code_counter: ErrorCodeCounter,
 }
 
 impl From<RequestErrorResponse> for Response {
@@ -83,6 +84,7 @@ impl From<RequestErrorResponse> for Response {
 pub(crate) struct RefusedRequestResponse {
     status: http::StatusCode,
     error: GraphqlError,
+    error_code_counter: ErrorCodeCounter,
 }
 
 impl RefusedRequestResponse {
@@ -93,9 +95,14 @@ impl RefusedRequestResponse {
 
 impl Response {
     pub(crate) fn refuse_request_with(status: http::StatusCode, error: impl Into<GraphqlError>) -> Self {
+        let error: GraphqlError = error.into();
+        let mut error_code_counter = ErrorCodeCounter::default();
+        error_code_counter.increment(error.code);
+
         Self::RefusedRequest(RefusedRequestResponse {
             status,
-            error: error.into(),
+            error,
+            error_code_counter,
         })
     }
 
@@ -106,9 +113,13 @@ impl Response {
     where
         E: Into<GraphqlError>,
     {
+        let errors = errors.into_iter().map(Into::into).collect::<Vec<_>>();
+        let error_code_counter = ErrorCodeCounter::from_errors(&errors);
+
         Self::RequestError(RequestErrorResponse {
             operation_attributes,
-            errors: errors.into_iter().map(Into::into).collect(),
+            errors,
+            error_code_counter,
         })
     }
 
@@ -117,11 +128,15 @@ impl Response {
         on_operation_response_output: Option<Vec<u8>>,
         errors: impl IntoIterator<Item: Into<GraphqlError>>,
     ) -> Self {
+        let errors = errors.into_iter().map(Into::into).collect::<Vec<_>>();
+        let error_code_counter = ErrorCodeCounter::from_errors(&errors);
+
         Self::Executed(ExecutedResponse {
             operation,
             data: None,
             on_operation_response_output,
-            errors: errors.into_iter().map(Into::into).collect(),
+            errors,
+            error_code_counter,
         })
     }
 
@@ -134,8 +149,7 @@ impl Response {
 
     pub(crate) fn execution_telemetry(&self) -> GraphqlExecutionTelemetry<ErrorCode> {
         GraphqlExecutionTelemetry {
-            errors_count: self.errors().len() as u64,
-            distinct_error_codes: self.distinct_error_codes().into_iter().collect(),
+            errors_count_by_code: self.error_code_counter().to_vec(),
             operations: self
                 .operation_attributes()
                 .into_iter()
@@ -170,13 +184,12 @@ impl Response {
         }
     }
 
-    pub(crate) fn distinct_error_codes(&self) -> EnumSet<ErrorCode> {
-        self.errors()
-            .iter()
-            .fold(EnumSet::<ErrorCode>::empty(), |mut set, error| {
-                set |= error.code;
-                set
-            })
+    pub(crate) fn error_code_counter(&self) -> &ErrorCodeCounter {
+        match self {
+            Response::RefusedRequest(resp) => &resp.error_code_counter,
+            Response::RequestError(resp) => &resp.error_code_counter,
+            Response::Executed(resp) => &resp.error_code_counter,
+        }
     }
 }
 

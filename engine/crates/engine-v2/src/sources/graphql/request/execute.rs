@@ -14,9 +14,9 @@ use web_time::Duration;
 
 use crate::{
     execution::{ExecutionError, ExecutionResult},
-    response::{GraphqlError, SubgraphResponse},
+    response::{ErrorCode, GraphqlError, SubgraphResponse},
     sources::graphql::SubgraphContext,
-    ErrorCode, Runtime,
+    Runtime,
 };
 
 pub trait ResponseIngester: Send {

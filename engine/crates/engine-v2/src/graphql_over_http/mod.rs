@@ -11,7 +11,7 @@ use grafbase_telemetry::graphql::GraphqlExecutionTelemetry;
 pub(crate) use response::*;
 use runtime::bytes::OwnedOrSharedBytes;
 
-use crate::ErrorCode;
+pub use crate::response::error::code::ErrorCode;
 
 pub enum Body {
     Bytes(OwnedOrSharedBytes),

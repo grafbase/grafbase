@@ -8,8 +8,8 @@ use std::{future::Future, sync::Arc};
 use crate::{
     graphql_over_http::{Http, ResponseFormat},
     request::{BatchRequest, QueryParamsRequest, Request},
-    response::{GraphqlError, Response},
-    Body, ErrorCode,
+    response::{ErrorCode, GraphqlError, Response},
+    Body,
 };
 
 use super::{runtime::HooksContext, Engine, Runtime, RuntimeExt};

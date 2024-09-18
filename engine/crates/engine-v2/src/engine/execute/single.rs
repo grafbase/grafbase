@@ -10,8 +10,8 @@ use crate::{
     engine::{HooksContext, RequestContext},
     execution::PreExecutionContext,
     request::Request,
-    response::{GraphqlError, Response},
-    Engine, ErrorCode, Runtime,
+    response::{ErrorCode, GraphqlError, Response},
+    Engine, Runtime,
 };
 
 impl<R: Runtime> Engine<R> {
@@ -30,13 +30,13 @@ impl<R: Runtime> Engine<R> {
             let response = ctx.execute_single(request).await;
 
             let status = response.graphql_status();
-            span.record_response_status(status);
-            span.record_distinct_error_codes(response.distinct_error_codes());
+            let errors_count_by_code = response.error_code_counter().to_vec();
+            span.record_response(status, &errors_count_by_code);
 
             if let Some(operation) = response.operation_attributes().cloned() {
                 span.record_operation(&operation);
 
-                for error_code in response.distinct_error_codes() {
+                for (error_code, _) in errors_count_by_code {
                     self.runtime.metrics().increment_graphql_errors(GraphqlErrorAttributes {
                         code: error_code.into(),
                         operation_name: operation.name.original().map(str::to_string),

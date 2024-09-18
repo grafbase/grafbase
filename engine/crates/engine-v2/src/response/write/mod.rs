@@ -16,7 +16,7 @@ use schema::{ObjectDefinitionId, Schema};
 use self::deserialize::UpdateSeed;
 
 use super::{
-    value::ResponseObjectField, ErrorCode, ExecutedResponse, GraphqlError, InputdResponseObjectSet,
+    value::ResponseObjectField, ErrorCode, ErrorCodeCounter, ExecutedResponse, GraphqlError, InputdResponseObjectSet,
     OutputResponseObjectSets, Response, ResponseData, ResponseEdge, ResponseObject, ResponseObjectRef,
     ResponseObjectSet, ResponseObjectSetId, ResponsePath, ResponseValue, UnpackedResponseEdge,
 };
@@ -251,6 +251,7 @@ impl ResponseBuilder {
         operation: Arc<PreparedOperation>,
         on_operation_response_output: Vec<u8>,
     ) -> Response {
+        let error_code_counter = ErrorCodeCounter::from_errors(&self.errors);
         Response::Executed(ExecutedResponse {
             operation,
             data: self.root.map(|(root, _)| ResponseData {
@@ -259,6 +260,7 @@ impl ResponseBuilder {
                 parts: self.parts,
             }),
             errors: self.errors,
+            error_code_counter,
             on_operation_response_output: Some(on_operation_response_output),
         })
     }
