@@ -42,7 +42,16 @@ impl super::super::Schema for FederatedAccountsSchema {
     }
 }
 
-#[derive(SimpleObject)]
+#[derive(SimpleObject, Clone)]
+struct BusinessAccount {
+    id: ID,
+    business_name: String,
+    #[graphql(shareable)]
+    email: String,
+    joined_timestamp: u64,
+}
+
+#[derive(SimpleObject, Clone)]
 #[graphql(complex)]
 struct User {
     id: ID,
@@ -52,6 +61,13 @@ struct User {
     /// `reviews`
     review_count: u32,
     joined_timestamp: u64,
+}
+
+#[derive(Clone, async_graphql::Interface)]
+#[graphql(field(name = "id", ty = "&ID"), field(name = "joined_timestamp", ty = "&u64"))]
+enum Account {
+    User(User),
+    BusinessAccount(BusinessAccount),
 }
 
 impl User {
@@ -100,7 +116,7 @@ struct Product {
     name: String,
 }
 
-#[derive(SimpleObject)]
+#[derive(SimpleObject, Clone)]
 #[graphql(shareable)]
 struct Picture {
     url: String,
@@ -131,4 +147,39 @@ impl Query {
             }
         }
     }
+
+    #[graphql(entity)]
+    async fn find_business_account_by_id(&self, id: ID) -> Option<BusinessAccount> {
+        business_accounts().find(|account| account.id == id)
+    }
+}
+
+fn business_accounts() -> impl Iterator<Item = BusinessAccount> {
+    [
+        BusinessAccount {
+            id: "ba_1".into(),
+            business_name: "Acme Corp".to_string(),
+            email: "contact@acmecorp.com".to_string(),
+            joined_timestamp: 1622548800,
+        },
+        BusinessAccount {
+            id: "ba_2".into(),
+            business_name: "Globex Corporation".to_string(),
+            email: "info@globex.com".to_string(),
+            joined_timestamp: 1625130800,
+        },
+        BusinessAccount {
+            id: "ba_3".into(),
+            business_name: "Initech".to_string(),
+            email: "support@initech.com".to_string(),
+            joined_timestamp: 1627819200,
+        },
+        BusinessAccount {
+            id: "ba_4".into(),
+            business_name: "Umbrella Corporation".to_string(),
+            email: "admin@umbrella.com".to_string(),
+            joined_timestamp: 1630411200,
+        },
+    ]
+    .into_iter()
 }

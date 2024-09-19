@@ -815,23 +815,34 @@ impl From<federated_graph::Type> for TypeRecord {
 
 impl IdMap<federated_graph::FieldId, FieldDefinitionId> {
     fn convert_providable_field_set(&self, field_set: &federated_graph::SelectionSet) -> ProvidableFieldSet {
-        field_set
-            .iter()
-            .filter_map(|item| self.convert_providable_field_set_item(item))
-            .collect()
+        let mut out = Vec::with_capacity(field_set.len());
+        self.convert_providable_field_set_rec(field_set, &mut out);
+        out.into()
     }
 
-    fn convert_providable_field_set_item(&self, item: &federated_graph::Selection) -> Option<ProvidableField> {
-        Some(match item {
-            federated_graph::Selection::Field {
-                field,
-                arguments: _,
-                subselection,
-            } => ProvidableField {
-                id: self.get(*field)?,
-                subselection: self.convert_providable_field_set(subselection),
-            },
-            federated_graph::Selection::InlineFragment { .. } => todo!(),
-        })
+    fn convert_providable_field_set_rec(
+        &self,
+        field_set: &federated_graph::SelectionSet,
+        out: &mut Vec<ProvidableField>,
+    ) {
+        for item in field_set {
+            match item {
+                federated_graph::Selection::Field {
+                    field,
+                    subselection,
+                    arguments: _,
+                } => {
+                    if let Some(id) = self.get(*field) {
+                        out.push(ProvidableField {
+                            id,
+                            subselection: self.convert_providable_field_set(subselection),
+                        });
+                    }
+                }
+                federated_graph::Selection::InlineFragment { on: _, subselection } => {
+                    self.convert_providable_field_set_rec(subselection, out);
+                }
+            }
+        }
     }
 }

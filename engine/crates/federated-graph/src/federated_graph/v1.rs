@@ -1,3 +1,5 @@
+use super::InputValueDefinitionId;
+
 /// A composed federated graph.
 ///
 /// ## API contract
@@ -96,11 +98,11 @@ fn default_true() -> bool {
 
 pub type FieldSet = Vec<FieldSetItem>;
 
-#[derive(serde::Serialize, serde::Deserialize, Clone, Debug, PartialEq, PartialOrd)]
+#[derive(serde::Serialize, serde::Deserialize, Clone, PartialEq, PartialOrd)]
 pub struct FieldSetItem {
     pub field: FieldId,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub arguments: Vec<(super::v4::InputValueDefinitionId, super::v4::Value)>,
+    pub arguments: Vec<(InputValueDefinitionId, Value)>,
     pub subselection: FieldSet,
 }
 

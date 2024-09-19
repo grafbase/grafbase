@@ -13,6 +13,13 @@ impl ProvidableFieldSet {
 #[derive(Default, Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct ProvidableFieldSet(Vec<ProvidableField>);
 
+impl From<Vec<ProvidableField>> for ProvidableFieldSet {
+    fn from(mut fields: Vec<ProvidableField>) -> Self {
+        fields.sort_unstable_by_key(|field| field.id);
+        Self(fields)
+    }
+}
+
 impl FromIterator<ProvidableField> for ProvidableFieldSet {
     fn from_iter<T: IntoIterator<Item = ProvidableField>>(iter: T) -> Self {
         let mut fields = iter.into_iter().collect::<Vec<_>>();
