@@ -3,7 +3,7 @@ use std::sync::Arc;
 use id_derives::IndexedFields;
 use schema::Schema;
 
-use crate::response::{InputdResponseObjectSet, ResponseBuilder, ResponseObjectSet, ResponseObjectSetId};
+use crate::response::{InputResponseObjectSet, ResponseBuilder, ResponseObjectSet, ResponseObjectSetId};
 
 use super::{ExecutableOperation, ExecutionPlanId, ResponseModifierExecutorId};
 
@@ -72,17 +72,19 @@ impl<'ctx> OperationExecutionState<'ctx> {
         self[set_id] = Some(Arc::new(response_object_refs));
     }
 
-    pub fn get_input(&mut self, response: &ResponseBuilder, plan_id: ExecutionPlanId) -> InputdResponseObjectSet {
+    pub fn get_input(&mut self, response: &ResponseBuilder, plan_id: ExecutionPlanId) -> InputResponseObjectSet {
         // If there is no root, an error propagated up to it and data will be null. So there's
         // nothing to do anymore.
         let Some(root_ref) = response.root_response_object() else {
             return Default::default();
         };
+
         let logical_plan_id = self.operation[plan_id].logical_plan_id;
         let input_id = self.operation.response_blueprint[logical_plan_id].input_id;
+
         tracing::trace!("Get response objects for {input_id}");
 
-        let output = InputdResponseObjectSet::default();
+        let output = InputResponseObjectSet::default();
         if let Some(refs) = &self[input_id] {
             output.with_filtered_response_objects(
                 self.schema,

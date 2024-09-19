@@ -51,18 +51,34 @@ pub(super) type LogicalPlanningResult<T> = Result<T, LogicalPlanningError>;
 
 #[derive(IndexedFields)]
 pub(super) struct LogicalPlanner<'a> {
+    /// A reference to the schema being utilized for the planning process.
     schema: &'a Schema,
+
+    /// A mutable reference to the operation that is being planned.
     operation: &'a mut Operation,
+
+    /// Maps field IDs to their corresponding logical plan IDs, if any.
     #[indexed_by(FieldId)]
     field_to_logical_plan_id: Vec<Option<LogicalPlanId>>,
+
+    /// Maps field IDs to their corresponding solved requirements, if any.
     field_to_solved_requirement: Vec<Option<RequiredFieldId>>,
+
+    /// A collection of logical plans generated during the planning process.
     #[indexed_by(LogicalPlanId)]
     logical_plans: Vec<LogicalPlan>,
+
+    /// A bit set indicating which selection sets contain objects that must be tracked.
     selection_set_to_objects_must_be_tracked: BitSet<SelectionSetId>,
+
+    /// An ordered list of logical plan IDs for mutation fields.
     mutation_fields_plan_order: Vec<LogicalPlanId>,
-    // May have duplicates, parent may be equal to child (if we, as the supergraph, need the dependencies)
-    // (parent, child)
+
+    /// A builder for tracking dependencies between logical plans, allowing potential duplicates.
+    /// Each entry is a pair representing (parent, child) relationships.
     dependents_builder: Vec<(LogicalPlanId, LogicalPlanId)>,
+
+    /// A list of solved requirements associated with selection sets.
     solved_requirements: Vec<(SelectionSetId, SolvedRequiredFieldSet)>,
 }
 
@@ -119,6 +135,7 @@ impl<'a> LogicalPlanner<'a> {
             mut dependents_builder,
             ..
         } = self;
+
         for plan in &mut logical_plans {
             plan.root_field_ids_ordered_by_parent_entity_id_then_position
                 .sort_unstable_by_key(|id| {
@@ -169,6 +186,7 @@ impl<'a> LogicalPlanner<'a> {
         };
 
         plan.in_topological_order = sorted_plan_ids_by_topological_order(&plan);
+
         Ok(plan)
     }
 
@@ -324,6 +342,7 @@ impl<'a> LogicalPlanner<'a> {
                     acc
                 }
             });
+
         if !unplanned_field_ids.is_empty() || !parent_extra_requirements.is_empty() {
             SelectionSetLogicalPlanner::new(self, path, Some(logic)).solve(
                 selection_set_id,
@@ -332,6 +351,7 @@ impl<'a> LogicalPlanner<'a> {
                 unplanned_field_ids,
             )?;
         }
+
         Ok(())
     }
 

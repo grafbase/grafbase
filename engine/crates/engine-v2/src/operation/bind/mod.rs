@@ -206,6 +206,7 @@ pub fn bind_operation(schema: &Schema, mut parsed_operation: ParsedOperation) ->
     let (query_modifiers, query_modifier_impacted_fields) = finalize_query_modifiers(binder.query_modifiers);
     let (response_modifiers, response_modifier_impacted_fields) =
         finalize_response_modifiers(binder.response_modifiers);
+
     Ok(Operation {
         ty: parsed_operation.definition.ty,
         root_object_id,

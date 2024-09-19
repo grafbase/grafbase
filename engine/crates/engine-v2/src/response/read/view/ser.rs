@@ -35,17 +35,19 @@ impl<'a> serde::Serialize for ResponseObjectWithExtraFieldsWalker<'a> {
         S: serde::Serializer,
     {
         let mut map = serializer.serialize_map(Some(self.selection_set.len() + self.extra_constant_fields.len()))?;
+
         for (name, value) in self.extra_constant_fields {
             map.serialize_key(name)?;
             map.serialize_value(value)?;
         }
+
         for selection in &self.ctx.response_views[self.selection_set] {
             map.serialize_key(&self.ctx.schema[selection.name])?;
             if let Some(value) = self.response_object.find_required_field(selection.id) {
                 map.serialize_value(&ResponseValueWalker {
                     ctx: self.ctx,
                     value,
-                    selection_set: self.selection_set,
+                    selection_set: selection.subselection,
                 })?;
             } else {
                 map.serialize_value(&None::<()>)?
@@ -62,6 +64,7 @@ impl<'a> serde::Serialize for ResponseObjectView<'a> {
         S: serde::Serializer,
     {
         let mut map = serializer.serialize_map(Some(self.selection_set.len()))?;
+
         for selection in &self.ctx.response_views[self.selection_set] {
             map.serialize_key(&self.ctx.schema[selection.name])?;
             if let Some(value) = self.response_object.find_required_field(selection.id) {

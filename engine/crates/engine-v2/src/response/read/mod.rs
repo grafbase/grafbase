@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use super::{InputdResponseObjectSet, ResponseBuilder};
+use super::{InputResponseObjectSet, ResponseBuilder};
 mod selection_set;
 mod ser;
 mod view;
@@ -14,7 +14,7 @@ impl ResponseBuilder {
         &'a self,
         schema: &'a Schema,
         response_views: &'a ResponseViews,
-        response_object_set: Arc<InputdResponseObjectSet>,
+        response_object_set: Arc<InputResponseObjectSet>,
         selection_set: ResponseViewSelectionSet,
     ) -> ResponseObjectsView<'a> {
         ResponseObjectsView {

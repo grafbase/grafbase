@@ -328,30 +328,37 @@ where
             .iter()
             .min_by_key(|field| field.response_edge())
             .expect("At least one field");
+
         let ty = definition.ty();
         let ty_definition = ty.definition();
+
+        let shape = match ty_definition.scalar_type() {
+            Some(scalar) => Shape::Scalar(scalar),
+            None => {
+                if let Definition::Enum(enum_definition) = ty_definition {
+                    Shape::Enum(enum_definition.id())
+                } else {
+                    let ty = SelectionSetType::maybe_from(ty.as_ref().definition_id).unwrap();
+
+                    let merged_selection_set_ids =
+                        fields.iter().map(|field| field.selection_set().unwrap().id()).collect();
+
+                    self.create_object_shape(ty, merged_selection_set_ids)
+                }
+            }
+        };
+
+        let required_field_id = fields
+            .iter()
+            .find_map(|field| self.plan.field_to_solved_requirement[usize::from(field.id())]);
 
         FieldShape {
             expected_key: self.operation.response_keys.ensure_safety(response_key),
             edge: field.response_edge(),
             id: field.id(),
-            required_field_id: fields
-                .iter()
-                .find_map(|field| self.plan.field_to_solved_requirement[usize::from(field.id())]),
+            required_field_id,
             definition_id: definition.id(),
-            shape: match ty_definition.scalar_type() {
-                Some(scalar) => Shape::Scalar(scalar),
-                None => {
-                    if let Definition::Enum(enum_definition) = ty_definition {
-                        Shape::Enum(enum_definition.id())
-                    } else {
-                        self.create_object_shape(
-                            SelectionSetType::maybe_from(ty.as_ref().definition_id).unwrap(),
-                            fields.iter().map(|field| field.selection_set().unwrap().id()).collect(),
-                        )
-                    }
-                }
-            },
+            shape,
             wrapping: ty.wrapping,
         }
     }

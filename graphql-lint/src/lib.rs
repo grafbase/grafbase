@@ -539,7 +539,6 @@ fn linter() {
         .iter()
         .map(|diagnostic| diagnostic.0.clone())
         .collect::<Vec<_>>();
-    dbg!(&messages);
 
     [
         "directive 'WithDeprecatedArgs' should be renamed to 'withDeprecatedArgs'",

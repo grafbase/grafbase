@@ -4,7 +4,7 @@ use itertools::Itertools;
 
 use crate::{
     operation::ResponseModifierRule,
-    response::{ErrorCode, GraphqlError, InputdResponseObjectSet, ResponseBuilder, UnpackedResponseEdge},
+    response::{ErrorCode, GraphqlError, InputResponseObjectSet, ResponseBuilder, UnpackedResponseEdge},
     Runtime,
 };
 
@@ -24,7 +24,7 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
         // which ResponseKeys (~field in the output) would be impacted if unauthorized. As multiple
         // fields might be impacted in a given object set (because of aliases), we keep a range of
         // of those keys for each ResponseObjectSet we add to the input.
-        let mut input = InputdResponseObjectSet::default();
+        let mut input = InputResponseObjectSet::default();
         let mut input_associated_key_range = Vec::new();
         for (set_id, chunk) in executor
             .on

@@ -155,7 +155,7 @@ fn with_broken_query() {
         "###);
     });
 
-    let result = dbg!(std::fs::read_to_string(tmpdir.path().join("access.log")).unwrap());
+    let result = std::fs::read_to_string(tmpdir.path().join("access.log")).unwrap();
     let result = serde_json::from_str::<Log>(&result).unwrap();
 
     let result = serde_json::to_string_pretty(&result).unwrap();

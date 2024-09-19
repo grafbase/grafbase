@@ -62,13 +62,13 @@ const OBJECT_INDEX_MASK: u32 = (1 << SET_INDEX_SHIFT) - 1;
 /// response, any errors will include the index in the response path, so we need an easy way to
 /// find its respective path on our side.
 #[derive(Default, Clone)]
-pub(crate) struct InputdResponseObjectSet {
+pub(crate) struct InputResponseObjectSet {
     sets: Vec<Arc<ResponseObjectSet>>,
     // Upper 8 bits in the set index, the 24 lower is the object index.
     indices: Vec<u32>,
 }
 
-impl InputdResponseObjectSet {
+impl InputResponseObjectSet {
     pub(crate) fn with_response_objects(mut self, refs: Arc<ResponseObjectSet>) -> Self {
         let n = self.indices.len();
         self.indices.reserve(refs.len());
@@ -147,7 +147,7 @@ impl InputdResponseObjectSet {
     }
 }
 
-impl std::ops::Index<usize> for InputdResponseObjectSet {
+impl std::ops::Index<usize> for InputResponseObjectSet {
     type Output = ResponseObjectRef;
     fn index(&self, index: usize) -> &Self::Output {
         self.get(index).expect("Out of bounds")
@@ -155,7 +155,7 @@ impl std::ops::Index<usize> for InputdResponseObjectSet {
 }
 
 pub(crate) struct ResponseObjectIterator<'set> {
-    parent: &'set InputdResponseObjectSet,
+    parent: &'set InputResponseObjectSet,
     idx: usize,
 }
 
@@ -170,7 +170,7 @@ impl<'set> Iterator for ResponseObjectIterator<'set> {
 }
 
 pub(crate) struct ResponseObjectIteratorWithSetIndex<'set> {
-    parent: &'set InputdResponseObjectSet,
+    parent: &'set InputResponseObjectSet,
     idx: usize,
 }
 

@@ -26,9 +26,7 @@ impl<R: Runtime> Engine<R> {
 
         async {
             let ctx = PreExecutionContext::new(self, request_context, hooks_context);
-
             let response = ctx.execute_single(request).await;
-
             let status = response.graphql_status();
             let errors_count_by_code = response.error_code_counter().to_vec();
             span.record_response(status, &errors_count_by_code);
@@ -43,6 +41,7 @@ impl<R: Runtime> Engine<R> {
                         client: request_context.client.clone(),
                     });
                 }
+
                 self.runtime.metrics().record_operation_duration(
                     GraphqlRequestMetricsAttributes {
                         operation,
