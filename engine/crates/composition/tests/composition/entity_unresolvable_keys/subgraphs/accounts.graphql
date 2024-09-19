@@ -7,7 +7,12 @@ type User {
   posts: [Post!]!
 }
 
-type Post @key(fields: "id", resolvable: false)  {
+type Post @key(fields: "id", resolvable: false) {
   id: ID!
 }
 
+type Comment @key(fields: "id") {
+  id: ID!
+  # "The field `Comment.content` is part of `@key` in products but not in accounts" should happen _if comments were resolvable in the products subgraph_.
+  content: String @external
+}
