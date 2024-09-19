@@ -1,0 +1,76 @@
+directive @core(feature: String!) repeatable on SCHEMA
+
+directive @join__owner(graph: join__Graph!) on OBJECT
+
+directive @join__type(
+    graph: join__Graph!
+    key: String!
+    resolvable: Boolean = true
+) repeatable on OBJECT | INTERFACE
+
+directive @join__field(
+    graph: join__Graph
+    requires: String
+    provides: String
+) on FIELD_DEFINITION
+
+directive @join__graph(name: String!, url: String!) on ENUM_VALUE
+
+enum join__Graph {
+    ACADEMIA @join__graph(name: "academia", url: "http://example.com/academia")
+    NOVELISTS @join__graph(name: "novelists", url: "http://example.com/novelists")
+}
+
+type Author
+    @join__type(graph: ACADEMIA, key: "name")
+    @join__type(graph: NOVELISTS, key: "id")
+{
+    age: Int @join__field(graph: NOVELISTS)
+    articles: [Article] @join__field(graph: ACADEMIA)
+    books: [Book] @join__field(graph: NOVELISTS)
+    id: ID! @join__field(graph: ACADEMIA)
+    name: String! @join__field(graph: NOVELISTS)
+}
+
+type Article {
+    author: Author @join__field(graph: ACADEMIA)
+    content: String @join__field(graph: ACADEMIA)
+    id: ID! @join__field(graph: ACADEMIA)
+    title: String! @join__field(graph: ACADEMIA)
+}
+
+type Book {
+    author: Author @join__field(graph: NOVELISTS)
+    genre: Genre @join__field(graph: NOVELISTS)
+    id: ID! @join__field(graph: NOVELISTS)
+    publisher: Publisher @join__field(graph: NOVELISTS)
+    title: String! @join__field(graph: NOVELISTS)
+}
+
+type Publisher {
+    books: [Book] @join__field(graph: NOVELISTS)
+    id: ID! @join__field(graph: NOVELISTS)
+    location: String @join__field(graph: NOVELISTS)
+    name: String! @join__field(graph: NOVELISTS)
+}
+
+type Query {
+    articleById(id: ID!): Article @join__field(graph: ACADEMIA)
+    articles: [Article] @join__field(graph: ACADEMIA)
+    authorById(id: ID!): Author @join__field(graph: ACADEMIA)
+    authors: [Author] @join__field(graph: ACADEMIA)
+}
+
+type Mutation {
+    addArticle(title: String!, content: String, authorId: ID!): Article @join__field(graph: ACADEMIA)
+    addAuthor(name: String!, age: Int): Author @join__field(graph: ACADEMIA)
+}
+
+enum Genre {
+    FICTION
+    NONFICTION
+    SCIFI
+    FANTASY
+    MYSTERY
+    BIOGRAPHY
+}

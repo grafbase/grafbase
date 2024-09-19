@@ -190,33 +190,6 @@ pub(super) fn compose_object_fields<'a>(
         ));
     }
 
-    let first_is_part_of_key = first.is_part_of_key();
-    if fields
-        .iter()
-        .any(|field| field.is_part_of_key() != first_is_part_of_key)
-    {
-        let name = format!(
-            "{}.{}",
-            first.parent_definition().name().as_str(),
-            first.name().as_str()
-        );
-        let (key_subgraphs, non_key_subgraphs) = fields
-            .iter()
-            .partition::<Vec<FieldWalker<'_>>, _>(|field| field.is_part_of_key());
-
-        ctx.diagnostics.push_fatal(format!(
-            "The field `{name}` is part of `@key` in {} but not in {}",
-            key_subgraphs
-                .into_iter()
-                .map(|f| f.parent_definition().subgraph().name().as_str())
-                .join(", "),
-            non_key_subgraphs
-                .into_iter()
-                .map(|f| f.parent_definition().subgraph().name().as_str())
-                .join(", "),
-        ));
-    }
-
     if fields.iter().any(|field| {
         !field.directives().inaccessible()
             && field

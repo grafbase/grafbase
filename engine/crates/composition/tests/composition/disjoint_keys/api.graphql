@@ -1,0 +1,50 @@
+enum Genre {
+    FICTION
+    NONFICTION
+    SCIFI
+    FANTASY
+    MYSTERY
+    BIOGRAPHY
+}
+
+type Author {
+    age: Int
+    articles: [Article]
+    books: [Book]
+    id: ID!
+    name: String!
+}
+
+type Article {
+    author: Author
+    content: String
+    id: ID!
+    title: String!
+}
+
+type Book {
+    author: Author
+    genre: Genre
+    id: ID!
+    publisher: Publisher
+    title: String!
+}
+
+type Publisher {
+    books: [Book]
+    id: ID!
+    location: String
+    name: String!
+}
+
+type Query {
+    articleById(id: ID!): Article
+    articles: [Article]
+    authorById(id: ID!): Author
+    authors: [Author]
+}
+
+type Mutation {
+    addArticle(title: String!, content: String, authorId: ID!): Article
+    addAuthor(name: String!, age: Int): Author
+}

@@ -6,6 +6,8 @@
 
 - Added composition for default values of output field arguments and input fields. They are now reflected in the federated graph.
 - Support the experimental @authorized directive
+- Selection sets inside `@requires` and `@provides` directives can now include inline fragments.
+- The selection sets in the "fields:" argument on `@requires` are now validated against the schema, with proper errors with context when invalid.
 
 ### Fixes
 
