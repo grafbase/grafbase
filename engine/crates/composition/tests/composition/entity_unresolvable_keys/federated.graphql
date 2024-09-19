@@ -30,8 +30,18 @@ type Post
     @join__type(graph: ACCOUNTS, key: "id", resolvable: false)
     @join__type(graph: PRODUCTS, key: "id")
 {
+    comments: [Comment] @join__field(graph: PRODUCTS)
     id: ID!
     name: String @join__field(graph: PRODUCTS)
+}
+
+type Comment
+    @join__type(graph: ACCOUNTS, key: "id")
+    @join__type(graph: PRODUCTS, key: "id content postId", resolvable: false)
+{
+    content: String
+    id: ID!
+    postId: ID!
 }
 
 type Query {
