@@ -8,15 +8,15 @@ keywords.workspace = true
 repository.workspace = true
 
 [dependencies]
-integration-tests.path = "../integration-tests"
 reqwest.features = ["blocking"]
 reqwest.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 
 [dev-dependencies]
-similar-asserts = "1.5"
+integration-tests.path = "../integration-tests"
 libtest-mimic = "0.7"
+similar-asserts = "1.5"
 
 [lints]
 workspace = true

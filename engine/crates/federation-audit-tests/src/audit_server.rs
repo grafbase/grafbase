@@ -15,7 +15,7 @@ impl AuditServer {
     pub fn new_from_env() -> Self {
         AuditServer {
             client: reqwest::blocking::Client::new(),
-            url: std::env::var("AUDIT_SERVER_URL").expect("AUDIT_SERVER_URL env var must be set"),
+            url: std::env::var("AUDIT_SERVER_URL").unwrap_or_else(|_| "http://localhost:4200".into()),
         }
     }
 
@@ -43,7 +43,7 @@ impl AuditServer {
         self.client
             .get(format!("{}{}", self.url, path))
             .send()
-            .unwrap()
+            .expect("could not talk to audit server.  you may need to run `npm start serve` in gateway-audit-repo")
             .error_for_status()
             .unwrap()
             .json()
