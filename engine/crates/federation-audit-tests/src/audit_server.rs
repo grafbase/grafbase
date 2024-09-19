@@ -1,5 +1,7 @@
 use serde::de::DeserializeOwned;
 
+use crate::CachedTest;
+
 /// API client for the graphql-federation-gateway-audit server
 ///
 /// Can provide all the things required for a test.
@@ -25,6 +27,16 @@ impl AuditServer {
                 id,
             })
             .collect()
+    }
+
+    pub fn lookup_test(&self, test: CachedTest) -> (TestSuite, Test) {
+        let suite = TestSuite {
+            server: self.clone(),
+            id: test.suite,
+        };
+        let test = suite.tests().remove(test.index);
+
+        (suite, test)
     }
 
     fn request<T: DeserializeOwned>(&self, path: &str) -> T {
@@ -91,9 +103,10 @@ pub struct Test {
     pub expected: ExpectedResponse,
 }
 
-#[derive(serde::Deserialize, Clone, Debug)]
+#[derive(serde::Deserialize, Clone, Debug, PartialEq)]
 pub struct ExpectedResponse {
-    pub data: Option<serde_json::Value>,
+    #[serde(default)]
+    pub data: serde_json::Value,
     #[serde(default)]
     pub errors: bool,
 }

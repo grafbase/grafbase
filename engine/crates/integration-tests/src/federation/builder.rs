@@ -21,6 +21,7 @@ enum ConfigSource {
 }
 
 #[must_use]
+#[derive(Default)]
 pub struct TestGatewayBuilder {
     federated_sdl: Option<String>,
     mock_subgraphs: Vec<(TypeId, String, BoxFuture<'static, MockGraphQlServer>)>,
@@ -31,13 +32,7 @@ pub struct TestGatewayBuilder {
 
 pub trait EngineV2Ext {
     fn builder() -> TestGatewayBuilder {
-        TestGatewayBuilder {
-            federated_sdl: None,
-            mock_subgraphs: Vec::new(),
-            docker_subgraphs: HashSet::new(),
-            config_source: None,
-            runtime: TestRuntime::default(),
-        }
+        TestGatewayBuilder::default()
     }
 }
 

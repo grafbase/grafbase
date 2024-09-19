@@ -11,8 +11,8 @@ pub fn cached_tests() -> Vec<CachedTest> {
 /// This is used to speed up startup of our test harness
 #[derive(serde::Serialize, serde::Deserialize, PartialEq, Debug)]
 pub struct CachedTest {
-    suite: String,
-    index: usize,
+    pub(crate) suite: String,
+    pub(crate) index: usize,
 }
 
 impl CachedTest {
