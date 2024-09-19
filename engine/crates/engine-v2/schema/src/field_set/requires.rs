@@ -1,6 +1,6 @@
 use walker::{Iter, Walk};
 
-use crate::{DefinitionId, RequiredField, RequiredFieldId, Schema};
+use crate::{RequiredField, RequiredFieldId, Schema};
 use std::{borrow::Cow, cmp::Ordering};
 
 static EMPTY: RequiredFieldSetRecord = RequiredFieldSetRecord(Vec::new());
@@ -56,12 +56,7 @@ impl<'a> RequiredFieldSet<'a> {
     }
 
     pub fn items(&self) -> impl Iter<Item = RequiredFieldSetItem<'a>> + 'a {
-        self.ref_.iter().map(|item| match item {
-            RequiredFieldSetItemRecord::Field(required_field_set_field_record) => {
-                RequiredFieldSetItem::Field(required_field_set_field_record.walk(self.schema))
-            }
-            RequiredFieldSetItemRecord::InlineFragment(required_field_set_inline_fragment_record) => todo!(),
-        })
+        self.ref_.0.walk(self.schema)
     }
 }
 
@@ -71,34 +66,17 @@ impl std::fmt::Debug for RequiredFieldSet<'_> {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
-pub enum RequiredFieldSetItem<'a> {
-    Field(RequiredFieldSetField<'a>),
-}
-
 //
 // RequiredFieldSetItem
 //
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub enum RequiredFieldSetItemRecord {
-    Field(RequiredFieldSetFieldRecord),
-    InlineFragment(RequiredFieldSetInlineFragmentRecord),
-}
-
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct RequiredFieldSetFieldRecord {
+pub struct RequiredFieldSetItemRecord {
     pub field_id: RequiredFieldId,
     pub subselection: RequiredFieldSetRecord,
 }
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct RequiredFieldSetInlineFragmentRecord {
-    pub on: DefinitionId,
-    pub subselection: RequiredFieldSetRecord,
-}
-
-impl Walk<Schema> for &RequiredFieldSetFieldRecord {
-    type Walker<'a> = RequiredFieldSetField<'a> where Self: 'a;
+impl Walk<Schema> for &RequiredFieldSetItemRecord {
+    type Walker<'a> = RequiredFieldSetItem<'a> where Self: 'a;
     fn walk<'s>(self, schema: &'s Schema) -> Self::Walker<'s>
     where
         Self: 's,
@@ -108,12 +86,12 @@ impl Walk<Schema> for &RequiredFieldSetFieldRecord {
 }
 
 #[derive(Clone, Copy)]
-pub struct RequiredFieldSetField<'a> {
+pub struct RequiredFieldSetItem<'a> {
     pub(crate) schema: &'a Schema,
-    pub(crate) ref_: &'a RequiredFieldSetFieldRecord,
+    pub(crate) ref_: &'a RequiredFieldSetItemRecord,
 }
 
-impl<'a> RequiredFieldSetField<'a> {
+impl<'a> RequiredFieldSetItem<'a> {
     pub fn field(&self) -> RequiredField<'a> {
         self.ref_.field_id.walk(self.schema)
     }
@@ -122,9 +100,9 @@ impl<'a> RequiredFieldSetField<'a> {
     }
 }
 
-impl std::fmt::Debug for RequiredFieldSetField<'_> {
+impl std::fmt::Debug for RequiredFieldSetItem<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct(std::any::type_name::<Self>())
+        f.debug_struct("RequiredFieldSetItem")
             .field("field", &self.field())
             .field("subselection", &self.subselection())
             .finish()

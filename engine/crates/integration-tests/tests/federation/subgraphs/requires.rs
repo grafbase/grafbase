@@ -128,17 +128,12 @@ fn requires_with_fragment_spread() {
         r##"
         query ExampleQuery {
             shippingOptions {
-                summary
                 defaultDeliveryCompany {
                     id
                     name
                     companyType
                 }
-                modalities {
-                    id
-                    name
-                    qualifiedName
-                }
+                summary
             }
         }
         "##,

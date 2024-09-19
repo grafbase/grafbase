@@ -65,29 +65,37 @@ impl<'a> Converter<'a> {
         &mut self,
         field_set: federated_graph::SelectionSet,
     ) -> Result<RequiredFieldSetRecord, InputValueError> {
-        field_set
-            .into_iter()
-            .filter_map(|item| self.convert_item(item).transpose())
-            .collect::<Result<_, _>>()
+        let mut out = Vec::with_capacity(field_set.len());
+        self.convert_set_rec(field_set, &mut out)?;
+        Ok(out.into_iter().collect())
+    }
+
+    fn convert_set_rec(
+        &mut self,
+        field_set: federated_graph::SelectionSet,
+        out: &mut Vec<RequiredFieldSetItemRecord>,
+    ) -> Result<(), InputValueError> {
+        for item in field_set {
+            match item {
+                federated_graph::Selection::Field {
+                    field,
+                    arguments,
+                    subselection,
+                } => {
+                    if let Some(field) = self.convert_item(field, arguments, subselection)? {
+                        out.push(field)
+                    }
+                }
+                federated_graph::Selection::InlineFragment { on: _, subselection } => {
+                    self.convert_set_rec(subselection, out)?;
+                }
+            }
+        }
+
+        Ok(())
     }
 
     fn convert_item(
-        &mut self,
-        item: federated_graph::Selection,
-    ) -> Result<Option<RequiredFieldSetItemRecord>, InputValueError> {
-        match item {
-            federated_graph::Selection::Field {
-                field,
-                arguments,
-                subselection,
-            } => self.convert_field_selection(field, arguments, subselection),
-            federated_graph::Selection::InlineFragment { on, subselection } => {
-                self.convert_inline_fragment(on, subselection)
-            }
-        }
-    }
-
-    fn convert_field_selection(
         &mut self,
         field: federated_graph::FieldId,
         arguments: Vec<(federated_graph::InputValueDefinitionId, federated_graph::Value)>,
@@ -138,31 +146,9 @@ impl<'a> Converter<'a> {
             .entry(field)
             .or_insert_with(|| RequiredFieldId::from(n));
 
-<<<<<<< HEAD
         Ok(Some(RequiredFieldSetItemRecord {
             field_id: id,
             subselection: self.convert_set(subselection)?,
         }))
-=======
-        Ok(Some(RequiredFieldSetItemRecord::Field(
-            super::RequiredFieldSetFieldRecord {
-                field_id: id,
-                subselection: self.convert_set(subselection)?,
-            },
-        )))
-    }
-
-    fn convert_inline_fragment(
-        &mut self,
-        on: federated_graph::Definition,
-        subselection: Vec<federated_graph::Selection>,
-    ) -> Result<Option<RequiredFieldSetItemRecord>, InputValueError> {
-        Ok(Some(RequiredFieldSetItemRecord::InlineFragment(
-            super::RequiredFieldSetInlineFragmentRecord {
-                on: on.into(),
-                subselection: self.convert_set(subselection)?,
-            },
-        )))
->>>>>>> df73acdd7 (wip)
     }
 }
