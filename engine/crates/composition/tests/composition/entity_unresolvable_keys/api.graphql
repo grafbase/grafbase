@@ -4,8 +4,15 @@ type User {
 }
 
 type Post {
+    comments: [Comment]
     id: ID!
     name: String
+}
+
+type Comment {
+    content: String
+    id: ID!
+    postId: ID!
 }
 
 type Query {

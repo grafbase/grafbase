@@ -190,32 +190,7 @@ pub(super) fn compose_object_fields<'a>(
         ));
     }
 
-    let first_is_part_of_key = first.is_part_of_key();
-    if fields
-        .iter()
-        .any(|field| field.is_part_of_key() != first_is_part_of_key)
-    {
-        let name = format!(
-            "{}.{}",
-            first.parent_definition().name().as_str(),
-            first.name().as_str()
-        );
-        let (key_subgraphs, non_key_subgraphs) = fields
-            .iter()
-            .partition::<Vec<FieldWalker<'_>>, _>(|field| field.is_part_of_key());
-
-        ctx.diagnostics.push_fatal(format!(
-            "The field `{name}` is part of `@key` in {} but not in {}",
-            key_subgraphs
-                .into_iter()
-                .map(|f| f.parent_definition().subgraph().name().as_str())
-                .join(", "),
-            non_key_subgraphs
-                .into_iter()
-                .map(|f| f.parent_definition().subgraph().name().as_str())
-                .join(", "),
-        ));
-    }
+    validate_field_is_consistently_part_of_key(fields, ctx);
 
     if fields.iter().any(|field| {
         !field.directives().inaccessible()
@@ -288,6 +263,41 @@ pub(super) fn compose_object_fields<'a>(
         description,
         authorized_directives,
     });
+}
+
+fn validate_field_is_consistently_part_of_key<'a>(fields: &[subgraphs::FieldWalker<'a>], ctx: &mut ComposeContext<'a>) {
+    let mut fields_where_resolvable = fields
+        .iter()
+        .filter(|field| field.parent_definition().entity_keys().any(|key| key.is_resolvable()));
+
+    let Some(first) = fields_where_resolvable.next() else {
+        return;
+    };
+
+    let first_is_part_of_key = first.is_part_of_key();
+
+    if fields_where_resolvable.any(|field| field.is_part_of_key() != first_is_part_of_key) {
+        let name = format!(
+            "{}.{}",
+            first.parent_definition().name().as_str(),
+            first.name().as_str()
+        );
+        let (key_subgraphs, non_key_subgraphs) = fields
+            .iter()
+            .partition::<Vec<FieldWalker<'_>>, _>(|field| field.is_part_of_key());
+
+        ctx.diagnostics.push_fatal(format!(
+            "The field `{name}` is part of `@key` in {} but not in {}",
+            key_subgraphs
+                .into_iter()
+                .map(|f| f.parent_definition().subgraph().name().as_str())
+                .join(", "),
+            non_key_subgraphs
+                .into_iter()
+                .map(|f| f.parent_definition().subgraph().name().as_str())
+                .join(", "),
+        ));
+    }
 }
 
 fn resolvable_in(fields: &[FieldWalker<'_>], object_is_shareable: bool) -> Vec<federated::SubgraphId> {
