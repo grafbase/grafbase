@@ -254,7 +254,7 @@ pub enum Selection {
     },
 }
 
-#[derive(serde::Serialize, serde::Deserialize, Clone)]
+#[derive(Clone)]
 pub struct Key {
     /// The subgraph that can resolve the entity with the fields in [Key::fields].
     pub subgraph_id: SubgraphId,
