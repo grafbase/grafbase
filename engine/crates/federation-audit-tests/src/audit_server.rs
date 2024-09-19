@@ -43,7 +43,7 @@ impl AuditServer {
         self.client
             .get(format!("{}{}", self.url, path))
             .send()
-            .expect("could not talk to audit server.  you may need to run `npm start serve` in gateway-audit-repo")
+            .expect("could not talk to audit server.  you may need to run `npm start serve` in engine/crates/federation-audit-tests/gateway-audit-repo")
             .error_for_status()
             .unwrap()
             .json()

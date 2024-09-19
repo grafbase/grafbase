@@ -3046,6 +3046,7 @@ dependencies = [
 name = "federation-audit-tests"
 version = "0.79.2"
 dependencies = [
+ "grafbase-workspace-hack",
  "integration-tests",
  "libtest-mimic",
  "reqwest",

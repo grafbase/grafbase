@@ -12,6 +12,7 @@ reqwest.features = ["blocking"]
 reqwest.workspace = true
 serde.workspace = true
 serde_json.workspace = true
+grafbase-workspace-hack.workspace = true
 
 [dev-dependencies]
 integration-tests.path = "../integration-tests"
