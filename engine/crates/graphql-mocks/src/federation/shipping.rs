@@ -117,7 +117,7 @@ struct ShippingOptions {
 
 #[ComplexObject]
 impl ShippingOptions {
-    #[graphql(requires = "modalities { ... on HomingPigeon { nickname } ...on DeliveryCompany { companyType } }")]
+    // #[graphql(requires = "modalities { ... on HomingPigeon { nickname } ...on DeliveryCompany { companyType } }")]
     async fn summary(&self) -> String {
         format!(
             "Shipping options: {}",
