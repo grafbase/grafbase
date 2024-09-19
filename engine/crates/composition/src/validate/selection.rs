@@ -31,6 +31,23 @@ pub(super) fn validate_selections(ctx: &mut ValidateContext<'_>, field: subgraph
             directive_name,
         );
     }
+
+    for selection in directives.provides().into_iter().flatten() {
+        let directive_path = || {
+            format!(
+                "{}.{}",
+                field.parent_definition().name().as_str(),
+                field.name().as_str()
+            )
+        };
+
+        let field_type = field
+            .r#type()
+            .definition(field.parent_definition().subgraph_id())
+            .unwrap();
+
+        validate_selection(ctx, selection, field_type, &directive_path, "provides");
+    }
 }
 
 fn validate_selection(
