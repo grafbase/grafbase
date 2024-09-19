@@ -1,6 +1,6 @@
 use bitvec::{bitvec, vec::BitVec};
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(serde::Serialize, serde::Deserialize, Debug)]
 pub struct BitSet<Id> {
     inner: BitVec,
     _phantom: std::marker::PhantomData<Id>,
@@ -28,6 +28,10 @@ where
 
     pub fn set(&mut self, id: Id, value: bool) {
         self.inner.set(usize::from(id), value)
+    }
+
+    pub fn push(&mut self, value: bool) {
+        self.inner.push(value)
     }
 }
 

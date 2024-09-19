@@ -16,7 +16,7 @@ use crate::{
     execution::{ExecutableOperation, ExecutionContext},
     operation::PlanWalker,
     response::{
-        InputdResponseObjectSet, ObjectIdentifier, Response, ResponseBuilder, ResponseEdge, ResponseObjectField,
+        InputResponseObjectSet, ObjectIdentifier, Response, ResponseBuilder, ResponseEdge, ResponseObjectField,
         ResponseValue, SubgraphResponse, SubgraphResponseRefMut,
     },
     sources::ResolverResult,
@@ -190,7 +190,7 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
             .output_ids;
 
         let root_response_object_set = Arc::new(
-            InputdResponseObjectSet::default()
+            InputResponseObjectSet::default()
                 .with_response_objects(Arc::new(response.root_response_object().into_iter().collect())),
         );
 
@@ -527,6 +527,6 @@ impl<'exec> ExecutionPlanFutureSet<'exec> {
 
 pub(crate) struct ExecutionPlanResult {
     plan_id: ExecutionPlanId,
-    result: Result<SubgraphResponse, (Arc<InputdResponseObjectSet>, ExecutionError)>,
+    result: Result<SubgraphResponse, (Arc<InputResponseObjectSet>, ExecutionError)>,
     on_subgraph_response_hook_output: Option<Vec<u8>>,
 }

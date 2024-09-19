@@ -68,9 +68,12 @@ impl<'schema, 'p, 'binder> SelectionSetBinder<'schema, 'p, 'binder> {
         for selection_set in merged_selection_sets {
             self.register_selection_set_fields(ty, selection_set)?;
         }
+
         let id = SelectionSetId::from(self.selection_sets.len());
         self.selection_sets.push(SelectionSet::default());
+
         let mut field_ids = self.generate_fields(ty, id)?;
+
         field_ids.sort_unstable_by_key(|id| {
             let field = &self[*id];
             (
@@ -78,6 +81,7 @@ impl<'schema, 'p, 'binder> SelectionSetBinder<'schema, 'p, 'binder> {
                 field.query_position(),
             )
         });
+
         self.binder[id].field_ids_ordered_by_parent_entity_id_then_position = field_ids;
 
         Ok(id)

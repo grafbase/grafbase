@@ -16,7 +16,7 @@ use schema::{ObjectDefinitionId, Schema};
 use self::deserialize::UpdateSeed;
 
 use super::{
-    value::ResponseObjectField, ErrorCode, ErrorCodeCounter, ExecutedResponse, GraphqlError, InputdResponseObjectSet,
+    value::ResponseObjectField, ErrorCode, ErrorCodeCounter, ExecutedResponse, GraphqlError, InputResponseObjectSet,
     OutputResponseObjectSets, Response, ResponseData, ResponseEdge, ResponseObject, ResponseObjectRef,
     ResponseObjectSet, ResponseObjectSetId, ResponsePath, ResponseValue, UnpackedResponseEdge,
 };
@@ -87,7 +87,7 @@ impl ResponseBuilder {
     pub fn new_subgraph_response(
         &mut self,
         logical_plan_id: LogicalPlanId,
-        root_response_object_set: Arc<InputdResponseObjectSet>,
+        root_response_object_set: Arc<InputResponseObjectSet>,
         tracked_response_object_set_ids: IdRange<ResponseObjectSetId>,
     ) -> SubgraphResponse {
         let id = ResponseDataPartId::from(self.parts.len());
@@ -115,7 +115,7 @@ impl ResponseBuilder {
 
     pub fn propagate_execution_error(
         &mut self,
-        root_response_object_set: Arc<InputdResponseObjectSet>,
+        root_response_object_set: Arc<InputResponseObjectSet>,
         error: ExecutionError,
         any_edge: ResponseEdge,
         default_fields: Option<Vec<ResponseObjectField>>,
@@ -369,7 +369,7 @@ enum ResponseValueId {
 pub(crate) struct SubgraphResponse {
     data: ResponseDataPart,
     logical_plan_id: LogicalPlanId,
-    root_response_object_set: Arc<InputdResponseObjectSet>,
+    root_response_object_set: Arc<InputResponseObjectSet>,
     errors: Vec<GraphqlError>,
     updates: Vec<UpdateSlot>,
     tracked_response_object_set_ids: IdRange<ResponseObjectSetId>,
@@ -381,7 +381,7 @@ impl SubgraphResponse {
     fn new(
         data: ResponseDataPart,
         logical_plan_id: LogicalPlanId,
-        root_response_object_set: Arc<InputdResponseObjectSet>,
+        root_response_object_set: Arc<InputResponseObjectSet>,
         tracked_response_object_set_ids: IdRange<ResponseObjectSetId>,
     ) -> Self {
         Self {

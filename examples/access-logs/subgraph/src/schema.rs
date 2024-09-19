@@ -25,30 +25,22 @@ impl Default for Query {
             User {
                 id: 1,
                 name: "Alice",
-                address: Address {
-                    street: "123 Folsom",
-                },
+                address: Address { street: "123 Folsom" },
             },
             User {
                 id: 2,
                 name: "Bob",
-                address: Address {
-                    street: "123 Castro",
-                },
+                address: Address { street: "123 Castro" },
             },
             User {
                 id: 3,
                 name: "Musti",
-                address: Address {
-                    street: "123 Planet",
-                },
+                address: Address { street: "123 Planet" },
             },
             User {
                 id: 4,
                 name: "Naukio",
-                address: Address {
-                    street: "123 Rocket",
-                },
+                address: Address { street: "123 Rocket" },
             },
         ];
 
@@ -63,7 +55,6 @@ pub struct Query {
 #[Object]
 impl Query {
     async fn users(&self) -> &Vec<User> {
-        dbg!(1);
         &self.users
     }
 

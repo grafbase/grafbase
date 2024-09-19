@@ -6,7 +6,7 @@ use std::sync::Arc;
 use schema::Schema;
 
 use super::{ResponseViewSelectionSet, ResponseViews};
-use crate::response::{InputdResponseObjectSet, ResponseBuilder, ResponseObject, ResponseValue};
+use crate::response::{InputResponseObjectSet, ResponseBuilder, ResponseObject, ResponseValue};
 
 #[derive(Clone, Copy)]
 pub(super) struct ViewContext<'a> {
@@ -18,14 +18,14 @@ pub(super) struct ViewContext<'a> {
 #[derive(Clone)]
 pub(crate) struct ResponseObjectsView<'a> {
     pub(super) ctx: ViewContext<'a>,
-    pub(super) response_object_set: Arc<InputdResponseObjectSet>,
+    pub(super) response_object_set: Arc<InputResponseObjectSet>,
     pub(super) selection_set: ResponseViewSelectionSet,
 }
 
 #[derive(Clone)]
 pub(crate) struct ResponseObjectsViewWithExtraFields<'a> {
     ctx: ViewContext<'a>,
-    response_object_set: Arc<InputdResponseObjectSet>,
+    response_object_set: Arc<InputResponseObjectSet>,
     selection_set: ResponseViewSelectionSet,
     extra_constant_fields: Vec<(String, serde_json::Value)>,
 }

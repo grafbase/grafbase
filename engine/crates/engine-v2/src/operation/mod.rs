@@ -131,7 +131,7 @@ pub(crate) struct LogicalPlan {
 
 pub(crate) type SolvedRequiredFieldSet = Vec<SolvedRequiredField>;
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
 pub(crate) struct SolvedRequiredField {
     pub id: RequiredFieldId,
     pub field_id: FieldId,
