@@ -103,7 +103,7 @@ rand_core = { version = "0.6", default-features = false, features = ["std"] }
 regex = { version = "1" }
 regex-automata = { version = "0.4", default-features = false, features = ["dfa", "hybrid", "meta", "nfa", "perf", "unicode"] }
 regex-syntax = { version = "0.8" }
-reqwest = { git = "https://github.com/grafbase/reqwest", rev = "874a6b3c522de296629d4542943934fa20d7ab4d", features = ["json", "multipart", "rustls-tls", "stream"] }
+reqwest = { git = "https://github.com/grafbase/reqwest", rev = "874a6b3c522de296629d4542943934fa20d7ab4d", features = ["blocking", "json", "multipart", "rustls-tls", "stream"] }
 rsa = { version = "0.9" }
 rust_decimal = { version = "1" }
 rustls = { version = "0.23", default-features = false, features = ["aws-lc-rs", "logging", "ring", "std", "tls12"] }
@@ -234,7 +234,7 @@ rand_core = { version = "0.6", default-features = false, features = ["std"] }
 regex = { version = "1" }
 regex-automata = { version = "0.4", default-features = false, features = ["dfa", "hybrid", "meta", "nfa", "perf", "unicode"] }
 regex-syntax = { version = "0.8" }
-reqwest = { git = "https://github.com/grafbase/reqwest", rev = "874a6b3c522de296629d4542943934fa20d7ab4d", features = ["json", "multipart", "rustls-tls", "stream"] }
+reqwest = { git = "https://github.com/grafbase/reqwest", rev = "874a6b3c522de296629d4542943934fa20d7ab4d", features = ["blocking", "json", "multipart", "rustls-tls", "stream"] }
 rsa = { version = "0.9" }
 rust_decimal = { version = "1" }
 rustls = { version = "0.23", default-features = false, features = ["aws-lc-rs", "logging", "ring", "std", "tls12"] }

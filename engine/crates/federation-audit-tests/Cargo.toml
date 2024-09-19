@@ -9,9 +9,17 @@ repository.workspace = true
 
 [dependencies]
 integration-tests.path = "../integration-tests"
+reqwest.features = ["blocking"]
 reqwest.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 
+[dev-dependencies]
+libtest-mimic = "0.7"
+
 [lints]
 workspace = true
+
+[[test]]
+name = "audit_tests"
+harness = false

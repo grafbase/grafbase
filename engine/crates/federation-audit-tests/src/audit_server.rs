@@ -5,14 +5,20 @@ use serde::de::DeserializeOwned;
 /// Can provide all the things required for a test.
 #[derive(Clone)]
 pub struct AuditServer {
-    client: reqwest::Client,
+    client: reqwest::blocking::Client,
     url: String,
 }
 
 impl AuditServer {
-    pub async fn test_suites(&self) -> Vec<TestSuite> {
+    pub fn new_from_env() -> Self {
+        AuditServer {
+            client: reqwest::blocking::Client::new(),
+            url: std::env::var("AUDIT_SERVER_URL").expect("AUDIT_SERVER_URL env var must be set"),
+        }
+    }
+
+    pub fn test_suites(&self) -> Vec<TestSuite> {
         self.request::<Vec<String>>("/ids")
-            .await
             .into_iter()
             .map(|id| TestSuite {
                 server: self.clone(),
@@ -21,16 +27,14 @@ impl AuditServer {
             .collect()
     }
 
-    async fn request<T: DeserializeOwned>(&self, path: &str) -> T {
+    fn request<T: DeserializeOwned>(&self, path: &str) -> T {
         self.client
             .get(format!("{}{}", self.url, path))
             .send()
-            .await
             .unwrap()
             .error_for_status()
             .unwrap()
             .json()
-            .await
             .unwrap()
     }
 }
@@ -39,36 +43,41 @@ impl AuditServer {
 ///
 /// Each test suite has a set of subgraphs, and a set of tests that can be
 /// run against those subgraphs
+#[derive(Clone)]
 pub struct TestSuite {
     server: AuditServer,
     pub id: String,
 }
 
+impl std::fmt::Debug for TestSuite {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("TestSuite").field("id", &self.id).finish()
+    }
+}
+
 impl TestSuite {
-    pub async fn tests(&self) -> Vec<Test> {
-        self.request("/tests").await
+    pub fn tests(&self) -> Vec<Test> {
+        self.request("/tests")
     }
 
-    pub async fn subgraphs(&self) -> Vec<Subgraph> {
-        self.request("/subgraphs").await
+    pub fn subgraphs(&self) -> Vec<Subgraph> {
+        self.request("/subgraphs")
     }
 
-    pub async fn supergraph_sdl(&self) -> String {
+    pub fn supergraph_sdl(&self) -> String {
         self.server
             .client
             .get(format!("{}/{}/supergraph.graphql", self.server.url, self.id))
             .send()
-            .await
             .unwrap()
             .error_for_status()
             .unwrap()
             .text()
-            .await
             .unwrap()
     }
 
-    async fn request<T: DeserializeOwned>(&self, path: &str) -> T {
-        self.server.request(&format!("/{}{}", self.id, path)).await
+    fn request<T: DeserializeOwned>(&self, path: &str) -> T {
+        self.server.request(&format!("/{}{}", self.id, path))
     }
 }
 
@@ -76,19 +85,20 @@ impl TestSuite {
 ///
 /// These are simple request/response tests that should be run against
 /// the supergraph formed from the parent test suites subgraphs
-#[derive(serde::Deserialize)]
+#[derive(serde::Deserialize, Clone, Debug)]
 pub struct Test {
     pub query: String,
     pub expected: ExpectedResponse,
 }
 
-#[derive(serde::Deserialize)]
+#[derive(serde::Deserialize, Clone, Debug)]
 pub struct ExpectedResponse {
     pub data: Option<serde_json::Value>,
+    #[serde(default)]
     pub errors: bool,
 }
 
-#[derive(serde::Deserialize)]
+#[derive(serde::Deserialize, Clone, Debug)]
 pub struct Subgraph {
     pub name: String,
     pub url: String,
