@@ -204,6 +204,7 @@ pub(super) fn ingest_keys(
                     _ => None,
                 })
                 .unwrap_or(true); // defaults to true
+
             subgraphs.push_key(definition_id, fields_arg, is_resolvable).ok();
         }
     }

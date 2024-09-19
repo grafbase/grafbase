@@ -1,6 +1,11 @@
-type Post @key(fields: "id")  {
+type Post @key(fields: "id") {
   id: ID!
   name: String
+  comments: [Comment]
 }
 
-
+type Comment @key(fields: "id content postId", resolvable: false) {
+  id: ID!
+  content: String
+  postId: ID!
+}
