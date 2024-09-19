@@ -139,5 +139,19 @@ fn requires_with_fragment_spread() {
         "##,
     ));
 
-    insta::assert_json_snapshot!(response, @"");
+    insta::assert_json_snapshot!(response, @r#"
+    {
+      "errors": [
+        {
+          "message": "Could not plan fields: summary",
+          "extensions": {
+            "queryPath": [
+              "shippingOptions"
+            ],
+            "code": "OPERATION_PLANNING_ERROR"
+          }
+        }
+      ]
+    }
+    "#);
 }
