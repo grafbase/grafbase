@@ -15,6 +15,7 @@ serde.workspace = true
 serde_json.workspace = true
 
 [dev-dependencies]
+similar-asserts = "1.5"
 libtest-mimic = "0.7"
 
 [lints]

@@ -4,3 +4,6 @@
 use integration_tests as _;
 
 pub mod audit_server;
+mod cache;
+
+pub use cache::{cached_tests, CachedTest};

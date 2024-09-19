@@ -1,0 +1,682 @@
+[
+  {
+    "suite": "abstract-types",
+    "index": 0
+  },
+  {
+    "suite": "abstract-types",
+    "index": 1
+  },
+  {
+    "suite": "abstract-types",
+    "index": 2
+  },
+  {
+    "suite": "abstract-types",
+    "index": 3
+  },
+  {
+    "suite": "abstract-types",
+    "index": 4
+  },
+  {
+    "suite": "abstract-types",
+    "index": 5
+  },
+  {
+    "suite": "abstract-types",
+    "index": 6
+  },
+  {
+    "suite": "abstract-types",
+    "index": 7
+  },
+  {
+    "suite": "abstract-types",
+    "index": 8
+  },
+  {
+    "suite": "abstract-types",
+    "index": 9
+  },
+  {
+    "suite": "abstract-types",
+    "index": 10
+  },
+  {
+    "suite": "abstract-types",
+    "index": 11
+  },
+  {
+    "suite": "abstract-types",
+    "index": 12
+  },
+  {
+    "suite": "abstract-types",
+    "index": 13
+  },
+  {
+    "suite": "abstract-types",
+    "index": 14
+  },
+  {
+    "suite": "abstract-types",
+    "index": 15
+  },
+  {
+    "suite": "abstract-types",
+    "index": 16
+  },
+  {
+    "suite": "child-type-mismatch",
+    "index": 0
+  },
+  {
+    "suite": "child-type-mismatch",
+    "index": 1
+  },
+  {
+    "suite": "child-type-mismatch",
+    "index": 2
+  },
+  {
+    "suite": "child-type-mismatch",
+    "index": 3
+  },
+  {
+    "suite": "circular-reference-interface",
+    "index": 0
+  },
+  {
+    "suite": "circular-reference-interface",
+    "index": 1
+  },
+  {
+    "suite": "complex-entity-call",
+    "index": 0
+  },
+  {
+    "suite": "corrupted-supergraph-node-id",
+    "index": 0
+  },
+  {
+    "suite": "corrupted-supergraph-node-id",
+    "index": 1
+  },
+  {
+    "suite": "corrupted-supergraph-node-id",
+    "index": 2
+  },
+  {
+    "suite": "corrupted-supergraph-node-id",
+    "index": 3
+  },
+  {
+    "suite": "corrupted-supergraph-node-id",
+    "index": 4
+  },
+  {
+    "suite": "corrupted-supergraph-node-id",
+    "index": 5
+  },
+  {
+    "suite": "corrupted-supergraph-node-id",
+    "index": 6
+  },
+  {
+    "suite": "corrupted-supergraph-node-id",
+    "index": 7
+  },
+  {
+    "suite": "corrupted-supergraph-node-id",
+    "index": 8
+  },
+  {
+    "suite": "corrupted-supergraph-node-id",
+    "index": 9
+  },
+  {
+    "suite": "enum-intersection",
+    "index": 0
+  },
+  {
+    "suite": "enum-intersection",
+    "index": 1
+  },
+  {
+    "suite": "enum-intersection",
+    "index": 2
+  },
+  {
+    "suite": "enum-intersection",
+    "index": 3
+  },
+  {
+    "suite": "enum-intersection",
+    "index": 4
+  },
+  {
+    "suite": "fed1-external-extends",
+    "index": 0
+  },
+  {
+    "suite": "fed1-external-extends",
+    "index": 1
+  },
+  {
+    "suite": "fed1-external-extends-resolvable",
+    "index": 0
+  },
+  {
+    "suite": "fed1-external-extension",
+    "index": 0
+  },
+  {
+    "suite": "fed1-external-extension",
+    "index": 1
+  },
+  {
+    "suite": "fed2-external-extends",
+    "index": 0
+  },
+  {
+    "suite": "fed2-external-extends",
+    "index": 1
+  },
+  {
+    "suite": "fed2-external-extension",
+    "index": 0
+  },
+  {
+    "suite": "fed2-external-extension",
+    "index": 1
+  },
+  {
+    "suite": "include-skip",
+    "index": 0
+  },
+  {
+    "suite": "include-skip",
+    "index": 1
+  },
+  {
+    "suite": "include-skip",
+    "index": 2
+  },
+  {
+    "suite": "include-skip",
+    "index": 3
+  },
+  {
+    "suite": "input-object-intersection",
+    "index": 0
+  },
+  {
+    "suite": "input-object-intersection",
+    "index": 1
+  },
+  {
+    "suite": "input-object-intersection",
+    "index": 2
+  },
+  {
+    "suite": "interface-object-with-requires",
+    "index": 0
+  },
+  {
+    "suite": "interface-object-with-requires",
+    "index": 1
+  },
+  {
+    "suite": "interface-object-with-requires",
+    "index": 2
+  },
+  {
+    "suite": "interface-object-with-requires",
+    "index": 3
+  },
+  {
+    "suite": "interface-object-with-requires",
+    "index": 4
+  },
+  {
+    "suite": "interface-object-with-requires",
+    "index": 5
+  },
+  {
+    "suite": "interface-object-with-requires",
+    "index": 6
+  },
+  {
+    "suite": "keys-mashup",
+    "index": 0
+  },
+  {
+    "suite": "mutations",
+    "index": 0
+  },
+  {
+    "suite": "mutations",
+    "index": 1
+  },
+  {
+    "suite": "mutations",
+    "index": 2
+  },
+  {
+    "suite": "mysterious-external",
+    "index": 0
+  },
+  {
+    "suite": "mysterious-external",
+    "index": 1
+  },
+  {
+    "suite": "nested-provides",
+    "index": 0
+  },
+  {
+    "suite": "nested-provides",
+    "index": 1
+  },
+  {
+    "suite": "node",
+    "index": 0
+  },
+  {
+    "suite": "non-resolvable-interface-object",
+    "index": 0
+  },
+  {
+    "suite": "non-resolvable-interface-object",
+    "index": 1
+  },
+  {
+    "suite": "non-resolvable-interface-object",
+    "index": 2
+  },
+  {
+    "suite": "non-resolvable-interface-object",
+    "index": 3
+  },
+  {
+    "suite": "non-resolvable-interface-object",
+    "index": 4
+  },
+  {
+    "suite": "non-resolvable-interface-object",
+    "index": 5
+  },
+  {
+    "suite": "non-resolvable-interface-object",
+    "index": 6
+  },
+  {
+    "suite": "override-type-interface",
+    "index": 0
+  },
+  {
+    "suite": "override-type-interface",
+    "index": 1
+  },
+  {
+    "suite": "override-type-interface",
+    "index": 2
+  },
+  {
+    "suite": "override-type-interface",
+    "index": 3
+  },
+  {
+    "suite": "override-with-requires",
+    "index": 0
+  },
+  {
+    "suite": "override-with-requires",
+    "index": 1
+  },
+  {
+    "suite": "override-with-requires",
+    "index": 2
+  },
+  {
+    "suite": "override-with-requires",
+    "index": 3
+  },
+  {
+    "suite": "parent-entity-call",
+    "index": 0
+  },
+  {
+    "suite": "parent-entity-call-complex",
+    "index": 0
+  },
+  {
+    "suite": "provides-on-interface",
+    "index": 0
+  },
+  {
+    "suite": "provides-on-interface",
+    "index": 1
+  },
+  {
+    "suite": "provides-on-union",
+    "index": 0
+  },
+  {
+    "suite": "provides-on-union",
+    "index": 1
+  },
+  {
+    "suite": "requires-interface",
+    "index": 0
+  },
+  {
+    "suite": "requires-interface",
+    "index": 1
+  },
+  {
+    "suite": "requires-interface",
+    "index": 2
+  },
+  {
+    "suite": "requires-interface",
+    "index": 3
+  },
+  {
+    "suite": "requires-interface",
+    "index": 4
+  },
+  {
+    "suite": "requires-requires",
+    "index": 0
+  },
+  {
+    "suite": "requires-requires",
+    "index": 1
+  },
+  {
+    "suite": "requires-requires",
+    "index": 2
+  },
+  {
+    "suite": "requires-requires",
+    "index": 3
+  },
+  {
+    "suite": "requires-requires",
+    "index": 4
+  },
+  {
+    "suite": "requires-with-argument",
+    "index": 0
+  },
+  {
+    "suite": "requires-with-argument",
+    "index": 1
+  },
+  {
+    "suite": "requires-with-argument",
+    "index": 2
+  },
+  {
+    "suite": "requires-with-argument",
+    "index": 3
+  },
+  {
+    "suite": "requires-with-argument",
+    "index": 4
+  },
+  {
+    "suite": "requires-with-fragments",
+    "index": 0
+  },
+  {
+    "suite": "requires-with-fragments",
+    "index": 1
+  },
+  {
+    "suite": "requires-with-fragments",
+    "index": 2
+  },
+  {
+    "suite": "requires-with-fragments",
+    "index": 3
+  },
+  {
+    "suite": "requires-with-fragments",
+    "index": 4
+  },
+  {
+    "suite": "requires-with-fragments",
+    "index": 5
+  },
+  {
+    "suite": "shared-root",
+    "index": 0
+  },
+  {
+    "suite": "shared-root",
+    "index": 1
+  },
+  {
+    "suite": "simple-entity-call",
+    "index": 0
+  },
+  {
+    "suite": "simple-inaccessible",
+    "index": 0
+  },
+  {
+    "suite": "simple-inaccessible",
+    "index": 1
+  },
+  {
+    "suite": "simple-inaccessible",
+    "index": 2
+  },
+  {
+    "suite": "simple-inaccessible",
+    "index": 3
+  },
+  {
+    "suite": "simple-interface-object",
+    "index": 0
+  },
+  {
+    "suite": "simple-interface-object",
+    "index": 1
+  },
+  {
+    "suite": "simple-interface-object",
+    "index": 2
+  },
+  {
+    "suite": "simple-interface-object",
+    "index": 3
+  },
+  {
+    "suite": "simple-interface-object",
+    "index": 4
+  },
+  {
+    "suite": "simple-interface-object",
+    "index": 5
+  },
+  {
+    "suite": "simple-interface-object",
+    "index": 6
+  },
+  {
+    "suite": "simple-interface-object",
+    "index": 7
+  },
+  {
+    "suite": "simple-interface-object",
+    "index": 8
+  },
+  {
+    "suite": "simple-interface-object",
+    "index": 9
+  },
+  {
+    "suite": "simple-interface-object",
+    "index": 10
+  },
+  {
+    "suite": "simple-interface-object",
+    "index": 11
+  },
+  {
+    "suite": "simple-interface-object",
+    "index": 12
+  },
+  {
+    "suite": "simple-override",
+    "index": 0
+  },
+  {
+    "suite": "simple-override",
+    "index": 1
+  },
+  {
+    "suite": "simple-requires-provides",
+    "index": 0
+  },
+  {
+    "suite": "simple-requires-provides",
+    "index": 1
+  },
+  {
+    "suite": "simple-requires-provides",
+    "index": 2
+  },
+  {
+    "suite": "simple-requires-provides",
+    "index": 3
+  },
+  {
+    "suite": "simple-requires-provides",
+    "index": 4
+  },
+  {
+    "suite": "simple-requires-provides",
+    "index": 5
+  },
+  {
+    "suite": "simple-requires-provides",
+    "index": 6
+  },
+  {
+    "suite": "simple-requires-provides",
+    "index": 7
+  },
+  {
+    "suite": "simple-requires-provides",
+    "index": 8
+  },
+  {
+    "suite": "simple-requires-provides",
+    "index": 9
+  },
+  {
+    "suite": "simple-requires-provides",
+    "index": 10
+  },
+  {
+    "suite": "simple-requires-provides",
+    "index": 11
+  },
+  {
+    "suite": "typename",
+    "index": 0
+  },
+  {
+    "suite": "typename",
+    "index": 1
+  },
+  {
+    "suite": "typename",
+    "index": 2
+  },
+  {
+    "suite": "typename",
+    "index": 3
+  },
+  {
+    "suite": "typename",
+    "index": 4
+  },
+  {
+    "suite": "typename",
+    "index": 5
+  },
+  {
+    "suite": "unavailable-override",
+    "index": 0
+  },
+  {
+    "suite": "unavailable-override",
+    "index": 1
+  },
+  {
+    "suite": "union-interface-distributed",
+    "index": 0
+  },
+  {
+    "suite": "union-interface-distributed",
+    "index": 1
+  },
+  {
+    "suite": "union-interface-distributed",
+    "index": 2
+  },
+  {
+    "suite": "union-interface-distributed",
+    "index": 3
+  },
+  {
+    "suite": "union-interface-distributed",
+    "index": 4
+  },
+  {
+    "suite": "union-interface-distributed",
+    "index": 5
+  },
+  {
+    "suite": "union-interface-distributed",
+    "index": 6
+  },
+  {
+    "suite": "union-intersection",
+    "index": 0
+  },
+  {
+    "suite": "union-intersection",
+    "index": 1
+  },
+  {
+    "suite": "union-intersection",
+    "index": 2
+  },
+  {
+    "suite": "union-intersection",
+    "index": 3
+  },
+  {
+    "suite": "union-intersection",
+    "index": 4
+  },
+  {
+    "suite": "union-intersection",
+    "index": 5
+  },
+  {
+    "suite": "union-intersection",
+    "index": 6
+  },
+  {
+    "suite": "union-intersection",
+    "index": 7
+  }
+]
