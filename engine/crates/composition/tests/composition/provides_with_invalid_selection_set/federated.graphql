@@ -1,0 +1,2 @@
+# Error in @provides at Axolotl.currentHabitat: the habitatType field does not exist on Habitat
+# Error in @provides at Axolotl.nativeHabitat: the salinity field does not exist on Freshwater

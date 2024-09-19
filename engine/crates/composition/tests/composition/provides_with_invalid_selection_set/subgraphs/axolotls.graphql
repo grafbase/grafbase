@@ -1,0 +1,43 @@
+type Axolotl @key(fields: "id") {
+  id: ID!
+  name: String!
+  age: Int
+  color: String
+
+  # Not valid
+  currentHabitat: Habitat @provides(fields: "location habitatType")
+
+  # Valid
+  preferredHabitat: Habitat
+    @provides(fields: "...on Freshwater { location waterType } ...on Terrestrial { location terrainType }")
+  # Not valid
+  nativeHabitat: Habitat
+    @provides(fields: "... on Freshwater { location salinity } ... on Terrestrial { location terrainType }")
+}
+
+interface Habitat {
+  location: String!
+}
+
+type Freshwater implements Habitat @key(fields: "id") {
+  id: ID!
+  location: String!
+  waterType: String!
+}
+
+type Terrestrial implements Habitat @key(fields: "id") {
+  id: ID!
+  location: String!
+  terrainType: String!
+}
+
+type Query {
+  axolotls: [Axolotl!]!
+  axolotl(id: ID!): Axolotl
+}
+
+type Mutation {
+  addAxolotl(name: String!, age: Int, color: String, habitat: String): Axolotl!
+  updateAxolotl(id: ID!, name: String, age: Int, color: String, habitat: String): Axolotl!
+  deleteAxolotl(id: ID!): Axolotl!
+}
