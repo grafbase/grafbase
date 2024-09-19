@@ -23,13 +23,13 @@ fn test_default_headers() {
         engine.post("query { headers { name value }}").await
     });
 
-    insta::assert_json_snapshot!(response, { "data.headers."}, @r###"
+    insta::assert_json_snapshot!(response, { "data.headers."}, @r#"
     {
       "data": {
         "headers": [
           {
             "name": "accept",
-            "value": "application/json"
+            "value": "application/graphql-response+json; charset=utf-8, application/json; charset=utf-8"
           },
           {
             "name": "content-length",
@@ -46,7 +46,7 @@ fn test_default_headers() {
         ]
       }
     }
-    "###);
+    "#);
 }
 
 #[test]
@@ -72,13 +72,13 @@ fn test_default_headers_forwarding() {
             .await
     });
 
-    insta::assert_json_snapshot!(response, @r###"
+    insta::assert_json_snapshot!(response, @r#"
     {
       "data": {
         "headers": [
           {
             "name": "accept",
-            "value": "application/json"
+            "value": "application/graphql-response+json; charset=utf-8, application/json; charset=utf-8"
           },
           {
             "name": "content-length",
@@ -99,7 +99,7 @@ fn test_default_headers_forwarding() {
         ]
       }
     }
-    "###);
+    "#);
 }
 
 #[test]
@@ -128,13 +128,13 @@ fn test_subgraph_specific_header_forwarding() {
             .await
     });
 
-    insta::assert_json_snapshot!(response, @r###"
+    insta::assert_json_snapshot!(response, @r#"
     {
       "data": {
         "headers": [
           {
             "name": "accept",
-            "value": "application/json"
+            "value": "application/graphql-response+json; charset=utf-8, application/json; charset=utf-8"
           },
           {
             "name": "content-length",
@@ -155,7 +155,7 @@ fn test_subgraph_specific_header_forwarding() {
         ]
       }
     }
-    "###);
+    "#);
 }
 
 #[test]
@@ -202,13 +202,13 @@ fn should_not_propagate_blacklisted_headers() {
             .header("Upgrade", "foo/2")
             .await;
 
-        insta::assert_json_snapshot!(response, @r###"
+        insta::assert_json_snapshot!(response, @r#"
         {
           "data": {
             "headers": [
               {
                 "name": "accept",
-                "value": "application/json"
+                "value": "application/graphql-response+json; charset=utf-8, application/json; charset=utf-8"
               },
               {
                 "name": "content-length",
@@ -225,7 +225,7 @@ fn should_not_propagate_blacklisted_headers() {
             ]
           }
         }
-        "###);
+        "#);
     })
 }
 
@@ -252,13 +252,13 @@ fn test_regex_header_forwarding() {
             .await
     });
 
-    insta::assert_json_snapshot!(response, @r###"
+    insta::assert_json_snapshot!(response, @r#"
     {
       "data": {
         "headers": [
           {
             "name": "accept",
-            "value": "application/json"
+            "value": "application/graphql-response+json; charset=utf-8, application/json; charset=utf-8"
           },
           {
             "name": "content-length",
@@ -279,7 +279,7 @@ fn test_regex_header_forwarding() {
         ]
       }
     }
-    "###);
+    "#);
 }
 
 #[test]
@@ -310,13 +310,13 @@ fn test_regex_header_forwarding_should_not_duplicate() {
             .await
     });
 
-    insta::assert_json_snapshot!(response, @r###"
+    insta::assert_json_snapshot!(response, @r#"
     {
       "data": {
         "headers": [
           {
             "name": "accept",
-            "value": "application/json"
+            "value": "application/graphql-response+json; charset=utf-8, application/json; charset=utf-8"
           },
           {
             "name": "content-length",
@@ -337,7 +337,7 @@ fn test_regex_header_forwarding_should_not_duplicate() {
         ]
       }
     }
-    "###);
+    "#);
 }
 
 #[test]
@@ -362,13 +362,13 @@ fn test_header_forwarding_with_rename() {
             .await
     });
 
-    insta::assert_json_snapshot!(response, @r###"
+    insta::assert_json_snapshot!(response, @r#"
     {
       "data": {
         "headers": [
           {
             "name": "accept",
-            "value": "application/json"
+            "value": "application/graphql-response+json; charset=utf-8, application/json; charset=utf-8"
           },
           {
             "name": "content-length",
@@ -385,7 +385,7 @@ fn test_header_forwarding_with_rename() {
         ]
       }
     }
-    "###);
+    "#);
 }
 
 #[test]
@@ -407,13 +407,13 @@ fn test_header_forwarding_with_default() {
         engine.post("query { headers { name value }}").await
     });
 
-    insta::assert_json_snapshot!(response, @r###"
+    insta::assert_json_snapshot!(response, @r#"
     {
       "data": {
         "headers": [
           {
             "name": "accept",
-            "value": "application/json"
+            "value": "application/graphql-response+json; charset=utf-8, application/json; charset=utf-8"
           },
           {
             "name": "content-length",
@@ -430,7 +430,7 @@ fn test_header_forwarding_with_default() {
         ]
       }
     }
-    "###);
+    "#);
 }
 
 #[test]
@@ -455,13 +455,13 @@ fn test_header_forwarding_with_default_and_existing_header() {
             .await
     });
 
-    insta::assert_json_snapshot!(response, @r###"
+    insta::assert_json_snapshot!(response, @r#"
     {
       "data": {
         "headers": [
           {
             "name": "accept",
-            "value": "application/json"
+            "value": "application/graphql-response+json; charset=utf-8, application/json; charset=utf-8"
           },
           {
             "name": "content-length",
@@ -478,7 +478,7 @@ fn test_header_forwarding_with_default_and_existing_header() {
         ]
       }
     }
-    "###);
+    "#);
 }
 
 #[test]
@@ -508,13 +508,13 @@ fn test_regex_header_forwarding_then_delete() {
             .await
     });
 
-    insta::assert_json_snapshot!(response, @r###"
+    insta::assert_json_snapshot!(response, @r#"
     {
       "data": {
         "headers": [
           {
             "name": "accept",
-            "value": "application/json"
+            "value": "application/graphql-response+json; charset=utf-8, application/json; charset=utf-8"
           },
           {
             "name": "content-length",
@@ -531,7 +531,7 @@ fn test_regex_header_forwarding_then_delete() {
         ]
       }
     }
-    "###);
+    "#);
 }
 
 #[test]
@@ -562,13 +562,13 @@ fn test_regex_header_forwarding_then_delete_with_regex() {
             .await
     });
 
-    insta::assert_json_snapshot!(response, @r###"
+    insta::assert_json_snapshot!(response, @r#"
     {
       "data": {
         "headers": [
           {
             "name": "accept",
-            "value": "application/json"
+            "value": "application/graphql-response+json; charset=utf-8, application/json; charset=utf-8"
           },
           {
             "name": "content-length",
@@ -585,7 +585,7 @@ fn test_regex_header_forwarding_then_delete_with_regex() {
         ]
       }
     }
-    "###);
+    "#);
 }
 
 #[test]
@@ -610,13 +610,13 @@ fn test_rename_duplicate_no_default() {
             .await
     });
 
-    insta::assert_json_snapshot!(response, @r###"
+    insta::assert_json_snapshot!(response, @r#"
     {
       "data": {
         "headers": [
           {
             "name": "accept",
-            "value": "application/json"
+            "value": "application/graphql-response+json; charset=utf-8, application/json; charset=utf-8"
           },
           {
             "name": "bar",
@@ -637,7 +637,7 @@ fn test_rename_duplicate_no_default() {
         ]
       }
     }
-    "###);
+    "#);
 }
 
 #[test]
@@ -663,13 +663,13 @@ fn test_rename_duplicate_default() {
             .await
     });
 
-    insta::assert_json_snapshot!(response, @r###"
+    insta::assert_json_snapshot!(response, @r#"
     {
       "data": {
         "headers": [
           {
             "name": "accept",
-            "value": "application/json"
+            "value": "application/graphql-response+json; charset=utf-8, application/json; charset=utf-8"
           },
           {
             "name": "bar",
@@ -690,7 +690,7 @@ fn test_rename_duplicate_default() {
         ]
       }
     }
-    "###);
+    "#);
 }
 
 #[test]
@@ -713,13 +713,13 @@ fn test_rename_duplicate_default_with_missing_value() {
         engine.post("query { headers { name value }}").await
     });
 
-    insta::assert_json_snapshot!(response, @r###"
+    insta::assert_json_snapshot!(response, @r#"
     {
       "data": {
         "headers": [
           {
             "name": "accept",
-            "value": "application/json"
+            "value": "application/graphql-response+json; charset=utf-8, application/json; charset=utf-8"
           },
           {
             "name": "bar",
@@ -740,7 +740,7 @@ fn test_rename_duplicate_default_with_missing_value() {
         ]
       }
     }
-    "###);
+    "#);
 }
 
 #[test]
@@ -765,13 +765,13 @@ fn regex_header_regex_forwarding_should_forward_duplicates_too() {
             .await
     });
 
-    insta::assert_json_snapshot!(response, @r###"
+    insta::assert_json_snapshot!(response, @r#"
     {
       "data": {
         "headers": [
           {
             "name": "accept",
-            "value": "application/json"
+            "value": "application/graphql-response+json; charset=utf-8, application/json; charset=utf-8"
           },
           {
             "name": "content-length",
@@ -792,7 +792,7 @@ fn regex_header_regex_forwarding_should_forward_duplicates_too() {
         ]
       }
     }
-    "###);
+    "#);
 }
 
 #[test]
@@ -817,13 +817,13 @@ fn regex_header_forwarding_should_forward_duplicates() {
             .await
     });
 
-    insta::assert_json_snapshot!(response, @r###"
+    insta::assert_json_snapshot!(response, @r#"
     {
       "data": {
         "headers": [
           {
             "name": "accept",
-            "value": "application/json"
+            "value": "application/graphql-response+json; charset=utf-8, application/json; charset=utf-8"
           },
           {
             "name": "content-length",
@@ -844,7 +844,7 @@ fn regex_header_forwarding_should_forward_duplicates() {
         ]
       }
     }
-    "###);
+    "#);
 }
 
 #[test]
@@ -870,13 +870,13 @@ fn regex_header_forwarding_should_forward_duplicates_with_rename() {
             .await
     });
 
-    insta::assert_json_snapshot!(response, @r###"
+    insta::assert_json_snapshot!(response, @r#"
     {
       "data": {
         "headers": [
           {
             "name": "accept",
-            "value": "application/json"
+            "value": "application/graphql-response+json; charset=utf-8, application/json; charset=utf-8"
           },
           {
             "name": "content-length",
@@ -897,7 +897,7 @@ fn regex_header_forwarding_should_forward_duplicates_with_rename() {
         ]
       }
     }
-    "###);
+    "#);
 }
 
 #[test]
@@ -922,13 +922,13 @@ fn header_remove_should_remove_duplicates() {
             .await
     });
 
-    insta::assert_json_snapshot!(response, @r###"
+    insta::assert_json_snapshot!(response, @r#"
     {
       "data": {
         "headers": [
           {
             "name": "accept",
-            "value": "application/json"
+            "value": "application/graphql-response+json; charset=utf-8, application/json; charset=utf-8"
           },
           {
             "name": "content-length",
@@ -941,7 +941,7 @@ fn header_remove_should_remove_duplicates() {
         ]
       }
     }
-    "###);
+    "#);
 }
 
 #[test]
@@ -966,13 +966,13 @@ fn header_regex_remove_should_remove_duplicates() {
             .await
     });
 
-    insta::assert_json_snapshot!(response, @r###"
+    insta::assert_json_snapshot!(response, @r#"
     {
       "data": {
         "headers": [
           {
             "name": "accept",
-            "value": "application/json"
+            "value": "application/graphql-response+json; charset=utf-8, application/json; charset=utf-8"
           },
           {
             "name": "content-length",
@@ -985,5 +985,5 @@ fn header_regex_remove_should_remove_duplicates() {
         ]
       }
     }
-    "###);
+    "#);
 }
