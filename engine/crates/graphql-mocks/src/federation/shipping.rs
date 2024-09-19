@@ -1,3 +1,5 @@
+#![expect(clippy::duplicated_attributes, clippy::panic)]
+
 use async_graphql::{
     ComplexObject, Context, EmptyMutation, EmptySubscription, FieldResult, Interface, Object, Schema, SimpleObject, ID,
 };
