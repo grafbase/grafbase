@@ -70,7 +70,7 @@ fn gb6873_wrong_enum_sent_to_subgraph() {
 
         let requests = fetcher.drain_received_requests().collect::<Vec<_>>();
         insta::with_settings!({ sort_maps => true}, {
-            insta::assert_json_snapshot!(requests, @r###"
+            insta::assert_json_snapshot!(requests, @r#"
             [
               [
                 "a",
@@ -89,7 +89,7 @@ fn gb6873_wrong_enum_sent_to_subgraph() {
                   "headers": [
                     [
                       "accept",
-                      "application/json"
+                      "application/graphql-response+json; charset=utf-8, application/json; charset=utf-8"
                     ],
                     [
                       "content-length",
@@ -103,7 +103,7 @@ fn gb6873_wrong_enum_sent_to_subgraph() {
                 }
               ]
             ]
-            "###)
+            "#)
         });
     });
 }

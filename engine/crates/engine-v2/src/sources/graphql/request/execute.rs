@@ -47,7 +47,12 @@ pub(crate) async fn execute_subgraph_request<'ctx, 'a, R: Runtime>(
 
         headers.typed_insert(headers::ContentType::json());
         headers.typed_insert(headers::ContentLength(body.len() as u64));
-        headers.insert(http::header::ACCEPT, http::HeaderValue::from_static("application/json"));
+        headers.insert(
+            http::header::ACCEPT,
+            http::HeaderValue::from_static(
+                "application/graphql-response+json; charset=utf-8, application/json; charset=utf-8",
+            ),
+        );
 
         grafbase_telemetry::otel::opentelemetry::global::get_text_map_propagator(|propagator| {
             let context = tracing::Span::current().context();
@@ -97,6 +102,11 @@ pub(crate) async fn execute_subgraph_request<'ctx, 'a, R: Runtime>(
     // If the status code isn't a success as this point it means it's either a client error or
     // we've exhausted our retry budget for server errors.
     if !response.status().is_success() {
+        tracing::error!(
+            "Subgraph request failed with status code: {}\n{}",
+            response.status().as_u16(),
+            String::from_utf8_lossy(response.body())
+        );
         return Err(GraphqlError::new(
             format!("Request failed with status code: {}", response.status().as_u16()),
             ErrorCode::SubgraphRequestError,
