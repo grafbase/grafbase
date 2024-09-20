@@ -140,7 +140,7 @@ jobs:
           run: |
             npm start serve
           wait-on: |
-            http://localhost:4200
+            http-get://localhost:4200
           tail: true
           wait-for: 10s
           log-output-if: failure
