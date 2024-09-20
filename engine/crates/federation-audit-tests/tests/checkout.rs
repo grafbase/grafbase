@@ -2,6 +2,8 @@
 
 use std::process::Command;
 
+const GIT_REPO: &str = "https://github.com/the-guild-org/graphql-federation-gateway-audit.git";
+
 #[test]
 fn ensure_upstream_is_up_to_date() {
     // The tests in this crate are powered by the upstream graphql-federation-gateway-audit repo
@@ -21,16 +23,12 @@ fn ensure_upstream_is_up_to_date() {
 
     if !std::fs::exists("gateway-audit-repo").unwrap() {
         let status = Command::new("git")
-            .args([
-                "clone",
-                "git@github.com:the-guild-org/graphql-federation-gateway-audit.git",
-                "gateway-audit-repo",
-            ])
+            .args(["clone", GIT_REPO, "gateway-audit-repo"])
             .status()
             .unwrap();
 
         if !status.success() {
-            panic!("Could not clone git@github.com:the-guild-org/graphql-federation-gateway-audit.git - please do it yourself");
+            panic!("Could not clone {GIT_REPO} - please do it yourself");
         }
     }
 
