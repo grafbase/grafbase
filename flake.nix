@@ -65,6 +65,9 @@
             nodePackages.semver
             sd
 
+            # workspace-hack
+            cargo-hakari
+
             # Node.js
             nodejs
             nodePackages.prettier
