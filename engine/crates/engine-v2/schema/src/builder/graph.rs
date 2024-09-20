@@ -1,5 +1,5 @@
 use std::{
-    collections::{HashMap, HashSet},
+    collections::{hash_map::Entry, HashMap, HashSet},
     mem::take,
 };
 
@@ -280,6 +280,7 @@ impl<'a> GraphBuilder<'a> {
             let schema_location = SchemaLocation::Type {
                 name: object.name.into(),
             };
+
             let directives = self.push_directives(
                 config,
                 Directives {
@@ -296,12 +297,25 @@ impl<'a> GraphBuilder<'a> {
                     },
                 },
             );
+
+            let mut join_implement_records: Vec<_> = object
+                .join_implements
+                .into_iter()
+                .map(|(subgraph_id, interface_id)| JoinImplementsDefinitionRecord {
+                    graph_id: SubgraphId::GraphqlEndpoint(subgraph_id.into()),
+                    interface_id: interface_id.into(),
+                })
+                .collect();
+
+            join_implement_records.sort_by_key(|record| (record.graph_id, record.interface_id));
+
             self.graph.object_definitions.push(ObjectDefinitionRecord {
                 name_id: object.name.into(),
                 description_id: None,
                 interface_ids: object.implements_interfaces.into_iter().map(Into::into).collect(),
                 directive_ids: directives,
                 field_ids: fields,
+                join_implement_records,
             });
 
             if let Some(entity) = self.generate_federation_entity_from_keys(schema_location, object.keys) {
@@ -322,13 +336,16 @@ impl<'a> GraphBuilder<'a> {
         self.graph.interface_definitions = Vec::with_capacity(config.graph.interfaces.len());
         for interface in take(&mut config.graph.interfaces) {
             let interface_id = InterfaceDefinitionId::from(self.graph.interface_definitions.len());
+
             let fields = self.ctx.idmaps.field.get_range((
                 interface.fields.start,
                 interface.fields.end.0 - interface.fields.start.0,
             ));
+
             for field_id in fields {
                 entities_metadata.field_id_to_maybe_interface_id[usize::from(field_id)] = Some(interface_id);
             }
+
             let directives = self.push_directives(
                 config,
                 Directives {
@@ -336,6 +353,7 @@ impl<'a> GraphBuilder<'a> {
                     ..Default::default()
                 },
             );
+
             self.graph.interface_definitions.push(InterfaceDefinitionRecord {
                 name_id: interface.name.into(),
                 description_id: None,
@@ -345,6 +363,8 @@ impl<'a> GraphBuilder<'a> {
                 possible_types_ordered_by_typename_ids: Vec::new(),
                 directive_ids: directives,
                 field_ids: fields,
+                // Added at the end.
+                fully_implemented_in_ids: Vec::new(),
             });
 
             if let Some(entity) = self.generate_federation_entity_from_keys(
@@ -362,6 +382,39 @@ impl<'a> GraphBuilder<'a> {
             for interface_id in self.graph[object_id].interface_ids.clone() {
                 self.graph[interface_id].possible_type_ids.push(object_id);
             }
+        }
+
+        // Adding all fully implemented interfaces per subgraph.
+        for interface_id in (0..self.graph.interface_definitions.len()).map(InterfaceDefinitionId::from) {
+            // Collecting per subgraph all objects defining this interface.
+            let mut found_ids: HashMap<SubgraphId, Vec<ObjectDefinitionId>> = HashMap::new();
+
+            // We iterate ovr all objects that implement this interface, and over their @join__implements
+            // directives, marking the object to be implemented in subgraphs.
+            for object_id in &self.graph[interface_id].possible_type_ids {
+                for join_implements in &self.graph[*object_id].join_implement_records {
+                    if join_implements.interface_id == interface_id {
+                        match found_ids.entry(join_implements.graph_id) {
+                            Entry::Occupied(mut entry) => {
+                                entry.get_mut().push(*object_id);
+                            }
+                            Entry::Vacant(entry) => {
+                                entry.insert(vec![*object_id]);
+                            }
+                        }
+                    }
+                }
+            }
+
+            // If the number of all collected object per subgraph is equal to the number of all possible,
+            // our interface is fully implemented in this subgraph.
+            for (graph_id, object_ids) in found_ids {
+                if object_ids.len() == self.graph[interface_id].possible_type_ids.len() {
+                    self.graph[interface_id].fully_implemented_in_ids.push(graph_id);
+                }
+            }
+
+            self.graph[interface_id].fully_implemented_in_ids.sort();
         }
 
         entities_metadata

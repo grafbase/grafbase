@@ -5,8 +5,8 @@
 //! Source file: <engine-v2-codegen dir>/domain/schema.graphql
 use crate::{
     generated::{
-        FieldDefinition, FieldDefinitionId, InterfaceDefinition, InterfaceDefinitionId, TypeSystemDirective,
-        TypeSystemDirectiveId,
+        FieldDefinition, FieldDefinitionId, InterfaceDefinition, InterfaceDefinitionId, JoinImplementsDefinition,
+        JoinImplementsDefinitionRecord, TypeSystemDirective, TypeSystemDirectiveId,
     },
     prelude::*,
     StringId,
@@ -24,6 +24,8 @@ use walker::{Iter, Walk};
 ///   interfaces: [InterfaceDefinition!]!
 ///   directives: [TypeSystemDirective!]!
 ///   fields: [FieldDefinition!]!
+///   "sorted by SubgraphId, then InterfaceId"
+///   join_implements: [JoinImplementsDefinition!]!
 /// }
 /// ```
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
@@ -33,6 +35,8 @@ pub struct ObjectDefinitionRecord {
     pub interface_ids: Vec<InterfaceDefinitionId>,
     pub directive_ids: Vec<TypeSystemDirectiveId>,
     pub field_ids: IdRange<FieldDefinitionId>,
+    /// sorted by SubgraphId, then InterfaceId
+    pub join_implement_records: Vec<JoinImplementsDefinitionRecord>,
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
@@ -75,6 +79,10 @@ impl<'a> ObjectDefinition<'a> {
     }
     pub fn fields(&self) -> impl Iter<Item = FieldDefinition<'a>> + 'a {
         self.field_ids.walk(self.schema)
+    }
+    /// sorted by SubgraphId, then InterfaceId
+    pub fn join_implements(&self) -> impl Iter<Item = JoinImplementsDefinition<'a>> + 'a {
+        self.as_ref().join_implement_records.walk(self.schema)
     }
 }
 
