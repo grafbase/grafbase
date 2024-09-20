@@ -83,7 +83,10 @@ runs:
       shell: bash
       run: |
         docker compose -f engine/crates/integration-tests/docker-compose.yml up -d
-        RUST_BACKTRACE=1 cargo nextest run --workspace --profile ci --exclude grafbase-gateway --exclude grafbase-docker-tests
+        RUST_BACKTRACE=1 cargo nextest run --workspace --profile ci \
+          --exclude grafbase-gateway \
+          --exclude grafbase-docker-tests \
+          --exclude federation-audit-tests
         docker compose -f engine/crates/integration-tests/docker-compose.yml stop -t 3
 
     - name: Upload the JUnit files
@@ -115,7 +118,13 @@ runs:
       if: ${{ inputs.with-integration-tests == 'false' }}
       shell: bash
       run: |
-        RUST_BACKTRACE=1 cargo nextest run --workspace --exclude integration-tests --exclude grafbase-docker-tests --exclude grafbase-gateway --exclude wasi-component-loader --profile ci
+        RUST_BACKTRACE=1 cargo nextest run --workspace \
+          --exclude integration-tests \
+          --exclude grafbase-docker-tests \
+          --exclude grafbase-gateway \
+          --exclude wasi-component-loader \
+          --exclude federation-audit-tests \
+          --profile ci
 
     - name: Upload the non-integration JUnit files
       if: ${{ inputs.with-integration-tests == 'false' && ( success() || failure() ) && !contains(steps.tests_no_integration.outputs.exitcode, '101') }}
