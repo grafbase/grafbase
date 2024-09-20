@@ -1,5 +1,0 @@
-type User @model {
-  id: ID!
-  username: String! @unique
-  password: String!
-}

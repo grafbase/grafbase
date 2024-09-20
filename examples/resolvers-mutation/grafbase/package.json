@@ -1,6 +1,0 @@
-{
-  "private": true,
-  "dependencies": {
-    "stripe": "12.2.0"
-  }
-}

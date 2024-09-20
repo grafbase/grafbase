@@ -1,7 +1,0 @@
-<resources>
-    <string name="app_name">Grafbase Android</string>
-    <!-- Strings used for fragments for navigation -->
-    <string name="first_fragment_label">Posts</string>
-    <string name="second_fragment_label">Post Detail</string>
-    <string name="comments_title">Comments</string>
-</resources>

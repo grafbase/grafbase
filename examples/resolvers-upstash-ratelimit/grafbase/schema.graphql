@@ -1,3 +1,0 @@
-extend type Query {
-  chatGPT(question: String!): String! @resolver(name: "chat-gpt")
-}

@@ -1,3 +1,0 @@
-type Post @model {
-  title: String!
-}

@@ -1,8 +1,0 @@
-type Emoji @model {
-  char: String! @unique @length(min: 1, max: 2)
-  tags: [Tags!]!
-}
-
-type Tags @model {
-  text: String! @length(min: 3, max: 25)
-}

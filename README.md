@@ -6,13 +6,11 @@
 </p>
 
 <p align="center">
-  The future of APIs
+  The GraphQL Federation platform
 </p>
 
 <p align="center">
-  <a href="https://grafbase.com/docs/config"><strong>Quickstart</strong></a> ·
   <a href="/examples"><strong>Examples</strong></a> ·
-  <a href="/templates"><strong>Templates</strong></a> ·
   <a href="https://grafbase.com/docs"><strong>Docs</strong></a> ·
   <a href="https://grafbase.com/cli"><strong>CLI</strong></a> ·
   <a href="https://grafbase.com/community"><strong>Community</strong></a> ·
@@ -20,5 +18,5 @@
 </p>
 
 <p align="center">
-  Compose all your data sources into a unified graph. At the edge close to your users or on premise in your infrastructure.
+  Compose all your data sources into a unified graph. Move faster without breaking things using advanced governance and analytics features.
 </p>
