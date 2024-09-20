@@ -1,5 +1,5 @@
 # Packages that should not have their tests run automatically
-ignore-test-packages = ["grafbase-docker-tests"]
+ignore-test-packages = ["grafbase-docker-tests", "federation-audit-tests"]
 
 # Test suites that depend on docker so should only be run on linux
 docker-test-packages = ["integration-tests", "grafbase-gateway"]
@@ -45,7 +45,14 @@ mark-changed = []
 
 [[path-rule]]
 # Ignore various folders
-globs = ["auth-testing/**", "packages/**", "nix/**", "examples/**", "docker/**", ".vscode"]
+globs = [
+    "auth-testing/**",
+    "packages/**",
+    "nix/**",
+    "examples/**",
+    "docker/**",
+    ".vscode",
+]
 mark-changed = []
 
 [[path-rule]]

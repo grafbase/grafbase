@@ -1,0 +1,27 @@
+[package]
+name = "federation-audit-tests"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+homepage.workspace = true
+keywords.workspace = true
+repository.workspace = true
+
+[dependencies]
+reqwest.features = ["blocking"]
+reqwest.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+grafbase-workspace-hack.workspace = true
+
+[dev-dependencies]
+integration-tests.path = "../integration-tests"
+libtest-mimic = "0.7"
+similar-asserts = "1.5"
+
+[lints]
+workspace = true
+
+[[test]]
+name = "audit_tests"
+harness = false

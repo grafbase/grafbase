@@ -3043,6 +3043,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "federation-audit-tests"
+version = "0.79.2"
+dependencies = [
+ "grafbase-workspace-hack",
+ "integration-tests",
+ "libtest-mimic",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "similar-asserts",
+]
+
+[[package]]
 name = "ff"
 version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7694,6 +7707,7 @@ dependencies = [
  "base64 0.22.1",
  "bytes",
  "encoding_rs",
+ "futures-channel",
  "futures-core",
  "futures-util",
  "h2",
