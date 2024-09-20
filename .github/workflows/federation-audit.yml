@@ -45,8 +45,6 @@ jobs:
         shell: bash
         env:
           WHAT_RUST_CHANGED_CONFIG: .github/what-rust-changed.toml
-        # TODO: Much of this script could be moved into the what-rust-changed code
-        # (or it could have its own action) but don't have time for that right now.
         run: |
           set -euo pipefail
           HEAD_REF="$(git rev-parse HEAD)"
@@ -57,8 +55,6 @@ jobs:
           echo "Merge Base: $MERGE_BASE"
           git checkout $MERGE_BASE
           cargo metadata > /tmp/base.metadata.json
-          # Temp hack to get CI to pass
-          git checkout -- Cargo.lock
           git checkout $HEAD_REF
           cargo metadata --locked > /tmp/target.metadata.json
           CHANGED_FILES=$(git diff --no-commit-id --name-only -r $MERGE_BASE HEAD)
