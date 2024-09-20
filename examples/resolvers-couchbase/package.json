@@ -1,7 +1,0 @@
-{
-  "private": true,
-  "dependencies": {
-    "@grafbase/sdk": "^0.7.0",
-    "nanoid": "4.0.2"
-  }
-}

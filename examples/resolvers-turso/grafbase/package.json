@@ -1,6 +1,0 @@
-{
-  "private": true,
-  "dependencies": {
-    "@libsql/client": "0.1.6"
-  }
-}
