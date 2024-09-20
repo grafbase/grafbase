@@ -196,8 +196,9 @@ pub fn from_sdl(sdl: &str) -> Result<FederatedGraph, DomainError> {
 
         state.objects.push(Object {
             name: query_string_id,
-            implements_interfaces: vec![],
-            keys: vec![],
+            implements_interfaces: Vec::new(),
+            join_implements: Vec::new(),
+            keys: Vec::new(),
             composed_directives: NO_DIRECTIVES,
             fields: NO_FIELDS,
             description: None,
@@ -257,6 +258,7 @@ fn ingest_fields<'a>(parsed: &'a ast::TypeSystemDocument, state: &mut State<'a>)
                         ));
                     };
                     ingest_object_interfaces(object_id, object, state)?;
+                    ingest_object_join_implements(object_id, object, state)?;
                     ingest_object_fields(object_id, object.fields(), state)?;
                 }
                 ast::TypeDefinition::Interface(iface) => {
@@ -345,6 +347,51 @@ fn ingest_object_interfaces(
             )),
         })
         .collect::<Result<Vec<_>, _>>()?;
+
+    Ok(())
+}
+
+fn ingest_object_join_implements(
+    object_id: ObjectId,
+    object: &ast::ObjectDefinition<'_>,
+    state: &mut State<'_>,
+) -> Result<(), DomainError> {
+    for directive in object.directives() {
+        if directive.name() != "join__implements" {
+            continue;
+        }
+
+        let Some(ast::Value::Enum(graph)) = directive.get_argument("graph").map(|a| a.value()) else {
+            let error = DomainError("Missing graph argument in join__implements directive".to_owned());
+
+            return Err(error);
+        };
+
+        let Some(ast::Value::String(interface)) = directive.get_argument("interface").map(|a| a.value()) else {
+            let error = DomainError("Missing interface argument in join__implements directive".to_owned());
+
+            return Err(error);
+        };
+
+        let Some(subgraph_id) = state.graph_sdl_names.get(graph).copied() else {
+            let error = DomainError("Unknown graph in join__implements directive".to_owned());
+
+            return Err(error);
+        };
+
+        let interface_id = match state.definition_names.get(interface) {
+            Some(Definition::Interface(interface_id)) => *interface_id,
+            _ => {
+                let error = DomainError("Broken invariant: join__implements points to a non-interface type".to_owned());
+
+                return Err(error);
+            }
+        };
+
+        state.objects[object_id.0]
+            .join_implements
+            .push((subgraph_id, interface_id));
+    }
 
     Ok(())
 }
@@ -696,6 +743,7 @@ fn ingest_definitions<'a>(document: &'a ast::TypeSystemDocument, state: &mut Sta
                         let object_id = ObjectId(state.objects.push_return_idx(Object {
                             name: type_name_id,
                             implements_interfaces: Vec::new(),
+                            join_implements: Vec::new(),
                             keys: Vec::new(),
                             composed_directives,
                             description,
@@ -712,6 +760,7 @@ fn ingest_definitions<'a>(document: &'a ast::TypeSystemDocument, state: &mut Sta
                             composed_directives,
                             description,
                             fields: NO_FIELDS,
+                            implemented_in: Vec::new(),
                         }));
                         state
                             .definition_names

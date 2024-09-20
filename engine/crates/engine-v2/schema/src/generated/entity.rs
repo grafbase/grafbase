@@ -77,8 +77,4 @@ impl EntityDefinition<'_> {
             EntityDefinition::Object(walker) => EntityDefinitionId::Object(walker.id),
         }
     }
-
-    pub fn is_interface(&self) -> bool {
-        matches!(self, EntityDefinition::Interface(_))
-    }
 }

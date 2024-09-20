@@ -107,6 +107,7 @@ impl TestGatewayBuilder {
             runtime,
         } = self;
         let subgraphs = Subgraphs::load(mock_subgraphs, docker_subgraphs).await;
+
         let (engine, context) = self::engine::build(federated_sdl, config_source, runtime, &subgraphs).await;
         let router = self::router::build(engine.clone());
 
