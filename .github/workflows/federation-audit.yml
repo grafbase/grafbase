@@ -164,8 +164,9 @@ jobs:
         if: success() || failure()
         with:
           report_paths: 'target/nextest/ci/junit.xml'
-          fail_on_failure: false
-          require_tests: true
+          annotate_only: true
+          #fail_on_failure: false
+          #require_tests: true
           job_name: 'Federation Audit Report'
           check_name: 'Federation Audit Report'
           comment: true
