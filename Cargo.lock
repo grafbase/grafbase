@@ -2756,6 +2756,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "engine-v2-query-planning"
+version = "0.0.0"
+dependencies = [
+ "ctor",
+ "engine-parser",
+ "engine-v2-config",
+ "engine-v2-id-derives",
+ "engine-v2-id-newtypes",
+ "engine-v2-schema",
+ "engine-v2-walker",
+ "grafbase-workspace-hack",
+ "graphql-federated-graph",
+ "insta",
+ "itertools 0.13.0",
+ "petgraph",
+ "serde",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
 name = "engine-v2-schema"
 version = "3.0.31"
 dependencies = [

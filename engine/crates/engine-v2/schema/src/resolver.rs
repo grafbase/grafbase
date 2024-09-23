@@ -3,7 +3,7 @@ use std::borrow::Cow;
 use walker::Walk;
 
 use crate::{
-    FieldDefinitionId, GraphqlFederationEntityResolverDefinition, GraphqlRootFieldResolverDefinition,
+    FieldDefinitionId, GraphqlFederationEntityResolverDefinition, GraphqlRootFieldResolverDefinition, RequiredFieldSet,
     RequiredFieldSetId, RequiredFieldSetRecord, ResolverDefinition, ResolverDefinitionRecord,
     ResolverDefinitionVariant, Subgraph, SubgraphId,
 };
@@ -19,7 +19,7 @@ impl ResolverDefinitionRecord {
         }
     }
 
-    pub fn requires(&self) -> Option<RequiredFieldSetId> {
+    pub fn required_field_set_id(&self) -> Option<RequiredFieldSetId> {
         match self {
             ResolverDefinitionRecord::GraphqlFederationEntity(resolver) => Some(resolver.key_fields_id),
             ResolverDefinitionRecord::GraphqlRootField(_) | ResolverDefinitionRecord::Introspection => None,
@@ -32,9 +32,13 @@ impl<'a> ResolverDefinition<'a> {
         self.as_ref().subgraph_id().walk(self.schema)
     }
 
-    pub fn requires(&self) -> &'a RequiredFieldSetRecord {
+    pub fn required_field_set(&self) -> Option<RequiredFieldSet<'a>> {
+        self.as_ref().required_field_set_id().walk(self.schema)
+    }
+
+    pub fn requires_or_empty(&self) -> &'a RequiredFieldSetRecord {
         self.as_ref()
-            .requires()
+            .required_field_set_id()
             .map(|id| id.walk(self.schema).as_ref())
             .unwrap_or(RequiredFieldSetRecord::empty())
     }
@@ -54,18 +58,12 @@ impl<'a> ResolverDefinition<'a> {
 
 impl<'a> GraphqlRootFieldResolverDefinition<'a> {
     pub fn name(&self) -> String {
-        format!(
-            "Graphql root field resolver for subgraph '{}'",
-            self.endpoint().subgraph_name()
-        )
+        format!("Root#{}", self.endpoint().subgraph_name())
     }
 }
 
 impl<'a> GraphqlFederationEntityResolverDefinition<'a> {
     pub fn name(&self) -> String {
-        format!(
-            "Graphql federation entity resolver for subgraph '{}'",
-            self.endpoint().subgraph_name()
-        )
+        format!("FedEntity#{}", self.endpoint().subgraph_name())
     }
 }
