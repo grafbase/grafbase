@@ -65,25 +65,42 @@ impl<'a> Converter<'a> {
         &mut self,
         field_set: federated_graph::SelectionSet,
     ) -> Result<RequiredFieldSetRecord, InputValueError> {
-        field_set
-            .into_iter()
-            .filter_map(|item| self.convert_item(item).transpose())
-            .collect::<Result<_, _>>()
+        let mut out = Vec::with_capacity(field_set.len());
+        self.convert_set_rec(field_set, &mut out)?;
+        Ok(out.into_iter().collect())
+    }
+
+    fn convert_set_rec(
+        &mut self,
+        field_set: federated_graph::SelectionSet,
+        out: &mut Vec<RequiredFieldSetItemRecord>,
+    ) -> Result<(), InputValueError> {
+        for item in field_set {
+            match item {
+                federated_graph::Selection::Field {
+                    field,
+                    arguments,
+                    subselection,
+                } => {
+                    if let Some(field) = self.convert_item(field, arguments, subselection)? {
+                        out.push(field)
+                    }
+                }
+                federated_graph::Selection::InlineFragment { on: _, subselection } => {
+                    self.convert_set_rec(subselection, out)?;
+                }
+            }
+        }
+
+        Ok(())
     }
 
     fn convert_item(
         &mut self,
-        item: federated_graph::Selection,
+        field: federated_graph::FieldId,
+        arguments: Vec<(federated_graph::InputValueDefinitionId, federated_graph::Value)>,
+        subselection: federated_graph::SelectionSet,
     ) -> Result<Option<RequiredFieldSetItemRecord>, InputValueError> {
-        let federated_graph::Selection::Field {
-            field,
-            arguments,
-            subselection,
-        } = item
-        else {
-            todo!()
-        };
-
         let Some(definition_id) = self.ctx.idmaps.field.get(field) else {
             return Ok(None);
         };
