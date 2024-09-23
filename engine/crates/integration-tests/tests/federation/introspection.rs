@@ -794,12 +794,20 @@ fn introspection_on_multiple_federation_subgraphs() {
     });
     assert!(response.errors().is_empty(), "{response}");
 
-    insta::assert_snapshot!(introspection_to_sdl(response.into_data()), @r###"
+    insta::assert_snapshot!(introspection_to_sdl(response.into_data()), @r#"
+    type BusinessAccount {
+      businessName: String!
+      email: String!
+      id: ID!
+      joinedTimestamp: Int!
+    }
+
     type Cart {
       products: [Product!]!
     }
 
     type DeliveryCompany implements ShippingService {
+      companyType: String!
       id: String!
       name: String!
       reviews: [ShippingServiceReview!]!
@@ -808,6 +816,7 @@ fn introspection_on_multiple_federation_subgraphs() {
     type HomingPigeon implements ShippingService {
       id: String!
       name: String!
+      nickname: String!
       reviews: [ShippingServiceReview!]!
     }
 
@@ -877,7 +886,7 @@ fn introspection_on_multiple_federation_subgraphs() {
       GRAM
     }
 
-    "###)
+    "#)
 }
 
 #[test]
