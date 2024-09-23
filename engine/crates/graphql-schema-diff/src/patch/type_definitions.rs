@@ -4,9 +4,14 @@ use cynic_parser::type_system::{
 
 use crate::ChangeKind;
 
-use super::{directives::patch_directives, paths::Paths, INDENTATION};
+use super::{directives::patch_directives, paths::Paths, DefinitionOrExtension, INDENTATION};
 
-pub(super) fn patch_type_definition<T: AsRef<str>>(ty: TypeDefinition<'_>, schema: &mut String, paths: &Paths<'_, T>) {
+pub(super) fn patch_type_definition<T: AsRef<str>>(
+    ty: TypeDefinition<'_>,
+    definition_or_extension: super::DefinitionOrExtension,
+    schema: &mut String,
+    paths: &Paths<'_, T>,
+) {
     for change in paths.iter_exact([ty.name(), "", ""]) {
         match change.kind() {
             ChangeKind::RemoveObjectType
@@ -25,6 +30,10 @@ pub(super) fn patch_type_definition<T: AsRef<str>>(ty: TypeDefinition<'_>, schem
         let span = description.span();
         schema.push_str(&paths.source()[span.start..span.end]);
         schema.push('\n');
+    }
+
+    if let DefinitionOrExtension::Extension = definition_or_extension {
+        schema.push_str("extend ");
     }
 
     let prefix = match ty {

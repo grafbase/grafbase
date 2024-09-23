@@ -1,9 +1,13 @@
+directive @core(feature: String!) repeatable on SCHEMA
+
+extend schema @link(url: "https://specs.apollo.dev/federation/v2.7", import: ["@override"])
+
 schema {
   query: Root
 }
 
 """A single film."""
-type Film implements Node {
+extend type Film implements Node {
   characterConnection(after: String, before: String, first: Int, last: Int): FilmCharactersConnection
   """The ISO 8601 date format of the time that this resource was created."""
   created: String
@@ -1001,12 +1005,16 @@ type VehiclesEdge {
 
 # --- #
 
+directive @core(feature: String!) repeatable on SCHEMA
+
+extend schema @link(url: "https://specs.apollo.dev/federation/v2.7", import: ["@override"])
+
 schema {
   query: Root
 }
 
 """A single film."""
-type Film implements Node {
+extend type Film implements Node {
   characterConnection(after: String, before: String, first: Int, last: Int): FilmCharactersConnection
   """The ISO 8601 date format of the time that this resource was created."""
   created: String

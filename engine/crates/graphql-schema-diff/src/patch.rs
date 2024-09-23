@@ -41,13 +41,22 @@ where
 
     for definition in parsed.definitions() {
         match definition {
-            cynic_parser::type_system::Definition::Schema(def)
-            | cynic_parser::type_system::Definition::SchemaExtension(def) => {
-                schema_definitions::patch_schema_definition(def, &mut schema, &paths);
+            cynic_parser::type_system::Definition::Schema(def) => {
+                schema_definitions::patch_schema_definition(
+                    def,
+                    DefinitionOrExtension::Definition,
+                    &mut schema,
+                    &paths,
+                );
             }
-            cynic_parser::type_system::Definition::Type(ty)
-            | cynic_parser::type_system::Definition::TypeExtension(ty) => {
-                type_definitions::patch_type_definition(ty, &mut schema, &paths);
+            cynic_parser::type_system::Definition::SchemaExtension(def) => {
+                schema_definitions::patch_schema_definition(def, DefinitionOrExtension::Extension, &mut schema, &paths);
+            }
+            cynic_parser::type_system::Definition::Type(ty) => {
+                type_definitions::patch_type_definition(ty, DefinitionOrExtension::Definition, &mut schema, &paths);
+            }
+            cynic_parser::type_system::Definition::TypeExtension(ty) => {
+                type_definitions::patch_type_definition(ty, DefinitionOrExtension::Extension, &mut schema, &paths);
             }
             cynic_parser::type_system::Definition::Directive(directive_definition) => {
                 directives::patch_directive_definition(directive_definition, &mut schema, &paths);
@@ -56,6 +65,11 @@ where
     }
 
     Ok(PatchedSchema { schema })
+}
+
+enum DefinitionOrExtension {
+    Extension,
+    Definition,
 }
 
 /// A schema patched with [patch()].
