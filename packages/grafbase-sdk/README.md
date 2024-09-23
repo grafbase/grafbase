@@ -1,4 +1,8 @@
 <p align="center">
+  <p align="center">⚠️ Grafbase SDK is now deprecated. Please see  <a href="https://grafbase.com/blog/sunsetting-standalone-graphs">Sunsetting Standalone Graphs</a> for more details ⚠️</p>
+</p>
+
+<p align="center">
   <a href="https://grafbase.com">
     <img src="https://grafbase.com/images/other/grafbase-logo-circle.png" height="96">
     <h3 align="center">Grafbase SDK</h3>
