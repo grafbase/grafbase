@@ -20,7 +20,7 @@ grafbase-telemetry.workspace = true
 grafbase-workspace-hack.workspace = true
 
 [dependencies.wasmtime]
-version = "24.0.0"
+version = "25.0.0"
 
 [dependencies.wasmtime-wasi]
 version = "24.0.0"
