@@ -2,10 +2,11 @@ use cynic_parser::type_system::SchemaDefinition;
 
 use crate::ChangeKind;
 
-use super::{directives::patch_directives, paths::Paths, INDENTATION};
+use super::{directives::patch_directives, paths::Paths, DefinitionOrExtension, INDENTATION};
 
 pub(super) fn patch_schema_definition<T: AsRef<str>>(
     definition: SchemaDefinition<'_>,
+    definition_or_extension: super::DefinitionOrExtension,
     schema: &mut String,
     paths: &Paths<'_, T>,
 ) {
@@ -29,9 +30,25 @@ pub(super) fn patch_schema_definition<T: AsRef<str>>(
         }
     }
 
+    if let DefinitionOrExtension::Extension = definition_or_extension {
+        schema.push_str("extend ");
+    }
+
     schema.push_str("schema");
 
     patch_directives(definition.directives(), schema, paths);
+
+    let any_root_type_defined = new_query_type.is_some()
+        || new_mutation_type.is_some()
+        || new_subscription_type.is_some()
+        || definition.query_type().is_some()
+        || definition.mutation_type().is_some()
+        || definition.subscription_type().is_some();
+
+    if !any_root_type_defined {
+        schema.push_str("\n\n");
+        return;
+    }
 
     schema.push_str(" {\n");
 

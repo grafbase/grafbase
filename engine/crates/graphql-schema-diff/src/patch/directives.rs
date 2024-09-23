@@ -48,9 +48,13 @@ fn render_directive<T: AsRef<str>>(directive: Directive<'_>, schema: &mut String
 
     schema.push('(');
 
-    for argument in arguments {
+    while let Some(argument) = arguments.next() {
         let span = argument.span();
-        schema.push_str(&paths.source()[span.start..span.end])
+        schema.push_str(&paths.source()[span.start..span.end]);
+
+        if arguments.peek().is_some() {
+            schema.push_str(", ");
+        }
     }
 
     schema.push(')');
