@@ -33,7 +33,7 @@ fn runner_for(test: CachedTest) -> impl FnOnce() -> Result<(), Failed> + Send + 
     }
 }
 
-async fn run_test(supergraph_sdl: String, test: Test) {
+async fn run_test(supergraph_sdl: String, mut test: Test) {
     let server = TestGatewayBuilder::default()
         .with_federated_sdl(&supergraph_sdl)
         .build()
@@ -41,11 +41,30 @@ async fn run_test(supergraph_sdl: String, test: Test) {
 
     let response = server.post(test.query).await;
 
+    test.expected.data = floatify_numbers(test.expected.data);
+
     similar_asserts::assert_eq!(
         ExpectedResponse {
-            data: response.body["data"].clone(),
+            data: floatify_numbers(response.body["data"].clone()),
             errors: !response.errors().is_empty()
         },
         test.expected
     );
+}
+
+/// Converts all the numbers in a Value to float so we can compare them
+/// without worrying about comparing integers to floats
+fn floatify_numbers(value: serde_json::Value) -> serde_json::Value {
+    use serde_json::Value;
+
+    match value {
+        Value::Number(number) => Value::Number(serde_json::Number::from_f64(number.as_f64().unwrap()).unwrap()),
+        Value::Array(vec) => Value::Array(vec.into_iter().map(floatify_numbers).collect()),
+        Value::Object(map) => Value::Object(
+            map.into_iter()
+                .map(|(key, value)| (key, floatify_numbers(value)))
+                .collect(),
+        ),
+        _ => value,
+    }
 }
