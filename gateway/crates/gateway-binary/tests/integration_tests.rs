@@ -22,6 +22,7 @@ use futures_util::future::BoxFuture;
 use futures_util::{Future, FutureExt};
 use http::{HeaderMap, StatusCode};
 use indoc::indoc;
+use serde_json::{json, Value};
 use tempfile::tempdir;
 use tokio::runtime::Runtime;
 use tokio::time::Instant;
@@ -193,6 +194,25 @@ impl Client {
 
     pub fn endpoint(&self) -> &str {
         &self.endpoint
+    }
+
+    pub fn gql_with_variables<Response>(
+        &self,
+        query: impl Into<String>,
+        variables: Value,
+    ) -> GqlRequestBuilder<Response>
+    where
+        Response: for<'de> serde::de::Deserialize<'de>,
+    {
+        let reqwest_builder = self.client.post(&self.endpoint).headers(self.headers.clone());
+
+        GqlRequestBuilder {
+            query: query.into(),
+            variables: Some(variables),
+            phantom: PhantomData,
+            reqwest_builder: reqwest_builder.header(http::header::ACCEPT, "application/json"),
+            bearer: None,
+        }
     }
 
     pub fn gql<Response>(&self, query: impl Into<String>) -> GqlRequestBuilder<Response>
@@ -408,7 +428,7 @@ impl<'a> GatewayBuilder<'a> {
             args.push(level);
         }
 
-        let command = cmd(cargo_bin("grafbase-gateway"), &args).stdout_null().stderr_null();
+        let command = cmd(cargo_bin("grafbase-gateway"), &args);
 
         let endpoint = match self.client_url_path {
             Some(path) => format!("http://{addr}/{path}"),
@@ -1012,7 +1032,13 @@ fn global_rate_limiting() {
     "#};
 
     with_static_server(config, &schema, None, None, |client| async move {
-        expect_rate_limiting(|| client.gql(query).send().boxed()).await;
+        expect_rate_limiting(|| {
+            client
+                .gql(query)
+                .send()
+                .boxed()
+        })
+        .await;
     })
 }
 

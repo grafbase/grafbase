@@ -1,15 +1,35 @@
-use std::{collections::HashMap, ops::Range};
-
 use id_newtypes::IdRange;
 use schema::{DefinitionId, FieldDefinition, ObjectDefinitionId, TypeSystemDirective};
+use std::{collections::HashMap, ops::Range};
 
 use crate::operation::{
-    FieldArgumentId, FieldId, QueryModifier, QueryModifierId, QueryModifierRule, ResponseModifier, ResponseModifierId,
-    ResponseModifierRule,
+    FieldArgumentId, FieldId, QueryInputValueId, QueryModifier, QueryModifierId, QueryModifierRule, ResponseModifier,
+    ResponseModifierId, ResponseModifierRule,
 };
 
 impl<'schema, 'p> super::Binder<'schema, 'p> {
     pub(super) fn generate_field_modifiers(
+        &mut self,
+        field_id: FieldId,
+        argument_ids: IdRange<FieldArgumentId>,
+        field_definition: FieldDefinition<'_>,
+        input_value_ids: Vec<QueryInputValueId>,
+    ) {
+        self.generate_modifiers_for_type_system_directives(field_id, argument_ids, field_definition);
+        self.generate_modifiers_for_executable_directives(field_id, input_value_ids);
+    }
+
+    fn generate_modifiers_for_executable_directives(
+        &mut self,
+        field_id: FieldId,
+        input_value_ids: Vec<QueryInputValueId>,
+    ) {
+        for input_value_id in input_value_ids {
+            self.register_field_impacted_by_query_modifier(QueryModifierRule::Skip { input_value_id }, field_id);
+        }
+    }
+
+    fn generate_modifiers_for_type_system_directives(
         &mut self,
         field_id: FieldId,
         argument_ids: IdRange<FieldArgumentId>,

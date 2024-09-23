@@ -3,7 +3,7 @@ mod query;
 use id_newtypes::IdRange;
 use schema::{AuthorizedDirectiveId, DefinitionId, FieldDefinitionId, RequiresScopesDirectiveId};
 
-use super::{FieldArgumentId, QueryModifierImpactedFieldId, ResponseModifierImpactedFieldId};
+use super::{FieldArgumentId, QueryInputValueId, QueryModifierImpactedFieldId, ResponseModifierImpactedFieldId};
 
 pub(crate) use query::*;
 
@@ -26,6 +26,9 @@ pub(crate) enum QueryModifierRule {
         directive_id: AuthorizedDirectiveId,
         definition_id: DefinitionId,
     },
+    Skip {
+        input_value_id: QueryInputValueId
+    }
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]

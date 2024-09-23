@@ -21,5 +21,5 @@ the CLI. This part of the CLI build should now succeed.
 
 ### assets.tar.gz
 
-If you see a an error about including `assets.tar.gz`, you need to download a
+If you see an error about including `assets.tar.gz`, you need to download a
 built version of this file. See the CLI [`Makefile.toml`](../../Makefile.toml).

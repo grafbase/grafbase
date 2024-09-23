@@ -178,12 +178,12 @@ impl<'binder, 'schema, 'parsed> QueryValueCoercionContext<'binder, 'schema, 'par
         match ty.definition_id {
             DefinitionId::Scalar(scalar) => self.coerce_scalar(self.schema.walk(scalar), value),
             DefinitionId::Enum(r#enum) => self.coerce_enum(self.schema.walk(r#enum), value),
-            DefinitionId::InputObject(input_object) => self.coerce_input_objet(self.schema.walk(input_object), value),
+            DefinitionId::InputObject(input_object) => self.coerce_input_object(self.schema.walk(input_object), value),
             _ => unreachable!("Cannot be an output type."),
         }
     }
 
-    fn coerce_input_objet(
+    fn coerce_input_object(
         &mut self,
         input_object: InputObjectDefinition<'_>,
         value: Value,

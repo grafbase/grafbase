@@ -1,8 +1,7 @@
-use std::fmt;
-
 use id_newtypes::IdRange;
 use schema::ObjectDefinitionId;
 use serde::de::{DeserializeSeed, IgnoredAny, MapAccess, Visitor};
+use std::fmt;
 
 use crate::response::{
     value::ResponseObjectField,
@@ -29,6 +28,11 @@ impl<'ctx, 'seed> ConcreteObjectSeed<'ctx, 'seed> {
                 object_identifier: shape.identifier,
                 field_shape_ids: shape.field_shape_ids,
                 typename_response_edges: &shape.typename_response_edges,
+                skipped_ids: shape
+                    .field_shape_ids
+                    .into_iter()
+                    .filter(|shape_id| ctx.operation.query_modifications.skipped_field_shape_ids[*shape_id])
+                    .collect(),
             },
         }
     }
@@ -45,6 +49,11 @@ impl<'ctx, 'seed> ConcreteObjectSeed<'ctx, 'seed> {
             fields_seed: ConcreteObjectFieldsSeed {
                 ctx,
                 has_error: ctx.operation.query_modifications.concrete_shape_has_error[shape_id],
+                skipped_ids: shape
+                    .field_shape_ids
+                    .into_iter()
+                    .filter(|shape_id| ctx.operation.query_modifications.skipped_field_shape_ids[*shape_id])
+                    .collect(),
                 object_identifier: ObjectIdentifier::Known(object_id),
                 field_shape_ids: shape.field_shape_ids,
                 typename_response_edges: &shape.typename_response_edges,
@@ -63,6 +72,7 @@ pub(crate) struct ConcreteObjectFieldsSeed<'ctx, 'seed> {
     object_identifier: ObjectIdentifier,
     field_shape_ids: IdRange<FieldShapeId>,
     typename_response_edges: &'ctx [ResponseEdge],
+    skipped_ids: Vec<FieldShapeId>,
 }
 
 impl<'de, 'ctx, 'parent> DeserializeSeed<'de> for ConcreteObjectSeed<'ctx, 'parent> {
@@ -218,7 +228,7 @@ impl<'de, 'ctx, 'seed> ConcreteObjectFieldsSeed<'ctx, 'seed> {
             }
         }
 
-        if response_fields.len() < self.field_shape_ids.len() {
+        if response_fields.len() < self.field_shape_ids.len() - self.skipped_ids.len() {
             let field_shapes = &self.ctx.operation.response_blueprint[self.field_shape_ids];
             let n = response_fields.len();
             for field_shape in field_shapes {

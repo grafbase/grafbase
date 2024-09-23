@@ -1,5 +1,6 @@
 use id_newtypes::{BitSet, IdRange, IdToMany};
 use schema::{RequiresScopeSetIndex, RequiresScopesDirectiveId, Schema};
+use serde::Deserialize;
 
 use crate::{
     execution::{ErrorId, PlanningResult, PreExecutionContext},
@@ -19,6 +20,7 @@ pub(crate) struct QueryModifications {
     pub errors: Vec<GraphqlError>,
     pub concrete_shape_has_error: BitSet<ConcreteObjectShapeId>,
     pub field_shape_id_to_error_ids: IdToMany<FieldShapeId, ErrorId>,
+    pub skipped_field_shape_ids: BitSet<FieldShapeId>,
     pub root_error_ids: Vec<ErrorId>,
     matched_scopes: Vec<(RequiresScopesDirectiveId, RequiresScopeSetIndex)>,
 }
@@ -49,6 +51,7 @@ impl QueryModifications {
             field_shape_id_to_error_ids: Default::default(),
             root_error_ids: Vec::new(),
             matched_scopes: vec![],
+            skipped_field_shape_ids: BitSet::init_with(false, operation.fields.len()),
         }
     }
 
@@ -150,6 +153,21 @@ where
                         self.handle_modifier_resulted_in_error(modifier_id, modifier.impacted_fields, err);
                     }
                 }
+                QueryModifierRule::Skip { input_value_id } => {
+                    let walker = self.walker().walk(&self.operation.query_input_values[input_value_id]);
+                    let skipped = bool::deserialize(walker).unwrap();
+                    if skipped {
+                        self.modifications.is_any_field_skipped = true;
+                        for &field_id in &self.operation[modifier.impacted_fields] {
+                            self.modifications.skipped_fields.set(field_id, true);
+                            for field_shape_id in
+                                self.operation.response_blueprint.field_to_shape_ids.find_all(field_id)
+                            {
+                                self.modifications.skipped_field_shape_ids.set(*field_shape_id, true);
+                            }
+                        }
+                    }
+                }
             }
         }
 
@@ -235,11 +253,7 @@ where
         &self.ctx.engine.schema
     }
 
-    fn record_selected_scope_set(
-        &mut self,
-        id: RequiresScopesDirectiveId,
-        selected_scope_set: schema::RequiresScopeSetIndex,
-    ) {
+    fn record_selected_scope_set(&mut self, id: RequiresScopesDirectiveId, selected_scope_set: RequiresScopeSetIndex) {
         self.modifications.matched_scopes.push((id, selected_scope_set));
     }
 }

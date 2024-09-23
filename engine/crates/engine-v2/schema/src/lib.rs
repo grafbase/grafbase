@@ -144,7 +144,7 @@ pub struct Graph {
     #[indexed_by(UnionDefinitionId)]
     union_definitions: Vec<UnionDefinitionRecord>,
     #[indexed_by(ScalarDefinitionId)]
-    scalar_definitions: Vec<ScalarDefinitionRecord>,
+    pub scalar_definitions: Vec<ScalarDefinitionRecord>,
     #[indexed_by(InputObjectDefinitionId)]
     input_object_definitions: Vec<InputObjectDefinitionRecord>,
     #[indexed_by(InputValueDefinitionId)]

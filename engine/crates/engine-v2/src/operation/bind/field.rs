@@ -1,8 +1,3 @@
-use engine_parser::Positioned;
-use engine_value::Name;
-use id_newtypes::IdRange;
-use schema::{DefinitionId, FieldDefinition, FieldDefinitionId};
-
 use super::{coercion::coerce_query_value, BindError, BindResult, Binder};
 use crate::{
     operation::{
@@ -11,6 +6,10 @@ use crate::{
     },
     response::BoundResponseKey,
 };
+use engine_parser::Positioned;
+use engine_value::Name;
+use id_newtypes::IdRange;
+use schema::{DefinitionId, FieldDefinition, FieldDefinitionId, ScalarDefinitionId, TypeRecord};
 
 impl<'schema, 'p> Binder<'schema, 'p> {
     pub(super) fn bind_typename_field(
@@ -71,8 +70,39 @@ impl<'schema, 'p> Binder<'schema, 'p> {
             parent_selection_set_id,
         }));
 
-        self.generate_field_modifiers(field_id, argument_ids, definition);
+        let mut input_value_ids = Vec::new();
+
+        for directive in &field.directives {
+            if directive.name.node == "skip" {
+                let argument = directive.arguments.first().expect("must exist");
+                let argument_pos = argument.1.pos.try_into()?;
+                let input_value_id = coerce_query_value(
+                    self,
+                    field_id,
+                    argument_pos,
+                    TypeRecord {
+                        definition_id: DefinitionId::Scalar(
+                            self.scalar_definition_by_name("Boolean").expect("must exist"),
+                        ),
+                        wrapping: schema::Wrapping::new(true),
+                    },
+                    argument.1.node.clone(),
+                )?;
+                input_value_ids.push(input_value_id)
+            }
+        }
+
+        self.generate_field_modifiers(field_id, argument_ids, definition, input_value_ids);
         Ok(field_id)
+    }
+
+    fn scalar_definition_by_name(&self, name: &str) -> Option<ScalarDefinitionId> {
+        self.schema
+            .graph
+            .scalar_definitions
+            .iter()
+            .position(|definition| definition.ty.to_string() == name)
+            .map(ScalarDefinitionId::from)
     }
 
     pub(super) fn push_field(&mut self, field: Field) -> FieldId {
