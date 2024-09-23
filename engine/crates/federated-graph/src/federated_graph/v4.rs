@@ -114,7 +114,7 @@ pub enum Directive {
     },
 }
 
-#[derive(Default, serde::Serialize, serde::Deserialize, Clone, PartialEq, PartialOrd, Debug)]
+#[derive(Default, Clone, PartialEq, PartialOrd, Debug)]
 #[allow(clippy::enum_variant_names)]
 pub enum Value {
     #[default]
@@ -134,7 +134,7 @@ pub enum Value {
     List(Box<[Value]>),
 }
 
-#[derive(serde::Serialize, serde::Deserialize, Clone)]
+#[derive(Clone)]
 pub struct Object {
     pub name: StringId,
 
@@ -147,11 +147,10 @@ pub struct Object {
 
     pub fields: Fields,
 
-    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub description: Option<StringId>,
 }
 
-#[derive(serde::Serialize, serde::Deserialize, Clone)]
+#[derive(Clone)]
 pub struct Interface {
     pub name: StringId,
 
@@ -165,11 +164,10 @@ pub struct Interface {
 
     pub fields: Fields,
 
-    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub description: Option<StringId>,
 }
 
-#[derive(serde::Serialize, serde::Deserialize, Clone)]
+#[derive(Clone)]
 pub struct Field {
     pub name: StringId,
     pub r#type: Type,
@@ -197,7 +195,6 @@ pub struct Field {
     /// All directives that made it through composition.
     pub composed_directives: Directives,
 
-    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub description: Option<StringId>,
 }
 
@@ -211,7 +208,7 @@ impl Value {
     }
 }
 
-#[derive(serde::Serialize, serde::Deserialize, Clone, PartialEq, PartialOrd)]
+#[derive(Clone, PartialEq, PartialOrd)]
 pub struct AuthorizedDirective {
     pub fields: Option<SelectionSet>,
     pub node: Option<SelectionSet>,
@@ -219,25 +216,24 @@ pub struct AuthorizedDirective {
     pub metadata: Option<Value>,
 }
 
-#[derive(serde::Serialize, serde::Deserialize, Clone, PartialEq)]
+#[derive(Clone, PartialEq)]
 pub struct InputValueDefinition {
     pub name: StringId,
     pub r#type: Type,
     pub directives: Directives,
     pub description: Option<StringId>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub default: Option<Value>,
 }
 
 /// Represents an `@provides` directive on a field in a subgraph.
-#[derive(serde::Serialize, serde::Deserialize, Clone)]
+#[derive(Clone)]
 pub struct FieldProvides {
     pub subgraph_id: SubgraphId,
     pub fields: SelectionSet,
 }
 
 /// Represents an `@requires` directive on a field in a subgraph.
-#[derive(serde::Serialize, serde::Deserialize, Clone)]
+#[derive(Clone)]
 pub struct FieldRequires {
     pub subgraph_id: SubgraphId,
     pub fields: SelectionSet,
@@ -245,12 +241,11 @@ pub struct FieldRequires {
 
 pub type SelectionSet = Vec<Selection>;
 
-#[derive(serde::Serialize, serde::Deserialize, Clone, Debug, PartialEq, PartialOrd)]
+#[derive(Clone, Debug, PartialEq, PartialOrd)]
 pub enum Selection {
     Field {
         field: FieldId,
-        #[serde(default, skip_serializing_if = "Vec::is_empty")]
-        arguments: Vec<(super::v4::InputValueDefinitionId, super::v4::Value)>,
+        arguments: Vec<(InputValueDefinitionId, Value)>,
         subselection: SelectionSet,
     },
     InlineFragment {
@@ -259,7 +254,7 @@ pub enum Selection {
     },
 }
 
-#[derive(serde::Serialize, serde::Deserialize, Clone)]
+#[derive(Clone)]
 pub struct Key {
     /// The subgraph that can resolve the entity with the fields in [Key::fields].
     pub subgraph_id: SubgraphId,
@@ -270,12 +265,7 @@ pub struct Key {
     /// Correspond to the `@join__type(isInterfaceObject: true)` directive argument.
     pub is_interface_object: bool,
 
-    #[serde(default = "default_true")]
     pub resolvable: bool,
-}
-
-fn default_true() -> bool {
-    true
 }
 
 impl Default for FederatedGraph {
@@ -575,7 +565,10 @@ fn field_set_to_selection_set(field_set: Vec<super::v1::FieldSetItem>) -> Select
              }| {
                 Selection::Field {
                     field,
-                    arguments,
+                    arguments: arguments
+                        .into_iter()
+                        .map(|(k, v)| (k, super::v3::Value::from((v, &[] as &[String])).into()))
+                        .collect(),
                     subselection: field_set_to_selection_set(subselection),
                 }
             },
