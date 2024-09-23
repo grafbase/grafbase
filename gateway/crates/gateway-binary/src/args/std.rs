@@ -24,7 +24,6 @@ use super::{log::LogStyle, LogLevel};
     group(
         ArgGroup::new("graph-ref-with-access-token")
             .args(["graph_ref"])
-            .requires("grafbase_access_token")
     )
 )]
 #[command(name = "Grafbase Gateway", version)]
@@ -33,12 +32,8 @@ pub struct Args {
     /// IP address on which the server will listen for incomming connections. Defaults to 127.0.0.1:5000.
     #[arg(short, long)]
     pub listen_address: Option<SocketAddr>,
-    #[arg(short, long, help = GraphRef::ARG_DESCRIPTION, env = "GRAFBASE_GRAPH_REF", requires = "grafbase_access_token")]
+    #[arg(short, long, help = GraphRef::ARG_DESCRIPTION, env = "GRAFBASE_GRAPH_REF")]
     pub graph_ref: Option<GraphRef>,
-    /// An access token to the Grafbase API. The scope must allow operations on the given account,
-    /// and graph defined in the graph-ref argument.
-    #[arg(env = "GRAFBASE_ACCESS_TOKEN", hide_env_values(true))]
-    pub grafbase_access_token: Option<AsciiString>,
     /// Path to the TOML configuration file
     #[arg(long, short, env = "GRAFBASE_CONFIG_PATH")]
     pub config: Option<PathBuf>,
@@ -64,15 +59,22 @@ pub struct Args {
     hot_reload: bool,
 }
 
+impl Args {
+    pub fn grafbase_access_token(&self) -> Option<String> {
+        std::env::var("GRAFBASE_ACCESS_TOKEN").ok()
+    }
+}
+
 impl super::Args for Args {
     /// The method of fetching a graph
     fn fetch_method(&self) -> anyhow::Result<GraphFetchMethod> {
         match self.graph_ref.clone() {
             Some(graph_ref) => Ok(GraphFetchMethod::FromGraphRef {
-                access_token: self
-                    .grafbase_access_token
-                    .clone()
-                    .expect("present due to the arg group"),
+                access_token: AsciiString::from_ascii(self.grafbase_access_token().ok_or_else(|| {
+                    anyhow::format_err!(
+                        "The GRAFBASE_ACCESS_TOKEN environment variable must be set when a graph_ref is provided"
+                    )
+                })?)?,
                 graph_ref,
             }),
             None => {
@@ -102,7 +104,7 @@ impl super::Args for Args {
             None => Config::default(),
         };
 
-        if let Some((token, graph_ref)) = self.grafbase_access_token.as_ref().zip(self.graph_ref.as_ref()) {
+        if let Some((token, graph_ref)) = self.grafbase_access_token().as_ref().zip(self.graph_ref.as_ref()) {
             config.telemetry.grafbase = Some(OtlpExporterConfig {
                 endpoint: std::env::var("__GRAFBASE_OTEL_URL")
                     .unwrap_or("https://otel.grafbase.com".to_string())
