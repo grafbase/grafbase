@@ -2638,6 +2638,7 @@ dependencies = [
  "thiserror",
  "tower 0.5.1",
  "tracing",
+ "tracing-subscriber",
  "url",
  "web-time",
 ]
