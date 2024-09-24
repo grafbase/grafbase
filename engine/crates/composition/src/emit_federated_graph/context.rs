@@ -44,6 +44,7 @@ impl<'a> Context<'a> {
         enum_type: Option<federated::EnumId>,
     ) -> federated::Value {
         match value {
+            subgraphs::Value::Null => federated::Value::Null,
             subgraphs::Value::String(value) => {
                 federated::Value::String(self.insert_string(self.subgraphs.walk(*value)))
             }

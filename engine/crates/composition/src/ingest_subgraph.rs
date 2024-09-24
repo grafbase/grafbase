@@ -235,7 +235,8 @@ fn ingest_definition_bodies(
 
 pub(super) fn ast_value_to_subgraph_value(value: &ConstValue, subgraphs: &mut Subgraphs) -> subgraphs::Value {
     match &value {
-        ConstValue::Null | ConstValue::Binary(_) => unreachable!("null or bytes value in argument"),
+        ConstValue::Binary(_) => unreachable!("binary value in argument"),
+        ConstValue::Null => subgraphs::Value::Null,
         ConstValue::Number(n) if n.is_u64() || n.is_i64() => subgraphs::Value::Int(n.as_i64().unwrap()),
         ConstValue::Number(n) => subgraphs::Value::Float(n.as_f64().unwrap()),
         ConstValue::String(s) => subgraphs::Value::String(subgraphs.strings.intern(s.as_str())),

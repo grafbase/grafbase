@@ -75,3 +75,22 @@ impl<T> VecExt<T> for Vec<T> {
         idx
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn grafbase_schema_can_be_composed() {
+        use std::{fs, path::Path};
+        let schema_path =
+            Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../cli/crates/backend/src/api/graphql/api.graphql");
+        let schema = fs::read_to_string(schema_path).unwrap();
+        let schema = async_graphql_parser::parse_schema(schema).unwrap();
+
+        let mut subgraphs = Subgraphs::default();
+        subgraphs.ingest(&schema, "grafbase-api", "https://api.grafbase.com");
+        let result = compose(&subgraphs);
+        assert!(!result.diagnostics().any_fatal());
+    }
+}
