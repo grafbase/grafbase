@@ -1,8 +1,8 @@
 #![allow(unused_crate_dependencies)]
 
 use federation_audit_tests::{
-    audit_server::{AuditServer, ExpectedResponse, Test},
-    cached_tests, CachedTest,
+    audit_server::{AuditServer, Test},
+    cached_tests, CachedTest, Response,
 };
 use integration_tests::federation::TestGatewayBuilder;
 use libtest_mimic::{Arguments, Failed, Trial};
@@ -44,9 +44,9 @@ async fn run_test(supergraph_sdl: String, mut test: Test) {
     test.expected.data = floatify_numbers(test.expected.data);
 
     similar_asserts::assert_eq!(
-        ExpectedResponse {
+        Response {
             data: floatify_numbers(response.body["data"].clone()),
-            errors: !response.errors().is_empty()
+            errors: &response.errors()
         },
         test.expected
     );
