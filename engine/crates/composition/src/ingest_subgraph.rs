@@ -1,4 +1,3 @@
-//! This is a separate module because we want to use only the public API of [Subgraphs] and avoid
 //! mixing GraphQL parser logic and types with our internals.
 
 mod directives;
@@ -189,11 +188,11 @@ fn ingest_definition_bodies(
             }
             ast::TypeKind::Interface(interface) => {
                 let definition_id = subgraphs.definition_by_name(&definition.node.name.node, subgraph_id);
-                let definition_name = subgraphs.walk(definition_id).name().id;
 
                 for implemented_interface in &interface.implements {
-                    let implemented_interface = subgraphs.strings.intern(implemented_interface.node.as_str());
-                    subgraphs.push_interface_impl(definition_name, implemented_interface);
+                    let implemented_interface =
+                        subgraphs.definition_by_name(implemented_interface.node.as_str(), subgraph_id);
+                    subgraphs.push_interface_impl(definition_id, implemented_interface);
                 }
 
                 let is_query_root_type = false; // interfaces can't be at the root
@@ -210,11 +209,11 @@ fn ingest_definition_bodies(
             ast::TypeKind::Object(_) if definition.node.name.node == SERVICE_TYPE_NAME => continue,
             ast::TypeKind::Object(object_type) => {
                 let definition_id = subgraphs.definition_by_name(&definition.node.name.node, subgraph_id);
-                let definition_name = subgraphs.walk(definition_id).name().id;
 
                 for implemented_interface in &object_type.implements {
-                    let implemented_interface = subgraphs.strings.intern(implemented_interface.node.as_str());
-                    subgraphs.push_interface_impl(definition_name, implemented_interface);
+                    let implemented_interface =
+                        subgraphs.definition_by_name(implemented_interface.node.as_str(), subgraph_id);
+                    subgraphs.push_interface_impl(definition_id, implemented_interface);
                 }
 
                 let is_query_root_type = root_type_matcher.is_query(&definition.node.name.node);

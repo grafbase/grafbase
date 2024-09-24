@@ -16,6 +16,8 @@ directive @join__field(
 
 directive @join__graph(name: String!, url: String!) on ENUM_VALUE
 
+directive @join__implements(graph: join__Graph!, interface: String!) repeatable on OBJECT | INTERFACE
+
 enum join__Graph {
     FIVE_WITH_ENUM @join__graph(name: "five-with-enum", url: "http://example.com/five-with-enum")
     FOUR_WITH_UNION @join__graph(name: "four-with-union", url: "http://example.com/four-with-union")
@@ -65,13 +67,17 @@ type Book {
     title: String! @join__field(graph: SIX_WITH_INPUT_OBJECT)
 }
 
-type Quadratic implements Polynomial {
+type Quadratic implements Polynomial
+    @join__implements(graph: THREE_WITH_INTERFACE, interface: "Polynomial")
+ {
     coefficients: [Float] @join__field(graph: THREE_WITH_INTERFACE)
     degree: Int @join__field(graph: THREE_WITH_INTERFACE)
     discriminant: Float @join__field(graph: THREE_WITH_INTERFACE)
 }
 
-type Cubic implements Polynomial {
+type Cubic implements Polynomial
+    @join__implements(graph: THREE_WITH_INTERFACE, interface: "Polynomial")
+ {
     coefficients: [Float] @join__field(graph: THREE_WITH_INTERFACE)
     degree: Int @join__field(graph: THREE_WITH_INTERFACE)
     inflectionPoint: Float @join__field(graph: THREE_WITH_INTERFACE)

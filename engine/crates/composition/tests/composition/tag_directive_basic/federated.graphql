@@ -16,6 +16,8 @@ directive @join__field(
 
 directive @join__graph(name: String!, url: String!) on ENUM_VALUE
 
+directive @join__implements(graph: join__Graph!, interface: String!) repeatable on OBJECT | INTERFACE
+
 enum join__Graph {
     APPLE @join__graph(name: "apple", url: "http://example.com/apple")
     ORANGE @join__graph(name: "orange", url: "http://example.com/orange")
@@ -23,13 +25,17 @@ enum join__Graph {
 
 scalar Texture @tag(name: "appleTexture") @tag(name: "orangeTexture")
 
-type Apple implements HasId @tag(name: "appleType") {
+type Apple implements HasId @tag(name: "appleType")
+    @join__implements(graph: APPLE, interface: "HasId")
+ {
     id: ID!
     texture: Texture
     variety: AppleVariety
 }
 
-type Orange implements HasId @tag(name: "orangeType") {
+type Orange implements HasId @tag(name: "orangeType")
+    @join__implements(graph: ORANGE, interface: "HasId")
+ {
     id: ID! @join__field(graph: ORANGE)
     texture: Texture @join__field(graph: ORANGE)
     variety: String @join__field(graph: ORANGE)

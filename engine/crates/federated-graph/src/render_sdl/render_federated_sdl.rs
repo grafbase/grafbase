@@ -69,6 +69,17 @@ pub fn render_federated_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error
                 render_authorized_directive(authorized_directive, f, graph)?;
             }
 
+            if !object.join_implements.is_empty() {
+                for (subgraph_id, interface_id) in &object.join_implements {
+                    f.write_str("\n")?;
+                    render_join_implement(*subgraph_id, *interface_id, f, graph)?;
+                }
+
+                if object.keys.is_empty() {
+                    f.write_str("\n")?;
+                }
+            }
+
             if !object.keys.is_empty() {
                 f.write_str("\n")?;
                 for key in &object.keys {
@@ -239,6 +250,8 @@ fn write_prelude(sdl: &mut String) -> fmt::Result {
         ) on FIELD_DEFINITION
 
         directive @join__graph(name: String!, url: String!) on ENUM_VALUE
+
+        directive @join__implements(graph: join__Graph!, interface: String!) repeatable on OBJECT | INTERFACE
     "#});
 
     sdl.push('\n');
@@ -484,6 +497,23 @@ fn render_join_field(key: &Key, f: &mut fmt::Formatter<'_>, graph: &FederatedGra
     drop(writer);
 
     f.write_str("\n")
+}
+
+fn render_join_implement(
+    subgraph_id: SubgraphId,
+    interface_id: InterfaceId,
+    f: &mut fmt::Formatter<'_>,
+    graph: &FederatedGraph,
+) -> fmt::Result {
+    let subgraph_name = GraphEnumVariantName(&graph[graph[subgraph_id].name]);
+
+    f.write_str(INDENT)?;
+
+    DirectiveWriter::new("join__implements", f, graph)?
+        .arg("graph", subgraph_name)?
+        .arg("interface", Value::String(graph[interface_id].name))?;
+
+    Ok(())
 }
 
 /// Render an `@authorized` directive

@@ -16,13 +16,18 @@ directive @join__field(
 
 directive @join__graph(name: String!, url: String!) on ENUM_VALUE
 
+directive @join__implements(graph: join__Graph!, interface: String!) repeatable on OBJECT | INTERFACE
+
 enum join__Graph {
     ELECTRONICS @join__graph(name: "electronics", url: "http://example.com/electronics")
     PHYSICAL @join__graph(name: "physical", url: "http://example.com/physical")
     SOCIAL @join__graph(name: "social", url: "http://example.com/social")
 }
 
-type Furby implements FurbyType & SocialFurby {
+type Furby implements FurbyType & SocialFurby
+    @join__implements(graph: SOCIAL, interface: "FurbyType")
+    @join__implements(graph: SOCIAL, interface: "SocialFurby")
+ {
     batteryType: String! @join__field(graph: SOCIAL)
     canDance: Boolean! @join__field(graph: SOCIAL)
     canSing: Boolean! @join__field(graph: SOCIAL)

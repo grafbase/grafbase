@@ -9,7 +9,7 @@ impl<'a> ObjectDefinition<'a> {
         self.join_implement_records
             .binary_search_by(|record| {
                 record
-                    .graph_id
+                    .subgraph_id
                     .cmp(subgraph_id)
                     .then_with(|| record.interface_id.cmp(interface_id))
             })
