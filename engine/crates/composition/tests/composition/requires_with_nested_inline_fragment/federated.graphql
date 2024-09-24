@@ -16,12 +16,16 @@ directive @join__field(
 
 directive @join__graph(name: String!, url: String!) on ENUM_VALUE
 
+directive @join__implements(graph: join__Graph!, interface: String!) repeatable on OBJECT | INTERFACE
+
 enum join__Graph {
     PAYROLL @join__graph(name: "payroll", url: "http://example.com/payroll")
     REGISTRY @join__graph(name: "registry", url: "http://example.com/registry")
 }
 
 type Producer implements MusicEntity
+    @join__implements(graph: PAYROLL, interface: "MusicEntity")
+    @join__implements(graph: REGISTRY, interface: "MusicEntity")
     @join__type(graph: PAYROLL, key: "id")
     @join__type(graph: REGISTRY, key: "id")
 {
@@ -32,6 +36,8 @@ type Producer implements MusicEntity
 }
 
 type Band implements MusicEntity
+    @join__implements(graph: PAYROLL, interface: "MusicEntity")
+    @join__implements(graph: REGISTRY, interface: "MusicEntity")
     @join__type(graph: PAYROLL, key: "id")
     @join__type(graph: REGISTRY, key: "id")
 {

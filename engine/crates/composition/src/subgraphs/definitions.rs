@@ -1,3 +1,5 @@
+use std::collections::btree_map;
+
 use super::*;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -9,6 +11,8 @@ pub(crate) struct Definitions {
     definitions: Vec<Definition>,
     // (Implementee, implementer)
     interface_impls: BTreeSet<(StringId, StringId)>,
+    // (Implementee, implementer) -> [subgraph]
+    interface_definitions_to_subgraphs: BTreeMap<(StringId, StringId), Vec<SubgraphId>>,
 }
 
 #[derive(Debug)]
@@ -53,6 +57,18 @@ impl Subgraphs {
         self.definitions.interface_impls.iter().copied()
     }
 
+    pub(crate) fn subgraphs_implementing_interface(
+        &self,
+        implementer: StringId,
+        implemented_interface: StringId,
+    ) -> impl Iterator<Item = SubgraphId> + '_ {
+        self.definitions
+            .interface_definitions_to_subgraphs
+            .get(&(implementer, implemented_interface))
+            .into_iter()
+            .flat_map(|subgraphs| subgraphs.iter().copied())
+    }
+
     pub(crate) fn iter_implementers_for_interface(
         &self,
         interface_name: StringId,
@@ -84,10 +100,28 @@ impl Subgraphs {
         id
     }
 
-    pub(crate) fn push_interface_impl(&mut self, implementer: StringId, implemented_interface: StringId) {
+    pub(crate) fn push_interface_impl(&mut self, implementer: DefinitionId, implemented_interface: DefinitionId) {
+        let implementer_name = self.walk(implementer).name().id;
+        let implementee_name = self.walk(implemented_interface).name().id;
+
         self.definitions
             .interface_impls
-            .insert((implemented_interface, implementer));
+            .insert((implementee_name, implementer_name));
+
+        let subgraph_id = self.walk(implementer).subgraph_id();
+
+        match self
+            .definitions
+            .interface_definitions_to_subgraphs
+            .entry((implementee_name, implementer_name))
+        {
+            btree_map::Entry::Vacant(entry) => {
+                entry.insert(vec![subgraph_id]);
+            }
+            btree_map::Entry::Occupied(mut entry) => {
+                entry.get_mut().push(subgraph_id);
+            }
+        }
     }
 }
 

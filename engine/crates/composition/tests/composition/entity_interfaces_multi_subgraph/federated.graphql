@@ -16,6 +16,8 @@ directive @join__field(
 
 directive @join__graph(name: String!, url: String!) on ENUM_VALUE
 
+directive @join__implements(graph: join__Graph!, interface: String!) repeatable on OBJECT | INTERFACE
+
 enum join__Graph {
     FOREST @join__graph(name: "forest", url: "http://example.com/forest")
     MANGROVE @join__graph(name: "mangrove", url: "http://example.com/mangrove")
@@ -28,6 +30,8 @@ type Squirrel {
 }
 
 type Cheetah implements Animal
+    @join__implements(graph: MANGROVE, interface: "Animal")
+    @join__implements(graph: SAVANA, interface: "Animal")
     @join__type(graph: MANGROVE, key: "species")
     @join__type(graph: SAVANA, key: "species")
 {

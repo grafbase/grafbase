@@ -14,13 +14,13 @@ use walker::Walk;
 /// ```custom,{.language-graphql}
 /// type JoinImplementsDefinition @meta(module: "join_implements", derive: ["Clone"]) {
 ///   interface: InterfaceDefinition!
-///   graph: Subgraph!
+///   subgraph: Subgraph!
 /// }
 /// ```
 #[derive(Debug, serde::Serialize, serde::Deserialize, Clone)]
 pub struct JoinImplementsDefinitionRecord {
     pub interface_id: InterfaceDefinitionId,
-    pub graph_id: SubgraphId,
+    pub subgraph_id: SubgraphId,
 }
 
 #[derive(Clone, Copy)]
@@ -44,8 +44,8 @@ impl<'a> JoinImplementsDefinition<'a> {
     pub fn interface(&self) -> InterfaceDefinition<'a> {
         self.interface_id.walk(self.schema)
     }
-    pub fn graph(&self) -> Subgraph<'a> {
-        self.graph_id.walk(self.schema)
+    pub fn subgraph(&self) -> Subgraph<'a> {
+        self.subgraph_id.walk(self.schema)
     }
 }
 
@@ -63,7 +63,7 @@ impl std::fmt::Debug for JoinImplementsDefinition<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("JoinImplementsDefinition")
             .field("interface", &self.interface())
-            .field("graph", &self.graph())
+            .field("subgraph", &self.subgraph())
             .finish()
     }
 }

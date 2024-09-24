@@ -161,9 +161,6 @@ pub struct Interface {
     /// All keys, for entity interfaces.
     pub keys: Vec<Key>,
 
-    /// The subgraphs which implement this interface.
-    pub implemented_in: Vec<SubgraphId>,
-
     /// All directives that made it through composition.
     pub composed_directives: Directives,
 
@@ -440,7 +437,6 @@ impl From<super::FederatedGraphV3> for FederatedGraph {
                             composed_directives,
                             fields,
                             description,
-                            implemented_in: Vec::new(),
                         }
                     },
                 )

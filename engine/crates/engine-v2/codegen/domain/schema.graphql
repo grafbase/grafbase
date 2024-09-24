@@ -33,7 +33,7 @@ union EntityDefinition @id @meta(module: "entity") @variants(remove_suffix: "Def
 
 type JoinImplementsDefinition @meta(module: "join_implements", derive: ["Clone"]) {
   interface: InterfaceDefinition!
-  graph: Subgraph!
+  subgraph: Subgraph!
 }
 
 type ObjectDefinition

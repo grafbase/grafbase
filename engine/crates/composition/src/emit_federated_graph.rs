@@ -169,9 +169,9 @@ fn emit_input_value_definitions(input_value_definitions: &[InputValueDefinitionI
 }
 
 fn emit_interface_impls(ctx: &mut Context<'_>) {
-    for (implementee, implementer) in ctx.subgraphs.iter_interface_impls() {
-        let implementer = ctx.insert_string(ctx.subgraphs.walk(implementer));
-        let implementee = ctx.insert_string(ctx.subgraphs.walk(implementee));
+    for (implementee_name, implementer_name) in ctx.subgraphs.iter_interface_impls() {
+        let implementer = ctx.insert_string(ctx.subgraphs.walk(implementer_name));
+        let implementee = ctx.insert_string(ctx.subgraphs.walk(implementee_name));
 
         let federated::Definition::Interface(implementee) = ctx.definitions[&implementee] else {
             continue;
@@ -179,7 +179,17 @@ fn emit_interface_impls(ctx: &mut Context<'_>) {
 
         match ctx.definitions[&implementer] {
             federated::Definition::Object(object_id) => {
-                ctx.out.objects[object_id.0].implements_interfaces.push(implementee);
+                let object = &mut ctx.out.objects[object_id.0];
+                object.implements_interfaces.push(implementee);
+
+                for subgraph_id in ctx
+                    .subgraphs
+                    .subgraphs_implementing_interface(implementee_name, implementer_name)
+                {
+                    object
+                        .join_implements
+                        .push((graphql_federated_graph::SubgraphId(subgraph_id.idx()), implementee));
+                }
             }
             federated::Definition::Interface(interface_id) => {
                 ctx.out.interfaces[interface_id.0]

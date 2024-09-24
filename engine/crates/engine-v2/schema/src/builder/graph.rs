@@ -302,12 +302,12 @@ impl<'a> GraphBuilder<'a> {
                 .join_implements
                 .into_iter()
                 .map(|(subgraph_id, interface_id)| JoinImplementsDefinitionRecord {
-                    graph_id: SubgraphId::GraphqlEndpoint(subgraph_id.into()),
+                    subgraph_id: SubgraphId::GraphqlEndpoint(subgraph_id.into()),
                     interface_id: interface_id.into(),
                 })
                 .collect();
 
-            join_implement_records.sort_by_key(|record| (record.graph_id, record.interface_id));
+            join_implement_records.sort_by_key(|record| (record.subgraph_id, record.interface_id));
 
             self.graph.object_definitions.push(ObjectDefinitionRecord {
                 name_id: object.name.into(),
@@ -392,15 +392,18 @@ impl<'a> GraphBuilder<'a> {
             // We iterate ovr all objects that implement this interface, and over their @join__implements
             // directives, marking the object to be implemented in subgraphs.
             for object_id in &self.graph[interface_id].possible_type_ids {
-                for join_implements in &self.graph[*object_id].join_implement_records {
-                    if join_implements.interface_id == interface_id {
-                        match found_ids.entry(join_implements.graph_id) {
-                            Entry::Occupied(mut entry) => {
-                                entry.get_mut().push(*object_id);
-                            }
-                            Entry::Vacant(entry) => {
-                                entry.insert(vec![*object_id]);
-                            }
+                let join_implements = self.graph[*object_id]
+                    .join_implement_records
+                    .iter()
+                    .filter(|ji| ji.interface_id == interface_id);
+
+                for join_implements in join_implements {
+                    match found_ids.entry(join_implements.subgraph_id) {
+                        Entry::Occupied(mut entry) => {
+                            entry.get_mut().push(*object_id);
+                        }
+                        Entry::Vacant(entry) => {
+                            entry.insert(vec![*object_id]);
                         }
                     }
                 }
@@ -408,10 +411,14 @@ impl<'a> GraphBuilder<'a> {
 
             // If the number of all collected object per subgraph is equal to the number of all possible,
             // our interface is fully implemented in this subgraph.
-            for (graph_id, object_ids) in found_ids {
-                if object_ids.len() == self.graph[interface_id].possible_type_ids.len() {
-                    self.graph[interface_id].fully_implemented_in_ids.push(graph_id);
-                }
+            let expected_len = self.graph[interface_id].possible_type_ids.len();
+            let found_ids = found_ids
+                .into_iter()
+                .filter(|(_, object_ids)| object_ids.len() == expected_len)
+                .map(|(graph_id, _)| graph_id);
+
+            for graph_id in found_ids {
+                self.graph[interface_id].fully_implemented_in_ids.push(graph_id);
             }
 
             self.graph[interface_id].fully_implemented_in_ids.sort();

@@ -760,7 +760,6 @@ fn ingest_definitions<'a>(document: &'a ast::TypeSystemDocument, state: &mut Sta
                             composed_directives,
                             description,
                             fields: NO_FIELDS,
-                            implemented_in: Vec::new(),
                         }));
                         state
                             .definition_names
@@ -1427,6 +1426,7 @@ fn collect_composed_directives<'a>(
             "authenticated" => state.directives.push(Directive::Authenticated),
             // Added later after ingesting the graph.
             "authorized" => {}
+            "join__implements" => {}
             other => {
                 let name = state.insert_string(other);
                 let arguments = directive

@@ -16,19 +16,25 @@ directive @join__field(
 
 directive @join__graph(name: String!, url: String!) on ENUM_VALUE
 
+directive @join__implements(graph: join__Graph!, interface: String!) repeatable on OBJECT | INTERFACE
+
 enum join__Graph {
     PRODUCT @join__graph(name: "product", url: "http://example.com/product")
     USER @join__graph(name: "user", url: "http://example.com/user")
 }
 
-type Product implements Node {
+type Product implements Node
+    @join__implements(graph: PRODUCT, interface: "Node")
+ {
     description: String @join__field(graph: PRODUCT)
     id: ID! @join__field(graph: PRODUCT)
     name: String! @join__field(graph: PRODUCT)
     price: Float! @join__field(graph: PRODUCT)
 }
 
-type User implements Timestamped {
+type User implements Timestamped
+    @join__implements(graph: USER, interface: "Timestamped")
+ {
     createdAt: String! @join__field(graph: USER)
     email: String! @join__field(graph: USER)
     id: ID! @join__field(graph: USER)
