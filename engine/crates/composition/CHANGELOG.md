@@ -12,6 +12,7 @@
 ### Fixes
 
 - Fixed the ingestion of numeric literals when creating a federated graph from a string.
+- Fixed the ingestion of `null` literals.
 - In federated_graph, when parsing a schema with `@join__type` and no key argument, then rendering it with `render_federated_sdl()` would produce a `@join__type` directive
 
 ## 0.4.0 - 2024-06-11

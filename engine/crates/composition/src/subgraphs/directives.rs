@@ -14,6 +14,7 @@ pub(crate) enum Value {
     Enum(StringId),
     Object(Vec<(StringId, Value)>),
     List(Vec<Value>),
+    Null,
 }
 
 #[derive(Default)]
