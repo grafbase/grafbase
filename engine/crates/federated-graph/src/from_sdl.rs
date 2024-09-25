@@ -261,14 +261,15 @@ fn ingest_fields<'a>(parsed: &'a ast::TypeSystemDocument, state: &mut State<'a>)
                     ingest_object_join_implements(object_id, object, state)?;
                     ingest_object_fields(object_id, object.fields(), state)?;
                 }
-                ast::TypeDefinition::Interface(iface) => {
+                ast::TypeDefinition::Interface(interface) => {
                     let Definition::Interface(interface_id) = state.definition_names[typedef.name()] else {
                         return Err(DomainError(
                             "Broken invariant: interface id behind interface name.".to_owned(),
                         ));
                     };
-                    ingest_interface_interfaces(interface_id, iface, state)?;
-                    ingest_interface_fields(interface_id, iface.fields(), state)?;
+                    ingest_interface_interfaces(interface_id, interface, state)?;
+                    ingest_interface_join_implements(interface_id, interface, state)?;
+                    ingest_interface_fields(interface_id, interface.fields(), state)?;
                 }
                 ast::TypeDefinition::Union(union) => {
                     let Definition::Union(union_id) = state.definition_names[typedef.name()] else {
@@ -357,35 +358,8 @@ fn ingest_object_join_implements(
     state: &mut State<'_>,
 ) -> Result<(), DomainError> {
     for directive in object.directives() {
-        if directive.name() != "join__implements" {
+        let Some((subgraph_id, interface_id)) = parse_join_implements(directive, state)? else {
             continue;
-        }
-
-        let Some(ast::Value::Enum(graph)) = directive.get_argument("graph").map(|a| a.value()) else {
-            let error = DomainError("Missing graph argument in join__implements directive".to_owned());
-
-            return Err(error);
-        };
-
-        let Some(ast::Value::String(interface)) = directive.get_argument("interface").map(|a| a.value()) else {
-            let error = DomainError("Missing interface argument in join__implements directive".to_owned());
-
-            return Err(error);
-        };
-
-        let Some(subgraph_id) = state.graph_sdl_names.get(graph).copied() else {
-            let error = DomainError("Unknown graph in join__implements directive".to_owned());
-
-            return Err(error);
-        };
-
-        let interface_id = match state.definition_names.get(interface) {
-            Some(Definition::Interface(interface_id)) => *interface_id,
-            _ => {
-                let error = DomainError("Broken invariant: join__implements points to a non-interface type".to_owned());
-
-                return Err(error);
-            }
         };
 
         state.objects[object_id.0]
@@ -394,6 +368,62 @@ fn ingest_object_join_implements(
     }
 
     Ok(())
+}
+
+fn ingest_interface_join_implements(
+    object_id: InterfaceId,
+    interface: &ast::InterfaceDefinition<'_>,
+    state: &mut State<'_>,
+) -> Result<(), DomainError> {
+    for directive in interface.directives() {
+        let Some((subgraph_id, interface_id)) = parse_join_implements(directive, state)? else {
+            continue;
+        };
+
+        state.interfaces[object_id.0]
+            .join_implements
+            .push((subgraph_id, interface_id));
+    }
+
+    Ok(())
+}
+
+fn parse_join_implements(
+    directive: ast::Directive<'_>,
+    state: &mut State<'_>,
+) -> Result<Option<(SubgraphId, InterfaceId)>, DomainError> {
+    if directive.name() != "join__implements" {
+        return Ok(None);
+    }
+
+    let Some(ast::Value::Enum(graph)) = directive.get_argument("graph").map(|a| a.value()) else {
+        let error = DomainError("Missing graph argument in join__implements directive".to_owned());
+
+        return Err(error);
+    };
+
+    let Some(ast::Value::String(interface)) = directive.get_argument("interface").map(|a| a.value()) else {
+        let error = DomainError("Missing interface argument in join__implements directive".to_owned());
+
+        return Err(error);
+    };
+
+    let Some(subgraph_id) = state.graph_sdl_names.get(graph).copied() else {
+        let error = DomainError("Unknown graph in join__implements directive".to_owned());
+
+        return Err(error);
+    };
+
+    let interface_id = match state.definition_names.get(interface) {
+        Some(Definition::Interface(interface_id)) => *interface_id,
+        _ => {
+            let error = DomainError("Broken invariant: join__implements points to a non-interface type".to_owned());
+
+            return Err(error);
+        }
+    };
+
+    Ok(Some((subgraph_id, interface_id)))
 }
 
 fn ingest_selection_sets<'a>(parsed: &'a ast::TypeSystemDocument, state: &mut State<'a>) -> Result<(), DomainError> {
@@ -760,6 +790,7 @@ fn ingest_definitions<'a>(document: &'a ast::TypeSystemDocument, state: &mut Sta
                             composed_directives,
                             description,
                             fields: NO_FIELDS,
+                            join_implements: Vec::new(),
                         }));
                         state
                             .definition_names
@@ -1738,6 +1769,8 @@ fn backwards_compatibility() {
 
     directive @join__graph(name: String!, url: String!) on ENUM_VALUE
 
+    directive @join__implements(graph: join__Graph!, interface: String!) repeatable on OBJECT | INTERFACE
+
     enum join__Graph {
         MANGROVE @join__graph(name: "mangrove", url: "http://example.com/mangrove")
         STEPPE @join__graph(name: "steppe", url: "http://example.com/steppe")
@@ -1772,6 +1805,8 @@ fn backwards_compatibility() {
 
     directive @join__graph(name: String!, url: String!) on ENUM_VALUE
 
+    directive @join__implements(graph: join__Graph!, interface: String!) repeatable on OBJECT | INTERFACE
+
     enum join__Graph {
         MANGROVE @join__graph(name: "mangrove", url: "http://example.com/mangrove")
         STEPPE @join__graph(name: "steppe", url: "http://example.com/steppe")
@@ -1786,6 +1821,7 @@ fn backwards_compatibility() {
         getMammoth: Mammoth @join__field(graph: MANGROVE, override: "steppe")
     }
     "#]];
+
     let actual = crate::render_sdl::render_federated_sdl(&super::from_sdl(sdl).unwrap()).unwrap();
 
     expected.assert_eq(&actual);

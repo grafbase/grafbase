@@ -1,3 +1,4 @@
+//! This is a separate module because we want to use only the public API of [Subgraphs] and avoid
 //! mixing GraphQL parser logic and types with our internals.
 
 mod directives;
@@ -192,6 +193,7 @@ fn ingest_definition_bodies(
                 for implemented_interface in &interface.implements {
                     let implemented_interface =
                         subgraphs.definition_by_name(implemented_interface.node.as_str(), subgraph_id);
+
                     subgraphs.push_interface_impl(definition_id, implemented_interface);
                 }
 
@@ -213,6 +215,7 @@ fn ingest_definition_bodies(
                 for implemented_interface in &object_type.implements {
                     let implemented_interface =
                         subgraphs.definition_by_name(implemented_interface.node.as_str(), subgraph_id);
+
                     subgraphs.push_interface_impl(definition_id, implemented_interface);
                 }
 
