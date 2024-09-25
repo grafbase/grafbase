@@ -15,7 +15,6 @@ use integration_tests::{
     federation::{EngineV2Ext, GraphqlResponse},
     runtime,
 };
-use serde_json::json;
 
 async fn execute(request: &str) -> GraphqlResponse {
     let engine = Engine::builder()
@@ -27,17 +26,6 @@ async fn execute(request: &str) -> GraphqlResponse {
         .build()
         .await;
     engine.post(request).await
-}
-
-async fn execute_with_variables(request: &str, variables: serde_json::Value) -> GraphqlResponse {
-    let engine = Engine::builder()
-        .with_subgraph(FederatedAccountsSchema)
-        .with_subgraph(FederatedProductsSchema)
-        .with_subgraph(FederatedReviewsSchema)
-        .with_subgraph(FederatedInventorySchema)
-        .build()
-        .await;
-    engine.post(request).variables(variables).await
 }
 
 #[test]
@@ -144,33 +132,4 @@ fn root_fragment_on_different_subgraphs() {
       }
     }
     "###);
-}
-
-#[test]
-fn skip_include_test() {
-    let _response = runtime().block_on(execute_with_variables(
-        r#"
-            query Test($skipping: Boolean! = true) {
-                me {
-                    ... on User @skip(if: $skipping) @include(if: true) {
-                        id @skip(if: true)
-                        id @skip(if: false)
-                        username
-                    }
-                }
-                topProducts {
-                    ...TopProductFields @skip(if: $skipping) @include(if: true)
-                }
-            }
-
-            fragment TopProductFields on Product {
-                name
-                price
-            }
-        "#
-        .trim(),
-        json!({}),
-    ));
-
-    // TODO: snapshot
 }

@@ -11,7 +11,7 @@ use crate::{
 use engine_parser::Positioned;
 use engine_value::Name;
 use id_newtypes::IdRange;
-use schema::{DefinitionId, FieldDefinition, FieldDefinitionId, ScalarDefinitionId, TypeRecord};
+use schema::{DefinitionId, FieldDefinition, FieldDefinitionId, TypeRecord};
 
 impl<'schema, 'p> Binder<'schema, 'p> {
     pub(super) fn bind_typename_field(
