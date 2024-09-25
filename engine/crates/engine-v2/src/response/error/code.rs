@@ -43,7 +43,6 @@ pub enum ErrorCode {
     RateLimited,
     // Timeouts
     GatewayTimeout,
-    Skip,
 }
 
 impl ErrorCode {
@@ -55,7 +54,6 @@ impl ErrorCode {
             | ErrorCode::PersistedQueryNotFound
             | ErrorCode::PersistedQueryError
             | ErrorCode::TrustedDocumentError
-            | ErrorCode::Skip
             | ErrorCode::BadRequest => (http::StatusCode::BAD_REQUEST, 1000),
             ErrorCode::Unauthenticated => (http::StatusCode::UNAUTHORIZED, 600),
             ErrorCode::Unauthorized => (http::StatusCode::FORBIDDEN, 600),
