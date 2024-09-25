@@ -1,7 +1,7 @@
 use std::collections::{btree_map::Entry, HashSet};
 
 use engine::Positioned;
-use schema::{DefinitionId, Schema};
+use schema::{DefinitionId, Schema, Wrapping};
 
 use crate::{
     operation::{Location, Operation, VariableDefinition, VariableInputValues, VariableValue, Variables},
@@ -94,7 +94,19 @@ impl<'schema, 'p> Binder<'schema, 'p> {
             }
             seen_names.insert(name.clone());
 
-            let ty = self.convert_type(&name, node.var_type.pos.try_into()?, node.var_type.node)?;
+            let mut ty = self.convert_type(&name, node.var_type.pos.try_into()?, node.var_type.node)?;
+
+            match node.default_value.as_ref().map(|pos| &pos.node) {
+                Some(value) if !value.is_null() => {
+                    if ty.wrapping.is_list() {
+                        ty.wrapping = ty.wrapping.wrapped_by_required_list();
+                    } else {
+                        ty.wrapping = Wrapping::new(true);
+                    }
+                }
+                _ => (),
+            }
+
             let default_value = node
                 .default_value
                 .map(|Positioned { pos: _, node: value }| coerce_variable_default_value(self, name_location, ty, value))
