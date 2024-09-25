@@ -195,26 +195,7 @@ impl Client {
     pub fn endpoint(&self) -> &str {
         &self.endpoint
     }
-
-    pub fn gql_with_variables<Response>(
-        &self,
-        query: impl Into<String>,
-        variables: Value,
-    ) -> GqlRequestBuilder<Response>
-    where
-        Response: for<'de> serde::de::Deserialize<'de>,
-    {
-        let reqwest_builder = self.client.post(&self.endpoint).headers(self.headers.clone());
-
-        GqlRequestBuilder {
-            query: query.into(),
-            variables: Some(variables),
-            phantom: PhantomData,
-            reqwest_builder: reqwest_builder.header(http::header::ACCEPT, "application/json"),
-            bearer: None,
-        }
-    }
-
+    
     pub fn gql<Response>(&self, query: impl Into<String>) -> GqlRequestBuilder<Response>
     where
         Response: for<'de> serde::de::Deserialize<'de>,
