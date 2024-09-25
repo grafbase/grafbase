@@ -50,7 +50,9 @@ interface Node {
     id: ID!
 }
 
-interface Timestamped implements Node {
+interface Timestamped implements Node
+    @join__implements(graph: USER, interface: "Node")
+ {
     createdAt: String!
     id: ID!
     updatedAt: String!

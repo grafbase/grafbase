@@ -192,9 +192,17 @@ fn emit_interface_impls(ctx: &mut Context<'_>) {
                 }
             }
             federated::Definition::Interface(interface_id) => {
-                ctx.out.interfaces[interface_id.0]
-                    .implements_interfaces
-                    .push(implementee);
+                let interface = &mut ctx.out.interfaces[interface_id.0];
+                interface.implements_interfaces.push(implementee);
+
+                for subgraph_id in ctx
+                    .subgraphs
+                    .subgraphs_implementing_interface(implementee_name, implementer_name)
+                {
+                    interface
+                        .join_implements
+                        .push((graphql_federated_graph::SubgraphId(subgraph_id.idx()), implementee));
+                }
             }
             _ => unreachable!(),
         }

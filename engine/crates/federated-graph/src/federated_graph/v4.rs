@@ -167,6 +167,8 @@ pub struct Interface {
     pub fields: Fields,
 
     pub description: Option<StringId>,
+
+    pub join_implements: Vec<(SubgraphId, InterfaceId)>,
 }
 
 #[derive(Clone)]
@@ -437,6 +439,7 @@ impl From<super::FederatedGraphV3> for FederatedGraph {
                             composed_directives,
                             fields,
                             description,
+                            join_implements: Vec::new(),
                         }
                     },
                 )
