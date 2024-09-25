@@ -147,7 +147,7 @@ fn root_fragment_on_different_subgraphs() {
 }
 
 #[test]
-fn skip_test() {
+fn skip_include_test() {
     let _response = runtime().block_on(execute_with_variables(
         r#"
             query Test($skipping: Boolean! = true) {
