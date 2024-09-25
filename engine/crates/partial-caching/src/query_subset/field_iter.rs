@@ -33,13 +33,13 @@ impl<'a> Iterator for FieldIter<'a> {
                 Selection::Field(field) => return Some(field),
                 Selection::InlineFragment(fragment) => {
                     self.iter_stack
-                        .push(self.subset.selection_iter(fragment.selection_set()));
+                        .push(self.subset.selection_iter(&fragment.selection_set()));
                 }
                 Selection::FragmentSpread(spread) => {
                     let Some(fragment) = spread.fragment() else { continue };
 
                     self.iter_stack
-                        .push(self.subset.selection_iter(fragment.selection_set()));
+                        .push(self.subset.selection_iter(&fragment.selection_set()));
                 }
             }
         }

@@ -36,8 +36,6 @@ exclude = [
 
 [patch.crates-io]
 axum = { git = "https://github.com/grafbase/axum", rev = "c3146f9ca921907d9884fbf7549a1520e9e72eac" }                                 # axum-tungstenite-upgrade
-cynic-parser = { git = "https://github.com/grafbase/cynic", rev = "920dd202101a0643a0c29031e1cfa0f20031c2d6" }                        # more-spans
-cynic-codegen = { git = "https://github.com/grafbase/cynic", rev = "920dd202101a0643a0c29031e1cfa0f20031c2d6" }                       # more-spans
 multipart-stream = { git = "https://github.com/grafbase/multipart-stream-rs-fork", rev = "06ff198e4041c8a8c1c93e580c260d597727c193" } # http-1.0-fix-multipart-mixed
 names = { git = "https://github.com/grafbase/names", rev = "443800fbb7bc2936c1f2c16f3a5e116698b1454a" }                               # main
 # FIXME: Drop when a new version is released.
@@ -98,7 +96,7 @@ chrono = { version = "0.4.38", default-features = false }
 ctor = "0.2.8"
 cynic = "=3.7.3"
 cynic-introspection = "=3.7.3"
-cynic-parser = "=0.4.5"
+cynic-parser = "0.5.0"
 deadpool-postgres = "0.14"
 derive_more = "1.0.0-beta.6"
 jwt-compact = "0.8"

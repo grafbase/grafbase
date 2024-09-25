@@ -121,7 +121,7 @@ impl std::fmt::Display for QuerySubsetDisplay<'_> {
 
 impl fmt::Display for SelectionSetDisplay<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let mut selections = self.selections.peekable();
+        let mut selections = self.selections.clone().peekable();
         if selections.peek().is_none() {
             return Ok(());
         }

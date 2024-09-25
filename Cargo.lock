@@ -770,7 +770,7 @@ dependencies = [
  "bitflags 2.6.0",
  "cexpr",
  "clang-sys",
- "itertools 0.12.1",
+ "itertools 0.10.5",
  "lazy_static",
  "lazycell",
  "log",
@@ -1903,10 +1903,11 @@ dependencies = [
 [[package]]
 name = "cynic-codegen"
 version = "3.7.3"
-source = "git+https://github.com/grafbase/cynic?rev=920dd202101a0643a0c29031e1cfa0f20031c2d6#920dd202101a0643a0c29031e1cfa0f20031c2d6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7c0ec86f960a00ce087e96ff6f073f6ff28b6876d69ce8caa06c03fb4143981c"
 dependencies = [
  "counter",
- "cynic-parser",
+ "cynic-parser 0.4.5",
  "darling",
  "once_cell",
  "ouroboros",
@@ -1933,11 +1934,23 @@ dependencies = [
 [[package]]
 name = "cynic-parser"
 version = "0.4.5"
-source = "git+https://github.com/grafbase/cynic?rev=920dd202101a0643a0c29031e1cfa0f20031c2d6#920dd202101a0643a0c29031e1cfa0f20031c2d6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "718f6cd8c54ae5249fd42b0c86639df0100b8a86eea2e5f1b915cde2e1481453"
+dependencies = [
+ "indexmap 2.2.6",
+ "lalrpop-util 0.20.2",
+ "logos",
+]
+
+[[package]]
+name = "cynic-parser"
+version = "0.5.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3acbf4f3ed18c691698563a8d10419073a8178c833ae74f24aebae88af26d12a"
 dependencies = [
  "ariadne",
  "indexmap 2.2.6",
- "lalrpop-util",
+ "lalrpop-util 0.21.0",
  "logos",
  "pretty",
 ]
@@ -2668,7 +2681,7 @@ name = "engine-v2-codegen"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "cynic-parser",
+ "cynic-parser 0.5.2",
  "grafbase-workspace-hack",
  "indoc",
  "itertools 0.13.0",
@@ -3047,7 +3060,7 @@ name = "federation-audit-tests"
 version = "0.79.2"
 dependencies = [
  "async-graphql-parser",
- "cynic-parser",
+ "cynic-parser 0.5.2",
  "grafbase-workspace-hack",
  "graphql-composition",
  "integration-tests",
@@ -3452,7 +3465,7 @@ dependencies = [
  "async-trait",
  "bytes",
  "common-types",
- "cynic-parser",
+ "cynic-parser 0.5.2",
  "engine",
  "engine-parser",
  "engine-validation",
@@ -3780,7 +3793,7 @@ version = "0.79.2"
 dependencies = [
  "cynic",
  "cynic-introspection",
- "cynic-parser",
+ "cynic-parser 0.5.2",
  "grafbase-workspace-hack",
  "indoc",
  "reqwest",
@@ -3849,7 +3862,7 @@ dependencies = [
  "common-types",
  "const_format",
  "criterion",
- "cynic-parser",
+ "cynic-parser 0.5.2",
  "dotenv",
  "engine",
  "federated-dev",
@@ -3977,7 +3990,7 @@ dependencies = [
  "crossbeam-queue",
  "crossbeam-utils",
  "cynic-codegen",
- "cynic-parser",
+ "cynic-parser 0.5.2",
  "deadpool 0.12.1",
  "deadpool-runtime",
  "der",
@@ -4012,6 +4025,7 @@ dependencies = [
  "iana-time-zone",
  "indexmap 2.2.6",
  "insta",
+ "itertools 0.10.5",
  "jwt-compact",
  "lazy_static",
  "libc",
@@ -4160,7 +4174,7 @@ dependencies = [
 name = "graphql-federated-graph"
 version = "0.4.0"
 dependencies = [
- "cynic-parser",
+ "cynic-parser 0.5.2",
  "expect-test",
  "grafbase-workspace-hack",
  "graphql-wrapping-types",
@@ -4175,7 +4189,7 @@ name = "graphql-lint"
 version = "0.1.3"
 dependencies = [
  "criterion",
- "cynic-parser",
+ "cynic-parser 0.5.2",
  "grafbase-workspace-hack",
  "heck 0.5.0",
  "thiserror",
@@ -4223,7 +4237,7 @@ dependencies = [
 name = "graphql-schema-diff"
 version = "0.2.0"
 dependencies = [
- "cynic-parser",
+ "cynic-parser 0.5.2",
  "datatest-stable",
  "grafbase-workspace-hack",
  "miette 7.2.0",
@@ -4953,7 +4967,7 @@ dependencies = [
  "ctor",
  "cynic",
  "cynic-introspection",
- "cynic-parser",
+ "cynic-parser 0.5.2",
  "engine",
  "engine-config-builder",
  "engine-parser",
@@ -5265,6 +5279,15 @@ name = "lalrpop-util"
 version = "0.20.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "507460a910eb7b32ee961886ff48539633b788a36b65692b95f225b844c82553"
+dependencies = [
+ "regex-automata 0.4.7",
+]
+
+[[package]]
+name = "lalrpop-util"
+version = "0.21.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "108dc8f5dabad92c65a03523055577d847f5dcc00f3e7d3a68bc4d48e01d8fe1"
 dependencies = [
  "regex-automata 0.4.7",
 ]
@@ -6627,7 +6650,7 @@ dependencies = [
  "anyhow",
  "blake3",
  "common-types",
- "cynic-parser",
+ "cynic-parser 0.5.2",
  "engine-value",
  "grafbase-workspace-hack",
  "graph-entities",
@@ -7668,7 +7691,7 @@ name = "registry-v2-generator"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "cynic-parser",
+ "cynic-parser 0.5.2",
  "grafbase-workspace-hack",
  "indexmap 2.2.6",
  "indoc",

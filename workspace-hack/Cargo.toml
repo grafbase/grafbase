@@ -47,7 +47,7 @@ crc32fast = { version = "1" }
 criterion = { version = "0.5", features = ["async_tokio", "html_reports"] }
 crossbeam-queue = { version = "0.3" }
 crossbeam-utils = { version = "0.8" }
-cynic-parser = { git = "https://github.com/grafbase/cynic", rev = "920dd202101a0643a0c29031e1cfa0f20031c2d6", features = ["pretty", "report"] }
+cynic-parser = { version = "0.5", features = ["pretty", "report"] }
 deadpool-runtime = { version = "0.1", default-features = false, features = ["tokio_1"] }
 der = { version = "0.7", default-features = false, features = ["oid", "pem", "std"] }
 deranged = { version = "0.3", default-features = false, features = ["powerfmt", "std"] }
@@ -177,8 +177,8 @@ crc32fast = { version = "1" }
 criterion = { version = "0.5", features = ["async_tokio", "html_reports"] }
 crossbeam-queue = { version = "0.3" }
 crossbeam-utils = { version = "0.8" }
-cynic-codegen = { git = "https://github.com/grafbase/cynic", rev = "920dd202101a0643a0c29031e1cfa0f20031c2d6", features = ["rkyv"] }
-cynic-parser = { git = "https://github.com/grafbase/cynic", rev = "920dd202101a0643a0c29031e1cfa0f20031c2d6", features = ["pretty", "report"] }
+cynic-codegen = { version = "3", features = ["rkyv"] }
+cynic-parser = { version = "0.5", features = ["pretty", "report"] }
 deadpool-runtime = { version = "0.1", default-features = false, features = ["tokio_1"] }
 der = { version = "0.7", default-features = false, features = ["oid", "pem", "std"] }
 deranged = { version = "0.3", default-features = false, features = ["powerfmt", "std"] }
@@ -432,6 +432,7 @@ zeroize = { version = "1", default-features = false, features = ["derive"] }
 [target.wasm32-unknown-unknown.dependencies]
 getrandom = { version = "0.2", default-features = false, features = ["js"] }
 gimli = { version = "0.29", default-features = false, features = ["read", "std", "write"] }
+itertools = { version = "0.10" }
 libc = { version = "0.2", features = ["extra_traits"] }
 miniz_oxide = { version = "0.7", default-features = false, features = ["with-alloc"] }
 nom = { version = "7" }
@@ -442,6 +443,7 @@ web-sys = { version = "0.3", default-features = false, features = ["BlobProperty
 [target.wasm32-unknown-unknown.build-dependencies]
 getrandom = { version = "0.2", default-features = false, features = ["js"] }
 gimli = { version = "0.29", default-features = false, features = ["read", "std", "write"] }
+itertools = { version = "0.10" }
 libc = { version = "0.2", features = ["extra_traits"] }
 miniz_oxide = { version = "0.7", default-features = false, features = ["with-alloc"] }
 nom = { version = "7" }

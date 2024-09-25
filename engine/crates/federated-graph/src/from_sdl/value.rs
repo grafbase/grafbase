@@ -30,7 +30,7 @@ impl IntoJson for ast::Value<'_> {
 
         Some(match self {
             ast::Value::Variable(_) => return None,
-            ast::Value::Int(i) => Value::Number(i.into()),
+            ast::Value::Int(i) => Value::Number(i.as_i64().into()),
             ast::Value::Float(i) => Value::Number(serde_json::Number::from_f64(f64::from(i)).unwrap()),
             ast::Value::String(s) | ast::Value::BlockString(s) => Value::String(s.to_owned()),
             ast::Value::Boolean(b) => Value::Bool(b),

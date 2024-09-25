@@ -38,13 +38,24 @@ fn runner_for(suite: String) -> impl FnOnce() -> Result<(), Failed> + Send + 'st
             .unwrap()
             .into_federated_sdl();
 
-        similar_asserts::assert_eq!(prettify_sdl(&output), prettify_sdl(&expected_supergraph_sdl));
+        let output = prettify_sdl(&output);
+        let expected = prettify_sdl(&expected_supergraph_sdl);
+
+        assert_eq!(output, expected, "{}", diff(&output, &expected));
 
         Ok(())
     }
 }
 
+fn diff(grafbase: &str, apollo: &str) -> String {
+    similar_asserts::SimpleDiff::from_str(grafbase, apollo, "grafbase", "apollo").to_string()
+}
+
 // Passes SDL through cynic parser to unify the formatting
 fn prettify_sdl(input: &str) -> String {
-    cynic_parser::parse_type_system_document(input).unwrap().to_sdl_pretty()
+    cynic_parser::parse_type_system_document(input)
+        .unwrap()
+        .pretty_printer()
+        .sorted()
+        .to_string()
 }

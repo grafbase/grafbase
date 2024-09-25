@@ -84,7 +84,7 @@ impl QuerySubset {
 
     pub(crate) fn selection_iter<'doc, 'subset>(
         &'subset self,
-        selection_set: Iter<'doc, Selection<'doc>>,
+        selection_set: &Iter<'doc, Selection<'doc>>,
     ) -> FilteredSelectionSet<'doc, 'subset> {
         FilteredSelectionSet {
             visible_selections: &self.partition.selections,
@@ -93,16 +93,16 @@ impl QuerySubset {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub(crate) struct FilteredSelectionSet<'doc, 'subset> {
     visible_selections: &'subset IndexSet<SelectionId>,
     selections: IdIter<'doc, Selection<'doc>>,
 }
 
 impl FilteredSelectionSet<'_, '_> {
-    pub fn requires_synthetic_typename(self) -> bool {
+    pub fn requires_synthetic_typename(&self) -> bool {
         let mut result = false;
-        for selection in self {
+        for selection in self.clone() {
             match selection {
                 Selection::Field(field) if field.name() == "__typename" && field.alias().is_none() => {
                     // If we already have a typename there's no point in adding another

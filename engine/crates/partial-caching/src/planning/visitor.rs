@@ -62,7 +62,7 @@ fn visit_selection_set(
     registry: &PartialCacheRegistry,
     ctx: &mut VisitorContext<'_>,
 ) {
-    for (id, selection) in selections.ids().zip(selections) {
+    for (id, selection) in selections.ids().into_iter().zip(selections) {
         ctx.visit(|visitor| visitor.enter_selection(id, selection));
         match selection {
             Selection::Field(selection) => {
