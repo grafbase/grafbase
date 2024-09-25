@@ -1,7 +1,7 @@
 #![allow(unused_crate_dependencies)]
 
 use federation_audit_tests::{
-    audit_server::{AuditServer, Test},
+    audit_server::{AuditServer, ExpectedResponse, Test},
     cached_tests, CachedTest, Response,
 };
 use integration_tests::federation::TestGatewayBuilder;
@@ -43,13 +43,20 @@ async fn run_test(supergraph_sdl: String, mut test: Test) {
 
     test.expected.data = floatify_numbers(test.expected.data);
 
-    similar_asserts::assert_eq!(
-        Response {
-            data: floatify_numbers(response.body["data"].clone()),
-            errors: &response.errors()
-        },
-        test.expected
-    );
+    let response = Response {
+        data: floatify_numbers(response.body["data"].clone()),
+        errors: &response.errors(),
+    };
+
+    if response != test.expected {
+        assert_eq!(response, test.expected, "\n\n{}", json_diff(&response, &test.expected));
+    }
+}
+
+fn json_diff(response: &Response<'_>, expected: &ExpectedResponse) -> String {
+    let expected = serde_json::to_string_pretty(expected).unwrap();
+    let actual = serde_json::to_string_pretty(response).unwrap();
+    similar_asserts::SimpleDiff::from_str(&expected, &actual, "expected", "actual").to_string()
 }
 
 /// Converts all the numbers in a Value to float so we can compare them

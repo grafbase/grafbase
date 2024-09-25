@@ -1,4 +1,4 @@
-use serde::de::DeserializeOwned;
+use serde::{de::DeserializeOwned, Serialize};
 
 use crate::CachedTest;
 
@@ -103,7 +103,7 @@ pub struct Test {
     pub expected: ExpectedResponse,
 }
 
-#[derive(serde::Deserialize, Clone, PartialEq, Debug)]
+#[derive(serde::Deserialize, Clone, PartialEq, Debug, Serialize)]
 pub struct ExpectedResponse {
     #[serde(default)]
     pub data: serde_json::Value,

@@ -1,7 +1,9 @@
+use serde::Serialize;
+
 use crate::audit_server::ExpectedResponse;
 
 /// Utility struct for comparing responses with ExpectedResponse
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Serialize)]
 pub struct Response<'a> {
     pub data: serde_json::Value,
     pub errors: &'a [serde_json::Value],
