@@ -144,7 +144,7 @@ pub struct Graph {
     #[indexed_by(UnionDefinitionId)]
     union_definitions: Vec<UnionDefinitionRecord>,
     #[indexed_by(ScalarDefinitionId)]
-    pub scalar_definitions: Vec<ScalarDefinitionRecord>,
+    scalar_definitions: Vec<ScalarDefinitionRecord>,
     #[indexed_by(InputObjectDefinitionId)]
     input_object_definitions: Vec<InputObjectDefinitionRecord>,
     #[indexed_by(InputValueDefinitionId)]
@@ -267,5 +267,14 @@ impl ScalarType {
             "ID" => ScalarType::String,
             _ => ScalarType::JSON,
         })
+    }
+}
+
+impl Graph {
+    pub fn scalar_definition_by_name(&self, name: &str) -> Option<ScalarDefinitionId> {
+        self.scalar_definitions
+            .iter()
+            .position(|definition| definition.ty.to_string() == name)
+            .map(ScalarDefinitionId::from)
     }
 }

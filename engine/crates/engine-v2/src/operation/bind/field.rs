@@ -81,7 +81,12 @@ impl<'schema, 'p> Binder<'schema, 'p> {
                 field_id,
                 indicator.location,
                 TypeRecord {
-                    definition_id: DefinitionId::Scalar(self.scalar_definition_by_name("Boolean").expect("must exist")),
+                    definition_id: DefinitionId::Scalar(
+                        self.schema
+                            .graph
+                            .scalar_definition_by_name("Boolean")
+                            .expect("must exist"),
+                    ),
                     wrapping: schema::Wrapping::new(true),
                 },
                 indicator.value,
@@ -96,15 +101,6 @@ impl<'schema, 'p> Binder<'schema, 'p> {
 
         self.generate_field_modifiers(field_id, argument_ids, definition, skipped_input_value_ids);
         Ok(field_id)
-    }
-
-    pub(crate) fn scalar_definition_by_name(&self, name: &str) -> Option<ScalarDefinitionId> {
-        self.schema
-            .graph
-            .scalar_definitions
-            .iter()
-            .position(|definition| definition.ty.to_string() == name)
-            .map(ScalarDefinitionId::from)
     }
 
     pub(super) fn push_field(&mut self, field: Field) -> FieldId {

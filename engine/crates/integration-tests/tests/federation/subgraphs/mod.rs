@@ -148,9 +148,9 @@ fn root_fragment_on_different_subgraphs() {
 
 #[test]
 fn skip_test() {
-    let response = runtime().block_on(execute_with_variables(
+    let _response = runtime().block_on(execute_with_variables(
         r#"
-            query Test($skipping: Boolean = true) {
+            query Test($skipping: Boolean! = true) {
                 me {
                     ... on User @skip(if: $skipping) @include(if: true) {
                         id @skip(if: true)
@@ -172,5 +172,5 @@ fn skip_test() {
         json!({}),
     ));
 
-    dbg!(response);
+    // TODO: snapshot
 }

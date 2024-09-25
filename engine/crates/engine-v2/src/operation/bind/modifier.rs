@@ -151,7 +151,7 @@ impl<'schema, 'p> super::Binder<'schema, 'p> {
             .push(field_id);
     }
 
-    pub fn register_field_impacted_by_query_modifier(&mut self, rule: QueryModifierRule, field_id: FieldId) {
+    fn register_field_impacted_by_query_modifier(&mut self, rule: QueryModifierRule, field_id: FieldId) {
         let n = self.query_modifiers.len();
         self.query_modifiers
             .entry(rule)
