@@ -3046,7 +3046,10 @@ dependencies = [
 name = "federation-audit-tests"
 version = "0.79.2"
 dependencies = [
+ "async-graphql-parser",
+ "cynic-parser",
  "grafbase-workspace-hack",
+ "graphql-composition",
  "integration-tests",
  "libtest-mimic",
  "reqwest",

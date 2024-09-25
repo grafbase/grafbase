@@ -26,4 +26,8 @@ impl CachedTest {
     pub fn name(&self) -> String {
         format!("{}::{}", self.suite, self.index)
     }
+
+    pub fn suite(&self) -> &str {
+        &self.suite
+    }
 }
