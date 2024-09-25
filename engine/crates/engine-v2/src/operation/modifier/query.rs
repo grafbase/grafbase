@@ -2,6 +2,7 @@ use id_newtypes::{BitSet, IdRange, IdToMany};
 use schema::{RequiresScopeSetIndex, RequiresScopesDirectiveId, Schema};
 use serde::Deserialize;
 
+use crate::operation::FieldSkippingDirective;
 use crate::{
     execution::{ErrorId, PlanningResult, PreExecutionContext},
     operation::{
@@ -11,7 +12,6 @@ use crate::{
     response::{ConcreteObjectShapeId, ErrorCode, FieldShapeId, GraphqlError},
     Runtime,
 };
-use crate::operation::FieldSkippingDirective;
 
 #[derive(id_derives::IndexedFields)]
 pub(crate) struct QueryModifications {

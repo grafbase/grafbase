@@ -69,7 +69,7 @@
             cargo-hakari
 
             # Node.js
-            nodejs
+            nodejs_22
             nodePackages.prettier
             bun # for wrappers
 

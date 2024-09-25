@@ -98,13 +98,16 @@ where
         for modifier in &self.operation.response_modifiers {
             for id in modifier.impacted_fields {
                 let field = walker.walk(self.operation[id]);
+
                 if self.operation.query_modifications.skipped_fields[field.id()] {
                     continue;
                 }
+
                 let set_id = self
                     .operation
                     .response_blueprint
                     .response_modifier_impacted_field_to_response_object_set[usize::from(id)];
+
                 impacted_fields.push(ImpactedField {
                     rule: modifier.rule,
                     field_logical_plan_id: self.operation.plan[field.id()],
