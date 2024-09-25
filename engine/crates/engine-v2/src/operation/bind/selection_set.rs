@@ -1,15 +1,16 @@
 use std::borrow::Cow;
 
+use engine_parser::types::Directive;
 use engine_parser::Positioned;
+use engine_value::Value;
 use im::HashMap;
 use schema::{DefinitionId, FieldDefinitionId, ObjectDefinitionId};
 
+use super::{BindError, BindResult, Binder};
 use crate::{
     operation::{FieldId, Location, QueryPosition, SelectionSet, SelectionSetId, SelectionSetType},
     response::SafeResponseKey,
 };
-
-use super::{BindError, BindResult, Binder};
 
 impl<'schema, 'p> Binder<'schema, 'p> {
     pub(super) fn bind_merged_selection_sets(
@@ -27,7 +28,11 @@ pub(super) struct SelectionSetBinder<'schema, 'parsed, 'binder> {
     #[allow(clippy::type_complexity)]
     fields: HashMap<
         (SafeResponseKey, FieldDefinitionId),
-        (QueryPosition, Vec<&'parsed Positioned<engine_parser::types::Field>>),
+        (
+            QueryPosition,
+            Vec<&'parsed Positioned<engine_parser::types::Field>>,
+            Vec<QueryModifierIndicator>,
+        ),
     >,
     #[allow(clippy::type_complexity)]
     typename_fields: HashMap<
@@ -50,6 +55,19 @@ impl<'s, 'p, 'b> std::ops::DerefMut for SelectionSetBinder<'s, 'p, 'b> {
     }
 }
 
+#[derive(Clone, Hash, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub enum IndicatorDirective {
+    Skip,
+    Include,
+}
+
+#[derive(Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+pub struct QueryModifierIndicator {
+    pub directive: IndicatorDirective,
+    pub location: Location,
+    pub value: Value,
+}
+
 impl<'schema, 'p, 'binder> SelectionSetBinder<'schema, 'p, 'binder> {
     fn new(binder: &'binder mut Binder<'schema, 'p>) -> Self {
         Self {
@@ -66,7 +84,7 @@ impl<'schema, 'p, 'binder> SelectionSetBinder<'schema, 'p, 'binder> {
         merged_selection_sets: &[&'p Positioned<engine_parser::types::SelectionSet>],
     ) -> BindResult<SelectionSetId> {
         for selection_set in merged_selection_sets {
-            self.register_selection_set_fields(ty, selection_set)?;
+            self.register_selection_set_fields(ty, selection_set, vec![])?;
         }
 
         let id = SelectionSetId::from(self.selection_sets.len());
@@ -90,11 +108,11 @@ impl<'schema, 'p, 'binder> SelectionSetBinder<'schema, 'p, 'binder> {
     fn generate_fields(&mut self, ty: SelectionSetType, id: SelectionSetId) -> BindResult<Vec<FieldId>> {
         let mut field_ids = Vec::with_capacity(self.fields.len());
 
-        for ((response_key, definition_id), (query_position, fields)) in std::mem::take(&mut self.fields) {
+        for ((response_key, definition_id), (query_position, fields, indicators)) in std::mem::take(&mut self.fields) {
             let field: &'p Positioned<engine_parser::types::Field> = fields
                 .iter()
                 .min_by_key(|field| field.pos.line)
-                .expect("At least one occurence");
+                .expect("At least one occurrence");
             let bound_response_key = response_key
                 .with_position(query_position)
                 .ok_or(BindError::TooManyFields {
@@ -111,7 +129,14 @@ impl<'schema, 'p, 'binder> SelectionSetBinder<'schema, 'p, 'binder> {
                     })
                     .transpose()?;
 
-            field_ids.push(self.bind_field(id, bound_response_key, definition_id, field, selection_set_id)?)
+            field_ids.push(self.bind_field(
+                id,
+                bound_response_key,
+                definition_id,
+                field,
+                selection_set_id,
+                indicators,
+            )?)
         }
 
         for (response_key, typename_fields) in std::mem::take(&mut self.typename_fields) {
@@ -151,6 +176,7 @@ impl<'schema, 'p, 'binder> SelectionSetBinder<'schema, 'p, 'binder> {
         &mut self,
         ty: SelectionSetType,
         selection_set: &'p Positioned<engine_parser::types::SelectionSet>,
+        parent_query_modifier_indicators: Vec<QueryModifierIndicator>,
     ) -> BindResult<()> {
         let Positioned {
             node: selection_set, ..
@@ -159,7 +185,7 @@ impl<'schema, 'p, 'binder> SelectionSetBinder<'schema, 'p, 'binder> {
         for Positioned { node: selection, .. } in &selection_set.items {
             match selection {
                 engine_parser::types::Selection::Field(field) => {
-                    self.register_field(ty, field)?;
+                    self.register_field(ty, field, parent_query_modifier_indicators.clone())?;
                 }
                 engine_parser::types::Selection::FragmentSpread(spread) => {
                     self.register_fragment_spread_fields(ty, spread)?;
@@ -177,6 +203,7 @@ impl<'schema, 'p, 'binder> SelectionSetBinder<'schema, 'p, 'binder> {
         &mut self,
         parent: SelectionSetType,
         field: &'p Positioned<engine_parser::types::Field>,
+        parent_query_modifier_indicators: Vec<QueryModifierIndicator>,
     ) -> BindResult<()> {
         let name_location: Location = field.pos.try_into()?;
         let name = field.name.node.as_str();
@@ -215,11 +242,21 @@ impl<'schema, 'p, 'binder> SelectionSetBinder<'schema, 'p, 'binder> {
             location: name_location,
         })?;
 
-        self.fields
-            .entry((response_key, definition_id))
-            .or_insert((query_position, Vec::new()))
-            .1
-            .push(field);
+        let query_modifier_indicators = self.directives_to_query_modifier_indicators(&field.directives)?;
+
+        let entry =
+            self.fields
+                .entry((response_key, definition_id))
+                .or_insert((query_position, Vec::new(), Vec::new()));
+
+        entry.1.push(field);
+
+        for modifier in parent_query_modifier_indicators
+            .into_iter()
+            .chain(query_modifier_indicators.into_iter())
+        {
+            entry.2.push(modifier)
+        }
 
         Ok(())
     }
@@ -242,7 +279,10 @@ impl<'schema, 'p, 'binder> SelectionSetBinder<'schema, 'p, 'binder> {
             })?;
 
         let ty = self.bind_selection_set_type(parent, &fragment.node.type_condition)?;
-        self.register_selection_set_fields(ty, &fragment.node.selection_set)?;
+
+        let query_modifier_indicators = self.directives_to_query_modifier_indicators(&spread.directives)?;
+
+        self.register_selection_set_fields(ty, &fragment.node.selection_set, query_modifier_indicators)?;
 
         Ok(())
     }
@@ -258,7 +298,38 @@ impl<'schema, 'p, 'binder> SelectionSetBinder<'schema, 'p, 'binder> {
             .map(|condition| self.bind_selection_set_type(parent, condition))
             .transpose()?
             .unwrap_or(parent);
-        self.register_selection_set_fields(ty, &fragment.selection_set)
+
+        let query_modifier_indicators = self.directives_to_query_modifier_indicators(&fragment.directives)?;
+
+        self.register_selection_set_fields(ty, &fragment.selection_set, query_modifier_indicators)
+    }
+
+    fn directives_to_query_modifier_indicators(
+        &mut self,
+        directives: &[Positioned<Directive>],
+    ) -> BindResult<Vec<QueryModifierIndicator>> {
+        let mut indicators = Vec::new();
+        for directive in directives {
+            let directive_name = directive.name.node.as_str();
+            if matches!(directive_name, "skip" | "include") {
+                let argument = directive.arguments.first().expect("must exist");
+                let argument_pos = argument.1.pos.try_into()?;
+                let r#type = if directive_name == "skip" {
+                    IndicatorDirective::Skip
+                } else {
+                    IndicatorDirective::Include
+                };
+
+                let indicator = QueryModifierIndicator {
+                    directive: r#type,
+                    location: argument_pos,
+                    value: argument.1.node.clone(),
+                };
+
+                indicators.push(indicator)
+            }
+        }
+        Ok(indicators)
     }
 
     fn bind_selection_set_type(

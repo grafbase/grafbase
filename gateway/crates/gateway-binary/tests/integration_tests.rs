@@ -22,7 +22,7 @@ use futures_util::future::BoxFuture;
 use futures_util::{Future, FutureExt};
 use http::{HeaderMap, StatusCode};
 use indoc::indoc;
-use serde_json::{json, Value};
+use serde_json::Value;
 use tempfile::tempdir;
 use tokio::runtime::Runtime;
 use tokio::time::Instant;
@@ -1032,13 +1032,7 @@ fn global_rate_limiting() {
     "#};
 
     with_static_server(config, &schema, None, None, |client| async move {
-        expect_rate_limiting(|| {
-            client
-                .gql(query)
-                .send()
-                .boxed()
-        })
-        .await;
+        expect_rate_limiting(|| client.gql(query).send().boxed()).await;
     })
 }
 

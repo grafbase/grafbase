@@ -1,4 +1,6 @@
+use super::selection_set::{IndicatorDirective, QueryModifierIndicator};
 use super::{coercion::coerce_query_value, BindError, BindResult, Binder};
+use crate::operation::FieldSkippingDirective;
 use crate::{
     operation::{
         Field, FieldArgument, FieldArgumentId, FieldId, Location, QueryField, QueryInputValue, SelectionSetId,
@@ -34,6 +36,7 @@ impl<'schema, 'p> Binder<'schema, 'p> {
         definition_id: FieldDefinitionId,
         Positioned { pos, node: field }: &'p Positioned<engine_parser::types::Field>,
         selection_set_id: Option<SelectionSetId>,
+        query_modifier_indicators: Vec<QueryModifierIndicator>,
     ) -> BindResult<FieldId> {
         let location: Location = (*pos).try_into()?;
         let definition: FieldDefinition<'_> = self.schema.walk(definition_id);
@@ -70,33 +73,32 @@ impl<'schema, 'p> Binder<'schema, 'p> {
             parent_selection_set_id,
         }));
 
-        let mut input_value_ids = Vec::new();
+        let mut skipped_input_value_ids = Vec::new();
 
-        for directive in &field.directives {
-            if directive.name.node == "skip" {
-                let argument = directive.arguments.first().expect("must exist");
-                let argument_pos = argument.1.pos.try_into()?;
-                let input_value_id = coerce_query_value(
-                    self,
-                    field_id,
-                    argument_pos,
-                    TypeRecord {
-                        definition_id: DefinitionId::Scalar(
-                            self.scalar_definition_by_name("Boolean").expect("must exist"),
-                        ),
-                        wrapping: schema::Wrapping::new(true),
-                    },
-                    argument.1.node.clone(),
-                )?;
-                input_value_ids.push(input_value_id)
-            }
+        for indicator in query_modifier_indicators {
+            let input_value_id = coerce_query_value(
+                self,
+                field_id,
+                indicator.location,
+                TypeRecord {
+                    definition_id: DefinitionId::Scalar(self.scalar_definition_by_name("Boolean").expect("must exist")),
+                    wrapping: schema::Wrapping::new(true),
+                },
+                indicator.value,
+            )?;
+            let r#type = if indicator.directive == IndicatorDirective::Skip {
+                FieldSkippingDirective::Skip
+            } else {
+                FieldSkippingDirective::Include
+            };
+            skipped_input_value_ids.push((input_value_id, r#type));
         }
 
-        self.generate_field_modifiers(field_id, argument_ids, definition, input_value_ids);
+        self.generate_field_modifiers(field_id, argument_ids, definition, skipped_input_value_ids);
         Ok(field_id)
     }
 
-    fn scalar_definition_by_name(&self, name: &str) -> Option<ScalarDefinitionId> {
+    pub(crate) fn scalar_definition_by_name(&self, name: &str) -> Option<ScalarDefinitionId> {
         self.schema
             .graph
             .scalar_definitions

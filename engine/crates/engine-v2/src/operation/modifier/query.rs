@@ -11,6 +11,7 @@ use crate::{
     response::{ConcreteObjectShapeId, ErrorCode, FieldShapeId, GraphqlError},
     Runtime,
 };
+use crate::operation::FieldSkippingDirective;
 
 #[derive(id_derives::IndexedFields)]
 pub(crate) struct QueryModifications {
@@ -153,9 +154,13 @@ where
                         self.handle_modifier_resulted_in_error(modifier_id, modifier.impacted_fields, err);
                     }
                 }
-                QueryModifierRule::Skip { input_value_id } => {
+                QueryModifierRule::Skip { input_value_id, r#type } => {
                     let walker = self.walker().walk(&self.operation.query_input_values[input_value_id]);
-                    let skipped = bool::deserialize(walker).unwrap();
+                    let argument = bool::deserialize(walker).unwrap();
+                    let skipped = match r#type {
+                        FieldSkippingDirective::Skip => argument,
+                        FieldSkippingDirective::Include => !argument,
+                    };
                     if skipped {
                         self.modifications.is_any_field_skipped = true;
                         for &field_id in &self.operation[modifier.impacted_fields] {

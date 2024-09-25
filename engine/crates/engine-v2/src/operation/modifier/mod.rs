@@ -13,6 +13,12 @@ pub(crate) struct QueryModifier {
     pub impacted_fields: IdRange<QueryModifierImpactedFieldId>,
 }
 
+#[derive(Copy, Debug, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+pub(crate) enum FieldSkippingDirective {
+    Skip,
+    Include,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub(crate) enum QueryModifierRule {
     Authenticated,
@@ -27,8 +33,9 @@ pub(crate) enum QueryModifierRule {
         definition_id: DefinitionId,
     },
     Skip {
-        input_value_id: QueryInputValueId
-    }
+        input_value_id: QueryInputValueId,
+        r#type: FieldSkippingDirective,
+    },
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]

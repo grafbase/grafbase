@@ -149,18 +149,26 @@ fn root_fragment_on_different_subgraphs() {
 #[test]
 fn skip_test() {
     let response = runtime().block_on(execute_with_variables(
-        r"
-        query Test {
-            me {
-                id @skip(if: true)
-                username
+        r#"
+            query Test($skipping: Boolean = true) {
+                me {
+                    ... on User @skip(if: $skipping) @include(if: true) {
+                        id @skip(if: true)
+                        id @skip(if: false)
+                        username
+                    }
+                }
+                topProducts {
+                    ...TopProductFields @skip(if: $skipping) @include(if: true)
+                }
             }
-            topProducts {
+
+            fragment TopProductFields on Product {
                 name
                 price
             }
-        }
-        ",
+        "#
+        .trim(),
         json!({}),
     ));
 
