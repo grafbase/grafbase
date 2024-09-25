@@ -156,7 +156,8 @@ where
                 }
                 QueryModifierRule::Skip { input_value_id, r#type } => {
                     let walker = self.walker().walk(&self.operation.query_input_values[input_value_id]);
-                    let argument = bool::deserialize(walker).unwrap();
+                    let argument =
+                        bool::deserialize(walker).expect("at this point we've already checked the argument type");
                     let skipped = match r#type {
                         FieldSkippingDirective::Skip => argument,
                         FieldSkippingDirective::Include => !argument,
