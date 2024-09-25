@@ -22,7 +22,6 @@ use futures_util::future::BoxFuture;
 use futures_util::{Future, FutureExt};
 use http::{HeaderMap, StatusCode};
 use indoc::indoc;
-use serde_json::Value;
 use tempfile::tempdir;
 use tokio::runtime::Runtime;
 use tokio::time::Instant;
