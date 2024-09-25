@@ -103,7 +103,7 @@ pub struct Test {
     pub expected: ExpectedResponse,
 }
 
-#[derive(serde::Deserialize, Clone, Debug, PartialEq)]
+#[derive(serde::Deserialize, Clone, PartialEq, Debug)]
 pub struct ExpectedResponse {
     #[serde(default)]
     pub data: serde_json::Value,
