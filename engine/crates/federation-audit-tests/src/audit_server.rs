@@ -29,11 +29,15 @@ impl AuditServer {
             .collect()
     }
 
-    pub fn lookup_test(&self, test: CachedTest) -> (TestSuite, Test) {
-        let suite = TestSuite {
+    pub fn lookup_suite(&self, id: String) -> TestSuite {
+        TestSuite {
             server: self.clone(),
-            id: test.suite,
-        };
+            id,
+        }
+    }
+
+    pub fn lookup_test(&self, test: CachedTest) -> (TestSuite, Test) {
+        let suite = self.lookup_suite(test.suite);
         let test = suite.tests().remove(test.index);
 
         (suite, test)

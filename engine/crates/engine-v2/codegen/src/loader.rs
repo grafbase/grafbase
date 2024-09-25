@@ -81,7 +81,7 @@ pub(super) fn load(path: PathBuf) -> anyhow::Result<domain::Domain> {
                         // Add any explicitly defined field name or leave empty to be generated
                         // afterwards.
                         record_field_name: parse_record_field_name(field.directives()).unwrap_or_default(),
-                        description: field.description().map(|s| s.description().to_cow().into_owned()),
+                        description: field.description().map(|s| s.to_string()),
                         type_name: field.ty().name().to_string(),
                         wrapping: field.ty().wrappers().collect(),
                     })
@@ -226,7 +226,7 @@ fn parse_union_kind(name: &str, directives: Iter<'_, Directive<'_>>) -> domain::
         }
     } else {
         domain::UnionKind::Record(domain::RecordUnion {
-            indexed: parse_indexed(name, directives),
+            indexed: parse_indexed(name, directives.clone()),
             copy: is_copy(directives),
             name: name.to_string(),
             walker_enum_name: format!("{name}Variant"),

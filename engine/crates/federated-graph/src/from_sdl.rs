@@ -112,7 +112,7 @@ impl<'a> State<'a> {
     fn insert_value(&mut self, node: ast::Value<'_>, expected_enum_type: Option<EnumId>) -> Value {
         match node {
             ast::Value::Null => Value::Null,
-            ast::Value::Int(n) => Value::Int(i64::from(n)),
+            ast::Value::Int(n) => Value::Int(n.as_i64()),
             ast::Value::Float(n) => Value::Float(f64::from(n)),
             ast::Value::String(s) | ast::Value::BlockString(s) => Value::String(self.insert_string(s)),
             ast::Value::Boolean(b) => Value::Boolean(b),
@@ -489,7 +489,7 @@ fn ingest_field_directives_after_graph<'a>(
 
         let parent_id = state.definition_names[typedef.name()];
 
-        ingest_join_field_directive(parent_id, || typedef.directives(), fields, state)?;
+        ingest_join_field_directive(parent_id, || typedef.directives(), fields.clone(), state)?;
         ingest_authorized_directive(parent_id, fields, state)?;
     }
 
@@ -676,14 +676,14 @@ fn ingest_definitions<'a>(document: &'a ast::TypeSystemDocument, state: &mut Sta
                 let type_name_id = state.insert_string(type_name);
                 let description = typedef
                     .description()
-                    .map(|description| state.insert_string(description.description().raw_str()));
+                    .map(|description| state.insert_string(description.raw_str()));
                 let composed_directives = collect_composed_directives(typedef.directives(), state);
 
                 match typedef {
                     ast::TypeDefinition::Scalar(scalar) => {
                         let description = scalar
                             .description()
-                            .map(|description| state.insert_string(description.description().raw_str()));
+                            .map(|description| state.insert_string(description.raw_str()));
 
                         let scalar_id = ScalarId(state.scalars.push_return_idx(Scalar {
                             name: type_name_id,
@@ -745,7 +745,7 @@ fn ingest_definitions<'a>(document: &'a ast::TypeSystemDocument, state: &mut Sta
                                 let composed_directives = collect_composed_directives(value.directives(), state);
                                 let description = value
                                     .description()
-                                    .map(|description| state.insert_string(description.description().raw_str()));
+                                    .map(|description| state.insert_string(description.raw_str()));
 
                                 state
                                     .enum_values_map
@@ -832,7 +832,7 @@ fn ingest_field<'a>(
     for arg in ast_field.arguments() {
         let description = arg
             .description()
-            .map(|description| state.insert_string(description.description().raw_str()));
+            .map(|description| state.insert_string(description.raw_str()));
         let composed_directives = collect_composed_directives(arg.directives(), state);
         let name = state.insert_string(arg.name());
         let r#type = state.field_type(arg.ty())?;
@@ -930,7 +930,7 @@ fn ingest_field<'a>(
     let composed_directives = collect_composed_directives(ast_field.directives(), state);
     let description = ast_field
         .description()
-        .map(|description| state.insert_string(description.description().raw_str()));
+        .map(|description| state.insert_string(description.raw_str()));
 
     let field_id = FieldId(state.fields.push_return_idx(Field {
         name,
@@ -980,7 +980,7 @@ fn ingest_input_object<'a>(
         let composed_directives = collect_composed_directives(field.directives(), state);
         let description = field
             .description()
-            .map(|description| state.insert_string(description.description().raw_str()));
+            .map(|description| state.insert_string(description.raw_str()));
         let default = field
             .default_value()
             .map(|default| state.insert_value(default, r#type.definition.as_enum().copied()));

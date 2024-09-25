@@ -109,6 +109,6 @@ impl serde::Serialize for ValueSerializer<'_> {
 
 impl<'a> ObjectSerializer<'a> {
     pub fn field_iter(&self) -> FieldIter<'a> {
-        FieldIter::new(self.ctx.subset.selection_iter(self.selection_set), self.ctx.subset)
+        FieldIter::new(self.ctx.subset.selection_iter(&self.selection_set), self.ctx.subset)
     }
 }
