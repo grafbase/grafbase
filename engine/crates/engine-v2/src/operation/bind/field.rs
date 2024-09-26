@@ -61,8 +61,9 @@ impl<'schema, 'p> Binder<'schema, 'p> {
             _ => {}
         };
 
-        let argument_ids = self.bind_field_arguments(definition, location, &field.arguments)?;
         let field_id = FieldId::from(self.fields.len());
+
+        let argument_ids = self.bind_field_arguments(definition, location, &field.arguments)?;
 
         self.fields.push(Field::Query(QueryField {
             bound_response_key,
