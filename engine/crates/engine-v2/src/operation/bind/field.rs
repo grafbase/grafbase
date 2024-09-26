@@ -82,10 +82,7 @@ impl<'schema, 'p> Binder<'schema, 'p> {
                 indicator.location,
                 TypeRecord {
                     definition_id: DefinitionId::Scalar(
-                        self.schema
-                            .graph
-                            .scalar_definition_by_name("Boolean")
-                            .expect("must exist"),
+                        self.schema.scalar_definition_by_name("Boolean").expect("must exist"),
                     ),
                     wrapping: schema::Wrapping::new(true),
                 },

@@ -1,3 +1,4 @@
+use std::ops::Deref;
 use std::{str::FromStr, sync::OnceLock};
 
 mod builder;
@@ -238,6 +239,14 @@ impl Schema {
             id.walk(self)
         })
     }
+
+    pub fn scalar_definition_by_name(&self, name: &str) -> Option<ScalarDefinitionId> {
+        self.graph
+            .scalar_definitions
+            .iter()
+            .position(|definition| self[definition.name_id] == name)
+            .map(ScalarDefinitionId::from)
+    }
 }
 
 impl std::fmt::Debug for Schema {
@@ -267,14 +276,5 @@ impl ScalarType {
             "ID" => ScalarType::String,
             _ => ScalarType::JSON,
         })
-    }
-}
-
-impl Graph {
-    pub fn scalar_definition_by_name(&self, name: &str) -> Option<ScalarDefinitionId> {
-        self.scalar_definitions
-            .iter()
-            .position(|definition| definition.ty.to_string() == name)
-            .map(ScalarDefinitionId::from)
     }
 }
