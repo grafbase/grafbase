@@ -160,7 +160,7 @@ where
             // as we make sure that every instance of a field creates at most one query modifier
             // additional query modifiers guaranteed to be for different instances of the field.
             // since we merge the field instances anyhow, any one instance of a field that _should not_ be skipped is enough to include the field.
-            // within the same field instance, more than one value ID means the others are derived from parent fragments, 
+            // within the same field instance, more than one value ID means the others are derived from parent fragments,
             // so we should check if any of the values _does_ mark the field as skipped. (which is the inverse logic of multiple instances of the same field)
             let keep_field = self
                 .operation
