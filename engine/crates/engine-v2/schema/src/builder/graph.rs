@@ -413,11 +413,7 @@ impl<'a> GraphBuilder<'a> {
                 for subgraph_id in &object.only_resolvable_in_ids {
                     // The object implements the interface if it defines az `@join__implements`
                     // corresponding to the interface and to the subgraph.
-                    if object
-                        .join_implement_records
-                        .iter()
-                        .any(|ji| ji.subgraph_id == *subgraph_id)
-                    {
+                    if object.subgraph_implements_interface(subgraph_id, &interface_id) {
                         continue;
                     }
 

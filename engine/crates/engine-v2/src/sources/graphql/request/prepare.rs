@@ -5,9 +5,7 @@ use std::{
 
 use engine_parser::types::OperationType;
 use itertools::Itertools;
-use schema::{
-    EntityDefinition, EntityDefinitionId, InterfaceDefinition, InterfaceDefinitionId, SubgraphId, UnionDefinition,
-};
+use schema::{EntityDefinition, SubgraphId};
 
 use crate::operation::{
     FieldArgumentsWalker, PlanField, PlanSelectionSet, PlanWalker, QueryInputValueId, SelectionSetType,
@@ -39,14 +37,14 @@ impl PreparedGraphqlOperation {
         // Generating the selection set first as this will define all the operation arguments
         let selection_set = {
             let mut buffer = Buffer::with_capacity(256);
-            let entity_id = EntityDefinitionId::Object(match operation_type {
+
+            let selection_set_type = SelectionSetType::Object(match operation_type {
                 OperationType::Query => plan.schema().query().id(),
                 OperationType::Mutation => plan.schema().mutation().unwrap().id(),
                 OperationType::Subscription => plan.schema().subscription().unwrap().id(),
             });
 
-            ctx.write_selection_set(None, Some(entity_id), &mut buffer, plan.selection_set())?;
-
+            ctx.write_selection_set(Some(selection_set_type), &mut buffer, plan.selection_set())?;
             buffer.into_string()
         };
 
@@ -87,7 +85,7 @@ impl PreparedFederationEntityOperation {
         let selection_set = {
             let mut buffer = Buffer::with_capacity(256);
             buffer.indent += 1;
-            ctx.write_selection_set(None, None, &mut buffer, plan.selection_set())?;
+            ctx.write_selection_set(None, &mut buffer, plan.selection_set())?;
             buffer.into_string()
         };
 
@@ -141,47 +139,6 @@ struct QueryVariable {
     ty: String,
 }
 
-#[derive(Debug, Clone, Copy)]
-enum SelectionSetRendering<'a> {
-    // Return type is an interface and we use an interface fragment to a subgraph that does
-    // not implement the interface to all types
-    InterfaceWithPartialFragment(InterfaceDefinition<'a>),
-    // Return type is a union and we use an interface fragment to a subgraph that does
-    // not implement the interface to all types
-    UnionWithPartialFragment(UnionDefinition<'a>, InterfaceDefinition<'a>),
-    // Return type is an interface, we have to filter out all entities not implementing the interface.
-    InterfaceWithObjects(InterfaceDefinitionId),
-    // No extra rendering measures needed.
-    Other,
-}
-
-impl<'a> SelectionSetRendering<'a> {
-    fn new(
-        subgraph_id: SubgraphId,
-        parent_entity_id: Option<EntityDefinitionId>,
-        selection_set_type: Option<SelectionSetType>,
-        entity: schema::EntityDefinition<'a>,
-        selection_set: PlanSelectionSet<'a>,
-    ) -> Self {
-        let in_same_entity = parent_entity_id == Some(entity.id());
-
-        match (selection_set_type, entity) {
-            (Some(SelectionSetType::Interface(_)), schema::EntityDefinition::Interface(interface))
-                if interface.is_not_fully_implemented_in(subgraph_id) && !in_same_entity =>
-            {
-                Self::InterfaceWithPartialFragment(interface)
-            }
-            (Some(SelectionSetType::Union(union_id)), schema::EntityDefinition::Interface(interface))
-                if interface.is_not_fully_implemented_in(subgraph_id) && !in_same_entity =>
-            {
-                Self::UnionWithPartialFragment(selection_set.walker().schema().walk(union_id), interface)
-            }
-            (Some(SelectionSetType::Interface(interface_id)), _) => Self::InterfaceWithObjects(interface_id),
-            _ => Self::Other,
-        }
-    }
-}
-
 struct QueryBuilderContext {
     subgraph_id: SubgraphId,
     variables: HashMap<QueryInputValueId, QueryVariable>,
@@ -220,7 +177,6 @@ impl QueryBuilderContext {
     fn write_selection_set(
         &mut self,
         maybe_selection_set_type: Option<SelectionSetType>,
-        maybe_entity_id: Option<EntityDefinitionId>,
         buffer: &mut Buffer,
         selection_set: PlanSelectionSet<'_>,
     ) -> Result<(), Error> {
@@ -231,7 +187,7 @@ impl QueryBuilderContext {
             // We always need to know the concrete object.
             indent_write!(buffer, "__typename\n")?;
         }
-        self.write_selection_set_fields(maybe_selection_set_type, maybe_entity_id, buffer, selection_set)?;
+        self.write_selection_set_fields(maybe_selection_set_type, buffer, selection_set)?;
         // If nothing was written it means only meta fields (__typename) are present and during
         // deserialization we'll expect an object. So adding `__typename` to ensure a non empty
         // selection set.
@@ -244,12 +200,13 @@ impl QueryBuilderContext {
 
     fn write_selection_set_fields(
         &mut self,
-        maybe_selection_set_type: Option<SelectionSetType>,
-        maybe_entity_id: Option<EntityDefinitionId>,
+        selection_set_type: Option<SelectionSetType>,
         buffer: &mut Buffer,
         selection_set: PlanSelectionSet<'_>,
     ) -> Result<(), Error> {
         let subgraph_id = self.subgraph_id;
+        let parent_entity_id = selection_set_type.and_then(|t| t.as_entity_id());
+
         let entity_to_fields = selection_set
             .fields_ordered_by_parent_entity_id_then_position()
             .into_iter()
@@ -258,23 +215,17 @@ impl QueryBuilderContext {
         for (entity_id, fields) in entity_to_fields.into_iter() {
             let fields = fields.collect_vec();
             let entity = selection_set.walker().schema().walk(entity_id);
-            let in_same_entity = maybe_entity_id == Some(entity_id);
-
-            let rendering = SelectionSetRendering::new(
-                self.subgraph_id,
-                maybe_entity_id,
-                maybe_selection_set_type,
-                entity,
-                selection_set,
-            );
+            let in_same_entity = parent_entity_id == Some(entity_id);
 
             let mut add_interface_fragment = false;
 
-            match rendering {
-                SelectionSetRendering::InterfaceWithPartialFragment(interface) => {
+            match (selection_set_type, entity) {
+                (Some(SelectionSetType::Interface(_)), schema::EntityDefinition::Interface(interface))
+                    if interface.is_not_fully_implemented_in(subgraph_id) && !in_same_entity =>
+                {
                     let objects = interface
                         .possible_types_ordered_by_typename()
-                        .filter(|o| o.is_resolvable_in(&subgraph_id));
+                        .filter(|o| o.resolvable_in(&subgraph_id));
 
                     for object in objects {
                         if object.subgraph_implements_interface(&subgraph_id, &interface.id()) {
@@ -284,10 +235,15 @@ impl QueryBuilderContext {
                         }
                     }
                 }
-                SelectionSetRendering::UnionWithPartialFragment(union, interface) => {
-                    let objects = union
+                (Some(SelectionSetType::Union(union_id)), schema::EntityDefinition::Interface(interface))
+                    if interface.is_not_fully_implemented_in(subgraph_id) && !in_same_entity =>
+                {
+                    let objects = selection_set
+                        .walker()
+                        .schema()
+                        .walk(union_id)
                         .possible_types_ordered_by_typename()
-                        .filter(|o| o.is_resolvable_in(&subgraph_id));
+                        .filter(|o| o.resolvable_in(&subgraph_id));
 
                     for object in objects {
                         if object.subgraph_implements_interface(&subgraph_id, &interface.id()) {
@@ -297,16 +253,15 @@ impl QueryBuilderContext {
                         }
                     }
                 }
-                SelectionSetRendering::InterfaceWithObjects(interface_id) => {
-                    if let EntityDefinition::Object(ref object) = entity {
-                        if !object.subgraph_implements_interface(&subgraph_id, &interface_id) {
-                            continue;
+                _ => {
+                    if let Some(SelectionSetType::Interface(interface_id)) = selection_set_type {
+                        if let EntityDefinition::Object(ref object) = entity {
+                            if !object.subgraph_implements_interface(&subgraph_id, &interface_id) {
+                                continue;
+                            }
                         }
                     }
 
-                    add_interface_fragment = true;
-                }
-                SelectionSetRendering::Other => {
                     add_interface_fragment = true;
                 }
             }
@@ -374,7 +329,6 @@ impl QueryBuilderContext {
         if let Some(selection_set) = field.selection_set() {
             self.write_selection_set(
                 SelectionSetType::maybe_from(field.definition().ty().definition().id()),
-                EntityDefinitionId::maybe_from(field.definition().ty().definition().id()),
                 buffer,
                 selection_set,
             )?;

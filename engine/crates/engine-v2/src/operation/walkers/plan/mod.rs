@@ -7,7 +7,7 @@ mod field;
 mod selection_set;
 
 pub use field::*;
-use schema::{GraphqlEndpoint, Schema, SubgraphId};
+use schema::Schema;
 pub use selection_set::*;
 
 use super::PreparedOperationWalker;
@@ -64,21 +64,6 @@ impl<'a> PlanWalker<'a, ()> {
 
     pub fn selection_set(self) -> PlanSelectionSet<'a> {
         PlanSelectionSet::RootFields(self)
-    }
-
-    pub fn endpoint(&self) -> Option<GraphqlEndpoint<'a>> {
-        let id = self.operation[self.logical_plan_id].resolver_id;
-
-        match self.schema.walk(id).variant() {
-            schema::ResolverDefinitionVariant::GraphqlFederationEntity(resolver) => Some(resolver.endpoint()),
-            schema::ResolverDefinitionVariant::GraphqlRootField(resolver) => Some(resolver.endpoint()),
-            schema::ResolverDefinitionVariant::Introspection => None,
-        }
-    }
-
-    pub fn subgraph_id(&self) -> Option<SubgraphId> {
-        self.endpoint()
-            .map(|endpoint| SubgraphId::GraphqlEndpoint(endpoint.id()))
     }
 }
 
