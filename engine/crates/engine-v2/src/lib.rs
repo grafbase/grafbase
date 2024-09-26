@@ -3,7 +3,6 @@
 use grafbase_workspace_hack as _;
 
 pub mod analytics;
-mod dummy;
 mod engine;
 mod execution;
 mod graphql_over_http;

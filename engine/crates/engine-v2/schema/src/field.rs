@@ -1,7 +1,8 @@
 use std::borrow::Cow;
 
 use crate::{
-    FieldDefinition, InputValueDefinition, ProvidableFieldSet, RequiredFieldSetRecord, SubgraphId, TypeSystemDirective,
+    FieldDefinition, InputValueDefinition, ProvidableFieldSet, RequiredFieldSetId, RequiredFieldSetRecord, SubgraphId,
+    TypeSystemDirective,
 };
 
 impl<'a> FieldDefinition<'a> {
@@ -23,7 +24,17 @@ impl<'a> FieldDefinition<'a> {
             .unwrap_or(ProvidableFieldSet::empty())
     }
 
-    pub fn requires_for_subgraph(&self, subgraph_id: SubgraphId) -> Cow<'a, RequiredFieldSetRecord> {
+    pub fn arequires_for_subgraph(&self, subgraph_id: SubgraphId) -> Option<RequiredFieldSetId> {
+        self.requires().find_map(|requires| {
+            if requires.as_ref().subgraph_id == subgraph_id {
+                Some(requires.field_set_id)
+            } else {
+                None
+            }
+        })
+    }
+
+    pub fn all_requires_for_subgraph(&self, subgraph_id: SubgraphId) -> Cow<'a, RequiredFieldSetRecord> {
         self.directives()
             .filter_map(|directive| match directive {
                 TypeSystemDirective::Authenticated

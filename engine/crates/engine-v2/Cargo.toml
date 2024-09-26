@@ -64,10 +64,3 @@ grafbase-workspace-hack.workspace = true
 
 [dev-dependencies]
 pretty_assertions = "1"
-tracing-subscriber = { workspace = true, features = [
-  "fmt",
-  "tracing-log",
-  "env-filter",
-  "ansi",
-] }
-

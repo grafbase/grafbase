@@ -35,7 +35,22 @@ pub async fn publish(
         },
     });
 
-    let cynic::GraphQlResponse { data, errors } = client.post(api_url()).run_graphql(operation).await?;
+    let resp = client
+        .post(api_url())
+        .json(&operation)
+        .send()
+        .await
+        .unwrap()
+        .text()
+        .await
+        .unwrap();
+    println!("{}", resp);
+
+    let cynic::GraphQlResponse { data, errors } =
+        client.post(api_url()).run_graphql(operation).await.map_err(|err| {
+            println!("Failed to publish subgraph: {:#?}", err);
+            err
+        })?;
 
     if let Some(data) = data {
         match data.publish {

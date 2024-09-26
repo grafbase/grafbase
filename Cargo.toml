@@ -11,6 +11,7 @@ members = [
   "engine/crates/engine-v2/codegen",
   "engine/crates/engine-v2/walker",
   "engine/crates/engine-v2/schema",
+  "engine/crates/engine-v2/query-planning",
   "engine/crates/engine-v2/id-derives",
   "engine/crates/engine-v2/id-newtypes",
   "engine/crates/engine/derive",

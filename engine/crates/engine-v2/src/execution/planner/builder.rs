@@ -193,16 +193,16 @@ where
         resolver: ResolverDefinition<'_>,
         field_ids: &Vec<FieldId>,
     ) -> (ResponseViewSelectionSet, Vec<FieldId>) {
-        let mut required_fields = Cow::Borrowed(resolver.requires());
+        let mut required_fields = Cow::Borrowed(resolver.requires_or_empty());
         let mut required_fields_by_selection_set_id = HashMap::new();
         for field_id in field_ids {
             let field = self.walker().walk(*field_id);
             if let Some(definition) = field.definition() {
-                let field_requirements = definition.requires_for_subgraph(resolver.as_ref().subgraph_id());
+                let field_requirements = definition.all_requires_for_subgraph(resolver.as_ref().subgraph_id());
                 required_fields = RequiredFieldSetRecord::union_cow(required_fields, field_requirements.clone());
                 let value = required_fields_by_selection_set_id
                     .entry(field.as_ref().parent_selection_set_id())
-                    .or_insert_with(|| Cow::Borrowed(resolver.requires()));
+                    .or_insert_with(|| Cow::Borrowed(resolver.requires_or_empty()));
                 *value = RequiredFieldSetRecord::union_cow(std::mem::take(value), field_requirements);
             }
         }

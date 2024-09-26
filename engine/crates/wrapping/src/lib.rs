@@ -192,6 +192,14 @@ impl Wrapping {
         Wrapping(INNER_IS_REQUIRED_FLAG)
     }
 
+    pub fn wrapping_by_required(mut self) -> Self {
+        if self.pop_list_wrapping().is_some() {
+            self.wrapped_by_required_list()
+        } else {
+            Self::required()
+        }
+    }
+
     #[must_use]
     pub fn wrapped_by(self, list_wrapping: ListWrapping) -> Self {
         match list_wrapping {

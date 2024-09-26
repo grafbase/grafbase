@@ -3,7 +3,7 @@ use std::borrow::Cow;
 use walker::Walk;
 
 use crate::{
-    FieldDefinitionId, GraphqlFederationEntityResolverDefinition, GraphqlRootFieldResolverDefinition,
+    FieldDefinitionId, GraphqlFederationEntityResolverDefinition, GraphqlRootFieldResolverDefinition, RequiredFieldSet,
     RequiredFieldSetId, RequiredFieldSetRecord, ResolverDefinition, ResolverDefinitionRecord,
     ResolverDefinitionVariant, Subgraph, SubgraphId,
 };
@@ -19,7 +19,7 @@ impl ResolverDefinitionRecord {
         }
     }
 
-    pub fn requires(&self) -> Option<RequiredFieldSetId> {
+    pub fn required_field_set_id(&self) -> Option<RequiredFieldSetId> {
         match self {
             ResolverDefinitionRecord::GraphqlFederationEntity(resolver) => Some(resolver.key_fields_id),
             ResolverDefinitionRecord::GraphqlRootField(_) | ResolverDefinitionRecord::Introspection => None,
@@ -32,9 +32,13 @@ impl<'a> ResolverDefinition<'a> {
         self.as_ref().subgraph_id().walk(self.schema)
     }
 
-    pub fn requires(&self) -> &'a RequiredFieldSetRecord {
+    pub fn required_field_set(&self) -> Option<RequiredFieldSet<'a>> {
+        self.as_ref().required_field_set_id().walk(self.schema)
+    }
+
+    pub fn requires_or_empty(&self) -> &'a RequiredFieldSetRecord {
         self.as_ref()
-            .requires()
+            .required_field_set_id()
             .map(|id| id.walk(self.schema).as_ref())
             .unwrap_or(RequiredFieldSetRecord::empty())
     }
