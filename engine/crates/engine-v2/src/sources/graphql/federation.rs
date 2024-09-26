@@ -41,8 +41,8 @@ impl FederationEntityResolver {
         definition: GraphqlFederationEntityResolverDefinition<'_>,
         plan: PlanWalker<'_>,
     ) -> PlanningResult<Resolver> {
-        let operation =
-            PreparedFederationEntityOperation::build(plan).map_err(|err| format!("Failed to build query: {err}"))?;
+        let operation = PreparedFederationEntityOperation::build(plan, definition.endpoint_id.into())
+            .map_err(|err| format!("Failed to build query: {err}"))?;
 
         Ok(Resolver::FederationEntity(Self {
             endpoint_id: definition.endpoint().id(),
