@@ -231,7 +231,7 @@ impl<'schema, 'p, 'binder> SelectionSetBinder<'schema, 'p, 'binder> {
         skip_input_value_ids.extend_from_slice(parent_directive_value_ids.0);
 
         include_input_value_ids.extend_from_slice(parent_directive_value_ids.1);
-        
+
         let entry =
             self.fields
                 .entry((response_key, definition_id))

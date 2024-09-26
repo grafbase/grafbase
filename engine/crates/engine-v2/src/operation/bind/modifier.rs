@@ -3,8 +3,8 @@ use schema::{DefinitionId, FieldDefinition, ObjectDefinitionId, TypeSystemDirect
 use std::{collections::HashMap, ops::Range};
 
 use crate::operation::{
-    FieldArgumentId, FieldId, QueryModifier, QueryModifierId, QueryModifierRule, ResponseModifier,
-    ResponseModifierId, ResponseModifierRule,
+    FieldArgumentId, FieldId, QueryModifier, QueryModifierId, QueryModifierRule, ResponseModifier, ResponseModifierId,
+    ResponseModifierRule,
 };
 
 impl<'schema, 'p> super::Binder<'schema, 'p> {
