@@ -147,7 +147,7 @@ enum SelectionSetRendering<'a> {
     InterfaceWithPartialFragment(InterfaceDefinition<'a>, SubgraphId),
     // Return type is a union and we use an interface fragment to a subgraph that does
     // not implement the interface to all types
-    UnionWithPartialFragment(UnionDefinition<'a>),
+    UnionWithPartialFragment(UnionDefinition<'a>, InterfaceDefinition<'a>, SubgraphId),
     // Return type is an interface, we have to filter out all entities not implementing the interface.
     InterfaceWithObjects(InterfaceDefinitionId, SubgraphId),
     // No extra rendering measures needed.
@@ -177,7 +177,7 @@ impl<'a> SelectionSetRendering<'a> {
                 schema::EntityDefinition::Interface(interface),
                 Some(subgraph_id),
             ) if interface.is_not_fully_implemented_in(subgraph_id) && !in_same_entity => {
-                Self::UnionWithPartialFragment(selection_set.walker().schema().walk(union_id))
+                Self::UnionWithPartialFragment(selection_set.walker().schema().walk(union_id), interface, subgraph_id)
             }
             (Some(SelectionSetType::Interface(interface_id)), _, Some(subgraph_id)) => {
                 Self::InterfaceWithObjects(interface_id, subgraph_id)
@@ -272,19 +272,33 @@ impl QueryBuilderContext {
                 selection_set,
             );
 
+            let mut add_interface_fragment = false;
+
             match rendering {
                 SelectionSetRendering::InterfaceWithPartialFragment(interface, subgraph_id) => {
-                    for r#type in interface.possible_types_ordered_by_typename() {
-                        if !r#type.subgraph_implements_interface(&subgraph_id, &interface.id()) {
-                            continue;
-                        }
+                    let objects = interface
+                        .possible_types_ordered_by_typename()
+                        .filter(|o| o.is_resolvable_in(&subgraph_id));
 
-                        self.write_type_fields(buffer, r#type.name(), &fields)?;
+                    for object in objects {
+                        if object.subgraph_implements_interface(&subgraph_id, &interface.id()) {
+                            add_interface_fragment = true;
+                        } else {
+                            self.write_type_fields(buffer, object.name(), &fields)?;
+                        }
                     }
                 }
-                SelectionSetRendering::UnionWithPartialFragment(union) => {
-                    for r#type in union.possible_types_ordered_by_typename() {
-                        self.write_type_fields(buffer, r#type.name(), &fields)?;
+                SelectionSetRendering::UnionWithPartialFragment(union, interface, subgraph_id) => {
+                    let objects = union
+                        .possible_types_ordered_by_typename()
+                        .filter(|o| o.is_resolvable_in(&subgraph_id));
+
+                    for object in objects {
+                        if object.subgraph_implements_interface(&subgraph_id, &interface.id()) {
+                            add_interface_fragment = true;
+                        } else {
+                            self.write_type_fields(buffer, object.name(), &fields)?;
+                        }
                     }
                 }
                 SelectionSetRendering::InterfaceWithObjects(interface_id, subgraph_id) => {
@@ -294,11 +308,15 @@ impl QueryBuilderContext {
                         }
                     }
 
-                    self.write_entity_fields(in_same_entity, buffer, entity, &fields)?;
+                    add_interface_fragment = true;
                 }
                 SelectionSetRendering::Other => {
-                    self.write_entity_fields(in_same_entity, buffer, entity, &fields)?;
+                    add_interface_fragment = true;
                 }
+            }
+
+            if add_interface_fragment {
+                self.write_entity_fields(in_same_entity, buffer, entity, &fields)?;
             }
         }
 

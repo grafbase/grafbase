@@ -15,6 +15,10 @@ impl<'a> ObjectDefinition<'a> {
             })
             .is_ok()
     }
+
+    pub fn is_resolvable_in(&self, subgraph_id: &SubgraphId) -> bool {
+        self.only_resolvable_in_ids.is_empty() || self.only_resolvable_in_ids.binary_search(subgraph_id).is_ok()
+    }
 }
 
 impl std::fmt::Debug for ObjectDefinition<'_> {
