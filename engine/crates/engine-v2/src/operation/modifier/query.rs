@@ -2,7 +2,6 @@ use id_newtypes::{BitSet, IdRange, IdToMany};
 use schema::{RequiresScopeSetIndex, RequiresScopesDirectiveId, Schema};
 use serde::Deserialize;
 
-use crate::operation::FieldSkippingDirective;
 use crate::{
     execution::{ErrorId, PlanningResult, PreExecutionContext},
     operation::{
@@ -154,15 +153,28 @@ where
                         self.handle_modifier_resulted_in_error(modifier_id, modifier.impacted_fields, err);
                     }
                 }
-                QueryModifierRule::Skip { input_value_id, r#type } => {
+                QueryModifierRule::Skip { input_value_id } => {
                     let walker = self.walker().walk(&self.operation.query_input_values[input_value_id]);
-                    let argument =
+                    let skipped =
                         bool::deserialize(walker).expect("at this point we've already checked the argument type");
-                    let skipped = match r#type {
-                        FieldSkippingDirective::Skip => argument,
-                        FieldSkippingDirective::Include => !argument,
-                    };
                     if skipped {
+                        self.modifications.is_any_field_skipped = true;
+                        for &field_id in &self.operation[modifier.impacted_fields] {
+                            self.modifications.skipped_fields.set(field_id, true);
+                            for field_shape_id in
+                                self.operation.response_blueprint.field_to_shape_ids.find_all(field_id)
+                            {
+                                self.modifications.skipped_field_shape_ids.set(*field_shape_id, true);
+                            }
+                        }
+                    }
+                }
+                QueryModifierRule::Include { input_value_id } => {
+                    let walker = self.walker().walk(&self.operation.query_input_values[input_value_id]);
+                    let included =
+                        bool::deserialize(walker).expect("at this point we've already checked the argument type");
+
+                    if !included {
                         self.modifications.is_any_field_skipped = true;
                         for &field_id in &self.operation[modifier.impacted_fields] {
                             self.modifications.skipped_fields.set(field_id, true);

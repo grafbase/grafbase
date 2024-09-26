@@ -3,8 +3,8 @@ use schema::{DefinitionId, FieldDefinition, ObjectDefinitionId, TypeSystemDirect
 use std::{collections::HashMap, ops::Range};
 
 use crate::operation::{
-    FieldArgumentId, FieldId, FieldSkippingDirective, QueryInputValueId, QueryModifier, QueryModifierId,
-    QueryModifierRule, ResponseModifier, ResponseModifierId, ResponseModifierRule,
+    FieldArgumentId, FieldId, QueryModifier, QueryModifierId, QueryModifierRule, ResponseModifier,
+    ResponseModifierId, ResponseModifierRule,
 };
 
 impl<'schema, 'p> super::Binder<'schema, 'p> {
@@ -13,22 +13,15 @@ impl<'schema, 'p> super::Binder<'schema, 'p> {
         field_id: FieldId,
         argument_ids: IdRange<FieldArgumentId>,
         field_definition: FieldDefinition<'_>,
-        input_value_ids: Vec<(QueryInputValueId, FieldSkippingDirective)>,
+        additional_modifiers: Vec<QueryModifierRule>,
     ) {
         self.generate_modifiers_for_type_system_directives(field_id, argument_ids, field_definition);
-        self.generate_modifiers_for_executable_directives(field_id, input_value_ids);
+        self.generate_additional_modifiers(field_id, additional_modifiers);
     }
 
-    fn generate_modifiers_for_executable_directives(
-        &mut self,
-        field_id: FieldId,
-        input_value_ids: Vec<(QueryInputValueId, FieldSkippingDirective)>,
-    ) {
-        for (input_value_id, r#type) in input_value_ids {
-            self.register_field_impacted_by_query_modifier(
-                QueryModifierRule::Skip { input_value_id, r#type },
-                field_id,
-            );
+    fn generate_additional_modifiers(&mut self, field_id: FieldId, additional_modifiers: Vec<QueryModifierRule>) {
+        for modifier in additional_modifiers {
+            self.register_field_impacted_by_query_modifier(modifier, field_id);
         }
     }
 

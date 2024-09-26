@@ -10,7 +10,7 @@ use super::{
     error::InputValueError,
     path::{value_path_to_string, ValuePathSegment},
 };
-use crate::operation::{FieldId, Location, QueryInputValue, QueryInputValueId};
+use crate::operation::{Location, QueryInputValue, QueryInputValueId};
 
 pub fn coerce_variable_default_value(
     binder: &mut Binder<'_, '_>,
@@ -20,10 +20,10 @@ pub fn coerce_variable_default_value(
 ) -> Result<QueryInputValueId, InputValueError> {
     let mut ctx = QueryValueCoercionContext {
         binder,
-        field_id: None,
         location,
         value_path: Vec::new(),
         input_fields_buffer_pool: Vec::new(),
+        is_default_value: true,
     };
     let value = ctx.coerce_input_value(ty, value.into())?;
     Ok(ctx.input_values.push_value(value))
@@ -31,17 +31,16 @@ pub fn coerce_variable_default_value(
 
 pub fn coerce_query_value(
     binder: &mut Binder<'_, '_>,
-    field_id: FieldId,
     location: Location,
     ty: TypeRecord,
     value: Value,
 ) -> Result<QueryInputValueId, InputValueError> {
     let mut ctx = QueryValueCoercionContext {
         binder,
-        field_id: Some(field_id),
         location,
         value_path: Vec::new(),
         input_fields_buffer_pool: Vec::new(),
+        is_default_value: false,
     };
     let value = ctx.coerce_input_value(ty, value)?;
     Ok(ctx.input_values.push_value(value))
@@ -49,10 +48,10 @@ pub fn coerce_query_value(
 
 struct QueryValueCoercionContext<'binder, 'schema, 'parsed> {
     binder: &'binder mut Binder<'schema, 'parsed>,
-    field_id: Option<FieldId>,
     location: Location,
     value_path: Vec<ValuePathSegment>,
     input_fields_buffer_pool: Vec<Vec<(InputValueDefinitionId, QueryInputValue)>>,
+    is_default_value: bool,
 }
 
 impl<'binder, 'schema, 'parsed> std::ops::Deref for QueryValueCoercionContext<'binder, 'schema, 'parsed> {
@@ -71,8 +70,7 @@ impl<'binder, 'schema, 'parsed> std::ops::DerefMut for QueryValueCoercionContext
 
 impl<'binder, 'schema, 'parsed> QueryValueCoercionContext<'binder, 'schema, 'parsed> {
     fn variable_ref(&mut self, name: Name, ty: TypeRecord) -> Result<QueryInputValue, InputValueError> {
-        // field_id is not provided for variable default values.
-        let Some(field_id) = self.field_id else {
+        if self.is_default_value {
             return Err(InputValueError::VariableDefaultValueReliesOnAnotherVariable {
                 name: name.to_string(),
                 location: self.location,
@@ -103,12 +101,7 @@ impl<'binder, 'schema, 'parsed> QueryValueCoercionContext<'binder, 'schema, 'par
             });
         }
 
-        // This function is called during the binding where we create the BoundFieldIds
-        // sequentially. So we're always processing the last BoundFieldId and this array is always
-        // sorted.
-        if self.variable_definitions[id].used_by.last() != self.field_id.as_ref() {
-            self.binder.variable_definitions[id].used_by.push(field_id);
-        }
+        self.variable_definitions[id].in_use = true;
 
         Ok(QueryInputValue::Variable(id.into()))
     }
@@ -122,10 +115,10 @@ impl<'binder, 'schema, 'parsed> QueryValueCoercionContext<'binder, 'schema, 'par
             return Ok(value);
         }
 
-        self.coerce_list(ty, value)
+        self.coerce_wrapped_value(ty, value)
     }
 
-    fn coerce_list(&mut self, mut ty: TypeRecord, value: Value) -> Result<QueryInputValue, InputValueError> {
+    fn coerce_wrapped_value(&mut self, mut ty: TypeRecord, value: Value) -> Result<QueryInputValue, InputValueError> {
         if let Value::Variable(name) = value {
             return self.variable_ref(name, ty);
         }
@@ -145,7 +138,7 @@ impl<'binder, 'schema, 'parsed> QueryValueCoercionContext<'binder, 'schema, 'par
                 let ids = self.input_values.reserve_list(array.len());
                 for ((idx, value), id) in array.into_iter().enumerate().zip(ids) {
                     self.value_path.push(idx.into());
-                    self.input_values[id] = self.coerce_list(ty, value)?;
+                    self.input_values[id] = self.coerce_wrapped_value(ty, value)?;
                     self.value_path.pop();
                 }
                 Ok(QueryInputValue::List(ids))
