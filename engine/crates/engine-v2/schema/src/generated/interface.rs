@@ -27,7 +27,8 @@ use walker::{Iter, Walk};
 ///   possible_types: [ObjectDefinition!]!
 ///   possible_types_ordered_by_typename: [ObjectDefinition!]!
 ///   directives: [TypeSystemDirective!]!
-///   fully_implemented_in: [Subgraph!]!
+///   "sorted by SubgraphId"
+///   not_fully_implemented_in: [Subgraph!]!
 /// }
 /// ```
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
@@ -40,7 +41,8 @@ pub struct InterfaceDefinitionRecord {
     pub possible_type_ids: Vec<ObjectDefinitionId>,
     pub possible_types_ordered_by_typename_ids: Vec<ObjectDefinitionId>,
     pub directive_ids: Vec<TypeSystemDirectiveId>,
-    pub fully_implemented_in_ids: Vec<SubgraphId>,
+    /// sorted by SubgraphId
+    pub not_fully_implemented_in_ids: Vec<SubgraphId>,
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
@@ -91,8 +93,9 @@ impl<'a> InterfaceDefinition<'a> {
     pub fn directives(&self) -> impl Iter<Item = TypeSystemDirective<'a>> + 'a {
         self.as_ref().directive_ids.walk(self.schema)
     }
-    pub fn fully_implemented_in(&self) -> impl Iter<Item = Subgraph<'a>> + 'a {
-        self.as_ref().fully_implemented_in_ids.walk(self.schema)
+    /// sorted by SubgraphId
+    pub fn not_fully_implemented_in(&self) -> impl Iter<Item = Subgraph<'a>> + 'a {
+        self.as_ref().not_fully_implemented_in_ids.walk(self.schema)
     }
 }
 

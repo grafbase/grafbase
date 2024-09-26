@@ -46,6 +46,8 @@ type ObjectDefinition
   fields: [FieldDefinition!]!
   "sorted by SubgraphId, then InterfaceId"
   join_implements: [JoinImplementsDefinition!]!
+  "sorted by SubgraphId"
+  only_resolvable_in: [Subgraph!]!
 }
 
 type InterfaceDefinition
@@ -59,7 +61,8 @@ type InterfaceDefinition
   possible_types: [ObjectDefinition!]!
   possible_types_ordered_by_typename: [ObjectDefinition!]!
   directives: [TypeSystemDirective!]!
-  fully_implemented_in: [Subgraph!]!
+  "sorted by SubgraphId"
+  not_fully_implemented_in: [Subgraph!]!
 }
 
 type FieldDefinition @meta(module: "field") @indexed(id_size: "u32", max_id: "MAX_ID") {

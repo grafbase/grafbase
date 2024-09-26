@@ -6,7 +6,7 @@
 use crate::{
     generated::{
         FieldDefinition, FieldDefinitionId, InterfaceDefinition, InterfaceDefinitionId, JoinImplementsDefinition,
-        JoinImplementsDefinitionRecord, TypeSystemDirective, TypeSystemDirectiveId,
+        JoinImplementsDefinitionRecord, Subgraph, SubgraphId, TypeSystemDirective, TypeSystemDirectiveId,
     },
     prelude::*,
     StringId,
@@ -26,6 +26,8 @@ use walker::{Iter, Walk};
 ///   fields: [FieldDefinition!]!
 ///   "sorted by SubgraphId, then InterfaceId"
 ///   join_implements: [JoinImplementsDefinition!]!
+///   "sorted by SubgraphId"
+///   only_resolvable_in: [Subgraph!]!
 /// }
 /// ```
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
@@ -37,6 +39,8 @@ pub struct ObjectDefinitionRecord {
     pub field_ids: IdRange<FieldDefinitionId>,
     /// sorted by SubgraphId, then InterfaceId
     pub join_implement_records: Vec<JoinImplementsDefinitionRecord>,
+    /// sorted by SubgraphId
+    pub only_resolvable_in_ids: Vec<SubgraphId>,
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
@@ -83,6 +87,10 @@ impl<'a> ObjectDefinition<'a> {
     /// sorted by SubgraphId, then InterfaceId
     pub fn join_implements(&self) -> impl Iter<Item = JoinImplementsDefinition<'a>> + 'a {
         self.as_ref().join_implement_records.walk(self.schema)
+    }
+    /// sorted by SubgraphId
+    pub fn only_resolvable_in(&self) -> impl Iter<Item = Subgraph<'a>> + 'a {
+        self.as_ref().only_resolvable_in_ids.walk(self.schema)
     }
 }
 

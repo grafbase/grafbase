@@ -169,14 +169,14 @@ impl<'a> SelectionSetRendering<'a> {
                 Some(SelectionSetType::Interface(_)),
                 schema::EntityDefinition::Interface(interface),
                 Some(subgraph_id),
-            ) if !interface.is_fully_implemented_in(subgraph_id) && !in_same_entity => {
+            ) if interface.is_not_fully_implemented_in(subgraph_id) && !in_same_entity => {
                 Self::InterfaceWithPartialFragment(interface, subgraph_id)
             }
             (
                 Some(SelectionSetType::Union(union_id)),
                 schema::EntityDefinition::Interface(interface),
                 Some(subgraph_id),
-            ) if !interface.is_fully_implemented_in(subgraph_id) && !in_same_entity => {
+            ) if interface.is_not_fully_implemented_in(subgraph_id) && !in_same_entity => {
                 Self::UnionWithPartialFragment(selection_set.walker().schema().walk(union_id))
             }
             (Some(SelectionSetType::Interface(interface_id)), _, Some(subgraph_id)) => {
