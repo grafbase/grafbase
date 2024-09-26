@@ -7,7 +7,7 @@ use schema::{DefinitionId, FieldDefinitionId, ObjectDefinitionId, TypeRecord};
 
 use super::{BindError, BindResult, Binder};
 use crate::operation::bind::coercion::coerce_query_value;
-use crate::operation::QueryModifierRule;
+use crate::operation::{QueryInputValueId, QueryModifierRule};
 use crate::{
     operation::{FieldId, Location, QueryPosition, SelectionSet, SelectionSetId, SelectionSetType},
     response::SafeResponseKey,
@@ -72,7 +72,7 @@ impl<'schema, 'p, 'binder> SelectionSetBinder<'schema, 'p, 'binder> {
         merged_selection_sets: &[&'p Positioned<engine_parser::types::SelectionSet>],
     ) -> BindResult<SelectionSetId> {
         for selection_set in merged_selection_sets {
-            self.register_selection_set_fields(ty, selection_set, vec![])?;
+            self.register_selection_set_fields(ty, selection_set, (&[], &[]))?;
         }
 
         let id = SelectionSetId::from(self.selection_sets.len());
@@ -157,24 +157,24 @@ impl<'schema, 'p, 'binder> SelectionSetBinder<'schema, 'p, 'binder> {
         &mut self,
         ty: SelectionSetType,
         selection_set: &'p Positioned<engine_parser::types::SelectionSet>,
-        parent_query_modifier_rules: Vec<QueryModifierRule>,
+        parent_directive_value_ids: (&[QueryInputValueId], &[QueryInputValueId]),
     ) -> BindResult<()> {
         let Positioned {
             node: selection_set, ..
         } = selection_set;
 
-        let parent_query_modifier_rules = &parent_query_modifier_rules;
+        let parent_directive_value_ids = &parent_directive_value_ids;
 
         for Positioned { node: selection, .. } in &selection_set.items {
             match selection {
                 engine_parser::types::Selection::Field(field) => {
-                    self.register_field(ty, field, parent_query_modifier_rules)?;
+                    self.register_field(ty, field, parent_directive_value_ids)?;
                 }
                 engine_parser::types::Selection::FragmentSpread(spread) => {
-                    self.register_fragment_spread_fields(ty, spread)?;
+                    self.register_fragment_spread_fields(ty, spread, parent_directive_value_ids)?;
                 }
                 engine_parser::types::Selection::InlineFragment(fragment) => {
-                    self.register_inline_fragment_fields(ty, fragment)?;
+                    self.register_inline_fragment_fields(ty, fragment, parent_directive_value_ids)?;
                 }
             }
         }
@@ -186,7 +186,7 @@ impl<'schema, 'p, 'binder> SelectionSetBinder<'schema, 'p, 'binder> {
         &mut self,
         parent: SelectionSetType,
         field: &'p Positioned<engine_parser::types::Field>,
-        parent_query_modifier_rules: &[QueryModifierRule],
+        parent_directive_value_ids: &(&[QueryInputValueId], &[QueryInputValueId]),
     ) -> BindResult<()> {
         let name_location: Location = field.pos.try_into()?;
         let name = field.name.node.as_str();
@@ -225,8 +225,13 @@ impl<'schema, 'p, 'binder> SelectionSetBinder<'schema, 'p, 'binder> {
             location: name_location,
         })?;
 
-        let query_modifier_rules = self.directives_to_query_modifiers(&field.directives)?;
+        let (mut skip_input_value_ids, mut include_input_value_ids) =
+            self.directives_to_value_ids(&field.directives)?;
 
+        skip_input_value_ids.extend_from_slice(parent_directive_value_ids.0);
+
+        include_input_value_ids.extend_from_slice(parent_directive_value_ids.1);
+        
         let entry =
             self.fields
                 .entry((response_key, definition_id))
@@ -234,12 +239,12 @@ impl<'schema, 'p, 'binder> SelectionSetBinder<'schema, 'p, 'binder> {
 
         entry.1.push(field);
 
-        entry.2.extend(
-            parent_query_modifier_rules
-                .iter()
-                .chain(query_modifier_rules.iter())
-                .cloned(),
-        );
+        if !skip_input_value_ids.is_empty() || !include_input_value_ids.is_empty() {
+            entry.2.push(QueryModifierRule::SkipInclude {
+                skip_input_value_ids,
+                include_input_value_ids,
+            });
+        }
 
         Ok(())
     }
@@ -248,6 +253,7 @@ impl<'schema, 'p, 'binder> SelectionSetBinder<'schema, 'p, 'binder> {
         &mut self,
         parent: SelectionSetType,
         Positioned { pos, node: spread }: &'p Positioned<engine_parser::types::FragmentSpread>,
+        parent_directive_value_ids: &(&[QueryInputValueId], &[QueryInputValueId]),
     ) -> BindResult<()> {
         let location = (*pos).try_into()?;
         // We always create a new selection set from a named fragment. It may not be split in the
@@ -263,9 +269,18 @@ impl<'schema, 'p, 'binder> SelectionSetBinder<'schema, 'p, 'binder> {
 
         let ty = self.bind_selection_set_type(parent, &fragment.node.type_condition)?;
 
-        let query_modifier_indicators = self.directives_to_query_modifiers(&spread.directives)?;
+        let (mut skip_input_value_ids, mut include_input_value_ids) =
+            self.directives_to_value_ids(&spread.directives)?;
 
-        self.register_selection_set_fields(ty, &fragment.node.selection_set, query_modifier_indicators)?;
+        skip_input_value_ids.extend_from_slice(parent_directive_value_ids.0);
+
+        include_input_value_ids.extend_from_slice(parent_directive_value_ids.1);
+
+        self.register_selection_set_fields(
+            ty,
+            &fragment.node.selection_set,
+            (&skip_input_value_ids, &include_input_value_ids),
+        )?;
 
         Ok(())
     }
@@ -274,6 +289,7 @@ impl<'schema, 'p, 'binder> SelectionSetBinder<'schema, 'p, 'binder> {
         &mut self,
         parent: SelectionSetType,
         Positioned { node: fragment, .. }: &'p Positioned<engine_parser::types::InlineFragment>,
+        parent_directive_value_ids: &(&[QueryInputValueId], &[QueryInputValueId]),
     ) -> BindResult<()> {
         let ty = fragment
             .type_condition
@@ -282,16 +298,26 @@ impl<'schema, 'p, 'binder> SelectionSetBinder<'schema, 'p, 'binder> {
             .transpose()?
             .unwrap_or(parent);
 
-        let query_modifier_rules = self.directives_to_query_modifiers(&fragment.directives)?;
+        let (mut skip_input_value_ids, mut include_input_value_ids) =
+            self.directives_to_value_ids(&fragment.directives)?;
 
-        self.register_selection_set_fields(ty, &fragment.selection_set, query_modifier_rules)
+        skip_input_value_ids.extend_from_slice(parent_directive_value_ids.0);
+
+        include_input_value_ids.extend_from_slice(parent_directive_value_ids.1);
+
+        self.register_selection_set_fields(
+            ty,
+            &fragment.selection_set,
+            (&skip_input_value_ids, &include_input_value_ids),
+        )
     }
 
-    fn directives_to_query_modifiers(
+    fn directives_to_value_ids(
         &mut self,
         directives: &[Positioned<Directive>],
-    ) -> BindResult<Vec<QueryModifierRule>> {
-        let mut modifiers = Vec::new();
+    ) -> BindResult<(Vec<QueryInputValueId>, Vec<QueryInputValueId>)> {
+        let mut skip_input_value_ids: Vec<QueryInputValueId> = Vec::new();
+        let mut include_input_value_ids: Vec<QueryInputValueId> = Vec::new();
         for directive in directives {
             let directive_name = directive.name.node.as_str();
             if matches!(directive_name, "skip" | "include") {
@@ -311,16 +337,14 @@ impl<'schema, 'p, 'binder> SelectionSetBinder<'schema, 'p, 'binder> {
                     argument.1.node.clone(),
                 )?;
 
-                let modifier = if directive_name == "skip" {
-                    QueryModifierRule::Skip { input_value_id }
+                if directive_name == "skip" {
+                    skip_input_value_ids.push(input_value_id);
                 } else {
-                    QueryModifierRule::Include { input_value_id }
+                    include_input_value_ids.push(input_value_id);
                 };
-
-                modifiers.push(modifier)
             }
         }
-        Ok(modifiers)
+        Ok((skip_input_value_ids, include_input_value_ids))
     }
 
     fn bind_selection_set_type(

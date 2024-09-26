@@ -26,11 +26,9 @@ pub(crate) enum QueryModifierRule {
         directive_id: AuthorizedDirectiveId,
         definition_id: DefinitionId,
     },
-    Skip {
-        input_value_id: QueryInputValueId,
-    },
-    Include {
-        input_value_id: QueryInputValueId,
+    SkipInclude {
+        skip_input_value_ids: Vec<QueryInputValueId>,
+        include_input_value_ids: Vec<QueryInputValueId>,
     },
 }
 

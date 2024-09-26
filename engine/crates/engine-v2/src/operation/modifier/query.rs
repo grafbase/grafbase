@@ -153,37 +153,49 @@ where
                         self.handle_modifier_resulted_in_error(modifier_id, modifier.impacted_fields, err);
                     }
                 }
-                QueryModifierRule::Skip { input_value_id } => {
-                    let walker = self.walker().walk(&self.operation.query_input_values[input_value_id]);
-                    let skipped =
-                        bool::deserialize(walker).expect("at this point we've already checked the argument type");
-                    if skipped {
-                        self.modifications.is_any_field_skipped = true;
-                        for &field_id in &self.operation[modifier.impacted_fields] {
-                            self.modifications.skipped_fields.set(field_id, true);
-                            for field_shape_id in
-                                self.operation.response_blueprint.field_to_shape_ids.find_all(field_id)
-                            {
-                                self.modifications.skipped_field_shape_ids.set(*field_shape_id, true);
-                            }
-                        }
-                    }
-                }
-                QueryModifierRule::Include { input_value_id } => {
-                    let walker = self.walker().walk(&self.operation.query_input_values[input_value_id]);
-                    let included =
-                        bool::deserialize(walker).expect("at this point we've already checked the argument type");
+                // include and skip are handled separately
+                _ => {}
+            }
 
-                    if !included {
-                        self.modifications.is_any_field_skipped = true;
-                        for &field_id in &self.operation[modifier.impacted_fields] {
-                            self.modifications.skipped_fields.set(field_id, true);
-                            for field_shape_id in
-                                self.operation.response_blueprint.field_to_shape_ids.find_all(field_id)
-                            {
-                                self.modifications.skipped_field_shape_ids.set(*field_shape_id, true);
-                            }
-                        }
+            // as we make sure that every instance of a field creates at most one query modifier
+            // additional query modifiers guaranteed to be for different instances of the field.
+            // since we merge the field instances anyhow, any one instance of a field that should not be skipped is enough to include the field. (we use `all` below to avoid a case of no rules)
+            // within the same field instance, more than one value ID means the others are derived from parent fragments, so we should check if any of the values mark the field as skipped.
+            // (which is the inverse logic of multiple instances of the same field)
+            let skip_field = self
+                .operation
+                .query_modifiers
+                .iter()
+                .filter(|modifier| matches!(modifier.rule, QueryModifierRule::SkipInclude { .. }))
+                .all(|modifier| match &modifier.rule {
+                    QueryModifierRule::SkipInclude {
+                        include_input_value_ids,
+                        skip_input_value_ids,
+                    } => {
+                        let not_included = include_input_value_ids.iter().any(|id| {
+                            let walker = self.walker().walk(&self.operation.query_input_values[*id]);
+                            let included = bool::deserialize(walker)
+                                .expect("at this point we've already checked the argument type");
+                            !included
+                        });
+
+                        let skipped = skip_input_value_ids.iter().any(|id| {
+                            let walker = self.walker().walk(&self.operation.query_input_values[*id]);
+                            bool::deserialize(walker).expect("at this point we've already checked the argument type")
+                        });
+
+                        not_included || skipped
+                    }
+
+                    _ => unreachable!(),
+                });
+
+            if skip_field {
+                self.modifications.is_any_field_skipped = true;
+                for &field_id in &self.operation[modifier.impacted_fields] {
+                    self.modifications.skipped_fields.set(field_id, true);
+                    for field_shape_id in self.operation.response_blueprint.field_to_shape_ids.find_all(field_id) {
+                        self.modifications.skipped_field_shape_ids.set(*field_shape_id, true);
                     }
                 }
             }
