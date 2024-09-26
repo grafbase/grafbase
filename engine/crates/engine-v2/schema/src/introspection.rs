@@ -664,6 +664,7 @@ impl<'a> IntrospectionBuilder<'a> {
             directive_ids: Vec::new(),
             field_ids: IdRange::empty(),
             join_implement_records: Vec::new(),
+            only_resolvable_in_ids: Vec::new(),
         });
         ObjectDefinitionId::from(self.object_definitions.len() - 1)
     }
