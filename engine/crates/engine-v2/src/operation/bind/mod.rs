@@ -114,6 +114,12 @@ pub enum BindError {
     QueryContainsTooManyRootFields { count: usize, location: Location },
     #[error("Query contains too many aliases.")]
     QueryContainsTooManyAliases { count: usize, location: Location },
+    #[error("Missing argument named '{name}' for directive '{directive}'")]
+    MissingDirectiveArgument {
+        name: String,
+        directive: String,
+        location: Location,
+    },
 }
 
 impl From<BindError> for GraphqlError {
@@ -133,6 +139,7 @@ impl From<BindError> for GraphqlError {
             | BindError::DuplicateVariable { location, .. }
             | BindError::FragmentCycle { location, .. }
             | BindError::MissingArgument { location, .. }
+            | BindError::MissingDirectiveArgument { location, .. }
             | BindError::UnusedVariable { location, .. }
             | BindError::QueryTooComplex { location, .. }
             | BindError::QueryTooDeep { location, .. }

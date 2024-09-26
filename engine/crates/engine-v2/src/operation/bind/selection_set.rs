@@ -312,7 +312,11 @@ impl<'schema, 'p, 'binder> SelectionSetBinder<'schema, 'p, 'binder> {
         for directive in directives {
             let directive_name = directive.name.node.as_str();
             if matches!(directive_name, "skip" | "include") {
-                let argument = directive.arguments.first().expect("must exist");
+                let argument = directive.arguments.first().ok_or(BindError::MissingDirectiveArgument {
+                    name: directive_name.to_string(),
+                    location: directive.pos.try_into()?,
+                    directive: directive_name.to_string(),
+                })?;
                 let argument_pos = argument.1.pos.try_into()?;
                 let r#type = if directive_name == "skip" {
                     IndicatorDirective::Skip
