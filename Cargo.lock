@@ -3019,7 +3019,7 @@ dependencies = [
 
 [[package]]
 name = "federated-server"
-version = "0.13.0"
+version = "0.14.0"
 dependencies = [
  "ascii 1.1.0",
  "async-trait",
@@ -3432,7 +3432,7 @@ dependencies = [
 
 [[package]]
 name = "gateway-config"
-version = "0.13.0"
+version = "0.14.0"
 dependencies = [
  "ascii 1.1.0",
  "cfg-if",
@@ -3743,7 +3743,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-gateway"
-version = "0.13.0"
+version = "0.14.0"
 dependencies = [
  "anyhow",
  "ascii 1.1.0",
@@ -7869,7 +7869,7 @@ dependencies = [
 
 [[package]]
 name = "rolling-logger"
-version = "0.13.0"
+version = "0.14.0"
 dependencies = [
  "grafbase-workspace-hack",
  "insta",
