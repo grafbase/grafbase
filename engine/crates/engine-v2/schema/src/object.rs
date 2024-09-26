@@ -1,6 +1,6 @@
-use crate::{InterfaceDefinitionId, ObjectDefinition, SubgraphId};
+use crate::{InterfaceDefinitionId, ObjectDefinition, ObjectDefinitionRecord, SubgraphId};
 
-impl<'a> ObjectDefinition<'a> {
+impl ObjectDefinitionRecord {
     pub fn subgraph_implements_interface(
         &self,
         subgraph_id: &SubgraphId,
@@ -16,8 +16,8 @@ impl<'a> ObjectDefinition<'a> {
             .is_ok()
     }
 
-    pub fn is_resolvable_in(&self, subgraph_id: &SubgraphId) -> bool {
-        self.only_resolvable_in_ids.is_empty() || self.only_resolvable_in_ids.binary_search(subgraph_id).is_ok()
+    pub fn resolvable_in(&self, subgraph_id: &SubgraphId) -> bool {
+        self.only_resolvable_in_ids.binary_search(subgraph_id).is_ok()
     }
 }
 
