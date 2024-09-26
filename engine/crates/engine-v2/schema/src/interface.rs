@@ -1,4 +1,10 @@
-use crate::InterfaceDefinition;
+use crate::{InterfaceDefinition, SubgraphId};
+
+impl<'a> crate::InterfaceDefinition<'a> {
+    pub fn is_not_fully_implemented_in(&self, subgraph_id: SubgraphId) -> bool {
+        self.not_fully_implemented_in_ids.binary_search(&subgraph_id).is_ok()
+    }
+}
 
 impl std::fmt::Debug for InterfaceDefinition<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

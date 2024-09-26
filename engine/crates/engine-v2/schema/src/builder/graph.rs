@@ -1,5 +1,5 @@
 use std::{
-    collections::{HashMap, HashSet},
+    collections::{BTreeSet, HashMap, HashSet},
     mem::take,
 };
 
@@ -168,28 +168,36 @@ impl<'a> GraphBuilder<'a> {
     }
 
     fn ingest_unions(&mut self, config: &mut Config) {
-        self.graph.union_definitions = take(&mut config.graph.unions)
-            .into_iter()
-            .map(|union| UnionDefinitionRecord {
+        for union in take(&mut config.graph.unions) {
+            let possible_type_ids = union
+                .members
+                .into_iter()
+                .filter(|object_id| {
+                    let composed_directives = config.graph[*object_id].composed_directives;
+                    !is_inaccessible(&config.graph, composed_directives)
+                })
+                .map(Into::into)
+                .collect();
+
+            let directive_ids = self.push_directives(
+                config,
+                Directives {
+                    federated: union.composed_directives,
+                    ..Default::default()
+                },
+            );
+
+            let union_definition = UnionDefinitionRecord {
                 name_id: union.name.into(),
                 description_id: None,
-                possible_type_ids: union
-                    .members
-                    .into_iter()
-                    .filter(|object_id| !is_inaccessible(&config.graph, config.graph[*object_id].composed_directives))
-                    .map(Into::into)
-                    .collect(),
+                possible_type_ids,
                 // Added at the end.
                 possible_types_ordered_by_typename_ids: Vec::new(),
-                directive_ids: self.push_directives(
-                    config,
-                    Directives {
-                        federated: union.composed_directives,
-                        ..Default::default()
-                    },
-                ),
-            })
-            .collect();
+                directive_ids,
+            };
+
+            self.graph.union_definitions.push(union_definition);
+        }
     }
 
     fn ingest_enums_before_input_values(&mut self, config: &mut Config) {
@@ -280,6 +288,7 @@ impl<'a> GraphBuilder<'a> {
             let schema_location = SchemaLocation::Type {
                 name: object.name.into(),
             };
+
             let directives = self.push_directives(
                 config,
                 Directives {
@@ -296,12 +305,34 @@ impl<'a> GraphBuilder<'a> {
                     },
                 },
             );
+
+            let mut join_implement_records: Vec<_> = object
+                .join_implements
+                .into_iter()
+                .map(|(subgraph_id, interface_id)| JoinImplementsDefinitionRecord {
+                    subgraph_id: SubgraphId::GraphqlEndpoint(subgraph_id.into()),
+                    interface_id: interface_id.into(),
+                })
+                .collect();
+
+            join_implement_records.sort_by_key(|record| (record.subgraph_id, record.interface_id));
+
+            let mut only_resolvable_in_ids = object
+                .keys
+                .iter()
+                .map(|key| SubgraphId::GraphqlEndpoint(key.subgraph_id.into()))
+                .collect::<Vec<_>>();
+
+            only_resolvable_in_ids.sort();
+
             self.graph.object_definitions.push(ObjectDefinitionRecord {
                 name_id: object.name.into(),
                 description_id: None,
                 interface_ids: object.implements_interfaces.into_iter().map(Into::into).collect(),
                 directive_ids: directives,
                 field_ids: fields,
+                join_implement_records,
+                only_resolvable_in_ids,
             });
 
             if let Some(entity) = self.generate_federation_entity_from_keys(schema_location, object.keys) {
@@ -322,13 +353,16 @@ impl<'a> GraphBuilder<'a> {
         self.graph.interface_definitions = Vec::with_capacity(config.graph.interfaces.len());
         for interface in take(&mut config.graph.interfaces) {
             let interface_id = InterfaceDefinitionId::from(self.graph.interface_definitions.len());
+
             let fields = self.ctx.idmaps.field.get_range((
                 interface.fields.start,
                 interface.fields.end.0 - interface.fields.start.0,
             ));
+
             for field_id in fields {
                 entities_metadata.field_id_to_maybe_interface_id[usize::from(field_id)] = Some(interface_id);
             }
+
             let directives = self.push_directives(
                 config,
                 Directives {
@@ -336,6 +370,7 @@ impl<'a> GraphBuilder<'a> {
                     ..Default::default()
                 },
             );
+
             self.graph.interface_definitions.push(InterfaceDefinitionRecord {
                 name_id: interface.name.into(),
                 description_id: None,
@@ -345,6 +380,8 @@ impl<'a> GraphBuilder<'a> {
                 possible_types_ordered_by_typename_ids: Vec::new(),
                 directive_ids: directives,
                 field_ids: fields,
+                // Added at the end.
+                not_fully_implemented_in_ids: Vec::new(),
             });
 
             if let Some(entity) = self.generate_federation_entity_from_keys(
@@ -362,6 +399,30 @@ impl<'a> GraphBuilder<'a> {
             for interface_id in self.graph[object_id].interface_ids.clone() {
                 self.graph[interface_id].possible_type_ids.push(object_id);
             }
+        }
+
+        // Adding all not fully implemented interfaces per subgraph.
+        for interface_id in (0..self.graph.interface_definitions.len()).map(InterfaceDefinitionId::from) {
+            let mut not_fully_implemented_in = BTreeSet::<SubgraphId>::new();
+
+            // For every possible type implementing this interface.
+            for object_id in &self.graph[interface_id].possible_type_ids {
+                let object = &self.graph[*object_id];
+
+                // Check in which subgraphs these are resolved.
+                for subgraph_id in &object.only_resolvable_in_ids {
+                    // The object implements the interface if it defines az `@join__implements`
+                    // corresponding to the interface and to the subgraph.
+                    if object.subgraph_implements_interface(subgraph_id, &interface_id) {
+                        continue;
+                    }
+
+                    not_fully_implemented_in.insert(*subgraph_id);
+                }
+            }
+
+            // Sorted by the subgraph id, hence the btree.
+            self.graph[interface_id].not_fully_implemented_in_ids = not_fully_implemented_in.into_iter().collect();
         }
 
         entities_metadata

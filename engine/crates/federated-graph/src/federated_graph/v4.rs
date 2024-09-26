@@ -140,6 +140,8 @@ pub struct Object {
 
     pub implements_interfaces: Vec<InterfaceId>,
 
+    pub join_implements: Vec<(SubgraphId, InterfaceId)>,
+
     pub keys: Vec<Key>,
 
     /// All directives that made it through composition.
@@ -165,6 +167,8 @@ pub struct Interface {
     pub fields: Fields,
 
     pub description: Option<StringId>,
+
+    pub join_implements: Vec<(SubgraphId, InterfaceId)>,
 }
 
 #[derive(Clone)]
@@ -254,7 +258,7 @@ pub enum Selection {
     },
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Key {
     /// The subgraph that can resolve the entity with the fields in [Key::fields].
     pub subgraph_id: SubgraphId,
@@ -280,6 +284,7 @@ impl Default for FederatedGraph {
             objects: vec![Object {
                 name: StringId(0),
                 implements_interfaces: Vec::new(),
+                join_implements: Vec::new(),
                 keys: Vec::new(),
                 composed_directives: NO_DIRECTIVES,
                 fields: FieldId(0)..FieldId(2),
@@ -408,6 +413,7 @@ impl From<super::FederatedGraphV3> for FederatedGraph {
                      }| Object {
                         name,
                         implements_interfaces,
+                        join_implements: Vec::new(),
                         keys: convert_keys(keys),
                         composed_directives,
                         fields,
@@ -433,6 +439,7 @@ impl From<super::FederatedGraphV3> for FederatedGraph {
                             composed_directives,
                             fields,
                             description,
+                            join_implements: Vec::new(),
                         }
                     },
                 )

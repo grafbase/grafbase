@@ -69,6 +69,17 @@ pub fn render_federated_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error
                 render_authorized_directive(authorized_directive, f, graph)?;
             }
 
+            if !object.join_implements.is_empty() {
+                for (subgraph_id, interface_id) in &object.join_implements {
+                    f.write_str("\n")?;
+                    render_join_implement(*subgraph_id, *interface_id, f, graph)?;
+                }
+
+                if object.keys.is_empty() {
+                    f.write_str("\n")?;
+                }
+            }
+
             if !object.keys.is_empty() {
                 f.write_str("\n")?;
                 for key in &object.keys {
@@ -119,6 +130,17 @@ pub fn render_federated_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error
             }
 
             render_composed_directives(interface.composed_directives, f, graph)?;
+
+            if !interface.join_implements.is_empty() {
+                for (subgraph_id, interface_id) in &interface.join_implements {
+                    f.write_str("\n")?;
+                    render_join_implement(*subgraph_id, *interface_id, f, graph)?;
+                }
+
+                if interface.keys.is_empty() {
+                    f.write_str("\n")?;
+                }
+            }
 
             if interface.keys.is_empty() {
                 f.write_str(" {\n")
@@ -239,6 +261,8 @@ fn write_prelude(sdl: &mut String) -> fmt::Result {
         ) on FIELD_DEFINITION
 
         directive @join__graph(name: String!, url: String!) on ENUM_VALUE
+
+        directive @join__implements(graph: join__Graph!, interface: String!) repeatable on OBJECT | INTERFACE
     "#});
 
     sdl.push('\n');
@@ -486,6 +510,23 @@ fn render_join_field(key: &Key, f: &mut fmt::Formatter<'_>, graph: &FederatedGra
     f.write_str("\n")
 }
 
+fn render_join_implement(
+    subgraph_id: SubgraphId,
+    interface_id: InterfaceId,
+    f: &mut fmt::Formatter<'_>,
+    graph: &FederatedGraph,
+) -> fmt::Result {
+    let subgraph_name = GraphEnumVariantName(&graph[graph[subgraph_id].name]);
+
+    f.write_str(INDENT)?;
+
+    DirectiveWriter::new("join__implements", f, graph)?
+        .arg("graph", subgraph_name)?
+        .arg("interface", Value::String(graph[interface_id].name))?;
+
+    Ok(())
+}
+
 /// Render an `@authorized` directive
 fn render_authorized_directive(
     directive: &AuthorizedDirective,
@@ -528,6 +569,7 @@ mod tests {
         let empty = crate::VersionedFederatedGraph::Sdl(
             crate::render_sdl::render_federated_sdl(&FederatedGraph::default()).unwrap(),
         );
+
         let actual = render_federated_sdl(&empty.into_latest()).expect("valid");
         let expected = expect![[r#"
             directive @core(feature: String!) repeatable on SCHEMA
@@ -547,6 +589,8 @@ mod tests {
             ) on FIELD_DEFINITION
 
             directive @join__graph(name: String!, url: String!) on ENUM_VALUE
+
+            directive @join__implements(graph: join__Graph!, interface: String!) repeatable on OBJECT | INTERFACE
         "#]];
 
         expected.assert_eq(&actual);
@@ -566,6 +610,7 @@ mod tests {
             "###,
         )
         .unwrap();
+
         let actual = render_federated_sdl(&empty).expect("valid");
         let expected = expect![[r#"
             directive @core(feature: String!) repeatable on SCHEMA
@@ -585,6 +630,8 @@ mod tests {
             ) on FIELD_DEFINITION
 
             directive @join__graph(name: String!, url: String!) on ENUM_VALUE
+
+            directive @join__implements(graph: join__Graph!, interface: String!) repeatable on OBJECT | INTERFACE
 
             type Query {
                 field: String @deprecated(reason: "This is a \"deprecated\" reason") @dummy(test: "a \"test\"")
@@ -614,6 +661,7 @@ mod tests {
             "###,
         )
         .unwrap();
+
         let actual = render_federated_sdl(&empty).expect("valid");
         let expected = expect![[r#"
             directive @core(feature: String!) repeatable on SCHEMA
@@ -633,6 +681,8 @@ mod tests {
             ) on FIELD_DEFINITION
 
             directive @join__graph(name: String!, url: String!) on ENUM_VALUE
+
+            directive @join__implements(graph: join__Graph!, interface: String!) repeatable on OBJECT | INTERFACE
 
             type Query {
                 field: String @deprecated(reason: "This is a \"deprecated\" reason\n\n                on multiple lines.\n\n                yes, way\n\n                ") @dummy(test: "a \"test\"")
@@ -676,6 +726,8 @@ mod tests {
             ) on FIELD_DEFINITION
 
             directive @join__graph(name: String!, url: String!) on ENUM_VALUE
+
+            directive @join__implements(graph: join__Graph!, interface: String!) repeatable on OBJECT | INTERFACE
 
             enum join__Graph {
                 MOCKSUBGRAPH @join__graph(name: "mocksubgraph", url: "https://mock.example.com/todo/graphql")

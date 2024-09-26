@@ -33,7 +33,7 @@ impl GraphqlResolver {
         operation_type: OperationType,
         plan: PlanWalker<'_>,
     ) -> PlanningResult<Resolver> {
-        let operation = PreparedGraphqlOperation::build(operation_type, plan)
+        let operation = PreparedGraphqlOperation::build(operation_type, plan, definition.endpoint_id.into())
             .map_err(|err| format!("Failed to build query: {err}"))?;
 
         Ok(Resolver::GraphQL(Self {

@@ -5,9 +5,11 @@ use std::{
 
 use engine_parser::types::OperationType;
 use itertools::Itertools;
-use schema::EntityDefinitionId;
+use schema::{EntityDefinition, SubgraphId};
 
-use crate::operation::{FieldArgumentsWalker, PlanField, PlanSelectionSet, PlanWalker, QueryInputValueId};
+use crate::operation::{
+    FieldArgumentsWalker, PlanField, PlanSelectionSet, PlanWalker, QueryInputValueId, SelectionSetType,
+};
 
 const VARIABLE_PREFIX: &str = "var";
 
@@ -28,17 +30,21 @@ impl PreparedGraphqlOperation {
     pub(crate) fn build(
         operation_type: OperationType,
         plan: PlanWalker<'_>,
+        subgraph_id: SubgraphId,
     ) -> Result<PreparedGraphqlOperation, Error> {
-        let mut ctx = QueryBuilderContext::default();
+        let mut ctx = QueryBuilderContext::new(subgraph_id);
+
         // Generating the selection set first as this will define all the operation arguments
         let selection_set = {
             let mut buffer = Buffer::with_capacity(256);
-            let entity_id = EntityDefinitionId::Object(match operation_type {
+
+            let selection_set_type = SelectionSetType::Object(match operation_type {
                 OperationType::Query => plan.schema().query().id(),
                 OperationType::Mutation => plan.schema().mutation().unwrap().id(),
                 OperationType::Subscription => plan.schema().subscription().unwrap().id(),
             });
-            ctx.write_selection_set(Some(entity_id), &mut buffer, plan.selection_set())?;
+
+            ctx.write_selection_set(Some(selection_set_type), &mut buffer, plan.selection_set())?;
             buffer.into_string()
         };
 
@@ -72,8 +78,8 @@ pub(crate) struct PreparedFederationEntityOperation {
 }
 
 impl PreparedFederationEntityOperation {
-    pub(crate) fn build(plan: PlanWalker<'_>) -> Result<Self, Error> {
-        let mut ctx = QueryBuilderContext::default();
+    pub(crate) fn build(plan: PlanWalker<'_>, subgraph_id: SubgraphId) -> Result<Self, Error> {
+        let mut ctx = QueryBuilderContext::new(subgraph_id);
 
         // Generating the selection set first as this will define all the operation arguments
         let selection_set = {
@@ -133,13 +139,21 @@ struct QueryVariable {
     ty: String,
 }
 
-#[derive(Default)]
 struct QueryBuilderContext {
+    subgraph_id: SubgraphId,
     variables: HashMap<QueryInputValueId, QueryVariable>,
     estimated_variable_definitions_string_len: usize,
 }
 
 impl QueryBuilderContext {
+    fn new(subgraph_id: SubgraphId) -> Self {
+        Self {
+            subgraph_id,
+            variables: HashMap::new(),
+            estimated_variable_definitions_string_len: 0,
+        }
+    }
+
     fn into_query_variables(self) -> QueryVariables {
         let mut vars = vec![None; self.variables.len()];
         for (input_value_id, var) in self.variables {
@@ -148,9 +162,7 @@ impl QueryBuilderContext {
 
         QueryVariables(vars.into_iter().map(Option::unwrap).collect())
     }
-}
 
-impl QueryBuilderContext {
     fn write_operation_arguments_without_parenthesis(&self, out: &mut String) -> Result<(), Error> {
         write!(
             out,
@@ -164,7 +176,7 @@ impl QueryBuilderContext {
 
     fn write_selection_set(
         &mut self,
-        maybe_entity_id: Option<EntityDefinitionId>,
+        maybe_selection_set_type: Option<SelectionSetType>,
         buffer: &mut Buffer,
         selection_set: PlanSelectionSet<'_>,
     ) -> Result<(), Error> {
@@ -175,7 +187,7 @@ impl QueryBuilderContext {
             // We always need to know the concrete object.
             indent_write!(buffer, "__typename\n")?;
         }
-        self.write_selection_set_fields(maybe_entity_id, buffer, selection_set)?;
+        self.write_selection_set_fields(maybe_selection_set_type, buffer, selection_set)?;
         // If nothing was written it means only meta fields (__typename) are present and during
         // deserialization we'll expect an object. So adding `__typename` to ensure a non empty
         // selection set.
@@ -188,31 +200,120 @@ impl QueryBuilderContext {
 
     fn write_selection_set_fields(
         &mut self,
-        maybe_entity_id: Option<EntityDefinitionId>,
+        selection_set_type: Option<SelectionSetType>,
         buffer: &mut Buffer,
         selection_set: PlanSelectionSet<'_>,
     ) -> Result<(), Error> {
+        let subgraph_id = self.subgraph_id;
+        let parent_entity_id = selection_set_type.and_then(|t| t.as_entity_id());
+
         let entity_to_fields = selection_set
             .fields_ordered_by_parent_entity_id_then_position()
             .into_iter()
             .chunk_by(|field| field.definition().parent_entity_id);
+
         for (entity_id, fields) in entity_to_fields.into_iter() {
-            if maybe_entity_id != Some(entity_id) {
-                indent_write!(
-                    buffer,
-                    "... on {} {{\n",
-                    selection_set.walker().schema().walk(entity_id).name()
-                )?;
-                buffer.indent += 1;
+            let fields = fields.collect_vec();
+            let entity = selection_set.walker().schema().walk(entity_id);
+            let in_same_entity = parent_entity_id == Some(entity_id);
+
+            let mut add_interface_fragment = false;
+
+            match (selection_set_type, entity) {
+                (Some(SelectionSetType::Interface(_)), schema::EntityDefinition::Interface(interface))
+                    if interface.is_not_fully_implemented_in(subgraph_id) && !in_same_entity =>
+                {
+                    let objects = interface
+                        .possible_types_ordered_by_typename()
+                        .filter(|o| o.resolvable_in(&subgraph_id));
+
+                    for object in objects {
+                        if object.subgraph_implements_interface(&subgraph_id, &interface.id()) {
+                            add_interface_fragment = true;
+                        } else {
+                            self.write_type_fields(buffer, object.name(), &fields)?;
+                        }
+                    }
+                }
+                (Some(SelectionSetType::Union(union_id)), schema::EntityDefinition::Interface(interface))
+                    if interface.is_not_fully_implemented_in(subgraph_id) && !in_same_entity =>
+                {
+                    let objects = selection_set
+                        .walker()
+                        .schema()
+                        .walk(union_id)
+                        .possible_types_ordered_by_typename()
+                        .filter(|o| o.resolvable_in(&subgraph_id));
+
+                    for object in objects {
+                        if object.subgraph_implements_interface(&subgraph_id, &interface.id()) {
+                            add_interface_fragment = true;
+                        } else {
+                            self.write_type_fields(buffer, object.name(), &fields)?;
+                        }
+                    }
+                }
+                _ => {
+                    if let Some(SelectionSetType::Interface(interface_id)) = selection_set_type {
+                        if let EntityDefinition::Object(ref object) = entity {
+                            if !object.subgraph_implements_interface(&subgraph_id, &interface_id) {
+                                continue;
+                            }
+                        }
+                    }
+
+                    add_interface_fragment = true;
+                }
             }
-            for field in fields {
-                self.write_field(buffer, field)?;
-            }
-            if maybe_entity_id != Some(entity_id) {
-                buffer.indent -= 1;
-                indent_write!(buffer, "}}\n")?;
+
+            if add_interface_fragment {
+                self.write_entity_fields(in_same_entity, buffer, entity, &fields)?;
             }
         }
+
+        Ok(())
+    }
+
+    fn write_entity_fields(
+        &mut self,
+        in_same_entity: bool,
+        buffer: &mut Buffer,
+        entity: EntityDefinition<'_>,
+        fields: &[PlanWalker<'_, crate::operation::FieldId>],
+    ) -> Result<(), Error> {
+        if !in_same_entity {
+            indent_write!(buffer, "... on {} {{\n", entity.name())?;
+            buffer.indent += 1;
+        }
+
+        for field in fields {
+            self.write_field(buffer, *field)?;
+        }
+
+        if !in_same_entity {
+            buffer.indent -= 1;
+            indent_write!(buffer, "}}\n")?;
+        }
+
+        Ok(())
+    }
+
+    fn write_type_fields(
+        &mut self,
+        buffer: &mut Buffer,
+        type_name: &str,
+        fields: &[PlanWalker<'_, crate::operation::FieldId>],
+    ) -> Result<(), Error> {
+        indent_write!(buffer, "... on {} {{\n", type_name)?;
+        buffer.indent += 1;
+
+        for field in fields {
+            self.write_field(buffer, *field)?;
+        }
+
+        buffer.indent -= 1;
+        indent_write!(buffer, "}}\n")?;
+
         Ok(())
     }
 
@@ -227,7 +328,7 @@ impl QueryBuilderContext {
         self.write_arguments(buffer, field.arguments())?;
         if let Some(selection_set) = field.selection_set() {
             self.write_selection_set(
-                EntityDefinitionId::maybe_from(field.definition().ty().definition().id()),
+                SelectionSetType::maybe_from(field.definition().ty().definition().id()),
                 buffer,
                 selection_set,
             )?;

@@ -125,6 +125,7 @@ impl<'a> Context<'a> {
             composed_directives,
             description,
             fields: federated::NO_FIELDS,
+            join_implements: Vec::new(),
         };
         let id = federated::InterfaceId(self.ir.interfaces.push_return_idx(interface));
         self.ir
@@ -158,6 +159,7 @@ impl<'a> Context<'a> {
         let object = federated::Object {
             name,
             implements_interfaces: Vec::new(),
+            join_implements: Vec::new(),
             keys: Vec::new(),
             composed_directives,
             description,
