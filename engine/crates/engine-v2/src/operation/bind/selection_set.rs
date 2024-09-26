@@ -163,10 +163,12 @@ impl<'schema, 'p, 'binder> SelectionSetBinder<'schema, 'p, 'binder> {
             node: selection_set, ..
         } = selection_set;
 
+        let parent_query_modifier_rules = &parent_query_modifier_rules;
+
         for Positioned { node: selection, .. } in &selection_set.items {
             match selection {
                 engine_parser::types::Selection::Field(field) => {
-                    self.register_field(ty, field, parent_query_modifier_rules.clone())?;
+                    self.register_field(ty, field, parent_query_modifier_rules)?;
                 }
                 engine_parser::types::Selection::FragmentSpread(spread) => {
                     self.register_fragment_spread_fields(ty, spread)?;
@@ -184,7 +186,7 @@ impl<'schema, 'p, 'binder> SelectionSetBinder<'schema, 'p, 'binder> {
         &mut self,
         parent: SelectionSetType,
         field: &'p Positioned<engine_parser::types::Field>,
-        parent_query_modifier_rules: Vec<QueryModifierRule>,
+        parent_query_modifier_rules: &[QueryModifierRule],
     ) -> BindResult<()> {
         let name_location: Location = field.pos.try_into()?;
         let name = field.name.node.as_str();
@@ -223,7 +225,7 @@ impl<'schema, 'p, 'binder> SelectionSetBinder<'schema, 'p, 'binder> {
             location: name_location,
         })?;
 
-        let query_modifier_indicators = self.directives_to_query_modifiers(&field.directives)?;
+        let query_modifier_rules = self.directives_to_query_modifiers(&field.directives)?;
 
         let entry =
             self.fields
@@ -232,12 +234,12 @@ impl<'schema, 'p, 'binder> SelectionSetBinder<'schema, 'p, 'binder> {
 
         entry.1.push(field);
 
-        for modifier in parent_query_modifier_rules
-            .into_iter()
-            .chain(query_modifier_indicators.into_iter())
-        {
-            entry.2.push(modifier)
-        }
+        entry.2.extend(
+            parent_query_modifier_rules
+                .iter()
+                .chain(query_modifier_rules.iter())
+                .cloned(),
+        );
 
         Ok(())
     }
