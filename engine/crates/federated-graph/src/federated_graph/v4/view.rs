@@ -1,6 +1,6 @@
 //! Convenient methods and helper types to navigate a [FederatedGraph].
 
-use std::ops::Index;
+use std::ops::{Deref, Index};
 
 use super::{FederatedGraph, StringId};
 
@@ -32,47 +32,52 @@ impl<Id, Record> std::ops::Deref for View<Id, Record> {
     }
 }
 
-pub struct ViewNested<'a, Record> {
+pub struct ViewNested<'a, Id, Record> {
     graph: &'a FederatedGraph,
-    record: &'a Record,
+    view: View<Id, &'a Record>,
 }
 
-impl<'a, Record> ViewNested<'a, Record> {
+impl<'a, Id, Record> Deref for ViewNested<'a, Id, Record> {
+    type Target = View<Id, &'a Record>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.view
+    }
+}
+
+impl<'a, Id, Record> AsRef<View<Id, &'a Record>> for ViewNested<'a, Id, Record> {
+    fn as_ref(&self) -> &View<Id, &'a Record> {
+        &self.view
+    }
+}
+
+impl<'a, Id, Record> AsRef<Record> for ViewNested<'a, Id, Record> {
+    fn as_ref(&self) -> &Record {
+        self.view.as_ref()
+    }
+}
+
+impl<'a, Id, Record> ViewNested<'a, Id, Record> {
     /// Continue navigating with the next ID.
-    pub fn through<Id, Next>(&self, next: impl FnOnce(&Record) -> Id) -> ViewNested<'a, Next>
+    pub fn then<NextId, NextRecord>(&self, next: impl FnOnce(&Record) -> NextId) -> ViewNested<'a, NextId, NextRecord>
     where
-        FederatedGraph: Index<Id, Output = Next>,
+        NextId: Copy,
+        FederatedGraph: Index<NextId, Output = NextRecord>,
     {
-        ViewNested {
-            graph: self.graph,
-            record: &self.graph[next(self.record)],
-        }
-    }
-
-    /// Resolve a [StringId].
-    pub fn str(&self, next: impl FnOnce(&Record) -> StringId) -> &'a str {
-        self.graph[next(self.record)].as_str()
-    }
-
-    /// View the record with the provided ID.
-    pub fn view<Id, Next>(&self, next: impl FnOnce(&Record) -> Id) -> View<Id, &'a Next>
-    where
-        Id: Copy,
-        FederatedGraph: Index<Id, Output = Next>,
-    {
-        self.graph.view(next(self.record))
+        self.graph.at(next(self.view.record))
     }
 }
 
 impl FederatedGraph {
     /// Start navigating the graph from the given ID. Returns a [ViewNested] that exposes further steps.
-    pub fn through<Id, Record>(&self, id: Id) -> ViewNested<'_, Record>
+    pub fn at<Id, Record>(&self, id: Id) -> ViewNested<'_, Id, Record>
     where
+        Id: Copy,
         FederatedGraph: Index<Id, Output = Record>,
     {
         ViewNested {
             graph: self,
-            record: &self[id],
+            view: self.view(id),
         }
     }
 

@@ -286,7 +286,7 @@ impl FederatedGraphExt for FederatedGraph {
         self.objects
             .iter()
             .enumerate()
-            .find(|(_, object)| self.through(object.type_definition_id).str(|def| def.name) == name)
+            .find(|(_, object)| self.at(object.type_definition_id).then(|def| def.name).as_str() == name)
             .map(|(i, _)| ObjectId(i))
     }
 

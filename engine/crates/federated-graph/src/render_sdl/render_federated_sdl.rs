@@ -54,9 +54,11 @@ pub fn render_federated_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error
 
             for (idx, interface) in object.implements_interfaces.iter().enumerate() {
                 let interface_name = graph
-                    .through(*interface)
-                    .through(|interface| interface.type_definition_id)
-                    .str(|def| def.name);
+                    .at(*interface)
+                    .then(|interface| interface.type_definition_id)
+                    .then(|def| def.name)
+                    .as_str();
+
                 sdl.push_str(interface_name);
 
                 if idx < object.implements_interfaces.len() - 1 {
@@ -223,9 +225,10 @@ pub fn render_federated_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error
         while let Some(member) = members.next() {
             sdl.push_str(
                 graph
-                    .through(*member)
-                    .through(|member| member.type_definition_id)
-                    .str(|def| def.name),
+                    .at(*member)
+                    .then(|member| member.type_definition_id)
+                    .then(|def| def.name)
+                    .as_str(),
             );
 
             if members.peek().is_some() {
@@ -277,7 +280,10 @@ fn render_join_member(
 
     DirectiveWriter::new("join__unionMember", f, graph)?
         .arg("graph", subgraph_name)?
-        .arg("member", Value::String(graph[object_id].name))?;
+        .arg(
+            "member",
+            Value::String(graph.at(object_id).then(|object| object.type_definition_id).name),
+        )?;
 
     Ok(())
 }
@@ -566,7 +572,7 @@ fn render_join_implement(
         .arg("graph", subgraph_name)?
         .arg(
             "interface",
-            Value::String(graph.through(interface_id).view(|iface| iface.type_definition_id).name),
+            Value::String(graph.at(interface_id).then(|iface| iface.type_definition_id).name),
         )?;
 
     Ok(())

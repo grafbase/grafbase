@@ -55,10 +55,10 @@ impl FederatedGraph {
     pub fn definition_name(&self, definition: Definition) -> &str {
         let name_id = match definition {
             Definition::Scalar(scalar_id) => self[scalar_id].name,
-            Definition::Object(object_id) => self.through(object_id).view(|obj| obj.type_definition_id).name,
+            Definition::Object(object_id) => self.at(object_id).then(|obj| obj.type_definition_id).name,
             Definition::Interface(interface_id) => {
-                self.through(interface_id)
-                    .view(|interface| interface.type_definition_id)
+                self.at(interface_id)
+                    .then(|interface| interface.type_definition_id)
                     .name
             }
             Definition::Union(union_id) => self[union_id].name,

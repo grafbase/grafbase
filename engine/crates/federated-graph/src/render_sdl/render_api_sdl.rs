@@ -198,9 +198,10 @@ impl fmt::Display for Renderer<'_> {
                 f.write_str(" ")?;
                 f.write_str(
                     graph
-                        .through(*member)
-                        .through(|obj| obj.type_definition_id)
-                        .str(|def| def.name),
+                        .at(*member)
+                        .then(|obj| obj.type_definition_id)
+                        .then(|def| def.name)
+                        .as_str(),
                 )?;
 
                 if members.peek().is_some() {
