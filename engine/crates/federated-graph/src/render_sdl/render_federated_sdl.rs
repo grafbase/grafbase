@@ -198,6 +198,20 @@ pub fn render_federated_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error
 
         write!(sdl, "union {union_name}")?;
         write_composed_directives(union.composed_directives, graph, &mut sdl)?;
+
+        if !union.join_members.is_empty() {
+            with_formatter(&mut sdl, |f| {
+                for (subgraph_id, object_id) in &union.join_members {
+                    f.write_str("\n")?;
+                    render_join_member(*subgraph_id, *object_id, graph, f)?;
+                }
+
+                f.write_str("\n")?;
+
+                Ok(())
+            })?
+        }
+
         sdl.push_str(" = ");
 
         let mut members = union.members.iter().peekable();
@@ -242,6 +256,23 @@ pub fn render_federated_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error
     Ok(sdl)
 }
 
+fn render_join_member(
+    subgraph_id: SubgraphId,
+    object_id: ObjectId,
+    graph: &FederatedGraph,
+    f: &mut fmt::Formatter<'_>,
+) -> fmt::Result {
+    let subgraph_name = GraphEnumVariantName(&graph[graph[subgraph_id].name]);
+
+    f.write_str(INDENT)?;
+
+    DirectiveWriter::new("join__unionMember", f, graph)?
+        .arg("graph", subgraph_name)?
+        .arg("member", Value::String(graph[object_id].name))?;
+
+    Ok(())
+}
+
 fn write_prelude(sdl: &mut String) -> fmt::Result {
     sdl.push_str(indoc::indoc! {r#"
         directive @core(feature: String!) repeatable on SCHEMA
@@ -263,6 +294,8 @@ fn write_prelude(sdl: &mut String) -> fmt::Result {
         directive @join__graph(name: String!, url: String!) on ENUM_VALUE
 
         directive @join__implements(graph: join__Graph!, interface: String!) repeatable on OBJECT | INTERFACE
+
+        directive @join__unionMember(graph: join__Graph!, member: String!) repeatable on UNION
     "#});
 
     sdl.push('\n');
@@ -591,6 +624,8 @@ mod tests {
             directive @join__graph(name: String!, url: String!) on ENUM_VALUE
 
             directive @join__implements(graph: join__Graph!, interface: String!) repeatable on OBJECT | INTERFACE
+
+            directive @join__unionMember(graph: join__Graph!, member: String!) repeatable on UNION
         "#]];
 
         expected.assert_eq(&actual);
@@ -632,6 +667,8 @@ mod tests {
             directive @join__graph(name: String!, url: String!) on ENUM_VALUE
 
             directive @join__implements(graph: join__Graph!, interface: String!) repeatable on OBJECT | INTERFACE
+
+            directive @join__unionMember(graph: join__Graph!, member: String!) repeatable on UNION
 
             type Query {
                 field: String @deprecated(reason: "This is a \"deprecated\" reason") @dummy(test: "a \"test\"")
@@ -684,6 +721,8 @@ mod tests {
 
             directive @join__implements(graph: join__Graph!, interface: String!) repeatable on OBJECT | INTERFACE
 
+            directive @join__unionMember(graph: join__Graph!, member: String!) repeatable on UNION
+
             type Query {
                 field: String @deprecated(reason: "This is a \"deprecated\" reason\n\n                on multiple lines.\n\n                yes, way\n\n                ") @dummy(test: "a \"test\"")
             }
@@ -728,6 +767,8 @@ mod tests {
             directive @join__graph(name: String!, url: String!) on ENUM_VALUE
 
             directive @join__implements(graph: join__Graph!, interface: String!) repeatable on OBJECT | INTERFACE
+
+            directive @join__unionMember(graph: join__Graph!, member: String!) repeatable on UNION
 
             enum join__Graph {
                 MOCKSUBGRAPH @join__graph(name: "mocksubgraph", url: "https://mock.example.com/todo/graphql")

@@ -12,12 +12,12 @@ use walker::Walk;
 /// Generated from:
 ///
 /// ```custom,{.language-graphql}
-/// type JoinImplementsDefinition @meta(module: "join_implements", derive: ["Clone"]) {
+/// type JoinImplementsDefinition @meta(module: "join_implements") @copy {
 ///   interface: InterfaceDefinition!
 ///   subgraph: Subgraph!
 /// }
 /// ```
-#[derive(Debug, serde::Serialize, serde::Deserialize, Clone)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, Clone, Copy)]
 pub struct JoinImplementsDefinitionRecord {
     pub interface_id: InterfaceDefinitionId,
     pub subgraph_id: SubgraphId,
@@ -26,20 +26,20 @@ pub struct JoinImplementsDefinitionRecord {
 #[derive(Clone, Copy)]
 pub struct JoinImplementsDefinition<'a> {
     pub(crate) schema: &'a Schema,
-    pub(crate) ref_: &'a JoinImplementsDefinitionRecord,
+    pub(crate) item: JoinImplementsDefinitionRecord,
 }
 
 impl std::ops::Deref for JoinImplementsDefinition<'_> {
     type Target = JoinImplementsDefinitionRecord;
     fn deref(&self) -> &Self::Target {
-        self.ref_
+        &self.item
     }
 }
 
 impl<'a> JoinImplementsDefinition<'a> {
     #[allow(clippy::should_implement_trait)]
-    pub fn as_ref(&self) -> &'a JoinImplementsDefinitionRecord {
-        self.ref_
+    pub fn as_ref(&self) -> &JoinImplementsDefinitionRecord {
+        &self.item
     }
     pub fn interface(&self) -> InterfaceDefinition<'a> {
         self.interface_id.walk(self.schema)
@@ -49,13 +49,13 @@ impl<'a> JoinImplementsDefinition<'a> {
     }
 }
 
-impl Walk<Schema> for &JoinImplementsDefinitionRecord {
-    type Walker < 'a > = JoinImplementsDefinition < 'a > where Self : 'a ;
+impl Walk<Schema> for JoinImplementsDefinitionRecord {
+    type Walker<'a> = JoinImplementsDefinition<'a>;
     fn walk<'a>(self, schema: &'a Schema) -> Self::Walker<'a>
     where
         Self: 'a,
     {
-        JoinImplementsDefinition { schema, ref_: self }
+        JoinImplementsDefinition { schema, item: self }
     }
 }
 

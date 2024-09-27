@@ -5,7 +5,12 @@ use self::{arguments::*, value::*};
 use crate::federated_graph::*;
 use cynic_parser::{common::WrappingType, executable as executable_ast, type_system as ast};
 use indexmap::IndexSet;
-use std::{collections::HashMap, error::Error as StdError, fmt, ops::Range};
+use std::{
+    collections::{BTreeSet, HashMap},
+    error::Error as StdError,
+    fmt,
+    ops::Range,
+};
 
 const JOIN_FIELD_DIRECTIVE_NAME: &str = "join__field";
 const JOIN_FIELD_DIRECTIVE_OVERRIDE_ARGUMENT: &str = "override";
@@ -276,6 +281,7 @@ fn ingest_fields<'a>(parsed: &'a ast::TypeSystemDocument, state: &mut State<'a>)
                         return Err(DomainError("Broken invariant: UnionId behind union name.".to_owned()));
                     };
                     ingest_union_members(union_id, union, state)?;
+                    ingest_union_join_members(union_id, union, state)?;
                 }
                 ast::TypeDefinition::Enum(_) => {}
                 ast::TypeDefinition::InputObject(input_object) => {
@@ -386,6 +392,56 @@ fn ingest_interface_join_implements(
     }
 
     Ok(())
+}
+
+fn ingest_union_join_members(
+    union_id: UnionId,
+    union: &ast::UnionDefinition<'_>,
+    state: &mut State<'_>,
+) -> Result<(), DomainError> {
+    for directive in union.directives() {
+        let Some((subgraph_id, object_id)) = parse_join_union_member(directive, state)? else {
+            continue;
+        };
+
+        state.unions[union_id.0].join_members.insert((subgraph_id, object_id));
+    }
+
+    Ok(())
+}
+
+fn parse_join_union_member(
+    directive: ast::Directive<'_>,
+    state: &mut State<'_>,
+) -> Result<Option<(SubgraphId, ObjectId)>, DomainError> {
+    if directive.name() != "join__unionMember" {
+        return Ok(None);
+    }
+
+    let Some(ast::Value::Enum(graph)) = directive.get_argument("graph").map(|a| a.value()) else {
+        let error = DomainError("Missing graph argument in join__unionMember directive".to_owned());
+        return Err(error);
+    };
+
+    let Some(ast::Value::String(member)) = directive.get_argument("member").map(|a| a.value()) else {
+        let error = DomainError("Missing member argument in join__unionMember directive".to_owned());
+        return Err(error);
+    };
+
+    let Some(subgraph_id) = state.graph_sdl_names.get(graph).copied() else {
+        let error = DomainError("Unknown graph in join__unionMember directive".to_owned());
+        return Err(error);
+    };
+
+    let object_id = match state.definition_names.get(member) {
+        Some(Definition::Object(object_id)) => *object_id,
+        _ => {
+            let error = DomainError("Broken invariant: join__unionMember points to a non-existing type".to_owned());
+            return Err(error);
+        }
+    };
+
+    Ok(Some((subgraph_id, object_id)))
 }
 
 fn parse_join_implements(
@@ -800,6 +856,7 @@ fn ingest_definitions<'a>(document: &'a ast::TypeSystemDocument, state: &mut Sta
                         let union_id = UnionId(state.unions.push_return_idx(Union {
                             name: type_name_id,
                             members: Vec::new(),
+                            join_members: BTreeSet::new(),
                             composed_directives,
                             description,
                         }));
@@ -1458,6 +1515,7 @@ fn collect_composed_directives<'a>(
             // Added later after ingesting the graph.
             "authorized" => {}
             "join__implements" => {}
+            "join__unionMember" => {}
             other => {
                 let name = state.insert_string(other);
                 let arguments = directive
@@ -1771,6 +1829,8 @@ fn backwards_compatibility() {
 
     directive @join__implements(graph: join__Graph!, interface: String!) repeatable on OBJECT | INTERFACE
 
+    directive @join__unionMember(graph: join__Graph!, member: String!) repeatable on UNION
+
     enum join__Graph {
         MANGROVE @join__graph(name: "mangrove", url: "http://example.com/mangrove")
         STEPPE @join__graph(name: "steppe", url: "http://example.com/steppe")
@@ -1787,39 +1847,41 @@ fn backwards_compatibility() {
     "###;
 
     let expected = expect![[r#"
-    directive @core(feature: String!) repeatable on SCHEMA
+        directive @core(feature: String!) repeatable on SCHEMA
 
-    directive @join__owner(graph: join__Graph!) on OBJECT
+        directive @join__owner(graph: join__Graph!) on OBJECT
 
-    directive @join__type(
-        graph: join__Graph!
-        key: String!
-        resolvable: Boolean = true
-    ) repeatable on OBJECT | INTERFACE
+        directive @join__type(
+            graph: join__Graph!
+            key: String!
+            resolvable: Boolean = true
+        ) repeatable on OBJECT | INTERFACE
 
-    directive @join__field(
-        graph: join__Graph
-        requires: String
-        provides: String
-    ) on FIELD_DEFINITION
+        directive @join__field(
+            graph: join__Graph
+            requires: String
+            provides: String
+        ) on FIELD_DEFINITION
 
-    directive @join__graph(name: String!, url: String!) on ENUM_VALUE
+        directive @join__graph(name: String!, url: String!) on ENUM_VALUE
 
-    directive @join__implements(graph: join__Graph!, interface: String!) repeatable on OBJECT | INTERFACE
+        directive @join__implements(graph: join__Graph!, interface: String!) repeatable on OBJECT | INTERFACE
 
-    enum join__Graph {
-        MANGROVE @join__graph(name: "mangrove", url: "http://example.com/mangrove")
-        STEPPE @join__graph(name: "steppe", url: "http://example.com/steppe")
-    }
+        directive @join__unionMember(graph: join__Graph!, member: String!) repeatable on UNION
 
-    type Mammoth {
-        tuskLength: Int
-        weightGrams: Int @join__field(graph: MANGROVE, override: "steppe")
-    }
+        enum join__Graph {
+            MANGROVE @join__graph(name: "mangrove", url: "http://example.com/mangrove")
+            STEPPE @join__graph(name: "steppe", url: "http://example.com/steppe")
+        }
 
-    type Query {
-        getMammoth: Mammoth @join__field(graph: MANGROVE, override: "steppe")
-    }
+        type Mammoth {
+            tuskLength: Int
+            weightGrams: Int @join__field(graph: MANGROVE, override: "steppe")
+        }
+
+        type Query {
+            getMammoth: Mammoth @join__field(graph: MANGROVE, override: "steppe")
+        }
     "#]];
 
     let actual = crate::render_sdl::render_federated_sdl(&super::from_sdl(sdl).unwrap()).unwrap();

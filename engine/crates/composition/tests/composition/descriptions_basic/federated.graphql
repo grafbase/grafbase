@@ -18,6 +18,8 @@ directive @join__graph(name: String!, url: String!) on ENUM_VALUE
 
 directive @join__implements(graph: join__Graph!, interface: String!) repeatable on OBJECT | INTERFACE
 
+directive @join__unionMember(graph: join__Graph!, member: String!) repeatable on UNION
+
 enum join__Graph {
     SELFEXPLANATORYTOFU @join__graph(name: "selfExplanatoryTofu", url: "http://example.com/selfExplanatoryTofu")
     TOFU @join__graph(name: "tofu", url: "http://example.com/tofu")
@@ -146,7 +148,14 @@ enum TofuType {
 """
 Union representing different food items that can be part of a recipe.
 """
-union FoodItem = Tofu | Vegetable | Spice
+union FoodItem
+    @join__unionMember(graph: SELFEXPLANATORYTOFU, member: "Tofu")
+    @join__unionMember(graph: SELFEXPLANATORYTOFU, member: "Vegetable")
+    @join__unionMember(graph: SELFEXPLANATORYTOFU, member: "Spice")
+    @join__unionMember(graph: TOFU, member: "Tofu")
+    @join__unionMember(graph: TOFU, member: "Vegetable")
+    @join__unionMember(graph: TOFU, member: "Spice")
+ = Tofu | Vegetable | Spice
 
 """
 Filter criteria for tofu recipes.

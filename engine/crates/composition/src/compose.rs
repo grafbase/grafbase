@@ -134,6 +134,6 @@ fn merge_union_definitions(
     {
         let member = first_union.walk(member);
         let member_name = ctx.insert_string(member.name().id);
-        ctx.insert_union_member(union_name, member_name);
+        ctx.insert_union_member(member.subgraph_id(), union_name, member_name);
     }
 }

@@ -1,3 +1,5 @@
+use std::collections::BTreeSet;
+
 pub use super::v1::{
     Definition, EnumId, FieldId, FieldProvides, FieldRequires, FieldSet, FieldType, InputObjectId, InterfaceField,
     InterfaceId, Key, ListWrapper, ObjectField, ObjectId, Override, OverrideLabel, OverrideSource, RootOperationTypes,
@@ -219,6 +221,7 @@ pub struct Scalar {
 pub struct Union {
     pub name: StringId,
     pub members: Vec<ObjectId>,
+    pub join_members: BTreeSet<(SubgraphId, ObjectId)>,
 
     /// All directives that made it through composition. Notably includes `@tag`.
     pub composed_directives: Directives,
@@ -565,6 +568,7 @@ impl From<super::v1::FederatedGraphV1> for FederatedGraphV2 {
                         members,
                         composed_directives: convert_directives(composed_directives, &mut directives),
                         description,
+                        join_members: BTreeSet::new(),
                     },
                 )
                 .collect(),

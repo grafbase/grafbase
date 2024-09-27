@@ -1,6 +1,8 @@
+use std::collections::{btree_map, BTreeSet};
+
 use crate::{
     composition_ir::{self as ir, CompositionIr},
-    subgraphs::{self, StringWalker},
+    subgraphs::{self, StringWalker, SubgraphId},
     Diagnostics, VecExt,
 };
 use graphql_federated_graph as federated;
@@ -205,6 +207,7 @@ impl<'a> Context<'a> {
         let union = federated::Union {
             name,
             members: Vec::new(),
+            join_members: BTreeSet::new(),
             composed_directives,
             description,
         };
@@ -215,8 +218,22 @@ impl<'a> Context<'a> {
         id
     }
 
-    pub(crate) fn insert_union_member(&mut self, union_name: federated::StringId, member_name: federated::StringId) {
+    pub(crate) fn insert_union_member(
+        &mut self,
+        subgraph_id: SubgraphId,
+        union_name: federated::StringId,
+        member_name: federated::StringId,
+    ) {
         self.ir.union_members.insert((union_name, member_name));
+
+        match self.ir.union_join_members.entry((union_name, member_name)) {
+            btree_map::Entry::Vacant(entry) => {
+                entry.insert(vec![subgraph_id]);
+            }
+            btree_map::Entry::Occupied(mut entry) => {
+                entry.get_mut().push(subgraph_id);
+            }
+        }
     }
 
     pub(crate) fn insert_key(&mut self, id: federated::ObjectId, key: subgraphs::KeyWalker<'_>) {

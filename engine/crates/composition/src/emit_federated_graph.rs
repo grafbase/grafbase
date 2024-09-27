@@ -6,12 +6,16 @@ mod field_types_map;
 use self::context::Context;
 use crate::{
     composition_ir::{self as ir, CompositionIr, FieldIr, InputValueDefinitionIr, KeyIr},
-    subgraphs, Subgraphs, VecExt,
+    subgraphs::{self, SubgraphId},
+    Subgraphs, VecExt,
 };
 use federated::RootOperationTypes;
 use graphql_federated_graph as federated;
 use itertools::Itertools;
-use std::{collections::BTreeSet, mem};
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    mem,
+};
 
 /// This can't fail. All the relevant, correct information should already be in the CompositionIr.
 pub(crate) fn emit_federated_graph(mut ir: CompositionIr, subgraphs: &Subgraphs) -> federated::VersionedFederatedGraph {
@@ -56,7 +60,7 @@ pub(crate) fn emit_federated_graph(mut ir: CompositionIr, subgraphs: &Subgraphs)
         __type,
         &mut ctx,
     );
-    emit_union_members(&ir.union_members, &mut ctx);
+    emit_union_members(&ir.union_members, &ir.union_join_members, &mut ctx);
     emit_keys(&ir.keys, &mut ctx);
     emit_authorized_directives(&ir, &mut ctx);
 
@@ -434,7 +438,11 @@ fn emit_fields<'a>(
     }
 }
 
-fn emit_union_members(ir_members: &BTreeSet<(federated::StringId, federated::StringId)>, ctx: &mut Context<'_>) {
+fn emit_union_members(
+    ir_members: &BTreeSet<(federated::StringId, federated::StringId)>,
+    ir_join_members: &BTreeMap<(federated::StringId, federated::StringId), Vec<SubgraphId>>,
+    ctx: &mut Context<'_>,
+) {
     for (union_name, members) in &ir_members.iter().chunk_by(|(union_name, _)| union_name) {
         let federated::Definition::Union(union_id) = ctx.definitions[union_name] else {
             continue;
@@ -446,6 +454,11 @@ fn emit_union_members(ir_members: &BTreeSet<(federated::StringId, federated::Str
                 continue;
             };
             union.members.push(object_id);
+
+            for subgraph_id in ir_join_members.get(&(*union_name, *member)).into_iter().flatten() {
+                let subgraph_id = federated::SubgraphId(subgraph_id.idx());
+                union.join_members.insert((subgraph_id, object_id));
+            }
         }
     }
 }

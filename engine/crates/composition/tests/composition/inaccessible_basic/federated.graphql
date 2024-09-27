@@ -18,6 +18,8 @@ directive @join__graph(name: String!, url: String!) on ENUM_VALUE
 
 directive @join__implements(graph: join__Graph!, interface: String!) repeatable on OBJECT | INTERFACE
 
+directive @join__unionMember(graph: join__Graph!, member: String!) repeatable on UNION
+
 enum join__Graph {
     FIVE_WITH_ENUM @join__graph(name: "five-with-enum", url: "http://example.com/five-with-enum")
     FOUR_WITH_UNION @join__graph(name: "four-with-union", url: "http://example.com/four-with-union")
@@ -110,7 +112,10 @@ enum UngulateType @inaccessible {
     GIRAFFE
 }
 
-union TVContent @inaccessible = Movie | Series
+union TVContent @inaccessible
+    @join__unionMember(graph: FOUR_WITH_UNION, member: "Movie")
+    @join__unionMember(graph: FOUR_WITH_UNION, member: "Series")
+ = Movie | Series
 
 input BookInput @inaccessible {
     title: String!
