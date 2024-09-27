@@ -16,7 +16,7 @@ tokio = { version = "1.39.1", features = ["rt", "macros"] }
 tracing = "0.1.40"
 itertools = "0.13"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
-wit-bindgen-rt = { version = "0.28.0", features = ["bitflags"] }
+wit-bindgen-rt = { version = "0.32.0", features = ["bitflags"] }
 
 [dependencies.reqwest]
 git = "https://github.com/pimeys/reqwest/"

@@ -110,7 +110,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install cargo binstall
-        uses: cargo-bins/cargo-binstall@v1.10.5
+        uses: cargo-bins/cargo-binstall@v1.10.6
 
       - name: Install cargo-component
         shell: bash

@@ -1,4 +1,4 @@
-FROM oven/bun:1.1.27-alpine
+FROM oven/bun:1.1.29-alpine
 WORKDIR /grafbase
 COPY . .
 
