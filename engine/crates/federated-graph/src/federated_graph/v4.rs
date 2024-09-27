@@ -413,7 +413,7 @@ impl From<super::FederatedGraphV3> for FederatedGraph {
             type_definitions.push(TypeDefinitionRecord {
                 name: object.name,
                 description: object.description,
-                directives: object.composed_directives.clone(),
+                directives: object.composed_directives,
                 kind: TypeDefinitionKind::Object,
             });
             definitions_map.insert(super::v3::Definition::Object(id), Definition::Object(id));
@@ -424,7 +424,7 @@ impl From<super::FederatedGraphV3> for FederatedGraph {
             type_definitions.push(TypeDefinitionRecord {
                 name: interface.name,
                 description: interface.description,
-                directives: interface.composed_directives.clone(),
+                directives: interface.composed_directives,
                 kind: TypeDefinitionKind::Interface,
             });
             definitions_map.insert(super::v3::Definition::Interface(id), Definition::Interface(id));
@@ -435,7 +435,7 @@ impl From<super::FederatedGraphV3> for FederatedGraph {
             type_definitions.push(TypeDefinitionRecord {
                 name: scalar.name,
                 description: scalar.description,
-                directives: scalar.composed_directives.clone(),
+                directives: scalar.composed_directives,
                 kind: TypeDefinitionKind::Scalar,
             });
             definitions_map.insert(super::v3::Definition::Scalar(idx.into()), Definition::Scalar(id));
@@ -507,7 +507,7 @@ impl From<super::FederatedGraphV3> for FederatedGraph {
                         r#type: Type {
                             definition: definitions_map
                                 .get(&r#type.definition)
-                                .map(|def| def.clone())
+                                .copied()
                                 .unwrap_or_else(|| Definition::Scalar(TypeDefinitionId::from(0))),
                             wrapping: r#type.wrapping,
                         },
@@ -552,7 +552,7 @@ impl From<super::FederatedGraphV3> for FederatedGraph {
                             wrapping: r#type.wrapping,
                             definition: definitions_map
                                 .get(&r#type.definition)
-                                .map(|def| def.clone())
+                                .copied()
                                 .unwrap_or_else(|| Definition::Scalar(TypeDefinitionId::from(0))),
                         },
                         directives,
