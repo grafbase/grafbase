@@ -2,7 +2,6 @@ use runtime::{
     error::{PartialErrorCode, PartialGraphqlError},
     hooks::{Anything, AuthorizationVerdict, AuthorizationVerdicts, AuthorizedHooks, EdgeDefinition, NodeDefinition},
 };
-use tracing::instrument;
 
 use super::{guest_error_as_gql, Context, HooksWasi};
 
@@ -40,7 +39,6 @@ fn encode<'a>(
 }
 
 impl AuthorizedHooks<Context> for HooksWasi {
-    #[instrument(skip_all)]
     async fn authorize_edge_pre_execution<'a>(
         &self,
         context: &Context,
@@ -77,7 +75,6 @@ impl AuthorizedHooks<Context> for HooksWasi {
         Ok(())
     }
 
-    #[instrument(skip_all)]
     async fn authorize_node_pre_execution<'a>(
         &self,
         context: &Context,
@@ -110,7 +107,6 @@ impl AuthorizedHooks<Context> for HooksWasi {
         Ok(())
     }
 
-    #[instrument(skip_all)]
     async fn authorize_node_post_execution<'a>(
         &self,
         _context: &Context,
@@ -130,7 +126,6 @@ impl AuthorizedHooks<Context> for HooksWasi {
         todo!()
     }
 
-    #[instrument(skip_all)]
     async fn authorize_parent_edge_post_execution<'a>(
         &self,
         context: &Context,
@@ -176,7 +171,6 @@ impl AuthorizedHooks<Context> for HooksWasi {
         Ok(results)
     }
 
-    #[instrument(skip_all)]
     async fn authorize_edge_node_post_execution<'a>(
         &self,
         context: &Context,
@@ -217,7 +211,6 @@ impl AuthorizedHooks<Context> for HooksWasi {
         Ok(result)
     }
 
-    #[instrument(skip_all)]
     async fn authorize_edge_post_execution<'a, Parent, Nodes>(
         &self,
         context: &Context,
