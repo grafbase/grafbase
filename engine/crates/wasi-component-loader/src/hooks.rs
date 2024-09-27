@@ -3,7 +3,7 @@ use std::future::Future;
 use std::sync::RwLock;
 
 use anyhow::anyhow;
-use tracing::{Instrument, Span};
+use tracing::Instrument;
 use wasmtime::{
     component::{Component, ComponentNamedList, Instance, Lift, Lower, Resource, TypedFunc},
     Engine, Store,
@@ -169,7 +169,6 @@ impl ComponentInstance {
     /// A `Result` indicating success or failure. If the function call is successful, it returns `Ok(())`.
     async fn call1_without_output<A1>(
         &mut self,
-        span: Span,
         name: &'static str,
         context: SharedContext,
         arg: A1,
@@ -181,6 +180,7 @@ impl ComponentInstance {
             return Ok(());
         };
 
+        let span = tracing::info_span!("hook", "otel.name" = name);
         let context = self.store.data_mut().push_resource(context)?;
         let context_rep = context.rep();
 
@@ -224,7 +224,6 @@ impl ComponentInstance {
     /// function does not exist, it returns `Ok(None)`.
     async fn call1_one_output<A1, R>(
         &mut self,
-        span: Span,
         name: &'static str,
         context: SharedContext,
         arg: A1,
@@ -237,6 +236,7 @@ impl ComponentInstance {
             return Ok(None);
         };
 
+        let span = tracing::info_span!("hook", "otel.name" = name);
         let context = self.store.data_mut().push_resource(context)?;
         let context_rep = context.rep();
 
@@ -281,7 +281,6 @@ impl ComponentInstance {
     /// function does not exist, it returns `Ok(None)`.
     async fn call2_one_output<A1, A2, R>(
         &mut self,
-        span: Span,
         name: &'static str,
         context: SharedContext,
         args: (A1, A2),
@@ -294,6 +293,7 @@ impl ComponentInstance {
             return Ok(None);
         };
 
+        let span = tracing::info_span!("hook", "otel.name" = name);
         let context = self.store.data_mut().push_resource(context)?;
         let context_rep = context.rep();
 
@@ -342,7 +342,6 @@ impl ComponentInstance {
     /// function does not exist, it returns `Ok(None)`.
     async fn call3_one_output<A1, A2, A3, R>(
         &mut self,
-        span: Span,
         name: &'static str,
         context: SharedContext,
         args: (A1, A2, A3),
@@ -355,6 +354,7 @@ impl ComponentInstance {
             return Ok(None);
         };
 
+        let span = tracing::info_span!("hook", "otel.name" = name);
         let context = self.store.data_mut().push_resource(context)?;
         let context_rep = context.rep();
 

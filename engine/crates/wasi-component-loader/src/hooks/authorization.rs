@@ -59,10 +59,7 @@ impl AuthorizationComponentInstance {
         arguments: String,
         metadata: String,
     ) -> crate::Result<()> {
-        let span = tracing::info_span!(AUTHORIZE_EDGE_PRE_EXECUTION_HOOK_FUNCTION);
-
         self.call3_one_output(
-            span,
             AUTHORIZE_EDGE_PRE_EXECUTION_HOOK_FUNCTION,
             context,
             (definition, arguments, metadata),
@@ -97,10 +94,7 @@ impl AuthorizationComponentInstance {
         definition: NodeDefinition,
         metadata: String,
     ) -> crate::Result<()> {
-        let span = tracing::info_span!(AUTHORIZE_NODE_PRE_EXECUTION_HOOK_FUNCTION);
-
         self.call2_one_output(
-            span,
             AUTHORIZE_NODE_PRE_EXECUTION_HOOK_FUNCTION,
             context,
             (definition, metadata),
@@ -138,10 +132,7 @@ impl AuthorizationComponentInstance {
         parents: Vec<String>,
         metadata: String,
     ) -> crate::Result<Vec<Result<(), crate::GuestError>>> {
-        let span = tracing::info_span!(AUTHORIZE_PARENT_EDGE_POST_EXECUTION_HOOK_FUNCTION);
-
         self.call3_one_output(
-            span,
             AUTHORIZE_PARENT_EDGE_POST_EXECUTION_HOOK_FUNCTION,
             context,
             (definition, parents, metadata),
@@ -180,10 +171,7 @@ impl AuthorizationComponentInstance {
         nodes: Vec<String>,
         metadata: String,
     ) -> crate::Result<Vec<Result<(), crate::GuestError>>> {
-        let span = tracing::info_span!(AUTHORIZE_EDGE_NODE_POST_EXECUTION_HOOK_FUNCTION);
-
         self.call3_one_output(
-            span,
             AUTHORIZE_EDGE_NODE_POST_EXECUTION_HOOK_FUNCTION,
             context,
             (definition, nodes, metadata),
@@ -222,10 +210,7 @@ impl AuthorizationComponentInstance {
         edges: Vec<(String, Vec<String>)>,
         metadata: String,
     ) -> crate::Result<Vec<Result<(), crate::GuestError>>> {
-        let span = tracing::info_span!(AUTHORIZE_EDGE_POST_EXECUTION_HOOK_FUNCTION);
-
         self.call3_one_output(
-            span,
             AUTHORIZE_EDGE_POST_EXECUTION_HOOK_FUNCTION,
             context,
             (definition, edges, metadata),

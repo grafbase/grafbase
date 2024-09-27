@@ -140,6 +140,7 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
     }
 }
 
+#[tracing::instrument(skip_all)]
 async fn handle_trusted_document_query<'ctx, 'r, R: Runtime>(
     engine: &'ctx Engine<R>,
     client_name: &'ctx str,
@@ -166,6 +167,7 @@ async fn handle_trusted_document_query<'ctx, 'r, R: Runtime>(
 /// Handle a request using Automatic Persisted Queries.
 /// We don't cache anything here, we only rely on the operation cache. We might want to use an
 /// external cache for this one day, but not another in-memory cache.
+#[tracing::instrument(skip_all)]
 async fn handle_apq<'r, 'f>(
     query: &'r str,
     ext: &'r PersistedQueryRequestExtension,

@@ -1,5 +1,3 @@
-use tracing::Instrument;
-
 const GRAFBASE_PRODUCTION_TRUSTED_DOCUMENTS_BUCKET: &str = "https://pub-72f3517515a34104921bb714721a885a.r2.dev";
 const GRAFBASE_ASSETS_URL_ENV_VAR: &str = "GRAFBASE_ASSETS_URL";
 
@@ -71,26 +69,22 @@ impl runtime::trusted_documents_client::TrustedDocumentsClient for TrustedDocume
         let mut url = self.assets_host.clone();
         url.set_path(&key);
 
-        let span = tracing::info_span!("fetch_trusted_document", document_id);
+        let response = self
+            .http_client
+            .get(url.to_string())
+            .send()
+            .await
+            .map_err(|err| runtime::trusted_documents_client::TrustedDocumentsError::RetrievalError(err.into()))?;
 
-        async move {
-            let response =
-                self.http_client.get(url.to_string()).send().await.map_err(|err| {
-                    runtime::trusted_documents_client::TrustedDocumentsError::RetrievalError(err.into())
-                })?;
-
-            if !response.status().is_success() {
-                return Err(runtime::trusted_documents_client::TrustedDocumentsError::DocumentNotFound);
-            }
-
-            let document = response
-                .text()
-                .await
-                .map_err(|err| runtime::trusted_documents_client::TrustedDocumentsError::RetrievalError(err.into()))?;
-
-            Ok(document)
+        if !response.status().is_success() {
+            return Err(runtime::trusted_documents_client::TrustedDocumentsError::DocumentNotFound);
         }
-        .instrument(span)
-        .await
+
+        let document = response
+            .text()
+            .await
+            .map_err(|err| runtime::trusted_documents_client::TrustedDocumentsError::RetrievalError(err.into()))?;
+
+        Ok(document)
     }
 }

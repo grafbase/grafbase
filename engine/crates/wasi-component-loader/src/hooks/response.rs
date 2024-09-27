@@ -190,9 +190,7 @@ impl ResponsesComponentInstance {
         context: SharedContext,
         request: ExecutedSubgraphRequest,
     ) -> crate::Result<Vec<u8>> {
-        let span = tracing::info_span!(ON_SUBGRAPH_RESPONSE_FUNCTION);
-
-        self.call1_one_output(span, ON_SUBGRAPH_RESPONSE_FUNCTION, context, request)
+        self.call1_one_output(ON_SUBGRAPH_RESPONSE_FUNCTION, context, request)
             .await?
             .map(|result: Vec<u8>| Ok(result))
             .unwrap_or_else(|| Ok(Vec::new()))
@@ -214,9 +212,7 @@ impl ResponsesComponentInstance {
         context: SharedContext,
         request: ExecutedOperation,
     ) -> crate::Result<Vec<u8>> {
-        let span = tracing::info_span!(ON_OPERATION_RESPONSE_FUNCTION);
-
-        self.call1_one_output(span, ON_OPERATION_RESPONSE_FUNCTION, context, request)
+        self.call1_one_output(ON_OPERATION_RESPONSE_FUNCTION, context, request)
             .await?
             .map(|result: Vec<u8>| Ok(result))
             .unwrap_or_else(|| Ok(Vec::new()))
@@ -233,9 +229,7 @@ impl ResponsesComponentInstance {
         context: SharedContext,
         request: ExecutedHttpRequest,
     ) -> crate::Result<()> {
-        let span = tracing::info_span!(ON_HTTP_RESPONSE_FUNCTION);
-
-        self.call1_without_output(span, ON_HTTP_RESPONSE_FUNCTION, context, request)
+        self.call1_without_output(ON_HTTP_RESPONSE_FUNCTION, context, request)
             .await
     }
 }
