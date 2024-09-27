@@ -170,18 +170,18 @@ pub fn render_federated_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error
         writeln!(sdl, "}}\n")?;
     }
 
-    for r#enum in &graph.enums {
-        let enum_name = &graph[r#enum.name];
+    for r#enum in graph.iter_enums() {
+        let enum_name = graph.at(r#enum.name).as_str();
 
         if let Some(description) = r#enum.description {
             write!(sdl, "{}", Description(&graph[description], ""))?;
         }
 
         write!(sdl, "enum {enum_name}")?;
-        write_composed_directives(r#enum.composed_directives, graph, &mut sdl)?;
+        write_composed_directives(r#enum.directives, graph, &mut sdl)?;
         sdl.push_str(" {\n");
 
-        for value in &graph[r#enum.values] {
+        for value in graph.iter_enum_values(r#enum.id()) {
             let value_name = &graph[value.value];
 
             if let Some(description) = value.description {

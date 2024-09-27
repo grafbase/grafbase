@@ -1,4 +1,4 @@
-use super::{FederatedGraph, TypeDefinitionRecord};
+use super::FederatedGraph;
 
 macro_rules! id_newtypes {
     ($($storage:ident [ $name:ident ] -> $out:ident,)*) => {
@@ -19,15 +19,15 @@ macro_rules! id_newtypes {
             }
 
             impl std::ops::Index<$name> for FederatedGraph {
-                type Output = $out;
+                type Output = super::$out;
 
-                fn index(&self, index: $name) -> &$out {
+                fn index(&self, index: $name) -> &super::$out {
                     &self.$storage[index.0]
                 }
             }
 
             impl std::ops::IndexMut<$name> for FederatedGraph {
-                fn index_mut(&mut self, index: $name) -> &mut $out {
+                fn index_mut(&mut self, index: $name) -> &mut super::$out {
                     &mut self.$storage[index.0]
                 }
             }
@@ -35,4 +35,7 @@ macro_rules! id_newtypes {
     }
 }
 
-id_newtypes!(type_definitions[TypeDefinitionId] -> TypeDefinitionRecord,);
+id_newtypes! {
+    type_definitions[TypeDefinitionId] -> TypeDefinitionRecord,
+    enum_values[EnumValueId] -> EnumValueRecord,
+}

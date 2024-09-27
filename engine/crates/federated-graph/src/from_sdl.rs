@@ -42,8 +42,6 @@ struct State<'a> {
     directives: Vec<Directive>,
     input_value_definitions: Vec<InputValueDefinition>,
 
-    enums: Vec<Enum>,
-    enum_values: Vec<EnumValue>,
     unions: Vec<Union>,
     input_objects: Vec<InputObject>,
 
@@ -55,7 +53,7 @@ struct State<'a> {
     definition_names: HashMap<&'a str, Definition>,
     selection_map: HashMap<(Definition, &'a str), FieldId>,
     input_values_map: HashMap<(InputObjectId, &'a str), InputValueDefinitionId>,
-    enum_values_map: HashMap<(EnumId, &'a str), EnumValueId>,
+    enum_values_map: HashMap<(TypeDefinitionId, &'a str), EnumValueId>,
 
     /// The key is the name of the graph in the join__Graph enum.
     graph_sdl_names: HashMap<&'a str, SubgraphId>,
@@ -114,7 +112,7 @@ impl<'a> State<'a> {
         StringId(self.strings.insert_full(s.to_owned()).0)
     }
 
-    fn insert_value(&mut self, node: ast::Value<'_>, expected_enum_type: Option<EnumId>) -> Value {
+    fn insert_value(&mut self, node: ast::Value<'_>, expected_enum_type: Option<TypeDefinitionId>) -> Value {
         match node {
             ast::Value::Null => Value::Null,
             ast::Value::Int(n) => Value::Int(n.as_i64()),
@@ -170,7 +168,7 @@ impl<'a> State<'a> {
                 self.graph.view(self.interfaces[interface_id.0].type_definition_id).name
             }
             Definition::Scalar(scalar_id) => self.graph[scalar_id].name,
-            Definition::Enum(enum_id) => self.enums[enum_id.0].name,
+            Definition::Enum(enum_id) => self.graph[enum_id].name,
             Definition::Union(union_id) => self.unions[union_id.0].name,
             Definition::InputObject(input_object_id) => self.input_objects[input_object_id.0].name,
         };
@@ -235,8 +233,7 @@ pub fn from_sdl(sdl: &str) -> Result<FederatedGraph, DomainError> {
         objects: state.objects,
         interfaces: state.interfaces,
         fields: state.fields,
-        enums: state.enums,
-        enum_values: state.enum_values,
+        enum_values: std::mem::take(&mut state.graph.enum_values),
         unions: state.unions,
         input_objects: state.input_objects,
         strings: state.strings.into_iter().collect(),
@@ -881,39 +878,26 @@ fn ingest_definitions<'a>(document: &'a ast::TypeSystemDocument, state: &mut Sta
                         ingest_join_graph_enum(enm, state)?;
                     }
                     ast::TypeDefinition::Enum(enm) => {
-                        let enum_id = EnumId(state.enums.push_return_idx(Enum {
-                            name: type_name_id,
-                            values: NO_ENUM_VALUE,
-                            composed_directives,
-                            description,
-                        }));
-                        state.definition_names.insert(type_name, Definition::Enum(enum_id));
+                        state
+                            .definition_names
+                            .insert(type_name, Definition::Enum(type_definition_id));
 
-                        let values = {
-                            let start = state.enum_values.len();
+                        for value in enm.values() {
+                            let composed_directives = collect_composed_directives(value.directives(), state);
+                            let description = value
+                                .description()
+                                .map(|description| state.insert_string(description.raw_str()));
 
-                            for value in enm.values() {
-                                let composed_directives = collect_composed_directives(value.directives(), state);
-                                let description = value
-                                    .description()
-                                    .map(|description| state.insert_string(description.raw_str()));
+                            let value_string_id = state.insert_string(value.value());
+                            let id = state.graph.push_enum_value(EnumValueRecord {
+                                enum_id: type_definition_id,
+                                value: value_string_id,
+                                composed_directives,
+                                description,
+                            });
 
-                                state
-                                    .enum_values_map
-                                    .insert((enum_id, value.value()), EnumValueId(state.enum_values.len()));
-
-                                let value = state.insert_string(value.value());
-                                state.enum_values.push(EnumValue {
-                                    value,
-                                    composed_directives,
-                                    description,
-                                });
-                            }
-
-                            (EnumValueId(start), state.enum_values.len() - start)
-                        };
-
-                        state.enums[enum_id.0].values = values;
+                            state.enum_values_map.insert((type_definition_id, value.value()), id);
+                        }
                     }
                     ast::TypeDefinition::InputObject(_) => {
                         let input_object_id = InputObjectId(state.input_objects.push_return_idx(InputObject {

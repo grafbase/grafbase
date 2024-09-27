@@ -9,7 +9,7 @@ use std::marker::PhantomData;
 use federated_graph::FederatedGraph;
 use id_newtypes::IdRange;
 
-use crate::{EnumValueId, FieldDefinitionId, InputValueDefinitionId, ScalarDefinitionId};
+use crate::{EnumDefinitionId, EnumValueId, FieldDefinitionId, InputValueDefinitionId, ScalarDefinitionId};
 
 use super::graph::is_inaccessible;
 
@@ -33,12 +33,13 @@ where
     }
 }
 
-pub(super) struct IdMaps {
-    pub field: IdMap<federated_graph::FieldId, FieldDefinitionId>,
-    pub input_value: IdMap<federated_graph::InputValueDefinitionId, InputValueDefinitionId>,
-    pub enum_values: IdMap<federated_graph::EnumValueId, EnumValueId>,
+pub(crate) struct IdMaps {
+    pub(crate) field: IdMap<federated_graph::FieldId, FieldDefinitionId>,
+    pub(crate) input_value: IdMap<federated_graph::InputValueDefinitionId, InputValueDefinitionId>,
+    pub(crate) enum_values: IdMap<federated_graph::EnumValueId, EnumValueId>,
     /// The index in that vector is the id in the graph being built.
     scalar_ids: Vec<federated_graph::TypeDefinitionId>,
+    enum_ids: Vec<federated_graph::TypeDefinitionId>,
 }
 
 impl IdMaps {
@@ -48,6 +49,7 @@ impl IdMaps {
             input_value: Default::default(),
             enum_values: IdMap::default(),
             scalar_ids: graph.iter_scalars().map(|s| s.id()).collect(),
+            enum_ids: graph.iter_enums().map(|e| e.id()).collect(),
         };
 
         for (i, field) in graph.fields.iter().enumerate() {
@@ -74,6 +76,20 @@ impl IdMaps {
             .binary_search(&federated_scalar_id)
             .expect("Failed to convert scalar id")
             .into()
+    }
+
+    pub(crate) fn convert_enum_id(&self, federated_enum_id: federated_graph::TypeDefinitionId) -> EnumDefinitionId {
+        self.enum_ids
+            .binary_search(&federated_enum_id)
+            .expect("Failed to convert scalar id")
+            .into()
+    }
+
+    pub(crate) fn convert_enum_value_id(
+        &self,
+        federated_enum_value_id: federated_graph::EnumValueId,
+    ) -> Option<EnumValueId> {
+        self.enum_values.get(federated_enum_value_id)
     }
 }
 

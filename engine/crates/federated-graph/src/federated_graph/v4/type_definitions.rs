@@ -1,6 +1,6 @@
 use super::{Directives, FederatedGraph, StringId, TypeDefinitionId};
 
-pub type TypeDefinitionView<'a> = super::view::ViewNested<'a, TypeDefinitionId, TypeDefinitionRecord>;
+pub type TypeDefinition<'a> = super::view::ViewNested<'a, TypeDefinitionId, TypeDefinitionRecord>;
 
 #[derive(Clone, Debug)]
 pub struct TypeDefinitionRecord {
@@ -27,6 +27,14 @@ impl TypeDefinitionKind {
     #[must_use]
     pub fn is_scalar(&self) -> bool {
         matches!(self, Self::Scalar)
+    }
+
+    /// Returns `true` if the type definition kind is [`Enum`].
+    ///
+    /// [`Enum`]: TypeDefinitionKind::Enum
+    #[must_use]
+    pub fn is_enum(&self) -> bool {
+        matches!(self, Self::Enum)
     }
 }
 
