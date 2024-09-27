@@ -1,5 +1,3 @@
-use std::borrow::Cow;
-
 use opentelemetry::trace::TracerProvider;
 use opentelemetry::KeyValue;
 use opentelemetry_appender_tracing::layer::OpenTelemetryTracingBridge;
@@ -86,12 +84,12 @@ where
 
     let tracer = if config.tracing_exporters_enabled() {
         let provider = super::traces::build_trace_provider(runtime, id_generator, config, resource.clone())?;
-        let layer = tracing_opentelemetry::layer().with_tracer(provider.versioned_tracer(
-            crate::SCOPE,
-            Some(crate::SCOPE_VERSION),
-            None::<Cow<'static, str>>,
-            None,
-        ));
+        let layer = tracing_opentelemetry::layer().with_tracer(
+            provider
+                .tracer_builder(crate::SCOPE)
+                .with_version(crate::SCOPE_VERSION)
+                .build(),
+        );
 
         Some(Tracer { layer, provider })
     } else {

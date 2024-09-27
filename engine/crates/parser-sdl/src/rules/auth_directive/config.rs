@@ -185,7 +185,7 @@ impl From<InternalAuthConfig> for engine::AuthConfig {
                         issuer,
                         groups_claim,
                         client_id,
-                        secret: secrecy::SecretString::new(secret),
+                        secret: secrecy::SecretString::new(secret.into()),
                     }),
                     AuthProvider::Authorizer { name } => {
                         engine::AuthProvider::Authorizer(engine::AuthorizerProvider { name })
