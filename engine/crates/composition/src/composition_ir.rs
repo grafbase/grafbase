@@ -1,9 +1,9 @@
 mod directive;
 
 pub(crate) use self::directive::Directive;
-use crate::subgraphs;
+use crate::subgraphs::{self, SubgraphId};
 use graphql_federated_graph as federated;
-use std::collections::{BTreeSet, HashMap};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 
 /// The intermediate representation of the schema that is produced by composition. This data
 /// structure is distinct from [FederatedGraph](graphql_federated_graph::FederatedGraph) because
@@ -39,6 +39,7 @@ pub(crate) struct CompositionIr {
     pub(crate) strings: StringsIr,
     pub(crate) fields: Vec<FieldIr>,
     pub(crate) union_members: BTreeSet<(federated::StringId, federated::StringId)>,
+    pub(crate) union_join_members: BTreeMap<(federated::StringId, federated::StringId), Vec<SubgraphId>>,
     pub(crate) keys: Vec<KeyIr>,
 
     /// Fields of an interface entity that are contributed by other subgraphs and must be added to

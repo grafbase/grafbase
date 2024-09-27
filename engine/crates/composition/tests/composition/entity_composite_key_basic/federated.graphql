@@ -18,6 +18,8 @@ directive @join__graph(name: String!, url: String!) on ENUM_VALUE
 
 directive @join__implements(graph: join__Graph!, interface: String!) repeatable on OBJECT | INTERFACE
 
+directive @join__unionMember(graph: join__Graph!, member: String!) repeatable on UNION
+
 enum join__Graph {
     COURSES @join__graph(name: "courses", url: "http://example.com/courses")
     RATINGS @join__graph(name: "ratings", url: "http://example.com/ratings")

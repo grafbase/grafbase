@@ -18,6 +18,8 @@ directive @join__graph(name: String!, url: String!) on ENUM_VALUE
 
 directive @join__implements(graph: join__Graph!, interface: String!) repeatable on OBJECT | INTERFACE
 
+directive @join__unionMember(graph: join__Graph!, member: String!) repeatable on UNION
+
 enum join__Graph {
     PIZZA @join__graph(name: "pizza", url: "http://example.com/pizza")
     SUSHI @join__graph(name: "sushi", url: "http://example.com/sushi")
@@ -61,4 +63,10 @@ type Query {
     pizza(id: ID!): Pizza @join__field(graph: PIZZA)
 }
 
-union Topping = Onion | Cheese | Pineapple | Salmon | Omelet
+union Topping
+    @join__unionMember(graph: PIZZA, member: "Onion")
+    @join__unionMember(graph: PIZZA, member: "Cheese")
+    @join__unionMember(graph: PIZZA, member: "Pineapple")
+    @join__unionMember(graph: SUSHI, member: "Salmon")
+    @join__unionMember(graph: SUSHI, member: "Omelet")
+ = Onion | Cheese | Pineapple | Salmon | Omelet

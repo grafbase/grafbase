@@ -31,7 +31,7 @@ union EntityDefinition @id @meta(module: "entity") @variants(remove_suffix: "Def
   | ObjectDefinition
   | InterfaceDefinition
 
-type JoinImplementsDefinition @meta(module: "join_implements", derive: ["Clone"]) {
+type JoinImplementsDefinition @meta(module: "join_implements") @copy {
   interface: InterfaceDefinition!
   subgraph: Subgraph!
 }
@@ -113,12 +113,19 @@ type EnumValue @meta(module: "enum_value") @indexed(id_size: "u32", max_id: "MAX
   directives: [TypeSystemDirective!]!
 }
 
+type JoinMemberDefinition @meta(module: "join_member") @copy {
+  member: ObjectDefinition!
+  subgraph: Subgraph!
+}
+
 type UnionDefinition @meta(module: "union", debug: false) @indexed(id_size: "u32", max_id: "MAX_ID") {
   name: String!
   description: String
   possible_types: [ObjectDefinition!]!
   possible_types_ordered_by_typename: [ObjectDefinition!]!
   directives: [TypeSystemDirective!]!
+  "sorted by SubgraphId, then InterfaceId"
+  join_members: [JoinMemberDefinition!]!
 }
 
 type ScalarDefinition @meta(module: "scalar") @indexed(id_size: "u32", max_id: "MAX_ID") {

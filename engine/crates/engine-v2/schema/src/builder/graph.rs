@@ -187,6 +187,17 @@ impl<'a> GraphBuilder<'a> {
                 },
             );
 
+            let mut join_member_records: Vec<_> = union
+                .join_members
+                .into_iter()
+                .map(|(subgraph_id, member_id)| JoinMemberDefinitionRecord {
+                    subgraph_id: SubgraphId::GraphqlEndpoint(subgraph_id.into()),
+                    member_id: member_id.into(),
+                })
+                .collect();
+
+            join_member_records.sort_by_key(|record| (record.subgraph_id, record.member_id));
+
             let union_definition = UnionDefinitionRecord {
                 name_id: union.name.into(),
                 description_id: None,
@@ -194,6 +205,7 @@ impl<'a> GraphBuilder<'a> {
                 // Added at the end.
                 possible_types_ordered_by_typename_ids: Vec::new(),
                 directive_ids,
+                join_member_records,
             };
 
             self.graph.union_definitions.push(union_definition);

@@ -4,7 +4,10 @@
 //! Generated with: `cargo run -p engine-v2-codegen`
 //! Source file: <engine-v2-codegen dir>/domain/schema.graphql
 use crate::{
-    generated::{ObjectDefinition, ObjectDefinitionId, TypeSystemDirective, TypeSystemDirectiveId},
+    generated::{
+        JoinMemberDefinition, JoinMemberDefinitionRecord, ObjectDefinition, ObjectDefinitionId, TypeSystemDirective,
+        TypeSystemDirectiveId,
+    },
     prelude::*,
     StringId,
 };
@@ -19,6 +22,8 @@ use walker::{Iter, Walk};
 ///   possible_types: [ObjectDefinition!]!
 ///   possible_types_ordered_by_typename: [ObjectDefinition!]!
 ///   directives: [TypeSystemDirective!]!
+///   "sorted by SubgraphId, then InterfaceId"
+///   join_members: [JoinMemberDefinition!]!
 /// }
 /// ```
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
@@ -28,6 +33,8 @@ pub struct UnionDefinitionRecord {
     pub possible_type_ids: Vec<ObjectDefinitionId>,
     pub possible_types_ordered_by_typename_ids: Vec<ObjectDefinitionId>,
     pub directive_ids: Vec<TypeSystemDirectiveId>,
+    /// sorted by SubgraphId, then InterfaceId
+    pub join_member_records: Vec<JoinMemberDefinitionRecord>,
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
@@ -70,6 +77,10 @@ impl<'a> UnionDefinition<'a> {
     }
     pub fn directives(&self) -> impl Iter<Item = TypeSystemDirective<'a>> + 'a {
         self.as_ref().directive_ids.walk(self.schema)
+    }
+    /// sorted by SubgraphId, then InterfaceId
+    pub fn join_members(&self) -> impl Iter<Item = JoinMemberDefinition<'a>> + 'a {
+        self.as_ref().join_member_records.walk(self.schema)
     }
 }
 
