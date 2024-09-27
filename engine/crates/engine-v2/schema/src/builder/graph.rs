@@ -298,7 +298,7 @@ impl<'a> GraphBuilder<'a> {
             }
 
             let schema_location = SchemaLocation::Type {
-                name: object.name.into(),
+                name: config.graph.view(object.type_definition_id).name.into(),
             };
 
             let directives = self.push_directives(
@@ -338,7 +338,7 @@ impl<'a> GraphBuilder<'a> {
             only_resolvable_in_ids.sort();
 
             self.graph.object_definitions.push(ObjectDefinitionRecord {
-                name_id: object.name.into(),
+                name_id: config.graph.view(object.type_definition_id).name.into(),
                 description_id: None,
                 interface_ids: object.implements_interfaces.into_iter().map(Into::into).collect(),
                 directive_ids: directives,
@@ -365,6 +365,7 @@ impl<'a> GraphBuilder<'a> {
         self.graph.interface_definitions = Vec::with_capacity(config.graph.interfaces.len());
         for interface in take(&mut config.graph.interfaces) {
             let interface_id = InterfaceDefinitionId::from(self.graph.interface_definitions.len());
+            let name_id = config.graph.view(interface.type_definition_id).name.into();
 
             let fields = self.ctx.idmaps.field.get_range((
                 interface.fields.start,
@@ -384,7 +385,7 @@ impl<'a> GraphBuilder<'a> {
             );
 
             self.graph.interface_definitions.push(InterfaceDefinitionRecord {
-                name_id: interface.name.into(),
+                name_id,
                 description_id: None,
                 interface_ids: interface.implements_interfaces.into_iter().map(Into::into).collect(),
                 possible_type_ids: Vec::new(),
@@ -396,12 +397,9 @@ impl<'a> GraphBuilder<'a> {
                 not_fully_implemented_in_ids: Vec::new(),
             });
 
-            if let Some(entity) = self.generate_federation_entity_from_keys(
-                SchemaLocation::Type {
-                    name: interface.name.into(),
-                },
-                interface.keys,
-            ) {
+            if let Some(entity) =
+                self.generate_federation_entity_from_keys(SchemaLocation::Type { name: name_id }, interface.keys)
+            {
                 entities_metadata.entities.insert(interface_id, entity);
             }
         }

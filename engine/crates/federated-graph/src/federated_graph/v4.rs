@@ -1,5 +1,11 @@
+mod ids;
+mod objects;
+mod type_definitions;
+mod view;
+
 use std::ops::Range;
 
+pub use self::{ids::TypeDefinitionId, type_definitions::TypeDefinitionRecord, view::View};
 pub use super::v3::{
     AuthorizedDirectiveId, Definition, DirectiveId, Directives, Enum, EnumId, EnumValue, EnumValueId, EnumValues,
     FieldId, Fields, InputObject, InputObjectId, InputValueDefinitionId, InputValueDefinitionSet,
@@ -12,6 +18,7 @@ pub use super::v3::{
 pub struct FederatedGraph {
     pub subgraphs: Vec<Subgraph>,
     pub root_operation_types: RootOperationTypes,
+    pub type_definitions: Vec<TypeDefinitionRecord>,
     pub objects: Vec<Object>,
     pub interfaces: Vec<Interface>,
     pub fields: Vec<Field>,
@@ -48,8 +55,12 @@ impl FederatedGraph {
     pub fn definition_name(&self, definition: Definition) -> &str {
         let name_id = match definition {
             Definition::Scalar(scalar_id) => self[scalar_id].name,
-            Definition::Object(object_id) => self[object_id].name,
-            Definition::Interface(interface_id) => self[interface_id].name,
+            Definition::Object(object_id) => self.at(object_id).then(|obj| obj.type_definition_id).name,
+            Definition::Interface(interface_id) => {
+                self.at(interface_id)
+                    .then(|interface| interface.type_definition_id)
+                    .name
+            }
             Definition::Union(union_id) => self[union_id].name,
             Definition::Enum(enum_id) => self[enum_id].name,
             Definition::InputObject(input_object_id) => self[input_object_id].name,
@@ -58,18 +69,12 @@ impl FederatedGraph {
         &self[name_id]
     }
 
-    pub fn iter_interfaces(&self) -> impl ExactSizeIterator<Item = (InterfaceId, &Interface)> {
-        self.interfaces
-            .iter()
-            .enumerate()
-            .map(|(idx, interface)| (InterfaceId(idx), interface))
+    pub fn iter_interfaces(&self) -> impl ExactSizeIterator<Item = View<InterfaceId, &Interface>> {
+        (0..self.interfaces.len()).map(|idx| self.view(InterfaceId::from(idx)))
     }
 
-    pub fn iter_objects(&self) -> impl ExactSizeIterator<Item = (ObjectId, &Object)> {
-        self.objects
-            .iter()
-            .enumerate()
-            .map(|(idx, object)| (ObjectId(idx), object))
+    pub fn iter_objects(&self) -> impl ExactSizeIterator<Item = View<ObjectId, &Object>> {
+        (0..self.objects.len()).map(|idx| self.view(ObjectId::from(idx)))
     }
 
     pub fn object_authorized_directives(&self, object_id: ObjectId) -> impl Iterator<Item = &AuthorizedDirective> {
@@ -136,7 +141,7 @@ pub enum Value {
 
 #[derive(Clone)]
 pub struct Object {
-    pub name: StringId,
+    pub type_definition_id: TypeDefinitionId,
 
     pub implements_interfaces: Vec<InterfaceId>,
 
@@ -154,8 +159,7 @@ pub struct Object {
 
 #[derive(Clone)]
 pub struct Interface {
-    pub name: StringId,
-
+    pub type_definition_id: TypeDefinitionId,
     pub implements_interfaces: Vec<InterfaceId>,
 
     /// All keys, for entity interfaces.
@@ -274,15 +278,18 @@ pub struct Key {
 
 impl Default for FederatedGraph {
     fn default() -> Self {
-        FederatedGraph {
+        let mut graph = FederatedGraph {
             subgraphs: Vec::new(),
+            type_definitions: vec![TypeDefinitionRecord {
+                name: StringId::from(0),
+            }],
             root_operation_types: RootOperationTypes {
                 query: ObjectId(0),
                 mutation: None,
                 subscription: None,
             },
             objects: vec![Object {
-                name: StringId(0),
+                type_definition_id: TypeDefinitionId::from(0),
                 implements_interfaces: Vec::new(),
                 join_implements: Vec::new(),
                 keys: Vec::new(),
@@ -336,7 +343,10 @@ impl Default for FederatedGraph {
             field_authorized_directives: Vec::new(),
             object_authorized_directives: Vec::new(),
             interface_authorized_directives: Vec::new(),
-        }
+        };
+
+        graph.push_type_definition(TypeDefinitionRecord { name: StringId(0) });
+        graph
     }
 }
 
@@ -397,27 +407,44 @@ impl From<super::FederatedGraphV3> for FederatedGraph {
             interface_authorized_directives,
         }: super::FederatedGraphV3,
     ) -> Self {
+        let mut type_definitions = Vec::new(); // could make better, but I don't think this is ever going to get called
+
+        for object in &objects {
+            type_definitions.push(TypeDefinitionRecord { name: object.name });
+        }
+
+        for interface in &interfaces {
+            type_definitions.push(TypeDefinitionRecord { name: interface.name });
+        }
+
+        let mut type_definitions_counter = 0;
+
         FederatedGraph {
+            type_definitions,
             subgraphs,
             root_operation_types,
             objects: objects
                 .into_iter()
                 .map(
                     |super::v3::Object {
-                         name,
+                         name: _,
                          implements_interfaces,
                          keys,
                          composed_directives,
                          fields,
                          description,
-                     }| Object {
-                        name,
-                        implements_interfaces,
-                        join_implements: Vec::new(),
-                        keys: convert_keys(keys),
-                        composed_directives,
-                        fields,
-                        description,
+                     }| {
+                        let object = Object {
+                            type_definition_id: type_definitions_counter.into(),
+                            implements_interfaces,
+                            join_implements: Vec::new(),
+                            keys: convert_keys(keys),
+                            composed_directives,
+                            fields,
+                            description,
+                        };
+                        type_definitions_counter += 1;
+                        object
                     },
                 )
                 .collect(),
@@ -425,22 +452,24 @@ impl From<super::FederatedGraphV3> for FederatedGraph {
                 .into_iter()
                 .map(
                     |super::v3::Interface {
-                         name,
+                         name: _,
                          implements_interfaces,
                          keys,
                          composed_directives,
                          fields,
                          description,
                      }| {
-                        Interface {
-                            name,
+                        let interface = Interface {
+                            type_definition_id: type_definitions_counter.into(),
                             implements_interfaces,
                             keys: convert_keys(keys),
                             composed_directives,
                             fields,
                             description,
                             join_implements: Vec::new(),
-                        }
+                        };
+                        type_definitions_counter += 1;
+                        interface
                     },
                 )
                 .collect(),

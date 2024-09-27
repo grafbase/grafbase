@@ -74,7 +74,7 @@ impl fmt::Display for Renderer<'_> {
 
             write_description(f, object.description, "", graph)?;
             f.write_str("type ")?;
-            f.write_str(&graph[object.name])?;
+            f.write_str(&graph[graph.view(object.type_definition_id).name])?;
             write_public_directives(f, object.composed_directives, graph)?;
             f.write_char(' ')?;
 
@@ -111,7 +111,7 @@ impl fmt::Display for Renderer<'_> {
 
             write_description(f, interface.description, "", graph)?;
             f.write_str("interface ")?;
-            f.write_str(&graph[interface.name])?;
+            f.write_str(&graph[graph.view(interface.type_definition_id).name])?;
             write_public_directives(f, interface.composed_directives, graph)?;
             f.write_char(' ')?;
 
@@ -196,7 +196,13 @@ impl fmt::Display for Renderer<'_> {
 
             while let Some(member) = members.next() {
                 f.write_str(" ")?;
-                f.write_str(&graph[graph[*member].name])?;
+                f.write_str(
+                    graph
+                        .at(*member)
+                        .then(|obj| obj.type_definition_id)
+                        .then(|def| def.name)
+                        .as_str(),
+                )?;
 
                 if members.peek().is_some() {
                     f.write_str(" |")?;

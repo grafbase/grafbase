@@ -17,6 +17,7 @@ use std::collections::{BTreeMap, BTreeSet, HashMap};
 pub(crate) struct CompositionIr {
     pub(crate) definitions_by_name: HashMap<federated::StringId, federated::Definition>,
 
+    pub(crate) type_definitions: Vec<federated::TypeDefinitionRecord>,
     pub(crate) objects: Vec<federated::Object>,
     pub(crate) interfaces: Vec<federated::Interface>,
     pub(crate) unions: Vec<federated::Union>,

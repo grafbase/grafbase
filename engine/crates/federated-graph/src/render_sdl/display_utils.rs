@@ -418,8 +418,13 @@ impl Drop for DirectiveWriter<'_, '_> {
 pub(super) fn render_field_type(field_type: &Type, graph: &FederatedGraph) -> String {
     let name_id = match field_type.definition {
         Definition::Scalar(scalar_id) => graph[scalar_id].name,
-        Definition::Object(object_id) => graph[object_id].name,
-        Definition::Interface(interface_id) => graph[interface_id].name,
+        Definition::Object(object_id) => graph.at(object_id).then(|obj| obj.type_definition_id).name,
+        Definition::Interface(interface_id) => {
+            graph
+                .at(interface_id)
+                .then(|interface| interface.type_definition_id)
+                .name
+        }
         Definition::Union(union_id) => graph[union_id].name,
         Definition::Enum(enum_id) => graph[enum_id].name,
         Definition::InputObject(input_object_id) => graph[input_object_id].name,
