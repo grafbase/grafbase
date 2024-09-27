@@ -11,19 +11,19 @@ pub fn render_federated_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error
 
     write_subgraphs_enum(graph, &mut sdl)?;
 
-    for scalar in &graph.scalars {
-        let name = &graph[scalar.name];
+    for scalar in graph.iter_scalars() {
+        let name = scalar.then(|scalar| scalar.name).as_str();
 
         if let Some(description) = scalar.description {
             write!(sdl, "{}", Description(&graph[description], ""))?;
         }
 
-        if BUILTIN_SCALARS.contains(&name.as_str()) {
+        if BUILTIN_SCALARS.contains(&name) {
             continue;
         }
 
         write!(sdl, "scalar {name}")?;
-        write_composed_directives(scalar.composed_directives, graph, &mut sdl)?;
+        write_composed_directives(scalar.directives, graph, &mut sdl)?;
         sdl.push('\n');
         sdl.push('\n');
     }

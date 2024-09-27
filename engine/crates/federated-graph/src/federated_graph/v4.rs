@@ -1,17 +1,23 @@
 mod ids;
 mod objects;
+mod r#type;
 mod type_definitions;
 mod view;
 
 use std::ops::Range;
 
-pub use self::{ids::TypeDefinitionId, type_definitions::TypeDefinitionRecord, view::View};
+pub use self::{
+    ids::TypeDefinitionId,
+    r#type::{Definition, Type},
+    type_definitions::{TypeDefinitionKind, TypeDefinitionRecord, TypeDefinitionView},
+    view::View,
+};
 pub use super::v3::{
-    AuthorizedDirectiveId, Definition, DirectiveId, Directives, Enum, EnumId, EnumValue, EnumValueId, EnumValues,
-    FieldId, Fields, InputObject, InputObjectId, InputValueDefinitionId, InputValueDefinitionSet,
-    InputValueDefinitionSetItem, InputValueDefinitions, InterfaceId, ObjectId, Override, OverrideLabel, OverrideSource,
-    RootOperationTypes, Scalar, ScalarId, StringId, Subgraph, SubgraphId, Type, Union, UnionId, Wrapping,
-    NO_DIRECTIVES, NO_ENUM_VALUE, NO_FIELDS, NO_INPUT_VALUE_DEFINITION,
+    AuthorizedDirectiveId, DirectiveId, Directives, Enum, EnumId, EnumValue, EnumValueId, EnumValues, FieldId, Fields,
+    InputObject, InputObjectId, InputValueDefinitionId, InputValueDefinitionSet, InputValueDefinitionSetItem,
+    InputValueDefinitions, InterfaceId, ObjectId, Override, OverrideLabel, OverrideSource, RootOperationTypes,
+    StringId, Subgraph, SubgraphId, Union, UnionId, Wrapping, NO_DIRECTIVES, NO_ENUM_VALUE, NO_FIELDS,
+    NO_INPUT_VALUE_DEFINITION,
 };
 
 #[derive(Clone)]
@@ -25,7 +31,6 @@ pub struct FederatedGraph {
 
     pub enums: Vec<Enum>,
     pub unions: Vec<Union>,
-    pub scalars: Vec<Scalar>,
     pub input_objects: Vec<InputObject>,
     pub enum_values: Vec<EnumValue>,
 
@@ -75,6 +80,14 @@ impl FederatedGraph {
 
     pub fn iter_objects(&self) -> impl ExactSizeIterator<Item = View<ObjectId, &Object>> {
         (0..self.objects.len()).map(|idx| self.view(ObjectId::from(idx)))
+    }
+
+    pub fn iter_scalars(&self) -> impl Iterator<Item = TypeDefinitionView<'_>> {
+        self.type_definitions
+            .iter()
+            .enumerate()
+            .filter(|(_idx, record)| record.kind.is_scalar())
+            .map(|(idx, _)| self.at(TypeDefinitionId::from(idx)))
     }
 
     pub fn object_authorized_directives(&self, object_id: ObjectId) -> impl Iterator<Item = &AuthorizedDirective> {
@@ -265,12 +278,13 @@ pub struct Key {
 
 impl Default for FederatedGraph {
     fn default() -> Self {
-        let mut graph = FederatedGraph {
+        FederatedGraph {
             subgraphs: Vec::new(),
             type_definitions: vec![TypeDefinitionRecord {
                 name: StringId::from(0),
                 description: None,
                 directives: NO_DIRECTIVES,
+                kind: TypeDefinitionKind::Object,
             }],
             root_operation_types: RootOperationTypes {
                 query: ObjectId(0),
@@ -290,7 +304,7 @@ impl Default for FederatedGraph {
                     name: StringId(1),
                     r#type: Type {
                         wrapping: Default::default(),
-                        definition: Definition::Scalar(ScalarId(0)),
+                        definition: Definition::Scalar(0usize.into()),
                     },
                     arguments: NO_INPUT_VALUE_DEFINITION,
                     resolvable_in: Vec::new(),
@@ -304,7 +318,7 @@ impl Default for FederatedGraph {
                     name: StringId(2),
                     r#type: Type {
                         wrapping: Default::default(),
-                        definition: Definition::Scalar(ScalarId(0)),
+                        definition: Definition::Scalar(0usize.into()),
                     },
                     arguments: NO_INPUT_VALUE_DEFINITION,
                     resolvable_in: Vec::new(),
@@ -317,7 +331,6 @@ impl Default for FederatedGraph {
             ],
             enums: Vec::new(),
             unions: Vec::new(),
-            scalars: Vec::new(),
             input_objects: Vec::new(),
             enum_values: Vec::new(),
             input_value_definitions: Vec::new(),
@@ -330,15 +343,7 @@ impl Default for FederatedGraph {
             field_authorized_directives: Vec::new(),
             object_authorized_directives: Vec::new(),
             interface_authorized_directives: Vec::new(),
-        };
-
-        graph.push_type_definition(TypeDefinitionRecord {
-            name: StringId(0),
-            description: None,
-            directives: NO_DIRECTIVES,
-        });
-
-        graph
+        }
     }
 }
 
@@ -371,7 +376,6 @@ id_newtypes! {
     InputObjectId + input_objects + InputObject,
     InterfaceId + interfaces + Interface,
     ObjectId + objects + Object,
-    ScalarId + scalars + Scalar,
     StringId + strings + String,
     SubgraphId + subgraphs + Subgraph,
     UnionId + unions + Union,
@@ -399,22 +403,42 @@ impl From<super::FederatedGraphV3> for FederatedGraph {
             interface_authorized_directives,
         }: super::FederatedGraphV3,
     ) -> Self {
-        let mut type_definitions = Vec::new(); // could make better, but I don't think this is ever going to get called
+        use std::collections::HashMap;
 
-        for object in &objects {
+        let mut type_definitions = Vec::new(); // could make better, but I don't think this is ever going to get called
+        let mut definitions_map: HashMap<super::v3::Definition, Definition> = HashMap::new();
+
+        for (idx, object) in objects.iter().enumerate() {
+            let id = ObjectId::from(idx);
             type_definitions.push(TypeDefinitionRecord {
                 name: object.name,
                 description: object.description,
                 directives: object.composed_directives.clone(),
+                kind: TypeDefinitionKind::Object,
             });
+            definitions_map.insert(super::v3::Definition::Object(id), Definition::Object(id));
         }
 
-        for interface in &interfaces {
+        for (idx, interface) in interfaces.iter().enumerate() {
+            let id = InterfaceId::from(idx);
             type_definitions.push(TypeDefinitionRecord {
                 name: interface.name,
                 description: interface.description,
                 directives: interface.composed_directives.clone(),
+                kind: TypeDefinitionKind::Interface,
             });
+            definitions_map.insert(super::v3::Definition::Interface(id), Definition::Interface(id));
+        }
+
+        for (idx, scalar) in scalars.iter().enumerate() {
+            let id = TypeDefinitionId::from(type_definitions.len());
+            type_definitions.push(TypeDefinitionRecord {
+                name: scalar.name,
+                description: scalar.description,
+                directives: scalar.composed_directives.clone(),
+                kind: TypeDefinitionKind::Scalar,
+            });
+            definitions_map.insert(super::v3::Definition::Scalar(idx.into()), Definition::Scalar(id));
         }
 
         let mut type_definitions_counter = 0;
@@ -480,7 +504,13 @@ impl From<super::FederatedGraphV3> for FederatedGraph {
                          description,
                      }| Field {
                         name,
-                        r#type,
+                        r#type: Type {
+                            definition: definitions_map
+                                .get(&r#type.definition)
+                                .map(|def| def.clone())
+                                .unwrap_or_else(|| Definition::Scalar(TypeDefinitionId::from(0))),
+                            wrapping: r#type.wrapping,
+                        },
                         arguments,
                         resolvable_in,
                         provides: provides
@@ -505,7 +535,6 @@ impl From<super::FederatedGraphV3> for FederatedGraph {
                 .collect(),
             enums,
             unions,
-            scalars,
             input_objects,
             enum_values,
             input_value_definitions: input_value_definitions
@@ -519,7 +548,13 @@ impl From<super::FederatedGraphV3> for FederatedGraph {
                          default,
                      }: super::v3::InputValueDefinition| InputValueDefinition {
                         name,
-                        r#type,
+                        r#type: Type {
+                            wrapping: r#type.wrapping,
+                            definition: definitions_map
+                                .get(&r#type.definition)
+                                .map(|def| def.clone())
+                                .unwrap_or_else(|| Definition::Scalar(TypeDefinitionId::from(0))),
+                        },
                         directives,
                         description,
                         default: default.map(From::from),

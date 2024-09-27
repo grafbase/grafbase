@@ -1,10 +1,33 @@
 use super::{Directives, FederatedGraph, StringId, TypeDefinitionId};
 
+pub type TypeDefinitionView<'a> = super::view::ViewNested<'a, TypeDefinitionId, TypeDefinitionRecord>;
+
 #[derive(Clone, Debug)]
 pub struct TypeDefinitionRecord {
     pub name: StringId,
     pub description: Option<StringId>,
     pub directives: Directives,
+    pub kind: TypeDefinitionKind,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum TypeDefinitionKind {
+    Object,
+    Interface,
+    Enum,
+    Union,
+    Scalar,
+    InputObject,
+}
+
+impl TypeDefinitionKind {
+    /// Returns `true` if the type definition kind is [`Scalar`].
+    ///
+    /// [`Scalar`]: TypeDefinitionKind::Scalar
+    #[must_use]
+    pub fn is_scalar(&self) -> bool {
+        matches!(self, Self::Scalar)
+    }
 }
 
 impl FederatedGraph {

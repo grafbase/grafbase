@@ -29,7 +29,6 @@ pub(crate) fn emit_federated_graph(mut ir: CompositionIr, subgraphs: &Subgraphs)
         objects: mem::take(&mut ir.objects),
         interfaces: mem::take(&mut ir.interfaces),
         unions: mem::take(&mut ir.unions),
-        scalars: mem::take(&mut ir.scalars),
         input_objects: mem::take(&mut ir.input_objects),
         root_operation_types: RootOperationTypes {
             query: ir.query_type.unwrap(),
@@ -159,7 +158,7 @@ fn emit_input_value_definitions(input_value_definitions: &[InputValueDefinitionI
                 let r#type = ctx.insert_field_type(ctx.subgraphs.walk(*r#type));
                 let default = default
                     .as_ref()
-                    .map(|default| ctx.insert_value_with_type(default, r#type.definition.as_enum().copied()));
+                    .map(|default| ctx.insert_value_with_type(default, r#type.definition.as_enum()));
 
                 federated::InputValueDefinition {
                     name: *name,
@@ -525,7 +524,7 @@ fn attach_selection(
                                 .map(|idx| federated::InputValueDefinitionId(field_arguments_start + idx))
                                 .unwrap();
 
-                            let argument_enum_type = ctx.out[argument].r#type.definition.as_enum().copied();
+                            let argument_enum_type = ctx.out[argument].r#type.definition.as_enum();
                             let value = ctx.insert_value_with_type(value, argument_enum_type);
 
                             (argument, value)

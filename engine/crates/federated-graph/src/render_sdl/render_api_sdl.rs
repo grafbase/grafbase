@@ -216,10 +216,10 @@ impl fmt::Display for Renderer<'_> {
             f.write_char('\n')?;
         }
 
-        for scalar in &graph.scalars {
-            let scalar_name = &graph[scalar.name];
+        for scalar in graph.iter_scalars() {
+            let scalar_name = scalar.then(|scalar| scalar.name).as_str();
 
-            if BUILTIN_SCALARS.contains(&scalar_name.as_str()) || has_inaccessible(&scalar.composed_directives, graph) {
+            if BUILTIN_SCALARS.contains(&scalar_name) || has_inaccessible(&scalar.directives, graph) {
                 continue;
             }
 
@@ -228,7 +228,7 @@ impl fmt::Display for Renderer<'_> {
             write_description(f, scalar.description, "", graph)?;
             f.write_str("scalar ")?;
             f.write_str(scalar_name)?;
-            write_public_directives(f, scalar.composed_directives, graph)?;
+            write_public_directives(f, scalar.directives, graph)?;
 
             f.write_char('\n')?;
         }

@@ -23,7 +23,6 @@ pub(crate) struct CompositionIr {
     pub(crate) unions: Vec<federated::Union>,
     pub(crate) enums: Vec<federated::Enum>,
     pub(crate) enum_values: Vec<federated::EnumValue>,
-    pub(crate) scalars: Vec<federated::Scalar>,
     pub(crate) input_objects: Vec<federated::InputObject>,
     pub(crate) directives: Vec<Directive>,
     pub(crate) input_value_definitions: Vec<InputValueDefinitionIr>,
