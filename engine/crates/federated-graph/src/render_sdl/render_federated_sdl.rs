@@ -28,8 +28,8 @@ pub fn render_federated_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error
         sdl.push('\n');
     }
 
-    for (object_id, object) in graph.iter_objects() {
-        let object_name = &graph[object.name];
+    for object in graph.iter_objects() {
+        let object_name = &graph[graph.view(object.type_definition_id).name];
 
         let mut fields = graph[object.fields.clone()]
             .iter()
@@ -53,7 +53,10 @@ pub fn render_federated_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error
             sdl.push_str(" implements ");
 
             for (idx, interface) in object.implements_interfaces.iter().enumerate() {
-                let interface_name = &graph[graph[*interface].name];
+                let interface_name = graph
+                    .through(*interface)
+                    .through(|interface| interface.type_definition_id)
+                    .str(|def| def.name);
                 sdl.push_str(interface_name);
 
                 if idx < object.implements_interfaces.len() - 1 {
@@ -65,7 +68,7 @@ pub fn render_federated_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error
         with_formatter(&mut sdl, |f| {
             render_composed_directives(object.composed_directives, f, graph)?;
 
-            for authorized_directive in graph.object_authorized_directives(object_id) {
+            for authorized_directive in graph.object_authorized_directives(object.id()) {
                 render_authorized_directive(authorized_directive, f, graph)?;
             }
 
@@ -102,8 +105,8 @@ pub fn render_federated_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error
         writeln!(sdl, "}}\n")?;
     }
 
-    for (interface_id, interface) in graph.iter_interfaces() {
-        let interface_name = &graph[interface.name];
+    for interface in graph.iter_interfaces() {
+        let interface_name = &graph[graph.view(interface.type_definition_id).name];
 
         if let Some(description) = interface.description {
             write!(sdl, "{}", Description(&graph[description], ""))?;
@@ -115,7 +118,8 @@ pub fn render_federated_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error
             sdl.push_str(" implements ");
 
             for (idx, implemented) in interface.implements_interfaces.iter().enumerate() {
-                let implemented_interface_name = &graph[graph[*implemented].name];
+                let implemented_interface = graph.view(*implemented);
+                let implemented_interface_name = &graph[graph.view(implemented_interface.type_definition_id).name];
                 sdl.push_str(implemented_interface_name);
 
                 if idx < interface.implements_interfaces.len() - 1 {
@@ -125,7 +129,7 @@ pub fn render_federated_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error
         }
 
         with_formatter(&mut sdl, |f| {
-            for authorized_directive in graph.interface_authorized_directives(interface_id) {
+            for authorized_directive in graph.interface_authorized_directives(interface.id()) {
                 render_authorized_directive(authorized_directive, f, graph)?;
             }
 
@@ -217,7 +221,12 @@ pub fn render_federated_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error
         let mut members = union.members.iter().peekable();
 
         while let Some(member) = members.next() {
-            sdl.push_str(&graph[graph[*member].name]);
+            sdl.push_str(
+                graph
+                    .through(*member)
+                    .through(|member| member.type_definition_id)
+                    .str(|def| def.name),
+            );
 
             if members.peek().is_some() {
                 sdl.push_str(" | ");
@@ -555,7 +564,10 @@ fn render_join_implement(
 
     DirectiveWriter::new("join__implements", f, graph)?
         .arg("graph", subgraph_name)?
-        .arg("interface", Value::String(graph[interface_id].name))?;
+        .arg(
+            "interface",
+            Value::String(graph.through(interface_id).view(|iface| iface.type_definition_id).name),
+        )?;
 
     Ok(())
 }

@@ -23,6 +23,7 @@ pub(crate) fn emit_federated_graph(mut ir: CompositionIr, subgraphs: &Subgraphs)
     let __type = ir.strings.insert("__type");
 
     let mut out = federated::FederatedGraph {
+        type_definitions: mem::take(&mut ir.type_definitions),
         enums: mem::take(&mut ir.enums),
         enum_values: mem::take(&mut ir.enum_values),
         objects: mem::take(&mut ir.objects),
@@ -248,7 +249,7 @@ fn emit_fields<'a>(
         let mut end_field_id = None;
 
         if let federated::Definition::Object(id) = definition {
-            let object_name = ctx.out.objects[id.0].name;
+            let object_name = ctx.out.through(id).view(|obj| obj.type_definition_id).name;
             let fields_from_entity_interfaces = object_fields_from_entity_interfaces
                 .range((object_name, federated::FieldId(0))..(object_name, federated::FieldId(usize::MAX)))
                 .map(|(_, field_id)| ir_fields[field_id.0].clone());

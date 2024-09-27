@@ -436,6 +436,12 @@ macro_rules! id_newtypes {
               }
             }
 
+            impl From<usize> for $name {
+                fn from(value: usize) -> $name {
+                    $name(value)
+                }
+            }
+
             impl std::ops::Index<$name> for FederatedGraphV1 {
                 type Output = $out;
 

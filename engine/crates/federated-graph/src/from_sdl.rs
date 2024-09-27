@@ -34,6 +34,7 @@ impl StdError for DomainError {}
 struct State<'a> {
     subgraphs: Vec<Subgraph>,
 
+    graph: FederatedGraph,
     objects: Vec<Object>,
     interfaces: Vec<Interface>,
     fields: Vec<Field>,
@@ -165,8 +166,10 @@ impl<'a> State<'a> {
 
     fn get_definition_name(&self, definition: Definition) -> &str {
         let name = match definition {
-            Definition::Object(object_id) => self.objects[object_id.0].name,
-            Definition::Interface(interface_id) => self.interfaces[interface_id.0].name,
+            Definition::Object(object_id) => self.graph.view(self.objects[object_id.0].type_definition_id).name,
+            Definition::Interface(interface_id) => {
+                self.graph.view(self.interfaces[interface_id.0].type_definition_id).name
+            }
             Definition::Scalar(scalar_id) => self.scalars[scalar_id.0].name,
             Definition::Enum(enum_id) => self.enums[enum_id.0].name,
             Definition::Union(union_id) => self.unions[union_id.0].name,
@@ -178,6 +181,11 @@ impl<'a> State<'a> {
 
 pub fn from_sdl(sdl: &str) -> Result<FederatedGraph, DomainError> {
     let mut state = State::default();
+    state.graph.strings.clear();
+    state.graph.objects.clear();
+    state.graph.type_definitions.clear();
+    state.graph.fields.clear();
+
     let parsed = cynic_parser::parse_type_system_document(sdl).map_err(|err| DomainError(err.to_string()))?;
 
     ingest_definitions(&parsed, &mut state)?;
@@ -199,8 +207,12 @@ pub fn from_sdl(sdl: &str) -> Result<FederatedGraph, DomainError> {
             .definition_names
             .insert(query_type_name, Definition::Object(object_id));
 
+        let type_definition_id = state
+            .graph
+            .push_type_definition(TypeDefinitionRecord { name: query_string_id });
+
         state.objects.push(Object {
-            name: query_string_id,
+            type_definition_id,
             implements_interfaces: Vec::new(),
             join_implements: Vec::new(),
             keys: Vec::new(),
@@ -217,6 +229,7 @@ pub fn from_sdl(sdl: &str) -> Result<FederatedGraph, DomainError> {
     ingest_selection_sets(&parsed, &mut state)?;
 
     Ok(FederatedGraph {
+        type_definitions: std::mem::take(&mut state.graph.type_definitions),
         root_operation_types: state.root_operation_types()?,
         subgraphs: state.subgraphs,
         objects: state.objects,
@@ -812,6 +825,10 @@ fn ingest_definitions<'a>(document: &'a ast::TypeSystemDocument, state: &mut Sta
                     .map(|description| state.insert_string(description.raw_str()));
                 let composed_directives = collect_composed_directives(typedef.directives(), state);
 
+                let type_definition_id = state
+                    .graph
+                    .push_type_definition(TypeDefinitionRecord { name: type_name_id });
+
                 match typedef {
                     ast::TypeDefinition::Scalar(scalar) => {
                         let description = scalar
@@ -827,7 +844,7 @@ fn ingest_definitions<'a>(document: &'a ast::TypeSystemDocument, state: &mut Sta
                     }
                     ast::TypeDefinition::Object(_) => {
                         let object_id = ObjectId(state.objects.push_return_idx(Object {
-                            name: type_name_id,
+                            type_definition_id,
                             implements_interfaces: Vec::new(),
                             join_implements: Vec::new(),
                             keys: Vec::new(),
@@ -840,7 +857,7 @@ fn ingest_definitions<'a>(document: &'a ast::TypeSystemDocument, state: &mut Sta
                     }
                     ast::TypeDefinition::Interface(_) => {
                         let interface_id = InterfaceId(state.interfaces.push_return_idx(Interface {
-                            name: type_name_id,
+                            type_definition_id,
                             implements_interfaces: Vec::new(),
                             keys: Vec::new(),
                             composed_directives,
