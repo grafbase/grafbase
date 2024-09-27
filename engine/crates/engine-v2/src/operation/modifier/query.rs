@@ -163,33 +163,39 @@ where
             // (we use `all` below to avoid the case where there's no modifiers).
             // within the same field instance, more than one value ID means the others are derived from parent fragments,
             // so we should check if any of the values _does_ mark the field as skipped. (which is the inverse logic of multiple instances of the same field)
-            let skip_field = self
+            let mut skip_include_modifiers = self
                 .operation
                 .query_modifiers
                 .iter()
                 .filter(|modifier| matches!(modifier.rule, QueryModifierRule::SkipInclude { .. }))
-                .all(|modifier| match &modifier.rule {
-                    QueryModifierRule::SkipInclude {
-                        include_input_value_ids,
-                        skip_input_value_ids,
-                    } => {
-                        let not_included = include_input_value_ids.iter().any(|id| {
-                            let walker = self.walker().walk(&self.operation.query_input_values[*id]);
-                            let included = bool::deserialize(walker)
-                                .expect("at this point we've already checked the argument type");
-                            !included
-                        });
+                .peekable();
 
-                        let skipped = skip_input_value_ids.iter().any(|id| {
-                            let walker = self.walker().walk(&self.operation.query_input_values[*id]);
-                            bool::deserialize(walker).expect("at this point we've already checked the argument type")
-                        });
+            if skip_include_modifiers.peek().is_none() {
+                continue;
+            }
 
-                        not_included || skipped
-                    }
+            let skip_field = skip_include_modifiers.all(|modifier| match &modifier.rule {
+                QueryModifierRule::SkipInclude {
+                    include_input_value_ids,
+                    skip_input_value_ids,
+                } => {
+                    let not_included = include_input_value_ids.iter().any(|id| {
+                        let walker = self.walker().walk(&self.operation.query_input_values[*id]);
+                        let included =
+                            bool::deserialize(walker).expect("at this point we've already checked the argument type");
+                        !included
+                    });
 
-                    _ => unreachable!(),
-                });
+                    let skipped = skip_input_value_ids.iter().any(|id| {
+                        let walker = self.walker().walk(&self.operation.query_input_values[*id]);
+                        bool::deserialize(walker).expect("at this point we've already checked the argument type")
+                    });
+
+                    not_included || skipped
+                }
+
+                _ => unreachable!(),
+            });
 
             if skip_field {
                 self.modifications.is_any_field_skipped = true;
