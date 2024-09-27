@@ -159,15 +159,16 @@ where
 
             // as we make sure that every instance of a field creates at most one query modifier
             // additional query modifiers guaranteed to be for different instances of the field.
-            // since we merge the field instances anyhow, any one instance of a field that _should not_ be skipped is enough to include the field.
+            // since we merge the field instances anyhow, any one instance of a field that _should not_ be skipped is enough to include the field
+            // (we use `all` below to avoid the case where there's no modifiers).
             // within the same field instance, more than one value ID means the others are derived from parent fragments,
             // so we should check if any of the values _does_ mark the field as skipped. (which is the inverse logic of multiple instances of the same field)
-            let keep_field = self
+            let skip_field = self
                 .operation
                 .query_modifiers
                 .iter()
                 .filter(|modifier| matches!(modifier.rule, QueryModifierRule::SkipInclude { .. }))
-                .any(|modifier| match &modifier.rule {
+                .all(|modifier| match &modifier.rule {
                     QueryModifierRule::SkipInclude {
                         include_input_value_ids,
                         skip_input_value_ids,
@@ -184,13 +185,13 @@ where
                             bool::deserialize(walker).expect("at this point we've already checked the argument type")
                         });
 
-                        !(not_included || skipped)
+                        not_included || skipped
                     }
 
                     _ => unreachable!(),
                 });
 
-            if !keep_field {
+            if skip_field {
                 self.modifications.is_any_field_skipped = true;
                 for &field_id in &self.operation[modifier.impacted_fields] {
                     self.modifications.skipped_fields.set(field_id, true);
