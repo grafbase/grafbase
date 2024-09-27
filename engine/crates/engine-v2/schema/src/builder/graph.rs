@@ -173,7 +173,12 @@ impl<'a> GraphBuilder<'a> {
                 .members
                 .into_iter()
                 .filter(|object_id| {
-                    let composed_directives = config.graph[*object_id].composed_directives;
+                    let composed_directives = config
+                        .graph
+                        .at(*object_id)
+                        .then(|obj| obj.type_definition_id)
+                        .directives;
+
                     !is_inaccessible(&config.graph, composed_directives)
                 })
                 .map(Into::into)
@@ -285,6 +290,7 @@ impl<'a> GraphBuilder<'a> {
         self.graph.object_definitions = Vec::with_capacity(config.graph.objects.len());
         for (federated_id, object) in take(&mut config.graph.objects).into_iter().enumerate() {
             let federated_id = federated_graph::ObjectId(federated_id);
+            let definition = config.graph.at(object.type_definition_id);
             let object_id = ObjectDefinitionId::from(self.graph.object_definitions.len());
 
             let fields = self
@@ -304,7 +310,7 @@ impl<'a> GraphBuilder<'a> {
             let directives = self.push_directives(
                 config,
                 Directives {
-                    federated: object.composed_directives,
+                    federated: definition.directives,
                     authorized_directives: {
                         let mapping = &config.graph.object_authorized_directives;
                         let mut i = mapping.partition_point(|(id, _)| *id < federated_id);
@@ -366,6 +372,7 @@ impl<'a> GraphBuilder<'a> {
         for interface in take(&mut config.graph.interfaces) {
             let interface_id = InterfaceDefinitionId::from(self.graph.interface_definitions.len());
             let name_id = config.graph.view(interface.type_definition_id).name.into();
+            let definition = config.graph.at(interface.type_definition_id);
 
             let fields = self.ctx.idmaps.field.get_range((
                 interface.fields.start,
@@ -379,7 +386,7 @@ impl<'a> GraphBuilder<'a> {
             let directives = self.push_directives(
                 config,
                 Directives {
-                    federated: interface.composed_directives,
+                    federated: definition.directives,
                     ..Default::default()
                 },
             );

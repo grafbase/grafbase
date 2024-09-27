@@ -1,8 +1,10 @@
-use super::{FederatedGraph, StringId, TypeDefinitionId};
+use super::{Directives, FederatedGraph, StringId, TypeDefinitionId};
 
 #[derive(Clone, Debug)]
 pub struct TypeDefinitionRecord {
     pub name: StringId,
+    pub description: Option<StringId>,
+    pub directives: Directives,
 }
 
 impl FederatedGraph {

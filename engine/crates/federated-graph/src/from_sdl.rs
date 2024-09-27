@@ -207,18 +207,18 @@ pub fn from_sdl(sdl: &str) -> Result<FederatedGraph, DomainError> {
             .definition_names
             .insert(query_type_name, Definition::Object(object_id));
 
-        let type_definition_id = state
-            .graph
-            .push_type_definition(TypeDefinitionRecord { name: query_string_id });
+        let type_definition_id = state.graph.push_type_definition(TypeDefinitionRecord {
+            name: query_string_id,
+            description: None,
+            directives: NO_DIRECTIVES,
+        });
 
         state.objects.push(Object {
             type_definition_id,
             implements_interfaces: Vec::new(),
             join_implements: Vec::new(),
             keys: Vec::new(),
-            composed_directives: NO_DIRECTIVES,
             fields: NO_FIELDS,
-            description: None,
         });
 
         ingest_object_fields(object_id, std::iter::empty(), &mut state)?;
@@ -825,9 +825,11 @@ fn ingest_definitions<'a>(document: &'a ast::TypeSystemDocument, state: &mut Sta
                     .map(|description| state.insert_string(description.raw_str()));
                 let composed_directives = collect_composed_directives(typedef.directives(), state);
 
-                let type_definition_id = state
-                    .graph
-                    .push_type_definition(TypeDefinitionRecord { name: type_name_id });
+                let type_definition_id = state.graph.push_type_definition(TypeDefinitionRecord {
+                    name: type_name_id,
+                    description,
+                    directives: composed_directives,
+                });
 
                 match typedef {
                     ast::TypeDefinition::Scalar(scalar) => {
@@ -848,8 +850,6 @@ fn ingest_definitions<'a>(document: &'a ast::TypeSystemDocument, state: &mut Sta
                             implements_interfaces: Vec::new(),
                             join_implements: Vec::new(),
                             keys: Vec::new(),
-                            composed_directives,
-                            description,
                             fields: NO_FIELDS,
                         }));
 
@@ -860,8 +860,6 @@ fn ingest_definitions<'a>(document: &'a ast::TypeSystemDocument, state: &mut Sta
                             type_definition_id,
                             implements_interfaces: Vec::new(),
                             keys: Vec::new(),
-                            composed_directives,
-                            description,
                             fields: NO_FIELDS,
                             join_implements: Vec::new(),
                         }));

@@ -148,13 +148,7 @@ pub struct Object {
     pub join_implements: Vec<(SubgraphId, InterfaceId)>,
 
     pub keys: Vec<Key>,
-
-    /// All directives that made it through composition.
-    pub composed_directives: Directives,
-
     pub fields: Fields,
-
-    pub description: Option<StringId>,
 }
 
 #[derive(Clone)]
@@ -164,14 +158,7 @@ pub struct Interface {
 
     /// All keys, for entity interfaces.
     pub keys: Vec<Key>,
-
-    /// All directives that made it through composition.
-    pub composed_directives: Directives,
-
     pub fields: Fields,
-
-    pub description: Option<StringId>,
-
     pub join_implements: Vec<(SubgraphId, InterfaceId)>,
 }
 
@@ -282,6 +269,8 @@ impl Default for FederatedGraph {
             subgraphs: Vec::new(),
             type_definitions: vec![TypeDefinitionRecord {
                 name: StringId::from(0),
+                description: None,
+                directives: NO_DIRECTIVES,
             }],
             root_operation_types: RootOperationTypes {
                 query: ObjectId(0),
@@ -293,9 +282,7 @@ impl Default for FederatedGraph {
                 implements_interfaces: Vec::new(),
                 join_implements: Vec::new(),
                 keys: Vec::new(),
-                composed_directives: NO_DIRECTIVES,
                 fields: FieldId(0)..FieldId(2),
-                description: None,
             }],
             interfaces: Vec::new(),
             fields: vec![
@@ -345,7 +332,12 @@ impl Default for FederatedGraph {
             interface_authorized_directives: Vec::new(),
         };
 
-        graph.push_type_definition(TypeDefinitionRecord { name: StringId(0) });
+        graph.push_type_definition(TypeDefinitionRecord {
+            name: StringId(0),
+            description: None,
+            directives: NO_DIRECTIVES,
+        });
+
         graph
     }
 }
@@ -410,11 +402,19 @@ impl From<super::FederatedGraphV3> for FederatedGraph {
         let mut type_definitions = Vec::new(); // could make better, but I don't think this is ever going to get called
 
         for object in &objects {
-            type_definitions.push(TypeDefinitionRecord { name: object.name });
+            type_definitions.push(TypeDefinitionRecord {
+                name: object.name,
+                description: object.description,
+                directives: object.composed_directives.clone(),
+            });
         }
 
         for interface in &interfaces {
-            type_definitions.push(TypeDefinitionRecord { name: interface.name });
+            type_definitions.push(TypeDefinitionRecord {
+                name: interface.name,
+                description: interface.description,
+                directives: interface.composed_directives.clone(),
+            });
         }
 
         let mut type_definitions_counter = 0;
@@ -427,21 +427,17 @@ impl From<super::FederatedGraphV3> for FederatedGraph {
                 .into_iter()
                 .map(
                     |super::v3::Object {
-                         name: _,
                          implements_interfaces,
                          keys,
-                         composed_directives,
                          fields,
-                         description,
+                         ..
                      }| {
                         let object = Object {
                             type_definition_id: type_definitions_counter.into(),
                             implements_interfaces,
                             join_implements: Vec::new(),
                             keys: convert_keys(keys),
-                            composed_directives,
                             fields,
-                            description,
                         };
                         type_definitions_counter += 1;
                         object
@@ -452,20 +448,16 @@ impl From<super::FederatedGraphV3> for FederatedGraph {
                 .into_iter()
                 .map(
                     |super::v3::Interface {
-                         name: _,
                          implements_interfaces,
                          keys,
-                         composed_directives,
                          fields,
-                         description,
+                         ..
                      }| {
                         let interface = Interface {
                             type_definition_id: type_definitions_counter.into(),
                             implements_interfaces,
                             keys: convert_keys(keys),
-                            composed_directives,
                             fields,
-                            description,
                             join_implements: Vec::new(),
                         };
                         type_definitions_counter += 1;

@@ -59,7 +59,9 @@ impl fmt::Display for Renderer<'_> {
         }
 
         for object in &graph.objects {
-            if has_inaccessible(&object.composed_directives, graph) {
+            let definition = graph.at(object.type_definition_id);
+
+            if has_inaccessible(&definition.directives, graph) {
                 continue;
             }
 
@@ -72,10 +74,10 @@ impl fmt::Display for Renderer<'_> {
 
             write_leading_whitespace(f)?;
 
-            write_description(f, object.description, "", graph)?;
+            write_description(f, definition.description, "", graph)?;
             f.write_str("type ")?;
-            f.write_str(&graph[graph.view(object.type_definition_id).name])?;
-            write_public_directives(f, object.composed_directives, graph)?;
+            f.write_str(definition.then(|def| def.name).as_str())?;
+            write_public_directives(f, definition.directives, graph)?;
             f.write_char(' ')?;
 
             write_block(f, |f| {
@@ -103,16 +105,18 @@ impl fmt::Display for Renderer<'_> {
         }
 
         for interface in &graph.interfaces {
-            if has_inaccessible(&interface.composed_directives, graph) {
+            let definition = graph.at(interface.type_definition_id);
+
+            if has_inaccessible(&definition.directives, graph) {
                 continue;
             }
 
             write_leading_whitespace(f)?;
 
-            write_description(f, interface.description, "", graph)?;
+            write_description(f, definition.description, "", graph)?;
             f.write_str("interface ")?;
-            f.write_str(&graph[graph.view(interface.type_definition_id).name])?;
-            write_public_directives(f, interface.composed_directives, graph)?;
+            f.write_str(definition.then(|def| def.name).as_str())?;
+            write_public_directives(f, definition.directives, graph)?;
             f.write_char(' ')?;
 
             write_block(f, |f| {
