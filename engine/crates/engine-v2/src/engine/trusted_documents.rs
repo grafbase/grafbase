@@ -11,7 +11,6 @@ use futures::{future::BoxFuture, FutureExt};
 use grafbase_telemetry::grafbase_client::X_GRAFBASE_CLIENT_NAME;
 use runtime::trusted_documents_client::TrustedDocumentsError;
 use std::borrow::Cow;
-use tracing::instrument;
 
 use super::{
     cache::{Document, Key},
@@ -28,7 +27,6 @@ pub(crate) struct OperationDocument<'a> {
 impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
     /// Determines what document should be used for the request and provides an appropriate cache
     /// key for the operation cache and as a fallback a future to load said document.
-    #[instrument(skip_all)]
     pub(super) fn determine_operation_document<'r, 'f>(
         &mut self,
         request: &'r Request,
@@ -55,6 +53,7 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
                         .query
                         .as_deref()
                         .ok_or_else(|| GraphqlError::new("Missing query", ErrorCode::BadRequest))?;
+
                     Ok(OperationDocument {
                         cache_key: Key::Operation {
                             name,
