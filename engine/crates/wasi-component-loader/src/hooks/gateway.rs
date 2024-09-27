@@ -1,4 +1,5 @@
 use http::HeaderMap;
+use tracing::Instrument;
 
 use crate::{
     names::{GATEWAY_HOOK_FUNCTION, GATEWAY_REQUEST_INTERFACE},
@@ -30,6 +31,8 @@ impl GatewayComponentInstance {
             return Ok((context, headers));
         };
 
+        let span = tracing::info_span!(GATEWAY_HOOK_FUNCTION);
+
         // adds the data to the shared memory
         let context = self.store.data_mut().push_resource(context)?;
         let headers = self.store.data_mut().push_resource(headers)?;
@@ -39,7 +42,10 @@ impl GatewayComponentInstance {
         let headers_rep = headers.rep();
         let context_rep = context.rep();
 
-        let result = hook.call_async(&mut self.store, (context, headers)).await;
+        let result = hook
+            .call_async(&mut self.store, (context, headers))
+            .instrument(span)
+            .await;
 
         if result.is_err() {
             self.poisoned = true;

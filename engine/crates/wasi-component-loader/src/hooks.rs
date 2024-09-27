@@ -3,6 +3,7 @@ use std::future::Future;
 use std::sync::RwLock;
 
 use anyhow::anyhow;
+use tracing::Instrument;
 use wasmtime::{
     component::{Component, ComponentNamedList, Instance, Lift, Lower, Resource, TypedFunc},
     Engine, Store,
@@ -179,10 +180,11 @@ impl ComponentInstance {
             return Ok(());
         };
 
+        let span = tracing::info_span!("hook", "otel.name" = name);
         let context = self.store.data_mut().push_resource(context)?;
         let context_rep = context.rep();
 
-        let result = hook.call_async(&mut self.store, (context, arg)).await;
+        let result = hook.call_async(&mut self.store, (context, arg)).instrument(span).await;
 
         // We check if the hook call trapped, and if so we mark the instance poisoned.
         //
@@ -234,10 +236,11 @@ impl ComponentInstance {
             return Ok(None);
         };
 
+        let span = tracing::info_span!("hook", "otel.name" = name);
         let context = self.store.data_mut().push_resource(context)?;
         let context_rep = context.rep();
 
-        let result = hook.call_async(&mut self.store, (context, arg)).await;
+        let result = hook.call_async(&mut self.store, (context, arg)).instrument(span).await;
 
         // We check if the hook call trapped, and if so we mark the instance poisoned.
         //
@@ -290,10 +293,14 @@ impl ComponentInstance {
             return Ok(None);
         };
 
+        let span = tracing::info_span!("hook", "otel.name" = name);
         let context = self.store.data_mut().push_resource(context)?;
         let context_rep = context.rep();
 
-        let result = hook.call_async(&mut self.store, (context, args.0, args.1)).await;
+        let result = hook
+            .call_async(&mut self.store, (context, args.0, args.1))
+            .instrument(span)
+            .await;
 
         // We check if the hook call trapped, and if so we mark the instance poisoned.
         //
@@ -347,11 +354,13 @@ impl ComponentInstance {
             return Ok(None);
         };
 
+        let span = tracing::info_span!("hook", "otel.name" = name);
         let context = self.store.data_mut().push_resource(context)?;
         let context_rep = context.rep();
 
         let result = hook
             .call_async(&mut self.store, (context, args.0, args.1, args.2))
+            .instrument(span)
             .await;
 
         // We check if the hook call trapped, and if so we mark the instance poisoned.

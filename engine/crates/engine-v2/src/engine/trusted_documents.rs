@@ -11,7 +11,6 @@ use futures::{future::BoxFuture, FutureExt};
 use grafbase_telemetry::grafbase_client::X_GRAFBASE_CLIENT_NAME;
 use runtime::trusted_documents_client::TrustedDocumentsError;
 use std::borrow::Cow;
-use tracing::instrument;
 
 use super::{
     cache::{Document, Key},
@@ -28,7 +27,6 @@ pub(crate) struct OperationDocument<'a> {
 impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
     /// Determines what document should be used for the request and provides an appropriate cache
     /// key for the operation cache and as a fallback a future to load said document.
-    #[instrument(skip_all)]
     pub(super) fn determine_operation_document<'r, 'f>(
         &mut self,
         request: &'r Request,
@@ -55,6 +53,7 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
                         .query
                         .as_deref()
                         .ok_or_else(|| GraphqlError::new("Missing query", ErrorCode::BadRequest))?;
+
                     Ok(OperationDocument {
                         cache_key: Key::Operation {
                             name,
@@ -141,6 +140,7 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
     }
 }
 
+#[tracing::instrument(skip_all)]
 async fn handle_trusted_document_query<'ctx, 'r, R: Runtime>(
     engine: &'ctx Engine<R>,
     client_name: &'ctx str,
@@ -167,6 +167,7 @@ async fn handle_trusted_document_query<'ctx, 'r, R: Runtime>(
 /// Handle a request using Automatic Persisted Queries.
 /// We don't cache anything here, we only rely on the operation cache. We might want to use an
 /// external cache for this one day, but not another in-memory cache.
+#[tracing::instrument(skip_all)]
 async fn handle_apq<'r, 'f>(
     query: &'r str,
     ext: &'r PersistedQueryRequestExtension,

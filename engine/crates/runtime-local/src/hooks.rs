@@ -19,7 +19,7 @@ use runtime::{
     error::{ErrorResponse, PartialErrorCode, PartialGraphqlError},
     hooks::{AuthorizedHooks, HeaderMap, Hooks, SubgraphHooks},
 };
-use tracing::{instrument, Span};
+use tracing::Span;
 use wasi_component_loader::ResponsesComponentInstance;
 pub use wasi_component_loader::{
     create_log_channel, AccessLogMessage, AuthorizationComponentInstance, ChannelLogReceiver, ChannelLogSender,
@@ -149,7 +149,6 @@ impl HooksWasi {
 impl Hooks for HooksWasi {
     type Context = Context;
 
-    #[instrument(skip_all)]
     async fn on_gateway_request(&self, headers: HeaderMap) -> Result<(Self::Context, HeaderMap), ErrorResponse> {
         let kv = HashMap::new();
         let trace_id = Span::current().context().span().span_context().trace_id();

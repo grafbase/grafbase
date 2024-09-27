@@ -3,13 +3,11 @@ use runtime::{
     error::{PartialErrorCode, PartialGraphqlError},
     hooks::SubgraphHooks,
 };
-use tracing::instrument;
 use url::Url;
 
 use super::{guest_error_as_gql, Context, HooksWasi};
 
 impl SubgraphHooks<Context> for HooksWasi {
-    #[instrument(skip_all)]
     async fn on_subgraph_request(
         &self,
         context: &Context,

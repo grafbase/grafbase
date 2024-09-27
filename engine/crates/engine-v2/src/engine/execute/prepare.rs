@@ -12,6 +12,7 @@ use crate::{
 };
 
 impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
+    #[tracing::instrument(skip_all)]
     pub(super) async fn prepare_operation(&mut self, request: Request) -> Result<ExecutableOperation, Response> {
         let result = self.prepare_operation_inner(request).await;
         let duration = self.executed_operation_builder.track_prepare();
