@@ -3,7 +3,7 @@ mod query;
 use id_newtypes::IdRange;
 use schema::{AuthorizedDirectiveId, DefinitionId, FieldDefinitionId, RequiresScopesDirectiveId};
 
-use super::{FieldArgumentId, QueryModifierImpactedFieldId, ResponseModifierImpactedFieldId};
+use super::{FieldArgumentId, QueryInputValueId, QueryModifierImpactedFieldId, ResponseModifierImpactedFieldId};
 
 pub(crate) use query::*;
 
@@ -25,6 +25,10 @@ pub(crate) enum QueryModifierRule {
     AuthorizedDefinition {
         directive_id: AuthorizedDirectiveId,
         definition_id: DefinitionId,
+    },
+    SkipInclude {
+        skip_input_value_ids: Vec<QueryInputValueId>,
+        include_input_value_ids: Vec<QueryInputValueId>,
     },
 }
 

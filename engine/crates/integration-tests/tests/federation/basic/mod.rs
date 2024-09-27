@@ -13,6 +13,7 @@ mod mutation;
 mod operation_limits;
 mod operations;
 mod scalars;
+mod skip_include;
 mod streaming;
 mod variables;
 

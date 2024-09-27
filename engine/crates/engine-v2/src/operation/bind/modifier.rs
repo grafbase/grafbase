@@ -1,7 +1,6 @@
-use std::{collections::HashMap, ops::Range};
-
 use id_newtypes::IdRange;
 use schema::{DefinitionId, FieldDefinition, ObjectDefinitionId, TypeSystemDirective};
+use std::{collections::HashMap, ops::Range};
 
 use crate::operation::{
     FieldArgumentId, FieldId, QueryModifier, QueryModifierId, QueryModifierRule, ResponseModifier, ResponseModifierId,
@@ -10,6 +9,23 @@ use crate::operation::{
 
 impl<'schema, 'p> super::Binder<'schema, 'p> {
     pub(super) fn generate_field_modifiers(
+        &mut self,
+        field_id: FieldId,
+        argument_ids: IdRange<FieldArgumentId>,
+        field_definition: FieldDefinition<'_>,
+        additional_modifiers: Vec<QueryModifierRule>,
+    ) {
+        self.generate_modifiers_for_type_system_directives(field_id, argument_ids, field_definition);
+        self.generate_additional_modifiers(field_id, additional_modifiers);
+    }
+
+    fn generate_additional_modifiers(&mut self, field_id: FieldId, additional_modifiers: Vec<QueryModifierRule>) {
+        for modifier in additional_modifiers {
+            self.register_field_impacted_by_query_modifier(modifier, field_id);
+        }
+    }
+
+    fn generate_modifiers_for_type_system_directives(
         &mut self,
         field_id: FieldId,
         argument_ids: IdRange<FieldArgumentId>,

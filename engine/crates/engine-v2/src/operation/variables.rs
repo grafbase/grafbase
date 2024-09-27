@@ -2,18 +2,15 @@ use schema::Schema;
 
 use super::{
     bind::{bind_variables, VariableError},
-    FieldId, Location, Operation, QueryInputValueId, VariableDefinitionId, VariableInputValueId, VariableInputValues,
+    Location, Operation, QueryInputValueId, VariableDefinitionId, VariableInputValueId, VariableInputValues,
 };
 
-#[derive(Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct VariableDefinition {
     pub name: String,
     pub name_location: Location,
     pub default_value: Option<QueryInputValueId>,
-    /// Keeping track of every field that used this variable.
-    /// Used to know whether the variable is used, not much more as of today.
-    /// Sorted.
-    pub used_by: Vec<FieldId>,
+    pub in_use: bool,
     pub ty: schema::TypeRecord,
 }
 

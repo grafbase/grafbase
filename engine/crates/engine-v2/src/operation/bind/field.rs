@@ -1,9 +1,5 @@
-use engine_parser::Positioned;
-use engine_value::Name;
-use id_newtypes::IdRange;
-use schema::{DefinitionId, FieldDefinition, FieldDefinitionId};
-
 use super::{coercion::coerce_query_value, BindError, BindResult, Binder};
+use crate::operation::QueryModifierRule;
 use crate::{
     operation::{
         Field, FieldArgument, FieldArgumentId, FieldId, Location, QueryField, QueryInputValue, SelectionSetId,
@@ -11,6 +7,10 @@ use crate::{
     },
     response::BoundResponseKey,
 };
+use engine_parser::Positioned;
+use engine_value::Name;
+use id_newtypes::IdRange;
+use schema::{DefinitionId, FieldDefinition, FieldDefinitionId};
 
 impl<'schema, 'p> Binder<'schema, 'p> {
     pub(super) fn bind_typename_field(
@@ -35,6 +35,7 @@ impl<'schema, 'p> Binder<'schema, 'p> {
         definition_id: FieldDefinitionId,
         Positioned { pos, node: field }: &'p Positioned<engine_parser::types::Field>,
         selection_set_id: Option<SelectionSetId>,
+        additional_modifiers: Vec<QueryModifierRule>,
     ) -> BindResult<FieldId> {
         let location: Location = (*pos).try_into()?;
         let definition: FieldDefinition<'_> = self.schema.walk(definition_id);
@@ -61,7 +62,7 @@ impl<'schema, 'p> Binder<'schema, 'p> {
         };
 
         let field_id = FieldId::from(self.fields.len());
-        let argument_ids = self.bind_field_arguments(definition, field_id, location, &field.arguments)?;
+        let argument_ids = self.bind_field_arguments(definition, location, &field.arguments)?;
         self.fields.push(Field::Query(QueryField {
             bound_response_key,
             location,
@@ -71,7 +72,7 @@ impl<'schema, 'p> Binder<'schema, 'p> {
             parent_selection_set_id,
         }));
 
-        self.generate_field_modifiers(field_id, argument_ids, definition);
+        self.generate_field_modifiers(field_id, argument_ids, definition, additional_modifiers);
         Ok(field_id)
     }
 
@@ -84,7 +85,6 @@ impl<'schema, 'p> Binder<'schema, 'p> {
     fn bind_field_arguments(
         &mut self,
         definition: FieldDefinition<'_>,
-        field_id: FieldId,
         location: Location,
         arguments: &[(Positioned<Name>, Positioned<engine_value::Value>)],
     ) -> BindResult<IdRange<FieldArgumentId>> {
@@ -105,8 +105,7 @@ impl<'schema, 'p> Binder<'schema, 'p> {
                 let name_location = Some(name.pos.try_into()?);
                 let value_location = value.pos.try_into()?;
                 let value = value.node;
-                let input_value_id =
-                    coerce_query_value(self, field_id, value_location, argument_def.ty().into(), value)?;
+                let input_value_id = coerce_query_value(self, value_location, argument_def.ty().into(), value)?;
                 self.field_arguments.push(FieldArgument {
                     name_location,
                     value_location: Some(value_location),

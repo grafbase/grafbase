@@ -117,7 +117,7 @@ impl<'schema, 'p> Binder<'schema, 'p> {
                 name_location,
                 default_value,
                 ty,
-                used_by: Vec::new(),
+                in_use: false,
             });
         }
 
@@ -126,7 +126,7 @@ impl<'schema, 'p> Binder<'schema, 'p> {
 
     pub(super) fn validate_all_variables_used(&self) -> BindResult<()> {
         for variable in &self.variable_definitions {
-            if variable.used_by.is_empty() {
+            if !variable.in_use {
                 return Err(BindError::UnusedVariable {
                     name: variable.name.clone(),
                     operation: self.operation_name.clone(),

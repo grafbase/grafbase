@@ -238,6 +238,15 @@ impl Schema {
             id.walk(self)
         })
     }
+
+    pub fn scalar_definition_by_name(&self, name: &str) -> Option<DefinitionId> {
+        self.graph
+            .scalar_definitions
+            .iter()
+            .position(|definition| self[definition.name_id] == name)
+            .map(ScalarDefinitionId::from)
+            .map(DefinitionId::Scalar)
+    }
 }
 
 impl std::fmt::Debug for Schema {
