@@ -13,7 +13,7 @@ use crate::{EnumDefinitionId, EnumValueId, FieldDefinitionId, InputValueDefiniti
 
 use super::graph::is_inaccessible;
 
-pub(super) struct IdMap<FgId: Into<usize>, Id: From<usize> + Copy> {
+pub(crate) struct IdMap<FgId: Into<usize>, Id: From<usize> + Copy> {
     skipped_ids: Vec<usize>,
     _fgid: PhantomData<FgId>,
     _id: PhantomData<Id>,
