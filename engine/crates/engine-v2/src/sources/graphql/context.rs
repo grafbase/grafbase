@@ -1,7 +1,7 @@
 use bytes::Bytes;
 use grafbase_telemetry::{
     graphql::GraphqlResponseStatus,
-    span::subgraph::{SubgraphGraphqlRequestSpan, SubgraphRequestSpanBuilder},
+    span::subgraph::{SubgraphGraphqlRequestSpan, SubgraphHttpRequestSpan, SubgraphRequestSpanBuilder},
 };
 use runtime::{
     bytes::OwnedOrSharedBytes,
@@ -103,8 +103,13 @@ impl<'ctx, R: Runtime> SubgraphContext<'ctx, R> {
         self.retry_budget
     }
 
+    pub fn send_count(&self) -> Option<usize> {
+        self.send_count.checked_sub(1)
+    }
+
     pub async fn finalize(self, subgraph_result: ExecutionResult<SubgraphResponse>) -> ResolverResult {
         let duration = self.start.elapsed();
+
         if let Some(status) = self.status {
             self.span.record_graphql_response_status(status);
             self.metrics().record_subgraph_request_duration(
@@ -115,9 +120,6 @@ impl<'ctx, R: Runtime> SubgraphContext<'ctx, R> {
                 },
                 duration,
             );
-        }
-        if let Some(resend_count) = self.send_count.checked_sub(1) {
-            self.span.record_resend_count(resend_count)
         }
 
         let hook_result = self
@@ -178,8 +180,11 @@ impl<'ctx, R: Runtime> SubgraphContext<'ctx, R> {
         });
     }
 
-    pub(super) fn record_request(&mut self, request: &FetchRequest<'_, Bytes>) {
-        self.span.record_http_request(&request.url, &request.method);
+    pub(super) fn create_subgraph_request_span<T>(&self, request: &FetchRequest<'_, T>) -> SubgraphHttpRequestSpan {
+        SubgraphHttpRequestSpan::new(&request.url, &request.method)
+    }
+
+    pub(super) fn record_request_size(&mut self, request: &FetchRequest<'_, Bytes>) {
         self.metrics().record_subgraph_request_size(
             SubgraphRequestBodySizeAttributes {
                 name: self.endpoint.subgraph_name().to_string(),
@@ -207,7 +212,6 @@ impl<'ctx, R: Runtime> SubgraphContext<'ctx, R> {
     }
 
     pub(super) fn record_http_response(&mut self, response: &http::Response<OwnedOrSharedBytes>) {
-        self.span.record_http_status_code(response.status());
         self.http_status_code = Some(response.status());
         self.metrics().record_subgraph_response_size(
             SubgraphResponseBodySizeAttributes {
@@ -223,7 +227,6 @@ impl<'ctx, R: Runtime> SubgraphContext<'ctx, R> {
 
     pub(super) fn set_as_http_error(&mut self, status_code: Option<http::StatusCode>) {
         if let Some(status_code) = status_code {
-            self.span.record_http_status_code(status_code);
             self.http_status_code = Some(status_code);
         }
         self.status = Some(SubgraphResponseStatus::HttpError);
