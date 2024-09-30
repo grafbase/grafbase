@@ -11,7 +11,7 @@ use runtime::{
 use schema::GraphqlEndpoint;
 use std::ops::Deref;
 use tower::retry::budget::TpsBudget;
-use tracing::Span;
+use tracing::{Instrument, Span};
 use web_time::Instant;
 
 use grafbase_telemetry::{
@@ -119,10 +119,12 @@ impl<'ctx, R: Runtime> SubgraphContext<'ctx, R> {
         if let Some(resend_count) = self.send_count.checked_sub(1) {
             self.span.record_resend_count(resend_count)
         }
+
         let hook_result = self
             .ctx
             .hooks()
             .on_subgraph_response(self.executed_request_builder.build(duration))
+            .instrument(self.span.span.clone())
             .await
             .map_err(|e| {
                 tracing::error!("error in on-subgraph-response hook: {e}");
