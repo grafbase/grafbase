@@ -6,6 +6,7 @@ use futures_util::{stream::BoxStream, StreamExt};
 use headers::HeaderMapExt;
 use runtime::fetch::{FetchRequest, Fetcher};
 use serde::de::DeserializeSeed;
+use tracing::Instrument;
 use url::Url;
 
 use super::{
@@ -83,13 +84,19 @@ impl GraphqlResolver {
         };
 
         let fetcher = ctx.engine.runtime.fetcher();
+        let http_span = ctx.create_subgraph_request_span(&request);
+        let http_span1 = http_span.clone();
+
         let stream = retrying_fetch(ctx, move || {
             fetcher
                 .graphql_over_websocket_stream(request.clone())
                 .then(|res| async { (res, None) })
+                .instrument(http_span1.span())
         })
-        .await
-        .inspect_err(|_| {
+        .await;
+
+        let stream = stream.inspect_err(|_| {
+            http_span.set_as_http_error(None);
             ctx.set_as_http_error(None);
         })?;
 
@@ -156,15 +163,24 @@ impl GraphqlResolver {
             }
         };
 
-        ctx.record_request(&request);
+        ctx.record_request_size(&request);
+
+        let http_span = ctx.create_subgraph_request_span(&request);
         let fetcher = ctx.engine.runtime.fetcher();
+
+        let http_span1 = http_span.clone();
         let stream = retrying_fetch(ctx, move || {
             fetcher
                 .graphql_over_sse_stream(request.clone())
                 .then(|result| async { (result, None) })
+                .instrument(http_span1.span())
         })
-        .await
-        .inspect_err(|err| ctx.set_as_http_error(err.as_fetch_invalid_status_code()))?;
+        .await;
+
+        let stream = stream.inspect_err(|err| {
+            http_span.set_as_http_error(err.as_fetch_invalid_status_code());
+            ctx.set_as_http_error(err.as_fetch_invalid_status_code());
+        })?;
 
         let ctx = ctx.execution_context();
         let stream = stream

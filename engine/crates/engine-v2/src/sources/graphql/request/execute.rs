@@ -11,6 +11,7 @@ use runtime::{
     rate_limiting::RateLimitKey,
 };
 use tower::retry::budget::Budget;
+use tracing::Instrument;
 use web_time::Duration;
 
 use crate::{
@@ -68,11 +69,14 @@ pub(crate) async fn execute_subgraph_request<'ctx, 'a, R: Runtime>(
             timeout: endpoint.config.timeout,
         }
     };
-    ctx.record_request(&request);
+
+    ctx.record_request_size(&request);
 
     let fetcher = ctx.engine.runtime.fetcher();
+    let http_span = ctx.create_subgraph_request_span(&request);
     let fetch_result = retrying_fetch(ctx, || async {
-        let (fetch_result, info) = fetcher.fetch(request.clone()).await;
+        let (fetch_result, info) = fetcher.fetch(request.clone()).instrument(http_span.span()).await;
+
         let fetch_result = fetch_result.and_then(|response| {
             tracing::debug!("Received response:\n{}", String::from_utf8_lossy(response.body()));
             // For those status codes we want to retry the request, so marking the request as
@@ -84,16 +88,23 @@ pub(crate) async fn execute_subgraph_request<'ctx, 'a, R: Runtime>(
                 Ok(response)
             }
         });
+
         (fetch_result, info)
     })
     .await;
 
+    if let Some(count) = ctx.send_count() {
+        http_span.record_resend_count(count);
+    }
+
     let response = match fetch_result {
         Ok(response) => {
+            http_span.record_http_status_code(response.status());
             ctx.record_http_response(&response);
             response
         }
         Err(err) => {
+            http_span.set_as_http_error(err.as_fetch_invalid_status_code());
             ctx.set_as_http_error(err.as_fetch_invalid_status_code());
             return Err(err);
         }
