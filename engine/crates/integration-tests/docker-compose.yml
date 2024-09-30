@@ -33,7 +33,7 @@ services:
 
   # Postgres
   postgres:
-    image: postgres:16
+    image: postgres:17
     restart: unless-stopped
     command: postgres -c 'max_connections=1000'
     environment:
