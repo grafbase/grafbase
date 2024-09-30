@@ -4,7 +4,6 @@ use runtime::{
     hooks::{AuthorizedHooks, EdgeDefinition, Hooks, NodeDefinition},
 };
 use schema::{Definition, FieldDefinition, SchemaInputValue};
-use tracing::{instrument, Level};
 
 use crate::{
     operation::FieldArgumentsView,
@@ -12,7 +11,6 @@ use crate::{
 };
 
 impl<'ctx, H: Hooks> super::RequestHooks<'ctx, H> {
-    #[instrument(skip_all, ret(level = Level::DEBUG))]
     pub async fn authorize_edge_pre_execution(
         &self,
         definition: FieldDefinition<'_>,
@@ -38,7 +36,6 @@ impl<'ctx, H: Hooks> super::RequestHooks<'ctx, H> {
             .map_err(Into::into)
     }
 
-    #[instrument(skip_all, ret(level = Level::DEBUG))]
     pub async fn authorize_parent_edge_post_execution(
         &self,
         definition: FieldDefinition<'_>,
@@ -64,7 +61,6 @@ impl<'ctx, H: Hooks> super::RequestHooks<'ctx, H> {
             .map_err(Into::into)
     }
 
-    #[instrument(skip_all, ret(level = Level::DEBUG))]
     pub async fn authorize_edge_node_post_execution(
         &self,
         definition: FieldDefinition<'_>,
@@ -90,7 +86,6 @@ impl<'ctx, H: Hooks> super::RequestHooks<'ctx, H> {
             .map_err(Into::into)
     }
 
-    #[instrument(skip_all, ret(level = Level::DEBUG))]
     pub async fn authorize_node_pre_execution(
         &self,
         definition: Definition<'_>,
