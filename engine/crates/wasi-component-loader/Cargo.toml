@@ -23,7 +23,7 @@ grafbase-workspace-hack.workspace = true
 version = "24.0.0"
 
 [dependencies.wasmtime-wasi]
-version = "24.0.0"
+version = "25.0.0"
 default-features = false
 
 [dependencies.wasmtime-wasi-http]
