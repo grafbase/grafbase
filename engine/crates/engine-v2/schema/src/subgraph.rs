@@ -1,5 +1,16 @@
 use std::time::Duration;
 
+use crate::Subgraph;
+
+impl<'a> Subgraph<'a> {
+    pub fn name(&self) -> &'a str {
+        match self {
+            Subgraph::GraphqlEndpoint(endpoint) => endpoint.subgraph_name(),
+            Subgraph::Introspection => "introspection",
+        }
+    }
+}
+
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct SubgraphConfig {
     pub timeout: Duration,

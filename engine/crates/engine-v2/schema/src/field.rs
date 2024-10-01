@@ -1,7 +1,9 @@
 use std::borrow::Cow;
 
+use walker::Walk;
+
 use crate::{
-    FieldDefinition, InputValueDefinition, ProvidableFieldSet, RequiredFieldSetId, RequiredFieldSetRecord, SubgraphId,
+    FieldDefinition, InputValueDefinition, ProvidableFieldSet, RequiredFieldSet, RequiredFieldSetRecord, SubgraphId,
     TypeSystemDirective,
 };
 
@@ -24,10 +26,10 @@ impl<'a> FieldDefinition<'a> {
             .unwrap_or(ProvidableFieldSet::empty())
     }
 
-    pub fn arequires_for_subgraph(&self, subgraph_id: SubgraphId) -> Option<RequiredFieldSetId> {
+    pub fn requires_for_subgraph(&self, subgraph_id: SubgraphId) -> Option<RequiredFieldSet<'a>> {
         self.requires().find_map(|requires| {
             if requires.as_ref().subgraph_id == subgraph_id {
-                Some(requires.field_set_id)
+                Some(requires.field_set_id.walk(self.schema))
             } else {
                 None
             }

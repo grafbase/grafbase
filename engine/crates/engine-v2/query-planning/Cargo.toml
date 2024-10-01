@@ -27,7 +27,8 @@ schema = { path = "../schema", package = "engine-v2-schema" }
 ctor.workspace = true
 engine-parser = { path = "../../engine/parser" }
 engine-value = { path = "../../engine/value" }
-engine = { path = "../../engine" }
+config = { path = "../config", package = "engine-v2-config" }
+federated-graph.workspace = true
 tracing-subscriber = { workspace = true, features = [
   "fmt",
   "tracing-log",

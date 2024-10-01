@@ -2724,14 +2724,15 @@ name = "engine-v2-query-planning"
 version = "0.0.0"
 dependencies = [
  "ctor",
- "engine",
  "engine-parser",
+ "engine-v2-config",
  "engine-v2-id-derives",
  "engine-v2-id-newtypes",
  "engine-v2-schema",
  "engine-v2-walker",
  "engine-value",
  "grafbase-workspace-hack",
+ "graphql-federated-graph",
  "itertools 0.13.0",
  "petgraph",
  "serde",
