@@ -43,7 +43,7 @@ serde.workspace = true
 thiserror.workspace = true
 toml.workspace = true
 tokio = { workspace = true, features = ["signal", "time", "net"] }
-tower-http = { version = "0.5.2", features = ["cors", "timeout"] }
+tower-http = { version = "0.6.0", features = ["cors", "timeout"] }
 tracing.workspace = true
 ulid = { workspace = true, features = ["serde"] }
 url = { workspace = true, features = ["serde"] }

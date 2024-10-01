@@ -24,7 +24,7 @@ where
 {
     let base_sampler = Sampler::TraceIdRatioBased(config.tracing.sampling);
 
-    let mut trace_config = opentelemetry_sdk::trace::config().with_id_generator(id_generator);
+    let mut trace_config = opentelemetry_sdk::trace::Config::default().with_id_generator(id_generator);
 
     if config.tracing.parent_based_sampler {
         trace_config = trace_config.with_sampler(Sampler::ParentBased(Box::new(base_sampler)));

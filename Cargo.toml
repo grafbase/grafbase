@@ -85,7 +85,7 @@ async-graphql-parser = "7.0.3"
 async-graphql-value = "7.0.3"
 async-sse = "5"
 async-trait = "0.1.80"
-async-tungstenite = "0.26.0"
+async-tungstenite = "0.28.0"
 axum = { version = "0.7.5", default-features = false }
 axum-server = { version = "0.7", default-features = false }
 base64 = "0.22.1"
@@ -94,8 +94,8 @@ blake3 = "1.5.1"
 bytes = "1.6.0"
 chrono = { version = "0.4.38", default-features = false }
 ctor = "0.2.8"
-cynic = "=3.7.3"
-cynic-introspection = "=3.7.3"
+cynic = "=3.8.0"
+cynic-introspection = "=3.8.0"
 cynic-parser = "0.5.0"
 deadpool-postgres = "0.14"
 derive_more = "1.0.0-beta.6"
@@ -129,7 +129,7 @@ rstest = "0.22"
 rustls = { version = "0.23.5", default-features = false }
 rustls-pemfile = { version = "2.1.2", default-features = false }
 rustls-webpki = { version = "0.102.3", default-features = false }
-secrecy = "0.8"
+secrecy = "0.10"
 send_wrapper = "0.6"
 strum = "0.26.2"
 strum_macros = "0.26.2"
@@ -139,12 +139,12 @@ tokio = "1.37.0"
 tokio-postgres = { version = "0.7.10", default-features = false }
 tokio-postgres-rustls = "0.12.0"
 tokio-rustls = { version = "0.26.0", default-features = false }
-tokio-tungstenite = { version = "0.23.0", default-features = false }
+tokio-tungstenite = { version = "0.24.0", default-features = false }
 toml = "0.8"
-tungstenite = { version = "0.23.0", default-features = false }
+tungstenite = { version = "0.24.0", default-features = false }
 tonic = "0.12.0"
 tower = "0.5.0"
-tower-http = "0.5.2"
+tower-http = "0.6.0"
 tower-service = "0.3.2"
 url = "2.5.0"
 uuid = "1.8.0"
@@ -170,12 +170,12 @@ tracing = "0.1.40"
 tracing-subscriber = "0.3.18"
 tracing-futures = "0.2.5"
 tracing-mock = "0.1"
-tracing-opentelemetry = "0.23"
-opentelemetry = "0.22"
-opentelemetry_sdk = "0.22.0"
-opentelemetry-stdout = "0.3"
-opentelemetry-otlp = "0.15"
-opentelemetry-appender-tracing = "0.3.0"
+tracing-opentelemetry = "0.26"
+opentelemetry = "0.25"
+opentelemetry_sdk = "0.25.0"
+opentelemetry-stdout = "0.25"
+opentelemetry-otlp = "0.25"
+opentelemetry-appender-tracing = "0.25.0"
 
 # Common
 graph-ref = { path = "graph-ref" }

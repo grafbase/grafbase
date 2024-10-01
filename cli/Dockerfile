@@ -1,7 +1,7 @@
 #
 # === Pathfinder & UDF wrapper ===
 #
-FROM oven/bun:1.1.27-alpine AS assets
+FROM oven/bun:1.1.29-alpine AS assets
 WORKDIR /grafbase
 COPY ./cli/wrappers ./cli/wrappers
 COPY ./packages/cli-app ./packages/cli-app
@@ -18,7 +18,7 @@ RUN apk add --no-cache git npm && \
 #
 # Using the same alpine image as oven/bun
 # https://github.com/oven-sh/bun/blob/bun-v1.1.12/dockerhub/alpine/Dockerfile
-FROM rust:1.80-alpine3.20 AS chef
+FROM rust:1.81-alpine3.20 AS chef
 
 # Patching musl to use mimalloc, see docker/README.md.
 # Source: https://github.com/tweag/rust-alpine-mimalloc
@@ -60,7 +60,7 @@ RUN cargo build --release --target "$(rustc -vV | sed -n "s|host: ||p")" --bin g
 #
 # === Final image ===
 #
-FROM oven/bun:1.1.27-alpine
+FROM oven/bun:1.1.29-alpine
 
 LABEL org.opencontainers.image.url='https://grafbase.com/cli' \
     org.opencontainers.image.documentation='https://grafbase.com/docs/cli' \

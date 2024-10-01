@@ -26,7 +26,7 @@ grafbase-telemetry = { workspace = true, features = ["otlp"] }
 graph-ref.workspace = true
 itertools.workspace = true
 mimalloc = "0.1"
-opentelemetry-aws = { version = "0.10.0" }
+opentelemetry-aws = { version = "0.12.0" }
 rustls = { workspace = true, features = ["ring"] }
 tokio = { workspace = true, features = ["rt-multi-thread", "signal"] }
 toml = "0.8"
@@ -40,7 +40,7 @@ workspace = true
 
 [dev-dependencies]
 async-graphql-parser.workspace = true
-clickhouse = { version = "0.12" }
+clickhouse = { version = "0.13" }
 ctor.workspace = true
 duct = "0.13.7"
 fslock = "0.2.1"
