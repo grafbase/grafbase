@@ -2,13 +2,14 @@
 #![allow(unused_crate_dependencies)]
 
 use grafbase_workspace_hack as _;
+use id_newtypes::BitSet;
 use schema::{
-    FieldDefinition, FieldDefinitionId, RequiredField, RequiredFieldId, RequiredFieldSet, RequiredFieldSetId,
-    RequiredFieldSetRecord, ResolverDefinitionId, Schema, SubgraphId, TypeSystemDirective,
+    Definition, FieldDefinition, FieldDefinitionId, RequiredField, RequiredFieldId, RequiredFieldSet,
+    RequiredFieldSetId, RequiredFieldSetRecord, ResolverDefinitionId, Schema, SubgraphId, TypeSystemDirective,
 };
 use walker::Walk;
 
-use std::{borrow::Cow, convert::Infallible, num::NonZero, time::Instant};
+use std::{borrow::Cow, collections::HashSet, convert::Infallible, num::NonZero, time::Instant};
 
 use itertools::Itertools;
 use petgraph::{
@@ -146,6 +147,7 @@ pub struct Plan<'ctx, Op: Operation> {
     graph: petgraph::stable_graph::StableGraph<Node<Op::FieldId>, Edge>,
     root: NodeIndex,
     field_nodes: Vec<NodeIndex>,
+    scalar_nodes: Vec<NodeIndex>,
     fields_stack: Vec<Field<Op::FieldId>>,
     requirements_stack: Vec<Requirement<'ctx>>,
 }
@@ -186,12 +188,16 @@ impl<'ctx, Op: Operation> Plan<'ctx, Op> {
             operation,
             root,
             graph,
+            scalar_nodes: Vec::new(),
             field_nodes: Vec::new(),
             fields_stack: Vec::new(),
             requirements_stack: Vec::new(),
         };
 
         plan.ingest_operation();
+        tracing::debug!("After operation ingestion:\n{}", plan.dot_graph());
+        plan.prune_resolvers_not_providing_any_scalars();
+        tracing::debug!("After pruning resolvers:\n{}", plan.dot_graph());
 
         plan
     }
@@ -201,6 +207,23 @@ impl<'ctx, Op: Operation> Plan<'ctx, Op> {
             .operation
             .field_ids()
             .map(|field_id| self.graph.add_node(Node::Field(field_id)))
+            .collect();
+
+        self.scalar_nodes = self
+            .operation
+            .field_ids()
+            .filter_map(|field_id| {
+                if self
+                    .operation
+                    .field_defintion(field_id)
+                    .walk(self.schema)
+                    .is_some_and(|definition| matches!(definition.ty().definition(), Definition::Scalar(_)))
+                {
+                    Some(self[field_id])
+                } else {
+                    None
+                }
+            })
             .collect();
 
         self.fields_stack = self
@@ -374,6 +397,7 @@ impl<'ctx, Op: Operation> Plan<'ctx, Op> {
             let required_node = existing_field.map(|(node, _)| node).unwrap_or_else(|| {
                 let field_id = self.operation.create_extra_field(item.field());
                 let field_node = self.graph.add_node(Node::Field(field_id));
+                self.graph.add_edge(parent_field_node, field_node, Edge::Field);
                 self.fields_stack.extend(
                     self.graph
                         .edges_directed(parent_field_node, Direction::Incoming)
@@ -396,9 +420,61 @@ impl<'ctx, Op: Operation> Plan<'ctx, Op> {
                         }),
                 );
                 self.field_nodes.push(field_node);
+                if matches!(item.field().definition().ty().definition(), Definition::Scalar(_)) {
+                    self.scalar_nodes.push(field_node);
+                }
                 field_node
             });
             self.graph.add_edge(petitioner_node, required_node, Edge::Requires);
+        }
+    }
+
+    fn prune_resolvers_not_providing_any_scalars(&mut self) {
+        let mut touches_scalar = HashSet::new();
+        let mut stack = self.scalar_nodes.clone();
+
+        while let Some(node) = stack.pop() {
+            if touches_scalar.contains(&node) {
+                continue;
+            };
+            stack.extend(
+                self.graph
+                    .edges_directed(node, Direction::Incoming)
+                    .filter(|edge| {
+                        matches!(
+                            edge.weight(),
+                            Edge::Resolves | Edge::CanResolveField(_) | Edge::Resolver(_)
+                        )
+                    })
+                    .map(|edge| edge.source()),
+            );
+            touches_scalar.insert(node);
+        }
+
+        let mut to_remove_stack = self
+            .graph
+            .node_indices()
+            .filter(|node| matches!(self.graph[*node], Node::Resolver(_)) && !touches_scalar.contains(node))
+            .collect::<Vec<_>>();
+
+        for node in &to_remove_stack {
+            let edges = self
+                .graph
+                .edges_directed(*node, Direction::Incoming)
+                .map(|edge| edge.id())
+                .collect::<Vec<_>>();
+            for edge in edges {
+                self.graph.remove_edge(edge);
+            }
+        }
+
+        while let Some(node) = to_remove_stack.pop() {
+            if self.graph.edges_directed(node, Direction::Incoming).next().is_none() {
+                for neighbor in self.graph.neighbors_directed(node, Direction::Outgoing) {
+                    to_remove_stack.push(neighbor);
+                }
+                self.graph.remove_node(node);
+            }
         }
     }
 

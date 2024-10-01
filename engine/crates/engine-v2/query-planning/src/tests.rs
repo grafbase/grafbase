@@ -206,11 +206,5 @@ fn test_dummy() {
     );
     let mut plan = crate::Plan::build(&schema, &mut operation);
 
-    println!("{}", plan.dot_graph());
-    // let ctx = Context::init(resolvers, "{ author { cook { kitchen } book { title } } }");
-    // let mut plan = Plan::build(&ctx);
-    //
-    // println!("{}", plan.dot_graph());
-
     unreachable!();
 }
