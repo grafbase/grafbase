@@ -95,7 +95,7 @@ impl<'a> RequiredFieldSetItem<'a> {
     pub fn field(&self) -> RequiredField<'a> {
         self.ref_.field_id.walk(self.schema)
     }
-    pub fn subselection(&self) -> RequiredFieldSet<'_> {
+    pub fn subselection(&self) -> RequiredFieldSet<'a> {
         self.ref_.subselection.walk(self.schema)
     }
 }

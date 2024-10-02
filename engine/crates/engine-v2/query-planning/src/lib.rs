@@ -426,6 +426,14 @@ impl<'ctx, Op: Operation> Plan<'ctx, Op> {
                 field_node
             });
             self.graph.add_edge(petitioner_node, required_node, Edge::Requires);
+
+            if item.subselection().items().len() != 0 {
+                self.requirements_stack.push(Requirement {
+                    parent_field_node: required_node,
+                    petitioner_node,
+                    required_field_set: item.subselection(),
+                })
+            }
         }
     }
 
@@ -477,6 +485,15 @@ impl<'ctx, Op: Operation> Plan<'ctx, Op> {
             }
         }
     }
+
+    /// cost depends on how many different resolvers one depends on.
+    /// No... if fields are all available at 0 zero cost, the plan only costs 1.
+    /// so for each requirement update cost.
+    /// maybe topological sort?
+    /// graph cost:
+    ///     resolver depends on fields, each one provided by one or multiple plans.
+    ///     so max(field) and each of those is min(plan)
+    fn estimate_cost(&mut self) {}
 
     /// Check out https://dreampuf.github.io/GraphvizOnline
     pub fn dot_graph(&self) -> String {
