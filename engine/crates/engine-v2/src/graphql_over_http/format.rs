@@ -35,8 +35,8 @@ pub(crate) enum StreamingResponseFormat {
 }
 
 mod content_types {
-    pub static APPLICATION_JSON: http::HeaderValue = http::HeaderValue::from_static("application/json");
-    pub static APPLICATION_GRAPHQL_RESPONSE_JSON: http::HeaderValue =
+    pub const APPLICATION_JSON: http::HeaderValue = http::HeaderValue::from_static("application/json");
+    pub const APPLICATION_GRAPHQL_RESPONSE_JSON: http::HeaderValue =
         http::HeaderValue::from_static("application/graphql-response+json");
 }
 

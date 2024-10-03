@@ -13,7 +13,7 @@ use crate::{Engine, EngineBuilder};
 
 pub async fn admin_pool() -> &'static PooledTcpTransport {
     // this is for creating/dropping databases, which _should not be done_ over pgbouncer.
-    static ADMIN_CONNECTION_STRING: &str = "postgres://postgres:grafbase@localhost:5432/postgres";
+    const ADMIN_CONNECTION_STRING: &str = "postgres://postgres:grafbase@localhost:5432/postgres";
 
     static POOL: OnceCell<PooledTcpTransport> = OnceCell::const_new();
     POOL.get_or_init(|| async {
@@ -31,7 +31,7 @@ pub async fn admin_pool() -> &'static PooledTcpTransport {
 }
 
 // url for the engine for introspecting, querying and mutating the database.
-static BASE_CONNECTION_STRING: &str = "postgres://postgres:grafbase@localhost:5432/";
+const BASE_CONNECTION_STRING: &str = "postgres://postgres:grafbase@localhost:5432/";
 
 #[track_caller]
 pub fn query_postgres<F, U>(test: F) -> String

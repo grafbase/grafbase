@@ -214,7 +214,7 @@ impl<R: Runtime> Engine<R> {
 }
 
 fn content_type_is_application_json(headers: &http::HeaderMap) -> bool {
-    static APPLICATION_JSON: http::HeaderValue = http::HeaderValue::from_static("application/json");
+    const APPLICATION_JSON: http::HeaderValue = http::HeaderValue::from_static("application/json");
 
     let Some(header) = headers.get(http::header::CONTENT_TYPE) else {
         return false;

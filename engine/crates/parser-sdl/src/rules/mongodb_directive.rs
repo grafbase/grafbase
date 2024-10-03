@@ -15,9 +15,9 @@ use super::{
 };
 use crate::{directive_de::parse_directive, validations::validate_connector_name};
 
-static NUMERIC_SCALARS: &[&str] = &["BigInt", "Decimal", "Float", "Int"];
+const NUMERIC_SCALARS: &[&str] = &["BigInt", "Decimal", "Float", "Int"];
 
-static MONGODB_SCALARS: &[&str] = &[
+const MONGODB_SCALARS: &[&str] = &[
     "Boolean",
     "BigInt",
     "Bytes",
@@ -34,7 +34,7 @@ static MONGODB_SCALARS: &[&str] = &[
     "URL",
 ];
 
-static DATE_TIME_SCALARS: &[&str] = &["Date", "DateTime", "Timestamp"];
+const DATE_TIME_SCALARS: &[&str] = &["Date", "DateTime", "Timestamp"];
 
 #[derive(Debug, Clone, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
