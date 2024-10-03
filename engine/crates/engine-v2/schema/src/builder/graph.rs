@@ -218,8 +218,10 @@ impl<'a> GraphBuilder<'a> {
     }
 
     fn ingest_enums_before_input_values(&mut self, config: &mut Config) {
-        self.graph.enum_value_definitions = take(&mut config.graph.enum_values)
-            .into_iter()
+        self.graph.enum_value_definitions = config
+            .graph
+            .enum_values
+            .iter()
             .enumerate()
             .filter_map(|(idx, enum_value)| {
                 if is_inaccessible(&config.graph, enum_value.composed_directives) {

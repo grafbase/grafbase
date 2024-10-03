@@ -2,6 +2,15 @@ use super::{Directives, EnumValueId, FederatedGraph, StringId, TypeDefinitionId,
 
 pub type EnumValue<'a> = ViewNested<'a, EnumValueId, EnumValueRecord>;
 
+impl std::fmt::Debug for EnumValue<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("EnumValueDefinition")
+            .field("enum", &self.then(|v| v.enum_id).then(|enm| enm.name).as_str())
+            .field("value", &self.then(|v| v.value).as_str())
+            .finish_non_exhaustive()
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct EnumValueRecord {
     pub enum_id: TypeDefinitionId,
