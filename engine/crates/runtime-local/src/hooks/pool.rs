@@ -10,6 +10,7 @@ impl<T: RecycleableComponentInstance> Pool<T> {
         let mgr = ComponentMananger::<T>::new(loader.clone());
         Self(
             managed::Pool::builder(mgr)
+                .max_size(100)
                 .build()
                 .expect("only fails if not in a runtime"),
         )
