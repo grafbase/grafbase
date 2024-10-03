@@ -101,7 +101,7 @@ impl<'a> GraphBuilder<'a> {
             input_value_definitions.push(InputValueDefinitionRecord {
                 name_id: definition.name.into(),
                 description_id: definition.description.map(Into::into),
-                ty_record: definition.r#type.into(),
+                ty_record: self.convert_type(definition.r#type),
                 // Adding after ingesting all input values as input object fields are input values.
                 // So we need them for coercion.
                 default_value_id: None,
@@ -173,7 +173,12 @@ impl<'a> GraphBuilder<'a> {
                 .members
                 .into_iter()
                 .filter(|object_id| {
-                    let composed_directives = config.graph[*object_id].composed_directives;
+                    let composed_directives = config
+                        .graph
+                        .at(*object_id)
+                        .then(|obj| obj.type_definition_id)
+                        .directives;
+
                     !is_inaccessible(&config.graph, composed_directives)
                 })
                 .map(Into::into)
@@ -254,8 +259,9 @@ impl<'a> GraphBuilder<'a> {
     }
 
     fn ingest_scalars(&mut self, config: &mut Config) {
-        self.graph.scalar_definitions = take(&mut config.graph.scalars)
-            .into_iter()
+        self.graph.scalar_definitions = config
+            .graph
+            .iter_scalars()
             .map(|scalar| {
                 let name = StringId::from(scalar.name);
                 ScalarDefinitionRecord {
@@ -266,7 +272,7 @@ impl<'a> GraphBuilder<'a> {
                     directive_ids: self.push_directives(
                         config,
                         Directives {
-                            federated: scalar.composed_directives,
+                            federated: scalar.directives,
                             ..Default::default()
                         },
                     ),
@@ -285,6 +291,7 @@ impl<'a> GraphBuilder<'a> {
         self.graph.object_definitions = Vec::with_capacity(config.graph.objects.len());
         for (federated_id, object) in take(&mut config.graph.objects).into_iter().enumerate() {
             let federated_id = federated_graph::ObjectId(federated_id);
+            let definition = config.graph.at(object.type_definition_id);
             let object_id = ObjectDefinitionId::from(self.graph.object_definitions.len());
 
             let fields = self
@@ -304,7 +311,7 @@ impl<'a> GraphBuilder<'a> {
             let directives = self.push_directives(
                 config,
                 Directives {
-                    federated: object.composed_directives,
+                    federated: definition.directives,
                     authorized_directives: {
                         let mapping = &config.graph.object_authorized_directives;
                         let mut i = mapping.partition_point(|(id, _)| *id < federated_id);
@@ -366,6 +373,7 @@ impl<'a> GraphBuilder<'a> {
         for interface in take(&mut config.graph.interfaces) {
             let interface_id = InterfaceDefinitionId::from(self.graph.interface_definitions.len());
             let name_id = config.graph.view(interface.type_definition_id).name.into();
+            let definition = config.graph.at(interface.type_definition_id);
 
             let fields = self.ctx.idmaps.field.get_range((
                 interface.fields.start,
@@ -379,7 +387,7 @@ impl<'a> GraphBuilder<'a> {
             let directives = self.push_directives(
                 config,
                 Directives {
-                    federated: interface.composed_directives,
+                    federated: definition.directives,
                     ..Default::default()
                 },
             );
@@ -562,7 +570,7 @@ impl<'a> GraphBuilder<'a> {
                 name_id: field.name.into(),
                 description_id: None,
                 parent_entity_id,
-                ty_record: field.r#type.into(),
+                ty_record: self.convert_type(field.r#type),
                 only_resolvable_in_ids: only_resolvable_in
                     .into_iter()
                     .map(SubgraphId::GraphqlEndpoint)
@@ -594,6 +602,24 @@ impl<'a> GraphBuilder<'a> {
                 argument_ids: self.ctx.idmaps.input_value.get_range(field.arguments),
                 directive_ids: directives,
             })
+        }
+    }
+
+    fn convert_type(&self, federated_graph::Type { wrapping, definition }: federated_graph::Type) -> TypeRecord {
+        TypeRecord {
+            definition_id: self.convert_definition(definition),
+            wrapping,
+        }
+    }
+
+    fn convert_definition(&self, definition: federated_graph::Definition) -> DefinitionId {
+        match definition {
+            federated_graph::Definition::Scalar(id) => DefinitionId::Scalar(self.ctx.idmaps.convert_scalar_id(id)),
+            federated_graph::Definition::Object(id) => DefinitionId::Object(id.into()),
+            federated_graph::Definition::Interface(id) => DefinitionId::Interface(id.into()),
+            federated_graph::Definition::Union(id) => DefinitionId::Union(id.into()),
+            federated_graph::Definition::Enum(id) => DefinitionId::Enum(id.into()),
+            federated_graph::Definition::InputObject(id) => DefinitionId::InputObject(id.into()),
         }
     }
 
@@ -860,28 +886,6 @@ pub(super) fn is_inaccessible(
     graph[directives]
         .iter()
         .any(|directive| matches!(directive, federated_graph::Directive::Inaccessible))
-}
-
-impl From<federated_graph::Definition> for DefinitionId {
-    fn from(definition: federated_graph::Definition) -> Self {
-        match definition {
-            federated_graph::Definition::Scalar(id) => DefinitionId::Scalar(id.into()),
-            federated_graph::Definition::Object(id) => DefinitionId::Object(id.into()),
-            federated_graph::Definition::Interface(id) => DefinitionId::Interface(id.into()),
-            federated_graph::Definition::Union(id) => DefinitionId::Union(id.into()),
-            federated_graph::Definition::Enum(id) => DefinitionId::Enum(id.into()),
-            federated_graph::Definition::InputObject(id) => DefinitionId::InputObject(id.into()),
-        }
-    }
-}
-
-impl From<federated_graph::Type> for TypeRecord {
-    fn from(field_type: federated_graph::Type) -> Self {
-        TypeRecord {
-            definition_id: field_type.definition.into(),
-            wrapping: field_type.wrapping,
-        }
-    }
 }
 
 impl IdMap<federated_graph::FieldId, FieldDefinitionId> {

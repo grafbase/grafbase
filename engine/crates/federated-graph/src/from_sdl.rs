@@ -45,7 +45,6 @@ struct State<'a> {
     enums: Vec<Enum>,
     enum_values: Vec<EnumValue>,
     unions: Vec<Union>,
-    scalars: Vec<Scalar>,
     input_objects: Vec<InputObject>,
 
     strings: IndexSet<String>,
@@ -170,7 +169,7 @@ impl<'a> State<'a> {
             Definition::Interface(interface_id) => {
                 self.graph.view(self.interfaces[interface_id.0].type_definition_id).name
             }
-            Definition::Scalar(scalar_id) => self.scalars[scalar_id.0].name,
+            Definition::Scalar(scalar_id) => self.graph[scalar_id].name,
             Definition::Enum(enum_id) => self.enums[enum_id.0].name,
             Definition::Union(union_id) => self.unions[union_id.0].name,
             Definition::InputObject(input_object_id) => self.input_objects[input_object_id.0].name,
@@ -207,18 +206,19 @@ pub fn from_sdl(sdl: &str) -> Result<FederatedGraph, DomainError> {
             .definition_names
             .insert(query_type_name, Definition::Object(object_id));
 
-        let type_definition_id = state
-            .graph
-            .push_type_definition(TypeDefinitionRecord { name: query_string_id });
+        let type_definition_id = state.graph.push_type_definition(TypeDefinitionRecord {
+            name: query_string_id,
+            description: None,
+            directives: NO_DIRECTIVES,
+            kind: TypeDefinitionKind::Object,
+        });
 
         state.objects.push(Object {
             type_definition_id,
             implements_interfaces: Vec::new(),
             join_implements: Vec::new(),
             keys: Vec::new(),
-            composed_directives: NO_DIRECTIVES,
             fields: NO_FIELDS,
-            description: None,
         });
 
         ingest_object_fields(object_id, std::iter::empty(), &mut state)?;
@@ -238,7 +238,6 @@ pub fn from_sdl(sdl: &str) -> Result<FederatedGraph, DomainError> {
         enums: state.enums,
         enum_values: state.enum_values,
         unions: state.unions,
-        scalars: state.scalars,
         input_objects: state.input_objects,
         strings: state.strings.into_iter().collect(),
         directives: state.directives,
@@ -825,22 +824,25 @@ fn ingest_definitions<'a>(document: &'a ast::TypeSystemDocument, state: &mut Sta
                     .map(|description| state.insert_string(description.raw_str()));
                 let composed_directives = collect_composed_directives(typedef.directives(), state);
 
-                let type_definition_id = state
-                    .graph
-                    .push_type_definition(TypeDefinitionRecord { name: type_name_id });
+                let type_definition_id = state.graph.push_type_definition(TypeDefinitionRecord {
+                    name: type_name_id,
+                    description,
+                    directives: composed_directives,
+                    kind: match typedef {
+                        ast::TypeDefinition::Scalar(_) => TypeDefinitionKind::Scalar,
+                        ast::TypeDefinition::Object(_) => TypeDefinitionKind::Object,
+                        ast::TypeDefinition::Interface(_) => TypeDefinitionKind::Interface,
+                        ast::TypeDefinition::Union(_) => TypeDefinitionKind::Union,
+                        ast::TypeDefinition::Enum(_) => TypeDefinitionKind::Enum,
+                        ast::TypeDefinition::InputObject(_) => TypeDefinitionKind::InputObject,
+                    },
+                });
 
                 match typedef {
-                    ast::TypeDefinition::Scalar(scalar) => {
-                        let description = scalar
-                            .description()
-                            .map(|description| state.insert_string(description.raw_str()));
-
-                        let scalar_id = ScalarId(state.scalars.push_return_idx(Scalar {
-                            name: type_name_id,
-                            composed_directives,
-                            description,
-                        }));
-                        state.definition_names.insert(type_name, Definition::Scalar(scalar_id));
+                    ast::TypeDefinition::Scalar(_) => {
+                        state
+                            .definition_names
+                            .insert(type_name, Definition::Scalar(type_definition_id));
                     }
                     ast::TypeDefinition::Object(_) => {
                         let object_id = ObjectId(state.objects.push_return_idx(Object {
@@ -848,8 +850,6 @@ fn ingest_definitions<'a>(document: &'a ast::TypeSystemDocument, state: &mut Sta
                             implements_interfaces: Vec::new(),
                             join_implements: Vec::new(),
                             keys: Vec::new(),
-                            composed_directives,
-                            description,
                             fields: NO_FIELDS,
                         }));
 
@@ -860,8 +860,6 @@ fn ingest_definitions<'a>(document: &'a ast::TypeSystemDocument, state: &mut Sta
                             type_definition_id,
                             implements_interfaces: Vec::new(),
                             keys: Vec::new(),
-                            composed_directives,
-                            description,
                             fields: NO_FIELDS,
                             join_implements: Vec::new(),
                         }));
@@ -941,11 +939,12 @@ fn ingest_definitions<'a>(document: &'a ast::TypeSystemDocument, state: &mut Sta
 fn insert_builtin_scalars(state: &mut State<'_>) {
     for name_str in ["String", "ID", "Float", "Boolean", "Int"] {
         let name = state.insert_string(name_str);
-        let id = ScalarId(state.scalars.push_return_idx(Scalar {
+        let id = state.graph.push_type_definition(TypeDefinitionRecord {
             name,
-            composed_directives: (DirectiveId(0), 0),
+            directives: (DirectiveId(0), 0),
             description: None,
-        }));
+            kind: TypeDefinitionKind::Scalar,
+        });
         state.definition_names.insert(name_str, Definition::Scalar(id));
     }
 }
@@ -991,7 +990,7 @@ fn ingest_field<'a>(
         let r#type = state.field_type(arg.ty())?;
         let default = arg
             .default_value()
-            .map(|default| state.insert_value(default, r#type.definition.as_enum().copied()));
+            .map(|default| state.insert_value(default, r#type.definition.as_enum()));
 
         state.input_value_definitions.push(InputValueDefinition {
             name,
@@ -1136,7 +1135,7 @@ fn ingest_input_object<'a>(
             .map(|description| state.insert_string(description.raw_str()));
         let default = field
             .default_value()
-            .map(|default| state.insert_value(default, r#type.definition.as_enum().copied()));
+            .map(|default| state.insert_value(default, r#type.definition.as_enum()));
 
         state.input_value_definitions.push(InputValueDefinition {
             name,
@@ -1268,11 +1267,7 @@ fn attach_selection_field(
                 .map(|idx| InputValueDefinitionId(start.0 + idx))
                 .expect("unknown argument");
 
-            let argument_type = state.input_value_definitions[argument_id.0]
-                .r#type
-                .definition
-                .as_enum()
-                .copied();
+            let argument_type = state.input_value_definitions[argument_id.0].r#type.definition.as_enum();
 
             let converted_value = executable_value_to_type_system_value(argument.value());
 

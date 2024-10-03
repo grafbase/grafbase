@@ -164,7 +164,6 @@ from_id_newtypes! {
     federated_graph::InputObjectId => InputObjectDefinitionId,
     federated_graph::InterfaceId => InterfaceDefinitionId,
     federated_graph::ObjectId => ObjectDefinitionId,
-    federated_graph::ScalarId => ScalarDefinitionId,
     federated_graph::StringId => StringId,
     federated_graph::SubgraphId => GraphqlEndpointId,
     federated_graph::UnionId => UnionDefinitionId,

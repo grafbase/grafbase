@@ -11,25 +11,26 @@ pub fn render_federated_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error
 
     write_subgraphs_enum(graph, &mut sdl)?;
 
-    for scalar in &graph.scalars {
-        let name = &graph[scalar.name];
+    for scalar in graph.iter_scalars() {
+        let name = scalar.then(|scalar| scalar.name).as_str();
 
         if let Some(description) = scalar.description {
             write!(sdl, "{}", Description(&graph[description], ""))?;
         }
 
-        if BUILTIN_SCALARS.contains(&name.as_str()) {
+        if BUILTIN_SCALARS.contains(&name) {
             continue;
         }
 
         write!(sdl, "scalar {name}")?;
-        write_composed_directives(scalar.composed_directives, graph, &mut sdl)?;
+        write_composed_directives(scalar.directives, graph, &mut sdl)?;
         sdl.push('\n');
         sdl.push('\n');
     }
 
     for object in graph.iter_objects() {
-        let object_name = &graph[graph.view(object.type_definition_id).name];
+        let definition = graph.at(object.type_definition_id);
+        let object_name = definition.then(|def| def.name).as_str();
 
         let mut fields = graph[object.fields.clone()]
             .iter()
@@ -42,7 +43,7 @@ pub fn render_federated_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error
             continue;
         }
 
-        if let Some(description) = object.description {
+        if let Some(description) = definition.description {
             write!(sdl, "{}", Description(&graph[description], ""))?;
         }
 
@@ -68,7 +69,7 @@ pub fn render_federated_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error
         }
 
         with_formatter(&mut sdl, |f| {
-            render_composed_directives(object.composed_directives, f, graph)?;
+            render_composed_directives(definition.directives, f, graph)?;
 
             for authorized_directive in graph.object_authorized_directives(object.id()) {
                 render_authorized_directive(authorized_directive, f, graph)?;
@@ -108,9 +109,10 @@ pub fn render_federated_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error
     }
 
     for interface in graph.iter_interfaces() {
-        let interface_name = &graph[graph.view(interface.type_definition_id).name];
+        let definition = graph.at(interface.type_definition_id);
+        let interface_name = definition.then(|def| def.name).as_str();
 
-        if let Some(description) = interface.description {
+        if let Some(description) = definition.description {
             write!(sdl, "{}", Description(&graph[description], ""))?;
         }
 
@@ -135,7 +137,7 @@ pub fn render_federated_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error
                 render_authorized_directive(authorized_directive, f, graph)?;
             }
 
-            render_composed_directives(interface.composed_directives, f, graph)?;
+            render_composed_directives(definition.directives, f, graph)?;
 
             if !interface.join_implements.is_empty() {
                 for (subgraph_id, interface_id) in &interface.join_implements {

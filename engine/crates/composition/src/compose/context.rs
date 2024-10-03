@@ -120,15 +120,18 @@ impl<'a> Context<'a> {
     ) -> federated::InterfaceId {
         let description = description.map(|description| self.ir.strings.insert(description));
 
-        let type_definition = federated::TypeDefinitionRecord { name };
+        let type_definition = federated::TypeDefinitionRecord {
+            name,
+            description,
+            directives: composed_directives,
+            kind: federated::TypeDefinitionKind::Interface,
+        };
         let type_definition_id = self.ir.type_definitions.push_return_idx(type_definition).into();
 
         let interface = federated::Interface {
             type_definition_id,
             implements_interfaces: Vec::new(),
             keys: Vec::new(),
-            composed_directives,
-            description,
             fields: federated::NO_FIELDS,
             join_implements: Vec::new(),
         };
@@ -160,7 +163,12 @@ impl<'a> Context<'a> {
         composed_directives: federated::Directives,
     ) -> federated::ObjectId {
         let description = description.map(|description| self.ir.strings.insert(description.as_str()));
-        let type_definition = federated::TypeDefinitionRecord { name };
+        let type_definition = federated::TypeDefinitionRecord {
+            name,
+            description,
+            directives: composed_directives,
+            kind: federated::TypeDefinitionKind::Object,
+        };
         let type_definition_id = self.ir.type_definitions.push_return_idx(type_definition).into();
 
         let object = federated::Object {
@@ -168,8 +176,6 @@ impl<'a> Context<'a> {
             implements_interfaces: Vec::new(),
             join_implements: Vec::new(),
             keys: Vec::new(),
-            composed_directives,
-            description,
             fields: federated::NO_FIELDS,
         };
         let id = federated::ObjectId(self.ir.objects.push_return_idx(object));
@@ -189,16 +195,17 @@ impl<'a> Context<'a> {
         let name = self.ir.strings.insert(scalar_name);
         let description = description.map(|description| self.ir.strings.insert(description));
 
-        let scalar = federated::Scalar {
+        let scalar = federated::TypeDefinitionRecord {
             name,
-            composed_directives,
+            directives: composed_directives,
             description,
+            kind: federated::TypeDefinitionKind::Scalar,
         };
 
-        let id = federated::ScalarId(self.ir.scalars.push_return_idx(scalar));
+        let id = self.ir.type_definitions.push_return_idx(scalar);
         self.ir
             .definitions_by_name
-            .insert(name, federated::Definition::Scalar(id));
+            .insert(name, federated::Definition::Scalar(id.into()));
     }
 
     pub(crate) fn insert_union(

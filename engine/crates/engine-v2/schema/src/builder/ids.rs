@@ -9,7 +9,7 @@ use std::marker::PhantomData;
 use federated_graph::FederatedGraph;
 use id_newtypes::IdRange;
 
-use crate::{EnumValueId, FieldDefinitionId, InputValueDefinitionId};
+use crate::{EnumValueId, FieldDefinitionId, InputValueDefinitionId, ScalarDefinitionId};
 
 use super::graph::is_inaccessible;
 
@@ -37,6 +37,8 @@ pub(super) struct IdMaps {
     pub field: IdMap<federated_graph::FieldId, FieldDefinitionId>,
     pub input_value: IdMap<federated_graph::InputValueDefinitionId, InputValueDefinitionId>,
     pub enum_values: IdMap<federated_graph::EnumValueId, EnumValueId>,
+    /// The index in that vector is the id in the graph being built.
+    scalar_ids: Vec<federated_graph::TypeDefinitionId>,
 }
 
 impl IdMaps {
@@ -45,6 +47,7 @@ impl IdMaps {
             field: Default::default(),
             input_value: Default::default(),
             enum_values: IdMap::default(),
+            scalar_ids: graph.iter_scalars().map(|s| s.id()).collect(),
         };
 
         for (i, field) in graph.fields.iter().enumerate() {
@@ -59,6 +62,18 @@ impl IdMaps {
         }
 
         idmaps
+    }
+}
+
+impl IdMaps {
+    pub(crate) fn convert_scalar_id(
+        &self,
+        federated_scalar_id: federated_graph::TypeDefinitionId,
+    ) -> ScalarDefinitionId {
+        self.scalar_ids
+            .binary_search(&federated_scalar_id)
+            .expect("Failed to convert scalar id")
+            .into()
     }
 }
 
