@@ -59,9 +59,10 @@ where
     F: Future<Output = ()>,
 {
     let federated_schema = {
-        let parsed = async_graphql_parser::parse_schema(subgraph_schema).unwrap();
         let mut subgraphs = graphql_composition::Subgraphs::default();
-        subgraphs.ingest(&parsed, "the-subgraph", subgraph_url);
+        subgraphs
+            .ingest_str(subgraph_schema, "the-subgraph", subgraph_url)
+            .unwrap();
         graphql_composition::compose(&subgraphs)
             .into_result()
             .unwrap()

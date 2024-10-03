@@ -4,15 +4,13 @@
 fn subgraph_names_that_differ_only_by_case_are_not_allowed() {
     let mut subgraphs = graphql_composition::Subgraphs::default();
 
-    {
-        let schema = async_graphql_parser::parse_schema("type Query { name: String }").unwrap();
-        subgraphs.ingest(&schema, "valid", "example.com");
-    }
+    subgraphs
+        .ingest_str("type Query { name: String }", "valid", "example.com")
+        .unwrap();
 
-    {
-        let schema = async_graphql_parser::parse_schema("type Query { fullName: String }").unwrap();
-        subgraphs.ingest(&schema, "Valid", "example.com");
-    }
+    subgraphs
+        .ingest_str("type Query { fullName: String }", "Valid", "example.com")
+        .unwrap();
 
     let result = graphql_composition::compose(&subgraphs);
     let diagnostics = result.diagnostics();

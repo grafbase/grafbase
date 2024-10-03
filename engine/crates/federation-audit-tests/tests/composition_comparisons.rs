@@ -29,8 +29,9 @@ fn runner_for(suite: String) -> impl FnOnce() -> Result<(), Failed> + Send + 'st
 
         let mut subgraphs = graphql_composition::Subgraphs::default();
         for subgraph in suite.subgraphs() {
-            let parsed_schema = async_graphql_parser::parse_schema(&subgraph.sdl).unwrap();
-            subgraphs.ingest(&parsed_schema, &subgraph.name, &subgraph.url)
+            subgraphs
+                .ingest_str(&subgraph.sdl, &subgraph.name, &subgraph.url)
+                .unwrap()
         }
 
         let output = graphql_composition::compose(&subgraphs)

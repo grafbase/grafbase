@@ -1,8 +1,6 @@
-use grafbase_workspace_hack as _;
+#![allow(unused_crate_dependencies)]
 
-use async_graphql_value as _;
-use indexmap as _;
-use itertools::{self as _, Itertools as _};
+use itertools::Itertools as _;
 use std::{fs, path::Path, sync::OnceLock};
 
 fn update_expect() -> bool {
@@ -35,12 +33,11 @@ fn run_test(federated_graph_path: &Path) -> datatest_stable::Result<()> {
     let mut subgraphs = graphql_composition::Subgraphs::default();
 
     for (sdl, path) in subgraphs_sdl {
-        let parsed = async_graphql_parser::parse_schema(&sdl)
-            .map_err(|err| miette::miette!("Error parsing {}: {err}", path.display()))?;
-
         let name = path.file_stem().unwrap().to_str().unwrap().replace('_', "-");
 
-        subgraphs.ingest(&parsed, &name, &format!("http://example.com/{name}"));
+        subgraphs
+            .ingest_str(&sdl, &name, &format!("http://example.com/{name}"))
+            .map_err(|err| miette::miette!("Error parsing {}: {err}", path.display()))?;
     }
 
     let expected_federated_sdl = fs::read_to_string(federated_graph_path)

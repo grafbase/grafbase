@@ -29,9 +29,9 @@ pub(super) async fn build(
                 graphql_composition::compose(&subgraphs.iter().fold(
                     graphql_composition::Subgraphs::default(),
                     |mut subgraphs, subgraph| {
-                        let schema =
-                            async_graphql_parser::parse_schema(subgraph.sdl()).expect("schema to be well formed");
-                        subgraphs.ingest(&schema, subgraph.name(), subgraph.url().as_ref());
+                        subgraphs
+                            .ingest_str(subgraph.sdl().as_ref(), subgraph.name(), subgraph.url().as_ref())
+                            .expect("schema to be well formed");
                         subgraphs
                     },
                 ))

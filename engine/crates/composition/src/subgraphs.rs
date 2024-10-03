@@ -72,10 +72,26 @@ impl Default for Subgraphs {
 
 const BUILTIN_SCALARS: [&str; 5] = ["ID", "String", "Boolean", "Int", "Float"];
 
+#[derive(Debug)]
+pub struct IngestError(async_graphql_parser::Error);
+
+impl std::fmt::Display for IngestError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Display::fmt(&self.0, f)
+    }
+}
+
 impl Subgraphs {
     /// Add a subgraph to compose.
     pub fn ingest(&mut self, subgraph_schema: &async_graphql_parser::types::ServiceDocument, name: &str, url: &str) {
         crate::ingest_subgraph::ingest_subgraph(subgraph_schema, name, url, self);
+    }
+
+    /// Add a subgraph to compose.
+    pub fn ingest_str(&mut self, subgraph_schema: &str, name: &str, url: &str) -> Result<(), IngestError> {
+        let subgraph_schema = async_graphql_parser::parse_schema(subgraph_schema).map_err(IngestError)?;
+        crate::ingest_subgraph::ingest_subgraph(&subgraph_schema, name, url, self);
+        Ok(())
     }
 
     /// Iterate over groups of definitions to compose. The definitions are grouped by name. The
