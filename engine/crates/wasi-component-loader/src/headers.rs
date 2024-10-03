@@ -11,8 +11,9 @@ use crate::{
     state::WasiState,
 };
 
-#[derive(Debug, ComponentType, Lower)]
+#[derive(Debug, ComponentType, Lower, Clone, Copy)]
 #[component(enum)]
+#[repr(u8)]
 enum HeaderError {
     #[component(name = "invalid-header-value")]
     InvalidHeaderValue,

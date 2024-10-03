@@ -111,8 +111,9 @@ pub struct SubgraphResponse {
 }
 
 /// The subgraph cache status.
-#[derive(Debug, Clone, Lower, ComponentType)]
+#[derive(Debug, Clone, Copy, Lower, ComponentType)]
 #[component(enum)]
+#[repr(u8)]
 pub enum CacheStatus {
     /// Everything was taken from cache.
     #[component(name = "hit")]
