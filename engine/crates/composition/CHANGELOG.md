@@ -8,6 +8,7 @@
 - Support the experimental @authorized directive
 - Selection sets inside `@requires` and `@provides` directives can now include inline fragments.
 - The selection sets in the "fields:" argument on `@requires` are now validated against the schema, with proper errors with context when invalid.
+- A new `Subgraphs::ingest_str()` method has been added to ingest a federated graph from a string, instead of from an async_graphql_parser AST. This is both for convenience and because async_graphql parser will soon not be part of the public API anymore.
 
 ### Fixes
 

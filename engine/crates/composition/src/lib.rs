@@ -86,10 +86,11 @@ mod tests {
         let schema_path =
             Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../cli/crates/backend/src/api/graphql/api.graphql");
         let schema = fs::read_to_string(schema_path).unwrap();
-        let schema = async_graphql_parser::parse_schema(schema).unwrap();
 
         let mut subgraphs = Subgraphs::default();
-        subgraphs.ingest(&schema, "grafbase-api", "https://api.grafbase.com");
+        subgraphs
+            .ingest_str(&schema, "grafbase-api", "https://api.grafbase.com")
+            .unwrap();
         let result = compose(&subgraphs);
         assert!(!result.diagnostics().any_fatal());
     }

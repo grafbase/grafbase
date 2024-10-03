@@ -387,9 +387,10 @@ where
     let subgraph_server = runtime().block_on(async { graphql_mocks::MockGraphQlServer::new(subgraph_schema).await });
 
     let federated_schema = {
-        let parsed = async_graphql_parser::parse_schema(&subgraph_sdl).unwrap();
         let mut subgraphs = graphql_composition::Subgraphs::default();
-        subgraphs.ingest(&parsed, "the-subgraph", subgraph_server.url().as_str());
+        subgraphs
+            .ingest_str(&subgraph_sdl, "the-subgraph", subgraph_server.url().as_str())
+            .unwrap();
         graphql_composition::compose(&subgraphs)
             .into_result()
             .unwrap()
