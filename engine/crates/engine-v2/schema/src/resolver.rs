@@ -58,18 +58,12 @@ impl<'a> ResolverDefinition<'a> {
 
 impl<'a> GraphqlRootFieldResolverDefinition<'a> {
     pub fn name(&self) -> String {
-        format!(
-            "Graphql root field resolver for subgraph '{}'",
-            self.endpoint().subgraph_name()
-        )
+        format!("Root#{}", self.endpoint().subgraph_name())
     }
 }
 
 impl<'a> GraphqlFederationEntityResolverDefinition<'a> {
     pub fn name(&self) -> String {
-        format!(
-            "Graphql federation entity resolver for subgraph '{}'",
-            self.endpoint().subgraph_name()
-        )
+        format!("FedEntity#{}", self.endpoint().subgraph_name())
     }
 }

@@ -293,10 +293,21 @@ impl<'ctx, Op: Operation> Plan<'ctx, Op> {
                     .map(|r| (*field_resolver_node, r))
             },
         ) {
+            let resolver_definition = resolver.resolver_definition_id.walk(self.schema);
             let field_resolver_node = self.graph.add_node(Node::FieldResolver(resolver));
             self.graph.add_edge(field_resolver_node, field_node, Edge::Resolves);
             self.graph
                 .add_edge(parent_resolver_node, field_resolver_node, Edge::CanResolveField(0));
+            for nested_field_id in self.operation.subselection(field_id) {
+                self.fields_stack.push(Field {
+                    parent_field_node: field_node,
+                    parent_resolver: Some(ParentResolver {
+                        field_resolver_node,
+                        subgraph_id: resolver_definition.subgraph_id(),
+                    }),
+                    field_id: nested_field_id,
+                })
+            }
         }
 
         let parent_node = parent_resolver
@@ -355,6 +366,7 @@ impl<'ctx, Op: Operation> Plan<'ctx, Op> {
             // We don't know the real cost here either, but without any requirements it's 0.
             self.graph
                 .add_edge(resolver_node, field_resolver_node, Edge::CanResolveField(0));
+            self.graph.add_edge(field_resolver_node, field_node, Edge::Resolves);
 
             for nested_field_id in self.operation.subselection(field_id) {
                 self.fields_stack.push(Field {
@@ -496,17 +508,20 @@ impl<'ctx, Op: Operation> Plan<'ctx, Op> {
     fn estimate_cost(&mut self) {}
 
     /// Check out https://dreampuf.github.io/GraphvizOnline
-    pub fn dot_graph(&self) -> String {
+    fn dot_graph(&self) -> String {
         let node_str = |_, node_ref: (NodeIndex, &Node<Op::FieldId>)| match node_ref.1 {
             Node::Root => r#"label = "root""#.to_string(),
             Node::Field(id) => format!("label = \"{}\"", self.operation.field_label(*id)),
             Node::FieldResolver(field_resolver) => format!(
-                "label = \"{}@{}\"",
+                "label = \"{}@{}\",shape=box,style=dashed,color=blue",
                 field_resolver.field_definition_id.walk(self.schema).name(),
                 field_resolver.resolver_definition_id.walk(self.schema).name()
             ),
             Node::Resolver(resolver_definition_id) => {
-                format!("label = \"{}\"", resolver_definition_id.walk(self.schema).name())
+                format!(
+                    "label = \"{}\",shape=box,color=blue",
+                    resolver_definition_id.walk(self.schema).name()
+                )
             }
         };
         format!(
@@ -514,7 +529,13 @@ impl<'ctx, Op: Operation> Plan<'ctx, Op> {
             Dot::with_attr_getters(
                 &self.graph,
                 &[Config::NodeNoLabel],
-                &|_, edge| { String::new() },
+                &|_, edge| {
+                    match edge.weight() {
+                        Edge::Resolver(_) | Edge::CanResolveField(_) | Edge::Resolves => "color=blue".to_string(),
+                        Edge::Field | Edge::TypenameField => String::new(),
+                        Edge::Requires => "color=green".to_string(),
+                    }
+                },
                 &node_str
             )
         )
