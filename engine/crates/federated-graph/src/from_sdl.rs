@@ -821,6 +821,13 @@ fn ingest_definitions<'a>(document: &'a ast::TypeSystemDocument, state: &mut Sta
                     .map(|description| state.insert_string(description.raw_str()));
                 let composed_directives = collect_composed_directives(typedef.directives(), state);
 
+                if let ast::TypeDefinition::Enum(enm) = typedef {
+                    if type_name == JOIN_GRAPH_ENUM_NAME {
+                        ingest_join_graph_enum(enm, state)?;
+                        continue;
+                    }
+                };
+
                 let type_definition_id = state.graph.push_type_definition(TypeDefinitionRecord {
                     name: type_name_id,
                     description,
@@ -873,9 +880,6 @@ fn ingest_definitions<'a>(document: &'a ast::TypeSystemDocument, state: &mut Sta
                             description,
                         }));
                         state.definition_names.insert(type_name, Definition::Union(union_id));
-                    }
-                    ast::TypeDefinition::Enum(enm) if type_name == JOIN_GRAPH_ENUM_NAME => {
-                        ingest_join_graph_enum(enm, state)?;
                     }
                     ast::TypeDefinition::Enum(enm) => {
                         state

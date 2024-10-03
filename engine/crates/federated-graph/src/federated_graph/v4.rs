@@ -1,3 +1,4 @@
+mod debug;
 mod enum_values;
 mod ids;
 mod objects;
@@ -52,7 +53,12 @@ pub struct FederatedGraph {
 
 impl std::fmt::Debug for FederatedGraph {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct(std::any::type_name::<Self>()).finish_non_exhaustive()
+        f.debug_struct(std::any::type_name::<Self>())
+            .field(
+                "type_definitions",
+                &debug::DebugFn(|f| f.debug_list().entries(self.iter_type_definitions()).finish()),
+            )
+            .finish_non_exhaustive()
     }
 }
 

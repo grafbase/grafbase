@@ -2,6 +2,14 @@ use super::{Directives, FederatedGraph, StringId, TypeDefinitionId};
 
 pub type TypeDefinition<'a> = super::view::ViewNested<'a, TypeDefinitionId, TypeDefinitionRecord>;
 
+impl std::fmt::Debug for TypeDefinition<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("TypeDefinition")
+            .field("name", &self.then(|ty| ty.name).as_str())
+            .finish_non_exhaustive()
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct TypeDefinitionRecord {
     pub name: StringId,

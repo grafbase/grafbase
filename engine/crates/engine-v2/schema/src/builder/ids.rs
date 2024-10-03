@@ -81,7 +81,7 @@ impl IdMaps {
     pub(crate) fn convert_enum_id(&self, federated_enum_id: federated_graph::TypeDefinitionId) -> EnumDefinitionId {
         self.enum_ids
             .binary_search(&federated_enum_id)
-            .expect("Failed to convert scalar id")
+            .expect("Failed to convert enum id")
             .into()
     }
 
