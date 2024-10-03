@@ -1,5 +1,5 @@
-pub static X_GRAFBASE_CLIENT_NAME: http::HeaderName = http::HeaderName::from_static("x-grafbase-client-name");
-pub static X_GRAFBASE_CLIENT_VERSION: http::HeaderName = http::HeaderName::from_static("x-grafbase-client-version");
+pub const X_GRAFBASE_CLIENT_NAME: http::HeaderName = http::HeaderName::from_static("x-grafbase-client-name");
+pub const X_GRAFBASE_CLIENT_VERSION: http::HeaderName = http::HeaderName::from_static("x-grafbase-client-version");
 
 #[derive(Debug, Clone)]
 pub struct Client {

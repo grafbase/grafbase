@@ -73,7 +73,7 @@ pub(crate) fn register_array_type(visitor_ctx: &mut VisitorContext<'_>, field_ty
 }
 
 pub(crate) fn register_singular_type(visitor_ctx: &mut VisitorContext<'_>, scalar: &str) {
-    static SCALAR_FILTERS: &[(&str, &str, &str)] = &[
+    const SCALAR_FILTERS: &[(&str, &str, &str)] = &[
         ("eq", "$eq", "The value is exactly the one given"),
         ("ne", "$ne", "The value is not the one given"),
         ("gt", "$gt", "The value is greater than the one given"),

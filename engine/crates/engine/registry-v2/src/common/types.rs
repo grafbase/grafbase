@@ -15,9 +15,9 @@ pub enum WrappingType {
 #[derive(Debug, Clone, Copy, Default, serde::Serialize, serde::Deserialize)]
 pub struct TypeWrappers(u32);
 
-static INNER_NULLABILITY_MASK: u32 = 1;
-static NUM_LISTS_MASK: u32 = 32 - 2;
-static NON_NUM_LISTS_MASK: u32 = u32::MAX ^ NUM_LISTS_MASK;
+const INNER_NULLABILITY_MASK: u32 = 1;
+const NUM_LISTS_MASK: u32 = 32 - 2;
+const NON_NUM_LISTS_MASK: u32 = u32::MAX ^ NUM_LISTS_MASK;
 
 impl TypeWrappers {
     pub fn none() -> Self {

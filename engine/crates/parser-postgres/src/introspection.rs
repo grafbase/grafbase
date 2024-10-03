@@ -11,7 +11,7 @@ use postgres_connector_types::{database_definition::DatabaseDefinition, transpor
 use serde_json::Value;
 
 /// A list of schemas to filter out automatically on every introspection.
-static BLOCKED_SCHEMAS: &[&str] = &["pg_catalog", "pg_toast", "information_schema"];
+const BLOCKED_SCHEMAS: &[&str] = &["pg_catalog", "pg_toast", "information_schema"];
 
 /// Introspects a PostgreSQL database, creates a new registry with the corresponding GraphQL types.
 /// Adds the introspected database definition to the registry to be used with the queries.

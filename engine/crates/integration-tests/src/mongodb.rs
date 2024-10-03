@@ -7,7 +7,7 @@ use serde_json::json;
 
 use crate::Engine;
 
-pub(super) static DATA_API_URL: &str = "http://localhost:3000/app/data-test/endpoint/data/v1";
+pub(super) const DATA_API_URL: &str = "http://localhost:3000/app/data-test/endpoint/data/v1";
 
 /// With a given schema, initialize Engine and provide a test API
 /// to run queries and mutations against.

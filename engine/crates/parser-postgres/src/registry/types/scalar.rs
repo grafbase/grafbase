@@ -13,7 +13,7 @@ use registry_v1::{InputObjectType, MetaInputValue};
 
 use crate::registry::context::{InputContext, OutputContext};
 
-static SCALARS: &[&str] = &[
+const SCALARS: &[&str] = &[
     "Boolean",
     "BigInt",
     "UnsignedBigInt",
@@ -36,9 +36,9 @@ static SCALARS: &[&str] = &[
     "Time",
 ];
 
-static NUMERIC_SCALARS: &[&str] = &["BigInt", "Float", "Decimal", "Int"];
+const NUMERIC_SCALARS: &[&str] = &["BigInt", "Float", "Decimal", "Int"];
 
-static SCALAR_FILTERS: &[(&str, &str, &str)] = &[
+const SCALAR_FILTERS: &[(&str, &str, &str)] = &[
     (INPUT_FIELD_OP_EQ, "=", "The value is exactly the one given"),
     (INPUT_FIELD_OP_NE, "<>", "The value is not the one given"),
     (INPUT_FIELD_OP_GT, ">", "The value is greater than the one given"),

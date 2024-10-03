@@ -21,8 +21,8 @@ use registry_v2::{
 };
 use url::Url;
 
-static BUILTIN_DIRECTIVES: &[&str] = &["deprecated", "include", "skip", "specifiedBy"];
-static BUILTIN_SCALARS: &[&str] = &["Boolean", "Float", "ID", "Int", "String"];
+const BUILTIN_DIRECTIVES: &[&str] = &["deprecated", "include", "skip", "specifiedBy"];
+const BUILTIN_SCALARS: &[&str] = &["Boolean", "Float", "ID", "Int", "String"];
 
 /// Parse the schema of an upstream GraphQL server, and return a pre-populated [`Registry`] with
 /// the upstream schema details embedded.

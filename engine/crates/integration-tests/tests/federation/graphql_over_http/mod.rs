@@ -6,8 +6,8 @@ use engine_v2::Engine;
 use graphql_mocks::{FakeGithubSchema, Stateful};
 use integration_tests::{federation::EngineV2Ext, openid::JWKS_URI, runtime};
 
-static APPLICATION_JSON: &str = "application/json";
-static APPLICATION_GRAPHQL_RESPONSE_JSON: &str = "application/graphql-response+json";
+const APPLICATION_JSON: &str = "application/json";
+const APPLICATION_GRAPHQL_RESPONSE_JSON: &str = "application/graphql-response+json";
 
 // A server MAY forbid individual requests by a client to any endpoint for any reason, for example to require authentication or payment;
 // when doing so it SHOULD use the relevant 4xx or 5xx status code. This decision SHOULD NOT be based on the contents of a well-formed GraphQL-over-HTTP request.
