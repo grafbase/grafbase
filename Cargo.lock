@@ -1776,20 +1776,9 @@ dependencies = [
 
 [[package]]
 name = "cynic-parser"
-version = "0.5.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3acbf4f3ed18c691698563a8d10419073a8178c833ae74f24aebae88af26d12a"
-dependencies = [
- "ariadne",
- "indexmap 2.6.0",
- "lalrpop-util 0.21.0",
- "logos",
- "pretty",
-]
-
-[[package]]
-name = "cynic-parser"
 version = "0.6.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c1d0ddbc98929f9756fdfe40b6e684665142a7ad050c212c2817b5bd60639841"
 dependencies = [
  "ariadne",
  "indexmap 2.6.0",
@@ -3611,7 +3600,7 @@ dependencies = [
  "crossbeam-queue",
  "crossbeam-utils",
  "cynic-codegen",
- "cynic-parser 0.5.2",
+ "cynic-parser 0.6.1",
  "deadpool 0.12.1",
  "deadpool-runtime",
  "der",
