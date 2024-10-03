@@ -5,7 +5,7 @@ use self::{arguments::*, value::*};
 use crate::federated_graph::*;
 use cynic_parser::{
     common::WrappingType, executable as executable_ast, type_system as ast,
-    values::Value as ParserValue,
+    values::ConstValue as ParserValue,
 };
 use indexmap::IndexSet;
 use std::{
@@ -155,7 +155,6 @@ impl<'a> State<'a> {
                     .collect::<Vec<_>>()
                     .into_boxed_slice(),
             ),
-            ParserValue::Variable(_) => unreachable!("variable in type system document"), // not possible in type system documents
         }
     }
 
@@ -1352,11 +1351,16 @@ fn attach_selection_field(
                 .definition
                 .as_enum();
 
-            let value = state.insert_value(argument.value(), argument_type);
+            let const_value = argument
+                .value()
+                .try_into()
+                .map_err(|_| DomainError("FieldSets cant contain variables".into()))?;
 
-            (argument_id, value)
+            let value = state.insert_value(const_value, argument_type);
+
+            Ok((argument_id, value))
         })
-        .collect();
+        .collect::<Result<_, _>>()?;
 
     Ok(Selection::Field {
         field,
