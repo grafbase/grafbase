@@ -38,7 +38,7 @@ indoc = "2.0.5"
 insta.workspace = true
 itertools.workspace = true
 multipart-stream.workspace = true
-names = "0.14.1-dev"
+names = "0.14.0"
 openidconnect.workspace = true
 reqwest.workspace = true
 serde.workspace = true
@@ -64,7 +64,7 @@ rustls = { workspace = true, features = ["ring"] }
 toml.workspace = true
 tower.workspace = true
 tracing.workspace = true
-tracing-mock.workspace = true
+tracing-mock = { git = "https://github.com/tokio-rs/tracing/" }
 runtime = { workspace = true, features = ["test-utils"]}
 regex.workspace = true
 grafbase-workspace-hack.workspace = true

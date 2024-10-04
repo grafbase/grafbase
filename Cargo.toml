@@ -1,73 +1,51 @@
 [workspace]
 resolver = "2"
 members = [
-  "gateway/crates/*",
-  "cli/crates/*",
-  "engine/crates/*",
-  "engine/crates/gateway-v2/auth",
-  "engine/crates/gateway-v2/auth-config",
-  "engine/crates/engine-v2/config",
-  "engine/crates/engine-v2/axum",
-  "engine/crates/engine-v2/codegen",
-  "engine/crates/engine-v2/walker",
-  "engine/crates/engine-v2/schema",
-  "engine/crates/engine-v2/id-derives",
-  "engine/crates/engine-v2/id-newtypes",
-  "engine/crates/engine/derive",
-  "engine/crates/engine/meta-type-name",
-  "engine/crates/engine/parser",
-  "engine/crates/engine/query-path",
-  "engine/crates/engine/registry-for-cache",
-  "engine/crates/engine/registry-upgrade",
-  "engine/crates/engine/registry-v2",
-  "engine/crates/engine/registry-v2-generator",
-  "engine/crates/engine/response",
-  "engine/crates/engine/scalars",
-  "engine/crates/engine/value",
-  "graph-ref",
-  "graphql-lint",
-  "gqlint",
-  "workspace-hack",
+    "gateway/crates/*",
+    "cli/crates/*",
+    "engine/crates/*",
+    "engine/crates/gateway-v2/auth",
+    "engine/crates/gateway-v2/auth-config",
+    "engine/crates/engine-v2/config",
+    "engine/crates/engine-v2/axum",
+    "engine/crates/engine-v2/codegen",
+    "engine/crates/engine-v2/walker",
+    "engine/crates/engine-v2/schema",
+    "engine/crates/engine-v2/id-derives",
+    "engine/crates/engine-v2/id-newtypes",
+    "engine/crates/engine/derive",
+    "engine/crates/engine/meta-type-name",
+    "engine/crates/engine/parser",
+    "engine/crates/engine/query-path",
+    "engine/crates/engine/registry-for-cache",
+    "engine/crates/engine/registry-upgrade",
+    "engine/crates/engine/registry-v2",
+    "engine/crates/engine/registry-v2-generator",
+    "engine/crates/engine/response",
+    "engine/crates/engine/scalars",
+    "engine/crates/engine/value",
+    "graph-ref",
+    "graphql-lint",
+    "gqlint",
+    "workspace-hack",
 ]
 exclude = [
-  "engine/crates/gateway-v2",
-  "engine/crates/wasi-component-loader/examples",
+    "engine/crates/gateway-v2",
+    "engine/crates/wasi-component-loader/examples",
 ]
 
 [patch.crates-io]
-axum = { git = "https://github.com/grafbase/axum", rev = "c3146f9ca921907d9884fbf7549a1520e9e72eac" }                                 # axum-tungstenite-upgrade
-multipart-stream = { git = "https://github.com/grafbase/multipart-stream-rs-fork", rev = "06ff198e4041c8a8c1c93e580c260d597727c193" } # http-1.0-fix-multipart-mixed
-names = { git = "https://github.com/grafbase/names", rev = "443800fbb7bc2936c1f2c16f3a5e116698b1454a" }                               # main
-# FIXME: Drop when a new version is released.
-openidconnect = { git = "https://github.com/ramosbugs/openidconnect-rs", rev = "7efc8943a8f699aff2db742827fc3d0fc2b3f34d" } # main
-
-opentelemetry = { git = "https://github.com/grafbase/opentelemetry-rust", rev = "f215fe9a391d7d159b9c8a6f8c303d143ba2910f" }                  # http-v1
-opentelemetry-otlp = { git = "https://github.com/grafbase/opentelemetry-rust", rev = "f215fe9a391d7d159b9c8a6f8c303d143ba2910f" }             # http-v1
-opentelemetry-stdout = { git = "https://github.com/grafbase/opentelemetry-rust", rev = "f215fe9a391d7d159b9c8a6f8c303d143ba2910f" }           # http-v1
-opentelemetry_sdk = { git = "https://github.com/grafbase/opentelemetry-rust", rev = "f215fe9a391d7d159b9c8a6f8c303d143ba2910f" }              # http-v1
-opentelemetry-appender-tracing = { git = "https://github.com/grafbase/opentelemetry-rust", rev = "f215fe9a391d7d159b9c8a6f8c303d143ba2910f" }
-
-# FIXME: Uncomment when we upgrade opentelemetry to 0.23.
-# opentelemetry-aws = { git = "https://github.com/open-telemetry/opentelemetry-rust-contrib", rev = "086961e18437743c5ea43c9474cc1a7b13a49c6b" } # main
-ory-client = { git = "https://github.com/ory/client-rust", rev = "v1.14.3" }
-reqwest = { git = "https://github.com/grafbase/reqwest", rev = "874a6b3c522de296629d4542943934fa20d7ab4d" }                 # 0.12.5-with-patches-wasm-timeout
-rudderanalytics = { git = "https://github.com/grafbase/rudder-sdk-rust", rev = "3e994eb4dcc9c580be311ef9eab6e96dd264293b" } # async
-serde_with = { git = "https://github.com/grafbase/serde_with", rev = "06ad277a0e0175c2364d3c065e303a6c8a775c8a" }           # minify-field-names
-# Temporary change till https://github.com/alexcrichton/tar-rs/pull/319 is merged and released.
-tar = { git = "https://github.com/grafbase/tar-rs", rev = "a889df5bd9fec44faf081f7fade5ec81935c2418" } # overwrite-hard-links
-tokio-postgres = { git = "https://github.com/grafbase/rust-postgres/", branch = "grafbase-rebased" }
-# Upgrade 0.4.13 only to get rid of indexmap 1.9.
-# tower = { git = "https://github.com/grafbase/tower", rev = "7202cfeecd13ad6bbecd537d9799244313600db5" } # upgrade-indexmap
-# FIXME: Uncomment when we upgrade opentelemetry to 0.23.
-# tracing-opentelemetry = { git = "https://github.com/tokio-rs/tracing-opentelemetry", rev = "2539f4f7bde3dc3f320e5fb935d2c13a69a540dd" } # main
-tracing = { git = "https://github.com/tokio-rs/tracing", rev = "6d00d7d9f72dc6797138a1062bc33073afbad5a1" }      # v0.1.x
-tracing-core = { git = "https://github.com/tokio-rs/tracing", rev = "6d00d7d9f72dc6797138a1062bc33073afbad5a1" } # v0.1.x
-tracing-mock = { git = "https://github.com/tokio-rs/tracing", rev = "6d00d7d9f72dc6797138a1062bc33073afbad5a1" } # v0.1.x
-
 # Make sure we use the workspace-hack package when building
 # this repo, but not when pulling it in
 # See https://docs.rs/cargo-hakari/0.9.30/cargo_hakari/patch_directive/index.html for details
 grafbase-workspace-hack.path = "workspace-hack"
+
+# Temporary change till https://github.com/alexcrichton/tar-rs/pull/319 is merged and released.
+tar = { git = "https://github.com/grafbase/tar-rs", rev = "a889df5bd9fec44faf081f7fade5ec81935c2418" } # overwrite-hard-links
+
+# hashtag soon you can remove these
+tokio-postgres = { git = "https://github.com/grafbase/rust-postgres/", branch = "grafbase-rebased" }
+serde_with = { git = "https://github.com/grafbase/serde_with", rev = "06ad277a0e0175c2364d3c065e303a6c8a775c8a" }
 
 [workspace.package]
 version = "0.79.2"
@@ -170,12 +148,12 @@ tracing = "0.1.40"
 tracing-subscriber = "0.3.18"
 tracing-futures = "0.2.5"
 tracing-mock = "0.1"
-tracing-opentelemetry = "0.23"
-opentelemetry = "0.22"
-opentelemetry_sdk = "0.22.0"
-opentelemetry-stdout = "0.3"
-opentelemetry-otlp = "0.15"
-opentelemetry-appender-tracing = "0.3.0"
+tracing-opentelemetry = "0.26"
+opentelemetry = "0.26"
+opentelemetry_sdk = "0.26.0"
+opentelemetry-stdout = "0.26"
+opentelemetry-otlp = "0.26"
+opentelemetry-appender-tracing = "0.26.0"
 
 # Common
 graph-ref = { path = "graph-ref" }

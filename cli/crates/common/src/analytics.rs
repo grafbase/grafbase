@@ -156,24 +156,14 @@ impl Analytics {
             return;
         };
 
-        // FIXME: This should all be happening within an async context…
-        let runtime = tokio::runtime::Builder::new_current_thread()
-            .enable_all()
-            .build()
-            .expect("must succeed");
-        runtime.block_on(async move {
-            // Purposely ignoring errors.
-            let _ = analytics
-                .client
-                .send(&Message::Track(Track {
-                    event: event_name,
-                    anonymous_id: Some(anonymous_id.to_string()),
-                    properties,
-                    context: Some(analytics.get_context()),
-                    ..Default::default()
-                }))
-                .await;
-        });
+        // Purposely ignoring errors.
+        let _ = analytics.client.send(&Message::Track(Track {
+            event: event_name,
+            anonymous_id: Some(anonymous_id.to_string()),
+            properties,
+            context: Some(analytics.get_context()),
+            ..Default::default()
+        }));
     }
 
     pub fn command_executed(command_name: &str, command_arguments: Option<Vec<&'static str>>) {

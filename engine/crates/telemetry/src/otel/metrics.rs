@@ -1,5 +1,5 @@
 use opentelemetry_sdk::metrics::data::Temporality;
-use opentelemetry_sdk::metrics::reader::{AggregationSelector, TemporalitySelector};
+use opentelemetry_sdk::metrics::reader::TemporalitySelector;
 use opentelemetry_sdk::metrics::{Aggregation, InstrumentKind, PeriodicReader, SdkMeterProvider};
 use opentelemetry_sdk::runtime::Runtime;
 use opentelemetry_sdk::Resource;
@@ -13,26 +13,6 @@ pub struct DeltaTemporality;
 impl TemporalitySelector for DeltaTemporality {
     fn temporality(&self, _kind: InstrumentKind) -> Temporality {
         Temporality::Delta
-    }
-}
-
-pub struct AggForLatencyHistogram;
-
-impl AggregationSelector for AggForLatencyHistogram {
-    fn aggregation(&self, kind: InstrumentKind) -> Aggregation {
-        match kind {
-            InstrumentKind::Counter
-            | InstrumentKind::UpDownCounter
-            | InstrumentKind::ObservableCounter
-            | InstrumentKind::ObservableUpDownCounter => Aggregation::Sum,
-            InstrumentKind::Gauge | InstrumentKind::ObservableGauge => Aggregation::LastValue,
-            // Using Java SDK defaults.
-            InstrumentKind::Histogram => Aggregation::Base2ExponentialHistogram {
-                max_size: 160,
-                max_scale: 20,
-                record_min_max: false,
-            },
-        }
     }
 }
 
@@ -50,7 +30,6 @@ where
         let reader = PeriodicReader::builder(
             opentelemetry_stdout::MetricsExporter::builder()
                 .with_temporality_selector(DeltaTemporality)
-                .with_aggregation_selector(AggForLatencyHistogram)
                 .build(),
             runtime.clone(),
         )
@@ -98,7 +77,7 @@ where
     };
 
     let exporter = builder
-        .build_metrics_exporter(Box::new(DeltaTemporality), Box::new(AggForLatencyHistogram))
+        .build_metrics_exporter(Box::new(DeltaTemporality))
         .map_err(|e| TracingError::MetricsExporterSetup(e.to_string()))?;
 
     let reader = PeriodicReader::builder(exporter, runtime.clone())
