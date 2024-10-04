@@ -1,6 +1,7 @@
 mod debug;
 mod enum_values;
 mod ids;
+mod input_value_definitions;
 mod objects;
 mod r#type;
 mod type_definitions;
@@ -8,18 +9,20 @@ mod view;
 
 use std::ops::Range;
 
+use input_value_definitions::{ArgumentDefinitionRecord, InputObjectFieldDefinitionRecord};
+
 pub use self::{
     enum_values::{EnumValue, EnumValueRecord},
-    ids::{EnumValueId, TypeDefinitionId},
+    ids::{ArgumentDefinitionId, EnumValueId, InputObjectFieldDefinitionId, TypeDefinitionId},
     r#type::{Definition, Type},
     type_definitions::{TypeDefinition, TypeDefinitionKind, TypeDefinitionRecord},
     view::{View, ViewNested},
 };
 pub use super::v3::{
     AuthorizedDirectiveId, DirectiveId, Directives, FieldId, Fields, InputObject, InputObjectId,
-    InputValueDefinitionId, InputValueDefinitionSet, InputValueDefinitionSetItem, InputValueDefinitions, InterfaceId,
-    ObjectId, Override, OverrideLabel, OverrideSource, RootOperationTypes, StringId, Subgraph, SubgraphId, Union,
-    UnionId, Wrapping, NO_DIRECTIVES, NO_FIELDS, NO_INPUT_VALUE_DEFINITION,
+    InputValueDefinitionId, InputValueDefinitionSet, InputValueDefinitionSetItem, InterfaceId, ObjectId, Override,
+    OverrideLabel, OverrideSource, RootOperationTypes, StringId, Subgraph, SubgraphId, Union, UnionId, Wrapping,
+    NO_DIRECTIVES, NO_FIELDS, NO_INPUT_VALUE_DEFINITION,
 };
 
 #[derive(Clone)]
@@ -32,8 +35,9 @@ pub struct FederatedGraph {
     pub fields: Vec<Field>,
 
     pub unions: Vec<Union>,
-    pub input_objects: Vec<InputObject>,
     pub enum_values: Vec<EnumValueRecord>,
+    pub input_object_field_definitions: Vec<InputObjectFieldDefinitionRecord>,
+    pub argument_definitions: Vec<ArgumentDefinitionRecord>,
 
     /// All [input value definitions](http://spec.graphql.org/October2021/#InputValueDefinition) in the federated graph. Concretely, these are arguments of output fields, and input object fields.
     pub input_value_definitions: Vec<InputValueDefinition>,
@@ -181,8 +185,6 @@ pub struct Interface {
 pub struct Field {
     pub name: StringId,
     pub r#type: Type,
-
-    pub arguments: InputValueDefinitions,
 
     /// This is populated only of fields of entities. The Vec includes all subgraphs the field can
     /// be resolved in. For a regular field of an entity, it will be one subgraph, the subgraph
@@ -688,15 +690,6 @@ impl std::ops::Index<Directives> for FederatedGraph {
     fn index(&self, index: Directives) -> &Self::Output {
         let (DirectiveId(start), len) = index;
         &self.directives[start..(start + len)]
-    }
-}
-
-impl std::ops::Index<InputValueDefinitions> for FederatedGraph {
-    type Output = [InputValueDefinition];
-
-    fn index(&self, index: InputValueDefinitions) -> &Self::Output {
-        let (InputValueDefinitionId(start), len) = index;
-        &self.input_value_definitions[start..(start + len)]
     }
 }
 
