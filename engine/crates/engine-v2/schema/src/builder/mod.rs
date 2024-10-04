@@ -39,8 +39,8 @@ pub(crate) fn build(mut config: Config, version: Version) -> Result<Schema, Buil
 pub(crate) struct BuildContext {
     pub strings: Interner<String, StringId>,
     pub regexps: ProxyKeyInterner<Regex, RegexId>,
+    pub(crate) idmaps: IdMaps,
     urls: Interner<Url, UrlId>,
-    idmaps: IdMaps,
 }
 
 impl BuildContext {
@@ -143,6 +143,24 @@ impl BuildContext {
             },
         })
     }
+
+    fn convert_type(&self, federated_graph::Type { wrapping, definition }: federated_graph::Type) -> TypeRecord {
+        TypeRecord {
+            definition_id: self.convert_definition(definition),
+            wrapping,
+        }
+    }
+
+    fn convert_definition(&self, definition: federated_graph::Definition) -> DefinitionId {
+        match definition {
+            federated_graph::Definition::Scalar(id) => DefinitionId::Scalar(self.idmaps.convert_scalar_id(id)),
+            federated_graph::Definition::Object(id) => DefinitionId::Object(id.into()),
+            federated_graph::Definition::Interface(id) => DefinitionId::Interface(id.into()),
+            federated_graph::Definition::Union(id) => DefinitionId::Union(id.into()),
+            federated_graph::Definition::Enum(id) => DefinitionId::Enum(self.idmaps.convert_enum_id(id)),
+            federated_graph::Definition::InputObject(id) => DefinitionId::InputObject(id.into()),
+        }
+    }
 }
 
 macro_rules! from_id_newtypes {
@@ -160,7 +178,6 @@ macro_rules! from_id_newtypes {
 // EnumValueId from federated_graph can't be directly
 // converted, we sort them by their name.
 from_id_newtypes! {
-    federated_graph::EnumId => EnumDefinitionId,
     federated_graph::InputObjectId => InputObjectDefinitionId,
     federated_graph::InterfaceId => InterfaceDefinitionId,
     federated_graph::ObjectId => ObjectDefinitionId,

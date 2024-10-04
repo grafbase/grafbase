@@ -165,7 +165,13 @@ impl<'a> InputValueCoercer<'a> {
     ) -> Result<SchemaInputValueRecord, InputValueError> {
         let r#enum = &self.graph[enum_id];
         match &value {
-            Value::EnumValue(id) => Ok(SchemaInputValueRecord::EnumValue(crate::EnumValueId::from(id.0))),
+            Value::EnumValue(id) => self
+                .ctx
+                .idmaps
+                .convert_enum_value_id(*id)
+                .map(SchemaInputValueRecord::EnumValue)
+                .map(Ok)
+                .unwrap_or_else(|| Err(InputValueError::InaccessibleEnumValue { path: self.path() })),
             Value::UnboundEnumValue(id) => {
                 let string_value = &self.ctx.strings[(*id).into()];
                 for id in r#enum.value_ids {

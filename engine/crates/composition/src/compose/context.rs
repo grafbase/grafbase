@@ -45,19 +45,19 @@ impl<'a> Context<'a> {
         &mut self,
         enum_name: &str,
         description: Option<&str>,
-        composed_directives: federated::Directives,
-        values: federated::EnumValues,
-    ) -> federated::EnumId {
+        directives: federated::Directives,
+    ) -> federated::TypeDefinitionId {
         let name = self.ir.strings.insert(enum_name);
         let description = description.map(|description| self.ir.strings.insert(description));
 
-        let r#enum = federated::Enum {
+        let r#enum = federated::TypeDefinitionRecord {
             name,
-            values,
-            composed_directives,
+            directives,
             description,
+            kind: federated::TypeDefinitionKind::Enum,
         };
-        let id = federated::EnumId(self.ir.enums.push_return_idx(r#enum));
+
+        let id = federated::TypeDefinitionId::from(self.ir.type_definitions.push_return_idx(r#enum));
         self.ir
             .definitions_by_name
             .insert(name, federated::Definition::Enum(id));
@@ -69,11 +69,13 @@ impl<'a> Context<'a> {
         value: &str,
         description: Option<&str>,
         composed_directives: federated::Directives,
+        enum_id: federated::TypeDefinitionId,
     ) -> federated::EnumValueId {
         let value = self.ir.strings.insert(value);
         let description = description.map(|description| self.ir.strings.insert(description));
 
-        federated::EnumValueId(self.ir.enum_values.push_return_idx(federated::EnumValue {
+        federated::EnumValueId::from(self.ir.enum_values.push_return_idx(federated::EnumValueRecord {
+            enum_id,
             value,
             composed_directives,
             description,

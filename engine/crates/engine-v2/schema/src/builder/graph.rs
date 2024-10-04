@@ -101,7 +101,7 @@ impl<'a> GraphBuilder<'a> {
             input_value_definitions.push(InputValueDefinitionRecord {
                 name_id: definition.name.into(),
                 description_id: definition.description.map(Into::into),
-                ty_record: self.convert_type(definition.r#type),
+                ty_record: self.ctx.convert_type(definition.r#type),
                 // Adding after ingesting all input values as input object fields are input values.
                 // So we need them for coercion.
                 default_value_id: None,
@@ -218,12 +218,17 @@ impl<'a> GraphBuilder<'a> {
     }
 
     fn ingest_enums_before_input_values(&mut self, config: &mut Config) {
-        self.graph.enum_value_definitions = take(&mut config.graph.enum_values)
-            .into_iter()
+        self.graph.enum_value_definitions = config
+            .graph
+            .enum_values
+            .iter()
             .enumerate()
             .filter_map(|(idx, enum_value)| {
                 if is_inaccessible(&config.graph, enum_value.composed_directives) {
-                    self.ctx.idmaps.enum_values.skip(federated_graph::EnumValueId(idx));
+                    self.ctx
+                        .idmaps
+                        .enum_values
+                        .skip(federated_graph::EnumValueId::from(idx));
                     None
                 } else {
                     Some(EnumValueRecord {
@@ -241,16 +246,21 @@ impl<'a> GraphBuilder<'a> {
             })
             .collect();
 
-        self.graph.enum_definitions = take(&mut config.graph.enums)
-            .into_iter()
+        self.graph.enum_definitions = config
+            .graph
+            .iter_enums()
             .map(|federated_enum| EnumDefinitionRecord {
                 name_id: federated_enum.name.into(),
                 description_id: None,
-                value_ids: self.ctx.idmaps.enum_values.get_range(federated_enum.values),
+                value_ids: self
+                    .ctx
+                    .idmaps
+                    .enum_values
+                    .get_range(config.graph.enum_value_range(federated_enum.id())),
                 directive_ids: self.push_directives(
                     config,
                     Directives {
-                        federated: federated_enum.composed_directives,
+                        federated: federated_enum.directives,
                         ..Default::default()
                     },
                 ),
@@ -570,7 +580,7 @@ impl<'a> GraphBuilder<'a> {
                 name_id: field.name.into(),
                 description_id: None,
                 parent_entity_id,
-                ty_record: self.convert_type(field.r#type),
+                ty_record: self.ctx.convert_type(field.r#type),
                 only_resolvable_in_ids: only_resolvable_in
                     .into_iter()
                     .map(SubgraphId::GraphqlEndpoint)
@@ -602,24 +612,6 @@ impl<'a> GraphBuilder<'a> {
                 argument_ids: self.ctx.idmaps.input_value.get_range(field.arguments),
                 directive_ids: directives,
             })
-        }
-    }
-
-    fn convert_type(&self, federated_graph::Type { wrapping, definition }: federated_graph::Type) -> TypeRecord {
-        TypeRecord {
-            definition_id: self.convert_definition(definition),
-            wrapping,
-        }
-    }
-
-    fn convert_definition(&self, definition: federated_graph::Definition) -> DefinitionId {
-        match definition {
-            federated_graph::Definition::Scalar(id) => DefinitionId::Scalar(self.ctx.idmaps.convert_scalar_id(id)),
-            federated_graph::Definition::Object(id) => DefinitionId::Object(id.into()),
-            federated_graph::Definition::Interface(id) => DefinitionId::Interface(id.into()),
-            federated_graph::Definition::Union(id) => DefinitionId::Union(id.into()),
-            federated_graph::Definition::Enum(id) => DefinitionId::Enum(id.into()),
-            federated_graph::Definition::InputObject(id) => DefinitionId::InputObject(id.into()),
         }
     }
 

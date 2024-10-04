@@ -294,8 +294,6 @@ impl From<usize> for EnumValueId {
 /// A (start, len) range in FederatedSchema.
 pub type EnumValues = (EnumValueId, usize);
 
-pub const NO_ENUM_VALUE: EnumValues = (EnumValueId(0), 0);
-
 impl std::ops::Index<Directives> for FederatedGraphV2 {
     type Output = [Directive];
 

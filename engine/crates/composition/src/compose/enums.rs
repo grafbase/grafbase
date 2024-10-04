@@ -11,14 +11,24 @@ pub(super) fn merge_enum_definitions<'a>(
     let enum_name = first.name().id;
     let directive_containers = definitions.iter().map(|def| def.directives());
     let composed_directives = collect_composed_directives(directive_containers, ctx);
+    let description = definitions.iter().find_map(|def| def.description()).map(|d| d.as_str());
 
     match (
         enum_is_used_in_input(enum_name, ctx.subgraphs),
         enum_is_used_in_return_position(enum_name, ctx.subgraphs),
     ) {
-        (true, false) => merge_intersection(first, definitions, composed_directives, ctx),
-        (false, true) => merge_union(first, definitions, composed_directives, ctx),
-        (true, true) => merge_exactly_matching(first, definitions, composed_directives, ctx),
+        (true, false) => {
+            let enum_id = ctx.insert_enum(first.name().as_str(), description, composed_directives);
+            merge_intersection(first, definitions, enum_id, ctx);
+        }
+        (false, true) => {
+            let enum_id = ctx.insert_enum(first.name().as_str(), description, composed_directives);
+            merge_union(first, definitions, enum_id, ctx);
+        }
+        (true, true) => {
+            let enum_id = ctx.insert_enum(first.name().as_str(), description, composed_directives);
+            merge_exactly_matching(first, definitions, enum_id, ctx);
+        }
         (false, false) => {
             // The enum isn't used at all, omit it from the federated graph
         }
@@ -57,10 +67,9 @@ fn enum_is_used_in_return_position(enum_name: StringId, subgraphs: &Subgraphs) -
 fn merge_intersection<'a>(
     first: &DefinitionWalker<'a>,
     definitions: &[DefinitionWalker<'a>],
-    composed_directives: federated::Directives,
+    enum_id: federated::TypeDefinitionId,
     ctx: &mut Context<'a>,
 ) {
-    let description = definitions.iter().find_map(|def| def.description()).map(|d| d.as_str());
     let mut intersection: Vec<StringId> = first.enum_values().map(|value| value.name().id).collect();
     let mut scratch = HashSet::new();
 
@@ -77,33 +86,22 @@ fn merge_intersection<'a>(
         ));
     }
 
-    let mut values: Option<federated::EnumValues> = None;
     for value in intersection {
         let sites = definitions
             .iter()
             .filter_map(|enm| enm.enum_value_by_name(value))
             .map(|value| value.directives());
         let composed_directives = collect_composed_directives(sites, ctx);
-        let id = ctx.insert_enum_value(first.walk(value).as_str(), None, composed_directives);
-        if let Some((_, len)) = &mut values {
-            *len += 1;
-        } else {
-            values = Some((id, 1));
-        }
+        ctx.insert_enum_value(first.walk(value).as_str(), None, composed_directives, enum_id);
     }
-
-    let values = values.unwrap_or(federated::NO_ENUM_VALUE);
-    ctx.insert_enum(first.name().as_str(), description, composed_directives, values);
 }
 
 fn merge_union<'a>(
     first: &DefinitionWalker<'a>,
     definitions: &[DefinitionWalker<'a>],
-    composed_directives: federated::Directives,
+    enum_id: federated::TypeDefinitionId,
     ctx: &mut Context<'a>,
 ) {
-    let description = definitions.iter().find_map(|def| def.description()).map(|d| d.as_str());
-    let mut value_ids: Option<federated::EnumValues> = None;
     let mut all_values: Vec<(StringId, _)> = definitions
         .iter()
         .flat_map(|def| def.enum_values().map(|value| (value.name().id, value.directives().id)))
@@ -120,26 +118,15 @@ fn merge_union<'a>(
             .iter()
             .map(|(_, directives)| first.walk(*directives));
         let composed_directives = collect_composed_directives(sites, ctx);
-
-        let id = ctx.insert_enum_value(first.walk(name).as_str(), None, composed_directives);
-
-        if let Some((_, len)) = &mut value_ids {
-            *len += 1;
-        } else {
-            value_ids = Some((id, 1));
-        }
-
+        ctx.insert_enum_value(first.walk(name).as_str(), None, composed_directives, enum_id);
         start = end;
     }
-
-    let value_ids = value_ids.unwrap_or(federated::NO_ENUM_VALUE);
-    ctx.insert_enum(first.name().as_str(), description, composed_directives, value_ids);
 }
 
 fn merge_exactly_matching<'a>(
     first: &DefinitionWalker<'a>,
     definitions: &[DefinitionWalker<'a>],
-    composed_directives: federated::Directives,
+    enum_id: federated::TypeDefinitionId,
     ctx: &mut Context<'a>,
 ) {
     let expected: Vec<_> = first.enum_values().map(|v| v.name().id).collect();
@@ -154,25 +141,14 @@ fn merge_exactly_matching<'a>(
         }
     }
 
-    let mut value_ids = None;
     for value in expected {
         let sites = definitions
             .iter()
             .filter_map(|enm| enm.enum_value_by_name(value))
             .map(|value| value.directives());
         let composed_directives = collect_composed_directives(sites, ctx);
-        let id = ctx.insert_enum_value(first.walk(value).as_str(), None, composed_directives);
-
-        if let Some((_, len)) = &mut value_ids {
-            *len += 1;
-        } else {
-            value_ids = Some((id, 1))
-        }
+        ctx.insert_enum_value(first.walk(value).as_str(), None, composed_directives, enum_id);
     }
-
-    let value_ids = value_ids.unwrap_or(federated::NO_ENUM_VALUE);
-    let description = definitions.iter().find_map(|def| def.description()).map(|d| d.as_str());
-    ctx.insert_enum(first.name().as_str(), description, composed_directives, value_ids);
 }
 
 fn is_slice_match<T: PartialEq>(slice: &[T], iterator: impl Iterator<Item = T>) -> bool {

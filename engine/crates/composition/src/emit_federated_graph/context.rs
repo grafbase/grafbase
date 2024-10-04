@@ -41,7 +41,7 @@ impl<'a> Context<'a> {
     pub(crate) fn insert_value_with_type(
         &mut self,
         value: &subgraphs::Value,
-        enum_type: Option<federated::EnumId>,
+        enum_type: Option<federated::TypeDefinitionId>,
     ) -> federated::Value {
         match value {
             subgraphs::Value::Null => federated::Value::Null,
@@ -53,16 +53,10 @@ impl<'a> Context<'a> {
             subgraphs::Value::Boolean(value) => federated::Value::Boolean(*value),
             subgraphs::Value::Enum(value) => {
                 let value_name = self.insert_string(self.subgraphs.walk(*value));
-                let enum_value = enum_type.and_then(|enum_id| {
-                    let values = self.out[enum_id].values;
-                    let position = self.out[values]
-                        .iter()
-                        .position(|enum_value| enum_value.value == value_name)?;
-                    Some(federated::EnumValueId(values.0 .0 + position))
-                });
+                let enum_value = enum_type.and_then(|enum_id| self.out.find_enum_value_by_name_id(enum_id, value_name));
 
                 if let Some(enum_value) = enum_value {
-                    federated::Value::EnumValue(enum_value)
+                    federated::Value::EnumValue(enum_value.id())
                 } else {
                     federated::Value::UnboundEnumValue(value_name)
                 }

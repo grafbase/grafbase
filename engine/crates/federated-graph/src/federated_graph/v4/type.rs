@@ -1,4 +1,4 @@
-use super::{EnumId, InputObjectId, InterfaceId, ObjectId, TypeDefinitionId, UnionId, Wrapping};
+use super::{InputObjectId, InterfaceId, ObjectId, TypeDefinitionId, UnionId, Wrapping};
 
 #[derive(Clone, PartialEq, Eq)]
 pub struct Type {
@@ -12,12 +12,12 @@ pub enum Definition {
     Object(ObjectId),
     Interface(InterfaceId),
     Union(UnionId),
-    Enum(EnumId),
+    Enum(TypeDefinitionId),
     InputObject(InputObjectId),
 }
 
 impl Definition {
-    pub fn as_enum(&self) -> Option<EnumId> {
+    pub fn as_enum(&self) -> Option<TypeDefinitionId> {
         if let Self::Enum(v) = self {
             Some(*v)
         } else {

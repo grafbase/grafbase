@@ -1,3 +1,5 @@
+mod debug;
+mod enum_values;
 mod ids;
 mod objects;
 mod r#type;
@@ -7,17 +9,17 @@ mod view;
 use std::ops::Range;
 
 pub use self::{
-    ids::TypeDefinitionId,
+    enum_values::{EnumValue, EnumValueRecord},
+    ids::{EnumValueId, TypeDefinitionId},
     r#type::{Definition, Type},
-    type_definitions::{TypeDefinitionKind, TypeDefinitionRecord, TypeDefinitionView},
-    view::View,
+    type_definitions::{TypeDefinition, TypeDefinitionKind, TypeDefinitionRecord},
+    view::{View, ViewNested},
 };
 pub use super::v3::{
-    AuthorizedDirectiveId, DirectiveId, Directives, Enum, EnumId, EnumValue, EnumValueId, EnumValues, FieldId, Fields,
-    InputObject, InputObjectId, InputValueDefinitionId, InputValueDefinitionSet, InputValueDefinitionSetItem,
-    InputValueDefinitions, InterfaceId, ObjectId, Override, OverrideLabel, OverrideSource, RootOperationTypes,
-    StringId, Subgraph, SubgraphId, Union, UnionId, Wrapping, NO_DIRECTIVES, NO_ENUM_VALUE, NO_FIELDS,
-    NO_INPUT_VALUE_DEFINITION,
+    AuthorizedDirectiveId, DirectiveId, Directives, FieldId, Fields, InputObject, InputObjectId,
+    InputValueDefinitionId, InputValueDefinitionSet, InputValueDefinitionSetItem, InputValueDefinitions, InterfaceId,
+    ObjectId, Override, OverrideLabel, OverrideSource, RootOperationTypes, StringId, Subgraph, SubgraphId, Union,
+    UnionId, Wrapping, NO_DIRECTIVES, NO_FIELDS, NO_INPUT_VALUE_DEFINITION,
 };
 
 #[derive(Clone)]
@@ -29,10 +31,9 @@ pub struct FederatedGraph {
     pub interfaces: Vec<Interface>,
     pub fields: Vec<Field>,
 
-    pub enums: Vec<Enum>,
     pub unions: Vec<Union>,
     pub input_objects: Vec<InputObject>,
-    pub enum_values: Vec<EnumValue>,
+    pub enum_values: Vec<EnumValueRecord>,
 
     /// All [input value definitions](http://spec.graphql.org/October2021/#InputValueDefinition) in the federated graph. Concretely, these are arguments of output fields, and input object fields.
     pub input_value_definitions: Vec<InputValueDefinition>,
@@ -48,12 +49,6 @@ pub struct FederatedGraph {
     pub field_authorized_directives: Vec<(FieldId, AuthorizedDirectiveId)>,
     pub object_authorized_directives: Vec<(ObjectId, AuthorizedDirectiveId)>,
     pub interface_authorized_directives: Vec<(InterfaceId, AuthorizedDirectiveId)>,
-}
-
-impl std::fmt::Debug for FederatedGraph {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct(std::any::type_name::<Self>()).finish_non_exhaustive()
-    }
 }
 
 impl FederatedGraph {
@@ -82,12 +77,19 @@ impl FederatedGraph {
         (0..self.objects.len()).map(|idx| self.view(ObjectId::from(idx)))
     }
 
-    pub fn iter_scalars(&self) -> impl Iterator<Item = TypeDefinitionView<'_>> {
+    pub fn iter_type_definitions(&self) -> impl Iterator<Item = TypeDefinition<'_>> {
         self.type_definitions
             .iter()
             .enumerate()
-            .filter(|(_idx, record)| record.kind.is_scalar())
             .map(|(idx, _)| self.at(TypeDefinitionId::from(idx)))
+    }
+
+    pub fn iter_enums(&self) -> impl Iterator<Item = TypeDefinition<'_>> {
+        self.iter_type_definitions().filter(|record| record.kind.is_enum())
+    }
+
+    pub fn iter_scalars(&self) -> impl Iterator<Item = TypeDefinition<'_>> {
+        self.iter_type_definitions().filter(|record| record.kind.is_scalar())
     }
 
     pub fn object_authorized_directives(&self, object_id: ObjectId) -> impl Iterator<Item = &AuthorizedDirective> {
@@ -329,7 +331,6 @@ impl Default for FederatedGraph {
                     description: None,
                 },
             ],
-            enums: Vec::new(),
             unions: Vec::new(),
             input_objects: Vec::new(),
             enum_values: Vec::new(),
@@ -369,8 +370,6 @@ macro_rules! id_newtypes {
 
 id_newtypes! {
     AuthorizedDirectiveId + authorized_directives + AuthorizedDirective,
-    EnumId + enums + Enum,
-    EnumValueId + enum_values + EnumValue,
     FieldId + fields + Field,
     InputValueDefinitionId + input_value_definitions + InputValueDefinition,
     InputObjectId + input_objects + InputObject,
@@ -439,6 +438,26 @@ impl From<super::FederatedGraphV3> for FederatedGraph {
                 kind: TypeDefinitionKind::Scalar,
             });
             definitions_map.insert(super::v3::Definition::Scalar(idx.into()), Definition::Scalar(id));
+        }
+
+        let mut new_enum_values = Vec::new();
+        for r#enum in enums {
+            let enum_id = TypeDefinitionId::from(type_definitions.len());
+            type_definitions.push(TypeDefinitionRecord {
+                name: r#enum.name,
+                description: r#enum.description,
+                directives: r#enum.composed_directives,
+                kind: TypeDefinitionKind::Enum,
+            });
+
+            for enum_value in &enum_values[r#enum.values.0 .0..(r#enum.values.0 .0 + r#enum.values.1)] {
+                new_enum_values.push(EnumValueRecord {
+                    enum_id,
+                    value: enum_value.value,
+                    composed_directives: enum_value.composed_directives,
+                    description: enum_value.description,
+                })
+            }
         }
 
         let mut type_definitions_counter = 0;
@@ -533,10 +552,9 @@ impl From<super::FederatedGraphV3> for FederatedGraph {
                     },
                 )
                 .collect(),
-            enums,
             unions,
             input_objects,
-            enum_values,
+            enum_values: new_enum_values,
             input_value_definitions: input_value_definitions
                 .into_iter()
                 .map(
@@ -679,15 +697,6 @@ impl std::ops::Index<InputValueDefinitions> for FederatedGraph {
     fn index(&self, index: InputValueDefinitions) -> &Self::Output {
         let (InputValueDefinitionId(start), len) = index;
         &self.input_value_definitions[start..(start + len)]
-    }
-}
-
-impl std::ops::Index<EnumValues> for FederatedGraph {
-    type Output = [EnumValue];
-
-    fn index(&self, index: EnumValues) -> &Self::Output {
-        let (EnumValueId(start), len) = index;
-        &self.enum_values[start..(start + len)]
     }
 }
 

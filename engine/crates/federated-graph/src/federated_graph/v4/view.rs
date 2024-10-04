@@ -5,8 +5,8 @@ use std::ops::{Deref, Index};
 use super::{FederatedGraph, StringId};
 
 pub struct View<Id, Record> {
-    id: Id,
-    record: Record,
+    pub(super) id: Id,
+    pub(super) record: Record,
 }
 
 impl<Id, Record> View<Id, Record>
@@ -33,8 +33,8 @@ impl<Id, Record> std::ops::Deref for View<Id, Record> {
 }
 
 pub struct ViewNested<'a, Id, Record> {
-    graph: &'a FederatedGraph,
-    view: View<Id, &'a Record>,
+    pub(super) graph: &'a FederatedGraph,
+    pub(super) view: View<Id, &'a Record>,
 }
 
 impl<'a, Id, Record> Deref for ViewNested<'a, Id, Record> {

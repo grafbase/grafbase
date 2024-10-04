@@ -30,8 +30,8 @@ impl fmt::Display for Renderer<'_> {
             }
         };
 
-        for r#enum in &graph.enums {
-            if has_inaccessible(&r#enum.composed_directives, graph) {
+        for r#enum in graph.iter_enums() {
+            if has_inaccessible(&r#enum.directives, graph) {
                 continue;
             }
 
@@ -40,16 +40,16 @@ impl fmt::Display for Renderer<'_> {
             write_description(f, r#enum.description, "", graph)?;
             f.write_str("enum ")?;
             f.write_str(&graph[r#enum.name])?;
-            write_public_directives(f, r#enum.composed_directives, graph)?;
+            write_public_directives(f, r#enum.directives, graph)?;
             f.write_char(' ')?;
 
             write_block(f, |f| {
-                for variant in &graph[r#enum.values] {
+                for variant in graph.iter_enum_values(r#enum.id()) {
                     if has_inaccessible(&variant.composed_directives, graph) {
                         continue;
                     }
 
-                    write_enum_variant(f, variant, graph)?;
+                    write_enum_variant(f, &variant, graph)?;
                 }
 
                 Ok(())
@@ -266,7 +266,7 @@ fn write_public_directives<'a, 'b: 'a>(
 
 fn write_enum_variant<'a, 'b: 'a>(
     f: &'a mut fmt::Formatter<'b>,
-    enum_variant: &EnumValue,
+    enum_variant: &EnumValueRecord,
     graph: &'a FederatedGraph,
 ) -> fmt::Result {
     f.write_str(INDENT)?;
