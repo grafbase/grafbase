@@ -3,9 +3,8 @@ use std::future::Future;
 use std::sync::RwLock;
 
 use anyhow::anyhow;
-use tracing::Instrument;
 use wasmtime::{
-    component::{Component, ComponentNamedList, Instance, Lift, Lower, Resource, TypedFunc},
+    component::{Component, ComponentExportIndex, ComponentNamedList, Instance, Lift, Lower, Resource, TypedFunc},
     Engine, Store,
 };
 
@@ -23,6 +22,9 @@ pub trait RecycleableComponentInstance: Sized + Send + 'static {
 
     /// Resets the store to the original state. This must be called if wanting to reuse this instance.
     fn recycle(&mut self) -> crate::Result<()>;
+
+    /// Retrieves the name of the interface this component implements.
+    fn interface_name() -> &'static str;
 }
 
 /// A macro to define a component instance.
@@ -72,6 +74,10 @@ macro_rules! component_instance {
 
             fn recycle(&mut self) -> $crate::Result<()> {
                 self.0.recycle()
+            }
+
+            fn interface_name() -> &'static str {
+                $name
             }
         }
     };
@@ -180,11 +186,10 @@ impl ComponentInstance {
             return Ok(());
         };
 
-        let span = tracing::info_span!("hook", "otel.name" = name);
         let context = self.store.data_mut().push_resource(context)?;
         let context_rep = context.rep();
 
-        let result = hook.call_async(&mut self.store, (context, arg)).instrument(span).await;
+        let result = hook.call_async(&mut self.store, (context, arg)).await;
 
         // We check if the hook call trapped, and if so we mark the instance poisoned.
         //
@@ -236,11 +241,10 @@ impl ComponentInstance {
             return Ok(None);
         };
 
-        let span = tracing::info_span!("hook", "otel.name" = name);
         let context = self.store.data_mut().push_resource(context)?;
         let context_rep = context.rep();
 
-        let result = hook.call_async(&mut self.store, (context, arg)).instrument(span).await;
+        let result = hook.call_async(&mut self.store, (context, arg)).await;
 
         // We check if the hook call trapped, and if so we mark the instance poisoned.
         //
@@ -293,14 +297,10 @@ impl ComponentInstance {
             return Ok(None);
         };
 
-        let span = tracing::info_span!("hook", "otel.name" = name);
         let context = self.store.data_mut().push_resource(context)?;
         let context_rep = context.rep();
 
-        let result = hook
-            .call_async(&mut self.store, (context, args.0, args.1))
-            .instrument(span)
-            .await;
+        let result = hook.call_async(&mut self.store, (context, args.0, args.1)).await;
 
         // We check if the hook call trapped, and if so we mark the instance poisoned.
         //
@@ -354,13 +354,11 @@ impl ComponentInstance {
             return Ok(None);
         };
 
-        let span = tracing::info_span!("hook", "otel.name" = name);
         let context = self.store.data_mut().push_resource(context)?;
         let context_rep = context.rep();
 
         let result = hook
             .call_async(&mut self.store, (context, args.0, args.1, args.2))
-            .instrument(span)
             .await;
 
         // We check if the hook call trapped, and if so we mark the instance poisoned.
@@ -379,6 +377,14 @@ impl ComponentInstance {
         let _: SharedContext = self.store.data_mut().take_resource(context_rep)?;
 
         Ok(Some(result))
+    }
+
+    /// Retrieves the interface ID of the component instance.
+    ///
+    /// This function returns the index of the component export associated with the
+    /// interface name. If the interface export does not exist, it returns `None`.
+    pub fn interface_id(&self) -> Option<ComponentExportIndex> {
+        self.component.export_index(None, self.interface_name).map(|i| i.1)
     }
 
     /// Retrieves a typed function (hook) by its name from the component instance.
@@ -411,7 +417,7 @@ impl ComponentInstance {
             return cached.as_ref().and_then(|func| func.downcast_ref().copied());
         }
 
-        let Some((_, interface_idx)) = self.component.export_index(None, self.interface_name) else {
+        let Some(interface_idx) = self.interface_id() else {
             tracing::debug!("could not find export for {} interface", self.interface_name);
             self.function_cache.write().unwrap().push((function_name, None));
 

@@ -2,22 +2,31 @@ use runtime::{
     error::{PartialErrorCode, PartialGraphqlError},
     hooks::{Anything, AuthorizationVerdict, AuthorizationVerdicts, AuthorizedHooks, EdgeDefinition, NodeDefinition},
 };
+use tracing::Instrument;
 
 use super::{guest_error_as_gql, Context, HooksWasi};
 
 macro_rules! prepare_authorized {
-    ($self:ident named $func_name:literal at $definition:expr; [$(($name:literal, $input:expr),)+]) => {{
+    ($span_name: expr; $self:ident named $func_name:literal at $definition:expr; [$(($name:literal, $input:expr),)+]) => {{
         let Some(ref inner) = $self.0 else {
             return Err(PartialGraphqlError::new(
                 "@authorized directive cannot be used, so access was denied",
                 PartialErrorCode::Unauthorized,
             ));
         };
-        let instance = inner.authorization.get().await;
+
+        let Some((instance, span)) = inner.get_authorization_instance($span_name).await else {
+            return Err(PartialGraphqlError::new(
+                "@authorized directive cannot be used, so access was denied",
+                PartialErrorCode::Unauthorized,
+            ));
+        };
+
         let inputs = [$(
             encode($func_name, $definition, $name, $input)?,
         )+];
-        (inner, instance, inputs)
+
+        (inner, instance, inputs, span)
     }};
 }
 
@@ -46,7 +55,8 @@ impl AuthorizedHooks<Context> for HooksWasi {
         arguments: impl Anything<'a>,
         metadata: Option<impl Anything<'a>>,
     ) -> AuthorizationVerdict {
-        let (inner, mut instance, [arguments, metadata]) = prepare_authorized!(
+        let (inner, mut instance, [arguments, metadata], span) = prepare_authorized!(
+            "hook: authorize-edge-pre-execution";
             self named "authorize_edge_pre_execution" at &definition;
             [("arguments", [arguments]), ("metadata", metadata),]
         );
@@ -63,6 +73,7 @@ impl AuthorizedHooks<Context> for HooksWasi {
                 "authorize-edge-pre-execution",
                 instance.authorize_edge_pre_execution(inner.shared_context(context), definition, arguments, metadata),
             )
+            .instrument(span)
             .await
             .map_err(|err| match err {
                 wasi_component_loader::Error::Internal(error) => {
@@ -81,7 +92,8 @@ impl AuthorizedHooks<Context> for HooksWasi {
         definition: NodeDefinition<'a>,
         metadata: Option<impl Anything<'a>>,
     ) -> AuthorizationVerdict {
-        let (inner, mut instance, [metadata]) = prepare_authorized!(
+        let (inner, mut instance, [metadata], span) = prepare_authorized!(
+            "hook: authorize-node-pre-execution";
             self named "authorize_node_pre_execution" at &definition;
             [ ("metadata", metadata),]
         );
@@ -95,6 +107,7 @@ impl AuthorizedHooks<Context> for HooksWasi {
                 "authorize-node-pre-execution",
                 instance.authorize_node_pre_execution(inner.shared_context(context), definition, metadata),
             )
+            .instrument(span)
             .await
             .map_err(|err| match err {
                 wasi_component_loader::Error::Internal(error) => {
@@ -114,7 +127,8 @@ impl AuthorizedHooks<Context> for HooksWasi {
         nodes: impl IntoIterator<Item: Anything<'a>> + Send,
         metadata: Option<impl Anything<'a>>,
     ) -> AuthorizationVerdicts {
-        let (_inner, mut _instance, [_nodes, metadata]) = prepare_authorized!(
+        let (_inner, mut _instance, [_nodes, metadata], _span) = prepare_authorized!(
+            "hook: authorize-node-post-execution";
             self named "authorize_node_post_execution" at &definition;
             [("nodes", nodes), ("metadata", metadata),]
         );
@@ -133,7 +147,8 @@ impl AuthorizedHooks<Context> for HooksWasi {
         parents: impl IntoIterator<Item: Anything<'a>> + Send,
         metadata: Option<impl Anything<'a>>,
     ) -> AuthorizationVerdicts {
-        let (inner, mut instance, [parents, metadata]) = prepare_authorized!(
+        let (inner, mut instance, [parents, metadata], span) = prepare_authorized!(
+            "hook: authorize-parent-edge-post-execution";
             self named "authorize_parent_edge_post_execution" at &definition;
             [("parents", parents), ("metadata", metadata),]
         );
@@ -153,6 +168,7 @@ impl AuthorizedHooks<Context> for HooksWasi {
                     metadata,
                 ),
             )
+            .instrument(span)
             .await
             .map_err(|err| match err {
                 wasi_component_loader::Error::Internal(error) => {
@@ -178,7 +194,8 @@ impl AuthorizedHooks<Context> for HooksWasi {
         nodes: impl IntoIterator<Item: Anything<'a>> + Send,
         metadata: Option<impl Anything<'a>>,
     ) -> AuthorizationVerdicts {
-        let (inner, mut instance, [nodes, metadata]) = prepare_authorized!(
+        let (inner, mut instance, [nodes, metadata], span) = prepare_authorized!(
+            "hook: authorize-edge-node-post-execution";
             self named "authorize_edge_node_post_execution" at &definition;
             [("nodes", nodes), ("metadata", metadata),]
         );
@@ -193,6 +210,7 @@ impl AuthorizedHooks<Context> for HooksWasi {
                 "authorize-edge-node-post-execution",
                 instance.authorize_edge_node_post_execution(inner.shared_context(context), definition, nodes, metadata),
             )
+            .instrument(span)
             .await
             .map_err(|err| match err {
                 wasi_component_loader::Error::Internal(error) => {
@@ -222,7 +240,8 @@ impl AuthorizedHooks<Context> for HooksWasi {
         Parent: Anything<'a>,
         Nodes: IntoIterator<Item: Anything<'a>> + Send,
     {
-        let (inner, mut instance, [metadata]) = prepare_authorized!(
+        let (inner, mut instance, [metadata], span) = prepare_authorized!(
+            "hook: authorize-edge-post-execution";
             self named "authorize_edge_post_execution" at &definition;
             [("metadata", metadata),]
         );
@@ -262,6 +281,7 @@ impl AuthorizedHooks<Context> for HooksWasi {
                 "authorize-edge-post-execution",
                 instance.authorize_edge_post_execution(inner.shared_context(context), definition, edges, metadata),
             )
+            .instrument(span)
             .await
             .map_err(|err| match err {
                 wasi_component_loader::Error::Internal(error) => {

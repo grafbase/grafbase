@@ -1,4 +1,5 @@
 use runtime::{error::PartialGraphqlError, hooks::ResponseHooks};
+use tracing::Instrument;
 use wasi_component_loader::{
     CacheStatus, ExecutedHttpRequest, ExecutedOperation, ExecutedSubgraphRequest, FieldError, GraphqlResponseStatus,
     RequestError, SubgraphRequestExecutionKind, SubgraphResponse,
@@ -18,7 +19,9 @@ impl ResponseHooks<Context> for HooksWasi {
             return Ok(Vec::new());
         };
 
-        let mut hook = inner.responses.get().await;
+        let Some((mut hook, span)) = inner.get_responses_instance("hook: on-subgraph-response").await else {
+            return Ok(Vec::new());
+        };
 
         let runtime::hooks::ExecutedSubgraphRequest {
             subgraph_name,
@@ -70,6 +73,7 @@ impl ResponseHooks<Context> for HooksWasi {
                 "on-subgraph-response",
                 hook.on_subgraph_response(inner.shared_context(context), request),
             )
+            .instrument(span)
             .await
             .map_err(|err| {
                 tracing::error!("on_subgraph_response error: {err}");
@@ -86,7 +90,9 @@ impl ResponseHooks<Context> for HooksWasi {
             return Ok(Vec::new());
         };
 
-        let mut hook = inner.responses.get().await;
+        let Some((mut hook, span)) = inner.get_responses_instance("hook: on-operation-response").await else {
+            return Ok(Vec::new());
+        };
 
         let runtime::hooks::ExecutedOperation {
             duration,
@@ -124,6 +130,7 @@ impl ResponseHooks<Context> for HooksWasi {
                 "on-operation-response",
                 hook.on_operation_response(inner.shared_context(context), operation),
             )
+            .instrument(span)
             .await
             .map_err(|err| {
                 tracing::error!("on_gateway_response error: {err}");
@@ -140,7 +147,9 @@ impl ResponseHooks<Context> for HooksWasi {
             return Ok(());
         };
 
-        let mut hook = inner.responses.get().await;
+        let Some((mut hook, span)) = inner.get_responses_instance("hook: on-http-response").await else {
+            return Ok(());
+        };
 
         let runtime::hooks::ExecutedHttpRequest {
             method,
@@ -161,6 +170,7 @@ impl ResponseHooks<Context> for HooksWasi {
                 "on-http-response",
                 hook.on_http_response(inner.shared_context(context), request),
             )
+            .instrument(span)
             .await
             .map_err(|err| {
                 tracing::error!("on_http_response error: {err}");

@@ -1,22 +1,29 @@
 use std::sync::Arc;
 
 use deadpool::managed;
+use tracing::{info_span, Instrument};
 use wasi_component_loader::{ComponentLoader, RecycleableComponentInstance};
 
 pub(super) struct Pool<T: RecycleableComponentInstance>(managed::Pool<ComponentMananger<T>>);
 
 impl<T: RecycleableComponentInstance> Pool<T> {
-    pub(super) fn new(loader: &Arc<ComponentLoader>) -> Self {
-        let mgr = ComponentMananger::<T>::new(loader.clone());
-        Self(
-            managed::Pool::builder(mgr)
+    pub(super) fn new(loader: &Arc<ComponentLoader>) -> Option<Self> {
+        if loader.implements_interface(T::interface_name()) {
+            let mgr = ComponentMananger::<T>::new(loader.clone());
+
+            let pool = managed::Pool::builder(mgr)
                 .build()
-                .expect("only fails if not in a runtime"),
-        )
+                .expect("only fails if not in a runtime");
+
+            Some(Pool(pool))
+        } else {
+            None
+        }
     }
 
     pub(super) async fn get(&self) -> managed::Object<ComponentMananger<T>> {
-        self.0.get().await.expect("no io, should not fail")
+        let span = info_span!("get instance from pool");
+        self.0.get().instrument(span).await.expect("no io, should not fail")
     }
 }
 

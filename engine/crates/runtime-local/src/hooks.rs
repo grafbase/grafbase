@@ -5,6 +5,7 @@ mod subgraph;
 
 use std::{collections::HashMap, sync::Arc, time::SystemTime};
 
+use deadpool::managed::Object;
 use futures_util::Future;
 use grafbase_telemetry::otel::{
     opentelemetry::{
@@ -19,7 +20,7 @@ use runtime::{
     error::{ErrorResponse, PartialErrorCode, PartialGraphqlError},
     hooks::{AuthorizedHooks, HeaderMap, Hooks, SubgraphHooks},
 };
-use tracing::Span;
+use tracing::{info_span, Instrument, Span};
 use wasi_component_loader::ResponsesComponentInstance;
 pub use wasi_component_loader::{
     create_log_channel, AccessLogMessage, AuthorizationComponentInstance, ChannelLogReceiver, ChannelLogSender,
@@ -46,10 +47,10 @@ impl Context {
 }
 
 struct HooksWasiInner {
-    gateway: Pool<GatewayComponentInstance>,
-    authorization: Pool<AuthorizationComponentInstance>,
-    subgraph: Pool<SubgraphComponentInstance>,
-    responses: Pool<ResponsesComponentInstance>,
+    gateway: Option<Pool<GatewayComponentInstance>>,
+    authorization: Option<Pool<AuthorizationComponentInstance>>,
+    subgraph: Option<Pool<SubgraphComponentInstance>>,
+    responses: Option<Pool<ResponsesComponentInstance>>,
     hook_latencies: Histogram<u64>,
     sender: ChannelLogSender,
 }
@@ -59,12 +60,73 @@ impl HooksWasiInner {
         SharedContext::new(Arc::clone(&context.kv), self.sender.clone(), context.trace_id)
     }
 
+    pub async fn get_gateway_instance(
+        &self,
+        hook_name: &'static str,
+    ) -> Option<(Object<pool::ComponentMananger<GatewayComponentInstance>>, Span)> {
+        match self.gateway {
+            Some(ref pool) => {
+                let span = info_span!("hook span", "otel.name" = hook_name);
+                let object = pool.get().instrument(span.clone()).await;
+
+                Some((object, span))
+            }
+            None => None,
+        }
+    }
+
+    pub async fn get_authorization_instance(
+        &self,
+        hook_name: &'static str,
+    ) -> Option<(Object<pool::ComponentMananger<AuthorizationComponentInstance>>, Span)> {
+        match self.authorization {
+            Some(ref pool) => {
+                let span = info_span!("hook span", "otel.name" = hook_name);
+                let object = pool.get().instrument(span.clone()).await;
+
+                Some((object, span))
+            }
+            None => None,
+        }
+    }
+
+    pub async fn get_subgraph_instance(
+        &self,
+        hook_name: &'static str,
+    ) -> Option<(Object<pool::ComponentMananger<SubgraphComponentInstance>>, Span)> {
+        match self.subgraph {
+            Some(ref pool) => {
+                let span = info_span!("hook span", "otel.name" = hook_name);
+                let object = pool.get().instrument(span.clone()).await;
+
+                Some((object, span))
+            }
+            None => None,
+        }
+    }
+
+    pub async fn get_responses_instance(
+        &self,
+        hook_name: &'static str,
+    ) -> Option<(Object<pool::ComponentMananger<ResponsesComponentInstance>>, Span)> {
+        match self.responses {
+            Some(ref pool) => {
+                let span = info_span!("hook span", "otel.name" = hook_name);
+                let object = pool.get().instrument(span.clone()).await;
+
+                Some((object, span))
+            }
+            None => None,
+        }
+    }
+
     async fn run_and_measure<F, T>(&self, hook_name: &'static str, hook: F) -> Result<T, wasi_component_loader::Error>
     where
-        F: Future<Output = Result<T, wasi_component_loader::Error>>,
+        F: Future<Output = Result<T, wasi_component_loader::Error>> + Instrument,
     {
+        let span = info_span!("call instance");
         let start = SystemTime::now();
-        let result = hook.await;
+        let result = hook.instrument(span).await;
         let duration = SystemTime::now().duration_since(start).unwrap_or_default();
 
         let status = match result {
@@ -89,10 +151,11 @@ impl HooksWasiInner {
         hook: F,
     ) -> Result<Vec<Result<T, GuestError>>, wasi_component_loader::Error>
     where
-        F: Future<Output = Result<Vec<Result<T, GuestError>>, wasi_component_loader::Error>>,
+        F: Future<Output = Result<Vec<Result<T, GuestError>>, wasi_component_loader::Error>> + Instrument,
     {
+        let span = info_span!("call instance");
         let start = SystemTime::now();
-        let result = hook.await;
+        let result = hook.instrument(span).await;
         let duration = SystemTime::now().duration_since(start).unwrap_or_default();
 
         let status = match result {
@@ -157,10 +220,13 @@ impl Hooks for HooksWasi {
             return Ok((Context::new(kv, trace_id), headers));
         };
 
-        let mut hook = inner.gateway.get().await;
+        let Some((mut hook, span)) = inner.get_gateway_instance("hook: on-gateway-request").await else {
+            return Ok((Context::new(kv, trace_id), headers));
+        };
 
         inner
             .run_and_measure("on-gateway-request", hook.on_gateway_request(kv, headers))
+            .instrument(span)
             .await
             .map(|(kv, headers)| (Context::new(kv, trace_id), headers))
             .map_err(|err| match err {
