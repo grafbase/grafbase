@@ -182,4 +182,9 @@ impl ComponentLoader {
     pub(crate) fn component(&self) -> &Component {
         &self.component
     }
+
+    /// Checks if the WebAssembly component implements a specific interface.
+    pub fn implements_interface(&self, interface_name: &'static str) -> bool {
+        self.component.export_index(None, interface_name).is_some()
+    }
 }

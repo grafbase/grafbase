@@ -1,4 +1,3 @@
-use tracing::Instrument;
 use url::Url;
 
 use crate::{
@@ -38,8 +37,6 @@ impl SubgraphComponentInstance {
             return Ok(headers);
         };
 
-        let span = tracing::info_span!(ON_SUBGRAGH_REQUEST_HOOK_FUNCTION);
-
         let subgraph_name = subgraph_name.to_string();
         let url = url.to_string();
         let method = method.to_string();
@@ -54,7 +51,6 @@ impl SubgraphComponentInstance {
 
         let result = hook
             .call_async(&mut self.store, (context, subgraph_name, method, url, headers))
-            .instrument(span)
             .await;
 
         if result.is_err() {

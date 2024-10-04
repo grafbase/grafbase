@@ -464,7 +464,7 @@ where
         }
 
         self.futures.push_fut({
-            let span = tracing::debug_span!("resoler", "plan_id" = usize::from(plan_id)).entered();
+            let span = tracing::debug_span!("resolver", "plan_id" = usize::from(plan_id)).entered();
 
             let plan = self.ctx.plan_walker(plan_id);
 
