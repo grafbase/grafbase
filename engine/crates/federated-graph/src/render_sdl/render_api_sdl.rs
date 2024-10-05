@@ -81,17 +81,19 @@ impl fmt::Display for Renderer<'_> {
             f.write_char(' ')?;
 
             write_block(f, |f| {
-                for field in &graph[object.fields.clone()] {
+                for (idx, field) in graph[object.fields.clone()].iter().enumerate() {
                     let field_name = &graph[field.name];
 
                     if field_name.starts_with("__") || has_inaccessible(&field.composed_directives, graph) {
                         continue;
                     }
 
+                    let field_id = FieldId(object.fields.start.0 + idx);
+
                     write_description(f, field.description, INDENT, graph)?;
                     f.write_str(INDENT)?;
                     f.write_str(field_name)?;
-                    write_field_arguments(f, &graph[field.arguments], graph)?;
+                    write_field_arguments(f, graph.iter_field_arguments(field_id), graph)?;
                     f.write_str(": ")?;
                     f.write_str(&render_field_type(&field.r#type, graph))?;
                     write_public_directives(f, field.composed_directives, graph)?;
@@ -120,18 +122,20 @@ impl fmt::Display for Renderer<'_> {
             f.write_char(' ')?;
 
             write_block(f, |f| {
-                for field in &graph[interface.fields.clone()] {
+                for (idx, field) in graph[interface.fields.clone()].iter().enumerate() {
                     if has_inaccessible(&field.composed_directives, graph) {
                         continue;
                     }
 
                     let field_name = &graph[field.name];
+                    let field_id = FieldId(interface.fields.start.0 + idx);
+
                     write_description(f, field.description, INDENT, graph)?;
                     f.write_str(INDENT)?;
                     f.write_str(field_name)?;
                     f.write_str(": ")?;
                     f.write_str(&render_field_type(&field.r#type, graph))?;
-                    write_field_arguments(f, &graph[field.arguments], graph)?;
+                    write_field_arguments(f, graph.iter_field_arguments(field_id), graph)?;
                     write_public_directives(f, field.composed_directives, graph)?;
                     f.write_char('\n')?;
                 }
@@ -163,17 +167,17 @@ impl fmt::Display for Renderer<'_> {
                     }
 
                     write_description(f, field.input_value_definition.description, INDENT, graph)?;
-                    let field_name = &graph[field.input_value_definition, name];
+                    let field_name = &graph[field.input_value_definition.name];
                     f.write_str(INDENT)?;
                     f.write_str(field_name)?;
                     f.write_str(": ")?;
-                    f.write_str(&render_field_type(&field.r#type, graph))?;
+                    f.write_str(&render_field_type(&field.input_value_definition.r#type, graph))?;
 
-                    if let Some(default) = &field.default {
+                    if let Some(default) = &field.input_value_definition.default {
                         write!(f, " = {}", ValueDisplay(default, graph))?;
                     }
 
-                    write_public_directives(f, field.directives, graph)?;
+                    write_public_directives(f, field.input_value_definition.directives, graph)?;
                     f.write_char('\n')?;
                 }
 
@@ -278,16 +282,12 @@ fn write_enum_variant<'a, 'b: 'a>(
 
 fn write_field_arguments<'a, 'b: 'a>(
     f: &'a mut fmt::Formatter<'b>,
-    args: &[InputValueDefinition],
+    args: impl Iterator<Item = ArgumentDefinition<'a>>,
     graph: &'a FederatedGraph,
 ) -> fmt::Result {
-    if args.is_empty() {
-        return Ok(());
-    }
-
-    let mut inner = args
-        .iter()
+    let mut args = args
         .map(|arg| {
+            let arg = &arg.input_value_definition;
             let name = &graph[arg.name];
             let r#type = render_field_type(&arg.r#type, graph);
             let directives = arg.directives;
@@ -296,9 +296,13 @@ fn write_field_arguments<'a, 'b: 'a>(
         })
         .peekable();
 
+    if args.peek().is_none() {
+        return Ok(());
+    }
+
     f.write_str("(")?;
 
-    while let Some((name, ty, directives, default)) = inner.next() {
+    while let Some((name, ty, directives, default)) = args.next() {
         f.write_str(name)?;
         f.write_str(": ")?;
         f.write_str(&ty)?;
@@ -309,7 +313,7 @@ fn write_field_arguments<'a, 'b: 'a>(
 
         write_public_directives(f, directives, graph)?;
 
-        if inner.peek().is_some() {
+        if args.peek().is_some() {
             f.write_str(", ")?;
         }
     }

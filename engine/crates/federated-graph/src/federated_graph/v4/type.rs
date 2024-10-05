@@ -1,4 +1,4 @@
-use super::{InputObjectId, InterfaceId, ObjectId, TypeDefinitionId, UnionId, Wrapping};
+use super::{InterfaceId, ObjectId, TypeDefinitionId, UnionId, Wrapping};
 
 #[derive(Clone, PartialEq, Eq)]
 pub struct Type {
@@ -13,7 +13,7 @@ pub enum Definition {
     Interface(InterfaceId),
     Union(UnionId),
     Enum(TypeDefinitionId),
-    InputObject(InputObjectId),
+    InputObject(TypeDefinitionId),
 }
 
 impl Definition {

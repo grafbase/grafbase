@@ -366,7 +366,7 @@ fn write_input_field(field: &InputValueDefinition, graph: &FederatedGraph, sdl: 
 fn write_field(field_id: FieldId, field: &Field, graph: &FederatedGraph, sdl: &mut String) -> fmt::Result {
     let field_name = &graph[field.name];
     let field_type = render_field_type(&field.r#type, graph);
-    let args = render_field_arguments(&graph[field.arguments], graph);
+    let args = render_field_arguments(graph.iter_field_arguments(field_id), graph);
 
     if let Some(description) = field.description {
         write!(sdl, "{}", Description(&graph[description], INDENT))?;
@@ -498,12 +498,10 @@ fn write_authorized(field_id: FieldId, graph: &FederatedGraph, sdl: &mut String)
     Ok(())
 }
 
-fn render_field_arguments<'a>(
-    args: impl Iterator<Item = &'a InputValueDefinition>,
-    graph: &'a FederatedGraph,
-) -> String {
+fn render_field_arguments<'a>(args: impl Iterator<Item = ArgumentDefinition<'a>>, graph: &'a FederatedGraph) -> String {
     let mut args = args
         .map(|arg| {
+            let arg = &arg.input_value_definition;
             let name = &graph[arg.name];
             let r#type = render_field_type(&arg.r#type, graph);
             let directives = arg.directives;

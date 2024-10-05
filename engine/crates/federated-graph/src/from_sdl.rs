@@ -1105,7 +1105,7 @@ fn ingest_union_members<'a>(
 }
 
 fn ingest_input_object<'a>(
-    input_object_id: InputObjectId,
+    input_object_id: TypeDefinitionId,
     input_object: &ast::InputObjectDefinition<'a>,
     state: &mut State<'a>,
 ) -> Result<(), DomainError> {
@@ -1356,7 +1356,7 @@ fn attach_input_value_set_to_field_arguments_rec<'a>(
 
 fn attach_input_value_set_rec<'a>(
     selection_set: impl Iterator<Item = executable_ast::Selection<'a>>,
-    input_object_id: InputObjectId,
+    input_object_id: TypeDefinitionId,
     state: &mut State<'_>,
 ) -> Result<InputValueDefinitionSet, DomainError> {
     selection_set
