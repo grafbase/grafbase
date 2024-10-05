@@ -2,6 +2,7 @@ mod debug;
 mod enum_values;
 mod ids;
 mod input_value_definitions;
+mod iterators;
 mod objects;
 mod r#type;
 mod type_definitions;
@@ -14,6 +15,7 @@ use input_value_definitions::{ArgumentDefinitionRecord, InputObjectFieldDefiniti
 pub use self::{
     enum_values::{EnumValue, EnumValueRecord},
     ids::{ArgumentDefinitionId, EnumValueId, InputObjectFieldDefinitionId, TypeDefinitionId},
+    input_value_definitions::{ArgumentDefinitionRecord, InputObjectFieldDefinitionRecord, InputValueDefinition},
     r#type::{Definition, Type},
     type_definitions::{TypeDefinition, TypeDefinitionKind, TypeDefinitionRecord},
     view::{View, ViewNested},
@@ -228,15 +230,6 @@ pub struct AuthorizedDirective {
     pub metadata: Option<Value>,
 }
 
-#[derive(Clone, PartialEq)]
-pub struct InputValueDefinition {
-    pub name: StringId,
-    pub r#type: Type,
-    pub directives: Directives,
-    pub description: Option<StringId>,
-    pub default: Option<Value>,
-}
-
 /// Represents an `@provides` directive on a field in a subgraph.
 #[derive(Clone)]
 pub struct FieldProvides {
@@ -310,7 +303,6 @@ impl Default for FederatedGraph {
                         wrapping: Default::default(),
                         definition: Definition::Scalar(0usize.into()),
                     },
-                    arguments: NO_INPUT_VALUE_DEFINITION,
                     resolvable_in: Vec::new(),
                     provides: Vec::new(),
                     requires: Vec::new(),
@@ -324,7 +316,6 @@ impl Default for FederatedGraph {
                         wrapping: Default::default(),
                         definition: Definition::Scalar(0usize.into()),
                     },
-                    arguments: NO_INPUT_VALUE_DEFINITION,
                     resolvable_in: Vec::new(),
                     provides: Vec::new(),
                     requires: Vec::new(),
@@ -334,7 +325,8 @@ impl Default for FederatedGraph {
                 },
             ],
             unions: Vec::new(),
-            input_objects: Vec::new(),
+            input_object_field_definitions: Vec::new(),
+            argument_definitions: Vec::new(),
             enum_values: Vec::new(),
             input_value_definitions: Vec::new(),
             strings: ["Query", "__type", "__schema"]

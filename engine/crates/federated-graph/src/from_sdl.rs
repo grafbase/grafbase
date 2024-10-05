@@ -1168,7 +1168,6 @@ fn ingest_object_fields<'a>(
                     wrapping: Wrapping::new(false),
                     definition: Definition::Object(object_id),
                 },
-                arguments: NO_INPUT_VALUE_DEFINITION,
                 resolvable_in: Vec::new(),
                 provides: Vec::new(),
                 requires: Vec::new(),

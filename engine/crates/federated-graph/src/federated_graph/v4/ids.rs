@@ -41,20 +41,3 @@ id_newtypes! {
     type_definitions[TypeDefinitionId] -> TypeDefinitionRecord,
     enum_values[EnumValueId] -> EnumValueRecord,
 }
-
-struct IterBySortKey<'a, T> {
-    graph: &'a FederatedGraph,
-    key: T,
-    idx: Option<usize>,
-}
-
-impl<'a, T, U> Iterator for IterBySortKey<'a, T>
-where
-    FederatedGraph: std::ops::Index<T, Output = U>,
-{
-    type Item = &'a U;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        todo!()
-    }
-}

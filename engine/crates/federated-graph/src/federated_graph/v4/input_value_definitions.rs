@@ -1,8 +1,7 @@
 use crate::ViewNested;
 
 use super::{
-    ArgumentDefinitionId, Directives, FederatedGraph, FieldId, InputObjectFieldDefinitionId, StringId, Type,
-    TypeDefinitionId, Value,
+    Directives, FederatedGraph, FieldId, InputObjectFieldDefinitionId, StringId, Type, TypeDefinitionId, Value,
 };
 
 type InputObjectField<'a> = ViewNested<'a, InputObjectFieldDefinitionId, InputObjectFieldDefinitionRecord>;
@@ -36,11 +35,12 @@ impl FederatedGraph {
         let start = self
             .input_object_field_definitions
             .partition_point(|record| record.input_object_id < input_object_id);
+
         self.input_object_field_definitions[start..]
             .iter()
-            .take_while(|record| record.input_object_id == input_object_id)
+            .take_while(move |record| record.input_object_id == input_object_id)
             .enumerate()
-            .map(|(idx, record)| ViewNested {
+            .map(move |(idx, record)| ViewNested {
                 graph: self,
                 view: crate::View {
                     id: InputObjectFieldDefinitionId::from(start + idx),

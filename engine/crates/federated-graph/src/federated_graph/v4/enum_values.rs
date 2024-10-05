@@ -38,18 +38,7 @@ impl FederatedGraph {
     }
 
     pub fn iter_enum_values(&self, enum_id: TypeDefinitionId) -> impl Iterator<Item = EnumValue<'_>> + Clone {
-        let start = self.enum_values.partition_point(|value| value.enum_id < enum_id);
-        self.enum_values[start..]
-            .iter()
-            .enumerate()
-            .take_while(move |(_idx, value)| value.enum_id == enum_id)
-            .map(move |(idx, value)| ViewNested {
-                view: View {
-                    id: EnumValueId::from(start + idx),
-                    record: value,
-                },
-                graph: self,
-            })
+        self.iter_by_sort_key(enum_id, &self.enum_values, |value| value.enum_id)
     }
 
     pub fn push_enum_value(&mut self, enum_value: EnumValueRecord) -> EnumValueId {
