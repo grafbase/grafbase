@@ -10,8 +10,6 @@ mod view;
 
 use std::ops::Range;
 
-use input_value_definitions::{ArgumentDefinitionRecord, InputObjectFieldDefinitionRecord};
-
 pub use self::{
     enum_values::{EnumValue, EnumValueRecord},
     ids::{ArgumentDefinitionId, EnumValueId, InputObjectFieldDefinitionId, TypeDefinitionId},
@@ -366,7 +364,6 @@ id_newtypes! {
     AuthorizedDirectiveId + authorized_directives + AuthorizedDirective,
     FieldId + fields + Field,
     InputValueDefinitionId + input_value_definitions + InputValueDefinition,
-    InputObjectId + input_objects + InputObject,
     InterfaceId + interfaces + Interface,
     ObjectId + objects + Object,
     StringId + strings + String,

@@ -32,20 +32,8 @@ impl FederatedGraph {
         &self,
         input_object_id: TypeDefinitionId,
     ) -> impl Iterator<Item = InputObjectField<'_>> {
-        let start = self
-            .input_object_field_definitions
-            .partition_point(|record| record.input_object_id < input_object_id);
-
-        self.input_object_field_definitions[start..]
-            .iter()
-            .take_while(move |record| record.input_object_id == input_object_id)
-            .enumerate()
-            .map(move |(idx, record)| ViewNested {
-                graph: self,
-                view: crate::View {
-                    id: InputObjectFieldDefinitionId::from(start + idx),
-                    record,
-                },
-            })
+        self.iter_by_sort_key(input_object_id, &self.input_object_field_definitions, |record| {
+            record.input_object_id
+        })
     }
 }

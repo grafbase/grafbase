@@ -142,8 +142,8 @@ impl fmt::Display for Renderer<'_> {
             f.write_char('\n')?;
         }
 
-        for input_object in &graph.input_objects {
-            if has_inaccessible(&input_object.composed_directives, graph) {
+        for input_object in graph.iter_input_objects() {
+            if has_inaccessible(&input_object.directives, graph) {
                 continue;
             }
 
@@ -152,18 +152,18 @@ impl fmt::Display for Renderer<'_> {
             write_description(f, input_object.description, "", graph)?;
             f.write_str("input ")?;
             f.write_str(&graph[input_object.name])?;
-            write_public_directives(f, input_object.composed_directives, graph)?;
+            write_public_directives(f, input_object.directives, graph)?;
 
             f.write_char(' ')?;
 
             write_block(f, |f| {
-                for field in &graph[input_object.fields] {
-                    if has_inaccessible(&field.directives, graph) {
+                for field in graph.iter_input_object_fields(input_object.id()) {
+                    if has_inaccessible(&field.input_value_definition.directives, graph) {
                         continue;
                     }
 
-                    write_description(f, field.description, INDENT, graph)?;
-                    let field_name = &graph[field.name];
+                    write_description(f, field.input_value_definition.description, INDENT, graph)?;
+                    let field_name = &graph[field.input_value_definition, name];
                     f.write_str(INDENT)?;
                     f.write_str(field_name)?;
                     f.write_str(": ")?;
