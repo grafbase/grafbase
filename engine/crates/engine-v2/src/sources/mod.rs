@@ -44,6 +44,7 @@
 //! executor will have a root for each product in the response.
 use futures::FutureExt;
 use futures_util::stream::BoxStream;
+use runtime::hooks::Hooks;
 use schema::{ResolverDefinition, ResolverDefinitionVariant};
 use std::future::Future;
 
@@ -86,9 +87,9 @@ impl Resolver {
     }
 }
 
-pub struct ResolverResult {
+pub struct ResolverResult<OnSubgraphResponseHookOutput> {
     pub execution: ExecutionResult<SubgraphResponse>,
-    pub on_subgraph_response_hook_output: Option<Vec<u8>>,
+    pub on_subgraph_response_hook_output: Option<OnSubgraphResponseHookOutput>,
 }
 
 impl Resolver {
@@ -101,7 +102,7 @@ impl Resolver {
         // awaiting anything.
         root_response_objects: ResponseObjectsView<'_>,
         subgraph_response: SubgraphResponse,
-    ) -> impl Future<Output = ResolverResult> + Send + 'fut
+    ) -> impl Future<Output = ResolverResult<<R::Hooks as Hooks>::OnSubgraphResponseOutput>> + Send + 'fut
     where
         'ctx: 'fut,
     {

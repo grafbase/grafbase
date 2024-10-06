@@ -21,7 +21,7 @@ const APPLICATION_GRAPHQL_RESPONSE_JSON: http::HeaderValue =
 pub(crate) struct Http;
 
 impl Http {
-    pub(crate) fn error(format: ResponseFormat, response: Response) -> http::Response<Body> {
+    pub(crate) fn error<O: Send + 'static>(format: ResponseFormat, response: Response<O>) -> http::Response<Body> {
         match format {
             ResponseFormat::Complete(format) => Self::from_complete_response_with_telemetry(format, &response),
             ResponseFormat::Streaming(format) => {
@@ -37,10 +37,10 @@ impl Http {
         }
     }
 
-    pub(crate) fn single<C: Send + Sync + 'static>(
+    pub(crate) fn single<C: Send + Sync + 'static, O: Send + Sync + 'static>(
         format: CompleteResponseFormat,
         hooks_context: C,
-        mut response: Response,
+        mut response: Response<O>,
     ) -> http::Response<Body> {
         let mut http_response = Self::from_complete_response_with_telemetry(format, &response);
         http_response.extensions_mut().insert(HooksExtension::Single {
@@ -51,10 +51,10 @@ impl Http {
         http_response
     }
 
-    pub(crate) fn batch<C: Send + Sync + 'static>(
+    pub(crate) fn batch<C: Send + Sync + 'static, O: Send + Sync + 'static>(
         format: CompleteResponseFormat,
         hooks_context: C,
-        mut responses: Vec<Response>,
+        mut responses: Vec<Response<O>>,
     ) -> http::Response<Body> {
         let bytes = match serde_json::to_vec(&responses) {
             Ok(bytes) => OwnedOrSharedBytes::Owned(bytes),
@@ -118,37 +118,36 @@ impl Http {
         http_response
     }
 
-    pub(crate) async fn stream<C: Send + Sync + 'static>(
+    pub(crate) async fn stream<C: Send + Sync + 'static, O: Send + Sync + 'static>(
         format: StreamingResponseFormat,
         hooks_context: C,
-        stream: StreamResponse,
+        stream: StreamResponse<O>,
     ) -> http::Response<Body> {
-        let StreamResponse {
-            mut stream,
-            telemetry,
-            on_operation_response_outputs,
-        } = stream;
-        let Some(first_response) = stream.next().await else {
+        let StreamResponse { mut stream, telemetry } = stream;
+        let Some(mut first_response) = stream.next().await else {
             tracing::error!("Empty stream");
             return internal_server_error();
         };
+        let on_operation_response_output = first_response.take_on_operation_response_output();
 
         let mut http_response =
             Self::stream_from_first_response_and_rest_without_extensions(format, first_response, stream);
         http_response
             .extensions_mut()
             .insert(TelemetryExtension::Future(telemetry));
-        http_response.extensions_mut().insert(HooksExtension::Stream {
+        // TODO: Currently we only handle query/mutations which return the complete
+        // response at once and errors.
+        http_response.extensions_mut().insert(HooksExtension::Single {
             context: hooks_context,
-            on_operation_response_outputs,
+            on_operation_response_output,
         });
         http_response
     }
 
-    fn stream_from_first_response_and_rest_without_extensions(
+    fn stream_from_first_response_and_rest_without_extensions<O: Send + 'static>(
         format: StreamingResponseFormat,
-        response: Response,
-        rest: impl Stream<Item = Response> + 'static + Send,
+        response: Response<O>,
+        rest: impl Stream<Item = Response<O>> + 'static + Send,
     ) -> http::Response<Body> {
         let status = compute_status_code(ResponseFormat::Streaming(format), &response);
 
@@ -171,9 +170,9 @@ impl Http {
         http_response
     }
 
-    fn from_complete_response_with_telemetry(
+    fn from_complete_response_with_telemetry<O>(
         format: CompleteResponseFormat,
-        response: &Response,
+        response: &Response<O>,
     ) -> http::Response<Body> {
         let telemetry = TelemetryExtension::Ready(response.execution_telemetry());
         let bytes = match serde_json::to_vec(response) {
@@ -198,7 +197,7 @@ impl Http {
     }
 }
 
-fn compute_status_code(format: ResponseFormat, response: &Response) -> http::StatusCode {
+fn compute_status_code<O>(format: ResponseFormat, response: &Response<O>) -> http::StatusCode {
     match response {
         // GraphQL-over-HTTP spec:
         //   A server MAY forbid individual requests by a client to any endpoint for any reason, for example

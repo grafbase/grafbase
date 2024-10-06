@@ -1,5 +1,5 @@
 use http::HeaderMap;
-use runtime::hooks::{Hooks, SubgraphHooks};
+use runtime::hooks::Hooks;
 
 use crate::response::GraphqlError;
 
@@ -12,7 +12,6 @@ impl<'ctx, H: Hooks> super::RequestHooks<'ctx, H> {
         headers: HeaderMap,
     ) -> Result<HeaderMap, GraphqlError> {
         self.hooks
-            .subgraph()
             .on_subgraph_request(self.context, subgraph_name, method, url, headers)
             .await
             .map_err(Into::into)

@@ -1,9 +1,10 @@
 use ::runtime::operation_cache::OperationCache;
 use futures::FutureExt;
+use runtime::hooks::Hooks;
 use std::sync::Arc;
 
 use crate::{
-    engine::trusted_documents::OperationDocument,
+    engine::{errors, trusted_documents::OperationDocument},
     execution::{ExecutableOperation, PreExecutionContext},
     operation::{Operation, Variables},
     request::Request,
@@ -13,7 +14,10 @@ use crate::{
 
 impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
     #[tracing::instrument(skip_all)]
-    pub(super) async fn prepare_operation(&mut self, request: Request) -> Result<ExecutableOperation, Response> {
+    pub(super) async fn prepare_operation(
+        &mut self,
+        request: Request,
+    ) -> Result<ExecutableOperation, Response<<R::Hooks as Hooks>::OnOperationResponseOutput>> {
         let result = self.prepare_operation_inner(request).await;
         let duration = self.executed_operation_builder.track_prepare();
 
@@ -33,7 +37,10 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
         }
     }
 
-    async fn prepare_operation_inner(&mut self, request: Request) -> Result<ExecutableOperation, Response> {
+    async fn prepare_operation_inner(
+        &mut self,
+        request: Request,
+    ) -> Result<ExecutableOperation, Response<<R::Hooks as Hooks>::OnOperationResponseOutput>> {
         let result = {
             let OperationDocument { cache_key, load_fut } = match self.determine_operation_document(&request) {
                 Ok(doc) => doc,
@@ -84,9 +91,7 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
         // This error would be confusing for a websocket connection, but today mutation are always
         // allowed for it.
         if operation.ty.is_mutation() && !self.request_context.mutations_allowed {
-            return Err(Response::method_not_allowed(
-                "Mutation is not allowed with a safe method like GET",
-            ));
+            return Err(errors::response::mutation_not_allowed_with_safe_method());
         }
 
         let variables = Variables::build(self.schema(), &operation, request.variables)

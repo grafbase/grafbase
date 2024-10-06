@@ -116,7 +116,7 @@ pub trait MessageConvert {
     fn to_axum_message(self) -> Result<ws::Message, serde_json::Error>;
 }
 
-impl MessageConvert for Message {
+impl<R: engine_v2::Runtime> MessageConvert for Message<R> {
     fn to_axum_message(self) -> Result<ws::Message, serde_json::Error> {
         match self {
             Message::Close { code, reason } => Ok(ws::Message::Close(Some(ws::CloseFrame {

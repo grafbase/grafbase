@@ -245,12 +245,12 @@ impl ResponseBuilder {
         }
     }
 
-    pub fn build(
+    pub fn build<OnOperationResponseHookOutput>(
         self,
         schema: Arc<Schema>,
         operation: Arc<PreparedOperation>,
-        on_operation_response_output: Vec<u8>,
-    ) -> Response {
+        on_operation_response_output: OnOperationResponseHookOutput,
+    ) -> Response<OnOperationResponseHookOutput> {
         let error_code_counter = ErrorCodeCounter::from_errors(&self.errors);
         Response::Executed(ExecutedResponse {
             operation,

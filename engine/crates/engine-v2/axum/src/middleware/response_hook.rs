@@ -1,8 +1,8 @@
 use engine_v2::HooksExtension;
-use futures_util::{Future, StreamExt};
+use futures_util::Future;
 use http::{response, Request, Response};
 use http_body::Body;
-use runtime::hooks::{self, ExecutedHttpRequest, ResponseHooks};
+use runtime::hooks::{self, ExecutedHttpRequest};
 use std::{fmt::Display, pin::Pin};
 use tower::Layer;
 
@@ -71,7 +71,10 @@ where
                 Err(e) => return Err(e),
             };
 
-            let Some(extension) = response.extensions_mut().remove::<HooksExtension<Hooks::Context>>() else {
+            let Some(extension) = response
+                .extensions_mut()
+                .remove::<HooksExtension<Hooks::Context, Hooks::OnOperationResponseOutput>>()
+            else {
                 return Ok(response);
             };
 
@@ -84,19 +87,6 @@ where
                     context,
                     on_operation_response_outputs,
                 } => (context, on_operation_response_outputs),
-                HooksExtension::Stream {
-                    context,
-                    mut on_operation_response_outputs,
-                } => (
-                    context,
-                    // TODO: Currently we only handle query/mutations which return the complete
-                    // response at once and errors.
-                    on_operation_response_outputs
-                        .next()
-                        .await
-                        .map(|out| vec![out])
-                        .unwrap_or_default(),
-                ),
             };
 
             let request_info = ExecutedHttpRequest {
@@ -106,7 +96,7 @@ where
                 on_operation_response_outputs,
             };
 
-            let response = match hooks.responses().on_http_response(&context, request_info).await {
+            let response = match hooks.on_http_response(&context, request_info).await {
                 Ok(_) => response,
                 Err(e) => {
                     tracing::error!("error calling on-http-response hook: {e}");

@@ -54,18 +54,14 @@ impl Default for TelemetryExtension {
     }
 }
 
-pub enum HooksExtension<C> {
+pub enum HooksExtension<Context, OnOperationResponseOutput> {
     Single {
-        context: C,
-        on_operation_response_output: Option<Vec<u8>>,
+        context: Context,
+        on_operation_response_output: Option<OnOperationResponseOutput>,
     },
     Batch {
-        context: C,
-        on_operation_response_outputs: Vec<Vec<u8>>,
-    },
-    Stream {
-        context: C,
-        on_operation_response_outputs: futures::channel::mpsc::Receiver<Vec<u8>>,
+        context: Context,
+        on_operation_response_outputs: Vec<OnOperationResponseOutput>,
     },
 }
 
@@ -77,7 +73,7 @@ impl Clone for TelemetryExtension {
 }
 
 // Required to be part of the request.extensions
-impl<C> Clone for HooksExtension<C> {
+impl<C, O> Clone for HooksExtension<C, O> {
     fn clone(&self) -> Self {
         unreachable!("HooksExtensions is not meant to be cloned.")
     }

@@ -6,7 +6,9 @@ use grafbase_telemetry::{
 use runtime::{
     bytes::OwnedOrSharedBytes,
     fetch::FetchRequest,
-    hooks::{CacheStatus, ExecutedSubgraphRequest, ExecutedSubgraphRequestBuilder, SubgraphRequestExecutionKind},
+    hooks::{
+        CacheStatus, ExecutedSubgraphRequest, ExecutedSubgraphRequestBuilder, Hooks, SubgraphRequestExecutionKind,
+    },
 };
 use schema::GraphqlEndpoint;
 use std::ops::Deref;
@@ -107,7 +109,10 @@ impl<'ctx, R: Runtime> SubgraphContext<'ctx, R> {
         self.send_count.checked_sub(1)
     }
 
-    pub async fn finalize(self, subgraph_result: ExecutionResult<SubgraphResponse>) -> ResolverResult {
+    pub async fn finalize(
+        self,
+        subgraph_result: ExecutionResult<SubgraphResponse>,
+    ) -> ResolverResult<<R::Hooks as Hooks>::OnSubgraphResponseOutput> {
         let duration = self.start.elapsed();
 
         if let Some(status) = self.status {

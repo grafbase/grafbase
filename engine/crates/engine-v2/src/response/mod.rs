@@ -22,7 +22,7 @@ mod shape;
 mod value;
 mod write;
 
-pub(crate) enum Response {
+pub(crate) enum Response<OnOperationResponseHookOutput> {
     /// Before or while validating we have a well-formed GraphQL-over-HTTP request, we may
     /// reject the request with GraphQL errors.
     /// HTTP status code MUST NOT be 2xx according to the GraphQL-over-HTTP spec
@@ -35,18 +35,18 @@ pub(crate) enum Response {
     /// We have a well-formed GraphQL-over-HTTP request, and preparation succeeded.
     /// So `data` is present, even if null. That's considered to be a "partial response" and
     /// HTTP status code SHOULD be 2xx according to the GraphQL-over-HTTP spec for application/graphql-response+json
-    Executed(ExecutedResponse),
+    Executed(ExecutedResponse<OnOperationResponseHookOutput>),
 }
 
-pub(crate) struct ExecutedResponse {
+pub(crate) struct ExecutedResponse<OnOperationResponseHookOutput> {
     operation: Arc<PreparedOperation>,
     data: Option<ResponseData>,
     errors: Vec<GraphqlError>,
     error_code_counter: ErrorCodeCounter,
-    on_operation_response_output: Option<Vec<u8>>,
+    on_operation_response_output: Option<OnOperationResponseHookOutput>,
 }
 
-impl ExecutedResponse {
+impl<OnOperationResponseHookOutput> ExecutedResponse<OnOperationResponseHookOutput> {
     pub(crate) fn is_data_null(&self) -> bool {
         self.data.is_none()
     }
@@ -75,12 +75,6 @@ pub(crate) struct RequestErrorResponse {
     error_code_counter: ErrorCodeCounter,
 }
 
-impl From<RequestErrorResponse> for Response {
-    fn from(resp: RequestErrorResponse) -> Self {
-        Self::RequestError(resp)
-    }
-}
-
 pub(crate) struct RefusedRequestResponse {
     status: http::StatusCode,
     error: GraphqlError,
@@ -93,7 +87,7 @@ impl RefusedRequestResponse {
     }
 }
 
-impl Response {
+impl<OnOperationResponseHookOutput> Response<OnOperationResponseHookOutput> {
     pub(crate) fn refuse_request_with(status: http::StatusCode, error: impl Into<GraphqlError>) -> Self {
         let error: GraphqlError = error.into();
         let mut error_code_counter = ErrorCodeCounter::default();
@@ -125,7 +119,7 @@ impl Response {
 
     pub(crate) fn execution_error(
         operation: Arc<PreparedOperation>,
-        on_operation_response_output: Option<Vec<u8>>,
+        on_operation_response_output: Option<OnOperationResponseHookOutput>,
         errors: impl IntoIterator<Item: Into<GraphqlError>>,
     ) -> Self {
         let errors = errors.into_iter().map(Into::into).collect::<Vec<_>>();
@@ -140,7 +134,7 @@ impl Response {
         })
     }
 
-    pub(crate) fn take_on_operation_response_output(&mut self) -> Option<Vec<u8>> {
+    pub(crate) fn take_on_operation_response_output(&mut self) -> Option<OnOperationResponseHookOutput> {
         match self {
             Self::Executed(resp) => std::mem::take(&mut resp.on_operation_response_output),
             _ => None,
@@ -193,7 +187,7 @@ impl Response {
     }
 }
 
-impl std::fmt::Debug for Response {
+impl<OnOperationResponseHookOutput> std::fmt::Debug for Response<OnOperationResponseHookOutput> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Response").finish_non_exhaustive()
     }

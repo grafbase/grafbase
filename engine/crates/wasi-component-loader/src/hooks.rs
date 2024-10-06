@@ -1,6 +1,5 @@
 use std::any::Any;
 use std::future::Future;
-use std::sync::RwLock;
 
 use anyhow::anyhow;
 use wasmtime::{
@@ -105,7 +104,7 @@ fn initialize_store(config: &Config, engine: &Engine) -> crate::Result<Store<Was
     Ok(store)
 }
 
-type FunctionCache = RwLock<Vec<(&'static str, Option<Box<dyn Any + Send + Sync + 'static>>)>>;
+type FunctionCache = Vec<(&'static str, Option<Box<dyn Any + Send + Sync + 'static>>)>;
 
 pub struct ComponentInstance {
     /// The store associated with the WASI state.
@@ -402,19 +401,13 @@ impl ComponentInstance {
         I: ComponentNamedList + Lower + Send + Sync + 'static,
         O: ComponentNamedList + Lift + Send + Sync + 'static,
     {
-        if let Some((_, cached)) = self
-            .function_cache
-            .read()
-            .unwrap()
-            .iter()
-            .find(|(name, _)| *name == function_name)
-        {
+        if let Some((_, cached)) = self.function_cache.iter().find(|(name, _)| *name == function_name) {
             return cached.as_ref().and_then(|func| func.downcast_ref().copied());
         }
 
         let Some(interface_idx) = self.interface_id() else {
             tracing::debug!("could not find export for {} interface", self.interface_name);
-            self.function_cache.write().unwrap().push((function_name, None));
+            self.function_cache.push((function_name, None));
 
             return None;
         };
@@ -426,7 +419,7 @@ impl ComponentInstance {
                 self.interface_name
             );
 
-            self.function_cache.write().unwrap().push((function_name, None));
+            self.function_cache.push((function_name, None));
             return None;
         };
 
@@ -434,10 +427,7 @@ impl ComponentInstance {
             Ok(hook) => {
                 tracing::debug!("instantized the {function_name} hook Wasm function");
 
-                self.function_cache
-                    .write()
-                    .unwrap()
-                    .push((function_name, Some(Box::new(hook))));
+                self.function_cache.push((function_name, Some(Box::new(hook))));
 
                 Some(hook)
             }
