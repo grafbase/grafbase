@@ -136,4 +136,15 @@ impl authorization::Guest for Component {
 
         Err(error("Not implemented"))
     }
+
+    fn authorize_edge_post_execution(
+        _context: SharedContext,
+        _definition: EdgeDefinition,
+        _edges: Vec<(String, Vec<String>)>,
+        _metadata: String,
+    ) -> Vec<Result<(), authorization::Error>> {
+        init_logging();
+
+        vec![Err(error("Not implemented"))]
+    }
 }

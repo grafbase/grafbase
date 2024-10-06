@@ -34,15 +34,7 @@ nix develop
 First, start the subgraph in one terminal:
 
 ```bash
-cd subgraph
-cargo run --release
-```
-
-Then the authorization service:
-
-```sh
-cd auth-service
-cargo run --release
+docker compose up --force-recreate --build -d
 ```
 
 Next compile the WebAssembly hook functions into a Wasm component in another terminal:
@@ -54,10 +46,10 @@ cargo component build --release
 
 After a successful build, the Wasm component should be located at `target/wasm32-wasip1/release/demo_hooks.wasm`.
 
-Finally start the `grafbase-gateway`:
+The `grafbase-gateway` is already started in the docker compose file, restart it to take the hook changes into account:
 
 ```bash
-grafbase-gateway --schema federated-schema.graphql --config grafbase.toml
+docker compose restart gateway
 ```
 
 Now you are ready to send queries!
