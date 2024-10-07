@@ -1,4 +1,4 @@
-use super::{EnumValueId, FederatedGraph};
+use super::{EnumValueId, FederatedGraph, InputValueDefinitionId};
 use std::fmt;
 
 struct DebugFn<F>(F)
@@ -26,6 +26,17 @@ impl fmt::Debug for FederatedGraph {
                 &DebugFn(|f| {
                     f.debug_list()
                         .entries((0..self.enum_values.len()).map(|idx| self.at(EnumValueId::from(idx))))
+                        .finish()
+                }),
+            )
+            .field(
+                "input_value_definitions",
+                &DebugFn(|f| {
+                    f.debug_list()
+                        .entries(
+                            (0..self.input_value_definitions.len())
+                                .map(|idx| self.at(InputValueDefinitionId::from(idx))),
+                        )
                         .finish()
                 }),
             )

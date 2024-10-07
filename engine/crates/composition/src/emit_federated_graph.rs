@@ -19,6 +19,9 @@ use std::{
 
 /// This can't fail. All the relevant, correct information should already be in the CompositionIr.
 pub(crate) fn emit_federated_graph(mut ir: CompositionIr, subgraphs: &Subgraphs) -> federated::VersionedFederatedGraph {
+    ir.input_value_definitions
+        .sort_unstable_by_key(|input_value_definition| input_value_definition.location);
+
     let __schema = ir.strings.insert("__schema");
     let __type = ir.strings.insert("__type");
 

@@ -32,6 +32,27 @@ pub struct InputValueDefinitionRecord {
     pub default: Option<Value>,
 }
 
+impl std::fmt::Debug for InputValueDefinition<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("InputValueDefinition")
+            .field(
+                "location",
+                &match self.location {
+                    InputValueDefinitionLocation::Argument(field_id) => {
+                        let field_name = self.graph.at(field_id).then(|field| field.name).as_str();
+                        ("Field:", field_name)
+                    }
+                    InputValueDefinitionLocation::InputObject(input_object_id) => {
+                        let input_object_name = self.graph.at(input_object_id).then(|obj| obj.name).as_str();
+                        ("Input object:", input_object_name)
+                    }
+                },
+            )
+            .field("name", &self.then(|def| def.name).as_str())
+            .finish_non_exhaustive()
+    }
+}
+
 pub type InputValueDefinitionSet = Vec<InputValueDefinitionSetItem>;
 
 #[derive(serde::Serialize, serde::Deserialize, Clone, Debug, PartialEq, PartialOrd)]

@@ -77,7 +77,6 @@ pub(crate) fn merge_entity_interface_definitions<'a>(
 
     for field in interface_def.fields() {
         fields.entry(field.name().id).or_insert_with(|| {
-            let arguments = translate_arguments(field, ctx);
             let resolvable_in = if field.is_part_of_key() {
                 Vec::new()
             } else {
@@ -90,18 +89,21 @@ pub(crate) fn merge_entity_interface_definitions<'a>(
                 vec![]
             };
 
-            ir::FieldIr {
-                parent_definition: federated::Definition::Interface(interface_id),
-                field_name: field.name().id,
-                field_type: field.r#type().id,
-                resolvable_in,
-                provides: Vec::new(),
-                requires: Vec::new(),
-                composed_directives,
-                overrides: Vec::new(),
-                description: field.description().map(|description| ctx.insert_string(description.id)),
-                authorized_directives,
-            }
+            (
+                field,
+                ir::FieldIr {
+                    parent_definition: federated::Definition::Interface(interface_id),
+                    field_name: field.name().id,
+                    field_type: field.r#type().id,
+                    resolvable_in,
+                    provides: Vec::new(),
+                    requires: Vec::new(),
+                    composed_directives,
+                    overrides: Vec::new(),
+                    description: field.description().map(|description| ctx.insert_string(description.id)),
+                    authorized_directives,
+                },
+            )
         });
     }
 
@@ -176,26 +178,28 @@ pub(crate) fn merge_entity_interface_definitions<'a>(
                     vec![]
                 };
 
-                ir::FieldIr {
-                    parent_definition: federated::Definition::Interface(interface_id),
-                    field_name: field.name().id,
-                    field_type: field.r#type().id,
-                    arguments: translate_arguments(field, ctx),
-                    resolvable_in: vec![graphql_federated_graph::SubgraphId(definition.subgraph_id().idx())],
-                    provides,
-                    requires,
-                    composed_directives,
-                    overrides,
-                    description,
-                    authorized_directives,
-                }
+                (
+                    field,
+                    ir::FieldIr {
+                        parent_definition: federated::Definition::Interface(interface_id),
+                        field_name: field.name().id,
+                        field_type: field.r#type().id,
+                        resolvable_in: vec![graphql_federated_graph::SubgraphId(definition.subgraph_id().idx())],
+                        provides,
+                        requires,
+                        composed_directives,
+                        overrides,
+                        description,
+                        authorized_directives,
+                    },
+                )
             });
         }
     }
 
-    let field_ids: Vec<(StringId, _)> = fields
+    let field_ids: Vec<(StringId, _, _)> = fields
         .into_iter()
-        .map(|(name, field)| (name, ctx.insert_field(field)))
+        .map(|(name, (field, ir_field))| (name, field, ctx.insert_field(ir_field)))
         .collect();
 
     // Contribute the interface fields from the interface object definitions to the implementer of
@@ -221,34 +225,27 @@ pub(crate) fn merge_entity_interface_definitions<'a>(
         let fields_to_add = field_ids
             .iter()
             // Avoid adding fields that are already present on the object by virtue of the object implementing the interface.
-            .filter(|(name, _)| object.find_field(*name).is_none())
-            .map(|(_, field_id)| field_id);
+            .filter(|(name, _, _)| object.find_field(*name).is_none())
+            .map(|(_, field, field_id)| (field, field_id));
 
-        for field_id in fields_to_add {
+        for (field, field_id) in fields_to_add {
+            translate_arguments(*field, *field_id, ctx);
             ctx.insert_object_field_from_entity_interface(object_name, *field_id);
         }
     }
 }
 
-fn translate_arguments(field: subgraphs::FieldWalker<'_>, ctx: &mut ComposeContext<'_>) {
-    let mut ids: Option<federated::InputValueDefinitions> = None;
+fn translate_arguments(field: subgraphs::FieldWalker<'_>, location: federated::FieldId, ctx: &mut ComposeContext<'_>) {
     for arg in field.arguments() {
         let directives = collect_composed_directives(std::iter::once(arg.directives()), ctx);
         let name = ctx.insert_string(arg.name().id);
-        let id = ctx.insert_input_value_definition(ir::InputValueDefinitionIr {
+        ctx.insert_input_value_definition(ir::InputValueDefinitionIr {
+            location: location.into(),
             name,
             r#type: arg.r#type().id,
             directives,
             description: None,
             default: arg.default().cloned(),
         });
-
-        if let Some((_start, len)) = &mut ids {
-            *len += 1;
-        } else {
-            ids = Some((id, 1));
-        }
     }
-
-    ids.unwrap_or(federated::NO_INPUT_VALUE_DEFINITION)
 }
