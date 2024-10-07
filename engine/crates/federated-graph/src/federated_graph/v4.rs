@@ -1,6 +1,9 @@
 mod debug;
 mod enum_values;
+mod field;
 mod ids;
+mod input_value_definitions;
+mod iterators;
 mod objects;
 mod r#type;
 mod type_definitions;
@@ -10,16 +13,16 @@ use std::ops::Range;
 
 pub use self::{
     enum_values::{EnumValue, EnumValueRecord},
-    ids::{EnumValueId, TypeDefinitionId},
+    ids::*,
+    input_value_definitions::*,
     r#type::{Definition, Type},
     type_definitions::{TypeDefinition, TypeDefinitionKind, TypeDefinitionRecord},
     view::{View, ViewNested},
 };
 pub use super::v3::{
-    AuthorizedDirectiveId, DirectiveId, Directives, FieldId, Fields, InputObject, InputObjectId,
-    InputValueDefinitionId, InputValueDefinitionSet, InputValueDefinitionSetItem, InputValueDefinitions, InterfaceId,
-    ObjectId, Override, OverrideLabel, OverrideSource, RootOperationTypes, StringId, Subgraph, SubgraphId, Union,
-    UnionId, Wrapping, NO_DIRECTIVES, NO_FIELDS, NO_INPUT_VALUE_DEFINITION,
+    AuthorizedDirectiveId, DirectiveId, Directives, FieldId, Fields, InterfaceId, ObjectId, Override, OverrideLabel,
+    OverrideSource, RootOperationTypes, StringId, Subgraph, SubgraphId, Union, UnionId, Wrapping, NO_DIRECTIVES,
+    NO_FIELDS,
 };
 
 #[derive(Clone)]
@@ -32,11 +35,10 @@ pub struct FederatedGraph {
     pub fields: Vec<Field>,
 
     pub unions: Vec<Union>,
-    pub input_objects: Vec<InputObject>,
     pub enum_values: Vec<EnumValueRecord>,
 
     /// All [input value definitions](http://spec.graphql.org/October2021/#InputValueDefinition) in the federated graph. Concretely, these are arguments of output fields, and input object fields.
-    pub input_value_definitions: Vec<InputValueDefinition>,
+    pub input_value_definitions: Vec<InputValueDefinitionRecord>,
 
     /// All the strings in the federated graph, deduplicated.
     pub strings: Vec<String>,
@@ -182,8 +184,6 @@ pub struct Field {
     pub name: StringId,
     pub r#type: Type,
 
-    pub arguments: InputValueDefinitions,
-
     /// This is populated only of fields of entities. The Vec includes all subgraphs the field can
     /// be resolved in. For a regular field of an entity, it will be one subgraph, the subgraph
     /// where the entity field is defined. For a shareable field in an entity, this contains the
@@ -224,15 +224,6 @@ pub struct AuthorizedDirective {
     pub node: Option<SelectionSet>,
     pub arguments: Option<InputValueDefinitionSet>,
     pub metadata: Option<Value>,
-}
-
-#[derive(Clone, PartialEq)]
-pub struct InputValueDefinition {
-    pub name: StringId,
-    pub r#type: Type,
-    pub directives: Directives,
-    pub description: Option<StringId>,
-    pub default: Option<Value>,
 }
 
 /// Represents an `@provides` directive on a field in a subgraph.
@@ -308,7 +299,6 @@ impl Default for FederatedGraph {
                         wrapping: Default::default(),
                         definition: Definition::Scalar(0usize.into()),
                     },
-                    arguments: NO_INPUT_VALUE_DEFINITION,
                     resolvable_in: Vec::new(),
                     provides: Vec::new(),
                     requires: Vec::new(),
@@ -322,7 +312,6 @@ impl Default for FederatedGraph {
                         wrapping: Default::default(),
                         definition: Definition::Scalar(0usize.into()),
                     },
-                    arguments: NO_INPUT_VALUE_DEFINITION,
                     resolvable_in: Vec::new(),
                     provides: Vec::new(),
                     requires: Vec::new(),
@@ -332,7 +321,6 @@ impl Default for FederatedGraph {
                 },
             ],
             unions: Vec::new(),
-            input_objects: Vec::new(),
             enum_values: Vec::new(),
             input_value_definitions: Vec::new(),
             strings: ["Query", "__type", "__schema"]
@@ -371,8 +359,6 @@ macro_rules! id_newtypes {
 id_newtypes! {
     AuthorizedDirectiveId + authorized_directives + AuthorizedDirective,
     FieldId + fields + Field,
-    InputValueDefinitionId + input_value_definitions + InputValueDefinition,
-    InputObjectId + input_objects + InputObject,
     InterfaceId + interfaces + Interface,
     ObjectId + objects + Object,
     StringId + strings + String,
@@ -391,12 +377,12 @@ impl From<super::FederatedGraphV3> for FederatedGraph {
             enums,
             unions,
             scalars,
-            input_objects,
+            input_objects: _,
             enum_values,
-            input_value_definitions,
+            input_value_definitions: _,
             strings,
             directives,
-            authorized_directives,
+            authorized_directives: _,
             field_authorized_directives,
             object_authorized_directives,
             interface_authorized_directives,
@@ -514,7 +500,7 @@ impl From<super::FederatedGraphV3> for FederatedGraph {
                     |super::v3::Field {
                          name,
                          r#type,
-                         arguments,
+                         arguments: _,
                          resolvable_in,
                          provides,
                          requires,
@@ -530,7 +516,6 @@ impl From<super::FederatedGraphV3> for FederatedGraph {
                                 .unwrap_or_else(|| Definition::Scalar(TypeDefinitionId::from(0))),
                             wrapping: r#type.wrapping,
                         },
-                        arguments,
                         resolvable_in,
                         provides: provides
                             .into_iter()
@@ -553,32 +538,8 @@ impl From<super::FederatedGraphV3> for FederatedGraph {
                 )
                 .collect(),
             unions,
-            input_objects,
             enum_values: new_enum_values,
-            input_value_definitions: input_value_definitions
-                .into_iter()
-                .map(
-                    |super::v3::InputValueDefinition {
-                         name,
-                         r#type,
-                         directives,
-                         description,
-                         default,
-                     }: super::v3::InputValueDefinition| InputValueDefinition {
-                        name,
-                        r#type: Type {
-                            wrapping: r#type.wrapping,
-                            definition: definitions_map
-                                .get(&r#type.definition)
-                                .copied()
-                                .unwrap_or_else(|| Definition::Scalar(TypeDefinitionId::from(0))),
-                        },
-                        directives,
-                        description,
-                        default: default.map(From::from),
-                    },
-                )
-                .collect(),
+            input_value_definitions: Vec::new(),
             strings,
             directives: directives
                 .into_iter()
@@ -594,22 +555,7 @@ impl From<super::FederatedGraphV3> for FederatedGraph {
                     },
                 })
                 .collect(),
-            authorized_directives: authorized_directives
-                .into_iter()
-                .map(
-                    |super::v3::AuthorizedDirective {
-                         fields,
-                         node,
-                         arguments,
-                         metadata,
-                     }| AuthorizedDirective {
-                        fields: fields.map(field_set_to_selection_set),
-                        node: node.map(field_set_to_selection_set),
-                        arguments,
-                        metadata: metadata.map(From::from),
-                    },
-                )
-                .collect(),
+            authorized_directives: Vec::new(),
             field_authorized_directives,
             object_authorized_directives,
             interface_authorized_directives,
@@ -688,15 +634,6 @@ impl std::ops::Index<Directives> for FederatedGraph {
     fn index(&self, index: Directives) -> &Self::Output {
         let (DirectiveId(start), len) = index;
         &self.directives[start..(start + len)]
-    }
-}
-
-impl std::ops::Index<InputValueDefinitions> for FederatedGraph {
-    type Output = [InputValueDefinition];
-
-    fn index(&self, index: InputValueDefinitions) -> &Self::Output {
-        let (InputValueDefinitionId(start), len) = index;
-        &self.input_value_definitions[start..(start + len)]
     }
 }
 

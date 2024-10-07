@@ -44,6 +44,14 @@ impl TypeDefinitionKind {
     pub fn is_enum(&self) -> bool {
         matches!(self, Self::Enum)
     }
+
+    /// Returns `true` if the type definition kind is [`InputObject`].
+    ///
+    /// [`InputObject`]: TypeDefinitionKind::InputObject
+    #[must_use]
+    pub fn is_input_object(&self) -> bool {
+        matches!(self, Self::InputObject)
+    }
 }
 
 impl FederatedGraph {
@@ -51,5 +59,10 @@ impl FederatedGraph {
         let id = self.type_definitions.len().into();
         self.type_definitions.push(type_def);
         id
+    }
+
+    pub fn iter_input_objects(&self) -> impl Iterator<Item = TypeDefinition<'_>> {
+        self.iter_type_definitions()
+            .filter(|record| record.kind.is_input_object())
     }
 }

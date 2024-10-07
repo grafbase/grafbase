@@ -158,7 +158,9 @@ impl BuildContext {
             federated_graph::Definition::Interface(id) => DefinitionId::Interface(id.into()),
             federated_graph::Definition::Union(id) => DefinitionId::Union(id.into()),
             federated_graph::Definition::Enum(id) => DefinitionId::Enum(self.idmaps.convert_enum_id(id)),
-            federated_graph::Definition::InputObject(id) => DefinitionId::InputObject(id.into()),
+            federated_graph::Definition::InputObject(id) => {
+                DefinitionId::InputObject(self.idmaps.convert_input_object_id(id))
+            }
         }
     }
 }
@@ -178,7 +180,6 @@ macro_rules! from_id_newtypes {
 // EnumValueId from federated_graph can't be directly
 // converted, we sort them by their name.
 from_id_newtypes! {
-    federated_graph::InputObjectId => InputObjectDefinitionId,
     federated_graph::InterfaceId => InterfaceDefinitionId,
     federated_graph::ObjectId => ObjectDefinitionId,
     federated_graph::StringId => StringId,

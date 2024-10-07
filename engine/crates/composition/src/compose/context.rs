@@ -90,20 +90,23 @@ impl<'a> Context<'a> {
         &mut self,
         name: federated::StringId,
         description: Option<&str>,
-        composed_directives: federated::Directives,
-        fields: federated::InputValueDefinitions,
-    ) -> federated::InputObjectId {
+        directives: federated::Directives,
+    ) -> federated::TypeDefinitionId {
         let description = description.map(|description| self.ir.strings.insert(description));
-        let object = federated::InputObject {
+
+        let object = federated::TypeDefinitionRecord {
             name,
-            fields,
-            composed_directives,
+            directives,
             description,
+            kind: federated::TypeDefinitionKind::InputObject,
         };
-        let id = federated::InputObjectId(self.ir.input_objects.push_return_idx(object));
+
+        let id = federated::TypeDefinitionId::from(self.ir.type_definitions.push_return_idx(object));
+
         self.ir
             .definitions_by_name
             .insert(name, federated::Definition::InputObject(id));
+
         id
     }
 
@@ -111,7 +114,7 @@ impl<'a> Context<'a> {
         &mut self,
         definition: ir::InputValueDefinitionIr,
     ) -> federated::InputValueDefinitionId {
-        federated::InputValueDefinitionId(self.ir.input_value_definitions.push_return_idx(definition))
+        federated::InputValueDefinitionId::from(self.ir.input_value_definitions.push_return_idx(definition))
     }
 
     pub(crate) fn insert_interface(

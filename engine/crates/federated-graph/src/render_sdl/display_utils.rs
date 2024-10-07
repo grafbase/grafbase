@@ -244,7 +244,7 @@ impl Display for BareInputValueDefinitionSetDisplay<'_> {
         let mut selection = selection_set.iter().peekable();
 
         while let Some(field) = selection.next() {
-            let name = &graph[graph[field.input_value_definition].name];
+            let name = graph.at(field.input_value_definition).then(|def| def.name).as_str();
 
             f.write_str(name)?;
 

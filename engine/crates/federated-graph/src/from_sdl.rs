@@ -37,13 +37,10 @@ struct State<'a> {
     graph: FederatedGraph,
     objects: Vec<Object>,
     interfaces: Vec<Interface>,
-    fields: Vec<Field>,
 
     directives: Vec<Directive>,
-    input_value_definitions: Vec<InputValueDefinition>,
 
     unions: Vec<Union>,
-    input_objects: Vec<InputObject>,
 
     strings: IndexSet<String>,
     query_type_name: Option<String>,
@@ -52,7 +49,7 @@ struct State<'a> {
 
     definition_names: HashMap<&'a str, Definition>,
     selection_map: HashMap<(Definition, &'a str), FieldId>,
-    input_values_map: HashMap<(InputObjectId, &'a str), InputValueDefinitionId>,
+    input_values_map: HashMap<(TypeDefinitionId, &'a str), InputValueDefinitionId>,
     enum_values_map: HashMap<(TypeDefinitionId, &'a str), EnumValueId>,
 
     /// The key is the name of the graph in the join__Graph enum.
@@ -167,10 +164,8 @@ impl<'a> State<'a> {
             Definition::Interface(interface_id) => {
                 self.graph.view(self.interfaces[interface_id.0].type_definition_id).name
             }
-            Definition::Scalar(scalar_id) => self.graph[scalar_id].name,
-            Definition::Enum(enum_id) => self.graph[enum_id].name,
+            Definition::Scalar(id) | Definition::InputObject(id) | Definition::Enum(id) => self.graph[id].name,
             Definition::Union(union_id) => self.unions[union_id.0].name,
-            Definition::InputObject(input_object_id) => self.input_objects[input_object_id.0].name,
         };
         &self.strings[name.0]
     }
@@ -232,13 +227,12 @@ pub fn from_sdl(sdl: &str) -> Result<FederatedGraph, DomainError> {
         subgraphs: state.subgraphs,
         objects: state.objects,
         interfaces: state.interfaces,
-        fields: state.fields,
+        fields: std::mem::take(&mut state.graph.fields),
+        input_value_definitions: std::mem::take(&mut state.graph.input_value_definitions),
         enum_values: std::mem::take(&mut state.graph.enum_values),
         unions: state.unions,
-        input_objects: state.input_objects,
         strings: state.strings.into_iter().collect(),
         directives: state.directives,
-        input_value_definitions: state.input_value_definitions,
         authorized_directives: state.authorized_directives,
         field_authorized_directives: state.field_authorized_directives,
         object_authorized_directives: state.object_authorized_directives,
@@ -667,7 +661,7 @@ where
 
     for field in fields {
         let field_id = state.selection_map[&(parent_id, field.name())];
-        let field_type = state.fields[field_id.0].r#type.clone();
+        let field_type = state.graph[field_id].r#type.clone();
 
         let mut resolvable_in = Vec::new();
         let mut requires = Vec::new();
@@ -740,7 +734,7 @@ where
             resolvable_in = type_subgraph_ids.clone();
         }
 
-        let field = &mut state.fields[field_id.0];
+        let field = &mut state.graph[field_id];
         field.provides = provides;
         field.requires = requires;
         field.resolvable_in = resolvable_in;
@@ -756,7 +750,7 @@ fn ingest_authorized_directive<'a>(
 ) -> Result<(), DomainError> {
     for field in fields {
         let field_id = state.selection_map[&(parent_id, field.name())];
-        let field_type = state.fields[field_id.0].r#type.clone();
+        let field_type = state.graph[field_id].r#type.clone();
 
         for directive in field.directives() {
             if "authorized" != directive.name() {
@@ -904,15 +898,9 @@ fn ingest_definitions<'a>(document: &'a ast::TypeSystemDocument, state: &mut Sta
                         }
                     }
                     ast::TypeDefinition::InputObject(_) => {
-                        let input_object_id = InputObjectId(state.input_objects.push_return_idx(InputObject {
-                            name: type_name_id,
-                            fields: NO_INPUT_VALUE_DEFINITION,
-                            composed_directives,
-                            description,
-                        }));
                         state
                             .definition_names
-                            .insert(type_name, Definition::InputObject(input_object_id));
+                            .insert(type_name, Definition::InputObject(type_definition_id));
                     }
                 }
             }
@@ -967,29 +955,6 @@ fn ingest_field<'a>(
     let field_name = ast_field.name();
     let r#type = state.field_type(ast_field.ty())?;
     let name = state.insert_string(field_name);
-    let args_start = state.input_value_definitions.len();
-
-    for arg in ast_field.arguments() {
-        let description = arg
-            .description()
-            .map(|description| state.insert_string(description.raw_str()));
-        let composed_directives = collect_composed_directives(arg.directives(), state);
-        let name = state.insert_string(arg.name());
-        let r#type = state.field_type(arg.ty())?;
-        let default = arg
-            .default_value()
-            .map(|default| state.insert_value(default, r#type.definition.as_enum()));
-
-        state.input_value_definitions.push(InputValueDefinition {
-            name,
-            r#type,
-            directives: composed_directives,
-            description,
-            default,
-        });
-    }
-
-    let args_end = state.input_value_definitions.len();
 
     let resolvable_in = ast_field
         .directives()
@@ -1072,19 +1037,39 @@ fn ingest_field<'a>(
         .description()
         .map(|description| state.insert_string(description.raw_str()));
 
-    let field_id = FieldId(state.fields.push_return_idx(Field {
+    let field_id = state.graph.push_field(Field {
         name,
         r#type,
         resolvable_in,
         provides: Vec::new(),
         requires: Vec::new(),
-        arguments: (InputValueDefinitionId(args_start), args_end - args_start),
         composed_directives,
         overrides,
         description,
-    }));
+    });
 
     state.selection_map.insert((parent_id, field_name), field_id);
+
+    for arg in ast_field.arguments() {
+        let description = arg
+            .description()
+            .map(|description| state.insert_string(description.raw_str()));
+        let composed_directives = collect_composed_directives(arg.directives(), state);
+        let name = state.insert_string(arg.name());
+        let r#type = state.field_type(arg.ty())?;
+        let default = arg
+            .default_value()
+            .map(|default| state.insert_value(default, r#type.definition.as_enum()));
+
+        state.graph.push_input_value_definition(InputValueDefinitionRecord {
+            location: field_id.into(),
+            name,
+            r#type,
+            directives: composed_directives,
+            description,
+            default,
+        });
+    }
 
     Ok(field_id)
 }
@@ -1105,16 +1090,11 @@ fn ingest_union_members<'a>(
 }
 
 fn ingest_input_object<'a>(
-    input_object_id: InputObjectId,
+    input_object_id: TypeDefinitionId,
     input_object: &ast::InputObjectDefinition<'a>,
     state: &mut State<'a>,
 ) -> Result<(), DomainError> {
-    let start = state.input_value_definitions.len();
     for field in input_object.fields() {
-        state.input_values_map.insert(
-            (input_object_id, field.name()),
-            InputValueDefinitionId(state.input_value_definitions.len()),
-        );
         let name = state.insert_string(field.name());
         let r#type = state.field_type(field.ty())?;
         let composed_directives = collect_composed_directives(field.directives(), state);
@@ -1125,17 +1105,20 @@ fn ingest_input_object<'a>(
             .default_value()
             .map(|default| state.insert_value(default, r#type.definition.as_enum()));
 
-        state.input_value_definitions.push(InputValueDefinition {
+        let input_value_definition_id = state.graph.push_input_value_definition(InputValueDefinitionRecord {
+            location: InputValueDefinitionLocation::InputObject(input_object_id),
             name,
             r#type,
             directives: composed_directives,
             description,
             default,
         });
-    }
-    let end = state.input_value_definitions.len();
 
-    state.input_objects[input_object_id.0].fields = (InputValueDefinitionId(start), end - start);
+        state
+            .input_values_map
+            .insert((input_object_id, field.name()), input_value_definition_id);
+    }
+
     Ok(())
 }
 
@@ -1159,16 +1142,15 @@ fn ingest_object_fields<'a>(
             .expect("root operation types to be defined at this point")
             .query
     {
-        let new_start = state.fields.len();
+        let new_start = state.graph.fields.len();
 
         for name in ["__schema", "__type"].map(|name| state.insert_string(name)) {
-            state.fields.push(Field {
+            state.graph.fields.push(Field {
                 name,
                 r#type: Type {
                     wrapping: Wrapping::new(false),
                     definition: Definition::Object(object_id),
                 },
-                arguments: NO_INPUT_VALUE_DEFINITION,
                 resolvable_in: Vec::new(),
                 provides: Vec::new(),
                 requires: Vec::new(),
@@ -1242,28 +1224,38 @@ fn attach_selection_field(
             ast_field.name(),
         ))
     })?;
-    let field_ty = state.fields[field.0].r#type.definition;
+    let field_ty = state.graph.at(field).r#type.definition;
     let arguments = ast_field
         .arguments()
-        .map(|argument| {
-            let name = state.insert_string(argument.name());
-            let (start, len) = state.fields[field.0].arguments;
-            let arguments = &state.input_value_definitions[start.0..start.0 + len];
-            let argument_id = arguments
-                .iter()
-                .position(|arg| arg.name == name)
-                .map(|idx| InputValueDefinitionId(start.0 + idx))
-                .expect("unknown argument");
+        .map(|ast_argument| {
+            let name = state.insert_string(ast_argument.name());
 
-            let argument_type = state.input_value_definitions[argument_id.0].r#type.definition.as_enum();
+            let Some(argument) = state.graph.iter_field_arguments(field).find(|arg| arg.name == name) else {
+                return Err(DomainError(format!(
+                    "Unknown argument: {}.{}.{}",
+                    state.get_definition_name(target),
+                    state
+                        .strings
+                        .get_index(state.graph.at(field).name.0)
+                        .map(|s| s.as_str())
+                        .unwrap_or("<unknown>"),
+                    state
+                        .strings
+                        .get_index(name.0)
+                        .map(|s| s.as_str())
+                        .unwrap_or("<unknown>"),
+                )));
+            };
 
-            let converted_value = executable_value_to_type_system_value(argument.value());
+            let argument_id = argument.id();
 
+            let argument_type = argument.r#type.definition.as_enum();
+            let converted_value = executable_value_to_type_system_value(ast_argument.value());
             let value = state.insert_value(converted_value, argument_type);
 
-            (argument_id, value)
+            Ok((argument_id, value))
         })
-        .collect();
+        .collect::<Result<_, DomainError>>()?;
 
     Ok(Selection::Field {
         field,
@@ -1313,30 +1305,30 @@ fn attach_input_value_set_to_field_arguments_rec<'a>(
     field_id: FieldId,
     state: &mut State<'_>,
 ) -> Result<InputValueDefinitionSet, DomainError> {
-    let (start, len) = state.fields[field_id.0].arguments;
     selection_set
         .map(|selection| {
             let executable_ast::Selection::Field(ast_arg) = selection else {
                 return Err(DomainError("Unsupported fragment spread in selection set".to_owned()));
             };
 
-            let arguments = &state.input_value_definitions[start.0..start.0 + len];
-            let Some((i, arg)) = arguments
-                .iter()
-                .enumerate()
-                .find(|(_, arg)| state.strings.get_index(arg.name.0).unwrap() == ast_arg.name())
+            let Some(argument) = state
+                .graph
+                .iter_field_arguments(field_id)
+                .find(|arg| state.strings.get_index(arg.name.0).unwrap() == ast_arg.name())
             else {
+                let field_name_id = state.graph.at(field_id).name;
                 return Err(DomainError(format!(
                     "Argument '{}' does not exist for the field '{}.{}'",
                     ast_arg.name(),
                     state.get_definition_name(parent),
-                    state.strings.get_index(state.fields[field_id.0].name.0).unwrap(),
+                    state.strings.get_index(field_name_id.0).unwrap(),
                 )));
             };
 
+            let argument_id = argument.id();
             let mut ast_subselection = ast_arg.selection_set().peekable();
 
-            let subselection = if let Definition::InputObject(input_object_id) = arg.r#type.definition {
+            let subselection = if let Definition::InputObject(input_object_id) = argument.r#type.definition {
                 if ast_subselection.peek().is_none() {
                     return Err(DomainError("InputObject must have a subselection".to_owned()));
                 }
@@ -1348,7 +1340,7 @@ fn attach_input_value_set_to_field_arguments_rec<'a>(
             };
 
             Ok(InputValueDefinitionSetItem {
-                input_value_definition: InputValueDefinitionId(start.0 + i),
+                input_value_definition: argument_id,
                 subselection,
             })
         })
@@ -1357,7 +1349,7 @@ fn attach_input_value_set_to_field_arguments_rec<'a>(
 
 fn attach_input_value_set_rec<'a>(
     selection_set: impl Iterator<Item = executable_ast::Selection<'a>>,
-    input_object_id: InputObjectId,
+    input_object_id: TypeDefinitionId,
     state: &mut State<'_>,
 ) -> Result<InputValueDefinitionSet, DomainError> {
     selection_set
@@ -1365,7 +1357,7 @@ fn attach_input_value_set_rec<'a>(
             let executable_ast::Selection::Field(ast_field) = selection else {
                 return Err(DomainError("Unsupported fragment spread in selection set".to_owned()));
             };
-            let id = *state
+            let input_value_definition_id = *state
                 .input_values_map
                 .get(&(input_object_id, ast_field.name()))
                 .ok_or_else(|| {
@@ -1379,7 +1371,7 @@ fn attach_input_value_set_rec<'a>(
             let mut ast_subselection = ast_field.selection_set().peekable();
 
             let subselection = if let Definition::InputObject(input_object_id) =
-                state.input_value_definitions[id.0].r#type.definition
+                state.graph.at(input_value_definition_id).r#type.definition
             {
                 if ast_subselection.peek().is_none() {
                     return Err(DomainError("InputObject must have a subselection".to_owned()));
@@ -1392,7 +1384,7 @@ fn attach_input_value_set_rec<'a>(
             };
 
             Ok(InputValueDefinitionSetItem {
-                input_value_definition: id,
+                input_value_definition: input_value_definition_id,
                 subselection,
             })
         })

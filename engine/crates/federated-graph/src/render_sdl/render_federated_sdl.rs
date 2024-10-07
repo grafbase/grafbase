@@ -241,7 +241,7 @@ pub fn render_federated_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error
         sdl.push_str("\n\n");
     }
 
-    for input_object in &graph.input_objects {
+    for input_object in graph.iter_input_objects() {
         let name = &graph[input_object.name];
 
         if let Some(description) = input_object.description {
@@ -250,11 +250,11 @@ pub fn render_federated_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error
 
         write!(sdl, "input {name}")?;
 
-        write_composed_directives(input_object.composed_directives, graph, &mut sdl)?;
+        write_composed_directives(input_object.directives, graph, &mut sdl)?;
 
         sdl.push_str(" {\n");
 
-        for field in &graph[input_object.fields] {
+        for field in graph.iter_input_object_fields(input_object.id()) {
             write_input_field(field, graph, &mut sdl)?;
         }
 
@@ -343,7 +343,7 @@ fn write_subgraphs_enum(graph: &FederatedGraph, sdl: &mut String) -> fmt::Result
     Ok(())
 }
 
-fn write_input_field(field: &InputValueDefinition, graph: &FederatedGraph, sdl: &mut String) -> fmt::Result {
+fn write_input_field(field: InputValueDefinition<'_>, graph: &FederatedGraph, sdl: &mut String) -> fmt::Result {
     let field_name = &graph[field.name];
     let field_type = render_field_type(&field.r#type, graph);
 
@@ -366,7 +366,7 @@ fn write_input_field(field: &InputValueDefinition, graph: &FederatedGraph, sdl: 
 fn write_field(field_id: FieldId, field: &Field, graph: &FederatedGraph, sdl: &mut String) -> fmt::Result {
     let field_name = &graph[field.name];
     let field_type = render_field_type(&field.r#type, graph);
-    let args = render_field_arguments(&graph[field.arguments], graph);
+    let args = render_field_arguments(graph.iter_field_arguments(field_id), graph);
 
     if let Some(description) = field.description {
         write!(sdl, "{}", Description(&graph[description], INDENT))?;
@@ -498,41 +498,45 @@ fn write_authorized(field_id: FieldId, graph: &FederatedGraph, sdl: &mut String)
     Ok(())
 }
 
-fn render_field_arguments(args: &[InputValueDefinition], graph: &FederatedGraph) -> String {
-    if args.is_empty() {
-        String::new()
-    } else {
-        let mut inner = args
-            .iter()
-            .map(|arg| {
-                let name = &graph[arg.name];
-                let r#type = render_field_type(&arg.r#type, graph);
-                let directives = arg.directives;
-                let default = arg.default.as_ref();
-                (name, r#type, directives, default)
-            })
-            .peekable();
-        let mut out = String::from('(');
+fn render_field_arguments<'a>(
+    args: impl Iterator<Item = InputValueDefinition<'a>>,
+    graph: &'a FederatedGraph,
+) -> String {
+    let mut args = args
+        .map(|arg| {
+            let name = &graph[arg.name];
+            let r#type = render_field_type(&arg.r#type, graph);
+            let directives = arg.directives;
+            let default = arg.default.as_ref();
+            (name, r#type, directives, default)
+        })
+        .peekable();
 
-        while let Some((name, ty, directives, default)) = inner.next() {
-            out.push_str(name);
-            out.push_str(": ");
-            out.push_str(&ty);
-
-            if let Some(default) = default {
-                out.push_str(" = ");
-                write!(out, "{}", ValueDisplay(default, graph)).unwrap();
-            }
-
-            write_composed_directives(directives, graph, &mut out).unwrap();
-
-            if inner.peek().is_some() {
-                out.push_str(", ");
-            }
-        }
-        out.push(')');
-        out
+    if args.peek().is_none() {
+        return String::new();
     }
+
+    let mut out = String::from('(');
+
+    while let Some((name, ty, directives, default)) = args.next() {
+        out.push_str(name);
+        out.push_str(": ");
+        out.push_str(&ty);
+
+        if let Some(default) = default {
+            out.push_str(" = ");
+            write!(out, "{}", ValueDisplay(default, graph)).unwrap();
+        }
+
+        write_composed_directives(directives, graph, &mut out).unwrap();
+
+        if args.peek().is_some() {
+            out.push_str(", ");
+        }
+    }
+
+    out.push(')');
+    out
 }
 
 /// Render an @join__field directive.

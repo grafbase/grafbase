@@ -36,6 +36,7 @@ macro_rules! id_newtypes {
 }
 
 id_newtypes! {
-    type_definitions[TypeDefinitionId] -> TypeDefinitionRecord,
     enum_values[EnumValueId] -> EnumValueRecord,
+    input_value_definitions[InputValueDefinitionId] -> InputValueDefinitionRecord,
+    type_definitions[TypeDefinitionId] -> TypeDefinitionRecord,
 }
