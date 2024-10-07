@@ -1,7 +1,7 @@
 use engine_v2_config::VersionedConfig;
 use federated_graph::FederatedGraph;
 use gateway_config::{Config, RetryConfig};
-use parser_sdl::federation::{header::SubgraphHeaderRule, FederatedGraphConfig};
+use parser_sdl::federation::{header::SubgraphHeaderRule, BatchingConfig, FederatedGraphConfig};
 
 use crate::build_with_sdl_config;
 
@@ -29,6 +29,11 @@ pub fn build_with_toml_config(config: &Config, graph: FederatedGraph) -> Version
     graph_config.rate_limit = config.gateway.rate_limit.clone().map(Into::into);
     graph_config.entity_caching = config.entity_caching.clone().into();
     graph_config.retry = retry_config(Some(config.gateway.retry));
+
+    graph_config.batching = BatchingConfig {
+        enabled: config.gateway.batching.enabled,
+        limit: config.gateway.batching.limit.map(|limit| limit as usize),
+    };
 
     graph_config.subgraphs = config
         .subgraphs

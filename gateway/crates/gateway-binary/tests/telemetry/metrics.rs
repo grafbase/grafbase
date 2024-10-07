@@ -56,6 +56,9 @@ where
 {
     let service_name = format!("service_{}", ulid::Ulid::new());
     let config = &formatdoc! {r#"
+        [gateway.batching]
+        enabled = true
+
         [graph]
         introspection = true
 

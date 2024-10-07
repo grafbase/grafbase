@@ -9,7 +9,7 @@ use config::{
     SubgraphConfig,
 };
 use engine_v2_config::{
-    latest::{self as config},
+    latest::{self as config, BatchingConfig},
     VersionedConfig,
 };
 use federated_graph::{FederatedGraph, FieldId, ObjectId, SubgraphId};
@@ -51,6 +51,10 @@ pub fn build_with_sdl_config(config: &FederatedGraphConfig, federated_graph: Fed
             retry_percent: config.retry_percent,
             retry_mutations: config.retry_mutations,
         }),
+        batching: BatchingConfig {
+            enabled: config.batching.enabled,
+            limit: config.batching.limit,
+        },
     })
 }
 

@@ -90,6 +90,15 @@ impl Default for Config {
 
 #[derive(Clone, Debug, Default, serde::Deserialize)]
 #[serde(default, deny_unknown_fields)]
+pub struct BatchingConfig {
+    /// If batching should be enabled.
+    pub enabled: bool,
+    /// How many queries can a batch have.
+    pub limit: Option<u8>,
+}
+
+#[derive(Clone, Debug, Default, serde::Deserialize)]
+#[serde(default, deny_unknown_fields)]
 pub struct GatewayConfig {
     /// Timeout for gateway requests.
     #[serde(deserialize_with = "duration_str::deserialize_option_duration")]
@@ -103,6 +112,8 @@ pub struct GatewayConfig {
     pub retry: RetryConfig,
     /// Access logs configuration
     pub access_logs: AccessLogsConfig,
+    /// Query batching configuration
+    pub batching: BatchingConfig,
 }
 
 #[derive(Debug, Default, serde::Deserialize, Clone, Copy)]
@@ -1457,7 +1468,7 @@ mod tests {
 
         let config: Config = toml::from_str(input).unwrap();
 
-        insta::assert_debug_snapshot!(&config.gateway, @r###"
+        insta::assert_debug_snapshot!(&config.gateway, @r#"
         GatewayConfig {
             timeout: Some(
                 1s,
@@ -1479,8 +1490,12 @@ mod tests {
                 rotate: Never,
                 mode: Blocking,
             },
+            batching: BatchingConfig {
+                enabled: false,
+                limit: None,
+            },
         }
-        "###);
+        "#);
     }
 
     #[test]
@@ -1935,5 +1950,59 @@ mod tests {
             mode: Blocking,
         }
         "###);
+    }
+
+    #[test]
+    fn batching_default() {
+        let input = indoc! {r#"
+        "#};
+
+        let config: Config = toml::from_str(input).unwrap();
+
+        insta::assert_debug_snapshot!(&config.gateway.batching, @r#"
+        BatchingConfig {
+            enabled: false,
+            limit: None,
+        }
+        "#);
+    }
+
+    #[test]
+    fn batching_with_limit() {
+        let input = indoc! {r#"
+            [gateway.batching]
+            enabled = true
+            limit = 5
+        "#};
+
+        let config: Config = toml::from_str(input).unwrap();
+
+        insta::assert_debug_snapshot!(&config.gateway.batching, @r#"
+        BatchingConfig {
+            enabled: true,
+            limit: Some(
+                5,
+            ),
+        }
+        "#);
+    }
+
+    #[test]
+    fn batching_with_too_high_limit() {
+        let input = indoc! {r#"
+            [gateway.batching]
+            enabled = true
+            limit = 1000
+        "#};
+
+        let error = toml::from_str::<Config>(input).unwrap_err();
+
+        insta::assert_snapshot!(&error.to_string(), @r#"
+        TOML parse error at line 3, column 9
+          |
+        3 | limit = 1000
+          |         ^^^^
+        invalid value: integer `1000`, expected u8
+        "#);
     }
 }
