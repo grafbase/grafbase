@@ -17,6 +17,7 @@ use petgraph::{
     data::Build,
     dot::{Config, Dot},
     graph::{EdgeIndex, NodeIndex},
+    matrix_graph::NodeIndex,
     visit::{Bfs, EdgeRef, IntoEdgeReferences, IntoEdgesDirected, IntoNodeReferences, NodeRef},
     Directed, Direction,
 };
@@ -52,19 +53,31 @@ pub type Cost = u16;
 enum Node<F> {
     Root,
     Field(F),
-    Resolver(ResolverDefinitionId),
+    Resolver(Resolver),
     FieldResolver(FieldResolver),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+struct Resolver {
+    parent_resolver_node: NodeIndex,
+    definition_id: ResolverDefinitionId,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 struct FieldResolver {
+    parent_resolver_node: NodeIndex,
     resolver_definition_id: ResolverDefinitionId,
     field_definition_id: FieldDefinitionId,
 }
 
 impl FieldResolver {
-    fn new(resolver_definition_id: ResolverDefinitionId, field_definition: FieldDefinition<'_>) -> Self {
+    fn new(
+        parent_resolver_node: NodeIndex,
+        resolver_definition_id: ResolverDefinitionId,
+        field_definition: FieldDefinition<'_>,
+    ) -> Self {
         FieldResolver {
+            parent_resolver_node,
             resolver_definition_id,
             field_definition_id: field_definition.id(),
         }
@@ -74,6 +87,7 @@ impl FieldResolver {
         let resolver_definition = self.resolver_definition_id.walk(schema);
         if resolver_definition.can_provide(field_definition_id) {
             Some(FieldResolver {
+                parent_resolver_node: self.parent_resolver_node,
                 resolver_definition_id: self.resolver_definition_id,
                 field_definition_id,
             })
@@ -84,9 +98,9 @@ impl FieldResolver {
 }
 
 impl<F> Node<F> {
-    fn as_resolver(&self) -> Option<ResolverDefinitionId> {
+    fn as_resolver(&self) -> Option<&Resolver> {
         match self {
-            Node::Resolver(id) => Some(*id),
+            Node::Resolver(r) => Some(r),
             _ => None,
         }
     }
@@ -166,6 +180,7 @@ struct Requirement<'ctx> {
     required_field_set: RequiredFieldSet<'ctx>,
 }
 
+#[derive(Clone)]
 struct ParentResolver {
     field_resolver_node: NodeIndex,
     subgraph_id: SubgraphId,
@@ -173,7 +188,7 @@ struct ParentResolver {
 
 struct Field<Id> {
     parent_field_node: NodeIndex,
-    parent_resolver: Option<ParentResolver>,
+    parent_field_resolver: Option<ParentResolver>,
     field_id: Id,
 }
 
@@ -231,7 +246,7 @@ impl<'ctx, Op: Operation> Plan<'ctx, Op> {
             .root_selection_set()
             .map(|field_id| Field {
                 parent_field_node: self.root,
-                parent_resolver: None,
+                parent_field_resolver: None,
                 field_id,
             })
             .collect();
@@ -253,7 +268,7 @@ impl<'ctx, Op: Operation> Plan<'ctx, Op> {
         &mut self,
         Field {
             parent_field_node,
-            parent_resolver,
+            parent_field_resolver,
             field_id,
         }: Field<Op::FieldId>,
     ) {
@@ -282,43 +297,61 @@ impl<'ctx, Op: Operation> Plan<'ctx, Op> {
         }
         self.graph.add_edge(parent_field_node, field_node, Edge::Field);
 
-        if let Some((parent_resolver_node, resolver)) = parent_resolver.as_ref().and_then(
-            |ParentResolver {
-                 field_resolver_node, ..
-             }| {
-                self.graph[*field_resolver_node]
-                    .as_field_resolver()
-                    .unwrap()
-                    .child(self.schema, field_definition.id())
-                    .map(|r| (*field_resolver_node, r))
-            },
-        ) {
-            let resolver_definition = resolver.resolver_definition_id.walk(self.schema);
-            let field_resolver_node = self.graph.add_node(Node::FieldResolver(resolver));
+        if let Some((parent_field_resolver_node, field_resolver, subgraph_id)) =
+            parent_field_resolver.as_ref().and_then(
+                |ParentResolver {
+                     field_resolver_node,
+                     subgraph_id,
+                 }| {
+                    self.graph[*field_resolver_node]
+                        .as_field_resolver()
+                        .unwrap()
+                        .child(self.schema, field_definition.id())
+                        .map(|child| (*field_resolver_node, child, *subgraph_id))
+                },
+            )
+        {
+            let field_resolver_node = self.graph.add_node(Node::FieldResolver(field_resolver));
             self.graph.add_edge(field_resolver_node, field_node, Edge::Resolves);
-            self.graph
-                .add_edge(parent_resolver_node, field_resolver_node, Edge::CanResolveField(0));
+            self.graph.add_edge(
+                parent_field_resolver_node,
+                field_resolver_node,
+                Edge::CanResolveField(0),
+            );
             for nested_field_id in self.operation.subselection(field_id) {
                 self.fields_stack.push(Field {
                     parent_field_node: field_node,
-                    parent_resolver: Some(ParentResolver {
+                    parent_field_resolver: Some(ParentResolver {
                         field_resolver_node,
-                        subgraph_id: resolver_definition.subgraph_id(),
+                        subgraph_id,
                     }),
                     field_id: nested_field_id,
                 })
             }
         }
 
-        let parent_node = parent_resolver
+        let parent_resolver_node = parent_field_resolver
+            .as_ref()
+            .and_then(
+                |ParentResolver {
+                     field_resolver_node, ..
+                 }| self.graph[*field_resolver_node].as_field_resolver(),
+            )
+            .map(
+                |FieldResolver {
+                     parent_resolver_node, ..
+                 }| *parent_resolver_node,
+            )
+            .unwrap_or(self.root);
+        let parent_field_resolver_node = parent_field_resolver
             .as_ref()
             .map(
                 |ParentResolver {
                      field_resolver_node, ..
                  }| *field_resolver_node,
             )
-            .unwrap_or(parent_field_node);
-        let parent_subgraph_id = parent_resolver
+            .unwrap_or(self.root);
+        let parent_subgraph_id = parent_field_resolver
             .as_ref()
             .map(|ParentResolver { subgraph_id, .. }| *subgraph_id);
         for resolver_definition in field_definition.resolvers() {
@@ -326,7 +359,7 @@ impl<'ctx, Op: Operation> Plan<'ctx, Op> {
             if Some(resolver_definition.subgraph_id()) == parent_subgraph_id {
                 continue;
             };
-            let resolver = FieldResolver::new(resolver_definition.id(), field_definition);
+            let resolver = FieldResolver::new(parent_resolver_node, resolver_definition.id(), field_definition);
             let field_resolver_node = self.graph.add_node(Node::FieldResolver(resolver.clone()));
 
             if let Some(required_field_set) = field_definition.requires_for_subgraph(resolver_definition.subgraph_id())
@@ -338,20 +371,23 @@ impl<'ctx, Op: Operation> Plan<'ctx, Op> {
                 })
             }
 
-            let resolver_node = if let Some(edge) =
-                self.graph
-                    .edges_directed(parent_node, Direction::Outgoing)
-                    .find(|edge| {
-                        self.graph[edge.target()]
-                            .as_resolver()
-                            .is_some_and(|id| id == resolver_definition.id())
-                    }) {
+            let resolver_node = if let Some(edge) = self
+                .graph
+                .edges_directed(parent_field_resolver_node, Direction::Outgoing)
+                .find(|edge| {
+                    self.graph[edge.target()]
+                        .as_resolver()
+                        .is_some_and(|res| res.definition_id == resolver_definition.id())
+                }) {
                 edge.target()
             } else {
-                let node = self.graph.add_node(Node::Resolver(resolver_definition.id()));
+                let node = self.graph.add_node(Node::Resolver(Resolver {
+                    definition_id: resolver_definition.id(),
+                    parent_resolver_node,
+                }));
                 // We don't know the real cost yet, but it's at least one as it'll need extra
                 // work.
-                self.graph.add_edge(parent_node, node, Edge::Resolver(1));
+                self.graph.add_edge(parent_field_resolver_node, node, Edge::Resolver(1));
                 if let Some(required_field_set) = resolver_definition.required_field_set() {
                     self.requirements_stack.push(Requirement {
                         parent_field_node,
@@ -371,7 +407,7 @@ impl<'ctx, Op: Operation> Plan<'ctx, Op> {
             for nested_field_id in self.operation.subselection(field_id) {
                 self.fields_stack.push(Field {
                     parent_field_node: field_node,
-                    parent_resolver: Some(ParentResolver {
+                    parent_field_resolver: Some(ParentResolver {
                         field_resolver_node,
                         subgraph_id: resolver_definition.subgraph_id(),
                     }),
@@ -421,16 +457,13 @@ impl<'ctx, Op: Operation> Plan<'ctx, Op> {
                                 None
                             }
                         })
-                        .map(|(field_resolver_node, field_resolver)| {
-                            tracing::debug!("creating field");
-                            Field {
-                                parent_field_node,
-                                parent_resolver: Some(ParentResolver {
-                                    field_resolver_node,
-                                    subgraph_id: field_resolver.resolver_definition_id.walk(self.schema).subgraph_id(),
-                                }),
-                                field_id,
-                            }
+                        .map(|(field_resolver_node, field_resolver)| Field {
+                            parent_field_node,
+                            parent_field_resolver: Some(ParentResolver {
+                                field_resolver_node,
+                                subgraph_id: field_resolver.resolver_definition_id.walk(self.schema).subgraph_id(),
+                            }),
+                            field_id,
                         }),
                 );
                 self.field_nodes.push(field_node);
@@ -509,59 +542,105 @@ impl<'ctx, Op: Operation> Plan<'ctx, Op> {
     ///     so max(field) and each of those is min(plan)
     /// During iteration will change resolver weight so need a quick resolver -> impacted resolvers
     fn estimate_cost(&mut self) {
-        let mut updated_fields = self
+        let mut nodes = self
             .graph
             .edge_references()
             .filter_map(|edge| match edge.weight() {
-                Edge::Requires => Some(edge.target()),
+                Edge::Requires => Some(edge.source()),
                 _ => None,
             })
+            .collect::<HashSet<_>>()
+            .into_iter()
             .collect::<Vec<_>>();
-        while let Some(field) = updated_fields.pop() {}
-        struct Case {
-            resolution_edge: EdgeIndex,
-            depedent_edges: Vec<EdgeIndex>,
-            requirement_fields: Vec<NodeIndex>,
-        }
-        type Cost = u16;
-        enum CostEdge {
-            RequiredField,
-            ResolvedBy,
-        }
-        let mut cost_graph = petgraph::csr::Csr::<Cost, CostEdge>::new();
-        let mut to_cost = Vec::new();
-        for (ix, node) in self.graph.node_references() {
-            match node {
-                Node::Root => continue,
-                Node::Field(_) => {
-                    if self
-                        .graph
-                        .edges_directed(ix, Direction::Incoming)
-                        .any(|edge| matches!(edge.weight(), Edge::Requires))
-                    {
-                        to_cost.push((ix, cost_graph.add_node(0)))
+
+        while let Some(node) = nodes.pop() {
+            let parent_resolver_node = match &self.graph[node] {
+                Node::Resolver(r) => r.parent_resolver_node,
+                Node::FieldResolver(r) => r.parent_resolver_node,
+                _ => unreachable!(),
+            };
+            let cost = self
+                .graph
+                .edges_directed(node, Direction::Outgoing)
+                .filter_map(|edge| match edge.weight() {
+                    Edge::Requires => {
+                        let node = edge.target();
+                        self.graph[node].as_field().map(|field| (node, field))
                     }
-                }
-                Node::Resolver(_) | Node::FieldResolver(_) => {
-                    to_cost.push((ix, cost_graph.add_node(1)));
+                    _ => None,
+                })
+                .flat_map(|(ix, field_id)| {
+                    self.graph
+                        .edges_directed(ix, Direction::Incoming)
+                        .filter_map(|edge| match edge.weight() {
+                            Edge::Resolves => {
+                                let node = edge.source();
+                                self.graph[node].as_field_resolver().map(|r| (node, r))
+                            }
+                            _ => None,
+                        })
+                        .map(|(ix, field_resolver)| 1u16)
+                        .min()
+                })
+                .max()
+                .unwrap_or(0);
+            let edges = self
+                .graph
+                .edges_directed(node, Direction::Incoming)
+                .map(|edge| edge.id())
+                .collect::<Vec<_>>();
+            for edge in edges {
+                match self.graph.edge_weight_mut(edge).unwrap() {
+                    Edge::Resolver(edge_cost) => *edge_cost = (1 + cost),
+                    Edge::CanResolveField(edge_cost) => *edge_cost = cost,
+                    _ => (),
                 }
             }
         }
-
-        // Likely unnecessary
-        to_cost.sort_unstable();
-
-        for &(graph_ix, cost_ix) in &to_cost {
-            for edge in self.graph.edges_directed(graph_ix, Direction::Outgoing) {
-                match edge.weight() {}
-                if matches!(edge.weight(), Edge::Requires) {
-                    let target = to_cost
-                        .binary_search_by_key(edge.target(), |(ix, _)| ix)
-                        .expect("Should have been added.");
-                    cost_graph.add_edge(graph_ix, to_cost[graph_ix], CostEdge::RequiredField);
-                }
-            }
-        }
+        // struct Case {
+        //     resolution_edge: EdgeIndex,
+        //     depedent_edges: Vec<EdgeIndex>,
+        //     requirement_fields: Vec<NodeIndex>,
+        // }
+        // type Cost = u16;
+        // enum CostEdge {
+        //     RequiredField,
+        //     ResolvedBy,
+        // }
+        // let mut cost_graph = petgraph::csr::Csr::<Cost, CostEdge>::new();
+        // let mut to_cost = Vec::new();
+        // for (ix, node) in self.graph.node_references() {
+        //     match node {
+        //         Node::Root => continue,
+        //         Node::Field(_) => {
+        //             if self
+        //                 .graph
+        //                 .edges_directed(ix, Direction::Incoming)
+        //                 .any(|edge| matches!(edge.weight(), Edge::Requires))
+        //             {
+        //                 to_cost.push((ix, cost_graph.add_node(0)))
+        //             }
+        //         }
+        //         Node::Resolver(_) | Node::FieldResolver(_) => {
+        //             to_cost.push((ix, cost_graph.add_node(1)));
+        //         }
+        //     }
+        // }
+        //
+        // // Likely unnecessary
+        // to_cost.sort_unstable();
+        //
+        // for &(graph_ix, cost_ix) in &to_cost {
+        //     for edge in self.graph.edges_directed(graph_ix, Direction::Outgoing) {
+        //         match edge.weight() {}
+        //         if matches!(edge.weight(), Edge::Requires) {
+        //             let target = to_cost
+        //                 .binary_search_by_key(edge.target(), |(ix, _)| ix)
+        //                 .expect("Should have been added.");
+        //             cost_graph.add_edge(graph_ix, to_cost[graph_ix], CostEdge::RequiredField);
+        //         }
+        //     }
+        // }
     }
 
     /// Check out https://dreampuf.github.io/GraphvizOnline
