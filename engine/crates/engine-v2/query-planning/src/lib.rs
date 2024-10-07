@@ -17,7 +17,7 @@ use petgraph::{
     data::Build,
     dot::{Config, Dot},
     graph::{EdgeIndex, NodeIndex},
-    visit::{Bfs, EdgeRef, IntoEdgesDirected, NodeRef},
+    visit::{Bfs, EdgeRef, IntoEdgeReferences, IntoEdgesDirected, IntoNodeReferences, NodeRef},
     Directed, Direction,
 };
 use tracing::instrument;
@@ -45,6 +45,8 @@ struct ResolverDecisionTree {
 struct ResolverDecision {
     possibilities: Vec<(usize, ResolverDecisionTree)>,
 }
+
+pub type Cost = u16;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 enum Node<F> {
@@ -122,8 +124,6 @@ impl Edge {
         matches!(self, Self::Resolver(_))
     }
 }
-
-pub type Cost = u16;
 
 pub trait Operation: std::fmt::Debug {
     type FieldId: From<usize> + Into<usize> + Copy + std::fmt::Debug + Ord;
@@ -415,20 +415,22 @@ impl<'ctx, Op: Operation> Plan<'ctx, Op> {
                         .edges_directed(parent_field_node, Direction::Incoming)
                         .filter_map(|edge| {
                             if matches!(edge.weight(), Edge::Resolves) {
-                                self.graph[edge.target()]
-                                    .as_field_resolver()
-                                    .map(|r| (edge.target(), r))
+                                let node = edge.source();
+                                self.graph[node].as_field_resolver().map(|r| (node, r))
                             } else {
                                 None
                             }
                         })
-                        .map(|(field_resolver_node, field_resolver)| Field {
-                            parent_field_node,
-                            parent_resolver: Some(ParentResolver {
-                                field_resolver_node,
-                                subgraph_id: field_resolver.resolver_definition_id.walk(self.schema).subgraph_id(),
-                            }),
-                            field_id,
+                        .map(|(field_resolver_node, field_resolver)| {
+                            tracing::debug!("creating field");
+                            Field {
+                                parent_field_node,
+                                parent_resolver: Some(ParentResolver {
+                                    field_resolver_node,
+                                    subgraph_id: field_resolver.resolver_definition_id.walk(self.schema).subgraph_id(),
+                                }),
+                                field_id,
+                            }
                         }),
                 );
                 self.field_nodes.push(field_node);
@@ -505,7 +507,62 @@ impl<'ctx, Op: Operation> Plan<'ctx, Op> {
     /// graph cost:
     ///     resolver depends on fields, each one provided by one or multiple plans.
     ///     so max(field) and each of those is min(plan)
-    fn estimate_cost(&mut self) {}
+    /// During iteration will change resolver weight so need a quick resolver -> impacted resolvers
+    fn estimate_cost(&mut self) {
+        let mut updated_fields = self
+            .graph
+            .edge_references()
+            .filter_map(|edge| match edge.weight() {
+                Edge::Requires => Some(edge.target()),
+                _ => None,
+            })
+            .collect::<Vec<_>>();
+        while let Some(field) = updated_fields.pop() {}
+        struct Case {
+            resolution_edge: EdgeIndex,
+            depedent_edges: Vec<EdgeIndex>,
+            requirement_fields: Vec<NodeIndex>,
+        }
+        type Cost = u16;
+        enum CostEdge {
+            RequiredField,
+            ResolvedBy,
+        }
+        let mut cost_graph = petgraph::csr::Csr::<Cost, CostEdge>::new();
+        let mut to_cost = Vec::new();
+        for (ix, node) in self.graph.node_references() {
+            match node {
+                Node::Root => continue,
+                Node::Field(_) => {
+                    if self
+                        .graph
+                        .edges_directed(ix, Direction::Incoming)
+                        .any(|edge| matches!(edge.weight(), Edge::Requires))
+                    {
+                        to_cost.push((ix, cost_graph.add_node(0)))
+                    }
+                }
+                Node::Resolver(_) | Node::FieldResolver(_) => {
+                    to_cost.push((ix, cost_graph.add_node(1)));
+                }
+            }
+        }
+
+        // Likely unnecessary
+        to_cost.sort_unstable();
+
+        for &(graph_ix, cost_ix) in &to_cost {
+            for edge in self.graph.edges_directed(graph_ix, Direction::Outgoing) {
+                match edge.weight() {}
+                if matches!(edge.weight(), Edge::Requires) {
+                    let target = to_cost
+                        .binary_search_by_key(edge.target(), |(ix, _)| ix)
+                        .expect("Should have been added.");
+                    cost_graph.add_edge(graph_ix, to_cost[graph_ix], CostEdge::RequiredField);
+                }
+            }
+        }
+    }
 
     /// Check out https://dreampuf.github.io/GraphvizOnline
     fn dot_graph(&self) -> String {
