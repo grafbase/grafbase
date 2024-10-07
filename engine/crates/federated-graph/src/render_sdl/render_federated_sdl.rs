@@ -255,7 +255,7 @@ pub fn render_federated_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error
         sdl.push_str(" {\n");
 
         for field in graph.iter_input_object_fields(input_object.id()) {
-            write_input_field(&field.input_value_definition, graph, &mut sdl)?;
+            write_input_field(field.then(|f| f.input_value_definition_id), graph, &mut sdl)?;
         }
 
         writeln!(sdl, "}}\n")?;
@@ -343,7 +343,7 @@ fn write_subgraphs_enum(graph: &FederatedGraph, sdl: &mut String) -> fmt::Result
     Ok(())
 }
 
-fn write_input_field(field: &InputValueDefinition, graph: &FederatedGraph, sdl: &mut String) -> fmt::Result {
+fn write_input_field(field: InputValueDefinition<'_>, graph: &FederatedGraph, sdl: &mut String) -> fmt::Result {
     let field_name = &graph[field.name];
     let field_type = render_field_type(&field.r#type, graph);
 
@@ -501,7 +501,7 @@ fn write_authorized(field_id: FieldId, graph: &FederatedGraph, sdl: &mut String)
 fn render_field_arguments<'a>(args: impl Iterator<Item = ArgumentDefinition<'a>>, graph: &'a FederatedGraph) -> String {
     let mut args = args
         .map(|arg| {
-            let arg = &arg.input_value_definition;
+            let arg = arg.then(|arg| arg.input_value_definition_id);
             let name = &graph[arg.name];
             let r#type = render_field_type(&arg.r#type, graph);
             let directives = arg.directives;

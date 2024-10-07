@@ -1,5 +1,6 @@
 mod debug;
 mod enum_values;
+mod field;
 mod ids;
 mod input_value_definitions;
 mod iterators;
@@ -19,8 +20,7 @@ pub use self::{
     view::{View, ViewNested},
 };
 pub use super::v3::{
-    AuthorizedDirectiveId, DirectiveId, Directives, FieldId, Fields, InputObject, InputValueDefinitionId,
-    InputValueDefinitionSet, InputValueDefinitionSetItem, InterfaceId, ObjectId, Override, OverrideLabel,
+    AuthorizedDirectiveId, DirectiveId, Directives, FieldId, Fields, InterfaceId, ObjectId, Override, OverrideLabel,
     OverrideSource, RootOperationTypes, StringId, Subgraph, SubgraphId, Union, UnionId, Wrapping, NO_DIRECTIVES,
     NO_FIELDS,
 };
@@ -36,11 +36,11 @@ pub struct FederatedGraph {
 
     pub unions: Vec<Union>,
     pub enum_values: Vec<EnumValueRecord>,
-    pub input_object_field_definitions: Vec<InputObjectFieldDefinitionRecord>,
-    pub argument_definitions: Vec<ArgumentDefinitionRecord>,
 
     /// All [input value definitions](http://spec.graphql.org/October2021/#InputValueDefinition) in the federated graph. Concretely, these are arguments of output fields, and input object fields.
-    pub input_value_definitions: Vec<InputValueDefinition>,
+    pub input_value_definitions: Vec<InputValueDefinitionRecord>,
+    pub input_object_field_definitions: Vec<InputObjectFieldDefinitionRecord>,
+    pub argument_definitions: Vec<ArgumentDefinitionRecord>,
 
     /// All the strings in the federated graph, deduplicated.
     pub strings: Vec<String>,
@@ -363,7 +363,6 @@ macro_rules! id_newtypes {
 id_newtypes! {
     AuthorizedDirectiveId + authorized_directives + AuthorizedDirective,
     FieldId + fields + Field,
-    InputValueDefinitionId + input_value_definitions + InputValueDefinition,
     InterfaceId + interfaces + Interface,
     ObjectId + objects + Object,
     StringId + strings + String,
@@ -382,7 +381,7 @@ impl From<super::FederatedGraphV3> for FederatedGraph {
             enums,
             unions,
             scalars,
-            input_objects,
+            input_objects: _,
             enum_values,
             input_value_definitions,
             strings,
@@ -521,7 +520,6 @@ impl From<super::FederatedGraphV3> for FederatedGraph {
                                 .unwrap_or_else(|| Definition::Scalar(TypeDefinitionId::from(0))),
                             wrapping: r#type.wrapping,
                         },
-                        arguments,
                         resolvable_in,
                         provides: provides
                             .into_iter()
@@ -544,32 +542,8 @@ impl From<super::FederatedGraphV3> for FederatedGraph {
                 )
                 .collect(),
             unions,
-            input_objects,
             enum_values: new_enum_values,
-            input_value_definitions: input_value_definitions
-                .into_iter()
-                .map(
-                    |super::v3::InputValueDefinition {
-                         name,
-                         r#type,
-                         directives,
-                         description,
-                         default,
-                     }: super::v3::InputValueDefinition| InputValueDefinition {
-                        name,
-                        r#type: Type {
-                            wrapping: r#type.wrapping,
-                            definition: definitions_map
-                                .get(&r#type.definition)
-                                .copied()
-                                .unwrap_or_else(|| Definition::Scalar(TypeDefinitionId::from(0))),
-                        },
-                        directives,
-                        description,
-                        default: default.map(From::from),
-                    },
-                )
-                .collect(),
+            input_value_definitions: Vec::new(),
             strings,
             directives: directives
                 .into_iter()
@@ -585,25 +559,12 @@ impl From<super::FederatedGraphV3> for FederatedGraph {
                     },
                 })
                 .collect(),
-            authorized_directives: authorized_directives
-                .into_iter()
-                .map(
-                    |super::v3::AuthorizedDirective {
-                         fields,
-                         node,
-                         arguments,
-                         metadata,
-                     }| AuthorizedDirective {
-                        fields: fields.map(field_set_to_selection_set),
-                        node: node.map(field_set_to_selection_set),
-                        arguments,
-                        metadata: metadata.map(From::from),
-                    },
-                )
-                .collect(),
+            authorized_directives: Vec::new(),
             field_authorized_directives,
             object_authorized_directives,
             interface_authorized_directives,
+            input_object_field_definitions: Vec::new(),
+            argument_definitions: Vec::new(),
         }
     }
 }

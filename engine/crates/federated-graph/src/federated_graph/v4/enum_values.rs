@@ -1,4 +1,4 @@
-use super::{Directives, EnumValueId, FederatedGraph, StringId, TypeDefinitionId, View, ViewNested};
+use super::{Directives, EnumValueId, FederatedGraph, StringId, TypeDefinitionId, ViewNested};
 
 pub type EnumValue<'a> = ViewNested<'a, EnumValueId, EnumValueRecord>;
 

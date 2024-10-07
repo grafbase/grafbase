@@ -36,8 +36,9 @@ macro_rules! id_newtypes {
 }
 
 id_newtypes! {
-    input_object_field_definitions[InputObjectFieldDefinitionId] -> InputObjectFieldDefinitionRecord,
     argument_definitions[ArgumentDefinitionId] -> ArgumentDefinitionRecord,
-    type_definitions[TypeDefinitionId] -> TypeDefinitionRecord,
     enum_values[EnumValueId] -> EnumValueRecord,
+    input_object_field_definitions[InputObjectFieldDefinitionId] -> InputObjectFieldDefinitionRecord,
+    input_value_definitions[InputValueDefinitionId] -> InputValueDefinitionRecord,
+    type_definitions[TypeDefinitionId] -> TypeDefinitionRecord,
 }
