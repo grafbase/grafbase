@@ -3722,7 +3722,6 @@ dependencies = [
  "json_dotpath",
  "jwt-compact",
  "log",
- "lru",
  "mimalloc",
  "more-asserts",
  "multipart-stream",
@@ -3861,7 +3860,6 @@ dependencies = [
  "tokio-stream",
  "tokio-util",
  "tower-http",
- "ulid",
  "url",
  "urlencoding",
 ]
@@ -4065,7 +4063,6 @@ dependencies = [
  "libc",
  "linux-raw-sys",
  "log",
- "lru",
  "memchr",
  "miette 7.2.0",
  "miniz_oxide",
@@ -5577,9 +5574,6 @@ name = "lru"
 version = "0.12.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "37ee39891760e7d94734f6f63fedc29a2e4a152f836120753a72503f09fcf904"
-dependencies = [
- "hashbrown 0.14.5",
-]
 
 [[package]]
 name = "lz4_flex"

@@ -1,20 +1,10 @@
 use clap::Parser;
 
-use crate::{
-    cli_input::{
-        environment::{
-            EnvironmentVariableCreateCommand, EnvironmentVariableDeleteCommand, EnvironmentVariableListCommand,
-        },
-        BranchSubCommand, EnvironmentSubCommand,
-    },
-    create::GraphMode,
-    is_not_direct_install,
-};
+use crate::{cli_input::BranchSubCommand, create::GraphMode, is_not_direct_install};
 
 use super::{
-    branch::BranchCommand, trust::TrustCommand, ArgumentNames, BuildCommand, CheckCommand, CompletionsCommand,
-    CreateCommand, DeployCommand, DevCommand, EnvironmentCommand, InitCommand, IntrospectCommand, LinkCommand,
-    LintCommand, LogsCommand, PublishCommand, SchemaCommand, StartCommand, SubgraphsCommand,
+    branch::BranchCommand, trust::TrustCommand, ArgumentNames, CheckCommand, CompletionsCommand, CreateCommand,
+    DevCommand, IntrospectCommand, LinkCommand, LintCommand, PublishCommand, SchemaCommand, SubgraphsCommand,
 };
 
 #[derive(Debug, Parser, strum::AsRefStr, strum::Display)]
@@ -24,33 +14,19 @@ pub enum SubCommand {
     Branch(BranchCommand),
     /// Start the Grafbase local development server
     Dev(DevCommand),
-    /// Modify graph environment variables
-    #[clap(visible_alias = "env")]
-    Environment(EnvironmentCommand),
     /// Output completions for the chosen shell to use, write the output to the
     /// appropriate location for your shell
     Completions(CompletionsCommand),
-    /// Sets up the current or a new project for Grafbase
-    Init(InitCommand),
     /// Logs into your Grafbase account
     Login,
     /// Logs out of your Grafbase account
     Logout,
     /// Set up and deploy a new graph
     Create(CreateCommand),
-    /// Deploy your project
-    Deploy(DeployCommand),
     /// Connect a local graph to a remote graph
     Link(LinkCommand),
     /// Disconnect a local graph from a remote graph
     Unlink,
-    /// Tail logs from a standalone graph
-    Logs(LogsCommand),
-    /// Start Grafbase in self-hosted mode
-    Start(StartCommand),
-    /// Build the Grafbase project in advance to avoid the resolver build step in the start
-    /// command.
-    Build(BuildCommand),
     /// Introspect a graph and print its schema
     Introspect(IntrospectCommand),
     /// List subgraphs
@@ -82,21 +58,8 @@ impl SubCommand {
                 ..
             }) | Self::Branch(BranchCommand {
                 command: BranchSubCommand::List,
-            }) | Self::Environment(EnvironmentCommand {
-                command: EnvironmentSubCommand::List(EnvironmentVariableListCommand { graph_ref: None })
-            }) | Self::Environment(EnvironmentCommand {
-                command: EnvironmentSubCommand::Create(EnvironmentVariableCreateCommand { graph_ref: None, .. })
-            }) | Self::Environment(EnvironmentCommand {
-                command: EnvironmentSubCommand::Delete(EnvironmentVariableDeleteCommand { graph_ref: None, .. })
-            }) | Self::Deploy(_)
-                | Self::Dev(DevCommand { .. })
+            }) | Self::Dev(DevCommand { .. })
                 | Self::Link(_)
-                | Self::Logs(LogsCommand {
-                    project_branch: None,
-                    ..
-                })
-                | Self::Start(_)
-                | Self::Build(_)
                 | Self::Unlink
                 | Self::DumpConfig
                 | Self::Introspect(IntrospectCommand {
@@ -112,28 +75,22 @@ impl ArgumentNames for SubCommand {
     fn argument_names(&self) -> Option<Vec<&'static str>> {
         match self {
             SubCommand::Dev(command) => command.argument_names(),
-            SubCommand::Init(command) => command.argument_names(),
             SubCommand::Create(command) => command.argument_names(),
             SubCommand::Schema(_)
             | SubCommand::Branch(_)
-            | SubCommand::Environment(_)
             | SubCommand::Publish(_)
             | SubCommand::Check(_)
             | SubCommand::Subgraphs(_)
             | SubCommand::Introspect(_)
             | SubCommand::Login
             | SubCommand::Logout
-            | SubCommand::Deploy(_)
             | SubCommand::Link(_)
             | SubCommand::Unlink
-            | SubCommand::Start(_)
-            | SubCommand::Build(_)
             | SubCommand::Completions(_)
             | SubCommand::DumpConfig
             | SubCommand::Trust(_)
             | SubCommand::Upgrade
-            | SubCommand::Lint(_)
-            | SubCommand::Logs(_) => None,
+            | SubCommand::Lint(_) => None,
         }
     }
 }

@@ -19,8 +19,7 @@ async fn federation_start() {
     use duct::cmd;
 
     let mut env = Environment::init();
-    let output = env.grafbase_init_output(GraphType::Federated);
-    assert!(output.status.success());
+    env.grafbase_init(GraphType::Federated);
 
     let output = cmd!("npm", "install").dir(&env.directory_path).run().unwrap();
     assert!(output.status.success());

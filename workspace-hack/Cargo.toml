@@ -82,7 +82,6 @@ insta = { version = "1", features = ["json", "redactions", "yaml"] }
 jwt-compact = { version = "0.8", features = ["ed25519-compact", "p256", "rsa"] }
 lazy_static = { version = "1", default-features = false, features = ["spin_no_std"] }
 log = { version = "0.4", default-features = false, features = ["std"] }
-lru = { version = "0.12" }
 memchr = { version = "2", features = ["use_std"] }
 miette = { version = "7", features = ["fancy"] }
 num-bigint-dig = { version = "0.8", default-features = false, features = ["i128", "prime", "u64_digit", "zeroize"] }
@@ -215,7 +214,6 @@ insta = { version = "1", features = ["json", "redactions", "yaml"] }
 jwt-compact = { version = "0.8", features = ["ed25519-compact", "p256", "rsa"] }
 lazy_static = { version = "1", default-features = false, features = ["spin_no_std"] }
 log = { version = "0.4", default-features = false, features = ["std"] }
-lru = { version = "0.12" }
 memchr = { version = "2", features = ["use_std"] }
 miette = { version = "7", features = ["fancy"] }
 num-bigint-dig = { version = "0.8", default-features = false, features = ["i128", "prime", "u64_digit", "zeroize"] }
