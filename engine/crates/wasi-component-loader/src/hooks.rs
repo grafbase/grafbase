@@ -100,12 +100,7 @@ pub(crate) use component_instance;
 /// with the maximum fuel, and sets a yield interval how often to allow the main thread to be yielded.
 fn initialize_store(config: &Config, engine: &Engine) -> crate::Result<Store<WasiState>> {
     let state = WasiState::new(build_wasi_context(config));
-
-    let mut store = Store::new(engine, state);
-    store.set_fuel(u64::MAX)?;
-
-    // make this smaller to yield to the main thread more often
-    store.fuel_async_yield_interval(Some(10000))?;
+    let store = Store::new(engine, state);
 
     Ok(store)
 }
@@ -472,8 +467,6 @@ impl ComponentInstance {
         if self.poisoned {
             return Err(anyhow!("this instance is poisoned").into());
         }
-
-        self.store.set_fuel(u64::MAX)?;
 
         Ok(())
     }
