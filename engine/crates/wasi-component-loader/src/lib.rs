@@ -96,7 +96,6 @@ impl ComponentLoader {
         // Read more on Wasmtime async functions and fuel consumption:
         // https://docs.rs/wasmtime/latest/wasmtime/struct.Config.html#method.async_support
         wasm_config.async_support(true);
-        wasm_config.consume_fuel(true);
 
         // https://github.com/bytecodealliance/wasmtime/issues/8897
         #[cfg(not(target_os = "windows"))]
