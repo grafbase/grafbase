@@ -178,6 +178,7 @@ impl VersionedConfig {
                 timeout,
                 entity_caching,
                 retry,
+                batching: Default::default(),
             },
             VersionedConfig::V6(latest) => latest,
         }

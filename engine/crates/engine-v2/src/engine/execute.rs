@@ -183,6 +183,27 @@ impl<R: Runtime> Engine<R> {
                     );
                 };
 
+                if !self.schema.settings.batching.enabled {
+                    return Http::error(
+                        request_context.response_format,
+                        Response::bad_request_but_well_formed_graphql_over_http_request(
+                            "batching is not enabled for this service",
+                        ),
+                    );
+                }
+
+                if let Some(limit) = self.schema.settings.batching.limit {
+                    if requests.len() > limit {
+                        return Http::error(
+                            request_context.response_format,
+                            Response::bad_request_but_well_formed_graphql_over_http_request(&format!(
+                                "batch size exceeds limit of {}",
+                                limit
+                            )),
+                        );
+                    }
+                }
+
                 self.runtime.metrics().record_batch_size(requests.len());
 
                 let Some(responses) = self

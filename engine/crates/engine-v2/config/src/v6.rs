@@ -56,6 +56,15 @@ pub struct Config {
 
     #[serde(default)]
     pub retry: Option<RetryConfig>,
+
+    #[serde(default)]
+    pub batching: BatchingConfig,
+}
+
+#[derive(serde::Serialize, serde::Deserialize, Debug, Default)]
+pub struct BatchingConfig {
+    pub enabled: bool,
+    pub limit: Option<usize>,
 }
 
 impl Config {
@@ -75,6 +84,7 @@ impl Config {
             timeout: None,
             entity_caching: EntityCaching::Disabled,
             retry: None,
+            batching: Default::default(),
         }
     }
 

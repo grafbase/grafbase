@@ -21,6 +21,7 @@ pub struct FederatedGraphConfig {
     pub timeout: Option<Duration>,
     pub entity_caching: EntityCachingConfig,
     pub retry: Option<RetryConfig>,
+    pub batching: BatchingConfig,
 }
 
 /// Configuration for a subgraph of the current federated graph
@@ -224,6 +225,14 @@ pub struct RetryConfig {
     pub retry_percent: Option<f32>,
     /// Whether mutations should be retried at all. False by default.
     pub retry_mutations: bool,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq, PartialOrd, Ord)]
+pub struct BatchingConfig {
+    /// If batching should be enabled.
+    pub enabled: bool,
+    /// The maximum number of queries that can be batched together.
+    pub limit: Option<usize>,
 }
 
 #[cfg(test)]

@@ -108,7 +108,7 @@ mod tests {
 
         let result = to_parse_result_with_variables(schema, &HashMap::new()).unwrap();
 
-        insta::assert_debug_snapshot!(result.federated_graph_config, @r###"
+        insta::assert_debug_snapshot!(result.federated_graph_config, @r#"
         Some(
             FederatedGraphConfig {
                 subgraphs: {
@@ -175,9 +175,13 @@ mod tests {
                 timeout: None,
                 entity_caching: Disabled,
                 retry: None,
+                batching: BatchingConfig {
+                    enabled: false,
+                    limit: None,
+                },
             },
         )
-        "###);
+        "#);
     }
 
     #[test]
