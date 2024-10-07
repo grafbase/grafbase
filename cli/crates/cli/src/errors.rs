@@ -75,9 +75,6 @@ pub enum CliError {
     LintUnsupportedFileExtension(String),
 }
 
-#[cfg(target_family = "windows")]
-const WINDOWS_DIR_NOT_EMPTY_CODE: i32 = 145;
-
 impl CliError {
     /// returns the appropriate hint for a [`CliError`]
     pub fn to_hint(&self) -> Option<String> {
