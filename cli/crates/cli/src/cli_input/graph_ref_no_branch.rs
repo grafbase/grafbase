@@ -7,14 +7,6 @@ pub struct GraphRefNoBranch {
     graph: String,
 }
 
-impl GraphRefNoBranch {
-    pub(crate) const ARG_DESCRIPTION: &'static str = r#"Graph reference following the format "account/graph""#;
-
-    pub(crate) fn into_parts(self) -> (String, String) {
-        (self.account, self.graph)
-    }
-}
-
 impl str::FromStr for GraphRefNoBranch {
     type Err = &'static str;
 

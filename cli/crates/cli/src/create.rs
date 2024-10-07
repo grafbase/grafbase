@@ -1,4 +1,4 @@
-use crate::{deploy, errors::CliError, output::report, prompts::handle_inquire_error};
+use crate::{errors::CliError, output::report, prompts::handle_inquire_error};
 use backend::api::{create, types::Account};
 use common::environment::Project;
 use inquire::{validator::Validation, Confirm, Select, Text};
@@ -49,7 +49,7 @@ async fn from_arguments(arguments: &CreateArguments<'_>) -> Result<(), CliError>
         .ok_or(CliError::NoAccountFound)?
         .id;
 
-    let (domains, deployment_id, project_slug) = create::create(
+    let (domains, project_slug) = create::create(
         &account_id,
         arguments.name,
         arguments.graph_mode.into(),
@@ -57,10 +57,6 @@ async fn from_arguments(arguments: &CreateArguments<'_>) -> Result<(), CliError>
     )
     .await
     .map_err(CliError::BackendApiError)?;
-
-    if let Some(deployment_id) = deployment_id {
-        deploy::report_progress(deployment_id.into_inner()).await?;
-    }
 
     report::create_success(arguments.name, &domains, arguments.account_slug, &project_slug);
 
@@ -145,7 +141,7 @@ async fn interactive() -> Result<(), CliError> {
     .map_err(handle_inquire_error)?;
 
     if confirm {
-        let (domains, deployment_id, project_slug) = create::create(
+        let (domains, project_slug) = create::create(
             &selected_account.id,
             &project_name,
             graph_mode.into(),
@@ -153,10 +149,6 @@ async fn interactive() -> Result<(), CliError> {
         )
         .await
         .map_err(CliError::BackendApiError)?;
-
-        if let Some(deployment_id) = deployment_id {
-            deploy::report_progress(deployment_id.into_inner()).await?;
-        }
 
         report::create_success(&project_name, &domains, &selected_account.slug, &project_slug);
     }

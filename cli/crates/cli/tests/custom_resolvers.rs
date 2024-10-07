@@ -613,7 +613,7 @@ async fn test_query_mutation_resolver_start(
         env.write_resolver(file_name, file_contents);
     }
 
-    env.grafbase_start();
+    env.grafbase_dev();
     let client = env.create_client().with_api_key();
     client.poll_endpoint(60, 300).await;
 
@@ -665,7 +665,7 @@ async fn jwt_claims_in_custom_resolver_context() {
 
     env.write_resolver("printClaims.js", resolver);
 
-    env.grafbase_start();
+    env.grafbase_dev();
 
     let token = {
         let key = jwt_compact::alg::Hs512Key::new(JWT_SECRET.as_bytes());

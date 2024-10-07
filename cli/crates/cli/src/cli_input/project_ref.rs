@@ -24,10 +24,6 @@ impl ProjectRef {
     pub(crate) fn branch(&self) -> Option<&str> {
         self.branch.as_deref()
     }
-
-    pub(crate) fn into_parts(self) -> (String, String, Option<String>) {
-        (self.account, self.graph, self.branch)
-    }
 }
 
 impl str::FromStr for ProjectRef {

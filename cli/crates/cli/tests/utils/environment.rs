@@ -10,7 +10,7 @@ use std::io;
 use std::path::Path;
 use std::process::Output;
 use std::sync::{Arc, Mutex};
-use std::{env, fs, io::Write, path::PathBuf};
+use std::{env, fs, path::PathBuf};
 use tempfile::{tempdir, TempDir};
 
 pub struct Environment {
@@ -247,39 +247,30 @@ impl Environment {
     }
 
     #[track_caller]
-    pub fn grafbase_init(&self, graph_type: GraphType) {
+    pub fn grafbase_init(&mut self, graph_type: GraphType) {
         let current_directory_path = self.schema_path.parent().expect("must be defined");
-        std::fs::create_dir_all(current_directory_path).unwrap();
-        cmd!(cargo_bin("grafbase"), "--trace", "2", "init", "-g", graph_type.as_ref())
-            .dir(current_directory_path)
-            .run()
-            .unwrap();
-    }
-
-    #[track_caller]
-    pub fn grafbase_init_output(&self, graph_type: GraphType) -> Output {
-        let current_directory_path = self.schema_path.parent().expect("must be defined");
-        std::fs::create_dir_all(current_directory_path).unwrap();
-        cmd!(cargo_bin("grafbase"), "--trace", "2", "init", "-g", graph_type.as_ref())
-            .dir(current_directory_path)
-            .stdout_capture()
-            .stderr_capture()
-            .unchecked()
-            .run()
-            .unwrap()
-    }
-
-    pub fn grafbase_init_template_output(&self, name: Option<&str>, template: &str) -> Output {
-        if let Some(name) = name {
-            cmd!(cargo_bin("grafbase"), "init", name, "--template", template)
-        } else {
-            cmd!(cargo_bin("grafbase"), "init", "--template", template)
+        fs::create_dir_all(current_directory_path).unwrap();
+        if self.ts_config_dependencies_prepared {
+            return;
         }
-        .dir(&self.directory_path)
-        .stderr_capture()
-        .unchecked()
-        .run()
-        .unwrap()
+        fs::write("package.json", include_str!("../assets/sdk-package.json")).unwrap();
+
+        self.ts_config_dependencies_prepared = true;
+        let config = format!(
+            r###"
+                import {{ config, graph }} from '@grafbase/sdk'
+
+                export default config({{
+                    graph: graph.{},
+                }})
+            "###,
+            match graph_type {
+                GraphType::Standalone => "Standalone()",
+                GraphType::Federated => "Federated()",
+            }
+        );
+        cmd!("npm", "install").run().unwrap();
+        self.write_file("grafbase.config.ts", config);
     }
 
     pub fn grafbase_link_non_interactive(&self, project: &str) -> Output {
@@ -290,17 +281,6 @@ impl Environment {
             .unchecked()
             .run()
             .unwrap()
-    }
-
-    pub fn grafbase_init_template(&self, name: Option<&str>, template: &str) {
-        if let Some(name) = name {
-            cmd!(cargo_bin("grafbase"), "init", name, "--template", template)
-        } else {
-            cmd!(cargo_bin("grafbase"), "init", "--template", template)
-        }
-        .dir(&self.directory_path)
-        .run()
-        .unwrap();
     }
 
     pub fn with_home(mut self, path: PathBuf) -> Self {
@@ -318,21 +298,6 @@ impl Environment {
             "--disable-watch",
             "--port",
             self.port.to_string()
-        )
-        .dir(&self.directory_path);
-        let command = command.start().unwrap();
-
-        self.commands.0.lock().unwrap().push(command);
-    }
-
-    pub fn grafbase_start(&mut self) {
-        let command = cmd!(
-            cargo_bin("grafbase"),
-            "--trace",
-            "2",
-            "start",
-            "--listen-address",
-            &format!("127.0.0.1:{}", self.port),
         )
         .dir(&self.directory_path);
         let command = command.start().unwrap();
@@ -427,16 +392,6 @@ impl Environment {
         .dir(&self.directory_path);
 
         command.run().unwrap();
-    }
-
-    pub fn append_to_schema(&self, contents: &'static str) {
-        let mut file = fs::OpenOptions::new().append(true).open(&self.schema_path).unwrap();
-
-        file.write_all(format!("\n{contents}").as_bytes()).unwrap();
-
-        file.sync_all().unwrap();
-
-        drop(file);
     }
 
     pub fn kill_processes(&mut self) {

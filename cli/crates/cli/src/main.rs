@@ -4,28 +4,22 @@
 use grafbase_workspace_hack as _;
 
 mod branch;
-mod build;
 mod check;
 mod cli_input;
 mod create;
-mod deploy;
 mod dev;
 mod dump_config;
-mod environment_variables;
 mod errors;
-mod init;
 mod introspect;
 mod link;
 mod lint;
 mod login;
 mod logout;
-mod logs;
 mod output;
 mod panic_hook;
 mod prompts;
 mod publish;
 mod schema;
-mod start;
 mod subgraphs;
 mod trust;
 mod unlink;
@@ -36,17 +30,12 @@ mod watercolor;
 extern crate log;
 
 use crate::{
-    build::build,
-    cli_input::{Args, ArgumentNames, BranchSubCommand, EnvironmentSubCommand, LogsCommand, SubCommand},
+    cli_input::{Args, ArgumentNames, BranchSubCommand, SubCommand},
     create::create,
-    deploy::deploy,
     dev::dev,
-    init::init,
     link::link,
     login::login,
     logout::logout,
-    logs::logs,
-    start::start,
     unlink::unlink,
 };
 use clap::Parser;
@@ -131,39 +120,11 @@ fn try_main(args: Args) -> Result<(), CliError> {
                 args.trace >= 2,
             )
         }
-        SubCommand::Init(cmd) => init(cmd.name(), cmd.template(), cmd.graph),
         SubCommand::Login => login(),
         SubCommand::Logout => logout(),
         SubCommand::Create(cmd) => create(&cmd.create_arguments()),
-        SubCommand::Deploy(cmd) => deploy(cmd.graph_ref, cmd.branch),
         SubCommand::Link(cmd) => link(cmd.project),
         SubCommand::Unlink => unlink(),
-        SubCommand::Logs(LogsCommand {
-            project_branch,
-            limit,
-            no_follow,
-        }) => logs(project_branch, limit, !no_follow),
-        SubCommand::Start(cmd) => {
-            let _ = ctrlc::set_handler(|| {
-                report::goodbye();
-                process::exit(exitcode::OK);
-            });
-
-            start(
-                cmd.listen_address(),
-                cmd.log_levels(),
-                cmd.federated_schema_path(),
-                args.trace >= 2,
-            )
-        }
-        SubCommand::Build(cmd) => {
-            let _ = ctrlc::set_handler(|| {
-                report::goodbye();
-                process::exit(exitcode::OK);
-            });
-
-            build(cmd.parallelism(), args.trace >= 2)
-        }
         SubCommand::Subgraphs(cmd) => subgraphs::subgraphs(cmd),
         SubCommand::Schema(cmd) => schema::schema(cmd),
         SubCommand::Publish(cmd) => {
@@ -210,15 +171,6 @@ fn try_main(args: Args) -> Result<(), CliError> {
             BranchSubCommand::List => branch::list(),
             BranchSubCommand::Delete(cmd) => branch::delete(cmd.branch_ref),
             BranchSubCommand::Create(cmd) => branch::create(cmd.branch_ref),
-        },
-        SubCommand::Environment(cmd) => match cmd.command {
-            EnvironmentSubCommand::List(cmd) => environment_variables::list(cmd.graph_ref),
-            EnvironmentSubCommand::Create(cmd) => {
-                environment_variables::create(cmd.graph_ref, &cmd.name, &cmd.value, cmd.environment)
-            }
-            EnvironmentSubCommand::Delete(cmd) => {
-                environment_variables::delete(cmd.graph_ref, &cmd.name, cmd.environment)
-            }
         },
     }
 }

@@ -44,7 +44,7 @@ async fn start_with_ts_config(#[case] module: bool) {
         },
     );
 
-    env.grafbase_start();
+    env.grafbase_dev();
     let client = env.create_async_client().with_api_key();
     client.poll_endpoint(30, 300).await;
 

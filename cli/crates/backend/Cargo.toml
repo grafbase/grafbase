@@ -32,7 +32,6 @@ tokio = { version = "1.37.0", features = ["full"] }
 tokio-stream = { version = "0.1.15", features = ["tokio-util"] }
 tokio-util = { version = "0.7.10", features = ["futures-io", "compat"] }
 tower-http = { workspace = true, features = ["trace"] }
-ulid = "1.1.2"
 url = "2.5.0"
 urlencoding = "2.1.3"
 

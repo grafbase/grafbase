@@ -1,6 +1,5 @@
 use super::client::create_client;
 use super::consts::api_url;
-use super::deploy;
 use super::errors::{ApiError, CreateError};
 use super::graphql::mutations::{
     CurrentPlanLimitReachedError, DuplicateDatabaseRegionsError, EnvironmentVariableSpecification, GraphCreate,
@@ -61,7 +60,7 @@ pub async fn create(
     project_slug: &str,
     graph_mode: GraphMode,
     env_vars: impl Iterator<Item = (&str, &str)>,
-) -> Result<(Vec<String>, Option<cynic::Id>, String), ApiError> {
+) -> Result<(Vec<String>, String), ApiError> {
     let project = if let GraphMode::Managed = graph_mode {
         let project = Project::get();
 
@@ -118,13 +117,6 @@ pub async fn create(
                 .map_err(ApiError::WriteProjectMetadataFile)?;
             }
 
-            let deployment_id = if matches!(graph_mode, GraphMode::Managed) {
-                let (deployment_id, _, _) = deploy::deploy(None, None).await?;
-                Some(deployment_id)
-            } else {
-                None
-            };
-
             let domains = graph_create_success
                 .graph
                 .production_branch
@@ -133,7 +125,7 @@ pub async fn create(
                 .map(|domain| format!("{domain}/graphql"))
                 .collect();
 
-            Ok((domains, deployment_id, graph_create_success.graph.slug))
+            Ok((domains, graph_create_success.graph.slug))
         }
         GraphCreatePayload::SlugAlreadyExistsError(_) => Err(CreateError::SlugAlreadyExists.into()),
         GraphCreatePayload::SlugInvalidError(_) => Err(CreateError::SlugInvalid.into()),

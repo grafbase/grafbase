@@ -1,30 +1,25 @@
 use crate::{
     cli_input::LogLevelFilters,
     errors::CliError,
-    logs::LogEvent,
     watercolor::{self, watercolor},
 };
 use backend::{
-    api::{branch::Branch, consts::dashboard_url, environment_variables::EnvironmentVariable},
+    api::{branch::Branch, consts::dashboard_url},
     types::{NestedRequestScopedMessage, RequestCompletedOutcome},
 };
 use chrono::Utc;
 use colored::Colorize;
+use common::trusted_documents::TrustedDocumentsManifest;
 use common::types::{LogLevel, UdfKind};
-use common::{consts::GRAFBASE_TS_CONFIG_FILE_NAME, trusted_documents::TrustedDocumentsManifest};
 use common::{consts::LOCALHOST, environment::Warning};
 use prettytable::{format::TableFormat, row, Table};
-use std::{net::IpAddr, path::Path};
+use std::path::Path;
 
 /// reports to stdout that the server has started
 pub fn cli_header() {
     let version = env!("CARGO_PKG_VERSION");
     // TODO: integrate this with watercolor
     println!("{}", format!("Grafbase CLI {version}\n").dimmed());
-}
-
-pub fn start_prod_server(ip: IpAddr, port: u16) {
-    println!("📡 Listening on {}\n", watercolor!("{ip}:{port}", @BrightBlue));
 }
 
 /// reports to stdout that the server has started
@@ -67,37 +62,6 @@ pub fn start_federated_dev_server(port: u16) {
     );
 }
 
-pub fn graph_created(name: Option<&str>) {
-    let slash = std::path::MAIN_SEPARATOR.to_string();
-
-    let schema_file_name = GRAFBASE_TS_CONFIG_FILE_NAME;
-
-    if let Some(name) = name {
-        watercolor::output!(r"✨ {name} was successfully initialized!", @BrightBlue);
-
-        let schema_path = &[".", name, schema_file_name].join(&slash);
-
-        println!(
-            "The configuration for your new graph can be found at {}",
-            watercolor!("{schema_path}", @BrightBlue)
-        );
-    } else {
-        watercolor::output!(r"✨ Your graph was successfully set up for Grafbase!", @BrightBlue);
-
-        let schema_path = &[".", schema_file_name].join(&slash);
-
-        println!(
-            "Your new configuration can be found at {}",
-            watercolor!("{schema_path}", @BrightBlue)
-        );
-    }
-
-    println!(
-        "The Grafbase SDK was added to {}, make sure to install dependencies before continuing.",
-        watercolor!("package.json", @BrightBlue)
-    );
-}
-
 /// reports an error to stderr
 pub fn error(error: &CliError) {
     watercolor::output_error!("Error: {error}", @BrightRed);
@@ -124,27 +88,11 @@ pub fn goodbye() {
     watercolor::output!("\n👋 See you next time!", @BrightBlue);
 }
 
-pub fn start_udf_build_all() {
-    println!("{} compiling user defined functions...", watercolor!("wait", @Cyan),);
-}
-
 pub fn start_udf_build(udf_kind: UdfKind, udf_name: &str) {
     println!(
         "{} compiling {udf_kind} {udf_name}...",
         watercolor!("wait", @Cyan),
         udf_name = udf_name.to_string().bold()
-    );
-}
-
-pub fn complete_udf_build_all(duration: std::time::Duration) {
-    let formatted_duration = if duration < std::time::Duration::from_secs(1) {
-        format!("{}ms", duration.as_millis())
-    } else {
-        format!("{:.1}s", duration.as_secs_f64())
-    };
-    println!(
-        "{} user defined functions compiled successfully in {formatted_duration}",
-        watercolor!("event", @BrightMagenta),
     );
 }
 
@@ -200,16 +148,16 @@ pub fn operation_log(
                     if is_introspection && !log_level_filters.graphql_operations.should_display(LogLevel::Debug) {
                         return;
                     }
-                    watercolor::colored::Color::Green
+                    colored::Color::Green
                 }
-                common::types::OperationType::Mutation => watercolor::colored::Color::Green,
+                common::types::OperationType::Mutation => colored::Color::Green,
                 common::types::OperationType::Subscription => {
                     return;
                 }
             };
             (name, Some(r#type), colour, duration)
         }
-        RequestCompletedOutcome::BadRequest => (name, None, watercolor::colored::Color::Red, duration),
+        RequestCompletedOutcome::BadRequest => (name, None, colored::Color::Red, duration),
     };
 
     let formatted_duration = format_duration(duration);
@@ -244,10 +192,10 @@ fn log_nested_events(nested_events: Vec<NestedRequestScopedMessage>, log_level_f
                 }
 
                 let message_colour = match level {
-                    LogLevel::Debug => watercolor::colored::Color::BrightBlack,
-                    LogLevel::Error => watercolor::colored::Color::Red,
-                    LogLevel::Info => watercolor::colored::Color::Cyan,
-                    LogLevel::Warn => watercolor::colored::Color::Yellow,
+                    LogLevel::Debug => colored::Color::BrightBlack,
+                    LogLevel::Error => colored::Color::Red,
+                    LogLevel::Info => colored::Color::Cyan,
+                    LogLevel::Warn => colored::Color::Yellow,
                 };
 
                 println!(
@@ -363,11 +311,6 @@ pub fn logout() {
     watercolor::output!("✨ Successfully logged out!", @BrightBlue);
 }
 
-// TODO change this to a spinner that is removed on success
-pub fn deploy() {
-    watercolor::output!("🕒 Your graph is being deployed...", @BrightBlue);
-}
-
 pub fn delete_branch() {
     watercolor::output!("🕒 Branch is being deleted...", @BrightBlue);
 }
@@ -384,26 +327,9 @@ pub fn create_branch_success() {
     watercolor::output!("\n✨ The branch was successfully created!", @BrightBlue);
 }
 
-pub fn delete_env_var_success() {
-    watercolor::output!("\n✨ The environment variable was successfully deleted!", @BrightBlue);
-}
-
-pub fn create_env_var_success() {
-    watercolor::output!("\n✨ The environment variable was successfully created!", @BrightBlue);
-}
-
 // TODO change this to a spinner that is removed on success
 pub fn create() {
     watercolor::output!("🕒 Your graph is being created...", @BrightBlue);
-}
-
-pub fn deploy_success(branch: String, account_slug: String, project_slug: String, domains: Vec<String>) {
-    watercolor::output!("\n✨ Your graph was successfully deployed!\n", @BrightBlue);
-    let app_url = dashboard_url();
-    if let Some(url) = domains.first() {
-        watercolor::output!("Endpoint: https://{url}/graphql", @BrightBlue)
-    }
-    watercolor::output!("Dashboard: {app_url}/{account_slug}/{project_slug}/branches/{branch}", @BrightBlue);
 }
 
 pub fn linked(name: &str) {
@@ -455,42 +381,6 @@ pub fn list_branches(branches: Vec<Branch>) {
             last_updated,
             branch.status.unwrap_or_default(),
         ]);
-    }
-
-    table.printstd();
-}
-
-pub fn list_environment_variables(environment_variables: Vec<EnvironmentVariable>) {
-    if environment_variables.is_empty() {
-        watercolor::output!("⚠️  No environment variables found.", @BrightYellow);
-        return;
-    }
-
-    let mut table = Table::new();
-    let mut format = TableFormat::new();
-
-    format.padding(0, 4);
-    table.set_format(format);
-
-    table.add_row(row!["NAME", "VALUE", "LAST UPDATED", "ENVIRONMENT"]);
-
-    for environment_variable in environment_variables {
-        let now = Utc::now();
-
-        let last_updated = format!(
-            "{} ago",
-            format_long_duration((now - environment_variable.updated_at).to_std().unwrap_or_default())
-        );
-
-        let branch_environment = environment_variable.environments.join(",");
-
-        let value = if environment_variable.value.len() > 50 {
-            format!("{}...", environment_variable.value.chars().take(50).collect::<String>())
-        } else {
-            environment_variable.value
-        };
-
-        table.add_row(row![environment_variable.name, value, last_updated, branch_environment,]);
     }
 
     table.printstd();
@@ -629,29 +519,6 @@ pub(crate) fn predefined_introspection_failed(subgraph_name: &str, errors: &str)
     eprintln!("❌ Failed to introspect the predefined subgraph {subgraph_name}. Errors:\n{errors}");
 }
 
-pub fn print_log_entry(
-    LogEvent {
-        created_at,
-        message,
-        log_event_type,
-        ..
-    }: LogEvent,
-) {
-    let created_at: chrono::DateTime<chrono::Local> = chrono::DateTime::from(created_at);
-
-    let rest = match log_event_type {
-        crate::logs::LogEventType::Request { duration, .. } => {
-            format!("{message} {duration}", duration = format_duration(duration))
-        }
-        crate::logs::LogEventType::FunctionMessage {
-            log_level,
-            function_kind,
-            function_name,
-        } => format!("[{log_level}] {function_kind} {function_name} | {message}"),
-    };
-    println!("{} {rest}", created_at.to_rfc3339());
-}
-
 // async to make sure this is called within a tokio context
 pub(crate) async fn listen_to_federated_dev_events() {
     tokio::spawn(async move {
@@ -707,10 +574,6 @@ pub(crate) fn publish_command_composition_failure(messages: &[String]) {
     for error in messages {
         watercolor::output!("- {error}", @BrightRed);
     }
-}
-
-pub fn command_separator() {
-    println!();
 }
 
 pub(crate) fn trust_start(manifest: &TrustedDocumentsManifest) {

@@ -12,17 +12,15 @@ const DASHBOARD_URL: &str = "https://app.grafbase.com";
 pub fn api_url() -> &'static str {
     static API_URL: OnceLock<String> = OnceLock::new();
 
-    API_URL.get_or_init(|| match std::env::var("GRAFBASE_API_URL").ok() {
-        Some(url) => url,
-        None => self::API_URL.to_string(),
-    })
+    API_URL.get_or_init(|| std::env::var("GRAFBASE_API_URL")
+        .ok()
+        .unwrap_or_else(|| self::API_URL.to_string()))
 }
 
 pub fn dashboard_url() -> &'static str {
     static DASHBOARD_URL: OnceLock<String> = OnceLock::new();
 
-    DASHBOARD_URL.get_or_init(|| match std::env::var("GRAFBASE_DASHBOARD_URL").ok() {
-        Some(url) => url,
-        None => self::DASHBOARD_URL.to_string(),
-    })
+    DASHBOARD_URL.get_or_init(|| std::env::var("GRAFBASE_DASHBOARD_URL")
+        .ok()
+        .unwrap_or_else(|| self::DASHBOARD_URL.to_string()))
 }
