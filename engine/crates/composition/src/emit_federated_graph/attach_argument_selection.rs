@@ -19,14 +19,12 @@ pub(super) fn attach_argument_selection(
             };
 
             let selection_field = ctx.insert_string(ctx.subgraphs.walk(*field));
-            let field_arguments = ctx.out[field_id].arguments;
-            let argument_id = federated::InputValueDefinitionId::from(
-                field_arguments.0 .0
-                    + ctx.out[field_arguments]
-                        .iter()
-                        .position(|arg| arg.name == selection_field)
-                        .unwrap(),
-            );
+            let argument_id = ctx
+                .out
+                .iter_field_arguments(field_id)
+                .find(|arg| arg.name == selection_field)
+                .unwrap()
+                .id();
 
             let subselection: federated::InputValueDefinitionSet =
                 if let federated::Definition::InputObject(input_object_id) = ctx.out[argument_id].r#type.definition {
@@ -45,7 +43,7 @@ pub(super) fn attach_argument_selection(
 
 fn attach_selection_on_input_object(
     selection_set: &[subgraphs::Selection],
-    input_object_id: federated::InputObjectId,
+    input_object_id: federated::TypeDefinitionId,
     ctx: &mut Context<'_>,
 ) -> federated::InputValueDefinitionSet {
     selection_set
@@ -59,11 +57,12 @@ fn attach_selection_on_input_object(
             };
 
             let field_name = ctx.insert_string(ctx.subgraphs.walk(*field));
-            let input_object = &ctx.out[input_object_id];
-            let fields = &ctx.out[input_object.fields];
 
-            let field_idx = fields.iter().position(|field| field.name == field_name)?;
-            let field_id = federated::InputValueDefinitionId(input_object.fields.0 .0 + field_idx);
+            let field_id = ctx
+                .out
+                .iter_input_object_fields(input_object_id)
+                .find(|field| field.name == field_name)?
+                .id();
 
             let subselection: federated::InputValueDefinitionSet =
                 if let federated::Definition::InputObject(input_object_id) = ctx.out[field_id].r#type.definition {

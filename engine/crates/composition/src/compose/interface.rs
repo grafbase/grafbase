@@ -61,7 +61,6 @@ pub(super) fn merge_interface_definitions<'a>(
             parent_definition: federated::Definition::Interface(interface_id),
             field_name: field.name().id,
             field_type,
-            arguments: federated::NO_INPUT_VALUE_DEFINITION,
             resolvable_in: Vec::new(),
             provides: Vec::new(),
             requires: Vec::new(),

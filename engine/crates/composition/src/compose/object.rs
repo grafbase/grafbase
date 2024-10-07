@@ -5,11 +5,11 @@ use super::*;
 pub(super) fn merge_field_arguments<'a>(
     first: FieldWalker<'a>,
     fields: &[FieldWalker<'a>],
+    federated_field_id: federated::FieldId,
     ctx: &mut Context<'a>,
-) -> federated::InputValueDefinitions {
+) {
     let parent_definition_name = first.parent_definition().name().id;
     let field_name = first.name().id;
-    let mut ids: Option<federated::InputValueDefinitions> = None;
 
     // We want to take the intersection of the field sets.
     let intersection: HashSet<StringId> = first
@@ -82,22 +82,15 @@ pub(super) fn merge_field_arguments<'a>(
         }
 
         let name = ctx.insert_string(argument_name);
-        let id = ctx.insert_input_value_definition(ir::InputValueDefinitionIr {
+        ctx.insert_input_value_definition(ir::InputValueDefinitionIr {
+            location: federated_field_id.into(),
             name,
             r#type: argument_type,
             directives: composed_directives,
             description: None,
             default,
         });
-
-        if let Some((_start, len)) = &mut ids {
-            *len += 1;
-        } else {
-            ids = Some((id, 1));
-        }
     }
-
-    ids.unwrap_or(federated::NO_INPUT_VALUE_DEFINITION)
 }
 
 /// Default values on arguments (e.g. `field(arg: String! = "N.A")`) are _not_
@@ -214,8 +207,6 @@ pub(super) fn compose_object_fields<'a>(
         ));
     }
 
-    let arguments = object::merge_field_arguments(first, fields, ctx);
-
     let resolvable_in = resolvable_in(fields, object_is_shareable);
 
     let provides = fields
@@ -248,11 +239,10 @@ pub(super) fn compose_object_fields<'a>(
         return;
     };
 
-    ctx.insert_field(ir::FieldIr {
+    let field_id = ctx.insert_field(ir::FieldIr {
         parent_definition: federated::Definition::Object(parent_definition),
         field_name: field_name.id,
         field_type,
-        arguments,
         resolvable_in,
         provides,
         requires,
@@ -261,6 +251,8 @@ pub(super) fn compose_object_fields<'a>(
         description,
         authorized_directives,
     });
+
+    object::merge_field_arguments(first, fields, field_id, ctx);
 }
 
 fn resolvable_in(fields: &[FieldWalker<'_>], object_is_shareable: bool) -> Vec<federated::SubgraphId> {

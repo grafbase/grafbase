@@ -143,19 +143,24 @@ impl<'a> GraphBuilder<'a> {
     }
 
     fn ingest_input_objects(&mut self, config: &mut Config) {
-        self.graph.input_object_definitions = take(&mut config.graph.input_objects)
-            .into_iter()
+        self.graph.input_object_definitions = config
+            .graph
+            .iter_input_objects()
             .enumerate()
             .filter_map(|(idx, definition)| {
                 if self.ctx.idmaps.input_value.contains(idx) {
                     Some(InputObjectDefinitionRecord {
                         name_id: definition.name.into(),
                         description_id: definition.description.map(Into::into),
-                        input_field_ids: self.ctx.idmaps.input_value.get_range(definition.fields),
+                        input_field_ids: self
+                            .ctx
+                            .idmaps
+                            .input_value
+                            .get_range(config.graph.input_value_definitions_range(definition.id().into())),
                         directive_ids: self.push_directives(
                             config,
                             Directives {
-                                federated: definition.composed_directives,
+                                federated: definition.directives,
                                 ..Default::default()
                             },
                         ),
@@ -609,7 +614,11 @@ impl<'a> GraphBuilder<'a> {
                         }
                     })
                     .collect(),
-                argument_ids: self.ctx.idmaps.input_value.get_range(field.arguments),
+                argument_ids: self
+                    .ctx
+                    .idmaps
+                    .input_value
+                    .get_range(config.graph.input_value_definitions_range(federated_id.into())),
                 directive_ids: directives,
             })
         }

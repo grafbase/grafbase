@@ -94,7 +94,6 @@ pub(crate) fn merge_entity_interface_definitions<'a>(
                 parent_definition: federated::Definition::Interface(interface_id),
                 field_name: field.name().id,
                 field_type: field.r#type().id,
-                arguments,
                 resolvable_in,
                 provides: Vec::new(),
                 requires: Vec::new(),
@@ -231,10 +230,7 @@ pub(crate) fn merge_entity_interface_definitions<'a>(
     }
 }
 
-fn translate_arguments(
-    field: subgraphs::Walker<'_, (subgraphs::FieldId, subgraphs::FieldTuple)>,
-    ctx: &mut ComposeContext<'_>,
-) -> federated::InputValueDefinitions {
+fn translate_arguments(field: subgraphs::FieldWalker<'_>, ctx: &mut ComposeContext<'_>) {
     let mut ids: Option<federated::InputValueDefinitions> = None;
     for arg in field.arguments() {
         let directives = collect_composed_directives(std::iter::once(arg.directives()), ctx);

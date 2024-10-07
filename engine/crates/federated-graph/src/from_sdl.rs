@@ -233,8 +233,6 @@ pub fn from_sdl(sdl: &str) -> Result<FederatedGraph, DomainError> {
         unions: state.unions,
         strings: state.strings.into_iter().collect(),
         directives: state.directives,
-        input_object_field_definitions: std::mem::take(&mut state.graph.input_object_field_definitions),
-        argument_definitions: std::mem::take(&mut state.graph.argument_definitions),
         authorized_directives: state.authorized_directives,
         field_authorized_directives: state.field_authorized_directives,
         object_authorized_directives: state.object_authorized_directives,
@@ -900,15 +898,9 @@ fn ingest_definitions<'a>(document: &'a ast::TypeSystemDocument, state: &mut Sta
                         }
                     }
                     ast::TypeDefinition::InputObject(_) => {
-                        let input_object_id = InputObjectId(state.input_objects.push_return_idx(InputObject {
-                            name: type_name_id,
-                            fields: NO_INPUT_VALUE_DEFINITION,
-                            composed_directives,
-                            description,
-                        }));
                         state
                             .definition_names
-                            .insert(type_name, Definition::InputObject(input_object_id));
+                            .insert(type_name, Definition::InputObject(type_definition_id));
                     }
                 }
             }
@@ -1045,7 +1037,7 @@ fn ingest_field<'a>(
         .description()
         .map(|description| state.insert_string(description.raw_str()));
 
-    let field_id = FieldId(state.fields.push_return_idx(Field {
+    let field_id = state.graph.push_field(Field {
         name,
         r#type,
         resolvable_in,
@@ -1054,7 +1046,7 @@ fn ingest_field<'a>(
         composed_directives,
         overrides,
         description,
-    }));
+    });
 
     state.selection_map.insert((parent_id, field_name), field_id);
 
@@ -1069,17 +1061,13 @@ fn ingest_field<'a>(
             .default_value()
             .map(|default| state.insert_value(default, r#type.definition.as_enum()));
 
-        let input_value_definition_id = state.graph.push_input_value_definition(InputValueDefinitionRecord {
+        state.graph.push_input_value_definition(InputValueDefinitionRecord {
+            location: field_id.into(),
             name,
             r#type,
             directives: composed_directives,
             description,
             default,
-        });
-
-        state.graph.argument_definitions.push(ArgumentDefinitionRecord {
-            field_id,
-            input_value_definition_id,
         });
     }
 
@@ -1107,10 +1095,6 @@ fn ingest_input_object<'a>(
     state: &mut State<'a>,
 ) -> Result<(), DomainError> {
     for field in input_object.fields() {
-        state.input_values_map.insert(
-            (input_object_id, field.name()),
-            InputObjectFieldDefinitionId::from(state.graph.input_object_field_definitions.len()),
-        );
         let name = state.insert_string(field.name());
         let r#type = state.field_type(field.ty())?;
         let composed_directives = collect_composed_directives(field.directives(), state);
@@ -1122,6 +1106,7 @@ fn ingest_input_object<'a>(
             .map(|default| state.insert_value(default, r#type.definition.as_enum()));
 
         let input_value_definition_id = state.graph.push_input_value_definition(InputValueDefinitionRecord {
+            location: InputValueDefinitionLocation::InputObject(input_object_id),
             name,
             r#type,
             directives: composed_directives,
@@ -1130,12 +1115,8 @@ fn ingest_input_object<'a>(
         });
 
         state
-            .graph
-            .input_object_field_definitions
-            .push(InputObjectFieldDefinitionRecord {
-                input_object_id,
-                input_value_definition_id,
-            });
+            .input_values_map
+            .insert((input_object_id, field.name()), input_value_definition_id);
     }
 
     Ok(())
@@ -1243,26 +1224,38 @@ fn attach_selection_field(
             ast_field.name(),
         ))
     })?;
-    let field_ty = state.fields[field.0].r#type.definition;
+    let field_ty = state.graph.at(field).r#type.definition;
     let arguments = ast_field
         .arguments()
-        .map(|argument| {
-            let name = state.insert_string(argument.name());
-            let arguments = state.graph.iter_field_arguments(field);
-            let argument_id = arguments
-                .position(|arg| arg.input_value_definition.name == name)
-                .map(|idx| InputValueDefinitionId(start.0 + idx))
-                .expect("unknown argument");
+        .map(|ast_argument| {
+            let name = state.insert_string(ast_argument.name());
 
-            let argument_type = state.input_value_definitions[argument_id.0].r#type.definition.as_enum();
+            let Some(argument) = state.graph.iter_field_arguments(field).find(|arg| arg.name == name) else {
+                return Err(DomainError(format!(
+                    "Unknown argument: {}.{}.{}",
+                    state.get_definition_name(target),
+                    state
+                        .strings
+                        .get_index(state.graph.at(field).name.0)
+                        .map(|s| s.as_str())
+                        .unwrap_or("<unknown>"),
+                    state
+                        .strings
+                        .get_index(name.0)
+                        .map(|s| s.as_str())
+                        .unwrap_or("<unknown>"),
+                )));
+            };
 
-            let converted_value = executable_value_to_type_system_value(argument.value());
+            let argument_id = argument.id();
 
+            let argument_type = argument.r#type.definition.as_enum();
+            let converted_value = executable_value_to_type_system_value(ast_argument.value());
             let value = state.insert_value(converted_value, argument_type);
 
-            (argument_id, value)
+            Ok((argument_id, value))
         })
-        .collect();
+        .collect::<Result<_, DomainError>>()?;
 
     Ok(Selection::Field {
         field,
@@ -1312,30 +1305,30 @@ fn attach_input_value_set_to_field_arguments_rec<'a>(
     field_id: FieldId,
     state: &mut State<'_>,
 ) -> Result<InputValueDefinitionSet, DomainError> {
-    let (start, len) = state.fields[field_id.0].arguments;
     selection_set
         .map(|selection| {
             let executable_ast::Selection::Field(ast_arg) = selection else {
                 return Err(DomainError("Unsupported fragment spread in selection set".to_owned()));
             };
 
-            let arguments = &state.input_value_definitions[start.0..start.0 + len];
-            let Some((i, arg)) = arguments
-                .iter()
-                .enumerate()
-                .find(|(_, arg)| state.strings.get_index(arg.name.0).unwrap() == ast_arg.name())
+            let Some(argument) = state
+                .graph
+                .iter_field_arguments(field_id)
+                .find(|arg| state.strings.get_index(arg.name.0).unwrap() == ast_arg.name())
             else {
+                let field_name_id = state.graph.at(field_id).name;
                 return Err(DomainError(format!(
                     "Argument '{}' does not exist for the field '{}.{}'",
                     ast_arg.name(),
                     state.get_definition_name(parent),
-                    state.strings.get_index(state.fields[field_id.0].name.0).unwrap(),
+                    state.strings.get_index(field_name_id.0).unwrap(),
                 )));
             };
 
+            let argument_id = argument.id();
             let mut ast_subselection = ast_arg.selection_set().peekable();
 
-            let subselection = if let Definition::InputObject(input_object_id) = arg.r#type.definition {
+            let subselection = if let Definition::InputObject(input_object_id) = argument.r#type.definition {
                 if ast_subselection.peek().is_none() {
                     return Err(DomainError("InputObject must have a subselection".to_owned()));
                 }
@@ -1347,7 +1340,7 @@ fn attach_input_value_set_to_field_arguments_rec<'a>(
             };
 
             Ok(InputValueDefinitionSetItem {
-                input_value_definition: InputValueDefinitionId(start.0 + i),
+                input_value_definition: argument_id,
                 subselection,
             })
         })

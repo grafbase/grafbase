@@ -255,7 +255,7 @@ pub fn render_federated_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error
         sdl.push_str(" {\n");
 
         for field in graph.iter_input_object_fields(input_object.id()) {
-            write_input_field(field.then(|f| f.input_value_definition_id), graph, &mut sdl)?;
+            write_input_field(field, graph, &mut sdl)?;
         }
 
         writeln!(sdl, "}}\n")?;
@@ -498,10 +498,12 @@ fn write_authorized(field_id: FieldId, graph: &FederatedGraph, sdl: &mut String)
     Ok(())
 }
 
-fn render_field_arguments<'a>(args: impl Iterator<Item = ArgumentDefinition<'a>>, graph: &'a FederatedGraph) -> String {
+fn render_field_arguments<'a>(
+    args: impl Iterator<Item = InputValueDefinition<'a>>,
+    graph: &'a FederatedGraph,
+) -> String {
     let mut args = args
         .map(|arg| {
-            let arg = arg.then(|arg| arg.input_value_definition_id);
             let name = &graph[arg.name];
             let r#type = render_field_type(&arg.r#type, graph);
             let directives = arg.directives;

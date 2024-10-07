@@ -5,12 +5,13 @@ pub(super) fn merge_input_object_definitions(
     first: &DefinitionWalker<'_>,
     definitions: &[DefinitionWalker<'_>],
 ) {
-    let mut fields_range: Option<federated::InputValueDefinitions> = None;
     let description = definitions.iter().find_map(|def| def.description()).map(|d| d.as_str());
 
     let composed_directives = collect_composed_directives(definitions.iter().map(|def| def.directives()), ctx);
 
     let input_object_name = ctx.insert_string(first.name().id);
+
+    let input_object_id = ctx.insert_input_object(input_object_name, description, composed_directives);
 
     // We want to take the intersection of the field sets.
     let intersection: HashSet<StringId> = first
@@ -64,21 +65,13 @@ pub(super) fn merge_input_object_definitions(
         let default = fields.iter().find_map(|(_, field)| field.default_value()).cloned();
 
         let name = ctx.insert_string(field_name);
-        let id = ctx.insert_input_value_definition(ir::InputValueDefinitionIr {
+        ctx.insert_input_value_definition(ir::InputValueDefinitionIr {
+            location: input_object_id.into(),
             name,
             r#type: field_type,
             directives: composed_directives,
             description,
             default,
         });
-
-        if let Some((_start, len)) = &mut fields_range {
-            *len += 1;
-        } else {
-            fields_range = Some((id, 1));
-        }
     }
-
-    let fields = fields_range.unwrap_or(federated::NO_INPUT_VALUE_DEFINITION);
-    ctx.insert_input_object(input_object_name, description, composed_directives, fields);
 }

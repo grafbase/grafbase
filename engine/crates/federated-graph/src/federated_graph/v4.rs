@@ -39,8 +39,6 @@ pub struct FederatedGraph {
 
     /// All [input value definitions](http://spec.graphql.org/October2021/#InputValueDefinition) in the federated graph. Concretely, these are arguments of output fields, and input object fields.
     pub input_value_definitions: Vec<InputValueDefinitionRecord>,
-    pub input_object_field_definitions: Vec<InputObjectFieldDefinitionRecord>,
-    pub argument_definitions: Vec<ArgumentDefinitionRecord>,
 
     /// All the strings in the federated graph, deduplicated.
     pub strings: Vec<String>,
@@ -323,8 +321,6 @@ impl Default for FederatedGraph {
                 },
             ],
             unions: Vec::new(),
-            input_object_field_definitions: Vec::new(),
-            argument_definitions: Vec::new(),
             enum_values: Vec::new(),
             input_value_definitions: Vec::new(),
             strings: ["Query", "__type", "__schema"]
@@ -383,10 +379,10 @@ impl From<super::FederatedGraphV3> for FederatedGraph {
             scalars,
             input_objects: _,
             enum_values,
-            input_value_definitions,
+            input_value_definitions: _,
             strings,
             directives,
-            authorized_directives,
+            authorized_directives: _,
             field_authorized_directives,
             object_authorized_directives,
             interface_authorized_directives,
@@ -504,7 +500,7 @@ impl From<super::FederatedGraphV3> for FederatedGraph {
                     |super::v3::Field {
                          name,
                          r#type,
-                         arguments,
+                         arguments: _,
                          resolvable_in,
                          provides,
                          requires,
@@ -563,8 +559,6 @@ impl From<super::FederatedGraphV3> for FederatedGraph {
             field_authorized_directives,
             object_authorized_directives,
             interface_authorized_directives,
-            input_object_field_definitions: Vec::new(),
-            argument_definitions: Vec::new(),
         }
     }
 }

@@ -22,7 +22,6 @@ pub(crate) struct CompositionIr {
     pub(crate) interfaces: Vec<federated::Interface>,
     pub(crate) unions: Vec<federated::Union>,
     pub(crate) enum_values: Vec<federated::EnumValueRecord>,
-    pub(crate) input_objects: Vec<federated::InputObject>,
     pub(crate) directives: Vec<Directive>,
     pub(crate) input_value_definitions: Vec<InputValueDefinitionIr>,
 
@@ -56,7 +55,6 @@ pub(crate) struct FieldIr {
     pub(crate) parent_definition: federated::Definition,
     pub(crate) field_name: subgraphs::StringId,
     pub(crate) field_type: subgraphs::FieldTypeId,
-    pub(crate) arguments: federated::InputValueDefinitions,
 
     pub(crate) resolvable_in: Vec<federated::SubgraphId>,
 
@@ -79,6 +77,7 @@ pub(crate) struct FieldIr {
 
 #[derive(Clone)]
 pub(crate) struct InputValueDefinitionIr {
+    pub(crate) location: federated::InputValueDefinitionLocation,
     pub(crate) name: federated::StringId,
     pub(crate) r#type: subgraphs::FieldTypeId,
     pub(crate) directives: federated::Directives,

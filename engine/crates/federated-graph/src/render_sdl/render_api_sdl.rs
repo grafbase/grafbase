@@ -162,23 +162,22 @@ impl fmt::Display for Renderer<'_> {
 
             write_block(f, |f| {
                 for field in graph.iter_input_object_fields(input_object.id()) {
-                    let input_value_definition = field.then(|f| f.input_value_definition_id);
-                    if has_inaccessible(&input_value_definition.directives, graph) {
+                    if has_inaccessible(&field.directives, graph) {
                         continue;
                     }
 
-                    write_description(f, input_value_definition.description, INDENT, graph)?;
-                    let field_name = &graph[input_value_definition.name];
+                    write_description(f, field.description, INDENT, graph)?;
+                    let field_name = &graph[field.name];
                     f.write_str(INDENT)?;
                     f.write_str(field_name)?;
                     f.write_str(": ")?;
-                    f.write_str(&render_field_type(&input_value_definition.r#type, graph))?;
+                    f.write_str(&render_field_type(&field.r#type, graph))?;
 
-                    if let Some(default) = &input_value_definition.default {
+                    if let Some(default) = &field.default {
                         write!(f, " = {}", ValueDisplay(default, graph))?;
                     }
 
-                    write_public_directives(f, input_value_definition.directives, graph)?;
+                    write_public_directives(f, field.directives, graph)?;
                     f.write_char('\n')?;
                 }
 
@@ -283,12 +282,11 @@ fn write_enum_variant<'a, 'b: 'a>(
 
 fn write_field_arguments<'a, 'b: 'a>(
     f: &'a mut fmt::Formatter<'b>,
-    args: impl Iterator<Item = ArgumentDefinition<'a>>,
+    args: impl Iterator<Item = InputValueDefinition<'a>>,
     graph: &'a FederatedGraph,
 ) -> fmt::Result {
     let mut args = args
         .map(|arg| {
-            let arg = arg.then(|arg| arg.input_value_definition_id);
             let name = &graph[arg.name];
             let r#type = render_field_type(&arg.r#type, graph);
             let directives = arg.directives;

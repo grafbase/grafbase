@@ -28,7 +28,6 @@ pub(crate) fn emit_federated_graph(mut ir: CompositionIr, subgraphs: &Subgraphs)
         objects: mem::take(&mut ir.objects),
         interfaces: mem::take(&mut ir.interfaces),
         unions: mem::take(&mut ir.unions),
-        input_objects: mem::take(&mut ir.input_objects),
         root_operation_types: RootOperationTypes {
             query: ir.query_type.unwrap(),
             mutation: ir.mutation_type,
@@ -153,13 +152,15 @@ fn emit_input_value_definitions(input_value_definitions: &[InputValueDefinitionI
                  directives,
                  description,
                  default,
+                 location,
              }| {
                 let r#type = ctx.insert_field_type(ctx.subgraphs.walk(*r#type));
                 let default = default
                     .as_ref()
                     .map(|default| ctx.insert_value_with_type(default, r#type.definition.as_enum()));
 
-                federated::InputValueDefinition {
+                federated::InputValueDefinitionRecord {
+                    location: *location,
                     name: *name,
                     r#type,
                     directives: *directives,
@@ -267,7 +268,6 @@ fn emit_fields<'a>(
             parent_definition: _,
             field_name,
             field_type,
-            arguments,
             resolvable_in,
             provides,
             requires,
@@ -284,7 +284,6 @@ fn emit_fields<'a>(
             let field = federated::Field {
                 name: field_name,
                 r#type,
-                arguments,
                 overrides,
 
                 provides: Vec::new(),
@@ -360,7 +359,6 @@ fn emit_fields<'a>(
                         wrapping: federated::Wrapping::new(false),
                         definition,
                     },
-                    arguments: federated::NO_INPUT_VALUE_DEFINITION,
                     resolvable_in: Vec::new(),
                     provides: Vec::new(),
                     requires: Vec::new(),
@@ -510,17 +508,16 @@ fn attach_selection(
                     let selection_field = ctx.insert_string(ctx.subgraphs.walk(*field));
                     let field = ctx.selection_map[&(target, selection_field)];
                     let field_ty = ctx.out[field].r#type.definition;
-                    let field_arguments = ctx.out[field].arguments;
-                    let (federated::InputValueDefinitionId(field_arguments_start), _) = field_arguments;
                     let arguments = arguments
                         .iter()
                         .map(|(name, value)| {
                             // Here we assume the arguments are validated previously.
                             let arg_name = ctx.insert_string(ctx.subgraphs.walk(*name));
-                            let argument = ctx.out[field_arguments]
-                                .iter()
-                                .position(|arg| arg.name == arg_name)
-                                .map(|idx| federated::InputValueDefinitionId(field_arguments_start + idx))
+                            let argument = ctx
+                                .out
+                                .iter_field_arguments(field)
+                                .find(|arg| arg.name == arg_name)
+                                .map(|field_args| field_args.id())
                                 .unwrap();
 
                             let argument_enum_type = ctx.out[argument].r#type.definition.as_enum();
