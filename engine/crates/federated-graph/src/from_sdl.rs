@@ -4,8 +4,7 @@ mod value;
 use self::{arguments::*, value::*};
 use crate::federated_graph::*;
 use cynic_parser::{
-    common::WrappingType, executable as executable_ast, type_system as ast,
-    values::ConstValue as ParserValue,
+    common::WrappingType, executable as executable_ast, type_system as ast, values::ConstValue as ParserValue,
 };
 use indexmap::IndexSet;
 use std::{
@@ -88,11 +87,7 @@ impl<'a> State<'a> {
         };
 
         while let Some(next) = wrappers.next() {
-            debug_assert_eq!(
-                *next,
-                WrappingType::List,
-                "double non-null wrapping type not possible"
-            );
+            debug_assert_eq!(*next, WrappingType::List, "double non-null wrapping type not possible");
 
             wrapping = match wrappers.peek() {
                 Some(WrappingType::NonNull) => {
@@ -108,10 +103,7 @@ impl<'a> State<'a> {
             .get(field_type.name())
             .ok_or_else(|| DomainError(format!("Unknown type '{}'", field_type.name())))?;
 
-        Ok(Type {
-            definition,
-            wrapping,
-        })
+        Ok(Type { definition, wrapping })
     }
 
     fn insert_string(&mut self, s: &str) -> StringId {
@@ -122,11 +114,7 @@ impl<'a> State<'a> {
         StringId(self.strings.insert_full(s.to_owned()).0)
     }
 
-    fn insert_value(
-        &mut self,
-        node: ParserValue<'_>,
-        expected_enum_type: Option<TypeDefinitionId>,
-    ) -> Value {
+    fn insert_value(&mut self, node: ParserValue<'_>, expected_enum_type: Option<TypeDefinitionId>) -> Value {
         match node {
             ParserValue::Null(_) => Value::Null,
             ParserValue::Int(n) => Value::Int(n.as_i64()),
@@ -170,14 +158,10 @@ impl<'a> State<'a> {
         }
         let query_type_name = self.query_type_name.as_deref().unwrap_or("Query");
         let mutation_type_name = self.mutation_type_name.as_deref().unwrap_or("Mutation");
-        let subscription_type_name = self
-            .subscription_type_name
-            .as_deref()
-            .unwrap_or("Subscription");
+        let subscription_type_name = self.subscription_type_name.as_deref().unwrap_or("Subscription");
         Ok(RootOperationTypes {
-            query: get_object_id(self, query_type_name).ok_or_else(|| {
-                DomainError(format!("The `{query_type_name}` type is not defined"))
-            })?,
+            query: get_object_id(self, query_type_name)
+                .ok_or_else(|| DomainError(format!("The `{query_type_name}` type is not defined")))?,
             mutation: get_object_id(self, mutation_type_name),
             subscription: get_object_id(self, subscription_type_name),
         })
@@ -185,15 +169,9 @@ impl<'a> State<'a> {
 
     fn get_definition_name(&self, definition: Definition) -> &str {
         let name = match definition {
-            Definition::Object(object_id) => {
-                self.graph
-                    .view(self.objects[object_id.0].type_definition_id)
-                    .name
-            }
+            Definition::Object(object_id) => self.graph.view(self.objects[object_id.0].type_definition_id).name,
             Definition::Interface(interface_id) => {
-                self.graph
-                    .view(self.interfaces[interface_id.0].type_definition_id)
-                    .name
+                self.graph.view(self.interfaces[interface_id.0].type_definition_id).name
             }
             Definition::Scalar(scalar_id) => self.graph[scalar_id].name,
             Definition::Enum(enum_id) => self.graph[enum_id].name,
@@ -211,8 +189,7 @@ pub fn from_sdl(sdl: &str) -> Result<FederatedGraph, DomainError> {
     state.graph.type_definitions.clear();
     state.graph.fields.clear();
 
-    let parsed = cynic_parser::parse_type_system_document(sdl)
-        .map_err(|err| DomainError(err.to_string()))?;
+    let parsed = cynic_parser::parse_type_system_document(sdl).map_err(|err| DomainError(err.to_string()))?;
 
     ingest_definitions(&parsed, &mut state)?;
     ingest_schema_definitions(&parsed, &mut state)?;
@@ -288,81 +265,60 @@ fn ingest_schema_definitions<'a>(
     Ok(())
 }
 
-fn ingest_fields<'a>(
-    parsed: &'a ast::TypeSystemDocument,
-    state: &mut State<'a>,
-) -> Result<(), DomainError> {
+fn ingest_fields<'a>(parsed: &'a ast::TypeSystemDocument, state: &mut State<'a>) -> Result<(), DomainError> {
     for definition in parsed.definitions() {
         match definition {
-            ast::Definition::Schema(_)
-            | ast::Definition::SchemaExtension(_)
-            | ast::Definition::Directive(_) => (),
-            ast::Definition::Type(typedef) | ast::Definition::TypeExtension(typedef) => {
-                match &typedef {
-                    ast::TypeDefinition::Scalar(_) => (),
-                    ast::TypeDefinition::Object(object) => {
-                        let Definition::Object(object_id) = state.definition_names[typedef.name()]
-                        else {
-                            return Err(DomainError(
-                                "Broken invariant: object id behind object name.".to_owned(),
-                            ));
-                        };
-                        ingest_object_interfaces(object_id, object, state)?;
-                        ingest_object_join_implements(object_id, object, state)?;
-                        ingest_object_fields(object_id, object.fields(), state)?;
-                    }
-                    ast::TypeDefinition::Interface(interface) => {
-                        let Definition::Interface(interface_id) =
-                            state.definition_names[typedef.name()]
-                        else {
-                            return Err(DomainError(
-                                "Broken invariant: interface id behind interface name.".to_owned(),
-                            ));
-                        };
-                        ingest_interface_interfaces(interface_id, interface, state)?;
-                        ingest_interface_join_implements(interface_id, interface, state)?;
-                        ingest_interface_fields(interface_id, interface.fields(), state)?;
-                    }
-                    ast::TypeDefinition::Union(union) => {
-                        let Definition::Union(union_id) = state.definition_names[typedef.name()]
-                        else {
-                            return Err(DomainError(
-                                "Broken invariant: UnionId behind union name.".to_owned(),
-                            ));
-                        };
-                        ingest_union_members(union_id, union, state)?;
-                        ingest_union_join_members(union_id, union, state)?;
-                    }
-                    ast::TypeDefinition::Enum(_) => {}
-                    ast::TypeDefinition::InputObject(input_object) => {
-                        let Definition::InputObject(input_object_id) =
-                            state.definition_names[typedef.name()]
-                        else {
-                            return Err(DomainError(
-                                "Broken invariant: InputObjectId behind input object name."
-                                    .to_owned(),
-                            ));
-                        };
-                        ingest_input_object(input_object_id, input_object, state)?;
-                    }
+            ast::Definition::Schema(_) | ast::Definition::SchemaExtension(_) | ast::Definition::Directive(_) => (),
+            ast::Definition::Type(typedef) | ast::Definition::TypeExtension(typedef) => match &typedef {
+                ast::TypeDefinition::Scalar(_) => (),
+                ast::TypeDefinition::Object(object) => {
+                    let Definition::Object(object_id) = state.definition_names[typedef.name()] else {
+                        return Err(DomainError(
+                            "Broken invariant: object id behind object name.".to_owned(),
+                        ));
+                    };
+                    ingest_object_interfaces(object_id, object, state)?;
+                    ingest_object_join_implements(object_id, object, state)?;
+                    ingest_object_fields(object_id, object.fields(), state)?;
                 }
-            }
+                ast::TypeDefinition::Interface(interface) => {
+                    let Definition::Interface(interface_id) = state.definition_names[typedef.name()] else {
+                        return Err(DomainError(
+                            "Broken invariant: interface id behind interface name.".to_owned(),
+                        ));
+                    };
+                    ingest_interface_interfaces(interface_id, interface, state)?;
+                    ingest_interface_join_implements(interface_id, interface, state)?;
+                    ingest_interface_fields(interface_id, interface.fields(), state)?;
+                }
+                ast::TypeDefinition::Union(union) => {
+                    let Definition::Union(union_id) = state.definition_names[typedef.name()] else {
+                        return Err(DomainError("Broken invariant: UnionId behind union name.".to_owned()));
+                    };
+                    ingest_union_members(union_id, union, state)?;
+                    ingest_union_join_members(union_id, union, state)?;
+                }
+                ast::TypeDefinition::Enum(_) => {}
+                ast::TypeDefinition::InputObject(input_object) => {
+                    let Definition::InputObject(input_object_id) = state.definition_names[typedef.name()] else {
+                        return Err(DomainError(
+                            "Broken invariant: InputObjectId behind input object name.".to_owned(),
+                        ));
+                    };
+                    ingest_input_object(input_object_id, input_object, state)?;
+                }
+            },
         }
     }
 
     Ok(())
 }
 
-fn ingest_schema_definition(
-    schema: ast::SchemaDefinition<'_>,
-    state: &mut State<'_>,
-) -> Result<(), DomainError> {
+fn ingest_schema_definition(schema: ast::SchemaDefinition<'_>, state: &mut State<'_>) -> Result<(), DomainError> {
     for directive in schema.directives() {
         let name = directive.name();
         if name != "link" {
-            return Err(DomainError(format!(
-                "Unsupported directive {name} on schema."
-            )));
+            return Err(DomainError(format!("Unsupported directive {name} on schema.")));
         }
     }
 
@@ -463,9 +419,7 @@ fn ingest_union_join_members(
             continue;
         };
 
-        state.unions[union_id.0]
-            .join_members
-            .insert((subgraph_id, object_id));
+        state.unions[union_id.0].join_members.insert((subgraph_id, object_id));
     }
 
     Ok(())
@@ -485,8 +439,7 @@ fn parse_join_union_member(
     };
 
     let Some(ParserValue::String(member)) = directive.get_argument("member") else {
-        let error =
-            DomainError("Missing member argument in join__unionMember directive".to_owned());
+        let error = DomainError("Missing member argument in join__unionMember directive".to_owned());
         return Err(error);
     };
 
@@ -498,9 +451,7 @@ fn parse_join_union_member(
     let object_id = match state.definition_names.get(member.value()) {
         Some(Definition::Object(object_id)) => *object_id,
         _ => {
-            let error = DomainError(
-                "Broken invariant: join__unionMember points to a non-existing type".to_owned(),
-            );
+            let error = DomainError("Broken invariant: join__unionMember points to a non-existing type".to_owned());
             return Err(error);
         }
     };
@@ -516,18 +467,14 @@ fn parse_join_implements(
         return Ok(None);
     }
 
-    let Some(graph) = directive
-        .get_argument("graph")
-        .and_then(|a| a.as_enum_value())
-    else {
+    let Some(graph) = directive.get_argument("graph").and_then(|a| a.as_enum_value()) else {
         let error = DomainError("Missing graph argument in join__implements directive".to_owned());
 
         return Err(error);
     };
 
     let Some(interface) = directive.get_argument("interface").and_then(|a| a.as_str()) else {
-        let error =
-            DomainError("Missing interface argument in join__implements directive".to_owned());
+        let error = DomainError("Missing interface argument in join__implements directive".to_owned());
 
         return Err(error);
     };
@@ -541,9 +488,7 @@ fn parse_join_implements(
     let interface_id = match state.definition_names.get(interface) {
         Some(Definition::Interface(interface_id)) => *interface_id,
         _ => {
-            let error = DomainError(
-                "Broken invariant: join__implements points to a non-interface type".to_owned(),
-            );
+            let error = DomainError("Broken invariant: join__implements points to a non-interface type".to_owned());
 
             return Err(error);
         }
@@ -552,27 +497,18 @@ fn parse_join_implements(
     Ok(Some((subgraph_id, interface_id)))
 }
 
-fn ingest_selection_sets<'a>(
-    parsed: &'a ast::TypeSystemDocument,
-    state: &mut State<'a>,
-) -> Result<(), DomainError> {
+fn ingest_selection_sets<'a>(parsed: &'a ast::TypeSystemDocument, state: &mut State<'a>) -> Result<(), DomainError> {
     ingest_field_directives_after_graph(parsed, state)?;
     ingest_authorized_directives(parsed, state)?;
     ingest_entity_keys(parsed, state)
 }
 
-fn ingest_authorized_directives(
-    parsed: &ast::TypeSystemDocument,
-    state: &mut State<'_>,
-) -> Result<(), DomainError> {
+fn ingest_authorized_directives(parsed: &ast::TypeSystemDocument, state: &mut State<'_>) -> Result<(), DomainError> {
     for typedef in parsed.definitions().filter_map(|def| match def {
         ast::Definition::Type(ty) => Some(ty),
         _ => None,
     }) {
-        let Some(authorized) = typedef
-            .directives()
-            .find(|directive| directive.name() == "authorized")
-        else {
+        let Some(authorized) = typedef.directives().find(|directive| directive.name() == "authorized") else {
             continue;
         };
 
@@ -583,24 +519,19 @@ fn ingest_authorized_directives(
         let fields = authorized
             .get_argument("fields")
             .and_then(|arg| arg.as_str())
-            .map(|fields| {
-                parse_selection_set(fields)
-                    .and_then(|doc| attach_selection_set(&doc, definition, state))
-            })
+            .map(|fields| parse_selection_set(fields).and_then(|doc| attach_selection_set(&doc, definition, state)))
             .transpose()?;
 
         let metadata = authorized
             .get_argument("metadata")
             .map(|metadata| state.insert_value(metadata, None));
 
-        let idx = state
-            .authorized_directives
-            .push_return_idx(AuthorizedDirective {
-                fields,
-                node: None,
-                arguments: None,
-                metadata,
-            });
+        let idx = state.authorized_directives.push_return_idx(AuthorizedDirective {
+            fields,
+            node: None,
+            arguments: None,
+            metadata,
+        });
 
         match definition {
             Definition::Object(object_id) => {
@@ -620,10 +551,7 @@ fn ingest_authorized_directives(
     Ok(())
 }
 
-fn ingest_entity_keys(
-    parsed: &ast::TypeSystemDocument,
-    state: &mut State<'_>,
-) -> Result<(), DomainError> {
+fn ingest_entity_keys(parsed: &ast::TypeSystemDocument, state: &mut State<'_>) -> Result<(), DomainError> {
     for typedef in parsed.definitions().filter_map(|def| match def {
         ast::Definition::Type(ty) => Some(ty),
         _ => None,
@@ -643,10 +571,7 @@ fn ingest_entity_keys(
             let fields = join_type
                 .get_argument("key")
                 .and_then(|arg| arg.as_str())
-                .map(|fields| {
-                    parse_selection_set(fields)
-                        .and_then(|doc| attach_selection_set(&doc, definition, state))
-                })
+                .map(|fields| parse_selection_set(fields).and_then(|doc| attach_selection_set(&doc, definition, state)))
                 .transpose()?
                 .unwrap_or_default();
             let resolvable = join_type
@@ -742,10 +667,7 @@ where
         let mut requires = Vec::new();
         let mut provides = Vec::new();
 
-        for directive in field
-            .directives()
-            .filter(|dir| dir.name() == JOIN_FIELD_DIRECTIVE_NAME)
-        {
+        for directive in field.directives().filter(|dir| dir.name() == JOIN_FIELD_DIRECTIVE_NAME) {
             let is_external = directive
                 .get_argument("external")
                 .map(|arg| arg.as_bool().unwrap_or_default())
@@ -779,10 +701,7 @@ where
                 .map(|provides| {
                     parse_selection_set(provides)
                         .and_then(|doc| attach_selection_set(&doc, field_type.definition, state))
-                        .map(|fields| FieldProvides {
-                            subgraph_id,
-                            fields,
-                        })
+                        .map(|fields| FieldProvides { subgraph_id, fields })
                 })
                 .transpose()?
             {
@@ -795,10 +714,7 @@ where
                 .map(|requires| {
                     parse_selection_set(requires)
                         .and_then(|doc| attach_selection_set(&doc, parent_id, state))
-                        .map(|fields| FieldRequires {
-                            subgraph_id,
-                            fields,
-                        })
+                        .map(|fields| FieldRequires { subgraph_id, fields })
                 })
                 .transpose()?
             {
@@ -838,9 +754,7 @@ fn ingest_authorized_directive<'a>(
                     .and_then(|value| value.as_str())
                     .map(|arguments| {
                         parse_selection_set(arguments).and_then(|fields| {
-                            attach_input_value_set_to_field_arguments(
-                                fields, parent_id, field_id, state,
-                            )
+                            attach_input_value_set_to_field_arguments(fields, parent_id, field_id, state)
                         })
                     })
                     .transpose()?,
@@ -848,17 +762,15 @@ fn ingest_authorized_directive<'a>(
                     .get_argument("fields")
                     .and_then(|value| value.as_str())
                     .map(|fields| {
-                        parse_selection_set(fields)
-                            .and_then(|fields| attach_selection_set(&fields, parent_id, state))
+                        parse_selection_set(fields).and_then(|fields| attach_selection_set(&fields, parent_id, state))
                     })
                     .transpose()?,
                 node: directive
                     .get_argument("node")
                     .and_then(|value| value.as_str())
                     .map(|fields| {
-                        parse_selection_set(fields).and_then(|fields| {
-                            attach_selection_set(&fields, field_type.definition, state)
-                        })
+                        parse_selection_set(fields)
+                            .and_then(|fields| attach_selection_set(&fields, field_type.definition, state))
                     })
                     .transpose()?,
                 metadata: directive
@@ -874,15 +786,10 @@ fn ingest_authorized_directive<'a>(
     Ok(())
 }
 
-fn ingest_definitions<'a>(
-    document: &'a ast::TypeSystemDocument,
-    state: &mut State<'a>,
-) -> Result<(), DomainError> {
+fn ingest_definitions<'a>(document: &'a ast::TypeSystemDocument, state: &mut State<'a>) -> Result<(), DomainError> {
     for definition in document.definitions() {
         match definition {
-            ast::Definition::SchemaExtension(_)
-            | ast::Definition::Schema(_)
-            | ast::Definition::Directive(_) => (),
+            ast::Definition::SchemaExtension(_) | ast::Definition::Schema(_) | ast::Definition::Directive(_) => (),
             ast::Definition::TypeExtension(typedef) | ast::Definition::Type(typedef) => {
                 let type_name = typedef.name();
                 let type_name_id = state.insert_string(type_name);
@@ -927,19 +834,16 @@ fn ingest_definitions<'a>(
                             fields: NO_FIELDS,
                         }));
 
-                        state
-                            .definition_names
-                            .insert(type_name, Definition::Object(object_id));
+                        state.definition_names.insert(type_name, Definition::Object(object_id));
                     }
                     ast::TypeDefinition::Interface(_) => {
-                        let interface_id =
-                            InterfaceId(state.interfaces.push_return_idx(Interface {
-                                type_definition_id,
-                                implements_interfaces: Vec::new(),
-                                keys: Vec::new(),
-                                fields: NO_FIELDS,
-                                join_implements: Vec::new(),
-                            }));
+                        let interface_id = InterfaceId(state.interfaces.push_return_idx(Interface {
+                            type_definition_id,
+                            implements_interfaces: Vec::new(),
+                            keys: Vec::new(),
+                            fields: NO_FIELDS,
+                            join_implements: Vec::new(),
+                        }));
                         state
                             .definition_names
                             .insert(type_name, Definition::Interface(interface_id));
@@ -952,9 +856,7 @@ fn ingest_definitions<'a>(
                             composed_directives,
                             description,
                         }));
-                        state
-                            .definition_names
-                            .insert(type_name, Definition::Union(union_id));
+                        state.definition_names.insert(type_name, Definition::Union(union_id));
                     }
                     ast::TypeDefinition::Enum(enm) => {
                         state
@@ -962,8 +864,7 @@ fn ingest_definitions<'a>(
                             .insert(type_name, Definition::Enum(type_definition_id));
 
                         for value in enm.values() {
-                            let composed_directives =
-                                collect_composed_directives(value.directives(), state);
+                            let composed_directives = collect_composed_directives(value.directives(), state);
                             let description = value
                                 .description()
                                 .map(|description| state.insert_string(description.raw_str()));
@@ -976,19 +877,16 @@ fn ingest_definitions<'a>(
                                 description,
                             });
 
-                            state
-                                .enum_values_map
-                                .insert((type_definition_id, value.value()), id);
+                            state.enum_values_map.insert((type_definition_id, value.value()), id);
                         }
                     }
                     ast::TypeDefinition::InputObject(_) => {
-                        let input_object_id =
-                            InputObjectId(state.input_objects.push_return_idx(InputObject {
-                                name: type_name_id,
-                                fields: NO_INPUT_VALUE_DEFINITION,
-                                composed_directives,
-                                description,
-                            }));
+                        let input_object_id = InputObjectId(state.input_objects.push_return_idx(InputObject {
+                            name: type_name_id,
+                            fields: NO_INPUT_VALUE_DEFINITION,
+                            composed_directives,
+                            description,
+                        }));
                         state
                             .definition_names
                             .insert(type_name, Definition::InputObject(input_object_id));
@@ -1012,9 +910,7 @@ fn insert_builtin_scalars(state: &mut State<'_>) {
             description: None,
             kind: TypeDefinitionKind::Scalar,
         });
-        state
-            .definition_names
-            .insert(name_str, Definition::Scalar(id));
+        state.definition_names.insert(name_str, Definition::Scalar(id));
     }
 }
 
@@ -1078,9 +974,7 @@ fn ingest_field<'a>(
         // We implemented "overrides" by mistake, so we allow it for backwards compatibility..
         .filter(|dir| {
             dir.get_argument("overrides").is_none()
-                && dir
-                    .get_argument(JOIN_FIELD_DIRECTIVE_OVERRIDE_ARGUMENT)
-                    .is_none()
+                && dir.get_argument(JOIN_FIELD_DIRECTIVE_OVERRIDE_ARGUMENT).is_none()
         })
         .filter(|dir| {
             dir.get_argument("external")
@@ -1092,62 +986,53 @@ fn ingest_field<'a>(
         .map(|value| state.graph_sdl_names[value])
         .collect();
 
-    let overrides =
-        ast_field
-            .directives()
-            .filter(|dir| dir.name() == JOIN_FIELD_DIRECTIVE_NAME)
-            .filter_map(|dir| {
-                dir.get_argument("graph")
-                    // We implemented "overrides" by mistake, so we allow it for backwards compatibility..
-                    .zip(
-                        dir.get_argument("overrides")
-                            .or(dir.get_argument(JOIN_FIELD_DIRECTIVE_OVERRIDE_ARGUMENT)),
+    let overrides = ast_field
+        .directives()
+        .filter(|dir| dir.name() == JOIN_FIELD_DIRECTIVE_NAME)
+        .filter_map(|dir| {
+            dir.get_argument("graph")
+                // We implemented "overrides" by mistake, so we allow it for backwards compatibility..
+                .zip(
+                    dir.get_argument("overrides")
+                        .or(dir.get_argument(JOIN_FIELD_DIRECTIVE_OVERRIDE_ARGUMENT)),
+                )
+                .map(|(graph, overrides)| {
+                    (
+                        graph,
+                        overrides,
+                        dir.get_argument(JOIN_FIELD_DIRECTIVE_OVERRIDE_LABEL_ARGUMENT),
                     )
-                    .map(|(graph, overrides)| {
-                        (
-                            graph,
-                            overrides,
-                            dir.get_argument(JOIN_FIELD_DIRECTIVE_OVERRIDE_LABEL_ARGUMENT),
-                        )
-                    })
-            })
-            .filter_map(
-                |(graph, overrides, override_label)| match (graph, overrides) {
-                    (ParserValue::Enum(graph), ParserValue::String(overrides)) => {
-                        Some(Override {
-                            graph: state.graph_sdl_names.get(graph.name()).copied().or_else(
-                                || {
-                                    // Previously we used the subgraph name rather than the enum we overrides
-                                    // was specified.
-                                    let subgraph_name = state.insert_string(graph.name());
-                                    Some(SubgraphId(
-                                        state
-                                            .subgraphs
-                                            .iter()
-                                            .position(|subgraph| subgraph.name == subgraph_name)?,
-                                    ))
-                                },
-                            )?,
-                            label: override_label
-                                .and_then(|arg| arg.as_str()?.parse().ok())
-                                .unwrap_or_default(),
-                            from: state
+                })
+        })
+        .filter_map(|(graph, overrides, override_label)| match (graph, overrides) {
+            (ParserValue::Enum(graph), ParserValue::String(overrides)) => {
+                Some(Override {
+                    graph: state.graph_sdl_names.get(graph.name()).copied().or_else(|| {
+                        // Previously we used the subgraph name rather than the enum we overrides
+                        // was specified.
+                        let subgraph_name = state.insert_string(graph.name());
+                        Some(SubgraphId(
+                            state
                                 .subgraphs
                                 .iter()
-                                .position(|subgraph| {
-                                    state.strings[subgraph.name.0] == overrides.value()
-                                })
-                                .map(SubgraphId)
-                                .map(OverrideSource::Subgraph)
-                                .unwrap_or_else(|| {
-                                    OverrideSource::Missing(state.insert_string(overrides.value()))
-                                }),
-                        })
-                    }
-                    _ => None, // unreachable in valid schemas
-                },
-            )
-            .collect();
+                                .position(|subgraph| subgraph.name == subgraph_name)?,
+                        ))
+                    })?,
+                    label: override_label
+                        .and_then(|arg| arg.as_str()?.parse().ok())
+                        .unwrap_or_default(),
+                    from: state
+                        .subgraphs
+                        .iter()
+                        .position(|subgraph| state.strings[subgraph.name.0] == overrides.value())
+                        .map(SubgraphId)
+                        .map(OverrideSource::Subgraph)
+                        .unwrap_or_else(|| OverrideSource::Missing(state.insert_string(overrides.value()))),
+                })
+            }
+            _ => None, // unreachable in valid schemas
+        })
+        .collect();
 
     let composed_directives = collect_composed_directives(ast_field.directives(), state);
     let description = ast_field
@@ -1166,9 +1051,7 @@ fn ingest_field<'a>(
         description,
     }));
 
-    state
-        .selection_map
-        .insert((parent_id, field_name), field_id);
+    state.selection_map.insert((parent_id, field_name), field_id);
 
     Ok(field_id)
 }
@@ -1263,9 +1146,7 @@ fn ingest_object_fields<'a>(
         }
 
         start = start.or(Some(FieldId(new_start)));
-        end = end
-            .map(|end| FieldId(end.0 + 2))
-            .or(Some(FieldId(new_start + 2)));
+        end = end.map(|end| FieldId(end.0 + 2)).or(Some(FieldId(new_start + 2)));
     }
 
     if let [Some(start), Some(end)] = [start, end] {
@@ -1305,15 +1186,13 @@ fn attach_selection_set_rec<'a>(
 ) -> Result<SelectionSet, DomainError> {
     selection_set
         .map(|selection| match selection {
-            executable_ast::Selection::Field(ast_field) => {
-                attach_selection_field(ast_field, target, state)
-            }
+            executable_ast::Selection::Field(ast_field) => attach_selection_field(ast_field, target, state),
             executable_ast::Selection::InlineFragment(inline_fragment) => {
                 attach_inline_fragment(inline_fragment, state)
             }
-            executable_ast::Selection::FragmentSpread(_) => Err(DomainError(
-                "Unsupported fragment spread in selection set".to_owned(),
-            )),
+            executable_ast::Selection::FragmentSpread(_) => {
+                Err(DomainError("Unsupported fragment spread in selection set".to_owned()))
+            }
         })
         .collect()
 }
@@ -1323,16 +1202,13 @@ fn attach_selection_field(
     target: Definition,
     state: &mut State<'_>,
 ) -> Result<Selection, DomainError> {
-    let field: FieldId = *state
-        .selection_map
-        .get(&(target, ast_field.name()))
-        .ok_or_else(|| {
-            DomainError(format!(
-                "Field '{}.{}' does not exist",
-                state.get_definition_name(target),
-                ast_field.name(),
-            ))
-        })?;
+    let field: FieldId = *state.selection_map.get(&(target, ast_field.name())).ok_or_else(|| {
+        DomainError(format!(
+            "Field '{}.{}' does not exist",
+            state.get_definition_name(target),
+            ast_field.name(),
+        ))
+    })?;
     let field_ty = state.fields[field.0].r#type.definition;
     let arguments = ast_field
         .arguments()
@@ -1346,10 +1222,7 @@ fn attach_selection_field(
                 .map(|idx| InputValueDefinitionId(start.0 + idx))
                 .expect("unknown argument");
 
-            let argument_type = state.input_value_definitions[argument_id.0]
-                .r#type
-                .definition
-                .as_enum();
+            let argument_type = state.input_value_definitions[argument_id.0].r#type.definition.as_enum();
 
             let const_value = argument
                 .value()
@@ -1374,12 +1247,10 @@ fn attach_inline_fragment(
     state: &mut State<'_>,
 ) -> Result<Selection, DomainError> {
     let on: Definition = match inline_fragment.type_condition() {
-        Some(type_name) => *state.definition_names.get(type_name).ok_or_else(|| {
-            DomainError(format!(
-                "Type '{}' in type condition does not exist",
-                type_name
-            ))
-        })?,
+        Some(type_name) => *state
+            .definition_names
+            .get(type_name)
+            .ok_or_else(|| DomainError(format!("Type '{}' in type condition does not exist", type_name)))?,
         None => {
             return Err(DomainError(
                 "Fragments without type condition are not supported".to_owned(),
@@ -1403,12 +1274,7 @@ fn attach_input_value_set_to_field_arguments(
         .next()
         .expect("first operation is there by construction");
 
-    attach_input_value_set_to_field_arguments_rec(
-        operation.selection_set(),
-        parent,
-        field_id,
-        state,
-    )
+    attach_input_value_set_to_field_arguments_rec(operation.selection_set(), parent, field_id, state)
 }
 
 fn attach_input_value_set_to_field_arguments_rec<'a>(
@@ -1421,9 +1287,7 @@ fn attach_input_value_set_to_field_arguments_rec<'a>(
     selection_set
         .map(|selection| {
             let executable_ast::Selection::Field(ast_arg) = selection else {
-                return Err(DomainError(
-                    "Unsupported fragment spread in selection set".to_owned(),
-                ));
+                return Err(DomainError("Unsupported fragment spread in selection set".to_owned()));
             };
 
             let arguments = &state.input_value_definitions[start.0..start.0 + len];
@@ -1436,30 +1300,22 @@ fn attach_input_value_set_to_field_arguments_rec<'a>(
                     "Argument '{}' does not exist for the field '{}.{}'",
                     ast_arg.name(),
                     state.get_definition_name(parent),
-                    state
-                        .strings
-                        .get_index(state.fields[field_id.0].name.0)
-                        .unwrap(),
+                    state.strings.get_index(state.fields[field_id.0].name.0).unwrap(),
                 )));
             };
 
             let mut ast_subselection = ast_arg.selection_set().peekable();
 
-            let subselection =
-                if let Definition::InputObject(input_object_id) = arg.r#type.definition {
-                    if ast_subselection.peek().is_none() {
-                        return Err(DomainError(
-                            "InputObject must have a subselection".to_owned(),
-                        ));
-                    }
-                    attach_input_value_set_rec(ast_subselection, input_object_id, state)?
-                } else if ast_subselection.peek().is_some() {
-                    return Err(DomainError(
-                        "Only InputObject can have a subselection".to_owned(),
-                    ));
-                } else {
-                    InputValueDefinitionSet::default()
-                };
+            let subselection = if let Definition::InputObject(input_object_id) = arg.r#type.definition {
+                if ast_subselection.peek().is_none() {
+                    return Err(DomainError("InputObject must have a subselection".to_owned()));
+                }
+                attach_input_value_set_rec(ast_subselection, input_object_id, state)?
+            } else if ast_subselection.peek().is_some() {
+                return Err(DomainError("Only InputObject can have a subselection".to_owned()));
+            } else {
+                InputValueDefinitionSet::default()
+            };
 
             Ok(InputValueDefinitionSetItem {
                 input_value_definition: InputValueDefinitionId(start.0 + i),
@@ -1477,9 +1333,7 @@ fn attach_input_value_set_rec<'a>(
     selection_set
         .map(|selection| {
             let executable_ast::Selection::Field(ast_field) = selection else {
-                return Err(DomainError(
-                    "Unsupported fragment spread in selection set".to_owned(),
-                ));
+                return Err(DomainError("Unsupported fragment spread in selection set".to_owned()));
             };
             let id = *state
                 .input_values_map
@@ -1498,15 +1352,11 @@ fn attach_input_value_set_rec<'a>(
                 state.input_value_definitions[id.0].r#type.definition
             {
                 if ast_subselection.peek().is_none() {
-                    return Err(DomainError(
-                        "InputObject must have a subselection".to_owned(),
-                    ));
+                    return Err(DomainError("InputObject must have a subselection".to_owned()));
                 }
                 attach_input_value_set_rec(ast_subselection, input_object_id, state)?
             } else if ast_subselection.peek().is_some() {
-                return Err(DomainError(
-                    "Only InputObject can have a subselection".to_owned(),
-                ));
+                return Err(DomainError("Only InputObject can have a subselection".to_owned()));
             } else {
                 InputValueDefinitionSet::default()
             };
@@ -1519,18 +1369,13 @@ fn attach_input_value_set_rec<'a>(
         .collect()
 }
 
-fn ingest_join_graph_enum<'a>(
-    enm: ast::EnumDefinition<'a>,
-    state: &mut State<'a>,
-) -> Result<(), DomainError> {
+fn ingest_join_graph_enum<'a>(enm: ast::EnumDefinition<'a>, state: &mut State<'a>) -> Result<(), DomainError> {
     for value in enm.values() {
         let sdl_name = value.value();
         let directive = value
             .directives()
             .find(|directive| directive.name() == JOIN_GRAPH_DIRECTIVE_NAME)
-            .ok_or_else(|| {
-                DomainError("Missing @join__graph directive on join__Graph enum value.".to_owned())
-            })?;
+            .ok_or_else(|| DomainError("Missing @join__graph directive on join__Graph enum value.".to_owned()))?;
         let name = directive
             .get_argument("name")
             .ok_or_else(|| {
@@ -1595,12 +1440,10 @@ fn collect_composed_directives<'a>(
             "inaccessible" => state.directives.push(Directive::Inaccessible),
             "deprecated" => {
                 let directive = Directive::Deprecated {
-                    reason: directive
-                        .get_argument("reason")
-                        .and_then(|value| match value {
-                            ParserValue::String(s) => Some(state.insert_string(s.value())),
-                            _ => None,
-                        }),
+                    reason: directive.get_argument("reason").and_then(|value| match value {
+                        ParserValue::String(s) => Some(state.insert_string(s.value())),
+                        _ => None,
+                    }),
                 };
 
                 state.directives.push(directive)
@@ -1614,16 +1457,9 @@ fn collect_composed_directives<'a>(
                 if let Some(scopes) = scopes {
                     let transformed = scopes
                         .into_iter()
-                        .map(|scopes| {
-                            scopes
-                                .into_iter()
-                                .map(|scope| state.insert_string(&scope))
-                                .collect()
-                        })
+                        .map(|scopes| scopes.into_iter().map(|scope| state.insert_string(&scope)).collect())
                         .collect();
-                    state
-                        .directives
-                        .push(Directive::RequiresScopes(transformed));
+                    state.directives.push(Directive::RequiresScopes(transformed));
                 }
             }
             "policy" => {
@@ -1655,10 +1491,7 @@ fn collect_composed_directives<'a>(
                 let arguments = directive
                     .arguments()
                     .map(|arg| -> (StringId, Value) {
-                        (
-                            state.insert_string(arg.name()),
-                            state.insert_value(arg.value(), None),
-                        )
+                        (state.insert_string(arg.name()), state.insert_value(arg.value(), None))
                     })
                     .collect();
 
