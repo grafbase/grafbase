@@ -10,7 +10,7 @@ use crate::{
     Subgraphs, VecExt,
 };
 use federated::RootOperationTypes;
-use graphql_federated_graph as federated;
+use graphql_federated_graph::{self as federated, NO_FIELDS};
 use itertools::Itertools;
 use std::{
     collections::{BTreeMap, BTreeSet},
@@ -66,6 +66,8 @@ pub(crate) fn emit_federated_graph(mut ir: CompositionIr, subgraphs: &Subgraphs)
     emit_authorized_directives(&ir, &mut ctx);
 
     drop(ctx);
+
+    dbg!(&out);
 
     federated::VersionedFederatedGraph::Sdl(graphql_federated_graph::render_federated_sdl(&out).unwrap())
 }
@@ -246,6 +248,8 @@ fn emit_fields<'a>(
     }
     let mut field_authorized: Vec<AuthorizedField<'_>> = Vec::new();
 
+    let mut query_root_fields: federated::Fields = NO_FIELDS;
+
     emit_fields::for_each_field_group(&ir_fields, |definition, fields| {
         let mut start_field_id = None;
         let mut end_field_id = None;
@@ -353,28 +357,7 @@ fn emit_fields<'a>(
 
         match definition {
             federated::Definition::Object(id) if id == ctx.out.root_operation_types.query => {
-                // Here we want to reserve two spots for the __schema and __type fields used for introspection.
-
-                let extra_fields = [__schema, __type].map(|name| federated::Field {
-                    name,
-                    // Dummy type
-                    r#type: federated::Type {
-                        wrapping: federated::Wrapping::new(false),
-                        definition,
-                    },
-                    resolvable_in: Vec::new(),
-                    provides: Vec::new(),
-                    requires: Vec::new(),
-                    overrides: Vec::new(),
-                    composed_directives: federated::NO_DIRECTIVES,
-                    description: None,
-                });
-
-                ctx.out.fields.extend_from_slice(&extra_fields);
-                ctx.out.objects[id.0].fields = federated::Fields {
-                    start: fields.start,
-                    end: federated::FieldId(fields.end.0 + 2),
-                };
+                query_root_fields = fields;
             }
             federated::Definition::Object(id) => {
                 ctx.out.objects[id.0].fields = fields;
@@ -385,6 +368,38 @@ fn emit_fields<'a>(
             _ => unreachable!(),
         }
     });
+
+    // Here we want to reserve two spots for the __schema and __type fields used for introspection. That should be at the end.
+    {
+        let query_object_id = ctx.out.root_operation_types.query;
+        let extra_fields = [__schema, __type].map(|name| federated::Field {
+            name,
+            // Dummy type
+            r#type: federated::Type {
+                wrapping: federated::Wrapping::new(false),
+                definition: graphql_federated_graph::Definition::Object(query_object_id),
+            },
+            resolvable_in: Vec::new(),
+            provides: Vec::new(),
+            requires: Vec::new(),
+            overrides: Vec::new(),
+            composed_directives: federated::NO_DIRECTIVES,
+            description: None,
+        });
+
+        let start = ctx.out.fields.len();
+
+        let query_fields = ctx.out[query_root_fields].to_vec();
+        ctx.out.fields.extend_from_slice(&query_fields);
+        ctx.out.fields.extend_from_slice(&extra_fields);
+
+        let end = ctx.out.fields.len();
+
+        ctx.out[query_object_id].fields = federated::Fields {
+            start: federated::FieldId(start),
+            end: federated::FieldId(end),
+        };
+    }
 
     for (field_id, subgraph_id, definition, provides) in field_provides {
         let fields = attach_selection(provides, definition, ctx);
