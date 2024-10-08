@@ -11,6 +11,7 @@ pub(crate) async fn publish(
         project_ref,
         url,
         schema_path,
+        message,
         ..
     }: PublishCommand,
 ) -> Result<(), CliError> {
@@ -40,6 +41,7 @@ pub(crate) async fn publish(
         &subgraph_name,
         url.as_str(),
         &schema,
+        message.as_deref(),
     )
     .await
     .map_err(CliError::BackendApiError)?;
