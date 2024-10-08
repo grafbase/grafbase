@@ -24,7 +24,7 @@ async fn federation_start() {
     let output = cmd!("npm", "install").dir(&env.directory_path).run().unwrap();
     assert!(output.status.success());
 
-    env.grafbase_start();
+    env.grafbase_dev();
     let client = env.create_client();
     client.poll_endpoint(30, 300).await;
 
