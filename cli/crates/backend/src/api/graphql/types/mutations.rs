@@ -361,6 +361,7 @@ pub struct PublishInput<'a> {
     pub subgraph: &'a str,
     pub url: &'a str,
     pub schema: &'a str,
+    pub message: Option<&'a str>,
 }
 
 #[derive(cynic::QueryFragment, Debug)]
