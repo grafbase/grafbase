@@ -37,7 +37,7 @@ pub struct PublishCommand {
     pub(crate) dev_api_port: u16,
 
     /// The message to annotate the publication with
-    #[arg(long)]
+    #[arg(long, short = 'm')]
     pub(crate) message: Option<String>,
 
     /// Add a header to the introspection request
