@@ -6,6 +6,7 @@ use std::{
 use engine_parser::types::OperationType;
 use itertools::Itertools;
 use schema::{EntityDefinition, SubgraphId};
+use walker::Walk;
 
 use crate::operation::{
     FieldArgumentsWalker, PlanField, PlanSelectionSet, PlanWalker, QueryInputValueId, SelectionSetType,
@@ -213,6 +214,7 @@ impl QueryBuilderContext {
             .chunk_by(|field| field.definition().parent_entity_id);
 
         for (entity_id, fields) in entity_to_fields.into_iter() {
+            tracing::debug!("{}", entity_id.walk(selection_set.walker().schema()).name());
             let fields = fields.collect_vec();
             let entity = selection_set.walker().schema().walk(entity_id);
             let in_same_entity = parent_entity_id == Some(entity_id);

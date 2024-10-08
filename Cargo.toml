@@ -91,6 +91,7 @@ axum = { version = "0.7.5", default-features = false }
 axum-server = { version = "0.7", default-features = false }
 base64 = "0.22.1"
 bitflags = "2.5.0"
+bitvec = "1"
 blake3 = "1.5.1"
 bytes = "1.6.0"
 chrono = { version = "0.4.38", default-features = false }
@@ -121,6 +122,7 @@ multipart-stream = "0.1.2"
 mediatype = "0.19"
 num-traits = "0.2.18"
 openidconnect = "4.0.0-alpha.1"
+petgraph = "0.6"
 postcard = { version = "1", features = ["use-std"] }
 rand = "0.8"
 regex = "1.10.4"

@@ -16,7 +16,8 @@ grafbase-workspace-hack.workspace = true
 id-newtypes = { path = "../id-newtypes", package = "engine-v2-id-newtypes" }
 id-derives = { path = "../id-derives", package = "engine-v2-id-derives" }
 walker = { path = "../walker", package = "engine-v2-walker" }
-petgraph = "0.6.5"
+bitvec.workspace = true
+petgraph.workspace = true
 serde.workspace = true
 itertools.workspace = true
 tracing.workspace = true
@@ -35,4 +36,3 @@ tracing-subscriber = { workspace = true, features = [
   "ansi",
 ] }
 insta.workspace = true
-
