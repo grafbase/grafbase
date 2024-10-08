@@ -248,9 +248,11 @@ pub(super) fn compose_object_fields<'a>(
         return;
     };
 
+    let field_name = ctx.insert_string(field_name.id);
+
     ctx.insert_field(ir::FieldIr {
         parent_definition: federated::Definition::Object(parent_definition),
-        field_name: field_name.id,
+        field_name,
         field_type,
         arguments,
         resolvable_in,

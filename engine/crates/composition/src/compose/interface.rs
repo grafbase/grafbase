@@ -57,9 +57,11 @@ pub(super) fn merge_interface_definitions<'a>(
             .map(|(_, field)| field.id.0)
             .collect();
 
+        let field_name = ctx.insert_string(field.name().id);
+
         ctx.insert_field(ir::FieldIr {
             parent_definition: federated::Definition::Interface(interface_id),
-            field_name: field.name().id,
+            field_name,
             field_type,
             arguments: federated::NO_INPUT_VALUE_DEFINITION,
             resolvable_in: Vec::new(),

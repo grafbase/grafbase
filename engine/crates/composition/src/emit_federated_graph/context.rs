@@ -82,6 +82,14 @@ impl<'a> Context<'a> {
     }
 }
 
+impl std::ops::Index<federated::StringId> for Context<'_> {
+    type Output = str;
+
+    fn index(&self, index: federated::StringId) -> &Self::Output {
+        &self.strings_ir[index]
+    }
+}
+
 impl Drop for Context<'_> {
     fn drop(&mut self) {
         self.out.strings = std::mem::take(&mut self.strings_ir).into_federated_strings();
