@@ -2,7 +2,7 @@ use futures::future::BoxFuture;
 use grafbase_telemetry::metrics::EngineMetrics;
 use runtime::{
     auth::AccessToken,
-    hooks::{ExecutedOperation, ExecutedOperationBuilder},
+    hooks::{ExecutedOperation, ExecutedOperationBuilder, Hooks},
 };
 use schema::{HeaderRule, Schema};
 
@@ -19,7 +19,7 @@ pub(crate) struct PreExecutionContext<'ctx, R: Runtime> {
     pub(crate) engine: &'ctx Engine<R>,
     pub(crate) request_context: &'ctx RequestContext,
     pub(crate) hooks_context: HooksContext<R>,
-    pub(crate) executed_operation_builder: ExecutedOperationBuilder,
+    pub(crate) executed_operation_builder: ExecutedOperationBuilder<<R::Hooks as Hooks>::OnSubgraphResponseOutput>,
     // needs to be Send so that futures are Send.
     pub(super) background_futures: crossbeam_queue::SegQueue<BoxFuture<'ctx, ()>>,
 }

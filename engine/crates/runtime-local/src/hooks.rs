@@ -1,7 +1,6 @@
 mod authorized;
 mod pool;
 mod responses;
-mod subgraph;
 
 use std::{collections::HashMap, sync::Arc, time::SystemTime};
 
@@ -18,9 +17,10 @@ use grafbase_telemetry::otel::{
 use pool::Pool;
 use runtime::{
     error::{ErrorResponse, PartialErrorCode, PartialGraphqlError},
-    hooks::{AuthorizedHooks, HeaderMap, Hooks, SubgraphHooks},
+    hooks::{AuthorizedHooks, HeaderMap, Hooks},
 };
 use tracing::{info_span, Instrument, Span};
+use url::Url;
 use wasi_component_loader::ResponsesComponentInstance;
 pub use wasi_component_loader::{
     create_log_channel, AccessLogMessage, AuthorizationComponentInstance, ChannelLogReceiver, ChannelLogSender,
@@ -211,6 +211,8 @@ impl HooksWasi {
 
 impl Hooks for HooksWasi {
     type Context = Context;
+    type OnSubgraphResponseOutput = Vec<u8>;
+    type OnOperationResponseOutput = Vec<u8>;
 
     async fn on_gateway_request(&self, headers: HeaderMap) -> Result<(Self::Context, HeaderMap), ErrorResponse> {
         let kv = HashMap::new();
@@ -240,16 +242,64 @@ impl Hooks for HooksWasi {
             })
     }
 
+    async fn on_subgraph_request(
+        &self,
+        context: &Context,
+        subgraph_name: &str,
+        method: http::Method,
+        url: &Url,
+        headers: HeaderMap,
+    ) -> Result<HeaderMap, PartialGraphqlError> {
+        let Some(ref inner) = self.0 else {
+            return Ok(headers);
+        };
+
+        let Some((mut hook, span)) = inner.get_subgraph_instance("hook: on-subgraph-request").await else {
+            return Ok(headers);
+        };
+
+        inner
+            .run_and_measure(
+                "on-subgraph-request",
+                hook.on_subgraph_request(inner.shared_context(context), subgraph_name, method, url, headers),
+            )
+            .instrument(span)
+            .await
+            .map_err(|err| match err {
+                wasi_component_loader::Error::Internal(err) => {
+                    tracing::error!("on_gateway_request error: {err}");
+                    PartialGraphqlError::internal_hook_error()
+                }
+                wasi_component_loader::Error::Guest(err) => guest_error_as_gql(err, PartialErrorCode::HookError),
+            })
+    }
+
     fn authorized(&self) -> &impl AuthorizedHooks<Self::Context> {
         self
     }
 
-    fn subgraph(&self) -> &impl SubgraphHooks<Self::Context> {
-        self
+    fn on_subgraph_response(
+        &self,
+        context: &Self::Context,
+        request: runtime::hooks::ExecutedSubgraphRequest<'_>,
+    ) -> impl Future<Output = Result<Self::OnSubgraphResponseOutput, PartialGraphqlError>> + Send {
+        HooksWasi::on_subgraph_response(self, context, request)
     }
 
-    fn responses(&self) -> &impl runtime::hooks::ResponseHooks<Self::Context> {
-        self
+    fn on_operation_response(
+        &self,
+        context: &Self::Context,
+        operation: runtime::hooks::ExecutedOperation<'_, Self::OnSubgraphResponseOutput>,
+    ) -> impl Future<Output = Result<Self::OnOperationResponseOutput, PartialGraphqlError>> + Send {
+        HooksWasi::on_operation_response(self, context, operation)
+    }
+
+    fn on_http_response(
+        &self,
+        context: &Self::Context,
+        request: runtime::hooks::ExecutedHttpRequest<Self::OnOperationResponseOutput>,
+    ) -> impl Future<Output = Result<(), PartialGraphqlError>> + Send {
+        HooksWasi::on_http_response(self, context, request)
     }
 }
 

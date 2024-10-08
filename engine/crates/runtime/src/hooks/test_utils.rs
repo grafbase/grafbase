@@ -123,7 +123,7 @@ pub trait DynHooks: Send + Sync + 'static {
     async fn on_gateway_response(
         &self,
         context: &DynHookContext,
-        request: ExecutedOperation<'_>,
+        request: ExecutedOperation<'_, Vec<u8>>,
     ) -> Result<Vec<u8>, PartialGraphqlError> {
         Ok(Vec::new())
     }
@@ -131,7 +131,7 @@ pub trait DynHooks: Send + Sync + 'static {
     async fn on_http_response(
         &self,
         context: &DynHookContext,
-        request: ExecutedHttpRequest,
+        request: ExecutedHttpRequest<Vec<u8>>,
     ) -> Result<(), PartialGraphqlError> {
         Ok(())
     }
@@ -195,6 +195,8 @@ impl DynamicHooks {
 
 impl Hooks for DynamicHooks {
     type Context = DynHookContext;
+    type OnSubgraphResponseOutput = Vec<u8>;
+    type OnOperationResponseOutput = Vec<u8>;
 
     async fn on_gateway_request(&self, headers: HeaderMap) -> Result<(Self::Context, HeaderMap), ErrorResponse> {
         let mut context = DynHookContext::default();
@@ -202,15 +204,44 @@ impl Hooks for DynamicHooks {
         Ok((context, headers))
     }
 
+    async fn on_subgraph_request(
+        &self,
+        context: &DynHookContext,
+        subgraph_name: &str,
+        method: http::Method,
+        url: &Url,
+        headers: HeaderMap,
+    ) -> Result<HeaderMap, PartialGraphqlError> {
+        self.0
+            .on_subgraph_request(context, subgraph_name, method, url, headers)
+            .await
+    }
+
+    async fn on_subgraph_response(
+        &self,
+        context: &DynHookContext,
+        request: ExecutedSubgraphRequest<'_>,
+    ) -> Result<Vec<u8>, PartialGraphqlError> {
+        self.0.on_subgraph_response(context, request).await
+    }
+
+    async fn on_operation_response(
+        &self,
+        context: &DynHookContext,
+        operation: ExecutedOperation<'_, Self::OnSubgraphResponseOutput>,
+    ) -> Result<Vec<u8>, PartialGraphqlError> {
+        self.0.on_gateway_response(context, operation).await
+    }
+
+    async fn on_http_response(
+        &self,
+        context: &DynHookContext,
+        request: ExecutedHttpRequest<Self::OnOperationResponseOutput>,
+    ) -> Result<(), PartialGraphqlError> {
+        self.0.on_http_response(context, request).await
+    }
+
     fn authorized(&self) -> &impl AuthorizedHooks<Self::Context> {
-        self
-    }
-
-    fn subgraph(&self) -> &impl SubgraphHooks<Self::Context> {
-        self
-    }
-
-    fn responses(&self) -> &impl ResponseHooks<Self::Context> {
         self
     }
 }
@@ -334,47 +365,6 @@ impl AuthorizedHooks<DynHookContext> for DynamicHooks {
                 metadata.map(|m| serde_json::to_value(&m).unwrap()),
             )
             .await
-    }
-}
-
-impl SubgraphHooks<DynHookContext> for DynamicHooks {
-    async fn on_subgraph_request(
-        &self,
-        context: &DynHookContext,
-        subgraph_name: &str,
-        method: http::Method,
-        url: &Url,
-        headers: HeaderMap,
-    ) -> Result<HeaderMap, PartialGraphqlError> {
-        self.0
-            .on_subgraph_request(context, subgraph_name, method, url, headers)
-            .await
-    }
-}
-
-impl ResponseHooks<DynHookContext> for DynamicHooks {
-    async fn on_subgraph_response(
-        &self,
-        context: &DynHookContext,
-        request: ExecutedSubgraphRequest<'_>,
-    ) -> Result<Vec<u8>, PartialGraphqlError> {
-        self.0.on_subgraph_response(context, request).await
-    }
-
-    async fn on_operation_response(
-        &self,
-        context: &DynHookContext,
-        operation: ExecutedOperation<'_>,
-    ) -> Result<Vec<u8>, PartialGraphqlError> {
-        self.0.on_gateway_response(context, operation).await
-    }
-
-    async fn on_http_response(
-        &self,
-        context: &DynHookContext,
-        request: ExecutedHttpRequest,
-    ) -> Result<(), PartialGraphqlError> {
-        self.0.on_http_response(context, request).await
     }
 }
 
@@ -514,8 +504,14 @@ impl<H: Hooks> DynHooks for DynWrapper<H> {
         'c: 'fut,
         'd: 'fut,
     {
-        Hooks::subgraph(&self.0)
-            .on_subgraph_request(context.typed_get().unwrap(), subgraph_name, method, url, headers)
-            .boxed()
+        Hooks::on_subgraph_request(
+            &self.0,
+            context.typed_get().unwrap(),
+            subgraph_name,
+            method,
+            url,
+            headers,
+        )
+        .boxed()
     }
 }

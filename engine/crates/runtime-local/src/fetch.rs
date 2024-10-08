@@ -34,7 +34,7 @@ impl Fetcher for NativeFetcher {
         let mut resp = match result {
             Ok(response) => response,
             Err(e) => {
-                return (Err(e), Some(info.finalize(0)));
+                return (Err(e), Some(info.build(None)));
             }
         };
 
@@ -48,7 +48,7 @@ impl Fetcher for NativeFetcher {
 
         let bytes = match result {
             Ok(bytes) => bytes,
-            Err(e) => return (Err(e), Some(info.finalize(0))),
+            Err(e) => return (Err(e), Some(info.build(None))),
         };
 
         // reqwest transforms the body into a stream with Into
@@ -58,7 +58,7 @@ impl Fetcher for NativeFetcher {
         *response.extensions_mut() = extensions;
         *response.headers_mut() = headers;
 
-        (Ok(response), Some(info.finalize(status.as_u16())))
+        (Ok(response), Some(info.build(Some(status))))
     }
 
     async fn graphql_over_sse_stream(

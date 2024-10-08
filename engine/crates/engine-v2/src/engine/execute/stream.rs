@@ -13,21 +13,21 @@ use grafbase_telemetry::{
     metrics::{GraphqlErrorAttributes, GraphqlRequestMetricsAttributes},
     span::graphql::GraphqlOperationSpan,
 };
+use runtime::hooks::Hooks;
 use tracing::Instrument;
 use web_time::Instant;
 
 use crate::{
-    engine::{HooksContext, RequestContext, RuntimeExt},
+    engine::{errors, HooksContext, RequestContext},
     execution::{PreExecutionContext, ResponseSender},
     request::Request,
     response::{ErrorCode, ErrorCodeCounter, Response},
     Engine, Runtime,
 };
 
-pub(crate) struct StreamResponse {
-    pub stream: BoxStream<'static, Response>,
+pub(crate) struct StreamResponse<OnOperationResponseOutput> {
+    pub stream: BoxStream<'static, Response<OnOperationResponseOutput>>,
     pub telemetry: oneshot::Receiver<GraphqlExecutionTelemetry<ErrorCode>>,
-    pub on_operation_response_outputs: mpsc::Receiver<Vec<u8>>,
 }
 
 impl<R: Runtime> Engine<R> {
@@ -36,7 +36,7 @@ impl<R: Runtime> Engine<R> {
         request_context: Arc<RequestContext>,
         hooks_context: HooksContext<R>,
         request: Request,
-    ) -> StreamResponse {
+    ) -> StreamResponse<<R::Hooks as Hooks>::OnOperationResponseOutput> {
         let start = Instant::now();
         let engine = Arc::clone(self);
         let (response_sender, response_receiver) = mpsc::channel(2);
@@ -45,7 +45,6 @@ impl<R: Runtime> Engine<R> {
         let span = graphql_span.span.clone();
 
         let (telemetry_sender, telemetry_receiver) = oneshot::channel();
-        let (on_operation_response_outputs_sender, on_operation_response_outputs_receiver) = mpsc::channel(2);
 
         let stream = response_receiver
             .join(
@@ -54,22 +53,17 @@ impl<R: Runtime> Engine<R> {
                     let mut status = GraphqlResponseStatus::Success;
                     let mut error_code_counter = ErrorCodeCounter::default();
 
-                    struct Sender<'a> {
+                    struct Sender<'a, O> {
                         status: &'a mut GraphqlResponseStatus,
                         error_code_counter: &'a mut ErrorCodeCounter,
-                        on_operation_response_outputs_sender: mpsc::Sender<Vec<u8>>,
-                        response_sender: mpsc::Sender<Response>,
+                        response_sender: mpsc::Sender<Response<O>>,
                     }
 
-                    impl ResponseSender for Sender<'_> {
+                    impl<O: Send + 'static> ResponseSender<O> for Sender<'_, O> {
                         type Error = mpsc::SendError;
-                        async fn send(&mut self, mut response: Response) -> Result<(), Self::Error> {
+                        async fn send(&mut self, response: Response<O>) -> Result<(), Self::Error> {
                             *self.status = self.status.union(response.graphql_status());
                             self.error_code_counter.add(response.error_code_counter());
-                            if let Some(output) = response.take_on_operation_response_output() {
-                                // If the receiver is dropped we don't really care.
-                                let _ = self.on_operation_response_outputs_sender.try_send(output);
-                            }
                             self.response_sender.send(response).await
                         }
                     }
@@ -80,7 +74,6 @@ impl<R: Runtime> Engine<R> {
                             Sender {
                                 status: &mut status,
                                 error_code_counter: &mut error_code_counter,
-                                on_operation_response_outputs_sender,
                                 response_sender,
                             },
                         )
@@ -128,7 +121,6 @@ impl<R: Runtime> Engine<R> {
         StreamResponse {
             stream,
             telemetry: telemetry_receiver,
-            on_operation_response_outputs: on_operation_response_outputs_receiver,
         }
     }
 }
@@ -136,13 +128,12 @@ impl<R: Runtime> Engine<R> {
 impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
     async fn execute_stream<S>(mut self, request: Request, mut sender: S) -> Option<GraphqlOperationAttributes>
     where
-        S: ResponseSender<Error = mpsc::SendError>,
+        S: ResponseSender<<R::Hooks as Hooks>::OnOperationResponseOutput, Error = mpsc::SendError>,
     {
         // If it's a subscription, we at least have a timeout on the operation preparation.
         let result = self
             .engine
-            .runtime
-            .with_timeout(self.engine.schema.settings.timeout, async {
+            .with_gateway_timeout(async {
                 let operation = match self.prepare_operation(request).await {
                     Ok(operation_plan) => operation_plan,
                     Err(response) => {
@@ -169,8 +160,7 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
             Some(Ok((ctx, operation))) => (ctx, operation),
             Some(Err(attributes)) => return attributes,
             None => {
-                let response = Response::gateway_timeout();
-                sender.send(response).await.ok();
+                sender.send(errors::response::gateway_timeout()).await.ok();
                 return None;
             }
         };

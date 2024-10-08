@@ -4,9 +4,10 @@
 
 use std::{borrow::Cow, collections::HashMap};
 
+use runtime::hooks::Hooks;
 use serde::Deserialize;
 
-use crate::request::Request;
+use crate::{request::Request, Runtime};
 
 #[derive(serde::Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
@@ -58,15 +59,15 @@ where
 }
 
 #[derive(serde::Serialize, Debug)]
-#[serde(tag = "type", rename_all = "snake_case")]
-pub enum Message {
+#[serde(tag = "type", rename_all = "snake_case", bound = "")]
+pub enum Message<R: Runtime> {
     Next {
         id: String,
-        payload: ResponsePayload,
+        payload: ResponsePayload<<R::Hooks as Hooks>::OnOperationResponseOutput>,
     },
     Error {
         id: String,
-        payload: ResponsePayload,
+        payload: ResponsePayload<<R::Hooks as Hooks>::OnOperationResponseOutput>,
     },
     Complete {
         id: String,
@@ -89,10 +90,25 @@ pub enum Message {
     },
 }
 
-#[derive(serde::Serialize, Debug)]
-pub struct ResponsePayload(pub(super) crate::response::Response);
+#[derive(serde::Serialize)]
+#[serde(bound = "")]
+pub struct ResponsePayload<OnOperationResponseHookOutput>(
+    pub(super) crate::response::Response<OnOperationResponseHookOutput>,
+);
 
-impl Message {
+impl<O> std::fmt::Debug for ResponsePayload<O> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ResponsePayload").finish_non_exhaustive()
+    }
+}
+
+impl<OnOperationResponseHookOutput> ResponsePayload<OnOperationResponseHookOutput> {
+    pub fn take_on_operation_response_output(&mut self) -> Option<OnOperationResponseHookOutput> {
+        self.0.take_on_operation_response_output()
+    }
+}
+
+impl<R: Runtime> Message<R> {
     pub fn close(code: u16, reason: impl Into<String>) -> Self {
         Self::Close {
             code,

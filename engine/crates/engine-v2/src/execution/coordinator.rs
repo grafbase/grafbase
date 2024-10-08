@@ -9,7 +9,7 @@ use futures_util::{
     StreamExt,
 };
 use grafbase_telemetry::graphql::GraphqlResponseStatus;
-use runtime::hooks::ExecutedOperationBuilder;
+use runtime::hooks::{ExecutedOperationBuilder, Hooks};
 use tracing::Instrument;
 
 use crate::{
@@ -25,13 +25,16 @@ use crate::{
 
 use super::{state::OperationExecutionState, ExecutionError, ExecutionPlanId, ExecutionResult, PreExecutionContext};
 
-pub(crate) trait ResponseSender: Send {
+pub(crate) trait ResponseSender<O>: Send {
     type Error;
-    fn send(&mut self, response: Response) -> impl Future<Output = Result<(), Self::Error>> + Send;
+    fn send(&mut self, response: Response<O>) -> impl Future<Output = Result<(), Self::Error>> + Send;
 }
 
 impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
-    pub async fn execute_query_or_mutation(mut self, operation: ExecutableOperation) -> Response {
+    pub async fn execute_query_or_mutation(
+        mut self,
+        operation: ExecutableOperation,
+    ) -> Response<<R::Hooks as Hooks>::OnOperationResponseOutput> {
         let background_futures: FuturesUnordered<_> =
             std::mem::take(&mut self.background_futures).into_iter().collect();
         let background_fut = background_futures.collect::<Vec<_>>();
@@ -54,7 +57,11 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
         }
     }
 
-    pub async fn execute_subscription(mut self, operation: ExecutableOperation, mut responses: impl ResponseSender) {
+    pub async fn execute_subscription(
+        mut self,
+        operation: ExecutableOperation,
+        mut responses: impl ResponseSender<<R::Hooks as Hooks>::OnOperationResponseOutput>,
+    ) {
         let background_futures: FuturesUnordered<_> =
             std::mem::take(&mut self.background_futures).into_iter().collect();
         let background_fut = background_futures.collect::<Vec<_>>();
@@ -78,8 +85,11 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
         }
     }
 
-    async fn response_for_root_errors(self, operation: ExecutableOperation) -> Response {
-        let executed_operation = self.executed_operation_builder.clone().build(
+    async fn response_for_root_errors(
+        self,
+        operation: ExecutableOperation,
+    ) -> Response<<R::Hooks as Hooks>::OnOperationResponseOutput> {
+        let executed_operation = self.executed_operation_builder.build(
             operation.attributes.name.original(),
             &operation.attributes.sanitized_query,
             GraphqlResponseStatus::FieldError {
@@ -88,7 +98,13 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
             },
         );
 
-        match self.hooks().on_operation_response(executed_operation).await {
+        match self
+            .engine
+            .runtime
+            .hooks()
+            .on_operation_response(&self.hooks_context, executed_operation)
+            .await
+        {
             Ok(output) => Response::execution_error(
                 operation.prepared.clone(),
                 Some(output),
@@ -120,7 +136,10 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
         }
     }
 
-    async fn execute(self, executed_operation_builder: ExecutedOperationBuilder) -> Response {
+    async fn execute(
+        self,
+        executed_operation_builder: ExecutedOperationBuilder<<R::Hooks as Hooks>::OnSubgraphResponseOutput>,
+    ) -> Response<<R::Hooks as Hooks>::OnOperationResponseOutput> {
         assert!(
             !matches!(self.operation.ty(), OperationType::Subscription),
             "execute shouldn't be called for subscriptions"
@@ -139,8 +158,8 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
 
     async fn execute_subscription(
         self,
-        executed_operation_builder: ExecutedOperationBuilder,
-        responses: impl ResponseSender,
+        executed_operation_builder: ExecutedOperationBuilder<<R::Hooks as Hooks>::OnSubgraphResponseOutput>,
+        responses: impl ResponseSender<<R::Hooks as Hooks>::OnOperationResponseOutput>,
     ) {
         assert!(matches!(self.operation.ty(), OperationType::Subscription));
 
@@ -158,7 +177,7 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
         SubscriptionExecution {
             ctx: self,
             subscription_plan_id,
-            initial_executed_operation_builder: executed_operation_builder,
+            first_executed_operation_builder: Some(executed_operation_builder),
             initial_state,
             stream,
         }
@@ -211,7 +230,7 @@ struct SubscriptionExecution<'ctx, R: Runtime, S> {
     ctx: ExecutionContext<'ctx, R>,
     subscription_plan_id: ExecutionPlanId,
     initial_state: OperationExecutionState<'ctx>,
-    initial_executed_operation_builder: ExecutedOperationBuilder,
+    first_executed_operation_builder: Option<ExecutedOperationBuilder<<R::Hooks as Hooks>::OnSubgraphResponseOutput>>,
     stream: S,
 }
 
@@ -220,7 +239,7 @@ where
     'ctx: 'exec,
     S: Stream<Item = ExecutionResult<SubscriptionResponse>> + Send + 'exec,
 {
-    async fn execute(self, mut responses: impl ResponseSender) {
+    async fn execute(mut self, mut responses: impl ResponseSender<<R::Hooks as Hooks>::OnOperationResponseOutput>) {
         let subscription_stream = self.stream.fuse();
         futures_util::pin_mut!(subscription_stream);
 
@@ -257,6 +276,15 @@ where
                     let Some(execution) = execution else {
                         break;
                     };
+                    let executed_operation_builder =
+                        self.first_executed_operation_builder
+                            .take()
+                            .unwrap_or_else(|| ExecutedOperationBuilder {
+                                start_time: web_time::Instant::now(),
+                                prepare_duration: Some(Default::default()),
+                                cached_plan: true,
+                                on_subgraph_response_outputs: Vec::new(),
+                            });
                     match execution {
                         Ok(SubscriptionResponse {
                             response,
@@ -265,7 +293,7 @@ where
                             let mut operation_execution = OperationExecution {
                                 futures: ExecutionPlanFutureSet::new(),
                                 ctx: self.ctx,
-                                executed_operation_builder: self.initial_executed_operation_builder.clone(),
+                                executed_operation_builder,
                                 state: self.initial_state.clone(),
                                 response,
                             };
@@ -280,7 +308,7 @@ where
                         }
                         Err(err) => {
                             let operation = self.ctx.operation.prepared.clone();
-                            let executed_operation = self.initial_executed_operation_builder.clone().build(
+                            let executed_operation = executed_operation_builder.build(
                                 operation.attributes.name.original(),
                                 &operation.attributes.sanitized_query,
                                 GraphqlResponseStatus::FieldError {
@@ -324,8 +352,8 @@ impl SubscriptionResponse {
 
 struct OperationExecution<'ctx, 'exec, R: Runtime> {
     ctx: ExecutionContext<'ctx, R>,
-    futures: ExecutionPlanFutureSet<'exec>,
-    executed_operation_builder: ExecutedOperationBuilder,
+    futures: ExecutionPlanFutureSet<'exec, <R::Hooks as Hooks>::OnSubgraphResponseOutput>,
+    executed_operation_builder: ExecutedOperationBuilder<<R::Hooks as Hooks>::OnSubgraphResponseOutput>,
     state: OperationExecutionState<'ctx>,
     response: ResponseBuilder,
 }
@@ -342,7 +370,7 @@ where
     'ctx: 'exec,
 {
     /// Runs a single execution to completion, returning its response
-    async fn run(mut self) -> Response {
+    async fn run(mut self) -> Response<<R::Hooks as Hooks>::OnOperationResponseOutput> {
         for plan_id in self.state.get_executable_plans() {
             self.spawn_resolver(plan_id);
         }
@@ -501,32 +529,35 @@ where
     }
 }
 
-struct ExecutionPlanFutureSet<'exec> {
-    futures: FuturesUnordered<BoxFuture<'exec, ExecutionPlanResult>>,
+struct ExecutionPlanFutureSet<'exec, OnSubgraphResponseHookOutput> {
+    futures: FuturesUnordered<BoxFuture<'exec, ExecutionPlanResult<OnSubgraphResponseHookOutput>>>,
 }
 
-impl<'exec> ExecutionPlanFutureSet<'exec> {
+impl<'exec, OnSubgraphResponseHookOutput> ExecutionPlanFutureSet<'exec, OnSubgraphResponseHookOutput>
+where
+    OnSubgraphResponseHookOutput: Send + 'static,
+{
     fn new() -> Self {
         Self {
             futures: FuturesUnordered::new(),
         }
     }
 
-    fn push_fut(&mut self, fut: BoxFuture<'exec, ExecutionPlanResult>) {
+    fn push_fut(&mut self, fut: BoxFuture<'exec, ExecutionPlanResult<OnSubgraphResponseHookOutput>>) {
         self.futures.push(fut);
     }
 
-    fn push_result(&mut self, result: ExecutionPlanResult) {
+    fn push_result(&mut self, result: ExecutionPlanResult<OnSubgraphResponseHookOutput>) {
         self.futures.push(Box::pin(async move { result }));
     }
 
-    async fn next(&mut self) -> Option<ExecutionPlanResult> {
+    async fn next(&mut self) -> Option<ExecutionPlanResult<OnSubgraphResponseHookOutput>> {
         self.futures.next().await
     }
 }
 
-pub(crate) struct ExecutionPlanResult {
+pub(crate) struct ExecutionPlanResult<OnSubgraphResponseHookOutput> {
     plan_id: ExecutionPlanId,
     result: Result<SubgraphResponse, (Arc<InputResponseObjectSet>, ExecutionError)>,
-    on_subgraph_response_hook_output: Option<Vec<u8>>,
+    on_subgraph_response_hook_output: Option<OnSubgraphResponseHookOutput>,
 }

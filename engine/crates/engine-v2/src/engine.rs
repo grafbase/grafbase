@@ -17,7 +17,7 @@ pub(crate) use execute::*;
 pub(crate) use runtime::*;
 
 mod cache;
-mod error_responses;
+mod errors;
 mod execute;
 mod retry_budget;
 mod runtime;
@@ -79,12 +79,16 @@ impl<R: Runtime> Engine<R> {
             self.extract_well_formed_graphql_over_http_request(method, uri, response_format, body);
 
         // Retrieve the request body while processing the headers
-        match futures::try_join!(request_context_fut, graphql_request_fut) {
-            Ok(((request_context, hooks_context), request)) => {
+        match self
+            .with_gateway_timeout(async { futures::try_join!(request_context_fut, graphql_request_fut) })
+            .await
+        {
+            Some(Ok(((request_context, hooks_context), request))) => {
                 self.execute_well_formed_graphql_request(request_context, hooks_context, request)
                     .await
             }
-            Err(response) => response,
+            Some(Err(response)) => response,
+            None => errors::gateway_timeout(response_format),
         }
     }
 
@@ -130,7 +134,7 @@ impl<R: Runtime> Clone for WebsocketSession<R> {
 }
 
 impl<R: Runtime> WebsocketSession<R> {
-    pub fn execute(&self, event: websocket::SubscribeEvent) -> impl Stream<Item = websocket::Message> {
+    pub fn execute(&self, event: websocket::SubscribeEvent) -> impl Stream<Item = websocket::Message<R>> {
         let websocket::SubscribeEvent { id, payload } = event;
         // TODO: Call a websocket hook?
         let StreamResponse { stream, .. } = self.engine.execute_websocket_well_formed_graphql_request(

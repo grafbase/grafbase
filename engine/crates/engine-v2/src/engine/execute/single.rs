@@ -3,6 +3,7 @@ use grafbase_telemetry::{
     metrics::{GraphqlErrorAttributes, GraphqlRequestMetricsAttributes},
     span::graphql::GraphqlOperationSpan,
 };
+use runtime::hooks::Hooks;
 use tracing::Instrument;
 use web_time::Instant;
 
@@ -20,7 +21,7 @@ impl<R: Runtime> Engine<R> {
         request_context: &RequestContext,
         hooks_context: HooksContext<R>,
         request: Request,
-    ) -> Response {
+    ) -> Response<<R::Hooks as Hooks>::OnOperationResponseOutput> {
         let start = Instant::now();
         let span = GraphqlOperationSpan::default();
 
@@ -64,7 +65,7 @@ impl<R: Runtime> Engine<R> {
 }
 
 impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
-    async fn execute_single(mut self, request: Request) -> Response {
+    async fn execute_single(mut self, request: Request) -> Response<<R::Hooks as Hooks>::OnOperationResponseOutput> {
         let operation = match self.prepare_operation(request).await {
             Ok(operation) => operation,
             Err(response) => return response,

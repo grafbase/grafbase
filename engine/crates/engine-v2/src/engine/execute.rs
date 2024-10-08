@@ -8,11 +8,11 @@ use std::{future::Future, sync::Arc};
 use crate::{
     graphql_over_http::{Http, ResponseFormat},
     request::{BatchRequest, QueryParamsRequest, Request},
-    response::{ErrorCode, GraphqlError, Response},
+    response::Response,
     Body,
 };
 
-use super::{runtime::HooksContext, Engine, Runtime, RuntimeExt};
+use super::{errors, runtime::HooksContext, Engine, Runtime, RuntimeExt};
 
 mod prepare;
 mod single;
@@ -39,10 +39,7 @@ impl<R: Runtime> Engine<R> {
             //   In alignment with the HTTP 1.1 Accept specification, when a client does not include at least one supported media type in the Accept HTTP header, the server MUST either:
             //     1. Respond with a 406 Not Acceptable status code and stop processing the request (RECOMMENDED); OR
             //     2. Disregard the Accept header and respond with the server's choice of media type (NOT RECOMMENDED).
-            return Err(Http::error(
-                self.default_response_format,
-                Response::not_acceptable_error(),
-            ));
+            return Err(errors::not_acceptable_error(self.default_response_format));
         };
 
         if parts.method == http::Method::POST {
@@ -50,13 +47,10 @@ impl<R: Runtime> Engine<R> {
             //   If the client does not supply a Content-Type header with a POST request,
             //   the server SHOULD reject the request using the appropriate 4xx status code.
             if !content_type_is_application_json(&parts.headers) {
-                return Err(Http::error(format, Response::unsupported_media_type()));
+                return Err(errors::unsupported_media_type(format));
             }
         } else if parts.method != http::Method::GET {
-            return Err(Http::error(
-                format,
-                Response::method_not_allowed("Only GET or POST are supported."),
-            ));
+            return Err(errors::method_not_allowed(format, "Only GET or POST are supported."));
         }
 
         Ok((parts, body, format))
@@ -67,7 +61,7 @@ impl<R: Runtime> Engine<R> {
         mutations_allowed: bool,
         headers: http::HeaderMap,
         response_format: ResponseFormat,
-    ) -> Result<(RequestContext, HooksContext<R>), Response> {
+    ) -> Result<(RequestContext, HooksContext<R>), Response<<R::Hooks as Hooks>::OnOperationResponseOutput>> {
         let client = Client::extract_from(&headers);
 
         let (hooks_context, headers) = self
@@ -78,12 +72,12 @@ impl<R: Runtime> Engine<R> {
             .map_err(|ErrorResponse { status, error }| Response::refuse_request_with(status, error))?;
 
         let Some(access_token) = self.auth.authenticate(&headers).await else {
-            return Err(Response::unauthenticated());
+            return Err(errors::response::unauthenticated());
         };
 
         // Currently it doesn't rely on authentication, but likely will at some point.
         if self.runtime.rate_limiter().limit(&RateLimitKey::Global).await.is_err() {
-            return Err(Response::gateway_rate_limited());
+            return Err(errors::response::gateway_rate_limited());
         }
 
         Ok((
@@ -109,21 +103,16 @@ impl<R: Runtime> Engine<R> {
         F: Future<Output = Result<Bytes, (http::StatusCode, String)>> + Send,
     {
         if method == http::Method::POST {
-            let body = body.await.map_err(|(status, message)| {
-                Http::error(
-                    response_format,
-                    Response::refuse_request_with(status, GraphqlError::new(message, ErrorCode::BadRequest)),
-                )
-            })?;
+            let body = body
+                .await
+                .map_err(|(status_code, message)| errors::refuse_request_with(response_format, status_code, message))?;
 
             self.runtime.metrics().record_request_body_size(body.len());
 
             serde_json::from_slice(&body).map_err(|err| {
-                Http::error(
+                errors::not_well_formed_graphql_over_http_request(
                     response_format,
-                    Response::not_well_formed_graphql_over_http_request(format_args!(
-                        "JSON deserialization failure: {err}",
-                    )),
+                    format_args!("JSON deserialization failure: {err}",),
                 )
             })
         } else {
@@ -132,11 +121,9 @@ impl<R: Runtime> Engine<R> {
             serde_urlencoded::from_str::<QueryParamsRequest>(query)
                 .map(|request| BatchRequest::Single(request.into()))
                 .map_err(|err| {
-                    Http::error(
+                    errors::not_well_formed_graphql_over_http_request(
                         response_format,
-                        Response::not_well_formed_graphql_over_http_request(format_args!(
-                            "Could not deserialize request from query parameters: {err}"
-                        )),
+                        format_args!("Could not deserialize request from query parameters: {err}"),
                     )
                 })
         }
@@ -160,14 +147,10 @@ impl<R: Runtime> Engine<R> {
                 }
                 ResponseFormat::Complete(format) => {
                     let Some(response) = self
-                        .runtime
-                        .with_timeout(
-                            self.schema.settings.timeout,
-                            self.execute_single(&request_context, hooks_context.clone(), request),
-                        )
+                        .with_gateway_timeout(self.execute_single(&request_context, hooks_context.clone(), request))
                         .await
                     else {
-                        return Http::error(request_context.response_format, Response::gateway_timeout());
+                        return errors::gateway_timeout(request_context.response_format);
                     };
 
                     Http::single(format, hooks_context, response)
@@ -175,31 +158,24 @@ impl<R: Runtime> Engine<R> {
             },
             BatchRequest::Batch(requests) => {
                 let ResponseFormat::Complete(format) = request_context.response_format else {
-                    return Http::error(
+                    return errors::bad_request_but_well_formed_graphql_over_http_request(
                         request_context.response_format,
-                        Response::bad_request_but_well_formed_graphql_over_http_request(
-                            "batch requests cannot be returned as multipart or event-stream responses",
-                        ),
+                        "batch requests cannot be returned as multipart or event-stream responses",
                     );
                 };
 
                 if !self.schema.settings.batching.enabled {
-                    return Http::error(
+                    return errors::bad_request_but_well_formed_graphql_over_http_request(
                         request_context.response_format,
-                        Response::bad_request_but_well_formed_graphql_over_http_request(
-                            "batching is not enabled for this service",
-                        ),
+                        "batching is not enabled for this service",
                     );
                 }
 
                 if let Some(limit) = self.schema.settings.batching.limit {
                     if requests.len() > limit {
-                        return Http::error(
+                        return errors::bad_request_but_well_formed_graphql_over_http_request(
                             request_context.response_format,
-                            Response::bad_request_but_well_formed_graphql_over_http_request(&format!(
-                                "batch size exceeds limit of {}",
-                                limit
-                            )),
+                            format_args!("batch size exceeds limit of {}", limit),
                         );
                     }
                 }
@@ -207,16 +183,14 @@ impl<R: Runtime> Engine<R> {
                 self.runtime.metrics().record_batch_size(requests.len());
 
                 let Some(responses) = self
-                    .runtime
-                    .with_timeout(
-                        self.schema.settings.timeout,
+                    .with_gateway_timeout(
                         futures_util::stream::iter(requests.into_iter())
                             .then(|request| self.execute_single(&request_context, hooks_context.clone(), request))
                             .collect::<Vec<_>>(),
                     )
                     .await
                 else {
-                    return Http::error(request_context.response_format, Response::gateway_timeout());
+                    return errors::gateway_timeout(request_context.response_format);
                 };
 
                 Http::batch(format, hooks_context, responses)
@@ -229,8 +203,12 @@ impl<R: Runtime> Engine<R> {
         request_context: Arc<RequestContext>,
         hooks_context: HooksContext<R>,
         request: Request,
-    ) -> StreamResponse {
+    ) -> StreamResponse<<R::Hooks as Hooks>::OnOperationResponseOutput> {
         self.execute_stream(request_context, hooks_context, request)
+    }
+
+    pub(super) async fn with_gateway_timeout<T>(&self, fut: impl Future<Output = T> + Send) -> Option<T> {
+        self.runtime.with_timeout(self.schema.settings.timeout, fut).await
     }
 }
 

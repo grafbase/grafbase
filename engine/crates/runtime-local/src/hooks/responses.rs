@@ -1,4 +1,4 @@
-use runtime::{error::PartialGraphqlError, hooks::ResponseHooks};
+use runtime::error::PartialGraphqlError;
 use tracing::Instrument;
 use wasi_component_loader::{
     CacheStatus, ExecutedHttpRequest, ExecutedOperation, ExecutedSubgraphRequest, FieldError, GraphqlResponseStatus,
@@ -9,8 +9,8 @@ use crate::HooksWasi;
 
 use super::Context;
 
-impl ResponseHooks<Context> for HooksWasi {
-    async fn on_subgraph_response(
+impl HooksWasi {
+    pub(super) async fn on_subgraph_response(
         &self,
         context: &Context,
         request: runtime::hooks::ExecutedSubgraphRequest<'_>,
@@ -52,9 +52,9 @@ impl ResponseHooks<Context> for HooksWasi {
                     }
                     runtime::hooks::SubgraphRequestExecutionKind::Responsed(info) => {
                         SubgraphRequestExecutionKind::Response(SubgraphResponse {
-                            connection_time_ms: info.connection_time_ms,
-                            response_time_ms: info.response_time_ms,
-                            status_code: info.status_code,
+                            connection_time_ms: info.connection_time.as_millis() as u64,
+                            response_time_ms: info.response_time.as_millis() as u64,
+                            status_code: info.status_code.map(Into::into).unwrap_or_default(),
                         })
                     }
                 })
@@ -81,10 +81,10 @@ impl ResponseHooks<Context> for HooksWasi {
             })
     }
 
-    async fn on_operation_response(
+    pub(super) async fn on_operation_response(
         &self,
         context: &Context,
-        operation: runtime::hooks::ExecutedOperation<'_>,
+        operation: runtime::hooks::ExecutedOperation<'_, Vec<u8>>,
     ) -> Result<Vec<u8>, PartialGraphqlError> {
         let Some(ref inner) = self.0 else {
             return Ok(Vec::new());
@@ -138,10 +138,10 @@ impl ResponseHooks<Context> for HooksWasi {
             })
     }
 
-    async fn on_http_response(
+    pub(super) async fn on_http_response(
         &self,
         context: &Context,
-        request: runtime::hooks::ExecutedHttpRequest,
+        request: runtime::hooks::ExecutedHttpRequest<Vec<u8>>,
     ) -> Result<(), PartialGraphqlError> {
         let Some(ref inner) = self.0 else {
             return Ok(());

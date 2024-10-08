@@ -8,7 +8,7 @@ use crate::response::{
     ResponsePath, ResponseValue, UnpackedResponseEdge,
 };
 
-impl serde::Serialize for Response {
+impl<OnOperationResponseHookOutput> serde::Serialize for Response<OnOperationResponseHookOutput> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,
