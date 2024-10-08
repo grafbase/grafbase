@@ -122,7 +122,7 @@ sync_wrapper = { version = "1", default-features = false, features = ["futures"]
 time = { version = "0.3", features = ["formatting", "parsing"] }
 tokio = { version = "1", features = ["full"] }
 tokio-rustls = { version = "0.26", default-features = false, features = ["logging", "ring", "tls12"] }
-tokio-stream = { version = "0.1", features = ["io-util", "net", "tokio-util"] }
+tokio-stream = { version = "0.1", features = ["net"] }
 tokio-util = { version = "0.7", features = ["codec", "compat", "io"] }
 toml_datetime = { version = "0.6", default-features = false, features = ["serde"] }
 toml_edit = { version = "0.22", features = ["serde"] }
@@ -250,7 +250,7 @@ sync_wrapper = { version = "1", default-features = false, features = ["futures"]
 time = { version = "0.3", features = ["formatting", "parsing"] }
 tokio = { version = "1", features = ["full"] }
 tokio-rustls = { version = "0.26", default-features = false, features = ["logging", "ring", "tls12"] }
-tokio-stream = { version = "0.1", features = ["io-util", "net", "tokio-util"] }
+tokio-stream = { version = "0.1", features = ["net"] }
 tokio-util = { version = "0.7", features = ["codec", "compat", "io"] }
 toml_datetime = { version = "0.6", default-features = false, features = ["serde"] }
 toml_edit = { version = "0.22", features = ["serde"] }
@@ -354,7 +354,7 @@ deadpool = { version = "0.12", features = ["rt_tokio_1"] }
 hyper-rustls = { version = "0.27", default-features = false, features = ["http1", "http2", "ring", "tls12", "webpki-tokio"] }
 iana-time-zone = { version = "0.1", default-features = false, features = ["fallback"] }
 libc = { version = "0.2", features = ["extra_traits"] }
-linux-raw-sys = { version = "0.4", default-features = false, features = ["elf", "errno", "general", "if_ether", "ioctl", "net", "netlink", "no_std", "prctl", "std", "xdp"] }
+linux-raw-sys = { version = "0.4", default-features = false, features = ["elf", "errno", "general", "if_ether", "ioctl", "net", "netlink", "no_std", "prctl", "xdp"] }
 miniz_oxide = { version = "0.8", default-features = false, features = ["with-alloc"] }
 mio = { version = "0.8", features = ["net", "os-ext"] }
 object = { version = "0.36", default-features = false, features = ["archive", "read_core", "unaligned", "write"] }
@@ -370,7 +370,7 @@ deadpool = { version = "0.12", features = ["rt_tokio_1"] }
 hyper-rustls = { version = "0.27", default-features = false, features = ["http1", "http2", "ring", "tls12", "webpki-tokio"] }
 iana-time-zone = { version = "0.1", default-features = false, features = ["fallback"] }
 libc = { version = "0.2", features = ["extra_traits"] }
-linux-raw-sys = { version = "0.4", default-features = false, features = ["elf", "errno", "general", "if_ether", "ioctl", "net", "netlink", "no_std", "prctl", "std", "xdp"] }
+linux-raw-sys = { version = "0.4", default-features = false, features = ["elf", "errno", "general", "if_ether", "ioctl", "net", "netlink", "no_std", "prctl", "xdp"] }
 miniz_oxide = { version = "0.8", default-features = false, features = ["with-alloc"] }
 mio = { version = "0.8", features = ["net", "os-ext"] }
 object = { version = "0.36", default-features = false, features = ["archive", "read_core", "unaligned", "write"] }
@@ -386,7 +386,7 @@ deadpool = { version = "0.12", features = ["rt_tokio_1"] }
 hyper-rustls = { version = "0.27", default-features = false, features = ["http1", "http2", "ring", "tls12", "webpki-tokio"] }
 iana-time-zone = { version = "0.1", default-features = false, features = ["fallback"] }
 libc = { version = "0.2", features = ["extra_traits"] }
-linux-raw-sys = { version = "0.4", default-features = false, features = ["elf", "errno", "general", "if_ether", "ioctl", "net", "netlink", "no_std", "prctl", "std", "xdp"] }
+linux-raw-sys = { version = "0.4", default-features = false, features = ["elf", "errno", "general", "if_ether", "ioctl", "net", "netlink", "no_std", "prctl", "xdp"] }
 miniz_oxide = { version = "0.8", default-features = false, features = ["with-alloc"] }
 mio = { version = "0.8", features = ["net", "os-ext"] }
 object = { version = "0.36", default-features = false, features = ["archive", "read_core", "unaligned", "write"] }
@@ -401,7 +401,7 @@ deadpool = { version = "0.12", features = ["rt_tokio_1"] }
 hyper-rustls = { version = "0.27", default-features = false, features = ["http1", "http2", "ring", "tls12", "webpki-tokio"] }
 iana-time-zone = { version = "0.1", default-features = false, features = ["fallback"] }
 libc = { version = "0.2", features = ["extra_traits"] }
-linux-raw-sys = { version = "0.4", default-features = false, features = ["elf", "errno", "general", "if_ether", "ioctl", "net", "netlink", "no_std", "prctl", "std", "xdp"] }
+linux-raw-sys = { version = "0.4", default-features = false, features = ["elf", "errno", "general", "if_ether", "ioctl", "net", "netlink", "no_std", "prctl", "xdp"] }
 miniz_oxide = { version = "0.8", default-features = false, features = ["with-alloc"] }
 mio = { version = "0.8", features = ["net", "os-ext"] }
 object = { version = "0.36", default-features = false, features = ["archive", "read_core", "unaligned", "write"] }
