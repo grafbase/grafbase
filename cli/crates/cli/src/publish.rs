@@ -56,7 +56,7 @@ pub(crate) async fn publish(
         backend::api::publish::PublishOutcome::GraphDoesNotExist {
             account_slug,
             graph_slug,
-        } => report::publish_graph_does_not_exist(&account_slug, &graph_slug),
+        } => report::publish_graph_does_not_exist(account_slug, graph_slug),
     };
 
     Ok(())
