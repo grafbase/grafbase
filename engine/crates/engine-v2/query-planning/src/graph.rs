@@ -1,18 +1,21 @@
 mod builder;
+mod dot_graph;
 mod edge;
 mod node;
 
-pub use edge::*;
-pub use node::*;
+pub(crate) use edge::*;
+pub(crate) use node::*;
 
 use schema::{FieldDefinitionId, RequiredField, Schema};
-use walker::Walk;
+use tracing::instrument;
 
 use std::borrow::Cow;
 
 use petgraph::{
     dot::{Config, Dot},
     graph::NodeIndex,
+    visit::{IntoNodeReferences, NodeRef as _},
+    Direction,
 };
 
 pub trait Operation: std::fmt::Debug {
@@ -30,12 +33,12 @@ pub trait Operation: std::fmt::Debug {
 }
 
 pub struct OperationGraph<'ctx, Op: Operation> {
-    schema: &'ctx Schema,
-    operation: &'ctx mut Op,
-    inner: petgraph::stable_graph::StableGraph<Node<Op::FieldId>, Edge>,
-    root: NodeIndex,
-    field_nodes: Vec<NodeIndex>,
-    leaf_nodes: Vec<NodeIndex>,
+    pub(crate) schema: &'ctx Schema,
+    pub(crate) operation: &'ctx mut Op,
+    pub(crate) graph: petgraph::stable_graph::StableGraph<Node<Op::FieldId>, Edge>,
+    pub(crate) root: NodeIndex,
+    pub(crate) field_nodes: Vec<NodeIndex>,
+    pub(crate) leaf_nodes: Vec<NodeIndex>,
 }
 
 impl<'ctx, Op: Operation> std::ops::Index<Op::FieldId> for OperationGraph<'ctx, Op> {
@@ -47,42 +50,44 @@ impl<'ctx, Op: Operation> std::ops::Index<Op::FieldId> for OperationGraph<'ctx, 
 }
 
 impl<'ctx, Op: Operation> OperationGraph<'ctx, Op> {
+    #[instrument(skip_all)]
     pub fn new(schema: &'ctx Schema, operation: &'ctx mut Op) -> OperationGraph<'ctx, Op> {
         Self::builder(schema, operation).build()
     }
 
     /// Use https://dreampuf.github.io/GraphvizOnline
     /// or `echo '..." | dot -Tsvg` from graphviz
-    pub fn to_dot_graph(&self) -> String {
-        let node_str = |_, node_ref: (NodeIndex, &Node<Op::FieldId>)| match node_ref.1 {
-            Node::Root => r#"label = "root""#.to_string(),
-            Node::Field(id) => format!("label = \"{}\"", self.operation.field_label(*id)),
-            Node::FieldResolver(field_resolver) => format!(
-                "label = \"{}@{}\",shape=box,style=dashed,color=blue",
-                field_resolver.field_definition_id.walk(self.schema).name(),
-                field_resolver.resolver_definition_id.walk(self.schema).name()
-            ),
-            Node::Resolver(resolver) => {
-                format!(
-                    "label = \"{}\",shape=box,color=blue",
-                    resolver.definition_id.walk(self.schema).name()
-                )
-            }
-        };
+    pub fn to_prettty_dot_graph(&self) -> String {
         format!(
             "{:?}",
             Dot::with_attr_getters(
-                &self.inner,
-                &[Config::NodeNoLabel],
-                &|_, edge| {
-                    match edge.weight() {
-                        Edge::Resolver(_) | Edge::CanResolveField(_) | Edge::Resolves => "color=blue".to_string(),
-                        Edge::Field | Edge::TypenameField => String::new(),
-                        Edge::Requires => "color=green".to_string(),
-                    }
-                },
-                &node_str
+                &self.graph,
+                &[Config::EdgeNoLabel, Config::NodeNoLabel],
+                &|_, edge| edge.weight().pretty_label(),
+                &|_, node| node.1.pretty_label(self.schema, self.operation),
             )
         )
+    }
+    /// Use https://dreampuf.github.io/GraphvizOnline
+    /// or `echo '..." | dot -Tsvg` from graphviz
+    pub fn to_dot_graph(&self) -> String {
+        format!(
+            "{:?}",
+            Dot::with_attr_getters(
+                &self.graph,
+                &[Config::NodeNoLabel],
+                &|_, _| String::new(),
+                &|_, node| node.1.label(self.schema, self.operation).to_string(),
+            )
+        )
+    }
+
+    fn debug_assert_invariants(&self) {
+        debug_assert!(self.graph.node_references().all(|node| match node.weight() {
+            Node::Root => self.graph.edges_directed(node.id(), Direction::Incoming).count() == 0,
+            Node::Field(_) => true,
+            Node::Resolver(_) => self.graph.edges_directed(node.id(), Direction::Incoming).count() == 1,
+            Node::FieldResolver(_) => self.graph.edges_directed(node.id(), Direction::Incoming).count() == 1,
+        }));
     }
 }
