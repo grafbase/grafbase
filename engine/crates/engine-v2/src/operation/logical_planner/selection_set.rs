@@ -259,7 +259,8 @@ impl<'schema, 'a> SelectionSetLogicalPlanner<'schema, 'a> {
 
             for (&id, definition) in &unplanned_fields {
                 // If the parent plan can provide the field, we don't need to plan it.
-                let required_fields = definition.requires_for_subgraph(parent_logic.resolver().as_ref().subgraph_id());
+                let required_fields =
+                    definition.all_requires_for_subgraph(parent_logic.resolver().as_ref().subgraph_id());
                 if parent_logic.is_providable(definition.id())
                     && self.could_plan_requirements(planned_selection_set, id, &required_fields)?
                 {
@@ -323,7 +324,7 @@ impl<'schema, 'a> SelectionSetLogicalPlanner<'schema, 'a> {
                         .map(|id| walker.walk(*id).definition().unwrap())
                         .format_with("\n\n", |field, f| f(&format_args!(
                             "{field:#?}\n{:#?}",
-                            parent_subgraph_id.map(|id| field.requires_for_subgraph(id))
+                            parent_subgraph_id.map(|id| field.all_requires_for_subgraph(id))
                         )))
                         // with opentelemetry this string might be formatted more than once... Leading to a
                         // panic with .format_with()
@@ -338,7 +339,7 @@ impl<'schema, 'a> SelectionSetLogicalPlanner<'schema, 'a> {
                 });
             };
 
-            let mut requires = Cow::Borrowed(self.schema.walk(candidate.resolver_id).requires());
+            let mut requires = Cow::Borrowed(self.schema.walk(candidate.resolver_id).requires_or_empty());
             let mut field_ids = vec![];
 
             for (id, required_fields) in std::mem::take(&mut candidate.providable_fields) {
@@ -584,7 +585,7 @@ impl<'schema, 'a> SelectionSetLogicalPlanner<'schema, 'a> {
                 let resolver = self.schema.walk(resolver_id);
                 tracing::trace!("Trying to plan '{}' with: {}", definition.name(), resolver.name());
 
-                let required_fields = definition.requires_for_subgraph(resolver.as_ref().subgraph_id());
+                let required_fields = definition.all_requires_for_subgraph(resolver.as_ref().subgraph_id());
 
                 match candidates.entry(resolver_id) {
                     Entry::Occupied(mut entry) => {
@@ -594,7 +595,7 @@ impl<'schema, 'a> SelectionSetLogicalPlanner<'schema, 'a> {
                         }
                     }
                     Entry::Vacant(entry) => {
-                        if self.could_plan_requirements(planned_selection_set, id, resolver.requires())?
+                        if self.could_plan_requirements(planned_selection_set, id, resolver.requires_or_empty())?
                             && self.could_plan_requirements(planned_selection_set, id, &required_fields)?
                         {
                             entry.insert(ChildPlanCandidate {

@@ -173,6 +173,14 @@ impl Selection {
             Self::InlineFragment(fragment) => &mut fragment.node.directives,
         }
     }
+
+    /// Get as a field
+    pub fn as_field(&self) -> Option<&Field> {
+        match self {
+            Self::Field(field) => Some(&field.node),
+            _ => None,
+        }
+    }
 }
 
 /// A field being selected on an object, such as `name` or `weightKilos: weight(unit: KILOGRAMS)`.
