@@ -3,7 +3,7 @@ use super::{
     consts::api_url,
     errors::ApiError,
     graphql::queries::viewer_for_link::{PersonalAccount, Viewer},
-    types::{self, AccountWithProjects, ProjectMetadata},
+    types::{self, AccountWithGraphs, ProjectMetadata},
     utils::has_project_linked,
 };
 use common::consts::PROJECT_METADATA_FILE;
@@ -26,33 +26,28 @@ pub async fn project_link_validations() -> Result<(), ApiError> {
 ///
 /// see [`ApiError`]
 #[allow(clippy::module_name_repetitions)]
-pub async fn get_viewer_data_for_link() -> Result<Vec<AccountWithProjects>, ApiError> {
+pub async fn get_viewer_data_for_link() -> Result<Vec<AccountWithGraphs>, ApiError> {
     let client = create_client().await?;
     let query = Viewer::build(());
     let response = client.post(api_url()).run_graphql(query).await?;
     let response = response.data.expect("must exist");
     let viewer_response = response.viewer.ok_or(ApiError::UnauthorizedOrDeletedUser)?;
 
-    let PersonalAccount {
-        id,
-        name,
-        slug,
-        projects,
-    } = viewer_response
+    let PersonalAccount { id, name, slug, graphs } = viewer_response
         .personal_account
         .ok_or(ApiError::IncorrectlyScopedToken)?;
 
     let personal_account_id = id;
 
-    let personal_account = AccountWithProjects {
+    let personal_account = AccountWithGraphs {
         id: personal_account_id.inner().to_owned(),
         name,
         slug,
         personal: true,
-        projects: projects
+        graphs: graphs
             .nodes
             .into_iter()
-            .map(|project| types::Project {
+            .map(|project| types::Graph {
                 id: project.id.into_inner(),
                 slug: project.slug,
             })
@@ -61,17 +56,17 @@ pub async fn get_viewer_data_for_link() -> Result<Vec<AccountWithProjects>, ApiE
 
     let accounts = iter::once(personal_account)
         .chain(viewer_response.organizations.nodes.iter().map(|organization| {
-            AccountWithProjects {
+            AccountWithGraphs {
                 id: organization.id.inner().to_owned(),
                 name: organization.name.clone(),
                 slug: organization.slug.clone(),
                 personal: false,
-                projects: organization
-                    .projects
+                graphs: organization
+                    .graphs
                     .nodes
                     .iter()
                     .cloned()
-                    .map(|project| types::Project {
+                    .map(|project| types::Graph {
                         id: project.id.into_inner(),
                         slug: project.slug,
                     })

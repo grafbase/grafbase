@@ -17,17 +17,9 @@ pub struct GraphSlugByIdGraph {
     pub slug: String,
 }
 
-#[derive(cynic::QueryFragment, Debug)]
-#[cynic(graphql_type = "Project")]
-pub struct GraphSlugByIdProject {
-    pub account_slug: String,
-    pub slug: String,
-}
-
 #[derive(cynic::InlineFragments, Debug)]
 pub enum Node {
     Graph(GraphSlugByIdGraph),
-    Project(GraphSlugByIdProject),
     #[cynic(fallback)]
     Unknown,
 }

@@ -1,14 +1,14 @@
 use crate::{errors::CliError, output::report, prompts::handle_inquire_error};
 use backend::api::{
     link::{self, project_link_validations},
-    types::{AccountWithProjects, Project},
+    types::{AccountWithGraphs, Graph},
 };
 use inquire::Select;
 use std::fmt::Display;
 use ulid::Ulid;
 
 #[derive(Debug)]
-struct AccountSelection(AccountWithProjects);
+struct AccountSelection(AccountWithGraphs);
 
 impl Display for AccountSelection {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -16,9 +16,9 @@ impl Display for AccountSelection {
     }
 }
 
-struct ProjectSelection(Project);
+struct GraphSelection(Graph);
 
-impl Display for ProjectSelection {
+impl Display for GraphSelection {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         formatter.write_fmt(format_args!("{}", self.0.slug))
     }
@@ -53,13 +53,13 @@ pub async fn link_impl(project_id: Option<Ulid>) -> Result<(), CliError> {
             .prompt()
             .map_err(handle_inquire_error)?;
 
-    if selected_account.projects.is_empty() {
+    if selected_account.graphs.is_empty() {
         return Err(CliError::AccountWithNoProjects);
     }
 
-    let options: Vec<ProjectSelection> = selected_account.projects.into_iter().map(ProjectSelection).collect();
+    let options: Vec<GraphSelection> = selected_account.graphs.into_iter().map(GraphSelection).collect();
 
-    let ProjectSelection(selected_project) = Select::new("Which project would you like to link to?", options)
+    let GraphSelection(selected_project) = Select::new("Which project would you like to link to?", options)
         .prompt()
         .map_err(handle_inquire_error)?;
 

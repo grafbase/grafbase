@@ -689,8 +689,8 @@ pub(crate) fn federated_schema_local_introspection_not_implemented() {
     eprintln!("⚠️ The introspected schema is empty. Introspecting federated graphs is not implemented yet.")
 }
 
-pub(crate) fn publish_project_does_not_exist(account_slug: &str, project_slug: &str) {
-    watercolor::output!("❌ Could not publish: there is no project named {project_slug} in the account {account_slug}\n", @BrightRed);
+pub(crate) fn publish_graph_does_not_exist(account_slug: &str, graph_slug: &str) {
+    watercolor::output!("❌ Could not publish: there is no project named {graph_slug} in the account {account_slug}\n", @BrightRed);
 }
 
 pub(crate) fn publish_command_composition_failure(messages: &[String]) {

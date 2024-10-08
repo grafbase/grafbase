@@ -7,8 +7,8 @@ pub struct Viewer {
 }
 
 #[derive(cynic::QueryFragment, Debug)]
-pub struct ProjectConnection {
-    pub nodes: Vec<Project>,
+pub struct GraphConnection {
+    pub nodes: Vec<Graph>,
 }
 
 #[derive(cynic::QueryFragment, Debug)]
@@ -17,7 +17,7 @@ pub struct OrganizationConnection {
 }
 
 #[derive(cynic::QueryFragment, Debug, Clone)]
-pub struct Project {
+pub struct Graph {
     pub id: cynic::Id,
     pub slug: String,
 }
@@ -35,7 +35,7 @@ pub struct PersonalAccount {
     pub name: String,
     pub slug: String,
     #[arguments(last: 100)]
-    pub projects: ProjectConnection,
+    pub graphs: GraphConnection,
 }
 
 #[derive(cynic::QueryFragment, Debug)]
@@ -49,7 +49,7 @@ pub struct Account {
     pub name: String,
     pub slug: String,
     #[arguments(last: 100)]
-    pub projects: ProjectConnection,
+    pub graphs: GraphConnection,
 }
 
 #[derive(cynic::QueryFragment, Debug)]
@@ -58,5 +58,5 @@ pub struct Organization {
     pub name: String,
     pub slug: String,
     #[arguments(last: 100)]
-    pub projects: ProjectConnection,
+    pub graphs: GraphConnection,
 }
