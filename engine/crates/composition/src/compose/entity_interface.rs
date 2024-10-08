@@ -92,7 +92,7 @@ pub(crate) fn merge_entity_interface_definitions<'a>(
 
             ir::FieldIr {
                 parent_definition: federated::Definition::Interface(interface_id),
-                field_name: field.name().id,
+                field_name: ctx.insert_string(field.name().id),
                 field_type: field.r#type().id,
                 arguments,
                 resolvable_in,
@@ -179,7 +179,7 @@ pub(crate) fn merge_entity_interface_definitions<'a>(
 
                 ir::FieldIr {
                     parent_definition: federated::Definition::Interface(interface_id),
-                    field_name: field.name().id,
+                    field_name: ctx.insert_string(field.name().id),
                     field_type: field.r#type().id,
                     arguments: translate_arguments(field, ctx),
                     resolvable_in: vec![graphql_federated_graph::SubgraphId(definition.subgraph_id().idx())],

@@ -19,9 +19,6 @@ use std::{
 
 /// This can't fail. All the relevant, correct information should already be in the CompositionIr.
 pub(crate) fn emit_federated_graph(mut ir: CompositionIr, subgraphs: &Subgraphs) -> federated::VersionedFederatedGraph {
-    let __schema = ir.strings.insert("__schema");
-    let __type = ir.strings.insert("__type");
-
     let mut out = federated::FederatedGraph {
         type_definitions: mem::take(&mut ir.type_definitions),
         enum_values: mem::take(&mut ir.enum_values),
@@ -55,8 +52,6 @@ pub(crate) fn emit_federated_graph(mut ir: CompositionIr, subgraphs: &Subgraphs)
     emit_fields(
         mem::take(&mut ir.fields),
         &ir.object_fields_from_entity_interfaces,
-        __schema,
-        __type,
         &mut ctx,
     );
     emit_union_members(&ir.union_members, &ir.union_join_members, &mut ctx);
@@ -215,8 +210,6 @@ fn emit_interface_impls(ctx: &mut Context<'_>) {
 fn emit_fields<'a>(
     ir_fields: Vec<FieldIr>,
     object_fields_from_entity_interfaces: &BTreeSet<(federated::StringId, federated::FieldId)>,
-    __schema: federated::StringId,
-    __type: federated::StringId,
     ctx: &mut Context<'a>,
 ) {
     // We have to accumulate the `@provides`, `@requires` and `@authorized` and delay emitting them because
@@ -256,12 +249,7 @@ fn emit_fields<'a>(
         }
 
         // Sort the fields by name.
-        fields.sort_by(|a, b| {
-            ctx.subgraphs
-                .walk(a.field_name)
-                .as_str()
-                .cmp(ctx.subgraphs.walk(b.field_name).as_str())
-        });
+        fields.sort_by(|a, b| ctx[a.field_name].cmp(&ctx[b.field_name]));
 
         for FieldIr {
             parent_definition: _,
@@ -278,7 +266,6 @@ fn emit_fields<'a>(
         } in fields.drain(..)
         {
             let r#type = ctx.insert_field_type(ctx.subgraphs.walk(field_type));
-            let field_name = ctx.insert_string(ctx.subgraphs.walk(field_name));
             let output_definition = r#type.definition;
 
             let field = federated::Field {
@@ -350,31 +337,6 @@ fn emit_fields<'a>(
             .unwrap_or(federated::NO_FIELDS);
 
         match definition {
-            federated::Definition::Object(id) if id == ctx.out.root_operation_types.query => {
-                // Here we want to reserve two spots for the __schema and __type fields used for introspection.
-
-                let extra_fields = [__schema, __type].map(|name| federated::Field {
-                    name,
-                    // Dummy type
-                    r#type: federated::Type {
-                        wrapping: federated::Wrapping::new(false),
-                        definition,
-                    },
-                    arguments: federated::NO_INPUT_VALUE_DEFINITION,
-                    resolvable_in: Vec::new(),
-                    provides: Vec::new(),
-                    requires: Vec::new(),
-                    overrides: Vec::new(),
-                    composed_directives: federated::NO_DIRECTIVES,
-                    description: None,
-                });
-
-                ctx.out.fields.extend_from_slice(&extra_fields);
-                ctx.out.objects[id.0].fields = federated::Fields {
-                    start: fields.start,
-                    end: federated::FieldId(fields.end.0 + 2),
-                };
-            }
             federated::Definition::Object(id) => {
                 ctx.out.objects[id.0].fields = fields;
             }

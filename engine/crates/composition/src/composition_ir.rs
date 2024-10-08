@@ -54,7 +54,7 @@ pub(crate) struct CompositionIr {
 #[derive(Clone)]
 pub(crate) struct FieldIr {
     pub(crate) parent_definition: federated::Definition,
-    pub(crate) field_name: subgraphs::StringId,
+    pub(crate) field_name: federated::StringId,
     pub(crate) field_type: subgraphs::FieldTypeId,
     pub(crate) arguments: federated::InputValueDefinitions,
 
@@ -103,6 +103,14 @@ impl StringsIr {
 
     pub(crate) fn into_federated_strings(self) -> Vec<String> {
         self.strings.into_iter().collect()
+    }
+}
+
+impl std::ops::Index<federated::StringId> for StringsIr {
+    type Output = str;
+
+    fn index(&self, index: federated::StringId) -> &Self::Output {
+        self.strings.get_index(index.0).unwrap().as_str()
     }
 }
 
