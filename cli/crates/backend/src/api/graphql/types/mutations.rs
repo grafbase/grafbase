@@ -355,12 +355,13 @@ pub struct SubgraphCreateArguments<'a> {
 
 #[derive(cynic::InputObject, Debug)]
 pub struct PublishInput<'a> {
-    pub account_slug: &'a str,
-    pub project_slug: &'a str,
     pub branch: Option<&'a str>,
+    pub message: Option<&'a str>,
+    pub account_slug: &'a str,
+    pub graph_slug: Option<&'a str>,
+    pub schema: &'a str,
     pub subgraph: &'a str,
     pub url: &'a str,
-    pub schema: &'a str,
 }
 
 #[derive(cynic::QueryFragment, Debug)]

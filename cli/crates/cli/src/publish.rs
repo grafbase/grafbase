@@ -11,6 +11,7 @@ pub(crate) async fn publish(
         project_ref,
         url,
         schema_path,
+        message,
         ..
     }: PublishCommand,
 ) -> Result<(), CliError> {
@@ -40,6 +41,7 @@ pub(crate) async fn publish(
         &subgraph_name,
         url.as_str(),
         &schema,
+        message.as_deref(),
     )
     .await
     .map_err(CliError::BackendApiError)?;
@@ -51,10 +53,10 @@ pub(crate) async fn publish(
         backend::api::publish::PublishOutcome::Success { composition_errors } => {
             report::publish_command_composition_failure(composition_errors);
         }
-        backend::api::publish::PublishOutcome::ProjectDoesNotExist {
-            account_name,
-            project_name,
-        } => report::publish_project_does_not_exist(account_name, project_name),
+        backend::api::publish::PublishOutcome::GraphDoesNotExist {
+            account_slug,
+            graph_slug,
+        } => report::publish_graph_does_not_exist(account_slug, graph_slug),
     };
 
     Ok(())

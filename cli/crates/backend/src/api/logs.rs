@@ -159,9 +159,6 @@ pub async fn graph_slug_by_id(id: &str) -> Result<Option<(String, String)>, ApiE
 
     Ok(response.node.and_then(|node| match node {
         super::graphql::queries::project_slug_by_id::Node::Graph(graph) => Some((graph.account.slug, graph.slug)),
-        super::graphql::queries::project_slug_by_id::Node::Project(project) => {
-            Some((project.account_slug, project.slug))
-        }
         super::graphql::queries::project_slug_by_id::Node::Unknown => None,
     }))
 }

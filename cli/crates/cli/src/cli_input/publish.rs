@@ -36,6 +36,10 @@ pub struct PublishCommand {
     #[arg(long, default_value_t = 4000)]
     pub(crate) dev_api_port: u16,
 
+    /// The message to annotate the publication with
+    #[arg(long, short = 'm')]
+    pub(crate) message: Option<String>,
+
     /// Add a header to the introspection request
     #[clap(short = 'H', long, value_parser, num_args = 0..)]
     header: Vec<String>,

@@ -16,16 +16,16 @@ pub struct Account {
 }
 
 #[derive(Debug)]
-pub struct AccountWithProjects {
+pub struct AccountWithGraphs {
     pub id: String,
     pub name: String,
     pub slug: String,
     pub personal: bool,
-    pub projects: Vec<Project>,
+    pub graphs: Vec<Graph>,
 }
 
 #[derive(Debug)]
-pub struct Project {
+pub struct Graph {
     pub id: String,
     pub slug: String,
 }
