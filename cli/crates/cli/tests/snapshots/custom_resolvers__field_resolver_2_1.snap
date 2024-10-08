@@ -1,5 +1,0 @@
----
-source: cli/crates/cli/tests/custom_resolvers.rs
-expression: value
----
-null

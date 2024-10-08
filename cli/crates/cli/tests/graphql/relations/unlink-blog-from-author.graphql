@@ -1,8 +1,0 @@
-mutation UnlinkBlogFromAuthor($id: ID!, $blogId: ID!) {
-  authorUpdate(by: { id: $id }, input: { blogs: [{ unlink: $blogId }] }) {
-    author {
-      id
-      name
-    }
-  }
-}

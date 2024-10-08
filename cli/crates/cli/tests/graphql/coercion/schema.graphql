@@ -1,4 +1,0 @@
-type Dummy @model {
-  list: [Int]
-  matrix: [[Int]]
-}

@@ -1,8 +1,0 @@
-mutation TodoUpdate($id: ID!, $input: TodoUpdateInput!) {
-  todoUpdate(by: { id: $id }, input: $input) {
-    todo {
-      title
-      complete
-    }
-  }
-}

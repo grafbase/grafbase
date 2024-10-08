@@ -1,8 +1,0 @@
-mutation {
-  todoCreate(input: { title: "1", complete: false }) {
-    __typename
-    todo {
-      title
-    }
-  }
-}

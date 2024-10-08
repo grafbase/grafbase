@@ -1,8 +1,0 @@
-mutation RenameAuthor($id: ID!, $name: String!) {
-  authorUpdate(by: { id: $id }, input: { name: $name }) {
-    author {
-      id
-      name
-    }
-  }
-}

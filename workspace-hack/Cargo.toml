@@ -26,14 +26,13 @@ aho-corasick = { version = "1" }
 anyhow = { version = "1" }
 arrayvec = { version = "0.7", default-features = false, features = ["std"] }
 ascii = { version = "1", features = ["serde"] }
-async-graphql = { version = "7", features = ["url"] }
+async-tungstenite = { version = "0.26", features = ["tokio-rustls-webpki-roots"] }
 axum = { git = "https://github.com/grafbase/axum", rev = "c3146f9ca921907d9884fbf7549a1520e9e72eac", features = ["macros", "ws"] }
 axum-core = { git = "https://github.com/grafbase/axum", rev = "c3146f9ca921907d9884fbf7549a1520e9e72eac", default-features = false, features = ["tracing"] }
 base16ct = { version = "0.2", default-features = false, features = ["alloc"] }
 base64 = { version = "0.22" }
 bitflags = { version = "2", default-features = false, features = ["std"] }
 bstr = { version = "1", default-features = false, features = ["std"] }
-bumpalo = { version = "3", features = ["allocator-api2", "boxed", "collections"] }
 byteorder = { version = "1" }
 bytes = { version = "1", features = ["serde"] }
 chrono = { version = "0.4", features = ["serde"] }
@@ -57,7 +56,6 @@ either = { version = "1" }
 elliptic-curve = { version = "0.13", default-features = false, features = ["ecdh", "hazmat", "pem", "std"] }
 fastrand = { version = "2" }
 ff = { version = "0.13", default-features = false, features = ["alloc"] }
-flate2 = { version = "1", features = ["zlib"] }
 futures = { version = "0.3" }
 futures-channel = { version = "0.3", features = ["sink"] }
 futures-core = { version = "0.3" }
@@ -85,18 +83,15 @@ log = { version = "0.4", default-features = false, features = ["std"] }
 memchr = { version = "2", features = ["use_std"] }
 miette = { version = "7", features = ["fancy"] }
 num-bigint-dig = { version = "0.8", default-features = false, features = ["i128", "prime", "u64_digit", "zeroize"] }
-num-integer = { version = "0.1", default-features = false, features = ["i128", "std"] }
 num-traits = { version = "0.2", features = ["i128", "libm"] }
 once_cell = { version = "1" }
 p256 = { version = "0.13" }
 percent-encoding = { version = "2" }
-phf = { version = "0.11", features = ["macros"] }
-phf_shared = { version = "0.11", default-features = false, features = ["std"] }
 pkcs1 = { version = "0.7", default-features = false, features = ["pem", "pkcs8", "std"] }
 pkcs8 = { version = "0.10", default-features = false, features = ["pem", "std"] }
+portable-atomic = { version = "1", features = ["require-cas"] }
 proc-macro2 = { version = "1" }
 prost = { version = "0.13" }
-ptr_meta = { version = "0.1" }
 quote = { version = "1" }
 rand = { version = "0.8", features = ["small_rng"] }
 rand_core = { version = "0.6", default-features = false, features = ["std"] }
@@ -127,17 +122,16 @@ sync_wrapper = { version = "1", default-features = false, features = ["futures"]
 time = { version = "0.3", features = ["formatting", "parsing"] }
 tokio = { version = "1", features = ["full"] }
 tokio-rustls = { version = "0.26", default-features = false, features = ["logging", "ring", "tls12"] }
-tokio-stream = { version = "0.1", features = ["io-util", "net", "sync"] }
+tokio-stream = { version = "0.1", features = ["io-util", "net", "tokio-util"] }
 tokio-util = { version = "0.7", features = ["codec", "compat", "io"] }
 toml_datetime = { version = "0.6", default-features = false, features = ["serde"] }
 toml_edit = { version = "0.22", features = ["serde"] }
 tower = { version = "0.4", features = ["balance", "buffer", "limit", "util"] }
-tower-http = { version = "0.5", features = ["cors", "fs", "timeout", "trace"] }
+tower-http = { version = "0.5", features = ["cors", "timeout", "trace"] }
 tracing = { git = "https://github.com/tokio-rs/tracing", rev = "6d00d7d9f72dc6797138a1062bc33073afbad5a1", features = ["log"] }
 tracing-core = { git = "https://github.com/tokio-rs/tracing", rev = "6d00d7d9f72dc6797138a1062bc33073afbad5a1" }
 tracing-log = { version = "0.2" }
 tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
-triomphe = { version = "0.1" }
 tungstenite = { version = "0.23", features = ["__rustls-tls", "url"] }
 ulid = { version = "1", features = ["serde"] }
 unicode-bidi = { version = "0.3" }
@@ -156,14 +150,13 @@ aho-corasick = { version = "1" }
 anyhow = { version = "1" }
 arrayvec = { version = "0.7", default-features = false, features = ["std"] }
 ascii = { version = "1", features = ["serde"] }
-async-graphql = { version = "7", features = ["url"] }
+async-tungstenite = { version = "0.26", features = ["tokio-rustls-webpki-roots"] }
 axum = { git = "https://github.com/grafbase/axum", rev = "c3146f9ca921907d9884fbf7549a1520e9e72eac", features = ["macros", "ws"] }
 axum-core = { git = "https://github.com/grafbase/axum", rev = "c3146f9ca921907d9884fbf7549a1520e9e72eac", default-features = false, features = ["tracing"] }
 base16ct = { version = "0.2", default-features = false, features = ["alloc"] }
 base64 = { version = "0.22" }
 bitflags = { version = "2", default-features = false, features = ["std"] }
 bstr = { version = "1", default-features = false, features = ["std"] }
-bumpalo = { version = "3", features = ["allocator-api2", "boxed", "collections"] }
 byteorder = { version = "1" }
 bytes = { version = "1", features = ["serde"] }
 cc = { version = "1", default-features = false, features = ["parallel"] }
@@ -189,7 +182,6 @@ either = { version = "1" }
 elliptic-curve = { version = "0.13", default-features = false, features = ["ecdh", "hazmat", "pem", "std"] }
 fastrand = { version = "2" }
 ff = { version = "0.13", default-features = false, features = ["alloc"] }
-flate2 = { version = "1", features = ["zlib"] }
 futures = { version = "0.3" }
 futures-channel = { version = "0.3", features = ["sink"] }
 futures-core = { version = "0.3" }
@@ -217,18 +209,15 @@ log = { version = "0.4", default-features = false, features = ["std"] }
 memchr = { version = "2", features = ["use_std"] }
 miette = { version = "7", features = ["fancy"] }
 num-bigint-dig = { version = "0.8", default-features = false, features = ["i128", "prime", "u64_digit", "zeroize"] }
-num-integer = { version = "0.1", default-features = false, features = ["i128", "std"] }
 num-traits = { version = "0.2", features = ["i128", "libm"] }
 once_cell = { version = "1" }
 p256 = { version = "0.13" }
 percent-encoding = { version = "2" }
-phf = { version = "0.11", features = ["macros"] }
-phf_shared = { version = "0.11", default-features = false, features = ["std"] }
 pkcs1 = { version = "0.7", default-features = false, features = ["pem", "pkcs8", "std"] }
 pkcs8 = { version = "0.10", default-features = false, features = ["pem", "std"] }
+portable-atomic = { version = "1", features = ["require-cas"] }
 proc-macro2 = { version = "1" }
 prost = { version = "0.13" }
-ptr_meta = { version = "0.1" }
 quote = { version = "1" }
 rand = { version = "0.8", features = ["small_rng"] }
 rand_core = { version = "0.6", default-features = false, features = ["std"] }
@@ -256,22 +245,21 @@ spki = { version = "0.7", default-features = false, features = ["pem", "std"] }
 strum = { version = "0.26", features = ["derive"] }
 subtle = { version = "2" }
 syn-dff4ba8e3ae991db = { package = "syn", version = "1", features = ["extra-traits", "full", "visit"] }
-syn-f595c2ba2a3f28df = { package = "syn", version = "2", features = ["extra-traits", "fold", "full", "visit", "visit-mut"] }
+syn-f595c2ba2a3f28df = { package = "syn", version = "2", features = ["extra-traits", "full", "visit", "visit-mut"] }
 sync_wrapper = { version = "1", default-features = false, features = ["futures"] }
 time = { version = "0.3", features = ["formatting", "parsing"] }
 tokio = { version = "1", features = ["full"] }
 tokio-rustls = { version = "0.26", default-features = false, features = ["logging", "ring", "tls12"] }
-tokio-stream = { version = "0.1", features = ["io-util", "net", "sync"] }
+tokio-stream = { version = "0.1", features = ["io-util", "net", "tokio-util"] }
 tokio-util = { version = "0.7", features = ["codec", "compat", "io"] }
 toml_datetime = { version = "0.6", default-features = false, features = ["serde"] }
 toml_edit = { version = "0.22", features = ["serde"] }
 tower = { version = "0.4", features = ["balance", "buffer", "limit", "util"] }
-tower-http = { version = "0.5", features = ["cors", "fs", "timeout", "trace"] }
+tower-http = { version = "0.5", features = ["cors", "timeout", "trace"] }
 tracing = { git = "https://github.com/tokio-rs/tracing", rev = "6d00d7d9f72dc6797138a1062bc33073afbad5a1", features = ["log"] }
 tracing-core = { git = "https://github.com/tokio-rs/tracing", rev = "6d00d7d9f72dc6797138a1062bc33073afbad5a1" }
 tracing-log = { version = "0.2" }
 tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
-triomphe = { version = "0.1" }
 tungstenite = { version = "0.23", features = ["__rustls-tls", "url"] }
 ulid = { version = "1", features = ["serde"] }
 unicode-bidi = { version = "0.3" }

@@ -1,5 +1,0 @@
-query UserGetById($id: ID!) {
-  user(by: { id: $id }) {
-    email
-  }
-}

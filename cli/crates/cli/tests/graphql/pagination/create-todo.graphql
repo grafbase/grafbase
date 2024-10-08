@@ -1,9 +1,0 @@
-mutation TodoListCreate($title: String!) {
-  todoCreate(input: { title: $title, complete: true }) {
-    todo {
-      id
-      title
-      complete
-    }
-  }
-}

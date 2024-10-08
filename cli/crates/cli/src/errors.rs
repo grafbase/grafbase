@@ -1,5 +1,4 @@
 use backend::api::errors::{ApiError, CreateError, LoginApiError, PublishError};
-use backend::errors::ServerError;
 use common::errors::CommonError;
 use std::io;
 use std::path::PathBuf;
@@ -9,13 +8,6 @@ use crate::upgrade::UpgradeError;
 
 #[derive(Error, Debug)]
 pub enum CliError {
-    // TODO: this might be better as `expect`
-    /// returned if the development server panics
-    #[error("{0}")]
-    ServerPanic(String),
-    /// wraps a server error
-    #[error(transparent)]
-    ServerError(ServerError),
     /// wraps an error originating in the local-backend crate api module
     #[error(transparent)]
     BackendApiError(ApiError),
@@ -44,9 +36,6 @@ pub enum CliError {
     /// returned if the account name argument provided to create is not an existing account
     #[error("could not find an account with the provided name")]
     NoAccountFound,
-    /// returned if the schema parser failed to compile a file
-    #[error("{0}")]
-    CompilationError(String),
     #[error("error during graph introspection: {0}")]
     Introspection(String),
     #[error("could not read the trusted documents manifest: {0}")]
@@ -55,8 +44,6 @@ pub enum CliError {
     TrustedDocumentsManifestParseError(#[source] serde_json::Error),
     #[error("could not read the GraphQL schema")]
     SchemaReadError(#[source] io::Error),
-    #[error("error in publish: {0}")]
-    Publish(String),
     #[error(transparent)]
     UpgradeError(#[from] UpgradeError),
     /// returned if the CLI was installed via a package manager and not directly (when trying to upgrade)
@@ -81,12 +68,6 @@ impl CliError {
         match self {
             Self::CommonError(CommonError::FindGrafbaseDirectory) => {
                 Some("try running the CLI in your Grafbase project or any nested directory".to_owned())
-            }
-            Self::ServerError(ServerError::AvailablePortServer) => {
-                Some("try supplying a larger port range to search by supplying a lower --port number".to_owned())
-            }
-            Self::ServerError(ServerError::PortInUse(_)) => {
-                Some("try using a different --port number or supplying the --search flag".to_owned())
             }
             Self::BackendApiError(
                 ApiError::RequestError(_)
