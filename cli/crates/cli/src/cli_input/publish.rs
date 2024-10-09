@@ -13,7 +13,7 @@ use url::Url;
 )]
 pub struct PublishCommand {
     #[arg(help = ProjectRef::ARG_DESCRIPTION)]
-    pub(crate) project_ref: Option<ProjectRef>,
+    pub(crate) project_ref: ProjectRef,
 
     /// Publish to a running development server
     #[arg(long)]
@@ -32,10 +32,6 @@ pub struct PublishCommand {
     #[arg(long)]
     pub(crate) url: Url,
 
-    /// The listening port of the federated dev
-    #[arg(long, default_value_t = 4000)]
-    pub(crate) dev_api_port: u16,
-
     /// The message to annotate the publication with
     #[arg(long, short = 'm')]
     pub(crate) message: Option<String>,
@@ -43,10 +39,4 @@ pub struct PublishCommand {
     /// Add a header to the introspection request
     #[clap(short = 'H', long, value_parser, num_args = 0..)]
     header: Vec<String>,
-}
-
-impl PublishCommand {
-    pub(crate) fn headers(&self) -> impl Iterator<Item = (&str, &str)> {
-        self.header.iter().filter_map(|header| super::split_header(header))
-    }
 }

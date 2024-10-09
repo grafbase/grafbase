@@ -258,7 +258,7 @@ pub(crate) fn publish_command_success(subgraph_name: &str) {
     println!("🧩 {subgraph_name} published successfully");
 }
 
-pub(crate) fn publish_project_does_not_exist(account_slug: &str, project_slug: &str) {
+pub(crate) fn publish_graph_does_not_exist(account_slug: &str, project_slug: &str) {
     watercolor::output!("❌ Could not publish: there is no project named {project_slug} in the account {account_slug}\n", @BrightRed);
 }
 
