@@ -143,6 +143,9 @@ where
         if *version != 1 {
             return Err(PersistedQueryError::UnsupportedVersion);
         }
+        if !self.apq_enabled {
+            return Err(PersistedQueryError::NotFound);
+        }
 
         let cache = &self.cache;
         let key = cache.build_key(&format!("apq/sha256_{}", hex::encode(sha256_hash)));

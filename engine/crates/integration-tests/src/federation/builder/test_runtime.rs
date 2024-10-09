@@ -32,7 +32,7 @@ impl Default for TestRuntime {
             hooks: Default::default(),
             rate_limiter: InMemoryRateLimiter::runtime_with_watcher(rx),
             entity_cache: InMemoryEntityCache::default(),
-            hot_cache_factory: Default::default(),
+            hot_cache_factory: InMemoryOperationCacheFactory::new(1000),
         }
     }
 }

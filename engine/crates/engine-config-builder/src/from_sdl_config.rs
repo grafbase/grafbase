@@ -9,7 +9,7 @@ use config::{
     SubgraphConfig,
 };
 use engine_v2_config::{
-    latest::{self as config, BatchingConfig},
+    latest::{self as config, AutomaticallyPersistedQueries, BatchingConfig, OperationCaching},
     VersionedConfig,
 };
 use federated_graph::{FederatedGraph, FieldId, ObjectId, SubgraphId};
@@ -54,6 +54,13 @@ pub fn build_with_sdl_config(config: &FederatedGraphConfig, federated_graph: Fed
         batching: BatchingConfig {
             enabled: config.batching.enabled,
             limit: config.batching.limit,
+        },
+        operation_caching: OperationCaching {
+            enabled: config.operation_caching.enabled,
+            limit: config.operation_caching.limit,
+        },
+        apq: AutomaticallyPersistedQueries {
+            enabled: config.apq.enabled,
         },
     })
 }

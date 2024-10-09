@@ -70,6 +70,13 @@ pub struct Gateway<Executor: self::Executor> {
     authorizer: Box<dyn Authorizer<Context = Executor::Context>>,
     operation_metrics: EngineMetrics,
     rate_limiter: Box<dyn RateLimiterInner>,
+    apq_enabled: bool,
+}
+
+#[derive(Clone, Copy, PartialEq)]
+pub enum AutomaticallyPersistedQueriesConfig {
+    Enabled,
+    Disabled,
 }
 
 impl<Executor> Gateway<Executor>
@@ -89,6 +96,7 @@ where
         trusted_documents: runtime::trusted_documents_client::Client,
         meter: grafbase_telemetry::otel::opentelemetry::metrics::Meter,
         rate_limiter: Box<dyn RateLimiterInner>,
+        apq_config: AutomaticallyPersistedQueriesConfig,
     ) -> Self {
         Self {
             executor,
@@ -99,6 +107,7 @@ where
             trusted_documents,
             operation_metrics: EngineMetrics::build(&meter, None),
             rate_limiter,
+            apq_enabled: apq_config == AutomaticallyPersistedQueriesConfig::Enabled,
         }
     }
 
