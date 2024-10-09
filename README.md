@@ -13,7 +13,7 @@
   <a href="/examples"><strong>Examples</strong></a> ·
   <a href="https://grafbase.com/docs"><strong>Docs</strong></a> ·
   <a href="https://grafbase.com/cli"><strong>CLI</strong></a> ·
-  <a href="https://grafbase.com/docs/self-hosted-gateway">Gateway</a> ·
+  <a href="https://grafbase.com/docs/self-hosted-gateway"><strong>Gateway</strong></a> ·
   <a href="https://grafbase.com/community"><strong>Community</stong></a> ·
   <a href="https://grafbase.com/changelog"><strong>Changelog</strong></a>
 </p>
