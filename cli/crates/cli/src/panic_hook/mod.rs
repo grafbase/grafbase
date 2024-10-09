@@ -50,7 +50,7 @@ macro_rules! panic_hook {
                 panic::set_hook(Box::new(move |info: &PanicInfo<'_>| {
                     let file_path = handle_dump(&meta, info);
                     print_msg(file_path, &meta);
-                    process::exit(exitcode::SOFTWARE);
+                    process::exit(1); // 
                 }));
             }
             Ok(_) => {}
