@@ -2759,6 +2759,7 @@ dependencies = [
 name = "engine-v2-query-planning"
 version = "0.0.0"
 dependencies = [
+ "bitvec",
  "ctor",
  "engine-parser",
  "engine-v2-config",
