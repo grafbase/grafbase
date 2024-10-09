@@ -26,10 +26,6 @@ pub const BUN_DIRECTORY_NAME: &str = "bun";
 pub const TRACE_LOG_FILTER: &str = "info,grafbase=trace,grafbase_local_common=trace,grafbase_local_server=trace,grafbase_local_backend=trace,federated_dev=trace,postgres-connector-types=trace,engine_v2=debug";
 /// an environment variable that sets the path of the home directory
 pub const GRAFBASE_HOME: &str = "GRAFBASE_HOME";
-/// the name of the Grafbase SDK npm package
-pub const GRAFBASE_SDK_PACKAGE_NAME: &str = "@grafbase/sdk";
-/// the version string of the Grafbase SDK npm package
-pub const GRAFBASE_SDK_PACKAGE_VERSION: &str = env!("GRAFBASE_SDK_PACKAGE_VERSION");
 /// the package.json file name
 pub const PACKAGE_JSON_FILE_NAME: &str = "package.json";
 /// the package.json dev dependencies key

@@ -17,15 +17,12 @@ chrono = "0.4.38"
 clap = { version = "4.5.4", features = ["cargo", "wrap_help", "derive", "env"] }
 clap_complete = "4.5.2"
 colored = "2.1.0"
-ctrlc = "3.4.4"
 dirs = "5.0.1"
-exitcode = "1.1.2"
 futures-util = "0.3.30"
 fslock = "0.2.1"
 indicatif = "0.17.8"
 indoc = "2.0.5"
 inquire = "0.7.5"
-itertools.workspace = true
 log = "0.4.21"
 mimalloc = "0.1.41"
 os_type = "2.6.0"
@@ -52,12 +49,12 @@ webbrowser = "1.0"
 
 backend = { package = "grafbase-local-backend", path = "../backend", version = "0.79.2" }
 common = { package = "grafbase-local-common", path = "../common", version = "0.79.2" }
-federated-dev = { path = "../federated-dev" }
 grafbase-graphql-introspection.workspace = true
 graphql-lint.workspace = true
 graph-ref = { path = "../../../graph-ref" }
-server = { package = "grafbase-local-server", path = "../server", version = "0.79.2" }
-prettytable = { version = "0.10.0", default-features = false, features = ["win_crlf"] }
+prettytable = { version = "0.10.0", default-features = false, features = [
+    "win_crlf",
+] }
 grafbase-workspace-hack.workspace = true
 
 [dev-dependencies]
@@ -91,10 +88,7 @@ more-asserts = "0.3.1"
 multipart-stream = "0.1.2"
 rand.workspace = true
 regex = "1.10.4"
-reqwest = { workspace = true, features = [
-    "rustls-tls",
-    "json",
-] }
+reqwest = { workspace = true, features = ["rustls-tls", "json"] }
 reqwest-eventsource = "0.6"
 rsa = "0.9.6"
 rstest = "0.22"

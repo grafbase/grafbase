@@ -1,14 +1,9 @@
 use common::errors::CommonError;
-pub use server::errors::ServerError;
 use std::{io, path::PathBuf};
 use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum BackendError {
-    /// wraps a server error
-    #[error(transparent)]
-    ServerError(ServerError),
-
     /// returned when trying to initialize a project that conflicts with an existing project
     #[error("{0} already exists")]
     AlreadyAProject(PathBuf),

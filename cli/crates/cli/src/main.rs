@@ -7,8 +7,6 @@ mod branch;
 mod check;
 mod cli_input;
 mod create;
-mod dev;
-mod dump_config;
 mod errors;
 mod introspect;
 mod link;
@@ -32,7 +30,6 @@ extern crate log;
 use crate::{
     cli_input::{Args, ArgumentNames, BranchSubCommand, SubCommand},
     create::create,
-    dev::dev,
     link::link,
     login::login,
     logout::logout,
@@ -105,21 +102,6 @@ fn try_main(args: Args) -> Result<(), CliError> {
 
             Ok(())
         }
-        SubCommand::Dev(cmd) => {
-            // ignoring any errors to fall back to the normal handler if there's an issue
-            let _set_handler_result = ctrlc::set_handler(|| {
-                report::goodbye();
-                process::exit(exitcode::OK);
-            });
-
-            dev(
-                cmd.search,
-                !cmd.disable_watch,
-                cmd.subgraph_port(),
-                cmd.log_levels(),
-                args.trace >= 2,
-            )
-        }
         SubCommand::Login => login(),
         SubCommand::Logout => logout(),
         SubCommand::Create(cmd) => create(&cmd.create_arguments()),
@@ -127,35 +109,8 @@ fn try_main(args: Args) -> Result<(), CliError> {
         SubCommand::Unlink => unlink(),
         SubCommand::Subgraphs(cmd) => subgraphs::subgraphs(cmd),
         SubCommand::Schema(cmd) => schema::schema(cmd),
-        SubCommand::Publish(cmd) => {
-            if cmd.dev {
-                report::publishing();
-                match federated_dev::add_subgraph(
-                    &cmd.subgraph_name,
-                    &cmd.url,
-                    cmd.dev_api_port,
-                    cmd.headers().collect(),
-                ) {
-                    Ok(_) => {
-                        report::publish_command_success(&cmd.subgraph_name);
-                        Ok(())
-                    }
-                    Err(federated_dev::Error::Internal(error)) => {
-                        report::local_publish_command_failure(&cmd.subgraph_name, &error.to_string());
-                        Ok(())
-                    }
-                    Err(federated_dev::Error::SubgraphComposition(error)) => {
-                        report::local_publish_command_failure(&cmd.subgraph_name, &error.to_string());
-                        Ok(())
-                    }
-                    Err(other) => Err(CliError::Publish(other.to_string())),
-                }
-            } else {
-                publish::publish(cmd)
-            }
-        }
+        SubCommand::Publish(cmd) => publish::publish(cmd),
         SubCommand::Introspect(cmd) => introspect::introspect(&cmd),
-        SubCommand::DumpConfig => dump_config::dump_config(),
         SubCommand::Check(cmd) => check::check(cmd),
         SubCommand::Trust(cmd) => trust::trust(cmd),
         SubCommand::Upgrade => {

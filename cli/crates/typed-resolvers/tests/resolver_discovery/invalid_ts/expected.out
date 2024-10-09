@@ -1,5 +1,0 @@
-=== ERRORS ===
-
-  × The resolver at ./tests/resolver_discovery/invalid_ts/resolvers/invalidTs.ts is not a valid TypeScript module.
-  help: The module must have a default export. See the docs: https://grafbase.com/docs/edge-gateway/resolvers
-

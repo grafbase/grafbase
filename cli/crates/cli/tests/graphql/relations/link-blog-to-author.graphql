@@ -1,8 +1,0 @@
-mutation LinkBlogToAuthor($id: ID!, $blogId: ID!) {
-  authorUpdate(by: { id: $id }, input: { blogs: [{ link: $blogId }] }) {
-    author {
-      id
-      name
-    }
-  }
-}

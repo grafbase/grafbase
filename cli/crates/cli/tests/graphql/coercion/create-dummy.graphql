@@ -1,8 +1,0 @@
-mutation CreateDummy($list: [Int], $matrix: [[Int]]) {
-  dummyCreate(input: { list: $list, matrix: $matrix }) {
-    dummy {
-      list
-      matrix
-    }
-  }
-}

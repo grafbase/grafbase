@@ -4,13 +4,11 @@ mod branch_ref;
 mod check;
 mod completions;
 mod create;
-mod dev;
 mod federated_graph;
 mod graph_ref_no_branch;
 mod introspect;
 mod link;
 mod lint;
-mod log_level_filter;
 mod project_ref;
 mod publish;
 mod schema;
@@ -19,16 +17,14 @@ mod subgraphs;
 mod trust;
 
 pub(crate) use self::{check::CheckCommand, trust::TrustCommand};
-pub(crate) use argument_names::{filter_existing_arguments, ArgumentNames};
+pub(crate) use argument_names::ArgumentNames;
 pub(crate) use branch::BranchSubCommand;
 pub(crate) use branch_ref::BranchRef;
 pub(crate) use completions::CompletionsCommand;
 pub(crate) use create::CreateCommand;
-pub(crate) use dev::DevCommand;
 pub(crate) use introspect::IntrospectCommand;
 pub(crate) use link::LinkCommand;
 pub(crate) use lint::LintCommand;
-pub(crate) use log_level_filter::{LogLevelFilter, LogLevelFilters};
 pub(crate) use project_ref::{ProjectRef, ProjectRefOrGraphRef};
 pub(crate) use publish::PublishCommand;
 pub(crate) use schema::SchemaCommand;
@@ -38,8 +34,6 @@ pub(crate) use subgraphs::SubgraphsCommand;
 use clap::Parser;
 use common::consts::TRACE_LOG_FILTER;
 use std::path::PathBuf;
-
-const DEFAULT_SUBGRAPH_PORT: u16 = 4000;
 
 fn split_header(header: &str) -> Option<(&str, &str)> {
     header.find(':').map(|split_index| {

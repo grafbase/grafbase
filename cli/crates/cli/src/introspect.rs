@@ -1,32 +1,10 @@
-use crate::{cli_input::IntrospectCommand, errors::CliError, output::report};
+use crate::{cli_input::IntrospectCommand, errors::CliError};
 use std::io::{IsTerminal as _, Write};
 use tokio::runtime::Runtime;
 
 pub(crate) fn introspect(command: &IntrospectCommand) -> Result<(), CliError> {
-    match (command.url(), command.dev) {
-        (Some(url), _) => {
-            let headers = command.headers().collect::<Vec<_>>();
-            introspect_remote(url, &headers, command.no_color)
-        }
-        (None, true) => introspect_local(command.no_color),
-        (None, false) => {
-            eprintln!("Error: Either the --url or the --dev argument must be provided.");
-            std::process::exit(1);
-        }
-    }
-}
-
-fn introspect_local(no_color: bool) -> Result<(), CliError> {
-    match server::introspect_local().map_err(CliError::ServerError)? {
-        server::IntrospectLocalOutput::Sdl(schema) => {
-            print_introspected_schema(&schema, no_color);
-        }
-        server::IntrospectLocalOutput::EmptyFederated => {
-            report::federated_schema_local_introspection_not_implemented();
-        }
-    }
-
-    Ok(())
+    let headers = command.headers().collect::<Vec<_>>();
+    introspect_remote(command.url(), &headers, command.no_color)
 }
 
 fn introspect_remote(url: &str, headers: &[(&str, &str)], no_color: bool) -> Result<(), CliError> {
