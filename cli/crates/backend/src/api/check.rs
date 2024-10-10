@@ -17,7 +17,7 @@ pub async fn check(
     account: &str,
     graph: &str,
     branch: Option<&str>,
-    subgraph_name: Option<&str>,
+    subgraph_name: &str,
     schema: &str,
     git_commit: Option<SchemaCheckGitCommitInput>,
 ) -> Result<SchemaCheckResult, ApiError> {
@@ -28,7 +28,7 @@ pub async fn check(
             account_slug: account,
             graph_slug: Some(graph),
             branch,
-            subgraph_name,
+            subgraph_name: Some(subgraph_name),
             schema,
             git_commit,
         },

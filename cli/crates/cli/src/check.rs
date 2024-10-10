@@ -40,7 +40,7 @@ pub(crate) async fn check(command: CheckCommand) -> Result<(), CliError> {
         project_ref.account(),
         project_ref.graph(),
         project_ref.branch(),
-        subgraph_name.as_deref(),
+        &subgraph_name,
         &schema,
         git_commit,
     )
