@@ -1,0 +1,11 @@
+type Organization implements Account {
+  foos(filter: String): String!
+}
+
+interface Account {
+  foos(filter: String): String!
+}
+
+type Query {
+  account: Account!
+}
