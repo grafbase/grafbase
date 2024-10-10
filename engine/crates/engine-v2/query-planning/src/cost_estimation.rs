@@ -33,7 +33,7 @@ impl<'ctx, Op: Operation> OperationGraph<'ctx, Op> {
             .graph
             .node_references()
             .filter_map(|(ix, weight)| match weight {
-                Node::Resolver(_) | Node::FieldResolver(_)
+                Node::Resolver(_) | Node::ProvidableField(_)
                     if self
                         .graph
                         .edges_directed(ix, Direction::Outgoing)
@@ -73,7 +73,7 @@ impl<'ctx, Op: Operation> OperationGraph<'ctx, Op> {
                         self.graph
                             .edges_directed(required_node, Direction::Incoming)
                             .filter_map(|edge| match edge.weight() {
-                                Edge::Resolves => Some(edge.source()),
+                                Edge::Provides => Some(edge.source()),
                                 _ => None,
                             })
                             .filter_map(|resolver_of_required_node| {
@@ -91,7 +91,7 @@ impl<'ctx, Op: Operation> OperationGraph<'ctx, Op> {
                     .expect("Invariant: Resolver always have a single incoming edge")
                     .id();
                 match self.graph.edge_weight_mut(incoming_edge).unwrap() {
-                    Edge::Resolver(edge_cost) => {
+                    Edge::CreateChildResolver(edge_cost) => {
                         // resolver have an inherent cost of 1.
                         requirements_cost += 1;
                         if *edge_cost != requirements_cost {
@@ -99,7 +99,7 @@ impl<'ctx, Op: Operation> OperationGraph<'ctx, Op> {
                             *edge_cost = requirements_cost
                         }
                     }
-                    Edge::CanResolveField(edge_cost) => {
+                    Edge::CanProvide(edge_cost) => {
                         if *edge_cost != requirements_cost {
                             updated_any_node = true;
                             *edge_cost = requirements_cost
@@ -139,8 +139,8 @@ impl<'ctx, Op: Operation> OperationGraph<'ctx, Op> {
             .graph
             .edges_directed(target, Direction::Incoming)
             .filter_map(|edge| match edge.weight() {
-                Edge::Resolver(cost) => Some((edge.source(), *cost)),
-                Edge::CanResolveField(cost) => Some((edge.source(), *cost)),
+                Edge::CreateChildResolver(cost) => Some((edge.source(), *cost)),
+                Edge::CanProvide(cost) => Some((edge.source(), *cost)),
                 _ => None,
             })
             .next()

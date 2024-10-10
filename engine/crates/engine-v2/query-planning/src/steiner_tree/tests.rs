@@ -11,7 +11,7 @@ fn shortest_path_steinlib_gene() {
         let start = Instant::now();
         let mut alg = ShortestPathAlg::init(&gene.graph, gene.root, gene.terminals.clone());
         let mut solution = loop {
-            if let Some(solution) = alg.grow_steiner_tree(|edge| *edge) {
+            if let Some(solution) = alg.grow_steiner_tree(|_, cost| *cost) {
                 break solution;
             }
         };
