@@ -1,23 +1,12 @@
 use super::ProjectRef;
-use clap::{ArgGroup, Parser};
+use clap::Parser;
 use url::Url;
 
 /// Publish a subgraph
 #[derive(Debug, Parser)]
-#[clap(
-    group(
-        ArgGroup::new("dev-or-production")
-            .required(true)
-            .args(&["dev", "project_ref"])
-    ),
-)]
 pub struct PublishCommand {
     #[arg(help = ProjectRef::ARG_DESCRIPTION)]
     pub(crate) project_ref: ProjectRef,
-
-    /// Publish to a running development server
-    #[arg(long)]
-    pub(crate) dev: bool,
 
     /// The name of the subgraph
     #[arg(long("name"))]
