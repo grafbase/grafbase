@@ -30,9 +30,6 @@ pub enum CliError {
     /// returned if an IO error is encountered when trying to display an interactive prompt
     #[error("encountered an IO error while showing an interactive prompt\nCaused by: {0}")]
     PromptIoError(io::Error),
-    /// returned if an account selected for linking a project has no projects
-    #[error("the selected account has no projects")]
-    AccountWithNoProjects,
     /// returned if the account name argument provided to create is not an existing account
     #[error("could not find an account with the provided name")]
     NoAccountFound,

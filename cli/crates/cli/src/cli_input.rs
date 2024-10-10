@@ -7,7 +7,6 @@ mod create;
 mod federated_graph;
 mod graph_ref_no_branch;
 mod introspect;
-mod link;
 mod lint;
 mod project_ref;
 mod publish;
@@ -23,7 +22,6 @@ pub(crate) use branch_ref::BranchRef;
 pub(crate) use completions::CompletionsCommand;
 pub(crate) use create::CreateCommand;
 pub(crate) use introspect::IntrospectCommand;
-pub(crate) use link::LinkCommand;
 pub(crate) use lint::LintCommand;
 pub(crate) use project_ref::{ProjectRef, ProjectRefOrGraphRef};
 pub(crate) use publish::PublishCommand;
@@ -39,15 +37,6 @@ fn split_header(header: &str) -> Option<(&str, &str)> {
     header.find(':').map(|split_index| {
         let key = header[0..split_index].trim();
         let value = header[split_index + 1..].trim();
-
-        (key, value)
-    })
-}
-
-fn split_env_var(env_var: &str) -> Option<(&str, &str)> {
-    env_var.find('=').map(|split_index| {
-        let key = env_var[0..split_index].trim();
-        let value = env_var[split_index + 1..].trim();
 
         (key, value)
     })

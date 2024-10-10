@@ -13,7 +13,6 @@ repository.workspace = true
 [dependencies]
 assert_matches = "1.5.0"
 backtrace = "0.3.71"
-chrono = "0.4.38"
 clap = { version = "4.5.4", features = ["cargo", "wrap_help", "derive", "env"] }
 clap_complete = "4.5.2"
 colored = "2.1.0"
@@ -42,7 +41,6 @@ thiserror = "1.0.59"
 tokio = { version = "1.37.0", features = ["full"] }
 tokio-util = { version = "0.7.10", features = ["futures-io", "compat"] }
 tracing-subscriber = { workspace = true, features = ["env-filter"] }
-ulid = "1.1.2"
 url = "2.5.0"
 uuid = { version = "1.8.0", features = ["v4"] }
 webbrowser = "1.0"
@@ -52,9 +50,6 @@ common = { package = "grafbase-local-common", path = "../common", version = "0.7
 grafbase-graphql-introspection.workspace = true
 graphql-lint.workspace = true
 graph-ref = { path = "../../../graph-ref" }
-prettytable = { version = "0.10.0", default-features = false, features = [
-    "win_crlf",
-] }
 grafbase-workspace-hack.workspace = true
 
 [dev-dependencies]

@@ -1,10 +1,10 @@
 use clap::Parser;
 
-use crate::{cli_input::BranchSubCommand, create::GraphMode, is_not_direct_install};
+use crate::is_not_direct_install;
 
 use super::{
     branch::BranchCommand, trust::TrustCommand, ArgumentNames, CheckCommand, CompletionsCommand, CreateCommand,
-    IntrospectCommand, LinkCommand, LintCommand, PublishCommand, SchemaCommand, SubgraphsCommand,
+    IntrospectCommand, LintCommand, PublishCommand, SchemaCommand, SubgraphsCommand,
 };
 
 #[derive(Debug, Parser, strum::AsRefStr, strum::Display)]
@@ -21,10 +21,6 @@ pub enum SubCommand {
     Logout,
     /// Set up and deploy a new graph
     Create(CreateCommand),
-    /// Connect a local graph to a remote graph
-    Link(LinkCommand),
-    /// Disconnect a local graph from a remote graph
-    Unlink,
     /// Introspect a graph and print its schema
     Introspect(IntrospectCommand),
     /// List subgraphs
@@ -44,21 +40,6 @@ pub enum SubCommand {
     Lint(LintCommand),
 }
 
-impl SubCommand {
-    pub(crate) fn in_project_context(&self) -> bool {
-        matches!(
-            self,
-            Self::Create(CreateCommand {
-                mode: Some(GraphMode::Managed) | None,
-                ..
-            }) | Self::Branch(BranchCommand {
-                command: BranchSubCommand::List,
-            }) | Self::Link(_)
-                | Self::Unlink
-        )
-    }
-}
-
 impl ArgumentNames for SubCommand {
     fn argument_names(&self) -> Option<Vec<&'static str>> {
         match self {
@@ -71,8 +52,6 @@ impl ArgumentNames for SubCommand {
             | SubCommand::Introspect(_)
             | SubCommand::Login
             | SubCommand::Logout
-            | SubCommand::Link(_)
-            | SubCommand::Unlink
             | SubCommand::Completions(_)
             | SubCommand::Trust(_)
             | SubCommand::Upgrade

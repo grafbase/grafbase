@@ -2,34 +2,15 @@ use crate::{
     errors::CliError,
     watercolor::{self, watercolor},
 };
-use backend::api::{branch::Branch, consts::dashboard_url};
-use chrono::Utc;
+use backend::api::consts::dashboard_url;
 use colored::Colorize;
 use common::{environment::Warning, trusted_documents::TrustedDocumentsManifest};
-use prettytable::{format::TableFormat, row, Table};
 
 /// reports to stdout that the server has started
 pub fn cli_header() {
     let version = env!("CARGO_PKG_VERSION");
     // TODO: integrate this with watercolor
     println!("{}", format!("Grafbase CLI {version}\n").dimmed());
-}
-
-pub fn format_long_duration(duration: std::time::Duration) -> String {
-    let days = duration.as_secs() / 60 / 60 / 24;
-    let hours = duration.as_secs() / 60 / 60 - (days * 24);
-    let minutes = duration.as_secs() / 60 - (hours * 60);
-    let seconds = duration.as_secs() - (minutes * 60);
-
-    if days > 0 {
-        format!("{days}d {hours}h")
-    } else if hours > 0 {
-        format!("{hours}h {minutes}m")
-    } else if minutes > 0 {
-        format!("{minutes}m {seconds}s")
-    } else {
-        format!("{seconds}s")
-    }
 }
 
 /// reports an error to stderr
@@ -96,60 +77,6 @@ pub fn create_branch_success() {
 // TODO change this to a spinner that is removed on success
 pub fn create() {
     watercolor::output!("🕒 Your graph is being created...", @BrightBlue);
-}
-
-pub fn linked(name: &str) {
-    watercolor::output!("\n✨ Successfully linked your local graph to {name}!", @BrightBlue);
-}
-
-pub fn linked_non_interactive() {
-    watercolor::output!("✨ Successfully linked your local graph!", @BrightBlue);
-}
-
-pub fn unlinked() {
-    watercolor::output!("✨ Successfully unlinked your graph!", @BrightBlue);
-}
-
-pub fn list_branches(branches: Vec<Branch>) {
-    if branches.is_empty() {
-        watercolor::output!("⚠️  Found no branches.", @BrightYellow);
-        return;
-    }
-
-    let mut table = Table::new();
-    let mut format = TableFormat::new();
-
-    format.padding(0, 4);
-    table.set_format(format);
-
-    table.add_row(row!["BRANCH", "GRAPH", "ACCOUNT", "LATEST DEPLOY", "STATUS",]);
-
-    for branch in branches {
-        let now = Utc::now();
-
-        let last_updated = branch
-            .last_updated
-            .map(|updated| (now - updated).to_std().unwrap_or_default())
-            .map(format_long_duration)
-            .map(|d| format!("{d} ago"))
-            .unwrap_or_default();
-
-        let branch_name = if branch.is_production {
-            format!("{}*", branch.branch)
-        } else {
-            branch.branch
-        };
-
-        table.add_row(row![
-            branch_name,
-            branch.graph,
-            branch.account,
-            last_updated,
-            branch.status.unwrap_or_default(),
-        ]);
-    }
-
-    table.printstd();
 }
 
 pub fn create_success(name: &str, urls: &[String], account_slug: &str, project_slug: &str) {
