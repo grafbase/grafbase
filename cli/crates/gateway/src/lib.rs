@@ -67,6 +67,7 @@ impl Gateway {
                 trusted_documents,
                 grafbase_telemetry::metrics::meter_from_global_provider(),
                 Box::new(rate_limiter),
+                gateway_core::AutomaticallyPersistedQueriesConfig::Enabled,
             )),
         })
     }

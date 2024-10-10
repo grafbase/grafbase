@@ -22,6 +22,8 @@ pub struct FederatedGraphConfig {
     pub entity_caching: EntityCachingConfig,
     pub retry: Option<RetryConfig>,
     pub batching: BatchingConfig,
+    pub operation_caching: OperationCaching,
+    pub apq: AutomaticallyPersistedQueries,
 }
 
 /// Configuration for a subgraph of the current federated graph
@@ -233,6 +235,21 @@ pub struct BatchingConfig {
     pub enabled: bool,
     /// The maximum number of queries that can be batched together.
     pub limit: Option<usize>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq, PartialOrd, Ord)]
+pub struct OperationCaching {
+    /// If operation caching should be enabled.
+    pub enabled: bool,
+    /// The maximum number of operations that can be kept in the cache.
+    /// 1000 by default.
+    pub limit: Option<usize>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq, PartialOrd, Ord)]
+pub struct AutomaticallyPersistedQueries {
+    /// If automatically persisted queries should be enabled.
+    pub enabled: bool,
 }
 
 #[cfg(test)]

@@ -114,6 +114,7 @@ impl GatewayBuilder {
                 trusted_documents,
                 grafbase_telemetry::metrics::meter_from_global_provider(),
                 Box::new(rate_limiting),
+                gateway_core::AutomaticallyPersistedQueriesConfig::Enabled,
             )),
         }
     }
