@@ -14,8 +14,7 @@ use std::borrow::Cow;
 use petgraph::{
     dot::{Config, Dot},
     graph::NodeIndex,
-    visit::{IntoNodeReferences, NodeRef as _},
-    Direction,
+    stable_graph::StableGraph,
 };
 
 pub trait Operation: std::fmt::Debug {
@@ -35,10 +34,9 @@ pub trait Operation: std::fmt::Debug {
 pub struct OperationGraph<'ctx, Op: Operation> {
     pub(crate) schema: &'ctx Schema,
     pub(crate) operation: &'ctx mut Op,
-    pub(crate) graph: petgraph::stable_graph::StableGraph<Node<Op::FieldId>, Edge>,
+    pub(crate) graph: StableGraph<Node<Op::FieldId>, Edge>,
     pub(crate) root: NodeIndex,
     pub(crate) field_nodes: Vec<NodeIndex>,
-    pub(crate) leaf_nodes: Vec<NodeIndex>,
 }
 
 impl<'ctx, Op: Operation> std::ops::Index<Op::FieldId> for OperationGraph<'ctx, Op> {
@@ -68,6 +66,7 @@ impl<'ctx, Op: Operation> OperationGraph<'ctx, Op> {
             )
         )
     }
+
     /// Use https://dreampuf.github.io/GraphvizOnline
     /// or `echo '..." | dot -Tsvg` from graphviz
     pub fn to_dot_graph(&self) -> String {
@@ -80,14 +79,5 @@ impl<'ctx, Op: Operation> OperationGraph<'ctx, Op> {
                 &|_, node| node.1.label(self.schema, self.operation).to_string(),
             )
         )
-    }
-
-    fn debug_assert_invariants(&self) {
-        debug_assert!(self.graph.node_references().all(|node| match node.weight() {
-            Node::Root => self.graph.edges_directed(node.id(), Direction::Incoming).count() == 0,
-            Node::Field(_) => true,
-            Node::Resolver(_) => self.graph.edges_directed(node.id(), Direction::Incoming).count() == 1,
-            Node::FieldResolver(_) => self.graph.edges_directed(node.id(), Direction::Incoming).count() == 1,
-        }));
     }
 }
