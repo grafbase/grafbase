@@ -7,9 +7,13 @@ use super::{dot_graph::Attrs, Operation};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub(crate) enum Node<F> {
+    /// Root node, unique
     Root,
+    /// Field in the operation, or an extra one to satisfy requirements
     Field(F),
+    /// Defines how to access data from a subgraph
     Resolver(Resolver),
+    /// Field resolver by a resolver with extra metadata such as parent's @provides.
     FieldResolver(FieldResolver),
 }
 

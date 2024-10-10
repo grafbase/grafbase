@@ -209,8 +209,8 @@ fn sibling_dependency() {
     );
 
     let mut graph = OperationGraph::new(&schema, &mut operation);
-    insta::assert_snapshot!("graph", graph.to_dot_graph(), &graph.to_prettty_dot_graph());
+    insta::assert_snapshot!("graph", graph.to_dot_graph(), &graph.to_pretty_dot_graph());
 
     graph.estimate_resolver_costs();
-    insta::assert_snapshot!("cost", graph.to_dot_graph(), &graph.to_prettty_dot_graph());
+    insta::assert_snapshot!("cost", graph.to_dot_graph(), &graph.to_pretty_dot_graph());
 }

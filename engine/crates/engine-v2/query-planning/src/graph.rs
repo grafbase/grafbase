@@ -57,7 +57,7 @@ impl<'ctx, Op: Operation> OperationGraph<'ctx, Op> {
 
     /// Use https://dreampuf.github.io/GraphvizOnline
     /// or `echo '..." | dot -Tsvg` from graphviz
-    pub fn to_prettty_dot_graph(&self) -> String {
+    pub fn to_pretty_dot_graph(&self) -> String {
         format!(
             "{:?}",
             Dot::with_attr_getters(
