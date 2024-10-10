@@ -1,0 +1,11 @@
+type Organization {
+    foos(filter: String): String!
+}
+
+type Query {
+    account: Account!
+}
+
+interface Account {
+    foos: String!(filter: String)
+}
