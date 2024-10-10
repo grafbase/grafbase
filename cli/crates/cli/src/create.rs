@@ -1,6 +1,5 @@
 use crate::{errors::CliError, output::report, prompts::handle_inquire_error};
 use backend::api::{create, types::Account};
-use common::environment::Project;
 use inquire::{validator::Validation, Confirm, Select, Text};
 use slugify::slugify;
 use std::{fmt::Display, str::FromStr};
@@ -57,18 +56,13 @@ async fn from_arguments(arguments: &CreateArguments<'_>) -> Result<(), CliError>
 }
 
 async fn interactive() -> Result<(), CliError> {
-    let project = Project::get();
-
     let accounts = create::get_viewer_data_for_creation()
         .await
         .map_err(CliError::BackendApiError)?;
 
     let options: Vec<AccountSelection> = accounts.into_iter().map(AccountSelection).collect();
 
-    let dir_name = project.path.file_name().expect("must exist").to_string_lossy();
-
     let project_name = Text::new("What should your new graph be called?")
-        .with_default(&dir_name)
         .with_validator(|value: &str| {
             let slugified = slugify!(value, max_length = 48);
             if value == slugified {
