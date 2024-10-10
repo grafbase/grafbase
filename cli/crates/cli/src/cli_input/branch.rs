@@ -13,9 +13,6 @@ pub struct BranchCommand {
 pub enum BranchSubCommand {
     /// Create a branch on the linked graph (self-hosted graphs only)
     Create(BranchCreateCommand),
-    /// List all branches
-    #[clap(name = "list", visible_alias = "ls")]
-    List,
     /// Delete a branch
     #[clap(name = "remove", visible_alias = "rm")]
     Delete(BranchDeleteCommand),

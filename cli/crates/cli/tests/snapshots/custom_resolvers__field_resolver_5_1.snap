@@ -1,8 +1,0 @@
----
-source: crates/cli/tests/custom_resolvers.rs
-expression: value
----
-{
-  "a": 123,
-  "b": "Hello"
-}

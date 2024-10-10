@@ -1,7 +1,0 @@
-mutation TweetCreate($userId: ID!) {
-  tweetCreate(input: { user: { link: $userId }, text: "text" }) {
-    tweet {
-      id
-    }
-  }
-}

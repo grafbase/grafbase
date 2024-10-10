@@ -1,9 +1,0 @@
-mutation UpdateAuthor($id: ID!, $age: Int!) {
-  authorUpdate(by: { id: $id }, input: { age: $age }) {
-    author {
-      id
-      name
-      age
-    }
-  }
-}

@@ -1,5 +1,3 @@
-pub(crate) mod environment_variable_delete;
-pub(crate) mod environment_variable_upsert_by_slugs;
 pub(crate) mod submit_trusted_documents;
 
 use super::schema;
@@ -243,82 +241,6 @@ pub struct BranchDeleteArguments<'a> {
     pub account_slug: &'a str,
     pub project_slug: &'a str,
     pub branch_name: &'a str,
-}
-
-#[derive(cynic::InputObject, Clone, Debug)]
-#[cynic(rename_all = "camelCase")]
-pub struct DeploymentCreateInput<'a> {
-    pub archive_file_size: i32,
-    pub branch: Option<&'a str>,
-    pub graph_id: cynic::Id,
-}
-
-#[derive(cynic::QueryVariables)]
-pub struct DeploymentCreateArguments<'a> {
-    pub input: DeploymentCreateInput<'a>,
-}
-
-#[derive(cynic::QueryFragment, Debug)]
-#[cynic(graphql_type = "Mutation", variables = "DeploymentCreateArguments")]
-pub struct DeploymentCreate {
-    #[arguments(input: $input)]
-    pub deployment_create: DeploymentCreatePayload,
-}
-
-#[derive(cynic::InputObject, Clone, Debug)]
-#[cynic(rename_all = "camelCase")]
-pub struct DeploymentBySlugCreateInput<'a> {
-    pub archive_file_size: i32,
-    pub branch: Option<&'a str>,
-    pub graph_slug: Option<&'a str>,
-    pub account_slug: &'a str,
-}
-
-#[derive(cynic::QueryVariables)]
-pub struct DeploymentCreateBySlugArguments<'a> {
-    pub input: DeploymentBySlugCreateInput<'a>,
-}
-
-#[derive(cynic::QueryFragment, Debug)]
-#[cynic(graphql_type = "Mutation", variables = "DeploymentCreateBySlugArguments")]
-pub struct DeploymentCreatebySlug {
-    #[arguments(input: $input)]
-    pub deployment_create_by_slug: DeploymentCreatePayload,
-}
-
-#[derive(cynic::QueryFragment, Debug)]
-pub struct DeploymentCreateSuccess {
-    pub __typename: String,
-    pub presigned_url: String,
-    pub deployment: Deployment,
-}
-
-#[derive(cynic::QueryFragment, Debug)]
-pub struct Deployment {
-    pub id: cynic::Id,
-    pub graph: Graph,
-}
-
-#[derive(cynic::QueryFragment, Debug)]
-pub struct DailyDeploymentCountLimitExceededError {
-    pub __typename: String,
-    pub limit: i32,
-}
-
-#[derive(cynic::QueryFragment, Debug)]
-pub struct ArchiveFileSizeLimitExceededError {
-    pub __typename: String,
-    pub limit: i32,
-}
-
-#[derive(cynic::InlineFragments, Debug)]
-pub enum DeploymentCreatePayload {
-    DeploymentCreateSuccess(DeploymentCreateSuccess),
-    ProjectDoesNotExistError(ProjectDoesNotExistError),
-    ArchiveFileSizeLimitExceededError(ArchiveFileSizeLimitExceededError),
-    DailyDeploymentCountLimitExceededError(DailyDeploymentCountLimitExceededError),
-    #[cynic(fallback)]
-    Unknown(String),
 }
 
 #[derive(cynic::QueryFragment, Debug)]

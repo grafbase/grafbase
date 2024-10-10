@@ -1,7 +1,0 @@
-mutation CreatePerson($alive: Alive!, $favoritePet: Pet, $pets: [Pet!]) {
-  personCreate(input: { alive: $alive, favoritePet: $favoritePet, pets: $pets }) {
-    person {
-      id
-    }
-  }
-}

@@ -1,9 +1,0 @@
----
-source: crates/cli/tests/auth.rs
-expression: "reader_client.gql::<Value>(AUTH_ENTRYPOINT_QUERY_TEXT).await"
----
-{
-  "data": {
-    "text": "Lorem ipsum dolor sit amet"
-  }
-}

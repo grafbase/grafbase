@@ -1,20 +1,16 @@
 use super::client::create_client;
 use super::consts::api_url;
-use super::deploy;
 use super::errors::{ApiError, CreateError};
 use super::graphql::mutations::{
-    CurrentPlanLimitReachedError, DuplicateDatabaseRegionsError, EnvironmentVariableSpecification, GraphCreate,
-    GraphCreateArguments, GraphCreateInput, GraphCreatePayload, InvalidDatabaseRegionsError, SlugTooLongError,
+    CurrentPlanLimitReachedError, DuplicateDatabaseRegionsError, GraphCreate, GraphCreateArguments, GraphCreateInput,
+    GraphCreatePayload, InvalidDatabaseRegionsError, SlugTooLongError,
 };
 use super::graphql::queries::viewer_for_create::{PersonalAccount, Viewer};
-use super::types::{Account, ProjectMetadata};
-use common::consts::PROJECT_METADATA_FILE;
-use common::environment::Project;
+use super::types::Account;
 use cynic::http::ReqwestExt;
 use cynic::Id;
 use cynic::{MutationBuilder, QueryBuilder};
 use std::iter;
-use tokio::fs;
 
 pub use super::graphql::mutations::GraphMode;
 
@@ -56,49 +52,16 @@ pub async fn get_viewer_data_for_creation() -> Result<Vec<Account>, ApiError> {
 /// # Errors
 ///
 /// See [`ApiError`]
-pub async fn create(
-    account_id: &str,
-    project_slug: &str,
-    graph_mode: GraphMode,
-    env_vars: impl Iterator<Item = (&str, &str)>,
-) -> Result<(Vec<String>, Option<cynic::Id>, String), ApiError> {
-    let project = if let GraphMode::Managed = graph_mode {
-        let project = Project::get();
-
-        match project.dot_grafbase_directory_path.try_exists() {
-            Ok(true) => {}
-            Ok(false) => fs::create_dir_all(&project.dot_grafbase_directory_path)
-                .await
-                .map_err(ApiError::CreateProjectDotGrafbaseFolder)?,
-            Err(error) => return Err(ApiError::ReadProjectDotGrafbaseFolder(error)),
-        }
-
-        Some(project)
-    } else {
-        None
-    };
-
+pub async fn create(account_id: &str, project_slug: &str) -> Result<(Vec<String>, String), ApiError> {
     let client = create_client().await?;
 
     let operation = GraphCreate::build(GraphCreateArguments {
         input: GraphCreateInput {
             account_id: Id::new(account_id),
             graph_slug: project_slug,
-            graph_mode,
-            repo_root_path: project.map(|project| {
-                project
-                    .schema_path
-                    .path()
-                    .parent()
-                    .expect("must have a parent")
-                    .strip_prefix(&project.path)
-                    .expect("must be a prefix")
-                    .to_str()
-                    .expect("must be a valid string")
-            }),
-            environment_variables: env_vars
-                .map(|(name, value)| EnvironmentVariableSpecification { name, value })
-                .collect(),
+            repo_root_path: None,
+            graph_mode: GraphMode::SelfHosted,
+            environment_variables: vec![],
         },
     });
 
@@ -107,24 +70,6 @@ pub async fn create(
 
     match payload {
         GraphCreatePayload::GraphCreateSuccess(graph_create_success) => {
-            if let Some(project) = project {
-                let project_metadata_path = project.dot_grafbase_directory_path.join(PROJECT_METADATA_FILE);
-
-                tokio::fs::write(
-                    &project_metadata_path,
-                    ProjectMetadata::new(graph_create_success.graph.id.into_inner().clone()).to_string(),
-                )
-                .await
-                .map_err(ApiError::WriteProjectMetadataFile)?;
-            }
-
-            let deployment_id = if matches!(graph_mode, GraphMode::Managed) {
-                let (deployment_id, _, _) = deploy::deploy(None, None).await?;
-                Some(deployment_id)
-            } else {
-                None
-            };
-
             let domains = graph_create_success
                 .graph
                 .production_branch
@@ -133,7 +78,7 @@ pub async fn create(
                 .map(|domain| format!("{domain}/graphql"))
                 .collect();
 
-            Ok((domains, deployment_id, graph_create_success.graph.slug))
+            Ok((domains, graph_create_success.graph.slug))
         }
         GraphCreatePayload::SlugAlreadyExistsError(_) => Err(CreateError::SlugAlreadyExists.into()),
         GraphCreatePayload::SlugInvalidError(_) => Err(CreateError::SlugInvalid.into()),

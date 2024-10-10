@@ -1,9 +1,0 @@
-mutation UpdateAuthor($name: String!, $age: Int!) {
-  authorUpdate(by: { name: $name }, input: { age: { set: $age } }) {
-    author {
-      id
-      name
-      age
-    }
-  }
-}

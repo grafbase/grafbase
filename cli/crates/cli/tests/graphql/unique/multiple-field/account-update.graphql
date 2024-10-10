@@ -1,9 +1,0 @@
-mutation UpdateAccount($by: AccountUpdateByInput, $input: AccountUpdateInput) {
-  accountUpdate(by: $by, input: $input) {
-    account {
-      id
-      email
-      providerId
-    }
-  }
-}
