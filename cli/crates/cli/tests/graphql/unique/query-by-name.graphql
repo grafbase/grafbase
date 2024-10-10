@@ -1,7 +1,0 @@
-query Author($name: String!) {
-  author(by: { name: $name }) {
-    id
-    name
-    age
-  }
-}

@@ -1,7 +1,0 @@
-query Account($by: AccountByInput!) {
-  account(by: $by) {
-    id
-    email
-    providerId
-  }
-}

@@ -59,11 +59,13 @@ pub(super) fn merge_interface_definitions<'a>(
 
         let field_name = ctx.insert_string(field.name().id);
 
+        let arguments = merge_field_arguments(fields, ctx);
+
         ctx.insert_field(ir::FieldIr {
             parent_definition: federated::Definition::Interface(interface_id),
             field_name,
             field_type,
-            arguments: federated::NO_INPUT_VALUE_DEFINITION,
+            arguments,
             resolvable_in: Vec::new(),
             provides: Vec::new(),
             requires: Vec::new(),
@@ -102,4 +104,17 @@ fn check_implementers(
             }
         }
     }
+}
+
+fn merge_field_arguments<'a>(
+    fields: &[(StringId, FieldWalker<'a>)],
+    ctx: &mut Context<'a>,
+) -> federated::InputValueDefinitions {
+    let fields = fields.iter().map(|(_, field)| *field).collect::<Vec<_>>();
+
+    let Some(first) = fields.first() else {
+        return federated::NO_INPUT_VALUE_DEFINITION;
+    };
+
+    object::merge_field_arguments(*first, &fields, ctx)
 }

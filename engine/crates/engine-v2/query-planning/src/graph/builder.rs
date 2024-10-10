@@ -5,7 +5,7 @@ use super::*;
 use petgraph::{graph::NodeIndex, visit::EdgeRef, Direction};
 
 pub(super) struct OperationGraphBuilder<'ctx, Op: Operation> {
-    graph: OperationGraph<'ctx, Op>,
+    inner: OperationGraph<'ctx, Op>,
     field_ingestion_stack: Vec<Field<Op::FieldId>>,
     requirement_ingestion_stack: Vec<Requirement<'ctx>>,
 }
@@ -14,13 +14,13 @@ impl<'ctx, Op: Operation> std::ops::Deref for OperationGraphBuilder<'ctx, Op> {
     type Target = OperationGraph<'ctx, Op>;
 
     fn deref(&self) -> &Self::Target {
-        &self.graph
+        &self.inner
     }
 }
 
 impl<'ctx, Op: Operation> std::ops::DerefMut for OperationGraphBuilder<'ctx, Op> {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.graph
+        &mut self.inner
     }
 }
 
@@ -45,15 +45,15 @@ struct Field<Id> {
 impl<'ctx, Op: Operation> OperationGraph<'ctx, Op> {
     pub(super) fn builder(schema: &'ctx Schema, operation: &'ctx mut Op) -> OperationGraphBuilder<'ctx, Op> {
         let n = operation.field_ids().len();
-        let mut inner = petgraph::stable_graph::StableGraph::with_capacity(n * 2, n * 2);
-        let root = inner.add_node(Node::Root);
+        let mut graph = petgraph::stable_graph::StableGraph::with_capacity(n * 2, n * 2);
+        let root = graph.add_node(Node::Root);
 
         OperationGraphBuilder {
-            graph: OperationGraph {
+            inner: OperationGraph {
                 schema,
                 operation,
                 root,
-                inner,
+                graph,
                 leaf_nodes: Vec::new(),
                 field_nodes: Vec::new(),
             },
@@ -66,10 +66,10 @@ impl<'ctx, Op: Operation> OperationGraph<'ctx, Op> {
 impl<'ctx, Op: Operation> OperationGraphBuilder<'ctx, Op> {
     pub(super) fn build(mut self) -> OperationGraph<'ctx, Op> {
         self.field_nodes = self
-            .graph
+            .inner
             .operation
             .field_ids()
-            .map(|field_id| self.graph.inner.add_node(Node::Field(field_id)))
+            .map(|field_id| self.inner.graph.add_node(Node::Field(field_id)))
             .collect();
 
         self.leaf_nodes = self
@@ -112,7 +112,9 @@ impl<'ctx, Op: Operation> OperationGraphBuilder<'ctx, Op> {
             }
         }
 
-        self.graph
+        self.inner.debug_assert_invariants();
+
+        self.inner
     }
 
     fn handle_field_resolvers(
@@ -125,7 +127,7 @@ impl<'ctx, Op: Operation> OperationGraphBuilder<'ctx, Op> {
     ) {
         let field_node = self[field_id];
         let Some(definition_id) = self.operation.field_defintion(field_id) else {
-            self.inner.add_edge(parent_field_node, field_node, Edge::TypenameField);
+            self.graph.add_edge(parent_field_node, field_node, Edge::TypenameField);
             return;
         };
         let field_definition = definition_id.walk(self.schema);
@@ -133,7 +135,7 @@ impl<'ctx, Op: Operation> OperationGraphBuilder<'ctx, Op> {
         // if it's the first time we see this field, there won't be any edges and we add any requirements from type system
         // directives. Otherwise it means we're not the first resolver path to this operation
         // field.
-        if self.inner.edges(field_node).next().is_none() {
+        if self.graph.edges(field_node).next().is_none() {
             for required_field_set in field_definition.directives().filter_map(|directive| match directive {
                 TypeSystemDirective::Authenticated
                 | TypeSystemDirective::Deprecated(_)
@@ -147,7 +149,7 @@ impl<'ctx, Op: Operation> OperationGraphBuilder<'ctx, Op> {
                 })
             }
         }
-        self.inner.add_edge(parent_field_node, field_node, Edge::Field);
+        self.graph.add_edge(parent_field_node, field_node, Edge::Field);
 
         // --
         // If resolvable withing the current subgraph. We skip requirements in this case.
@@ -158,7 +160,7 @@ impl<'ctx, Op: Operation> OperationGraphBuilder<'ctx, Op> {
                      field_resolver_node,
                      subgraph_id,
                  }| {
-                    self.inner[*field_resolver_node]
+                    self.graph[*field_resolver_node]
                         .as_field_resolver()
                         .unwrap()
                         .child(self.schema, field_definition.id())
@@ -166,14 +168,14 @@ impl<'ctx, Op: Operation> OperationGraphBuilder<'ctx, Op> {
                 },
             )
         {
-            let field_resolver_node = self.inner.add_node(Node::FieldResolver(field_resolver));
-            self.inner.add_edge(field_resolver_node, field_node, Edge::Resolves);
-            self.inner.add_edge(
+            let field_resolver_node = self.graph.add_node(Node::FieldResolver(field_resolver));
+            self.graph.add_edge(field_resolver_node, field_node, Edge::Resolves);
+            self.graph.add_edge(
                 parent_field_resolver_node,
                 field_resolver_node,
                 Edge::CanResolveField(0),
             );
-            for nested_field_id in self.graph.operation.subselection(field_id) {
+            for nested_field_id in self.inner.operation.subselection(field_id) {
                 self.field_ingestion_stack.push(Field {
                     parent_field_node: field_node,
                     parent_field_resolver: Some(ParentResolver {
@@ -188,19 +190,6 @@ impl<'ctx, Op: Operation> OperationGraphBuilder<'ctx, Op> {
         // --
         // Try to plan this field with alternative resolvers if any exist.
         // --
-        let parent_resolver_node = parent_field_resolver
-            .as_ref()
-            .and_then(
-                |ParentResolver {
-                     field_resolver_node, ..
-                 }| self.inner[*field_resolver_node].as_field_resolver(),
-            )
-            .map(
-                |FieldResolver {
-                     parent_resolver_node, ..
-                 }| *parent_resolver_node,
-            )
-            .unwrap_or(self.root);
         let parent_field_resolver_node = parent_field_resolver
             .as_ref()
             .map(
@@ -217,8 +206,8 @@ impl<'ctx, Op: Operation> OperationGraphBuilder<'ctx, Op> {
             if Some(resolver_definition.subgraph_id()) == parent_subgraph_id {
                 continue;
             };
-            let resolver = FieldResolver::new(parent_resolver_node, resolver_definition.id(), field_definition);
-            let field_resolver_node = self.inner.add_node(Node::FieldResolver(resolver.clone()));
+            let resolver = FieldResolver::new(resolver_definition.id(), field_definition);
+            let field_resolver_node = self.graph.add_node(Node::FieldResolver(resolver.clone()));
 
             // if the field has specific requirements for this subgraph we add it to the stack.
             if let Some(required_field_set) = field_definition.requires_for_subgraph(resolver_definition.subgraph_id())
@@ -233,20 +222,21 @@ impl<'ctx, Op: Operation> OperationGraphBuilder<'ctx, Op> {
             // Try to find an existing resolver node if a sibling field already added it, otherwise
             // create one.
             let resolver_node = if let Some(edge) = self
-                .inner
+                .graph
                 .edges_directed(parent_field_resolver_node, Direction::Outgoing)
                 .find(|edge| {
-                    self.inner[edge.target()]
+                    self.graph[edge.target()]
                         .as_resolver()
                         .is_some_and(|res| res.definition_id == resolver_definition.id())
                 }) {
                 edge.target()
             } else {
-                let node = self.inner.add_node(Node::Resolver(Resolver {
+                let node = self.graph.add_node(Node::Resolver(Resolver {
                     definition_id: resolver_definition.id(),
-                    parent_resolver_node,
                 }));
-                self.inner.add_edge(parent_field_resolver_node, node, Edge::Resolver(0));
+                // Resolvers have an intrinsic initial cost of 1 as we'll need to make a request
+                // for them.
+                self.graph.add_edge(parent_field_resolver_node, node, Edge::Resolver(1));
                 if let Some(required_field_set) = resolver_definition.required_field_set() {
                     self.requirement_ingestion_stack.push(Requirement {
                         parent_field_node,
@@ -258,11 +248,11 @@ impl<'ctx, Op: Operation> OperationGraphBuilder<'ctx, Op> {
                 node
             };
 
-            self.inner
+            self.graph
                 .add_edge(resolver_node, field_resolver_node, Edge::CanResolveField(0));
-            self.inner.add_edge(field_resolver_node, field_node, Edge::Resolves);
+            self.graph.add_edge(field_resolver_node, field_node, Edge::Resolves);
 
-            for nested_field_id in self.graph.operation.subselection(field_id) {
+            for nested_field_id in self.inner.operation.subselection(field_id) {
                 self.field_ingestion_stack.push(Field {
                     parent_field_node: field_node,
                     parent_field_resolver: Some(ParentResolver {
@@ -286,11 +276,11 @@ impl<'ctx, Op: Operation> OperationGraphBuilder<'ctx, Op> {
         for item in required_field_set.items() {
             // Find an existing field that satisfies the requirement.
             let existing_field = self
-                .inner
+                .graph
                 .edges_directed(parent_field_node, Direction::Outgoing)
                 .filter_map(|edge| {
                     if matches!(edge.weight(), Edge::Field) {
-                        self.inner[edge.target()]
+                        self.graph[edge.target()]
                             .as_field()
                             .map(|field_id| (edge.target(), field_id))
                     } else {
@@ -304,16 +294,19 @@ impl<'ctx, Op: Operation> OperationGraphBuilder<'ctx, Op> {
             // Create the required field otherwise.
             let required_node = existing_field.map(|(node, _)| node).unwrap_or_else(|| {
                 let field_id = self.operation.create_extra_field(item.field());
-                let field_node = self.inner.add_node(Node::Field(field_id));
-                self.inner.add_edge(parent_field_node, field_node, Edge::Field);
+                let field_node = self.graph.add_node(Node::Field(field_id));
+                self.field_nodes.push(field_node);
+                if matches!(item.field().definition().ty().definition(), Definition::Scalar(_)) {
+                    self.leaf_nodes.push(field_node);
+                }
                 self.field_ingestion_stack.extend(
-                    self.graph
-                        .inner
+                    self.inner
+                        .graph
                         .edges_directed(parent_field_node, Direction::Incoming)
                         .filter_map(|edge| {
                             if matches!(edge.weight(), Edge::Resolves) {
                                 let node = edge.source();
-                                self.graph.inner[node].as_field_resolver().map(|r| (node, r))
+                                self.inner.graph[node].as_field_resolver().map(|r| (node, r))
                             } else {
                                 None
                             }
@@ -324,19 +317,15 @@ impl<'ctx, Op: Operation> OperationGraphBuilder<'ctx, Op> {
                                 field_resolver_node,
                                 subgraph_id: field_resolver
                                     .resolver_definition_id
-                                    .walk(self.graph.schema)
+                                    .walk(self.inner.schema)
                                     .subgraph_id(),
                             }),
                             field_id,
                         }),
                 );
-                self.field_nodes.push(field_node);
-                if matches!(item.field().definition().ty().definition(), Definition::Scalar(_)) {
-                    self.leaf_nodes.push(field_node);
-                }
                 field_node
             });
-            self.inner.add_edge(petitioner_node, required_node, Edge::Requires);
+            self.graph.add_edge(petitioner_node, required_node, Edge::Requires);
 
             if item.subselection().items().len() != 0 {
                 self.requirement_ingestion_stack.push(Requirement {

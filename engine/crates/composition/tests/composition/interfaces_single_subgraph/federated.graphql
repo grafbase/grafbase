@@ -1,0 +1,39 @@
+directive @core(feature: String!) repeatable on SCHEMA
+
+directive @join__owner(graph: join__Graph!) on OBJECT
+
+directive @join__type(
+    graph: join__Graph!
+    key: String!
+    resolvable: Boolean = true
+) repeatable on OBJECT | INTERFACE
+
+directive @join__field(
+    graph: join__Graph
+    requires: String
+    provides: String
+) on FIELD_DEFINITION
+
+directive @join__graph(name: String!, url: String!) on ENUM_VALUE
+
+directive @join__implements(graph: join__Graph!, interface: String!) repeatable on OBJECT | INTERFACE
+
+directive @join__unionMember(graph: join__Graph!, member: String!) repeatable on UNION
+
+enum join__Graph {
+    MAIN @join__graph(name: "main", url: "http://example.com/main")
+}
+
+type Organization implements Account
+    @join__implements(graph: MAIN, interface: "Account")
+ {
+    foos(filter: String): String! @join__field(graph: MAIN)
+}
+
+type Query {
+    account: Account! @join__field(graph: MAIN)
+}
+
+interface Account {
+    foos(filter: String): String!
+}

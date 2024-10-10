@@ -1,6 +1,5 @@
-use crate::{deploy, errors::CliError, output::report, prompts::handle_inquire_error};
+use crate::{errors::CliError, output::report, prompts::handle_inquire_error};
 use backend::api::{create, types::Account};
-use common::environment::Project;
 use inquire::{validator::Validation, Confirm, Select, Text};
 use slugify::slugify;
 use std::{fmt::Display, str::FromStr};
@@ -19,8 +18,6 @@ impl Display for AccountSelection {
 pub struct CreateArguments<'a> {
     pub account_slug: &'a str,
     pub name: &'a str,
-    pub env_vars: Vec<(&'a str, &'a str)>,
-    pub(crate) graph_mode: GraphMode,
 }
 
 #[tokio::main]
@@ -49,18 +46,9 @@ async fn from_arguments(arguments: &CreateArguments<'_>) -> Result<(), CliError>
         .ok_or(CliError::NoAccountFound)?
         .id;
 
-    let (domains, deployment_id, project_slug) = create::create(
-        &account_id,
-        arguments.name,
-        arguments.graph_mode.into(),
-        arguments.env_vars.iter().copied(),
-    )
-    .await
-    .map_err(CliError::BackendApiError)?;
-
-    if let Some(deployment_id) = deployment_id {
-        deploy::report_progress(deployment_id.into_inner()).await?;
-    }
+    let (domains, project_slug) = create::create(&account_id, arguments.name)
+        .await
+        .map_err(CliError::BackendApiError)?;
 
     report::create_success(arguments.name, &domains, arguments.account_slug, &project_slug);
 
@@ -68,18 +56,13 @@ async fn from_arguments(arguments: &CreateArguments<'_>) -> Result<(), CliError>
 }
 
 async fn interactive() -> Result<(), CliError> {
-    let project = Project::get();
-
     let accounts = create::get_viewer_data_for_creation()
         .await
         .map_err(CliError::BackendApiError)?;
 
     let options: Vec<AccountSelection> = accounts.into_iter().map(AccountSelection).collect();
 
-    let dir_name = project.path.file_name().expect("must exist").to_string_lossy();
-
     let project_name = Text::new("What should your new graph be called?")
-        .with_default(&dir_name)
         .with_validator(|value: &str| {
             let slugified = slugify!(value, max_length = 48);
             if value == slugified {
@@ -97,66 +80,15 @@ async fn interactive() -> Result<(), CliError> {
         .prompt()
         .map_err(handle_inquire_error)?;
 
-    let graph_mode = Select::new(
-        "Should the graph be managed or self-hosted?",
-        vec![GraphMode::Managed, GraphMode::SelfHosted],
-    )
-    .with_starting_cursor(0)
-    .prompt()
-    .map_err(handle_inquire_error)?;
-
-    let confirm_env_vars = Confirm::new("Would you like to add environment variables to the graph?")
-        .with_default(false)
+    let confirm = Confirm::new("Please confirm the above to create your new graph")
+        .with_default(true)
         .prompt()
         .map_err(handle_inquire_error)?;
 
-    let mut env_vars = Vec::new();
-
-    if confirm_env_vars {
-        loop {
-            let key = Text::new("key (press enter to exit):")
-                .with_default("")
-                .prompt()
-                .map_err(handle_inquire_error)?;
-
-            if key.is_empty() {
-                break;
-            }
-
-            let value = Text::new("value:")
-                .with_default("")
-                .prompt()
-                .map_err(handle_inquire_error)?;
-
-            env_vars.push((key, value));
-        }
-    }
-
-    let maybe_and_deploy = match graph_mode {
-        GraphMode::Managed => "and deploy ",
-        GraphMode::SelfHosted => "",
-    };
-
-    let confirm = Confirm::new(&format!(
-        "Please confirm the above to create {maybe_and_deploy}your new graph"
-    ))
-    .with_default(true)
-    .prompt()
-    .map_err(handle_inquire_error)?;
-
     if confirm {
-        let (domains, deployment_id, project_slug) = create::create(
-            &selected_account.id,
-            &project_name,
-            graph_mode.into(),
-            env_vars.iter().map(|(k, v)| (k.as_str(), v.as_str())),
-        )
-        .await
-        .map_err(CliError::BackendApiError)?;
-
-        if let Some(deployment_id) = deployment_id {
-            deploy::report_progress(deployment_id.into_inner()).await?;
-        }
+        let (domains, project_slug) = create::create(&selected_account.id, &project_name)
+            .await
+            .map_err(CliError::BackendApiError)?;
 
         report::create_success(&project_name, &domains, &selected_account.slug, &project_slug);
     }

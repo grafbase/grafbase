@@ -1,9 +1,0 @@
-query Author($id: ID!) {
-  author(by: { id: $id }) {
-    id
-    name
-    age
-    updatedAt
-    createdAt
-  }
-}

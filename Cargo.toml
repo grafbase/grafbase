@@ -31,8 +31,8 @@ members = [
   "workspace-hack",
 ]
 exclude = [
-  "engine/crates/gateway-v2",
-  "engine/crates/wasi-component-loader/examples",
+    "engine/crates/gateway-v2",
+    "engine/crates/wasi-component-loader/examples",
 ]
 
 [patch.crates-io]
@@ -54,8 +54,6 @@ ory-client = { git = "https://github.com/ory/client-rust", rev = "v1.14.3" }
 reqwest = { git = "https://github.com/grafbase/reqwest", rev = "874a6b3c522de296629d4542943934fa20d7ab4d" }                 # 0.12.5-with-patches-wasm-timeout
 rudderanalytics = { git = "https://github.com/grafbase/rudder-sdk-rust", rev = "3e994eb4dcc9c580be311ef9eab6e96dd264293b" } # async
 serde_with = { git = "https://github.com/grafbase/serde_with", rev = "06ad277a0e0175c2364d3c065e303a6c8a775c8a" }           # minify-field-names
-# Temporary change till https://github.com/alexcrichton/tar-rs/pull/319 is merged and released.
-tar = { git = "https://github.com/grafbase/tar-rs", rev = "a889df5bd9fec44faf081f7fade5ec81935c2418" } # overwrite-hard-links
 tokio-postgres = { git = "https://github.com/grafbase/rust-postgres/", branch = "grafbase-rebased" }
 # Upgrade 0.4.13 only to get rid of indexmap 1.9.
 # tower = { git = "https://github.com/grafbase/tower", rev = "7202cfeecd13ad6bbecd537d9799244313600db5" } # upgrade-indexmap
@@ -91,6 +89,7 @@ axum = { version = "0.7.5", default-features = false }
 axum-server = { version = "0.7", default-features = false }
 base64 = "0.22.1"
 bitflags = "2.5.0"
+bitvec = "1"
 blake3 = "1.5.1"
 bytes = "1.6.0"
 chrono = { version = "0.4.38", default-features = false }
@@ -121,6 +120,7 @@ multipart-stream = "0.1.2"
 mediatype = "0.19"
 num-traits = "0.2.18"
 openidconnect = "4.0.0-alpha.1"
+petgraph = "0.6"
 postcard = { version = "1", features = ["use-std"] }
 rand = "0.8"
 regex = "1.10.4"

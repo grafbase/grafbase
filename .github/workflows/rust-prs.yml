@@ -83,7 +83,7 @@ jobs:
               - gateway/Dockerfile
 
   check-format:
-    needs: [what-changed]
+    needs: [ what-changed ]
     if: toJson(fromJson(needs.what-changed.outputs.rust).changed-packages) != '[]'
     runs-on: ubicloud-standard-2
     steps:
@@ -103,7 +103,7 @@ jobs:
   example-component:
     if: |
       toJson(fromJson(needs.what-changed.outputs.rust).changed-packages) != '[]'
-    needs: [what-changed]
+    needs: [ what-changed ]
     runs-on: ubicloud-standard-8
     steps:
       - name: Get sources
@@ -130,7 +130,7 @@ jobs:
 
   cli-assets:
     if: contains(fromJson(needs.what-changed.outputs.rust).changed-packages, 'grafbase')
-    needs: [what-changed]
+    needs: [ what-changed ]
     runs-on: ubicloud-standard-8
     steps:
       - name: Get sources
@@ -164,7 +164,7 @@ jobs:
           retention-days: 5
 
   builds:
-    needs: [what-changed, example-component, cli-assets]
+    needs: [ what-changed, example-component, cli-assets ]
     # We need the cancelled & result checks of this if to make sure that we
     # run even if some of our needs were skipped.
     # In particular we need `cancelled()` because `always()` (the other way of doing this)
@@ -386,7 +386,7 @@ jobs:
           service: cli
 
   docker-gateway:
-    needs: [what-changed]
+    needs: [ what-changed ]
     if: |
       needs.what-changed.outputs.gateway-docker == 'true'
       || contains(fromJson(needs.what-changed.outputs.rust).changed-packages, 'grafbase-gateway')
@@ -417,7 +417,7 @@ jobs:
           docker push --all-tags ghcr.io/grafbase/gateway
 
   docker-grafbase:
-    needs: [what-changed]
+    needs: [ what-changed ]
     if: |
       needs.what-changed.outputs.grafbase-docker == 'true'
       || contains(fromJson(needs.what-changed.outputs.rust).changed-packages, 'grafbase')
@@ -452,20 +452,20 @@ jobs:
       - name: Install rust
         uses: ./.github/actions/install-rust
 
-      - name: Install cargo-nextest
-        uses: taiki-e/install-action@v2
-        with:
-          tool: nextest
-
-      - name: Docker tests
-        run: |
-          GRAFBASE_DOCKER_IMAGE="ghcr.io/grafbase/grafbase:$COMMIT_SHA" RUST_BACKTRACE=1 cargo nextest run -p grafbase-docker-tests
+  #      - name: Install cargo-nextest
+  #        uses: taiki-e/install-action@v2
+  #        with:
+  #          tool: nextest
+  #
+  #      - name: Docker tests
+  #        run: |
+  #          GRAFBASE_DOCKER_IMAGE="ghcr.io/grafbase/grafbase:$COMMIT_SHA" RUST_BACKTRACE=1 cargo nextest run -p grafbase-docker-tests
 
   after-build-rust:
     # This job is responsible for reacting to build success or failure. It must
     # happen after the builds, hence the `needs`. But it must not be skipped
     # when the builds are cancelled or fail (hence the `if: ${{ always() }}`).
-    needs: [check-format, builds, docker-grafbase, docker-gateway]
+    needs: [ check-format, builds, docker-grafbase, docker-gateway ]
     runs-on: ubicloud-standard-2
     if: ${{ always() }}
     steps:

@@ -4,39 +4,11 @@ pub const DEFAULT_PORT: u16 = 4000;
 pub const MAX_PORT: u16 = u16::MAX;
 /// localhost IP
 pub const LOCALHOST: &str = "127.0.0.1";
-/// the name of the directory indicating a grafbase project
-pub const GRAFBASE_DIRECTORY_NAME: &str = "grafbase";
-/// a file expected to be in the grafbase directory
-pub const GRAFBASE_SCHEMA_FILE_NAME: &str = "schema.graphql";
-/// a file expected to be in the grafbase directory
-pub const GRAFBASE_TS_CONFIG_FILE_NAME: &str = "grafbase.config.ts";
-/// a file expected to be in the grafbase directory
-pub const GRAFBASE_ENV_FILE_NAME: &str = ".env";
 /// the name for the db / cache directory per project and the global cache directory for the user
 pub const DOT_GRAFBASE_DIRECTORY_NAME: &str = ".grafbase";
-/// the registry.json file generated from schema.graphql
-pub const REGISTRY_FILE: &str = "registry.json";
-/// the /resolvers directory containing resolver implementations
-pub const RESOLVERS_DIRECTORY_NAME: &str = "resolvers";
-/// the /auth directory containing custom authorizers
-pub const AUTHORIZERS_DIRECTORY_NAME: &str = "auth";
-/// the bun installation directory within ~/.grafbase
-pub const BUN_DIRECTORY_NAME: &str = "bun";
 /// the tracing filter to be used when tracing is on
-pub const TRACE_LOG_FILTER: &str = "info,grafbase=trace,grafbase_local_common=trace,grafbase_local_server=trace,grafbase_local_backend=trace,federated_dev=trace,postgres-connector-types=trace,engine_v2=debug";
+pub const TRACE_LOG_FILTER: &str = "info,grafbase=trace,grafbase_local_common=trace,grafbase_local_backend=trace,postgres-connector-types=trace,engine_v2=debug";
 /// an environment variable that sets the path of the home directory
 pub const GRAFBASE_HOME: &str = "GRAFBASE_HOME";
-/// the name of the Grafbase SDK npm package
-pub const GRAFBASE_SDK_PACKAGE_NAME: &str = "@grafbase/sdk";
-/// the version string of the Grafbase SDK npm package
-pub const GRAFBASE_SDK_PACKAGE_VERSION: &str = env!("GRAFBASE_SDK_PACKAGE_VERSION");
-/// the package.json file name
-pub const PACKAGE_JSON_FILE_NAME: &str = "package.json";
-/// the package.json dev dependencies key
-pub const PACKAGE_JSON_DEV_DEPENDENCIES: &str = "devDependencies";
-/// the directory we generate the schema.graphql file inside
-pub const GENERATED_SCHEMAS_DIR: &str = "generated/schemas";
-/// the file used for project metadata and linking
-pub const PROJECT_METADATA_FILE: &str = "project.json";
 /// the user agent for CLI HTTP calls
 pub const USER_AGENT: &str = const_format::formatcp!("Grafbase-CLI-{}", env!("CARGO_PKG_VERSION"));

@@ -51,7 +51,6 @@ COPY ./graphql-lint ./graphql-lint
 COPY ./gqlint ./gqlint
 COPY ./engine/crates ./engine/crates
 COPY ./workspace-hack ./workspace-hack
-COPY ./packages/grafbase-sdk/package.json ./packages/grafbase-sdk/package.json
 COPY --from=assets /grafbase/packages/cli-app/dist ./packages/cli-app/dist
 COPY --from=assets /grafbase/cli/wrappers/dist.js ./cli/wrappers/dist.js
 RUN cargo build --release --target "$(rustc -vV | sed -n "s|host: ||p")" --bin grafbase &&\

@@ -1,5 +1,5 @@
 use chrono::{DateTime, Utc};
-use cynic::{http::ReqwestExt, MutationBuilder, QueryBuilder};
+use cynic::{http::ReqwestExt, MutationBuilder};
 
 use crate::api::graphql::mutations::{BranchCreate, BranchCreateArguments, BranchCreateInput};
 
@@ -7,10 +7,7 @@ use super::{
     client::create_client,
     consts::api_url,
     errors::{ApiError, BranchError},
-    graphql::{
-        mutations::{BranchDelete, BranchDeleteArguments, BranchDeletePayload},
-        queries::list_branches::{ListBranches, ListBranchesArguments, Node},
-    },
+    graphql::mutations::{BranchDelete, BranchDeleteArguments, BranchDeletePayload},
 };
 
 pub struct Branch {
@@ -50,47 +47,6 @@ pub async fn delete(account_slug: &str, project_slug: &str, branch_name: &str) -
         }
     } else {
         Err(ApiError::RequestError(format!("{errors:#?}")))
-    }
-}
-
-pub async fn list() -> Result<Vec<Branch>, ApiError> {
-    let project_metadata = crate::api::project_metadata()?;
-
-    let operation = ListBranches::build(ListBranchesArguments {
-        graph_id: project_metadata.graph_id().into(),
-    });
-
-    let client = create_client().await?;
-    let cynic::GraphQlResponse { data, errors } = client.post(api_url()).run_graphql(operation).await?;
-
-    match (data.and_then(|d| d.node), errors) {
-        (Some(Node::Graph(graph)), _) => {
-            let branches = graph
-                .branches
-                .edges
-                .into_iter()
-                .map(|edge| {
-                    let is_production = edge.node.name == graph.production_branch.name;
-
-                    let (last_updated, status) = match edge.node.latest_deployment {
-                        Some(deployment) => (Some(deployment.created_at), Some(deployment.status.to_string())),
-                        None => (None, None),
-                    };
-
-                    Branch {
-                        account: graph.account.slug.clone(),
-                        graph: graph.slug.clone(),
-                        branch: edge.node.name,
-                        is_production,
-                        last_updated,
-                        status,
-                    }
-                })
-                .collect();
-
-            Ok(branches)
-        }
-        (_, errors) => Err(ApiError::RequestError(format!("{errors:#?}"))),
     }
 }
 

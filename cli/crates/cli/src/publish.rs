@@ -15,7 +15,6 @@ pub(crate) async fn publish(
         ..
     }: PublishCommand,
 ) -> Result<(), CliError> {
-    let project_ref = project_ref.ok_or_else(|| CliError::MissingArgument("PROJECT_REF"))?;
     let schema = match schema_path {
         Some(path) => fs::read_to_string(path).map_err(CliError::SchemaReadError)?,
         None if std::io::stdin().is_terminal() => {

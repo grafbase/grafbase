@@ -1,5 +1,0 @@
-mutation DeleteAuthor($id: ID!) {
-  authorDelete(by: { id: $id }) {
-    deletedId
-  }
-}

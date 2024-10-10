@@ -11,12 +11,6 @@ pub struct CreateCommand {
     /// The slug of the account in which the new graph should be created
     #[arg(short, long, value_name = "SLUG")]
     pub account: Option<String>,
-    /// Whether the graph is self-hosted or managed. Possible values: self-hosted, managed.
-    #[arg(short, long)]
-    pub mode: Option<crate::create::GraphMode>,
-    /// Adds an environment variable to the graph
-    #[clap(short = 'e', long = "env", value_parser, num_args = 0..)]
-    environment_variables: Vec<String>,
 }
 
 impl CreateCommand {
@@ -24,18 +18,7 @@ impl CreateCommand {
         self.name
             .as_deref()
             .zip(self.account.as_deref())
-            .map(|(name, account_slug)| CreateArguments {
-                account_slug,
-                name,
-                env_vars: self.environment_variables().collect(),
-                graph_mode: self.mode.unwrap_or_default(),
-            })
-    }
-
-    pub fn environment_variables(&self) -> impl Iterator<Item = (&str, &str)> {
-        self.environment_variables
-            .iter()
-            .filter_map(|s| super::split_env_var(s))
+            .map(|(name, account_slug)| CreateArguments { account_slug, name })
     }
 }
 

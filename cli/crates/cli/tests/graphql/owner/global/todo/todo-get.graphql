@@ -1,6 +1,0 @@
-query TodoGet($id: ID!) {
-  todo(by: { id: $id }) {
-    title
-    complete
-  }
-}

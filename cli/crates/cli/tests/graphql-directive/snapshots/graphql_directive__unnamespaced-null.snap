@@ -1,8 +1,0 @@
----
-source: cli/crates/cli/tests/graphql-directive/main.rs
-expression: "client.gql::<Value>(UNNAMESPACED_QUERY).variables(json!({ \"id\" : \"4\" })).await"
----
-data:
-  pullRequestOrIssue: ~
-  serverVersion: "1"
-
