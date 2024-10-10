@@ -744,7 +744,7 @@ mod tests {
             directive @join__unionMember(graph: join__Graph!, member: String!) repeatable on UNION
 
             type Query {
-                field: String @deprecated(reason: "This is a \"deprecated\" reason\n\n                on multiple lines.\n\n                yes, way\n\n                ") @dummy(test: "a \"test\"")
+                field: String @deprecated(reason: "This is a \"deprecated\" reason\n\non multiple lines.\n\nyes, way") @dummy(test: "a \"test\"")
             }
         "#]];
 
