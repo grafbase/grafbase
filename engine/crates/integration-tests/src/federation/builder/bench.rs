@@ -65,6 +65,7 @@ impl<'a> DeterministicEngineBuilder<'a> {
 
         let schema =
             engine_v2::Schema::build(config, engine_v2::SchemaVersion::from(ulid::Ulid::new().to_bytes())).unwrap();
+
         let engine = engine_v2::Engine::new(
             Arc::new(schema),
             TestRuntime {
