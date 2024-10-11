@@ -45,8 +45,8 @@ url = "2.5.0"
 uuid = { version = "1.8.0", features = ["v4"] }
 webbrowser = "1.0"
 
-backend = { package = "grafbase-local-backend", path = "../backend", version = "0.79.2" }
-common = { package = "grafbase-local-common", path = "../common", version = "0.79.2" }
+backend = { package = "grafbase-local-backend", path = "../backend", version = "0.80.0" }
+common = { package = "grafbase-local-common", path = "../common", version = "0.80.0" }
 grafbase-graphql-introspection.workspace = true
 graphql-lint.workspace = true
 graph-ref = { path = "../../../graph-ref" }
