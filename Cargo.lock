@@ -2295,7 +2295,7 @@ dependencies = [
 
 [[package]]
 name = "engine-config-builder"
-version = "0.79.2"
+version = "0.80.0"
 dependencies = [
  "engine-v2-config",
  "gateway-config",
@@ -2817,7 +2817,7 @@ dependencies = [
 
 [[package]]
 name = "federation-audit-tests"
-version = "0.79.2"
+version = "0.80.0"
 dependencies = [
  "async-graphql-parser",
  "cynic-parser 0.5.2",
@@ -3345,7 +3345,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase"
-version = "0.79.2"
+version = "0.80.0"
 dependencies = [
  "assert_matches",
  "async-graphql",
@@ -3466,7 +3466,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-graphql-introspection"
-version = "0.79.2"
+version = "0.80.0"
 dependencies = [
  "cynic",
  "cynic-introspection",
@@ -3479,7 +3479,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-local-backend"
-version = "0.79.2"
+version = "0.80.0"
 dependencies = [
  "axum",
  "chrono",
@@ -3501,7 +3501,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-local-common"
-version = "0.79.2"
+version = "0.80.0"
 dependencies = [
  "chrono",
  "common-types",
@@ -3730,7 +3730,7 @@ dependencies = [
 
 [[package]]
 name = "graph-ref"
-version = "0.79.2"
+version = "0.80.0"
 dependencies = [
  "grafbase-workspace-hack",
 ]
@@ -3752,7 +3752,7 @@ dependencies = [
 
 [[package]]
 name = "graphql-cursor"
-version = "0.79.2"
+version = "0.80.0"
 dependencies = [
  "grafbase-workspace-hack",
  "serde",
@@ -5734,7 +5734,7 @@ dependencies = [
 
 [[package]]
 name = "operation-checks"
-version = "0.79.2"
+version = "0.80.0"
 dependencies = [
  "async-graphql-parser",
  "async-graphql-value",
@@ -5748,7 +5748,7 @@ dependencies = [
 
 [[package]]
 name = "operation-normalizer"
-version = "0.79.2"
+version = "0.80.0"
 dependencies = [
  "anyhow",
  "expect-test",
@@ -6021,7 +6021,7 @@ dependencies = [
 
 [[package]]
 name = "partial-caching"
-version = "0.79.2"
+version = "0.80.0"
 dependencies = [
  "anyhow",
  "blake3",
@@ -7629,7 +7629,7 @@ dependencies = [
 
 [[package]]
 name = "serde-dynamic-string"
-version = "0.79.2"
+version = "0.80.0"
 dependencies = [
  "ascii 1.1.0",
  "grafbase-workspace-hack",
@@ -9136,7 +9136,7 @@ checksum = "9c8d87e72b64a3b4db28d11ce29237c246188f4f51057d65a7eab63b7987e423"
 
 [[package]]
 name = "wasi-component-loader"
-version = "0.79.2"
+version = "0.80.0"
 dependencies = [
  "anyhow",
  "base64 0.22.1",

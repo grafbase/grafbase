@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.80.0] - 2024-10-11
+
+[CHANGELOG](changelog/0.80.0.md)
+
 ## [0.79.2] - 2024-08-29
 
 [CHANGELOG](changelog/0.79.2.md)
