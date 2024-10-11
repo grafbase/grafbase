@@ -129,9 +129,9 @@ impl fmt::Display for Renderer<'_> {
                     write_description(f, field.description, INDENT, graph)?;
                     f.write_str(INDENT)?;
                     f.write_str(field_name)?;
+                    write_field_arguments(f, &graph[field.arguments], graph)?;
                     f.write_str(": ")?;
                     f.write_str(&render_field_type(&field.r#type, graph))?;
-                    write_field_arguments(f, &graph[field.arguments], graph)?;
                     write_public_directives(f, field.composed_directives, graph)?;
                     f.write_char('\n')?;
                 }
