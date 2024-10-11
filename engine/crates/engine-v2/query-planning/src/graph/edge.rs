@@ -4,11 +4,18 @@ pub type Cost = u16;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub(crate) enum Edge {
+    /// Incoming edge to a resolver
     Resolver(Cost),
+    /// Incoming edge from a resolver/field resolver to a nested field resolver. The field resolver
+    /// holds extra metadata relevant to the field.
     CanResolveField(Cost),
+    /// Outgoing edge from a field resolver to a field
     Resolves,
+    /// From a parent field to a nested field.
     Field,
+    /// for a parent field to a __typename field
     TypenameField,
+    /// From a field (directives), resolver or field resolver to a required field
     Requires,
 }
 

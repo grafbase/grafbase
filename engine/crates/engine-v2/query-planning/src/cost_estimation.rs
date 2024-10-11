@@ -76,8 +76,8 @@ impl<'ctx, Op: Operation> OperationGraph<'ctx, Op> {
                                 Edge::Resolves => Some(edge.source()),
                                 _ => None,
                             })
-                            .map(|resolver_of_required_node| {
-                                let ancestor = self.find_common_ancestor(dependent_node, resolver_of_required_node);
+                            .filter_map(|resolver_of_required_node| {
+                                let ancestor = self.find_common_ancestor(dependent_node, resolver_of_required_node)?;
                                 self.estimate_field_cost_from(ancestor, resolver_of_required_node)
                             })
                             .min()
@@ -111,7 +111,7 @@ impl<'ctx, Op: Operation> OperationGraph<'ctx, Op> {
         }
     }
 
-    fn find_common_ancestor(&self, mut left: NodeIndex, mut right: NodeIndex) -> NodeIndex {
+    fn find_common_ancestor(&self, mut left: NodeIndex, mut right: NodeIndex) -> Option<NodeIndex> {
         let mut ancestors = Vec::new();
         while let Some(l) = self.graph.neighbors_directed(left, Direction::Incoming).next() {
             ancestors.push(l);
@@ -120,17 +120,18 @@ impl<'ctx, Op: Operation> OperationGraph<'ctx, Op> {
 
         while let Some(r) = self.graph.neighbors_directed(right, Direction::Incoming).next() {
             if ancestors.contains(&r) {
-                return r;
+                return Some(r);
             }
             right = r;
         }
 
-        unreachable!("No common ancestor found? not even root?!")
+        tracing::error!("No common ancestor found? not even root?!");
+        None
     }
 
-    fn estimate_field_cost_from(&self, source: NodeIndex, mut target: NodeIndex) -> u16 {
+    fn estimate_field_cost_from(&self, source: NodeIndex, mut target: NodeIndex) -> Option<u16> {
         if source == target {
-            return 0;
+            return Some(0);
         }
 
         let mut total_cost = 0;
@@ -146,11 +147,12 @@ impl<'ctx, Op: Operation> OperationGraph<'ctx, Op> {
         {
             total_cost += cost;
             if parent == source {
-                return total_cost;
+                return Some(total_cost);
             }
             target = parent;
         }
 
-        unreachable!("No path from source to target?")
+        tracing::error!("No path from source to target?");
+        None
     }
 }
