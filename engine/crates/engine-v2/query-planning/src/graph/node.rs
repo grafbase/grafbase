@@ -4,7 +4,9 @@ use std::borrow::Cow;
 use schema::{FieldDefinitionId, ResolverDefinitionId, Schema};
 use walker::Walk as _;
 
-use super::{dot_graph::Attrs, Operation};
+use crate::{dot_graph::Attrs, Operation};
+
+use super::OperationGraph;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub(crate) enum Node<F> {
@@ -24,34 +26,33 @@ pub(crate) enum Node<F> {
 
 impl<F: Copy> Node<F> {
     /// Meant to be as readable as possible for large graphs with colors.
-    pub fn label<'a, Op: Operation<FieldId = F>>(&self, schema: &'a Schema, operation: &'a Op) -> Cow<'a, str> {
+    pub fn label<'a, Op: Operation<FieldId = F>>(&self, graph: &OperationGraph<'a, Op>) -> Cow<'a, str> {
         match self {
             Node::Root => "root".into(),
             Node::QueryField(field) => format!(
                 "{}{}",
                 if field.is_extra() { "*" } else { "" },
-                operation.field_label(field.id)
+                graph.operation.field_label(field.id)
             )
             .into(),
             Node::ProvidableField(field) => format!(
                 "{}@{}",
-                field.field_definition_id.walk(schema).name(),
-                field.resolver_definition_id.walk(schema).name()
+                field.field_definition_id.walk(graph.schema).name(),
+                field.resolver_definition_id.walk(graph.schema).name()
             )
             .into(),
-            Node::Resolver(resolver) => resolver.definition_id.walk(schema).name(),
+            Node::Resolver(resolver) => resolver.definition_id.walk(graph.schema).name(),
         }
     }
 
     /// Meant to be as readable as possible for large graphs with colors.
-    pub fn pretty_label<Op: Operation<FieldId = F>>(&self, schema: &Schema, operation: &Op) -> String {
-        let attrs = Attrs::new(self.label(schema, operation));
+    pub fn pretty_label<'a, Op: Operation<FieldId = F>>(&self, graph: &OperationGraph<'a, Op>) -> Attrs<'a> {
+        let attrs = Attrs::label(self.label(graph));
         match self {
-            Node::ProvidableField(_) => attrs.with("shape=box").with("style=dashed").with("color=blue"),
-            Node::Resolver(_) => attrs.with("shape=box").with("color=blue"),
+            Node::ProvidableField(_) => attrs.with("shape=box").with("color=dodgerblue"),
+            Node::Resolver(_) => attrs.with("shape=parallelogram").with("color=dodgerblue"),
             _ => attrs,
         }
-        .to_string()
     }
 }
 
@@ -64,36 +65,38 @@ bitflags! {
         /// Defines whether a field must be requested from the subgraphs. Operations fields are
         /// obviously indispensable, but fields necessary for @authorized also are for example.
         const INDISPENSABLE = 1 << 1;
+        /// Whether the field is a scalar/leaf node.
+        const SCALAR = 1 << 2;
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub(crate) struct QueryField<Id> {
     pub id: Id,
-    /// Depth of the field in the query
-    pub query_depth: u8,
-    /// Min query depth of all the dependents of this field if any. Defaults to u8::MAX otherwise.
-    /// Used to know how far away common ancestors between the dependent and the required field can
-    /// be. This avoids a bunch of graph traversal during cost estimation.
-    pub min_dependent_query_depth: u8,
     pub flags: FieldFlags,
 }
 
 impl<Id> QueryField<Id> {
+    pub fn is_indispensable(&self) -> bool {
+        self.flags.contains(FieldFlags::INDISPENSABLE)
+    }
+
     pub fn is_extra(&self) -> bool {
         self.flags.contains(FieldFlags::EXTRA)
+    }
+
+    pub fn is_scalar(&self) -> bool {
+        self.flags.contains(FieldFlags::SCALAR)
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub(crate) struct Resolver {
-    pub query_depth: u8,
     pub definition_id: ResolverDefinitionId,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub(crate) struct ProvidableField {
-    pub query_depth: u8,
     pub resolver_definition_id: ResolverDefinitionId,
     pub field_definition_id: FieldDefinitionId,
 }
@@ -105,7 +108,6 @@ impl ProvidableField {
             Some(ProvidableField {
                 resolver_definition_id: self.resolver_definition_id,
                 field_definition_id,
-                query_depth: self.query_depth + 1,
             })
         } else {
             None
@@ -114,15 +116,6 @@ impl ProvidableField {
 }
 
 impl<F> Node<F> {
-    pub fn query_depth(&self) -> u8 {
-        match self {
-            Node::Root => 0,
-            Node::QueryField(field) => field.query_depth,
-            Node::Resolver(resolver) => resolver.query_depth,
-            Node::ProvidableField(field) => field.query_depth,
-        }
-    }
-
     pub fn as_resolver(&self) -> Option<&Resolver> {
         match self {
             Node::Resolver(r) => Some(r),
@@ -138,13 +131,6 @@ impl<F> Node<F> {
     }
 
     pub fn as_query_field(&self) -> Option<&QueryField<F>> {
-        match self {
-            Node::QueryField(field) => Some(field),
-            _ => None,
-        }
-    }
-
-    pub fn as_query_field_mut(&mut self) -> Option<&mut QueryField<F>> {
         match self {
             Node::QueryField(field) => Some(field),
             _ => None,

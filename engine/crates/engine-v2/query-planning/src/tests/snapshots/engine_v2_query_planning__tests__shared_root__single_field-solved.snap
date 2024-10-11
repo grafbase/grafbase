@@ -1,0 +1,17 @@
+---
+source: engine/crates/engine-v2/query-planning/src/tests/shared_root.rs
+expression: "digraph {\n    0 [ label = \"root\", color=forestgreen ]\n    1 [ label = \"price\", color=forestgreen ]\n    2 [ label = \"Root#price\", shape=parallelogram, color=dodgerblue, color=forestgreen ]\n    3 [ label = \"products@Root#price\", shape=box, color=dodgerblue, color=forestgreen ]\n    4 [ label = \"price@Root#price\", shape=box, color=dodgerblue, color=forestgreen ]\n    5 [ label=\"\", style=dashed]\n    0 -> 2 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    2 -> 3 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    3 -> 4 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    4 -> 1 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    5 -> 0 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n}\n"
+---
+digraph {
+    0 [ label = "root", steiner=1 ]
+    1 [ label = "price", steiner=1 ]
+    2 [ label = "Root#price", steiner=1 ]
+    3 [ label = "products@Root#price", steiner=1 ]
+    4 [ label = "price@Root#price", steiner=1 ]
+    5 [ label="", style=dashed]
+    0 -> 2 [ cost=0, steiner=1]
+    2 -> 3 [ cost=0, steiner=1]
+    3 -> 4 [ cost=0, steiner=1]
+    4 -> 1 [ cost=0, steiner=1]
+    5 -> 0 [ cost=0, steiner=0]
+}

@@ -1,3 +1,4 @@
+mod cycle;
 mod entities;
 mod schema1;
 mod schema2;
@@ -96,7 +97,7 @@ impl TestOperation {
 impl crate::Operation for TestOperation {
     type FieldId = FieldId;
 
-    fn field_ids(&self) -> impl ExactSizeIterator<Item = Self::FieldId> + '_ {
+    fn field_ids(&self) -> impl ExactSizeIterator<Item = Self::FieldId> + 'static {
         (0..self.fields.len()).map(FieldId::from)
     }
 
@@ -137,6 +138,7 @@ fn read_schema(sdl: &str) -> Schema {
     Schema::build(config, Version::from(Vec::new())).unwrap()
 }
 
+#[allow(unused)]
 fn strdiff(before: &str, after: &str) -> String {
     similar::TextDiff::from_lines(before, after)
         .iter_all_changes()

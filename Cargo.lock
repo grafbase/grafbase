@@ -2493,7 +2493,6 @@ name = "engine-v2-query-planning"
 version = "0.0.0"
 dependencies = [
  "bitflags 2.6.0",
- "bitvec",
  "ctor",
  "engine-parser",
  "engine-v2-config",
@@ -2501,6 +2500,7 @@ dependencies = [
  "engine-v2-id-newtypes",
  "engine-v2-schema",
  "engine-v2-walker",
+ "fixedbitset 0.5.7",
  "grafbase-workspace-hack",
  "graphql-federated-graph",
  "insta",
@@ -2508,6 +2508,8 @@ dependencies = [
  "petgraph",
  "serde",
  "similar",
+ "strum",
+ "thiserror",
  "tracing",
  "tracing-subscriber",
 ]

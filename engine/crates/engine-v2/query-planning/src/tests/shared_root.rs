@@ -1,5 +1,5 @@
 use crate::{
-    tests::{read_schema, strdiff, TestOperation},
+    tests::{read_schema, TestOperation},
     OperationGraph,
 };
 
@@ -48,13 +48,22 @@ fn all_fields() {
     "#,
     );
 
-    let mut graph = OperationGraph::new(&schema, &mut operation);
+    let mut graph = OperationGraph::new(&schema, &mut operation).unwrap();
     insta::assert_snapshot!("all_fields-graph", graph.to_dot_graph(), &graph.to_pretty_dot_graph());
 
-    let before = graph.to_dot_graph();
+    let mut solver = graph.solver().unwrap();
+    insta::assert_snapshot!(
+        "all_fields-solver",
+        solver.to_dot_graph(),
+        &solver.to_pretty_dot_graph()
+    );
 
-    graph.prune_resolvers_not_leading_to_any_scalar_node();
-    insta::assert_snapshot!(strdiff(&before, &graph.to_dot_graph()), @"");
+    solver.solve().unwrap();
+    insta::assert_snapshot!(
+        "all_fields-solved",
+        solver.to_dot_graph(),
+        &solver.to_pretty_dot_graph()
+    );
 }
 
 #[test]
@@ -71,24 +80,20 @@ fn single_field() {
     "#,
     );
 
-    let mut graph = OperationGraph::new(&schema, &mut operation);
+    let mut graph = OperationGraph::new(&schema, &mut operation).unwrap();
     insta::assert_snapshot!("single_field-graph", graph.to_dot_graph(), &graph.to_pretty_dot_graph());
 
-    let before = graph.to_dot_graph();
+    let mut solver = graph.solver().unwrap();
+    insta::assert_snapshot!(
+        "single_field-solver",
+        solver.to_dot_graph(),
+        &solver.to_pretty_dot_graph()
+    );
 
-    graph.prune_resolvers_not_leading_to_any_scalar_node();
-    insta::assert_snapshot!(strdiff(&before, &graph.to_dot_graph()), @r##"
-    -    3 [ Root#category]
-    -    4 [ products@Root#category]
-    -    5 [ Root#name]
-    -    6 [ products@Root#name]
-    -    0 -> 3 [ label = "CreateChildResolver(1)" ]
-    -    0 -> 3 [ label = "HasChildResolver" ]
-    -    3 -> 4 [ label = "CanProvide(0)" ]
-    -    4 -> 2 [ label = "Provides" ]
-    -    0 -> 5 [ label = "CreateChildResolver(1)" ]
-    -    0 -> 5 [ label = "HasChildResolver" ]
-    -    5 -> 6 [ label = "CanProvide(0)" ]
-    -    6 -> 2 [ label = "Provides" ]
-    "##);
+    solver.solve().unwrap();
+    insta::assert_snapshot!(
+        "single_field-solved",
+        solver.to_dot_graph(),
+        &solver.to_pretty_dot_graph()
+    );
 }

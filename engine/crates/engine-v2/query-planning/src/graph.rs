@@ -1,7 +1,8 @@
 mod builder;
-mod dot_graph;
 mod edge;
 mod node;
+mod prune;
+mod solve;
 
 pub(crate) use edge::*;
 pub(crate) use node::*;
@@ -13,14 +14,17 @@ use std::borrow::Cow;
 
 use petgraph::{
     dot::{Config, Dot},
-    graph::NodeIndex,
-    stable_graph::StableGraph,
+    stable_graph::{NodeIndex, StableGraph},
 };
+
+use crate::dot_graph::Attrs;
+
+pub type Cost = u16;
 
 pub trait Operation: std::fmt::Debug {
     type FieldId: From<usize> + Into<usize> + Copy + std::fmt::Debug + Ord;
 
-    fn field_ids(&self) -> impl ExactSizeIterator<Item = Self::FieldId> + '_;
+    fn field_ids(&self) -> impl ExactSizeIterator<Item = Self::FieldId> + 'static;
     fn field_defintion(&self, field_id: Self::FieldId) -> Option<FieldDefinitionId>;
     fn field_satisfies(&self, field_id: Self::FieldId, requirement: RequiredField<'_>) -> bool;
     fn create_extra_field(&mut self, requirement: RequiredField<'_>) -> Self::FieldId;
@@ -34,23 +38,20 @@ pub trait Operation: std::fmt::Debug {
 pub struct OperationGraph<'ctx, Op: Operation> {
     pub(crate) schema: &'ctx Schema,
     pub(crate) operation: &'ctx mut Op,
+    root_ix: NodeIndex,
     pub(crate) graph: StableGraph<Node<Op::FieldId>, Edge>,
-    pub(crate) root: NodeIndex,
-    pub(crate) field_nodes: Vec<NodeIndex>,
-}
-
-impl<'ctx, Op: Operation> std::ops::Index<Op::FieldId> for OperationGraph<'ctx, Op> {
-    type Output = NodeIndex;
-    fn index(&self, field_id: Op::FieldId) -> &Self::Output {
-        let ix: usize = field_id.into();
-        &self.field_nodes[ix]
-    }
 }
 
 impl<'ctx, Op: Operation> OperationGraph<'ctx, Op> {
     #[instrument(skip_all)]
-    pub fn new(schema: &'ctx Schema, operation: &'ctx mut Op) -> OperationGraph<'ctx, Op> {
-        Self::builder(schema, operation).build()
+    pub fn new(schema: &'ctx Schema, operation: &'ctx mut Op) -> crate::Result<OperationGraph<'ctx, Op>> {
+        Self::builder(schema, operation).build().inspect(|op| {
+            tracing::debug!("OperationGraph created:\n{}", op.to_pretty_dot_graph());
+        })
+    }
+
+    pub fn solver(&mut self) -> crate::Result<solve::Solver<'_, 'ctx, Op>> {
+        solve::Solver::initialize(self)
     }
 
     /// Use https://dreampuf.github.io/GraphvizOnline
@@ -61,8 +62,8 @@ impl<'ctx, Op: Operation> OperationGraph<'ctx, Op> {
             Dot::with_attr_getters(
                 &self.graph,
                 &[Config::EdgeNoLabel, Config::NodeNoLabel],
-                &|_, edge| edge.weight().pretty_label(),
-                &|_, node| node.1.pretty_label(self.schema, self.operation),
+                &|_, edge| edge.weight().pretty_label(self),
+                &|_, node| node.1.pretty_label(self).to_string()
             )
         )
     }
@@ -74,10 +75,19 @@ impl<'ctx, Op: Operation> OperationGraph<'ctx, Op> {
             "{:?}",
             Dot::with_attr_getters(
                 &self.graph,
-                &[Config::NodeNoLabel],
-                &|_, _| String::new(),
-                &|_, node| node.1.label(self.schema, self.operation).to_string(),
+                &[Config::EdgeNoLabel, Config::NodeNoLabel],
+                &|_, edge| {
+                    let label: &'static str = edge.weight().into();
+                    Attrs::label(label).to_string()
+                },
+                &|_, node| node.1.label(self).to_string(),
             )
         )
+    }
+}
+
+impl<'ctx, Op: Operation> std::fmt::Debug for OperationGraph<'ctx, Op> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("OperationGraph").finish_non_exhaustive()
     }
 }
