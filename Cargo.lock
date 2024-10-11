@@ -2509,6 +2509,8 @@ dependencies = [
  "petgraph",
  "serde",
  "similar",
+ "strum",
+ "thiserror",
  "tracing",
  "tracing-subscriber",
 ]

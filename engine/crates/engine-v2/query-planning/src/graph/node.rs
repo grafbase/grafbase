@@ -4,7 +4,9 @@ use std::borrow::Cow;
 use schema::{FieldDefinitionId, ResolverDefinitionId, Schema};
 use walker::Walk as _;
 
-use super::{dot_graph::Attrs, Operation};
+use crate::{Operation, RequirementId};
+
+use super::dot_graph::Attrs;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub(crate) enum Node<F> {
@@ -70,13 +72,10 @@ bitflags! {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub(crate) struct QueryField<Id> {
     pub id: Id,
-    /// Depth of the field in the query
+    /// Depth of the field in the query, root is 0, a root field is 1, etc.
     pub query_depth: u8,
-    /// Min query depth of all the dependents of this field if any. Defaults to u8::MAX otherwise.
-    /// Used to know how far away common ancestors between the dependent and the required field can
-    /// be. This avoids a bunch of graph traversal during cost estimation.
-    pub min_dependent_query_depth: u8,
     pub flags: FieldFlags,
+    pub requirement_id: Option<RequirementId>,
 }
 
 impl<Id> QueryField<Id> {

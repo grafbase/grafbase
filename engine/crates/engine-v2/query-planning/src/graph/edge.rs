@@ -1,16 +1,18 @@
-use super::dot_graph::Attrs;
+use petgraph::graph::NodeIndex;
 
-pub type Cost = u16;
+use crate::EdgeCostId;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+use super::{dot_graph::Attrs, CostEstimator};
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, strum::IntoStaticStr)]
 pub(crate) enum Edge {
     ///
     /// -- Resolver --
     ///
     /// From a ProvidableField or Root to a Resolver. Only incoming edge into Resolver
-    CreateChildResolver(Cost),
+    CreateChildResolver { id: EdgeCostId },
     /// Incoming edge from a Resolver to a ProvidableField.
-    CanProvide(Cost),
+    CanProvide { id: EdgeCostId },
 
     ///
     /// -- Query --
@@ -28,21 +30,21 @@ pub(crate) enum Edge {
     /// From a ProvidableField to a Field
     Provides,
     /// From a Field (@authorized directive), Resolver or ProvidableField (@requires) to a Field
-    Requires,
+    Requires { origin_query_field_ix: NodeIndex },
 }
 
 impl Edge {
     /// Meant to be as readable as possible for large graphs with colors.
-    pub(crate) fn pretty_label(&self) -> String {
+    pub(crate) fn pretty_label(&self, cost_estimator: &CostEstimator) -> String {
         match self {
-            Edge::CreateChildResolver(cost) => if *cost > 0 {
-                Attrs::new(format!("{cost}")).bold()
+            Edge::CreateChildResolver { id } => if cost_estimator[*id] > 0 {
+                Attrs::new(format!("{}", cost_estimator[*id])).bold()
             } else {
                 Attrs::new("")
             }
             .with("color=blue,fontcolor=blue"),
-            Edge::CanProvide(cost) => if *cost > 0 {
-                Attrs::new(format!("{cost}")).bold()
+            Edge::CanProvide { id } => if cost_estimator[*id] > 0 {
+                Attrs::new(format!("{}", cost_estimator[*id])).bold()
             } else {
                 Attrs::new("")
             }
@@ -50,7 +52,7 @@ impl Edge {
             Edge::Provides => Attrs::new("").with("color=turquoise"),
             Edge::Field => Attrs::new(""),
             Edge::TypenameField => Attrs::new("Typename"),
-            Edge::Requires => Attrs::new("").with("color=orange"),
+            Edge::Requires { .. } => Attrs::new("").with("color=orange"),
             Edge::HasChildResolver => Attrs::new("").with("style=dashed"),
         }
         .to_string()

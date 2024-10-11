@@ -1,5 +1,5 @@
 use crate::{
-    tests::{read_schema, strdiff, TestOperation},
+    tests::{read_schema, TestOperation},
     OperationGraph,
 };
 
@@ -77,11 +77,6 @@ fn test_basic_operation_graph() {
     "#,
     );
 
-    let mut graph = OperationGraph::new(&schema, &mut operation);
+    let graph = OperationGraph::new(&schema, &mut operation).unwrap();
     insta::assert_snapshot!("graph", graph.to_dot_graph(), &graph.to_pretty_dot_graph());
-
-    let before = graph.to_dot_graph();
-    graph.estimate_resolver_costs();
-
-    insta::assert_snapshot!(strdiff(&before, &graph.to_dot_graph()), @"");
 }

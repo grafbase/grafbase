@@ -1,8 +1,12 @@
 mod builder;
+mod cost_estimation;
 mod dot_graph;
 mod edge;
 mod node;
+mod prune;
 
+pub(crate) use cost_estimation::*;
+use dot_graph::Attrs;
 pub(crate) use edge::*;
 pub(crate) use node::*;
 
@@ -13,7 +17,6 @@ use std::borrow::Cow;
 
 use petgraph::{
     dot::{Config, Dot},
-    graph::NodeIndex,
     stable_graph::StableGraph,
 };
 
@@ -35,21 +38,12 @@ pub struct OperationGraph<'ctx, Op: Operation> {
     pub(crate) schema: &'ctx Schema,
     pub(crate) operation: &'ctx mut Op,
     pub(crate) graph: StableGraph<Node<Op::FieldId>, Edge>,
-    pub(crate) root: NodeIndex,
-    pub(crate) field_nodes: Vec<NodeIndex>,
-}
-
-impl<'ctx, Op: Operation> std::ops::Index<Op::FieldId> for OperationGraph<'ctx, Op> {
-    type Output = NodeIndex;
-    fn index(&self, field_id: Op::FieldId) -> &Self::Output {
-        let ix: usize = field_id.into();
-        &self.field_nodes[ix]
-    }
+    pub(crate) cost_estimator: CostEstimator,
 }
 
 impl<'ctx, Op: Operation> OperationGraph<'ctx, Op> {
     #[instrument(skip_all)]
-    pub fn new(schema: &'ctx Schema, operation: &'ctx mut Op) -> OperationGraph<'ctx, Op> {
+    pub fn new(schema: &'ctx Schema, operation: &'ctx mut Op) -> crate::Result<OperationGraph<'ctx, Op>> {
         Self::builder(schema, operation).build()
     }
 
@@ -61,7 +55,7 @@ impl<'ctx, Op: Operation> OperationGraph<'ctx, Op> {
             Dot::with_attr_getters(
                 &self.graph,
                 &[Config::EdgeNoLabel, Config::NodeNoLabel],
-                &|_, edge| edge.weight().pretty_label(),
+                &|_, edge| edge.weight().pretty_label(&self.cost_estimator),
                 &|_, node| node.1.pretty_label(self.schema, self.operation),
             )
         )
@@ -74,8 +68,17 @@ impl<'ctx, Op: Operation> OperationGraph<'ctx, Op> {
             "{:?}",
             Dot::with_attr_getters(
                 &self.graph,
-                &[Config::NodeNoLabel],
-                &|_, _| String::new(),
+                &[Config::EdgeNoLabel, Config::NodeNoLabel],
+                &|_, edge| {
+                    let label: &'static str = edge.weight().into();
+                    match edge.weight() {
+                        Edge::CreateChildResolver { id } | Edge::CanProvide { id } => {
+                            Attrs::new(label).with(format!("cost={}", self.cost_estimator[*id]))
+                        }
+                        _ => Attrs::new(label),
+                    }
+                    .to_string()
+                },
                 &|_, node| node.1.label(self.schema, self.operation).to_string(),
             )
         )
