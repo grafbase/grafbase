@@ -7,5 +7,5 @@ type Query {
 }
 
 interface Account {
-    foos: String!(filter: String)
+    foos(filter: String): String!
 }
