@@ -418,7 +418,7 @@ jobs:
     # This job is responsible for reacting to build success or failure. It must
     # happen after the builds, hence the `needs`. But it must not be skipped
     # when the builds are cancelled or fail (hence the `if: ${{ always() }}`).
-    needs: [check-format, builds, docker-grafbase, docker-gateway]
+    needs: [check-format, builds, docker-gateway]
     runs-on: ubicloud-standard-2
     if: ${{ always() }}
     steps:
