@@ -54,7 +54,7 @@ fn two_fields() {
     "#,
     );
 
-    let graph = OperationGraph::new(&schema, &mut operation);
+    let graph = OperationGraph::new(&schema, &mut operation).unwrap();
     insta::assert_snapshot!("two_fields-graph", graph.to_dot_graph(), &graph.to_pretty_dot_graph());
 }
 
@@ -72,7 +72,7 @@ fn single_field() {
     "#,
     );
 
-    let graph = OperationGraph::new(&schema, &mut operation);
+    let graph = OperationGraph::new(&schema, &mut operation).unwrap();
     insta::assert_snapshot!("single_field-graph", graph.to_dot_graph(), &graph.to_pretty_dot_graph());
 }
 
@@ -92,6 +92,6 @@ fn nested_join() {
     "#,
     );
 
-    let graph = OperationGraph::new(&schema, &mut operation);
+    let graph = OperationGraph::new(&schema, &mut operation).unwrap();
     insta::assert_snapshot!("nested_join-graph", graph.to_dot_graph(), &graph.to_pretty_dot_graph());
 }

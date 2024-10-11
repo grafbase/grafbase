@@ -1,46 +1,28 @@
 use schema::{RequiredFieldSet, Schema, SubgraphId, TypeSystemDirective};
 use walker::Walk;
 
+use crate::EdgeCostId;
+
 use super::*;
 use petgraph::{graph::NodeIndex, visit::EdgeRef, Direction};
 
 pub(super) struct OperationGraphBuilder<'ctx, Op: Operation> {
-    inner: OperationGraph<'ctx, Op>,
+    pub(super) schema: &'ctx Schema,
+    pub(super) operation: &'ctx mut Op,
+    pub(super) graph: StableGraph<Node<Op::FieldId>, Edge>,
+    pub(super) root: NodeIndex,
+    pub(super) field_nodes: Vec<NodeIndex>,
     field_ingestion_stack: Vec<CreateProvidableFields<Op::FieldId>>,
     requirement_ingestion_stack: Vec<Requirement<'ctx>>,
+    next_edge_cost_id: usize,
 }
 
-impl<'ctx, Op: Operation> std::ops::Deref for OperationGraphBuilder<'ctx, Op> {
-    type Target = OperationGraph<'ctx, Op>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.inner
+impl<'ctx, Op: Operation> std::ops::Index<Op::FieldId> for OperationGraphBuilder<'ctx, Op> {
+    type Output = NodeIndex;
+    fn index(&self, field_id: Op::FieldId) -> &Self::Output {
+        let ix: usize = field_id.into();
+        &self.field_nodes[ix]
     }
-}
-
-impl<'ctx, Op: Operation> std::ops::DerefMut for OperationGraphBuilder<'ctx, Op> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.inner
-    }
-}
-
-struct Requirement<'ctx> {
-    parent_query_field_ix: NodeIndex,
-    dependent_ix: NodeIndex,
-    required_field_set: RequiredFieldSet<'ctx>,
-}
-
-#[derive(Clone)]
-struct ParentProvidableField {
-    ix: NodeIndex,
-    subgraph_id: SubgraphId,
-}
-
-struct CreateProvidableFields<Id> {
-    parent_query_depth: u8,
-    parent_query_field_ix: NodeIndex,
-    parent_providable_field: Option<ParentProvidableField>,
-    field_id: Id,
 }
 
 impl<'ctx, Op: Operation> OperationGraph<'ctx, Op> {
@@ -50,33 +32,32 @@ impl<'ctx, Op: Operation> OperationGraph<'ctx, Op> {
         let root = graph.add_node(Node::Root);
 
         OperationGraphBuilder {
-            inner: OperationGraph {
-                schema,
-                operation,
-                root,
-                graph,
-                field_nodes: Vec::new(),
-            },
+            schema,
+            operation,
+            root,
+            graph,
+            field_nodes: Vec::new(),
             field_ingestion_stack: Vec::new(),
             requirement_ingestion_stack: Vec::new(),
+            next_edge_cost_id: 0,
         }
     }
 }
 
 impl<'ctx, Op: Operation> OperationGraphBuilder<'ctx, Op> {
-    pub(super) fn build(mut self) -> OperationGraph<'ctx, Op> {
+    pub(super) fn build(mut self) -> crate::Result<OperationGraph<'ctx, Op>> {
         self.field_nodes = self
-            .inner
             .operation
             .field_ids()
             .map(|field_id| {
-                self.inner.graph.add_node(Node::QueryField(QueryField {
+                self.graph.add_node(Node::QueryField(QueryField {
                     id: field_id,
                     // part of the query, so required
                     flags: FieldFlags::INDISPENSABLE,
                     // not known yet, added later
                     query_depth: u8::MAX,
-                    min_dependent_query_depth: u8::MAX,
+                    // Added by the CostEstimator
+                    requirement_id: None,
                 }))
             })
             .collect();
@@ -96,19 +77,54 @@ impl<'ctx, Op: Operation> OperationGraphBuilder<'ctx, Op> {
         // stack as requirement may means adding new fields and adding new fields may add new
         // requirements.
         loop {
-            if let Some(field) = self.field_ingestion_stack.pop() {
-                self.handle_providable_fields(field)
+            if let Some(create_providable_fields) = self.field_ingestion_stack.pop() {
+                self.ingest_providable_fields(create_providable_fields)
             } else if let Some(requirement) = self.requirement_ingestion_stack.pop() {
-                self.handle_requirements(requirement)
+                self.ingest_requirement(requirement)
             } else {
                 break;
             }
         }
 
-        self.inner
+        self.prune_resolvers_not_leading_to_any_scalar_node();
+
+        let cost_estimator = self.build_cost_estimator()?;
+
+        Ok(OperationGraph {
+            schema: self.schema,
+            operation: self.operation,
+            graph: self.graph,
+            cost_estimator,
+        })
     }
 
-    fn handle_providable_fields(
+    pub(super) fn edge_cost_count(&self) -> usize {
+        self.next_edge_cost_id
+    }
+}
+
+struct Requirement<'ctx> {
+    dependent_ix: NodeIndex,
+    origin_query_field_ix: NodeIndex,
+    parent_query_field_ix: NodeIndex,
+    required_field_set: RequiredFieldSet<'ctx>,
+}
+
+#[derive(Clone)]
+struct ParentProvidableField {
+    ix: NodeIndex,
+    subgraph_id: SubgraphId,
+}
+
+struct CreateProvidableFields<Id> {
+    parent_query_depth: u8,
+    parent_query_field_ix: NodeIndex,
+    parent_providable_field: Option<ParentProvidableField>,
+    field_id: Id,
+}
+
+impl<'ctx, Op: Operation> OperationGraphBuilder<'ctx, Op> {
+    fn ingest_providable_fields(
         &mut self,
         CreateProvidableFields {
             parent_query_depth,
@@ -154,8 +170,9 @@ impl<'ctx, Op: Operation> OperationGraphBuilder<'ctx, Op> {
                 TypeSystemDirective::Authorized(directive) => directive.fields(),
             }) {
                 self.requirement_ingestion_stack.push(Requirement {
-                    parent_query_field_ix,
                     dependent_ix: query_field_ix,
+                    origin_query_field_ix: parent_query_field_ix,
+                    parent_query_field_ix,
                     required_field_set,
                 })
             }
@@ -182,10 +199,11 @@ impl<'ctx, Op: Operation> OperationGraphBuilder<'ctx, Op> {
             })
         {
             let providable_field_ix = self.graph.add_node(Node::ProvidableField(providable_field));
+            let id = self.next_edge_cost_id();
             self.graph
-                .add_edge(parent_providable_field_ix, providable_field_ix, Edge::CanProvide(0));
+                .add_edge(parent_providable_field_ix, providable_field_ix, Edge::CanProvide { id });
             self.graph.add_edge(providable_field_ix, query_field_ix, Edge::Provides);
-            for nested_field_id in self.inner.operation.subselection(field_id) {
+            for nested_field_id in self.operation.subselection(field_id) {
                 self.field_ingestion_stack.push(CreateProvidableFields {
                     parent_query_field_ix: query_field_ix,
                     parent_providable_field: Some(ParentProvidableField {
@@ -236,7 +254,7 @@ impl<'ctx, Op: Operation> OperationGraphBuilder<'ctx, Op> {
                     .graph
                     .edges_directed(resolver_ix, Direction::Outgoing)
                     .any(|edge| match edge.weight() {
-                        Edge::CanProvide(_) => self
+                        Edge::CanProvide { .. } => self
                             .graph
                             .edges_directed(edge.target(), Direction::Outgoing)
                             .any(|edge| matches!(edge.weight(), Edge::Provides) && edge.target() == query_field_ix),
@@ -251,8 +269,12 @@ impl<'ctx, Op: Operation> OperationGraphBuilder<'ctx, Op> {
                         .edges_directed(resolver_ix, Direction::Incoming)
                         .any(|edge| edge.source() == parent_providable_field_ix)
                     {
-                        self.graph
-                            .add_edge(parent_providable_field_ix, resolver_ix, Edge::CreateChildResolver(1));
+                        let id = self.next_edge_cost_id();
+                        self.graph.add_edge(
+                            parent_providable_field_ix,
+                            resolver_ix,
+                            Edge::CreateChildResolver { id },
+                        );
                     }
                     continue;
                 }
@@ -264,14 +286,19 @@ impl<'ctx, Op: Operation> OperationGraphBuilder<'ctx, Op> {
                 }));
                 // Resolvers have an intrinsic initial cost of 1 as we'll need to make a request
                 // for them.
-                self.graph
-                    .add_edge(parent_providable_field_ix, resolver_ix, Edge::CreateChildResolver(1));
+                let id = self.next_edge_cost_id();
+                self.graph.add_edge(
+                    parent_providable_field_ix,
+                    resolver_ix,
+                    Edge::CreateChildResolver { id },
+                );
                 self.graph
                     .add_edge(parent_query_field_ix, resolver_ix, Edge::HasChildResolver);
                 if let Some(required_field_set) = resolver_definition.required_field_set() {
                     self.requirement_ingestion_stack.push(Requirement {
-                        parent_query_field_ix,
                         dependent_ix: resolver_ix,
+                        origin_query_field_ix: parent_query_field_ix,
+                        parent_query_field_ix,
                         required_field_set,
                     });
                 };
@@ -290,17 +317,19 @@ impl<'ctx, Op: Operation> OperationGraphBuilder<'ctx, Op> {
             if let Some(required_field_set) = field_definition.requires_for_subgraph(resolver_definition.subgraph_id())
             {
                 self.requirement_ingestion_stack.push(Requirement {
-                    parent_query_field_ix,
                     dependent_ix: providable_field_ix,
+                    origin_query_field_ix: parent_query_field_ix,
+                    parent_query_field_ix,
                     required_field_set,
                 })
             }
 
+            let id = self.next_edge_cost_id();
             self.graph
-                .add_edge(resolver_ix, providable_field_ix, Edge::CanProvide(0));
+                .add_edge(resolver_ix, providable_field_ix, Edge::CanProvide { id });
             self.graph.add_edge(providable_field_ix, query_field_ix, Edge::Provides);
 
-            for nested_field_id in self.inner.operation.subselection(field_id) {
+            for nested_field_id in self.operation.subselection(field_id) {
                 self.field_ingestion_stack.push(CreateProvidableFields {
                     parent_query_field_ix: query_field_ix,
                     parent_providable_field: Some(ParentProvidableField {
@@ -314,11 +343,12 @@ impl<'ctx, Op: Operation> OperationGraphBuilder<'ctx, Op> {
         }
     }
 
-    fn handle_requirements(
+    fn ingest_requirement(
         &mut self,
         Requirement {
-            parent_query_field_ix,
             dependent_ix,
+            origin_query_field_ix,
+            parent_query_field_ix,
             required_field_set,
         }: Requirement<'ctx>,
     ) {
@@ -342,11 +372,6 @@ impl<'ctx, Op: Operation> OperationGraphBuilder<'ctx, Op> {
 
             // Create the required field otherwise.
             let required_query_field_ix = if let Some((required_query_field_ix, _)) = existing_field {
-                let dependent_query_depth = self.graph[dependent_ix].query_depth();
-                let required_query_field = self.graph[required_query_field_ix].as_query_field_mut().unwrap();
-                required_query_field.min_dependent_query_depth =
-                    dependent_query_depth.min(required_query_field.min_dependent_query_depth);
-
                 required_query_field_ix
             } else {
                 // Create the QueryField Node
@@ -355,8 +380,8 @@ impl<'ctx, Op: Operation> OperationGraphBuilder<'ctx, Op> {
                 let required_query_field = Node::QueryField(QueryField {
                     id: field_id,
                     query_depth: parent_query_depth + 1,
-                    min_dependent_query_depth: self.graph[dependent_ix].query_depth(),
                     flags: FieldFlags::EXTRA,
+                    requirement_id: None,
                 });
                 let required_query_field_ix = self.graph.add_node(required_query_field);
                 self.field_nodes.push(required_query_field_ix);
@@ -364,13 +389,12 @@ impl<'ctx, Op: Operation> OperationGraphBuilder<'ctx, Op> {
                 // For all the ProvidableField which may provide the parent QueryField, we have
                 // to try whether they can provide this newly added nested QueryField
                 self.field_ingestion_stack.extend(
-                    self.inner
-                        .graph
+                    self.graph
                         .edges_directed(parent_query_field_ix, Direction::Incoming)
                         .filter_map(|edge| {
                             if matches!(edge.weight(), Edge::Provides) {
                                 let node = edge.source();
-                                self.inner.graph[node].as_providable_field().map(|r| (node, r))
+                                self.graph[node].as_providable_field().map(|r| (node, r))
                             } else {
                                 None
                             }
@@ -379,10 +403,7 @@ impl<'ctx, Op: Operation> OperationGraphBuilder<'ctx, Op> {
                             parent_query_field_ix,
                             parent_providable_field: Some(ParentProvidableField {
                                 ix: field_resolver_node,
-                                subgraph_id: field_resolver
-                                    .resolver_definition_id
-                                    .walk(self.inner.schema)
-                                    .subgraph_id(),
+                                subgraph_id: field_resolver.resolver_definition_id.walk(self.schema).subgraph_id(),
                             }),
                             field_id,
                             parent_query_depth,
@@ -392,16 +413,26 @@ impl<'ctx, Op: Operation> OperationGraphBuilder<'ctx, Op> {
                 required_query_field_ix
             };
 
-            self.graph
-                .add_edge(dependent_ix, required_query_field_ix, Edge::Requires);
+            self.graph.add_edge(
+                dependent_ix,
+                required_query_field_ix,
+                Edge::Requires { origin_query_field_ix },
+            );
 
             if item.subselection().items().len() != 0 {
                 self.requirement_ingestion_stack.push(Requirement {
-                    parent_query_field_ix: required_query_field_ix,
                     dependent_ix,
+                    origin_query_field_ix,
+                    parent_query_field_ix: required_query_field_ix,
                     required_field_set: item.subselection(),
                 })
             }
         }
+    }
+
+    fn next_edge_cost_id(&mut self) -> EdgeCostId {
+        let id = EdgeCostId::from(self.next_edge_cost_id);
+        self.next_edge_cost_id += 1;
+        id
     }
 }

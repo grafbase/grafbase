@@ -137,6 +137,7 @@ fn read_schema(sdl: &str) -> Schema {
     Schema::build(config, Version::from(Vec::new())).unwrap()
 }
 
+#[allow(unused)]
 fn strdiff(before: &str, after: &str) -> String {
     similar::TextDiff::from_lines(before, after)
         .iter_all_changes()
