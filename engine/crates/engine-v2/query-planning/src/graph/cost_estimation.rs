@@ -310,16 +310,23 @@ impl CostEstimator {
     }
 
     fn requirement_cost(&self, origin_query_field_ix: NodeIndex, requirement_id: RequirementId) -> Cost {
+        self.requirement_ancestor_from_origin_query_field(origin_query_field_ix, requirement_id)
+            .map(|ancestor_id| self[ancestor_id].cumulative_cost_to_reach_requirement)
+            .min()
+            .unwrap_or_default()
+    }
+
+    fn requirement_ancestor_from_origin_query_field(
+        &self,
+        origin_query_field_ix: NodeIndex,
+        requirement_id: RequirementId,
+    ) -> impl Iterator<Item = AncestorId> + '_ {
         let origin_root_ancestors = &self[self[requirement_id].origin_root_ancestor_ids];
         let offset = origin_root_ancestors.partition_point(|probe| probe.origin_query_field_ix < origin_query_field_ix);
-        let mut cost = 0;
-        for origin_root_ancestor in &origin_root_ancestors[offset..] {
-            if origin_root_ancestor.origin_query_field_ix != origin_query_field_ix {
-                break;
-            }
-            cost = cost.min(self[origin_root_ancestor.ancestor_id].cumulative_cost_to_reach_requirement);
-        }
-        cost
+        origin_root_ancestors[offset..]
+            .iter()
+            .take_while(move |origin_root_ancestor| origin_root_ancestor.origin_query_field_ix == origin_query_field_ix)
+            .map(|origin_root_ancestor| origin_root_ancestor.ancestor_id)
     }
 
     fn impacted_requirements_for(&self, edge_ix: EdgeIndex) -> impl Iterator<Item = RequirementId> + '_ {
