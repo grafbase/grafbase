@@ -155,12 +155,6 @@ jobs:
           path: packages/cli-app/dist
           retention-days: 5
 
-      - uses: actions/upload-artifact@v4
-        with:
-          name: wrappers-dist.js
-          path: cli/wrappers/dist.js
-          retention-days: 5
-
   builds:
     needs: [what-changed, example-component, cli-assets]
     # We need the cancelled & result checks of this if to make sure that we
@@ -286,13 +280,6 @@ jobs:
         with:
           name: cli-app-dist
           path: packages/cli-app/dist
-
-      - name: Download pre-built wrappers
-        if: needs.cli-assets.result != 'skipped'
-        uses: actions/download-artifact@v4
-        with:
-          name: wrappers-dist.js
-          path: cli/wrappers/
 
       # TODO: Add timing reports in here somehow...
 

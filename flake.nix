@@ -71,7 +71,6 @@
             # Node.js
             nodejs_22
             nodePackages.prettier
-            bun # for wrappers
 
             # Native SSL
             openssl
@@ -86,7 +85,6 @@
 
             # Resolver tests
             pnpm # and cli-app
-            yarn
           ]
           ++ optional (system == systems.aarch64-darwin) [
             cargo-binstall

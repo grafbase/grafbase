@@ -55,10 +55,6 @@ let
   '';
 in
 {
-  imports = [
-    ./wrappers.nix
-  ];
-
   packages.cli = craneLib.buildPackage {
     inherit src;
     pname = "grafbase";
@@ -73,7 +69,6 @@ in
     ];
 
     GRAFBASE_CLI_PATHFINDER_BUNDLE_PATH = config.packages.cli-app;
-    GRAFBASE_CLI_WRAPPERS_PATH = config.packages.wrappers;
 
     doCheck = false;
 
