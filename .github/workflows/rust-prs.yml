@@ -137,18 +137,6 @@ jobs:
       - name: Build assets
         uses: ./.github/actions/cli_assets
 
-      - name: Copy ~/.grafbase for upload
-        shell: bash
-        run: |
-          mkdir home-dot-grafbase
-          cp -r ~/.grafbase/* home-dot-grafbase/
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: home-dot-grafbase
-          path: home-dot-grafbase
-          retention-days: 5
-
       - uses: actions/upload-artifact@v4
         with:
           name: cli-app-dist
@@ -254,20 +242,6 @@ jobs:
         with:
           name: example-component
           path: engine/crates/wasi-component-loader/examples/target/wasm32-wasip1/debug
-
-      - name: Download pre-built ~/.grafbase
-        if: needs.cli-assets.result != 'skipped'
-        uses: actions/download-artifact@v4
-        with:
-          name: home-dot-grafbase
-          path: ../home-dot-grafbase
-
-      - name: Copy ~/.grafbase into place
-        if: needs.cli-assets.result != 'skipped'
-        shell: bash
-        run: |
-          mkdir ~/.grafbase
-          cp -r ../home-dot-grafbase/* ~/.grafbase/
 
       - name: Download pre-built cli-app
         if: needs.cli-assets.result != 'skipped'
