@@ -72,15 +72,7 @@ impl<'ctx, Op: Operation> OperationGraphBuilder<'ctx, Op> {
             all_origin_root_ancestors: Vec::new(),
         };
 
-        // Initialize edge cost
-        for edge in self.graph.edge_references() {
-            // Creating a new resolver has an inherent cost of 1
-            if let Edge::CreateChildResolver { id } = edge.weight() {
-                estimator[*id] = 1;
-            }
-        }
-
-        estimator.populate_requirements(&mut self.graph);
+        estimator.populate_from(&mut self.graph);
         estimator.fixed_point_iteration(
             &self.graph,
             (0..estimator.requirements.len()).map(RequirementId::from).collect(),
@@ -91,13 +83,30 @@ impl<'ctx, Op: Operation> OperationGraphBuilder<'ctx, Op> {
 }
 
 impl CostEstimator {
-    fn populate_requirements<Id>(&mut self, graph: &mut StableGraph<Node<Id>, Edge>) {
+    // for each incoming edge on a node with requirements:
+    // - compute ancestors we need to keep track off for _all_ requirements.
+    // - can't really merge requirements with parent as individual fields have a specific cost or
+    // may be coming from entity join.
+    // - remove any requirement with a parent edge/node already in it. Cumulate all edgecostid?
+    // kkproblem with edge cost id, union find actually
+    // - remove any ancestor with parent already in it. It means there is a requirement that is a
+    // parent of us, so
+    // - end up with a list of (ancestor, requirement id)
+    fn populate_from<Id>(&mut self, graph: &mut StableGraph<Node<Id>, Edge>) {
         let mut stack = Vec::new();
         let mut requirement_origins = Vec::new();
         let mut origin_outgoing_edge_cost_ids = Vec::new();
         let mut ancestry_edges = Vec::new();
 
+        // Initialize edge cost
+        for edge in graph.edge_references() {
+            // Creating a new resolver has an inherent cost of 1
+            if let Edge::CreateChildResolver { id } = edge.weight() {
+                self[*id] = 1;
+            }
+        }
         let zero_edge_cost_id = EdgeCostId::from(self.edge_cost.len() - 1);
+
         let zero_cost_ancestor_id = AncestorId::from(0usize);
         self.all_ancestors.push(Ancestor {
             // cycle with itself, but it's never part of any ancestry, so it's always only
