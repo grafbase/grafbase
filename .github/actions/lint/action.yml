@@ -4,11 +4,6 @@ description: Run cargo fmt, clippy, test
 runs:
   using: 'composite'
   steps:
-    - uses: oven-sh/setup-bun@v2
-      if: runner.os != 'Windows'
-      with:
-        bun-version: latest
-
     - name: cargo fmt
       shell: bash
       run: |

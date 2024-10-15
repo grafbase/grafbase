@@ -88,7 +88,7 @@ jobs:
       - name: Get sources
         uses: actions/checkout@v4
 
-      - name: Install rust
+      - name: Install Rust
         uses: ./.github/actions/install-rust
         with:
           components: rustfmt
@@ -211,7 +211,7 @@ jobs:
           # others though.
           cache-provider: ${{ contains(matrix.platform.target, 'linux') && 'buildjet' || 'github' }}
 
-      - name: Install rust
+      - name: Install Rust
         uses: ./.github/actions/install-rust
         with:
           target: ${{ matrix.platform.target }}
@@ -247,11 +247,6 @@ jobs:
         with:
           version: 8
           run_install: false
-
-      - uses: oven-sh/setup-bun@v2
-        if: runner.os != 'Windows'
-        with:
-          bun-version: latest
 
       - name: Download pre-built example component
         if: needs.example-component.result != 'skipped'
