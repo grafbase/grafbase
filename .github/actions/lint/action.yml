@@ -4,28 +4,6 @@ description: Run cargo fmt, clippy, test
 runs:
   using: 'composite'
   steps:
-    - uses: oven-sh/setup-bun@v2
-      if: runner.os != 'Windows'
-      with:
-        bun-version: latest
-
-    - name: Build wrappers
-      shell: bash
-      if: runner.os != 'Windows'
-      working-directory: './cli/wrappers'
-      run: |
-        bun i
-        bun run build
-
-    - name: Build wrappers
-      shell: bash
-      if: runner.os == 'Windows'
-      working-directory: './cli/wrappers'
-      run: |
-        powershell -c "irm bun.sh/install.ps1 | iex"
-        ~/.bun/bin/bun.exe i
-        ~/.bun/bin/bun.exe build udf.ts --external="\${UDF_MAIN_FILE_PATH}" --minify --target=bun > dist.js
-
     - name: cargo fmt
       shell: bash
       run: |

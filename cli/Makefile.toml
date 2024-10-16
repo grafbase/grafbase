@@ -8,22 +8,22 @@ skip_crate_env_info = true
 [tasks.install-cargo-release]
 private = true
 install_crate = { crate_name = "cargo-release", binary = "cargo", test_arg = [
-    "release",
-    "--version",
+  "release",
+  "--version",
 ], version = "0.24.10" }
 
 [tasks.install-sd]
 private = true
 install_crate = { crate_name = "sd", binary = "sd", test_arg = [
-    "--version",
+  "--version",
 ], version = "0.7.6" }
 
 [tasks.mac-install-cargo-instruments]
 private = true
 condition = { platforms = ["mac"] }
 install_crate = { crate_name = "cargo-instruments", binary = "cargo", test_arg = [
-    "instruments",
-    "--version",
+  "instruments",
+  "--version",
 ], version = "0.4.8" }
 
 [tasks.bump]
@@ -115,58 +115,11 @@ dependencies = ["mac-install-cargo-instruments"]
 command = "cargo"
 args = ["instruments", "-t", "Leaks", "--time-limit", "30000", "--", "dev"]
 
-[tasks.update-assets]
-description = "Updates the grafbase assets"
-script = '''
-cd ../../api/workers/gateway
-RELEASE_FLAG="--dev" ../../scripts/dev/build-cli-assets.sh
-'''
-
-[tasks.update-assets-main]
-description = "Updates the CLI assets from the API repo main branch"
-script = '''
-cd ../../api/workers/gateway
-git switch main
-git pull
-RELEASE_FLAG="--dev" ../../scripts/dev/build-cli-assets.sh
-'''
-
-[tasks.update-assets-release]
-description = "Updates the CLI assets built in release mode"
-script = '''
-cd ../../api/workers/gateway
-../../scripts/dev/build-cli-assets.sh
-'''
-
-[tasks.update-assets-main-release]
-description = "Updates the CLI assets built in release mode from the API repo main branch"
-script = '''
-cd ../../api/workers/gateway
-git switch main
-git pull
-../../scripts/dev/build-cli-assets.sh
-'''
-
-[tasks.delete-assets]
-description = "Deletes the exported CLI assets"
-script = '''
-rm -r ~/.grafbase
-'''
-
 [tasks.build-cli-app]
 description = "Build packages/cli-app — the Pathfinder wrapper included in CLI"
 script = '''
 pushd ../packages/cli-app
 npx --yes pnpm i
 npx --yes pnpm run cli-app:build
-popd
-'''
-
-[tasks.build-wrappers]
-description = "Build cli/wrappers"
-script = '''
-pushd wrappers
-npx i
-npm run build
 popd
 '''

@@ -88,7 +88,7 @@ jobs:
       - name: Get sources
         uses: actions/checkout@v4
 
-      - name: Install rust
+      - name: Install Rust
         uses: ./.github/actions/install-rust
         with:
           components: rustfmt
@@ -137,28 +137,10 @@ jobs:
       - name: Build assets
         uses: ./.github/actions/cli_assets
 
-      - name: Copy ~/.grafbase for upload
-        shell: bash
-        run: |
-          mkdir home-dot-grafbase
-          cp -r ~/.grafbase/* home-dot-grafbase/
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: home-dot-grafbase
-          path: home-dot-grafbase
-          retention-days: 5
-
       - uses: actions/upload-artifact@v4
         with:
           name: cli-app-dist
           path: packages/cli-app/dist
-          retention-days: 5
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: wrappers-dist.js
-          path: cli/wrappers/dist.js
           retention-days: 5
 
   builds:
@@ -217,7 +199,7 @@ jobs:
           # others though.
           cache-provider: ${{ contains(matrix.platform.target, 'linux') && 'buildjet' || 'github' }}
 
-      - name: Install rust
+      - name: Install Rust
         uses: ./.github/actions/install-rust
         with:
           target: ${{ matrix.platform.target }}
@@ -254,11 +236,6 @@ jobs:
           version: 8
           run_install: false
 
-      - uses: oven-sh/setup-bun@v2
-        if: runner.os != 'Windows'
-        with:
-          bun-version: latest
-
       - name: Download pre-built example component
         if: needs.example-component.result != 'skipped'
         uses: actions/download-artifact@v4
@@ -266,33 +243,12 @@ jobs:
           name: example-component
           path: engine/crates/wasi-component-loader/examples/target/wasm32-wasip1/debug
 
-      - name: Download pre-built ~/.grafbase
-        if: needs.cli-assets.result != 'skipped'
-        uses: actions/download-artifact@v4
-        with:
-          name: home-dot-grafbase
-          path: ../home-dot-grafbase
-
-      - name: Copy ~/.grafbase into place
-        if: needs.cli-assets.result != 'skipped'
-        shell: bash
-        run: |
-          mkdir ~/.grafbase
-          cp -r ../home-dot-grafbase/* ~/.grafbase/
-
       - name: Download pre-built cli-app
         if: needs.cli-assets.result != 'skipped'
         uses: actions/download-artifact@v4
         with:
           name: cli-app-dist
           path: packages/cli-app/dist
-
-      - name: Download pre-built wrappers
-        if: needs.cli-assets.result != 'skipped'
-        uses: actions/download-artifact@v4
-        with:
-          name: wrappers-dist.js
-          path: cli/wrappers/
 
       # TODO: Add timing reports in here somehow...
 

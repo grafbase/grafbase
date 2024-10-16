@@ -5,11 +5,6 @@ ignore-test-packages = ["grafbase-docker-tests", "federation-audit-tests"]
 docker-test-packages = ["integration-tests", "grafbase-gateway"]
 
 [[path-rule]]
-# The JS files should trigger a grafbase rebuild
-globs = ["cli/wrappers/**", "cli/udf-wrapper/**"]
-mark-changed = ["grafbase"]
-
-[[path-rule]]
 # Trigger all for this GHA workflow
 globs = [".github/workflows/rust-prs.yml"]
 mark-changed = "all"
@@ -17,10 +12,10 @@ mark-changed = "all"
 [[path-rule]]
 # Ignore other github stuff
 globs = [
-    ".github/workflows/**",
-    ".github/what-rust-changed.toml",
-    ".github/ISSUE_TEMPLATE/**",
-    ".github/CODEOWNERS",
+  ".github/workflows/**",
+  ".github/what-rust-changed.toml",
+  ".github/ISSUE_TEMPLATE/**",
+  ".github/CODEOWNERS",
 ]
 mark-changed = []
 
@@ -32,26 +27,26 @@ mark-changed = []
 [[path-rule]]
 # Ignore various root files
 globs = [
-    "LICENSE",
-    ".editorconfig",
-    ".envrc",
-    ".envrc.example",
-    ".prettierrc.js",
-    "renovate.json",
-    "flake.nix",
-    "flake.lock",
+  "LICENSE",
+  ".editorconfig",
+  ".envrc",
+  ".envrc.example",
+  ".prettierrc.js",
+  "renovate.json",
+  "flake.nix",
+  "flake.lock",
 ]
 mark-changed = []
 
 [[path-rule]]
 # Ignore various folders
 globs = [
-    "auth-testing/**",
-    "packages/**",
-    "nix/**",
-    "examples/**",
-    "docker/**",
-    ".vscode",
+  "auth-testing/**",
+  "packages/**",
+  "nix/**",
+  "examples/**",
+  "docker/**",
+  ".vscode",
 ]
 mark-changed = []
 

@@ -10,45 +10,9 @@ inputs:
 runs:
   using: 'composite'
   steps:
-    - uses: oven-sh/setup-bun@v2
-      if: runner.os != 'Windows'
-      with:
-        bun-version: latest
-
     - name: Build cli-app
       shell: bash
       working-directory: './packages/cli-app'
       run: |
         npx pnpm i
         npx pnpm run cli-app:build
-
-    - name: Build wrappers
-      shell: bash
-      if: runner.os != 'Windows'
-      working-directory: './cli/wrappers'
-      run: |
-        bun i
-        bun run build
-
-    - name: Build wrappers
-      shell: bash
-      if: runner.os == 'Windows'
-      working-directory: './cli/wrappers'
-      run: |
-        powershell -c "irm bun.sh/install.ps1 | iex"
-        ~/.bun/bin/bun.exe i
-        ~/.bun/bin/bun.exe build udf.ts --external="\${UDF_MAIN_FILE_PATH}" --minify --target=bun > dist.js
-
-    - name: Build Assets
-      shell: bash
-      working-directory: ${{ inputs.working-directory }}
-      run: |
-        mkdir ~/.grafbase
-        touch ~/.grafbase/version.txt
-        mkdir ~/.grafbase/custom-resolvers
-        echo "{ \"name\": \"assets\" }" >> package.json
-        cp ./wrappers/dist.js ~/.grafbase/custom-resolvers/wrapper.js
-        cp ./wrappers/bun-multi-wrapper.ts ~/.grafbase/custom-resolvers/bun-multi-wrapper.ts
-        mkdir ~/.grafbase/parser
-        cp ./wrappers/parse-config.mts ~/.grafbase/parser/parse-config.mts
-        cp ./wrappers/parse-config.ts ~/.grafbase/parser/parse-config.ts
