@@ -179,6 +179,13 @@ mod tests {
                     enabled: false,
                     limit: None,
                 },
+                operation_caching: OperationCaching {
+                    enabled: false,
+                    limit: None,
+                },
+                apq: AutomaticallyPersistedQueries {
+                    enabled: false,
+                },
             },
         )
         "#);

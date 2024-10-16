@@ -85,7 +85,7 @@ impl GatewayRuntime {
             metrics: EngineMetrics::build(&meter, version_id.map(|id| id.to_string())),
             rate_limiter,
             entity_cache,
-            operation_cache_factory: InMemoryOperationCacheFactory::default(),
+            operation_cache_factory: InMemoryOperationCacheFactory::new(config.operation_caching.real_limit()),
         };
 
         Ok(runtime)
