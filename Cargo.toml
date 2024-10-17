@@ -88,7 +88,7 @@ async-tungstenite = "0.26.0"
 axum = { version = "0.7.5", default-features = false }
 axum-server = { version = "0.7", default-features = false }
 base64 = "0.22.1"
-bitflags = "2.5.0"
+bitflags = "2"
 bitvec = "1"
 blake3 = "1.5.1"
 bytes = "1.6.0"
