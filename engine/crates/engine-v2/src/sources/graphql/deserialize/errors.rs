@@ -76,7 +76,12 @@ where
     where
         D: Deserializer<'de>,
     {
-        let errors = <Vec<SubgraphGraphqlError> as serde::Deserialize>::deserialize(deserializer)?;
+        let errors = <Option<Vec<SubgraphGraphqlError>> as serde::Deserialize>::deserialize(deserializer)?;
+
+        let Some(errors) = errors else {
+            return Ok(0);
+        };
+
         let errors_count = errors.len();
         let errors = errors
             .into_iter()

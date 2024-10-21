@@ -1,4 +1,5 @@
 use engine_v2::Engine;
+use indoc::indoc;
 use integration_tests::{
     federation::{DeterministicEngine, EngineV2Ext as _},
     runtime,
@@ -215,6 +216,48 @@ fn sugraph_request_error() {
       ]
     }
     "###);
+}
+
+#[test]
+fn sugraph_successful_response_with_errors_null() {
+    let query = indoc! {r#"
+        query ExampleQuery {
+            me {
+                id
+            }
+        }
+    "#};
+
+    let response = json!({
+        "data": {
+            "me": {
+                "id": "123"
+            }
+        },
+        "errors": null,
+        "extensions": {
+            "body": {
+                "code": "kekw"
+            },
+        }
+    });
+
+    let response = integration_tests::runtime().block_on(async {
+        DeterministicEngine::new(SCHEMA, query, &[response])
+            .await
+            .execute()
+            .await
+    });
+
+    insta::assert_json_snapshot!(response, @r#"
+    {
+      "data": {
+        "me": {
+          "id": "123"
+        }
+      }
+    }
+    "#);
 }
 
 #[test]
