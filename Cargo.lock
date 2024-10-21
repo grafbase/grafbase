@@ -2518,6 +2518,7 @@ dependencies = [
 name = "engine-v2-query-planning"
 version = "0.0.0"
 dependencies = [
+ "bitflags 2.6.0",
  "bitvec",
  "ctor",
  "engine-parser",
@@ -2532,6 +2533,7 @@ dependencies = [
  "itertools 0.13.0",
  "petgraph",
  "serde",
+ "similar",
  "tracing",
  "tracing-subscriber",
 ]

@@ -1,5 +1,7 @@
+mod entities;
 mod schema1;
 mod schema2;
+mod shared_root;
 
 use std::{borrow::Cow, num::NonZero};
 
@@ -7,6 +9,7 @@ use engine_parser::{
     types::{DocumentOperations, SelectionSet},
     Positioned,
 };
+use itertools::Itertools;
 use schema::{Definition, FieldDefinitionId, ObjectDefinition, Schema, Version};
 use walker::Walk;
 
@@ -132,4 +135,16 @@ fn read_schema(sdl: &str) -> Schema {
     let graph = federated_graph::from_sdl(sdl).unwrap();
     let config = config::VersionedConfig::V6(config::latest::Config::from_graph(graph)).into_latest();
     Schema::build(config, Version::from(Vec::new())).unwrap()
+}
+
+fn strdiff(before: &str, after: &str) -> String {
+    similar::TextDiff::from_lines(before, after)
+        .iter_all_changes()
+        .filter_map(|change| match change.tag() {
+            similar::ChangeTag::Equal => None,
+            similar::ChangeTag::Delete => Some(('-', change)),
+            similar::ChangeTag::Insert => Some(('+', change)),
+        })
+        .format_with("", |(tag, change), f| f(&format_args!("{}{}", tag, change)))
+        .to_string()
 }
