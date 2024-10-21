@@ -1,0 +1,18 @@
+extend schema
+  @link(
+    url: "https://specs.apollo.dev/federation/v2.5"
+    import: ["@authenticated", "@composeDirective", "@external", "@extends", "@inaccessible"]
+  )
+
+schema {
+  query: Queries
+  mutation: Mutation
+}
+
+type Queries {
+  sayHello: String
+}
+
+type Mutation {
+  sayHi: String
+}
