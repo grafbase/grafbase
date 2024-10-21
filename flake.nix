@@ -52,6 +52,7 @@
             cargo-insta
             cargo-nextest
             cargo-component
+            tokio-console
             # Benchmark tool to send multiple requests
             hey
 

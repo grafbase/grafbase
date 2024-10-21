@@ -63,8 +63,10 @@ pub(crate) fn init(args: &impl Args, config: &TelemetryConfig) -> anyhow::Result
     }
 
     let tracer_provider = tracer.as_ref().map(|t| t.provider.clone());
+    let console_layer = console_subscriber::spawn();
 
     let registry = tracing_subscriber::registry()
+        .with(console_layer)
         .with(tracer.map(|t| t.layer))
         .with(logger.map(|l| l.layer));
 
