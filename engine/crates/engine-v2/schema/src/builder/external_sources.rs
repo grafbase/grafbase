@@ -15,12 +15,11 @@ impl ExternalDataSources {
             .enumerate()
             .map(|(index, subgraph)| {
                 let subgraph_name_id = subgraph.name.into();
-                let url_id = ctx
-                    .urls
-                    .insert(url::Url::parse(&ctx.strings[subgraph.url.into()]).expect("valid url"));
+                let sdl_url = url::Url::parse(&ctx.strings[subgraph.url.into()]).expect("valid url");
                 match config.subgraph_configs.remove(&federated_graph::SubgraphId(index)) {
                     Some(config::latest::SubgraphConfig {
                         websocket_url,
+                        url,
                         headers,
                         timeout,
                         retry,
@@ -28,7 +27,7 @@ impl ExternalDataSources {
                         ..
                     }) => GraphqlEndpointRecord {
                         subgraph_name_id,
-                        url_id,
+                        url_id: ctx.urls.insert(url.unwrap_or(sdl_url)),
                         websocket_url_id: websocket_url
                             .map(|url| ctx.urls.insert(url::Url::parse(&config[url]).expect("valid url"))),
                         header_rule_ids: headers.into_iter().map(Into::into).collect(),
@@ -41,7 +40,7 @@ impl ExternalDataSources {
 
                     None => GraphqlEndpointRecord {
                         subgraph_name_id,
-                        url_id,
+                        url_id: ctx.urls.insert(sdl_url),
                         websocket_url_id: None,
                         header_rule_ids: Vec::new(),
                         config: super::SubgraphConfig {

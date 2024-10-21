@@ -165,6 +165,8 @@ impl AccessLogsConfig {
 #[derive(Debug, Default, serde::Deserialize, Clone)]
 #[serde(default, deny_unknown_fields)]
 pub struct SubgraphConfig {
+    /// URL of the subgraph, overriding the one specified in the federated SDL.
+    pub url: Option<Url>,
     /// Header bypass configuration
     pub headers: Vec<HeaderRule>,
     /// The URL to use for GraphQL websocket calls.
@@ -1397,9 +1399,10 @@ mod tests {
 
         let result: Config = toml::from_str(input).unwrap();
 
-        insta::assert_debug_snapshot!(&result.subgraphs, @r###"
+        insta::assert_debug_snapshot!(&result.subgraphs, @r#"
         {
             "products": SubgraphConfig {
+                url: None,
                 headers: [
                     Forward(
                         HeaderForward {
@@ -1420,7 +1423,7 @@ mod tests {
                 entity_caching: None,
             },
         }
-        "###);
+        "#);
     }
 
     #[test]
@@ -1846,9 +1849,10 @@ mod tests {
 
         let config: Config = toml::from_str(input).unwrap();
 
-        insta::assert_debug_snapshot!(&config.subgraphs, @r###"
+        insta::assert_debug_snapshot!(&config.subgraphs, @r#"
         {
             "products": SubgraphConfig {
+                url: None,
                 headers: [],
                 websocket_url: None,
                 rate_limit: None,
@@ -1865,7 +1869,7 @@ mod tests {
                 entity_caching: None,
             },
         }
-        "###);
+        "#);
     }
 
     #[test]

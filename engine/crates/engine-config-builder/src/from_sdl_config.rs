@@ -177,6 +177,7 @@ impl<'a> BuildContext<'a> {
             };
 
             let parser_sdl::federation::SubgraphConfig {
+                url,
                 websocket_url,
                 header_rules,
                 rate_limit,
@@ -212,6 +213,7 @@ impl<'a> BuildContext<'a> {
                 subgraph_id,
                 config::SubgraphConfig {
                     name: subgraph_name,
+                    url: url.clone(),
                     headers,
                     websocket_url,
                     rate_limit,
