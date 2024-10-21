@@ -9,9 +9,9 @@ repository.workspace = true
 
 [features]
 lambda = [
-  "federated-server/lambda",
-  "tracing-subscriber/json",
-  "grafbase-telemetry/lambda",
+    "federated-server/lambda",
+    "tracing-subscriber/json",
+    "grafbase-telemetry/lambda",
 ]
 
 [dependencies]
@@ -28,12 +28,13 @@ itertools.workspace = true
 mimalloc = "0.1"
 opentelemetry-aws = { version = "0.10.0" }
 rustls = { workspace = true, features = ["ring"] }
-tokio = { workspace = true, features = ["rt-multi-thread", "signal"] }
+tokio = { workspace = true, features = ["full", "tracing"] }
 toml = "0.8"
 tracing.workspace = true
 tracing-subscriber = { workspace = true, features = ["json"] }
 cfg-if = "1"
 grafbase-workspace-hack.workspace = true
+console-subscriber = "0.4.0"
 
 [lints]
 workspace = true

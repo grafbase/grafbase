@@ -1,27 +1,27 @@
 [graph]
 introspection = true
 
-[hooks]
-location = "target/wasm32-wasip1/release/hooks.wasm"
+# [hooks]
+# location = "target/wasm32-wasip1/release/hooks.wasm"
 
-[gateway.access_logs]
-enabled = true
-path = "./logs"
+# [gateway.access_logs]
+# enabled = true
+# path = "./logs"
 
-[telemetry.tracing.propagation]
-trace_context = true
+# [telemetry.tracing.propagation]
+# trace_context = true
 
-[telemetry]
-service_name = "access-log-test"
+# [telemetry]
+# service_name = "access-log-test"
 
-[telemetry.tracing]
-sampling = 1
+# [telemetry.tracing]
+# sampling = 1
 
-[telemetry.exporters.otlp]
-enabled = true
-endpoint = "http://localhost:4318"
-protocol = "grpc"
+# [telemetry.exporters.otlp]
+# enabled = true
+# endpoint = "http://localhost:4318"
+# protocol = "grpc"
 
-[telemetry.exporters.otlp.batch_export]
-scheduled_delay = 1
-max_export_batch_size = 1
+# [telemetry.exporters.otlp.batch_export]
+# scheduled_delay = 1
+# max_export_batch_size = 1
