@@ -10,16 +10,12 @@ pub struct InMemoryOperationCacheFactory {
 
 impl InMemoryOperationCacheFactory {
     pub fn inactive() -> Self {
-        InMemoryOperationCacheFactory {
-            config: InMemoryOperationCacheConfig { limit: 0 },
-        }
+        Self::new(0)
     }
-}
 
-impl Default for InMemoryOperationCacheFactory {
-    fn default() -> Self {
-        InMemoryOperationCacheFactory {
-            config: InMemoryOperationCacheConfig { limit: 1000 },
+    pub fn new(limit: usize) -> Self {
+        Self {
+            config: InMemoryOperationCacheConfig { limit },
         }
     }
 }

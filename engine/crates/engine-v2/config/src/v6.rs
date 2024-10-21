@@ -55,6 +55,12 @@ pub struct Config {
     pub entity_caching: EntityCaching,
 
     #[serde(default)]
+    pub operation_caching: OperationCaching,
+
+    #[serde(default)]
+    pub apq: AutomaticallyPersistedQueries,
+
+    #[serde(default)]
     pub retry: Option<RetryConfig>,
 
     #[serde(default)]
@@ -65,6 +71,29 @@ pub struct Config {
 pub struct BatchingConfig {
     pub enabled: bool,
     pub limit: Option<usize>,
+}
+
+#[derive(serde::Serialize, serde::Deserialize, Debug, Default, Clone, Copy)]
+pub struct OperationCaching {
+    pub enabled: bool,
+    pub limit: Option<usize>,
+}
+
+const DEFAULT_OPERATION_CACHE_LIMIT: usize = 1000;
+
+impl OperationCaching {
+    pub fn real_limit(self) -> usize {
+        if self.enabled {
+            self.limit.unwrap_or(DEFAULT_OPERATION_CACHE_LIMIT)
+        } else {
+            0
+        }
+    }
+}
+
+#[derive(serde::Serialize, serde::Deserialize, Debug, Default, Clone, Copy)]
+pub struct AutomaticallyPersistedQueries {
+    pub enabled: bool,
 }
 
 impl Config {
@@ -85,6 +114,8 @@ impl Config {
             entity_caching: EntityCaching::Disabled,
             retry: None,
             batching: Default::default(),
+            operation_caching: Default::default(),
+            apq: Default::default(),
         }
     }
 
