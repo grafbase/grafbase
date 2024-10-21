@@ -20,17 +20,6 @@ pub(crate) struct Context<'a> {
 
     pub(crate) options: crate::Options,
 
-    /// The schema definition that was encountered, if any.
-    ///
-    /// Example schema definition:
-    ///
-    /// ```graphql
-    /// schema {
-    ///   query: Query
-    /// }
-    /// ```
-    pub(crate) schema_definition: Option<SchemaDefinition<'a>>,
-
     // Definition name, extended fields. Only populated in the presence of extensions.
     pub(crate) extended_fields: HashMap<&'a str, Vec<&'a [AstField]>>,
 
@@ -59,7 +48,6 @@ impl<'a> Context<'a> {
             definition_names,
             diagnostics,
             options,
-            schema_definition: None,
 
             strings_buf: HashMap::default(),
             directive_names: HashMap::default(),
@@ -185,4 +173,5 @@ pub(crate) struct SchemaDefinition<'a> {
     pub(crate) query: Option<&'a str>,
     pub(crate) mutation: Option<&'a str>,
     pub(crate) subscription: Option<&'a str>,
+    pub(crate) is_extension: bool,
 }

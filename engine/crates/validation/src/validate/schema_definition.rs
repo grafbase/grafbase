@@ -1,41 +1,38 @@
 use super::*;
 use crate::context::SchemaDefinition;
 
-pub(crate) fn validate_schema_definition<'a>(def: &'a Positioned<ast::SchemaDefinition>, ctx: &mut Context<'a>) {
-    if let Some(previous_def) = ctx.schema_definition.take() {
-        let labels = vec![
-            miette::LabeledSpan::new_with_span(
-                Some("Previous definition".to_owned()),
-                (ctx.miette_pos(previous_def.pos), "schema".len()),
-            ),
-            miette::LabeledSpan::new_with_span(
-                Some("Second definition".to_owned()),
-                (ctx.miette_pos(def.pos), "schema".len()),
-            ),
-        ];
+pub(crate) fn validate_schema_definitions<'a>(schema_definitions: &[SchemaDefinition<'a>], ctx: &mut Context<'a>) {
+    let mut first_definition_pos = None;
 
-        ctx.push_error(miette::miette! {
-            labels = labels,
-            "Duplicate schema definition",
-        });
+    for schema_definition in schema_definitions {
+        validate_directives(schema_definition.directives, ast::DirectiveLocation::Schema, ctx);
+        validate_schema_definition_references(schema_definition, ctx);
+
+        if !schema_definition.is_extension {
+            match &mut first_definition_pos {
+                Some(pos) => {
+                    let labels = vec![
+                        miette::LabeledSpan::new_with_span(
+                            Some("Previous definition".to_owned()),
+                            miette::SourceSpan::new(ctx.miette_pos(*pos), "schema".len()),
+                        ),
+                        miette::LabeledSpan::new_with_span(
+                            Some("Second definition".to_owned()),
+                            miette::SourceSpan::new(ctx.miette_pos(schema_definition.pos), "schema".len()),
+                        ),
+                    ];
+                    ctx.push_error(miette::miette!(labels = labels, "Duplicate schema definition"));
+                }
+                pos @ None => {
+                    *pos = Some(schema_definition.pos);
+                }
+            }
+        }
     }
-
-    ctx.schema_definition = Some(SchemaDefinition {
-        pos: def.pos,
-        directives: &def.node.directives,
-        query: def.node.query.as_ref().map(|node| node.node.as_str()),
-        mutation: def.node.mutation.as_ref().map(|node| node.node.as_str()),
-        subscription: def.node.subscription.as_ref().map(|node| node.node.as_str()),
-    });
 }
 
-pub(crate) fn validate_schema_definition_references(ctx: &mut Context<'_>) {
-    let Some(def) = ctx.schema_definition.as_ref().cloned() else {
-        return;
-    };
+pub(crate) fn validate_schema_definition_references<'a>(def: &SchemaDefinition<'a>, ctx: &mut Context<'a>) {
     let pos = def.pos;
-
-    validate_directives(def.directives, ast::DirectiveLocation::Schema, ctx);
 
     let names = [
         (def.query, "Query"),
@@ -84,12 +81,6 @@ pub(crate) fn validate_schema_definition_references(ctx: &mut Context<'_>) {
 }
 
 pub(crate) fn validate_root_types(ctx: &mut Context<'_>) {
-    // validate that if there is no schema definition, check that Query, Mutation, Subscription are
-    // object types
-    if ctx.schema_definition.is_some() {
-        return;
-    }
-
     for name in ["Query", "Mutation", "Subscription"] {
         if let Some(def) = ctx.definition_names.get(name) {
             if !matches!(def.node.kind, ast::TypeKind::Object(_)) {
