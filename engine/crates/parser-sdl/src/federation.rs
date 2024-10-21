@@ -5,6 +5,7 @@ use std::{collections::BTreeMap, path::PathBuf};
 
 use crate::{rules::auth_directive::v2::AuthV2Directive, GlobalCacheRules};
 use registry_v2::{ConnectorHeaderValue, OperationLimits};
+use url::Url;
 
 use self::header::{NameOrPattern, SubgraphHeaderForward, SubgraphHeaderInsert, SubgraphHeaderRule};
 
@@ -35,6 +36,8 @@ pub struct SubgraphConfig {
     /// This is only used in development and should be ignored in deployed
     /// environments
     pub development_url: Option<String>,
+
+    pub url: Option<Url>,
 
     /// The URL to use for GraphQL-WS calls.
     ///

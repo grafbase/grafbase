@@ -47,6 +47,7 @@ pub fn build_with_toml_config(config: &Config, graph: FederatedGraph) -> Version
                 .collect();
 
             let config = parser_sdl::federation::SubgraphConfig {
+                url: subgraph_config.url,
                 name: name.clone(),
                 websocket_url: subgraph_config.websocket_url.map(|url| url.to_string()),
                 header_rules,
