@@ -15,12 +15,16 @@ doctest = false
 [lints]
 workspace = true
 
+[features]
+default = ["tokio"]
+
 [dependencies]
 async-runtime.workspace = true
 base64.workspace = true
 blake3.workspace = true
 bytes.workspace = true
 url.workspace = true
+tokio = { workspace = true, optional = true }
 crossbeam-queue = "0.3.11"
 futures-util.workspace = true
 futures.workspace = true

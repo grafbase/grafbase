@@ -88,16 +88,18 @@ pub(super) async fn plan<'ctx, R: Runtime>(
         response_modifier_executors: Default::default(),
     };
 
-    let operation = ExecutionPlanner {
-        ctx,
-        build_context: BuildContext {
-            logical_plan_to_execution_plan_id: vec![None; operation.plan.logical_plans.len()],
-            io_fields: Vec::with_capacity(operation.fields.len()),
-            ..Default::default()
-        },
-        operation,
-    }
-    .plan()?;
+    let operation = crate::utils::block_in_place(|| {
+        ExecutionPlanner {
+            ctx,
+            build_context: BuildContext {
+                logical_plan_to_execution_plan_id: vec![None; operation.plan.logical_plans.len()],
+                io_fields: Vec::with_capacity(operation.fields.len()),
+                ..Default::default()
+            },
+            operation,
+        }
+        .plan()
+    })?;
 
     tracing::trace!(
         "== Plan Summary ==\n{}",

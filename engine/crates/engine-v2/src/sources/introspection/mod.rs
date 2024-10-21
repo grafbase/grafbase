@@ -17,14 +17,16 @@ impl IntrospectionResolver {
         plan: PlanWalker<'ctx, ()>,
         mut subgraph_response: SubgraphResponse,
     ) -> ExecutionResult<SubgraphResponse> {
-        writer::IntrospectionWriter {
-            schema: &ctx.engine.schema,
-            metadata: &ctx.engine.schema.subgraphs.introspection,
-            shapes: &plan.blueprint().shapes,
-            plan,
-            response: subgraph_response.as_mut().next_writer().ok_or("No objects to update")?,
-        }
-        .execute(plan.logical_plan().response_blueprint().concrete_shape_id);
-        Ok(subgraph_response)
+        crate::utils::block_in_place(|| {
+            writer::IntrospectionWriter {
+                schema: &ctx.engine.schema,
+                metadata: &ctx.engine.schema.subgraphs.introspection,
+                shapes: &plan.blueprint().shapes,
+                plan,
+                response: subgraph_response.as_mut().next_writer().ok_or("No objects to update")?,
+            }
+            .execute(plan.logical_plan().response_blueprint().concrete_shape_id);
+            ExecutionResult::Ok(subgraph_response)
+        })
     }
 }

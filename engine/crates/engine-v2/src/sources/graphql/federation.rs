@@ -280,9 +280,9 @@ where
             cache_ttl,
         } = self;
 
-        let status = {
+        let status = crate::utils::block_in_place(|| {
             let response = subgraph_response.as_mut();
-            GraphqlResponseSeed::new(
+            let status = GraphqlResponseSeed::new(
                 EntitiesDataSeed {
                     ctx,
                     response: response.clone(),
@@ -290,8 +290,9 @@ where
                 },
                 EntitiesErrorsSeed::new(ctx, response),
             )
-            .deserialize(&mut serde_json::Deserializer::from_slice(http_response.body()))?
-        };
+            .deserialize(&mut serde_json::Deserializer::from_slice(http_response.body()))?;
+            ExecutionResult::Ok(status)
+        })?;
 
         let cache_ttl = calculate_cache_ttl(status, http_response.headers(), cache_ttl);
 

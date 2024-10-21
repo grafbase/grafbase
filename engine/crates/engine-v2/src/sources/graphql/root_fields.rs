@@ -15,7 +15,7 @@ use super::{
     SubgraphContext,
 };
 use crate::{
-    execution::PlanningResult,
+    execution::{ExecutionError, PlanningResult},
     operation::{OperationType, PlanWalker},
     response::SubgraphResponse,
     sources::{graphql::request::SubgraphGraphqlRequest, ExecutionContext, ExecutionResult, Resolver},
@@ -159,15 +159,16 @@ where
     async fn ingest(
         mut self,
         http_response: http::Response<OwnedOrSharedBytes>,
-    ) -> Result<(GraphqlResponseStatus, SubgraphResponse), crate::execution::ExecutionError> {
-        let status = {
+    ) -> Result<(GraphqlResponseStatus, SubgraphResponse), ExecutionError> {
+        let status = crate::utils::block_in_place(|| {
             let response = self.subgraph_response.as_mut();
-            GraphqlResponseSeed::new(
+            let status = GraphqlResponseSeed::new(
                 response.next_seed(&self.ctx).ok_or("No object to update")?,
                 RootGraphqlErrors::new(&self.ctx, response),
             )
-            .deserialize(&mut serde_json::Deserializer::from_slice(http_response.body()))?
-        };
+            .deserialize(&mut serde_json::Deserializer::from_slice(http_response.body()))?;
+            ExecutionResult::Ok(status)
+        })?;
 
         if let Some(cache_key) = self.cache_key {
             let cache_ttl = calculate_cache_ttl(status, http_response.headers(), self.cache_ttl);
