@@ -2,7 +2,7 @@ use std::{collections::VecDeque, pin::Pin, sync::Arc};
 
 use async_runtime::make_send_on_wasm;
 use engine_parser::types::OperationType;
-use futures::{stream::FuturesOrdered, Future, FutureExt, SinkExt, Stream};
+use futures::{stream::FuturesOrdered, Future, FutureExt, Stream};
 use futures_util::{
     future::BoxFuture,
     stream::{BoxStream, FuturesUnordered},

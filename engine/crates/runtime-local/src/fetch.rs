@@ -1,4 +1,5 @@
 use std::future::Future;
+use std::time::Duration;
 
 use bytes::Bytes;
 use futures_util::Stream;
@@ -9,9 +10,20 @@ use runtime::bytes::OwnedOrSharedBytes;
 use runtime::fetch::{FetchError, FetchRequest, FetchResult, Fetcher};
 use runtime::hooks::ResponseInfo;
 
-#[derive(Default, Clone)]
+#[derive(Clone)]
 pub struct NativeFetcher {
     client: reqwest::Client,
+}
+
+impl Default for NativeFetcher {
+    fn default() -> Self {
+        Self {
+            client: reqwest::Client::builder()
+                .tcp_keepalive(Some(Duration::from_secs(60)))
+                .build()
+                .unwrap(),
+        }
+    }
 }
 
 impl Fetcher for NativeFetcher {
@@ -21,7 +33,15 @@ impl Fetcher for NativeFetcher {
     ) -> (FetchResult<http::Response<OwnedOrSharedBytes>>, Option<ResponseInfo>) {
         let mut info = ResponseInfo::builder();
 
-        let result = self.client.execute(into_reqwest(request)).await.map_err(|e| {
+        let mut request = into_reqwest(request);
+        request
+            .headers_mut()
+            .insert(http::header::CONNECTION, http::HeaderValue::from_static("Keep-Alive"));
+        request.headers_mut().insert(
+            http::HeaderName::from_static("keep-alive"),
+            http::HeaderValue::from_static("timeout=5, max=1000"),
+        );
+        let result = self.client.execute(request).await.map_err(|e| {
             if e.is_timeout() {
                 FetchError::Timeout
             } else {
