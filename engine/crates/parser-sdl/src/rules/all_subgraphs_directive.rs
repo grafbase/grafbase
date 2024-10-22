@@ -115,6 +115,7 @@ mod tests {
                     "Products": SubgraphConfig {
                         name: "Products",
                         development_url: None,
+                        url: None,
                         websocket_url: None,
                         header_rules: [
                             Insert(
