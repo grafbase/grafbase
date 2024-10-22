@@ -41,11 +41,13 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
 
         tracing::trace!("Starting execution...");
         if operation.query_modifications.root_error_ids.is_empty() {
+            let operation = Arc::new(operation);
+            let hooks_context = Arc::new(self.hooks_context);
             let ctx = ExecutionContext {
                 engine: self.engine,
                 operation: &operation,
                 request_context: self.request_context,
-                hooks_context: &self.hooks_context,
+                hooks_context: &hooks_context,
             };
             let response_fut = ctx.execute(self.executed_operation_builder);
             let (response, _) = futures_util::join!(response_fut, background_fut);
@@ -68,11 +70,13 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
 
         tracing::trace!("Starting execution...");
         if operation.query_modifications.root_error_ids.is_empty() {
+            let operation = Arc::new(operation);
+            let hooks_context = Arc::new(self.hooks_context);
             let ctx = ExecutionContext {
                 engine: self.engine,
                 operation: &operation,
                 request_context: self.request_context,
-                hooks_context: &self.hooks_context,
+                hooks_context: &hooks_context,
             };
 
             let subscription_fut = ctx.execute_subscription(self.executed_operation_builder, responses);
