@@ -413,6 +413,7 @@ zeroize = { version = "1", default-features = false, features = ["derive"] }
 
 [target.wasm32-unknown-unknown.dependencies]
 getrandom = { version = "0.2", default-features = false, features = ["js"] }
+itertools = { version = "0.10" }
 libc = { version = "0.2", features = ["extra_traits"] }
 miniz_oxide = { version = "0.8", default-features = false, features = ["with-alloc"] }
 nom = { version = "7" }
@@ -422,6 +423,7 @@ web-sys = { version = "0.3", default-features = false, features = ["BlobProperty
 
 [target.wasm32-unknown-unknown.build-dependencies]
 getrandom = { version = "0.2", default-features = false, features = ["js"] }
+itertools = { version = "0.10" }
 libc = { version = "0.2", features = ["extra_traits"] }
 miniz_oxide = { version = "0.8", default-features = false, features = ["with-alloc"] }
 nom = { version = "7" }
