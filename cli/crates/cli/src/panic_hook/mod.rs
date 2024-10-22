@@ -4,7 +4,6 @@ use crate::watercolor;
 use report::{Method, Report};
 use std::borrow::Cow;
 use std::fmt::Write;
-use std::panic::PanicInfo;
 use std::path::{Path, PathBuf};
 use watercolor::watercolor;
 
@@ -30,8 +29,6 @@ pub struct Metadata {
 #[macro_export]
 macro_rules! panic_hook {
     () => {
-        #[allow(unused_imports)]
-        use std::panic::{self, PanicInfo};
         #[allow(unused_imports)]
         use $crate::panic_hook::{handle_dump, print_msg, Metadata};
 
@@ -76,14 +73,14 @@ pub fn print_msg<P: AsRef<Path>>(file_path: Option<P>, metadata: &Metadata) {
     watercolor::output_error!(
         indoc::indoc!{r##"
             Well, this is embarrassing, {} had a problem and crashed.
-            
-            We have generated a report file at {}. 
+
+            We have generated a report file at {}.
             To help us address this issue, please consider submitting a GitHub issue or sending a message on Discord and including the report.
-        
+
             - Homepage: {}
             - Repository: {}
             - Discord: {}
-        
+
             Thank you!
         "##},
         name,
@@ -98,7 +95,7 @@ pub fn print_msg<P: AsRef<Path>>(file_path: Option<P>, metadata: &Metadata) {
 /// Utility function which will handle dumping information to disk
 #[must_use]
 #[allow(dead_code)]
-pub fn handle_dump(meta: &Metadata, panic_info: &PanicInfo<'_>) -> Option<PathBuf> {
+pub fn handle_dump(meta: &Metadata, panic_info: &std::panic::PanicHookInfo<'_>) -> Option<PathBuf> {
     let mut explanation = String::new();
 
     let message = match (

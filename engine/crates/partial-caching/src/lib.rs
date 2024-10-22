@@ -72,7 +72,7 @@ impl fmt::Debug for CachingPlan {
 pub enum FetchPhaseResult {
     /// We've only fetched some of the query from the cache, so we need
     /// to enter an ExecutionPhase
-    PartialHit(ExecutionPhase),
+    PartialHit(Box<ExecutionPhase>),
 
     /// We fetched all the results from the cache, so can just return a response
     CompleteHit(hit::CompleteHit),

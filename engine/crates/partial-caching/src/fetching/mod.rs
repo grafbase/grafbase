@@ -94,7 +94,7 @@ impl CacheFetchPhase {
 
     pub fn finish(self, subtypes: Arc<dyn TypeRelationships>) -> FetchPhaseResult {
         if self.cache_entries.iter().any(|entry| entry.is_miss()) || !self.plan.nocache_partition.is_empty() {
-            FetchPhaseResult::PartialHit(ExecutionPhase::new(self, subtypes))
+            FetchPhaseResult::PartialHit(Box::new(ExecutionPhase::new(self, subtypes)))
         } else {
             FetchPhaseResult::CompleteHit(CompleteHit::new(self.cache_entries))
         }
