@@ -146,13 +146,12 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
         );
 
         OperationExecution {
-            initial_futures: Some(ExecutionPlanFutureSet::new()),
             state: self.new_execution_state(),
             executed_operation_builder,
             response: ResponseBuilder::new(self.operation.root_object_id),
             ctx: self,
         }
-        .run()
+        .run(VecDeque::new())
         .await
     }
 
@@ -290,22 +289,21 @@ where
                             response,
                             root_subgraph_response,
                         }) => {
-                            let mut initial_futures = ExecutionPlanFutureSet::new();
-                            initial_futures.push_result(ExecutionPlanResult {
+                            let mut results = VecDeque::new();
+                            results.push_back(ExecutionPlanResult {
                                 plan_id: self.subscription_plan_id,
                                 result: Ok(root_subgraph_response),
                                 on_subgraph_response_hook_output: None,
                             });
 
                             let operation_execution = OperationExecution {
-                                initial_futures: Some(initial_futures),
                                 ctx: self.ctx,
                                 executed_operation_builder,
                                 state: self.initial_state.clone(),
                                 response,
                             };
 
-                            response_futures.push_back(operation_execution.run());
+                            response_futures.push_back(operation_execution.run(results));
                         }
                         Err(err) => {
                             let operation = self.ctx.operation.prepared.clone();
@@ -351,15 +349,14 @@ impl SubscriptionResponse {
     }
 }
 
-struct OperationExecution<'ctx, 'exec, R: Runtime> {
+struct OperationExecution<'ctx, R: Runtime> {
     ctx: ExecutionContext<'ctx, R>,
-    initial_futures: Option<ExecutionPlanFutureSet<'exec, <R::Hooks as Hooks>::OnSubgraphResponseOutput>>,
     executed_operation_builder: ExecutedOperationBuilder<<R::Hooks as Hooks>::OnSubgraphResponseOutput>,
     state: OperationExecutionState<'ctx>,
     response: ResponseBuilder,
 }
 
-impl<'ctx, 'exec, R: Runtime> std::ops::Deref for OperationExecution<'ctx, 'exec, R> {
+impl<'ctx, R: Runtime> std::ops::Deref for OperationExecution<'ctx, R> {
     type Target = ExecutionContext<'ctx, R>;
     fn deref(&self) -> &Self::Target {
         &self.ctx
@@ -371,19 +368,18 @@ enum State<F, S> {
     Execution(S),
 }
 
-impl<'ctx, 'exec, R: Runtime> OperationExecution<'ctx, 'exec, R>
-where
-    'ctx: 'exec,
-{
+impl<'ctx, R: Runtime> OperationExecution<'ctx, R> {
     /// Runs a single execution to completion, returning its response
-    async fn run(mut self) -> Response<<R::Hooks as Hooks>::OnOperationResponseOutput> {
-        let mut futures = std::mem::take(&mut self.initial_futures).unwrap_or_default();
+    async fn run(
+        mut self,
+        mut results: VecDeque<ExecutionPlanResult<<R::Hooks as Hooks>::OnSubgraphResponseOutput>>,
+    ) -> Response<<R::Hooks as Hooks>::OnOperationResponseOutput> {
+        let futures = FuturesUnordered::new();
         for plan_id in self.state.get_executable_plans() {
             if let Some(fut) = self.create_plan_execution_future(plan_id) {
-                futures.push_fut(fut);
+                futures.push(fut);
             }
         }
-        let mut results = VecDeque::new();
 
         let mut state = State::Execution(self);
 
@@ -394,12 +390,12 @@ where
                     let mut fut = unsafe { Pin::new_unchecked(&mut ingestion_fut) };
                     let next_task = futures_util::select_biased! {
                         ingestion_result = fut => Ok(ingestion_result),
-                        execution_result = futures.inner.next() => Err(execution_result),
+                        execution_result = futures.next() => Err(execution_result),
                     };
                     match next_task {
                         Ok((self_, next_futures)) => {
                             for fut in next_futures {
-                                futures.push_fut(fut);
+                                futures.push(fut);
                             }
                             State::Execution(self_)
                         }
@@ -410,7 +406,7 @@ where
                         Err(None) => {
                             let (self_, next_futures) = ingestion_fut.await;
                             for fut in next_futures {
-                                futures.push_fut(fut)
+                                futures.push(fut)
                             }
                             State::Execution(self_)
                         }
@@ -419,7 +415,7 @@ where
                 State::Execution(self_) => {
                     if let Some(result) = results.pop_front() {
                         State::Ingestion(self_.ingest_execution_result(result).fuse())
-                    } else if let Some(result) = futures.inner.next().await {
+                    } else if let Some(result) = futures.next().await {
                         results.push_back(result);
                         State::Execution(self_)
                     } else {
@@ -443,7 +439,7 @@ where
         }
     }
 
-    async fn ingest_execution_result(
+    async fn ingest_execution_result<'exec>(
         mut self,
         ExecutionPlanResult {
             plan_id,
@@ -453,7 +449,10 @@ where
     ) -> (
         Self,
         Vec<BoxFuture<'exec, ExecutionPlanResult<<R::Hooks as Hooks>::OnSubgraphResponseOutput>>>,
-    ) {
+    )
+    where
+        'ctx: 'exec,
+    {
         let mut next_futures = Vec::new();
 
         // Retrieving the first edge (response key) appearing in the query to provide a better
@@ -546,10 +545,13 @@ where
         (first_edge, Some(fields))
     }
 
-    fn create_plan_execution_future(
+    fn create_plan_execution_future<'exec>(
         &mut self,
         plan_id: ExecutionPlanId,
-    ) -> Option<BoxFuture<'exec, ExecutionPlanResult<<R::Hooks as Hooks>::OnSubgraphResponseOutput>>> {
+    ) -> Option<BoxFuture<'exec, ExecutionPlanResult<<R::Hooks as Hooks>::OnSubgraphResponseOutput>>>
+    where
+        'ctx: 'exec,
+    {
         tracing::trace!(%plan_id, "Starting plan");
         let root_response_object_set = Arc::new(self.state.get_input(&self.response, plan_id));
 
@@ -591,37 +593,6 @@ where
 
         let span = span.exit();
         Some(make_send_on_wasm(fut.instrument(span)).boxed())
-    }
-}
-
-struct ExecutionPlanFutureSet<'exec, OnSubgraphResponseHookOutput> {
-    inner: FuturesUnordered<BoxFuture<'exec, ExecutionPlanResult<OnSubgraphResponseHookOutput>>>,
-}
-
-impl<'a, O> Default for ExecutionPlanFutureSet<'a, O> {
-    fn default() -> Self {
-        Self {
-            inner: FuturesUnordered::new(),
-        }
-    }
-}
-
-impl<'exec, OnSubgraphResponseHookOutput> ExecutionPlanFutureSet<'exec, OnSubgraphResponseHookOutput>
-where
-    OnSubgraphResponseHookOutput: Send + 'static,
-{
-    fn new() -> Self {
-        Self {
-            inner: FuturesUnordered::new(),
-        }
-    }
-
-    fn push_fut(&mut self, fut: BoxFuture<'exec, ExecutionPlanResult<OnSubgraphResponseHookOutput>>) {
-        self.inner.push(fut);
-    }
-
-    fn push_result(&mut self, result: ExecutionPlanResult<OnSubgraphResponseHookOutput>) {
-        self.inner.push(Box::pin(async move { result }));
     }
 }
 
