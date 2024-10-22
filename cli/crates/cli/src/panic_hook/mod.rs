@@ -44,7 +44,7 @@ macro_rules! panic_hook {
         #[cfg(not(debug_assertions))]
         match ::std::env::var("RUST_BACKTRACE") {
             Err(_) => {
-                panic::set_hook(Box::new(move |info: &PanicInfo<'_>| {
+                std::panic::set_hook(Box::new(move |info: &std::panic::PanicHookInfo<'_>| {
                     let file_path = handle_dump(&meta, info);
                     print_msg(file_path, &meta);
                     process::exit(1); //
