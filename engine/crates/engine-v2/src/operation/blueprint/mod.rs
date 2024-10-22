@@ -49,7 +49,7 @@ where
                 shapes: Default::default(),
                 field_to_shape_ids: Default::default(),
                 logical_plan_to_blueprint: Default::default(),
-                selection_set_to_requires_typename: BitSet::init_with(false, operation.selection_sets.len()),
+                selection_set_to_requires_typename: BitSet::with_capacity(operation.selection_sets.len()),
                 response_modifier_impacted_field_to_response_object_set: Vec::new(),
                 response_object_sets_to_type: Vec::new(),
             },

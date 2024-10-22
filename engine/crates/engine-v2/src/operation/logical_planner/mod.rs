@@ -94,7 +94,7 @@ impl<'a> LogicalPlanner<'a> {
             schema,
             field_to_logical_plan_id: vec![None; operation.fields.len()],
             field_to_solved_requirement: vec![None; operation.fields.len()],
-            selection_set_to_objects_must_be_tracked: BitSet::init_with(false, operation.selection_sets.len()),
+            selection_set_to_objects_must_be_tracked: BitSet::with_capacity(operation.selection_sets.len()),
             operation,
             logical_plans: Vec::new(),
             solved_requirements: Vec::new(),
