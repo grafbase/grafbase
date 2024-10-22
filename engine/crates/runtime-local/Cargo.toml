@@ -43,6 +43,9 @@ redis = { version = "0.25.3", features = ["tokio-rustls-comp", "connection-manag
 reqwest = { workspace = true, features = [
   "json",
   "rustls-tls",
+  "gzip",
+  "zstd",
+  "deflate"
 ] }
 
 wasi-component-loader = { version = "0.80.0", path = "../wasi-component-loader", optional = true }

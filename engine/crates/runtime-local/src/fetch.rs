@@ -1,5 +1,4 @@
 use std::future::Future;
-use std::time::Duration;
 
 use bytes::Bytes;
 use futures_util::Stream;
@@ -19,7 +18,9 @@ impl Default for NativeFetcher {
     fn default() -> Self {
         Self {
             client: reqwest::Client::builder()
-                .tcp_keepalive(Some(Duration::from_secs(60)))
+                .gzip(true)
+                .zstd(true)
+                .deflate(true)
                 .build()
                 .unwrap(),
         }
@@ -33,14 +34,7 @@ impl Fetcher for NativeFetcher {
     ) -> (FetchResult<http::Response<OwnedOrSharedBytes>>, Option<ResponseInfo>) {
         let mut info = ResponseInfo::builder();
 
-        let mut request = into_reqwest(request);
-        request
-            .headers_mut()
-            .insert(http::header::CONNECTION, http::HeaderValue::from_static("Keep-Alive"));
-        request.headers_mut().insert(
-            http::HeaderName::from_static("keep-alive"),
-            http::HeaderValue::from_static("timeout=5, max=1000"),
-        );
+        let request = into_reqwest(request);
         let result = self.client.execute(request).await.map_err(|e| {
             if e.is_timeout() {
                 FetchError::Timeout
