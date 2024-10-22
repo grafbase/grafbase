@@ -26,6 +26,7 @@ pub mod latest {
 /// It's serialised and stored as JSON so we need to maintain backwards compatability
 /// when making changes (or introduce a new version).
 #[derive(serde::Serialize, serde::Deserialize)]
+#[allow(clippy::large_enum_variant)] // TODO: versioning will go away when we CF workers
 pub enum VersionedConfig {
     /// The initial version of our configuration only contained the FederatedGraph.
     V1(FederatedGraphV1),
