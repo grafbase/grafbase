@@ -16,6 +16,8 @@ pub struct HooksWasiConfig {
     pub stderr: bool,
     /// A list of directories that are preopened for the WASI component.
     pub preopened_directories: Vec<PreopenedDirectory>,
+    /// The maximum number of concurrent instances of the WASI component. Defaults to four times the number of CPUs.
+    pub max_pool_size: Option<usize>,
 }
 
 /// Configuration for a directory that is preopened for the WASI component.

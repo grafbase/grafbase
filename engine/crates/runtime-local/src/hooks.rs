@@ -194,13 +194,18 @@ impl HookStatus {
 }
 
 impl HooksWasi {
-    pub fn new(loader: Option<ComponentLoader>, meter: &Meter, sender: ChannelLogSender) -> Self {
+    pub fn new(
+        loader: Option<ComponentLoader>,
+        max_pool_size: Option<usize>,
+        meter: &Meter,
+        sender: ChannelLogSender,
+    ) -> Self {
         match loader.map(Arc::new) {
             Some(loader) => Self(Some(Arc::new(HooksWasiInner {
-                gateway: Pool::new(&loader),
-                authorization: Pool::new(&loader),
-                subgraph: Pool::new(&loader),
-                responses: Pool::new(&loader),
+                gateway: Pool::new(&loader, max_pool_size),
+                authorization: Pool::new(&loader, max_pool_size),
+                subgraph: Pool::new(&loader, max_pool_size),
+                responses: Pool::new(&loader, max_pool_size),
                 hook_latencies: meter.u64_histogram("grafbase.hook.duration").init(),
                 sender,
             }))),
