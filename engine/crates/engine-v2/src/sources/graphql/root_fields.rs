@@ -102,13 +102,23 @@ impl GraphqlResolver {
                 if let Some(bytes) = cache_entry {
                     ctx.record_cache_hit();
 
-                    let response = subgraph_response.as_mut();
+                    let static_ctx = ctx.into_static();
+                    let subgraph_response = tokio::task::spawn_blocking(move || {
+                        let ctx = &ExecutionContext::from_static(&static_ctx);
+                        let response = subgraph_response.as_mut();
 
-                    GraphqlResponseSeed::new(
-                        response.next_seed(ctx).ok_or("No object to update")?,
-                        RootGraphqlErrors::new(ctx, response),
-                    )
-                    .deserialize(&mut serde_json::Deserializer::from_slice(&bytes))?;
+                        GraphqlResponseSeed::new(
+                            response.next_seed(ctx).ok_or("No object to update")?,
+                            RootGraphqlErrors::new(ctx, response),
+                        )
+                        .deserialize(&mut serde_json::Deserializer::from_slice(&bytes))?;
+                        ExecutionResult::Ok(subgraph_response)
+                    })
+                    .await
+                    .map_err(|err| {
+                        tracing::error!("Join error: {err:?}");
+                        "Join error"
+                    })??;
 
                     return Ok(subgraph_response);
                 } else {
@@ -167,9 +177,9 @@ where
             cache_key,
         } = self;
 
-        let parts = ctx.into_static_parts();
+        let static_ctx = ctx.into_static();
         let (status, subgraph_response, http_response) = tokio::task::spawn_blocking(move || {
-            let ctx = ExecutionContext::from_static_parts(&parts);
+            let ctx = ExecutionContext::from_static(&static_ctx);
             let response = subgraph_response.as_mut();
             let status = GraphqlResponseSeed::new(
                 response.next_seed(&ctx).ok_or("No object to update")?,
@@ -179,7 +189,10 @@ where
             ExecutionResult::Ok((status, subgraph_response, http_response))
         })
         .await
-        .unwrap()?;
+        .map_err(|err| {
+            tracing::error!("Join error: {err:?}");
+            "Join error"
+        })??;
 
         if let Some(cache_key) = cache_key {
             let cache_ttl = calculate_cache_ttl(status, http_response.headers(), cache_ttl);

@@ -90,7 +90,7 @@ pub(crate) struct StaticContext<R: Runtime> {
 impl<R: Runtime> std::marker::Copy for ExecutionContext<'_, R> {}
 
 impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
-    pub fn into_static_parts(self) -> StaticContext<R> {
+    pub fn into_static(self) -> StaticContext<R> {
         StaticContext {
             engine: Arc::clone(self.engine),
             operation: Arc::clone(self.operation),
@@ -99,7 +99,7 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
         }
     }
 
-    pub fn from_static_parts(parts: &'ctx StaticContext<R>) -> Self {
+    pub fn from_static(parts: &'ctx StaticContext<R>) -> Self {
         let StaticContext {
             engine,
             operation,

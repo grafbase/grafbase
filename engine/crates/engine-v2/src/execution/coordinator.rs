@@ -1,8 +1,8 @@
-use std::{collections::VecDeque, pin::Pin, sync::Arc};
+use std::{collections::VecDeque, sync::Arc};
 
 use async_runtime::make_send_on_wasm;
 use engine_parser::types::OperationType;
-use futures::{stream::FuturesOrdered, Future, FutureExt, SinkExt, Stream};
+use futures::{stream::FuturesOrdered, Future, FutureExt, Stream};
 use futures_util::{
     future::BoxFuture,
     stream::{BoxStream, FuturesUnordered},
@@ -372,6 +372,11 @@ enum State<F, S> {
     Execution(S),
 }
 
+enum TaskResult<U, V> {
+    Ingestion(U),
+    Execution(V),
+}
+
 impl<'ctx, R: Runtime> OperationExecution<'ctx, R> {
     /// Runs a single execution to completion, returning its response
     async fn run(
@@ -391,23 +396,22 @@ impl<'ctx, R: Runtime> OperationExecution<'ctx, R> {
         let self_ = loop {
             state = match state {
                 State::Ingestion(mut ingestion_fut) => {
-                    let mut fut = unsafe { Pin::new_unchecked(&mut ingestion_fut) };
-                    let next_task = futures_util::select_biased! {
-                        ingestion_result = fut => Ok(ingestion_result),
-                        execution_result = futures.next() => Err(execution_result),
+                    let task_result = futures_util::select_biased! {
+                        ingestion_result = ingestion_fut => TaskResult::Ingestion(ingestion_result),
+                        execution_result = futures.next() => TaskResult::Execution(execution_result),
                     };
-                    match next_task {
-                        Ok((self_, next_futures)) => {
+                    match task_result {
+                        TaskResult::Ingestion((self_, next_futures)) => {
                             for fut in next_futures {
                                 futures.push(fut);
                             }
                             State::Execution(self_)
                         }
-                        Err(Some(result)) => {
+                        TaskResult::Execution(Some(result)) => {
                             results.push_back(result);
                             State::Ingestion(ingestion_fut)
                         }
-                        Err(None) => {
+                        TaskResult::Execution(None) => {
                             let (self_, next_futures) = ingestion_fut.await;
                             for fut in next_futures {
                                 futures.push(fut)
@@ -418,7 +422,7 @@ impl<'ctx, R: Runtime> OperationExecution<'ctx, R> {
                 }
                 State::Execution(self_) => {
                     if let Some(result) = results.pop_front() {
-                        State::Ingestion(self_.ingest_execution_result(result).fuse())
+                        State::Ingestion(Box::pin(self_.ingest_execution_result(result).fuse()))
                     } else if let Some(result) = futures.next().await {
                         results.push_back(result);
                         State::Execution(self_)

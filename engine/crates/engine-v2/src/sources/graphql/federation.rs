@@ -280,9 +280,9 @@ where
             cache_ttl,
         } = self;
 
-        let parts = ctx.into_static_parts();
+        let parts = ctx.into_static();
         let (status, subgraph_response, cache_entries, http_response) = tokio::task::spawn_blocking(move || {
-            let ctx = ExecutionContext::from_static_parts(&parts);
+            let ctx = ExecutionContext::from_static(&parts);
             let response = subgraph_response.as_mut();
             let status = GraphqlResponseSeed::new(
                 EntitiesDataSeed {
@@ -296,7 +296,10 @@ where
             ExecutionResult::Ok((status, subgraph_response, cache_entries, http_response))
         })
         .await
-        .unwrap()?;
+        .map_err(|err| {
+            tracing::error!("Join error: {err:?}");
+            "Join error"
+        })??;
 
         let cache_ttl = calculate_cache_ttl(status, http_response.headers(), cache_ttl);
 
