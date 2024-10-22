@@ -99,7 +99,8 @@ pub async fn serve(
         .map_err(|e| crate::Error::InternalError(e.to_string()))?
         .flatten();
 
-    let hooks = HooksWasi::new(loader, &meter, access_log_sender.clone());
+    let max_pool_size = config.hooks.as_ref().and_then(|config| config.max_pool_size);
+    let hooks = HooksWasi::new(loader, max_pool_size, &meter, access_log_sender.clone());
 
     fetch_method
         .start(

@@ -12,6 +12,7 @@ use wasmtime_wasi::{DirPerms, FilePerms, WasiCtx, WasiCtxBuilder};
 /// Returns a `WasiCtx` configured according to the specified settings in the `config`.
 pub(crate) fn build_wasi_context(
     Config {
+        max_pool_size: _,
         location: _,
         networking,
         environment_variables,

@@ -8,13 +8,16 @@ use wasi_component_loader::{ComponentLoader, RecycleableComponentInstance};
 pub(super) struct Pool<T: RecycleableComponentInstance>(managed::Pool<ComponentMananger<T>>);
 
 impl<T: RecycleableComponentInstance> Pool<T> {
-    pub(super) fn new(loader: &Arc<ComponentLoader>) -> Option<Self> {
+    pub(super) fn new(loader: &Arc<ComponentLoader>, size: Option<usize>) -> Option<Self> {
         if loader.implements_interface(T::interface_name()) {
             let mgr = ComponentMananger::<T>::new(loader.clone());
+            let mut builder = managed::Pool::builder(mgr);
 
-            let pool = managed::Pool::builder(mgr)
-                .build()
-                .expect("only fails if not in a runtime");
+            if let Some(size) = size {
+                builder = builder.max_size(size);
+            }
+
+            let pool = builder.build().expect("only fails if not in a runtime");
 
             Some(Pool(pool))
         } else {
