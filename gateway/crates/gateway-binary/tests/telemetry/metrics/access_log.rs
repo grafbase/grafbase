@@ -93,7 +93,7 @@ fn measures_pool_size() {
                 FROM otel_metrics_sum
                 WHERE ServiceName = ?
                     AND ScopeName = 'grafbase'
-                    AND MetricName = 'grafbase.hook.pool.size'
+                    AND MetricName = 'grafbase.hook.pool.instances.busy'
                 "#,
             )
             .bind(&service_name)
@@ -103,7 +103,7 @@ fn measures_pool_size() {
 
         insta::assert_json_snapshot!(row, @r#"
         {
-          "Value": 1.0,
+          "Value": 0.0,
           "Attributes": {
             "grafbase.hook.interface": "component:grafbase/responses"
           }

@@ -30,7 +30,7 @@ impl<T: RecycleableComponentInstance> Pool<T> {
 
 pub(super) struct ComponentMananger<T> {
     component_loader: Arc<ComponentLoader>,
-    pool_size_counter: UpDownCounter<i64>,
+    pool_busy_counter: UpDownCounter<i64>,
     counter_attributes: Vec<KeyValue>,
     _phantom: std::marker::PhantomData<fn() -> T>,
 }
@@ -38,12 +38,12 @@ pub(super) struct ComponentMananger<T> {
 impl<T: RecycleableComponentInstance> ComponentMananger<T> {
     pub(super) fn new(component_loader: Arc<ComponentLoader>) -> Self {
         let meter = grafbase_telemetry::metrics::meter_from_global_provider();
-        let pool_size_counter = meter.i64_up_down_counter("grafbase.hook.pool.size").init();
+        let pool_busy_counter = meter.i64_up_down_counter("grafbase.hook.pool.instances.busy").init();
         let counter_attributes = vec![KeyValue::new("grafbase.hook.interface", T::interface_name())];
 
         Self {
             component_loader,
-            pool_size_counter,
+            pool_busy_counter,
             counter_attributes,
             _phantom: std::marker::PhantomData,
         }
@@ -55,15 +55,13 @@ impl<T: RecycleableComponentInstance> managed::Manager for ComponentMananger<T> 
     type Error = wasi_component_loader::Error;
 
     async fn create(&self) -> Result<Self::Type, Self::Error> {
-        self.pool_size_counter.add(1, &self.counter_attributes);
+        self.pool_busy_counter.add(1, &self.counter_attributes);
         T::new(&self.component_loader).await
     }
 
     async fn recycle(&self, instance: &mut Self::Type, _: &managed::Metrics) -> managed::RecycleResult<Self::Error> {
-        if let Err(e) = instance.recycle() {
-            self.pool_size_counter.add(-1, &self.counter_attributes);
-            return Err(e.into());
-        }
+        self.pool_busy_counter.add(-1, &self.counter_attributes);
+        instance.recycle()?;
 
         Ok(())
     }
