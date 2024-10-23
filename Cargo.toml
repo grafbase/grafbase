@@ -1,34 +1,34 @@
 [workspace]
 resolver = "2"
 members = [
-  "gateway/crates/*",
-  "cli/crates/*",
-  "engine/crates/*",
-  "engine/crates/gateway-v2/auth",
-  "engine/crates/gateway-v2/auth-config",
-  "engine/crates/engine-v2/config",
-  "engine/crates/engine-v2/axum",
-  "engine/crates/engine-v2/codegen",
-  "engine/crates/engine-v2/walker",
-  "engine/crates/engine-v2/schema",
-  "engine/crates/engine-v2/query-planning",
-  "engine/crates/engine-v2/id-derives",
-  "engine/crates/engine-v2/id-newtypes",
-  "engine/crates/engine/derive",
-  "engine/crates/engine/meta-type-name",
-  "engine/crates/engine/parser",
-  "engine/crates/engine/query-path",
-  "engine/crates/engine/registry-for-cache",
-  "engine/crates/engine/registry-upgrade",
-  "engine/crates/engine/registry-v2",
-  "engine/crates/engine/registry-v2-generator",
-  "engine/crates/engine/response",
-  "engine/crates/engine/scalars",
-  "engine/crates/engine/value",
-  "graph-ref",
-  "graphql-lint",
-  "gqlint",
-  "workspace-hack",
+    "gateway/crates/*",
+    "cli/crates/*",
+    "engine/crates/*",
+    "engine/crates/gateway-v2/auth",
+    "engine/crates/gateway-v2/auth-config",
+    "engine/crates/engine-v2/config",
+    "engine/crates/engine-v2/axum",
+    "engine/crates/engine-v2/codegen",
+    "engine/crates/engine-v2/walker",
+    "engine/crates/engine-v2/schema",
+    "engine/crates/engine-v2/query-planning",
+    "engine/crates/engine-v2/id-derives",
+    "engine/crates/engine-v2/id-newtypes",
+    "engine/crates/engine/derive",
+    "engine/crates/engine/meta-type-name",
+    "engine/crates/engine/parser",
+    "engine/crates/engine/query-path",
+    "engine/crates/engine/registry-for-cache",
+    "engine/crates/engine/registry-upgrade",
+    "engine/crates/engine/registry-v2",
+    "engine/crates/engine/registry-v2-generator",
+    "engine/crates/engine/response",
+    "engine/crates/engine/scalars",
+    "engine/crates/engine/value",
+    "graph-ref",
+    "graphql-lint",
+    "gqlint",
+    "workspace-hack",
 ]
 exclude = [
     "engine/crates/gateway-v2",
@@ -51,7 +51,7 @@ opentelemetry-appender-tracing = { git = "https://github.com/grafbase/openteleme
 # FIXME: Uncomment when we upgrade opentelemetry to 0.23.
 # opentelemetry-aws = { git = "https://github.com/open-telemetry/opentelemetry-rust-contrib", rev = "086961e18437743c5ea43c9474cc1a7b13a49c6b" } # main
 ory-client = { git = "https://github.com/ory/client-rust", rev = "v1.14.3" }
-reqwest = { git = "https://github.com/grafbase/reqwest", rev = "874a6b3c522de296629d4542943934fa20d7ab4d" }                 # 0.12.5-with-patches-wasm-timeout
+reqwest = { git = "https://github.com/grafbase/reqwest", rev = "bcdc38deb99048eaee37313857e19ff3df7a2870" }                 # 0.12.8-with-patches-wasm-timeout
 rudderanalytics = { git = "https://github.com/grafbase/rudder-sdk-rust", rev = "3e994eb4dcc9c580be311ef9eab6e96dd264293b" } # async
 serde_with = { git = "https://github.com/grafbase/serde_with", rev = "06ad277a0e0175c2364d3c065e303a6c8a775c8a" }           # minify-field-names
 tokio-postgres = { git = "https://github.com/grafbase/rust-postgres/", branch = "grafbase-rebased" }
@@ -124,7 +124,7 @@ petgraph = "0.6"
 postcard = { version = "1", features = ["use-std"] }
 rand = "0.8"
 regex = "1.10.4"
-reqwest = { version = "0.12.4", default-features = false, features = ["http2"] }
+reqwest = { version = "0.12.8", default-features = false, features = ["http2"] }
 rmp-serde = "1.3.0"
 rstest = "0.22"
 rustls = { version = "0.23.5", default-features = false }
