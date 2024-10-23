@@ -80,40 +80,9 @@ impl<R: Runtime> Clone for ExecutionContext<'_, R> {
     }
 }
 
-pub(crate) struct StaticContext<R: Runtime> {
-    pub engine: Arc<Engine<R>>,
-    pub operation: Arc<ExecutableOperation>,
-    pub request_context: Arc<RequestContext>,
-    pub hooks_context: Arc<HooksContext<R>>,
-}
-
 impl<R: Runtime> std::marker::Copy for ExecutionContext<'_, R> {}
 
 impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
-    pub fn into_static(self) -> StaticContext<R> {
-        StaticContext {
-            engine: Arc::clone(self.engine),
-            operation: Arc::clone(self.operation),
-            request_context: Arc::clone(self.request_context),
-            hooks_context: Arc::clone(self.hooks_context),
-        }
-    }
-
-    pub fn from_static(parts: &'ctx StaticContext<R>) -> Self {
-        let StaticContext {
-            engine,
-            operation,
-            request_context,
-            hooks_context,
-        } = parts;
-        Self {
-            engine,
-            operation,
-            request_context,
-            hooks_context,
-        }
-    }
-
     #[allow(unused)]
     pub fn access_token(&self) -> &'ctx AccessToken {
         &self.request_context.access_token
