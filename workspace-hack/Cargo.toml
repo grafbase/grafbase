@@ -138,7 +138,7 @@ unicode-bidi = { version = "0.3" }
 unicode-normalization = { version = "0.1" }
 url = { version = "2", features = ["serde"] }
 uuid = { version = "1", features = ["serde", "v4"] }
-wasmparser = { version = "0.217", default-features = false, features = ["features", "serde", "std", "validate"] }
+wasmparser = { version = "0.218", default-features = false, features = ["features", "serde", "std", "validate"] }
 web-sys = { version = "0.3", default-features = false, features = ["AbortController", "AbortSignal", "BinaryType", "Cache", "CacheQueryOptions", "CacheStorage", "CloseEvent", "ErrorEvent", "File", "FormData", "Headers", "MessageEvent", "ProgressEvent", "QueuingStrategy", "ReadableByteStreamController", "ReadableStream", "ReadableStreamByobReader", "ReadableStreamByobRequest", "ReadableStreamDefaultController", "ReadableStreamDefaultReader", "ReadableStreamGetReaderOptions", "ReadableStreamReadResult", "ReadableStreamReaderMode", "ReadableStreamType", "ReadableWritablePair", "Request", "RequestInit", "RequestRedirect", "Response", "ResponseInit", "StreamPipeOptions", "TransformStream", "TransformStreamDefaultController", "Transformer", "UnderlyingSink", "UnderlyingSource", "WebSocket", "WorkerGlobalScope", "WritableStream", "WritableStreamDefaultController", "WritableStreamDefaultWriter", "console"] }
 zerocopy = { version = "0.7", features = ["derive", "simd"] }
 zeroize = { version = "1", features = ["zeroize_derive"] }
@@ -266,13 +266,14 @@ unicode-bidi = { version = "0.3" }
 unicode-normalization = { version = "0.1" }
 url = { version = "2", features = ["serde"] }
 uuid = { version = "1", features = ["serde", "v4"] }
-wasmparser = { version = "0.217", default-features = false, features = ["features", "serde", "std", "validate"] }
+wasmparser = { version = "0.218", default-features = false, features = ["features", "serde", "std", "validate"] }
 web-sys = { version = "0.3", default-features = false, features = ["AbortController", "AbortSignal", "BinaryType", "Cache", "CacheQueryOptions", "CacheStorage", "CloseEvent", "ErrorEvent", "File", "FormData", "Headers", "MessageEvent", "ProgressEvent", "QueuingStrategy", "ReadableByteStreamController", "ReadableStream", "ReadableStreamByobReader", "ReadableStreamByobRequest", "ReadableStreamDefaultController", "ReadableStreamDefaultReader", "ReadableStreamGetReaderOptions", "ReadableStreamReadResult", "ReadableStreamReaderMode", "ReadableStreamType", "ReadableWritablePair", "Request", "RequestInit", "RequestRedirect", "Response", "ResponseInit", "StreamPipeOptions", "TransformStream", "TransformStreamDefaultController", "Transformer", "UnderlyingSink", "UnderlyingSource", "WebSocket", "WorkerGlobalScope", "WritableStream", "WritableStreamDefaultController", "WritableStreamDefaultWriter", "console"] }
 zerocopy = { version = "0.7", features = ["derive", "simd"] }
 zeroize = { version = "1", features = ["zeroize_derive"] }
 
 [target.aarch64-apple-darwin.dependencies]
 deadpool = { version = "0.12", features = ["rt_tokio_1"] }
+gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
 hyper-rustls = { version = "0.27", default-features = false, features = ["http1", "http2", "ring", "tls12", "webpki-tokio"] }
 iana-time-zone = { version = "0.1", default-features = false, features = ["fallback"] }
 libc = { version = "0.2", features = ["extra_traits"] }
@@ -286,6 +287,7 @@ zeroize = { version = "1", default-features = false, features = ["derive"] }
 
 [target.aarch64-apple-darwin.build-dependencies]
 deadpool = { version = "0.12", features = ["rt_tokio_1"] }
+gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
 hyper-rustls = { version = "0.27", default-features = false, features = ["http1", "http2", "ring", "tls12", "webpki-tokio"] }
 iana-time-zone = { version = "0.1", default-features = false, features = ["fallback"] }
 libc = { version = "0.2", features = ["extra_traits"] }
@@ -299,6 +301,7 @@ zeroize = { version = "1", default-features = false, features = ["derive"] }
 
 [target.x86_64-apple-darwin.dependencies]
 deadpool = { version = "0.12", features = ["rt_tokio_1"] }
+gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
 hyper-rustls = { version = "0.27", default-features = false, features = ["http1", "http2", "ring", "tls12", "webpki-tokio"] }
 iana-time-zone = { version = "0.1", default-features = false, features = ["fallback"] }
 libc = { version = "0.2", features = ["extra_traits"] }
@@ -313,6 +316,7 @@ zeroize = { version = "1", default-features = false, features = ["derive"] }
 
 [target.x86_64-apple-darwin.build-dependencies]
 deadpool = { version = "0.12", features = ["rt_tokio_1"] }
+gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
 hyper-rustls = { version = "0.27", default-features = false, features = ["http1", "http2", "ring", "tls12", "webpki-tokio"] }
 iana-time-zone = { version = "0.1", default-features = false, features = ["fallback"] }
 libc = { version = "0.2", features = ["extra_traits"] }
@@ -332,8 +336,8 @@ spin = { version = "0.9" }
 tokio-postgres = { git = "https://github.com/grafbase/rust-postgres/", branch = "grafbase-rebased" }
 web-sys = { version = "0.3", default-features = false, features = ["Worker"] }
 winapi = { version = "0.3", default-features = false, features = ["cfg", "consoleapi", "errhandlingapi", "evntrace", "fileapi", "handleapi", "impl-default", "in6addr", "inaddr", "knownfolders", "minwinbase", "minwindef", "ntsecapi", "objbase", "processenv", "processthreadsapi", "profileapi", "shlobj", "std", "synchapi", "winbase", "windef", "winerror", "winioctl", "winnt", "winuser"] }
-windows-sys-73dcd821b1037cfd = { package = "windows-sys", version = "0.59", features = ["Win32_Security_Authentication_Identity", "Win32_Security_Credentials", "Win32_Security_Cryptography", "Win32_Storage_FileSystem", "Win32_System_Console", "Win32_System_Memory", "Win32_System_Pipes", "Win32_System_SystemInformation", "Win32_System_Threading"] }
-windows-sys-b21d60becc0929df = { package = "windows-sys", version = "0.52", features = ["Wdk_Foundation", "Wdk_Storage_FileSystem", "Wdk_System_IO", "Win32_Foundation", "Win32_NetworkManagement_IpHelper", "Win32_Networking_WinSock", "Win32_Security", "Win32_Storage_FileSystem", "Win32_System_Com", "Win32_System_Console", "Win32_System_Diagnostics_Debug", "Win32_System_IO", "Win32_System_Ioctl", "Win32_System_Kernel", "Win32_System_LibraryLoader", "Win32_System_Memory", "Win32_System_Performance", "Win32_System_Pipes", "Win32_System_SystemInformation", "Win32_System_SystemServices", "Win32_System_Threading", "Win32_System_WindowsProgramming", "Win32_UI_Input_KeyboardAndMouse", "Win32_UI_Shell"] }
+windows-sys-73dcd821b1037cfd = { package = "windows-sys", version = "0.59", features = ["Win32_Security_Authentication_Identity", "Win32_Security_Credentials", "Win32_Security_Cryptography", "Win32_Storage_FileSystem", "Win32_System_Console", "Win32_System_Diagnostics_Debug", "Win32_System_Kernel", "Win32_System_Memory", "Win32_System_Pipes", "Win32_System_SystemInformation", "Win32_System_Threading"] }
+windows-sys-b21d60becc0929df = { package = "windows-sys", version = "0.52", features = ["Wdk_Foundation", "Wdk_Storage_FileSystem", "Wdk_System_IO", "Win32_Foundation", "Win32_NetworkManagement_IpHelper", "Win32_Networking_WinSock", "Win32_Security", "Win32_Storage_FileSystem", "Win32_System_Com", "Win32_System_Console", "Win32_System_Diagnostics_Debug", "Win32_System_IO", "Win32_System_Ioctl", "Win32_System_Kernel", "Win32_System_LibraryLoader", "Win32_System_Performance", "Win32_System_Pipes", "Win32_System_SystemServices", "Win32_System_Threading", "Win32_System_WindowsProgramming", "Win32_UI_Input_KeyboardAndMouse", "Win32_UI_Shell"] }
 windows-sys-c8eced492e86ede7 = { package = "windows-sys", version = "0.48", features = ["Win32_Foundation", "Win32_Globalization", "Win32_Security", "Win32_Storage_FileSystem", "Win32_System_Com", "Win32_System_Console", "Win32_System_Diagnostics_Debug", "Win32_System_IO", "Win32_System_Registry", "Win32_System_Threading", "Win32_System_Time", "Win32_System_WindowsProgramming", "Win32_UI_Shell"] }
 zeroize = { version = "1", default-features = false, features = ["derive"] }
 
@@ -344,13 +348,14 @@ spin = { version = "0.9" }
 tokio-postgres = { git = "https://github.com/grafbase/rust-postgres/", branch = "grafbase-rebased" }
 web-sys = { version = "0.3", default-features = false, features = ["Worker"] }
 winapi = { version = "0.3", default-features = false, features = ["cfg", "consoleapi", "errhandlingapi", "evntrace", "fileapi", "handleapi", "impl-default", "in6addr", "inaddr", "knownfolders", "minwinbase", "minwindef", "ntsecapi", "objbase", "processenv", "processthreadsapi", "profileapi", "shlobj", "std", "synchapi", "winbase", "windef", "winerror", "winioctl", "winnt", "winuser"] }
-windows-sys-73dcd821b1037cfd = { package = "windows-sys", version = "0.59", features = ["Win32_Security_Authentication_Identity", "Win32_Security_Credentials", "Win32_Security_Cryptography", "Win32_Storage_FileSystem", "Win32_System_Console", "Win32_System_Memory", "Win32_System_Pipes", "Win32_System_SystemInformation", "Win32_System_Threading"] }
-windows-sys-b21d60becc0929df = { package = "windows-sys", version = "0.52", features = ["Wdk_Foundation", "Wdk_Storage_FileSystem", "Wdk_System_IO", "Win32_Foundation", "Win32_NetworkManagement_IpHelper", "Win32_Networking_WinSock", "Win32_Security", "Win32_Storage_FileSystem", "Win32_System_Com", "Win32_System_Console", "Win32_System_Diagnostics_Debug", "Win32_System_IO", "Win32_System_Ioctl", "Win32_System_Kernel", "Win32_System_LibraryLoader", "Win32_System_Memory", "Win32_System_Performance", "Win32_System_Pipes", "Win32_System_SystemInformation", "Win32_System_SystemServices", "Win32_System_Threading", "Win32_System_WindowsProgramming", "Win32_UI_Input_KeyboardAndMouse", "Win32_UI_Shell"] }
+windows-sys-73dcd821b1037cfd = { package = "windows-sys", version = "0.59", features = ["Win32_Security_Authentication_Identity", "Win32_Security_Credentials", "Win32_Security_Cryptography", "Win32_Storage_FileSystem", "Win32_System_Console", "Win32_System_Diagnostics_Debug", "Win32_System_Kernel", "Win32_System_Memory", "Win32_System_Pipes", "Win32_System_SystemInformation", "Win32_System_Threading"] }
+windows-sys-b21d60becc0929df = { package = "windows-sys", version = "0.52", features = ["Wdk_Foundation", "Wdk_Storage_FileSystem", "Wdk_System_IO", "Win32_Foundation", "Win32_NetworkManagement_IpHelper", "Win32_Networking_WinSock", "Win32_Security", "Win32_Storage_FileSystem", "Win32_System_Com", "Win32_System_Console", "Win32_System_Diagnostics_Debug", "Win32_System_IO", "Win32_System_Ioctl", "Win32_System_Kernel", "Win32_System_LibraryLoader", "Win32_System_Performance", "Win32_System_Pipes", "Win32_System_SystemServices", "Win32_System_Threading", "Win32_System_WindowsProgramming", "Win32_UI_Input_KeyboardAndMouse", "Win32_UI_Shell"] }
 windows-sys-c8eced492e86ede7 = { package = "windows-sys", version = "0.48", features = ["Win32_Foundation", "Win32_Globalization", "Win32_Security", "Win32_Storage_FileSystem", "Win32_System_Com", "Win32_System_Console", "Win32_System_Diagnostics_Debug", "Win32_System_IO", "Win32_System_Registry", "Win32_System_Threading", "Win32_System_Time", "Win32_System_WindowsProgramming", "Win32_UI_Shell"] }
 zeroize = { version = "1", default-features = false, features = ["derive"] }
 
 [target.x86_64-unknown-linux-musl.dependencies]
 deadpool = { version = "0.12", features = ["rt_tokio_1"] }
+gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
 hyper-rustls = { version = "0.27", default-features = false, features = ["http1", "http2", "ring", "tls12", "webpki-tokio"] }
 iana-time-zone = { version = "0.1", default-features = false, features = ["fallback"] }
 libc = { version = "0.2", features = ["extra_traits"] }
@@ -367,6 +372,7 @@ zeroize = { version = "1", default-features = false, features = ["derive"] }
 
 [target.x86_64-unknown-linux-musl.build-dependencies]
 deadpool = { version = "0.12", features = ["rt_tokio_1"] }
+gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
 hyper-rustls = { version = "0.27", default-features = false, features = ["http1", "http2", "ring", "tls12", "webpki-tokio"] }
 iana-time-zone = { version = "0.1", default-features = false, features = ["fallback"] }
 libc = { version = "0.2", features = ["extra_traits"] }
@@ -383,6 +389,7 @@ zeroize = { version = "1", default-features = false, features = ["derive"] }
 
 [target.aarch64-unknown-linux-musl.dependencies]
 deadpool = { version = "0.12", features = ["rt_tokio_1"] }
+gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
 hyper-rustls = { version = "0.27", default-features = false, features = ["http1", "http2", "ring", "tls12", "webpki-tokio"] }
 iana-time-zone = { version = "0.1", default-features = false, features = ["fallback"] }
 libc = { version = "0.2", features = ["extra_traits"] }
@@ -398,6 +405,7 @@ zeroize = { version = "1", default-features = false, features = ["derive"] }
 
 [target.aarch64-unknown-linux-musl.build-dependencies]
 deadpool = { version = "0.12", features = ["rt_tokio_1"] }
+gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
 hyper-rustls = { version = "0.27", default-features = false, features = ["http1", "http2", "ring", "tls12", "webpki-tokio"] }
 iana-time-zone = { version = "0.1", default-features = false, features = ["fallback"] }
 libc = { version = "0.2", features = ["extra_traits"] }
@@ -413,7 +421,7 @@ zeroize = { version = "1", default-features = false, features = ["derive"] }
 
 [target.wasm32-unknown-unknown.dependencies]
 getrandom = { version = "0.2", default-features = false, features = ["js"] }
-itertools = { version = "0.10" }
+gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
 libc = { version = "0.2", features = ["extra_traits"] }
 miniz_oxide = { version = "0.8", default-features = false, features = ["with-alloc"] }
 nom = { version = "7" }
@@ -423,7 +431,7 @@ web-sys = { version = "0.3", default-features = false, features = ["BlobProperty
 
 [target.wasm32-unknown-unknown.build-dependencies]
 getrandom = { version = "0.2", default-features = false, features = ["js"] }
-itertools = { version = "0.10" }
+gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
 libc = { version = "0.2", features = ["extra_traits"] }
 miniz_oxide = { version = "0.8", default-features = false, features = ["with-alloc"] }
 nom = { version = "7" }
