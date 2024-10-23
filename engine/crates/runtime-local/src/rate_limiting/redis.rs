@@ -1,13 +1,14 @@
 use std::time::{Duration, SystemTime};
 
 use futures_util::future::BoxFuture;
-use gateway_config::Config;
+use gateway_config::{Config, GraphRateLimit};
 use grafbase_telemetry::otel::opentelemetry::{
     metrics::{Histogram, Meter},
     KeyValue,
 };
 use runtime::rate_limiting::{Error, RateLimitKey, RateLimiter, RateLimiterContext};
 use tokio::sync::watch;
+use tracing::{field::Empty, Instrument};
 
 use crate::redis::Pool;
 
@@ -93,29 +94,7 @@ impl RedisRateLimiter {
         self.latencies.record(duration.as_millis() as u64, &attributes);
     }
 
-    async fn limit_inner(&self, context: &dyn RateLimiterContext) -> Result<(), Error> {
-        let Some(key) = context.key() else { return Ok(()) };
-
-        let config = match key {
-            RateLimitKey::Global => self
-                .config_watcher
-                .borrow()
-                .gateway
-                .rate_limit
-                .as_ref()
-                .and_then(|rt| rt.global),
-            RateLimitKey::Subgraph(name) => self
-                .config_watcher
-                .borrow()
-                .subgraphs
-                .get(name.as_ref())
-                .and_then(|sb| sb.rate_limit),
-        };
-
-        let Some(config) = config else {
-            return Ok(());
-        };
-
+    async fn limit_inner(&self, key: &RateLimitKey<'_>, config: GraphRateLimit) -> Result<(), Error> {
         let now = SystemTime::now();
 
         let current_ts = match now.duration_since(SystemTime::UNIX_EPOCH) {
@@ -217,6 +196,36 @@ async fn incr_counter(pool: Pool, current_bucket: String, expire: Duration) -> R
 
 impl runtime::rate_limiting::RateLimiterInner for RedisRateLimiter {
     fn limit<'a>(&'a self, context: &'a dyn RateLimiterContext) -> BoxFuture<'a, Result<(), Error>> {
-        Box::pin(self.limit_inner(context))
+        let Some(key) = context.key() else {
+            return Box::pin(async { Ok(()) });
+        };
+
+        let config = match key {
+            RateLimitKey::Global => self
+                .config_watcher
+                .borrow()
+                .gateway
+                .rate_limit
+                .as_ref()
+                .and_then(|rt| rt.global),
+            RateLimitKey::Subgraph(name) => self
+                .config_watcher
+                .borrow()
+                .subgraphs
+                .get(name.as_ref())
+                .and_then(|sb| sb.rate_limit),
+        };
+
+        let Some(config) = config else {
+            return Box::pin(async { Ok(()) });
+        };
+
+        let span = tracing::info_span!("rate limit", "subgraph.name" = Empty);
+
+        if let RateLimitKey::Subgraph(subgraph) = key {
+            span.record("subgraph.name", subgraph.as_ref());
+        }
+
+        Box::pin(self.limit_inner(key, config).instrument(span))
     }
 }

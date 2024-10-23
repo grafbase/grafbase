@@ -5,7 +5,7 @@ use futures_util::{stream::BoxStream, Stream, StreamExt, TryFutureExt};
 
 use crate::{bytes::OwnedOrSharedBytes, hooks::ResponseInfo};
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Clone, Debug, thiserror::Error)]
 pub enum FetchError {
     #[error("{0}")]
     AnyError(String),
