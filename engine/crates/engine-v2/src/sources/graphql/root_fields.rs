@@ -15,7 +15,7 @@ use super::{
     SubgraphContext,
 };
 use crate::{
-    execution::PlanningResult,
+    execution::{ExecutionError, PlanningResult},
     operation::{OperationType, PlanWalker},
     response::SubgraphResponse,
     sources::{graphql::request::SubgraphGraphqlRequest, ExecutionContext, ExecutionResult, Resolver},
@@ -102,13 +102,23 @@ impl GraphqlResolver {
                 if let Some(bytes) = cache_entry {
                     ctx.record_cache_hit();
 
-                    let response = subgraph_response.as_mut();
+                    let static_ctx = ctx.into_static();
+                    let subgraph_response = tokio::task::spawn_blocking(move || {
+                        let ctx = &ExecutionContext::from_static(&static_ctx);
+                        let response = subgraph_response.as_mut();
 
-                    GraphqlResponseSeed::new(
-                        response.next_seed(ctx).ok_or("No object to update")?,
-                        RootGraphqlErrors::new(ctx, response),
-                    )
-                    .deserialize(&mut serde_json::Deserializer::from_slice(&bytes))?;
+                        GraphqlResponseSeed::new(
+                            response.next_seed(ctx).ok_or("No object to update")?,
+                            RootGraphqlErrors::new(ctx, response),
+                        )
+                        .deserialize(&mut serde_json::Deserializer::from_slice(&bytes))?;
+                        ExecutionResult::Ok(subgraph_response)
+                    })
+                    .await
+                    .map_err(|err| {
+                        tracing::error!("Join error: {err:?}");
+                        "Join error"
+                    })??;
 
                     return Ok(subgraph_response);
                 } else {
@@ -157,26 +167,40 @@ where
     R: Runtime,
 {
     async fn ingest(
-        mut self,
+        self,
         http_response: http::Response<OwnedOrSharedBytes>,
-    ) -> Result<(GraphqlResponseStatus, SubgraphResponse), crate::execution::ExecutionError> {
-        let status = {
-            let response = self.subgraph_response.as_mut();
-            GraphqlResponseSeed::new(
-                response.next_seed(&self.ctx).ok_or("No object to update")?,
-                RootGraphqlErrors::new(&self.ctx, response),
-            )
-            .deserialize(&mut serde_json::Deserializer::from_slice(http_response.body()))?
-        };
+    ) -> Result<(GraphqlResponseStatus, SubgraphResponse), ExecutionError> {
+        let Self {
+            ctx,
+            mut subgraph_response,
+            cache_ttl,
+            cache_key,
+        } = self;
 
-        if let Some(cache_key) = self.cache_key {
-            let cache_ttl = calculate_cache_ttl(status, http_response.headers(), self.cache_ttl);
+        let static_ctx = ctx.into_static();
+        let (status, subgraph_response, http_response) = tokio::task::spawn_blocking(move || {
+            let ctx = ExecutionContext::from_static(&static_ctx);
+            let response = subgraph_response.as_mut();
+            let status = GraphqlResponseSeed::new(
+                response.next_seed(&ctx).ok_or("No object to update")?,
+                RootGraphqlErrors::new(&ctx, response),
+            )
+            .deserialize(&mut serde_json::Deserializer::from_slice(http_response.body()))?;
+            ExecutionResult::Ok((status, subgraph_response, http_response))
+        })
+        .await
+        .map_err(|err| {
+            tracing::error!("Join error: {err:?}");
+            "Join error"
+        })??;
+
+        if let Some(cache_key) = cache_key {
+            let cache_ttl = calculate_cache_ttl(status, http_response.headers(), cache_ttl);
 
             if let Some(cache_ttl) = cache_ttl {
                 // We could probably put this call into the background at some point, but for
                 // simplicities sake I am not going to do that just now.
-                self.ctx
-                    .engine
+                ctx.engine
                     .runtime
                     .entity_cache()
                     .put(&cache_key, Cow::Borrowed(http_response.body().as_ref()), cache_ttl)
@@ -186,6 +210,6 @@ where
             }
         }
 
-        Ok((status, self.subgraph_response))
+        Ok((status, subgraph_response))
     }
 }

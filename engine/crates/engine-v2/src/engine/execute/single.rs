@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use engine_parser::types::OperationType;
 use grafbase_telemetry::{
     metrics::{GraphqlErrorAttributes, GraphqlRequestMetricsAttributes},
@@ -17,8 +19,8 @@ use crate::{
 
 impl<R: Runtime> Engine<R> {
     pub(super) async fn execute_single(
-        &self,
-        request_context: &RequestContext,
+        self: &Arc<Self>,
+        request_context: &Arc<RequestContext>,
         hooks_context: HooksContext<R>,
         request: Request,
     ) -> Response<<R::Hooks as Hooks>::OnOperationResponseOutput> {

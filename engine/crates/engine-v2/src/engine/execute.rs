@@ -135,13 +135,14 @@ impl<R: Runtime> Engine<R> {
         hooks_context: HooksContext<R>,
         request: BatchRequest,
     ) -> http::Response<Body> {
+        let request_context = Arc::new(request_context);
         match request {
             BatchRequest::Single(request) => match request_context.response_format {
                 ResponseFormat::Streaming(format) => {
                     Http::stream(
                         format,
                         hooks_context.clone(),
-                        self.execute_stream(Arc::new(request_context), hooks_context, request),
+                        self.execute_stream(request_context, hooks_context, request),
                     )
                     .await
                 }
