@@ -13,13 +13,7 @@ pub fn complex_schema(c: &mut Criterion) {
     for (size, case) in ComplexSchemaAndQuery::cases() {
         group.throughput(Throughput::Bytes(case.schema.len() as u64));
         group.bench_with_input(BenchmarkId::from_parameter(size), size, |b, _| {
-            b.to_async(
-                tokio::runtime::Builder::new_current_thread()
-                    .enable_all()
-                    .build()
-                    .unwrap(),
-            )
-            .iter(|| case.to_engine())
+            b.to_async(runtime()).iter(|| case.to_engine())
         });
     }
     group.finish();
@@ -43,13 +37,7 @@ pub fn complex_query(c: &mut Criterion) {
     for (size, query_len, engine) in cases {
         group.throughput(Throughput::Bytes(query_len as u64));
         group.bench_with_input(BenchmarkId::from_parameter(size), &size, |b, _| {
-            b.to_async(
-                tokio::runtime::Builder::new_current_thread()
-                    .enable_all()
-                    .build()
-                    .unwrap(),
-            )
-            .iter(|| engine.raw_execute());
+            b.to_async(runtime()).iter(|| engine.raw_execute());
         });
     }
     group.finish();

@@ -14,6 +14,6 @@ workspace = true
 [dependencies]
 serde.workspace = true
 walker = { path = "../walker", package = "engine-v2-walker" }
-bitvec = { workspace = true, features = ["serde"]}
+fixedbitset = { version = "0.5", features = ["serde"]}
 grafbase-workspace-hack.workspace = true
 

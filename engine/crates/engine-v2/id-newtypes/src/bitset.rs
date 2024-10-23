@@ -1,15 +1,13 @@
-use bitvec::{bitvec, vec::BitVec};
-
 #[derive(serde::Serialize, serde::Deserialize, Debug)]
 pub struct BitSet<Id> {
-    inner: BitVec,
+    inner: fixedbitset::FixedBitSet,
     _phantom: std::marker::PhantomData<Id>,
 }
 
 impl<Id> Default for BitSet<Id> {
     fn default() -> Self {
         Self {
-            inner: BitVec::new(),
+            inner: fixedbitset::FixedBitSet::new(),
             _phantom: std::marker::PhantomData,
         }
     }
@@ -19,9 +17,9 @@ impl<Id> BitSet<Id>
 where
     usize: From<Id>,
 {
-    pub fn init_with(value: bool, n: usize) -> Self {
+    pub fn with_capacity(n: usize) -> Self {
         Self {
-            inner: bitvec![value as usize; n],
+            inner: fixedbitset::FixedBitSet::with_capacity(n),
             _phantom: std::marker::PhantomData,
         }
     }
@@ -31,7 +29,8 @@ where
     }
 
     pub fn push(&mut self, value: bool) {
-        self.inner.push(value)
+        self.inner.grow(self.inner.len() + 1);
+        self.inner.set(self.inner.len() - 1, value);
     }
 }
 
@@ -51,12 +50,7 @@ mod tests {
 
     #[test]
     fn test_bitset() {
-        let bitset = BitSet::<usize>::init_with(true, 129);
-        for i in 0..129 {
-            assert!(bitset[i]);
-        }
-
-        let mut bitset = BitSet::<usize>::init_with(false, 129);
+        let mut bitset = BitSet::<usize>::with_capacity(129);
         for i in 0..129 {
             assert!(!bitset[i]);
         }

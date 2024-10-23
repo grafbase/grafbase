@@ -45,13 +45,13 @@ impl QueryModifications {
     pub fn default_for(operation: &PreparedOperation) -> Self {
         QueryModifications {
             is_any_field_skipped: false,
-            skipped_fields: BitSet::init_with(false, operation.fields.len()),
-            concrete_shape_has_error: BitSet::init_with(false, operation.response_blueprint.shapes.concrete.len()),
+            skipped_fields: BitSet::with_capacity(operation.fields.len()),
+            concrete_shape_has_error: BitSet::with_capacity(operation.response_blueprint.shapes.concrete.len()),
             errors: Vec::new(),
             field_shape_id_to_error_ids: Default::default(),
             root_error_ids: Vec::new(),
             matched_scopes: vec![],
-            skipped_field_shape_ids: BitSet::init_with(false, operation.fields.len()),
+            skipped_field_shape_ids: BitSet::with_capacity(operation.fields.len()),
         }
     }
 
