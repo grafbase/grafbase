@@ -66,7 +66,7 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
         let operation = match result {
             Ok(operation) => operation,
             Err((cache_key, document)) => {
-                let operation = tokio::task::block_in_place(|| Operation::prepare(self.schema(), &request, &document))
+                let operation = Operation::prepare(self.schema(), &request, &document)
                     .map(Arc::new)
                     .map_err(|mut err| {
                         let attributes = err.take_operation_attributes();

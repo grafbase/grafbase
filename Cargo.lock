@@ -2405,7 +2405,6 @@ dependencies = [
  "strum",
  "strum_macros",
  "thiserror",
- "tokio",
  "tower 0.5.1",
  "tracing",
  "url",
