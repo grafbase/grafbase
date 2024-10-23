@@ -2,7 +2,10 @@ use std::borrow::Cow;
 
 use bytes::Bytes;
 use futures::Future;
-use grafbase_telemetry::{graphql::GraphqlResponseStatus, otel::tracing_opentelemetry::OpenTelemetrySpanExt as _};
+use grafbase_telemetry::{
+    graphql::GraphqlResponseStatus, otel::tracing_opentelemetry::OpenTelemetrySpanExt as _,
+    span::subgraph::SubgraphHttpRequestSpan,
+};
 use headers::HeaderMapExt;
 use runtime::{
     bytes::OwnedOrSharedBytes,
@@ -36,6 +39,8 @@ pub(crate) async fn execute_subgraph_request<'ctx, 'a, R: Runtime>(
 ) -> ExecutionResult<SubgraphResponse> {
     let endpoint = ctx.endpoint();
 
+    let http_span = SubgraphHttpRequestSpan::new(endpoint.url(), &http::Method::POST);
+
     let request = {
         let mut headers = ctx
             .hooks()
@@ -56,7 +61,7 @@ pub(crate) async fn execute_subgraph_request<'ctx, 'a, R: Runtime>(
         );
 
         grafbase_telemetry::otel::opentelemetry::global::get_text_map_propagator(|propagator| {
-            let context = tracing::Span::current().context();
+            let context = http_span.context();
 
             propagator.inject_context(&context, &mut grafbase_telemetry::http::HeaderInjector(&mut headers));
         });
@@ -73,7 +78,6 @@ pub(crate) async fn execute_subgraph_request<'ctx, 'a, R: Runtime>(
     ctx.record_request_size(&request);
 
     let fetcher = ctx.engine.runtime.fetcher();
-    let http_span = ctx.create_subgraph_request_span(&request);
     let fetch_result = retrying_fetch(ctx, || async {
         let (fetch_result, info) = fetcher.fetch(request.clone()).instrument(http_span.span()).await;
 
