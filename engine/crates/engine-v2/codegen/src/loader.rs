@@ -1,6 +1,9 @@
 use std::{collections::HashMap, path::PathBuf};
 
-use cynic_parser::type_system::{iter::Iter, Definition, Directive, TypeDefinition, Value};
+use cynic_parser::{
+    type_system::{iter::Iter, Definition, Directive, TypeDefinition},
+    values::ConstValue,
+};
 
 use crate::domain::{self};
 
@@ -258,8 +261,8 @@ fn parse_variants(mut directives: Iter<'_, Directive<'_>>) -> Option<VariantDire
         .arguments()
         .find(|arg| arg.name() == "remove_suffix")
         .and_then(|arg| match arg.value() {
-            Value::Boolean(value) => Some(Ok(value)),
-            Value::String(value) => Some(Err(value.to_string())),
+            ConstValue::Boolean(value) => Some(Ok(value.value())),
+            ConstValue::String(value) => Some(Err(value.to_string())),
             _ => None,
         })
         .unwrap_or(VariantDirective::default().remove_suffix);
@@ -267,9 +270,8 @@ fn parse_variants(mut directives: Iter<'_, Directive<'_>>) -> Option<VariantDire
         .arguments()
         .find(|arg| arg.name() == "empty")
         .and_then(|arg| match arg.value() {
-            Value::List(values) => Some(
-                values
-                    .iter()
+            ConstValue::List(list) => Some(
+                list.items()
                     .filter_map(|value| value.as_str())
                     .map(str::to_string)
                     .collect(),
@@ -281,9 +283,8 @@ fn parse_variants(mut directives: Iter<'_, Directive<'_>>) -> Option<VariantDire
         .arguments()
         .find(|arg| arg.name() == "names")
         .and_then(|arg| match arg.value() {
-            Value::List(values) => Some(
-                values
-                    .iter()
+            ConstValue::List(list) => Some(
+                list.items()
                     .filter_map(|value| value.as_str())
                     .map(str::to_string)
                     .collect(),
@@ -315,10 +316,7 @@ fn parse_field_meta(mut directives: Iter<'_, Directive<'_>>) -> Option<domain::F
     let debug = directive
         .arguments()
         .find(|arg| arg.name() == "debug")
-        .and_then(|arg| match arg.value() {
-            Value::Boolean(value) => Some(value),
-            _ => None,
-        })
+        .and_then(|arg| arg.value().as_bool())
         .unwrap_or(true);
 
     Some(domain::FieldMeta { debug })
@@ -330,9 +328,8 @@ fn parse_meta(mut directives: Iter<'_, Directive<'_>>) -> Option<domain::Meta> {
         .arguments()
         .find(|arg| arg.name() == "derive")
         .and_then(|arg| match arg.value() {
-            Value::List(values) => Some(
-                values
-                    .iter()
+            ConstValue::List(list) => Some(
+                list.items()
                     .filter_map(|value| value.as_str())
                     .map(str::to_string)
                     .collect(),
@@ -344,10 +341,7 @@ fn parse_meta(mut directives: Iter<'_, Directive<'_>>) -> Option<domain::Meta> {
     let debug = directive
         .arguments()
         .find(|arg| arg.name() == "debug")
-        .and_then(|arg| match arg.value() {
-            Value::Boolean(value) => Some(value),
-            _ => None,
-        })
+        .and_then(|arg| arg.value().as_bool())
         .unwrap_or(true);
 
     let module_path = directive
@@ -379,10 +373,7 @@ fn parse_indexed(name: &str, mut directives: Iter<'_, Directive<'_>>) -> Option<
     let deduplicated = directive
         .arguments()
         .find(|arg| arg.name() == "deduplicated")
-        .and_then(|arg| match arg.value() {
-            cynic_parser::type_system::Value::Boolean(b) => Some(b),
-            _ => None,
-        })
+        .and_then(|arg| arg.value().as_bool())
         .unwrap_or_default();
     Some(domain::Indexed {
         id_struct_name: format!("{name}Id"),

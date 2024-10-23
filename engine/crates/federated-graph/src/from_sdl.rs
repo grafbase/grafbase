@@ -3,7 +3,9 @@ mod value;
 
 use self::{arguments::*, value::*};
 use crate::federated_graph::*;
-use cynic_parser::{common::WrappingType, executable as executable_ast, type_system as ast};
+use cynic_parser::{
+    common::WrappingType, executable as executable_ast, type_system as ast, values::ConstValue as ParserValue,
+};
 use indexmap::IndexSet;
 use std::{
     collections::{BTreeSet, HashMap},
@@ -112,31 +114,35 @@ impl<'a> State<'a> {
         StringId(self.strings.insert_full(s.to_owned()).0)
     }
 
-    fn insert_value(&mut self, node: ast::Value<'_>, expected_enum_type: Option<TypeDefinitionId>) -> Value {
+    fn insert_value(&mut self, node: ParserValue<'_>, expected_enum_type: Option<TypeDefinitionId>) -> Value {
         match node {
-            ast::Value::Null => Value::Null,
-            ast::Value::Int(n) => Value::Int(n.as_i64()),
-            ast::Value::Float(n) => Value::Float(f64::from(n)),
-            ast::Value::String(s) | ast::Value::BlockString(s) => Value::String(self.insert_string(s)),
-            ast::Value::Boolean(b) => Value::Boolean(b),
-            ast::Value::Enum(enm) => expected_enum_type
+            ParserValue::Null(_) => Value::Null,
+            ParserValue::Int(n) => Value::Int(n.as_i64()),
+            ParserValue::Float(n) => Value::Float(f64::from(n.value())),
+            ParserValue::String(s) => Value::String(self.insert_string(s.value())),
+            ParserValue::Boolean(b) => Value::Boolean(b.value()),
+            ParserValue::Enum(enm) => expected_enum_type
                 .and_then(|enum_id| {
-                    let enum_value_id = self.enum_values_map.get(&(enum_id, enm))?;
+                    let enum_value_id = self.enum_values_map.get(&(enum_id, enm.name()))?;
                     Some(Value::EnumValue(*enum_value_id))
                 })
-                .unwrap_or(Value::UnboundEnumValue(self.insert_string(enm))),
-            ast::Value::List(list) => Value::List(
-                list.into_iter()
+                .unwrap_or(Value::UnboundEnumValue(self.insert_string(enm.name()))),
+            ParserValue::List(list) => Value::List(
+                list.items()
                     .map(|value| self.insert_value(value, expected_enum_type))
                     .collect(),
             ),
-            ast::Value::Object(obj) => Value::Object(
-                obj.into_iter()
-                    .map(|(k, v)| (self.insert_string(k), self.insert_value(v, expected_enum_type)))
+            ParserValue::Object(obj) => Value::Object(
+                obj.fields()
+                    .map(|field| {
+                        (
+                            self.insert_string(field.name()),
+                            self.insert_value(field.value(), expected_enum_type),
+                        )
+                    })
                     .collect::<Vec<_>>()
                     .into_boxed_slice(),
             ),
-            ast::Value::Variable(_) => unreachable!("variable in type system document"), // not possible in type system documents
         }
     }
 
@@ -427,22 +433,22 @@ fn parse_join_union_member(
         return Ok(None);
     }
 
-    let Some(ast::Value::Enum(graph)) = directive.get_argument("graph").map(|a| a.value()) else {
+    let Some(ParserValue::Enum(graph)) = directive.get_argument("graph") else {
         let error = DomainError("Missing graph argument in join__unionMember directive".to_owned());
         return Err(error);
     };
 
-    let Some(ast::Value::String(member)) = directive.get_argument("member").map(|a| a.value()) else {
+    let Some(ParserValue::String(member)) = directive.get_argument("member") else {
         let error = DomainError("Missing member argument in join__unionMember directive".to_owned());
         return Err(error);
     };
 
-    let Some(subgraph_id) = state.graph_sdl_names.get(graph).copied() else {
+    let Some(subgraph_id) = state.graph_sdl_names.get(graph.name()).copied() else {
         let error = DomainError("Unknown graph in join__unionMember directive".to_owned());
         return Err(error);
     };
 
-    let object_id = match state.definition_names.get(member) {
+    let object_id = match state.definition_names.get(member.value()) {
         Some(Definition::Object(object_id)) => *object_id,
         _ => {
             let error = DomainError("Broken invariant: join__unionMember points to a non-existing type".to_owned());
@@ -461,13 +467,13 @@ fn parse_join_implements(
         return Ok(None);
     }
 
-    let Some(ast::Value::Enum(graph)) = directive.get_argument("graph").map(|a| a.value()) else {
+    let Some(graph) = directive.get_argument("graph").and_then(|a| a.as_enum_value()) else {
         let error = DomainError("Missing graph argument in join__implements directive".to_owned());
 
         return Err(error);
     };
 
-    let Some(ast::Value::String(interface)) = directive.get_argument("interface").map(|a| a.value()) else {
+    let Some(interface) = directive.get_argument("interface").and_then(|a| a.as_str()) else {
         let error = DomainError("Missing interface argument in join__implements directive".to_owned());
 
         return Err(error);
@@ -512,16 +518,13 @@ fn ingest_authorized_directives(parsed: &ast::TypeSystemDocument, state: &mut St
 
         let fields = authorized
             .get_argument("fields")
-            .and_then(|arg| match arg.value() {
-                ast::Value::String(s) | ast::Value::BlockString(s) => Some(s),
-                _ => None,
-            })
+            .and_then(|arg| arg.as_str())
             .map(|fields| parse_selection_set(fields).and_then(|doc| attach_selection_set(&doc, definition, state)))
             .transpose()?;
 
         let metadata = authorized
             .get_argument("metadata")
-            .map(|metadata| state.insert_value(metadata.value(), None));
+            .map(|metadata| state.insert_value(metadata, None));
 
         let idx = state.authorized_directives.push_return_idx(AuthorizedDirective {
             fields,
@@ -562,31 +565,23 @@ fn ingest_entity_keys(parsed: &ast::TypeSystemDocument, state: &mut State<'_>) -
         {
             let subgraph_id = join_type
                 .get_argument("graph")
-                .and_then(|arg| match arg.value() {
-                    ast::Value::Enum(s) => Some(state.graph_sdl_names[s]),
-                    _ => None,
-                })
+                .and_then(|arg| arg.as_enum_value())
+                .map(|name| state.graph_sdl_names[name])
                 .expect("Missing graph argument in @join__type");
             let fields = join_type
                 .get_argument("key")
-                .and_then(|arg| match arg.value() {
-                    ast::Value::String(s) | ast::Value::BlockString(s) => Some(s),
-                    _ => None,
-                })
+                .and_then(|arg| arg.as_str())
                 .map(|fields| parse_selection_set(fields).and_then(|doc| attach_selection_set(&doc, definition, state)))
                 .transpose()?
                 .unwrap_or_default();
             let resolvable = join_type
                 .get_argument("resolvable")
-                .and_then(|arg| match arg.value() {
-                    ast::Value::Boolean(b) => Some(b),
-                    _ => None,
-                })
+                .and_then(|arg| arg.as_bool())
                 .unwrap_or(true);
 
             let is_interface_object = join_type
                 .get_argument("isInterfaceObject")
-                .map(|arg| matches!(arg.value(), ast::Value::Boolean(true)))
+                .map(|arg| matches!(arg.as_bool(), Some(true)))
                 .unwrap_or(false);
 
             match definition {
@@ -655,10 +650,9 @@ where
         parent_directives()
             .filter(|dir| dir.name() == JOIN_TYPE_DIRECTIVE_NAME)
             .filter_map(|dir| {
-                dir.get_argument("graph").and_then(|arg| match &arg.value() {
-                    ast::Value::Enum(s) => Some(state.graph_sdl_names[s]),
-                    _ => None,
-                })
+                dir.get_argument("graph")
+                    .and_then(|arg| arg.as_enum_value())
+                    .map(|name| state.graph_sdl_names[name])
             })
             .collect::<Vec<_>>()
     } else {
@@ -676,20 +670,18 @@ where
         for directive in field.directives().filter(|dir| dir.name() == JOIN_FIELD_DIRECTIVE_NAME) {
             let is_external = directive
                 .get_argument("external")
-                .map(|arg| match arg.value() {
-                    ast::Value::Boolean(b) => b,
-                    _ => false,
-                })
+                .map(|arg| arg.as_bool().unwrap_or_default())
                 .unwrap_or_default();
 
             if is_external {
                 continue;
             }
 
-            let Some(subgraph_id) = directive.get_argument("graph").and_then(|arg| match arg.value() {
-                ast::Value::Enum(s) => state.graph_sdl_names.get(s).copied(),
-                _ => None,
-            }) else {
+            let Some(subgraph_id) = directive
+                .get_argument("graph")
+                .and_then(|arg| arg.as_enum_value())
+                .and_then(|name| state.graph_sdl_names.get(name).copied())
+            else {
                 continue;
             };
 
@@ -705,10 +697,7 @@ where
 
             if let Some(field_provides) = directive
                 .get_argument("provides")
-                .and_then(|arg| match arg.value() {
-                    ast::Value::String(s) | ast::Value::BlockString(s) => Some(s),
-                    _ => None,
-                })
+                .and_then(|value| value.as_str())
                 .map(|provides| {
                     parse_selection_set(provides)
                         .and_then(|doc| attach_selection_set(&doc, field_type.definition, state))
@@ -721,10 +710,7 @@ where
 
             if let Some(field_requires) = directive
                 .get_argument("requires")
-                .and_then(|arg| match arg.value() {
-                    ast::Value::String(s) | ast::Value::BlockString(s) => Some(s),
-                    _ => None,
-                })
+                .and_then(|value| value.as_str())
                 .map(|requires| {
                     parse_selection_set(requires)
                         .and_then(|doc| attach_selection_set(&doc, parent_id, state))
@@ -765,10 +751,7 @@ fn ingest_authorized_directive<'a>(
             let authorized_directive = AuthorizedDirective {
                 arguments: directive
                     .get_argument("arguments")
-                    .and_then(|arg| match arg.value() {
-                        ast::Value::String(s) | ast::Value::BlockString(s) => Some(s),
-                        _ => None,
-                    })
+                    .and_then(|value| value.as_str())
                     .map(|arguments| {
                         parse_selection_set(arguments).and_then(|fields| {
                             attach_input_value_set_to_field_arguments(fields, parent_id, field_id, state)
@@ -777,20 +760,14 @@ fn ingest_authorized_directive<'a>(
                     .transpose()?,
                 fields: directive
                     .get_argument("fields")
-                    .and_then(|arg| match arg.value() {
-                        ast::Value::String(s) | ast::Value::BlockString(s) => Some(s),
-                        _ => None,
-                    })
+                    .and_then(|value| value.as_str())
                     .map(|fields| {
                         parse_selection_set(fields).and_then(|fields| attach_selection_set(&fields, parent_id, state))
                     })
                     .transpose()?,
                 node: directive
                     .get_argument("node")
-                    .and_then(|arg| match arg.value() {
-                        ast::Value::String(s) | ast::Value::BlockString(s) => Some(s),
-                        _ => None,
-                    })
+                    .and_then(|value| value.as_str())
                     .map(|fields| {
                         parse_selection_set(fields)
                             .and_then(|fields| attach_selection_set(&fields, field_type.definition, state))
@@ -798,7 +775,7 @@ fn ingest_authorized_directive<'a>(
                     .transpose()?,
                 metadata: directive
                     .get_argument("metadata")
-                    .map(|metadata| state.insert_value(metadata.value(), None)),
+                    .map(|metadata| state.insert_value(metadata, None)),
             };
             state.authorized_directives.push(authorized_directive);
             let id = AuthorizedDirectiveId(state.authorized_directives.len() - 1);
@@ -1000,18 +977,13 @@ fn ingest_field<'a>(
                 && dir.get_argument(JOIN_FIELD_DIRECTIVE_OVERRIDE_ARGUMENT).is_none()
         })
         .filter(|dir| {
-            !dir.get_argument("external")
-                .map(|arg| match arg.value() {
-                    ast::Value::Boolean(b) => b,
-                    _ => false,
-                })
+            dir.get_argument("external")
+                .and_then(|arg| arg.as_bool())
                 .unwrap_or_default()
         })
         .filter_map(|dir| dir.get_argument("graph"))
-        .filter_map(|arg| match arg.value() {
-            ast::Value::Enum(s) => Some(state.graph_sdl_names[s]),
-            _ => None,
-        })
+        .filter_map(|arg| arg.as_enum_value())
+        .map(|value| state.graph_sdl_names[value])
         .collect();
 
     let overrides = ast_field
@@ -1032,39 +1004,34 @@ fn ingest_field<'a>(
                     )
                 })
         })
-        .filter_map(
-            |(graph, overrides, override_label)| match (graph.value(), overrides.value()) {
-                (ast::Value::Enum(graph), ast::Value::String(overrides)) => {
-                    Some(Override {
-                        graph: state.graph_sdl_names.get(graph).copied().or_else(|| {
-                            // Previously we used the subgraph name rather than the enum we overrides
-                            // was specified.
-                            let subgraph_name = state.insert_string(graph);
-                            Some(SubgraphId(
-                                state
-                                    .subgraphs
-                                    .iter()
-                                    .position(|subgraph| subgraph.name == subgraph_name)?,
-                            ))
-                        })?,
-                        label: override_label
-                            .and_then(|arg| match arg.value() {
-                                ast::Value::String(s) => s.parse().ok(),
-                                _ => None,
-                            })
-                            .unwrap_or_default(),
-                        from: state
-                            .subgraphs
-                            .iter()
-                            .position(|subgraph| state.strings[subgraph.name.0] == overrides)
-                            .map(SubgraphId)
-                            .map(OverrideSource::Subgraph)
-                            .unwrap_or_else(|| OverrideSource::Missing(state.insert_string(overrides))),
-                    })
-                }
-                _ => None, // unreachable in valid schemas
-            },
-        )
+        .filter_map(|(graph, overrides, override_label)| match (graph, overrides) {
+            (ParserValue::Enum(graph), ParserValue::String(overrides)) => {
+                Some(Override {
+                    graph: state.graph_sdl_names.get(graph.name()).copied().or_else(|| {
+                        // Previously we used the subgraph name rather than the enum we overrides
+                        // was specified.
+                        let subgraph_name = state.insert_string(graph.name());
+                        Some(SubgraphId(
+                            state
+                                .subgraphs
+                                .iter()
+                                .position(|subgraph| subgraph.name == subgraph_name)?,
+                        ))
+                    })?,
+                    label: override_label
+                        .and_then(|arg| arg.as_str()?.parse().ok())
+                        .unwrap_or_default(),
+                    from: state
+                        .subgraphs
+                        .iter()
+                        .position(|subgraph| state.strings[subgraph.name.0] == overrides.value())
+                        .map(SubgraphId)
+                        .map(OverrideSource::Subgraph)
+                        .unwrap_or_else(|| OverrideSource::Missing(state.insert_string(overrides.value()))),
+                })
+            }
+            _ => None, // unreachable in valid schemas
+        })
         .collect();
 
     let composed_directives = collect_composed_directives(ast_field.directives(), state);
@@ -1257,13 +1224,16 @@ fn attach_selection_field(
 
             let argument_type = state.input_value_definitions[argument_id.0].r#type.definition.as_enum();
 
-            let converted_value = executable_value_to_type_system_value(argument.value());
+            let const_value = argument
+                .value()
+                .try_into()
+                .map_err(|_| DomainError("FieldSets cant contain variables".into()))?;
 
-            let value = state.insert_value(converted_value, argument_type);
+            let value = state.insert_value(const_value, argument_type);
 
-            (argument_id, value)
+            Ok((argument_id, value))
         })
-        .collect();
+        .collect::<Result<_, _>>()?;
 
     Ok(Selection::Field {
         field,
@@ -1413,8 +1383,8 @@ fn ingest_join_graph_enum<'a>(enm: ast::EnumDefinition<'a>, state: &mut State<'a
                     "Missing `name` argument in `@join__graph` directive on `join__Graph` enum value.".to_owned(),
                 )
             })
-            .and_then(|arg| match arg.value() {
-                ast::Value::String(s) | ast::Value::BlockString(s) => Ok(s),
+            .and_then(|arg| match arg {
+                ParserValue::String(s) => Ok(s),
                 _ => Err(DomainError(
                     "Unexpected type for `name` argument in `@join__graph` directive on `join__Graph` enum value."
                         .to_owned(),
@@ -1427,16 +1397,16 @@ fn ingest_join_graph_enum<'a>(enm: ast::EnumDefinition<'a>, state: &mut State<'a
                     "Missing `url` argument in `@join__graph` directive on `join__Graph` enum value.".to_owned(),
                 )
             })
-            .and_then(|arg| match arg.value() {
-                ast::Value::String(s) | ast::Value::BlockString(s) => Ok(s),
+            .and_then(|arg| match arg {
+                ParserValue::String(s) => Ok(s),
                 _ => Err(DomainError(
                     "Unexpected type for `url` argument in `@join__graph` directive on `join__Graph` enum value."
                         .to_owned(),
                 )),
             })?;
 
-        let name = state.insert_string(name);
-        let url = state.insert_string(url);
+        let name = state.insert_string(name.value());
+        let url = state.insert_string(url.value());
         let id = SubgraphId(state.subgraphs.push_return_idx(Subgraph { name, url }));
         state.graph_sdl_names.insert(sdl_name, id);
     }
@@ -1470,8 +1440,8 @@ fn collect_composed_directives<'a>(
             "inaccessible" => state.directives.push(Directive::Inaccessible),
             "deprecated" => {
                 let directive = Directive::Deprecated {
-                    reason: directive.get_argument("reason").and_then(|value| match value.value() {
-                        ast::Value::String(s) | ast::Value::BlockString(s) => Some(state.insert_string(s)),
+                    reason: directive.get_argument("reason").and_then(|value| match value {
+                        ParserValue::String(s) => Some(state.insert_string(s.value())),
                         _ => None,
                     }),
                 };
@@ -1481,7 +1451,7 @@ fn collect_composed_directives<'a>(
             "requiresScopes" => {
                 let scopes: Option<Vec<Vec<String>>> = directive
                     .get_argument("scopes")
-                    .and_then(|scopes| scopes.value().into_json())
+                    .and_then(|scopes| scopes.into_json())
                     .and_then(|scopes| serde_json::from_value(scopes).ok());
 
                 if let Some(scopes) = scopes {
@@ -1495,7 +1465,7 @@ fn collect_composed_directives<'a>(
             "policy" => {
                 let policies: Option<Vec<Vec<String>>> = directive
                     .get_argument("policies")
-                    .and_then(|policies| policies.value().into_json())
+                    .and_then(|policies| policies.into_json())
                     .and_then(|policies| serde_json::from_value(policies).ok());
 
                 if let Some(policies) = policies {

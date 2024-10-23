@@ -1,4 +1,4 @@
-use cynic_parser::executable::{iter::Iter, Directive, FieldSelection, FragmentSpread, InlineFragment, Value};
+use cynic_parser::executable::{iter::Iter, Directive, FieldSelection, FragmentSpread, InlineFragment};
 
 pub trait FieldExt<'a> {
     fn response_key(&self) -> &'a str;
@@ -37,11 +37,7 @@ fn find_defer<'a>(mut directives: Iter<'a, Directive<'a>>) -> Option<DeferDirect
             let label = directive
                 .arguments()
                 .find(|arg| arg.name() == "label")
-                .and_then(|argument| {
-                    let value = argument.value();
-                    let Value::String(label) = value else { return None };
-                    Some(label)
-                });
+                .and_then(|argument| argument.value().as_str());
 
             DeferDirective { label }
         })
