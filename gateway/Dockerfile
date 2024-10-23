@@ -1,7 +1,7 @@
 #
 # === Build image ===
 #
-FROM rust:1.80-alpine3.20 AS chef
+FROM rust:1.82-alpine3.20 AS chef
 
 # Patching musl to use mimalloc, see docker/README.md.
 # Source: https://github.com/tweag/rust-alpine-mimalloc
