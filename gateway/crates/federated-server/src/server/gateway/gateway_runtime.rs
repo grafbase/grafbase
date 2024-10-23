@@ -15,7 +15,7 @@ use crate::hot_reload::ConfigWatcher;
 /// Represents the runtime environment for the gateway, managing various components
 /// such as fetching, rate limiting, entity caching, and metrics collection.
 pub struct GatewayRuntime {
-    fetcher: NativeFetcher,
+    pub(super) fetcher: NativeFetcher,
     pub(super) trusted_documents: runtime::trusted_documents_client::Client,
     kv: runtime::kv::KvStore,
     metrics: EngineMetrics,
@@ -78,7 +78,7 @@ impl GatewayRuntime {
         };
 
         let runtime = GatewayRuntime {
-            fetcher: NativeFetcher::default(),
+            fetcher: NativeFetcher::new([]),
             kv: InMemoryKvStore::runtime(),
             trusted_documents: runtime::trusted_documents_client::Client::new(NoopTrustedDocuments),
             hooks,

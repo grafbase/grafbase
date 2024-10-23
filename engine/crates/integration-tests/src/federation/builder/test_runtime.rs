@@ -25,7 +25,7 @@ impl Default for TestRuntime {
         let (_, rx) = watch::channel(Default::default());
 
         Self {
-            fetcher: DynamicFetcher::wrap(NativeFetcher::default()),
+            fetcher: DynamicFetcher::wrap(NativeFetcher::new(Vec::new())),
             trusted_documents: trusted_documents_client::Client::new(NoopTrustedDocuments),
             kv: InMemoryKvStore::runtime(),
             metrics: EngineMetrics::build(&metrics::meter_from_global_provider(), None),

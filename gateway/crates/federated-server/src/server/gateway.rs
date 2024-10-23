@@ -3,7 +3,7 @@ use engine_v2::{Engine, SchemaVersion};
 use gateway_config::Config;
 use graphql_composition::VersionedFederatedGraph;
 use runtime::trusted_documents_client::Client;
-use runtime_local::HooksWasi;
+use runtime_local::{HooksWasi, NativeFetcher};
 use std::{path::PathBuf, sync::Arc};
 use tokio::sync::watch;
 use ulid::Ulid;
@@ -76,6 +76,8 @@ pub(super) async fn generate(
 
     let schema = engine_v2::Schema::build(config, schema_version)
         .map_err(|err| crate::Error::SchemaValidationError(err.to_string()))?;
+
+    runtime.fetcher = NativeFetcher::new(schema.graphql_endpoints().map(|gql| gql.url().clone()));
 
     Ok(Engine::new(Arc::new(schema), runtime).await)
 }

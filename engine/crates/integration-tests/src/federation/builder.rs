@@ -10,6 +10,7 @@ pub use bench::*;
 use futures::{future::BoxFuture, FutureExt};
 use graphql_mocks::MockGraphQlServer;
 use runtime::{fetch::dynamic::DynamicFetcher, hooks::DynamicHooks, trusted_documents_client};
+use runtime_local::NativeFetcher;
 pub use test_runtime::*;
 
 use super::{subgraph::Subgraphs, DockerSubgraph, TestGateway};
@@ -104,9 +105,10 @@ impl TestGatewayBuilder {
             mock_subgraphs,
             docker_subgraphs,
             config_source,
-            runtime,
+            mut runtime,
         } = self;
         let subgraphs = Subgraphs::load(mock_subgraphs, docker_subgraphs).await;
+        runtime.fetcher = DynamicFetcher::wrap(NativeFetcher::new(subgraphs.iter().map(|subgraph| subgraph.url())));
 
         let (engine, context) = self::engine::build(federated_sdl, config_source, runtime, &subgraphs).await;
         let router = self::router::build(engine.clone());

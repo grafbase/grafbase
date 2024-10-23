@@ -9,9 +9,24 @@ use runtime::bytes::OwnedOrSharedBytes;
 use runtime::fetch::{FetchError, FetchRequest, FetchResult, Fetcher};
 use runtime::hooks::ResponseInfo;
 
-#[derive(Default, Clone)]
+#[derive(Clone)]
 pub struct NativeFetcher {
-    client: reqwest::Client,
+    clients: Vec<(url::Url, reqwest::Client)>,
+}
+
+impl NativeFetcher {
+    pub fn new(urls: impl IntoIterator<Item = url::Url>) -> Self {
+        NativeFetcher {
+            clients: urls.into_iter().map(|url| (url, reqwest::Client::new())).collect(),
+        }
+    }
+
+    pub fn client(&self, url: &url::Url) -> &reqwest::Client {
+        self.clients
+            .iter()
+            .find_map(|(u, c)| if u == url { Some(c) } else { None })
+            .expect("client not found")
+    }
 }
 
 impl Fetcher for NativeFetcher {
@@ -21,7 +36,8 @@ impl Fetcher for NativeFetcher {
     ) -> (FetchResult<http::Response<OwnedOrSharedBytes>>, Option<ResponseInfo>) {
         let mut info = ResponseInfo::builder();
 
-        let result = self.client.execute(into_reqwest(request)).await.map_err(|e| {
+        let client = self.client(&request.url);
+        let result = client.execute(into_reqwest(request)).await.map_err(|e| {
             if e.is_timeout() {
                 FetchError::Timeout
             } else {
@@ -65,7 +81,8 @@ impl Fetcher for NativeFetcher {
         &self,
         request: FetchRequest<'_, Bytes>,
     ) -> FetchResult<impl Stream<Item = FetchResult<OwnedOrSharedBytes>> + Send + 'static> {
-        let events = RequestBuilder::from_parts(self.client.clone(), into_reqwest(request))
+        let client = self.client(&request.url);
+        let events = RequestBuilder::from_parts(client.clone(), into_reqwest(request))
             .eventsource()
             .unwrap()
             .map_err(|err| match err {
