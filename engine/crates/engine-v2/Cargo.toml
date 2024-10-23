@@ -21,7 +21,6 @@ base64.workspace = true
 blake3.workspace = true
 bytes.workspace = true
 url.workspace = true
-tokio = { workspace = true, features = ["rt"] }
 crossbeam-queue = "0.3.11"
 futures-util.workspace = true
 futures.workspace = true
