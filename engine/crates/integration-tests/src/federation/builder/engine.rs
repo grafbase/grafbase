@@ -44,7 +44,7 @@ pub(super) async fn build(
 
     // Ensure SDL/JSON serialization work as a expected
     let graph = {
-        let sdl = graph.into_federated_sdl();
+        let sdl = graph.into_federated_sdl().expect("from_sdl()");
         println!("{sdl}");
         let mut graph = VersionedFederatedGraph::from_sdl(&sdl).unwrap();
         let json = serde_json::to_value(&graph).unwrap();
@@ -63,12 +63,12 @@ pub(super) async fn build(
             let config: gateway_config::Config = toml::from_str(&toml).unwrap();
 
             update_runtime_with_toml_config(&mut runtime, &config, access_log_sender);
-            build_with_toml_config(&config, graph.into_latest())
+            build_with_toml_config(&config, graph.into_latest().expect("Graph into latest"))
         }
         Some(ConfigSource::Sdl(mut sdl)) => {
             sdl.push_str("\nextend schema @graph(type: federated)");
             let config = parse_sdl_config(&sdl).await;
-            build_with_sdl_config(&config, graph.into_latest())
+            build_with_sdl_config(&config, graph.into_latest().expect("graph into latest"))
         }
         Some(ConfigSource::SdlWebsocket) => {
             let mut sdl = String::new();
@@ -82,9 +82,9 @@ pub(super) async fn build(
             }
 
             let config = parse_sdl_config(&sdl).await;
-            build_with_sdl_config(&config, graph.into_latest())
+            build_with_sdl_config(&config, graph.into_latest().expect("graph.into_latest()"))
         }
-        None => build_with_sdl_config(&Default::default(), graph.into_latest()),
+        None => build_with_sdl_config(&Default::default(), graph.into_latest().expect("graph.into_latest()")),
     }
     .into_latest();
 

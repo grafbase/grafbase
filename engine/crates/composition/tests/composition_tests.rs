@@ -47,9 +47,9 @@ fn run_test(federated_graph_path: &Path) -> datatest_stable::Result<()> {
         .ok();
     let (actual_federated_sdl, actual_api_sdl) = match graphql_composition::compose(&subgraphs).into_result() {
         Ok(federated_graph) => {
-            let federated_graph = federated_graph.into_latest();
+            let federated_graph = federated_graph.into_latest().expect("federated graph into_latest()");
             (
-                graphql_federated_graph::render_federated_sdl(&federated_graph).unwrap(),
+                graphql_federated_graph::render_federated_sdl(&federated_graph).expect("rendering federated SDL"),
                 Some(graphql_federated_graph::render_api_sdl(&federated_graph)),
             )
         }

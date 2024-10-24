@@ -29,19 +29,19 @@ impl VersionedFederatedGraph {
         Ok(VersionedFederatedGraph::Sdl(sdl.to_owned()))
     }
 
-    pub fn into_federated_sdl(self) -> String {
-        match self {
+    pub fn into_federated_sdl(self) -> Result<String, DomainError> {
+        Ok(match self {
             VersionedFederatedGraph::Sdl(sdl) => sdl,
-            other => render_federated_sdl(&other.into_latest()).unwrap(),
-        }
+            other => render_federated_sdl(&other.into_latest()?).unwrap(),
+        })
     }
 
-    pub fn into_latest(self) -> FederatedGraph {
-        match self {
-            VersionedFederatedGraph::V1(v1) => VersionedFederatedGraph::V2(FederatedGraphV2::from(v1)).into_latest(),
-            VersionedFederatedGraph::V2(v2) => VersionedFederatedGraph::V3(FederatedGraphV3::from(v2)).into_latest(),
+    pub fn into_latest(self) -> Result<FederatedGraph, DomainError> {
+        Ok(match self {
+            VersionedFederatedGraph::V1(v1) => VersionedFederatedGraph::V2(FederatedGraphV2::from(v1)).into_latest()?,
+            VersionedFederatedGraph::V2(v2) => VersionedFederatedGraph::V3(FederatedGraphV3::from(v2)).into_latest()?,
             VersionedFederatedGraph::V3(v3) => v3.into(),
-            VersionedFederatedGraph::Sdl(sdl) => from_sdl(&sdl).unwrap(),
-        }
+            VersionedFederatedGraph::Sdl(sdl) => from_sdl(&sdl)?,
+        })
     }
 }

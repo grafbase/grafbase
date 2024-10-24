@@ -37,7 +37,8 @@ fn runner_for(suite: String) -> impl FnOnce() -> Result<(), Failed> + Send + 'st
         let output = graphql_composition::compose(&subgraphs)
             .into_result()
             .unwrap()
-            .into_federated_sdl();
+            .into_federated_sdl()
+            .expect("graph.into_latest()");
 
         let output = prettify_sdl(&output);
         let expected = prettify_sdl(&expected_supergraph_sdl);
