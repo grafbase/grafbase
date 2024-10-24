@@ -1,7 +1,7 @@
 use super::GdnResponse;
 use engine_v2::{Engine, SchemaVersion};
 use gateway_config::Config;
-use graphql_composition::VersionedFederatedGraph;
+use graphql_composition::FederatedGraph;
 use runtime::trusted_documents_client::Client;
 use runtime_local::HooksWasi;
 use std::{path::PathBuf, sync::Arc};
@@ -62,10 +62,10 @@ pub(super) async fn generate(
     };
 
     let config = {
-        let graph = VersionedFederatedGraph::from_sdl(&federated_sdl)
-            .map_err(|e| crate::Error::SchemaValidationError(e.to_string()))?;
+        let graph =
+            FederatedGraph::from_sdl(&federated_sdl).map_err(|e| crate::Error::SchemaValidationError(e.to_string()))?;
 
-        engine_config_builder::build_with_toml_config(gateway_config, graph.into_latest()).into_latest()
+        engine_config_builder::build_with_toml_config(gateway_config, graph).into_latest()
     };
 
     let mut runtime = GatewayRuntime::build(gateway_config, hot_reload_config_path, &config, version_id, hooks).await?;

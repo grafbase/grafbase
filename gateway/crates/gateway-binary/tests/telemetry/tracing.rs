@@ -395,6 +395,7 @@ where
             .into_result()
             .unwrap()
             .into_federated_sdl()
+            .expect("graph.into_latest()")
     };
 
     crate::GatewayBuilder {

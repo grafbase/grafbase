@@ -623,7 +623,7 @@ mod tests {
             crate::render_sdl::render_federated_sdl(&FederatedGraph::default()).unwrap(),
         );
 
-        let actual = render_federated_sdl(&empty.into_latest()).expect("valid");
+        let actual = render_federated_sdl(&empty.into_latest().unwrap()).expect("valid");
         let expected = expect![[r#"
             directive @core(feature: String!) repeatable on SCHEMA
 

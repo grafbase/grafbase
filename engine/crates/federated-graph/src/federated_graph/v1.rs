@@ -1231,7 +1231,7 @@ mod tests {
         )
         .unwrap();
 
-        let schema = schema.into_latest();
+        let schema = schema.into_latest().unwrap();
         let query_object = &schema[schema.root_operation_types.query];
 
         for field_name in ["__type", "__schema"] {
