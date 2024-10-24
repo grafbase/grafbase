@@ -59,6 +59,9 @@ impl<'de> serde::Deserialize<'de> for MessageSigningKey {
     }
 }
 
+/// Which of the derived components to include in the signature:
+///
+/// https://www.rfc-editor.org/rfc/rfc9421.html#name-derived-components
 #[derive(Debug, Clone, PartialEq, serde::Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum DerivedComponent {
@@ -70,6 +73,7 @@ pub enum DerivedComponent {
     Path,
 }
 
+/// Which headers to include/exclude in the signature
 #[derive(Debug, Default, Clone, PartialEq, serde::Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub struct MessageSigningHeaders {
@@ -77,6 +81,9 @@ pub struct MessageSigningHeaders {
     pub exclude: Vec<String>,
 }
 
+/// Which of the signature parameters to include in the signature
+///
+/// https://www.rfc-editor.org/rfc/rfc9421.html#name-signature-parameters
 #[derive(Debug, Clone, PartialEq, serde::Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum SignatureParameter {
