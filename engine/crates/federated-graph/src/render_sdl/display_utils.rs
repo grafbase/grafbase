@@ -101,7 +101,7 @@ impl fmt::Display for ValueDisplay<'_> {
 
                 f.write_char('{')?;
                 while let Some((key, value)) = key_values.next() {
-                    write_quoted(f, &graph[*key])?;
+                    f.write_str(graph.str(*key))?;
                     f.write_str(": ")?;
                     ValueDisplay(value, graph).fmt(f)?;
                     if key_values.peek().is_some() {

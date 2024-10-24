@@ -7,7 +7,7 @@ type User {
   userId: ID!
   name: String!
   email: String!
-  accounts: [Account!]! @authorized(fields: "userId name", metadata: "{\"stuff\": true}")
+  accounts: [Account!]! @authorized(fields: "userId name", metadata: { stuff: true })
 }
 
 type Account @authorized(fields: "user { userId }") {
@@ -46,7 +46,7 @@ type Mutation {
   deleteAccount(id: ID!): Account!
   deleteTransaction(id: ID!): Transaction!
   createAccount(input: CreateAccountInput, included: Boolean, notIncluded: String): Account
-    @authorized(arguments: "input { userId nested { name } } included", metadata: ["a", "b", "c"])
+    @authorized(arguments: "input { userId nested { name } } included", metadata: ["a", "b", "c", { d: E }])
 }
 
 input CreateAccountInput {
