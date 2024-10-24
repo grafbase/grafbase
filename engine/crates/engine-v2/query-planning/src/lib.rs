@@ -8,5 +8,6 @@ mod tests;
 
 mod cost_estimation;
 mod graph;
+mod prune;
 mod steiner_tree;
 pub use graph::*;
