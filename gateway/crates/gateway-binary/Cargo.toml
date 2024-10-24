@@ -15,6 +15,7 @@ lambda = [
 ]
 
 [dependencies]
+pprof = { workspace = true, features = ["flamegraph"], optional = true }
 anyhow = { version = "1", default-features = false }
 ascii = { version = "1", default-features = false }
 atty = "0.2"

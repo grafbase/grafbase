@@ -121,6 +121,7 @@ mediatype = "0.19"
 num-traits = "0.2.18"
 openidconnect = "4.0.0-alpha.1"
 petgraph = "0.6"
+pprof = "0.13"
 postcard = { version = "1", features = ["use-std"] }
 rand = "0.8"
 regex = "1.10.4"

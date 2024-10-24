@@ -72,10 +72,10 @@ fn arguments_are_provided() {
 
         // We shouldn't have requested the field.
         let requests = engine.drain_graphql_requests_sent_to::<SecureSchema>();
-        insta::assert_json_snapshot!(requests, @r###"
+        insta::assert_json_snapshot!(requests, @r#"
         [
           {
-            "query": "query($var0: Int!) {\n  check {\n    authorizedWithId(id: $var0)\n  }\n}\n",
+            "query": "query($var0: Int!) { check { authorizedWithId(id: $var0) } }",
             "operationName": null,
             "variables": {
               "var0": 791
@@ -83,13 +83,13 @@ fn arguments_are_provided() {
             "extensions": {}
           },
           {
-            "query": "query {\n  check {\n    __typename\n  }\n}\n",
+            "query": "query { check { __typename } }",
             "operationName": null,
             "variables": {},
             "extensions": {}
           }
         ]
-        "###);
+        "#);
     });
 }
 

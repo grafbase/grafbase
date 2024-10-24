@@ -116,7 +116,7 @@ sha2.workspace = true
 similar-asserts = "1.5"
 
 [target.'cfg(unix)'.dependencies]
-pprof = { version = "0.13", features = ["criterion", "flamegraph"] }
+pprof = { workspace = true, features = ["criterion", "flamegraph"] }
 
 [[bench]]
 name = "bench"
