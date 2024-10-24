@@ -209,7 +209,7 @@ fn finalize_field_struct_names(
     definitions_by_name
 }
 
-fn parse_union_kind(name: &str, directives: Iter<'_, Directive<'_>>) -> domain::UnionKind {
+fn parse_union_kind<'a>(name: &str, directives: Iter<'a, Directive<'a>>) -> domain::UnionKind {
     if let Some(directive) = directives.clone().find(|directive| directive.name() == "id") {
         if let Some(bitpacked_size) = directive
             .arguments()
@@ -255,7 +255,7 @@ impl Default for VariantDirective {
     }
 }
 
-fn parse_variants(mut directives: Iter<'_, Directive<'_>>) -> Option<VariantDirective> {
+fn parse_variants<'a>(mut directives: Iter<'a, Directive<'a>>) -> Option<VariantDirective> {
     let directive = directives.find(|directive| directive.name() == "variants")?;
     let remove_suffix = directive
         .arguments()
@@ -298,7 +298,7 @@ fn parse_variants(mut directives: Iter<'_, Directive<'_>>) -> Option<VariantDire
     })
 }
 
-fn parse_record_field_name(mut directives: Iter<'_, Directive<'_>>) -> Option<String> {
+fn parse_record_field_name<'a>(mut directives: Iter<'a, Directive<'a>>) -> Option<String> {
     directives
         .find(|directive| directive.name() == "field")
         .and_then(|directive| {
@@ -310,7 +310,7 @@ fn parse_record_field_name(mut directives: Iter<'_, Directive<'_>>) -> Option<St
         })
 }
 
-fn parse_field_meta(mut directives: Iter<'_, Directive<'_>>) -> Option<domain::FieldMeta> {
+fn parse_field_meta<'a>(mut directives: Iter<'a, Directive<'a>>) -> Option<domain::FieldMeta> {
     let directive = directives.find(|directive| directive.name() == "meta")?;
 
     let debug = directive
@@ -322,7 +322,7 @@ fn parse_field_meta(mut directives: Iter<'_, Directive<'_>>) -> Option<domain::F
     Some(domain::FieldMeta { debug })
 }
 
-fn parse_meta(mut directives: Iter<'_, Directive<'_>>) -> Option<domain::Meta> {
+fn parse_meta<'a>(mut directives: Iter<'a, Directive<'a>>) -> Option<domain::Meta> {
     let directive = directives.find(|directive| directive.name() == "meta")?;
     let derive = directive
         .arguments()
@@ -360,7 +360,7 @@ fn parse_meta(mut directives: Iter<'_, Directive<'_>>) -> Option<domain::Meta> {
     })
 }
 
-fn parse_indexed(name: &str, mut directives: Iter<'_, Directive<'_>>) -> Option<domain::Indexed> {
+fn parse_indexed<'a>(name: &str, mut directives: Iter<'a, Directive<'a>>) -> Option<domain::Indexed> {
     let directive = directives.find(|directive| directive.name() == "indexed")?;
     let id_size = directive
         .arguments()
@@ -383,10 +383,10 @@ fn parse_indexed(name: &str, mut directives: Iter<'_, Directive<'_>>) -> Option<
     })
 }
 
-fn is_copy(mut directives: Iter<'_, Directive<'_>>) -> bool {
+fn is_copy<'a>(mut directives: Iter<'a, Directive<'a>>) -> bool {
     directives.any(|directive| directive.name() == "copy")
 }
 
-fn is_record(mut directives: Iter<'_, Directive<'_>>) -> bool {
+fn is_record<'a>(mut directives: Iter<'a, Directive<'a>>) -> bool {
     directives.any(|directive| directive.name() == "record")
 }
