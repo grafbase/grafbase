@@ -79,6 +79,7 @@ indexmap = { version = "2", features = ["serde"] }
 insta = { version = "1", features = ["json", "redactions", "yaml"] }
 jwt-compact = { version = "0.8", features = ["ed25519-compact", "p256", "rsa"] }
 lazy_static = { version = "1", default-features = false, features = ["spin_no_std"] }
+libc = { version = "0.2", features = ["extra_traits"] }
 log = { version = "0.4", default-features = false, features = ["std"] }
 memchr = { version = "2", features = ["use_std"] }
 miette = { version = "7", features = ["fancy"] }
@@ -116,6 +117,7 @@ smallvec = { version = "1", default-features = false, features = ["const_new", "
 socket2 = { version = "0.5", default-features = false, features = ["all"] }
 spin = { version = "0.9", default-features = false, features = ["once", "spin_mutex"] }
 spki = { version = "0.7", default-features = false, features = ["pem", "std"] }
+stable_deref_trait = { version = "1" }
 strum = { version = "0.26", features = ["derive"] }
 subtle = { version = "2" }
 sync_wrapper = { version = "1", default-features = false, features = ["futures"] }
@@ -205,6 +207,7 @@ indexmap = { version = "2", features = ["serde"] }
 insta = { version = "1", features = ["json", "redactions", "yaml"] }
 jwt-compact = { version = "0.8", features = ["ed25519-compact", "p256", "rsa"] }
 lazy_static = { version = "1", default-features = false, features = ["spin_no_std"] }
+libc = { version = "0.2", features = ["extra_traits"] }
 log = { version = "0.4", default-features = false, features = ["std"] }
 memchr = { version = "2", features = ["use_std"] }
 miette = { version = "7", features = ["fancy"] }
@@ -242,6 +245,7 @@ smallvec = { version = "1", default-features = false, features = ["const_new", "
 socket2 = { version = "0.5", default-features = false, features = ["all"] }
 spin = { version = "0.9", default-features = false, features = ["once", "spin_mutex"] }
 spki = { version = "0.7", default-features = false, features = ["pem", "std"] }
+stable_deref_trait = { version = "1" }
 strum = { version = "0.26", features = ["derive"] }
 subtle = { version = "2" }
 syn-dff4ba8e3ae991db = { package = "syn", version = "1", features = ["extra-traits", "full", "visit"] }
@@ -276,11 +280,10 @@ deadpool = { version = "0.12", features = ["rt_tokio_1"] }
 gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
 hyper-rustls = { version = "0.27", default-features = false, features = ["http1", "http2", "ring", "tls12", "webpki-tokio"] }
 iana-time-zone = { version = "0.1", default-features = false, features = ["fallback"] }
-libc = { version = "0.2", features = ["extra_traits"] }
 miniz_oxide = { version = "0.8", default-features = false, features = ["with-alloc"] }
 object = { version = "0.36", default-features = false, features = ["archive", "read_core", "unaligned", "write"] }
+pprof = { version = "0.13", features = ["criterion", "flamegraph"] }
 rustix = { version = "0.38", features = ["event", "mm", "net", "param", "process", "procfs", "termios", "thread", "time"] }
-stable_deref_trait = { version = "1" }
 tokio-postgres = { git = "https://github.com/grafbase/rust-postgres/", branch = "grafbase-rebased" }
 web-sys = { version = "0.3", default-features = false, features = ["Worker"] }
 zeroize = { version = "1", default-features = false, features = ["derive"] }
@@ -290,11 +293,10 @@ deadpool = { version = "0.12", features = ["rt_tokio_1"] }
 gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
 hyper-rustls = { version = "0.27", default-features = false, features = ["http1", "http2", "ring", "tls12", "webpki-tokio"] }
 iana-time-zone = { version = "0.1", default-features = false, features = ["fallback"] }
-libc = { version = "0.2", features = ["extra_traits"] }
 miniz_oxide = { version = "0.8", default-features = false, features = ["with-alloc"] }
 object = { version = "0.36", default-features = false, features = ["archive", "read_core", "unaligned", "write"] }
+pprof = { version = "0.13", features = ["criterion", "flamegraph"] }
 rustix = { version = "0.38", features = ["event", "mm", "net", "param", "process", "procfs", "termios", "thread", "time"] }
-stable_deref_trait = { version = "1" }
 tokio-postgres = { git = "https://github.com/grafbase/rust-postgres/", branch = "grafbase-rebased" }
 web-sys = { version = "0.3", default-features = false, features = ["Worker"] }
 zeroize = { version = "1", default-features = false, features = ["derive"] }
@@ -304,12 +306,11 @@ deadpool = { version = "0.12", features = ["rt_tokio_1"] }
 gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
 hyper-rustls = { version = "0.27", default-features = false, features = ["http1", "http2", "ring", "tls12", "webpki-tokio"] }
 iana-time-zone = { version = "0.1", default-features = false, features = ["fallback"] }
-libc = { version = "0.2", features = ["extra_traits"] }
 miniz_oxide = { version = "0.8", default-features = false, features = ["with-alloc"] }
 object = { version = "0.36", default-features = false, features = ["archive", "read_core", "unaligned", "write"] }
+pprof = { version = "0.13", features = ["criterion", "flamegraph"] }
 rustix = { version = "0.38", features = ["event", "mm", "net", "param", "process", "procfs", "termios", "thread", "time"] }
 spin = { version = "0.9" }
-stable_deref_trait = { version = "1" }
 tokio-postgres = { git = "https://github.com/grafbase/rust-postgres/", branch = "grafbase-rebased" }
 web-sys = { version = "0.3", default-features = false, features = ["Worker"] }
 zeroize = { version = "1", default-features = false, features = ["derive"] }
@@ -319,12 +320,11 @@ deadpool = { version = "0.12", features = ["rt_tokio_1"] }
 gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
 hyper-rustls = { version = "0.27", default-features = false, features = ["http1", "http2", "ring", "tls12", "webpki-tokio"] }
 iana-time-zone = { version = "0.1", default-features = false, features = ["fallback"] }
-libc = { version = "0.2", features = ["extra_traits"] }
 miniz_oxide = { version = "0.8", default-features = false, features = ["with-alloc"] }
 object = { version = "0.36", default-features = false, features = ["archive", "read_core", "unaligned", "write"] }
+pprof = { version = "0.13", features = ["criterion", "flamegraph"] }
 rustix = { version = "0.38", features = ["event", "mm", "net", "param", "process", "procfs", "termios", "thread", "time"] }
 spin = { version = "0.9" }
-stable_deref_trait = { version = "1" }
 tokio-postgres = { git = "https://github.com/grafbase/rust-postgres/", branch = "grafbase-rebased" }
 web-sys = { version = "0.3", default-features = false, features = ["Worker"] }
 zeroize = { version = "1", default-features = false, features = ["derive"] }
@@ -335,7 +335,7 @@ hyper-rustls = { version = "0.27", default-features = false, features = ["http1"
 spin = { version = "0.9" }
 tokio-postgres = { git = "https://github.com/grafbase/rust-postgres/", branch = "grafbase-rebased" }
 web-sys = { version = "0.3", default-features = false, features = ["Worker"] }
-winapi = { version = "0.3", default-features = false, features = ["cfg", "consoleapi", "errhandlingapi", "evntrace", "fileapi", "handleapi", "impl-default", "in6addr", "inaddr", "knownfolders", "minwinbase", "minwindef", "ntsecapi", "objbase", "processenv", "processthreadsapi", "profileapi", "shlobj", "std", "synchapi", "winbase", "windef", "winerror", "winioctl", "winnt", "winuser"] }
+winapi = { version = "0.3", default-features = false, features = ["cfg", "consoleapi", "errhandlingapi", "evntrace", "fileapi", "handleapi", "impl-default", "in6addr", "inaddr", "knownfolders", "libloaderapi", "memoryapi", "minwinbase", "minwindef", "ntsecapi", "objbase", "processenv", "processthreadsapi", "profileapi", "psapi", "shlobj", "std", "synchapi", "winbase", "windef", "winerror", "winioctl", "winnt", "winuser"] }
 windows-sys-73dcd821b1037cfd = { package = "windows-sys", version = "0.59", features = ["Win32_Security_Authentication_Identity", "Win32_Security_Credentials", "Win32_Security_Cryptography", "Win32_Storage_FileSystem", "Win32_System_Console", "Win32_System_Diagnostics_Debug", "Win32_System_Kernel", "Win32_System_LibraryLoader", "Win32_System_Memory", "Win32_System_Pipes", "Win32_System_SystemInformation", "Win32_System_Threading"] }
 windows-sys-b21d60becc0929df = { package = "windows-sys", version = "0.52", features = ["Wdk_Foundation", "Wdk_Storage_FileSystem", "Wdk_System_IO", "Win32_Foundation", "Win32_NetworkManagement_IpHelper", "Win32_Networking_WinSock", "Win32_Security", "Win32_Storage_FileSystem", "Win32_System_Com", "Win32_System_Console", "Win32_System_Diagnostics_Debug", "Win32_System_IO", "Win32_System_Ioctl", "Win32_System_Kernel", "Win32_System_LibraryLoader", "Win32_System_Performance", "Win32_System_Pipes", "Win32_System_SystemServices", "Win32_System_Threading", "Win32_System_WindowsProgramming", "Win32_UI_Input_KeyboardAndMouse", "Win32_UI_Shell"] }
 windows-sys-c8eced492e86ede7 = { package = "windows-sys", version = "0.48", features = ["Win32_Foundation", "Win32_Globalization", "Win32_Security", "Win32_Storage_FileSystem", "Win32_System_Com", "Win32_System_Console", "Win32_System_IO", "Win32_System_Threading", "Win32_System_WindowsProgramming", "Win32_UI_Shell"] }
@@ -347,7 +347,7 @@ hyper-rustls = { version = "0.27", default-features = false, features = ["http1"
 spin = { version = "0.9" }
 tokio-postgres = { git = "https://github.com/grafbase/rust-postgres/", branch = "grafbase-rebased" }
 web-sys = { version = "0.3", default-features = false, features = ["Worker"] }
-winapi = { version = "0.3", default-features = false, features = ["cfg", "consoleapi", "errhandlingapi", "evntrace", "fileapi", "handleapi", "impl-default", "in6addr", "inaddr", "knownfolders", "minwinbase", "minwindef", "ntsecapi", "objbase", "processenv", "processthreadsapi", "profileapi", "shlobj", "std", "synchapi", "winbase", "windef", "winerror", "winioctl", "winnt", "winuser"] }
+winapi = { version = "0.3", default-features = false, features = ["cfg", "consoleapi", "errhandlingapi", "evntrace", "fileapi", "handleapi", "impl-default", "in6addr", "inaddr", "knownfolders", "libloaderapi", "memoryapi", "minwinbase", "minwindef", "ntsecapi", "objbase", "processenv", "processthreadsapi", "profileapi", "psapi", "shlobj", "std", "synchapi", "winbase", "windef", "winerror", "winioctl", "winnt", "winuser"] }
 windows-sys-73dcd821b1037cfd = { package = "windows-sys", version = "0.59", features = ["Win32_Security_Authentication_Identity", "Win32_Security_Credentials", "Win32_Security_Cryptography", "Win32_Storage_FileSystem", "Win32_System_Console", "Win32_System_Diagnostics_Debug", "Win32_System_Kernel", "Win32_System_LibraryLoader", "Win32_System_Memory", "Win32_System_Pipes", "Win32_System_SystemInformation", "Win32_System_Threading"] }
 windows-sys-b21d60becc0929df = { package = "windows-sys", version = "0.52", features = ["Wdk_Foundation", "Wdk_Storage_FileSystem", "Wdk_System_IO", "Win32_Foundation", "Win32_NetworkManagement_IpHelper", "Win32_Networking_WinSock", "Win32_Security", "Win32_Storage_FileSystem", "Win32_System_Com", "Win32_System_Console", "Win32_System_Diagnostics_Debug", "Win32_System_IO", "Win32_System_Ioctl", "Win32_System_Kernel", "Win32_System_LibraryLoader", "Win32_System_Performance", "Win32_System_Pipes", "Win32_System_SystemServices", "Win32_System_Threading", "Win32_System_WindowsProgramming", "Win32_UI_Input_KeyboardAndMouse", "Win32_UI_Shell"] }
 windows-sys-c8eced492e86ede7 = { package = "windows-sys", version = "0.48", features = ["Win32_Foundation", "Win32_Globalization", "Win32_Security", "Win32_Storage_FileSystem", "Win32_System_Com", "Win32_System_Console", "Win32_System_IO", "Win32_System_Threading", "Win32_System_WindowsProgramming", "Win32_UI_Shell"] }
@@ -358,14 +358,13 @@ deadpool = { version = "0.12", features = ["rt_tokio_1"] }
 gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
 hyper-rustls = { version = "0.27", default-features = false, features = ["http1", "http2", "ring", "tls12", "webpki-tokio"] }
 iana-time-zone = { version = "0.1", default-features = false, features = ["fallback"] }
-libc = { version = "0.2", features = ["extra_traits"] }
 linux-raw-sys = { version = "0.4", default-features = false, features = ["elf", "errno", "general", "if_ether", "ioctl", "net", "netlink", "no_std", "prctl", "xdp"] }
 miniz_oxide = { version = "0.8", default-features = false, features = ["with-alloc"] }
 mio = { version = "0.8", features = ["net", "os-ext"] }
 object = { version = "0.36", default-features = false, features = ["archive", "read_core", "unaligned", "write"] }
+pprof = { version = "0.13", features = ["criterion", "flamegraph"] }
 rustix = { version = "0.38", features = ["event", "mm", "net", "param", "process", "procfs", "termios", "thread", "time"] }
 spin = { version = "0.9" }
-stable_deref_trait = { version = "1" }
 tokio-postgres = { git = "https://github.com/grafbase/rust-postgres/", branch = "grafbase-rebased" }
 web-sys = { version = "0.3", default-features = false, features = ["Worker"] }
 zeroize = { version = "1", default-features = false, features = ["derive"] }
@@ -375,14 +374,13 @@ deadpool = { version = "0.12", features = ["rt_tokio_1"] }
 gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
 hyper-rustls = { version = "0.27", default-features = false, features = ["http1", "http2", "ring", "tls12", "webpki-tokio"] }
 iana-time-zone = { version = "0.1", default-features = false, features = ["fallback"] }
-libc = { version = "0.2", features = ["extra_traits"] }
 linux-raw-sys = { version = "0.4", default-features = false, features = ["elf", "errno", "general", "if_ether", "ioctl", "net", "netlink", "no_std", "prctl", "xdp"] }
 miniz_oxide = { version = "0.8", default-features = false, features = ["with-alloc"] }
 mio = { version = "0.8", features = ["net", "os-ext"] }
 object = { version = "0.36", default-features = false, features = ["archive", "read_core", "unaligned", "write"] }
+pprof = { version = "0.13", features = ["criterion", "flamegraph"] }
 rustix = { version = "0.38", features = ["event", "mm", "net", "param", "process", "procfs", "termios", "thread", "time"] }
 spin = { version = "0.9" }
-stable_deref_trait = { version = "1" }
 tokio-postgres = { git = "https://github.com/grafbase/rust-postgres/", branch = "grafbase-rebased" }
 web-sys = { version = "0.3", default-features = false, features = ["Worker"] }
 zeroize = { version = "1", default-features = false, features = ["derive"] }
@@ -392,13 +390,12 @@ deadpool = { version = "0.12", features = ["rt_tokio_1"] }
 gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
 hyper-rustls = { version = "0.27", default-features = false, features = ["http1", "http2", "ring", "tls12", "webpki-tokio"] }
 iana-time-zone = { version = "0.1", default-features = false, features = ["fallback"] }
-libc = { version = "0.2", features = ["extra_traits"] }
 linux-raw-sys = { version = "0.4", default-features = false, features = ["elf", "errno", "general", "if_ether", "ioctl", "net", "netlink", "no_std", "prctl", "xdp"] }
 miniz_oxide = { version = "0.8", default-features = false, features = ["with-alloc"] }
 mio = { version = "0.8", features = ["net", "os-ext"] }
 object = { version = "0.36", default-features = false, features = ["archive", "read_core", "unaligned", "write"] }
+pprof = { version = "0.13", features = ["criterion", "flamegraph"] }
 rustix = { version = "0.38", features = ["event", "mm", "net", "param", "process", "procfs", "termios", "thread", "time"] }
-stable_deref_trait = { version = "1" }
 tokio-postgres = { git = "https://github.com/grafbase/rust-postgres/", branch = "grafbase-rebased" }
 web-sys = { version = "0.3", default-features = false, features = ["Worker"] }
 zeroize = { version = "1", default-features = false, features = ["derive"] }
@@ -408,13 +405,12 @@ deadpool = { version = "0.12", features = ["rt_tokio_1"] }
 gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
 hyper-rustls = { version = "0.27", default-features = false, features = ["http1", "http2", "ring", "tls12", "webpki-tokio"] }
 iana-time-zone = { version = "0.1", default-features = false, features = ["fallback"] }
-libc = { version = "0.2", features = ["extra_traits"] }
 linux-raw-sys = { version = "0.4", default-features = false, features = ["elf", "errno", "general", "if_ether", "ioctl", "net", "netlink", "no_std", "prctl", "xdp"] }
 miniz_oxide = { version = "0.8", default-features = false, features = ["with-alloc"] }
 mio = { version = "0.8", features = ["net", "os-ext"] }
 object = { version = "0.36", default-features = false, features = ["archive", "read_core", "unaligned", "write"] }
+pprof = { version = "0.13", features = ["criterion", "flamegraph"] }
 rustix = { version = "0.38", features = ["event", "mm", "net", "param", "process", "procfs", "termios", "thread", "time"] }
-stable_deref_trait = { version = "1" }
 tokio-postgres = { git = "https://github.com/grafbase/rust-postgres/", branch = "grafbase-rebased" }
 web-sys = { version = "0.3", default-features = false, features = ["Worker"] }
 zeroize = { version = "1", default-features = false, features = ["derive"] }
@@ -422,7 +418,6 @@ zeroize = { version = "1", default-features = false, features = ["derive"] }
 [target.wasm32-unknown-unknown.dependencies]
 getrandom = { version = "0.2", default-features = false, features = ["js"] }
 gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
-libc = { version = "0.2", features = ["extra_traits"] }
 miniz_oxide = { version = "0.8", default-features = false, features = ["with-alloc"] }
 nom = { version = "7" }
 object = { version = "0.36", default-features = false, features = ["archive", "read_core", "unaligned", "write"] }
@@ -432,7 +427,6 @@ web-sys = { version = "0.3", default-features = false, features = ["BlobProperty
 [target.wasm32-unknown-unknown.build-dependencies]
 getrandom = { version = "0.2", default-features = false, features = ["js"] }
 gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
-libc = { version = "0.2", features = ["extra_traits"] }
 miniz_oxide = { version = "0.8", default-features = false, features = ["with-alloc"] }
 nom = { version = "7" }
 object = { version = "0.36", default-features = false, features = ["archive", "read_core", "unaligned", "write"] }

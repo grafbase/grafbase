@@ -76,7 +76,7 @@ fn gb6873_wrong_enum_sent_to_subgraph() {
                 "a",
                 {
                   "body": {
-                    "query": "query($var0: SomeInput!) {\n  doStuff(input: $var0)\n}\n",
+                    "query": "query($var0: SomeInput!) { doStuff(input: $var0) }",
                     "operationName": null,
                     "variables": {
                       "var0": {
@@ -93,7 +93,7 @@ fn gb6873_wrong_enum_sent_to_subgraph() {
                     ],
                     [
                       "content-length",
-                      "127"
+                      "121"
                     ],
                     [
                       "content-type",
