@@ -180,6 +180,8 @@ impl VersionedConfig {
                 entity_caching,
                 retry,
                 batching: Default::default(),
+                apq: Default::default(),
+                operation_caching: Default::default(),
             },
             VersionedConfig::V6(latest) => latest,
         }
