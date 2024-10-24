@@ -1750,9 +1750,9 @@ dependencies = [
 
 [[package]]
 name = "cynic-parser"
-version = "0.6.1"
+version = "0.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c1d0ddbc98929f9756fdfe40b6e684665142a7ad050c212c2817b5bd60639841"
+checksum = "65ce83dd670cf8a262271ea12e55a8a6731bf6109fe8688ad3acf178382a5b12"
 dependencies = [
  "ariadne",
  "indexmap 2.6.0",
@@ -2437,7 +2437,7 @@ name = "engine-v2-codegen"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "cynic-parser 0.6.1",
+ "cynic-parser 0.6.2",
  "grafbase-workspace-hack",
  "indoc",
  "itertools 0.13.0",
@@ -2794,7 +2794,7 @@ name = "federation-audit-tests"
 version = "0.80.0"
 dependencies = [
  "async-graphql-parser",
- "cynic-parser 0.6.1",
+ "cynic-parser 0.6.2",
  "grafbase-workspace-hack",
  "graphql-composition",
  "integration-tests",
@@ -3145,7 +3145,7 @@ dependencies = [
  "async-trait",
  "bytes",
  "common-types",
- "cynic-parser 0.6.1",
+ "cynic-parser 0.6.2",
  "engine",
  "engine-parser",
  "engine-validation",
@@ -3448,7 +3448,7 @@ version = "0.80.0"
 dependencies = [
  "cynic",
  "cynic-introspection",
- "cynic-parser 0.6.1",
+ "cynic-parser 0.6.2",
  "grafbase-workspace-hack",
  "indoc",
  "reqwest",
@@ -3578,7 +3578,7 @@ dependencies = [
  "crossbeam-queue",
  "crossbeam-utils",
  "cynic-codegen",
- "cynic-parser 0.6.1",
+ "cynic-parser 0.6.2",
  "deadpool 0.12.1",
  "deadpool-runtime",
  "der",
@@ -3758,7 +3758,7 @@ dependencies = [
 name = "graphql-federated-graph"
 version = "0.4.0"
 dependencies = [
- "cynic-parser 0.6.1",
+ "cynic-parser 0.6.2",
  "expect-test",
  "grafbase-workspace-hack",
  "graphql-wrapping-types",
@@ -3773,7 +3773,7 @@ name = "graphql-lint"
 version = "0.1.3"
 dependencies = [
  "criterion",
- "cynic-parser 0.6.1",
+ "cynic-parser 0.6.2",
  "grafbase-workspace-hack",
  "heck 0.5.0",
  "thiserror",
@@ -3821,7 +3821,7 @@ dependencies = [
 name = "graphql-schema-diff"
 version = "0.2.0"
 dependencies = [
- "cynic-parser 0.6.1",
+ "cynic-parser 0.6.2",
  "datatest-stable",
  "grafbase-workspace-hack",
  "miette",
@@ -4454,7 +4454,7 @@ dependencies = [
  "ctor",
  "cynic",
  "cynic-introspection",
- "cynic-parser 0.6.1",
+ "cynic-parser 0.6.2",
  "engine",
  "engine-config-builder",
  "engine-parser",
@@ -6005,7 +6005,7 @@ dependencies = [
  "anyhow",
  "blake3",
  "common-types",
- "cynic-parser 0.6.1",
+ "cynic-parser 0.6.2",
  "engine-value",
  "grafbase-workspace-hack",
  "graph-entities",
@@ -6978,7 +6978,7 @@ name = "registry-v2-generator"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "cynic-parser 0.6.1",
+ "cynic-parser 0.6.2",
  "grafbase-workspace-hack",
  "indexmap 2.6.0",
  "indoc",
