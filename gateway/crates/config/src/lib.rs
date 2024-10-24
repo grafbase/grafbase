@@ -6,6 +6,7 @@ pub mod entity_caching;
 pub mod header;
 pub mod health;
 pub mod hooks;
+pub mod message_signatures;
 pub mod rate_limit;
 mod size_ext;
 pub mod telemetry;
@@ -19,6 +20,7 @@ pub use entity_caching::*;
 pub use header::*;
 pub use health::*;
 pub use hooks::*;
+pub use message_signatures::MessageSignaturesConfig;
 pub use rate_limit::*;
 use serde_dynamic_string::DynamicString;
 use size::Size;
@@ -114,6 +116,8 @@ pub struct GatewayConfig {
     pub access_logs: AccessLogsConfig,
     /// Query batching configuration
     pub batching: BatchingConfig,
+    /// Global message signatures config
+    pub message_signatures: MessageSignaturesConfig,
 }
 
 #[derive(Debug, Default, serde::Deserialize, Clone, Copy)]
@@ -180,6 +184,8 @@ pub struct SubgraphConfig {
     /// Subgraph specific entity caching config  this overrides the global config if there
     /// is any
     pub entity_caching: Option<EntityCachingConfig>,
+    /// Subgraph specific message signatures config
+    pub message_signatures: MessageSignaturesConfig,
 }
 
 #[derive(Debug, serde::Deserialize, Clone, Copy, Default, PartialEq)]
@@ -1399,7 +1405,7 @@ mod tests {
 
         let result: Config = toml::from_str(input).unwrap();
 
-        insta::assert_debug_snapshot!(&result.subgraphs, @r#"
+        insta::assert_debug_snapshot!(&result.subgraphs, @r###"
         {
             "products": SubgraphConfig {
                 url: None,
@@ -1421,9 +1427,21 @@ mod tests {
                 timeout: None,
                 retry: None,
                 entity_caching: None,
+                message_signatures: MessageSignaturesConfig {
+                    enabled: None,
+                    algorithm: None,
+                    key: None,
+                    expiry: None,
+                    headers: MessageSigningHeaders {
+                        include: [],
+                        exclude: [],
+                    },
+                    derived_components: [],
+                    signature_parameters: [],
+                },
             },
         }
-        "#);
+        "###);
     }
 
     #[test]
@@ -1471,7 +1489,7 @@ mod tests {
 
         let config: Config = toml::from_str(input).unwrap();
 
-        insta::assert_debug_snapshot!(&config.gateway, @r#"
+        insta::assert_debug_snapshot!(&config.gateway, @r###"
         GatewayConfig {
             timeout: Some(
                 1s,
@@ -1497,8 +1515,20 @@ mod tests {
                 enabled: false,
                 limit: None,
             },
+            message_signatures: MessageSignaturesConfig {
+                enabled: None,
+                algorithm: None,
+                key: None,
+                expiry: None,
+                headers: MessageSigningHeaders {
+                    include: [],
+                    exclude: [],
+                },
+                derived_components: [],
+                signature_parameters: [],
+            },
         }
-        "#);
+        "###);
     }
 
     #[test]
@@ -1849,7 +1879,7 @@ mod tests {
 
         let config: Config = toml::from_str(input).unwrap();
 
-        insta::assert_debug_snapshot!(&config.subgraphs, @r#"
+        insta::assert_debug_snapshot!(&config.subgraphs, @r###"
         {
             "products": SubgraphConfig {
                 url: None,
@@ -1867,9 +1897,21 @@ mod tests {
                     },
                 ),
                 entity_caching: None,
+                message_signatures: MessageSignaturesConfig {
+                    enabled: None,
+                    algorithm: None,
+                    key: None,
+                    expiry: None,
+                    headers: MessageSigningHeaders {
+                        include: [],
+                        exclude: [],
+                    },
+                    derived_components: [],
+                    signature_parameters: [],
+                },
             },
         }
-        "#);
+        "###);
     }
 
     #[test]
