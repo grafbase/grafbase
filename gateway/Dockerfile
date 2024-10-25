@@ -1,17 +1,10 @@
 #
 # === Build image ===
 #
-FROM rust:1.82-alpine3.20 AS chef
-
-# Patching musl to use mimalloc, see docker/README.md.
-# Source: https://github.com/tweag/rust-alpine-mimalloc
-COPY docker/build.sh docker/mimalloc.diff /tmp/
-RUN /tmp/build.sh
-ENV LD_PRELOAD=/usr/lib/libmimalloc.so
-ENV RUSTFLAGS="-C target-feature=+crt-static"
+FROM rust:1.82-bookworm AS chef
 
 COPY rust-toolchain.toml rust-toolchain.toml
-RUN apk add --no-cache musl-dev && cargo install --target "$(rustc -vV | sed -n "s|host: ||p")" cargo-chef
+RUN cargo install cargo-chef
 WORKDIR /grafbase
 
 FROM chef AS planner
@@ -22,7 +15,7 @@ RUN cargo chef prepare --recipe-path recipe.json
 FROM chef AS builder
 ENV CARGO_INCREMENTAL=0
 COPY --from=planner /grafbase/recipe.json recipe.json
-RUN cargo chef cook --target "$(rustc -vV | sed -n "s|host: ||p")" --release --recipe-path recipe.json
+RUN cargo chef cook --release --recipe-path recipe.json
 
 COPY Cargo.lock Cargo.lock
 COPY Cargo.toml Cargo.toml
@@ -35,13 +28,12 @@ COPY ./gqlint ./gqlint
 COPY ./engine/crates ./engine/crates
 COPY ./workspace-hack ./workspace-hack
 
-RUN cargo build --release --target "$(rustc -vV | sed -n "s|host: ||p")" --bin grafbase-gateway &&\
-    mv "/grafbase/target/$(rustc -vV | sed -n "s|host: ||p")/release/grafbase-gateway" /grafbase/target/release/grafbase-gateway
+RUN cargo build --release --bin grafbase-gateway
 
 #
 # === Final image ===
 #
-FROM alpine:3.20
+FROM debian:bookworm-slim
 
 LABEL org.opencontainers.image.url='https://grafbase.com' \
     org.opencontainers.image.documentation='https://grafbase.com/docs' \
@@ -53,9 +45,9 @@ LABEL org.opencontainers.image.url='https://grafbase.com' \
 WORKDIR /grafbase
 
 # used curl to run a health check query against the server in a docker-compose file
-RUN apk add --no-cache curl
+RUN apt update && apt install -y curl && rm -rf /var/lib/apt/lists/*
 
-RUN adduser -g wheel -D grafbase -h "/data" && mkdir -p /data && chown grafbase: /data
+RUN adduser --home "/data" grafbase && mkdir -p /data && chown grafbase /data
 USER grafbase
 
 COPY --from=builder /grafbase/target/release/grafbase-gateway /bin/grafbase-gateway
