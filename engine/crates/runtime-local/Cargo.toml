@@ -19,7 +19,10 @@ redis = ["dep:redis", "dep:deadpool"]
 [dependencies]
 async-runtime.workspace = true
 async-trait = "0.1.80"
-async-tungstenite = { workspace = true, features = ["tokio-runtime", "tokio-rustls-webpki-roots"] }
+async-tungstenite = { workspace = true, features = [
+  "tokio-runtime",
+  "tokio-rustls-webpki-roots",
+] }
 bytes.workspace = true
 futures-util.workspace = true
 graphql-ws-client = { version = "0.10.0", features = ["tungstenite"] }
@@ -28,7 +31,7 @@ http.workspace = true
 ulid.workspace = true
 reqwest-eventsource = "0.6"
 serde.workspace = true
-serde_json = { workspace  = true, features = ["raw_value"] }
+serde_json = { workspace = true, features = ["raw_value"] }
 tracing.workspace = true
 tungstenite = { workspace = true, features = ["url"] }
 tokio = { workspace = true, features = ["macros", "sync"] }
@@ -38,15 +41,17 @@ gateway-config.workspace = true
 url = { workspace = true, optional = true }
 postgres-connector-types = { path = "../postgres-connector-types" }
 mini-moka = "0.10"
-redis = { version = "0.25.3", features = ["tokio-rustls-comp", "connection-manager"], optional = true }
+redis = { version = "0.25.3", features = [
+  "tokio-rustls-comp",
+  "connection-manager",
+], optional = true }
 
-reqwest = { workspace = true, features = [
-  "json",
-  "rustls-tls",
-] }
+reqwest = { workspace = true, features = ["json", "rustls-tls"] }
+
+httpsig-hyper = "0.0.16"
 
 wasi-component-loader = { version = "0.80.1", path = "../wasi-component-loader", optional = true }
-deadpool = { version = "0.12.1", features = ["rt_tokio_1"] , optional = true }
+deadpool = { version = "0.12.1", features = ["rt_tokio_1"], optional = true }
 grafbase-telemetry.workspace = true
 anyhow.workspace = true
 grafbase-workspace-hack.workspace = true

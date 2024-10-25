@@ -3,6 +3,7 @@ use std::future::Future;
 use bytes::Bytes;
 use futures_util::Stream;
 use futures_util::{StreamExt, TryStreamExt};
+use httpsig_hyper::MessageSignatureReq;
 use reqwest::RequestBuilder;
 use reqwest_eventsource::RequestBuilderExt;
 use runtime::bytes::OwnedOrSharedBytes;
@@ -21,7 +22,12 @@ impl Fetcher for NativeFetcher {
     ) -> (FetchResult<http::Response<OwnedOrSharedBytes>>, Option<ResponseInfo>) {
         let mut info = ResponseInfo::builder();
 
-        let result = self.client.execute(into_reqwest(request)).await.map_err(|e| {
+        let reqwest_request = into_reqwest(request);
+        let http_request = http::Request::try_from(reqwest_request).unwrap();
+        http_request.set_message_signature(todo!(), todo!(), todo!());
+        let reqwest_request = reqwest::Request::try_from(http_request).unwrap();
+
+        let result = self.client.execute(request).await.map_err(|e| {
             if e.is_timeout() {
                 FetchError::Timeout
             } else {
