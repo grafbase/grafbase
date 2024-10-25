@@ -1,0 +1,35 @@
+type Pet @key(fields: "id") {
+  id: Int!
+  name: String!
+  age: String!
+}
+
+type Query {
+  pets: [Pet]!
+}
+
+type User @key(fields: "id") {
+  id: Int!
+  pets: [Pet!]!
+}
+
+directive @include(if: Boolean!) on FIELD | FRAGMENT_SPREAD | INLINE_FRAGMENT
+
+directive @skip(if: Boolean!) on FIELD | FRAGMENT_SPREAD | INLINE_FRAGMENT
+
+extend schema
+  @link(
+    url: "https://specs.apollo.dev/federation/v2.3"
+    import: [
+      "@key"
+      "@tag"
+      "@shareable"
+      "@inaccessible"
+      "@override"
+      "@external"
+      "@provides"
+      "@requires"
+      "@composeDirective"
+      "@interfaceObject"
+    ]
+  )
