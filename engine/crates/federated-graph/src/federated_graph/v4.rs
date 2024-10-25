@@ -52,6 +52,12 @@ pub struct FederatedGraph {
 }
 
 impl FederatedGraph {
+    /// Instantiate a [FederatedGraph] from a federated schema string.
+    #[cfg(feature = "from_sdl")]
+    pub fn from_sdl(sdl: &str) -> Result<Self, crate::DomainError> {
+        crate::from_sdl(sdl)
+    }
+
     pub fn definition_name(&self, definition: Definition) -> &str {
         let name_id = match definition {
             Definition::Scalar(scalar_id) => self[scalar_id].name,

@@ -366,16 +366,16 @@ fn metadata_is_provided() {
 
         // We shouldn't have requested the field.
         let requests = engine.drain_graphql_requests_sent_to::<SecureSchema>();
-        insta::assert_json_snapshot!(requests, @r###"
+        insta::assert_json_snapshot!(requests, @r#"
         [
           {
-            "query": "query {\n  node {\n    ok: nullableAuthorizedWithMetadata {\n      id\n    }\n  }\n}\n",
+            "query": "query { node { ok: nullableAuthorizedWithMetadata { id } } }",
             "operationName": null,
             "variables": {},
             "extensions": {}
           }
         ]
-        "###);
+        "#);
     });
 }
 

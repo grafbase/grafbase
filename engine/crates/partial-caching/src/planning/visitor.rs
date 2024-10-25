@@ -56,8 +56,8 @@ pub fn visit_fragment(fragment: FragmentDefinition<'_>, registry: &PartialCacheR
     visit_selection_set(fragment.selection_set(), ty, registry, ctx)
 }
 
-fn visit_selection_set(
-    selections: Iter<'_, Selection<'_>>,
+fn visit_selection_set<'a>(
+    selections: Iter<'a, Selection<'a>>,
     container: Option<MetaType<'_>>,
     registry: &PartialCacheRegistry,
     ctx: &mut VisitorContext<'_>,

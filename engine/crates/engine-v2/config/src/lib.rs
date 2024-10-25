@@ -165,7 +165,9 @@ impl VersionedConfig {
                 entity_caching,
                 retry,
             }) => v6::Config {
-                graph: federated_graph::VersionedFederatedGraph::V3(graph).into_latest(),
+                graph: federated_graph::VersionedFederatedGraph::V3(graph)
+                    .into_latest()
+                    .expect("Failed to upgrade federated graph v3"),
                 strings,
                 paths,
                 header_rules,

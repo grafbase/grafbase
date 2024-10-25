@@ -2,7 +2,10 @@ use std::borrow::Cow;
 
 use bytes::Bytes;
 use futures::Future;
-use grafbase_telemetry::{graphql::GraphqlResponseStatus, otel::tracing_opentelemetry::OpenTelemetrySpanExt as _};
+use grafbase_telemetry::{
+    graphql::GraphqlResponseStatus, otel::tracing_opentelemetry::OpenTelemetrySpanExt as _,
+    span::subgraph::SubgraphHttpRequestSpan,
+};
 use headers::HeaderMapExt;
 use runtime::{
     bytes::OwnedOrSharedBytes,
@@ -11,7 +14,7 @@ use runtime::{
     rate_limiting::RateLimitKey,
 };
 use tower::retry::budget::Budget;
-use tracing::Instrument;
+use tracing::{Instrument, Span};
 use web_time::Duration;
 
 use crate::{
@@ -36,46 +39,48 @@ pub(crate) async fn execute_subgraph_request<'ctx, 'a, R: Runtime>(
 ) -> ExecutionResult<SubgraphResponse> {
     let endpoint = ctx.endpoint();
 
-    let request = {
-        let mut headers = ctx
-            .hooks()
-            .on_subgraph_request(endpoint.subgraph_name(), http::Method::POST, endpoint.url(), headers)
-            .await
-            .inspect_err(|_| {
-                ctx.set_as_hook_error();
-                ctx.push_request_execution(SubgraphRequestExecutionKind::HookError);
-            })?;
+    let mut headers = ctx
+        .hooks()
+        .on_subgraph_request(endpoint.subgraph_name(), http::Method::POST, endpoint.url(), headers)
+        .await
+        .inspect_err(|_| {
+            ctx.set_as_hook_error();
+            ctx.push_request_execution(SubgraphRequestExecutionKind::HookError);
+        })?;
 
-        headers.typed_insert(headers::ContentType::json());
-        headers.typed_insert(headers::ContentLength(body.len() as u64));
-        headers.insert(
-            http::header::ACCEPT,
-            http::HeaderValue::from_static(
-                "application/graphql-response+json; charset=utf-8, application/json; charset=utf-8",
-            ),
-        );
+    headers.typed_insert(headers::ContentType::json());
+    headers.typed_insert(headers::ContentLength(body.len() as u64));
+    headers.insert(
+        http::header::ACCEPT,
+        http::HeaderValue::from_static(
+            "application/graphql-response+json; charset=utf-8, application/json; charset=utf-8",
+        ),
+    );
 
-        grafbase_telemetry::otel::opentelemetry::global::get_text_map_propagator(|propagator| {
-            let context = tracing::Span::current().context();
-
-            propagator.inject_context(&context, &mut grafbase_telemetry::http::HeaderInjector(&mut headers));
-        });
-
-        FetchRequest {
-            url: Cow::Borrowed(endpoint.url()),
-            headers,
-            method: http::Method::POST,
-            body,
-            timeout: endpoint.config.timeout,
-        }
+    let request = FetchRequest {
+        url: Cow::Borrowed(endpoint.url()),
+        headers,
+        method: http::Method::POST,
+        body,
+        timeout: endpoint.config.timeout,
     };
 
     ctx.record_request_size(&request);
 
     let fetcher = ctx.engine.runtime.fetcher();
-    let http_span = ctx.create_subgraph_request_span(&request);
     let fetch_result = retrying_fetch(ctx, || async {
-        let (fetch_result, info) = fetcher.fetch(request.clone()).instrument(http_span.span()).await;
+        let http_span = SubgraphHttpRequestSpan::new(endpoint.url(), &http::Method::POST);
+        let mut request = request.clone();
+
+        grafbase_telemetry::otel::opentelemetry::global::get_text_map_propagator(|propagator| {
+            let context = http_span.context();
+            propagator.inject_context(
+                &context,
+                &mut grafbase_telemetry::http::HeaderInjector(&mut request.headers),
+            );
+        });
+
+        let (fetch_result, info) = fetcher.fetch(request).instrument(http_span.span()).await;
 
         let fetch_result = fetch_result.and_then(|response| {
             tracing::debug!("Received response:\n{}", String::from_utf8_lossy(response.body()));
@@ -89,22 +94,25 @@ pub(crate) async fn execute_subgraph_request<'ctx, 'a, R: Runtime>(
             }
         });
 
+        match fetch_result {
+            Ok(ref response) => {
+                http_span.record_http_status_code(response.status());
+            }
+            Err(ref err) => {
+                http_span.set_as_http_error(err.as_invalid_status_code());
+            }
+        };
+
         (fetch_result, info)
     })
     .await;
 
-    if let Some(count) = ctx.send_count() {
-        http_span.record_resend_count(count);
-    }
-
     let response = match fetch_result {
         Ok(response) => {
-            http_span.record_http_status_code(response.status());
             ctx.record_http_response(&response);
             response
         }
         Err(err) => {
-            http_span.set_as_http_error(err.as_fetch_invalid_status_code());
             ctx.set_as_http_error(err.as_fetch_invalid_status_code());
             return Err(err);
         }
@@ -146,7 +154,7 @@ where
     F: Future<Output = (FetchResult<T>, Option<ResponseInfo>)> + Send,
     T: Send,
 {
-    let mut fetch_result = rate_limited_fetch(ctx, &fetch).await;
+    let mut fetch_result = rate_limited_fetch(ctx, &fetch).instrument(Span::current()).await;
 
     if ctx.retry_budget().is_none() {
         return fetch_result;

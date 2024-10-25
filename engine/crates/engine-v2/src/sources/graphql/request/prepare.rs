@@ -14,13 +14,6 @@ use crate::operation::{
 
 const VARIABLE_PREFIX: &str = "var";
 
-macro_rules! indent_write {
-    ($dst:ident, $($arg:tt)*) => {{
-        $dst.write_indent();
-        write!($dst, $($arg)*)
-    }};
-}
-
 pub(crate) struct PreparedGraphqlOperation {
     pub ty: OperationType,
     pub query: String,
@@ -37,7 +30,7 @@ impl PreparedGraphqlOperation {
 
         // Generating the selection set first as this will define all the operation arguments
         let selection_set = {
-            let mut buffer = Buffer::with_capacity(256);
+            let mut buffer = String::with_capacity(256);
 
             let selection_set_type = SelectionSetType::Object(match operation_type {
                 OperationType::Query => plan.schema().query().id(),
@@ -46,7 +39,7 @@ impl PreparedGraphqlOperation {
             });
 
             ctx.write_selection_set(Some(selection_set_type), &mut buffer, plan.selection_set())?;
-            buffer.into_string()
+            buffer
         };
 
         let mut query = String::with_capacity(selection_set.len() + 14 + ctx.estimated_variable_definitions_string_len);
@@ -84,10 +77,9 @@ impl PreparedFederationEntityOperation {
 
         // Generating the selection set first as this will define all the operation arguments
         let selection_set = {
-            let mut buffer = Buffer::with_capacity(256);
-            buffer.indent += 1;
+            let mut buffer = String::with_capacity(256);
             ctx.write_selection_set(None, &mut buffer, plan.selection_set())?;
-            buffer.into_string()
+            buffer
         };
 
         let entities_variable_name = format!("{VARIABLE_PREFIX}{}", ctx.variables.len());
@@ -107,7 +99,7 @@ impl PreparedFederationEntityOperation {
 
         write!(
             query,
-            " {{\n  _entities(representations: ${entities_variable_name}){selection_set}}}"
+            " {{ _entities(representations: ${entities_variable_name}){selection_set} }}"
         )?;
 
         Ok(PreparedFederationEntityOperation {
@@ -168,7 +160,7 @@ impl QueryBuilderContext {
         write!(
             out,
             "{}",
-            self.variables.values().format_with(", ", |var, f| {
+            self.variables.values().format_with(",", |var, f| {
                 // no need to add the default value, we'll always provide the variable.
                 f(&format_args!("${VARIABLE_PREFIX}{}: {}", var.idx, var.ty))
             })
@@ -178,31 +170,30 @@ impl QueryBuilderContext {
     fn write_selection_set(
         &mut self,
         maybe_selection_set_type: Option<SelectionSetType>,
-        buffer: &mut Buffer,
+        buffer: &mut String,
         selection_set: PlanSelectionSet<'_>,
     ) -> Result<(), Error> {
-        buffer.write_str(" {\n")?;
-        buffer.indent += 1;
+        buffer.push_str(" {");
         let n = buffer.len();
         if selection_set.requires_typename() {
             // We always need to know the concrete object.
-            indent_write!(buffer, "__typename\n")?;
+            buffer.push_str(" __typename");
         }
         self.write_selection_set_fields(maybe_selection_set_type, buffer, selection_set)?;
         // If nothing was written it means only meta fields (__typename) are present and during
         // deserialization we'll expect an object. So adding `__typename` to ensure a non empty
         // selection set.
         if buffer.len() == n {
-            indent_write!(buffer, "__typename\n")?;
+            buffer.push_str(" __typename");
         }
-        buffer.indent -= 1;
-        indent_write!(buffer, "}}\n")
+        buffer.push_str(" }");
+        Ok(())
     }
 
     fn write_selection_set_fields(
         &mut self,
         selection_set_type: Option<SelectionSetType>,
-        buffer: &mut Buffer,
+        buffer: &mut String,
         selection_set: PlanSelectionSet<'_>,
     ) -> Result<(), Error> {
         let subgraph_id = self.subgraph_id;
@@ -279,13 +270,12 @@ impl QueryBuilderContext {
     fn write_entity_fields(
         &mut self,
         in_same_entity: bool,
-        buffer: &mut Buffer,
+        buffer: &mut String,
         entity: EntityDefinition<'_>,
         fields: &[PlanWalker<'_, crate::operation::FieldId>],
     ) -> Result<(), Error> {
         if !in_same_entity {
-            indent_write!(buffer, "... on {} {{\n", entity.name())?;
-            buffer.indent += 1;
+            write!(buffer, " ... on {} {{", entity.name())?;
         }
 
         for field in fields {
@@ -293,8 +283,7 @@ impl QueryBuilderContext {
         }
 
         if !in_same_entity {
-            buffer.indent -= 1;
-            indent_write!(buffer, "}}\n")?;
+            buffer.push_str(" }");
         }
 
         Ok(())
@@ -302,30 +291,29 @@ impl QueryBuilderContext {
 
     fn write_type_fields(
         &mut self,
-        buffer: &mut Buffer,
+        buffer: &mut String,
         type_name: &str,
         fields: &[PlanWalker<'_, crate::operation::FieldId>],
     ) -> Result<(), Error> {
-        indent_write!(buffer, "... on {} {{\n", type_name)?;
-        buffer.indent += 1;
+        write!(buffer, " ... on {} {{", type_name)?;
 
         for field in fields {
             self.write_field(buffer, *field)?;
         }
 
-        buffer.indent -= 1;
-        indent_write!(buffer, "}}\n")?;
+        buffer.push_str(" }");
 
         Ok(())
     }
 
-    fn write_field(&mut self, buffer: &mut Buffer, field: PlanField<'_>) -> Result<(), Error> {
+    fn write_field(&mut self, buffer: &mut String, field: PlanField<'_>) -> Result<(), Error> {
         let response_key = field.response_key_str();
         let name = field.definition().name();
+        buffer.push(' ');
         if response_key == name {
-            indent_write!(buffer, "{name}")?;
+            buffer.push_str(name);
         } else {
-            indent_write!(buffer, "{response_key}: {name}")?;
+            write!(buffer, "{response_key}: {name}")?;
         }
         self.write_arguments(buffer, field.arguments())?;
         if let Some(selection_set) = field.selection_set() {
@@ -334,13 +322,11 @@ impl QueryBuilderContext {
                 buffer,
                 selection_set,
             )?;
-        } else {
-            buffer.push('\n');
         }
         Ok(())
     }
 
-    fn write_arguments(&mut self, buffer: &mut Buffer, arguments: FieldArgumentsWalker<'_>) -> Result<(), Error> {
+    fn write_arguments(&mut self, buffer: &mut String, arguments: FieldArgumentsWalker<'_>) -> Result<(), Error> {
         if !arguments.is_empty() {
             write!(
                 buffer,
@@ -371,45 +357,5 @@ impl QueryBuilderContext {
             )?;
         }
         Ok(())
-    }
-}
-
-#[derive(Hash, PartialEq, Eq)]
-struct Buffer {
-    inner: String,
-    indent: usize,
-}
-
-impl std::ops::Deref for Buffer {
-    type Target = String;
-
-    fn deref(&self) -> &Self::Target {
-        &self.inner
-    }
-}
-
-impl std::ops::DerefMut for Buffer {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.inner
-    }
-}
-
-impl Buffer {
-    fn with_capacity(capacity: usize) -> Self {
-        Buffer {
-            inner: String::with_capacity(capacity),
-            indent: 0,
-        }
-    }
-
-    fn into_string(self) -> String {
-        self.inner
-    }
-
-    fn write_indent(&mut self) {
-        for _ in 0..self.indent {
-            self.inner.push(' ');
-            self.inner.push(' ');
-        }
     }
 }

@@ -10,13 +10,7 @@ pub fn without_operation_cache(c: &mut Criterion) {
     c.bench_function("basic_without_operation_cache", |b| {
         // Insert a call to `to_async` to convert the bencher to async mode.
         // The timing loops are the same as with the normal bencher.
-        b.to_async(
-            tokio::runtime::Builder::new_current_thread()
-                .enable_all()
-                .build()
-                .unwrap(),
-        )
-        .iter(|| engine.raw_execute());
+        b.to_async(runtime()).iter(|| engine.raw_execute());
     });
 }
 
@@ -25,13 +19,7 @@ pub fn with_operation_cache(c: &mut Criterion) {
     c.bench_function("basic", |b| {
         // Insert a call to `to_async` to convert the bencher to async mode.
         // The timing loops are the same as with the normal bencher.
-        b.to_async(
-            tokio::runtime::Builder::new_current_thread()
-                .enable_all()
-                .build()
-                .unwrap(),
-        )
-        .iter(|| engine.raw_execute());
+        b.to_async(runtime()).iter(|| engine.raw_execute());
     });
 }
 

@@ -101,22 +101,22 @@ fn not_authenticated() {
 
         // We shouldn't have requested the field.
         let requests = engine.drain_graphql_requests_sent_to::<SecureSchema>();
-        insta::assert_json_snapshot!(requests, @r###"
+        insta::assert_json_snapshot!(requests, @r#"
         [
           {
-            "query": "query {\n  check {\n    anonymous\n  }\n}\n",
+            "query": "query { check { anonymous } }",
             "operationName": null,
             "variables": {},
             "extensions": {}
           },
           {
-            "query": "query {\n  check {\n    __typename\n  }\n}\n",
+            "query": "query { check { __typename } }",
             "operationName": null,
             "variables": {},
             "extensions": {}
           }
         ]
-        "###);
+        "#);
     });
 }
 

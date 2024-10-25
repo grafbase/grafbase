@@ -268,10 +268,10 @@ fn entity_request_cache_partial_hit() {
 
         // The first request here should be for top-1, and the second one should _not_ have top-1 because
         // it should have been loaded from the cache
-        insta::assert_json_snapshot!(engine.drain_graphql_requests_sent_to::<FederatedReviewsSchema>(), @r###"
+        insta::assert_json_snapshot!(engine.drain_graphql_requests_sent_to::<FederatedReviewsSchema>(), @r#"
         [
           {
-            "query": "query($var0: [_Any!]!) {\n  _entities(representations: $var0) {\n    ... on Product {\n      reviews {\n        id\n        body\n      }\n    }\n  }\n}",
+            "query": "query($var0: [_Any!]!) { _entities(representations: $var0) { ... on Product { reviews { id body } } } }",
             "operationName": null,
             "variables": {
               "var0": [
@@ -284,7 +284,7 @@ fn entity_request_cache_partial_hit() {
             "extensions": {}
           },
           {
-            "query": "query($var0: [_Any!]!) {\n  _entities(representations: $var0) {\n    ... on Product {\n      reviews {\n        id\n        body\n      }\n    }\n  }\n}",
+            "query": "query($var0: [_Any!]!) { _entities(representations: $var0) { ... on Product { reviews { id body } } } }",
             "operationName": null,
             "variables": {
               "var0": [
@@ -309,7 +309,7 @@ fn entity_request_cache_partial_hit() {
             "extensions": {}
           }
         ]
-        "###);
+        "#);
     })
 }
 

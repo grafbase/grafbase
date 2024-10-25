@@ -102,23 +102,12 @@ impl GraphqlResolver {
                 if let Some(bytes) = cache_entry {
                     ctx.record_cache_hit();
 
-                    let static_ctx = ctx.into_static();
-                    let subgraph_response = tokio::task::spawn_blocking(move || {
-                        let ctx = &ExecutionContext::from_static(&static_ctx);
-                        let response = subgraph_response.as_mut();
-
-                        GraphqlResponseSeed::new(
-                            response.next_seed(ctx).ok_or("No object to update")?,
-                            RootGraphqlErrors::new(ctx, response),
-                        )
-                        .deserialize(&mut serde_json::Deserializer::from_slice(&bytes))?;
-                        ExecutionResult::Ok(subgraph_response)
-                    })
-                    .await
-                    .map_err(|err| {
-                        tracing::error!("Join error: {err:?}");
-                        "Join error"
-                    })??;
+                    let response = subgraph_response.as_mut();
+                    GraphqlResponseSeed::new(
+                        response.next_seed(ctx).ok_or("No object to update")?,
+                        RootGraphqlErrors::new(ctx, response),
+                    )
+                    .deserialize(&mut serde_json::Deserializer::from_slice(&bytes))?;
 
                     return Ok(subgraph_response);
                 } else {
@@ -177,22 +166,14 @@ where
             cache_key,
         } = self;
 
-        let static_ctx = ctx.into_static();
-        let (status, subgraph_response, http_response) = tokio::task::spawn_blocking(move || {
-            let ctx = ExecutionContext::from_static(&static_ctx);
+        let status = {
             let response = subgraph_response.as_mut();
-            let status = GraphqlResponseSeed::new(
+            GraphqlResponseSeed::new(
                 response.next_seed(&ctx).ok_or("No object to update")?,
                 RootGraphqlErrors::new(&ctx, response),
             )
-            .deserialize(&mut serde_json::Deserializer::from_slice(http_response.body()))?;
-            ExecutionResult::Ok((status, subgraph_response, http_response))
-        })
-        .await
-        .map_err(|err| {
-            tracing::error!("Join error: {err:?}");
-            "Join error"
-        })??;
+            .deserialize(&mut serde_json::Deserializer::from_slice(http_response.body()))?
+        };
 
         if let Some(cache_key) = cache_key {
             let cache_ttl = calculate_cache_ttl(status, http_response.headers(), cache_ttl);

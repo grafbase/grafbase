@@ -2,6 +2,7 @@ use ::runtime::operation_cache::OperationCache;
 use futures::FutureExt;
 use runtime::hooks::Hooks;
 use std::sync::Arc;
+use tracing::{info_span, Instrument};
 
 use crate::{
     engine::{errors, trusted_documents::OperationDocument},
@@ -13,12 +14,12 @@ use crate::{
 };
 
 impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
-    #[tracing::instrument(skip_all)]
     pub(super) async fn prepare_operation(
         &mut self,
         request: Request,
     ) -> Result<ExecutableOperation, Response<<R::Hooks as Hooks>::OnOperationResponseOutput>> {
-        let result = self.prepare_operation_inner(request).await;
+        let span = info_span!("prepare operation");
+        let result = self.prepare_operation_inner(request).instrument(span).await;
         let duration = self.executed_operation_builder.track_prepare();
 
         match result {
@@ -66,7 +67,7 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
         let operation = match result {
             Ok(operation) => operation,
             Err((cache_key, document)) => {
-                let operation = tokio::task::block_in_place(|| Operation::prepare(self.schema(), &request, &document))
+                let operation = Operation::prepare(self.schema(), &request, &document)
                     .map(Arc::new)
                     .map_err(|mut err| {
                         let attributes = err.take_operation_attributes();

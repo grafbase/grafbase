@@ -105,10 +105,6 @@ impl<'ctx, R: Runtime> SubgraphContext<'ctx, R> {
         self.retry_budget
     }
 
-    pub fn send_count(&self) -> Option<usize> {
-        self.send_count.checked_sub(1)
-    }
-
     pub async fn finalize(
         self,
         subgraph_result: ExecutionResult<SubgraphResponse>,
