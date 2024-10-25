@@ -1,0 +1,56 @@
+directive @core(feature: String!) repeatable on SCHEMA
+
+directive @join__owner(graph: join__Graph!) on OBJECT
+
+directive @join__type(
+    graph: join__Graph!
+    key: String!
+    resolvable: Boolean = true
+) repeatable on OBJECT | INTERFACE
+
+directive @join__field(
+    graph: join__Graph
+    requires: String
+    provides: String
+) on FIELD_DEFINITION
+
+directive @join__graph(name: String!, url: String!) on ENUM_VALUE
+
+directive @join__implements(graph: join__Graph!, interface: String!) repeatable on OBJECT | INTERFACE
+
+directive @join__unionMember(graph: join__Graph!, member: String!) repeatable on UNION
+
+enum join__Graph {
+    PETS @join__graph(name: "pets", url: "http://example.com/pets")
+    USERS @join__graph(name: "users", url: "http://example.com/users")
+}
+
+scalar _Any
+
+type Pet
+    @join__type(graph: PETS, key: "id")
+{
+    age: String! @join__field(graph: PETS)
+    id: Int!
+    name: String! @join__field(graph: PETS)
+}
+
+type User
+    @join__type(graph: PETS, key: "id")
+    @join__type(graph: USERS, key: "id")
+{
+    address: Address @join__field(graph: USERS) @authorized(fields: "id")
+    id: Int!
+    name: String! @join__field(graph: USERS)
+    pets: [Pet!]! @join__field(graph: PETS)
+}
+
+type Address {
+    street: String! @join__field(graph: USERS)
+}
+
+type Query {
+    pets: [Pet]! @join__field(graph: PETS)
+    user(id: Int!): User @join__field(graph: USERS) @authorized(arguments: "id")
+    users: [User]! @join__field(graph: USERS) @authorized(node: "id", metadata: {role: "admin"})
+}

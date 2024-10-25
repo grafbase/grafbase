@@ -1,0 +1,43 @@
+scalar _Any
+
+type Address {
+  street: String!
+}
+
+type Query {
+  users: [User]! @authorized(node: "id", metadata: { role: "admin" })
+  user(id: Int!): User @authorized(arguments: "id")
+}
+
+type User @key(fields: "id") {
+  id: Int!
+  name: String!
+  address: Address @authorized(fields: "id")
+}
+
+directive @authorized(arguments: String, fields: String, node: String, metadata: _Any) on FIELD_DEFINITION | OBJECT
+
+directive @include(if: Boolean!) on FIELD | FRAGMENT_SPREAD | INLINE_FRAGMENT
+
+directive @skip(if: Boolean!) on FIELD | FRAGMENT_SPREAD | INLINE_FRAGMENT
+
+extend schema
+  @link(
+    url: "https://specs.apollo.dev/federation/v2.3"
+    import: [
+      "@key"
+      "@tag"
+      "@shareable"
+      "@inaccessible"
+      "@override"
+      "@external"
+      "@provides"
+      "@requires"
+      "@composeDirective"
+      "@interfaceObject"
+    ]
+  )
+
+extend schema
+  @link(url: "https://custom.spec.dev/extension/v1.0", import: ["@authorized"])
+  @composeDirective(name: "@authorized")

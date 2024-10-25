@@ -16,6 +16,7 @@
 - Fixed the ingestion of `null` literals.
 - In federated_graph, when parsing a schema with `@join__type` and no key argument, then rendering it with `render_federated_sdl()` would produce a `@join__type` directive
 - Fix rendering of object literals in render_federated_sdl(). We were erroneously quoting the keys, like in a JSON object, that is {"a": true} instead of the correct GraphQL literal {a: true}. (https://github.com/grafbase/grafbase/pull/2247)
+- Fixed double rendering of `@authorized` on fields in federated SDL when `@composeDirective(name: "@authorized")` is used. (https://github.com/grafbase/grafbase/pull/2251)
 
 ## 0.4.0 - 2024-06-11
 

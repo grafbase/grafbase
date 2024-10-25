@@ -1,0 +1,24 @@
+type Pet {
+    age: String!
+    id: Int!
+    name: String!
+}
+
+type User {
+    address: Address
+    id: Int!
+    name: String!
+    pets: [Pet!]!
+}
+
+type Address {
+    street: String!
+}
+
+type Query {
+    pets: [Pet]!
+    user(id: Int!): User
+    users: [User]!
+}
+
+scalar _Any
