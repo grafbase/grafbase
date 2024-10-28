@@ -1,5 +1,5 @@
 use std::{
-    collections::{BTreeSet, HashMap, HashSet},
+    collections::{BTreeSet, HashMap},
     mem::take,
 };
 
@@ -482,12 +482,12 @@ impl<'a> GraphBuilder<'a> {
             let Some(field_id) = self.ctx.idmaps.field.get(federated_id) else {
                 continue;
             };
-            let mut resolvers = vec![];
+            let mut resolver_ids = vec![];
             let mut only_resolvable_in = field
                 .resolvable_in
                 .into_iter()
                 .map(Into::into)
-                .collect::<HashSet<GraphqlEndpointId>>();
+                .collect::<BTreeSet<GraphqlEndpointId>>();
 
             // two loops as we can't rely on the ordering of the overrides.
             for r#override in &field.overrides {
@@ -509,7 +509,7 @@ impl<'a> GraphBuilder<'a> {
                             GraphqlRootFieldResolverDefinitionRecord { endpoint_id },
                         ))
                     });
-                    resolvers.push(resolver_id);
+                    resolver_ids.push(resolver_id);
                 }
             } else if let Some(FederationEntity {
                 keys,
@@ -528,7 +528,7 @@ impl<'a> GraphBuilder<'a> {
                 // (requirements), we can use the resolver to retrieve this field.
                 for (endpoint_id, resolver_id, key_field_set) in keys {
                     if !key_field_set.contains(field_id) && only_resolvable_in.contains(endpoint_id) {
-                        resolvers.push(*resolver_id);
+                        resolver_ids.push(*resolver_id);
                     }
                 }
 
@@ -585,7 +585,7 @@ impl<'a> GraphBuilder<'a> {
                     .into_iter()
                     .map(SubgraphId::GraphqlEndpoint)
                     .collect(),
-                resolver_ids: resolvers,
+                resolver_ids,
                 provides_records: field
                     .provides
                     .into_iter()

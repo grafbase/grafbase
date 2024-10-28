@@ -1,7 +1,7 @@
 use bitvec::{bitvec, vec::BitVec};
 use petgraph::{
-    graph::{IndexType, NodeIndex},
-    visit::EdgeRef,
+    graph::{EdgeIndex, IndexType, NodeIndex},
+    visit::{EdgeRef, IntoEdgesDirected, NodeCount, NodeIndexable, Visitable},
     Direction,
 };
 
@@ -41,10 +41,10 @@ impl<'a, N, E> SteinerTreeAlg<'a, N, E> for ShortestPathAlg<'a, N, E> {
     #[allow(unused)]
     fn grow_steiner_tree<F>(&mut self, edge_cost: F) -> Option<Solution>
     where
-        F: Fn(&E) -> Cost,
+        F: Fn(EdgeIndex, &E) -> Cost,
     {
         // Compute shortest path from the root
-        let shortest_paths = compuste_shortest_paths(self.graph, self.root, edge_cost);
+        let shortest_paths = compuste_shortest_paths(&self.graph, self.root, edge_cost);
 
         // The heuristic from here on is that the shortest path to a terminal node is very likely to be
         // included in the Steiner tree. So we first order them by smallest cost and then add the paths
@@ -116,15 +116,16 @@ impl<'a, N, E> SteinerTreeAlg<'a, N, E> for ShortestPathAlg<'a, N, E> {
 }
 
 #[derive(Clone)]
-struct ShortestPath {
-    parent: NodeIndex,
+struct ShortestPath<Id> {
+    parent: Id,
     cumulative_cost_from_root: Cost,
 }
 
 /// This assumes that the graph is a DAG.
-fn compuste_shortest_paths<N, E, F>(graph: &ResolverGraph<N, E>, root: NodeIndex, edge_cost: F) -> Vec<ShortestPath>
+fn compuste_shortest_paths<G, F>(graph: &G, root: G::NodeId, edge_cost: F) -> Vec<ShortestPath<G::NodeId>>
 where
-    F: Fn(&E) -> Cost,
+    G: IntoEdgesDirected + NodeCount + Visitable + NodeIndexable,
+    F: Fn(G::EdgeId, &G::EdgeWeight) -> Cost,
 {
     let mut parents = vec![
         ShortestPath {
@@ -133,7 +134,7 @@ where
         };
         graph.node_count()
     ];
-    parents[root.index()] = ShortestPath {
+    parents[graph.to_index(root)] = ShortestPath {
         parent: root,
         cumulative_cost_from_root: 0,
     };
@@ -143,9 +144,9 @@ where
         for edge in graph.edges_directed(parent, Direction::Outgoing) {
             let node = edge.target();
             stack.push(node);
-            let cost = parents[parent.index()].cumulative_cost_from_root + edge_cost(edge.weight());
-            if cost < parents[node.index()].cumulative_cost_from_root {
-                parents[node.index()] = ShortestPath {
+            let cost = parents[graph.to_index(parent)].cumulative_cost_from_root + edge_cost(edge.id(), edge.weight());
+            if cost < parents[graph.to_index(node)].cumulative_cost_from_root {
+                parents[graph.to_index(node)] = ShortestPath {
                     parent: edge.source(),
                     cumulative_cost_from_root: cost,
                 };

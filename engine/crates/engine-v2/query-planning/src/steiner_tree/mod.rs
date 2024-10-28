@@ -3,7 +3,10 @@ mod shortest_path;
 mod tests;
 
 use bitvec::vec::BitVec;
-use petgraph::{graph::NodeIndex, stable_graph::StableGraph};
+use petgraph::{
+    graph::{EdgeIndex, NodeIndex},
+    stable_graph::StableGraph,
+};
 
 use crate::Cost;
 
@@ -14,7 +17,7 @@ pub(crate) struct Solution {
     pub total_cost: Cost,
 }
 
-type ResolverGraph<N, E> = StableGraph<N, E>;
+pub(crate) type ResolverGraph<N, E> = StableGraph<N, E>;
 
 /// Steiner tree algorithm.
 ///
@@ -33,7 +36,7 @@ pub(crate) trait SteinerTreeAlg<'a, N, E> {
     /// nodes)
     fn grow_steiner_tree<F>(&mut self, edge_cost: F) -> Option<Solution>
     where
-        F: Fn(&E) -> Cost;
+        F: Fn(EdgeIndex, &E) -> Cost;
 
     /// BitSet indicating whether a node is part of the Steiner Tree.
     fn steiner_tree_nodes(&self) -> &BitVec;
