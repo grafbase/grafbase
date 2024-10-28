@@ -5,14 +5,12 @@
 .cargo/bin
 Dockerfile
 node_modules
-templates
 examples
 grafbase
 /target
 .direnv
 .idea
 /cli/target
-/cli/Dockerfile
 /engine/target
 /engine/crates/**/snapshots
 /engine/crates/**/tests/**/txt
