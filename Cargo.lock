@@ -3621,7 +3621,7 @@ dependencies = [
  "memchr",
  "miette",
  "miniz_oxide",
- "mio 0.8.11",
+ "mio 1.0.2",
  "nom",
  "num-bigint-dig",
  "num-traits",
