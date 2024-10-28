@@ -1,18 +1,47 @@
+mod signing;
+
+use std::collections::HashMap;
 use std::future::Future;
 
 use bytes::Bytes;
 use futures_util::Stream;
 use futures_util::{StreamExt, TryStreamExt};
-use httpsig_hyper::MessageSignatureReq;
+use gateway_config::Config;
 use reqwest::RequestBuilder;
 use reqwest_eventsource::RequestBuilderExt;
 use runtime::bytes::OwnedOrSharedBytes;
 use runtime::fetch::{FetchError, FetchRequest, FetchResult, Fetcher};
 use runtime::hooks::ResponseInfo;
+use signing::SigningParameters;
 
 #[derive(Default, Clone)]
 pub struct NativeFetcher {
     client: reqwest::Client,
+    default_signing_parameters: Option<SigningParameters>,
+    subgraph_signing_parameters: HashMap<String, Option<SigningParameters>>,
+}
+
+impl NativeFetcher {
+    pub fn new(config: &Config) -> anyhow::Result<Self> {
+        let default_signing_params = SigningParameters::from_config(&config.gateway.message_signatures, None)?;
+        let subgraph_signing_parameters = config
+            .subgraphs
+            .iter()
+            .filter_map(|(name, value)| Some((name, value.message_signatures.as_ref()?)))
+            .map(|(name, message_signatures)| {
+                Ok((
+                    name.clone(),
+                    SigningParameters::from_config(message_signatures, Some(&config.gateway.message_signatures))?,
+                ))
+            })
+            .collect::<anyhow::Result<_>>()?;
+
+        Ok(NativeFetcher {
+            client: reqwest::Client::default(),
+            default_signing_parameters: default_signing_params,
+            subgraph_signing_parameters,
+        })
+    }
 }
 
 impl Fetcher for NativeFetcher {
@@ -21,11 +50,14 @@ impl Fetcher for NativeFetcher {
         request: FetchRequest<'_, Bytes>,
     ) -> (FetchResult<http::Response<OwnedOrSharedBytes>>, Option<ResponseInfo>) {
         let mut info = ResponseInfo::builder();
+        let subgraph_name = request.subgraph_name;
 
-        let reqwest_request = into_reqwest(request);
-        let http_request = http::Request::try_from(reqwest_request).unwrap();
-        http_request.set_message_signature(todo!(), todo!(), todo!());
-        let reqwest_request = reqwest::Request::try_from(http_request).unwrap();
+        let request = into_reqwest(request);
+
+        let request = match self.sign_request(subgraph_name, request).await {
+            Ok(request) => request,
+            Err(error) => return (Err(error), None),
+        };
 
         let result = self.client.execute(request).await.map_err(|e| {
             if e.is_timeout() {

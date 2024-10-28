@@ -28,6 +28,8 @@ futures-util.workspace = true
 graphql-ws-client = { version = "0.10.0", features = ["tungstenite"] }
 governor.workspace = true
 http.workspace = true
+httpsig = "0.0.16"
+httpsig-hyper = "0.0.16"
 ulid.workspace = true
 reqwest-eventsource = "0.6"
 serde.workspace = true
@@ -47,8 +49,6 @@ redis = { version = "0.25.3", features = [
 ], optional = true }
 
 reqwest = { workspace = true, features = ["json", "rustls-tls"] }
-
-httpsig-hyper = "0.0.16"
 
 wasi-component-loader = { version = "0.80.1", path = "../wasi-component-loader", optional = true }
 deadpool = { version = "0.12.1", features = ["rt_tokio_1"], optional = true }

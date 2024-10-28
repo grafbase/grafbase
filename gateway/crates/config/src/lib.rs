@@ -185,7 +185,7 @@ pub struct SubgraphConfig {
     /// is any
     pub entity_caching: Option<EntityCachingConfig>,
     /// Subgraph specific message signatures config
-    pub message_signatures: MessageSignaturesConfig,
+    pub message_signatures: Option<MessageSignaturesConfig>,
 }
 
 #[derive(Debug, serde::Deserialize, Clone, Copy, Default, PartialEq)]

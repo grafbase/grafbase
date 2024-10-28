@@ -1,5 +1,5 @@
 use serde::de::Error;
-use std::time::Duration;
+use std::{fmt, time::Duration};
 
 #[derive(Debug, Default, serde::Deserialize, Clone, PartialEq)]
 #[serde(default, deny_unknown_fields)]
@@ -12,24 +12,49 @@ pub struct MessageSignaturesConfig {
     pub expiry: Option<Duration>,
 
     pub headers: MessageSigningHeaders,
-    #[serde(default = "defaults::derived_components")]
-    pub derived_components: Vec<DerivedComponent>,
-    #[serde(default = "defaults::signature_parameters")]
-    pub signature_parameters: Vec<SignatureParameter>,
+    pub derived_components: Option<Vec<DerivedComponent>>,
+    pub signature_parameters: Option<Vec<SignatureParameter>>,
 }
 
+/// Name conventions follow [Section 6.2.2, RFC9421](https://datatracker.ietf.org/doc/html/rfc9421#section-6.2.2)
 #[derive(Debug, serde::Deserialize, Clone, PartialEq)]
 pub enum MessageSigningAlgorithm {
+    #[serde(rename = "hmac-sha256")]
     HmacSha256,
+    #[serde(rename = "ed25519")]
     Ed25519,
+    #[serde(rename = "ecdsa-p256-sha256")]
     EcdsaP256,
+    #[serde(rename = "ecdsa-p384-sha384")]
     EcdsaP384,
+}
+
+impl fmt::Display for MessageSigningAlgorithm {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let str = match self {
+            MessageSigningAlgorithm::HmacSha256 => "hmac-sha256",
+            MessageSigningAlgorithm::Ed25519 => "ed25516",
+            MessageSigningAlgorithm::EcdsaP256 => "ecdsa-p256-sha256",
+            MessageSigningAlgorithm::EcdsaP384 => "ecdsa-p384-sha384",
+        };
+
+        write!(f, "{str}")
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum MessageSigningKey {
     File { name: String, id: Option<String> },
     Inline { contents: String, id: Option<String> },
+}
+
+impl MessageSigningKey {
+    pub fn id(&self) -> Option<&str> {
+        match self {
+            MessageSigningKey::File { id, .. } => id.as_deref(),
+            MessageSigningKey::Inline { id, .. } => id.as_deref(),
+        }
+    }
 }
 
 impl<'de> serde::Deserialize<'de> for MessageSigningKey {
@@ -77,8 +102,8 @@ pub enum DerivedComponent {
 #[derive(Debug, Default, Clone, PartialEq, serde::Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub struct MessageSigningHeaders {
-    pub include: Vec<String>,
-    pub exclude: Vec<String>,
+    pub include: Option<Vec<String>>,
+    pub exclude: Option<Vec<String>>,
 }
 
 /// Which of the signature parameters to include in the signature
