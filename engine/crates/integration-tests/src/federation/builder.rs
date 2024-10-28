@@ -3,11 +3,12 @@ mod engine;
 mod router;
 mod test_runtime;
 
-use std::{any::TypeId, collections::HashSet};
+use std::{any::TypeId, collections::HashSet, fmt::Display};
 
 use crate::{mock_trusted_documents::MockTrustedDocumentsClient, TestTrustedDocument};
 pub use bench::*;
 use futures::{future::BoxFuture, FutureExt};
+use gateway_config::Config;
 use graphql_mocks::MockGraphQlServer;
 use runtime::{fetch::dynamic::DynamicFetcher, hooks::DynamicHooks, trusted_documents_client};
 pub use test_runtime::*;
@@ -27,7 +28,11 @@ pub struct TestGatewayBuilder {
     mock_subgraphs: Vec<(TypeId, String, BoxFuture<'static, MockGraphQlServer>)>,
     docker_subgraphs: HashSet<DockerSubgraph>,
     config_source: Option<ConfigSource>,
-    runtime: TestRuntime,
+
+    trusted_documents: Option<trusted_documents_client::Client>,
+    hooks: Option<DynamicHooks>,
+    fetcher: Option<DynamicFetcher>,
+    // runtime: TestRuntime,
 }
 
 pub trait EngineV2Ext {
@@ -45,9 +50,9 @@ impl TestGatewayBuilder {
         self
     }
 
-    pub fn with_toml_config(mut self, toml: impl Into<String>) -> Self {
+    pub fn with_toml_config(mut self, toml: impl Display) -> Self {
         assert!(self.config_source.is_none(), "overwriting config!");
-        self.config_source = Some(ConfigSource::Toml(toml.into()));
+        self.config_source = Some(ConfigSource::Toml(toml.to_string()));
         self
     }
 
@@ -80,20 +85,20 @@ impl TestGatewayBuilder {
     //--
 
     pub fn with_mock_trusted_documents(mut self, branch_id: String, documents: Vec<TestTrustedDocument>) -> Self {
-        self.runtime.trusted_documents = trusted_documents_client::Client::new(MockTrustedDocumentsClient {
+        self.trusted_documents = Some(trusted_documents_client::Client::new(MockTrustedDocumentsClient {
             _branch_id: branch_id,
             documents,
-        });
+        }));
         self
     }
 
     pub fn with_mock_hooks(mut self, hooks: impl Into<DynamicHooks>) -> Self {
-        self.runtime.hooks = hooks.into();
+        self.hooks = Some(hooks.into());
         self
     }
 
     pub fn with_mock_fetcher(mut self, fetcher: impl Into<DynamicFetcher>) -> Self {
-        self.runtime.fetcher = fetcher.into();
+        self.fetcher = Some(fetcher.into());
         self
     }
     //-- Runtime customization --
@@ -104,8 +109,25 @@ impl TestGatewayBuilder {
             mock_subgraphs,
             docker_subgraphs,
             config_source,
-            runtime,
+            trusted_documents,
+            hooks,
+            fetcher,
         } = self;
+
+        let mut runtime = build_runtime(config_source.as_ref());
+
+        if let Some(trusted_documents) = trusted_documents {
+            runtime.trusted_documents = trusted_documents;
+        }
+
+        if let Some(hooks) = hooks {
+            runtime.hooks = hooks;
+        }
+
+        if let Some(fetcher) = fetcher {
+            runtime.fetcher = fetcher;
+        }
+
         let subgraphs = Subgraphs::load(mock_subgraphs, docker_subgraphs).await;
 
         let (engine, context) = self::engine::build(federated_sdl, config_source, runtime, &subgraphs).await;
@@ -116,6 +138,16 @@ impl TestGatewayBuilder {
             engine,
             context,
             subgraphs,
+        }
+    }
+}
+
+fn build_runtime(config_source: Option<&ConfigSource>) -> TestRuntime {
+    match config_source {
+        Some(ConfigSource::Sdl(_) | ConfigSource::SdlWebsocket) | None => TestRuntime::new(&Config::default()),
+        Some(ConfigSource::Toml(contents)) => {
+            let config = toml::from_str::<Config>(contents).expect("to be able to parse config");
+            TestRuntime::new(&config)
         }
     }
 }

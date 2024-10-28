@@ -1,6 +1,7 @@
 //! A mock GraphQL server for testing the GraphQL connector
 
 use grafbase_workspace_hack as _;
+use serde_json::json;
 
 use std::{
     sync::{Arc, Mutex},
@@ -85,6 +86,7 @@ impl MockGraphQlServer {
             received_requests: Default::default(),
             next_responses: Default::default(),
             additional_headers: Default::default(),
+            signature_key: Default::default(),
         };
 
         let app = Router::new()
@@ -144,10 +146,17 @@ impl MockGraphQlServer {
         self.state.additional_headers.lock().unwrap().typed_insert(header);
         self
     }
+
+    pub fn with_message_signing_validation(self, key: VerifyingKey, id: Option<String>) -> Self {
+        *self.state.signature_key.lock().unwrap() = Some((key, id));
+
+        self
+    }
 }
 
 async fn graphql_handler(
     State(state): State<AppState>,
+    _sig: ValidMessageSignature,
     headers: HeaderMap,
     req: GraphQLRequest,
 ) -> axum::response::Response {
@@ -185,6 +194,8 @@ struct AppState {
     received_requests: Arc<crossbeam_queue::SegQueue<ReceivedRequest>>,
     next_responses: Arc<crossbeam_queue::SegQueue<axum::response::Response>>,
     additional_headers: Arc<Mutex<http::HeaderMap>>,
+    #[expect(clippy::type_complexity)]
+    signature_key: Arc<Mutex<Option<(VerifyingKey, Option<String>)>>>,
 }
 
 pub trait Subgraph: 'static {
@@ -309,5 +320,66 @@ impl async_graphql::Executor for SchemaExecutor {
         _session_data: Option<Arc<async_graphql::Data>>,
     ) -> futures::stream::BoxStream<'static, async_graphql::Response> {
         self.0.execute_stream(request)
+    }
+}
+
+struct ValidMessageSignature;
+
+#[async_trait::async_trait]
+impl axum::extract::FromRequestParts<AppState> for ValidMessageSignature {
+    type Rejection = (http::StatusCode, axum::Json<serde_json::Value>);
+
+    /// Perform the extraction.
+    async fn from_request_parts(parts: &mut http::request::Parts, state: &AppState) -> Result<Self, Self::Rejection> {
+        use httpsig_hyper::MessageSignatureReq;
+        let signature_key = state.signature_key.lock().unwrap().clone();
+        if let Some((key, id)) = signature_key {
+            // Having to clone the whole of Parts is pretty annoying, but but it's just for tests so it'll do.
+            //
+            // A more production-friendly approach would be to add support for http::Request::parts to
+            // the httpsig-hyper library
+            let request = http::Request::from_parts(parts.clone(), "".to_string());
+            if let Err(error) = request.verify_message_signature(&key, id.as_deref()).await {
+                eprintln!("Validation failed: {error}");
+                return Err((
+                    http::StatusCode::FORBIDDEN,
+                    axum::Json(json!({
+                        "errors": [
+                            {"message": "signature validation failed"}
+                        ]
+                    })),
+                ));
+            }
+        }
+        Ok(ValidMessageSignature)
+    }
+}
+
+#[derive(Clone)]
+pub enum VerifyingKey {
+    Shared(httpsig::prelude::SharedKey),
+    Secret(httpsig::prelude::SecretKey),
+}
+
+impl httpsig::prelude::VerifyingKey for VerifyingKey {
+    fn verify(&self, data: &[u8], signature: &[u8]) -> httpsig::prelude::HttpSigResult<()> {
+        match self {
+            VerifyingKey::Shared(shared_key) => shared_key.verify(data, signature),
+            VerifyingKey::Secret(secret_key) => secret_key.verify(data, signature),
+        }
+    }
+
+    fn key_id(&self) -> String {
+        match self {
+            VerifyingKey::Shared(shared_key) => shared_key.key_id(),
+            VerifyingKey::Secret(secret_key) => secret_key.key_id(),
+        }
+    }
+
+    fn alg(&self) -> httpsig::prelude::AlgorithmName {
+        match self {
+            VerifyingKey::Shared(shared_key) => shared_key.alg(),
+            VerifyingKey::Secret(secret_key) => secret_key.alg(),
+        }
     }
 }

@@ -77,23 +77,8 @@ impl GatewayRuntime {
             }
         };
 
-        // TODO: So I kind of want to pass config into NativeFetcher from the watcher here...
-        //
-        // It seems easier than passing it all through engine...
-        // runtime-local does have access to gateway config so there's the integration
-        // point for our configs.
-        // But we need:
-        //
-        // 1. Some way of recreating the fetcher or similar on config change?
-        //    - Slightly more difficult?
-        //    - An arc is probably the way.  1x clone per request, probably fine...
-        //      Or could make it 1x clone per fetcher call?
-        // 2. Some way of associating requests to their subgraph so we know which
-        //    configuration to select
-        //    - Can probably add subgraph name to FetchRequest, easy
-
         let runtime = GatewayRuntime {
-            fetcher: NativeFetcher::default(),
+            fetcher: NativeFetcher::new(gateway_config).map_err(|e| crate::Error::FetcherConfigError(e.to_string()))?,
             kv: InMemoryKvStore::runtime(),
             trusted_documents: runtime::trusted_documents_client::Client::new(NoopTrustedDocuments),
             hooks,

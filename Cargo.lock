@@ -1655,6 +1655,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "ct-codecs"
+version = "1.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "026ac6ceace6298d2c557ef5ed798894962296469ec7842288ea64674201a2d1"
+
+[[package]]
 name = "ctor"
 version = "0.2.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2128,6 +2134,7 @@ version = "2.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e9b3460f44bea8cd47f45a0c70892f1eff856d97cd55358b2f73f663789f6190"
 dependencies = [
+ "ct-codecs",
  "getrandom 0.2.15",
 ]
 
@@ -3778,6 +3785,8 @@ dependencies = [
  "grafbase-workspace-hack",
  "headers",
  "http",
+ "httpsig",
+ "httpsig-hyper",
  "serde",
  "serde_json",
  "tokio",
@@ -4435,6 +4444,8 @@ dependencies = [
  "cynic",
  "cynic-introspection",
  "cynic-parser 0.6.2",
+ "ed25519-compact",
+ "elliptic-curve",
  "engine",
  "engine-config-builder",
  "engine-parser",
@@ -4456,6 +4467,7 @@ dependencies = [
  "hex",
  "http",
  "http-body-util",
+ "httpsig",
  "indoc",
  "insta",
  "itertools 0.13.0",
@@ -4487,6 +4499,7 @@ dependencies = [
  "serde_urlencoded",
  "sha2",
  "similar-asserts",
+ "tempfile",
  "thiserror",
  "tokio",
  "toml",
@@ -7895,6 +7908,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cfe85670573cd6f0fa97940f26e7e6601213c3b0555246c24234131f88c5709e"
 dependencies = [
  "console",
+ "serde",
  "similar",
 ]
 

@@ -1,3 +1,4 @@
+use gateway_config::Config;
 use grafbase_telemetry::metrics::{self, EngineMetrics};
 use runtime::{
     entity_cache::EntityCache, fetch::dynamic::DynamicFetcher, hooks::DynamicHooks, trusted_documents_client,
@@ -20,12 +21,12 @@ pub struct TestRuntime {
     pub entity_cache: InMemoryEntityCache,
 }
 
-impl Default for TestRuntime {
-    fn default() -> Self {
+impl TestRuntime {
+    pub fn new(config: &Config) -> Self {
         let (_, rx) = watch::channel(Default::default());
 
         Self {
-            fetcher: DynamicFetcher::wrap(NativeFetcher::default()),
+            fetcher: DynamicFetcher::wrap(NativeFetcher::new(config).expect("couldnt construct NativeFetcher")),
             trusted_documents: trusted_documents_client::Client::new(NoopTrustedDocuments),
             kv: InMemoryKvStore::runtime(),
             metrics: EngineMetrics::build(&metrics::meter_from_global_provider(), None),

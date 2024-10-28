@@ -28,8 +28,8 @@ futures-util.workspace = true
 graphql-ws-client = { version = "0.10.0", features = ["tungstenite"] }
 governor.workspace = true
 http.workspace = true
-httpsig = "0.0.16"
-httpsig-hyper = "0.0.16"
+httpsig.workspace = true
+httpsig-hyper.workspace = true
 ulid.workspace = true
 reqwest-eventsource = "0.6"
 serde.workspace = true

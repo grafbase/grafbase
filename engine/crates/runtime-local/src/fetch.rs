@@ -14,7 +14,7 @@ use runtime::fetch::{FetchError, FetchRequest, FetchResult, Fetcher};
 use runtime::hooks::ResponseInfo;
 use signing::SigningParameters;
 
-#[derive(Default, Clone)]
+#[derive(Clone)]
 pub struct NativeFetcher {
     client: reqwest::Client,
     default_signing_parameters: Option<SigningParameters>,

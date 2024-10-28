@@ -197,7 +197,8 @@ impl Key {
             })?));
         }
 
-        let key = SecretKey::from_pem(&data).with_context(|| format!("error when parsing secret key from {name}"))?;
+        let key =
+            SecretKey::from_pem(dbg!(&data)).with_context(|| format!("error when parsing secret key from {name}"))?;
 
         match (&key, algorithm) {
             (_, None)

@@ -18,10 +18,12 @@ bytes.workspace = true
 crossbeam-queue = "0.3"
 cynic.workspace = true
 cynic-introspection.workspace = true
+ed25519-compact = "2"
 engine-parser.workspace = true
-engine-v2.workspace = true
 engine-v2-axum.workspace = true
+engine-v2.workspace = true
 graphql-mocks.workspace = true
+httpsig.workspace = true
 engine-config-builder = { path = "../engine-config-builder" }
 expect-test = "1.5"
 futures = "0.3.30"
@@ -65,7 +67,7 @@ toml.workspace = true
 tower.workspace = true
 tracing.workspace = true
 tracing-mock.workspace = true
-runtime = { workspace = true, features = ["test-utils"]}
+runtime = { workspace = true, features = ["test-utils"] }
 regex.workspace = true
 grafbase-workspace-hack.workspace = true
 
@@ -105,6 +107,7 @@ common-types.workspace = true
 const_format = "0.2.32"
 criterion = { version = "0.5.1", features = ["async_tokio"] }
 cynic-parser.workspace = true
+elliptic-curve = "0.13"
 gateway-v2-auth.workspace = true
 headers.workspace = true
 hex.workspace = true
@@ -113,7 +116,8 @@ rand.workspace = true
 rstest.workspace = true
 secrecy.workspace = true
 sha2.workspace = true
-similar-asserts = "1.5"
+similar-asserts = { version = "1.5", features = ["serde"] }
+tempfile = "3"
 
 [target.'cfg(unix)'.dependencies]
 pprof = { workspace = true, features = ["criterion", "flamegraph"] }
