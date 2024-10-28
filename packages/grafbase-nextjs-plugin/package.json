@@ -19,7 +19,7 @@
     "lint": "eslint src/*.ts*"
   },
   "peerDependencies": {
-    "next": "^12 || ^13 || ^14.0.0",
+    "next": "^12 || ^13 || ^14.0.0 || ^15.0.0",
     "react": "*",
     "react-dom": "*",
     "grafbase": "*"
@@ -30,7 +30,7 @@
     "@types/react-dom": "^18.0.6",
     "eslint": "^8.0.0",
     "eslint-config-grafbase": "workspace:*",
-    "next": "^14.0.0",
+    "next": "^15.0.0",
     "tsconfig": "workspace:*",
     "tsup": "^8.0.0",
     "typescript": "5.6.2"
