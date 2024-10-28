@@ -47,7 +47,7 @@ tower-http = { version = "0.5.2", features = ["cors", "timeout"] }
 tracing.workspace = true
 ulid = { workspace = true, features = ["serde"] }
 url = { workspace = true, features = ["serde"] }
-notify = "6.1.1"
+notify = "7.0.0"
 
 # Lambda dependencies
 axum-aws-lambda = { version = "0.8.0", optional = true }
