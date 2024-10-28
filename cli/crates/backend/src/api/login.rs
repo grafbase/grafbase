@@ -1,13 +1,13 @@
-use super::consts::{AUTH_URL, CREDENTIALS_FILE};
 use super::errors::{ApiError, LoginApiError};
-use super::types::{Credentials, LoginMessage};
+use super::types::LoginMessage;
 use axum::{
     extract::{Query, State},
     response::Redirect,
     routing::get,
     Router,
 };
-use common::environment::Environment;
+use common::consts::CREDENTIALS_FILE;
+use common::environment::{Credentials, Environment, PlatformData};
 use serde::Deserialize;
 use std::{fs::create_dir_all, net::Ipv4Addr, path::PathBuf, sync::mpsc::Sender as MspcSender};
 use tokio::net::TcpListener;
@@ -23,19 +23,21 @@ struct TokenQueryParams {
 
 async fn token<'a>(
     State(LoginApiState {
+        api_url,
+        auth_url,
         shutdown_sender,
         user_dot_grafbase_path,
     }): State<LoginApiState>,
     query: Query<TokenQueryParams>,
 ) -> Result<Redirect, Redirect> {
-    let access_token = &query.token;
+    let access_token = query.token.clone();
     let credentials_path = user_dot_grafbase_path.join(CREDENTIALS_FILE);
-    let write_result = tokio::fs::write(&credentials_path, Credentials { access_token }.to_string()).await;
+    let write_result = tokio::fs::write(&credentials_path, Credentials::new(access_token, api_url).to_string()).await;
 
     if write_result.is_ok() {
         // the current connection will still be redirected before closing the server
         shutdown_sender.send(Ok(())).await.expect("must be open");
-        Ok(Redirect::temporary(&format!("{AUTH_URL}?success=true")))
+        Ok(Redirect::temporary(&format!("{auth_url}?success=true")))
     } else {
         // the current connection will still be redirected before closing the server
         shutdown_sender
@@ -43,7 +45,7 @@ async fn token<'a>(
             .await
             .expect("must be open");
         Err(Redirect::temporary(&format!(
-            "{AUTH_URL}?success=false&error={}",
+            "{auth_url}?success=false&error={}",
             encode("Could not write ~/.grafbase/credentials.json")
         )))
     }
@@ -53,6 +55,8 @@ async fn token<'a>(
 struct LoginApiState {
     shutdown_sender: Sender<Result<(), LoginApiError>>,
     user_dot_grafbase_path: PathBuf,
+    auth_url: String,
+    api_url: String,
 }
 
 /// Logs a user in via a browser flow
@@ -70,6 +74,7 @@ struct LoginApiState {
 #[tokio::main]
 pub async fn login(message_sender: MspcSender<LoginMessage>) -> Result<(), ApiError> {
     let environment = Environment::get();
+    let platform_data = PlatformData::get();
 
     match environment.user_dot_grafbase_path.try_exists() {
         Ok(true) => {}
@@ -85,7 +90,8 @@ pub async fn login(message_sender: MspcSender<LoginMessage>) -> Result<(), ApiEr
 
     let port = listener.local_addr().map_err(|_| ApiError::FindAvailablePort)?.port();
 
-    let url = &format!("{AUTH_URL}?callback={}", encode(&format!("http://127.0.0.1:{port}")));
+    let auth_url = platform_data.auth_url.clone();
+    let url = &format!("{auth_url}?callback={}", encode(&format!("http://127.0.0.1:{port}")));
 
     message_sender
         .send(LoginMessage::CallbackUrl(url.clone()))
@@ -97,6 +103,8 @@ pub async fn login(message_sender: MspcSender<LoginMessage>) -> Result<(), ApiEr
         .route("/", get(token))
         .layer(TraceLayer::new_for_http())
         .with_state(LoginApiState {
+            api_url: platform_data.api_url.clone(),
+            auth_url,
             shutdown_sender,
             user_dot_grafbase_path: environment.user_dot_grafbase_path.clone(),
         });

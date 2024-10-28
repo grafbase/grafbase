@@ -1,9 +1,9 @@
-mod argument_names;
 mod branch;
 mod branch_ref;
 mod check;
 mod completions;
 mod create;
+mod dev;
 mod federated_graph;
 mod graph_ref_no_branch;
 mod introspect;
@@ -16,16 +16,17 @@ mod subgraphs;
 mod trust;
 
 pub(crate) use self::{check::CheckCommand, trust::TrustCommand};
-pub(crate) use argument_names::ArgumentNames;
 pub(crate) use branch::BranchSubCommand;
 pub(crate) use branch_ref::BranchRef;
 pub(crate) use completions::CompletionsCommand;
 pub(crate) use create::CreateCommand;
+pub(crate) use dev::DevCommand;
 pub(crate) use introspect::IntrospectCommand;
 pub(crate) use lint::LintCommand;
 pub(crate) use project_ref::{ProjectRef, ProjectRefOrGraphRef};
 pub(crate) use publish::PublishCommand;
 pub(crate) use schema::SchemaCommand;
+pub(crate) use sub_command::RequiresLogin;
 pub(crate) use sub_command::SubCommand;
 pub(crate) use subgraphs::SubgraphsCommand;
 

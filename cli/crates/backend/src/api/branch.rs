@@ -1,11 +1,11 @@
 use chrono::{DateTime, Utc};
+use common::environment::PlatformData;
 use cynic::{http::ReqwestExt, MutationBuilder};
 
 use crate::api::graphql::mutations::{BranchCreate, BranchCreateArguments, BranchCreateInput};
 
 use super::{
     client::create_client,
-    consts::api_url,
     errors::{ApiError, BranchError},
     graphql::mutations::{BranchDelete, BranchDeleteArguments, BranchDeletePayload},
 };
@@ -23,6 +23,7 @@ pub struct Branch {
 ///
 /// See [`ApiError`]
 pub async fn delete(account_slug: &str, project_slug: &str, branch_name: &str) -> Result<(), ApiError> {
+    let platform_data = PlatformData::get();
     let client = create_client().await?;
 
     let operation = BranchDelete::build(BranchDeleteArguments {
@@ -31,7 +32,7 @@ pub async fn delete(account_slug: &str, project_slug: &str, branch_name: &str) -
         branch_name,
     });
 
-    let cynic::GraphQlResponse { data, errors } = client.post(api_url()).run_graphql(operation).await?;
+    let cynic::GraphQlResponse { data, errors } = client.post(&platform_data.api_url).run_graphql(operation).await?;
 
     if let Some(data) = data {
         match data.branch_delete {
@@ -51,6 +52,7 @@ pub async fn delete(account_slug: &str, project_slug: &str, branch_name: &str) -
 }
 
 pub async fn create(account_slug: &str, graph_slug: &str, branch_name: &str) -> Result<(), ApiError> {
+    let platform_data = PlatformData::get();
     let client = create_client().await?;
 
     let operation = BranchCreate::build(BranchCreateArguments {
@@ -61,7 +63,7 @@ pub async fn create(account_slug: &str, graph_slug: &str, branch_name: &str) -> 
         },
     });
 
-    let cynic::GraphQlResponse { data, errors } = client.post(api_url()).run_graphql(operation).await?;
+    let cynic::GraphQlResponse { data, errors } = client.post(&platform_data.api_url).run_graphql(operation).await?;
 
     let Some(data) = data else {
         return Err(ApiError::RequestError(format!("{errors:#?}")));

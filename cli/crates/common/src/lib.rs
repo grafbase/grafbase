@@ -9,7 +9,6 @@ use grafbase_workspace_hack as _;
 #[cfg(not(test))]
 use expect_test as _;
 
-pub mod analytics;
 pub mod channels;
 pub mod consts;
 pub mod debug_macros;

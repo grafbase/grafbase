@@ -1,4 +1,5 @@
-use super::{consts::CREDENTIALS_FILE, errors::ApiError};
+use super::errors::ApiError;
+use common::consts::CREDENTIALS_FILE;
 use common::environment::Environment;
 use std::fs;
 

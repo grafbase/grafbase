@@ -1,12 +1,12 @@
 use super::{
     client::create_client,
-    consts::api_url,
     errors::ApiError,
     graphql::queries::list_subgraphs::{
         ListSubgraphsArguments, ListSubgraphsForProductionBranchArguments, ListSubgraphsForProductionBranchQuery,
         ListSubgraphsQuery, Subgraph,
     },
 };
+use common::environment::PlatformData;
 use cynic::{http::ReqwestExt, QueryBuilder};
 
 /// The `grafbase subgraphs` command. Returns (branch name, subgraphs).
@@ -22,11 +22,12 @@ pub async fn subgraphs(
 }
 
 async fn subgraphs_with_branch(account: &str, graph: &str, branch: &str) -> Result<(String, Vec<Subgraph>), ApiError> {
+    let platform_data = PlatformData::get();
     let client = create_client().await?;
 
     let operation = ListSubgraphsQuery::build(ListSubgraphsArguments { account, graph, branch });
 
-    let response = client.post(api_url()).run_graphql(operation).await?;
+    let response = client.post(&platform_data.api_url).run_graphql(operation).await?;
     let subgraphs = response
         .data
         .as_ref()
@@ -43,12 +44,13 @@ async fn subgraphs_with_branch(account: &str, graph: &str, branch: &str) -> Resu
 }
 
 async fn subgraphs_production_branch(account: &str, graph: &str) -> Result<(String, Vec<Subgraph>), ApiError> {
+    let platform_data = PlatformData::get();
     let client = create_client().await?;
 
     let operation =
         ListSubgraphsForProductionBranchQuery::build(ListSubgraphsForProductionBranchArguments { account, graph });
 
-    let response = client.post(api_url()).run_graphql(operation).await?;
+    let response = client.post(&platform_data.api_url).run_graphql(operation).await?;
     let subgraphs = response
         .data
         .as_ref()

@@ -3,7 +3,7 @@ use clap::Parser;
 use crate::is_not_direct_install;
 
 use super::{
-    branch::BranchCommand, trust::TrustCommand, ArgumentNames, CheckCommand, CompletionsCommand, CreateCommand,
+    branch::BranchCommand, dev::DevCommand, trust::TrustCommand, CheckCommand, CompletionsCommand, CreateCommand,
     IntrospectCommand, LintCommand, PublishCommand, SchemaCommand, SubgraphsCommand,
 };
 
@@ -38,24 +38,25 @@ pub enum SubCommand {
     Upgrade,
     /// Lint a GraphQL schema
     Lint(LintCommand),
+    // Start a development server
+    Dev(DevCommand),
 }
 
-impl ArgumentNames for SubCommand {
-    fn argument_names(&self) -> Option<Vec<&'static str>> {
-        match self {
-            SubCommand::Create(command) => command.argument_names(),
-            SubCommand::Schema(_)
-            | SubCommand::Branch(_)
-            | SubCommand::Publish(_)
-            | SubCommand::Check(_)
-            | SubCommand::Subgraphs(_)
-            | SubCommand::Introspect(_)
-            | SubCommand::Login
-            | SubCommand::Logout
-            | SubCommand::Completions(_)
-            | SubCommand::Trust(_)
-            | SubCommand::Upgrade
-            | SubCommand::Lint(_) => None,
-        }
+pub trait RequiresLogin: Sized {
+    fn requires_login(&self) -> bool;
+}
+
+impl RequiresLogin for SubCommand {
+    fn requires_login(&self) -> bool {
+        matches!(
+            self,
+            SubCommand::Create(_)
+                | SubCommand::Publish(_)
+                | SubCommand::Trust(_)
+                | SubCommand::Subgraphs(_)
+                | SubCommand::Check(_)
+                | SubCommand::Branch(_)
+                | SubCommand::Schema(_)
+        )
     }
 }

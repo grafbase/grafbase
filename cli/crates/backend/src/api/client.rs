@@ -1,12 +1,8 @@
-use super::consts::GRAFBASE_ACCESS_TOKEN_ENV_VAR;
-use super::types::Credentials;
-use super::{consts::CREDENTIALS_FILE, errors::ApiError};
+use super::errors::ApiError;
 use common::consts::USER_AGENT;
-use common::environment::Environment;
+use common::environment::{LoginState, PlatformData};
 use reqwest::header::HeaderValue;
 use reqwest::{header, Client};
-use std::env;
-use tokio::fs::read_to_string;
 
 /// # Errors
 ///
@@ -29,37 +25,9 @@ pub async fn create_client() -> Result<reqwest::Client, ApiError> {
         .expect("TLS is supported in all targets"))
 }
 
-async fn get_access_token() -> Result<String, ApiError> {
-    match get_access_token_from_file().await {
-        Ok(token) => Ok(token),
-        // attempt to also check GRAFBASE_ACCESS_TOKEN_ENV_VAR, returning the original error if it doesn't exist
-        Err(error) => env::var(GRAFBASE_ACCESS_TOKEN_ENV_VAR).map_err(|_| error),
-    }
-}
-
-async fn get_access_token_from_file() -> Result<String, ApiError> {
-    let environment = Environment::get();
-
-    match environment.user_dot_grafbase_path.try_exists() {
-        Ok(true) => {}
-        Ok(false) => return Err(ApiError::NotLoggedIn),
-        Err(error) => return Err(ApiError::ReadUserDotGrafbaseFolder(error)),
-    }
-
-    let credentials_file_path = environment.user_dot_grafbase_path.join(CREDENTIALS_FILE);
-
-    match credentials_file_path.try_exists() {
-        Ok(true) => {}
-        Ok(false) => return Err(ApiError::NotLoggedIn),
-        Err(error) => return Err(ApiError::ReadCredentialsFile(error)),
-    }
-
-    let credential_file = read_to_string(environment.user_dot_grafbase_path.join(CREDENTIALS_FILE))
-        .await
-        .map_err(ApiError::ReadCredentialsFile)?;
-
-    let credentials: Credentials<'_> =
-        serde_json::from_str(&credential_file).map_err(|_| ApiError::CorruptCredentialsFile)?;
-
-    Ok(credentials.access_token.to_owned())
+async fn get_access_token<'a>() -> Result<&'a str, ApiError> {
+    let LoginState::LoggedIn(ref credentials) = PlatformData::get().login_state else {
+        return Err(ApiError::NotLoggedIn);
+    };
+    Ok(&credentials.access_token)
 }

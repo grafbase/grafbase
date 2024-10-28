@@ -7,6 +7,7 @@ mod branch;
 mod check;
 mod cli_input;
 mod create;
+mod dev;
 mod errors;
 mod introspect;
 mod lint;
@@ -26,13 +27,13 @@ mod watercolor;
 extern crate log;
 
 use crate::{
-    cli_input::{Args, ArgumentNames, BranchSubCommand, SubCommand},
+    cli_input::{Args, BranchSubCommand, RequiresLogin, SubCommand},
     create::create,
     login::login,
     logout::logout,
 };
 use clap::Parser;
-use common::{analytics::Analytics, environment::Environment};
+use common::environment::{Environment, PlatformData};
 use errors::CliError;
 use output::report;
 use std::{io::IsTerminal as _, path::PathBuf, process};
@@ -83,8 +84,10 @@ fn try_main(args: Args) -> Result<(), CliError> {
 
     Environment::try_init(args.home).map_err(CliError::CommonError)?;
 
-    Analytics::init().map_err(CliError::CommonError)?;
-    Analytics::command_executed(args.command.as_ref(), args.command.argument_names());
+    if args.command.requires_login() {
+        PlatformData::try_init().map_err(CliError::CommonError)?;
+    }
+
     report::warnings(&Environment::get().warnings);
 
     match args.command {
@@ -115,6 +118,7 @@ fn try_main(args: Args) -> Result<(), CliError> {
             BranchSubCommand::Delete(cmd) => branch::delete(cmd.branch_ref),
             BranchSubCommand::Create(cmd) => branch::create(cmd.branch_ref),
         },
+        SubCommand::Dev(cmd) => dev::dev(cmd),
     }
 }
 

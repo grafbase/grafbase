@@ -1,7 +1,6 @@
 pub mod branch;
 pub mod check;
 pub mod client;
-pub mod consts;
 pub mod create;
 pub mod errors;
 pub mod graphql;

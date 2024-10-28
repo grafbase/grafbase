@@ -12,3 +12,7 @@ pub const TRACE_LOG_FILTER: &str = "info,grafbase=trace,grafbase_local_common=tr
 pub const GRAFBASE_HOME: &str = "GRAFBASE_HOME";
 /// the user agent for CLI HTTP calls
 pub const USER_AGENT: &str = const_format::formatcp!("Grafbase-CLI-{}", env!("CARGO_PKG_VERSION"));
+/// the name of the login credentials file
+pub const CREDENTIALS_FILE: &str = "credentials.json";
+/// the env var used to set the access token
+pub const GRAFBASE_ACCESS_TOKEN_ENV_VAR: &str = "GRAFBASE_ACCESS_TOKEN";
