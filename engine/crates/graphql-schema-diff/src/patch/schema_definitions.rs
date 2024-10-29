@@ -25,7 +25,8 @@ pub(super) fn patch_schema_definition<T: AsRef<str>>(
             ChangeKind::ChangeSubscriptionType => {
                 new_subscription_type = Some(change.resolved_str());
             }
-            ChangeKind::RemoveSchemaDefinition => return,
+            ChangeKind::RemoveSchemaDefinition if definition_or_extension.is_definition() => return,
+            ChangeKind::RemoveSchemaExtension if definition_or_extension.is_extension() => return,
             _ => (),
         }
     }

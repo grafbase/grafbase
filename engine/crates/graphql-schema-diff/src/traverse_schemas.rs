@@ -24,7 +24,10 @@ pub(crate) fn traverse_schemas<'a>(
 fn traverse_source<'a>(source: &'a ast::TypeSystemDocument, state: &mut DiffState<'a>) {
     for definition in source.definitions() {
         match definition {
-            ast::Definition::Schema(def) | ast::Definition::SchemaExtension(def) => {
+            ast::Definition::SchemaExtension(def) => {
+                state.schema_extensions.push([Some(def), None]);
+            }
+            ast::Definition::Schema(def) => {
                 state.schema_definition_map[0] = Some(def);
             }
             ast::Definition::Directive(directive_def) => {
@@ -118,9 +121,20 @@ fn traverse_source<'a>(source: &'a ast::TypeSystemDocument, state: &mut DiffStat
 }
 
 fn traverse_target<'a>(target: &'a ast::TypeSystemDocument, state: &mut DiffState<'a>) {
+    let mut schema_extensions_count = 0usize;
+
     for definition in target.definitions() {
         match definition {
-            ast::Definition::Schema(def) | ast::Definition::SchemaExtension(def) => {
+            ast::Definition::SchemaExtension(def) => {
+                if state.schema_extensions.len() == schema_extensions_count {
+                    state.schema_extensions.push([None, Some(def)]);
+                } else {
+                    state.schema_extensions[schema_extensions_count][1] = Some(def);
+                }
+
+                schema_extensions_count += 1;
+            }
+            ast::Definition::Schema(def) => {
                 state.schema_definition_map[1] = Some(def);
             }
             ast::Definition::Directive(directive_def) => {

@@ -2,17 +2,17 @@
   "src → target": [
     {
       "path": "",
-      "kind": "RemoveSchemaDefinition",
+      "kind": "RemoveSchemaExtension",
       "span": {
-        "start": 0,
-        "end": 0
+        "start": 7,
+        "end": 18
       }
     }
   ],
   "target → src": [
     {
       "path": "",
-      "kind": "AddSchemaDefinition",
+      "kind": "AddSchemaExtension",
       "span": {
         "start": 7,
         "end": 18

@@ -35,6 +35,11 @@ where
                 schema.push_str(change.resolved_str());
                 schema.push_str("\n\n");
             }
+            ChangeKind::AddSchemaExtension => {
+                schema.push_str("extend ");
+                schema.push_str(change.resolved_str());
+                schema.push_str("\n\n");
+            }
             _ => (),
         }
     }
@@ -70,6 +75,24 @@ where
 enum DefinitionOrExtension {
     Extension,
     Definition,
+}
+
+impl DefinitionOrExtension {
+    /// Returns `true` if the definition or extension is [`Extension`].
+    ///
+    /// [`Extension`]: DefinitionOrExtension::Extension
+    #[must_use]
+    fn is_extension(&self) -> bool {
+        matches!(self, Self::Extension)
+    }
+
+    /// Returns `true` if the definition or extension is [`Definition`].
+    ///
+    /// [`Definition`]: DefinitionOrExtension::Definition
+    #[must_use]
+    fn is_definition(&self) -> bool {
+        matches!(self, Self::Definition)
+    }
 }
 
 /// A schema patched with [patch()].

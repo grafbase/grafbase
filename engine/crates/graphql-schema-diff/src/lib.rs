@@ -67,6 +67,8 @@ pub fn resolve_spans<'a: 'b, 'b>(
             ChangeKind::AddDirectiveDefinition => target,
             ChangeKind::RemoveDirectiveDefinition => source,
             ChangeKind::AddSchemaDefinition => target,
+            ChangeKind::AddSchemaExtension => target,
+            ChangeKind::RemoveSchemaExtension => source,
             ChangeKind::RemoveSchemaDefinition => source,
             ChangeKind::AddInputObject => target,
             ChangeKind::RemoveInputObject => source,
