@@ -192,7 +192,7 @@ impl PlatformData {
                 login_state: LoginState::LoggedOut,
             })
             .map_err(|_| ())
-            .expect("cannot) set platform data twice");
+            .expect("cannot set platform data twice");
 
         Ok(())
     }
