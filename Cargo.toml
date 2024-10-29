@@ -204,8 +204,6 @@ engine-v2-axum = { path = "engine/crates/engine-v2/axum" }
 engine-validation = { path = "engine/crates/engine/validation" }
 engine-value = { path = "engine/crates/engine/value" }
 federated-graph = { path = "engine/crates/federated-graph", package = "graphql-federated-graph" }
-gateway-adapter-local = { path = "engine/crates/gateway-adapter-local" }
-gateway-adapter = { path = "engine/crates/gateway-adapter" }
 gateway-core = { path = "engine/crates/gateway-core" }
 gateway-v2-auth = { path = "engine/crates/gateway-v2/auth" }
 gateway-v2-auth-config = { path = "engine/crates/gateway-v2/auth-config" }
@@ -232,7 +230,6 @@ runtime = { path = "engine/crates/runtime" }
 runtime-local = { path = "engine/crates/runtime-local" }
 runtime-noop = { path = "engine/crates/runtime-noop" }
 serde-dynamic-string = { path = "engine/crates/serde-dynamic-string" }
-worker-env = { path = "engine/crates/worker-env" }
 grafbase-workspace-hack = { version = "0.1" }
 wrapping = { path = "engine/crates/wrapping", package = "graphql-wrapping-types" }
 
