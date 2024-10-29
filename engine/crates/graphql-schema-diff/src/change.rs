@@ -147,6 +147,8 @@ impl std::str::FromStr for ChangeKind {
             "RemoveDirectiveDefinition" => Self::RemoveDirectiveDefinition,
             "AddSchemaDefinition" => Self::AddSchemaDefinition,
             "RemoveSchemaDefinition" => Self::RemoveSchemaDefinition,
+            "AddSchemaExtension" => Self::AddSchemaExtension,
+            "RemoveSchemaExtension" => Self::RemoveSchemaExtension,
             "AddInputObject" => Self::AddInputObject,
             "RemoveInputObject" => Self::RemoveInputObject,
             "AddFieldArgument" => Self::AddFieldArgument,
