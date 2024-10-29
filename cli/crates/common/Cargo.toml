@@ -18,10 +18,10 @@ serde_json.workspace = true
 strum = { version = "0.26.2", features = ["derive"] }
 thiserror = "1.0.59"
 tokio.workspace = true
+url.workspace = true
 
 common-types = { path = "../../../engine/crates/common-types" }
 grafbase-workspace-hack.workspace = true
-url.workspace = true
 
 [build-dependencies]
 serde_json.workspace = true
