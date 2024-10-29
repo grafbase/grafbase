@@ -68,7 +68,7 @@ tracing-mock = { git = "https://github.com/tokio-rs/tracing", rev = "6d00d7d9f72
 grafbase-workspace-hack.path = "workspace-hack"
 
 [workspace.package]
-version = "0.80.0"
+version = "0.80.1"
 edition = "2021"
 license = "Apache-2.0"
 homepage = "https://grafbase.com"

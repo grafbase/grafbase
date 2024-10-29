@@ -10,7 +10,7 @@ in {
 
     pnpmDeps = pnpm_9.fetchDeps {
       inherit src pname version;
-      hash = "sha256-v0PPuufzvNxSITOlFPb8j5IEySMpOLB65M/eRMvEVF8=";
+      hash = "sha256-e25kiKJs5F55tDOrozN9k5T1e/MP4Ty6NLVllHomv0M=";
     };
 
     buildInputs = [jq];
