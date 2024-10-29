@@ -2759,7 +2759,7 @@ dependencies = [
 
 [[package]]
 name = "federated-dev"
-version = "0.80.0"
+version = "0.80.1"
 dependencies = [
  "async-graphql",
  "async-graphql-axum",
