@@ -16,7 +16,7 @@ pub enum BackendError {
     #[error("could not read the current path")]
     ReadCurrentDirectory,
 
-    /// returned if the grafbase directory could not be createdå
+    /// returned if the grafbase directory could not be created
     #[error("could not create the 'grafbase' directory\nCaused by: {0}")]
     CreateGrafbaseDirectory(io::Error),
 
