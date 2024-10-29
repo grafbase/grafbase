@@ -164,11 +164,14 @@ impl PlatformData {
     }
 
     /// initializes the static PlatformData instance without using stored credentials
-    pub fn try_init_ignore_credentials() -> Result<(), CommonError> {
+    pub fn try_init_ignore_credentials(dashboard_url: Option<Url>) -> Result<(), CommonError> {
         let dashboard_url_env_var = env::var(GRAFBASE_DASHBOARD_URL_ENV_VAR).ok();
         let api_url_env_var = env::var(GRAFBASE_API_URL_ENV_VAR).ok();
 
-        let dashboard_url = dashboard_url_env_var.unwrap_or_else(|| DEFAULT_DASHBOARD_URL.to_string());
+        let dashboard_url = dashboard_url
+            .map(|url| url.to_string())
+            .or(dashboard_url_env_var)
+            .unwrap_or_else(|| DEFAULT_DASHBOARD_URL.to_string());
 
         let mut auth_url = Url::parse(&dashboard_url).map_err(|_| CommonError::InvalidDashboardUrl)?;
 

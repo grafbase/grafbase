@@ -4,7 +4,7 @@ use crate::is_not_direct_install;
 
 use super::{
     branch::BranchCommand, dev::DevCommand, trust::TrustCommand, CheckCommand, CompletionsCommand, CreateCommand,
-    IntrospectCommand, LintCommand, PublishCommand, SchemaCommand, SubgraphsCommand,
+    IntrospectCommand, LintCommand, LoginCommand, PublishCommand, SchemaCommand, SubgraphsCommand,
 };
 
 #[derive(Debug, Parser, strum::AsRefStr, strum::Display)]
@@ -16,7 +16,7 @@ pub enum SubCommand {
     /// appropriate location for your shell
     Completions(CompletionsCommand),
     /// Logs into your Grafbase account
-    Login,
+    Login(LoginCommand),
     /// Logs out of your Grafbase account
     Logout,
     /// Set up and deploy a new graph
