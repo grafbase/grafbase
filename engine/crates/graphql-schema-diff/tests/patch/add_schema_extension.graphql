@@ -1,0 +1,15 @@
+# --- #
+
+extend schema
+  @link(url: "https://specs.apollo.dev/federation/v2.3", import: ["@key", "@shareable", "@inaccessible", "@override"])
+
+type Product @key(fields: "id") {
+  id: ID!
+  size: Float!
+  color: String!
+  price: Float!
+}
+
+type Query {
+  products: [Product]
+}

@@ -109,6 +109,8 @@ fn check_change(args: CheckArgs<'_, '_>) -> Option<CheckDiagnostic> {
 
         // Not relevant for federated graphs.
         | ChangeKind::AddSchemaDefinition
+        | ChangeKind::AddSchemaExtension
+        | ChangeKind::RemoveSchemaExtension
         | ChangeKind::RemoveSchemaDefinition
 
         // Directives do not directly affect the shape of the API.

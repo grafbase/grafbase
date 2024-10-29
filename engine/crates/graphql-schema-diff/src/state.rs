@@ -7,6 +7,7 @@ pub(crate) type DiffMap<K, V> = HashMap<K, (Option<V>, Option<V>)>;
 #[derive(Default)]
 pub(crate) struct DiffState<'a> {
     pub(crate) schema_definition_map: [Option<ast::SchemaDefinition<'a>>; 2],
+    pub(crate) schema_extensions: Vec<[Option<ast::SchemaDefinition<'a>>; 2]>,
     pub(crate) types_map: DiffMap<&'a str, ast::Definition<'a>>,
     pub(crate) fields_map: DiffMap<[&'a str; 2], (Option<ast::Type<'a>>, Span)>,
     pub(crate) interface_impls: DiffMap<&'a str, Vec<&'a str>>,
@@ -46,6 +47,7 @@ impl DiffState<'_> {
     pub(crate) fn into_changes(self) -> Vec<Change> {
         let DiffState {
             schema_definition_map,
+            schema_extensions,
             types_map,
             fields_map,
             arguments_map,
@@ -55,6 +57,7 @@ impl DiffState<'_> {
         let mut changes = Vec::new();
 
         push_schema_definition_changes(schema_definition_map, &mut changes);
+        push_schema_extension_changes(schema_extensions, &mut changes);
         push_interface_implementer_changes(interface_impls, &mut changes);
 
         push_definition_changes(&types_map, &mut changes);
@@ -64,6 +67,28 @@ impl DiffState<'_> {
         changes.sort();
 
         changes
+    }
+}
+
+fn push_schema_extension_changes(
+    schema_extensions: Vec<[Option<ast::SchemaDefinition<'_>>; 2]>,
+    changes: &mut Vec<Change>,
+) {
+    for extension in schema_extensions {
+        match extension {
+            // TODO(GB-7390): we only react to additions and removals for now. We should do full diffing.
+            [None, Some(def)] => changes.push(Change {
+                path: String::new(),
+                kind: ChangeKind::AddSchemaExtension,
+                span: def.span().into(),
+            }),
+            [Some(def), None] => changes.push(Change {
+                path: String::new(),
+                kind: ChangeKind::RemoveSchemaExtension,
+                span: def.span().into(),
+            }),
+            _ => (),
+        }
     }
 }
 
