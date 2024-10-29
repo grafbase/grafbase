@@ -5,7 +5,7 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0.86"
-async-graphql = "7.0.9"
+async-graphql = "7.0.10"
 async-graphql-axum = "7.0.9"
 axum = "0.7.5"
 postcard = { version = "1.0.10", features = ["use-std"] }
