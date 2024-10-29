@@ -136,7 +136,7 @@ impl Composer {
         };
 
         self.graphs.insert(name, subgraph);
-        self.bus.send_graph(graph).await?;
+        self.bus.send_graph(graph.expect("SDL should parse correctly")).await?;
 
         responder
             .send(Ok(()))
@@ -174,7 +174,9 @@ impl Composer {
                 emit_event(crate::FederatedDevEvent::ComposeAfterRemovalSuccess {
                     subgraph_name: subgraph_name.clone(),
                 });
-                self.bus.send_graph(graph.into_latest()).await?
+                self.bus
+                    .send_graph(graph.into_latest().expect("SDL should parse correctly"))
+                    .await?
             }
             Err(error) => {
                 log::warn!("Recomposition failed: {error:?}");

@@ -2,7 +2,10 @@ use serde::{Deserialize, Serialize};
 use url::Url;
 
 use crate::{
-    consts::{CREDENTIALS_FILE, DOT_GRAFBASE_DIRECTORY_NAME, GRAFBASE_HOME},
+    consts::{
+        CREDENTIALS_FILE, DEFAULT_API_URL, DEFAULT_DASHBOARD_URL, DOT_GRAFBASE_DIRECTORY_NAME,
+        GRAFBASE_API_URL_ENV_VAR, GRAFBASE_DASHBOARD_URL_ENV_VAR, GRAFBASE_HOME,
+    },
     errors::CommonError,
 };
 
@@ -122,11 +125,12 @@ pub struct PlatformData {
 }
 
 impl PlatformData {
-    /// initializes the static ApiData instance
+    /// initializes the static PlatformData instance
     pub fn try_init() -> Result<(), CommonError> {
-        let dashboard_url = std::env::var("GRAFBASE_DASHBOARD_URL")
-            .ok()
-            .unwrap_or_else(|| "https://app.grafbase.com".to_string());
+        let dashboard_url_env_var = env::var(GRAFBASE_DASHBOARD_URL_ENV_VAR).ok();
+        let api_url_env_var = env::var(GRAFBASE_API_URL_ENV_VAR).ok();
+
+        let dashboard_url = dashboard_url_env_var.unwrap_or_else(|| DEFAULT_DASHBOARD_URL.to_string());
 
         let mut auth_url = Url::parse(&dashboard_url).map_err(|_| CommonError::InvalidDashboardUrl)?;
 
@@ -139,13 +143,12 @@ impl PlatformData {
 
         let login_state = get_login_state()?;
 
-        let api_url = std::env::var("GRAFBASE_API_URL")
-            .ok()
+        let api_url = api_url_env_var
             .or_else(|| match login_state {
                 LoginState::LoggedOut => None,
                 LoginState::LoggedIn(ref credentials) => credentials.api_url.clone(),
             })
-            .unwrap_or_else(|| "https://api.grafbase.com/graphql".to_string());
+            .unwrap_or_else(|| DEFAULT_API_URL.to_string());
 
         PLATFORM_DATA
             .set(Self {
@@ -155,21 +158,52 @@ impl PlatformData {
                 login_state,
             })
             .map_err(|_| ())
+            .expect("cannot set platform data twice");
+
+        Ok(())
+    }
+
+    /// initializes the static PlatformData instance without using stored credentials
+    pub fn try_init_ignore_credentials() -> Result<(), CommonError> {
+        let dashboard_url_env_var = env::var(GRAFBASE_DASHBOARD_URL_ENV_VAR).ok();
+        let api_url_env_var = env::var(GRAFBASE_API_URL_ENV_VAR).ok();
+
+        let dashboard_url = dashboard_url_env_var.unwrap_or_else(|| DEFAULT_DASHBOARD_URL.to_string());
+
+        let mut auth_url = Url::parse(&dashboard_url).map_err(|_| CommonError::InvalidDashboardUrl)?;
+
+        auth_url
+            .path_segments_mut()
+            .map_err(|_| CommonError::InvalidDashboardUrl)?
+            .extend(["auth", "cli"]);
+
+        let auth_url = auth_url.to_string();
+
+        let api_url = api_url_env_var.unwrap_or_else(|| DEFAULT_API_URL.to_string());
+
+        PLATFORM_DATA
+            .set(Self {
+                dashboard_url,
+                api_url,
+                auth_url,
+                login_state: LoginState::LoggedOut,
+            })
+            .map_err(|_| ())
             .expect("cannot) set platform data twice");
 
         Ok(())
     }
 
-    /// returns a reference to the static Environment instance
+    /// returns a reference to the static PlatformData instance
     ///
     /// # Panics
     ///
-    /// panics if the Environment object was not previously initialized using `Environment::try_init()`
+    /// panics if the PlatformData object was not previously initialized
     #[must_use]
     #[track_caller]
     pub fn get() -> &'static Self {
         match PLATFORM_DATA.get() {
-            Some(api_data) => api_data,
+            Some(platform_data) => platform_data,
             // must be initialized in `main`
             #[allow(clippy::panic)]
             None => panic!("the platform data object is uninitialized"),
@@ -180,7 +214,7 @@ impl PlatformData {
 /// static singleton for the environment struct
 static ENVIRONMENT: OnceLock<Environment> = OnceLock::new();
 
-/// static singleton for the api data struct
+/// static singleton for the platform data struct
 static PLATFORM_DATA: OnceLock<PlatformData> = OnceLock::new();
 
 #[must_use]

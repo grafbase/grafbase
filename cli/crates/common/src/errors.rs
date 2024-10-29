@@ -50,6 +50,12 @@ pub enum CommonError {
     /// returned if the contents of the credential file are corrupt
     #[error("could not complete the action as your credential file is corrupt")]
     CorruptCredentialsFile,
+    /// returned if GRAFBASE_DASHBOARD_URL is specified when using no credential initialization of the platform data but GRAFBASE_API_URL isn't
+    #[error("encountered GRAFBASE_DASHBOARD_URL without GRAFBASE_API_URL")]
+    MissingDashboardUrlEnvVar(String),
+    /// returned if GRAFBASE_API_URL is specified when using no credential initialization of the platform data but GRAFBASE_DASHBOARD_URL isn't
+    #[error("encountered GRAFBASE_API_URL without GRAFBASE_DASHBOARD_URL")]
+    MissingApiUrlEnvVar(String),
 }
 
 #[derive(Debug, thiserror::Error, Clone, Copy)]

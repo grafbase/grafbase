@@ -19,11 +19,11 @@ use urlencoding::encode;
 #[serde(rename_all = "camelCase")]
 struct TokenQueryParams {
     token: String,
+    api_url: String,
 }
 
 async fn token<'a>(
     State(LoginApiState {
-        api_url,
         auth_url,
         shutdown_sender,
         user_dot_grafbase_path,
@@ -31,6 +31,7 @@ async fn token<'a>(
     query: Query<TokenQueryParams>,
 ) -> Result<Redirect, Redirect> {
     let access_token = query.token.clone();
+    let api_url = query.api_url.clone();
     let credentials_path = user_dot_grafbase_path.join(CREDENTIALS_FILE);
     let write_result = tokio::fs::write(&credentials_path, Credentials::new(access_token, api_url).to_string()).await;
 
@@ -56,7 +57,6 @@ struct LoginApiState {
     shutdown_sender: Sender<Result<(), LoginApiError>>,
     user_dot_grafbase_path: PathBuf,
     auth_url: String,
-    api_url: String,
 }
 
 /// Logs a user in via a browser flow
@@ -103,7 +103,6 @@ pub async fn login(message_sender: MspcSender<LoginMessage>) -> Result<(), ApiEr
         .route("/", get(token))
         .layer(TraceLayer::new_for_http())
         .with_state(LoginApiState {
-            api_url: platform_data.api_url.clone(),
             auth_url,
             shutdown_sender,
             user_dot_grafbase_path: environment.user_dot_grafbase_path.clone(),

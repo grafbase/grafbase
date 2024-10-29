@@ -86,6 +86,8 @@ fn try_main(args: Args) -> Result<(), CliError> {
 
     if args.command.requires_login() {
         PlatformData::try_init().map_err(CliError::CommonError)?;
+    } else if matches!(args.command, SubCommand::Login) {
+        PlatformData::try_init_ignore_credentials().map_err(CliError::CommonError)?;
     }
 
     report::warnings(&Environment::get().warnings);
