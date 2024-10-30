@@ -20,11 +20,20 @@ pub fn generate_walker(
     let graph_type = Ident::new(&domain.graph_type_name, Span::call_site());
     let walker_enum_name = Ident::new(union.walker_enum_name(), Span::call_site());
     let walk_trait = Ident::new(WALKER_TRAIT, Span::call_site());
+    let doc = union
+        .description
+        .as_ref()
+        .map(|desc| {
+            let desc = proc_macro2::Literal::string(desc);
+            quote! { #[doc = #desc] }
+        })
+        .unwrap_or_default();
 
     let mut code_sections = Vec::new();
 
     let walker_variants = variants.iter().copied().map(WalkerVariant);
     code_sections.push(quote! {
+        #doc
         #[derive(Clone, Copy)]
         pub enum #walker_enum_name<'a> {
             #(#walker_variants),*

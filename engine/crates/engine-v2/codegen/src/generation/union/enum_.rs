@@ -33,7 +33,11 @@ pub fn generate_enum(
         derives
     };
 
-    let docstr = proc_macro2::Literal::string(&docstr::generated_from(domain, union.span));
+    let docstr = proc_macro2::Literal::string(&docstr::generated_from(
+        domain,
+        union.span,
+        union.description.as_deref(),
+    ));
     let enum_variants = variants.iter().copied().map(EnumVariant);
     let union_enum = quote! {
         #[doc = #docstr]

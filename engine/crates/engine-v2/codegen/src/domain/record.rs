@@ -6,6 +6,7 @@ use super::{Definition, FieldMeta, Indexed, Meta};
 pub struct Object {
     pub meta: Meta,
     pub span: cynic_parser::Span,
+    pub description: Option<String>,
     pub indexed: Option<Indexed>,
     pub name: String,
     pub struct_name: String,

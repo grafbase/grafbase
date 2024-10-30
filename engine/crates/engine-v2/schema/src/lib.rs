@@ -1,6 +1,7 @@
 use std::{str::FromStr, sync::OnceLock};
 
 mod builder;
+mod composite_type;
 mod definition;
 mod directive;
 mod entity;

@@ -21,6 +21,14 @@ pub fn generate_walker(
     let struct_name = Ident::new(&object.struct_name, Span::call_site());
     let walker_name = Ident::new(object.walker_name(), Span::call_site());
     let walk_trait = Ident::new(WALKER_TRAIT, Span::call_site());
+    let doc = object
+        .description
+        .as_ref()
+        .map(|desc| {
+            let desc = proc_macro2::Literal::string(desc);
+            quote! { #[doc = #desc] }
+        })
+        .unwrap_or_default();
 
     let walker_field_methods = fields.iter().filter(|field| field.has_walker).map(WalkerFieldMethod);
     let mut code_sections = Vec::new();
@@ -29,6 +37,7 @@ pub fn generate_walker(
         let id_struct_name = Ident::new(&indexed.id_struct_name, Span::call_site());
 
         code_sections.push(quote! {
+            #doc
             #[derive(Clone, Copy)]
             pub struct #walker_name<'a> {
                 pub(crate) #graph_name: &'a #graph_type,
@@ -73,6 +82,7 @@ pub fn generate_walker(
         });
     } else if object.copy {
         code_sections.push(quote! {
+            #doc
             #[derive(Clone, Copy)]
             pub struct #walker_name<'a> {
                 pub(crate) #graph_name: &'a #graph_type,
@@ -113,6 +123,7 @@ pub fn generate_walker(
         });
     } else {
         code_sections.push(quote! {
+            #doc
             #[derive(Clone, Copy)]
             pub struct #walker_name<'a> {
                 pub(crate) #graph_name: &'a #graph_type,

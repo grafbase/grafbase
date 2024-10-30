@@ -5,6 +5,7 @@ pub struct Union {
     pub meta: Meta,
     pub kind: UnionKind,
     pub span: cynic_parser::Span,
+    pub description: Option<String>,
     pub variants: Vec<Variant>,
 }
 
