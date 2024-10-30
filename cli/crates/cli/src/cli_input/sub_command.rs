@@ -40,7 +40,7 @@ pub enum SubCommand {
     Lint(LintCommand),
 }
 
-pub trait RequiresLogin: Sized {
+pub trait RequiresLogin {
     fn requires_login(&self) -> bool;
 }
 
