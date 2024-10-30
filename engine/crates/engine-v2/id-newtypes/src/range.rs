@@ -117,6 +117,10 @@ where
     pub fn end(&self) -> Id {
         self.end
     }
+
+    pub fn as_usize(self) -> Range<usize> {
+        self.into()
+    }
 }
 
 impl<Id, T> From<Range<T>> for IdRange<Id>

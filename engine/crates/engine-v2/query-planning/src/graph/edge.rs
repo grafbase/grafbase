@@ -1,16 +1,16 @@
-use super::dot_graph::Attrs;
+use crate::dot_graph::Attrs;
 
-pub type Cost = u16;
+use super::{Operation, OperationGraph};
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, strum::IntoStaticStr)]
 pub(crate) enum Edge {
     ///
     /// -- Resolver --
     ///
     /// From a ProvidableField or Root to a Resolver. Only incoming edge into Resolver
-    CreateChildResolver(Cost),
+    CreateChildResolver,
     /// Incoming edge from a Resolver to a ProvidableField.
-    CanProvide(Cost),
+    CanProvide,
 
     ///
     /// -- Query --
@@ -33,25 +33,15 @@ pub(crate) enum Edge {
 
 impl Edge {
     /// Meant to be as readable as possible for large graphs with colors.
-    pub(crate) fn pretty_label(&self) -> String {
+    pub(crate) fn pretty_label<Op: Operation>(&self, _graph: &OperationGraph<'_, Op>) -> String {
         match self {
-            Edge::CreateChildResolver(cost) => if *cost > 0 {
-                Attrs::new(format!("{cost}")).bold()
-            } else {
-                Attrs::new("")
-            }
-            .with("color=blue,fontcolor=blue"),
-            Edge::CanProvide(cost) => if *cost > 0 {
-                Attrs::new(format!("{cost}")).bold()
-            } else {
-                Attrs::new("")
-            }
-            .with("color=blue,fontcolor=blue"),
-            Edge::Provides => Attrs::new("").with("color=turquoise"),
-            Edge::Field => Attrs::new(""),
-            Edge::TypenameField => Attrs::new("Typename"),
-            Edge::Requires => Attrs::new("").with("color=orange"),
-            Edge::HasChildResolver => Attrs::new("").with("style=dashed"),
+            Edge::CreateChildResolver => Attrs::default().with("color=royalblue,fontcolor=royalblue"),
+            Edge::CanProvide => Attrs::default().with("color=royalblue,fontcolor=royalblue"),
+            Edge::Provides => Attrs::default().with("color=violet,arrowhead=none"),
+            Edge::Field => Attrs::default(),
+            Edge::TypenameField => Attrs::label("Typename"),
+            Edge::Requires => Attrs::default().with("color=orangered,arrowhead=inv"),
+            Edge::HasChildResolver => Attrs::default().with("style=dashed,arrowhead=none"),
         }
         .to_string()
     }

@@ -1,0 +1,37 @@
+---
+source: engine/crates/engine-v2/query-planning/src/tests/schema1.rs
+expression: "digraph {\n    0 [ label = \"root\", color=forestgreen ]\n    1 [ label = \"name\", color=forestgreen ]\n    2 [ label = \"name\", color=forestgreen ]\n    3 [ label = \"Root#products\", shape=parallelogram, color=dodgerblue, color=forestgreen ]\n    4 [ label = \"topProducts@Root#products\", shape=box, color=dodgerblue, color=forestgreen ]\n    5 [ label = \"FedEntity#reviews\", shape=parallelogram, color=dodgerblue, color=forestgreen ]\n    6 [ label = \"reviews@FedEntity#reviews\", shape=box, color=dodgerblue, color=forestgreen ]\n    7 [ label = \"author@FedEntity#reviews\", shape=box, color=dodgerblue, color=forestgreen ]\n    8 [ label = \"FedEntity#accounts\", shape=parallelogram, color=dodgerblue, color=forestgreen ]\n    9 [ label = \"name@FedEntity#accounts\", shape=box, color=dodgerblue, color=forestgreen ]\n    10 [ label = \"name@Root#products\", shape=box, color=dodgerblue, color=forestgreen ]\n    11 [ label = \"*id\", color=forestgreen ]\n    12 [ label = \"id@FedEntity#reviews\", shape=box, color=dodgerblue, color=forestgreen ]\n    13 [ label = \"*upc\", color=forestgreen ]\n    14 [ label = \"upc@Root#products\", shape=box, color=dodgerblue, color=forestgreen ]\n    15 [ label=\"\", style=dashed]\n    0 -> 3 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    3 -> 4 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    4 -> 5 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    5 -> 6 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    6 -> 7 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    7 -> 8 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    8 -> 9 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    9 -> 2 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    4 -> 10 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    10 -> 1 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    7 -> 12 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    12 -> 11 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    4 -> 14 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    14 -> 13 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    15 -> 0 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n}\n"
+---
+digraph {
+    0 [ label = "root", steiner=1 ]
+    1 [ label = "name", steiner=1 ]
+    2 [ label = "name", steiner=1 ]
+    3 [ label = "Root#products", steiner=1 ]
+    4 [ label = "topProducts@Root#products", steiner=1 ]
+    5 [ label = "FedEntity#reviews", steiner=1 ]
+    6 [ label = "reviews@FedEntity#reviews", steiner=1 ]
+    7 [ label = "author@FedEntity#reviews", steiner=1 ]
+    8 [ label = "FedEntity#accounts", steiner=1 ]
+    9 [ label = "name@FedEntity#accounts", steiner=1 ]
+    10 [ label = "name@Root#products", steiner=1 ]
+    11 [ label = "*id", steiner=1 ]
+    12 [ label = "id@FedEntity#reviews", steiner=1 ]
+    13 [ label = "*upc", steiner=1 ]
+    14 [ label = "upc@Root#products", steiner=1 ]
+    15 [ label="", style=dashed]
+    0 -> 3 [ cost=0, steiner=1]
+    3 -> 4 [ cost=0, steiner=1]
+    4 -> 5 [ cost=0, steiner=1]
+    5 -> 6 [ cost=0, steiner=1]
+    6 -> 7 [ cost=0, steiner=1]
+    7 -> 8 [ cost=0, steiner=1]
+    8 -> 9 [ cost=0, steiner=1]
+    9 -> 2 [ cost=0, steiner=1]
+    4 -> 10 [ cost=0, steiner=1]
+    10 -> 1 [ cost=0, steiner=1]
+    7 -> 12 [ cost=0, steiner=1]
+    12 -> 11 [ cost=0, steiner=1]
+    4 -> 14 [ cost=0, steiner=1]
+    14 -> 13 [ cost=0, steiner=1]
+    15 -> 0 [ cost=0, steiner=0]
+}

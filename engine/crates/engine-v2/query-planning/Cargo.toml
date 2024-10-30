@@ -16,17 +16,19 @@ grafbase-workspace-hack.workspace = true
 id-newtypes = { path = "../id-newtypes", package = "engine-v2-id-newtypes" }
 id-derives = { path = "../id-derives", package = "engine-v2-id-derives" }
 walker = { path = "../walker", package = "engine-v2-walker" }
-bitvec.workspace = true
+fixedbitset = "0.5"
 bitflags.workspace = true
 petgraph.workspace = true
-serde.workspace = true
 itertools.workspace = true
 tracing.workspace = true
+thiserror.workspace = true
+strum.workspace = true
 schema = { path = "../schema", package = "engine-v2-schema" }
 
 
 [dev-dependencies]
 ctor.workspace = true
+serde.workspace = true
 similar = "2"
 engine-parser = { path = "../../engine/parser" }
 config = { path = "../config", package = "engine-v2-config" }

@@ -2,28 +2,50 @@ use std::borrow::Cow;
 
 use itertools::Itertools;
 
-pub(super) struct Attrs<'a> {
+#[derive(Default)]
+pub(crate) struct Attrs<'a> {
     label: Cow<'a, str>,
     others: Vec<Cow<'a, str>>,
 }
 
 impl<'a> Attrs<'a> {
-    pub fn new(label: impl Into<Cow<'a, str>>) -> Self {
+    pub fn label(label: impl Into<Cow<'a, str>>) -> Self {
         Self {
             label: label.into(),
             others: vec![],
         }
     }
 
+    pub fn label_if(cond: bool, label: impl Into<Cow<'a, str>>) -> Self {
+        if cond {
+            Self {
+                label: label.into(),
+                others: vec![],
+            }
+        } else {
+            Self::default()
+        }
+    }
+
     #[must_use]
     pub fn bold(mut self) -> Self {
-        self.label = Cow::Owned(format!("<<b>{}</b>>", self.label));
+        if !self.label.is_empty() {
+            self.label = Cow::Owned(format!("<<b>{}</b>>", self.label));
+        }
         self
     }
 
     #[must_use]
     pub fn with(mut self, attr: impl Into<Cow<'a, str>>) -> Self {
         self.others.push(attr.into());
+        self
+    }
+
+    #[must_use]
+    pub fn with_if(mut self, cond: bool, attr: impl Into<Cow<'a, str>>) -> Self {
+        if cond {
+            self.others.push(attr.into());
+        }
         self
     }
 }

@@ -1,0 +1,37 @@
+---
+source: engine/crates/engine-v2/query-planning/src/tests/schema1.rs
+expression: "digraph {\n    0 [ label = \"root\", color=forestgreen ]\n    1 [ label = \"name\", style=dashed ]\n    2 [ label = \"name\", style=dashed ]\n    3 [ label = \"Root#products\", shape=parallelogram, color=dodgerblue, style=dashed ]\n    4 [ label = \"topProducts@Root#products\", shape=box, color=dodgerblue, style=dashed ]\n    5 [ label = \"FedEntity#reviews\", shape=parallelogram, color=dodgerblue, style=dashed ]\n    6 [ label = \"reviews@FedEntity#reviews\", shape=box, color=dodgerblue, style=dashed ]\n    7 [ label = \"author@FedEntity#reviews\", shape=box, color=dodgerblue, style=dashed ]\n    8 [ label = \"FedEntity#accounts\", shape=parallelogram, color=dodgerblue, style=dashed ]\n    9 [ label = \"name@FedEntity#accounts\", shape=box, color=dodgerblue, style=dashed ]\n    10 [ label = \"name@Root#products\", shape=box, color=dodgerblue, style=dashed ]\n    11 [ label = \"*id\", style=dashed ]\n    12 [ label = \"id@FedEntity#reviews\", shape=box, color=dodgerblue, style=dashed ]\n    13 [ label = \"*upc\", style=dashed ]\n    14 [ label = \"upc@Root#products\", shape=box, color=dodgerblue, style=dashed ]\n    15 [ label=\"\", style=dashed]\n    0 -> 3 [ label = <<b>1</b>>, color=royalblue,fontcolor=royalblue,style=dashed ]\n    3 -> 4 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    4 -> 5 [ label = <<b>1</b>>, color=royalblue,fontcolor=royalblue,style=dashed ]\n    5 -> 6 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    6 -> 7 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    7 -> 8 [ label = <<b>1</b>>, color=royalblue,fontcolor=royalblue,style=dashed ]\n    8 -> 9 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    9 -> 2 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    4 -> 10 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    10 -> 1 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    7 -> 12 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    12 -> 11 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    4 -> 14 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    14 -> 13 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    15 -> 0 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n}\n"
+---
+digraph {
+    0 [ label = "root", steiner=1 ]
+    1 [ label = "name", steiner=0 ]
+    2 [ label = "name", steiner=0 ]
+    3 [ label = "Root#products", steiner=0 ]
+    4 [ label = "topProducts@Root#products", steiner=0 ]
+    5 [ label = "FedEntity#reviews", steiner=0 ]
+    6 [ label = "reviews@FedEntity#reviews", steiner=0 ]
+    7 [ label = "author@FedEntity#reviews", steiner=0 ]
+    8 [ label = "FedEntity#accounts", steiner=0 ]
+    9 [ label = "name@FedEntity#accounts", steiner=0 ]
+    10 [ label = "name@Root#products", steiner=0 ]
+    11 [ label = "*id", steiner=0 ]
+    12 [ label = "id@FedEntity#reviews", steiner=0 ]
+    13 [ label = "*upc", steiner=0 ]
+    14 [ label = "upc@Root#products", steiner=0 ]
+    15 [ label="", style=dashed]
+    0 -> 3 [ cost=1, steiner=0]
+    3 -> 4 [ cost=0, steiner=0]
+    4 -> 5 [ cost=1, steiner=0]
+    5 -> 6 [ cost=0, steiner=0]
+    6 -> 7 [ cost=0, steiner=0]
+    7 -> 8 [ cost=1, steiner=0]
+    8 -> 9 [ cost=0, steiner=0]
+    9 -> 2 [ cost=0, steiner=0]
+    4 -> 10 [ cost=0, steiner=0]
+    10 -> 1 [ cost=0, steiner=0]
+    7 -> 12 [ cost=0, steiner=0]
+    12 -> 11 [ cost=0, steiner=0]
+    4 -> 14 [ cost=0, steiner=0]
+    14 -> 13 [ cost=0, steiner=0]
+    15 -> 0 [ cost=0, steiner=0]
+}

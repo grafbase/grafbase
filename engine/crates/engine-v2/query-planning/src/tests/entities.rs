@@ -54,8 +54,22 @@ fn two_fields() {
     "#,
     );
 
-    let graph = OperationGraph::new(&schema, &mut operation);
+    let mut graph = OperationGraph::new(&schema, &mut operation).unwrap();
     insta::assert_snapshot!("two_fields-graph", graph.to_dot_graph(), &graph.to_pretty_dot_graph());
+
+    let mut solver = graph.solver().unwrap();
+    insta::assert_snapshot!(
+        "two_fields-solver",
+        solver.to_dot_graph(),
+        &solver.to_pretty_dot_graph()
+    );
+
+    solver.solve().unwrap();
+    insta::assert_snapshot!(
+        "two_fields-solved",
+        solver.to_dot_graph(),
+        &solver.to_pretty_dot_graph()
+    );
 }
 
 #[test]
@@ -72,8 +86,22 @@ fn single_field() {
     "#,
     );
 
-    let graph = OperationGraph::new(&schema, &mut operation);
+    let mut graph = OperationGraph::new(&schema, &mut operation).unwrap();
     insta::assert_snapshot!("single_field-graph", graph.to_dot_graph(), &graph.to_pretty_dot_graph());
+
+    let mut solver = graph.solver().unwrap();
+    insta::assert_snapshot!(
+        "single_field-solver",
+        solver.to_dot_graph(),
+        &solver.to_pretty_dot_graph()
+    );
+
+    solver.solve().unwrap();
+    insta::assert_snapshot!(
+        "single_field-solved",
+        solver.to_dot_graph(),
+        &solver.to_pretty_dot_graph()
+    );
 }
 
 #[test]
@@ -92,6 +120,59 @@ fn nested_join() {
     "#,
     );
 
-    let graph = OperationGraph::new(&schema, &mut operation);
+    let mut graph = OperationGraph::new(&schema, &mut operation).unwrap();
     insta::assert_snapshot!("nested_join-graph", graph.to_dot_graph(), &graph.to_pretty_dot_graph());
+
+    let mut solver = graph.solver().unwrap();
+    insta::assert_snapshot!(
+        "nested_join-solver",
+        solver.to_dot_graph(),
+        &solver.to_pretty_dot_graph()
+    );
+
+    solver.solve().unwrap();
+    insta::assert_snapshot!(
+        "nested_join-solved",
+        solver.to_dot_graph(),
+        &solver.to_pretty_dot_graph()
+    );
+}
+
+#[test]
+fn nested_join_with_name() {
+    let schema = read_schema(SCHEMA);
+    let mut operation = TestOperation::bind(
+        &schema,
+        r#"
+        query {
+          products {
+            name
+            reviews {
+              stars
+            }
+          }
+        }
+    "#,
+    );
+
+    let mut graph = OperationGraph::new(&schema, &mut operation).unwrap();
+    insta::assert_snapshot!(
+        "nested_join_with_name-graph",
+        graph.to_dot_graph(),
+        &graph.to_pretty_dot_graph()
+    );
+
+    let mut solver = graph.solver().unwrap();
+    insta::assert_snapshot!(
+        "nested_join_with_name-solver",
+        solver.to_dot_graph(),
+        &solver.to_pretty_dot_graph()
+    );
+
+    solver.solve().unwrap();
+    insta::assert_snapshot!(
+        "nested_join_with_name-solved",
+        solver.to_dot_graph(),
+        &solver.to_pretty_dot_graph()
+    );
 }

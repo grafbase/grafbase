@@ -1,5 +1,5 @@
 use crate::{
-    tests::{read_schema, strdiff, TestOperation},
+    tests::{read_schema, TestOperation},
     OperationGraph,
 };
 
@@ -208,11 +208,12 @@ fn sibling_dependency() {
     "#,
     );
 
-    let mut graph = OperationGraph::new(&schema, &mut operation);
+    let mut graph = OperationGraph::new(&schema, &mut operation).unwrap();
     insta::assert_snapshot!("graph", graph.to_dot_graph(), &graph.to_pretty_dot_graph());
 
-    let before = graph.to_dot_graph();
-    graph.estimate_resolver_costs();
+    let mut solver = graph.solver().unwrap();
+    insta::assert_snapshot!("solver", solver.to_dot_graph(), &solver.to_pretty_dot_graph());
 
-    insta::assert_snapshot!(strdiff(&before, &graph.to_dot_graph()), @"");
+    solver.solve().unwrap();
+    insta::assert_snapshot!("solved", solver.to_dot_graph(), &solver.to_pretty_dot_graph());
 }
