@@ -278,7 +278,6 @@ zeroize = { version = "1", features = ["zeroize_derive"] }
 [target.aarch64-apple-darwin.dependencies]
 deadpool = { version = "0.12", features = ["rt_tokio_1"] }
 gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
-hyper-rustls = { version = "0.27", default-features = false, features = ["http1", "http2", "ring", "tls12", "webpki-tokio"] }
 iana-time-zone = { version = "0.1", default-features = false, features = ["fallback"] }
 miniz_oxide = { version = "0.8", default-features = false, features = ["with-alloc"] }
 object = { version = "0.36", default-features = false, features = ["archive", "read_core", "unaligned", "write"] }
@@ -291,7 +290,6 @@ zeroize = { version = "1", default-features = false, features = ["derive"] }
 [target.aarch64-apple-darwin.build-dependencies]
 deadpool = { version = "0.12", features = ["rt_tokio_1"] }
 gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
-hyper-rustls = { version = "0.27", default-features = false, features = ["http1", "http2", "ring", "tls12", "webpki-tokio"] }
 iana-time-zone = { version = "0.1", default-features = false, features = ["fallback"] }
 miniz_oxide = { version = "0.8", default-features = false, features = ["with-alloc"] }
 object = { version = "0.36", default-features = false, features = ["archive", "read_core", "unaligned", "write"] }
@@ -304,7 +302,6 @@ zeroize = { version = "1", default-features = false, features = ["derive"] }
 [target.x86_64-apple-darwin.dependencies]
 deadpool = { version = "0.12", features = ["rt_tokio_1"] }
 gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
-hyper-rustls = { version = "0.27", default-features = false, features = ["http1", "http2", "ring", "tls12", "webpki-tokio"] }
 iana-time-zone = { version = "0.1", default-features = false, features = ["fallback"] }
 miniz_oxide = { version = "0.8", default-features = false, features = ["with-alloc"] }
 object = { version = "0.36", default-features = false, features = ["archive", "read_core", "unaligned", "write"] }
@@ -318,7 +315,6 @@ zeroize = { version = "1", default-features = false, features = ["derive"] }
 [target.x86_64-apple-darwin.build-dependencies]
 deadpool = { version = "0.12", features = ["rt_tokio_1"] }
 gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
-hyper-rustls = { version = "0.27", default-features = false, features = ["http1", "http2", "ring", "tls12", "webpki-tokio"] }
 iana-time-zone = { version = "0.1", default-features = false, features = ["fallback"] }
 miniz_oxide = { version = "0.8", default-features = false, features = ["with-alloc"] }
 object = { version = "0.36", default-features = false, features = ["archive", "read_core", "unaligned", "write"] }
@@ -331,7 +327,6 @@ zeroize = { version = "1", default-features = false, features = ["derive"] }
 
 [target.x86_64-pc-windows-msvc.dependencies]
 deadpool = { version = "0.12", features = ["rt_tokio_1"] }
-hyper-rustls = { version = "0.27", default-features = false, features = ["http1", "http2", "ring", "tls12", "webpki-tokio"] }
 spin = { version = "0.9" }
 tokio-postgres = { git = "https://github.com/grafbase/rust-postgres/", branch = "grafbase-rebased" }
 web-sys = { version = "0.3", default-features = false, features = ["Worker"] }
@@ -343,7 +338,6 @@ zeroize = { version = "1", default-features = false, features = ["derive"] }
 
 [target.x86_64-pc-windows-msvc.build-dependencies]
 deadpool = { version = "0.12", features = ["rt_tokio_1"] }
-hyper-rustls = { version = "0.27", default-features = false, features = ["http1", "http2", "ring", "tls12", "webpki-tokio"] }
 spin = { version = "0.9" }
 tokio-postgres = { git = "https://github.com/grafbase/rust-postgres/", branch = "grafbase-rebased" }
 web-sys = { version = "0.3", default-features = false, features = ["Worker"] }
@@ -356,7 +350,6 @@ zeroize = { version = "1", default-features = false, features = ["derive"] }
 [target.x86_64-unknown-linux-musl.dependencies]
 deadpool = { version = "0.12", features = ["rt_tokio_1"] }
 gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
-hyper-rustls = { version = "0.27", default-features = false, features = ["http1", "http2", "ring", "tls12", "webpki-tokio"] }
 iana-time-zone = { version = "0.1", default-features = false, features = ["fallback"] }
 linux-raw-sys = { version = "0.4", default-features = false, features = ["elf", "errno", "general", "if_ether", "ioctl", "net", "netlink", "no_std", "prctl", "xdp"] }
 miniz_oxide = { version = "0.8", default-features = false, features = ["with-alloc"] }
@@ -372,7 +365,6 @@ zeroize = { version = "1", default-features = false, features = ["derive"] }
 [target.x86_64-unknown-linux-musl.build-dependencies]
 deadpool = { version = "0.12", features = ["rt_tokio_1"] }
 gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
-hyper-rustls = { version = "0.27", default-features = false, features = ["http1", "http2", "ring", "tls12", "webpki-tokio"] }
 iana-time-zone = { version = "0.1", default-features = false, features = ["fallback"] }
 linux-raw-sys = { version = "0.4", default-features = false, features = ["elf", "errno", "general", "if_ether", "ioctl", "net", "netlink", "no_std", "prctl", "xdp"] }
 miniz_oxide = { version = "0.8", default-features = false, features = ["with-alloc"] }
@@ -388,7 +380,6 @@ zeroize = { version = "1", default-features = false, features = ["derive"] }
 [target.aarch64-unknown-linux-musl.dependencies]
 deadpool = { version = "0.12", features = ["rt_tokio_1"] }
 gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
-hyper-rustls = { version = "0.27", default-features = false, features = ["http1", "http2", "ring", "tls12", "webpki-tokio"] }
 iana-time-zone = { version = "0.1", default-features = false, features = ["fallback"] }
 linux-raw-sys = { version = "0.4", default-features = false, features = ["elf", "errno", "general", "if_ether", "ioctl", "net", "netlink", "no_std", "prctl", "xdp"] }
 miniz_oxide = { version = "0.8", default-features = false, features = ["with-alloc"] }
@@ -403,7 +394,6 @@ zeroize = { version = "1", default-features = false, features = ["derive"] }
 [target.aarch64-unknown-linux-musl.build-dependencies]
 deadpool = { version = "0.12", features = ["rt_tokio_1"] }
 gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
-hyper-rustls = { version = "0.27", default-features = false, features = ["http1", "http2", "ring", "tls12", "webpki-tokio"] }
 iana-time-zone = { version = "0.1", default-features = false, features = ["fallback"] }
 linux-raw-sys = { version = "0.4", default-features = false, features = ["elf", "errno", "general", "if_ether", "ioctl", "net", "netlink", "no_std", "prctl", "xdp"] }
 miniz_oxide = { version = "0.8", default-features = false, features = ["with-alloc"] }

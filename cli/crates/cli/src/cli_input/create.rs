@@ -1,7 +1,5 @@
 use crate::create::CreateArguments;
 
-use super::ArgumentNames;
-
 #[derive(Debug, clap::Args)]
 #[group(requires_all = ["name", "account"], multiple = true)]
 pub struct CreateCommand {
@@ -19,20 +17,5 @@ impl CreateCommand {
             .as_deref()
             .zip(self.account.as_deref())
             .map(|(name, account_slug)| CreateArguments { account_slug, name })
-    }
-}
-
-impl ArgumentNames for CreateCommand {
-    fn argument_names(&self) -> Option<Vec<&'static str>> {
-        let arguments = [(self.name.is_some(), vec!["name", "account", "self-hosted"])]
-            .iter()
-            .filter(|arguments| arguments.0)
-            .flat_map(|arguments| arguments.1.clone())
-            .collect::<Vec<_>>();
-        if arguments.is_empty() {
-            None
-        } else {
-            Some(arguments)
-        }
     }
 }

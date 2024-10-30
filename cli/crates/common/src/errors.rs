@@ -1,3 +1,4 @@
+use std::io;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -37,6 +38,23 @@ pub enum CommonError {
     RegistryDeserialization(std::path::PathBuf, serde_json::Error),
     #[error(transparent)]
     BunNotFound(#[from] BunNotFound),
+    #[error("encountered an invalid dashboard URL")]
+    InvalidDashboardUrl,
+    /// returned if ~/.grafbase could not be read
+    #[error("could not read '~/.grafbase'\nCaused by: {0}")]
+    ReadUserDotGrafbaseFolder(io::Error),
+    /// returned if ~/.grafbase/credentials.json could not be read
+    #[error("could not read '~/.grafbase/credentials.json'\nCaused by: {0}")]
+    ReadCredentialsFile(io::Error),
+    /// returned if the contents of the credential file are corrupt
+    #[error("could not complete the action as your credential file is corrupt")]
+    CorruptCredentialsFile,
+    /// returned if GRAFBASE_DASHBOARD_URL is specified when using no credential initialization of the platform data but GRAFBASE_API_URL isn't
+    #[error("encountered GRAFBASE_DASHBOARD_URL without GRAFBASE_API_URL")]
+    MissingDashboardUrlEnvVar(String),
+    /// returned if GRAFBASE_API_URL is specified when using no credential initialization of the platform data but GRAFBASE_DASHBOARD_URL isn't
+    #[error("encountered GRAFBASE_API_URL without GRAFBASE_DASHBOARD_URL")]
+    MissingApiUrlEnvVar(String),
 }
 
 #[derive(Debug, thiserror::Error, Clone, Copy)]

@@ -51,9 +51,8 @@ opentelemetry-appender-tracing = { git = "https://github.com/grafbase/openteleme
 # FIXME: Uncomment when we upgrade opentelemetry to 0.23.
 # opentelemetry-aws = { git = "https://github.com/open-telemetry/opentelemetry-rust-contrib", rev = "086961e18437743c5ea43c9474cc1a7b13a49c6b" } # main
 ory-client = { git = "https://github.com/ory/client-rust", rev = "v1.14.3" }
-reqwest = { git = "https://github.com/grafbase/reqwest", rev = "bcdc38deb99048eaee37313857e19ff3df7a2870" }                 # 0.12.8-with-patches-wasm-timeout
-rudderanalytics = { git = "https://github.com/grafbase/rudder-sdk-rust", rev = "3e994eb4dcc9c580be311ef9eab6e96dd264293b" } # async
-serde_with = { git = "https://github.com/grafbase/serde_with", rev = "06ad277a0e0175c2364d3c065e303a6c8a775c8a" }           # minify-field-names
+reqwest = { git = "https://github.com/grafbase/reqwest", rev = "bcdc38deb99048eaee37313857e19ff3df7a2870" }       # 0.12.8-with-patches-wasm-timeout
+serde_with = { git = "https://github.com/grafbase/serde_with", rev = "06ad277a0e0175c2364d3c065e303a6c8a775c8a" } # minify-field-names
 tokio-postgres = { git = "https://github.com/grafbase/rust-postgres/", branch = "grafbase-rebased" }
 # Upgrade 0.4.13 only to get rid of indexmap 1.9.
 # tower = { git = "https://github.com/grafbase/tower", rev = "7202cfeecd13ad6bbecd537d9799244313600db5" } # upgrade-indexmap

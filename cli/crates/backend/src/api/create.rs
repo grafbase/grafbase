@@ -1,5 +1,4 @@
 use super::client::create_client;
-use super::consts::api_url;
 use super::errors::{ApiError, CreateError};
 use super::graphql::mutations::{
     CurrentPlanLimitReachedError, DuplicateDatabaseRegionsError, GraphCreate, GraphCreateArguments, GraphCreateInput,
@@ -7,6 +6,7 @@ use super::graphql::mutations::{
 };
 use super::graphql::queries::viewer_for_create::{PersonalAccount, Viewer};
 use super::types::Account;
+use common::environment::PlatformData;
 use cynic::http::ReqwestExt;
 use cynic::Id;
 use cynic::{MutationBuilder, QueryBuilder};
@@ -18,9 +18,10 @@ pub use super::graphql::mutations::GraphMode;
 ///
 /// See [`ApiError`]
 pub async fn get_viewer_data_for_creation() -> Result<Vec<Account>, ApiError> {
+    let platform_data = PlatformData::get();
     let client = create_client().await?;
     let query = Viewer::build(());
-    let response = client.post(api_url()).run_graphql(query).await?;
+    let response = client.post(&platform_data.api_url).run_graphql(query).await?;
     let response = response.data.expect("must exist");
     let viewer_response = response.viewer.ok_or(ApiError::UnauthorizedOrDeletedUser)?;
 
@@ -53,6 +54,7 @@ pub async fn get_viewer_data_for_creation() -> Result<Vec<Account>, ApiError> {
 ///
 /// See [`ApiError`]
 pub async fn create(account_id: &str, project_slug: &str) -> Result<(Vec<String>, String), ApiError> {
+    let platform_data = PlatformData::get();
     let client = create_client().await?;
 
     let operation = GraphCreate::build(GraphCreateArguments {
@@ -65,7 +67,7 @@ pub async fn create(account_id: &str, project_slug: &str) -> Result<(Vec<String>
         },
     });
 
-    let response = client.post(api_url()).run_graphql(operation).await?;
+    let response = client.post(&platform_data.api_url).run_graphql(operation).await?;
     let payload = response.data.ok_or(ApiError::UnauthorizedOrDeletedUser)?.graph_create;
 
     match payload {

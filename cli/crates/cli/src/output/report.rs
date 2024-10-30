@@ -2,9 +2,11 @@ use crate::{
     errors::CliError,
     watercolor::{self, watercolor},
 };
-use backend::api::consts::dashboard_url;
 use colored::Colorize;
-use common::{environment::Warning, trusted_documents::TrustedDocumentsManifest};
+use common::{
+    environment::{PlatformData, Warning},
+    trusted_documents::TrustedDocumentsManifest,
+};
 
 /// reports to stdout that the server has started
 pub fn cli_header() {
@@ -80,12 +82,12 @@ pub fn create() {
 }
 
 pub fn create_success(name: &str, urls: &[String], account_slug: &str, project_slug: &str) {
+    let platform_data = PlatformData::get();
     watercolor::output!("\n✨ {name} was successfully created!\n", @BrightBlue);
     if let Some(url) = urls.first() {
         watercolor::output!("Endpoint: https://{url}", @BrightBlue)
     }
-    let app_url = dashboard_url();
-    watercolor::output!("Dashboard: {app_url}/{account_slug}/{project_slug}/branches/main", @BrightBlue);
+    watercolor::output!("Dashboard: {}/{account_slug}/{project_slug}/branches/main", platform_data.dashboard_url, @BrightBlue);
 }
 
 pub(crate) fn check_name_missing_on_federated_project() {

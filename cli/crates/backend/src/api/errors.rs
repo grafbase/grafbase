@@ -40,10 +40,6 @@ pub enum ApiError {
     #[error("could not complete the action as this project has not been linked")]
     UnlinkedProject,
 
-    /// returned if the contents of the credential file are corrupt
-    #[error("could not complete the action as your credential file is corrupt")]
-    CorruptCredentialsFile,
-
     /// returned if the provided access token is corrupt
     #[error("could not complete the action as your access token is corrupt")]
     CorruptAccessToken,

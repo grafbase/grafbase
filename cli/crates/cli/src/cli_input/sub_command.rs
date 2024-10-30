@@ -3,8 +3,8 @@ use clap::Parser;
 use crate::is_not_direct_install;
 
 use super::{
-    branch::BranchCommand, trust::TrustCommand, ArgumentNames, CheckCommand, CompletionsCommand, CreateCommand,
-    IntrospectCommand, LintCommand, PublishCommand, SchemaCommand, SubgraphsCommand,
+    branch::BranchCommand, trust::TrustCommand, CheckCommand, CompletionsCommand, CreateCommand, IntrospectCommand,
+    LintCommand, LoginCommand, PublishCommand, SchemaCommand, SubgraphsCommand,
 };
 
 #[derive(Debug, Parser, strum::AsRefStr, strum::Display)]
@@ -16,7 +16,7 @@ pub enum SubCommand {
     /// appropriate location for your shell
     Completions(CompletionsCommand),
     /// Logs into your Grafbase account
-    Login,
+    Login(LoginCommand),
     /// Logs out of your Grafbase account
     Logout,
     /// Set up and deploy a new graph
@@ -40,22 +40,21 @@ pub enum SubCommand {
     Lint(LintCommand),
 }
 
-impl ArgumentNames for SubCommand {
-    fn argument_names(&self) -> Option<Vec<&'static str>> {
-        match self {
-            SubCommand::Create(command) => command.argument_names(),
-            SubCommand::Schema(_)
-            | SubCommand::Branch(_)
-            | SubCommand::Publish(_)
-            | SubCommand::Check(_)
-            | SubCommand::Subgraphs(_)
-            | SubCommand::Introspect(_)
-            | SubCommand::Login
-            | SubCommand::Logout
-            | SubCommand::Completions(_)
-            | SubCommand::Trust(_)
-            | SubCommand::Upgrade
-            | SubCommand::Lint(_) => None,
-        }
+pub trait RequiresLogin {
+    fn requires_login(&self) -> bool;
+}
+
+impl RequiresLogin for SubCommand {
+    fn requires_login(&self) -> bool {
+        matches!(
+            self,
+            SubCommand::Create(_)
+                | SubCommand::Publish(_)
+                | SubCommand::Trust(_)
+                | SubCommand::Subgraphs(_)
+                | SubCommand::Check(_)
+                | SubCommand::Branch(_)
+                | SubCommand::Schema(_)
+        )
     }
 }

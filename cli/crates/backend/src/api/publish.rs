@@ -1,12 +1,12 @@
 use super::{
     client::create_client,
-    consts::api_url,
     errors::{ApiError, PublishError},
     graphql::mutations::{
         FederatedGraphCompositionError, PublishPayload, SchemaRegistryBranchDoesNotExistError, SubgraphCreateArguments,
         SubgraphPublish,
     },
 };
+use common::environment::PlatformData;
 use cynic::{http::ReqwestExt, MutationBuilder};
 
 pub enum PublishOutcome {
@@ -23,6 +23,7 @@ pub async fn publish(
     schema: &str,
     message: Option<&str>,
 ) -> Result<PublishOutcome, ApiError> {
+    let platform_data = PlatformData::get();
     let client = create_client().await?;
 
     let operation = SubgraphPublish::build(SubgraphCreateArguments {
@@ -37,7 +38,7 @@ pub async fn publish(
         },
     });
 
-    let cynic::GraphQlResponse { data, errors } = client.post(api_url()).run_graphql(operation).await?;
+    let cynic::GraphQlResponse { data, errors } = client.post(&platform_data.api_url).run_graphql(operation).await?;
 
     if let Some(data) = data {
         match data.publish {

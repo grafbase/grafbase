@@ -26,13 +26,13 @@ mod watercolor;
 extern crate log;
 
 use crate::{
-    cli_input::{Args, ArgumentNames, BranchSubCommand, SubCommand},
+    cli_input::{Args, BranchSubCommand, RequiresLogin, SubCommand},
     create::create,
     login::login,
     logout::logout,
 };
 use clap::Parser;
-use common::{analytics::Analytics, environment::Environment};
+use common::environment::{Environment, PlatformData};
 use errors::CliError;
 use output::report;
 use std::{io::IsTerminal as _, path::PathBuf, process};
@@ -83,8 +83,10 @@ fn try_main(args: Args) -> Result<(), CliError> {
 
     Environment::try_init(args.home).map_err(CliError::CommonError)?;
 
-    Analytics::init().map_err(CliError::CommonError)?;
-    Analytics::command_executed(args.command.as_ref(), args.command.argument_names());
+    if args.command.requires_login() {
+        PlatformData::try_init().map_err(CliError::CommonError)?;
+    }
+
     report::warnings(&Environment::get().warnings);
 
     match args.command {
@@ -93,7 +95,10 @@ fn try_main(args: Args) -> Result<(), CliError> {
 
             Ok(())
         }
-        SubCommand::Login => login(),
+        SubCommand::Login(cmd) => {
+            PlatformData::try_init_ignore_credentials(cmd.url).map_err(CliError::CommonError)?;
+            login()
+        }
         SubCommand::Logout => logout(),
         SubCommand::Create(cmd) => create(&cmd.create_arguments()),
         SubCommand::Subgraphs(cmd) => subgraphs::subgraphs(cmd),

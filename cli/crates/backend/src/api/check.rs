@@ -2,10 +2,10 @@ pub use super::graphql::mutations::{SchemaCheck, SchemaCheckErrorSeverity, Schem
 
 use super::{
     client::create_client,
-    consts::api_url,
     errors::ApiError,
     graphql::mutations::{SchemaCheckCreate, SchemaCheckCreateArguments, SchemaCheckCreateInput, SchemaCheckPayload},
 };
+use common::environment::PlatformData;
 use cynic::{http::ReqwestExt, MutationBuilder};
 
 pub enum SchemaCheckResult {
@@ -21,6 +21,7 @@ pub async fn check(
     schema: &str,
     git_commit: Option<SchemaCheckGitCommitInput>,
 ) -> Result<SchemaCheckResult, ApiError> {
+    let platform_data = PlatformData::get();
     let client = create_client().await?;
 
     let operation = SchemaCheckCreate::build(SchemaCheckCreateArguments {
@@ -34,7 +35,7 @@ pub async fn check(
         },
     });
 
-    let result = client.post(api_url()).run_graphql(operation).await?;
+    let result = client.post(&platform_data.api_url).run_graphql(operation).await?;
 
     match result {
         cynic::GraphQlResponse {

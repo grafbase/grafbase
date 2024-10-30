@@ -6,7 +6,8 @@ use crate::api::graphql::queries::{
     fetch_subgraph_schema::{FetchSubgraphSchemaArguments, FetchSubgraphSchemaQuery},
 };
 
-use super::{client::create_client, consts::api_url, errors::ApiError};
+use super::{client::create_client, errors::ApiError};
+use common::environment::PlatformData;
 use cynic::{http::ReqwestExt, QueryBuilder};
 
 pub async fn schema(
@@ -28,6 +29,7 @@ async fn subgraph_schema(
     branch: Option<&str>,
     subgraph_name: &str,
 ) -> Result<String, ApiError> {
+    let platform_data = PlatformData::get();
     let client = create_client().await?;
     let operation = FetchSubgraphSchemaQuery::build(FetchSubgraphSchemaArguments {
         account,
@@ -35,7 +37,7 @@ async fn subgraph_schema(
         subgraph_name,
         branch,
     });
-    let response = client.post(api_url()).run_graphql(operation).await?;
+    let response = client.post(&platform_data.api_url).run_graphql(operation).await?;
 
     response
         .data
@@ -46,13 +48,14 @@ async fn subgraph_schema(
 }
 
 async fn federated_graph_schema(account: &str, graph: &str, branch: Option<&str>) -> Result<Option<String>, ApiError> {
+    let platform_data = PlatformData::get();
     let client = create_client().await?;
 
     if let Some(branch) = branch {
         let operation =
             FetchFederatedGraphSchemaQuery::build(FetchFederatedGraphSchemaArguments { account, graph, branch });
 
-        let response = client.post(api_url()).run_graphql(operation).await?;
+        let response = client.post(&platform_data.api_url).run_graphql(operation).await?;
 
         response
             .data
@@ -67,7 +70,7 @@ async fn federated_graph_schema(account: &str, graph: &str, branch: Option<&str>
                 graph,
             });
 
-        let response = client.post(api_url()).run_graphql(operation).await?;
+        let response = client.post(&platform_data.api_url).run_graphql(operation).await?;
 
         response
             .data
