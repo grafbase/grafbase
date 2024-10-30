@@ -63,7 +63,6 @@ impl FederationEntityResolver {
         )
     }
 
-    #[tracing::instrument(skip_all)]
     pub fn prepare_request<'ctx, R: Runtime>(
         &'ctx self,
         ctx: &SubgraphContext<'ctx, R>,
