@@ -7,7 +7,7 @@ pub struct LogicalPlanId(NonZero<u16>);
 pub struct BoundSelectionSetId(NonZero<u16>);
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
-pub struct VariableDefinitionId(NonZero<u16>);
+pub struct BoundVariableDefinitionId(NonZero<u16>);
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
 pub struct BoundFieldId(NonZero<u16>);

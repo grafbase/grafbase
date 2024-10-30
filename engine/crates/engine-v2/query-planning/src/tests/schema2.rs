@@ -217,6 +217,6 @@ fn sibling_dependency() {
     solver.execute().unwrap();
     insta::assert_snapshot!("solved", solver.to_dot_graph(), &solver.to_pretty_dot_graph());
 
-    graph.solve().unwrap();
+    graph.finalize_operation_graph_with_solution(solver.into_solution());
     insta::assert_snapshot!("solved-graph", graph.to_dot_graph(), &graph.to_pretty_dot_graph());
 }

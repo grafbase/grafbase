@@ -1,9 +1,8 @@
 use super::{coercion::coerce_query_value, BindError, BindResult, Binder};
-use crate::operation::QueryModifierRule;
 use crate::{
     operation::{
         BoundField, BoundFieldArgument, BoundFieldArgumentId, BoundFieldId, BoundQueryField, BoundSelectionSetId,
-        BoundTypeNameField, Location, QueryInputValueRecord, SelectionSetType,
+        BoundTypeNameField, Location, QueryInputValueRecord, QueryModifierRule, SelectionSetType,
     },
     response::BoundResponseKey,
 };

@@ -2,11 +2,11 @@ use schema::Schema;
 
 use super::{
     bind::{bind_variables, VariableError},
-    Location, Operation, QueryInputValueId, VariableDefinitionId, VariableInputValueId, VariableInputValues,
+    BoundVariableDefinitionId, Location, Operation, QueryInputValueId, VariableInputValueId, VariableInputValues,
 };
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct VariableDefinitionRecord {
+pub struct BoundVariableDefinition {
     pub name: String,
     pub name_location: Location,
     pub default_value_id: Option<QueryInputValueId>,
@@ -24,10 +24,10 @@ pub enum VariableValue {
     InputValue(VariableInputValueId),
 }
 
-impl std::ops::Index<VariableDefinitionId> for Variables {
+impl std::ops::Index<BoundVariableDefinitionId> for Variables {
     type Output = VariableValue;
 
-    fn index(&self, index: VariableDefinitionId) -> &Self::Output {
+    fn index(&self, index: BoundVariableDefinitionId) -> &Self::Output {
         &self.definition_to_value[usize::from(index)]
     }
 }

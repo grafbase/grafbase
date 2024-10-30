@@ -65,7 +65,7 @@ fn all_fields() {
         &solver.to_pretty_dot_graph()
     );
 
-    graph.solve().unwrap();
+    graph.finalize_operation_graph_with_solution(solver.into_solution());
     insta::assert_snapshot!(
         "all_fields-solved-graph",
         graph.to_dot_graph(),
@@ -104,7 +104,7 @@ fn single_field() {
         &solver.to_pretty_dot_graph()
     );
 
-    graph.solve().unwrap();
+    graph.finalize_operation_graph_with_solution(solver.into_solution());
     insta::assert_snapshot!(
         "single_field-solved-graph",
         graph.to_dot_graph(),

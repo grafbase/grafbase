@@ -51,7 +51,9 @@ const POSITION_MASK: u32 = 0b0111_1111_1111_1111_1000_0000_0000_0000;
 const POSITION_BIT_SHIFT: u32 = POSITION_MASK.trailing_zeros();
 const MAX_RESPONSE_KEY: u32 = (1 << POSITION_BIT_SHIFT) - 1;
 const RESPONSE_KEY_MASK: u32 = MAX_RESPONSE_KEY;
-const MAX_POSITION: u32 = POSITION_MASK >> POSITION_BIT_SHIFT;
+
+/// Last position is reserved for extra fields
+const MAX_POSITION: u32 = (POSITION_MASK >> POSITION_BIT_SHIFT) - 1;
 
 const OTHER_FLAG: u32 = 0b1000_0000_0000_0000_0000_0000_0000_0000;
 
@@ -65,6 +67,28 @@ mod private;
 pub use private::*;
 
 use crate::operation::QueryPosition;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize)]
+pub(crate) struct PositionedResponseKey {
+    /// If not present, it's an extra field.
+    pub query_position: Option<QueryPosition>,
+    pub key: ResponseKey,
+}
+
+impl From<BoundResponseKey> for PositionedResponseKey {
+    fn from(key: BoundResponseKey) -> Self {
+        let position = key.position() as u32;
+        let position = if position == MAX_POSITION {
+            None
+        } else {
+            Some(QueryPosition::from(position as u16))
+        };
+        PositionedResponseKey {
+            query_position: position,
+            key: key.as_response_key(),
+        }
+    }
+}
 
 /// A ResponseEdge correspond to any edge within the response graph, so a field or an index.
 /// It's the primary abstraction for the ResponsePath, and used at different places for simplicity.
@@ -86,7 +110,7 @@ pub struct BoundResponseKey(u32);
 
 /// Id of an interned string within ResponseKeys.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize)]
-pub struct ResponseKey(u32);
+pub struct ResponseKey(u16);
 
 impl SafeResponseKey {
     pub fn with_position(self, position: QueryPosition) -> Option<BoundResponseKey> {
@@ -120,7 +144,7 @@ impl BoundResponseKey {
     }
 
     pub(crate) fn as_response_key(self) -> ResponseKey {
-        ResponseKey(self.0 & RESPONSE_KEY_MASK)
+        ResponseKey((self.0 & RESPONSE_KEY_MASK) as u16)
     }
 }
 
@@ -138,7 +162,7 @@ impl ResponseEdge {
             UnpackedResponseEdge::Index((self.0 & INDEX_MASK) as usize)
         } else {
             assert!(self.0 & EXTRA_FIELD_KEY_FLAG == EXTRA_FIELD_KEY_FLAG);
-            UnpackedResponseEdge::ExtraFieldResponseKey(ResponseKey(self.0 & EXTRA_FIELD_KEY_MASK))
+            UnpackedResponseEdge::ExtraFieldResponseKey(ResponseKey((self.0 & EXTRA_FIELD_KEY_MASK) as u16))
         }
     }
 }
@@ -158,7 +182,7 @@ impl UnpackedResponseEdge {
                 ResponseEdge(index | INDEX_FLAG)
             }
             UnpackedResponseEdge::ExtraFieldResponseKey(key) => {
-                let key = key.0;
+                let key = key.0 as u32;
                 assert!((key & EXTRA_FIELD_KEY_MASK) == key, "Insufficient space for the key");
                 ResponseEdge(EXTRA_FIELD_KEY_FLAG | key)
             }

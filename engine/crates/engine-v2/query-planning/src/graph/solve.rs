@@ -92,9 +92,7 @@ impl<'g, 'ctx, Op: Operation> Solver<'g, 'ctx, Op> {
 
     pub fn solve(mut self) -> crate::Result<Solution> {
         self.execute()?;
-        Ok(Solution {
-            node_bitset: self.algorithm.operation_graph_bitset(),
-        })
+        Ok(self.into_solution())
     }
 
     /// Solves the Steiner tree problem for the resolvers of our operation graph.
@@ -109,6 +107,12 @@ impl<'g, 'ctx, Op: Operation> Solver<'g, 'ctx, Op> {
         tracing::debug!("Solver finished:\n{}", self.to_pretty_dot_graph());
 
         Ok(())
+    }
+
+    pub fn into_solution(self) -> Solution {
+        Solution {
+            node_bitset: self.algorithm.operation_graph_bitset(),
+        }
     }
 
     /// For each node with dispensable requirements, we need its incoming edges cost to reflect

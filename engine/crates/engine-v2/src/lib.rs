@@ -7,6 +7,7 @@ mod engine;
 mod execution;
 mod graphql_over_http;
 mod operation;
+mod plan;
 mod request;
 mod response;
 mod sources;

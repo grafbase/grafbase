@@ -1,17 +1,19 @@
 mod de;
 mod ser;
 mod view;
+mod walker;
 
+use ::walker::Walk;
 use id_derives::{Id, IndexedFields};
 use id_newtypes::IdRange;
 use schema::{
     EnumValueId, InputValue, InputValueDefinitionId, InputValueSet, SchemaInputValueId, SchemaInputValueRecord,
 };
-use walker::Walk;
 
-use crate::operation::{OperationWalker, PreparedOperationWalker, VariableDefinitionId};
+use crate::operation::{BoundVariableDefinitionId, OperationWalker, PreparedOperationWalker};
 
 pub(crate) use view::*;
+pub(crate) use walker::*;
 
 #[derive(Default, Clone, serde::Serialize, serde::Deserialize, IndexedFields)]
 pub(crate) struct QueryInputValues {
@@ -59,7 +61,7 @@ pub(crate) enum QueryInputValueRecord {
     UnboundEnumValue(String),
 
     DefaultValue(SchemaInputValueId),
-    Variable(VariableDefinitionId),
+    Variable(BoundVariableDefinitionId),
 }
 
 impl QueryInputValues {

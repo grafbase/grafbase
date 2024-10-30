@@ -17,7 +17,8 @@ use std::borrow::Cow;
 use petgraph::{
     dot::{Config, Dot},
     stable_graph::{NodeIndex, StableGraph},
-    visit::IntoNodeReferences,
+    visit::{EdgeRef, IntoNodeReferences},
+    Direction,
 };
 
 pub type Cost = u16;
@@ -48,6 +49,24 @@ pub struct OperationGraph<'ctx, Op: Operation> {
     pub(crate) graph: StableGraph<Node<Op::FieldId>, Edge>,
 }
 
+pub struct SolvedGraph<FieldId> {
+    inner: StableGraph<Node<FieldId>, Edge>,
+    pub root_node_ix: NodeIndex,
+}
+
+impl<FieldId> std::ops::Deref for SolvedGraph<FieldId> {
+    type Target = StableGraph<Node<FieldId>, Edge>;
+    fn deref(&self) -> &Self::Target {
+        &self.inner
+    }
+}
+
+impl<FieldId> std::ops::DerefMut for SolvedGraph<FieldId> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
+
 impl<'ctx, Op: Operation> OperationGraph<'ctx, Op> {
     #[instrument(skip_all, level = Level::DEBUG)]
     pub fn new(schema: &'ctx Schema, operation: Op) -> crate::Result<OperationGraph<'ctx, Op>> {
@@ -56,14 +75,28 @@ impl<'ctx, Op: Operation> OperationGraph<'ctx, Op> {
         })
     }
 
-    pub fn solve(&mut self) -> crate::Result<()> {
-        let solution = solve::Solver::initialize(self)?.solve()?;
+    pub fn solve(mut self) -> crate::Result<SolvedGraph<Op::FieldId>> {
+        let solution = solve::Solver::initialize(&self)?.solve()?;
+        self.finalize_operation_graph_with_solution(solution);
+        Ok(SolvedGraph {
+            inner: self.graph,
+            root_node_ix: self.root_ix,
+        })
+    }
+
+    pub(crate) fn finalize_operation_graph_with_solution(&mut self, solution: solve::Solution) {
         self.finalize_extra_fields(&solution);
         self.graph.retain_nodes(|graph, node| match graph[node] {
             Node::Root => true,
-            Node::QueryField(_) | Node::Resolver(_) | Node::ProvidableField(_) => solution.node_bitset[node.index()],
+            Node::QueryField(_) => {
+                // Either part of the Steiner tree (scalars) or providable by one (composite types)
+                solution.node_bitset[node.index()]
+                    || graph.edges_directed(node, Direction::Incoming).any(|edge| {
+                        matches!(edge.weight(), Edge::Provides) && solution.node_bitset[edge.source().index()]
+                    })
+            }
+            Node::Resolver(_) | Node::ProvidableField(_) => solution.node_bitset[node.index()],
         });
-        Ok(())
     }
 
     fn finalize_extra_fields(&mut self, solution: &solve::Solution) {
@@ -77,7 +110,7 @@ impl<'ctx, Op: Operation> OperationGraph<'ctx, Op> {
             extra_fields.clear();
             existing_fields.clear();
 
-            for node_ix in self.graph.neighbors_directed(node_ix, petgraph::Direction::Outgoing) {
+            for node_ix in self.graph.neighbors_directed(node_ix, Direction::Outgoing) {
                 let Node::QueryField(field) = &self.graph[node_ix] else {
                     continue;
                 };
