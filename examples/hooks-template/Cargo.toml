@@ -1,0 +1,19 @@
+[package]
+name = "hooks-template"
+version = "0.1.0"
+edition = "2021"
+license = "MPL-2.0"
+homepage = "https://grafbase.com"
+keywords = ["grafbase"]
+repository = "https://github.com/grafbase/grafbase"
+
+[dependencies]
+wit-bindgen-rt = { version = "0.34.0", features = ["bitflags"] }
+
+[lib]
+crate-type = ["cdylib"]
+
+[package.metadata.component]
+package = "component:hooks-template"
+
+[package.metadata.component.dependencies]

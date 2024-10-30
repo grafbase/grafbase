@@ -33,6 +33,7 @@ members = [
 exclude = [
     "engine/crates/gateway-v2",
     "engine/crates/wasi-component-loader/examples",
+    "examples/hooks-template",
 ]
 
 [patch.crates-io]
