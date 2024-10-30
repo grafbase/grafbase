@@ -95,7 +95,7 @@ impl Environment {
                 warnings: Vec::new(),
             })
             .map_err(|_| ())
-            .expect("cannot) set environment twice");
+            .expect("cannot set environment twice");
 
         Ok(())
     }
