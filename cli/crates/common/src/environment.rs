@@ -4,7 +4,7 @@ use url::Url;
 use crate::{
     consts::{
         CREDENTIALS_FILE, DEFAULT_API_URL, DEFAULT_DASHBOARD_URL, DOT_GRAFBASE_DIRECTORY_NAME,
-        GRAFBASE_API_URL_ENV_VAR, GRAFBASE_DASHBOARD_URL_ENV_VAR, GRAFBASE_HOME,
+        GRAFBASE_ACCESS_TOKEN_ENV_VAR, GRAFBASE_API_URL_ENV_VAR, GRAFBASE_DASHBOARD_URL_ENV_VAR, GRAFBASE_HOME,
     },
     errors::CommonError,
 };
@@ -242,7 +242,7 @@ pub fn get_user_dot_grafbase_path(r#override: Option<PathBuf>) -> Option<PathBuf
 fn get_login_state() -> Result<LoginState, CommonError> {
     // if there's an access token in the environment, completely ignore the credentials file
     // including any previous api_url (we can make this more granular later if needed)
-    if let Ok(token) = env::var("GRAFBASE_ACCESS_TOKEN") {
+    if let Ok(token) = env::var(GRAFBASE_ACCESS_TOKEN_ENV_VAR) {
         return Ok(LoginState::LoggedIn(Credentials {
             access_token: token,
             api_url: None,
