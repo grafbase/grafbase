@@ -169,8 +169,8 @@ impl KeyFile {
     pub fn new(contents: &str) -> Self {
         let tempfile = tempfile::NamedTempFile::new().unwrap();
         let mut file = tempfile.as_file();
-        file.write_all(contents.as_bytes());
-        file.flush();
+        file.write_all(contents.as_bytes()).unwrap();
+        file.flush().unwrap();
         KeyFile(tempfile)
     }
 }

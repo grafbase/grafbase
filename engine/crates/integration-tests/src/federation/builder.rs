@@ -32,7 +32,6 @@ pub struct TestGatewayBuilder {
     trusted_documents: Option<trusted_documents_client::Client>,
     hooks: Option<DynamicHooks>,
     fetcher: Option<DynamicFetcher>,
-    // runtime: TestRuntime,
 }
 
 pub trait EngineV2Ext {

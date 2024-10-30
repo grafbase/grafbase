@@ -60,7 +60,9 @@ pub struct SigningParameters {
     expiry: Option<Duration>,
     include_headers: Option<HashSet<String>>,
     exclude_headers: Option<HashSet<String>>,
+    #[expect(unused)]
     derived_components: Vec<DerivedComponent>,
+    #[expect(unused)]
     signature_parameters: Vec<SignatureParameter>,
 }
 
@@ -107,7 +109,7 @@ impl SigningParameters {
     }
 
     fn httpsig_params(&self, headers: &http::HeaderMap) -> anyhow::Result<HttpSignatureParams> {
-        let mut covered_components = headers
+        let covered_components = headers
             .iter()
             .filter(|(name, _)| self.should_include_header(name.as_str()))
             .map(|(name, _)| HttpMessageComponentId::try_from(name.as_str()))
@@ -122,7 +124,6 @@ impl SigningParameters {
         }
 
         if let Some(expiry) = self.expiry {
-            // TODO: Ok, so this sets it from now, need to do something else...
             params.set_expires_with_duration(Some(expiry.as_secs()));
         }
 
@@ -197,8 +198,7 @@ impl Key {
             })?));
         }
 
-        let key =
-            SecretKey::from_pem(dbg!(&data)).with_context(|| format!("error when parsing secret key from {name}"))?;
+        let key = SecretKey::from_pem(&data).with_context(|| format!("error when parsing secret key from {name}"))?;
 
         match (&key, algorithm) {
             (_, None)

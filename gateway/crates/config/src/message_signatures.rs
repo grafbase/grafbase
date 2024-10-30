@@ -120,18 +120,6 @@ pub enum SignatureParameter {
     Nonce,
 }
 
-mod defaults {
-    use super::{DerivedComponent, SignatureParameter};
-
-    pub fn derived_components() -> Vec<DerivedComponent> {
-        vec![DerivedComponent::RequestTarget]
-    }
-
-    pub fn signature_parameters() -> Vec<SignatureParameter> {
-        vec![SignatureParameter::Created, SignatureParameter::Algorithm]
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -148,16 +136,11 @@ mod tests {
             key: None,
             expiry: None,
             headers: MessageSigningHeaders {
-                include: [],
-                exclude: [],
+                include: None,
+                exclude: None,
             },
-            derived_components: [
-                RequestTarget,
-            ],
-            signature_parameters: [
-                Created,
-                Algorithm,
-            ],
+            derived_components: None,
+            signature_parameters: None,
         }
         "###);
     }
@@ -166,7 +149,7 @@ mod tests {
     fn test_valid_message_signatures_config() {
         let config = indoc! {r#"
             enabled = true
-            algorithm = "EcdsaP256"
+            algorithm = "ecdsa-p256-sha256"
             key.file = "key.file"
             key.id = "hello"
             expiry = "1s"
@@ -198,20 +181,28 @@ mod tests {
                 1s,
             ),
             headers: MessageSigningHeaders {
-                include: [
-                    "my-fave-header",
-                ],
-                exclude: [
-                    "authorization",
-                ],
+                include: Some(
+                    [
+                        "my-fave-header",
+                    ],
+                ),
+                exclude: Some(
+                    [
+                        "authorization",
+                    ],
+                ),
             },
-            derived_components: [
-                RequestTarget,
-                Path,
-            ],
-            signature_parameters: [
-                Created,
-            ],
+            derived_components: Some(
+                [
+                    RequestTarget,
+                    Path,
+                ],
+            ),
+            signature_parameters: Some(
+                [
+                    Created,
+                ],
+            ),
         }
         "###);
     }

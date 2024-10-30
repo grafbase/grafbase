@@ -1427,18 +1427,7 @@ mod tests {
                 timeout: None,
                 retry: None,
                 entity_caching: None,
-                message_signatures: MessageSignaturesConfig {
-                    enabled: None,
-                    algorithm: None,
-                    key: None,
-                    expiry: None,
-                    headers: MessageSigningHeaders {
-                        include: [],
-                        exclude: [],
-                    },
-                    derived_components: [],
-                    signature_parameters: [],
-                },
+                message_signatures: None,
             },
         }
         "###);
@@ -1521,11 +1510,11 @@ mod tests {
                 key: None,
                 expiry: None,
                 headers: MessageSigningHeaders {
-                    include: [],
-                    exclude: [],
+                    include: None,
+                    exclude: None,
                 },
-                derived_components: [],
-                signature_parameters: [],
+                derived_components: None,
+                signature_parameters: None,
             },
         }
         "###);
@@ -1897,18 +1886,7 @@ mod tests {
                     },
                 ),
                 entity_caching: None,
-                message_signatures: MessageSignaturesConfig {
-                    enabled: None,
-                    algorithm: None,
-                    key: None,
-                    expiry: None,
-                    headers: MessageSigningHeaders {
-                        include: [],
-                        exclude: [],
-                    },
-                    derived_components: [],
-                    signature_parameters: [],
-                },
+                message_signatures: None,
             },
         }
         "###);
