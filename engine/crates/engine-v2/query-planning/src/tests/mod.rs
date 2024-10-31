@@ -121,7 +121,7 @@ impl crate::Operation for &mut TestOperation {
         self[field_id].definition_id == Some(requirement.definition_id)
     }
 
-    fn create_extra_field(
+    fn create_potential_extra_field(
         &mut self,
         _petitioner_field_id: Self::FieldId,
         requirement: schema::RequiredField<'_>,
@@ -133,6 +133,8 @@ impl crate::Operation for &mut TestOperation {
         });
         (self.fields.len() - 1).into()
     }
+
+    fn finalize_selection_set_extra_fields(&mut self, _extra: &[Self::FieldId], _existing: &[Self::FieldId]) {}
 }
 
 #[track_caller]
