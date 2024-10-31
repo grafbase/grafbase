@@ -21,13 +21,17 @@ use crate::dot_graph::Attrs;
 
 pub type Cost = u16;
 
-pub trait Operation: std::fmt::Debug {
+pub trait Operation {
     type FieldId: From<usize> + Into<usize> + Copy + std::fmt::Debug + Ord;
 
     fn field_ids(&self) -> impl ExactSizeIterator<Item = Self::FieldId> + 'static;
     fn field_defintion(&self, field_id: Self::FieldId) -> Option<FieldDefinitionId>;
     fn field_satisfies(&self, field_id: Self::FieldId, requirement: RequiredField<'_>) -> bool;
-    fn create_extra_field(&mut self, requirement: RequiredField<'_>) -> Self::FieldId;
+    fn create_extra_field(
+        &mut self,
+        petitioner_field_id: Self::FieldId,
+        requirement: RequiredField<'_>,
+    ) -> Self::FieldId;
 
     fn root_selection_set(&self) -> impl ExactSizeIterator<Item = Self::FieldId> + '_;
     fn subselection(&self, field_id: Self::FieldId) -> impl ExactSizeIterator<Item = Self::FieldId> + '_;
@@ -37,14 +41,14 @@ pub trait Operation: std::fmt::Debug {
 
 pub struct OperationGraph<'ctx, Op: Operation> {
     pub(crate) schema: &'ctx Schema,
-    pub(crate) operation: &'ctx mut Op,
+    pub(crate) operation: Op,
     root_ix: NodeIndex,
     pub(crate) graph: StableGraph<Node<Op::FieldId>, Edge>,
 }
 
 impl<'ctx, Op: Operation> OperationGraph<'ctx, Op> {
     #[instrument(skip_all)]
-    pub fn new(schema: &'ctx Schema, operation: &'ctx mut Op) -> crate::Result<OperationGraph<'ctx, Op>> {
+    pub fn new(schema: &'ctx Schema, operation: Op) -> crate::Result<OperationGraph<'ctx, Op>> {
         Self::builder(schema, operation).build().inspect(|op| {
             tracing::debug!("OperationGraph created:\n{}", op.to_pretty_dot_graph());
         })

@@ -2377,6 +2377,7 @@ dependencies = [
  "engine-v2-config",
  "engine-v2-id-derives",
  "engine-v2-id-newtypes",
+ "engine-v2-query-planning",
  "engine-v2-schema",
  "engine-v2-walker",
  "engine-value",

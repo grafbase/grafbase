@@ -6,12 +6,12 @@ use petgraph::{stable_graph::NodeIndex, visit::EdgeRef, Direction};
 
 pub(super) struct OperationGraphBuilder<'ctx, Op: Operation> {
     pub(super) schema: &'ctx Schema,
-    pub(super) operation: &'ctx mut Op,
+    pub(super) operation: Op,
     pub(super) graph: StableGraph<Node<Op::FieldId>, Edge>,
     pub(super) root_ix: NodeIndex,
     pub(super) field_nodes: Vec<NodeIndex>,
     field_ingestion_stack: Vec<CreateProvidableFields<Op::FieldId>>,
-    requirement_ingestion_stack: Vec<Requirement<'ctx>>,
+    requirement_ingestion_stack: Vec<Requirement<'ctx, Op::FieldId>>,
 }
 
 impl<'ctx, Op: Operation> std::ops::Index<Op::FieldId> for OperationGraphBuilder<'ctx, Op> {
@@ -23,7 +23,7 @@ impl<'ctx, Op: Operation> std::ops::Index<Op::FieldId> for OperationGraphBuilder
 }
 
 impl<'ctx, Op: Operation> OperationGraph<'ctx, Op> {
-    pub(super) fn builder(schema: &'ctx Schema, operation: &'ctx mut Op) -> OperationGraphBuilder<'ctx, Op> {
+    pub(super) fn builder(schema: &'ctx Schema, operation: Op) -> OperationGraphBuilder<'ctx, Op> {
         let n = operation.field_ids().len();
         let mut graph = petgraph::stable_graph::StableGraph::with_capacity(n * 2, n * 2);
         let root_ix = graph.add_node(Node::Root);
@@ -82,7 +82,8 @@ impl<'ctx, Op: Operation> OperationGraphBuilder<'ctx, Op> {
     }
 }
 
-struct Requirement<'ctx> {
+struct Requirement<'ctx, FieldId> {
+    petitioner_field_id: FieldId,
     dependent_ix: NodeIndex,
     indispensable: bool,
     parent_query_field_ix: NodeIndex,
@@ -140,6 +141,7 @@ impl<'ctx, Op: Operation> OperationGraphBuilder<'ctx, Op> {
                 TypeSystemDirective::Authorized(directive) => directive.fields(),
             }) {
                 self.requirement_ingestion_stack.push(Requirement {
+                    petitioner_field_id: field_id,
                     dependent_ix: query_field_ix,
                     indispensable: self.graph[query_field_ix].as_query_field().unwrap().is_indispensable(),
                     parent_query_field_ix,
@@ -247,6 +249,7 @@ impl<'ctx, Op: Operation> OperationGraphBuilder<'ctx, Op> {
                     .add_edge(parent_query_field_ix, resolver_ix, Edge::HasChildResolver);
                 if let Some(required_field_set) = resolver_definition.required_field_set() {
                     self.requirement_ingestion_stack.push(Requirement {
+                        petitioner_field_id: field_id,
                         dependent_ix: resolver_ix,
                         indispensable: false,
                         parent_query_field_ix,
@@ -267,6 +270,7 @@ impl<'ctx, Op: Operation> OperationGraphBuilder<'ctx, Op> {
             if let Some(required_field_set) = field_definition.requires_for_subgraph(resolver_definition.subgraph_id())
             {
                 self.requirement_ingestion_stack.push(Requirement {
+                    petitioner_field_id: field_id,
                     dependent_ix: providable_field_ix,
                     indispensable: false,
                     parent_query_field_ix,
@@ -293,11 +297,12 @@ impl<'ctx, Op: Operation> OperationGraphBuilder<'ctx, Op> {
     fn ingest_requirement(
         &mut self,
         Requirement {
+            petitioner_field_id,
             dependent_ix,
             indispensable,
             parent_query_field_ix,
             required_field_set,
-        }: Requirement<'ctx>,
+        }: Requirement<'ctx, Op::FieldId>,
     ) {
         for item in required_field_set.items() {
             // Find an existing field that satisfies the requirement.
@@ -322,7 +327,7 @@ impl<'ctx, Op: Operation> OperationGraphBuilder<'ctx, Op> {
                 required_query_field_ix
             } else {
                 // Create the QueryField Node
-                let field_id = self.operation.create_extra_field(item.field());
+                let field_id = self.operation.create_extra_field(petitioner_field_id, item.field());
                 let required_query_field_ix = self.push_query_field(
                     field_id,
                     if indispensable {
@@ -363,6 +368,7 @@ impl<'ctx, Op: Operation> OperationGraphBuilder<'ctx, Op> {
 
             if item.subselection().items().len() != 0 {
                 self.requirement_ingestion_stack.push(Requirement {
+                    petitioner_field_id,
                     dependent_ix,
                     indispensable,
                     parent_query_field_ix: required_query_field_ix,

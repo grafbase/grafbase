@@ -7,7 +7,7 @@ use super::{FieldArgumentId, QueryInputValueId, QueryModifierImpactedFieldId, Re
 
 pub(crate) use query::*;
 
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub(crate) struct QueryModifier {
     pub rule: QueryModifierRule,
     pub impacted_fields: IdRange<QueryModifierImpactedFieldId>,
@@ -32,7 +32,7 @@ pub(crate) enum QueryModifierRule {
     },
 }
 
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub(crate) struct ResponseModifier {
     pub rule: ResponseModifierRule,
     pub impacted_fields: IdRange<ResponseModifierImpactedFieldId>,

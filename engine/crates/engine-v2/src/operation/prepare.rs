@@ -82,6 +82,9 @@ impl Operation {
             }
         };
 
+        #[cfg(feature = "qp")]
+        crate::operation::plan::plan(schema, operation.clone()).unwrap();
+
         if let Err(err) = validate_operation(schema, operation.walker_with(schema)) {
             return Err(OperationError::Validation {
                 attributes: Box::new(attributes),
