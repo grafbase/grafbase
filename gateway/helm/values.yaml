@@ -1,0 +1,191 @@
+# Number of pod replicas to deploy for the Grafbase gateway.
+# https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#scaling-a-deployment
+replicaCount: 1
+
+image:
+  # Kubernetes image pull policy. Options: Always, IfNotPresent, Never.
+  # https://kubernetes.io/docs/concepts/containers/images/#image-pull-policy
+  pullPolicy: IfNotPresent
+
+  # Docker repository for the Grafbase gateway image.
+  repository: ghcr.io/grafbase/gateway
+
+  # Image tag to deploy. Default: latest.
+  tag: latest
+
+# List of secrets for accessing private container registries.
+# https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
+imagePullSecrets: []
+
+# Override Helm release name for custom resource names.
+nameOverride: ""
+
+# Override the full Helm release name for custom resource names.
+fullnameOverride: ""
+
+serviceAccount:
+  # Whether to create a new service account.
+  create: true
+
+  # Annotations to add to the service account.
+  annotations: {}
+
+  # Specify a custom name for the service account if `create` is false.
+  name: ""
+
+# Annotations for the Grafbase gateway pods.
+# https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/
+podAnnotations: {}
+
+# Security context for the Pod, defining security settings for all containers.
+# https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
+podSecurityContext: {}
+
+# Security context for each container, defining privileges and access control.
+# https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
+securityContext: {}
+
+# https://kubernetes.io/docs/concepts/services-networking/service/
+service:
+  # Kubernetes service type. Options: ClusterIP, NodePort, LoadBalancer.
+  type: ClusterIP
+
+  # Port on which the service will be exposed.
+  port: 80
+
+  # Container port to which the service will forward traffic.
+  targetPort: 5000
+
+  # Name of the service port.
+  name: http
+
+  # Node port for NodePort service type, if applicable.
+  nodePort: 30500
+
+# https://kubernetes.io/docs/concepts/services-networking/ingress/
+ingress:
+  # Enable ingress for the Grafbase gateway.
+  enabled: false
+
+  # Specify ingress class, e.g., nginx.
+  className: "nginx"
+
+  hosts:
+    - # Hostname for the ingress route.
+      host: grafbase-gateway.local
+
+      paths:
+        - # Path for routing traffic to the service.
+          path: /*
+
+          # Kubernetes path type.
+          pathType: ImplementationSpecific
+
+          backend:
+            # Backend service name.
+            serviceName: grafbase-gateway
+
+            # Backend service port.
+            servicePort: 5000
+
+# Resource requests and limits for the Grafbase gateway containers.
+# https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+resources: {}
+
+# https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/
+autoscaling:
+  # Enable autoscaling for the deployment.
+  enabled: true
+
+  # Minimum number of replicas.
+  minReplicas: 1
+
+  # Maximum number of replicas.
+  maxReplicas: 2
+
+  # Target CPU utilization for scaling.
+  targetCPUUtilizationPercentage: 50
+
+# Node selector for pod scheduling.
+# https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#nodeselector
+nodeSelector: {}
+
+# Tolerations for pod scheduling.
+# https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/
+tolerations: []
+
+# Affinity rules for pod scheduling.
+# https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#affinity-and-anti-affinity
+affinity: {}
+
+# Configmap that will be mounted as env vars
+# https://kubernetes.io/docs/concepts/configuration/configmap/
+configmap:
+  # Enable a ConfigMap for environment-specific settings.
+  enabled: false
+  values:
+    # Custom environment variable values.
+    SERVICE_NAME: grafbase-gateway
+    LISTEN_ADDRESS: 0.0.0.0:5000
+
+# Gateway specific configuration
+gateway:
+  # Default GraphQL schema for the gateway.
+  # Providing the schema through values does not require an explicit `--schema` flag to be passed in through `args: []`.
+  # Alternatively one can leverage `volumes`, `volumeMounts` and `args` to make an external schema available.
+  schema: "type Query"
+  # Opt-out of providing the federated schema through helm values
+  externalSchema: false
+
+  # Additional command-line arguments to pass to the Grafbase gateway.
+  args: []
+
+  # Opt-out of providing configuration through helm values
+  externalConfig: false
+  # Configuration for the Grafbase gateway.
+  # https://grafbase.com/docs/self-hosted-gateway#configuration
+  config: |
+    [network]
+    listen_address = "0.0.0.0:5000"
+
+    [health]
+    enabled = true
+
+    [graph]
+    path = "/graphql"
+    introspection = true
+
+    [cors]
+    allow_credentials = false
+    max_age = "60s"
+    allow_origins = "any"
+    allow_methods = "any"
+    allow_headers = "any"
+    expose_headers = "any"
+    allow_private_network = true
+
+    [telemetry]
+    service_name = "grafbase-gateway"
+
+    [telemetry.tracing]
+    sampling = 1
+
+    [telemetry.tracing.exporters.stdout]
+    enabled = true
+
+# Secrets to be mounted as env vars
+# https://kubernetes.io/docs/concepts/configuration/secret/
+secrets:
+  # Enable Kubernetes secrets for secure data.
+  enabled: false
+
+  # Define secret values to be used in the application.
+  values: []
+
+# Additional volumes for the deployment.
+# https://kubernetes.io/docs/concepts/storage/volumes/
+volumes: []
+
+# Mount points for volumes within containers.
+# https://kubernetes.io/docs/concepts/storage/volumes/#using-volumes
+volumeMounts: []
