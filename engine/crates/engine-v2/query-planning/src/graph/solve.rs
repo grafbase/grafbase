@@ -1,5 +1,6 @@
 use std::num::NonZero;
 
+use fixedbitset::FixedBitSet;
 use id_newtypes::IdRange;
 use itertools::Itertools;
 use petgraph::{
@@ -26,7 +27,7 @@ use super::{Cost, Edge, Node, Operation, OperationGraph};
 ///
 /// As this extra cost changes every time we change the Steiner tree, we have to adjust those while
 /// constructing it.
-pub struct Solver<'g, 'ctx, Op: Operation> {
+pub(crate) struct Solver<'g, 'ctx, Op: Operation> {
     operation_graph: &'g OperationGraph<'ctx, Op>,
     algorithm: steiner_tree::ShortestPathAlgorithm<&'g StableGraph<Node<Op::FieldId>, Edge>>,
     /// Keeps track of dispensable requirements to adjust edge cost, ideally we'd like to avoid
@@ -34,6 +35,10 @@ pub struct Solver<'g, 'ctx, Op: Operation> {
     dispensable_requirements_metadata: DispensableRequirementsMetadata,
     /// Temporary storage for extra terminals to be added to the algorithm.
     tmp_extra_terminals: Vec<NodeIndex>,
+}
+
+pub(crate) struct Solution {
+    pub node_bitset: FixedBitSet,
 }
 
 impl<'g, 'ctx, Op: Operation> Solver<'g, 'ctx, Op> {
@@ -85,8 +90,15 @@ impl<'g, 'ctx, Op: Operation> Solver<'g, 'ctx, Op> {
         Ok(solver)
     }
 
+    pub fn solve(mut self) -> crate::Result<Solution> {
+        self.execute()?;
+        Ok(Solution {
+            node_bitset: self.algorithm.operation_graph_bitset(),
+        })
+    }
+
     /// Solves the Steiner tree problem for the resolvers of our operation graph.
-    pub fn solve(&mut self) -> crate::Result<()> {
+    pub fn execute(&mut self) -> crate::Result<()> {
         loop {
             let has_terminals_left = self.algorithm.continue_steiner_tree_growth();
             let added_new_terminals = self.cost_fixed_point_iteration()?;
@@ -272,6 +284,7 @@ impl<'g, 'ctx, Op: Operation> Solver<'g, 'ctx, Op> {
 
     /// Use https://dreampuf.github.io/GraphvizOnline
     /// or `echo '..." | dot -Tsvg` from graphviz
+    #[cfg(test)]
     pub fn to_dot_graph(&self) -> String {
         self.algorithm.to_dot_graph(
             |cost, is_in_steiner_tree| format!("cost={cost}, steiner={}", is_in_steiner_tree as usize),

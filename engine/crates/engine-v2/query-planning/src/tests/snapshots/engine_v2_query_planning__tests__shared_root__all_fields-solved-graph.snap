@@ -1,0 +1,38 @@
+---
+source: engine/crates/engine-v2/query-planning/src/tests/shared_root.rs
+expression: "digraph {\n    0 [ label = \"root\" ]\n    1 [ label = \"price\" ]\n    2 [ label = \"category\" ]\n    3 [ label = \"id\" ]\n    4 [ label = \"name\" ]\n    6 [ label = \"Root#category\", shape=parallelogram, color=dodgerblue ]\n    7 [ label = \"products@Root#category\", shape=box, color=dodgerblue ]\n    8 [ label = \"Root#name\", shape=parallelogram, color=dodgerblue ]\n    9 [ label = \"products@Root#name\", shape=box, color=dodgerblue ]\n    10 [ label = \"Root#price\", shape=parallelogram, color=dodgerblue ]\n    11 [ label = \"products@Root#price\", shape=box, color=dodgerblue ]\n    12 [ label = \"id@Root#price\", shape=box, color=dodgerblue ]\n    13 [ label = \"price@Root#price\", shape=box, color=dodgerblue ]\n    14 [ label = \"name@Root#name\", shape=box, color=dodgerblue ]\n    17 [ label = \"category@Root#category\", shape=box, color=dodgerblue ]\n    0 -> 6 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    0 -> 6 [ label = \"\", style=dashed,arrowhead=none ]\n    6 -> 7 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    0 -> 8 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    0 -> 8 [ label = \"\", style=dashed,arrowhead=none ]\n    8 -> 9 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    0 -> 10 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    0 -> 10 [ label = \"\", style=dashed,arrowhead=none ]\n    10 -> 11 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    11 -> 12 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    12 -> 3 [ label = \"\", color=violet,arrowhead=none ]\n    11 -> 13 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    13 -> 1 [ label = \"\", color=violet,arrowhead=none ]\n    9 -> 14 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    14 -> 4 [ label = \"\", color=violet,arrowhead=none ]\n    7 -> 17 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    17 -> 2 [ label = \"\", color=violet,arrowhead=none ]\n}\n"
+---
+digraph {
+    0 [ root]
+    1 [ price]
+    2 [ category]
+    3 [ id]
+    4 [ name]
+    6 [ Root#category]
+    7 [ products@Root#category]
+    8 [ Root#name]
+    9 [ products@Root#name]
+    10 [ Root#price]
+    11 [ products@Root#price]
+    12 [ id@Root#price]
+    13 [ price@Root#price]
+    14 [ name@Root#name]
+    17 [ category@Root#category]
+    0 -> 6 [ label = "CreateChildResolver" ]
+    0 -> 6 [ label = "HasChildResolver" ]
+    6 -> 7 [ label = "CanProvide" ]
+    0 -> 8 [ label = "CreateChildResolver" ]
+    0 -> 8 [ label = "HasChildResolver" ]
+    8 -> 9 [ label = "CanProvide" ]
+    0 -> 10 [ label = "CreateChildResolver" ]
+    0 -> 10 [ label = "HasChildResolver" ]
+    10 -> 11 [ label = "CanProvide" ]
+    11 -> 12 [ label = "CanProvide" ]
+    12 -> 3 [ label = "Provides" ]
+    11 -> 13 [ label = "CanProvide" ]
+    13 -> 1 [ label = "Provides" ]
+    9 -> 14 [ label = "CanProvide" ]
+    14 -> 4 [ label = "Provides" ]
+    7 -> 17 [ label = "CanProvide" ]
+    17 -> 2 [ label = "Provides" ]
+}

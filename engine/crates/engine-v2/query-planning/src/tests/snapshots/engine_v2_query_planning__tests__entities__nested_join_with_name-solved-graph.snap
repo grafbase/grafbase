@@ -1,0 +1,29 @@
+---
+source: engine/crates/engine-v2/query-planning/src/tests/entities.rs
+expression: "digraph {\n    0 [ label = \"root\" ]\n    1 [ label = \"name\" ]\n    2 [ label = \"stars\" ]\n    7 [ label = \"Root#name\", shape=parallelogram, color=dodgerblue ]\n    8 [ label = \"products@Root#name\", shape=box, color=dodgerblue ]\n    11 [ label = \"FedEntity#review\", shape=parallelogram, color=dodgerblue ]\n    12 [ label = \"reviews@FedEntity#review\", shape=box, color=dodgerblue ]\n    13 [ label = \"stars@FedEntity#review\", shape=box, color=dodgerblue ]\n    16 [ label = \"name@Root#name\", shape=box, color=dodgerblue ]\n    17 [ label = \"*id\" ]\n    19 [ label = \"id@Root#name\", shape=box, color=dodgerblue ]\n    0 -> 7 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    0 -> 7 [ label = \"\", style=dashed,arrowhead=none ]\n    7 -> 8 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    11 -> 12 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    12 -> 13 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    13 -> 2 [ label = \"\", color=violet,arrowhead=none ]\n    8 -> 11 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    8 -> 16 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    16 -> 1 [ label = \"\", color=violet,arrowhead=none ]\n    8 -> 19 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    19 -> 17 [ label = \"\", color=violet,arrowhead=none ]\n    11 -> 17 [ label = \"\", color=orangered,arrowhead=inv ]\n}\n"
+---
+digraph {
+    0 [ root]
+    1 [ name]
+    2 [ stars]
+    7 [ Root#name]
+    8 [ products@Root#name]
+    11 [ FedEntity#review]
+    12 [ reviews@FedEntity#review]
+    13 [ stars@FedEntity#review]
+    16 [ name@Root#name]
+    17 [ *id]
+    19 [ id@Root#name]
+    0 -> 7 [ label = "CreateChildResolver" ]
+    0 -> 7 [ label = "HasChildResolver" ]
+    7 -> 8 [ label = "CanProvide" ]
+    11 -> 12 [ label = "CanProvide" ]
+    12 -> 13 [ label = "CanProvide" ]
+    13 -> 2 [ label = "Provides" ]
+    8 -> 11 [ label = "CreateChildResolver" ]
+    8 -> 16 [ label = "CanProvide" ]
+    16 -> 1 [ label = "Provides" ]
+    8 -> 19 [ label = "CanProvide" ]
+    19 -> 17 [ label = "Provides" ]
+    11 -> 17 [ label = "Requires" ]
+}

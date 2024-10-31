@@ -1,0 +1,16 @@
+---
+source: engine/crates/engine-v2/query-planning/src/tests/entities.rs
+expression: "digraph {\n    0 [ label = \"root\" ]\n    1 [ label = \"price\" ]\n    7 [ label = \"Root#price\", shape=parallelogram, color=dodgerblue ]\n    8 [ label = \"products@Root#price\", shape=box, color=dodgerblue ]\n    9 [ label = \"price@Root#price\", shape=box, color=dodgerblue ]\n    0 -> 7 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    0 -> 7 [ label = \"\", style=dashed,arrowhead=none ]\n    7 -> 8 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    8 -> 9 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    9 -> 1 [ label = \"\", color=violet,arrowhead=none ]\n}\n"
+---
+digraph {
+    0 [ root]
+    1 [ price]
+    7 [ Root#price]
+    8 [ products@Root#price]
+    9 [ price@Root#price]
+    0 -> 7 [ label = "CreateChildResolver" ]
+    0 -> 7 [ label = "HasChildResolver" ]
+    7 -> 8 [ label = "CanProvide" ]
+    8 -> 9 [ label = "CanProvide" ]
+    9 -> 1 [ label = "Provides" ]
+}

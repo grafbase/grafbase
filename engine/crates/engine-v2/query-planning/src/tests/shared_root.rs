@@ -1,6 +1,6 @@
 use crate::{
     tests::{read_schema, TestOperation},
-    OperationGraph,
+    OperationGraph, Solver,
 };
 
 const SCHEMA: &str = r###"
@@ -51,18 +51,25 @@ fn all_fields() {
     let mut graph = OperationGraph::new(&schema, &mut operation).unwrap();
     insta::assert_snapshot!("all_fields-graph", graph.to_dot_graph(), &graph.to_pretty_dot_graph());
 
-    let mut solver = graph.solver().unwrap();
+    let mut solver = Solver::initialize(&graph).unwrap();
     insta::assert_snapshot!(
         "all_fields-solver",
         solver.to_dot_graph(),
         &solver.to_pretty_dot_graph()
     );
 
-    solver.solve().unwrap();
+    solver.execute().unwrap();
     insta::assert_snapshot!(
         "all_fields-solved",
         solver.to_dot_graph(),
         &solver.to_pretty_dot_graph()
+    );
+
+    graph.solve().unwrap();
+    insta::assert_snapshot!(
+        "all_fields-solved-graph",
+        graph.to_dot_graph(),
+        &graph.to_pretty_dot_graph()
     );
 }
 
@@ -83,17 +90,24 @@ fn single_field() {
     let mut graph = OperationGraph::new(&schema, &mut operation).unwrap();
     insta::assert_snapshot!("single_field-graph", graph.to_dot_graph(), &graph.to_pretty_dot_graph());
 
-    let mut solver = graph.solver().unwrap();
+    let mut solver = Solver::initialize(&graph).unwrap();
     insta::assert_snapshot!(
         "single_field-solver",
         solver.to_dot_graph(),
         &solver.to_pretty_dot_graph()
     );
 
-    solver.solve().unwrap();
+    solver.execute().unwrap();
     insta::assert_snapshot!(
         "single_field-solved",
         solver.to_dot_graph(),
         &solver.to_pretty_dot_graph()
+    );
+
+    graph.solve().unwrap();
+    insta::assert_snapshot!(
+        "single_field-solved-graph",
+        graph.to_dot_graph(),
+        &graph.to_pretty_dot_graph()
     );
 }

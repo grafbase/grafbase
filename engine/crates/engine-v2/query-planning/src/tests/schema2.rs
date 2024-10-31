@@ -1,6 +1,6 @@
 use crate::{
     tests::{read_schema, TestOperation},
-    OperationGraph,
+    OperationGraph, Solver,
 };
 
 const SCHEMA: &str = r###"
@@ -211,9 +211,12 @@ fn sibling_dependency() {
     let mut graph = OperationGraph::new(&schema, &mut operation).unwrap();
     insta::assert_snapshot!("graph", graph.to_dot_graph(), &graph.to_pretty_dot_graph());
 
-    let mut solver = graph.solver().unwrap();
+    let mut solver = Solver::initialize(&graph).unwrap();
     insta::assert_snapshot!("solver", solver.to_dot_graph(), &solver.to_pretty_dot_graph());
 
-    solver.solve().unwrap();
+    solver.execute().unwrap();
     insta::assert_snapshot!("solved", solver.to_dot_graph(), &solver.to_pretty_dot_graph());
+
+    graph.solve().unwrap();
+    insta::assert_snapshot!("solved-graph", graph.to_dot_graph(), &graph.to_pretty_dot_graph());
 }
