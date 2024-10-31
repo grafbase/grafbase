@@ -242,7 +242,7 @@ where
         // Ensure we start from a clean state.
         self.apply_all_cost_updates();
 
-        tracing::debug!("Grow Steiner Tree:\n{}", self.debug_dot_graph());
+        tracing::trace!("Grow Steiner Tree:\n{}", self.debug_dot_graph());
 
         let mut all_zero_cost_and_first_non_zero_cost_terminals = {
             self.missing_terminals

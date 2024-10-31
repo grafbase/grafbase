@@ -21,7 +21,7 @@ use crate::dot_graph::Attrs;
 
 pub type Cost = u16;
 
-pub trait Operation: std::fmt::Debug {
+pub trait Operation {
     type FieldId: From<usize> + Into<usize> + Copy + std::fmt::Debug + Ord;
 
     fn field_ids(&self) -> impl ExactSizeIterator<Item = Self::FieldId> + 'static;
