@@ -8,6 +8,7 @@ mod hooks;
 mod inaccessible;
 mod introspection;
 mod issues;
+mod message_signing;
 mod subgraph_retries;
 mod subgraphs;
 mod subscriptions;

@@ -1655,6 +1655,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "ct-codecs"
+version = "1.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "026ac6ceace6298d2c557ef5ed798894962296469ec7842288ea64674201a2d1"
+
+[[package]]
 name = "ctor"
 version = "0.2.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2128,6 +2134,7 @@ version = "2.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e9b3460f44bea8cd47f45a0c70892f1eff856d97cd55358b2f73f663789f6190"
 dependencies = [
+ "ct-codecs",
  "getrandom 0.2.15",
 ]
 
@@ -3573,6 +3580,7 @@ dependencies = [
  "deranged",
  "digest",
  "ecdsa",
+ "ed25519-compact",
  "either",
  "elliptic-curve",
  "fastrand 2.1.1",
@@ -3615,6 +3623,7 @@ dependencies = [
  "object",
  "once_cell",
  "p256",
+ "p384",
  "percent-encoding",
  "pkcs1",
  "pkcs8",
@@ -3642,6 +3651,7 @@ dependencies = [
  "sha2",
  "signature",
  "similar",
+ "similar-asserts",
  "smallvec",
  "socket2",
  "spin",
@@ -3778,6 +3788,8 @@ dependencies = [
  "grafbase-workspace-hack",
  "headers",
  "http",
+ "httpsig",
+ "httpsig-hyper",
  "serde",
  "serde_json",
  "tokio",
@@ -4130,6 +4142,52 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "df3b46402a9d5adb4c86a0cf463f42e19994e3ee891101b1841f30a545cb49a9"
 
 [[package]]
+name = "httpsig"
+version = "0.0.16"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "89830da03c8d006395c44e5afd13b19b538f1dd35dd2930e95840d2396c966b7"
+dependencies = [
+ "base64 0.22.1",
+ "bytes",
+ "ecdsa",
+ "ed25519-compact",
+ "fxhash",
+ "hmac",
+ "indexmap 2.6.0",
+ "p256",
+ "p384",
+ "pkcs8",
+ "rand 0.8.5",
+ "rustc-hash 2.0.0",
+ "sec1",
+ "sfv",
+ "sha2",
+ "spki",
+ "thiserror",
+ "tracing",
+]
+
+[[package]]
+name = "httpsig-hyper"
+version = "0.0.16"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bf5fe3ea19d70b2d4474e9936b97f8eb52bde5acd40b25f54f730ea72bdef5bb"
+dependencies = [
+ "base64 0.22.1",
+ "bytes",
+ "futures",
+ "http",
+ "http-body",
+ "http-body-util",
+ "httpsig",
+ "indexmap 2.6.0",
+ "sfv",
+ "sha2",
+ "thiserror",
+ "tracing",
+]
+
+[[package]]
 name = "hyper"
 version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4435,6 +4493,8 @@ dependencies = [
  "cynic",
  "cynic-introspection",
  "cynic-parser 0.6.2",
+ "ed25519-compact",
+ "elliptic-curve",
  "engine",
  "engine-config-builder",
  "engine-parser",
@@ -4456,6 +4516,7 @@ dependencies = [
  "hex",
  "http",
  "http-body-util",
+ "httpsig",
  "indoc",
  "insta",
  "itertools 0.13.0",
@@ -4487,6 +4548,7 @@ dependencies = [
  "serde_urlencoded",
  "sha2",
  "similar-asserts",
+ "tempfile",
  "thiserror",
  "tokio",
  "toml",
@@ -7267,6 +7329,8 @@ dependencies = [
  "grafbase-workspace-hack",
  "graphql-ws-client",
  "http",
+ "httpsig",
+ "httpsig-hyper",
  "mini-moka",
  "postgres-connector-types",
  "redis",
@@ -7780,6 +7844,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "sfv"
+version = "0.9.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f27daf6ed3fc7ffd5ea3ce9f684fe351c47e50f2fdbb6236e2bad0b440dbe408"
+dependencies = [
+ "data-encoding",
+ "indexmap 2.6.0",
+ "rust_decimal",
+]
+
+[[package]]
 name = "sha1"
 version = "0.10.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7895,6 +7970,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cfe85670573cd6f0fa97940f26e7e6601213c3b0555246c24234131f88c5709e"
 dependencies = [
  "console",
+ "serde",
  "similar",
 ]
 

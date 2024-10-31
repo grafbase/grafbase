@@ -6,6 +6,7 @@ use std::sync::{
 use bytes::Bytes;
 use engine_v2::Body;
 use futures::{StreamExt, TryStreamExt};
+use gateway_config::Config;
 use runtime::{
     bytes::OwnedOrSharedBytes,
     fetch::{dynamic::DynFetcher, FetchRequest, FetchResult},
@@ -96,7 +97,7 @@ impl<'a> DeterministicEngineBuilder<'a> {
 impl DeterministicEngine {
     pub fn builder<'a>(schema: &'a str, query: &'a str) -> DeterministicEngineBuilder<'a> {
         DeterministicEngineBuilder {
-            runtime: TestRuntime::default(),
+            runtime: TestRuntime::new(&Config::default()),
             schema,
             query,
             subgraphs_json_responses: Vec::new(),

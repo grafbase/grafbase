@@ -52,8 +52,9 @@ der = { version = "0.7", default-features = false, features = ["oid", "pem", "st
 deranged = { version = "0.3", default-features = false, features = ["powerfmt", "std"] }
 digest = { version = "0.10", features = ["mac", "oid", "std"] }
 ecdsa = { version = "0.16", default-features = false, features = ["pem", "signing", "std", "verifying"] }
+ed25519-compact = { version = "2" }
 either = { version = "1" }
-elliptic-curve = { version = "0.13", default-features = false, features = ["ecdh", "hazmat", "pem", "std"] }
+elliptic-curve = { version = "0.13", features = ["ecdh", "hazmat", "pem", "std"] }
 fastrand = { version = "2" }
 ff = { version = "0.13", default-features = false, features = ["alloc"] }
 futures = { version = "0.3" }
@@ -86,6 +87,7 @@ num-bigint-dig = { version = "0.8", default-features = false, features = ["i128"
 num-traits = { version = "0.2", features = ["i128", "libm"] }
 once_cell = { version = "1" }
 p256 = { version = "0.13" }
+p384 = { version = "0.13" }
 percent-encoding = { version = "2" }
 pkcs1 = { version = "0.7", default-features = false, features = ["pem", "pkcs8", "std"] }
 pkcs8 = { version = "0.10", default-features = false, features = ["pem", "std"] }
@@ -112,6 +114,7 @@ serde_with = { git = "https://github.com/grafbase/serde_with", rev = "06ad277a0e
 sha2 = { version = "0.10", features = ["oid"] }
 signature = { version = "2", default-features = false, features = ["digest", "rand_core", "std"] }
 similar = { version = "2", features = ["inline", "unicode"] }
+similar-asserts = { version = "1", features = ["serde"] }
 smallvec = { version = "1", default-features = false, features = ["const_new", "serde", "union"] }
 socket2 = { version = "0.5", default-features = false, features = ["all"] }
 spin = { version = "0.9", default-features = false, features = ["once", "spin_mutex"] }
@@ -178,8 +181,9 @@ der = { version = "0.7", default-features = false, features = ["oid", "pem", "st
 deranged = { version = "0.3", default-features = false, features = ["powerfmt", "std"] }
 digest = { version = "0.10", features = ["mac", "oid", "std"] }
 ecdsa = { version = "0.16", default-features = false, features = ["pem", "signing", "std", "verifying"] }
+ed25519-compact = { version = "2" }
 either = { version = "1" }
-elliptic-curve = { version = "0.13", default-features = false, features = ["ecdh", "hazmat", "pem", "std"] }
+elliptic-curve = { version = "0.13", features = ["ecdh", "hazmat", "pem", "std"] }
 fastrand = { version = "2" }
 ff = { version = "0.13", default-features = false, features = ["alloc"] }
 futures = { version = "0.3" }
@@ -212,6 +216,7 @@ num-bigint-dig = { version = "0.8", default-features = false, features = ["i128"
 num-traits = { version = "0.2", features = ["i128", "libm"] }
 once_cell = { version = "1" }
 p256 = { version = "0.13" }
+p384 = { version = "0.13" }
 percent-encoding = { version = "2" }
 pkcs1 = { version = "0.7", default-features = false, features = ["pem", "pkcs8", "std"] }
 pkcs8 = { version = "0.10", default-features = false, features = ["pem", "std"] }
@@ -238,6 +243,7 @@ serde_with = { git = "https://github.com/grafbase/serde_with", rev = "06ad277a0e
 sha2 = { version = "0.10", features = ["oid"] }
 signature = { version = "2", default-features = false, features = ["digest", "rand_core", "std"] }
 similar = { version = "2", features = ["inline", "unicode"] }
+similar-asserts = { version = "1", features = ["serde"] }
 smallvec = { version = "1", default-features = false, features = ["const_new", "serde", "union"] }
 socket2 = { version = "0.5", default-features = false, features = ["all"] }
 spin = { version = "0.9", default-features = false, features = ["once", "spin_mutex"] }

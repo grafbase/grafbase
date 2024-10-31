@@ -12,11 +12,7 @@ workspace = true
 
 [features]
 default = []
-lambda = [
-  "dep:axum-aws-lambda",
-  "dep:tower",
-  "dep:lambda_http",
-]
+lambda = ["dep:axum-aws-lambda", "dep:tower", "dep:lambda_http"]
 
 [dependencies]
 ascii = { version = "1.1.0", features = ["serde"] }

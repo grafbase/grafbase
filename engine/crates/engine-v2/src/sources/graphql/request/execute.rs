@@ -58,6 +58,7 @@ pub(crate) async fn execute_subgraph_request<'ctx, 'a, R: Runtime>(
     );
 
     let request = FetchRequest {
+        subgraph_name: endpoint.subgraph_name(),
         url: Cow::Borrowed(endpoint.url()),
         headers,
         method: http::Method::POST,

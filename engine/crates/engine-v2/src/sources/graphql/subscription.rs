@@ -69,6 +69,7 @@ impl GraphqlResolver {
             .await?;
 
         let request = FetchRequest {
+            subgraph_name: endpoint.subgraph_name(),
             url,
             method: http::Method::POST,
             headers,
@@ -155,6 +156,7 @@ impl GraphqlResolver {
                 http::HeaderValue::from_static("text/even-stream,application/json;q=0.9"),
             );
             FetchRequest {
+                subgraph_name: endpoint.subgraph_name(),
                 url: Cow::Borrowed(endpoint.url()),
                 method: http::Method::POST,
                 headers,
