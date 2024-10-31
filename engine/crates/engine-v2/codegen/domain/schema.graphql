@@ -31,6 +31,12 @@ union EntityDefinition @id @meta(module: "entity") @variants(remove_suffix: "Def
   | ObjectDefinition
   | InterfaceDefinition
 
+"Composite type is the term previously used by the GraphQL spec to describe this union."
+union CompositeType @id @meta(module: "composite_type") @variants(remove_suffix: "Definition") =
+  | ObjectDefinition
+  | InterfaceDefinition
+  | UnionDefinition
+
 type JoinImplementsDefinition @meta(module: "join_implements") @copy {
   interface: InterfaceDefinition!
   subgraph: Subgraph!

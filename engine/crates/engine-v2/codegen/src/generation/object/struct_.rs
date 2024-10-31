@@ -35,7 +35,11 @@ pub fn generate_struct(
     };
 
     let struct_fields = fields.iter().map(StructField);
-    let docstr = proc_macro2::Literal::string(&docstr::generated_from(domain, object.span));
+    let docstr = proc_macro2::Literal::string(&docstr::generated_from(
+        domain,
+        object.span,
+        object.description.as_deref(),
+    ));
     let object_struct = quote! {
         #[doc = #docstr]
         #[derive(Debug, serde::Serialize, serde::Deserialize #additional_derives)]

@@ -73,6 +73,7 @@ pub(super) fn load(path: PathBuf) -> anyhow::Result<domain::Domain> {
                 meta: parse_meta(object.directives()).unwrap_or_default(),
                 indexed: parse_indexed(object.name(), object.directives()),
                 span: object.span(),
+                description: object.description().map(|s| s.to_string()),
                 name: object.name().to_string(),
                 struct_name: format!("{}Record", object.name()),
                 copy: is_copy(object.directives()),
@@ -94,6 +95,7 @@ pub(super) fn load(path: PathBuf) -> anyhow::Result<domain::Domain> {
             TypeDefinition::Union(union) => domain::Union {
                 meta: parse_meta(union.directives()).unwrap_or_default(),
                 span: union.span(),
+                description: union.description().map(|s| s.to_string()),
                 kind: parse_union_kind(union.name(), union.directives()),
                 variants: {
                     let variant = parse_variants(union.directives()).unwrap_or_default();
