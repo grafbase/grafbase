@@ -327,7 +327,9 @@ impl<'ctx, Op: Operation> OperationGraphBuilder<'ctx, Op> {
                 required_query_field_ix
             } else {
                 // Create the QueryField Node
-                let field_id = self.operation.create_extra_field(petitioner_field_id, item.field());
+                let field_id = self
+                    .operation
+                    .create_potential_extra_field(petitioner_field_id, item.field());
                 let required_query_field_ix = self.push_query_field(
                     field_id,
                     if indispensable {
