@@ -3,13 +3,13 @@ use crate::{cli_input::SchemaCommand, errors::CliError, output::report};
 #[tokio::main]
 pub(crate) async fn schema(cmd: SchemaCommand) -> Result<(), CliError> {
     let SchemaCommand {
-        project_ref,
+        graph_ref,
         subgraph_name,
     } = cmd;
     let schema = backend::api::schema::schema(
-        project_ref.account(),
-        project_ref.graph(),
-        project_ref.branch(),
+        graph_ref.account(),
+        graph_ref.graph(),
+        graph_ref.branch(),
         subgraph_name.as_deref(),
     )
     .await

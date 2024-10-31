@@ -1,16 +1,15 @@
 use std::{borrow::Cow, fmt, str};
 
 use graph_ref::GraphRef;
-
 /// Parsed project reference. A project reference is a string of the form `account/project@branch`.
 #[derive(Clone, Debug)]
-pub struct ProjectRef {
+pub struct FullGraphRef {
     account: String,
     graph: String,
     branch: Option<String>,
 }
 
-impl ProjectRef {
+impl FullGraphRef {
     pub(crate) const ARG_DESCRIPTION: &'static str = r#"Graph reference following the format "account/graph@branch""#;
 
     pub(crate) fn account(&self) -> &str {
@@ -26,7 +25,7 @@ impl ProjectRef {
     }
 }
 
-impl str::FromStr for ProjectRef {
+impl str::FromStr for FullGraphRef {
     type Err = &'static str;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -50,7 +49,7 @@ impl str::FromStr for ProjectRef {
             return Err("The project name is missing.");
         }
 
-        Ok(ProjectRef {
+        Ok(FullGraphRef {
             account: account.to_owned(),
             graph: project.to_owned(),
             branch: branch.filter(|s| !s.is_empty()).map(String::from),
@@ -58,7 +57,7 @@ impl str::FromStr for ProjectRef {
     }
 }
 
-impl fmt::Display for ProjectRef {
+impl fmt::Display for FullGraphRef {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(&self.account)?;
         f.write_str("/")?;
@@ -72,44 +71,43 @@ impl fmt::Display for ProjectRef {
         Ok(())
     }
 }
-
 #[derive(Debug, Clone)]
-pub(crate) enum ProjectRefOrGraphRef {
-    ProjectRef(ProjectRef),
-    GraphRef(GraphRef),
+pub(crate) enum FullOrPartialGraphRef {
+    Full(FullGraphRef),
+    Partial(GraphRef),
 }
 
-impl ProjectRefOrGraphRef {
+impl FullOrPartialGraphRef {
     pub(crate) fn branch(&self) -> Option<&str> {
         match self {
-            ProjectRefOrGraphRef::ProjectRef(pr) => pr.branch(),
-            ProjectRefOrGraphRef::GraphRef(gr) => gr.branch(),
+            FullOrPartialGraphRef::Full(pr) => pr.branch(),
+            FullOrPartialGraphRef::Partial(gr) => gr.branch(),
         }
     }
 
     pub(crate) fn account(&self) -> Option<&str> {
         match self {
-            ProjectRefOrGraphRef::ProjectRef(pr) => Some(pr.account()),
-            ProjectRefOrGraphRef::GraphRef(_) => None,
+            FullOrPartialGraphRef::Full(pr) => Some(pr.account()),
+            FullOrPartialGraphRef::Partial(_) => None,
         }
     }
 
-    pub(crate) fn project(&self) -> &str {
+    pub(crate) fn graph(&self) -> &str {
         match self {
-            ProjectRefOrGraphRef::ProjectRef(pr) => pr.graph(),
-            ProjectRefOrGraphRef::GraphRef(gr) => gr.slug(),
+            FullOrPartialGraphRef::Full(pr) => pr.graph(),
+            FullOrPartialGraphRef::Partial(gr) => gr.slug(),
         }
     }
 }
 
-impl str::FromStr for ProjectRefOrGraphRef {
+impl str::FromStr for FullOrPartialGraphRef {
     type Err = Cow<'static, str>;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        ProjectRef::from_str(s)
-            .map(ProjectRefOrGraphRef::ProjectRef)
+        FullGraphRef::from_str(s)
+            .map(FullOrPartialGraphRef::Full)
             .map_err(Cow::Borrowed)
-            .or_else(|_| GraphRef::from_str(s).map(ProjectRefOrGraphRef::GraphRef))
+            .or_else(|_| GraphRef::from_str(s).map(FullOrPartialGraphRef::Partial))
     }
 }
 
@@ -118,7 +116,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn project_ref_ok() {
+    fn full_graph_ref_ok() {
         let cases = [
             "microsoft/windows@main",
             "test/project@master",
@@ -128,37 +126,37 @@ mod tests {
         ];
 
         for case in cases {
-            assert_eq!(case, case.parse::<ProjectRef>().unwrap().to_string());
+            assert_eq!(case, case.parse::<FullGraphRef>().unwrap().to_string());
         }
     }
 
     #[test]
-    fn project_ref_or_graph_ref() {
+    fn full_or_partial_graph_ref() {
         assert!(matches!(
             "microsoft/windows@main".parse(),
-            Ok(ProjectRefOrGraphRef::ProjectRef(_))
+            Ok(FullOrPartialGraphRef::Full(_))
         ));
         assert!(matches!(
             "test/project@master".parse(),
-            Ok(ProjectRefOrGraphRef::ProjectRef(_))
+            Ok(FullOrPartialGraphRef::Full(_))
         ));
         assert!(matches!(
             "__my__/_____project-with-things@branch-here".parse(),
-            Ok(ProjectRefOrGraphRef::ProjectRef(_))
+            Ok(FullOrPartialGraphRef::Full(_))
         ));
-        assert!(matches!("1/2@3".parse(), Ok(ProjectRefOrGraphRef::ProjectRef(_))));
-        assert!(matches!("accnt/prjct".parse(), Ok(ProjectRefOrGraphRef::ProjectRef(_))));
+        assert!(matches!("1/2@3".parse(), Ok(FullOrPartialGraphRef::Full(_))));
+        assert!(matches!("accnt/prjct".parse(), Ok(FullOrPartialGraphRef::Full(_))));
 
-        assert!(matches!("windows@main".parse(), Ok(ProjectRefOrGraphRef::GraphRef(_))));
+        assert!(matches!("windows@main".parse(), Ok(FullOrPartialGraphRef::Partial(_))));
         assert!(matches!(
             "project@master".parse(),
-            Ok(ProjectRefOrGraphRef::GraphRef(_))
+            Ok(FullOrPartialGraphRef::Partial(_))
         ));
         assert!(matches!(
             "_____project-with-things@branch-here".parse(),
-            Ok(ProjectRefOrGraphRef::GraphRef(_))
+            Ok(FullOrPartialGraphRef::Partial(_))
         ));
-        assert!(matches!("2@3".parse(), Ok(ProjectRefOrGraphRef::GraphRef(_))));
-        assert!(matches!("prjct".parse(), Ok(ProjectRefOrGraphRef::GraphRef(_))));
+        assert!(matches!("2@3".parse(), Ok(FullOrPartialGraphRef::Partial(_))));
+        assert!(matches!("prjct".parse(), Ok(FullOrPartialGraphRef::Partial(_))));
     }
 }

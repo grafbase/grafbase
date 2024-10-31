@@ -11,7 +11,7 @@ const FAILED_CHECK_EXIT_STATUS: i32 = 1;
 #[tokio::main]
 pub(crate) async fn check(command: CheckCommand) -> Result<(), CliError> {
     let CheckCommand {
-        project_ref,
+        graph_ref,
         subgraph_name,
         schema,
     } = command;
@@ -37,9 +37,9 @@ pub(crate) async fn check(command: CheckCommand) -> Result<(), CliError> {
     report::checking();
 
     let result = check::check(
-        project_ref.account(),
-        project_ref.graph(),
-        project_ref.branch(),
+        graph_ref.account(),
+        graph_ref.graph(),
+        graph_ref.branch(),
         &subgraph_name,
         &schema,
         git_commit,
