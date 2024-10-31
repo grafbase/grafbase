@@ -112,11 +112,6 @@ pub struct MessageSigningHeaders {
 #[derive(Debug, Clone, PartialEq, serde::Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum SignatureParameter {
-    Created,
-    #[serde(rename = "alg")]
-    Algorithm,
-    #[serde(rename = "kid")]
-    KeyId,
     Nonce,
 }
 
@@ -156,7 +151,7 @@ mod tests {
             headers.include = ["my-fave-header"]
             headers.exclude = ["authorization"]
             derived_components = ["request_target", "path"]
-            signature_parameters = ["created"]
+            signature_parameters = ["nonce"]
         "#};
 
         let config = toml::from_str::<MessageSignaturesConfig>(config).unwrap();
@@ -200,7 +195,7 @@ mod tests {
             ),
             signature_parameters: Some(
                 [
-                    Created,
+                    Nonce,
                 ],
             ),
         }

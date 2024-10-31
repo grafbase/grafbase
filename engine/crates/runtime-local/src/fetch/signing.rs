@@ -61,7 +61,6 @@ pub struct SigningParameters {
     include_headers: Option<HashSet<String>>,
     exclude_headers: HashSet<String>,
     derived_components: Vec<DerivedComponent>,
-    #[expect(unused)]
     signature_parameters: Vec<SignatureParameter>,
 }
 
@@ -136,12 +135,23 @@ impl SigningParameters {
                 .map(derived_component_to_message_component),
         );
 
-        // TODO: Handle signature parameters
-
         let mut params = HttpSignatureParams::try_new(&covered_components)?;
         params.set_key_info(&self.key);
+        if matches!(self.key, Key::Shared(_)) {
+            // I am _pretty sure_ set_key_info just makes up a nonsense id for shared keys
+            // so lets clear it out.  Can remove this if I turn out to be wrong.
+            params.keyid = None;
+        }
         if let Some(id) = &self.key_id {
             params.set_keyid(id);
+        }
+
+        for param in &self.signature_parameters {
+            match param {
+                SignatureParameter::Nonce => {
+                    params.set_random_nonce();
+                }
+            }
         }
 
         if let Some(expiry) = self.expiry {
