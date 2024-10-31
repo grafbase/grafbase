@@ -59,12 +59,23 @@ pub struct SigningParameters {
     key_id: Option<String>,
     expiry: Option<Duration>,
     include_headers: Option<HashSet<String>>,
-    exclude_headers: Option<HashSet<String>>,
+    exclude_headers: HashSet<String>,
     #[expect(unused)]
     derived_components: Vec<DerivedComponent>,
     #[expect(unused)]
     signature_parameters: Vec<SignatureParameter>,
 }
+
+const HOP_BY_HOP_HEADERS: &[&str] = &[
+    "connection",
+    "keep-alive",
+    "proxy-authenticate",
+    "proxy-authorization",
+    "te",
+    "trailers",
+    "transfer-encoding",
+    "upgrade",
+];
 
 impl SigningParameters {
     pub fn from_config(
@@ -94,15 +105,22 @@ impl SigningParameters {
         let key_id = key.id().map(str::to_string);
         let key = Key::load_from(&key, algorithm)?;
 
-        // TODO: Add the hop-by-hop headers into exclude headers by default...
         // TODO: Also add the default derived_components and/or signature_parameters
+
+        let include_headers = headers.include.map(|headers| headers.into_iter().collect());
+        let mut exclude_headers = headers
+            .exclude
+            .map(|headers| headers.into_iter().collect::<HashSet<_>>())
+            .unwrap_or_default();
+
+        exclude_headers.extend(HOP_BY_HOP_HEADERS.iter().map(|header| header.to_string()));
 
         Ok(Some(SigningParameters {
             key,
             key_id,
             expiry,
-            include_headers: headers.include.map(|headers| headers.into_iter().collect()),
-            exclude_headers: headers.exclude.map(|headers| headers.into_iter().collect()),
+            include_headers,
+            exclude_headers,
             derived_components: derived_components.unwrap_or_default(),
             signature_parameters: signature_parameters.unwrap_or_default(),
         }))
@@ -131,10 +149,8 @@ impl SigningParameters {
     }
 
     fn should_include_header(&self, name: &str) -> bool {
-        if let Some(excluded_headers) = &self.exclude_headers {
-            if excluded_headers.contains(name) {
-                return false;
-            }
+        if self.exclude_headers.contains(name) {
+            return false;
         }
 
         if let Some(include_headers) = &self.include_headers {
