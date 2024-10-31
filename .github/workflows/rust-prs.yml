@@ -80,6 +80,29 @@ jobs:
             gateway-docker:
               - gateway/Dockerfile
 
+  check-licenses:
+    needs: [what-changed]
+    if: toJson(fromJson(needs.what-changed.outputs.rust).changed-packages) != '[]'
+    runs-on: ubicloud-standard-2
+    steps:
+      - name: Get sources
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: ./.github/actions/install-rust
+
+      - name: Install cargo-binstall and cargo-about
+        shell: bash
+        run: |
+          curl -LsSf https://github.com/cargo-bins/cargo-binstall/releases/latest/download/cargo-binstall-x86_64-unknown-linux-musl.tgz | tar zxf - -C ${CARGO_HOME:-~/.cargo}/bin
+          cargo binstall --no-symlinks --no-confirm cargo-about
+
+      - name: Check licenses
+        shell: bash
+        run: |
+          cd gateway/crates/gateway-binary
+          cargo about generate -c ../../about.toml -o "../../licenses.html" ../../about.hbs
+
   check-format:
     needs: [what-changed]
     if: toJson(fromJson(needs.what-changed.outputs.rust).changed-packages) != '[]'
