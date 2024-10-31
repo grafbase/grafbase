@@ -1,6 +1,6 @@
 use crate::{
     tests::{read_schema, TestOperation},
-    OperationGraph,
+    OperationGraph, Solver,
 };
 
 const SCHEMA: &str = r###"
@@ -57,18 +57,25 @@ fn two_fields() {
     let mut graph = OperationGraph::new(&schema, &mut operation).unwrap();
     insta::assert_snapshot!("two_fields-graph", graph.to_dot_graph(), &graph.to_pretty_dot_graph());
 
-    let mut solver = graph.solver().unwrap();
+    let mut solver = Solver::initialize(&graph).unwrap();
     insta::assert_snapshot!(
         "two_fields-solver",
         solver.to_dot_graph(),
         &solver.to_pretty_dot_graph()
     );
 
-    solver.solve().unwrap();
+    solver.execute().unwrap();
     insta::assert_snapshot!(
         "two_fields-solved",
         solver.to_dot_graph(),
         &solver.to_pretty_dot_graph()
+    );
+
+    graph.solve().unwrap();
+    insta::assert_snapshot!(
+        "two_fields-solved-graph",
+        graph.to_dot_graph(),
+        &graph.to_pretty_dot_graph()
     );
 }
 
@@ -89,18 +96,25 @@ fn single_field() {
     let mut graph = OperationGraph::new(&schema, &mut operation).unwrap();
     insta::assert_snapshot!("single_field-graph", graph.to_dot_graph(), &graph.to_pretty_dot_graph());
 
-    let mut solver = graph.solver().unwrap();
+    let mut solver = Solver::initialize(&graph).unwrap();
     insta::assert_snapshot!(
         "single_field-solver",
         solver.to_dot_graph(),
         &solver.to_pretty_dot_graph()
     );
 
-    solver.solve().unwrap();
+    solver.execute().unwrap();
     insta::assert_snapshot!(
         "single_field-solved",
         solver.to_dot_graph(),
         &solver.to_pretty_dot_graph()
+    );
+
+    graph.solve().unwrap();
+    insta::assert_snapshot!(
+        "single_field-solved-graph",
+        graph.to_dot_graph(),
+        &graph.to_pretty_dot_graph()
     );
 }
 
@@ -123,18 +137,25 @@ fn nested_join() {
     let mut graph = OperationGraph::new(&schema, &mut operation).unwrap();
     insta::assert_snapshot!("nested_join-graph", graph.to_dot_graph(), &graph.to_pretty_dot_graph());
 
-    let mut solver = graph.solver().unwrap();
+    let mut solver = Solver::initialize(&graph).unwrap();
     insta::assert_snapshot!(
         "nested_join-solver",
         solver.to_dot_graph(),
         &solver.to_pretty_dot_graph()
     );
 
-    solver.solve().unwrap();
+    solver.execute().unwrap();
     insta::assert_snapshot!(
         "nested_join-solved",
         solver.to_dot_graph(),
         &solver.to_pretty_dot_graph()
+    );
+
+    graph.solve().unwrap();
+    insta::assert_snapshot!(
+        "nested_join-solved-graph",
+        graph.to_dot_graph(),
+        &graph.to_pretty_dot_graph()
     );
 }
 
@@ -162,17 +183,24 @@ fn nested_join_with_name() {
         &graph.to_pretty_dot_graph()
     );
 
-    let mut solver = graph.solver().unwrap();
+    let mut solver = Solver::initialize(&graph).unwrap();
     insta::assert_snapshot!(
         "nested_join_with_name-solver",
         solver.to_dot_graph(),
         &solver.to_pretty_dot_graph()
     );
 
-    solver.solve().unwrap();
+    solver.execute().unwrap();
     insta::assert_snapshot!(
         "nested_join_with_name-solved",
         solver.to_dot_graph(),
         &solver.to_pretty_dot_graph()
+    );
+
+    graph.solve().unwrap();
+    insta::assert_snapshot!(
+        "nested_join_with_name-solved-graph",
+        graph.to_dot_graph(),
+        &graph.to_pretty_dot_graph()
     );
 }

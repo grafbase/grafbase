@@ -16,7 +16,6 @@ pub fn plan(schema: &Schema, mut operation: Operation) -> PlanResult<()> {
             operation: &mut operation,
         },
     )?;
-    let mut solver = graph.solver()?;
-    solver.solve()?;
+    graph.solve()?;
     Ok(())
 }

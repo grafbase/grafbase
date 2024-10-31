@@ -1,3 +1,4 @@
+use fixedbitset::FixedBitSet;
 use petgraph::{
     data::DataMap,
     dot::{Config, Dot},
@@ -348,6 +349,20 @@ where
     // Whether a node is part of the Steiner tree.
     pub(crate) fn contains_node(&self, node_id: G::NodeId) -> bool {
         self.steiner_tree.nodes[self.steiner_graph.to_node_ix(node_id).index()]
+    }
+
+    pub(crate) fn operation_graph_bitset(&self) -> FixedBitSet {
+        let mut bitset = FixedBitSet::with_capacity(self.steiner_graph.operation_graph_node_id_to_node_ix.len());
+        for (i, ix) in self
+            .steiner_graph
+            .operation_graph_node_id_to_node_ix
+            .iter()
+            .copied()
+            .enumerate()
+        {
+            bitset.set(i, self.steiner_tree.nodes[ix.index()]);
+        }
+        bitset
     }
 
     #[cfg(test)]

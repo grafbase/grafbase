@@ -4,11 +4,13 @@ mod node;
 mod prune;
 mod solve;
 
-pub(crate) use edge::*;
-pub(crate) use node::*;
+pub use edge::*;
+pub use node::*;
+#[cfg(test)]
+pub(crate) use solve::*;
 
 use schema::{FieldDefinitionId, RequiredField, Schema};
-use tracing::instrument;
+use tracing::{instrument, Level};
 
 use std::borrow::Cow;
 
@@ -47,15 +49,20 @@ pub struct OperationGraph<'ctx, Op: Operation> {
 }
 
 impl<'ctx, Op: Operation> OperationGraph<'ctx, Op> {
-    #[instrument(skip_all)]
+    #[instrument(skip_all, level = Level::DEBUG)]
     pub fn new(schema: &'ctx Schema, operation: Op) -> crate::Result<OperationGraph<'ctx, Op>> {
         Self::builder(schema, operation).build().inspect(|op| {
             tracing::debug!("OperationGraph created:\n{}", op.to_pretty_dot_graph());
         })
     }
 
-    pub fn solver(&mut self) -> crate::Result<solve::Solver<'_, 'ctx, Op>> {
-        solve::Solver::initialize(self)
+    pub fn solve(&mut self) -> crate::Result<()> {
+        let solution = solve::Solver::initialize(self)?.solve()?;
+        self.graph.retain_nodes(|graph, node| match graph[node] {
+            Node::Root => true,
+            Node::QueryField(_) | Node::Resolver(_) | Node::ProvidableField(_) => solution.node_bitset[node.index()],
+        });
+        Ok(())
     }
 
     /// Use https://dreampuf.github.io/GraphvizOnline
