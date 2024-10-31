@@ -4,23 +4,10 @@ pub(crate) fn validate_directive_definition<'a>(
     definition: &'a Positioned<ast::DirectiveDefinition>,
     ctx: &mut Context<'a>,
 ) {
-    let directive_name = definition.node.name.node.as_str();
     if definition.node.name.node.starts_with("__") {
         ctx.push_error(miette::miette! {
             r#"Directive names must not start with "__""#,
         });
-    }
-
-    for arg in &definition.node.arguments {
-        let type_name = extract_type_name(&arg.node.ty.node.base);
-        let location = || format!("@{directive_name}({}:)", arg.node.name.node);
-        match validate_input_type(type_name, arg.node.ty.pos, ctx) {
-            ValidateInputTypeResult::Ok => (),
-            ValidateInputTypeResult::UnknownType => diagnostics::unknown_type(type_name, &location(), ctx),
-            ValidateInputTypeResult::NotAnInputType => {
-                diagnostics::output_type_in_input_position(type_name, &location(), ctx);
-            }
-        }
     }
 
     ctx.directive_names

@@ -1,4 +1,4 @@
-  × The type of "@myDirective(firstArg:)" must be an input type, but got "Test", an output type.
-
-
   × Directive names must not start with "__"
+
+
+  × The type of "@myDirective(firstArg:)" must be an input type, but got "Test", an output type.

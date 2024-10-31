@@ -1,0 +1,72 @@
+schema @link(url: "https://specs.apollo.dev/link/v1.0") {
+  query: Query
+}
+
+extend schema
+  @link(url: "https://specs.apollo.dev/federation/v2.3", import: ["@key", "@shareable", "@inaccessible", "@override"])
+
+directive @link(url: String, as: String, for: link__Purpose, import: [link__Import]) repeatable on SCHEMA
+
+directive @key(fields: federation__FieldSet!, resolvable: Boolean = true) repeatable on OBJECT | INTERFACE
+
+directive @federation__requires(fields: federation__FieldSet!) on FIELD_DEFINITION
+
+directive @federation__provides(fields: federation__FieldSet!) on FIELD_DEFINITION
+
+directive @federation__external(reason: String) on OBJECT | FIELD_DEFINITION
+
+directive @federation__tag(
+  name: String!
+) repeatable on FIELD_DEFINITION | OBJECT | INTERFACE | UNION | ARGUMENT_DEFINITION | SCALAR | ENUM | ENUM_VALUE | INPUT_OBJECT | INPUT_FIELD_DEFINITION | SCHEMA
+
+directive @federation__extends on OBJECT | INTERFACE
+
+directive @shareable repeatable on OBJECT | FIELD_DEFINITION
+
+directive @inaccessible on FIELD_DEFINITION | OBJECT | INTERFACE | UNION | ARGUMENT_DEFINITION | SCALAR | ENUM | ENUM_VALUE | INPUT_OBJECT | INPUT_FIELD_DEFINITION
+
+directive @override(from: String!) on FIELD_DEFINITION
+
+directive @federation__composeDirective(name: String) repeatable on SCHEMA
+
+directive @federation__interfaceObject on OBJECT
+
+type Product @key(fields: "id") {
+  id: ID!
+  name: String!
+  brand: String!
+  size: Float!
+  color: String!
+  price: Float!
+}
+
+type Query {
+  product(id: ID!): Product
+  products: [Product]
+  _entities(representations: [_Any!]!): [_Entity]!
+  _service: _Service!
+}
+
+enum link__Purpose {
+  """
+  `SECURITY` features provide metadata necessary to securely resolve fields.
+  """
+  SECURITY
+
+  """
+  `EXECUTION` features provide metadata necessary for operation execution.
+  """
+  EXECUTION
+}
+
+scalar link__Import
+
+scalar federation__FieldSet
+
+scalar _Any
+
+type _Service {
+  sdl: String
+}
+
+union _Entity = Product
