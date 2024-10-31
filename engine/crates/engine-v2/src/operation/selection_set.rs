@@ -9,7 +9,7 @@ use crate::response::{BoundResponseKey, ResponseEdge, ResponseKey};
 
 use super::{FieldArgumentId, FieldId, Location, QueryInputValueId, SelectionSetId};
 
-#[derive(Default, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Default, serde::Serialize, serde::Deserialize)]
 pub(crate) struct SelectionSet {
     /// (ResponseKey, Option<FieldDefinitionId>) is guaranteed to be unique
     /// Ordered by query (parent EntityId, query position)

@@ -94,7 +94,7 @@ impl TestOperation {
     }
 }
 
-impl crate::Operation for TestOperation {
+impl crate::Operation for &mut TestOperation {
     type FieldId = FieldId;
 
     fn field_ids(&self) -> impl ExactSizeIterator<Item = Self::FieldId> + 'static {
@@ -121,7 +121,11 @@ impl crate::Operation for TestOperation {
         self[field_id].definition_id == Some(requirement.definition_id)
     }
 
-    fn create_extra_field(&mut self, requirement: schema::RequiredField<'_>) -> Self::FieldId {
+    fn create_extra_field(
+        &mut self,
+        _petitioner_field_id: Self::FieldId,
+        requirement: schema::RequiredField<'_>,
+    ) -> Self::FieldId {
         self.fields.push(Field {
             name: requirement.definition().name().to_string(),
             definition_id: Some(requirement.definition_id),

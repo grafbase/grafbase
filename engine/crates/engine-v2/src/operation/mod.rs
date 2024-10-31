@@ -9,6 +9,8 @@ mod metrics;
 mod modifier;
 mod parse;
 mod path;
+#[cfg(feature = "qp")]
+mod plan;
 mod prepare;
 mod selection_set;
 mod validation;
@@ -69,7 +71,7 @@ where
     }
 }
 
-#[derive(serde::Serialize, serde::Deserialize, IndexedFields)]
+#[derive(Clone, serde::Serialize, serde::Deserialize, IndexedFields)]
 pub(crate) struct Operation {
     pub ty: OperationType,
     pub root_object_id: ObjectDefinitionId,
