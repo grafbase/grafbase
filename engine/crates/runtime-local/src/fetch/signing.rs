@@ -60,7 +60,6 @@ pub struct SigningParameters {
     expiry: Option<Duration>,
     include_headers: Option<HashSet<String>>,
     exclude_headers: HashSet<String>,
-    #[expect(unused)]
     derived_components: Vec<DerivedComponent>,
     #[expect(unused)]
     signature_parameters: Vec<SignatureParameter>,
@@ -105,8 +104,6 @@ impl SigningParameters {
         let key_id = key.id().map(str::to_string);
         let key = Key::load_from(&key, algorithm)?;
 
-        // TODO: Also add the default derived_components and/or signature_parameters
-
         let include_headers = headers.include.map(|headers| headers.into_iter().collect());
         let mut exclude_headers = headers
             .exclude
@@ -121,19 +118,25 @@ impl SigningParameters {
             expiry,
             include_headers,
             exclude_headers,
-            derived_components: derived_components.unwrap_or_default(),
+            derived_components: derived_components.unwrap_or_else(|| vec![DerivedComponent::RequestTarget]),
             signature_parameters: signature_parameters.unwrap_or_default(),
         }))
     }
 
     fn httpsig_params(&self, headers: &http::HeaderMap) -> anyhow::Result<HttpSignatureParams> {
-        let covered_components = headers
+        let mut covered_components = headers
             .iter()
             .filter(|(name, _)| self.should_include_header(name.as_str()))
             .map(|(name, _)| HttpMessageComponentId::try_from(name.as_str()))
             .collect::<Result<Vec<_>, _>>()?;
 
-        // TODO: Handle derived_components & signature parameters
+        covered_components.extend(
+            self.derived_components
+                .iter()
+                .map(derived_component_to_message_component),
+        );
+
+        // TODO: Handle signature parameters
 
         let mut params = HttpSignatureParams::try_new(&covered_components)?;
         params.set_key_info(&self.key);
@@ -254,4 +257,16 @@ impl SigningKey for Key {
             Key::Shared(shared_key) => shared_key.alg(),
         }
     }
+}
+
+fn derived_component_to_message_component(component: &DerivedComponent) -> HttpMessageComponentId {
+    HttpMessageComponentId::try_from(match component {
+        DerivedComponent::Method => "@method",
+        DerivedComponent::TargetUri => "@target-uri",
+        DerivedComponent::Authority => "@authority",
+        DerivedComponent::Scheme => "@scheme",
+        DerivedComponent::RequestTarget => "@request-target",
+        DerivedComponent::Path => "@path",
+    })
+    .expect("these components are hard coded so shouldnt fail to convert")
 }

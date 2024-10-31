@@ -1,6 +1,7 @@
 //! A mock GraphQL server for testing the GraphQL connector
 
 use grafbase_workspace_hack as _;
+use http::Uri;
 use serde_json::json;
 
 use std::{
@@ -9,7 +10,13 @@ use std::{
 };
 
 use async_graphql_axum::{GraphQLRequest, GraphQLResponse, GraphQLSubscription};
-use axum::{extract::State, http::HeaderMap, response::IntoResponse, routing::post, Router};
+use axum::{
+    extract::{FromRequestParts, State},
+    http::HeaderMap,
+    response::IntoResponse,
+    routing::post,
+    Router,
+};
 use futures::Future;
 use headers::HeaderMapExt;
 use serde::ser::SerializeMap;
@@ -338,7 +345,10 @@ impl axum::extract::FromRequestParts<AppState> for ValidMessageSignature {
             //
             // A more production-friendly approach would be to add support for http::Request::parts to
             // the httpsig-hyper library
-            let request = http::Request::from_parts(parts.clone(), "".to_string());
+            let mut parts = parts.clone();
+            fix_uri(&mut parts).await;
+
+            let request = http::Request::from_parts(parts, "".to_string());
             if let Err(error) = request.verify_message_signature(&key, id.as_deref()).await {
                 eprintln!("Validation failed: {error}");
                 return Err((
@@ -353,6 +363,17 @@ impl axum::extract::FromRequestParts<AppState> for ValidMessageSignature {
         }
         Ok(ValidMessageSignature)
     }
+}
+
+async fn fix_uri(parts: &mut http::request::Parts) {
+    // The uri axum gives us only has the path in it, whereas the uri when we send is the full
+    // uri.  This is causing signature validation failures in tests, because we're not working off
+    // the same things... Sigh..
+    let host = axum::extract::Host::from_request_parts(parts, &()).await.unwrap();
+    let mut uri_parts = parts.uri.clone().into_parts();
+    uri_parts.authority = Some(host.0.try_into().unwrap());
+    uri_parts.scheme = Some("http".try_into().unwrap());
+    parts.uri = Uri::from_parts(uri_parts).unwrap();
 }
 
 #[derive(Clone)]
