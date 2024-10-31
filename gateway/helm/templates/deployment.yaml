@@ -1,0 +1,118 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "app.fullname" . }}
+  labels:
+    {{- include "app.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "app.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "app.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- if .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml .Values.imagePullSecrets | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "app.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      volumes:
+        {{- if not .Values.gateway.externalConfig }}
+        - name: gateway-config
+          configMap:
+            name: {{ include "app.fullname" . }}-gateway-config
+        {{- end }}
+        {{- if not .Values.gateway.externalSchema }}
+        - name: gateway-schema
+          configMap:
+            name: {{ include "app.fullname" . }}-gateway-schema
+        {{- end }}
+        {{- if not (empty .Values.volumes)}}
+        {{- range .Values.volumes }}
+        - {{- . | toYaml | trim | nindent 10 }}
+        {{- end }}
+        {{- end }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args:
+            {{- if not .Values.gateway.externalConfig }}
+            - --config
+            - /etc/grafbase/config/config.toml
+            {{- end }}
+            {{- if not .Values.gateway.externalSchema }}
+            - --schema
+            - /etc/grafbase/schema/schema.sdl
+            {{- end }}
+            {{- range .Values.gateway.args }}
+            - {{ . }}
+            {{- end }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.targetPort }}
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            {{- if not .Values.gateway.externalConfig }}
+            - name: gateway-config
+              mountPath: /etc/grafbase/config
+            {{- end }}
+            {{- if not .Values.gateway.externalSchema }}
+            - name: gateway-schema
+              mountPath: /etc/grafbase/schema
+            {{- end }}
+            {{- if not (empty .Values.volumeMounts)}}
+            {{- range .Values.volumeMounts }}
+            - {{- . | toYaml | trim | nindent 14 }}
+            {{- end }}
+            {{- end }}
+          {{- if and .Values.configmap.enabled .Values.secrets.enabled }}
+          envFrom:
+          - configMapRef:
+              name: {{ include "app.fullname" . }}-env
+          - secretRef:
+              name: {{ include "app.fullname" . }}
+          {{- else if .Values.configmap.enabled }}
+          envFrom:
+          - configMapRef:
+              name: {{ include "app.fullname" . }}-env
+          {{- else if .Values.secrets.enabled }}
+          envFrom:
+          - secretRef:
+              name: {{ include "app.fullname" . }}
+          {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
