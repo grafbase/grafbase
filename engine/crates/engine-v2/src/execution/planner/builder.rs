@@ -10,7 +10,8 @@ use walker::Walk;
 use crate::{
     execution::{ExecutableOperation, ExecutionPlan, ExecutionPlanId, PreExecutionContext, ResponseModifierExecutor},
     operation::{
-        FieldId, LogicalPlanId, OperationWalker, PlanWalker, ResponseModifierRule, SelectionSetId, SelectionSetType,
+        BoundFieldId, BoundSelectionSetId, LogicalPlanId, OperationWalker, PlanWalker, ResponseModifierRule,
+        SelectionSetType,
     },
     response::{ResponseObjectSetId, ResponseViewSelection, ResponseViewSelectionSet},
     sources::Resolver,
@@ -88,7 +89,7 @@ where
             // Where the field will be present in the response
             set_id: ResponseObjectSetId,
             // What field is impacted
-            field_id: FieldId,
+            field_id: BoundFieldId,
             field_logical_plan_id: LogicalPlanId,
         }
         let walker = self.walker();
@@ -191,8 +192,8 @@ where
     fn create_plan_view_and_list_dependencies(
         &mut self,
         resolver: ResolverDefinition<'_>,
-        field_ids: &Vec<FieldId>,
-    ) -> (ResponseViewSelectionSet, Vec<FieldId>) {
+        field_ids: &Vec<BoundFieldId>,
+    ) -> (ResponseViewSelectionSet, Vec<BoundFieldId>) {
         let mut required_fields = Cow::Borrowed(resolver.requires_or_empty());
         let mut required_fields_by_selection_set_id = HashMap::new();
         for field_id in field_ids {
@@ -231,9 +232,9 @@ where
 
     fn collect_dependencies(
         &mut self,
-        id: SelectionSetId,
+        id: BoundSelectionSetId,
         required_fields: &RequiredFieldSetRecord,
-        dependencies: &mut Vec<FieldId>,
+        dependencies: &mut Vec<BoundFieldId>,
     ) {
         for required_field in required_fields {
             let solved_requirements = &self.operation.solved_requirements_for(id).expect("Should be planned");

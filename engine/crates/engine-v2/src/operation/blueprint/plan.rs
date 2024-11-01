@@ -5,8 +5,8 @@ use schema::{Definition, EntityDefinitionId, FieldDefinition, ObjectDefinitionId
 
 use crate::{
     operation::{
-        ExtraField, Field, FieldId, FieldWalker, LogicalPlanId, LogicalPlanResponseBlueprint, QueryField,
-        SelectionSetId, SelectionSetType, TypeNameField,
+        BoundExtraField, BoundField, BoundFieldId, BoundQueryField, BoundSelectionSetId, BoundTypeNameField,
+        FieldWalker, LogicalPlanId, LogicalPlanResponseBlueprint, SelectionSetType,
     },
     response::{
         ConcreteObjectShape, ConcreteObjectShapeId, FieldShape, FieldShapeId, ObjectIdentifier, PolymorphicObjectShape,
@@ -65,7 +65,7 @@ where
     fn create_root_shape_for(
         &mut self,
         entity_id: EntityDefinitionId,
-        root_field_ids: &[FieldId],
+        root_field_ids: &[BoundFieldId],
     ) -> ConcreteObjectShapeId {
         let exemplar = match entity_id {
             EntityDefinitionId::Object(id) => id,
@@ -83,9 +83,13 @@ where
         self.create_shape_for(exemplar, None, &root_fields, &mut Vec::new())
     }
 
-    fn create_object_shape(&mut self, ty: SelectionSetType, merged_selection_set_ids: Vec<SelectionSetId>) -> Shape {
-        let mut plan_field_ids: Vec<FieldId> = Vec::new();
-        let mut children_plan: HashMap<LogicalPlanId, Vec<FieldId>> = HashMap::new();
+    fn create_object_shape(
+        &mut self,
+        ty: SelectionSetType,
+        merged_selection_set_ids: Vec<BoundSelectionSetId>,
+    ) -> Shape {
+        let mut plan_field_ids: Vec<BoundFieldId> = Vec::new();
+        let mut children_plan: HashMap<LogicalPlanId, Vec<BoundFieldId>> = HashMap::new();
         for id in &merged_selection_set_ids {
             for field in self.walker().walk(*id).fields() {
                 let plan_id = self.plan.field_to_logical_plan_id[usize::from(field.id())];
@@ -146,7 +150,7 @@ where
         &mut self,
         ty: SelectionSetType,
         maybe_response_object_set_id: Option<ResponseObjectSetId>,
-        field_ids: Vec<FieldId>,
+        field_ids: Vec<BoundFieldId>,
     ) -> Shape {
         let output: &[ObjectDefinitionId] = match &ty {
             SelectionSetType::Object(id) => std::array::from_ref(id),
@@ -214,13 +218,16 @@ where
     fn compute_shape_partitions(
         &self,
         output: &[ObjectDefinitionId],
-        field_ids: &[FieldId],
+        field_ids: &[BoundFieldId],
     ) -> Option<Vec<Partition<ObjectDefinitionId>>> {
         let mut type_conditions = Vec::new();
         for field_id in field_ids {
             match &self.operation[*field_id] {
-                Field::TypeName(TypeNameField { type_condition, .. }) => type_conditions.push(*type_condition),
-                Field::Query(QueryField { definition_id, .. }) | Field::Extra(ExtraField { definition_id, .. }) => {
+                BoundField::TypeName(BoundTypeNameField { type_condition, .. }) => {
+                    type_conditions.push(*type_condition)
+                }
+                BoundField::Query(BoundQueryField { definition_id, .. })
+                | BoundField::Extra(BoundExtraField { definition_id, .. }) => {
                     type_conditions.push(self.schema.walk(*definition_id).as_ref().parent_entity_id.into())
                 }
             }
@@ -384,16 +391,15 @@ where
 
 fn is_field_of(schema: &Schema, field: &FieldWalker<'_>, object_id: ObjectDefinitionId) -> bool {
     match field.as_ref() {
-        Field::TypeName(TypeNameField { type_condition, .. }) => match type_condition {
+        BoundField::TypeName(BoundTypeNameField { type_condition, .. }) => match type_condition {
             SelectionSetType::Object(id) => *id == object_id,
             SelectionSetType::Interface(id) => schema[*id].possible_type_ids.binary_search(&object_id).is_ok(),
             SelectionSetType::Union(id) => schema[*id].possible_type_ids.binary_search(&object_id).is_ok(),
         },
-        Field::Query(QueryField { definition_id, .. }) | Field::Extra(ExtraField { definition_id, .. }) => {
-            match schema[*definition_id].parent_entity_id {
-                EntityDefinitionId::Object(id) => id == object_id,
-                EntityDefinitionId::Interface(id) => schema[id].possible_type_ids.binary_search(&object_id).is_ok(),
-            }
-        }
+        BoundField::Query(BoundQueryField { definition_id, .. })
+        | BoundField::Extra(BoundExtraField { definition_id, .. }) => match schema[*definition_id].parent_entity_id {
+            EntityDefinitionId::Object(id) => id == object_id,
+            EntityDefinitionId::Interface(id) => schema[id].possible_type_ids.binary_search(&object_id).is_ok(),
+        },
     }
 }

@@ -75,37 +75,37 @@ where
 pub(crate) struct Operation {
     pub ty: OperationType,
     pub root_object_id: ObjectDefinitionId,
-    pub root_selection_set_id: SelectionSetId,
+    pub root_selection_set_id: BoundSelectionSetId,
     // sorted
-    pub root_query_modifier_ids: Vec<QueryModifierId>,
+    pub root_query_modifier_ids: Vec<BoundQueryModifierId>,
     pub response_keys: ResponseKeys,
-    #[indexed_by(SelectionSetId)]
-    pub selection_sets: Vec<SelectionSet>,
-    #[indexed_by(FieldId)]
-    pub fields: Vec<Field>,
+    #[indexed_by(BoundSelectionSetId)]
+    pub selection_sets: Vec<BoundSelectionSet>,
+    #[indexed_by(BoundFieldId)]
+    pub fields: Vec<BoundField>,
     #[indexed_by(VariableDefinitionId)]
-    pub variable_definitions: Vec<VariableDefinition>,
-    #[indexed_by(FieldArgumentId)]
-    pub field_arguments: Vec<FieldArgument>,
+    pub variable_definitions: Vec<VariableDefinitionRecord>,
+    #[indexed_by(BoundFieldArgumentId)]
+    pub field_arguments: Vec<BoundFieldArgument>,
     pub query_input_values: QueryInputValues,
     // deduplicated by rule
-    #[indexed_by(QueryModifierId)]
-    pub query_modifiers: Vec<QueryModifier>,
-    #[indexed_by(QueryModifierImpactedFieldId)]
-    pub query_modifier_impacted_fields: Vec<FieldId>,
+    #[indexed_by(BoundQueryModifierId)]
+    pub query_modifiers: Vec<BoundQueryModifier>,
+    #[indexed_by(BoundQueryModifierImpactedFieldId)]
+    pub query_modifier_impacted_fields: Vec<BoundFieldId>,
     // deduplicated by rule
-    #[indexed_by(ResponseModifierId)]
-    pub response_modifiers: Vec<ResponseModifier>,
-    #[indexed_by(ResponseModifierImpactedFieldId)]
-    pub response_modifier_impacted_fields: Vec<FieldId>,
+    #[indexed_by(BoundResponseModifierId)]
+    pub response_modifiers: Vec<BoundResponseModifier>,
+    #[indexed_by(BoundResponseModifierImpactedFieldId)]
+    pub response_modifier_impacted_fields: Vec<BoundFieldId>,
 }
 
 #[derive(serde::Serialize, serde::Deserialize, IndexedFields)]
 pub(crate) struct OperationPlan {
-    #[indexed_by(FieldId)]
+    #[indexed_by(BoundFieldId)]
     pub field_to_logical_plan_id: Vec<LogicalPlanId>,
     pub field_to_solved_requirement: Vec<Option<RequiredFieldId>>,
-    pub selection_set_to_objects_must_be_tracked: BitSet<SelectionSetId>,
+    pub selection_set_to_objects_must_be_tracked: BitSet<BoundSelectionSetId>,
     #[indexed_by(LogicalPlanId)]
     pub logical_plans: Vec<LogicalPlan>,
     pub mutation_fields_plan_order: Vec<LogicalPlanId>,
@@ -115,11 +115,11 @@ pub(crate) struct OperationPlan {
     // All dependencies of a plan are placed before it.
     pub in_topological_order: Vec<LogicalPlanId>,
     // Sorted
-    pub solved_requirements: Vec<(SelectionSetId, SolvedRequiredFieldSet)>,
+    pub solved_requirements: Vec<(BoundSelectionSetId, SolvedRequiredFieldSet)>,
 }
 
 impl OperationPlan {
-    pub fn plan_id_for_field(&self, field_id: FieldId) -> LogicalPlanId {
+    pub fn plan_id_for_field(&self, field_id: BoundFieldId) -> LogicalPlanId {
         self.field_to_logical_plan_id[usize::from(field_id)]
     }
 }
@@ -128,7 +128,7 @@ impl OperationPlan {
 pub(crate) struct LogicalPlan {
     pub resolver_id: ResolverDefinitionId,
     pub entity_id: EntityDefinitionId,
-    pub root_field_ids_ordered_by_parent_entity_id_then_position: Vec<FieldId>,
+    pub root_field_ids_ordered_by_parent_entity_id_then_position: Vec<BoundFieldId>,
 }
 
 pub(crate) type SolvedRequiredFieldSet = Vec<SolvedRequiredField>;
@@ -136,18 +136,18 @@ pub(crate) type SolvedRequiredFieldSet = Vec<SolvedRequiredField>;
 #[derive(serde::Serialize, serde::Deserialize, Clone)]
 pub(crate) struct SolvedRequiredField {
     pub id: RequiredFieldId,
-    pub field_id: FieldId,
+    pub field_id: BoundFieldId,
     pub subselection: SolvedRequiredFieldSet,
 }
 
 #[derive(serde::Serialize, serde::Deserialize, IndexedFields)]
 pub(crate) struct ResponseBlueprint {
     pub shapes: Shapes,
-    pub field_to_shape_ids: IdToMany<FieldId, FieldShapeId>,
+    pub field_to_shape_ids: IdToMany<BoundFieldId, FieldShapeId>,
     pub response_modifier_impacted_field_to_response_object_set: Vec<ResponseObjectSetId>,
     #[indexed_by(LogicalPlanId)]
     pub logical_plan_to_blueprint: Vec<LogicalPlanResponseBlueprint>,
-    pub selection_set_to_requires_typename: BitSet<SelectionSetId>,
+    pub selection_set_to_requires_typename: BitSet<BoundSelectionSetId>,
     pub response_object_sets_to_type: Vec<SelectionSetType>,
 }
 
@@ -182,11 +182,11 @@ impl PreparedOperation {
         self.operation.ty
     }
 
-    pub fn plan_id_for(&self, id: FieldId) -> LogicalPlanId {
+    pub fn plan_id_for(&self, id: BoundFieldId) -> LogicalPlanId {
         self.plan.field_to_logical_plan_id[usize::from(id)]
     }
 
-    pub fn solved_requirements_for(&self, id: SelectionSetId) -> Option<&SolvedRequiredFieldSet> {
+    pub fn solved_requirements_for(&self, id: BoundSelectionSetId) -> Option<&SolvedRequiredFieldSet> {
         self.plan
             .solved_requirements
             .binary_search_by(|probe| probe.0.cmp(&id))

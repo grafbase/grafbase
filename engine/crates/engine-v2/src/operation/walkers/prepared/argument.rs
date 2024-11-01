@@ -2,7 +2,7 @@ use id_newtypes::{IdRange, IdRangeIterator};
 use schema::{InputValueDefinition, InputValueSerdeError, InputValueSet};
 use serde::{de::value::MapDeserializer, forward_to_deserialize_any};
 
-use crate::operation::{FieldArgumentId, QueryInputValueWalker};
+use crate::operation::{BoundFieldArgumentId, QueryInputValueWalker};
 
 mod view;
 
@@ -10,7 +10,7 @@ pub(crate) use view::*;
 
 use super::PreparedOperationWalker;
 
-pub type FieldArgumentWalker<'a> = PreparedOperationWalker<'a, FieldArgumentId>;
+pub type FieldArgumentWalker<'a> = PreparedOperationWalker<'a, BoundFieldArgumentId>;
 
 impl<'a> FieldArgumentWalker<'a> {
     pub fn value(&self) -> Option<QueryInputValueWalker<'a>> {
@@ -36,7 +36,7 @@ impl std::fmt::Debug for FieldArgumentWalker<'_> {
     }
 }
 
-pub type FieldArgumentsWalker<'a> = PreparedOperationWalker<'a, IdRange<FieldArgumentId>>;
+pub type FieldArgumentsWalker<'a> = PreparedOperationWalker<'a, IdRange<BoundFieldArgumentId>>;
 
 impl<'a> FieldArgumentsWalker<'a> {
     pub fn is_empty(&self) -> bool {
@@ -61,7 +61,7 @@ impl<'a> IntoIterator for FieldArgumentsWalker<'a> {
     }
 }
 
-pub(crate) struct FieldArgumentsIterator<'a>(PreparedOperationWalker<'a, IdRangeIterator<FieldArgumentId>>);
+pub(crate) struct FieldArgumentsIterator<'a>(PreparedOperationWalker<'a, IdRangeIterator<BoundFieldArgumentId>>);
 
 impl<'a> Iterator for FieldArgumentsIterator<'a> {
     type Item = FieldArgumentWalker<'a>;

@@ -1,11 +1,11 @@
-use crate::operation::SelectionSetId;
+use crate::operation::BoundSelectionSetId;
 
 use super::{PlanField, PlanWalker};
 
 #[derive(Clone, Copy)]
 pub enum PlanSelectionSet<'a> {
     RootFields(PlanWalker<'a, ()>),
-    SelectionSet(PlanWalker<'a, SelectionSetId>),
+    SelectionSet(PlanWalker<'a, BoundSelectionSetId>),
 }
 
 impl<'a> PlanSelectionSet<'a> {

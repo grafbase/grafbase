@@ -12,7 +12,7 @@ use crate::{
         ExecutionPlan, ExecutionPlanId, PlanningResult, PreExecutionContext, QueryModifications,
         ResponseModifierExecutorId,
     },
-    operation::{FieldId, LogicalPlanId, PreparedOperation, Variables},
+    operation::{BoundFieldId, LogicalPlanId, PreparedOperation, Variables},
     response::{ResponseViewSelection, ResponseViews},
     utils::BufferPool,
     Runtime,
@@ -45,8 +45,8 @@ impl<'ctx, 'op, R: Runtime> std::ops::DerefMut for ExecutionPlanner<'ctx, 'op, R
 struct BuildContext {
     // Either an input or output field of a plan or response modifier
     #[indexed_by(IOFieldId)]
-    io_fields: Vec<FieldId>,
-    io_fields_buffer_pool: BufferPool<FieldId>,
+    io_fields: Vec<BoundFieldId>,
+    io_fields_buffer_pool: BufferPool<BoundFieldId>,
     response_modifier_executors: Vec<ResponseModifierExecutor>,
     response_modifier_executors_input_fields: Vec<IdRange<IOFieldId>>,
     response_modifier_executors_output_fields: Vec<IdRange<IOFieldId>>,
@@ -61,7 +61,7 @@ struct BuildContext {
 pub struct IOFieldId(std::num::NonZero<u16>);
 
 impl BuildContext {
-    fn push_io_fields(&mut self, mut fields: Vec<FieldId>) -> IdRange<IOFieldId> {
+    fn push_io_fields(&mut self, mut fields: Vec<BoundFieldId>) -> IdRange<IOFieldId> {
         let start = self.io_fields.len();
         self.io_fields.extend(&mut fields.drain(..));
         self.io_fields_buffer_pool.push(fields);

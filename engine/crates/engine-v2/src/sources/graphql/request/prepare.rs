@@ -272,7 +272,7 @@ impl QueryBuilderContext {
         in_same_entity: bool,
         buffer: &mut String,
         entity: EntityDefinition<'_>,
-        fields: &[PlanWalker<'_, crate::operation::FieldId>],
+        fields: &[PlanWalker<'_, crate::operation::BoundFieldId>],
     ) -> Result<(), Error> {
         if !in_same_entity {
             write!(buffer, " ... on {} {{", entity.name())?;
@@ -293,7 +293,7 @@ impl QueryBuilderContext {
         &mut self,
         buffer: &mut String,
         type_name: &str,
-        fields: &[PlanWalker<'_, crate::operation::FieldId>],
+        fields: &[PlanWalker<'_, crate::operation::BoundFieldId>],
     ) -> Result<(), Error> {
         write!(buffer, " ... on {} {{", type_name)?;
 

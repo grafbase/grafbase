@@ -7,13 +7,13 @@ use serde::{
 
 use super::SeedContext;
 use crate::{
-    operation::FieldId,
+    operation::BoundFieldId,
     response::{ErrorCode, GraphqlError, ResponseValue},
 };
 
 pub(super) struct ListSeed<'ctx, 'parent, Seed> {
     pub ctx: &'parent SeedContext<'ctx>,
-    pub field_id: FieldId,
+    pub field_id: BoundFieldId,
     pub seed: &'parent Seed,
 }
 

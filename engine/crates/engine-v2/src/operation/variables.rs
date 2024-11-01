@@ -6,12 +6,11 @@ use super::{
 };
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct VariableDefinition {
+pub struct VariableDefinitionRecord {
     pub name: String,
     pub name_location: Location,
-    pub default_value: Option<QueryInputValueId>,
-    pub in_use: bool,
-    pub ty: schema::TypeRecord,
+    pub default_value_id: Option<QueryInputValueId>,
+    pub ty_record: schema::TypeRecord,
 }
 
 pub struct Variables {

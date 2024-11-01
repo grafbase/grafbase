@@ -3,15 +3,15 @@ use schema::{DefinitionId, FieldDefinition, ObjectDefinitionId, TypeSystemDirect
 use std::{collections::HashMap, ops::Range};
 
 use crate::operation::{
-    FieldArgumentId, FieldId, QueryModifier, QueryModifierId, QueryModifierRule, ResponseModifier, ResponseModifierId,
-    ResponseModifierRule,
+    BoundFieldArgumentId, BoundFieldId, BoundQueryModifier, BoundQueryModifierId, BoundResponseModifier,
+    BoundResponseModifierId, QueryModifierRule, ResponseModifierRule,
 };
 
 impl<'schema, 'p> super::Binder<'schema, 'p> {
     pub(super) fn generate_field_modifiers(
         &mut self,
-        field_id: FieldId,
-        argument_ids: IdRange<FieldArgumentId>,
+        field_id: BoundFieldId,
+        argument_ids: IdRange<BoundFieldArgumentId>,
         field_definition: FieldDefinition<'_>,
         additional_modifiers: Vec<QueryModifierRule>,
     ) {
@@ -19,7 +19,7 @@ impl<'schema, 'p> super::Binder<'schema, 'p> {
         self.generate_additional_modifiers(field_id, additional_modifiers);
     }
 
-    fn generate_additional_modifiers(&mut self, field_id: FieldId, additional_modifiers: Vec<QueryModifierRule>) {
+    fn generate_additional_modifiers(&mut self, field_id: BoundFieldId, additional_modifiers: Vec<QueryModifierRule>) {
         for modifier in additional_modifiers {
             self.register_field_impacted_by_query_modifier(modifier, field_id);
         }
@@ -27,8 +27,8 @@ impl<'schema, 'p> super::Binder<'schema, 'p> {
 
     fn generate_modifiers_for_type_system_directives(
         &mut self,
-        field_id: FieldId,
-        argument_ids: IdRange<FieldArgumentId>,
+        field_id: BoundFieldId,
+        argument_ids: IdRange<BoundFieldArgumentId>,
         field_definition: FieldDefinition<'_>,
     ) {
         for directive in field_definition.directives() {
@@ -109,7 +109,7 @@ impl<'schema, 'p> super::Binder<'schema, 'p> {
     pub(super) fn generate_modifiers_for_root_object(
         &mut self,
         root_object_id: ObjectDefinitionId,
-    ) -> Vec<QueryModifierId> {
+    ) -> Vec<BoundQueryModifierId> {
         let mut modifiers = Vec::new();
         for directive in self.schema.walk(root_object_id).directives() {
             match directive {
@@ -135,7 +135,7 @@ impl<'schema, 'p> super::Binder<'schema, 'p> {
         modifiers
     }
 
-    fn register_field_impacted_by_response_modifier(&mut self, rule: ResponseModifierRule, field_id: FieldId) {
+    fn register_field_impacted_by_response_modifier(&mut self, rule: ResponseModifierRule, field_id: BoundFieldId) {
         let n = self.response_modifiers.len();
         self.response_modifiers
             .entry(rule)
@@ -144,7 +144,7 @@ impl<'schema, 'p> super::Binder<'schema, 'p> {
             .push(field_id);
     }
 
-    fn register_field_impacted_by_query_modifier(&mut self, rule: QueryModifierRule, field_id: FieldId) {
+    fn register_field_impacted_by_query_modifier(&mut self, rule: QueryModifierRule, field_id: BoundFieldId) {
         let n = self.query_modifiers.len();
         self.query_modifiers
             .entry(rule)
@@ -153,34 +153,34 @@ impl<'schema, 'p> super::Binder<'schema, 'p> {
             .push(field_id);
     }
 
-    fn push_root_object_query_modifier(&mut self, rule: QueryModifierRule) -> QueryModifierId {
+    fn push_root_object_query_modifier(&mut self, rule: QueryModifierRule) -> BoundQueryModifierId {
         let n = self.query_modifiers.len();
         self.query_modifiers.entry(rule).or_insert((n.into(), Vec::new())).0
     }
 }
 
 pub(super) fn finalize_query_modifiers(
-    query_modifiers: HashMap<QueryModifierRule, (QueryModifierId, Vec<FieldId>)>,
-) -> (Vec<QueryModifier>, Vec<FieldId>) {
-    finalize_modifiers(query_modifiers, |rule, ids_range| QueryModifier {
+    query_modifiers: HashMap<QueryModifierRule, (BoundQueryModifierId, Vec<BoundFieldId>)>,
+) -> (Vec<BoundQueryModifier>, Vec<BoundFieldId>) {
+    finalize_modifiers(query_modifiers, |rule, ids_range| BoundQueryModifier {
         rule,
         impacted_fields: IdRange::from(ids_range),
     })
 }
 
 pub(super) fn finalize_response_modifiers(
-    response_modifiers: HashMap<ResponseModifierRule, (ResponseModifierId, Vec<FieldId>)>,
-) -> (Vec<ResponseModifier>, Vec<FieldId>) {
-    finalize_modifiers(response_modifiers, |rule, ids_range| ResponseModifier {
+    response_modifiers: HashMap<ResponseModifierRule, (BoundResponseModifierId, Vec<BoundFieldId>)>,
+) -> (Vec<BoundResponseModifier>, Vec<BoundFieldId>) {
+    finalize_modifiers(response_modifiers, |rule, ids_range| BoundResponseModifier {
         rule,
         impacted_fields: IdRange::from(ids_range),
     })
 }
 
 fn finalize_modifiers<Rule, Id: Ord + Copy, Modifier>(
-    modifiers: HashMap<Rule, (Id, Vec<FieldId>)>,
+    modifiers: HashMap<Rule, (Id, Vec<BoundFieldId>)>,
     build: impl Fn(Rule, Range<usize>) -> Modifier,
-) -> (Vec<Modifier>, Vec<FieldId>) where {
+) -> (Vec<Modifier>, Vec<BoundFieldId>) where {
     let mut query_modifiers = modifiers
         .into_iter()
         .map(|(rule, (id, fields))| (id, rule, fields))

@@ -6,7 +6,7 @@ use schema::{
     UnionDefinitionId, Wrapping,
 };
 
-use crate::operation::FieldId;
+use crate::operation::BoundFieldId;
 
 use super::{ResponseEdge, ResponseObjectSetId, SafeResponseKey};
 
@@ -33,7 +33,7 @@ pub struct FieldShapeId(NonZero<u32>);
 pub(crate) struct FieldShape {
     pub expected_key: SafeResponseKey,
     pub edge: ResponseEdge,
-    pub id: FieldId,
+    pub id: BoundFieldId,
     pub required_field_id: Option<RequiredFieldId>,
     pub definition_id: FieldDefinitionId,
     pub shape: Shape,
