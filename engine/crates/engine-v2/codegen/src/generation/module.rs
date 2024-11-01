@@ -14,9 +14,10 @@ where
     let mod_definitions = submodules
         .iter()
         .format_with("\n", |submodule, f| f(&format_args!("mod {submodule};")));
-    let pub_use_mod = submodules
-        .iter()
-        .format_with("\n", |submodule, f| f(&format_args!("pub use {submodule}::*;")));
+    let visibilty = domain.public_visibility.to_string();
+    let pub_use_mod = submodules.iter().format_with("\n", |submodule, f| {
+        f(&format_args!("pub {visibilty} use {submodule}::*;"))
+    });
 
     let mut contents = formatdoc!(
         r#"

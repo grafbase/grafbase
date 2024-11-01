@@ -1,6 +1,6 @@
 use cynic_parser::common::WrappingType;
 
-use super::{Definition, FieldMeta, Indexed, Meta};
+use super::{Definition, Indexed, Meta};
 
 #[derive(Debug)]
 pub struct Object {
@@ -12,6 +12,7 @@ pub struct Object {
     pub struct_name: String,
     pub copy: bool,
     pub fields: Vec<Field>,
+    pub external_domain_name: Option<String>,
 }
 
 impl From<Object> for Definition {
@@ -28,7 +29,6 @@ impl Object {
 
 #[derive(Debug)]
 pub struct Field {
-    pub meta: FieldMeta,
     pub name: String,
     pub description: Option<String>,
     pub record_field_name: String,

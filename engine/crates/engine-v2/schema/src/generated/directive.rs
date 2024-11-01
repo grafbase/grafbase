@@ -76,11 +76,12 @@ impl std::fmt::Debug for TypeSystemDirective<'_> {
     }
 }
 
-impl Walk<Schema> for TypeSystemDirectiveId {
-    type Walker<'a> = TypeSystemDirective<'a>;
-    fn walk<'a>(self, schema: &'a Schema) -> Self::Walker<'a>
+impl<'a> Walk<&'a Schema> for TypeSystemDirectiveId {
+    type Walker<'w> = TypeSystemDirective<'w> where 'a: 'w ;
+    fn walk<'w>(self, schema: &'a Schema) -> Self::Walker<'w>
     where
-        Self: 'a,
+        Self: 'w,
+        'a: 'w,
     {
         match self {
             TypeSystemDirectiveId::Authenticated => TypeSystemDirective::Authenticated,

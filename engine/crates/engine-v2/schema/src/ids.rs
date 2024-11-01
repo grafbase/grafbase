@@ -15,11 +15,12 @@ pub(crate) const MAX_ID: u32 = (1 << 29) - 1;
 #[max(MAX_ID)]
 pub struct UrlId(NonZero<u32>);
 
-impl Walk<Schema> for UrlId {
-    type Walker<'a> = &'a Url;
-    fn walk<'s>(self, schema: &'s Schema) -> Self::Walker<'s>
+impl<'a> Walk<&'a Schema> for UrlId {
+    type Walker<'w> = &'w Url where 'a: 'w;
+    fn walk<'w>(self, schema: &'a Schema) -> Self::Walker<'w>
     where
-        Self: 's,
+        Self: 'w,
+        'a: 'w,
     {
         &schema[self]
     }
@@ -29,12 +30,13 @@ impl Walk<Schema> for UrlId {
 #[max(MAX_ID)]
 pub struct StringId(NonZero<u32>);
 
-impl Walk<Schema> for StringId {
-    type Walker<'a> = &'a str;
+impl<'a> Walk<&'a Schema> for StringId {
+    type Walker<'w> = &'w str where 'a: 'w;
 
-    fn walk<'s>(self, schema: &'s Schema) -> Self::Walker<'s>
+    fn walk<'w>(self, schema: &'a Schema) -> Self::Walker<'w>
     where
-        Self: 's,
+        Self: 'w,
+        'a: 'w,
     {
         &schema[self]
     }
@@ -44,12 +46,13 @@ impl Walk<Schema> for StringId {
 #[max(MAX_ID)]
 pub struct RegexId(NonZero<u32>);
 
-impl Walk<Schema> for RegexId {
-    type Walker<'a> = &'a Regex;
+impl<'a> Walk<&'a Schema> for RegexId {
+    type Walker<'w> = &'w Regex where 'a: 'w;
 
-    fn walk<'s>(self, schema: &'s Schema) -> Self::Walker<'s>
+    fn walk<'w>(self, schema: &'a Schema) -> Self::Walker<'w>
     where
-        Self: 's,
+        Self: 'w,
+        'a: 'w,
     {
         &schema[self]
     }

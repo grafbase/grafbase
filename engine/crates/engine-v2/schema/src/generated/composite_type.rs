@@ -12,7 +12,7 @@ use crate::{
 };
 use walker::Walk;
 
-/// Name previously used by the GraphQL spec to describe this union.
+/// Composite type is the term previously used by the GraphQL spec to describe this union.
 ///
 /// --------------
 /// Generated from:
@@ -56,7 +56,7 @@ impl From<UnionDefinitionId> for CompositeTypeId {
     }
 }
 
-/// Name previously used by the GraphQL spec to describe this union.
+/// Composite type is the term previously used by the GraphQL spec to describe this union.
 #[derive(Clone, Copy)]
 pub enum CompositeType<'a> {
     Interface(InterfaceDefinition<'a>),
@@ -74,11 +74,12 @@ impl std::fmt::Debug for CompositeType<'_> {
     }
 }
 
-impl Walk<Schema> for CompositeTypeId {
-    type Walker<'a> = CompositeType<'a>;
-    fn walk<'a>(self, schema: &'a Schema) -> Self::Walker<'a>
+impl<'a> Walk<&'a Schema> for CompositeTypeId {
+    type Walker<'w> = CompositeType<'w> where 'a: 'w ;
+    fn walk<'w>(self, schema: &'a Schema) -> Self::Walker<'w>
     where
-        Self: 'a,
+        Self: 'w,
+        'a: 'w,
     {
         match self {
             CompositeTypeId::Interface(id) => CompositeType::Interface(id.walk(schema)),

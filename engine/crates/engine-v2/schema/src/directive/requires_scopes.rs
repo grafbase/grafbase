@@ -65,11 +65,12 @@ impl<'a> RequiresScopesDirective<'a> {
     }
 }
 
-impl Walk<Schema> for RequiresScopesDirectiveId {
-    type Walker<'a> = RequiresScopesDirective<'a>;
-    fn walk<'s>(self, schema: &'s Schema) -> Self::Walker<'s>
+impl<'a> Walk<&'a Schema> for RequiresScopesDirectiveId {
+    type Walker<'w> = RequiresScopesDirective<'w> where 'a: 'w;
+    fn walk<'w>(self, schema: &'a Schema) -> Self::Walker<'w>
     where
-        Self: 's,
+        Self: 'w,
+        'a: 'w,
     {
         RequiresScopesDirective { schema, id: self }
     }

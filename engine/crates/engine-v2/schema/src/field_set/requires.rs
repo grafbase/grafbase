@@ -20,11 +20,12 @@ pub struct RequiredFieldSetRecord(Vec<RequiredFieldSetItemRecord>);
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
 pub struct RequiredFieldSetId(std::num::NonZero<u32>);
 
-impl Walk<Schema> for RequiredFieldSetId {
-    type Walker<'a> = RequiredFieldSet<'a>;
-    fn walk<'s>(self, schema: &'s Schema) -> Self::Walker<'s>
+impl<'a> Walk<&'a Schema> for RequiredFieldSetId {
+    type Walker<'w> = RequiredFieldSet<'w> where 'a: 'w;
+    fn walk<'w>(self, schema: &'a Schema) -> Self::Walker<'w>
     where
-        Self: 's,
+        Self: 'w,
+        'a: 'w,
     {
         RequiredFieldSet {
             schema,
@@ -33,11 +34,12 @@ impl Walk<Schema> for RequiredFieldSetId {
     }
 }
 
-impl Walk<Schema> for &RequiredFieldSetRecord {
-    type Walker<'a> = RequiredFieldSet<'a> where Self: 'a;
-    fn walk<'s>(self, schema: &'s Schema) -> Self::Walker<'s>
+impl<'a> Walk<&'a Schema> for &RequiredFieldSetRecord {
+    type Walker<'w> = RequiredFieldSet<'w> where Self: 'w, 'a: 'w;
+    fn walk<'w>(self, schema: &'a Schema) -> Self::Walker<'w>
     where
-        Self: 's,
+        Self: 'w,
+        'a: 'w,
     {
         RequiredFieldSet { schema, ref_: self }
     }
@@ -75,11 +77,12 @@ pub struct RequiredFieldSetItemRecord {
     pub subselection: RequiredFieldSetRecord,
 }
 
-impl Walk<Schema> for &RequiredFieldSetItemRecord {
-    type Walker<'a> = RequiredFieldSetItem<'a> where Self: 'a;
-    fn walk<'s>(self, schema: &'s Schema) -> Self::Walker<'s>
+impl<'a> Walk<&'a Schema> for &RequiredFieldSetItemRecord {
+    type Walker<'w> = RequiredFieldSetItem<'w> where Self: 'w, 'a: 'w;
+    fn walk<'w>(self, schema: &'a Schema) -> Self::Walker<'w>
     where
-        Self: 's,
+        Self: 'w,
+        'a: 'w,
     {
         RequiredFieldSetItem { schema, ref_: self }
     }

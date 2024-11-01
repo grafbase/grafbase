@@ -63,6 +63,10 @@ pub fn generate_modules(formatter: &Formatter, domain: &Domain) -> anyhow::Resul
 
     for (_, name) in names {
         let definition = &domain.definitions_by_name[name];
+        if definition.external_domain_name().is_some() {
+            continue;
+        }
+
         let generated_code = match definition {
             Definition::Scalar(_) => continue,
             Definition::Object(object) => generate_object(domain, object)?,
@@ -85,6 +89,8 @@ pub fn generate_modules(formatter: &Formatter, domain: &Domain) -> anyhow::Resul
                 .or_default()
                 .submodules
                 .push(module_path.last().unwrap());
+        } else if module_path.is_empty() {
+            tracing::warn!("No module defined for '{name}'? Do we even support it?");
         }
     }
 

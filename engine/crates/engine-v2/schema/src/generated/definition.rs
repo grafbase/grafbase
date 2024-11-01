@@ -101,11 +101,12 @@ impl std::fmt::Debug for Definition<'_> {
     }
 }
 
-impl Walk<Schema> for DefinitionId {
-    type Walker<'a> = Definition<'a>;
-    fn walk<'a>(self, schema: &'a Schema) -> Self::Walker<'a>
+impl<'a> Walk<&'a Schema> for DefinitionId {
+    type Walker<'w> = Definition<'w> where 'a: 'w ;
+    fn walk<'w>(self, schema: &'a Schema) -> Self::Walker<'w>
     where
-        Self: 'a,
+        Self: 'w,
+        'a: 'w,
     {
         match self {
             DefinitionId::Enum(id) => Definition::Enum(id.walk(schema)),

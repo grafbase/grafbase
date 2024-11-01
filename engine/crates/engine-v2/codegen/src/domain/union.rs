@@ -7,6 +7,7 @@ pub struct Union {
     pub span: cynic_parser::Span,
     pub description: Option<String>,
     pub variants: Vec<Variant>,
+    pub external_domain_name: Option<String>,
 }
 
 #[derive(Debug)]

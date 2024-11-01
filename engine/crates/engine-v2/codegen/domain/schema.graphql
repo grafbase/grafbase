@@ -1,4 +1,4 @@
-scalar Schema @graph(destination: "schema/src")
+scalar Schema @domain(destination: "schema/src")
 
 # std / lib
 scalar String @indexed(deduplicated: true)

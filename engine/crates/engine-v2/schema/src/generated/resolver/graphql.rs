@@ -45,11 +45,12 @@ impl<'a> GraphqlRootFieldResolverDefinition<'a> {
     }
 }
 
-impl Walk<Schema> for GraphqlRootFieldResolverDefinitionRecord {
-    type Walker<'a> = GraphqlRootFieldResolverDefinition<'a>;
-    fn walk<'a>(self, schema: &'a Schema) -> Self::Walker<'a>
+impl<'a> Walk<&'a Schema> for GraphqlRootFieldResolverDefinitionRecord {
+    type Walker<'w> = GraphqlRootFieldResolverDefinition<'w> where 'a: 'w ;
+    fn walk<'w>(self, schema: &'a Schema) -> Self::Walker<'w>
     where
-        Self: 'a,
+        Self: 'w,
+        'a: 'w,
     {
         GraphqlRootFieldResolverDefinition { schema, item: self }
     }
@@ -103,11 +104,12 @@ impl<'a> GraphqlFederationEntityResolverDefinition<'a> {
     }
 }
 
-impl Walk<Schema> for GraphqlFederationEntityResolverDefinitionRecord {
-    type Walker<'a> = GraphqlFederationEntityResolverDefinition<'a>;
-    fn walk<'a>(self, schema: &'a Schema) -> Self::Walker<'a>
+impl<'a> Walk<&'a Schema> for GraphqlFederationEntityResolverDefinitionRecord {
+    type Walker<'w> = GraphqlFederationEntityResolverDefinition<'w> where 'a: 'w ;
+    fn walk<'w>(self, schema: &'a Schema) -> Self::Walker<'w>
     where
-        Self: 'a,
+        Self: 'w,
+        'a: 'w,
     {
         GraphqlFederationEntityResolverDefinition { schema, item: self }
     }

@@ -61,11 +61,12 @@ impl<'a> AuthorizedDirective<'a> {
     }
 }
 
-impl Walk<Schema> for AuthorizedDirectiveId {
-    type Walker<'a> = AuthorizedDirective<'a>;
-    fn walk<'a>(self, schema: &'a Schema) -> Self::Walker<'a>
+impl<'a> Walk<&'a Schema> for AuthorizedDirectiveId {
+    type Walker<'w> = AuthorizedDirective<'w> where 'a: 'w ;
+    fn walk<'w>(self, schema: &'a Schema) -> Self::Walker<'w>
     where
-        Self: 'a,
+        Self: 'w,
+        'a: 'w,
     {
         AuthorizedDirective { schema, id: self }
     }

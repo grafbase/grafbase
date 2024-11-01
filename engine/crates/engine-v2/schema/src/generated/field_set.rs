@@ -59,11 +59,12 @@ impl<'a> RequiredField<'a> {
     }
 }
 
-impl Walk<Schema> for RequiredFieldId {
-    type Walker<'a> = RequiredField<'a>;
-    fn walk<'a>(self, schema: &'a Schema) -> Self::Walker<'a>
+impl<'a> Walk<&'a Schema> for RequiredFieldId {
+    type Walker<'w> = RequiredField<'w> where 'a: 'w ;
+    fn walk<'w>(self, schema: &'a Schema) -> Self::Walker<'w>
     where
-        Self: 'a,
+        Self: 'w,
+        'a: 'w,
     {
         RequiredField { schema, id: self }
     }
@@ -109,11 +110,12 @@ impl<'a> RequiredFieldArgument<'a> {
     }
 }
 
-impl Walk<Schema> for RequiredFieldArgumentRecord {
-    type Walker<'a> = RequiredFieldArgument<'a>;
-    fn walk<'a>(self, schema: &'a Schema) -> Self::Walker<'a>
+impl<'a> Walk<&'a Schema> for RequiredFieldArgumentRecord {
+    type Walker<'w> = RequiredFieldArgument<'w> where 'a: 'w ;
+    fn walk<'w>(self, schema: &'a Schema) -> Self::Walker<'w>
     where
-        Self: 'a,
+        Self: 'w,
+        'a: 'w,
     {
         RequiredFieldArgument { schema, item: self }
     }

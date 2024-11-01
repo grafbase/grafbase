@@ -120,11 +120,12 @@ impl<'a> FieldDefinition<'a> {
     }
 }
 
-impl Walk<Schema> for FieldDefinitionId {
-    type Walker<'a> = FieldDefinition<'a>;
-    fn walk<'a>(self, schema: &'a Schema) -> Self::Walker<'a>
+impl<'a> Walk<&'a Schema> for FieldDefinitionId {
+    type Walker<'w> = FieldDefinition<'w> where 'a: 'w ;
+    fn walk<'w>(self, schema: &'a Schema) -> Self::Walker<'w>
     where
-        Self: 'a,
+        Self: 'w,
+        'a: 'w,
     {
         FieldDefinition { schema, id: self }
     }
@@ -135,6 +136,7 @@ impl std::fmt::Debug for FieldDefinition<'_> {
         f.debug_struct("FieldDefinition")
             .field("name", &self.name())
             .field("description", &self.description())
+            .field("parent_entity", &self.parent_entity())
             .field("ty", &self.ty())
             .field("resolvers", &self.resolvers())
             .field("only_resolvable_in", &self.only_resolvable_in())
