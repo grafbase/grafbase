@@ -10,7 +10,7 @@ impl gateway_request::Guest for Component {
     fn on_gateway_request(
         context: gateway_request::Context,
         headers: gateway_request::Headers,
-    ) -> Result<(), gateway_request::Error> {
+    ) -> Result<(), gateway_request::ErrorResponse> {
         todo!()
     }
 }

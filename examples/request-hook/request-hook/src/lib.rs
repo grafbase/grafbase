@@ -1,4 +1,7 @@
-use bindings::exports::component::grafbase::gateway_request::{Context, Error, Guest, Headers};
+use bindings::{
+    component::grafbase::types::{Context, Error, ErrorResponse, Headers},
+    exports::component::grafbase::gateway_request::Guest,
+};
 
 #[allow(warnings)]
 mod bindings;
@@ -6,13 +9,20 @@ mod bindings;
 struct Component;
 
 impl Guest for Component {
-    fn on_gateway_request(_: Context, headers: Headers) -> Result<(), Error> {
+    fn on_gateway_request(_: Context, headers: Headers) -> Result<(), ErrorResponse> {
         match headers.get("x-custom").as_deref() {
             Some("secret") => Ok(()),
-            _ => Err(Error {
-                extensions: vec![],
-                message: String::from("access denied"),
-            }),
+            _ => {
+                let error = Error {
+                    extensions: vec![],
+                    message: String::from("access denied"),
+                };
+
+                Err(ErrorResponse {
+                    status_code: 403,
+                    errors: vec![error],
+                })
+            }
         }
     }
 }

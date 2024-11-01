@@ -2,14 +2,14 @@
 mod bindings;
 
 use bindings::{
-    component::grafbase::types::{Context, Error, Headers},
+    component::grafbase::types::{Context, ErrorResponse, Headers},
     exports::component::grafbase::gateway_request,
 };
 
 struct Component;
 
 impl gateway_request::Guest for Component {
-    fn on_gateway_request(context: Context, headers: Headers) -> Result<(), Error> {
+    fn on_gateway_request(context: Context, headers: Headers) -> Result<(), ErrorResponse> {
         headers.set("direct", "call").unwrap();
 
         assert_eq!(Some("call".to_string()), headers.get("direct"));

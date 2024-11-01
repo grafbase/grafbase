@@ -1,8 +1,8 @@
-use ::runtime::{error::ErrorResponse, hooks::Hooks, rate_limiting::RateLimitKey};
+use ::runtime::{hooks::Hooks, rate_limiting::RateLimitKey};
 use bytes::Bytes;
 use futures::StreamExt;
 use grafbase_telemetry::grafbase_client::Client;
-use runtime::auth::AccessToken;
+use runtime::{auth::AccessToken, error::ErrorResponse};
 use std::{future::Future, sync::Arc};
 
 use crate::{
@@ -71,7 +71,7 @@ impl<R: Runtime> Engine<R> {
         let client = Client::extract_from(&headers);
 
         let (hooks_context, headers) = self.runtime.hooks().on_gateway_request(headers).await.map_err(
-            |(context, ErrorResponse { status, error })| (Response::refuse_request_with(status, error), context),
+            |(context, ErrorResponse { status, errors })| (Response::refuse_request_with(status, errors), context),
         )?;
 
         let Some(access_token) = self.auth.authenticate(&headers).await else {

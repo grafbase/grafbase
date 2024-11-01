@@ -1,10 +1,10 @@
 use std::{collections::HashMap, sync::Arc};
 
 use crate::{
-    hooks::subgraph::SubgraphComponentInstance, AuthorizationComponentInstance, CacheStatus, ChannelLogReceiver,
-    ChannelLogSender, ComponentLoader, Config, EdgeDefinition, ExecutedHttpRequest, ExecutedOperation,
-    ExecutedSubgraphRequest, GatewayComponentInstance, GuestError, NodeDefinition, RecycleableComponentInstance,
-    ResponsesComponentInstance, SharedContext, SubgraphResponse,
+    error::guest::ErrorResponse, hooks::subgraph::SubgraphComponentInstance, AuthorizationComponentInstance,
+    CacheStatus, ChannelLogReceiver, ChannelLogSender, ComponentLoader, Config, EdgeDefinition, ExecutedHttpRequest,
+    ExecutedOperation, ExecutedSubgraphRequest, GatewayComponentInstance, GuestError, NodeDefinition,
+    RecycleableComponentInstance, ResponsesComponentInstance, SharedContext, SubgraphResponse,
 };
 use expect_test::expect;
 use grafbase_telemetry::otel::opentelemetry::trace::TraceId;
@@ -238,14 +238,18 @@ async fn guest_error() {
 
     let loader = ComponentLoader::new(config).unwrap().unwrap();
     let mut hook = GatewayComponentInstance::new(&loader).await.unwrap();
+
     let error = hook
         .on_gateway_request(HashMap::new(), HeaderMap::new())
         .await
         .unwrap_err();
 
-    let expected = GuestError {
-        message: String::from("not found"),
-        extensions: vec![(String::from("my"), String::from("extension"))],
+    let expected = ErrorResponse {
+        status_code: 403,
+        errors: vec![GuestError {
+            message: String::from("not found"),
+            extensions: vec![(String::from("my"), String::from("extension"))],
+        }],
     };
 
     assert_eq!(Some(expected), error.into_guest_error());
@@ -658,14 +662,14 @@ async fn on_subgraph_request() {
         .await
         .unwrap_err();
 
-    insta::assert_debug_snapshot!(error, @r###"
+    insta::assert_debug_snapshot!(error, @r#"
     Guest(
         GuestError {
             extensions: [],
             message: "failure",
         },
     )
-    "###);
+    "#);
 }
 
 #[tokio::test]

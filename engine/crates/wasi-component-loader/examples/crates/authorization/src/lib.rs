@@ -2,7 +2,9 @@
 mod bindings;
 
 use bindings::{
-    component::grafbase::types::{Context, EdgeDefinition, Error, Headers, NodeDefinition, SharedContext},
+    component::grafbase::types::{
+        Context, EdgeDefinition, Error, ErrorResponse, Headers, NodeDefinition, SharedContext,
+    },
     exports::component::grafbase::{authorization, gateway_request},
 };
 
@@ -14,7 +16,7 @@ struct Edge {
 }
 
 impl gateway_request::Guest for Component {
-    fn on_gateway_request(context: Context, headers: Headers) -> Result<(), Error> {
+    fn on_gateway_request(context: Context, headers: Headers) -> Result<(), ErrorResponse> {
         if let Some(auth_header) = headers.get("Authorization") {
             context.set("entitlement", &auth_header);
         }

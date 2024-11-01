@@ -287,6 +287,7 @@ fn context_is_propagated() {
             {
                 context.insert("client", client);
             }
+
             Ok(headers)
         }
 

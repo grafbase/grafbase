@@ -16,14 +16,14 @@ pub enum PartialErrorCode {
 
 pub struct ErrorResponse {
     pub status: http::StatusCode,
-    pub error: PartialGraphqlError,
+    pub errors: Vec<PartialGraphqlError>,
 }
 
-impl From<PartialGraphqlError> for ErrorResponse {
-    fn from(error: PartialGraphqlError) -> Self {
+impl From<Vec<PartialGraphqlError>> for ErrorResponse {
+    fn from(errors: Vec<PartialGraphqlError>) -> Self {
         ErrorResponse {
             status: http::StatusCode::INTERNAL_SERVER_ERROR,
-            error,
+            errors,
         }
     }
 }

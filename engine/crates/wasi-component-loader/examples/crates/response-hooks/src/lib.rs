@@ -1,5 +1,5 @@
 use bindings::component::grafbase::types::{
-    CacheStatus, ExecutedHttpRequest, ExecutedOperation, ExecutedSubgraphRequest, SharedContext,
+    CacheStatus, Error, ExecutedHttpRequest, ExecutedOperation, ExecutedSubgraphRequest, SharedContext,
     SubgraphRequestExecutionKind,
 };
 use bindings::exports::component::grafbase::gateway_request;
@@ -80,11 +80,16 @@ impl gateway_request::Guest for Component {
     fn on_gateway_request(
         _: gateway_request::Context,
         headers: gateway_request::Headers,
-    ) -> Result<(), gateway_request::Error> {
+    ) -> Result<(), gateway_request::ErrorResponse> {
         if headers.get("test-value").is_some() {
-            Err(gateway_request::Error {
+            let error = Error {
                 extensions: Vec::new(),
                 message: String::from("test-value header is not allowed"),
+            };
+
+            Err(gateway_request::ErrorResponse {
+                status_code: 400,
+                errors: vec![error],
             })
         } else {
             Ok(())

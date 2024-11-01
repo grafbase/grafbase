@@ -1,7 +1,7 @@
 use access_logs::{AuditInfo, OperationInfo, SubgraphInfo};
 use bindings::{
-    component::grafbase::types::{CacheStatus, Context, Error, SharedContext},
-    exports::component::grafbase::{gateway_request, responses},
+    component::grafbase::types::{CacheStatus, SharedContext},
+    exports::component::grafbase::responses,
 };
 
 mod access_logs;
@@ -9,15 +9,6 @@ mod access_logs;
 mod bindings;
 
 struct Component;
-
-impl gateway_request::Guest for Component {
-    fn on_gateway_request(_: Context, _: gateway_request::Headers) -> Result<(), Error> {
-        Err(Error {
-            message: String::from("Test Error"),
-            extensions: Vec::new(),
-        })
-    }
-}
 
 impl responses::Guest for Component {
     fn on_subgraph_response(_: SharedContext, request: responses::ExecutedSubgraphRequest) -> Vec<u8> {
