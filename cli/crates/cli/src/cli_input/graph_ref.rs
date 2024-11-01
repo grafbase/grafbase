@@ -1,7 +1,7 @@
 use std::{borrow::Cow, fmt, str};
 
 use graph_ref::GraphRef;
-/// Parsed graph reference. A graph reference is a string of the form `account/project@branch`.
+/// Parsed graph reference. A graph reference is a string of the form `account/graph@branch`.
 #[derive(Clone, Debug)]
 pub struct FullGraphRef {
     account: String,
@@ -41,7 +41,7 @@ impl str::FromStr for FullGraphRef {
         }
 
         let (graph, branch) = match rest.split_once('@') {
-            Some((project, branch)) => (project, Some(branch)),
+            Some((graph, branch)) => (graph, Some(branch)),
             None => (rest, None),
         };
 
@@ -119,8 +119,8 @@ mod tests {
     fn full_graph_ref_ok() {
         let cases = [
             "microsoft/windows@main",
-            "test/project@master",
-            "__my__/_____project-with-things@branch-here",
+            "test/graph@master",
+            "__my__/_____graph-with-things@branch-here",
             "1/2@3",
             "accnt/prjct", // no branch
         ];
@@ -137,23 +137,20 @@ mod tests {
             Ok(FullOrPartialGraphRef::Full(_))
         ));
         assert!(matches!(
-            "test/project@master".parse(),
+            "test/graph@master".parse(),
             Ok(FullOrPartialGraphRef::Full(_))
         ));
         assert!(matches!(
-            "__my__/_____project-with-things@branch-here".parse(),
+            "__my__/_____graph-with-things@branch-here".parse(),
             Ok(FullOrPartialGraphRef::Full(_))
         ));
         assert!(matches!("1/2@3".parse(), Ok(FullOrPartialGraphRef::Full(_))));
         assert!(matches!("accnt/prjct".parse(), Ok(FullOrPartialGraphRef::Full(_))));
 
         assert!(matches!("windows@main".parse(), Ok(FullOrPartialGraphRef::Partial(_))));
+        assert!(matches!("graph@master".parse(), Ok(FullOrPartialGraphRef::Partial(_))));
         assert!(matches!(
-            "project@master".parse(),
-            Ok(FullOrPartialGraphRef::Partial(_))
-        ));
-        assert!(matches!(
-            "_____project-with-things@branch-here".parse(),
+            "_____graph-with-things@branch-here".parse(),
             Ok(FullOrPartialGraphRef::Partial(_))
         ));
         assert!(matches!("2@3".parse(), Ok(FullOrPartialGraphRef::Partial(_))));
