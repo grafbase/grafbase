@@ -1,8 +1,9 @@
 use http::HeaderMap;
 
 use crate::{
+    error::guest::ErrorResponse,
     names::{GATEWAY_HOOK_FUNCTION, GATEWAY_REQUEST_INTERFACE},
-    ComponentLoader, ContextMap, GuestResult,
+    ComponentLoader, ContextMap,
 };
 
 use super::{component_instance, ComponentInstance};
@@ -25,8 +26,8 @@ impl GatewayComponentInstance {
         &mut self,
         context: ContextMap,
         headers: HeaderMap,
-    ) -> crate::Result<(ContextMap, HeaderMap)> {
-        let Some(hook) = self.get_hook::<_, (GuestResult<()>,)>(GATEWAY_HOOK_FUNCTION) else {
+    ) -> crate::GatewayResult<(ContextMap, HeaderMap)> {
+        let Some(hook) = self.get_hook::<_, (Result<(), ErrorResponse>,)>(GATEWAY_HOOK_FUNCTION) else {
             return Ok((context, headers));
         };
 

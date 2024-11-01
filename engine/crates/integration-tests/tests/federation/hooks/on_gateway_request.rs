@@ -85,9 +85,10 @@ fn error_is_propagated_back_to_the_user() {
         ) -> Result<HeaderMap, ErrorResponse> {
             let error =
                 PartialGraphqlError::new("impossible error", PartialErrorCode::BadRequest).with_extension("foo", "bar");
+
             Err(ErrorResponse {
                 status: http::StatusCode::BAD_REQUEST,
-                error,
+                errors: vec![error],
             })
         }
     }
@@ -130,9 +131,10 @@ fn error_code_is_propagated_back_to_the_user() {
         ) -> Result<HeaderMap, ErrorResponse> {
             let error = PartialGraphqlError::new("impossible error", PartialErrorCode::BadRequest)
                 .with_extension("code", "IMPOSSIBLE");
+
             Err(ErrorResponse {
                 status: http::StatusCode::BAD_REQUEST,
-                error,
+                errors: vec![error],
             })
         }
     }

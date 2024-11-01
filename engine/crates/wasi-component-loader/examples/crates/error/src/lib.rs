@@ -2,17 +2,22 @@
 mod bindings;
 
 use bindings::{
-    component::grafbase::types::{Context, Error, Headers},
+    component::grafbase::types::{Context, Error, ErrorResponse, Headers},
     exports::component::grafbase::gateway_request,
 };
 
 struct Component;
 
 impl gateway_request::Guest for Component {
-    fn on_gateway_request(_: Context, _: Headers) -> Result<(), Error> {
-        Err(Error {
+    fn on_gateway_request(_: Context, _: Headers) -> Result<(), ErrorResponse> {
+        let error = Error {
             message: String::from("not found"),
             extensions: vec![(String::from("my"), String::from("extension"))],
+        };
+
+        Err(ErrorResponse {
+            status_code: 403,
+            errors: vec![error],
         })
     }
 }

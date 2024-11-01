@@ -538,14 +538,14 @@ pub mod component {
             /// An error response can be used to inject an error to the GraphQL response.
             #[derive(Clone)]
             pub struct Error {
+                /// The error message.
+                pub message: _rt::String,
                 /// Adds the given extensions to the response extensions. The first item in
                 /// the tuple is the extension key, and the second item is the extension value.
                 /// The extension value can be string-encoded JSON, which will be converted as
                 /// JSON in the response. It can also be just a string, which will be converted as
                 /// a JSON string in the response.
                 pub extensions: _rt::Vec<(_rt::String, _rt::String)>,
-                /// The error message.
-                pub message: _rt::String,
             }
             impl ::core::fmt::Debug for Error {
                 fn fmt(
@@ -553,8 +553,8 @@ pub mod component {
                     f: &mut ::core::fmt::Formatter<'_>,
                 ) -> ::core::fmt::Result {
                     f.debug_struct("Error")
-                        .field("extensions", &self.extensions)
                         .field("message", &self.message)
+                        .field("extensions", &self.extensions)
                         .finish()
                 }
             }
@@ -567,6 +567,34 @@ pub mod component {
                 }
             }
             impl std::error::Error for Error {}
+            /// An HTTP error response.
+            #[derive(Clone)]
+            pub struct ErrorResponse {
+                /// HTTP status code. Must be a valid status code. If not, the status code will be 500.
+                pub status_code: u16,
+                /// List of GraphQL errors.
+                pub errors: _rt::Vec<Error>,
+            }
+            impl ::core::fmt::Debug for ErrorResponse {
+                fn fmt(
+                    &self,
+                    f: &mut ::core::fmt::Formatter<'_>,
+                ) -> ::core::fmt::Result {
+                    f.debug_struct("ErrorResponse")
+                        .field("status-code", &self.status_code)
+                        .field("errors", &self.errors)
+                        .finish()
+                }
+            }
+            impl ::core::fmt::Display for ErrorResponse {
+                fn fmt(
+                    &self,
+                    f: &mut ::core::fmt::Formatter<'_>,
+                ) -> ::core::fmt::Result {
+                    write!(f, "{:?}", self)
+                }
+            }
+            impl std::error::Error for ErrorResponse {}
             impl Context {
                 #[allow(unused_unsafe, clippy::all)]
                 /// Fetches a context value with the given name, if existing.
@@ -1018,7 +1046,7 @@ pub mod exports {
                 static __FORCE_SECTION_REF: fn() = super::super::super::super::__link_custom_section_describing_imports;
                 use super::super::super::super::_rt;
                 pub type Headers = super::super::super::super::component::grafbase::types::Headers;
-                pub type Error = super::super::super::super::component::grafbase::types::Error;
+                pub type ErrorResponse = super::super::super::super::component::grafbase::types::ErrorResponse;
                 pub type Context = super::super::super::super::component::grafbase::types::Context;
                 #[doc(hidden)]
                 #[allow(non_snake_case)]
@@ -1042,51 +1070,79 @@ pub mod exports {
                         }
                         Err(e) => {
                             *ptr1.add(0).cast::<u8>() = (1i32) as u8;
-                            let super::super::super::super::component::grafbase::types::Error {
-                                extensions: extensions2,
-                                message: message2,
+                            let super::super::super::super::component::grafbase::types::ErrorResponse {
+                                status_code: status_code2,
+                                errors: errors2,
                             } = e;
-                            let vec6 = extensions2;
-                            let len6 = vec6.len();
-                            let layout6 = _rt::alloc::Layout::from_size_align_unchecked(
-                                vec6.len() * 16,
+                            *ptr1.add(4).cast::<u16>() = (_rt::as_i32(status_code2))
+                                as u16;
+                            let vec9 = errors2;
+                            let len9 = vec9.len();
+                            let layout9 = _rt::alloc::Layout::from_size_align_unchecked(
+                                vec9.len() * 16,
                                 4,
                             );
-                            let result6 = if layout6.size() != 0 {
-                                let ptr = _rt::alloc::alloc(layout6).cast::<u8>();
+                            let result9 = if layout9.size() != 0 {
+                                let ptr = _rt::alloc::alloc(layout9).cast::<u8>();
                                 if ptr.is_null() {
-                                    _rt::alloc::handle_alloc_error(layout6);
+                                    _rt::alloc::handle_alloc_error(layout9);
                                 }
                                 ptr
                             } else {
                                 { ::core::ptr::null_mut() }
                             };
-                            for (i, e) in vec6.into_iter().enumerate() {
-                                let base = result6.add(i * 16);
+                            for (i, e) in vec9.into_iter().enumerate() {
+                                let base = result9.add(i * 16);
                                 {
-                                    let (t3_0, t3_1) = e;
-                                    let vec4 = (t3_0.into_bytes()).into_boxed_slice();
+                                    let super::super::super::super::component::grafbase::types::Error {
+                                        message: message3,
+                                        extensions: extensions3,
+                                    } = e;
+                                    let vec4 = (message3.into_bytes()).into_boxed_slice();
                                     let ptr4 = vec4.as_ptr().cast::<u8>();
                                     let len4 = vec4.len();
                                     ::core::mem::forget(vec4);
                                     *base.add(4).cast::<usize>() = len4;
                                     *base.add(0).cast::<*mut u8>() = ptr4.cast_mut();
-                                    let vec5 = (t3_1.into_bytes()).into_boxed_slice();
-                                    let ptr5 = vec5.as_ptr().cast::<u8>();
-                                    let len5 = vec5.len();
-                                    ::core::mem::forget(vec5);
-                                    *base.add(12).cast::<usize>() = len5;
-                                    *base.add(8).cast::<*mut u8>() = ptr5.cast_mut();
+                                    let vec8 = extensions3;
+                                    let len8 = vec8.len();
+                                    let layout8 = _rt::alloc::Layout::from_size_align_unchecked(
+                                        vec8.len() * 16,
+                                        4,
+                                    );
+                                    let result8 = if layout8.size() != 0 {
+                                        let ptr = _rt::alloc::alloc(layout8).cast::<u8>();
+                                        if ptr.is_null() {
+                                            _rt::alloc::handle_alloc_error(layout8);
+                                        }
+                                        ptr
+                                    } else {
+                                        { ::core::ptr::null_mut() }
+                                    };
+                                    for (i, e) in vec8.into_iter().enumerate() {
+                                        let base = result8.add(i * 16);
+                                        {
+                                            let (t5_0, t5_1) = e;
+                                            let vec6 = (t5_0.into_bytes()).into_boxed_slice();
+                                            let ptr6 = vec6.as_ptr().cast::<u8>();
+                                            let len6 = vec6.len();
+                                            ::core::mem::forget(vec6);
+                                            *base.add(4).cast::<usize>() = len6;
+                                            *base.add(0).cast::<*mut u8>() = ptr6.cast_mut();
+                                            let vec7 = (t5_1.into_bytes()).into_boxed_slice();
+                                            let ptr7 = vec7.as_ptr().cast::<u8>();
+                                            let len7 = vec7.len();
+                                            ::core::mem::forget(vec7);
+                                            *base.add(12).cast::<usize>() = len7;
+                                            *base.add(8).cast::<*mut u8>() = ptr7.cast_mut();
+                                        }
+                                    }
+                                    *base.add(12).cast::<usize>() = len8;
+                                    *base.add(8).cast::<*mut u8>() = result8;
                                 }
                             }
-                            *ptr1.add(8).cast::<usize>() = len6;
-                            *ptr1.add(4).cast::<*mut u8>() = result6;
-                            let vec7 = (message2.into_bytes()).into_boxed_slice();
-                            let ptr7 = vec7.as_ptr().cast::<u8>();
-                            let len7 = vec7.len();
-                            ::core::mem::forget(vec7);
-                            *ptr1.add(16).cast::<usize>() = len7;
-                            *ptr1.add(12).cast::<*mut u8>() = ptr7.cast_mut();
+                            *ptr1.add(12).cast::<usize>() = len9;
+                            *ptr1.add(8).cast::<*mut u8>() = result9;
                         }
                     };
                     ptr1
@@ -1098,25 +1154,35 @@ pub mod exports {
                     match l0 {
                         0 => {}
                         _ => {
-                            let l1 = *arg0.add(4).cast::<*mut u8>();
-                            let l2 = *arg0.add(8).cast::<usize>();
-                            let base7 = l1;
-                            let len7 = l2;
-                            for i in 0..len7 {
-                                let base = base7.add(i * 16);
+                            let l1 = *arg0.add(8).cast::<*mut u8>();
+                            let l2 = *arg0.add(12).cast::<usize>();
+                            let base12 = l1;
+                            let len12 = l2;
+                            for i in 0..len12 {
+                                let base = base12.add(i * 16);
                                 {
                                     let l3 = *base.add(0).cast::<*mut u8>();
                                     let l4 = *base.add(4).cast::<usize>();
                                     _rt::cabi_dealloc(l3, l4, 1);
                                     let l5 = *base.add(8).cast::<*mut u8>();
                                     let l6 = *base.add(12).cast::<usize>();
-                                    _rt::cabi_dealloc(l5, l6, 1);
+                                    let base11 = l5;
+                                    let len11 = l6;
+                                    for i in 0..len11 {
+                                        let base = base11.add(i * 16);
+                                        {
+                                            let l7 = *base.add(0).cast::<*mut u8>();
+                                            let l8 = *base.add(4).cast::<usize>();
+                                            _rt::cabi_dealloc(l7, l8, 1);
+                                            let l9 = *base.add(8).cast::<*mut u8>();
+                                            let l10 = *base.add(12).cast::<usize>();
+                                            _rt::cabi_dealloc(l9, l10, 1);
+                                        }
+                                    }
+                                    _rt::cabi_dealloc(base11, len11 * 16, 4);
                                 }
                             }
-                            _rt::cabi_dealloc(base7, len7 * 16, 4);
-                            let l8 = *arg0.add(12).cast::<*mut u8>();
-                            let l9 = *arg0.add(16).cast::<usize>();
-                            _rt::cabi_dealloc(l8, l9, 1);
+                            _rt::cabi_dealloc(base12, len12 * 16, 4);
                         }
                     }
                 }
@@ -1130,7 +1196,7 @@ pub mod exports {
                     fn on_gateway_request(
                         context: Context,
                         headers: Headers,
-                    ) -> Result<(), Error>;
+                    ) -> Result<(), ErrorResponse>;
                 }
                 #[doc(hidden)]
                 macro_rules! __export_component_grafbase_gateway_request_cabi {
@@ -1150,9 +1216,9 @@ pub mod exports {
                 #[doc(hidden)]
                 pub(crate) use __export_component_grafbase_gateway_request_cabi;
                 #[repr(align(4))]
-                struct _RetArea([::core::mem::MaybeUninit<u8>; 20]);
+                struct _RetArea([::core::mem::MaybeUninit<u8>; 16]);
                 static mut _RET_AREA: _RetArea = _RetArea(
-                    [::core::mem::MaybeUninit::uninit(); 20],
+                    [::core::mem::MaybeUninit::uninit(); 16],
                 );
             }
             #[allow(dead_code, clippy::all)]
@@ -1202,50 +1268,50 @@ pub mod exports {
                         Err(e) => {
                             *ptr4.add(0).cast::<u8>() = (1i32) as u8;
                             let super::super::super::super::component::grafbase::types::Error {
-                                extensions: extensions5,
                                 message: message5,
+                                extensions: extensions5,
                             } = e;
-                            let vec9 = extensions5;
-                            let len9 = vec9.len();
-                            let layout9 = _rt::alloc::Layout::from_size_align_unchecked(
-                                vec9.len() * 16,
+                            let vec6 = (message5.into_bytes()).into_boxed_slice();
+                            let ptr6 = vec6.as_ptr().cast::<u8>();
+                            let len6 = vec6.len();
+                            ::core::mem::forget(vec6);
+                            *ptr4.add(8).cast::<usize>() = len6;
+                            *ptr4.add(4).cast::<*mut u8>() = ptr6.cast_mut();
+                            let vec10 = extensions5;
+                            let len10 = vec10.len();
+                            let layout10 = _rt::alloc::Layout::from_size_align_unchecked(
+                                vec10.len() * 16,
                                 4,
                             );
-                            let result9 = if layout9.size() != 0 {
-                                let ptr = _rt::alloc::alloc(layout9).cast::<u8>();
+                            let result10 = if layout10.size() != 0 {
+                                let ptr = _rt::alloc::alloc(layout10).cast::<u8>();
                                 if ptr.is_null() {
-                                    _rt::alloc::handle_alloc_error(layout9);
+                                    _rt::alloc::handle_alloc_error(layout10);
                                 }
                                 ptr
                             } else {
                                 { ::core::ptr::null_mut() }
                             };
-                            for (i, e) in vec9.into_iter().enumerate() {
-                                let base = result9.add(i * 16);
+                            for (i, e) in vec10.into_iter().enumerate() {
+                                let base = result10.add(i * 16);
                                 {
-                                    let (t6_0, t6_1) = e;
-                                    let vec7 = (t6_0.into_bytes()).into_boxed_slice();
-                                    let ptr7 = vec7.as_ptr().cast::<u8>();
-                                    let len7 = vec7.len();
-                                    ::core::mem::forget(vec7);
-                                    *base.add(4).cast::<usize>() = len7;
-                                    *base.add(0).cast::<*mut u8>() = ptr7.cast_mut();
-                                    let vec8 = (t6_1.into_bytes()).into_boxed_slice();
+                                    let (t7_0, t7_1) = e;
+                                    let vec8 = (t7_0.into_bytes()).into_boxed_slice();
                                     let ptr8 = vec8.as_ptr().cast::<u8>();
                                     let len8 = vec8.len();
                                     ::core::mem::forget(vec8);
-                                    *base.add(12).cast::<usize>() = len8;
-                                    *base.add(8).cast::<*mut u8>() = ptr8.cast_mut();
+                                    *base.add(4).cast::<usize>() = len8;
+                                    *base.add(0).cast::<*mut u8>() = ptr8.cast_mut();
+                                    let vec9 = (t7_1.into_bytes()).into_boxed_slice();
+                                    let ptr9 = vec9.as_ptr().cast::<u8>();
+                                    let len9 = vec9.len();
+                                    ::core::mem::forget(vec9);
+                                    *base.add(12).cast::<usize>() = len9;
+                                    *base.add(8).cast::<*mut u8>() = ptr9.cast_mut();
                                 }
                             }
-                            *ptr4.add(8).cast::<usize>() = len9;
-                            *ptr4.add(4).cast::<*mut u8>() = result9;
-                            let vec10 = (message5.into_bytes()).into_boxed_slice();
-                            let ptr10 = vec10.as_ptr().cast::<u8>();
-                            let len10 = vec10.len();
-                            ::core::mem::forget(vec10);
                             *ptr4.add(16).cast::<usize>() = len10;
-                            *ptr4.add(12).cast::<*mut u8>() = ptr10.cast_mut();
+                            *ptr4.add(12).cast::<*mut u8>() = result10;
                         }
                     };
                     ptr4
@@ -1261,23 +1327,23 @@ pub mod exports {
                         _ => {
                             let l1 = *arg0.add(4).cast::<*mut u8>();
                             let l2 = *arg0.add(8).cast::<usize>();
-                            let base7 = l1;
-                            let len7 = l2;
-                            for i in 0..len7 {
-                                let base = base7.add(i * 16);
+                            _rt::cabi_dealloc(l1, l2, 1);
+                            let l3 = *arg0.add(12).cast::<*mut u8>();
+                            let l4 = *arg0.add(16).cast::<usize>();
+                            let base9 = l3;
+                            let len9 = l4;
+                            for i in 0..len9 {
+                                let base = base9.add(i * 16);
                                 {
-                                    let l3 = *base.add(0).cast::<*mut u8>();
-                                    let l4 = *base.add(4).cast::<usize>();
-                                    _rt::cabi_dealloc(l3, l4, 1);
-                                    let l5 = *base.add(8).cast::<*mut u8>();
-                                    let l6 = *base.add(12).cast::<usize>();
+                                    let l5 = *base.add(0).cast::<*mut u8>();
+                                    let l6 = *base.add(4).cast::<usize>();
                                     _rt::cabi_dealloc(l5, l6, 1);
+                                    let l7 = *base.add(8).cast::<*mut u8>();
+                                    let l8 = *base.add(12).cast::<usize>();
+                                    _rt::cabi_dealloc(l7, l8, 1);
                                 }
                             }
-                            _rt::cabi_dealloc(base7, len7 * 16, 4);
-                            let l8 = *arg0.add(12).cast::<*mut u8>();
-                            let l9 = *arg0.add(16).cast::<usize>();
-                            _rt::cabi_dealloc(l8, l9, 1);
+                            _rt::cabi_dealloc(base9, len9 * 16, 4);
                         }
                     }
                 }
@@ -1367,50 +1433,50 @@ pub mod exports {
                         Err(e) => {
                             *ptr5.add(0).cast::<u8>() = (1i32) as u8;
                             let super::super::super::super::component::grafbase::types::Error {
-                                extensions: extensions6,
                                 message: message6,
+                                extensions: extensions6,
                             } = e;
-                            let vec10 = extensions6;
-                            let len10 = vec10.len();
-                            let layout10 = _rt::alloc::Layout::from_size_align_unchecked(
-                                vec10.len() * 16,
+                            let vec7 = (message6.into_bytes()).into_boxed_slice();
+                            let ptr7 = vec7.as_ptr().cast::<u8>();
+                            let len7 = vec7.len();
+                            ::core::mem::forget(vec7);
+                            *ptr5.add(8).cast::<usize>() = len7;
+                            *ptr5.add(4).cast::<*mut u8>() = ptr7.cast_mut();
+                            let vec11 = extensions6;
+                            let len11 = vec11.len();
+                            let layout11 = _rt::alloc::Layout::from_size_align_unchecked(
+                                vec11.len() * 16,
                                 4,
                             );
-                            let result10 = if layout10.size() != 0 {
-                                let ptr = _rt::alloc::alloc(layout10).cast::<u8>();
+                            let result11 = if layout11.size() != 0 {
+                                let ptr = _rt::alloc::alloc(layout11).cast::<u8>();
                                 if ptr.is_null() {
-                                    _rt::alloc::handle_alloc_error(layout10);
+                                    _rt::alloc::handle_alloc_error(layout11);
                                 }
                                 ptr
                             } else {
                                 { ::core::ptr::null_mut() }
                             };
-                            for (i, e) in vec10.into_iter().enumerate() {
-                                let base = result10.add(i * 16);
+                            for (i, e) in vec11.into_iter().enumerate() {
+                                let base = result11.add(i * 16);
                                 {
-                                    let (t7_0, t7_1) = e;
-                                    let vec8 = (t7_0.into_bytes()).into_boxed_slice();
-                                    let ptr8 = vec8.as_ptr().cast::<u8>();
-                                    let len8 = vec8.len();
-                                    ::core::mem::forget(vec8);
-                                    *base.add(4).cast::<usize>() = len8;
-                                    *base.add(0).cast::<*mut u8>() = ptr8.cast_mut();
-                                    let vec9 = (t7_1.into_bytes()).into_boxed_slice();
+                                    let (t8_0, t8_1) = e;
+                                    let vec9 = (t8_0.into_bytes()).into_boxed_slice();
                                     let ptr9 = vec9.as_ptr().cast::<u8>();
                                     let len9 = vec9.len();
                                     ::core::mem::forget(vec9);
-                                    *base.add(12).cast::<usize>() = len9;
-                                    *base.add(8).cast::<*mut u8>() = ptr9.cast_mut();
+                                    *base.add(4).cast::<usize>() = len9;
+                                    *base.add(0).cast::<*mut u8>() = ptr9.cast_mut();
+                                    let vec10 = (t8_1.into_bytes()).into_boxed_slice();
+                                    let ptr10 = vec10.as_ptr().cast::<u8>();
+                                    let len10 = vec10.len();
+                                    ::core::mem::forget(vec10);
+                                    *base.add(12).cast::<usize>() = len10;
+                                    *base.add(8).cast::<*mut u8>() = ptr10.cast_mut();
                                 }
                             }
-                            *ptr5.add(8).cast::<usize>() = len10;
-                            *ptr5.add(4).cast::<*mut u8>() = result10;
-                            let vec11 = (message6.into_bytes()).into_boxed_slice();
-                            let ptr11 = vec11.as_ptr().cast::<u8>();
-                            let len11 = vec11.len();
-                            ::core::mem::forget(vec11);
                             *ptr5.add(16).cast::<usize>() = len11;
-                            *ptr5.add(12).cast::<*mut u8>() = ptr11.cast_mut();
+                            *ptr5.add(12).cast::<*mut u8>() = result11;
                         }
                     };
                     ptr5
@@ -1426,23 +1492,23 @@ pub mod exports {
                         _ => {
                             let l1 = *arg0.add(4).cast::<*mut u8>();
                             let l2 = *arg0.add(8).cast::<usize>();
-                            let base7 = l1;
-                            let len7 = l2;
-                            for i in 0..len7 {
-                                let base = base7.add(i * 16);
+                            _rt::cabi_dealloc(l1, l2, 1);
+                            let l3 = *arg0.add(12).cast::<*mut u8>();
+                            let l4 = *arg0.add(16).cast::<usize>();
+                            let base9 = l3;
+                            let len9 = l4;
+                            for i in 0..len9 {
+                                let base = base9.add(i * 16);
                                 {
-                                    let l3 = *base.add(0).cast::<*mut u8>();
-                                    let l4 = *base.add(4).cast::<usize>();
-                                    _rt::cabi_dealloc(l3, l4, 1);
-                                    let l5 = *base.add(8).cast::<*mut u8>();
-                                    let l6 = *base.add(12).cast::<usize>();
+                                    let l5 = *base.add(0).cast::<*mut u8>();
+                                    let l6 = *base.add(4).cast::<usize>();
                                     _rt::cabi_dealloc(l5, l6, 1);
+                                    let l7 = *base.add(8).cast::<*mut u8>();
+                                    let l8 = *base.add(12).cast::<usize>();
+                                    _rt::cabi_dealloc(l7, l8, 1);
                                 }
                             }
-                            _rt::cabi_dealloc(base7, len7 * 16, 4);
-                            let l8 = *arg0.add(12).cast::<*mut u8>();
-                            let l9 = *arg0.add(16).cast::<usize>();
-                            _rt::cabi_dealloc(l8, l9, 1);
+                            _rt::cabi_dealloc(base9, len9 * 16, 4);
                         }
                     }
                 }
@@ -1477,50 +1543,50 @@ pub mod exports {
                         Err(e) => {
                             *ptr3.add(0).cast::<u8>() = (1i32) as u8;
                             let super::super::super::super::component::grafbase::types::Error {
-                                extensions: extensions4,
                                 message: message4,
+                                extensions: extensions4,
                             } = e;
-                            let vec8 = extensions4;
-                            let len8 = vec8.len();
-                            let layout8 = _rt::alloc::Layout::from_size_align_unchecked(
-                                vec8.len() * 16,
+                            let vec5 = (message4.into_bytes()).into_boxed_slice();
+                            let ptr5 = vec5.as_ptr().cast::<u8>();
+                            let len5 = vec5.len();
+                            ::core::mem::forget(vec5);
+                            *ptr3.add(8).cast::<usize>() = len5;
+                            *ptr3.add(4).cast::<*mut u8>() = ptr5.cast_mut();
+                            let vec9 = extensions4;
+                            let len9 = vec9.len();
+                            let layout9 = _rt::alloc::Layout::from_size_align_unchecked(
+                                vec9.len() * 16,
                                 4,
                             );
-                            let result8 = if layout8.size() != 0 {
-                                let ptr = _rt::alloc::alloc(layout8).cast::<u8>();
+                            let result9 = if layout9.size() != 0 {
+                                let ptr = _rt::alloc::alloc(layout9).cast::<u8>();
                                 if ptr.is_null() {
-                                    _rt::alloc::handle_alloc_error(layout8);
+                                    _rt::alloc::handle_alloc_error(layout9);
                                 }
                                 ptr
                             } else {
                                 { ::core::ptr::null_mut() }
                             };
-                            for (i, e) in vec8.into_iter().enumerate() {
-                                let base = result8.add(i * 16);
+                            for (i, e) in vec9.into_iter().enumerate() {
+                                let base = result9.add(i * 16);
                                 {
-                                    let (t5_0, t5_1) = e;
-                                    let vec6 = (t5_0.into_bytes()).into_boxed_slice();
-                                    let ptr6 = vec6.as_ptr().cast::<u8>();
-                                    let len6 = vec6.len();
-                                    ::core::mem::forget(vec6);
-                                    *base.add(4).cast::<usize>() = len6;
-                                    *base.add(0).cast::<*mut u8>() = ptr6.cast_mut();
-                                    let vec7 = (t5_1.into_bytes()).into_boxed_slice();
+                                    let (t6_0, t6_1) = e;
+                                    let vec7 = (t6_0.into_bytes()).into_boxed_slice();
                                     let ptr7 = vec7.as_ptr().cast::<u8>();
                                     let len7 = vec7.len();
                                     ::core::mem::forget(vec7);
-                                    *base.add(12).cast::<usize>() = len7;
-                                    *base.add(8).cast::<*mut u8>() = ptr7.cast_mut();
+                                    *base.add(4).cast::<usize>() = len7;
+                                    *base.add(0).cast::<*mut u8>() = ptr7.cast_mut();
+                                    let vec8 = (t6_1.into_bytes()).into_boxed_slice();
+                                    let ptr8 = vec8.as_ptr().cast::<u8>();
+                                    let len8 = vec8.len();
+                                    ::core::mem::forget(vec8);
+                                    *base.add(12).cast::<usize>() = len8;
+                                    *base.add(8).cast::<*mut u8>() = ptr8.cast_mut();
                                 }
                             }
-                            *ptr3.add(8).cast::<usize>() = len8;
-                            *ptr3.add(4).cast::<*mut u8>() = result8;
-                            let vec9 = (message4.into_bytes()).into_boxed_slice();
-                            let ptr9 = vec9.as_ptr().cast::<u8>();
-                            let len9 = vec9.len();
-                            ::core::mem::forget(vec9);
                             *ptr3.add(16).cast::<usize>() = len9;
-                            *ptr3.add(12).cast::<*mut u8>() = ptr9.cast_mut();
+                            *ptr3.add(12).cast::<*mut u8>() = result9;
                         }
                     };
                     ptr3
@@ -1536,23 +1602,23 @@ pub mod exports {
                         _ => {
                             let l1 = *arg0.add(4).cast::<*mut u8>();
                             let l2 = *arg0.add(8).cast::<usize>();
-                            let base7 = l1;
-                            let len7 = l2;
-                            for i in 0..len7 {
-                                let base = base7.add(i * 16);
+                            _rt::cabi_dealloc(l1, l2, 1);
+                            let l3 = *arg0.add(12).cast::<*mut u8>();
+                            let l4 = *arg0.add(16).cast::<usize>();
+                            let base9 = l3;
+                            let len9 = l4;
+                            for i in 0..len9 {
+                                let base = base9.add(i * 16);
                                 {
-                                    let l3 = *base.add(0).cast::<*mut u8>();
-                                    let l4 = *base.add(4).cast::<usize>();
-                                    _rt::cabi_dealloc(l3, l4, 1);
-                                    let l5 = *base.add(8).cast::<*mut u8>();
-                                    let l6 = *base.add(12).cast::<usize>();
+                                    let l5 = *base.add(0).cast::<*mut u8>();
+                                    let l6 = *base.add(4).cast::<usize>();
                                     _rt::cabi_dealloc(l5, l6, 1);
+                                    let l7 = *base.add(8).cast::<*mut u8>();
+                                    let l8 = *base.add(12).cast::<usize>();
+                                    _rt::cabi_dealloc(l7, l8, 1);
                                 }
                             }
-                            _rt::cabi_dealloc(base7, len7 * 16, 4);
-                            let l8 = *arg0.add(12).cast::<*mut u8>();
-                            let l9 = *arg0.add(16).cast::<usize>();
-                            _rt::cabi_dealloc(l8, l9, 1);
+                            _rt::cabi_dealloc(base9, len9 * 16, 4);
                         }
                     }
                 }
@@ -1630,50 +1696,50 @@ pub mod exports {
                                 Err(e) => {
                                     *base.add(0).cast::<u8>() = (1i32) as u8;
                                     let super::super::super::super::component::grafbase::types::Error {
-                                        extensions: extensions9,
                                         message: message9,
+                                        extensions: extensions9,
                                     } = e;
-                                    let vec13 = extensions9;
-                                    let len13 = vec13.len();
-                                    let layout13 = _rt::alloc::Layout::from_size_align_unchecked(
-                                        vec13.len() * 16,
+                                    let vec10 = (message9.into_bytes()).into_boxed_slice();
+                                    let ptr10 = vec10.as_ptr().cast::<u8>();
+                                    let len10 = vec10.len();
+                                    ::core::mem::forget(vec10);
+                                    *base.add(8).cast::<usize>() = len10;
+                                    *base.add(4).cast::<*mut u8>() = ptr10.cast_mut();
+                                    let vec14 = extensions9;
+                                    let len14 = vec14.len();
+                                    let layout14 = _rt::alloc::Layout::from_size_align_unchecked(
+                                        vec14.len() * 16,
                                         4,
                                     );
-                                    let result13 = if layout13.size() != 0 {
-                                        let ptr = _rt::alloc::alloc(layout13).cast::<u8>();
+                                    let result14 = if layout14.size() != 0 {
+                                        let ptr = _rt::alloc::alloc(layout14).cast::<u8>();
                                         if ptr.is_null() {
-                                            _rt::alloc::handle_alloc_error(layout13);
+                                            _rt::alloc::handle_alloc_error(layout14);
                                         }
                                         ptr
                                     } else {
                                         { ::core::ptr::null_mut() }
                                     };
-                                    for (i, e) in vec13.into_iter().enumerate() {
-                                        let base = result13.add(i * 16);
+                                    for (i, e) in vec14.into_iter().enumerate() {
+                                        let base = result14.add(i * 16);
                                         {
-                                            let (t10_0, t10_1) = e;
-                                            let vec11 = (t10_0.into_bytes()).into_boxed_slice();
-                                            let ptr11 = vec11.as_ptr().cast::<u8>();
-                                            let len11 = vec11.len();
-                                            ::core::mem::forget(vec11);
-                                            *base.add(4).cast::<usize>() = len11;
-                                            *base.add(0).cast::<*mut u8>() = ptr11.cast_mut();
-                                            let vec12 = (t10_1.into_bytes()).into_boxed_slice();
+                                            let (t11_0, t11_1) = e;
+                                            let vec12 = (t11_0.into_bytes()).into_boxed_slice();
                                             let ptr12 = vec12.as_ptr().cast::<u8>();
                                             let len12 = vec12.len();
                                             ::core::mem::forget(vec12);
-                                            *base.add(12).cast::<usize>() = len12;
-                                            *base.add(8).cast::<*mut u8>() = ptr12.cast_mut();
+                                            *base.add(4).cast::<usize>() = len12;
+                                            *base.add(0).cast::<*mut u8>() = ptr12.cast_mut();
+                                            let vec13 = (t11_1.into_bytes()).into_boxed_slice();
+                                            let ptr13 = vec13.as_ptr().cast::<u8>();
+                                            let len13 = vec13.len();
+                                            ::core::mem::forget(vec13);
+                                            *base.add(12).cast::<usize>() = len13;
+                                            *base.add(8).cast::<*mut u8>() = ptr13.cast_mut();
                                         }
                                     }
-                                    *base.add(8).cast::<usize>() = len13;
-                                    *base.add(4).cast::<*mut u8>() = result13;
-                                    let vec14 = (message9.into_bytes()).into_boxed_slice();
-                                    let ptr14 = vec14.as_ptr().cast::<u8>();
-                                    let len14 = vec14.len();
-                                    ::core::mem::forget(vec14);
                                     *base.add(16).cast::<usize>() = len14;
-                                    *base.add(12).cast::<*mut u8>() = ptr14.cast_mut();
+                                    *base.add(12).cast::<*mut u8>() = result14;
                                 }
                             };
                         }
@@ -1700,23 +1766,23 @@ pub mod exports {
                                 _ => {
                                     let l3 = *base.add(4).cast::<*mut u8>();
                                     let l4 = *base.add(8).cast::<usize>();
-                                    let base9 = l3;
-                                    let len9 = l4;
-                                    for i in 0..len9 {
-                                        let base = base9.add(i * 16);
+                                    _rt::cabi_dealloc(l3, l4, 1);
+                                    let l5 = *base.add(12).cast::<*mut u8>();
+                                    let l6 = *base.add(16).cast::<usize>();
+                                    let base11 = l5;
+                                    let len11 = l6;
+                                    for i in 0..len11 {
+                                        let base = base11.add(i * 16);
                                         {
-                                            let l5 = *base.add(0).cast::<*mut u8>();
-                                            let l6 = *base.add(4).cast::<usize>();
-                                            _rt::cabi_dealloc(l5, l6, 1);
-                                            let l7 = *base.add(8).cast::<*mut u8>();
-                                            let l8 = *base.add(12).cast::<usize>();
+                                            let l7 = *base.add(0).cast::<*mut u8>();
+                                            let l8 = *base.add(4).cast::<usize>();
                                             _rt::cabi_dealloc(l7, l8, 1);
+                                            let l9 = *base.add(8).cast::<*mut u8>();
+                                            let l10 = *base.add(12).cast::<usize>();
+                                            _rt::cabi_dealloc(l9, l10, 1);
                                         }
                                     }
-                                    _rt::cabi_dealloc(base9, len9 * 16, 4);
-                                    let l10 = *base.add(12).cast::<*mut u8>();
-                                    let l11 = *base.add(16).cast::<usize>();
-                                    _rt::cabi_dealloc(l10, l11, 1);
+                                    _rt::cabi_dealloc(base11, len11 * 16, 4);
                                 }
                             }
                         }
@@ -1795,50 +1861,50 @@ pub mod exports {
                                 Err(e) => {
                                     *base.add(0).cast::<u8>() = (1i32) as u8;
                                     let super::super::super::super::component::grafbase::types::Error {
-                                        extensions: extensions9,
                                         message: message9,
+                                        extensions: extensions9,
                                     } = e;
-                                    let vec13 = extensions9;
-                                    let len13 = vec13.len();
-                                    let layout13 = _rt::alloc::Layout::from_size_align_unchecked(
-                                        vec13.len() * 16,
+                                    let vec10 = (message9.into_bytes()).into_boxed_slice();
+                                    let ptr10 = vec10.as_ptr().cast::<u8>();
+                                    let len10 = vec10.len();
+                                    ::core::mem::forget(vec10);
+                                    *base.add(8).cast::<usize>() = len10;
+                                    *base.add(4).cast::<*mut u8>() = ptr10.cast_mut();
+                                    let vec14 = extensions9;
+                                    let len14 = vec14.len();
+                                    let layout14 = _rt::alloc::Layout::from_size_align_unchecked(
+                                        vec14.len() * 16,
                                         4,
                                     );
-                                    let result13 = if layout13.size() != 0 {
-                                        let ptr = _rt::alloc::alloc(layout13).cast::<u8>();
+                                    let result14 = if layout14.size() != 0 {
+                                        let ptr = _rt::alloc::alloc(layout14).cast::<u8>();
                                         if ptr.is_null() {
-                                            _rt::alloc::handle_alloc_error(layout13);
+                                            _rt::alloc::handle_alloc_error(layout14);
                                         }
                                         ptr
                                     } else {
                                         { ::core::ptr::null_mut() }
                                     };
-                                    for (i, e) in vec13.into_iter().enumerate() {
-                                        let base = result13.add(i * 16);
+                                    for (i, e) in vec14.into_iter().enumerate() {
+                                        let base = result14.add(i * 16);
                                         {
-                                            let (t10_0, t10_1) = e;
-                                            let vec11 = (t10_0.into_bytes()).into_boxed_slice();
-                                            let ptr11 = vec11.as_ptr().cast::<u8>();
-                                            let len11 = vec11.len();
-                                            ::core::mem::forget(vec11);
-                                            *base.add(4).cast::<usize>() = len11;
-                                            *base.add(0).cast::<*mut u8>() = ptr11.cast_mut();
-                                            let vec12 = (t10_1.into_bytes()).into_boxed_slice();
+                                            let (t11_0, t11_1) = e;
+                                            let vec12 = (t11_0.into_bytes()).into_boxed_slice();
                                             let ptr12 = vec12.as_ptr().cast::<u8>();
                                             let len12 = vec12.len();
                                             ::core::mem::forget(vec12);
-                                            *base.add(12).cast::<usize>() = len12;
-                                            *base.add(8).cast::<*mut u8>() = ptr12.cast_mut();
+                                            *base.add(4).cast::<usize>() = len12;
+                                            *base.add(0).cast::<*mut u8>() = ptr12.cast_mut();
+                                            let vec13 = (t11_1.into_bytes()).into_boxed_slice();
+                                            let ptr13 = vec13.as_ptr().cast::<u8>();
+                                            let len13 = vec13.len();
+                                            ::core::mem::forget(vec13);
+                                            *base.add(12).cast::<usize>() = len13;
+                                            *base.add(8).cast::<*mut u8>() = ptr13.cast_mut();
                                         }
                                     }
-                                    *base.add(8).cast::<usize>() = len13;
-                                    *base.add(4).cast::<*mut u8>() = result13;
-                                    let vec14 = (message9.into_bytes()).into_boxed_slice();
-                                    let ptr14 = vec14.as_ptr().cast::<u8>();
-                                    let len14 = vec14.len();
-                                    ::core::mem::forget(vec14);
                                     *base.add(16).cast::<usize>() = len14;
-                                    *base.add(12).cast::<*mut u8>() = ptr14.cast_mut();
+                                    *base.add(12).cast::<*mut u8>() = result14;
                                 }
                             };
                         }
@@ -1865,23 +1931,23 @@ pub mod exports {
                                 _ => {
                                     let l3 = *base.add(4).cast::<*mut u8>();
                                     let l4 = *base.add(8).cast::<usize>();
-                                    let base9 = l3;
-                                    let len9 = l4;
-                                    for i in 0..len9 {
-                                        let base = base9.add(i * 16);
+                                    _rt::cabi_dealloc(l3, l4, 1);
+                                    let l5 = *base.add(12).cast::<*mut u8>();
+                                    let l6 = *base.add(16).cast::<usize>();
+                                    let base11 = l5;
+                                    let len11 = l6;
+                                    for i in 0..len11 {
+                                        let base = base11.add(i * 16);
                                         {
-                                            let l5 = *base.add(0).cast::<*mut u8>();
-                                            let l6 = *base.add(4).cast::<usize>();
-                                            _rt::cabi_dealloc(l5, l6, 1);
-                                            let l7 = *base.add(8).cast::<*mut u8>();
-                                            let l8 = *base.add(12).cast::<usize>();
+                                            let l7 = *base.add(0).cast::<*mut u8>();
+                                            let l8 = *base.add(4).cast::<usize>();
                                             _rt::cabi_dealloc(l7, l8, 1);
+                                            let l9 = *base.add(8).cast::<*mut u8>();
+                                            let l10 = *base.add(12).cast::<usize>();
+                                            _rt::cabi_dealloc(l9, l10, 1);
                                         }
                                     }
-                                    _rt::cabi_dealloc(base9, len9 * 16, 4);
-                                    let l10 = *base.add(12).cast::<*mut u8>();
-                                    let l11 = *base.add(16).cast::<usize>();
-                                    _rt::cabi_dealloc(l10, l11, 1);
+                                    _rt::cabi_dealloc(base11, len11 * 16, 4);
                                 }
                             }
                         }
@@ -1981,50 +2047,50 @@ pub mod exports {
                                 Err(e) => {
                                     *base.add(0).cast::<u8>() = (1i32) as u8;
                                     let super::super::super::super::component::grafbase::types::Error {
-                                        extensions: extensions15,
                                         message: message15,
+                                        extensions: extensions15,
                                     } = e;
-                                    let vec19 = extensions15;
-                                    let len19 = vec19.len();
-                                    let layout19 = _rt::alloc::Layout::from_size_align_unchecked(
-                                        vec19.len() * 16,
+                                    let vec16 = (message15.into_bytes()).into_boxed_slice();
+                                    let ptr16 = vec16.as_ptr().cast::<u8>();
+                                    let len16 = vec16.len();
+                                    ::core::mem::forget(vec16);
+                                    *base.add(8).cast::<usize>() = len16;
+                                    *base.add(4).cast::<*mut u8>() = ptr16.cast_mut();
+                                    let vec20 = extensions15;
+                                    let len20 = vec20.len();
+                                    let layout20 = _rt::alloc::Layout::from_size_align_unchecked(
+                                        vec20.len() * 16,
                                         4,
                                     );
-                                    let result19 = if layout19.size() != 0 {
-                                        let ptr = _rt::alloc::alloc(layout19).cast::<u8>();
+                                    let result20 = if layout20.size() != 0 {
+                                        let ptr = _rt::alloc::alloc(layout20).cast::<u8>();
                                         if ptr.is_null() {
-                                            _rt::alloc::handle_alloc_error(layout19);
+                                            _rt::alloc::handle_alloc_error(layout20);
                                         }
                                         ptr
                                     } else {
                                         { ::core::ptr::null_mut() }
                                     };
-                                    for (i, e) in vec19.into_iter().enumerate() {
-                                        let base = result19.add(i * 16);
+                                    for (i, e) in vec20.into_iter().enumerate() {
+                                        let base = result20.add(i * 16);
                                         {
-                                            let (t16_0, t16_1) = e;
-                                            let vec17 = (t16_0.into_bytes()).into_boxed_slice();
-                                            let ptr17 = vec17.as_ptr().cast::<u8>();
-                                            let len17 = vec17.len();
-                                            ::core::mem::forget(vec17);
-                                            *base.add(4).cast::<usize>() = len17;
-                                            *base.add(0).cast::<*mut u8>() = ptr17.cast_mut();
-                                            let vec18 = (t16_1.into_bytes()).into_boxed_slice();
+                                            let (t17_0, t17_1) = e;
+                                            let vec18 = (t17_0.into_bytes()).into_boxed_slice();
                                             let ptr18 = vec18.as_ptr().cast::<u8>();
                                             let len18 = vec18.len();
                                             ::core::mem::forget(vec18);
-                                            *base.add(12).cast::<usize>() = len18;
-                                            *base.add(8).cast::<*mut u8>() = ptr18.cast_mut();
+                                            *base.add(4).cast::<usize>() = len18;
+                                            *base.add(0).cast::<*mut u8>() = ptr18.cast_mut();
+                                            let vec19 = (t17_1.into_bytes()).into_boxed_slice();
+                                            let ptr19 = vec19.as_ptr().cast::<u8>();
+                                            let len19 = vec19.len();
+                                            ::core::mem::forget(vec19);
+                                            *base.add(12).cast::<usize>() = len19;
+                                            *base.add(8).cast::<*mut u8>() = ptr19.cast_mut();
                                         }
                                     }
-                                    *base.add(8).cast::<usize>() = len19;
-                                    *base.add(4).cast::<*mut u8>() = result19;
-                                    let vec20 = (message15.into_bytes()).into_boxed_slice();
-                                    let ptr20 = vec20.as_ptr().cast::<u8>();
-                                    let len20 = vec20.len();
-                                    ::core::mem::forget(vec20);
                                     *base.add(16).cast::<usize>() = len20;
-                                    *base.add(12).cast::<*mut u8>() = ptr20.cast_mut();
+                                    *base.add(12).cast::<*mut u8>() = result20;
                                 }
                             };
                         }
@@ -2051,23 +2117,23 @@ pub mod exports {
                                 _ => {
                                     let l3 = *base.add(4).cast::<*mut u8>();
                                     let l4 = *base.add(8).cast::<usize>();
-                                    let base9 = l3;
-                                    let len9 = l4;
-                                    for i in 0..len9 {
-                                        let base = base9.add(i * 16);
+                                    _rt::cabi_dealloc(l3, l4, 1);
+                                    let l5 = *base.add(12).cast::<*mut u8>();
+                                    let l6 = *base.add(16).cast::<usize>();
+                                    let base11 = l5;
+                                    let len11 = l6;
+                                    for i in 0..len11 {
+                                        let base = base11.add(i * 16);
                                         {
-                                            let l5 = *base.add(0).cast::<*mut u8>();
-                                            let l6 = *base.add(4).cast::<usize>();
-                                            _rt::cabi_dealloc(l5, l6, 1);
-                                            let l7 = *base.add(8).cast::<*mut u8>();
-                                            let l8 = *base.add(12).cast::<usize>();
+                                            let l7 = *base.add(0).cast::<*mut u8>();
+                                            let l8 = *base.add(4).cast::<usize>();
                                             _rt::cabi_dealloc(l7, l8, 1);
+                                            let l9 = *base.add(8).cast::<*mut u8>();
+                                            let l10 = *base.add(12).cast::<usize>();
+                                            _rt::cabi_dealloc(l9, l10, 1);
                                         }
                                     }
-                                    _rt::cabi_dealloc(base9, len9 * 16, 4);
-                                    let l10 = *base.add(12).cast::<*mut u8>();
-                                    let l11 = *base.add(16).cast::<usize>();
-                                    _rt::cabi_dealloc(l10, l11, 1);
+                                    _rt::cabi_dealloc(base11, len11 * 16, 4);
                                 }
                             }
                         }
@@ -2665,6 +2731,65 @@ mod _rt {
     pub fn run_ctors_once() {
         wit_bindgen_rt::run_ctors_once();
     }
+    pub fn as_i32<T: AsI32>(t: T) -> i32 {
+        t.as_i32()
+    }
+    pub trait AsI32 {
+        fn as_i32(self) -> i32;
+    }
+    impl<'a, T: Copy + AsI32> AsI32 for &'a T {
+        fn as_i32(self) -> i32 {
+            (*self).as_i32()
+        }
+    }
+    impl AsI32 for i32 {
+        #[inline]
+        fn as_i32(self) -> i32 {
+            self as i32
+        }
+    }
+    impl AsI32 for u32 {
+        #[inline]
+        fn as_i32(self) -> i32 {
+            self as i32
+        }
+    }
+    impl AsI32 for i16 {
+        #[inline]
+        fn as_i32(self) -> i32 {
+            self as i32
+        }
+    }
+    impl AsI32 for u16 {
+        #[inline]
+        fn as_i32(self) -> i32 {
+            self as i32
+        }
+    }
+    impl AsI32 for i8 {
+        #[inline]
+        fn as_i32(self) -> i32 {
+            self as i32
+        }
+    }
+    impl AsI32 for u8 {
+        #[inline]
+        fn as_i32(self) -> i32 {
+            self as i32
+        }
+    }
+    impl AsI32 for char {
+        #[inline]
+        fn as_i32(self) -> i32 {
+            self as i32
+        }
+    }
+    impl AsI32 for usize {
+        #[inline]
+        fn as_i32(self) -> i32 {
+            self as i32
+        }
+    }
     pub use alloc_crate::alloc;
     pub unsafe fn cabi_dealloc(ptr: *mut u8, size: usize, align: usize) {
         if size == 0 {
@@ -2728,9 +2853,9 @@ pub(crate) use __export_hooks_impl as export;
 #[cfg(target_arch = "wasm32")]
 #[link_section = "component-type:wit-bindgen:0.30.0:hooks:encoded world"]
 #[doc(hidden)]
-pub static __WIT_BINDGEN_COMPONENT_TYPE: [u8; 2992] = *b"\
-\0asm\x0d\0\x01\0\0\x19\x16wit-component-encoding\x04\0\x07\xb4\x16\x01A\x02\x01\
-A\x13\x01B:\x01m\x02\x14invalid-header-value\x13invalid-header-name\x04\0\x0chea\
+pub static __WIT_BINDGEN_COMPONENT_TYPE: [u8; 3067] = *b"\
+\0asm\x0d\0\x01\0\0\x19\x16wit-component-encoding\x04\0\x07\xff\x16\x01A\x02\x01\
+A\x14\x01B=\x01m\x02\x14invalid-header-value\x13invalid-header-name\x04\0\x0chea\
 der-error\x03\0\0\x01p}\x01q\x02\x0cchannel-full\x01\x02\0\x0echannel-closed\0\0\
 \x04\0\x09log-error\x03\0\x03\x04\0\x07context\x03\x01\x04\0\x0eshared-context\x03\
 \x01\x04\0\x07headers\x03\x01\x01r\x02\x10parent-type-names\x0afield-names\x04\0\
@@ -2749,48 +2874,49 @@ hook-error\0\0\x0drequest-error\0\0\x0crate-limited\0\0\x08response\x01\x19\0\x0
 \0\x1fsubgraph-request-execution-kind\x03\0\x1c\x01p\x1d\x01r\x07\x0dsubgraph-na\
 mes\x06methods\x03urls\x0aexecutions\x1e\x0ccache-status\x1b\x11total-duration-m\
 sw\x0ahas-errors\x7f\x04\0\x19executed-subgraph-request\x03\0\x1f\x01o\x02ss\x01\
-p!\x01r\x02\x0aextensions\"\x07messages\x04\0\x05error\x03\0#\x01h\x05\x01@\x02\x04\
-self%\x04names\0\x15\x04\0\x13[method]context.get\x01&\x01@\x03\x04self%\x04name\
-s\x05values\x01\0\x04\0\x13[method]context.set\x01'\x04\0\x16[method]context.del\
-ete\x01&\x01h\x06\x01@\x02\x04self(\x04names\0\x15\x04\0\x1a[method]shared-conte\
-xt.get\x01)\x01j\0\x01\x04\x01@\x02\x04self(\x04data\x02\0*\x04\0![method]shared\
--context.log-access\x01+\x01@\x01\x04self(\0s\x04\0\x1f[method]shared-context.tr\
-ace-id\x01,\x01h\x07\x01@\x02\x04self-\x04names\0\x15\x04\0\x13[method]headers.g\
-et\x01.\x01j\0\x01\x01\x01@\x03\x04self-\x04names\x05values\0/\x04\0\x13[method]\
-headers.set\x010\x04\0\x16[method]headers.delete\x01.\x03\x01\x18component:grafb\
-ase/types\x05\0\x02\x03\0\0\x07headers\x02\x03\0\0\x05error\x02\x03\0\0\x07conte\
-xt\x01B\x0b\x02\x03\x02\x01\x01\x04\0\x07headers\x03\0\0\x02\x03\x02\x01\x02\x04\
-\0\x05error\x03\0\x02\x02\x03\x02\x01\x03\x04\0\x07context\x03\0\x04\x01i\x05\x01\
-i\x01\x01j\0\x01\x03\x01@\x02\x07context\x06\x07headers\x07\0\x08\x04\0\x12on-ga\
-teway-request\x01\x09\x04\x01\"component:grafbase/gateway-request\x05\x04\x02\x03\
-\0\0\x0eshared-context\x01B\x0b\x02\x03\x02\x01\x05\x04\0\x0eshared-context\x03\0\
-\0\x02\x03\x02\x01\x01\x04\0\x07headers\x03\0\x02\x02\x03\x02\x01\x02\x04\0\x05e\
-rror\x03\0\x04\x01i\x01\x01i\x03\x01j\0\x01\x05\x01@\x05\x07context\x06\x0dsubgr\
-aph-names\x06methods\x03urls\x07headers\x07\0\x08\x04\0\x13on-subgraph-request\x01\
-\x09\x04\x01#component:grafbase/subgraph-request\x05\x06\x02\x03\0\0\x0fedge-def\
-inition\x02\x03\0\0\x0fnode-definition\x01B\x18\x02\x03\x02\x01\x02\x04\0\x05err\
-or\x03\0\0\x02\x03\x02\x01\x05\x04\0\x0eshared-context\x03\0\x02\x02\x03\x02\x01\
-\x07\x04\0\x0fedge-definition\x03\0\x04\x02\x03\x02\x01\x08\x04\0\x0fnode-defini\
-tion\x03\0\x06\x01i\x03\x01j\0\x01\x01\x01@\x04\x07context\x08\x0adefinition\x05\
-\x09argumentss\x08metadatas\0\x09\x04\0\x1cauthorize-edge-pre-execution\x01\x0a\x01\
-@\x03\x07context\x08\x0adefinition\x07\x08metadatas\0\x09\x04\0\x1cauthorize-nod\
-e-pre-execution\x01\x0b\x01ps\x01p\x09\x01@\x04\x07context\x08\x0adefinition\x05\
-\x07parents\x0c\x08metadatas\0\x0d\x04\0$authorize-parent-edge-post-execution\x01\
-\x0e\x01@\x04\x07context\x08\x0adefinition\x05\x05nodes\x0c\x08metadatas\0\x0d\x04\
-\0\"authorize-edge-node-post-execution\x01\x0f\x01o\x02s\x0c\x01p\x10\x01@\x04\x07\
-context\x08\x0adefinition\x05\x05edges\x11\x08metadatas\0\x0d\x04\0\x1dauthorize\
--edge-post-execution\x01\x12\x04\x01\x20component:grafbase/authorization\x05\x09\
-\x02\x03\0\0\x12executed-operation\x02\x03\0\0\x19executed-subgraph-request\x02\x03\
-\0\0\x15executed-http-request\x01B\x10\x02\x03\x02\x01\x05\x04\0\x0eshared-conte\
-xt\x03\0\0\x02\x03\x02\x01\x0a\x04\0\x12executed-operation\x03\0\x02\x02\x03\x02\
-\x01\x0b\x04\0\x19executed-subgraph-request\x03\0\x04\x02\x03\x02\x01\x0c\x04\0\x15\
-executed-http-request\x03\0\x06\x01i\x01\x01p}\x01@\x02\x07context\x08\x07reques\
-t\x05\0\x09\x04\0\x14on-subgraph-response\x01\x0a\x01@\x02\x07context\x08\x07req\
-uest\x03\0\x09\x04\0\x15on-operation-response\x01\x0b\x01@\x02\x07context\x08\x07\
-request\x07\x01\0\x04\0\x10on-http-response\x01\x0c\x04\x01\x1ccomponent:grafbas\
-e/responses\x05\x0d\x04\x01\x18component:grafbase/hooks\x04\0\x0b\x0b\x01\0\x05h\
-ooks\x03\0\0\0G\x09producers\x01\x0cprocessed-by\x02\x0dwit-component\x070.215.0\
-\x10wit-bindgen-rust\x060.30.0";
+p!\x01r\x02\x07messages\x0aextensions\"\x04\0\x05error\x03\0#\x01p$\x01r\x02\x0b\
+status-code{\x06errors%\x04\0\x0eerror-response\x03\0&\x01h\x05\x01@\x02\x04self\
+(\x04names\0\x15\x04\0\x13[method]context.get\x01)\x01@\x03\x04self(\x04names\x05\
+values\x01\0\x04\0\x13[method]context.set\x01*\x04\0\x16[method]context.delete\x01\
+)\x01h\x06\x01@\x02\x04self+\x04names\0\x15\x04\0\x1a[method]shared-context.get\x01\
+,\x01j\0\x01\x04\x01@\x02\x04self+\x04data\x02\0-\x04\0![method]shared-context.l\
+og-access\x01.\x01@\x01\x04self+\0s\x04\0\x1f[method]shared-context.trace-id\x01\
+/\x01h\x07\x01@\x02\x04self0\x04names\0\x15\x04\0\x13[method]headers.get\x011\x01\
+j\0\x01\x01\x01@\x03\x04self0\x04names\x05values\02\x04\0\x13[method]headers.set\
+\x013\x04\0\x16[method]headers.delete\x011\x03\x01\x18component:grafbase/types\x05\
+\0\x02\x03\0\0\x07headers\x02\x03\0\0\x0eerror-response\x02\x03\0\0\x07context\x01\
+B\x0b\x02\x03\x02\x01\x01\x04\0\x07headers\x03\0\0\x02\x03\x02\x01\x02\x04\0\x0e\
+error-response\x03\0\x02\x02\x03\x02\x01\x03\x04\0\x07context\x03\0\x04\x01i\x05\
+\x01i\x01\x01j\0\x01\x03\x01@\x02\x07context\x06\x07headers\x07\0\x08\x04\0\x12o\
+n-gateway-request\x01\x09\x04\x01\"component:grafbase/gateway-request\x05\x04\x02\
+\x03\0\0\x0eshared-context\x02\x03\0\0\x05error\x01B\x0b\x02\x03\x02\x01\x05\x04\
+\0\x0eshared-context\x03\0\0\x02\x03\x02\x01\x01\x04\0\x07headers\x03\0\x02\x02\x03\
+\x02\x01\x06\x04\0\x05error\x03\0\x04\x01i\x01\x01i\x03\x01j\0\x01\x05\x01@\x05\x07\
+context\x06\x0dsubgraph-names\x06methods\x03urls\x07headers\x07\0\x08\x04\0\x13o\
+n-subgraph-request\x01\x09\x04\x01#component:grafbase/subgraph-request\x05\x07\x02\
+\x03\0\0\x0fedge-definition\x02\x03\0\0\x0fnode-definition\x01B\x18\x02\x03\x02\x01\
+\x06\x04\0\x05error\x03\0\0\x02\x03\x02\x01\x05\x04\0\x0eshared-context\x03\0\x02\
+\x02\x03\x02\x01\x08\x04\0\x0fedge-definition\x03\0\x04\x02\x03\x02\x01\x09\x04\0\
+\x0fnode-definition\x03\0\x06\x01i\x03\x01j\0\x01\x01\x01@\x04\x07context\x08\x0a\
+definition\x05\x09argumentss\x08metadatas\0\x09\x04\0\x1cauthorize-edge-pre-exec\
+ution\x01\x0a\x01@\x03\x07context\x08\x0adefinition\x07\x08metadatas\0\x09\x04\0\
+\x1cauthorize-node-pre-execution\x01\x0b\x01ps\x01p\x09\x01@\x04\x07context\x08\x0a\
+definition\x05\x07parents\x0c\x08metadatas\0\x0d\x04\0$authorize-parent-edge-pos\
+t-execution\x01\x0e\x01@\x04\x07context\x08\x0adefinition\x05\x05nodes\x0c\x08me\
+tadatas\0\x0d\x04\0\"authorize-edge-node-post-execution\x01\x0f\x01o\x02s\x0c\x01\
+p\x10\x01@\x04\x07context\x08\x0adefinition\x05\x05edges\x11\x08metadatas\0\x0d\x04\
+\0\x1dauthorize-edge-post-execution\x01\x12\x04\x01\x20component:grafbase/author\
+ization\x05\x0a\x02\x03\0\0\x12executed-operation\x02\x03\0\0\x19executed-subgra\
+ph-request\x02\x03\0\0\x15executed-http-request\x01B\x10\x02\x03\x02\x01\x05\x04\
+\0\x0eshared-context\x03\0\0\x02\x03\x02\x01\x0b\x04\0\x12executed-operation\x03\
+\0\x02\x02\x03\x02\x01\x0c\x04\0\x19executed-subgraph-request\x03\0\x04\x02\x03\x02\
+\x01\x0d\x04\0\x15executed-http-request\x03\0\x06\x01i\x01\x01p}\x01@\x02\x07con\
+text\x08\x07request\x05\0\x09\x04\0\x14on-subgraph-response\x01\x0a\x01@\x02\x07\
+context\x08\x07request\x03\0\x09\x04\0\x15on-operation-response\x01\x0b\x01@\x02\
+\x07context\x08\x07request\x07\x01\0\x04\0\x10on-http-response\x01\x0c\x04\x01\x1c\
+component:grafbase/responses\x05\x0e\x04\x01\x18component:grafbase/hooks\x04\0\x0b\
+\x0b\x01\0\x05hooks\x03\0\0\0G\x09producers\x01\x0cprocessed-by\x02\x0dwit-compo\
+nent\x070.215.0\x10wit-bindgen-rust\x060.30.0";
 #[inline(never)]
 #[doc(hidden)]
 pub fn __link_custom_section_describing_imports() {

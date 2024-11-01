@@ -41,6 +41,11 @@ interface types {
         type-name: string,
     }
 
+    record error-response {
+        status-code: u16,
+        errors: list<error>,
+    }
+
     record error {
         message: string,
         extensions: list<tuple<string,string>>,
@@ -48,9 +53,9 @@ interface types {
 }
 
 interface gateway-request {
-    use types.{headers, error, context};
+    use types.{headers, error-response, context};
 
-    on-gateway-request: func(context: context, headers: headers) -> result<_, error>;
+    on-gateway-request: func(context: context, headers: headers) -> result<_, error-response>;
 }
 
 interface authorization {

@@ -791,7 +791,7 @@ fn with_failing_on_gateway_request_hook() {
       "method": "POST",
       "url": "/graphql",
       "trace_id": "0af7651916cd43dd8448eb211c80319c",
-      "status_code": 500,
+      "status_code": 400,
       "operations": []
     }
     "#);
