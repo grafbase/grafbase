@@ -1,7 +1,7 @@
 use std::{borrow::Cow, fmt, str};
 
 use graph_ref::GraphRef;
-/// Parsed project reference. A project reference is a string of the form `account/project@branch`.
+/// Parsed graph reference. A graph reference is a string of the form `account/project@branch`.
 #[derive(Clone, Debug)]
 pub struct FullGraphRef {
     account: String,
