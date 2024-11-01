@@ -101,6 +101,13 @@ impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
                 })
             }
             (false, Some(ext), _) => {
+                if !self.engine.schema.settings.apq_enabled {
+                    return Err(GraphqlError::new(
+                        "Persisted query not found",
+                        ErrorCode::PersistedQueryNotFound,
+                    ));
+                }
+
                 let query = request
                     .query
                     .as_deref()
@@ -110,7 +117,7 @@ impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
                     cache_key: Key::Operation {
                         name,
                         schema,
-                        document: Document::AutomaticallyPersistedQuery(ext),
+                        document: Document::AutomaticPersistedQuery(ext),
                     }
                     .to_string(),
                     load_fut: handle_apq(query, ext).boxed(),

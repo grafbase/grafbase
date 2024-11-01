@@ -133,6 +133,7 @@ pub struct Settings {
     pub batching: config::BatchingConfig,
     pub complexity_control: config::ComplexityControl,
     pub response_extension: ResponseExtensionConfig,
+    pub apq_enabled: bool,
 }
 
 #[derive(serde::Serialize, serde::Deserialize, id_derives::IndexedFields)]

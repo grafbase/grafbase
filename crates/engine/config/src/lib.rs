@@ -76,6 +76,14 @@ pub struct Config {
 
     #[serde(default)]
     pub response_extension: ResponseExtensionConfig,
+
+    #[serde(default)]
+    pub apq: AutomaticPersistedQueries,
+}
+
+#[derive(serde::Serialize, serde::Deserialize, Debug, Default, Clone, Copy)]
+pub struct AutomaticPersistedQueries {
+    pub enabled: bool,
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Debug, Default)]
@@ -122,6 +130,7 @@ impl Config {
             batching: Default::default(),
             complexity_control: Default::default(),
             response_extension: Default::default(),
+            apq: Default::default(),
         }
     }
 

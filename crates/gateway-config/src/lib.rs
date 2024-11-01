@@ -1,5 +1,8 @@
+use apq::AutomaticPersistedQueries;
 use grafbase_workspace_hack as _;
+use operation_caching::OperationCaching;
 
+pub mod apq;
 pub mod authentication;
 mod complexity_control;
 pub mod cors;
@@ -8,6 +11,7 @@ pub mod header;
 pub mod health;
 pub mod hooks;
 pub mod message_signatures;
+pub mod operation_caching;
 pub mod rate_limit;
 mod size_ext;
 pub mod telemetry;
@@ -69,6 +73,10 @@ pub struct Config {
     pub entity_caching: EntityCachingConfig,
     /// Configuration for complexity control
     pub complexity_control: ComplexityControlConfig,
+    /// Automatic persisted queries' configuration
+    pub apq: AutomaticPersistedQueries,
+    /// Operation caching configuration
+    pub operation_caching: OperationCaching,
 }
 
 impl Default for Config {
@@ -91,6 +99,8 @@ impl Default for Config {
             health: Default::default(),
             entity_caching: Default::default(),
             complexity_control: Default::default(),
+            apq: Default::default(),
+            operation_caching: Default::default(),
         }
     }
 }
@@ -2045,5 +2055,39 @@ mod tests {
           |         ^^^^
         invalid value: integer `1000`, expected u8
         "#);
+    }
+
+    #[test]
+    fn apq_defaults() {
+        let config: Config = toml::from_str("").unwrap();
+        assert!(config.apq.enabled);
+    }
+
+    #[test]
+    fn apq_disabled() {
+        let config: Config = toml::from_str("apq.enabled = false").unwrap();
+        assert!(!config.apq.enabled);
+    }
+
+    #[test]
+    fn op_cache_defaults() {
+        let config: Config = toml::from_str("").unwrap();
+
+        assert!(config.operation_caching.enabled);
+        assert_eq!(1000, config.operation_caching.limit);
+    }
+
+    #[test]
+    fn op_cache_settings() {
+        let input = indoc! {r#"
+            [operation_caching]
+            enabled = false
+            limit = 500
+        "#};
+
+        let config: Config = toml::from_str(input).unwrap();
+
+        assert!(!config.operation_caching.enabled);
+        assert_eq!(500, config.operation_caching.limit);
     }
 }
