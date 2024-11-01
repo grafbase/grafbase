@@ -40,18 +40,18 @@ impl str::FromStr for FullGraphRef {
             return Err("The account name is missing before '/'.");
         }
 
-        let (project, branch) = match rest.split_once('@') {
+        let (graph, branch) = match rest.split_once('@') {
             Some((project, branch)) => (project, Some(branch)),
             None => (rest, None),
         };
 
-        if project.is_empty() {
-            return Err("The project name is missing.");
+        if graph.is_empty() {
+            return Err("The graph name is missing.");
         }
 
         Ok(FullGraphRef {
             account: account.to_owned(),
-            graph: project.to_owned(),
+            graph: graph.to_owned(),
             branch: branch.filter(|s| !s.is_empty()).map(String::from),
         })
     }
