@@ -61,23 +61,26 @@ impl<R: Runtime> Engine<R> {
         mutations_allowed: bool,
         headers: http::HeaderMap,
         response_format: ResponseFormat,
-    ) -> Result<(RequestContext, HooksContext<R>), Response<<R::Hooks as Hooks>::OnOperationResponseOutput>> {
+    ) -> Result<
+        (RequestContext, HooksContext<R>),
+        (
+            Response<<R::Hooks as Hooks>::OnOperationResponseOutput>,
+            HooksContext<R>,
+        ),
+    > {
         let client = Client::extract_from(&headers);
 
-        let (hooks_context, headers) = self
-            .runtime
-            .hooks()
-            .on_gateway_request(headers)
-            .await
-            .map_err(|ErrorResponse { status, error }| Response::refuse_request_with(status, error))?;
+        let (hooks_context, headers) = self.runtime.hooks().on_gateway_request(headers).await.map_err(
+            |(context, ErrorResponse { status, error })| (Response::refuse_request_with(status, error), context),
+        )?;
 
         let Some(access_token) = self.auth.authenticate(&headers).await else {
-            return Err(errors::response::unauthenticated());
+            return Err((errors::response::unauthenticated(), hooks_context));
         };
 
         // Currently it doesn't rely on authentication, but likely will at some point.
         if self.runtime.rate_limiter().limit(&RateLimitKey::Global).await.is_err() {
-            return Err(errors::response::gateway_rate_limited());
+            return Err((errors::response::gateway_rate_limited(), hooks_context));
         }
 
         Ok((

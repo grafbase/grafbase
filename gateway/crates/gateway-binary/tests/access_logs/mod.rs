@@ -748,6 +748,55 @@ fn with_subgraph_status_500_retried() {
     "###);
 }
 
+#[test]
+fn with_failing_on_gateway_request_hook() {
+    let tmpdir = TempDir::new().unwrap();
+    let path = tmpdir.path().to_str().unwrap();
+
+    let config = indoc::formatdoc! {r#"
+        [gateway.access_logs]
+        enabled = true
+        path = "{path}"
+    "#};
+
+    with_gateway(&config, Some(200), |gateway| async move {
+        let resp = gateway
+            .gql::<serde_json::Value>("query Simple { me { id } }")
+            .header("test-value", "some-value")
+            .header("traceparent", "00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01")
+            .send()
+            .await;
+
+        insta::assert_json_snapshot!(resp, @r#"
+        {
+          "errors": [
+            {
+              "message": "test-value header is not allowed",
+              "extensions": {
+                "code": "BAD_REQUEST"
+              }
+            }
+          ]
+        }
+        "#);
+    });
+
+    let result = std::fs::read_to_string(tmpdir.path().join("access.log")).unwrap();
+    let result = serde_json::from_str::<Log>(&result).unwrap();
+
+    let result = serde_json::to_string_pretty(&result).unwrap();
+
+    insta::assert_snapshot!(&result, @r#"
+    {
+      "method": "POST",
+      "url": "/graphql",
+      "trace_id": "0af7651916cd43dd8448eb211c80319c",
+      "status_code": 500,
+      "operations": []
+    }
+    "#);
+}
+
 fn with_gateway<T, F>(config: &str, subgraph_status: Option<u16>, test: T)
 where
     T: FnOnce(Arc<Client>) -> F,

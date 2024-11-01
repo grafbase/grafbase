@@ -17,7 +17,7 @@ interface types {
         // The channel is closed.
         channel-closed,
     }
-    
+
     // A context object is available in all hooks during the whole request
     // lifecycle. It can be used to store custom data in one hook and make it
     // available in the hooks executed later in the request.
@@ -123,7 +123,7 @@ interface types {
         // Will be empty if no subgraphs were called.
         on-subgraph-response-outputs: list<list<u8>>,
     }
-    
+
     // Information on a response
     record subgraph-response {
         // The milliseconds it took to connect to the host.
@@ -358,5 +358,6 @@ interface responses {
 //
 // The guest must implement all exported hooks defined in the world.
 world hooks {
+    export gateway-request;
     export responses;
 }

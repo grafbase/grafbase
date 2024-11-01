@@ -2,6 +2,7 @@ use bindings::component::grafbase::types::{
     CacheStatus, ExecutedHttpRequest, ExecutedOperation, ExecutedSubgraphRequest, SharedContext,
     SubgraphRequestExecutionKind,
 };
+use bindings::exports::component::grafbase::gateway_request;
 use bindings::exports::component::grafbase::responses::Guest;
 
 #[allow(warnings)]
@@ -73,6 +74,22 @@ struct AuditInfo<'a> {
     status_code: u16,
     trace_id: &'a str,
     operations: Vec<OperationInfo<'a>>,
+}
+
+impl gateway_request::Guest for Component {
+    fn on_gateway_request(
+        _: gateway_request::Context,
+        headers: gateway_request::Headers,
+    ) -> Result<(), gateway_request::Error> {
+        if headers.get("test-value").is_some() {
+            Err(gateway_request::Error {
+                extensions: Vec::new(),
+                message: String::from("test-value header is not allowed"),
+            })
+        } else {
+            Ok(())
+        }
+    }
 }
 
 impl Guest for Component {

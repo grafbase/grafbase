@@ -97,8 +97,10 @@ fn measures_pool_size() {
                 "#,
             )
             .bind(&service_name)
-            .fetch_one::<SumRow>()
+            .fetch_all::<SumRow>()
             .await
+            .unwrap()
+            .pop()
             .unwrap();
 
         insta::assert_json_snapshot!(row, @r#"
