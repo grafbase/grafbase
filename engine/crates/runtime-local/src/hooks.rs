@@ -219,7 +219,10 @@ impl Hooks for HooksWasi {
     type OnSubgraphResponseOutput = Vec<u8>;
     type OnOperationResponseOutput = Vec<u8>;
 
-    async fn on_gateway_request(&self, headers: HeaderMap) -> Result<(Self::Context, HeaderMap), ErrorResponse> {
+    async fn on_gateway_request(
+        &self,
+        headers: HeaderMap,
+    ) -> Result<(Self::Context, HeaderMap), (Self::Context, ErrorResponse)> {
         let kv = HashMap::new();
         let trace_id = Span::current().context().span().span_context().trace_id();
 
@@ -236,13 +239,18 @@ impl Hooks for HooksWasi {
             .instrument(span)
             .await
             .map(|(kv, headers)| (Context::new(kv, trace_id), headers))
-            .map_err(|err| match err {
-                wasi_component_loader::Error::Internal(err) => {
-                    tracing::error!("on_gateway_request error: {err}");
-                    ErrorResponse::from(PartialGraphqlError::internal_hook_error())
-                }
-                wasi_component_loader::Error::Guest(err) => {
-                    guest_error_as_gql(err, PartialErrorCode::BadRequest).into()
+            .map_err(|err| {
+                let context = Context::new(HashMap::new(), trace_id);
+
+                match err {
+                    wasi_component_loader::Error::Internal(err) => {
+                        tracing::error!("on_gateway_request error: {err}");
+
+                        (context, ErrorResponse::from(PartialGraphqlError::internal_hook_error()))
+                    }
+                    wasi_component_loader::Error::Guest(err) => {
+                        (context, guest_error_as_gql(err, PartialErrorCode::BadRequest).into())
+                    }
                 }
             })
     }

@@ -17,7 +17,7 @@ interface types {
         // The channel is closed.
         channel-closed,
     }
-    
+
     // A context object is available in all hooks during the whole request
     // lifecycle. It can be used to store custom data in one hook and make it
     // available in the hooks executed later in the request.
@@ -47,15 +47,13 @@ interface types {
     // Provides access to the request headers. Available in a mutable form
     // only in the gateway request hook.
     resource headers {
-        // Gets a header value with the given name. Returns an error if
-        // the name is not a valid header name. Returns none if the header does not exist.
-        get: func(name: string) -> result<option<string>, header-error>;
+        // Gets a header value with the given name.
+        get: func(name: string) -> option<string>;
         // Sets the header value with the given name. Returns an error if the given name
         // is not a valid header name.
         set: func(name: string, value: string) -> result<_, header-error>;
-        // Deletes a header value with the given name. Returns an error if
-        // the given name is not a valid header name. Returns the value if ixisting.
-        delete: func(name: string) -> result<option<string>, header-error>;
+        // Deletes a header value with the given name.
+        delete: func(name: string) -> option<string>;
     }
 
     // Defines an edge in a type
@@ -125,7 +123,7 @@ interface types {
         // Will be empty if no subgraphs were called.
         on-subgraph-response-outputs: list<list<u8>>,
     }
-    
+
     // Information on a response
     record subgraph-response {
         // The milliseconds it took to connect to the host.
@@ -335,7 +333,7 @@ interface responses {
     use types.{shared-context, executed-operation, executed-subgraph-request, executed-http-request};
 
     // The hook is called after a subgraph entity has been either requested or fetched from cache.
-    // The output is a list of bytes, which will be available in the on-gateway-response hook.
+    // The output is a list of bytes, which will be available in the on-operation-response hook.
     on-subgraph-response: func(
         context: shared-context,
         request: executed-subgraph-request,
@@ -360,5 +358,6 @@ interface responses {
 //
 // The guest must implement all exported hooks defined in the world.
 world hooks {
+    export gateway-request;
     export responses;
 }

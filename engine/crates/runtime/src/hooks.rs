@@ -50,7 +50,7 @@ pub trait Hooks: Send + Sync + 'static {
     fn on_gateway_request(
         &self,
         headers: HeaderMap,
-    ) -> impl Future<Output = Result<(Self::Context, HeaderMap), ErrorResponse>> + Send;
+    ) -> impl Future<Output = Result<(Self::Context, HeaderMap), (Self::Context, ErrorResponse)>> + Send;
 
     fn on_subgraph_request(
         &self,
@@ -146,7 +146,10 @@ impl Hooks for () {
     type OnSubgraphResponseOutput = ();
     type OnOperationResponseOutput = ();
 
-    async fn on_gateway_request(&self, headers: HeaderMap) -> Result<(Self::Context, HeaderMap), ErrorResponse> {
+    async fn on_gateway_request(
+        &self,
+        headers: HeaderMap,
+    ) -> Result<(Self::Context, HeaderMap), (Self::Context, ErrorResponse)> {
         Ok(((), headers))
     }
 

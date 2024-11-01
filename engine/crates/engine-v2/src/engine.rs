@@ -11,7 +11,7 @@ use crate::{
     graphql_over_http::{Http, ResponseFormat, StreamingResponseFormat},
     operation::PreparedOperation,
     response::Response,
-    websocket, Body,
+    websocket, Body, HooksExtension,
 };
 pub(crate) use execute::*;
 pub(crate) use runtime::*;
@@ -73,7 +73,17 @@ impl<R: Runtime> Engine<R> {
 
         let request_context_fut = self
             .create_request_context(!method.is_safe(), headers, response_format)
-            .map_err(|response| Http::error(response_format, response));
+            .map_err(|(mut response, context)| {
+                let on_operation_response_output = response.take_on_operation_response_output();
+                let mut http_response = Http::error(response_format, response);
+
+                http_response.extensions_mut().insert(HooksExtension::Single {
+                    context,
+                    on_operation_response_output,
+                });
+
+                http_response
+            });
 
         let graphql_request_fut =
             self.extract_well_formed_graphql_over_http_request(method, uri, response_format, body);
@@ -100,7 +110,7 @@ impl<R: Runtime> Engine<R> {
 
         let (request_context, hooks_context) = match self.create_request_context(true, headers, response_format).await {
             Ok(context) => context,
-            Err(response) => {
+            Err((response, _)) => {
                 return Err(response
                     .errors()
                     .first()

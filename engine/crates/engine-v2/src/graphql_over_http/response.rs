@@ -43,6 +43,7 @@ impl Http {
         mut response: Response<O>,
     ) -> http::Response<Body> {
         let mut http_response = Self::from_complete_response_with_telemetry(format, &response);
+
         http_response.extensions_mut().insert(HooksExtension::Single {
             context: hooks_context,
             on_operation_response_output: response.take_on_operation_response_output(),
