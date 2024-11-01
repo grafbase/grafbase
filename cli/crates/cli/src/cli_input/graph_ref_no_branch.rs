@@ -1,6 +1,6 @@
 use std::{fmt, str};
 
-/// Parsed graph reference. A project reference is a string of the form `account/graph`.
+/// Parsed graph reference. A graph reference is a string of the form `account/graph`.
 #[derive(Clone, Debug)]
 pub struct GraphRefNoBranch {
     account: String,

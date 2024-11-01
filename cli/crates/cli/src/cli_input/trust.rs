@@ -1,10 +1,10 @@
-use super::{ProjectRef, ProjectRefOrGraphRef};
+use super::{graph_ref::FullOrPartialGraphRef, FullGraphRef};
 use std::path::PathBuf;
 
 #[derive(Debug, clap::Parser)]
 pub(crate) struct TrustCommand {
-    #[arg(help = ProjectRef::ARG_DESCRIPTION)]
-    pub(crate) project_ref: ProjectRefOrGraphRef,
+    #[arg(help = FullGraphRef::ARG_DESCRIPTION)]
+    pub(crate) graph_ref: FullOrPartialGraphRef,
     /// The path to the manifest file
     #[clap(long, short = 'm')]
     pub(crate) manifest: PathBuf,

@@ -1,9 +1,9 @@
-use super::ProjectRef;
+use super::FullGraphRef;
 use clap::Parser;
 
 /// List published subgraphs
 #[derive(Debug, Parser)]
 pub struct SubgraphsCommand {
-    #[arg(help = ProjectRef::ARG_DESCRIPTION)]
-    pub project_ref: ProjectRef,
+    #[arg(help = FullGraphRef::ARG_DESCRIPTION)]
+    pub graph_ref: FullGraphRef,
 }

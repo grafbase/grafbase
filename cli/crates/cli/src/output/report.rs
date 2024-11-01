@@ -81,17 +81,17 @@ pub fn create() {
     watercolor::output!("🕒 Your graph is being created...", @BrightBlue);
 }
 
-pub fn create_success(name: &str, urls: &[String], account_slug: &str, project_slug: &str) {
+pub fn create_success(name: &str, urls: &[String], account_slug: &str, graph_slug: &str) {
     let platform_data = PlatformData::get();
     watercolor::output!("\n✨ {name} was successfully created!\n", @BrightBlue);
     if let Some(url) = urls.first() {
         watercolor::output!("Endpoint: https://{url}", @BrightBlue)
     }
-    watercolor::output!("Dashboard: {}/{account_slug}/{project_slug}/branches/main", platform_data.dashboard_url, @BrightBlue);
+    watercolor::output!("Dashboard: {}/{account_slug}/{graph_slug}/branches/main", platform_data.dashboard_url, @BrightBlue);
 }
 
-pub(crate) fn check_name_missing_on_federated_project() {
-    watercolor::output!("❌ The project is federated, but you did not provide a subgraph name to check against. Please pass a subgraph name with the --name argument to the check command.", @BrightRed);
+pub(crate) fn check_name_missing_on_federated_graph() {
+    watercolor::output!("❌ The graph is federated, but you did not provide a subgraph name to check against. Please pass a subgraph name with the --name argument to the check command.", @BrightRed);
 }
 
 pub(crate) fn check_success() {
@@ -187,8 +187,8 @@ pub(crate) fn publish_command_success(subgraph_name: &str) {
     println!("🧩 {subgraph_name} published successfully");
 }
 
-pub(crate) fn publish_graph_does_not_exist(account_slug: &str, project_slug: &str) {
-    watercolor::output!("❌ Could not publish: there is no project named {project_slug} in the account {account_slug}\n", @BrightRed);
+pub(crate) fn publish_graph_does_not_exist(account_slug: &str, graph_slug: &str) {
+    watercolor::output!("❌ Could not publish: there is no graph named {graph_slug} in the account {account_slug}\n", @BrightRed);
 }
 
 pub(crate) fn publish_command_composition_failure(messages: &[String]) {
