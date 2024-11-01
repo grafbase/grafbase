@@ -1,8 +1,9 @@
 use std::io::Write;
 
-use elliptic_curve::pkcs8::EncodePrivateKey;
+use elliptic_curve::pkcs8::{DecodePrivateKey, EncodePrivateKey};
 use engine_v2::Engine;
 use graphql_mocks::FakeGithubSchema;
+use httpsig::prelude::SharedKey;
 use integration_tests::{federation::EngineV2Ext, runtime};
 
 const SHARED_KEY_BASE64: &str = "aGVsbG8K";
@@ -81,6 +82,166 @@ fn test_message_signing_ed25519_happy_path() {
         kid: None,
     };
     let file = KeyFile::new(key_pem.as_str());
+    let path = file.0.path().as_os_str().to_string_lossy();
+
+    signature_success_test(
+        schema,
+        format!(
+            r#"
+                [gateway.message_signatures]
+                enabled = true
+                key.file = "{path}"
+            "#
+        ),
+    )
+}
+
+#[test]
+fn test_message_signing_p256_jwt_happy_path() {
+    // I'm hardcoding some keys here because the JWK infra in rust is a bit patchy
+    // at time of writing. There's a crate, but it doesnt support everything we need and it appears
+    // kind of unmaintained.
+    const JWK: &str = r#"{
+        "use": "sig",
+        "kty": "EC",
+        "kid": "4dR50dOLFlF37gbk2BKCBKdF4EhAtcQWIiRIynB3apQ",
+        "crv": "P-256",
+        "alg": "ES256",
+        "x": "AWEDiqkKxSFrtrUWCAq7AW76G2a15_wuDTQf83STJWA",
+        "y": "1d9usb-hqej5RJZnfivmO_9SgbKge3PCmZR-2rkaLgA",
+        "d": "glrLr-T5EcaRfz4Im4tRU9HuTygOOdjeH3sAW1Z4SHw"
+    }"#;
+    const PEM: &str = indoc::indoc! {r"
+        -----BEGIN PRIVATE KEY-----
+        MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgglrLr+T5EcaRfz4I
+        m4tRU9HuTygOOdjeH3sAW1Z4SHyhRANCAAQBYQOKqQrFIWu2tRYICrsBbvobZrXn
+        /C4NNB/zdJMlYNXfbrG/oano+USWZ34r5jv/UoGyoHtzwpmUftq5Gi4A
+        -----END PRIVATE KEY-----
+    "};
+
+    let key = elliptic_curve::SecretKey::from_pkcs8_pem(PEM).unwrap();
+    let schema = SignedGithubSchema {
+        key: graphql_mocks::VerifyingKey::Secret(httpsig::prelude::SecretKey::EcdsaP256Sha256(key.clone())),
+        kid: None,
+    };
+    let file = KeyFile::new(JWK);
+    let path = file.0.path().as_os_str().to_string_lossy();
+
+    signature_success_test(
+        schema,
+        format!(
+            r#"
+                [gateway.message_signatures]
+                enabled = true
+                key.file = "{path}"
+            "#
+        ),
+    )
+}
+
+#[test]
+fn test_message_signing_p384_jwt_happy_path() {
+    // I'm hardcoding some keys here because the JWK infra in rust is a bit patchy
+    // at time of writing. There's a crate, but it doesnt support everything we need and it appears
+    // kind of unmaintained.
+    const JWK: &str = r#"{
+        "use": "sig",
+        "kty": "EC",
+        "kid": "hEUnTRfbUOnnYt987z2yrti3LGqwsdZwd2IbHSNRqVM",
+        "crv": "P-384",
+        "alg": "ES384",
+        "x": "WO6ufjmaqxgorIubcyf_tNISyh_YhtHUxLCqkY3HDI9qBys28XArCUew6moEpPVF",
+        "y": "uhFRqXrCuFUHIXgvRzCbEv0SVkpCLOb_oIsegFIOdyOmoXp4XOdUs824aPRDXD2f",
+        "d": "pwEfP2w1rkLdqVuJTVrR_gzFDt5dPgZ3aqIIdmdoCJKMKBOaqHR2VUTcV6K6ZGjX"
+    }"#;
+    const PEM: &str = indoc::indoc! {r"
+        -----BEGIN PRIVATE KEY-----
+        MIG2AgEAMBAGByqGSM49AgEGBSuBBAAiBIGeMIGbAgEBBDCnAR8/bDWuQt2pW4lN
+        WtH+DMUO3l0+Bndqogh2Z2gIkowoE5qodHZVRNxXorpkaNehZANiAARY7q5+OZqr
+        GCisi5tzJ/+00hLKH9iG0dTEsKqRjccMj2oHKzbxcCsJR7DqagSk9UW6EVGpesK4
+        VQcheC9HMJsS/RJWSkIs5v+gix6AUg53I6ahenhc51Szzbho9ENcPZ8=
+        -----END PRIVATE KEY-----
+    "};
+
+    let key = elliptic_curve::SecretKey::from_pkcs8_pem(PEM).unwrap();
+    let schema = SignedGithubSchema {
+        key: graphql_mocks::VerifyingKey::Secret(httpsig::prelude::SecretKey::EcdsaP384Sha384(key.clone())),
+        kid: None,
+    };
+    let file = KeyFile::new(JWK);
+    let path = file.0.path().as_os_str().to_string_lossy();
+
+    signature_success_test(
+        schema,
+        format!(
+            r#"
+                [gateway.message_signatures]
+                enabled = true
+                key.file = "{path}"
+            "#
+        ),
+    )
+}
+
+#[test]
+fn test_message_signing_ed25519_jwt_happy_path() {
+    // I'm hardcoding some keys here because the JWK infra in rust is a bit patchy
+    // at time of writing. There's a crate, but it doesnt support everything we need and it appears
+    // kind of unmaintained.
+    const JWK: &str = r#"{
+        "use": "sig",
+        "kty": "OKP",
+        "kid": "g2Jjh0V3sHLbDFHxKVYcAO4pTBYABHHj3E1CYn0Y9xQ",
+        "crv": "Ed25519",
+        "alg": "EdDSA",
+        "x": "X8vm72PyWoWxl_mdSgR22-E56m7J7gajDI9e6S8tHWg",
+        "d": "ZqlRjdgaOgOBcn1GZfxQLN3Mmgf7GY2O_bU3tAREoPc"
+    }"#;
+    const PEM: &str = indoc::indoc! {r"
+        -----BEGIN PRIVATE KEY-----
+        MC4CAQAwBQYDK2VwBCIEIGapUY3YGjoDgXJ9RmX8UCzdzJoH+xmNjv21N7QERKD3
+        -----END PRIVATE KEY-----
+    "};
+
+    let key = ed25519_compact::SecretKey::from_pem(PEM).unwrap();
+    let schema = SignedGithubSchema {
+        key: graphql_mocks::VerifyingKey::Secret(httpsig::prelude::SecretKey::Ed25519(key)),
+        kid: None,
+    };
+    let file = KeyFile::new(JWK);
+    let path = file.0.path().as_os_str().to_string_lossy();
+
+    signature_success_test(
+        schema,
+        format!(
+            r#"
+                [gateway.message_signatures]
+                enabled = true
+                key.file = "{path}"
+            "#
+        ),
+    )
+}
+
+#[test]
+fn test_message_signing_hmac_sha256_jwt_happy_path() {
+    // I'm hardcoding some keys here because the JWK infra in rust is a bit patchy
+    // at time of writing. There's a crate, but it doesnt support everything we need and it appears
+    // kind of unmaintained.
+    const JWK: &str = r#"{
+        "use": "sig",
+        "kty": "oct",
+        "alg": "HS256",
+        "k": "bFBzMG5JU0hsZm90M2VDcm84eVZHY2l4UWFJeTNnZTU"
+    }"#;
+
+    let schema = SignedGithubSchema {
+        key: graphql_mocks::VerifyingKey::Shared(
+            SharedKey::from_base64("bFBzMG5JU0hsZm90M2VDcm84eVZHY2l4UWFJeTNnZTU=").unwrap(),
+        ),
+        kid: None,
+    };
+    let file = KeyFile::new(JWK);
     let path = file.0.path().as_os_str().to_string_lossy();
 
     signature_success_test(

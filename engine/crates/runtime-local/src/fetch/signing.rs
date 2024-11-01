@@ -1,6 +1,12 @@
+use p256 as _; // Don't use this directly but we need to enable its JWK feature
+use p384 as _;
+use serde::Deserialize;
+use serde_json::json; // Don't use this directly but we need to enable its JWK feature
+
 use std::{collections::HashSet, time::Duration};
 
-use anyhow::Context;
+use anyhow::{anyhow, Context};
+use base64::{prelude::BASE64_URL_SAFE_NO_PAD, Engine};
 use gateway_config::{
     message_signatures::{DerivedComponent, MessageSigningAlgorithm, MessageSigningKey, SignatureParameter},
     MessageSignaturesConfig,
@@ -210,7 +216,8 @@ impl Key {
         let algorithm = algorithm.unwrap_or(MessageSigningAlgorithm::HmacSha256);
         match algorithm {
             MessageSigningAlgorithm::HmacSha256 => Ok(Key::Shared(
-                SharedKey::from_base64(contents).context("when parsing hmac-sha256 key from inline base64 string")?,
+                SharedKey::from_base64(contents)
+                    .context("could not parse hmac-sha256 key from inline base64 string")?,
             )),
             _ => Err(anyhow::anyhow!(
                 "only hmac-sha256 message signatures are supported when providing an inline key"
@@ -221,19 +228,26 @@ impl Key {
     pub fn from_file(name: &str, algorithm: Option<MessageSigningAlgorithm>) -> anyhow::Result<Self> {
         let data = std::fs::read_to_string(name)?;
 
-        if let Some(MessageSigningAlgorithm::HmacSha256) = algorithm {
-            return Ok(Self::Shared(SharedKey::from_base64(&data).with_context(|| {
-                format!("when parsing base64 encoded hmac-sha256 key from {name}")
-            })?));
-        }
-
-        let key = SecretKey::from_pem(&data).with_context(|| format!("error when parsing secret key from {name}"))?;
+        let key = if data.trim_start().starts_with('{') {
+            // If the file is very clearly a JSON object we'll treat it like a JWK
+            parse_jwk(&data, name)?
+        } else if algorithm == Some(MessageSigningAlgorithm::HmacSha256) {
+            Key::Shared(
+                SharedKey::from_base64(&data)
+                    .with_context(|| format!("could not parse base64 encoded hmac-sha256 key from {name}"))?,
+            )
+        } else {
+            Key::Secret(SecretKey::from_pem(&data).with_context(|| {
+                format!("could not parse a key from {name} (expected a PEM file containing a PKCS#8 format key)")
+            })?)
+        };
 
         match (&key, algorithm) {
             (_, None)
-            | (SecretKey::Ed25519(_), Some(MessageSigningAlgorithm::Ed25519))
-            | (SecretKey::EcdsaP256Sha256(_), Some(MessageSigningAlgorithm::EcdsaP256))
-            | (SecretKey::EcdsaP384Sha384(_), Some(MessageSigningAlgorithm::EcdsaP384)) => {}
+            | (Key::Shared(_), Some(MessageSigningAlgorithm::HmacSha256))
+            | (Key::Secret(SecretKey::Ed25519(_)), Some(MessageSigningAlgorithm::Ed25519))
+            | (Key::Secret(SecretKey::EcdsaP256Sha256(_)), Some(MessageSigningAlgorithm::EcdsaP256))
+            | (Key::Secret(SecretKey::EcdsaP384Sha384(_)), Some(MessageSigningAlgorithm::EcdsaP384)) => {}
             (_, Some(algorithm)) => {
                 return Err(anyhow::anyhow!(
                     "you requested {algorithm} message signing but {name} contains a {} key",
@@ -242,7 +256,7 @@ impl Key {
             }
         }
 
-        Ok(Self::Secret(key))
+        Ok(key)
     }
 }
 
@@ -269,6 +283,110 @@ impl SigningKey for Key {
     }
 }
 
+#[derive(serde::Deserialize)]
+pub struct Jwk {
+    #[serde(rename = "kty")]
+    key_type: String,
+    #[serde(rename = "crv")]
+    curve: Option<String>,
+    #[serde(rename = "d")]
+    private_key: Option<String>,
+    #[serde(rename = "alg")]
+    algorithm: Option<String>,
+    #[serde(rename = "k")]
+    shared_key: Option<String>,
+
+    x: Option<String>,
+    y: Option<String>,
+}
+
+// TODO: return the kid from this as well...
+fn parse_jwk(data: &str, filename: &str) -> anyhow::Result<Key> {
+    let jwk = serde_json::from_str::<Jwk>(data)
+        .with_context(|| format!("{filename} looked like a JWK but we could not parse it as one"))?;
+
+    match (jwk.key_type.as_str(), jwk.curve.as_deref()) {
+        // Values for the ecdsa curves as defined here https://datatracker.ietf.org/doc/html/rfc7518#section-6.2
+        ("EC", Some("P-256")) => {
+            validate_private_key(&jwk, filename)?;
+            Ok(Key::Secret(SecretKey::EcdsaP256Sha256(
+                ec_key_from_jwk(jwk)
+                    .with_context(|| format!("could not load P-256 private key from JWK {filename}"))?,
+            )))
+        }
+        ("EC", Some("P-384")) => {
+            validate_private_key(&jwk, filename)?;
+            Ok(Key::Secret(SecretKey::EcdsaP384Sha384(
+                ec_key_from_jwk(jwk)
+                    .with_context(|| format!("could not load P-384 private key from JWK {filename}"))?,
+            )))
+        }
+
+        // Ed25519 isn't in the original JWK spec, but found the values
+        // here: https://datatracker.ietf.org/doc/html/rfc8037#section-2
+        ("OKP", Some("Ed25519")) => parse_ed25519(&jwk, filename),
+
+        ("oct", _) if jwk.algorithm.as_deref() == Some("HS256") => {
+            let Some(key_b64) = jwk.shared_key.as_deref() else {
+                return Err(anyhow::anyhow!("The k field is missing from the JWK in {filename}"));
+            };
+
+            let key = BASE64_URL_SAFE_NO_PAD
+                .decode(key_b64)
+                .with_context(|| format!("could not base64 decode the key in {filename}"))?;
+
+            Ok(Key::Shared(httpsig::prelude::SharedKey::HmacSha256(key)))
+        }
+        ("oct", _) => Err(anyhow::anyhow!(
+            "The {:?} algorithm found in {filename} is not supported",
+            jwk.algorithm
+        )),
+        ("EC", Some(crv)) | ("OKP", Some(crv)) => Err(anyhow::anyhow!("the {crv} JWK curve is not supported")),
+
+        (kty, _) => Err(anyhow::anyhow!("{kty} JWKs are not supported")),
+    }
+}
+
+fn parse_ed25519(jwk: &Jwk, filename: &str) -> Result<Key, anyhow::Error> {
+    let private_b64 = validate_private_key(jwk, filename)?;
+    let Some(public_b64) = &jwk.x else {
+        return Err(anyhow::anyhow!("The Ed25519 JWK in {filename} is missing a public key"));
+    };
+    let Some((private, public)) = BASE64_URL_SAFE_NO_PAD
+        .decode(private_b64)
+        .ok()
+        .zip(BASE64_URL_SAFE_NO_PAD.decode(public_b64).ok())
+    else {
+        return Err(anyhow::anyhow!("Couldnt base64 decode the keys in {filename}"));
+    };
+
+    let mut key = [0; ed25519_compact::SecretKey::BYTES];
+    if private.len() + public.len() != key.len() {
+        return Err(anyhow::anyhow!(
+            "The public & private keys in {filename} dont have the expected length"
+        ));
+    }
+    key[..ed25519_compact::PublicKey::BYTES].copy_from_slice(&private);
+    key[ed25519_compact::PublicKey::BYTES..].copy_from_slice(&public);
+
+    Ok(Key::Secret(SecretKey::Ed25519(ed25519_compact::SecretKey::new(key))))
+}
+
+fn validate_private_key<'a>(jwk: &'a Jwk, filename: &str) -> anyhow::Result<&'a str> {
+    jwk.private_key
+        .as_deref()
+        .ok_or_else(|| anyhow::anyhow!("The JWK in {filename} does not contain a private key"))
+}
+
+fn ec_key_from_jwk<C>(jwk: Jwk) -> anyhow::Result<elliptic_curve::SecretKey<C>>
+where
+    C: elliptic_curve::Curve + elliptic_curve::JwkParameters + elliptic_curve::sec1::ValidatePublicKey,
+    elliptic_curve::FieldBytesSize<C>: elliptic_curve::sec1::ModulusSize,
+{
+    let ec_jwk = elliptic_curve::JwkEcKey::try_from(jwk)?;
+    Ok(elliptic_curve::SecretKey::from_jwk(&ec_jwk)?)
+}
+
 fn derived_component_to_message_component(component: &DerivedComponent) -> HttpMessageComponentId {
     HttpMessageComponentId::try_from(match component {
         DerivedComponent::Method => "@method",
@@ -279,4 +397,41 @@ fn derived_component_to_message_component(component: &DerivedComponent) -> HttpM
         DerivedComponent::Path => "@path",
     })
     .expect("these components are hard coded so shouldnt fail to convert")
+}
+
+// JwkEcKey has a Deserialize impl, but it fails if there's any object keys that it
+// doesn't expect in there (and it doesn't expect a whole load of fairly standard keys)
+// So rather than relying on that Deserialize impl lets just convert it ourselves
+//
+// We should be able to get rid of this once https://github.com/RustCrypto/traits/pull/1547
+// is merged, but who knows when that'll be.
+impl TryFrom<Jwk> for elliptic_curve::JwkEcKey {
+    type Error = anyhow::Error;
+
+    fn try_from(value: Jwk) -> Result<Self, Self::Error> {
+        let Jwk {
+            key_type,
+            curve,
+            private_key,
+            x,
+            y,
+            ..
+        } = value;
+
+        let curve = curve.ok_or_else(|| anyhow!("JWK was missing the crv field"))?;
+        let private_key = private_key.ok_or_else(|| anyhow!("JWK was missing the d field"))?;
+        let x = x.ok_or_else(|| anyhow!("JWK was missing the x field"))?;
+        let y = y.ok_or_else(|| anyhow!("JWK was missing the y field"))?;
+
+        // To make matters worse, none of the fields on JwkEcKey are public.
+        // So I guess we'll have to build a fake JSON object and then use
+        // the Deserialize impl. This API is a huge pain in the ass.
+        Ok(elliptic_curve::JwkEcKey::deserialize(json!({
+            "kty": key_type,
+            "crv": curve,
+            "x": x,
+            "y": y,
+            "d": private_key
+        }))?)
+    }
 }
