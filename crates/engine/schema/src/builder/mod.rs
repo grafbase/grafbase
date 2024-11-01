@@ -145,6 +145,7 @@ impl BuildContext {
                 batching: take(&mut config.batching),
                 complexity_control: take(&mut config.complexity_control),
                 response_extension: config.response_extension,
+                apq_enabled: config.apq.enabled,
             },
         })
     }

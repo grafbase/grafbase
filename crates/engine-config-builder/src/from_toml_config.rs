@@ -49,6 +49,9 @@ pub fn build_with_toml_config(config: &gateway_config::Config, graph: FederatedG
             .clone()
             .unwrap_or_default()
             .into(),
+        apq: engine_config::AutomaticPersistedQueries {
+            enabled: config.apq.enabled,
+        },
     }
 }
 

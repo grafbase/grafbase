@@ -1,6 +1,59 @@
 use engine::Engine;
 use graphql_mocks::FakeGithubSchema;
+use indoc::indoc;
 use integration_tests::{federation::EngineExt, runtime};
+
+#[test]
+fn when_disabled() {
+    runtime().block_on(async move {
+        let config = indoc! {r#"
+            [apq]
+            enabled = false
+        "#};
+
+        let engine = Engine::builder()
+            .with_toml_config(config)
+            .with_subgraph(FakeGithubSchema)
+            .build()
+            .await;
+
+        let query = "query { serverVersion }";
+        let execute = |query: &'static str, extensions: &serde_json::Value| engine.post(query).extensions(extensions);
+
+        let apq_ext = serde_json::json!({
+            "persistedQuery": {
+                "version": 1,
+                "sha256Hash": sha256(query)
+            }
+        });
+
+        insta::assert_json_snapshot!(execute(query, &apq_ext).await, @r#"
+        {
+          "errors": [
+            {
+              "message": "Persisted query not found",
+              "extensions": {
+                "code": "PERSISTED_QUERY_NOT_FOUND"
+              }
+            }
+          ]
+        }
+        "#);
+
+        insta::assert_json_snapshot!(execute("", &apq_ext).await, @r#"
+        {
+          "errors": [
+            {
+              "message": "Persisted query not found",
+              "extensions": {
+                "code": "PERSISTED_QUERY_NOT_FOUND"
+              }
+            }
+          ]
+        }
+        "#);
+    })
+}
 
 #[test]
 fn single_field_from_single_server() {
