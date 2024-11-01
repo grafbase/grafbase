@@ -110,6 +110,54 @@ fn signature_success_test(schema: SignedGithubSchema, config: String) {
 }
 
 #[test]
+fn test_message_signing_with_derived_components() {
+    let subgraph = SignedGithubSchema {
+        key: shared_key(),
+        kid: None,
+    };
+
+    let config = format!(
+        r#"
+            [gateway.message_signatures]
+            enabled = true
+            key.inline = "{SHARED_KEY_BASE64}"
+            derived_components = ["method", "target_uri", "authority", "scheme", "request_target", "path"]
+        "#
+    );
+
+    runtime().block_on(async move {
+        let engine = Engine::builder()
+            .with_subgraph(subgraph)
+            .with_toml_config(config)
+            .build()
+            .await;
+
+        let response = engine.post("query { serverVersion }").await;
+        similar_asserts::assert_serde_eq!(response.body, serde_json::json!({"data": {"serverVersion": "1"}}));
+
+        let request = engine
+            .drain_http_requests_sent_to::<SignedGithubSchema>()
+            .pop()
+            .unwrap();
+        let signature_input = request.headers.get("signature-input").unwrap().to_str().unwrap();
+
+        for field in [
+            "@method",
+            "@target-uri",
+            "@authority",
+            "@scheme",
+            "@request-target",
+            "@path",
+        ] {
+            assert!(
+                signature_input.contains(field),
+                "could not find {field} in header: {signature_input}"
+            );
+        }
+    });
+}
+
+#[test]
 fn test_message_signing_failures() {
     let response = runtime().block_on(async move {
         let engine = Engine::builder()
