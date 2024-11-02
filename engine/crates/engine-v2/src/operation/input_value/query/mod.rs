@@ -1,7 +1,6 @@
 mod de;
 mod ser;
 mod view;
-mod walker;
 
 use ::walker::Walk;
 use id_derives::{Id, IndexedFields};
@@ -13,7 +12,6 @@ use schema::{
 use crate::operation::{BoundVariableDefinitionId, OperationWalker, PreparedOperationWalker};
 
 pub(crate) use view::*;
-pub(crate) use walker::*;
 
 #[derive(Default, Clone, serde::Serialize, serde::Deserialize, IndexedFields)]
 pub(crate) struct QueryInputValues {

@@ -1,48 +1,79 @@
 scalar Operation
   @domain(
-    destination: "src/plan"
-    root_module: "plan"
+    destination: "src/plan/model"
+    root_module: "plan/model"
     context_name: "ctx"
     context_type: "PlanContext"
     visibility: "(crate)"
     imports: [{ module: "schema", domain: "schema" }]
   )
 
-scalar PositionedResponseKey @copy @prelude
-scalar Location @copy @prelude
 scalar String @prelude
-scalar QueryInputValue @indexed @prelude @record
 scalar FieldRef @ref(target: "Field")
+scalar DataFieldRef @ref(target: "DataField")
+scalar FieldShapeRefId @id
+
+# --------
+# - Plan -
+# --------
+
+scalar ConcreteObjectShapeId @prelude @id
 
 type Plan @indexed(id_size: "u16") @meta(module: "plan") {
+  entity_definition: EntityDefinition!
   resolver_definition: ResolverDefinition!
-  fields: [Field!]!
-  required_fields: [FieldRef!]!
+  selection_set: SelectionSet!
+  required_fields: [DataFieldRef!]!
+  input: ResponseObjectSetDefinition!
+  outputs: [ResponseObjectSetDefinition!]!
+  shape_id: ConcreteObjectShapeId!
+}
+
+type ResponseObjectSetDefinition @meta(module: "response_object_set") @indexed(id_size: "u16", deduplicated: true) {
+  ty: CompositeType!
 }
 
 # ----------------
 # - SelectionSet -
 # ----------------
 
-union Field @indexed(id_size: "u32") @meta(module: "field") @variants(remove_suffix: true) = DataField | TypenameField
+scalar PositionedResponseKey @copy @prelude
+scalar Location @copy @prelude
+scalar QueryInputValueId @prelude @id
+
+type SelectionSet @meta(module: "selection_set") @copy {
+  data_fields: [DataField!]!
+  typename_fields: [TypenameField!]!
+}
+
+union Field @id @indexed(id_size: "u32") @meta(module: "field") @variants(remove_suffix: true) =
+  | DataField
+  | TypenameField
 
 "In opposition to a __typename field this field does retrieve data from a subgraph"
-type DataField @meta(module: "field/data") {
+type DataField @meta(module: "field/data") @indexed(id_size: "u32") {
   key: PositionedResponseKey!
   location: Location!
   definition: FieldDefinition!
   arguments: [FieldArgument!]!
-  selection_set_fields: [Field!]!
-  required_fields: [FieldRef!]!
+  "Fields required either by @requires, @authorized, etc."
+  required_fields: [DataFieldRef!]!
+  "All field shape ids generated for this field"
+  shape_ids: [FieldShapeRefId!]!
+  output: ResponseObjectSetDefinition
+  selection_set: SelectionSet!
+  "Whether __typename should be requested from the subgraph for this selection set"
+  selection_set_requires_typename: Boolean!
+  matching_requirement: RequiredField
 }
 
 type FieldArgument @meta(module: "field/argument") @indexed(id_size: "u16") {
   definition: InputValueDefinition!
-  value: QueryInputValue!
+  value_id: QueryInputValueId!
 }
 
 "__typename field"
-type TypenameField @meta(module: "field/typename") {
+type TypenameField @meta(module: "field/typename") @indexed(id_size: "u32") {
   key: PositionedResponseKey!
   location: Location!
   type_condition: CompositeType!
@@ -51,7 +82,7 @@ type TypenameField @meta(module: "field/typename") {
 type VariableDefinition @meta(module: "variable") @indexed(id_size: "u16") {
   name: String!
   name_location: Location!
-  default_value: QueryInputValue
+  default_value_id: QueryInputValueId
   ty: Type!
 }
 

@@ -241,6 +241,7 @@ impl<'ctx, Op: Operation> OperationGraphBuilder<'ctx, Op> {
                 resolver_ix
             } else {
                 let resolver_ix = self.graph.add_node(Node::Resolver(Resolver {
+                    entity_definition_id: field_definition.parent_entity_id,
                     definition_id: resolver_definition.id(),
                 }));
                 self.graph
@@ -304,7 +305,7 @@ impl<'ctx, Op: Operation> OperationGraphBuilder<'ctx, Op> {
             required_field_set,
         }: Requirement<'ctx, Op::FieldId>,
     ) {
-        for item in required_field_set.items() {
+        for required_item in required_field_set.items() {
             // Find an existing field that satisfies the requirement.
             let existing_field = self
                 .graph
@@ -313,14 +314,17 @@ impl<'ctx, Op: Operation> OperationGraphBuilder<'ctx, Op> {
                     if matches!(edge.weight(), Edge::Field) {
                         self.graph[edge.target()]
                             .as_query_field()
-                            .map(|field| (edge.target(), field.id))
+                            .map(|field| (edge.target(), field))
                     } else {
                         None
                     }
                 })
-                .filter(|(_, field_id)| self.operation.field_satisfies(*field_id, item.field()))
+                .filter(|(_, field)| {
+                    field.matching_requirement_id == Some(required_item.field().id())
+                        || self.operation.field_satisfies(field.id, required_item.field())
+                })
                 // not sure if necessary but provides consistency
-                .min_by_key(|(_, field_id)| *field_id);
+                .min_by_key(|(_, field)| field.id);
 
             // Create the required field otherwise.
             let required_query_field_ix = if let Some((required_query_field_ix, _)) = existing_field {
@@ -329,7 +333,7 @@ impl<'ctx, Op: Operation> OperationGraphBuilder<'ctx, Op> {
                 // Create the QueryField Node
                 let field_id = self
                     .operation
-                    .create_potential_extra_field(petitioner_field_id, item.field());
+                    .create_potential_extra_field(petitioner_field_id, required_item.field());
                 let required_query_field_ix = self.push_query_field(
                     field_id,
                     if indispensable {
@@ -365,16 +369,22 @@ impl<'ctx, Op: Operation> OperationGraphBuilder<'ctx, Op> {
                 required_query_field_ix
             };
 
+            let Node::QueryField(field) = &mut self.graph[required_query_field_ix] else {
+                unreachable!()
+            };
+            // Set the id if not already there.
+            field.matching_requirement_id = Some(required_item.field().id());
+
             self.graph
                 .add_edge(dependent_ix, required_query_field_ix, Edge::Requires);
 
-            if item.subselection().items().len() != 0 {
+            if required_item.subselection().items().len() != 0 {
                 self.requirement_ingestion_stack.push(Requirement {
                     petitioner_field_id,
                     dependent_ix,
                     indispensable,
                     parent_query_field_ix: required_query_field_ix,
-                    required_field_set: item.subselection(),
+                    required_field_set: required_item.subselection(),
                 })
             }
         }
@@ -389,7 +399,11 @@ impl<'ctx, Op: Operation> OperationGraphBuilder<'ctx, Op> {
             flags |= FieldFlags::SCALAR;
         }
 
-        let query_field = Node::QueryField(QueryField { id, flags });
+        let query_field = Node::QueryField(QueryField {
+            id,
+            matching_requirement_id: None,
+            flags,
+        });
         let query_field_ix = self.graph.add_node(query_field);
         self.field_nodes.push(query_field_ix);
         query_field_ix

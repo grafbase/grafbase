@@ -3,7 +3,7 @@
 //! ===================
 //! Generated with: `cargo run -p engine-v2-codegen`
 //! Source file: <engine-v2-codegen dir>/domain/operation_plan.graphql
-use crate::plan::prelude::*;
+use crate::plan::model::prelude::*;
 use schema::{InputValueDefinition, InputValueDefinitionId};
 use walker::Walk;
 
@@ -12,7 +12,7 @@ use walker::Walk;
 /// ```custom,{.language-graphql}
 /// type FieldArgument @meta(module: "field/argument") @indexed(id_size: "u16") {
 ///   definition: InputValueDefinition!
-///   value: QueryInputValue!
+///   value_id: QueryInputValueId!
 /// }
 /// ```
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
@@ -26,8 +26,8 @@ pub(crate) struct FieldArgumentId(std::num::NonZero<u16>);
 
 #[derive(Clone, Copy)]
 pub(crate) struct FieldArgument<'a> {
-    pub(in crate::plan) ctx: PlanContext<'a>,
-    pub(in crate::plan) id: FieldArgumentId,
+    pub(in crate::plan::model) ctx: PlanContext<'a>,
+    pub(in crate::plan::model) id: FieldArgumentId,
 }
 
 impl std::ops::Deref for FieldArgument<'_> {
@@ -50,9 +50,6 @@ impl<'a> FieldArgument<'a> {
     pub(crate) fn definition(&self) -> InputValueDefinition<'a> {
         self.definition_id.walk(self.ctx.schema)
     }
-    pub(crate) fn value(&self) -> QueryInputValue<'a> {
-        self.value_id.walk(self.ctx)
-    }
 }
 
 impl<'a> Walk<PlanContext<'a>> for FieldArgumentId {
@@ -70,7 +67,7 @@ impl std::fmt::Debug for FieldArgument<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("FieldArgument")
             .field("definition", &self.definition())
-            .field("value", &self.value())
+            .field("value_id", &self.value_id)
             .finish()
     }
 }

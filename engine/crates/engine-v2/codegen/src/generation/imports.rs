@@ -37,17 +37,28 @@ pub(super) fn generate_imports<'a>(
                 tokens.push(quote! { #walker_name });
             }
             Definition::Scalar(scalar) => match scalar {
-                Scalar::Value { in_prelude, .. } if !in_prelude => {
-                    let name = Ident::new(definition.storage_type().name(), Span::call_site());
-                    let tokens = exernal_imports.unwrap_or(&mut scalar_imports);
-                    tokens.push(quote! { #name });
+                Scalar::Value { in_prelude, .. } => {
+                    if !in_prelude {
+                        let name = Ident::new(definition.storage_type().name(), Span::call_site());
+                        let tokens = exernal_imports.unwrap_or(&mut scalar_imports);
+                        tokens.push(quote! { #name });
+                    }
                 }
-                Scalar::Record { in_prelude, .. } if !in_prelude => {
-                    let name = Ident::new(definition.storage_type().name(), Span::call_site());
-                    let walker_name = Ident::new(definition.walker_name(), Span::call_site());
-                    let tokens = exernal_imports.unwrap_or(&mut scalar_imports);
-                    tokens.push(quote! { #name });
-                    tokens.push(quote! { #walker_name });
+                Scalar::Record { in_prelude, .. } => {
+                    if !in_prelude {
+                        let name = Ident::new(definition.storage_type().name(), Span::call_site());
+                        let walker_name = Ident::new(definition.walker_name(), Span::call_site());
+                        let tokens = exernal_imports.unwrap_or(&mut scalar_imports);
+                        tokens.push(quote! { #name });
+                        tokens.push(quote! { #walker_name });
+                    }
+                }
+                Scalar::Id { name, in_prelude, .. } => {
+                    if !in_prelude {
+                        let name = Ident::new(name, Span::call_site());
+                        let tokens = exernal_imports.unwrap_or(&mut scalar_imports);
+                        tokens.push(quote! { #name });
+                    }
                 }
                 Scalar::Ref { in_prelude, target, .. } => {
                     if !in_prelude {
@@ -55,7 +66,7 @@ pub(super) fn generate_imports<'a>(
                         let tokens = exernal_imports.unwrap_or(&mut scalar_imports);
                         tokens.push(quote! { #name });
                     }
-                    if !imports.generated.contains(&target.name()) {
+                    if !imports.generated.contains(&target.name()) && !imports.local.contains(&target.name()) {
                         let tokens = target
                             .external_domain_name()
                             .map(|name| other_imports.entry(name).or_default())
@@ -67,7 +78,6 @@ pub(super) fn generate_imports<'a>(
                         tokens.push(quote! { #walker_name });
                     }
                 }
-                _ => {}
             },
         }
     }

@@ -1,7 +1,7 @@
 use bitflags::bitflags;
 use std::borrow::Cow;
 
-use schema::{FieldDefinitionId, ResolverDefinitionId, Schema};
+use schema::{EntityDefinitionId, FieldDefinitionId, RequiredFieldId, ResolverDefinitionId, Schema};
 use walker::Walk as _;
 
 use crate::{dot_graph::Attrs, Operation};
@@ -73,6 +73,7 @@ bitflags! {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct QueryField<Id> {
     pub id: Id,
+    pub matching_requirement_id: Option<RequiredFieldId>,
     pub(crate) flags: FieldFlags,
 }
 
@@ -92,6 +93,7 @@ impl<Id> QueryField<Id> {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Resolver {
+    pub entity_definition_id: EntityDefinitionId,
     pub definition_id: ResolverDefinitionId,
 }
 
