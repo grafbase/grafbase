@@ -13,8 +13,8 @@ use crate::{
         BoundFieldId, BoundSelectionSetId, LogicalPlanId, OperationWalker, PlanWalker, ResponseModifierRule,
         SelectionSetType,
     },
-    response::{ResponseObjectSetId, ResponseViewSelection, ResponseViewSelectionSet},
     resolver::Resolver,
+    response::{ResponseObjectSetId, ResponseViewSelection, ResponseViewSelectionSet},
     Runtime,
 };
 

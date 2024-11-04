@@ -7,8 +7,8 @@ use serde::{
 
 use crate::{
     execution::ExecutionContext,
-    response::{ErrorCode, GraphqlError, ResponseKeys, ResponsePath, SubgraphResponseRefMut, UnpackedResponseEdge},
     resolver::graphql::CacheEntry,
+    response::{ErrorCode, GraphqlError, ResponseKeys, ResponsePath, SubgraphResponseRefMut, UnpackedResponseEdge},
     Runtime,
 };
 

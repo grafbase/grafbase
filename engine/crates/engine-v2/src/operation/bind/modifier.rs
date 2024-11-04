@@ -13,16 +13,12 @@ impl<'schema, 'p> super::Binder<'schema, 'p> {
         field_id: BoundFieldId,
         argument_ids: IdRange<BoundFieldArgumentId>,
         field_definition: FieldDefinition<'_>,
-        additional_modifiers: Vec<QueryModifierRule>,
+        executable_directive_rules: Vec<QueryModifierRule>,
     ) {
-        self.generate_modifiers_for_type_system_directives(field_id, argument_ids, field_definition);
-        self.generate_additional_modifiers(field_id, additional_modifiers);
-    }
-
-    fn generate_additional_modifiers(&mut self, field_id: BoundFieldId, additional_modifiers: Vec<QueryModifierRule>) {
-        for modifier in additional_modifiers {
-            self.register_field_impacted_by_query_modifier(modifier, field_id);
+        for rule in executable_directive_rules {
+            self.register_field_impacted_by_query_modifier(rule, field_id);
         }
+        self.generate_modifiers_for_type_system_directives(field_id, argument_ids, field_definition);
     }
 
     fn generate_modifiers_for_type_system_directives(

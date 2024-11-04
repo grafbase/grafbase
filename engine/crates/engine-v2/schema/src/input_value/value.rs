@@ -56,7 +56,7 @@ impl serde::Serialize for InputValue<'_> {
 }
 
 impl<'a> From<SchemaInputValue<'a>> for InputValue<'a> {
-    fn from(SchemaInputValue { schema, value }: SchemaInputValue<'a>) -> Self {
+    fn from(SchemaInputValue { schema, ref_: value }: SchemaInputValue<'a>) -> Self {
         match value {
             SchemaInputValueRecord::Null => InputValue::Null,
             SchemaInputValueRecord::String(id) => InputValue::String(id.walk(schema)),
