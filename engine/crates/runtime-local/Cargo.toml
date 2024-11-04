@@ -23,7 +23,10 @@ async-tungstenite = { workspace = true, features = [
   "tokio-runtime",
   "tokio-rustls-webpki-roots",
 ] }
+base64.workspace = true
 bytes.workspace = true
+ed25519-compact = "2"
+elliptic-curve = { version = "0.13", features = ["jwk"] }
 futures-util.workspace = true
 graphql-ws-client = { version = "0.10.0", features = ["tungstenite"] }
 governor.workspace = true
@@ -31,6 +34,8 @@ http.workspace = true
 httpsig.workspace = true
 httpsig-hyper.workspace = true
 ulid.workspace = true
+p256 = { version = "0.13", features = ["jwk"] }
+p384 = { version = "0.13", features = ["jwk"] }
 reqwest-eventsource = "0.6"
 serde.workspace = true
 serde_json = { workspace = true, features = ["raw_value"] }
