@@ -1,30 +1,39 @@
+use std::num::NonZero;
+
 use id_newtypes::{BitSet, IdToMany};
 use schema::{RequiresScopeSetIndex, RequiresScopesDirectiveId};
 use serde::Deserialize;
 use walker::Walk;
 
 use crate::{
-    execution::{ErrorId, PreExecutionContext},
+    execution::PreExecutionContext,
     operation::{InputValueContext, QueryModifierRule, Variables},
-    plan::{DataFieldId, Field, OperationPlan, PlanContext, PlanResult, QueryModifierDefinition, TypenameFieldId},
+    plan::{
+        DataPlanFieldId, OperationPlan, PlanContext, PlanField, PlanResult, QueryModifierDefinition,
+        TypenamePlanFieldId,
+    },
     response::{ConcreteObjectShapeId, ErrorCode, FieldShapeId, GraphqlError},
     Runtime,
 };
 
 #[allow(unused)]
-#[derive(id_derives::IndexedFields)]
+#[derive(Default, id_derives::IndexedFields)]
 pub(crate) struct QueryModifications {
     pub is_any_field_skipped: bool,
-    pub skipped_data_fields: BitSet<DataFieldId>,
-    pub skipped_typename_fields: BitSet<TypenameFieldId>,
+    pub skipped_data_fields: BitSet<DataPlanFieldId>,
+    pub skipped_typename_fields: BitSet<TypenamePlanFieldId>,
     #[indexed_by(ErrorId)]
     pub errors: Vec<GraphqlError>,
     pub concrete_shape_has_error: BitSet<ConcreteObjectShapeId>,
     pub field_shape_id_to_error_ids: IdToMany<FieldShapeId, ErrorId>,
     pub skipped_field_shapes: BitSet<FieldShapeId>,
     pub root_error_ids: Vec<ErrorId>,
+    // sorted by scope id
     matched_scopes: Vec<(RequiresScopesDirectiveId, RequiresScopeSetIndex)>,
 }
+
+#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
+pub struct ErrorId(NonZero<u16>);
 
 impl QueryModifications {
     pub(crate) async fn build(
@@ -232,10 +241,10 @@ where
         self.modifications.is_any_field_skipped = true;
         for field in modifier.impacted_fields() {
             match field {
-                Field::Typename(field) => {
+                PlanField::Typename(field) => {
                     self.modifications.skipped_typename_fields.set(field.id(), true);
                 }
-                Field::Data(field) => {
+                PlanField::Data(field) => {
                     self.modifications.skipped_data_fields.set(field.id(), true);
                     for field_shape_id in field.shapes() {
                         self.field_shape_id_to_error_ids.push((field_shape_id, error_id));
@@ -249,10 +258,10 @@ where
         self.modifications.is_any_field_skipped = true;
         for field in modifier.impacted_fields() {
             match field {
-                Field::Typename(field) => {
+                PlanField::Typename(field) => {
                     self.modifications.skipped_typename_fields.set(field.id(), true);
                 }
-                Field::Data(field) => {
+                PlanField::Data(field) => {
                     self.modifications.skipped_data_fields.set(field.id(), true);
                 }
             }

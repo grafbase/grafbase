@@ -6,7 +6,7 @@
 use crate::{
     generated::{FieldDefinition, FieldDefinitionId, InputValueDefinition, InputValueDefinitionId},
     prelude::*,
-    SchemaInputValue, SchemaInputValueId,
+    SchemaInputValue, SchemaInputValueId, StringId,
 };
 use walker::{Iter, Walk};
 
@@ -16,12 +16,16 @@ use walker::{Iter, Walk};
 /// type RequiredField
 ///   @meta(module: "field_set", derive: ["PartialEq", "Eq", "PartialOrd", "Ord"], debug: false)
 ///   @indexed(id_size: "u32", deduplicated: true) {
+///   "If no alias is provided, it's set to field name"
+///   alias: String!
 ///   definition: FieldDefinition!
 ///   arguments: [RequiredFieldArgument!]!
 /// }
 /// ```
 #[derive(Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq, PartialOrd, Ord)]
 pub struct RequiredFieldRecord {
+    /// If no alias is provided, it's set to field name
+    pub alias_id: StringId,
     pub definition_id: FieldDefinitionId,
     pub argument_records: Vec<RequiredFieldArgumentRecord>,
 }
@@ -50,6 +54,10 @@ impl<'a> RequiredField<'a> {
     }
     pub fn id(&self) -> RequiredFieldId {
         self.id
+    }
+    /// If no alias is provided, it's set to field name
+    pub fn alias(&self) -> &'a str {
+        self.alias_id.walk(self.schema)
     }
     pub fn definition(&self) -> FieldDefinition<'a> {
         self.definition_id.walk(self.schema)

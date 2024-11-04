@@ -3,7 +3,7 @@
 //! ===================
 //! Generated with: `cargo run -p engine-v2-codegen`
 //! Source file: <engine-v2-codegen dir>/domain/operation_plan.graphql
-use crate::plan::model::{generated::Field, prelude::*, FieldRefId};
+use crate::plan::model::{generated::PlanField, prelude::*, PlanFieldRefId};
 use walker::{Iter, Walk};
 
 /// Generated from:
@@ -12,14 +12,14 @@ use walker::{Iter, Walk};
 /// type QueryModifierDefinition @meta(module: "modifier") {
 ///   rule: QueryModifierRule!
 ///   impacts_root_object: Boolean!
-///   impacted_fields: [FieldRef!]!
+///   impacted_fields: [PlanFieldRef!]!
 /// }
 /// ```
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub(crate) struct QueryModifierDefinitionRecord {
     pub rule: QueryModifierRule,
     pub impacts_root_object: bool,
-    pub impacted_field_ids: IdRange<FieldRefId>,
+    pub impacted_field_ids: IdRange<PlanFieldRefId>,
 }
 
 #[derive(Clone, Copy)]
@@ -41,7 +41,7 @@ impl<'a> QueryModifierDefinition<'a> {
     pub(crate) fn as_ref(&self) -> &'a QueryModifierDefinitionRecord {
         self.ref_
     }
-    pub(crate) fn impacted_fields(&self) -> impl Iter<Item = Field<'a>> + 'a {
+    pub(crate) fn impacted_fields(&self) -> impl Iter<Item = PlanField<'a>> + 'a {
         self.impacted_field_ids.walk(self.ctx)
     }
 }
@@ -72,13 +72,13 @@ impl std::fmt::Debug for QueryModifierDefinition<'_> {
 /// ```custom,{.language-graphql}
 /// type ResponseModifierDefinition @meta(module: "modifier") {
 ///   rule: ResponseModifierRule!
-///   impacted_fields: [FieldRef!]!
+///   impacted_fields: [PlanFieldRef!]!
 /// }
 /// ```
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub(crate) struct ResponseModifierDefinitionRecord {
     pub rule: ResponseModifierRule,
-    pub impacted_field_ids: IdRange<FieldRefId>,
+    pub impacted_field_ids: IdRange<PlanFieldRefId>,
 }
 
 #[derive(Clone, Copy)]
@@ -100,7 +100,7 @@ impl<'a> ResponseModifierDefinition<'a> {
     pub(crate) fn as_ref(&self) -> &'a ResponseModifierDefinitionRecord {
         self.ref_
     }
-    pub(crate) fn impacted_fields(&self) -> impl Iter<Item = Field<'a>> + 'a {
+    pub(crate) fn impacted_fields(&self) -> impl Iter<Item = PlanField<'a>> + 'a {
         self.impacted_field_ids.walk(self.ctx)
     }
 }

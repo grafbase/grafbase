@@ -22,10 +22,10 @@ pub(crate) struct PlanContext<'a> {
 
 #[derive(id_derives::IndexedFields)]
 pub(crate) struct OperationPlan {
-    #[indexed_by(DataFieldId)]
-    pub data_fields: Vec<DataFieldRecord>,
-    #[indexed_by(TypenameFieldId)]
-    pub typename_fields: Vec<TypenameFieldRecord>,
+    #[indexed_by(DataPlanFieldId)]
+    pub data_fields: Vec<DataPlanFieldRecord>,
+    #[indexed_by(TypenamePlanFieldId)]
+    pub typename_fields: Vec<TypenamePlanFieldRecord>,
     #[indexed_by(FieldArgumentId)]
     pub field_arguments: Vec<FieldArgumentRecord>,
     #[indexed_by(VariableDefinitionId)]
@@ -45,21 +45,21 @@ pub(crate) struct OperationPlan {
 
     // Refs are used to replace a Vec<XId> with a IdRange<XRefId>. IdRange<XRefId> will at most have a size
     // of 2 * u32 while Vec<XId> is 3 words long. And we store everything in a single Vec.
-    #[indexed_by(FieldRefId)]
-    pub field_refs: Vec<FieldId>,
-    #[indexed_by(DataFieldRefId)]
-    pub data_field_refs: Vec<DataFieldId>,
+    #[indexed_by(PlanFieldRefId)]
+    pub field_refs: Vec<PlanFieldId>,
+    #[indexed_by(DataPlanFieldRefId)]
+    pub data_field_refs: Vec<DataPlanFieldId>,
     #[indexed_by(FieldShapeRefId)]
     pub field_shape_refs: Vec<FieldShapeId>,
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
-pub struct FieldRefId(NonZero<u32>);
+pub struct PlanFieldRefId(NonZero<u32>);
 
-impl<'a> Walk<PlanContext<'a>> for FieldRefId {
-    type Walker<'w> = Field<'w> where 'a: 'w;
+impl<'a> Walk<PlanContext<'a>> for PlanFieldRefId {
+    type Walker<'w> = PlanField<'w> where 'a: 'w;
 
-    fn walk<'w>(self, ctx: PlanContext<'a>) -> Field<'w>
+    fn walk<'w>(self, ctx: PlanContext<'a>) -> PlanField<'w>
     where
         'a: 'w,
     {
@@ -68,12 +68,12 @@ impl<'a> Walk<PlanContext<'a>> for FieldRefId {
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
-pub struct DataFieldRefId(NonZero<u32>);
+pub struct DataPlanFieldRefId(NonZero<u32>);
 
-impl<'a> Walk<PlanContext<'a>> for DataFieldRefId {
-    type Walker<'w> = DataField<'w> where 'a: 'w;
+impl<'a> Walk<PlanContext<'a>> for DataPlanFieldRefId {
+    type Walker<'w> = DataPlanField<'w> where 'a: 'w;
 
-    fn walk<'w>(self, ctx: PlanContext<'a>) -> DataField<'w>
+    fn walk<'w>(self, ctx: PlanContext<'a>) -> DataPlanField<'w>
     where
         'a: 'w,
     {

@@ -820,7 +820,7 @@ impl<'a> GraphBuilder<'a> {
                     .idmaps
                     .input_value
                     .get(item.input_value_definition)
-                    .map(|id| InputValueSetItem {
+                    .map(|id| InputValueSetSelection {
                         id,
                         subselection: self.convert_input_value_set(&item.subselection),
                     })

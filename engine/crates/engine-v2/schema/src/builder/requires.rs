@@ -113,6 +113,7 @@ impl<'a> Converter<'a> {
             })
             .collect::<Vec<_>>();
         let mut field = RequiredFieldRecord {
+            alias_id: self.graph[definition_id].name_id,
             definition_id,
             argument_records: Vec::with_capacity(federated_arguments.len()),
         };
