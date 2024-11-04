@@ -12,7 +12,7 @@ impl<'a> VariableWalker<'a> {
     pub fn as_value(&self) -> VariableValueWalker<'a> {
         match self.variables[self.item] {
             VariableValue::Undefined => {
-                if let Some(id) = self.as_ref().default_value {
+                if let Some(id) = self.as_ref().default_value_id {
                     VariableValueWalker::DefaultValue(self.walk(&self.operation.query_input_values[id]))
                 } else {
                     VariableValueWalker::Undefined

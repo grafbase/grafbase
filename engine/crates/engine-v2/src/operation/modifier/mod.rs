@@ -3,14 +3,16 @@ mod query;
 use id_newtypes::IdRange;
 use schema::{AuthorizedDirectiveId, DefinitionId, FieldDefinitionId, RequiresScopesDirectiveId};
 
-use super::{FieldArgumentId, QueryInputValueId, QueryModifierImpactedFieldId, ResponseModifierImpactedFieldId};
+use super::{
+    BoundFieldArgumentId, BoundQueryModifierImpactedFieldId, BoundResponseModifierImpactedFieldId, QueryInputValueId,
+};
 
 pub(crate) use query::*;
 
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
-pub(crate) struct QueryModifier {
+pub(crate) struct BoundQueryModifier {
     pub rule: QueryModifierRule,
-    pub impacted_fields: IdRange<QueryModifierImpactedFieldId>,
+    pub impacted_fields: IdRange<BoundQueryModifierImpactedFieldId>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
@@ -20,7 +22,7 @@ pub(crate) enum QueryModifierRule {
     AuthorizedField {
         directive_id: AuthorizedDirectiveId,
         definition_id: FieldDefinitionId,
-        argument_ids: IdRange<FieldArgumentId>,
+        argument_ids: IdRange<BoundFieldArgumentId>,
     },
     AuthorizedDefinition {
         directive_id: AuthorizedDirectiveId,
@@ -33,9 +35,9 @@ pub(crate) enum QueryModifierRule {
 }
 
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
-pub(crate) struct ResponseModifier {
+pub(crate) struct BoundResponseModifier {
     pub rule: ResponseModifierRule,
-    pub impacted_fields: IdRange<ResponseModifierImpactedFieldId>,
+    pub impacted_fields: IdRange<BoundResponseModifierImpactedFieldId>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize)]

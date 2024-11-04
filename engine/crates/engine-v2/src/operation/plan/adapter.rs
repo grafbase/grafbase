@@ -3,8 +3,8 @@ use schema::Schema;
 
 use crate::{
     operation::{
-        ExtraField, Field, FieldArgument, FieldArgumentId, FieldId, Operation, OperationWalker, QueryInputValue,
-        SelectionSetId,
+        BoundExtraField, BoundField, BoundFieldArgument, BoundFieldArgumentId, BoundFieldId, BoundSelectionSetId,
+        Operation, OperationWalker, QueryInputValueRecord,
     },
     response::{ResponseEdge, ResponseKey, UnpackedResponseEdge},
 };
@@ -26,10 +26,10 @@ impl<'a> OperationAdapter<'a> {
 }
 
 impl<'a> query_planning::Operation for OperationAdapter<'a> {
-    type FieldId = FieldId;
+    type FieldId = BoundFieldId;
 
     fn field_ids(&self) -> impl ExactSizeIterator<Item = Self::FieldId> + 'static {
-        (0..self.operation.fields.len()).map(FieldId::from)
+        (0..self.operation.fields.len()).map(BoundFieldId::from)
     }
 
     fn field_defintion(&self, field_id: Self::FieldId) -> Option<schema::FieldDefinitionId> {
@@ -51,7 +51,7 @@ impl<'a> query_planning::Operation for OperationAdapter<'a> {
         petitioner_field_id: Self::FieldId,
         requirement: schema::RequiredField<'_>,
     ) -> Self::FieldId {
-        let field = ExtraField {
+        let field = BoundExtraField {
             definition_id: requirement.definition_id,
             argument_ids: self.create_arguments_for(requirement),
             petitioner_location: self.operation[petitioner_field_id].location(),
@@ -59,9 +59,9 @@ impl<'a> query_planning::Operation for OperationAdapter<'a> {
             edge: ResponseEdge::from(0),
             // Not relevant anymore
             selection_set_id: None,
-            parent_selection_set_id: SelectionSetId::from(0u16),
+            parent_selection_set_id: BoundSelectionSetId::from(0u16),
         };
-        self.operation.fields.push(Field::Extra(field));
+        self.operation.fields.push(BoundField::Extra(field));
         (self.operation.fields.len() - 1).into()
     }
 
@@ -129,7 +129,7 @@ impl<'a> query_planning::Operation for OperationAdapter<'a> {
                     i += 1;
                 }
             };
-            if let Field::Extra(field) = &mut self.operation[*extra_field_id] {
+            if let BoundField::Extra(field) = &mut self.operation[*extra_field_id] {
                 field.edge = UnpackedResponseEdge::ExtraFieldResponseKey(key).pack();
                 self.tmp_response_keys.push(key);
             };
@@ -138,16 +138,16 @@ impl<'a> query_planning::Operation for OperationAdapter<'a> {
 }
 
 impl<'a> OperationAdapter<'a> {
-    fn create_arguments_for(&mut self, requirement: schema::RequiredField<'_>) -> IdRange<FieldArgumentId> {
+    fn create_arguments_for(&mut self, requirement: schema::RequiredField<'_>) -> IdRange<BoundFieldArgumentId> {
         let start = self.operation.field_arguments.len();
 
         for argument in &requirement.argument_records {
             let input_value_id = self
                 .operation
                 .query_input_values
-                .push_value(QueryInputValue::DefaultValue(argument.value_id));
+                .push_value(QueryInputValueRecord::DefaultValue(argument.value_id));
 
-            self.operation.field_arguments.push(FieldArgument {
+            self.operation.field_arguments.push(BoundFieldArgument {
                 name_location: None,
                 value_location: None,
                 input_value_id,

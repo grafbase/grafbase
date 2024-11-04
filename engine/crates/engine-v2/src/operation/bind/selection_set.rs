@@ -9,7 +9,7 @@ use super::{BindError, BindResult, Binder};
 use crate::operation::bind::coercion::coerce_query_value;
 use crate::operation::{QueryInputValueId, QueryModifierRule};
 use crate::{
-    operation::{FieldId, Location, QueryPosition, SelectionSet, SelectionSetId, SelectionSetType},
+    operation::{BoundFieldId, BoundSelectionSet, BoundSelectionSetId, Location, QueryPosition, SelectionSetType},
     response::SafeResponseKey,
 };
 
@@ -18,7 +18,7 @@ impl<'schema, 'p> Binder<'schema, 'p> {
         &mut self,
         ty: SelectionSetType,
         merged_selection_sets: &[&'p Positioned<engine_parser::types::SelectionSet>],
-    ) -> BindResult<SelectionSetId> {
+    ) -> BindResult<BoundSelectionSetId> {
         SelectionSetBinder::new(self).bind(ty, merged_selection_sets)
     }
 }
@@ -85,13 +85,13 @@ impl<'schema, 'p, 'binder> SelectionSetBinder<'schema, 'p, 'binder> {
         mut self,
         ty: SelectionSetType,
         merged_selection_sets: &[&'p Positioned<engine_parser::types::SelectionSet>],
-    ) -> BindResult<SelectionSetId> {
+    ) -> BindResult<BoundSelectionSetId> {
         for selection_set in merged_selection_sets {
             self.register_selection_set_fields(ty, selection_set, &ExecutableDirectives::default())?;
         }
 
-        let id = SelectionSetId::from(self.selection_sets.len());
-        self.selection_sets.push(SelectionSet::default());
+        let id = BoundSelectionSetId::from(self.selection_sets.len());
+        self.selection_sets.push(BoundSelectionSet::default());
 
         let mut field_ids = self.generate_fields(ty, id)?;
 
@@ -108,7 +108,7 @@ impl<'schema, 'p, 'binder> SelectionSetBinder<'schema, 'p, 'binder> {
         Ok(id)
     }
 
-    fn generate_fields(&mut self, ty: SelectionSetType, id: SelectionSetId) -> BindResult<Vec<FieldId>> {
+    fn generate_fields(&mut self, ty: SelectionSetType, id: BoundSelectionSetId) -> BindResult<Vec<BoundFieldId>> {
         let mut field_ids = Vec::with_capacity(self.fields.len());
 
         for ((response_key, definition_id), (query_position, fields, rules)) in std::mem::take(&mut self.fields) {

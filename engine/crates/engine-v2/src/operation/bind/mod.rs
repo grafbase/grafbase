@@ -1,4 +1,5 @@
 mod coercion;
+mod error;
 mod field;
 mod modifier;
 mod selection_set;
@@ -10,149 +11,24 @@ use std::collections::HashMap;
 pub use engine_parser::types::OperationType;
 use id_derives::IndexedFields;
 use id_newtypes::IdRange;
-use itertools::Itertools;
 use modifier::{finalize_query_modifiers, finalize_response_modifiers};
 use schema::Schema;
 use validation::validate_parsed_operation;
 
 use super::{
-    parse::ParsedOperation, FieldId, QueryInputValues, QueryModifierId, QueryModifierRule, ResponseModifierId,
-    ResponseModifierRule,
+    parse::ParsedOperation, BoundFieldId, BoundQueryModifierId, BoundResponseModifierId, QueryInputValues,
+    QueryModifierRule, ResponseModifierRule,
 };
 use crate::{
     operation::SelectionSetType,
     operation::{
-        Field, FieldArgument, FieldArgumentId, Location, Operation, SelectionSet, SelectionSetId, VariableDefinition,
+        BoundField, BoundFieldArgument, BoundFieldArgumentId, BoundSelectionSet, BoundSelectionSetId, Location,
+        Operation, VariableDefinitionRecord,
     },
-    response::{ErrorCode, GraphqlError, ResponseKeys},
+    response::ResponseKeys,
 };
+pub use error::*;
 pub use variables::*;
-
-#[derive(thiserror::Error, Debug)]
-pub enum BindError {
-    #[error("Unknown type named '{name}'")]
-    UnknownType { name: String, location: Location },
-    #[error("The field `{field_name}` does not have an argument named `{argument_name}")]
-    UnknownArgument {
-        field_name: String,
-        argument_name: String,
-        location: Location,
-    },
-    #[error("{container} does not have a field named '{name}'")]
-    UnknownField {
-        container: String,
-        name: String,
-        location: Location,
-    },
-    #[error("Unknown fragment named '{name}'")]
-    UnknownFragment { name: String, location: Location },
-    #[error("Field '{name}' does not exists on {ty}, it's a union. Only interfaces and objects have fields, consider using a fragment with a type condition.")]
-    UnionHaveNoFields {
-        name: String,
-        ty: String,
-        location: Location,
-    },
-    #[error("Field '{name}' cannot have a selection set, it's a {ty}. Only interfaces, unions and objects can.")]
-    CannotHaveSelectionSet {
-        name: String,
-        ty: String,
-        location: Location,
-    },
-    #[error("Type conditions cannot be declared on '{name}', only on unions, interfaces or objects.")]
-    InvalidTypeConditionTargetType { name: String, location: Location },
-    #[error("Type condition on '{name}' cannot be used in a '{parent}' selection_set")]
-    DisjointTypeCondition {
-        parent: String,
-        name: String,
-        location: Location,
-    },
-    #[error("Mutations are not defined on this schema.")]
-    NoMutationDefined,
-    #[error("Subscriptions are not defined on this schema.")]
-    NoSubscriptionDefined,
-    #[error("Leaf field '{name}' must be a scalar or an enum, but is a {ty}.")]
-    LeafMustBeAScalarOrEnum {
-        name: String,
-        ty: String,
-        location: Location,
-    },
-    #[error(
-        "Variable named '${name}' does not have a valid input type. Can only be a scalar, enum or input object. Found: '{ty}'."
-    )]
-    InvalidVariableType {
-        name: String,
-        ty: String,
-        location: Location,
-    },
-    #[error("Too many fields selection set.")]
-    TooManyFields { location: Location },
-    #[error("There can only be one variable named '${name}'")]
-    DuplicateVariable { name: String, location: Location },
-    #[error("Variable '${name}' is not used{operation}")]
-    UnusedVariable {
-        name: String,
-        operation: ErrorOperationName,
-        location: Location,
-    },
-    #[error("Fragment cycle detected: {}", .cycle.iter().join(", "))]
-    FragmentCycle { cycle: Vec<String>, location: Location },
-    #[error("Query is too big: {0}")]
-    QueryTooBig(String),
-    #[error("{0}")]
-    InvalidInputValue(#[from] coercion::InputValueError),
-    #[error("Missing argument named '{name}' for field '{field}'")]
-    MissingArgument {
-        field: String,
-        name: String,
-        location: Location,
-    },
-    #[error("Query is too complex.")]
-    QueryTooComplex { complexity: usize, location: Location },
-    #[error("Query is nested too deep.")]
-    QueryTooDeep { depth: usize, location: Location },
-    #[error("Query contains too many root fields.")]
-    QueryContainsTooManyRootFields { count: usize, location: Location },
-    #[error("Query contains too many aliases.")]
-    QueryContainsTooManyAliases { count: usize, location: Location },
-    #[error("Missing argument named '{name}' for directive '{directive}'")]
-    MissingDirectiveArgument {
-        name: String,
-        directive: String,
-        location: Location,
-    },
-}
-
-impl From<BindError> for GraphqlError {
-    fn from(err: BindError) -> Self {
-        let locations = match err {
-            BindError::UnknownField { location, .. }
-            | BindError::UnknownArgument { location, .. }
-            | BindError::UnknownType { location, .. }
-            | BindError::UnknownFragment { location, .. }
-            | BindError::UnionHaveNoFields { location, .. }
-            | BindError::InvalidTypeConditionTargetType { location, .. }
-            | BindError::CannotHaveSelectionSet { location, .. }
-            | BindError::DisjointTypeCondition { location, .. }
-            | BindError::InvalidVariableType { location, .. }
-            | BindError::TooManyFields { location }
-            | BindError::LeafMustBeAScalarOrEnum { location, .. }
-            | BindError::DuplicateVariable { location, .. }
-            | BindError::FragmentCycle { location, .. }
-            | BindError::MissingArgument { location, .. }
-            | BindError::MissingDirectiveArgument { location, .. }
-            | BindError::UnusedVariable { location, .. }
-            | BindError::QueryTooComplex { location, .. }
-            | BindError::QueryTooDeep { location, .. }
-            | BindError::QueryContainsTooManyAliases { location, .. }
-            | BindError::QueryContainsTooManyRootFields { location, .. } => vec![location],
-            BindError::InvalidInputValue(ref err) => vec![err.location()],
-            BindError::NoMutationDefined | BindError::NoSubscriptionDefined | BindError::QueryTooBig { .. } => {
-                vec![]
-            }
-        };
-        GraphqlError::new(err.to_string(), ErrorCode::OperationValidationError).with_locations(locations)
-    }
-}
 
 pub type BindResult<T> = Result<T, BindError>;
 
@@ -162,16 +38,17 @@ pub(crate) struct Binder<'schema, 'p> {
     parsed_operation: &'p ParsedOperation,
     operation_name: ErrorOperationName,
     response_keys: ResponseKeys,
-    field_arguments: Vec<FieldArgument>,
-    location_to_field_arguments: HashMap<Location, IdRange<FieldArgumentId>>,
-    #[indexed_by(FieldId)]
-    fields: Vec<Field>,
-    #[indexed_by(SelectionSetId)]
-    selection_sets: Vec<SelectionSet>,
-    variable_definitions: Vec<VariableDefinition>,
+    field_arguments: Vec<BoundFieldArgument>,
+    location_to_field_arguments: HashMap<Location, IdRange<BoundFieldArgumentId>>,
+    #[indexed_by(BoundFieldId)]
+    fields: Vec<BoundField>,
+    #[indexed_by(BoundSelectionSetId)]
+    selection_sets: Vec<BoundSelectionSet>,
+    variable_definition_in_use: Vec<bool>,
+    variable_definitions: Vec<VariableDefinitionRecord>,
     input_values: QueryInputValues,
-    query_modifiers: HashMap<QueryModifierRule, (QueryModifierId, Vec<FieldId>)>,
-    response_modifiers: HashMap<ResponseModifierRule, (ResponseModifierId, Vec<FieldId>)>,
+    query_modifiers: HashMap<QueryModifierRule, (BoundQueryModifierId, Vec<BoundFieldId>)>,
+    response_modifiers: HashMap<ResponseModifierRule, (BoundResponseModifierId, Vec<BoundFieldId>)>,
 }
 
 pub fn bind_operation(schema: &Schema, mut parsed_operation: ParsedOperation) -> BindResult<Operation> {
@@ -193,6 +70,7 @@ pub fn bind_operation(schema: &Schema, mut parsed_operation: ParsedOperation) ->
         location_to_field_arguments: HashMap::default(),
         fields: Vec::new(),
         selection_sets: Vec::new(),
+        variable_definition_in_use: Vec::new(),
         variable_definitions: Vec::new(),
         query_modifiers: Default::default(),
         input_values: QueryInputValues::default(),
@@ -200,7 +78,7 @@ pub fn bind_operation(schema: &Schema, mut parsed_operation: ParsedOperation) ->
     };
 
     // Must be executed before binding selection sets
-    binder.variable_definitions = binder.bind_variable_definitions(variable_definitions)?;
+    binder.bind_variable_definitions(variable_definitions)?;
 
     let root_selection_set_id = binder.bind_merged_selection_sets(
         SelectionSetType::Object(root_object_id),

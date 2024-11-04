@@ -8,7 +8,7 @@ use serde::{
 };
 use walker::Walk;
 
-use super::{QueryInputValue, QueryInputValueWalker};
+use super::{QueryInputValueRecord, QueryInputValueWalker};
 
 impl<'de> serde::Deserializer<'de> for QueryInputValueWalker<'de> {
     type Error = InputValueSerdeError;
@@ -19,18 +19,20 @@ impl<'de> serde::Deserializer<'de> for QueryInputValueWalker<'de> {
     {
         let input_values = &self.operation.query_input_values;
         match self.item {
-            QueryInputValue::Null => visitor.visit_none(),
-            QueryInputValue::String(s) | QueryInputValue::UnboundEnumValue(s) => visitor.visit_borrowed_str(s),
-            QueryInputValue::EnumValue(id) => visitor.visit_borrowed_str(self.schema.walk(*id).name()),
-            QueryInputValue::Int(n) => visitor.visit_i32(*n),
-            QueryInputValue::BigInt(n) => visitor.visit_i64(*n),
-            QueryInputValue::U64(n) => visitor.visit_u64(*n),
-            QueryInputValue::Float(n) => visitor.visit_f64(*n),
-            QueryInputValue::Boolean(b) => visitor.visit_bool(*b),
-            QueryInputValue::List(ids) => {
+            QueryInputValueRecord::Null => visitor.visit_none(),
+            QueryInputValueRecord::String(s) | QueryInputValueRecord::UnboundEnumValue(s) => {
+                visitor.visit_borrowed_str(s)
+            }
+            QueryInputValueRecord::EnumValue(id) => visitor.visit_borrowed_str(self.schema.walk(*id).name()),
+            QueryInputValueRecord::Int(n) => visitor.visit_i32(*n),
+            QueryInputValueRecord::BigInt(n) => visitor.visit_i64(*n),
+            QueryInputValueRecord::U64(n) => visitor.visit_u64(*n),
+            QueryInputValueRecord::Float(n) => visitor.visit_f64(*n),
+            QueryInputValueRecord::Boolean(b) => visitor.visit_bool(*b),
+            QueryInputValueRecord::List(ids) => {
                 SeqDeserializer::new(input_values[*ids].iter().map(|value| self.walk(value))).deserialize_any(visitor)
             }
-            QueryInputValue::InputObject(ids) => {
+            QueryInputValueRecord::InputObject(ids) => {
                 MapDeserializer::new(
                     input_values[*ids]
                         .iter()
@@ -46,14 +48,14 @@ impl<'de> serde::Deserializer<'de> for QueryInputValueWalker<'de> {
                 )
                 .deserialize_any(visitor)
             }
-            QueryInputValue::Map(ids) => MapDeserializer::new(
+            QueryInputValueRecord::Map(ids) => MapDeserializer::new(
                 input_values[*ids]
                     .iter()
                     .map(|(key, value)| (key.as_str(), self.walk(value))),
             )
             .deserialize_any(visitor),
-            QueryInputValue::DefaultValue(id) => id.walk(self.schema).deserialize_any(visitor),
-            QueryInputValue::Variable(id) => self.walk(*id).deserialize_any(visitor),
+            QueryInputValueRecord::DefaultValue(id) => id.walk(self.schema).deserialize_any(visitor),
+            QueryInputValueRecord::Variable(id) => self.walk(*id).deserialize_any(visitor),
         }
     }
 
@@ -61,7 +63,7 @@ impl<'de> serde::Deserializer<'de> for QueryInputValueWalker<'de> {
     where
         V: Visitor<'de>,
     {
-        if matches!(self.item, QueryInputValue::Null) {
+        if matches!(self.item, QueryInputValueRecord::Null) {
             visitor.visit_none()
         } else {
             visitor.visit_some(self)

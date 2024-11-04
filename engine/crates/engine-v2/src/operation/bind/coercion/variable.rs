@@ -5,7 +5,9 @@ use schema::{
     ScalarType, Schema, TypeRecord,
 };
 
-use crate::operation::{Location, VariableDefinition, VariableInputValue, VariableInputValueId, VariableInputValues};
+use crate::operation::{
+    Location, VariableDefinitionRecord, VariableInputValue, VariableInputValueId, VariableInputValues,
+};
 
 use super::{
     error::InputValueError,
@@ -15,7 +17,7 @@ use super::{
 pub fn coerce_variable(
     schema: &Schema,
     input_values: &mut VariableInputValues,
-    definition: &VariableDefinition,
+    definition: &VariableDefinitionRecord,
     value: ConstValue,
 ) -> Result<VariableInputValueId, InputValueError> {
     let mut ctx = VariableCoercionContext {
@@ -25,7 +27,7 @@ pub fn coerce_variable(
         value_path: Vec::new(),
         input_fields_buffer_pool: Vec::new(),
     };
-    let value = ctx.coerce_input_value(definition.ty, value)?;
+    let value = ctx.coerce_input_value(definition.ty_record, value)?;
     Ok(input_values.push_value(value))
 }
 

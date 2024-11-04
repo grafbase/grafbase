@@ -1,13 +1,13 @@
 use schema::FieldDefinition;
 
 use crate::{
-    operation::{FieldArgumentsWalker, FieldId, QueryInputValueWalker},
+    operation::{BoundFieldId, FieldArgumentsWalker, QueryInputValueWalker},
     response::ResponseKey,
 };
 
 use super::{PlanSelectionSet, PlanWalker};
 
-pub type PlanField<'a> = PlanWalker<'a, FieldId>;
+pub type PlanField<'a> = PlanWalker<'a, BoundFieldId>;
 
 impl<'a> PlanField<'a> {
     pub fn selection_set(&self) -> Option<PlanSelectionSet<'a>> {

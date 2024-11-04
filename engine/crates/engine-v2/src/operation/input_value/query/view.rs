@@ -5,7 +5,7 @@ use serde::{
     ser::SerializeMap,
 };
 
-use super::{QueryInputValue, QueryInputValueWalker};
+use super::{QueryInputValueRecord, QueryInputValueWalker};
 
 pub(crate) struct QueryInputValueView<'a> {
     pub(super) inner: QueryInputValueWalker<'a>,
@@ -22,7 +22,7 @@ impl<'a> serde::Serialize for QueryInputValueView<'a> {
         if self.selection_set.is_empty() {
             return self.inner.serialize(serializer);
         }
-        let QueryInputValue::InputObject(fields) = self.inner.item else {
+        let QueryInputValueRecord::InputObject(fields) = self.inner.item else {
             return Err(serde::ser::Error::custom(
                 "Can only select fields within an input object.",
             ));
@@ -57,7 +57,7 @@ impl<'de> serde::Deserializer<'de> for QueryInputValueView<'de> {
             return self.inner.deserialize_any(visitor);
         }
 
-        let QueryInputValue::InputObject(fields) = self.inner.item else {
+        let QueryInputValueRecord::InputObject(fields) = self.inner.item else {
             return Err(serde::de::Error::custom(
                 "Can only select fields within an input object.",
             ));

@@ -7,13 +7,13 @@ use schema::{
 
 use crate::response::{BoundResponseKey, ResponseEdge, ResponseKey};
 
-use super::{FieldArgumentId, FieldId, Location, QueryInputValueId, SelectionSetId};
+use super::{BoundFieldArgumentId, BoundFieldId, BoundSelectionSetId, Location, QueryInputValueId};
 
 #[derive(Clone, Default, serde::Serialize, serde::Deserialize)]
-pub(crate) struct SelectionSet {
+pub(crate) struct BoundSelectionSet {
     /// (ResponseKey, Option<FieldDefinitionId>) is guaranteed to be unique
     /// Ordered by query (parent EntityId, query position)
-    pub field_ids_ordered_by_parent_entity_id_then_position: Vec<FieldId>,
+    pub field_ids_ordered_by_parent_entity_id_then_position: Vec<BoundFieldId>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, serde::Serialize, serde::Deserialize)]
@@ -80,52 +80,52 @@ pub struct QueryPosition(std::num::NonZero<u16>);
 /// The BoundFieldDefinition defines a field that is part of the actual GraphQL query.
 /// A BoundField is a field in the query *after* spreading all the named fragments.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub enum Field {
+pub enum BoundField {
     // Keeping attributes inside the enum to allow Rust to optimize the size of BoundField. We rarely
     // use the variants directly.
     /// __typename field
-    TypeName(TypeNameField),
+    TypeName(BoundTypeNameField),
     /// Corresponds to an actual field within the operation that has a field definition
-    Query(QueryField),
+    Query(BoundQueryField),
     /// Extra field added during planning to satisfy resolver/field requirements
-    Extra(ExtraField),
+    Extra(BoundExtraField),
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct TypeNameField {
+pub struct BoundTypeNameField {
     pub type_condition: SelectionSetType,
     pub bound_response_key: BoundResponseKey,
     pub location: Location,
-    pub parent_selection_set_id: SelectionSetId,
+    pub parent_selection_set_id: BoundSelectionSetId,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct QueryField {
+pub struct BoundQueryField {
     pub bound_response_key: BoundResponseKey,
     pub location: Location,
     pub definition_id: FieldDefinitionId,
-    pub argument_ids: IdRange<FieldArgumentId>,
-    pub selection_set_id: Option<SelectionSetId>,
-    pub parent_selection_set_id: SelectionSetId,
+    pub argument_ids: IdRange<BoundFieldArgumentId>,
+    pub selection_set_id: Option<BoundSelectionSetId>,
+    pub parent_selection_set_id: BoundSelectionSetId,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct ExtraField {
+pub struct BoundExtraField {
     pub edge: ResponseEdge,
     pub definition_id: FieldDefinitionId,
-    pub selection_set_id: Option<SelectionSetId>,
-    pub argument_ids: IdRange<FieldArgumentId>,
+    pub selection_set_id: Option<BoundSelectionSetId>,
+    pub argument_ids: IdRange<BoundFieldArgumentId>,
     pub petitioner_location: Location,
-    pub parent_selection_set_id: SelectionSetId,
+    pub parent_selection_set_id: BoundSelectionSetId,
 }
 
-impl Field {
+impl BoundField {
     pub fn query_position(&self) -> usize {
         match self {
-            Field::TypeName(TypeNameField { bound_response_key, .. }) => bound_response_key.position(),
-            Field::Query(QueryField { bound_response_key, .. }) => bound_response_key.position(),
+            BoundField::TypeName(BoundTypeNameField { bound_response_key, .. }) => bound_response_key.position(),
+            BoundField::Query(BoundQueryField { bound_response_key, .. }) => bound_response_key.position(),
             // Fake query position, but unique
-            Field::Extra(ExtraField { edge, .. }) => usize::from(*edge),
+            BoundField::Extra(BoundExtraField { edge, .. }) => usize::from(*edge),
         }
     }
 
@@ -137,57 +137,57 @@ impl Field {
 
     pub fn response_edge(&self) -> ResponseEdge {
         match self {
-            Field::TypeName(TypeNameField { bound_response_key, .. }) => (*bound_response_key).into(),
-            Field::Query(QueryField { bound_response_key, .. }) => (*bound_response_key).into(),
-            Field::Extra(ExtraField { edge, .. }) => *edge,
+            BoundField::TypeName(BoundTypeNameField { bound_response_key, .. }) => (*bound_response_key).into(),
+            BoundField::Query(BoundQueryField { bound_response_key, .. }) => (*bound_response_key).into(),
+            BoundField::Extra(BoundExtraField { edge, .. }) => *edge,
         }
     }
 
     pub fn location(&self) -> Location {
         match self {
-            Field::TypeName(TypeNameField { location, .. }) => *location,
-            Field::Query(QueryField { location, .. }) => *location,
-            Field::Extra(ExtraField {
+            BoundField::TypeName(BoundTypeNameField { location, .. }) => *location,
+            BoundField::Query(BoundQueryField { location, .. }) => *location,
+            BoundField::Extra(BoundExtraField {
                 petitioner_location, ..
             }) => *petitioner_location,
         }
     }
 
-    pub fn selection_set_id(&self) -> Option<SelectionSetId> {
+    pub fn selection_set_id(&self) -> Option<BoundSelectionSetId> {
         match self {
-            Field::TypeName(TypeNameField { .. }) => None,
-            Field::Query(QueryField { selection_set_id, .. }) => *selection_set_id,
-            Field::Extra(ExtraField { selection_set_id, .. }) => *selection_set_id,
+            BoundField::TypeName(BoundTypeNameField { .. }) => None,
+            BoundField::Query(BoundQueryField { selection_set_id, .. }) => *selection_set_id,
+            BoundField::Extra(BoundExtraField { selection_set_id, .. }) => *selection_set_id,
         }
     }
 
     pub fn definition_id(&self) -> Option<FieldDefinitionId> {
         match self {
-            Field::TypeName(TypeNameField { .. }) => None,
-            Field::Query(QueryField { definition_id, .. }) => Some(*definition_id),
-            Field::Extra(ExtraField { definition_id, .. }) => Some(*definition_id),
+            BoundField::TypeName(BoundTypeNameField { .. }) => None,
+            BoundField::Query(BoundQueryField { definition_id, .. }) => Some(*definition_id),
+            BoundField::Extra(BoundExtraField { definition_id, .. }) => Some(*definition_id),
         }
     }
 
-    pub fn argument_ids(&self) -> IdRange<FieldArgumentId> {
+    pub fn argument_ids(&self) -> IdRange<BoundFieldArgumentId> {
         match self {
-            Field::TypeName(TypeNameField { .. }) => IdRange::empty(),
-            Field::Query(QueryField { argument_ids, .. }) => *argument_ids,
-            Field::Extra(ExtraField { argument_ids, .. }) => *argument_ids,
+            BoundField::TypeName(BoundTypeNameField { .. }) => IdRange::empty(),
+            BoundField::Query(BoundQueryField { argument_ids, .. }) => *argument_ids,
+            BoundField::Extra(BoundExtraField { argument_ids, .. }) => *argument_ids,
         }
     }
 
-    pub fn parent_selection_set_id(&self) -> SelectionSetId {
+    pub fn parent_selection_set_id(&self) -> BoundSelectionSetId {
         match self {
-            Field::TypeName(TypeNameField {
+            BoundField::TypeName(BoundTypeNameField {
                 parent_selection_set_id,
                 ..
             }) => *parent_selection_set_id,
-            Field::Query(QueryField {
+            BoundField::Query(BoundQueryField {
                 parent_selection_set_id,
                 ..
             }) => *parent_selection_set_id,
-            Field::Extra(ExtraField {
+            BoundField::Extra(BoundExtraField {
                 parent_selection_set_id,
                 ..
             }) => *parent_selection_set_id,
@@ -197,7 +197,7 @@ impl Field {
 
 /// Represents arguments that were specified in the query with a value
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct FieldArgument {
+pub struct BoundFieldArgument {
     pub name_location: Option<Location>,
     pub value_location: Option<Location>,
     pub input_value_definition_id: InputValueDefinitionId,
