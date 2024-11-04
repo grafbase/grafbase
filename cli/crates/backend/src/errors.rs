@@ -2,6 +2,8 @@ use common::errors::CommonError;
 use std::{io, path::PathBuf};
 use thiserror::Error;
 
+use crate::api::errors::ApiError;
+
 #[derive(Error, Debug)]
 pub enum BackendError {
     /// returned when trying to initialize a project that conflicts with an existing project
@@ -101,4 +103,16 @@ pub enum BackendError {
     // wraps a [`CommonError`]
     #[error(transparent)]
     CommonError(#[from] CommonError),
+    #[error("could not read the gateway configuration\nCaused by: {0}")]
+    ReadGatewayConfig(std::io::Error),
+    #[error("could not read the graph overrides\nCaused by: {0}")]
+    ReadGraphOverrides(std::io::Error),
+    #[error("could not parse the gateway configuration")]
+    ParseGatewayConfig,
+    #[error("could not parse the graph overrides")]
+    ParseGraphOverrides,
+    #[error("could not merge the gateway and graph override configurations")]
+    MergeConfigurations,
+    #[error(transparent)]
+    ApiError(#[from] ApiError),
 }

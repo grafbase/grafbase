@@ -186,6 +186,9 @@ pub struct SubgraphConfig {
     pub entity_caching: Option<EntityCachingConfig>,
     /// Subgraph specific message signatures config
     pub message_signatures: MessageSignaturesConfig,
+    #[cfg(feature = "dev")]
+    /// The path of an SDL schema file for the subgraph.
+    pub file: Option<PathBuf>,
 }
 
 #[derive(Debug, serde::Deserialize, Clone, Copy, Default, PartialEq)]

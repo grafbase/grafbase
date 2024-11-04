@@ -1,5 +1,4 @@
 #[macro_export]
-#[cfg(debug_assertions)]
 macro_rules! time {
     ($expr:expr) => {{
         let instant = std::time::Instant::now();

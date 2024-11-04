@@ -3454,15 +3454,19 @@ dependencies = [
  "chrono",
  "cynic",
  "cynic-codegen",
+ "federated-server",
+ "gateway-config",
  "grafbase-local-common",
  "grafbase-workspace-hack",
  "ignore",
  "reqwest",
  "reqwest-middleware",
  "serde",
+ "serde-toml-merge",
  "serde_json",
  "thiserror",
  "tokio",
+ "toml",
  "tower-http",
  "url",
  "urlencoding",
@@ -7607,6 +7611,15 @@ dependencies = [
  "serde",
  "serde_with",
  "temp-env",
+]
+
+[[package]]
+name = "serde-toml-merge"
+version = "0.3.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "93b4e415d6bff989e5e48649ca9b8b4d4997cb069a0c90a84bfd38c7df5e3968"
+dependencies = [
+ "toml",
 ]
 
 [[package]]

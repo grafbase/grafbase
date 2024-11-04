@@ -3,8 +3,8 @@ use clap::Parser;
 use crate::is_not_direct_install;
 
 use super::{
-    branch::BranchCommand, trust::TrustCommand, CheckCommand, CompletionsCommand, CreateCommand, IntrospectCommand,
-    LintCommand, LoginCommand, PublishCommand, SchemaCommand, SubgraphsCommand,
+    branch::BranchCommand, trust::TrustCommand, CheckCommand, CompletionsCommand, CreateCommand, DevCommand,
+    IntrospectCommand, LintCommand, LoginCommand, PublishCommand, SchemaCommand, SubgraphsCommand,
 };
 
 #[derive(Debug, Parser, strum::AsRefStr, strum::Display)]
@@ -38,6 +38,8 @@ pub enum SubCommand {
     Upgrade,
     /// Lint a GraphQL schema
     Lint(LintCommand),
+    /// Start a development server
+    Dev(DevCommand),
 }
 
 pub trait RequiresLogin {
@@ -55,6 +57,7 @@ impl RequiresLogin for SubCommand {
                 | SubCommand::Check(_)
                 | SubCommand::Branch(_)
                 | SubCommand::Schema(_)
+                | SubCommand::Dev(DevCommand { graph_ref: Some(_), .. })
         )
     }
 }

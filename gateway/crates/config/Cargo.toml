@@ -13,6 +13,7 @@ workspace = true
 [features]
 # historic feature flag used for telemetry config, maybe should be removed?
 otlp = ["dep:tonic"]
+dev = []
 
 [dependencies]
 chrono.workspace = true

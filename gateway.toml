@@ -1,0 +1,18 @@
+[network]
+# The listen address for the Grafbase gateway
+# Set it to 0.0.0.0:4000 or [::1]:4000 to listen on a public address
+listen_address = "127.0.0.1:4000"
+
+
+
+[graph]
+# The path endpoint for the GraphQL gateway
+path = "/graphql"
+# Set to true to enable GraphQL introspection
+introspection = false
+
+[csrf]
+# Enable if the gateway is accessed from a browser. If enabled,
+# every request must have the header x-grafbase-csrf-protection set
+
+enabled = false
