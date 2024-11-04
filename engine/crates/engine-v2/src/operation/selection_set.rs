@@ -1,8 +1,7 @@
-use id_derives::Id;
 use id_newtypes::IdRange;
 use schema::{
-    DefinitionId, EntityDefinitionId, FieldDefinitionId, InputValueDefinitionId, InterfaceDefinitionId,
-    ObjectDefinitionId, UnionDefinitionId,
+    CompositeTypeId, DefinitionId, EntityDefinitionId, FieldDefinitionId, InputValueDefinitionId,
+    InterfaceDefinitionId, ObjectDefinitionId, UnionDefinitionId,
 };
 
 use crate::response::{BoundResponseKey, ResponseEdge, ResponseKey};
@@ -21,6 +20,16 @@ pub enum SelectionSetType {
     Object(ObjectDefinitionId),
     Interface(InterfaceDefinitionId),
     Union(UnionDefinitionId),
+}
+
+impl From<SelectionSetType> for CompositeTypeId {
+    fn from(value: SelectionSetType) -> Self {
+        match value {
+            SelectionSetType::Object(id) => Self::Object(id),
+            SelectionSetType::Interface(id) => Self::Interface(id),
+            SelectionSetType::Union(id) => Self::Union(id),
+        }
+    }
 }
 
 impl SelectionSetType {
@@ -74,7 +83,7 @@ impl SelectionSetType {
     }
 }
 
-#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Id)]
+#[derive(Hash, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, serde::Serialize, serde::Deserialize, id_derives::Id)]
 pub struct QueryPosition(std::num::NonZero<u16>);
 
 /// The BoundFieldDefinition defines a field that is part of the actual GraphQL query.

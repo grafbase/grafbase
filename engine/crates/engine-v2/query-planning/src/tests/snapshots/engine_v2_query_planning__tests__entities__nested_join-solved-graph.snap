@@ -1,10 +1,12 @@
 ---
 source: engine/crates/engine-v2/query-planning/src/tests/entities.rs
-expression: "digraph {\n    0 [ label = \"root\" ]\n    1 [ label = \"stars\" ]\n    4 [ label = \"Root#category\", shape=parallelogram, color=dodgerblue ]\n    5 [ label = \"products@Root#category\", shape=box, color=dodgerblue ]\n    10 [ label = \"FedEntity#review\", shape=parallelogram, color=dodgerblue ]\n    11 [ label = \"reviews@FedEntity#review\", shape=box, color=dodgerblue ]\n    12 [ label = \"stars@FedEntity#review\", shape=box, color=dodgerblue ]\n    13 [ label = \"*id\" ]\n    14 [ label = \"id@Root#category\", shape=box, color=dodgerblue ]\n    0 -> 4 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    0 -> 4 [ label = \"\", style=dashed,arrowhead=none ]\n    4 -> 5 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    10 -> 11 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    11 -> 12 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    12 -> 1 [ label = \"\", color=violet,arrowhead=none ]\n    5 -> 10 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    10 -> 13 [ label = \"\", color=orangered,arrowhead=inv ]\n    5 -> 14 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    14 -> 13 [ label = \"\", color=violet,arrowhead=none ]\n}\n"
+expression: "digraph {\n    0 [ label = \"root\" ]\n    1 [ label = \"stars\" ]\n    2 [ label = \"reviews\" ]\n    3 [ label = \"products\" ]\n    4 [ label = \"Root#category\", shape=parallelogram, color=dodgerblue ]\n    5 [ label = \"products@Root#category\", shape=box, color=dodgerblue ]\n    10 [ label = \"FedEntity#review\", shape=parallelogram, color=dodgerblue ]\n    11 [ label = \"reviews@FedEntity#review\", shape=box, color=dodgerblue ]\n    12 [ label = \"stars@FedEntity#review\", shape=box, color=dodgerblue ]\n    13 [ label = \"*id\" ]\n    14 [ label = \"id@Root#category\", shape=box, color=dodgerblue ]\n    0 -> 3 [ label = \"\" ]\n    0 -> 4 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    0 -> 4 [ label = \"\", style=dashed,arrowhead=none ]\n    4 -> 5 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    5 -> 3 [ label = \"\", color=violet,arrowhead=none ]\n    3 -> 2 [ label = \"\" ]\n    3 -> 10 [ label = \"\", style=dashed,arrowhead=none ]\n    10 -> 11 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    11 -> 2 [ label = \"\", color=violet,arrowhead=none ]\n    2 -> 1 [ label = \"\" ]\n    11 -> 12 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    12 -> 1 [ label = \"\", color=violet,arrowhead=none ]\n    5 -> 10 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    10 -> 13 [ label = \"\", color=orangered,arrowhead=inv ]\n    3 -> 13 [ label = \"\" ]\n    5 -> 14 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    14 -> 13 [ label = \"\", color=violet,arrowhead=none ]\n}\n"
 ---
 digraph {
     0 [ root]
     1 [ stars]
+    2 [ reviews]
+    3 [ products]
     4 [ Root#category]
     5 [ products@Root#category]
     10 [ FedEntity#review]
@@ -12,14 +14,21 @@ digraph {
     12 [ stars@FedEntity#review]
     13 [ *id]
     14 [ id@Root#category]
+    0 -> 3 [ label = "Field" ]
     0 -> 4 [ label = "CreateChildResolver" ]
     0 -> 4 [ label = "HasChildResolver" ]
     4 -> 5 [ label = "CanProvide" ]
+    5 -> 3 [ label = "Provides" ]
+    3 -> 2 [ label = "Field" ]
+    3 -> 10 [ label = "HasChildResolver" ]
     10 -> 11 [ label = "CanProvide" ]
+    11 -> 2 [ label = "Provides" ]
+    2 -> 1 [ label = "Field" ]
     11 -> 12 [ label = "CanProvide" ]
     12 -> 1 [ label = "Provides" ]
     5 -> 10 [ label = "CreateChildResolver" ]
     10 -> 13 [ label = "Requires" ]
+    3 -> 13 [ label = "Field" ]
     5 -> 14 [ label = "CanProvide" ]
     14 -> 13 [ label = "Provides" ]
 }

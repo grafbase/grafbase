@@ -4,7 +4,7 @@ use schema::Schema;
 use crate::{
     operation::{
         BoundExtraField, BoundField, BoundFieldArgument, BoundFieldArgumentId, BoundFieldId, BoundSelectionSetId,
-        Operation, OperationWalker, QueryInputValueRecord,
+        Operation, QueryInputValueRecord,
     },
     response::{ResponseEdge, ResponseKey, UnpackedResponseEdge},
 };
@@ -32,23 +32,17 @@ impl<'a> query_planning::Operation for OperationAdapter<'a> {
         (0..self.operation.fields.len()).map(BoundFieldId::from)
     }
 
-    fn field_defintion(&self, field_id: Self::FieldId) -> Option<schema::FieldDefinitionId> {
+    fn field_defintion(&self, field_id: BoundFieldId) -> Option<schema::FieldDefinitionId> {
         self.operation[field_id].definition_id()
     }
 
-    fn field_satisfies(&self, field_id: Self::FieldId, requirement: schema::RequiredField<'_>) -> bool {
-        let field = OperationWalker {
-            schema: self.schema,
-            operation: self.operation,
-            item: field_id,
-        }
-        .walk(field_id);
-        field.eq(&requirement)
+    fn field_satisfies(&self, field_id: BoundFieldId, requirement: schema::RequiredField<'_>) -> bool {
+        self.operation.walker_with(self.schema).walk(field_id).eq(&requirement)
     }
 
     fn create_potential_extra_field(
         &mut self,
-        petitioner_field_id: Self::FieldId,
+        petitioner_field_id: BoundFieldId,
         requirement: schema::RequiredField<'_>,
     ) -> Self::FieldId {
         let field = BoundExtraField {
@@ -65,14 +59,14 @@ impl<'a> query_planning::Operation for OperationAdapter<'a> {
         (self.operation.fields.len() - 1).into()
     }
 
-    fn root_selection_set(&self) -> impl ExactSizeIterator<Item = Self::FieldId> + '_ {
+    fn root_selection_set(&self) -> impl ExactSizeIterator<Item = BoundFieldId> + '_ {
         self.operation[self.operation.root_selection_set_id]
             .field_ids_ordered_by_parent_entity_id_then_position
             .iter()
             .copied()
     }
 
-    fn subselection(&self, field_id: Self::FieldId) -> impl ExactSizeIterator<Item = Self::FieldId> + '_ {
+    fn subselection(&self, field_id: BoundFieldId) -> impl ExactSizeIterator<Item = Self::FieldId> + '_ {
         match self.operation[field_id].selection_set_id() {
             Some(id) => self.operation[id]
                 .field_ids_ordered_by_parent_entity_id_then_position
@@ -82,15 +76,11 @@ impl<'a> query_planning::Operation for OperationAdapter<'a> {
         }
     }
 
-    fn field_label(&self, field_id: Self::FieldId) -> std::borrow::Cow<'_, str> {
+    fn field_label(&self, field_id: BoundFieldId) -> std::borrow::Cow<'_, str> {
         self.operation.response_keys[self.operation[field_id].response_key()].into()
     }
 
-    fn finalize_selection_set_extra_fields(
-        &mut self,
-        extra_fields: &[Self::FieldId],
-        existing_fields: &[Self::FieldId],
-    ) {
+    fn finalize_selection_set_extra_fields(&mut self, extra_fields: &[BoundFieldId], existing_fields: &[BoundFieldId]) {
         self.tmp_response_keys.clear();
         self.tmp_response_keys.extend(
             existing_fields

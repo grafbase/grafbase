@@ -9,8 +9,6 @@ mod metrics;
 mod modifier;
 mod parse;
 mod path;
-#[cfg(feature = "qp")]
-mod plan;
 mod prepare;
 mod selection_set;
 mod validation;
@@ -83,8 +81,8 @@ pub(crate) struct Operation {
     pub selection_sets: Vec<BoundSelectionSet>,
     #[indexed_by(BoundFieldId)]
     pub fields: Vec<BoundField>,
-    #[indexed_by(VariableDefinitionId)]
-    pub variable_definitions: Vec<VariableDefinitionRecord>,
+    #[indexed_by(BoundVariableDefinitionId)]
+    pub variable_definitions: Vec<BoundVariableDefinition>,
     #[indexed_by(BoundFieldArgumentId)]
     pub field_arguments: Vec<BoundFieldArgument>,
     pub query_input_values: QueryInputValues,

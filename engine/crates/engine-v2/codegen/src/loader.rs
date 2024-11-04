@@ -100,19 +100,30 @@ pub(super) fn load(path: PathBuf) -> anyhow::Result<domain::Domain> {
         };
 
         let def: domain::Definition = match ty {
-            TypeDefinition::Scalar(scalar) => domain::Scalar {
-                indexed: parse_indexed(scalar.name(), scalar.directives()),
-                span: scalar.span(),
-                name: scalar.name().to_string(),
-                struct_name: if is_record(scalar.directives()) {
-                    format!("{}Record", scalar.name())
+            TypeDefinition::Scalar(scalar) => {
+                let in_prelude = scalar.directives().any(|directive| directive.name() == "prelude");
+                if is_record(scalar.directives()) {
+                    domain::Scalar::Record {
+                        indexed: parse_indexed(scalar.name(), scalar.directives()),
+                        span: scalar.span(),
+                        name: scalar.name().to_string(),
+                        record_name: format!("{}Record", scalar.name()),
+                        external_domain_name: None,
+                        in_prelude,
+                        copy: is_copy(scalar.directives()),
+                    }
+                } else if parse_ref_directive(scalar.directives()).is_some() {
+                    continue; // added at the end.
                 } else {
-                    scalar.name().to_string()
-                },
-                is_record: is_record(scalar.directives()),
-                copy: is_copy(scalar.directives()),
-                external_domain_name: None,
-                in_prelude: scalar.directives().any(|directive| directive.name() == "prelude"),
+                    domain::Scalar::Value {
+                        indexed: parse_indexed(scalar.name(), scalar.directives()),
+                        span: scalar.span(),
+                        name: scalar.name().to_string(),
+                        external_domain_name: None,
+                        in_prelude,
+                        copy: is_copy(scalar.directives()),
+                    }
+                }
             }
             .into(),
             TypeDefinition::Object(object) => domain::Object {
@@ -193,6 +204,32 @@ pub(super) fn load(path: PathBuf) -> anyhow::Result<domain::Domain> {
         definitions_by_name.insert(def.name().to_string(), def);
     }
 
+    for definition in document.definitions() {
+        let Definition::Type(ty) = &definition else {
+            continue;
+        };
+        let TypeDefinition::Scalar(scalar) = ty else {
+            continue;
+        };
+        let Some(RefDirective { target }) = parse_ref_directive(scalar.directives()) else {
+            continue;
+        };
+        let scalar = domain::Scalar::Ref {
+            span: scalar.span(),
+            name: scalar.name().to_string(),
+            id_struct_name: format!("{}Id", scalar.name()),
+            in_prelude: scalar.directives().any(|directive| directive.name() == "prelude"),
+            external_domain_name: None,
+            target: Box::new(
+                definitions_by_name
+                    .get(&target)
+                    .ok_or_else(|| anyhow::anyhow!("Unknown target: {target}"))?
+                    .clone(),
+            ),
+        };
+        definitions_by_name.insert(scalar.name().to_string(), scalar.into());
+    }
+
     let mut domain = domain.expect("Missing scalar with @graph directive");
     domain.definitions_by_name = finalize_field_struct_names(definitions_by_name);
 
@@ -217,14 +254,24 @@ fn finalize_field_struct_names(
                     domain::UnionKind::Id(_) | domain::UnionKind::BitpackedId(_) => Some("id"),
                 },
                 domain::Definition::Scalar(scalar) => {
-                    if scalar.indexed.is_some() {
-                        Some("id")
-                    } else if scalar.is_record {
-                        Some("record")
-                    } else {
-                        // We don't generate a walker for those fields. The Deref & as_ref()
-                        // are enough.
-                        None
+                    match scalar {
+                        domain::Scalar::Ref { .. } => Some("id"),
+                        domain::Scalar::Record { indexed, .. } => {
+                            if indexed.is_some() {
+                                Some("id")
+                            } else {
+                                Some("record")
+                            }
+                        }
+                        domain::Scalar::Value { indexed, .. } => {
+                            if indexed.is_some() {
+                                Some("id")
+                            } else {
+                                // We don't generate a walker for those fields. The Deref & as_ref()
+                                // are enough.
+                                None
+                            }
+                        }
                     }
                 }
                 domain::Definition::Object(object) => {
@@ -529,4 +576,19 @@ fn is_copy<'a>(mut directives: Iter<'a, Directive<'a>>) -> bool {
 
 fn is_record<'a>(mut directives: Iter<'a, Directive<'a>>) -> bool {
     directives.any(|directive| directive.name() == "record")
+}
+
+struct RefDirective {
+    target: String,
+}
+
+fn parse_ref_directive<'a>(mut directives: Iter<'a, Directive<'a>>) -> Option<RefDirective> {
+    let directive = directives.find(|directive| directive.name() == "ref")?;
+    let target = directive
+        .arguments()
+        .find(|arg| arg.name() == "target")
+        .and_then(|arg| arg.value().as_str())
+        .expect("Missing target in @ref")
+        .to_string();
+    Some(RefDirective { target })
 }

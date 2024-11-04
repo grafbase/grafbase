@@ -58,7 +58,7 @@ pub struct ImportedDomain {
     pub module: TokenStream,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Definition {
     Scalar(Scalar),
     Object(Object),
@@ -68,9 +68,18 @@ pub enum Definition {
 impl Definition {
     pub fn set_external_domain_name(&mut self, name: String) {
         match self {
-            Definition::Scalar(scalar) => {
-                scalar.external_domain_name = Some(name);
-            }
+            Definition::Scalar(scalar) => match scalar {
+                Scalar::Value {
+                    external_domain_name, ..
+                } => *external_domain_name = Some(name),
+
+                Scalar::Record {
+                    external_domain_name, ..
+                } => *external_domain_name = Some(name),
+                Scalar::Ref {
+                    external_domain_name, ..
+                } => *external_domain_name = Some(name),
+            },
             Definition::Object(object) => {
                 object.external_domain_name = Some(name);
             }
@@ -82,7 +91,7 @@ impl Definition {
 
     pub fn external_domain_name(&self) -> Option<&str> {
         match self {
-            Definition::Scalar(scalar) => scalar.external_domain_name.as_deref(),
+            Definition::Scalar(scalar) => scalar.external_domain_name(),
             Definition::Object(object) => object.external_domain_name.as_deref(),
             Definition::Union(union) => union.external_domain_name.as_deref(),
         }
@@ -90,7 +99,7 @@ impl Definition {
 
     pub fn name(&self) -> &str {
         match self {
-            Definition::Scalar(scalar) => &scalar.name,
+            Definition::Scalar(scalar) => scalar.name(),
             Definition::Object(object) => &object.name,
             Definition::Union(union) => union.name(),
         }
@@ -98,7 +107,7 @@ impl Definition {
 
     pub fn span(&self) -> &cynic_parser::Span {
         match self {
-            Definition::Scalar(scalar) => &scalar.span,
+            Definition::Scalar(scalar) => scalar.span(),
             Definition::Object(object) => &object.span,
             Definition::Union(union) => &union.span,
         }
@@ -114,18 +123,31 @@ impl Definition {
 
     pub fn storage_type(&self) -> StorageType {
         match self {
-            Definition::Scalar(scalar) => {
-                if let Some(indexed) = &scalar.indexed {
-                    StorageType::Id {
-                        name: &indexed.id_struct_name,
-                        list_as_id_range: !indexed.deduplicated,
-                    }
-                } else {
-                    StorageType::Struct {
-                        name: &scalar.struct_name,
+            Definition::Scalar(scalar) => match scalar {
+                Scalar::Record {
+                    indexed,
+                    record_name: struct_name,
+                    ..
+                }
+                | Scalar::Value {
+                    indexed,
+                    name: struct_name,
+                    ..
+                } => {
+                    if let Some(indexed) = &indexed {
+                        StorageType::Id {
+                            name: &indexed.id_struct_name,
+                            list_as_id_range: !indexed.deduplicated,
+                        }
+                    } else {
+                        StorageType::Struct { name: struct_name }
                     }
                 }
-            }
+                Scalar::Ref { id_struct_name, .. } => StorageType::Id {
+                    name: id_struct_name,
+                    list_as_id_range: true,
+                },
+            },
             Definition::Object(object) => {
                 if let Some(indexed) = &object.indexed {
                     StorageType::Id {
@@ -155,23 +177,27 @@ impl Definition {
 
     pub fn access_kind(&self) -> AccessKind {
         match self {
-            Definition::Scalar(scalar) => {
-                if scalar.is_record {
-                    if scalar.copy {
+            Definition::Scalar(scalar) => match scalar {
+                Scalar::Record { copy, indexed, .. } => {
+                    if *copy {
                         AccessKind::ItemWalker
-                    } else if scalar.indexed.is_some() {
+                    } else if indexed.is_some() {
                         AccessKind::IdWalker
                     } else {
                         AccessKind::RefWalker
                     }
-                } else if scalar.copy {
-                    AccessKind::Copy
-                } else if scalar.indexed.is_some() {
-                    AccessKind::IdRef
-                } else {
-                    AccessKind::Ref
                 }
-            }
+                Scalar::Value { copy, indexed, .. } => {
+                    if *copy {
+                        AccessKind::Copy
+                    } else if indexed.is_some() {
+                        AccessKind::IdRef
+                    } else {
+                        AccessKind::Ref
+                    }
+                }
+                Scalar::Ref { .. } => AccessKind::IdWalker,
+            },
             Definition::Object(record) => {
                 if record.indexed.is_some() {
                     AccessKind::IdWalker
@@ -247,14 +273,14 @@ pub enum AccessKind {
     ItemWalker,
 }
 
-#[derive(Default, Debug)]
+#[derive(Default, Clone, Debug)]
 pub struct Meta {
     pub module_path: Vec<String>,
     pub derive: Vec<String>,
     pub debug: bool,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Indexed {
     pub id_struct_name: String,
     pub id_size: Option<String>,

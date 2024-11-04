@@ -2,7 +2,7 @@ use cynic_parser::common::WrappingType;
 
 use super::{Definition, Indexed, Meta};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Object {
     pub meta: Meta,
     pub span: cynic_parser::Span,
@@ -27,7 +27,7 @@ impl Object {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Field {
     pub name: String,
     pub description: Option<String>,

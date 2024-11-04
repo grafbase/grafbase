@@ -3,7 +3,7 @@ use quote::{quote, TokenStreamExt};
 use tracing::instrument;
 
 use crate::{
-    domain::{AccessKind, Definition, Domain, Union, UnionKind},
+    domain::{AccessKind, Definition, Domain, Scalar, Union, UnionKind},
     WALKER_TRAIT,
 };
 
@@ -213,16 +213,21 @@ impl quote::ToTokens for WalkerVariant<'_> {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         let variant = Ident::new(&self.0.name, Span::call_site());
         let tt = if let Some(value) = self.0.value {
-            let walker = Ident::new(value.walker_name(), Span::call_site());
             match value {
-                Definition::Scalar(scalar) if !scalar.is_record => {
-                    if scalar.copy {
+                Definition::Scalar(Scalar::Value { copy, .. }) => {
+                    let walker = Ident::new(value.walker_name(), Span::call_site());
+                    if *copy {
                         quote! { #variant(#walker) }
                     } else {
                         quote! { #variant(&'a #walker) }
                     }
                 }
+                Definition::Scalar(Scalar::Ref { target, .. }) => {
+                    let walker = Ident::new(target.walker_name(), Span::call_site());
+                    quote! { #variant(#walker<'a>) }
+                }
                 _ => {
+                    let walker = Ident::new(value.walker_name(), Span::call_site());
                     quote! { #variant(#walker<'a>) }
                 }
             }
@@ -292,11 +297,10 @@ impl quote::ToTokens for IdUnionWalkerBranch<'_> {
         let variant = Ident::new(&self.variant.name, Span::call_site());
 
         let tt = match self.variant.value {
-            Some(Definition::Scalar(scalar)) if !scalar.is_record => {
-                let ctx = self
-                    .variant
-                    .domain
-                    .domain_accessor(scalar.external_domain_name.as_deref());
+            Some(Definition::Scalar(Scalar::Value {
+                external_domain_name, ..
+            })) => {
+                let ctx = self.variant.domain.domain_accessor(external_domain_name.as_deref());
                 quote! {
                     #enum_::#variant(id) => #walker::#variant(&#ctx[id])
                 }
@@ -336,19 +340,19 @@ impl<'a> IdUnionWalkerIdMethodBranch<'a> {
         let variant = Ident::new(&self.variant.name, Span::call_site());
 
         let tt = match self.variant.value {
-            Some(Definition::Scalar(scalar)) => {
-                if scalar.is_record && scalar.indexed.is_some() {
-                    quote! {
-                        #walker::#variant(walker) => #enum_::#variant(walker.id)
-                    }
-                } else if scalar.copy {
-                    quote! {
-                        #walker::#variant(item) => #enum_::#variant(item)
-                    }
-                } else {
-                    return Err((&self.variant.variant.name, &scalar.name));
+            Some(Definition::Scalar(scalar)) => match scalar {
+                Scalar::Record { indexed, .. } if indexed.is_some() => quote! {
+                    #walker::#variant(walker) => #enum_::#variant(walker.id)
+                },
+
+                Scalar::Value { copy, .. } if *copy => quote! {
+                    #walker::#variant(item) => #enum_::#variant(item)
+                },
+
+                _ => {
+                    return Err((&self.variant.variant.name, scalar.name()));
                 }
-            }
+            },
             Some(Definition::Object(object)) => {
                 if object.indexed.is_some() {
                     quote! {

@@ -71,7 +71,7 @@ fn two_fields() {
         &solver.to_pretty_dot_graph()
     );
 
-    graph.solve().unwrap();
+    graph.finalize_operation_graph_with_solution(solver.into_solution());
     insta::assert_snapshot!(
         "two_fields-solved-graph",
         graph.to_dot_graph(),
@@ -110,7 +110,7 @@ fn single_field() {
         &solver.to_pretty_dot_graph()
     );
 
-    graph.solve().unwrap();
+    graph.finalize_operation_graph_with_solution(solver.into_solution());
     insta::assert_snapshot!(
         "single_field-solved-graph",
         graph.to_dot_graph(),
@@ -151,7 +151,7 @@ fn nested_join() {
         &solver.to_pretty_dot_graph()
     );
 
-    graph.solve().unwrap();
+    graph.finalize_operation_graph_with_solution(solver.into_solution());
     insta::assert_snapshot!(
         "nested_join-solved-graph",
         graph.to_dot_graph(),
@@ -197,7 +197,7 @@ fn nested_join_with_name() {
         &solver.to_pretty_dot_graph()
     );
 
-    graph.solve().unwrap();
+    graph.finalize_operation_graph_with_solution(solver.into_solution());
     insta::assert_snapshot!(
         "nested_join_with_name-solved-graph",
         graph.to_dot_graph(),

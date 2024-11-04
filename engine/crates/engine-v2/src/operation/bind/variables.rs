@@ -4,7 +4,7 @@ use engine::Positioned;
 use schema::{DefinitionId, Schema, Wrapping};
 
 use crate::{
-    operation::{Location, Operation, VariableDefinitionRecord, VariableInputValues, VariableValue, Variables},
+    operation::{BoundVariableDefinition, Location, Operation, VariableInputValues, VariableValue, Variables},
     response::{ErrorCode, GraphqlError},
 };
 
@@ -112,7 +112,7 @@ impl<'schema, 'p> Binder<'schema, 'p> {
                 .transpose()?;
 
             self.variable_definition_in_use.push(false);
-            self.variable_definitions.push(VariableDefinitionRecord {
+            self.variable_definitions.push(BoundVariableDefinition {
                 name,
                 name_location,
                 default_value_id: default_value,

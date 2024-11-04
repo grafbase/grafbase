@@ -22,8 +22,8 @@ use super::{
 use crate::{
     operation::SelectionSetType,
     operation::{
-        BoundField, BoundFieldArgument, BoundFieldArgumentId, BoundSelectionSet, BoundSelectionSetId, Location,
-        Operation, VariableDefinitionRecord,
+        BoundField, BoundFieldArgument, BoundFieldArgumentId, BoundSelectionSet, BoundSelectionSetId,
+        BoundVariableDefinition, Location, Operation,
     },
     response::ResponseKeys,
 };
@@ -45,7 +45,7 @@ pub(crate) struct Binder<'schema, 'p> {
     #[indexed_by(BoundSelectionSetId)]
     selection_sets: Vec<BoundSelectionSet>,
     variable_definition_in_use: Vec<bool>,
-    variable_definitions: Vec<VariableDefinitionRecord>,
+    variable_definitions: Vec<BoundVariableDefinition>,
     input_values: QueryInputValues,
     query_modifiers: HashMap<QueryModifierRule, (BoundQueryModifierId, Vec<BoundFieldId>)>,
     response_modifiers: HashMap<ResponseModifierRule, (BoundResponseModifierId, Vec<BoundFieldId>)>,

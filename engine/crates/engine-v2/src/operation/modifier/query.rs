@@ -218,7 +218,7 @@ where
             'outer: for (concrete_shape_id, shape) in
                 self.operation.response_blueprint.shapes.concrete.iter().enumerate()
             {
-                if current < shape.field_shape_ids.end() {
+                if current < shape.field_shape_ids.end {
                     let mut i = 0;
                     while let Some(field_shape_id) = shape.field_shape_ids.get(i) {
                         match field_shape_id.cmp(&current) {

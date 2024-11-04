@@ -6,7 +6,7 @@ use schema::{
 };
 
 use crate::operation::{
-    Location, VariableDefinitionRecord, VariableInputValue, VariableInputValueId, VariableInputValues,
+    BoundVariableDefinition, Location, VariableInputValue, VariableInputValueId, VariableInputValues,
 };
 
 use super::{
@@ -17,7 +17,7 @@ use super::{
 pub fn coerce_variable(
     schema: &Schema,
     input_values: &mut VariableInputValues,
-    definition: &VariableDefinitionRecord,
+    definition: &BoundVariableDefinition,
     value: ConstValue,
 ) -> Result<VariableInputValueId, InputValueError> {
     let mut ctx = VariableCoercionContext {

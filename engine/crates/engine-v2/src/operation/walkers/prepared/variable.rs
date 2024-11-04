@@ -1,11 +1,11 @@
 use schema::{InputValue, InputValueSerdeError};
 use serde::{de::Visitor, forward_to_deserialize_any};
 
-use crate::operation::{QueryInputValueWalker, VariableDefinitionId, VariableInputValueWalker, VariableValue};
+use crate::operation::{BoundVariableDefinitionId, QueryInputValueWalker, VariableInputValueWalker, VariableValue};
 
 use super::PreparedOperationWalker;
 
-pub type VariableWalker<'a> = PreparedOperationWalker<'a, VariableDefinitionId>;
+pub type VariableWalker<'a> = PreparedOperationWalker<'a, BoundVariableDefinitionId>;
 
 impl<'a> VariableWalker<'a> {
     // FIXME: Unnecessary indirection...

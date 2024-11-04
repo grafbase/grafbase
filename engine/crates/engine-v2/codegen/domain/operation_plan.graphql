@@ -1,0 +1,74 @@
+scalar Operation
+  @domain(
+    destination: "src/plan"
+    root_module: "plan"
+    context_name: "ctx"
+    context_type: "PlanContext"
+    visibility: "(crate)"
+    imports: [{ module: "schema", domain: "schema" }]
+  )
+
+scalar PositionedResponseKey @copy @prelude
+scalar Location @copy @prelude
+scalar String @prelude
+scalar QueryInputValue @indexed @prelude @record
+scalar FieldRef @ref(target: "Field")
+
+type Plan @indexed(id_size: "u16") @meta(module: "plan") {
+  resolver_definition: ResolverDefinition!
+  fields: [Field!]!
+  required_fields: [FieldRef!]!
+}
+
+# ----------------
+# - SelectionSet -
+# ----------------
+
+union Field @indexed(id_size: "u32") @meta(module: "field") @variants(remove_suffix: true) = DataField | TypenameField
+
+"In opposition to a __typename field this field does retrieve data from a subgraph"
+type DataField @meta(module: "field/data") {
+  key: PositionedResponseKey!
+  location: Location!
+  definition: FieldDefinition!
+  arguments: [FieldArgument!]!
+  selection_set_fields: [Field!]!
+  required_fields: [FieldRef!]!
+}
+
+type FieldArgument @meta(module: "field/argument") @indexed(id_size: "u16") {
+  definition: InputValueDefinition!
+  value: QueryInputValue!
+}
+
+"__typename field"
+type TypenameField @meta(module: "field/typename") {
+  key: PositionedResponseKey!
+  location: Location!
+  type_condition: CompositeType!
+}
+
+type VariableDefinition @meta(module: "variable") @indexed(id_size: "u16") {
+  name: String!
+  name_location: Location!
+  default_value: QueryInputValue
+  ty: Type!
+}
+
+# ------------
+# - Modifier -
+# ------------
+
+scalar QueryModifierRule @prelude
+
+type QueryModifier @meta(module: "modifier") {
+  rule: QueryModifierRule!
+  impacted_fields: [FieldRef!]!
+}
+
+scalar ResponseModifierRule @prelude
+
+type ResponseModifier @meta(module: "modifier") {
+  rule: ResponseModifierRule!
+  impacted_fields: [FieldRef!]!
+}

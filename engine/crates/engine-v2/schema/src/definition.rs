@@ -1,6 +1,6 @@
 use walker::Walk;
 
-use crate::{Definition, EntityDefinition, ScalarType, TypeSystemDirective};
+use crate::{CompositeTypeId, Definition, DefinitionId, EntityDefinition, ScalarType, TypeSystemDirective};
 
 impl<'a> Definition<'a> {
     pub fn name(&self) -> &'a str {
@@ -37,6 +37,17 @@ impl<'a> Definition<'a> {
         match self {
             Definition::Object(object) => Some(EntityDefinition::Object(*object)),
             Definition::Interface(interface) => Some(EntityDefinition::Interface(*interface)),
+            _ => None,
+        }
+    }
+}
+
+impl DefinitionId {
+    pub fn as_composite_type(&self) -> Option<CompositeTypeId> {
+        match self {
+            DefinitionId::Object(object) => Some(CompositeTypeId::Object(*object)),
+            DefinitionId::Interface(interface) => Some(CompositeTypeId::Interface(*interface)),
+            DefinitionId::Union(union) => Some(CompositeTypeId::Union(*union)),
             _ => None,
         }
     }
