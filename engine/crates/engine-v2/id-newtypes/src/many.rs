@@ -1,3 +1,5 @@
+use itertools::Itertools;
+
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct IdToMany<Id, V>(Vec<(Id, V)>);
 
@@ -31,11 +33,11 @@ impl<Id, V> IdToMany<Id, V> {
         Self(relations)
     }
 
-    pub fn ids(&self) -> impl ExactSizeIterator<Item = Id> + '_
+    pub fn ids(&self) -> impl Iterator<Item = Id> + '_
     where
-        Id: Copy,
+        Id: Copy + PartialEq,
     {
-        self.0.iter().map(|(id, _)| *id)
+        self.0.iter().map(|(id, _)| *id).dedup()
     }
 
     pub fn find_all(&self, id: Id) -> impl Iterator<Item = &V> + '_

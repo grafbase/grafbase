@@ -4,19 +4,58 @@ mod union;
 
 use std::{collections::HashMap, path::PathBuf};
 
+use proc_macro2::{Ident, Span, TokenStream};
+use quote::quote;
 pub use record::*;
 pub use scalar::*;
 pub use union::*;
 
 #[derive(Debug)]
 pub struct Domain {
+    pub name: String,
     pub source: PathBuf,
     pub sdl: String,
     pub destination_path: PathBuf,
-    pub root_module: Vec<String>,
-    pub graph_var_name: String,
-    pub graph_type_name: String,
+    pub module: TokenStream,
+    pub public_visibility: TokenStream,
+    pub context_name: String,
+    pub context_type: TokenStream,
     pub definitions_by_name: HashMap<String, Definition>,
+    pub imported_domains: HashMap<String, ImportedDomain>,
+}
+
+impl Domain {
+    pub fn context_accessor(&self, external_domain_name: Option<&str>) -> TokenStream {
+        if let Some(name) = external_domain_name {
+            let domain = Ident::new(&self.imported_domains[name].name, Span::call_site());
+            let ctx = Ident::new(&self.context_name, Span::call_site());
+            quote! { #ctx.#domain }
+        } else {
+            let ctx = Ident::new(&self.context_name, Span::call_site());
+            quote! { #ctx }
+        }
+    }
+
+    pub fn domain_accessor(&self, external_domain_name: Option<&str>) -> TokenStream {
+        if let Some(name) = external_domain_name {
+            let domain = Ident::new(&self.imported_domains[name].name, Span::call_site());
+            let ctx = Ident::new(&self.context_name, Span::call_site());
+            quote! { #ctx.#domain }
+        } else if self.name != self.context_name {
+            let domain = Ident::new(&self.name, Span::call_site());
+            let ctx = Ident::new(&self.context_name, Span::call_site());
+            quote! { #ctx.#domain }
+        } else {
+            let domain = Ident::new(&self.name, Span::call_site());
+            quote! { #domain }
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct ImportedDomain {
+    pub name: String,
+    pub module: TokenStream,
 }
 
 #[derive(Debug)]
@@ -27,6 +66,28 @@ pub enum Definition {
 }
 
 impl Definition {
+    pub fn set_external_domain_name(&mut self, name: String) {
+        match self {
+            Definition::Scalar(scalar) => {
+                scalar.external_domain_name = Some(name);
+            }
+            Definition::Object(object) => {
+                object.external_domain_name = Some(name);
+            }
+            Definition::Union(union) => {
+                union.external_domain_name = Some(name);
+            }
+        }
+    }
+
+    pub fn external_domain_name(&self) -> Option<&str> {
+        match self {
+            Definition::Scalar(scalar) => scalar.external_domain_name.as_deref(),
+            Definition::Object(object) => object.external_domain_name.as_deref(),
+            Definition::Union(union) => union.external_domain_name.as_deref(),
+        }
+    }
+
     pub fn name(&self) -> &str {
         match self {
             Definition::Scalar(scalar) => &scalar.name,
@@ -191,17 +252,6 @@ pub struct Meta {
     pub module_path: Vec<String>,
     pub derive: Vec<String>,
     pub debug: bool,
-}
-
-#[derive(Debug)]
-pub struct FieldMeta {
-    pub debug: bool,
-}
-
-impl Default for FieldMeta {
-    fn default() -> Self {
-        Self { debug: true }
-    }
 }
 
 #[derive(Debug)]

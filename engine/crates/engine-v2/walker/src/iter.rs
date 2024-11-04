@@ -1,76 +1,81 @@
-use std::cmp::Ordering;
+use std::{cmp::Ordering, marker::PhantomData};
 
 use crate::{Walk, Walker};
 
-pub struct WalkIterator<'g, I, G> {
+#[derive(Clone, Copy)]
+pub struct WalkIterator<'a, I, Ctx> {
     iter: I,
-    graph: &'g G,
+    ctx: Ctx,
+    _phantom: std::marker::PhantomData<&'a ()>,
 }
 
-impl<'g, I, G> Clone for WalkIterator<'g, I, G>
-where
-    I: Clone,
-{
-    fn clone(&self) -> Self {
+impl<'a, I, Ctx> WalkIterator<'a, I, Ctx> {
+    pub fn new(iter: I, ctx: Ctx) -> Self
+    where
+        I: 'a,
+        Ctx: Copy + 'a,
+    {
         Self {
-            iter: self.iter.clone(),
-            graph: self.graph,
+            iter,
+            ctx,
+            _phantom: PhantomData,
         }
     }
 }
 
-impl<'g, I, G> Copy for WalkIterator<'g, I, G> where I: Copy {}
-
-impl<'g, I, G> WalkIterator<'g, I, G> {
-    pub fn new(iter: I, graph: &'g G) -> Self {
-        Self { iter, graph }
-    }
-}
-
-impl<'g, I, G> Iterator for WalkIterator<'g, I, G>
+impl<'a, I, Ctx> Iterator for WalkIterator<'a, I, Ctx>
 where
     I: Iterator,
-    <I as Iterator>::Item: Walk<G> + 'g,
+    <I as Iterator>::Item: Walk<Ctx> + 'a,
+    I: 'a,
+    Ctx: Copy + 'a,
 {
-    type Item = Walker<'g, <I as Iterator>::Item, G>;
+    type Item = Walker<'a, <I as Iterator>::Item, Ctx>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.iter.next().map(|item| item.walk(self.graph))
+        self.iter.next().map(|item| item.walk(self.ctx))
     }
 }
 
-impl<'g, I, G> ExactSizeIterator for WalkIterator<'g, I, G>
+impl<'a, I, Ctx> ExactSizeIterator for WalkIterator<'a, I, Ctx>
 where
     I: ExactSizeIterator,
-    <I as Iterator>::Item: Walk<G> + 'g,
+    <I as Iterator>::Item: Walk<Ctx> + 'a,
+    I: 'a,
+    Ctx: Copy + 'a,
 {
     fn len(&self) -> usize {
         self.iter.len()
     }
 }
 
-impl<'g, I, G> std::iter::FusedIterator for WalkIterator<'g, I, G>
+impl<'a, I, Ctx> std::iter::FusedIterator for WalkIterator<'a, I, Ctx>
 where
     I: std::iter::FusedIterator,
-    <I as Iterator>::Item: Walk<G> + 'g,
+    <I as Iterator>::Item: Walk<Ctx> + 'a,
+    I: 'a,
+    Ctx: Copy + 'a,
 {
 }
 
-impl<'g, I, G> std::iter::DoubleEndedIterator for WalkIterator<'g, I, G>
+impl<'a, I, Ctx> std::iter::DoubleEndedIterator for WalkIterator<'a, I, Ctx>
 where
     I: std::iter::DoubleEndedIterator,
-    <I as Iterator>::Item: Walk<G> + 'g,
+    <I as Iterator>::Item: Walk<Ctx> + 'a,
+    I: 'a,
+    Ctx: Copy + 'a,
 {
     fn next_back(&mut self) -> Option<Self::Item> {
-        self.iter.next_back().map(|item| item.walk(self.graph))
+        self.iter.next_back().map(|item| item.walk(self.ctx))
     }
 }
 
-impl<'g, I, G> std::fmt::Debug for WalkIterator<'g, I, G>
+impl<'a, I, Ctx> std::fmt::Debug for WalkIterator<'a, I, Ctx>
 where
     I: std::iter::ExactSizeIterator,
-    <I as Iterator>::Item: Walk<G> + 'g,
-    I: Clone,
+    <I as Iterator>::Item: Walk<Ctx> + 'a,
+    I: Clone + 'a,
+    Ctx: Copy + 'a,
     <Self as Iterator>::Item: std::fmt::Debug,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -81,11 +86,12 @@ where
 // `@requires` fields can have arguments and we intern each individual field to allow quick
 // comparison of fields when merging field sets. So we rely on the Ord here to compare argument
 // lists.
-impl<'g, I, G> std::cmp::Ord for WalkIterator<'g, I, G>
+impl<'a, I, Ctx> std::cmp::Ord for WalkIterator<'a, I, Ctx>
 where
     I: std::iter::ExactSizeIterator,
-    <I as Iterator>::Item: Walk<G> + 'g,
-    I: Clone,
+    <I as Iterator>::Item: Walk<Ctx> + 'a,
+    I: Clone + 'a,
+    Ctx: Copy + 'a,
     <Self as Iterator>::Item: std::cmp::Ord,
 {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
@@ -101,11 +107,12 @@ where
     }
 }
 
-impl<'g, I, G> std::cmp::PartialEq for WalkIterator<'g, I, G>
+impl<'a, I, Ctx> std::cmp::PartialEq for WalkIterator<'a, I, Ctx>
 where
     I: std::iter::ExactSizeIterator,
-    <I as Iterator>::Item: Walk<G> + 'g,
-    I: Clone,
+    <I as Iterator>::Item: Walk<Ctx> + 'a,
+    I: Clone + 'a,
+    Ctx: Copy + 'a,
     <Self as Iterator>::Item: std::cmp::PartialEq,
 {
     fn eq(&self, other: &Self) -> bool {
@@ -113,20 +120,22 @@ where
     }
 }
 
-impl<'g, I, G> std::cmp::Eq for WalkIterator<'g, I, G>
+impl<'a, I, Ctx> std::cmp::Eq for WalkIterator<'a, I, Ctx>
 where
     I: std::iter::ExactSizeIterator,
-    <I as Iterator>::Item: Walk<G> + 'g,
-    I: Clone,
+    <I as Iterator>::Item: Walk<Ctx> + 'a,
+    I: Clone + 'a,
+    Ctx: Copy + 'a,
     <Self as Iterator>::Item: std::cmp::Eq,
 {
 }
 
-impl<'g, I, G> std::cmp::PartialOrd for WalkIterator<'g, I, G>
+impl<'a, I, Ctx> std::cmp::PartialOrd for WalkIterator<'a, I, Ctx>
 where
     I: std::iter::ExactSizeIterator,
-    <I as Iterator>::Item: Walk<G> + 'g,
-    I: Clone,
+    <I as Iterator>::Item: Walk<Ctx> + 'a,
+    I: Clone + 'a,
+    Ctx: Copy + 'a,
     <Self as Iterator>::Item: std::cmp::PartialOrd,
 {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {

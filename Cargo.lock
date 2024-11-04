@@ -2493,6 +2493,7 @@ dependencies = [
  "engine-v2-walker",
  "fixedbitset 0.5.7",
  "grafbase-workspace-hack",
+ "itertools 0.13.0",
  "serde",
 ]
 

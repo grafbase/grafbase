@@ -94,11 +94,12 @@ impl<'a> ObjectDefinition<'a> {
     }
 }
 
-impl Walk<Schema> for ObjectDefinitionId {
-    type Walker<'a> = ObjectDefinition<'a>;
-    fn walk<'a>(self, schema: &'a Schema) -> Self::Walker<'a>
+impl<'a> Walk<&'a Schema> for ObjectDefinitionId {
+    type Walker<'w> = ObjectDefinition<'w> where 'a: 'w ;
+    fn walk<'w>(self, schema: &'a Schema) -> Self::Walker<'w>
     where
-        Self: 'a,
+        Self: 'w,
+        'a: 'w,
     {
         ObjectDefinition { schema, id: self }
     }

@@ -51,7 +51,7 @@ impl Schema {
     }
 }
 
-pub type Walker<'a, T> = walker::Walker<'a, T, Schema>;
+pub type Walker<'a, T> = walker::Walker<'a, T, &'a Schema>;
 
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct Version(Vec<u8>);
@@ -178,7 +178,7 @@ pub struct SubGraphs {
 }
 
 impl Schema {
-    pub fn walk<T: Walk<Self>>(&self, item: T) -> Walker<'_, T> {
+    pub fn walk<T: for<'s> Walk<&'s Self>>(&self, item: T) -> Walker<'_, T> {
         item.walk(self)
     }
 

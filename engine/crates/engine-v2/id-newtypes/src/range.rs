@@ -139,13 +139,15 @@ impl<G, Id: Walk<G> + 'static> Walk<G> for IdRange<Id>
 where
     Id: From<usize> + Copy,
     usize: From<Id>,
+    G: Copy,
 {
     type Walker<'a> = WalkIterator<'a, IdRangeIterator<Id>, G>
     where G: 'a;
 
-    fn walk<'a>(self, graph: &'a G) -> Self::Walker<'a>
+    fn walk<'a>(self, graph: G) -> Self::Walker<'a>
     where
         Self: 'a,
+        G: 'a,
     {
         WalkIterator::new(self.into_iter(), graph)
     }

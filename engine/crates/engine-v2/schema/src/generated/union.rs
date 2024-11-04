@@ -84,11 +84,12 @@ impl<'a> UnionDefinition<'a> {
     }
 }
 
-impl Walk<Schema> for UnionDefinitionId {
-    type Walker<'a> = UnionDefinition<'a>;
-    fn walk<'a>(self, schema: &'a Schema) -> Self::Walker<'a>
+impl<'a> Walk<&'a Schema> for UnionDefinitionId {
+    type Walker<'w> = UnionDefinition<'w> where 'a: 'w ;
+    fn walk<'w>(self, schema: &'a Schema) -> Self::Walker<'w>
     where
-        Self: 'a,
+        Self: 'w,
+        'a: 'w,
     {
         UnionDefinition { schema, id: self }
     }

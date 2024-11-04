@@ -57,11 +57,12 @@ impl std::fmt::Debug for EntityDefinition<'_> {
     }
 }
 
-impl Walk<Schema> for EntityDefinitionId {
-    type Walker<'a> = EntityDefinition<'a>;
-    fn walk<'a>(self, schema: &'a Schema) -> Self::Walker<'a>
+impl<'a> Walk<&'a Schema> for EntityDefinitionId {
+    type Walker<'w> = EntityDefinition<'w> where 'a: 'w ;
+    fn walk<'w>(self, schema: &'a Schema) -> Self::Walker<'w>
     where
-        Self: 'a,
+        Self: 'w,
+        'a: 'w,
     {
         match self {
             EntityDefinitionId::Interface(id) => EntityDefinition::Interface(id.walk(schema)),

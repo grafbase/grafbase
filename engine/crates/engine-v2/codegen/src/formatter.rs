@@ -4,6 +4,8 @@ use regex::{Captures, Regex};
 pub(super) struct Formatter {
     shell: xshell::Shell,
     doc_re: Regex,
+    lifetime_re: Regex,
+    lifetime_constraint_re: Regex,
 }
 
 impl Formatter {
@@ -11,6 +13,8 @@ impl Formatter {
         Ok(Self {
             shell: xshell::Shell::new()?,
             doc_re: Regex::new(r#"(?m)^(?<spaces>\s*)#\[doc\s*=\s*"(?<doc>.*)"\]$"#)?,
+            lifetime_re: Regex::new(r#"\s*<\s*('\w)\s*>"#)?,
+            lifetime_constraint_re: Regex::new(r#"('\w)\s*:\s*('\w)"#)?,
         })
     }
 
@@ -56,6 +60,16 @@ impl Formatter {
                         &line[comment_indent..]
                     )))
                 )
+            })
+            .to_string();
+        let code = self
+            .lifetime_re
+            .replace_all(&code, |caps: &Captures| format!("<{}>", caps.get(1).unwrap().as_str()))
+            .to_string();
+        let code = self
+            .lifetime_constraint_re
+            .replace_all(&code, |caps: &Captures| {
+                format!("{}: {}", caps.get(1).unwrap().as_str(), caps.get(2).unwrap().as_str())
             })
             .to_string();
 

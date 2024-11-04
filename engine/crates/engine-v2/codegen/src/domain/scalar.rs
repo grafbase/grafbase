@@ -8,6 +8,8 @@ pub struct Scalar {
     pub struct_name: String,
     pub is_record: bool,
     pub copy: bool,
+    pub external_domain_name: Option<String>,
+    pub in_prelude: bool,
 }
 
 impl From<Scalar> for Definition {

@@ -50,11 +50,12 @@ impl std::fmt::Debug for Subgraph<'_> {
     }
 }
 
-impl Walk<Schema> for SubgraphId {
-    type Walker<'a> = Subgraph<'a>;
-    fn walk<'a>(self, schema: &'a Schema) -> Self::Walker<'a>
+impl<'a> Walk<&'a Schema> for SubgraphId {
+    type Walker<'w> = Subgraph<'w> where 'a: 'w ;
+    fn walk<'w>(self, schema: &'a Schema) -> Self::Walker<'w>
     where
-        Self: 'a,
+        Self: 'w,
+        'a: 'w,
     {
         match self {
             SubgraphId::GraphqlEndpoint(id) => Subgraph::GraphqlEndpoint(id.walk(schema)),

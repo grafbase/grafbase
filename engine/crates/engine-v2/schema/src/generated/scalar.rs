@@ -70,11 +70,12 @@ impl<'a> ScalarDefinition<'a> {
     }
 }
 
-impl Walk<Schema> for ScalarDefinitionId {
-    type Walker<'a> = ScalarDefinition<'a>;
-    fn walk<'a>(self, schema: &'a Schema) -> Self::Walker<'a>
+impl<'a> Walk<&'a Schema> for ScalarDefinitionId {
+    type Walker<'w> = ScalarDefinition<'w> where 'a: 'w ;
+    fn walk<'w>(self, schema: &'a Schema) -> Self::Walker<'w>
     where
-        Self: 'a,
+        Self: 'w,
+        'a: 'w,
     {
         ScalarDefinition { schema, id: self }
     }

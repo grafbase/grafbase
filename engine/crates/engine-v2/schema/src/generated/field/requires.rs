@@ -50,11 +50,12 @@ impl<'a> FieldRequires<'a> {
     }
 }
 
-impl Walk<Schema> for FieldRequiresRecord {
-    type Walker<'a> = FieldRequires<'a>;
-    fn walk<'a>(self, schema: &'a Schema) -> Self::Walker<'a>
+impl<'a> Walk<&'a Schema> for FieldRequiresRecord {
+    type Walker<'w> = FieldRequires<'w> where 'a: 'w ;
+    fn walk<'w>(self, schema: &'a Schema) -> Self::Walker<'w>
     where
-        Self: 'a,
+        Self: 'w,
+        'a: 'w,
     {
         FieldRequires { schema, item: self }
     }

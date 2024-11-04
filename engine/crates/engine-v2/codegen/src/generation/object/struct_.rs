@@ -16,6 +16,7 @@ pub fn generate_struct(
     object: &Object,
     fields: &[FieldContext<'_>],
 ) -> anyhow::Result<Vec<TokenStream>> {
+    let public = &domain.public_visibility;
     let struct_name = Ident::new(&object.struct_name, Span::call_site());
 
     let additional_derives = {
@@ -43,7 +44,7 @@ pub fn generate_struct(
     let object_struct = quote! {
         #[doc = #docstr]
         #[derive(Debug, serde::Serialize, serde::Deserialize #additional_derives)]
-        pub struct #struct_name {
+        pub #public struct #struct_name {
             #(#struct_fields),*
         }
     };

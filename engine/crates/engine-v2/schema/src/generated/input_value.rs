@@ -73,11 +73,12 @@ impl<'a> InputValueDefinition<'a> {
     }
 }
 
-impl Walk<Schema> for InputValueDefinitionId {
-    type Walker<'a> = InputValueDefinition<'a>;
-    fn walk<'a>(self, schema: &'a Schema) -> Self::Walker<'a>
+impl<'a> Walk<&'a Schema> for InputValueDefinitionId {
+    type Walker<'w> = InputValueDefinition<'w> where 'a: 'w ;
+    fn walk<'w>(self, schema: &'a Schema) -> Self::Walker<'w>
     where
-        Self: 'a,
+        Self: 'w,
+        'a: 'w,
     {
         InputValueDefinition { schema, id: self }
     }

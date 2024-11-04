@@ -15,6 +15,7 @@ pub fn generate_enum(
     union: &Union,
     variants: &[VariantContext<'_>],
 ) -> anyhow::Result<Vec<TokenStream>> {
+    let public = &domain.public_visibility;
     let enum_name = Ident::new(union.enum_name(), Span::call_site());
 
     let additional_derives = {
@@ -42,7 +43,7 @@ pub fn generate_enum(
     let union_enum = quote! {
         #[doc = #docstr]
         #[derive(serde::Serialize, serde::Deserialize #additional_derives)]
-        pub enum #enum_name {
+        pub #public enum #enum_name {
             #(#enum_variants),*
         }
     };
