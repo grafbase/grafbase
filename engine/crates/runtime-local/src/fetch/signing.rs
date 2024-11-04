@@ -105,7 +105,9 @@ impl SigningParameters {
             return Ok(None);
         }
 
-        let Some(key) = key else { todo!("error handling") };
+        let Some(key) = key else {
+            return Err(anyhow!("Message signing is enabled but no key was provided"));
+        };
         let key_id = key.id().map(str::to_string);
         let key = Key::load_from(&key, algorithm)?;
 
@@ -143,9 +145,10 @@ impl SigningParameters {
 
         let mut params = HttpSignatureParams::try_new(&covered_components)?;
         params.set_key_info(&self.key);
-        if matches!(self.key, Key::Shared(_)) {
+        if matches!(self.key, Key::Shared(_, None)) {
             // I am _pretty sure_ set_key_info just makes up a nonsense id for shared keys
-            // so lets clear it out.  Can remove this if I turn out to be wrong.
+            // if there's not an exlicit JWK key so lets clear it out.
+            // Can remove this if I turn out to be wrong.
             params.keyid = None;
         }
         if let Some(id) = &self.key_id {
@@ -200,8 +203,8 @@ fn merge_config(
 
 #[derive(Clone)]
 pub enum Key {
-    Secret(httpsig::prelude::SecretKey),
-    Shared(httpsig::prelude::SharedKey),
+    Secret(httpsig::prelude::SecretKey, Option<String>),
+    Shared(httpsig::prelude::SharedKey, Option<String>),
 }
 
 impl Key {
@@ -218,6 +221,7 @@ impl Key {
             MessageSigningAlgorithm::HmacSha256 => Ok(Key::Shared(
                 SharedKey::from_base64(contents)
                     .context("could not parse hmac-sha256 key from inline base64 string")?,
+                None,
             )),
             _ => Err(anyhow::anyhow!(
                 "only hmac-sha256 message signatures are supported when providing an inline key"
@@ -235,19 +239,23 @@ impl Key {
             Key::Shared(
                 SharedKey::from_base64(&data)
                     .with_context(|| format!("could not parse base64 encoded hmac-sha256 key from {name}"))?,
+                None,
             )
         } else {
-            Key::Secret(SecretKey::from_pem(&data).with_context(|| {
-                format!("could not parse a key from {name} (expected a PEM file containing a PKCS#8 format key)")
-            })?)
+            Key::Secret(
+                SecretKey::from_pem(&data).with_context(|| {
+                    format!("could not parse a key from {name} (expected a PEM file containing a PKCS#8 format key)")
+                })?,
+                None,
+            )
         };
 
         match (&key, algorithm) {
             (_, None)
-            | (Key::Shared(_), Some(MessageSigningAlgorithm::HmacSha256))
-            | (Key::Secret(SecretKey::Ed25519(_)), Some(MessageSigningAlgorithm::Ed25519))
-            | (Key::Secret(SecretKey::EcdsaP256Sha256(_)), Some(MessageSigningAlgorithm::EcdsaP256))
-            | (Key::Secret(SecretKey::EcdsaP384Sha384(_)), Some(MessageSigningAlgorithm::EcdsaP384)) => {}
+            | (Key::Shared(_, _), Some(MessageSigningAlgorithm::HmacSha256))
+            | (Key::Secret(SecretKey::Ed25519(_), _), Some(MessageSigningAlgorithm::Ed25519))
+            | (Key::Secret(SecretKey::EcdsaP256Sha256(_), _), Some(MessageSigningAlgorithm::EcdsaP256))
+            | (Key::Secret(SecretKey::EcdsaP384Sha384(_), _), Some(MessageSigningAlgorithm::EcdsaP384)) => {}
             (_, Some(algorithm)) => {
                 return Err(anyhow::anyhow!(
                     "you requested {algorithm} message signing but {name} contains a {} key",
@@ -263,22 +271,24 @@ impl Key {
 impl SigningKey for Key {
     fn sign(&self, data: &[u8]) -> httpsig_hyper::prelude::HttpSigResult<Vec<u8>> {
         match self {
-            Key::Secret(secret_key) => secret_key.sign(data),
-            Key::Shared(shared_key) => shared_key.sign(data),
+            Key::Secret(secret_key, _) => secret_key.sign(data),
+            Key::Shared(shared_key, _) => shared_key.sign(data),
         }
     }
 
     fn key_id(&self) -> String {
         match self {
-            Key::Secret(secret_key) => secret_key.key_id(),
-            Key::Shared(shared_key) => shared_key.key_id(),
+            Key::Secret(_, Some(id)) => id.clone(),
+            Key::Secret(secret_key, _) => secret_key.key_id(),
+            Key::Shared(_, Some(id)) => id.clone(),
+            Key::Shared(shared_key, _) => shared_key.key_id(),
         }
     }
 
     fn alg(&self) -> httpsig_hyper::prelude::AlgorithmName {
         match self {
-            Key::Secret(secret_key) => secret_key.alg(),
-            Key::Shared(shared_key) => shared_key.alg(),
+            Key::Secret(secret_key, _) => secret_key.alg(),
+            Key::Shared(shared_key, _) => shared_key.alg(),
         }
     }
 }
@@ -287,6 +297,8 @@ impl SigningKey for Key {
 pub struct Jwk {
     #[serde(rename = "kty")]
     key_type: String,
+    #[serde(rename = "kid")]
+    key_id: Option<String>,
     #[serde(rename = "crv")]
     curve: Option<String>,
     #[serde(rename = "d")]
@@ -300,7 +312,6 @@ pub struct Jwk {
     y: Option<String>,
 }
 
-// TODO: return the kid from this as well...
 fn parse_jwk(data: &str, filename: &str) -> anyhow::Result<Key> {
     let jwk = serde_json::from_str::<Jwk>(data)
         .with_context(|| format!("{filename} looked like a JWK but we could not parse it as one"))?;
@@ -309,17 +320,25 @@ fn parse_jwk(data: &str, filename: &str) -> anyhow::Result<Key> {
         // Values for the ecdsa curves as defined here https://datatracker.ietf.org/doc/html/rfc7518#section-6.2
         ("EC", Some("P-256")) => {
             validate_private_key(&jwk, filename)?;
-            Ok(Key::Secret(SecretKey::EcdsaP256Sha256(
-                ec_key_from_jwk(jwk)
-                    .with_context(|| format!("could not load P-256 private key from JWK {filename}"))?,
-            )))
+            let id = jwk.key_id.clone();
+            Ok(Key::Secret(
+                SecretKey::EcdsaP256Sha256(
+                    ec_key_from_jwk(jwk)
+                        .with_context(|| format!("could not load P-256 private key from JWK {filename}"))?,
+                ),
+                id,
+            ))
         }
         ("EC", Some("P-384")) => {
             validate_private_key(&jwk, filename)?;
-            Ok(Key::Secret(SecretKey::EcdsaP384Sha384(
-                ec_key_from_jwk(jwk)
-                    .with_context(|| format!("could not load P-384 private key from JWK {filename}"))?,
-            )))
+            let id = jwk.key_id.clone();
+            Ok(Key::Secret(
+                SecretKey::EcdsaP384Sha384(
+                    ec_key_from_jwk(jwk)
+                        .with_context(|| format!("could not load P-384 private key from JWK {filename}"))?,
+                ),
+                id,
+            ))
         }
 
         // Ed25519 isn't in the original JWK spec, but found the values
@@ -335,7 +354,7 @@ fn parse_jwk(data: &str, filename: &str) -> anyhow::Result<Key> {
                 .decode(key_b64)
                 .with_context(|| format!("could not base64 decode the key in {filename}"))?;
 
-            Ok(Key::Shared(httpsig::prelude::SharedKey::HmacSha256(key)))
+            Ok(Key::Shared(httpsig::prelude::SharedKey::HmacSha256(key), jwk.key_id))
         }
         ("oct", _) => Err(anyhow::anyhow!(
             "The {:?} algorithm found in {filename} is not supported",
@@ -369,7 +388,10 @@ fn parse_ed25519(jwk: &Jwk, filename: &str) -> Result<Key, anyhow::Error> {
     key[..ed25519_compact::PublicKey::BYTES].copy_from_slice(&private);
     key[ed25519_compact::PublicKey::BYTES..].copy_from_slice(&public);
 
-    Ok(Key::Secret(SecretKey::Ed25519(ed25519_compact::SecretKey::new(key))))
+    Ok(Key::Secret(
+        SecretKey::Ed25519(ed25519_compact::SecretKey::new(key)),
+        jwk.key_id.clone(),
+    ))
 }
 
 fn validate_private_key<'a>(jwk: &'a Jwk, filename: &str) -> anyhow::Result<&'a str> {
