@@ -19,7 +19,7 @@ use crate::{
         InputResponseObjectSet, ObjectIdentifier, Response, ResponseBuilder, ResponseEdge, ResponseObjectField,
         ResponseValue, SubgraphResponse, SubgraphResponseRefMut,
     },
-    sources::ResolverResult,
+    subgraph::ResolverResult,
     Runtime,
 };
 

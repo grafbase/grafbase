@@ -20,7 +20,7 @@ use web_time::Duration;
 use crate::{
     execution::{ExecutionError, ExecutionResult},
     response::{ErrorCode, GraphqlError, SubgraphResponse},
-    sources::graphql::SubgraphContext,
+    subgraph::graphql::SubgraphContext,
     Runtime,
 };
 

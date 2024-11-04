@@ -18,7 +18,7 @@ use crate::{
     execution::{ExecutionError, PlanningResult},
     operation::{OperationType, PlanWalker},
     response::SubgraphResponse,
-    sources::{graphql::request::SubgraphGraphqlRequest, ExecutionContext, ExecutionResult, Resolver},
+    subgraph::{graphql::request::SubgraphGraphqlRequest, ExecutionContext, ExecutionResult, Resolver},
     Runtime,
 };
 

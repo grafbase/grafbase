@@ -14,7 +14,7 @@ use crate::{
     execution::{ExecutionContext, ExecutionError, PlanningResult},
     operation::{CacheScope, OperationType, PlanWalker},
     response::{ResponseObjectsView, SubgraphResponse},
-    sources::{
+    subgraph::{
         graphql::{
             deserialize::{EntitiesErrorsSeed, GraphqlResponseSeed},
             request::{SubgraphGraphqlRequest, SubgraphVariables},

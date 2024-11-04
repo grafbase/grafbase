@@ -13,7 +13,7 @@ use std::sync::Arc;
 use crate::{
     operation::{LogicalPlanId, PreparedOperation, QueryModifications, ResponseModifierRule, Variables},
     response::{ResponseKey, ResponseObjectSetId, ResponseViewSelectionSet, ResponseViews},
-    sources::Resolver,
+    subgraph::Resolver,
     Runtime,
 };
 pub(crate) use context::*;

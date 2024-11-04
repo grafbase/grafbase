@@ -10,7 +10,7 @@ mod operation;
 mod plan;
 mod request;
 mod response;
-mod sources;
+mod subgraph;
 mod utils;
 pub mod websocket;
 

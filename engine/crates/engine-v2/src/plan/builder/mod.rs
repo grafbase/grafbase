@@ -1,3 +1,4 @@
+mod adapter;
 mod shapes;
 
 use id_newtypes::{IdRange, IdToMany};
@@ -22,11 +23,10 @@ use super::{
 };
 
 impl OperationPlan {
-    pub(super) fn build(
-        schema: &Schema,
-        mut operation: Operation,
-        graph: SolvedGraph<BoundFieldId>,
-    ) -> PlanResult<Self> {
+    pub(super) fn build(schema: &Schema, mut operation: Operation) -> PlanResult<Self> {
+        let graph =
+            query_planning::OperationGraph::new(schema, adapter::OperationAdapter::new(schema, &mut operation))?
+                .solve()?;
         OperationPlanBuilder {
             schema,
             operation_plan: OperationPlan {
@@ -126,7 +126,7 @@ impl OperationPlanBuilder<'_> {
 
         self.populate_modifiers_after_plan_generation()?;
 
-        self.populate_plan_shapes();
+        self.populate_shapes_after_plan_generation();
 
         Ok(self.operation_plan)
     }

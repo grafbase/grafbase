@@ -14,7 +14,7 @@ use crate::{
         SelectionSetType,
     },
     response::{ResponseObjectSetId, ResponseViewSelection, ResponseViewSelectionSet},
-    sources::Resolver,
+    subgraph::Resolver,
     Runtime,
 };
 
