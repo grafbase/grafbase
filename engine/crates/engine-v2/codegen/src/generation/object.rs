@@ -53,6 +53,7 @@ pub fn generate_object<'a>(domain: &'a Domain, object: &'a Object) -> anyhow::Re
             } else {
                 Default::default()
             },
+            ..Default::default()
         },
     })
 }

@@ -6,9 +6,13 @@
 mod field;
 mod modifier;
 mod plan;
+mod response_object_set;
+mod selection_set;
 mod variable;
 
 pub(crate) use field::*;
 pub(crate) use modifier::*;
 pub(crate) use plan::*;
+pub(crate) use response_object_set::*;
+pub(crate) use selection_set::*;
 pub(crate) use variable::*;

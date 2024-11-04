@@ -25,6 +25,18 @@ pub(super) fn load(path: PathBuf) -> anyhow::Result<domain::Domain> {
 
     let mut domain: Option<domain::Domain> = None;
     let mut definitions_by_name = HashMap::new();
+    definitions_by_name.insert(
+        "Boolean".into(),
+        domain::Scalar::Value {
+            indexed: None,
+            name: "bool".into(),
+            walker_name: None,
+            external_domain_name: None,
+            in_prelude: true,
+            copy: true,
+        }
+        .into(),
+    );
 
     for definition in document.definitions() {
         let Definition::Type(ty) = definition else {
@@ -105,7 +117,6 @@ pub(super) fn load(path: PathBuf) -> anyhow::Result<domain::Domain> {
                 if is_record(scalar.directives()) {
                     domain::Scalar::Record {
                         indexed: parse_indexed(scalar.name(), scalar.directives()),
-                        span: scalar.span(),
                         name: scalar.name().to_string(),
                         record_name: format!("{}Record", scalar.name()),
                         external_domain_name: None,
@@ -114,11 +125,20 @@ pub(super) fn load(path: PathBuf) -> anyhow::Result<domain::Domain> {
                     }
                 } else if parse_ref_directive(scalar.directives()).is_some() {
                     continue; // added at the end.
+                } else if scalar.directives().any(|directive| directive.name() == "id") {
+                    domain::Scalar::Id {
+                        name: scalar.name().to_string(),
+                        external_domain_name: None,
+                        in_prelude,
+                    }
                 } else {
                     domain::Scalar::Value {
                         indexed: parse_indexed(scalar.name(), scalar.directives()),
-                        span: scalar.span(),
                         name: scalar.name().to_string(),
+                        walker_name: match scalar.name() {
+                            "String" => Some("str".to_string()),
+                            _ => None,
+                        },
                         external_domain_name: None,
                         in_prelude,
                         copy: is_copy(scalar.directives()),
@@ -215,7 +235,6 @@ pub(super) fn load(path: PathBuf) -> anyhow::Result<domain::Domain> {
             continue;
         };
         let scalar = domain::Scalar::Ref {
-            span: scalar.span(),
             name: scalar.name().to_string(),
             id_struct_name: format!("{}Id", scalar.name()),
             in_prelude: scalar.directives().any(|directive| directive.name() == "prelude"),
@@ -255,6 +274,7 @@ fn finalize_field_struct_names(
                 },
                 domain::Definition::Scalar(scalar) => {
                     match scalar {
+                        domain::Scalar::Id { .. } => None,
                         domain::Scalar::Ref { .. } => Some("id"),
                         domain::Scalar::Record { indexed, .. } => {
                             if indexed.is_some() {

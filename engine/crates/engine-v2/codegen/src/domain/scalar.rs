@@ -2,10 +2,15 @@ use super::{Definition, Indexed};
 
 #[derive(Clone, Debug)]
 pub enum Scalar {
+    Id {
+        name: String,
+        external_domain_name: Option<String>,
+        in_prelude: bool,
+    },
     Value {
         indexed: Option<Indexed>,
         name: String,
-        span: cynic_parser::Span,
+        walker_name: Option<String>,
         external_domain_name: Option<String>,
         in_prelude: bool,
         copy: bool,
@@ -13,7 +18,6 @@ pub enum Scalar {
     Record {
         indexed: Option<Indexed>,
         name: String,
-        span: cynic_parser::Span,
         record_name: String,
         external_domain_name: Option<String>,
         in_prelude: bool,
@@ -22,7 +26,6 @@ pub enum Scalar {
     Ref {
         name: String,
         id_struct_name: String,
-        span: cynic_parser::Span,
         in_prelude: bool,
         external_domain_name: Option<String>,
         target: Box<Definition>,
@@ -54,13 +57,7 @@ impl Scalar {
             Scalar::Value { name, .. } => name,
             Scalar::Record { name, .. } => name,
             Scalar::Ref { name, .. } => name,
-        }
-    }
-    pub fn span(&self) -> &cynic_parser::Span {
-        match self {
-            Scalar::Value { span, .. } => span,
-            Scalar::Record { span, .. } => span,
-            Scalar::Ref { span, .. } => span,
+            Scalar::Id { name, .. } => name,
         }
     }
 
@@ -75,17 +72,18 @@ impl Scalar {
             Scalar::Ref {
                 external_domain_name, ..
             } => external_domain_name.as_deref(),
+            Scalar::Id {
+                external_domain_name, ..
+            } => external_domain_name.as_deref(),
         }
     }
 
     pub fn walker_name(&self) -> &str {
         match self {
-            Scalar::Value { name, .. } => match name.as_str() {
-                "String" => "str",
-                s => s,
-            },
+            Scalar::Value { walker_name, name, .. } => walker_name.as_deref().unwrap_or(name),
             Scalar::Record { name, .. } => name,
             Scalar::Ref { target, .. } => target.walker_name(),
+            Scalar::Id { .. } => unreachable!("doesn't have any"),
         }
     }
 }

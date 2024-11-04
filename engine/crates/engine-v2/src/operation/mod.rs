@@ -1,5 +1,5 @@
 mod bind;
-mod blueprint;
+pub(crate) mod blueprint;
 mod cache_scopes;
 pub mod ids;
 mod input_value;

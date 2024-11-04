@@ -1,4 +1,4 @@
-mod partition;
+pub(crate) mod partition;
 mod plan;
 
 use std::collections::HashMap;

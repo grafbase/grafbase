@@ -27,6 +27,7 @@ struct GeneratedCode<'a> {
 
 #[derive(Default)]
 struct Imports<'a> {
+    local: HashSet<&'a str>,
     generated: HashSet<&'a str>,
     walker_lib: HashSet<&'a str>,
 }
@@ -55,7 +56,16 @@ pub fn generate_modules(formatter: &Formatter, domain: &Domain) -> anyhow::Resul
     let mut names = domain
         .definitions_by_name
         .iter()
-        .map(|(name, definition)| (definition.span().start, name))
+        .filter_map(|(name, definition)| {
+            if definition.external_domain_name().is_some() {
+                return None;
+            }
+            match definition {
+                Definition::Scalar(_) => None,
+                Definition::Object(def) => Some((def.span.start, name)),
+                Definition::Union(def) => Some((def.span.start, name)),
+            }
+        })
         .collect::<Vec<_>>();
 
     // Ensure consistent ordering of generated code despite the hashmap
@@ -63,12 +73,8 @@ pub fn generate_modules(formatter: &Formatter, domain: &Domain) -> anyhow::Resul
 
     for (_, name) in names {
         let definition = &domain.definitions_by_name[name];
-        if definition.external_domain_name().is_some() {
-            continue;
-        }
-
         let generated_code = match definition {
-            Definition::Scalar(_) => continue,
+            Definition::Scalar(_) => unreachable!(),
             Definition::Object(object) => generate_object(domain, object)?,
             Definition::Union(union) => generate_union(domain, union)?,
         };
@@ -80,6 +86,7 @@ pub fn generate_modules(formatter: &Formatter, domain: &Domain) -> anyhow::Resul
 
         let module = modules.entry(module_path).or_default();
         module.imports.extend(imports);
+        module.imports.local.insert(name);
         module.code_sections.extend(code_sections);
 
         if module_path.len() > 1 {

@@ -3,7 +3,7 @@
 //! ===================
 //! Generated with: `cargo run -p engine-v2-codegen`
 //! Source file: <engine-v2-codegen dir>/domain/operation_plan.graphql
-use crate::plan::{generated::Field, prelude::*, FieldRefId};
+use crate::plan::model::{generated::Field, prelude::*, FieldRefId};
 use walker::{Iter, Walk};
 
 /// Generated from:
@@ -22,8 +22,8 @@ pub(crate) struct QueryModifierRecord {
 
 #[derive(Clone, Copy)]
 pub(crate) struct QueryModifier<'a> {
-    pub(in crate::plan) ctx: PlanContext<'a>,
-    pub(in crate::plan) ref_: &'a QueryModifierRecord,
+    pub(in crate::plan::model) ctx: PlanContext<'a>,
+    pub(in crate::plan::model) ref_: &'a QueryModifierRecord,
 }
 
 impl std::ops::Deref for QueryModifier<'_> {
@@ -80,8 +80,8 @@ pub(crate) struct ResponseModifierRecord {
 
 #[derive(Clone, Copy)]
 pub(crate) struct ResponseModifier<'a> {
-    pub(in crate::plan) ctx: PlanContext<'a>,
-    pub(in crate::plan) ref_: &'a ResponseModifierRecord,
+    pub(in crate::plan::model) ctx: PlanContext<'a>,
+    pub(in crate::plan::model) ref_: &'a ResponseModifierRecord,
 }
 
 impl std::ops::Deref for ResponseModifier<'_> {

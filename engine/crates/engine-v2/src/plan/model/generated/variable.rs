@@ -3,7 +3,7 @@
 //! ===================
 //! Generated with: `cargo run -p engine-v2-codegen`
 //! Source file: <engine-v2-codegen dir>/domain/operation_plan.graphql
-use crate::plan::prelude::*;
+use crate::plan::model::prelude::*;
 use schema::{Type, TypeRecord};
 use walker::Walk;
 
@@ -13,7 +13,7 @@ use walker::Walk;
 /// type VariableDefinition @meta(module: "variable") @indexed(id_size: "u16") {
 ///   name: String!
 ///   name_location: Location!
-///   default_value: QueryInputValue
+///   default_value_id: QueryInputValueId
 ///   ty: Type!
 /// }
 /// ```
@@ -30,8 +30,8 @@ pub(crate) struct VariableDefinitionId(std::num::NonZero<u16>);
 
 #[derive(Clone, Copy)]
 pub(crate) struct VariableDefinition<'a> {
-    pub(in crate::plan) ctx: PlanContext<'a>,
-    pub(in crate::plan) id: VariableDefinitionId,
+    pub(in crate::plan::model) ctx: PlanContext<'a>,
+    pub(in crate::plan::model) id: VariableDefinitionId,
 }
 
 impl std::ops::Deref for VariableDefinition<'_> {
@@ -50,9 +50,6 @@ impl<'a> VariableDefinition<'a> {
     }
     pub(crate) fn id(&self) -> VariableDefinitionId {
         self.id
-    }
-    pub(crate) fn default_value(&self) -> Option<QueryInputValue<'a>> {
-        self.default_value_id.walk(self.ctx)
     }
     pub(crate) fn ty(&self) -> Type<'a> {
         self.ty_record.walk(self.ctx.schema)
@@ -75,7 +72,7 @@ impl std::fmt::Debug for VariableDefinition<'_> {
         f.debug_struct("VariableDefinition")
             .field("name", &self.name)
             .field("name_location", &self.name_location)
-            .field("default_value", &self.default_value())
+            .field("default_value_id", &self.default_value_id)
             .field("ty", &self.ty())
             .finish()
     }

@@ -69,6 +69,7 @@ pub(crate) struct PolymorphicObjectShape {
 pub(crate) struct ConcreteObjectShape {
     pub set_id: Option<ResponseObjectSetId>,
     pub identifier: ObjectIdentifier,
+    // TODO: Use PositionedResponseKey instead
     pub typename_response_edges: Vec<ResponseEdge>,
     // Sorted by expected_key
     pub field_shape_ids: IdRange<FieldShapeId>,

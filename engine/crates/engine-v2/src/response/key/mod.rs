@@ -68,11 +68,11 @@ pub use private::*;
 
 use crate::operation::QueryPosition;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct PositionedResponseKey {
     /// If not present, it's an extra field.
     pub query_position: Option<QueryPosition>,
-    pub key: ResponseKey,
+    pub response_key: ResponseKey,
 }
 
 impl From<BoundResponseKey> for PositionedResponseKey {
@@ -85,7 +85,7 @@ impl From<BoundResponseKey> for PositionedResponseKey {
         };
         PositionedResponseKey {
             query_position: position,
-            key: key.as_response_key(),
+            response_key: key.as_response_key(),
         }
     }
 }
@@ -96,6 +96,16 @@ impl From<BoundResponseKey> for PositionedResponseKey {
 /// the back.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize)]
 pub struct ResponseEdge(u32);
+
+impl From<PositionedResponseKey> for ResponseEdge {
+    fn from(key: PositionedResponseKey) -> Self {
+        if let Some(position) = key.query_position {
+            BoundResponseKey((key.response_key.0 as u32) | ((u16::from(position) as u32) << POSITION_BIT_SHIFT)).into()
+        } else {
+            ResponseEdge(EXTRA_FIELD_KEY_FLAG | key.response_key.0 as u32)
+        }
+    }
+}
 
 impl From<ResponseEdge> for usize {
     fn from(edge: ResponseEdge) -> usize {

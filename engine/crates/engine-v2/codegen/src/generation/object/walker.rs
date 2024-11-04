@@ -111,6 +111,7 @@ pub fn generate_walker(
             }
         });
         code_sections.push(quote! {
+            #allow_unused
             impl <'a> #walker_name<'a> {
                 #[allow(clippy::should_implement_trait)]
                 pub #public fn as_ref(&self) -> &#struct_name {

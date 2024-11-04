@@ -79,6 +79,9 @@ impl Definition {
                 Scalar::Ref {
                     external_domain_name, ..
                 } => *external_domain_name = Some(name),
+                Scalar::Id {
+                    external_domain_name, ..
+                } => *external_domain_name = Some(name),
             },
             Definition::Object(object) => {
                 object.external_domain_name = Some(name);
@@ -102,14 +105,6 @@ impl Definition {
             Definition::Scalar(scalar) => scalar.name(),
             Definition::Object(object) => &object.name,
             Definition::Union(union) => union.name(),
-        }
-    }
-
-    pub fn span(&self) -> &cynic_parser::Span {
-        match self {
-            Definition::Scalar(scalar) => scalar.span(),
-            Definition::Object(object) => &object.span,
-            Definition::Union(union) => &union.span,
         }
     }
 
@@ -145,6 +140,10 @@ impl Definition {
                 }
                 Scalar::Ref { id_struct_name, .. } => StorageType::Id {
                     name: id_struct_name,
+                    list_as_id_range: true,
+                },
+                Scalar::Id { name, .. } => StorageType::Id {
+                    name,
                     list_as_id_range: true,
                 },
             },
@@ -196,6 +195,7 @@ impl Definition {
                         AccessKind::Ref
                     }
                 }
+                Scalar::Id { .. } => AccessKind::Copy,
                 Scalar::Ref { .. } => AccessKind::IdWalker,
             },
             Definition::Object(record) => {
