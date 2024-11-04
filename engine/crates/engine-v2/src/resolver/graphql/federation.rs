@@ -13,14 +13,14 @@ use walker::Walk;
 use crate::{
     execution::{ExecutionContext, ExecutionError, PlanningResult},
     operation::{CacheScope, OperationType, PlanWalker},
-    response::{ResponseObjectsView, SubgraphResponse},
-    subgraph::{
+    resolver::{
         graphql::{
             deserialize::{EntitiesErrorsSeed, GraphqlResponseSeed},
             request::{SubgraphGraphqlRequest, SubgraphVariables},
         },
         ExecutionResult, Resolver,
     },
+    response::{ResponseObjectsView, SubgraphResponse},
     Runtime,
 };
 

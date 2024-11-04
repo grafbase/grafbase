@@ -15,11 +15,11 @@ use tracing::Instrument;
 use crate::{
     execution::{ExecutableOperation, ExecutionContext},
     operation::PlanWalker,
+    resolver::ResolverResult,
     response::{
         InputResponseObjectSet, ObjectIdentifier, Response, ResponseBuilder, ResponseEdge, ResponseObjectField,
         ResponseValue, SubgraphResponse, SubgraphResponseRefMut,
     },
-    subgraph::ResolverResult,
     Runtime,
 };
 

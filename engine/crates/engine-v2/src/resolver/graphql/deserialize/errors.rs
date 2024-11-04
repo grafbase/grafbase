@@ -11,7 +11,7 @@ pub(super) trait GraphqlErrorsSeed<'resp> {
     fn convert_path(&self, path: &serde_json::Value) -> Option<ResponsePath>;
 }
 
-pub(in crate::subgraph::graphql) struct RootGraphqlErrors<'resp> {
+pub(in crate::resolver::graphql) struct RootGraphqlErrors<'resp> {
     response: SubgraphResponseRefMut<'resp>,
     response_keys: &'resp ResponseKeys,
 }

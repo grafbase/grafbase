@@ -1,4 +1,4 @@
-use crate::{plan::PlanId, response::ResponseViewSelectionSet, subgraph::Resolver};
+use crate::{plan::PlanId, resolver::Resolver, response::ResponseViewSelectionSet};
 
 pub(crate) struct ExecutionPlan {
     pub plan_id: PlanId,
