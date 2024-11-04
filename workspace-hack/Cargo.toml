@@ -54,7 +54,7 @@ digest = { version = "0.10", features = ["mac", "oid", "std"] }
 ecdsa = { version = "0.16", default-features = false, features = ["pem", "signing", "std", "verifying"] }
 ed25519-compact = { version = "2" }
 either = { version = "1" }
-elliptic-curve = { version = "0.13", features = ["ecdh", "hazmat", "pem", "std"] }
+elliptic-curve = { version = "0.13", features = ["ecdh", "hazmat", "jwk", "pem", "std"] }
 fastrand = { version = "2" }
 ff = { version = "0.13", default-features = false, features = ["alloc"] }
 futures = { version = "0.3" }
@@ -86,8 +86,8 @@ miette = { version = "7", features = ["fancy"] }
 num-bigint-dig = { version = "0.8", default-features = false, features = ["i128", "prime", "u64_digit", "zeroize"] }
 num-traits = { version = "0.2", features = ["i128", "libm"] }
 once_cell = { version = "1" }
-p256 = { version = "0.13" }
-p384 = { version = "0.13" }
+p256 = { version = "0.13", features = ["jwk"] }
+p384 = { version = "0.13", features = ["jwk"] }
 percent-encoding = { version = "2" }
 pkcs1 = { version = "0.7", default-features = false, features = ["pem", "pkcs8", "std"] }
 pkcs8 = { version = "0.10", default-features = false, features = ["pem", "std"] }
@@ -106,7 +106,7 @@ rust_decimal = { version = "1" }
 rustls = { version = "0.23", default-features = false, features = ["aws-lc-rs", "logging", "ring", "std", "tls12"] }
 rustls-pki-types = { version = "1", features = ["std"] }
 rustls-webpki = { version = "0.102", default-features = false, features = ["aws_lc_rs", "ring", "std"] }
-sec1 = { version = "0.7", features = ["pem", "std", "subtle"] }
+sec1 = { version = "0.7", features = ["pem", "serde", "std", "subtle"] }
 semver = { version = "1", features = ["serde"] }
 serde = { version = "1", features = ["alloc", "derive", "rc"] }
 serde_json = { version = "1", features = ["alloc", "preserve_order", "raw_value"] }
@@ -183,7 +183,7 @@ digest = { version = "0.10", features = ["mac", "oid", "std"] }
 ecdsa = { version = "0.16", default-features = false, features = ["pem", "signing", "std", "verifying"] }
 ed25519-compact = { version = "2" }
 either = { version = "1" }
-elliptic-curve = { version = "0.13", features = ["ecdh", "hazmat", "pem", "std"] }
+elliptic-curve = { version = "0.13", features = ["ecdh", "hazmat", "jwk", "pem", "std"] }
 fastrand = { version = "2" }
 ff = { version = "0.13", default-features = false, features = ["alloc"] }
 futures = { version = "0.3" }
@@ -215,8 +215,8 @@ miette = { version = "7", features = ["fancy"] }
 num-bigint-dig = { version = "0.8", default-features = false, features = ["i128", "prime", "u64_digit", "zeroize"] }
 num-traits = { version = "0.2", features = ["i128", "libm"] }
 once_cell = { version = "1" }
-p256 = { version = "0.13" }
-p384 = { version = "0.13" }
+p256 = { version = "0.13", features = ["jwk"] }
+p384 = { version = "0.13", features = ["jwk"] }
 percent-encoding = { version = "2" }
 pkcs1 = { version = "0.7", default-features = false, features = ["pem", "pkcs8", "std"] }
 pkcs8 = { version = "0.10", default-features = false, features = ["pem", "std"] }
@@ -235,7 +235,7 @@ rust_decimal = { version = "1" }
 rustls = { version = "0.23", default-features = false, features = ["aws-lc-rs", "logging", "ring", "std", "tls12"] }
 rustls-pki-types = { version = "1", features = ["std"] }
 rustls-webpki = { version = "0.102", default-features = false, features = ["aws_lc_rs", "ring", "std"] }
-sec1 = { version = "0.7", features = ["pem", "std", "subtle"] }
+sec1 = { version = "0.7", features = ["pem", "serde", "std", "subtle"] }
 semver = { version = "1", features = ["serde"] }
 serde = { version = "1", features = ["alloc", "derive", "rc"] }
 serde_json = { version = "1", features = ["alloc", "preserve_order", "raw_value"] }
