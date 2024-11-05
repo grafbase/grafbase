@@ -192,14 +192,14 @@ interface types {
 
     // An error response can be used to inject an error to the GraphQL response.
     record error {
-        // The error message.
-        message: string,
         // Adds the given extensions to the response extensions. The first item in
         // the tuple is the extension key, and the second item is the extension value.
         // The extension value can be string-encoded JSON, which will be converted as
         // JSON in the response. It can also be just a string, which will be converted as
         // a JSON string in the response.
         extensions: list<tuple<string, string>>,
+        // The error message.
+        message: string,
     }
 }
 
