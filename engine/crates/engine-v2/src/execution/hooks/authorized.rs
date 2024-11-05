@@ -8,7 +8,7 @@ use schema::{Definition, FieldDefinition, SchemaInputValue};
 use crate::{
     operation::FieldArgumentsView,
     plan::HydratedFieldArgumentsView,
-    response::{GraphqlError, ResponseObjectsView},
+    response::{GraphqlError, OldResponseObjectsView},
 };
 
 impl<'ctx, H: Hooks> super::RequestHooks<'ctx, H> {
@@ -65,7 +65,7 @@ impl<'ctx, H: Hooks> super::RequestHooks<'ctx, H> {
     pub async fn authorize_parent_edge_post_execution(
         &self,
         definition: FieldDefinition<'_>,
-        parents: ResponseObjectsView<'_>,
+        parents: OldResponseObjectsView<'_>,
         metadata: Option<SchemaInputValue<'_>>,
     ) -> Result<Vec<Result<(), PartialGraphqlError>>, GraphqlError> {
         self.hooks
@@ -90,7 +90,7 @@ impl<'ctx, H: Hooks> super::RequestHooks<'ctx, H> {
     pub async fn authorize_edge_node_post_execution(
         &self,
         definition: FieldDefinition<'_>,
-        nodes: ResponseObjectsView<'_>,
+        nodes: OldResponseObjectsView<'_>,
         metadata: Option<SchemaInputValue<'_>>,
     ) -> Result<Vec<Result<(), PartialGraphqlError>>, GraphqlError> {
         self.hooks

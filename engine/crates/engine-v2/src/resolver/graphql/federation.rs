@@ -20,7 +20,7 @@ use crate::{
         },
         ExecutionResult, Resolver,
     },
-    response::{ResponseObjectsView, SubgraphResponse},
+    response::{OldResponseObjectsView, SubgraphResponse},
     Runtime,
 };
 
@@ -67,7 +67,7 @@ impl FederationEntityResolver {
         &'ctx self,
         ctx: &SubgraphContext<'ctx, R>,
         plan: PlanWalker<'ctx, ()>,
-        root_response_objects: ResponseObjectsView<'_>,
+        root_response_objects: OldResponseObjectsView<'_>,
         subgraph_response: SubgraphResponse,
     ) -> ExecutionResult<FederationEntityRequest<'ctx>> {
         ctx.span().in_scope(|| {

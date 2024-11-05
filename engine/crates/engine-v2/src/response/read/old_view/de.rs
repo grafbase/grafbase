@@ -9,9 +9,9 @@ use serde::{
 
 use crate::response::{value::NULL, ResponseListId, ResponseObjectId, ResponseValue};
 
-use super::{ResponseObjectView, ResponseObjectsView, ResponseValueView};
+use super::{OldResponseObjectView, OldResponseObjectsView, ResponseValueWalker};
 
-impl<'de> serde::Deserializer<'de> for ResponseObjectsView<'de> {
+impl<'de> serde::Deserializer<'de> for OldResponseObjectsView<'de> {
     type Error = InputValueSerdeError;
 
     fn deserialize_any<V>(self, visitor: V) -> Result<V::Value, Self::Error>
@@ -42,28 +42,27 @@ impl<'de> serde::Deserializer<'de> for ResponseObjectsView<'de> {
     }
 }
 
-impl<'de> IntoDeserializer<'de, InputValueSerdeError> for ResponseObjectsView<'de> {
+impl<'de> IntoDeserializer<'de, InputValueSerdeError> for OldResponseObjectsView<'de> {
     type Deserializer = Self;
     fn into_deserializer(self) -> Self::Deserializer {
         self
     }
 }
 
-impl<'de> serde::Deserializer<'de> for ResponseObjectView<'de> {
+impl<'de> serde::Deserializer<'de> for OldResponseObjectView<'de> {
     type Error = InputValueSerdeError;
 
     fn deserialize_any<V>(self, visitor: V) -> Result<V::Value, Self::Error>
     where
         V: Visitor<'de>,
     {
-        MapDeserializer::new(self.selection_set.iter().map(|selection| {
-            let key = self.ctx.schema[selection.alias_id].as_str();
-            let value = ResponseValueView {
+        MapDeserializer::new(self.ctx.response_views[self.selection_set].iter().map(|selection| {
+            let key = self.ctx.schema[selection.name].as_str();
+            let value = ResponseValueWalker {
                 ctx: self.ctx,
                 value: self.response_object.find_required_field(selection.id).unwrap_or(&NULL),
-                selection_set: &selection.subselection,
+                selection_set: selection.subselection,
             };
-
             (key, value)
         }))
         .deserialize_any(visitor)
@@ -90,14 +89,14 @@ impl<'de> serde::Deserializer<'de> for ResponseObjectView<'de> {
     }
 }
 
-impl<'de> IntoDeserializer<'de, InputValueSerdeError> for ResponseObjectView<'de> {
+impl<'de> IntoDeserializer<'de, InputValueSerdeError> for OldResponseObjectView<'de> {
     type Deserializer = Self;
     fn into_deserializer(self) -> Self::Deserializer {
         self
     }
 }
 
-impl<'de> serde::Deserializer<'de> for ResponseValueView<'de> {
+impl<'de> serde::Deserializer<'de> for ResponseValueWalker<'de> {
     type Error = InputValueSerdeError;
 
     fn deserialize_any<V>(self, visitor: V) -> Result<V::Value, Self::Error>
@@ -128,14 +127,14 @@ impl<'de> serde::Deserializer<'de> for ResponseValueView<'de> {
                     length,
                 }];
 
-                SeqDeserializer::new(values.iter().map(|value| ResponseValueView {
+                SeqDeserializer::new(values.iter().map(|value| ResponseValueWalker {
                     ctx: self.ctx,
                     value,
                     selection_set: self.selection_set,
                 }))
                 .deserialize_any(visitor)
             }
-            &ResponseValue::Object { part_id, index, .. } => ResponseObjectView {
+            &ResponseValue::Object { part_id, index, .. } => OldResponseObjectView {
                 ctx: self.ctx,
                 response_object: &self.ctx.response[ResponseObjectId { part_id, index }],
                 selection_set: self.selection_set,
@@ -165,7 +164,7 @@ impl<'de> serde::Deserializer<'de> for ResponseValueView<'de> {
     }
 }
 
-impl<'de> IntoDeserializer<'de, InputValueSerdeError> for ResponseValueView<'de> {
+impl<'de> IntoDeserializer<'de, InputValueSerdeError> for ResponseValueWalker<'de> {
     type Deserializer = Self;
     fn into_deserializer(self) -> Self::Deserializer {
         self

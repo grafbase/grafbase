@@ -3,38 +3,39 @@ mod ser;
 
 use std::sync::Arc;
 
-use schema::{RequiredFieldSetRecord, Schema};
+use schema::Schema;
 
+use super::{ResponseViewSelectionSet, ResponseViews};
 use crate::response::{InputResponseObjectSet, ResponseBuilder, ResponseObject, ResponseValue};
 
 #[derive(Clone, Copy)]
-pub(super) struct ViewContext<'a> {
+pub(super) struct OldViewContext<'a> {
     pub(super) schema: &'a Schema,
+    pub(super) response_views: &'a ResponseViews,
     pub(super) response: &'a ResponseBuilder,
 }
 
 #[derive(Clone)]
-pub(crate) struct ResponseObjectsView<'a> {
-    pub(super) ctx: ViewContext<'a>,
+pub(crate) struct OldResponseObjectsView<'a> {
+    pub(super) ctx: OldViewContext<'a>,
     pub(super) response_object_set: Arc<InputResponseObjectSet>,
-    pub(super) selection_set: &'a RequiredFieldSetRecord,
+    pub(super) selection_set: ResponseViewSelectionSet,
 }
 
 #[derive(Clone)]
-pub(crate) struct ResponseObjectsViewWithExtraFields<'a> {
-    ctx: ViewContext<'a>,
+pub(crate) struct OldResponseObjectsViewWithExtraFields<'a> {
+    ctx: OldViewContext<'a>,
     response_object_set: Arc<InputResponseObjectSet>,
-    selection_set: &'a RequiredFieldSetRecord,
+    selection_set: ResponseViewSelectionSet,
     extra_constant_fields: Vec<(String, serde_json::Value)>,
 }
 
-impl<'a> ResponseObjectsView<'a> {
-    #[allow(unused)]
+impl<'a> OldResponseObjectsView<'a> {
     pub fn with_extra_constant_fields(
         self,
         extra_constant_fields: Vec<(String, serde_json::Value)>,
-    ) -> ResponseObjectsViewWithExtraFields<'a> {
-        ResponseObjectsViewWithExtraFields {
+    ) -> OldResponseObjectsViewWithExtraFields<'a> {
+        OldResponseObjectsViewWithExtraFields {
             ctx: self.ctx,
             response_object_set: self.response_object_set,
             selection_set: self.selection_set,
@@ -43,11 +44,11 @@ impl<'a> ResponseObjectsView<'a> {
     }
 }
 
-impl<'a> ResponseObjectsViewWithExtraFields<'a> {
-    pub fn iter(&self) -> impl Iterator<Item = ResponseObjectViewWithExtraFields<'_>> + '_ {
+impl<'a> OldResponseObjectsViewWithExtraFields<'a> {
+    pub fn iter(&self) -> impl Iterator<Item = OldResponseObjectWithExtraFieldsWalker<'_>> + '_ {
         self.response_object_set
             .iter()
-            .map(|item| ResponseObjectViewWithExtraFields {
+            .map(|item| OldResponseObjectWithExtraFieldsWalker {
                 ctx: self.ctx,
 
                 response_object: &self.ctx.response[item.id],
@@ -57,27 +58,27 @@ impl<'a> ResponseObjectsViewWithExtraFields<'a> {
     }
 }
 
-impl<'a> IntoIterator for ResponseObjectsView<'a> {
-    type Item = ResponseObjectView<'a>;
-    type IntoIter = ResponseObjectsViewIterator<'a>;
+impl<'a> IntoIterator for OldResponseObjectsView<'a> {
+    type Item = OldResponseObjectView<'a>;
+    type IntoIter = OldResponseObjectsViewIterator<'a>;
 
     fn into_iter(self) -> Self::IntoIter {
-        ResponseObjectsViewIterator { view: self, idx: 0 }
+        OldResponseObjectsViewIterator { view: self, idx: 0 }
     }
 }
 
-pub(crate) struct ResponseObjectsViewIterator<'a> {
-    view: ResponseObjectsView<'a>,
+pub(crate) struct OldResponseObjectsViewIterator<'a> {
+    view: OldResponseObjectsView<'a>,
     idx: usize,
 }
 
-impl<'a> Iterator for ResponseObjectsViewIterator<'a> {
-    type Item = ResponseObjectView<'a>;
+impl<'a> Iterator for OldResponseObjectsViewIterator<'a> {
+    type Item = OldResponseObjectView<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
         let item = self.view.response_object_set.get(self.idx)?;
         self.idx += 1;
-        Some(ResponseObjectView {
+        Some(OldResponseObjectView {
             ctx: self.view.ctx,
             response_object: &self.view.ctx.response[item.id],
             selection_set: self.view.selection_set,
@@ -85,21 +86,21 @@ impl<'a> Iterator for ResponseObjectsViewIterator<'a> {
     }
 }
 
-pub(crate) struct ResponseObjectView<'a> {
-    ctx: ViewContext<'a>,
+pub(crate) struct OldResponseObjectView<'a> {
+    ctx: OldViewContext<'a>,
     response_object: &'a ResponseObject,
-    selection_set: &'a RequiredFieldSetRecord,
+    selection_set: ResponseViewSelectionSet,
 }
 
-pub(crate) struct ResponseObjectViewWithExtraFields<'a> {
-    ctx: ViewContext<'a>,
+pub(crate) struct OldResponseObjectWithExtraFieldsWalker<'a> {
+    ctx: OldViewContext<'a>,
     response_object: &'a ResponseObject,
-    selection_set: &'a RequiredFieldSetRecord,
+    selection_set: ResponseViewSelectionSet,
     extra_constant_fields: &'a [(String, serde_json::Value)],
 }
 
-struct ResponseValueView<'a> {
-    ctx: ViewContext<'a>,
+struct ResponseValueWalker<'a> {
+    ctx: OldViewContext<'a>,
     value: &'a ResponseValue,
-    selection_set: &'a RequiredFieldSetRecord,
+    selection_set: ResponseViewSelectionSet,
 }

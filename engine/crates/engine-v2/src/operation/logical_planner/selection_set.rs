@@ -451,10 +451,10 @@ impl<'schema, 'a> SelectionSetLogicalPlanner<'schema, 'a> {
                 .get_mut(&definition_id)
                 .expect("We depend on it, so it must have been planned")
                 .iter_mut()
-                .find(|field| field.required_field_id() == Some(required_field.field_id))
+                .find(|field| field.required_field_id() == Some(required_field.id))
                 .expect("We depend on it, so it must have been planned");
 
-            required_field.field_id.walk(self.schema).definition().name();
+            required_field.id.walk(self.schema).definition().name();
             match planned_field {
                 PlannedField::Query {
                     lazy_subselection,
@@ -787,7 +787,7 @@ impl<'schema, 'a> SelectionSetLogicalPlanner<'schema, 'a> {
             return Ok(true);
         }
         'requires: for required in requires {
-            let required_field = &self.schema[required.field_id];
+            let required_field = &self.schema[required.id];
 
             // -- Existing fields --
             if let Some(fields) = planned_selection_set.fields.get_mut(&required_field.definition_id) {
@@ -804,7 +804,7 @@ impl<'schema, 'a> SelectionSetLogicalPlanner<'schema, 'a> {
                                 continue;
                             }
 
-                            *required_field_id = Some(required.field_id);
+                            *required_field_id = Some(required.id);
 
                             // If there is no require sub-selection, we already have everything we need.
                             if required.subselection.is_empty() {
@@ -842,7 +842,7 @@ impl<'schema, 'a> SelectionSetLogicalPlanner<'schema, 'a> {
                             subselection,
                             ..
                         }) => {
-                            if *required_field_id != required.field_id {
+                            if *required_field_id != required.id {
                                 continue;
                             }
 

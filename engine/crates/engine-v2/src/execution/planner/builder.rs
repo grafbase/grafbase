@@ -220,10 +220,10 @@ where
         let mut buffer = self.response_view_selection_buffer_pool.pop();
 
         buffer.extend(required.iter().map(|item| {
-            let name = schema[schema[item.field_id].definition_id].name_id;
+            let name = schema[schema[item.id].definition_id].name_id;
             ResponseViewSelection {
                 name,
-                id: item.field_id,
+                id: item.id,
                 subselection: self.build_view(&item.subselection),
             }
         }));
@@ -242,13 +242,13 @@ where
                 "requires {} in ({id}) {:#?}",
                 self.ctx
                     .schema()
-                    .walk(self.ctx.schema()[required_field.field_id].definition_id)
+                    .walk(self.ctx.schema()[required_field.id].definition_id)
                     .name(),
                 self.walker().walk(*solved_requirements)
             );
             let solved = solved_requirements
                 .iter()
-                .find(|solved| solved.id == required_field.field_id)
+                .find(|solved| solved.id == required_field.id)
                 .expect("Solver did its job");
             let field_id = solved.field_id;
             dependencies.push(field_id);

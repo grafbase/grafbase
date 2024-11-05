@@ -51,7 +51,7 @@ use std::future::Future;
 use crate::{
     execution::{ExecutionContext, ExecutionError, ExecutionResult, PlanningResult, SubscriptionResponse},
     operation::{OperationType, PlanWalker},
-    response::{ResponseObjectsView, SubgraphResponse},
+    response::{OldResponseObjectsView, SubgraphResponse},
     Runtime,
 };
 
@@ -100,7 +100,7 @@ impl Resolver {
         // This cannot be kept in the future, it locks the whole the response to have this view.
         // So an executor is expected to prepare whatever it required from the response before
         // awaiting anything.
-        root_response_objects: ResponseObjectsView<'_>,
+        root_response_objects: OldResponseObjectsView<'_>,
         subgraph_response: SubgraphResponse,
     ) -> impl Future<Output = ResolverResult<<R::Hooks as Hooks>::OnSubgraphResponseOutput>> + Send + 'fut
     where

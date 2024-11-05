@@ -578,7 +578,7 @@ impl<'ctx, R: Runtime> OperationExecution<'ctx, R> {
             plan.logical_plan().response_blueprint().output_ids,
         );
 
-        let root_response_objects = self.response.read(
+        let root_response_objects = self.response.old_read(
             self.ctx.schema(),
             &self.ctx.operation.response_views,
             Arc::clone(&root_response_object_set),
