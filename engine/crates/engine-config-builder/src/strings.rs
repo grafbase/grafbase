@@ -1,4 +1,4 @@
-use engine_v2_config::latest::StringId;
+use engine_v2_config::StringId;
 
 /// Very simple implementation of string interning.
 #[derive(Default)]

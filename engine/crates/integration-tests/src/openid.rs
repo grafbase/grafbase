@@ -50,7 +50,7 @@ impl OryHydraOpenIDProvider {
     ) -> CoreClient<EndpointSet, EndpointNotSet, EndpointNotSet, EndpointNotSet, EndpointSet, EndpointMaybeSet> {
         let resp = ory_client::apis::o_auth2_api::create_o_auth2_client(
             &self.ory_config,
-            ory_client::models::OAuth2Client {
+            &ory_client::models::OAuth2Client {
                 access_token_strategy: Some("jwt".into()),
                 grant_types: Some(vec!["client_credentials".into()]),
                 // Allowed audiences
@@ -93,13 +93,10 @@ impl<
         GC,
         JE,
         JS,
-        JT,
-        JU,
         K,
         P,
         TE,
         TR,
-        TT,
         TIR,
         RT,
         TRE,
@@ -114,14 +111,10 @@ impl<
         AD,
         GC,
         JE,
-        JS,
-        JT,
-        JU,
         K,
         P,
         TE,
         TR,
-        TT,
         TIR,
         RT,
         TRE,
@@ -136,16 +129,13 @@ where
     AC: openidconnect::AdditionalClaims,
     AD: openidconnect::AuthDisplay,
     GC: openidconnect::GenderClaim,
-    JE: openidconnect::JweContentEncryptionAlgorithm<JT>,
-    JS: openidconnect::JwsSigningAlgorithm<JT>,
-    JT: openidconnect::JsonWebKeyType,
-    JU: openidconnect::JsonWebKeyUse,
-    K: openidconnect::JsonWebKey<JS, JT, JU>,
+    JS: openidconnect::JwsSigningAlgorithm,
+    JE: openidconnect::JweContentEncryptionAlgorithm<KeyType = JS::KeyType>,
+    K: openidconnect::JsonWebKey<SigningAlgorithm = JS>,
     P: openidconnect::AuthPrompt,
     TE: openidconnect::ErrorResponse + 'static,
-    TR: openidconnect::TokenResponse<AC, GC, JE, JS, JT, TT>,
-    TT: openidconnect::TokenType + 'static,
-    TIR: openidconnect::TokenIntrospectionResponse<TT>,
+    TR: openidconnect::TokenResponse<AC, GC, JE, JS>,
+    TIR: openidconnect::TokenIntrospectionResponse,
     RT: openidconnect::RevocableToken,
     TRE: openidconnect::ErrorResponse + 'static,
     HasAuthUrl: openidconnect::EndpointState,
@@ -157,9 +147,11 @@ where
     async fn get_access_token_with_client_credentials(&self, extra_params: &[(&str, &str)]) -> String {
         let reqwest_client = reqwest::Client::new();
         let mut request = self.exchange_client_credentials();
+
         for (key, value) in extra_params {
             request = request.add_extra_param(*key, *value);
         }
+
         request
             .request_async(&reqwest_client)
             .await

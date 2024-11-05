@@ -48,7 +48,7 @@ impl Variables {
     pub(crate) fn build(
         schema: &Schema,
         operation: &Operation,
-        request_variables: engine::Variables,
+        request_variables: crate::request::Variables,
     ) -> Result<Self, Vec<VariableError>> {
         bind_variables(schema, operation, request_variables)
     }

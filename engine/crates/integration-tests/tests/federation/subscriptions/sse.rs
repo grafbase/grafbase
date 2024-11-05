@@ -9,7 +9,7 @@ fn single_subgraph_subscription() {
     let response = runtime().block_on(async move {
         let engine = Engine::builder()
             .with_subgraph(FederatedProductsSchema)
-            .with_sdl_websocket_config()
+            .with_websocket_config()
             .build()
             .await;
 
@@ -58,7 +58,7 @@ fn request_error() {
     let response = runtime().block_on(async move {
         let engine = Engine::builder()
             .with_subgraph(FederatedProductsSchema)
-            .with_sdl_websocket_config()
+            .with_websocket_config()
             .build()
             .await;
 
@@ -101,11 +101,11 @@ fn request_error() {
 fn actual_federated_subscription() {
     let response = runtime().block_on(async move {
         let engine = Engine::builder()
+            .with_websocket_config()
             .with_subgraph(FederatedAccountsSchema)
             .with_subgraph(FederatedProductsSchema)
             .with_subgraph(FederatedReviewsSchema)
             .with_subgraph(FederatedInventorySchema)
-            .with_sdl_websocket_config()
             .build()
             .await;
 

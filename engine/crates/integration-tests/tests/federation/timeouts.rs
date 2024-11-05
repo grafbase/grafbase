@@ -47,17 +47,15 @@ fn gateway_timeout() {
 #[test]
 fn subgraph_timeout() {
     runtime().block_on(async move {
+        let config = indoc::indoc! {r#"
+            [subgraphs.slow]
+            timeout = "1s"
+        "#};
+
         let engine = Engine::builder()
             .with_subgraph(SlowSchema)
             .with_subgraph(FakeGithubSchema)
-            .with_sdl_config(
-                r#"
-                extend schema @subgraph(
-                    name: "slow",
-                    timeout: "1s",
-                )
-            "#,
-            )
+            .with_toml_config(config)
             .build()
             .await;
 

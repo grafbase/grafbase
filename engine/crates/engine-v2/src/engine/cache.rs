@@ -1,8 +1,9 @@
 use std::borrow::Cow;
 
 use base64::{display::Base64Display, engine::general_purpose::URL_SAFE_NO_PAD};
-use engine::PersistedQueryRequestExtension;
 use schema::Schema;
+
+use crate::request::extensions::PersistedQueryRequestExtension;
 
 mod namespaces {
     pub const OPERATION: &str = "op";

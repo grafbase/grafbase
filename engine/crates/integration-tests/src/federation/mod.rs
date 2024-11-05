@@ -13,8 +13,6 @@ use runtime_local::hooks::ChannelLogReceiver;
 use tower::ServiceExt;
 use url::Url;
 
-use crate::engine_v1::GraphQlRequest;
-
 pub struct TestGateway {
     router: axum::Router,
     #[allow(unused)]

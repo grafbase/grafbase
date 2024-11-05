@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 
-use const_format::formatcp;
 use engine_v2::Engine;
 use graphql_mocks::FakeGithubSchema;
 use integration_tests::federation::GraphqlResponse;
@@ -11,14 +10,22 @@ use integration_tests::{
     runtime,
 };
 
-const JWT_PROVIDER_CONFIG: &str = formatcp!(r#"{{ type: "jwt", jwks: {{ url: "{JWKS_URI}" }} }}"#);
-
 #[test]
 fn test_provider() {
     runtime().block_on(async move {
+        let config = indoc::formatdoc! {r#"
+            [[authentication.providers]]
+
+            [authentication.providers.jwt]
+            name = "my-jwt"
+
+            [authentication.providers.jwt.jwks]
+            url = "{JWKS_URI}"
+        "#};
+
         let engine = Engine::builder()
             .with_subgraph(FakeGithubSchema)
-            .with_sdl_config(format!("extend schema @authz(providers: [{JWT_PROVIDER_CONFIG}])"))
+            .with_toml_config(config)
             .build()
             .await;
 
@@ -45,20 +52,23 @@ fn test_provider() {
 #[test]
 fn test_different_header_location() {
     runtime().block_on(async move {
+        let config = indoc::formatdoc! {r#"
+            [[authentication.providers]]
+
+            [authentication.providers.jwt]
+            name = "my-jwt"
+
+            [authentication.providers.jwt.jwks]
+            url = "{JWKS_URI}"
+
+            [authentication.providers.jwt.header]
+            name = "X-My-JWT"
+            value_prefix = "Bearer2 "
+        "#};
+
         let engine = Engine::builder()
             .with_subgraph(FakeGithubSchema)
-            .with_sdl_config(format!(
-                r#"extend schema @authz(providers: [
-                {{
-                    type: "jwt",
-                    jwks: {{ url: "{JWKS_URI}" }}
-                    header: {{
-                        name: "X-My-JWT",
-                        valuePrefix: "Bearer2 "
-                    }}
-                }}
-            ])"#
-            ))
+            .with_toml_config(config)
             .build()
             .await;
 
@@ -85,10 +95,19 @@ fn test_different_header_location() {
 #[test]
 fn test_unauthorized() {
     runtime().block_on(async move {
+        let config = indoc::formatdoc! {r#"
+            [[authentication.providers]]
+
+            [authentication.providers.jwt]
+            name = "my-jwt"
+
+            [authentication.providers.jwt.jwks]
+            url = "{JWKS_URI}"
+        "#};
 
         let engine = Engine::builder()
             .with_subgraph(FakeGithubSchema)
-            .with_sdl_config(format!("extend schema @authz(providers: [{JWT_PROVIDER_CONFIG}])"))
+            .with_toml_config(config)
             .build()
             .await;
 
@@ -148,9 +167,19 @@ fn test_unauthorized() {
 #[test]
 fn test_tampered_jwt() {
     runtime().block_on(async move {
+        let config = indoc::formatdoc! {r#"
+            [[authentication.providers]]
+
+            [authentication.providers.jwt]
+            name = "my-jwt"
+
+            [authentication.providers.jwt.jwks]
+            url = "{JWKS_URI}"
+        "#};
+
         let engine = Engine::builder()
             .with_subgraph(FakeGithubSchema)
-            .with_sdl_config(format!("extend schema @authz(providers: [{JWT_PROVIDER_CONFIG}])"))
+            .with_toml_config(config)
             .build()
             .await;
 
@@ -204,9 +233,19 @@ pub(super) fn tamper_jwt(token: String) -> String {
 #[test]
 fn test_wrong_provider() {
     runtime().block_on(async move {
+        let config = indoc::formatdoc! {r#"
+            [[authentication.providers]]
+
+            [authentication.providers.jwt]
+            name = "my-jwt"
+
+            [authentication.providers.jwt.jwks]
+            url = "{JWKS_URI}"
+        "#};
+
         let engine = Engine::builder()
             .with_subgraph(FakeGithubSchema)
-            .with_sdl_config(format!("extend schema @authz(providers: [{JWT_PROVIDER_CONFIG}])"))
+            .with_toml_config(config)
             .build()
             .await;
 
@@ -238,14 +277,20 @@ fn test_wrong_provider() {
 #[test]
 fn test_audience() {
     runtime().block_on(async move {
+        let config = indoc::formatdoc! {r#"
+            [[authentication.providers]]
+
+            [authentication.providers.jwt]
+            name = "my-jwt"
+
+            [authentication.providers.jwt.jwks]
+            url = "{JWKS_URI}"
+            audience = "{AUDIENCE}"
+        "#};
+
         let engine = Engine::builder()
             .with_subgraph(FakeGithubSchema)
-            .with_sdl_config(format!(
-                r#"extend schema @authz(providers: [{{
-                    type: "jwt",
-                    jwks: {{ url: "{JWKS_URI}", audience: "{AUDIENCE}" }}
-                }}])"#
-            ))
+            .with_toml_config(config)
             .build()
             .await;
 

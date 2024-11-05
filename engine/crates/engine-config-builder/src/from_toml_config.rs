@@ -1,80 +1,86 @@
-use engine_v2_config::VersionedConfig;
+mod context;
+
 use federated_graph::FederatedGraph;
-use gateway_config::{Config, RetryConfig};
-use parser_sdl::federation::{header::SubgraphHeaderRule, BatchingConfig, FederatedGraphConfig};
 
-use crate::build_with_sdl_config;
+pub fn build_with_toml_config(config: &gateway_config::Config, graph: FederatedGraph) -> engine_v2_config::Config {
+    let mut context = context::BuildContext::default();
 
-pub fn build_with_toml_config(config: &Config, graph: FederatedGraph) -> VersionedConfig {
-    let mut graph_config = FederatedGraphConfig::default();
+    let default_header_rules = context.insert_headers(&config.headers);
+    context.insert_subgraph_configs(&graph, &config.subgraphs);
 
-    if let Some(limits_config) = config.operation_limits {
-        graph_config.operation_limits = limits_config.into();
+    if let Some(ref rate_limit) = config.gateway.rate_limit {
+        context.insert_rate_limit(rate_limit);
     }
 
-    if let Some(auth_config) = config.authentication.clone() {
-        graph_config.auth = Some(auth_config.into());
+    engine_v2_config::Config {
+        graph,
+        strings: context.strings.into_vec(),
+        paths: context.paths.into_vec(),
+        header_rules: context.header_rules,
+        default_header_rules,
+        subgraph_configs: context.subgraph_configs,
+        auth: build_auth_config(config),
+        operation_limits: build_operation_limits(config),
+        disable_introspection: !config.graph.introspection,
+        rate_limit: context.rate_limit,
+        timeout: config.gateway.timeout,
+        entity_caching: if config.entity_caching.enabled.unwrap_or_default() {
+            engine_v2_config::EntityCaching::Enabled {
+                ttl: config.entity_caching.ttl,
+            }
+        } else {
+            engine_v2_config::EntityCaching::Disabled
+        },
+        retry: config.gateway.retry.enabled.then_some(engine_v2_config::RetryConfig {
+            min_per_second: config.gateway.retry.min_per_second,
+            ttl: config.gateway.retry.ttl,
+            retry_percent: config.gateway.retry.retry_percent,
+            retry_mutations: config.gateway.retry.retry_mutations,
+        }),
+        batching: engine_v2_config::BatchingConfig {
+            enabled: config.gateway.batching.enabled,
+            limit: config.gateway.batching.limit.map(usize::from),
+        },
     }
-
-    graph_config.timeout = config.gateway.timeout;
-    graph_config.disable_introspection = !config.graph.introspection;
-
-    graph_config.header_rules = config
-        .headers
-        .clone()
-        .into_iter()
-        .map(SubgraphHeaderRule::from)
-        .collect();
-
-    graph_config.rate_limit = config.gateway.rate_limit.clone().map(Into::into);
-    graph_config.entity_caching = config.entity_caching.clone().into();
-    graph_config.retry = retry_config(Some(config.gateway.retry));
-
-    graph_config.batching = BatchingConfig {
-        enabled: config.gateway.batching.enabled,
-        limit: config.gateway.batching.limit.map(|limit| limit as usize),
-    };
-
-    graph_config.subgraphs = config
-        .subgraphs
-        .clone()
-        .into_iter()
-        .map(|(name, subgraph_config)| {
-            let header_rules = subgraph_config
-                .headers
-                .into_iter()
-                .map(SubgraphHeaderRule::from)
-                .collect();
-
-            let config = parser_sdl::federation::SubgraphConfig {
-                url: subgraph_config.url,
-                name: name.clone(),
-                websocket_url: subgraph_config.websocket_url.map(|url| url.to_string()),
-                header_rules,
-                development_url: None,
-                rate_limit: subgraph_config.rate_limit.map(Into::into),
-                timeout: subgraph_config.timeout.or(config.gateway.subgraph_timeout),
-                entity_caching: subgraph_config.entity_caching.map(Into::into),
-                retry: retry_config(subgraph_config.retry),
-            };
-
-            (name, config)
-        })
-        .collect();
-
-    build_with_sdl_config(&graph_config, graph)
 }
 
-fn retry_config(retry_config: Option<RetryConfig>) -> Option<parser_sdl::federation::RetryConfig> {
-    let retry = match retry_config {
-        Some(retry) if retry.enabled => Some(retry),
-        _ => None,
+fn build_auth_config(config: &gateway_config::Config) -> Option<engine_v2_config::AuthConfig> {
+    config.authentication.as_ref().map(|auth| {
+        let providers = auth
+            .providers
+            .iter()
+            .map(|provider| match provider {
+                gateway_config::AuthenticationProvider::Jwt(provider) => {
+                    engine_v2_config::AuthProviderConfig::Jwt(engine_v2_config::JwtConfig {
+                        name: provider.name.clone(),
+                        jwks: engine_v2_config::JwksConfig {
+                            issuer: provider.jwks.issuer.clone(),
+                            audience: provider.jwks.audience.clone(),
+                            url: provider.jwks.url.clone(),
+                            poll_interval: provider.jwks.poll_interval,
+                        },
+                        header_name: provider.header.name.to_string(),
+                        header_value_prefix: provider.header.value_prefix.to_string(),
+                    })
+                }
+                gateway_config::AuthenticationProvider::Anonymous => engine_v2_config::AuthProviderConfig::Anonymous,
+            })
+            .collect();
+
+        engine_v2_config::AuthConfig { providers }
+    })
+}
+
+fn build_operation_limits(config: &gateway_config::Config) -> engine_v2_config::OperationLimits {
+    let Some(parsed_operation_limits) = &config.operation_limits else {
+        return engine_v2_config::OperationLimits::default();
     };
 
-    retry.map(|retry| parser_sdl::federation::RetryConfig {
-        min_per_second: retry.min_per_second,
-        ttl: retry.ttl,
-        retry_percent: retry.retry_percent,
-        retry_mutations: retry.retry_mutations,
-    })
+    engine_v2_config::OperationLimits {
+        depth: parsed_operation_limits.depth,
+        height: parsed_operation_limits.height,
+        aliases: parsed_operation_limits.aliases,
+        root_fields: parsed_operation_limits.root_fields,
+        complexity: parsed_operation_limits.complexity,
+    }
 }

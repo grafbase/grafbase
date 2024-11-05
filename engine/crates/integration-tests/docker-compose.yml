@@ -6,45 +6,6 @@ services:
     ports:
       - '4092:4092'
 
-  # MongoDB
-  data-api:
-    image: grafbase/mongodb-data-api:latest
-    restart: unless-stopped
-    environment:
-      MONGODB_DATABASE_URL: 'mongodb://grafbase:grafbase@mongodb:27017'
-    ports:
-      - '3000:3000'
-    depends_on:
-      - mongodb
-    networks:
-      - databases
-
-  mongodb:
-    image: mongo:latest
-    restart: unless-stopped
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: 'grafbase'
-      MONGO_INITDB_ROOT_PASSWORD: 'grafbase'
-      INIT_WAIT_SEC: $INIT_WAIT_SEC
-    ports:
-      - '27018:27017'
-    networks:
-      - databases
-
-  # Postgres
-  postgres:
-    image: postgres:17
-    restart: unless-stopped
-    command: postgres -c 'max_connections=1000'
-    environment:
-      POSTGRES_PASSWORD: 'grafbase'
-      POSTGRES_HOST_AUTH_METHOD: 'md5'
-      POSTGRES_INITDB_ARGS: '--auth-host=md5'
-    ports:
-      - '5432:5432'
-    networks:
-      - databases
-
   # Pretty much copy pasted from
   # https://www.ory.sh/docs/hydra/5min-tutorial
   # https://github.com/ory/hydra/blob/master/quickstart.yml
