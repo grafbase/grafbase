@@ -1,0 +1,9 @@
+---
+source: engine/crates/engine-v2/query-solver/src/tests/schema1.rs
+expression: "digraph {\n    0 [ label = \"root\", color=forestgreen ]\n    1 [ label=\"\", style=dashed]\n    1 -> 0 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n}\n"
+---
+digraph {
+    0 [ label = "root", steiner=1 ]
+    1 [ label="", style=dashed]
+    1 -> 0 [ cost=0, steiner=0]
+}

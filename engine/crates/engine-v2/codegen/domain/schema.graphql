@@ -11,7 +11,6 @@ scalar Url @indexed(deduplicated: true)
 
 scalar InputValueSet
 scalar SchemaInputValue @indexed @record
-scalar ProvidableFieldSet
 
 type RootOperationTypes @meta(module: "root") {
   query: ObjectDefinition!
@@ -67,7 +66,11 @@ type InterfaceDefinition
   possible_types: [ObjectDefinition!]!
   possible_types_ordered_by_typename: [ObjectDefinition!]!
   directives: [TypeSystemDirective!]!
-  "sorted by SubgraphId"
+  """
+  It can happen that an object that implements this interface at the supergraph level doesn't in a subgraph.
+  If this happens, we keep track of those subgraph so we we can generate appropriate queries.
+  Sorted by SubgraphId
+  """
   not_fully_implemented_in: [Subgraph!]!
 }
 
@@ -90,14 +93,14 @@ type FieldDefinition @meta(module: "field") @indexed(id_size: "u32", max_id: "MA
   directives: [TypeSystemDirective!]!
 }
 
-type FieldProvides @meta(module: "field/provides") {
+type FieldProvides @meta(module: "field/provides") @copy {
   subgraph: Subgraph!
-  field_set: ProvidableFieldSet!
+  field_set: FieldSet!
 }
 
 type FieldRequires @meta(module: "field/requires") @copy {
   subgraph: Subgraph!
-  field_set: RequiredFieldSet!
+  field_set: FieldSet!
 }
 
 type Type @meta(module: "ty") @copy {
@@ -130,8 +133,14 @@ type UnionDefinition @meta(module: "union", debug: false) @indexed(id_size: "u32
   possible_types: [ObjectDefinition!]!
   possible_types_ordered_by_typename: [ObjectDefinition!]!
   directives: [TypeSystemDirective!]!
-  "sorted by SubgraphId, then InterfaceId"
+  "sorted by SubgraphId, then ObjectDefinitionId"
   join_members: [JoinMemberDefinition!]!
+  """
+  It can happen that an object that is member of this union at the supergraph level doesn't in a subgraph.
+  If this happens, we keep track of those subgraph so we we can generate appropriate queries.
+  Sorted by SubgraphId
+  """
+  not_fully_implemented_in: [Subgraph!]!
 }
 
 type ScalarDefinition @meta(module: "scalar") @indexed(id_size: "u32", max_id: "MAX_ID") {
@@ -163,16 +172,19 @@ type InputValueDefinition @meta(module: "input_value") @indexed(id_size: "u32", 
 # - FieldSet -
 # ------------
 
-scalar RequiredFieldSet @indexed @record
+scalar FieldSet @indexed @record 
 
-type RequiredField
-  @meta(module: "field_set", derive: ["PartialEq", "Eq", "PartialOrd", "Ord"], debug: false)
+type SchemaField
+  @meta(module: "field_set/field", derive: ["PartialEq", "Eq", "PartialOrd", "Ord"], debug: false)
   @indexed(id_size: "u32", deduplicated: true) {
   definition: FieldDefinition!
-  arguments: [RequiredFieldArgument!]!
+  "Sorted by input value definition id"
+  sorted_arguments: [SchemaFieldArgument!]!
 }
 
-type RequiredFieldArgument @meta(module: "field_set", derive: ["PartialEq", "Eq", "PartialOrd", "Ord"]) @copy {
+type SchemaFieldArgument
+  @meta(module: "field_set/argument", derive: ["PartialEq", "Eq", "PartialOrd", "Ord"])
+  @indexed(id_size: "u32") {
   definition: InputValueDefinition!
   value: SchemaInputValue!
 }
@@ -199,8 +211,8 @@ scalar RequiresScopesDirective @indexed @record
 
 type AuthorizedDirective @meta(module: "directive/authorized") @indexed(id_size: "u32", max_id: "MAX_ID") {
   arguments: InputValueSet!
-  fields: RequiredFieldSet @field(record_field_name: "fields_id")
-  node: RequiredFieldSet
+  fields: FieldSet @field(record_field_name: "fields_id")
+  node: FieldSet
   metadata: SchemaInputValue
 }
 
@@ -212,7 +224,7 @@ scalar SubgraphConfig
 
 union Subgraph @id @meta(module: "subgraph") @variants(empty: ["Introspection"]) = GraphqlEndpoint
 
-type GraphqlEndpoint @meta(module: "subgraph/graphql") @indexed(id_size: "u32", max_id: "MAX_ID") {
+type GraphqlEndpoint @meta(module: "subgraph/graphql") @indexed(id_size: "u16") {
   subgraph_name: String!
   url: Url!
   websocket_url: Url
@@ -272,5 +284,5 @@ type GraphqlRootFieldResolverDefinition @meta(module: "resolver/graphql") @copy 
 
 type GraphqlFederationEntityResolverDefinition @meta(module: "resolver/graphql") @copy {
   endpoint: GraphqlEndpoint!
-  key_fields: RequiredFieldSet!
+  key_fields: FieldSet!
 }

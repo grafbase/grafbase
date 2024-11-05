@@ -1,6 +1,6 @@
 use crate::operation::{
-    LogicalPlanId, LogicalPlanResponseBlueprint, PreparedOperation, QueryInputValueId, QueryInputValueWalker,
-    QueryModifications, ResponseBlueprint, Variables,
+    LogicalPlanId, LogicalPlanResponseBlueprint, PreparedOperation2, QueryInputValueId, QueryInputValueWalker,
+    QueryModifications2, ResponseBlueprint, Variables,
 };
 
 mod field;
@@ -16,8 +16,8 @@ use super::PreparedOperationWalker;
 #[derive(Clone, Copy)]
 pub(crate) struct PlanWalker<'a, Item = ()> {
     pub schema: &'a Schema,
-    pub operation: &'a PreparedOperation,
-    pub query_modifications: &'a QueryModifications,
+    pub operation: &'a PreparedOperation2,
+    pub query_modifications: &'a QueryModifications2,
     pub variables: &'a Variables,
     pub logical_plan_id: LogicalPlanId,
     pub item: Item,
@@ -26,9 +26,9 @@ pub(crate) struct PlanWalker<'a, Item = ()> {
 // really weird to index through a walker, need to be reworked
 impl<'a, I> std::ops::Index<I> for PlanWalker<'a, ()>
 where
-    PreparedOperation: std::ops::Index<I>,
+    PreparedOperation2: std::ops::Index<I>,
 {
-    type Output = <PreparedOperation as std::ops::Index<I>>::Output;
+    type Output = <PreparedOperation2 as std::ops::Index<I>>::Output;
     fn index(&self, index: I) -> &Self::Output {
         &self.operation[index]
     }
@@ -42,9 +42,9 @@ impl<'a> std::fmt::Debug for PlanWalker<'a> {
 
 impl<'a, I: Copy> PlanWalker<'a, I>
 where
-    PreparedOperation: std::ops::Index<I>,
+    PreparedOperation2: std::ops::Index<I>,
 {
-    pub fn as_ref(&self) -> &'a <PreparedOperation as std::ops::Index<I>>::Output {
+    pub fn as_ref(&self) -> &'a <PreparedOperation2 as std::ops::Index<I>>::Output {
         &self.operation[self.item]
     }
 }

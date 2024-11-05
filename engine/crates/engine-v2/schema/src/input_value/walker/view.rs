@@ -34,7 +34,7 @@ impl<'a> serde::Serialize for SchemaInputValueView<'a> {
                     if let Some(item) = self
                         .selection_set
                         .iter()
-                        .find(|item| item.id == input_value_definition.id())
+                        .find(|item| item.id == input_value_definition.id)
                     {
                         let value = Self {
                             value,
@@ -75,7 +75,7 @@ impl<'de> serde::Deserializer<'de> for SchemaInputValueView<'de> {
                     if let Some(item) = self
                         .selection_set
                         .iter()
-                        .find(|item| item.id == input_value_definition.id())
+                        .find(|item| item.id == input_value_definition.id)
                     {
                         let value = Self {
                             value,

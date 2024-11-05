@@ -8,7 +8,7 @@ use engine_parser::{
 use crate::response::{ErrorCode, GraphqlError};
 
 #[derive(thiserror::Error, Debug)]
-pub enum ParseError {
+pub(crate) enum ParseError {
     #[error("Unknown operation named '{0}'.")]
     UnknowOperation(String),
     #[error("Missing operation name.")]
@@ -17,7 +17,7 @@ pub enum ParseError {
     ParserError(#[from] engine_parser::Error),
 }
 
-pub type ParseResult<T> = Result<T, ParseError>;
+pub(crate) type ParseResult<T> = Result<T, ParseError>;
 
 impl From<ParseError> for GraphqlError {
     fn from(err: ParseError) -> Self {
@@ -29,7 +29,7 @@ impl From<ParseError> for GraphqlError {
     }
 }
 
-pub struct ParsedOperation {
+pub(crate) struct ParsedOperation {
     pub name: Option<String>,
     pub definition: OperationDefinition,
     pub fragments: HashMap<engine_value::Name, Positioned<engine_parser::types::FragmentDefinition>>,
@@ -42,7 +42,7 @@ impl ParsedOperation {
 }
 
 /// Returns a valid GraphQL operation from the query string before.
-pub fn parse_operation(operation_name: Option<&str>, document: &str) -> ParseResult<ParsedOperation> {
+pub(crate) fn parse(operation_name: Option<&str>, document: &str) -> ParseResult<ParsedOperation> {
     let document = engine_parser::parse_query(document)?;
 
     let (name, operation) = if let Some(name) = operation_name {

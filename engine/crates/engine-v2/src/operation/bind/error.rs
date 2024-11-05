@@ -2,8 +2,6 @@ use itertools::Itertools;
 
 use crate::{operation::Location, response::GraphqlError, ErrorCode};
 
-use super::ErrorOperationName;
-
 #[derive(thiserror::Error, Debug)]
 pub enum BindError {
     #[error("Unknown type named '{name}'")]
@@ -127,5 +125,18 @@ impl From<BindError> for GraphqlError {
             }
         };
         GraphqlError::new(err.to_string(), ErrorCode::OperationValidationError).with_locations(locations)
+    }
+}
+
+/// A helper struct for optionally including operation names in error messages
+#[derive(Debug, Clone)]
+pub(crate) struct ErrorOperationName(pub(super) Option<String>);
+
+impl std::fmt::Display for ErrorOperationName {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if let Some(name) = &self.0 {
+            write!(f, " by operation '{name}'")?;
+        }
+        Ok(())
     }
 }

@@ -9,19 +9,18 @@ use std::{borrow::Cow, future::Future, sync::Arc};
 
 use crate::{
     graphql_over_http::{Http, ResponseFormat, StreamingResponseFormat},
-    operation::PreparedOperation,
+    prepare::CachedOperation,
     response::Response,
     websocket, Body, HooksExtension,
 };
 pub(crate) use execute::*;
 pub(crate) use runtime::*;
 
-mod cache;
+pub(crate) mod cache;
 mod errors;
 mod execute;
 mod retry_budget;
 mod runtime;
-mod trusted_documents;
 
 pub use runtime::Runtime;
 
@@ -32,7 +31,7 @@ pub struct Engine<R: Runtime> {
     pub(crate) runtime: R,
     auth: AuthService,
     retry_budgets: RetryBudgets,
-    operation_cache: <R::OperationCacheFactory as OperationCacheFactory>::Cache<Arc<PreparedOperation>>,
+    pub(crate) operation_cache: <R::OperationCacheFactory as OperationCacheFactory>::Cache<Arc<CachedOperation>>,
     default_response_format: ResponseFormat,
 }
 

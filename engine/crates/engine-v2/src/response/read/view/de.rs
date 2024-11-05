@@ -61,7 +61,7 @@ impl<'de> serde::Deserializer<'de> for ResponseObjectView<'de> {
             let value = ResponseValueView {
                 ctx: self.ctx,
                 value: self.response_object.find_required_field(selection.id).unwrap_or(&NULL),
-                selection_set: &selection.subselection,
+                selection_set: &selection.subselection_record,
             };
 
             (key, value)

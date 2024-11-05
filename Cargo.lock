@@ -938,6 +938,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "case"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fd6c0e7b807d60291f42f33f58480c0bfafe28ed08286446f45e463728cf9c1c"
+
+[[package]]
 name = "cast"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2134,7 +2140,7 @@ dependencies = [
  "engine-v2-config",
  "engine-v2-id-derives",
  "engine-v2-id-newtypes",
- "engine-v2-query-planning",
+ "engine-v2-query-solver",
  "engine-v2-schema",
  "engine-v2-walker",
  "engine-value",
@@ -2217,6 +2223,7 @@ name = "engine-v2-codegen"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "case",
  "cynic-parser 0.8.0",
  "grafbase-workspace-hack",
  "indoc",
@@ -2269,7 +2276,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "engine-v2-query-planning"
+name = "engine-v2-query-solver"
 version = "0.0.0"
 dependencies = [
  "bitflags 2.6.0",
@@ -4614,7 +4621,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4979f22fdb869068da03c9f7528f8297c6fd2606bc3a4affe42e6a823fdb8da4"
 dependencies = [
  "cfg-if",
- "windows-targets 0.48.5",
+ "windows-targets 0.52.6",
 ]
 
 [[package]]
@@ -8869,7 +8876,7 @@ version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf221c93e13a30d793f7645a0e7762c55d169dbb0a49671918a2319d289b10bb"
 dependencies = [
- "windows-sys 0.48.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]

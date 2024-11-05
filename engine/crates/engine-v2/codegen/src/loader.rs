@@ -25,18 +25,20 @@ pub(super) fn load(path: PathBuf) -> anyhow::Result<domain::Domain> {
 
     let mut domain: Option<domain::Domain> = None;
     let mut definitions_by_name = HashMap::new();
-    definitions_by_name.insert(
-        "Boolean".into(),
-        domain::Scalar::Value {
-            indexed: None,
-            name: "bool".into(),
-            walker_name: None,
-            external_domain_name: None,
-            in_prelude: true,
-            copy: true,
-        }
-        .into(),
-    );
+    for (gql_name, rust_name) in [("Boolean", "bool"), ("bool", "bool"), ("usize", "usize")] {
+        definitions_by_name.insert(
+            gql_name.into(),
+            domain::Scalar::Value {
+                indexed: None,
+                name: rust_name.into(),
+                walker_name: None,
+                external_domain_name: None,
+                in_prelude: true,
+                copy: true,
+            }
+            .into(),
+        );
+    }
 
     for definition in document.definitions() {
         let Definition::Type(ty) = definition else {
@@ -65,7 +67,6 @@ pub(super) fn load(path: PathBuf) -> anyhow::Result<domain::Domain> {
                                 .collect::<Vec<_>>();
                             quote! { #(#parts)::* }
                         },
-                        name: import.domain,
                     },
                 );
             }
@@ -267,7 +268,7 @@ fn finalize_field_struct_names(
                         if union.indexed.is_some() {
                             Some("id")
                         } else {
-                            Some("value")
+                            Some("record")
                         }
                     }
                     domain::UnionKind::Id(_) | domain::UnionKind::BitpackedId(_) => Some("id"),

@@ -11,10 +11,10 @@ pub(crate) use shape::*;
 pub(crate) use value::*;
 pub(crate) use write::*;
 
-use crate::operation::PreparedOperation;
+use crate::prepare::CachedOperation;
 
 pub(crate) mod error;
-mod key;
+pub(crate) mod key;
 mod object_set;
 mod path;
 mod read;
@@ -39,7 +39,7 @@ pub(crate) enum Response<OnOperationResponseHookOutput> {
 }
 
 pub(crate) struct ExecutedResponse<OnOperationResponseHookOutput> {
-    operation: Arc<PreparedOperation>,
+    operation: Arc<CachedOperation>,
     data: Option<ResponseData>,
     errors: Vec<GraphqlError>,
     error_code_counter: ErrorCodeCounter,
@@ -128,7 +128,7 @@ impl<OnOperationResponseHookOutput> Response<OnOperationResponseHookOutput> {
     }
 
     pub(crate) fn execution_error(
-        operation: Arc<PreparedOperation>,
+        operation: Arc<CachedOperation>,
         on_operation_response_output: Option<OnOperationResponseHookOutput>,
         errors: impl IntoIterator<Item: Into<GraphqlError>>,
     ) -> Self {

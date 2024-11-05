@@ -1,13 +1,10 @@
 use std::sync::Arc;
 
-use id_derives::Id;
-use id_newtypes::IdRange;
-use schema::{EntityDefinitionId, ObjectDefinitionId, Schema};
+use schema::{CompositeTypeId, ObjectDefinitionId, Schema};
+
+use crate::plan::ResponseObjectSetDefinitionId;
 
 use super::{ResponseObjectId, ResponsePath};
-
-#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, Id, serde::Serialize, serde::Deserialize)]
-pub struct ResponseObjectSetId(std::num::NonZero<u16>);
 
 /// A "fat" reference to a response object. We keep track of its path for further execution and its
 /// definition id because we don't store it anywhere else as of today.
@@ -28,20 +25,21 @@ pub(crate) type ResponseObjectSet = Vec<ResponseObjectRef>;
 /// plans or response modifiers. `OutputResponseObjectSets` contains all of those and is created
 /// after plan execution.
 pub(crate) struct OutputResponseObjectSets {
-    pub(super) ids: IdRange<ResponseObjectSetId>,
+    pub(super) ids: Vec<ResponseObjectSetDefinitionId>,
     pub(super) sets: Vec<ResponseObjectSet>,
 }
 
 impl OutputResponseObjectSets {
     #[allow(unused)]
-    pub fn iter_mut(&mut self) -> impl Iterator<Item = (ResponseObjectSetId, &mut ResponseObjectSet)> + '_ {
+    pub fn iter_mut(&mut self) -> impl Iterator<Item = (ResponseObjectSetDefinitionId, &mut ResponseObjectSet)> + '_ {
         self.ids
-            .into_iter()
+            .iter()
+            .copied()
             .zip(self.sets.iter_mut())
             .filter(|(_, set)| !set.is_empty())
     }
 
-    pub fn into_iter(self) -> impl Iterator<Item = (ResponseObjectSetId, ResponseObjectSet)> {
+    pub fn into_iter(self) -> impl Iterator<Item = (ResponseObjectSetDefinitionId, ResponseObjectSet)> {
         self.ids.into_iter().zip(self.sets).filter(|(_, set)| !set.is_empty())
     }
 }
@@ -89,7 +87,7 @@ impl InputResponseObjectSet {
     pub(crate) fn with_filtered_response_objects(
         mut self,
         schema: &Schema,
-        entity_id: EntityDefinitionId,
+        ty_id: CompositeTypeId,
         refs: Arc<ResponseObjectSet>,
     ) -> Self {
         let n = self.indices.len();
@@ -99,8 +97,8 @@ impl InputResponseObjectSet {
         let set_idx = self.sets.len() - 1;
         assert!(set_idx < MAX_SET_INDEX, "Too many sets");
 
-        match entity_id {
-            EntityDefinitionId::Interface(id) => {
+        match ty_id {
+            CompositeTypeId::Union(id) => {
                 let possible_types = &schema[id].possible_type_ids;
                 for (i, item) in self.sets[set_idx].iter().enumerate() {
                     if possible_types.binary_search(&item.definition_id).is_ok() {
@@ -108,7 +106,15 @@ impl InputResponseObjectSet {
                     }
                 }
             }
-            EntityDefinitionId::Object(id) => {
+            CompositeTypeId::Interface(id) => {
+                let possible_types = &schema[id].possible_type_ids;
+                for (i, item) in self.sets[set_idx].iter().enumerate() {
+                    if possible_types.binary_search(&item.definition_id).is_ok() {
+                        self.indices.push((set_idx << SET_INDEX_SHIFT) as u32 | i as u32);
+                    }
+                }
+            }
+            CompositeTypeId::Object(id) => {
                 for (i, item) in self.sets[set_idx].iter().enumerate() {
                     if item.definition_id == id {
                         self.indices.push((set_idx << SET_INDEX_SHIFT) as u32 | i as u32);

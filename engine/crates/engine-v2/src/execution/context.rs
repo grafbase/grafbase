@@ -1,75 +1,24 @@
 use std::sync::Arc;
 
-use futures::future::BoxFuture;
 use grafbase_telemetry::metrics::EngineMetrics;
-use runtime::{
-    auth::AccessToken,
-    hooks::{ExecutedOperation, ExecutedOperationBuilder, Hooks},
-};
+use runtime::auth::AccessToken;
 use schema::{HeaderRule, Schema};
 
 use crate::{
     engine::{HooksContext, RequestContext},
+    operation::{InputValueContext, Variables},
+    plan::{OperationPlanContext, OperationSolutionContext},
+    prepare::PreparedOperation,
+    response::Shapes,
     Engine, Runtime,
 };
 
-use super::{header_rule::create_subgraph_headers_with_rules, ExecutableOperation, RequestHooks};
-
-/// Context before starting to operation plan execution.
-/// Background futures will be started in parallel to avoid delaying the plan.
-pub(crate) struct PreExecutionContext<'ctx, R: Runtime> {
-    pub(crate) engine: &'ctx Arc<Engine<R>>,
-    pub(crate) request_context: &'ctx Arc<RequestContext>,
-    pub(crate) hooks_context: HooksContext<R>,
-    pub(crate) executed_operation_builder: ExecutedOperationBuilder<<R::Hooks as Hooks>::OnSubgraphResponseOutput>,
-    // needs to be Send so that futures are Send.
-    pub(super) background_futures: crossbeam_queue::SegQueue<BoxFuture<'ctx, ()>>,
-}
-
-impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
-    pub fn new(
-        engine: &'ctx Arc<Engine<R>>,
-        request_context: &'ctx Arc<RequestContext>,
-        hooks_context: HooksContext<R>,
-    ) -> Self {
-        Self {
-            engine,
-            request_context,
-            hooks_context,
-            executed_operation_builder: ExecutedOperation::builder(),
-            background_futures: Default::default(),
-        }
-    }
-
-    pub fn push_background_future(&self, future: BoxFuture<'ctx, ()>) {
-        self.background_futures.push(future)
-    }
-
-    pub fn schema(&self) -> &'ctx Schema {
-        &self.engine.schema
-    }
-
-    pub fn access_token(&self) -> &'ctx AccessToken {
-        &self.request_context.access_token
-    }
-
-    pub fn headers(&self) -> &'ctx http::HeaderMap {
-        &self.request_context.headers
-    }
-
-    pub fn hooks(&self) -> RequestHooks<'_, R::Hooks> {
-        self.into()
-    }
-
-    pub fn metrics(&self) -> &'ctx EngineMetrics {
-        self.engine.runtime.metrics()
-    }
-}
+use super::{header_rule::create_subgraph_headers_with_rules, RequestHooks};
 
 /// Data available during the executor life during its build & execution phases.
 pub(crate) struct ExecutionContext<'ctx, R: Runtime> {
     pub engine: &'ctx Arc<Engine<R>>,
-    pub operation: &'ctx Arc<ExecutableOperation>,
+    pub operation: &'ctx Arc<PreparedOperation>,
     pub request_context: &'ctx Arc<RequestContext>,
     pub hooks_context: &'ctx Arc<HooksContext<R>>,
 }
@@ -89,11 +38,7 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
     }
 
     pub fn subgraph_headers_with_rules(&self, rules: impl Iterator<Item = HeaderRule<'ctx>>) -> http::HeaderMap {
-        create_subgraph_headers_with_rules(
-            self.request_context,
-            rules,
-            self.operation.subgraph_default_headers.clone(),
-        )
+        create_subgraph_headers_with_rules(self.request_context, rules)
     }
 
     #[allow(unused)]
@@ -107,5 +52,58 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
 
     pub fn metrics(&self) -> &'ctx EngineMetrics {
         self.engine.runtime.metrics()
+    }
+
+    pub fn input_value_context(&self) -> InputValueContext<'ctx> {
+        InputValueContext {
+            schema: &self.engine.schema,
+            query_input_values: &self.operation.solution.query_input_values,
+            variables: &self.operation.variables,
+        }
+    }
+
+    pub fn shapes(&self) -> &'ctx Shapes {
+        &self.operation.solution.shapes
+    }
+}
+
+impl<'ctx, R: Runtime> From<&ExecutionContext<'ctx, R>> for &'ctx Variables {
+    fn from(ctx: &ExecutionContext<'ctx, R>) -> Self {
+        &ctx.operation.variables
+    }
+}
+
+impl<'ctx, R: Runtime> From<&ExecutionContext<'ctx, R>> for &'ctx Schema {
+    fn from(ctx: &ExecutionContext<'ctx, R>) -> Self {
+        &ctx.engine.schema
+    }
+}
+
+impl<'ctx, R: Runtime> From<&ExecutionContext<'ctx, R>> for InputValueContext<'ctx> {
+    fn from(ctx: &ExecutionContext<'ctx, R>) -> Self {
+        InputValueContext {
+            schema: &ctx.engine.schema,
+            query_input_values: &ctx.operation.solution.query_input_values,
+            variables: &ctx.operation.variables,
+        }
+    }
+}
+
+impl<'ctx, R: Runtime> From<&ExecutionContext<'ctx, R>> for OperationSolutionContext<'ctx> {
+    fn from(ctx: &ExecutionContext<'ctx, R>) -> Self {
+        OperationSolutionContext {
+            schema: &ctx.engine.schema,
+            operation_solution: &ctx.operation.solution,
+        }
+    }
+}
+
+impl<'ctx, R: Runtime> From<&ExecutionContext<'ctx, R>> for OperationPlanContext<'ctx> {
+    fn from(ctx: &ExecutionContext<'ctx, R>) -> Self {
+        OperationPlanContext {
+            schema: &ctx.engine.schema,
+            operation_solution: &ctx.operation.solution,
+            operation_plan: &ctx.operation.plan,
+        }
     }
 }

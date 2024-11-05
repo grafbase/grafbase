@@ -4,7 +4,8 @@ use engine_parser::Positioned;
 use schema::{DefinitionId, Schema, Wrapping};
 
 use crate::{
-    operation::{BoundVariableDefinition, Location, Operation, VariableInputValues, VariableValueRecord, Variables},
+    operation::{BoundVariableDefinition, Location, VariableInputValues, VariableValueRecord, Variables},
+    plan::OperationSolution,
     response::{ErrorCode, GraphqlError},
 };
 
@@ -33,8 +34,8 @@ impl From<VariableError> for GraphqlError {
 
 pub fn bind_variables(
     schema: &Schema,
-    operation: &Operation,
-    mut request_variables: crate::request::Variables,
+    operation: &OperationSolution,
+    mut request_variables: crate::request::RawVariables,
 ) -> Result<Variables, Vec<VariableError>> {
     let mut errors = Vec::new();
 

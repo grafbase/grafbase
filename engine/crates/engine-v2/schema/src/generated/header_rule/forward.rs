@@ -57,12 +57,15 @@ impl<'a> ForwardHeaderRule<'a> {
 
 impl<'a> Walk<&'a Schema> for ForwardHeaderRuleRecord {
     type Walker<'w> = ForwardHeaderRule<'w> where 'a: 'w ;
-    fn walk<'w>(self, schema: &'a Schema) -> Self::Walker<'w>
+    fn walk<'w>(self, schema: impl Into<&'a Schema>) -> Self::Walker<'w>
     where
         Self: 'w,
         'a: 'w,
     {
-        ForwardHeaderRule { schema, item: self }
+        ForwardHeaderRule {
+            schema: schema.into(),
+            item: self,
+        }
     }
 }
 

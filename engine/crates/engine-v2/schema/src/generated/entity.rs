@@ -42,6 +42,27 @@ impl From<ObjectDefinitionId> for EntityDefinitionId {
     }
 }
 
+impl EntityDefinitionId {
+    pub fn is_interface(&self) -> bool {
+        matches!(self, EntityDefinitionId::Interface(_))
+    }
+    pub fn as_interface(&self) -> Option<InterfaceDefinitionId> {
+        match self {
+            EntityDefinitionId::Interface(id) => Some(*id),
+            _ => None,
+        }
+    }
+    pub fn is_object(&self) -> bool {
+        matches!(self, EntityDefinitionId::Object(_))
+    }
+    pub fn as_object(&self) -> Option<ObjectDefinitionId> {
+        match self {
+            EntityDefinitionId::Object(id) => Some(*id),
+            _ => None,
+        }
+    }
+}
+
 #[derive(Clone, Copy)]
 pub enum EntityDefinition<'a> {
     Interface(InterfaceDefinition<'a>),
@@ -57,13 +78,25 @@ impl std::fmt::Debug for EntityDefinition<'_> {
     }
 }
 
+impl<'a> From<InterfaceDefinition<'a>> for EntityDefinition<'a> {
+    fn from(item: InterfaceDefinition<'a>) -> Self {
+        EntityDefinition::Interface(item)
+    }
+}
+impl<'a> From<ObjectDefinition<'a>> for EntityDefinition<'a> {
+    fn from(item: ObjectDefinition<'a>) -> Self {
+        EntityDefinition::Object(item)
+    }
+}
+
 impl<'a> Walk<&'a Schema> for EntityDefinitionId {
     type Walker<'w> = EntityDefinition<'w> where 'a: 'w ;
-    fn walk<'w>(self, schema: &'a Schema) -> Self::Walker<'w>
+    fn walk<'w>(self, schema: impl Into<&'a Schema>) -> Self::Walker<'w>
     where
         Self: 'w,
         'a: 'w,
     {
+        let schema: &'a Schema = schema.into();
         match self {
             EntityDefinitionId::Interface(id) => EntityDefinition::Interface(id.walk(schema)),
             EntityDefinitionId::Object(id) => EntityDefinition::Object(id.walk(schema)),
@@ -71,11 +104,29 @@ impl<'a> Walk<&'a Schema> for EntityDefinitionId {
     }
 }
 
-impl EntityDefinition<'_> {
+impl<'a> EntityDefinition<'a> {
     pub fn id(&self) -> EntityDefinitionId {
         match self {
             EntityDefinition::Interface(walker) => EntityDefinitionId::Interface(walker.id),
             EntityDefinition::Object(walker) => EntityDefinitionId::Object(walker.id),
+        }
+    }
+    pub fn is_interface(&self) -> bool {
+        matches!(self, EntityDefinition::Interface(_))
+    }
+    pub fn as_interface(&self) -> Option<InterfaceDefinition<'a>> {
+        match self {
+            EntityDefinition::Interface(item) => Some(*item),
+            _ => None,
+        }
+    }
+    pub fn is_object(&self) -> bool {
+        matches!(self, EntityDefinition::Object(_))
+    }
+    pub fn as_object(&self) -> Option<ObjectDefinition<'a>> {
+        match self {
+            EntityDefinition::Object(item) => Some(*item),
+            _ => None,
         }
     }
 }

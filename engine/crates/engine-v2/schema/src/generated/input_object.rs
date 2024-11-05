@@ -35,7 +35,7 @@ pub struct InputObjectDefinitionId(std::num::NonZero<u32>);
 #[derive(Clone, Copy)]
 pub struct InputObjectDefinition<'a> {
     pub(crate) schema: &'a Schema,
-    pub(crate) id: InputObjectDefinitionId,
+    pub id: InputObjectDefinitionId,
 }
 
 impl std::ops::Deref for InputObjectDefinition<'_> {
@@ -50,9 +50,6 @@ impl<'a> InputObjectDefinition<'a> {
     #[allow(clippy::should_implement_trait)]
     pub fn as_ref(&self) -> &'a InputObjectDefinitionRecord {
         &self.schema[self.id]
-    }
-    pub fn id(&self) -> InputObjectDefinitionId {
-        self.id
     }
     pub fn name(&self) -> &'a str {
         self.name_id.walk(self.schema)
@@ -70,12 +67,15 @@ impl<'a> InputObjectDefinition<'a> {
 
 impl<'a> Walk<&'a Schema> for InputObjectDefinitionId {
     type Walker<'w> = InputObjectDefinition<'w> where 'a: 'w ;
-    fn walk<'w>(self, schema: &'a Schema) -> Self::Walker<'w>
+    fn walk<'w>(self, schema: impl Into<&'a Schema>) -> Self::Walker<'w>
     where
         Self: 'w,
         'a: 'w,
     {
-        InputObjectDefinition { schema, id: self }
+        InputObjectDefinition {
+            schema: schema.into(),
+            id: self,
+        }
     }
 }
 

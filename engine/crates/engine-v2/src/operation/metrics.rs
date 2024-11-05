@@ -2,7 +2,7 @@ use grafbase_telemetry::graphql::{GraphqlOperationAttributes, OperationName};
 
 use super::parse::ParsedOperation;
 
-pub(super) fn extract_attributes(operation: &ParsedOperation, document: &str) -> Option<GraphqlOperationAttributes> {
+pub(crate) fn extract_attributes(operation: &ParsedOperation, document: &str) -> Option<GraphqlOperationAttributes> {
     operation_normalizer::normalize(document, operation.name.as_deref())
         .ok()
         .map(|sanitized_query| GraphqlOperationAttributes {

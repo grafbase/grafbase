@@ -199,7 +199,7 @@ impl<'binder, 'schema, 'parsed> QueryValueCoercionContext<'binder, 'schema, 'par
             match fields.swap_remove(input_field.name()) {
                 None => {
                     if let Some(default_value_id) = input_field.as_ref().default_value_id {
-                        fields_buffer.push((input_field.id(), QueryInputValueRecord::DefaultValue(default_value_id)));
+                        fields_buffer.push((input_field.id, QueryInputValueRecord::DefaultValue(default_value_id)));
                     } else if input_field.ty().wrapping.is_required() {
                         return Err(InputValueError::UnexpectedNull {
                             expected: input_field.ty().to_string(),
@@ -211,7 +211,7 @@ impl<'binder, 'schema, 'parsed> QueryValueCoercionContext<'binder, 'schema, 'par
                 Some(value) => {
                     self.value_path.push(input_field.as_ref().name_id.into());
                     let value = self.coerce_input_value(input_field.ty().into(), value)?;
-                    fields_buffer.push((input_field.id(), value));
+                    fields_buffer.push((input_field.id, value));
                     self.value_path.pop();
                 }
             }
@@ -340,7 +340,7 @@ impl<'binder, 'schema, 'parsed> QueryValueCoercionContext<'binder, 'schema, 'par
             (Value::Variable(name), _) => self.variable_ref(
                 name,
                 TypeRecord {
-                    definition_id: DefinitionId::Scalar(scalar.id()),
+                    definition_id: DefinitionId::Scalar(scalar.id),
                     wrapping: Wrapping::nullable(),
                 },
             ),

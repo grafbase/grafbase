@@ -2,6 +2,7 @@ use std::{collections::VecDeque, fmt};
 
 use schema::ObjectDefinitionId;
 use serde::de::{DeserializeSeed, IgnoredAny, MapAccess, Visitor};
+use walker::Walk;
 
 use crate::response::{
     write::deserialize::{key::Key, SeedContext},
@@ -17,10 +18,10 @@ pub(crate) struct PolymorphicObjectSeed<'ctx, 'seed> {
 
 impl<'ctx, 'seed> PolymorphicObjectSeed<'ctx, 'seed> {
     pub fn new(ctx: &'seed SeedContext<'ctx>, shape_id: PolymorphicObjectShapeId) -> Self {
-        let polymorphic = &ctx.operation.response_blueprint[shape_id];
+        let polymorphic = shape_id.walk(ctx);
         Self {
             ctx,
-            possibilities: &polymorphic.possibilities,
+            possibilities: &polymorphic.as_ref().possibilities,
         }
     }
 }

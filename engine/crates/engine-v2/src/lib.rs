@@ -8,6 +8,7 @@ mod execution;
 mod graphql_over_http;
 mod operation;
 mod plan;
+mod prepare;
 mod request;
 mod resolver;
 mod response;

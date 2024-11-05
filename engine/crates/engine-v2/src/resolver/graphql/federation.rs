@@ -11,8 +11,9 @@ use tracing::Instrument;
 use walker::Walk;
 
 use crate::{
-    execution::{ExecutionContext, ExecutionError, PlanningResult},
-    operation::{CacheScope, OperationType, PlanWalker},
+    execution::{ExecutionContext, ExecutionError},
+    operation::OperationType,
+    plan::{Plan, PlanError, PlanQueryPartition, PlanResult},
     resolver::{
         graphql::{
             deserialize::{EntitiesErrorsSeed, GraphqlResponseSeed},
@@ -20,7 +21,7 @@ use crate::{
         },
         ExecutionResult, Resolver,
     },
-    response::{OldResponseObjectsView, SubgraphResponse},
+    response::{ResponseObjectsView, SubgraphResponse},
     Runtime,
 };
 
@@ -31,22 +32,25 @@ use super::{
     SubgraphContext,
 };
 
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub(crate) struct FederationEntityResolver {
     endpoint_id: GraphqlEndpointId,
-    operation: PreparedFederationEntityOperation,
+    subgraph_operation: PreparedFederationEntityOperation,
 }
 
 impl FederationEntityResolver {
     pub fn prepare(
         definition: GraphqlFederationEntityResolverDefinition<'_>,
-        plan: PlanWalker<'_>,
-    ) -> PlanningResult<Resolver> {
-        let operation = PreparedFederationEntityOperation::build(plan, definition.endpoint_id.into())
-            .map_err(|err| format!("Failed to build query: {err}"))?;
+        plan_query_partition: PlanQueryPartition<'_>,
+    ) -> PlanResult<Resolver> {
+        let subgraph_operation = PreparedFederationEntityOperation::build(plan_query_partition).map_err(|err| {
+            tracing::error!("Failed to build query: {err}");
+            PlanError::InternalError
+        })?;
 
         Ok(Resolver::FederationEntity(Self {
-            endpoint_id: definition.endpoint().id(),
-            operation,
+            endpoint_id: definition.endpoint().id,
+            subgraph_operation,
         }))
     }
 
@@ -58,7 +62,7 @@ impl FederationEntityResolver {
             SubgraphRequestSpanBuilder {
                 subgraph_name: endpoint.subgraph_name(),
                 operation_type: OperationType::Query.as_str(),
-                sanitized_query: &self.operation.query,
+                sanitized_query: &self.subgraph_operation.query,
             },
         )
     }
@@ -66,14 +70,14 @@ impl FederationEntityResolver {
     pub fn prepare_request<'ctx, R: Runtime>(
         &'ctx self,
         ctx: &SubgraphContext<'ctx, R>,
-        plan: PlanWalker<'ctx, ()>,
-        root_response_objects: OldResponseObjectsView<'_>,
+        plan: Plan<'ctx>,
+        root_response_objects: ResponseObjectsView<'_>,
         subgraph_response: SubgraphResponse,
     ) -> ExecutionResult<FederationEntityRequest<'ctx>> {
         ctx.span().in_scope(|| {
             let root_response_objects = root_response_objects.with_extra_constant_fields(vec![(
                 "__typename".to_string(),
-                serde_json::Value::String(entity_name(ctx, plan)),
+                serde_json::Value::String(plan.entity_definition().name().to_string()),
             )]);
 
             let representations = root_response_objects
@@ -93,7 +97,8 @@ impl FederationEntityResolver {
 
 pub(crate) struct FederationEntityRequest<'ctx> {
     resolver: &'ctx FederationEntityResolver,
-    plan: PlanWalker<'ctx>,
+    #[allow(unused)]
+    plan: Plan<'ctx>,
     subgraph_response: SubgraphResponse,
     representations: Vec<Box<RawValue>>,
 }
@@ -101,8 +106,8 @@ pub(crate) struct FederationEntityRequest<'ctx> {
 impl<'ctx> FederationEntityRequest<'ctx> {
     pub async fn execute<R: Runtime>(self, ctx: &mut SubgraphContext<'ctx, R>) -> ExecutionResult<SubgraphResponse> {
         let Self {
-            resolver: FederationEntityResolver { operation, .. },
-            plan,
+            resolver: FederationEntityResolver { subgraph_operation, .. },
+            plan: _,
             subgraph_response,
             mut representations,
         } = self;
@@ -118,22 +123,24 @@ impl<'ctx> FederationEntityRequest<'ctx> {
             };
 
             let headers = ctx.subgraph_headers_with_rules(ctx.endpoint().header_rules());
-            let additional_scopes = plan
-                .cache_scopes()
-                .map(|scope| match scope {
-                    CacheScope::Authenticated => "authenticated".into(),
-                    CacheScope::RequiresScopes(scopes) => {
-                        let mut hasher = blake3::Hasher::new();
-                        hasher.update(b"requiresScopes");
-                        hasher.update(&scopes.scopes().len().to_le_bytes());
-                        for scope in scopes.scopes() {
-                            hasher.update(&scope.len().to_le_bytes());
-                            hasher.update(scope.as_bytes());
-                        }
-                        hasher.finalize().to_hex().to_string()
-                    }
-                })
-                .collect::<Vec<_>>();
+            // let additional_scopes = plan
+            //     .cache_scopes()
+            //     .map(|scope| match scope {
+            //         CacheScope::Authenticated => "authenticated".into(),
+            //         CacheScope::RequiresScopes(scopes) => {
+            //             let mut hasher = blake3::Hasher::new();
+            //             hasher.update(b"requiresScopes");
+            //             hasher.update(&scopes.scopes().len().to_le_bytes());
+            //             for scope in scopes.scopes() {
+            //                 hasher.update(&scope.len().to_le_bytes());
+            //                 hasher.update(scope.as_bytes());
+            //             }
+            //             hasher.finalize().to_hex().to_string()
+            //         }
+            //     })
+            //     .collect::<Vec<_>>();
+            // FIXME: handle cache scopes
+            let additional_scopes = Vec::new();
 
             if cache_ttl.is_some() {
                 match cache_fetches(ctx, &headers, representations, &additional_scopes).await {
@@ -170,20 +177,20 @@ impl<'ctx> FederationEntityRequest<'ctx> {
             }
 
             let variables = SubgraphVariables {
-                plan,
-                variables: &operation.variables,
-                extra_variables: vec![(&operation.entities_variable_name, representations)],
+                ctx: ctx.input_value_context(),
+                variables: &subgraph_operation.variables,
+                extra_variables: vec![(&subgraph_operation.entities_variable_name, representations)],
             };
 
             tracing::debug!(
                 "Executing request to subgraph named '{}' with query and variables:\n{}\n{}",
                 ctx.endpoint().subgraph_name(),
-                self.resolver.operation.query,
+                self.resolver.subgraph_operation.query,
                 serde_json::to_string_pretty(&variables).unwrap_or_default()
             );
 
             let body = serde_json::to_vec(&SubgraphGraphqlRequest {
-                query: &operation.query,
+                query: &subgraph_operation.query,
                 variables,
             })
             .map_err(|err| format!("Failed to serialize query: {err}"))?;
@@ -397,12 +404,4 @@ fn build_cache_key(subgraph_name: &str, headers: &HeaderMap, repr: &RawValue, ad
     }
     hasher.update(repr.get().as_bytes());
     hasher.finalize().to_string()
-}
-
-fn entity_name<R: Runtime>(ctx: &ExecutionContext<'_, R>, plan: PlanWalker<'_, ()>) -> String {
-    ctx.engine
-        .schema
-        .walk(plan.logical_plan().as_ref().entity_id)
-        .name()
-        .to_string()
 }

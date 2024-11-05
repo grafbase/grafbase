@@ -140,8 +140,7 @@ pub enum __Directive {
 
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct IntrospectionMetadata {
-    pub subgraph_id: SubgraphId,
-    pub resolver_id: ResolverDefinitionId,
+    pub resolver_definition_id: ResolverDefinitionId,
     pub meta_fields: [FieldDefinitionId; 2],
     pub type_kind: TypeKind,
     pub directive_location: DirectiveLocation,
@@ -567,7 +566,7 @@ impl<'a> IntrospectionBuilder<'a> {
             ],
         );
 
-        let resolver_id = ResolverDefinitionId::from(self.resolver_definitions.len());
+        let resolver_definition_id = ResolverDefinitionId::from(self.resolver_definitions.len());
         self.resolver_definitions.push(ResolverDefinitionRecord::Introspection);
 
         /*
@@ -588,7 +587,7 @@ impl<'a> IntrospectionBuilder<'a> {
             panic!("Invariant broken: missing Query.__type or Query.__schema");
         };
         self[__schema_field_id].ty_record = field_type_id;
-        self[__schema_field_id].resolver_ids.push(resolver_id);
+        self[__schema_field_id].resolver_ids.push(resolver_definition_id);
 
         /*
         __type(name: String!): __Type
@@ -598,7 +597,7 @@ impl<'a> IntrospectionBuilder<'a> {
             wrapping: Wrapping::nullable(),
         };
         self[__type_field_id].ty_record = field_type_id;
-        self[__type_field_id].resolver_ids.push(resolver_id);
+        self[__type_field_id].resolver_ids.push(resolver_definition_id);
 
         self.set_field_arguments(
             self.root_operation_types_record.query_id,
@@ -608,8 +607,7 @@ impl<'a> IntrospectionBuilder<'a> {
 
         // DataSource
         IntrospectionMetadata {
-            subgraph_id: SubgraphId::Introspection,
-            resolver_id,
+            resolver_definition_id,
             meta_fields: [__type_field_id, __schema_field_id],
             type_kind,
             directive_location,

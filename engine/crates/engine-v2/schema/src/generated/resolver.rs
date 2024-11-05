@@ -36,6 +36,30 @@ impl std::fmt::Debug for ResolverDefinitionRecord {
     }
 }
 
+impl ResolverDefinitionRecord {
+    pub fn is_graphql_federation_entity(&self) -> bool {
+        matches!(self, ResolverDefinitionRecord::GraphqlFederationEntity(_))
+    }
+    pub fn as_graphql_federation_entity(&self) -> Option<GraphqlFederationEntityResolverDefinitionRecord> {
+        match self {
+            ResolverDefinitionRecord::GraphqlFederationEntity(item) => Some(*item),
+            _ => None,
+        }
+    }
+    pub fn is_graphql_root_field(&self) -> bool {
+        matches!(self, ResolverDefinitionRecord::GraphqlRootField(_))
+    }
+    pub fn as_graphql_root_field(&self) -> Option<GraphqlRootFieldResolverDefinitionRecord> {
+        match self {
+            ResolverDefinitionRecord::GraphqlRootField(item) => Some(*item),
+            _ => None,
+        }
+    }
+    pub fn is_introspection(&self) -> bool {
+        matches!(self, ResolverDefinitionRecord::Introspection)
+    }
+}
+
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
 #[max(MAX_ID)]
 pub struct ResolverDefinitionId(std::num::NonZero<u32>);
@@ -43,7 +67,7 @@ pub struct ResolverDefinitionId(std::num::NonZero<u32>);
 #[derive(Clone, Copy)]
 pub struct ResolverDefinition<'a> {
     pub(crate) schema: &'a Schema,
-    pub(crate) id: ResolverDefinitionId,
+    pub id: ResolverDefinitionId,
 }
 
 #[derive(Clone, Copy)]
@@ -75,9 +99,6 @@ impl<'a> ResolverDefinition<'a> {
     pub fn as_ref(&self) -> &'a ResolverDefinitionRecord {
         &self.schema[self.id]
     }
-    pub fn id(&self) -> ResolverDefinitionId {
-        self.id
-    }
     pub fn variant(&self) -> ResolverDefinitionVariant<'a> {
         let schema = self.schema;
         match self.as_ref() {
@@ -90,16 +111,40 @@ impl<'a> ResolverDefinition<'a> {
             ResolverDefinitionRecord::Introspection => ResolverDefinitionVariant::Introspection,
         }
     }
+    pub fn is_graphql_federation_entity(&self) -> bool {
+        matches!(self.variant(), ResolverDefinitionVariant::GraphqlFederationEntity(_))
+    }
+    pub fn as_graphql_federation_entity(&self) -> Option<GraphqlFederationEntityResolverDefinition<'a>> {
+        match self.variant() {
+            ResolverDefinitionVariant::GraphqlFederationEntity(item) => Some(item),
+            _ => None,
+        }
+    }
+    pub fn is_graphql_root_field(&self) -> bool {
+        matches!(self.variant(), ResolverDefinitionVariant::GraphqlRootField(_))
+    }
+    pub fn as_graphql_root_field(&self) -> Option<GraphqlRootFieldResolverDefinition<'a>> {
+        match self.variant() {
+            ResolverDefinitionVariant::GraphqlRootField(item) => Some(item),
+            _ => None,
+        }
+    }
+    pub fn is_introspection(&self) -> bool {
+        matches!(self.variant(), ResolverDefinitionVariant::Introspection)
+    }
 }
 
 impl<'a> Walk<&'a Schema> for ResolverDefinitionId {
     type Walker<'w> = ResolverDefinition<'w> where 'a: 'w ;
-    fn walk<'w>(self, schema: &'a Schema) -> Self::Walker<'w>
+    fn walk<'w>(self, schema: impl Into<&'a Schema>) -> Self::Walker<'w>
     where
         Self: 'w,
         'a: 'w,
     {
-        ResolverDefinition { schema, id: self }
+        ResolverDefinition {
+            schema: schema.into(),
+            id: self,
+        }
     }
 }
 

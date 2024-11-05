@@ -3,7 +3,7 @@
 //! ===================
 //! Generated with: `cargo run -p engine-v2-codegen`
 //! Source file: <engine-v2-codegen dir>/domain/schema.graphql
-use crate::{prelude::*, InputValueSet, RequiredFieldSet, RequiredFieldSetId, SchemaInputValue, SchemaInputValueId};
+use crate::{prelude::*, FieldSet, FieldSetId, InputValueSet, SchemaInputValue, SchemaInputValueId};
 use walker::Walk;
 
 /// Generated from:
@@ -11,16 +11,16 @@ use walker::Walk;
 /// ```custom,{.language-graphql}
 /// type AuthorizedDirective @meta(module: "directive/authorized") @indexed(id_size: "u32", max_id: "MAX_ID") {
 ///   arguments: InputValueSet!
-///   fields: RequiredFieldSet @field(record_field_name: "fields_id")
-///   node: RequiredFieldSet
+///   fields: FieldSet @field(record_field_name: "fields_id")
+///   node: FieldSet
 ///   metadata: SchemaInputValue
 /// }
 /// ```
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct AuthorizedDirectiveRecord {
     pub arguments: InputValueSet,
-    pub fields_id: Option<RequiredFieldSetId>,
-    pub node_id: Option<RequiredFieldSetId>,
+    pub fields_id: Option<FieldSetId>,
+    pub node_id: Option<FieldSetId>,
     pub metadata_id: Option<SchemaInputValueId>,
 }
 
@@ -31,7 +31,7 @@ pub struct AuthorizedDirectiveId(std::num::NonZero<u32>);
 #[derive(Clone, Copy)]
 pub struct AuthorizedDirective<'a> {
     pub(crate) schema: &'a Schema,
-    pub(crate) id: AuthorizedDirectiveId,
+    pub id: AuthorizedDirectiveId,
 }
 
 impl std::ops::Deref for AuthorizedDirective<'_> {
@@ -47,13 +47,10 @@ impl<'a> AuthorizedDirective<'a> {
     pub fn as_ref(&self) -> &'a AuthorizedDirectiveRecord {
         &self.schema[self.id]
     }
-    pub fn id(&self) -> AuthorizedDirectiveId {
-        self.id
-    }
-    pub fn fields(&self) -> Option<RequiredFieldSet<'a>> {
+    pub fn fields(&self) -> Option<FieldSet<'a>> {
         self.fields_id.walk(self.schema)
     }
-    pub fn node(&self) -> Option<RequiredFieldSet<'a>> {
+    pub fn node(&self) -> Option<FieldSet<'a>> {
         self.node_id.walk(self.schema)
     }
     pub fn metadata(&self) -> Option<SchemaInputValue<'a>> {
@@ -63,12 +60,15 @@ impl<'a> AuthorizedDirective<'a> {
 
 impl<'a> Walk<&'a Schema> for AuthorizedDirectiveId {
     type Walker<'w> = AuthorizedDirective<'w> where 'a: 'w ;
-    fn walk<'w>(self, schema: &'a Schema) -> Self::Walker<'w>
+    fn walk<'w>(self, schema: impl Into<&'a Schema>) -> Self::Walker<'w>
     where
         Self: 'w,
         'a: 'w,
     {
-        AuthorizedDirective { schema, id: self }
+        AuthorizedDirective {
+            schema: schema.into(),
+            id: self,
+        }
     }
 }
 

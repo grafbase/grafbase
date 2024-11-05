@@ -1,6 +1,7 @@
 use serde::ser::SerializeMap;
+use walker::Walk;
 
-use crate::operation::PlanWalker;
+use crate::operation::InputValueContext;
 
 use super::QueryVariables;
 
@@ -25,7 +26,7 @@ where
 }
 
 pub(crate) struct SubgraphVariables<'a, ExtraVariable> {
-    pub plan: PlanWalker<'a>,
+    pub ctx: InputValueContext<'a>,
     pub variables: &'a QueryVariables,
     pub extra_variables: Vec<(&'a str, ExtraVariable)>,
 }
@@ -38,9 +39,9 @@ where
     where
         S: serde::Serializer,
     {
-        let mut map = serializer.serialize_map(Some(self.variables.len() + self.extra_variables.len()))?;
-        for (name, input_value_id) in self.variables.iter() {
-            let value = self.plan.walk_input_value(input_value_id);
+        let mut map = serializer.serialize_map(None)?;
+        for (name, value_id) in self.variables.iter() {
+            let value = value_id.walk(self.ctx);
             if !value.is_undefined() {
                 map.serialize_entry(&name, &value)?;
             }

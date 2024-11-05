@@ -1,8 +1,7 @@
 use walker::Walk;
 
 use crate::{
-    CompositeType, CompositeTypeId, Definition, DefinitionId, EntityDefinition, EntityDefinitionId, ScalarDefinition,
-    ScalarDefinitionId, ScalarType, TypeSystemDirective,
+    CompositeType, CompositeTypeId, Definition, DefinitionId, EntityDefinition, EntityDefinitionId, TypeSystemDirective,
 };
 
 impl<'a> Definition<'a> {
@@ -29,20 +28,6 @@ impl<'a> Definition<'a> {
         directive_ids.walk(schema)
     }
 
-    pub fn scalar_type(&self) -> Option<ScalarType> {
-        match self {
-            Definition::Scalar(scalar) => Some(scalar.ty),
-            _ => None,
-        }
-    }
-
-    pub fn as_scalar(&self) -> Option<ScalarDefinition<'a>> {
-        match self {
-            Definition::Scalar(scalar) => Some(*scalar),
-            _ => None,
-        }
-    }
-
     pub fn as_entity(&self) -> Option<EntityDefinition<'a>> {
         match self {
             Definition::Object(object) => Some(EntityDefinition::Object(*object)),
@@ -60,10 +45,6 @@ impl<'a> Definition<'a> {
         }
     }
 
-    pub fn is_scalar(&self) -> bool {
-        matches!(self, Definition::Scalar(_))
-    }
-
     pub fn is_entity(&self) -> bool {
         matches!(self, Definition::Object(_) | Definition::Interface(_))
     }
@@ -77,13 +58,6 @@ impl<'a> Definition<'a> {
 }
 
 impl DefinitionId {
-    pub fn as_scalar(&self) -> Option<ScalarDefinitionId> {
-        match self {
-            DefinitionId::Scalar(scalar) => Some(*scalar),
-            _ => None,
-        }
-    }
-
     pub fn as_entity(&self) -> Option<EntityDefinitionId> {
         match self {
             DefinitionId::Object(object) => Some(EntityDefinitionId::Object(*object)),
@@ -101,10 +75,6 @@ impl DefinitionId {
         }
     }
 
-    pub fn is_scalar(&self) -> bool {
-        matches!(self, DefinitionId::Scalar(_))
-    }
-
     pub fn is_entity(&self) -> bool {
         matches!(self, DefinitionId::Object(_) | DefinitionId::Interface(_))
     }
@@ -114,5 +84,24 @@ impl DefinitionId {
             self,
             DefinitionId::Object(_) | DefinitionId::Interface(_) | DefinitionId::Union(_)
         )
+    }
+}
+
+impl From<EntityDefinitionId> for DefinitionId {
+    fn from(id: EntityDefinitionId) -> Self {
+        match id {
+            EntityDefinitionId::Object(id) => DefinitionId::Object(id),
+            EntityDefinitionId::Interface(id) => DefinitionId::Interface(id),
+        }
+    }
+}
+
+impl From<CompositeTypeId> for DefinitionId {
+    fn from(id: CompositeTypeId) -> Self {
+        match id {
+            CompositeTypeId::Object(id) => DefinitionId::Object(id),
+            CompositeTypeId::Interface(id) => DefinitionId::Interface(id),
+            CompositeTypeId::Union(id) => DefinitionId::Union(id),
+        }
     }
 }

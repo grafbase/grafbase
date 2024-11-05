@@ -34,7 +34,7 @@ impl<'schema, 'p> super::Binder<'schema, 'p> {
                 }
                 TypeSystemDirective::RequiresScopes(directive) => {
                     self.register_field_impacted_by_query_modifier(
-                        QueryModifierRule::RequiresScopes(directive.id()),
+                        QueryModifierRule::RequiresScopes(directive.id),
                         field_id,
                     );
                 }
@@ -46,8 +46,8 @@ impl<'schema, 'p> super::Binder<'schema, 'p> {
                         (true, false) => {
                             self.register_field_impacted_by_response_modifier(
                                 ResponseModifierRule::AuthorizedParentEdge {
-                                    directive_id: directive.id(),
-                                    definition_id: field_definition.id(),
+                                    directive_id: directive.id,
+                                    definition_id: field_definition.id,
                                 },
                                 field_id,
                             );
@@ -55,8 +55,8 @@ impl<'schema, 'p> super::Binder<'schema, 'p> {
                         (false, true) => {
                             self.register_field_impacted_by_response_modifier(
                                 ResponseModifierRule::AuthorizedEdgeChild {
-                                    directive_id: directive.id(),
-                                    definition_id: field_definition.id(),
+                                    directive_id: directive.id,
+                                    definition_id: field_definition.id,
                                 },
                                 field_id,
                             );
@@ -64,8 +64,8 @@ impl<'schema, 'p> super::Binder<'schema, 'p> {
                         (false, false) => {
                             self.register_field_impacted_by_query_modifier(
                                 QueryModifierRule::AuthorizedField {
-                                    directive_id: directive.id(),
-                                    definition_id: field_definition.id(),
+                                    directive_id: directive.id,
+                                    definition_id: field_definition.id,
                                     argument_ids,
                                 },
                                 field_id,
@@ -84,14 +84,14 @@ impl<'schema, 'p> super::Binder<'schema, 'p> {
                 }
                 TypeSystemDirective::RequiresScopes(directive) => {
                     self.register_field_impacted_by_query_modifier(
-                        QueryModifierRule::RequiresScopes(directive.id()),
+                        QueryModifierRule::RequiresScopes(directive.id),
                         field_id,
                     );
                 }
                 TypeSystemDirective::Authorized(directive) => {
                     self.register_field_impacted_by_query_modifier(
                         QueryModifierRule::AuthorizedDefinition {
-                            directive_id: directive.id(),
+                            directive_id: directive.id,
                             definition_id: field_definition.ty().as_ref().definition_id,
                         },
                         field_id,
@@ -114,12 +114,12 @@ impl<'schema, 'p> super::Binder<'schema, 'p> {
                 }
                 TypeSystemDirective::RequiresScopes(directive) => {
                     modifiers
-                        .push(self.push_root_object_query_modifier(QueryModifierRule::RequiresScopes(directive.id())));
+                        .push(self.push_root_object_query_modifier(QueryModifierRule::RequiresScopes(directive.id)));
                 }
                 TypeSystemDirective::Authorized(directive) => {
                     modifiers.push(
                         self.push_root_object_query_modifier(QueryModifierRule::AuthorizedDefinition {
-                            directive_id: directive.id(),
+                            directive_id: directive.id,
                             definition_id: DefinitionId::Object(root_object_id),
                         }),
                     );

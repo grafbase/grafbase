@@ -6,9 +6,11 @@ mod walker;
 use std::collections::HashSet;
 
 use enum_::generate_enum;
+use proc_macro2::{Ident, Span, TokenStream};
+use quote::quote;
 use tracing::instrument;
 
-use crate::domain::{Definition, Domain, Union, UnionKind, Variant};
+use crate::domain::{Definition, Domain, Scalar, Union, UnionKind, Variant};
 
 use self::bitpacked::generate_bitpacked_id_union;
 
@@ -66,6 +68,30 @@ pub struct VariantContext<'a> {
     domain: &'a Domain,
     variant: &'a Variant,
     value: Option<&'a Definition>,
+}
+
+impl<'a> VariantContext<'a> {
+    pub fn value_type(&self) -> Option<TokenStream> {
+        let value = self.value?;
+        Some(match value {
+            Definition::Scalar(Scalar::Value { copy, .. }) => {
+                let walker = Ident::new(value.walker_name(), Span::call_site());
+                if *copy {
+                    quote! { #walker }
+                } else {
+                    quote! { &'a #walker }
+                }
+            }
+            Definition::Scalar(Scalar::Ref { target, .. }) => {
+                let walker = Ident::new(target.walker_name(), Span::call_site());
+                quote! { #walker<'a> }
+            }
+            _ => {
+                let walker = Ident::new(value.walker_name(), Span::call_site());
+                quote! { #walker<'a> }
+            }
+        })
+    }
 }
 
 impl<'a> std::ops::Deref for VariantContext<'a> {

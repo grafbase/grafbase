@@ -40,7 +40,7 @@ impl<'a> serde::Serialize for ResponseObjectViewWithExtraFields<'a> {
             let value = ResponseValueView {
                 ctx: self.ctx,
                 value: self.response_object.find_required_field(selection.id).unwrap_or(&NULL),
-                selection_set: &selection.subselection,
+                selection_set: &selection.subselection_record,
             };
             map.serialize_entry(key, &value)?;
         }
@@ -59,7 +59,7 @@ impl<'a> serde::Serialize for ResponseObjectView<'a> {
             let value = ResponseValueView {
                 ctx: self.ctx,
                 value: self.response_object.find_required_field(selection.id).unwrap_or(&NULL),
-                selection_set: &selection.subselection,
+                selection_set: &selection.subselection_record,
             };
 
             (key, value)

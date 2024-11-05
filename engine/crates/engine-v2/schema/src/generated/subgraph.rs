@@ -35,6 +35,21 @@ impl From<GraphqlEndpointId> for SubgraphId {
     }
 }
 
+impl SubgraphId {
+    pub fn is_graphql_endpoint(&self) -> bool {
+        matches!(self, SubgraphId::GraphqlEndpoint(_))
+    }
+    pub fn as_graphql_endpoint(&self) -> Option<GraphqlEndpointId> {
+        match self {
+            SubgraphId::GraphqlEndpoint(id) => Some(*id),
+            _ => None,
+        }
+    }
+    pub fn is_introspection(&self) -> bool {
+        matches!(self, SubgraphId::Introspection)
+    }
+}
+
 #[derive(Clone, Copy)]
 pub enum Subgraph<'a> {
     GraphqlEndpoint(GraphqlEndpoint<'a>),
@@ -50,13 +65,20 @@ impl std::fmt::Debug for Subgraph<'_> {
     }
 }
 
+impl<'a> From<GraphqlEndpoint<'a>> for Subgraph<'a> {
+    fn from(item: GraphqlEndpoint<'a>) -> Self {
+        Subgraph::GraphqlEndpoint(item)
+    }
+}
+
 impl<'a> Walk<&'a Schema> for SubgraphId {
     type Walker<'w> = Subgraph<'w> where 'a: 'w ;
-    fn walk<'w>(self, schema: &'a Schema) -> Self::Walker<'w>
+    fn walk<'w>(self, schema: impl Into<&'a Schema>) -> Self::Walker<'w>
     where
         Self: 'w,
         'a: 'w,
     {
+        let schema: &'a Schema = schema.into();
         match self {
             SubgraphId::GraphqlEndpoint(id) => Subgraph::GraphqlEndpoint(id.walk(schema)),
             SubgraphId::Introspection => Subgraph::Introspection,
@@ -64,11 +86,20 @@ impl<'a> Walk<&'a Schema> for SubgraphId {
     }
 }
 
-impl Subgraph<'_> {
+impl<'a> Subgraph<'a> {
     pub fn id(&self) -> SubgraphId {
         match self {
             Subgraph::GraphqlEndpoint(walker) => SubgraphId::GraphqlEndpoint(walker.id),
             Subgraph::Introspection => SubgraphId::Introspection,
+        }
+    }
+    pub fn is_graphql_endpoint(&self) -> bool {
+        matches!(self, Subgraph::GraphqlEndpoint(_))
+    }
+    pub fn as_graphql_endpoint(&self) -> Option<GraphqlEndpoint<'a>> {
+        match self {
+            Subgraph::GraphqlEndpoint(item) => Some(*item),
+            _ => None,
         }
     }
 }

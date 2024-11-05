@@ -117,21 +117,6 @@ struct ShippingOptions {
 
 #[ComplexObject]
 impl ShippingOptions {
-    #[graphql(requires = "modalities { ... on HomingPigeon { nickname } ...on DeliveryCompany { companyType } }")]
-    async fn summary(&self) -> String {
-        format!(
-            "Shipping options: {}",
-            self.modalities
-                .iter()
-                .map(|m| match m {
-                    ShippingModality::HomingPigeon(p) => format!("{} a.k.a. {}", p.name, p.nickname),
-                    ShippingModality::DeliveryCompany(c) => format!("{} {}", c.name, c.company_type),
-                })
-                .collect::<Vec<String>>()
-                .join(", ")
-        )
-    }
-
     #[graphql(requires = "defaultDeliveryCompany { companyType }")]
     async fn default_company_summary(&self) -> String {
         format!(

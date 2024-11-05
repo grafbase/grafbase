@@ -1,23 +1,17 @@
 mod field;
-mod plan;
-mod prepared;
-mod query_path;
 mod selection_set;
-mod solved;
 
 use engine_parser::types::OperationType;
 pub(crate) use field::*;
-pub(crate) use plan::*;
-pub(crate) use prepared::*;
 use schema::Schema;
 pub(crate) use selection_set::*;
 
-use super::Operation;
+use super::BoundOperation;
 
 #[derive(Clone, Copy)]
 pub(crate) struct OperationWalker<'a, Item = ()> {
     pub(super) schema: &'a Schema,
-    pub(super) operation: &'a Operation,
+    pub(super) operation: &'a BoundOperation,
     pub(super) item: Item,
 }
 
@@ -29,19 +23,15 @@ impl<'a> std::fmt::Debug for OperationWalker<'a, ()> {
 
 impl<'a, I: Copy> OperationWalker<'a, I>
 where
-    Operation: std::ops::Index<I>,
+    BoundOperation: std::ops::Index<I>,
 {
-    pub(crate) fn as_ref(&self) -> &'a <Operation as std::ops::Index<I>>::Output {
+    pub(crate) fn as_ref(&self) -> &'a <BoundOperation as std::ops::Index<I>>::Output {
         &self.operation[self.item]
-    }
-
-    pub(crate) fn id(&self) -> I {
-        self.item
     }
 }
 
 impl<'a> OperationWalker<'a, ()> {
-    pub(crate) fn as_ref(&self) -> &'a Operation {
+    pub(crate) fn as_ref(&self) -> &'a BoundOperation {
         self.operation
     }
 

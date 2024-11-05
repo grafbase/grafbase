@@ -1,106 +1,41 @@
-scalar Operation
+scalar OperationPlan
   @domain(
-    destination: "src/plan/model"
-    root_module: "plan/model"
+    destination: "src/plan/execution/model"
+    root_module: "plan/execution/model"
     context_name: "ctx"
-    context_type: "PlanContext"
+    context_type: "OperationPlanContext"
     visibility: "(crate)"
-    imports: [{ module: "schema", domain: "schema" }]
+    imports: [{ module: "schema", domain: "schema" }, { module: "crate/plan/solver", domain: "operation_solution" }]
   )
 
-scalar String @prelude
-scalar PlanFieldRef @ref(target: "PlanField")
-scalar DataPlanFieldRef @ref(target: "DataPlanField")
-scalar FieldShapeRefId @id
+union Executable @id @meta(module: "executable") = Plan | ResponseModifier
 
-# --------
-# - Plan -
-# --------
+scalar QueryPartitionId @prelude @id
+scalar Resolver @prelude
 
-scalar ConcreteObjectShapeId @prelude @id
+# Overriding the schema one as we inline it
+scalar FieldSetRecord @prelude
 
 type Plan @indexed(id_size: "u16") @meta(module: "plan") {
-  entity_definition: EntityDefinition!
-  resolver_definition: ResolverDefinition!
-  selection_set: PlanSelectionSet!
-  required_scalar_fields: [DataPlanFieldRef!]!
-  input: ResponseObjectSetDefinition!
-  shape_id: ConcreteObjectShapeId!
+  query_partition_id: QueryPartitionId!
+  requires: FieldSetRecord!
+  resolver: Resolver!
+  parent_count: usize!
+  children: [Executable!]!
 }
 
-type ResponseObjectSetDefinition @meta(module: "response_object_set") @indexed(id_size: "u16", deduplicated: true) {
+type ResponseModifier @indexed(id_size: "u16") @meta(module: "response_modifier") {
+  definition: ResponseModifierDefinition!
+  sorted_targets: [ResponseModifierTarget!]!
+  parent_count: usize!
+  children: [Executable!]!
+}
+
+scalar ResponseObjectSetDefinitionId @id @prelude
+scalar ResponseKey @copy @prelude
+
+type ResponseModifierTarget @meta(module: "response_modifier/target") {
+  set_id: ResponseObjectSetDefinitionId!
   ty: CompositeType!
-}
-
-# ----------------
-# - SelectionSet -
-# ----------------
-
-scalar PositionedResponseKey @copy @prelude
-scalar Location @copy @prelude
-scalar QueryInputValueId @prelude @id
-
-type PlanSelectionSet @meta(module: "selection_set") @copy {
-  data_fields: [DataPlanField!]!
-  typename_fields: [TypenamePlanField!]!
-}
-
-union PlanField @id @indexed(id_size: "u32") @meta(module: "field") @variants(remove_suffix: true) =
-  | DataPlanField
-  | TypenamePlanField
-
-"In opposition to a __typename field this field does retrieve data from a subgraph"
-type DataPlanField @meta(module: "field/data", debug: false) @indexed(id_size: "u32") {
-  key: PositionedResponseKey!
-  location: Location!
-  definition: FieldDefinition!
-  arguments: [FieldArgument!]!
-  "Fields required either by @requires, @authorized, etc."
-  required_scalar_fields: [DataPlanFieldRef!]!
-  "All field shape ids generated for this field"
-  shape_ids: [FieldShapeRefId!]!
-  output: ResponseObjectSetDefinition
-  selection_set: PlanSelectionSet!
-  "Whether __typename should be requested from the subgraph for this selection set"
-  selection_set_requires_typename: Boolean!
-  matching_requirement: RequiredField
-  plan: Plan!
-}
-
-type FieldArgument @meta(module: "field/argument") @indexed(id_size: "u16") {
-  definition: InputValueDefinition!
-  value_id: QueryInputValueId!
-}
-
-"__typename field"
-type TypenamePlanField @meta(module: "field/typename") @indexed(id_size: "u32") {
-  key: PositionedResponseKey!
-  location: Location!
-  type_condition: CompositeType!
-}
-
-type VariableDefinition @meta(module: "variable") @indexed(id_size: "u16") {
-  name: String!
-  name_location: Location!
-  default_value_id: QueryInputValueId
-  ty: Type!
-}
-
-# ------------
-# - Modifier -
-# ------------
-
-scalar QueryModifierRule @prelude
-
-type QueryModifierDefinition @meta(module: "modifier") {
-  rule: QueryModifierRule!
-  impacts_root_object: Boolean!
-  impacted_fields: [PlanFieldRef!]!
-}
-
-scalar ResponseModifierRule @prelude
-
-type ResponseModifierDefinition @meta(module: "modifier") {
-  rule: ResponseModifierRule!
-  impacted_fields: [PlanFieldRef!]!
+  key: ResponseKey!
 }

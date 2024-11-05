@@ -26,7 +26,7 @@ pub(crate) struct Request {
     #[serde(default)]
     pub doc_id: Option<String>,
     #[serde(default)]
-    pub variables: Variables,
+    pub variables: RawVariables,
     #[serde(default)]
     pub extensions: RequestExtensions,
 }
@@ -34,9 +34,9 @@ pub(crate) struct Request {
 /// Variables of a query.
 #[derive(Debug, Clone, Default, serde::Serialize)]
 #[serde(transparent)]
-pub struct Variables(BTreeMap<Name, ConstValue>);
+pub struct RawVariables(BTreeMap<Name, ConstValue>);
 
-impl fmt::Display for Variables {
+impl fmt::Display for RawVariables {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str("{")?;
 
@@ -48,7 +48,7 @@ impl fmt::Display for Variables {
     }
 }
 
-impl std::hash::Hash for Variables {
+impl std::hash::Hash for RawVariables {
     fn hash<H: Hasher>(&self, state: &mut H) {
         for (key, value) in &self.0 {
             key.hash(state);
@@ -57,7 +57,7 @@ impl std::hash::Hash for Variables {
     }
 }
 
-impl<'de> serde::Deserialize<'de> for Variables {
+impl<'de> serde::Deserialize<'de> for RawVariables {
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         Ok(Self(
             <Option<BTreeMap<Name, ConstValue>>>::deserialize(deserializer)?.unwrap_or_default(),
@@ -65,7 +65,7 @@ impl<'de> serde::Deserialize<'de> for Variables {
     }
 }
 
-impl Variables {
+impl RawVariables {
     /// Get the variables from a GraphQL value.
     ///
     /// If the value is not a map, then no variables will be returned.
@@ -93,7 +93,7 @@ impl Variables {
     }
 }
 
-impl IntoIterator for Variables {
+impl IntoIterator for RawVariables {
     type Item = (Name, ConstValue);
     type IntoIter = <BTreeMap<Name, ConstValue> as IntoIterator>::IntoIter;
 
@@ -102,13 +102,13 @@ impl IntoIterator for Variables {
     }
 }
 
-impl From<Variables> for ConstValue {
-    fn from(variables: Variables) -> Self {
+impl From<RawVariables> for ConstValue {
+    fn from(variables: RawVariables) -> Self {
         variables.into_value()
     }
 }
 
-impl Deref for Variables {
+impl Deref for RawVariables {
     type Target = BTreeMap<Name, ConstValue>;
 
     fn deref(&self) -> &Self::Target {
@@ -116,7 +116,7 @@ impl Deref for Variables {
     }
 }
 
-impl DerefMut for Variables {
+impl DerefMut for RawVariables {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
     }

@@ -185,23 +185,6 @@ impl BoundField {
             BoundField::Extra(BoundExtraField { argument_ids, .. }) => *argument_ids,
         }
     }
-
-    pub fn parent_selection_set_id(&self) -> BoundSelectionSetId {
-        match self {
-            BoundField::TypeName(BoundTypeNameField {
-                parent_selection_set_id,
-                ..
-            }) => *parent_selection_set_id,
-            BoundField::Query(BoundQueryField {
-                parent_selection_set_id,
-                ..
-            }) => *parent_selection_set_id,
-            BoundField::Extra(BoundExtraField {
-                parent_selection_set_id,
-                ..
-            }) => *parent_selection_set_id,
-        }
-    }
 }
 
 /// Represents arguments that were specified in the query with a value

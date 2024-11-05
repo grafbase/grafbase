@@ -1,23 +1,24 @@
 use std::sync::Arc;
 
 use itertools::Itertools;
+use walker::Walk;
 
 use crate::{
     operation::ResponseModifierRule,
+    plan::ResponseModifier,
     response::{ErrorCode, GraphqlError, InputResponseObjectSet, ResponseBuilder, UnpackedResponseEdge},
     Runtime,
 };
 
-use super::{state::OperationExecutionState, ExecutionContext, ResponseModifierExecutorId};
+use super::{state::OperationExecutionState, ExecutionContext};
 
 impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
     pub(super) async fn execute_response_modifier(
         &self,
-        state: &mut OperationExecutionState<'ctx>,
+        state: &mut OperationExecutionState<'ctx, R>,
         response: &mut ResponseBuilder,
-        response_modifier_executor_id: ResponseModifierExecutorId,
+        response_modifier: ResponseModifier<'ctx>,
     ) {
-        let executor = &self.operation[response_modifier_executor_id];
         // First step is aggregating all the object refs we must read into a single
         // InputdResponseObjectSet.
         // As the AuthorizedField resolver applies on a specific field, we have to keep track of
@@ -25,12 +26,11 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
         // fields might be impacted in a given object set (because of aliases), we keep a range of
         // of those keys for each ResponseObjectSet we add to the input.
         let mut input = InputResponseObjectSet::default();
-        let mut input_associated_key_range = Vec::new();
-        for (set_id, chunk) in executor
-            .on
-            .iter()
+        let mut input_associated_targets_range = Vec::new();
+        for (set_id, chunk) in response_modifier
+            .sorted_targets()
             .enumerate()
-            .chunk_by(|(_, (set_id, _, _))| *set_id)
+            .chunk_by(|(_, target)| target.set_id)
             .into_iter()
         {
             // With query modifications, this response object set might never exist.
@@ -38,15 +38,15 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
                 continue;
             };
 
-            for (entity_id, mut chunk) in chunk.into_iter().chunk_by(|(_, (_, entity, _))| *entity).into_iter() {
-                let start = chunk.next().unwrap().0;
-                let end = chunk.last().map(|(ix, _)| ix).unwrap_or(start) + 1;
-                input_associated_key_range.push(start..end);
+            for (ty_id, mut chunk) in chunk.into_iter().chunk_by(|(_, target)| target.ty_id).into_iter() {
+                let (start, _) = chunk.next().unwrap();
+                let end = chunk.last().map(|(last, _)| last).unwrap_or(start) + 1;
+                input_associated_targets_range.push(start..end);
 
-                if let Some(entity_id) = entity_id {
-                    input = input.with_filtered_response_objects(self.schema(), entity_id, refs.clone());
-                } else {
+                if self.operation.solution[set_id].ty_id == ty_id {
                     input = input.with_response_objects(refs.clone());
+                } else {
+                    input = input.with_filtered_response_objects(self.schema(), ty_id, refs.clone());
                 }
             }
         }
@@ -56,7 +56,7 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
         }
 
         // Now we can execute the hook and propagate any errors.
-        match executor.rule {
+        match response_modifier.definition().rule {
             ResponseModifierRule::AuthorizedParentEdge {
                 directive_id,
                 definition_id,
@@ -64,11 +64,10 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
                 let definition = self.schema().walk(definition_id);
                 let directive = self.schema().walk(directive_id);
                 let input = Arc::new(input);
-                let parents = response.old_read(
+                let parents = response.read(
                     self.schema(),
-                    &self.operation.response_views,
                     input.clone(),
-                    executor.requires,
+                    directive_id.walk(self).fields().unwrap().as_ref(),
                 );
                 let result = self
                     .hooks()
@@ -100,10 +99,12 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
 
                 for ((i, obj_ref), result) in input.iter_with_set_index().zip_eq(result) {
                     if let Err(err) = result {
-                        for (_, _, key) in &executor.on[input_associated_key_range[i].clone()] {
+                        for target in
+                            &response_modifier.sorted_target_records[input_associated_targets_range[i].clone()]
+                        {
                             let path = obj_ref
                                 .path
-                                .child(UnpackedResponseEdge::ExtraFieldResponseKey(*key).pack());
+                                .child(UnpackedResponseEdge::ExtraFieldResponseKey(target.key).pack());
                             response.push_error(err.clone().with_path(path));
                         }
                     }
@@ -116,11 +117,10 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
                 let definition = self.schema().walk(definition_id);
                 let directive = self.schema().walk(directive_id);
                 let input = Arc::new(input);
-                let nodes = response.old_read(
+                let nodes = response.read(
                     self.schema(),
-                    &self.operation.response_views,
                     input.clone(),
-                    executor.requires,
+                    directive_id.walk(self).node().unwrap().as_ref(),
                 );
                 let result = self
                     .hooks()

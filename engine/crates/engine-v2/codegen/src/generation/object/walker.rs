@@ -45,14 +45,14 @@ pub fn generate_walker(
 
     if let Some(indexed) = &object.indexed {
         let id_struct_name = Ident::new(&indexed.id_struct_name, Span::call_site());
-        let domain_accessor = domain.domain_accessor(None);
+        let domain_accesor = domain.domain_accessor();
 
         code_sections.push(quote! {
             #doc
             #[derive(Clone, Copy)]
             pub #public struct #walker_name<'a> {
                 pub(#private) #context_name: #context_type,
-                pub(#private) id: #id_struct_name,
+                pub #public id: #id_struct_name,
             }
         });
         code_sections.push(quote! {
@@ -69,10 +69,7 @@ pub fn generate_walker(
                 #[doc = "Prefer using Deref unless you need the 'a lifetime."]
                 #[allow(clippy::should_implement_trait)]
                 pub #public fn as_ref(&self) -> &'a #struct_name {
-                    &self.#domain_accessor[self.id]
-                }
-                pub #public fn id(&self) -> #id_struct_name {
-                    self.id
+                    &self.#domain_accesor[self.id]
                 }
                 #(#walker_field_methods)*
             }
@@ -81,14 +78,14 @@ pub fn generate_walker(
             impl<'a> #walk_trait<#context_type> for #id_struct_name {
                 type Walker<'w> = #walker_name<'w> where 'a: 'w;
 
-                fn walk<'w>(self, #context_name: #context_type) -> Self::Walker<'w>
+                fn walk<'w>(self, #context_name: impl Into<#context_type>) -> Self::Walker<'w>
                 where
                     Self: 'w,
                     'a: 'w
                 {
                     #walker_name {
-                        #context_name,
-                        id: self,
+                        #context_name: #context_name.into(),
+                        id: self
                     }
                 }
             }
@@ -125,14 +122,14 @@ pub fn generate_walker(
             impl<'a> #walk_trait<#context_type> for #struct_name {
                 type Walker<'w> = #walker_name<'w> where 'a: 'w;
 
-                fn walk<'w>(self, #context_name: #context_type) -> Self::Walker<'w>
+                fn walk<'w>(self, #context_name: impl Into<#context_type>) -> Self::Walker<'w>
                 where
                     Self: 'w,
                     'a: 'w
                 {
                     #walker_name {
-                        #context_name,
-                        item: self,
+                        #context_name: #context_name.into(),
+                        item: self
                     }
                 }
             }
@@ -171,13 +168,13 @@ pub fn generate_walker(
                     Self: 'w,
                     'a: 'w;
 
-                fn walk<'w>(self, #context_name: #context_type) -> Self::Walker<'w>
+                fn walk<'w>(self, #context_name: impl Into<#context_type>) -> Self::Walker<'w>
                 where
                     Self: 'w,
                     'a: 'w
                 {
                     #walker_name {
-                        #context_name,
+                        #context_name: #context_name.into(),
                         ref_: self,
                     }
                 }
@@ -197,7 +194,7 @@ pub struct WalkerFieldMethod<'a>(&'a FieldContext<'a>);
 impl quote::ToTokens for WalkerFieldMethod<'_> {
     #[instrument(name = "walker_field_method", skip_all, fields(field = ?self.0.field))]
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        let ctx = self.0.domain.context_accessor(self.0.ty.external_domain_name());
+        let ctx = Ident::new(&self.0.domain.context_name, Span::call_site());
         let field = Ident::new(&self.0.record_field_name, Span::call_site());
         let method = Ident::new(&self.0.walker_method_name(), Span::call_site());
         let ty = Ident::new(self.0.ty.walker_name(), Span::call_site());

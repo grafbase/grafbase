@@ -1,54 +1,41 @@
-use schema::{EntityDefinition, ResolverDefinition};
+use schema::{EntityDefinition, FieldSetRecord, ResolverDefinition};
 use walker::Walk;
 
-use crate::plan::{PlanId, PlanRecord};
+use crate::{
+    plan::{QueryPartition, QueryPartitionId, QueryPartitionRecord, ResponseObjectSetDefinitionId},
+    resolver::Resolver,
+    response::{ConcreteObjectShape, ConcreteObjectShapeId},
+};
 
-use super::{QueryContext, SelectionSet};
+use super::{Plan, PlanSelectionSet};
 
-#[derive(Clone, Copy)]
-pub(crate) struct QueryPlan<'a> {
-    pub(in crate::plan::execution::model) ctx: QueryContext<'a>,
-    pub(in crate::plan::execution::model) id: PlanId,
-}
+impl<'a> Plan<'a> {
+    // Not providing too easy access to the query partition as it exposes the unfiltered fields
+    // before query modifications. It's likely not what you want.
+    fn query_partition(&self) -> QueryPartition<'a> {
+        self.as_ref().query_partition_id.walk(self.ctx)
+    }
 
-#[allow(unused)]
-impl<'a> QueryPlan<'a> {
-    #[allow(clippy::should_implement_trait)]
-    fn as_ref(&self) -> &'a PlanRecord {
-        &self.ctx.operation_plan[self.id]
+    pub(crate) fn input_id(&self) -> ResponseObjectSetDefinitionId {
+        self.query_partition().input_id
     }
     pub(crate) fn entity_definition(&self) -> EntityDefinition<'a> {
-        self.as_ref().entity_definition_id.walk(self.ctx.schema)
+        self.query_partition().entity_definition()
     }
     pub(crate) fn resolver_definition(&self) -> ResolverDefinition<'a> {
-        self.as_ref().resolver_definition_id.walk(self.ctx.schema)
+        self.query_partition().resolver_definition()
     }
-    pub(crate) fn selection_set(&self) -> SelectionSet<'a> {
-        SelectionSet {
+    pub(crate) fn selection_set(&self) -> PlanSelectionSet<'a> {
+        PlanSelectionSet {
             ctx: self.ctx,
-            item: self.as_ref().selection_set_record,
+            item: self.query_partition().selection_set_record,
             requires_typename: false,
         }
     }
-}
-
-impl<'a> Walk<QueryContext<'a>> for PlanId {
-    type Walker<'w> = QueryPlan<'w> where 'a: 'w ;
-    fn walk<'w>(self, ctx: QueryContext<'a>) -> Self::Walker<'w>
-    where
-        Self: 'w,
-        'a: 'w,
-    {
-        QueryPlan { ctx, id: self }
+    pub(crate) fn shape_id(&self) -> ConcreteObjectShapeId {
+        self.query_partition().shape_id
     }
-}
-
-impl std::fmt::Debug for QueryPlan<'_> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Plan")
-            .field("entity_definition", &self.entity_definition())
-            .field("resolver_definition", &self.resolver_definition())
-            .field("selection_set", &self.selection_set())
-            .finish()
+    pub(crate) fn shape(&self) -> ConcreteObjectShape<'a> {
+        self.query_partition().shape_id.walk(self.ctx)
     }
 }

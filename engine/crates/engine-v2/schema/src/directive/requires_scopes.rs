@@ -30,16 +30,13 @@ pub struct RequiresScopeSetIndex(u16);
 #[derive(Clone, Copy)]
 pub struct RequiresScopesDirective<'a> {
     pub(crate) schema: &'a Schema,
-    pub(crate) id: RequiresScopesDirectiveId,
+    pub id: RequiresScopesDirectiveId,
 }
 
 impl<'a> RequiresScopesDirective<'a> {
     #[allow(clippy::should_implement_trait)]
     pub fn as_ref(&self) -> &'a RequiresScopesDirectiveRecord {
         &self.schema[self.id]
-    }
-    pub fn id(&self) -> RequiresScopesDirectiveId {
-        self.id
     }
 
     pub fn scopes(&self) -> impl Iter<Item: Iter<Item = &'a str> + 'a> + 'a {
@@ -67,12 +64,15 @@ impl<'a> RequiresScopesDirective<'a> {
 
 impl<'a> Walk<&'a Schema> for RequiresScopesDirectiveId {
     type Walker<'w> = RequiresScopesDirective<'w> where 'a: 'w;
-    fn walk<'w>(self, schema: &'a Schema) -> Self::Walker<'w>
+    fn walk<'w>(self, schema: impl Into<&'a Schema>) -> Self::Walker<'w>
     where
         Self: 'w,
         'a: 'w,
     {
-        RequiresScopesDirective { schema, id: self }
+        RequiresScopesDirective {
+            schema: schema.into(),
+            id: self,
+        }
     }
 }
 

@@ -10,7 +10,6 @@ use std::{
 };
 
 use grafbase_telemetry::graphql::GraphqlResponseStatus;
-use id_newtypes::IdRange;
 pub use ids::*;
 use itertools::Either;
 use schema::{ObjectDefinitionId, Schema};
@@ -18,13 +17,14 @@ use schema::{ObjectDefinitionId, Schema};
 use self::deserialize::UpdateSeed;
 
 use super::{
-    value::ResponseObjectField, ErrorCode, ErrorCodeCounter, ExecutedResponse, GraphqlError, InputResponseObjectSet,
-    OutputResponseObjectSets, Response, ResponseData, ResponseEdge, ResponseObject, ResponseObjectRef,
-    ResponseObjectSet, ResponseObjectSetId, ResponsePath, ResponseValue, UnpackedResponseEdge,
+    value::ResponseObjectField, ConcreteObjectShapeId, ErrorCode, ErrorCodeCounter, ExecutedResponse, GraphqlError,
+    InputResponseObjectSet, OutputResponseObjectSets, PositionedResponseKey, Response, ResponseData, ResponseEdge,
+    ResponseObject, ResponseObjectRef, ResponseObjectSet, ResponsePath, ResponseValue, UnpackedResponseEdge,
 };
 use crate::{
     execution::{ExecutionContext, ExecutionError},
-    operation::{LogicalPlanId, PreparedOperation},
+    plan::ResponseObjectSetDefinitionId,
+    prepare::CachedOperation,
     utils::BufferPool,
     Runtime,
 };
@@ -88,9 +88,8 @@ impl ResponseBuilder {
 
     pub fn new_subgraph_response(
         &mut self,
-        logical_plan_id: LogicalPlanId,
+        shape_id: ConcreteObjectShapeId,
         root_response_object_set: Arc<InputResponseObjectSet>,
-        tracked_response_object_set_ids: IdRange<ResponseObjectSetId>,
     ) -> SubgraphResponse {
         let id = ResponseDataPartId::from(self.parts.len());
 
@@ -99,12 +98,7 @@ impl ResponseBuilder {
         // empty.
         self.parts.push(ResponseDataPart::new(id));
 
-        SubgraphResponse::new(
-            ResponseDataPart::new(id),
-            logical_plan_id,
-            root_response_object_set,
-            tracked_response_object_set_ids,
-        )
+        SubgraphResponse::new(ResponseDataPart::new(id), shape_id, root_response_object_set)
     }
 
     pub fn root_response_object(&self) -> Option<ResponseObjectRef> {
@@ -119,7 +113,7 @@ impl ResponseBuilder {
         &mut self,
         root_response_object_set: Arc<InputResponseObjectSet>,
         error: ExecutionError,
-        any_edge: ResponseEdge,
+        any_field_key: PositionedResponseKey,
         default_fields: Option<Vec<ResponseObjectField>>,
     ) {
         let error = GraphqlError::from(error);
@@ -128,14 +122,16 @@ impl ResponseBuilder {
                 self[obj_ref.id].extend(fields.clone());
                 // Definitely not ideal (for the client) to have a new error each time in the response.
                 // Not exactly sure how we should best deal with it.
-                self.errors.push(error.clone().with_path(obj_ref.path.child(any_edge)));
+                self.errors
+                    .push(error.clone().with_path(obj_ref.path.child(any_field_key)));
             }
         } else {
             let mut invalidated_paths = Vec::<&[ResponseEdge]>::new();
             for obj_ref in root_response_object_set.iter() {
                 if !invalidated_paths.iter().any(|path| obj_ref.path.starts_with(path)) {
                     if let Some(invalidated_path) = self.propagate_error(&obj_ref.path) {
-                        self.errors.push(error.clone().with_path(obj_ref.path.child(any_edge)));
+                        self.errors
+                            .push(error.clone().with_path(obj_ref.path.child(any_field_key)));
                         invalidated_paths.push(invalidated_path);
                     }
                 }
@@ -146,7 +142,7 @@ impl ResponseBuilder {
     pub fn ingest(
         &mut self,
         subgraph_response: SubgraphResponse,
-        any_edge: ResponseEdge,
+        any_field_key: PositionedResponseKey,
         default_fields: Option<Vec<ResponseObjectField>>,
     ) -> OutputResponseObjectSets {
         let reservation = &mut self.parts[usize::from(subgraph_response.data.id)];
@@ -178,7 +174,7 @@ impl ResponseBuilder {
                                     "Missing data from subgraph",
                                     ErrorCode::SubgraphInvalidResponseError,
                                 )
-                                .with_path(obj_ref.path.child(any_edge)),
+                                .with_path(obj_ref.path.child(any_field_key)),
                             )
                         }
                     } else if !invalidated_paths.iter().any(|path| obj_ref.path.starts_with(path)) {
@@ -198,7 +194,7 @@ impl ResponseBuilder {
                                         "Missing data from subgraph",
                                         ErrorCode::SubgraphInvalidResponseError,
                                     )
-                                    .with_path(obj_ref.path.child(any_edge)),
+                                    .with_path(obj_ref.path.child(any_field_key)),
                                 );
                             }
                             invalidated_paths.push(invalidated_path);
@@ -220,21 +216,22 @@ impl ResponseBuilder {
         }
         self.errors.extend(subgraph_response.errors);
 
-        let mut boundaries = subgraph_response.tracked_response_object_sets;
+        let mut boundaries = subgraph_response.response_object_sets;
         if !invalidated_paths.is_empty() {
             boundaries = boundaries
                 .into_iter()
-                .map(|refs| {
-                    refs.into_iter()
-                        .filter(|obj| !invalidated_paths.iter().any(|path| obj.path.starts_with(path)))
-                        .collect()
+                .map(|(id, refs)| {
+                    (
+                        id,
+                        refs.into_iter()
+                            .filter(|obj| !invalidated_paths.iter().any(|path| obj.path.starts_with(path)))
+                            .collect::<Vec<_>>(),
+                    )
                 })
                 .collect();
         }
-        OutputResponseObjectSets {
-            ids: subgraph_response.tracked_response_object_set_ids,
-            sets: boundaries,
-        }
+        let (ids, sets) = boundaries.into_iter().unzip();
+        OutputResponseObjectSets { ids, sets }
     }
 
     fn recursive_merge_object(
@@ -369,7 +366,7 @@ impl ResponseBuilder {
     pub fn build<OnOperationResponseHookOutput>(
         self,
         schema: Arc<Schema>,
-        operation: Arc<PreparedOperation>,
+        operation: Arc<CachedOperation>,
         on_operation_response_output: OnOperationResponseHookOutput,
     ) -> Response<OnOperationResponseHookOutput> {
         let error_code_counter = ErrorCodeCounter::from_errors(&self.errors);
@@ -489,33 +486,27 @@ enum ResponseValueId {
 
 pub(crate) struct SubgraphResponse {
     data: ResponseDataPart,
-    logical_plan_id: LogicalPlanId,
+    shape_id: ConcreteObjectShapeId,
     root_response_object_set: Arc<InputResponseObjectSet>,
     errors: Vec<GraphqlError>,
     updates: Vec<UpdateSlot>,
-    tracked_response_object_set_ids: IdRange<ResponseObjectSetId>,
-    tracked_response_object_sets: Vec<ResponseObjectSet>,
+    response_object_sets: Vec<(ResponseObjectSetDefinitionId, ResponseObjectSet)>,
     buffers: BufferPool<ResponseValue>,
 }
 
 impl SubgraphResponse {
     fn new(
         data: ResponseDataPart,
-        logical_plan_id: LogicalPlanId,
+        shape_id: ConcreteObjectShapeId,
         root_response_object_set: Arc<InputResponseObjectSet>,
-        tracked_response_object_set_ids: IdRange<ResponseObjectSetId>,
     ) -> Self {
         Self {
             data,
-            logical_plan_id,
+            shape_id,
             root_response_object_set,
             errors: Vec::new(),
             updates: Vec::new(),
-            tracked_response_object_set_ids,
-            tracked_response_object_sets: tracked_response_object_set_ids
-                .into_iter()
-                .map(|_| (Vec::new()))
-                .collect(),
+            response_object_sets: Vec::new(),
             buffers: Default::default(),
         }
     }
@@ -544,7 +535,7 @@ impl<'resp> SubgraphResponseRefMut<'resp> {
         'ctx: 'resp,
     {
         self.next_writer()
-            .map(|writer| UpdateSeed::new(*ctx, self.inner.borrow().logical_plan_id, writer))
+            .map(|writer| UpdateSeed::new(*ctx, self.inner.borrow().shape_id, writer))
     }
 
     pub fn next_writer(&self) -> Option<ResponseWriter<'resp>> {
@@ -629,13 +620,13 @@ impl<'resp> ResponseWriter<'resp> {
         self.part().errors.push(error.into());
     }
 
-    pub fn push_response_object(&self, set_id: ResponseObjectSetId, obj: ResponseObjectRef) {
+    pub fn push_response_object(&self, set_id: ResponseObjectSetDefinitionId, obj: ResponseObjectRef) {
         let mut part = self.part();
-        let i = part
-            .tracked_response_object_set_ids
-            .index_of(set_id)
-            .unwrap_or_else(|| unreachable!("{set_id} not in {:?}", part.tracked_response_object_set_ids));
-        part.tracked_response_object_sets[i].push(obj);
+        if let Some((_, set)) = part.response_object_sets.iter_mut().find(|(id, _)| set_id == *id) {
+            set.push(obj);
+        } else {
+            part.response_object_sets.push((set_id, vec![obj]));
+        }
     }
 }
 

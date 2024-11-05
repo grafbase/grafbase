@@ -109,6 +109,7 @@ fn metadata_is_provided() {
             nodes: Vec<serde_json::Value>,
             metadata: Option<serde_json::Value>,
         ) -> Result<Vec<Result<(), PartialGraphqlError>>, PartialGraphqlError> {
+            println!("metadata: {metadata:?}");
             let Some(role) = extract_role(metadata.as_ref()) else {
                 return Err(PartialGraphqlError::new(
                     "Unauthorized role",
@@ -118,6 +119,7 @@ fn metadata_is_provided() {
             Ok(nodes
                 .into_iter()
                 .map(|value| {
+                    println!("{value:?}");
                     if value["id"].as_str().unwrap().starts_with(role) {
                         Ok(())
                     } else {
@@ -155,7 +157,7 @@ fn metadata_is_provided() {
                 "#,
             )
             .await;
-        insta::assert_json_snapshot!(response, @r###"
+        insta::assert_json_snapshot!(response, @r#"
         {
           "data": {
             "ok": {
@@ -172,9 +174,9 @@ fn metadata_is_provided() {
             {
               "message": "Unauthorized role",
               "path": [
-                "noMetadata",
+                "wrongId",
                 "authorizedEdgeWithNode",
-                "withId"
+                "withIdAndMetadata"
               ],
               "extensions": {
                 "code": "UNAUTHORIZED"
@@ -183,9 +185,9 @@ fn metadata_is_provided() {
             {
               "message": "Unauthorized role",
               "path": [
-                "wrongId",
+                "noMetadata",
                 "authorizedEdgeWithNode",
-                "withIdAndMetadata"
+                "withId"
               ],
               "extensions": {
                 "code": "UNAUTHORIZED"
@@ -193,7 +195,7 @@ fn metadata_is_provided() {
             }
           ]
         }
-        "###);
+        "#);
     });
 }
 

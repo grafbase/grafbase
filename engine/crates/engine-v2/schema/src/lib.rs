@@ -156,11 +156,15 @@ pub struct Graph {
 
     #[indexed_by(ResolverDefinitionId)]
     resolver_definitions: Vec<ResolverDefinitionRecord>,
-    #[indexed_by(RequiredFieldSetId)]
-    required_field_sets: Vec<RequiredFieldSetRecord>,
+
+    #[indexed_by(FieldSetId)]
+    field_sets: Vec<FieldSetRecord>,
     // deduplicated
-    #[indexed_by(RequiredFieldId)]
-    required_fields: Vec<RequiredFieldRecord>,
+    #[indexed_by(SchemaFieldId)]
+    fields: Vec<SchemaFieldRecord>,
+    #[indexed_by(SchemaFieldArgumentId)]
+    field_arguments: Vec<SchemaFieldArgumentRecord>,
+
     /// Default input values & directive arguments
     pub input_values: SchemaInputValues,
 
@@ -235,7 +239,7 @@ impl Schema {
     }
 
     pub fn graphql_endpoints(&self) -> impl ExactSizeIterator<Item = GraphqlEndpoint<'_>> {
-        (0..self.subgraphs.graphql_endpoints.len()).map(|i| {
+        (0..self.subgraphs.graphql_endpoints.len()).map(move |i| {
             let id = GraphqlEndpointId::from(i);
             id.walk(self)
         })

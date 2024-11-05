@@ -8,12 +8,11 @@ use schema::{
 
 use crate::engine::RequestContext;
 
-pub(super) fn create_subgraph_headers_with_rules<'ctx>(
+pub(crate) fn create_subgraph_headers_with_rules<'ctx>(
     request_context: &'ctx RequestContext,
     rules: impl Iterator<Item = HeaderRule<'ctx>>,
-    default: http::HeaderMap,
 ) -> http::HeaderMap {
-    let mut headers = default;
+    let mut headers = request_context.subgraph_default_headers.clone();
 
     for rule in rules {
         match rule.variant() {

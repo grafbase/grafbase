@@ -34,11 +34,12 @@ pub struct SchemaInputValueId(NonZero<u32>);
 impl<'s> Walk<&'s Schema> for SchemaInputValueId {
     type Walker<'w> = SchemaInputValue<'w> where 's: 'w;
 
-    fn walk<'w>(self, schema: &'s Schema) -> Self::Walker<'w>
+    fn walk<'w>(self, schema: impl Into<&'s Schema>) -> Self::Walker<'w>
     where
         Self: 'w,
         's: 'w,
     {
+        let schema = schema.into();
         SchemaInputValue {
             schema,
             ref_: &schema[self],
@@ -52,11 +53,12 @@ pub struct SchemaInputObjectFieldValueId(NonZero<u32>);
 impl<'s> Walk<&'s Schema> for SchemaInputObjectFieldValueId {
     type Walker<'w> = (InputValueDefinition<'w>, SchemaInputValue<'w>) where 's: 'w;
 
-    fn walk<'w>(self, schema: &'s Schema) -> Self::Walker<'w>
+    fn walk<'w>(self, schema: impl Into<&'s Schema>) -> Self::Walker<'w>
     where
         Self: 'w,
         's: 'w,
     {
+        let schema = schema.into();
         let (input_value_definition, value) = &schema[self];
         (input_value_definition.walk(schema), value.walk(schema))
     }
@@ -68,11 +70,12 @@ pub struct SchemaInputKeyValueId(NonZero<u32>);
 impl<'s> Walk<&'s Schema> for SchemaInputKeyValueId {
     type Walker<'w> = (&'w str, SchemaInputValue<'w>) where 's: 'w;
 
-    fn walk<'w>(self, schema: &'s Schema) -> Self::Walker<'w>
+    fn walk<'w>(self, schema: impl Into<&'s Schema>) -> Self::Walker<'w>
     where
         Self: 'w,
         's: 'w,
     {
+        let schema = schema.into();
         let (key, value) = &schema[self];
         (key.walk(schema), value.walk(schema))
     }
@@ -104,12 +107,15 @@ pub enum SchemaInputValueRecord {
 
 impl<'s> Walk<&'s Schema> for &SchemaInputValueRecord {
     type Walker<'w> = SchemaInputValue<'w> where Self: 'w, 's: 'w;
-    fn walk<'w>(self, schema: &'s Schema) -> Self::Walker<'w>
+    fn walk<'w>(self, schema: impl Into<&'s Schema>) -> Self::Walker<'w>
     where
         Self: 'w,
         's: 'w,
     {
-        SchemaInputValue { schema, ref_: self }
+        SchemaInputValue {
+            schema: schema.into(),
+            ref_: self,
+        }
     }
 }
 

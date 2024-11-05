@@ -23,10 +23,11 @@ pub(crate) enum VariableValue<'a> {
 
 impl<'ctx> Walk<InputValueContext<'ctx>> for BoundVariableDefinitionId {
     type Walker<'w> = VariableValue<'w> where 'ctx: 'w;
-    fn walk<'w>(self, ctx: InputValueContext<'ctx>) -> Self::Walker<'w>
+    fn walk<'w>(self, ctx: impl Into<InputValueContext<'ctx>>) -> Self::Walker<'w>
     where
         'ctx: 'w,
     {
+        let ctx = ctx.into();
         match ctx.variables[self] {
             VariableValueRecord::Undefined => VariableValue::Undefined,
             VariableValueRecord::Provided(id) => VariableValue::Provided(id.walk(ctx)),

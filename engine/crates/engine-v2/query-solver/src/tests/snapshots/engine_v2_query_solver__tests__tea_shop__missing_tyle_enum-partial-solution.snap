@@ -1,0 +1,23 @@
+---
+source: engine/crates/engine-v2/query-solver/src/tests/tea_shop.rs
+expression: "digraph {\n    0 [ label = \"root\" ]\n    1 [ label = \"Root#tea-shop\", color=royalblue,shape=parallelogram ]\n    2 [ label = \"teaWithInaccessibleStyle\" ]\n    3 [ label = \"style\" ]\n    4 [ label = \"name\" ]\n    5 [ label = \"recommendedTeas\" ]\n    6 [ label = \"style\" ]\n    7 [ label = \"name\" ]\n    8 [ label = \"id\" ]\n    0 -> 1 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    1 -> 2 [ label = \"\" ]\n    2 -> 3 [ label = \"\" ]\n    2 -> 4 [ label = \"\" ]\n    1 -> 5 [ label = \"\" ]\n    5 -> 6 [ label = \"\" ]\n    5 -> 7 [ label = \"\" ]\n    5 -> 8 [ label = \"\" ]\n}\n"
+---
+digraph {
+    0 [ label = "root" ]
+    1 [ label = "Root#tea-shop" ]
+    2 [ label = "teaWithInaccessibleStyle" ]
+    3 [ label = "style" ]
+    4 [ label = "name" ]
+    5 [ label = "recommendedTeas" ]
+    6 [ label = "style" ]
+    7 [ label = "name" ]
+    8 [ label = "id" ]
+    0 -> 1 [ label = "QueryPartition" ]
+    1 -> 2 [ label = "Field" ]
+    2 -> 3 [ label = "Field" ]
+    2 -> 4 [ label = "Field" ]
+    1 -> 5 [ label = "Field" ]
+    5 -> 6 [ label = "Field" ]
+    5 -> 7 [ label = "Field" ]
+    5 -> 8 [ label = "Field" ]
+}

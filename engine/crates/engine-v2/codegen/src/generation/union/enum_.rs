@@ -1,3 +1,4 @@
+use case::CaseExt;
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::{quote, TokenStreamExt};
 use tracing::instrument;
@@ -16,6 +17,11 @@ pub fn generate_enum(
     variants: &[VariantContext<'_>],
 ) -> anyhow::Result<Vec<TokenStream>> {
     let public = &domain.public_visibility;
+    let allow_unused = if domain.public_visibility.is_empty() {
+        quote! {}
+    } else {
+        quote! { #[allow(unused)] }
+    };
     let enum_name = Ident::new(union.enum_name(), Span::call_site());
 
     let additional_derives = {
@@ -72,6 +78,17 @@ pub fn generate_enum(
         code_sections.push(quote! { #(#from_variants)* });
     }
 
+    let as_variants = variants.iter().copied().map(|variant| AsVariant {
+        variant,
+        enum_name: union.enum_name(),
+    });
+    code_sections.push(quote! {
+        #allow_unused
+        impl #enum_name {
+            #(#as_variants)*
+        }
+    });
+
     Ok(code_sections)
 }
 
@@ -112,5 +129,57 @@ impl quote::ToTokens for FromVariant<'_> {
                 }
             }
         });
+    }
+}
+
+struct AsVariant<'a> {
+    variant: VariantContext<'a>,
+    enum_name: &'a str,
+}
+
+impl quote::ToTokens for AsVariant<'_> {
+    #[instrument(name = "as_walker_variant", skip_all, fields(variant = ?self.variant.variant))]
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        let public = &self.variant.domain.public_visibility;
+        let enum_ = Ident::new(self.enum_name, Span::call_site());
+        let variant = Ident::new(&self.variant.name, Span::call_site());
+        let is_variant = Ident::new(&format!("is_{}", self.variant.name.to_snake()), Span::call_site());
+
+        if let Some(value) = self.variant.value {
+            tokens.append_all(quote! {
+                pub #public fn #is_variant(&self) -> bool {
+                    matches!(self, #enum_::#variant(_))
+                }
+            });
+            let as_variant = Ident::new(&format!("as_{}", self.variant.name.to_snake()), Span::call_site());
+            let ty = Ident::new(&value.storage_type().to_string(), Span::call_site());
+            if value.storage_type().is_copy() {
+                let val = if value.storage_type().is_id() { "id" } else { "item" };
+                let val = Ident::new(val, Span::call_site());
+                tokens.append_all(quote! {
+                    pub #public fn #as_variant(&self) -> Option<#ty> {
+                        match self {
+                            #enum_::#variant(#val) => Some(*#val),
+                            _ => None
+                        }
+                    }
+                });
+            } else {
+                tokens.append_all(quote! {
+                    pub #public fn #as_variant(&self) -> Option<&#ty> {
+                        match self {
+                            #enum_::#variant(item) => Some(item),
+                            _ => None
+                        }
+                    }
+                });
+            }
+        } else {
+            tokens.append_all(quote! {
+                pub #public fn #is_variant(&self) -> bool {
+                    matches!(self, #enum_::#variant)
+                }
+            });
+        }
     }
 }

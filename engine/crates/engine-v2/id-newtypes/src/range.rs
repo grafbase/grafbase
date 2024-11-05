@@ -139,21 +139,23 @@ where
     }
 }
 
-impl<G, Id: Walk<G> + 'static> Walk<G> for IdRange<Id>
+// Hint: Go to the definition of Id instead to find the Walker type.
+//       Walk implementations are always close to T.
+impl<Ctx, Id: Walk<Ctx> + 'static> Walk<Ctx> for IdRange<Id>
 where
     Id: From<usize> + Copy,
     usize: From<Id>,
-    G: Copy,
+    Ctx: Copy,
 {
-    type Walker<'a> = WalkIterator<'a, IdRangeIterator<Id>, G>
-    where G: 'a;
+    type Walker<'a> = WalkIterator<'a, IdRangeIterator<Id>, Ctx>
+    where Ctx: 'a;
 
-    fn walk<'a>(self, graph: G) -> Self::Walker<'a>
+    fn walk<'a>(self, ctx: impl Into<Ctx>) -> Self::Walker<'a>
     where
         Self: 'a,
-        G: 'a,
+        Ctx: 'a,
     {
-        WalkIterator::new(self.into_iter(), graph)
+        WalkIterator::new(self.into_iter(), ctx.into())
     }
 }
 

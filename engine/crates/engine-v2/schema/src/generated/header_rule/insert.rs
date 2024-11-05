@@ -48,12 +48,15 @@ impl<'a> InsertHeaderRule<'a> {
 
 impl<'a> Walk<&'a Schema> for InsertHeaderRuleRecord {
     type Walker<'w> = InsertHeaderRule<'w> where 'a: 'w ;
-    fn walk<'w>(self, schema: &'a Schema) -> Self::Walker<'w>
+    fn walk<'w>(self, schema: impl Into<&'a Schema>) -> Self::Walker<'w>
     where
         Self: 'w,
         'a: 'w,
     {
-        InsertHeaderRule { schema, item: self }
+        InsertHeaderRule {
+            schema: schema.into(),
+            item: self,
+        }
     }
 }
 

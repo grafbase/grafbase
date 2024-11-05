@@ -1,6 +1,6 @@
 mod builder;
 mod model;
-mod modifier;
+mod query_modifications;
 
 pub(crate) use model::*;
-pub(crate) use modifier::*;
+pub(crate) use query_modifications::*;

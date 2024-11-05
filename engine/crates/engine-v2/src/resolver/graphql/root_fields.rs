@@ -1,7 +1,10 @@
 use std::{borrow::Cow, time::Duration};
 
 use bytes::Bytes;
-use grafbase_telemetry::{graphql::GraphqlResponseStatus, span::subgraph::SubgraphRequestSpanBuilder};
+use grafbase_telemetry::{
+    graphql::{GraphqlResponseStatus, OperationType},
+    span::subgraph::SubgraphRequestSpanBuilder,
+};
 use runtime::bytes::OwnedOrSharedBytes;
 use schema::{GraphqlEndpointId, GraphqlRootFieldResolverDefinition};
 use serde::de::DeserializeSeed;
@@ -15,30 +18,34 @@ use super::{
     SubgraphContext,
 };
 use crate::{
-    execution::{ExecutionError, PlanningResult},
-    operation::{OperationType, PlanWalker},
-    resolver::{graphql::request::SubgraphGraphqlRequest, ExecutionContext, ExecutionResult, Resolver},
+    execution::{ExecutionContext, ExecutionError},
+    plan::{PlanError, PlanQueryPartition, PlanResult},
+    resolver::{graphql::request::SubgraphGraphqlRequest, ExecutionResult, Resolver},
     response::SubgraphResponse,
     Runtime,
 };
 
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub(crate) struct GraphqlResolver {
     pub(super) endpoint_id: GraphqlEndpointId,
-    pub(super) operation: PreparedGraphqlOperation,
+    pub(super) subgraph_operation: PreparedGraphqlOperation,
 }
 
 impl GraphqlResolver {
     pub fn prepare(
         definition: GraphqlRootFieldResolverDefinition<'_>,
         operation_type: OperationType,
-        plan: PlanWalker<'_>,
-    ) -> PlanningResult<Resolver> {
-        let operation = PreparedGraphqlOperation::build(operation_type, plan, definition.endpoint_id.into())
-            .map_err(|err| format!("Failed to build query: {err}"))?;
+        plan_query_partition: PlanQueryPartition<'_>,
+    ) -> PlanResult<Resolver> {
+        let subgraph_operation =
+            PreparedGraphqlOperation::build(operation_type, plan_query_partition).map_err(|err| {
+                tracing::error!("Failed to build query: {err}");
+                PlanError::InternalError
+            })?;
 
         Ok(Resolver::GraphQL(Self {
-            endpoint_id: definition.endpoint().id(),
-            operation,
+            endpoint_id: definition.endpoint().id,
+            subgraph_operation,
         }))
     }
 
@@ -49,8 +56,8 @@ impl GraphqlResolver {
             endpoint,
             SubgraphRequestSpanBuilder {
                 subgraph_name: endpoint.subgraph_name(),
-                operation_type: self.operation.ty.as_str(),
-                sanitized_query: &self.operation.query,
+                operation_type: self.subgraph_operation.ty.as_str(),
+                sanitized_query: &self.subgraph_operation.query,
             },
         )
     }
@@ -58,25 +65,24 @@ impl GraphqlResolver {
     pub async fn execute<'ctx, R: Runtime>(
         &'ctx self,
         ctx: &mut SubgraphContext<'ctx, R>,
-        plan: PlanWalker<'ctx>,
         mut subgraph_response: SubgraphResponse,
     ) -> ExecutionResult<SubgraphResponse> {
         let span = ctx.span().entered();
         let variables = SubgraphVariables::<()> {
-            plan,
-            variables: &self.operation.variables,
+            ctx: ctx.input_value_context(),
+            variables: &self.subgraph_operation.variables,
             extra_variables: Vec::new(),
         };
 
         tracing::debug!(
             "Executing request to subgraph named '{}' with query and variables:\n{}\n{}",
             ctx.endpoint().subgraph_name(),
-            self.operation.query,
+            self.subgraph_operation.query,
             serde_json::to_string_pretty(&variables).unwrap_or_default()
         );
 
         let body = serde_json::to_vec(&SubgraphGraphqlRequest {
-            query: &self.operation.query,
+            query: &self.subgraph_operation.query,
             variables,
         })
         .map_err(|err| format!("Failed to serialize query: {err}"))?;

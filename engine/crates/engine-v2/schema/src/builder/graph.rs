@@ -9,11 +9,11 @@ use introspection::{IntrospectionBuilder, IntrospectionMetadata};
 
 use crate::*;
 
-use super::{ids::IdMap, interner::Interner, BuildContext, BuildError, RequiredFieldSetBuffer, SchemaLocation};
+use super::{interner::Interner, BuildContext, BuildError, FieldSetsBuilder, SchemaLocation};
 
 pub(crate) struct GraphBuilder<'a> {
     ctx: &'a mut BuildContext,
-    required_field_sets_buffer: RequiredFieldSetBuffer,
+    field_sets: FieldSetsBuilder,
     required_scopes: Interner<RequiresScopesDirectiveRecord, RequiresScopesDirectiveId>,
     graph: Graph,
 }
@@ -22,7 +22,7 @@ impl<'a> GraphBuilder<'a> {
     pub fn build(ctx: &'a mut BuildContext, config: &mut Config) -> Result<(Graph, IntrospectionMetadata), BuildError> {
         let mut builder = GraphBuilder {
             ctx,
-            required_field_sets_buffer: Default::default(),
+            field_sets: Default::default(),
             required_scopes: Default::default(),
             graph: Graph {
                 description_id: None,
@@ -42,11 +42,12 @@ impl<'a> GraphBuilder<'a> {
                 field_definitions: Vec::new(),
                 resolver_definitions: Vec::new(),
                 type_definitions_ordered_by_name: Vec::new(),
-                required_field_sets: Vec::new(),
-                required_fields: Vec::new(),
+                fields: Vec::new(),
                 input_values: Default::default(),
                 required_scopes: Vec::new(),
                 authorized_directives: Vec::new(),
+                field_sets: Vec::new(),
+                field_arguments: Vec::new(),
             },
         };
         builder.ingest_config(config)?;
@@ -60,8 +61,6 @@ impl<'a> GraphBuilder<'a> {
         self.ingest_input_objects(config);
         self.ingest_input_values_after_scalars_and_input_objects_and_enums(config)?;
 
-        self.ingest_unions(config);
-
         // Not guaranteed to be sorted and rely on binary search to find the directives for a
         // field.
         config
@@ -71,6 +70,7 @@ impl<'a> GraphBuilder<'a> {
 
         let object_metadata = self.ingest_objects(config);
         let interface_metadata = self.ingest_interfaces_after_objects(config);
+        self.ingest_unions_after_objects(config);
 
         // Not guaranteed to be sorted and rely on binary search to find the directives for a
         // field.
@@ -167,22 +167,24 @@ impl<'a> GraphBuilder<'a> {
             .collect();
     }
 
-    fn ingest_unions(&mut self, config: &mut Config) {
+    fn ingest_unions_after_objects(&mut self, config: &mut Config) {
         for union in take(&mut config.graph.unions) {
             let possible_type_ids = union
                 .members
                 .into_iter()
-                .filter(|object_id| {
-                    let composed_directives = config
-                        .graph
-                        .at(*object_id)
-                        .then(|obj| obj.type_definition_id)
-                        .directives;
-
-                    !is_inaccessible(&config.graph, composed_directives)
-                })
-                .map(Into::into)
-                .collect();
+                // FIXME: handle inaccessible objects
+                // .filter(|object_id| {
+                // self.ctx.idmaps
+                // let composed_directives = config
+                //     .graph
+                //     .at(*object_id)
+                //     .then(|obj| obj.type_definition_id)
+                //     .directives;
+                //
+                // !is_inaccessible(&config.graph, composed_directives)
+                // })
+                .map(ObjectDefinitionId::from)
+                .collect::<Vec<_>>();
 
             let directive_ids = self.push_directives(
                 config,
@@ -202,6 +204,24 @@ impl<'a> GraphBuilder<'a> {
                 .collect();
 
             join_member_records.sort_by_key(|record| (record.subgraph_id, record.member_id));
+            let mut not_fully_implemented_in_ids = BTreeSet::new();
+            for object_id in &possible_type_ids {
+                let object = &self.graph[*object_id];
+
+                // Check in which subgraphs these are resolved.
+                for subgraph_id in &object.only_resolvable_in_ids {
+                    // The object implements the interface if it defines az `@join__implements`
+                    // corresponding to the interface and to the subgraph.
+                    if join_member_records
+                        .binary_search_by(|probe| {
+                            probe.subgraph_id.cmp(subgraph_id).then(probe.member_id.cmp(object_id))
+                        })
+                        .is_err()
+                    {
+                        not_fully_implemented_in_ids.insert(*subgraph_id);
+                    }
+                }
+            }
 
             let union_definition = UnionDefinitionRecord {
                 name_id: union.name.into(),
@@ -211,6 +231,7 @@ impl<'a> GraphBuilder<'a> {
                 possible_types_ordered_by_typename_ids: Vec::new(),
                 directive_ids,
                 join_member_records,
+                not_fully_implemented_in_ids: not_fully_implemented_in_ids.into_iter().collect(),
             };
 
             self.graph.union_definitions.push(union_definition);
@@ -440,7 +461,7 @@ impl<'a> GraphBuilder<'a> {
                 for subgraph_id in &object.only_resolvable_in_ids {
                     // The object implements the interface if it defines az `@join__implements`
                     // corresponding to the interface and to the subgraph.
-                    if object.subgraph_implements_interface(subgraph_id, &interface_id) {
+                    if object.implements_interface_in_subgraph(subgraph_id, &interface_id) {
                         continue;
                     }
 
@@ -519,22 +540,25 @@ impl<'a> GraphBuilder<'a> {
             {
                 // FederatedGraph does not include key fields in resolvable_in.
                 for (endpoint_id, _, key_field_set) in keys {
-                    if key_field_set.contains(field_id) {
+                    if field_set_contains(key_field_set, federated_id) {
                         only_resolvable_in.insert(*endpoint_id);
                     }
                 }
                 // if resolvable within a federation subgraph and not part of the keys
                 // (requirements), we can use the resolver to retrieve this field.
                 for (endpoint_id, resolver_id, key_field_set) in keys {
-                    if !key_field_set.contains(field_id) && only_resolvable_in.contains(endpoint_id) {
+                    if !field_set_contains(key_field_set, federated_id) && only_resolvable_in.contains(endpoint_id) {
                         resolver_ids.push(*resolver_id);
                     }
                 }
 
                 // if unresolvable within this subgraph, it means we can't provide the entity
                 // directly but are able to provide the necessary key fields.
-                for (endpoint_id, field_set) in unresolvable_keys {
-                    if field_set.contains(field_id) {
+                for (endpoint_id, key_field_sets) in unresolvable_keys {
+                    if key_field_sets
+                        .iter()
+                        .any(|key_field_set| field_set_contains(key_field_set, federated_id))
+                    {
                         only_resolvable_in.insert(*endpoint_id);
                     }
                 }
@@ -589,19 +613,20 @@ impl<'a> GraphBuilder<'a> {
                     .provides
                     .into_iter()
                     .filter(|provides| !provides.fields.is_empty())
-                    .map(
-                        |federated_graph::FieldProvides { subgraph_id, fields }| FieldProvidesRecord {
+                    .map(|federated_graph::FieldProvides { subgraph_id, fields }| {
+                        let field_set_id = self.field_sets.push(schema_location, fields);
+                        FieldProvidesRecord {
                             subgraph_id: SubgraphId::GraphqlEndpoint(GraphqlEndpointId::from(subgraph_id)),
-                            field_set: self.ctx.idmaps.field.convert_providable_field_set(&fields),
-                        },
-                    )
+                            field_set_id,
+                        }
+                    })
                     .collect(),
                 requires_records: field
                     .requires
                     .into_iter()
                     .filter(|requires| !requires.fields.is_empty())
                     .map(|federated_graph::FieldRequires { subgraph_id, fields }| {
-                        let field_set_id = self.required_field_sets_buffer.push(schema_location, fields);
+                        let field_set_id = self.field_sets.push(schema_location, fields);
                         FieldRequiresRecord {
                             subgraph_id: SubgraphId::GraphqlEndpoint(GraphqlEndpointId::from(subgraph_id)),
                             field_set_id,
@@ -617,13 +642,13 @@ impl<'a> GraphBuilder<'a> {
     fn finalize(self) -> Result<(Graph, IntrospectionMetadata), BuildError> {
         let Self {
             ctx,
-            required_field_sets_buffer,
+            field_sets,
             required_scopes,
             mut graph,
         } = self;
 
         graph.required_scopes = required_scopes.into();
-        required_field_sets_buffer.try_insert_into(ctx, &mut graph)?;
+        field_sets.try_insert_into(ctx, &mut graph)?;
 
         let introspection = IntrospectionBuilder::create_data_source_and_insert_fields(ctx, &mut graph);
 
@@ -713,26 +738,24 @@ impl<'a> GraphBuilder<'a> {
 
             let endpoint_id = key.subgraph_id.into();
             if key.resolvable {
-                let providable = self.ctx.idmaps.field.convert_providable_field_set(&key.fields);
-                let key_fields_id = self.required_field_sets_buffer.push(location, key.fields);
+                let key_fields_id = self.field_sets.push(location, key.fields.clone());
                 let resolver_id = self.push_resolver(ResolverDefinitionRecord::GraphqlFederationEntity(
                     GraphqlFederationEntityResolverDefinitionRecord {
                         endpoint_id,
                         key_fields_id,
                     },
                 ));
-                entity.keys.push((endpoint_id, resolver_id, providable));
+                entity.keys.push((endpoint_id, resolver_id, key.fields));
             } else {
                 // We don't need to differentiate between keys here. We'll be using this to add
                 // those fields to `provides` in the relevant fields. It's the resolvable keys
                 // that will determine which fields to retrieve during planning. And composition
                 // ensures that keys between subgraphs are coherent.
-                let field_set: ProvidableFieldSet = self.ctx.idmaps.field.convert_providable_field_set(&key.fields);
                 entity
                     .unresolvable_keys
                     .entry(endpoint_id)
-                    .and_modify(|current| current.update(&field_set))
-                    .or_insert(field_set);
+                    .or_default()
+                    .push(key.fields.clone());
             }
         }
 
@@ -796,10 +819,10 @@ impl<'a> GraphBuilder<'a> {
                         .unwrap_or_default(),
                     fields_id: fields
                         .as_ref()
-                        .map(|field_set| self.required_field_sets_buffer.push(schema_location, field_set.clone())),
+                        .map(|field_set| self.field_sets.push(schema_location, field_set.clone())),
                     node_id: node
                         .as_ref()
-                        .map(|field_set| self.required_field_sets_buffer.push(schema_location, field_set.clone())),
+                        .map(|field_set| self.field_sets.push(schema_location, field_set.clone())),
                     metadata_id: metadata.clone().and_then(|value| {
                         let value = self.graph.input_values.ingest_as_json(self.ctx, value).ok()?;
 
@@ -870,8 +893,15 @@ impl InterfaceMetadata {
 
 #[derive(Default)]
 struct FederationEntity {
-    keys: Vec<(GraphqlEndpointId, ResolverDefinitionId, ProvidableFieldSet)>,
-    unresolvable_keys: HashMap<GraphqlEndpointId, ProvidableFieldSet>,
+    keys: Vec<(GraphqlEndpointId, ResolverDefinitionId, federated_graph::SelectionSet)>,
+    unresolvable_keys: HashMap<GraphqlEndpointId, Vec<federated_graph::SelectionSet>>,
+}
+
+fn field_set_contains(field_set: &federated_graph::SelectionSet, field_id: federated_graph::FieldId) -> bool {
+    field_set.iter().any(|item| match item {
+        federated_graph::Selection::Field { field, .. } => *field == field_id,
+        federated_graph::Selection::InlineFragment { subselection, .. } => field_set_contains(subselection, field_id),
+    })
 }
 
 pub(super) fn is_inaccessible(
@@ -881,38 +911,4 @@ pub(super) fn is_inaccessible(
     graph[directives]
         .iter()
         .any(|directive| matches!(directive, federated_graph::Directive::Inaccessible))
-}
-
-impl IdMap<federated_graph::FieldId, FieldDefinitionId> {
-    fn convert_providable_field_set(&self, field_set: &federated_graph::SelectionSet) -> ProvidableFieldSet {
-        let mut out = Vec::with_capacity(field_set.len());
-        self.convert_providable_field_set_rec(field_set, &mut out);
-        out.into()
-    }
-
-    fn convert_providable_field_set_rec(
-        &self,
-        field_set: &federated_graph::SelectionSet,
-        out: &mut Vec<ProvidableField>,
-    ) {
-        for item in field_set {
-            match item {
-                federated_graph::Selection::Field {
-                    field,
-                    subselection,
-                    arguments: _,
-                } => {
-                    if let Some(id) = self.get(*field) {
-                        out.push(ProvidableField {
-                            id,
-                            subselection: self.convert_providable_field_set(subselection),
-                        });
-                    }
-                }
-                federated_graph::Selection::InlineFragment { on: _, subselection } => {
-                    self.convert_providable_field_set_rec(subselection, out);
-                }
-            }
-        }
-    }
 }

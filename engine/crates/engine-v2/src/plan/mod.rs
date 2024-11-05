@@ -1,30 +1,30 @@
-mod builder;
 mod error;
 mod execution;
-mod model;
+mod solver;
 
 use crate::{
-    execution::PreExecutionContext,
-    operation::{Operation, Variables},
+    operation::{BoundOperation, Variables},
+    prepare::{CachedOperation, PrepareContext},
     Runtime,
 };
+pub(crate) use error::*;
 pub(crate) use execution::*;
-pub(crate) use model::*;
 use schema::Schema;
+pub(crate) use solver::*;
 
-pub type PlanResult<T> = Result<T, error::PlanError>;
+pub type PlanResult<T> = Result<T, PlanError>;
 
 #[allow(unused)]
-pub fn plan(schema: &Schema, mut operation: Operation) -> PlanResult<OperationPlan> {
-    OperationPlan::build(schema, operation)
+pub fn solve(schema: &Schema, mut bound_operation: BoundOperation) -> PlanResult<OperationSolution> {
+    OperationSolution::solve(schema, bound_operation)
 }
 
 #[allow(unused)]
-pub async fn create_execution_plan(
-    ctx: &PreExecutionContext<'_, impl Runtime>,
-    operation_plan: &OperationPlan,
+pub async fn plan_solution(
+    ctx: &mut PrepareContext<'_, impl Runtime>,
+    operation: &CachedOperation,
     variables: &Variables,
-) -> PlanResult<ExecutionPlan> {
-    let query_modifications = QueryModifications::build(ctx, operation_plan, variables).await?;
-    Ok(todo!())
+) -> PlanResult<OperationPlan> {
+    let query_modifications = QueryModifications::build(ctx, operation, variables).await?;
+    OperationPlan::plan(ctx, operation, query_modifications)
 }

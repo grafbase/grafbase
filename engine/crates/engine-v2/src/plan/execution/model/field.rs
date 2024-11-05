@@ -5,21 +5,21 @@ pub(crate) use data::*;
 pub(crate) use typename::*;
 use walker::Walk;
 
-use crate::plan::PlanFieldId;
+use crate::plan::FieldId;
 
-use super::QueryContext;
+use super::OperationPlanContext;
 
 #[derive(Clone, Copy)]
-pub(crate) enum Field<'a> {
-    Data(DataField<'a>),
-    Typename(TypenameField<'a>),
+pub(crate) enum PlanField<'a> {
+    Data(PlanDataField<'a>),
+    Typename(PlanTypenameField<'a>),
 }
 
-impl std::fmt::Debug for Field<'_> {
+impl std::fmt::Debug for PlanField<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Field::Data(variant) => variant.fmt(f),
-            Field::Typename(variant) => variant.fmt(f),
+            PlanField::Data(variant) => variant.fmt(f),
+            PlanField::Typename(variant) => variant.fmt(f),
         }
     }
 }

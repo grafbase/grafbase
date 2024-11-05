@@ -1,7 +1,6 @@
 mod context;
 mod deserialize;
 mod federation;
-mod record;
 mod request;
 mod root_fields;
 mod subscription;

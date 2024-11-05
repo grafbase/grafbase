@@ -37,7 +37,7 @@ pub struct ScalarDefinitionId(std::num::NonZero<u32>);
 #[derive(Clone, Copy)]
 pub struct ScalarDefinition<'a> {
     pub(crate) schema: &'a Schema,
-    pub(crate) id: ScalarDefinitionId,
+    pub id: ScalarDefinitionId,
 }
 
 impl std::ops::Deref for ScalarDefinition<'_> {
@@ -52,9 +52,6 @@ impl<'a> ScalarDefinition<'a> {
     #[allow(clippy::should_implement_trait)]
     pub fn as_ref(&self) -> &'a ScalarDefinitionRecord {
         &self.schema[self.id]
-    }
-    pub fn id(&self) -> ScalarDefinitionId {
-        self.id
     }
     pub fn name(&self) -> &'a str {
         self.name_id.walk(self.schema)
@@ -72,12 +69,15 @@ impl<'a> ScalarDefinition<'a> {
 
 impl<'a> Walk<&'a Schema> for ScalarDefinitionId {
     type Walker<'w> = ScalarDefinition<'w> where 'a: 'w ;
-    fn walk<'w>(self, schema: &'a Schema) -> Self::Walker<'w>
+    fn walk<'w>(self, schema: impl Into<&'a Schema>) -> Self::Walker<'w>
     where
         Self: 'w,
         'a: 'w,
     {
-        ScalarDefinition { schema, id: self }
+        ScalarDefinition {
+            schema: schema.into(),
+            id: self,
+        }
     }
 }
 

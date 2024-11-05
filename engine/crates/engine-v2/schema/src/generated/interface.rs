@@ -27,7 +27,11 @@ use walker::{Iter, Walk};
 ///   possible_types: [ObjectDefinition!]!
 ///   possible_types_ordered_by_typename: [ObjectDefinition!]!
 ///   directives: [TypeSystemDirective!]!
-///   "sorted by SubgraphId"
+///   """
+///   It can happen that an object that implements this interface at the supergraph level doesn't in a subgraph.
+///   If this happens, we keep track of those subgraph so we we can generate appropriate queries.
+///   Sorted by SubgraphId
+///   """
 ///   not_fully_implemented_in: [Subgraph!]!
 /// }
 /// ```
@@ -41,7 +45,9 @@ pub struct InterfaceDefinitionRecord {
     pub possible_type_ids: Vec<ObjectDefinitionId>,
     pub possible_types_ordered_by_typename_ids: Vec<ObjectDefinitionId>,
     pub directive_ids: Vec<TypeSystemDirectiveId>,
-    /// sorted by SubgraphId
+    /// It can happen that an object that implements this interface at the supergraph level doesn't in a subgraph.
+    /// If this happens, we keep track of those subgraph so we we can generate appropriate queries.
+    /// Sorted by SubgraphId
     pub not_fully_implemented_in_ids: Vec<SubgraphId>,
 }
 
@@ -52,7 +58,7 @@ pub struct InterfaceDefinitionId(std::num::NonZero<u32>);
 #[derive(Clone, Copy)]
 pub struct InterfaceDefinition<'a> {
     pub(crate) schema: &'a Schema,
-    pub(crate) id: InterfaceDefinitionId,
+    pub id: InterfaceDefinitionId,
 }
 
 impl std::ops::Deref for InterfaceDefinition<'_> {
@@ -67,9 +73,6 @@ impl<'a> InterfaceDefinition<'a> {
     #[allow(clippy::should_implement_trait)]
     pub fn as_ref(&self) -> &'a InterfaceDefinitionRecord {
         &self.schema[self.id]
-    }
-    pub fn id(&self) -> InterfaceDefinitionId {
-        self.id
     }
     pub fn name(&self) -> &'a str {
         self.name_id.walk(self.schema)
@@ -93,7 +96,9 @@ impl<'a> InterfaceDefinition<'a> {
     pub fn directives(&self) -> impl Iter<Item = TypeSystemDirective<'a>> + 'a {
         self.as_ref().directive_ids.walk(self.schema)
     }
-    /// sorted by SubgraphId
+    /// It can happen that an object that implements this interface at the supergraph level doesn't in a subgraph.
+    /// If this happens, we keep track of those subgraph so we we can generate appropriate queries.
+    /// Sorted by SubgraphId
     pub fn not_fully_implemented_in(&self) -> impl Iter<Item = Subgraph<'a>> + 'a {
         self.as_ref().not_fully_implemented_in_ids.walk(self.schema)
     }
@@ -101,11 +106,14 @@ impl<'a> InterfaceDefinition<'a> {
 
 impl<'a> Walk<&'a Schema> for InterfaceDefinitionId {
     type Walker<'w> = InterfaceDefinition<'w> where 'a: 'w ;
-    fn walk<'w>(self, schema: &'a Schema) -> Self::Walker<'w>
+    fn walk<'w>(self, schema: impl Into<&'a Schema>) -> Self::Walker<'w>
     where
         Self: 'w,
         'a: 'w,
     {
-        InterfaceDefinition { schema, id: self }
+        InterfaceDefinition {
+            schema: schema.into(),
+            id: self,
+        }
     }
 }

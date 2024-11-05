@@ -1,11 +1,11 @@
 mod coerce;
 mod error;
 mod external_sources;
+mod field_set;
 mod graph;
 mod ids;
 mod input_values;
 mod interner;
-mod requires;
 
 use std::mem::take;
 use std::time::Duration;
@@ -22,8 +22,8 @@ use self::interner::ProxyKeyInterner;
 pub use self::error::BuildError;
 
 use crate::*;
+use field_set::*;
 use interner::Interner;
-use requires::*;
 
 pub(crate) fn build(mut config: Config, version: Version) -> Result<Schema, BuildError> {
     let mut ctx = BuildContext::new(&mut config);

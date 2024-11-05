@@ -28,8 +28,8 @@ impl Ord for SchemaInputValue<'_> {
                     left.len().cmp(&right.len()).then_with(|| {
                         for ((left_def, left_value), (right_def, right_value)) in left.zip(right) {
                             match left_def
-                                .id()
-                                .cmp(&right_def.id())
+                                .id
+                                .cmp(&right_def.id)
                                 .then_with(|| left_value.cmp(&right_value))
                             {
                                 Ordering::Equal => continue,

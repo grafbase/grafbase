@@ -16,7 +16,6 @@ use super::{
 };
 use crate::{
     execution::{ExecutionError, SubscriptionResponse},
-    operation::PlanWalker,
     resolver::ExecutionResult,
     Runtime,
 };
@@ -25,21 +24,19 @@ impl GraphqlResolver {
     pub async fn execute_subscription<'ctx, R: Runtime>(
         &'ctx self,
         ctx: &mut SubgraphContext<'ctx, R>,
-        plan: PlanWalker<'ctx>,
         new_response: impl Fn() -> SubscriptionResponse + Send + 'ctx,
     ) -> ExecutionResult<BoxStream<'ctx, ExecutionResult<SubscriptionResponse>>> {
         if let Some(websocket_url) = ctx.endpoint().websocket_url() {
-            self.execute_websocket_subscription(ctx, plan, new_response, websocket_url)
+            self.execute_websocket_subscription(ctx, new_response, websocket_url)
                 .await
         } else {
-            self.execute_sse_subscription(ctx, plan, new_response).await
+            self.execute_sse_subscription(ctx, new_response).await
         }
     }
 
     async fn execute_websocket_subscription<'ctx, R: Runtime>(
         &'ctx self,
         ctx: &mut SubgraphContext<'ctx, R>,
-        plan: PlanWalker<'ctx>,
         new_response: impl Fn() -> SubscriptionResponse + Send + 'ctx,
         websocket_url: &'ctx Url,
     ) -> ExecutionResult<BoxStream<'ctx, ExecutionResult<SubscriptionResponse>>> {
@@ -74,10 +71,10 @@ impl GraphqlResolver {
             method: http::Method::POST,
             headers,
             body: &SubgraphGraphqlRequest {
-                query: &self.operation.query,
+                query: &self.subgraph_operation.query,
                 variables: SubgraphVariables::<()> {
-                    plan,
-                    variables: &self.operation.variables,
+                    ctx: ctx.input_value_context(),
+                    variables: &self.subgraph_operation.variables,
                     extra_variables: Vec::new(),
                 },
             },
@@ -126,17 +123,16 @@ impl GraphqlResolver {
     async fn execute_sse_subscription<'ctx, R: Runtime>(
         &'ctx self,
         ctx: &mut SubgraphContext<'ctx, R>,
-        plan: PlanWalker<'ctx>,
         new_response: impl Fn() -> SubscriptionResponse + Send + 'ctx,
     ) -> ExecutionResult<BoxStream<'ctx, ExecutionResult<SubscriptionResponse>>> {
         let endpoint = ctx.endpoint();
 
         let request = {
             let body = serde_json::to_vec(&SubgraphGraphqlRequest {
-                query: &self.operation.query,
+                query: &self.subgraph_operation.query,
                 variables: SubgraphVariables::<()> {
-                    plan,
-                    variables: &self.operation.variables,
+                    ctx: ctx.input_value_context(),
+                    variables: &self.subgraph_operation.variables,
                     extra_variables: Vec::new(),
                 },
             })

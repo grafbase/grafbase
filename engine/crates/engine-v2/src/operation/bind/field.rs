@@ -65,7 +65,7 @@ impl<'schema, 'p> Binder<'schema, 'p> {
         self.fields.push(BoundField::Query(BoundQueryField {
             bound_response_key,
             location,
-            definition_id: definition.id(),
+            definition_id: definition.id,
             argument_ids,
             selection_set_id,
             parent_selection_set_id,
@@ -108,14 +108,14 @@ impl<'schema, 'p> Binder<'schema, 'p> {
                 self.field_arguments.push(BoundFieldArgument {
                     name_location,
                     value_location: Some(value_location),
-                    input_value_definition_id: argument_def.id(),
+                    input_value_definition_id: argument_def.id,
                     input_value_id,
                 });
             } else if let Some(id) = argument_def.as_ref().default_value_id {
                 self.field_arguments.push(BoundFieldArgument {
                     name_location: None,
                     value_location: None,
-                    input_value_definition_id: argument_def.id(),
+                    input_value_definition_id: argument_def.id,
                     input_value_id: self.input_values.push_value(QueryInputValueRecord::DefaultValue(id)),
                 });
             } else if argument_def.ty().wrapping.is_required() {

@@ -53,12 +53,15 @@ impl<'a> RenameDuplicateHeaderRule<'a> {
 
 impl<'a> Walk<&'a Schema> for RenameDuplicateHeaderRuleRecord {
     type Walker<'w> = RenameDuplicateHeaderRule<'w> where 'a: 'w ;
-    fn walk<'w>(self, schema: &'a Schema) -> Self::Walker<'w>
+    fn walk<'w>(self, schema: impl Into<&'a Schema>) -> Self::Walker<'w>
     where
         Self: 'w,
         'a: 'w,
     {
-        RenameDuplicateHeaderRule { schema, item: self }
+        RenameDuplicateHeaderRule {
+            schema: schema.into(),
+            item: self,
+        }
     }
 }
 

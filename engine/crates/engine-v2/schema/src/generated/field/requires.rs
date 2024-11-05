@@ -6,7 +6,7 @@
 use crate::{
     generated::{Subgraph, SubgraphId},
     prelude::*,
-    RequiredFieldSet, RequiredFieldSetId,
+    FieldSet, FieldSetId,
 };
 use walker::Walk;
 
@@ -15,13 +15,13 @@ use walker::Walk;
 /// ```custom,{.language-graphql}
 /// type FieldRequires @meta(module: "field/requires") @copy {
 ///   subgraph: Subgraph!
-///   field_set: RequiredFieldSet!
+///   field_set: FieldSet!
 /// }
 /// ```
 #[derive(Debug, serde::Serialize, serde::Deserialize, Clone, Copy)]
 pub struct FieldRequiresRecord {
     pub subgraph_id: SubgraphId,
-    pub field_set_id: RequiredFieldSetId,
+    pub field_set_id: FieldSetId,
 }
 
 #[derive(Clone, Copy)]
@@ -45,19 +45,22 @@ impl<'a> FieldRequires<'a> {
     pub fn subgraph(&self) -> Subgraph<'a> {
         self.subgraph_id.walk(self.schema)
     }
-    pub fn field_set(&self) -> RequiredFieldSet<'a> {
+    pub fn field_set(&self) -> FieldSet<'a> {
         self.field_set_id.walk(self.schema)
     }
 }
 
 impl<'a> Walk<&'a Schema> for FieldRequiresRecord {
     type Walker<'w> = FieldRequires<'w> where 'a: 'w ;
-    fn walk<'w>(self, schema: &'a Schema) -> Self::Walker<'w>
+    fn walk<'w>(self, schema: impl Into<&'a Schema>) -> Self::Walker<'w>
     where
         Self: 'w,
         'a: 'w,
     {
-        FieldRequires { schema, item: self }
+        FieldRequires {
+            schema: schema.into(),
+            item: self,
+        }
     }
 }
 
