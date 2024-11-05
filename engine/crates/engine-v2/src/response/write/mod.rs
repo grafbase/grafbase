@@ -3,6 +3,8 @@ mod ids;
 
 use std::{
     cell::{Ref, RefCell, RefMut},
+    cmp::Ordering,
+    collections::VecDeque,
     rc::Rc,
     sync::Arc,
 };
@@ -203,8 +205,9 @@ impl ResponseBuilder {
                         }
                     }
                 }
-                UpdateSlot::Fields(fields) => {
-                    self[obj_ref.id].extend(fields);
+                UpdateSlot::Fields(mut fields) => {
+                    fields.sort_unstable_by(|a, b| a.edge.cmp(&b.edge));
+                    self.recursive_merge_object(obj_ref.id, fields);
                 }
                 UpdateSlot::Error => {
                     if !invalidated_paths.iter().any(|path| obj_ref.path.starts_with(path)) {
@@ -232,6 +235,124 @@ impl ResponseBuilder {
             ids: subgraph_response.tracked_response_object_set_ids,
             sets: boundaries,
         }
+    }
+
+    fn recursive_merge_object(
+        &mut self,
+        object_id: ResponseObjectId,
+        new_fields_sorted_by_edge: Vec<ResponseObjectField>,
+    ) {
+        let mut new_fields_sorted_by_edge = VecDeque::from(new_fields_sorted_by_edge);
+        let Some(mut new_field) = new_fields_sorted_by_edge.pop_front() else {
+            return;
+        };
+
+        let mut existing_fields = std::mem::take(&mut self[object_id].fields_sorted_by_edge);
+        let n = existing_fields.len();
+        let mut i = 0;
+        loop {
+            if i >= n {
+                existing_fields.push(new_field);
+                break;
+            }
+            // SAFETY we only push new elements and we compare against the initial size n. So i is
+            // guaranteed to be within the array.
+            let existing_field = unsafe { existing_fields.get_unchecked(i) };
+            match existing_field.edge.cmp(&new_field.edge) {
+                Ordering::Less => {
+                    i += 1;
+                }
+                Ordering::Greater => {
+                    // Adding at the end and will be sorted later.
+                    existing_fields.push(new_field);
+                    if let Some(next) = new_fields_sorted_by_edge.pop_front() {
+                        new_field = next;
+                    } else {
+                        break;
+                    }
+                }
+                Ordering::Equal => {
+                    self.recursive_merge_value(existing_field.value.clone(), new_field.value);
+                    i += 1;
+                    if let Some(next) = new_fields_sorted_by_edge.pop_front() {
+                        new_field = next;
+                    } else {
+                        break;
+                    }
+                }
+            }
+        }
+        existing_fields.append(&mut Vec::from(new_fields_sorted_by_edge));
+        existing_fields.sort_unstable_by(|a, b| a.edge.cmp(&b.edge));
+
+        self[object_id].fields_sorted_by_edge = existing_fields;
+    }
+
+    fn recursive_merge_value(&mut self, existing: ResponseValue, new: ResponseValue) {
+        match (existing, new) {
+            (
+                ResponseValue::Object {
+                    part_id: existing_part_id,
+                    index: existing_index,
+                    ..
+                },
+                ResponseValue::Object {
+                    part_id: new_part_id,
+                    index: new_index,
+                    ..
+                },
+            ) => {
+                let existing_object_id = ResponseObjectId {
+                    part_id: existing_part_id,
+                    index: existing_index,
+                };
+                let new_object_id = ResponseObjectId {
+                    part_id: new_part_id,
+                    index: new_index,
+                };
+                let new_fields_sorted_by_edge = std::mem::take(&mut self[new_object_id].fields_sorted_by_edge);
+                self.recursive_merge_object(existing_object_id, new_fields_sorted_by_edge);
+            }
+            (
+                ResponseValue::List {
+                    part_id: existing_part_id,
+                    offset: existing_offset,
+                    length: existing_length,
+                    ..
+                },
+                ResponseValue::List {
+                    part_id: new_part_id,
+                    offset: new_offset,
+                    length: new_length,
+                    ..
+                },
+            ) => {
+                let existing_list_id = ResponseListId {
+                    part_id: existing_part_id,
+                    offset: existing_offset,
+                    length: existing_length,
+                };
+                let new_list_id = ResponseListId {
+                    part_id: new_part_id,
+                    offset: new_offset,
+                    length: new_length,
+                };
+                self.recursive_merge_list(existing_list_id, new_list_id)
+            }
+            _ => {
+                // FIXME: Unlikely, but we should generate an error here.
+                tracing::error!("Trying to merge something values that aren't a couple of objects/list");
+            }
+        }
+    }
+
+    fn recursive_merge_list(&mut self, existing_list_id: ResponseListId, new_list_id: ResponseListId) {
+        let mut i = 0;
+        while let Some((existing, new)) = self[existing_list_id].get(i).zip(self[new_list_id].get(i)) {
+            self.recursive_merge_value(existing.clone(), new.clone());
+            i += 1;
+        }
+        // FIXME: Unlikely but should generate an error here.
     }
 
     pub fn graphql_status(&self) -> GraphqlResponseStatus {
