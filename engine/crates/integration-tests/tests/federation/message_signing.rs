@@ -319,6 +319,50 @@ fn test_message_signing_with_derived_components() {
 }
 
 #[test]
+fn test_message_signing_with_nonce_and_expiry() {
+    let subgraph = SignedGithubSchema {
+        key: shared_key(),
+        kid: None,
+    };
+
+    let config = format!(
+        r#"
+            [gateway.message_signatures]
+            enabled = true
+            key.inline = "{SHARED_KEY_BASE64}"
+            signature_parameters = ["nonce"]
+            expiry = "5m"
+        "#
+    );
+
+    runtime().block_on(async move {
+        let engine = Engine::builder()
+            .with_subgraph(subgraph)
+            .with_toml_config(config)
+            .build()
+            .await;
+
+        let response = engine.post("query { serverVersion }").await;
+        similar_asserts::assert_serde_eq!(response.body, serde_json::json!({"data": {"serverVersion": "1"}}));
+
+        let request = engine
+            .drain_http_requests_sent_to::<SignedGithubSchema>()
+            .pop()
+            .unwrap();
+        let signature_input = request.headers.get("signature-input").unwrap().to_str().unwrap();
+
+        assert!(
+            signature_input.contains("nonce="),
+            "nonce not found in {signature_input}"
+        );
+        assert!(
+            signature_input.contains("expires="),
+            "expires not found in {signature_input}"
+        );
+    });
+}
+
+#[test]
 fn test_message_signing_failures() {
     let response = runtime().block_on(async move {
         let engine = Engine::builder()
