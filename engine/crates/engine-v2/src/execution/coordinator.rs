@@ -1,6 +1,5 @@
 use std::{collections::VecDeque, sync::Arc};
 
-use async_runtime::make_send_on_wasm;
 use engine_parser::types::OperationType;
 use futures::{stream::FuturesOrdered, Future, FutureExt, Stream};
 use futures_util::{
@@ -600,7 +599,7 @@ impl<'ctx, R: Runtime> OperationExecution<'ctx, R> {
             );
 
         let span = span.exit();
-        Some(make_send_on_wasm(fut.instrument(span)).boxed())
+        Some(fut.instrument(span).boxed())
     }
 }
 

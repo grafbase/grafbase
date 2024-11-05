@@ -18,13 +18,19 @@ const APPLICATION_GRAPHQL_RESPONSE_JSON: &str = "application/graphql-response+js
 #[case::get_gql_json(http::Method::GET, APPLICATION_GRAPHQL_RESPONSE_JSON)]
 fn authentication_returns_401(#[case] method: http::Method, #[case] accept: &'static str) {
     runtime().block_on(async move {
+        let config = indoc::formatdoc! {r#"
+            [[authentication.providers]]
+
+            [authentication.providers.jwt]
+            name = "my-jwt"
+
+            [authentication.providers.jwt.jwks]
+            url = "{JWKS_URI}"
+        "#};
+
         let engine = Engine::builder()
             .with_subgraph(FakeGithubSchema)
-            .with_sdl_config(format!(
-                r#"extend schema @authz(providers: [
-                    {{ name: "my-jwt", type: jwt, jwks: {{ url: "{JWKS_URI}" }} }}
-                ])"#
-            ))
+            .with_toml_config(config)
             .build()
             .await;
 

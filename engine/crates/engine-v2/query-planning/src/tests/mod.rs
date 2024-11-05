@@ -140,7 +140,7 @@ impl crate::Operation for &mut TestOperation {
 #[track_caller]
 fn read_schema(sdl: &str) -> Schema {
     let graph = federated_graph::from_sdl(sdl).unwrap();
-    let config = config::VersionedConfig::V6(config::latest::Config::from_graph(graph)).into_latest();
+    let config = config::Config::from_graph(graph);
     Schema::build(config, Version::from(Vec::new())).unwrap()
 }
 

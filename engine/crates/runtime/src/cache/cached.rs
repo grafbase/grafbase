@@ -125,7 +125,7 @@ where
                 tracing::debug!(ray_id, "Purging global cache by tags: {:?}", purge_tags);
 
                 ctx.wait_until(
-                    async_runtime::make_send_on_wasm(async move {
+                    async move {
                         if let Err(err) = cache
                             .purge_by_tags(purge_tags)
                             .instrument(tracing::info_span!("cache_tags_purge", ray_id))
@@ -133,7 +133,7 @@ where
                         {
                             tracing::error!(ray_id, "Error global cache purge by tags: {}", err);
                         }
-                    })
+                    }
                     .boxed(),
                 )
                 .await;
@@ -146,7 +146,7 @@ where
                 let cache = cache.clone();
 
                 ctx.wait_until(
-                    async_runtime::make_send_on_wasm(async move {
+                    async move {
                         if let Err(err) = cache
                             .put_json(&key, EntryState::Fresh, put_value.as_ref(), metadata)
                             .instrument(tracing::info_span!("cache_put"))
@@ -154,7 +154,7 @@ where
                         {
                             tracing::error!(ray_id, "Error cache PUT: {}", err);
                         }
-                    })
+                    }
                     .boxed(),
                 )
                 .await;
@@ -191,7 +191,7 @@ async fn update_stale<Value, Error, ValueFut>(
     // refresh the cache async and update the existing entry state
     let cache = cache.clone();
     ctx.wait_until(
-        async_runtime::make_send_on_wasm(async move {
+        async move {
             let put_futures = cache
                 .put_json(
                     &key,
@@ -246,7 +246,7 @@ async fn update_stale<Value, Error, ValueFut>(
                         .await;
                 }
             };
-        })
+        }
         .boxed(),
     )
     .await;

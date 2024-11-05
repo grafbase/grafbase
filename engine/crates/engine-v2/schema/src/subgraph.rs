@@ -32,8 +32,8 @@ pub struct RetryConfig {
     pub retry_mutations: bool,
 }
 
-impl From<config::latest::RetryConfig> for RetryConfig {
-    fn from(config: config::latest::RetryConfig) -> Self {
+impl From<config::RetryConfig> for RetryConfig {
+    fn from(config: config::RetryConfig) -> Self {
         Self {
             min_per_second: config.min_per_second,
             ttl: config.ttl,

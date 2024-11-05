@@ -4,7 +4,7 @@ use std::{
 };
 
 use builder::coerce::InputValueCoercer;
-use config::latest::Config;
+use config::Config;
 use introspection::{IntrospectionBuilder, IntrospectionMetadata};
 
 use crate::*;

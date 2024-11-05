@@ -1,6 +1,6 @@
 use std::collections::{btree_map::Entry, HashSet};
 
-use engine::Positioned;
+use engine_parser::Positioned;
 use schema::{DefinitionId, Schema, Wrapping};
 
 use crate::{
@@ -34,9 +34,10 @@ impl From<VariableError> for GraphqlError {
 pub fn bind_variables(
     schema: &Schema,
     operation: &Operation,
-    mut request_variables: engine::Variables,
+    mut request_variables: crate::request::Variables,
 ) -> Result<Variables, Vec<VariableError>> {
     let mut errors = Vec::new();
+
     let mut variables = Variables {
         input_values: VariableInputValues::default(),
         definition_to_value: vec![VariableValueRecord::Undefined; operation.variable_definitions.len()],

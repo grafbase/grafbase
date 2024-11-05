@@ -3,16 +3,26 @@ use cynic_introspection::{CapabilitiesQuery, IntrospectionQuery, SpecificationVe
 use engine_v2::Engine;
 use graphql_mocks::{
     EchoSchema, FakeGithubSchema, FederatedAccountsSchema, FederatedInventorySchema, FederatedProductsSchema,
-    FederatedReviewsSchema, MockGraphQlServer,
+    FederatedReviewsSchema,
 };
+use indoc::indoc;
 use integration_tests::{federation::EngineV2Ext, runtime};
 
 const PATHFINDER_INTROSPECTION_QUERY: &str = include_str!("../../data/introspection.graphql");
 
+const CONFIG: &str = indoc! {r#"
+    [graph]
+    introspection = true
+"#};
+
 #[test]
 fn can_run_pathfinder_introspection_query() {
     let response = runtime().block_on(async move {
-        let engine = Engine::builder().with_subgraph(FakeGithubSchema).build().await;
+        let engine = Engine::builder()
+            .with_subgraph(FakeGithubSchema)
+            .with_toml_config(CONFIG)
+            .build()
+            .await;
 
         engine.post(PATHFINDER_INTROSPECTION_QUERY).await
     });
@@ -84,7 +94,11 @@ fn can_run_pathfinder_introspection_query() {
 #[test]
 fn can_run_2018_introspection_query() {
     let response = runtime().block_on(async move {
-        let engine = Engine::builder().with_subgraph(FakeGithubSchema).build().await;
+        let engine = Engine::builder()
+            .with_subgraph(FakeGithubSchema)
+            .with_toml_config(CONFIG)
+            .build()
+            .await;
 
         engine
             .post(IntrospectionQuery::with_capabilities(
@@ -160,7 +174,11 @@ fn can_run_2018_introspection_query() {
 #[test]
 fn can_run_2021_introspection_query() {
     let response = runtime().block_on(async move {
-        let engine = Engine::builder().with_subgraph(FakeGithubSchema).build().await;
+        let engine = Engine::builder()
+            .with_subgraph(FakeGithubSchema)
+            .with_toml_config(CONFIG)
+            .build()
+            .await;
 
         engine
             .post(IntrospectionQuery::with_capabilities(
@@ -236,7 +254,11 @@ fn can_run_2021_introspection_query() {
 #[test]
 fn echo_subgraph_introspection() {
     let response = runtime().block_on(async move {
-        let engine = Engine::builder().with_subgraph(EchoSchema).build().await;
+        let engine = Engine::builder()
+            .with_subgraph(EchoSchema)
+            .with_toml_config(CONFIG)
+            .build()
+            .await;
 
         engine
             .post(IntrospectionQuery::with_capabilities(
@@ -291,7 +313,11 @@ fn echo_subgraph_introspection() {
 #[test]
 fn can_run_capability_introspection_query() {
     let response = runtime().block_on(async move {
-        let engine = Engine::builder().with_subgraph(FakeGithubSchema).build().await;
+        let engine = Engine::builder()
+            .with_subgraph(FakeGithubSchema)
+            .with_toml_config(CONFIG)
+            .build()
+            .await;
 
         engine.post(CapabilitiesQuery::build(())).await
     });
@@ -311,7 +337,11 @@ fn can_run_capability_introspection_query() {
 fn introspection_output_matches_source() {
     use reqwest::Client;
     let (response, _upstream_sdl) = runtime().block_on(async move {
-        let engine = Engine::builder().with_subgraph(FakeGithubSchema).build().await;
+        let engine = Engine::builder()
+            .with_subgraph(FakeGithubSchema)
+            .with_toml_config(CONFIG)
+            .build()
+            .await;
 
         let response = engine.post(IntrospectionQuery::build(())).await;
 
@@ -341,6 +371,7 @@ fn raw_introspetion_output() {
         let engine = Engine::builder()
             .with_subgraph(FakeGithubSchema)
             .with_subgraph(EchoSchema)
+            .with_toml_config(CONFIG)
             .build()
             .await;
 
@@ -357,6 +388,7 @@ fn can_introsect_when_multiple_subgraphs() {
         let engine = Engine::builder()
             .with_subgraph(FakeGithubSchema)
             .with_subgraph(EchoSchema)
+            .with_toml_config(CONFIG)
             .build()
             .await;
 
@@ -465,7 +497,11 @@ fn can_introsect_when_multiple_subgraphs() {
 #[test]
 fn supports_the_type_field() {
     let response = runtime().block_on(async move {
-        let engine = Engine::builder().with_subgraph(FakeGithubSchema).build().await;
+        let engine = Engine::builder()
+            .with_subgraph(FakeGithubSchema)
+            .with_toml_config(CONFIG)
+            .build()
+            .await;
 
         engine
             .post(
@@ -543,7 +579,11 @@ fn supports_the_type_field() {
 #[test]
 fn type_field_returns_null_on_missing_type() {
     let response = runtime().block_on(async move {
-        let engine = Engine::builder().with_subgraph(FakeGithubSchema).build().await;
+        let engine = Engine::builder()
+            .with_toml_config(CONFIG)
+            .with_subgraph(FakeGithubSchema)
+            .build()
+            .await;
 
         engine
             .post(
@@ -571,7 +611,11 @@ fn type_field_returns_null_on_missing_type() {
 #[test]
 fn supports_recursing_through_types() {
     let response = runtime().block_on(async move {
-        let engine = Engine::builder().with_subgraph(FakeGithubSchema).build().await;
+        let engine = Engine::builder()
+            .with_toml_config(CONFIG)
+            .with_subgraph(FakeGithubSchema)
+            .build()
+            .await;
 
         engine
             .post(
@@ -742,7 +786,11 @@ fn supports_recursing_through_types() {
 #[test]
 fn rejects_bogus_introspection_queries() {
     let response = runtime().block_on(async move {
-        let engine = Engine::builder().with_subgraph(FakeGithubSchema).build().await;
+        let engine = Engine::builder()
+            .with_toml_config(CONFIG)
+            .with_subgraph(FakeGithubSchema)
+            .build()
+            .await;
 
         engine
             .post(
@@ -783,6 +831,7 @@ fn rejects_bogus_introspection_queries() {
 fn introspection_on_multiple_federation_subgraphs() {
     let response = runtime().block_on(async move {
         let engine = Engine::builder()
+            .with_toml_config(CONFIG)
             .with_subgraph(FederatedAccountsSchema)
             .with_subgraph(FederatedProductsSchema)
             .with_subgraph(FederatedReviewsSchema)
@@ -890,50 +939,13 @@ fn introspection_on_multiple_federation_subgraphs() {
 }
 
 #[test]
-fn introspecting_with_grafbase_openapi_subgraph() {
-    let response = runtime().block_on(async move {
-        let engine_v1_schema = r#"
-            extend schema
-                @openapi(
-                    name: "petstore"
-                    namespace: false
-                    url: "http://example.com",
-                    schema: "http://example.com/petstore.json",
-                )
-        "#;
-
-        let engine_v1 = integration_tests::EngineBuilder::new(engine_v1_schema)
-            .with_openapi_schema(
-                "http://example.com/petstore.json",
-                include_str!("../openapi/petstore.json"),
-            )
-            .build()
-            .await;
-
-        struct PetStore(integration_tests::engine_v1::Engine);
-
-        impl graphql_mocks::Subgraph for PetStore {
-            fn name(&self) -> String {
-                "petstore".to_string()
-            }
-
-            async fn start(self) -> MockGraphQlServer {
-                MockGraphQlServer::new(self.0).await
-            }
-        }
-
-        let engine = Engine::builder().with_subgraph(PetStore(engine_v1)).build().await;
-
-        engine.post(IntrospectionQuery::build(())).await
-    });
-
-    insta::assert_snapshot!(introspection_to_sdl(response.into_data()));
-}
-
-#[test]
 fn default_values() {
     let response = runtime().block_on(async move {
-        let engine = Engine::builder().with_subgraph(FakeGithubSchema).build().await;
+        let engine = Engine::builder()
+            .with_toml_config(CONFIG)
+            .with_subgraph(FakeGithubSchema)
+            .build()
+            .await;
 
         engine
             .post(

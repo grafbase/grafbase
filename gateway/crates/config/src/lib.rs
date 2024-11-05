@@ -1459,13 +1459,13 @@ mod tests {
 
         let error = toml::from_str::<Config>(input).unwrap_err();
 
-        insta::assert_snapshot!(&error.to_string(), @r###"
+        insta::assert_snapshot!(&error.to_string(), @r#"
         TOML parse error at line 2, column 17
           |
         2 | websocket_url = "WRONG"
           |                 ^^^^^^^
-        invalid value: string "WRONG", expected relative URL without a base
-        "###);
+        relative URL without a base: "WRONG"
+        "#);
     }
 
     #[test]

@@ -1,6 +1,5 @@
 use std::{error::Error, fmt::Display, future::Future, net::Ipv4Addr, pin::Pin};
 
-use async_runtime::make_send_on_wasm;
 use serde::{de::DeserializeOwned, Serialize};
 
 #[derive(Clone)]
@@ -47,9 +46,11 @@ impl Bridge {
     ) -> Pin<Box<dyn Future<Output = Result<R, BridgeError>> + Send + '_>> {
         let url = format!("http://{}:{}/{endpoint}", Ipv4Addr::LOCALHOST, self.port);
         let request = reqwest::Client::new().post(url).json(&body);
-        Box::pin(make_send_on_wasm(async move {
+
+        Box::pin(async move {
             let response = request.send().await?;
             let status = response.status();
+
             if status.is_success() {
                 Ok(response.json().await?)
             } else {
@@ -57,6 +58,6 @@ impl Bridge {
                     response.text().await.unwrap_or(format!("Status: {status}")),
                 ))
             }
-        }))
+        })
     }
 }

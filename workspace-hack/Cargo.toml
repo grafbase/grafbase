@@ -20,17 +20,13 @@ publish = false
 
 ### BEGIN HAKARI SECTION
 [dependencies]
-Inflector = { version = "0.11" }
-ahash = { version = "0.8" }
 aho-corasick = { version = "1" }
 anyhow = { version = "1" }
-arrayvec = { version = "0.7", default-features = false, features = ["std"] }
 ascii = { version = "1", features = ["serde"] }
 async-tungstenite = { version = "0.26", features = ["tokio-rustls-webpki-roots"] }
-axum = { git = "https://github.com/grafbase/axum", rev = "c3146f9ca921907d9884fbf7549a1520e9e72eac", features = ["macros", "ws"] }
-axum-core = { git = "https://github.com/grafbase/axum", rev = "c3146f9ca921907d9884fbf7549a1520e9e72eac", default-features = false, features = ["tracing"] }
+axum = { version = "0.7", features = ["macros", "ws"] }
+axum-core = { version = "0.4", default-features = false, features = ["tracing"] }
 base16ct = { version = "0.2", default-features = false, features = ["alloc"] }
-base64 = { version = "0.22" }
 bitflags = { version = "2", default-features = false, features = ["std"] }
 bstr = { version = "1", default-features = false, features = ["std"] }
 byteorder = { version = "1" }
@@ -44,6 +40,7 @@ concurrent-queue = { version = "2" }
 console = { version = "0.15", default-features = false, features = ["ansi-parsing", "unicode-width"] }
 crc32fast = { version = "1" }
 criterion = { version = "0.5", features = ["async_tokio", "html_reports"] }
+crossbeam-channel = { version = "0.5" }
 crossbeam-queue = { version = "0.3" }
 crossbeam-utils = { version = "0.8" }
 cynic-parser = { version = "0.6", features = ["pretty", "report"] }
@@ -57,6 +54,7 @@ either = { version = "1" }
 elliptic-curve = { version = "0.13", features = ["ecdh", "hazmat", "jwk", "pem", "std"] }
 fastrand = { version = "2" }
 ff = { version = "0.13", default-features = false, features = ["alloc"] }
+form_urlencoded = { version = "1" }
 futures = { version = "0.3" }
 futures-channel = { version = "0.3", features = ["sink"] }
 futures-core = { version = "0.3" }
@@ -64,19 +62,18 @@ futures-executor = { version = "0.3" }
 futures-io = { version = "0.3" }
 futures-sink = { version = "0.3" }
 futures-task = { version = "0.3", default-features = false, features = ["std"] }
-futures-timer = { version = "3", default-features = false, features = ["wasm-bindgen"] }
 futures-util = { version = "0.3", features = ["channel", "io", "sink"] }
 generic-array = { version = "0.14", default-features = false, features = ["more_lengths", "zeroize"] }
 getrandom = { version = "0.2", default-features = false, features = ["std"] }
 group = { version = "0.13", default-features = false, features = ["alloc"] }
-hashbrown-3575ec1268b04181 = { package = "hashbrown", version = "0.15" }
+hashbrown-3575ec1268b04181 = { package = "hashbrown", version = "0.15", default-features = false, features = ["default-hasher"] }
 hashbrown-582f2526e08bb6a0 = { package = "hashbrown", version = "0.14", features = ["raw", "serde"] }
 hashbrown-5ef9efb8ec2df382 = { package = "hashbrown", version = "0.12", features = ["raw"] }
 hex = { version = "0.4" }
-hmac = { version = "0.12", default-features = false, features = ["reset"] }
 hyper = { version = "1", features = ["full"] }
 hyper-util = { version = "0.1", features = ["client-legacy", "server-auto", "service"] }
-indexmap = { version = "2", features = ["serde"] }
+indexmap-dff4ba8e3ae991db = { package = "indexmap", version = "1", default-features = false, features = ["std"] }
+indexmap-f595c2ba2a3f28df = { package = "indexmap", version = "2", features = ["serde"] }
 insta = { version = "1", features = ["json", "redactions", "yaml"] }
 jwt-compact = { version = "0.8", features = ["ed25519-compact", "p256", "rsa"] }
 lazy_static = { version = "1", default-features = false, features = ["spin_no_std"] }
@@ -96,21 +93,20 @@ proc-macro2 = { version = "1" }
 prost = { version = "0.13" }
 quote = { version = "1" }
 rand = { version = "0.8", features = ["small_rng"] }
-rand_core = { version = "0.6", default-features = false, features = ["std"] }
 regex = { version = "1" }
 regex-automata = { version = "0.4", default-features = false, features = ["dfa", "hybrid", "meta", "nfa", "perf", "unicode"] }
 regex-syntax = { version = "0.8" }
-reqwest = { git = "https://github.com/grafbase/reqwest", rev = "bcdc38deb99048eaee37313857e19ff3df7a2870", features = ["blocking", "json", "multipart", "rustls-tls", "stream"] }
+reqwest = { version = "0.12", default-features = false, features = ["blocking", "http2", "json", "rustls-tls", "stream"] }
 rsa = { version = "0.9" }
-rust_decimal = { version = "1" }
 rustls = { version = "0.23", default-features = false, features = ["aws-lc-rs", "logging", "ring", "std", "tls12"] }
 rustls-pki-types = { version = "1", features = ["std"] }
 rustls-webpki = { version = "0.102", default-features = false, features = ["aws_lc_rs", "ring", "std"] }
 sec1 = { version = "0.7", features = ["pem", "serde", "std", "subtle"] }
+secrecy = { version = "0.8", features = ["serde"] }
 semver = { version = "1", features = ["serde"] }
 serde = { version = "1", features = ["alloc", "derive", "rc"] }
 serde_json = { version = "1", features = ["alloc", "preserve_order", "raw_value"] }
-serde_with = { git = "https://github.com/grafbase/serde_with", rev = "06ad277a0e0175c2364d3c065e303a6c8a775c8a", features = ["base64", "hex"] }
+serde_with = { version = "3", features = ["hex"] }
 sha2 = { version = "0.10", features = ["oid"] }
 signature = { version = "2", default-features = false, features = ["digest", "rand_core", "std"] }
 similar = { version = "2", features = ["inline", "unicode"] }
@@ -122,6 +118,7 @@ spki = { version = "0.7", default-features = false, features = ["pem", "std"] }
 strum = { version = "0.26", features = ["derive"] }
 subtle = { version = "2" }
 sync_wrapper = { version = "1", default-features = false, features = ["futures"] }
+textwrap = { version = "0.16" }
 time = { version = "0.3", features = ["formatting", "parsing"] }
 tokio = { version = "1", features = ["full"] }
 tokio-rustls = { version = "0.26", default-features = false, features = ["logging", "ring", "tls12"] }
@@ -129,35 +126,30 @@ tokio-stream = { version = "0.1", features = ["net"] }
 tokio-util = { version = "0.7", features = ["codec", "compat", "io"] }
 toml_datetime = { version = "0.6", default-features = false, features = ["serde"] }
 toml_edit = { version = "0.22", features = ["serde"] }
-tower = { version = "0.4", features = ["balance", "buffer", "limit", "util"] }
+tower-9fbad63c4bcf4a8f = { package = "tower", version = "0.4", features = ["balance", "buffer", "limit", "util"] }
+tower-d8f496e17d97b5cb = { package = "tower", version = "0.5", default-features = false, features = ["log", "make", "retry"] }
 tower-http = { version = "0.5", features = ["cors", "timeout", "trace"] }
-tracing = { git = "https://github.com/tokio-rs/tracing", rev = "6d00d7d9f72dc6797138a1062bc33073afbad5a1", features = ["log"] }
-tracing-core = { git = "https://github.com/tokio-rs/tracing", rev = "6d00d7d9f72dc6797138a1062bc33073afbad5a1" }
+tracing = { version = "0.1", features = ["log"] }
+tracing-core = { version = "0.1" }
 tracing-log = { version = "0.2" }
 tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
 tungstenite = { version = "0.23", features = ["__rustls-tls", "url"] }
 ulid = { version = "1", features = ["serde"] }
-unicode-bidi = { version = "0.3" }
-unicode-normalization = { version = "0.1" }
 url = { version = "2", features = ["serde"] }
-uuid = { version = "1", features = ["serde", "v4"] }
+uuid = { version = "1", features = ["v4"] }
 wasmparser = { version = "0.218", default-features = false, features = ["features", "serde", "std", "validate"] }
 web-sys = { version = "0.3", default-features = false, features = ["AbortController", "AbortSignal", "BinaryType", "Cache", "CacheQueryOptions", "CacheStorage", "CloseEvent", "ErrorEvent", "File", "FormData", "Headers", "MessageEvent", "ProgressEvent", "QueuingStrategy", "ReadableByteStreamController", "ReadableStream", "ReadableStreamByobReader", "ReadableStreamByobRequest", "ReadableStreamDefaultController", "ReadableStreamDefaultReader", "ReadableStreamGetReaderOptions", "ReadableStreamReadResult", "ReadableStreamReaderMode", "ReadableStreamType", "ReadableWritablePair", "Request", "RequestInit", "RequestRedirect", "Response", "ResponseInit", "StreamPipeOptions", "TransformStream", "TransformStreamDefaultController", "Transformer", "UnderlyingSink", "UnderlyingSource", "WebSocket", "WorkerGlobalScope", "WritableStream", "WritableStreamDefaultController", "WritableStreamDefaultWriter", "console"] }
 zerocopy = { version = "0.7", features = ["derive", "simd"] }
 zeroize = { version = "1", features = ["zeroize_derive"] }
 
 [build-dependencies]
-Inflector = { version = "0.11" }
-ahash = { version = "0.8" }
 aho-corasick = { version = "1" }
 anyhow = { version = "1" }
-arrayvec = { version = "0.7", default-features = false, features = ["std"] }
 ascii = { version = "1", features = ["serde"] }
 async-tungstenite = { version = "0.26", features = ["tokio-rustls-webpki-roots"] }
-axum = { git = "https://github.com/grafbase/axum", rev = "c3146f9ca921907d9884fbf7549a1520e9e72eac", features = ["macros", "ws"] }
-axum-core = { git = "https://github.com/grafbase/axum", rev = "c3146f9ca921907d9884fbf7549a1520e9e72eac", default-features = false, features = ["tracing"] }
+axum = { version = "0.7", features = ["macros", "ws"] }
+axum-core = { version = "0.4", default-features = false, features = ["tracing"] }
 base16ct = { version = "0.2", default-features = false, features = ["alloc"] }
-base64 = { version = "0.22" }
 bitflags = { version = "2", default-features = false, features = ["std"] }
 bstr = { version = "1", default-features = false, features = ["std"] }
 byteorder = { version = "1" }
@@ -172,6 +164,7 @@ concurrent-queue = { version = "2" }
 console = { version = "0.15", default-features = false, features = ["ansi-parsing", "unicode-width"] }
 crc32fast = { version = "1" }
 criterion = { version = "0.5", features = ["async_tokio", "html_reports"] }
+crossbeam-channel = { version = "0.5" }
 crossbeam-queue = { version = "0.3" }
 crossbeam-utils = { version = "0.8" }
 cynic-codegen = { version = "3", features = ["rkyv"] }
@@ -186,6 +179,7 @@ either = { version = "1" }
 elliptic-curve = { version = "0.13", features = ["ecdh", "hazmat", "jwk", "pem", "std"] }
 fastrand = { version = "2" }
 ff = { version = "0.13", default-features = false, features = ["alloc"] }
+form_urlencoded = { version = "1" }
 futures = { version = "0.3" }
 futures-channel = { version = "0.3", features = ["sink"] }
 futures-core = { version = "0.3" }
@@ -193,19 +187,18 @@ futures-executor = { version = "0.3" }
 futures-io = { version = "0.3" }
 futures-sink = { version = "0.3" }
 futures-task = { version = "0.3", default-features = false, features = ["std"] }
-futures-timer = { version = "3", default-features = false, features = ["wasm-bindgen"] }
 futures-util = { version = "0.3", features = ["channel", "io", "sink"] }
 generic-array = { version = "0.14", default-features = false, features = ["more_lengths", "zeroize"] }
 getrandom = { version = "0.2", default-features = false, features = ["std"] }
 group = { version = "0.13", default-features = false, features = ["alloc"] }
-hashbrown-3575ec1268b04181 = { package = "hashbrown", version = "0.15" }
+hashbrown-3575ec1268b04181 = { package = "hashbrown", version = "0.15", default-features = false, features = ["default-hasher"] }
 hashbrown-582f2526e08bb6a0 = { package = "hashbrown", version = "0.14", features = ["raw", "serde"] }
 hashbrown-5ef9efb8ec2df382 = { package = "hashbrown", version = "0.12", features = ["raw"] }
 hex = { version = "0.4" }
-hmac = { version = "0.12", default-features = false, features = ["reset"] }
 hyper = { version = "1", features = ["full"] }
 hyper-util = { version = "0.1", features = ["client-legacy", "server-auto", "service"] }
-indexmap = { version = "2", features = ["serde"] }
+indexmap-dff4ba8e3ae991db = { package = "indexmap", version = "1", default-features = false, features = ["std"] }
+indexmap-f595c2ba2a3f28df = { package = "indexmap", version = "2", features = ["serde"] }
 insta = { version = "1", features = ["json", "redactions", "yaml"] }
 jwt-compact = { version = "0.8", features = ["ed25519-compact", "p256", "rsa"] }
 lazy_static = { version = "1", default-features = false, features = ["spin_no_std"] }
@@ -225,21 +218,20 @@ proc-macro2 = { version = "1" }
 prost = { version = "0.13" }
 quote = { version = "1" }
 rand = { version = "0.8", features = ["small_rng"] }
-rand_core = { version = "0.6", default-features = false, features = ["std"] }
 regex = { version = "1" }
 regex-automata = { version = "0.4", default-features = false, features = ["dfa", "hybrid", "meta", "nfa", "perf", "unicode"] }
 regex-syntax = { version = "0.8" }
-reqwest = { git = "https://github.com/grafbase/reqwest", rev = "bcdc38deb99048eaee37313857e19ff3df7a2870", features = ["blocking", "json", "multipart", "rustls-tls", "stream"] }
+reqwest = { version = "0.12", default-features = false, features = ["blocking", "http2", "json", "rustls-tls", "stream"] }
 rsa = { version = "0.9" }
-rust_decimal = { version = "1" }
 rustls = { version = "0.23", default-features = false, features = ["aws-lc-rs", "logging", "ring", "std", "tls12"] }
 rustls-pki-types = { version = "1", features = ["std"] }
 rustls-webpki = { version = "0.102", default-features = false, features = ["aws_lc_rs", "ring", "std"] }
 sec1 = { version = "0.7", features = ["pem", "serde", "std", "subtle"] }
+secrecy = { version = "0.8", features = ["serde"] }
 semver = { version = "1", features = ["serde"] }
 serde = { version = "1", features = ["alloc", "derive", "rc"] }
 serde_json = { version = "1", features = ["alloc", "preserve_order", "raw_value"] }
-serde_with = { git = "https://github.com/grafbase/serde_with", rev = "06ad277a0e0175c2364d3c065e303a6c8a775c8a", features = ["base64", "hex"] }
+serde_with = { version = "3", features = ["hex"] }
 sha2 = { version = "0.10", features = ["oid"] }
 signature = { version = "2", default-features = false, features = ["digest", "rand_core", "std"] }
 similar = { version = "2", features = ["inline", "unicode"] }
@@ -250,9 +242,9 @@ spin = { version = "0.9", default-features = false, features = ["once", "spin_mu
 spki = { version = "0.7", default-features = false, features = ["pem", "std"] }
 strum = { version = "0.26", features = ["derive"] }
 subtle = { version = "2" }
-syn-dff4ba8e3ae991db = { package = "syn", version = "1", features = ["extra-traits", "full", "visit"] }
-syn-f595c2ba2a3f28df = { package = "syn", version = "2", features = ["extra-traits", "full", "visit", "visit-mut"] }
+syn = { version = "2", features = ["extra-traits", "fold", "full", "visit", "visit-mut"] }
 sync_wrapper = { version = "1", default-features = false, features = ["futures"] }
+textwrap = { version = "0.16" }
 time = { version = "0.3", features = ["formatting", "parsing"] }
 tokio = { version = "1", features = ["full"] }
 tokio-rustls = { version = "0.26", default-features = false, features = ["logging", "ring", "tls12"] }
@@ -260,25 +252,24 @@ tokio-stream = { version = "0.1", features = ["net"] }
 tokio-util = { version = "0.7", features = ["codec", "compat", "io"] }
 toml_datetime = { version = "0.6", default-features = false, features = ["serde"] }
 toml_edit = { version = "0.22", features = ["serde"] }
-tower = { version = "0.4", features = ["balance", "buffer", "limit", "util"] }
+tower-9fbad63c4bcf4a8f = { package = "tower", version = "0.4", features = ["balance", "buffer", "limit", "util"] }
+tower-d8f496e17d97b5cb = { package = "tower", version = "0.5", default-features = false, features = ["log", "make", "retry"] }
 tower-http = { version = "0.5", features = ["cors", "timeout", "trace"] }
-tracing = { git = "https://github.com/tokio-rs/tracing", rev = "6d00d7d9f72dc6797138a1062bc33073afbad5a1", features = ["log"] }
-tracing-core = { git = "https://github.com/tokio-rs/tracing", rev = "6d00d7d9f72dc6797138a1062bc33073afbad5a1" }
+tracing = { version = "0.1", features = ["log"] }
+tracing-core = { version = "0.1" }
 tracing-log = { version = "0.2" }
 tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
 tungstenite = { version = "0.23", features = ["__rustls-tls", "url"] }
 ulid = { version = "1", features = ["serde"] }
-unicode-bidi = { version = "0.3" }
-unicode-normalization = { version = "0.1" }
 url = { version = "2", features = ["serde"] }
-uuid = { version = "1", features = ["serde", "v4"] }
+uuid = { version = "1", features = ["v4"] }
 wasmparser = { version = "0.218", default-features = false, features = ["features", "serde", "std", "validate"] }
 web-sys = { version = "0.3", default-features = false, features = ["AbortController", "AbortSignal", "BinaryType", "Cache", "CacheQueryOptions", "CacheStorage", "CloseEvent", "ErrorEvent", "File", "FormData", "Headers", "MessageEvent", "ProgressEvent", "QueuingStrategy", "ReadableByteStreamController", "ReadableStream", "ReadableStreamByobReader", "ReadableStreamByobRequest", "ReadableStreamDefaultController", "ReadableStreamDefaultReader", "ReadableStreamGetReaderOptions", "ReadableStreamReadResult", "ReadableStreamReaderMode", "ReadableStreamType", "ReadableWritablePair", "Request", "RequestInit", "RequestRedirect", "Response", "ResponseInit", "StreamPipeOptions", "TransformStream", "TransformStreamDefaultController", "Transformer", "UnderlyingSink", "UnderlyingSource", "WebSocket", "WorkerGlobalScope", "WritableStream", "WritableStreamDefaultController", "WritableStreamDefaultWriter", "console"] }
 zerocopy = { version = "0.7", features = ["derive", "simd"] }
 zeroize = { version = "1", features = ["zeroize_derive"] }
 
 [target.aarch64-apple-darwin.dependencies]
-deadpool = { version = "0.12", features = ["rt_tokio_1"] }
+ahash = { version = "0.8" }
 gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
 iana-time-zone = { version = "0.1", default-features = false, features = ["fallback"] }
 libc = { version = "0.2", features = ["extra_traits"] }
@@ -286,12 +277,10 @@ miniz_oxide = { version = "0.8", default-features = false, features = ["with-all
 object = { version = "0.36", default-features = false, features = ["archive", "read_core", "unaligned", "write"] }
 rustix = { version = "0.38", features = ["event", "mm", "net", "param", "process", "procfs", "termios", "thread", "time"] }
 stable_deref_trait = { version = "1" }
-tokio-postgres = { git = "https://github.com/grafbase/rust-postgres/", branch = "grafbase-rebased" }
 web-sys = { version = "0.3", default-features = false, features = ["Worker"] }
-zeroize = { version = "1", default-features = false, features = ["derive"] }
 
 [target.aarch64-apple-darwin.build-dependencies]
-deadpool = { version = "0.12", features = ["rt_tokio_1"] }
+ahash = { version = "0.8" }
 gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
 iana-time-zone = { version = "0.1", default-features = false, features = ["fallback"] }
 libc = { version = "0.2", features = ["extra_traits"] }
@@ -299,12 +288,10 @@ miniz_oxide = { version = "0.8", default-features = false, features = ["with-all
 object = { version = "0.36", default-features = false, features = ["archive", "read_core", "unaligned", "write"] }
 rustix = { version = "0.38", features = ["event", "mm", "net", "param", "process", "procfs", "termios", "thread", "time"] }
 stable_deref_trait = { version = "1" }
-tokio-postgres = { git = "https://github.com/grafbase/rust-postgres/", branch = "grafbase-rebased" }
 web-sys = { version = "0.3", default-features = false, features = ["Worker"] }
-zeroize = { version = "1", default-features = false, features = ["derive"] }
 
 [target.x86_64-apple-darwin.dependencies]
-deadpool = { version = "0.12", features = ["rt_tokio_1"] }
+ahash = { version = "0.8" }
 gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
 iana-time-zone = { version = "0.1", default-features = false, features = ["fallback"] }
 libc = { version = "0.2", features = ["extra_traits"] }
@@ -313,12 +300,10 @@ object = { version = "0.36", default-features = false, features = ["archive", "r
 rustix = { version = "0.38", features = ["event", "mm", "net", "param", "process", "procfs", "termios", "thread", "time"] }
 spin = { version = "0.9" }
 stable_deref_trait = { version = "1" }
-tokio-postgres = { git = "https://github.com/grafbase/rust-postgres/", branch = "grafbase-rebased" }
 web-sys = { version = "0.3", default-features = false, features = ["Worker"] }
-zeroize = { version = "1", default-features = false, features = ["derive"] }
 
 [target.x86_64-apple-darwin.build-dependencies]
-deadpool = { version = "0.12", features = ["rt_tokio_1"] }
+ahash = { version = "0.8" }
 gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
 iana-time-zone = { version = "0.1", default-features = false, features = ["fallback"] }
 libc = { version = "0.2", features = ["extra_traits"] }
@@ -327,34 +312,26 @@ object = { version = "0.36", default-features = false, features = ["archive", "r
 rustix = { version = "0.38", features = ["event", "mm", "net", "param", "process", "procfs", "termios", "thread", "time"] }
 spin = { version = "0.9" }
 stable_deref_trait = { version = "1" }
-tokio-postgres = { git = "https://github.com/grafbase/rust-postgres/", branch = "grafbase-rebased" }
 web-sys = { version = "0.3", default-features = false, features = ["Worker"] }
-zeroize = { version = "1", default-features = false, features = ["derive"] }
 
 [target.x86_64-pc-windows-msvc.dependencies]
-deadpool = { version = "0.12", features = ["rt_tokio_1"] }
 spin = { version = "0.9" }
-tokio-postgres = { git = "https://github.com/grafbase/rust-postgres/", branch = "grafbase-rebased" }
 web-sys = { version = "0.3", default-features = false, features = ["Worker"] }
 winapi = { version = "0.3", default-features = false, features = ["cfg", "consoleapi", "errhandlingapi", "evntrace", "fileapi", "handleapi", "impl-default", "in6addr", "inaddr", "knownfolders", "minwinbase", "minwindef", "ntsecapi", "objbase", "processenv", "processthreadsapi", "profileapi", "shlobj", "std", "synchapi", "winbase", "windef", "winerror", "winioctl", "winnt", "winuser"] }
 windows-sys-73dcd821b1037cfd = { package = "windows-sys", version = "0.59", features = ["Win32_Security_Authentication_Identity", "Win32_Security_Credentials", "Win32_Security_Cryptography", "Win32_Storage_FileSystem", "Win32_System_Console", "Win32_System_Diagnostics_Debug", "Win32_System_Kernel", "Win32_System_LibraryLoader", "Win32_System_Memory", "Win32_System_Pipes", "Win32_System_SystemInformation", "Win32_System_Threading"] }
 windows-sys-b21d60becc0929df = { package = "windows-sys", version = "0.52", features = ["Wdk_Foundation", "Wdk_Storage_FileSystem", "Wdk_System_IO", "Win32_Foundation", "Win32_NetworkManagement_IpHelper", "Win32_Networking_WinSock", "Win32_Security", "Win32_Storage_FileSystem", "Win32_System_Com", "Win32_System_Console", "Win32_System_Diagnostics_Debug", "Win32_System_IO", "Win32_System_Ioctl", "Win32_System_Kernel", "Win32_System_LibraryLoader", "Win32_System_Performance", "Win32_System_Pipes", "Win32_System_SystemServices", "Win32_System_Threading", "Win32_System_WindowsProgramming", "Win32_UI_Input_KeyboardAndMouse", "Win32_UI_Shell"] }
-windows-sys-c8eced492e86ede7 = { package = "windows-sys", version = "0.48", features = ["Win32_Foundation", "Win32_Globalization", "Win32_System_Com", "Win32_System_Console", "Win32_UI_Shell"] }
-zeroize = { version = "1", default-features = false, features = ["derive"] }
+windows-sys-c8eced492e86ede7 = { package = "windows-sys", version = "0.48", features = ["Win32_Foundation", "Win32_Globalization", "Win32_Security", "Win32_Storage_FileSystem", "Win32_System_Com", "Win32_System_Console", "Win32_System_Diagnostics_Debug", "Win32_System_Registry", "Win32_System_Time", "Win32_UI_Shell"] }
 
 [target.x86_64-pc-windows-msvc.build-dependencies]
-deadpool = { version = "0.12", features = ["rt_tokio_1"] }
 spin = { version = "0.9" }
-tokio-postgres = { git = "https://github.com/grafbase/rust-postgres/", branch = "grafbase-rebased" }
 web-sys = { version = "0.3", default-features = false, features = ["Worker"] }
 winapi = { version = "0.3", default-features = false, features = ["cfg", "consoleapi", "errhandlingapi", "evntrace", "fileapi", "handleapi", "impl-default", "in6addr", "inaddr", "knownfolders", "minwinbase", "minwindef", "ntsecapi", "objbase", "processenv", "processthreadsapi", "profileapi", "shlobj", "std", "synchapi", "winbase", "windef", "winerror", "winioctl", "winnt", "winuser"] }
 windows-sys-73dcd821b1037cfd = { package = "windows-sys", version = "0.59", features = ["Win32_Security_Authentication_Identity", "Win32_Security_Credentials", "Win32_Security_Cryptography", "Win32_Storage_FileSystem", "Win32_System_Console", "Win32_System_Diagnostics_Debug", "Win32_System_Kernel", "Win32_System_LibraryLoader", "Win32_System_Memory", "Win32_System_Pipes", "Win32_System_SystemInformation", "Win32_System_Threading"] }
 windows-sys-b21d60becc0929df = { package = "windows-sys", version = "0.52", features = ["Wdk_Foundation", "Wdk_Storage_FileSystem", "Wdk_System_IO", "Win32_Foundation", "Win32_NetworkManagement_IpHelper", "Win32_Networking_WinSock", "Win32_Security", "Win32_Storage_FileSystem", "Win32_System_Com", "Win32_System_Console", "Win32_System_Diagnostics_Debug", "Win32_System_IO", "Win32_System_Ioctl", "Win32_System_Kernel", "Win32_System_LibraryLoader", "Win32_System_Performance", "Win32_System_Pipes", "Win32_System_SystemServices", "Win32_System_Threading", "Win32_System_WindowsProgramming", "Win32_UI_Input_KeyboardAndMouse", "Win32_UI_Shell"] }
-windows-sys-c8eced492e86ede7 = { package = "windows-sys", version = "0.48", features = ["Win32_Foundation", "Win32_Globalization", "Win32_System_Com", "Win32_System_Console", "Win32_UI_Shell"] }
-zeroize = { version = "1", default-features = false, features = ["derive"] }
+windows-sys-c8eced492e86ede7 = { package = "windows-sys", version = "0.48", features = ["Win32_Foundation", "Win32_Globalization", "Win32_Security", "Win32_Storage_FileSystem", "Win32_System_Com", "Win32_System_Console", "Win32_System_Diagnostics_Debug", "Win32_System_Registry", "Win32_System_Time", "Win32_UI_Shell"] }
 
 [target.x86_64-unknown-linux-musl.dependencies]
-deadpool = { version = "0.12", features = ["rt_tokio_1"] }
+ahash = { version = "0.8" }
 gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
 iana-time-zone = { version = "0.1", default-features = false, features = ["fallback"] }
 libc = { version = "0.2", features = ["extra_traits"] }
@@ -365,12 +342,10 @@ object = { version = "0.36", default-features = false, features = ["archive", "r
 rustix = { version = "0.38", features = ["event", "mm", "net", "param", "process", "procfs", "termios", "thread", "time"] }
 spin = { version = "0.9" }
 stable_deref_trait = { version = "1" }
-tokio-postgres = { git = "https://github.com/grafbase/rust-postgres/", branch = "grafbase-rebased" }
 web-sys = { version = "0.3", default-features = false, features = ["Worker"] }
-zeroize = { version = "1", default-features = false, features = ["derive"] }
 
 [target.x86_64-unknown-linux-musl.build-dependencies]
-deadpool = { version = "0.12", features = ["rt_tokio_1"] }
+ahash = { version = "0.8" }
 gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
 iana-time-zone = { version = "0.1", default-features = false, features = ["fallback"] }
 libc = { version = "0.2", features = ["extra_traits"] }
@@ -381,12 +356,10 @@ object = { version = "0.36", default-features = false, features = ["archive", "r
 rustix = { version = "0.38", features = ["event", "mm", "net", "param", "process", "procfs", "termios", "thread", "time"] }
 spin = { version = "0.9" }
 stable_deref_trait = { version = "1" }
-tokio-postgres = { git = "https://github.com/grafbase/rust-postgres/", branch = "grafbase-rebased" }
 web-sys = { version = "0.3", default-features = false, features = ["Worker"] }
-zeroize = { version = "1", default-features = false, features = ["derive"] }
 
 [target.aarch64-unknown-linux-musl.dependencies]
-deadpool = { version = "0.12", features = ["rt_tokio_1"] }
+ahash = { version = "0.8" }
 gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
 iana-time-zone = { version = "0.1", default-features = false, features = ["fallback"] }
 libc = { version = "0.2", features = ["extra_traits"] }
@@ -396,12 +369,10 @@ mio = { version = "1", features = ["net", "os-ext"] }
 object = { version = "0.36", default-features = false, features = ["archive", "read_core", "unaligned", "write"] }
 rustix = { version = "0.38", features = ["event", "mm", "net", "param", "process", "procfs", "termios", "thread", "time"] }
 stable_deref_trait = { version = "1" }
-tokio-postgres = { git = "https://github.com/grafbase/rust-postgres/", branch = "grafbase-rebased" }
 web-sys = { version = "0.3", default-features = false, features = ["Worker"] }
-zeroize = { version = "1", default-features = false, features = ["derive"] }
 
 [target.aarch64-unknown-linux-musl.build-dependencies]
-deadpool = { version = "0.12", features = ["rt_tokio_1"] }
+ahash = { version = "0.8" }
 gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
 iana-time-zone = { version = "0.1", default-features = false, features = ["fallback"] }
 libc = { version = "0.2", features = ["extra_traits"] }
@@ -411,28 +382,28 @@ mio = { version = "1", features = ["net", "os-ext"] }
 object = { version = "0.36", default-features = false, features = ["archive", "read_core", "unaligned", "write"] }
 rustix = { version = "0.38", features = ["event", "mm", "net", "param", "process", "procfs", "termios", "thread", "time"] }
 stable_deref_trait = { version = "1" }
-tokio-postgres = { git = "https://github.com/grafbase/rust-postgres/", branch = "grafbase-rebased" }
 web-sys = { version = "0.3", default-features = false, features = ["Worker"] }
-zeroize = { version = "1", default-features = false, features = ["derive"] }
 
 [target.wasm32-unknown-unknown.dependencies]
 getrandom = { version = "0.2", default-features = false, features = ["js"] }
 gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
+itertools = { version = "0.12" }
 libc = { version = "0.2", features = ["extra_traits"] }
 miniz_oxide = { version = "0.8", default-features = false, features = ["with-alloc"] }
 nom = { version = "7" }
 object = { version = "0.36", default-features = false, features = ["archive", "read_core", "unaligned", "write"] }
 rustix = { version = "0.38", features = ["net", "process", "procfs", "termios", "time"] }
-web-sys = { version = "0.3", default-features = false, features = ["BlobPropertyBag", "CanvasRenderingContext2d", "Document", "DomRect", "HtmlCanvasElement", "Location", "Navigator", "Performance", "RequestCredentials", "RequestMode", "ServiceWorkerGlobalScope", "Window", "Worker"] }
+web-sys = { version = "0.3", default-features = false, features = ["BlobPropertyBag", "CanvasRenderingContext2d", "Document", "DomRect", "HtmlCanvasElement", "Performance", "RequestCredentials", "RequestMode", "ServiceWorkerGlobalScope", "Window", "Worker"] }
 
 [target.wasm32-unknown-unknown.build-dependencies]
 getrandom = { version = "0.2", default-features = false, features = ["js"] }
 gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
+itertools = { version = "0.12" }
 libc = { version = "0.2", features = ["extra_traits"] }
 miniz_oxide = { version = "0.8", default-features = false, features = ["with-alloc"] }
 nom = { version = "7" }
 object = { version = "0.36", default-features = false, features = ["archive", "read_core", "unaligned", "write"] }
 rustix = { version = "0.38", features = ["net", "process", "procfs", "termios", "time"] }
-web-sys = { version = "0.3", default-features = false, features = ["BlobPropertyBag", "CanvasRenderingContext2d", "Document", "DomRect", "HtmlCanvasElement", "Location", "Navigator", "Performance", "RequestCredentials", "RequestMode", "ServiceWorkerGlobalScope", "Window", "Worker"] }
+web-sys = { version = "0.3", default-features = false, features = ["BlobPropertyBag", "CanvasRenderingContext2d", "Document", "DomRect", "HtmlCanvasElement", "Performance", "RequestCredentials", "RequestMode", "ServiceWorkerGlobalScope", "Window", "Worker"] }
 
 ### END HAKARI SECTION

@@ -30,13 +30,13 @@ schema = { path = "../schema", package = "engine-v2-schema" }
 ctor.workspace = true
 serde.workspace = true
 similar = "2"
-engine-parser = { path = "../../engine/parser" }
+engine-parser = { path = "../parser" }
 config = { path = "../config", package = "engine-v2-config" }
 federated-graph.workspace = true
 tracing-subscriber = { workspace = true, features = [
-  "fmt",
-  "tracing-log",
-  "env-filter",
-  "ansi",
+    "fmt",
+    "tracing-log",
+    "env-filter",
+    "ansi",
 ] }
 insta.workspace = true

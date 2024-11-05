@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use async_runtime::stream::StreamExt as _;
 use engine_parser::types::OperationType;
 use futures::{
     channel::{mpsc, oneshot},
@@ -22,6 +21,7 @@ use crate::{
     execution::{PreExecutionContext, ResponseSender},
     request::Request,
     response::{ErrorCode, ErrorCodeCounter, Response},
+    stream::StreamJoinExt,
     Engine, Runtime,
 };
 

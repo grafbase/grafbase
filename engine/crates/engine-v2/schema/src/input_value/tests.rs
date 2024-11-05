@@ -9,7 +9,7 @@ use super::*;
 fn create_schema_and_input_value() -> (Schema, SchemaInputValueId) {
     const SDL: &str = r###"
     input InputObject {
-        fieldA: State 
+        fieldA: State
         fieldB: String
     }
 
@@ -55,7 +55,7 @@ fn create_schema_and_input_value() -> (Schema, SchemaInputValueId) {
     "###;
 
     let graph = federated_graph::from_sdl(SDL).unwrap();
-    let config = config::VersionedConfig::V6(config::latest::Config::from_graph(graph)).into_latest();
+    let config = config::Config::from_graph(graph);
     let schema = Schema::build(config, Version::from(Vec::new())).unwrap();
 
     let id = schema

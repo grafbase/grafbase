@@ -1,8 +1,8 @@
 use ::runtime::operation_cache::OperationCacheFactory;
 use bytes::Bytes;
+use engine_v2_auth::AuthService;
 use futures::{StreamExt, TryFutureExt};
 use futures_util::Stream;
-use gateway_v2_auth::AuthService;
 use retry_budget::RetryBudgets;
 use schema::Schema;
 use std::{borrow::Cow, future::Future, sync::Arc};
@@ -40,7 +40,7 @@ impl<R: Runtime> Engine<R> {
     /// schema_version is used in operation cache key which ensures we only retrieve cached
     /// operation for the same schema version. If none is provided, a random one is generated.
     pub async fn new(schema: Arc<Schema>, runtime: R) -> Self {
-        let auth = gateway_v2_auth::AuthService::new_v2(
+        let auth = AuthService::new_v2(
             schema.settings.auth_config.clone().unwrap_or_default(),
             runtime.kv().clone(),
         );
