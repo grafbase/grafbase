@@ -1,35 +1,30 @@
-use serde::ser::{SerializeMap, SerializeSeq};
+use serde::ser::SerializeMap;
 
-use super::{ResponseObjectView, ResponseObjectWithExtraFieldsWalker, ResponseValueWalker};
-use crate::response::{ResponseListId, ResponseObjectId, ResponseValue};
+use super::{
+    ResponseObjectView, ResponseObjectViewWithExtraFields, ResponseObjectsView, ResponseObjectsViewWithExtraFields,
+    ResponseValueView,
+};
+use crate::response::{ResponseListId, ResponseObjectId, ResponseValue, NULL};
 
-impl<'a> serde::Serialize for super::ResponseObjectsView<'a> {
+impl<'a> serde::Serialize for ResponseObjectsView<'a> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,
     {
-        let mut seq = serializer.serialize_seq(None)?;
-        for item in self.clone() {
-            seq.serialize_element(&item)?;
-        }
-        seq.end()
+        serializer.collect_seq(self.clone())
     }
 }
 
-impl<'a> serde::Serialize for super::ResponseObjectsViewWithExtraFields<'a> {
+impl<'a> serde::Serialize for ResponseObjectsViewWithExtraFields<'a> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,
     {
-        let mut seq = serializer.serialize_seq(None)?;
-        for item in self.iter() {
-            seq.serialize_element(&item)?;
-        }
-        seq.end()
+        serializer.collect_seq(self.iter())
     }
 }
 
-impl<'a> serde::Serialize for ResponseObjectWithExtraFieldsWalker<'a> {
+impl<'a> serde::Serialize for ResponseObjectViewWithExtraFields<'a> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,
@@ -37,21 +32,17 @@ impl<'a> serde::Serialize for ResponseObjectWithExtraFieldsWalker<'a> {
         let mut map = serializer.serialize_map(Some(self.selection_set.len() + self.extra_constant_fields.len()))?;
 
         for (name, value) in self.extra_constant_fields {
-            map.serialize_key(name)?;
-            map.serialize_value(value)?;
+            map.serialize_entry(name, value)?
         }
 
-        for selection in &self.ctx.response_views[self.selection_set] {
-            map.serialize_key(&self.ctx.schema[selection.name])?;
-            if let Some(value) = self.response_object.find_required_field(selection.id) {
-                map.serialize_value(&ResponseValueWalker {
-                    ctx: self.ctx,
-                    value,
-                    selection_set: selection.subselection,
-                })?;
-            } else {
-                map.serialize_value(&None::<()>)?
-            }
+        for selection in self.selection_set {
+            let key = self.ctx.schema[selection.alias_id].as_str();
+            let value = ResponseValueView {
+                ctx: self.ctx,
+                value: self.response_object.find_required_field(selection.id).unwrap_or(&NULL),
+                selection_set: &selection.subselection,
+            };
+            map.serialize_entry(key, &value)?;
         }
 
         map.end()
@@ -63,26 +54,20 @@ impl<'a> serde::Serialize for ResponseObjectView<'a> {
     where
         S: serde::Serializer,
     {
-        let mut map = serializer.serialize_map(Some(self.selection_set.len()))?;
+        serializer.collect_map(self.selection_set.iter().map(|selection| {
+            let key = self.ctx.schema[selection.alias_id].as_str();
+            let value = ResponseValueView {
+                ctx: self.ctx,
+                value: self.response_object.find_required_field(selection.id).unwrap_or(&NULL),
+                selection_set: &selection.subselection,
+            };
 
-        for selection in &self.ctx.response_views[self.selection_set] {
-            map.serialize_key(&self.ctx.schema[selection.name])?;
-            if let Some(value) = self.response_object.find_required_field(selection.id) {
-                map.serialize_value(&ResponseValueWalker {
-                    ctx: self.ctx,
-                    value,
-                    selection_set: selection.subselection,
-                })?;
-            } else {
-                map.serialize_value(&None::<()>)?
-            }
-        }
-
-        map.end()
+            (key, value)
+        }))
     }
 }
 
-impl<'a> serde::Serialize for ResponseValueWalker<'a> {
+impl<'a> serde::Serialize for ResponseValueView<'a> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,
@@ -106,15 +91,11 @@ impl<'a> serde::Serialize for ResponseValueWalker<'a> {
                     offset,
                     length,
                 }];
-                let mut seq = serializer.serialize_seq(Some(values.len()))?;
-                for value in values {
-                    seq.serialize_element(&ResponseValueWalker {
-                        ctx: self.ctx,
-                        value,
-                        selection_set: self.selection_set,
-                    })?;
-                }
-                seq.end()
+                serializer.collect_seq(values.iter().map(|value| ResponseValueView {
+                    ctx: self.ctx,
+                    value,
+                    selection_set: self.selection_set,
+                }))
             }
             &ResponseValue::Object { part_id, index, .. } => ResponseObjectView {
                 ctx: self.ctx,
