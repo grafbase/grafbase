@@ -179,6 +179,20 @@ pub(super) fn ingest_directives(
                 );
             };
         }
+
+        if directive_matcher.is_cost(directive_name) {
+            let Some(weight) = directive.node.get_argument("weight") else {
+                todo!("error")
+            };
+            let ConstValue::Number(weight) = &weight.node else {
+                todo!("error")
+            };
+            let Some(weight) = weight.as_i64().and_then(|int| i32::try_from(int).ok()) else {
+                todo!("error")
+            };
+
+            subgraphs.set_cost(directive_site_id, weight);
+        }
     }
 }
 
@@ -288,6 +302,7 @@ pub(crate) struct DirectiveMatcher<'a> {
     authenticated: Cow<'a, str>,
     policy: Cow<'a, str>,
     tag: Cow<'a, str>,
+    cost: Cow<'a, str>,
 
     /// directive name -> is repeatable
     ///
@@ -314,6 +329,7 @@ impl Default for DirectiveMatcher<'_> {
             requires_scopes: Cow::Borrowed(REQUIRES_SCOPES),
             shareable: Cow::Borrowed(SHAREABLE),
             tag: Cow::Borrowed(TAG),
+            cost: Cow::Borrowed(COST),
         }
     }
 }
@@ -372,6 +388,7 @@ impl<'a> DirectiveMatcher<'a> {
             requires_scopes: final_name(REQUIRES_SCOPES),
             shareable: final_name(SHAREABLE),
             tag: final_name(TAG),
+            cost: final_name(COST),
         }
     }
 
@@ -445,6 +462,10 @@ impl<'a> DirectiveMatcher<'a> {
 
     pub(crate) fn is_tag(&self, directive_name: &str) -> bool {
         self.tag == directive_name
+    }
+
+    fn is_cost(&self, directive_name: &str) -> bool {
+        self.cost == directive_name
     }
 }
 
