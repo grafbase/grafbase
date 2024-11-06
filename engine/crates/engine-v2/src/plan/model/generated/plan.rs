@@ -5,10 +5,11 @@
 //! Source file: <engine-v2-codegen dir>/domain/operation_plan.graphql
 use crate::plan::model::{
     generated::{
-        DataField, ResponseObjectSetDefinition, ResponseObjectSetDefinitionId, SelectionSet, SelectionSetRecord,
+        DataPlanField, PlanSelectionSet, PlanSelectionSetRecord, ResponseObjectSetDefinition,
+        ResponseObjectSetDefinitionId,
     },
     prelude::*,
-    DataFieldRefId,
+    DataPlanFieldRefId,
 };
 use schema::{EntityDefinition, EntityDefinitionId, ResolverDefinition, ResolverDefinitionId};
 use walker::{Iter, Walk};
@@ -19,10 +20,9 @@ use walker::{Iter, Walk};
 /// type Plan @indexed(id_size: "u16") @meta(module: "plan") {
 ///   entity_definition: EntityDefinition!
 ///   resolver_definition: ResolverDefinition!
-///   selection_set: SelectionSet!
-///   required_fields: [DataFieldRef!]!
+///   selection_set: PlanSelectionSet!
+///   required_scalar_fields: [DataPlanFieldRef!]!
 ///   input: ResponseObjectSetDefinition!
-///   outputs: [ResponseObjectSetDefinition!]!
 ///   shape_id: ConcreteObjectShapeId!
 /// }
 /// ```
@@ -30,10 +30,9 @@ use walker::{Iter, Walk};
 pub(crate) struct PlanRecord {
     pub entity_definition_id: EntityDefinitionId,
     pub resolver_definition_id: ResolverDefinitionId,
-    pub selection_set_record: SelectionSetRecord,
-    pub required_field_ids: IdRange<DataFieldRefId>,
+    pub selection_set_record: PlanSelectionSetRecord,
+    pub required_scalar_field_ids: IdRange<DataPlanFieldRefId>,
     pub input_id: ResponseObjectSetDefinitionId,
-    pub output_ids: Vec<ResponseObjectSetDefinitionId>,
     pub shape_id: ConcreteObjectShapeId,
 }
 
@@ -69,17 +68,14 @@ impl<'a> Plan<'a> {
     pub(crate) fn resolver_definition(&self) -> ResolverDefinition<'a> {
         self.resolver_definition_id.walk(self.ctx.schema)
     }
-    pub(crate) fn selection_set(&self) -> SelectionSet<'a> {
+    pub(crate) fn selection_set(&self) -> PlanSelectionSet<'a> {
         self.selection_set_record.walk(self.ctx)
     }
-    pub(crate) fn required_fields(&self) -> impl Iter<Item = DataField<'a>> + 'a {
-        self.required_field_ids.walk(self.ctx)
+    pub(crate) fn required_scalar_fields(&self) -> impl Iter<Item = DataPlanField<'a>> + 'a {
+        self.required_scalar_field_ids.walk(self.ctx)
     }
     pub(crate) fn input(&self) -> ResponseObjectSetDefinition<'a> {
         self.input_id.walk(self.ctx)
-    }
-    pub(crate) fn outputs(&self) -> impl Iter<Item = ResponseObjectSetDefinition<'a>> + 'a {
-        self.as_ref().output_ids.walk(self.ctx)
     }
 }
 
@@ -100,9 +96,8 @@ impl std::fmt::Debug for Plan<'_> {
             .field("entity_definition", &self.entity_definition())
             .field("resolver_definition", &self.resolver_definition())
             .field("selection_set", &self.selection_set())
-            .field("required_fields", &self.required_fields())
+            .field("required_scalar_fields", &self.required_scalar_fields())
             .field("input", &self.input())
-            .field("outputs", &self.outputs())
             .field("shape_id", &self.shape_id)
             .finish()
     }

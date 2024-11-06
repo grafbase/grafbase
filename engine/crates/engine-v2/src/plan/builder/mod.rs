@@ -17,10 +17,9 @@ use crate::{
 };
 
 use super::{
-    error::PlanError, DataFieldId, DataFieldRecord, FieldArgumentId, FieldArgumentRecord, FieldId, OperationPlan,
-    PlanId, PlanRecord, PlanResult, QueryModifierDefinitionRecord, ResponseModifierDefinitionRecord,
-    ResponseObjectSetDefinitionId, SelectionSetRecord, TypenameFieldRecord, VariableDefinitionId,
-    VariableDefinitionRecord,
+    DataPlanFieldId, DataPlanFieldRecord, FieldArgumentId, FieldArgumentRecord, OperationPlan, PlanFieldId, PlanId,
+    PlanRecord, PlanResult, PlanSelectionSetRecord, QueryModifierDefinitionRecord, ResponseModifierDefinitionRecord,
+    ResponseObjectSetDefinitionId, TypenamePlanFieldRecord, VariableDefinitionId, VariableDefinitionRecord,
 };
 
 impl OperationPlan {
@@ -51,7 +50,7 @@ impl OperationPlan {
             nested_fields_buffer_pool: BufferPool::default(),
             edges_buffer: BufferPool::default(),
             plan_stack: Vec::new(),
-            query_field_node_to_field: Vec::new(),
+            scalar_query_field_node_to_field: Vec::new(),
             field_to_providable_field_node: Vec::new(),
             plan_to_resolver_node: Vec::new(),
             bound_field_to_field: Vec::new(),
@@ -71,10 +70,10 @@ struct OperationPlanBuilder<'a> {
     plan_stack: Vec<PlanToCreate>,
     query_field_node_to_response_object_set: HashMap<NodeIndex, ResponseObjectSetDefinitionId>,
     // one to one, sorted after the plan generation.
-    query_field_node_to_field: Vec<(NodeIndex, DataFieldId)>,
-    bound_field_to_field: Vec<(BoundFieldId, FieldId)>,
+    scalar_query_field_node_to_field: Vec<(NodeIndex, DataPlanFieldId)>,
+    bound_field_to_field: Vec<(BoundFieldId, PlanFieldId)>,
     // Populated during plan generation, drained while populating requirements.
-    field_to_providable_field_node: Vec<(DataFieldId, NodeIndex)>,
+    field_to_providable_field_node: Vec<(DataPlanFieldId, NodeIndex)>,
     // Populated during plan generation, drained while populating requirements.
     plan_to_resolver_node: Vec<(PlanId, NodeIndex)>,
 }
@@ -87,13 +86,13 @@ struct PlanToCreate {
 
 enum NestedField {
     Data {
-        record: DataFieldRecord,
+        record: DataPlanFieldRecord,
         bound_field_id: BoundFieldId,
         providable_field_node_ix: NodeIndex,
         query_field_node_ix: NodeIndex,
     },
     Typename {
-        record: TypenameFieldRecord,
+        record: TypenamePlanFieldRecord,
         bound_field_id: BoundFieldId,
     },
 }
@@ -140,30 +139,25 @@ impl OperationPlanBuilder<'_> {
             resolver,
         }: PlanToCreate,
     ) {
-        let fields_start = self.operation_plan.data_fields.len();
-        let (_, selection_set_record) = self.generate_selection_set(resolver_node_ix);
-        let output_ids = self.operation_plan.data_fields[fields_start..]
-            .iter()
-            .filter_map(|field| field.output_id)
-            .collect();
+        let plan_id = PlanId::from(self.operation_plan.plans.len());
+        let (_, selection_set_record) = self.generate_selection_set(plan_id, resolver_node_ix);
         self.operation_plan.plans.push(PlanRecord {
             entity_definition_id: resolver.entity_definition_id,
             resolver_definition_id: resolver.definition_id,
             selection_set_record,
             input_id,
-            output_ids,
             // Populated later
-            required_field_ids: IdRange::empty(),
+            required_scalar_field_ids: IdRange::empty(),
             shape_id: ConcreteObjectShapeId::from(0usize),
         });
-        let plan_id = PlanId::from(self.operation_plan.plans.len() - 1);
         self.plan_to_resolver_node.push((plan_id, resolver_node_ix));
     }
 
     fn generate_selection_set(
         &mut self,
+        plan_id: PlanId,
         node_ix: NodeIndex,
-    ) -> (Option<ResponseObjectSetDefinitionId>, SelectionSetRecord) {
+    ) -> (Option<ResponseObjectSetDefinitionId>, PlanSelectionSetRecord) {
         let mut fields_buffer = self.nested_fields_buffer_pool.pop();
         let mut provided_query_field_ix = None;
         let mut edges = self.graph.neighbors(node_ix).detach();
@@ -185,9 +179,9 @@ impl OperationPlanBuilder<'_> {
                     {
                         let bound_field_id = field.id;
                         let matching_requirement_id = field.matching_requirement_id;
-                        match self.operation[bound_field_id].to_field() {
+                        match self.operation[bound_field_id].to_field(plan_id) {
                             Ok(mut record) => {
-                                let (ouput_id, selection_set) = self.generate_selection_set(neighbor);
+                                let (ouput_id, selection_set) = self.generate_selection_set(plan_id, neighbor);
                                 record.selection_set_record = selection_set;
                                 record.output_id = ouput_id;
                                 record.matching_requirement_id = matching_requirement_id;
@@ -254,7 +248,7 @@ impl OperationPlanBuilder<'_> {
                     }
                     Edge::TypenameField => {
                         if let Node::QueryField(field) = &self.graph[edge.target()] {
-                            match self.operation[field.id].to_field() {
+                            match self.operation[field.id].to_field(plan_id) {
                                 Ok(_) => unreachable!("Cannot be a DataField"),
                                 Err(record) => {
                                     fields_buffer.push(NestedField::Typename {
@@ -285,17 +279,19 @@ impl OperationPlanBuilder<'_> {
                     providable_field_node_ix,
                     query_field_node_ix,
                 } => {
+                    let data_field_id = DataPlanFieldId::from(self.operation_plan.data_fields.len());
+                    if record.definition_id.walk(self.schema).ty().definition_id.is_scalar() {
+                        self.scalar_query_field_node_to_field
+                            .push((query_field_node_ix, data_field_id))
+                    }
                     self.operation_plan.data_fields.push(record);
-                    let data_field_id = DataFieldId::from(self.operation_plan.data_fields.len() - 1);
                     self.bound_field_to_field.push((bound_field_id, data_field_id.into()));
                     self.field_to_providable_field_node
                         .push((data_field_id, providable_field_node_ix));
-                    self.query_field_node_to_field
-                        .push((query_field_node_ix, data_field_id))
                 }
                 NestedField::Typename { record, bound_field_id } => {
                     self.operation_plan.typename_fields.push(record);
-                    let typename_field_id = DataFieldId::from(self.operation_plan.typename_fields.len() - 1);
+                    let typename_field_id = DataPlanFieldId::from(self.operation_plan.typename_fields.len() - 1);
                     self.bound_field_to_field
                         .push((bound_field_id, typename_field_id.into()));
                 }
@@ -303,7 +299,7 @@ impl OperationPlanBuilder<'_> {
         }
         self.nested_fields_buffer_pool.push(fields_buffer);
 
-        let selection_set = SelectionSetRecord {
+        let selection_set = PlanSelectionSetRecord {
             data_field_ids: IdRange::from(data_fields_start..self.operation_plan.data_fields.len()),
             typename_field_ids: IdRange::from(typename_fields_start..self.operation_plan.typename_fields.len()),
         };
@@ -312,7 +308,18 @@ impl OperationPlanBuilder<'_> {
     }
 
     fn populate_requirements_after_plan_generation(&mut self) -> PlanResult<()> {
-        self.query_field_node_to_field.sort_unstable();
+        self.scalar_query_field_node_to_field.sort_unstable();
+
+        fn get_scalar_field_id_for(
+            builder: &OperationPlanBuilder<'_>,
+            query_field_node_ix: NodeIndex,
+        ) -> Option<DataPlanFieldId> {
+            builder
+                .scalar_query_field_node_to_field
+                .binary_search_by(|probe| probe.0.cmp(&query_field_node_ix))
+                .map(|i| builder.scalar_query_field_node_to_field[i].1)
+                .ok()
+        }
 
         for (plan_id, resolver_node_ix) in std::mem::take(&mut self.plan_to_resolver_node) {
             let start = self.operation_plan.data_field_refs.len();
@@ -320,14 +327,11 @@ impl OperationPlanBuilder<'_> {
                 if !matches!(edge.weight(), Edge::Requires) {
                     continue;
                 }
-                self.operation_plan
-                    .data_field_refs
-                    .push(self.get_field_id_for(edge.target()).ok_or_else(|| {
-                        tracing::error!("Plan depends on an unknown query field node.");
-                        PlanError::InternalError
-                    })?);
+                if let Some(field_id) = get_scalar_field_id_for(self, edge.target()) {
+                    self.operation_plan.data_field_refs.push(field_id);
+                }
             }
-            self.operation_plan[plan_id].required_field_ids =
+            self.operation_plan[plan_id].required_scalar_field_ids =
                 IdRange::from(start..self.operation_plan.data_field_refs.len());
         }
 
@@ -339,40 +343,28 @@ impl OperationPlanBuilder<'_> {
                     Edge::Provides => {
                         debug_assert!(matches!(self.graph[edge.target()], Node::QueryField(_)));
                         for edge in self.graph.edges(edge.target()) {
-                            if matches!(edge.weight(), Edge::Requires) {
-                                self.operation_plan.data_field_refs.push(
-                                    self.get_field_id_for(edge.target()).ok_or_else(|| {
-                                        tracing::error!("Field depends on an unknown query field node.");
-                                        PlanError::InternalError
-                                    })?,
-                                );
+                            if !matches!(edge.weight(), Edge::Requires) {
+                                continue;
+                            }
+                            if let Some(field_id) = get_scalar_field_id_for(self, edge.target()) {
+                                self.operation_plan.data_field_refs.push(field_id);
                             }
                         }
                     }
                     Edge::Requires => {
-                        self.operation_plan
-                            .data_field_refs
-                            .push(self.get_field_id_for(edge.target()).ok_or_else(|| {
-                                tracing::error!("Field depends on an unknown query field node.");
-                                PlanError::InternalError
-                            })?);
+                        if let Some(field_id) = get_scalar_field_id_for(self, edge.target()) {
+                            self.operation_plan.data_field_refs.push(field_id);
+                        }
                     }
                     _ => (),
                 }
             }
 
             let required_field_ids = IdRange::from(start..self.operation_plan.data_field_refs.len());
-            self.operation_plan[field_id].required_field_ids = required_field_ids;
+            self.operation_plan[field_id].required_scalar_field_ids = required_field_ids;
         }
 
         Ok(())
-    }
-
-    fn get_field_id_for(&self, query_field_node_ix: NodeIndex) -> Option<DataFieldId> {
-        self.query_field_node_to_field
-            .binary_search_by(|probe| probe.0.cmp(&query_field_node_ix))
-            .map(|i| self.query_field_node_to_field[i].1)
-            .ok()
     }
 
     fn populate_modifiers_after_plan_generation(&mut self) -> PlanResult<()> {
@@ -418,25 +410,26 @@ impl OperationPlanBuilder<'_> {
 }
 
 impl BoundField {
-    fn to_field(&self) -> Result<DataFieldRecord, TypenameFieldRecord> {
+    fn to_field(&self, plan_id: PlanId) -> Result<DataPlanFieldRecord, TypenamePlanFieldRecord> {
         match self {
-            BoundField::Query(field) => Ok(DataFieldRecord {
+            BoundField::Query(field) => Ok(DataPlanFieldRecord {
                 key: field.bound_response_key.into(),
                 location: field.location,
                 definition_id: field.definition_id,
                 argument_ids: IdRange::from_start_and_end(field.argument_ids.start, field.argument_ids.end),
+                plan_id,
                 // All set later
-                selection_set_record: SelectionSetRecord {
+                selection_set_record: PlanSelectionSetRecord {
                     data_field_ids: IdRange::empty(),
                     typename_field_ids: IdRange::empty(),
                 },
-                required_field_ids: IdRange::empty(),
+                required_scalar_field_ids: IdRange::empty(),
                 output_id: None,
                 matching_requirement_id: None,
                 selection_set_requires_typename: false,
                 shape_ids: IdRange::empty(),
             }),
-            BoundField::Extra(field) => Ok(DataFieldRecord {
+            BoundField::Extra(field) => Ok(DataPlanFieldRecord {
                 key: PositionedResponseKey {
                     // Having no query position is equivalent to being an
                     // extra field.
@@ -446,18 +439,19 @@ impl BoundField {
                 location: field.petitioner_location,
                 definition_id: field.definition_id,
                 argument_ids: IdRange::from_start_and_end(field.argument_ids.start, field.argument_ids.end),
+                plan_id,
                 // All set later
-                selection_set_record: SelectionSetRecord {
+                selection_set_record: PlanSelectionSetRecord {
                     data_field_ids: IdRange::empty(),
                     typename_field_ids: IdRange::empty(),
                 },
-                required_field_ids: IdRange::empty(),
+                required_scalar_field_ids: IdRange::empty(),
                 output_id: None,
                 matching_requirement_id: None,
                 selection_set_requires_typename: false,
                 shape_ids: IdRange::empty(),
             }),
-            BoundField::TypeName(field) => Err(TypenameFieldRecord {
+            BoundField::TypeName(field) => Err(TypenamePlanFieldRecord {
                 key: field.bound_response_key.into(),
                 location: field.location,
                 type_condition_id: field.type_condition.into(),

@@ -168,6 +168,8 @@ scalar RequiredFieldSet @indexed @record
 type RequiredField
   @meta(module: "field_set", derive: ["PartialEq", "Eq", "PartialOrd", "Ord"], debug: false)
   @indexed(id_size: "u32", deduplicated: true) {
+  "If no alias is provided, it's set to field name"
+  alias: String!
   definition: FieldDefinition!
   arguments: [RequiredFieldArgument!]!
 }

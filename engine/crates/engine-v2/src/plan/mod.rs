@@ -25,5 +25,6 @@ pub async fn create_execution_plan(
     operation_plan: &OperationPlan,
     variables: &Variables,
 ) -> PlanResult<ExecutionPlan> {
-    ExecutionPlan::build(ctx, operation_plan, variables).await
+    let query_modifications = QueryModifications::build(ctx, operation_plan, variables).await?;
+    Ok(todo!())
 }
