@@ -10,7 +10,7 @@ pub(crate) struct ResponseObject {
     /// fields are ordered by the position they appear in the query.
     /// We use ResponseEdge here, but it'll never be an index out of the 3 possible variants.
     /// That's something we should rework at some point, but it's convenient for now.
-    fields: Vec<ResponseObjectField>,
+    pub(super) fields_sorted_by_edge: Vec<ResponseObjectField>,
 }
 
 #[derive(Debug, Clone)]
@@ -23,31 +23,33 @@ pub(crate) struct ResponseObjectField {
 impl ResponseObject {
     pub fn new(mut fields: Vec<ResponseObjectField>) -> Self {
         fields.sort_unstable_by(|a, b| a.edge.cmp(&b.edge));
-        Self { fields }
+        Self {
+            fields_sorted_by_edge: fields,
+        }
     }
 
     pub fn extend(&mut self, fields: Vec<ResponseObjectField>) {
-        self.fields.extend(fields);
-        self.fields.sort_unstable_by(|a, b| a.edge.cmp(&b.edge));
+        self.fields_sorted_by_edge.extend(fields);
+        self.fields_sorted_by_edge.sort_unstable_by(|a, b| a.edge.cmp(&b.edge));
     }
 
     pub fn len(&self) -> usize {
-        self.fields.len()
+        self.fields_sorted_by_edge.len()
     }
 
     pub fn fields(&self) -> impl Iterator<Item = &ResponseObjectField> {
-        self.fields.iter()
+        self.fields_sorted_by_edge.iter()
     }
 
     // FIXME: Shouldn't store by edge nor should the response path...
     pub(super) fn field_position(&self, edge: ResponseEdge) -> Option<usize> {
-        self.fields
+        self.fields_sorted_by_edge
             .binary_search_by(|field| field.edge.cmp(&edge))
             .ok()
             .or_else(|| match edge.as_response_key() {
                 Some(key) => {
                     return self
-                        .fields
+                        .fields_sorted_by_edge
                         .iter()
                         .position(|field| field.edge.as_response_key() == Some(key));
                 }
@@ -56,7 +58,7 @@ impl ResponseObject {
     }
 
     pub(super) fn find_required_field(&self, id: RequiredFieldId) -> Option<&ResponseValue> {
-        self.fields
+        self.fields_sorted_by_edge
             .iter()
             .find(|field| field.required_field_id == Some(id))
             .map(|field| &field.value)
@@ -67,13 +69,13 @@ impl std::ops::Index<usize> for ResponseObject {
     type Output = ResponseValue;
 
     fn index(&self, index: usize) -> &Self::Output {
-        &self.fields[index].value
+        &self.fields_sorted_by_edge[index].value
     }
 }
 
 impl std::ops::IndexMut<usize> for ResponseObject {
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
-        &mut self.fields[index].value
+        &mut self.fields_sorted_by_edge[index].value
     }
 }
 
