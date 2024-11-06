@@ -1,4 +1,6 @@
+mod field;
 mod generated;
+mod hydrate;
 mod prelude;
 
 use std::num::NonZero;
@@ -8,6 +10,7 @@ use crate::{
     response::{FieldShapeId, ResponseKeys, Shapes},
 };
 pub(crate) use generated::*;
+pub(crate) use hydrate::*;
 use schema::Schema;
 use walker::Walk;
 
@@ -33,9 +36,9 @@ pub(crate) struct OperationPlan {
     pub response_object_set_definitions: Vec<ResponseObjectSetDefinitionRecord>,
     pub response_keys: ResponseKeys,
     // deduplicated by rule
-    pub query_modifiers: Vec<QueryModifierRecord>,
+    pub query_modifier_definitions: Vec<QueryModifierDefinitionRecord>,
     // deduplicated by rule
-    pub response_modifiers: Vec<ResponseModifierRecord>,
+    pub response_modifier_definitions: Vec<ResponseModifierDefinitionRecord>,
     #[allow(unused)]
     pub query_input_values: QueryInputValues,
     pub shapes: Shapes,

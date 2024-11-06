@@ -34,7 +34,7 @@ impl<'schema, 'p> Binder<'schema, 'p> {
         definition_id: FieldDefinitionId,
         Positioned { pos, node: field }: &'p Positioned<engine_parser::types::Field>,
         selection_set_id: Option<BoundSelectionSetId>,
-        additional_modifiers: Vec<QueryModifierRule>,
+        executable_directive_rules: Vec<QueryModifierRule>,
     ) -> BindResult<BoundFieldId> {
         let location: Location = (*pos).try_into()?;
         let definition: FieldDefinition<'_> = self.schema.walk(definition_id);
@@ -71,7 +71,7 @@ impl<'schema, 'p> Binder<'schema, 'p> {
             parent_selection_set_id,
         }));
 
-        self.generate_field_modifiers(field_id, argument_ids, definition, additional_modifiers);
+        self.generate_field_modifiers(field_id, argument_ids, definition, executable_directive_rules);
         Ok(field_id)
     }
 

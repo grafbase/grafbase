@@ -1,18 +1,31 @@
-use schema::{InputValueSerdeError, InputValueSet};
+mod de;
+mod ser;
+
+use schema::{InputValueSerdeError, InputValueSet, SchemaInputValueView};
 use serde::{
     de::{value::MapDeserializer, IntoDeserializer},
     forward_to_deserialize_any,
     ser::SerializeMap,
 };
 
-use super::{QueryInputValueRecord, QueryInputValueWalker};
+use super::{QueryInputValue, QueryInputValueRecord, QueryInputValueWalker};
 
 pub(crate) struct QueryInputValueView<'a> {
+    pub(super) value: QueryInputValue<'a>,
+    pub(super) selection_set: &'a InputValueSet,
+}
+
+pub(crate) enum QueryOrSchemaInputValueView<'a> {
+    Query(QueryInputValueView<'a>),
+    Schema(SchemaInputValueView<'a>),
+}
+
+pub(crate) struct OldQueryInputValueView<'a> {
     pub(super) inner: QueryInputValueWalker<'a>,
     pub(super) selection_set: &'a InputValueSet,
 }
 
-impl<'a> serde::Serialize for QueryInputValueView<'a> {
+impl<'a> serde::Serialize for OldQueryInputValueView<'a> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,
@@ -44,7 +57,7 @@ impl<'a> serde::Serialize for QueryInputValueView<'a> {
     }
 }
 
-impl<'de> serde::Deserializer<'de> for QueryInputValueView<'de> {
+impl<'de> serde::Deserializer<'de> for OldQueryInputValueView<'de> {
     type Error = InputValueSerdeError;
 
     fn deserialize_any<V>(self, visitor: V) -> Result<V::Value, Self::Error>
@@ -89,7 +102,7 @@ impl<'de> serde::Deserializer<'de> for QueryInputValueView<'de> {
     }
 }
 
-impl<'de> IntoDeserializer<'de, InputValueSerdeError> for QueryInputValueView<'de> {
+impl<'de> IntoDeserializer<'de, InputValueSerdeError> for OldQueryInputValueView<'de> {
     type Deserializer = Self;
     fn into_deserializer(self) -> Self::Deserializer {
         self

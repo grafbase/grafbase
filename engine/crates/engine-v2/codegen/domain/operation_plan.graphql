@@ -92,14 +92,15 @@ type VariableDefinition @meta(module: "variable") @indexed(id_size: "u16") {
 
 scalar QueryModifierRule @prelude
 
-type QueryModifier @meta(module: "modifier") {
+type QueryModifierDefinition @meta(module: "modifier") {
   rule: QueryModifierRule!
+  impacts_root_object: Boolean!
   impacted_fields: [FieldRef!]!
 }
 
 scalar ResponseModifierRule @prelude
 
-type ResponseModifier @meta(module: "modifier") {
+type ResponseModifierDefinition @meta(module: "modifier") {
   rule: ResponseModifierRule!
   impacted_fields: [FieldRef!]!
 }

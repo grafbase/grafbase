@@ -7,14 +7,14 @@ use serde::{
 
 use crate::{
     execution::ExecutionContext,
+    resolver::graphql::CacheEntry,
     response::{ErrorCode, GraphqlError, ResponseKeys, ResponsePath, SubgraphResponseRefMut, UnpackedResponseEdge},
-    sources::graphql::CacheEntry,
     Runtime,
 };
 
 use super::errors::GraphqlErrorsSeed;
 
-pub(in crate::sources::graphql) struct EntitiesDataSeed<'resp, R: Runtime> {
+pub(in crate::resolver::graphql) struct EntitiesDataSeed<'resp, R: Runtime> {
     pub ctx: ExecutionContext<'resp, R>,
     pub response: SubgraphResponseRefMut<'resp>,
     pub cache_entries: Option<&'resp [CacheEntry]>,
@@ -149,7 +149,7 @@ where
     }
 }
 
-pub(in crate::sources::graphql) struct EntitiesErrorsSeed<'resp> {
+pub(in crate::resolver::graphql) struct EntitiesErrorsSeed<'resp> {
     pub response: SubgraphResponseRefMut<'resp>,
     pub response_keys: &'resp ResponseKeys,
 }

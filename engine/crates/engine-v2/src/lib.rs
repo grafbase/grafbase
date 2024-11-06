@@ -9,8 +9,8 @@ mod graphql_over_http;
 mod operation;
 mod plan;
 mod request;
+mod resolver;
 mod response;
-mod sources;
 mod utils;
 pub mod websocket;
 

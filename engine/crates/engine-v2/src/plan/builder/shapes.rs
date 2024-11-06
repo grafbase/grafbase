@@ -21,7 +21,7 @@ use crate::{
 use super::OperationPlanBuilder;
 
 impl OperationPlanBuilder<'_> {
-    pub(super) fn populate_plan_shapes(&mut self) {
+    pub(super) fn populate_shapes_after_plan_generation(&mut self) {
         let mut plans = std::mem::take(&mut self.operation_plan.plans);
         let mut builder = ShapesBuilder {
             schema: self.schema,

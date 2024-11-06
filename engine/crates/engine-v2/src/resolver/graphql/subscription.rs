@@ -17,7 +17,7 @@ use super::{
 use crate::{
     execution::{ExecutionError, SubscriptionResponse},
     operation::PlanWalker,
-    sources::ExecutionResult,
+    resolver::ExecutionResult,
     Runtime,
 };
 

@@ -1,3 +1,4 @@
+mod adapter;
 mod shapes;
 
 use id_newtypes::{IdRange, IdToMany};
@@ -8,8 +9,8 @@ use walker::Walk;
 
 use crate::{
     operation::{
-        BoundField, BoundFieldArgument, BoundFieldArgumentId, BoundFieldId, BoundVariableDefinition,
-        BoundVariableDefinitionId, Operation,
+        BoundField, BoundFieldArgument, BoundFieldArgumentId, BoundFieldId, BoundQueryModifierId,
+        BoundVariableDefinition, BoundVariableDefinitionId, Operation,
     },
     response::{ConcreteObjectShapeId, PositionedResponseKey, Shapes},
     utils::BufferPool,
@@ -17,16 +18,16 @@ use crate::{
 
 use super::{
     error::PlanError, DataFieldId, DataFieldRecord, FieldArgumentId, FieldArgumentRecord, FieldId, OperationPlan,
-    PlanId, PlanRecord, PlanResult, QueryModifierRecord, ResponseModifierRecord, ResponseObjectSetDefinitionId,
-    SelectionSetRecord, TypenameFieldRecord, VariableDefinitionId, VariableDefinitionRecord,
+    PlanId, PlanRecord, PlanResult, QueryModifierDefinitionRecord, ResponseModifierDefinitionRecord,
+    ResponseObjectSetDefinitionId, SelectionSetRecord, TypenameFieldRecord, VariableDefinitionId,
+    VariableDefinitionRecord,
 };
 
 impl OperationPlan {
-    pub(super) fn build(
-        schema: &Schema,
-        mut operation: Operation,
-        graph: SolvedGraph<BoundFieldId>,
-    ) -> PlanResult<Self> {
+    pub(super) fn build(schema: &Schema, mut operation: Operation) -> PlanResult<Self> {
+        let graph =
+            query_planning::OperationGraph::new(schema, adapter::OperationAdapter::new(schema, &mut operation))?
+                .solve()?;
         OperationPlanBuilder {
             schema,
             operation_plan: OperationPlan {
@@ -37,8 +38,8 @@ impl OperationPlan {
                 response_keys: std::mem::take(&mut operation.response_keys),
                 plans: Vec::new(),
                 query_input_values: std::mem::take(&mut operation.query_input_values),
-                query_modifiers: Vec::with_capacity(operation.query_modifiers.len()),
-                response_modifiers: Vec::with_capacity(operation.response_modifiers.len()),
+                query_modifier_definitions: Vec::with_capacity(operation.query_modifiers.len()),
+                response_modifier_definitions: Vec::with_capacity(operation.response_modifiers.len()),
                 response_object_set_definitions: Vec::new(),
                 shapes: Shapes::default(),
                 field_refs: Vec::new(),
@@ -126,7 +127,7 @@ impl OperationPlanBuilder<'_> {
 
         self.populate_modifiers_after_plan_generation()?;
 
-        self.populate_plan_shapes();
+        self.populate_shapes_after_plan_generation();
 
         Ok(self.operation_plan)
     }
@@ -377,17 +378,24 @@ impl OperationPlanBuilder<'_> {
     fn populate_modifiers_after_plan_generation(&mut self) -> PlanResult<()> {
         let bound_field_to_field = IdToMany::from(std::mem::take(&mut self.bound_field_to_field));
 
-        for modifier in std::mem::take(&mut self.operation.query_modifiers) {
+        for (i, modifier) in std::mem::take(&mut self.operation.query_modifiers)
+            .into_iter()
+            .enumerate()
+        {
+            let id = BoundQueryModifierId::from(i);
             let start = self.operation_plan.field_refs.len();
             for bound_field_id in &self.operation[modifier.impacted_fields] {
                 self.operation_plan
                     .field_refs
                     .extend(bound_field_to_field.find_all(*bound_field_id));
             }
-            self.operation_plan.query_modifiers.push(QueryModifierRecord {
-                rule: modifier.rule,
-                impacted_field_ids: IdRange::from(start..self.operation_plan.field_refs.len()),
-            });
+            self.operation_plan
+                .query_modifier_definitions
+                .push(QueryModifierDefinitionRecord {
+                    rule: modifier.rule,
+                    impacts_root_object: self.operation.root_query_modifier_ids.contains(&id),
+                    impacted_field_ids: IdRange::from(start..self.operation_plan.field_refs.len()),
+                });
         }
 
         for modifier in std::mem::take(&mut self.operation.response_modifiers) {
@@ -397,10 +405,12 @@ impl OperationPlanBuilder<'_> {
                     .field_refs
                     .extend(bound_field_to_field.find_all(*bound_field_id));
             }
-            self.operation_plan.response_modifiers.push(ResponseModifierRecord {
-                rule: modifier.rule,
-                impacted_field_ids: IdRange::from(start..self.operation_plan.field_refs.len()),
-            });
+            self.operation_plan
+                .response_modifier_definitions
+                .push(ResponseModifierDefinitionRecord {
+                    rule: modifier.rule,
+                    impacted_field_ids: IdRange::from(start..self.operation_plan.field_refs.len()),
+                });
         }
 
         Ok(())

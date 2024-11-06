@@ -29,7 +29,9 @@ pub(crate) enum QueryModifierRule {
         definition_id: DefinitionId,
     },
     SkipInclude {
+        // sorted
         skip_input_value_ids: Vec<QueryInputValueId>,
+        // sorted
         include_input_value_ids: Vec<QueryInputValueId>,
     },
 }

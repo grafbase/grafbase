@@ -27,8 +27,8 @@ use grafbase_telemetry::{
 
 use crate::{
     execution::{ExecutionContext, ExecutionError, ExecutionResult, RequestHooks},
+    resolver::ResolverResult,
     response::SubgraphResponse,
-    sources::ResolverResult,
     Engine, Runtime,
 };
 
