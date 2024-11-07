@@ -30,7 +30,9 @@ pub(super) fn merge_enum_definitions<'a>(
             merge_exactly_matching(first, definitions, enum_id, ctx);
         }
         (false, false) => {
-            // The enum isn't used at all, omit it from the federated graph
+            // The enum isn't used at all, act as if it were used in return position
+            let enum_id = ctx.insert_enum(first.name().as_str(), description, composed_directives);
+            merge_union(first, definitions, enum_id, ctx);
         }
     }
 }
