@@ -1,19 +1,19 @@
-enum Blah @cost(weight: 5) {
+enum Blah {
     BLAH
 }
 
-type Query @cost(weight: 1) {
-    foo(name: String @cost(weight: 100)): String
-    id: ID! @cost(weight: 2)
+type Query {
+    foo(name: String): String
+    id: ID!
 }
 
-interface Account @cost(weight: 3) {
-    foo(name: String @cost(weight: 200)): String
-    id: ID! @cost(weight: 4)
+interface Account {
+    foo(name: String): String
+    id: ID!
 }
 
 input Bar {
-    x: String @cost(weight: 7)
+    x: String
 }
 
-scalar Foo @cost(weight: 6)
+scalar Foo

@@ -20,6 +20,14 @@ directive @join__implements(graph: join__Graph!, interface: String!) repeatable 
 
 directive @join__unionMember(graph: join__Graph!, member: String!) repeatable on UNION
 
+directive @cost(weight: Int!) on
+    ARGUMENT_DEFINITION
+  | ENUM
+  | FIELD_DEFINITION
+  | INPUT_FIELD_DEFINITION
+  | OBJECT
+  | SCALAR
+
 enum join__Graph {
     A @join__graph(name: "a", url: "http://example.com/a")
 }
