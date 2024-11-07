@@ -770,6 +770,10 @@ impl<'a> GraphBuilder<'a> {
                         reason_id: reason.map(Into::into),
                     })
                 }
+                federated_graph::Directive::Cost { .. } => {
+                    // TODO: Implement this
+                    continue;
+                }
                 federated_graph::Directive::Other { .. }
                 | federated_graph::Directive::Inaccessible
                 | federated_graph::Directive::Policy(_) => continue,

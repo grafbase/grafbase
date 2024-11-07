@@ -313,6 +313,9 @@ pub(crate) fn write_composed_directive<'a, 'b: 'a>(
 
             DirectiveWriter::new("requiresScopes", f, graph)?.arg("scopes", scopes)?;
         }
+        Directive::Cost { weight } => {
+            DirectiveWriter::new("cost", f, graph)?.arg("weight", Value::Int(*weight as i64))?;
+        }
         Directive::Other { name, arguments } => {
             let mut directive = DirectiveWriter::new(&graph[*name], f, graph)?;
 

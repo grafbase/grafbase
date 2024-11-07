@@ -7,7 +7,7 @@ use std::fmt::{self, Write};
 pub fn render_federated_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error> {
     let mut sdl = String::new();
 
-    write_prelude(&mut sdl)?;
+    write_prelude(&mut sdl, graph)?;
 
     write_subgraphs_enum(graph, &mut sdl)?;
 
@@ -290,7 +290,7 @@ fn render_join_member(
     Ok(())
 }
 
-fn write_prelude(sdl: &mut String) -> fmt::Result {
+fn write_prelude(sdl: &mut String, graph: &FederatedGraph) -> fmt::Result {
     sdl.push_str(indoc::indoc! {r#"
         directive @core(feature: String!) repeatable on SCHEMA
 
@@ -314,6 +314,23 @@ fn write_prelude(sdl: &mut String) -> fmt::Result {
 
         directive @join__unionMember(graph: join__Graph!, member: String!) repeatable on UNION
     "#});
+
+    if graph
+        .directives
+        .iter()
+        .any(|directive| matches!(directive, Directive::Cost { .. }))
+    {
+        sdl.push('\n');
+        sdl.push_str(indoc::indoc! {r#"
+            directive @cost(weight: Int!) on
+                ARGUMENT_DEFINITION
+              | ENUM
+              | FIELD_DEFINITION
+              | INPUT_FIELD_DEFINITION
+              | OBJECT
+              | SCALAR
+        "#});
+    }
 
     sdl.push('\n');
     Ok(())

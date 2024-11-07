@@ -249,9 +249,11 @@ fn write_public_directives<'a, 'b: 'a>(
     graph: &'a FederatedGraph,
 ) -> fmt::Result {
     for directive in graph[directives].iter().filter(|directive| match directive {
-        Directive::Inaccessible | Directive::Policy(_) | Directive::RequiresScopes(_) | Directive::Authenticated => {
-            false
-        }
+        Directive::Inaccessible
+        | Directive::Policy(_)
+        | Directive::RequiresScopes(_)
+        | Directive::Authenticated
+        | Directive::Cost { .. } => false,
 
         Directive::Other { name, .. } if graph[*name] == "tag" => false,
         Directive::Deprecated { .. } | Directive::Other { .. } => true,

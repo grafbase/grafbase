@@ -1482,10 +1482,18 @@ fn collect_composed_directives<'a>(
                 }
             }
             "authenticated" => state.directives.push(Directive::Authenticated),
+            "cost" => {
+                let weight = directive
+                    .get_argument("weight")
+                    .and_then(|arg| arg.into_json())
+                    .and_then(|arg| serde_json::from_value::<i32>(arg).ok());
+
+                if let Some(weight) = weight {
+                    state.directives.push(Directive::Cost { weight })
+                }
+            }
             // Added later after ingesting the graph.
-            "authorized" => {}
-            "join__implements" => {}
-            "join__unionMember" => {}
+            "authorized" | "join__implements" | "join__unionMember" => {}
             other => {
                 let name = state.insert_string(other);
                 let arguments = directive
