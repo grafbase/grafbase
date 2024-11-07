@@ -32,3 +32,8 @@ type User {
 type Query {
     user: User @join__field(graph: THESCHEMA)
 }
+
+enum UserType {
+    ADMIN
+    REGULAR
+}
