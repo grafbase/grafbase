@@ -181,17 +181,27 @@ pub(super) fn ingest_directives(
         }
 
         if directive_matcher.is_cost(directive_name) {
-            let Some(weight) = directive.node.get_argument("weight") else {
-                todo!("error")
-            };
-            let ConstValue::Number(weight) = &weight.node else {
-                todo!("error")
-            };
-            let Some(weight) = weight.as_i64().and_then(|int| i32::try_from(int).ok()) else {
-                todo!("error")
-            };
+            let argument = directive
+                .node
+                .get_argument("weight")
+                .and_then(|v| match &v.node {
+                    async_graphql_value::ConstValue::Number(num) => num.as_i64(),
+                    _ => None,
+                })
+                .and_then(|int| i32::try_from(int).ok());
 
-            subgraphs.set_cost(directive_site_id, weight);
+            match argument {
+                Some(weight) => {
+                    subgraphs.set_cost(directive_site_id, weight);
+                }
+                None => {
+                    let location = location(subgraphs);
+                    subgraphs.push_ingestion_diagnostic(
+                        subgraph,
+                        format!("Error validating the @cost directive at {location}: expected an Int argument weight"),
+                    );
+                }
+            }
         }
     }
 }
