@@ -12,8 +12,7 @@ use crate::{
     subgraphs::{self, DefinitionId, DefinitionKind, DirectiveSiteId, SubgraphId},
     Subgraphs,
 };
-use async_graphql_parser::{types as ast, Positioned};
-use async_graphql_value::ConstValue;
+use cynic_parser::{type_system as ast, ConstValue};
 
 /// _Service is a special type exposed by subgraphs. It should not be composed.
 const SERVICE_TYPE_NAME: &str = "_Service";
@@ -21,7 +20,7 @@ const SERVICE_TYPE_NAME: &str = "_Service";
 /// _Entity is a special union type exposed by subgraphs. It should not be composed.
 const ENTITY_UNION_NAME: &str = "_Entity";
 
-pub(crate) fn ingest_subgraph(document: &ast::ServiceDocument, name: &str, url: &str, subgraphs: &mut Subgraphs) {
+pub(crate) fn ingest_subgraph(document: &ast::TypeSystemDocument, name: &str, url: &str, subgraphs: &mut Subgraphs) {
     let subgraph_id = subgraphs.push_subgraph(name, url);
 
     let root_type_matcher = ingest_schema_definition(document);
@@ -41,29 +40,27 @@ pub(crate) fn ingest_subgraph(document: &ast::ServiceDocument, name: &str, url: 
 
 fn ingest_top_level_definitions(
     subgraph_id: SubgraphId,
-    document: &ast::ServiceDocument,
+    document: &ast::TypeSystemDocument,
     subgraphs: &mut Subgraphs,
     directive_matcher: &DirectiveMatcher<'_>,
     root_type_matcher: &RootTypeMatcher<'_>,
 ) {
-    for definition in &document.definitions {
+    for definition in document.definitions() {
         match definition {
-            ast::TypeSystemDefinition::Type(type_definition) => {
-                let type_name = &type_definition.node.name.node;
+            ast::Definition::Type(type_definition) | ast::Definition::TypeExtension(type_definition) => {
+                let type_name = type_definition.name();
 
                 let description = type_definition
-                    .node
-                    .description
-                    .as_ref()
-                    .map(|description| subgraphs.strings.intern(description.node.as_str()));
+                    .description()
+                    .map(|description| subgraphs.strings.intern(description.to_cow()));
 
                 let directives = subgraphs.new_directive_site();
 
-                let definition_id = match &type_definition.node.kind {
-                    ast::TypeKind::Object(_) if type_name == SERVICE_TYPE_NAME => continue,
-                    ast::TypeKind::Union(_) if type_name == ENTITY_UNION_NAME => continue,
+                let definition_id = match type_definition {
+                    ast::TypeDefinition::Object(_) if type_name == SERVICE_TYPE_NAME => continue,
+                    ast::TypeDefinition::Union(_) if type_name == ENTITY_UNION_NAME => continue,
 
-                    ast::TypeKind::Object(_) => {
+                    ast::TypeDefinition::Object(_) => {
                         let definition_id = subgraphs.push_definition(
                             subgraph_id,
                             type_name,
@@ -90,21 +87,21 @@ fn ingest_top_level_definitions(
 
                         definition_id
                     }
-                    ast::TypeKind::Interface(_interface_type) => subgraphs.push_definition(
+                    ast::TypeDefinition::Interface(_interface_type) => subgraphs.push_definition(
                         subgraph_id,
                         type_name,
                         DefinitionKind::Interface,
                         description,
                         directives,
                     ),
-                    ast::TypeKind::Union(_) => subgraphs.push_definition(
+                    ast::TypeDefinition::Union(_) => subgraphs.push_definition(
                         subgraph_id,
                         type_name,
                         DefinitionKind::Union,
                         description,
                         directives,
                     ),
-                    ast::TypeKind::InputObject(_) => subgraphs.push_definition(
+                    ast::TypeDefinition::InputObject(_) => subgraphs.push_definition(
                         subgraph_id,
                         type_name,
                         DefinitionKind::InputObject,
@@ -112,7 +109,7 @@ fn ingest_top_level_definitions(
                         directives,
                     ),
 
-                    ast::TypeKind::Scalar => subgraphs.push_definition(
+                    ast::TypeDefinition::Scalar(_) => subgraphs.push_definition(
                         subgraph_id,
                         type_name,
                         DefinitionKind::Scalar,
@@ -120,7 +117,7 @@ fn ingest_top_level_definitions(
                         directives,
                     ),
 
-                    ast::TypeKind::Enum(enum_type) => {
+                    ast::TypeDefinition::Enum(enum_type) => {
                         let definition_id = subgraphs.push_definition(
                             subgraph_id,
                             type_name,
@@ -135,64 +132,63 @@ fn ingest_top_level_definitions(
 
                 directives::ingest_directives(
                     directives,
-                    &type_definition.node.directives,
+                    type_definition.directives(),
                     subgraphs,
                     directive_matcher,
                     subgraph_id,
-                    |_| type_name.as_str().to_owned(),
+                    |_| type_name.to_owned(),
                 );
 
                 directives::ingest_keys(
                     definition_id,
-                    &type_definition.node.directives,
+                    type_definition.directives(),
                     subgraphs,
                     directive_matcher,
                 );
             }
-            ast::TypeSystemDefinition::Schema(_) | ast::TypeSystemDefinition::Directive(_) => (),
+            ast::Definition::Schema(_) | ast::Definition::SchemaExtension(_) | ast::Definition::Directive(_) => (),
         }
     }
 }
 
 fn ingest_definition_bodies(
     subgraph_id: SubgraphId,
-    document: &ast::ServiceDocument,
+    document: &ast::TypeSystemDocument,
     subgraphs: &mut Subgraphs,
     federation_directives_matcher: &DirectiveMatcher<'_>,
     root_type_matcher: &RootTypeMatcher<'_>,
 ) {
-    let type_definitions = document.definitions.iter().filter_map(|def| match def {
-        ast::TypeSystemDefinition::Type(ty) => Some(ty),
+    let type_definitions = document.definitions().filter_map(|def| match def {
+        ast::Definition::Type(ty) | ast::Definition::TypeExtension(ty) => Some(ty),
         _ => None,
     });
 
     for definition in type_definitions {
-        match &definition.node.kind {
-            ast::TypeKind::Union(_) if definition.node.name.node == ENTITY_UNION_NAME => continue,
-            ast::TypeKind::Union(union) => {
-                let union_id = subgraphs.definition_by_name(&definition.node.name.node, subgraph_id);
+        match definition {
+            ast::TypeDefinition::Union(_) if definition.name() == ENTITY_UNION_NAME => continue,
+            ast::TypeDefinition::Union(union) => {
+                let union_id = subgraphs.definition_by_name(definition.name(), subgraph_id);
 
-                for member in &union.members {
-                    let member_id = subgraphs.definition_by_name(&member.node, subgraph_id);
+                for member in union.members() {
+                    let member_id = subgraphs.definition_by_name(member.name(), subgraph_id);
                     subgraphs.push_union_member(union_id, member_id);
                 }
             }
-            ast::TypeKind::InputObject(input_object) => {
-                let definition_id = subgraphs.definition_by_name(&definition.node.name.node, subgraph_id);
+            ast::TypeDefinition::InputObject(input_object) => {
+                let definition_id = subgraphs.definition_by_name(definition.name(), subgraph_id);
                 fields::ingest_input_fields(
                     definition_id,
-                    &input_object.fields,
+                    input_object.fields(),
                     federation_directives_matcher,
                     subgraphs,
                     subgraph_id,
                 );
             }
-            ast::TypeKind::Interface(interface) => {
-                let definition_id = subgraphs.definition_by_name(&definition.node.name.node, subgraph_id);
+            ast::TypeDefinition::Interface(interface) => {
+                let definition_id = subgraphs.definition_by_name(interface.name(), subgraph_id);
 
-                for implemented_interface in &interface.implements {
-                    let implemented_interface =
-                        subgraphs.definition_by_name(implemented_interface.node.as_str(), subgraph_id);
+                for implemented_interface in interface.implements_interfaces() {
+                    let implemented_interface = subgraphs.definition_by_name(implemented_interface, subgraph_id);
 
                     subgraphs.push_interface_impl(definition_id, implemented_interface);
                 }
@@ -201,29 +197,28 @@ fn ingest_definition_bodies(
 
                 fields::ingest_fields(
                     definition_id,
-                    &interface.fields,
+                    interface.fields(),
                     federation_directives_matcher,
                     is_query_root_type,
                     subgraph_id,
                     subgraphs,
                 );
             }
-            ast::TypeKind::Object(_) if definition.node.name.node == SERVICE_TYPE_NAME => continue,
-            ast::TypeKind::Object(object_type) => {
-                let definition_id = subgraphs.definition_by_name(&definition.node.name.node, subgraph_id);
+            ast::TypeDefinition::Object(_) if definition.name() == SERVICE_TYPE_NAME => continue,
+            ast::TypeDefinition::Object(object_type) => {
+                let definition_id = subgraphs.definition_by_name(definition.name(), subgraph_id);
 
-                for implemented_interface in &object_type.implements {
-                    let implemented_interface =
-                        subgraphs.definition_by_name(implemented_interface.node.as_str(), subgraph_id);
+                for implemented_interface in object_type.implements_interfaces() {
+                    let implemented_interface = subgraphs.definition_by_name(implemented_interface, subgraph_id);
 
                     subgraphs.push_interface_impl(definition_id, implemented_interface);
                 }
 
-                let is_query_root_type = root_type_matcher.is_query(&definition.node.name.node);
+                let is_query_root_type = root_type_matcher.is_query(definition.name());
 
                 fields::ingest_fields(
                     definition_id,
-                    &object_type.fields,
+                    object_type.fields(),
                     federation_directives_matcher,
                     is_query_root_type,
                     subgraph_id,
@@ -235,24 +230,23 @@ fn ingest_definition_bodies(
     }
 }
 
-pub(super) fn ast_value_to_subgraph_value(value: &ConstValue, subgraphs: &mut Subgraphs) -> subgraphs::Value {
+pub(super) fn ast_value_to_subgraph_value(value: ConstValue<'_>, subgraphs: &mut Subgraphs) -> subgraphs::Value {
     match &value {
-        ConstValue::Binary(_) => unreachable!("binary value in argument"),
-        ConstValue::Null => subgraphs::Value::Null,
-        ConstValue::Number(n) if n.is_u64() || n.is_i64() => subgraphs::Value::Int(n.as_i64().unwrap()),
-        ConstValue::Number(n) => subgraphs::Value::Float(n.as_f64().unwrap()),
+        ConstValue::Null(_) => subgraphs::Value::Null,
+        ConstValue::Int(n) => subgraphs::Value::Int(n.as_i64()),
+        ConstValue::Float(n) => subgraphs::Value::Float(n.as_f64()),
         ConstValue::String(s) => subgraphs::Value::String(subgraphs.strings.intern(s.as_str())),
-        ConstValue::Boolean(b) => subgraphs::Value::Boolean(*b),
-        ConstValue::Enum(e) => subgraphs::Value::Enum(subgraphs.strings.intern(e.as_str())),
+        ConstValue::Boolean(b) => subgraphs::Value::Boolean(b.value()),
+        ConstValue::Enum(e) => subgraphs::Value::Enum(subgraphs.strings.intern(e.name())),
         ConstValue::List(l) => {
-            subgraphs::Value::List(l.iter().map(|v| ast_value_to_subgraph_value(v, subgraphs)).collect())
+            subgraphs::Value::List(l.items().map(|v| ast_value_to_subgraph_value(v, subgraphs)).collect())
         }
         ConstValue::Object(o) => subgraphs::Value::Object(
-            o.iter()
-                .map(|(k, v)| {
+            o.fields()
+                .map(|field| {
                     (
-                        subgraphs.strings.intern(k.as_str()),
-                        ast_value_to_subgraph_value(v, subgraphs),
+                        subgraphs.strings.intern(field.name()),
+                        ast_value_to_subgraph_value(field.value(), subgraphs),
                     )
                 })
                 .collect(),

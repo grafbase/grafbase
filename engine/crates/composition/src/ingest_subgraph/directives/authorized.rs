@@ -2,39 +2,30 @@ use super::*;
 
 pub(super) fn ingest(
     directive_site_id: DirectiveSiteId,
-    directive: &ast::ConstDirective,
+    directive: ast::Directive<'_>,
     subgraphs: &mut Subgraphs,
 ) -> Result<(), String> {
     let arguments = directive
-        .get_argument("arguments")
-        .and_then(|arg| match &arg.node {
-            ConstValue::String(input) => Some(input),
-            _ => None,
-        })
-        .map(|input| subgraphs.selection_set_from_str(input))
+        .argument("arguments")
+        .and_then(|arg| arg.value().as_str())
+        .map(|input| subgraphs.selection_set_from_str(input, "authorized", "arguments"))
         .transpose()?;
 
     let fields = directive
-        .get_argument("fields")
-        .and_then(|arg| match &arg.node {
-            ConstValue::String(requires) => Some(requires),
-            _ => None,
-        })
-        .map(|fields| subgraphs.selection_set_from_str(fields))
+        .argument("fields")
+        .and_then(|arg| arg.value().as_str())
+        .map(|fields| subgraphs.selection_set_from_str(fields, "authorized", "fields"))
         .transpose()?;
 
     let node = directive
-        .get_argument("node")
-        .and_then(|arg| match &arg.node {
-            ConstValue::String(requires) => Some(requires),
-            _ => None,
-        })
-        .map(|fields| subgraphs.selection_set_from_str(fields))
+        .argument("node")
+        .and_then(|arg| arg.value().as_str())
+        .map(|fields| subgraphs.selection_set_from_str(fields, "authorized", "node"))
         .transpose()?;
 
     let metadata = directive
-        .get_argument("metadata")
-        .map(|value| ast_value_to_subgraph_value(&value.node, subgraphs));
+        .argument("metadata")
+        .map(|arg| ast_value_to_subgraph_value(arg.value(), subgraphs));
 
     subgraphs.insert_authorized(
         directive_site_id,
