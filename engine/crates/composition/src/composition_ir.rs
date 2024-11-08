@@ -98,7 +98,7 @@ impl StringsIr {
             .get_index_of(string)
             .unwrap_or_else(|| self.strings.insert_full(string.to_owned()).0);
 
-        federated::StringId(idx)
+        federated::StringId::from(idx)
     }
 
     pub(crate) fn into_federated_strings(self) -> Vec<String> {
@@ -110,7 +110,7 @@ impl std::ops::Index<federated::StringId> for StringsIr {
     type Output = str;
 
     fn index(&self, index: federated::StringId) -> &Self::Output {
-        self.strings.get_index(index.0).unwrap().as_str()
+        self.strings.get_index(usize::from(index)).unwrap().as_str()
     }
 }
 

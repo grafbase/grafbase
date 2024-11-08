@@ -341,7 +341,7 @@ impl Default for FederatedGraph {
             interfaces: Vec::new(),
             fields: vec![
                 Field {
-                    name: StringId(1),
+                    name: StringId::from(1),
                     r#type: Type {
                         wrapping: Default::default(),
                         definition: Definition::Scalar(0usize.into()),
@@ -355,7 +355,7 @@ impl Default for FederatedGraph {
                     description: None,
                 },
                 Field {
-                    name: StringId(2),
+                    name: StringId::from(2),
                     r#type: Type {
                         wrapping: Default::default(),
                         definition: Definition::Scalar(0usize.into()),
@@ -408,11 +408,7 @@ impl std::ops::Index<Fields> for FederatedGraph {
     type Output = [Field];
 
     fn index(&self, index: Fields) -> &Self::Output {
-        let Range {
-            start: FieldId(start),
-            end: FieldId(end),
-        } = index;
-        &self.fields[start..end]
+        &self.fields[usize::from(index.start)..usize::from(index.end)]
     }
 }
 
@@ -431,11 +427,11 @@ pub type Directives = (DirectiveId, usize);
 /// A (start, len) range in FederatedSchema.
 pub type InputValueDefinitions = (InputValueDefinitionId, usize);
 
-pub const NO_DIRECTIVES: Directives = (DirectiveId(0), 0);
-pub const NO_INPUT_VALUE_DEFINITION: InputValueDefinitions = (InputValueDefinitionId(0), 0);
+pub const NO_DIRECTIVES: Directives = (DirectiveId::const_from_usize(0), 0);
+pub const NO_INPUT_VALUE_DEFINITION: InputValueDefinitions = (InputValueDefinitionId::const_from_usize(0), 0);
 pub const NO_FIELDS: Fields = Range {
-    start: FieldId(0),
-    end: FieldId(0),
+    start: FieldId::const_from_usize(0),
+    end: FieldId::const_from_usize(0),
 };
 
 pub type FieldSet = Vec<FieldSetItem>;

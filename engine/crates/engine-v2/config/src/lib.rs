@@ -78,7 +78,7 @@ impl std::ops::Index<StringId> for Config {
     type Output = String;
 
     fn index(&self, index: StringId) -> &String {
-        &self.strings[index.0]
+        &self.strings[usize::from(index)]
     }
 }
 
@@ -137,7 +137,7 @@ impl Config {
 
         for subgraph in self.subgraph_configs.values() {
             if let Some(subgraph_rate_limit) = subgraph.rate_limit {
-                let key = RateLimitKey::Subgraph(&self.strings[subgraph.name.0]);
+                let key = RateLimitKey::Subgraph(&self.strings[usize::from(subgraph.name)]);
                 key_based_config.push((key, subgraph_rate_limit));
             }
         }

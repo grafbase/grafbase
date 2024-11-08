@@ -169,7 +169,7 @@ macro_rules! from_id_newtypes {
         $(
             impl From<$from> for $name {
                 fn from(id: $from) -> Self {
-                    $name::from(id.0)
+                    $name::from(usize::from(id))
                 }
             }
         )*

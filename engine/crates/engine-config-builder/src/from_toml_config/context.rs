@@ -169,6 +169,6 @@ impl FederatedGraphExt for FederatedGraph {
             .iter()
             .enumerate()
             .find(|(_, subgraph)| self[subgraph.name] == name)
-            .map(|(i, _)| SubgraphId(i))
+            .map(|(i, _)| SubgraphId::from(i))
     }
 }

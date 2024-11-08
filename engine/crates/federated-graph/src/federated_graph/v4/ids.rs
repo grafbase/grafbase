@@ -4,7 +4,13 @@ macro_rules! id_newtypes {
     ($($storage:ident [ $name:ident ] -> $out:ident,)*) => {
         $(
             #[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
-            pub struct $name(pub usize);
+            pub struct $name(usize);
+
+            impl $name {
+                pub const fn const_from_usize(i: usize) -> Self {
+                    $name(i)
+                }
+            }
 
             impl From<$name> for usize {
               fn from(value: $name) -> usize {

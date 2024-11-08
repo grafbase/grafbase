@@ -9,10 +9,10 @@ impl<'a> Strings<'a> {
     /// interned.
     pub(crate) fn intern(&mut self, string: &'a str) -> StringId {
         if let Some(idx) = self.0.get_index_of(string) {
-            return StringId(idx);
+            return StringId::from(idx);
         }
 
-        StringId(self.0.insert_full(string).0)
+        StringId::from(self.0.insert_full(string).0)
     }
 
     pub fn into_vec(self) -> Vec<String> {

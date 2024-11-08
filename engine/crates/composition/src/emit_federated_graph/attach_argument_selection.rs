@@ -21,7 +21,7 @@ pub(super) fn attach_argument_selection(
             let selection_field = ctx.insert_string(ctx.subgraphs.walk(*field));
             let field_arguments = ctx.out[field_id].arguments;
             let argument_id = federated::InputValueDefinitionId::from(
-                field_arguments.0 .0
+                usize::from(field_arguments.0)
                     + ctx.out[field_arguments]
                         .iter()
                         .position(|arg| arg.name == selection_field)
@@ -63,7 +63,7 @@ fn attach_selection_on_input_object(
             let fields = &ctx.out[input_object.fields];
 
             let field_idx = fields.iter().position(|field| field.name == field_name)?;
-            let field_id = federated::InputValueDefinitionId(input_object.fields.0 .0 + field_idx);
+            let field_id = federated::InputValueDefinitionId::from(usize::from(input_object.fields.0) + field_idx);
 
             let subselection: federated::InputValueDefinitionSet =
                 if let federated::Definition::InputObject(input_object_id) = ctx.out[field_id].r#type.definition {

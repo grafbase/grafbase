@@ -16,7 +16,10 @@ impl ExternalDataSources {
             .map(|(index, subgraph)| {
                 let subgraph_name_id = subgraph.name.into();
                 let sdl_url = url::Url::parse(&ctx.strings[subgraph.url.into()]).expect("valid url");
-                match config.subgraph_configs.remove(&federated_graph::SubgraphId(index)) {
+                match config
+                    .subgraph_configs
+                    .remove(&federated_graph::SubgraphId::from(index))
+                {
                     Some(SubgraphConfig {
                         websocket_url,
                         url,
