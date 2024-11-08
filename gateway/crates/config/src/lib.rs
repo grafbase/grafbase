@@ -188,7 +188,7 @@ pub struct SubgraphConfig {
     pub message_signatures: Option<MessageSignaturesConfig>,
     #[cfg(feature = "dev")]
     /// The path of an SDL schema file for the subgraph.
-    pub file: Option<PathBuf>,
+    pub schema_path: Option<PathBuf>,
     #[cfg(feature = "dev")]
     /// A URL from which to retreive the subgraph SDL.
     pub introspection_url: Option<Url>,

@@ -248,21 +248,25 @@ async fn get_subgraph_sdls(
                 return Err(BackendError::NoDefinedRouteToSubgraphSdl(name.clone()));
             };
 
-            if let Some(ref schema_file_path) = subgraph.file {
+            if let Some(ref schema_path) = subgraph.schema_path {
                 // switching the current directory to where the overrides config is located
-                // as we want relative paths in `file` to work correctly
+                // as we want relative paths in `schema_path` to work correctly
                 set_current_dir(
-                    fs::canonicalize(graph_overrides_path.clone().expect("must exist if `file` is in use"))
-                        .await
-                        .expect("must work")
-                        .parent()
-                        .expect("must exist"),
-                )
-                .map_err(|error| BackendError::ReadSdlFromFile(schema_file_path.clone(), error))?;
-
-                let sdl = fs::read_to_string(schema_file_path)
+                    fs::canonicalize(
+                        graph_overrides_path
+                            .clone()
+                            .expect("must exist if `schema_path` is in use"),
+                    )
                     .await
-                    .map_err(|error| BackendError::ReadSdlFromFile(schema_file_path.clone(), error))?;
+                    .expect("must work")
+                    .parent()
+                    .expect("must exist"),
+                )
+                .map_err(|error| BackendError::ReadSdlFromFile(schema_path.clone(), error))?;
+
+                let sdl = fs::read_to_string(schema_path)
+                    .await
+                    .map_err(|error| BackendError::ReadSdlFromFile(schema_path.clone(), error))?;
 
                 Ok((sdl, name, url.to_string()))
             } else if let Some(ref introspection_url) = subgraph.introspection_url {
