@@ -1,12 +1,12 @@
-use super::ProjectRef;
+use super::FullGraphRef;
 use clap::Parser;
 use std::path::PathBuf;
 
 /// Start a local development server
 #[derive(Debug, Parser)]
 pub struct DevCommand {
-    #[arg(short('r'), long("graph-ref"), help = ProjectRef::ARG_DESCRIPTION)]
-    pub(crate) graph_ref: Option<ProjectRef>,
+    #[arg(short('r'), long("graph-ref"), help = FullGraphRef::ARG_DESCRIPTION)]
+    pub(crate) graph_ref: Option<FullGraphRef>,
     /// The path of the gateway configuration file
     #[arg(short('c'), long("gateway-config"))]
     pub(crate) gateway_config: Option<PathBuf>,

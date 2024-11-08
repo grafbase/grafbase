@@ -21,7 +21,7 @@ use tokio::fs;
 use tokio::sync::mpsc::{channel, Receiver, Sender};
 
 #[derive(Clone, Debug)]
-pub struct ProjectRef {
+pub struct FullGraphRef {
     pub account: String,
     pub graph: String,
     pub branch: Option<String>,
@@ -46,7 +46,7 @@ impl ServerRuntime for CliRuntime {
 
 #[tokio::main(flavor = "multi_thread")]
 pub async fn start(
-    graph_ref: Option<ProjectRef>,
+    graph_ref: Option<FullGraphRef>,
     gateway_config_path: Option<PathBuf>,
     graph_overrides_path: Option<PathBuf>,
     port: Option<u16>,
@@ -171,7 +171,7 @@ async fn get_and_merge_configurations(
 }
 
 async fn get_subgraph_sdls(
-    graph_ref: Option<ProjectRef>,
+    graph_ref: Option<FullGraphRef>,
     dev_configuration: &DevConfiguration,
     subgraphs: &mut Subgraphs,
     graph_overrides_path: Option<PathBuf>,
