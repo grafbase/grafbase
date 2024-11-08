@@ -33,7 +33,7 @@ urlencoding = "2.1.3"
 common = { package = "grafbase-local-common", path = "../common", version = "0.80.1" }
 grafbase-workspace-hack.workspace = true
 grafbase-graphql-introspection.workspace = true
-gateway-config = { workspace = true, features = ["dev"] }
+gateway-config.workspace = true
 federated-server.workspace = true
 graphql-composition.workspace = true
 federated-graph.workspace = true
