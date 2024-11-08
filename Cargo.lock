@@ -3129,15 +3129,24 @@ dependencies = [
  "chrono",
  "cynic",
  "cynic-codegen",
+ "federated-server",
+ "futures",
+ "gateway-config",
+ "grafbase-graphql-introspection",
  "grafbase-local-common",
  "grafbase-workspace-hack",
+ "graphql-composition",
+ "graphql-federated-graph",
  "ignore",
  "reqwest 0.12.9",
  "reqwest-middleware",
  "serde",
+ "serde-dynamic-string",
+ "serde-toml-merge",
  "serde_json",
  "thiserror",
  "tokio",
+ "toml",
  "tower-http",
  "url",
  "urlencoding",
@@ -3205,9 +3214,7 @@ version = "0.1.0"
 dependencies = [
  "ahash 0.8.11",
  "aho-corasick",
- "anyhow",
  "ascii 1.1.0",
- "async-tungstenite",
  "axum",
  "axum-core",
  "base16ct",
@@ -3264,7 +3271,6 @@ dependencies = [
  "indexmap 2.6.0",
  "insta",
  "itertools 0.12.1",
- "jwt-compact",
  "lazy_static",
  "libc",
  "linux-raw-sys",
@@ -3283,7 +3289,6 @@ dependencies = [
  "percent-encoding",
  "pkcs1",
  "pkcs8",
- "portable-atomic",
  "proc-macro2",
  "prost",
  "quote",
@@ -3295,7 +3300,6 @@ dependencies = [
  "rsa",
  "rustix",
  "rustls 0.23.16",
- "rustls-pki-types",
  "rustls-webpki",
  "sec1",
  "secrecy",
@@ -3331,7 +3335,6 @@ dependencies = [
  "tracing-core",
  "tracing-log",
  "tracing-subscriber",
- "tungstenite 0.23.0",
  "ulid",
  "url",
  "uuid",
@@ -7028,6 +7031,15 @@ dependencies = [
  "serde",
  "serde_with",
  "temp-env",
+]
+
+[[package]]
+name = "serde-toml-merge"
+version = "0.3.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "93b4e415d6bff989e5e48649ca9b8b4d4997cb069a0c90a84bfd38c7df5e3968"
+dependencies = [
+ "toml",
 ]
 
 [[package]]

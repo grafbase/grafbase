@@ -7,6 +7,7 @@ mod branch;
 mod check;
 mod cli_input;
 mod create;
+mod dev;
 mod errors;
 mod introspect;
 mod lint;
@@ -120,6 +121,7 @@ fn try_main(args: Args) -> Result<(), CliError> {
             BranchSubCommand::Delete(cmd) => branch::delete(cmd.branch_ref),
             BranchSubCommand::Create(cmd) => branch::create(cmd.branch_ref),
         },
+        SubCommand::Dev(cmd) => dev::dev(cmd),
     }
 }
 
