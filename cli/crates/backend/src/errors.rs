@@ -1,7 +1,6 @@
 use common::errors::CommonError;
-use federated_graph::DomainError;
 use graphql_composition::IngestError;
-use std::{io, path::PathBuf};
+use std::{fmt, io, path::PathBuf};
 use thiserror::Error;
 
 use crate::api::errors::ApiError;
@@ -130,7 +129,7 @@ pub enum BackendError {
     #[error("could not compose subgraphs\nCaused by: {0}")]
     Composition(String),
     #[error("could not convert the composed subgraphs to federated SDL\nCaused by: {0}")]
-    ToFederatedSdl(DomainError),
+    ToFederatedSdl(fmt::Error),
     #[error("could not fetch the specified branch")]
     FetchBranch,
     #[error("the specified branch does not exist")]
