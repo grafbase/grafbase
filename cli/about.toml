@@ -11,8 +11,6 @@ accepted = [
     "MPL-2.0",
     "NOASSERTION",
     "OpenSSL",
-    "OpenSSL-standalone",
-    "SSLeay-standalone",
     "Unicode-3.0",
     "Unicode-DFS-2016",
     "Unlicense",
