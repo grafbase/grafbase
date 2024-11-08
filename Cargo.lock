@@ -3356,8 +3356,7 @@ dependencies = [
 name = "graphql-composition"
 version = "0.4.0"
 dependencies = [
- "async-graphql-parser",
- "async-graphql-value",
+ "cynic-parser 0.8.0",
  "datatest-stable",
  "grafbase-workspace-hack",
  "graphql-federated-graph",

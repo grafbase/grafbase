@@ -82,13 +82,13 @@ impl Subgraphs {
     }
 
     pub(crate) fn insert_provides(&mut self, id: DirectiveSiteId, fields: &str) -> Result<(), String> {
-        let fields = self.selection_set_from_str(fields)?;
+        let fields = self.selection_set_from_str(fields, "provides", "fields")?;
         self.directives.provides.insert(id, fields);
         Ok(())
     }
 
     pub(crate) fn insert_requires(&mut self, id: DirectiveSiteId, fields: &str) -> Result<(), String> {
-        let fields = self.selection_set_from_str(fields)?;
+        let fields = self.selection_set_from_str(fields, "requires", "fields")?;
         self.directives.requires.insert(id, fields);
         Ok(())
     }

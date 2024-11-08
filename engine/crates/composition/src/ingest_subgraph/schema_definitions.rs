@@ -1,23 +1,27 @@
 use super::*;
 
-pub(super) fn ingest_schema_definition(document: &ast::ServiceDocument) -> RootTypeMatcher<'_> {
-    let schema_definitions = document.definitions.iter().filter_map(|definition| match &definition {
-        ast::TypeSystemDefinition::Schema(schema_definition) => Some(schema_definition),
+pub(super) fn ingest_schema_definition(document: &ast::TypeSystemDocument) -> RootTypeMatcher<'_> {
+    let schema_definitions = document.definitions().filter_map(|definition| match definition {
+        ast::Definition::Schema(schema_definition) => Some(schema_definition),
+        ast::Definition::SchemaExtension(schema_extension) => Some(schema_extension),
         _ => None,
     });
 
     let mut matcher = RootTypeMatcher::default();
 
     for schema_definition in schema_definitions {
-        let node = &schema_definition.node;
-
-        matcher.query = matcher.query.or(node.query.as_ref().map(|query| query.node.as_str()));
-        matcher.mutation = matcher
-            .mutation
-            .or(node.mutation.as_ref().map(|query| query.node.as_str()));
-        matcher.subscription = matcher
-            .subscription
-            .or(node.subscription.as_ref().map(|query| query.node.as_str()));
+        matcher.query = matcher.query.or(schema_definition
+            .root_query_definition()
+            .as_ref()
+            .map(|query| query.named_type()));
+        matcher.mutation = matcher.mutation.or(schema_definition
+            .root_mutation_definition()
+            .as_ref()
+            .map(|mutation| mutation.named_type()));
+        matcher.subscription = matcher.subscription.or(schema_definition
+            .root_subscription_definition()
+            .as_ref()
+            .map(|subscription| subscription.named_type()));
     }
 
     matcher
