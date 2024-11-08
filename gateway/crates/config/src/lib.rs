@@ -189,6 +189,12 @@ pub struct SubgraphConfig {
     #[cfg(feature = "dev")]
     /// The path of an SDL schema file for the subgraph.
     pub file: Option<PathBuf>,
+    #[cfg(feature = "dev")]
+    /// A URL from which to retreive the subgraph SDL.
+    pub introspection_url: Option<Url>,
+    #[cfg(feature = "dev")]
+    /// Header configuration for subgraph introspection
+    pub introspection_headers: Option<BTreeMap<String, DynamicString<String>>>,
 }
 
 #[derive(Debug, serde::Deserialize, Clone, Copy, Default, PartialEq)]

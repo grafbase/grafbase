@@ -72,8 +72,15 @@ impl Default for Subgraphs {
 
 const BUILTIN_SCALARS: [&str; 5] = ["ID", "String", "Boolean", "Int", "Float"];
 
+/// returned when a subgraph cannot be ingested
 #[derive(Debug)]
 pub struct IngestError(async_graphql_parser::Error);
+
+impl std::error::Error for IngestError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        self.0.source()
+    }
+}
 
 impl std::fmt::Display for IngestError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

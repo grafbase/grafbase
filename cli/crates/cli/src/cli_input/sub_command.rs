@@ -38,7 +38,9 @@ pub enum SubCommand {
     Upgrade,
     /// Lint a GraphQL schema
     Lint(LintCommand),
+    // hidden for internal beta
     /// Start a development server
+    #[clap(hide = true)]
     Dev(DevCommand),
 }
 

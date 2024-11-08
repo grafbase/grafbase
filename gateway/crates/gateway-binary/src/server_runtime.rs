@@ -7,6 +7,7 @@ struct LambdaRuntime {
 }
 
 impl federated_server::ServerRuntime for LambdaRuntime {
+    fn on_ready(&self, _url: String) {}
     fn after_request(&self) {
         // lambda must flush the trace events here, otherwise the
         // function might fall asleep and the events are pending until

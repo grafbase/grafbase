@@ -1,6 +1,5 @@
 use super::ProjectRef;
 use clap::Parser;
-use graph_ref::GraphRef;
 use std::path::PathBuf;
 
 /// Start a local development server
@@ -14,4 +13,7 @@ pub struct DevCommand {
     /// The path of the graph overrides configuration file
     #[arg(short('o'), long("graph-overrides"))]
     pub(crate) graph_overrides: Option<PathBuf>,
+    /// The port to listen on for requests
+    #[arg(short('p'), long("port"))]
+    pub(crate) port: Option<u16>,
 }

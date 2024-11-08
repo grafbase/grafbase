@@ -23,4 +23,5 @@ pub struct Branch {
 pub struct Subgraph {
     pub name: String,
     pub schema: String,
+    pub url: String,
 }

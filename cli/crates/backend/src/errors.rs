@@ -1,4 +1,6 @@
 use common::errors::CommonError;
+use federated_graph::DomainError;
+use graphql_composition::IngestError;
 use std::{io, path::PathBuf};
 use thiserror::Error;
 
@@ -107,12 +109,30 @@ pub enum BackendError {
     ReadGatewayConfig(std::io::Error),
     #[error("could not read the graph overrides\nCaused by: {0}")]
     ReadGraphOverrides(std::io::Error),
-    #[error("could not parse the gateway configuration")]
-    ParseGatewayConfig,
-    #[error("could not parse the graph overrides")]
-    ParseGraphOverrides,
+    #[error("could not parse the gateway configuration\nCaused by: {0}")]
+    ParseGatewayConfig(String),
+    #[error("could not parse the graph overrides\nCaused by: {0}")]
+    ParseGraphOverrides(toml::de::Error),
     #[error("could not merge the gateway and graph override configurations")]
     MergeConfigurations,
     #[error(transparent)]
     ApiError(#[from] ApiError),
+    #[error("could not read the SDL from {0}\nCaused by: {1}")]
+    ReadSdlFromFile(PathBuf, std::io::Error),
+    #[error("could not introspect a subgraph URL: {0}")]
+    IntrospectSubgraph(String),
+    #[error("no url or file were defined for an overridden subgraph: {0}")]
+    NoDefinedRouteToSubgraphSdl(String),
+    #[error("could not parse a subgraph\nCaused by: {0}")]
+    IngestSubgraph(IngestError),
+    #[error("could not start the federated gateway\nCaused by: {0}")]
+    Serve(federated_server::Error),
+    #[error("could not compose subgraphs\nCaused by: {0}")]
+    Composition(String),
+    #[error("could not convert the composed subgraphs to federated SDL\nCaused by: {0}")]
+    ToFederatedSdl(DomainError),
+    #[error("could not fetch the specified branch")]
+    FetchBranch,
+    #[error("the specified branch does not exist")]
+    BranchDoesntExist,
 }

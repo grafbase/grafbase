@@ -7,5 +7,5 @@ pub fn dev(cmd: DevCommand) -> Result<(), CliError> {
         graph: graph_ref.graph().to_owned(),
         branch: graph_ref.branch().map(|branch| branch.to_owned()),
     });
-    backend::dev::start(project_ref, cmd.gateway_config, cmd.graph_overrides).map_err(CliError::BackendError)
+    backend::dev::start(project_ref, cmd.gateway_config, cmd.graph_overrides, cmd.port).map_err(CliError::BackendError)
 }
