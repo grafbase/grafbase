@@ -2,8 +2,8 @@ use std::sync::Arc;
 
 use crate::federation::{subgraph::Subgraphs, TestRuntimeContext};
 use engine_config_builder::build_with_toml_config;
+use federated_graph::FederatedGraph;
 use grafbase_telemetry::metrics::meter_from_global_provider;
-use graphql_composition::VersionedFederatedGraph;
 use runtime::hooks::DynamicHooks;
 use runtime_local::{
     hooks::{self, ChannelLogSender},
@@ -21,7 +21,7 @@ pub(super) async fn build(
     subgraphs: &Subgraphs,
 ) -> (Arc<Engine<TestRuntime>>, TestRuntimeContext) {
     let graph = federated_sdl
-        .map(|sdl| VersionedFederatedGraph::from_sdl(&sdl).unwrap())
+        .map(|sdl| federated_graph::FederatedGraph::from_sdl(&sdl).unwrap())
         .unwrap_or_else(|| {
             if !subgraphs.is_empty() {
                 graphql_composition::compose(&subgraphs.iter().fold(
@@ -36,20 +36,15 @@ pub(super) async fn build(
                 .into_result()
                 .expect("schemas to compose succesfully")
             } else {
-                VersionedFederatedGraph::Sdl(
-                    federated_graph::render_federated_sdl(&federated_graph::FederatedGraph::default()).unwrap(),
-                )
+                federated_graph::FederatedGraph::default()
             }
         });
 
     // Ensure SDL/JSON serialization work as a expected
     let graph = {
-        let sdl = graph.into_federated_sdl().expect("from_sdl()");
+        let sdl = federated_graph::render_federated_sdl(&graph).expect("render_federated_sdl()");
         println!("{sdl}");
-        let mut graph = VersionedFederatedGraph::from_sdl(&sdl).unwrap();
-        let json = serde_json::to_value(&graph).unwrap();
-        graph = serde_json::from_value(json).unwrap();
-        graph
+        FederatedGraph::from_sdl(&sdl).unwrap()
     };
 
     let counter = grafbase_telemetry::metrics::meter_from_global_provider()
@@ -80,7 +75,7 @@ pub(super) async fn build(
 
     update_runtime_with_toml_config(&mut runtime, &config, access_log_sender);
 
-    let config = build_with_toml_config(&config, graph.into_latest().expect("Graph into latest"));
+    let config = build_with_toml_config(&config, graph);
 
     let schema =
         engine_v2::Schema::build(config, engine_v2::SchemaVersion::from(ulid::Ulid::new().to_bytes())).unwrap();

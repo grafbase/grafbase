@@ -9,7 +9,6 @@ use crate::{
     subgraphs::{self, SubgraphId},
     Subgraphs, VecExt,
 };
-use federated::RootOperationTypes;
 use graphql_federated_graph as federated;
 use itertools::Itertools;
 use std::{
@@ -18,7 +17,7 @@ use std::{
 };
 
 /// This can't fail. All the relevant, correct information should already be in the CompositionIr.
-pub(crate) fn emit_federated_graph(mut ir: CompositionIr, subgraphs: &Subgraphs) -> federated::VersionedFederatedGraph {
+pub(crate) fn emit_federated_graph(mut ir: CompositionIr, subgraphs: &Subgraphs) -> federated::FederatedGraph {
     let mut out = federated::FederatedGraph {
         type_definitions: mem::take(&mut ir.type_definitions),
         enum_values: mem::take(&mut ir.enum_values),
@@ -26,7 +25,7 @@ pub(crate) fn emit_federated_graph(mut ir: CompositionIr, subgraphs: &Subgraphs)
         interfaces: mem::take(&mut ir.interfaces),
         unions: mem::take(&mut ir.unions),
         input_objects: mem::take(&mut ir.input_objects),
-        root_operation_types: RootOperationTypes {
+        root_operation_types: federated::RootOperationTypes {
             query: ir.query_type.unwrap(),
             mutation: ir.mutation_type,
             subscription: ir.subscription_type,
@@ -60,7 +59,7 @@ pub(crate) fn emit_federated_graph(mut ir: CompositionIr, subgraphs: &Subgraphs)
 
     drop(ctx);
 
-    federated::VersionedFederatedGraph::Sdl(graphql_federated_graph::render_federated_sdl(&out).unwrap())
+    out
 }
 
 fn emit_directives(ir: &mut Vec<ir::Directive>, ctx: &mut Context<'_>) {
