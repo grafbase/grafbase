@@ -1,26 +1,25 @@
 mod debug;
+mod directives;
 mod enum_values;
 mod ids;
 mod objects;
+mod root_operation_types;
 mod r#type;
 mod type_definitions;
 mod view;
 
-use std::ops::Range;
-
 pub use self::{
+    directives::*,
     enum_values::{EnumValue, EnumValueRecord},
-    ids::{EnumValueId, TypeDefinitionId},
+    ids::*,
     r#type::{Definition, Type},
+    root_operation_types::RootOperationTypes,
     type_definitions::{TypeDefinition, TypeDefinitionKind, TypeDefinitionRecord},
     view::{View, ViewNested},
 };
-pub use super::v3::{
-    AuthorizedDirectiveId, DirectiveId, Directives, FieldId, Fields, InputObject, InputObjectId,
-    InputValueDefinitionId, InputValueDefinitionSet, InputValueDefinitionSetItem, InputValueDefinitions, InterfaceId,
-    ObjectId, Override, OverrideLabel, OverrideSource, RootOperationTypes, StringId, Subgraph, SubgraphId, Union,
-    UnionId, Wrapping, NO_DIRECTIVES, NO_FIELDS, NO_INPUT_VALUE_DEFINITION,
-};
+pub use wrapping::Wrapping;
+
+use std::{collections::BTreeSet, ops::Range};
 
 #[derive(Clone)]
 pub struct FederatedGraph {
@@ -122,6 +121,36 @@ impl FederatedGraph {
             .take_while(move |(needle, _)| *needle == interface_id)
             .map(move |(_, authorized_directive_id)| &self[*authorized_directive_id])
     }
+}
+
+#[derive(Clone)]
+pub struct Subgraph {
+    pub name: StringId,
+    pub url: StringId,
+}
+
+#[derive(Clone)]
+pub struct Union {
+    pub name: StringId,
+    pub members: Vec<ObjectId>,
+    pub join_members: BTreeSet<(SubgraphId, ObjectId)>,
+
+    /// All directives that made it through composition. Notably includes `@tag`.
+    pub composed_directives: Directives,
+
+    pub description: Option<StringId>,
+}
+
+#[derive(Clone)]
+pub struct InputObject {
+    pub name: StringId,
+
+    pub fields: InputValueDefinitions,
+
+    /// All directives that made it through composition. Notably includes `@tag`.
+    pub composed_directives: Directives,
+
+    pub description: Option<StringId>,
 }
 
 #[derive(PartialEq, PartialOrd, Clone, Debug)]
@@ -298,7 +327,7 @@ impl Default for FederatedGraph {
                 kind: TypeDefinitionKind::Object,
             }],
             root_operation_types: RootOperationTypes {
-                query: ObjectId(0),
+                query: ObjectId::from(0),
                 mutation: None,
                 subscription: None,
             },
@@ -307,12 +336,12 @@ impl Default for FederatedGraph {
                 implements_interfaces: Vec::new(),
                 join_implements: Vec::new(),
                 keys: Vec::new(),
-                fields: FieldId(0)..FieldId(2),
+                fields: FieldId::from(0)..FieldId::from(2),
             }],
             interfaces: Vec::new(),
             fields: vec![
                 Field {
-                    name: StringId(1),
+                    name: StringId::from(1),
                     r#type: Type {
                         wrapping: Default::default(),
                         definition: Definition::Scalar(0usize.into()),
@@ -326,7 +355,7 @@ impl Default for FederatedGraph {
                     description: None,
                 },
                 Field {
-                    name: StringId(2),
+                    name: StringId::from(2),
                     r#type: Type {
                         wrapping: Default::default(),
                         definition: Definition::Scalar(0usize.into()),
@@ -357,346 +386,12 @@ impl Default for FederatedGraph {
     }
 }
 
-macro_rules! id_newtypes {
-    ($($name:ident + $storage:ident + $out:ident,)*) => {
-        $(
-            impl std::ops::Index<$name> for FederatedGraph {
-                type Output = $out;
-
-                fn index(&self, index: $name) -> &$out {
-                    &self.$storage[index.0]
-                }
-            }
-
-            impl std::ops::IndexMut<$name> for FederatedGraph {
-                fn index_mut(&mut self, index: $name) -> &mut $out {
-                    &mut self.$storage[index.0]
-                }
-            }
-        )*
-    }
-}
-
-id_newtypes! {
-    AuthorizedDirectiveId + authorized_directives + AuthorizedDirective,
-    FieldId + fields + Field,
-    InputValueDefinitionId + input_value_definitions + InputValueDefinition,
-    InputObjectId + input_objects + InputObject,
-    InterfaceId + interfaces + Interface,
-    ObjectId + objects + Object,
-    StringId + strings + String,
-    SubgraphId + subgraphs + Subgraph,
-    UnionId + unions + Union,
-}
-
-impl From<super::FederatedGraphV3> for FederatedGraph {
-    fn from(
-        crate::FederatedGraphV3 {
-            subgraphs,
-            root_operation_types,
-            objects,
-            interfaces,
-            fields,
-            enums,
-            unions,
-            scalars,
-            input_objects,
-            enum_values,
-            input_value_definitions,
-            strings,
-            directives,
-            authorized_directives,
-            field_authorized_directives,
-            object_authorized_directives,
-            interface_authorized_directives,
-        }: super::FederatedGraphV3,
-    ) -> Self {
-        use std::collections::HashMap;
-
-        let mut type_definitions = Vec::new(); // could make better, but I don't think this is ever going to get called
-        let mut definitions_map: HashMap<super::v3::Definition, Definition> = HashMap::new();
-
-        for (idx, object) in objects.iter().enumerate() {
-            let id = ObjectId::from(idx);
-            type_definitions.push(TypeDefinitionRecord {
-                name: object.name,
-                description: object.description,
-                directives: object.composed_directives,
-                kind: TypeDefinitionKind::Object,
-            });
-            definitions_map.insert(super::v3::Definition::Object(id), Definition::Object(id));
-        }
-
-        for (idx, interface) in interfaces.iter().enumerate() {
-            let id = InterfaceId::from(idx);
-            type_definitions.push(TypeDefinitionRecord {
-                name: interface.name,
-                description: interface.description,
-                directives: interface.composed_directives,
-                kind: TypeDefinitionKind::Interface,
-            });
-            definitions_map.insert(super::v3::Definition::Interface(id), Definition::Interface(id));
-        }
-
-        for (idx, scalar) in scalars.iter().enumerate() {
-            let id = TypeDefinitionId::from(type_definitions.len());
-            type_definitions.push(TypeDefinitionRecord {
-                name: scalar.name,
-                description: scalar.description,
-                directives: scalar.composed_directives,
-                kind: TypeDefinitionKind::Scalar,
-            });
-            definitions_map.insert(super::v3::Definition::Scalar(idx.into()), Definition::Scalar(id));
-        }
-
-        let mut new_enum_values = Vec::new();
-        for r#enum in enums {
-            let enum_id = TypeDefinitionId::from(type_definitions.len());
-            type_definitions.push(TypeDefinitionRecord {
-                name: r#enum.name,
-                description: r#enum.description,
-                directives: r#enum.composed_directives,
-                kind: TypeDefinitionKind::Enum,
-            });
-
-            for enum_value in &enum_values[r#enum.values.0 .0..(r#enum.values.0 .0 + r#enum.values.1)] {
-                new_enum_values.push(EnumValueRecord {
-                    enum_id,
-                    value: enum_value.value,
-                    composed_directives: enum_value.composed_directives,
-                    description: enum_value.description,
-                })
-            }
-        }
-
-        let mut type_definitions_counter = 0;
-
-        FederatedGraph {
-            type_definitions,
-            subgraphs,
-            root_operation_types,
-            objects: objects
-                .into_iter()
-                .map(
-                    |super::v3::Object {
-                         implements_interfaces,
-                         keys,
-                         fields,
-                         ..
-                     }| {
-                        let object = Object {
-                            type_definition_id: type_definitions_counter.into(),
-                            implements_interfaces,
-                            join_implements: Vec::new(),
-                            keys: convert_keys(keys),
-                            fields,
-                        };
-                        type_definitions_counter += 1;
-                        object
-                    },
-                )
-                .collect(),
-            interfaces: interfaces
-                .into_iter()
-                .map(
-                    |super::v3::Interface {
-                         implements_interfaces,
-                         keys,
-                         fields,
-                         ..
-                     }| {
-                        let interface = Interface {
-                            type_definition_id: type_definitions_counter.into(),
-                            implements_interfaces,
-                            keys: convert_keys(keys),
-                            fields,
-                            join_implements: Vec::new(),
-                        };
-                        type_definitions_counter += 1;
-                        interface
-                    },
-                )
-                .collect(),
-            fields: fields
-                .into_iter()
-                .map(
-                    |super::v3::Field {
-                         name,
-                         r#type,
-                         arguments,
-                         resolvable_in,
-                         provides,
-                         requires,
-                         overrides,
-                         composed_directives,
-                         description,
-                     }| Field {
-                        name,
-                        r#type: Type {
-                            definition: definitions_map
-                                .get(&r#type.definition)
-                                .copied()
-                                .unwrap_or_else(|| Definition::Scalar(TypeDefinitionId::from(0))),
-                            wrapping: r#type.wrapping,
-                        },
-                        arguments,
-                        resolvable_in,
-                        provides: provides
-                            .into_iter()
-                            .map(|super::v1::FieldProvides { subgraph_id, fields }| FieldProvides {
-                                subgraph_id,
-                                fields: field_set_to_selection_set(fields),
-                            })
-                            .collect(),
-                        requires: requires
-                            .into_iter()
-                            .map(|super::v1::FieldRequires { subgraph_id, fields }| FieldRequires {
-                                subgraph_id,
-                                fields: field_set_to_selection_set(fields),
-                            })
-                            .collect(),
-                        overrides,
-                        composed_directives,
-                        description,
-                    },
-                )
-                .collect(),
-            unions,
-            input_objects,
-            enum_values: new_enum_values,
-            input_value_definitions: input_value_definitions
-                .into_iter()
-                .map(
-                    |super::v3::InputValueDefinition {
-                         name,
-                         r#type,
-                         directives,
-                         description,
-                         default,
-                     }: super::v3::InputValueDefinition| InputValueDefinition {
-                        name,
-                        r#type: Type {
-                            wrapping: r#type.wrapping,
-                            definition: definitions_map
-                                .get(&r#type.definition)
-                                .copied()
-                                .unwrap_or_else(|| Definition::Scalar(TypeDefinitionId::from(0))),
-                        },
-                        directives,
-                        description,
-                        default: default.map(From::from),
-                    },
-                )
-                .collect(),
-            strings,
-            directives: directives
-                .into_iter()
-                .map(|directive| match directive {
-                    super::v3::Directive::Authenticated => Directive::Authenticated,
-                    super::v3::Directive::Deprecated { reason } => Directive::Deprecated { reason },
-                    super::v3::Directive::Inaccessible => Directive::Inaccessible,
-                    super::v3::Directive::Policy(policy) => Directive::Policy(policy),
-                    super::v3::Directive::RequiresScopes(scopes) => Directive::RequiresScopes(scopes),
-                    super::v3::Directive::Other { name, arguments } => Directive::Other {
-                        name,
-                        arguments: arguments.into_iter().map(|(key, value)| (key, value.into())).collect(),
-                    },
-                })
-                .collect(),
-            authorized_directives: authorized_directives
-                .into_iter()
-                .map(
-                    |super::v3::AuthorizedDirective {
-                         fields,
-                         node,
-                         arguments,
-                         metadata,
-                     }| AuthorizedDirective {
-                        fields: fields.map(field_set_to_selection_set),
-                        node: node.map(field_set_to_selection_set),
-                        arguments,
-                        metadata: metadata.map(From::from),
-                    },
-                )
-                .collect(),
-            field_authorized_directives,
-            object_authorized_directives,
-            interface_authorized_directives,
-        }
-    }
-}
-
-fn convert_keys(keys: Vec<super::v1::Key>) -> Vec<Key> {
-    keys.into_iter()
-        .map(
-            |super::v1::Key {
-                 subgraph_id,
-                 fields,
-                 is_interface_object,
-                 resolvable,
-             }| Key {
-                subgraph_id,
-                fields: field_set_to_selection_set(fields),
-                is_interface_object,
-                resolvable,
-            },
-        )
-        .collect()
-}
-
-fn field_set_to_selection_set(field_set: Vec<super::v1::FieldSetItem>) -> SelectionSet {
-    field_set
-        .into_iter()
-        .map(
-            |super::v1::FieldSetItem {
-                 field,
-                 arguments,
-                 subselection,
-             }| {
-                Selection::Field {
-                    field,
-                    arguments: arguments
-                        .into_iter()
-                        .map(|(k, v)| (k, super::v3::Value::from((v, &[] as &[String])).into()))
-                        .collect(),
-                    subselection: field_set_to_selection_set(subselection),
-                }
-            },
-        )
-        .collect()
-}
-
-impl From<super::v3::Value> for Value {
-    fn from(value: super::v3::Value) -> Self {
-        match value {
-            super::v3::Value::Null => Value::Null,
-            super::v3::Value::String(s) => Value::String(s),
-            super::v3::Value::Int(i) => Value::Int(i),
-            super::v3::Value::Float(i) => Value::Float(i),
-            super::v3::Value::Boolean(b) => Value::Boolean(b),
-            super::v3::Value::EnumValue(i) => Value::String(i),
-            super::v3::Value::Object(obj) => Value::Object(
-                obj.iter()
-                    .map(|(k, v)| (*k, v.clone().into()))
-                    .collect::<Vec<_>>()
-                    .into_boxed_slice(),
-            ),
-            super::v3::Value::List(list) => Value::List(
-                list.iter()
-                    .map(|inner| inner.clone().into())
-                    .collect::<Vec<_>>()
-                    .into_boxed_slice(),
-            ),
-        }
-    }
-}
-
 impl std::ops::Index<Directives> for FederatedGraph {
     type Output = [Directive];
 
     fn index(&self, index: Directives) -> &Self::Output {
-        let (DirectiveId(start), len) = index;
-        &self.directives[start..(start + len)]
+        let (start, len) = index;
+        &self.directives[usize::from(start)..(usize::from(start) + len)]
     }
 }
 
@@ -704,8 +399,8 @@ impl std::ops::Index<InputValueDefinitions> for FederatedGraph {
     type Output = [InputValueDefinition];
 
     fn index(&self, index: InputValueDefinitions) -> &Self::Output {
-        let (InputValueDefinitionId(start), len) = index;
-        &self.input_value_definitions[start..(start + len)]
+        let (start, len) = index;
+        &self.input_value_definitions[usize::from(start)..(usize::from(start) + len)]
     }
 }
 
@@ -713,10 +408,54 @@ impl std::ops::Index<Fields> for FederatedGraph {
     type Output = [Field];
 
     fn index(&self, index: Fields) -> &Self::Output {
-        let Range {
-            start: FieldId(start),
-            end: FieldId(end),
-        } = index;
-        &self.fields[start..end]
+        &self.fields[usize::from(index.start)..usize::from(index.end)]
+    }
+}
+
+pub type InputValueDefinitionSet = Vec<InputValueDefinitionSetItem>;
+
+#[derive(serde::Serialize, serde::Deserialize, Clone, Debug, PartialEq, PartialOrd)]
+pub struct InputValueDefinitionSetItem {
+    pub input_value_definition: InputValueDefinitionId,
+    pub subselection: InputValueDefinitionSet,
+}
+
+/// A (start, end) range in FederatedGraph::fields.
+pub type Fields = Range<FieldId>;
+/// A (start, len) range in FederatedSchema.
+pub type Directives = (DirectiveId, usize);
+/// A (start, len) range in FederatedSchema.
+pub type InputValueDefinitions = (InputValueDefinitionId, usize);
+
+pub const NO_DIRECTIVES: Directives = (DirectiveId::const_from_usize(0), 0);
+pub const NO_INPUT_VALUE_DEFINITION: InputValueDefinitions = (InputValueDefinitionId::const_from_usize(0), 0);
+pub const NO_FIELDS: Fields = Range {
+    start: FieldId::const_from_usize(0),
+    end: FieldId::const_from_usize(0),
+};
+
+pub type FieldSet = Vec<FieldSetItem>;
+
+#[derive(Clone, PartialEq, PartialOrd)]
+pub struct FieldSetItem {
+    pub field: FieldId,
+    pub arguments: Vec<(InputValueDefinitionId, Value)>,
+    pub subselection: FieldSet,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn override_label() {
+        assert!("".parse::<OverrideLabel>().is_err());
+        assert!("percent(heh)".parse::<OverrideLabel>().is_err());
+        assert!("percent(30".parse::<OverrideLabel>().is_err());
+
+        assert_eq!(
+            "percent(30)".parse::<OverrideLabel>().unwrap().as_percent().unwrap(),
+            30
+        );
     }
 }

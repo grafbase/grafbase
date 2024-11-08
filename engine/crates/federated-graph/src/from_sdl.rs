@@ -13,6 +13,7 @@ use std::{
     fmt,
     ops::Range,
 };
+use wrapping::Wrapping;
 
 const JOIN_FIELD_DIRECTIVE_NAME: &str = "join__field";
 const JOIN_FIELD_DIRECTIVE_OVERRIDE_ARGUMENT: &str = "override";
@@ -108,10 +109,10 @@ impl<'a> State<'a> {
 
     fn insert_string(&mut self, s: &str) -> StringId {
         if let Some(idx) = self.strings.get_index_of(s) {
-            return StringId(idx);
+            return StringId::from(idx);
         }
 
-        StringId(self.strings.insert_full(s.to_owned()).0)
+        StringId::from(self.strings.insert_full(s.to_owned()).0)
     }
 
     fn insert_value(&mut self, node: ParserValue<'_>, expected_enum_type: Option<TypeDefinitionId>) -> Value {
@@ -169,16 +170,22 @@ impl<'a> State<'a> {
 
     fn get_definition_name(&self, definition: Definition) -> &str {
         let name = match definition {
-            Definition::Object(object_id) => self.graph.view(self.objects[object_id.0].type_definition_id).name,
+            Definition::Object(object_id) => {
+                self.graph
+                    .view(self.objects[usize::from(object_id)].type_definition_id)
+                    .name
+            }
             Definition::Interface(interface_id) => {
-                self.graph.view(self.interfaces[interface_id.0].type_definition_id).name
+                self.graph
+                    .view(self.interfaces[usize::from(interface_id)].type_definition_id)
+                    .name
             }
             Definition::Scalar(scalar_id) => self.graph[scalar_id].name,
             Definition::Enum(enum_id) => self.graph[enum_id].name,
-            Definition::Union(union_id) => self.unions[union_id.0].name,
-            Definition::InputObject(input_object_id) => self.input_objects[input_object_id.0].name,
+            Definition::Union(union_id) => self.unions[usize::from(union_id)].name,
+            Definition::InputObject(input_object_id) => self.input_objects[usize::from(input_object_id)].name,
         };
-        &self.strings[name.0]
+        &self.strings[usize::from(name)]
     }
 }
 
@@ -203,7 +210,7 @@ pub fn from_sdl(sdl: &str) -> Result<FederatedGraph, DomainError> {
         let query_type_name = "Query";
         state.query_type_name = Some(String::from(query_type_name));
 
-        let object_id = ObjectId(state.objects.len());
+        let object_id = ObjectId::from(state.objects.len());
         let query_string_id = state.insert_string(query_type_name);
 
         state
@@ -342,7 +349,7 @@ fn ingest_interface_interfaces(
     interface: &ast::InterfaceDefinition<'_>,
     state: &mut State<'_>,
 ) -> Result<(), DomainError> {
-    state.interfaces[interface_id.0].implements_interfaces = interface
+    state.interfaces[usize::from(interface_id)].implements_interfaces = interface
         .implements_interfaces()
         .map(|name| match state.definition_names[name] {
             Definition::Interface(interface_id) => Ok(interface_id),
@@ -360,7 +367,7 @@ fn ingest_object_interfaces(
     object: &ast::ObjectDefinition<'_>,
     state: &mut State<'_>,
 ) -> Result<(), DomainError> {
-    state.objects[object_id.0].implements_interfaces = object
+    state.objects[usize::from(object_id)].implements_interfaces = object
         .implements_interfaces()
         .map(|name| match state.definition_names[name] {
             Definition::Interface(interface_id) => Ok(interface_id),
@@ -383,7 +390,7 @@ fn ingest_object_join_implements(
             continue;
         };
 
-        state.objects[object_id.0]
+        state.objects[usize::from(object_id)]
             .join_implements
             .push((subgraph_id, interface_id));
     }
@@ -401,7 +408,7 @@ fn ingest_interface_join_implements(
             continue;
         };
 
-        state.interfaces[object_id.0]
+        state.interfaces[usize::from(object_id)]
             .join_implements
             .push((subgraph_id, interface_id));
     }
@@ -419,7 +426,9 @@ fn ingest_union_join_members(
             continue;
         };
 
-        state.unions[union_id.0].join_members.insert((subgraph_id, object_id));
+        state.unions[usize::from(union_id)]
+            .join_members
+            .insert((subgraph_id, object_id));
     }
 
     Ok(())
@@ -537,12 +546,12 @@ fn ingest_authorized_directives(parsed: &ast::TypeSystemDocument, state: &mut St
             Definition::Object(object_id) => {
                 state
                     .object_authorized_directives
-                    .push((object_id, AuthorizedDirectiveId(idx)));
+                    .push((object_id, AuthorizedDirectiveId::from(idx)));
             }
             Definition::Interface(interface_id) => {
                 state
                     .interface_authorized_directives
-                    .push((interface_id, AuthorizedDirectiveId(idx)));
+                    .push((interface_id, AuthorizedDirectiveId::from(idx)));
             }
             _ => (),
         }
@@ -586,7 +595,7 @@ fn ingest_entity_keys(parsed: &ast::TypeSystemDocument, state: &mut State<'_>) -
 
             match definition {
                 Definition::Object(object_id) => {
-                    state.objects[object_id.0].keys.push(Key {
+                    state.objects[usize::from(object_id)].keys.push(Key {
                         subgraph_id,
                         fields,
                         is_interface_object,
@@ -594,7 +603,7 @@ fn ingest_entity_keys(parsed: &ast::TypeSystemDocument, state: &mut State<'_>) -
                     });
                 }
                 Definition::Interface(interface_id) => {
-                    state.interfaces[interface_id.0].keys.push(Key {
+                    state.interfaces[usize::from(interface_id)].keys.push(Key {
                         subgraph_id,
                         fields,
                         is_interface_object,
@@ -661,7 +670,7 @@ where
 
     for field in fields {
         let field_id = state.selection_map[&(parent_id, field.name())];
-        let field_type = state.fields[field_id.0].r#type.clone();
+        let field_type = state.fields[usize::from(field_id)].r#type.clone();
 
         let mut resolvable_in = Vec::new();
         let mut requires = Vec::new();
@@ -726,7 +735,7 @@ where
             resolvable_in = type_subgraph_ids.clone();
         }
 
-        let field = &mut state.fields[field_id.0];
+        let field = &mut state.fields[usize::from(field_id)];
         field.provides = provides;
         field.requires = requires;
         field.resolvable_in = resolvable_in;
@@ -742,7 +751,7 @@ fn ingest_authorized_directive<'a>(
 ) -> Result<(), DomainError> {
     for field in fields {
         let field_id = state.selection_map[&(parent_id, field.name())];
-        let field_type = state.fields[field_id.0].r#type.clone();
+        let field_type = state.fields[usize::from(field_id)].r#type.clone();
 
         for directive in field.directives() {
             if "authorized" != directive.name() {
@@ -778,7 +787,7 @@ fn ingest_authorized_directive<'a>(
                     .map(|metadata| state.insert_value(metadata, None)),
             };
             state.authorized_directives.push(authorized_directive);
-            let id = AuthorizedDirectiveId(state.authorized_directives.len() - 1);
+            let id = AuthorizedDirectiveId::from(state.authorized_directives.len() - 1);
             state.field_authorized_directives.push((field_id, id));
         }
     }
@@ -826,7 +835,7 @@ fn ingest_definitions<'a>(document: &'a ast::TypeSystemDocument, state: &mut Sta
                             .insert(type_name, Definition::Scalar(type_definition_id));
                     }
                     ast::TypeDefinition::Object(_) => {
-                        let object_id = ObjectId(state.objects.push_return_idx(Object {
+                        let object_id = ObjectId::from(state.objects.push_return_idx(Object {
                             type_definition_id,
                             implements_interfaces: Vec::new(),
                             join_implements: Vec::new(),
@@ -837,7 +846,7 @@ fn ingest_definitions<'a>(document: &'a ast::TypeSystemDocument, state: &mut Sta
                         state.definition_names.insert(type_name, Definition::Object(object_id));
                     }
                     ast::TypeDefinition::Interface(_) => {
-                        let interface_id = InterfaceId(state.interfaces.push_return_idx(Interface {
+                        let interface_id = InterfaceId::from(state.interfaces.push_return_idx(Interface {
                             type_definition_id,
                             implements_interfaces: Vec::new(),
                             keys: Vec::new(),
@@ -849,7 +858,7 @@ fn ingest_definitions<'a>(document: &'a ast::TypeSystemDocument, state: &mut Sta
                             .insert(type_name, Definition::Interface(interface_id));
                     }
                     ast::TypeDefinition::Union(_) => {
-                        let union_id = UnionId(state.unions.push_return_idx(Union {
+                        let union_id = UnionId::from(state.unions.push_return_idx(Union {
                             name: type_name_id,
                             members: Vec::new(),
                             join_members: BTreeSet::new(),
@@ -881,7 +890,7 @@ fn ingest_definitions<'a>(document: &'a ast::TypeSystemDocument, state: &mut Sta
                         }
                     }
                     ast::TypeDefinition::InputObject(_) => {
-                        let input_object_id = InputObjectId(state.input_objects.push_return_idx(InputObject {
+                        let input_object_id = InputObjectId::from(state.input_objects.push_return_idx(InputObject {
                             name: type_name_id,
                             fields: NO_INPUT_VALUE_DEFINITION,
                             composed_directives,
@@ -906,7 +915,7 @@ fn insert_builtin_scalars(state: &mut State<'_>) {
         let name = state.insert_string(name_str);
         let id = state.graph.push_type_definition(TypeDefinitionRecord {
             name,
-            directives: (DirectiveId(0), 0),
+            directives: (DirectiveId::from(0), 0),
             description: None,
             kind: TypeDefinitionKind::Scalar,
         });
@@ -928,9 +937,9 @@ fn ingest_interface_fields<'a>(
     }
 
     if let [Some(start), Some(end)] = [start, end] {
-        state.interfaces[interface_id.0].fields = Range {
+        state.interfaces[usize::from(interface_id)].fields = Range {
             start,
-            end: FieldId(end.0 + 1),
+            end: FieldId::from(usize::from(end) + 1),
         };
     };
     Ok(())
@@ -1011,7 +1020,7 @@ fn ingest_field<'a>(
                         // Previously we used the subgraph name rather than the enum we overrides
                         // was specified.
                         let subgraph_name = state.insert_string(graph.name());
-                        Some(SubgraphId(
+                        Some(SubgraphId::from(
                             state
                                 .subgraphs
                                 .iter()
@@ -1024,8 +1033,8 @@ fn ingest_field<'a>(
                     from: state
                         .subgraphs
                         .iter()
-                        .position(|subgraph| state.strings[subgraph.name.0] == overrides.value())
-                        .map(SubgraphId)
+                        .position(|subgraph| state.strings[usize::from(subgraph.name)] == overrides.value())
+                        .map(SubgraphId::from)
                         .map(OverrideSource::Subgraph)
                         .unwrap_or_else(|| OverrideSource::Missing(state.insert_string(overrides.value()))),
                 })
@@ -1039,13 +1048,13 @@ fn ingest_field<'a>(
         .description()
         .map(|description| state.insert_string(&description.to_cow()));
 
-    let field_id = FieldId(state.fields.push_return_idx(Field {
+    let field_id = FieldId::from(state.fields.push_return_idx(Field {
         name,
         r#type,
         resolvable_in,
         provides: Vec::new(),
         requires: Vec::new(),
-        arguments: (InputValueDefinitionId(args_start), args_end - args_start),
+        arguments: (InputValueDefinitionId::from(args_start), args_end - args_start),
         composed_directives,
         overrides,
         description,
@@ -1065,7 +1074,7 @@ fn ingest_union_members<'a>(
         let Definition::Object(object_id) = state.definition_names[member.name()] else {
             return Err(DomainError("Non-object type in union members".to_owned()));
         };
-        state.unions[union_id.0].members.push(object_id);
+        state.unions[usize::from(union_id)].members.push(object_id);
     }
 
     Ok(())
@@ -1080,7 +1089,7 @@ fn ingest_input_object<'a>(
     for field in input_object.fields() {
         state.input_values_map.insert(
             (input_object_id, field.name()),
-            InputValueDefinitionId(state.input_value_definitions.len()),
+            InputValueDefinitionId::from(state.input_value_definitions.len()),
         );
         let name = state.insert_string(field.name());
         let r#type = state.field_type(field.ty())?;
@@ -1102,7 +1111,7 @@ fn ingest_input_object<'a>(
     }
     let end = state.input_value_definitions.len();
 
-    state.input_objects[input_object_id.0].fields = (InputValueDefinitionId(start), end - start);
+    state.input_objects[usize::from(input_object_id)].fields = (InputValueDefinitionId::from(start), end - start);
     Ok(())
 }
 
@@ -1116,7 +1125,7 @@ fn ingest_object_fields<'a>(
     for field in fields {
         let field_id = ingest_field(Definition::Object(object_id), field, state)?;
         start = Some(start.unwrap_or(field_id));
-        end = Some(FieldId(field_id.0 + 1));
+        end = Some(FieldId::from(usize::from(field_id) + 1));
     }
 
     // When we encounter the root query type, we need to make space at the end of the fields for __type and __schema.
@@ -1145,12 +1154,14 @@ fn ingest_object_fields<'a>(
             });
         }
 
-        start = start.or(Some(FieldId(new_start)));
-        end = end.map(|end| FieldId(end.0 + 2)).or(Some(FieldId(new_start + 2)));
+        start = start.or(Some(FieldId::from(new_start)));
+        end = end
+            .map(|end| FieldId::from(usize::from(end) + 2))
+            .or(Some(FieldId::from(new_start + 2)));
     }
 
     if let [Some(start), Some(end)] = [start, end] {
-        state.objects[object_id.0].fields = Range { start, end };
+        state.objects[usize::from(object_id)].fields = Range { start, end };
     };
 
     Ok(())
@@ -1209,20 +1220,23 @@ fn attach_selection_field(
             ast_field.name(),
         ))
     })?;
-    let field_ty = state.fields[field.0].r#type.definition;
+    let field_ty = state.fields[usize::from(field)].r#type.definition;
     let arguments = ast_field
         .arguments()
         .map(|argument| {
             let name = state.insert_string(argument.name());
-            let (start, len) = state.fields[field.0].arguments;
-            let arguments = &state.input_value_definitions[start.0..start.0 + len];
+            let (start, len) = state.fields[usize::from(field)].arguments;
+            let arguments = &state.input_value_definitions[usize::from(start)..usize::from(start) + len];
             let argument_id = arguments
                 .iter()
                 .position(|arg| arg.name == name)
-                .map(|idx| InputValueDefinitionId(start.0 + idx))
+                .map(|idx| InputValueDefinitionId::from(usize::from(start) + idx))
                 .expect("unknown argument");
 
-            let argument_type = state.input_value_definitions[argument_id.0].r#type.definition.as_enum();
+            let argument_type = state.input_value_definitions[usize::from(argument_id)]
+                .r#type
+                .definition
+                .as_enum();
 
             let const_value = argument
                 .value()
@@ -1283,24 +1297,27 @@ fn attach_input_value_set_to_field_arguments_rec<'a>(
     field_id: FieldId,
     state: &mut State<'_>,
 ) -> Result<InputValueDefinitionSet, DomainError> {
-    let (start, len) = state.fields[field_id.0].arguments;
+    let (start, len) = state.fields[usize::from(field_id)].arguments;
     selection_set
         .map(|selection| {
             let executable_ast::Selection::Field(ast_arg) = selection else {
                 return Err(DomainError("Unsupported fragment spread in selection set".to_owned()));
             };
 
-            let arguments = &state.input_value_definitions[start.0..start.0 + len];
+            let arguments = &state.input_value_definitions[usize::from(start)..usize::from(start) + len];
             let Some((i, arg)) = arguments
                 .iter()
                 .enumerate()
-                .find(|(_, arg)| state.strings.get_index(arg.name.0).unwrap() == ast_arg.name())
+                .find(|(_, arg)| state.strings.get_index(usize::from(arg.name)).unwrap() == ast_arg.name())
             else {
                 return Err(DomainError(format!(
                     "Argument '{}' does not exist for the field '{}.{}'",
                     ast_arg.name(),
                     state.get_definition_name(parent),
-                    state.strings.get_index(state.fields[field_id.0].name.0).unwrap(),
+                    state
+                        .strings
+                        .get_index(usize::from(state.fields[usize::from(field_id)].name))
+                        .unwrap(),
                 )));
             };
 
@@ -1318,7 +1335,7 @@ fn attach_input_value_set_to_field_arguments_rec<'a>(
             };
 
             Ok(InputValueDefinitionSetItem {
-                input_value_definition: InputValueDefinitionId(start.0 + i),
+                input_value_definition: InputValueDefinitionId::from(usize::from(start) + i),
                 subselection,
             })
         })
@@ -1349,7 +1366,7 @@ fn attach_input_value_set_rec<'a>(
             let mut ast_subselection = ast_field.selection_set().peekable();
 
             let subselection = if let Definition::InputObject(input_object_id) =
-                state.input_value_definitions[id.0].r#type.definition
+                state.input_value_definitions[usize::from(id)].r#type.definition
             {
                 if ast_subselection.peek().is_none() {
                     return Err(DomainError("InputObject must have a subselection".to_owned()));
@@ -1407,7 +1424,7 @@ fn ingest_join_graph_enum<'a>(enm: ast::EnumDefinition<'a>, state: &mut State<'a
 
         let name = state.insert_string(name.value());
         let url = state.insert_string(url.value());
-        let id = SubgraphId(state.subgraphs.push_return_idx(Subgraph { name, url }));
+        let id = SubgraphId::from(state.subgraphs.push_return_idx(Subgraph { name, url }));
         state.graph_sdl_names.insert(sdl_name, id);
     }
 
@@ -1508,7 +1525,7 @@ fn collect_composed_directives<'a>(
         }
     }
 
-    (DirectiveId(start), state.directives.len() - start)
+    (DirectiveId::from(start), state.directives.len() - start)
 }
 
 #[cfg(test)]
@@ -1613,7 +1630,7 @@ fn test_from_sdl() {
         let field_name = schema.strings.iter().position(|s| s == field_name).unwrap();
         assert!(schema[query_object.fields.clone()]
             .iter()
-            .any(|f| f.name.0 == field_name));
+            .any(|f| usize::from(f.name) == field_name));
     }
 }
 
@@ -1696,7 +1713,7 @@ fn test_from_sdl_with_empty_query_root() {
         let field_name = schema.strings.iter().position(|s| s == field_name).unwrap();
         assert!(schema[query_object.fields.clone()]
             .iter()
-            .any(|f| f.name.0 == field_name));
+            .any(|f| usize::from(f.name) == field_name));
     }
 }
 
@@ -1777,7 +1794,7 @@ fn test_from_sdl_with_missing_query_root() {
         let field_name = schema.strings.iter().position(|s| s == field_name).unwrap();
         assert!(schema[query_object.fields.clone()]
             .iter()
-            .any(|f| f.name.0 == field_name));
+            .any(|f| usize::from(f.name) == field_name));
     }
 }
 

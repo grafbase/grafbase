@@ -101,7 +101,7 @@ pub fn render_federated_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error
         sdl.push_str("{\n");
 
         for (idx, field) in fields {
-            let field_id = FieldId(object.fields.start.0 + idx);
+            let field_id = FieldId::from(usize::from(object.fields.start) + idx);
             write_field(field_id, field, graph, &mut sdl)?;
         }
 
@@ -163,7 +163,7 @@ pub fn render_federated_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error
         })?;
 
         for (idx, field) in graph[interface.fields.clone()].iter().enumerate() {
-            let field_id = FieldId(interface.fields.start.0 + idx);
+            let field_id = FieldId::from(usize::from(interface.fields.start) + idx);
             write_field(field_id, field, graph, &mut sdl)?;
         }
 
@@ -451,7 +451,7 @@ fn write_overrides(field: &Field, graph: &FederatedGraph, sdl: &mut String) -> f
     } in &field.overrides
     {
         let overrides = match from {
-            OverrideSource::Subgraph(subgraph_id) => &graph[graph.subgraphs[subgraph_id.0].name],
+            OverrideSource::Subgraph(subgraph_id) => &graph.at(*subgraph_id).then(|subgraph| subgraph.name),
             OverrideSource::Missing(string) => &graph[*string],
         };
 

@@ -114,5 +114,5 @@ pub(super) fn collect_composed_directives<'a>(
         push_directive(ctx, directive)
     }
 
-    ids.unwrap_or((federated::DirectiveId(0), 0))
+    ids.unwrap_or((federated::DirectiveId::from(0), 0))
 }

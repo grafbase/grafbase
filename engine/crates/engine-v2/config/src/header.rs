@@ -86,3 +86,9 @@ impl std::ops::Index<HeaderRuleId> for super::Config {
         &self.header_rules[index.0]
     }
 }
+
+impl From<HeaderRuleId> for usize {
+    fn from(value: HeaderRuleId) -> Self {
+        value.0
+    }
+}

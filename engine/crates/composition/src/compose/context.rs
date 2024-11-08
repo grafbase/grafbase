@@ -38,7 +38,7 @@ impl<'a> Context<'a> {
     }
 
     pub(crate) fn insert_directive(&mut self, directive: ir::Directive) -> federated::DirectiveId {
-        federated::DirectiveId(self.ir.directives.push_return_idx(directive))
+        federated::DirectiveId::from(self.ir.directives.push_return_idx(directive))
     }
 
     pub(crate) fn insert_enum(
@@ -83,7 +83,7 @@ impl<'a> Context<'a> {
     }
 
     pub(crate) fn insert_field(&mut self, ir: ir::FieldIr) -> federated::FieldId {
-        federated::FieldId(self.ir.fields.push_return_idx(ir))
+        federated::FieldId::from(self.ir.fields.push_return_idx(ir))
     }
 
     pub(crate) fn insert_input_object(
@@ -100,7 +100,7 @@ impl<'a> Context<'a> {
             composed_directives,
             description,
         };
-        let id = federated::InputObjectId(self.ir.input_objects.push_return_idx(object));
+        let id = federated::InputObjectId::from(self.ir.input_objects.push_return_idx(object));
         self.ir
             .definitions_by_name
             .insert(name, federated::Definition::InputObject(id));
@@ -111,7 +111,7 @@ impl<'a> Context<'a> {
         &mut self,
         definition: ir::InputValueDefinitionIr,
     ) -> federated::InputValueDefinitionId {
-        federated::InputValueDefinitionId(self.ir.input_value_definitions.push_return_idx(definition))
+        federated::InputValueDefinitionId::from(self.ir.input_value_definitions.push_return_idx(definition))
     }
 
     pub(crate) fn insert_interface(
@@ -137,7 +137,7 @@ impl<'a> Context<'a> {
             fields: federated::NO_FIELDS,
             join_implements: Vec::new(),
         };
-        let id = federated::InterfaceId(self.ir.interfaces.push_return_idx(interface));
+        let id = federated::InterfaceId::from(self.ir.interfaces.push_return_idx(interface));
         self.ir
             .definitions_by_name
             .insert(name, federated::Definition::Interface(id));
@@ -180,7 +180,7 @@ impl<'a> Context<'a> {
             keys: Vec::new(),
             fields: federated::NO_FIELDS,
         };
-        let id = federated::ObjectId(self.ir.objects.push_return_idx(object));
+        let id = federated::ObjectId::from(self.ir.objects.push_return_idx(object));
         self.ir
             .definitions_by_name
             .insert(name, federated::Definition::Object(id));
@@ -225,7 +225,7 @@ impl<'a> Context<'a> {
             composed_directives,
             description,
         };
-        let id = federated::UnionId(self.ir.unions.push_return_idx(union));
+        let id = federated::UnionId::from(self.ir.unions.push_return_idx(union));
         self.ir
             .definitions_by_name
             .insert(name, federated::Definition::Union(id));
