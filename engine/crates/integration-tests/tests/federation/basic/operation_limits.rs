@@ -4,7 +4,10 @@ use integration_tests::{federation::EngineV2Ext, runtime};
 
 #[rstest::rstest]
 #[case( // 1
-    "@operationLimits(depth: 1)",
+    r#"
+        [operation_limits]
+        depth = 1
+    "#,
     r#"query {
         allBotPullRequests {
             title
@@ -13,7 +16,10 @@ use integration_tests::{federation::EngineV2Ext, runtime};
     Some("Query is nested too deep.")
 )]
 #[case( // 2
-   "@operationLimits(depth: 2)",
+    r#"
+        [operation_limits]
+        depth = 2
+    "#,
     r#"query {
         allBotPullRequests {
             title
@@ -22,7 +28,10 @@ use integration_tests::{federation::EngineV2Ext, runtime};
     None
 )]
 #[case( // 3
-    "@operationLimits(height: 1)",
+    r#"
+        [operation_limits]
+        height = 1
+    "#,
     r#"query {
         favoriteRepository
         serverVersion
@@ -30,7 +39,10 @@ use integration_tests::{federation::EngineV2Ext, runtime};
     Some("Query is too high.")
 )]
 #[case( // 4
-    "@operationLimits(height: 2)",
+    r#"
+        [operation_limits]
+        height = 2
+    "#,
     r#"query {
         favoriteRepository
         serverVersion
@@ -38,7 +50,10 @@ use integration_tests::{federation::EngineV2Ext, runtime};
     None
 )]
 #[case( // 5
-    "@operationLimits(height: 2)",
+    r#"
+        [operation_limits]
+        height = 2
+    "#,
     r#"query {
         favoriteRepository
         serverVersion
@@ -47,7 +62,10 @@ use integration_tests::{federation::EngineV2Ext, runtime};
     None
 )]
 #[case( // 6
-    "@operationLimits(complexity: 1)",
+    r#"
+        [operation_limits]
+        complexity = 1
+    "#,
     r#"query {
         favoriteRepository
         serverVersion
@@ -55,7 +73,10 @@ use integration_tests::{federation::EngineV2Ext, runtime};
     Some("Query is too complex.")
 )]
 #[case( // 7
-    "@operationLimits(complexity: 2)",
+    r#"
+        [operation_limits]
+        complexity = 2
+    "#,
     r#"query {
         favoriteRepository
         serverVersion
@@ -63,7 +84,10 @@ use integration_tests::{federation::EngineV2Ext, runtime};
     None
 )]
 #[case( // 8
-    "@operationLimits(complexity: 2)",
+    r#"
+        [operation_limits]
+        complexity = 2
+    "#,
     r#"query {
         favoriteRepository
         serverVersion
@@ -72,7 +96,10 @@ use integration_tests::{federation::EngineV2Ext, runtime};
     Some("Query is too complex.")
 )]
 #[case( // 9
-    "@operationLimits(complexity: 3)",
+    r#"
+        [operation_limits]
+        complexity = 3
+    "#,
     r#"query {
         favoriteRepository
         allBotPullRequests {
@@ -83,7 +110,10 @@ use integration_tests::{federation::EngineV2Ext, runtime};
     Some("Query is too complex.")
 )]
 #[case( // 10
-    "@operationLimits(aliases: 2)",
+    r#"
+        [operation_limits]
+        aliases = 2
+    "#,
     r#"query {
         favoriteRepository
         favorite: favoriteRepository
@@ -95,7 +125,10 @@ use integration_tests::{federation::EngineV2Ext, runtime};
     None
 )]
 #[case( // 11
-    "@operationLimits(aliases: 1)",
+    r#"
+        [operation_limits]
+        aliases = 1
+    "#,
     r#"query {
         favoriteRepository
         favorite: favoriteRepository
@@ -107,7 +140,10 @@ use integration_tests::{federation::EngineV2Ext, runtime};
     Some("Query contains too many aliases.")
 )]
 #[case( // 12
-    "@operationLimits(rootFields: 2)",
+    r#"
+        [operation_limits]
+        root_fields = 2
+    "#,
     r#"query {
         favoriteRepository
         serverVersion
@@ -116,7 +152,10 @@ use integration_tests::{federation::EngineV2Ext, runtime};
     Some("Query contains too many root fields.")
 )]
 #[case( // 13
-    "@operationLimits(rootFields: 3)",
+    r#"
+        [operation_limits]
+        root_fields = 3
+    "#,
     r#"query {
         favoriteRepository
         serverVersion
@@ -131,7 +170,7 @@ fn test_operation_limits(
 ) {
     let response = runtime().block_on(async move {
         let engine = Engine::builder()
-            .with_sdl_config(format!("extend schema {operation_limits_config}"))
+            .with_toml_config(operation_limits_config)
             .with_subgraph(FakeGithubSchema)
             .build()
             .await;

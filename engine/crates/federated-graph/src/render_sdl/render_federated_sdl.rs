@@ -7,7 +7,7 @@ use std::fmt::{self, Write};
 pub fn render_federated_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error> {
     let mut sdl = String::new();
 
-    write_prelude(&mut sdl)?;
+    write_prelude(&mut sdl, graph)?;
 
     write_subgraphs_enum(graph, &mut sdl)?;
 
@@ -101,7 +101,7 @@ pub fn render_federated_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error
         sdl.push_str("{\n");
 
         for (idx, field) in fields {
-            let field_id = FieldId(object.fields.start.0 + idx);
+            let field_id = FieldId::from(usize::from(object.fields.start) + idx);
             write_field(field_id, field, graph, &mut sdl)?;
         }
 
@@ -163,7 +163,7 @@ pub fn render_federated_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error
         })?;
 
         for (idx, field) in graph[interface.fields.clone()].iter().enumerate() {
-            let field_id = FieldId(interface.fields.start.0 + idx);
+            let field_id = FieldId::from(usize::from(interface.fields.start) + idx);
             write_field(field_id, field, graph, &mut sdl)?;
         }
 
@@ -290,7 +290,7 @@ fn render_join_member(
     Ok(())
 }
 
-fn write_prelude(sdl: &mut String) -> fmt::Result {
+fn write_prelude(sdl: &mut String, graph: &FederatedGraph) -> fmt::Result {
     sdl.push_str(indoc::indoc! {r#"
         directive @core(feature: String!) repeatable on SCHEMA
 
@@ -314,6 +314,23 @@ fn write_prelude(sdl: &mut String) -> fmt::Result {
 
         directive @join__unionMember(graph: join__Graph!, member: String!) repeatable on UNION
     "#});
+
+    if graph
+        .directives
+        .iter()
+        .any(|directive| matches!(directive, Directive::Cost { .. }))
+    {
+        sdl.push('\n');
+        sdl.push_str(indoc::indoc! {r#"
+            directive @cost(weight: Int!) on
+                ARGUMENT_DEFINITION
+              | ENUM
+              | FIELD_DEFINITION
+              | INPUT_FIELD_DEFINITION
+              | OBJECT
+              | SCALAR
+        "#});
+    }
 
     sdl.push('\n');
     Ok(())
@@ -434,7 +451,7 @@ fn write_overrides(field: &Field, graph: &FederatedGraph, sdl: &mut String) -> f
     } in &field.overrides
     {
         let overrides = match from {
-            OverrideSource::Subgraph(subgraph_id) => &graph[graph.subgraphs[subgraph_id.0].name],
+            OverrideSource::Subgraph(subgraph_id) => &graph.at(*subgraph_id).then(|subgraph| subgraph.name),
             OverrideSource::Missing(string) => &graph[*string],
         };
 
@@ -619,11 +636,9 @@ mod tests {
     fn test_render_empty() {
         use expect_test::expect;
 
-        let empty = crate::VersionedFederatedGraph::Sdl(
-            crate::render_sdl::render_federated_sdl(&FederatedGraph::default()).unwrap(),
-        );
+        let empty = FederatedGraph::default();
 
-        let actual = render_federated_sdl(&empty.into_latest().unwrap()).expect("valid");
+        let actual = render_federated_sdl(&empty).expect("valid");
         let expected = expect![[r#"
             directive @core(feature: String!) repeatable on SCHEMA
 

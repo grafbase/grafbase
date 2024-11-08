@@ -1,0 +1,19 @@
+enum Blah {
+    BLAH
+}
+
+type Query {
+    foo(name: String): String
+    id: ID!
+}
+
+interface Account {
+    foo(name: String): String
+    id: ID!
+}
+
+input Bar {
+    x: String
+}
+
+scalar Foo

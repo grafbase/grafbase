@@ -15,7 +15,7 @@ accepted = [
     "Unicode-DFS-2016",
     "Unlicense",
     "Zlib",
-    "zlib-acknowledgement"
+    "zlib-acknowledgement",
 ]
 
 targets = [
@@ -24,3 +24,5 @@ targets = [
     "x86_64-pc-windows-msvc",
     "x86_64-unknown-linux-musl",
 ]
+
+workarounds = ["ring", "rustls"]

@@ -54,12 +54,14 @@ impl IdMaps {
 
         for (i, field) in graph.fields.iter().enumerate() {
             if is_inaccessible(graph, field.composed_directives) {
-                idmaps.field.skip(federated_graph::FieldId(i))
+                idmaps.field.skip(federated_graph::FieldId::from(i))
             }
         }
         for (i, input_value) in graph.input_value_definitions.iter().enumerate() {
             if is_inaccessible(graph, input_value.directives) {
-                idmaps.input_value.skip(federated_graph::InputValueDefinitionId(i))
+                idmaps
+                    .input_value
+                    .skip(federated_graph::InputValueDefinitionId::from(i))
             }
         }
 
@@ -156,16 +158,16 @@ mod tests {
 
     #[test]
     fn skip_basic() {
-        let id = federated_graph::InputValueDefinitionId(2);
+        let id = federated_graph::InputValueDefinitionId::from(2);
         let mut mapper = IdMapper::default();
         assert_eq!(InputValueDefinitionId::from(2usize), mapper.get(id).unwrap());
-        mapper.skip(federated_graph::InputValueDefinitionId(1));
+        mapper.skip(federated_graph::InputValueDefinitionId::from(1));
         assert_eq!(InputValueDefinitionId::from(1usize), mapper.get(id).unwrap());
     }
 
     #[test]
     fn map_skipped() {
-        let id = federated_graph::InputValueDefinitionId(5);
+        let id = federated_graph::InputValueDefinitionId::from(5);
         let mut mapper = IdMapper::default();
         mapper.skip(id);
         assert!(mapper.get(id).is_none());
@@ -173,7 +175,7 @@ mod tests {
 
     #[test]
     fn map_range_basic() {
-        let range = (federated_graph::InputValueDefinitionId(6), 10);
+        let range = (federated_graph::InputValueDefinitionId::from(6), 10);
         let mut mapper = IdMapper::default();
         assert_eq!(
             IdRange {
@@ -183,7 +185,7 @@ mod tests {
             mapper.get_range(range)
         );
 
-        mapper.skip(federated_graph::InputValueDefinitionId(2));
+        mapper.skip(federated_graph::InputValueDefinitionId::from(2));
 
         assert_eq!(
             IdRange {
@@ -193,7 +195,7 @@ mod tests {
             mapper.get_range(range)
         );
 
-        mapper.skip(federated_graph::InputValueDefinitionId(6));
+        mapper.skip(federated_graph::InputValueDefinitionId::from(6));
 
         assert_eq!(
             IdRange {
@@ -203,7 +205,7 @@ mod tests {
             mapper.get_range(range)
         );
 
-        mapper.skip(federated_graph::InputValueDefinitionId(9));
+        mapper.skip(federated_graph::InputValueDefinitionId::from(9));
 
         assert_eq!(
             IdRange {
@@ -213,7 +215,7 @@ mod tests {
             mapper.get_range(range)
         );
 
-        mapper.skip(federated_graph::InputValueDefinitionId(20));
+        mapper.skip(federated_graph::InputValueDefinitionId::from(20));
 
         assert_eq!(
             IdRange {
@@ -228,8 +230,8 @@ mod tests {
     #[should_panic(expected = "Broken invariant: ids must be skipped in order")]
     fn skip_out_of_order() {
         let mut mapper = IdMapper::default();
-        mapper.skip(federated_graph::InputValueDefinitionId(5));
-        mapper.skip(federated_graph::InputValueDefinitionId(3));
+        mapper.skip(federated_graph::InputValueDefinitionId::from(5));
+        mapper.skip(federated_graph::InputValueDefinitionId::from(3));
         // boom
     }
 
@@ -237,8 +239,8 @@ mod tests {
     #[should_panic(expected = "Broken invariant: ids must be skipped in order")]
     fn skip_twice() {
         let mut mapper = IdMapper::default();
-        mapper.skip(federated_graph::InputValueDefinitionId(5));
-        mapper.skip(federated_graph::InputValueDefinitionId(5));
+        mapper.skip(federated_graph::InputValueDefinitionId::from(5));
+        mapper.skip(federated_graph::InputValueDefinitionId::from(5));
         // boom
     }
 }

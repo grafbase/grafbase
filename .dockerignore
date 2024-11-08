@@ -2,14 +2,9 @@
 .gitignore
 .github
 .git
-.cargo/bin
-Dockerfile
-node_modules
 examples
-grafbase
 /target
 .direnv
-.idea
 /cli/target
 /engine/target
 /engine/crates/**/snapshots

@@ -1,20 +1,22 @@
 mod authorized;
 mod consts;
 
+use cynic_parser::values::ConstList;
+
 use self::consts::*;
 use super::*;
 use std::{borrow::Cow, collections::BTreeSet};
 
 pub(super) fn ingest_directives(
     directive_site_id: DirectiveSiteId,
-    directives_node: &[Positioned<ast::ConstDirective>],
+    directives_node: ast::iter::Iter<'_, ast::Directive<'_>>,
     subgraphs: &mut Subgraphs,
     directive_matcher: &DirectiveMatcher<'_>,
     subgraph: SubgraphId,
     location: impl Fn(&mut Subgraphs) -> String,
 ) {
     for directive in directives_node {
-        let directive_name = &directive.node.name.node;
+        let directive_name = directive.name();
         if directive_matcher.is_shareable(directive_name) {
             subgraphs.set_shareable(directive_site_id);
             continue;
@@ -37,21 +39,13 @@ pub(super) fn ingest_directives(
 
         if directive_matcher.is_override(directive_name) {
             let from = directive
-                .node
-                .get_argument("from")
-                .and_then(|v| match &v.node {
-                    ConstValue::String(s) => Some(s.as_str()),
-                    _ => None,
-                })
+                .argument("from")
+                .and_then(|v| v.value().as_str())
                 .map(|s| subgraphs.strings.intern(s));
 
             let label = directive
-                .node
-                .get_argument("label")
-                .and_then(|v| match &v.node {
-                    ConstValue::String(s) => Some(s.as_str()),
-                    _ => None,
-                })
+                .argument("label")
+                .and_then(|v| v.value().as_str())
                 .map(|s| subgraphs.strings.intern(s));
 
             let Some(from) = from else { continue };
@@ -61,8 +55,8 @@ pub(super) fn ingest_directives(
         }
 
         if directive_matcher.is_requires(directive_name) {
-            let fields_arg = directive.node.get_argument("fields").map(|v| &v.node);
-            let Some(ConstValue::String(fields_arg)) = fields_arg else {
+            let fields_arg = directive.argument("fields").and_then(|arg| arg.value().as_str());
+            let Some(fields_arg) = fields_arg else {
                 continue;
             };
             if let Err(err) = subgraphs.insert_requires(directive_site_id, fields_arg) {
@@ -72,8 +66,8 @@ pub(super) fn ingest_directives(
         }
 
         if directive_matcher.is_provides(directive_name) {
-            let fields_arg = directive.node.get_argument("fields").map(|v| &v.node);
-            let Some(ConstValue::String(fields_arg)) = fields_arg else {
+            let fields_arg = directive.argument("fields").and_then(|arg| arg.value().as_str());
+            let Some(fields_arg) = fields_arg else {
                 continue;
             };
             if let Err(err) = subgraphs.insert_provides(directive_site_id, fields_arg) {
@@ -84,26 +78,24 @@ pub(super) fn ingest_directives(
 
         if directive_matcher.is_composed_directive(directive_name) {
             let arguments = directive
-                .node
-                .arguments
-                .iter()
-                .map(|(name, value)| {
+                .arguments()
+                .map(|argument| {
                     (
-                        subgraphs.strings.intern(name.node.as_str()),
-                        ast_value_to_subgraph_value(&value.node, subgraphs),
+                        subgraphs.strings.intern(argument.name()),
+                        ast_value_to_subgraph_value(argument.value(), subgraphs),
                     )
                 })
                 .collect();
-            subgraphs.insert_composed_directive_instance(directive_site_id, directive_name.as_str(), arguments);
+            subgraphs.insert_composed_directive_instance(directive_site_id, directive_name, arguments);
         }
 
         if directive_matcher.is_tag(directive_name) {
-            let Some(value) = directive.node.get_argument("name") else {
+            let Some(argument) = directive.argument("name") else {
                 continue;
             };
 
-            if let async_graphql_value::ConstValue::String(s) = &value.node {
-                subgraphs.insert_tag(directive_site_id, s.as_str());
+            if let Some(s) = argument.value().as_str() {
+                subgraphs.insert_tag(directive_site_id, s);
             }
         }
 
@@ -113,18 +105,14 @@ pub(super) fn ingest_directives(
 
         if directive_matcher.is_requires_scope(directive_name) {
             let scopes = directive
-                .node
-                .get_argument("scopes")
+                .argument("scopes")
                 .into_iter()
-                .flat_map(|scopes| match &scopes.node {
-                    ConstValue::List(list) => Some(list),
-                    _ => None,
-                })
+                .flat_map(|scopes| scopes.value().as_items())
                 .flatten();
             for scope in scopes {
                 let inner_scopes: Vec<subgraphs::StringId> = match scope {
                     ConstValue::List(scopes) => scopes
-                        .iter()
+                        .items()
                         .filter_map(|scope| match scope {
                             ConstValue::String(string) => Some(subgraphs.strings.intern(string.as_str())),
                             _ => None,
@@ -138,18 +126,14 @@ pub(super) fn ingest_directives(
 
         if directive_matcher.is_policy(directive_name) {
             let policies = directive
-                .node
-                .get_argument("policies")
+                .argument("policies")
                 .into_iter()
-                .flat_map(|scopes| match &scopes.node {
-                    ConstValue::List(list) => Some(list),
-                    _ => None,
-                })
+                .flat_map(|scopes| scopes.value().as_items())
                 .flatten();
             for policy in policies {
                 let inner_policies: Vec<subgraphs::StringId> = match policy {
                     ConstValue::List(policies) => policies
-                        .iter()
+                        .items()
                         .filter_map(|policy| match policy {
                             ConstValue::String(string) => Some(subgraphs.strings.intern(string.as_str())),
                             _ => None,
@@ -162,16 +146,13 @@ pub(super) fn ingest_directives(
         }
 
         if directive_name == "deprecated" {
-            let reason = directive.node.get_argument("reason").and_then(|v| match &v.node {
-                async_graphql_value::ConstValue::String(s) => Some(s.as_str()),
-                _ => None,
-            });
+            let reason = directive.argument("reason").and_then(|v| v.value().as_str());
 
             subgraphs.insert_deprecated(directive_site_id, reason);
         }
 
         if directive_matcher.is_authorized(directive_name) {
-            if let Err(err) = authorized::ingest(directive_site_id, &directive.node, subgraphs) {
+            if let Err(err) = authorized::ingest(directive_site_id, directive, subgraphs) {
                 let location = location(subgraphs);
                 subgraphs.push_ingestion_diagnostic(
                     subgraph,
@@ -179,30 +160,43 @@ pub(super) fn ingest_directives(
                 );
             };
         }
+
+        if directive_matcher.is_cost(directive_name) {
+            let argument = directive.argument("weight").and_then(|v| v.value().as_i32());
+
+            match argument {
+                Some(weight) => {
+                    subgraphs.set_cost(directive_site_id, weight);
+                }
+                None => {
+                    let location = location(subgraphs);
+                    subgraphs.push_ingestion_diagnostic(
+                        subgraph,
+                        format!("Error validating the @cost directive at {location}: expected an Int argument weight"),
+                    );
+                }
+            }
+        }
     }
 }
 
 pub(super) fn ingest_keys(
     definition_id: DefinitionId,
-    directives_node: &[Positioned<ast::ConstDirective>],
+    directives_node: ast::iter::Iter<'_, ast::Directive<'_>>,
     subgraphs: &mut Subgraphs,
     directive_matcher: &DirectiveMatcher<'_>,
 ) {
     for directive in directives_node {
-        let directive_name = &directive.node.name.node;
+        let directive_name = directive.name();
 
         if directive_matcher.is_key(directive_name) {
-            let fields_arg = directive.node.get_argument("fields").map(|v| &v.node);
-            let Some(ConstValue::String(fields_arg)) = fields_arg else {
+            let fields_arg = directive.argument("fields").and_then(|v| v.value().as_str());
+            let Some(fields_arg) = fields_arg else {
                 continue;
             };
             let is_resolvable = directive
-                .node
-                .get_argument("resolvable")
-                .and_then(|v| match v.node {
-                    ConstValue::Boolean(b) => Some(b),
-                    _ => None,
-                })
+                .argument("resolvable")
+                .and_then(|v| v.value().as_bool())
                 .unwrap_or(true); // defaults to true
             subgraphs.push_key(definition_id, fields_arg, is_resolvable).ok();
         }
@@ -210,37 +204,30 @@ pub(super) fn ingest_keys(
 }
 
 pub(super) fn ingest_directive_definitions(
-    document: &ast::ServiceDocument,
+    document: &ast::TypeSystemDocument,
     mut push_error: impl FnMut(String),
 ) -> DirectiveMatcher<'_> {
     let schema_definition_directives = document
-        .definitions
-        .iter()
-        .filter_map(|def| {
-            if let ast::TypeSystemDefinition::Schema(schema) = def {
-                Some(schema)
-            } else {
-                None
-            }
+        .definitions()
+        .filter_map(|def| match def {
+            ast::Definition::Schema(schema_definition) => Some(schema_definition),
+            ast::Definition::SchemaExtension(schema_definition) => Some(schema_definition),
+            _ => None,
         })
-        .flat_map(|definition| definition.node.directives.iter());
+        .flat_map(|definition| definition.directives());
 
     let mut directive_matcher = schema_definition_directives
         .clone()
-        .map(|d| &d.node)
-        .find(|d| DirectiveMatcher::is_federation_directive(d))
+        .find(|d| DirectiveMatcher::is_federation_directive(*d))
         .map(DirectiveMatcher::new)
         .unwrap_or_default();
 
     let mut composed_directives = BTreeSet::new();
 
     for name in schema_definition_directives
-        .filter(|directive| directive_matcher.is_compose_directive(directive.node.name.node.as_str()))
-        .filter_map(|directive| directive.node.get_argument("name"))
-        .filter_map(|directive_name| match &directive_name.node {
-            ConstValue::String(s) => Some(s.as_str()),
-            _ => None,
-        })
+        .filter(|directive| directive_matcher.is_compose_directive(directive.name()))
+        .filter_map(|directive| directive.argument("name"))
+        .filter_map(|argument| argument.value().as_str())
     {
         composed_directives.insert(name.trim_start_matches('@'));
 
@@ -288,6 +275,7 @@ pub(crate) struct DirectiveMatcher<'a> {
     authenticated: Cow<'a, str>,
     policy: Cow<'a, str>,
     tag: Cow<'a, str>,
+    cost: Cow<'a, str>,
 
     /// directive name -> is repeatable
     ///
@@ -314,32 +302,33 @@ impl Default for DirectiveMatcher<'_> {
             requires_scopes: Cow::Borrowed(REQUIRES_SCOPES),
             shareable: Cow::Borrowed(SHAREABLE),
             tag: Cow::Borrowed(TAG),
+            cost: Cow::Borrowed(COST),
         }
     }
 }
 
 impl<'a> DirectiveMatcher<'a> {
-    pub(crate) fn is_federation_directive(directive: &ast::ConstDirective) -> bool {
-        if directive.name.node != "link" {
+    pub(crate) fn is_federation_directive(directive: ast::Directive<'_>) -> bool {
+        if directive.name() != "link" {
             return false;
         }
 
         directive
-            .get_argument("url")
-            .map(|url| match &url.node {
-                ConstValue::String(s) => s.contains("dev/federation/v2"),
+            .argument("url")
+            .map(|url| match url.value() {
+                ConstValue::String(s) => s.value().contains("dev/federation/v2"),
                 _ => false,
             })
             .unwrap_or_default()
     }
 
     /// Matcher for federation directives in a given subgraph. See [DirectiveMatcher] for more docs.
-    pub(crate) fn new(directive: &'a ast::ConstDirective) -> DirectiveMatcher<'a> {
+    pub(crate) fn new(directive: ast::Directive<'a>) -> DirectiveMatcher<'a> {
         let mut r#as = None;
         let mut imported: Vec<(&str, &str)> = Vec::new();
 
-        for (arg_name, arg_value) in &directive.arguments {
-            match (arg_name.node.as_str(), &arg_value.node) {
+        for argument in directive.arguments() {
+            match (argument.name(), argument.value()) {
                 ("as", ConstValue::String(value)) => r#as = Some(value.as_str()),
                 ("import", ConstValue::List(imports)) => read_imports(imports, &mut imported),
                 _ => (),
@@ -372,6 +361,7 @@ impl<'a> DirectiveMatcher<'a> {
             requires_scopes: final_name(REQUIRES_SCOPES),
             shareable: final_name(SHAREABLE),
             tag: final_name(TAG),
+            cost: final_name(COST),
         }
     }
 
@@ -446,13 +436,17 @@ impl<'a> DirectiveMatcher<'a> {
     pub(crate) fn is_tag(&self, directive_name: &str) -> bool {
         self.tag == directive_name
     }
+
+    fn is_cost(&self, directive_name: &str) -> bool {
+        self.cost == directive_name
+    }
 }
 
-fn read_imports<'a>(ast_imports: &'a [ConstValue], out: &mut Vec<(&'a str, &'a str)>) {
-    for import in ast_imports {
+fn read_imports<'a>(ast_imports: ConstList<'a>, out: &mut Vec<(&'a str, &'a str)>) {
+    for import in ast_imports.items() {
         match import {
             ConstValue::String(import) => {
-                let import = import.trim_start_matches('@');
+                let import = import.as_str().trim_start_matches('@');
                 out.push((import, import));
             }
             ConstValue::Object(obj) => {
@@ -462,8 +456,8 @@ fn read_imports<'a>(ast_imports: &'a [ConstValue], out: &mut Vec<(&'a str, &'a s
                         _ => None,
                     });
                     out.push((
-                        name.trim_start_matches('@'),
-                        alias.unwrap_or(name).trim_start_matches('@'),
+                        name.as_str().trim_start_matches('@'),
+                        alias.unwrap_or(name).as_str().trim_start_matches('@'),
                     ));
                 }
             }
@@ -482,7 +476,7 @@ mod federation_directives_matcher_tests {
 
     #[allow(clippy::panic)]
     fn with_matcher_for_schema(graphql_sdl: &str, test: impl FnOnce(DirectiveMatcher<'_>)) {
-        let ast = async_graphql_parser::parse_schema(graphql_sdl).unwrap();
+        let ast = cynic_parser::parse_type_system_document(graphql_sdl).unwrap();
         let matcher = ingest_directive_definitions(&ast, |error| panic!("{error}"));
         test(matcher);
     }

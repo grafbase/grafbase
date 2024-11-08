@@ -126,7 +126,7 @@ where
                     let verdict = self
                         .ctx
                         .hooks()
-                        .authorize_edge_pre_execution(
+                        .old_authorize_edge_pre_execution(
                             self.schema().walk(definition_id),
                             self.walker()
                                 .walk(argument_ids)

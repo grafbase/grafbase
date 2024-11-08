@@ -94,7 +94,7 @@ pub struct Schema {
 }
 
 impl Schema {
-    pub fn build(config: config::latest::Config, version: Version) -> Result<Schema, BuildError> {
+    pub fn build(config: config::Config, version: Version) -> Result<Schema, BuildError> {
         builder::build(config, version)
     }
 }
@@ -121,11 +121,11 @@ pub struct Settings {
     default_header_rules: Vec<HeaderRuleId>,
 
     pub timeout: std::time::Duration,
-    pub auth_config: Option<config::latest::AuthConfig>,
-    pub operation_limits: config::latest::OperationLimits,
+    pub auth_config: Option<config::AuthConfig>,
+    pub operation_limits: config::OperationLimits,
     pub disable_introspection: bool,
     pub retry: Option<RetryConfig>,
-    pub batching: config::latest::BatchingConfig,
+    pub batching: config::BatchingConfig,
 }
 
 #[derive(serde::Serialize, serde::Deserialize, id_derives::IndexedFields)]

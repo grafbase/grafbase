@@ -10,7 +10,7 @@ mod requires;
 use std::mem::take;
 use std::time::Duration;
 
-use config::latest::Config;
+use config::Config;
 use external_sources::ExternalDataSources;
 use url::Url;
 
@@ -64,12 +64,12 @@ impl BuildContext {
             .into_iter()
             .map(|rule| -> HeaderRuleRecord {
                 match rule {
-                    config::latest::HeaderRule::Forward(rule) => {
+                    config::HeaderRule::Forward(rule) => {
                         let name_id = match rule.name {
-                            config::latest::NameOrPattern::Pattern(regex) => {
+                            config::NameOrPattern::Pattern(regex) => {
                                 NameOrPatternId::Pattern(self.regexps.get_or_insert(regex))
                             }
-                            config::latest::NameOrPattern::Name(name) => {
+                            config::NameOrPattern::Name(name) => {
                                 NameOrPatternId::Name(self.strings.get_or_new(&config[name]))
                             }
                         };
@@ -83,25 +83,25 @@ impl BuildContext {
                             rename_id,
                         })
                     }
-                    config::latest::HeaderRule::Insert(rule) => {
+                    config::HeaderRule::Insert(rule) => {
                         let name_id = self.strings.get_or_new(&config[rule.name]);
                         let value_id = self.strings.get_or_new(&config[rule.value]);
 
                         HeaderRuleRecord::Insert(InsertHeaderRuleRecord { name_id, value_id })
                     }
-                    config::latest::HeaderRule::Remove(rule) => {
+                    config::HeaderRule::Remove(rule) => {
                         let name_id = match rule.name {
-                            config::latest::NameOrPattern::Pattern(regex) => {
+                            config::NameOrPattern::Pattern(regex) => {
                                 NameOrPatternId::Pattern(self.regexps.get_or_insert(regex))
                             }
-                            config::latest::NameOrPattern::Name(name) => {
+                            config::NameOrPattern::Name(name) => {
                                 NameOrPatternId::Name(self.strings.get_or_new(&config[name]))
                             }
                         };
 
                         HeaderRuleRecord::Remove(RemoveHeaderRuleRecord { name_id })
                     }
-                    config::latest::HeaderRule::RenameDuplicate(rule) => {
+                    config::HeaderRule::RenameDuplicate(rule) => {
                         HeaderRuleRecord::RenameDuplicate(RenameDuplicateHeaderRuleRecord {
                             name_id: self.strings.get_or_new(&config[rule.name]),
                             default_id: rule.default.map(|id| self.strings.get_or_new(&config[id])),
@@ -169,7 +169,7 @@ macro_rules! from_id_newtypes {
         $(
             impl From<$from> for $name {
                 fn from(id: $from) -> Self {
-                    $name::from(id.0)
+                    $name::from(usize::from(id))
                 }
             }
         )*
@@ -185,7 +185,7 @@ from_id_newtypes! {
     federated_graph::StringId => StringId,
     federated_graph::SubgraphId => GraphqlEndpointId,
     federated_graph::UnionId => UnionDefinitionId,
-    config::latest::HeaderRuleId => HeaderRuleId,
+    config::HeaderRuleId => HeaderRuleId,
 }
 
 const DEFAULT_GATEWAY_TIMEOUT: Duration = Duration::from_secs(30);

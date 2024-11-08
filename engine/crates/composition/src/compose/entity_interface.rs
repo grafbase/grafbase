@@ -81,7 +81,7 @@ pub(crate) fn merge_entity_interface_definitions<'a>(
             let resolvable_in = if field.is_part_of_key() {
                 Vec::new()
             } else {
-                vec![federated::SubgraphId(interface_def.subgraph_id().idx())]
+                vec![federated::SubgraphId::from(interface_def.subgraph_id().idx())]
             };
             let composed_directives = collect_composed_directives(std::iter::once(field.directives()), ctx);
             let authorized_directives = if field.directives().authorized().is_some() {
@@ -182,7 +182,9 @@ pub(crate) fn merge_entity_interface_definitions<'a>(
                     field_name: ctx.insert_string(field.name().id),
                     field_type: field.r#type().id,
                     arguments: translate_arguments(field, ctx),
-                    resolvable_in: vec![graphql_federated_graph::SubgraphId(definition.subgraph_id().idx())],
+                    resolvable_in: vec![graphql_federated_graph::SubgraphId::from(
+                        definition.subgraph_id().idx(),
+                    )],
                     provides,
                     requires,
                     composed_directives,

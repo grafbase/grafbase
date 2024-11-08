@@ -4,7 +4,7 @@ use std::{
 };
 
 use builder::coerce::InputValueCoercer;
-use config::latest::Config;
+use config::Config;
 use introspection::{IntrospectionBuilder, IntrospectionMetadata};
 
 use crate::*;
@@ -300,15 +300,14 @@ impl<'a> GraphBuilder<'a> {
 
         self.graph.object_definitions = Vec::with_capacity(config.graph.objects.len());
         for (federated_id, object) in take(&mut config.graph.objects).into_iter().enumerate() {
-            let federated_id = federated_graph::ObjectId(federated_id);
+            let federated_id = federated_graph::ObjectId::from(federated_id);
             let definition = config.graph.at(object.type_definition_id);
             let object_id = ObjectDefinitionId::from(self.graph.object_definitions.len());
 
-            let fields = self
-                .ctx
-                .idmaps
-                .field
-                .get_range((object.fields.start, object.fields.end.0 - object.fields.start.0));
+            let fields = self.ctx.idmaps.field.get_range((
+                object.fields.start,
+                usize::from(object.fields.end) - usize::from(object.fields.start),
+            ));
 
             for field_id in fields {
                 entities_metadata.field_id_to_maybe_object_id[usize::from(field_id)] = Some(object_id);
@@ -387,7 +386,7 @@ impl<'a> GraphBuilder<'a> {
 
             let fields = self.ctx.idmaps.field.get_range((
                 interface.fields.start,
-                interface.fields.end.0 - interface.fields.start.0,
+                usize::from(interface.fields.end) - usize::from(interface.fields.start),
             ));
 
             for field_id in fields {
@@ -478,7 +477,7 @@ impl<'a> GraphBuilder<'a> {
 
         let mut root_field_resolvers = HashMap::<GraphqlEndpointId, ResolverDefinitionId>::new();
         for (federated_id, field) in take(&mut config.graph.fields).into_iter().enumerate() {
-            let federated_id = federated_graph::FieldId(federated_id);
+            let federated_id = federated_graph::FieldId::from(federated_id);
             let Some(field_id) = self.ctx.idmaps.field.get(federated_id) else {
                 continue;
             };
@@ -770,6 +769,10 @@ impl<'a> GraphBuilder<'a> {
                         reason_id: reason.map(Into::into),
                     })
                 }
+                federated_graph::Directive::Cost { .. } => {
+                    // TODO: Implement this
+                    continue;
+                }
                 federated_graph::Directive::Other { .. }
                 | federated_graph::Directive::Inaccessible
                 | federated_graph::Directive::Policy(_) => continue,
@@ -820,7 +823,7 @@ impl<'a> GraphBuilder<'a> {
                     .idmaps
                     .input_value
                     .get(item.input_value_definition)
-                    .map(|id| InputValueSetItem {
+                    .map(|id| InputValueSetSelection {
                         id,
                         subselection: self.convert_input_value_set(&item.subselection),
                     })
@@ -837,7 +840,7 @@ struct Directives {
 impl Default for Directives {
     fn default() -> Self {
         Self {
-            federated: (federated_graph::DirectiveId(0), 0),
+            federated: (federated_graph::DirectiveId::from(0), 0),
             authorized_directives: None,
         }
     }

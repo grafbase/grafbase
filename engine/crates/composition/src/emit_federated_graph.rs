@@ -9,7 +9,6 @@ use crate::{
     subgraphs::{self, SubgraphId},
     Subgraphs, VecExt,
 };
-use federated::RootOperationTypes;
 use graphql_federated_graph as federated;
 use itertools::Itertools;
 use std::{
@@ -18,7 +17,7 @@ use std::{
 };
 
 /// This can't fail. All the relevant, correct information should already be in the CompositionIr.
-pub(crate) fn emit_federated_graph(mut ir: CompositionIr, subgraphs: &Subgraphs) -> federated::VersionedFederatedGraph {
+pub(crate) fn emit_federated_graph(mut ir: CompositionIr, subgraphs: &Subgraphs) -> federated::FederatedGraph {
     let mut out = federated::FederatedGraph {
         type_definitions: mem::take(&mut ir.type_definitions),
         enum_values: mem::take(&mut ir.enum_values),
@@ -26,7 +25,7 @@ pub(crate) fn emit_federated_graph(mut ir: CompositionIr, subgraphs: &Subgraphs)
         interfaces: mem::take(&mut ir.interfaces),
         unions: mem::take(&mut ir.unions),
         input_objects: mem::take(&mut ir.input_objects),
-        root_operation_types: RootOperationTypes {
+        root_operation_types: federated::RootOperationTypes {
             query: ir.query_type.unwrap(),
             mutation: ir.mutation_type,
             subscription: ir.subscription_type,
@@ -60,7 +59,7 @@ pub(crate) fn emit_federated_graph(mut ir: CompositionIr, subgraphs: &Subgraphs)
 
     drop(ctx);
 
-    federated::VersionedFederatedGraph::Sdl(graphql_federated_graph::render_federated_sdl(&out).unwrap())
+    out
 }
 
 fn emit_directives(ir: &mut Vec<ir::Directive>, ctx: &mut Context<'_>) {
@@ -73,6 +72,7 @@ fn emit_directives(ir: &mut Vec<ir::Directive>, ctx: &mut Context<'_>) {
             ir::Directive::Inaccessible => federated::Directive::Inaccessible,
             ir::Directive::Policy(policies) => federated::Directive::Policy(policies),
             ir::Directive::RequiresScopes(scopes) => federated::Directive::RequiresScopes(scopes),
+            ir::Directive::Cost { weight } => federated::Directive::Cost { weight },
             ir::Directive::Other { name, arguments } => federated::Directive::Other {
                 name,
                 arguments: arguments
@@ -105,7 +105,7 @@ fn emit_authorized_directives(ir: &CompositionIr, ctx: &mut Context<'_>) {
                 metadata,
             });
 
-        let authorized_directive_id = federated::AuthorizedDirectiveId(authorized_directive_id);
+        let authorized_directive_id = federated::AuthorizedDirectiveId::from(authorized_directive_id);
 
         ctx.out
             .object_authorized_directives
@@ -130,7 +130,7 @@ fn emit_authorized_directives(ir: &CompositionIr, ctx: &mut Context<'_>) {
                 metadata,
             });
 
-        let authorized_directive_id = federated::AuthorizedDirectiveId(authorized_directive_id);
+        let authorized_directive_id = federated::AuthorizedDirectiveId::from(authorized_directive_id);
 
         ctx.out
             .interface_authorized_directives
@@ -177,29 +177,31 @@ fn emit_interface_impls(ctx: &mut Context<'_>) {
 
         match ctx.definitions[&implementer] {
             federated::Definition::Object(object_id) => {
-                let object = &mut ctx.out.objects[object_id.0];
+                let object = &mut ctx.out.objects[usize::from(object_id)];
                 object.implements_interfaces.push(implementee);
 
                 for subgraph_id in ctx
                     .subgraphs
                     .subgraphs_implementing_interface(implementee_name, implementer_name)
                 {
-                    object
-                        .join_implements
-                        .push((graphql_federated_graph::SubgraphId(subgraph_id.idx()), implementee));
+                    object.join_implements.push((
+                        graphql_federated_graph::SubgraphId::from(subgraph_id.idx()),
+                        implementee,
+                    ));
                 }
             }
             federated::Definition::Interface(interface_id) => {
-                let interface = &mut ctx.out.interfaces[interface_id.0];
+                let interface = &mut ctx.out.interfaces[usize::from(interface_id)];
                 interface.implements_interfaces.push(implementee);
 
                 for subgraph_id in ctx
                     .subgraphs
                     .subgraphs_implementing_interface(implementee_name, implementer_name)
                 {
-                    interface
-                        .join_implements
-                        .push((graphql_federated_graph::SubgraphId(subgraph_id.idx()), implementee));
+                    interface.join_implements.push((
+                        graphql_federated_graph::SubgraphId::from(subgraph_id.idx()),
+                        implementee,
+                    ));
                 }
             }
             _ => unreachable!(),
@@ -242,8 +244,8 @@ fn emit_fields<'a>(
         if let federated::Definition::Object(id) = definition {
             let object_name = ctx.out.at(id).then(|obj| obj.type_definition_id).name;
             let fields_from_entity_interfaces = object_fields_from_entity_interfaces
-                .range((object_name, federated::FieldId(0))..(object_name, federated::FieldId(usize::MAX)))
-                .map(|(_, field_id)| ir_fields[field_id.0].clone());
+                .range((object_name, federated::FieldId::from(0))..(object_name, federated::FieldId::from(usize::MAX)))
+                .map(|(_, field_id)| ir_fields[usize::from(*field_id)].clone());
 
             fields.extend(fields_from_entity_interfaces);
         }
@@ -281,7 +283,7 @@ fn emit_fields<'a>(
                 description,
             };
 
-            let field_id = federated::FieldId(ctx.out.fields.push_return_idx(field));
+            let field_id = federated::FieldId::from(ctx.out.fields.push_return_idx(field));
 
             start_field_id = start_field_id.or(Some(field_id));
             end_field_id = Some(field_id);
@@ -291,7 +293,7 @@ fn emit_fields<'a>(
                 field.directives().provides().map(|provides| {
                     let field_type_name = ctx.insert_string(field.r#type().type_name());
                     (
-                        federated::SubgraphId(field.parent_definition().subgraph_id().idx()),
+                        federated::SubgraphId::from(field.parent_definition().subgraph_id().idx()),
                         ctx.definitions[&field_type_name],
                         provides,
                     )
@@ -304,7 +306,7 @@ fn emit_fields<'a>(
                 let field = ctx.subgraphs.walk_field(*field_id);
                 field.directives().requires().map(|requires| {
                     (
-                        federated::SubgraphId(field.parent_definition().subgraph_id().idx()),
+                        federated::SubgraphId::from(field.parent_definition().subgraph_id().idx()),
                         requires,
                     )
                 })
@@ -332,16 +334,16 @@ fn emit_fields<'a>(
             .zip(end_field_id)
             .map(|(start, end)| federated::Fields {
                 start,
-                end: federated::FieldId(end.0 + 1),
+                end: federated::FieldId::from(usize::from(end) + 1),
             })
             .unwrap_or(federated::NO_FIELDS);
 
         match definition {
             federated::Definition::Object(id) => {
-                ctx.out.objects[id.0].fields = fields;
+                ctx.out.objects[usize::from(id)].fields = fields;
             }
             federated::Definition::Interface(id) => {
-                ctx.out.interfaces[id.0].fields = fields;
+                ctx.out.interfaces[usize::from(id)].fields = fields;
             }
             _ => unreachable!(),
         }
@@ -349,14 +351,14 @@ fn emit_fields<'a>(
 
     for (field_id, subgraph_id, definition, provides) in field_provides {
         let fields = attach_selection(provides, definition, ctx);
-        ctx.out.fields[field_id.0]
+        ctx.out.fields[usize::from(field_id)]
             .provides
             .push(federated::FieldProvides { subgraph_id, fields });
     }
 
     for (field_id, subgraph_id, definition, requires) in field_requires {
         let fields = attach_selection(requires, definition, ctx);
-        ctx.out.fields[field_id.0]
+        ctx.out.fields[usize::from(field_id)]
             .requires
             .push(federated::FieldRequires { subgraph_id, fields });
     }
@@ -395,7 +397,7 @@ fn emit_fields<'a>(
 
         ctx.out
             .field_authorized_directives
-            .push((field_id, federated::AuthorizedDirectiveId(idx)));
+            .push((field_id, federated::AuthorizedDirectiveId::from(idx)));
     }
 }
 
@@ -417,7 +419,7 @@ fn emit_union_members(
             union.members.push(object_id);
 
             for subgraph_id in ir_join_members.get(&(*union_name, *member)).into_iter().flatten() {
-                let subgraph_id = federated::SubgraphId(subgraph_id.idx());
+                let subgraph_id = federated::SubgraphId::from(subgraph_id.idx());
                 union.join_members.insert((subgraph_id, object_id));
             }
         }
@@ -435,7 +437,7 @@ fn emit_keys(keys: &[KeyIr], ctx: &mut Context<'_>) {
         let key = ctx.subgraphs.walk(*key_id);
         let selection = attach_selection(key.fields(), *parent, ctx);
         let key = federated::Key {
-            subgraph_id: federated::SubgraphId(key.parent_definition().subgraph_id().idx()),
+            subgraph_id: federated::SubgraphId::from(key.parent_definition().subgraph_id().idx()),
             fields: selection,
             is_interface_object: *is_interface_object,
             resolvable: *resolvable,
@@ -473,7 +475,8 @@ fn attach_selection(
                     let field = ctx.selection_map[&(target, selection_field)];
                     let field_ty = ctx.out[field].r#type.definition;
                     let field_arguments = ctx.out[field].arguments;
-                    let (federated::InputValueDefinitionId(field_arguments_start), _) = field_arguments;
+                    let (field_arguments_start, _) = field_arguments;
+                    let field_arguments_start = usize::from(field_arguments_start);
                     let arguments = arguments
                         .iter()
                         .map(|(name, value)| {
@@ -482,7 +485,7 @@ fn attach_selection(
                             let argument = ctx.out[field_arguments]
                                 .iter()
                                 .position(|arg| arg.name == arg_name)
-                                .map(|idx| federated::InputValueDefinitionId(field_arguments_start + idx))
+                                .map(|idx| federated::InputValueDefinitionId::from(field_arguments_start + idx))
                                 .unwrap();
 
                             let argument_enum_type = ctx.out[argument].r#type.definition.as_enum();

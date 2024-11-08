@@ -1,17 +1,22 @@
 mod de;
 mod ser;
 mod view;
+mod walker;
 
 use ::walker::Walk;
 use id_derives::{Id, IndexedFields};
 use id_newtypes::IdRange;
 use schema::{
-    EnumValueId, InputValue, InputValueDefinitionId, InputValueSet, SchemaInputValueId, SchemaInputValueRecord,
+    EnumValueId, InputValue, InputValueDefinition, InputValueDefinitionId, InputValueSet, SchemaInputValueId,
+    SchemaInputValueRecord,
 };
 
 use crate::operation::{BoundVariableDefinitionId, OperationWalker, PreparedOperationWalker};
 
 pub(crate) use view::*;
+pub(crate) use walker::*;
+
+use super::InputValueContext;
 
 #[derive(Default, Clone, serde::Serialize, serde::Deserialize, IndexedFields)]
 pub(crate) struct QueryInputValues {
@@ -29,13 +34,54 @@ pub(crate) struct QueryInputValues {
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, Id)]
-pub struct QueryInputValueId(std::num::NonZero<u32>);
+pub(crate) struct QueryInputValueId(std::num::NonZero<u32>);
+
+impl<'ctx> Walk<InputValueContext<'ctx>> for QueryInputValueId {
+    type Walker<'w> = QueryInputValue<'w> where 'ctx: 'w;
+
+    fn walk<'w>(self, ctx: InputValueContext<'ctx>) -> Self::Walker<'w>
+    where
+        Self: 'w,
+        'ctx: 'w,
+    {
+        QueryInputValue {
+            ctx,
+            ref_: &ctx.query_input_values[self],
+        }
+    }
+}
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, Id)]
-pub struct QueryInputObjectFieldValueId(std::num::NonZero<u32>);
+pub(crate) struct QueryInputObjectFieldValueId(std::num::NonZero<u32>);
+
+impl<'ctx> Walk<InputValueContext<'ctx>> for QueryInputObjectFieldValueId {
+    type Walker<'w> = (InputValueDefinition<'w>, QueryInputValue<'w>) where 'ctx: 'w;
+
+    fn walk<'w>(self, ctx: InputValueContext<'ctx>) -> Self::Walker<'w>
+    where
+        Self: 'w,
+        'ctx: 'w,
+    {
+        let (input_value_definition, value) = &ctx.query_input_values[self];
+        (input_value_definition.walk(ctx.schema), value.walk(ctx))
+    }
+}
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, Id)]
-pub struct QueryInputKeyValueId(std::num::NonZero<u32>);
+pub(crate) struct QueryInputKeyValueId(std::num::NonZero<u32>);
+
+impl<'ctx> Walk<InputValueContext<'ctx>> for QueryInputKeyValueId {
+    type Walker<'w> = (&'w str, QueryInputValue<'w>) where 'ctx: 'w;
+
+    fn walk<'w>(self, ctx: InputValueContext<'ctx>) -> Self::Walker<'w>
+    where
+        Self: 'w,
+        'ctx: 'w,
+    {
+        let (key, value) = &ctx.query_input_values[self];
+        (key, value.walk(ctx))
+    }
+}
 
 #[derive(Default, Clone, serde::Serialize, serde::Deserialize)]
 pub(crate) enum QueryInputValueRecord {
@@ -60,6 +106,18 @@ pub(crate) enum QueryInputValueRecord {
 
     DefaultValue(SchemaInputValueId),
     Variable(BoundVariableDefinitionId),
+}
+
+impl<'ctx, 'value> Walk<InputValueContext<'ctx>> for &'value QueryInputValueRecord {
+    type Walker<'w> = QueryInputValue<'w> where 'ctx: 'w, 'value: 'w;
+
+    fn walk<'w>(self, ctx: InputValueContext<'ctx>) -> Self::Walker<'w>
+    where
+        'ctx: 'w,
+        'value: 'w,
+    {
+        QueryInputValue { ctx, ref_: self }
+    }
 }
 
 impl QueryInputValues {
@@ -137,8 +195,8 @@ impl<'a> QueryInputValueWalker<'a> {
         })
     }
 
-    pub fn with_selection_set(self, selection_set: &'a InputValueSet) -> QueryInputValueView<'a> {
-        QueryInputValueView {
+    pub fn with_selection_set(self, selection_set: &'a InputValueSet) -> OldQueryInputValueView<'a> {
+        OldQueryInputValueView {
             inner: self,
             selection_set,
         }

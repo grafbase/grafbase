@@ -273,7 +273,7 @@ fn resolvable_in(fields: &[FieldWalker<'_>], object_is_shareable: bool) -> Vec<f
     fields
         .iter()
         .filter(|field| !field.directives().external() && !field.is_part_of_key())
-        .map(|field| federated::SubgraphId(field.parent_definition().subgraph_id().idx()))
+        .map(|field| federated::SubgraphId::from(field.parent_definition().subgraph_id().idx()))
         .collect()
 }
 
@@ -308,7 +308,7 @@ pub(super) fn collect_overrides(fields: &[FieldWalker<'_>], ctx: &mut Context<'_
         }
 
         overrides.push(federated::Override {
-            graph: federated::SubgraphId(field_subgraph.subgraph_id().idx()),
+            graph: federated::SubgraphId::from(field_subgraph.subgraph_id().idx()),
             label: override_directive
                 .label
                 .and_then(|label| ctx.subgraphs.walk(label).as_str().parse().ok())
@@ -317,7 +317,7 @@ pub(super) fn collect_overrides(fields: &[FieldWalker<'_>], ctx: &mut Context<'_
                 .subgraphs
                 .iter_subgraphs()
                 .position(|subgraph| subgraph.name().id == override_directive.from)
-                .map(federated::SubgraphId)
+                .map(federated::SubgraphId::from)
                 .map(federated::OverrideSource::Subgraph)
                 .unwrap_or_else(|| federated::OverrideSource::Missing(ctx.insert_string(override_directive.from))),
         });

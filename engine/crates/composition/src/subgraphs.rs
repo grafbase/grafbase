@@ -72,8 +72,15 @@ impl Default for Subgraphs {
 
 const BUILTIN_SCALARS: [&str; 5] = ["ID", "String", "Boolean", "Int", "Float"];
 
+/// returned when a subgraph cannot be ingested
 #[derive(Debug)]
-pub struct IngestError(async_graphql_parser::Error);
+pub struct IngestError(cynic_parser::Error);
+
+impl std::error::Error for IngestError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        self.0.source()
+    }
+}
 
 impl std::fmt::Display for IngestError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -83,13 +90,13 @@ impl std::fmt::Display for IngestError {
 
 impl Subgraphs {
     /// Add a subgraph to compose.
-    pub fn ingest(&mut self, subgraph_schema: &async_graphql_parser::types::ServiceDocument, name: &str, url: &str) {
+    pub fn ingest(&mut self, subgraph_schema: &cynic_parser::TypeSystemDocument, name: &str, url: &str) {
         crate::ingest_subgraph::ingest_subgraph(subgraph_schema, name, url, self);
     }
 
     /// Add a subgraph to compose.
     pub fn ingest_str(&mut self, subgraph_schema: &str, name: &str, url: &str) -> Result<(), IngestError> {
-        let subgraph_schema = async_graphql_parser::parse_schema(subgraph_schema).map_err(IngestError)?;
+        let subgraph_schema = cynic_parser::parse_type_system_document(subgraph_schema).map_err(IngestError)?;
         crate::ingest_subgraph::ingest_subgraph(&subgraph_schema, name, url, self);
         Ok(())
     }

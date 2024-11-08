@@ -62,7 +62,7 @@ impl<'a> DeterministicEngineBuilder<'a> {
             dummy_responses_index.clone(),
         );
         let graph = federated_graph::from_sdl(self.schema).unwrap();
-        let config = engine_v2::VersionedConfig::V6(engine_v2::config::Config::from_graph(graph)).into_latest();
+        let config = engine_v2::config::Config::from_graph(graph);
 
         let schema =
             engine_v2::Schema::build(config, engine_v2::SchemaVersion::from(ulid::Ulid::new().to_bytes())).unwrap();

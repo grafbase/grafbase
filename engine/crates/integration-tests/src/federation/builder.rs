@@ -16,9 +16,8 @@ pub use test_runtime::*;
 use super::{subgraph::Subgraphs, DockerSubgraph, TestGateway};
 
 enum ConfigSource {
-    Sdl(String),
     Toml(String),
-    SdlWebsocket,
+    TomlWebsocket,
 }
 
 #[must_use]
@@ -27,7 +26,7 @@ pub struct TestGatewayBuilder {
     federated_sdl: Option<String>,
     mock_subgraphs: Vec<(TypeId, String, BoxFuture<'static, MockGraphQlServer>)>,
     docker_subgraphs: HashSet<DockerSubgraph>,
-    config_source: Option<ConfigSource>,
+    config: Option<ConfigSource>,
 
     trusted_documents: Option<trusted_documents_client::Client>,
     hooks: Option<DynamicHooks>,
@@ -43,21 +42,15 @@ pub trait EngineV2Ext {
 impl EngineV2Ext for engine_v2::Engine<TestRuntime> {}
 
 impl TestGatewayBuilder {
-    pub fn with_sdl_config(mut self, sdl: impl Into<String>) -> Self {
-        assert!(self.config_source.is_none(), "overwriting config!");
-        self.config_source = Some(ConfigSource::Sdl(sdl.into()));
-        self
-    }
-
     pub fn with_toml_config(mut self, toml: impl Display) -> Self {
-        assert!(self.config_source.is_none(), "overwriting config!");
-        self.config_source = Some(ConfigSource::Toml(toml.to_string()));
+        assert!(self.config.is_none(), "overwriting config!");
+        self.config = Some(ConfigSource::Toml(toml.to_string()));
         self
     }
 
-    pub fn with_sdl_websocket_config(mut self) -> Self {
-        assert!(self.config_source.is_none(), "overwriting config!");
-        self.config_source = Some(ConfigSource::SdlWebsocket);
+    pub fn with_websocket_config(mut self) -> Self {
+        assert!(self.config.is_none(), "overwriting config!");
+        self.config = Some(ConfigSource::TomlWebsocket);
         self
     }
 
@@ -107,13 +100,13 @@ impl TestGatewayBuilder {
             federated_sdl,
             mock_subgraphs,
             docker_subgraphs,
-            config_source,
+            config,
             trusted_documents,
             hooks,
             fetcher,
         } = self;
 
-        let mut runtime = build_runtime(config_source.as_ref());
+        let mut runtime = build_runtime(config.as_ref());
 
         if let Some(trusted_documents) = trusted_documents {
             runtime.trusted_documents = trusted_documents;
@@ -129,7 +122,7 @@ impl TestGatewayBuilder {
 
         let subgraphs = Subgraphs::load(mock_subgraphs, docker_subgraphs).await;
 
-        let (engine, context) = self::engine::build(federated_sdl, config_source, runtime, &subgraphs).await;
+        let (engine, context) = self::engine::build(federated_sdl, config, runtime, &subgraphs).await;
         let router = self::router::build(engine.clone());
 
         TestGateway {
@@ -141,12 +134,12 @@ impl TestGatewayBuilder {
     }
 }
 
-fn build_runtime(config_source: Option<&ConfigSource>) -> TestRuntime {
-    match config_source {
-        Some(ConfigSource::Sdl(_) | ConfigSource::SdlWebsocket) | None => TestRuntime::new(&Config::default()),
-        Some(ConfigSource::Toml(contents)) => {
-            let config = toml::from_str::<Config>(contents).expect("to be able to parse config");
+fn build_runtime(config_toml: Option<&ConfigSource>) -> TestRuntime {
+    match config_toml {
+        Some(ConfigSource::Toml(config)) => {
+            let config = toml::from_str(config).expect("to be able to parse config");
             TestRuntime::new(&config)
         }
+        _ => TestRuntime::new(&Config::default()),
     }
 }

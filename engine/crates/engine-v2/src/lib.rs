@@ -9,13 +9,13 @@ mod graphql_over_http;
 mod operation;
 mod plan;
 mod request;
+mod resolver;
 mod response;
-mod sources;
+mod stream;
 mod utils;
 pub mod websocket;
 
+pub use ::config;
 pub use engine::{Engine, Runtime, WebsocketSession};
 pub use graphql_over_http::{Body, ErrorCode, HooksExtension, TelemetryExtension};
 pub use schema::{BuildError, Schema, Version as SchemaVersion};
-
-pub use ::config::{latest as config, VersionedConfig};

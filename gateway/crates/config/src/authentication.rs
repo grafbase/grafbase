@@ -14,7 +14,8 @@ pub struct AuthenticationConfig {
 #[derive(Debug, PartialEq, serde::Deserialize, Clone)]
 #[serde(rename_all = "snake_case")]
 pub enum AuthenticationProvider {
-    Jwt(JwtProvider),
+    Jwt(Box<JwtProvider>),
+    Anonymous,
 }
 
 #[derive(Debug, PartialEq, serde::Deserialize, Clone)]

@@ -147,7 +147,8 @@ impl<'a> Converter<'a> {
             .or_insert_with(|| RequiredFieldId::from(n));
 
         Ok(Some(RequiredFieldSetItemRecord {
-            field_id: id,
+            alias_id: self.graph[definition_id].name_id,
+            id,
             subselection: self.convert_set(subselection)?,
         }))
     }

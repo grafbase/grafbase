@@ -1,5 +1,5 @@
 use super::*;
-use async_graphql_parser::types as ast;
+use cynic_parser::ConstValue;
 use std::collections::HashSet;
 
 /// All the keys (`@key(...)`) in all the subgraphs in one container.
@@ -19,7 +19,7 @@ impl Subgraphs {
         selection_set_str: &str,
         resolvable: bool,
     ) -> Result<(), String> {
-        let selection_set = self.selection_set_from_str(selection_set_str)?;
+        let selection_set = self.selection_set_from_str(selection_set_str, "key", "fields")?;
 
         let key = Key {
             selection_set,
@@ -29,75 +29,70 @@ impl Subgraphs {
         Ok(())
     }
 
-    pub(crate) fn selection_set_from_str(&mut self, fields: &str) -> Result<Vec<Selection>, String> {
+    pub(crate) fn selection_set_from_str(
+        &mut self,
+        fields: &str,
+        directive_name: &str,
+        argument_name: &str,
+    ) -> Result<Vec<Selection>, String> {
+        use cynic_parser::executable as ast;
         let fields = format!("{{ {fields} }}");
-        let parsed = async_graphql_parser::parse_query(fields).map_err(|err| err.to_string())?;
+        let parsed = cynic_parser::parse_executable_document(&fields).map_err(|err| {
+            format!("could not parse the `{argument_name}` argument in `@{directive_name}` as a selection set: {err}")
+        })?;
 
-        let ast::ExecutableDocument {
-            operations: ast::DocumentOperations::Single(operation),
-            ..
-        } = parsed
-        else {
-            return Err("The `fields` argument in `@keys` must be a selection set".to_owned());
+        let Some(operation) = parsed.operations().next() else {
+            return Err(format!(
+                "The `{argument_name}` argument in `@{directive_name}` must be a selection set"
+            ));
         };
 
-        let selection_set_ast = &operation.node.selection_set.node;
-
         fn build_selection_set(
-            items: &[async_graphql_parser::Positioned<ast::Selection>],
+            selections: ast::Iter<'_, ast::Selection<'_>>,
             subgraphs: &mut Subgraphs,
         ) -> Result<Vec<Selection>, String> {
-            items
-                .iter()
-                .map(|item| match &item.node {
+            selections
+                .map(|selection| match selection {
                     ast::Selection::Field(item) => {
-                        let field = subgraphs.strings.intern(item.node.name.node.as_str());
+                        let field = subgraphs.strings.intern(item.name());
                         let arguments = item
-                            .node
-                            .arguments
-                            .iter()
-                            .map(|(name, value)| {
-                                let name = subgraphs.strings.intern(name.node.as_str());
+                            .arguments()
+                            .map(|argument| {
+                                let name = subgraphs.strings.intern(argument.name());
                                 let value = crate::ast_value_to_subgraph_value(
-                                    &value.node.clone().into_const().unwrap(),
+                                    ConstValue::try_from(argument.value()).map_err(|_| "variables are not allowed")?,
                                     subgraphs,
                                 );
 
-                                (name, value)
+                                Ok((name, value))
                             })
-                            .collect();
-                        let subselection = build_selection_set(&item.node.selection_set.node.items, subgraphs)?;
+                            .collect::<Result<Vec<_>, String>>()?;
+
+                        let subselection = build_selection_set(item.selection_set(), subgraphs)?;
                         Ok(Selection::Field(FieldSelection {
                             field,
                             arguments,
                             subselection,
                         }))
                     }
-                    ast::Selection::InlineFragment(async_graphql_parser::Positioned {
-                        node:
-                            ast::InlineFragment {
-                                type_condition:
-                                    Some(async_graphql_parser::Positioned {
-                                        node: ast::TypeCondition { on },
-                                        ..
-                                    }),
-                                selection_set,
-                                ..
-                            },
-                        ..
-                    }) => {
-                        let subselection = build_selection_set(&selection_set.node.items, subgraphs)?;
+                    ast::Selection::InlineFragment(fragment) => {
+                        let subselection = build_selection_set(fragment.selection_set(), subgraphs)?;
+                        let on = fragment
+                            .type_condition()
+                            .ok_or("inline fragments must have a type condition")?;
+
                         Ok(Selection::InlineFragment {
-                            on: subgraphs.strings.intern(on.node.as_str()),
+                            on: subgraphs.strings.intern(on),
                             subselection,
                         })
                     }
-                    _ => Err("Fragment spreads not allowed in key definitions.".to_owned()),
+                    _ => Err("fragment spreads are not allowed.".to_owned()),
                 })
                 .collect()
         }
 
-        build_selection_set(&selection_set_ast.items, self)
+        build_selection_set(operation.selection_set(), self)
+            .map_err(|error| format!("the `{argument_name}` argument in `@{directive_name}` was invalid: {error}"))
     }
 
     pub(crate) fn with_nested_key_fields<F>(&mut self, handler: F)

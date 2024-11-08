@@ -23,27 +23,27 @@
 
 ## Structure
 
-| Crate                                                   | Description                                                                   |
-| ------------------------------------------------------- | ----------------------------------------------------------------------------- |
-| [`async-runtime`](crates/async-runtime)                 | A wrapper crate for various async runtime functionality                       |
-| [`common-types`](crates/common-types)                   | Various type definitions for the Grafbase platform                            |
-| [`dataloader`](crates/dataloader)                       | A GraphQL dataloader implementation for Grafbase                              |
-| [`engine`](crates/engine)                               | A dynamic GraphQL engine written in Rust                                      |
-| [`gateway-adapter`](crates/gateway-adapter)             | An adapter layer between the gateway and its environment                      |
-| [`gateway-adapter-local`](crates/gateway-adapter-local) | A local implementation of `gateway-adapter`                                   |
-| [`graph-entities`](crates/graph-entities)               | Various types for use with GraphQL on the Grafbase platform                   |
-| [`graphql-extensions`](crates/graphql-extensions)       | Extensions for `engine`                                                       |
-| [`integration-tests`](crates/integration-tests)         | Integration tests                                                             |
-| [`log`](crates/log)                                     | Logging facilities for various Grafbase crates                                |
-| [`parser-graphql`](crates/parser-graphql)               | A GraphQL schema parser for upstream APIs connected to Grafbase               |
-| [`parser-openapi`](crates/parser-openapi)               | An OpenAPI schema parser for the Grafbase platform                            |
-| [`parser-postgres`](crates/parser-postgres)             | Grafbase schema introspection for Postgres database                           |
-| [`parser-sdl`](crates/parser-sdl)                       | A parser that transforms GraphQL SDL into the Grafbase registry format        |
-| [`postgres-types`](crates/postgres-types)               | Shared types for Postgres connector                                           |
-| [`runtime`](crates/runtime)                             | An abstraction over the various Grafbase runtime environments                 |
-| [`runtime-local`](crates/runtime-local)                 | An implementation of the Grafbase runtime for local use                       |
-| [`search-protocol`](crates/search-protocol)             | Types related to the Grafbase platform search functionality                   |
-| [`worker-env`](crates/worker-env)                       | A utility crate to extend `worker::Env` with additional functionality         |
+| Crate                                                     | Description                                                         |
+| --------------------------------------------------------- | ------------------------------------------------------------------- |
+| [`common-types`](crates/common-types)                     | Various type definitions for the Grafbase platform                  |
+| [`graphql-composition`](crates/composition)               | An implementation of GraphQL federated schema composition           |
+| [`engine-config-builder`](crates/engine-config-builder)   | Engine configuration builder                                        |
+| [`engine-v2`](crates/engine-v2)                           | A GraphQL federation engine                                         |
+| [`federated-graph`](crates/federated-graph)               | A serializable federated GraphQL graph representation               |
+| [`federation-audit-tests`](crates/federation-audit-tests) | Tests for federation auditing                                       |
+| [`graphql-mocks`](crates/graphql-mocks)                   | GraphQL mocking utilities                                           |
+| [`graphql-schema-diff`](crates/graphql-schema-diff)       | Semantic diffing for GraphQL schemas                                |
+| [`integration-tests`](crates/integration-tests)           | Integration test suite                                              |
+| [`operation-checks`](crates/operation-checks)             | GraphQL federation operation checks library                         |
+| [`operation-normalizer`](crates/operation-normalizer)     | GraphQL operation normalizer                                        |
+| [`runtime`](crates/runtime)                               | Runtime interfaces                                                  |
+| [`runtime-local`](crates/runtime-local)                   | Runtime interface implementations for local execution               |
+| [`runtime-noop`](crates/runtime-noop)                     | No-op runtime implementation                                        |
+| [`serde-dynamic-string`](crates/serde-dynamic-string)     | Env var injection in Serde strings                                  |
+| [`telemetry`](crates/telemetry)                           | Gateway telemetry utilities                                         |
+| [`validation`](crates/validation)                         | A spec-compliant implementation of GraphQL SDL schema validation    |
+| [`wasi-component-loader`](crates/wasi-component-loader)   | The Gateway hooks WASI runtime                                      |
+| [`wrapping`](crates/wrapping)                             | Compact representation for GraphQL list and required wrapping types |
 
 ## Development
 

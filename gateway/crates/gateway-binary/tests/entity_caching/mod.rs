@@ -63,11 +63,8 @@ where
         subgraphs
             .ingest_str(subgraph_schema, "the-subgraph", subgraph_url)
             .unwrap();
-        graphql_composition::compose(&subgraphs)
-            .into_result()
-            .unwrap()
-            .into_federated_sdl()
-            .expect("graph.into_latest()")
+        let graph = graphql_composition::compose(&subgraphs).into_result().unwrap();
+        graphql_composition::render_federated_sdl(&graph).unwrap()
     };
 
     crate::GatewayBuilder {

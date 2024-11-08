@@ -1,6 +1,6 @@
 use std::{mem::take, time::Duration};
 
-use config::latest::Config;
+use config::{Config, SubgraphConfig};
 
 use super::{BuildContext, GraphqlEndpointRecord};
 
@@ -16,8 +16,11 @@ impl ExternalDataSources {
             .map(|(index, subgraph)| {
                 let subgraph_name_id = subgraph.name.into();
                 let sdl_url = url::Url::parse(&ctx.strings[subgraph.url.into()]).expect("valid url");
-                match config.subgraph_configs.remove(&federated_graph::SubgraphId(index)) {
-                    Some(config::latest::SubgraphConfig {
+                match config
+                    .subgraph_configs
+                    .remove(&federated_graph::SubgraphId::from(index))
+                {
+                    Some(SubgraphConfig {
                         websocket_url,
                         url,
                         headers,

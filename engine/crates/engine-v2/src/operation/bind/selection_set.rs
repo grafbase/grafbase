@@ -27,14 +27,7 @@ pub(super) struct SelectionSetBinder<'schema, 'parsed, 'binder> {
     binder: &'binder mut Binder<'schema, 'parsed>,
     next_query_position: usize,
     #[allow(clippy::type_complexity)]
-    fields: HashMap<
-        (SafeResponseKey, FieldDefinitionId),
-        (
-            QueryPosition,
-            Vec<&'parsed Positioned<engine_parser::types::Field>>,
-            Vec<QueryModifierRule>,
-        ),
-    >,
+    data_fields: HashMap<(SafeResponseKey, FieldDefinitionId), DataField<'parsed>>,
     #[allow(clippy::type_complexity)]
     typename_fields: HashMap<
         SafeResponseKey,
@@ -54,6 +47,13 @@ impl<'s, 'p, 'b> std::ops::DerefMut for SelectionSetBinder<'s, 'p, 'b> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         self.binder
     }
+}
+
+#[derive(Clone)]
+struct DataField<'parsed> {
+    query_position: QueryPosition,
+    fields: Vec<&'parsed Positioned<engine_parser::types::Field>>,
+    executable_directive_rules: Vec<QueryModifierRule>,
 }
 
 #[derive(Default)]
@@ -76,7 +76,7 @@ impl<'schema, 'p, 'binder> SelectionSetBinder<'schema, 'p, 'binder> {
         Self {
             binder,
             next_query_position: 0,
-            fields: HashMap::new(),
+            data_fields: HashMap::new(),
             typename_fields: HashMap::new(),
         }
     }
@@ -109,9 +109,17 @@ impl<'schema, 'p, 'binder> SelectionSetBinder<'schema, 'p, 'binder> {
     }
 
     fn generate_fields(&mut self, ty: SelectionSetType, id: BoundSelectionSetId) -> BindResult<Vec<BoundFieldId>> {
-        let mut field_ids = Vec::with_capacity(self.fields.len());
+        let mut field_ids = Vec::with_capacity(self.data_fields.len());
 
-        for ((response_key, definition_id), (query_position, fields, rules)) in std::mem::take(&mut self.fields) {
+        for (
+            (response_key, definition_id),
+            DataField {
+                query_position,
+                fields,
+                executable_directive_rules,
+            },
+        ) in std::mem::take(&mut self.data_fields)
+        {
             let field: &'p Positioned<engine_parser::types::Field> = fields
                 .iter()
                 .min_by_key(|field| field.pos.line)
@@ -132,7 +140,14 @@ impl<'schema, 'p, 'binder> SelectionSetBinder<'schema, 'p, 'binder> {
                     })
                     .transpose()?;
 
-            field_ids.push(self.bind_field(id, bound_response_key, definition_id, field, selection_set_id, rules)?)
+            field_ids.push(self.bind_field(
+                id,
+                bound_response_key,
+                definition_id,
+                field,
+                selection_set_id,
+                executable_directive_rules,
+            )?)
         }
 
         for (response_key, typename_fields) in std::mem::take(&mut self.typename_fields) {
@@ -244,20 +259,27 @@ impl<'schema, 'p, 'binder> SelectionSetBinder<'schema, 'p, 'binder> {
 
         executable_directives.extend(parent_executable_directives);
 
-        let entry =
-            self.fields
-                .entry((response_key, definition_id))
-                .or_insert((query_position, Vec::new(), Vec::new()));
+        let entry = self
+            .data_fields
+            .entry((response_key, definition_id))
+            .or_insert(DataField {
+                query_position,
+                fields: Vec::new(),
+                executable_directive_rules: Vec::new(),
+            });
 
-        entry.1.push(field);
+        entry.fields.push(field);
 
         let ExecutableDirectives {
-            skip_input_value_ids,
-            include_input_value_ids,
+            mut skip_input_value_ids,
+            mut include_input_value_ids,
         } = executable_directives;
 
         if !skip_input_value_ids.is_empty() || !include_input_value_ids.is_empty() {
-            entry.2.push(QueryModifierRule::SkipInclude {
+            skip_input_value_ids.sort_unstable();
+            include_input_value_ids.sort_unstable();
+
+            entry.executable_directive_rules.push(QueryModifierRule::SkipInclude {
                 skip_input_value_ids,
                 include_input_value_ids,
             });

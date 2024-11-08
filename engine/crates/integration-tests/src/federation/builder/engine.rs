@@ -1,11 +1,9 @@
-use std::{collections::HashMap, sync::Arc};
+use std::sync::Arc;
 
 use crate::federation::{subgraph::Subgraphs, TestRuntimeContext};
-use engine_config_builder::{build_with_sdl_config, build_with_toml_config};
-use federated_graph::FederatedGraphV3;
+use engine_config_builder::build_with_toml_config;
+use federated_graph::FederatedGraph;
 use grafbase_telemetry::metrics::meter_from_global_provider;
-use graphql_composition::VersionedFederatedGraph;
-use parser_sdl::{connector_parsers::MockConnectorParsers, federation::FederatedGraphConfig};
 use runtime::hooks::DynamicHooks;
 use runtime_local::{
     hooks::{self, ChannelLogSender},
@@ -18,12 +16,12 @@ use super::{ConfigSource, TestRuntime};
 
 pub(super) async fn build(
     federated_sdl: Option<String>,
-    config_source: Option<ConfigSource>,
+    config: Option<ConfigSource>,
     mut runtime: TestRuntime,
     subgraphs: &Subgraphs,
 ) -> (Arc<Engine<TestRuntime>>, TestRuntimeContext) {
     let graph = federated_sdl
-        .map(|sdl| VersionedFederatedGraph::from_sdl(&sdl).unwrap())
+        .map(|sdl| federated_graph::FederatedGraph::from_sdl(&sdl).unwrap())
         .unwrap_or_else(|| {
             if !subgraphs.is_empty() {
                 graphql_composition::compose(&subgraphs.iter().fold(
@@ -38,18 +36,15 @@ pub(super) async fn build(
                 .into_result()
                 .expect("schemas to compose succesfully")
             } else {
-                VersionedFederatedGraph::V3(FederatedGraphV3::default())
+                federated_graph::FederatedGraph::default()
             }
         });
 
     // Ensure SDL/JSON serialization work as a expected
     let graph = {
-        let sdl = graph.into_federated_sdl().expect("from_sdl()");
+        let sdl = federated_graph::render_federated_sdl(&graph).expect("render_federated_sdl()");
         println!("{sdl}");
-        let mut graph = VersionedFederatedGraph::from_sdl(&sdl).unwrap();
-        let json = serde_json::to_value(&graph).unwrap();
-        graph = serde_json::from_value(json).unwrap();
-        graph
+        FederatedGraph::from_sdl(&sdl).unwrap()
     };
 
     let counter = grafbase_telemetry::metrics::meter_from_global_provider()
@@ -58,35 +53,29 @@ pub(super) async fn build(
 
     let (access_log_sender, access_log_receiver) = hooks::create_log_channel(false, counter);
 
-    let config = match config_source {
-        Some(ConfigSource::Toml(toml)) => {
-            let config: gateway_config::Config = toml::from_str(&toml).unwrap();
+    let config = match config {
+        Some(ConfigSource::Toml(ref config_toml)) => toml::from_str(config_toml).unwrap(),
+        Some(ConfigSource::TomlWebsocket) => {
+            let mut config_toml = String::new();
 
-            update_runtime_with_toml_config(&mut runtime, &config, access_log_sender);
-            build_with_toml_config(&config, graph.into_latest().expect("Graph into latest"))
-        }
-        Some(ConfigSource::Sdl(mut sdl)) => {
-            sdl.push_str("\nextend schema @graph(type: federated)");
-            let config = parse_sdl_config(&sdl).await;
-            build_with_sdl_config(&config, graph.into_latest().expect("graph into latest"))
-        }
-        Some(ConfigSource::SdlWebsocket) => {
-            let mut sdl = String::new();
-            sdl.push_str("\nextend schema @graph(type: federated)");
             for subgraph in subgraphs.iter() {
-                sdl.push_str(&format!(
-                    "\nextend schema @subgraph(name: \"{}\", websocketUrl: \"{}\")",
-                    subgraph.name(),
-                    subgraph.websocket_url()
-                ));
+                let name = subgraph.name();
+                let websocket_url = subgraph.websocket_url();
+
+                config_toml.push_str(&indoc::formatdoc! {r#"
+                    [subgraphs.{name}]
+                    websocket_url = "{websocket_url}"
+                "#});
             }
 
-            let config = parse_sdl_config(&sdl).await;
-            build_with_sdl_config(&config, graph.into_latest().expect("graph.into_latest()"))
+            toml::from_str(&config_toml).unwrap()
         }
-        None => build_with_sdl_config(&Default::default(), graph.into_latest().expect("graph.into_latest()")),
-    }
-    .into_latest();
+        None => gateway_config::Config::default(),
+    };
+
+    update_runtime_with_toml_config(&mut runtime, &config, access_log_sender);
+
+    let config = build_with_toml_config(&config, graph);
 
     let schema =
         engine_v2::Schema::build(config, engine_v2::SchemaVersion::from(ulid::Ulid::new().to_bytes())).unwrap();
@@ -110,12 +99,4 @@ fn update_runtime_with_toml_config(
         let meter = meter_from_global_provider();
         runtime.hooks = DynamicHooks::wrap(HooksWasi::new(Some(loader), None, &meter, access_log_sender));
     }
-}
-
-async fn parse_sdl_config(sdl: &str) -> FederatedGraphConfig {
-    parser_sdl::parse(sdl, &HashMap::new(), &MockConnectorParsers::default())
-        .await
-        .expect("supergraph config SDL to be valid")
-        .federated_graph_config
-        .unwrap_or_default()
 }

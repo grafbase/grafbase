@@ -1,0 +1,21 @@
+type Query @cost(weight: 1) {
+  id: ID! @cost(weight: 2)
+
+  foo(name: String @cost(weight: 100)): String
+}
+
+interface Account @cost(weight: 3) {
+  id: ID! @cost(weight: 4)
+
+  foo(name: String @cost(weight: 200)): String
+}
+
+enum Blah @cost(weight: 5) {
+  BLAH
+}
+
+scalar Foo @cost(weight: 6)
+
+input Bar {
+  x: String @cost(weight: 7)
+}

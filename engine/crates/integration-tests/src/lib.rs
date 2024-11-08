@@ -1,31 +1,17 @@
 #![allow(unused_crate_dependencies, clippy::panic)]
 
-pub mod engine_v1;
 pub mod federation;
 pub mod fetch;
-pub mod helpers;
-pub mod mongodb;
 pub mod openid;
-pub mod postgres;
 pub mod types;
-pub mod udfs;
 
 mod mock_trusted_documents;
 
-use std::{cell::RefCell, sync::OnceLock};
+use std::sync::OnceLock;
 
-pub use helpers::{GetPath, ResponseExt};
 pub use mock_trusted_documents::TestTrustedDocument;
-pub use mongodb::{with_mongodb, with_namespaced_mongodb};
-use names::{Generator, Name};
 use tokio::runtime::Runtime;
 pub use types::{Error, ResponseData};
-
-pub use crate::engine_v1::{Engine, EngineBuilder, GatewayBuilder, GatewayTester};
-
-thread_local! {
-    static NAMES: RefCell<Option<Generator<'static>>> = const { RefCell::new(None) };
-}
 
 #[ctor::ctor]
 fn setup_rustls() {
@@ -53,16 +39,5 @@ pub fn runtime() -> &'static Runtime {
             .enable_all()
             .build()
             .unwrap()
-    })
-}
-
-fn random_name() -> String {
-    NAMES.with(|maybe_generator| {
-        maybe_generator
-            .borrow_mut()
-            .get_or_insert_with(|| Generator::with_naming(Name::Plain))
-            .next()
-            .unwrap()
-            .replace('-', "")
     })
 }

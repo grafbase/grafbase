@@ -11,14 +11,27 @@ use integration_tests::{
 #[test]
 fn test_provider() {
     runtime().block_on(async move {
+        let config = indoc::formatdoc! {r#"
+            [[authentication.providers]]
+
+            [authentication.providers.jwt]
+            name = "my-jwt"
+
+            [authentication.providers.jwt.jwks]
+            url = "{JWKS_URI}"
+
+            [[authentication.providers]]
+
+            [authentication.providers.jwt]
+            name = "my-jwt-2"
+
+            [authentication.providers.jwt.jwks]
+            url = "{JWKS_URI_2}"
+        "#};
+
         let engine = Engine::builder()
             .with_subgraph(FakeGithubSchema)
-            .with_sdl_config(format!(
-                r#"extend schema @authz(providers: [
-                    {{ name: "my-jwt", type: jwt, jwks: {{ url: "{JWKS_URI}" }} }}
-                    {{ name: "my-jwt-2", type: jwt, jwks: {{ url: "{JWKS_URI_2}" }} }}
-                ])"#
-            ))
+            .with_toml_config(config)
             .build()
             .await;
 

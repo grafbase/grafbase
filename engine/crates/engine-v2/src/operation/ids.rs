@@ -1,28 +1,28 @@
 use std::num::NonZero;
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
-pub struct LogicalPlanId(NonZero<u16>);
+pub(crate) struct LogicalPlanId(NonZero<u16>);
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
-pub struct BoundSelectionSetId(NonZero<u16>);
+pub(crate) struct BoundSelectionSetId(NonZero<u16>);
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
-pub struct BoundVariableDefinitionId(NonZero<u16>);
+pub(crate) struct BoundVariableDefinitionId(NonZero<u16>);
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
-pub struct BoundFieldId(NonZero<u16>);
+pub(crate) struct BoundFieldId(NonZero<u16>);
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
-pub struct BoundFieldArgumentId(NonZero<u16>);
+pub(crate) struct BoundFieldArgumentId(NonZero<u16>);
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
-pub struct BoundResponseModifierId(NonZero<u16>);
+pub(crate) struct BoundResponseModifierId(NonZero<u16>);
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
-pub struct BoundResponseModifierImpactedFieldId(NonZero<u16>);
+pub(crate) struct BoundResponseModifierImpactedFieldId(NonZero<u16>);
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
-pub struct BoundQueryModifierId(NonZero<u16>);
+pub(crate) struct BoundQueryModifierId(NonZero<u16>);
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
-pub struct BoundQueryModifierImpactedFieldId(NonZero<u16>);
+pub(crate) struct BoundQueryModifierImpactedFieldId(NonZero<u16>);

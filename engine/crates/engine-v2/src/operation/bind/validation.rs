@@ -1,9 +1,7 @@
-use config::latest::OperationLimits;
-use engine::Positioned;
-
-use crate::operation::parse::ParsedOperation;
-
 use super::{BindError, BindResult};
+use crate::operation::parse::ParsedOperation;
+use config::OperationLimits;
+use engine_parser::Positioned;
 
 pub(super) fn validate_parsed_operation(operation: &ParsedOperation, limits: &OperationLimits) -> BindResult<()> {
     Visitor {

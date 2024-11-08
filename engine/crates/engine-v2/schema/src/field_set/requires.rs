@@ -1,6 +1,6 @@
 use walker::{Iter, Walk};
 
-use crate::{RequiredField, RequiredFieldId, Schema};
+use crate::{RequiredField, RequiredFieldId, Schema, StringId};
 use std::{borrow::Cow, cmp::Ordering};
 
 static EMPTY: RequiredFieldSetRecord = RequiredFieldSetRecord(Vec::new());
@@ -73,7 +73,9 @@ impl std::fmt::Debug for RequiredFieldSet<'_> {
 //
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct RequiredFieldSetItemRecord {
-    pub field_id: RequiredFieldId,
+    /// If no alias is provided, it's set to field name
+    pub alias_id: StringId,
+    pub id: RequiredFieldId,
     pub subselection: RequiredFieldSetRecord,
 }
 
@@ -96,7 +98,7 @@ pub struct RequiredFieldSetItem<'a> {
 
 impl<'a> RequiredFieldSetItem<'a> {
     pub fn field(&self) -> RequiredField<'a> {
-        self.ref_.field_id.walk(self.schema)
+        self.ref_.id.walk(self.schema)
     }
     pub fn subselection(&self) -> RequiredFieldSet<'a> {
         self.ref_.subselection.walk(self.schema)
@@ -118,7 +120,7 @@ impl std::fmt::Debug for RequiredFieldSetItem<'_> {
 impl FromIterator<RequiredFieldSetItemRecord> for RequiredFieldSetRecord {
     fn from_iter<T: IntoIterator<Item = RequiredFieldSetItemRecord>>(iter: T) -> Self {
         let mut fields = iter.into_iter().collect::<Vec<_>>();
-        fields.sort_unstable_by_key(|field| field.field_id);
+        fields.sort_unstable_by_key(|field| field.id);
         Self(fields)
     }
 }
@@ -160,7 +162,7 @@ impl RequiredFieldSetRecord {
         while l < left_set.len() && r < right_set.len() {
             let left = &left_set[l];
             let right = &right_set[r];
-            match left.field_id.cmp(&right.field_id) {
+            match left.alias_id.cmp(&right.alias_id).then(left.id.cmp(&right.id)) {
                 Ordering::Less => {
                     fields.push(left.clone());
                     l += 1;
@@ -171,7 +173,8 @@ impl RequiredFieldSetRecord {
                 }
                 Ordering::Equal => {
                     fields.push(RequiredFieldSetItemRecord {
-                        field_id: left.field_id,
+                        alias_id: left.alias_id,
+                        id: left.id,
                         subselection: if left.subselection.is_empty() {
                             right.subselection.clone()
                         } else if right.subselection.is_empty() {

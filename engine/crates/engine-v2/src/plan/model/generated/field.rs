@@ -16,71 +16,71 @@ use walker::Walk;
 /// Generated from:
 ///
 /// ```custom,{.language-graphql}
-/// union Field @id @indexed(id_size: "u32") @meta(module: "field") @variants(remove_suffix: true) =
-///   | DataField
-///   | TypenameField
+/// union PlanField @id @indexed(id_size: "u32") @meta(module: "field") @variants(remove_suffix: true) =
+///   | DataPlanField
+///   | TypenamePlanField
 /// ```
 #[derive(serde::Serialize, serde::Deserialize, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub(crate) enum FieldId {
-    Data(DataFieldId),
-    Typename(TypenameFieldId),
+pub(crate) enum PlanFieldId {
+    Data(DataPlanFieldId),
+    Typename(TypenamePlanFieldId),
 }
 
-impl std::fmt::Debug for FieldId {
+impl std::fmt::Debug for PlanFieldId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            FieldId::Data(variant) => variant.fmt(f),
-            FieldId::Typename(variant) => variant.fmt(f),
+            PlanFieldId::Data(variant) => variant.fmt(f),
+            PlanFieldId::Typename(variant) => variant.fmt(f),
         }
     }
 }
 
-impl From<DataFieldId> for FieldId {
-    fn from(value: DataFieldId) -> Self {
-        FieldId::Data(value)
+impl From<DataPlanFieldId> for PlanFieldId {
+    fn from(value: DataPlanFieldId) -> Self {
+        PlanFieldId::Data(value)
     }
 }
-impl From<TypenameFieldId> for FieldId {
-    fn from(value: TypenameFieldId) -> Self {
-        FieldId::Typename(value)
+impl From<TypenamePlanFieldId> for PlanFieldId {
+    fn from(value: TypenamePlanFieldId) -> Self {
+        PlanFieldId::Typename(value)
     }
 }
 
 #[derive(Clone, Copy)]
-pub(crate) enum Field<'a> {
-    Data(DataField<'a>),
-    Typename(TypenameField<'a>),
+pub(crate) enum PlanField<'a> {
+    Data(DataPlanField<'a>),
+    Typename(TypenamePlanField<'a>),
 }
 
-impl std::fmt::Debug for Field<'_> {
+impl std::fmt::Debug for PlanField<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Field::Data(variant) => variant.fmt(f),
-            Field::Typename(variant) => variant.fmt(f),
+            PlanField::Data(variant) => variant.fmt(f),
+            PlanField::Typename(variant) => variant.fmt(f),
         }
     }
 }
 
-impl<'a> Walk<PlanContext<'a>> for FieldId {
-    type Walker<'w> = Field<'w> where 'a: 'w ;
+impl<'a> Walk<PlanContext<'a>> for PlanFieldId {
+    type Walker<'w> = PlanField<'w> where 'a: 'w ;
     fn walk<'w>(self, ctx: PlanContext<'a>) -> Self::Walker<'w>
     where
         Self: 'w,
         'a: 'w,
     {
         match self {
-            FieldId::Data(id) => Field::Data(id.walk(ctx)),
-            FieldId::Typename(id) => Field::Typename(id.walk(ctx)),
+            PlanFieldId::Data(id) => PlanField::Data(id.walk(ctx)),
+            PlanFieldId::Typename(id) => PlanField::Typename(id.walk(ctx)),
         }
     }
 }
 
 #[allow(unused)]
-impl Field<'_> {
-    pub(crate) fn id(&self) -> FieldId {
+impl PlanField<'_> {
+    pub(crate) fn id(&self) -> PlanFieldId {
         match self {
-            Field::Data(walker) => FieldId::Data(walker.id),
-            Field::Typename(walker) => FieldId::Typename(walker.id),
+            PlanField::Data(walker) => PlanFieldId::Data(walker.id),
+            PlanField::Typename(walker) => PlanFieldId::Typename(walker.id),
         }
     }
 }

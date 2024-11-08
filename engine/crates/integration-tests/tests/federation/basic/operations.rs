@@ -1,6 +1,9 @@
 use engine_v2::Engine;
 use graphql_mocks::FakeGithubSchema;
-use integration_tests::{engine_v1::GraphQlRequest, federation::EngineV2Ext, runtime};
+use integration_tests::{
+    federation::{EngineV2Ext, GraphQlRequest},
+    runtime,
+};
 
 #[test]
 fn multiple_operations_without_providing_operation_name_in_request() {

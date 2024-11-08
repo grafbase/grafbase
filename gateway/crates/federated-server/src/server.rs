@@ -45,10 +45,13 @@ pub struct ServerConfig {
 pub trait ServerRuntime: Send + Sync + 'static + Clone {
     /// Called after each request
     fn after_request(&self);
+    /// Called when the server is ready and listening
+    fn on_ready(&self, url: String);
 }
 
 impl ServerRuntime for () {
     fn after_request(&self) {}
+    fn on_ready(&self, _url: String) {}
 }
 
 /// Starts the server and listens for incoming requests.
@@ -175,7 +178,7 @@ pub async fn serve(
                 .or(config.network.listen_address)
                 .unwrap_or(DEFAULT_LISTEN_ADDRESS);
 
-            let result = bind(addr, path, router, config.tls.as_ref()).await;
+            let result = bind(addr, path, router, config.tls.as_ref(), server_runtime).await;
         }
     }
 
@@ -188,7 +191,13 @@ pub async fn serve(
 }
 
 #[cfg_attr(feature = "lambda", allow(unused))]
-async fn bind(addr: SocketAddr, path: &str, router: Router<()>, tls: Option<&TlsConfig>) -> crate::Result<()> {
+async fn bind(
+    addr: SocketAddr,
+    path: &str,
+    router: Router<()>,
+    tls: Option<&TlsConfig>,
+    server_runtime: impl ServerRuntime,
+) -> crate::Result<()> {
     let app = router.into_make_service();
 
     let handle = axum_server::Handle::new();
@@ -196,10 +205,17 @@ async fn bind(addr: SocketAddr, path: &str, router: Router<()>, tls: Option<&Tls
     // Spawn a task to gracefully shutdown server.
     tokio::spawn(graceful_shutdown(handle.clone()));
 
+    let handle_for_listening = handle.clone();
+    let url = format!("http://{addr}{path}");
+    tokio::spawn(async move {
+        if handle_for_listening.clone().listening().await.is_some() {
+            tracing::info!("GraphQL endpoint exposed at {url}");
+            server_runtime.on_ready(url);
+        }
+    });
+
     match tls {
         Some(tls) => {
-            tracing::info!("GraphQL endpoint exposed at https://{addr}{path}");
-
             let rustls_config = axum_server::tls_rustls::RustlsConfig::from_pem_file(&tls.certificate, &tls.key)
                 .await
                 .map_err(crate::Error::CertificateError)?;
@@ -210,14 +226,11 @@ async fn bind(addr: SocketAddr, path: &str, router: Router<()>, tls: Option<&Tls
                 .await
                 .map_err(crate::Error::Server)?
         }
-        None => {
-            tracing::info!("GraphQL endpoint exposed at http://{addr}{path}");
-            axum_server::bind(addr)
-                .handle(handle)
-                .serve(app)
-                .await
-                .map_err(crate::Error::Server)?
-        }
+        None => axum_server::bind(addr)
+            .handle(handle)
+            .serve(app)
+            .await
+            .map_err(crate::Error::Server)?,
     }
 
     Ok(())

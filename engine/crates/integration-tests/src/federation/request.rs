@@ -2,19 +2,19 @@ mod stream;
 
 use std::{
     borrow::Cow,
+    collections::HashMap,
     future::IntoFuture,
     ops::{Deref, DerefMut},
 };
 
 use axum::body::Body;
 use bytes::Bytes;
-use engine::Variables;
+use engine_value::{Value, Variables};
 use futures::future::BoxFuture;
 use http_body_util::BodyExt;
+use serde::ser::SerializeMap;
 pub use stream::*;
 use tower::ServiceExt;
-
-use crate::engine_v1::GraphQlRequest;
 
 #[must_use]
 pub struct TestRequest {
@@ -114,6 +114,112 @@ impl IntoFuture for TestRequest {
             let bytes = body.collect().await.unwrap().to_bytes();
             http::Response::from_parts(parts, bytes).try_into().unwrap()
         })
+    }
+}
+
+#[derive(serde::Serialize)]
+pub struct GraphQlRequest {
+    pub query: String,
+    #[serde(skip_serializing_if = "Option::is_none", rename = "operationName")]
+    pub operation_name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub variables: Option<Variables>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub extensions: Option<RequestExtensions>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub doc_id: Option<String>,
+}
+
+impl GraphQlRequest {
+    pub fn into_query_params(self) -> impl serde::Serialize {
+        QueryParams(self)
+    }
+}
+
+impl<'a> From<&'a str> for GraphQlRequest {
+    fn from(value: &'a str) -> Self {
+        value.to_string().into()
+    }
+}
+
+impl From<String> for GraphQlRequest {
+    fn from(query: String) -> Self {
+        Self {
+            query,
+            operation_name: None,
+            variables: None,
+            extensions: None,
+            doc_id: None,
+        }
+    }
+}
+
+impl<T, V> From<cynic::Operation<T, V>> for GraphQlRequest
+where
+    V: serde::Serialize,
+{
+    fn from(operation: cynic::Operation<T, V>) -> Self {
+        GraphQlRequest {
+            query: operation.query,
+            variables: Some(serde_json::from_value(serde_json::to_value(operation.variables).unwrap()).unwrap()),
+            operation_name: operation.operation_name.map(|name| name.to_string()),
+            extensions: None,
+            doc_id: None,
+        }
+    }
+}
+
+#[derive(Debug, serde::Serialize, serde::Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct RequestExtensions {
+    #[serde(default)]
+    pub persisted_query: Option<PersistedQueryRequestExtension>,
+    #[serde(flatten)]
+    pub custom: HashMap<String, Value>,
+}
+
+#[serde_with::serde_as]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PersistedQueryRequestExtension {
+    pub version: u32,
+    #[serde_as(as = "serde_with::hex::Hex")]
+    pub sha256_hash: Vec<u8>,
+}
+
+struct QueryParams(GraphQlRequest);
+
+impl serde::Serialize for QueryParams {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let mut map = serializer.serialize_map(None)?;
+        map.serialize_entry("query", &self.0.query)?;
+
+        if let Some(doc_id) = &self.0.doc_id {
+            map.serialize_entry("doc_id", doc_id)?;
+        }
+
+        if let Some(operation_name) = &self.0.operation_name {
+            map.serialize_entry("operation_name", operation_name)?;
+        }
+
+        if let Some(variables) = &self.0.variables {
+            map.serialize_entry(
+                "variables",
+                &serde_json::to_string(variables).map_err(serde::ser::Error::custom)?,
+            )?;
+        }
+
+        if let Some(extensions) = &self.0.extensions {
+            map.serialize_entry(
+                "extensions",
+                &serde_json::to_string(extensions).map_err(serde::ser::Error::custom)?,
+            )?;
+        }
+
+        map.end()
     }
 }
 

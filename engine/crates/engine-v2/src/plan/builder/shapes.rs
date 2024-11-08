@@ -9,7 +9,8 @@ use crate::{
         BoundFieldId,
     },
     plan::{
-        DataField, DataFieldId, OperationPlan, PlanContext, ResponseObjectSetDefinitionId, SelectionSet, TypenameField,
+        DataPlanField, DataPlanFieldId, OperationPlan, PlanContext, PlanSelectionSet, ResponseObjectSetDefinitionId,
+        TypenamePlanField,
     },
     response::{
         ConcreteObjectShape, ConcreteObjectShapeId, FieldShape, FieldShapeId, ObjectIdentifier, PolymorphicObjectShape,
@@ -21,7 +22,7 @@ use crate::{
 use super::OperationPlanBuilder;
 
 impl OperationPlanBuilder<'_> {
-    pub(super) fn populate_plan_shapes(&mut self) {
+    pub(super) fn populate_shapes_after_plan_generation(&mut self) {
         let mut plans = std::mem::take(&mut self.operation_plan.plans);
         let mut builder = ShapesBuilder {
             schema: self.schema,
@@ -76,18 +77,18 @@ pub(super) struct ShapesBuilder<'ctx> {
     schema: &'ctx Schema,
     operation_plan: &'ctx OperationPlan,
     shapes: Shapes,
-    field_id_to_field_shape_ids: Vec<(DataFieldId, FieldShapeId)>,
-    data_field_ids_with_selection_set_requiring_typename: Vec<DataFieldId>,
-    field_shapes_buffer_pool: BufferPool<(FieldShape, Vec<DataFieldId>)>,
-    data_fields_buffer_pool: BufferPool<DataField<'ctx>>,
-    typename_fields_buffer_pool: BufferPool<TypenameField<'ctx>>,
+    field_id_to_field_shape_ids: Vec<(DataPlanFieldId, FieldShapeId)>,
+    data_field_ids_with_selection_set_requiring_typename: Vec<DataPlanFieldId>,
+    field_shapes_buffer_pool: BufferPool<(FieldShape, Vec<DataPlanFieldId>)>,
+    data_fields_buffer_pool: BufferPool<DataPlanField<'ctx>>,
+    typename_fields_buffer_pool: BufferPool<TypenamePlanField<'ctx>>,
 }
 
 impl<'ctx> ShapesBuilder<'ctx> {
     fn create_root_shape_for(
         &mut self,
         entity_definition_id: EntityDefinitionId,
-        selection_set: SelectionSet<'ctx>,
+        selection_set: PlanSelectionSet<'ctx>,
     ) -> ConcreteObjectShapeId {
         let exemplar = match entity_definition_id {
             EntityDefinitionId::Object(id) => id,
@@ -125,8 +126,8 @@ impl<'ctx> ShapesBuilder<'ctx> {
         &mut self,
         exemplar_object_id: ObjectDefinitionId,
         _maybe_response_object_set_id: Option<ResponseObjectSetDefinitionId>,
-        data_fields_sorted_by_response_key_then_position: &[DataField<'ctx>],
-        typename_fields_sorted_by_response_key_then_position: &[TypenameField<'ctx>],
+        data_fields_sorted_by_response_key_then_position: &[DataPlanField<'ctx>],
+        typename_fields_sorted_by_response_key_then_position: &[TypenamePlanField<'ctx>],
     ) -> ConcreteObjectShapeId {
         let schema = self.schema;
         tracing::trace!("Creating shape for exemplar {}", schema.walk(exemplar_object_id).name());
@@ -208,8 +209,8 @@ impl<'ctx> ShapesBuilder<'ctx> {
     fn create_data_field_shape(
         &mut self,
         response_key: ResponseKey,
-        fields: &mut [DataField<'ctx>],
-        field: DataField<'ctx>,
+        fields: &mut [DataPlanField<'ctx>],
+        field: DataPlanField<'ctx>,
     ) -> FieldShape {
         let ty = field.definition().ty();
         let shape = match ty.definition_id {
@@ -236,7 +237,11 @@ impl<'ctx> ShapesBuilder<'ctx> {
         }
     }
 
-    fn create_field_output_shape(&mut self, parent_fields: &[DataField<'ctx>], output_id: CompositeTypeId) -> Shape {
+    fn create_field_output_shape(
+        &mut self,
+        parent_fields: &[DataPlanField<'ctx>],
+        output_id: CompositeTypeId,
+    ) -> Shape {
         let maybe_response_object_set_id = parent_fields.iter().find_map(|field| field.output_id);
         let mut data_fields = self.data_fields_buffer_pool.pop();
         let mut typename_fields = self.typename_fields_buffer_pool.pop();
@@ -275,8 +280,8 @@ impl<'ctx> ShapesBuilder<'ctx> {
         &mut self,
         ty: CompositeTypeId,
         maybe_response_object_set_id: Option<ResponseObjectSetDefinitionId>,
-        data_fields: &mut [DataField<'ctx>],
-        typename_fields: &mut [TypenameField<'ctx>],
+        data_fields: &mut [DataPlanField<'ctx>],
+        typename_fields: &mut [TypenamePlanField<'ctx>],
     ) -> Shape {
         let output: &[ObjectDefinitionId] = match &ty {
             CompositeTypeId::Object(id) => std::array::from_ref(id),
@@ -351,8 +356,8 @@ impl<'ctx> ShapesBuilder<'ctx> {
     fn compute_shape_partitions(
         &self,
         output: &[ObjectDefinitionId],
-        data_fields: &[DataField<'ctx>],
-        typename_fields: &[TypenameField<'ctx>],
+        data_fields: &[DataPlanField<'ctx>],
+        typename_fields: &[TypenamePlanField<'ctx>],
     ) -> Option<Vec<Partition<ObjectDefinitionId>>> {
         let mut type_conditions = Vec::new();
         for field in typename_fields {

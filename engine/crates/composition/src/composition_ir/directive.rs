@@ -10,6 +10,9 @@ pub enum Directive {
     Inaccessible,
     Policy(Vec<Vec<federated::StringId>>),
     RequiresScopes(Vec<Vec<federated::StringId>>),
+    Cost {
+        weight: i32,
+    },
 
     Other {
         name: federated::StringId,

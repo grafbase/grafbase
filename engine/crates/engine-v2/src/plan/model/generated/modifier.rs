@@ -3,62 +3,65 @@
 //! ===================
 //! Generated with: `cargo run -p engine-v2-codegen`
 //! Source file: <engine-v2-codegen dir>/domain/operation_plan.graphql
-use crate::plan::model::{generated::Field, prelude::*, FieldRefId};
+use crate::plan::model::{generated::PlanField, prelude::*, PlanFieldRefId};
 use walker::{Iter, Walk};
 
 /// Generated from:
 ///
 /// ```custom,{.language-graphql}
-/// type QueryModifier @meta(module: "modifier") {
+/// type QueryModifierDefinition @meta(module: "modifier") {
 ///   rule: QueryModifierRule!
-///   impacted_fields: [FieldRef!]!
+///   impacts_root_object: Boolean!
+///   impacted_fields: [PlanFieldRef!]!
 /// }
 /// ```
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
-pub(crate) struct QueryModifierRecord {
+pub(crate) struct QueryModifierDefinitionRecord {
     pub rule: QueryModifierRule,
-    pub impacted_field_ids: IdRange<FieldRefId>,
+    pub impacts_root_object: bool,
+    pub impacted_field_ids: IdRange<PlanFieldRefId>,
 }
 
 #[derive(Clone, Copy)]
-pub(crate) struct QueryModifier<'a> {
+pub(crate) struct QueryModifierDefinition<'a> {
     pub(in crate::plan::model) ctx: PlanContext<'a>,
-    pub(in crate::plan::model) ref_: &'a QueryModifierRecord,
+    pub(in crate::plan::model) ref_: &'a QueryModifierDefinitionRecord,
 }
 
-impl std::ops::Deref for QueryModifier<'_> {
-    type Target = QueryModifierRecord;
+impl std::ops::Deref for QueryModifierDefinition<'_> {
+    type Target = QueryModifierDefinitionRecord;
     fn deref(&self) -> &Self::Target {
         self.ref_
     }
 }
 
 #[allow(unused)]
-impl<'a> QueryModifier<'a> {
+impl<'a> QueryModifierDefinition<'a> {
     #[allow(clippy::should_implement_trait)]
-    pub(crate) fn as_ref(&self) -> &'a QueryModifierRecord {
+    pub(crate) fn as_ref(&self) -> &'a QueryModifierDefinitionRecord {
         self.ref_
     }
-    pub(crate) fn impacted_fields(&self) -> impl Iter<Item = Field<'a>> + 'a {
+    pub(crate) fn impacted_fields(&self) -> impl Iter<Item = PlanField<'a>> + 'a {
         self.impacted_field_ids.walk(self.ctx)
     }
 }
 
-impl<'a> Walk<PlanContext<'a>> for &QueryModifierRecord {
-    type Walker<'w> = QueryModifier<'w> where Self : 'w , 'a: 'w ;
+impl<'a> Walk<PlanContext<'a>> for &QueryModifierDefinitionRecord {
+    type Walker<'w> = QueryModifierDefinition<'w> where Self : 'w , 'a: 'w ;
     fn walk<'w>(self, ctx: PlanContext<'a>) -> Self::Walker<'w>
     where
         Self: 'w,
         'a: 'w,
     {
-        QueryModifier { ctx, ref_: self }
+        QueryModifierDefinition { ctx, ref_: self }
     }
 }
 
-impl std::fmt::Debug for QueryModifier<'_> {
+impl std::fmt::Debug for QueryModifierDefinition<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("QueryModifier")
+        f.debug_struct("QueryModifierDefinition")
             .field("rule", &self.rule)
+            .field("impacts_root_object", &self.impacts_root_object)
             .field("impacted_fields", &self.impacted_fields())
             .finish()
     }
@@ -67,55 +70,55 @@ impl std::fmt::Debug for QueryModifier<'_> {
 /// Generated from:
 ///
 /// ```custom,{.language-graphql}
-/// type ResponseModifier @meta(module: "modifier") {
+/// type ResponseModifierDefinition @meta(module: "modifier") {
 ///   rule: ResponseModifierRule!
-///   impacted_fields: [FieldRef!]!
+///   impacted_fields: [PlanFieldRef!]!
 /// }
 /// ```
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
-pub(crate) struct ResponseModifierRecord {
+pub(crate) struct ResponseModifierDefinitionRecord {
     pub rule: ResponseModifierRule,
-    pub impacted_field_ids: IdRange<FieldRefId>,
+    pub impacted_field_ids: IdRange<PlanFieldRefId>,
 }
 
 #[derive(Clone, Copy)]
-pub(crate) struct ResponseModifier<'a> {
+pub(crate) struct ResponseModifierDefinition<'a> {
     pub(in crate::plan::model) ctx: PlanContext<'a>,
-    pub(in crate::plan::model) ref_: &'a ResponseModifierRecord,
+    pub(in crate::plan::model) ref_: &'a ResponseModifierDefinitionRecord,
 }
 
-impl std::ops::Deref for ResponseModifier<'_> {
-    type Target = ResponseModifierRecord;
+impl std::ops::Deref for ResponseModifierDefinition<'_> {
+    type Target = ResponseModifierDefinitionRecord;
     fn deref(&self) -> &Self::Target {
         self.ref_
     }
 }
 
 #[allow(unused)]
-impl<'a> ResponseModifier<'a> {
+impl<'a> ResponseModifierDefinition<'a> {
     #[allow(clippy::should_implement_trait)]
-    pub(crate) fn as_ref(&self) -> &'a ResponseModifierRecord {
+    pub(crate) fn as_ref(&self) -> &'a ResponseModifierDefinitionRecord {
         self.ref_
     }
-    pub(crate) fn impacted_fields(&self) -> impl Iter<Item = Field<'a>> + 'a {
+    pub(crate) fn impacted_fields(&self) -> impl Iter<Item = PlanField<'a>> + 'a {
         self.impacted_field_ids.walk(self.ctx)
     }
 }
 
-impl<'a> Walk<PlanContext<'a>> for &ResponseModifierRecord {
-    type Walker<'w> = ResponseModifier<'w> where Self : 'w , 'a: 'w ;
+impl<'a> Walk<PlanContext<'a>> for &ResponseModifierDefinitionRecord {
+    type Walker<'w> = ResponseModifierDefinition<'w> where Self : 'w , 'a: 'w ;
     fn walk<'w>(self, ctx: PlanContext<'a>) -> Self::Walker<'w>
     where
         Self: 'w,
         'a: 'w,
     {
-        ResponseModifier { ctx, ref_: self }
+        ResponseModifierDefinition { ctx, ref_: self }
     }
 }
 
-impl std::fmt::Debug for ResponseModifier<'_> {
+impl std::fmt::Debug for ResponseModifierDefinition<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("ResponseModifier")
+        f.debug_struct("ResponseModifierDefinition")
             .field("rule", &self.rule)
             .field("impacted_fields", &self.impacted_fields())
             .finish()
