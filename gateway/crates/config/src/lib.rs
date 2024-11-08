@@ -186,14 +186,11 @@ pub struct SubgraphConfig {
     pub entity_caching: Option<EntityCachingConfig>,
     /// Subgraph specific message signatures config
     pub message_signatures: Option<MessageSignaturesConfig>,
-    #[cfg(feature = "dev")]
-    /// The path of an SDL schema file for the subgraph.
+    /// The path of an SDL schema file for the subgraph (dev only).
     pub schema_path: Option<PathBuf>,
-    #[cfg(feature = "dev")]
-    /// A URL from which to retreive the subgraph SDL.
+    /// A URL from which to retreive the subgraph SDL (dev only).
     pub introspection_url: Option<Url>,
-    #[cfg(feature = "dev")]
-    /// Header configuration for subgraph introspection
+    /// Header configuration for subgraph introspection (dev only).
     pub introspection_headers: Option<BTreeMap<String, DynamicString<String>>>,
 }
 
