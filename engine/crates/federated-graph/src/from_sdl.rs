@@ -13,6 +13,7 @@ use std::{
     fmt,
     ops::Range,
 };
+use wrapping::Wrapping;
 
 const JOIN_FIELD_DIRECTIVE_NAME: &str = "join__field";
 const JOIN_FIELD_DIRECTIVE_OVERRIDE_ARGUMENT: &str = "override";
@@ -108,10 +109,10 @@ impl<'a> State<'a> {
 
     fn insert_string(&mut self, s: &str) -> StringId {
         if let Some(idx) = self.strings.get_index_of(s) {
-            return StringId(idx);
+            return StringId::from(idx);
         }
 
-        StringId(self.strings.insert_full(s.to_owned()).0)
+        StringId::from(self.strings.insert_full(s.to_owned()).0)
     }
 
     fn insert_value(&mut self, node: ParserValue<'_>, expected_enum_type: Option<TypeDefinitionId>) -> Value {
@@ -169,16 +170,22 @@ impl<'a> State<'a> {
 
     fn get_definition_name(&self, definition: Definition) -> &str {
         let name = match definition {
-            Definition::Object(object_id) => self.graph.view(self.objects[object_id.0].type_definition_id).name,
+            Definition::Object(object_id) => {
+                self.graph
+                    .view(self.objects[usize::from(object_id)].type_definition_id)
+                    .name
+            }
             Definition::Interface(interface_id) => {
-                self.graph.view(self.interfaces[interface_id.0].type_definition_id).name
+                self.graph
+                    .view(self.interfaces[usize::from(interface_id)].type_definition_id)
+                    .name
             }
             Definition::Scalar(scalar_id) => self.graph[scalar_id].name,
             Definition::Enum(enum_id) => self.graph[enum_id].name,
-            Definition::Union(union_id) => self.unions[union_id.0].name,
-            Definition::InputObject(input_object_id) => self.input_objects[input_object_id.0].name,
+            Definition::Union(union_id) => self.unions[usize::from(union_id)].name,
+            Definition::InputObject(input_object_id) => self.input_objects[usize::from(input_object_id)].name,
         };
-        &self.strings[name.0]
+        &self.strings[usize::from(name)]
     }
 }
 
@@ -203,7 +210,7 @@ pub fn from_sdl(sdl: &str) -> Result<FederatedGraph, DomainError> {
         let query_type_name = "Query";
         state.query_type_name = Some(String::from(query_type_name));
 
-        let object_id = ObjectId(state.objects.len());
+        let object_id = ObjectId::from(state.objects.len());
         let query_string_id = state.insert_string(query_type_name);
 
         state
@@ -342,7 +349,7 @@ fn ingest_interface_interfaces(
     interface: &ast::InterfaceDefinition<'_>,
     state: &mut State<'_>,
 ) -> Result<(), DomainError> {
-    state.interfaces[interface_id.0].implements_interfaces = interface
+    state.interfaces[usize::from(interface_id)].implements_interfaces = interface
         .implements_interfaces()
         .map(|name| match state.definition_names[name] {
             Definition::Interface(interface_id) => Ok(interface_id),
@@ -826,7 +833,7 @@ fn ingest_definitions<'a>(document: &'a ast::TypeSystemDocument, state: &mut Sta
                             .insert(type_name, Definition::Scalar(type_definition_id));
                     }
                     ast::TypeDefinition::Object(_) => {
-                        let object_id = ObjectId(state.objects.push_return_idx(Object {
+                        let object_id = ObjectId::from(state.objects.push_return_idx(Object {
                             type_definition_id,
                             implements_interfaces: Vec::new(),
                             join_implements: Vec::new(),
@@ -881,7 +888,7 @@ fn ingest_definitions<'a>(document: &'a ast::TypeSystemDocument, state: &mut Sta
                         }
                     }
                     ast::TypeDefinition::InputObject(_) => {
-                        let input_object_id = InputObjectId(state.input_objects.push_return_idx(InputObject {
+                        let input_object_id = InputObjectId::from(state.input_objects.push_return_idx(InputObject {
                             name: type_name_id,
                             fields: NO_INPUT_VALUE_DEFINITION,
                             composed_directives,
@@ -1294,7 +1301,7 @@ fn attach_input_value_set_to_field_arguments_rec<'a>(
             let Some((i, arg)) = arguments
                 .iter()
                 .enumerate()
-                .find(|(_, arg)| state.strings.get_index(arg.name.0).unwrap() == ast_arg.name())
+                .find(|(_, arg)| state.strings.get_index(usize::from(arg.name)).unwrap() == ast_arg.name())
             else {
                 return Err(DomainError(format!(
                     "Argument '{}' does not exist for the field '{}.{}'",
@@ -1349,7 +1356,7 @@ fn attach_input_value_set_rec<'a>(
             let mut ast_subselection = ast_field.selection_set().peekable();
 
             let subselection = if let Definition::InputObject(input_object_id) =
-                state.input_value_definitions[id.0].r#type.definition
+                state.input_value_definitions[usize::from(id)].r#type.definition
             {
                 if ast_subselection.peek().is_none() {
                     return Err(DomainError("InputObject must have a subselection".to_owned()));
@@ -1407,7 +1414,7 @@ fn ingest_join_graph_enum<'a>(enm: ast::EnumDefinition<'a>, state: &mut State<'a
 
         let name = state.insert_string(name.value());
         let url = state.insert_string(url.value());
-        let id = SubgraphId(state.subgraphs.push_return_idx(Subgraph { name, url }));
+        let id = SubgraphId::from(state.subgraphs.push_return_idx(Subgraph { name, url }));
         state.graph_sdl_names.insert(sdl_name, id);
     }
 
@@ -1508,7 +1515,7 @@ fn collect_composed_directives<'a>(
         }
     }
 
-    (DirectiveId(start), state.directives.len() - start)
+    (DirectiveId::from(start), state.directives.len() - start)
 }
 
 #[cfg(test)]

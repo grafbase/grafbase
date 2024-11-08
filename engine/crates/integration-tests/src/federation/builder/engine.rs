@@ -2,7 +2,6 @@ use std::sync::Arc;
 
 use crate::federation::{subgraph::Subgraphs, TestRuntimeContext};
 use engine_config_builder::build_with_toml_config;
-use federated_graph::FederatedGraphV3;
 use grafbase_telemetry::metrics::meter_from_global_provider;
 use graphql_composition::VersionedFederatedGraph;
 use runtime::hooks::DynamicHooks;
@@ -37,7 +36,9 @@ pub(super) async fn build(
                 .into_result()
                 .expect("schemas to compose succesfully")
             } else {
-                VersionedFederatedGraph::V3(FederatedGraphV3::default())
+                VersionedFederatedGraph::Sdl(
+                    federated_graph::render_federated_sdl(&federated_graph::FederatedGraph::default()).unwrap(),
+                )
             }
         });
 
