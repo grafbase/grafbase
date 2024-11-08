@@ -1437,6 +1437,9 @@ mod tests {
                 retry: None,
                 entity_caching: None,
                 message_signatures: None,
+                schema_path: None,
+                introspection_url: None,
+                introspection_headers: None,
             },
         }
         "###);
@@ -1896,6 +1899,9 @@ mod tests {
                 ),
                 entity_caching: None,
                 message_signatures: None,
+                schema_path: None,
+                introspection_url: None,
+                introspection_headers: None,
             },
         }
         "###);
