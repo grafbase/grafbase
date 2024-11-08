@@ -11,11 +11,12 @@ accepted = [
     "MPL-2.0",
     "NOASSERTION",
     "OpenSSL",
+    "SSLeay",
     "Unicode-3.0",
     "Unicode-DFS-2016",
     "Unlicense",
     "Zlib",
-    "zlib-acknowledgement"
+    "zlib-acknowledgement",
 ]
 
 targets = [
