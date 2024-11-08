@@ -312,7 +312,9 @@ fn push_schema_definition_changes(
                 changes.push(Change {
                     path: String::new(),
                     kind: ChangeKind::ChangeQueryType,
-                    span: target_query.map(|ty| ty.span().into()).unwrap_or_else(Span::empty),
+                    span: target_query
+                        .map(|ty| ty.named_type_span().into())
+                        .unwrap_or_else(Span::empty),
                 });
             }
 
@@ -320,7 +322,9 @@ fn push_schema_definition_changes(
                 changes.push(Change {
                     path: String::new(),
                     kind: ChangeKind::ChangeMutationType,
-                    span: target_mutation.map(|ty| ty.span().into()).unwrap_or_else(Span::empty),
+                    span: target_mutation
+                        .map(|ty| ty.named_type_span().into())
+                        .unwrap_or_else(Span::empty),
                 });
             }
 
@@ -329,7 +333,7 @@ fn push_schema_definition_changes(
                     path: String::new(),
                     kind: ChangeKind::ChangeSubscriptionType,
                     span: target_subscription
-                        .map(|ty| ty.span().into())
+                        .map(|ty| ty.named_type_span().into())
                         .unwrap_or_else(Span::empty),
                 });
             }
