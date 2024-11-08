@@ -47,15 +47,17 @@ impl<OnOperationResponseHookOutput> serde::Serialize for Response<OnOperationRes
                 }
                 map.end()
             }
-            Response::RefusedRequest(RefusedRequestResponse { error, .. }) => {
+            Response::RefusedRequest(RefusedRequestResponse { errors, .. }) => {
                 let mut map = serializer.serialize_map(None)?;
+
                 // Shouldn't happen, but better safe than sorry.
                 let empty_keys = ResponseKeys::default();
+
                 map.serialize_entry(
                     "errors",
                     &SerializableErrors {
                         keys: &empty_keys,
-                        errors: std::array::from_ref(error),
+                        errors,
                     },
                 )?;
                 map.end()

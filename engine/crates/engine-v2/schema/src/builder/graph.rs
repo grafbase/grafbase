@@ -4,7 +4,7 @@ use std::{
 };
 
 use builder::coerce::InputValueCoercer;
-use config::latest::Config;
+use config::Config;
 use introspection::{IntrospectionBuilder, IntrospectionMetadata};
 
 use crate::*;
@@ -770,6 +770,10 @@ impl<'a> GraphBuilder<'a> {
                         reason_id: reason.map(Into::into),
                     })
                 }
+                federated_graph::Directive::Cost { .. } => {
+                    // TODO: Implement this
+                    continue;
+                }
                 federated_graph::Directive::Other { .. }
                 | federated_graph::Directive::Inaccessible
                 | federated_graph::Directive::Policy(_) => continue,
@@ -820,7 +824,7 @@ impl<'a> GraphBuilder<'a> {
                     .idmaps
                     .input_value
                     .get(item.input_value_definition)
-                    .map(|id| InputValueSetItem {
+                    .map(|id| InputValueSetSelection {
                         id,
                         subselection: self.convert_input_value_set(&item.subselection),
                     })

@@ -15,8 +15,9 @@ use walker::Walk;
 use super::{logic::PlanningLogic, LogicalPlanner, LogicalPlanningError, LogicalPlanningResult, ParentToChildEdge};
 use crate::{
     operation::{
-        ExtraField, Field, FieldArgument, FieldArgumentId, FieldId, LogicalPlanId, QueryInputValue, QueryPath,
-        SelectionSet, SelectionSetId, SolvedRequiredField, SolvedRequiredFieldSet,
+        BoundExtraField, BoundField, BoundFieldArgument, BoundFieldArgumentId, BoundFieldId, BoundSelectionSet,
+        BoundSelectionSetId, LogicalPlanId, QueryInputValueRecord, QueryPath, SolvedRequiredField,
+        SolvedRequiredFieldSet,
     },
     response::{SafeResponseKey, UnpackedResponseEdge},
 };
@@ -58,10 +59,10 @@ impl<'schema, 'a> SelectionSetLogicalPlanner<'schema, 'a> {
     )]
     pub(super) fn solve(
         &mut self,
-        selection_set_id: SelectionSetId,
-        parent_field_requirements: Option<(FieldId, Cow<'schema, RequiredFieldSetRecord>)>,
-        planned_field_ids: Vec<FieldId>,
-        unplanned_field_ids: Vec<FieldId>,
+        selection_set_id: BoundSelectionSetId,
+        parent_field_requirements: Option<(BoundFieldId, Cow<'schema, RequiredFieldSetRecord>)>,
+        planned_field_ids: Vec<BoundFieldId>,
+        unplanned_field_ids: Vec<BoundFieldId>,
     ) -> LogicalPlanningResult<()> {
         tracing::trace!("Solving selection set {}", selection_set_id);
 
@@ -146,7 +147,11 @@ impl<'schema, 'a> SelectionSetLogicalPlanner<'schema, 'a> {
         solved_fields
     }
 
-    fn build_planned_selection_set(&self, id: SelectionSetId, planned_field_ids: &[FieldId]) -> PlannedSelectionSet {
+    fn build_planned_selection_set(
+        &self,
+        id: BoundSelectionSetId,
+        planned_field_ids: &[BoundFieldId],
+    ) -> PlannedSelectionSet {
         let mut fields = HashMap::<_, Vec<_>>::with_capacity(planned_field_ids.len());
         for field_id in planned_field_ids {
             let field_id = *field_id;
@@ -168,7 +173,10 @@ impl<'schema, 'a> SelectionSetLogicalPlanner<'schema, 'a> {
         PlannedSelectionSet { id: Some(id), fields }
     }
 
-    fn build_unplanned_fields(&self, unplanned_field_ids: Vec<FieldId>) -> HashMap<FieldId, FieldDefinition<'schema>> {
+    fn build_unplanned_fields(
+        &self,
+        unplanned_field_ids: Vec<BoundFieldId>,
+    ) -> HashMap<BoundFieldId, FieldDefinition<'schema>> {
         unplanned_field_ids
             .into_iter()
             .map(|field_id| {
@@ -198,14 +206,14 @@ impl<'schema, 'a> std::ops::DerefMut for SelectionSetLogicalPlanner<'schema, 'a>
 // TODO: add deleted fields
 struct PlannedSelectionSet {
     /// For extra fields sub selection set, we only reserve an id if it's actually needed.
-    id: Option<SelectionSetId>,
+    id: Option<BoundSelectionSetId>,
     fields: HashMap<FieldDefinitionId, Vec<PlannedField>>,
 }
 
 #[derive(Debug, Clone)]
 enum PlannedField {
     Query {
-        field_id: FieldId,
+        field_id: BoundFieldId,
         required_field_id: Option<RequiredFieldId>,
         plan_id: LogicalPlanId,
         lazy_subselection: Option<PlannedSelectionSet>,
@@ -215,8 +223,8 @@ enum PlannedField {
 
 #[derive(Debug, Clone)]
 pub struct ExtraPlannedField {
-    field_id: Option<FieldId>,
-    petitioner_field_id: FieldId,
+    field_id: Option<BoundFieldId>,
+    petitioner_field_id: BoundFieldId,
     required_field_id: RequiredFieldId,
     logical_plan_id: LogicalPlanId,
     subselection: PlannedSelectionSet,
@@ -236,7 +244,7 @@ struct ChildPlanCandidate<'schema> {
     entity_id: EntityDefinitionId,
     resolver_id: ResolverDefinitionId,
     /// Providable fields by the resolvers with their requirements
-    providable_fields: Vec<(FieldId, Cow<'schema, RequiredFieldSetRecord>)>,
+    providable_fields: Vec<(BoundFieldId, Cow<'schema, RequiredFieldSetRecord>)>,
 }
 
 impl<'schema, 'a> SelectionSetLogicalPlanner<'schema, 'a> {
@@ -248,8 +256,8 @@ impl<'schema, 'a> SelectionSetLogicalPlanner<'schema, 'a> {
     fn plan_selection_set(
         &mut self,
         planned_selection_set: &mut PlannedSelectionSet,
-        mut parent_field_requirements: Option<(FieldId, Cow<'schema, RequiredFieldSetRecord>)>,
-        mut unplanned_fields: HashMap<FieldId, FieldDefinition<'schema>>,
+        mut parent_field_requirements: Option<(BoundFieldId, Cow<'schema, RequiredFieldSetRecord>)>,
+        mut unplanned_fields: HashMap<BoundFieldId, FieldDefinition<'schema>>,
     ) -> LogicalPlanningResult<()> {
         // unplanned_field may be still be provided by the parent plan, but at this stage it
         // means they had requirements.
@@ -397,7 +405,7 @@ impl<'schema, 'a> SelectionSetLogicalPlanner<'schema, 'a> {
         resolver_id: ResolverDefinitionId,
         requires: Cow<'_, RequiredFieldSetRecord>,
         entity_id: EntityDefinitionId,
-        root_field_ids: Vec<FieldId>,
+        root_field_ids: Vec<BoundFieldId>,
     ) -> LogicalPlanningResult<()> {
         let path = self.query_path.clone();
         let plan_id = self.planner.push_plan(path, resolver_id, entity_id, &root_field_ids)?;
@@ -443,10 +451,10 @@ impl<'schema, 'a> SelectionSetLogicalPlanner<'schema, 'a> {
                 .get_mut(&definition_id)
                 .expect("We depend on it, so it must have been planned")
                 .iter_mut()
-                .find(|field| field.required_field_id() == Some(required_field.field_id))
+                .find(|field| field.required_field_id() == Some(required_field.id))
                 .expect("We depend on it, so it must have been planned");
 
-            required_field.field_id.walk(self.schema).definition().name();
+            required_field.id.walk(self.schema).definition().name();
             match planned_field {
                 PlannedField::Query {
                     lazy_subselection,
@@ -477,7 +485,7 @@ impl<'schema, 'a> SelectionSetLogicalPlanner<'schema, 'a> {
 
                     let selection_set_id = if !required_field.subselection.is_empty() {
                         if field.subselection.id.is_none() {
-                            self.operation.selection_sets.push(SelectionSet::default());
+                            self.operation.selection_sets.push(BoundSelectionSet::default());
                             field.subselection.id = Some((self.operation.selection_sets.len() - 1).into());
                             self.selection_set_to_objects_must_be_tracked.push(false);
                         }
@@ -510,15 +518,15 @@ impl<'schema, 'a> SelectionSetLogicalPlanner<'schema, 'a> {
 
     fn insert_extra_field(
         &mut self,
-        parent_selection_set_id: SelectionSetId,
+        parent_selection_set_id: BoundSelectionSetId,
         definition_id: FieldDefinitionId,
-        selection_set_id: Option<SelectionSetId>,
+        selection_set_id: Option<BoundSelectionSetId>,
         planned_field: &mut ExtraPlannedField,
     ) {
         // Creating the field
         let key = self.generate_response_key_for(definition_id);
 
-        let field = Field::Extra(ExtraField {
+        let field = BoundField::Extra(BoundExtraField {
             edge: UnpackedResponseEdge::ExtraFieldResponseKey(key.into()).pack(),
             definition_id,
             selection_set_id,
@@ -541,9 +549,9 @@ impl<'schema, 'a> SelectionSetLogicalPlanner<'schema, 'a> {
 
     fn insert_field_in_parent_selection_set(
         &mut self,
-        parent_selection_set_id: SelectionSetId,
+        parent_selection_set_id: BoundSelectionSetId,
         definition_id: FieldDefinitionId,
-        id: FieldId,
+        id: BoundFieldId,
     ) {
         // Inserting into its parent selection set in order.
         let mut field_ids = std::mem::take(
@@ -570,7 +578,7 @@ impl<'schema, 'a> SelectionSetLogicalPlanner<'schema, 'a> {
 
     fn generate_all_candidates<'field>(
         &mut self,
-        unplanned_fields: &mut HashMap<FieldId, FieldDefinition<'schema>>,
+        unplanned_fields: &mut HashMap<BoundFieldId, FieldDefinition<'schema>>,
         planned_selection_set: &mut PlannedSelectionSet,
         candidates: &mut HashMap<ResolverDefinitionId, ChildPlanCandidate<'schema>>,
     ) -> LogicalPlanningResult<()>
@@ -642,9 +650,9 @@ impl<'schema, 'a> SelectionSetLogicalPlanner<'schema, 'a> {
     /// based on the fields in types implementing the interface.
     fn replan_interface_fields(
         &mut self,
-        selection_set_id: SelectionSetId,
-        interface_fields_to_replan: Vec<(FieldId, Vec<FieldDefinition<'schema>>)>,
-        unplanned_fields: &mut HashMap<FieldId, FieldDefinition<'schema>>,
+        selection_set_id: BoundSelectionSetId,
+        interface_fields_to_replan: Vec<(BoundFieldId, Vec<FieldDefinition<'schema>>)>,
+        unplanned_fields: &mut HashMap<BoundFieldId, FieldDefinition<'schema>>,
     ) {
         for (interface_field_id, add_to_plan) in interface_fields_to_replan {
             unplanned_fields.remove(&interface_field_id);
@@ -665,7 +673,7 @@ impl<'schema, 'a> SelectionSetLogicalPlanner<'schema, 'a> {
                     let operation_field = self.walker().walk(interface_field_id).as_ref().clone();
                     let selection_set_id = operation_field.selection_set_id();
 
-                    ExtraField {
+                    BoundExtraField {
                         edge: operation_field.response_edge(),
                         definition_id: field_definition.id(),
                         selection_set_id: selection_set_id.map(|id| self.clone_selection_set(id)),
@@ -678,7 +686,7 @@ impl<'schema, 'a> SelectionSetLogicalPlanner<'schema, 'a> {
                 let parent_selection_set_id = field.parent_selection_set_id;
                 let definition_id = field.definition_id;
 
-                self.operation.fields.push(Field::Extra(field));
+                self.operation.fields.push(BoundField::Extra(field));
                 let id = (self.operation.fields.len() - 1).into();
                 unplanned_fields.insert(id, field_definition);
 
@@ -696,7 +704,7 @@ impl<'schema, 'a> SelectionSetLogicalPlanner<'schema, 'a> {
     /// has been determined to be unplannable. It sets the logical plan ID to a maximum value
     /// to signal that the field cannot be included in any selection set planning. If the field
     /// is part of a selection set, it recursively marks any dependent fields as never planned.
-    fn mark_field_as_never_planned(&mut self, field_id: FieldId) {
+    fn mark_field_as_never_planned(&mut self, field_id: BoundFieldId) {
         self.field_to_logical_plan_id[usize::from(field_id)] = Some(LogicalPlanId::from(u16::MAX - 1));
         self.field_to_solved_requirement[usize::from(field_id)] = None;
 
@@ -716,12 +724,12 @@ impl<'schema, 'a> SelectionSetLogicalPlanner<'schema, 'a> {
     /// This function creates a new selection set that replicates the fields and structures of the existing
     /// one while updating references such as `parent_selection_set_id` and `selection_set_id` in the
     /// cloned fields.
-    fn clone_selection_set(&mut self, selection_set_id: SelectionSetId) -> SelectionSetId {
-        self.operation.selection_sets.push(SelectionSet::default());
+    fn clone_selection_set(&mut self, selection_set_id: BoundSelectionSetId) -> BoundSelectionSetId {
+        self.operation.selection_sets.push(BoundSelectionSet::default());
 
         let previous = self.walker().walk(selection_set_id);
-        let selection_set_id = SelectionSetId::from(self.operation.selection_sets.len() - 1);
-        let mut next = SelectionSet::default();
+        let selection_set_id = BoundSelectionSetId::from(self.operation.selection_sets.len() - 1);
+        let mut next = BoundSelectionSet::default();
 
         for previous_field_id in previous
             .as_ref()
@@ -731,7 +739,7 @@ impl<'schema, 'a> SelectionSetLogicalPlanner<'schema, 'a> {
             let previous_field = self.walker().walk(previous_field_id);
             let mut field = previous_field.as_ref().clone();
 
-            let Field::Query(ref mut query_field) = field else {
+            let BoundField::Query(ref mut query_field) = field else {
                 todo!("cloning non-query fields not yet supported");
             };
 
@@ -759,7 +767,7 @@ impl<'schema, 'a> SelectionSetLogicalPlanner<'schema, 'a> {
     fn could_plan_requirements(
         &mut self,
         planned_selection_set: &mut PlannedSelectionSet,
-        petitioner_field_id: FieldId,
+        petitioner_field_id: BoundFieldId,
         requires: &RequiredFieldSetRecord,
     ) -> LogicalPlanningResult<bool> {
         if requires.is_empty() {
@@ -772,14 +780,14 @@ impl<'schema, 'a> SelectionSetLogicalPlanner<'schema, 'a> {
         &mut self,
         parent_logical_plan_id: Option<LogicalPlanId>,
         planned_selection_set: &mut PlannedSelectionSet,
-        petitioner_field_id: FieldId,
+        petitioner_field_id: BoundFieldId,
         requires: &RequiredFieldSetRecord,
     ) -> LogicalPlanningResult<bool> {
         if requires.is_empty() {
             return Ok(true);
         }
         'requires: for required in requires {
-            let required_field = &self.schema[required.field_id];
+            let required_field = &self.schema[required.id];
 
             // -- Existing fields --
             if let Some(fields) = planned_selection_set.fields.get_mut(&required_field.definition_id) {
@@ -796,7 +804,7 @@ impl<'schema, 'a> SelectionSetLogicalPlanner<'schema, 'a> {
                                 continue;
                             }
 
-                            *required_field_id = Some(required.field_id);
+                            *required_field_id = Some(required.id);
 
                             // If there is no require sub-selection, we already have everything we need.
                             if required.subselection.is_empty() {
@@ -834,7 +842,7 @@ impl<'schema, 'a> SelectionSetLogicalPlanner<'schema, 'a> {
                             subselection,
                             ..
                         }) => {
-                            if *required_field_id != required.field_id {
+                            if *required_field_id != required.id {
                                 continue;
                             }
 
@@ -910,7 +918,7 @@ impl<'schema, 'a> SelectionSetLogicalPlanner<'schema, 'a> {
     fn could_plan_exra_field(
         &mut self,
         planned_selection_set: &mut PlannedSelectionSet,
-        petitioner_field_id: FieldId,
+        petitioner_field_id: BoundFieldId,
         logic: &PlanningLogic<'schema>,
         required: RequiredFieldSetItem<'_>,
     ) -> bool {
@@ -975,7 +983,7 @@ impl<'schema, 'a> SelectionSetLogicalPlanner<'schema, 'a> {
         }
     }
 
-    fn create_arguments_for(&mut self, id: RequiredFieldId) -> IdRange<FieldArgumentId> {
+    fn create_arguments_for(&mut self, id: RequiredFieldId) -> IdRange<BoundFieldArgumentId> {
         let start = self.operation.field_arguments.len();
 
         for &RequiredFieldArgumentRecord {
@@ -986,9 +994,9 @@ impl<'schema, 'a> SelectionSetLogicalPlanner<'schema, 'a> {
             let input_value_id = self
                 .operation
                 .query_input_values
-                .push_value(QueryInputValue::DefaultValue(value_id));
+                .push_value(QueryInputValueRecord::DefaultValue(value_id));
 
-            self.operation.field_arguments.push(FieldArgument {
+            self.operation.field_arguments.push(BoundFieldArgument {
                 name_location: None,
                 value_location: None,
                 input_value_id,

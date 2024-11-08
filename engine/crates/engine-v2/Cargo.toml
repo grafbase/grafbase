@@ -15,8 +15,11 @@ doctest = false
 [lints]
 workspace = true
 
+[features]
+default = []
+qp = []
+
 [dependencies]
-async-runtime.workspace = true
 base64.workspace = true
 blake3.workspace = true
 bytes.workspace = true
@@ -44,23 +47,23 @@ tower = { workspace = true, features = ["retry"] }
 tracing.workspace = true
 http.workspace = true
 headers.workspace = true
-gateway-core.workspace = true
 web-time.workspace = true
 
-gateway-v2-auth = { path = "../gateway-v2/auth" }
+engine-v2-auth = { path = "./auth" }
 operation-normalizer = { path = "../operation-normalizer" }
 config = { package = "engine-v2-config", path = "./config" }
-engine-parser = { path = "../engine/parser" }
-engine-value = { path = "../engine/value" }
+engine-parser = { path = "./parser" }
+engine-value = { path = "./value" }
 schema = { path = "./schema", package = "engine-v2-schema" }
 walker = { path = "./walker", package = "engine-v2-walker" }
-# needed for errors, not entirely sure if we should be separate or not right now.
-# might move it back to engine, the goal isn't to rewrite everything from engine per Se
-# but having more explicit dependencies for now.
-engine = { path = "../engine" }
+query-planning = { path = "./query-planning", package = "engine-v2-query-planning" }
 runtime.workspace = true
 rand.workspace = true
 grafbase-workspace-hack.workspace = true
+async-sse.workspace = true
+mime = "0.3.17"
+serde_with = { workspace = true, features = ["hex"] }
+multipart-stream.workspace = true
 
 [dev-dependencies]
 pretty_assertions = "1"

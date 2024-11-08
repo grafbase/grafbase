@@ -1,3 +1,4 @@
+use fixedbitset::FixedBitSet;
 use petgraph::{
     data::DataMap,
     dot::{Config, Dot},
@@ -242,7 +243,7 @@ where
         // Ensure we start from a clean state.
         self.apply_all_cost_updates();
 
-        tracing::debug!("Grow Steiner Tree:\n{}", self.debug_dot_graph());
+        tracing::trace!("Grow Steiner Tree:\n{}", self.debug_dot_graph());
 
         let mut all_zero_cost_and_first_non_zero_cost_terminals = {
             self.missing_terminals
@@ -348,6 +349,20 @@ where
     // Whether a node is part of the Steiner tree.
     pub(crate) fn contains_node(&self, node_id: G::NodeId) -> bool {
         self.steiner_tree.nodes[self.steiner_graph.to_node_ix(node_id).index()]
+    }
+
+    pub(crate) fn operation_graph_bitset(&self) -> FixedBitSet {
+        let mut bitset = FixedBitSet::with_capacity(self.steiner_graph.operation_graph_node_id_to_node_ix.len());
+        for (i, ix) in self
+            .steiner_graph
+            .operation_graph_node_id_to_node_ix
+            .iter()
+            .copied()
+            .enumerate()
+        {
+            bitset.set(i, self.steiner_tree.nodes[ix.index()]);
+        }
+        bitset
     }
 
     #[cfg(test)]

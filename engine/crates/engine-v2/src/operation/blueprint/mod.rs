@@ -1,4 +1,4 @@
-mod partition;
+pub(crate) mod partition;
 mod plan;
 
 use std::collections::HashMap;
@@ -14,7 +14,8 @@ use crate::{
 };
 
 use super::{
-    FieldId, LogicalPlanId, OperationPlan, OperationWalker, ResponseBlueprint, ResponseModifierRule, SelectionSetType,
+    BoundFieldId, LogicalPlanId, OperationPlan, OperationWalker, ResponseBlueprint, ResponseModifierRule,
+    SelectionSetType,
 };
 
 pub(super) struct ResponseBlueprintBuilder<'schema, 'op> {
@@ -22,8 +23,8 @@ pub(super) struct ResponseBlueprintBuilder<'schema, 'op> {
     operation: &'op Operation,
     plan: &'op OperationPlan,
     to_build_stack: Vec<ToBuild>,
-    field_shapes_buffer_pool: BufferPool<(FieldShape, Vec<FieldId>)>,
-    field_id_to_field_shape_ids_builder: Vec<(FieldId, FieldShapeId)>,
+    field_shapes_buffer_pool: BufferPool<(FieldShape, Vec<BoundFieldId>)>,
+    field_id_to_field_shape_ids_builder: Vec<(BoundFieldId, FieldShapeId)>,
     logical_plan_to_blueprint_builder: Vec<(LogicalPlanId, LogicalPlanResponseBlueprint)>,
     selection_set_to_response_object_set: Vec<Option<ResponseObjectSetId>>,
     blueprint: ResponseBlueprint,
@@ -32,7 +33,7 @@ pub(super) struct ResponseBlueprintBuilder<'schema, 'op> {
 struct ToBuild {
     logical_plan_id: LogicalPlanId,
     input_id: ResponseObjectSetId,
-    root_field_ids: Vec<FieldId>,
+    root_field_ids: Vec<BoundFieldId>,
 }
 
 impl<'schema, 'op> ResponseBlueprintBuilder<'schema, 'op>
@@ -97,7 +98,7 @@ where
     fn traverse_operation_and_build_blueprint(&mut self) {
         let walker = self.walker();
         let root_plans = walker.selection_set().fields().fold(
-            HashMap::<LogicalPlanId, Vec<FieldId>>::default(),
+            HashMap::<LogicalPlanId, Vec<BoundFieldId>>::default(),
             |mut acc, field| {
                 let plan_id = self.plan.field_to_logical_plan_id[usize::from(field.id())];
                 acc.entry(plan_id).or_default().push(field.id());

@@ -3,7 +3,7 @@ use crate::dot_graph::Attrs;
 use super::{Operation, OperationGraph};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, strum::IntoStaticStr)]
-pub(crate) enum Edge {
+pub enum Edge {
     ///
     /// -- Resolver --
     ///

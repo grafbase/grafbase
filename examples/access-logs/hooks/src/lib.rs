@@ -1,9 +1,7 @@
 use access_logs::{AuditInfo, OperationInfo, SubgraphInfo};
 use bindings::{
-    component::grafbase::types::CacheStatus,
-    exports::component::grafbase::responses::{
-        ExecutedOperation, ExecutedSubgraphRequest, Guest, SharedContext,
-    },
+    component::grafbase::types::{CacheStatus, SharedContext},
+    exports::component::grafbase::responses,
 };
 
 mod access_logs;
@@ -12,8 +10,8 @@ mod bindings;
 
 struct Component;
 
-impl Guest for Component {
-    fn on_subgraph_response(_: SharedContext, request: ExecutedSubgraphRequest) -> Vec<u8> {
+impl responses::Guest for Component {
+    fn on_subgraph_response(_: SharedContext, request: responses::ExecutedSubgraphRequest) -> Vec<u8> {
         // One response per subgraph execution.
         let responses = request.executions.into_iter().map(Into::into).collect();
 
@@ -31,7 +29,7 @@ impl Guest for Component {
         postcard::to_stdvec(&info).unwrap()
     }
 
-    fn on_operation_response(_: SharedContext, request: ExecutedOperation) -> Vec<u8> {
+    fn on_operation_response(_: SharedContext, request: responses::ExecutedOperation) -> Vec<u8> {
         let info = OperationInfo {
             name: request.name.as_deref(),
             document: &request.document,
@@ -75,9 +73,7 @@ impl Guest for Component {
         // steps.
         //
         // We calculated utilizing postcard in the previous steps takes about 150 us or 15% off per request.
-        context
-            .log_access(&serde_json::to_vec(&info).unwrap())
-            .unwrap();
+        context.log_access(&serde_json::to_vec(&info).unwrap()).unwrap();
     }
 }
 

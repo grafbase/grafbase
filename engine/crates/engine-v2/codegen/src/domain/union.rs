@@ -1,14 +1,16 @@
 use super::{Definition, Indexed, Meta};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Union {
     pub meta: Meta,
     pub kind: UnionKind,
     pub span: cynic_parser::Span,
+    pub description: Option<String>,
     pub variants: Vec<Variant>,
+    pub external_domain_name: Option<String>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Variant {
     pub name: String,
     pub index: usize,
@@ -62,14 +64,14 @@ impl Union {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum UnionKind {
     Record(RecordUnion),
     Id(IdUnion),
     BitpackedId(BitPackedIdUnion),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct RecordUnion {
     pub indexed: Option<Indexed>,
     pub copy: bool,
@@ -88,7 +90,7 @@ impl RecordUnion {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct IdUnion {
     pub name: String,
     pub enum_name: String,

@@ -1,7 +1,7 @@
 use bitflags::bitflags;
 use std::borrow::Cow;
 
-use schema::{FieldDefinitionId, ResolverDefinitionId, Schema};
+use schema::{EntityDefinitionId, FieldDefinitionId, RequiredFieldId, ResolverDefinitionId, Schema};
 use walker::Walk as _;
 
 use crate::{dot_graph::Attrs, Operation};
@@ -9,7 +9,7 @@ use crate::{dot_graph::Attrs, Operation};
 use super::OperationGraph;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub(crate) enum Node<F> {
+pub enum Node<F> {
     /// Root node, unique
     Root,
     /// Field in the operation, or an extra one to satisfy requirements
@@ -26,7 +26,7 @@ pub(crate) enum Node<F> {
 
 impl<F: Copy> Node<F> {
     /// Meant to be as readable as possible for large graphs with colors.
-    pub fn label<'a, Op: Operation<FieldId = F>>(&self, graph: &OperationGraph<'a, Op>) -> Cow<'a, str> {
+    pub(crate) fn label<'a, Op: Operation<FieldId = F>>(&self, graph: &OperationGraph<'a, Op>) -> Cow<'a, str> {
         match self {
             Node::Root => "root".into(),
             Node::QueryField(field) => format!(
@@ -46,7 +46,7 @@ impl<F: Copy> Node<F> {
     }
 
     /// Meant to be as readable as possible for large graphs with colors.
-    pub fn pretty_label<'a, Op: Operation<FieldId = F>>(&self, graph: &OperationGraph<'a, Op>) -> Attrs<'a> {
+    pub(crate) fn pretty_label<'a, Op: Operation<FieldId = F>>(&self, graph: &OperationGraph<'a, Op>) -> Attrs<'a> {
         let attrs = Attrs::label(self.label(graph));
         match self {
             Node::ProvidableField(_) => attrs.with("shape=box").with("color=dodgerblue"),
@@ -59,7 +59,7 @@ impl<F: Copy> Node<F> {
 bitflags! {
     #[repr(transparent)]
     #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-    pub struct FieldFlags: u8 {
+    pub(crate) struct FieldFlags: u8 {
         /// Extra field that is not part of the operation and should not be returned to the user.
         const EXTRA = 1;
         /// Defines whether a field must be requested from the subgraphs. Operations fields are
@@ -71,9 +71,10 @@ bitflags! {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub(crate) struct QueryField<Id> {
+pub struct QueryField<Id> {
     pub id: Id,
-    pub flags: FieldFlags,
+    pub matching_requirement_id: Option<RequiredFieldId>,
+    pub(crate) flags: FieldFlags,
 }
 
 impl<Id> QueryField<Id> {
@@ -91,18 +92,19 @@ impl<Id> QueryField<Id> {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub(crate) struct Resolver {
+pub struct Resolver {
+    pub entity_definition_id: EntityDefinitionId,
     pub definition_id: ResolverDefinitionId,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub(crate) struct ProvidableField {
+pub struct ProvidableField {
     pub resolver_definition_id: ResolverDefinitionId,
     pub field_definition_id: FieldDefinitionId,
 }
 
 impl ProvidableField {
-    pub fn child(&self, schema: &Schema, field_definition_id: FieldDefinitionId) -> Option<ProvidableField> {
+    pub(crate) fn child(&self, schema: &Schema, field_definition_id: FieldDefinitionId) -> Option<ProvidableField> {
         let resolver_definition = self.resolver_definition_id.walk(schema);
         if resolver_definition.can_provide(field_definition_id) {
             Some(ProvidableField {

@@ -13,6 +13,8 @@ pub enum FetchError {
     Timeout,
     #[error("Invalid status code: {0:?}")]
     InvalidStatusCode(http::StatusCode),
+    #[error("Could not sign subgraph request: {0}")]
+    MessageSigningFailed(String),
 }
 
 impl FetchError {
@@ -34,6 +36,7 @@ pub type FetchResult<T> = Result<T, FetchError>;
 /// bit of a waste to use http::Request
 #[derive(Clone)]
 pub struct FetchRequest<'a, Body> {
+    pub subgraph_name: &'a str,
     pub url: Cow<'a, url::Url>,
     pub method: http::Method,
     pub headers: http::HeaderMap,
@@ -129,6 +132,7 @@ pub mod dynamic {
         {
             self.0
                 .graphql_over_websocket_stream(FetchRequest {
+                    subgraph_name: request.subgraph_name,
                     method: request.method,
                     url: request.url,
                     headers: request.headers,

@@ -9,3 +9,8 @@ mod graph;
 mod steiner_tree;
 pub use error::*;
 pub use graph::*;
+pub use petgraph::{
+    graph::{EdgeIndex, NodeIndex},
+    visit::*,
+    Direction,
+};

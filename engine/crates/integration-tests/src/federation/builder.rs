@@ -3,11 +3,12 @@ mod engine;
 mod router;
 mod test_runtime;
 
-use std::{any::TypeId, collections::HashSet};
+use std::{any::TypeId, collections::HashSet, fmt::Display};
 
 use crate::{mock_trusted_documents::MockTrustedDocumentsClient, TestTrustedDocument};
 pub use bench::*;
 use futures::{future::BoxFuture, FutureExt};
+use gateway_config::Config;
 use graphql_mocks::MockGraphQlServer;
 use runtime::{fetch::dynamic::DynamicFetcher, hooks::DynamicHooks, trusted_documents_client};
 pub use test_runtime::*;
@@ -15,9 +16,8 @@ pub use test_runtime::*;
 use super::{subgraph::Subgraphs, DockerSubgraph, TestGateway};
 
 enum ConfigSource {
-    Sdl(String),
     Toml(String),
-    SdlWebsocket,
+    TomlWebsocket,
 }
 
 #[must_use]
@@ -26,8 +26,11 @@ pub struct TestGatewayBuilder {
     federated_sdl: Option<String>,
     mock_subgraphs: Vec<(TypeId, String, BoxFuture<'static, MockGraphQlServer>)>,
     docker_subgraphs: HashSet<DockerSubgraph>,
-    config_source: Option<ConfigSource>,
-    runtime: TestRuntime,
+    config: Option<ConfigSource>,
+
+    trusted_documents: Option<trusted_documents_client::Client>,
+    hooks: Option<DynamicHooks>,
+    fetcher: Option<DynamicFetcher>,
 }
 
 pub trait EngineV2Ext {
@@ -39,21 +42,15 @@ pub trait EngineV2Ext {
 impl EngineV2Ext for engine_v2::Engine<TestRuntime> {}
 
 impl TestGatewayBuilder {
-    pub fn with_sdl_config(mut self, sdl: impl Into<String>) -> Self {
-        assert!(self.config_source.is_none(), "overwriting config!");
-        self.config_source = Some(ConfigSource::Sdl(sdl.into()));
+    pub fn with_toml_config(mut self, toml: impl Display) -> Self {
+        assert!(self.config.is_none(), "overwriting config!");
+        self.config = Some(ConfigSource::Toml(toml.to_string()));
         self
     }
 
-    pub fn with_toml_config(mut self, toml: impl Into<String>) -> Self {
-        assert!(self.config_source.is_none(), "overwriting config!");
-        self.config_source = Some(ConfigSource::Toml(toml.into()));
-        self
-    }
-
-    pub fn with_sdl_websocket_config(mut self) -> Self {
-        assert!(self.config_source.is_none(), "overwriting config!");
-        self.config_source = Some(ConfigSource::SdlWebsocket);
+    pub fn with_websocket_config(mut self) -> Self {
+        assert!(self.config.is_none(), "overwriting config!");
+        self.config = Some(ConfigSource::TomlWebsocket);
         self
     }
 
@@ -80,20 +77,20 @@ impl TestGatewayBuilder {
     //--
 
     pub fn with_mock_trusted_documents(mut self, branch_id: String, documents: Vec<TestTrustedDocument>) -> Self {
-        self.runtime.trusted_documents = trusted_documents_client::Client::new(MockTrustedDocumentsClient {
+        self.trusted_documents = Some(trusted_documents_client::Client::new(MockTrustedDocumentsClient {
             _branch_id: branch_id,
             documents,
-        });
+        }));
         self
     }
 
     pub fn with_mock_hooks(mut self, hooks: impl Into<DynamicHooks>) -> Self {
-        self.runtime.hooks = hooks.into();
+        self.hooks = Some(hooks.into());
         self
     }
 
     pub fn with_mock_fetcher(mut self, fetcher: impl Into<DynamicFetcher>) -> Self {
-        self.runtime.fetcher = fetcher.into();
+        self.fetcher = Some(fetcher.into());
         self
     }
     //-- Runtime customization --
@@ -103,12 +100,29 @@ impl TestGatewayBuilder {
             federated_sdl,
             mock_subgraphs,
             docker_subgraphs,
-            config_source,
-            runtime,
+            config,
+            trusted_documents,
+            hooks,
+            fetcher,
         } = self;
+
+        let mut runtime = build_runtime(config.as_ref());
+
+        if let Some(trusted_documents) = trusted_documents {
+            runtime.trusted_documents = trusted_documents;
+        }
+
+        if let Some(hooks) = hooks {
+            runtime.hooks = hooks;
+        }
+
+        if let Some(fetcher) = fetcher {
+            runtime.fetcher = fetcher;
+        }
+
         let subgraphs = Subgraphs::load(mock_subgraphs, docker_subgraphs).await;
 
-        let (engine, context) = self::engine::build(federated_sdl, config_source, runtime, &subgraphs).await;
+        let (engine, context) = self::engine::build(federated_sdl, config, runtime, &subgraphs).await;
         let router = self::router::build(engine.clone());
 
         TestGateway {
@@ -117,5 +131,15 @@ impl TestGatewayBuilder {
             context,
             subgraphs,
         }
+    }
+}
+
+fn build_runtime(config_toml: Option<&ConfigSource>) -> TestRuntime {
+    match config_toml {
+        Some(ConfigSource::Toml(config)) => {
+            let config = toml::from_str(config).expect("to be able to parse config");
+            TestRuntime::new(&config)
+        }
+        _ => TestRuntime::new(&Config::default()),
     }
 }

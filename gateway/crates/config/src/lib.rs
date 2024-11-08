@@ -185,7 +185,7 @@ pub struct SubgraphConfig {
     /// is any
     pub entity_caching: Option<EntityCachingConfig>,
     /// Subgraph specific message signatures config
-    pub message_signatures: MessageSignaturesConfig,
+    pub message_signatures: Option<MessageSignaturesConfig>,
     #[cfg(feature = "dev")]
     /// The path of an SDL schema file for the subgraph.
     pub file: Option<PathBuf>,
@@ -195,6 +195,7 @@ pub struct SubgraphConfig {
     #[cfg(feature = "dev")]
     /// Header configuration for subgraph introspection
     pub introspection_headers: Option<BTreeMap<String, DynamicString<String>>>,
+
 }
 
 #[derive(Debug, serde::Deserialize, Clone, Copy, Default, PartialEq)]
@@ -1436,18 +1437,7 @@ mod tests {
                 timeout: None,
                 retry: None,
                 entity_caching: None,
-                message_signatures: MessageSignaturesConfig {
-                    enabled: None,
-                    algorithm: None,
-                    key: None,
-                    expiry: None,
-                    headers: MessageSigningHeaders {
-                        include: [],
-                        exclude: [],
-                    },
-                    derived_components: [],
-                    signature_parameters: [],
-                },
+                message_signatures: None,
             },
         }
         "###);
@@ -1479,13 +1469,13 @@ mod tests {
 
         let error = toml::from_str::<Config>(input).unwrap_err();
 
-        insta::assert_snapshot!(&error.to_string(), @r###"
+        insta::assert_snapshot!(&error.to_string(), @r#"
         TOML parse error at line 2, column 17
           |
         2 | websocket_url = "WRONG"
           |                 ^^^^^^^
-        invalid value: string "WRONG", expected relative URL without a base
-        "###);
+        relative URL without a base: "WRONG"
+        "#);
     }
 
     #[test]
@@ -1530,11 +1520,11 @@ mod tests {
                 key: None,
                 expiry: None,
                 headers: MessageSigningHeaders {
-                    include: [],
-                    exclude: [],
+                    include: None,
+                    exclude: None,
                 },
-                derived_components: [],
-                signature_parameters: [],
+                derived_components: None,
+                signature_parameters: None,
             },
         }
         "###);
@@ -1906,18 +1896,7 @@ mod tests {
                     },
                 ),
                 entity_caching: None,
-                message_signatures: MessageSignaturesConfig {
-                    enabled: None,
-                    algorithm: None,
-                    key: None,
-                    expiry: None,
-                    headers: MessageSigningHeaders {
-                        include: [],
-                        exclude: [],
-                    },
-                    derived_components: [],
-                    signature_parameters: [],
-                },
+                message_signatures: None,
             },
         }
         "###);

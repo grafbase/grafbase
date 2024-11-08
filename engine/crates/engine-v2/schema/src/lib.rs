@@ -1,6 +1,7 @@
 use std::{str::FromStr, sync::OnceLock};
 
 mod builder;
+mod composite_type;
 mod definition;
 mod directive;
 mod entity;
@@ -50,7 +51,7 @@ impl Schema {
     }
 }
 
-pub type Walker<'a, T> = walker::Walker<'a, T, Schema>;
+pub type Walker<'a, T> = walker::Walker<'a, T, &'a Schema>;
 
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct Version(Vec<u8>);
@@ -93,7 +94,7 @@ pub struct Schema {
 }
 
 impl Schema {
-    pub fn build(config: config::latest::Config, version: Version) -> Result<Schema, BuildError> {
+    pub fn build(config: config::Config, version: Version) -> Result<Schema, BuildError> {
         builder::build(config, version)
     }
 }
@@ -120,11 +121,11 @@ pub struct Settings {
     default_header_rules: Vec<HeaderRuleId>,
 
     pub timeout: std::time::Duration,
-    pub auth_config: Option<config::latest::AuthConfig>,
-    pub operation_limits: config::latest::OperationLimits,
+    pub auth_config: Option<config::AuthConfig>,
+    pub operation_limits: config::OperationLimits,
     pub disable_introspection: bool,
     pub retry: Option<RetryConfig>,
-    pub batching: config::latest::BatchingConfig,
+    pub batching: config::BatchingConfig,
 }
 
 #[derive(serde::Serialize, serde::Deserialize, id_derives::IndexedFields)]
@@ -177,7 +178,7 @@ pub struct SubGraphs {
 }
 
 impl Schema {
-    pub fn walk<T: Walk<Self>>(&self, item: T) -> Walker<'_, T> {
+    pub fn walk<T: for<'s> Walk<&'s Self>>(&self, item: T) -> Walker<'_, T> {
         item.walk(self)
     }
 

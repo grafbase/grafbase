@@ -12,8 +12,8 @@ use std::sync::Arc;
 
 use crate::{
     operation::{LogicalPlanId, PreparedOperation, QueryModifications, ResponseModifierRule, Variables},
+    resolver::Resolver,
     response::{ResponseKey, ResponseObjectSetId, ResponseViewSelectionSet, ResponseViews},
-    sources::Resolver,
     Runtime,
 };
 pub(crate) use context::*;

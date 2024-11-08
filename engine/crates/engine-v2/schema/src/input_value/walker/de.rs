@@ -18,25 +18,24 @@ impl<'de> serde::Deserializer<'de> for SchemaInputValue<'de> {
     where
         V: Visitor<'de>,
     {
-        let SchemaInputValue { schema, value } = self;
-        match value {
+        match self.ref_ {
             SchemaInputValueRecord::Null => visitor.visit_none(),
             SchemaInputValueRecord::String(id) | SchemaInputValueRecord::UnboundEnumValue(id) => {
-                visitor.visit_borrowed_str(&schema[*id])
+                visitor.visit_borrowed_str(&self.schema[*id])
             }
-            SchemaInputValueRecord::EnumValue(id) => visitor.visit_borrowed_str(id.walk(schema).name()),
+            SchemaInputValueRecord::EnumValue(id) => visitor.visit_borrowed_str(id.walk(self.schema).name()),
             SchemaInputValueRecord::Int(n) => visitor.visit_i32(*n),
             SchemaInputValueRecord::BigInt(n) => visitor.visit_i64(*n),
             SchemaInputValueRecord::U64(n) => visitor.visit_u64(*n),
             SchemaInputValueRecord::Float(n) => visitor.visit_f64(*n),
             SchemaInputValueRecord::Boolean(b) => visitor.visit_bool(*b),
-            SchemaInputValueRecord::List(ids) => SeqDeserializer::new(ids.walk(schema)).deserialize_any(visitor),
+            SchemaInputValueRecord::List(ids) => SeqDeserializer::new(ids.walk(self.schema)).deserialize_any(visitor),
             SchemaInputValueRecord::InputObject(ids) => MapDeserializer::new(
-                ids.walk(schema)
+                ids.walk(self.schema)
                     .map(|(input_value_definition, value)| (input_value_definition.name(), value)),
             )
             .deserialize_any(visitor),
-            SchemaInputValueRecord::Map(ids) => MapDeserializer::new(ids.walk(schema)).deserialize_any(visitor),
+            SchemaInputValueRecord::Map(ids) => MapDeserializer::new(ids.walk(self.schema)).deserialize_any(visitor),
         }
     }
 
@@ -44,7 +43,7 @@ impl<'de> serde::Deserializer<'de> for SchemaInputValue<'de> {
     where
         V: Visitor<'de>,
     {
-        if matches!(self.value, SchemaInputValueRecord::Null) {
+        if matches!(self.ref_, SchemaInputValueRecord::Null) {
             visitor.visit_none()
         } else {
             visitor.visit_some(self)

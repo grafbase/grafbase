@@ -19,7 +19,7 @@ pub(crate) struct SteinerGraph<G: GraphBase> {
     pub(super) graph: Graph<(), Cost>,
     // Mapping between the operation graph and the steiner graph.
     node_ix_to_operation_graph_node_id: Vec<G::NodeId>,
-    operation_graph_node_id_to_node_ix: Vec<NodeIndex>,
+    pub(super) operation_graph_node_id_to_node_ix: Vec<NodeIndex>,
     operation_graph_edge_id_to_edge_ix: Vec<EdgeIndex>,
 }
 

@@ -5,19 +5,16 @@ use integration_tests::{federation::EngineV2Ext, runtime};
 #[test]
 fn subgraph_retries_mutations_disabled() {
     runtime().block_on(async move {
+        let config = indoc::indoc! {r#"
+            [subgraphs.stateful.retry]
+            enabled = true
+            min_per_second = 1
+            retry_percent = 0.01
+        "#};
+
         let engine = Engine::builder()
             .with_subgraph(Stateful::default())
-            .with_sdl_config(
-                r#"
-                extend schema @subgraph(
-                    name: "stateful",
-                    retry: {
-                        minPerSecond: 1,
-                        retryPercent: 0.01,
-                    }
-                )
-            "#,
-            )
+            .with_toml_config(config)
             .build()
             .await;
 
@@ -61,18 +58,15 @@ fn subgraph_retries_mutations_disabled() {
 #[test]
 fn subgraph_retries_mutations_enabled() {
     runtime().block_on(async move {
+        let config = indoc::indoc! {r#"
+            [subgraphs.stateful.retry]
+            enabled = true
+            retry_mutations = true
+        "#};
+
         let engine = Engine::builder()
             .with_subgraph(Stateful::default())
-            .with_sdl_config(
-                r#"
-                extend schema @subgraph(
-                    name: "stateful",
-                    retry: {
-                      retryMutations: true
-                    }
-                )
-            "#,
-            )
+            .with_toml_config(config)
             .build()
             .await;
 

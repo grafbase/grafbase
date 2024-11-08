@@ -78,7 +78,7 @@ impl GatewayRuntime {
         };
 
         let runtime = GatewayRuntime {
-            fetcher: NativeFetcher::default(),
+            fetcher: NativeFetcher::new(gateway_config).map_err(|e| crate::Error::FetcherConfigError(e.to_string()))?,
             kv: InMemoryKvStore::runtime(),
             trusted_documents: runtime::trusted_documents_client::Client::new(NoopTrustedDocuments),
             hooks,

@@ -2,33 +2,33 @@ use schema::Schema;
 
 use super::{
     bind::{bind_variables, VariableError},
-    Location, Operation, QueryInputValueId, VariableDefinitionId, VariableInputValueId, VariableInputValues,
+    BoundVariableDefinitionId, Location, Operation, QueryInputValueId, VariableInputValueId, VariableInputValues,
 };
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct VariableDefinition {
+pub(crate) struct BoundVariableDefinition {
     pub name: String,
     pub name_location: Location,
-    pub default_value: Option<QueryInputValueId>,
-    pub in_use: bool,
-    pub ty: schema::TypeRecord,
+    pub default_value_id: Option<QueryInputValueId>,
+    pub ty_record: schema::TypeRecord,
 }
 
-pub struct Variables {
+pub(crate) struct Variables {
     pub input_values: VariableInputValues,
-    pub definition_to_value: Vec<VariableValue>,
+    pub definition_to_value: Vec<VariableValueRecord>,
 }
 
 #[derive(Clone)]
-pub enum VariableValue {
+pub(crate) enum VariableValueRecord {
     Undefined,
-    InputValue(VariableInputValueId),
+    Provided(VariableInputValueId),
+    DefaultValue(QueryInputValueId),
 }
 
-impl std::ops::Index<VariableDefinitionId> for Variables {
-    type Output = VariableValue;
+impl std::ops::Index<BoundVariableDefinitionId> for Variables {
+    type Output = VariableValueRecord;
 
-    fn index(&self, index: VariableDefinitionId) -> &Self::Output {
+    fn index(&self, index: BoundVariableDefinitionId) -> &Self::Output {
         &self.definition_to_value[usize::from(index)]
     }
 }
@@ -48,7 +48,7 @@ impl Variables {
     pub(crate) fn build(
         schema: &Schema,
         operation: &Operation,
-        request_variables: engine::Variables,
+        request_variables: crate::request::Variables,
     ) -> Result<Self, Vec<VariableError>> {
         bind_variables(schema, operation, request_variables)
     }

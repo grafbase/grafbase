@@ -1,6 +1,9 @@
 use walker::Walk;
 
-use crate::{Definition, EntityDefinition, ScalarType, TypeSystemDirective};
+use crate::{
+    CompositeType, CompositeTypeId, Definition, DefinitionId, EntityDefinition, EntityDefinitionId, ScalarDefinition,
+    ScalarDefinitionId, ScalarType, TypeSystemDirective,
+};
 
 impl<'a> Definition<'a> {
     pub fn name(&self) -> &'a str {
@@ -33,11 +36,83 @@ impl<'a> Definition<'a> {
         }
     }
 
+    pub fn as_scalar(&self) -> Option<ScalarDefinition<'a>> {
+        match self {
+            Definition::Scalar(scalar) => Some(*scalar),
+            _ => None,
+        }
+    }
+
     pub fn as_entity(&self) -> Option<EntityDefinition<'a>> {
         match self {
             Definition::Object(object) => Some(EntityDefinition::Object(*object)),
             Definition::Interface(interface) => Some(EntityDefinition::Interface(*interface)),
             _ => None,
         }
+    }
+
+    pub fn as_composite_type(&self) -> Option<CompositeType<'a>> {
+        match self {
+            Definition::Object(object) => Some(CompositeType::Object(*object)),
+            Definition::Interface(interface) => Some(CompositeType::Interface(*interface)),
+            Definition::Union(union) => Some(CompositeType::Union(*union)),
+            _ => None,
+        }
+    }
+
+    pub fn is_scalar(&self) -> bool {
+        matches!(self, Definition::Scalar(_))
+    }
+
+    pub fn is_entity(&self) -> bool {
+        matches!(self, Definition::Object(_) | Definition::Interface(_))
+    }
+
+    pub fn is_composite_type(&self) -> bool {
+        matches!(
+            self,
+            Definition::Object(_) | Definition::Interface(_) | Definition::Union(_)
+        )
+    }
+}
+
+impl DefinitionId {
+    pub fn as_scalar(&self) -> Option<ScalarDefinitionId> {
+        match self {
+            DefinitionId::Scalar(scalar) => Some(*scalar),
+            _ => None,
+        }
+    }
+
+    pub fn as_entity(&self) -> Option<EntityDefinitionId> {
+        match self {
+            DefinitionId::Object(object) => Some(EntityDefinitionId::Object(*object)),
+            DefinitionId::Interface(interface) => Some(EntityDefinitionId::Interface(*interface)),
+            _ => None,
+        }
+    }
+
+    pub fn as_composite_type(&self) -> Option<CompositeTypeId> {
+        match self {
+            DefinitionId::Object(object) => Some(CompositeTypeId::Object(*object)),
+            DefinitionId::Interface(interface) => Some(CompositeTypeId::Interface(*interface)),
+            DefinitionId::Union(union) => Some(CompositeTypeId::Union(*union)),
+            _ => None,
+        }
+    }
+
+    pub fn is_scalar(&self) -> bool {
+        matches!(self, DefinitionId::Scalar(_))
+    }
+
+    pub fn is_entity(&self) -> bool {
+        matches!(self, DefinitionId::Object(_) | DefinitionId::Interface(_))
+    }
+
+    pub fn is_composite_type(&self) -> bool {
+        matches!(
+            self,
+            DefinitionId::Object(_) | DefinitionId::Interface(_) | DefinitionId::Union(_)
+        )
     }
 }

@@ -65,7 +65,7 @@ pub(super) async fn generate(
         let graph =
             FederatedGraph::from_sdl(&federated_sdl).map_err(|e| crate::Error::SchemaValidationError(e.to_string()))?;
 
-        engine_config_builder::build_with_toml_config(gateway_config, graph).into_latest()
+        engine_config_builder::build_with_toml_config(gateway_config, graph)
     };
 
     let mut runtime = GatewayRuntime::build(gateway_config, hot_reload_config_path, &config, version_id, hooks).await?;

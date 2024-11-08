@@ -1,13 +1,13 @@
 use crate::response::BoundResponseKey;
 
-use super::{ResponseKey, MAX_RESPONSE_KEY};
+use super::ResponseKey;
 
 /// A "safe" ResponseKey is guaranteed to exist inside ResponseKeys
 /// and thus will use `get_unchecked` to be retrieved. This improves
 /// performance by around 1% since we're doing a binary search for each
 /// incoming field name during deserialization.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize)]
-pub struct SafeResponseKey(u32);
+pub struct SafeResponseKey(u16);
 
 /// Interns all of the response keys strings.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -15,7 +15,7 @@ pub struct ResponseKeys(lasso2::Rodeo<SafeResponseKey>);
 
 impl From<SafeResponseKey> for u32 {
     fn from(key: SafeResponseKey) -> u32 {
-        key.0
+        key.0 as u32
     }
 }
 
@@ -86,12 +86,7 @@ unsafe impl lasso2::Key for SafeResponseKey {
     }
 
     fn try_from_usize(id: usize) -> Option<Self> {
-        let id = u32::try_from(id).ok()?;
-        if id <= MAX_RESPONSE_KEY {
-            Some(Self(id))
-        } else {
-            None
-        }
+        u16::try_from(id).ok().map(Self)
     }
 }
 
@@ -105,13 +100,13 @@ mod tests {
         let key = SafeResponseKey::try_from_usize(0).unwrap();
         assert_eq!(key.into_usize(), 0);
 
-        let key = SafeResponseKey::try_from_usize(MAX_RESPONSE_KEY as usize).unwrap();
-        assert_eq!(key.into_usize(), (MAX_RESPONSE_KEY as usize));
+        let key = SafeResponseKey::try_from_usize(u16::MAX as usize).unwrap();
+        assert_eq!(key.into_usize(), (u16::MAX as usize));
     }
 
     #[test]
     fn field_name_value_out_of_range() {
-        let key = SafeResponseKey::try_from_usize((MAX_RESPONSE_KEY + 1) as usize);
+        let key = SafeResponseKey::try_from_usize(100_000_usize);
         assert!(key.is_none());
 
         let key = SafeResponseKey::try_from_usize(u32::MAX as usize);

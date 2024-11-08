@@ -15,6 +15,8 @@ pub enum Error {
     /// Cannot start the HTTP server
     #[error("starting server: {0}")]
     Server(#[source] std::io::Error),
+    #[error("fetcher configuration error: {0}")]
+    FetcherConfigError(String),
 }
 
 impl<T> From<watch::error::SendError<T>> for Error {

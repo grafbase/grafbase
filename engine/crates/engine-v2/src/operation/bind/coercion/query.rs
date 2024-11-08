@@ -10,7 +10,7 @@ use super::{
     error::InputValueError,
     path::{value_path_to_string, ValuePathSegment},
 };
-use crate::operation::{Location, QueryInputValue, QueryInputValueId};
+use crate::operation::{Location, QueryInputValueId, QueryInputValueRecord};
 
 pub fn coerce_variable_default_value(
     binder: &mut Binder<'_, '_>,
@@ -50,7 +50,7 @@ struct QueryValueCoercionContext<'binder, 'schema, 'parsed> {
     binder: &'binder mut Binder<'schema, 'parsed>,
     location: Location,
     value_path: Vec<ValuePathSegment>,
-    input_fields_buffer_pool: Vec<Vec<(InputValueDefinitionId, QueryInputValue)>>,
+    input_fields_buffer_pool: Vec<Vec<(InputValueDefinitionId, QueryInputValueRecord)>>,
     is_default_value: bool,
 }
 
@@ -69,7 +69,7 @@ impl<'binder, 'schema, 'parsed> std::ops::DerefMut for QueryValueCoercionContext
 }
 
 impl<'binder, 'schema, 'parsed> QueryValueCoercionContext<'binder, 'schema, 'parsed> {
-    fn variable_ref(&mut self, name: Name, ty: TypeRecord) -> Result<QueryInputValue, InputValueError> {
+    fn variable_ref(&mut self, name: Name, ty: TypeRecord) -> Result<QueryInputValueRecord, InputValueError> {
         if self.is_default_value {
             return Err(InputValueError::VariableDefaultValueReliesOnAnotherVariable {
                 name: name.to_string(),
@@ -90,7 +90,7 @@ impl<'binder, 'schema, 'parsed> QueryValueCoercionContext<'binder, 'schema, 'par
             });
         };
 
-        let variable_ty = self.variable_definitions[id].ty;
+        let variable_ty = self.variable_definitions[id].ty_record;
         if !variable_ty.is_compatible_with(ty) {
             return Err(InputValueError::IncorrectVariableType {
                 name: name.to_string(),
@@ -101,16 +101,16 @@ impl<'binder, 'schema, 'parsed> QueryValueCoercionContext<'binder, 'schema, 'par
             });
         }
 
-        self.variable_definitions[id].in_use = true;
+        self.variable_definition_in_use[id] = true;
 
-        Ok(QueryInputValue::Variable(id.into()))
+        Ok(QueryInputValueRecord::Variable(id.into()))
     }
 
-    fn coerce_input_value(&mut self, ty: TypeRecord, value: Value) -> Result<QueryInputValue, InputValueError> {
+    fn coerce_input_value(&mut self, ty: TypeRecord, value: Value) -> Result<QueryInputValueRecord, InputValueError> {
         if ty.wrapping.is_list() && !value.is_array() && !value.is_null() && !value.is_variable() {
             let mut value = self.coerce_named_type(ty, value)?;
             for _ in 0..ty.wrapping.list_wrappings().len() {
-                value = QueryInputValue::List(IdRange::from_single(self.input_values.push_value(value)));
+                value = QueryInputValueRecord::List(IdRange::from_single(self.input_values.push_value(value)));
             }
             return Ok(value);
         }
@@ -118,7 +118,11 @@ impl<'binder, 'schema, 'parsed> QueryValueCoercionContext<'binder, 'schema, 'par
         self.coerce_wrapped_value(ty, value)
     }
 
-    fn coerce_wrapped_value(&mut self, mut ty: TypeRecord, value: Value) -> Result<QueryInputValue, InputValueError> {
+    fn coerce_wrapped_value(
+        &mut self,
+        mut ty: TypeRecord,
+        value: Value,
+    ) -> Result<QueryInputValueRecord, InputValueError> {
         if let Value::Variable(name) = value {
             return self.variable_ref(name, ty);
         }
@@ -133,7 +137,7 @@ impl<'binder, 'schema, 'parsed> QueryValueCoercionContext<'binder, 'schema, 'par
                 path: self.path(),
                 location: self.location,
             }),
-            (Value::Null, ListWrapping::NullableList) => Ok(QueryInputValue::Null),
+            (Value::Null, ListWrapping::NullableList) => Ok(QueryInputValueRecord::Null),
             (Value::List(array), _) => {
                 let ids = self.input_values.reserve_list(array.len());
                 for ((idx, value), id) in array.into_iter().enumerate().zip(ids) {
@@ -141,7 +145,7 @@ impl<'binder, 'schema, 'parsed> QueryValueCoercionContext<'binder, 'schema, 'par
                     self.input_values[id] = self.coerce_wrapped_value(ty, value)?;
                     self.value_path.pop();
                 }
-                Ok(QueryInputValue::List(ids))
+                Ok(QueryInputValueRecord::List(ids))
             }
             (value, _) => Err(InputValueError::MissingList {
                 actual: value.into(),
@@ -152,7 +156,7 @@ impl<'binder, 'schema, 'parsed> QueryValueCoercionContext<'binder, 'schema, 'par
         }
     }
 
-    fn coerce_named_type(&mut self, ty: TypeRecord, value: Value) -> Result<QueryInputValue, InputValueError> {
+    fn coerce_named_type(&mut self, ty: TypeRecord, value: Value) -> Result<QueryInputValueRecord, InputValueError> {
         if let Value::Variable(name) = value {
             return self.variable_ref(name, ty);
         }
@@ -165,7 +169,7 @@ impl<'binder, 'schema, 'parsed> QueryValueCoercionContext<'binder, 'schema, 'par
                     location: self.location,
                 });
             }
-            return Ok(QueryInputValue::Null);
+            return Ok(QueryInputValueRecord::Null);
         }
 
         match ty.definition_id {
@@ -180,7 +184,7 @@ impl<'binder, 'schema, 'parsed> QueryValueCoercionContext<'binder, 'schema, 'par
         &mut self,
         input_object: InputObjectDefinition<'_>,
         value: Value,
-    ) -> Result<QueryInputValue, InputValueError> {
+    ) -> Result<QueryInputValueRecord, InputValueError> {
         let Value::Object(mut fields) = value else {
             return Err(InputValueError::MissingObject {
                 name: input_object.name().to_string(),
@@ -195,7 +199,7 @@ impl<'binder, 'schema, 'parsed> QueryValueCoercionContext<'binder, 'schema, 'par
             match fields.swap_remove(input_field.name()) {
                 None => {
                     if let Some(default_value_id) = input_field.as_ref().default_value_id {
-                        fields_buffer.push((input_field.id(), QueryInputValue::DefaultValue(default_value_id)));
+                        fields_buffer.push((input_field.id(), QueryInputValueRecord::DefaultValue(default_value_id)));
                     } else if input_field.ty().wrapping.is_required() {
                         return Err(InputValueError::UnexpectedNull {
                             expected: input_field.ty().to_string(),
@@ -222,10 +226,14 @@ impl<'binder, 'schema, 'parsed> QueryValueCoercionContext<'binder, 'schema, 'par
         }
         let ids = self.input_values.append_input_object(&mut fields_buffer);
         self.input_fields_buffer_pool.push(fields_buffer);
-        Ok(QueryInputValue::InputObject(ids))
+        Ok(QueryInputValueRecord::InputObject(ids))
     }
 
-    fn coerce_enum(&mut self, r#enum: EnumDefinition<'_>, value: Value) -> Result<QueryInputValue, InputValueError> {
+    fn coerce_enum(
+        &mut self,
+        r#enum: EnumDefinition<'_>,
+        value: Value,
+    ) -> Result<QueryInputValueRecord, InputValueError> {
         let name = match &value {
             Value::Enum(value) => value.as_str(),
             value => {
@@ -247,34 +255,34 @@ impl<'binder, 'schema, 'parsed> QueryValueCoercionContext<'binder, 'schema, 'par
             });
         };
 
-        Ok(QueryInputValue::EnumValue(id))
+        Ok(QueryInputValueRecord::EnumValue(id))
     }
 
     fn coerce_scalar(
         &mut self,
         scalar: ScalarDefinition<'_>,
         value: Value,
-    ) -> Result<QueryInputValue, InputValueError> {
+    ) -> Result<QueryInputValueRecord, InputValueError> {
         match (value, scalar.as_ref().ty) {
             (value, ScalarType::JSON) => Ok(match value {
-                Value::Null => QueryInputValue::Null,
+                Value::Null => QueryInputValueRecord::Null,
                 Value::Number(n) => {
                     if let Some(n) = n.as_f64() {
-                        QueryInputValue::Float(n)
+                        QueryInputValueRecord::Float(n)
                     } else if let Some(n) = n.as_i64() {
-                        QueryInputValue::BigInt(n)
+                        QueryInputValueRecord::BigInt(n)
                     } else {
-                        QueryInputValue::U64(n.as_u64().unwrap())
+                        QueryInputValueRecord::U64(n.as_u64().unwrap())
                     }
                 }
-                Value::String(s) => QueryInputValue::String(s),
-                Value::Boolean(b) => QueryInputValue::Boolean(b),
+                Value::String(s) => QueryInputValueRecord::String(s),
+                Value::Boolean(b) => QueryInputValueRecord::Boolean(b),
                 Value::List(array) => {
                     let ids = self.input_values.reserve_list(array.len());
                     for (value, id) in array.into_iter().zip(ids) {
                         self.input_values[id] = self.coerce_scalar(scalar, value)?;
                     }
-                    QueryInputValue::List(ids)
+                    QueryInputValueRecord::List(ids)
                 }
                 Value::Object(fields) => {
                     let ids = self.input_values.reserve_map(fields.len());
@@ -282,7 +290,7 @@ impl<'binder, 'schema, 'parsed> QueryValueCoercionContext<'binder, 'schema, 'par
                         let key = name.into_string();
                         self.input_values[id] = (key, self.coerce_scalar(scalar, value)?);
                     }
-                    QueryInputValue::Map(ids)
+                    QueryInputValueRecord::Map(ids)
                 }
                 other => {
                     return Err(InputValueError::IncorrectScalarType {
@@ -302,7 +310,7 @@ impl<'binder, 'schema, 'parsed> QueryValueCoercionContext<'binder, 'schema, 'par
                         location: self.location,
                     });
                 };
-                Ok(QueryInputValue::Int(value))
+                Ok(QueryInputValueRecord::Int(value))
             }
             (Value::Number(number), ScalarType::BigInt) => {
                 let Some(value) = number.as_i64() else {
@@ -313,7 +321,7 @@ impl<'binder, 'schema, 'parsed> QueryValueCoercionContext<'binder, 'schema, 'par
                         location: self.location,
                     });
                 };
-                Ok(QueryInputValue::BigInt(value))
+                Ok(QueryInputValueRecord::BigInt(value))
             }
             (Value::Number(number), ScalarType::Float) => {
                 let Some(value) = number.as_f64() else {
@@ -324,10 +332,10 @@ impl<'binder, 'schema, 'parsed> QueryValueCoercionContext<'binder, 'schema, 'par
                         location: self.location,
                     });
                 };
-                Ok(QueryInputValue::Float(value))
+                Ok(QueryInputValueRecord::Float(value))
             }
-            (Value::String(value), ScalarType::String) => Ok(QueryInputValue::String(value)),
-            (Value::Boolean(value), ScalarType::Boolean) => Ok(QueryInputValue::Boolean(value)),
+            (Value::String(value), ScalarType::String) => Ok(QueryInputValueRecord::String(value)),
+            (Value::Boolean(value), ScalarType::Boolean) => Ok(QueryInputValueRecord::Boolean(value)),
             (Value::Binary(_), _) => unreachable!("Parser doesn't generate bytes, nor do variables."),
             (Value::Variable(name), _) => self.variable_ref(
                 name,

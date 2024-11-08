@@ -1,10 +1,10 @@
 use std::collections::{btree_map::Entry, HashSet};
 
-use engine::Positioned;
+use engine_parser::Positioned;
 use schema::{DefinitionId, Schema, Wrapping};
 
 use crate::{
-    operation::{Location, Operation, VariableDefinition, VariableInputValues, VariableValue, Variables},
+    operation::{BoundVariableDefinition, Location, Operation, VariableInputValues, VariableValueRecord, Variables},
     response::{ErrorCode, GraphqlError},
 };
 
@@ -34,12 +34,13 @@ impl From<VariableError> for GraphqlError {
 pub fn bind_variables(
     schema: &Schema,
     operation: &Operation,
-    mut request_variables: engine::Variables,
+    mut request_variables: crate::request::Variables,
 ) -> Result<Variables, Vec<VariableError>> {
     let mut errors = Vec::new();
+
     let mut variables = Variables {
         input_values: VariableInputValues::default(),
-        definition_to_value: vec![VariableValue::Undefined; operation.variable_definitions.len()],
+        definition_to_value: vec![VariableValueRecord::Undefined; operation.variable_definitions.len()],
     };
 
     for (variable_id, definition) in operation.variable_definitions.iter().enumerate() {
@@ -47,7 +48,7 @@ pub fn bind_variables(
             Entry::Occupied(mut entry) => {
                 let value = std::mem::take(entry.get_mut());
                 match coerce_variable(schema, &mut variables.input_values, definition, value) {
-                    Ok(id) => variables.definition_to_value[variable_id] = VariableValue::InputValue(id),
+                    Ok(id) => variables.definition_to_value[variable_id] = VariableValueRecord::Provided(id),
                     Err(err) => {
                         errors.push(VariableError::InvalidValue {
                             name: definition.name.clone(),
@@ -57,7 +58,9 @@ pub fn bind_variables(
                 }
             }
             Entry::Vacant(_) => {
-                if definition.default_value.is_none() && definition.ty.wrapping.is_required() {
+                if let Some(default_value_id) = definition.default_value_id {
+                    variables.definition_to_value[variable_id] = VariableValueRecord::DefaultValue(default_value_id);
+                } else if definition.ty_record.wrapping.is_required() {
                     errors.push(VariableError::MissingVariable {
                         name: definition.name.clone(),
                         location: definition.name_location,
@@ -78,9 +81,8 @@ impl<'schema, 'p> Binder<'schema, 'p> {
     pub(super) fn bind_variable_definitions(
         &mut self,
         variables: Vec<Positioned<engine_parser::types::VariableDefinition>>,
-    ) -> BindResult<Vec<VariableDefinition>> {
+    ) -> BindResult<()> {
         let mut seen_names = HashSet::new();
-        let mut bound_variables = Vec::new();
 
         for Positioned { node, .. } in variables {
             let name = node.name.node.to_string();
@@ -112,21 +114,21 @@ impl<'schema, 'p> Binder<'schema, 'p> {
                 .map(|Positioned { pos: _, node: value }| coerce_variable_default_value(self, name_location, ty, value))
                 .transpose()?;
 
-            bound_variables.push(VariableDefinition {
+            self.variable_definition_in_use.push(false);
+            self.variable_definitions.push(BoundVariableDefinition {
                 name,
                 name_location,
-                default_value,
-                ty,
-                in_use: false,
+                default_value_id: default_value,
+                ty_record: ty,
             });
         }
 
-        Ok(bound_variables)
+        Ok(())
     }
 
     pub(super) fn validate_all_variables_used(&self) -> BindResult<()> {
-        for variable in &self.variable_definitions {
-            if !variable.in_use {
+        for (variable, in_use) in self.variable_definitions.iter().zip(&self.variable_definition_in_use) {
+            if !in_use {
                 return Err(BindError::UnusedVariable {
                     name: variable.name.clone(),
                     operation: self.operation_name.clone(),

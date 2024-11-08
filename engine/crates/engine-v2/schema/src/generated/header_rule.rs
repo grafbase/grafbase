@@ -61,11 +61,12 @@ impl std::fmt::Debug for NameOrPattern<'_> {
     }
 }
 
-impl Walk<Schema> for NameOrPatternId {
-    type Walker<'a> = NameOrPattern<'a>;
-    fn walk<'a>(self, schema: &'a Schema) -> Self::Walker<'a>
+impl<'a> Walk<&'a Schema> for NameOrPatternId {
+    type Walker<'w> = NameOrPattern<'w> where 'a: 'w ;
+    fn walk<'w>(self, schema: &'a Schema) -> Self::Walker<'w>
     where
-        Self: 'a,
+        Self: 'w,
+        'a: 'w,
     {
         match self {
             NameOrPatternId::Name(id) => NameOrPattern::Name(&schema[id]),
@@ -160,11 +161,12 @@ impl<'a> HeaderRule<'a> {
     }
 }
 
-impl Walk<Schema> for HeaderRuleId {
-    type Walker<'a> = HeaderRule<'a>;
-    fn walk<'a>(self, schema: &'a Schema) -> Self::Walker<'a>
+impl<'a> Walk<&'a Schema> for HeaderRuleId {
+    type Walker<'w> = HeaderRule<'w> where 'a: 'w ;
+    fn walk<'w>(self, schema: &'a Schema) -> Self::Walker<'w>
     where
-        Self: 'a,
+        Self: 'w,
+        'a: 'w,
     {
         HeaderRule { schema, id: self }
     }

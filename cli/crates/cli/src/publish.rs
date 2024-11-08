@@ -8,7 +8,7 @@ use std::{
 pub(crate) async fn publish(
     PublishCommand {
         subgraph_name,
-        project_ref,
+        graph_ref,
         url,
         schema_path,
         message,
@@ -34,9 +34,9 @@ pub(crate) async fn publish(
     report::publishing();
 
     let outcome = backend::api::publish::publish(
-        project_ref.account(),
-        project_ref.graph(),
-        project_ref.branch(),
+        graph_ref.account(),
+        graph_ref.graph(),
+        graph_ref.branch(),
         &subgraph_name,
         url.as_str(),
         &schema,

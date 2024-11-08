@@ -1,6 +1,6 @@
 use std::path::{Path, PathBuf};
 
-use engine_v2_config::latest::PathId;
+use engine_v2_config::PathId;
 
 /// Very simple implementation of string interning.
 #[derive(Default)]

@@ -49,7 +49,7 @@ pub(crate) fn refuse_request_with(
 ) -> http::Response<Body> {
     Http::error(
         format,
-        Response::<()>::refuse_request_with(status_code, GraphqlError::new(message, ErrorCode::BadRequest)),
+        Response::<()>::refuse_request_with(status_code, vec![GraphqlError::new(message, ErrorCode::BadRequest)]),
     )
 }
 
@@ -83,24 +83,24 @@ pub(crate) mod response {
     ) -> Response<OnOperationResponseHookOutput> {
         Response::refuse_request_with(
             http::StatusCode::METHOD_NOT_ALLOWED,
-            GraphqlError::new(
+            vec![GraphqlError::new(
                 "Mutation is not allowed with a safe method like GET",
                 ErrorCode::BadRequest,
-            ),
+            )],
         )
     }
 
     pub(crate) fn gateway_rate_limited<OnOperationResponseHookOutput>() -> Response<OnOperationResponseHookOutput> {
         Response::refuse_request_with(
             http::StatusCode::TOO_MANY_REQUESTS,
-            GraphqlError::new("Rate limited", ErrorCode::RateLimited),
+            vec![GraphqlError::new("Rate limited", ErrorCode::RateLimited)],
         )
     }
 
     pub(crate) fn unauthenticated<OnOperationResponseHookOutput>() -> Response<OnOperationResponseHookOutput> {
         Response::refuse_request_with(
             http::StatusCode::UNAUTHORIZED,
-            GraphqlError::new("Unauthenticated", ErrorCode::Unauthenticated),
+            vec![GraphqlError::new("Unauthenticated", ErrorCode::Unauthenticated)],
         )
     }
 

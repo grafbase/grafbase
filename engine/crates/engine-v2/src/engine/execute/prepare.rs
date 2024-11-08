@@ -47,7 +47,7 @@ impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
                 Ok(doc) => doc,
                 // If we have an error a this stage, it means we couldn't determine what document
                 // to load, so we don't consider it a well-formed GraphQL-over-HTTP request.
-                Err(err) => return Err(Response::refuse_request_with(http::StatusCode::BAD_REQUEST, err)),
+                Err(err) => return Err(Response::refuse_request_with(http::StatusCode::BAD_REQUEST, vec![err])),
             };
 
             if let Some(operation) = self.engine.operation_cache.get(&cache_key).await {

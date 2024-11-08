@@ -10,7 +10,7 @@ impl IntoJson for cynic_parser::values::ConstValue<'_> {
 
         Some(match self {
             ParserValue::Int(i) => Value::Number(i.as_i64().into()),
-            ParserValue::Float(i) => Value::Number(serde_json::Number::from_f64(f64::from(i.value())).unwrap()),
+            ParserValue::Float(i) => Value::Number(serde_json::Number::from_f64(i.value()).unwrap()),
             ParserValue::String(s) => Value::String(s.value().to_owned()),
             ParserValue::Boolean(b) => Value::Bool(b.value()),
             ParserValue::Null(_) => Value::Null,

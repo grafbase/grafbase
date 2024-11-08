@@ -1,9 +1,9 @@
-use super::ProjectRef;
+use super::FullGraphRef;
 
 #[derive(Debug, clap::Args)]
 pub struct CheckCommand {
-    #[arg(help = ProjectRef::ARG_DESCRIPTION)]
-    pub project_ref: ProjectRef,
+    #[arg(help = FullGraphRef::ARG_DESCRIPTION)]
+    pub graph_ref: FullGraphRef,
     /// The name of the subgraph to check
     #[arg(long("name"))]
     pub(crate) subgraph_name: String,

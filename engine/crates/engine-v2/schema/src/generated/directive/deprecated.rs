@@ -43,11 +43,12 @@ impl<'a> DeprecatedDirective<'a> {
     }
 }
 
-impl Walk<Schema> for DeprecatedDirectiveRecord {
-    type Walker<'a> = DeprecatedDirective<'a>;
-    fn walk<'a>(self, schema: &'a Schema) -> Self::Walker<'a>
+impl<'a> Walk<&'a Schema> for DeprecatedDirectiveRecord {
+    type Walker<'w> = DeprecatedDirective<'w> where 'a: 'w ;
+    fn walk<'w>(self, schema: &'a Schema) -> Self::Walker<'w>
     where
-        Self: 'a,
+        Self: 'w,
+        'a: 'w,
     {
         DeprecatedDirective { schema, item: self }
     }

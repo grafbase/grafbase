@@ -1,6 +1,6 @@
 use walker::{Iter, Walk};
 
-use crate::{RequiredField, RequiredFieldId, Schema};
+use crate::{RequiredField, RequiredFieldId, Schema, StringId};
 use std::{borrow::Cow, cmp::Ordering};
 
 static EMPTY: RequiredFieldSetRecord = RequiredFieldSetRecord(Vec::new());
@@ -20,11 +20,12 @@ pub struct RequiredFieldSetRecord(Vec<RequiredFieldSetItemRecord>);
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
 pub struct RequiredFieldSetId(std::num::NonZero<u32>);
 
-impl Walk<Schema> for RequiredFieldSetId {
-    type Walker<'a> = RequiredFieldSet<'a>;
-    fn walk<'s>(self, schema: &'s Schema) -> Self::Walker<'s>
+impl<'a> Walk<&'a Schema> for RequiredFieldSetId {
+    type Walker<'w> = RequiredFieldSet<'w> where 'a: 'w;
+    fn walk<'w>(self, schema: &'a Schema) -> Self::Walker<'w>
     where
-        Self: 's,
+        Self: 'w,
+        'a: 'w,
     {
         RequiredFieldSet {
             schema,
@@ -33,11 +34,12 @@ impl Walk<Schema> for RequiredFieldSetId {
     }
 }
 
-impl Walk<Schema> for &RequiredFieldSetRecord {
-    type Walker<'a> = RequiredFieldSet<'a> where Self: 'a;
-    fn walk<'s>(self, schema: &'s Schema) -> Self::Walker<'s>
+impl<'a> Walk<&'a Schema> for &RequiredFieldSetRecord {
+    type Walker<'w> = RequiredFieldSet<'w> where Self: 'w, 'a: 'w;
+    fn walk<'w>(self, schema: &'a Schema) -> Self::Walker<'w>
     where
-        Self: 's,
+        Self: 'w,
+        'a: 'w,
     {
         RequiredFieldSet { schema, ref_: self }
     }
@@ -71,15 +73,18 @@ impl std::fmt::Debug for RequiredFieldSet<'_> {
 //
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct RequiredFieldSetItemRecord {
-    pub field_id: RequiredFieldId,
+    /// If no alias is provided, it's set to field name
+    pub alias_id: StringId,
+    pub id: RequiredFieldId,
     pub subselection: RequiredFieldSetRecord,
 }
 
-impl Walk<Schema> for &RequiredFieldSetItemRecord {
-    type Walker<'a> = RequiredFieldSetItem<'a> where Self: 'a;
-    fn walk<'s>(self, schema: &'s Schema) -> Self::Walker<'s>
+impl<'a> Walk<&'a Schema> for &RequiredFieldSetItemRecord {
+    type Walker<'w> = RequiredFieldSetItem<'w> where Self: 'w, 'a: 'w;
+    fn walk<'w>(self, schema: &'a Schema) -> Self::Walker<'w>
     where
-        Self: 's,
+        Self: 'w,
+        'a: 'w,
     {
         RequiredFieldSetItem { schema, ref_: self }
     }
@@ -93,7 +98,7 @@ pub struct RequiredFieldSetItem<'a> {
 
 impl<'a> RequiredFieldSetItem<'a> {
     pub fn field(&self) -> RequiredField<'a> {
-        self.ref_.field_id.walk(self.schema)
+        self.ref_.id.walk(self.schema)
     }
     pub fn subselection(&self) -> RequiredFieldSet<'a> {
         self.ref_.subselection.walk(self.schema)
@@ -115,7 +120,7 @@ impl std::fmt::Debug for RequiredFieldSetItem<'_> {
 impl FromIterator<RequiredFieldSetItemRecord> for RequiredFieldSetRecord {
     fn from_iter<T: IntoIterator<Item = RequiredFieldSetItemRecord>>(iter: T) -> Self {
         let mut fields = iter.into_iter().collect::<Vec<_>>();
-        fields.sort_unstable_by_key(|field| field.field_id);
+        fields.sort_unstable_by_key(|field| field.id);
         Self(fields)
     }
 }
@@ -157,7 +162,7 @@ impl RequiredFieldSetRecord {
         while l < left_set.len() && r < right_set.len() {
             let left = &left_set[l];
             let right = &right_set[r];
-            match left.field_id.cmp(&right.field_id) {
+            match left.alias_id.cmp(&right.alias_id).then(left.id.cmp(&right.id)) {
                 Ordering::Less => {
                     fields.push(left.clone());
                     l += 1;
@@ -168,7 +173,8 @@ impl RequiredFieldSetRecord {
                 }
                 Ordering::Equal => {
                     fields.push(RequiredFieldSetItemRecord {
-                        field_id: left.field_id,
+                        alias_id: left.alias_id,
+                        id: left.id,
                         subselection: if left.subselection.is_empty() {
                             right.subselection.clone()
                         } else if right.subselection.is_empty() {

@@ -14,8 +14,8 @@ use schema::{
 
 use crate::{
     operation::{
-        FieldId, LogicalPlan, LogicalPlanId, Operation, OperationWalker, QueryPath, ResponseModifierRule,
-        SelectionSetId, SolvedRequiredFieldSet,
+        BoundFieldId, BoundSelectionSetId, LogicalPlan, LogicalPlanId, Operation, OperationWalker, QueryPath,
+        ResponseModifierRule, SolvedRequiredFieldSet,
     },
     response::{ErrorCode, GraphqlError},
 };
@@ -58,7 +58,7 @@ pub(super) struct LogicalPlanner<'a> {
     operation: &'a mut Operation,
 
     /// Maps field IDs to their corresponding logical plan IDs, if any.
-    #[indexed_by(FieldId)]
+    #[indexed_by(BoundFieldId)]
     field_to_logical_plan_id: Vec<Option<LogicalPlanId>>,
 
     /// Maps field IDs to their corresponding solved requirements, if any.
@@ -69,7 +69,7 @@ pub(super) struct LogicalPlanner<'a> {
     logical_plans: Vec<LogicalPlan>,
 
     /// A bit set indicating which selection sets contain objects that must be tracked.
-    selection_set_to_objects_must_be_tracked: BitSet<SelectionSetId>,
+    selection_set_to_objects_must_be_tracked: BitSet<BoundSelectionSetId>,
 
     /// An ordered list of logical plan IDs for mutation fields.
     mutation_fields_plan_order: Vec<LogicalPlanId>,
@@ -79,7 +79,7 @@ pub(super) struct LogicalPlanner<'a> {
     dependents_builder: Vec<(LogicalPlanId, LogicalPlanId)>,
 
     /// A list of solved requirements associated with selection sets.
-    solved_requirements: Vec<(SelectionSetId, SolvedRequiredFieldSet)>,
+    solved_requirements: Vec<(BoundSelectionSetId, SolvedRequiredFieldSet)>,
 }
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord)]
@@ -231,7 +231,7 @@ impl<'a> LogicalPlanner<'a> {
     }
 
     /// A query is simply treated as a plan boundary with no parent.
-    fn plan_query(&mut self, field_ids: Vec<FieldId>) -> LogicalPlanningResult<()> {
+    fn plan_query(&mut self, field_ids: Vec<BoundFieldId>) -> LogicalPlanningResult<()> {
         let id = self.operation.root_selection_set_id;
         SelectionSetLogicalPlanner::new(self, &QueryPath::default(), None).solve(id, None, Vec::new(), field_ids)
     }
@@ -239,7 +239,7 @@ impl<'a> LogicalPlanner<'a> {
     /// Mutation is a special case because root fields need to execute in order. So planning each
     /// field individually and setting up plan dependencies between them to ensures proper
     /// execution order.
-    fn plan_mutation(&mut self, field_ids: Vec<FieldId>) -> LogicalPlanningResult<()> {
+    fn plan_mutation(&mut self, field_ids: Vec<BoundFieldId>) -> LogicalPlanningResult<()> {
         let mut groups = field_ids
             .into_iter()
             .into_group_map_by(|id| self.operation[*id].response_key())
@@ -280,7 +280,7 @@ impl<'a> LogicalPlanner<'a> {
         &mut self,
         path: &QueryPath,
         logic: &PlanningLogic<'a>,
-        field_ids: &[FieldId],
+        field_ids: &[BoundFieldId],
     ) -> LogicalPlanningResult<()> {
         self.attribute_fields(field_ids, logic.id());
         for id in field_ids {
@@ -307,9 +307,9 @@ impl<'a> LogicalPlanner<'a> {
         &mut self,
         path: &QueryPath,
         logic: &PlanningLogic<'a>,
-        parent_field_id: FieldId,
+        parent_field_id: BoundFieldId,
         parent_definition_id: FieldDefinitionId,
-        selection_set_id: SelectionSetId,
+        selection_set_id: BoundSelectionSetId,
     ) -> LogicalPlanningResult<()> {
         let walker = self.walker();
         let (obviously_plannable_field_ids, unplanned_field_ids): (Vec<_>, Vec<_>) = self.operation[selection_set_id]
@@ -364,7 +364,7 @@ impl<'a> LogicalPlanner<'a> {
         query_path: QueryPath,
         resolver_id: ResolverDefinitionId,
         entity_id: EntityDefinitionId,
-        root_field_ids: &[FieldId],
+        root_field_ids: &[BoundFieldId],
     ) -> LogicalPlanningResult<LogicalPlanId> {
         let id = LogicalPlanId::from(self.logical_plans.len());
         tracing::trace!(
@@ -398,7 +398,7 @@ impl<'a> LogicalPlanner<'a> {
         self.dependents_builder.push((edge.parent, edge.child));
     }
 
-    pub fn attribute_fields(&mut self, fields: &[FieldId], id: LogicalPlanId) {
+    pub fn attribute_fields(&mut self, fields: &[BoundFieldId], id: LogicalPlanId) {
         for field_id in fields {
             self[*field_id] = Some(id);
         }

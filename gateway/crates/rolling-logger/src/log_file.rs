@@ -39,7 +39,12 @@ impl LogFile {
     /// Returns an `io::Result<Self>`, which is `Ok` if the log file was created successfully,
     /// or an `io::Error` if there was an issue creating the file.
     pub fn new(path: &Path, rotate_strategy: RotateStrategy) -> io::Result<Self> {
-        let file = File::create(path)?;
+        let file = if path.exists() {
+            File::options().append(true).open(path)?
+        } else {
+            File::create(path)?
+        };
+
         let size = fs::metadata(path).map_or(0, |m| m.len());
 
         Ok(Self {

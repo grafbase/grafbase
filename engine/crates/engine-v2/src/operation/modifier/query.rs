@@ -5,8 +5,8 @@ use serde::Deserialize;
 use crate::{
     execution::{ErrorId, PlanningResult, PreExecutionContext},
     operation::{
-        FieldId, PreparedOperation, PreparedOperationWalker, QueryModifierId, QueryModifierImpactedFieldId,
-        QueryModifierRule, Variables,
+        BoundFieldId, BoundQueryModifierId, BoundQueryModifierImpactedFieldId, PreparedOperation,
+        PreparedOperationWalker, QueryModifierRule, Variables,
     },
     response::{ConcreteObjectShapeId, ErrorCode, FieldShapeId, GraphqlError},
     Runtime,
@@ -15,7 +15,7 @@ use crate::{
 #[derive(id_derives::IndexedFields)]
 pub(crate) struct QueryModifications {
     pub is_any_field_skipped: bool,
-    pub skipped_fields: BitSet<FieldId>,
+    pub skipped_fields: BitSet<BoundFieldId>,
     #[indexed_by(ErrorId)]
     pub errors: Vec<GraphqlError>,
     pub concrete_shape_has_error: BitSet<ConcreteObjectShapeId>,
@@ -84,7 +84,7 @@ where
         let mut scopes = None;
 
         for (i, modifier) in self.operation.query_modifiers.iter().enumerate() {
-            let modifier_id = QueryModifierId::from(i);
+            let modifier_id = BoundQueryModifierId::from(i);
 
             match modifier.rule {
                 QueryModifierRule::Authenticated => {
@@ -126,7 +126,7 @@ where
                     let verdict = self
                         .ctx
                         .hooks()
-                        .authorize_edge_pre_execution(
+                        .old_authorize_edge_pre_execution(
                             self.schema().walk(definition_id),
                             self.walker()
                                 .walk(argument_ids)
@@ -218,7 +218,7 @@ where
             'outer: for (concrete_shape_id, shape) in
                 self.operation.response_blueprint.shapes.concrete.iter().enumerate()
             {
-                if current < shape.field_shape_ids.end() {
+                if current < shape.field_shape_ids.end {
                     let mut i = 0;
                     while let Some(field_shape_id) = shape.field_shape_ids.get(i) {
                         match field_shape_id.cmp(&current) {
@@ -253,8 +253,8 @@ where
 
     fn handle_modifier_resulted_in_error(
         &mut self,
-        id: QueryModifierId,
-        impacted_fields: IdRange<QueryModifierImpactedFieldId>,
+        id: BoundQueryModifierId,
+        impacted_fields: IdRange<BoundQueryModifierImpactedFieldId>,
         error: GraphqlError,
     ) {
         self.modifications.is_any_field_skipped = true;

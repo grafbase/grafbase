@@ -1,0 +1,36 @@
+{{- if .Values.configmap.enabled -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "app.fullname" . }}-env
+  labels:
+    {{- include "app.labels" . | nindent 4 }}
+data: 
+  {{- range $name, $config := .Values.configmap.values }}
+  {{ $name }}: {{ $config | quote }}
+  {{- end }}
+{{- end }}
+---
+{{- if not .Values.gateway.externalConfig -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "app.fullname" . }}-gateway-config
+  labels:
+    {{- include "app.labels" . | nindent 4 }}
+data:
+  config.toml: |
+    {{- .Values.gateway.config | nindent 4 }}
+{{- end }}
+---
+{{- if not .Values.gateway.externalSchema -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "app.fullname" . }}-gateway-schema
+  labels:
+    {{- include "app.labels" . | nindent 4 }}
+data:
+  schema.sdl: |
+    {{- .Values.gateway.schema | nindent 4 }}
+{{- end }}

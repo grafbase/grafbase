@@ -77,7 +77,7 @@ pub(crate) struct RequestErrorResponse {
 
 pub(crate) struct RefusedRequestResponse {
     status: http::StatusCode,
-    error: GraphqlError,
+    errors: Vec<GraphqlError>,
     error_code_counter: ErrorCodeCounter,
 }
 
@@ -88,14 +88,24 @@ impl RefusedRequestResponse {
 }
 
 impl<OnOperationResponseHookOutput> Response<OnOperationResponseHookOutput> {
-    pub(crate) fn refuse_request_with(status: http::StatusCode, error: impl Into<GraphqlError>) -> Self {
-        let error: GraphqlError = error.into();
+    pub(crate) fn refuse_request_with(
+        status: http::StatusCode,
+        errors: impl IntoIterator<Item = impl Into<GraphqlError>>,
+    ) -> Self {
         let mut error_code_counter = ErrorCodeCounter::default();
-        error_code_counter.increment(error.code);
+
+        let errors = errors
+            .into_iter()
+            .map(|error| {
+                let error = error.into();
+                error_code_counter.increment(error.code);
+                error
+            })
+            .collect::<Vec<_>>();
 
         Self::RefusedRequest(RefusedRequestResponse {
             status,
-            error,
+            errors,
             error_code_counter,
         })
     }
@@ -172,7 +182,7 @@ impl<OnOperationResponseHookOutput> Response<OnOperationResponseHookOutput> {
 
     pub(crate) fn errors(&self) -> &[GraphqlError] {
         match self {
-            Response::RefusedRequest(resp) => std::array::from_ref(&resp.error),
+            Response::RefusedRequest(resp) => &resp.errors,
             Response::RequestError(resp) => &resp.errors,
             Response::Executed(resp) => &resp.errors,
         }

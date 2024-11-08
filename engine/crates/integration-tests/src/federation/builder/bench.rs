@@ -6,6 +6,7 @@ use std::sync::{
 use bytes::Bytes;
 use engine_v2::Body;
 use futures::{StreamExt, TryStreamExt};
+use gateway_config::Config;
 use runtime::{
     bytes::OwnedOrSharedBytes,
     fetch::{dynamic::DynFetcher, FetchRequest, FetchResult},
@@ -61,7 +62,7 @@ impl<'a> DeterministicEngineBuilder<'a> {
             dummy_responses_index.clone(),
         );
         let graph = federated_graph::from_sdl(self.schema).unwrap();
-        let config = engine_v2::VersionedConfig::V6(engine_v2::config::Config::from_graph(graph)).into_latest();
+        let config = engine_v2::config::Config::from_graph(graph);
 
         let schema =
             engine_v2::Schema::build(config, engine_v2::SchemaVersion::from(ulid::Ulid::new().to_bytes())).unwrap();
@@ -96,7 +97,7 @@ impl<'a> DeterministicEngineBuilder<'a> {
 impl DeterministicEngine {
     pub fn builder<'a>(schema: &'a str, query: &'a str) -> DeterministicEngineBuilder<'a> {
         DeterministicEngineBuilder {
-            runtime: TestRuntime::default(),
+            runtime: TestRuntime::new(&Config::default()),
             schema,
             query,
             subgraphs_json_responses: Vec::new(),

@@ -22,19 +22,6 @@ where
     }
 }
 
-impl<Id> From<IdRange<Id>> for Range<usize>
-where
-    Id: From<usize> + Copy,
-    usize: From<Id>,
-{
-    fn from(value: IdRange<Id>) -> Self {
-        Range {
-            start: value.start.into(),
-            end: value.end.into(),
-        }
-    }
-}
-
 impl<Id> IdRange<Id>
 where
     Id: From<usize> + Copy,
@@ -70,7 +57,7 @@ where
             None
         }
     }
-
+    //
     // An From/Into would be nicer, but it's dangerously also works for (usize, usize)
     // which could also be interpreted as a range (start, end).
     pub fn from_start_and_length<Src>((start, len): (Src, usize)) -> Self
@@ -81,6 +68,18 @@ where
         Self {
             start,
             end: Id::from(usize::from(start) + len),
+        }
+    }
+
+    // An From/Into would be nicer, but it's dangerously also works for (usize, usize)
+    // which could also be interpreted as a range (start, end).
+    pub fn from_start_and_end<Src>(start: Src, end: Src) -> Self
+    where
+        Id: From<Src>,
+    {
+        Self {
+            start: Id::from(start),
+            end: Id::from(end),
         }
     }
 
@@ -110,14 +109,6 @@ where
         })
     }
 
-    pub fn start(&self) -> Id {
-        self.start
-    }
-
-    pub fn end(&self) -> Id {
-        self.end
-    }
-
     pub fn as_usize(self) -> Range<usize> {
         self.into()
     }
@@ -135,17 +126,32 @@ where
     }
 }
 
-impl<G, Id: Walk<G> + 'static> Walk<G> for IdRange<Id>
+impl<Id> From<IdRange<Id>> for Range<usize>
 where
     Id: From<usize> + Copy,
     usize: From<Id>,
 {
+    fn from(value: IdRange<Id>) -> Self {
+        Range {
+            start: value.start.into(),
+            end: value.end.into(),
+        }
+    }
+}
+
+impl<G, Id: Walk<G> + 'static> Walk<G> for IdRange<Id>
+where
+    Id: From<usize> + Copy,
+    usize: From<Id>,
+    G: Copy,
+{
     type Walker<'a> = WalkIterator<'a, IdRangeIterator<Id>, G>
     where G: 'a;
 
-    fn walk<'a>(self, graph: &'a G) -> Self::Walker<'a>
+    fn walk<'a>(self, graph: G) -> Self::Walker<'a>
     where
         Self: 'a,
+        G: 'a,
     {
         WalkIterator::new(self.into_iter(), graph)
     }

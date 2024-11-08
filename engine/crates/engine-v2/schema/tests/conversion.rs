@@ -1,4 +1,4 @@
-use config::latest::{HeaderRemove, HeaderRule, NameOrPattern};
+use config::{HeaderRemove, HeaderRule, NameOrPattern};
 use engine_v2_schema::{DefinitionId, Schema, Version};
 use federated_graph::from_sdl;
 use pretty_assertions::assert_eq;
@@ -100,7 +100,7 @@ type User
 #[test]
 fn should_not_fail() {
     let graph = from_sdl(SCHEMA).unwrap();
-    let config = config::VersionedConfig::V6(config::latest::Config::from_graph(graph)).into_latest();
+    let config = config::Config::from_graph(graph);
     let _schema = Schema::build(config, Version::from(Vec::new())).unwrap();
 }
 
@@ -233,7 +233,7 @@ input BookInput2 {
 #[test]
 fn should_remove_all_inaccessible_items() {
     let graph = from_sdl(SCHEMA_WITH_INACCESSIBLES).unwrap();
-    let config = config::VersionedConfig::V6(config::latest::Config::from_graph(graph)).into_latest();
+    let config = config::Config::from_graph(graph);
     let schema = Schema::build(config, Version::from("random")).unwrap();
 
     // Inaccessible types are still in the schema, they're just not reachable through input and output fields.
@@ -310,7 +310,7 @@ fn should_remove_all_inaccessible_items() {
 #[case(SCHEMA_WITH_INACCESSIBLES)]
 fn serde_roundtrip(#[case] sdl: &str) {
     let graph = from_sdl(sdl).unwrap();
-    let mut config = config::VersionedConfig::V6(config::latest::Config::from_graph(graph)).into_latest();
+    let mut config = config::Config::from_graph(graph);
 
     config.header_rules.push(HeaderRule::Remove(HeaderRemove {
         name: NameOrPattern::Pattern(Regex::new("^foo*").unwrap()),

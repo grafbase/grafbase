@@ -5,7 +5,9 @@ use schema::{
     ScalarType, Schema, TypeRecord,
 };
 
-use crate::operation::{Location, VariableDefinition, VariableInputValue, VariableInputValueId, VariableInputValues};
+use crate::operation::{
+    BoundVariableDefinition, Location, VariableInputValueId, VariableInputValueRecord, VariableInputValues,
+};
 
 use super::{
     error::InputValueError,
@@ -15,7 +17,7 @@ use super::{
 pub fn coerce_variable(
     schema: &Schema,
     input_values: &mut VariableInputValues,
-    definition: &VariableDefinition,
+    definition: &BoundVariableDefinition,
     value: ConstValue,
 ) -> Result<VariableInputValueId, InputValueError> {
     let mut ctx = VariableCoercionContext {
@@ -25,7 +27,7 @@ pub fn coerce_variable(
         value_path: Vec::new(),
         input_fields_buffer_pool: Vec::new(),
     };
-    let value = ctx.coerce_input_value(definition.ty, value)?;
+    let value = ctx.coerce_input_value(definition.ty_record, value)?;
     Ok(input_values.push_value(value))
 }
 
@@ -34,15 +36,19 @@ struct VariableCoercionContext<'a> {
     input_values: &'a mut VariableInputValues,
     location: Location,
     value_path: Vec<ValuePathSegment>,
-    input_fields_buffer_pool: Vec<Vec<(InputValueDefinitionId, VariableInputValue)>>,
+    input_fields_buffer_pool: Vec<Vec<(InputValueDefinitionId, VariableInputValueRecord)>>,
 }
 
 impl<'a> VariableCoercionContext<'a> {
-    fn coerce_input_value(&mut self, ty: TypeRecord, value: ConstValue) -> Result<VariableInputValue, InputValueError> {
+    fn coerce_input_value(
+        &mut self,
+        ty: TypeRecord,
+        value: ConstValue,
+    ) -> Result<VariableInputValueRecord, InputValueError> {
         if ty.wrapping.is_list() && !value.is_array() && !value.is_null() {
             let mut value = self.coerce_named_type(ty, value)?;
             for _ in 0..ty.wrapping.list_wrappings().len() {
-                value = VariableInputValue::List(IdRange::from_single(self.input_values.push_value(value)));
+                value = VariableInputValueRecord::List(IdRange::from_single(self.input_values.push_value(value)));
             }
             return Ok(value);
         }
@@ -50,7 +56,11 @@ impl<'a> VariableCoercionContext<'a> {
         self.coerce_list(ty, value)
     }
 
-    fn coerce_list(&mut self, mut ty: TypeRecord, value: ConstValue) -> Result<VariableInputValue, InputValueError> {
+    fn coerce_list(
+        &mut self,
+        mut ty: TypeRecord,
+        value: ConstValue,
+    ) -> Result<VariableInputValueRecord, InputValueError> {
         let Some(list_wrapping) = ty.wrapping.pop_list_wrapping() else {
             return self.coerce_named_type(ty, value);
         };
@@ -61,7 +71,7 @@ impl<'a> VariableCoercionContext<'a> {
                 path: self.path(),
                 location: self.location,
             }),
-            (ConstValue::Null, ListWrapping::NullableList) => Ok(VariableInputValue::Null),
+            (ConstValue::Null, ListWrapping::NullableList) => Ok(VariableInputValueRecord::Null),
             (ConstValue::List(array), _) => {
                 let ids = self.input_values.reserve_list(array.len());
                 for ((idx, value), id) in array.into_iter().enumerate().zip(ids) {
@@ -69,7 +79,7 @@ impl<'a> VariableCoercionContext<'a> {
                     self.input_values[id] = self.coerce_list(ty, value)?;
                     self.value_path.pop();
                 }
-                Ok(VariableInputValue::List(ids))
+                Ok(VariableInputValueRecord::List(ids))
             }
             (value, _) => Err(InputValueError::MissingList {
                 actual: value.into(),
@@ -80,7 +90,11 @@ impl<'a> VariableCoercionContext<'a> {
         }
     }
 
-    fn coerce_named_type(&mut self, ty: TypeRecord, value: ConstValue) -> Result<VariableInputValue, InputValueError> {
+    fn coerce_named_type(
+        &mut self,
+        ty: TypeRecord,
+        value: ConstValue,
+    ) -> Result<VariableInputValueRecord, InputValueError> {
         if value.is_null() {
             if ty.wrapping.is_required() {
                 return Err(InputValueError::UnexpectedNull {
@@ -89,7 +103,7 @@ impl<'a> VariableCoercionContext<'a> {
                     location: self.location,
                 });
             }
-            return Ok(VariableInputValue::Null);
+            return Ok(VariableInputValueRecord::Null);
         }
 
         match ty.definition_id {
@@ -104,7 +118,7 @@ impl<'a> VariableCoercionContext<'a> {
         &mut self,
         input_object: InputObjectDefinition<'_>,
         value: ConstValue,
-    ) -> Result<VariableInputValue, InputValueError> {
+    ) -> Result<VariableInputValueRecord, InputValueError> {
         let ConstValue::Object(mut fields) = value else {
             return Err(InputValueError::MissingObject {
                 name: input_object.name().to_string(),
@@ -119,7 +133,10 @@ impl<'a> VariableCoercionContext<'a> {
             match fields.swap_remove(input_field.name()) {
                 None => {
                     if let Some(default_value_id) = input_field.as_ref().default_value_id {
-                        fields_buffer.push((input_field.id(), VariableInputValue::DefaultValue(default_value_id)));
+                        fields_buffer.push((
+                            input_field.id(),
+                            VariableInputValueRecord::DefaultValue(default_value_id),
+                        ));
                     } else if input_field.ty().wrapping.is_required() {
                         return Err(InputValueError::UnexpectedNull {
                             expected: input_field.ty().to_string(),
@@ -146,14 +163,14 @@ impl<'a> VariableCoercionContext<'a> {
         }
         let ids = self.input_values.append_input_object(&mut fields_buffer);
         self.input_fields_buffer_pool.push(fields_buffer);
-        Ok(VariableInputValue::InputObject(ids))
+        Ok(VariableInputValueRecord::InputObject(ids))
     }
 
     fn coerce_enum(
         &mut self,
         r#enum: EnumDefinition<'_>,
         value: ConstValue,
-    ) -> Result<VariableInputValue, InputValueError> {
+    ) -> Result<VariableInputValueRecord, InputValueError> {
         let name = match &value {
             ConstValue::Enum(value) => value.as_str(),
             ConstValue::String(value) => value.as_str(),
@@ -176,35 +193,35 @@ impl<'a> VariableCoercionContext<'a> {
             });
         };
 
-        Ok(VariableInputValue::EnumValue(id))
+        Ok(VariableInputValueRecord::EnumValue(id))
     }
 
     fn coerce_scalar(
         &mut self,
         scalar: ScalarDefinition<'_>,
         value: ConstValue,
-    ) -> Result<VariableInputValue, InputValueError> {
+    ) -> Result<VariableInputValueRecord, InputValueError> {
         match (value, scalar.as_ref().ty) {
             (value, ScalarType::JSON) => Ok(match value {
-                ConstValue::Null => VariableInputValue::Null,
+                ConstValue::Null => VariableInputValueRecord::Null,
                 ConstValue::Number(n) => {
                     if let Some(n) = n.as_f64() {
-                        VariableInputValue::Float(n)
+                        VariableInputValueRecord::Float(n)
                     } else if let Some(n) = n.as_i64() {
-                        VariableInputValue::BigInt(n)
+                        VariableInputValueRecord::BigInt(n)
                     } else {
-                        VariableInputValue::U64(n.as_u64().unwrap())
+                        VariableInputValueRecord::U64(n.as_u64().unwrap())
                     }
                 }
-                ConstValue::String(s) => VariableInputValue::String(s),
-                ConstValue::Boolean(b) => VariableInputValue::Boolean(b),
+                ConstValue::String(s) => VariableInputValueRecord::String(s),
+                ConstValue::Boolean(b) => VariableInputValueRecord::Boolean(b),
                 ConstValue::List(array) => {
                     let ids = self.input_values.reserve_list(array.len());
                     for (value, id) in array.into_iter().zip(ids) {
                         let value = self.coerce_scalar(scalar, value)?;
                         self.input_values[id] = value;
                     }
-                    VariableInputValue::List(ids)
+                    VariableInputValueRecord::List(ids)
                 }
                 ConstValue::Object(fields) => {
                     let ids = self.input_values.reserve_map(fields.len());
@@ -212,7 +229,7 @@ impl<'a> VariableCoercionContext<'a> {
                         let key = name.into_string();
                         self.input_values[id] = (key, self.coerce_scalar(scalar, value)?);
                     }
-                    VariableInputValue::Map(ids)
+                    VariableInputValueRecord::Map(ids)
                 }
                 other => {
                     return Err(InputValueError::IncorrectScalarType {
@@ -232,7 +249,7 @@ impl<'a> VariableCoercionContext<'a> {
                         location: self.location,
                     });
                 };
-                Ok(VariableInputValue::Int(value))
+                Ok(VariableInputValueRecord::Int(value))
             }
             (ConstValue::Number(number), ScalarType::BigInt) => {
                 let Some(value) = number.as_i64() else {
@@ -243,7 +260,7 @@ impl<'a> VariableCoercionContext<'a> {
                         location: self.location,
                     });
                 };
-                Ok(VariableInputValue::BigInt(value))
+                Ok(VariableInputValueRecord::BigInt(value))
             }
             (ConstValue::Number(number), ScalarType::Float) => {
                 let Some(value) = number.as_f64() else {
@@ -254,10 +271,10 @@ impl<'a> VariableCoercionContext<'a> {
                         location: self.location,
                     });
                 };
-                Ok(VariableInputValue::Float(value))
+                Ok(VariableInputValueRecord::Float(value))
             }
-            (ConstValue::String(value), ScalarType::String) => Ok(VariableInputValue::String(value)),
-            (ConstValue::Boolean(value), ScalarType::Boolean) => Ok(VariableInputValue::Boolean(value)),
+            (ConstValue::String(value), ScalarType::String) => Ok(VariableInputValueRecord::String(value)),
+            (ConstValue::Boolean(value), ScalarType::Boolean) => Ok(VariableInputValueRecord::Boolean(value)),
             (ConstValue::Binary(_), _) => unreachable!("Parser doesn't generate bytes, nor do variables."),
             (actual, _) => Err(InputValueError::IncorrectScalarType {
                 actual: actual.into(),

@@ -4,8 +4,7 @@ members = [
     "gateway/crates/*",
     "cli/crates/*",
     "engine/crates/*",
-    "engine/crates/gateway-v2/auth",
-    "engine/crates/gateway-v2/auth-config",
+    "engine/crates/engine-v2/auth",
     "engine/crates/engine-v2/config",
     "engine/crates/engine-v2/axum",
     "engine/crates/engine-v2/codegen",
@@ -14,17 +13,8 @@ members = [
     "engine/crates/engine-v2/query-planning",
     "engine/crates/engine-v2/id-derives",
     "engine/crates/engine-v2/id-newtypes",
-    "engine/crates/engine/derive",
-    "engine/crates/engine/meta-type-name",
-    "engine/crates/engine/parser",
-    "engine/crates/engine/query-path",
-    "engine/crates/engine/registry-for-cache",
-    "engine/crates/engine/registry-upgrade",
-    "engine/crates/engine/registry-v2",
-    "engine/crates/engine/registry-v2-generator",
-    "engine/crates/engine/response",
-    "engine/crates/engine/scalars",
-    "engine/crates/engine/value",
+    "engine/crates/engine-v2/parser",
+    "engine/crates/engine-v2/value",
     "graph-ref",
     "graphql-lint",
     "gqlint",
@@ -33,35 +23,12 @@ members = [
 exclude = [
     "engine/crates/gateway-v2",
     "engine/crates/wasi-component-loader/examples",
+    "examples/hooks-template",
 ]
 
 [patch.crates-io]
-axum = { git = "https://github.com/grafbase/axum", rev = "c3146f9ca921907d9884fbf7549a1520e9e72eac" }                                 # axum-tungstenite-upgrade
 multipart-stream = { git = "https://github.com/grafbase/multipart-stream-rs-fork", rev = "06ff198e4041c8a8c1c93e580c260d597727c193" } # http-1.0-fix-multipart-mixed
-names = { git = "https://github.com/grafbase/names", rev = "443800fbb7bc2936c1f2c16f3a5e116698b1454a" }                               # main
 # FIXME: Drop when a new version is released.
-openidconnect = { git = "https://github.com/ramosbugs/openidconnect-rs", rev = "7efc8943a8f699aff2db742827fc3d0fc2b3f34d" } # main
-
-opentelemetry = { git = "https://github.com/grafbase/opentelemetry-rust", rev = "f215fe9a391d7d159b9c8a6f8c303d143ba2910f" }                  # http-v1
-opentelemetry-otlp = { git = "https://github.com/grafbase/opentelemetry-rust", rev = "f215fe9a391d7d159b9c8a6f8c303d143ba2910f" }             # http-v1
-opentelemetry-stdout = { git = "https://github.com/grafbase/opentelemetry-rust", rev = "f215fe9a391d7d159b9c8a6f8c303d143ba2910f" }           # http-v1
-opentelemetry_sdk = { git = "https://github.com/grafbase/opentelemetry-rust", rev = "f215fe9a391d7d159b9c8a6f8c303d143ba2910f" }              # http-v1
-opentelemetry-appender-tracing = { git = "https://github.com/grafbase/opentelemetry-rust", rev = "f215fe9a391d7d159b9c8a6f8c303d143ba2910f" }
-
-# FIXME: Uncomment when we upgrade opentelemetry to 0.23.
-# opentelemetry-aws = { git = "https://github.com/open-telemetry/opentelemetry-rust-contrib", rev = "086961e18437743c5ea43c9474cc1a7b13a49c6b" } # main
-ory-client = { git = "https://github.com/ory/client-rust", rev = "v1.14.3" }
-reqwest = { git = "https://github.com/grafbase/reqwest", rev = "bcdc38deb99048eaee37313857e19ff3df7a2870" }       # 0.12.8-with-patches-wasm-timeout
-serde_with = { git = "https://github.com/grafbase/serde_with", rev = "06ad277a0e0175c2364d3c065e303a6c8a775c8a" } # minify-field-names
-tokio-postgres = { git = "https://github.com/grafbase/rust-postgres/", branch = "grafbase-rebased" }
-# Upgrade 0.4.13 only to get rid of indexmap 1.9.
-# tower = { git = "https://github.com/grafbase/tower", rev = "7202cfeecd13ad6bbecd537d9799244313600db5" } # upgrade-indexmap
-# FIXME: Uncomment when we upgrade opentelemetry to 0.23.
-# tracing-opentelemetry = { git = "https://github.com/tokio-rs/tracing-opentelemetry", rev = "2539f4f7bde3dc3f320e5fb935d2c13a69a540dd" } # main
-tracing = { git = "https://github.com/tokio-rs/tracing", rev = "6d00d7d9f72dc6797138a1062bc33073afbad5a1" }      # v0.1.x
-tracing-core = { git = "https://github.com/tokio-rs/tracing", rev = "6d00d7d9f72dc6797138a1062bc33073afbad5a1" } # v0.1.x
-tracing-mock = { git = "https://github.com/tokio-rs/tracing", rev = "6d00d7d9f72dc6797138a1062bc33073afbad5a1" } # v0.1.x
-
 # Make sure we use the workspace-hack package when building
 # this repo, but not when pulling it in
 # See https://docs.rs/cargo-hakari/0.9.30/cargo_hakari/patch_directive/index.html for details
@@ -95,7 +62,7 @@ chrono = { version = "0.4.38", default-features = false }
 ctor = "0.2.8"
 cynic = "=3.7.3"
 cynic-introspection = "=3.7.3"
-cynic-parser = "0.6.0"
+cynic-parser = "0.8.0"
 deadpool-postgres = "0.14"
 derive_more = "1.0.0-beta.6"
 jwt-compact = "0.8"
@@ -107,6 +74,8 @@ handlebars = "5.1.2"
 headers = "0.4"
 hex = "0.4.3"
 http = "1.1.0"
+httpsig = "0.0.16"
+httpsig-hyper = "0.0.16"
 hyper = { version = "1.3.1", features = ["http2"] }
 hyper-util = "0.1.3"
 indexmap = "2.2.6"
@@ -118,7 +87,7 @@ governor = "0.6"
 multipart-stream = "0.1.2"
 mediatype = "0.19"
 num-traits = "0.2.18"
-openidconnect = "4.0.0-alpha.1"
+openidconnect = "4.0.0-rc.1"
 petgraph = "0.6"
 pprof = "0.13"
 postcard = { version = "1", features = ["use-std"] }
@@ -171,12 +140,12 @@ tracing = "0.1.40"
 tracing-subscriber = "0.3.18"
 tracing-futures = "0.2.5"
 tracing-mock = "0.1"
-tracing-opentelemetry = "0.23"
-opentelemetry = "0.22"
-opentelemetry_sdk = "0.22.0"
-opentelemetry-stdout = "0.3"
-opentelemetry-otlp = "0.15"
-opentelemetry-appender-tracing = "0.3.0"
+tracing-opentelemetry = "0.27"
+opentelemetry = "0.26"
+opentelemetry_sdk = "0.26.0"
+opentelemetry-stdout = "0.26"
+opentelemetry-otlp = "0.26"
+opentelemetry-appender-tracing = "0.26.0"
 
 # Common
 graph-ref = { path = "graph-ref" }
@@ -190,41 +159,19 @@ gateway-config = { path = "gateway/crates/config" }
 rolling-logger = { path = "gateway/crates/rolling-logger" }
 
 # Engine
-async-runtime = { path = "engine/crates/async-runtime" }
 common-types = { path = "engine/crates/common-types" }
-dataloader = { path = "engine/crates/dataloader", features = ["tracing"] }
 engine-config-builder = { path = "engine/crates/engine-config-builder" }
-engine-parser = { path = "engine/crates/engine/parser" }
-engine = { path = "engine/crates/engine" }
-engine-id-newtypes = { path = "engine/crates/engine/id-newtypes" }
-engine-response = { path = "engine/crates/engine/response" }
+engine-parser = { path = "engine/crates/engine-v2/parser" }
 engine-v2 = { path = "engine/crates/engine-v2" }
+engine-v2-auth = { path = "engine/crates/engine-v2/auth" }
 engine-v2-axum = { path = "engine/crates/engine-v2/axum" }
-engine-validation = { path = "engine/crates/engine/validation" }
-engine-value = { path = "engine/crates/engine/value" }
+engine-v2-config = { path = "engine/crates/engine-v2/config" }
+engine-value = { path = "engine/crates/engine-v2/value" }
 federated-graph = { path = "engine/crates/federated-graph", package = "graphql-federated-graph" }
-gateway-core = { path = "engine/crates/gateway-core" }
-gateway-v2-auth = { path = "engine/crates/gateway-v2/auth" }
-gateway-v2-auth-config = { path = "engine/crates/gateway-v2/auth-config" }
 grafbase-telemetry = { path = "engine/crates/telemetry" }
-graph-entities = { path = "engine/crates/graph-entities" }
 graphql-composition = { path = "engine/crates/composition" }
-graphql-cursor = { path = "engine/crates/graphql-cursor" }
-graphql-extensions = { path = "engine/crates/graphql-extensions" }
 graphql-mocks = { path = "engine/crates/graphql-mocks" }
-jwt-verifier = { path = "engine/crates/jwt-verifier" }
 operation-normalizer = { path = "engine/crates/operation-normalizer" }
-parser-graphql = { path = "engine/crates/parser-graphql" }
-parser-openapi = { path = "engine/crates/parser-openapi" }
-parser-postgres = { path = "engine/crates/parser-postgres" }
-parser-sdl = { path = "engine/crates/parser-sdl" }
-partial-caching = { path = "engine/crates/partial-caching" }
-postgres-connector-types = { path = "engine/crates/postgres-connector-types" }
-query-path = { path = "engine/crates/engine/query-path" }
-registry-for-cache = { path = "engine/crates/engine/registry-for-cache" }
-registry-upgrade = { path = "engine/crates/engine/registry-upgrade" }
-registry-v1 = { path = "engine/crates/engine/registry-v1" }
-registry-v2 = { path = "engine/crates/engine/registry-v2" }
 runtime = { path = "engine/crates/runtime" }
 runtime-local = { path = "engine/crates/runtime-local" }
 runtime-noop = { path = "engine/crates/runtime-noop" }

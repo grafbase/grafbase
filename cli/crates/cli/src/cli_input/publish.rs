@@ -1,12 +1,12 @@
-use super::ProjectRef;
+use super::FullGraphRef;
 use clap::Parser;
 use url::Url;
 
 /// Publish a subgraph
 #[derive(Debug, Parser)]
 pub struct PublishCommand {
-    #[arg(help = ProjectRef::ARG_DESCRIPTION)]
-    pub(crate) project_ref: ProjectRef,
+    #[arg(help = FullGraphRef::ARG_DESCRIPTION)]
+    pub(crate) graph_ref: FullGraphRef,
 
     /// The name of the subgraph
     #[arg(long("name"))]

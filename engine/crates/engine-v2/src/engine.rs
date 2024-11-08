@@ -1,8 +1,8 @@
 use ::runtime::operation_cache::OperationCacheFactory;
 use bytes::Bytes;
+use engine_v2_auth::AuthService;
 use futures::{StreamExt, TryFutureExt};
 use futures_util::Stream;
-use gateway_v2_auth::AuthService;
 use retry_budget::RetryBudgets;
 use schema::Schema;
 use std::{borrow::Cow, future::Future, sync::Arc};
@@ -11,7 +11,7 @@ use crate::{
     graphql_over_http::{Http, ResponseFormat, StreamingResponseFormat},
     operation::PreparedOperation,
     response::Response,
-    websocket, Body,
+    websocket, Body, HooksExtension,
 };
 pub(crate) use execute::*;
 pub(crate) use runtime::*;
@@ -40,7 +40,7 @@ impl<R: Runtime> Engine<R> {
     /// schema_version is used in operation cache key which ensures we only retrieve cached
     /// operation for the same schema version. If none is provided, a random one is generated.
     pub async fn new(schema: Arc<Schema>, runtime: R) -> Self {
-        let auth = gateway_v2_auth::AuthService::new_v2(
+        let auth = AuthService::new_v2(
             schema.settings.auth_config.clone().unwrap_or_default(),
             runtime.kv().clone(),
         );
@@ -73,7 +73,17 @@ impl<R: Runtime> Engine<R> {
 
         let request_context_fut = self
             .create_request_context(!method.is_safe(), headers, response_format)
-            .map_err(|response| Http::error(response_format, response));
+            .map_err(|(mut response, context)| {
+                let on_operation_response_output = response.take_on_operation_response_output();
+                let mut http_response = Http::error(response_format, response);
+
+                http_response.extensions_mut().insert(HooksExtension::Single {
+                    context,
+                    on_operation_response_output,
+                });
+
+                http_response
+            });
 
         let graphql_request_fut =
             self.extract_well_formed_graphql_over_http_request(method, uri, response_format, body);
@@ -100,7 +110,7 @@ impl<R: Runtime> Engine<R> {
 
         let (request_context, hooks_context) = match self.create_request_context(true, headers, response_format).await {
             Ok(context) => context,
-            Err(response) => {
+            Err((response, _)) => {
                 return Err(response
                     .errors()
                     .first()

@@ -1,3 +1,8 @@
+enum UserType {
+    ADMIN
+    REGULAR
+}
+
 type User {
     id: ID!
     name: String!

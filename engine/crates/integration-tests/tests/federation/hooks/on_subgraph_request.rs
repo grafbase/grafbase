@@ -99,21 +99,24 @@ fn can_modify_headers() {
     }
 
     let response = runtime().block_on(async move {
+        let config = indoc::formatdoc! {r#"
+            [[subgraphs.echo.headers]]
+            rule = "forward"
+            name = "a"
+
+            [[subgraphs.echo.headers]]
+            rule = "forward"
+            name = "b"
+
+            [[subgraphs.echo.headers]]
+            rule = "forward"
+            name = "c"
+        "#};
+
         let engine = Engine::builder()
             .with_mock_hooks(TestHooks)
             .with_subgraph(EchoSchema)
-            .with_sdl_config(
-                r#"
-                extend schema @subgraph(
-                    name: "echo",
-                    headers: [
-                        { name: "a", forward: "a" },
-                        { name: "b", forward: "b" },
-                        { name: "c", forward: "c" }
-                    ]
-                )
-            "#,
-            )
+            .with_toml_config(config)
             .build()
             .await;
 

@@ -1,0 +1,53 @@
+directive @core(feature: String!) repeatable on SCHEMA
+
+directive @join__owner(graph: join__Graph!) on OBJECT
+
+directive @join__type(
+    graph: join__Graph!
+    key: String!
+    resolvable: Boolean = true
+) repeatable on OBJECT | INTERFACE
+
+directive @join__field(
+    graph: join__Graph
+    requires: String
+    provides: String
+) on FIELD_DEFINITION
+
+directive @join__graph(name: String!, url: String!) on ENUM_VALUE
+
+directive @join__implements(graph: join__Graph!, interface: String!) repeatable on OBJECT | INTERFACE
+
+directive @join__unionMember(graph: join__Graph!, member: String!) repeatable on UNION
+
+directive @cost(weight: Int!) on
+    ARGUMENT_DEFINITION
+  | ENUM
+  | FIELD_DEFINITION
+  | INPUT_FIELD_DEFINITION
+  | OBJECT
+  | SCALAR
+
+enum join__Graph {
+    A @join__graph(name: "a", url: "http://example.com/a")
+}
+
+scalar Foo @cost(weight: 6)
+
+type Query @cost(weight: 1) {
+    foo(name: String @cost(weight: 100)): String @join__field(graph: A)
+    id: ID! @join__field(graph: A) @cost(weight: 2)
+}
+
+interface Account @cost(weight: 3) {
+    foo(name: String @cost(weight: 200)): String
+    id: ID! @cost(weight: 4)
+}
+
+enum Blah @cost(weight: 5) {
+    BLAH
+}
+
+input Bar {
+    x: String @cost(weight: 7)
+}

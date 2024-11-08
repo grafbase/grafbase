@@ -4,12 +4,12 @@ use crate::{cli_input::TrustCommand, errors::CliError, output::report};
 
 pub(crate) fn trust(
     TrustCommand {
-        project_ref,
+        graph_ref,
         client_name,
         manifest,
     }: TrustCommand,
 ) -> Result<(), CliError> {
-    let Some(branch) = project_ref.branch() else {
+    let Some(branch) = graph_ref.branch() else {
         return Err(CliError::MissingArgument("branch"));
     };
 
@@ -21,8 +21,8 @@ pub(crate) fn trust(
 
     match backend::api::submit_trusted_documents::submit_trusted_documents(
         backend::api::submit_trusted_documents::TrustedDocumentsSubmitVariables {
-            account: project_ref.account(),
-            project: project_ref.project(),
+            account: graph_ref.account(),
+            project: graph_ref.graph(),
             branch,
             client_name: &client_name,
             documents: manifest

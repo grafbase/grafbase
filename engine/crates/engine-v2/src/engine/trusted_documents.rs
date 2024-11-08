@@ -2,11 +2,10 @@
 
 use crate::{
     execution::PreExecutionContext,
-    request::Request,
+    request::{extensions::PersistedQueryRequestExtension, Request},
     response::{ErrorCode, GraphqlError},
     Runtime,
 };
-use engine::PersistedQueryRequestExtension;
 use futures::{future::BoxFuture, FutureExt};
 use grafbase_telemetry::grafbase_client::X_GRAFBASE_CLIENT_NAME;
 use runtime::trusted_documents_client::TrustedDocumentsError;

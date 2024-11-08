@@ -276,29 +276,45 @@ pub mod component {
             /// An error response can be used to inject an error to the GraphQL response.
             #[derive(Clone)]
             pub struct Error {
+                /// The error message.
+                pub message: _rt::String,
                 /// Adds the given extensions to the response extensions. The first item in
                 /// the tuple is the extension key, and the second item is the extension value.
                 /// The extension value can be string-encoded JSON, which will be converted as
                 /// JSON in the response. It can also be just a string, which will be converted as
                 /// a JSON string in the response.
                 pub extensions: _rt::Vec<(_rt::String, _rt::String)>,
-                /// The error message.
-                pub message: _rt::String,
             }
             impl ::core::fmt::Debug for Error {
                 fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
                     f.debug_struct("Error")
-                        .field("extensions", &self.extensions)
                         .field("message", &self.message)
+                        .field("extensions", &self.extensions)
                         .finish()
                 }
             }
-            impl ::core::fmt::Display for Error {
+            /// An HTTP error response.
+            #[derive(Clone)]
+            pub struct ErrorResponse {
+                /// HTTP status code. Must be a valid status code. If not, the status code will be 500.
+                pub status_code: u16,
+                /// List of GraphQL errors.
+                pub errors: _rt::Vec<Error>,
+            }
+            impl ::core::fmt::Debug for ErrorResponse {
+                fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
+                    f.debug_struct("ErrorResponse")
+                        .field("status-code", &self.status_code)
+                        .field("errors", &self.errors)
+                        .finish()
+                }
+            }
+            impl ::core::fmt::Display for ErrorResponse {
                 fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
                     write!(f, "{:?}", self)
                 }
             }
-            impl std::error::Error for Error {}
+            impl std::error::Error for ErrorResponse {}
             impl Context {
                 #[allow(unused_unsafe, clippy::all)]
                 /// Fetches a context value with the given name, if existing.
@@ -701,7 +717,7 @@ pub mod exports {
                 static __FORCE_SECTION_REF: fn() = super::super::super::super::__link_custom_section_describing_imports;
                 use super::super::super::super::_rt;
                 pub type Headers = super::super::super::super::component::grafbase::types::Headers;
-                pub type Error = super::super::super::super::component::grafbase::types::Error;
+                pub type ErrorResponse = super::super::super::super::component::grafbase::types::ErrorResponse;
                 pub type Context = super::super::super::super::component::grafbase::types::Context;
                 #[doc(hidden)]
                 #[allow(non_snake_case)]
@@ -719,17 +735,18 @@ pub mod exports {
                         }
                         Err(e) => {
                             *ptr1.add(0).cast::<u8>() = (1i32) as u8;
-                            let super::super::super::super::component::grafbase::types::Error {
-                                extensions: extensions2,
-                                message: message2,
+                            let super::super::super::super::component::grafbase::types::ErrorResponse {
+                                status_code: status_code2,
+                                errors: errors2,
                             } = e;
-                            let vec6 = extensions2;
-                            let len6 = vec6.len();
-                            let layout6 = _rt::alloc::Layout::from_size_align_unchecked(vec6.len() * 16, 4);
-                            let result6 = if layout6.size() != 0 {
-                                let ptr = _rt::alloc::alloc(layout6).cast::<u8>();
+                            *ptr1.add(4).cast::<u16>() = (_rt::as_i32(status_code2)) as u16;
+                            let vec9 = errors2;
+                            let len9 = vec9.len();
+                            let layout9 = _rt::alloc::Layout::from_size_align_unchecked(vec9.len() * 16, 4);
+                            let result9 = if layout9.size() != 0 {
+                                let ptr = _rt::alloc::alloc(layout9).cast::<u8>();
                                 if ptr.is_null() {
-                                    _rt::alloc::handle_alloc_error(layout6);
+                                    _rt::alloc::handle_alloc_error(layout9);
                                 }
                                 ptr
                             } else {
@@ -737,32 +754,57 @@ pub mod exports {
                                     ::core::ptr::null_mut()
                                 }
                             };
-                            for (i, e) in vec6.into_iter().enumerate() {
-                                let base = result6.add(i * 16);
+                            for (i, e) in vec9.into_iter().enumerate() {
+                                let base = result9.add(i * 16);
                                 {
-                                    let (t3_0, t3_1) = e;
-                                    let vec4 = (t3_0.into_bytes()).into_boxed_slice();
+                                    let super::super::super::super::component::grafbase::types::Error {
+                                        message: message3,
+                                        extensions: extensions3,
+                                    } = e;
+                                    let vec4 = (message3.into_bytes()).into_boxed_slice();
                                     let ptr4 = vec4.as_ptr().cast::<u8>();
                                     let len4 = vec4.len();
                                     ::core::mem::forget(vec4);
                                     *base.add(4).cast::<usize>() = len4;
                                     *base.add(0).cast::<*mut u8>() = ptr4.cast_mut();
-                                    let vec5 = (t3_1.into_bytes()).into_boxed_slice();
-                                    let ptr5 = vec5.as_ptr().cast::<u8>();
-                                    let len5 = vec5.len();
-                                    ::core::mem::forget(vec5);
-                                    *base.add(12).cast::<usize>() = len5;
-                                    *base.add(8).cast::<*mut u8>() = ptr5.cast_mut();
+                                    let vec8 = extensions3;
+                                    let len8 = vec8.len();
+                                    let layout8 = _rt::alloc::Layout::from_size_align_unchecked(vec8.len() * 16, 4);
+                                    let result8 = if layout8.size() != 0 {
+                                        let ptr = _rt::alloc::alloc(layout8).cast::<u8>();
+                                        if ptr.is_null() {
+                                            _rt::alloc::handle_alloc_error(layout8);
+                                        }
+                                        ptr
+                                    } else {
+                                        {
+                                            ::core::ptr::null_mut()
+                                        }
+                                    };
+                                    for (i, e) in vec8.into_iter().enumerate() {
+                                        let base = result8.add(i * 16);
+                                        {
+                                            let (t5_0, t5_1) = e;
+                                            let vec6 = (t5_0.into_bytes()).into_boxed_slice();
+                                            let ptr6 = vec6.as_ptr().cast::<u8>();
+                                            let len6 = vec6.len();
+                                            ::core::mem::forget(vec6);
+                                            *base.add(4).cast::<usize>() = len6;
+                                            *base.add(0).cast::<*mut u8>() = ptr6.cast_mut();
+                                            let vec7 = (t5_1.into_bytes()).into_boxed_slice();
+                                            let ptr7 = vec7.as_ptr().cast::<u8>();
+                                            let len7 = vec7.len();
+                                            ::core::mem::forget(vec7);
+                                            *base.add(12).cast::<usize>() = len7;
+                                            *base.add(8).cast::<*mut u8>() = ptr7.cast_mut();
+                                        }
+                                    }
+                                    *base.add(12).cast::<usize>() = len8;
+                                    *base.add(8).cast::<*mut u8>() = result8;
                                 }
                             }
-                            *ptr1.add(8).cast::<usize>() = len6;
-                            *ptr1.add(4).cast::<*mut u8>() = result6;
-                            let vec7 = (message2.into_bytes()).into_boxed_slice();
-                            let ptr7 = vec7.as_ptr().cast::<u8>();
-                            let len7 = vec7.len();
-                            ::core::mem::forget(vec7);
-                            *ptr1.add(16).cast::<usize>() = len7;
-                            *ptr1.add(12).cast::<*mut u8>() = ptr7.cast_mut();
+                            *ptr1.add(12).cast::<usize>() = len9;
+                            *ptr1.add(8).cast::<*mut u8>() = result9;
                         }
                     };
                     ptr1
@@ -774,25 +816,35 @@ pub mod exports {
                     match l0 {
                         0 => (),
                         _ => {
-                            let l5 = *arg0.add(4).cast::<*mut u8>();
-                            let l6 = *arg0.add(8).cast::<usize>();
-                            let base7 = l5;
-                            let len7 = l6;
-                            for i in 0..len7 {
-                                let base = base7.add(i * 16);
+                            let l10 = *arg0.add(8).cast::<*mut u8>();
+                            let l11 = *arg0.add(12).cast::<usize>();
+                            let base12 = l10;
+                            let len12 = l11;
+                            for i in 0..len12 {
+                                let base = base12.add(i * 16);
                                 {
                                     let l1 = *base.add(0).cast::<*mut u8>();
                                     let l2 = *base.add(4).cast::<usize>();
                                     _rt::cabi_dealloc(l1, l2, 1);
-                                    let l3 = *base.add(8).cast::<*mut u8>();
-                                    let l4 = *base.add(12).cast::<usize>();
-                                    _rt::cabi_dealloc(l3, l4, 1);
+                                    let l7 = *base.add(8).cast::<*mut u8>();
+                                    let l8 = *base.add(12).cast::<usize>();
+                                    let base9 = l7;
+                                    let len9 = l8;
+                                    for i in 0..len9 {
+                                        let base = base9.add(i * 16);
+                                        {
+                                            let l3 = *base.add(0).cast::<*mut u8>();
+                                            let l4 = *base.add(4).cast::<usize>();
+                                            _rt::cabi_dealloc(l3, l4, 1);
+                                            let l5 = *base.add(8).cast::<*mut u8>();
+                                            let l6 = *base.add(12).cast::<usize>();
+                                            _rt::cabi_dealloc(l5, l6, 1);
+                                        }
+                                    }
+                                    _rt::cabi_dealloc(base9, len9 * 16, 4);
                                 }
                             }
-                            _rt::cabi_dealloc(base7, len7 * 16, 4);
-                            let l8 = *arg0.add(12).cast::<*mut u8>();
-                            let l9 = *arg0.add(16).cast::<usize>();
-                            _rt::cabi_dealloc(l8, l9, 1);
+                            _rt::cabi_dealloc(base12, len12 * 16, 4);
                         }
                     }
                 }
@@ -803,7 +855,7 @@ pub mod exports {
                     ///
                     /// If returning an error from the hook, the request processing is stopped and the given error
                     /// returned to the client.
-                    fn on_gateway_request(context: Context, headers: Headers) -> Result<(), Error>;
+                    fn on_gateway_request(context: Context, headers: Headers) -> Result<(), ErrorResponse>;
                 }
                 #[doc(hidden)]
 
@@ -823,8 +875,8 @@ pub mod exports {
                 #[doc(hidden)]
                 pub(crate) use __export_component_grafbase_gateway_request_cabi;
                 #[repr(align(4))]
-                struct _RetArea([::core::mem::MaybeUninit<u8>; 20]);
-                static mut _RET_AREA: _RetArea = _RetArea([::core::mem::MaybeUninit::uninit(); 20]);
+                struct _RetArea([::core::mem::MaybeUninit<u8>; 16]);
+                static mut _RET_AREA: _RetArea = _RetArea([::core::mem::MaybeUninit::uninit(); 16]);
             }
         }
     }
@@ -944,6 +996,76 @@ mod _rt {
     pub fn run_ctors_once() {
         wit_bindgen_rt::run_ctors_once();
     }
+
+    pub fn as_i32<T: AsI32>(t: T) -> i32 {
+        t.as_i32()
+    }
+
+    pub trait AsI32 {
+        fn as_i32(self) -> i32;
+    }
+
+    impl<'a, T: Copy + AsI32> AsI32 for &'a T {
+        fn as_i32(self) -> i32 {
+            (*self).as_i32()
+        }
+    }
+
+    impl AsI32 for i32 {
+        #[inline]
+        fn as_i32(self) -> i32 {
+            self as i32
+        }
+    }
+
+    impl AsI32 for u32 {
+        #[inline]
+        fn as_i32(self) -> i32 {
+            self as i32
+        }
+    }
+
+    impl AsI32 for i16 {
+        #[inline]
+        fn as_i32(self) -> i32 {
+            self as i32
+        }
+    }
+
+    impl AsI32 for u16 {
+        #[inline]
+        fn as_i32(self) -> i32 {
+            self as i32
+        }
+    }
+
+    impl AsI32 for i8 {
+        #[inline]
+        fn as_i32(self) -> i32 {
+            self as i32
+        }
+    }
+
+    impl AsI32 for u8 {
+        #[inline]
+        fn as_i32(self) -> i32 {
+            self as i32
+        }
+    }
+
+    impl AsI32 for char {
+        #[inline]
+        fn as_i32(self) -> i32 {
+            self as i32
+        }
+    }
+
+    impl AsI32 for usize {
+        #[inline]
+        fn as_i32(self) -> i32 {
+            self as i32
+        }
+    }
     pub use alloc_crate::alloc;
     pub unsafe fn cabi_dealloc(ptr: *mut u8, size: usize, align: usize) {
         if size == 0 {
@@ -986,9 +1108,9 @@ pub(crate) use __export_hooks_impl as export;
 #[cfg(target_arch = "wasm32")]
 #[link_section = "component-type:wit-bindgen:0.25.0:hooks:encoded world"]
 #[doc(hidden)]
-pub static __WIT_BINDGEN_COMPONENT_TYPE: [u8; 1812] = *b"\
-\0asm\x0d\0\x01\0\0\x19\x16wit-component-encoding\x04\0\x07\x98\x0d\x01A\x02\x01\
-A\x07\x01B:\x01m\x02\x14invalid-header-value\x13invalid-header-name\x04\0\x0chea\
+pub static __WIT_BINDGEN_COMPONENT_TYPE: [u8; 1877] = *b"\
+\0asm\x0d\0\x01\0\0\x19\x16wit-component-encoding\x04\0\x07\xd9\x0d\x01A\x02\x01\
+A\x07\x01B=\x01m\x02\x14invalid-header-value\x13invalid-header-name\x04\0\x0chea\
 der-error\x03\0\0\x01p}\x01q\x02\x0cchannel-full\x01\x02\0\x0echannel-closed\0\0\
 \x04\0\x09log-error\x03\0\x03\x04\0\x07context\x03\x01\x04\0\x0eshared-context\x03\
 \x01\x04\0\x07headers\x03\x01\x01r\x02\x10parent-type-names\x0afield-names\x04\0\
@@ -1007,23 +1129,24 @@ hook-error\0\0\x0drequest-error\0\0\x0crate-limited\0\0\x08response\x01\x19\0\x0
 \0\x1fsubgraph-request-execution-kind\x03\0\x1c\x01p\x1d\x01r\x07\x0dsubgraph-na\
 mes\x06methods\x03urls\x0aexecutions\x1e\x0ccache-status\x1b\x11total-duration-m\
 sw\x0ahas-errors\x7f\x04\0\x19executed-subgraph-request\x03\0\x1f\x01o\x02ss\x01\
-p!\x01r\x02\x0aextensions\"\x07messages\x04\0\x05error\x03\0#\x01h\x05\x01@\x02\x04\
-self%\x04names\0\x15\x04\0\x13[method]context.get\x01&\x01@\x03\x04self%\x04name\
-s\x05values\x01\0\x04\0\x13[method]context.set\x01'\x04\0\x16[method]context.del\
-ete\x01&\x01h\x06\x01@\x02\x04self(\x04names\0\x15\x04\0\x1a[method]shared-conte\
-xt.get\x01)\x01j\0\x01\x04\x01@\x02\x04self(\x04data\x02\0*\x04\0![method]shared\
--context.log-access\x01+\x01@\x01\x04self(\0s\x04\0\x1f[method]shared-context.tr\
-ace-id\x01,\x01h\x07\x01@\x02\x04self-\x04names\0\x15\x04\0\x13[method]headers.g\
-et\x01.\x01j\0\x01\x01\x01@\x03\x04self-\x04names\x05values\0/\x04\0\x13[method]\
-headers.set\x010\x04\0\x16[method]headers.delete\x01.\x03\x01\x18component:grafb\
-ase/types\x05\0\x02\x03\0\0\x07headers\x02\x03\0\0\x05error\x02\x03\0\0\x07conte\
-xt\x01B\x0b\x02\x03\x02\x01\x01\x04\0\x07headers\x03\0\0\x02\x03\x02\x01\x02\x04\
-\0\x05error\x03\0\x02\x02\x03\x02\x01\x03\x04\0\x07context\x03\0\x04\x01i\x05\x01\
-i\x01\x01j\0\x01\x03\x01@\x02\x07context\x06\x07headers\x07\0\x08\x04\0\x12on-ga\
-teway-request\x01\x09\x04\x01\"component:grafbase/gateway-request\x05\x04\x04\x01\
-\x18component:grafbase/hooks\x04\0\x0b\x0b\x01\0\x05hooks\x03\0\0\0G\x09producer\
-s\x01\x0cprocessed-by\x02\x0dwit-component\x070.208.1\x10wit-bindgen-rust\x060.2\
-5.0";
+p!\x01r\x02\x07messages\x0aextensions\"\x04\0\x05error\x03\0#\x01p$\x01r\x02\x0b\
+status-code{\x06errors%\x04\0\x0eerror-response\x03\0&\x01h\x05\x01@\x02\x04self\
+(\x04names\0\x15\x04\0\x13[method]context.get\x01)\x01@\x03\x04self(\x04names\x05\
+values\x01\0\x04\0\x13[method]context.set\x01*\x04\0\x16[method]context.delete\x01\
+)\x01h\x06\x01@\x02\x04self+\x04names\0\x15\x04\0\x1a[method]shared-context.get\x01\
+,\x01j\0\x01\x04\x01@\x02\x04self+\x04data\x02\0-\x04\0![method]shared-context.l\
+og-access\x01.\x01@\x01\x04self+\0s\x04\0\x1f[method]shared-context.trace-id\x01\
+/\x01h\x07\x01@\x02\x04self0\x04names\0\x15\x04\0\x13[method]headers.get\x011\x01\
+j\0\x01\x01\x01@\x03\x04self0\x04names\x05values\02\x04\0\x13[method]headers.set\
+\x013\x04\0\x16[method]headers.delete\x011\x03\x01\x18component:grafbase/types\x05\
+\0\x02\x03\0\0\x07headers\x02\x03\0\0\x0eerror-response\x02\x03\0\0\x07context\x01\
+B\x0b\x02\x03\x02\x01\x01\x04\0\x07headers\x03\0\0\x02\x03\x02\x01\x02\x04\0\x0e\
+error-response\x03\0\x02\x02\x03\x02\x01\x03\x04\0\x07context\x03\0\x04\x01i\x05\
+\x01i\x01\x01j\0\x01\x03\x01@\x02\x07context\x06\x07headers\x07\0\x08\x04\0\x12o\
+n-gateway-request\x01\x09\x04\x01\"component:grafbase/gateway-request\x05\x04\x04\
+\x01\x18component:grafbase/hooks\x04\0\x0b\x0b\x01\0\x05hooks\x03\0\0\0G\x09prod\
+ucers\x01\x0cprocessed-by\x02\x0dwit-component\x070.208.1\x10wit-bindgen-rust\x06\
+0.25.0";
 
 #[inline(never)]
 #[doc(hidden)]

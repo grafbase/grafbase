@@ -12,14 +12,23 @@ where
     F: Future<Output = O>,
 {
     runtime().block_on(async move {
+        let config = indoc::formatdoc! {r#"
+            [[authentication.providers]]
+
+            [authentication.providers.jwt]
+            name = "my-jwt"
+
+            [authentication.providers.jwt.jwks]
+            url = "{JWKS_URI}"
+
+            [[authentication.providers]]
+
+            [authentication.providers.anonymous]
+        "#};
+
         let engine = Engine::builder()
             .with_subgraph(SecureSchema)
-            .with_sdl_config(format!(
-                r#"extend schema @authz(providers: [
-                {{ name: "my-jwt", type: jwt, jwks: {{ url: "{JWKS_URI}" }} }},
-                {{ type: anonymous }}
-            ])"#
-            ))
+            .with_toml_config(config)
             .build()
             .await;
 
@@ -183,6 +192,7 @@ fn authenticated_on_union() {
         let response = engine
             .post("query { entity(check: false) { __typename ... on Check { mustBeAuthenticated } } }")
             .await;
+
         insta::assert_json_snapshot!(response, @r###"
         {
           "data": {

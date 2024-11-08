@@ -10,10 +10,11 @@ use walker::Walk;
 use crate::{
     execution::{ExecutableOperation, ExecutionPlan, ExecutionPlanId, PreExecutionContext, ResponseModifierExecutor},
     operation::{
-        FieldId, LogicalPlanId, OperationWalker, PlanWalker, ResponseModifierRule, SelectionSetId, SelectionSetType,
+        BoundFieldId, BoundSelectionSetId, LogicalPlanId, OperationWalker, PlanWalker, ResponseModifierRule,
+        SelectionSetType,
     },
+    resolver::Resolver,
     response::{ResponseObjectSetId, ResponseViewSelection, ResponseViewSelectionSet},
-    sources::Resolver,
     Runtime,
 };
 
@@ -88,7 +89,7 @@ where
             // Where the field will be present in the response
             set_id: ResponseObjectSetId,
             // What field is impacted
-            field_id: FieldId,
+            field_id: BoundFieldId,
             field_logical_plan_id: LogicalPlanId,
         }
         let walker = self.walker();
@@ -191,8 +192,8 @@ where
     fn create_plan_view_and_list_dependencies(
         &mut self,
         resolver: ResolverDefinition<'_>,
-        field_ids: &Vec<FieldId>,
-    ) -> (ResponseViewSelectionSet, Vec<FieldId>) {
+        field_ids: &Vec<BoundFieldId>,
+    ) -> (ResponseViewSelectionSet, Vec<BoundFieldId>) {
         let mut required_fields = Cow::Borrowed(resolver.requires_or_empty());
         let mut required_fields_by_selection_set_id = HashMap::new();
         for field_id in field_ids {
@@ -219,10 +220,10 @@ where
         let mut buffer = self.response_view_selection_buffer_pool.pop();
 
         buffer.extend(required.iter().map(|item| {
-            let name = schema[schema[item.field_id].definition_id].name_id;
+            let name = schema[schema[item.id].definition_id].name_id;
             ResponseViewSelection {
                 name,
-                id: item.field_id,
+                id: item.id,
                 subselection: self.build_view(&item.subselection),
             }
         }));
@@ -231,9 +232,9 @@ where
 
     fn collect_dependencies(
         &mut self,
-        id: SelectionSetId,
+        id: BoundSelectionSetId,
         required_fields: &RequiredFieldSetRecord,
-        dependencies: &mut Vec<FieldId>,
+        dependencies: &mut Vec<BoundFieldId>,
     ) {
         for required_field in required_fields {
             let solved_requirements = &self.operation.solved_requirements_for(id).expect("Should be planned");
@@ -241,13 +242,13 @@ where
                 "requires {} in ({id}) {:#?}",
                 self.ctx
                     .schema()
-                    .walk(self.ctx.schema()[required_field.field_id].definition_id)
+                    .walk(self.ctx.schema()[required_field.id].definition_id)
                     .name(),
                 self.walker().walk(*solved_requirements)
             );
             let solved = solved_requirements
                 .iter()
-                .find(|solved| solved.id == required_field.field_id)
+                .find(|solved| solved.id == required_field.id)
                 .expect("Solver did its job");
             let field_id = solved.field_id;
             dependencies.push(field_id);

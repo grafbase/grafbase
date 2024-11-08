@@ -1,6 +1,5 @@
 use std::{collections::VecDeque, sync::Arc};
 
-use async_runtime::make_send_on_wasm;
 use engine_parser::types::OperationType;
 use futures::{stream::FuturesOrdered, Future, FutureExt, Stream};
 use futures_util::{
@@ -15,11 +14,11 @@ use tracing::Instrument;
 use crate::{
     execution::{ExecutableOperation, ExecutionContext},
     operation::PlanWalker,
+    resolver::ResolverResult,
     response::{
         InputResponseObjectSet, ObjectIdentifier, Response, ResponseBuilder, ResponseEdge, ResponseObjectField,
         ResponseValue, SubgraphResponse, SubgraphResponseRefMut,
     },
-    sources::ResolverResult,
     Runtime,
 };
 
@@ -578,7 +577,7 @@ impl<'ctx, R: Runtime> OperationExecution<'ctx, R> {
             plan.logical_plan().response_blueprint().output_ids,
         );
 
-        let root_response_objects = self.response.read(
+        let root_response_objects = self.response.old_read(
             self.ctx.schema(),
             &self.ctx.operation.response_views,
             Arc::clone(&root_response_object_set),
@@ -600,7 +599,7 @@ impl<'ctx, R: Runtime> OperationExecution<'ctx, R> {
             );
 
         let span = span.exit();
-        Some(make_send_on_wasm(fut.instrument(span)).boxed())
+        Some(fut.instrument(span).boxed())
     }
 }
 

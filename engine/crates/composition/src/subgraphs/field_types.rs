@@ -1,4 +1,4 @@
-use async_graphql_parser::types as ast;
+use cynic_parser::type_system as ast;
 use indexmap::IndexSet;
 
 use super::*;
@@ -37,36 +37,49 @@ struct InnerFieldType {
 }
 
 impl Subgraphs {
-    pub(crate) fn intern_field_type(&mut self, field_type: &ast::Type) -> FieldTypeId {
-        let mut ty = field_type;
-        let mut wrapper_type_id = None;
+    pub(crate) fn intern_field_type(&mut self, field_type: ast::Type<'_>) -> FieldTypeId {
+        use cynic_parser::common::WrappingType as AstWrapper;
 
-        loop {
-            match &ty.base {
-                ast::BaseType::List(inner) => {
+        let mut wrapper_type_id = None;
+        let mut inner_is_non_null = true;
+
+        let mut ast_wrappers = field_type.wrappers().peekable();
+        while let Some(ast_wrapper) = ast_wrappers.next() {
+            match (ast_wrapper, ast_wrappers.peek()) {
+                (AstWrapper::NonNull, None) => {
+                    inner_is_non_null = false;
+                    continue;
+                }
+                (AstWrapper::NonNull, Some(AstWrapper::List)) => {
+                    ast_wrappers.next();
+
                     let wrapper = WrapperType {
-                        kind: if ty.nullable {
-                            WrapperTypeKind::List
-                        } else {
-                            WrapperTypeKind::NonNullList
-                        },
+                        kind: WrapperTypeKind::NonNullList,
                         outer: wrapper_type_id,
                     };
-
                     wrapper_type_id = Some(WrapperTypeId(self.field_types.wrappers.insert_full(wrapper).0));
-                    ty = inner.as_ref();
                 }
-
-                ast::BaseType::Named(name) => {
-                    let ty = InnerFieldType {
-                        is_required: !ty.nullable,
-                        name: self.strings.intern(name.as_str()),
-                        wrapper: wrapper_type_id,
+                (AstWrapper::List, _) => {
+                    let wrapper = WrapperType {
+                        kind: WrapperTypeKind::List,
+                        outer: wrapper_type_id,
                     };
-                    return FieldTypeId(self.field_types.inner_types.insert_full(ty).0);
+                    wrapper_type_id = Some(WrapperTypeId(self.field_types.wrappers.insert_full(wrapper).0));
+                }
+                (AstWrapper::NonNull, Some(AstWrapper::NonNull)) => {
+                    // Pretty sure this shouldn't be possible...?
+                    unreachable!()
                 }
             }
         }
+
+        let ty = InnerFieldType {
+            is_required: !inner_is_non_null,
+            name: self.strings.intern(field_type.name()),
+            wrapper: wrapper_type_id,
+        };
+
+        FieldTypeId(self.field_types.inner_types.insert_full(ty).0)
     }
 }
 

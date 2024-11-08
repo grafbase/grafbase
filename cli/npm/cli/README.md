@@ -174,10 +174,10 @@ Options:
 List all subgraphs for a project
 
 ```
-Usage: grafbase subgraphs <PROJECT_REF>
+Usage: grafbase subgraphs <GRAPH_REF>
 
 Arguments:
-  <PROJECT_REF>  Project reference following the format "account/project@branch"
+  <GRAPH_REF>  Graph reference following the format "account/graph@branch"
 ```
 
 ### `schema`
@@ -185,10 +185,10 @@ Arguments:
 Fetch a federated graph or a subgraph schema
 
 ```
-    Usage: grafbase schema [OPTIONS] <PROJECT_REF>
+    Usage: grafbase schema [OPTIONS] <GRAPH_REF>
 
 Arguments:
-  <PROJECT_REF>  Project reference following the format "account/project@branch"
+  <GRAPH_REF>  Graph reference following the format "account/graph@branch"
 
 Options:
       --name <SUBGRAPH_NAME>  The name of the subgraph to fetch. If this is left out, the federated graph is fetched
@@ -199,10 +199,10 @@ Options:
 Publish a subgraph schema
 
 ```
-Usage: grafbase publish [OPTIONS] --name <SUBGRAPH_NAME> --url <URL> <--dev|PROJECT_REF> <--dev|--schema <SCHEMA_PATH>>
+Usage: grafbase publish [OPTIONS] --name <SUBGRAPH_NAME> --url <URL> <--dev|GRAPH_REF> <--dev|--schema <SCHEMA_PATH>>
 
 Arguments:
-  [PROJECT_REF]  Project reference following the format "account/project@branch"
+  [GRAPH_REF]  Graph reference following the format "account/graph@branch"
 
 Options:
       --dev                          Publish to a running development server
@@ -218,10 +218,10 @@ Options:
 Check a graph for validation, composition and breaking change errors
 
 ```
-Usage: grafbase check [OPTIONS] <PROJECT_REF>
+Usage: grafbase check [OPTIONS] <GRAPH_REF>
 
 Arguments:
-  <PROJECT_REF>  Project reference following the format "account/project@branch"
+  <GRAPH_REF>  Graph reference following the format "account/graph@branch"
 
 Options:
       --name <SUBGRAPH_NAME>  The name of the subgraph to check. This argument is always required in a federated graph context, and it should not be used in a standalone graph context

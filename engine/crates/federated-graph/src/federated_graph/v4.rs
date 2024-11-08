@@ -133,6 +133,9 @@ pub enum Directive {
     Inaccessible,
     Policy(Vec<Vec<StringId>>),
     RequiresScopes(Vec<Vec<StringId>>),
+    Cost {
+        weight: i32,
+    },
 
     Other {
         name: StringId,

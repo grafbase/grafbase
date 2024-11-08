@@ -17,7 +17,7 @@ interface types {
         // The channel is closed.
         channel-closed,
     }
-    
+
     // A context object is available in all hooks during the whole request
     // lifecycle. It can be used to store custom data in one hook and make it
     // available in the hooks executed later in the request.
@@ -123,7 +123,7 @@ interface types {
         // Will be empty if no subgraphs were called.
         on-subgraph-response-outputs: list<list<u8>>,
     }
-    
+
     // Information on a response
     record subgraph-response {
         // The milliseconds it took to connect to the host.
@@ -182,17 +182,37 @@ interface types {
         has-errors: bool,
     }
 
+    // An HTTP error response.
+    record error-response {
+        // HTTP status code. Must be a valid status code. If not, the status code will be 500.
+        status-code: u16,
+        // List of GraphQL errors.
+        errors: list<error>,
+    }
+
     // An error response can be used to inject an error to the GraphQL response.
     record error {
+        // The error message.
+        message: string,
         // Adds the given extensions to the response extensions. The first item in
         // the tuple is the extension key, and the second item is the extension value.
         // The extension value can be string-encoded JSON, which will be converted as
         // JSON in the response. It can also be just a string, which will be converted as
         // a JSON string in the response.
         extensions: list<tuple<string, string>>,
-        // The error message.
-        message: string,
     }
+}
+
+interface gateway-request {
+    use types.{headers, error-response, context};
+
+    // The hook is called in the federated gateway just before authentication. It can be used
+    // to read and modify the request headers. The context object is provided in a mutable form,
+    // allowing storage for the subsequent hooks to read.
+    //
+    // If returning an error from the hook, the request processing is stopped and the given error
+    // returned to the client.
+    on-gateway-request: func(context: context, headers: headers) -> result<_, error-response>;
 }
 
 interface subgraph-request {
@@ -340,19 +360,6 @@ interface responses {
         request: executed-http-request,
     );
 }
-
-interface gateway-request {
-    use types.{headers, error, context};
-
-    // The hook is called in the federated gateway just before authentication. It can be used
-    // to read and modify the request headers. The context object is provided in a mutable form,
-    // allowing storage for the subsequent hooks to read.
-    //
-    // If returning an error from the hook, the request processing is stopped and the given error
-    // returned to the client.
-    on-gateway-request: func(context: context, headers: headers) -> result<_, error>;
-}
-
 
 // Export here all the hooks the guest wants to implement. If a hook interface is not exported in the world,
 // the execution in the engine will be a no-op.

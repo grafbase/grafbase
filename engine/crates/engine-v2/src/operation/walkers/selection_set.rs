@@ -1,7 +1,7 @@
 use super::{FieldWalker, OperationWalker};
-use crate::operation::SelectionSetId;
+use crate::operation::BoundSelectionSetId;
 
-pub type SelectionSetWalker<'a> = OperationWalker<'a, SelectionSetId>;
+pub type SelectionSetWalker<'a> = OperationWalker<'a, BoundSelectionSetId>;
 
 impl<'a> SelectionSetWalker<'a> {
     pub fn fields(self) -> impl Iterator<Item = FieldWalker<'a>> + 'a {

@@ -38,6 +38,8 @@ pub(super) struct Directives {
 
     tags: BTreeSet<(DirectiveSiteId, StringId)>,
 
+    costs: BTreeMap<DirectiveSiteId, i32>,
+
     /// From @composeDirective.
     ///
     /// (subgraph_id, directive_name)
@@ -80,13 +82,13 @@ impl Subgraphs {
     }
 
     pub(crate) fn insert_provides(&mut self, id: DirectiveSiteId, fields: &str) -> Result<(), String> {
-        let fields = self.selection_set_from_str(fields)?;
+        let fields = self.selection_set_from_str(fields, "provides", "fields")?;
         self.directives.provides.insert(id, fields);
         Ok(())
     }
 
     pub(crate) fn insert_requires(&mut self, id: DirectiveSiteId, fields: &str) -> Result<(), String> {
-        let fields = self.selection_set_from_str(fields)?;
+        let fields = self.selection_set_from_str(fields, "requires", "fields")?;
         self.directives.requires.insert(id, fields);
         Ok(())
     }
@@ -128,6 +130,10 @@ impl Subgraphs {
 
     pub(crate) fn set_shareable(&mut self, id: DirectiveSiteId) {
         self.directives.shareable.insert(id);
+    }
+
+    pub(crate) fn set_cost(&mut self, id: DirectiveSiteId, cost: i32) {
+        self.directives.costs.insert(id, cost);
     }
 }
 
@@ -249,6 +255,10 @@ impl<'a> DirectiveSiteWalker<'a> {
             .tags
             .range((self.id, StringId::MIN)..(self.id, StringId::MAX))
             .map(move |(_, id)| self.walk(*id))
+    }
+
+    pub(crate) fn cost(self) -> Option<i32> {
+        self.subgraphs.directives.costs.get(&self.id).copied()
     }
 }
 

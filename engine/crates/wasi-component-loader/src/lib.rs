@@ -27,7 +27,7 @@ pub use context::{
 };
 pub use crossbeam::channel::Sender;
 pub use crossbeam::sync::WaitGroup;
-pub use error::{guest::GuestError, Error};
+pub use error::{guest::GuestError, Error, GatewayError};
 pub use hooks::{
     authorization::{AuthorizationComponentInstance, EdgeDefinition, NodeDefinition},
     gateway::GatewayComponentInstance,
@@ -44,6 +44,8 @@ pub use hooks::{
 pub type Result<T> = std::result::Result<T, Error>;
 /// The guest result type
 pub type GuestResult<T> = std::result::Result<T, GuestError>;
+/// The gateway result type
+pub type GatewayResult<T> = std::result::Result<T, GatewayError>;
 
 use state::WasiState;
 use wasmtime::{

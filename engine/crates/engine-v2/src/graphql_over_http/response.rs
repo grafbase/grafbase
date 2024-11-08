@@ -14,6 +14,8 @@ use super::{
     Body, CompleteResponseFormat, HooksExtension, ResponseFormat, StreamingResponseFormat, TelemetryExtension,
 };
 
+mod stream;
+
 const APPLICATION_JSON: http::HeaderValue = http::HeaderValue::from_static("application/json");
 const APPLICATION_GRAPHQL_RESPONSE_JSON: http::HeaderValue =
     http::HeaderValue::from_static("application/graphql-response+json");
@@ -43,6 +45,7 @@ impl Http {
         mut response: Response<O>,
     ) -> http::Response<Body> {
         let mut http_response = Self::from_complete_response_with_telemetry(format, &response);
+
         http_response.extensions_mut().insert(HooksExtension::Single {
             context: hooks_context,
             on_operation_response_output: response.take_on_operation_response_output(),
@@ -151,15 +154,9 @@ impl Http {
     ) -> http::Response<Body> {
         let status = compute_status_code(ResponseFormat::Streaming(format), &response);
 
-        let (headers, stream) = gateway_core::encode_stream_response(
+        let (headers, stream) = stream::encode_response(
             futures_util::stream::iter(std::iter::once(response)).chain(rest),
-            match format {
-                StreamingResponseFormat::IncrementalDelivery => gateway_core::StreamingFormat::IncrementalDelivery,
-                StreamingResponseFormat::GraphQLOverSSE => gateway_core::StreamingFormat::GraphQLOverSSE,
-                StreamingResponseFormat::GraphQLOverWebSocket => {
-                    unreachable!("Websocket response isn't returned as a HTTP response.")
-                }
-            },
+            format,
         );
 
         let body = Body::Stream(stream.map_ok(|bytes| bytes.into()).boxed());

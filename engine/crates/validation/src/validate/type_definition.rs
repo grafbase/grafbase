@@ -73,7 +73,10 @@ pub(crate) fn validate_type_definition<'a>(typedef: &'a Positioned<ast::TypeDefi
 pub(crate) fn validate_definitions_second_pass<'a>(ast: &'a ast::ServiceDocument, ctx: &mut Context<'a>) {
     for def in &ast.definitions {
         match def {
-            ast::TypeSystemDefinition::Schema(_) | ast::TypeSystemDefinition::Directive(_) => (),
+            ast::TypeSystemDefinition::Schema(_) => (),
+            ast::TypeSystemDefinition::Directive(directive_definition) => {
+                validate_directiv_definition_arguments(directive_definition, ctx)
+            }
             ast::TypeSystemDefinition::Type(typedef) => {
                 let type_name = typedef.node.name.node.as_str();
                 let is_extension = typedef.node.extend;
@@ -111,6 +114,24 @@ pub(crate) fn validate_definitions_second_pass<'a>(ast: &'a ast::ServiceDocument
                     ast::TypeKind::Scalar if is_extension => validate_scalar_extension(type_name, typedef, ctx),
                     ast::TypeKind::Scalar => (),
                 }
+            }
+        }
+    }
+}
+
+fn validate_directiv_definition_arguments(
+    directive_definition: &Positioned<ast::DirectiveDefinition>,
+    ctx: &mut Context<'_>,
+) {
+    let directive_name = directive_definition.node.name.node.as_str();
+    for arg in &directive_definition.node.arguments {
+        let type_name = extract_type_name(&arg.node.ty.node.base);
+        let location = || format!("@{directive_name}({}:)", arg.node.name.node);
+        match validate_input_type(type_name, arg.node.ty.pos, ctx) {
+            ValidateInputTypeResult::Ok => (),
+            ValidateInputTypeResult::UnknownType => diagnostics::unknown_type(type_name, &location(), ctx),
+            ValidateInputTypeResult::NotAnInputType => {
+                diagnostics::output_type_in_input_position(type_name, &location(), ctx);
             }
         }
     }

@@ -16,23 +16,43 @@ pub fn generate_walker(
     object: &Object,
     fields: &[FieldContext<'_>],
 ) -> anyhow::Result<Vec<TokenStream>> {
-    let graph_name = Ident::new(&domain.graph_var_name, Span::call_site());
-    let graph_type = Ident::new(&domain.graph_type_name, Span::call_site());
+    let public = &domain.public_visibility;
+    let allow_unused = if domain.public_visibility.is_empty() {
+        quote! {}
+    } else {
+        quote! { #[allow(unused)] }
+    };
+    let context_name = Ident::new(&domain.context_name, Span::call_site());
+    let context_type = &domain.context_type;
     let struct_name = Ident::new(&object.struct_name, Span::call_site());
     let walker_name = Ident::new(object.walker_name(), Span::call_site());
     let walk_trait = Ident::new(WALKER_TRAIT, Span::call_site());
+    let doc = object
+        .description
+        .as_ref()
+        .map(|desc| {
+            let desc = proc_macro2::Literal::string(desc);
+            quote! { #[doc = #desc] }
+        })
+        .unwrap_or_default();
+    let private = {
+        let m = &domain.module;
+        quote! { in #m }
+    };
 
     let walker_field_methods = fields.iter().filter(|field| field.has_walker).map(WalkerFieldMethod);
     let mut code_sections = Vec::new();
 
     if let Some(indexed) = &object.indexed {
         let id_struct_name = Ident::new(&indexed.id_struct_name, Span::call_site());
+        let domain_accessor = domain.domain_accessor(None);
 
         code_sections.push(quote! {
+            #doc
             #[derive(Clone, Copy)]
-            pub struct #walker_name<'a> {
-                pub(crate) #graph_name: &'a #graph_type,
-                pub(crate) id: #id_struct_name,
+            pub #public struct #walker_name<'a> {
+                pub(#private) #context_name: #context_type,
+                pub(#private) id: #id_struct_name,
             }
         });
         code_sections.push(quote! {
@@ -44,28 +64,30 @@ pub fn generate_walker(
             }
         });
         code_sections.push(quote! {
+            #allow_unused
             impl <'a> #walker_name<'a> {
                 #[doc = "Prefer using Deref unless you need the 'a lifetime."]
                 #[allow(clippy::should_implement_trait)]
-                pub fn as_ref(&self) -> &'a #struct_name {
-                    &self.#graph_name[self.id]
+                pub #public fn as_ref(&self) -> &'a #struct_name {
+                    &self.#domain_accessor[self.id]
                 }
-                pub fn id(&self) -> #id_struct_name {
+                pub #public fn id(&self) -> #id_struct_name {
                     self.id
                 }
                 #(#walker_field_methods)*
             }
         });
         code_sections.push(quote! {
-            impl #walk_trait<#graph_type> for #id_struct_name {
-                type Walker<'a> = #walker_name<'a>;
+            impl<'a> #walk_trait<#context_type> for #id_struct_name {
+                type Walker<'w> = #walker_name<'w> where 'a: 'w;
 
-                fn walk<'a>(self, #graph_name: &'a #graph_type) -> Self::Walker<'a>
+                fn walk<'w>(self, #context_name: #context_type) -> Self::Walker<'w>
                 where
-                    Self: 'a
+                    Self: 'w,
+                    'a: 'w
                 {
                     #walker_name {
-                        #graph_name,
+                        #context_name,
                         id: self,
                     }
                 }
@@ -73,10 +95,11 @@ pub fn generate_walker(
         });
     } else if object.copy {
         code_sections.push(quote! {
+            #doc
             #[derive(Clone, Copy)]
-            pub struct #walker_name<'a> {
-                pub(crate) #graph_name: &'a #graph_type,
-                pub(crate) item: #struct_name,
+            pub #public struct #walker_name<'a> {
+                pub(#private) #context_name: #context_type,
+                pub(#private) item: #struct_name,
             }
         });
         code_sections.push(quote! {
@@ -88,24 +111,27 @@ pub fn generate_walker(
             }
         });
         code_sections.push(quote! {
+            #allow_unused
             impl <'a> #walker_name<'a> {
                 #[allow(clippy::should_implement_trait)]
-                pub fn as_ref(&self) -> &#struct_name {
+                pub #public fn as_ref(&self) -> &#struct_name {
                     &self.item
                 }
                 #(#walker_field_methods)*
             }
         });
         code_sections.push(quote! {
-            impl #walk_trait<#graph_type> for #struct_name {
-                type Walker<'a> = #walker_name<'a>;
+            #allow_unused
+            impl<'a> #walk_trait<#context_type> for #struct_name {
+                type Walker<'w> = #walker_name<'w> where 'a: 'w;
 
-                fn walk<'a>(self, #graph_name: &'a #graph_type) -> Self::Walker<'a>
+                fn walk<'w>(self, #context_name: #context_type) -> Self::Walker<'w>
                 where
-                    Self: 'a
+                    Self: 'w,
+                    'a: 'w
                 {
                     #walker_name {
-                        #graph_name,
+                        #context_name,
                         item: self,
                     }
                 }
@@ -113,10 +139,11 @@ pub fn generate_walker(
         });
     } else {
         code_sections.push(quote! {
+            #doc
             #[derive(Clone, Copy)]
-            pub struct #walker_name<'a> {
-                pub(crate) #graph_name: &'a #graph_type,
-                pub(crate) ref_: &'a #struct_name,
+            pub #public struct #walker_name<'a> {
+                pub(#private) #context_name: #context_type,
+                pub(#private) ref_: &'a #struct_name,
             }
         });
         code_sections.push(quote! {
@@ -128,26 +155,29 @@ pub fn generate_walker(
             }
         });
         code_sections.push(quote! {
+            #allow_unused
             impl <'a> #walker_name<'a> {
                 #[allow(clippy::should_implement_trait)]
-                pub fn as_ref(&self) -> &'a #struct_name {
+                pub #public fn as_ref(&self) -> &'a #struct_name {
                     self.ref_
                 }
                 #(#walker_field_methods)*
             }
         });
         code_sections.push(quote! {
-            impl #walk_trait<#graph_type> for &#struct_name {
-                type Walker<'a> = #walker_name<'a>
+            impl<'a> #walk_trait<#context_type> for &#struct_name {
+                type Walker<'w> = #walker_name<'w>
                 where
-                    Self: 'a;
+                    Self: 'w,
+                    'a: 'w;
 
-                fn walk<'a>(self, #graph_name: &'a #graph_type) -> Self::Walker<'a>
+                fn walk<'w>(self, #context_name: #context_type) -> Self::Walker<'w>
                 where
-                    Self: 'a
+                    Self: 'w,
+                    'a: 'w
                 {
                     #walker_name {
-                        #graph_name,
+                        #context_name,
                         ref_: self,
                     }
                 }
@@ -167,7 +197,7 @@ pub struct WalkerFieldMethod<'a>(&'a FieldContext<'a>);
 impl quote::ToTokens for WalkerFieldMethod<'_> {
     #[instrument(name = "walker_field_method", skip_all, fields(field = ?self.0.field))]
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        let graph = Ident::new(&self.0.domain.graph_var_name, Span::call_site());
+        let ctx = self.0.domain.context_accessor(self.0.ty.external_domain_name());
         let field = Ident::new(&self.0.record_field_name, Span::call_site());
         let method = Ident::new(&self.0.walker_method_name(), Span::call_site());
         let ty = Ident::new(self.0.ty.walker_name(), Span::call_site());
@@ -188,22 +218,22 @@ impl quote::ToTokens for WalkerFieldMethod<'_> {
                 },
                 AccessKind::IdRef => quote! {
                     Option<&'a #ty> {
-                        self.#field.walk(self.#graph)
+                        self.#field.walk(self.#ctx)
                     }
                 },
                 AccessKind::IdWalker => quote! {
                     Option<#ty<'a>> {
-                        self.#field.walk(self.#graph)
+                        self.#field.walk(self.#ctx)
                     }
                 },
                 AccessKind::ItemWalker => quote! {
                     Option<#ty<'a>> {
-                        self.as_ref().#field.walk(self.#graph)
+                        self.as_ref().#field.walk(self.#ctx)
                     }
                 },
                 AccessKind::RefWalker => quote! {
                     Option<#ty<'a>> {
-                        self.as_ref().#field.walk(self.#graph)
+                        self.as_ref().#field.walk(self.#ctx)
                     }
                 },
             },
@@ -220,22 +250,22 @@ impl quote::ToTokens for WalkerFieldMethod<'_> {
                 },
                 AccessKind::IdRef => quote! {
                     &'a #ty {
-                        self.#field.walk(self.#graph)
+                        self.#field.walk(self.#ctx)
                     }
                 },
                 AccessKind::IdWalker => quote! {
                     #ty<'a> {
-                        self.#field.walk(self.#graph)
+                        self.#field.walk(self.#ctx)
                     }
                 },
                 AccessKind::ItemWalker => quote! {
                     #ty<'a> {
-                        self.#field.walk(self.#graph)
+                        self.#field.walk(self.#ctx)
                     }
                 },
                 AccessKind::RefWalker => quote! {
                     #ty<'a> {
-                        self.as_ref().#field.as_ref().walk(self.#graph)
+                        self.as_ref().#field.as_ref().walk(self.#ctx)
                     }
                 },
             },
@@ -254,13 +284,13 @@ impl quote::ToTokens for WalkerFieldMethod<'_> {
                     if list_as_id_range {
                         quote! {
                             impl Iter<Item = &'a #ty> + 'a {
-                                self.#field.walk(self.#graph)
+                                self.#field.walk(self.#ctx)
                             }
                         }
                     } else {
                         quote! {
                             impl Iter<Item = &'a #ty> + 'a {
-                                self.as_ref().#field.walk(self.#graph)
+                                self.as_ref().#field.walk(self.#ctx)
                             }
                         }
                     }
@@ -269,25 +299,25 @@ impl quote::ToTokens for WalkerFieldMethod<'_> {
                     if list_as_id_range {
                         quote! {
                             impl Iter<Item =  #ty<'a>> + 'a {
-                                self.#field.walk(self.#graph)
+                                self.#field.walk(self.#ctx)
                             }
                         }
                     } else {
                         quote! {
                             impl Iter<Item = #ty<'a>> + 'a {
-                                self.as_ref().#field.walk(self.#graph)
+                                self.as_ref().#field.walk(self.#ctx)
                             }
                         }
                     }
                 }
                 AccessKind::ItemWalker => quote! {
                     impl Iter<Item =  #ty<'a>> + 'a {
-                        self.as_ref().#field.walk(self.#graph)
+                        self.as_ref().#field.walk(self.#ctx)
                     }
                 },
                 AccessKind::RefWalker => quote! {
                     impl Iter<Item = #ty<'a>> + 'a {
-                        self.as_ref().#field.walk(self.#graph)
+                        self.as_ref().#field.walk(self.#ctx)
                     }
                 },
             },
@@ -295,7 +325,7 @@ impl quote::ToTokens for WalkerFieldMethod<'_> {
                 match kind {
                     AccessKind::IdRef => quote! {
                         impl Iter<Item: Iter<Item = &'a #ty> + 'a> + 'a {
-                            self.as_ref().#field.walk(self.#graph)
+                            self.as_ref().#field.walk(self.#ctx)
                         }
                     },
                     accessor => {
@@ -321,9 +351,10 @@ impl quote::ToTokens for WalkerFieldMethod<'_> {
             })
             .unwrap_or_default();
 
+        let public = &self.0.domain.public_visibility;
         tokens.append_all(quote! {
             #doc
-            pub fn #method(&self) -> #return_type_and_body
+            pub #public fn #method(&self) -> #return_type_and_body
         });
     }
 }

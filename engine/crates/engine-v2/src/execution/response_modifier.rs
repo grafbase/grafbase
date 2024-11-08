@@ -64,7 +64,7 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
                 let definition = self.schema().walk(definition_id);
                 let directive = self.schema().walk(directive_id);
                 let input = Arc::new(input);
-                let parents = response.read(
+                let parents = response.old_read(
                     self.schema(),
                     &self.operation.response_views,
                     input.clone(),
@@ -116,7 +116,7 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
                 let definition = self.schema().walk(definition_id);
                 let directive = self.schema().walk(directive_id);
                 let input = Arc::new(input);
-                let nodes = response.read(
+                let nodes = response.old_read(
                     self.schema(),
                     &self.operation.response_views,
                     input.clone(),

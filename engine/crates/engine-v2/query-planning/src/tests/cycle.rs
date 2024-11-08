@@ -1,6 +1,6 @@
 use crate::{
     tests::{read_schema, TestOperation},
-    OperationGraph,
+    OperationGraph, Solver,
 };
 
 const SCHEMA: &str = r###"
@@ -42,9 +42,9 @@ fn cycle() {
     "#,
     );
 
-    let mut graph = OperationGraph::new(&schema, &mut operation).unwrap();
+    let graph = OperationGraph::new(&schema, &mut operation).unwrap();
     insta::assert_snapshot!("graph", graph.to_dot_graph(), &graph.to_pretty_dot_graph());
 
-    let err = graph.solver().unwrap_err();
+    let err = Solver::initialize(&graph).unwrap_err();
     assert!(matches!(err, crate::Error::RequirementCycleDetected));
 }

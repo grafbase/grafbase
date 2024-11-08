@@ -12,10 +12,10 @@ mark-changed = "all"
 [[path-rule]]
 # Ignore other github stuff
 globs = [
-  ".github/workflows/**",
-  ".github/what-rust-changed.toml",
-  ".github/ISSUE_TEMPLATE/**",
-  ".github/CODEOWNERS",
+    ".github/workflows/**",
+    ".github/what-rust-changed.toml",
+    ".github/ISSUE_TEMPLATE/**",
+    ".github/CODEOWNERS",
 ]
 mark-changed = []
 
@@ -27,26 +27,26 @@ mark-changed = []
 [[path-rule]]
 # Ignore various root files
 globs = [
-  "LICENSE",
-  ".editorconfig",
-  ".envrc",
-  ".envrc.example",
-  ".prettierrc.js",
-  "renovate.json",
-  "flake.nix",
-  "flake.lock",
+    "LICENSE",
+    ".editorconfig",
+    ".envrc",
+    ".envrc.example",
+    ".prettierrc.js",
+    "renovate.json",
+    "flake.nix",
+    "flake.lock",
 ]
 mark-changed = []
 
 [[path-rule]]
 # Ignore various folders
 globs = [
-  "auth-testing/**",
-  "packages/**",
-  "nix/**",
-  "examples/**",
-  "docker/**",
-  ".vscode",
+    "auth-testing/**",
+    "packages/**",
+    "nix/**",
+    "examples/**",
+    "docker/**",
+    ".vscode",
 ]
 mark-changed = []
 
@@ -58,4 +58,9 @@ mark-changed = []
 [[path-rule]]
 # Ignore makefiles
 globs = ["Makefile", "Makefile.toml"]
+mark-changed = []
+
+[[path-rule]]
+# Ignore the gateway helm chart
+globs = ["gateway/helm/**"]
 mark-changed = []

@@ -11,6 +11,10 @@ const WALKER_TRAIT: &str = "Walk";
 const DOMAIN_DIR: &str = "domain";
 const GENERATED_MODULE: &str = "generated";
 
+fn domain_dir() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(DOMAIN_DIR)
+}
+
 fn main() -> anyhow::Result<()> {
     let code_gen_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let engine_v2_dir = code_gen_dir.parent().unwrap();
@@ -30,7 +34,7 @@ fn main() -> anyhow::Result<()> {
 
     let formatter = formatter::Formatter::new()?;
 
-    for entry in std::fs::read_dir(code_gen_dir.join(DOMAIN_DIR))? {
+    for entry in std::fs::read_dir(domain_dir())? {
         let path = entry?.path();
         tracing::info!("Parsing {}", path.to_string_lossy());
         let domain = loader::load(path)?;

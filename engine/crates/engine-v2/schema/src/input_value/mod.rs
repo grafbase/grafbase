@@ -31,16 +31,17 @@ pub struct SchemaInputValues {
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize, id_derives::Id)]
 pub struct SchemaInputValueId(NonZero<u32>);
 
-impl Walk<Schema> for SchemaInputValueId {
-    type Walker<'a> = SchemaInputValue<'a>;
+impl<'s> Walk<&'s Schema> for SchemaInputValueId {
+    type Walker<'w> = SchemaInputValue<'w> where 's: 'w;
 
-    fn walk<'s>(self, schema: &'s Schema) -> Self::Walker<'s>
+    fn walk<'w>(self, schema: &'s Schema) -> Self::Walker<'w>
     where
-        Self: 's,
+        Self: 'w,
+        's: 'w,
     {
         SchemaInputValue {
             schema,
-            value: &schema[self],
+            ref_: &schema[self],
         }
     }
 }
@@ -48,12 +49,13 @@ impl Walk<Schema> for SchemaInputValueId {
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize, id_derives::Id)]
 pub struct SchemaInputObjectFieldValueId(NonZero<u32>);
 
-impl Walk<Schema> for SchemaInputObjectFieldValueId {
-    type Walker<'a> = (InputValueDefinition<'a>, SchemaInputValue<'a>);
+impl<'s> Walk<&'s Schema> for SchemaInputObjectFieldValueId {
+    type Walker<'w> = (InputValueDefinition<'w>, SchemaInputValue<'w>) where 's: 'w;
 
-    fn walk<'s>(self, schema: &'s Schema) -> Self::Walker<'s>
+    fn walk<'w>(self, schema: &'s Schema) -> Self::Walker<'w>
     where
-        Self: 's,
+        Self: 'w,
+        's: 'w,
     {
         let (input_value_definition, value) = &schema[self];
         (input_value_definition.walk(schema), value.walk(schema))
@@ -63,12 +65,13 @@ impl Walk<Schema> for SchemaInputObjectFieldValueId {
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize, id_derives::Id)]
 pub struct SchemaInputKeyValueId(NonZero<u32>);
 
-impl Walk<Schema> for SchemaInputKeyValueId {
-    type Walker<'a> = (&'a str, SchemaInputValue<'a>);
+impl<'s> Walk<&'s Schema> for SchemaInputKeyValueId {
+    type Walker<'w> = (&'w str, SchemaInputValue<'w>) where 's: 'w;
 
-    fn walk<'s>(self, schema: &'s Schema) -> Self::Walker<'s>
+    fn walk<'w>(self, schema: &'s Schema) -> Self::Walker<'w>
     where
-        Self: 's,
+        Self: 'w,
+        's: 'w,
     {
         let (key, value) = &schema[self];
         (key.walk(schema), value.walk(schema))
@@ -99,13 +102,14 @@ pub enum SchemaInputValueRecord {
     UnboundEnumValue(StringId),
 }
 
-impl Walk<Schema> for &SchemaInputValueRecord {
-    type Walker<'a> = SchemaInputValue<'a> where Self: 'a;
-    fn walk<'s>(self, schema: &'s Schema) -> Self::Walker<'s>
+impl<'s> Walk<&'s Schema> for &SchemaInputValueRecord {
+    type Walker<'w> = SchemaInputValue<'w> where Self: 'w, 's: 'w;
+    fn walk<'w>(self, schema: &'s Schema) -> Self::Walker<'w>
     where
-        Self: 's,
+        Self: 'w,
+        's: 'w,
     {
-        SchemaInputValue { schema, value: self }
+        SchemaInputValue { schema, ref_: self }
     }
 }
 

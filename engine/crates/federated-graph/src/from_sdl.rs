@@ -118,7 +118,7 @@ impl<'a> State<'a> {
         match node {
             ParserValue::Null(_) => Value::Null,
             ParserValue::Int(n) => Value::Int(n.as_i64()),
-            ParserValue::Float(n) => Value::Float(f64::from(n.value())),
+            ParserValue::Float(n) => Value::Float(n.as_f64()),
             ParserValue::String(s) => Value::String(self.insert_string(s.value())),
             ParserValue::Boolean(b) => Value::Boolean(b.value()),
             ParserValue::Enum(enm) => expected_enum_type
@@ -795,7 +795,7 @@ fn ingest_definitions<'a>(document: &'a ast::TypeSystemDocument, state: &mut Sta
                 let type_name_id = state.insert_string(type_name);
                 let description = typedef
                     .description()
-                    .map(|description| state.insert_string(description.raw_str()));
+                    .map(|description| state.insert_string(&description.to_cow()));
                 let composed_directives = collect_composed_directives(typedef.directives(), state);
 
                 if let ast::TypeDefinition::Enum(enm) = typedef {
@@ -867,7 +867,7 @@ fn ingest_definitions<'a>(document: &'a ast::TypeSystemDocument, state: &mut Sta
                             let composed_directives = collect_composed_directives(value.directives(), state);
                             let description = value
                                 .description()
-                                .map(|description| state.insert_string(description.raw_str()));
+                                .map(|description| state.insert_string(&description.to_cow()));
 
                             let value_string_id = state.insert_string(value.value());
                             let id = state.graph.push_enum_value(EnumValueRecord {
@@ -949,7 +949,7 @@ fn ingest_field<'a>(
     for arg in ast_field.arguments() {
         let description = arg
             .description()
-            .map(|description| state.insert_string(description.raw_str()));
+            .map(|description| state.insert_string(&description.to_cow()));
         let composed_directives = collect_composed_directives(arg.directives(), state);
         let name = state.insert_string(arg.name());
         let r#type = state.field_type(arg.ty())?;
@@ -1037,7 +1037,7 @@ fn ingest_field<'a>(
     let composed_directives = collect_composed_directives(ast_field.directives(), state);
     let description = ast_field
         .description()
-        .map(|description| state.insert_string(description.raw_str()));
+        .map(|description| state.insert_string(&description.to_cow()));
 
     let field_id = FieldId(state.fields.push_return_idx(Field {
         name,
@@ -1087,7 +1087,7 @@ fn ingest_input_object<'a>(
         let composed_directives = collect_composed_directives(field.directives(), state);
         let description = field
             .description()
-            .map(|description| state.insert_string(description.raw_str()));
+            .map(|description| state.insert_string(&description.to_cow()));
         let default = field
             .default_value()
             .map(|default| state.insert_value(default, r#type.definition.as_enum()));
@@ -1482,10 +1482,18 @@ fn collect_composed_directives<'a>(
                 }
             }
             "authenticated" => state.directives.push(Directive::Authenticated),
+            "cost" => {
+                let weight = directive
+                    .get_argument("weight")
+                    .and_then(|arg| arg.into_json())
+                    .and_then(|arg| serde_json::from_value::<i32>(arg).ok());
+
+                if let Some(weight) = weight {
+                    state.directives.push(Directive::Cost { weight })
+                }
+            }
             // Added later after ingesting the graph.
-            "authorized" => {}
-            "join__implements" => {}
-            "join__unionMember" => {}
+            "authorized" | "join__implements" | "join__unionMember" => {}
             other => {
                 let name = state.insert_string(other);
                 let arguments = directive

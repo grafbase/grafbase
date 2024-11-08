@@ -3,6 +3,7 @@
 //! ===================
 //! Generated with: `cargo run -p engine-v2-codegen`
 //! Source file: <engine-v2-codegen dir>/domain/schema.graphql
+mod composite_type;
 mod definition;
 mod directive;
 mod entity;
@@ -24,6 +25,7 @@ mod subgraph;
 mod ty;
 mod union;
 
+pub use composite_type::*;
 pub use definition::*;
 pub use directive::*;
 pub use entity::*;

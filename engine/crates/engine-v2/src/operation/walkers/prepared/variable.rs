@@ -1,24 +1,25 @@
 use schema::{InputValue, InputValueSerdeError};
 use serde::{de::Visitor, forward_to_deserialize_any};
 
-use crate::operation::{QueryInputValueWalker, VariableDefinitionId, VariableInputValueWalker, VariableValue};
+use crate::operation::{
+    BoundVariableDefinitionId, QueryInputValueWalker, VariableInputValueWalker, VariableValueRecord,
+};
 
 use super::PreparedOperationWalker;
 
-pub type VariableWalker<'a> = PreparedOperationWalker<'a, VariableDefinitionId>;
+pub type VariableWalker<'a> = PreparedOperationWalker<'a, BoundVariableDefinitionId>;
 
 impl<'a> VariableWalker<'a> {
     // FIXME: Unnecessary indirection...
     pub fn as_value(&self) -> VariableValueWalker<'a> {
         match self.variables[self.item] {
-            VariableValue::Undefined => {
-                if let Some(id) = self.as_ref().default_value {
-                    VariableValueWalker::DefaultValue(self.walk(&self.operation.query_input_values[id]))
-                } else {
-                    VariableValueWalker::Undefined
-                }
+            VariableValueRecord::Undefined => VariableValueWalker::Undefined,
+            VariableValueRecord::DefaultValue(id) => {
+                VariableValueWalker::DefaultValue(self.walk(&self.operation.query_input_values[id]))
             }
-            VariableValue::InputValue(id) => VariableValueWalker::VariableInputValue(self.walk(&self.variables[id])),
+            VariableValueRecord::Provided(id) => {
+                VariableValueWalker::VariableInputValue(self.walk(&self.variables[id]))
+            }
         }
     }
 }

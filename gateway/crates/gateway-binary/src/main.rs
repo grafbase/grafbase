@@ -19,35 +19,6 @@ mod telemetry;
 const THREAD_NAME: &str = "grafbase-gateway";
 
 fn main() -> anyhow::Result<()> {
-    #[cfg(feature = "pprof")]
-    let guard = pprof::ProfilerGuardBuilder::default()
-        .frequency(2000)
-        .blocklist(&["libc", "libgcc", "pthread", "vdso"])
-        .build()
-        .unwrap();
-
-    gateway_main()?;
-
-    #[cfg(feature = "pprof")]
-    if let Ok(report) = guard.report().build() {
-        let file = std::fs::File::create(format!(
-            "flamegraph-{}.svg",
-            std::env::var("PPROF_FLAMEGRAPH_NAME").unwrap_or(
-                std::time::SystemTime::now()
-                    .duration_since(std::time::SystemTime::UNIX_EPOCH)
-                    .unwrap()
-                    .as_secs()
-                    .to_string()
-            )
-        ))
-        .unwrap();
-        report.flamegraph(file).unwrap();
-    };
-
-    Ok(())
-}
-
-fn gateway_main() -> anyhow::Result<()> {
     rustls::crypto::ring::default_provider()
         .install_default()
         .expect("installing default crypto provider");

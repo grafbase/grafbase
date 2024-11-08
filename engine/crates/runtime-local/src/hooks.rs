@@ -120,9 +120,10 @@ impl HooksWasiInner {
         }
     }
 
-    async fn run_and_measure<F, T>(&self, hook_name: &'static str, hook: F) -> Result<T, wasi_component_loader::Error>
+    async fn run_and_measure<F, T, E>(&self, hook_name: &'static str, hook: F) -> Result<T, E>
     where
-        F: Future<Output = Result<T, wasi_component_loader::Error>> + Instrument,
+        F: Future<Output = Result<T, E>> + Instrument,
+        E: HookError,
     {
         let span = info_span!("call instance");
         let start = SystemTime::now();
@@ -131,8 +132,7 @@ impl HooksWasiInner {
 
         let status = match result {
             Ok(_) => HookStatus::Success,
-            Err(wasi_component_loader::Error::Internal(_)) => HookStatus::HostError,
-            Err(wasi_component_loader::Error::Guest(_)) => HookStatus::GuestError,
+            Err(ref error) => HookStatus::Error(error.status()),
         };
 
         let attributes = [
@@ -159,10 +159,10 @@ impl HooksWasiInner {
         let duration = SystemTime::now().duration_since(start).unwrap_or_default();
 
         let status = match result {
-            Ok(ref statuses) if statuses.iter().any(|s| s.is_err()) => HookStatus::GuestError,
+            Ok(ref statuses) if statuses.iter().any(|s| s.is_err()) => HookStatus::Error(ErrorStatus::GuestError),
             Ok(_) => HookStatus::Success,
-            Err(wasi_component_loader::Error::Internal(_)) => HookStatus::HostError,
-            Err(wasi_component_loader::Error::Guest(_)) => HookStatus::GuestError,
+            Err(wasi_component_loader::Error::Internal(_)) => HookStatus::Error(ErrorStatus::HostError),
+            Err(wasi_component_loader::Error::Guest(_)) => HookStatus::Error(ErrorStatus::GuestError),
         };
 
         let attributes = [
@@ -176,9 +176,36 @@ impl HooksWasiInner {
     }
 }
 
+trait HookError {
+    fn status(&self) -> ErrorStatus;
+}
+
+impl HookError for wasi_component_loader::Error {
+    fn status(&self) -> ErrorStatus {
+        match self {
+            wasi_component_loader::Error::Internal(_) => ErrorStatus::HostError,
+            wasi_component_loader::Error::Guest(_) => ErrorStatus::GuestError,
+        }
+    }
+}
+
+impl HookError for wasi_component_loader::GatewayError {
+    fn status(&self) -> ErrorStatus {
+        match self {
+            wasi_component_loader::GatewayError::Internal(_) => ErrorStatus::HostError,
+            wasi_component_loader::GatewayError::Guest(_) => ErrorStatus::GuestError,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy)]
 enum HookStatus {
     Success,
+    Error(ErrorStatus),
+}
+
+#[derive(Debug, Clone, Copy)]
+enum ErrorStatus {
     HostError,
     GuestError,
 }
@@ -187,8 +214,8 @@ impl HookStatus {
     fn as_str(&self) -> &'static str {
         match self {
             HookStatus::Success => "SUCCESS",
-            HookStatus::HostError => "HOST_ERROR",
-            HookStatus::GuestError => "GUEST_ERROR",
+            HookStatus::Error(ErrorStatus::HostError) => "HOST_ERROR",
+            HookStatus::Error(ErrorStatus::GuestError) => "GUEST_ERROR",
         }
     }
 }
@@ -219,7 +246,10 @@ impl Hooks for HooksWasi {
     type OnSubgraphResponseOutput = Vec<u8>;
     type OnOperationResponseOutput = Vec<u8>;
 
-    async fn on_gateway_request(&self, headers: HeaderMap) -> Result<(Self::Context, HeaderMap), ErrorResponse> {
+    async fn on_gateway_request(
+        &self,
+        headers: HeaderMap,
+    ) -> Result<(Self::Context, HeaderMap), (Self::Context, ErrorResponse)> {
         let kv = HashMap::new();
         let trace_id = Span::current().context().span().span_context().trace_id();
 
@@ -236,13 +266,34 @@ impl Hooks for HooksWasi {
             .instrument(span)
             .await
             .map(|(kv, headers)| (Context::new(kv, trace_id), headers))
-            .map_err(|err| match err {
-                wasi_component_loader::Error::Internal(err) => {
-                    tracing::error!("on_gateway_request error: {err}");
-                    ErrorResponse::from(PartialGraphqlError::internal_hook_error())
-                }
-                wasi_component_loader::Error::Guest(err) => {
-                    guest_error_as_gql(err, PartialErrorCode::BadRequest).into()
+            .map_err(|err| {
+                let context = Context::new(HashMap::new(), trace_id);
+
+                match err {
+                    wasi_component_loader::GatewayError::Internal(err) => {
+                        tracing::error!("on_gateway_request error: {err}");
+
+                        let response = ErrorResponse {
+                            status: http::StatusCode::INTERNAL_SERVER_ERROR,
+                            errors: vec![PartialGraphqlError::internal_hook_error()],
+                        };
+
+                        (context, response)
+                    }
+                    wasi_component_loader::GatewayError::Guest(error) => {
+                        let status = http::StatusCode::from_u16(error.status_code)
+                            .unwrap_or(http::StatusCode::INTERNAL_SERVER_ERROR);
+
+                        let errors = error
+                            .errors
+                            .into_iter()
+                            .map(|error| guest_error_as_gql(error, PartialErrorCode::BadRequest))
+                            .collect();
+
+                        let response = ErrorResponse { status, errors };
+
+                        (context, response)
+                    }
                 }
             })
     }

@@ -198,10 +198,16 @@ impl Hooks for DynamicHooks {
     type OnSubgraphResponseOutput = Vec<u8>;
     type OnOperationResponseOutput = Vec<u8>;
 
-    async fn on_gateway_request(&self, headers: HeaderMap) -> Result<(Self::Context, HeaderMap), ErrorResponse> {
+    async fn on_gateway_request(
+        &self,
+        headers: HeaderMap,
+    ) -> Result<(Self::Context, HeaderMap), (Self::Context, ErrorResponse)> {
         let mut context = DynHookContext::default();
-        let headers = self.0.on_gateway_request(&mut context, headers).await?;
-        Ok((context, headers))
+
+        match self.0.on_gateway_request(&mut context, headers).await {
+            Ok(headers) => Ok((context, headers)),
+            Err(error) => Err((context, error)),
+        }
     }
 
     async fn on_subgraph_request(
@@ -381,9 +387,13 @@ impl<H: Hooks> DynHooks for DynWrapper<H> {
         'b: 'fut,
     {
         async {
-            let (ctx, headers) = Hooks::on_gateway_request(&self.0, headers).await?;
-            context.typed_insert(ctx);
-            Ok(headers)
+            match Hooks::on_gateway_request(&self.0, headers).await {
+                Ok((ctx, headers)) => {
+                    context.typed_insert(ctx);
+                    Ok(headers)
+                }
+                Err((_, error)) => Err(error),
+            }
         }
         .boxed()
     }

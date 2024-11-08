@@ -3,7 +3,7 @@ use quote::{quote, TokenStreamExt};
 use tracing::instrument;
 
 use crate::{
-    domain::{AccessKind, Definition, Domain, Union, UnionKind},
+    domain::{AccessKind, Definition, Domain, Scalar, Union, UnionKind},
     WALKER_TRAIT,
 };
 
@@ -15,18 +15,38 @@ pub fn generate_walker(
     union: &Union,
     variants: &[VariantContext<'_>],
 ) -> anyhow::Result<Vec<TokenStream>> {
+    let public = &domain.public_visibility;
+    let allow_unused = if domain.public_visibility.is_empty() {
+        quote! {}
+    } else {
+        quote! { #[allow(unused)] }
+    };
     let enum_name = Ident::new(union.enum_name(), Span::call_site());
-    let graph_name = Ident::new(&domain.graph_var_name, Span::call_site());
-    let graph_type = Ident::new(&domain.graph_type_name, Span::call_site());
+    let context_name = Ident::new(&domain.context_name, Span::call_site());
+    let context_accessor = domain.domain_accessor(None);
+    let context_type = &domain.context_type;
     let walker_enum_name = Ident::new(union.walker_enum_name(), Span::call_site());
     let walk_trait = Ident::new(WALKER_TRAIT, Span::call_site());
+    let doc = union
+        .description
+        .as_ref()
+        .map(|desc| {
+            let desc = proc_macro2::Literal::string(desc);
+            quote! { #[doc = #desc] }
+        })
+        .unwrap_or_default();
+    let private = {
+        let m = &domain.module;
+        quote! { in #m }
+    };
 
     let mut code_sections = Vec::new();
 
     let walker_variants = variants.iter().copied().map(WalkerVariant);
     code_sections.push(quote! {
+        #doc
         #[derive(Clone, Copy)]
-        pub enum #walker_enum_name<'a> {
+        pub #public enum #walker_enum_name<'a> {
             #(#walker_variants),*
         }
     });
@@ -55,9 +75,9 @@ pub fn generate_walker(
                     0,
                     quote! {
                         #[derive(Clone, Copy)]
-                        pub struct #walker_name<'a> {
-                            pub(crate) #graph_name: &'a #graph_type,
-                            pub(crate) id: #id_struct_name,
+                        pub #public struct #walker_name<'a> {
+                            pub(#private) #context_name: #context_type,
+                            pub(#private) id: #id_struct_name,
                         }
                     },
                 );
@@ -76,16 +96,17 @@ pub fn generate_walker(
                     enum_name: union.enum_name(),
                 });
                 code_sections.push(quote! {
+                    #allow_unused
                     impl<'a> #walker_name<'a> {
                         #[allow(clippy::should_implement_trait)]
-                        pub fn as_ref(&self) -> &'a #enum_name {
-                            &self.#graph_name[self.id]
+                        pub #public fn as_ref(&self) -> &'a #enum_name {
+                            &self.#context_accessor[self.id]
                         }
-                        pub fn id(&self) -> #id_struct_name {
+                        pub #public fn id(&self) -> #id_struct_name {
                             self.id
                         }
-                        pub fn variant(&self) -> #walker_enum_name<'a> {
-                            let #graph_name = self.#graph_name;
+                        pub #public fn variant(&self) -> #walker_enum_name<'a> {
+                            let #context_name = self.#context_name;
                             match self.as_ref() {
                                 #(#walk_branches),*
                             }
@@ -94,15 +115,16 @@ pub fn generate_walker(
                 });
 
                 code_sections.push(quote! {
-                    impl #walk_trait<#graph_type> for #id_struct_name {
-                        type Walker<'a> = #walker_name<'a>;
+                    impl<'a> #walk_trait<#context_type> for #id_struct_name {
+                        type Walker<'w> = #walker_name<'w> where 'a: 'w;
 
-                        fn walk<'a>(self, #graph_name: &'a #graph_type) -> Self::Walker<'a>
+                        fn walk<'w>(self, #context_name: #context_type) -> Self::Walker<'w>
                         where
-                            Self: 'a
+                            Self: 'w,
+                            'a: 'w
                         {
                             #walker_name {
-                                #graph_name,
+                                #context_name,
                                 id: self,
                             }
                         }
@@ -129,12 +151,13 @@ pub fn generate_walker(
             });
 
             code_sections.push(quote! {
-                impl #walk_trait<#graph_type> for #enum_name {
-                    type Walker<'a> = #walker_enum_name<'a>;
+                impl<'a> #walk_trait<#context_type> for #enum_name {
+                    type Walker<'w> = #walker_enum_name<'w> where 'a: 'w;
 
-                    fn walk<'a>(self, #graph_name: &'a #graph_type) -> Self::Walker<'a>
+                    fn walk<'w>(self, #context_name: #context_type) -> Self::Walker<'w>
                     where
-                        Self: 'a
+                        Self: 'w,
+                        'a: 'w
                     {
                         match self {
                             #(#walk_branches),*
@@ -158,8 +181,9 @@ pub fn generate_walker(
             {
                 Ok(id_branches) => {
                     code_sections.push(quote! {
+                        #allow_unused
                         impl #walker_enum_name<'_> {
-                            pub fn id(&self) -> #enum_name {
+                            pub #public fn id(&self) -> #enum_name {
                                 match self {
                                     #(#id_branches),*
                                 }
@@ -189,16 +213,21 @@ impl quote::ToTokens for WalkerVariant<'_> {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         let variant = Ident::new(&self.0.name, Span::call_site());
         let tt = if let Some(value) = self.0.value {
-            let walker = Ident::new(value.walker_name(), Span::call_site());
             match value {
-                Definition::Scalar(scalar) if !scalar.is_record => {
-                    if scalar.copy {
+                Definition::Scalar(Scalar::Value { copy, .. }) => {
+                    let walker = Ident::new(value.walker_name(), Span::call_site());
+                    if *copy {
                         quote! { #variant(#walker) }
                     } else {
                         quote! { #variant(&'a #walker) }
                     }
                 }
+                Definition::Scalar(Scalar::Ref { target, .. }) => {
+                    let walker = Ident::new(target.walker_name(), Span::call_site());
+                    quote! { #variant(#walker<'a>) }
+                }
                 _ => {
+                    let walker = Ident::new(value.walker_name(), Span::call_site());
                     quote! { #variant(#walker<'a>) }
                 }
             }
@@ -223,7 +252,6 @@ impl quote::ToTokens for RecordUnionWalkerBranch<'_> {
         let walker = Ident::new(self.walker_enum_name, Span::call_site());
 
         let tt = if let Some(value) = self.variant.value {
-            let graph = Ident::new(&self.variant.domain.graph_var_name, Span::call_site());
             match value.access_kind() {
                 AccessKind::Copy => {
                     quote! { #enum_::#variant(item) => #walker::#variant(item) }
@@ -232,16 +260,20 @@ impl quote::ToTokens for RecordUnionWalkerBranch<'_> {
                     quote! { #enum_::#variant(item) => #walker::#variant(&item) }
                 }
                 AccessKind::IdRef => {
-                    quote! { #enum_::#variant(id) => #walker::#variant(&#graph[id]) }
+                    let ctx = self.variant.domain.domain_accessor(value.external_domain_name());
+                    quote! { #enum_::#variant(id) => #walker::#variant(&#ctx[id]) }
                 }
                 AccessKind::IdWalker => {
-                    quote! { #enum_::#variant(id) => #walker::#variant(id.walk(#graph)) }
+                    let ctx = self.variant.domain.context_accessor(value.external_domain_name());
+                    quote! { #enum_::#variant(id) => #walker::#variant(id.walk(#ctx)) }
                 }
                 AccessKind::ItemWalker => {
-                    quote! { #enum_::#variant(item) => #walker::#variant(item.walk(#graph)) }
+                    let ctx = self.variant.domain.context_accessor(value.external_domain_name());
+                    quote! { #enum_::#variant(item) => #walker::#variant(item.walk(#ctx)) }
                 }
                 AccessKind::RefWalker => {
-                    quote! { #enum_::#variant(ref item) => #walker::#variant(item.walk(#graph)) }
+                    let ctx = self.variant.domain.context_accessor(value.external_domain_name());
+                    quote! { #enum_::#variant(ref item) => #walker::#variant(item.walk(#ctx)) }
                 }
             }
         } else {
@@ -263,22 +295,25 @@ impl quote::ToTokens for IdUnionWalkerBranch<'_> {
         let enum_ = Ident::new(self.enum_name, Span::call_site());
         let walker = Ident::new(self.walker_enum_name, Span::call_site());
         let variant = Ident::new(&self.variant.name, Span::call_site());
-        let graph = Ident::new(&self.variant.domain.graph_var_name, Span::call_site());
 
         let tt = match self.variant.value {
-            Some(Definition::Scalar(scalar)) if !scalar.is_record => {
+            Some(Definition::Scalar(Scalar::Value {
+                external_domain_name, ..
+            })) => {
+                let ctx = self.variant.domain.domain_accessor(external_domain_name.as_deref());
                 quote! {
-                    #enum_::#variant(id) => #walker::#variant(&#graph[id])
+                    #enum_::#variant(id) => #walker::#variant(&#ctx[id])
                 }
             }
             Some(value) => {
+                let ctx = self.variant.domain.context_accessor(value.external_domain_name());
                 if value.storage_type().is_id() {
                     quote! {
-                        #enum_::#variant(id) => #walker::#variant(id.walk(#graph))
+                        #enum_::#variant(id) => #walker::#variant(id.walk(#ctx))
                     }
                 } else {
                     quote! {
-                        #enum_::#variant(item) => #walker::#variant(item.walk(#graph))
+                        #enum_::#variant(item) => #walker::#variant(item.walk(#ctx))
                     }
                 }
             }
@@ -305,19 +340,19 @@ impl<'a> IdUnionWalkerIdMethodBranch<'a> {
         let variant = Ident::new(&self.variant.name, Span::call_site());
 
         let tt = match self.variant.value {
-            Some(Definition::Scalar(scalar)) => {
-                if scalar.is_record && scalar.indexed.is_some() {
-                    quote! {
-                        #walker::#variant(walker) => #enum_::#variant(walker.id)
-                    }
-                } else if scalar.copy {
-                    quote! {
-                        #walker::#variant(item) => #enum_::#variant(item)
-                    }
-                } else {
-                    return Err((&self.variant.variant.name, &scalar.name));
+            Some(Definition::Scalar(scalar)) => match scalar {
+                Scalar::Record { indexed, .. } if indexed.is_some() => quote! {
+                    #walker::#variant(walker) => #enum_::#variant(walker.id)
+                },
+
+                Scalar::Value { copy, .. } if *copy => quote! {
+                    #walker::#variant(item) => #enum_::#variant(item)
+                },
+
+                _ => {
+                    return Err((&self.variant.variant.name, scalar.name()));
                 }
-            }
+            },
             Some(Definition::Object(object)) => {
                 if object.indexed.is_some() {
                     quote! {

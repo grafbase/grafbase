@@ -1,4 +1,4 @@
-use grafbase_telemetry::otel::opentelemetry_sdk::metrics::SdkMeterProvider;
+use grafbase_telemetry::otel::opentelemetry_sdk::{logs::LoggerProvider, metrics::SdkMeterProvider};
 
 use grafbase_telemetry::config::TelemetryConfig;
 use grafbase_telemetry::otel::layer::OtelTelemetry;
@@ -10,24 +10,33 @@ use crate::args::{Args, LogStyle};
 
 #[derive(Default, Clone)]
 pub(crate) struct OpenTelemetryProviders {
+    pub logger: Option<LoggerProvider>,
     pub meter: Option<SdkMeterProvider>,
     pub tracer: Option<TracerProvider>,
 }
 
 impl OpenTelemetryProviders {
     pub(crate) async fn graceful_shutdown(&self) {
-        use grafbase_telemetry::otel::opentelemetry::global::{shutdown_logger_provider, shutdown_tracer_provider};
+        use grafbase_telemetry::otel::opentelemetry::global::shutdown_tracer_provider;
         use tokio::task::spawn_blocking;
 
-        let _ = tokio::join!(
-            spawn_blocking(shutdown_tracer_provider),
-            spawn_blocking(shutdown_logger_provider),
-            async {
-                if let Some(provider) = &self.meter {
-                    let _ = provider.shutdown().await;
-                }
+        let shutdown_tracer = spawn_blocking(shutdown_tracer_provider);
+
+        let meter_provider = self.meter.clone();
+        let shutdown_metrics = spawn_blocking(|| {
+            if let Some(provider) = meter_provider {
+                let _ = provider.shutdown();
             }
-        );
+        });
+
+        let logger_provider = self.logger.clone();
+        let shutdown_logger = spawn_blocking(|| {
+            if let Some(provider) = logger_provider {
+                let _ = provider.shutdown();
+            }
+        });
+
+        let _ = tokio::join!(shutdown_tracer, shutdown_metrics, shutdown_logger);
     }
 }
 
@@ -63,6 +72,7 @@ pub(crate) fn init(args: &impl Args, config: &TelemetryConfig) -> anyhow::Result
     }
 
     let tracer_provider = tracer.as_ref().map(|t| t.provider.clone());
+    let logger_provider = logger.as_ref().map(|l| l.provider.clone());
 
     let registry = tracing_subscriber::registry()
         .with(tracer.map(|t| t.layer))
@@ -98,6 +108,7 @@ pub(crate) fn init(args: &impl Args, config: &TelemetryConfig) -> anyhow::Result
     Ok(OpenTelemetryProviders {
         meter: meter_provider,
         tracer: tracer_provider,
+        logger: logger_provider,
     })
 }
 
