@@ -302,7 +302,9 @@ async fn output_handler(receiver: &mut Receiver<String>) {
     // yellow and bold
     println!("🕒 \x1b[1;33mFetching\x1b[0m your subgraphs...\n");
 
-    let url = receiver.recv().await.expect("must still be open");
+    let Some(url) = receiver.recv().await else {
+        return;
+    };
 
     // move the cursor up two lines and clear the line.
     // \x1b[{n}A moves the cursor up by {n} lines, \x1b[2K clears the line
