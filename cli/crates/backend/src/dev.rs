@@ -74,7 +74,7 @@ pub async fn start(
     let composition_result = graphql_composition::compose(&subgraphs);
 
     let federated_sdl = match composition_result.into_result() {
-        Ok(result) => result.into_federated_sdl().map_err(BackendError::ToFederatedSdl)?,
+        Ok(result) => federated_graph::render_federated_sdl(&result).map_err(BackendError::ToFederatedSdl)?,
         Err(diagnostics) => {
             return Err(BackendError::Composition(
                 diagnostics.iter_messages().collect::<Vec<_>>().join("\n"),
