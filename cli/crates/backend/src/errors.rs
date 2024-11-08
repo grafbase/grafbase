@@ -121,7 +121,7 @@ pub enum BackendError {
     ReadSdlFromFile(PathBuf, std::io::Error),
     #[error("could not introspect a subgraph URL: {0}")]
     IntrospectSubgraph(String),
-    #[error("no url or file were defined for an overridden subgraph: {0}")]
+    #[error("no url or schema_path were defined for an overridden subgraph: {0}")]
     NoDefinedRouteToSubgraphSdl(String),
     #[error("could not parse a subgraph\nCaused by: {0}")]
     IngestSubgraph(IngestError),
