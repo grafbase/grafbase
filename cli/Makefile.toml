@@ -8,22 +8,22 @@ skip_crate_env_info = true
 [tasks.install-cargo-release]
 private = true
 install_crate = { crate_name = "cargo-release", binary = "cargo", test_arg = [
-  "release",
-  "--version",
+    "release",
+    "--version",
 ], version = "0.24.10" }
 
 [tasks.install-sd]
 private = true
 install_crate = { crate_name = "sd", binary = "sd", test_arg = [
-  "--version",
+    "--version",
 ], version = "0.7.6" }
 
 [tasks.mac-install-cargo-instruments]
 private = true
 condition = { platforms = ["mac"] }
 install_crate = { crate_name = "cargo-instruments", binary = "cargo", test_arg = [
-  "instruments",
-  "--version",
+    "instruments",
+    "--version",
 ], version = "0.4.8" }
 
 [tasks.bump]
@@ -71,12 +71,6 @@ git tag grafbase-$VERSION
 git push --tags
 '''
 
-[tasks.prettier]
-description = "Runs Prettier and writes the results"
-script = '''
-npx prettier --write .
-'''
-
 [tasks.test]
 description = "Runs cargo-nextest"
 command = "cargo"
@@ -114,12 +108,3 @@ condition = { platforms = ["mac"] }
 dependencies = ["mac-install-cargo-instruments"]
 command = "cargo"
 args = ["instruments", "-t", "Leaks", "--time-limit", "30000", "--", "dev"]
-
-[tasks.build-cli-app]
-description = "Build packages/cli-app — the Pathfinder wrapper included in CLI"
-script = '''
-pushd ../packages/cli-app
-npx --yes pnpm i
-npx --yes pnpm run cli-app:build
-popd
-'''

@@ -9,7 +9,7 @@
   # use flake
   # dotenv .env
   #
-  description = "Grafbase CLI development environment";
+  description = "Grafbase development environment";
 
   inputs = {
     crane = {
@@ -68,10 +68,6 @@
             # workspace-hack
             cargo-hakari
 
-            # Node.js
-            nodejs_22
-            nodePackages.prettier
-
             # Native SSL
             openssl
             pkg-config
@@ -82,9 +78,6 @@
 
             # SQLx macros
             libiconv
-
-            # Resolver tests
-            pnpm # and cli-app
           ]
           ++ optional (system == systems.aarch64-darwin) [
             cargo-binstall
@@ -131,7 +124,7 @@
           };
         };
 
-        imports = [./cli/nix/cli.nix ./nix/cli-app.nix ./gateway/nix/grafbase-gateway.nix];
+        imports = [./cli/nix/cli.nix ./gateway/nix/grafbase-gateway.nix];
       };
     };
 }

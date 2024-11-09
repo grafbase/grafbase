@@ -44,13 +44,6 @@
 
               # for zstd
               libiconv
-
-              # Used to generate CLI assets
-              esbuild
-              nodePackages.pnpm
-
-              # Formatting
-              nodePackages.prettier
             ]
             ++ optional (system == systems.aarch64-darwin) [
               darwin.apple_sdk.frameworks.Security

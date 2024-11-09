@@ -31,7 +31,6 @@ globs = [
     ".editorconfig",
     ".envrc",
     ".envrc.example",
-    ".prettierrc.js",
     "renovate.json",
     "flake.nix",
     "flake.lock",
@@ -40,14 +39,7 @@ mark-changed = []
 
 [[path-rule]]
 # Ignore various folders
-globs = [
-    "auth-testing/**",
-    "packages/**",
-    "nix/**",
-    "examples/**",
-    "docker/**",
-    ".vscode",
-]
+globs = ["auth-testing/**", "nix/**", "examples/**", "docker/**", ".vscode"]
 mark-changed = []
 
 [[path-rule]]

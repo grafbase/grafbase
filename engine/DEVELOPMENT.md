@@ -76,7 +76,6 @@ Prefix        Description
 
 - Have all Rust files been linted with `cargo clippy --locked --tests --all-targets -- -D warnings`?
 - Have all Rust files been formatted with `rustfmt`?
-- Have all non-Rust files been formatted with `prettier`?
 - Are all tests passing?
 - Does the PR have a detailed description of the change and the reasoning behind it?
 
