@@ -17,18 +17,10 @@
     *.md
     *.sh
 
-    package.json
-    assets.tar.gz
-
-    /packages
-
     /flake.lock
     /renovate.json
     /scripts
     /packages/**/src
-
-    node_modules/
-    yarn.lock
 
     !/engine/crates/validation/README.md
     !/engine/crates/composition/README.md

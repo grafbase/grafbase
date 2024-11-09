@@ -7,7 +7,3 @@ engine/ @grafbase/backend
 gateway/ @grafbase/backend
 .github/actions/ @grafbase/backend
 examples/ @grafbase/backend
-packages/ @grafbase/backend
-packages/grafbase-sdk @grafbase/backend
-templates/ @grafbase/backend
-

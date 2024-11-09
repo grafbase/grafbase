@@ -146,25 +146,8 @@ jobs:
           path: engine/crates/wasi-component-loader/examples/target/wasm32-wasip1/debug/*.wasm
           retention-days: 5
 
-  cli-assets:
-    if: contains(fromJson(needs.what-changed.outputs.rust).changed-packages, 'grafbase')
-    needs: [what-changed]
-    runs-on: ubicloud-standard-8
-    steps:
-      - name: Get sources
-        uses: actions/checkout@v4
-
-      - name: Build assets
-        uses: ./.github/actions/cli_assets
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: cli-app-dist
-          path: packages/cli-app/dist
-          retention-days: 5
-
   builds:
-    needs: [what-changed, example-component, cli-assets]
+    needs: [what-changed, example-component]
     # We need the cancelled & result checks of this if to make sure that we
     # run even if some of our needs were skipped.
     # In particular we need `cancelled()` because `always()` (the other way of doing this)
@@ -262,13 +245,6 @@ jobs:
         with:
           name: example-component
           path: engine/crates/wasi-component-loader/examples/target/wasm32-wasip1/debug
-
-      - name: Download pre-built cli-app
-        if: needs.cli-assets.result != 'skipped'
-        uses: actions/download-artifact@v4
-        with:
-          name: cli-app-dist
-          path: packages/cli-app/dist
 
       # TODO: Add timing reports in here somehow...
 
