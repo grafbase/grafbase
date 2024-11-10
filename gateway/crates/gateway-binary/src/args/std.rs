@@ -52,8 +52,8 @@ pub struct Args {
     #[arg(long = "log", env = "GRAFBASE_LOG", default_value = "info")]
     pub log_level: String,
     /// Set the style of log output
-    #[arg(long, env = "GRAFBASE_LOG_STYLE", default_value_t)]
-    log_style: LogStyle,
+    #[arg(long, env = "GRAFBASE_LOG_STYLE")]
+    log_style: Option<LogStyle>,
     /// If set, parts of the configuration will get reloaded when changed.
     #[arg(long, action)]
     hot_reload: bool,
@@ -145,7 +145,14 @@ impl super::Args for Args {
     }
 
     fn log_style(&self) -> LogStyle {
-        self.log_style
+        self.log_style.unwrap_or_else(|| {
+            let log_level = self.log_level();
+            if atty::is(atty::Stream::Stdout) && (log_level.contains("debug") || log_level.contains("trace")) {
+                LogStyle::Pretty
+            } else {
+                LogStyle::Text
+            }
+        })
     }
 
     fn listen_address(&self) -> Option<SocketAddr> {
