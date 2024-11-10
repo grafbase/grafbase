@@ -6,6 +6,13 @@ use tracing_subscriber::EnvFilter;
 
 pub struct LogLevel<'a>(pub(super) &'a str);
 
+impl std::ops::Deref for LogLevel<'_> {
+    type Target = str;
+    fn deref(&self) -> &Self::Target {
+        self.0
+    }
+}
+
 // Verbose libraries in debug/trace mode which are rarely actually useful.
 const LIBS: &[&str] = &["h2", "tower", "rustls", "hyper_util", "hyper", "reqwest"];
 
@@ -28,25 +35,15 @@ impl<'a> From<LogLevel<'a>> for EnvFilter {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
+#[derive(Default, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
 pub(crate) enum LogStyle {
-    /// Pretty printed logs, used as the default in the terminal
+    /// Pretty printed logs, used as the default in the terminal when using debug logs
     Pretty,
-    /// Standard text, used as the default when piping stdout to a file.
+    /// Standard text, used as the default when pretty isn't used.
+    #[default]
     Text,
     /// JSON objects
     Json,
-}
-
-impl Default for LogStyle {
-    fn default() -> Self {
-        let is_terminal = atty::is(atty::Stream::Stdout);
-        if is_terminal {
-            LogStyle::Pretty
-        } else {
-            LogStyle::Text
-        }
-    }
 }
 
 impl AsRef<str> for LogStyle {
