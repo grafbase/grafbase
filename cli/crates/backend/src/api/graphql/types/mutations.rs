@@ -6,8 +6,6 @@ use super::schema;
 pub struct GraphCreateInput<'a> {
     pub account_id: cynic::Id,
     pub graph_slug: &'a str,
-    pub repo_root_path: Option<&'a str>,
-    pub environment_variables: Vec<EnvironmentVariableSpecification<'a>>,
     pub graph_mode: GraphMode,
 }
 
@@ -15,12 +13,6 @@ pub struct GraphCreateInput<'a> {
 pub enum GraphMode {
     Managed,
     SelfHosted,
-}
-
-#[derive(cynic::InputObject, Clone, Debug)]
-pub struct EnvironmentVariableSpecification<'a> {
-    pub name: &'a str,
-    pub value: &'a str,
 }
 
 #[derive(cynic::QueryVariables)]
@@ -84,23 +76,6 @@ pub struct GraphCreate {
 }
 
 #[derive(cynic::QueryFragment, Debug)]
-pub struct InvalidDatabaseRegionsError {
-    pub __typename: String,
-    pub invalid: Vec<String>,
-}
-
-#[derive(cynic::QueryFragment, Debug)]
-pub struct EmptyDatabaseRegionsError {
-    pub __typename: String,
-}
-
-#[derive(cynic::QueryFragment, Debug)]
-pub struct DuplicateDatabaseRegionsError {
-    pub __typename: String,
-    pub duplicates: Vec<String>,
-}
-
-#[derive(cynic::QueryFragment, Debug)]
 pub struct CurrentPlanLimitReachedError {
     pub __typename: String,
     pub max: i32,
@@ -121,16 +96,6 @@ pub struct DisabledAccountError {
     pub __typename: String,
 }
 
-#[derive(cynic::QueryFragment, Debug)]
-pub struct EnvironmentVariableCountLimitExceededError {
-    pub __typename: String,
-}
-
-#[derive(cynic::QueryFragment, Debug)]
-pub struct InvalidEnvironmentVariablesError {
-    pub __typename: String,
-}
-
 #[derive(cynic::InlineFragments, Debug)]
 pub enum GraphCreatePayload {
     GraphCreateSuccess(GraphCreateSuccess),
@@ -140,18 +105,8 @@ pub enum GraphCreatePayload {
     SlugTooLongError(SlugTooLongError),
     AccountDoesNotExistError(AccountDoesNotExistError),
     CurrentPlanLimitReachedError(CurrentPlanLimitReachedError),
-    InvalidEnvironmentVariablesError(InvalidEnvironmentVariablesError),
-    EnvironmentVariableCountLimitExceededError(EnvironmentVariableCountLimitExceededError),
-    InvalidDatabaseRegionsError(InvalidDatabaseRegionsError),
-    DuplicateDatabaseRegionsError(DuplicateDatabaseRegionsError),
-    EmptyDatabaseRegionsError(EmptyDatabaseRegionsError),
     #[cynic(fallback)]
     Unknown(String),
-}
-
-#[derive(cynic::QueryFragment, Debug)]
-pub struct ProjectDoesNotExistError {
-    pub __typename: String,
 }
 
 #[derive(cynic::QueryFragment, Debug)]
@@ -261,14 +216,12 @@ pub struct SchemaRegistryBranchDoesNotExistError {
 #[derive(cynic::InlineFragments, Debug)]
 pub enum PublishPayload {
     PublishSuccess(PublishSuccess),
-    ProjectDoesNotExist(ProjectDoesNotExistError),
+    GraphDoesNotExist(GraphDoesNotExistError),
     FederatedGraphCompositionError(FederatedGraphCompositionError),
     BranchDoesNotExistError(SchemaRegistryBranchDoesNotExistError),
     #[cynic(fallback)]
     Unknown(String),
 }
-
-cynic::impl_scalar!(url::Url, schema::Url);
 
 #[derive(cynic::QueryVariables, Debug)]
 pub struct SubgraphCreateArguments<'a> {

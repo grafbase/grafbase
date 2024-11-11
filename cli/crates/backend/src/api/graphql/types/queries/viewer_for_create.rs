@@ -8,7 +8,6 @@ pub struct Viewer {
 
 #[derive(cynic::QueryFragment, Debug)]
 pub struct User {
-    pub personal_account: Option<PersonalAccount>,
     #[arguments(last: 100)]
     pub organizations: OrganizationConnection,
 }
@@ -16,13 +15,6 @@ pub struct User {
 #[derive(cynic::QueryFragment, Debug)]
 pub struct OrganizationConnection {
     pub nodes: Vec<Organization>,
-}
-
-#[derive(cynic::QueryFragment, Debug)]
-pub struct PersonalAccount {
-    pub id: cynic::Id,
-    pub name: String,
-    pub slug: String,
 }
 
 #[derive(cynic::QueryFragment, Debug)]

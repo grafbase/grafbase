@@ -12,7 +12,6 @@ pub struct Account {
     pub id: String,
     pub name: String,
     pub slug: String,
-    pub personal: bool,
 }
 
 #[derive(Debug)]
