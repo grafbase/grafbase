@@ -1,5 +1,6 @@
 use std::{
     fs,
+    io::IsTerminal,
     net::SocketAddr,
     path::{Path, PathBuf},
 };
@@ -147,7 +148,7 @@ impl super::Args for Args {
     fn log_style(&self) -> LogStyle {
         self.log_style.unwrap_or_else(|| {
             let log_level = self.log_level();
-            if atty::is(atty::Stream::Stdout) && (log_level.contains("debug") || log_level.contains("trace")) {
+            if std::io::stdout().is_terminal() && (log_level.contains("debug") || log_level.contains("trace")) {
                 LogStyle::Pretty
             } else {
                 LogStyle::Text

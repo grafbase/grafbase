@@ -1,3 +1,5 @@
+use std::io::IsTerminal;
+
 use grafbase_telemetry::otel::opentelemetry_sdk::{logs::LoggerProvider, metrics::SdkMeterProvider};
 
 use grafbase_telemetry::config::TelemetryConfig;
@@ -78,7 +80,7 @@ pub(crate) fn init(args: &impl Args, config: &TelemetryConfig) -> anyhow::Result
         .with(tracer.map(|t| t.layer))
         .with(logger.map(|l| l.layer));
 
-    let is_terminal = atty::is(atty::Stream::Stdout);
+    let is_terminal = std::io::stdout().is_terminal();
     match args.log_style() {
         // for interactive terminals we provide colored output
         LogStyle::Pretty => registry
