@@ -11,7 +11,7 @@ use grafbase_telemetry::otel::opentelemetry::trace::TraceId;
 use http::{HeaderMap, HeaderValue};
 use indoc::{formatdoc, indoc};
 use serde_json::json;
-use tempdir::TempDir;
+use tempfile::TempDir;
 use wiremock::{matchers::method, ResponseTemplate};
 
 fn create_log_channel() -> (ChannelLogSender, ChannelLogReceiver) {
@@ -87,7 +87,7 @@ async fn simple_no_io() {
 async fn dir_access_read_only() {
     // the guest code in examples/dir_access/src/lib.rs
 
-    let dir = TempDir::new("test").unwrap();
+    let dir = TempDir::new().unwrap();
     let path = dir.path();
     let path_str = path.to_str().unwrap().escape_default();
 
@@ -125,7 +125,7 @@ async fn dir_access_read_only() {
 async fn dir_access_write() {
     // the guest code in examples/dir_access/src/lib.rs
 
-    let dir = TempDir::new("test").unwrap();
+    let dir = TempDir::new().unwrap();
     let path = dir.path();
     let path_str = path.to_str().unwrap().escape_default();
 
