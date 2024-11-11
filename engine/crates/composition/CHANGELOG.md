@@ -12,6 +12,7 @@
 - There is no longer a `VersionedFederatedGraph`. The serializable version of the federated graph is dropped — that role will be fulfilled by the federated SDL instead (https://github.com/grafbase/grafbase/pull/2310).
 - `graphql_composition` now reexports the companion `graphql_federated_graph` crate (https://github.com/grafbase/grafbase/pull/2310).
 - Added support for the `@cost` directive (https://github.com/grafbase/grafbase/pull/2305).
+- We now validate that subgraphs do not define the `join__Graph` enum. (https://github.com/grafbase/grafbase/pull/2325)
 
 ### Fixes
 

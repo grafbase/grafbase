@@ -8,7 +8,7 @@ An implementation of [GraphQL federated schema composition](https://www.apollogr
 ## Example
 
 ```rust
-use graphql_composition::{Subgraphs, compose};
+use graphql_composition::{Subgraphs, compose, render_federated_sdl};
 
 let user_subgraph = r#"
   extend schema
@@ -40,15 +40,13 @@ let cart_subgraph = r#"
   }
 "#;
 
-let [user_subgraph, cart_subgraph] = [user_subgraph, cart_subgraph]
-  .map(|sdl| async_graphql_parser::parse_schema(&sdl).unwrap());
-
 let mut subgraphs = Subgraphs::default();
 
-subgraphs.ingest(&user_subgraph, "users-service", "http://users.example.com");
-subgraphs.ingest(&cart_subgraph, "carts-service", "http://carts.example.com");
+subgraphs.ingest_str(&user_subgraph, "users-service", "http://users.example.com").unwrap();
+subgraphs.ingest_str(&cart_subgraph, "carts-service", "http://carts.example.com").unwrap();
 
-let composed = compose(&subgraphs).into_result().unwrap().into_federated_sdl();
+let composed = compose(&subgraphs).into_result().unwrap();
+let composed = render_federated_sdl(&composed).unwrap();
 
 let expected = r#"
 directive @core(feature: String!) repeatable on SCHEMA

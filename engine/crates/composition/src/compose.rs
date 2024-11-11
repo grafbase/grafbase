@@ -6,6 +6,7 @@ mod fields;
 mod input_object;
 mod interface;
 mod object;
+mod reserved_names;
 mod roots;
 mod scalar;
 
@@ -23,6 +24,10 @@ use std::collections::{BTreeMap, BTreeSet, HashSet};
 pub(crate) fn compose_subgraphs(ctx: &mut Context<'_>) {
     ctx.subgraphs.iter_definition_groups(|definitions| {
         let Some(first) = definitions.first() else {
+            return;
+        };
+
+        if reserved_names::validate_definition_names(definitions, ctx) {
             return;
         };
 
