@@ -1,7 +1,7 @@
 use std::{collections::HashMap, path::PathBuf};
 
 use cynic_parser::type_system::{iter::Iter, Definition, Directive, TypeDefinition};
-use cynic_value_deser::{ConstDeserializer, DeserValue, ValueDeserialize};
+use cynic_parser_deser::{ConstDeserializer, DeserValue, ValueDeserialize};
 use proc_macro2::{Ident, Span};
 use quote::{quote, TokenStreamExt};
 
@@ -332,7 +332,6 @@ fn finalize_field_struct_names(
 }
 
 #[derive(ValueDeserialize)]
-#[deser(default)]
 struct IdDirective {
     bitpacked_size: Option<usize>,
 }
@@ -379,12 +378,12 @@ enum RemoveSuffix {
 }
 
 impl<'a> ValueDeserialize<'a> for RemoveSuffix {
-    fn deserialize(input: DeserValue<'a>) -> Result<Self, cynic_value_deser::Error> {
+    fn deserialize(input: DeserValue<'a>) -> Result<Self, cynic_parser_deser::Error> {
         match input {
             DeserValue::Boolean(value) if value.as_bool() => Ok(RemoveSuffix::Yes),
             DeserValue::Boolean(_) => Ok(RemoveSuffix::No),
             DeserValue::String(value) => Ok(RemoveSuffix::Specific(value.to_string())),
-            _ => Err(cynic_value_deser::Error::custom(
+            _ => Err(cynic_parser_deser::Error::custom(
                 "remove_suffix must be a string or boolean",
                 input.span(),
             )),
@@ -460,16 +459,12 @@ fn parse_indexed<'a>(name: &str, mut directives: Iter<'a, Directive<'a>>) -> Opt
 
 #[derive(ValueDeserialize)]
 struct DomainDirective {
-    #[deser(default)]
     name: Option<String>,
     destination: String,
     #[deser(with = slash_separated_string, default)]
     root_module: Vec<String>,
-    #[deser(default)]
     visibility: Option<String>,
-    #[deser(default)]
     context_name: Option<String>,
-    #[deser(default)]
     context_type: Option<String>,
     #[deser(default)]
     imports: Vec<Import>,
@@ -509,7 +504,7 @@ fn parse_ref_directive<'a>(mut directives: Iter<'a, Directive<'a>>) -> Option<Re
     Some(directive.deserialize().unwrap())
 }
 
-fn slash_separated_string(value: DeserValue<'_>) -> Result<Vec<String>, cynic_value_deser::Error> {
+fn slash_separated_string(value: DeserValue<'_>) -> Result<Vec<String>, cynic_parser_deser::Error> {
     Ok(value
         .deserialize::<String>()?
         .split('/')

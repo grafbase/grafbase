@@ -7,10 +7,8 @@ version = "0.1.0"
 [dependencies]
 anyhow = "1"
 case = "1"
-#cynic-parser = { workspace = true, features = ["report"] }
-cynic-parser.path = "/Users/graeme/src/cynic/cynic-parser"
-cynic-parser.features = ["report"]
-cynic-value-deser.path = "/Users/graeme/src/cynic/cynic-value-deser"
+cynic-parser = { workspace = true, features = ["report"] }
+cynic-parser-deser.workspace = true
 indoc = "2"
 itertools = "0.13"
 proc-macro2 = "1"
