@@ -1,9 +1,7 @@
 use std::{collections::HashMap, path::PathBuf};
 
-use cynic_parser::{
-    type_system::{iter::Iter, Definition, Directive, TypeDefinition},
-    values::ConstValue,
-};
+use cynic_parser::type_system::{iter::Iter, Definition, Directive, TypeDefinition};
+use cynic_value_deser::{ConstDeserializer, DeserValue, ValueDeserialize};
 use proc_macro2::{Ident, Span};
 use quote::{quote, TokenStreamExt};
 
@@ -191,11 +189,13 @@ pub(super) fn load(path: PathBuf) -> anyhow::Result<domain::Domain> {
                                 } else {
                                     let name = member.name();
                                     match &variant.remove_suffix {
-                                        Ok(false) => name,
-                                        Ok(true) => name
+                                        RemoveSuffix::No => name,
+                                        RemoveSuffix::Yes => name
                                             .strip_suffix(union.name())
                                             .expect("union name is not a suffix of the variant"),
-                                        Err(suffix) => name.strip_suffix(suffix).expect("Suffix not found in variant"),
+                                        RemoveSuffix::Specific(suffix) => {
+                                            name.strip_suffix(suffix).expect("Suffix not found in variant")
+                                        }
                                     }
                                     .to_string()
                                 }
@@ -331,23 +331,25 @@ fn finalize_field_struct_names(
     definitions_by_name
 }
 
+#[derive(ValueDeserialize)]
+#[deser(default)]
+struct IdDirective {
+    bitpacked_size: Option<usize>,
+}
+
 fn parse_union_kind<'a>(name: &str, directives: Iter<'a, Directive<'a>>) -> domain::UnionKind {
     if let Some(directive) = directives.clone().find(|directive| directive.name() == "id") {
-        if let Some(bitpacked_size) = directive
-            .arguments()
-            .find(|arg| arg.name() == "bitpacked_size")
-            .and_then(|arg| arg.value().as_str())
-        {
-            domain::UnionKind::BitpackedId(domain::BitPackedIdUnion {
+        let IdDirective { bitpacked_size } = directive.deserialize().unwrap();
+        match bitpacked_size {
+            Some(bitpacked_size) => domain::UnionKind::BitpackedId(domain::BitPackedIdUnion {
                 name: name.to_string(),
                 size: bitpacked_size.to_string(),
                 enum_name: format!("BitPacked{name}Id"),
-            })
-        } else {
-            domain::UnionKind::Id(domain::IdUnion {
+            }),
+            None => domain::UnionKind::Id(domain::IdUnion {
                 name: name.to_string(),
                 enum_name: format!("{name}Id"),
-            })
+            }),
         }
     } else {
         domain::UnionKind::Record(domain::RecordUnion {
@@ -360,109 +362,68 @@ fn parse_union_kind<'a>(name: &str, directives: Iter<'a, Directive<'a>>) -> doma
     }
 }
 
+#[derive(Default, ValueDeserialize)]
+#[deser(default)]
 struct VariantDirective {
-    // Result used as a Either
-    remove_suffix: Result<bool, String>,
+    remove_suffix: RemoveSuffix,
     empty: Vec<String>,
     names: Option<Vec<String>>,
 }
 
-impl Default for VariantDirective {
-    fn default() -> Self {
-        Self {
-            remove_suffix: Ok(false),
-            empty: Default::default(),
-            names: Default::default(),
+#[derive(Default)]
+enum RemoveSuffix {
+    #[default]
+    No,
+    Yes,
+    Specific(String),
+}
+
+impl<'a> ValueDeserialize<'a> for RemoveSuffix {
+    fn deserialize(input: DeserValue<'a>) -> Result<Self, cynic_value_deser::Error> {
+        match input {
+            DeserValue::Boolean(value) if value.as_bool() => Ok(RemoveSuffix::Yes),
+            DeserValue::Boolean(_) => Ok(RemoveSuffix::No),
+            DeserValue::String(value) => Ok(RemoveSuffix::Specific(value.to_string())),
+            _ => Err(cynic_value_deser::Error::custom(
+                "remove_suffix must be a string or boolean",
+                input.span(),
+            )),
         }
     }
 }
 
 fn parse_variants<'a>(mut directives: Iter<'a, Directive<'a>>) -> Option<VariantDirective> {
     let directive = directives.find(|directive| directive.name() == "variants")?;
-    let remove_suffix = directive
-        .arguments()
-        .find(|arg| arg.name() == "remove_suffix")
-        .and_then(|arg| match arg.value() {
-            ConstValue::Boolean(value) => Some(Ok(value.value())),
-            ConstValue::String(value) => Some(Err(value.to_string())),
-            _ => None,
-        })
-        .unwrap_or(VariantDirective::default().remove_suffix);
-    let empty = directive
-        .arguments()
-        .find(|arg| arg.name() == "empty")
-        .and_then(|arg| match arg.value() {
-            ConstValue::List(list) => Some(
-                list.items()
-                    .filter_map(|value| value.as_str())
-                    .map(str::to_string)
-                    .collect(),
-            ),
-            _ => None,
-        })
-        .unwrap_or_default();
-    let names = directive
-        .arguments()
-        .find(|arg| arg.name() == "names")
-        .and_then(|arg| match arg.value() {
-            ConstValue::List(list) => Some(
-                list.items()
-                    .filter_map(|value| value.as_str())
-                    .map(str::to_string)
-                    .collect(),
-            ),
-            _ => None,
-        });
-    Some(VariantDirective {
-        remove_suffix,
-        empty,
-        names,
-    })
+    Some(directive.deserialize().unwrap())
 }
 
-#[derive(Default)]
+#[derive(Default, ValueDeserialize)]
 struct FieldDirective {
     record_field_name: Option<String>,
 }
 
 fn parse_field_directive<'a>(mut directives: Iter<'a, Directive<'a>>) -> Option<FieldDirective> {
     let directive = directives.find(|directive| directive.name() == "field")?;
-    let record_field_name = directive
-        .arguments()
-        .find(|arg| arg.name() == "record_field_name")
-        .and_then(|arg| arg.value().as_str())
-        .map(str::to_string);
-    Some(FieldDirective { record_field_name })
+    Some(directive.deserialize().unwrap())
+}
+
+#[derive(ValueDeserialize)]
+#[deser(default)]
+struct MetaDirective {
+    derive: Vec<String>,
+    #[deser(with = slash_separated_string, rename = "module")]
+    module_path: Vec<String>,
+    #[deser(default = true)]
+    debug: bool,
 }
 
 fn parse_meta<'a>(mut directives: Iter<'a, Directive<'a>>) -> Option<domain::Meta> {
     let directive = directives.find(|directive| directive.name() == "meta")?;
-    let derive = directive
-        .arguments()
-        .find(|arg| arg.name() == "derive")
-        .and_then(|arg| match arg.value() {
-            ConstValue::List(list) => Some(
-                list.items()
-                    .filter_map(|value| value.as_str())
-                    .map(str::to_string)
-                    .collect(),
-            ),
-            _ => None,
-        })
-        .unwrap_or_default();
-
-    let debug = directive
-        .arguments()
-        .find(|arg| arg.name() == "debug")
-        .and_then(|arg| arg.value().as_bool())
-        .unwrap_or(true);
-
-    let module_path = directive
-        .arguments()
-        .find(|arg| arg.name() == "module")
-        .and_then(|arg| arg.value().as_str())
-        .map(|value| value.split('/').map(str::to_string).collect::<Vec<_>>())
-        .unwrap_or_default();
+    let MetaDirective {
+        derive,
+        module_path,
+        debug,
+    } = directive.deserialize().unwrap();
 
     assert!(!module_path.is_empty(), "Missing or empty module in @meta");
 
@@ -473,21 +434,22 @@ fn parse_meta<'a>(mut directives: Iter<'a, Directive<'a>>) -> Option<domain::Met
     })
 }
 
+#[derive(ValueDeserialize)]
+#[deser(default)]
+struct IndexedDirective {
+    id_size: Option<String>,
+    max_id: Option<String>,
+    deduplicated: bool,
+}
+
 fn parse_indexed<'a>(name: &str, mut directives: Iter<'a, Directive<'a>>) -> Option<domain::Indexed> {
     let directive = directives.find(|directive| directive.name() == "indexed")?;
-    let id_size = directive
-        .arguments()
-        .find(|arg| arg.name() == "id_size")
-        .and_then(|arg| arg.value().as_str().map(str::to_string));
-    let max_id = directive
-        .arguments()
-        .find(|arg| arg.name() == "max_id")
-        .and_then(|arg| arg.value().as_str().map(str::to_string));
-    let deduplicated = directive
-        .arguments()
-        .find(|arg| arg.name() == "deduplicated")
-        .and_then(|arg| arg.value().as_bool())
-        .unwrap_or_default();
+    let IndexedDirective {
+        id_size,
+        max_id,
+        deduplicated,
+    } = directive.deserialize().unwrap();
+
     Some(domain::Indexed {
         id_struct_name: format!("{name}Id"),
         id_size,
@@ -496,16 +458,24 @@ fn parse_indexed<'a>(name: &str, mut directives: Iter<'a, Directive<'a>>) -> Opt
     })
 }
 
+#[derive(ValueDeserialize)]
 struct DomainDirective {
+    #[deser(default)]
     name: Option<String>,
     destination: String,
+    #[deser(with = slash_separated_string, default)]
     root_module: Vec<String>,
+    #[deser(default)]
     visibility: Option<String>,
+    #[deser(default)]
     context_name: Option<String>,
+    #[deser(default)]
     context_type: Option<String>,
+    #[deser(default)]
     imports: Vec<Import>,
 }
 
+#[derive(ValueDeserialize)]
 struct Import {
     domain: String,
     module: String,
@@ -513,82 +483,12 @@ struct Import {
 
 fn parse_domain_directive<'a>(mut directives: Iter<'a, Directive<'a>>) -> Option<DomainDirective> {
     let directive = directives.find(|directive| directive.name() == "domain")?;
-    let destination = directive
-        .arguments()
-        .find(|arg| arg.name() == "destination")
-        .and_then(|arg| arg.value().as_str())
-        .expect("Missing destination in @domain")
-        .to_string();
-    assert!(!destination.is_empty(), "Missing or empty destination in @domain");
-    let root_module = directive
-        .arguments()
-        .find(|arg| arg.name() == "root_module")
-        .and_then(|arg| arg.value().as_str())
-        .map(|value| value.split('/').map(str::to_string).collect::<Vec<_>>())
-        .unwrap_or_default();
-    let imports = directive
-        .arguments()
-        .find(|arg| arg.name() == "imports")
-        .and_then(|arg| match arg.value() {
-            ConstValue::List(list) => Some(
-                list.items()
-                    .filter_map(|value| match value {
-                        ConstValue::Object(obj) => Some(obj),
-                        _ => None,
-                    })
-                    .map(|obj| {
-                        let domain = obj
-                            .fields()
-                            .find(|field| field.name() == "domain")
-                            .unwrap()
-                            .value()
-                            .as_str()
-                            .unwrap()
-                            .to_string();
-                        let module = obj
-                            .fields()
-                            .find(|field| field.name() == "module")
-                            .unwrap()
-                            .value()
-                            .as_str()
-                            .unwrap()
-                            .to_string();
-                        Import { domain, module }
-                    })
-                    .collect::<Vec<_>>(),
-            ),
-            _ => None,
-        })
-        .unwrap_or_default();
-    let name = directive
-        .arguments()
-        .find(|arg| arg.name() == "name")
-        .and_then(|arg| arg.value().as_str())
-        .map(str::to_string);
-    let context_name = directive
-        .arguments()
-        .find(|arg| arg.name() == "context_name")
-        .and_then(|arg| arg.value().as_str())
-        .map(str::to_string);
-    let context_type = directive
-        .arguments()
-        .find(|arg| arg.name() == "context_type")
-        .and_then(|arg| arg.value().as_str())
-        .map(str::to_string);
-    let visibility = directive
-        .arguments()
-        .find(|arg| arg.name() == "visibility")
-        .and_then(|arg| arg.value().as_str())
-        .map(str::to_string);
-    Some(DomainDirective {
-        name,
-        destination,
-        root_module,
-        visibility,
-        context_name,
-        context_type,
-        imports,
-    })
+    let output = directive.deserialize::<DomainDirective>().unwrap();
+    assert!(
+        !output.destination.is_empty(),
+        "Missing or empty destination in @domain"
+    );
+    Some(output)
 }
 
 fn is_copy<'a>(mut directives: Iter<'a, Directive<'a>>) -> bool {
@@ -599,17 +499,20 @@ fn is_record<'a>(mut directives: Iter<'a, Directive<'a>>) -> bool {
     directives.any(|directive| directive.name() == "record")
 }
 
+#[derive(ValueDeserialize)]
 struct RefDirective {
     target: String,
 }
 
 fn parse_ref_directive<'a>(mut directives: Iter<'a, Directive<'a>>) -> Option<RefDirective> {
     let directive = directives.find(|directive| directive.name() == "ref")?;
-    let target = directive
-        .arguments()
-        .find(|arg| arg.name() == "target")
-        .and_then(|arg| arg.value().as_str())
-        .expect("Missing target in @ref")
-        .to_string();
-    Some(RefDirective { target })
+    Some(directive.deserialize().unwrap())
+}
+
+fn slash_separated_string(value: DeserValue<'_>) -> Result<Vec<String>, cynic_value_deser::Error> {
+    Ok(value
+        .deserialize::<String>()?
+        .split('/')
+        .map(str::to_string)
+        .collect::<Vec<_>>())
 }
