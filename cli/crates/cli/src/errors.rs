@@ -79,7 +79,7 @@ impl CliError {
                 Some("try running 'grafbase login'".to_owned())
             }
             Self::BackendApiError(ApiError::ProjectAlreadyLinked) => Some("try running 'grafbase deploy'".to_owned()),
-            Self::BackendApiError(ApiError::CorruptProjectMetadataFile | ApiError::UnlinkedProject) => {
+            Self::BackendApiError(ApiError::CorruptProjectMetadataFile) => {
                 Some("try running 'grafbase link'".to_owned())
             }
             Self::UpgradeError(UpgradeError::StartDownload | UpgradeError::StartGetLatestReleaseVersion) => {

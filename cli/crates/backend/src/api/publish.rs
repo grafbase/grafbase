@@ -42,7 +42,7 @@ pub async fn publish(
 
     if let Some(data) = data {
         match data.publish {
-            PublishPayload::ProjectDoesNotExistError(_) => Ok(PublishOutcome::GraphDoesNotExist {
+            PublishPayload::ProjectDoesNotExist(_) => Ok(PublishOutcome::GraphDoesNotExist {
                 account_slug: account_slug.to_owned(),
                 graph_slug: graph_slug.to_owned(),
             }),

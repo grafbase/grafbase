@@ -46,11 +46,11 @@ async fn from_arguments(arguments: &CreateArguments<'_>) -> Result<(), CliError>
         .ok_or(CliError::NoAccountFound)?
         .id;
 
-    let (domains, project_slug) = create::create(&account_id, arguments.name)
+    let (domains, graph_slug) = create::create(&account_id, arguments.name)
         .await
         .map_err(CliError::BackendApiError)?;
 
-    report::create_success(arguments.name, &domains, arguments.account_slug, &project_slug);
+    report::create_success(arguments.name, &domains, arguments.account_slug, &graph_slug);
 
     Ok(())
 }
@@ -62,7 +62,7 @@ async fn interactive() -> Result<(), CliError> {
 
     let options: Vec<AccountSelection> = accounts.into_iter().map(AccountSelection).collect();
 
-    let project_name = Text::new("What should your new graph be called?")
+    let graph_name = Text::new("What should your new graph be called?")
         .with_validator(|value: &str| {
             let slugified = slugify!(value, max_length = 48);
             if value == slugified {
@@ -86,11 +86,11 @@ async fn interactive() -> Result<(), CliError> {
         .map_err(handle_inquire_error)?;
 
     if confirm {
-        let (domains, project_slug) = create::create(&selected_account.id, &project_name)
+        let (domains, graph_slug) = create::create(&selected_account.id, &graph_name)
             .await
             .map_err(CliError::BackendApiError)?;
 
-        report::create_success(&project_name, &domains, &selected_account.slug, &project_slug);
+        report::create_success(&graph_name, &domains, &selected_account.slug, &graph_slug);
     }
 
     Ok(())

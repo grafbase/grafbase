@@ -10,14 +10,10 @@ use common::environment::PlatformData;
 use cynic::{http::ReqwestExt, QueryBuilder};
 
 /// The `grafbase subgraphs` command. Returns (branch name, subgraphs).
-pub async fn subgraphs(
-    account: &str,
-    project: &str,
-    branch: Option<&str>,
-) -> Result<(String, Vec<Subgraph>), ApiError> {
+pub async fn subgraphs(account: &str, graph: &str, branch: Option<&str>) -> Result<(String, Vec<Subgraph>), ApiError> {
     match branch {
-        Some(branch) => subgraphs_with_branch(account, project, branch).await,
-        None => subgraphs_production_branch(account, project).await,
+        Some(branch) => subgraphs_with_branch(account, graph, branch).await,
+        None => subgraphs_production_branch(account, graph).await,
     }
 }
 

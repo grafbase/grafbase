@@ -36,10 +36,6 @@ pub enum ApiError {
     #[error("could not read '.grafbase'\nCaused by: {0}")]
     ReadProjectDotGrafbaseFolder(io::Error),
 
-    /// returned if an operation failed due to the project not being linked
-    #[error("could not complete the action as this project has not been linked")]
-    UnlinkedProject,
-
     /// returned if the provided access token is corrupt
     #[error("could not complete the action as your access token is corrupt")]
     CorruptAccessToken,
@@ -87,10 +83,6 @@ pub enum ApiError {
     /// returned if ~/.grafbase could not be created
     #[error("could not create '~/.grafbase'\nCaused by: {0}")]
     CreateUserDotGrafbaseFolder(io::Error),
-
-    /// returned if .grafbase could not be created
-    #[error("could not create '.grafbase'\nCaused by: {0}")]
-    CreateProjectDotGrafbaseFolder(io::Error),
 
     /// returned if an available port could not be find
     #[error("could not find an available port")]

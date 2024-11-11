@@ -40,7 +40,7 @@ pub enum TrustedDocumentsSubmitPayload {
 #[derive(Debug, cynic::QueryVariables)]
 pub struct TrustedDocumentsSubmitVariables<'a> {
     pub account: Option<&'a str>,
-    pub project: &'a str,
+    pub graph: &'a str,
     pub branch: &'a str,
     pub client_name: &'a str,
     pub documents: Vec<TrustedDocumentInput>,
@@ -49,6 +49,6 @@ pub struct TrustedDocumentsSubmitVariables<'a> {
 #[derive(cynic::QueryFragment, Debug)]
 #[cynic(graphql_type = "Mutation", variables = "TrustedDocumentsSubmitVariables")]
 pub(crate) struct TrustedDocumentsSubmit {
-    #[arguments(clientName : $client_name, projectSlug: $project, accountSlug : $account, branchSlug: $branch, documents: $documents)]
+    #[arguments(clientName : $client_name, graphSlug: $graph, accountSlug : $account, branchSlug: $branch, documents: $documents)]
     pub(crate) trusted_documents_submit: TrustedDocumentsSubmitPayload,
 }

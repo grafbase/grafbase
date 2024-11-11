@@ -93,65 +93,14 @@ Options:
 
 ### `create`
 
-Set up and deploy a new project
+Set up and deploy a new graph
 
 ```
 Usage: grafbase create [OPTIONS]
 
 Options:
-  -n, --name <NAME>       The name to use for the new project
+  -n, --name <NAME>       The name to use for the new graph
   -a, --account <SLUG>    The slug of the account in which the new project should be created
-```
-
-### `link`
-
-```
-Usage: grafbase link [OPTIONS]
-
-Options:
-  -p, --project <PROJECT_ID>  The id of the linked project
-```
-
-### `logs`
-
-Tail logs from a standalone graph
-
-```
-Usage: grafbase logs [OPTIONS] [PROJECT_BRANCH]
-
-Arguments:
-  [PROJECT_BRANCH]  The reference to a project: either `{account_slug}/{project_slug}`, `{project_slug}` for the personal account, or a URL to a deployed gateway. Defaults to the linked project if there's one
-
-Options:
-  -l, --limit <LIMIT>  How many last entries to retrieve [default: 100]
-      --no-follow      Whether to disable polling for new log entries
-```
-
-### `start`
-
-Start Grafbase in production mode
-
-```
-Usage: grafbase start [OPTIONS]
-
-Options:
-  -p, --port <PORT>                                                 Use a specific port [default: 4000]
-      --log-level-functions <FUNCTION_LOG_LEVEL>                    Log level to print from function invocations, defaults to 'log-level' [possible values: none, error, warn, info, debug]
-      --log-level-graphql-operations <GRAPHQL_OPERATION_LOG_LEVEL>  Log level to print for GraphQL operations, defaults to 'log-level' [possible values: none, error, warn, info, debug]
-      --log-level-fetch-requests <FETCH_REQUEST_LOG_LEVEL>          Log level to print for fetch requests, defaults to 'log-level' [possible values: none, error, warn, info, debug]
-      --log-level <LOG_LEVEL>                                       Default log level to print [possible values: none, error, warn, info, debug]
-      --listen-address <LISTEN_ADDRESS>                             IP address on which the server will listen for incoming connections. Defaults to 127.0.0.1
-```
-
-### `build`
-
-Build the Grafbase project in advance to avoid the resolver build step in the start command
-
-```
-    Usage: grafbase build [OPTIONS]
-
-Options:
-      --parallelism <PARALLELISM>  Number of resolver builds running in parallel
 ```
 
 ### `introspect`
@@ -171,7 +120,7 @@ Options:
 
 ### `subgraphs`
 
-List all subgraphs for a project
+List all subgraphs for a graph
 
 ```
 Usage: grafbase subgraphs <GRAPH_REF>

@@ -207,7 +207,7 @@ pub struct BranchCreateSuccess {
 #[derive(cynic::QueryFragment)]
 #[cynic(graphql_type = "Mutation", variables = "BranchDeleteArguments")]
 pub struct BranchDelete {
-    #[arguments(accountSlug: $account_slug, projectSlug: $project_slug, branchName: $branch_name)]
+    #[arguments(accountSlug: $account_slug, graphSlug: $graph_slug, branchName: $branch_name)]
     pub branch_delete: BranchDeletePayload,
 }
 
@@ -239,7 +239,7 @@ pub struct CannotDeleteProductionBranchError {
 #[derive(cynic::QueryVariables)]
 pub struct BranchDeleteArguments<'a> {
     pub account_slug: &'a str,
-    pub project_slug: &'a str,
+    pub graph_slug: &'a str,
     pub branch_name: &'a str,
 }
 
@@ -261,7 +261,7 @@ pub struct SchemaRegistryBranchDoesNotExistError {
 #[derive(cynic::InlineFragments, Debug)]
 pub enum PublishPayload {
     PublishSuccess(PublishSuccess),
-    ProjectDoesNotExistError(ProjectDoesNotExistError),
+    ProjectDoesNotExist(ProjectDoesNotExistError),
     FederatedGraphCompositionError(FederatedGraphCompositionError),
     BranchDoesNotExistError(SchemaRegistryBranchDoesNotExistError),
     #[cynic(fallback)]
