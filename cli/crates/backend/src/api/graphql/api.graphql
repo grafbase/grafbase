@@ -151,21 +151,11 @@ type AccountResources {
 
 type AccountResourcesStatus {
   requestCount: ResourceStatus!
-  buildDuration: ResourceStatus!
-  udfRequestCount: ResourceStatus!
-  udfExecUnits: ResourceStatus!
-  execUnits: ResourceStatus!
 }
 
 type AccountResourcesUsage {
   requestCount: TimeSeries!
-  buildDuration: TimeSeries!
-  udfExecUnits: TimeSeries!
-  udfRequestCount: TimeSeries!
-  serverlessFunctionInvocationCount: TimeSeries!
-  serverlessFunctionDuration: TimeSeries!
   granularity: TimeAggregationGranularity!
-  execUnits: TimeSeries!
 }
 
 """
@@ -203,6 +193,10 @@ type AccountStatus {
   isHobbyPlanEnforced: Boolean!
 }
 
+type AlreadyExistsError {
+  query: Query!
+}
+
 type AlreadyMemberError {
   query: Query!
 }
@@ -225,6 +219,7 @@ type Branch implements Node {
   federatedSchema: String
   operationChecksEnabled: Boolean!
   schemaProposals(first: Int, after: String, filter: SchemaProposalFilter!): SchemaProposalConnection!
+  schemaProposalsConfiguration: SchemaProposalsConfiguration!
   subgraphs: [Subgraph!]!
   endpointConfig: EndpointConfig
 }
@@ -281,10 +276,6 @@ enum BranchEnvironment {
   PRODUCTION
 }
 
-type BranchNotDeployedError {
-  query: Query!
-}
-
 input BranchUpdateInput {
   accountSlug: String!
   projectSlug: String
@@ -294,6 +285,7 @@ input BranchUpdateInput {
   trustedDocumentsBypassHeaderName: String
   trustedDocumentsBypassHeaderValue: String
   operationChecksEnabled: Boolean
+  schemaProposalsConfiguration: SchemaProposalsConfigurationUpdateInput
 }
 
 union BranchUpdatePayload = Query | ProjectDoesNotExistError | GraphDoesNotExistError
@@ -326,90 +318,6 @@ type CouldNotFindProjectsError {
 type CurrentPlanLimitReachedError {
   max: Int!
   query: Query!
-}
-
-type CustomDomain {
-  hostnameVerificationStatus: CustomDomainStatus!
-  hostnameVerificationTxtName: String
-  hostnameVerificationTxtValue: String
-  name: String!
-  sslVerificationCnameName: String
-  sslVerificationCnameValue: String
-  sslVerificationStatus: CustomDomainStatus!
-  branch: String!
-}
-
-type CustomDomainAlreadyExistsError {
-  query: Query!
-}
-
-input CustomDomainCreateInput {
-  projectId: ID
-  graphId: ID
-  branch: String!
-  name: String!
-}
-
-union CustomDomainCreatePayload =
-  | CustomDomainCreateSuccess
-  | ProjectDoesNotExistError
-  | GraphDoesNotExistError
-  | BranchDoesNotExistError
-  | CustomDomainAlreadyExistsError
-  | TooManyCustomDomainsError
-  | BranchNotDeployedError
-  | OperationNotAllowedByPlanError
-  | InvalidDomainError
-
-type CustomDomainCreateSuccess {
-  domain: CustomDomain!
-  query: Query!
-}
-
-input CustomDomainDeleteInput {
-  projectId: ID
-  graphId: ID
-  name: String!
-}
-
-union CustomDomainDeletePayload = CustomDomainDeleteSuccess | CustomDomainDoesNotExistError
-
-type CustomDomainDeleteSuccess {
-  name: String!
-  query: Query!
-}
-
-type CustomDomainDoesNotExistError {
-  query: Query!
-}
-
-input CustomDomainReplaceInput {
-  projectId: ID
-  graphId: ID
-  existingName: String!
-  branch: String!
-  name: String!
-}
-
-union CustomDomainReplacePayload =
-  | CustomDomainReplaceSuccess
-  | CustomDomainDoesNotExistError
-  | GraphDoesNotExistError
-  | ProjectDoesNotExistError
-  | BranchDoesNotExistError
-  | BranchNotDeployedError
-  | OperationNotAllowedByPlanError
-  | InvalidDomainError
-
-type CustomDomainReplaceSuccess {
-  domain: CustomDomain!
-  query: Query!
-}
-
-enum CustomDomainStatus {
-  ACTIVE
-  PENDING
-  ERROR
 }
 
 type DailyDeploymentCountLimitExceededError {
@@ -477,7 +385,6 @@ Deployment
 """
 type Deployment implements Node {
   id: ID!
-  commit: GitCommit
   branch: Branch!
   createdAt: DateTime!
   startedAt: DateTime
@@ -489,7 +396,6 @@ type Deployment implements Node {
   """
   duration: Int
   status: DeploymentStatus!
-  logEntries: [DeploymentLogEntry!]!
   graph: Graph!
   schema: String
   diffAgainstPreviousBranchDeployment: String
@@ -565,18 +471,6 @@ type DeploymentEdge {
 input DeploymentFilter {
   branch: String
   statuses: [DeploymentStatus!]
-}
-
-type DeploymentLogEntry {
-  createdAt: DateTime!
-  message: String!
-  level: DeploymentLogLevel!
-}
-
-enum DeploymentLogLevel {
-  ERROR
-  WARN
-  INFO
 }
 
 union DeploymentRedeployPayload =
@@ -669,153 +563,6 @@ input EndpointConfigUpdateInput {
 
 union EndpointConfigUpdatePayload = Query | GraphDoesNotExistError
 
-input EnviromentVariableUpsertInput {
-  accountSlug: String!
-  graphSlug: String
-  projectSlug: String
-  name: String!
-  value: String!
-  environments: [BranchEnvironment!]!
-  sensitive: Boolean
-}
-
-type EnvironmentVariable implements Node {
-  id: ID!
-  name: String!
-  value: String!
-  createdAt: DateTime!
-  updatedAt: DateTime!
-  environments: [BranchEnvironment!]!
-  branches: [String!]
-}
-
-type EnvironmentVariableConnection {
-  """
-  Information to aid in pagination.
-  """
-  pageInfo: PageInfo!
-  """
-  A list of edges.
-  """
-  edges: [EnvironmentVariableEdge!]!
-  """
-  A list of nodes.
-  """
-  nodes: [EnvironmentVariable!]!
-}
-
-type EnvironmentVariableCountLimitExceededError {
-  query: Query!
-}
-
-input EnvironmentVariableCreateInput {
-  graphId: ID
-  projectId: ID
-  """
-  Must not be already assigned.
-  """
-  name: String!
-  value: String!
-  environments: [BranchEnvironment!]!
-  sensitive: Boolean
-}
-
-union EnvironmentVariableCreatePayload =
-  | EnvironmentVariableCreateSuccess
-  | NameAlreadyExistsError
-  | NameTooLongError
-  | NameContainsInvalidCharactersError
-  | ValueTooLongError
-  | ReservedPrefixError
-  | NoEnvironmentsSetError
-  | GraphDoesNotExistError
-  | ProjectDoesNotExistError
-
-type EnvironmentVariableCreateSuccess {
-  environmentVariable: EnvironmentVariable!
-  query: Query!
-}
-
-input EnvironmentVariableDeleteByValuesInput {
-  graphId: ID
-  projectId: ID
-  name: String!
-  environments: [BranchEnvironment!]!
-}
-
-union EnvironmentVariableDeleteByValuesPayload =
-  | EnvironmentVariableDeleteByValuesSuccess
-  | EnvironmentVariableDoesNotExistError
-
-input EnvironmentVariableDeleteByValuesSlugsInput {
-  accountSlug: String!
-  graphSlug: String
-  projectSlug: String
-  name: String!
-  environments: [BranchEnvironment!]!
-}
-
-type EnvironmentVariableDeleteByValuesSuccess {
-  query: Query!
-}
-
-input EnvironmentVariableDeleteInput {
-  id: ID!
-}
-
-union EnvironmentVariableDeletePayload = EnvironmentVariableDeleteSuccess | EnvironmentVariableDoesNotExistError
-
-type EnvironmentVariableDeleteSuccess {
-  deletedId: ID!
-  query: Query!
-}
-
-type EnvironmentVariableDoesNotExistError {
-  query: Query!
-}
-
-"""
-An edge in a connection.
-"""
-type EnvironmentVariableEdge {
-  """
-  The item at the end of the edge
-  """
-  node: EnvironmentVariable!
-  """
-  A cursor for use in pagination
-  """
-  cursor: String!
-}
-
-input EnvironmentVariableSpecification {
-  name: String!
-  value: String!
-  sensitive: Boolean
-}
-
-input EnvironmentVariableUpdateInput {
-  id: ID!
-  name: String
-  value: String
-  environments: [BranchEnvironment!]
-}
-
-union EnvironmentVariableUpdatePayload =
-  | EnvironmentVariableUpdateSuccess
-  | EnvironmentVariableDoesNotExistError
-  | NameAlreadyExistsError
-  | NameTooLongError
-  | NameContainsInvalidCharactersError
-  | ValueTooLongError
-  | ReservedPrefixError
-  | NoEnvironmentsSetError
-
-type EnvironmentVariableUpdateSuccess {
-  environmentVariable: EnvironmentVariable!
-  query: Query!
-}
-
 type ErrorCountByCode {
   code: String!
   count: Int!
@@ -895,123 +642,33 @@ type GatewayRequestLogEventOperation {
   type: OperationType!
 }
 
-type GitAccount {
-  provider: GitProvider!
-  id: ID!
-  slug: String!
-  type: GitAccountType!
-  """
-  Date when the app was authorized to access this account
-  """
-  connectedAt: DateTime!
-}
-
-enum GitAccountType {
-  ORGANIZATION
-  PERSONAL
-}
-
-union GitAccountsPayload = GitAccountsSuccess | GitHubAuthorizationError
-
-type GitAccountsSuccess {
-  accounts: [GitAccount!]!
-  query: Query!
-}
-
-type GitCommit {
-  sha: String!
-  message: String!
-  author: String
-  authorAvatarUrl: String
-}
-
-type GitHubAuthorizationError {
-  query: Query!
-}
-
-enum GitProvider {
-  GITHUB
-}
-
-type GitRepository {
-  provider: GitProvider!
-  id: String!
-  owner: String!
-  slug: String!
-  url: String!
-  defaultBranch: String
-  private: Boolean!
-  updatedAt: DateTime!
-  branches: [String!]!
-}
-
-type GithubApiError {
-  error: GithubApiErrorKind!
-  query: Query!
-}
-
-enum GithubApiErrorKind {
-  CONNECTION
-  STATUS
-  DECODE
-  ERROR
-  UNKNOWN
-}
-
-type GithubInstallationInsufficientPermissionsError {
-  query: Query!
-}
-
-input GithubUserTokenUpdateE2EInput {
-  token: String!
-}
-
-union GithubUserTokenUpdateE2EPayload = GithubUserTokenUpdateE2ESuccess
-
-type GithubUserTokenUpdateE2ESuccess {
-  query: Query!
-}
-
-input GithubUserTokenUpdateInput {
-  code: String!
-}
-
-union GithubUserTokenUpdatePayload = GithubUserTokenUpdateSuccess | GithubApiError
-
-type GithubUserTokenUpdateSuccess {
-  query: Query!
-}
-
 enum GrafbasePlan {
-  HOBBY
-  PRO
+  HOBBY @deprecated(reason: "to be removed soon")
+  PRO @deprecated(reason: "to be removed soon")
+  TRIAL
   ENTERPRISE
 }
 
 type Graph implements Node {
   id: ID!
   slug: String!
-  repoRootPath: String!
   graphType: GraphType
   graphMode: GraphMode!
   createdAt: DateTime!
   canBeRenamed: Boolean!
   status: GraphStatus!
-  customDomains: [CustomDomain!]!
-  repository: GitRepository
   owners: [Team!]!
   account: Account!
   branches(after: String, before: String, first: Int, last: Int): BranchConnection!
   apiKeys(after: String, before: String, first: Int, last: Int): GraphApiKeyConnection!
   productionBranch: Branch!
-  environmentVariables(after: String, before: String, first: Int, last: Int): EnvironmentVariableConnection!
   deployments(after: String, before: String, first: Int, last: Int, filter: DeploymentFilter): DeploymentConnection!
   schemaChecks(first: Int, after: String, branch: String): SchemaCheckConnection!
   schemaProposals(after: String, first: Int): SchemaProposalConnection!
   operationChecksConfiguration: GraphOperationCheckConfiguration!
   logEvents(first: Int, after: String, last: Int, before: String, filter: LogEventFilter!): LogEventConnection!
   analytics(filters: GraphAnalyticsFilters!): GraphAnalytics
-  requests(first: Int, after: String, filters: RequestFilters!): RequestConnection
+  requests(first: Int, last: Int, before: String, after: String, filters: RequestFilters!): RequestConnection
   request(
     branchName: String
     """
@@ -1222,103 +879,10 @@ type GraphConnection {
   nodes: [Graph!]!
 }
 
-input GraphCreateFromRepositoryInput {
-  accountId: ID!
-  graphSlug: String!
-  gitRepoUrl: Url!
-  gitAccountId: String!
-  productionBranch: String!
-  environmentVariables: [EnvironmentVariableSpecification!]! = []
-  repoRootPath: String! = "grafbase"
-}
-
-union GraphCreateFromRepositoryPayload =
-  | GraphCreateFromRepositorySuccess
-  | AccountDoesNotExistError
-  | CurrentPlanLimitReachedError
-  | DisabledAccountError
-  | DuplicateDatabaseRegionsError
-  | EmptyDatabaseRegionsError
-  | EnvironmentVariableCountLimitExceededError
-  | InvalidDatabaseRegionsError
-  | InvalidEnvironmentVariablesError
-  | InvalidRepoRootPathError
-  | RepositoryContainsNoBranchesError
-  | SlugAlreadyExistsError
-  | SlugInvalidError
-  | SlugTooLongError
-
-type GraphCreateFromRepositorySuccess {
-  graph: Graph!
-  query: Query!
-}
-
-input GraphCreateFromSchemaInput {
-  accountId: ID!
-  graphSlug: String!
-  schema: String!
-  environmentVariables: [EnvironmentVariableSpecification!]! = []
-}
-
-union GraphCreateFromSchemaPayload =
-  | GraphCreateFromSchemaSuccess
-  | SlugAlreadyExistsError
-  | DisabledAccountError
-  | SlugInvalidError
-  | SlugTooLongError
-  | AccountDoesNotExistError
-  | CurrentPlanLimitReachedError
-  | EmptyDatabaseRegionsError
-  | DuplicateDatabaseRegionsError
-  | InvalidDatabaseRegionsError
-  | EnvironmentVariableCountLimitExceededError
-  | InvalidEnvironmentVariablesError
-
-type GraphCreateFromSchemaSuccess {
-  graph: Graph!
-  query: Query!
-}
-
-input GraphCreateFromTemplateInput {
-  accountId: ID!
-  graphSlug: String!
-  templateGitUrl: Url!
-  gitAccountId: String!
-  repoSlug: String!
-  repoPrivate: Boolean!
-  environmentVariables: [EnvironmentVariableSpecification!]! = []
-  repoRootPath: String! = "grafbase"
-}
-
-union GraphCreateFromTemplatePayload =
-  | GraphCreateFromTemplateSuccess
-  | AccountDoesNotExistError
-  | CurrentPlanLimitReachedError
-  | DisabledAccountError
-  | DuplicateDatabaseRegionsError
-  | EmptyDatabaseRegionsError
-  | EnvironmentVariableCountLimitExceededError
-  | GithubInstallationInsufficientPermissionsError
-  | InvalidDatabaseRegionsError
-  | InvalidEnvironmentVariablesError
-  | InvalidRepoRootPathError
-  | RepositorySlugInUseError
-  | SlugAlreadyExistsError
-  | SlugInvalidError
-  | SlugTooLongError
-  | TemplateDoesNotExistError
-
-type GraphCreateFromTemplateSuccess {
-  graph: Graph!
-  query: Query!
-}
-
 input GraphCreateInput {
   accountId: ID!
   graphSlug: String!
-  environmentVariables: [EnvironmentVariableSpecification!]! = []
-  repoRootPath: String! = "grafbase"
-  graphMode: GraphMode! = MANAGED
+  graphMode: GraphMode! = SELF_HOSTED
   graphType: GraphType
 }
 
@@ -1329,14 +893,13 @@ union GraphCreatePayload =
   | DisabledAccountError
   | DuplicateDatabaseRegionsError
   | EmptyDatabaseRegionsError
-  | EnvironmentVariableCountLimitExceededError
   | InvalidDatabaseRegionsError
-  | InvalidEnvironmentVariablesError
   | InvalidRepoRootPathError
   | SlugAlreadyExistsError
   | SlugInvalidError
   | SlugTooLongError
   | StandaloneGraphsNoLongerSupportedError
+  | ManagedGraphsNoLongerSupportedError
 
 type GraphCreateSuccess {
   graph: Graph!
@@ -1411,7 +974,7 @@ type GraphIntegrationMutationSuccess {
 }
 
 enum GraphMode {
-  MANAGED
+  MANAGED @deprecated(reason: "to be removed soon")
   SELF_HOSTED
 }
 
@@ -1523,7 +1086,7 @@ enum GraphStatus {
 }
 
 enum GraphType {
-  STANDALONE
+  STANDALONE @deprecated(reason: "to be removed soon")
   FEDERATED
 }
 
@@ -1531,7 +1094,6 @@ input GraphUpdateInput {
   id: ID!
   graphSlug: String
   productionBranch: String
-  repoRootPath: String
 }
 
 union GraphUpdatePayload =
@@ -1545,10 +1107,6 @@ union GraphUpdatePayload =
 
 type GraphUpdateSuccess {
   graph: Graph!
-  query: Query!
-}
-
-type HasAlreadyPaymentMethodError {
   query: Query!
 }
 
@@ -1570,28 +1128,6 @@ type InvalidAccountError {
 type InvalidDatabaseRegionsError {
   invalid: [String!]!
   query: Query!
-}
-
-type InvalidDomainError {
-  query: Query!
-}
-
-type InvalidEnvironmentVariableError {
-  variableName: String!
-  error: InvalidEnvironmentVariableErrorType!
-}
-
-enum InvalidEnvironmentVariableErrorType {
-  NAME_TOO_LONG
-  NAME_CONTAINS_INVALID_CHARACTERS
-  VALUE_TOO_LONG
-  RESERVED_PREFIX
-  DUPLICATE
-  NO_ENVIRONMENTS_SET
-}
-
-type InvalidEnvironmentVariablesError {
-  errors: [InvalidEnvironmentVariableError!]!
 }
 
 type InvalidRepoRootPathError {
@@ -1786,6 +1322,10 @@ enum LogLevel {
   ERROR
 }
 
+type ManagedGraphsNoLongerSupportedError {
+  query: Query!
+}
+
 type Member implements Node {
   id: ID!
   role: MemberRole!
@@ -1848,10 +1388,6 @@ type MemberUpdatePayload {
   query: Query!
 }
 
-type MissingStripeCustomerError {
-  query: Query!
-}
-
 type MustLeaveAtLeastOneKeyForEnvironmentError {
   query: Query!
 }
@@ -1874,14 +1410,10 @@ type Mutation {
   organizationCreate(input: OrganizationCreateInput!): OrganizationCreatePayload!
   organizationSlugUpdate(input: OrganizationSlugUpdateInput!): OrganizationSlugUpdatePayload!
   personalAccountSlugUpdate(input: PersonalAccountSlugUpdateInput!): PersonalAccountSlugUpdatePayload!
-  organizationPaymentMethodReplace(
-    accountId: ID!
-    stripePaymentMethodId: String!
-  ): OrganizationPaymentMethodReplacePayload!
-  organizationSetupPaymentMethod(accountId: ID!, stripePaymentMethodId: String!): OrganizationSetupPaymentMethod!
   organizationUpdate(input: OrganizationUpdateInput!): OrganizationUpdatePayload!
   personalAccountUpdate(input: PersonalAccountUpdateInput!): PersonalAccountUpdatePayload!
-  personalAccountDelete: PersonalAccountDeletePayload!
+    @deprecated(reason: "to be removed")
+  personalAccountDelete: PersonalAccountDeletePayload! @deprecated(reason: "to be removed")
   organizationDelete(input: OrganizationDeleteInput!): OrganizationDeletePayload!
   branchCreate(input: BranchCreateInput!): BranchCreatePayload!
   branchUpdate(input: BranchUpdateInput!): BranchUpdatePayload!
@@ -1904,27 +1436,22 @@ type Mutation {
     branchName: String!
   ): BranchDeletePayload!
   endpointConfigUpdate(input: EndpointConfigUpdateInput!): EndpointConfigUpdatePayload!
-  """
-  Add a new custom domain.
-  """
-  customDomainCreate(input: CustomDomainCreateInput!): CustomDomainCreatePayload!
-  """
-  Delete a custom domain.
-  """
-  customDomainDelete(input: CustomDomainDeleteInput!): CustomDomainDeletePayload!
-  """
-  Replace a configured custom domain with another one (domain and target branch) – or modify the target branch of an existing one
-  without changing the domain name.
-  """
-  customDomainReplace(input: CustomDomainReplaceInput!): CustomDomainReplacePayload!
+  branchSchemaProposalsConfiguredReviewerAdd(
+    input: SchemaProposalsConfiguredReviewerAddInput!
+  ): SchemaProposalsConfiguredReviewerAddPayload!
+  branchSchemaProposalsConfiguredReviewerRemove(
+    input: SchemaProposalsConfiguredReviewerRemoveInput!
+  ): SchemaProposalsConfiguredReviewerRemovePayload!
   """
   Create a new deployment for an existing graph by slugs.
   """
   deploymentCreateBySlug(input: DeploymentBySlugCreateInput!): DeploymentCreatePayload!
+    @deprecated(reason: "this mutation will be removed")
   """
   Create a new deployment for an existing graph.
   """
   deploymentCreate(input: DeploymentCreateInput!): DeploymentCreatePayload!
+    @deprecated(reason: "this mutation will be removed")
   """
   Create a new deployment for an existing graph.
   """
@@ -1934,38 +1461,6 @@ type Mutation {
     """
     id: ID!
   ): DeploymentRedeployPayload!
-  """
-  Create a new environment variable.
-  """
-  environmentVariableCreate(input: EnvironmentVariableCreateInput!): EnvironmentVariableCreatePayload!
-  """
-  Update an environment variable.
-  """
-  environmentVariableUpdate(input: EnvironmentVariableUpdateInput!): EnvironmentVariableUpdatePayload!
-  """
-  Create or update an environment variable.
-  """
-  environentVariableUpsert(input: EnvironmentVariableCreateInput!): EnvironmentVariableCreatePayload!
-  """
-  Create or update an environment variable.
-  """
-  environentVariableUpsertBySlug(input: EnviromentVariableUpsertInput!): EnvironmentVariableCreatePayload!
-  """
-  Delete an environment variable.
-  """
-  environmentVariableDelete(input: EnvironmentVariableDeleteInput!): EnvironmentVariableDeletePayload!
-  """
-  Delete an environment variable with variable values.
-  """
-  environmentVariableDeleteWithValues(
-    input: EnvironmentVariableDeleteByValuesInput!
-  ): EnvironmentVariableDeleteByValuesPayload!
-  """
-  Delete an environment variable with variable values.
-  """
-  environmentVariableDeleteWithValuesBySlug(
-    input: EnvironmentVariableDeleteByValuesSlugsInput!
-  ): EnvironmentVariableDeleteByValuesPayload!
   """
   Create a new graph API key.
   """
@@ -1989,18 +1484,6 @@ type Mutation {
   Create a new graph without any source for an initial deployment.
   """
   graphCreate(input: GraphCreateInput!): GraphCreatePayload!
-  """
-  Create a new graph from a schema.
-  """
-  graphCreateFromSchema(input: GraphCreateFromSchemaInput!): GraphCreateFromSchemaPayload!
-  """
-  Create a new graph from a GitHub repository.
-  """
-  graphCreateFromRepository(input: GraphCreateFromRepositoryInput!): GraphCreateFromRepositoryPayload!
-  """
-  Create a new graph from a template in a newly created GitHub repository.
-  """
-  graphCreateFromTemplate(input: GraphCreateFromTemplateInput!): GraphCreateFromTemplatePayload!
   graphUpdate(input: GraphUpdateInput!): GraphUpdatePayload!
   graphOperationCheckConfigurationUpdate(
     input: GraphOperationCheckConfigurationInput!
@@ -2032,9 +1515,27 @@ type Mutation {
   """
   Edit the contents of a proposal.
 
-  All new and edited subgraphs should be included in every call to edit.
+  The proposed subgraphs can be just a subset of the subgraphs being edited in the proposal. The changes from the previous edit on other subgraphs be carried over.
   """
   schemaProposalEdit(input: SchemaProposalEditInput!): SchemaProposalEditPayload!
+  schemaProposalCommentThreadCreate(
+    input: SchemaProposalCommentThreadCreateInput!
+  ): SchemaProposalCommentThreadCreatePayload!
+  """
+  Mark a comment thread as resolved.
+  """
+  schemaProposalCommentThreadResolve(rootCommentId: ID!): SchemaProposalCommentThreadResolvePayload!
+  schemaProposalCommentReply(parentCommentId: ID!, text: String!): SchemaProposalCommentReplyPayload!
+  """
+  Reverts the resolution of a comment thread.
+  """
+  schemaProposalCommentThreadUnresolve(rootCommentId: ID!): SchemaProposalCommentThreadUnresolvePayload!
+  """
+  Request a review for a schema proposal from a user or a team.
+  """
+  schemaProposalReviewRequestCreate(
+    input: SchemaProposalReviewRequestCreateInput!
+  ): SchemaProposalReviewRequestCreatePayload!
   """
   Publish a new subgraph.
   """
@@ -2045,7 +1546,6 @@ type Mutation {
   deleteSubgraph(input: DeleteSubgraphInput!): DeleteSubgraphPayload!
   slackIntegrationCreate(input: SlackIntegrationCreateInput!): SlackNotificationCreatePayload!
   slackNotificationDelete(id: String!): SlackNotificationDeletePayload!
-  stripeSetupIntentCreate: StripeSetupIntentCreatePayload!
   """
   Assign a team as the owner of a subgraph
   """
@@ -2067,32 +1567,16 @@ type Mutation {
     clientName: String!
     documents: [TrustedDocumentInput!]!
   ): TrustedDocumentsSubmitPayload!
+  userUpdate(input: UserUpdateInput!): UserUpdatePayload!
   """
-  Fetch and attach a GitHub user token to a user using a code
+  Delete the user.
   """
-  githubUserTokenUpdate(input: GithubUserTokenUpdateInput!): GithubUserTokenUpdatePayload!
-  githubUserTokenUpdateE2E(input: GithubUserTokenUpdateE2EInput!): GithubUserTokenUpdateE2EPayload!
-}
-
-type NameAlreadyExistsError {
-  query: Query!
-}
-
-type NameContainsInvalidCharactersError {
-  query: Query!
+  userDelete: UserDeletePayload!
 }
 
 type NameSizeCheckError {
   maxLength: Int!
   message: String!
-  query: Query!
-}
-
-type NameTooLongError {
-  query: Query!
-}
-
-type NoEnvironmentsSetError {
   query: Query!
 }
 
@@ -2143,227 +1627,10 @@ type OperationCheckError {
 
 scalar OperationNormalizedQueryHash
 
-type OperationNotAllowedByPlanError {
-  query: Query!
-}
-
 enum OperationType {
   QUERY
   MUTATION
   SUBSCRIPTION
-}
-
-type OrbBillingAddress {
-  city: String
-  country: String
-  line1: String
-  line2: String
-  postalCode: String
-  state: String
-}
-
-input OrbBillingAddressInput {
-  city: String
-  country: String
-  line1: String
-  line2: String
-  postalCode: String
-  state: String
-}
-
-type OrbCustomer {
-  id: String!
-  name: String!
-  email: String!
-  taxId: OrbTaxId
-  billingAddress: OrbBillingAddress
-  subscriptions(cursor: String): OrbPaginatedSubscriptions!
-}
-
-input OrbCustomerUpdateInput {
-  name: String
-  email: String
-  billingAddress: OrbBillingAddressInput
-  taxId: OrbTaxIdInput
-}
-
-type OrbInvoice {
-  id: String!
-  dueDate: DateTime!
-  invoiceDate: DateTime!
-  status: OrbInvoiceStatus!
-  total: String!
-  currency: String!
-  lineItems: [OrbInvoiceLineItem!]!
-  invoicePdf: Url!
-  invoiceNumber: String!
-}
-
-type OrbInvoiceLineItem {
-  id: String!
-  name: String!
-  quantity: Float!
-  amount: String!
-  price: OrbPrice!
-  startDate: DateTime!
-  endDate: DateTime!
-}
-
-enum OrbInvoiceStatus {
-  ISSUED
-  PAID
-  SYNCED
-  VOID
-  DRAFT
-}
-
-type OrbPaginatedInvoices {
-  data: [OrbInvoice!]!
-  paginationMetadata: OrbPaginationMetadata!
-}
-
-type OrbPaginatedSubscriptions {
-  data: [OrbSubscription!]!
-  paginationMetadata: OrbPaginationMetadata!
-}
-
-type OrbPaginationMetadata {
-  nextCursor: String
-}
-
-type OrbPlan {
-  externalPlanId: String
-}
-
-type OrbPrice {
-  currency: String!
-  modelType: OrbPriceModelType!
-  unitConfig: OrbPriceUnitConfig
-  packageConfig: OrbPricePackageConfig
-}
-
-enum OrbPriceModelType {
-  UNIT
-  TIERED
-  BULK
-  PACKAGE
-  BPS
-  TIERED_BPS
-  BULK_BPS
-  MATRIX
-}
-
-type OrbPricePackageConfig {
-  packageAmount: String!
-  packageSize: Float!
-}
-
-type OrbPriceUnitConfig {
-  unitAmount: String!
-}
-
-type OrbSubscription {
-  id: String!
-  status: OrbSubscriptionStatus!
-  plan: OrbPlan!
-  currentBillingPeriodStartDate: DateTime
-  currentBillingPeriodEndDate: DateTime
-  endDate: DateTime
-  invoices(cursor: String): OrbPaginatedInvoices!
-  upcomingInvoice: OrbUpcomingInvoice
-}
-
-enum OrbSubscriptionStatus {
-  ACTIVE
-  ENDED
-  UPCOMING
-}
-
-type OrbTaxId {
-  type: OrbTaxIdType!
-  value: String!
-  country: String!
-}
-
-input OrbTaxIdInput {
-  type: OrbTaxIdType!
-  value: String!
-  country: String!
-}
-
-enum OrbTaxIdType {
-  AE_TRN
-  AU_ABN
-  AU_ARN
-  BG_UIC
-  BR_CNPJ
-  BR_CPF
-  CA_BN
-  CA_GST_HST
-  CA_PST_BC
-  CA_PST_MB
-  CA_PST_SK
-  CA_QST
-  CH_VAT
-  CL_TIN
-  EG_TIN
-  ES_CIF
-  EU_OSS_VAT
-  EU_VAT
-  GB_VAT
-  GE_VAT
-  HK_BR
-  HU_TIN
-  ID_NPWP
-  IL_VAT
-  IN_GST
-  IS_VAT
-  JP_CN
-  JP_RN
-  JP_TRN
-  KE_PIN
-  KR_BRN
-  LI_UID
-  MX_RFC
-  MY_FRP
-  MY_ITN
-  MY_SST
-  NO_VAT
-  NZ_GST
-  PH_TIN
-  RU_INN
-  RU_KPP
-  SA_VAT
-  SG_GST
-  SG_UEN
-  SI_TIN
-  TH_VAT
-  TR_TIN
-  TW_VAT
-  UA_VAT
-  US_EIN
-  ZA_VAT
-}
-
-type OrbUpcomingInvoice {
-  targetDate: DateTime!
-  subtotal: String!
-  currency: String!
-  lineItems: [OrbUpcomingInvoiceLineItem!]!
-}
-
-type OrbUpcomingInvoiceLineItem {
-  name: String!
-  quantity: Float!
-  amount: String!
-  startDate: DateTime!
-  endDate: DateTime!
-  price: OrbPrice!
-}
-
-type OrbValidationError {
-  errors: [String!]!
-  query: Query!
 }
 
 type Organization implements Account & Node {
@@ -2374,11 +1641,8 @@ type Organization implements Account & Node {
   status: AccountStatus!
   plan: GrafbasePlan!
   samlDomain: String
-  stripeCustomer: StripeCustomer
-  orbCustomer: OrbCustomer
-  orbActiveSubscription: OrbSubscription
   graphs(after: String, before: String, first: Int, last: Int): GraphConnection!
-  integrations: [AccountIntegration!]!
+  integrations: [AccountIntegration!]! @deprecated(reason: "to be removed soon")
   invites(after: String, before: String, first: Int, last: Int): InviteConnection!
   members(after: String, before: String, first: Int, last: Int): MemberConnection!
   graphsCountStatus: ResourceStatus!
@@ -2393,6 +1657,7 @@ type Organization implements Account & Node {
   accessTokens(after: String, before: String, first: Int, last: Int): AccessTokenConnection!
   resources: AccountResources! @deprecated(reason: "Not relevant for organizations")
   teams(after: String, first: Int): TeamConnection!
+  trialExpiresAt: DateTime
 }
 
 type OrganizationConnection {
@@ -2414,7 +1679,6 @@ input OrganizationCreateInput {
   slug: String!
   name: String!
   email: String
-  stripePaymentMethodId: String!
 }
 
 union OrganizationCreatePayload =
@@ -2423,6 +1687,7 @@ union OrganizationCreatePayload =
   | SlugSizeCheckError
   | NameSizeCheckError
   | ReservedSlugsCheckError
+  | TrialPlanUnavailableError
   | SlugAlreadyExistsError
 
 type OrganizationCreateSuccess {
@@ -2467,18 +1732,6 @@ type OrganizationOwnershipNotTransferredError {
   query: Query!
 }
 
-union OrganizationPaymentMethodReplacePayload =
-  | OrganizationSuccessfulUpdate
-  | MissingStripeCustomerError
-  | OrganizationDoesNotExistError
-  | NotAllowedError
-
-union OrganizationSetupPaymentMethod =
-  | OrganizationUpgradeToProSuccess
-  | HasAlreadyPaymentMethodError
-  | OrganizationDoesNotExistError
-  | NotAllowedError
-
 input OrganizationSlugUpdateInput {
   id: ID!
   slug: String!
@@ -2498,15 +1751,9 @@ type OrganizationSlugUpdateSuccess {
   query: Query!
 }
 
-type OrganizationSuccessfulUpdate {
-  organization: Organization!
-  query: Query!
-}
-
 input OrganizationUpdateInput {
   id: ID!
   name: String
-  orbCustomer: OrbCustomerUpdateInput
 }
 
 union OrganizationUpdatePayload =
@@ -2514,14 +1761,8 @@ union OrganizationUpdatePayload =
   | OrganizationDoesNotExistError
   | NameSizeCheckError
   | NotAllowedToUpdateOrganizationError
-  | OrbValidationError
 
 type OrganizationUpdateSuccess {
-  organization: Organization!
-  query: Query!
-}
-
-type OrganizationUpgradeToProSuccess {
   organization: Organization!
   query: Query!
 }
@@ -2647,7 +1888,7 @@ input PublishInput {
 union PublishPayload =
   | PublishSuccess
   | ProjectDoesNotExistError
-  | ProjectNotFederatedError
+  | GraphDoesNotExistError
   | FederatedGraphCompositionError
   | SchemaRegistryBranchDoesNotExistError
   | PublishForbidden
@@ -2687,32 +1928,6 @@ type Query {
     name: String
   ): Branch
   """
-  Get branch by domain.
-  """
-  branchByDomain(
-    """
-    domain
-    """
-    domain: String!
-  ): Branch
-  """
-  Get custom domain by project id and name.
-  """
-  customDomainByName(
-    """
-    id of the project
-    """
-    graphId: ID
-    """
-    id of the project
-    """
-    projectId: ID
-    """
-    name of the domain
-    """
-    name: String!
-  ): CustomDomain
-  """
   Get deployment by ID.
   """
   deployment(
@@ -2721,24 +1936,6 @@ type Query {
     """
     id: ID!
   ): Deployment
-  """
-  Return a list of git accounts accessible by the current user sorted by the creation date.
-  """
-  gitAccounts(provider: GitProvider!): GitAccountsPayload!
-  """
-  Return a list of git repositories accessible by the current user, sorted by updatedAt.
-  With `query` specified, the list will include up to 10 repos matching the query.
-  Without `query`, the list will include the 10 most recently updated repos.
-  """
-  gitRepos(provider: GitProvider!, gitAccountId: String!, query: String): [GitRepository!]!
-  """
-  Returns details about a specific git repository identified by its URL.
-  """
-  gitRepoByUrl(url: Url!): GitRepository!
-  """
-  Returns the contents of the `schema.graphql` file located in a particular branch of a repository idenitifed by its URL.
-  """
-  schema(url: Url!, branch: String!): String
   invite(id: ID!): Invite
   """
   Get a graph by account slug and slug of the graph itself.
@@ -2821,14 +2018,7 @@ type Query {
   integrations: [Integration!]!
   dopplerProjects(accountIntegrationId: ID!): [DopplerProject!]!
   dopplerConfigs(accountIntegrationId: ID!, dopplerProjectName: String!): [DopplerConfig!]!
-}
-
-type RepositoryContainsNoBranchesError {
-  query: Query!
-}
-
-type RepositorySlugInUseError {
-  query: Query!
+  _service: _Service!
 }
 
 type Request implements Node {
@@ -2997,10 +2187,6 @@ type RequestOperation {
   type: OperationType!
 }
 
-type ReservedPrefixError {
-  query: Query!
-}
-
 type ReservedSlugsCheckError {
   message: String!
   query: Query!
@@ -3039,9 +2225,15 @@ type ReusedIds {
   reused: [ReusedId!]!
 }
 
+type ReviewerDoesNotExistError {
+  query: Query!
+}
+
 enum SchemaChangeType {
   SCHEMA_DEFINITION_ADDED
   SCHEMA_DEFINITION_REMOVED
+  SCHEMA_EXTENSION_ADDED
+  SCHEMA_EXTENSION_REMOVED
   FIELD_ARGUMENT_DEFAULT_ADDED
   FIELD_ARGUMENT_DEFAULT_REMOVED
   FIELD_ARGUMENT_DESCRIPTION_CHANGED
@@ -3205,18 +2397,198 @@ type SchemaProposal {
   description: String
   status: SchemaProposalStatus!
   createdAt: DateTime!
+  """
+  The whole activity feed.
+  """
+  activityFeed: [SchemaProposalActivityFeedItem!]!
+  """
+  The revision number of the proposal, i.e. how many times edits were applied to the proposal's subgraphs.
+  """
+  revision: Int!
   subgraph(subgraphName: String!): SchemaProposalSubgraph
   subgraphs: [SchemaProposalSubgraph!]!
+  comments: [SchemaProposalComment!]!
+  """
+  Is the currently logged in user a reviewer of this proposal? That is to say, eitheir they are configured as a reviewer, or
+  """
+  viewerIsReviewer: Boolean!
+}
+
+interface SchemaProposalActivityFeedItem {
+  id: ID!
+  createdAt: DateTime!
+}
+
+type SchemaProposalApproval implements SchemaProposalActivityFeedItem {
+  id: ID!
+  author: User
+  message: String
+  createdAt: DateTime!
 }
 
 input SchemaProposalApproveInput {
   id: ID!
+  message: String
 }
 
 union SchemaProposalApprovePayload = SchemaProposalApproveSuccess
 
 type SchemaProposalApproveSuccess {
   query: Query!
+}
+
+interface SchemaProposalComment {
+  id: ID!
+  text: String!
+  createdAt: DateTime!
+  author: User
+}
+
+type SchemaProposalCommentOnLine implements SchemaProposalActivityFeedItem & SchemaProposalComment {
+  id: ID!
+  """
+  Is this comment thread resolved?
+  """
+  resolved: Boolean!
+  """
+  The user who marked the thread as resolved.
+  """
+  resolvedBy: User
+  """
+  The content of the comment.
+  """
+  text: String!
+  createdAt: DateTime!
+  """
+  Who wrote the comment. Will be null in case the user was deleted.
+  """
+  author: User
+  """
+  All the replies in chronological order, from oldest to newest.
+  """
+  replies: [SchemaProposalReply!]!
+  """
+  Which subgraph the comment applies to.
+  """
+  subgraphName: String!
+  """
+  The logical path in the schema where the comment is located. This is only exposed for debugging, prefer using the `line` field.
+  """
+  path: String!
+  """
+  Which line the comment applies to in the subgraph SDL. This may be `null` if the comment was on an item that is no longer part of the current subgraph schema.
+
+  The line is 1-indexes
+  """
+  line: Int
+  """
+  The section of the subgraph SDL where the comment is located.
+  """
+  context(
+    """
+    How many lines around the commented line to include. Fewer lines can be returned if the context reaches the start or the end of the schema.
+    """
+    contextLines: Int!
+  ): String
+}
+
+type SchemaProposalCommentOnProposal implements SchemaProposalActivityFeedItem & SchemaProposalComment {
+  id: ID!
+  text: String!
+  createdAt: DateTime!
+  """
+  Who wrote the comment. Will be null in case the user was deleted.
+  """
+  author: User
+  replies: [SchemaProposalReply!]!
+}
+
+type SchemaProposalCommentOnSdl implements SchemaProposalActivityFeedItem & SchemaProposalComment {
+  id: ID!
+  """
+  Is this comment thread resolved?
+  """
+  resolved: Boolean!
+  """
+  The user who marked the thread as resolved.
+  """
+  resolvedBy: User
+  text: String!
+  createdAt: DateTime!
+  author: User
+  replies: [SchemaProposalReply!]!
+}
+
+union SchemaProposalCommentReplyPayload = SchemaProposalCommentReplySuccess
+
+type SchemaProposalCommentReplySuccess {
+  query: Query!
+}
+
+input SchemaProposalCommentThreadCreateInput {
+  """
+  The parent schema proposal.
+  """
+  schemaProposalId: ID!
+  """
+  Where the comment is located.
+  """
+  location: SchemaProposalCommentThreadLocation!
+  """
+  The revision / version number of the proposal, obtained from SchemaProposal.revision. Must be provided if and only if location is Line.
+
+  This argument is necessary to avoid cases where the schema has been updated between the time it was retried and the time the comment is posted. In these cases, if we use the latest subgraph schema, the line numbers may have changed and the comment would end up in the wrong place.
+  """
+  proposalRevision: Int
+  """
+  Must be provided if and only if location is Line.
+  """
+  subgraphName: String
+  """
+  Must be provided if and only if location is Line.
+  """
+  line: Int
+  """
+  The content of the comment.
+  """
+  text: String!
+}
+
+union SchemaProposalCommentThreadCreatePayload =
+  | SchemaProposalCommentThreadCreateSuccess
+  | SchemaProposalDoesNotExistError
+
+type SchemaProposalCommentThreadCreateSuccess {
+  query: Query!
+}
+
+enum SchemaProposalCommentThreadLocation {
+  """
+  On a specific line, in a specific subgraph
+  """
+  LINE
+  """
+  On the schema proposal SDL.
+  """
+  SDL
+  """
+  On the schema proposal itself.
+  """
+  PROPOSAL
+}
+
+union SchemaProposalCommentThreadResolvePayload = SchemaProposalCommentThreadResolveSuccess
+
+type SchemaProposalCommentThreadResolveSuccess {
+  query: Query!
+  affectedRows: Int!
+}
+
+union SchemaProposalCommentThreadUnresolvePayload = SchemaProposalCommentThreadUnresolveSuccess
+
+type SchemaProposalCommentThreadUnresolveSuccess {
+  query: Query!
+  affectedRows: Int!
 }
 
 type SchemaProposalConnection {
@@ -3308,12 +2680,30 @@ input SchemaProposalFilter {
 
 input SchemaProposalRejectInput {
   id: ID!
+  message: String
 }
 
 union SchemaProposalRejectPayload = SchemaProposalRejectSuccess
 
 type SchemaProposalRejectSuccess {
   query: Query!
+}
+
+type SchemaProposalRejection implements SchemaProposalActivityFeedItem {
+  id: ID!
+  author: User
+  message: String
+  createdAt: DateTime!
+}
+
+type SchemaProposalReply implements SchemaProposalComment {
+  id: ID!
+  text: String!
+  """
+  Who wrote the comment. Will be null in case the user was deleted.
+  """
+  author: User
+  createdAt: DateTime!
 }
 
 input SchemaProposalRequestReviewInput {
@@ -3323,6 +2713,29 @@ input SchemaProposalRequestReviewInput {
 union SchemaProposalRequestReviewPayload = SchemaProposalRequestReviewSuccess
 
 type SchemaProposalRequestReviewSuccess {
+  query: Query!
+}
+
+type SchemaProposalReviewRequest implements SchemaProposalActivityFeedItem {
+  id: ID!
+  requestedBy: ID!
+  requestFor: UserOrTeam!
+  createdAt: DateTime!
+}
+
+input SchemaProposalReviewRequestCreateInput {
+  schemaProposalId: ID!
+  """
+  Must be either a team id or a user id.
+  """
+  reviewerId: ID!
+}
+
+union SchemaProposalReviewRequestCreatePayload =
+  | SchemaProposalReviewRequestCreateSuccess
+  | SchemaProposalDoesNotExistError
+
+type SchemaProposalReviewRequestCreateSuccess {
   query: Query!
 }
 
@@ -3339,6 +2752,7 @@ type SchemaProposalSubgraph {
   status: SchemaProposalSubgraphStatus!
   name: String!
   diffSnippets: [DiffSnippet!]!
+  comments: [SchemaProposalComment!]!
 }
 
 enum SchemaProposalSubgraphStatus {
@@ -3347,6 +2761,71 @@ enum SchemaProposalSubgraphStatus {
   DELETED
   UNCHANGED
 }
+
+type SchemaProposalsConfiguration {
+  enforceChecks: Boolean!
+  requireApprovalFromSubgraphOwners: Boolean!
+  keepApprovalsOnEdit: Boolean!
+  configuredReviewers: [SchemaProposalsConfiguredReviewers!]!
+}
+
+input SchemaProposalsConfigurationUpdateInput {
+  enforceChecks: Boolean
+  requireApprovalFromSubgraphOwners: Boolean
+  keepApprovalsOnEdit: Boolean
+}
+
+input SchemaProposalsConfiguredReviewerAddInput {
+  branchId: ID!
+  """
+  Either a UserId or a TeamId
+  """
+  reviewerId: ID!
+}
+
+union SchemaProposalsConfiguredReviewerAddPayload =
+  | SchemaProposalsConfiguredReviewerAddSuccess
+  | BranchDoesNotExistError
+  | UserDoesNotExistError
+  | TeamDoesNotExistError
+  | AlreadyExistsError
+
+type SchemaProposalsConfiguredReviewerAddSuccess {
+  query: Query!
+  reviewer: SchemaProposalsConfiguredReviewers!
+}
+
+input SchemaProposalsConfiguredReviewerRemoveInput {
+  branchId: ID!
+  """
+  Either a SchemaProposalUserReviewerId or a SchemaProposalTeamReviewerId
+  """
+  reviewerId: ID!
+}
+
+union SchemaProposalsConfiguredReviewerRemovePayload =
+  | SchemaProposalsConfiguredReviewerRemoveSuccess
+  | BranchDoesNotExistError
+  | ReviewerDoesNotExistError
+
+type SchemaProposalsConfiguredReviewerRemoveSuccess {
+  query: Query!
+}
+
+type SchemaProposalsConfiguredReviewerTeam {
+  id: ID!
+  team: Team!
+}
+
+type SchemaProposalsConfiguredReviewerUser {
+  id: ID!
+  user: User!
+}
+
+"""
+A (required) schema proposal reviewer in the branch configuration.
+"""
+union SchemaProposalsConfiguredReviewers = SchemaProposalsConfiguredReviewerUser | SchemaProposalsConfiguredReviewerTeam
 
 type SchemaRegistryBranchDoesNotExistError {
   query: Query!
@@ -3505,81 +2984,6 @@ type StandaloneGraphsNoLongerSupportedError {
   query: Query!
 }
 
-type StripeCard {
-  brand: String!
-  funding: String!
-  expMonth: Int!
-  expYear: Int!
-  last4: String!
-}
-
-type StripeCustomer {
-  id: String!
-  paymentMethods(
-    type: StripePaymentMethodType
-    endingBefore: String
-    startingAfter: String
-    limit: Int
-  ): StripePaginatedPaymentMethods!
-}
-
-type StripePaginatedPaymentMethods {
-  data: [StripePaymentMethod!]!
-  hasMore: Boolean!
-  nextPage: String
-}
-
-type StripePaymentMethod {
-  id: String!
-  created: DateTime!
-  card: StripeCard
-  type: StripePaymentMethodType!
-}
-
-enum StripePaymentMethodType {
-  ACSS_DEBIT
-  AFFIRM
-  AFTERPAY_CLEARPAY
-  ALIPAY
-  AU_BECS_DEBIT
-  BACS_DEBIT
-  BANCONTACT
-  BLIK
-  BOLETO
-  CARD
-  CASHAPP
-  CUSTOMER_BALANCE
-  EPS
-  FPX
-  GIROPAY
-  GRABPAY
-  IDEAL
-  KLARNA
-  KONBINI
-  LINK
-  OXXO
-  P24
-  PAYNOW
-  PIX
-  PROMPTPAY
-  SEPA_DEBIT
-  SOFORT
-  US_BANK_ACCOUNT
-  WECHAT_PAY
-}
-
-type StripeSetupIntent {
-  id: String!
-  clientSecret: String!
-}
-
-union StripeSetupIntentCreatePayload = StripeSetupIntentCreateSuccess
-
-type StripeSetupIntentCreateSuccess {
-  setupIntent: StripeSetupIntent!
-  query: Query!
-}
-
 type Subgraph {
   name: String!
   url: String!
@@ -3719,10 +3123,6 @@ enum TeamRole {
   MEMBER
 }
 
-type TemplateDoesNotExistError {
-  query: Query!
-}
-
 enum TimeAggregationGranularity {
   DAILY
   WEEKLY
@@ -3749,10 +3149,6 @@ type TokenDoesNotExistError {
 }
 
 type TokenLimitExceededError {
-  query: Query!
-}
-
-type TooManyCustomDomainsError {
   query: Query!
 }
 
@@ -3898,6 +3294,10 @@ enum TraceSpanStatusCode {
   ERROR
 }
 
+type TrialPlanUnavailableError {
+  query: Query!
+}
+
 type TrustedDocument {
   documentId: String!
   documentText: String!
@@ -3926,11 +3326,6 @@ enum UnitType {
   BYTES
 }
 
-"""
-URL is a String implementing the [URL Standard](http://url.spec.whatwg.org/)
-"""
-scalar Url
-
 type User implements Node {
   id: ID!
   name: String!
@@ -3939,7 +3334,7 @@ type User implements Node {
   createdAt: DateTime!
   organizations(after: String, before: String, first: Int, last: Int): OrganizationConnection!
   organizationMemberships: [Member!]!
-  personalAccount: PersonalAccount
+  canStartNewTrial: Boolean!
 }
 
 type UserConnection {
@@ -3958,6 +3353,16 @@ type UserConnection {
   totalCount: Int!
 }
 
+union UserDeletePayload = UserDeleteSuccess | OrganizationOwnershipNotTransferredError
+
+type UserDeleteSuccess {
+  query: Query!
+}
+
+type UserDoesNotExistError {
+  query: Query!
+}
+
 """
 An edge in a connection.
 """
@@ -3973,13 +3378,31 @@ type UserEdge {
   cursor: String!
 }
 
+union UserOrTeam = User | Team
+
+input UserUpdateInput {
+  name: String!
+}
+
+union UserUpdatePayload = UserUpdateSuccess | NameSizeCheckError
+
+type UserUpdateSuccess {
+  query: Query!
+}
+
 type ValidationCheckError {
   title: String!
   message: String!
 }
 
-type ValueTooLongError {
-  query: Query!
+"""
+The `_Any` scalar is used to pass representations of entities from external
+services into the root `_entities` field for execution.
+"""
+scalar _Any
+
+type _Service {
+  sdl: String
 }
 
 directive @deprecated(

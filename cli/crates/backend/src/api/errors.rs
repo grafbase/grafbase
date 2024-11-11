@@ -173,26 +173,6 @@ pub enum CreateError {
     #[error("could not create a new project as the current plan limit of {max} projects has been reached")]
     CurrentPlanLimitReached { max: i32 },
 
-    /// returned if duplicate database regions were selected
-    #[error("could not create a new project as duplicate database regions were selected")]
-    DuplicateDatabaseRegions { duplicates: Vec<String> },
-
-    /// returned if no database regions are selected
-    #[error("could not create a new project as no database regions were selected")]
-    EmptyDatabaseRegions,
-
-    /// returned if invalid database regions are used
-    #[error("could not create a new project as invalid regions were selected")]
-    InvalidDatabaseRegions { invalid: Vec<String> },
-
-    /// returned if invalid environment variables are used
-    #[error("could not create a new project as invalid environment variables were supplied")]
-    InvalidEnvironmentVariables,
-
-    /// returned if the amount of enrionment variables supplied is over the allowed limit
-    #[error("could not create a new project as the amount of environment variables exceeded the allowed limit")]
-    EnvironmentVariableCountLimitExceeded,
-
     /// returned if the account selected for project creation is disabled
     #[error("could not create a new project as the selected account is disabled")]
     DisabledAccount,
@@ -215,18 +195,6 @@ pub enum PublishError {
 
 #[derive(Error, Debug)]
 pub enum DeployError {
-    /// returned if the linked project does not exist
-    #[error("could not deploy as the linked project does not exist")]
-    ProjectDoesNotExist,
-
-    /// returned if the uploaded archive size is over the allowed limit
-    #[error("could not deploy as the created archive size is above the allowed limit of {limit} bytes")]
-    ArchiveFileSizeLimitExceeded { limit: i32 },
-
-    /// returned if the daily deployment count is passed
-    #[error("could not deploy as you have reached the allowed daily deployemnt amount of {limit}")]
-    DailyDeploymentCountLimitExceeded { limit: i32 },
-
     /// returned if an unknown error occurs
     #[error("could not deploy, encountered an unknown error\nCaused by: {0}")]
     Unknown(String),
