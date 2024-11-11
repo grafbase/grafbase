@@ -12,7 +12,7 @@ pub use engine_parser::types::OperationType;
 use id_derives::IndexedFields;
 use id_newtypes::IdRange;
 use modifier::{finalize_query_modifiers, finalize_response_modifiers};
-use schema::Schema;
+use schema::{CompositeTypeId, Schema};
 use validation::validate_parsed_operation;
 
 use super::{
@@ -20,7 +20,6 @@ use super::{
     QueryModifierRule, ResponseModifierRule,
 };
 use crate::{
-    operation::SelectionSetType,
     operation::{
         BoundField, BoundFieldArgument, BoundFieldArgumentId, BoundOperation, BoundSelectionSet, BoundSelectionSetId,
         BoundVariableDefinition, Location,
@@ -81,7 +80,7 @@ pub(crate) fn bind(schema: &Schema, mut parsed_operation: ParsedOperation) -> Bi
     binder.bind_variable_definitions(variable_definitions)?;
 
     let root_selection_set_id = binder.bind_merged_selection_sets(
-        SelectionSetType::Object(root_object_id),
+        CompositeTypeId::Object(root_object_id),
         &[&parsed_operation.definition.selection_set],
     )?;
 

@@ -202,7 +202,7 @@ impl ResponseBuilder {
                     }
                 }
                 UpdateSlot::Fields(mut fields) => {
-                    fields.sort_unstable_by(|a, b| a.edge.cmp(&b.edge));
+                    fields.sort_unstable_by(|a, b| a.key.cmp(&b.key));
                     self.recursive_merge_object(obj_ref.id, fields);
                 }
                 UpdateSlot::Error => {
@@ -244,7 +244,7 @@ impl ResponseBuilder {
             return;
         };
 
-        let mut existing_fields = std::mem::take(&mut self[object_id].fields_sorted_by_edge);
+        let mut existing_fields = std::mem::take(&mut self[object_id].fields_sorted_by_key);
         let n = existing_fields.len();
         let mut i = 0;
         loop {
@@ -255,7 +255,7 @@ impl ResponseBuilder {
             // SAFETY we only push new elements and we compare against the initial size n. So i is
             // guaranteed to be within the array.
             let existing_field = unsafe { existing_fields.get_unchecked(i) };
-            match existing_field.edge.cmp(&new_field.edge) {
+            match existing_field.key.cmp(&new_field.key) {
                 Ordering::Less => {
                     i += 1;
                 }
@@ -280,9 +280,9 @@ impl ResponseBuilder {
             }
         }
         existing_fields.append(&mut Vec::from(new_fields_sorted_by_edge));
-        existing_fields.sort_unstable_by(|a, b| a.edge.cmp(&b.edge));
+        existing_fields.sort_unstable_by(|a, b| a.key.cmp(&b.key));
 
-        self[object_id].fields_sorted_by_edge = existing_fields;
+        self[object_id].fields_sorted_by_key = existing_fields;
     }
 
     fn recursive_merge_value(&mut self, existing: ResponseValue, new: ResponseValue) {
@@ -307,7 +307,7 @@ impl ResponseBuilder {
                     part_id: new_part_id,
                     index: new_index,
                 };
-                let new_fields_sorted_by_edge = std::mem::take(&mut self[new_object_id].fields_sorted_by_edge);
+                let new_fields_sorted_by_edge = std::mem::take(&mut self[new_object_id].fields_sorted_by_key);
                 self.recursive_merge_object(existing_object_id, new_fields_sorted_by_edge);
             }
             (

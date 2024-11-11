@@ -39,7 +39,7 @@ impl<'ctx> SeedContext<'ctx> {
     pub(super) fn missing_field_error_message(&self, field_shape: FieldShape<'ctx>) -> String {
         let field = field_shape.id.walk(self);
         let response_keys = &self.operation.solution.response_keys;
-        if field.key.response_key == field_shape.expected_key.into() {
+        if field.key.response_key == field_shape.expected_key {
             format!(
                 "Error decoding response from upstream: Missing required field named '{}'",
                 &response_keys[field_shape.expected_key]

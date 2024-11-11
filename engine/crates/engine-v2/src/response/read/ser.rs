@@ -206,7 +206,7 @@ impl<'a> serde::Serialize for SerializableResponseObject<'a> {
         let mut map = serializer.serialize_map(Some(self.object.len()))?;
         // Thanks to the BoundResponseKey starting with the position and the fields being a BTreeMap
         // we're ensuring the fields are serialized in the order they appear in the query.
-        for ResponseObjectField { edge, value, .. } in self.object.fields() {
+        for ResponseObjectField { key: edge, value, .. } in self.object.fields() {
             if edge.query_position.is_none() {
                 // Bound response keys are always first, anything after are extra fields which
                 // don't need to be serialized.

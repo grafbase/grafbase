@@ -2,35 +2,32 @@ use super::{coercion::coerce_query_value, BindError, BindResult, Binder};
 use crate::{
     operation::{
         BoundField, BoundFieldArgument, BoundFieldArgumentId, BoundFieldId, BoundQueryField, BoundSelectionSetId,
-        BoundTypeNameField, Location, QueryInputValueRecord, QueryModifierRule, SelectionSetType,
+        BoundTypeNameField, Location, QueryInputValueRecord, QueryModifierRule,
     },
-    response::BoundResponseKey,
+    response::PositionedResponseKey,
 };
 use engine_parser::Positioned;
 use engine_value::Name;
 use id_newtypes::IdRange;
-use schema::{DefinitionId, FieldDefinition, FieldDefinitionId};
+use schema::{CompositeTypeId, DefinitionId, FieldDefinition, FieldDefinitionId};
 
 impl<'schema, 'p> Binder<'schema, 'p> {
     pub(super) fn bind_typename_field(
         &mut self,
-        parent_selection_set_id: BoundSelectionSetId,
-        type_condition: SelectionSetType,
-        bound_response_key: BoundResponseKey,
+        type_condition: CompositeTypeId,
+        key: PositionedResponseKey,
         Positioned { pos, .. }: &'p Positioned<engine_parser::types::Field>,
     ) -> BindResult<BoundFieldId> {
         Ok(self.push_field(BoundField::TypeName(BoundTypeNameField {
             type_condition,
-            bound_response_key,
+            key,
             location: (*pos).try_into()?,
-            parent_selection_set_id,
         })))
     }
 
     pub(super) fn bind_field(
         &mut self,
-        parent_selection_set_id: BoundSelectionSetId,
-        bound_response_key: BoundResponseKey,
+        key: PositionedResponseKey,
         definition_id: FieldDefinitionId,
         Positioned { pos, node: field }: &'p Positioned<engine_parser::types::Field>,
         selection_set_id: Option<BoundSelectionSetId>,
@@ -63,12 +60,11 @@ impl<'schema, 'p> Binder<'schema, 'p> {
         let field_id = BoundFieldId::from(self.fields.len());
         let argument_ids = self.bind_field_arguments(definition, location, &field.arguments)?;
         self.fields.push(BoundField::Query(BoundQueryField {
-            bound_response_key,
+            key,
             location,
             definition_id: definition.id,
             argument_ids,
             selection_set_id,
-            parent_selection_set_id,
         }));
 
         self.generate_field_modifiers(field_id, argument_ids, definition, executable_directive_rules);

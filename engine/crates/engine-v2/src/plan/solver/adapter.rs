@@ -1,18 +1,21 @@
+use std::borrow::Cow;
+
 use id_newtypes::IdRange;
 use schema::{ObjectDefinitionId, Schema, SchemaField};
+use walker::Walk;
 
 use crate::{
     operation::{
         BoundExtraField, BoundField, BoundFieldArgument, BoundFieldArgumentId, BoundFieldId, BoundOperation,
-        BoundSelectionSetId, QueryInputValueRecord,
+        QueryInputValueRecord, QueryPosition,
     },
-    response::{ResponseEdge, ResponseKey, UnpackedResponseEdge},
+    response::SafeResponseKey,
 };
 
 pub(super) struct OperationAdapter<'a> {
     pub schema: &'a Schema,
     pub operation: &'a mut BoundOperation,
-    tmp_response_keys: Vec<ResponseKey>,
+    tmp_response_keys: Vec<SafeResponseKey>,
 }
 
 impl<'a> OperationAdapter<'a> {
@@ -46,14 +49,10 @@ impl<'a> query_solver::Operation for OperationAdapter<'a> {
         requirement: SchemaField<'_>,
     ) -> Self::FieldId {
         let field = BoundExtraField {
+            key: None, // added later if used
             definition_id: requirement.definition_id,
             argument_ids: self.create_arguments_for(requirement),
             petitioner_location: self.operation[petitioner_field_id].location(),
-            // Will be set after planning.
-            edge: ResponseEdge::from(0),
-            // Not relevant anymore
-            selection_set_id: None,
-            parent_selection_set_id: BoundSelectionSetId::from(0u16),
         };
         self.operation.fields.push(BoundField::Extra(field));
         (self.operation.fields.len() - 1).into()
@@ -61,28 +60,33 @@ impl<'a> query_solver::Operation for OperationAdapter<'a> {
 
     fn root_selection_set(&self) -> impl ExactSizeIterator<Item = BoundFieldId> + '_ {
         self.operation[self.operation.root_selection_set_id]
-            .field_ids_ordered_by_parent_entity_id_then_position
+            .field_ids
             .iter()
             .copied()
     }
 
     fn subselection(&self, field_id: BoundFieldId) -> impl ExactSizeIterator<Item = Self::FieldId> + '_ {
-        match self.operation[field_id].selection_set_id() {
-            Some(id) => self.operation[id]
-                .field_ids_ordered_by_parent_entity_id_then_position
-                .iter()
-                .copied(),
-            None => [].iter().copied(),
+        match &self.operation[field_id] {
+            BoundField::Query(field) => field
+                .selection_set_id
+                .map(|id| self.operation[id].field_ids.iter().copied())
+                .unwrap_or_else(|| [].iter().copied()),
+            _ => [].iter().copied(),
         }
     }
 
     fn field_label(&self, field_id: BoundFieldId) -> std::borrow::Cow<'_, str> {
-        let field = &self.operation[field_id];
-        // For extra fields we didn't create a response key yet.
-        if let Some(key) = field.response_edge().as_response_key() {
-            self.operation.response_keys[key].into()
-        } else {
-            self.schema.walk(field.definition_id().unwrap()).name().into()
+        match &self.operation[field_id] {
+            BoundField::TypeName(field) => Cow::Borrowed(&self.operation.response_keys[field.key.response_key]),
+            BoundField::Query(field) => Cow::Borrowed(&self.operation.response_keys[field.key.response_key]),
+            // For extra fields we didn't create a response key yet.
+            BoundField::Extra(field) => {
+                if let Some(key) = field.key {
+                    Cow::Borrowed(&self.operation.response_keys[key])
+                } else {
+                    field.definition_id.walk(self.schema).name().into()
+                }
+            }
         }
     }
 
@@ -91,7 +95,7 @@ impl<'a> query_solver::Operation for OperationAdapter<'a> {
         self.tmp_response_keys.extend(
             existing_fields
                 .iter()
-                .filter_map(|id| self.operation[*id].response_edge().as_response_key()),
+                .filter_map(|id| self.operation[*id].response_key()),
         );
         for extra_field_id in extra_fields {
             let Some(definition_id) = self.operation[*extra_field_id].definition_id() else {
@@ -101,8 +105,8 @@ impl<'a> query_solver::Operation for OperationAdapter<'a> {
 
             let key = 'key: {
                 // Key doesn't exist in the operation at all
-                let Some(key) = self.operation.response_keys.get(name).map(ResponseKey::from) else {
-                    break 'key ResponseKey::from(self.operation.response_keys.get_or_intern(name));
+                let Some(key) = self.operation.response_keys.get(name) else {
+                    break 'key self.operation.response_keys.get_or_intern(name);
                 };
 
                 // Key doesn't exist in the current selection set
@@ -120,13 +124,13 @@ impl<'a> query_solver::Operation for OperationAdapter<'a> {
                 loop {
                     let candidate = format!("{name}{}", hex::encode_upper(i.to_be_bytes()));
                     if !self.operation.response_keys.contains(&candidate) {
-                        break 'key self.operation.response_keys.get_or_intern(&candidate).into();
+                        break 'key self.operation.response_keys.get_or_intern(&candidate);
                     }
                     i += 1;
                 }
             };
             if let BoundField::Extra(field) = &mut self.operation[*extra_field_id] {
-                field.edge = UnpackedResponseEdge::ExtraFieldResponseKey(key).pack();
+                field.key = Some(key);
                 self.tmp_response_keys.push(key);
             };
         }
@@ -138,9 +142,9 @@ impl<'a> query_solver::Operation for OperationAdapter<'a> {
 
     fn field_query_position(&self, field_id: Self::FieldId) -> usize {
         match &self.operation[field_id] {
-            BoundField::TypeName(field) => field.bound_response_key.position(),
-            BoundField::Query(field) => field.bound_response_key.position(),
-            BoundField::Extra(_) => (u32::MAX >> 1) as usize + usize::from(field_id),
+            BoundField::TypeName(field) => usize::from(field.key.query_position.unwrap()),
+            BoundField::Query(field) => usize::from(field.key.query_position.unwrap()),
+            BoundField::Extra(_) => QueryPosition::EXTRA,
         }
     }
 }

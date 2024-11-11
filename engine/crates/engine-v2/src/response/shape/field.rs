@@ -13,7 +13,7 @@ use super::{ConcreteObjectShapeId, PolymorphicObjectShapeId};
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub(crate) struct FieldShapeRecord {
     pub expected_key: SafeResponseKey,
-    pub edge: PositionedResponseKey,
+    pub key: PositionedResponseKey,
     pub id: DataFieldId,
     pub required_field_id: Option<SchemaFieldId>,
     pub definition_id: FieldDefinitionId,

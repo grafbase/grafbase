@@ -482,7 +482,7 @@ impl BoundField {
     ) -> Result<DataFieldRecord, TypenameFieldRecord> {
         match self {
             BoundField::Query(field) => Ok(DataFieldRecord {
-                key: field.bound_response_key.into(),
+                key: field.key,
                 location: field.location,
                 definition_id: field.definition_id,
                 argument_ids: IdRange::from_start_and_end(field.argument_ids.start, field.argument_ids.end),
@@ -505,7 +505,7 @@ impl BoundField {
                     // Having no query position is equivalent to being an
                     // extra field.
                     query_position: None,
-                    response_key: field.edge.as_response_key().unwrap(),
+                    response_key: field.key.unwrap(),
                 },
                 location: field.petitioner_location,
                 definition_id: field.definition_id,
@@ -525,9 +525,9 @@ impl BoundField {
                 shape_ids: IdRange::empty(),
             }),
             BoundField::TypeName(field) => Err(TypenameFieldRecord {
-                key: field.bound_response_key.into(),
+                key: field.key,
                 location: field.location,
-                type_condition_id: field.type_condition.into(),
+                type_condition_id: field.type_condition,
             }),
         }
     }

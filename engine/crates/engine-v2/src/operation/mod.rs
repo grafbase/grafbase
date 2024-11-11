@@ -5,7 +5,6 @@ mod location;
 mod metrics;
 mod modifier;
 mod parse;
-mod path;
 mod selection_set;
 mod validation;
 mod variables;

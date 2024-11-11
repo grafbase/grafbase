@@ -9,6 +9,12 @@ use super::ResponseKey;
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize)]
 pub struct SafeResponseKey(u16);
 
+impl SafeResponseKey {
+    pub(crate) unsafe fn from(key: ResponseKey) -> Self {
+        Self(key.0)
+    }
+}
+
 /// Interns all of the response keys strings.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct ResponseKeys(lasso2::Rodeo<SafeResponseKey>);
@@ -46,12 +52,6 @@ impl ResponseKeys {
 
     pub fn try_resolve(&self, key: ResponseKey) -> Option<&str> {
         self.0.try_resolve(&SafeResponseKey(key.0))
-    }
-
-    pub fn ensure_safety(&self, key: ResponseKey) -> SafeResponseKey {
-        let key = SafeResponseKey(key.0);
-        assert!(self.0.contains_key(&key));
-        key
     }
 }
 

@@ -169,7 +169,7 @@ impl<'de, 'ctx, 'seed> Visitor<'de> for ConcreteObjectFieldsSeed<'ctx, 'seed> {
             let name_id = schema[object_id].name_id;
             for edge in self.typename_response_edges {
                 response_fields.push(ResponseObjectField {
-                    edge: *edge,
+                    key: *edge,
                     required_field_id: None,
                     value: ResponseValue::StringId {
                         id: name_id,
@@ -190,7 +190,7 @@ impl<'de, 'ctx, 'seed> ConcreteObjectFieldsSeed<'ctx, 'seed> {
             for field_shape in self.field_shape_ids.walk(self.ctx) {
                 for error in field_shape.errors() {
                     let mut path = self.ctx.response_path();
-                    path.push(field_shape.edge);
+                    path.push(field_shape.key);
 
                     self.ctx.writer.push_error(GraphqlError {
                         path: Some(path),
@@ -201,7 +201,7 @@ impl<'de, 'ctx, 'seed> ConcreteObjectFieldsSeed<'ctx, 'seed> {
                         required_field_error = true;
                     } else {
                         response_fields.push(ResponseObjectField {
-                            edge: field_shape.edge,
+                            key: field_shape.key,
                             required_field_id: field_shape.required_field_id,
                             value: ResponseValue::Null,
                         });
@@ -220,7 +220,7 @@ impl<'de, 'ctx, 'seed> ConcreteObjectFieldsSeed<'ctx, 'seed> {
                     continue;
                 }
                 if response_fields[0..n]
-                    .binary_search_by(|field| field.edge.cmp(&field.edge))
+                    .binary_search_by(|field| field.key.cmp(&field.key))
                     .is_err()
                 {
                     if field_shape.wrapping.is_required() {
@@ -229,7 +229,7 @@ impl<'de, 'ctx, 'seed> ConcreteObjectFieldsSeed<'ctx, 'seed> {
                         ));
                     }
                     response_fields.push(ResponseObjectField {
-                        edge: field_shape.edge,
+                        key: field_shape.key,
                         required_field_id: field_shape.required_field_id,
                         value: ResponseValue::Null,
                     });
@@ -327,7 +327,7 @@ impl<'de, 'ctx, 'seed> ConcreteObjectFieldsSeed<'ctx, 'seed> {
         }
         if end == 1 {
             let field = &field_shapes[0];
-            self.ctx.push_edge(field.edge);
+            self.ctx.push_edge(field.key);
             let result = map.next_value_seed(FieldSeed {
                 ctx: self.ctx,
                 field,
@@ -335,7 +335,7 @@ impl<'de, 'ctx, 'seed> ConcreteObjectFieldsSeed<'ctx, 'seed> {
             });
             self.ctx.pop_edge();
             response_fields.push(ResponseObjectField {
-                edge: field.edge,
+                key: field.key,
                 required_field_id: field.required_field_id,
                 value: result?,
             });
@@ -344,7 +344,7 @@ impl<'de, 'ctx, 'seed> ConcreteObjectFieldsSeed<'ctx, 'seed> {
             // value first.
             let stored_value = map.next_value::<serde_value::Value>()?;
             for field in &field_shapes[..end] {
-                self.ctx.push_edge(field.edge);
+                self.ctx.push_edge(field.key);
                 let result = FieldSeed {
                     ctx: self.ctx,
                     field,
@@ -353,7 +353,7 @@ impl<'de, 'ctx, 'seed> ConcreteObjectFieldsSeed<'ctx, 'seed> {
                 .deserialize(serde_value::ValueDeserializer::new(stored_value.clone()));
                 self.ctx.pop_edge();
                 response_fields.push(ResponseObjectField {
-                    edge: field.edge,
+                    key: field.key,
                     required_field_id: field.required_field_id,
                     value: result?,
                 });

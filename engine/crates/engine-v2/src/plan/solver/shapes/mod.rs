@@ -13,7 +13,7 @@ use super::{
 use crate::{
     response::{
         ConcreteObjectShapeId, ConcreteObjectShapeRecord, FieldShapeId, FieldShapeRecord, ObjectIdentifier,
-        PolymorphicObjectShapeId, PolymorphicObjectShapeRecord, ResponseKey, Shape, Shapes,
+        PolymorphicObjectShapeId, PolymorphicObjectShapeRecord, SafeResponseKey, Shape, Shapes,
     },
     utils::BufferPool,
 };
@@ -203,7 +203,7 @@ impl<'ctx> ShapesBuilder<'ctx> {
 
     fn create_data_field_shape(
         &mut self,
-        response_key: ResponseKey,
+        response_key: SafeResponseKey,
         fields: &mut [DataField<'ctx>],
         field: DataField<'ctx>,
     ) -> FieldShapeRecord {
@@ -221,8 +221,8 @@ impl<'ctx> ShapesBuilder<'ctx> {
         let required_field_id = fields.iter().find_map(|field| field.matching_requirement_id);
 
         FieldShapeRecord {
-            expected_key: self.operation.response_keys.ensure_safety(response_key),
-            edge: field.key,
+            expected_key: response_key,
+            key: field.key,
             id: field.id,
             required_field_id,
             definition_id: field.definition().id,

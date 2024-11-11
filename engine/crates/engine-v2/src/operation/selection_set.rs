@@ -1,10 +1,7 @@
 use id_newtypes::IdRange;
-use schema::{
-    CompositeTypeId, DefinitionId, EntityDefinitionId, FieldDefinitionId, InputValueDefinitionId,
-    InterfaceDefinitionId, ObjectDefinitionId, UnionDefinitionId,
-};
+use schema::{CompositeTypeId, FieldDefinitionId, InputValueDefinitionId};
 
-use crate::response::{BoundResponseKey, ResponseEdge, ResponseKey};
+use crate::response::{PositionedResponseKey, SafeResponseKey};
 
 use super::{BoundFieldArgumentId, BoundFieldId, BoundSelectionSetId, Location, QueryInputValueId};
 
@@ -12,84 +9,21 @@ use super::{BoundFieldArgumentId, BoundFieldId, BoundSelectionSetId, Location, Q
 pub(crate) struct BoundSelectionSet {
     /// (ResponseKey, Option<FieldDefinitionId>) is guaranteed to be unique
     /// Ordered by query (parent EntityId, query position)
-    pub field_ids_ordered_by_parent_entity_id_then_position: Vec<BoundFieldId>,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, serde::Serialize, serde::Deserialize)]
-pub enum SelectionSetType {
-    Object(ObjectDefinitionId),
-    Interface(InterfaceDefinitionId),
-    Union(UnionDefinitionId),
-}
-
-impl From<SelectionSetType> for CompositeTypeId {
-    fn from(value: SelectionSetType) -> Self {
-        match value {
-            SelectionSetType::Object(id) => Self::Object(id),
-            SelectionSetType::Interface(id) => Self::Interface(id),
-            SelectionSetType::Union(id) => Self::Union(id),
-        }
-    }
-}
-
-impl SelectionSetType {
-    pub fn is_union(&self) -> bool {
-        matches!(self, Self::Union(_))
-    }
-}
-
-impl From<EntityDefinitionId> for SelectionSetType {
-    fn from(value: EntityDefinitionId) -> Self {
-        match value {
-            EntityDefinitionId::Object(id) => Self::Object(id),
-            EntityDefinitionId::Interface(id) => Self::Interface(id),
-        }
-    }
-}
-
-impl From<SelectionSetType> for DefinitionId {
-    fn from(parent: SelectionSetType) -> Self {
-        match parent {
-            SelectionSetType::Interface(id) => Self::Interface(id),
-            SelectionSetType::Object(id) => Self::Object(id),
-            SelectionSetType::Union(id) => Self::Union(id),
-        }
-    }
-}
-
-impl SelectionSetType {
-    pub fn maybe_from(definition: DefinitionId) -> Option<Self> {
-        match definition {
-            DefinitionId::Object(id) => Some(SelectionSetType::Object(id)),
-            DefinitionId::Interface(id) => Some(Self::Interface(id)),
-            DefinitionId::Union(id) => Some(Self::Union(id)),
-            _ => None,
-        }
-    }
-
-    pub fn as_object_id(&self) -> Option<ObjectDefinitionId> {
-        match self {
-            SelectionSetType::Object(id) => Some(*id),
-            _ => None,
-        }
-    }
-
-    pub fn as_entity_id(&self) -> Option<EntityDefinitionId> {
-        match self {
-            SelectionSetType::Object(id) => Some(EntityDefinitionId::Object(*id)),
-            SelectionSetType::Interface(id) => Some(EntityDefinitionId::Interface(*id)),
-            SelectionSetType::Union(_) => None,
-        }
-    }
+    pub(crate) field_ids: Vec<BoundFieldId>,
 }
 
 #[derive(Hash, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, serde::Serialize, serde::Deserialize, id_derives::Id)]
-pub struct QueryPosition(std::num::NonZero<u16>);
+pub(crate) struct QueryPosition(std::num::NonZero<u16>);
+
+impl QueryPosition {
+    pub(crate) const MAX: usize = u16::MAX as usize - 1;
+    pub(crate) const EXTRA: usize = u16::MAX as usize;
+}
 
 /// The BoundFieldDefinition defines a field that is part of the actual GraphQL query.
 /// A BoundField is a field in the query *after* spreading all the named fragments.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub enum BoundField {
+pub(crate) enum BoundField {
     // Keeping attributes inside the enum to allow Rust to optimize the size of BoundField. We rarely
     // use the variants directly.
     /// __typename field
@@ -101,58 +35,41 @@ pub enum BoundField {
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct BoundTypeNameField {
-    pub type_condition: SelectionSetType,
-    pub bound_response_key: BoundResponseKey,
-    pub location: Location,
-    pub parent_selection_set_id: BoundSelectionSetId,
+pub(crate) struct BoundTypeNameField {
+    pub(crate) type_condition: CompositeTypeId,
+    pub(crate) key: PositionedResponseKey,
+    pub(crate) location: Location,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct BoundQueryField {
-    pub bound_response_key: BoundResponseKey,
-    pub location: Location,
-    pub definition_id: FieldDefinitionId,
-    pub argument_ids: IdRange<BoundFieldArgumentId>,
-    pub selection_set_id: Option<BoundSelectionSetId>,
-    pub parent_selection_set_id: BoundSelectionSetId,
+pub(crate) struct BoundQueryField {
+    pub(crate) key: PositionedResponseKey,
+    pub(crate) location: Location,
+    pub(crate) definition_id: FieldDefinitionId,
+    pub(crate) argument_ids: IdRange<BoundFieldArgumentId>,
+    pub(crate) selection_set_id: Option<BoundSelectionSetId>,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct BoundExtraField {
-    pub edge: ResponseEdge,
-    pub definition_id: FieldDefinitionId,
-    pub selection_set_id: Option<BoundSelectionSetId>,
-    pub argument_ids: IdRange<BoundFieldArgumentId>,
-    pub petitioner_location: Location,
-    pub parent_selection_set_id: BoundSelectionSetId,
+pub(crate) struct BoundExtraField {
+    // Extra fields are added as soon as they might be necessary, and they're assigned a key if
+    // they are.
+    pub(crate) key: Option<SafeResponseKey>,
+    pub(crate) definition_id: FieldDefinitionId,
+    pub(crate) argument_ids: IdRange<BoundFieldArgumentId>,
+    pub(crate) petitioner_location: Location,
 }
 
 impl BoundField {
-    pub fn query_position(&self) -> usize {
+    pub(crate) fn response_key(&self) -> Option<SafeResponseKey> {
         match self {
-            BoundField::TypeName(BoundTypeNameField { bound_response_key, .. }) => bound_response_key.position(),
-            BoundField::Query(BoundQueryField { bound_response_key, .. }) => bound_response_key.position(),
-            // Fake query position, but unique
-            BoundField::Extra(BoundExtraField { edge, .. }) => usize::from(*edge),
+            BoundField::TypeName(field) => Some(field.key.response_key),
+            BoundField::Query(field) => Some(field.key.response_key),
+            BoundField::Extra(field) => field.key,
         }
     }
 
-    pub fn response_key(&self) -> ResponseKey {
-        self.response_edge()
-            .as_response_key()
-            .expect("BoundField don't have indices as key")
-    }
-
-    pub fn response_edge(&self) -> ResponseEdge {
-        match self {
-            BoundField::TypeName(BoundTypeNameField { bound_response_key, .. }) => (*bound_response_key).into(),
-            BoundField::Query(BoundQueryField { bound_response_key, .. }) => (*bound_response_key).into(),
-            BoundField::Extra(BoundExtraField { edge, .. }) => *edge,
-        }
-    }
-
-    pub fn location(&self) -> Location {
+    pub(crate) fn location(&self) -> Location {
         match self {
             BoundField::TypeName(BoundTypeNameField { location, .. }) => *location,
             BoundField::Query(BoundQueryField { location, .. }) => *location,
@@ -162,15 +79,7 @@ impl BoundField {
         }
     }
 
-    pub fn selection_set_id(&self) -> Option<BoundSelectionSetId> {
-        match self {
-            BoundField::TypeName(BoundTypeNameField { .. }) => None,
-            BoundField::Query(BoundQueryField { selection_set_id, .. }) => *selection_set_id,
-            BoundField::Extra(BoundExtraField { selection_set_id, .. }) => *selection_set_id,
-        }
-    }
-
-    pub fn definition_id(&self) -> Option<FieldDefinitionId> {
+    pub(crate) fn definition_id(&self) -> Option<FieldDefinitionId> {
         match self {
             BoundField::TypeName(BoundTypeNameField { .. }) => None,
             BoundField::Query(BoundQueryField { definition_id, .. }) => Some(*definition_id),
@@ -178,7 +87,7 @@ impl BoundField {
         }
     }
 
-    pub fn argument_ids(&self) -> IdRange<BoundFieldArgumentId> {
+    pub(crate) fn argument_ids(&self) -> IdRange<BoundFieldArgumentId> {
         match self {
             BoundField::TypeName(BoundTypeNameField { .. }) => IdRange::empty(),
             BoundField::Query(BoundQueryField { argument_ids, .. }) => *argument_ids,
@@ -189,9 +98,9 @@ impl BoundField {
 
 /// Represents arguments that were specified in the query with a value
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct BoundFieldArgument {
-    pub name_location: Option<Location>,
-    pub value_location: Option<Location>,
-    pub input_value_definition_id: InputValueDefinitionId,
-    pub input_value_id: QueryInputValueId,
+pub(crate) struct BoundFieldArgument {
+    pub(crate) name_location: Option<Location>,
+    pub(crate) value_location: Option<Location>,
+    pub(crate) input_value_definition_id: InputValueDefinitionId,
+    pub(crate) input_value_id: QueryInputValueId,
 }
