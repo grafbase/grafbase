@@ -3069,7 +3069,6 @@ dependencies = [
  "anyhow",
  "ascii 1.1.0",
  "async-graphql-parser",
- "atty",
  "cfg-if",
  "chrono",
  "clap 4.5.20",
@@ -3139,7 +3138,6 @@ dependencies = [
  "graphql-federated-graph",
  "ignore",
  "reqwest 0.12.9",
- "reqwest-middleware",
  "serde",
  "serde-dynamic-string",
  "serde-toml-merge",
@@ -6538,21 +6536,6 @@ dependencies = [
  "pin-project-lite",
  "reqwest 0.12.9",
  "thiserror 1.0.68",
-]
-
-[[package]]
-name = "reqwest-middleware"
-version = "0.3.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "562ceb5a604d3f7c885a792d42c199fd8af239d0a51b2fa6a78aafa092452b04"
-dependencies = [
- "anyhow",
- "async-trait",
- "http 1.1.0",
- "reqwest 0.12.9",
- "serde",
- "thiserror 1.0.68",
- "tower-service",
 ]
 
 [[package]]

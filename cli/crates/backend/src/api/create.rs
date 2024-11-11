@@ -53,14 +53,14 @@ pub async fn get_viewer_data_for_creation() -> Result<Vec<Account>, ApiError> {
 /// # Errors
 ///
 /// See [`ApiError`]
-pub async fn create(account_id: &str, project_slug: &str) -> Result<(Vec<String>, String), ApiError> {
+pub async fn create(account_id: &str, graph_slug: &str) -> Result<(Vec<String>, String), ApiError> {
     let platform_data = PlatformData::get();
     let client = create_client().await?;
 
     let operation = GraphCreate::build(GraphCreateArguments {
         input: GraphCreateInput {
             account_id: Id::new(account_id),
-            graph_slug: project_slug,
+            graph_slug,
             repo_root_path: None,
             graph_mode: GraphMode::SelfHosted,
             environment_variables: vec![],

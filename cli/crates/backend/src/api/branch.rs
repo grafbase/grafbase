@@ -22,13 +22,13 @@ pub struct Branch {
 /// # Errors
 ///
 /// See [`ApiError`]
-pub async fn delete(account_slug: &str, project_slug: &str, branch_name: &str) -> Result<(), ApiError> {
+pub async fn delete(account_slug: &str, graph_slug: &str, branch_name: &str) -> Result<(), ApiError> {
     let platform_data = PlatformData::get();
     let client = create_client().await?;
 
     let operation = BranchDelete::build(BranchDeleteArguments {
         account_slug,
-        project_slug,
+        graph_slug,
         branch_name,
     });
 
@@ -38,10 +38,10 @@ pub async fn delete(account_slug: &str, project_slug: &str, branch_name: &str) -
         match data.branch_delete {
             BranchDeletePayload::Success(_) => Ok(()),
             BranchDeletePayload::BranchDoesNotExist(_) => {
-                Err(BranchError::BranchDoesNotExist(format!("{account_slug}/{project_slug}@{branch_name}")).into())
+                Err(BranchError::BranchDoesNotExist(format!("{account_slug}/{graph_slug}@{branch_name}")).into())
             }
             BranchDeletePayload::CannotDeleteProductionBranch(_) => Err(
-                BranchError::CannotDeleteProductionBranchError(format!("{account_slug}/{project_slug}@{branch_name}"))
+                BranchError::CannotDeleteProductionBranchError(format!("{account_slug}/{graph_slug}@{branch_name}"))
                     .into(),
             ),
             BranchDeletePayload::Unknown(error) => Err(BranchError::Unknown(error).into()),

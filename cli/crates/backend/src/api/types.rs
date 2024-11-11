@@ -33,16 +33,17 @@ pub struct Graph {
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ProjectMetadata {
-    project_id: String,
+    #[serde(alias = "project_id")]
+    graph_id: String,
 }
 
 impl ProjectMetadata {
-    pub fn new(project_id: String) -> Self {
-        Self { project_id }
+    pub fn new(graph_id: String) -> Self {
+        Self { graph_id }
     }
 
     pub fn graph_id(&self) -> String {
-        self.project_id.replace("project", "graph")
+        self.graph_id.replace("project", "graph")
     }
 }
 

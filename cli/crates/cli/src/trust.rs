@@ -22,7 +22,7 @@ pub(crate) fn trust(
     match backend::api::submit_trusted_documents::submit_trusted_documents(
         backend::api::submit_trusted_documents::TrustedDocumentsSubmitVariables {
             account: graph_ref.account(),
-            project: graph_ref.graph(),
+            graph: graph_ref.graph(),
             branch,
             client_name: &client_name,
             documents: manifest
