@@ -12,14 +12,14 @@ use cynic::{http::ReqwestExt, QueryBuilder};
 
 pub async fn schema(
     account: &str,
-    project: &str,
+    graph: &str,
     branch: Option<&str>,
     subgraph_name: Option<&str>,
 ) -> Result<Option<String>, ApiError> {
     if let Some(subgraph_name) = subgraph_name {
-        subgraph_schema(account, project, branch, subgraph_name).await.map(Some)
+        subgraph_schema(account, graph, branch, subgraph_name).await.map(Some)
     } else {
-        federated_graph_schema(account, project, branch).await
+        federated_graph_schema(account, graph, branch).await
     }
 }
 
