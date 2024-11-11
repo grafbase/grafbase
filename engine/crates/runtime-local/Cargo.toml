@@ -27,7 +27,7 @@ bytes.workspace = true
 ed25519-compact = "2"
 elliptic-curve = { version = "0.13", features = ["jwk"] }
 futures-util.workspace = true
-graphql-ws-client = { version = "0.10.0", features = ["tungstenite"] }
+graphql-ws-client = { version = "0.11.0", features = ["tungstenite"] }
 governor.workspace = true
 http.workspace = true
 httpsig.workspace = true
@@ -45,7 +45,7 @@ runtime.workspace = true
 gateway-config.workspace = true
 url = { workspace = true, optional = true }
 mini-moka = "0.10"
-redis = { version = "0.25.3", features = [
+redis = { version = "0.27.0", features = [
     "tokio-rustls-comp",
     "connection-manager",
 ], optional = true }
