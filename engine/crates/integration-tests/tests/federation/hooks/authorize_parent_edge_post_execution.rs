@@ -346,12 +346,9 @@ fn definition_is_provided() {
             parents: Vec<serde_json::Value>,
             _metadata: Option<serde_json::Value>,
         ) -> Result<Vec<Result<(), PartialGraphqlError>>, PartialGraphqlError> {
-            println!("{definition:?}");
             if definition.parent_type_name == "AuthorizedEdgeWithFields" && definition.field_name == "withId" {
-                println!("YES");
                 Ok(vec![Ok(()); parents.len()])
             } else {
-                println!("NO");
                 Err(PartialGraphqlError::new(
                     "Wrong definition",
                     PartialErrorCode::Unauthorized,

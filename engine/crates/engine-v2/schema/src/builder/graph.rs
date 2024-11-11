@@ -172,16 +172,15 @@ impl<'a> GraphBuilder<'a> {
             let possible_type_ids = union
                 .members
                 .into_iter()
-                // FIXME: handle inaccessible objects
+                // FIXME: fix inaccessible union
                 // .filter(|object_id| {
-                // self.ctx.idmaps
-                // let composed_directives = config
-                //     .graph
-                //     .at(*object_id)
-                //     .then(|obj| obj.type_definition_id)
-                //     .directives;
+                //     let composed_directives = config
+                //         .graph
+                //         .at(*object_id)
+                //         .then(|obj| obj.type_definition_id)
+                //         .directives;
                 //
-                // !is_inaccessible(&config.graph, composed_directives)
+                //     !is_inaccessible(&config.graph, composed_directives)
                 // })
                 .map(ObjectDefinitionId::from)
                 .collect::<Vec<_>>();

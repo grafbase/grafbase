@@ -54,6 +54,7 @@
             cargo-component
             # Benchmark tool to send multiple requests
             hey
+            k6
 
             # binary bloat inspector
             cargo-bloat
