@@ -38,7 +38,7 @@ indoc = "2.0.5"
 serde_json.workspace = true
 base64.workspace = true
 insta.workspace = true
-tempdir = "0.3.7"
+tempfile = "3.14.0"
 tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
 toml.workspace = true
 wiremock.workspace = true
