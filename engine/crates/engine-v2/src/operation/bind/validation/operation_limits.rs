@@ -2,19 +2,9 @@ use std::collections::HashSet;
 
 use schema::Schema;
 
-use crate::operation::{OperationWalker, SelectionSetWalker};
+use crate::operation::{BindError, BindResult, OperationWalker, SelectionSetWalker};
 
-#[allow(clippy::enum_variant_names)]
-#[derive(thiserror::Error, Debug)]
-pub(crate) enum OperationLimitExceededError {
-    #[error("Query is too high.")]
-    QueryTooHigh,
-}
-
-pub(super) fn enforce_operation_limits(
-    schema: &Schema,
-    operation: OperationWalker<'_>,
-) -> Result<(), OperationLimitExceededError> {
+pub(super) fn enforce_operation_limits(schema: &Schema, operation: OperationWalker<'_>) -> BindResult<()> {
     let operation_limits = &schema.settings.operation_limits;
     let selection_set = operation.selection_set();
 
@@ -22,7 +12,7 @@ pub(super) fn enforce_operation_limits(
     if let Some(max_height) = operation_limits.height {
         let height = selection_set.height(&mut Default::default());
         if height > max_height {
-            return Err(OperationLimitExceededError::QueryTooHigh);
+            return Err(BindError::QueryTooHigh);
         }
     }
 

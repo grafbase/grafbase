@@ -10,9 +10,9 @@ use super::BoundOperation;
 
 #[derive(Clone, Copy)]
 pub(crate) struct OperationWalker<'a, Item = ()> {
-    pub(super) schema: &'a Schema,
-    pub(super) operation: &'a BoundOperation,
-    pub(super) item: Item,
+    pub(crate) schema: &'a Schema,
+    pub(crate) operation: &'a BoundOperation,
+    pub(crate) item: Item,
 }
 
 impl<'a> std::fmt::Debug for OperationWalker<'a, ()> {

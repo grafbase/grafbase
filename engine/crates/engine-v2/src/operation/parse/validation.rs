@@ -1,9 +1,13 @@
-use super::{BindError, BindResult};
-use crate::operation::parse::ParsedOperation;
-use config::OperationLimits;
-use engine_parser::Positioned;
+use engine_parser::{
+    types::{Field, Selection, SelectionSet},
+    Positioned,
+};
+use schema::Schema;
 
-pub(super) fn validate_parsed_operation(operation: &ParsedOperation, limits: &OperationLimits) -> BindResult<()> {
+use super::{ParseError, ParseResult, ParsedOperation};
+
+pub(super) fn validate(schema: &Schema, operation: &ParsedOperation) -> ParseResult<()> {
+    let limits = &schema.settings.operation_limits;
     Visitor {
         operation,
         current_fragments_stack: Vec::new(),
@@ -33,33 +37,30 @@ struct Visitor<'p> {
 }
 
 impl<'p> Visitor<'p> {
-    fn visit_selection_set(
-        &mut self,
-        selection_set: &'p Positioned<engine_parser::types::SelectionSet>,
-    ) -> BindResult<()> {
+    fn visit_selection_set(&mut self, selection_set: &'p Positioned<SelectionSet>) -> ParseResult<()> {
         for item in &selection_set.items {
             match &item.node {
-                engine_parser::types::Selection::Field(field) => {
+                Selection::Field(field) => {
                     self.root_fields += (self.current_depth == 0) as usize;
                     if self.root_fields > self.max_root_fields {
-                        return Err(BindError::QueryContainsTooManyRootFields {
+                        return Err(ParseError::QueryContainsTooManyRootFields {
                             count: self.root_fields,
                             location: selection_set.pos.try_into()?,
                         });
                     }
                     self.complexity += 1;
                     if self.complexity > self.max_complexity {
-                        return Err(BindError::QueryTooComplex {
+                        return Err(ParseError::QueryTooComplex {
                             complexity: self.complexity,
-                            location: selection_set.pos.try_into()?,
+                            location: field.selection_set.pos.try_into()?,
                         });
                     }
                     self.visit_field(field)?;
                 }
-                engine_parser::types::Selection::FragmentSpread(fragment_spread) => {
+                Selection::FragmentSpread(fragment_spread) => {
                     self.visit_fragment_spread(fragment_spread)?;
                 }
-                engine_parser::types::Selection::InlineFragment(inline_fragment) => {
+                Selection::InlineFragment(inline_fragment) => {
                     self.visit_inline_fragment(inline_fragment)?;
                 }
             }
@@ -68,17 +69,17 @@ impl<'p> Visitor<'p> {
         Ok(())
     }
 
-    fn visit_field(&mut self, field: &'p Positioned<engine_parser::types::Field>) -> BindResult<()> {
+    fn visit_field(&mut self, field: &'p Positioned<Field>) -> ParseResult<()> {
         self.aliases_count += field.alias.is_some() as usize;
         if self.aliases_count > self.max_aliases_count {
-            return Err(BindError::QueryContainsTooManyAliases {
+            return Err(ParseError::QueryContainsTooManyAliases {
                 count: self.aliases_count,
-                location: field.pos.try_into()?,
+                location: field.selection_set.pos.try_into()?,
             });
         }
         self.current_depth += 1;
         if self.current_depth > self.max_depth {
-            return Err(BindError::QueryTooDeep {
+            return Err(ParseError::QueryTooDeep {
                 depth: self.current_depth,
                 location: field.selection_set.pos.try_into()?,
             });
@@ -93,11 +94,11 @@ impl<'p> Visitor<'p> {
     fn visit_fragment_spread(
         &mut self,
         fragment_spread: &'p Positioned<engine_parser::types::FragmentSpread>,
-    ) -> BindResult<()> {
+    ) -> ParseResult<()> {
         let fragment_name = &fragment_spread.fragment_name.node;
         if self.current_fragments_stack.contains(&fragment_name.as_str()) {
             self.current_fragments_stack.push(fragment_name.as_str());
-            return Err(BindError::FragmentCycle {
+            return Err(ParseError::FragmentCycle {
                 cycle: std::mem::take(&mut self.current_fragments_stack)
                     .into_iter()
                     .map(str::to_string)
@@ -106,7 +107,7 @@ impl<'p> Visitor<'p> {
             });
         }
         let Some(fragment) = self.operation.fragments.get(fragment_name) else {
-            return Err(BindError::UnknownFragment {
+            return Err(ParseError::UnknownFragment {
                 name: fragment_name.to_string(),
                 location: fragment_spread.pos.try_into()?,
             });
@@ -122,7 +123,7 @@ impl<'p> Visitor<'p> {
     fn visit_inline_fragment(
         &mut self,
         inline_fragment: &'p Positioned<engine_parser::types::InlineFragment>,
-    ) -> BindResult<()> {
+    ) -> ParseResult<()> {
         self.visit_selection_set(&inline_fragment.selection_set)
     }
 }

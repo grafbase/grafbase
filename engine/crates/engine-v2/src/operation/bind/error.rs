@@ -1,6 +1,8 @@
-use itertools::Itertools;
-
-use crate::{operation::Location, response::GraphqlError, ErrorCode};
+use crate::{
+    operation::{Location, LocationError},
+    response::GraphqlError,
+    ErrorCode,
+};
 
 #[derive(thiserror::Error, Debug)]
 pub enum BindError {
@@ -68,10 +70,8 @@ pub enum BindError {
         operation: ErrorOperationName,
         location: Location,
     },
-    #[error("Fragment cycle detected: {}", .cycle.iter().join(", "))]
-    FragmentCycle { cycle: Vec<String>, location: Location },
     #[error("Query is too big: {0}")]
-    QueryTooBig(String),
+    QueryTooBig(#[from] LocationError),
     #[error("{0}")]
     InvalidInputValue(#[from] super::coercion::InputValueError),
     #[error("Missing argument named '{name}' for field '{field}'")]
@@ -80,20 +80,16 @@ pub enum BindError {
         name: String,
         location: Location,
     },
-    #[error("Query is too complex.")]
-    QueryTooComplex { complexity: usize, location: Location },
-    #[error("Query is nested too deep.")]
-    QueryTooDeep { depth: usize, location: Location },
-    #[error("Query contains too many root fields.")]
-    QueryContainsTooManyRootFields { count: usize, location: Location },
-    #[error("Query contains too many aliases.")]
-    QueryContainsTooManyAliases { count: usize, location: Location },
     #[error("Missing argument named '{name}' for directive '{directive}'")]
     MissingDirectiveArgument {
         name: String,
         directive: String,
         location: Location,
     },
+    #[error("Query is too high.")]
+    QueryTooHigh,
+    #[error("GraphQL introspection is not allowed, but the query contained __schema or __type")]
+    IntrospectionIsDisabled { location: Location },
 }
 
 impl From<BindError> for GraphqlError {
@@ -111,16 +107,15 @@ impl From<BindError> for GraphqlError {
             | BindError::TooManyFields { location }
             | BindError::LeafMustBeAScalarOrEnum { location, .. }
             | BindError::DuplicateVariable { location, .. }
-            | BindError::FragmentCycle { location, .. }
             | BindError::MissingArgument { location, .. }
             | BindError::MissingDirectiveArgument { location, .. }
             | BindError::UnusedVariable { location, .. }
-            | BindError::QueryTooComplex { location, .. }
-            | BindError::QueryTooDeep { location, .. }
-            | BindError::QueryContainsTooManyAliases { location, .. }
-            | BindError::QueryContainsTooManyRootFields { location, .. } => vec![location],
+            | BindError::IntrospectionIsDisabled { location, .. } => vec![location],
             BindError::InvalidInputValue(ref err) => vec![err.location()],
-            BindError::NoMutationDefined | BindError::NoSubscriptionDefined | BindError::QueryTooBig { .. } => {
+            BindError::NoMutationDefined
+            | BindError::NoSubscriptionDefined
+            | BindError::QueryTooBig { .. }
+            | BindError::QueryTooHigh => {
                 vec![]
             }
         };

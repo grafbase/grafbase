@@ -1,9 +1,12 @@
 use id_newtypes::IdRange;
 use schema::{CompositeTypeId, FieldDefinitionId, InputValueDefinitionId};
 
-use crate::response::{PositionedResponseKey, SafeResponseKey};
+use crate::{
+    operation::{Location, QueryInputValueId},
+    response::{PositionedResponseKey, SafeResponseKey},
+};
 
-use super::{BoundFieldArgumentId, BoundFieldId, BoundSelectionSetId, Location, QueryInputValueId};
+use super::{BoundFieldArgumentId, BoundFieldId, BoundSelectionSetId};
 
 #[derive(Clone, Default, serde::Serialize, serde::Deserialize)]
 pub(crate) struct BoundSelectionSet {
