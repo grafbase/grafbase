@@ -38,14 +38,14 @@ pub enum InputValueError {
         path: String,
         location: Location,
     },
-    #[error("Found a {actual} value where we expected a {r#enum} enum value{path}")]
+    #[error("Found a {actual} value where we expected a {enum} enum value{path}")]
     IncorrectEnumValueType {
         r#enum: String,
         actual: ValueKind,
         path: String,
         location: Location,
     },
-    #[error("Unknown enum value '{value}' for enum {r#enum}{path}")]
+    #[error("Unknown enum value '{value}' for enum {enum}{path}")]
     UnknownEnumValue {
         r#enum: String,
         value: String,
