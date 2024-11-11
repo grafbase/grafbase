@@ -1,0 +1,12 @@
+type User {
+  id: ID!
+  name: String!
+}
+
+type Query {
+  getAllUsers: [User!]
+}
+
+enum join__Graph {
+  BAD @join__graph(name: "bad", url: "http://example.com/bad")
+}
