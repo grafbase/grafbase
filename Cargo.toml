@@ -61,6 +61,7 @@ bytes = "1.6.0"
 chrono = { version = "0.4.38", default-features = false }
 ctor = "0.2.8"
 cynic = "=3.8.0"
+cynic-codegen = { version = "=3.8.0", features = ["rkyv"] }
 cynic-introspection = "=3.8.0"
 cynic-parser = "0.8.0"
 deadpool-postgres = "0.14"
