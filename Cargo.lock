@@ -3307,6 +3307,7 @@ name = "graphql-composition"
 version = "0.4.0"
 dependencies = [
  "cynic-parser",
+ "cynic-parser-deser",
  "datatest-stable",
  "grafbase-workspace-hack",
  "graphql-federated-graph",
@@ -3321,6 +3322,7 @@ name = "graphql-federated-graph"
 version = "0.4.0"
 dependencies = [
  "cynic-parser",
+ "cynic-parser-deser",
  "expect-test",
  "grafbase-workspace-hack",
  "graphql-wrapping-types",

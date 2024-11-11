@@ -1,5 +1,6 @@
 use grafbase_workspace_hack as _;
 
+pub mod directives;
 mod federated_graph;
 
 pub use self::federated_graph::*;
