@@ -37,7 +37,7 @@ impl<'ctx, R: Runtime> IntrospectionWriter<'ctx, R> {
                 IntrospectionField::Type => {
                     let name = arguments.get_arg_value_as::<&str>("name");
                     fields.push(ResponseObjectField {
-                        edge: field.edge,
+                        key: field.key,
                         required_field_id: None,
                         value: self
                             .schema
@@ -53,7 +53,7 @@ impl<'ctx, R: Runtime> IntrospectionWriter<'ctx, R> {
                 }
                 IntrospectionField::Schema => {
                     fields.push(ResponseObjectField {
-                        edge: field.edge,
+                        key: field.key,
                         required_field_id: None,
                         value: self.__schema(field.shape.as_concrete_object().unwrap()),
                     });
@@ -67,7 +67,7 @@ impl<'ctx, R: Runtime> IntrospectionWriter<'ctx, R> {
             };
             for edge in &shape.typename_response_edges {
                 fields.push(ResponseObjectField {
-                    edge: *edge,
+                    key: *edge,
                     required_field_id: None,
                     value: name_id.into(),
                 });
@@ -87,7 +87,7 @@ impl<'ctx, R: Runtime> IntrospectionWriter<'ctx, R> {
         for id in shape.field_shape_ids {
             let field = &self.shapes[id];
             fields.push(ResponseObjectField {
-                edge: field.edge,
+                key: field.key,
                 required_field_id: None,
                 value: build(field, object[field.definition_id]),
             });
@@ -96,7 +96,7 @@ impl<'ctx, R: Runtime> IntrospectionWriter<'ctx, R> {
             let name = self.schema.walk(object.id).as_ref().name_id;
             for edge in &shape.typename_response_edges {
                 fields.push(ResponseObjectField {
-                    edge: *edge,
+                    key: *edge,
                     required_field_id: None,
                     value: name.into(),
                 });

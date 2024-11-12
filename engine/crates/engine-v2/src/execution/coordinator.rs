@@ -499,7 +499,7 @@ impl<'ctx, R: Runtime> OperationExecution<'ctx, R> {
         let shape = plan.shape();
         let first_key = shape
             .fields()
-            .map(|field| field.edge)
+            .map(|field| field.key)
             .min()
             .or_else(|| shape.typename_response_edges.iter().min().copied())
             .expect("Selection set without any fields?");
@@ -508,8 +508,8 @@ impl<'ctx, R: Runtime> OperationExecution<'ctx, R> {
         if !shape.typename_response_edges.is_empty() {
             if let ObjectIdentifier::Known(object_id) = shape.identifier {
                 let name: ResponseValue = self.schema().walk(object_id).as_ref().name_id.into();
-                fields.extend(shape.typename_response_edges.iter().map(|&edge| ResponseObjectField {
-                    edge,
+                fields.extend(shape.typename_response_edges.iter().map(|&key| ResponseObjectField {
+                    key,
                     required_field_id: None,
                     value: name.clone(),
                 }))
@@ -522,7 +522,7 @@ impl<'ctx, R: Runtime> OperationExecution<'ctx, R> {
                 return (first_key, None);
             }
             fields.push(ResponseObjectField {
-                edge: field_shape.edge,
+                key: field_shape.key,
                 required_field_id: field_shape.required_field_id,
                 value: ResponseValue::Null,
             })

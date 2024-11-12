@@ -3,6 +3,6 @@ pub(super) use crate::{
     operation::ResponseModifierRule,
     plan::{QueryPartitionId, ResponseObjectSetDefinitionId},
     resolver::Resolver,
-    response::ResponseKey,
+    response::SafeResponseKey,
 };
 pub(super) use schema::FieldSetRecord;

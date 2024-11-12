@@ -3,20 +3,20 @@ use std::collections::BTreeMap;
 
 use engine_parser::types::Directive;
 use engine_parser::Positioned;
-use schema::{DefinitionId, FieldDefinitionId, ObjectDefinitionId, TypeRecord};
+use schema::{CompositeTypeId, DefinitionId, FieldDefinitionId, ObjectDefinitionId, TypeRecord};
 
 use super::{BindError, BindResult, Binder};
 use crate::operation::bind::coercion::coerce_query_value;
 use crate::operation::{QueryModifierRule, SkipIncludeDirective};
 use crate::{
-    operation::{BoundFieldId, BoundSelectionSet, BoundSelectionSetId, Location, QueryPosition, SelectionSetType},
+    operation::{BoundFieldId, BoundSelectionSet, BoundSelectionSetId, Location, QueryPosition},
     response::SafeResponseKey,
 };
 
 impl<'schema, 'p> Binder<'schema, 'p> {
     pub(super) fn bind_merged_selection_sets(
         &mut self,
-        ty: SelectionSetType,
+        ty: CompositeTypeId,
         merged_selection_sets: &[&'p Positioned<engine_parser::types::SelectionSet>],
     ) -> BindResult<BoundSelectionSetId> {
         SelectionSetBinder::new(self).bind(ty, merged_selection_sets)
@@ -31,7 +31,7 @@ pub(super) struct SelectionSetBinder<'schema, 'parsed, 'binder> {
     data_fields: BTreeMap<DataFieldUniqueKey, DataField<'parsed>>,
     #[allow(clippy::type_complexity)]
     typename_fields_by_key_then_by_type_condition:
-        BTreeMap<SafeResponseKey, BTreeMap<SelectionSetType, TypenameField<'parsed>>>,
+        BTreeMap<SafeResponseKey, BTreeMap<CompositeTypeId, TypenameField<'parsed>>>,
 }
 
 impl<'s, 'p, 'b> std::ops::Deref for SelectionSetBinder<'s, 'p, 'b> {
@@ -80,32 +80,22 @@ impl<'schema, 'p, 'binder> SelectionSetBinder<'schema, 'p, 'binder> {
 
     fn bind(
         mut self,
-        ty: SelectionSetType,
+        ty: CompositeTypeId,
         merged_selection_sets: &[&'p Positioned<engine_parser::types::SelectionSet>],
     ) -> BindResult<BoundSelectionSetId> {
         for selection_set in merged_selection_sets {
             self.register_selection_set_fields(ty, selection_set)?;
         }
 
-        let id = BoundSelectionSetId::from(self.selection_sets.len());
-        self.selection_sets.push(BoundSelectionSet::default());
+        let selection_set = BoundSelectionSet {
+            field_ids: self.generate_fields(ty)?,
+        };
+        self.selection_sets.push(selection_set);
 
-        let mut field_ids = self.generate_fields(ty, id)?;
-
-        field_ids.sort_unstable_by_key(|id| {
-            let field = &self[*id];
-            (
-                field.definition_id().map(|id| self.schema[id].parent_entity_id),
-                field.query_position(),
-            )
-        });
-
-        self.binder[id].field_ids_ordered_by_parent_entity_id_then_position = field_ids;
-
-        Ok(id)
+        Ok(BoundSelectionSetId::from(self.selection_sets.len() - 1))
     }
 
-    fn generate_fields(&mut self, ty: SelectionSetType, id: BoundSelectionSetId) -> BindResult<Vec<BoundFieldId>> {
+    fn generate_fields(&mut self, ty: CompositeTypeId) -> BindResult<Vec<BoundFieldId>> {
         let mut field_ids = Vec::with_capacity(self.data_fields.len());
 
         for (
@@ -121,13 +111,9 @@ impl<'schema, 'p, 'binder> SelectionSetBinder<'schema, 'p, 'binder> {
                 .iter()
                 .min_by_key(|field| field.pos.line)
                 .expect("At least one occurrence");
-            let bound_response_key = response_key
-                .with_position(query_position)
-                .ok_or(BindError::TooManyFields {
-                    location: field.pos.try_into()?,
-                })?;
+            let key = response_key.with_position(query_position);
             let selection_set_id =
-                SelectionSetType::maybe_from(self.schema.walk(definition_id).ty().as_ref().definition_id)
+                CompositeTypeId::maybe_from(self.schema.walk(definition_id).ty().as_ref().definition_id)
                     .map(|ty| {
                         let merged_selection_sets = fields
                             .into_iter()
@@ -137,7 +123,7 @@ impl<'schema, 'p, 'binder> SelectionSetBinder<'schema, 'p, 'binder> {
                     })
                     .transpose()?;
 
-            field_ids.push(self.bind_field(id, bound_response_key, definition_id, field, selection_set_id, rules)?)
+            field_ids.push(self.bind_field(key, definition_id, field, selection_set_id, rules)?)
         }
 
         for (response_key, typename_fields) in std::mem::take(&mut self.typename_fields_by_key_then_by_type_condition) {
@@ -151,24 +137,14 @@ impl<'schema, 'p, 'binder> SelectionSetBinder<'schema, 'p, 'binder> {
                 .unwrap_or_default()
             {
                 let TypenameField { query_position, field } = typename_fields.get(&ty).unwrap();
-                let bound_response_key =
-                    response_key
-                        .with_position(*query_position)
-                        .ok_or(BindError::TooManyFields {
-                            location: field.pos.try_into()?,
-                        })?;
-                field_ids.push(self.bind_typename_field(id, ty, bound_response_key, field)?);
+                let key = response_key.with_position(*query_position);
+                field_ids.push(self.bind_typename_field(ty, key, field)?);
 
                 continue;
             }
             for (type_condition, TypenameField { query_position, field }) in typename_fields {
-                let bound_response_key =
-                    response_key
-                        .with_position(query_position)
-                        .ok_or(BindError::TooManyFields {
-                            location: field.pos.try_into()?,
-                        })?;
-                field_ids.push(self.bind_typename_field(id, type_condition, bound_response_key, field)?)
+                let key = response_key.with_position(query_position);
+                field_ids.push(self.bind_typename_field(type_condition, key, field)?)
             }
         }
 
@@ -177,7 +153,7 @@ impl<'schema, 'p, 'binder> SelectionSetBinder<'schema, 'p, 'binder> {
 
     fn register_selection_set_fields(
         &mut self,
-        ty: SelectionSetType,
+        ty: CompositeTypeId,
         selection_set: &'p Positioned<engine_parser::types::SelectionSet>,
     ) -> BindResult<()> {
         let Positioned {
@@ -203,7 +179,7 @@ impl<'schema, 'p, 'binder> SelectionSetBinder<'schema, 'p, 'binder> {
 
     fn register_field(
         &mut self,
-        parent: SelectionSetType,
+        parent: CompositeTypeId,
         field: &'p Positioned<engine_parser::types::Field>,
     ) -> BindResult<()> {
         let name_location: Location = field.pos.try_into()?;
@@ -215,7 +191,7 @@ impl<'schema, 'p, 'binder> SelectionSetBinder<'schema, 'p, 'binder> {
                 .map(|Positioned { node, .. }| node.as_str())
                 .unwrap_or_else(|| name),
         );
-        let query_position = self.next_query_position();
+        let query_position = self.next_query_position(name_location)?;
 
         if name == "__typename" {
             self.typename_fields_by_key_then_by_type_condition
@@ -227,9 +203,9 @@ impl<'schema, 'p, 'binder> SelectionSetBinder<'schema, 'p, 'binder> {
         }
 
         let definition_id = match parent {
-            SelectionSetType::Object(object_id) => self.schema.object_field_by_name(object_id, name),
-            SelectionSetType::Interface(interface_id) => self.schema.interface_field_by_name(interface_id, name),
-            SelectionSetType::Union(union_id) => {
+            CompositeTypeId::Object(object_id) => self.schema.object_field_by_name(object_id, name),
+            CompositeTypeId::Interface(interface_id) => self.schema.interface_field_by_name(interface_id, name),
+            CompositeTypeId::Union(union_id) => {
                 return Err(BindError::UnionHaveNoFields {
                     name: name.to_string(),
                     ty: self.schema.walk(union_id).name().to_string(),
@@ -271,7 +247,7 @@ impl<'schema, 'p, 'binder> SelectionSetBinder<'schema, 'p, 'binder> {
 
     fn register_fragment_spread_fields(
         &mut self,
-        parent: SelectionSetType,
+        parent: CompositeTypeId,
         Positioned { pos, node: spread }: &'p Positioned<engine_parser::types::FragmentSpread>,
     ) -> BindResult<()> {
         let location = (*pos).try_into()?;
@@ -298,7 +274,7 @@ impl<'schema, 'p, 'binder> SelectionSetBinder<'schema, 'p, 'binder> {
 
     fn register_inline_fragment_fields(
         &mut self,
-        parent: SelectionSetType,
+        parent: CompositeTypeId,
         Positioned { node: fragment, .. }: &'p Positioned<engine_parser::types::InlineFragment>,
     ) -> BindResult<()> {
         let ty = fragment
@@ -355,9 +331,9 @@ impl<'schema, 'p, 'binder> SelectionSetBinder<'schema, 'p, 'binder> {
 
     fn bind_selection_set_type(
         &self,
-        parent: SelectionSetType,
+        parent: CompositeTypeId,
         Positioned { pos, node }: &'p Positioned<engine_parser::types::TypeCondition>,
-    ) -> BindResult<SelectionSetType> {
+    ) -> BindResult<CompositeTypeId> {
         let location = (*pos).try_into()?;
         let name = node.on.node.as_str();
         let definition = self
@@ -368,9 +344,9 @@ impl<'schema, 'p, 'binder> SelectionSetBinder<'schema, 'p, 'binder> {
                 location,
             })?;
         let fragment_ty = match definition {
-            DefinitionId::Object(object_id) => SelectionSetType::Object(object_id),
-            DefinitionId::Interface(interface_id) => SelectionSetType::Interface(interface_id),
-            DefinitionId::Union(union_id) => SelectionSetType::Union(union_id),
+            DefinitionId::Object(object_id) => CompositeTypeId::Object(object_id),
+            DefinitionId::Interface(interface_id) => CompositeTypeId::Interface(interface_id),
+            DefinitionId::Union(union_id) => CompositeTypeId::Union(union_id),
             _ => {
                 return Err(BindError::InvalidTypeConditionTargetType {
                     name: name.to_string(),
@@ -399,17 +375,20 @@ impl<'schema, 'p, 'binder> SelectionSetBinder<'schema, 'p, 'binder> {
         })
     }
 
-    fn get_possible_types(&self, ty: SelectionSetType) -> Cow<'schema, [ObjectDefinitionId]> {
+    fn get_possible_types(&self, ty: CompositeTypeId) -> Cow<'schema, [ObjectDefinitionId]> {
         match ty {
-            SelectionSetType::Object(id) => Cow::Owned(vec![id]),
-            SelectionSetType::Interface(id) => Cow::Borrowed(&self.schema[id].possible_type_ids),
-            SelectionSetType::Union(id) => Cow::Borrowed(&self.schema[id].possible_type_ids),
+            CompositeTypeId::Object(id) => Cow::Owned(vec![id]),
+            CompositeTypeId::Interface(id) => Cow::Borrowed(&self.schema[id].possible_type_ids),
+            CompositeTypeId::Union(id) => Cow::Borrowed(&self.schema[id].possible_type_ids),
         }
     }
 
-    fn next_query_position(&mut self) -> QueryPosition {
+    fn next_query_position(&mut self, location: Location) -> BindResult<QueryPosition> {
         let query_position = self.next_query_position;
         self.next_query_position += 1;
-        QueryPosition::from(query_position)
+        if query_position == QueryPosition::MAX {
+            return Err(BindError::TooManyFields { location });
+        }
+        Ok(QueryPosition::from(query_position))
     }
 }

@@ -13,14 +13,14 @@ use walker::Walk;
 /// type ResponseModifierTarget @meta(module: "response_modifier/target") {
 ///   set_id: ResponseObjectSetDefinitionId!
 ///   ty: CompositeType!
-///   key: ResponseKey!
+///   key: SafeResponseKey!
 /// }
 /// ```
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub(crate) struct ResponseModifierTargetRecord {
     pub set_id: ResponseObjectSetDefinitionId,
     pub ty_id: CompositeTypeId,
-    pub key: ResponseKey,
+    pub key: SafeResponseKey,
 }
 
 #[derive(Clone, Copy)]

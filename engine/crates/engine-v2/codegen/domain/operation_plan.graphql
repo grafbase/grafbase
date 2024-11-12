@@ -32,10 +32,10 @@ type ResponseModifier @indexed(id_size: "u16") @meta(module: "response_modifier"
 }
 
 scalar ResponseObjectSetDefinitionId @id @prelude
-scalar ResponseKey @copy @prelude
+scalar SafeResponseKey @copy @prelude
 
 type ResponseModifierTarget @meta(module: "response_modifier/target") {
   set_id: ResponseObjectSetDefinitionId!
   ty: CompositeType!
-  key: ResponseKey!
+  key: SafeResponseKey!
 }

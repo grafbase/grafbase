@@ -104,7 +104,7 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
                         {
                             let path = obj_ref
                                 .path
-                                .child(UnpackedResponseEdge::ExtraFieldResponseKey(target.key).pack());
+                                .child(UnpackedResponseEdge::ExtraFieldResponseKey(target.key.into()).pack());
                             response.push_error(err.clone().with_path(path));
                         }
                     }

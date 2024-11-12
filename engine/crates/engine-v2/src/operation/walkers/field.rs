@@ -22,7 +22,7 @@ impl<'a> FieldWalker<'a> {
     }
 
     pub fn response_key(&self) -> ResponseKey {
-        self.as_ref().response_key()
+        self.as_ref().response_key().unwrap().into()
     }
 
     pub fn response_key_str(&self) -> &'a str {
@@ -34,7 +34,10 @@ impl<'a> FieldWalker<'a> {
     }
 
     pub fn selection_set(&self) -> Option<SelectionSetWalker<'a>> {
-        self.as_ref().selection_set_id().map(|id| self.walk(id))
+        match self.as_ref() {
+            BoundField::Query(BoundQueryField { selection_set_id, .. }) => selection_set_id.map(|id| self.walk(id)),
+            _ => None,
+        }
     }
 }
 

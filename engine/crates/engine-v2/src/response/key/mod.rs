@@ -52,9 +52,6 @@ const POSITION_BIT_SHIFT: u32 = POSITION_MASK.trailing_zeros();
 const MAX_RESPONSE_KEY: u32 = (1 << POSITION_BIT_SHIFT) - 1;
 const RESPONSE_KEY_MASK: u32 = MAX_RESPONSE_KEY;
 
-/// Last position is reserved for extra fields
-const MAX_POSITION: u32 = (POSITION_MASK >> POSITION_BIT_SHIFT) - 1;
-
 const OTHER_FLAG: u32 = 0b1000_0000_0000_0000_0000_0000_0000_0000;
 
 const EXTRA_FIELD_KEY_FLAG: u32 = OTHER_FLAG;
@@ -74,7 +71,7 @@ use crate::operation::QueryPosition;
 pub(crate) struct PositionedResponseKey {
     /// If not present, it's an extra field.
     pub query_position: Option<QueryPosition>,
-    pub response_key: ResponseKey,
+    pub response_key: SafeResponseKey,
 }
 
 impl Ord for PositionedResponseKey {
@@ -96,21 +93,6 @@ impl PartialOrd for PositionedResponseKey {
     }
 }
 
-impl From<BoundResponseKey> for PositionedResponseKey {
-    fn from(key: BoundResponseKey) -> Self {
-        let position = key.position() as u32;
-        let position = if position == MAX_POSITION {
-            None
-        } else {
-            Some(QueryPosition::from(position as u16))
-        };
-        PositionedResponseKey {
-            query_position: position,
-            response_key: key.as_response_key(),
-        }
-    }
-}
-
 /// A ResponseEdge correspond to any edge within the response graph, so a field or an index.
 /// It's the primary abstraction for the ResponsePath, and used at different places for simplicity.
 /// Like BounResponseKey, it keeps the ordering of the fields. Indices and extra fields are put at
@@ -121,9 +103,10 @@ pub struct ResponseEdge(u32);
 impl From<PositionedResponseKey> for ResponseEdge {
     fn from(key: PositionedResponseKey) -> Self {
         if let Some(position) = key.query_position {
-            BoundResponseKey((key.response_key.0 as u32) | ((u16::from(position) as u32) << POSITION_BIT_SHIFT)).into()
+            BoundResponseKey((u32::from(key.response_key)) | ((u16::from(position) as u32) << POSITION_BIT_SHIFT))
+                .into()
         } else {
-            UnpackedResponseEdge::ExtraFieldResponseKey(key.response_key).pack()
+            UnpackedResponseEdge::ExtraFieldResponseKey(key.response_key.into()).pack()
         }
     }
 }
@@ -144,14 +127,11 @@ pub struct BoundResponseKey(u32);
 pub struct ResponseKey(u16);
 
 impl SafeResponseKey {
-    pub fn with_position(self, position: QueryPosition) -> Option<BoundResponseKey> {
-        u32::try_from(usize::from(position)).ok().and_then(|position| {
-            if position <= MAX_POSITION {
-                Some(BoundResponseKey(u32::from(self) | (position << POSITION_BIT_SHIFT)))
-            } else {
-                None
-            }
-        })
+    pub(crate) fn with_position(self, query_position: QueryPosition) -> PositionedResponseKey {
+        PositionedResponseKey {
+            query_position: Some(query_position),
+            response_key: self,
+        }
     }
 }
 
