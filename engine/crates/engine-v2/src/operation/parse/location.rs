@@ -1,7 +1,5 @@
 use std::fmt;
 
-use super::bind::BindError;
-
 // 65 KB for query without any new lines is pretty huge. If a user ever has a QueryTooBig error
 // we'll increase it to u32. But for now it's just wasted memory.
 #[derive(Debug, Hash, PartialEq, Eq, Clone, Copy, serde::Serialize, serde::Deserialize)]
@@ -33,19 +31,27 @@ impl fmt::Display for Location {
     }
 }
 
+#[derive(Debug, thiserror::Error)]
+pub(crate) enum LocationError {
+    #[error("Too many lines ({0})")]
+    TooManyLines(usize),
+    #[error("Too many columns ({0})")]
+    TooManyColumns(usize),
+}
+
 impl TryFrom<engine_parser::Pos> for Location {
-    type Error = BindError;
+    type Error = LocationError;
 
     fn try_from(value: engine_parser::Pos) -> Result<Self, Self::Error> {
         Ok(Self::new(
             value
                 .line
                 .try_into()
-                .map_err(|_| BindError::QueryTooBig(format!("Too many lines ({})", value.line)))?,
+                .map_err(|_| LocationError::TooManyLines(value.line))?,
             value
                 .column
                 .try_into()
-                .map_err(|_| BindError::QueryTooBig(format!("Too many columns ({})", value.column)))?,
+                .map_err(|_| LocationError::TooManyColumns(value.column))?,
         ))
     }
 }

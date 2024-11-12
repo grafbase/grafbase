@@ -1,10 +1,12 @@
 mod coercion;
 mod error;
 mod field;
+mod model;
 mod modifier;
 mod selection_set;
 mod validation;
 mod variables;
+mod walkers;
 
 use std::collections::HashMap;
 
@@ -13,21 +15,14 @@ use id_derives::IndexedFields;
 use id_newtypes::IdRange;
 use modifier::{finalize_query_modifiers, finalize_response_modifiers};
 use schema::{CompositeTypeId, Schema};
-use validation::validate_parsed_operation;
 
-use super::{
-    parse::ParsedOperation, BoundFieldId, BoundQueryModifierId, BoundResponseModifierId, QueryInputValues,
-    QueryModifierRule, ResponseModifierRule,
-};
-use crate::{
-    operation::{
-        BoundField, BoundFieldArgument, BoundFieldArgumentId, BoundOperation, BoundSelectionSet, BoundSelectionSetId,
-        BoundVariableDefinition, Location,
-    },
-    response::ResponseKeys,
-};
+use crate::response::ResponseKeys;
 pub(crate) use error::*;
+pub(crate) use model::*;
 pub(crate) use variables::*;
+pub(crate) use walkers::*;
+
+use super::{Location, ParsedOperation, QueryInputValues};
 
 pub(crate) type BindResult<T> = Result<T, BindError>;
 
@@ -51,8 +46,6 @@ pub struct Binder<'schema, 'p> {
 }
 
 pub(crate) fn bind(schema: &Schema, mut parsed_operation: ParsedOperation) -> BindResult<BoundOperation> {
-    validate_parsed_operation(&parsed_operation, &schema.settings.operation_limits)?;
-
     let root_object_id = match parsed_operation.definition.ty {
         OperationType::Query => schema.query().id,
         OperationType::Mutation => schema.mutation().ok_or(BindError::NoMutationDefined)?.id,
@@ -91,7 +84,7 @@ pub(crate) fn bind(schema: &Schema, mut parsed_operation: ParsedOperation) -> Bi
     let (response_modifiers, response_modifier_impacted_fields) =
         finalize_response_modifiers(binder.response_modifiers);
 
-    Ok(BoundOperation {
+    let operation = BoundOperation {
         ty: parsed_operation.definition.ty,
         root_object_id,
         root_query_modifier_ids,
@@ -106,5 +99,9 @@ pub(crate) fn bind(schema: &Schema, mut parsed_operation: ParsedOperation) -> Bi
         query_modifier_impacted_fields,
         response_modifiers,
         response_modifier_impacted_fields,
-    })
+    };
+
+    validation::validate(schema, operation.walker_with(schema))?;
+
+    Ok(operation)
 }

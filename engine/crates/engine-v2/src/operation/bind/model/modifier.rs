@@ -1,9 +1,7 @@
-// mod query;
-
 use id_newtypes::IdRange;
 use schema::{AuthorizedDirectiveId, DefinitionId, FieldDefinitionId, RequiresScopesDirectiveId};
 
-use super::{
+use crate::operation::{
     BoundFieldArgumentId, BoundQueryModifierImpactedFieldId, BoundResponseModifierImpactedFieldId, QueryInputValueId,
 };
 

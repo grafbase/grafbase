@@ -13,7 +13,7 @@ impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
         request: &Request,
         document: &str,
     ) -> PrepareResult<CachedOperation> {
-        let parsed_operation = crate::operation::parse(request.operation_name.as_deref(), document)?;
+        let parsed_operation = crate::operation::parse(self.schema(), request.operation_name.as_deref(), document)?;
         let attributes = crate::operation::extract_attributes(&parsed_operation, document);
 
         let bound_operation = match crate::operation::bind(self.schema(), parsed_operation) {
@@ -25,15 +25,6 @@ impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
                 })
             }
         };
-
-        if let Err(err) =
-            crate::operation::validate_operation(self.schema(), bound_operation.walker_with(self.schema()))
-        {
-            return Err(PrepareError::Validation {
-                attributes: Box::new(attributes),
-                err,
-            });
-        }
 
         let operation_solution = match crate::plan::solve(self.schema(), bound_operation) {
             Ok(op) => op,

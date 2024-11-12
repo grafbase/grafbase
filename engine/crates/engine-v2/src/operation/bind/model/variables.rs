@@ -1,11 +1,13 @@
 use schema::Schema;
 
-use crate::prepare::CachedOperation;
-
-use super::{
-    bind::{bind_variables, VariableError},
-    BoundVariableDefinitionId, Location, QueryInputValueId, VariableInputValueId, VariableInputValues,
+use crate::{
+    operation::{
+        bind_variables, Location, QueryInputValueId, VariableError, VariableInputValueId, VariableInputValues,
+    },
+    prepare::CachedOperation,
 };
+
+use super::BoundVariableDefinitionId;
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub(crate) struct BoundVariableDefinition {

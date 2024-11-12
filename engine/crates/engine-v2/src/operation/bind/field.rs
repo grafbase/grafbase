@@ -1,8 +1,8 @@
-use super::{coercion::coerce_query_value, BindError, BindResult, Binder};
+use super::{coercion::coerce_query_value, BindError, BindResult, Binder, BoundFieldId};
 use crate::{
     operation::{
-        BoundField, BoundFieldArgument, BoundFieldArgumentId, BoundFieldId, BoundQueryField, BoundSelectionSetId,
-        BoundTypeNameField, Location, QueryInputValueRecord, QueryModifierRule,
+        BoundField, BoundFieldArgument, BoundFieldArgumentId, BoundQueryField, BoundSelectionSetId, BoundTypeNameField,
+        Location, QueryInputValueRecord, QueryModifierRule,
     },
     response::PositionedResponseKey,
 };

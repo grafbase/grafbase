@@ -1,7 +1,7 @@
 use grafbase_telemetry::graphql::GraphqlOperationAttributes;
 
 use crate::{
-    operation::{BindError, ParseError, ValidationError},
+    operation::{BindError, ParseError},
     plan::PlanError,
     response::{ErrorCode, GraphqlError},
 };
@@ -18,11 +18,6 @@ pub(super) enum PrepareError {
         err: BindError,
     },
     #[error("{err}")]
-    Validation {
-        attributes: Box<Option<GraphqlOperationAttributes>>,
-        err: ValidationError,
-    },
-    #[error("{err}")]
     Plan {
         attributes: Box<Option<GraphqlOperationAttributes>>,
         err: PlanError,
@@ -35,7 +30,6 @@ impl From<PrepareError> for GraphqlError {
     fn from(err: PrepareError) -> Self {
         match err {
             PrepareError::Bind { err, .. } => err.into(),
-            PrepareError::Validation { err, .. } => err.into(),
             PrepareError::Parse(err) => err.into(),
             PrepareError::Plan { err, .. } => err.into(),
             PrepareError::NormalizationError => GraphqlError::new(err.to_string(), ErrorCode::InternalServerError),
@@ -47,7 +41,6 @@ impl PrepareError {
     pub fn take_operation_attributes(&mut self) -> Option<GraphqlOperationAttributes> {
         match self {
             PrepareError::Bind { attributes, .. } => std::mem::take(attributes),
-            PrepareError::Validation { attributes, .. } => std::mem::take(attributes),
             PrepareError::Plan { attributes, .. } => std::mem::take(attributes),
             _ => None,
         }

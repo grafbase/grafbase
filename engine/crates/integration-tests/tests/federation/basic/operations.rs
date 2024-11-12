@@ -30,18 +30,18 @@ fn multiple_operations_without_providing_operation_name_in_request() {
             .await
     });
 
-    insta::assert_json_snapshot!(response, @r###"
+    insta::assert_json_snapshot!(response, @r#"
     {
       "errors": [
         {
           "message": "Missing operation name.",
           "extensions": {
-            "code": "OPERATION_PARSING_ERROR"
+            "code": "OPERATION_VALIDATION_ERROR"
           }
         }
       ]
     }
-    "###);
+    "#);
 }
 
 #[test]
@@ -154,16 +154,16 @@ fn unknown_operation_name() {
             .await
     });
 
-    insta::assert_json_snapshot!(response, @r###"
+    insta::assert_json_snapshot!(response, @r#"
     {
       "errors": [
         {
           "message": "Unknown operation named 'Third'.",
           "extensions": {
-            "code": "OPERATION_PARSING_ERROR"
+            "code": "OPERATION_VALIDATION_ERROR"
           }
         }
       ]
     }
-    "###);
+    "#);
 }

@@ -1,48 +1,32 @@
+mod error;
+mod location;
+mod validation;
+
 use std::collections::HashMap;
 
 use engine_parser::{
-    types::{DocumentOperations, OperationDefinition},
+    types::{DocumentOperations, FragmentDefinition, OperationDefinition},
     Positioned,
 };
+use schema::Schema;
 
-use crate::response::{ErrorCode, GraphqlError};
-
-#[derive(thiserror::Error, Debug)]
-pub(crate) enum ParseError {
-    #[error("Unknown operation named '{0}'.")]
-    UnknowOperation(String),
-    #[error("Missing operation name.")]
-    MissingOperationName,
-    #[error(transparent)]
-    ParserError(#[from] engine_parser::Error),
-}
-
-pub(crate) type ParseResult<T> = Result<T, ParseError>;
-
-impl From<ParseError> for GraphqlError {
-    fn from(err: ParseError) -> Self {
-        match err {
-            ParseError::ParserError(err) => GraphqlError::new(err.to_string(), ErrorCode::OperationParsingError)
-                .with_locations(err.positions().filter_map(|pos| pos.try_into().ok())),
-            err => GraphqlError::new(err.to_string(), ErrorCode::OperationParsingError),
-        }
-    }
-}
+pub(crate) use error::*;
+pub(crate) use location::*;
 
 pub(crate) struct ParsedOperation {
     pub name: Option<String>,
     pub definition: OperationDefinition,
-    pub fragments: HashMap<engine_value::Name, Positioned<engine_parser::types::FragmentDefinition>>,
+    pub fragments: HashMap<engine_value::Name, Positioned<FragmentDefinition>>,
 }
 
 impl ParsedOperation {
-    pub fn get_fragment(&self, name: &str) -> Option<&Positioned<engine_parser::types::FragmentDefinition>> {
+    pub fn get_fragment(&self, name: &str) -> Option<&Positioned<FragmentDefinition>> {
         self.fragments.get(name)
     }
 }
 
 /// Returns a valid GraphQL operation from the query string before.
-pub(crate) fn parse(operation_name: Option<&str>, document: &str) -> ParseResult<ParsedOperation> {
+pub(crate) fn parse(schema: &Schema, operation_name: Option<&str>, document: &str) -> ParseResult<ParsedOperation> {
     let document = engine_parser::parse_query(document)?;
 
     let (name, operation) = if let Some(name) = operation_name {
@@ -65,9 +49,13 @@ pub(crate) fn parse(operation_name: Option<&str>, document: &str) -> ParseResult
         }
     };
 
-    Ok(ParsedOperation {
+    let operation = ParsedOperation {
         name,
         definition: operation.node,
         fragments: document.fragments,
-    })
+    };
+
+    validation::validate(schema, &operation)?;
+
+    Ok(operation)
 }
