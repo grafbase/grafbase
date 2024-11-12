@@ -15,7 +15,7 @@ fn measures_pending_logs() {
         path = "{path}"
 
         [hooks]
-        location = ../../../../../crates/wasi-component-loader/examples/target/wasm32-wasip1/debug/response_hooks.wasm"
+        location = "../crates/wasi-component-loader/examples/target/wasm32-wasip1/debug/response_hooks.wasm"
     "#};
 
     with_custom_gateway(&config, |service_name, _, gateway, clickhouse| async move {
@@ -68,7 +68,7 @@ fn measures_pool_size() {
         path = "{path}"
 
         [hooks]
-        location = "../../../../../crates/wasi-component-loader/examples/target/wasm32-wasip1/debug/response_hooks.wasm"
+        location = "../crates/wasi-component-loader/examples/target/wasm32-wasip1/debug/response_hooks.wasm"
     "#};
 
     with_custom_gateway(&config, |service_name, _, gateway, clickhouse| async move {

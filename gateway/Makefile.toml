@@ -12,18 +12,12 @@ install_crate = { crate_name = "cargo-release", binary = "cargo", test_arg = [
     "--version",
 ], version = "0.24.10" }
 
-[tasks.install-sd]
-private = true
-install_crate = { crate_name = "sd", binary = "sd", test_arg = [
-    "--version",
-], version = "0.7.6" }
-
 [tasks.bump]
-description = "Bumps all packages to the specified version"
-dependencies = ["install-cargo-release", "install-sd"]
+description = "Bumps the grafbase-gateway package to the specified version"
+dependencies = ["install-cargo-release"]
 script = '''
 VERSION=${@}
-cargo release version $VERSION --execute --no-confirm -p grafbase-gateway -p federated-server -p rolling-logger -p gateway-config
+cargo release version $VERSION --execute --no-confirm -p grafbase-gateway
 touch "changelog/$VERSION.md"
 '''
 

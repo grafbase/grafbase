@@ -4,7 +4,7 @@ use crate::telemetry::metrics::{with_custom_gateway, ExponentialHistogramRow, ME
 fn on_gateway_request_success() {
     let config = indoc::indoc! {r#"
         [hooks]
-        location = "../../../../../crates/wasi-component-loader/examples/target/wasm32-wasip1/debug/gateway_request_no_op.wasm"
+        location = "../crates/wasi-component-loader/examples/target/wasm32-wasip1/debug/gateway_request_no_op.wasm"
     "#};
 
     with_custom_gateway(config, |service_name, _, gateway, clickhouse| async move {
@@ -55,7 +55,7 @@ fn on_gateway_request_success() {
 fn on_gateway_request_host_error() {
     let config = indoc::indoc! {r#"
         [hooks]
-        location = "../../crates/wasi-component-loader/examples/target/wasm32-wasip1/debug/simple.wasm"
+        location = "../crates/wasi-component-loader/examples/target/wasm32-wasip1/debug/simple.wasm"
     "#};
 
     with_custom_gateway(config, |service_name, _, gateway, clickhouse| async move {
@@ -111,7 +111,7 @@ fn on_gateway_request_host_error() {
 fn on_gateway_request_guest_error() {
     let config = indoc::indoc! {r#"
         [hooks]
-        location = "../../crates/wasi-component-loader/examples/target/wasm32-wasip1/debug/error.wasm"
+        location = "../crates/wasi-component-loader/examples/target/wasm32-wasip1/debug/error.wasm"
     "#};
 
     with_custom_gateway(config, |service_name, _, gateway, clickhouse| async move {
