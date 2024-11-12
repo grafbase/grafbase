@@ -23,7 +23,7 @@ use super::{
 };
 use crate::{
     execution::{ExecutionContext, ExecutionError},
-    plan::ResponseObjectSetDefinitionId,
+    operation::ResponseObjectSetDefinitionId,
     prepare::CachedOperation,
     utils::BufferPool,
     Runtime,

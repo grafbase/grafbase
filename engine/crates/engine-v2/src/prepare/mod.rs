@@ -12,8 +12,7 @@ use runtime::hooks::Hooks;
 use tracing::{info_span, Instrument};
 
 use crate::{
-    operation::Variables,
-    plan::{OperationPlan, OperationSolution},
+    operation::{OperationPlan, OperationSolution, Variables},
     request::Request,
     response::Response,
     Runtime,

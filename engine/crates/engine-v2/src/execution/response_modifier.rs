@@ -4,8 +4,7 @@ use itertools::Itertools;
 use walker::Walk;
 
 use crate::{
-    operation::ResponseModifierRule,
-    plan::ResponseModifier,
+    operation::{ResponseModifier, ResponseModifierRule},
     response::{ErrorCode, GraphqlError, InputResponseObjectSet, ResponseBuilder, UnpackedResponseEdge},
     Runtime,
 };

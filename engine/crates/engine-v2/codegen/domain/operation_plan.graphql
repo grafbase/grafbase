@@ -1,11 +1,11 @@
 scalar OperationPlan
   @domain(
-    destination: "src/plan/execution/model"
-    root_module: "plan/execution/model"
+    destination: "src/operation/plan/model"
+    root_module: "operation/plan/model"
     context_name: "ctx"
     context_type: "OperationPlanContext"
     visibility: "(crate)"
-    imports: [{ module: "schema", domain: "schema" }, { module: "crate/plan/solver", domain: "operation_solution" }]
+    imports: [{ module: "schema", domain: "schema" }, { module: "crate/operation/solve", domain: "operation_solution" }]
   )
 
 union Executable @id @meta(module: "executable") = Plan | ResponseModifier

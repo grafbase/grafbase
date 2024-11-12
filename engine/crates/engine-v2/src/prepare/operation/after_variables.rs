@@ -15,7 +15,7 @@ impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
         cached_operation: Arc<CachedOperation>,
         variables: Variables,
     ) -> PrepareResult<PreparedOperation> {
-        let plan = match crate::plan::plan_solution(self, &cached_operation, &variables).await {
+        let plan = match crate::operation::plan(self, &cached_operation, &variables).await {
             Ok(plan) => plan,
             Err(err) => {
                 return Err(PrepareError::Plan {

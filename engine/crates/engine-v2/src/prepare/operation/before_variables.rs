@@ -26,10 +26,10 @@ impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
             }
         };
 
-        let operation_solution = match crate::plan::solve(self.schema(), bound_operation) {
+        let operation_solution = match crate::operation::solve(self.schema(), bound_operation) {
             Ok(op) => op,
             Err(err) => {
-                return Err(PrepareError::Plan {
+                return Err(PrepareError::Solve {
                     attributes: Box::new(attributes),
                     err,
                 })

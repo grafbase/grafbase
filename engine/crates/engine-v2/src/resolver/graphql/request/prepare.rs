@@ -7,10 +7,7 @@ use grafbase_telemetry::graphql::OperationType;
 use itertools::Itertools;
 use schema::{CompositeType, EntityDefinition, SubgraphId};
 
-use crate::{
-    operation::QueryInputValueId,
-    plan::{FieldArgument, PlanDataField, PlanQueryPartition, PlanSelectionSet},
-};
+use crate::operation::{FieldArgument, PlanDataField, PlanQueryPartition, PlanSelectionSet, QueryInputValueId};
 
 const VARIABLE_PREFIX: &str = "var";
 

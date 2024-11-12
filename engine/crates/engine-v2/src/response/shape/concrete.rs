@@ -5,7 +5,7 @@ use schema::{InterfaceDefinitionId, ObjectDefinitionId, UnionDefinitionId};
 use walker::{Iter, Walk};
 
 use crate::{
-    plan::{OperationPlanContext, ResponseObjectSetDefinitionId},
+    operation::{OperationPlanContext, ResponseObjectSetDefinitionId},
     response::PositionedResponseKey,
 };
 

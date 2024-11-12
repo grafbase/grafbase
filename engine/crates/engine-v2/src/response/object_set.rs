@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use schema::{CompositeTypeId, ObjectDefinitionId, Schema};
 
-use crate::plan::ResponseObjectSetDefinitionId;
+use crate::operation::ResponseObjectSetDefinitionId;
 
 use super::{ResponseObjectId, ResponsePath};
 

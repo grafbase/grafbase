@@ -1,7 +1,7 @@
 use async_sse::Sender;
 use bytes::Bytes;
 
-use crate::stream::StreamJoinExt;
+use crate::utils::StreamJoinExt;
 use futures::{pin_mut, AsyncBufReadExt};
 use futures_util::{stream::BoxStream, Stream, StreamExt};
 use headers::HeaderMapExt;

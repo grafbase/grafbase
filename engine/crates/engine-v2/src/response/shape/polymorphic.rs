@@ -3,7 +3,7 @@ use std::num::NonZero;
 use schema::ObjectDefinitionId;
 use walker::Walk;
 
-use crate::plan::OperationPlanContext;
+use crate::operation::OperationPlanContext;
 
 use super::ConcreteObjectShapeId;
 

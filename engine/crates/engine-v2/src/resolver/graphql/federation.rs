@@ -12,8 +12,7 @@ use walker::Walk;
 
 use crate::{
     execution::{ExecutionContext, ExecutionError},
-    operation::OperationType,
-    plan::{Plan, PlanError, PlanQueryPartition, PlanResult},
+    operation::{OperationType, Plan, PlanError, PlanQueryPartition, PlanResult},
     resolver::{
         graphql::{
             deserialize::{EntitiesErrorsSeed, GraphqlResponseSeed},
