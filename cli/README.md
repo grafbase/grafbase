@@ -11,15 +11,50 @@
   </a>
 </p>
 
-Welcome to the Grafbase CLI!
+## Usage
 
-This is a cargo workspace with several crates relating to the Grafbase CLI and developer tooling
+```
+The Grafbase command line interface
 
-The directories in the `crates` directory in the root of the repo are organized as follows:
+USAGE:
+    grafbase [OPTIONS] <SUBCOMMAND>
 
-| Directory                  | Description                             |
-| -------------------------- | --------------------------------------- |
-| [backend](crates/backend/) | Universal backend for Grafbase devtools |
-| [cli](crates/cli/)         | Command Line Interface                  |
-| [common](crates/common/)   | Shared functions and utilities          |
-| [server](crates/server/)   | Wrapper for the API worker              |
+OPTIONS:
+    -h, --help       Print help information
+    -V, --version    Print version information
+
+SUBCOMMANDS:
+    completions    Output completions for the chosen shell
+                       To use, write the output to the appropriate location for your shell
+    dev            Start the Grafbase local development server
+    help           Print this message or the help of the given subcommand(s)
+    init           Sets up the current or a new project for Grafbase
+```
+
+## Subcommands
+
+### `completions <shell>`
+
+Output completions for the chosen shell
+
+### `dev`
+
+Start the Grafbase local development server
+
+#### Flags
+
+- `-p, --port <port>` - Use a specific port
+- `-s, --search` - If a given port is unavailable, search for another
+- `--disable-watch` - Do not listen for schema changes and reload
+
+### `init`
+
+Sets up the current or a new project for Grafbase
+
+#### Arguments
+
+- `[name]` - If supplied, creates a new project directory with the given name rather than setting up the current directory
+
+#### Flags
+
+- `-t, --template <name>` - The name or GitHub URL of the template to use for the new project

@@ -28,7 +28,7 @@ toml.workspace = true
 tower-http = { workspace = true, features = ["trace"] }
 urlencoding = "2.1.3"
 
-common = { package = "grafbase-local-common", path = "../common", version = "0.80.2" }
+common = { package = "grafbase-local-common", path = "../grafbase-local-common", version = "0.80.2" }
 grafbase-workspace-hack.workspace = true
 grafbase-graphql-introspection.workspace = true
 gateway-config.workspace = true
