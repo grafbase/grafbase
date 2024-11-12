@@ -6,7 +6,7 @@ use schema::{HeaderRule, Schema};
 
 use crate::{
     engine::{HooksContext, RequestContext},
-    operation::{InputValueContext, OperationPlanContext, OperationSolutionContext, Variables},
+    operation::{InputValueContext, OperationPlanContext, SolvedOperationContext, Variables},
     prepare::PreparedOperation,
     response::Shapes,
     Engine, Runtime,
@@ -56,13 +56,13 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
     pub fn input_value_context(&self) -> InputValueContext<'ctx> {
         InputValueContext {
             schema: &self.engine.schema,
-            query_input_values: &self.operation.solution.query_input_values,
+            query_input_values: &self.operation.cached.solved.query_input_values,
             variables: &self.operation.variables,
         }
     }
 
     pub fn shapes(&self) -> &'ctx Shapes {
-        &self.operation.solution.shapes
+        &self.operation.cached.solved.shapes
     }
 }
 
@@ -82,17 +82,17 @@ impl<'ctx, R: Runtime> From<&ExecutionContext<'ctx, R>> for InputValueContext<'c
     fn from(ctx: &ExecutionContext<'ctx, R>) -> Self {
         InputValueContext {
             schema: &ctx.engine.schema,
-            query_input_values: &ctx.operation.solution.query_input_values,
+            query_input_values: &ctx.operation.cached.solved.query_input_values,
             variables: &ctx.operation.variables,
         }
     }
 }
 
-impl<'ctx, R: Runtime> From<&ExecutionContext<'ctx, R>> for OperationSolutionContext<'ctx> {
+impl<'ctx, R: Runtime> From<&ExecutionContext<'ctx, R>> for SolvedOperationContext<'ctx> {
     fn from(ctx: &ExecutionContext<'ctx, R>) -> Self {
-        OperationSolutionContext {
+        SolvedOperationContext {
             schema: &ctx.engine.schema,
-            operation_solution: &ctx.operation.solution,
+            operation: &ctx.operation.cached.solved,
         }
     }
 }
@@ -101,7 +101,7 @@ impl<'ctx, R: Runtime> From<&ExecutionContext<'ctx, R>> for OperationPlanContext
     fn from(ctx: &ExecutionContext<'ctx, R>) -> Self {
         OperationPlanContext {
             schema: &ctx.engine.schema,
-            operation_solution: &ctx.operation.solution,
+            solved_operation: &ctx.operation.cached.solved,
             operation_plan: &ctx.operation.plan,
         }
     }

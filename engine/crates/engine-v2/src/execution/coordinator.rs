@@ -94,8 +94,8 @@ impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
         operation: PreparedOperation,
     ) -> Response<<R::Hooks as Hooks>::OnOperationResponseOutput> {
         let executed_operation = self.executed_operation_builder.build(
-            operation.attributes.name.original(),
-            &operation.attributes.sanitized_query,
+            operation.cached.attributes.name.original(),
+            &operation.cached.attributes.sanitized_query,
             GraphqlResponseStatus::FieldError {
                 count: operation.plan.query_modifications.root_error_ids.len() as u64,
                 data_is_null: true,
@@ -135,14 +135,14 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
         executed_operation_builder: ExecutedOperationBuilder<<R::Hooks as Hooks>::OnSubgraphResponseOutput>,
     ) -> Response<<R::Hooks as Hooks>::OnOperationResponseOutput> {
         assert!(
-            !matches!(self.operation.ty(), OperationType::Subscription),
+            !matches!(self.operation.cached.ty(), OperationType::Subscription),
             "execute shouldn't be called for subscriptions"
         );
 
         OperationExecution {
             state: self.new_execution_state(),
             executed_operation_builder,
-            response: ResponseBuilder::new(self.operation.solution.root_object_id),
+            response: ResponseBuilder::new(self.operation.cached.solved.root_object_id),
             ctx: self,
         }
         .run(VecDeque::new())
@@ -154,7 +154,7 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
         executed_operation_builder: ExecutedOperationBuilder<<R::Hooks as Hooks>::OnSubgraphResponseOutput>,
         responses: impl ResponseSender<<R::Hooks as Hooks>::OnOperationResponseOutput>,
     ) {
-        assert!(matches!(self.operation.ty(), OperationType::Subscription));
+        assert!(matches!(self.operation.cached.ty(), OperationType::Subscription));
 
         let (initial_state, subscription_plan) = {
             let mut state = self.new_execution_state();
@@ -195,7 +195,7 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
     }
 
     fn new_subscription_response(&self, subscription_plan: Plan<'ctx>) -> SubscriptionResponse {
-        let mut response = ResponseBuilder::new(self.operation.solution.root_object_id);
+        let mut response = ResponseBuilder::new(self.operation.cached.solved.root_object_id);
 
         let root_response_object_set = Arc::new(
             InputResponseObjectSet::default()

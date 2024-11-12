@@ -1,4 +1,4 @@
-pub(super) use super::OperationSolutionContext;
+pub(super) use super::SolvedOperationContext;
 pub(super) use crate::{
     operation::{Location, QueryInputValueId, QueryModifierRule, ResponseModifierRule},
     response::{ConcreteObjectShapeId, PositionedResponseKey},

@@ -2,7 +2,7 @@
 //! !!! DO NOT EDIT !!!
 //! ===================
 //! Generated with: `cargo run -p engine-v2-codegen`
-//! Source file: <engine-v2-codegen dir>/domain/operation_solution.graphql
+//! Source file: <engine-v2-codegen dir>/domain/solved_operation.graphql
 mod argument;
 mod data;
 mod typename;
@@ -92,14 +92,14 @@ impl<'a> From<TypenameField<'a>> for Field<'a> {
     }
 }
 
-impl<'a> Walk<OperationSolutionContext<'a>> for FieldId {
+impl<'a> Walk<SolvedOperationContext<'a>> for FieldId {
     type Walker<'w> = Field<'w> where 'a: 'w ;
-    fn walk<'w>(self, ctx: impl Into<OperationSolutionContext<'a>>) -> Self::Walker<'w>
+    fn walk<'w>(self, ctx: impl Into<SolvedOperationContext<'a>>) -> Self::Walker<'w>
     where
         Self: 'w,
         'a: 'w,
     {
-        let ctx: OperationSolutionContext<'a> = ctx.into();
+        let ctx: SolvedOperationContext<'a> = ctx.into();
         match self {
             FieldId::Data(id) => Field::Data(id.walk(ctx)),
             FieldId::Typename(id) => Field::Typename(id.walk(ctx)),

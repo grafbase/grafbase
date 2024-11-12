@@ -7,8 +7,8 @@ use walker::Walk;
 
 use crate::{
     operation::{
-        DataFieldId, Field, InputValueContext, OperationSolutionContext, QueryModifierDefinition, QueryModifierRule,
-        SkipIncludeDirective, TypenameFieldId, Variables,
+        DataFieldId, Field, InputValueContext, QueryModifierDefinition, QueryModifierRule, SkipIncludeDirective,
+        SolvedOperationContext, TypenameFieldId, Variables,
     },
     prepare::{CachedOperation, PrepareContext},
     response::{ConcreteObjectShapeId, ErrorCode, FieldShapeId, GraphqlError},
@@ -42,12 +42,12 @@ impl QueryModifications {
         operation: &CachedOperation,
         variables: &Variables,
     ) -> PlanResult<Self> {
-        let operation = &operation.solution;
+        let operation = &operation.solved;
         Builder {
             ctx,
-            operation_ctx: OperationSolutionContext {
+            operation_ctx: SolvedOperationContext {
                 schema: ctx.schema(),
-                operation_solution: operation,
+                operation,
             },
             input_value_ctx: InputValueContext {
                 schema: ctx.schema(),
@@ -84,7 +84,7 @@ impl QueryModifications {
 
 struct Builder<'ctx, 'op, R: Runtime> {
     ctx: &'op PrepareContext<'ctx, R>,
-    operation_ctx: OperationSolutionContext<'op>,
+    operation_ctx: SolvedOperationContext<'op>,
     input_value_ctx: InputValueContext<'op>,
     field_shape_id_to_error_ids: Vec<(FieldShapeId, ErrorId)>,
     modifications: QueryModifications,
@@ -99,7 +99,7 @@ where
 
         for modifier in self
             .operation_ctx
-            .operation_solution
+            .operation
             .query_modifier_definitions
             .walk(self.operation_ctx)
         {
@@ -200,9 +200,7 @@ where
         self.modifications.field_shape_id_to_error_ids = self.field_shape_id_to_error_ids.into();
         let mut field_shape_ids_with_errors = self.modifications.field_shape_id_to_error_ids.ids();
         if let Some(mut current) = field_shape_ids_with_errors.next() {
-            'outer: for (concrete_shape_id, shape) in
-                self.operation_ctx.operation_solution.shapes.concrete.iter().enumerate()
-            {
+            'outer: for (concrete_shape_id, shape) in self.operation_ctx.operation.shapes.concrete.iter().enumerate() {
                 if current < shape.field_shape_ids.end {
                     let mut i = 0;
                     while let Some(field_shape_id) = shape.field_shape_ids.get(i) {

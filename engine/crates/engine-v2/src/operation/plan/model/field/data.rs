@@ -3,8 +3,8 @@ use walker::{Iter, Walk};
 
 use crate::{
     operation::{
-        DataFieldId, DataFieldRecord, FieldArgument, Location, OperationPlanContext, OperationSolutionContext,
-        PlanSelectionSet,
+        DataFieldId, DataFieldRecord, FieldArgument, Location, OperationPlanContext, PlanSelectionSet,
+        SolvedOperationContext,
     },
     response::PositionedResponseKey,
 };
@@ -19,7 +19,7 @@ pub(crate) struct PlanDataField<'a> {
 impl<'a> PlanDataField<'a> {
     #[allow(clippy::should_implement_trait)]
     fn as_ref(&self) -> &'a DataFieldRecord {
-        &self.ctx.operation_solution[self.id]
+        &self.ctx.solved_operation[self.id]
     }
     pub(crate) fn id(&self) -> DataFieldId {
         self.id
@@ -28,7 +28,7 @@ impl<'a> PlanDataField<'a> {
         self.as_ref().key
     }
     pub(crate) fn response_key_str(&self) -> &'a str {
-        &self.ctx.operation_solution.response_keys[self.as_ref().key.response_key]
+        &self.ctx.solved_operation.response_keys[self.as_ref().key.response_key]
     }
     pub(crate) fn location(&self) -> Location {
         self.as_ref().location

@@ -16,7 +16,7 @@ pub(crate) struct PlanTypenameField<'a> {
 impl<'a> PlanTypenameField<'a> {
     #[allow(clippy::should_implement_trait)]
     fn as_ref(&self) -> &'a TypenameFieldRecord {
-        &self.ctx.operation_solution[self.id]
+        &self.ctx.solved_operation[self.id]
     }
     pub(crate) fn key(&self) -> PositionedResponseKey {
         self.as_ref().key

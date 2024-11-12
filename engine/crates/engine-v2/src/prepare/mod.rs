@@ -12,7 +12,7 @@ use runtime::hooks::Hooks;
 use tracing::{info_span, Instrument};
 
 use crate::{
-    operation::{OperationPlan, OperationSolution, Variables},
+    operation::{OperationPlan, SolvedOperation, Variables},
     request::Request,
     response::Response,
     Runtime,
@@ -30,7 +30,7 @@ impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
         match result {
             Ok(operation) => {
                 self.metrics()
-                    .record_successful_preparation_duration(operation.attributes.clone(), duration);
+                    .record_successful_preparation_duration(operation.cached.attributes.clone(), duration);
 
                 Ok(operation)
             }
@@ -46,7 +46,7 @@ impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
 
 #[derive(serde::Serialize, serde::Deserialize)]
 pub(crate) struct CachedOperation {
-    pub solution: OperationSolution,
+    pub solved: SolvedOperation,
     pub attributes: GraphqlOperationAttributes,
 }
 
@@ -60,11 +60,4 @@ pub(crate) struct PreparedOperation {
     pub cached: Arc<CachedOperation>,
     pub plan: OperationPlan,
     pub variables: Variables,
-}
-
-impl std::ops::Deref for PreparedOperation {
-    type Target = CachedOperation;
-    fn deref(&self) -> &Self::Target {
-        &self.cached
-    }
 }

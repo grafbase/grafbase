@@ -1,7 +1,7 @@
 use std::cell::{Cell, RefCell};
 
 use crate::{
-    operation::{OperationPlanContext, OperationSolutionContext},
+    operation::{OperationPlanContext, SolvedOperationContext},
     prepare::PreparedOperation,
     response::{FieldShape, ResponseEdge, ResponsePath, ResponseWriter},
 };
@@ -16,11 +16,11 @@ pub(super) struct SeedContext<'ctx> {
     pub path: RefCell<Vec<ResponseEdge>>,
 }
 
-impl<'ctx> From<&SeedContext<'ctx>> for OperationSolutionContext<'ctx> {
+impl<'ctx> From<&SeedContext<'ctx>> for SolvedOperationContext<'ctx> {
     fn from(ctx: &SeedContext<'ctx>) -> Self {
-        OperationSolutionContext {
+        SolvedOperationContext {
             schema: ctx.schema,
-            operation_solution: &ctx.operation.solution,
+            operation: &ctx.operation.cached.solved,
         }
     }
 }
@@ -29,7 +29,7 @@ impl<'ctx> From<&SeedContext<'ctx>> for OperationPlanContext<'ctx> {
     fn from(ctx: &SeedContext<'ctx>) -> Self {
         OperationPlanContext {
             schema: ctx.schema,
-            operation_solution: &ctx.operation.solution,
+            solved_operation: &ctx.operation.cached.solved,
             operation_plan: &ctx.operation.plan,
         }
     }
@@ -38,7 +38,7 @@ impl<'ctx> From<&SeedContext<'ctx>> for OperationPlanContext<'ctx> {
 impl<'ctx> SeedContext<'ctx> {
     pub(super) fn missing_field_error_message(&self, field_shape: FieldShape<'ctx>) -> String {
         let field = field_shape.id.walk(self);
-        let response_keys = &self.operation.solution.response_keys;
+        let response_keys = &self.operation.cached.solved.response_keys;
         if field.key.response_key == field_shape.expected_key {
             format!(
                 "Error decoding response from upstream: Missing required field named '{}'",

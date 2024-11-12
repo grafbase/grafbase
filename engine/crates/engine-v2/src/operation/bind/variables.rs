@@ -5,7 +5,7 @@ use schema::{DefinitionId, Schema, Wrapping};
 
 use crate::{
     operation::{
-        BoundVariableDefinition, Location, OperationSolution, VariableInputValues, VariableValueRecord, Variables,
+        BoundVariableDefinition, Location, SolvedOperation, VariableInputValues, VariableValueRecord, Variables,
     },
     response::{ErrorCode, GraphqlError},
 };
@@ -35,7 +35,7 @@ impl From<VariableError> for GraphqlError {
 
 pub fn bind_variables(
     schema: &Schema,
-    operation: &OperationSolution,
+    operation: &SolvedOperation,
     mut request_variables: crate::request::RawVariables,
 ) -> Result<Variables, Vec<VariableError>> {
     let mut errors = Vec::new();

@@ -2,7 +2,7 @@
 //! !!! DO NOT EDIT !!!
 //! ===================
 //! Generated with: `cargo run -p engine-v2-codegen`
-//! Source file: <engine-v2-codegen dir>/domain/operation_solution.graphql
+//! Source file: <engine-v2-codegen dir>/domain/solved_operation.graphql
 use crate::operation::solve::model::prelude::*;
 use schema::{Type, TypeRecord};
 use walker::Walk;
@@ -30,7 +30,7 @@ pub(crate) struct VariableDefinitionId(std::num::NonZero<u16>);
 
 #[derive(Clone, Copy)]
 pub(crate) struct VariableDefinition<'a> {
-    pub(in crate::operation::solve::model) ctx: OperationSolutionContext<'a>,
+    pub(in crate::operation::solve::model) ctx: SolvedOperationContext<'a>,
     pub(crate) id: VariableDefinitionId,
 }
 
@@ -46,16 +46,16 @@ impl<'a> VariableDefinition<'a> {
     /// Prefer using Deref unless you need the 'a lifetime.
     #[allow(clippy::should_implement_trait)]
     pub(crate) fn as_ref(&self) -> &'a VariableDefinitionRecord {
-        &self.ctx.operation_solution[self.id]
+        &self.ctx.operation[self.id]
     }
     pub(crate) fn ty(&self) -> Type<'a> {
         self.ty_record.walk(self.ctx)
     }
 }
 
-impl<'a> Walk<OperationSolutionContext<'a>> for VariableDefinitionId {
+impl<'a> Walk<SolvedOperationContext<'a>> for VariableDefinitionId {
     type Walker<'w> = VariableDefinition<'w> where 'a: 'w ;
-    fn walk<'w>(self, ctx: impl Into<OperationSolutionContext<'a>>) -> Self::Walker<'w>
+    fn walk<'w>(self, ctx: impl Into<SolvedOperationContext<'a>>) -> Self::Walker<'w>
     where
         Self: 'w,
         'a: 'w,

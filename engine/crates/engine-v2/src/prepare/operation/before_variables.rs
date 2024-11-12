@@ -26,7 +26,7 @@ impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
             }
         };
 
-        let operation_solution = match crate::operation::solve(self.schema(), bound_operation) {
+        let solved_operation = match crate::operation::solve(self.schema(), bound_operation) {
             Ok(op) => op,
             Err(err) => {
                 return Err(PrepareError::Solve {
@@ -38,7 +38,7 @@ impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
 
         let attributes = attributes.ok_or(PrepareError::NormalizationError)?;
         Ok(CachedOperation {
-            solution: operation_solution,
+            solved: solved_operation,
             attributes,
         })
     }

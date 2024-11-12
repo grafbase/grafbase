@@ -2,7 +2,7 @@
 //! !!! DO NOT EDIT !!!
 //! ===================
 //! Generated with: `cargo run -p engine-v2-codegen`
-//! Source file: <engine-v2-codegen dir>/domain/operation_solution.graphql
+//! Source file: <engine-v2-codegen dir>/domain/solved_operation.graphql
 use crate::operation::solve::model::{
     generated::{DataField, DataFieldId, TypenameField, TypenameFieldId},
     prelude::*,
@@ -27,7 +27,7 @@ pub(crate) struct SelectionSetRecord {
 
 #[derive(Clone, Copy)]
 pub(crate) struct SelectionSet<'a> {
-    pub(in crate::operation::solve::model) ctx: OperationSolutionContext<'a>,
+    pub(in crate::operation::solve::model) ctx: SolvedOperationContext<'a>,
     pub(in crate::operation::solve::model) item: SelectionSetRecord,
 }
 
@@ -56,9 +56,9 @@ impl<'a> SelectionSet<'a> {
 }
 
 #[allow(unused)]
-impl<'a> Walk<OperationSolutionContext<'a>> for SelectionSetRecord {
+impl<'a> Walk<SolvedOperationContext<'a>> for SelectionSetRecord {
     type Walker<'w> = SelectionSet<'w> where 'a: 'w ;
-    fn walk<'w>(self, ctx: impl Into<OperationSolutionContext<'a>>) -> Self::Walker<'w>
+    fn walk<'w>(self, ctx: impl Into<SolvedOperationContext<'a>>) -> Self::Walker<'w>
     where
         Self: 'w,
         'a: 'w,

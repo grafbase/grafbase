@@ -5,7 +5,7 @@ scalar OperationPlan
     context_name: "ctx"
     context_type: "OperationPlanContext"
     visibility: "(crate)"
-    imports: [{ module: "schema", domain: "schema" }, { module: "crate/operation/solve", domain: "operation_solution" }]
+    imports: [{ module: "schema", domain: "schema" }, { module: "crate/operation/solve", domain: "solved_operation" }]
   )
 
 union Executable @id @meta(module: "executable") = Plan | ResponseModifier

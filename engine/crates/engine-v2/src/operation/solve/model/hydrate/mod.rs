@@ -6,20 +6,20 @@ use schema::Schema;
 
 use crate::operation::{InputValueContext, Variables};
 
-use super::{FieldArgumentId, OperationSolution, OperationSolutionContext};
+use super::{FieldArgumentId, SolvedOperation, SolvedOperationContext};
 
 #[derive(Clone, Copy)]
 pub(crate) struct HydratedOperationContext<'a> {
     pub schema: &'a Schema,
-    pub operation: &'a OperationSolution,
+    pub operation: &'a SolvedOperation,
     pub variables: &'a Variables,
 }
 
-impl<'ctx> From<HydratedOperationContext<'ctx>> for OperationSolutionContext<'ctx> {
+impl<'ctx> From<HydratedOperationContext<'ctx>> for SolvedOperationContext<'ctx> {
     fn from(ctx: HydratedOperationContext<'ctx>) -> Self {
-        OperationSolutionContext {
+        SolvedOperationContext {
             schema: ctx.schema,
-            operation_solution: ctx.operation,
+            operation: ctx.operation,
         }
     }
 }
@@ -34,7 +34,7 @@ impl<'ctx> From<HydratedOperationContext<'ctx>> for InputValueContext<'ctx> {
     }
 }
 
-impl<'a> OperationSolutionContext<'a> {
+impl<'a> SolvedOperationContext<'a> {
     pub fn hydrate_arguments<'w, 'v>(
         &self,
         argument_ids: IdRange<FieldArgumentId>,
@@ -47,7 +47,7 @@ impl<'a> OperationSolutionContext<'a> {
         HydratedFieldArguments {
             ctx: HydratedOperationContext {
                 schema: self.schema,
-                operation: self.operation_solution,
+                operation: self.operation,
                 variables,
             },
             ids: argument_ids,
