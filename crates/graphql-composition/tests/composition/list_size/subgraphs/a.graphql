@@ -7,5 +7,5 @@ type Query {
 }
 
 type BarCollection {
-  size: Int
+  length: Int
 }

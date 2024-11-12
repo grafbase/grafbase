@@ -1,5 +1,5 @@
 type BarCollection {
-    size: Int
+    length: Int
 }
 
 type Query {

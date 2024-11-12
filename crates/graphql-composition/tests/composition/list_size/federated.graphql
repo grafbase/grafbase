@@ -32,7 +32,7 @@ enum join__Graph {
 }
 
 type BarCollection {
-    size: Int @join__field(graph: A)
+    length: Int @join__field(graph: A)
 }
 
 type Query {
