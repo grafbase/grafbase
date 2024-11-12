@@ -802,12 +802,17 @@ where
     T: FnOnce(Arc<Client>) -> F,
     F: Future<Output = ()>,
 {
+    let wasi_module_path = concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../crates/wasi-component-loader/examples/target/wasm32-wasip1/debug/response_hooks.wasm"
+    );
+
     let config = &formatdoc! {r#"
         [graph]
         introspection = true
 
         [hooks]
-        location = "../../../engine/crates/wasi-component-loader/examples/target/wasm32-wasip1/debug/response_hooks.wasm"
+        location = "{wasi_module_path}"
 
         [telemetry.tracing.propagation]
         trace_context = true
