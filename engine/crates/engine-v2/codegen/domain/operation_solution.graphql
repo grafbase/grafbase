@@ -1,7 +1,7 @@
 scalar Operation
   @domain(
-    destination: "src/plan/solver/model"
-    root_module: "plan/solver/model"
+    destination: "src/operation/solve/model"
+    root_module: "operation/solve/model"
     context_name: "ctx"
     context_type: "OperationSolutionContext"
     visibility: "(crate)"

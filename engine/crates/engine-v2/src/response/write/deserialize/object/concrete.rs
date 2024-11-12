@@ -5,7 +5,7 @@ use std::fmt;
 use walker::Walk;
 
 use crate::{
-    plan::ResponseObjectSetDefinitionId,
+    operation::ResponseObjectSetDefinitionId,
     response::{
         value::ResponseObjectField,
         write::deserialize::{field::FieldSeed, key::Key, SeedContext},

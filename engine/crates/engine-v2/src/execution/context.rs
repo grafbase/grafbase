@@ -6,8 +6,7 @@ use schema::{HeaderRule, Schema};
 
 use crate::{
     engine::{HooksContext, RequestContext},
-    operation::{InputValueContext, Variables},
-    plan::{OperationPlanContext, OperationSolutionContext},
+    operation::{InputValueContext, OperationPlanContext, OperationSolutionContext, Variables},
     prepare::PreparedOperation,
     response::Shapes,
     Engine, Runtime,

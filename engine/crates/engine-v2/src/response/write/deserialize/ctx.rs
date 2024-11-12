@@ -1,7 +1,7 @@
 use std::cell::{Cell, RefCell};
 
 use crate::{
-    plan::{OperationPlanContext, OperationSolutionContext},
+    operation::{OperationPlanContext, OperationSolutionContext},
     prepare::PreparedOperation,
     response::{FieldShape, ResponseEdge, ResponsePath, ResponseWriter},
 };

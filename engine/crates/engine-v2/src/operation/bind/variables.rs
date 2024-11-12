@@ -4,8 +4,9 @@ use engine_parser::Positioned;
 use schema::{DefinitionId, Schema, Wrapping};
 
 use crate::{
-    operation::{BoundVariableDefinition, Location, VariableInputValues, VariableValueRecord, Variables},
-    plan::OperationSolution,
+    operation::{
+        BoundVariableDefinition, Location, OperationSolution, VariableInputValues, VariableValueRecord, Variables,
+    },
     response::{ErrorCode, GraphqlError},
 };
 

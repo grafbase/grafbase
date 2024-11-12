@@ -21,7 +21,7 @@ use crate::{
     prepare::PrepareContext,
     request::Request,
     response::{ErrorCode, ErrorCodeCounter, Response},
-    stream::StreamJoinExt,
+    utils::StreamJoinExt,
     Engine, Runtime,
 };
 

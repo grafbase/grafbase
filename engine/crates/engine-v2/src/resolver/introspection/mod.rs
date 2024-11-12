@@ -1,6 +1,6 @@
 use crate::{
     execution::{ExecutionContext, ExecutionResult},
-    plan::Plan,
+    operation::Plan,
     response::SubgraphResponse,
     Runtime,
 };

@@ -4,7 +4,7 @@ use id_derives::IndexedFields;
 use walker::Walk;
 
 use crate::{
-    plan::{Executable, Plan, PlanId, ResponseModifierId, ResponseObjectSetDefinitionId},
+    operation::{Executable, Plan, PlanId, ResponseModifierId, ResponseObjectSetDefinitionId},
     response::{InputResponseObjectSet, ResponseBuilder, ResponseObjectSet},
     Runtime,
 };

@@ -51,7 +51,7 @@ use std::future::Future;
 
 use crate::{
     execution::{ExecutionContext, ExecutionError, ExecutionResult, SubscriptionResponse},
-    plan::{Plan, PlanQueryPartition, PlanResult},
+    operation::{Plan, PlanQueryPartition, PlanResult},
     response::{ResponseObjectsView, SubgraphResponse},
     Runtime,
 };

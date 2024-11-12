@@ -8,7 +8,7 @@ use walker::Walk;
 
 use super::SeedContext;
 use crate::{
-    plan::DataFieldId,
+    operation::DataFieldId,
     response::{ErrorCode, GraphqlError, ResponseValue},
 };
 

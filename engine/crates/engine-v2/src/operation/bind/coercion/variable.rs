@@ -5,9 +5,8 @@ use schema::{
     ScalarType, Schema, TypeRecord,
 };
 
-use crate::{
-    operation::{Location, VariableInputValueId, VariableInputValueRecord, VariableInputValues},
-    plan::VariableDefinitionRecord,
+use crate::operation::{
+    Location, VariableDefinitionRecord, VariableInputValueId, VariableInputValueRecord, VariableInputValues,
 };
 
 use super::{

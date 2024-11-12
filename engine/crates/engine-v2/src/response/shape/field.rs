@@ -4,7 +4,7 @@ use schema::{EnumDefinitionId, FieldDefinitionId, ScalarType, SchemaFieldId, Wra
 use walker::Walk;
 
 use crate::{
-    plan::{DataFieldId, OperationPlanContext},
+    operation::{DataFieldId, OperationPlanContext},
     response::{GraphqlError, PositionedResponseKey, SafeResponseKey},
 };
 

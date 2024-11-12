@@ -13,7 +13,7 @@ use walker::Walk;
 
 use crate::{
     execution::ExecutionContext,
-    plan::{Executable, Plan, PlanId},
+    operation::{Executable, Plan, PlanId},
     prepare::{PrepareContext, PreparedOperation},
     resolver::ResolverResult,
     response::{

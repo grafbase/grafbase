@@ -6,7 +6,7 @@ use runtime::{
 use schema::{Definition, FieldDefinition, SchemaInputValue};
 
 use crate::{
-    plan::HydratedFieldArgumentsView,
+    operation::HydratedFieldArgumentsView,
     response::{GraphqlError, ResponseObjectsView},
 };
 
