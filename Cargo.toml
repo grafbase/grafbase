@@ -147,7 +147,7 @@ opentelemetry-appender-tracing = "0.26.0"
 
 # Common
 graph-ref = { path = "graph-ref" }
-graphql-schema-validation = { path = "./engine/crates/validation" }
+graphql-schema-validation = { path = "./crates/graphql-schema-validation" }
 grafbase-graphql-introspection = { path = "graphql-introspection" }
 graphql-lint = { path = "graphql-lint" }
 
@@ -174,7 +174,7 @@ runtime-local = { path = "engine/crates/runtime-local" }
 runtime-noop = { path = "engine/crates/runtime-noop" }
 serde-dynamic-string = { path = "engine/crates/serde-dynamic-string" }
 grafbase-workspace-hack = { version = "0.1" }
-wrapping = { path = "engine/crates/wrapping", package = "graphql-wrapping-types" }
+wrapping = { path = "crates/wrapping", package = "graphql-wrapping-types" }
 
 [profile.bench]
 strip = "none"

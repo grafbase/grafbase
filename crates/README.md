@@ -1,12 +1,12 @@
 <p align="center">
   <a href="https://grafbase.com">
     <img src="https://grafbase.com/images/other/grafbase-logo-circle.png" height="96">
-    <h3 align="center">Grafbase Engine</h3>
+    <h3 align="center">Grafbase crates</h3>
   </a>
 </p>
 
 <p align="center">
-  This workspace houses the Grafbase Engine, the core of the Grafbase platform and user generated APIs
+  This workspace houses the library crates used to build the Grafbase Platform, Gateway and CLi.
 </p>
 
 <p align="center">
