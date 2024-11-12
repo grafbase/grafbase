@@ -31,10 +31,4 @@ strum.workspace = true
 tracing.workspace = true
 grafbase-workspace-hack.workspace = true
 engine-v2-config.workspace = true
-
-[target.'cfg(target_arch = "wasm32")'.dependencies]
-getrandom = { version = "0.2.14", features = ["js"] }
-reqwest = { workspace = true, features = ["json"] }
-
-[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 reqwest = { workspace = true, features = ["json", "rustls-tls"] }

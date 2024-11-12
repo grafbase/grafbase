@@ -161,7 +161,6 @@ gateway-config = { path = "gateway/crates/config" }
 rolling-logger = { path = "gateway/crates/rolling-logger" }
 
 # Engine
-common-types = { path = "engine/crates/common-types" }
 engine-config-builder = { path = "engine/crates/engine-config-builder" }
 engine-parser = { path = "engine/crates/engine-v2/parser" }
 engine-v2 = { path = "engine/crates/engine-v2" }

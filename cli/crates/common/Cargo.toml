@@ -20,7 +20,6 @@ thiserror = "1.0.59"
 tokio.workspace = true
 url.workspace = true
 
-common-types = { path = "../../../engine/crates/common-types" }
 grafbase-workspace-hack.workspace = true
 
 [build-dependencies]

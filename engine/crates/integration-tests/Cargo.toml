@@ -76,7 +76,6 @@ workspace = true
 
 [dev-dependencies]
 base64.workspace = true
-common-types.workspace = true
 const_format = "0.2.32"
 criterion = { version = "0.5.1", features = ["async_tokio"] }
 cynic-parser.workspace = true

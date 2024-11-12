@@ -207,7 +207,9 @@ type DeprecatedDirective
   reason: String
 }
 
-scalar RequiresScopesDirective @indexed @record
+type RequiresScopesDirective @meta(module: "directive/requires_scopes") @indexed(id_size: "u32", max_id: "MAX_ID") {
+  possible_
+}
 
 type AuthorizedDirective @meta(module: "directive/authorized") @indexed(id_size: "u32", max_id: "MAX_ID") {
   arguments: InputValueSet!

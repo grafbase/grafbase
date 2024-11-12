@@ -32,7 +32,6 @@ governor.workspace = true
 http.workspace = true
 httpsig.workspace = true
 httpsig-hyper.workspace = true
-ulid.workspace = true
 p256 = { version = "0.13", features = ["jwk"] }
 p384 = { version = "0.13", features = ["jwk"] }
 reqwest-eventsource = "0.6"

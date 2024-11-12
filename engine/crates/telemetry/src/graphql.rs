@@ -21,7 +21,7 @@ impl<ErrorCode> Default for GraphqlExecutionTelemetry<ErrorCode> {
     }
 }
 
-#[derive(Debug, Clone, Copy, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize)]
 pub enum OperationType {
     Query,
     Mutation,

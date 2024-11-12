@@ -1,19 +1,16 @@
 use grafbase_workspace_hack as _;
 
-mod bridge;
 mod cache;
 mod entity_cache;
 mod fetch;
 #[cfg(feature = "wasi")]
 pub mod hooks;
 mod kv;
-mod log;
 mod operation_cache;
 pub mod rate_limiting;
 #[cfg(feature = "redis")]
 pub mod redis;
 
-pub use bridge::Bridge;
 pub use cache::InMemoryCache;
 pub use entity_cache::memory::InMemoryEntityCache;
 #[cfg(feature = "redis")]
@@ -24,8 +21,6 @@ pub use operation_cache::{InMemoryOperationCache, InMemoryOperationCacheFactory}
 
 #[cfg(feature = "wasi")]
 pub use hooks::{ComponentLoader, HooksWasi, HooksWasiConfig};
-
-pub use crate::log::LogEventReceiverImpl;
 
 pub struct ExecutionContext {
     pub request_id: String,

@@ -3,8 +3,6 @@ use std::{
     hash::{Hash, Hasher},
 };
 
-use common_types::auth::ExecutionAuth;
-
 const NULL: serde_json::Value = serde_json::Value::Null;
 
 // TODO: Hash is only used to generate a cache key for engine-v2. To be removed once moved to the
@@ -14,7 +12,6 @@ const NULL: serde_json::Value = serde_json::Value::Null;
 pub enum AccessToken {
     Anonymous,
     Jwt(JwtToken),
-    V1(ExecutionAuth),
 }
 
 /// Represents an *arbitrary* JWT token. It's only guaranteed to have been validated
@@ -40,25 +37,17 @@ impl AccessToken {
         match self {
             AccessToken::Anonymous => 0,
             AccessToken::Jwt(_) => 1,
-            AccessToken::V1(_) => 2,
         }
     }
 
     pub fn is_anonymous(&self) -> bool {
-        matches!(
-            self,
-            AccessToken::Anonymous | AccessToken::V1(ExecutionAuth::Public { .. })
-        )
+        matches!(self, AccessToken::Anonymous)
     }
 
     pub fn get_claim(&self, key: &str) -> &serde_json::Value {
         match self {
             AccessToken::Anonymous => &NULL,
             AccessToken::Jwt(token) => token.claims.get(key).unwrap_or(&NULL),
-            AccessToken::V1(auth) => match auth {
-                ExecutionAuth::ApiKey | ExecutionAuth::Public { .. } => &NULL,
-                ExecutionAuth::Token(token) => token.claims().get(key).unwrap_or(&NULL),
-            },
         }
     }
 
@@ -75,11 +64,5 @@ impl AccessToken {
                 &NULL
             }
         })
-    }
-}
-
-impl From<ExecutionAuth> for AccessToken {
-    fn from(auth: ExecutionAuth) -> Self {
-        AccessToken::V1(auth)
     }
 }

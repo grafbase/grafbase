@@ -260,9 +260,8 @@ mod tests {
     use std::time::Duration;
 
     use futures_util::future::BoxFuture;
+    use grafbase_telemetry::graphql::OperationType;
     use tokio::sync::{Mutex, RwLock};
-
-    use common_types::OperationType;
 
     use crate::cache::{
         Cache, CacheMetadata, CacheReadStatus, Cacheable, CachedExecutionResponse, Entry, EntryState,
@@ -286,9 +285,7 @@ mod tests {
                 value: String::new(),
                 max_age_seconds: 1,
                 stale_seconds: 2,
-                operation_type: OperationType::Query {
-                    is_introspection: false,
-                },
+                operation_type: OperationType::Query,
                 tags: vec![],
             }
         }
@@ -431,13 +428,7 @@ mod tests {
             }
         }
 
-        let dummy = Arc::new(Dummy::new(
-            2,
-            OperationType::Query {
-                is_introspection: false,
-            },
-            vec![],
-        ));
+        let dummy = Arc::new(Dummy::new(2, OperationType::Query, vec![]));
         let dummy2 = Arc::clone(&dummy);
 
         // act
