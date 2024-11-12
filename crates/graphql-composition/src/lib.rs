@@ -86,7 +86,7 @@ mod tests {
     fn grafbase_schema_can_be_composed() {
         use std::{fs, path::Path};
         let schema_path =
-            Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../cli/crates/backend/src/api/graphql/api.graphql");
+            Path::new(env!("CARGO_MANIFEST_DIR")).join("../grafbase-local-backend/src/api/graphql/api.graphql");
         let schema = fs::read_to_string(schema_path).unwrap();
 
         let mut subgraphs = Subgraphs::default();
