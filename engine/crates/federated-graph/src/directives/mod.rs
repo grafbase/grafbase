@@ -1,7 +1,10 @@
 mod complexity_control;
 mod deprecated;
 
-pub use self::{complexity_control::CostDirective, deprecated::DeprecatedDirective};
+pub use self::{
+    complexity_control::{CostDirective, ListSizeDirective},
+    deprecated::DeprecatedDirective,
+};
 
 #[cfg(test)]
 /// Helper for tests

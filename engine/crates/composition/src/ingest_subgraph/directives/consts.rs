@@ -13,3 +13,4 @@ pub(super) const REQUIRES_SCOPES: &str = "requiresScopes";
 pub(super) const SHAREABLE: &str = "shareable";
 pub(super) const TAG: &str = "tag";
 pub(super) const COST: &str = "cost";
+pub(super) const LIST_SIZE: &str = "listSize";

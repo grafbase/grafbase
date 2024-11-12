@@ -8,6 +8,7 @@ pub(super) fn collect_composed_directives<'a>(
     let mut is_inaccessible = false;
     let mut authenticated = false;
     let mut cost = None;
+    let mut list_size = None;
     let mut extra_directives = Vec::new();
     let mut ids: Option<federated::Directives> = None;
     let mut push_directive = |ctx: &mut ComposeContext<'_>, directive: ir::Directive| {
@@ -34,6 +35,7 @@ pub(super) fn collect_composed_directives<'a>(
         authenticated = authenticated || site.authenticated();
 
         cost = cost.or(site.cost());
+        list_size = list_size.or(site.list_size());
 
         for (name, arguments) in site.iter_composed_directives() {
             let name = ctx.insert_string(name);
@@ -56,6 +58,10 @@ pub(super) fn collect_composed_directives<'a>(
 
     if let Some(weight) = cost {
         push_directive(ctx, ir::Directive::Cost { weight })
+    }
+
+    if let Some(directive) = list_size {
+        push_directive(ctx, ir::Directive::ListSize(directive))
     }
 
     // @requiresScopes

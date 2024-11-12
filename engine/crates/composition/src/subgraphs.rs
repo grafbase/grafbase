@@ -74,17 +74,23 @@ const BUILTIN_SCALARS: [&str; 5] = ["ID", "String", "Boolean", "Int", "Float"];
 
 /// returned when a subgraph cannot be ingested
 #[derive(Debug)]
-pub struct IngestError(cynic_parser::Error);
+pub struct IngestError {
+    error: cynic_parser::Error,
+    report: String,
+}
 
 impl std::error::Error for IngestError {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        self.0.source()
+        self.error.source()
     }
 }
 
 impl std::fmt::Display for IngestError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        std::fmt::Display::fmt(&self.0, f)
+        if f.alternate() {
+            return self.report.fmt(f);
+        }
+        std::fmt::Display::fmt(&self.error, f)
     }
 }
 
@@ -96,7 +102,11 @@ impl Subgraphs {
 
     /// Add a subgraph to compose.
     pub fn ingest_str(&mut self, subgraph_schema: &str, name: &str, url: &str) -> Result<(), IngestError> {
-        let subgraph_schema = cynic_parser::parse_type_system_document(subgraph_schema).map_err(IngestError)?;
+        let subgraph_schema =
+            cynic_parser::parse_type_system_document(subgraph_schema).map_err(|error| IngestError {
+                report: error.to_report(subgraph_schema).to_string(),
+                error,
+            })?;
         crate::ingest_subgraph::ingest_subgraph(&subgraph_schema, name, url, self);
         Ok(())
     }

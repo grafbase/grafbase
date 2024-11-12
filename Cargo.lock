@@ -1647,9 +1647,9 @@ dependencies = [
 
 [[package]]
 name = "cynic-parser"
-version = "0.8.2"
+version = "0.8.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f1ba4980ec0f37095cd010eba27602e6b0f411652330c9a675f5a799e8c281b7"
+checksum = "791001e353ca2b167bd9e3c7c10635440893a6e0fd3c75bd9da700e373c6b0d5"
 dependencies = [
  "ariadne",
  "indexmap 2.6.0",
@@ -1660,9 +1660,9 @@ dependencies = [
 
 [[package]]
 name = "cynic-parser-deser"
-version = "0.8.2"
+version = "0.8.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cd9fefc53f4daa29827060f4e2442a9a8a8e4407d128428ca74f8d708a50db82"
+checksum = "27aabb9fa33609db18e8f7952eab9f35edc6cb456cc8e505db1b210edb66d614"
 dependencies = [
  "cynic-parser",
  "cynic-parser-deser-macros",
@@ -1670,9 +1670,9 @@ dependencies = [
 
 [[package]]
 name = "cynic-parser-deser-macros"
-version = "0.8.2"
+version = "0.8.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "56fc69e4685bc7fee6810d5cac587a6536686e06d800ebc8f993d7d9570adc1f"
+checksum = "3a280a62e66167092b315aa7c39ce5e6acbdd579e40b836082146e4a42c05314"
 dependencies = [
  "proc-macro2",
  "quote",

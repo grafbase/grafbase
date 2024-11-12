@@ -791,8 +791,8 @@ impl<'a> GraphBuilder<'a> {
                         reason_id: reason.map(Into::into),
                     })
                 }
-                federated_graph::Directive::Cost { .. } => {
-                    // TODO: Implement this
+                federated_graph::Directive::Cost { .. } | federated_graph::Directive::ListSize(_) => {
+                    // TODO: Implement these
                     continue;
                 }
                 federated_graph::Directive::Other { .. }

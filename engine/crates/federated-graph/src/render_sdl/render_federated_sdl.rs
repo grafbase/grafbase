@@ -1,5 +1,8 @@
 use super::display_utils::*;
-use crate::federated_graph::*;
+use crate::{
+    directives::{CostDirective, ListSizeDirective},
+    federated_graph::*,
+};
 use std::fmt::{self, Write};
 
 /// Render a GraphQL SDL string for a federated graph. It includes [join spec
@@ -321,15 +324,16 @@ fn write_prelude(sdl: &mut String, graph: &FederatedGraph) -> fmt::Result {
         .any(|directive| matches!(directive, Directive::Cost { .. }))
     {
         sdl.push('\n');
-        sdl.push_str(indoc::indoc! {r#"
-            directive @cost(weight: Int!) on
-                ARGUMENT_DEFINITION
-              | ENUM
-              | FIELD_DEFINITION
-              | INPUT_FIELD_DEFINITION
-              | OBJECT
-              | SCALAR
-        "#});
+        sdl.push_str(CostDirective::definition());
+    }
+
+    if graph
+        .directives
+        .iter()
+        .any(|directive| matches!(directive, Directive::ListSize { .. }))
+    {
+        sdl.push('\n');
+        sdl.push_str(ListSizeDirective::definition());
     }
 
     sdl.push('\n');

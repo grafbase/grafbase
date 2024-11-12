@@ -73,6 +73,7 @@ fn emit_directives(ir: &mut Vec<ir::Directive>, ctx: &mut Context<'_>) {
             ir::Directive::Policy(policies) => federated::Directive::Policy(policies),
             ir::Directive::RequiresScopes(scopes) => federated::Directive::RequiresScopes(scopes),
             ir::Directive::Cost { weight } => federated::Directive::Cost { weight },
+            ir::Directive::ListSize(directive) => federated::Directive::ListSize(directive),
             ir::Directive::Other { name, arguments } => federated::Directive::Other {
                 name,
                 arguments: arguments

@@ -1,0 +1,42 @@
+directive @core(feature: String!) repeatable on SCHEMA
+
+directive @join__owner(graph: join__Graph!) on OBJECT
+
+directive @join__type(
+    graph: join__Graph!
+    key: String!
+    resolvable: Boolean = true
+) repeatable on OBJECT | INTERFACE
+
+directive @join__field(
+    graph: join__Graph
+    requires: String
+    provides: String
+) on FIELD_DEFINITION
+
+directive @join__graph(name: String!, url: String!) on ENUM_VALUE
+
+directive @join__implements(graph: join__Graph!, interface: String!) repeatable on OBJECT | INTERFACE
+
+directive @join__unionMember(graph: join__Graph!, member: String!) repeatable on UNION
+
+directive @listSize(
+  assumedSize: Int,
+  slicingArguments: [String!],
+  sizedFields: [String!],
+  requireOneSlicingArgument: Boolean = true
+) on FIELD_DEFINITION
+
+enum join__Graph {
+    A @join__graph(name: "a", url: "http://example.com/a")
+}
+
+type BarCollection {
+    size: Int @join__field(graph: A)
+}
+
+type Query {
+    bar(slice: Int!): BarCollection @join__field(graph: A) @listSize(slicingArguments: ["slice"], sizedFields: ["length"], requireOneSlicingArgument: false)
+    baz(slice: Int!): [String] @join__field(graph: A) @listSize(slicingArguments: ["slice"])
+    foo: [String!] @join__field(graph: A) @listSize(assumedSize: 10)
+}

@@ -1,0 +1,9 @@
+type BarCollection {
+    size: Int
+}
+
+type Query {
+    bar(slice: Int!): BarCollection
+    baz(slice: Int!): [String]
+    foo: [String!]
+}
