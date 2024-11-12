@@ -17,7 +17,6 @@ members = [
     "crates/engine-v2/value",
 ]
 exclude = [
-    "crates/gateway-v2",
     "crates/wasi-component-loader/examples",
     "examples/hooks-template",
 ]
