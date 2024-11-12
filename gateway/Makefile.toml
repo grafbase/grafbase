@@ -32,9 +32,7 @@ description = "Pushes a tag with the current version"
 script = '''
 git switch main
 git pull
-cd crates/gateway-binary
 VERSION=$(cargo pkgid | rev | cut -d '@' -f 1 | rev)
-cd ../..
 git tag gateway-$VERSION
 git push --tags
 '''
