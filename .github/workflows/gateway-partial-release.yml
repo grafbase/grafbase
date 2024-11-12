@@ -127,7 +127,7 @@ jobs:
       - name: Generate licenses
         shell: bash
         run: |
-          cd gateway/crates/gateway-binary
+          cd gateway
           cargo about generate -c ../../about.toml -o "../../licenses.html" ../../about.hbs
           find ../../ -maxdepth 1 -type d -exec cp ../../licenses.html {} \;
 

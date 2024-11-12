@@ -1,9 +1,9 @@
-{
-  pkgs,
-  crane,
-  lib,
-  ...
-}: let
+{ pkgs
+, crane
+, lib
+, ...
+}:
+let
   rustToolchain = pkgs.rust-bin.stable.latest.default;
   craneLib = (crane.mkLib pkgs).overrideToolchain rustToolchain;
   workspaceRoot = builtins.path {
@@ -28,18 +28,19 @@
     !/packages/grafbase-sdk/package.json
   '';
 
-  src = pkgs.nix-gitignore.gitignoreSource [extraIgnores] (lib.cleanSourceWith {
+  src = pkgs.nix-gitignore.gitignoreSource [ extraIgnores ] (lib.cleanSourceWith {
     filter = lib.cleanSourceFilter;
     src = workspaceRoot;
   });
 
-  version = pkgs.runCommand "getVersion" {} ''
+  version = pkgs.runCommand "getVersion" { } ''
     ${pkgs.dasel}/bin/dasel \
-      --file ${../../gateway/crates/gateway-binary/Cargo.toml} \
+      --file ${../../crates/gateway-binary/Cargo.toml} \
       --selector package.version\
       --write - | tr -d "\n" > $out
   '';
-in {
+in
+{
   packages.grafbase-gateway = craneLib.buildPackage {
     inherit src;
     pname = "grafbase-gateway";

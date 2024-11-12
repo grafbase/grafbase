@@ -97,8 +97,8 @@ jobs:
       - name: Check licenses
         shell: bash
         run: |
-          cd gateway/crates/gateway-binary
-          cargo about generate -c ../../about.toml -o "../../licenses.html" ../../about.hbs
+          cd gateway
+          cargo about generate -c about.toml -o "licenses.html" about.hbs
 
   check-format:
     needs: [what-changed]
@@ -137,13 +137,13 @@ jobs:
 
       - name: Build the WASI components for tests
         shell: bash
-        working-directory: engine/crates/wasi-component-loader/examples
+        working-directory: crates/wasi-component-loader/examples
         run: cargo component build
 
       - uses: actions/upload-artifact@v4
         with:
           name: example-component
-          path: engine/crates/wasi-component-loader/examples/target/wasm32-wasip1/debug/*.wasm
+          path: crates/wasi-component-loader/examples/target/wasm32-wasip1/debug/*.wasm
           retention-days: 5
 
   builds:
@@ -244,7 +244,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: example-component
-          path: engine/crates/wasi-component-loader/examples/target/wasm32-wasip1/debug
+          path: crates/wasi-component-loader/examples/target/wasm32-wasip1/debug
 
       # TODO: Add timing reports in here somehow...
 
@@ -278,7 +278,7 @@ jobs:
           contains(fromJson(needs.what-changed.outputs.rust).changed-packages, 'integration-tests')
           && matrix.platform.target == 'x86_64-unknown-linux-musl'
         shell: bash
-        working-directory: engine/crates/integration-tests
+        working-directory: crates/integration-tests
         run: docker compose up -d
 
       - name: Start gateway docker compose
@@ -286,7 +286,7 @@ jobs:
           contains(fromJson(needs.what-changed.outputs.rust).changed-packages, 'grafbase-gateway')
           && matrix.platform.target == 'x86_64-unknown-linux-musl'
         shell: bash
-        working-directory: gateway/crates/gateway-binary
+        working-directory: gateway
         run: docker compose up -d
 
       # It's kinda useful to get build vs run timings on tests, so splitting out the build from the run

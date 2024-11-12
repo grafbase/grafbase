@@ -1,4 +1,0 @@
-use flake
-
-# Load static environment variables if any
-dotenv_if_exists .env

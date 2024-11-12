@@ -5,11 +5,10 @@
 examples
 /target
 .direnv
-/cli/target
+/gateway/target
 /engine/target
-/engine/crates/**/snapshots
-/engine/crates/**/tests/**/txt
-/engine/crates/**/tests/**/graphql
-/engine/crates/**/tests/**/json
-/cli/crates/**/snapshots
+/crates/**/snapshots
+/crates/**/tests/**/txt
+/crates/**/tests/**/graphql
+/crates/**/tests/**/json
 /**/changelog

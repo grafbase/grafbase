@@ -19,14 +19,9 @@ RUN cargo chef cook --release --recipe-path recipe.json
 
 COPY Cargo.lock Cargo.lock
 COPY Cargo.toml Cargo.toml
-COPY ./gateway/crates ./gateway/crates
+COPY ./crates ./crates
 COPY ./cli ./cli
-COPY ./graphql-introspection ./graphql-introspection
-COPY ./graph-ref ./graph-ref
-COPY ./graphql-lint ./graphql-lint
-COPY ./gqlint ./gqlint
-COPY ./engine/crates ./engine/crates
-COPY ./workspace-hack ./workspace-hack
+COPY ./gateway ./gateway
 
 RUN cargo build --release --bin grafbase-gateway
 
@@ -51,7 +46,7 @@ RUN adduser --home "/data" grafbase && mkdir -p /data && chown grafbase /data
 USER grafbase
 
 COPY --from=builder /grafbase/target/release/grafbase-gateway /bin/grafbase-gateway
-COPY --from=builder /grafbase/gateway/crates/federated-server/config/grafbase.toml /etc/grafbase.toml
+COPY --from=builder /grafbase/crates/federated-server/config/grafbase.toml /etc/grafbase.toml
 
 VOLUME /data
 WORKDIR /data
