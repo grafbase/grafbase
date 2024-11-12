@@ -6,6 +6,7 @@ version = "0.1.0"
 
 [dependencies]
 anyhow = "1"
+case = "1"
 cynic-parser = { workspace = true, features = ["report"] }
 indoc = "2"
 itertools = "0.13"

@@ -1,13 +1,13 @@
 use std::borrow::Cow;
+use std::collections::BTreeMap;
 
 use engine_parser::types::Directive;
 use engine_parser::Positioned;
-use im::HashMap;
 use schema::{DefinitionId, FieldDefinitionId, ObjectDefinitionId, TypeRecord};
 
 use super::{BindError, BindResult, Binder};
 use crate::operation::bind::coercion::coerce_query_value;
-use crate::operation::{QueryInputValueId, QueryModifierRule};
+use crate::operation::{QueryModifierRule, SkipIncludeDirective};
 use crate::{
     operation::{BoundFieldId, BoundSelectionSet, BoundSelectionSetId, Location, QueryPosition, SelectionSetType},
     response::SafeResponseKey,
@@ -26,13 +26,12 @@ impl<'schema, 'p> Binder<'schema, 'p> {
 pub(super) struct SelectionSetBinder<'schema, 'parsed, 'binder> {
     binder: &'binder mut Binder<'schema, 'parsed>,
     next_query_position: usize,
+    rules_stack: Vec<QueryModifierRule>,
     #[allow(clippy::type_complexity)]
-    data_fields: HashMap<(SafeResponseKey, FieldDefinitionId), DataField<'parsed>>,
+    data_fields: BTreeMap<DataFieldUniqueKey, DataField<'parsed>>,
     #[allow(clippy::type_complexity)]
-    typename_fields: HashMap<
-        SafeResponseKey,
-        HashMap<SelectionSetType, (QueryPosition, &'parsed Positioned<engine_parser::types::Field>)>,
-    >,
+    typename_fields_by_key_then_by_type_condition:
+        BTreeMap<SafeResponseKey, BTreeMap<SelectionSetType, TypenameField<'parsed>>>,
 }
 
 impl<'s, 'p, 'b> std::ops::Deref for SelectionSetBinder<'s, 'p, 'b> {
@@ -49,26 +48,23 @@ impl<'s, 'p, 'b> std::ops::DerefMut for SelectionSetBinder<'s, 'p, 'b> {
     }
 }
 
+#[derive(Clone, Eq, PartialEq, PartialOrd, Ord, Hash)]
+struct DataFieldUniqueKey {
+    response_key: SafeResponseKey,
+    definition_id: FieldDefinitionId,
+    rules: Vec<QueryModifierRule>,
+}
+
 #[derive(Clone)]
 struct DataField<'parsed> {
     query_position: QueryPosition,
     fields: Vec<&'parsed Positioned<engine_parser::types::Field>>,
-    executable_directive_rules: Vec<QueryModifierRule>,
 }
 
-#[derive(Default)]
-struct ExecutableDirectives {
-    skip_input_value_ids: Vec<QueryInputValueId>,
-    include_input_value_ids: Vec<QueryInputValueId>,
-}
-
-impl ExecutableDirectives {
-    fn extend(&mut self, parent_directives: &ExecutableDirectives) {
-        self.skip_input_value_ids
-            .extend_from_slice(&parent_directives.skip_input_value_ids);
-        self.include_input_value_ids
-            .extend_from_slice(&parent_directives.include_input_value_ids);
-    }
+#[derive(Clone)]
+struct TypenameField<'parsed> {
+    query_position: QueryPosition,
+    field: &'parsed Positioned<engine_parser::types::Field>,
 }
 
 impl<'schema, 'p, 'binder> SelectionSetBinder<'schema, 'p, 'binder> {
@@ -76,8 +72,9 @@ impl<'schema, 'p, 'binder> SelectionSetBinder<'schema, 'p, 'binder> {
         Self {
             binder,
             next_query_position: 0,
-            data_fields: HashMap::new(),
-            typename_fields: HashMap::new(),
+            rules_stack: Vec::new(),
+            data_fields: BTreeMap::new(),
+            typename_fields_by_key_then_by_type_condition: BTreeMap::new(),
         }
     }
 
@@ -87,7 +84,7 @@ impl<'schema, 'p, 'binder> SelectionSetBinder<'schema, 'p, 'binder> {
         merged_selection_sets: &[&'p Positioned<engine_parser::types::SelectionSet>],
     ) -> BindResult<BoundSelectionSetId> {
         for selection_set in merged_selection_sets {
-            self.register_selection_set_fields(ty, selection_set, &ExecutableDirectives::default())?;
+            self.register_selection_set_fields(ty, selection_set)?;
         }
 
         let id = BoundSelectionSetId::from(self.selection_sets.len());
@@ -112,12 +109,12 @@ impl<'schema, 'p, 'binder> SelectionSetBinder<'schema, 'p, 'binder> {
         let mut field_ids = Vec::with_capacity(self.data_fields.len());
 
         for (
-            (response_key, definition_id),
-            DataField {
-                query_position,
-                fields,
-                executable_directive_rules,
+            DataFieldUniqueKey {
+                response_key,
+                definition_id,
+                rules,
             },
+            DataField { query_position, fields },
         ) in std::mem::take(&mut self.data_fields)
         {
             let field: &'p Positioned<engine_parser::types::Field> = fields
@@ -140,25 +137,20 @@ impl<'schema, 'p, 'binder> SelectionSetBinder<'schema, 'p, 'binder> {
                     })
                     .transpose()?;
 
-            field_ids.push(self.bind_field(
-                id,
-                bound_response_key,
-                definition_id,
-                field,
-                selection_set_id,
-                executable_directive_rules,
-            )?)
+            field_ids.push(self.bind_field(id, bound_response_key, definition_id, field, selection_set_id, rules)?)
         }
 
-        for (response_key, typename_fields) in std::mem::take(&mut self.typename_fields) {
+        for (response_key, typename_fields) in std::mem::take(&mut self.typename_fields_by_key_then_by_type_condition) {
             // If there is a __typename field applied for all entities within the selection set, we
             // only keep that one.
             if typename_fields
                 .get(&ty)
-                .map(|(qpos, _)| Some(qpos) == typename_fields.values().map(|(qpos, _)| qpos).min())
+                .map(|field| {
+                    Some(field.query_position) == typename_fields.values().map(|field| field.query_position).min()
+                })
                 .unwrap_or_default()
             {
-                let (query_position, field) = typename_fields.get(&ty).unwrap();
+                let TypenameField { query_position, field } = typename_fields.get(&ty).unwrap();
                 let bound_response_key =
                     response_key
                         .with_position(*query_position)
@@ -169,7 +161,7 @@ impl<'schema, 'p, 'binder> SelectionSetBinder<'schema, 'p, 'binder> {
 
                 continue;
             }
-            for (type_condition, (query_position, field)) in typename_fields {
+            for (type_condition, TypenameField { query_position, field }) in typename_fields {
                 let bound_response_key =
                     response_key
                         .with_position(query_position)
@@ -187,24 +179,21 @@ impl<'schema, 'p, 'binder> SelectionSetBinder<'schema, 'p, 'binder> {
         &mut self,
         ty: SelectionSetType,
         selection_set: &'p Positioned<engine_parser::types::SelectionSet>,
-        parent_executable_directives: &ExecutableDirectives,
     ) -> BindResult<()> {
         let Positioned {
             node: selection_set, ..
         } = selection_set;
 
-        let parent_executable_directives = &parent_executable_directives;
-
         for Positioned { node: selection, .. } in &selection_set.items {
             match selection {
                 engine_parser::types::Selection::Field(field) => {
-                    self.register_field(ty, field, parent_executable_directives)?;
+                    self.register_field(ty, field)?;
                 }
                 engine_parser::types::Selection::FragmentSpread(spread) => {
-                    self.register_fragment_spread_fields(ty, spread, parent_executable_directives)?;
+                    self.register_fragment_spread_fields(ty, spread)?;
                 }
                 engine_parser::types::Selection::InlineFragment(fragment) => {
-                    self.register_inline_fragment_fields(ty, fragment, parent_executable_directives)?;
+                    self.register_inline_fragment_fields(ty, fragment)?;
                 }
             }
         }
@@ -216,7 +205,6 @@ impl<'schema, 'p, 'binder> SelectionSetBinder<'schema, 'p, 'binder> {
         &mut self,
         parent: SelectionSetType,
         field: &'p Positioned<engine_parser::types::Field>,
-        parent_executable_directives: &ExecutableDirectives,
     ) -> BindResult<()> {
         let name_location: Location = field.pos.try_into()?;
         let name = field.name.node.as_str();
@@ -230,11 +218,11 @@ impl<'schema, 'p, 'binder> SelectionSetBinder<'schema, 'p, 'binder> {
         let query_position = self.next_query_position();
 
         if name == "__typename" {
-            self.typename_fields
+            self.typename_fields_by_key_then_by_type_condition
                 .entry(response_key)
                 .or_default()
                 .entry(parent)
-                .or_insert((query_position, field));
+                .or_insert(TypenameField { query_position, field });
             return Ok(());
         }
 
@@ -255,35 +243,28 @@ impl<'schema, 'p, 'binder> SelectionSetBinder<'schema, 'p, 'binder> {
             location: name_location,
         })?;
 
-        let mut executable_directives = self.bind_executable_directives(&field.directives)?;
-
-        executable_directives.extend(parent_executable_directives);
+        let n = self.rules_stack.len();
+        self.push_new_rules(&field.directives)?;
 
         let entry = self
             .data_fields
-            .entry((response_key, definition_id))
+            .entry(DataFieldUniqueKey {
+                response_key,
+                definition_id,
+                rules: {
+                    let mut rules = self.rules_stack.clone();
+                    rules.sort_unstable();
+                    rules
+                },
+            })
             .or_insert(DataField {
                 query_position,
                 fields: Vec::new(),
-                executable_directive_rules: Vec::new(),
             });
 
         entry.fields.push(field);
 
-        let ExecutableDirectives {
-            mut skip_input_value_ids,
-            mut include_input_value_ids,
-        } = executable_directives;
-
-        if !skip_input_value_ids.is_empty() || !include_input_value_ids.is_empty() {
-            skip_input_value_ids.sort_unstable();
-            include_input_value_ids.sort_unstable();
-
-            entry.executable_directive_rules.push(QueryModifierRule::SkipInclude {
-                skip_input_value_ids,
-                include_input_value_ids,
-            });
-        }
+        self.rules_stack.truncate(n);
 
         Ok(())
     }
@@ -292,7 +273,6 @@ impl<'schema, 'p, 'binder> SelectionSetBinder<'schema, 'p, 'binder> {
         &mut self,
         parent: SelectionSetType,
         Positioned { pos, node: spread }: &'p Positioned<engine_parser::types::FragmentSpread>,
-        parent_executable_directives: &ExecutableDirectives,
     ) -> BindResult<()> {
         let location = (*pos).try_into()?;
         // We always create a new selection set from a named fragment. It may not be split in the
@@ -305,15 +285,14 @@ impl<'schema, 'p, 'binder> SelectionSetBinder<'schema, 'p, 'binder> {
                 name: name.to_string(),
                 location,
             })?;
-
         let ty = self.bind_selection_set_type(parent, &fragment.node.type_condition)?;
 
-        let mut executable_directives = self.bind_executable_directives(&spread.directives)?;
+        let n = self.rules_stack.len();
+        self.push_new_rules(&fragment.directives)?;
 
-        executable_directives.extend(parent_executable_directives);
+        self.register_selection_set_fields(ty, &fragment.node.selection_set)?;
 
-        self.register_selection_set_fields(ty, &fragment.node.selection_set, &executable_directives)?;
-
+        self.rules_stack.truncate(n);
         Ok(())
     }
 
@@ -321,7 +300,6 @@ impl<'schema, 'p, 'binder> SelectionSetBinder<'schema, 'p, 'binder> {
         &mut self,
         parent: SelectionSetType,
         Positioned { node: fragment, .. }: &'p Positioned<engine_parser::types::InlineFragment>,
-        parent_executable_directives: &ExecutableDirectives,
     ) -> BindResult<()> {
         let ty = fragment
             .type_condition
@@ -330,16 +308,17 @@ impl<'schema, 'p, 'binder> SelectionSetBinder<'schema, 'p, 'binder> {
             .transpose()?
             .unwrap_or(parent);
 
-        let mut executable_directives = self.bind_executable_directives(&fragment.directives)?;
+        let n = self.rules_stack.len();
+        self.push_new_rules(&fragment.directives)?;
 
-        executable_directives.extend(parent_executable_directives);
+        self.register_selection_set_fields(ty, &fragment.selection_set)?;
 
-        self.register_selection_set_fields(ty, &fragment.selection_set, &executable_directives)
+        self.rules_stack.truncate(n);
+        Ok(())
     }
 
-    fn bind_executable_directives(&mut self, directives: &[Positioned<Directive>]) -> BindResult<ExecutableDirectives> {
-        let mut skip_input_value_ids: Vec<QueryInputValueId> = Vec::new();
-        let mut include_input_value_ids: Vec<QueryInputValueId> = Vec::new();
+    fn push_new_rules(&mut self, directives: &[Positioned<Directive>]) -> BindResult<()> {
+        let mut skip_include = Vec::new();
         for directive in directives {
             let directive_name = directive.name.node.as_str();
             if matches!(directive_name, "skip" | "include") {
@@ -360,16 +339,18 @@ impl<'schema, 'p, 'binder> SelectionSetBinder<'schema, 'p, 'binder> {
                 )?;
 
                 if directive_name == "skip" {
-                    skip_input_value_ids.push(input_value_id);
+                    skip_include.push(SkipIncludeDirective::SkipIf(input_value_id));
                 } else {
-                    include_input_value_ids.push(input_value_id);
+                    skip_include.push(SkipIncludeDirective::IncludeIf(input_value_id));
                 };
             }
         }
-        Ok(ExecutableDirectives {
-            skip_input_value_ids,
-            include_input_value_ids,
-        })
+        if !skip_include.is_empty() {
+            self.rules_stack.push(QueryModifierRule::SkipInclude {
+                directives: skip_include,
+            });
+        }
+        Ok(())
     }
 
     fn bind_selection_set_type(

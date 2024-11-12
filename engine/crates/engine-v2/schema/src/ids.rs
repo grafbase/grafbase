@@ -17,12 +17,12 @@ pub struct UrlId(NonZero<u32>);
 
 impl<'a> Walk<&'a Schema> for UrlId {
     type Walker<'w> = &'w Url where 'a: 'w;
-    fn walk<'w>(self, schema: &'a Schema) -> Self::Walker<'w>
+    fn walk<'w>(self, schema: impl Into<&'a Schema>) -> Self::Walker<'w>
     where
         Self: 'w,
         'a: 'w,
     {
-        &schema[self]
+        &schema.into()[self]
     }
 }
 
@@ -33,12 +33,12 @@ pub struct StringId(NonZero<u32>);
 impl<'a> Walk<&'a Schema> for StringId {
     type Walker<'w> = &'w str where 'a: 'w;
 
-    fn walk<'w>(self, schema: &'a Schema) -> Self::Walker<'w>
+    fn walk<'w>(self, schema: impl Into<&'a Schema>) -> Self::Walker<'w>
     where
         Self: 'w,
         'a: 'w,
     {
-        &schema[self]
+        &schema.into()[self]
     }
 }
 
@@ -49,11 +49,11 @@ pub struct RegexId(NonZero<u32>);
 impl<'a> Walk<&'a Schema> for RegexId {
     type Walker<'w> = &'w Regex where 'a: 'w;
 
-    fn walk<'w>(self, schema: &'a Schema) -> Self::Walker<'w>
+    fn walk<'w>(self, schema: impl Into<&'a Schema>) -> Self::Walker<'w>
     where
         Self: 'w,
         'a: 'w,
     {
-        &schema[self]
+        &schema.into()[self]
     }
 }

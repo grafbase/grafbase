@@ -17,6 +17,11 @@ pub struct SchemaInputValue<'a> {
 }
 
 impl<'a> SchemaInputValue<'a> {
+    #[allow(clippy::should_implement_trait)]
+    pub fn as_ref(&self) -> &SchemaInputValueRecord {
+        self.ref_
+    }
+
     pub fn with_selection_set<'s, 'w>(self, selection_set: &'s InputValueSet) -> SchemaInputValueView<'w>
     where
         'a: 'w,

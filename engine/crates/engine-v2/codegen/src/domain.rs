@@ -25,23 +25,8 @@ pub struct Domain {
 }
 
 impl Domain {
-    pub fn context_accessor(&self, external_domain_name: Option<&str>) -> TokenStream {
-        if let Some(name) = external_domain_name {
-            let domain = Ident::new(&self.imported_domains[name].name, Span::call_site());
-            let ctx = Ident::new(&self.context_name, Span::call_site());
-            quote! { #ctx.#domain }
-        } else {
-            let ctx = Ident::new(&self.context_name, Span::call_site());
-            quote! { #ctx }
-        }
-    }
-
-    pub fn domain_accessor(&self, external_domain_name: Option<&str>) -> TokenStream {
-        if let Some(name) = external_domain_name {
-            let domain = Ident::new(&self.imported_domains[name].name, Span::call_site());
-            let ctx = Ident::new(&self.context_name, Span::call_site());
-            quote! { #ctx.#domain }
-        } else if self.name != self.context_name {
+    pub fn domain_accessor(&self) -> TokenStream {
+        if self.name != self.context_name {
             let domain = Ident::new(&self.name, Span::call_site());
             let ctx = Ident::new(&self.context_name, Span::call_site());
             quote! { #ctx.#domain }
@@ -54,7 +39,6 @@ impl Domain {
 
 #[derive(Debug)]
 pub struct ImportedDomain {
-    pub name: String,
     pub module: TokenStream,
 }
 
@@ -122,11 +106,13 @@ impl Definition {
                 Scalar::Record {
                     indexed,
                     record_name: struct_name,
+                    copy,
                     ..
                 }
                 | Scalar::Value {
                     indexed,
                     name: struct_name,
+                    copy,
                     ..
                 } => {
                     if let Some(indexed) = &indexed {
@@ -135,7 +121,10 @@ impl Definition {
                             list_as_id_range: !indexed.deduplicated,
                         }
                     } else {
-                        StorageType::Struct { name: struct_name }
+                        StorageType::Struct {
+                            name: struct_name,
+                            copy: *copy,
+                        }
                     }
                 }
                 Scalar::Ref { id_struct_name, .. } => StorageType::Id {
@@ -156,6 +145,7 @@ impl Definition {
                 } else {
                     StorageType::Struct {
                         name: &object.struct_name,
+                        copy: object.copy,
                     }
                 }
             }
@@ -168,6 +158,7 @@ impl Definition {
                 } else {
                     StorageType::Struct {
                         name: union.enum_name(),
+                        copy: false,
                     }
                 }
             }
@@ -226,14 +217,21 @@ impl Definition {
 #[derive(Debug)]
 pub enum StorageType<'a> {
     Id { name: &'a str, list_as_id_range: bool },
-    Struct { name: &'a str },
+    Struct { name: &'a str, copy: bool },
 }
 
 impl<'a> StorageType<'a> {
     pub fn name(&self) -> &'a str {
         match self {
             StorageType::Id { name, .. } => name,
-            StorageType::Struct { name } => name,
+            StorageType::Struct { name, .. } => name,
+        }
+    }
+
+    pub fn is_copy(&self) -> bool {
+        match self {
+            StorageType::Id { .. } => true,
+            StorageType::Struct { copy, .. } => *copy,
         }
     }
 
@@ -258,7 +256,7 @@ impl std::fmt::Display for StorageType<'_> {
             StorageType::Id { name, .. } => {
                 write!(f, "{}", name)
             }
-            StorageType::Struct { name } => write!(f, "{}", name),
+            StorageType::Struct { name, .. } => write!(f, "{}", name),
         }
     }
 }

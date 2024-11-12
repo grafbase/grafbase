@@ -3,7 +3,7 @@ mod ser;
 
 use std::sync::Arc;
 
-use schema::{RequiredFieldSetRecord, Schema};
+use schema::{FieldSetRecord, Schema};
 
 use crate::response::{InputResponseObjectSet, ResponseBuilder, ResponseObject, ResponseValue};
 
@@ -17,14 +17,14 @@ pub(super) struct ViewContext<'a> {
 pub(crate) struct ResponseObjectsView<'a> {
     pub(super) ctx: ViewContext<'a>,
     pub(super) response_object_set: Arc<InputResponseObjectSet>,
-    pub(super) selection_set: &'a RequiredFieldSetRecord,
+    pub(super) selection_set: &'a FieldSetRecord,
 }
 
 #[derive(Clone)]
 pub(crate) struct ResponseObjectsViewWithExtraFields<'a> {
     ctx: ViewContext<'a>,
     response_object_set: Arc<InputResponseObjectSet>,
-    selection_set: &'a RequiredFieldSetRecord,
+    selection_set: &'a FieldSetRecord,
     extra_constant_fields: Vec<(String, serde_json::Value)>,
 }
 
@@ -88,18 +88,18 @@ impl<'a> Iterator for ResponseObjectsViewIterator<'a> {
 pub(crate) struct ResponseObjectView<'a> {
     ctx: ViewContext<'a>,
     response_object: &'a ResponseObject,
-    selection_set: &'a RequiredFieldSetRecord,
+    selection_set: &'a FieldSetRecord,
 }
 
 pub(crate) struct ResponseObjectViewWithExtraFields<'a> {
     ctx: ViewContext<'a>,
     response_object: &'a ResponseObject,
-    selection_set: &'a RequiredFieldSetRecord,
+    selection_set: &'a FieldSetRecord,
     extra_constant_fields: &'a [(String, serde_json::Value)],
 }
 
 struct ResponseValueView<'a> {
     ctx: ViewContext<'a>,
     value: &'a ResponseValue,
-    selection_set: &'a RequiredFieldSetRecord,
+    selection_set: &'a FieldSetRecord,
 }

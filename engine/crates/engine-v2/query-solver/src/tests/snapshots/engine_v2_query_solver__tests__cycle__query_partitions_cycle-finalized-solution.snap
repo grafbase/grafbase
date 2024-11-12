@@ -1,0 +1,30 @@
+---
+source: engine/crates/engine-v2/query-solver/src/tests/cycle.rs
+expression: "digraph {\n    0 [ label = \"root\" ]\n    1 [ label = \"Root#C\", color=royalblue,shape=parallelogram ]\n    2 [ label = \"partitionsCycle\" ]\n    3 [ label = \"FedEntity#B\", color=royalblue,shape=parallelogram ]\n    4 [ label = \"second\" ]\n    5 [ label = \"FedEntity#A\", color=royalblue,shape=parallelogram ]\n    6 [ label = \"first\" ]\n    7 [ label = \"third\" ]\n    8 [ label = \"*id*\" ]\n    9 [ label = \"FedEntity#A\", color=royalblue,shape=parallelogram ]\n    0 -> 1 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    1 -> 2 [ label = \"\" ]\n    2 -> 3 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    4 -> 6 [ label = \"\", color=orangered,arrowhead=inv ]\n    2 -> 5 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    5 -> 8 [ label = \"\", color=orangered,arrowhead=inv ]\n    7 -> 4 [ label = \"\", color=orangered,arrowhead=inv ]\n    2 -> 8 [ label = \"\" ]\n    3 -> 8 [ label = \"\", color=orangered,arrowhead=inv ]\n    5 -> 7 [ label = \"\" ]\n    2 -> 9 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    9 -> 8 [ label = \"\", color=orangered,arrowhead=inv ]\n    9 -> 6 [ label = \"\" ]\n    3 -> 4 [ label = \"\" ]\n}\n"
+---
+digraph {
+    0 [ label = "root" ]
+    1 [ label = "Root#C" ]
+    2 [ label = "partitionsCycle" ]
+    3 [ label = "FedEntity#B" ]
+    4 [ label = "second" ]
+    5 [ label = "FedEntity#A" ]
+    6 [ label = "first" ]
+    7 [ label = "third" ]
+    8 [ label = "*id*" ]
+    9 [ label = "FedEntity#A" ]
+    0 -> 1 [ label = "QueryPartition" ]
+    1 -> 2 [ label = "Field" ]
+    2 -> 3 [ label = "QueryPartition" ]
+    4 -> 6 [ label = "RequiredBySubgraph" ]
+    2 -> 5 [ label = "QueryPartition" ]
+    5 -> 8 [ label = "RequiredBySubgraph" ]
+    7 -> 4 [ label = "RequiredBySubgraph" ]
+    2 -> 8 [ label = "Field" ]
+    3 -> 8 [ label = "RequiredBySubgraph" ]
+    5 -> 7 [ label = "Field" ]
+    2 -> 9 [ label = "QueryPartition" ]
+    9 -> 8 [ label = "RequiredBySubgraph" ]
+    9 -> 6 [ label = "Field" ]
+    3 -> 4 [ label = "Field" ]
+}

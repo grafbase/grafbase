@@ -13,7 +13,7 @@ use walker::{Iter, Walk};
 /// Generated from:
 ///
 /// ```custom,{.language-graphql}
-/// type GraphqlEndpoint @meta(module: "subgraph/graphql") @indexed(id_size: "u32", max_id: "MAX_ID") {
+/// type GraphqlEndpoint @meta(module: "subgraph/graphql") @indexed(id_size: "u16") {
 ///   subgraph_name: String!
 ///   url: Url!
 ///   websocket_url: Url
@@ -31,13 +31,12 @@ pub struct GraphqlEndpointRecord {
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
-#[max(MAX_ID)]
-pub struct GraphqlEndpointId(std::num::NonZero<u32>);
+pub struct GraphqlEndpointId(std::num::NonZero<u16>);
 
 #[derive(Clone, Copy)]
 pub struct GraphqlEndpoint<'a> {
     pub(crate) schema: &'a Schema,
-    pub(crate) id: GraphqlEndpointId,
+    pub id: GraphqlEndpointId,
 }
 
 impl std::ops::Deref for GraphqlEndpoint<'_> {
@@ -52,9 +51,6 @@ impl<'a> GraphqlEndpoint<'a> {
     #[allow(clippy::should_implement_trait)]
     pub fn as_ref(&self) -> &'a GraphqlEndpointRecord {
         &self.schema[self.id]
-    }
-    pub fn id(&self) -> GraphqlEndpointId {
-        self.id
     }
     pub fn subgraph_name(&self) -> &'a str {
         self.subgraph_name_id.walk(self.schema)
@@ -72,12 +68,15 @@ impl<'a> GraphqlEndpoint<'a> {
 
 impl<'a> Walk<&'a Schema> for GraphqlEndpointId {
     type Walker<'w> = GraphqlEndpoint<'w> where 'a: 'w ;
-    fn walk<'w>(self, schema: &'a Schema) -> Self::Walker<'w>
+    fn walk<'w>(self, schema: impl Into<&'a Schema>) -> Self::Walker<'w>
     where
         Self: 'w,
         'a: 'w,
     {
-        GraphqlEndpoint { schema, id: self }
+        GraphqlEndpoint {
+            schema: schema.into(),
+            id: self,
+        }
     }
 }
 

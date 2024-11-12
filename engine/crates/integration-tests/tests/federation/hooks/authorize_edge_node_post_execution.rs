@@ -155,7 +155,7 @@ fn metadata_is_provided() {
                 "#,
             )
             .await;
-        insta::assert_json_snapshot!(response, @r###"
+        insta::assert_json_snapshot!(response, @r#"
         {
           "data": {
             "ok": {
@@ -172,9 +172,9 @@ fn metadata_is_provided() {
             {
               "message": "Unauthorized role",
               "path": [
-                "noMetadata",
+                "wrongId",
                 "authorizedEdgeWithNode",
-                "withId"
+                "withIdAndMetadata"
               ],
               "extensions": {
                 "code": "UNAUTHORIZED"
@@ -183,9 +183,9 @@ fn metadata_is_provided() {
             {
               "message": "Unauthorized role",
               "path": [
-                "wrongId",
+                "noMetadata",
                 "authorizedEdgeWithNode",
-                "withIdAndMetadata"
+                "withId"
               ],
               "extensions": {
                 "code": "UNAUTHORIZED"
@@ -193,7 +193,7 @@ fn metadata_is_provided() {
             }
           ]
         }
-        "###);
+        "#);
     });
 }
 

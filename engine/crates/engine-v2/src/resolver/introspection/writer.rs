@@ -6,62 +6,62 @@ use schema::{
     Definition, EntityDefinition, EnumValue, FieldDefinition, InputValueDefinition, InterfaceDefinition, ListWrapping,
     ObjectDefinition, Schema, StringId, Type, TypeSystemDirective, Wrapping,
 };
-use walker::Iter;
+use walker::{Iter, Walk};
 
 use crate::{
-    operation::{PlanField, PlanWalker},
+    execution::ExecutionContext,
+    plan::Plan,
     response::{
-        ConcreteObjectShapeId, FieldShape, ResponseObject, ResponseObjectField, ResponseValue, ResponseWriter, Shapes,
+        ConcreteObjectShapeId, FieldShapeRecord, ResponseObject, ResponseObjectField, ResponseValue, ResponseWriter,
+        Shapes,
     },
+    Runtime,
 };
 
-pub(super) struct IntrospectionWriter<'a> {
-    pub schema: &'a Schema,
-    pub metadata: &'a IntrospectionMetadata,
-    pub shapes: &'a Shapes,
-    pub plan: PlanWalker<'a, ()>,
-    pub response: ResponseWriter<'a>,
+pub(super) struct IntrospectionWriter<'ctx, R: Runtime> {
+    pub ctx: ExecutionContext<'ctx, R>,
+    pub schema: &'ctx Schema,
+    pub shapes: &'ctx Shapes,
+    pub metadata: &'ctx IntrospectionMetadata,
+    pub plan: Plan<'ctx>,
+    pub response: ResponseWriter<'ctx>,
 }
 
-impl<'a> IntrospectionWriter<'a> {
+impl<'ctx, R: Runtime> IntrospectionWriter<'ctx, R> {
     pub(super) fn execute(self, id: ConcreteObjectShapeId) {
-        let shape = &self.shapes[id];
+        let shape = &self.ctx.shapes()[id];
         let mut fields = Vec::with_capacity(shape.field_shape_ids.len() + shape.typename_response_edges.len());
-        for id in shape.field_shape_ids {
-            let FieldShape {
-                id,
-                definition_id,
-                shape,
-                edge,
-                ..
-            } = &self.shapes[id];
-            let field = self.plan.walk(*id);
-            match self.metadata.root_field(*definition_id) {
+        for field in &self.shapes[shape.field_shape_ids] {
+            let arguments = field.id.walk(&self.ctx).hydrated_arguments(&self.ctx);
+            match self.metadata.root_field(field.definition_id) {
                 IntrospectionField::Type => {
-                    let name = field.get_arg_value_as::<&str>("name");
+                    let name = arguments.get_arg_value_as::<&str>("name");
                     fields.push(ResponseObjectField {
-                        edge: *edge,
+                        edge: field.edge,
                         required_field_id: None,
                         value: self
                             .schema
                             .definition_by_name(name)
                             .map(|definition| {
-                                self.__type_inner(self.schema.walk(definition), shape.as_concrete_object().unwrap())
+                                self.__type_inner(
+                                    self.schema.walk(definition),
+                                    field.shape.as_concrete_object().unwrap(),
+                                )
                             })
                             .into(),
                     });
                 }
                 IntrospectionField::Schema => {
                     fields.push(ResponseObjectField {
-                        edge: *edge,
+                        edge: field.edge,
                         required_field_id: None,
-                        value: self.__schema(shape.as_concrete_object().unwrap()),
+                        value: self.__schema(field.shape.as_concrete_object().unwrap()),
                     });
                 }
             };
         }
         if !shape.typename_response_edges.is_empty() {
-            let name_id = match self.schema.walk(self.plan.logical_plan().as_ref().entity_id) {
+            let name_id = match self.plan.entity_definition() {
                 EntityDefinition::Object(object) => object.name_id,
                 EntityDefinition::Interface(interface) => interface.name_id,
             };
@@ -76,15 +76,11 @@ impl<'a> IntrospectionWriter<'a> {
         self.response.update_root_object_with(fields);
     }
 
-    fn walk(&self, field: &FieldShape) -> PlanField<'a> {
-        self.plan.walk(field.id)
-    }
-
     fn object<E: Copy, const N: usize>(
         &self,
-        object: &'a IntrospectionObject<E, N>,
+        object: &'ctx IntrospectionObject<E, N>,
         shape_id: ConcreteObjectShapeId,
-        build: impl Fn(&'a FieldShape, E) -> ResponseValue,
+        build: impl Fn(&'ctx FieldShapeRecord, E) -> ResponseValue,
     ) -> ResponseValue {
         let shape = &self.shapes[shape_id];
         let mut fields = Vec::with_capacity(shape.field_shape_ids.len() + shape.typename_response_edges.len());
@@ -151,13 +147,13 @@ impl<'a> IntrospectionWriter<'a> {
         })
     }
 
-    fn __type(&self, ty: Type<'a>, shape_id: ConcreteObjectShapeId) -> ResponseValue {
+    fn __type(&self, ty: Type<'ctx>, shape_id: ConcreteObjectShapeId) -> ResponseValue {
         self.__type_list_wrapping(ty.definition(), ty.wrapping, shape_id)
     }
 
     fn __type_list_wrapping(
         &self,
-        definition: Definition<'a>,
+        definition: Definition<'ctx>,
         mut wrapping: Wrapping,
         shape_id: ConcreteObjectShapeId,
     ) -> ResponseValue {
@@ -192,7 +188,7 @@ impl<'a> IntrospectionWriter<'a> {
 
     fn __type_required_wrapping(
         &self,
-        definition: Definition<'a>,
+        definition: Definition<'ctx>,
         wrapping: Wrapping,
         shape_id: ConcreteObjectShapeId,
     ) -> ResponseValue {
@@ -205,7 +201,7 @@ impl<'a> IntrospectionWriter<'a> {
         })
     }
 
-    fn __type_inner(&self, definition: Definition<'a>, shape_id: ConcreteObjectShapeId) -> ResponseValue {
+    fn __type_inner(&self, definition: Definition<'ctx>, shape_id: ConcreteObjectShapeId) -> ResponseValue {
         match definition {
             Definition::Scalar(scalar) => self.object(&self.metadata.__type, shape_id, |_, __type| match __type {
                 __Type::Kind => self.metadata.type_kind.scalar.into(),
@@ -246,7 +242,11 @@ impl<'a> IntrospectionWriter<'a> {
                 __Type::Description => r#enum.description_id.into(),
                 __Type::EnumValues => {
                     let shape_id = field.shape.as_concrete_object().unwrap();
-                    let include_deprecated = self.walk(field).get_arg_value_as::<bool>("includeDeprecated");
+                    let include_deprecated = field
+                        .id
+                        .walk(&self.ctx)
+                        .hydrated_arguments(&self.ctx)
+                        .get_arg_value_as::<bool>("includeDeprecated");
                     let mut values = self.response.new_list();
                     values.extend(
                         r#enum
@@ -281,17 +281,21 @@ impl<'a> IntrospectionWriter<'a> {
 
     fn __type_fields(
         &self,
-        field: &FieldShape,
-        field_definitions: impl Iter<Item = FieldDefinition<'a>>,
+        field: &FieldShapeRecord,
+        field_definitions: impl Iter<Item = FieldDefinition<'ctx>>,
     ) -> ResponseValue {
         let shape_id = field.shape.as_concrete_object().unwrap();
-        let include_deprecated = self.walk(field).get_arg_value_as::<bool>("includeDeprecated");
+        let include_deprecated = field
+            .id
+            .walk(&self.ctx)
+            .hydrated_arguments(&self.ctx)
+            .get_arg_value_as::<bool>("includeDeprecated");
         let mut values = self.response.new_list();
         values.extend(
             field_definitions
                 .filter(|field| {
                     (!is_deprecated(field.directives()) || include_deprecated)
-                        && !self.metadata.meta_fields.contains(&field.id())
+                        && !self.metadata.meta_fields.contains(&field.id)
                 })
                 .map(|field| self.__field(field, shape_id)),
         );
@@ -300,8 +304,8 @@ impl<'a> IntrospectionWriter<'a> {
 
     fn __type_interfaces(
         &self,
-        field: &FieldShape,
-        interface_definitions: impl Iter<Item = InterfaceDefinition<'a>>,
+        field: &FieldShapeRecord,
+        interface_definitions: impl Iter<Item = InterfaceDefinition<'ctx>>,
     ) -> ResponseValue {
         let shape_id = field.shape.as_concrete_object().unwrap();
         let mut values = self.response.new_list();
@@ -313,8 +317,8 @@ impl<'a> IntrospectionWriter<'a> {
 
     fn __type_possible_types(
         &self,
-        field: &FieldShape,
-        possible_types: impl Iter<Item = ObjectDefinition<'a>>,
+        field: &FieldShapeRecord,
+        possible_types: impl Iter<Item = ObjectDefinition<'ctx>>,
     ) -> ResponseValue {
         let shape_id = field.shape.as_concrete_object().unwrap();
         let mut values = self.response.new_list();
@@ -323,7 +327,7 @@ impl<'a> IntrospectionWriter<'a> {
         self.response.push_list(values).into()
     }
 
-    fn __field(&self, target: FieldDefinition<'a>, shape_id: ConcreteObjectShapeId) -> ResponseValue {
+    fn __field(&self, target: FieldDefinition<'ctx>, shape_id: ConcreteObjectShapeId) -> ResponseValue {
         self.object(&self.metadata.__field, shape_id, |field, __field| match __field {
             _Field::Name => target.as_ref().name_id.into(),
             _Field::Description => target.as_ref().description_id.into(),
@@ -343,7 +347,7 @@ impl<'a> IntrospectionWriter<'a> {
         })
     }
 
-    fn __input_value(&self, target: InputValueDefinition<'a>, shape_id: ConcreteObjectShapeId) -> ResponseValue {
+    fn __input_value(&self, target: InputValueDefinition<'ctx>, shape_id: ConcreteObjectShapeId) -> ResponseValue {
         self.object(
             &self.metadata.__input_value,
             shape_id,
@@ -360,7 +364,7 @@ impl<'a> IntrospectionWriter<'a> {
         )
     }
 
-    fn __enum_value(&self, target: EnumValue<'a>, shape_id: ConcreteObjectShapeId) -> ResponseValue {
+    fn __enum_value(&self, target: EnumValue<'ctx>, shape_id: ConcreteObjectShapeId) -> ResponseValue {
         self.object(
             &self.metadata.__enum_value,
             shape_id,

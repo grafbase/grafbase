@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
-use engine_parser::types::OperationType;
 use grafbase_telemetry::{
+    graphql::OperationType,
     metrics::{GraphqlErrorAttributes, GraphqlRequestMetricsAttributes},
     span::graphql::GraphqlOperationSpan,
 };
@@ -11,7 +11,7 @@ use web_time::Instant;
 
 use crate::{
     engine::{HooksContext, RequestContext},
-    execution::PreExecutionContext,
+    prepare::PrepareContext,
     request::Request,
     response::{ErrorCode, GraphqlError, Response},
     Engine, Runtime,
@@ -28,7 +28,7 @@ impl<R: Runtime> Engine<R> {
         let span = GraphqlOperationSpan::default();
 
         async {
-            let ctx = PreExecutionContext::new(self, request_context, hooks_context);
+            let ctx = PrepareContext::new(self, request_context, hooks_context);
             let response = ctx.execute_single(request).await;
             let status = response.graphql_status();
             let errors_count_by_code = response.error_code_counter().to_vec();
@@ -66,7 +66,7 @@ impl<R: Runtime> Engine<R> {
     }
 }
 
-impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
+impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
     async fn execute_single(mut self, request: Request) -> Response<<R::Hooks as Hooks>::OnOperationResponseOutput> {
         let operation = match self.prepare_operation(request).await {
             Ok(operation) => operation,

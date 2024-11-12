@@ -5,7 +5,7 @@ use serde::Deserialize;
 use crate::{
     execution::{ErrorId, PlanningResult, PreExecutionContext},
     operation::{
-        BoundFieldId, BoundQueryModifierId, BoundQueryModifierImpactedFieldId, PreparedOperation,
+        BoundFieldId, BoundQueryModifierId, BoundQueryModifierImpactedFieldId, PreparedOperation2,
         PreparedOperationWalker, QueryModifierRule, Variables,
     },
     response::{ConcreteObjectShapeId, ErrorCode, FieldShapeId, GraphqlError},
@@ -13,7 +13,7 @@ use crate::{
 };
 
 #[derive(id_derives::IndexedFields)]
-pub(crate) struct QueryModifications {
+pub(crate) struct QueryModifications2 {
     pub is_any_field_skipped: bool,
     pub skipped_fields: BitSet<BoundFieldId>,
     #[indexed_by(ErrorId)]
@@ -25,10 +25,10 @@ pub(crate) struct QueryModifications {
     matched_scopes: Vec<(RequiresScopesDirectiveId, RequiresScopeSetIndex)>,
 }
 
-impl QueryModifications {
+impl QueryModifications2 {
     pub(crate) async fn build(
         ctx: &PreExecutionContext<'_, impl Runtime>,
-        operation: &PreparedOperation,
+        operation: &PreparedOperation2,
         variables: &Variables,
     ) -> PlanningResult<Self> {
         Builder {
@@ -42,8 +42,8 @@ impl QueryModifications {
         .await
     }
 
-    pub fn default_for(operation: &PreparedOperation) -> Self {
-        QueryModifications {
+    pub fn default_for(operation: &PreparedOperation2) -> Self {
+        QueryModifications2 {
             is_any_field_skipped: false,
             skipped_fields: BitSet::with_capacity(operation.fields.len()),
             concrete_shape_has_error: BitSet::with_capacity(operation.response_blueprint.shapes.concrete.len()),
@@ -70,17 +70,17 @@ impl QueryModifications {
 
 struct Builder<'ctx, 'op, R: Runtime> {
     ctx: &'op PreExecutionContext<'ctx, R>,
-    operation: &'op PreparedOperation,
+    operation: &'op PreparedOperation2,
     variables: &'op Variables,
     field_shape_id_to_error_ids_builder: Vec<(FieldShapeId, ErrorId)>,
-    modifications: QueryModifications,
+    modifications: QueryModifications2,
 }
 
 impl<'ctx, 'op, R: Runtime> Builder<'ctx, 'op, R>
 where
     'ctx: 'op,
 {
-    pub(super) async fn build(mut self) -> PlanningResult<QueryModifications> {
+    pub(super) async fn build(mut self) -> PlanningResult<QueryModifications2> {
         let mut scopes = None;
 
         for (i, modifier) in self.operation.query_modifiers.iter().enumerate() {
@@ -211,7 +211,7 @@ where
         Ok(self.finalize())
     }
 
-    fn finalize(mut self) -> QueryModifications {
+    fn finalize(mut self) -> QueryModifications2 {
         self.modifications.field_shape_id_to_error_ids = self.field_shape_id_to_error_ids_builder.into();
         let mut field_shape_ids_with_errors = self.modifications.field_shape_id_to_error_ids.ids();
         if let Some(mut current) = field_shape_ids_with_errors.next() {

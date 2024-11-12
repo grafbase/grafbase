@@ -1,71 +1,64 @@
 #![allow(unused)]
+mod executable;
 mod field;
+mod generated;
 mod plan;
+mod prelude;
+mod query_partition;
 mod selection_set;
 
 use std::sync::Arc;
 
-use schema::{EntityDefinitionId, RequiredFieldSetRecord, Schema};
+use schema::{EntityDefinitionId, FieldSetRecord, Schema};
 
 use crate::{
     operation::{ResponseModifierRule, Variables},
-    plan::{OperationPlan, PlanId, ResponseObjectSetDefinitionId},
+    plan::{OperationSolution, OperationSolutionContext, QueryPartitionId, ResponseObjectSetDefinitionId},
     resolver::Resolver,
-    response::{ResponseKey, ResponseViewSelectionSet, ResponseViews},
+    response::{ResponseKey, Shapes},
 };
 
 use super::QueryModifications;
 
 pub(crate) use field::*;
+pub(crate) use generated::*;
 pub(crate) use plan::*;
+pub(crate) use query_partition::*;
 pub(crate) use selection_set::*;
 
 #[derive(Clone, Copy)]
-pub(crate) struct QueryContext<'a> {
-    pub(super) schema: &'a Schema,
-    pub(super) operation_plan: &'a OperationPlan,
-    pub(super) query_modifications: &'a QueryModifications,
+pub(crate) struct OperationPlanContext<'a> {
+    pub schema: &'a Schema,
+    pub operation_solution: &'a OperationSolution,
+    pub operation_plan: &'a OperationPlan,
+}
+
+impl<'ctx> From<OperationPlanContext<'ctx>> for OperationSolutionContext<'ctx> {
+    fn from(ctx: OperationPlanContext<'ctx>) -> Self {
+        OperationSolutionContext {
+            schema: ctx.schema,
+            operation_solution: ctx.operation_solution,
+        }
+    }
+}
+
+impl<'ctx> From<OperationPlanContext<'ctx>> for &'ctx Schema {
+    fn from(ctx: OperationPlanContext<'ctx>) -> Self {
+        ctx.schema
+    }
+}
+
+impl<'ctx> From<OperationPlanContext<'ctx>> for &'ctx Shapes {
+    fn from(ctx: OperationPlanContext<'ctx>) -> Self {
+        &ctx.operation_solution.shapes
+    }
 }
 
 #[derive(id_derives::IndexedFields)]
-pub(crate) struct ExecutionPlan {
+pub(crate) struct OperationPlan {
     pub query_modifications: QueryModifications,
-    #[indexed_by(PlanResolverId)]
-    pub plan_resolvers: Vec<PlanResolver>,
+    #[indexed_by(PlanId)]
+    pub plans: Vec<PlanRecord>,
     #[indexed_by(ResponseModifierId)]
-    pub response_modifiers: Vec<ResponseModifier>,
-}
-
-#[derive(Clone, Copy)]
-pub(crate) enum ExecutableId {
-    PlanResolver(PlanResolverId),
-    ResponseModifier(ResponseModifierId),
-}
-
-#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
-pub(crate) struct PlanResolverId(std::num::NonZero<u16>);
-
-pub(crate) struct PlanResolver {
-    pub plan_id: PlanId,
-    pub requires: RequiredFieldSetRecord,
-    pub resolver: Resolver,
-    pub parent_count: usize,
-    pub children: Vec<ExecutableId>,
-}
-
-#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
-pub(crate) struct ResponseModifierId(std::num::NonZero<u16>);
-
-// Modifies the response based on a given rule
-pub(crate) struct ResponseModifier {
-    pub rule: ResponseModifierRule,
-    /// Which object & fields are impacted
-    /// sorted by natural order
-    pub on: Vec<(ResponseObjectSetDefinitionId, Option<EntityDefinitionId>, ResponseKey)>,
-    /// What fields the hook requires
-    pub requires: ResponseViewSelectionSet,
-    /// Dependency count
-    pub parent_count: usize,
-    /// Dependents
-    pub children: Vec<ExecutableId>,
+    pub response_modifiers: Vec<ResponseModifierRecord>,
 }

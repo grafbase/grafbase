@@ -1,8 +1,8 @@
 use runtime::hooks::Hooks;
 
-use crate::Runtime;
+use crate::{prepare::PrepareContext, Runtime};
 
-use super::{ExecutionContext, PreExecutionContext};
+use super::ExecutionContext;
 
 mod authorized;
 mod responses;
@@ -13,11 +13,11 @@ pub(crate) struct RequestHooks<'a, H: Hooks> {
     context: &'a H::Context,
 }
 
-impl<'a, 'ctx, R: Runtime> From<&'a PreExecutionContext<'ctx, R>> for RequestHooks<'a, R::Hooks>
+impl<'a, 'ctx, R: Runtime> From<&'a PrepareContext<'ctx, R>> for RequestHooks<'a, R::Hooks>
 where
     'ctx: 'a,
 {
-    fn from(ctx: &'a PreExecutionContext<'ctx, R>) -> Self {
+    fn from(ctx: &'a PrepareContext<'ctx, R>) -> Self {
         Self {
             hooks: ctx.engine.runtime.hooks(),
             context: &ctx.hooks_context,

@@ -11,8 +11,7 @@ use serde::{
 
 use crate::{
     execution::ExecutionContext,
-    operation::LogicalPlanId,
-    response::{ErrorCode, GraphqlError, ResponseWriter},
+    response::{ConcreteObjectShapeId, ErrorCode, GraphqlError, ResponseWriter},
     Runtime,
 };
 
@@ -33,12 +32,13 @@ use scalar::*;
 
 pub(crate) struct UpdateSeed<'ctx> {
     ctx: SeedContext<'ctx>,
+    shape_id: ConcreteObjectShapeId,
 }
 
 impl<'ctx> UpdateSeed<'ctx> {
     pub(super) fn new<R: Runtime>(
         ctx: ExecutionContext<'ctx, R>,
-        logical_plan_id: LogicalPlanId,
+        shape_id: ConcreteObjectShapeId,
         writer: ResponseWriter<'ctx>,
     ) -> Self {
         let path = RefCell::new(writer.root_path().iter().copied().collect());
@@ -46,11 +46,11 @@ impl<'ctx> UpdateSeed<'ctx> {
             ctx: SeedContext {
                 schema: ctx.schema(),
                 operation: ctx.operation,
-                logical_plan_id,
                 writer,
                 propagating_error: Cell::new(false),
                 path,
             },
+            shape_id,
         }
     }
 }
@@ -62,13 +62,9 @@ impl<'de, 'ctx> DeserializeSeed<'de> for UpdateSeed<'ctx> {
     where
         D: serde::Deserializer<'de>,
     {
-        let UpdateSeed { ctx } = self;
+        let UpdateSeed { ctx, shape_id } = self;
         let result = deserializer.deserialize_option(NullableVisitor(
-            ConcreteObjectSeed::new(
-                &ctx,
-                ctx.operation.response_blueprint[ctx.logical_plan_id].concrete_shape_id,
-            )
-            .into_fields_seed(),
+            ConcreteObjectSeed::new(&ctx, shape_id).into_fields_seed(),
         ));
 
         match result {

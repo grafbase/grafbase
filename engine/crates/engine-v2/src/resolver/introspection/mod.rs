@@ -1,12 +1,13 @@
 use crate::{
     execution::{ExecutionContext, ExecutionResult},
-    operation::PlanWalker,
+    plan::Plan,
     response::SubgraphResponse,
     Runtime,
 };
 
 mod writer;
 
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub(crate) struct IntrospectionResolver;
 
 impl IntrospectionResolver {
@@ -14,17 +15,18 @@ impl IntrospectionResolver {
     pub async fn execute<'ctx, R: Runtime>(
         &'ctx self,
         ctx: ExecutionContext<'ctx, R>,
-        plan: PlanWalker<'ctx, ()>,
+        plan: Plan<'ctx>,
         mut subgraph_response: SubgraphResponse,
     ) -> ExecutionResult<SubgraphResponse> {
         writer::IntrospectionWriter {
-            schema: &ctx.engine.schema,
+            ctx,
+            schema: ctx.schema(),
+            shapes: ctx.shapes(),
             metadata: &ctx.engine.schema.subgraphs.introspection,
-            shapes: &plan.blueprint().shapes,
             plan,
             response: subgraph_response.as_mut().next_writer().ok_or("No objects to update")?,
         }
-        .execute(plan.logical_plan().response_blueprint().concrete_shape_id);
+        .execute(plan.shape_id());
         Ok(subgraph_response)
     }
 }

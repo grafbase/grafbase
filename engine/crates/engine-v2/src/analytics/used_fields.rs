@@ -3,14 +3,14 @@ use std::fmt::Write;
 use itertools::Itertools;
 use schema::{EntityDefinitionId, FieldDefinitionId, Schema};
 
-use crate::operation::Operation;
+use crate::operation::BoundOperation;
 
 pub struct UsedFields<'a> {
     schema: &'a Schema,
     fields: Vec<(EntityDefinitionId, FieldDefinitionId)>,
 }
 
-pub(super) fn compute<'s>(schema: &'s Schema, operation: &Operation) -> UsedFields<'s> {
+pub(super) fn compute<'s>(schema: &'s Schema, operation: &BoundOperation) -> UsedFields<'s> {
     let mut fields = Vec::with_capacity(operation.fields.len());
     for field in &operation.fields {
         let Some(definition_id) = field.definition_id() else {

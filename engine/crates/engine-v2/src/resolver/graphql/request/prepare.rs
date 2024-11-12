@@ -3,17 +3,18 @@ use std::{
     fmt::{Error, Write},
 };
 
-use engine_parser::types::OperationType;
+use grafbase_telemetry::graphql::OperationType;
 use itertools::Itertools;
-use schema::{EntityDefinition, SubgraphId};
-use walker::Walk;
+use schema::{CompositeType, EntityDefinition, SubgraphId};
 
-use crate::operation::{
-    FieldArgumentsWalker, PlanField, PlanSelectionSet, PlanWalker, QueryInputValueId, SelectionSetType,
+use crate::{
+    operation::QueryInputValueId,
+    plan::{FieldArgument, PlanDataField, PlanQueryPartition, PlanSelectionSet},
 };
 
 const VARIABLE_PREFIX: &str = "var";
 
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub(crate) struct PreparedGraphqlOperation {
     pub ty: OperationType,
     pub query: String,
@@ -23,24 +24,17 @@ pub(crate) struct PreparedGraphqlOperation {
 impl PreparedGraphqlOperation {
     pub(crate) fn build(
         operation_type: OperationType,
-        plan: PlanWalker<'_>,
-        subgraph_id: SubgraphId,
+        plan_query_partition: PlanQueryPartition<'_>,
     ) -> Result<PreparedGraphqlOperation, Error> {
-        let mut ctx = QueryBuilderContext::new(subgraph_id);
+        let mut ctx = QueryBuilderContext::new(plan_query_partition.resolver_definition().subgraph_id());
 
         // Generating the selection set first as this will define all the operation arguments
-        let selection_set = {
-            let mut buffer = String::with_capacity(256);
-
-            let selection_set_type = SelectionSetType::Object(match operation_type {
-                OperationType::Query => plan.schema().query().id(),
-                OperationType::Mutation => plan.schema().mutation().unwrap().id(),
-                OperationType::Subscription => plan.schema().subscription().unwrap().id(),
-            });
-
-            ctx.write_selection_set(Some(selection_set_type), &mut buffer, plan.selection_set())?;
-            buffer
-        };
+        let mut selection_set = String::with_capacity(256);
+        ctx.write_selection_set(
+            ParentType::CompositeType(plan_query_partition.entity_definition().into()),
+            &mut selection_set,
+            plan_query_partition.selection_set(),
+        )?;
 
         let mut query = String::with_capacity(selection_set.len() + 14 + ctx.estimated_variable_definitions_string_len);
         match operation_type {
@@ -65,6 +59,7 @@ impl PreparedGraphqlOperation {
     }
 }
 
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub(crate) struct PreparedFederationEntityOperation {
     pub query: String,
     pub entities_variable_name: String,
@@ -72,15 +67,16 @@ pub(crate) struct PreparedFederationEntityOperation {
 }
 
 impl PreparedFederationEntityOperation {
-    pub(crate) fn build(plan: PlanWalker<'_>, subgraph_id: SubgraphId) -> Result<Self, Error> {
-        let mut ctx = QueryBuilderContext::new(subgraph_id);
+    pub(crate) fn build(plan_query_partition: PlanQueryPartition<'_>) -> Result<Self, Error> {
+        let mut ctx = QueryBuilderContext::new(plan_query_partition.resolver_definition().subgraph_id());
 
         // Generating the selection set first as this will define all the operation arguments
-        let selection_set = {
-            let mut buffer = String::with_capacity(256);
-            ctx.write_selection_set(None, &mut buffer, plan.selection_set())?;
-            buffer
-        };
+        let mut selection_set = String::with_capacity(256);
+        ctx.write_selection_set(
+            ParentType::Any,
+            &mut selection_set,
+            plan_query_partition.selection_set(),
+        )?;
 
         let entities_variable_name = format!("{VARIABLE_PREFIX}{}", ctx.variables.len());
         let mut query = String::with_capacity(
@@ -112,13 +108,10 @@ impl PreparedFederationEntityOperation {
 
 /// All variables associated with a subgraph query. Each one is associated with the variable name
 /// "{$VARIABLE_PREFIX}{idx}" with `idx` being the position of the input value in the inner vec.
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub(crate) struct QueryVariables(Vec<QueryInputValueId>);
 
 impl QueryVariables {
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
-
     pub fn iter(&self) -> impl Iterator<Item = (String, QueryInputValueId)> + '_ {
         self.0
             .iter()
@@ -136,6 +129,11 @@ struct QueryBuilderContext {
     subgraph_id: SubgraphId,
     variables: HashMap<QueryInputValueId, QueryVariable>,
     estimated_variable_definitions_string_len: usize,
+}
+
+enum ParentType<'a> {
+    Any,
+    CompositeType(CompositeType<'a>),
 }
 
 impl QueryBuilderContext {
@@ -169,7 +167,7 @@ impl QueryBuilderContext {
 
     fn write_selection_set(
         &mut self,
-        maybe_selection_set_type: Option<SelectionSetType>,
+        parent_type: ParentType<'_>,
         buffer: &mut String,
         selection_set: PlanSelectionSet<'_>,
     ) -> Result<(), Error> {
@@ -179,12 +177,12 @@ impl QueryBuilderContext {
             // We always need to know the concrete object.
             buffer.push_str(" __typename");
         }
-        self.write_selection_set_fields(maybe_selection_set_type, buffer, selection_set)?;
+        self.write_selection_set_fields(parent_type, buffer, selection_set)?;
         // If nothing was written it means only meta fields (__typename) are present and during
         // deserialization we'll expect an object. So adding `__typename` to ensure a non empty
         // selection set.
         if buffer.len() == n {
-            buffer.push_str(" __typename");
+            buffer.push_str(" __typename @skip(if: true)");
         }
         buffer.push_str(" }");
         Ok(())
@@ -192,113 +190,105 @@ impl QueryBuilderContext {
 
     fn write_selection_set_fields(
         &mut self,
-        selection_set_type: Option<SelectionSetType>,
+        parent_type: ParentType<'_>,
         buffer: &mut String,
         selection_set: PlanSelectionSet<'_>,
     ) -> Result<(), Error> {
         let subgraph_id = self.subgraph_id;
-        let parent_entity_id = selection_set_type.and_then(|t| t.as_entity_id());
 
-        let entity_to_fields = selection_set
-            .fields_ordered_by_parent_entity_id_then_position()
-            .into_iter()
-            .chunk_by(|field| field.definition().parent_entity_id);
+        let ParentType::CompositeType(parent_type) = parent_type else {
+            let entity_fields = selection_set
+                .fields_ordered_by_type_condition_then_position()
+                .chunk_by(|field| field.definition().parent_entity());
 
-        for (entity_id, fields) in entity_to_fields.into_iter() {
-            tracing::debug!("{}", entity_id.walk(selection_set.walker().schema()).name());
-            let fields = fields.collect_vec();
-            let entity = selection_set.walker().schema().walk(entity_id);
-            let in_same_entity = parent_entity_id == Some(entity_id);
+            // Parent is Any or any other type that will accept anything.
+            for (entity, fields) in entity_fields.into_iter() {
+                self.write_type_condition_and_entity_fields(buffer, entity, fields)?;
+            }
+            return Ok(());
+        };
+
+        if let CompositeType::Object(_) = parent_type {
+            // From here one, it doesn't matter from where fields are coming, the
+            // subgraph object must expose all the fields so we just request them directly
+            // without any type conditions.
+            self.write_fields(buffer, selection_set.fields())?;
+            return Ok(());
+        }
+
+        let entity_fields = selection_set
+            .fields_ordered_by_type_condition_then_position()
+            .chunk_by(|field| field.definition().parent_entity());
+
+        let maybe_parent_interface_id = parent_type.as_interface().map(|interface| interface.id);
+        let parent_is_fully_implemented = parent_type.is_fully_implemented_in_subgraph(subgraph_id);
+        for (entity, fields) in entity_fields.into_iter() {
+            let interface = match entity {
+                EntityDefinition::Object(_) => {
+                    self.write_type_condition_and_entity_fields(buffer, entity, fields)?;
+                    continue;
+                }
+                EntityDefinition::Interface(interface) => interface,
+            };
+
+            // If it's the same interface as the parent, there's nothing to do. It's either fully implemented
+            // and we're good. Or it isn't and we can't retrieve missing objects from the parent anyway because
+            // it's the same interface from our perspective.
+            if Some(interface.id) == maybe_parent_interface_id {
+                self.write_fields(buffer, fields)?;
+                continue;
+            }
+
+            // If fully implemented, it's consistent with the our, the super-graph's, view.
+            if interface.is_fully_implemented_in(subgraph_id) {
+                self.write_type_condition_and_entity_fields(buffer, entity, fields)?;
+                continue;
+            }
+
+            // From here on we know that some objects that implement the interface on our side
+            // don't in the subgraphs. But we still want to retrieve them if they're part the
+            // parent type.
+
+            let fields = fields.collect::<Vec<_>>();
+            let possible_subgraph_objects = interface.possible_types().filter(|o| o.is_resolvable_in(&subgraph_id));
 
             let mut add_interface_fragment = false;
-
-            match (selection_set_type, entity) {
-                (Some(SelectionSetType::Interface(_)), schema::EntityDefinition::Interface(interface))
-                    if interface.is_not_fully_implemented_in(subgraph_id) && !in_same_entity =>
-                {
-                    let objects = interface
-                        .possible_types_ordered_by_typename()
-                        .filter(|o| o.resolvable_in(&subgraph_id));
-
-                    for object in objects {
-                        if object.subgraph_implements_interface(&subgraph_id, &interface.id()) {
-                            add_interface_fragment = true;
-                        } else {
-                            self.write_type_fields(buffer, object.name(), &fields)?;
-                        }
-                    }
-                }
-                (Some(SelectionSetType::Union(union_id)), schema::EntityDefinition::Interface(interface))
-                    if interface.is_not_fully_implemented_in(subgraph_id) && !in_same_entity =>
-                {
-                    let objects = selection_set
-                        .walker()
-                        .schema()
-                        .walk(union_id)
-                        .possible_types_ordered_by_typename()
-                        .filter(|o| o.resolvable_in(&subgraph_id));
-
-                    for object in objects {
-                        if object.subgraph_implements_interface(&subgraph_id, &interface.id()) {
-                            add_interface_fragment = true;
-                        } else {
-                            self.write_type_fields(buffer, object.name(), &fields)?;
-                        }
-                    }
-                }
-                _ => {
-                    if let Some(SelectionSetType::Interface(interface_id)) = selection_set_type {
-                        if let EntityDefinition::Object(ref object) = entity {
-                            if !object.subgraph_implements_interface(&subgraph_id, &interface_id) {
-                                continue;
-                            }
-                        }
-                    }
-
+            for object in possible_subgraph_objects {
+                // For objects that do implement the interface, we add an interface fragment
+                // instead to reduce query size.
+                if object.implements_interface_in_subgraph(&subgraph_id, &interface.id) {
                     add_interface_fragment = true;
+                } else if parent_is_fully_implemented
+                    || parent_type.possible_types_include_in_subgraph(subgraph_id, object.id)
+                {
+                    // Here we know that the subgraph can provide this object but it doesn't
+                    // implement the interface, so we need to add it separately.
+                    self.write_type_condition_and_entity_fields(
+                        buffer,
+                        EntityDefinition::Object(object),
+                        fields.iter().copied(),
+                    )?;
                 }
             }
 
             if add_interface_fragment {
-                self.write_entity_fields(in_same_entity, buffer, entity, &fields)?;
+                self.write_type_condition_and_entity_fields(buffer, entity, fields.iter().copied())?;
             }
         }
 
         Ok(())
     }
 
-    fn write_entity_fields(
+    fn write_type_condition_and_entity_fields<'a>(
         &mut self,
-        in_same_entity: bool,
         buffer: &mut String,
         entity: EntityDefinition<'_>,
-        fields: &[PlanWalker<'_, crate::operation::BoundFieldId>],
+        fields: impl Iterator<Item = PlanDataField<'a>>,
     ) -> Result<(), Error> {
-        if !in_same_entity {
-            write!(buffer, " ... on {} {{", entity.name())?;
-        }
+        write!(buffer, " ... on {} {{", entity.name())?;
 
         for field in fields {
-            self.write_field(buffer, *field)?;
-        }
-
-        if !in_same_entity {
-            buffer.push_str(" }");
-        }
-
-        Ok(())
-    }
-
-    fn write_type_fields(
-        &mut self,
-        buffer: &mut String,
-        type_name: &str,
-        fields: &[PlanWalker<'_, crate::operation::BoundFieldId>],
-    ) -> Result<(), Error> {
-        write!(buffer, " ... on {} {{", type_name)?;
-
-        for field in fields {
-            self.write_field(buffer, *field)?;
+            self.write_field(buffer, field)?;
         }
 
         buffer.push_str(" }");
@@ -306,7 +296,19 @@ impl QueryBuilderContext {
         Ok(())
     }
 
-    fn write_field(&mut self, buffer: &mut String, field: PlanField<'_>) -> Result<(), Error> {
+    fn write_fields<'a>(
+        &mut self,
+        buffer: &mut String,
+        fields: impl Iterator<Item = PlanDataField<'a>>,
+    ) -> Result<(), Error> {
+        for field in fields {
+            self.write_field(buffer, field)?;
+        }
+
+        Ok(())
+    }
+
+    fn write_field(&mut self, buffer: &mut String, field: PlanDataField<'_>) -> Result<(), Error> {
         let response_key = field.response_key_str();
         let name = field.definition().name();
         buffer.push(' ');
@@ -316,32 +318,29 @@ impl QueryBuilderContext {
             write!(buffer, "{response_key}: {name}")?;
         }
         self.write_arguments(buffer, field.arguments())?;
-        if let Some(selection_set) = field.selection_set() {
-            self.write_selection_set(
-                SelectionSetType::maybe_from(field.definition().ty().definition().id()),
-                buffer,
-                selection_set,
-            )?;
+        if let Some(ty) = field.definition().ty().definition().as_composite_type() {
+            self.write_selection_set(ParentType::CompositeType(ty), buffer, field.selection_set())?;
         }
         Ok(())
     }
 
-    fn write_arguments(&mut self, buffer: &mut String, arguments: FieldArgumentsWalker<'_>) -> Result<(), Error> {
-        if !arguments.is_empty() {
+    fn write_arguments<'a>(
+        &mut self,
+        buffer: &mut String,
+        arguments: impl ExactSizeIterator<Item = FieldArgument<'a>>,
+    ) -> Result<(), Error> {
+        if arguments.len() != 0 {
             write!(
                 buffer,
                 "({})",
                 arguments.into_iter().format_with(", ", |arg, f| {
                     // If the argument is a constant value that would still be present after query
                     // normalization we keep it to avoid adding unnecessary variables.
-                    if let Some(value) = arg
-                        .value()
-                        .and_then(|value| value.to_normalized_query_const_value_str())
-                    {
+                    if let Some(value) = arg.value_as_sanitized_query_const_value_str() {
                         f(&format_args!("{}: {}", arg.definition().name(), value))
                     } else {
                         let idx = self.variables.len();
-                        let var = self.variables.entry(arg.as_ref().input_value_id).or_insert_with(|| {
+                        let var = self.variables.entry(arg.value_id).or_insert_with(|| {
                             let ty = arg.definition().ty().to_string();
                             // prefix + ': ' + index (2) + ',' + ty.len()
                             self.estimated_variable_definitions_string_len += VARIABLE_PREFIX.len() + 5 + ty.len();

@@ -11,7 +11,7 @@ mod namespaces {
 
 /// Unique cache key that generates a URL-safe string.
 /// Stable across engine version.
-pub(super) enum Key<'a> {
+pub(crate) enum Key<'a> {
     Operation {
         name: Option<&'a str>,
         schema: &'a Schema,
@@ -19,7 +19,7 @@ pub(super) enum Key<'a> {
     },
 }
 
-pub(super) enum Document<'a> {
+pub(crate) enum Document<'a> {
     AutomaticallyPersistedQuery(&'a PersistedQueryRequestExtension),
     TrustedDocumentId { client_name: &'a str, doc_id: Cow<'a, str> },
     Text(&'a str),

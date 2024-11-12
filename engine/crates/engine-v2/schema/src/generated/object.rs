@@ -50,7 +50,7 @@ pub struct ObjectDefinitionId(std::num::NonZero<u32>);
 #[derive(Clone, Copy)]
 pub struct ObjectDefinition<'a> {
     pub(crate) schema: &'a Schema,
-    pub(crate) id: ObjectDefinitionId,
+    pub id: ObjectDefinitionId,
 }
 
 impl std::ops::Deref for ObjectDefinition<'_> {
@@ -65,9 +65,6 @@ impl<'a> ObjectDefinition<'a> {
     #[allow(clippy::should_implement_trait)]
     pub fn as_ref(&self) -> &'a ObjectDefinitionRecord {
         &self.schema[self.id]
-    }
-    pub fn id(&self) -> ObjectDefinitionId {
-        self.id
     }
     pub fn name(&self) -> &'a str {
         self.name_id.walk(self.schema)
@@ -96,11 +93,14 @@ impl<'a> ObjectDefinition<'a> {
 
 impl<'a> Walk<&'a Schema> for ObjectDefinitionId {
     type Walker<'w> = ObjectDefinition<'w> where 'a: 'w ;
-    fn walk<'w>(self, schema: &'a Schema) -> Self::Walker<'w>
+    fn walk<'w>(self, schema: impl Into<&'a Schema>) -> Self::Walker<'w>
     where
         Self: 'w,
         'a: 'w,
     {
-        ObjectDefinition { schema, id: self }
+        ObjectDefinition {
+            schema: schema.into(),
+            id: self,
+        }
     }
 }

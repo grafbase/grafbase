@@ -3,21 +3,21 @@ use walker::Walk;
 
 use crate::{
     operation::Location,
-    plan::{QueryContext, TypenamePlanField, TypenamePlanFieldId, TypenamePlanFieldRecord},
+    plan::{OperationPlanContext, TypenameField, TypenameFieldId, TypenameFieldRecord},
     response::PositionedResponseKey,
 };
 
 #[derive(Clone, Copy)]
-pub(crate) struct TypenameField<'a> {
-    pub(in crate::plan::execution::model) ctx: QueryContext<'a>,
-    pub(in crate::plan::execution::model) id: TypenamePlanFieldId,
+pub(crate) struct PlanTypenameField<'a> {
+    pub(in crate::plan::execution::model) ctx: OperationPlanContext<'a>,
+    pub(in crate::plan::execution::model) id: TypenameFieldId,
 }
 
 #[allow(unused)]
-impl<'a> TypenameField<'a> {
+impl<'a> PlanTypenameField<'a> {
     #[allow(clippy::should_implement_trait)]
-    fn as_ref(&self) -> &'a TypenamePlanFieldRecord {
-        &self.ctx.operation_plan[self.id]
+    fn as_ref(&self) -> &'a TypenameFieldRecord {
+        &self.ctx.operation_solution[self.id]
     }
     pub(crate) fn key(&self) -> PositionedResponseKey {
         self.as_ref().key
@@ -30,7 +30,7 @@ impl<'a> TypenameField<'a> {
     }
 }
 
-impl std::fmt::Debug for TypenameField<'_> {
+impl std::fmt::Debug for PlanTypenameField<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("TypenameField")
             .field("key", &self.key())

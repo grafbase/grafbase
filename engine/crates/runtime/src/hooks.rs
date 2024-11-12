@@ -23,6 +23,7 @@ impl std::fmt::Display for NodeDefinition<'_> {
     }
 }
 
+#[derive(Debug)]
 pub struct EdgeDefinition<'a> {
     pub parent_type_name: &'a str,
     pub field_name: &'a str,

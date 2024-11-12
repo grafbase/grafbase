@@ -1,8 +1,12 @@
 use crate::{InterfaceDefinition, SubgraphId};
 
-impl<'a> crate::InterfaceDefinition<'a> {
+impl<'a> InterfaceDefinition<'a> {
+    pub fn is_fully_implemented_in(&self, subgraph_id: SubgraphId) -> bool {
+        !self.not_fully_implemented_in_ids.contains(&subgraph_id)
+    }
+
     pub fn is_not_fully_implemented_in(&self, subgraph_id: SubgraphId) -> bool {
-        self.not_fully_implemented_in_ids.binary_search(&subgraph_id).is_ok()
+        self.not_fully_implemented_in_ids.contains(&subgraph_id)
     }
 }
 

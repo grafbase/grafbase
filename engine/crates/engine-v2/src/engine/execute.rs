@@ -6,6 +6,7 @@ use runtime::{auth::AccessToken, error::ErrorResponse};
 use std::{future::Future, sync::Arc};
 
 use crate::{
+    execution::create_subgraph_headers_with_rules,
     graphql_over_http::{Http, ResponseFormat},
     request::{BatchRequest, QueryParamsRequest, Request},
     response::Response,
@@ -14,7 +15,6 @@ use crate::{
 
 use super::{errors, runtime::HooksContext, Engine, Runtime, RuntimeExt};
 
-mod prepare;
 mod single;
 mod stream;
 
@@ -26,6 +26,7 @@ pub(crate) struct RequestContext {
     pub response_format: ResponseFormat,
     pub client: Option<Client>,
     pub access_token: AccessToken,
+    pub subgraph_default_headers: http::HeaderMap,
 }
 
 impl<R: Runtime> Engine<R> {
@@ -83,16 +84,18 @@ impl<R: Runtime> Engine<R> {
             return Err((errors::response::gateway_rate_limited(), hooks_context));
         }
 
-        Ok((
-            RequestContext {
-                mutations_allowed,
-                headers,
-                response_format,
-                client,
-                access_token,
-            },
-            hooks_context,
-        ))
+        let mut request_context = RequestContext {
+            mutations_allowed,
+            headers,
+            response_format,
+            client,
+            access_token,
+            subgraph_default_headers: http::HeaderMap::new(),
+        };
+        request_context.subgraph_default_headers =
+            create_subgraph_headers_with_rules(&request_context, self.schema.default_header_rules());
+
+        Ok((request_context, hooks_context))
     }
 
     pub(super) async fn extract_well_formed_graphql_over_http_request<F>(

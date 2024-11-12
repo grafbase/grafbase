@@ -4,16 +4,17 @@ use serde::{
     de::{DeserializeSeed, IgnoredAny, SeqAccess, Visitor},
     Deserializer,
 };
+use walker::Walk;
 
 use super::SeedContext;
 use crate::{
-    operation::BoundFieldId,
+    plan::DataFieldId,
     response::{ErrorCode, GraphqlError, ResponseValue},
 };
 
 pub(super) struct ListSeed<'ctx, 'parent, Seed> {
     pub ctx: &'parent SeedContext<'ctx>,
-    pub field_id: BoundFieldId,
+    pub field_id: DataFieldId,
     pub seed: &'parent Seed,
 }
 
@@ -52,7 +53,7 @@ where
         }
 
         loop {
-            self.ctx.push_edge(index.into());
+            self.ctx.push_edge(index);
             let result = seq.next_element_seed(self.seed.clone());
             self.ctx.pop_edge();
             match result {
@@ -69,7 +70,7 @@ where
                         path.push(index);
                         self.ctx.writer.push_error(
                             GraphqlError::new(err.to_string(), ErrorCode::SubgraphInvalidResponseError)
-                                .with_location(self.ctx.operation[self.field_id].location())
+                                .with_location(self.field_id.walk(self.ctx).location)
                                 .with_path(path),
                         );
                     }

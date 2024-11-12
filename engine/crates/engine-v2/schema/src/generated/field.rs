@@ -65,7 +65,7 @@ pub struct FieldDefinitionId(std::num::NonZero<u32>);
 #[derive(Clone, Copy)]
 pub struct FieldDefinition<'a> {
     pub(crate) schema: &'a Schema,
-    pub(crate) id: FieldDefinitionId,
+    pub id: FieldDefinitionId,
 }
 
 impl std::ops::Deref for FieldDefinition<'_> {
@@ -80,9 +80,6 @@ impl<'a> FieldDefinition<'a> {
     #[allow(clippy::should_implement_trait)]
     pub fn as_ref(&self) -> &'a FieldDefinitionRecord {
         &self.schema[self.id]
-    }
-    pub fn id(&self) -> FieldDefinitionId {
-        self.id
     }
     pub fn name(&self) -> &'a str {
         self.name_id.walk(self.schema)
@@ -122,12 +119,15 @@ impl<'a> FieldDefinition<'a> {
 
 impl<'a> Walk<&'a Schema> for FieldDefinitionId {
     type Walker<'w> = FieldDefinition<'w> where 'a: 'w ;
-    fn walk<'w>(self, schema: &'a Schema) -> Self::Walker<'w>
+    fn walk<'w>(self, schema: impl Into<&'a Schema>) -> Self::Walker<'w>
     where
         Self: 'w,
         'a: 'w,
     {
-        FieldDefinition { schema, id: self }
+        FieldDefinition {
+            schema: schema.into(),
+            id: self,
+        }
     }
 }
 

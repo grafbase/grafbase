@@ -46,6 +46,27 @@ impl From<RegexId> for NameOrPatternId {
     }
 }
 
+impl NameOrPatternId {
+    pub fn is_name(&self) -> bool {
+        matches!(self, NameOrPatternId::Name(_))
+    }
+    pub fn as_name(&self) -> Option<StringId> {
+        match self {
+            NameOrPatternId::Name(id) => Some(*id),
+            _ => None,
+        }
+    }
+    pub fn is_pattern(&self) -> bool {
+        matches!(self, NameOrPatternId::Pattern(_))
+    }
+    pub fn as_pattern(&self) -> Option<RegexId> {
+        match self {
+            NameOrPatternId::Pattern(id) => Some(*id),
+            _ => None,
+        }
+    }
+}
+
 #[derive(Clone, Copy)]
 pub enum NameOrPattern<'a> {
     Name(&'a str),
@@ -63,14 +84,36 @@ impl std::fmt::Debug for NameOrPattern<'_> {
 
 impl<'a> Walk<&'a Schema> for NameOrPatternId {
     type Walker<'w> = NameOrPattern<'w> where 'a: 'w ;
-    fn walk<'w>(self, schema: &'a Schema) -> Self::Walker<'w>
+    fn walk<'w>(self, schema: impl Into<&'a Schema>) -> Self::Walker<'w>
     where
         Self: 'w,
         'a: 'w,
     {
+        let schema: &'a Schema = schema.into();
         match self {
             NameOrPatternId::Name(id) => NameOrPattern::Name(&schema[id]),
             NameOrPatternId::Pattern(id) => NameOrPattern::Pattern(&schema[id]),
+        }
+    }
+}
+
+impl<'a> NameOrPattern<'a> {
+    pub fn is_name(&self) -> bool {
+        matches!(self, NameOrPattern::Name(_))
+    }
+    pub fn as_name(&self) -> Option<&'a str> {
+        match self {
+            NameOrPattern::Name(item) => Some(*item),
+            _ => None,
+        }
+    }
+    pub fn is_pattern(&self) -> bool {
+        matches!(self, NameOrPattern::Pattern(_))
+    }
+    pub fn as_pattern(&self) -> Option<&'a Regex> {
+        match self {
+            NameOrPattern::Pattern(item) => Some(*item),
+            _ => None,
         }
     }
 }
@@ -106,6 +149,45 @@ impl std::fmt::Debug for HeaderRuleRecord {
     }
 }
 
+impl HeaderRuleRecord {
+    pub fn is_forward(&self) -> bool {
+        matches!(self, HeaderRuleRecord::Forward(_))
+    }
+    pub fn as_forward(&self) -> Option<ForwardHeaderRuleRecord> {
+        match self {
+            HeaderRuleRecord::Forward(item) => Some(*item),
+            _ => None,
+        }
+    }
+    pub fn is_insert(&self) -> bool {
+        matches!(self, HeaderRuleRecord::Insert(_))
+    }
+    pub fn as_insert(&self) -> Option<InsertHeaderRuleRecord> {
+        match self {
+            HeaderRuleRecord::Insert(item) => Some(*item),
+            _ => None,
+        }
+    }
+    pub fn is_remove(&self) -> bool {
+        matches!(self, HeaderRuleRecord::Remove(_))
+    }
+    pub fn as_remove(&self) -> Option<RemoveHeaderRuleRecord> {
+        match self {
+            HeaderRuleRecord::Remove(item) => Some(*item),
+            _ => None,
+        }
+    }
+    pub fn is_rename_duplicate(&self) -> bool {
+        matches!(self, HeaderRuleRecord::RenameDuplicate(_))
+    }
+    pub fn as_rename_duplicate(&self) -> Option<RenameDuplicateHeaderRuleRecord> {
+        match self {
+            HeaderRuleRecord::RenameDuplicate(item) => Some(*item),
+            _ => None,
+        }
+    }
+}
+
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
 #[max(MAX_ID)]
 pub struct HeaderRuleId(std::num::NonZero<u32>);
@@ -113,7 +195,7 @@ pub struct HeaderRuleId(std::num::NonZero<u32>);
 #[derive(Clone, Copy)]
 pub struct HeaderRule<'a> {
     pub(crate) schema: &'a Schema,
-    pub(crate) id: HeaderRuleId,
+    pub id: HeaderRuleId,
 }
 
 #[derive(Clone, Copy)]
@@ -147,9 +229,6 @@ impl<'a> HeaderRule<'a> {
     pub fn as_ref(&self) -> &'a HeaderRuleRecord {
         &self.schema[self.id]
     }
-    pub fn id(&self) -> HeaderRuleId {
-        self.id
-    }
     pub fn variant(&self) -> HeaderRuleVariant<'a> {
         let schema = self.schema;
         match self.as_ref() {
@@ -159,16 +238,55 @@ impl<'a> HeaderRule<'a> {
             HeaderRuleRecord::RenameDuplicate(item) => HeaderRuleVariant::RenameDuplicate(item.walk(schema)),
         }
     }
+    pub fn is_forward(&self) -> bool {
+        matches!(self.variant(), HeaderRuleVariant::Forward(_))
+    }
+    pub fn as_forward(&self) -> Option<ForwardHeaderRule<'a>> {
+        match self.variant() {
+            HeaderRuleVariant::Forward(item) => Some(item),
+            _ => None,
+        }
+    }
+    pub fn is_insert(&self) -> bool {
+        matches!(self.variant(), HeaderRuleVariant::Insert(_))
+    }
+    pub fn as_insert(&self) -> Option<InsertHeaderRule<'a>> {
+        match self.variant() {
+            HeaderRuleVariant::Insert(item) => Some(item),
+            _ => None,
+        }
+    }
+    pub fn is_remove(&self) -> bool {
+        matches!(self.variant(), HeaderRuleVariant::Remove(_))
+    }
+    pub fn as_remove(&self) -> Option<RemoveHeaderRule<'a>> {
+        match self.variant() {
+            HeaderRuleVariant::Remove(item) => Some(item),
+            _ => None,
+        }
+    }
+    pub fn is_rename_duplicate(&self) -> bool {
+        matches!(self.variant(), HeaderRuleVariant::RenameDuplicate(_))
+    }
+    pub fn as_rename_duplicate(&self) -> Option<RenameDuplicateHeaderRule<'a>> {
+        match self.variant() {
+            HeaderRuleVariant::RenameDuplicate(item) => Some(item),
+            _ => None,
+        }
+    }
 }
 
 impl<'a> Walk<&'a Schema> for HeaderRuleId {
     type Walker<'w> = HeaderRule<'w> where 'a: 'w ;
-    fn walk<'w>(self, schema: &'a Schema) -> Self::Walker<'w>
+    fn walk<'w>(self, schema: impl Into<&'a Schema>) -> Self::Walker<'w>
     where
         Self: 'w,
         'a: 'w,
     {
-        HeaderRule { schema, id: self }
+        HeaderRule {
+            schema: schema.into(),
+            id: self,
+        }
     }
 }
 

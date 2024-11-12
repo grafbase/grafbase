@@ -5,8 +5,9 @@ use schema::{
     ScalarType, Schema, TypeRecord,
 };
 
-use crate::operation::{
-    BoundVariableDefinition, Location, VariableInputValueId, VariableInputValueRecord, VariableInputValues,
+use crate::{
+    operation::{Location, VariableInputValueId, VariableInputValueRecord, VariableInputValues},
+    plan::VariableDefinitionRecord,
 };
 
 use super::{
@@ -17,7 +18,7 @@ use super::{
 pub fn coerce_variable(
     schema: &Schema,
     input_values: &mut VariableInputValues,
-    definition: &BoundVariableDefinition,
+    definition: &VariableDefinitionRecord,
     value: ConstValue,
 ) -> Result<VariableInputValueId, InputValueError> {
     let mut ctx = VariableCoercionContext {
@@ -133,10 +134,7 @@ impl<'a> VariableCoercionContext<'a> {
             match fields.swap_remove(input_field.name()) {
                 None => {
                     if let Some(default_value_id) = input_field.as_ref().default_value_id {
-                        fields_buffer.push((
-                            input_field.id(),
-                            VariableInputValueRecord::DefaultValue(default_value_id),
-                        ));
+                        fields_buffer.push((input_field.id, VariableInputValueRecord::DefaultValue(default_value_id)));
                     } else if input_field.ty().wrapping.is_required() {
                         return Err(InputValueError::UnexpectedNull {
                             expected: input_field.ty().to_string(),
@@ -148,7 +146,7 @@ impl<'a> VariableCoercionContext<'a> {
                 Some(value) => {
                     self.value_path.push(input_field.as_ref().name_id.into());
                     let value = self.coerce_input_value(input_field.ty().into(), value)?;
-                    fields_buffer.push((input_field.id(), value));
+                    fields_buffer.push((input_field.id, value));
                     self.value_path.pop();
                 }
             }

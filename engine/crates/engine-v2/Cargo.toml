@@ -56,7 +56,7 @@ engine-parser = { path = "./parser" }
 engine-value = { path = "./value" }
 schema = { path = "./schema", package = "engine-v2-schema" }
 walker = { path = "./walker", package = "engine-v2-walker" }
-query-planning = { path = "./query-planning", package = "engine-v2-query-planning" }
+query-solver = { path = "./query-solver", package = "engine-v2-query-solver" }
 runtime.workspace = true
 rand.workspace = true
 grafbase-workspace-hack.workspace = true

@@ -21,7 +21,7 @@ impl<OnOperationResponseHookOutput> serde::Serialize for Response<OnOperationRes
                 ..
             }) => {
                 let mut map = serializer.serialize_map(None)?;
-                let keys = &operation.response_keys;
+                let keys = &operation.solution.response_keys;
                 if let Some(data) = data {
                     map.serialize_entry("data", &SerializableResponseData { keys, data })?;
                 } else {
@@ -207,12 +207,12 @@ impl<'a> serde::Serialize for SerializableResponseObject<'a> {
         // Thanks to the BoundResponseKey starting with the position and the fields being a BTreeMap
         // we're ensuring the fields are serialized in the order they appear in the query.
         for ResponseObjectField { edge, value, .. } in self.object.fields() {
-            let UnpackedResponseEdge::BoundResponseKey(key) = edge.unpack() else {
+            if edge.query_position.is_none() {
                 // Bound response keys are always first, anything after are extra fields which
                 // don't need to be serialized.
                 break;
             };
-            map.serialize_key(&self.keys[key])?;
+            map.serialize_key(&self.keys[edge.response_key])?;
             match value {
                 ResponseValue::Null => map.serialize_value(&())?,
                 ResponseValue::Boolean { value, .. } => map.serialize_value(value)?,

@@ -44,19 +44,25 @@ fn skip_include() {
             .await
     });
 
-    insta::assert_json_snapshot!(response, @r###"
+    insta::assert_json_snapshot!(response, @r#"
     {
       "data": {
         "pullRequestsAndIssues": [
-          {},
-          {},
+          {
+            "author": {}
+          },
+          {
+            "author": {
+              "id": "123"
+            }
+          },
           {
             "author": {}
           }
         ]
       }
     }
-    "###);
+    "#);
 }
 
 #[test]

@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use engine_parser::types::OperationType;
 use futures::{
     channel::{mpsc, oneshot},
     stream::BoxStream,
@@ -8,7 +7,7 @@ use futures::{
 };
 use futures_util::SinkExt;
 use grafbase_telemetry::{
-    graphql::{GraphqlExecutionTelemetry, GraphqlOperationAttributes, GraphqlResponseStatus},
+    graphql::{GraphqlExecutionTelemetry, GraphqlOperationAttributes, GraphqlResponseStatus, OperationType},
     metrics::{GraphqlErrorAttributes, GraphqlRequestMetricsAttributes},
     span::graphql::GraphqlOperationSpan,
 };
@@ -18,7 +17,8 @@ use web_time::Instant;
 
 use crate::{
     engine::{errors, HooksContext, RequestContext},
-    execution::{PreExecutionContext, ResponseSender},
+    execution::ResponseSender,
+    prepare::PrepareContext,
     request::Request,
     response::{ErrorCode, ErrorCodeCounter, Response},
     stream::StreamJoinExt,
@@ -49,7 +49,7 @@ impl<R: Runtime> Engine<R> {
         let stream = response_receiver
             .join(
                 async move {
-                    let ctx = PreExecutionContext::new(&engine, &request_context, hooks_context);
+                    let ctx = PrepareContext::new(&engine, &request_context, hooks_context);
                     let mut status = GraphqlResponseStatus::Success;
                     let mut error_code_counter = ErrorCodeCounter::default();
 
@@ -125,7 +125,7 @@ impl<R: Runtime> Engine<R> {
     }
 }
 
-impl<'ctx, R: Runtime> PreExecutionContext<'ctx, R> {
+impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
     async fn execute_stream<S>(mut self, request: Request, mut sender: S) -> Option<GraphqlOperationAttributes>
     where
         S: ResponseSender<<R::Hooks as Hooks>::OnOperationResponseOutput, Error = mpsc::SendError>,

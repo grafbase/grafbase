@@ -1,0 +1,9 @@
+---
+source: engine/crates/engine-v2/query-solver/src/tests/schema1.rs
+expression: "digraph {\n    0 [ label = \"root\" ]\n    1 [ label = \"__typename\" ]\n    0 -> 1 [ label = \"Typename\" ]\n}\n"
+---
+digraph {
+    0 [ root]
+    1 [ __typename]
+    0 -> 1 [ label = "TypenameField" ]
+}

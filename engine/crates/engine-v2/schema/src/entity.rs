@@ -2,15 +2,6 @@ use walker::{Iter, Walk};
 
 use crate::{DefinitionId, EntityDefinition, EntityDefinitionId, TypeSystemDirective};
 
-impl From<EntityDefinitionId> for DefinitionId {
-    fn from(value: EntityDefinitionId) -> Self {
-        match value {
-            EntityDefinitionId::Interface(id) => DefinitionId::Interface(id),
-            EntityDefinitionId::Object(id) => DefinitionId::Object(id),
-        }
-    }
-}
-
 impl EntityDefinitionId {
     pub fn maybe_from(definition: DefinitionId) -> Option<EntityDefinitionId> {
         match definition {
@@ -18,10 +9,6 @@ impl EntityDefinitionId {
             DefinitionId::Interface(id) => Some(EntityDefinitionId::Interface(id)),
             _ => None,
         }
-    }
-
-    pub fn is_object(&self) -> bool {
-        matches!(self, EntityDefinitionId::Object(_))
     }
 }
 
@@ -41,3 +28,15 @@ impl<'a> EntityDefinition<'a> {
         directive_ids.walk(schema)
     }
 }
+
+impl PartialEq for EntityDefinition<'_> {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Self::Interface(l), Self::Interface(r)) => l.id == r.id,
+            (Self::Object(l), Self::Object(r)) => l.id == r.id,
+            _ => false,
+        }
+    }
+}
+
+impl Eq for EntityDefinition<'_> {}

@@ -26,7 +26,7 @@ impl<'a> serde::Serialize for QueryInputValueView<'a> {
                     if let Some(item) = self
                         .selection_set
                         .iter()
-                        .find(|item| item.id == input_value_definition.id())
+                        .find(|item| item.id == input_value_definition.id)
                     {
                         if value.is_undefined() {
                             input_value_definition.default_value().map(|value| {

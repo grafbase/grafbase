@@ -78,6 +78,63 @@ impl From<UnionDefinitionId> for DefinitionId {
     }
 }
 
+impl DefinitionId {
+    pub fn is_enum(&self) -> bool {
+        matches!(self, DefinitionId::Enum(_))
+    }
+    pub fn as_enum(&self) -> Option<EnumDefinitionId> {
+        match self {
+            DefinitionId::Enum(id) => Some(*id),
+            _ => None,
+        }
+    }
+    pub fn is_input_object(&self) -> bool {
+        matches!(self, DefinitionId::InputObject(_))
+    }
+    pub fn as_input_object(&self) -> Option<InputObjectDefinitionId> {
+        match self {
+            DefinitionId::InputObject(id) => Some(*id),
+            _ => None,
+        }
+    }
+    pub fn is_interface(&self) -> bool {
+        matches!(self, DefinitionId::Interface(_))
+    }
+    pub fn as_interface(&self) -> Option<InterfaceDefinitionId> {
+        match self {
+            DefinitionId::Interface(id) => Some(*id),
+            _ => None,
+        }
+    }
+    pub fn is_object(&self) -> bool {
+        matches!(self, DefinitionId::Object(_))
+    }
+    pub fn as_object(&self) -> Option<ObjectDefinitionId> {
+        match self {
+            DefinitionId::Object(id) => Some(*id),
+            _ => None,
+        }
+    }
+    pub fn is_scalar(&self) -> bool {
+        matches!(self, DefinitionId::Scalar(_))
+    }
+    pub fn as_scalar(&self) -> Option<ScalarDefinitionId> {
+        match self {
+            DefinitionId::Scalar(id) => Some(*id),
+            _ => None,
+        }
+    }
+    pub fn is_union(&self) -> bool {
+        matches!(self, DefinitionId::Union(_))
+    }
+    pub fn as_union(&self) -> Option<UnionDefinitionId> {
+        match self {
+            DefinitionId::Union(id) => Some(*id),
+            _ => None,
+        }
+    }
+}
+
 #[derive(Clone, Copy)]
 pub enum Definition<'a> {
     Enum(EnumDefinition<'a>),
@@ -101,13 +158,45 @@ impl std::fmt::Debug for Definition<'_> {
     }
 }
 
+impl<'a> From<EnumDefinition<'a>> for Definition<'a> {
+    fn from(item: EnumDefinition<'a>) -> Self {
+        Definition::Enum(item)
+    }
+}
+impl<'a> From<InputObjectDefinition<'a>> for Definition<'a> {
+    fn from(item: InputObjectDefinition<'a>) -> Self {
+        Definition::InputObject(item)
+    }
+}
+impl<'a> From<InterfaceDefinition<'a>> for Definition<'a> {
+    fn from(item: InterfaceDefinition<'a>) -> Self {
+        Definition::Interface(item)
+    }
+}
+impl<'a> From<ObjectDefinition<'a>> for Definition<'a> {
+    fn from(item: ObjectDefinition<'a>) -> Self {
+        Definition::Object(item)
+    }
+}
+impl<'a> From<ScalarDefinition<'a>> for Definition<'a> {
+    fn from(item: ScalarDefinition<'a>) -> Self {
+        Definition::Scalar(item)
+    }
+}
+impl<'a> From<UnionDefinition<'a>> for Definition<'a> {
+    fn from(item: UnionDefinition<'a>) -> Self {
+        Definition::Union(item)
+    }
+}
+
 impl<'a> Walk<&'a Schema> for DefinitionId {
     type Walker<'w> = Definition<'w> where 'a: 'w ;
-    fn walk<'w>(self, schema: &'a Schema) -> Self::Walker<'w>
+    fn walk<'w>(self, schema: impl Into<&'a Schema>) -> Self::Walker<'w>
     where
         Self: 'w,
         'a: 'w,
     {
+        let schema: &'a Schema = schema.into();
         match self {
             DefinitionId::Enum(id) => Definition::Enum(id.walk(schema)),
             DefinitionId::InputObject(id) => Definition::InputObject(id.walk(schema)),
@@ -119,7 +208,7 @@ impl<'a> Walk<&'a Schema> for DefinitionId {
     }
 }
 
-impl Definition<'_> {
+impl<'a> Definition<'a> {
     pub fn id(&self) -> DefinitionId {
         match self {
             Definition::Enum(walker) => DefinitionId::Enum(walker.id),
@@ -128,6 +217,60 @@ impl Definition<'_> {
             Definition::Object(walker) => DefinitionId::Object(walker.id),
             Definition::Scalar(walker) => DefinitionId::Scalar(walker.id),
             Definition::Union(walker) => DefinitionId::Union(walker.id),
+        }
+    }
+    pub fn is_enum(&self) -> bool {
+        matches!(self, Definition::Enum(_))
+    }
+    pub fn as_enum(&self) -> Option<EnumDefinition<'a>> {
+        match self {
+            Definition::Enum(item) => Some(*item),
+            _ => None,
+        }
+    }
+    pub fn is_input_object(&self) -> bool {
+        matches!(self, Definition::InputObject(_))
+    }
+    pub fn as_input_object(&self) -> Option<InputObjectDefinition<'a>> {
+        match self {
+            Definition::InputObject(item) => Some(*item),
+            _ => None,
+        }
+    }
+    pub fn is_interface(&self) -> bool {
+        matches!(self, Definition::Interface(_))
+    }
+    pub fn as_interface(&self) -> Option<InterfaceDefinition<'a>> {
+        match self {
+            Definition::Interface(item) => Some(*item),
+            _ => None,
+        }
+    }
+    pub fn is_object(&self) -> bool {
+        matches!(self, Definition::Object(_))
+    }
+    pub fn as_object(&self) -> Option<ObjectDefinition<'a>> {
+        match self {
+            Definition::Object(item) => Some(*item),
+            _ => None,
+        }
+    }
+    pub fn is_scalar(&self) -> bool {
+        matches!(self, Definition::Scalar(_))
+    }
+    pub fn as_scalar(&self) -> Option<ScalarDefinition<'a>> {
+        match self {
+            Definition::Scalar(item) => Some(*item),
+            _ => None,
+        }
+    }
+    pub fn is_union(&self) -> bool {
+        matches!(self, Definition::Union(_))
+    }
+    pub fn as_union(&self) -> Option<UnionDefinition<'a>> {
+        match self {
+            Definition::Union(item) => Some(*item),
+            _ => None,
         }
     }
 }

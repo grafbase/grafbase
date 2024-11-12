@@ -1,3 +1,4 @@
+use case::CaseExt;
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::{quote, TokenStreamExt};
 use tracing::instrument;
@@ -23,7 +24,6 @@ pub fn generate_walker(
     };
     let enum_name = Ident::new(union.enum_name(), Span::call_site());
     let context_name = Ident::new(&domain.context_name, Span::call_site());
-    let context_accessor = domain.domain_accessor(None);
     let context_type = &domain.context_type;
     let walker_enum_name = Ident::new(union.walker_enum_name(), Span::call_site());
     let walk_trait = Ident::new(WALKER_TRAIT, Span::call_site());
@@ -77,7 +77,7 @@ pub fn generate_walker(
                         #[derive(Clone, Copy)]
                         pub #public struct #walker_name<'a> {
                             pub(#private) #context_name: #context_type,
-                            pub(#private) id: #id_struct_name,
+                            pub #public id: #id_struct_name,
                         }
                     },
                 );
@@ -95,15 +95,18 @@ pub fn generate_walker(
                     walker_enum_name: union.walker_enum_name(),
                     enum_name: union.enum_name(),
                 });
+                let as_variants = variants.iter().copied().map(|variant| AsVariantWalkerVariant {
+                    variant,
+                    walker_enum_name: union.walker_enum_name(),
+                });
+
+                let domain_accesor = domain.domain_accessor();
                 code_sections.push(quote! {
                     #allow_unused
                     impl<'a> #walker_name<'a> {
                         #[allow(clippy::should_implement_trait)]
                         pub #public fn as_ref(&self) -> &'a #enum_name {
-                            &self.#context_accessor[self.id]
-                        }
-                        pub #public fn id(&self) -> #id_struct_name {
-                            self.id
+                            &self.#domain_accesor[self.id]
                         }
                         pub #public fn variant(&self) -> #walker_enum_name<'a> {
                             let #context_name = self.#context_name;
@@ -111,6 +114,7 @@ pub fn generate_walker(
                                 #(#walk_branches),*
                             }
                         }
+                        #(#as_variants)*
                     }
                 });
 
@@ -118,13 +122,13 @@ pub fn generate_walker(
                     impl<'a> #walk_trait<#context_type> for #id_struct_name {
                         type Walker<'w> = #walker_name<'w> where 'a: 'w;
 
-                        fn walk<'w>(self, #context_name: #context_type) -> Self::Walker<'w>
+                        fn walk<'w>(self, #context_name: impl Into<#context_type>) -> Self::Walker<'w>
                         where
                             Self: 'w,
                             'a: 'w
                         {
                             #walker_name {
-                                #context_name,
+                                #context_name: #context_name.into(),
                                 id: self,
                             }
                         }
@@ -144,6 +148,12 @@ pub fn generate_walker(
             }
         }
         UnionKind::Id(_) | UnionKind::BitpackedId(_) => {
+            let from_variants = variants.iter().copied().map(|variant| FromNonScalarWalkerVariant {
+                variant,
+                walker_enum_name: union.walker_enum_name(),
+            });
+            code_sections.push(quote! { #(#from_variants)* });
+
             let walk_branches = variants.iter().copied().map(|variant| IdUnionWalkerBranch {
                 variant,
                 walker_enum_name: union.walker_enum_name(),
@@ -154,16 +164,22 @@ pub fn generate_walker(
                 impl<'a> #walk_trait<#context_type> for #enum_name {
                     type Walker<'w> = #walker_enum_name<'w> where 'a: 'w;
 
-                    fn walk<'w>(self, #context_name: #context_type) -> Self::Walker<'w>
+                    fn walk<'w>(self, #context_name: impl Into<#context_type>) -> Self::Walker<'w>
                     where
                         Self: 'w,
                         'a: 'w
                     {
+                        let #context_name: #context_type = #context_name.into();
                         match self {
                             #(#walk_branches),*
                         }
                     }
                 }
+            });
+
+            let as_variants = variants.iter().copied().map(|variant| AsIdWalkerVariant {
+                variant,
+                walker_enum_name: union.walker_enum_name(),
             });
 
             match variants
@@ -182,16 +198,23 @@ pub fn generate_walker(
                 Ok(id_branches) => {
                     code_sections.push(quote! {
                         #allow_unused
-                        impl #walker_enum_name<'_> {
+                        impl<'a> #walker_enum_name<'a> {
                             pub #public fn id(&self) -> #enum_name {
                                 match self {
                                     #(#id_branches),*
                                 }
                             }
+                            #(#as_variants)*
                         }
                     });
                 }
                 Err((variant_name, value_name)) => {
+                    code_sections.push(quote! {
+                        #allow_unused
+                        impl<'a> #walker_enum_name<'a> {
+                            #(#as_variants)*
+                        }
+                    });
                     tracing::warn!(
                         "Could not generate id() method for walker '{}' because variant '{}' has a value '{}' which doesn't have any.",
                         union.name(),
@@ -212,29 +235,11 @@ impl quote::ToTokens for WalkerVariant<'_> {
     #[instrument(name = "walker_variant", skip_all, fields(variant = ?self.0.variant))]
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         let variant = Ident::new(&self.0.name, Span::call_site());
-        let tt = if let Some(value) = self.0.value {
-            match value {
-                Definition::Scalar(Scalar::Value { copy, .. }) => {
-                    let walker = Ident::new(value.walker_name(), Span::call_site());
-                    if *copy {
-                        quote! { #variant(#walker) }
-                    } else {
-                        quote! { #variant(&'a #walker) }
-                    }
-                }
-                Definition::Scalar(Scalar::Ref { target, .. }) => {
-                    let walker = Ident::new(target.walker_name(), Span::call_site());
-                    quote! { #variant(#walker<'a>) }
-                }
-                _ => {
-                    let walker = Ident::new(value.walker_name(), Span::call_site());
-                    quote! { #variant(#walker<'a>) }
-                }
-            }
+        tokens.append_all(if let Some(ty) = self.0.value_type() {
+            quote! { #variant(#ty) }
         } else {
             quote! { #variant }
-        };
-        tokens.append_all(tt);
+        })
     }
 }
 
@@ -247,6 +252,7 @@ struct RecordUnionWalkerBranch<'a> {
 impl quote::ToTokens for RecordUnionWalkerBranch<'_> {
     #[instrument(name = "record_union_walker_branch", skip_all, fields(variant = ?self.variant.variant))]
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        let ctx = Ident::new(&self.variant.domain.context_name, Span::call_site());
         let enum_ = Ident::new(self.enum_name, Span::call_site());
         let variant = Ident::new(&self.variant.name, Span::call_site());
         let walker = Ident::new(self.walker_enum_name, Span::call_site());
@@ -260,19 +266,15 @@ impl quote::ToTokens for RecordUnionWalkerBranch<'_> {
                     quote! { #enum_::#variant(item) => #walker::#variant(&item) }
                 }
                 AccessKind::IdRef => {
-                    let ctx = self.variant.domain.domain_accessor(value.external_domain_name());
                     quote! { #enum_::#variant(id) => #walker::#variant(&#ctx[id]) }
                 }
                 AccessKind::IdWalker => {
-                    let ctx = self.variant.domain.context_accessor(value.external_domain_name());
                     quote! { #enum_::#variant(id) => #walker::#variant(id.walk(#ctx)) }
                 }
                 AccessKind::ItemWalker => {
-                    let ctx = self.variant.domain.context_accessor(value.external_domain_name());
                     quote! { #enum_::#variant(item) => #walker::#variant(item.walk(#ctx)) }
                 }
                 AccessKind::RefWalker => {
-                    let ctx = self.variant.domain.context_accessor(value.external_domain_name());
                     quote! { #enum_::#variant(ref item) => #walker::#variant(item.walk(#ctx)) }
                 }
             }
@@ -292,21 +294,18 @@ struct IdUnionWalkerBranch<'a> {
 impl quote::ToTokens for IdUnionWalkerBranch<'_> {
     #[instrument(name = "id_union_walker_branch", skip_all, fields(variant = ?self.variant.variant))]
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        let ctx = Ident::new(&self.variant.domain.context_name, Span::call_site());
         let enum_ = Ident::new(self.enum_name, Span::call_site());
         let walker = Ident::new(self.walker_enum_name, Span::call_site());
         let variant = Ident::new(&self.variant.name, Span::call_site());
 
         let tt = match self.variant.value {
-            Some(Definition::Scalar(Scalar::Value {
-                external_domain_name, ..
-            })) => {
-                let ctx = self.variant.domain.domain_accessor(external_domain_name.as_deref());
+            Some(Definition::Scalar(Scalar::Value { .. })) => {
                 quote! {
                     #enum_::#variant(id) => #walker::#variant(&#ctx[id])
                 }
             }
             Some(value) => {
-                let ctx = self.variant.domain.context_accessor(value.external_domain_name());
                 if value.storage_type().is_id() {
                     quote! {
                         #enum_::#variant(id) => #walker::#variant(id.walk(#ctx))
@@ -377,5 +376,104 @@ impl<'a> IdUnionWalkerIdMethodBranch<'a> {
         };
 
         Ok(tt)
+    }
+}
+
+struct FromNonScalarWalkerVariant<'a> {
+    variant: VariantContext<'a>,
+    walker_enum_name: &'a str,
+}
+
+impl quote::ToTokens for FromNonScalarWalkerVariant<'_> {
+    #[instrument(name = "from_walker_variant", skip_all, fields(variant = ?self.variant.variant))]
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        let enum_ = Ident::new(self.walker_enum_name, Span::call_site());
+        let variant = Ident::new(&self.variant.name, Span::call_site());
+        if self
+            .variant
+            .value
+            .map(|def| matches!(def, Definition::Scalar { .. }))
+            .unwrap_or_default()
+        {
+            return;
+        }
+        let Some(ty) = self.variant.value_type() else {
+            return;
+        };
+
+        tokens.append_all(quote! {
+            impl<'a> From<#ty> for #enum_<'a> {
+                fn from(item: #ty) -> Self {
+                    #enum_::#variant(item)
+                }
+            }
+        });
+    }
+}
+
+struct AsVariantWalkerVariant<'a> {
+    variant: VariantContext<'a>,
+    walker_enum_name: &'a str,
+}
+
+impl quote::ToTokens for AsVariantWalkerVariant<'_> {
+    #[instrument(name = "as_walker_variant", skip_all, fields(variant = ?self.variant.variant))]
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        let public = &self.variant.domain.public_visibility;
+        let enum_ = Ident::new(self.walker_enum_name, Span::call_site());
+        let variant = Ident::new(&self.variant.name, Span::call_site());
+        let is_variant = Ident::new(&format!("is_{}", self.variant.name.to_snake()), Span::call_site());
+
+        if let Some(ty) = self.variant.value_type() {
+            let as_variant = Ident::new(&format!("as_{}", self.variant.name.to_snake()), Span::call_site());
+            tokens.append_all(quote! {
+                pub #public fn #is_variant(&self) -> bool {
+                    matches!(self.variant(), #enum_::#variant(_))
+                }
+                pub #public fn #as_variant(&self) -> Option<#ty> {
+                    match self.variant() {
+                        #enum_::#variant(item) => Some(item),
+                        _ => None
+                    }
+                }
+            });
+        } else {
+            tokens.append_all(quote! {
+                pub #public fn #is_variant(&self) -> bool {
+                    matches!(self.variant(), #enum_::#variant)
+                }
+            });
+        }
+    }
+}
+
+struct AsIdWalkerVariant<'a> {
+    variant: VariantContext<'a>,
+    walker_enum_name: &'a str,
+}
+
+impl quote::ToTokens for AsIdWalkerVariant<'_> {
+    #[instrument(name = "as_walker_variant", skip_all, fields(variant = ?self.variant.variant))]
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        let public = &self.variant.domain.public_visibility;
+        let enum_ = Ident::new(self.walker_enum_name, Span::call_site());
+        let variant = Ident::new(&self.variant.name, Span::call_site());
+        let is_variant = Ident::new(&format!("is_{}", self.variant.name.to_snake()), Span::call_site());
+        let as_variant = Ident::new(&format!("as_{}", self.variant.name.to_snake()), Span::call_site());
+        let Some(ty) = self.variant.value_type() else {
+            return;
+        };
+
+        tokens.append_all(quote! {
+            pub #public fn #is_variant(&self) -> bool {
+                matches!(self, #enum_::#variant(_))
+            }
+            pub #public fn #as_variant(&self) -> Option<#ty> {
+                match self {
+                    #enum_::#variant(item) => Some(*item),
+                    _ => None
+                }
+            }
+        });
     }
 }

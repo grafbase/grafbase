@@ -51,12 +51,15 @@ impl<'a> JoinMemberDefinition<'a> {
 
 impl<'a> Walk<&'a Schema> for JoinMemberDefinitionRecord {
     type Walker<'w> = JoinMemberDefinition<'w> where 'a: 'w ;
-    fn walk<'w>(self, schema: &'a Schema) -> Self::Walker<'w>
+    fn walk<'w>(self, schema: impl Into<&'a Schema>) -> Self::Walker<'w>
     where
         Self: 'w,
         'a: 'w,
     {
-        JoinMemberDefinition { schema, item: self }
+        JoinMemberDefinition {
+            schema: schema.into(),
+            item: self,
+        }
     }
 }
 

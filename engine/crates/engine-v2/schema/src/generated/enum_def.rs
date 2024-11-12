@@ -35,7 +35,7 @@ pub struct EnumDefinitionId(std::num::NonZero<u32>);
 #[derive(Clone, Copy)]
 pub struct EnumDefinition<'a> {
     pub(crate) schema: &'a Schema,
-    pub(crate) id: EnumDefinitionId,
+    pub id: EnumDefinitionId,
 }
 
 impl std::ops::Deref for EnumDefinition<'_> {
@@ -50,9 +50,6 @@ impl<'a> EnumDefinition<'a> {
     #[allow(clippy::should_implement_trait)]
     pub fn as_ref(&self) -> &'a EnumDefinitionRecord {
         &self.schema[self.id]
-    }
-    pub fn id(&self) -> EnumDefinitionId {
-        self.id
     }
     pub fn name(&self) -> &'a str {
         self.name_id.walk(self.schema)
@@ -70,12 +67,15 @@ impl<'a> EnumDefinition<'a> {
 
 impl<'a> Walk<&'a Schema> for EnumDefinitionId {
     type Walker<'w> = EnumDefinition<'w> where 'a: 'w ;
-    fn walk<'w>(self, schema: &'a Schema) -> Self::Walker<'w>
+    fn walk<'w>(self, schema: impl Into<&'a Schema>) -> Self::Walker<'w>
     where
         Self: 'w,
         'a: 'w,
     {
-        EnumDefinition { schema, id: self }
+        EnumDefinition {
+            schema: schema.into(),
+            id: self,
+        }
     }
 }
 

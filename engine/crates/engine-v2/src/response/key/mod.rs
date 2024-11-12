@@ -64,6 +64,8 @@ const INDEX_FLAG: u32 = OTHER_FLAG | 0b0100_0000_0000_0000_0000_0000_0000_0000;
 const INDEX_MASK: u32 = !INDEX_FLAG;
 
 mod private;
+use std::cmp::Ordering;
+
 pub use private::*;
 
 use crate::operation::QueryPosition;
@@ -73,6 +75,25 @@ pub(crate) struct PositionedResponseKey {
     /// If not present, it's an extra field.
     pub query_position: Option<QueryPosition>,
     pub response_key: ResponseKey,
+}
+
+impl Ord for PositionedResponseKey {
+    // Inverting the ordering of Option. We want extra fields at the end, so None should be treated
+    // as the highest position possible.
+    fn cmp(&self, other: &Self) -> Ordering {
+        match (self.query_position, other.query_position) {
+            (None, None) => self.response_key.cmp(&other.response_key),
+            (None, Some(_)) => Ordering::Greater,
+            (Some(_), None) => Ordering::Less,
+            (Some(l), Some(r)) => l.cmp(&r).then(self.response_key.cmp(&other.response_key)),
+        }
+    }
+}
+
+impl PartialOrd for PositionedResponseKey {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
 }
 
 impl From<BoundResponseKey> for PositionedResponseKey {
@@ -102,7 +123,7 @@ impl From<PositionedResponseKey> for ResponseEdge {
         if let Some(position) = key.query_position {
             BoundResponseKey((key.response_key.0 as u32) | ((u16::from(position) as u32) << POSITION_BIT_SHIFT)).into()
         } else {
-            ResponseEdge(EXTRA_FIELD_KEY_FLAG | key.response_key.0 as u32)
+            UnpackedResponseEdge::ExtraFieldResponseKey(key.response_key).pack()
         }
     }
 }

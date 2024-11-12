@@ -1,0 +1,27 @@
+---
+source: engine/crates/engine-v2/query-solver/src/tests/mutation.rs
+expression: "digraph {\n    0 [ label = \"root\" ]\n    1 [ label = \"Root#reviews\", color=royalblue,shape=parallelogram ]\n    2 [ label = \"createReview\" ]\n    3 [ label = \"id\" ]\n    4 [ label = \"Root#products\", color=royalblue,shape=parallelogram ]\n    5 [ label = \"createProduct\" ]\n    6 [ label = \"upc\" ]\n    7 [ label = \"Root#accounts\", color=royalblue,shape=parallelogram ]\n    8 [ label = \"createUser\" ]\n    9 [ label = \"id\" ]\n    0 -> 1 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    8 -> 9 [ label = \"\" ]\n    2 -> 3 [ label = \"\" ]\n    0 -> 4 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    7 -> 4 [ label = \"\", color=red ]\n    5 -> 6 [ label = \"\" ]\n    0 -> 7 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    4 -> 1 [ label = \"\", color=red ]\n    7 -> 8 [ label = \"\" ]\n    4 -> 5 [ label = \"\" ]\n    1 -> 2 [ label = \"\" ]\n}\n"
+---
+digraph {
+    0 [ label = "root" ]
+    1 [ label = "Root#reviews" ]
+    2 [ label = "createReview" ]
+    3 [ label = "id" ]
+    4 [ label = "Root#products" ]
+    5 [ label = "createProduct" ]
+    6 [ label = "upc" ]
+    7 [ label = "Root#accounts" ]
+    8 [ label = "createUser" ]
+    9 [ label = "id" ]
+    0 -> 1 [ label = "QueryPartition" ]
+    8 -> 9 [ label = "Field" ]
+    2 -> 3 [ label = "Field" ]
+    0 -> 4 [ label = "QueryPartition" ]
+    7 -> 4 [ label = "MutationExecutedAfter" ]
+    5 -> 6 [ label = "Field" ]
+    0 -> 7 [ label = "QueryPartition" ]
+    4 -> 1 [ label = "MutationExecutedAfter" ]
+    7 -> 8 [ label = "Field" ]
+    4 -> 5 [ label = "Field" ]
+    1 -> 2 [ label = "Field" ]
+}

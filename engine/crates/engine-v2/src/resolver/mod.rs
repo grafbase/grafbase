@@ -44,14 +44,15 @@
 //! executor will have a root for each product in the response.
 use futures::FutureExt;
 use futures_util::stream::BoxStream;
+use grafbase_telemetry::graphql::OperationType;
 use runtime::hooks::Hooks;
-use schema::{ResolverDefinition, ResolverDefinitionVariant};
+use schema::ResolverDefinitionVariant;
 use std::future::Future;
 
 use crate::{
-    execution::{ExecutionContext, ExecutionError, ExecutionResult, PlanningResult, SubscriptionResponse},
-    operation::{OperationType, PlanWalker},
-    response::{OldResponseObjectsView, SubgraphResponse},
+    execution::{ExecutionContext, ExecutionError, ExecutionResult, SubscriptionResponse},
+    plan::{Plan, PlanQueryPartition, PlanResult},
+    response::{ResponseObjectsView, SubgraphResponse},
     Runtime,
 };
 
@@ -63,6 +64,7 @@ use self::{
 mod graphql;
 mod introspection;
 
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub(crate) enum Resolver {
     GraphQL(GraphqlResolver),
     FederationEntity(FederationEntityResolver),
@@ -70,18 +72,14 @@ pub(crate) enum Resolver {
 }
 
 impl Resolver {
-    pub fn prepare(
-        definition: ResolverDefinition<'_>,
-        operation_type: OperationType,
-        plan: PlanWalker<'_>,
-    ) -> PlanningResult<Self> {
-        match definition.variant() {
+    pub fn prepare(operation_type: OperationType, plan_query_partition: PlanQueryPartition<'_>) -> PlanResult<Self> {
+        match plan_query_partition.resolver_definition().variant() {
             ResolverDefinitionVariant::Introspection => Ok(Resolver::Introspection(IntrospectionResolver)),
-            ResolverDefinitionVariant::GraphqlRootField(resolver) => {
-                GraphqlResolver::prepare(resolver, operation_type, plan)
+            ResolverDefinitionVariant::GraphqlRootField(definition) => {
+                GraphqlResolver::prepare(definition, operation_type, plan_query_partition)
             }
-            ResolverDefinitionVariant::GraphqlFederationEntity(resolver) => {
-                FederationEntityResolver::prepare(resolver, plan)
+            ResolverDefinitionVariant::GraphqlFederationEntity(definition) => {
+                FederationEntityResolver::prepare(definition, plan_query_partition)
             }
         }
     }
@@ -96,11 +94,11 @@ impl Resolver {
     pub fn execute<'ctx, 'fut, R: Runtime>(
         &'ctx self,
         ctx: ExecutionContext<'ctx, R>,
-        plan: PlanWalker<'ctx, ()>,
+        plan: Plan<'ctx>,
         // This cannot be kept in the future, it locks the whole the response to have this view.
         // So an executor is expected to prepare whatever it required from the response before
         // awaiting anything.
-        root_response_objects: OldResponseObjectsView<'_>,
+        root_response_objects: ResponseObjectsView<'_>,
         subgraph_response: SubgraphResponse,
     ) -> impl Future<Output = ResolverResult<<R::Hooks as Hooks>::OnSubgraphResponseOutput>> + Send + 'fut
     where
@@ -109,7 +107,7 @@ impl Resolver {
         match self {
             Resolver::GraphQL(prepared) => async move {
                 let mut ctx = prepared.build_subgraph_context(ctx);
-                let subgraph_result = prepared.execute(&mut ctx, plan, subgraph_response).await;
+                let subgraph_result = prepared.execute(&mut ctx, subgraph_response).await;
                 ctx.finalize(subgraph_result).await
             }
             .boxed(),
@@ -142,7 +140,7 @@ impl Resolver {
     pub async fn execute_subscription<'ctx, R: Runtime>(
         &'ctx self,
         ctx: ExecutionContext<'ctx, R>,
-        plan: PlanWalker<'ctx>,
+        _plan: Plan<'ctx>,
         new_response: impl Fn() -> SubscriptionResponse + Send + 'ctx,
     ) -> ExecutionResult<BoxStream<'ctx, ExecutionResult<SubscriptionResponse>>> {
         match self {
@@ -150,7 +148,7 @@ impl Resolver {
                 // TODO: for now we do not finalize this, e.g. we do not call the subgraph response hook. We should figure
                 // out later what kind of data that hook would contain.
                 let mut ctx = prepared.build_subgraph_context(ctx);
-                prepared.execute_subscription(&mut ctx, plan, new_response).await
+                prepared.execute_subscription(&mut ctx, new_response).await
             }
             Resolver::Introspection(_) => Err(ExecutionError::Internal(
                 "Subscriptions can't contain introspection".into(),

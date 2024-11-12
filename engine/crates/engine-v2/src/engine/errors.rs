@@ -79,17 +79,6 @@ pub(crate) mod response {
         ErrorCode,
     };
 
-    pub(crate) fn mutation_not_allowed_with_safe_method<OnOperationResponseHookOutput>(
-    ) -> Response<OnOperationResponseHookOutput> {
-        Response::refuse_request_with(
-            http::StatusCode::METHOD_NOT_ALLOWED,
-            vec![GraphqlError::new(
-                "Mutation is not allowed with a safe method like GET",
-                ErrorCode::BadRequest,
-            )],
-        )
-    }
-
     pub(crate) fn gateway_rate_limited<OnOperationResponseHookOutput>() -> Response<OnOperationResponseHookOutput> {
         Response::refuse_request_with(
             http::StatusCode::TOO_MANY_REQUESTS,

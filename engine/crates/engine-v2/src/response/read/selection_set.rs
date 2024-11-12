@@ -1,6 +1,6 @@
 use id_derives::{Id, IndexedFields};
 use id_newtypes::IdRange;
-use schema::{RequiredFieldId, StringId};
+use schema::{SchemaFieldId, StringId};
 
 #[derive(Default, IndexedFields)]
 pub(crate) struct ResponseViews {
@@ -16,6 +16,6 @@ pub(crate) type ResponseViewSelectionSet = IdRange<ResponseViewSelectionId>;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct ResponseViewSelection {
     pub name: StringId,
-    pub id: RequiredFieldId,
+    pub id: SchemaFieldId,
     pub subselection: ResponseViewSelectionSet,
 }

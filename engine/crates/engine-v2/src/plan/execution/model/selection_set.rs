@@ -1,40 +1,32 @@
+use itertools::Itertools;
 use walker::{Iter, Walk};
 
-use crate::plan::PlanSelectionSetRecord;
+use crate::plan::{QueryPartitionId, SelectionSetRecord};
 
-use super::{DataField, Field, QueryContext, TypenameField};
+use super::{OperationPlanContext, PlanDataField, PlanField, PlanTypenameField};
 
 #[derive(Clone, Copy)]
-pub(crate) struct SelectionSet<'a> {
-    pub(in crate::plan::execution::model) ctx: QueryContext<'a>,
-    pub(in crate::plan::execution::model) item: PlanSelectionSetRecord,
+pub(crate) struct PlanSelectionSet<'a> {
+    pub(in crate::plan::execution::model) ctx: OperationPlanContext<'a>,
+    pub(in crate::plan::execution::model) item: SelectionSetRecord,
     pub(in crate::plan::execution::model) requires_typename: bool,
 }
 
 #[allow(unused)]
-impl<'a> SelectionSet<'a> {
-    pub(crate) fn fields(&self) -> impl Iterator<Item = Field<'a>> + 'a {
-        self.data_fields()
-            .map(Field::Data)
-            .chain(self.typename_fields().map(Field::Typename))
+impl<'a> PlanSelectionSet<'a> {
+    pub(crate) fn fields(&self) -> impl Iterator<Item = PlanDataField<'a>> + 'a {
+        self.fields_ordered_by_type_condition_then_position()
     }
 
-    pub(crate) fn data_fields(&self) -> impl Iterator<Item = DataField<'a>> + 'a {
+    pub(crate) fn fields_ordered_by_type_condition_then_position(
+        &self,
+    ) -> impl Iterator<Item = PlanDataField<'a>> + 'a {
         let ctx = self.ctx;
         self.item
-            .data_field_ids
+            .data_field_ids_ordered_by_parent_entity_id_then_key
             .into_iter()
-            .filter(|id| !self.ctx.query_modifications.skipped_data_fields[*id])
-            .map(move |id| DataField { ctx, id })
-    }
-
-    pub(crate) fn typename_fields(&self) -> impl Iterator<Item = TypenameField<'a>> + 'a {
-        let ctx = self.ctx;
-        self.item
-            .typename_field_ids
-            .into_iter()
-            .filter(|id| !self.ctx.query_modifications.skipped_typename_fields[*id])
-            .map(move |id| TypenameField { ctx, id })
+            .filter(|id| !self.ctx.operation_plan.query_modifications.skipped_data_fields[*id])
+            .map(move |id| PlanDataField { ctx, id })
     }
 
     pub(crate) fn requires_typename(&self) -> bool {
@@ -42,11 +34,10 @@ impl<'a> SelectionSet<'a> {
     }
 }
 
-impl std::fmt::Debug for SelectionSet<'_> {
+impl std::fmt::Debug for PlanSelectionSet<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("SelectionSet")
-            .field("data_fields", &self.data_fields().collect::<Vec<_>>())
-            .field("typename_fields", &self.typename_fields().collect::<Vec<_>>())
+            .field("fields", &self.fields().collect::<Vec<_>>())
             .finish()
     }
 }

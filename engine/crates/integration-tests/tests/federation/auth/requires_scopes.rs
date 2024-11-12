@@ -62,7 +62,7 @@ fn no_scope() {
         insta::assert_json_snapshot!(requests, @r#"
         [
           {
-            "query": "query { check { __typename } }",
+            "query": "query { check { __typename @skip(if: true) } }",
             "operationName": null,
             "variables": {},
             "extensions": {}

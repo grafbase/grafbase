@@ -1,16 +1,17 @@
 use schema::{ListWrapping, Wrapping};
 use serde::de::DeserializeSeed;
+use walker::Walk;
 
 use super::{
     object::{ConcreteObjectSeed, PolymorphicObjectSeed},
     EnumValueSeed, ListSeed, NullableSeed, ScalarTypeSeed, SeedContext,
 };
-use crate::response::{ErrorCode, FieldShape, GraphqlError, ResponseValue, Shape};
+use crate::response::{ErrorCode, FieldShapeRecord, GraphqlError, ResponseValue, Shape};
 
 #[derive(Clone)]
 pub(super) struct FieldSeed<'ctx, 'parent> {
     pub ctx: &'parent SeedContext<'ctx>,
-    pub field: &'parent FieldShape,
+    pub field: &'parent FieldShapeRecord,
     pub wrapping: Wrapping,
 }
 
@@ -79,7 +80,7 @@ impl<'de, 'ctx, 'parent> DeserializeSeed<'de> for FieldSeed<'ctx, 'parent> {
             if self.ctx.should_create_new_graphql_error() {
                 self.ctx.writer.push_error(
                     GraphqlError::new(err.to_string(), ErrorCode::SubgraphInvalidResponseError)
-                        .with_location(self.ctx.operation[self.field.id].location())
+                        .with_location(self.field.id.walk(self.ctx).location)
                         .with_path(self.ctx.response_path()),
                 );
             }

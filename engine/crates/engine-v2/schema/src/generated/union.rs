@@ -5,8 +5,8 @@
 //! Source file: <engine-v2-codegen dir>/domain/schema.graphql
 use crate::{
     generated::{
-        JoinMemberDefinition, JoinMemberDefinitionRecord, ObjectDefinition, ObjectDefinitionId, TypeSystemDirective,
-        TypeSystemDirectiveId,
+        JoinMemberDefinition, JoinMemberDefinitionRecord, ObjectDefinition, ObjectDefinitionId, Subgraph, SubgraphId,
+        TypeSystemDirective, TypeSystemDirectiveId,
     },
     prelude::*,
     StringId,
@@ -22,8 +22,14 @@ use walker::{Iter, Walk};
 ///   possible_types: [ObjectDefinition!]!
 ///   possible_types_ordered_by_typename: [ObjectDefinition!]!
 ///   directives: [TypeSystemDirective!]!
-///   "sorted by SubgraphId, then InterfaceId"
+///   "sorted by SubgraphId, then ObjectDefinitionId"
 ///   join_members: [JoinMemberDefinition!]!
+///   """
+///   It can happen that an object that is member of this union at the supergraph level doesn't in a subgraph.
+///   If this happens, we keep track of those subgraph so we we can generate appropriate queries.
+///   Sorted by SubgraphId
+///   """
+///   not_fully_implemented_in: [Subgraph!]!
 /// }
 /// ```
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
@@ -33,8 +39,12 @@ pub struct UnionDefinitionRecord {
     pub possible_type_ids: Vec<ObjectDefinitionId>,
     pub possible_types_ordered_by_typename_ids: Vec<ObjectDefinitionId>,
     pub directive_ids: Vec<TypeSystemDirectiveId>,
-    /// sorted by SubgraphId, then InterfaceId
+    /// sorted by SubgraphId, then ObjectDefinitionId
     pub join_member_records: Vec<JoinMemberDefinitionRecord>,
+    /// It can happen that an object that is member of this union at the supergraph level doesn't in a subgraph.
+    /// If this happens, we keep track of those subgraph so we we can generate appropriate queries.
+    /// Sorted by SubgraphId
+    pub not_fully_implemented_in_ids: Vec<SubgraphId>,
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
@@ -44,7 +54,7 @@ pub struct UnionDefinitionId(std::num::NonZero<u32>);
 #[derive(Clone, Copy)]
 pub struct UnionDefinition<'a> {
     pub(crate) schema: &'a Schema,
-    pub(crate) id: UnionDefinitionId,
+    pub id: UnionDefinitionId,
 }
 
 impl std::ops::Deref for UnionDefinition<'_> {
@@ -59,9 +69,6 @@ impl<'a> UnionDefinition<'a> {
     #[allow(clippy::should_implement_trait)]
     pub fn as_ref(&self) -> &'a UnionDefinitionRecord {
         &self.schema[self.id]
-    }
-    pub fn id(&self) -> UnionDefinitionId {
-        self.id
     }
     pub fn name(&self) -> &'a str {
         self.name_id.walk(self.schema)
@@ -78,19 +85,28 @@ impl<'a> UnionDefinition<'a> {
     pub fn directives(&self) -> impl Iter<Item = TypeSystemDirective<'a>> + 'a {
         self.as_ref().directive_ids.walk(self.schema)
     }
-    /// sorted by SubgraphId, then InterfaceId
+    /// sorted by SubgraphId, then ObjectDefinitionId
     pub fn join_members(&self) -> impl Iter<Item = JoinMemberDefinition<'a>> + 'a {
         self.as_ref().join_member_records.walk(self.schema)
+    }
+    /// It can happen that an object that is member of this union at the supergraph level doesn't in a subgraph.
+    /// If this happens, we keep track of those subgraph so we we can generate appropriate queries.
+    /// Sorted by SubgraphId
+    pub fn not_fully_implemented_in(&self) -> impl Iter<Item = Subgraph<'a>> + 'a {
+        self.as_ref().not_fully_implemented_in_ids.walk(self.schema)
     }
 }
 
 impl<'a> Walk<&'a Schema> for UnionDefinitionId {
     type Walker<'w> = UnionDefinition<'w> where 'a: 'w ;
-    fn walk<'w>(self, schema: &'a Schema) -> Self::Walker<'w>
+    fn walk<'w>(self, schema: impl Into<&'a Schema>) -> Self::Walker<'w>
     where
         Self: 'w,
         'a: 'w,
     {
-        UnionDefinition { schema, id: self }
+        UnionDefinition {
+            schema: schema.into(),
+            id: self,
+        }
     }
 }

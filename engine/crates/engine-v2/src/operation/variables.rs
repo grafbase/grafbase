@@ -1,8 +1,10 @@
 use schema::Schema;
 
+use crate::prepare::CachedOperation;
+
 use super::{
     bind::{bind_variables, VariableError},
-    BoundVariableDefinitionId, Location, Operation, QueryInputValueId, VariableInputValueId, VariableInputValues,
+    BoundVariableDefinitionId, Location, QueryInputValueId, VariableInputValueId, VariableInputValues,
 };
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -47,9 +49,9 @@ where
 impl Variables {
     pub(crate) fn build(
         schema: &Schema,
-        operation: &Operation,
-        request_variables: crate::request::Variables,
+        operation: &CachedOperation,
+        request_variables: crate::request::RawVariables,
     ) -> Result<Self, Vec<VariableError>> {
-        bind_variables(schema, operation, request_variables)
+        bind_variables(schema, &operation.solution, request_variables)
     }
 }

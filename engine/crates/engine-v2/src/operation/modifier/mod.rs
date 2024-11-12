@@ -1,4 +1,4 @@
-mod query;
+// mod query;
 
 use id_newtypes::IdRange;
 use schema::{AuthorizedDirectiveId, DefinitionId, FieldDefinitionId, RequiresScopesDirectiveId};
@@ -7,7 +7,7 @@ use super::{
     BoundFieldArgumentId, BoundQueryModifierImpactedFieldId, BoundResponseModifierImpactedFieldId, QueryInputValueId,
 };
 
-pub(crate) use query::*;
+// pub(crate) use query::*;
 
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub(crate) struct BoundQueryModifier {
@@ -15,7 +15,7 @@ pub(crate) struct BoundQueryModifier {
     pub impacted_fields: IdRange<BoundQueryModifierImpactedFieldId>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, serde::Serialize, serde::Deserialize)]
 pub(crate) enum QueryModifierRule {
     Authenticated,
     RequiresScopes(RequiresScopesDirectiveId),
@@ -30,10 +30,14 @@ pub(crate) enum QueryModifierRule {
     },
     SkipInclude {
         // sorted
-        skip_input_value_ids: Vec<QueryInputValueId>,
-        // sorted
-        include_input_value_ids: Vec<QueryInputValueId>,
+        directives: Vec<SkipIncludeDirective>,
     },
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize)]
+pub enum SkipIncludeDirective {
+    SkipIf(QueryInputValueId),
+    IncludeIf(QueryInputValueId),
 }
 
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]

@@ -63,8 +63,8 @@ impl<'ctx, R: Runtime> SubgraphContext<'ctx, R> {
             ExecutedSubgraphRequest::builder(endpoint.subgraph_name(), "POST", endpoint.url().as_str());
 
         let retry_budget = match span.operation_type {
-            "mutation" => ctx.engine.get_retry_budget_for_mutation(endpoint.id()),
-            _ => ctx.engine.get_retry_budget_for_non_mutation(endpoint.id()),
+            "mutation" => ctx.engine.get_retry_budget_for_mutation(endpoint.id),
+            _ => ctx.engine.get_retry_budget_for_non_mutation(endpoint.id),
         };
         let span = span.build();
 

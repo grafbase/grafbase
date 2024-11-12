@@ -6,7 +6,7 @@
 use crate::{
     generated::{GraphqlEndpoint, GraphqlEndpointId},
     prelude::*,
-    RequiredFieldSet, RequiredFieldSetId,
+    FieldSet, FieldSetId,
 };
 use walker::Walk;
 
@@ -47,12 +47,15 @@ impl<'a> GraphqlRootFieldResolverDefinition<'a> {
 
 impl<'a> Walk<&'a Schema> for GraphqlRootFieldResolverDefinitionRecord {
     type Walker<'w> = GraphqlRootFieldResolverDefinition<'w> where 'a: 'w ;
-    fn walk<'w>(self, schema: &'a Schema) -> Self::Walker<'w>
+    fn walk<'w>(self, schema: impl Into<&'a Schema>) -> Self::Walker<'w>
     where
         Self: 'w,
         'a: 'w,
     {
-        GraphqlRootFieldResolverDefinition { schema, item: self }
+        GraphqlRootFieldResolverDefinition {
+            schema: schema.into(),
+            item: self,
+        }
     }
 }
 
@@ -69,13 +72,13 @@ impl std::fmt::Debug for GraphqlRootFieldResolverDefinition<'_> {
 /// ```custom,{.language-graphql}
 /// type GraphqlFederationEntityResolverDefinition @meta(module: "resolver/graphql") @copy {
 ///   endpoint: GraphqlEndpoint!
-///   key_fields: RequiredFieldSet!
+///   key_fields: FieldSet!
 /// }
 /// ```
 #[derive(Debug, serde::Serialize, serde::Deserialize, Clone, Copy)]
 pub struct GraphqlFederationEntityResolverDefinitionRecord {
     pub endpoint_id: GraphqlEndpointId,
-    pub key_fields_id: RequiredFieldSetId,
+    pub key_fields_id: FieldSetId,
 }
 
 #[derive(Clone, Copy)]
@@ -99,19 +102,22 @@ impl<'a> GraphqlFederationEntityResolverDefinition<'a> {
     pub fn endpoint(&self) -> GraphqlEndpoint<'a> {
         self.endpoint_id.walk(self.schema)
     }
-    pub fn key_fields(&self) -> RequiredFieldSet<'a> {
+    pub fn key_fields(&self) -> FieldSet<'a> {
         self.key_fields_id.walk(self.schema)
     }
 }
 
 impl<'a> Walk<&'a Schema> for GraphqlFederationEntityResolverDefinitionRecord {
     type Walker<'w> = GraphqlFederationEntityResolverDefinition<'w> where 'a: 'w ;
-    fn walk<'w>(self, schema: &'a Schema) -> Self::Walker<'w>
+    fn walk<'w>(self, schema: impl Into<&'a Schema>) -> Self::Walker<'w>
     where
         Self: 'w,
         'a: 'w,
     {
-        GraphqlFederationEntityResolverDefinition { schema, item: self }
+        GraphqlFederationEntityResolverDefinition {
+            schema: schema.into(),
+            item: self,
+        }
     }
 }
 

@@ -13,7 +13,7 @@ pub trait Walk<Ctx> {
         Self: 'a,
         Ctx: 'a;
 
-    fn walk<'a>(self, ctx: Ctx) -> Self::Walker<'a>
+    fn walk<'a>(self, ctx: impl Into<Ctx>) -> Self::Walker<'a>
     where
         Self: 'a,
         Ctx: 'a;
@@ -21,7 +21,7 @@ pub trait Walk<Ctx> {
 
 impl<Ctx> Walk<Ctx> for () {
     type Walker<'a> = () where Ctx: 'a;
-    fn walk<'a>(self, _: Ctx) -> Self::Walker<'a>
+    fn walk<'a>(self, _: impl Into<Ctx>) -> Self::Walker<'a>
     where
         Self: 'a,
         Ctx: 'a,
@@ -31,15 +31,18 @@ impl<Ctx> Walk<Ctx> for () {
 
 pub type Walker<'a, T, G> = <T as Walk<G>>::Walker<'a>;
 
-// / Convenient implementation to write:
-// / `id.read(schema)` rather than `(*id).read(schema)` when id is a ref from the schema
+// Hint: Go to the definition of T instead to find the Walker type.
+//       Walk implementations are always close to T.
+//
+/// Convenient blanket implementation to write:
+/// `id.read(schema)` rather than `(*id).read(schema)`
 impl<Ctx, T: Copy + Walk<Ctx>> Walk<Ctx> for &T {
     type Walker<'a> = Walker<'a, T, Ctx>
     where
         Self: 'a,
         Ctx: 'a;
 
-    fn walk<'a>(self, ctx: Ctx) -> Self::Walker<'a>
+    fn walk<'a>(self, ctx: impl Into<Ctx>) -> Self::Walker<'a>
     where
         Self: 'a,
         Ctx: 'a,
@@ -48,13 +51,15 @@ impl<Ctx, T: Copy + Walk<Ctx>> Walk<Ctx> for &T {
     }
 }
 
+// Hint: Go to the definition of T instead to find the Walker type.
+//       Walk implementations are always close to T.
 impl<Ctx, T: Walk<Ctx>> Walk<Ctx> for Option<T> {
     type Walker<'a> = Option<Walker<'a, T, Ctx>>
     where
         Self: 'a,
         Ctx: 'a;
 
-    fn walk<'a>(self, ctx: Ctx) -> Self::Walker<'a>
+    fn walk<'a>(self, ctx: impl Into<Ctx>) -> Self::Walker<'a>
     where
         Self: 'a,
         Ctx: 'a,
@@ -63,6 +68,8 @@ impl<Ctx, T: Walk<Ctx>> Walk<Ctx> for Option<T> {
     }
 }
 
+// Hint: Go to the definition of T instead to find the Walker type.
+//       Walk implementations are always close to T.
 impl<Ctx, T> Walk<Ctx> for &[T]
 where
     for<'a> &'a T: Walk<Ctx>,
@@ -73,11 +80,11 @@ where
         Self: 'a,
         Ctx: 'a;
 
-    fn walk<'a>(self, ctx: Ctx) -> Self::Walker<'a>
+    fn walk<'a>(self, ctx: impl Into<Ctx>) -> Self::Walker<'a>
     where
         Self: 'a,
         Ctx: 'a,
     {
-        WalkIterator::new(self.iter(), ctx)
+        WalkIterator::new(self.iter(), ctx.into())
     }
 }

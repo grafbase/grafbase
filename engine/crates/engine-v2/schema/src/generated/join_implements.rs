@@ -51,12 +51,15 @@ impl<'a> JoinImplementsDefinition<'a> {
 
 impl<'a> Walk<&'a Schema> for JoinImplementsDefinitionRecord {
     type Walker<'w> = JoinImplementsDefinition<'w> where 'a: 'w ;
-    fn walk<'w>(self, schema: &'a Schema) -> Self::Walker<'w>
+    fn walk<'w>(self, schema: impl Into<&'a Schema>) -> Self::Walker<'w>
     where
         Self: 'w,
         'a: 'w,
     {
-        JoinImplementsDefinition { schema, item: self }
+        JoinImplementsDefinition {
+            schema: schema.into(),
+            item: self,
+        }
     }
 }
 

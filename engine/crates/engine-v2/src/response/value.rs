@@ -1,6 +1,8 @@
-use schema::{RequiredFieldId, StringId};
+use schema::{SchemaFieldId, StringId};
 
-use super::{ResponseDataPartId, ResponseEdge, ResponseListId, ResponseObjectId};
+use super::{
+    PositionedResponseKey, ResponseDataPartId, ResponseEdge, ResponseListId, ResponseObjectId, UnpackedResponseEdge,
+};
 
 // Threshold defined a bit arbitrarily
 pub const NULL: ResponseValue = ResponseValue::Null;
@@ -15,8 +17,8 @@ pub(crate) struct ResponseObject {
 
 #[derive(Debug, Clone)]
 pub(crate) struct ResponseObjectField {
-    pub edge: ResponseEdge,
-    pub required_field_id: Option<RequiredFieldId>,
+    pub edge: PositionedResponseKey,
+    pub required_field_id: Option<SchemaFieldId>,
     pub value: ResponseValue,
 }
 
@@ -43,21 +45,25 @@ impl ResponseObject {
 
     // FIXME: Shouldn't store by edge nor should the response path...
     pub(super) fn field_position(&self, edge: ResponseEdge) -> Option<usize> {
+        let key: PositionedResponseKey = match edge.unpack() {
+            UnpackedResponseEdge::Index(_) => return None,
+            UnpackedResponseEdge::BoundResponseKey(key) => key.into(),
+            UnpackedResponseEdge::ExtraFieldResponseKey(response_key) => PositionedResponseKey {
+                query_position: None,
+                response_key,
+            },
+        };
         self.fields_sorted_by_edge
-            .binary_search_by(|field| field.edge.cmp(&edge))
+            .binary_search_by(|field| field.edge.cmp(&key))
             .ok()
-            .or_else(|| match edge.as_response_key() {
-                Some(key) => {
-                    return self
-                        .fields_sorted_by_edge
-                        .iter()
-                        .position(|field| field.edge.as_response_key() == Some(key));
-                }
-                None => None,
+            .or_else(|| {
+                self.fields_sorted_by_edge
+                    .iter()
+                    .position(|field| field.edge.response_key == key.response_key)
             })
     }
 
-    pub(super) fn find_required_field(&self, id: RequiredFieldId) -> Option<&ResponseValue> {
+    pub(super) fn find_required_field(&self, id: SchemaFieldId) -> Option<&ResponseValue> {
         self.fields_sorted_by_edge
             .iter()
             .find(|field| field.required_field_id == Some(id))

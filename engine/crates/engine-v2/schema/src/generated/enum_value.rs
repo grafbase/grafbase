@@ -33,7 +33,7 @@ pub struct EnumValueId(std::num::NonZero<u32>);
 #[derive(Clone, Copy)]
 pub struct EnumValue<'a> {
     pub(crate) schema: &'a Schema,
-    pub(crate) id: EnumValueId,
+    pub id: EnumValueId,
 }
 
 impl std::ops::Deref for EnumValue<'_> {
@@ -49,9 +49,6 @@ impl<'a> EnumValue<'a> {
     pub fn as_ref(&self) -> &'a EnumValueRecord {
         &self.schema[self.id]
     }
-    pub fn id(&self) -> EnumValueId {
-        self.id
-    }
     pub fn name(&self) -> &'a str {
         self.name_id.walk(self.schema)
     }
@@ -65,12 +62,15 @@ impl<'a> EnumValue<'a> {
 
 impl<'a> Walk<&'a Schema> for EnumValueId {
     type Walker<'w> = EnumValue<'w> where 'a: 'w ;
-    fn walk<'w>(self, schema: &'a Schema) -> Self::Walker<'w>
+    fn walk<'w>(self, schema: impl Into<&'a Schema>) -> Self::Walker<'w>
     where
         Self: 'w,
         'a: 'w,
     {
-        EnumValue { schema, id: self }
+        EnumValue {
+            schema: schema.into(),
+            id: self,
+        }
     }
 }
 

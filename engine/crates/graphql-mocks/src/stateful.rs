@@ -96,8 +96,8 @@ impl Mutation {
         Err("This mutation always fails".into())
     }
 
-    async fn faillible(&self) -> async_graphql::FieldResult<Option<usize>> {
-        Err("This mutation always fails".into())
+    async fn faillible(&self) -> Option<async_graphql::FieldResult<usize>> {
+        Some(Err("This mutation always fails".into()))
     }
 
     /// Used to test retry logic.
