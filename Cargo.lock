@@ -1192,18 +1192,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "common-types"
-version = "0.1.0"
-dependencies = [
- "bitflags 2.6.0",
- "grafbase-workspace-hack",
- "serde",
- "serde_json",
- "serde_with",
- "strum",
-]
-
-[[package]]
 name = "concurrent-queue"
 version = "2.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2183,7 +2171,6 @@ dependencies = [
  "base64 0.22.1",
  "engine-v2-config",
  "futures-util",
- "getrandom 0.2.15",
  "grafbase-workspace-hack",
  "http 1.1.0",
  "jwt-compact",
@@ -3105,7 +3092,6 @@ dependencies = [
 name = "grafbase-local-common"
 version = "0.80.2"
 dependencies = [
- "common-types",
  "const_format",
  "dirs",
  "expect-test",
@@ -4228,7 +4214,6 @@ dependencies = [
  "axum",
  "base64 0.22.1",
  "bytes",
- "common-types",
  "const_format",
  "criterion",
  "crossbeam-queue",
@@ -6524,7 +6509,6 @@ dependencies = [
  "anyhow",
  "async-trait",
  "bytes",
- "common-types",
  "derive_more",
  "futures-util",
  "grafbase-telemetry",
@@ -6577,7 +6561,6 @@ dependencies = [
  "tokio",
  "tracing",
  "tungstenite 0.23.0",
- "ulid",
  "url",
  "wasi-component-loader",
 ]

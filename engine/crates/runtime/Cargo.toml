@@ -32,7 +32,6 @@ tracing-futures.workspace = true
 url.workspace = true
 web-time.workspace = true
 
-common-types.workspace = true
 grafbase-workspace-hack.workspace = true
 
 [features]
