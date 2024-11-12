@@ -2952,6 +2952,7 @@ dependencies = [
  "futures-util",
  "grafbase-graphql-introspection",
  "grafbase-local-backend",
+ "grafbase-local-common",
  "grafbase-workspace-hack",
  "graph-ref",
  "graphql-lint",
@@ -3070,6 +3071,7 @@ dependencies = [
  "futures",
  "gateway-config",
  "grafbase-graphql-introspection",
+ "grafbase-local-common",
  "grafbase-workspace-hack",
  "graphql-composition",
  "graphql-federated-graph",
@@ -3084,6 +3086,22 @@ dependencies = [
  "toml",
  "tower-http",
  "urlencoding",
+]
+
+[[package]]
+name = "grafbase-local-common"
+version = "0.80.2"
+dependencies = [
+ "const_format",
+ "dirs",
+ "expect-test",
+ "grafbase-workspace-hack",
+ "serde",
+ "serde_json",
+ "strum",
+ "thiserror 1.0.68",
+ "tokio",
+ "url",
 ]
 
 [[package]]
