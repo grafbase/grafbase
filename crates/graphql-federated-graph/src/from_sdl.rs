@@ -3,7 +3,7 @@ mod value;
 
 use self::{arguments::*, value::*};
 use crate::{
-    directives::{CostDirective, DeprecatedDirective},
+    directives::{CostDirective, DeprecatedDirective, ListSizeDirective},
     federated_graph::*,
 };
 use cynic_parser::{
@@ -1509,6 +1509,11 @@ fn collect_composed_directives<'a>(
                     state.directives.push(Directive::Cost {
                         weight: directive.weight,
                     })
+                }
+            }
+            "listSize" => {
+                if let Ok(directive) = directive.deserialize::<ListSizeDirective>() {
+                    state.directives.push(Directive::ListSize(directive))
                 }
             }
             // Added later after ingesting the graph.

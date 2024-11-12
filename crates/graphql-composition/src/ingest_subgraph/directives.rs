@@ -3,7 +3,7 @@ mod consts;
 
 use cynic_parser::values::ConstList;
 use cynic_parser_deser::ConstDeserializer;
-use graphql_federated_graph::directives::{CostDirective, DeprecatedDirective};
+use graphql_federated_graph::directives::{CostDirective, DeprecatedDirective, ListSizeDirective};
 
 use self::consts::*;
 use super::*;
@@ -184,6 +184,21 @@ pub(super) fn ingest_directives(
                 }
             }
         }
+
+        if directive_matcher.is_list_size(directive_name) {
+            match directive.deserialize::<ListSizeDirective>() {
+                Ok(directive) => {
+                    subgraphs.set_list_size(directive_site_id, directive);
+                }
+                Err(error) => {
+                    let location = location(subgraphs);
+                    subgraphs.push_ingestion_diagnostic(
+                        subgraph,
+                        format!("Error validating the @listSize directive at {location}: {error}"),
+                    );
+                }
+            }
+        }
     }
 }
 
@@ -283,6 +298,7 @@ pub(crate) struct DirectiveMatcher<'a> {
     policy: Cow<'a, str>,
     tag: Cow<'a, str>,
     cost: Cow<'a, str>,
+    list_size: Cow<'a, str>,
 
     /// directive name -> is repeatable
     ///
@@ -310,6 +326,7 @@ impl Default for DirectiveMatcher<'_> {
             shareable: Cow::Borrowed(SHAREABLE),
             tag: Cow::Borrowed(TAG),
             cost: Cow::Borrowed(COST),
+            list_size: Cow::Borrowed(LIST_SIZE),
         }
     }
 }
@@ -369,6 +386,7 @@ impl<'a> DirectiveMatcher<'a> {
             shareable: final_name(SHAREABLE),
             tag: final_name(TAG),
             cost: final_name(COST),
+            list_size: final_name(LIST_SIZE),
         }
     }
 
@@ -446,6 +464,10 @@ impl<'a> DirectiveMatcher<'a> {
 
     fn is_cost(&self, directive_name: &str) -> bool {
         self.cost == directive_name
+    }
+
+    fn is_list_size(&self, directive_name: &str) -> bool {
+        self.list_size == directive_name
     }
 }
 

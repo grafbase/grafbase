@@ -253,7 +253,8 @@ fn write_public_directives<'a, 'b: 'a>(
         | Directive::Policy(_)
         | Directive::RequiresScopes(_)
         | Directive::Authenticated
-        | Directive::Cost { .. } => false,
+        | Directive::Cost { .. }
+        | Directive::ListSize(_) => false,
 
         Directive::Other { name, .. } if graph[*name] == "tag" => false,
         Directive::Deprecated { .. } | Directive::Other { .. } => true,

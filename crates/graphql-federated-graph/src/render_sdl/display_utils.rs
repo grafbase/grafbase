@@ -1,3 +1,5 @@
+use directives::ListSizeDirective;
+
 use crate::*;
 use std::fmt::{self, Display, Write};
 
@@ -113,9 +115,53 @@ impl fmt::Display for ValueDisplay<'_> {
             crate::Value::List(values) => {
                 f.write_char('[')?;
 
-                for value in values.as_ref() {
+                let mut values = values.as_ref().iter().peekable();
+                while let Some(value) = values.next() {
                     ValueDisplay(value, graph).fmt(f)?;
-                    f.write_str(", ")?;
+                    if values.peek().is_some() {
+                        f.write_str(", ")?;
+                    }
+                }
+
+                f.write_char(']')
+            }
+        }
+    }
+}
+
+struct JsonValueDisplay<'a>(&'a serde_json::Value);
+
+impl fmt::Display for JsonValueDisplay<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self.0 {
+            serde_json::Value::Null => f.write_str("null"),
+            serde_json::Value::String(s) => write_quoted(f, s),
+            serde_json::Value::Number(num) => Display::fmt(num, f),
+            serde_json::Value::Bool(true) => f.write_str("true"),
+            serde_json::Value::Bool(false) => f.write_str("false"),
+            serde_json::Value::Object(key_values) => {
+                let mut key_values = key_values.iter().peekable();
+
+                f.write_char('{')?;
+                while let Some((key, value)) = key_values.next() {
+                    f.write_str(key)?;
+                    f.write_str(": ")?;
+                    JsonValueDisplay(value).fmt(f)?;
+                    if key_values.peek().is_some() {
+                        f.write_str(", ")?;
+                    }
+                }
+                f.write_char('}')
+            }
+            serde_json::Value::Array(values) => {
+                f.write_char('[')?;
+
+                let mut values = values.iter().peekable();
+                while let Some(value) = values.next() {
+                    JsonValueDisplay(value).fmt(f)?;
+                    if values.peek().is_some() {
+                        f.write_str(", ")?;
+                    }
                 }
 
                 f.write_char(']')
@@ -316,6 +362,30 @@ pub(crate) fn write_composed_directive<'a, 'b: 'a>(
         Directive::Cost { weight } => {
             DirectiveWriter::new("cost", f, graph)?.arg("weight", Value::Int(*weight as i64))?;
         }
+        Directive::ListSize(ListSizeDirective {
+            assumed_size,
+            slicing_arguments,
+            sized_fields,
+            require_one_slicing_argument,
+        }) => {
+            let mut writer = DirectiveWriter::new("listSize", f, graph)?;
+            if let Some(size) = assumed_size {
+                writer = writer.arg("assumedSize", Value::Int(*size as i64))?;
+            }
+            if !slicing_arguments.is_empty() {
+                writer = writer.arg("slicingArguments", serde_json::to_value(slicing_arguments).unwrap())?;
+            }
+            if !sized_fields.is_empty() {
+                writer = writer.arg("sizedFields", serde_json::to_value(sized_fields).unwrap())?;
+            }
+            if !require_one_slicing_argument {
+                // require_one_slicing_argument defaults to true so we omit it unless its false
+                writer.arg(
+                    "requireOneSlicingArgument",
+                    Value::Boolean(*require_one_slicing_argument),
+                )?;
+            }
+        }
         Directive::Other { name, arguments } => {
             let mut directive = DirectiveWriter::new(&graph[*name], f, graph)?;
 
@@ -330,6 +400,8 @@ pub(crate) fn write_composed_directive<'a, 'b: 'a>(
 
 pub(crate) enum DisplayableArgument<'a> {
     Value(Value),
+    /// Be careful using this - it will not encode enums correctly...
+    JsonValue(serde_json::Value),
     FieldSet(SelectionSetDisplay<'a>),
     InputValueDefinitionSet(InputValueDefinitionSetDisplay<'a>),
     GraphEnumVariantName(GraphEnumVariantName<'a>),
@@ -339,6 +411,7 @@ impl<'a> DisplayableArgument<'a> {
     pub(crate) fn display(&self, f: &mut fmt::Formatter<'_>, graph: &FederatedGraph) -> fmt::Result {
         match self {
             DisplayableArgument::Value(v) => ValueDisplay(v, graph).fmt(f),
+            DisplayableArgument::JsonValue(v) => JsonValueDisplay(v).fmt(f),
             DisplayableArgument::FieldSet(v) => v.fmt(f),
             DisplayableArgument::InputValueDefinitionSet(v) => v.fmt(f),
             DisplayableArgument::GraphEnumVariantName(inner) => inner.fmt(f),
@@ -367,6 +440,12 @@ impl<'a> From<SelectionSetDisplay<'a>> for DisplayableArgument<'a> {
 impl<'a> From<InputValueDefinitionSetDisplay<'a>> for DisplayableArgument<'a> {
     fn from(value: InputValueDefinitionSetDisplay<'a>) -> Self {
         DisplayableArgument::InputValueDefinitionSet(value)
+    }
+}
+
+impl From<serde_json::Value> for DisplayableArgument<'_> {
+    fn from(value: serde_json::Value) -> Self {
+        DisplayableArgument::JsonValue(value)
     }
 }
 

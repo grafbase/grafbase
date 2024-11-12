@@ -8,6 +8,8 @@ mod r#type;
 mod type_definitions;
 mod view;
 
+use crate::directives::ListSizeDirective;
+
 pub use self::{
     directives::*,
     enum_values::{EnumValue, EnumValueRecord},
@@ -165,6 +167,7 @@ pub enum Directive {
     Cost {
         weight: i32,
     },
+    ListSize(ListSizeDirective),
 
     Other {
         name: StringId,

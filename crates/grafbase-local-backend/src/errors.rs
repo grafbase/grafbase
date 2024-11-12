@@ -56,7 +56,7 @@ pub enum BackendError {
     IntrospectSubgraph(String),
     #[error("no url or schema_path were defined for an overridden subgraph: {0}")]
     NoDefinedRouteToSubgraphSdl(String),
-    #[error("could not parse a subgraph\nCaused by: {0}")]
+    #[error("could not parse a subgraph:\n{0:#}")]
     IngestSubgraph(IngestError),
     #[error("could not start the federated gateway\nCaused by: {0}")]
     Serve(federated_server::Error),

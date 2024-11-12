@@ -1,0 +1,11 @@
+type Query {
+  foo: [String!] @listSize(assumedSize: 10)
+  bar(slice: Int!): BarCollection
+    @listSize(slicingArguments: ["slice"], sizedFields: ["length"], requireOneSlicingArgument: false)
+
+  baz(slice: Int!): [String] @listSize(slicingArguments: ["slice"], requireOneSlicingArgument: true)
+}
+
+type BarCollection {
+  length: Int
+}

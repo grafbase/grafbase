@@ -1,3 +1,5 @@
+use graphql_federated_graph::directives::ListSizeDirective;
+
 use super::*;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -39,6 +41,7 @@ pub(super) struct Directives {
     tags: BTreeSet<(DirectiveSiteId, StringId)>,
 
     costs: BTreeMap<DirectiveSiteId, i32>,
+    list_sizes: BTreeMap<DirectiveSiteId, ListSizeDirective>,
 
     /// From @composeDirective.
     ///
@@ -134,6 +137,10 @@ impl Subgraphs {
 
     pub(crate) fn set_cost(&mut self, id: DirectiveSiteId, cost: i32) {
         self.directives.costs.insert(id, cost);
+    }
+
+    pub(crate) fn set_list_size(&mut self, id: DirectiveSiteId, directive: ListSizeDirective) {
+        self.directives.list_sizes.insert(id, directive);
     }
 }
 
@@ -259,6 +266,10 @@ impl<'a> DirectiveSiteWalker<'a> {
 
     pub(crate) fn cost(self) -> Option<i32> {
         self.subgraphs.directives.costs.get(&self.id).copied()
+    }
+
+    pub(crate) fn list_size(self) -> Option<ListSizeDirective> {
+        self.subgraphs.directives.list_sizes.get(&self.id).cloned()
     }
 }
 

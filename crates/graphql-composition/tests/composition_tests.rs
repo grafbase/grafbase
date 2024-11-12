@@ -37,7 +37,7 @@ fn run_test(federated_graph_path: &Path) -> datatest_stable::Result<()> {
 
         subgraphs
             .ingest_str(&sdl, &name, &format!("http://example.com/{name}"))
-            .map_err(|err| miette::miette!("Error parsing {}: {err}", path.display()))?;
+            .map_err(|err| miette::miette!("Error parsing {}: \n{err:#}", path.display()))?;
     }
 
     let expected_federated_sdl = fs::read_to_string(federated_graph_path)

@@ -29,7 +29,7 @@ type B
     @join__type(graph: FST, key: "id")
     @join__type(graph: SND, key: "id")
 {
-    foo: String @join__field(graph: FST) @join__field(graph: SND) @policy(policies: [["yolo", ], ["wolo", ], ["scope:1", "scope:2", ], ])
+    foo: String @join__field(graph: FST) @join__field(graph: SND) @policy(policies: [["yolo"], ["wolo"], ["scope:1", "scope:2"]])
     id: ID!
 }
 
@@ -38,7 +38,7 @@ type A
     @join__type(graph: SND, key: "id")
 {
     id: ID!
-    names: String! @join__field(graph: FST) @join__field(graph: SND) @policy(policies: [["read:others", "and:yetanother", ], ["read:profiles", "read:profiles2", "read:others", ], ])
+    names: String! @join__field(graph: FST) @join__field(graph: SND) @policy(policies: [["read:others", "and:yetanother"], ["read:profiles", "read:profiles2", "read:others"]])
 }
 
 type User
