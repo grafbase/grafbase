@@ -146,10 +146,10 @@ opentelemetry-otlp = "0.26"
 opentelemetry-appender-tracing = "0.26.0"
 
 # Common
-graph-ref = { path = "graph-ref" }
-graphql-schema-validation = { path = "./crates/graphql-schema-validation" }
-grafbase-graphql-introspection = { path = "graphql-introspection" }
-graphql-lint = { path = "graphql-lint" }
+graph-ref = { path = "crates/graph-ref" }
+graphql-schema-validation = { path = "crates/graphql-schema-validation" }
+grafbase-graphql-introspection = { path = "crates/grafbase-graphql-introspection" }
+graphql-lint = { path = "crates/graphql-lint" }
 
 # Gateway
 federated-server = { path = "gateway/crates/federated-server" }

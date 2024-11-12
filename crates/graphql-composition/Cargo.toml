@@ -14,7 +14,7 @@ workspace = true
 cynic-parser.workspace = true
 cynic-parser-deser.workspace = true
 grafbase-workspace-hack.workspace = true
-graphql-federated-graph = { path = "../federated-graph", version = "0.4.0" }
+graphql-federated-graph = { path = "../graphql-federated-graph", version = "0.4.0" }
 indexmap.workspace = true
 itertools.workspace = true
 

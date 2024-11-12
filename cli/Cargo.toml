@@ -49,7 +49,7 @@ backend = { package = "grafbase-local-backend", path = "../crates/grafbase-local
 common = { package = "grafbase-local-common", path = "../crates/grafbase-local-common", version = "0.80.2" }
 grafbase-graphql-introspection.workspace = true
 graphql-lint.workspace = true
-graph-ref = { path = "../../../graph-ref" }
+graph-ref.workspace = true
 grafbase-workspace-hack.workspace = true
 
 [dev-dependencies]
