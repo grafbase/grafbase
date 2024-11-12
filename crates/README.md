@@ -25,25 +25,27 @@
 
 | Crate                                                     | Description                                                         |
 | --------------------------------------------------------- | ------------------------------------------------------------------- |
-| [`common-types`](crates/common-types)                     | Various type definitions for the Grafbase platform                  |
-| [`graphql-composition`](crates/composition)               | An implementation of GraphQL federated schema composition           |
-| [`engine-config-builder`](crates/engine-config-builder)   | Engine configuration builder                                        |
-| [`engine-v2`](crates/engine-v2)                           | A GraphQL federation engine                                         |
-| [`federated-graph`](crates/federated-graph)               | A serializable federated GraphQL graph representation               |
-| [`federation-audit-tests`](crates/federation-audit-tests) | Tests for federation auditing                                       |
-| [`graphql-mocks`](crates/graphql-mocks)                   | GraphQL mocking utilities                                           |
-| [`graphql-schema-diff`](crates/graphql-schema-diff)       | Semantic diffing for GraphQL schemas                                |
-| [`integration-tests`](crates/integration-tests)           | Integration test suite                                              |
-| [`operation-checks`](crates/operation-checks)             | GraphQL federation operation checks library                         |
-| [`operation-normalizer`](crates/operation-normalizer)     | GraphQL operation normalizer                                        |
-| [`runtime`](crates/runtime)                               | Runtime interfaces                                                  |
-| [`runtime-local`](crates/runtime-local)                   | Runtime interface implementations for local execution               |
-| [`runtime-noop`](crates/runtime-noop)                     | No-op runtime implementation                                        |
-| [`serde-dynamic-string`](crates/serde-dynamic-string)     | Env var injection in Serde strings                                  |
-| [`telemetry`](crates/telemetry)                           | Gateway telemetry utilities                                         |
-| [`validation`](crates/validation)                         | A spec-compliant implementation of GraphQL SDL schema validation    |
-| [`wasi-component-loader`](crates/wasi-component-loader)   | The Gateway hooks WASI runtime                                      |
-| [`wrapping`](crates/wrapping)                             | Compact representation for GraphQL list and required wrapping types |
+| [grafbase-local-backend](grafbase-local-backend/) | Universal backend for Grafbase devtools |
+| [grafbase-local-common](grafbase-local-common/)   | Shared functions and utilities          |
+| [`common-types`](common-types)                     | Various type definitions for the Grafbase platform                  |
+| [`graphql-composition`](graphql-composition)               | An implementation of GraphQL federated schema composition           |
+| [`engine-config-builder`](engine-config-builder)   | Engine configuration builder                                        |
+| [`engine-v2`](engine-v2)                           | A GraphQL federation engine                                         |
+| [`federated-graph`](graphql-federated-graph)               | A serializable federated GraphQL graph representation               |
+| [`federation-audit-tests`](federation-audit-tests) | Tests for federation auditing                                       |
+| [`graphql-mocks`](graphql-mocks)                   | GraphQL mocking utilities                                           |
+| [`graphql-schema-diff`](graphql-schema-diff)       | Semantic diffing for GraphQL schemas                                |
+| [`integration-tests`](integration-tests)           | Integration test suite                                              |
+| [`operation-checks`](operation-checks)             | GraphQL federation operation checks library                         |
+| [`operation-normalizer`](operation-normalizer)     | GraphQL operation normalizer                                        |
+| [`runtime`](runtime)                               | Runtime interfaces                                                  |
+| [`runtime-local`](runtime-local)                   | Runtime interface implementations for local execution               |
+| [`runtime-noop`](runtime-noop)                     | No-op runtime implementation                                        |
+| [`serde-dynamic-string`](serde-dynamic-string)     | Env var injection in Serde strings                                  |
+| [`telemetry`](telemetry)                           | Gateway telemetry utilities                                         |
+| [`validation`](graphql-validation)                         | A spec-compliant implementation of GraphQL SDL schema validation    |
+| [`wasi-component-loader`](wasi-component-loader)   | The Gateway hooks WASI runtime                                      |
+| [`wrapping`](graphql-wrapping-types)                             | Compact representation for GraphQL list and required wrapping types |
 
 ## Development
 
