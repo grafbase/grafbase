@@ -46,7 +46,7 @@ RUN adduser --home "/data" grafbase && mkdir -p /data && chown grafbase /data
 USER grafbase
 
 COPY --from=builder /grafbase/target/release/grafbase-gateway /bin/grafbase-gateway
-COPY --from=builder /grafbase/gateway/crates/federated-server/config/grafbase.toml /etc/grafbase.toml
+COPY --from=builder /grafbase/crates/federated-server/config/grafbase.toml /etc/grafbase.toml
 
 VOLUME /data
 WORKDIR /data

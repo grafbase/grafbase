@@ -28,7 +28,7 @@ multipart-stream = { git = "https://github.com/grafbase/multipart-stream-rs-fork
 # Make sure we use the workspace-hack package when building
 # this repo, but not when pulling it in
 # See https://docs.rs/cargo-hakari/0.9.30/cargo_hakari/patch_directive/index.html for details
-grafbase-workspace-hack.path = "workspace-hack"
+grafbase-workspace-hack.path = "crates/grafbase-workspace-hack"
 
 [workspace.package]
 version = "0.80.2"
@@ -152,9 +152,9 @@ grafbase-graphql-introspection = { path = "crates/grafbase-graphql-introspection
 graphql-lint = { path = "crates/graphql-lint" }
 
 # Gateway
-federated-server = { path = "gateway/crates/federated-server" }
-gateway-config = { path = "gateway/crates/config" }
-rolling-logger = { path = "gateway/crates/rolling-logger" }
+federated-server = { path = "crates/federated-server" }
+gateway-config = { path = "crates/gateway-config" }
+rolling-logger = { path = "crates/rolling-logger" }
 
 # Engine
 engine-config-builder = { path = "crates/engine-config-builder" }
@@ -173,8 +173,8 @@ runtime = { path = "crates/runtime" }
 runtime-local = { path = "crates/runtime-local" }
 runtime-noop = { path = "crates/runtime-noop" }
 serde-dynamic-string = { path = "crates/serde-dynamic-string" }
-grafbase-workspace-hack = { version = "0.1" }
-wrapping = { path = "crates/graphql-wrapping-types" }
+grafbase-workspace-hack = { path = "crates/grafbase-workspace-hack", version = "0.1" }
+wrapping = { path = "crates/graphql-wrapping-types", package = "graphql-wrapping-types" }
 
 [profile.bench]
 strip = "none"
