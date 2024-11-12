@@ -286,7 +286,7 @@ jobs:
           contains(fromJson(needs.what-changed.outputs.rust).changed-packages, 'grafbase-gateway')
           && matrix.platform.target == 'x86_64-unknown-linux-musl'
         shell: bash
-        working-directory: gateway/crates/gateway-binary
+        working-directory: gateway
         run: docker compose up -d
 
       # It's kinda useful to get build vs run timings on tests, so splitting out the build from the run

@@ -80,7 +80,7 @@ runs:
       if: ${{ inputs.with-integration-tests == 'true' }}
       shell: bash
       run: |
-        docker compose -f gateway/crates/gateway-binary/docker-compose.yml up -d
+        docker compose -f gateway/docker-compose.yml up -d
         RUST_BACKTRACE=1 cargo nextest run -p grafbase-gateway --profile ci
 
     - name: Upload the gateway junit files

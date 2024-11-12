@@ -16,45 +16,27 @@
 ```
 The Grafbase command line interface
 
-USAGE:
-    grafbase [OPTIONS] <SUBCOMMAND>
+Usage: grafbase [OPTIONS] <COMMAND>
 
-OPTIONS:
-    -h, --help       Print help information
-    -V, --version    Print version information
+Commands:
+  branch       Graph branch management
+  completions  Output completions for the chosen shell to use, write the output to the appropriate
+               location for your shell
+  login        Logs into your Grafbase account
+  logout       Logs out of your Grafbase account
+  create       Set up and deploy a new graph
+  introspect   Introspect a graph and print its schema
+  subgraphs    List subgraphs
+  schema       Fetch a federated graph or a subgraph
+  publish      Publish a subgraph schema
+  check        Check a graph for validation, composition and breaking change errors
+  trust        Submit a trusted documents manifest
+  lint         Lint a GraphQL schema
+  help         Print this message or the help of the given subcommand(s)
 
-SUBCOMMANDS:
-    completions    Output completions for the chosen shell
-                       To use, write the output to the appropriate location for your shell
-    dev            Start the Grafbase local development server
-    help           Print this message or the help of the given subcommand(s)
-    init           Sets up the current or a new project for Grafbase
+Options:
+  -t, --trace <TRACE>  Set the tracing level [default: 0]
+      --home <HOME>    An optional replacement path for the home directory
+  -h, --help           Print help
+  -V, --version        Print version
 ```
-
-## Subcommands
-
-### `completions <shell>`
-
-Output completions for the chosen shell
-
-### `dev`
-
-Start the Grafbase local development server
-
-#### Flags
-
-- `-p, --port <port>` - Use a specific port
-- `-s, --search` - If a given port is unavailable, search for another
-- `--disable-watch` - Do not listen for schema changes and reload
-
-### `init`
-
-Sets up the current or a new project for Grafbase
-
-#### Arguments
-
-- `[name]` - If supplied, creates a new project directory with the given name rather than setting up the current directory
-
-#### Flags
-
-- `-t, --template <name>` - The name or GitHub URL of the template to use for the new project
