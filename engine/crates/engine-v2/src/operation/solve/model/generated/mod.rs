@@ -2,7 +2,7 @@
 //! !!! DO NOT EDIT !!!
 //! ===================
 //! Generated with: `cargo run -p engine-v2-codegen`
-//! Source file: <engine-v2-codegen dir>/domain/operation_solution.graphql
+//! Source file: <engine-v2-codegen dir>/domain/solved_operation.graphql
 mod field;
 mod modifier;
 mod query_partition;

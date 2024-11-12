@@ -5,8 +5,8 @@ use walker::Walk;
 
 use crate::{
     operation::{
-        OperationSolutionContext, PlanError, QueryPartition, QueryPartitionId, ResponseModifierDefinition,
-        ResponseModifierRule,
+        PlanError, QueryPartition, QueryPartitionId, ResponseModifierDefinition, ResponseModifierRule,
+        SolvedOperationContext,
     },
     prepare::{CachedOperation, PrepareContext},
     resolver::Resolver,
@@ -28,18 +28,18 @@ impl OperationPlan {
         let mut plan = Builder {
             ctx,
             operation,
-            operation_solution_ctx: OperationSolutionContext {
+            solve_ctx: SolvedOperationContext {
                 schema: ctx.schema(),
-                operation_solution: &operation.solution,
+                operation: &operation.solved,
             },
             operation_plan: OperationPlan {
                 query_modifications,
-                plans: Vec::with_capacity(operation.solution.query_partitions.len()),
-                response_modifiers: Vec::with_capacity(operation.solution.response_modifier_definitions.len()),
+                plans: Vec::with_capacity(operation.solved.query_partitions.len()),
+                response_modifiers: Vec::with_capacity(operation.solved.response_modifier_definitions.len()),
             },
-            dependencies: Vec::with_capacity(operation.solution.data_field_refs.len()),
-            partition_to_plan: vec![None; operation.solution.query_partitions.len()],
-            partition_modifiers: Vec::with_capacity(operation.solution.response_modifier_definitions.len()),
+            dependencies: Vec::with_capacity(operation.solved.data_field_refs.len()),
+            partition_to_plan: vec![None; operation.solved.query_partitions.len()],
+            partition_modifiers: Vec::with_capacity(operation.solved.response_modifier_definitions.len()),
         }
         .build()?;
 
@@ -51,7 +51,7 @@ struct Builder<'op, 'ctx, R: Runtime> {
     #[allow(unused)]
     ctx: &'op PrepareContext<'ctx, R>,
     operation: &'op CachedOperation,
-    operation_solution_ctx: OperationSolutionContext<'op>,
+    solve_ctx: SolvedOperationContext<'op>,
     operation_plan: OperationPlan,
     dependencies: Vec<(ExecutableId, QueryPartitionId)>,
     partition_modifiers: Vec<(QueryPartitionId, ResponseModifierId)>,
@@ -60,11 +60,11 @@ struct Builder<'op, 'ctx, R: Runtime> {
 
 impl<'op, 'ctx, R: Runtime> Builder<'op, 'ctx, R> {
     fn build(mut self) -> PlanResult<OperationPlan> {
-        for query_partition in self.operation_solution_ctx.query_partitions() {
+        for query_partition in self.solve_ctx.query_partitions() {
             self.generate_plan(query_partition)?;
         }
 
-        for definition in self.operation_solution_ctx.response_modifier_definitions() {
+        for definition in self.solve_ctx.response_modifier_definitions() {
             self.generate_response_modifier(definition)?;
         }
 
@@ -106,7 +106,7 @@ impl<'op, 'ctx, R: Runtime> Builder<'op, 'ctx, R> {
 
         for (prev, next) in self
             .operation
-            .solution
+            .solved
             .mutation_partition_order
             .iter()
             .copied()
@@ -173,7 +173,7 @@ impl<'op, 'ctx, R: Runtime> Builder<'op, 'ctx, R> {
                 sorted_target_records: targets
                     .into_iter()
                     .map(|(_, set_id, ty_id, key, id)| {
-                        for required_field in id.walk(self.operation_solution_ctx).required_fields_by_supergraph() {
+                        for required_field in id.walk(self.solve_ctx).required_fields_by_supergraph() {
                             self.dependencies
                                 .push((modifier_id.into(), required_field.query_partition_id));
                         }
@@ -230,7 +230,7 @@ impl<'op, 'ctx, R: Runtime> Builder<'op, 'ctx, R> {
 
     fn register_dependencies(&mut self, plan_id: PlanId, query_partition: QueryPartition<'_>) {
         let mut partition_ids = Vec::new();
-        for field in query_partition.required_scalar_fields() {
+        for field in query_partition.required_fields() {
             partition_ids.push(field.query_partition_id);
         }
         for field in self
@@ -238,7 +238,7 @@ impl<'op, 'ctx, R: Runtime> Builder<'op, 'ctx, R> {
             .selection_set()
             .fields()
         {
-            let plan_field = field.id().walk(self.operation_solution_ctx);
+            let plan_field = field.id().walk(self.solve_ctx);
 
             for required_field in plan_field.required_fields() {
                 debug_assert!(required_field.query_partition_id != query_partition.id);
@@ -258,7 +258,7 @@ impl<'op, 'ctx, R: Runtime> Builder<'op, 'ctx, R> {
     pub(crate) fn view_plan_query_partition(&self, id: QueryPartitionId) -> PlanQueryPartition<'_> {
         OperationPlanContext {
             schema: self.ctx.schema(),
-            operation_solution: self.operation_solution_ctx.operation_solution,
+            solved_operation: self.solve_ctx.operation,
             operation_plan: &self.operation_plan,
         }
         .view(id)

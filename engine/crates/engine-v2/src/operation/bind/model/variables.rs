@@ -54,6 +54,6 @@ impl Variables {
         operation: &CachedOperation,
         request_variables: crate::request::RawVariables,
     ) -> Result<Self, Vec<VariableError>> {
-        bind_variables(schema, &operation.solution, request_variables)
+        bind_variables(schema, &operation.solved, request_variables)
     }
 }

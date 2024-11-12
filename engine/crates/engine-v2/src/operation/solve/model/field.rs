@@ -6,11 +6,11 @@ use super::{DataField, HydratedFieldArguments, HydratedOperationContext};
 
 impl<'a> DataField<'a> {
     pub(crate) fn shapes(&self) -> impl Iter<Item = FieldShapeId> + 'a {
-        self.ctx.operation_solution[self.as_ref().shape_ids].iter().copied()
+        self.ctx.operation[self.as_ref().shape_ids].iter().copied()
     }
 
     pub(crate) fn response_key_str(&self) -> &'a str {
-        &self.ctx.operation_solution.response_keys[self.as_ref().key.response_key]
+        &self.ctx.operation.response_keys[self.as_ref().key.response_key]
     }
 
     pub fn hydrated_arguments<'w, 'v>(&self, variables: impl Into<&'v Variables>) -> HydratedFieldArguments<'w>
@@ -21,7 +21,7 @@ impl<'a> DataField<'a> {
         HydratedFieldArguments {
             ctx: HydratedOperationContext {
                 schema: self.ctx.schema,
-                operation: self.ctx.operation_solution,
+                operation: self.ctx.operation,
                 variables: variables.into(),
             },
             ids: self.argument_ids,

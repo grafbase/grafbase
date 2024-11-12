@@ -6,11 +6,11 @@ use partition::{partition_shapes, Partition};
 use schema::{CompositeTypeId, DefinitionId, EntityDefinitionId, ObjectDefinitionId, Schema};
 use walker::Walk;
 
-use super::{
-    DataField, DataFieldId, OperationSolution, OperationSolutionBuilder, OperationSolutionContext,
-    ResponseObjectSetDefinitionId, SelectionSet, TypenameField,
-};
 use crate::{
+    operation::{
+        DataField, DataFieldId, ResponseObjectSetDefinitionId, SelectionSet, SolvedOperation, SolvedOperationContext,
+        TypenameField,
+    },
     response::{
         ConcreteObjectShapeId, ConcreteObjectShapeRecord, FieldShapeId, FieldShapeRecord, ObjectIdentifier,
         PolymorphicObjectShapeId, PolymorphicObjectShapeRecord, SafeResponseKey, Shape, Shapes,
@@ -18,7 +18,9 @@ use crate::{
     utils::BufferPool,
 };
 
-impl OperationSolutionBuilder<'_> {
+use super::Solver;
+
+impl Solver<'_> {
     pub(super) fn populate_shapes_after_partition_generation(&mut self) {
         let mut plans = std::mem::take(&mut self.operation.query_partitions);
         let mut builder = ShapesBuilder {
@@ -31,9 +33,9 @@ impl OperationSolutionBuilder<'_> {
             data_fields_buffer_pool: BufferPool::default(),
             typename_fields_buffer_pool: BufferPool::default(),
         };
-        let ctx = OperationSolutionContext {
+        let ctx = SolvedOperationContext {
             schema: self.schema,
-            operation_solution: &self.operation,
+            operation: &self.operation,
         };
         for plan in &mut plans {
             plan.shape_id =
@@ -71,7 +73,7 @@ impl OperationSolutionBuilder<'_> {
 
 pub(super) struct ShapesBuilder<'ctx> {
     schema: &'ctx Schema,
-    operation: &'ctx OperationSolution,
+    operation: &'ctx SolvedOperation,
     shapes: Shapes,
     field_id_to_field_shape_ids: Vec<(DataFieldId, FieldShapeId)>,
     data_field_ids_with_selection_set_requiring_typename: Vec<DataFieldId>,

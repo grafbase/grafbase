@@ -247,8 +247,8 @@ impl<'de, 'ctx, 'seed> ConcreteObjectFieldsSeed<'ctx, 'seed> {
         response_fields: &mut Vec<ResponseObjectField>,
     ) -> Result<ObjectDefinitionId, A::Error> {
         let schema = self.ctx.schema;
-        let keys = &self.ctx.operation.solution.response_keys;
-        let fields = &self.ctx.operation.solution.shapes[self.field_shape_ids];
+        let keys = &self.ctx.operation.cached.solved.response_keys;
+        let fields = &self.ctx.operation.cached.solved.shapes[self.field_shape_ids];
         let mut maybe_object_id = None;
         while let Some(key) = map.next_key::<Key<'_>>()? {
             let key = key.as_ref();
@@ -288,8 +288,8 @@ impl<'de, 'ctx, 'seed> ConcreteObjectFieldsSeed<'ctx, 'seed> {
         map: &mut A,
         response_fields: &mut Vec<ResponseObjectField>,
     ) -> Result<(), A::Error> {
-        let keys = &self.ctx.operation.solution.response_keys;
-        let fields = &self.ctx.operation.solution.shapes[self.field_shape_ids];
+        let keys = &self.ctx.operation.cached.solved.response_keys;
+        let fields = &self.ctx.operation.cached.solved.shapes[self.field_shape_ids];
         while let Some(key) = map.next_key::<Key<'_>>()? {
             let key = key.as_ref();
             let start = fields.partition_point(|field| &keys[field.expected_key] < key);

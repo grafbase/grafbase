@@ -42,7 +42,7 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
                 let end = chunk.last().map(|(last, _)| last).unwrap_or(start) + 1;
                 input_associated_targets_range.push(start..end);
 
-                if self.operation.solution[set_id].ty_id == ty_id {
+                if self.operation.cached.solved[set_id].ty_id == ty_id {
                     input = input.with_response_objects(refs.clone());
                 } else {
                     input = input.with_filtered_response_objects(self.schema(), ty_id, refs.clone());

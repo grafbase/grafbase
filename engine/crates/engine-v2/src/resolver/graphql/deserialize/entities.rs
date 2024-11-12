@@ -158,7 +158,7 @@ impl<'resp> EntitiesErrorsSeed<'resp> {
     pub fn new<R: Runtime>(ctx: ExecutionContext<'resp, R>, response: SubgraphResponseRefMut<'resp>) -> Self {
         Self {
             response,
-            response_keys: &ctx.operation.solution.response_keys,
+            response_keys: &ctx.operation.cached.solved.response_keys,
         }
     }
 }

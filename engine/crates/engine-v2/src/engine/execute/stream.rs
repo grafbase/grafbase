@@ -143,8 +143,8 @@ impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
                     }
                 };
 
-                if matches!(operation.ty(), OperationType::Query | OperationType::Mutation) {
-                    let attributes = operation.attributes.clone();
+                if matches!(operation.cached.ty(), OperationType::Query | OperationType::Mutation) {
+                    let attributes = operation.cached.attributes.clone();
                     let response = self.execute_query_or_mutation(operation).await;
 
                     sender.send(response).await.ok();
@@ -165,7 +165,7 @@ impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
             }
         };
 
-        let attributes = operation.attributes.clone();
+        let attributes = operation.cached.attributes.clone();
         ctx.execute_subscription(operation, sender).await;
 
         Some(attributes)

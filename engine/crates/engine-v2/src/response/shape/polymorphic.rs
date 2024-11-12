@@ -47,6 +47,6 @@ impl<'a> PolymorphicObjectShape<'a> {
     /// Prefer using Deref unless you need the 'a lifetime.
     #[allow(clippy::should_implement_trait)]
     pub(crate) fn as_ref(&self) -> &'a PolymorphicObjectShapeRecord {
-        &self.ctx.operation_solution.shapes[self.id]
+        &self.ctx.solved_operation.shapes[self.id]
     }
 }

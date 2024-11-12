@@ -1,9 +1,10 @@
 scalar Operation
   @domain(
+    name: "operation"
     destination: "src/operation/solve/model"
     root_module: "operation/solve/model"
     context_name: "ctx"
-    context_type: "OperationSolutionContext"
+    context_type: "SolvedOperationContext"
     visibility: "(crate)"
     imports: [{ module: "schema", domain: "schema" }]
   )
@@ -23,7 +24,7 @@ type QueryPartition @indexed(id_size: "u16") @meta(module: "query_partition") {
   entity_definition: EntityDefinition!
   resolver_definition: ResolverDefinition!
   selection_set: SelectionSet!
-  required_scalar_fields: [DataFieldRef!]!
+  required_fields: [DataFieldRef!]!
   input: ResponseObjectSetDefinition!
   shape_id: ConcreteObjectShapeId!
 }

@@ -17,7 +17,7 @@ impl<'a> PlanQueryPartition<'a> {
     // Not providing too easy access to the query partition as it exposes the unfiltered fields
     // before query modifications. It's likely not what you want.
     fn as_ref(&self) -> &'a QueryPartitionRecord {
-        &self.ctx.operation_solution[self.id]
+        &self.ctx.solved_operation[self.id]
     }
 
     pub(crate) fn entity_definition(&self) -> EntityDefinition<'a> {

@@ -55,7 +55,7 @@ impl<'a> FieldShape<'a> {
     /// Prefer using Deref unless you need the 'a lifetime.
     #[allow(clippy::should_implement_trait)]
     pub(crate) fn as_ref(&self) -> &'a FieldShapeRecord {
-        &self.ctx.operation_solution.shapes[self.id]
+        &self.ctx.solved_operation.shapes[self.id]
     }
 
     pub(crate) fn errors(&self) -> impl Iterator<Item = &'a GraphqlError> + 'a {

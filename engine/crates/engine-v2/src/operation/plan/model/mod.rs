@@ -12,7 +12,7 @@ use std::sync::Arc;
 use schema::{EntityDefinitionId, FieldSetRecord, Schema};
 
 use crate::{
-    operation::{OperationSolution, OperationSolutionContext, ResponseModifierRule, Variables},
+    operation::{ResponseModifierRule, SolvedOperation, SolvedOperationContext, Variables},
     resolver::Resolver,
     response::{ResponseKey, Shapes},
 };
@@ -28,15 +28,15 @@ pub(crate) use selection_set::*;
 #[derive(Clone, Copy)]
 pub(crate) struct OperationPlanContext<'a> {
     pub schema: &'a Schema,
-    pub operation_solution: &'a OperationSolution,
+    pub solved_operation: &'a SolvedOperation,
     pub operation_plan: &'a OperationPlan,
 }
 
-impl<'ctx> From<OperationPlanContext<'ctx>> for OperationSolutionContext<'ctx> {
+impl<'ctx> From<OperationPlanContext<'ctx>> for SolvedOperationContext<'ctx> {
     fn from(ctx: OperationPlanContext<'ctx>) -> Self {
-        OperationSolutionContext {
+        SolvedOperationContext {
             schema: ctx.schema,
-            operation_solution: ctx.operation_solution,
+            operation: ctx.solved_operation,
         }
     }
 }
@@ -49,7 +49,7 @@ impl<'ctx> From<OperationPlanContext<'ctx>> for &'ctx Schema {
 
 impl<'ctx> From<OperationPlanContext<'ctx>> for &'ctx Shapes {
     fn from(ctx: OperationPlanContext<'ctx>) -> Self {
-        &ctx.operation_solution.shapes
+        &ctx.solved_operation.shapes
     }
 }
 

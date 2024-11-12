@@ -21,7 +21,7 @@ impl<OnOperationResponseHookOutput> serde::Serialize for Response<OnOperationRes
                 ..
             }) => {
                 let mut map = serializer.serialize_map(None)?;
-                let keys = &operation.solution.response_keys;
+                let keys = &operation.solved.response_keys;
                 if let Some(data) = data {
                     map.serialize_entry("data", &SerializableResponseData { keys, data })?;
                 } else {

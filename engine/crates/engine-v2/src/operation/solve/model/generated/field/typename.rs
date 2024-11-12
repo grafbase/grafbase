@@ -2,7 +2,7 @@
 //! !!! DO NOT EDIT !!!
 //! ===================
 //! Generated with: `cargo run -p engine-v2-codegen`
-//! Source file: <engine-v2-codegen dir>/domain/operation_solution.graphql
+//! Source file: <engine-v2-codegen dir>/domain/solved_operation.graphql
 use crate::operation::solve::model::prelude::*;
 use schema::{CompositeType, CompositeTypeId};
 use walker::Walk;
@@ -32,7 +32,7 @@ pub(crate) struct TypenameFieldId(std::num::NonZero<u32>);
 /// __typename field
 #[derive(Clone, Copy)]
 pub(crate) struct TypenameField<'a> {
-    pub(in crate::operation::solve::model) ctx: OperationSolutionContext<'a>,
+    pub(in crate::operation::solve::model) ctx: SolvedOperationContext<'a>,
     pub(crate) id: TypenameFieldId,
 }
 
@@ -48,16 +48,16 @@ impl<'a> TypenameField<'a> {
     /// Prefer using Deref unless you need the 'a lifetime.
     #[allow(clippy::should_implement_trait)]
     pub(crate) fn as_ref(&self) -> &'a TypenameFieldRecord {
-        &self.ctx.operation_solution[self.id]
+        &self.ctx.operation[self.id]
     }
     pub(crate) fn type_condition(&self) -> CompositeType<'a> {
         self.type_condition_id.walk(self.ctx)
     }
 }
 
-impl<'a> Walk<OperationSolutionContext<'a>> for TypenameFieldId {
+impl<'a> Walk<SolvedOperationContext<'a>> for TypenameFieldId {
     type Walker<'w> = TypenameField<'w> where 'a: 'w ;
-    fn walk<'w>(self, ctx: impl Into<OperationSolutionContext<'a>>) -> Self::Walker<'w>
+    fn walk<'w>(self, ctx: impl Into<SolvedOperationContext<'a>>) -> Self::Walker<'w>
     where
         Self: 'w,
         'a: 'w,

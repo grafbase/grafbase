@@ -2,7 +2,7 @@
 //! !!! DO NOT EDIT !!!
 //! ===================
 //! Generated with: `cargo run -p engine-v2-codegen`
-//! Source file: <engine-v2-codegen dir>/domain/operation_solution.graphql
+//! Source file: <engine-v2-codegen dir>/domain/solved_operation.graphql
 use crate::operation::solve::model::prelude::*;
 use schema::{CompositeType, CompositeTypeId};
 use walker::Walk;
@@ -24,7 +24,7 @@ pub(crate) struct ResponseObjectSetDefinitionId(std::num::NonZero<u16>);
 
 #[derive(Clone, Copy)]
 pub(crate) struct ResponseObjectSetDefinition<'a> {
-    pub(in crate::operation::solve::model) ctx: OperationSolutionContext<'a>,
+    pub(in crate::operation::solve::model) ctx: SolvedOperationContext<'a>,
     pub(crate) id: ResponseObjectSetDefinitionId,
 }
 
@@ -40,16 +40,16 @@ impl<'a> ResponseObjectSetDefinition<'a> {
     /// Prefer using Deref unless you need the 'a lifetime.
     #[allow(clippy::should_implement_trait)]
     pub(crate) fn as_ref(&self) -> &'a ResponseObjectSetDefinitionRecord {
-        &self.ctx.operation_solution[self.id]
+        &self.ctx.operation[self.id]
     }
     pub(crate) fn ty(&self) -> CompositeType<'a> {
         self.ty_id.walk(self.ctx)
     }
 }
 
-impl<'a> Walk<OperationSolutionContext<'a>> for ResponseObjectSetDefinitionId {
+impl<'a> Walk<SolvedOperationContext<'a>> for ResponseObjectSetDefinitionId {
     type Walker<'w> = ResponseObjectSetDefinition<'w> where 'a: 'w ;
-    fn walk<'w>(self, ctx: impl Into<OperationSolutionContext<'a>>) -> Self::Walker<'w>
+    fn walk<'w>(self, ctx: impl Into<SolvedOperationContext<'a>>) -> Self::Walker<'w>
     where
         Self: 'w,
         'a: 'w,

@@ -56,7 +56,7 @@ impl<'a> ConcreteObjectShape<'a> {
     /// Prefer using Deref unless you need the 'a lifetime.
     #[allow(clippy::should_implement_trait)]
     pub(crate) fn as_ref(&self) -> &'a ConcreteObjectShapeRecord {
-        &self.ctx.operation_solution.shapes[self.id]
+        &self.ctx.solved_operation.shapes[self.id]
     }
     pub(crate) fn has_errors(&self) -> bool {
         self.ctx.operation_plan.query_modifications.concrete_shape_has_error[self.id]

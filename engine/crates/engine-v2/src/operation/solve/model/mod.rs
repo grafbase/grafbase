@@ -18,32 +18,50 @@ use schema::{ObjectDefinitionId, Schema};
 use walker::{Iter, Walk};
 
 #[derive(Clone, Copy)]
-pub(crate) struct OperationSolutionContext<'a> {
+pub(crate) struct SolvedOperationContext<'a> {
     pub schema: &'a Schema,
-    pub operation_solution: &'a OperationSolution,
+    pub operation: &'a SolvedOperation,
 }
 
-impl<'a> From<OperationSolutionContext<'a>> for &'a Schema {
-    fn from(ctx: OperationSolutionContext<'a>) -> Self {
+impl<'a> From<SolvedOperationContext<'a>> for &'a Schema {
+    fn from(ctx: SolvedOperationContext<'a>) -> Self {
         ctx.schema
     }
 }
 
-impl<'a> OperationSolutionContext<'a> {
+impl<'a> SolvedOperationContext<'a> {
     pub(in crate::operation) fn query_partitions(&self) -> impl Iter<Item = QueryPartition<'a>> + 'a {
-        IdRange::<QueryPartitionId>::from(0..self.operation_solution.query_partitions.len()).walk(*self)
+        IdRange::<QueryPartitionId>::from(0..self.operation.query_partitions.len()).walk(*self)
     }
 
     pub(in crate::operation) fn response_modifier_definitions(
         &self,
     ) -> impl Iter<Item = ResponseModifierDefinition<'a>> + 'a {
-        IdRange::<ResponseModifierDefinitionId>::from(0..self.operation_solution.response_modifier_definitions.len())
-            .walk(*self)
+        IdRange::<ResponseModifierDefinitionId>::from(0..self.operation.response_modifier_definitions.len()).walk(*self)
     }
 }
 
+/// The solved operation contains almost all the necessary data to execute the operation. It only
+/// needs to be adjusted with `@skip`, `@include` etc.. This latter step produces the
+/// OperationPlan. If the operation doesn't involve any skip, include or authorized directive it's
+/// effectively all the information there is to know.
+///
+/// The solved operation is fundamentally a partitioning of the original query into QueryPartitions,
+/// each associated with a ResolverDefinition and field/object shapes. The latter define the
+/// structure we expect to retrieve from the subgraph response.
+///
+/// Only query partitions resolving root fields in a mutation are ordered. Otherwise there is no
+/// direct relationship between them. Dependencies are tracked at the field level:
+/// - ResolverDefinition requirements -> `QueryPartition.required_fields`
+/// - `@requires` -> `DataField.required_fields`
+/// - `@authorized` requirements -> `DataField.required_fields_by_supergraph`
+///
+/// When building the OperationPlan, taking into account skip, include and unauthorized fields, we
+/// infer the ordering of the plans and response modifiers from those requirements. This allows us
+/// to run as efficiently as possible the different steps of the plan, only waiting for relevant
+/// data.
 #[derive(id_derives::IndexedFields, serde::Serialize, serde::Deserialize)]
-pub(crate) struct OperationSolution {
+pub(crate) struct SolvedOperation {
     pub root_object_id: ObjectDefinitionId,
     #[indexed_by(DataFieldId)]
     pub data_fields: Vec<DataFieldRecord>,
@@ -80,30 +98,30 @@ pub(crate) struct OperationSolution {
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
 pub struct FieldRefId(NonZero<u32>);
 
-impl<'a> Walk<OperationSolutionContext<'a>> for FieldRefId {
+impl<'a> Walk<SolvedOperationContext<'a>> for FieldRefId {
     type Walker<'w> = Field<'w> where 'a: 'w;
 
-    fn walk<'w>(self, ctx: impl Into<OperationSolutionContext<'a>>) -> Field<'w>
+    fn walk<'w>(self, ctx: impl Into<SolvedOperationContext<'a>>) -> Field<'w>
     where
         'a: 'w,
     {
-        let ctx: OperationSolutionContext<'a> = ctx.into();
-        ctx.operation_solution[self].walk(ctx)
+        let ctx: SolvedOperationContext<'a> = ctx.into();
+        ctx.operation[self].walk(ctx)
     }
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
 pub struct DataFieldRefId(NonZero<u32>);
 
-impl<'a> Walk<OperationSolutionContext<'a>> for DataFieldRefId {
+impl<'a> Walk<SolvedOperationContext<'a>> for DataFieldRefId {
     type Walker<'w> = DataField<'w> where 'a: 'w;
 
-    fn walk<'w>(self, ctx: impl Into<OperationSolutionContext<'a>>) -> DataField<'w>
+    fn walk<'w>(self, ctx: impl Into<SolvedOperationContext<'a>>) -> DataField<'w>
     where
         'a: 'w,
     {
-        let ctx: OperationSolutionContext<'a> = ctx.into();
-        ctx.operation_solution[self].walk(ctx)
+        let ctx: SolvedOperationContext<'a> = ctx.into();
+        ctx.operation[self].walk(ctx)
     }
 }
 
