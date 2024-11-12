@@ -46,7 +46,6 @@ uuid = { version = "1.8.0", features = ["v4"] }
 webbrowser = "1.0"
 
 backend = { package = "grafbase-local-backend", path = "../crates/grafbase-local-backend", version = "0.80.2" }
-common = { package = "grafbase-local-common", path = "../crates/grafbase-local-common", version = "0.80.2" }
 grafbase-graphql-introspection.workspace = true
 graphql-lint.workspace = true
 graph-ref.workspace = true
