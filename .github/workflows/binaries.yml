@@ -51,7 +51,7 @@ jobs:
               - Dockerfile
               - 'gateway/**/*'
               - 'cli/**/*'
-              - 'engine/**/*'
+              - 'crates/**/*'
               - '.github/workflows/gateway.yml'
               - '.github/actions/**/*'
               - '!**/*.md'
