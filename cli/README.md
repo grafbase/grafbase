@@ -11,15 +11,32 @@
   </a>
 </p>
 
-Welcome to the Grafbase CLI!
+## Usage
 
-This is a cargo workspace with several crates relating to the Grafbase CLI and developer tooling
+```
+The Grafbase command line interface
 
-The directories in the `crates` directory in the root of the repo are organized as follows:
+Usage: grafbase [OPTIONS] <COMMAND>
 
-| Directory                  | Description                             |
-| -------------------------- | --------------------------------------- |
-| [backend](crates/backend/) | Universal backend for Grafbase devtools |
-| [cli](crates/cli/)         | Command Line Interface                  |
-| [common](crates/common/)   | Shared functions and utilities          |
-| [server](crates/server/)   | Wrapper for the API worker              |
+Commands:
+  branch       Graph branch management
+  completions  Output completions for the chosen shell to use, write the output to the appropriate
+               location for your shell
+  login        Logs into your Grafbase account
+  logout       Logs out of your Grafbase account
+  create       Set up and deploy a new graph
+  introspect   Introspect a graph and print its schema
+  subgraphs    List subgraphs
+  schema       Fetch a federated graph or a subgraph
+  publish      Publish a subgraph schema
+  check        Check a graph for validation, composition and breaking change errors
+  trust        Submit a trusted documents manifest
+  lint         Lint a GraphQL schema
+  help         Print this message or the help of the given subcommand(s)
+
+Options:
+  -t, --trace <TRACE>  Set the tracing level [default: 0]
+      --home <HOME>    An optional replacement path for the home directory
+  -h, --help           Print help
+  -V, --version        Print version
+```

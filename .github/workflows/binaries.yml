@@ -51,7 +51,7 @@ jobs:
               - Dockerfile
               - 'gateway/**/*'
               - 'cli/**/*'
-              - 'engine/**/*'
+              - 'crates/**/*'
               - '.github/workflows/gateway.yml'
               - '.github/actions/**/*'
               - '!**/*.md'
@@ -100,14 +100,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        package:
-          [
-            grafbase-local-common,
-            grafbase-local-backend,
-            grafbase,
-            grafbase-gateway,
-            federated-server
-          ]
+        package: [grafbase-local-backend, grafbase, grafbase-gateway, federated-server]
     runs-on: ubicloud-standard-8
     steps:
       - name: Get sources
@@ -189,16 +182,8 @@ jobs:
       matrix:
         archs:
           [
-            {
-              runner: ubicloud-standard-8,
-              target: x86_64-unknown-linux-musl,
-              platform: linux
-            },
-            {
-              runner: ubicloud-standard-8-arm,
-              target: aarch64-unknown-linux-musl,
-              platform: linux-arm
-            }
+            { runner: ubicloud-standard-8, target: x86_64-unknown-linux-musl, platform: linux },
+            { runner: ubicloud-standard-8-arm, target: aarch64-unknown-linux-musl, platform: linux-arm },
           ]
     runs-on: ${{ matrix.archs.runner }}
     steps:

@@ -1,28 +1,23 @@
 [workspace]
 resolver = "2"
 members = [
-    "gateway/crates/*",
-    "cli/crates/*",
-    "engine/crates/*",
-    "engine/crates/engine-v2/auth",
-    "engine/crates/engine-v2/config",
-    "engine/crates/engine-v2/axum",
-    "engine/crates/engine-v2/codegen",
-    "engine/crates/engine-v2/walker",
-    "engine/crates/engine-v2/schema",
-    "engine/crates/engine-v2/query-solver",
-    "engine/crates/engine-v2/id-derives",
-    "engine/crates/engine-v2/id-newtypes",
-    "engine/crates/engine-v2/parser",
-    "engine/crates/engine-v2/value",
-    "graph-ref",
-    "graphql-lint",
-    "gqlint",
-    "workspace-hack",
+    "cli",
+    "gateway",
+    "crates/*",
+    "crates/engine-v2/auth",
+    "crates/engine-v2/config",
+    "crates/engine-v2/axum",
+    "crates/engine-v2/codegen",
+    "crates/engine-v2/walker",
+    "crates/engine-v2/schema",
+    "crates/engine-v2/query-solver",
+    "crates/engine-v2/id-derives",
+    "crates/engine-v2/id-newtypes",
+    "crates/engine-v2/parser",
+    "crates/engine-v2/value",
 ]
 exclude = [
-    "engine/crates/gateway-v2",
-    "engine/crates/wasi-component-loader/examples",
+    "crates/wasi-component-loader/examples",
     "examples/hooks-template",
 ]
 
@@ -32,7 +27,7 @@ multipart-stream = { git = "https://github.com/grafbase/multipart-stream-rs-fork
 # Make sure we use the workspace-hack package when building
 # this repo, but not when pulling it in
 # See https://docs.rs/cargo-hakari/0.9.30/cargo_hakari/patch_directive/index.html for details
-grafbase-workspace-hack.path = "workspace-hack"
+grafbase-workspace-hack.path = "crates/grafbase-workspace-hack"
 
 [workspace.package]
 version = "0.80.2"
@@ -150,35 +145,35 @@ opentelemetry-otlp = "0.26"
 opentelemetry-appender-tracing = "0.26.0"
 
 # Common
-graph-ref = { path = "graph-ref" }
-graphql-schema-validation = { path = "./engine/crates/validation" }
-grafbase-graphql-introspection = { path = "graphql-introspection" }
-graphql-lint = { path = "graphql-lint" }
+graph-ref = { path = "crates/graph-ref" }
+graphql-schema-validation = { path = "crates/graphql-schema-validation" }
+grafbase-graphql-introspection = { path = "crates/grafbase-graphql-introspection" }
+graphql-lint = { path = "crates/graphql-lint" }
 
 # Gateway
-federated-server = { path = "gateway/crates/federated-server" }
-gateway-config = { path = "gateway/crates/config" }
-rolling-logger = { path = "gateway/crates/rolling-logger" }
+federated-server = { path = "crates/federated-server" }
+gateway-config = { path = "crates/gateway-config" }
+rolling-logger = { path = "crates/rolling-logger" }
 
 # Engine
-engine-config-builder = { path = "engine/crates/engine-config-builder" }
-engine-parser = { path = "engine/crates/engine-v2/parser" }
-engine-v2 = { path = "engine/crates/engine-v2" }
-engine-v2-auth = { path = "engine/crates/engine-v2/auth" }
-engine-v2-axum = { path = "engine/crates/engine-v2/axum" }
-engine-v2-config = { path = "engine/crates/engine-v2/config" }
-engine-value = { path = "engine/crates/engine-v2/value" }
-federated-graph = { path = "engine/crates/federated-graph", package = "graphql-federated-graph" }
-grafbase-telemetry = { path = "engine/crates/telemetry" }
-graphql-composition = { path = "engine/crates/composition" }
-graphql-mocks = { path = "engine/crates/graphql-mocks" }
-operation-normalizer = { path = "engine/crates/operation-normalizer" }
-runtime = { path = "engine/crates/runtime" }
-runtime-local = { path = "engine/crates/runtime-local" }
-runtime-noop = { path = "engine/crates/runtime-noop" }
-serde-dynamic-string = { path = "engine/crates/serde-dynamic-string" }
-grafbase-workspace-hack = { version = "0.1" }
-wrapping = { path = "engine/crates/wrapping", package = "graphql-wrapping-types" }
+engine-config-builder = { path = "crates/engine-config-builder" }
+engine-parser = { path = "crates/engine-v2/parser" }
+engine-v2 = { path = "crates/engine-v2" }
+engine-v2-auth = { path = "crates/engine-v2/auth" }
+engine-v2-axum = { path = "crates/engine-v2/axum" }
+engine-v2-config = { path = "crates/engine-v2/config" }
+engine-value = { path = "crates/engine-v2/value" }
+federated-graph = { path = "crates/graphql-federated-graph", package = "graphql-federated-graph" }
+grafbase-telemetry = { path = "crates/telemetry" }
+graphql-composition = { path = "crates/graphql-composition" }
+graphql-mocks = { path = "crates/graphql-mocks" }
+operation-normalizer = { path = "crates/operation-normalizer" }
+runtime = { path = "crates/runtime" }
+runtime-local = { path = "crates/runtime-local" }
+runtime-noop = { path = "crates/runtime-noop" }
+serde-dynamic-string = { path = "crates/serde-dynamic-string" }
+grafbase-workspace-hack = { path = "crates/grafbase-workspace-hack", version = "0.1" }
+wrapping = { path = "crates/graphql-wrapping-types", package = "graphql-wrapping-types" }
 
 [profile.bench]
 strip = "none"

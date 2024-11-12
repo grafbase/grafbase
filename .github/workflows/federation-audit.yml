@@ -135,7 +135,7 @@ jobs:
       - name: Start audit test server
         uses: JarvusInnovations/background-action@v1
         with:
-          working-directory: engine/crates/federation-audit-tests/gateway-audit-repo
+          working-directory: crates/federation-audit-tests/gateway-audit-repo
           run: |
             npm start serve
           wait-on: |

@@ -49,7 +49,7 @@ runs:
 
     - name: Build the WASI components for tests
       if: ${{ inputs.with-integration-tests == 'true' }}
-      working-directory: engine/crates/wasi-component-loader/examples
+      working-directory: crates/wasi-component-loader/examples
       shell: bash
       run: |
         cargo binstall -y cargo-component
@@ -60,12 +60,12 @@ runs:
       if: ${{ inputs.with-integration-tests == 'true' }}
       shell: bash
       run: |
-        docker compose -f engine/crates/integration-tests/docker-compose.yml up -d
+        docker compose -f crates/integration-tests/docker-compose.yml up -d
         RUST_BACKTRACE=1 cargo nextest run --workspace --profile ci \
           --exclude grafbase-gateway \
           --exclude grafbase-docker-tests \
           --exclude federation-audit-tests
-        docker compose -f engine/crates/integration-tests/docker-compose.yml stop -t 3
+        docker compose -f crates/integration-tests/docker-compose.yml stop -t 3
 
     - name: Upload the JUnit files
       if: ${{ inputs.with-integration-tests == 'true' && ( success() || failure() ) && !contains(steps.all_tests.outputs.exitcode, '101') }}
@@ -80,7 +80,7 @@ runs:
       if: ${{ inputs.with-integration-tests == 'true' }}
       shell: bash
       run: |
-        docker compose -f gateway/crates/gateway-binary/docker-compose.yml up -d
+        docker compose -f gateway/docker-compose.yml up -d
         RUST_BACKTRACE=1 cargo nextest run -p grafbase-gateway --profile ci
 
     - name: Upload the gateway junit files
