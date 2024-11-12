@@ -97,8 +97,8 @@ jobs:
       - name: Check licenses
         shell: bash
         run: |
-          cd gateway/crates/gateway-binary
-          cargo about generate -c ../../about.toml -o "../../licenses.html" ../../about.hbs
+          cd gateway
+          cargo about generate -c about.toml -o "licenses.html" about.hbs
 
   check-format:
     needs: [what-changed]
