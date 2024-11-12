@@ -1,4 +1,0 @@
-target
-cli/tests/graphql/compilation_error/schema.graphql
-crates/grafbase-local-backend/assets/grafbase.default.config.ts
-**/*.hbs
