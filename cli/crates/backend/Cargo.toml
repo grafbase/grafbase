@@ -40,7 +40,7 @@ futures.workspace = true
 
 
 [build-dependencies]
-cynic-codegen = { version = "=3.7.3", features = ["rkyv"] }
+cynic-codegen.workspace = true
 
 [features]
 default = []

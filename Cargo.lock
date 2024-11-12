@@ -1284,15 +1284,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "773648b94d0e5d620f64f280777445740e61fe701025087ec8b57f45c791888b"
 
 [[package]]
-name = "counter"
-version = "0.5.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2d458e66999348f56fd3ffcfbb7f7951542075ca8359687c703de6500c1ddccd"
-dependencies = [
- "num-traits",
-]
-
-[[package]]
 name = "cpp_demangle"
 version = "0.4.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1623,9 +1614,9 @@ dependencies = [
 
 [[package]]
 name = "cynic"
-version = "3.7.3"
+version = "3.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "478c02b53607e3f21c374f024c2cfc2154e554905bba478e8e09409f10ce3726"
+checksum = "9a41762e03383d7bf4213b9b4e5fb15e232853400b0b738b764d1d2df9649400"
 dependencies = [
  "cynic-proc-macros",
  "ref-cast",
@@ -1638,12 +1629,11 @@ dependencies = [
 
 [[package]]
 name = "cynic-codegen"
-version = "3.7.3"
+version = "3.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7c0ec86f960a00ce087e96ff6f073f6ff28b6876d69ce8caa06c03fb4143981c"
+checksum = "3b9e35b6ceec97e397c422585aa7d8c057158c63d2727f15d4ddc47563862798"
 dependencies = [
- "counter",
- "cynic-parser 0.4.5",
+ "cynic-parser",
  "darling",
  "once_cell",
  "ouroboros",
@@ -1657,9 +1647,9 @@ dependencies = [
 
 [[package]]
 name = "cynic-introspection"
-version = "3.7.3"
+version = "3.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8f50097884e41b92ba467ce0dddb163ac28e8141df0b8f4a7fbf6136c08fab1c"
+checksum = "2ca7737678bb7ac29b730ca8d6898bd6f8e2f2bd728e6997b5f9e04aa4a0f5e2"
 dependencies = [
  "cynic",
  "cynic-codegen",
@@ -1669,33 +1659,43 @@ dependencies = [
 
 [[package]]
 name = "cynic-parser"
-version = "0.4.5"
+version = "0.8.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "718f6cd8c54ae5249fd42b0c86639df0100b8a86eea2e5f1b915cde2e1481453"
-dependencies = [
- "indexmap 2.6.0",
- "lalrpop-util 0.20.2",
- "logos",
-]
-
-[[package]]
-name = "cynic-parser"
-version = "0.8.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4be865c1209f22e5599fd0a14ec36a85b2ca351af7b1a6a3584774380da8b85a"
+checksum = "f1ba4980ec0f37095cd010eba27602e6b0f411652330c9a675f5a799e8c281b7"
 dependencies = [
  "ariadne",
  "indexmap 2.6.0",
- "lalrpop-util 0.22.0",
+ "lalrpop-util",
  "logos",
  "pretty",
 ]
 
 [[package]]
-name = "cynic-proc-macros"
-version = "3.7.3"
+name = "cynic-parser-deser"
+version = "0.8.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "25a69ecdf4aa110fed1c0c8de290bc8ccb2835388733cf2f418f0abdf6ff3899"
+checksum = "cd9fefc53f4daa29827060f4e2442a9a8a8e4407d128428ca74f8d708a50db82"
+dependencies = [
+ "cynic-parser",
+ "cynic-parser-deser-macros",
+]
+
+[[package]]
+name = "cynic-parser-deser-macros"
+version = "0.8.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "56fc69e4685bc7fee6810d5cac587a6536686e06d800ebc8f993d7d9570adc1f"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.87",
+]
+
+[[package]]
+name = "cynic-proc-macros"
+version = "3.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "beb9f1756c97b93a7e2faf9c5d58cc21655de6a32984dd8aa7aa076c7e246601"
 dependencies = [
  "cynic-codegen",
  "darling",
@@ -2224,7 +2224,8 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "case",
- "cynic-parser 0.8.0",
+ "cynic-parser",
+ "cynic-parser-deser",
  "grafbase-workspace-hack",
  "indoc",
  "itertools 0.13.0",
@@ -2524,7 +2525,7 @@ name = "federation-audit-tests"
 version = "0.80.2"
 dependencies = [
  "async-graphql-parser",
- "cynic-parser 0.8.0",
+ "cynic-parser",
  "grafbase-workspace-hack",
  "graphql-composition",
  "integration-tests",
@@ -3064,7 +3065,7 @@ version = "0.80.2"
 dependencies = [
  "cynic",
  "cynic-introspection",
- "cynic-parser 0.8.0",
+ "cynic-parser",
  "grafbase-workspace-hack",
  "indoc",
  "reqwest 0.12.9",
@@ -3184,7 +3185,7 @@ dependencies = [
  "crossbeam-queue",
  "crossbeam-utils",
  "cynic-codegen",
- "cynic-parser 0.8.0",
+ "cynic-parser",
  "deadpool-runtime",
  "der",
  "deranged",
@@ -3305,7 +3306,7 @@ dependencies = [
 name = "graphql-composition"
 version = "0.4.0"
 dependencies = [
- "cynic-parser 0.8.0",
+ "cynic-parser",
  "datatest-stable",
  "grafbase-workspace-hack",
  "graphql-federated-graph",
@@ -3319,7 +3320,7 @@ dependencies = [
 name = "graphql-federated-graph"
 version = "0.4.0"
 dependencies = [
- "cynic-parser 0.8.0",
+ "cynic-parser",
  "expect-test",
  "grafbase-workspace-hack",
  "graphql-wrapping-types",
@@ -3334,7 +3335,7 @@ name = "graphql-lint"
 version = "0.1.3"
 dependencies = [
  "criterion",
- "cynic-parser 0.8.0",
+ "cynic-parser",
  "grafbase-workspace-hack",
  "heck 0.5.0",
  "thiserror 2.0.3",
@@ -3384,7 +3385,7 @@ dependencies = [
 name = "graphql-schema-diff"
 version = "0.2.0"
 dependencies = [
- "cynic-parser 0.8.0",
+ "cynic-parser",
  "datatest-stable",
  "grafbase-workspace-hack",
  "miette",
@@ -4232,7 +4233,7 @@ dependencies = [
  "ctor",
  "cynic",
  "cynic-introspection",
- "cynic-parser 0.8.0",
+ "cynic-parser",
  "ed25519-compact",
  "elliptic-curve",
  "engine-config-builder",
@@ -4481,15 +4482,6 @@ checksum = "ed9625ffda8729b85e45cf04090035ac368927b8cebc34898e7c120f52e4838b"
 dependencies = [
  "bitflags 1.3.2",
  "libc",
-]
-
-[[package]]
-name = "lalrpop-util"
-version = "0.20.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "507460a910eb7b32ee961886ff48539633b788a36b65692b95f225b844c82553"
-dependencies = [
- "regex-automata 0.4.8",
 ]
 
 [[package]]
