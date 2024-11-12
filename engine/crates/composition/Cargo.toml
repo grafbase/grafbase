@@ -12,6 +12,7 @@ workspace = true
 
 [dependencies]
 cynic-parser.workspace = true
+cynic-parser-deser.workspace = true
 grafbase-workspace-hack.workspace = true
 graphql-federated-graph = { path = "../federated-graph", version = "0.4.0" }
 indexmap.workspace = true

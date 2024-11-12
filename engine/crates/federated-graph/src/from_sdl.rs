@@ -2,10 +2,14 @@ mod arguments;
 mod value;
 
 use self::{arguments::*, value::*};
-use crate::federated_graph::*;
+use crate::{
+    directives::{CostDirective, DeprecatedDirective},
+    federated_graph::*,
+};
 use cynic_parser::{
     common::WrappingType, executable as executable_ast, type_system as ast, values::ConstValue as ParserValue,
 };
+use cynic_parser_deser::ConstDeserializer;
 use indexmap::IndexSet;
 use std::{
     collections::{BTreeSet, HashMap},
@@ -1457,10 +1461,11 @@ fn collect_composed_directives<'a>(
             "inaccessible" => state.directives.push(Directive::Inaccessible),
             "deprecated" => {
                 let directive = Directive::Deprecated {
-                    reason: directive.get_argument("reason").and_then(|value| match value {
-                        ParserValue::String(s) => Some(state.insert_string(s.value())),
-                        _ => None,
-                    }),
+                    reason: directive
+                        .deserialize::<DeprecatedDirective<'_>>()
+                        .ok()
+                        .and_then(|directive| directive.reason)
+                        .map(|str| state.insert_string(str)),
                 };
 
                 state.directives.push(directive)
@@ -1500,13 +1505,10 @@ fn collect_composed_directives<'a>(
             }
             "authenticated" => state.directives.push(Directive::Authenticated),
             "cost" => {
-                let weight = directive
-                    .get_argument("weight")
-                    .and_then(|arg| arg.into_json())
-                    .and_then(|arg| serde_json::from_value::<i32>(arg).ok());
-
-                if let Some(weight) = weight {
-                    state.directives.push(Directive::Cost { weight })
+                if let Ok(directive) = directive.deserialize::<CostDirective>() {
+                    state.directives.push(Directive::Cost {
+                        weight: directive.weight,
+                    })
                 }
             }
             // Added later after ingesting the graph.

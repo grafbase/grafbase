@@ -2,6 +2,8 @@ mod authorized;
 mod consts;
 
 use cynic_parser::values::ConstList;
+use cynic_parser_deser::ConstDeserializer;
+use graphql_federated_graph::directives::{CostDirective, DeprecatedDirective};
 
 use self::consts::*;
 use super::*;
@@ -146,9 +148,16 @@ pub(super) fn ingest_directives(
         }
 
         if directive_name == "deprecated" {
-            let reason = directive.argument("reason").and_then(|v| v.value().as_str());
-
-            subgraphs.insert_deprecated(directive_site_id, reason);
+            match directive.deserialize::<DeprecatedDirective<'_>>() {
+                Ok(directive) => subgraphs.insert_deprecated(directive_site_id, directive.reason),
+                Err(err) => {
+                    let location = location(subgraphs);
+                    subgraphs.push_ingestion_diagnostic(
+                        subgraph,
+                        format!("Error validating the @deprecated directive at {location}: {err}",),
+                    );
+                }
+            }
         }
 
         if directive_matcher.is_authorized(directive_name) {
@@ -162,17 +171,15 @@ pub(super) fn ingest_directives(
         }
 
         if directive_matcher.is_cost(directive_name) {
-            let argument = directive.argument("weight").and_then(|v| v.value().as_i32());
-
-            match argument {
-                Some(weight) => {
-                    subgraphs.set_cost(directive_site_id, weight);
+            match directive.deserialize::<CostDirective>() {
+                Ok(cost) => {
+                    subgraphs.set_cost(directive_site_id, cost.weight);
                 }
-                None => {
+                Err(error) => {
                     let location = location(subgraphs);
                     subgraphs.push_ingestion_diagnostic(
                         subgraph,
-                        format!("Error validating the @cost directive at {location}: expected an Int argument weight"),
+                        format!("Error validating the @cost directive at {location}: {error}"),
                     );
                 }
             }
