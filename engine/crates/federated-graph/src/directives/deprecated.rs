@@ -23,6 +23,6 @@ mod tests {
         let doc = directive_test_document("@deprecated(reason: \"because I wanted to\")");
         let value = parse_from_test_document::<DeprecatedDirective<'_>>(&doc).unwrap();
 
-        assert_eq!(value.reason, None);
+        assert_eq!(value.reason, Some("because I wanted to"));
     }
 }
