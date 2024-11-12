@@ -157,24 +157,24 @@ gateway-config = { path = "gateway/crates/config" }
 rolling-logger = { path = "gateway/crates/rolling-logger" }
 
 # Engine
-engine-config-builder = { path = "engine/crates/engine-config-builder" }
-engine-parser = { path = "engine/crates/engine-v2/parser" }
-engine-v2 = { path = "engine/crates/engine-v2" }
-engine-v2-auth = { path = "engine/crates/engine-v2/auth" }
-engine-v2-axum = { path = "engine/crates/engine-v2/axum" }
-engine-v2-config = { path = "engine/crates/engine-v2/config" }
-engine-value = { path = "engine/crates/engine-v2/value" }
-federated-graph = { path = "engine/crates/federated-graph", package = "graphql-federated-graph" }
-grafbase-telemetry = { path = "engine/crates/telemetry" }
-graphql-composition = { path = "engine/crates/composition" }
-graphql-mocks = { path = "engine/crates/graphql-mocks" }
-operation-normalizer = { path = "engine/crates/operation-normalizer" }
-runtime = { path = "engine/crates/runtime" }
-runtime-local = { path = "engine/crates/runtime-local" }
-runtime-noop = { path = "engine/crates/runtime-noop" }
-serde-dynamic-string = { path = "engine/crates/serde-dynamic-string" }
+engine-config-builder = { path = "crates/engine-config-builder" }
+engine-parser = { path = "crates/engine-v2/parser" }
+engine-v2 = { path = "crates/engine-v2" }
+engine-v2-auth = { path = "crates/engine-v2/auth" }
+engine-v2-axum = { path = "crates/engine-v2/axum" }
+engine-v2-config = { path = "crates/engine-v2/config" }
+engine-value = { path = "crates/engine-v2/value" }
+federated-graph = { path = "crates/graphql-federated-graph", package = "graphql-federated-graph" }
+grafbase-telemetry = { path = "crates/telemetry" }
+graphql-composition = { path = "crates/graphql-composition" }
+graphql-mocks = { path = "crates/graphql-mocks" }
+operation-normalizer = { path = "crates/operation-normalizer" }
+runtime = { path = "crates/runtime" }
+runtime-local = { path = "crates/runtime-local" }
+runtime-noop = { path = "crates/runtime-noop" }
+serde-dynamic-string = { path = "crates/serde-dynamic-string" }
 grafbase-workspace-hack = { version = "0.1" }
-wrapping = { path = "crates/wrapping", package = "graphql-wrapping-types" }
+wrapping = { path = "crates/graphql-wrapping-types" }
 
 [profile.bench]
 strip = "none"
