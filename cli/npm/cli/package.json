@@ -14,7 +14,7 @@
     "url": "https://github.com/grafbase/grafbase",
     "directory": "cli"
   },
-  "license": "Apache-2.0",
+  "license": "MPL-2.0",
   "bin": {
     "grafbase": "grafbase",
     "gb": "grafbase"
