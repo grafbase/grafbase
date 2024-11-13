@@ -79,6 +79,10 @@
 
             # SQLx macros
             libiconv
+
+            # federation-audit test
+            nodejs_22
+            typescript
           ]
           ++ optional (system == systems.aarch64-darwin) [
             cargo-binstall

@@ -27,8 +27,8 @@ impl<'a> PlanDataField<'a> {
     pub(crate) fn key(&self) -> PositionedResponseKey {
         self.as_ref().key
     }
-    pub(crate) fn response_key_str(&self) -> &'a str {
-        &self.ctx.solved_operation.response_keys[self.as_ref().key.response_key]
+    pub(crate) fn subgraph_response_key_str(&self) -> &'a str {
+        &self.ctx.solved_operation.response_keys[self.as_ref().subgraph_key]
     }
     pub(crate) fn location(&self) -> Location {
         self.as_ref().location

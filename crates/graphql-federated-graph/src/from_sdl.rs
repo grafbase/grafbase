@@ -75,10 +75,40 @@ struct State<'a> {
 
 impl<'a> State<'a> {
     fn field_type(&mut self, field_type: ast::Type<'a>) -> Result<Type, DomainError> {
+        self.field_type_from_name_and_wrapping(field_type.name(), field_type.wrappers())
+    }
+
+    fn field_type_from_str(&mut self, ty: &str) -> Result<Type, DomainError> {
+        let mut wrappers = Vec::new();
+        let mut chars = ty.chars().rev();
+
+        let mut start = 0;
+        let mut end = ty.len();
+        loop {
+            match chars.next() {
+                Some('!') => {
+                    wrappers.push(WrappingType::NonNull);
+                }
+                Some(']') => {
+                    wrappers.push(WrappingType::List);
+                    start += 1;
+                }
+                _ => break,
+            }
+            end -= 1;
+        }
+        self.field_type_from_name_and_wrapping(&ty[start..end], wrappers)
+    }
+
+    fn field_type_from_name_and_wrapping(
+        &mut self,
+        name: &str,
+        wrappers: impl IntoIterator<Item = WrappingType>,
+    ) -> Result<Type, DomainError> {
         use cynic_parser::common::WrappingType;
 
         self.type_wrappers.clear();
-        self.type_wrappers.extend(field_type.wrappers());
+        self.type_wrappers.extend(wrappers);
         self.type_wrappers.reverse();
 
         let mut wrappers = self.type_wrappers.iter().peekable();
@@ -105,8 +135,8 @@ impl<'a> State<'a> {
 
         let definition = *self
             .definition_names
-            .get(field_type.name())
-            .ok_or_else(|| DomainError(format!("Unknown type '{}'", field_type.name())))?;
+            .get(name)
+            .ok_or_else(|| DomainError(format!("Unknown type '{}'", name)))?;
 
         Ok(Type { definition, wrapping })
     }
@@ -999,6 +1029,29 @@ fn ingest_field<'a>(
         .map(|value| state.graph_sdl_names[value])
         .collect();
 
+    let join_fields = ast_field
+        .directives()
+        .filter(|dir| dir.name() == JOIN_FIELD_DIRECTIVE_NAME)
+        .filter_map(|dir| {
+            let ty = dir.get_argument("type").and_then(|arg| arg.as_str())?;
+            let graph = dir.get_argument("graph").and_then(|arg| arg.as_enum_value())?;
+
+            state
+                .field_type_from_str(ty)
+                .map(|ty| {
+                    if ty != r#type {
+                        Some(JoinField {
+                            subgraph_id: state.graph_sdl_names[graph],
+                            r#type: Some(ty),
+                        })
+                    } else {
+                        None
+                    }
+                })
+                .transpose()
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+
     let overrides = ast_field
         .directives()
         .filter(|dir| dir.name() == JOIN_FIELD_DIRECTIVE_NAME)
@@ -1055,6 +1108,7 @@ fn ingest_field<'a>(
     let field_id = FieldId::from(state.fields.push_return_idx(Field {
         name,
         r#type,
+        join_fields,
         resolvable_in,
         provides: Vec::new(),
         requires: Vec::new(),
@@ -1148,6 +1202,7 @@ fn ingest_object_fields<'a>(
                     wrapping: Wrapping::new(false),
                     definition: Definition::Object(object_id),
                 },
+                join_fields: Vec::new(),
                 arguments: NO_INPUT_VALUE_DEFINITION,
                 resolvable_in: Vec::new(),
                 provides: Vec::new(),
@@ -1924,4 +1979,180 @@ fn test_missing_type() {
     "###;
     let actual = super::from_sdl(sdl);
     assert!(actual.is_err());
+}
+
+#[cfg(test)]
+#[test]
+fn test_join_field_type() {
+    use expect_test::expect;
+
+    let sdl = r###"
+    schema
+      @link(url: "https://specs.apollo.dev/link/v1.0")
+      @link(url: "https://specs.apollo.dev/join/v0.3", for: EXECUTION) {
+      query: Query
+    }
+
+    directive @join__enumValue(graph: join__Graph!) repeatable on ENUM_VALUE
+
+    directive @join__field(
+      graph: join__Graph
+      requires: join__FieldSet
+      provides: join__FieldSet
+      type: String
+      external: Boolean
+      override: String
+      usedOverridden: Boolean
+    ) repeatable on FIELD_DEFINITION | INPUT_FIELD_DEFINITION
+
+    directive @join__graph(name: String!, url: String!) on ENUM_VALUE
+
+    directive @join__implements(
+      graph: join__Graph!
+      interface: String!
+    ) repeatable on OBJECT | INTERFACE
+
+    directive @join__type(
+      graph: join__Graph!
+      key: join__FieldSet
+      extension: Boolean! = false
+      resolvable: Boolean! = true
+      isInterfaceObject: Boolean! = false
+    ) repeatable on OBJECT | INTERFACE | UNION | ENUM | INPUT_OBJECT | SCALAR
+
+    directive @join__unionMember(
+      graph: join__Graph!
+      member: String!
+    ) repeatable on UNION
+
+    directive @link(
+      url: String
+      as: String
+      for: link__Purpose
+      import: [link__Import]
+    ) repeatable on SCHEMA
+
+    union Account
+      @join__type(graph: B)
+      @join__unionMember(graph: B, member: "User")
+      @join__unionMember(graph: B, member: "Admin") =
+      | User
+      | Admin
+
+    type Admin @join__type(graph: B) {
+      id: ID
+      name: String
+      similarAccounts: [Account!]!
+    }
+
+    scalar join__FieldSet
+
+    enum join__Graph {
+      A @join__graph(name: "a", url: "http://localhost:4200/child-type-mismatch/a")
+      B @join__graph(name: "b", url: "http://localhost:4200/child-type-mismatch/b")
+    }
+
+    scalar link__Import
+
+    enum link__Purpose {
+      """
+      `SECURITY` features provide metadata necessary to securely resolve fields.
+      """
+      SECURITY
+
+      """
+      `EXECUTION` features provide metadata necessary for operation execution.
+      """
+      EXECUTION
+    }
+
+    type Query @join__type(graph: A) @join__type(graph: B) {
+      users: [User!]! @join__field(graph: A)
+      accounts: [Account!]! @join__field(graph: B)
+    }
+
+    type User @join__type(graph: A) @join__type(graph: B, key: "id") {
+      id: ID @join__field(graph: A, type: "ID") @join__field(graph: B, type: "ID!")
+      name: String @join__field(graph: B)
+      similarAccounts: [Account!]! @join__field(graph: B)
+    }
+    "###;
+
+    let expected = expect![[r#"
+        directive @core(feature: String!) repeatable on SCHEMA
+
+        directive @join__owner(graph: join__Graph!) on OBJECT
+
+        directive @join__type(
+            graph: join__Graph!
+            key: String!
+            resolvable: Boolean = true
+        ) repeatable on OBJECT | INTERFACE
+
+        directive @join__field(
+            graph: join__Graph
+            requires: String
+            provides: String
+        ) on FIELD_DEFINITION
+
+        directive @join__graph(name: String!, url: String!) on ENUM_VALUE
+
+        directive @join__implements(graph: join__Graph!, interface: String!) repeatable on OBJECT | INTERFACE
+
+        directive @join__unionMember(graph: join__Graph!, member: String!) repeatable on UNION
+
+        enum join__Graph {
+            A @join__graph(name: "a", url: "http://localhost:4200/child-type-mismatch/a")
+            B @join__graph(name: "b", url: "http://localhost:4200/child-type-mismatch/b")
+        }
+
+        scalar join__FieldSet
+
+        scalar link__Import
+
+        type Admin
+            @join__type(graph: B)
+        {
+            id: ID @join__field(graph: B)
+            name: String @join__field(graph: B)
+            similarAccounts: [Account!]! @join__field(graph: B)
+        }
+
+        type Query
+            @join__type(graph: A)
+            @join__type(graph: B)
+        {
+            users: [User!]! @join__field(graph: A)
+            accounts: [Account!]! @join__field(graph: B)
+        }
+
+        type User
+            @join__type(graph: A)
+            @join__type(graph: B, key: "id")
+        {
+            id: ID @join__field(graph: A) @join__field(graph: B) @join__field(graph: B, type: "ID!")
+            name: String @join__field(graph: B)
+            similarAccounts: [Account!]! @join__field(graph: B)
+        }
+
+        enum link__Purpose {
+            """
+            `SECURITY` features provide metadata necessary to securely resolve fields.
+            """
+            SECURITY
+            """
+            `EXECUTION` features provide metadata necessary for operation execution.
+            """
+            EXECUTION
+        }
+
+        union Account
+            @join__unionMember(graph: B, member: "Admin")
+            @join__unionMember(graph: B, member: "User")
+         = User | Admin
+    "#]];
+
+    let actual = crate::render_sdl::render_federated_sdl(&super::from_sdl(sdl).unwrap()).unwrap();
+
+    expected.assert_eq(&actual);
 }

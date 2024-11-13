@@ -111,7 +111,6 @@ impl<'schema, 'p, 'binder> SelectionSetBinder<'schema, 'p, 'binder> {
                 .iter()
                 .min_by_key(|field| field.pos.line)
                 .expect("At least one occurrence");
-            let key = response_key.with_position(query_position);
             let selection_set_id =
                 CompositeTypeId::maybe_from(self.schema.walk(definition_id).ty().as_ref().definition_id)
                     .map(|ty| {
@@ -123,7 +122,14 @@ impl<'schema, 'p, 'binder> SelectionSetBinder<'schema, 'p, 'binder> {
                     })
                     .transpose()?;
 
-            field_ids.push(self.bind_field(key, definition_id, field, selection_set_id, rules)?)
+            field_ids.push(self.bind_field(
+                query_position,
+                response_key,
+                definition_id,
+                field,
+                selection_set_id,
+                rules,
+            )?)
         }
 
         for (response_key, typename_fields) in std::mem::take(&mut self.typename_fields_by_key_then_by_type_condition) {
@@ -137,14 +143,12 @@ impl<'schema, 'p, 'binder> SelectionSetBinder<'schema, 'p, 'binder> {
                 .unwrap_or_default()
             {
                 let TypenameField { query_position, field } = typename_fields.get(&ty).unwrap();
-                let key = response_key.with_position(*query_position);
-                field_ids.push(self.bind_typename_field(ty, key, field)?);
+                field_ids.push(self.bind_typename_field(ty, *query_position, response_key, field)?);
 
                 continue;
             }
             for (type_condition, TypenameField { query_position, field }) in typename_fields {
-                let key = response_key.with_position(query_position);
-                field_ids.push(self.bind_typename_field(type_condition, key, field)?)
+                field_ids.push(self.bind_typename_field(type_condition, query_position, response_key, field)?)
             }
         }
 

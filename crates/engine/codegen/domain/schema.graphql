@@ -86,6 +86,7 @@ type FieldDefinition @meta(module: "field") @indexed(id_size: "u32", max_id: "MA
   will be specified in this Vec.
   """
   only_resolvable_in: [Subgraph!]!
+  distinct_type_in: [Subgraph!]!
   requires: [FieldRequires!]! @field(record_field_name: "requires_records")
   provides: [FieldProvides!]! @field(record_field_name: "provides_records")
   "The arguments referenced by this range are sorted by their name (string)"
@@ -172,7 +173,7 @@ type InputValueDefinition @meta(module: "input_value") @indexed(id_size: "u32", 
 # - FieldSet -
 # ------------
 
-scalar FieldSet @indexed @record 
+scalar FieldSet @indexed @record
 
 type SchemaField
   @meta(module: "field_set/field", derive: ["PartialEq", "Eq", "PartialOrd", "Ord"], debug: false)
@@ -207,9 +208,7 @@ type DeprecatedDirective
   reason: String
 }
 
-type RequiresScopesDirective @meta(module: "directive/requires_scopes") @indexed(id_size: "u32", max_id: "MAX_ID") {
-  possible_
-}
+scalar RequiresScopesDirective @indexed @record
 
 type AuthorizedDirective @meta(module: "directive/authorized") @indexed(id_size: "u32", max_id: "MAX_ID") {
   arguments: InputValueSet!

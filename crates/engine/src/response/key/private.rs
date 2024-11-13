@@ -46,8 +46,8 @@ impl ResponseKeys {
         self.0.get_or_intern(s)
     }
 
-    pub fn contains(&self, s: &str) -> bool {
-        self.0.contains(s)
+    pub fn contains(&self, key: &str) -> bool {
+        self.0.contains(key)
     }
 
     pub fn try_resolve(&self, key: ResponseKey) -> Option<&str> {
@@ -106,7 +106,7 @@ mod tests {
 
     #[test]
     fn field_name_value_out_of_range() {
-        let key = SafeResponseKey::try_from_usize(100_000_usize);
+        let key = SafeResponseKey::try_from_usize(u64::MAX as usize);
         assert!(key.is_none());
 
         let key = SafeResponseKey::try_from_usize(u32::MAX as usize);

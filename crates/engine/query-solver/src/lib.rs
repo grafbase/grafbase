@@ -13,7 +13,7 @@ pub(crate) mod solve;
 pub use error::*;
 pub(crate) use operation::*;
 pub use petgraph;
-use schema::{FieldDefinitionId, ObjectDefinitionId, Schema, SchemaField};
+use schema::{CompositeTypeId, FieldDefinitionId, ObjectDefinitionId, Schema, SchemaField, SubgraphId};
 pub use solution::*;
 
 pub(crate) type Cost = u16;
@@ -32,7 +32,12 @@ pub trait Operation {
         petitioner_field_id: Self::FieldId,
         field: SchemaField<'_>,
     ) -> Self::FieldId;
-    fn finalize_selection_set_extra_fields(&mut self, extra: &[Self::FieldId], existing: &[Self::FieldId]);
+    fn finalize_selection_set(
+        &mut self,
+        parent_type: CompositeTypeId,
+        extra: &mut [(SubgraphId, Self::FieldId)],
+        existing: &mut [(SubgraphId, Self::FieldId)],
+    );
 
     fn root_selection_set(&self) -> impl ExactSizeIterator<Item = Self::FieldId> + '_;
     fn subselection(&self, field_id: Self::FieldId) -> impl ExactSizeIterator<Item = Self::FieldId> + '_;

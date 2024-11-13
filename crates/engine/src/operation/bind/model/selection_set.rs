@@ -3,7 +3,7 @@ use schema::{CompositeTypeId, FieldDefinitionId, InputValueDefinitionId};
 
 use crate::{
     operation::{Location, QueryInputValueId},
-    response::{PositionedResponseKey, SafeResponseKey},
+    response::SafeResponseKey,
 };
 
 use super::{BoundFieldArgumentId, BoundFieldId, BoundSelectionSetId};
@@ -39,35 +39,38 @@ pub(crate) enum BoundField {
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub(crate) struct BoundTypeNameField {
-    pub(crate) type_condition: CompositeTypeId,
-    pub(crate) key: PositionedResponseKey,
-    pub(crate) location: Location,
+    pub type_condition: CompositeTypeId,
+    pub query_position: QueryPosition,
+    pub key: SafeResponseKey,
+    pub location: Location,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub(crate) struct BoundQueryField {
-    pub(crate) key: PositionedResponseKey,
-    pub(crate) location: Location,
-    pub(crate) definition_id: FieldDefinitionId,
-    pub(crate) argument_ids: IdRange<BoundFieldArgumentId>,
-    pub(crate) selection_set_id: Option<BoundSelectionSetId>,
+    pub query_position: QueryPosition,
+    pub key: SafeResponseKey,
+    pub subgraph_key: SafeResponseKey,
+    pub location: Location,
+    pub definition_id: FieldDefinitionId,
+    pub argument_ids: IdRange<BoundFieldArgumentId>,
+    pub selection_set_id: Option<BoundSelectionSetId>,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub(crate) struct BoundExtraField {
     // Extra fields are added as soon as they might be necessary, and they're assigned a key if
     // they are.
-    pub(crate) key: Option<SafeResponseKey>,
-    pub(crate) definition_id: FieldDefinitionId,
-    pub(crate) argument_ids: IdRange<BoundFieldArgumentId>,
-    pub(crate) petitioner_location: Location,
+    pub key: Option<SafeResponseKey>,
+    pub definition_id: FieldDefinitionId,
+    pub argument_ids: IdRange<BoundFieldArgumentId>,
+    pub petitioner_location: Location,
 }
 
 impl BoundField {
     pub(crate) fn response_key(&self) -> Option<SafeResponseKey> {
         match self {
-            BoundField::TypeName(field) => Some(field.key.response_key),
-            BoundField::Query(field) => Some(field.key.response_key),
+            BoundField::TypeName(field) => Some(field.key),
+            BoundField::Query(field) => Some(field.key),
             BoundField::Extra(field) => field.key,
         }
     }

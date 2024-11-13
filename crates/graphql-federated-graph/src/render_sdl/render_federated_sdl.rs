@@ -403,6 +403,7 @@ fn write_field(field_id: FieldId, field: &Field, graph: &FederatedGraph, sdl: &m
     write_requires(field, graph, sdl)?;
     write_composed_directives(field.composed_directives, graph, sdl)?;
     write_overrides(field, graph, sdl)?;
+    write_join_field_type(field, graph, sdl)?;
     write_authorized(field_id, graph, sdl)?;
 
     sdl.push('\n');
@@ -443,6 +444,21 @@ fn write_resolvable_in(subgraph: SubgraphId, field: &Field, graph: &FederatedGra
             .map(|fieldset| format!(", requires: {}", SelectionSetDisplay(&fieldset.fields, graph))),
     );
     write!(sdl, " @join__field(graph: {subgraph_name}{provides}{requires})")?;
+
+    Ok(())
+}
+
+fn write_join_field_type(field: &Field, graph: &FederatedGraph, sdl: &mut String) -> fmt::Result {
+    for JoinField { subgraph_id, r#type } in &field.join_fields {
+        let subgraph_name = GraphEnumVariantName(&graph[graph[*subgraph_id].name]);
+        if let Some(ty) = r#type {
+            write!(
+                sdl,
+                " @join__field(graph: {subgraph_name}, type: \"{}\")",
+                render_field_type(ty, graph)
+            )?;
+        }
+    }
 
     Ok(())
 }
