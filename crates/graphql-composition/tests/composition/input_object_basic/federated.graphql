@@ -4,14 +4,14 @@ directive @join__owner(graph: join__Graph!) on OBJECT
 
 directive @join__type(
     graph: join__Graph!
-    key: String!
+    key: join__FieldSet
     resolvable: Boolean = true
 ) repeatable on OBJECT | INTERFACE
 
 directive @join__field(
     graph: join__Graph
-    requires: String
-    provides: String
+    requires: join__FieldSet
+    provides: join__FieldSet
 ) on FIELD_DEFINITION
 
 directive @join__graph(name: String!, url: String!) on ENUM_VALUE
@@ -19,6 +19,8 @@ directive @join__graph(name: String!, url: String!) on ENUM_VALUE
 directive @join__implements(graph: join__Graph!, interface: String!) repeatable on OBJECT | INTERFACE
 
 directive @join__unionMember(graph: join__Graph!, member: String!) repeatable on UNION
+
+scalar join__FieldSet
 
 enum join__Graph {
     EMAILBOOK @join__graph(name: "emailbook", url: "http://example.com/emailbook")
@@ -29,20 +31,24 @@ type Person
     @join__type(graph: EMAILBOOK, key: "id")
     @join__type(graph: PHONEBOOK, key: "id")
 {
-    age: Int! @join__field(graph: EMAILBOOK) @join__field(graph: PHONEBOOK)
+    age: Int!
     email: String! @join__field(graph: EMAILBOOK)
-    firstName: String! @join__field(graph: EMAILBOOK) @join__field(graph: PHONEBOOK)
+    firstName: String!
     id: ID!
-    lastName: String! @join__field(graph: EMAILBOOK) @join__field(graph: PHONEBOOK)
+    lastName: String!
     phoneNumber: String @join__field(graph: PHONEBOOK)
 }
 
-type Query {
+type Query
+{
     getPersonInfo(input: InputPerson!): Person @join__field(graph: EMAILBOOK)
     searchPerson(input: InputPerson!): [Person] @join__field(graph: PHONEBOOK)
 }
 
-input InputPerson {
+input InputPerson
+    @join__type(graph: EMAILBOOK)
+    @join__type(graph: PHONEBOOK)
+{
     firstName: String!
     lastName: String!
 }

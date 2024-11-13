@@ -55,14 +55,14 @@ directive @join__owner(graph: join__Graph!) on OBJECT
 
 directive @join__type(
     graph: join__Graph!
-    key: String!
+    key: join__FieldSet
     resolvable: Boolean = true
 ) repeatable on OBJECT | INTERFACE
 
 directive @join__field(
     graph: join__Graph
-    requires: String
-    provides: String
+    requires: join__FieldSet
+    provides: join__FieldSet
 ) on FIELD_DEFINITION
 
 directive @join__graph(name: String!, url: String!) on ENUM_VALUE
@@ -70,6 +70,8 @@ directive @join__graph(name: String!, url: String!) on ENUM_VALUE
 directive @join__implements(graph: join__Graph!, interface: String!) repeatable on OBJECT | INTERFACE
 
 directive @join__unionMember(graph: join__Graph!, member: String!) repeatable on UNION
+
+scalar join__FieldSet
 
 enum join__Graph {
     USERS_SERVICE @join__graph(name: "users-service", url: "http://users.example.com")
@@ -85,11 +87,14 @@ type User
     name: String! @join__field(graph: USERS_SERVICE)
 }
 
-type Cart {
+type Cart
+    @join__type(graph: CARTS_SERVICE)
+{
     items: [String!]!
 }
 
-type Query {
+type Query
+{
     findUserByEmail(email: String!): User @join__field(graph: USERS_SERVICE)
 }
   "#;

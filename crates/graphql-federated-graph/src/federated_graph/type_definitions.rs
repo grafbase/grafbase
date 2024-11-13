@@ -1,4 +1,4 @@
-use super::{Directives, FederatedGraph, StringId, TypeDefinitionId};
+use super::{Directive, FederatedGraph, StringId, TypeDefinitionId};
 
 pub type TypeDefinition<'a> = super::view::ViewNested<'a, TypeDefinitionId, TypeDefinitionRecord>;
 
@@ -13,8 +13,8 @@ impl std::fmt::Debug for TypeDefinition<'_> {
 #[derive(Clone, Debug)]
 pub struct TypeDefinitionRecord {
     pub name: StringId,
+    pub directives: Vec<Directive>,
     pub description: Option<StringId>,
-    pub directives: Directives,
     pub kind: TypeDefinitionKind,
 }
 

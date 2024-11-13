@@ -4,14 +4,14 @@ directive @join__owner(graph: join__Graph!) on OBJECT
 
 directive @join__type(
     graph: join__Graph!
-    key: String!
+    key: join__FieldSet
     resolvable: Boolean = true
 ) repeatable on OBJECT | INTERFACE
 
 directive @join__field(
     graph: join__Graph
-    requires: String
-    provides: String
+    requires: join__FieldSet
+    provides: join__FieldSet
 ) on FIELD_DEFINITION
 
 directive @join__graph(name: String!, url: String!) on ENUM_VALUE
@@ -19,6 +19,8 @@ directive @join__graph(name: String!, url: String!) on ENUM_VALUE
 directive @join__implements(graph: join__Graph!, interface: String!) repeatable on OBJECT | INTERFACE
 
 directive @join__unionMember(graph: join__Graph!, member: String!) repeatable on UNION
+
+scalar join__FieldSet
 
 enum join__Graph {
     CHILIES @join__graph(name: "chilies", url: "http://example.com/chilies")
@@ -36,14 +38,17 @@ type Farm
     name: String! @join__field(graph: FARMS)
 }
 
-type ChiliVariety {
-    description: String @join__field(graph: CHILIES)
-    id: ID! @join__field(graph: CHILIES)
-    name: String! @join__field(graph: CHILIES)
-    spicinessScale: Int! @join__field(graph: CHILIES)
+type ChiliVariety
+    @join__type(graph: CHILIES)
+{
+    description: String
+    id: ID!
+    name: String!
+    spicinessScale: Int!
 }
 
-type Query {
+type Query
+{
     chiliVarieties: [ChiliVariety] @join__field(graph: CHILIES)
     chiliVariety(id: ID!): ChiliVariety @join__field(graph: CHILIES)
     farm(id: ID!): Farm @join__field(graph: FARMS)

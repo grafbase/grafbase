@@ -10,8 +10,8 @@ where
     let mut buf = Vec::new();
 
     while start < fields.len() {
-        let definition = fields[start].parent_definition;
-        let end = start + fields[start..].partition_point(|field| field.parent_definition == definition);
+        let definition = fields[start].parent_definition_name;
+        let end = start + fields[start..].partition_point(|field| field.parent_definition_name == definition);
         buf.extend_from_slice(&fields[start..end]);
 
         f(definition, &mut buf);

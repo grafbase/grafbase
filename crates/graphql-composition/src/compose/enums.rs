@@ -9,8 +9,8 @@ pub(super) fn merge_enum_definitions<'a>(
     ctx: &mut Context<'a>,
 ) {
     let enum_name = first.name().id;
-    let directive_containers = definitions.iter().map(|def| def.directives());
-    let composed_directives = collect_composed_directives(directive_containers, ctx);
+    let mut directives = collect_composed_directives(definitions.iter().map(|def| def.directives()), ctx);
+    directives.extend(create_join_type_from_definitions(definitions));
     let description = definitions.iter().find_map(|def| def.description()).map(|d| d.as_str());
 
     match (
@@ -18,20 +18,20 @@ pub(super) fn merge_enum_definitions<'a>(
         enum_is_used_in_return_position(enum_name, ctx.subgraphs),
     ) {
         (true, false) => {
-            let enum_id = ctx.insert_enum(first.name().as_str(), description, composed_directives);
+            let enum_id = ctx.insert_enum(first.name().as_str(), description, directives);
             merge_intersection(first, definitions, enum_id, ctx);
         }
         (false, true) => {
-            let enum_id = ctx.insert_enum(first.name().as_str(), description, composed_directives);
+            let enum_id = ctx.insert_enum(first.name().as_str(), description, directives);
             merge_union(first, definitions, enum_id, ctx);
         }
         (true, true) => {
-            let enum_id = ctx.insert_enum(first.name().as_str(), description, composed_directives);
+            let enum_id = ctx.insert_enum(first.name().as_str(), description, directives);
             merge_exactly_matching(first, definitions, enum_id, ctx);
         }
         (false, false) => {
             // The enum isn't used at all, act as if it were used in return position
-            let enum_id = ctx.insert_enum(first.name().as_str(), description, composed_directives);
+            let enum_id = ctx.insert_enum(first.name().as_str(), description, directives);
             merge_union(first, definitions, enum_id, ctx);
         }
     }

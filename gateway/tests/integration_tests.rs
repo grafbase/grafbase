@@ -668,7 +668,7 @@ fn introspect_enabled() {
     with_static_server(config, &schema, None, None, |client| async move {
         let result = introspect(client.endpoint()).await;
 
-        insta::assert_snapshot!(&result, @r###"
+        insta::assert_snapshot!(&result, @r#"
         type Cart {
           products: [Product!]!
         }
@@ -713,13 +713,18 @@ fn introspect_enabled() {
           id: ID!
           username: String!
           profilePicture: Picture
+
+          """
+          This used to be part of this subgraph, but is now being overridden from
+          `reviews`
+          """
           reviewCount: Int!
           joinedTimestamp: Int!
           cart: Cart!
           reviews: [Review!]!
           trustworthiness: Trustworthiness!
         }
-        "###);
+        "#);
     })
 }
 

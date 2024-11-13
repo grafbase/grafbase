@@ -1,32 +1,23 @@
 mod arguments;
-mod list_size;
+mod directive;
 mod value;
 
 use self::{arguments::*, value::*};
-use crate::{
-    directives::{CostDirective, DeprecatedDirective},
-    federated_graph::*,
-};
+use crate::{directives::*, federated_graph::*};
 use cynic_parser::{
     common::WrappingType, executable as executable_ast, type_system as ast, values::ConstValue as ParserValue,
 };
-use cynic_parser_deser::ConstDeserializer;
-use indexmap::IndexSet;
-use list_size::ingest_list_size_directive;
-use std::{
-    collections::{BTreeSet, HashMap},
-    error::Error as StdError,
-    fmt,
-    ops::{Index, Range},
+use directive::{
+    collect_definition_directives, collect_enum_value_directives, collect_field_directives,
+    collect_input_value_directives,
 };
+use indexmap::IndexSet;
+use std::{collections::HashMap, error::Error as StdError, fmt, ops::Range};
 use wrapping::Wrapping;
 
-const JOIN_FIELD_DIRECTIVE_NAME: &str = "join__field";
-const JOIN_FIELD_DIRECTIVE_OVERRIDE_ARGUMENT: &str = "override";
-const JOIN_FIELD_DIRECTIVE_OVERRIDE_LABEL_ARGUMENT: &str = "overrideLabel";
 const JOIN_GRAPH_DIRECTIVE_NAME: &str = "join__graph";
 const JOIN_GRAPH_ENUM_NAME: &str = "join__Graph";
-const JOIN_TYPE_DIRECTIVE_NAME: &str = "join__type";
+const JOIN_FIELD_SET_SCALAR_NAME: &str = "join__FieldSet";
 
 #[derive(Debug)]
 pub struct DomainError(String);
@@ -48,7 +39,6 @@ struct State<'a> {
     interfaces: Vec<Interface>,
     fields: Vec<Field>,
 
-    directives: Vec<Directive>,
     input_value_definitions: Vec<InputValueDefinition>,
 
     unions: Vec<Union>,
@@ -65,19 +55,43 @@ struct State<'a> {
     enum_values_map: HashMap<(TypeDefinitionId, &'a str), EnumValueId>,
 
     /// The key is the name of the graph in the join__Graph enum.
-    graph_sdl_names: HashMap<&'a str, SubgraphId>,
-
-    authorized_directives: Vec<AuthorizedDirective>,
-    field_authorized_directives: Vec<(FieldId, AuthorizedDirectiveId)>,
-    object_authorized_directives: Vec<(ObjectId, AuthorizedDirectiveId)>,
-    interface_authorized_directives: Vec<(InterfaceId, AuthorizedDirectiveId)>,
-
-    list_sizes: Vec<(FieldId, ListSize)>,
+    graph_by_enum_str: HashMap<&'a str, SubgraphId>,
+    graph_by_name: HashMap<&'a str, SubgraphId>,
 
     type_wrappers: Vec<WrappingType>,
 }
 
-impl Index<StringId> for State<'_> {
+macro_rules! id_newtypes {
+    ($($storage:ident [ $name:ident ] -> $out:ident,)*) => {
+        $(
+            impl std::ops::Index<$name> for State<'_> {
+                type Output = $out;
+
+                fn index(&self, index: $name) -> &$out {
+                    &self.$storage[usize::from(index)]
+                }
+            }
+
+            impl std::ops::IndexMut<$name> for State<'_> {
+                fn index_mut(&mut self, index: $name) -> &mut $out {
+                    &mut self.$storage[usize::from(index)]
+                }
+            }
+        )*
+    }
+}
+
+id_newtypes! {
+    fields[FieldId] -> Field,
+    input_objects[InputObjectId] -> InputObject,
+    input_value_definitions[InputValueDefinitionId] -> InputValueDefinition,
+    interfaces[InterfaceId] -> Interface,
+    objects[ObjectId] -> Object,
+    subgraphs[SubgraphId] -> Subgraph,
+    unions[UnionId] -> Union,
+}
+
+impl std::ops::Index<StringId> for State<'_> {
     type Output = str;
 
     fn index(&self, index: StringId) -> &Self::Output {
@@ -266,15 +280,13 @@ pub fn from_sdl(sdl: &str) -> Result<FederatedGraph, DomainError> {
         let type_definition_id = state.graph.push_type_definition(TypeDefinitionRecord {
             name: query_string_id,
             description: None,
-            directives: NO_DIRECTIVES,
+            directives: Vec::new(),
             kind: TypeDefinitionKind::Object,
         });
 
         state.objects.push(Object {
             type_definition_id,
             implements_interfaces: Vec::new(),
-            join_implements: Vec::new(),
-            keys: Vec::new(),
             fields: NO_FIELDS,
         });
 
@@ -282,10 +294,9 @@ pub fn from_sdl(sdl: &str) -> Result<FederatedGraph, DomainError> {
     }
 
     ingest_fields(&parsed, &mut state)?;
-    // This needs to happen after all fields have been ingested, in order to attach selection sets.
-    ingest_selection_sets(&parsed, &mut state)?;
 
-    state.list_sizes.sort_by_key(|(field_id, _)| *field_id);
+    // This needs to happen after all fields have been ingested, in order to attach selection sets.
+    ingest_directives_after_graph(&parsed, &mut state)?;
 
     Ok(FederatedGraph {
         type_definitions: std::mem::take(&mut state.graph.type_definitions),
@@ -298,13 +309,7 @@ pub fn from_sdl(sdl: &str) -> Result<FederatedGraph, DomainError> {
         unions: state.unions,
         input_objects: state.input_objects,
         strings: state.strings.into_iter().collect(),
-        directives: state.directives,
         input_value_definitions: state.input_value_definitions,
-        authorized_directives: state.authorized_directives,
-        field_authorized_directives: state.field_authorized_directives,
-        object_authorized_directives: state.object_authorized_directives,
-        interface_authorized_directives: state.interface_authorized_directives,
-        list_sizes: state.list_sizes,
     })
 }
 
@@ -334,7 +339,6 @@ fn ingest_fields<'a>(parsed: &'a ast::TypeSystemDocument, state: &mut State<'a>)
                         ));
                     };
                     ingest_object_interfaces(object_id, object, state)?;
-                    ingest_object_join_implements(object_id, object, state)?;
                     ingest_object_fields(object_id, object.fields(), state)?;
                 }
                 ast::TypeDefinition::Interface(interface) => {
@@ -344,7 +348,6 @@ fn ingest_fields<'a>(parsed: &'a ast::TypeSystemDocument, state: &mut State<'a>)
                         ));
                     };
                     ingest_interface_interfaces(interface_id, interface, state)?;
-                    ingest_interface_join_implements(interface_id, interface, state)?;
                     ingest_interface_fields(interface_id, interface.fields(), state)?;
                 }
                 ast::TypeDefinition::Union(union) => {
@@ -352,7 +355,6 @@ fn ingest_fields<'a>(parsed: &'a ast::TypeSystemDocument, state: &mut State<'a>)
                         return Err(DomainError("Broken invariant: UnionId behind union name.".to_owned()));
                     };
                     ingest_union_members(union_id, union, state)?;
-                    ingest_union_join_members(union_id, union, state)?;
                 }
                 ast::TypeDefinition::Enum(_) => {}
                 ast::TypeDefinition::InputObject(input_object) => {
@@ -429,416 +431,47 @@ fn ingest_object_interfaces(
     Ok(())
 }
 
-fn ingest_object_join_implements(
-    object_id: ObjectId,
-    object: &ast::ObjectDefinition<'_>,
-    state: &mut State<'_>,
-) -> Result<(), DomainError> {
-    for directive in object.directives() {
-        let Some((subgraph_id, interface_id)) = parse_join_implements(directive, state)? else {
-            continue;
-        };
-
-        state.objects[usize::from(object_id)]
-            .join_implements
-            .push((subgraph_id, interface_id));
-    }
-
-    Ok(())
-}
-
-fn ingest_interface_join_implements(
-    object_id: InterfaceId,
-    interface: &ast::InterfaceDefinition<'_>,
-    state: &mut State<'_>,
-) -> Result<(), DomainError> {
-    for directive in interface.directives() {
-        let Some((subgraph_id, interface_id)) = parse_join_implements(directive, state)? else {
-            continue;
-        };
-
-        state.interfaces[usize::from(object_id)]
-            .join_implements
-            .push((subgraph_id, interface_id));
-    }
-
-    Ok(())
-}
-
-fn ingest_union_join_members(
-    union_id: UnionId,
-    union: &ast::UnionDefinition<'_>,
-    state: &mut State<'_>,
-) -> Result<(), DomainError> {
-    for directive in union.directives() {
-        let Some((subgraph_id, object_id)) = parse_join_union_member(directive, state)? else {
-            continue;
-        };
-
-        state.unions[usize::from(union_id)]
-            .join_members
-            .insert((subgraph_id, object_id));
-    }
-
-    Ok(())
-}
-
-fn parse_join_union_member(
-    directive: ast::Directive<'_>,
-    state: &mut State<'_>,
-) -> Result<Option<(SubgraphId, ObjectId)>, DomainError> {
-    if directive.name() != "join__unionMember" {
-        return Ok(None);
-    }
-
-    let Some(ParserValue::Enum(graph)) = directive.get_argument("graph") else {
-        let error = DomainError("Missing graph argument in join__unionMember directive".to_owned());
-        return Err(error);
-    };
-
-    let Some(ParserValue::String(member)) = directive.get_argument("member") else {
-        let error = DomainError("Missing member argument in join__unionMember directive".to_owned());
-        return Err(error);
-    };
-
-    let Some(subgraph_id) = state.graph_sdl_names.get(graph.name()).copied() else {
-        let error = DomainError("Unknown graph in join__unionMember directive".to_owned());
-        return Err(error);
-    };
-
-    let object_id = match state.definition_names.get(member.value()) {
-        Some(Definition::Object(object_id)) => *object_id,
-        _ => {
-            let error = DomainError("Broken invariant: join__unionMember points to a non-existing type".to_owned());
-            return Err(error);
-        }
-    };
-
-    Ok(Some((subgraph_id, object_id)))
-}
-
-fn parse_join_implements(
-    directive: ast::Directive<'_>,
-    state: &mut State<'_>,
-) -> Result<Option<(SubgraphId, InterfaceId)>, DomainError> {
-    if directive.name() != "join__implements" {
-        return Ok(None);
-    }
-
-    let Some(graph) = directive.get_argument("graph").and_then(|a| a.as_enum_value()) else {
-        let error = DomainError("Missing graph argument in join__implements directive".to_owned());
-
-        return Err(error);
-    };
-
-    let Some(interface) = directive.get_argument("interface").and_then(|a| a.as_str()) else {
-        let error = DomainError("Missing interface argument in join__implements directive".to_owned());
-
-        return Err(error);
-    };
-
-    let Some(subgraph_id) = state.graph_sdl_names.get(graph).copied() else {
-        let error = DomainError("Unknown graph in join__implements directive".to_owned());
-
-        return Err(error);
-    };
-
-    let interface_id = match state.definition_names.get(interface) {
-        Some(Definition::Interface(interface_id)) => *interface_id,
-        _ => {
-            let error = DomainError("Broken invariant: join__implements points to a non-interface type".to_owned());
-
-            return Err(error);
-        }
-    };
-
-    Ok(Some((subgraph_id, interface_id)))
-}
-
-fn ingest_selection_sets<'a>(parsed: &'a ast::TypeSystemDocument, state: &mut State<'a>) -> Result<(), DomainError> {
-    ingest_field_directives_after_graph(parsed, state)?;
-    ingest_authorized_directives(parsed, state)?;
-    ingest_entity_keys(parsed, state)
-}
-
-fn ingest_authorized_directives(parsed: &ast::TypeSystemDocument, state: &mut State<'_>) -> Result<(), DomainError> {
-    for typedef in parsed.definitions().filter_map(|def| match def {
-        ast::Definition::Type(ty) => Some(ty),
-        _ => None,
-    }) {
-        let Some(authorized) = typedef.directives().find(|directive| directive.name() == "authorized") else {
-            continue;
-        };
-
-        let Some(definition) = state.definition_names.get(typedef.name()).copied() else {
-            continue;
-        };
-
-        let fields = authorized
-            .get_argument("fields")
-            .and_then(|arg| arg.as_str())
-            .map(|fields| parse_selection_set(fields).and_then(|doc| attach_selection_set(&doc, definition, state)))
-            .transpose()?;
-
-        let metadata = authorized
-            .get_argument("metadata")
-            .map(|metadata| state.insert_value(metadata, None));
-
-        let idx = state.authorized_directives.push_return_idx(AuthorizedDirective {
-            fields,
-            node: None,
-            arguments: None,
-            metadata,
-        });
-
-        match definition {
-            Definition::Object(object_id) => {
-                state
-                    .object_authorized_directives
-                    .push((object_id, AuthorizedDirectiveId::from(idx)));
-            }
-            Definition::Interface(interface_id) => {
-                state
-                    .interface_authorized_directives
-                    .push((interface_id, AuthorizedDirectiveId::from(idx)));
-            }
-            _ => (),
-        }
-    }
-
-    Ok(())
-}
-
-fn ingest_entity_keys(parsed: &ast::TypeSystemDocument, state: &mut State<'_>) -> Result<(), DomainError> {
-    for typedef in parsed.definitions().filter_map(|def| match def {
-        ast::Definition::Type(ty) => Some(ty),
-        _ => None,
-    }) {
-        let Some(definition) = state.definition_names.get(typedef.name()).copied() else {
-            continue;
-        };
-        for join_type in typedef
-            .directives()
-            .filter(|dir| dir.name() == JOIN_TYPE_DIRECTIVE_NAME)
-        {
-            let subgraph_id = join_type
-                .get_argument("graph")
-                .and_then(|arg| arg.as_enum_value())
-                .map(|name| state.graph_sdl_names[name])
-                .expect("Missing graph argument in @join__type");
-            let fields = join_type
-                .get_argument("key")
-                .and_then(|arg| arg.as_str())
-                .map(|fields| parse_selection_set(fields).and_then(|doc| attach_selection_set(&doc, definition, state)))
-                .transpose()?
-                .unwrap_or_default();
-            let resolvable = join_type
-                .get_argument("resolvable")
-                .and_then(|arg| arg.as_bool())
-                .unwrap_or(true);
-
-            let is_interface_object = join_type
-                .get_argument("isInterfaceObject")
-                .map(|arg| matches!(arg.as_bool(), Some(true)))
-                .unwrap_or(false);
-
-            match definition {
-                Definition::Object(object_id) => {
-                    state.objects[usize::from(object_id)].keys.push(Key {
-                        subgraph_id,
-                        fields,
-                        is_interface_object,
-                        resolvable,
-                    });
-                }
-                Definition::Interface(interface_id) => {
-                    state.interfaces[usize::from(interface_id)].keys.push(Key {
-                        subgraph_id,
-                        fields,
-                        is_interface_object,
-                        resolvable,
-                    });
-                }
-                _ => (),
-            }
-        }
-    }
-
-    Ok(())
-}
-
-fn ingest_field_directives_after_graph<'a>(
+fn ingest_directives_after_graph<'a>(
     parsed: &'a ast::TypeSystemDocument,
     state: &mut State<'a>,
 ) -> Result<(), DomainError> {
     for definition in parsed.definitions() {
-        let ast::Definition::Type(typedef) = definition else {
+        let (ast::Definition::Type(typedef) | ast::Definition::TypeExtension(typedef)) = definition else {
             continue;
         };
 
-        let fields = match typedef {
-            ast::TypeDefinition::Object(object) => object.fields(),
-            ast::TypeDefinition::Interface(iface) => iface.fields(),
-            _ => continue,
+        // Some definitions such as join__Graph or join__FieldSet
+        let Some(definition_id) = state.definition_names.get(typedef.name()).copied() else {
+            continue;
         };
+        let directives = collect_definition_directives(definition_id, typedef.directives(), state)?;
 
-        let parent_id = state.definition_names[typedef.name()];
-
-        ingest_join_field_directive(parent_id, || typedef.directives(), fields.clone(), state)?;
-        ingest_authorized_directive(parent_id, fields.clone(), state)?;
-        ingest_list_size_directive(parent_id, fields, state)?;
-    }
-
-    Ok(())
-}
-
-fn ingest_join_field_directive<'a, I>(
-    parent_id: Definition,
-    parent_directives: impl Fn() -> I,
-    fields: impl Iterator<Item = ast::FieldDefinition<'a>>,
-    state: &mut State<'_>,
-) -> Result<(), DomainError>
-where
-    I: Iterator<Item = ast::Directive<'a>>,
-{
-    let is_federated_entity = parent_directives()
-        .filter(|dir| dir.name() == JOIN_TYPE_DIRECTIVE_NAME)
-        .any(|dir| dir.get_argument("key").is_some());
-
-    let type_subgraph_ids = if !is_federated_entity {
-        parent_directives()
-            .filter(|dir| dir.name() == JOIN_TYPE_DIRECTIVE_NAME)
-            .filter_map(|dir| {
-                dir.get_argument("graph")
-                    .and_then(|arg| arg.as_enum_value())
-                    .map(|name| state.graph_sdl_names[name])
-            })
-            .collect::<Vec<_>>()
-    } else {
-        Vec::new()
-    };
-
-    for field in fields {
-        let field_id = state.selection_map[&(parent_id, field.name())];
-        let field_type = state.fields[usize::from(field_id)].r#type.clone();
-
-        let mut resolvable_in = Vec::new();
-        let mut requires = Vec::new();
-        let mut provides = Vec::new();
-
-        for directive in field.directives().filter(|dir| dir.name() == JOIN_FIELD_DIRECTIVE_NAME) {
-            let is_external = directive
-                .get_argument("external")
-                .map(|arg| arg.as_bool().unwrap_or_default())
-                .unwrap_or_default();
-
-            if is_external {
-                continue;
+        match definition_id {
+            Definition::Scalar(id) => state.graph[id].directives = directives,
+            Definition::Object(id) => {
+                let id = state[id].type_definition_id;
+                state.graph[id].directives = directives
             }
-
-            let Some(subgraph_id) = directive
-                .get_argument("graph")
-                .and_then(|arg| arg.as_enum_value())
-                .and_then(|name| state.graph_sdl_names.get(name).copied())
-            else {
-                continue;
-            };
-
-            // Overrides are handled in a completely different way
-            if directive
-                .get_argument(JOIN_FIELD_DIRECTIVE_OVERRIDE_ARGUMENT)
-                .is_none() &&
-                // We implemented "overrides" by mistake, so we allow it for backwards compatibility..
-                directive.get_argument("overrides").is_none()
-            {
-                resolvable_in.push(subgraph_id);
+            Definition::Interface(id) => {
+                let id = state[id].type_definition_id;
+                state.graph[id].directives = directives;
             }
-
-            if let Some(field_provides) = directive
-                .get_argument("provides")
-                .and_then(|value| value.as_str())
-                .map(|provides| {
-                    parse_selection_set(provides)
-                        .and_then(|doc| attach_selection_set(&doc, field_type.definition, state))
-                        .map(|fields| FieldProvides { subgraph_id, fields })
-                })
-                .transpose()?
-            {
-                provides.push(field_provides)
-            }
-
-            if let Some(field_requires) = directive
-                .get_argument("requires")
-                .and_then(|value| value.as_str())
-                .map(|requires| {
-                    parse_selection_set(requires)
-                        .and_then(|doc| attach_selection_set(&doc, parent_id, state))
-                        .map(|fields| FieldRequires { subgraph_id, fields })
-                })
-                .transpose()?
-            {
-                requires.push(field_requires);
-            }
+            Definition::Union(id) => state[id].directives = directives,
+            Definition::Enum(id) => state.graph[id].directives = directives,
+            Definition::InputObject(id) => state[id].directives = directives,
         }
 
-        if resolvable_in.is_empty() {
-            resolvable_in = type_subgraph_ids.clone();
-        }
-
-        let field = &mut state.fields[usize::from(field_id)];
-        field.provides = provides;
-        field.requires = requires;
-        field.resolvable_in = resolvable_in;
-    }
-
-    Ok(())
-}
-
-fn ingest_authorized_directive<'a>(
-    parent_id: Definition,
-    fields: impl Iterator<Item = ast::FieldDefinition<'a>>,
-    state: &mut State<'a>,
-) -> Result<(), DomainError> {
-    for field in fields {
-        let field_id = state.selection_map[&(parent_id, field.name())];
-        let field_type = state.fields[usize::from(field_id)].r#type.clone();
-
-        for directive in field.directives() {
-            if "authorized" != directive.name() {
-                continue;
+        let fields = match typedef {
+            ast::TypeDefinition::Object(object) => Some(object.fields()),
+            ast::TypeDefinition::Interface(iface) => Some(iface.fields()),
+            _ => None,
+        };
+        if let Some(fields) = fields {
+            for field in fields {
+                let field_id = state.selection_map[&(definition_id, field.name())];
+                state[field_id].directives =
+                    collect_field_directives(definition_id, field_id, field.directives(), state)?;
             }
-            let authorized_directive = AuthorizedDirective {
-                arguments: directive
-                    .get_argument("arguments")
-                    .and_then(|value| value.as_str())
-                    .map(|arguments| {
-                        parse_selection_set(arguments).and_then(|fields| {
-                            attach_input_value_set_to_field_arguments(fields, parent_id, field_id, state)
-                        })
-                    })
-                    .transpose()?,
-                fields: directive
-                    .get_argument("fields")
-                    .and_then(|value| value.as_str())
-                    .map(|fields| {
-                        parse_selection_set(fields).and_then(|fields| attach_selection_set(&fields, parent_id, state))
-                    })
-                    .transpose()?,
-                node: directive
-                    .get_argument("node")
-                    .and_then(|value| value.as_str())
-                    .map(|fields| {
-                        parse_selection_set(fields)
-                            .and_then(|fields| attach_selection_set(&fields, field_type.definition, state))
-                    })
-                    .transpose()?,
-                metadata: directive
-                    .get_argument("metadata")
-                    .map(|metadata| state.insert_value(metadata, None)),
-            };
-            state.authorized_directives.push(authorized_directive);
-            let id = AuthorizedDirectiveId::from(state.authorized_directives.len() - 1);
-            state.field_authorized_directives.push((field_id, id));
         }
     }
 
@@ -851,23 +484,27 @@ fn ingest_definitions<'a>(document: &'a ast::TypeSystemDocument, state: &mut Sta
             ast::Definition::SchemaExtension(_) | ast::Definition::Schema(_) | ast::Definition::Directive(_) => (),
             ast::Definition::TypeExtension(typedef) | ast::Definition::Type(typedef) => {
                 let type_name = typedef.name();
+
+                match typedef {
+                    ast::TypeDefinition::Enum(enm) if type_name == JOIN_GRAPH_ENUM_NAME => {
+                        ingest_join_graph_enum(enm, state)?;
+                        continue;
+                    }
+                    ast::TypeDefinition::Scalar(_) if type_name == JOIN_FIELD_SET_SCALAR_NAME => {
+                        continue;
+                    }
+                    _ => (),
+                }
+
                 let type_name_id = state.insert_string(type_name);
                 let description = typedef
                     .description()
                     .map(|description| state.insert_string(&description.to_cow()));
-                let composed_directives = collect_composed_directives(typedef.directives(), state);
-
-                if let ast::TypeDefinition::Enum(enm) = typedef {
-                    if type_name == JOIN_GRAPH_ENUM_NAME {
-                        ingest_join_graph_enum(enm, state)?;
-                        continue;
-                    }
-                };
 
                 let type_definition_id = state.graph.push_type_definition(TypeDefinitionRecord {
                     name: type_name_id,
                     description,
-                    directives: composed_directives,
+                    directives: Vec::new(),
                     kind: match typedef {
                         ast::TypeDefinition::Scalar(_) => TypeDefinitionKind::Scalar,
                         ast::TypeDefinition::Object(_) => TypeDefinitionKind::Object,
@@ -888,8 +525,6 @@ fn ingest_definitions<'a>(document: &'a ast::TypeSystemDocument, state: &mut Sta
                         let object_id = ObjectId::from(state.objects.push_return_idx(Object {
                             type_definition_id,
                             implements_interfaces: Vec::new(),
-                            join_implements: Vec::new(),
-                            keys: Vec::new(),
                             fields: NO_FIELDS,
                         }));
 
@@ -899,9 +534,7 @@ fn ingest_definitions<'a>(document: &'a ast::TypeSystemDocument, state: &mut Sta
                         let interface_id = InterfaceId::from(state.interfaces.push_return_idx(Interface {
                             type_definition_id,
                             implements_interfaces: Vec::new(),
-                            keys: Vec::new(),
                             fields: NO_FIELDS,
-                            join_implements: Vec::new(),
                         }));
                         state
                             .definition_names
@@ -911,9 +544,8 @@ fn ingest_definitions<'a>(document: &'a ast::TypeSystemDocument, state: &mut Sta
                         let union_id = UnionId::from(state.unions.push_return_idx(Union {
                             name: type_name_id,
                             members: Vec::new(),
-                            join_members: BTreeSet::new(),
-                            composed_directives,
                             description,
+                            directives: Vec::new(),
                         }));
                         state.definition_names.insert(type_name, Definition::Union(union_id));
                     }
@@ -923,16 +555,16 @@ fn ingest_definitions<'a>(document: &'a ast::TypeSystemDocument, state: &mut Sta
                             .insert(type_name, Definition::Enum(type_definition_id));
 
                         for value in enm.values() {
-                            let composed_directives = collect_composed_directives(value.directives(), state);
                             let description = value
                                 .description()
                                 .map(|description| state.insert_string(&description.to_cow()));
 
+                            let directives = collect_enum_value_directives(value.directives(), state)?;
                             let value_string_id = state.insert_string(value.value());
                             let id = state.graph.push_enum_value(EnumValueRecord {
                                 enum_id: type_definition_id,
                                 value: value_string_id,
-                                composed_directives,
+                                directives,
                                 description,
                             });
 
@@ -943,7 +575,7 @@ fn ingest_definitions<'a>(document: &'a ast::TypeSystemDocument, state: &mut Sta
                         let input_object_id = InputObjectId::from(state.input_objects.push_return_idx(InputObject {
                             name: type_name_id,
                             fields: NO_INPUT_VALUE_DEFINITION,
-                            composed_directives,
+                            directives: Vec::new(),
                             description,
                         }));
                         state
@@ -965,7 +597,7 @@ fn insert_builtin_scalars(state: &mut State<'_>) {
         let name = state.insert_string(name_str);
         let id = state.graph.push_type_definition(TypeDefinitionRecord {
             name,
-            directives: (DirectiveId::from(0), 0),
+            directives: Vec::new(),
             description: None,
             kind: TypeDefinitionKind::Scalar,
         });
@@ -981,7 +613,7 @@ fn ingest_interface_fields<'a>(
     let [mut start, mut end] = [None; 2];
 
     for field in fields {
-        let field_id = ingest_field(Definition::Interface(interface_id), field, state)?;
+        let field_id = ingest_field(EntityDefinitionId::Interface(interface_id), field, state)?;
         start = Some(start.unwrap_or(field_id));
         end = Some(field_id);
     }
@@ -996,7 +628,7 @@ fn ingest_interface_fields<'a>(
 }
 
 fn ingest_field<'a>(
-    parent_id: Definition,
+    parent_entity_id: EntityDefinitionId,
     ast_field: ast::FieldDefinition<'a>,
     state: &mut State<'a>,
 ) -> Result<FieldId, DomainError> {
@@ -1009,7 +641,7 @@ fn ingest_field<'a>(
         let description = arg
             .description()
             .map(|description| state.insert_string(&description.to_cow()));
-        let composed_directives = collect_composed_directives(arg.directives(), state);
+        let directives = collect_input_value_directives(arg.directives(), state)?;
         let name = state.insert_string(arg.name());
         let r#type = state.field_type(arg.ty())?;
         let default = arg
@@ -1019,7 +651,7 @@ fn ingest_field<'a>(
         state.input_value_definitions.push(InputValueDefinition {
             name,
             r#type,
-            directives: composed_directives,
+            directives,
             description,
             default,
         });
@@ -1027,96 +659,6 @@ fn ingest_field<'a>(
 
     let args_end = state.input_value_definitions.len();
 
-    let resolvable_in = ast_field
-        .directives()
-        .filter(|dir| dir.name() == JOIN_FIELD_DIRECTIVE_NAME)
-        // We implemented "overrides" by mistake, so we allow it for backwards compatibility..
-        .filter(|dir| {
-            dir.get_argument("overrides").is_none()
-                && dir.get_argument(JOIN_FIELD_DIRECTIVE_OVERRIDE_ARGUMENT).is_none()
-        })
-        .filter(|dir| {
-            dir.get_argument("external")
-                .and_then(|arg| arg.as_bool())
-                .unwrap_or_default()
-        })
-        .filter_map(|dir| dir.get_argument("graph"))
-        .filter_map(|arg| arg.as_enum_value())
-        .map(|value| state.graph_sdl_names[value])
-        .collect();
-
-    let join_fields = ast_field
-        .directives()
-        .filter(|dir| dir.name() == JOIN_FIELD_DIRECTIVE_NAME)
-        .filter_map(|dir| {
-            let ty = dir.get_argument("type").and_then(|arg| arg.as_str())?;
-            let graph = dir.get_argument("graph").and_then(|arg| arg.as_enum_value())?;
-
-            state
-                .field_type_from_str(ty)
-                .map(|ty| {
-                    if ty != r#type {
-                        Some(JoinField {
-                            subgraph_id: state.graph_sdl_names[graph],
-                            r#type: Some(ty),
-                        })
-                    } else {
-                        None
-                    }
-                })
-                .transpose()
-        })
-        .collect::<Result<Vec<_>, _>>()?;
-
-    let overrides = ast_field
-        .directives()
-        .filter(|dir| dir.name() == JOIN_FIELD_DIRECTIVE_NAME)
-        .filter_map(|dir| {
-            dir.get_argument("graph")
-                // We implemented "overrides" by mistake, so we allow it for backwards compatibility..
-                .zip(
-                    dir.get_argument("overrides")
-                        .or(dir.get_argument(JOIN_FIELD_DIRECTIVE_OVERRIDE_ARGUMENT)),
-                )
-                .map(|(graph, overrides)| {
-                    (
-                        graph,
-                        overrides,
-                        dir.get_argument(JOIN_FIELD_DIRECTIVE_OVERRIDE_LABEL_ARGUMENT),
-                    )
-                })
-        })
-        .filter_map(|(graph, overrides, override_label)| match (graph, overrides) {
-            (ParserValue::Enum(graph), ParserValue::String(overrides)) => {
-                Some(Override {
-                    graph: state.graph_sdl_names.get(graph.name()).copied().or_else(|| {
-                        // Previously we used the subgraph name rather than the enum we overrides
-                        // was specified.
-                        let subgraph_name = state.insert_string(graph.name());
-                        Some(SubgraphId::from(
-                            state
-                                .subgraphs
-                                .iter()
-                                .position(|subgraph| subgraph.name == subgraph_name)?,
-                        ))
-                    })?,
-                    label: override_label
-                        .and_then(|arg| arg.as_str()?.parse().ok())
-                        .unwrap_or_default(),
-                    from: state
-                        .subgraphs
-                        .iter()
-                        .position(|subgraph| state.strings[usize::from(subgraph.name)] == overrides.value())
-                        .map(SubgraphId::from)
-                        .map(OverrideSource::Subgraph)
-                        .unwrap_or_else(|| OverrideSource::Missing(state.insert_string(overrides.value()))),
-                })
-            }
-            _ => None, // unreachable in valid schemas
-        })
-        .collect();
-
-    let composed_directives = collect_composed_directives(ast_field.directives(), state);
     let description = ast_field
         .description()
         .map(|description| state.insert_string(&description.to_cow()));
@@ -1124,17 +666,16 @@ fn ingest_field<'a>(
     let field_id = FieldId::from(state.fields.push_return_idx(Field {
         name,
         r#type,
-        join_fields,
-        resolvable_in,
-        provides: Vec::new(),
-        requires: Vec::new(),
+        parent_entity_id,
         arguments: (InputValueDefinitionId::from(args_start), args_end - args_start),
-        composed_directives,
-        overrides,
         description,
+        // Added at the end.
+        directives: Vec::new(),
     }));
 
-    state.selection_map.insert((parent_id, field_name), field_id);
+    state
+        .selection_map
+        .insert((parent_entity_id.into(), field_name), field_id);
 
     Ok(field_id)
 }
@@ -1167,7 +708,7 @@ fn ingest_input_object<'a>(
         );
         let name = state.insert_string(field.name());
         let r#type = state.field_type(field.ty())?;
-        let composed_directives = collect_composed_directives(field.directives(), state);
+        let directives = collect_input_value_directives(field.directives(), state)?;
         let description = field
             .description()
             .map(|description| state.insert_string(&description.to_cow()));
@@ -1178,7 +719,7 @@ fn ingest_input_object<'a>(
         state.input_value_definitions.push(InputValueDefinition {
             name,
             r#type,
-            directives: composed_directives,
+            directives,
             description,
             default,
         });
@@ -1194,12 +735,9 @@ fn ingest_object_fields<'a>(
     fields: impl Iterator<Item = ast::FieldDefinition<'a>>,
     state: &mut State<'a>,
 ) -> Result<(), DomainError> {
-    let [mut start, mut end] = [None; 2];
-
+    let start = state.fields.len();
     for field in fields {
-        let field_id = ingest_field(Definition::Object(object_id), field, state)?;
-        start = Some(start.unwrap_or(field_id));
-        end = Some(FieldId::from(usize::from(field_id) + 1));
+        ingest_field(EntityDefinitionId::Object(object_id), field, state)?;
     }
 
     // When we encounter the root query type, we need to make space at the end of the fields for __type and __schema.
@@ -1209,8 +747,6 @@ fn ingest_object_fields<'a>(
             .expect("root operation types to be defined at this point")
             .query
     {
-        let new_start = state.fields.len();
-
         for name in ["__schema", "__type"].map(|name| state.insert_string(name)) {
             state.fields.push(Field {
                 name,
@@ -1218,25 +754,18 @@ fn ingest_object_fields<'a>(
                     wrapping: Wrapping::new(false),
                     definition: Definition::Object(object_id),
                 },
-                join_fields: Vec::new(),
+                parent_entity_id: EntityDefinitionId::Object(object_id),
                 arguments: NO_INPUT_VALUE_DEFINITION,
-                resolvable_in: Vec::new(),
-                provides: Vec::new(),
-                requires: Vec::new(),
-                overrides: Vec::new(),
-                composed_directives: NO_DIRECTIVES,
                 description: None,
+                // Added later
+                directives: Vec::new(),
             });
         }
-
-        start = start.or(Some(FieldId::from(new_start)));
-        end = end
-            .map(|end| FieldId::from(usize::from(end) + 2))
-            .or(Some(FieldId::from(new_start + 2)));
     }
 
-    if let [Some(start), Some(end)] = [start, end] {
-        state.objects[usize::from(object_id)].fields = Range { start, end };
+    state.objects[usize::from(object_id)].fields = Range {
+        start: FieldId::from(start),
+        end: FieldId::from(state.fields.len()),
     };
 
     Ok(())
@@ -1288,19 +817,19 @@ fn attach_selection_field(
     target: Definition,
     state: &mut State<'_>,
 ) -> Result<Selection, DomainError> {
-    let field: FieldId = *state.selection_map.get(&(target, ast_field.name())).ok_or_else(|| {
+    let field_id: FieldId = *state.selection_map.get(&(target, ast_field.name())).ok_or_else(|| {
         DomainError(format!(
             "Field '{}.{}' does not exist",
             state.get_definition_name(target),
             ast_field.name(),
         ))
     })?;
-    let field_ty = state.fields[usize::from(field)].r#type.definition;
+    let field_ty = state.fields[usize::from(field_id)].r#type.definition;
     let arguments = ast_field
         .arguments()
         .map(|argument| {
             let name = state.insert_string(argument.name());
-            let (start, len) = state.fields[usize::from(field)].arguments;
+            let (start, len) = state.fields[usize::from(field_id)].arguments;
             let arguments = &state.input_value_definitions[usize::from(start)..usize::from(start) + len];
             let argument_id = arguments
                 .iter()
@@ -1324,11 +853,11 @@ fn attach_selection_field(
         })
         .collect::<Result<_, _>>()?;
 
-    Ok(Selection::Field {
-        field,
+    Ok(Selection::Field(FieldSelection {
+        field_id,
         arguments,
         subselection: attach_selection_set_rec(ast_field.selection_set(), field_ty, state)?,
-    })
+    }))
 }
 
 fn attach_inline_fragment(
@@ -1497,10 +1026,14 @@ fn ingest_join_graph_enum<'a>(enm: ast::EnumDefinition<'a>, state: &mut State<'a
                 )),
             })?;
 
-        let name = state.insert_string(name.value());
+        let subgraph_name = state.insert_string(name.value());
         let url = state.insert_string(url.value());
-        let id = SubgraphId::from(state.subgraphs.push_return_idx(Subgraph { name, url }));
-        state.graph_sdl_names.insert(sdl_name, id);
+        let id = SubgraphId::from(state.subgraphs.push_return_idx(Subgraph {
+            name: subgraph_name,
+            url,
+        }));
+        state.graph_by_enum_str.insert(sdl_name, id);
+        state.graph_by_name.insert(name.value(), id);
     }
 
     Ok(())
@@ -1516,89 +1049,6 @@ impl<T> VecExt<T> for Vec<T> {
         self.push(elem);
         idx
     }
-}
-
-fn collect_composed_directives<'a>(
-    directives: impl Iterator<Item = ast::Directive<'a>>,
-    state: &mut State<'a>,
-) -> Directives {
-    let start = state.directives.len();
-
-    for directive in directives
-        .filter(|dir| dir.name() != JOIN_FIELD_DIRECTIVE_NAME)
-        .filter(|dir| dir.name() != JOIN_TYPE_DIRECTIVE_NAME)
-    {
-        match directive.name() {
-            "inaccessible" => state.directives.push(Directive::Inaccessible),
-            "deprecated" => {
-                let directive = Directive::Deprecated {
-                    reason: directive
-                        .deserialize::<DeprecatedDirective<'_>>()
-                        .ok()
-                        .and_then(|directive| directive.reason)
-                        .map(|str| state.insert_string(str)),
-                };
-
-                state.directives.push(directive)
-            }
-            "requiresScopes" => {
-                let scopes: Option<Vec<Vec<String>>> = directive
-                    .get_argument("scopes")
-                    .and_then(|scopes| scopes.into_json())
-                    .and_then(|scopes| serde_json::from_value(scopes).ok());
-
-                if let Some(scopes) = scopes {
-                    let transformed = scopes
-                        .into_iter()
-                        .map(|scopes| scopes.into_iter().map(|scope| state.insert_string(&scope)).collect())
-                        .collect();
-                    state.directives.push(Directive::RequiresScopes(transformed));
-                }
-            }
-            "policy" => {
-                let policies: Option<Vec<Vec<String>>> = directive
-                    .get_argument("policies")
-                    .and_then(|policies| policies.into_json())
-                    .and_then(|policies| serde_json::from_value(policies).ok());
-
-                if let Some(policies) = policies {
-                    let transformed = policies
-                        .into_iter()
-                        .map(|policies| {
-                            policies
-                                .into_iter()
-                                .map(|policy| state.insert_string(&policy))
-                                .collect()
-                        })
-                        .collect();
-                    state.directives.push(Directive::Policy(transformed));
-                }
-            }
-            "authenticated" => state.directives.push(Directive::Authenticated),
-            "cost" => {
-                if let Ok(directive) = directive.deserialize::<CostDirective>() {
-                    state.directives.push(Directive::Cost {
-                        weight: directive.weight,
-                    })
-                }
-            }
-            // Added later after ingesting the graph.
-            "authorized" | "join__implements" | "join__unionMember" | "listSize" => {}
-            other => {
-                let name = state.insert_string(other);
-                let arguments = directive
-                    .arguments()
-                    .map(|arg| -> (StringId, Value) {
-                        (state.insert_string(arg.name()), state.insert_value(arg.value(), None))
-                    })
-                    .collect();
-
-                state.directives.push(Directive::Other { name, arguments })
-            }
-        }
-    }
-
-    (DirectiveId::from(start), state.directives.len() - start)
 }
 
 #[cfg(test)]
@@ -1873,92 +1323,6 @@ fn test_from_sdl_with_missing_query_root() {
 
 #[cfg(test)]
 #[test]
-fn backwards_compatibility() {
-    use expect_test::expect;
-
-    let sdl = r###"
-    directive @core(feature: String!) repeatable on SCHEMA
-
-    directive @join__owner(graph: join__Graph!) on OBJECT
-
-    directive @join__type(
-        graph: join__Graph!
-        key: String!
-        resolvable: Boolean = true
-    ) repeatable on OBJECT | INTERFACE
-
-    directive @join__field(
-        graph: join__Graph
-        requires: String
-        provides: String
-    ) on FIELD_DEFINITION
-
-    directive @join__graph(name: String!, url: String!) on ENUM_VALUE
-
-    directive @join__implements(graph: join__Graph!, interface: String!) repeatable on OBJECT | INTERFACE
-
-    directive @join__unionMember(graph: join__Graph!, member: String!) repeatable on UNION
-
-    enum join__Graph {
-        MANGROVE @join__graph(name: "mangrove", url: "http://example.com/mangrove")
-        STEPPE @join__graph(name: "steppe", url: "http://example.com/steppe")
-    }
-
-    type Mammoth {
-        tuskLength: Int
-        weightGrams: Int @join__field(graph: mangrove, overrides: "steppe")
-    }
-
-    type Query {
-        getMammoth: Mammoth @join__field(graph: mangrove, overrides: "steppe")
-    }
-    "###;
-
-    let expected = expect![[r#"
-        directive @core(feature: String!) repeatable on SCHEMA
-
-        directive @join__owner(graph: join__Graph!) on OBJECT
-
-        directive @join__type(
-            graph: join__Graph!
-            key: String!
-            resolvable: Boolean = true
-        ) repeatable on OBJECT | INTERFACE
-
-        directive @join__field(
-            graph: join__Graph
-            requires: String
-            provides: String
-        ) on FIELD_DEFINITION
-
-        directive @join__graph(name: String!, url: String!) on ENUM_VALUE
-
-        directive @join__implements(graph: join__Graph!, interface: String!) repeatable on OBJECT | INTERFACE
-
-        directive @join__unionMember(graph: join__Graph!, member: String!) repeatable on UNION
-
-        enum join__Graph {
-            MANGROVE @join__graph(name: "mangrove", url: "http://example.com/mangrove")
-            STEPPE @join__graph(name: "steppe", url: "http://example.com/steppe")
-        }
-
-        type Mammoth {
-            tuskLength: Int
-            weightGrams: Int @join__field(graph: MANGROVE, override: "steppe")
-        }
-
-        type Query {
-            getMammoth: Mammoth @join__field(graph: MANGROVE, override: "steppe")
-        }
-    "#]];
-
-    let actual = crate::render_sdl::render_federated_sdl(&super::from_sdl(sdl).unwrap()).unwrap();
-
-    expected.assert_eq(&actual);
-}
-
-#[cfg(test)]
-#[test]
 fn test_missing_type() {
     let sdl = r###"
     directive @core(feature: String!) repeatable on SCHEMA
@@ -2096,14 +1460,14 @@ fn test_join_field_type() {
 
         directive @join__type(
             graph: join__Graph!
-            key: String!
+            key: join__FieldSet
             resolvable: Boolean = true
         ) repeatable on OBJECT | INTERFACE
 
         directive @join__field(
             graph: join__Graph
-            requires: String
-            provides: String
+            requires: join__FieldSet
+            provides: join__FieldSet
         ) on FIELD_DEFINITION
 
         directive @join__graph(name: String!, url: String!) on ENUM_VALUE
@@ -2112,21 +1476,21 @@ fn test_join_field_type() {
 
         directive @join__unionMember(graph: join__Graph!, member: String!) repeatable on UNION
 
+        scalar join__FieldSet
+
         enum join__Graph {
             A @join__graph(name: "a", url: "http://localhost:4200/child-type-mismatch/a")
             B @join__graph(name: "b", url: "http://localhost:4200/child-type-mismatch/b")
         }
-
-        scalar join__FieldSet
 
         scalar link__Import
 
         type Admin
             @join__type(graph: B)
         {
-            id: ID @join__field(graph: B)
-            name: String @join__field(graph: B)
-            similarAccounts: [Account!]! @join__field(graph: B)
+            id: ID
+            name: String
+            similarAccounts: [Account!]!
         }
 
         type Query
@@ -2141,12 +1505,13 @@ fn test_join_field_type() {
             @join__type(graph: A)
             @join__type(graph: B, key: "id")
         {
-            id: ID @join__field(graph: A) @join__field(graph: B) @join__field(graph: B, type: "ID!")
+            id: ID @join__field(graph: A, type: "ID") @join__field(graph: B, type: "ID!")
             name: String @join__field(graph: B)
             similarAccounts: [Account!]! @join__field(graph: B)
         }
 
-        enum link__Purpose {
+        enum link__Purpose
+        {
             """
             `SECURITY` features provide metadata necessary to securely resolve fields.
             """
@@ -2158,8 +1523,9 @@ fn test_join_field_type() {
         }
 
         union Account
-            @join__unionMember(graph: B, member: "Admin")
+            @join__type(graph: B)
             @join__unionMember(graph: B, member: "User")
+            @join__unionMember(graph: B, member: "Admin")
          = User | Admin
     "#]];
 

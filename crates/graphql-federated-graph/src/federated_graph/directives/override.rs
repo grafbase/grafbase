@@ -11,7 +11,7 @@ pub struct Override {
     pub label: OverrideLabel,
 }
 
-#[derive(serde::Serialize, serde::Deserialize, Clone, Default, Debug)]
+#[derive(serde::Serialize, serde::Deserialize, Clone, Default, Debug, PartialEq, PartialOrd)]
 pub enum OverrideLabel {
     Percent(u8),
     #[serde(other)]
@@ -58,7 +58,7 @@ impl std::str::FromStr for OverrideLabel {
     }
 }
 
-#[derive(serde::Serialize, serde::Deserialize, Clone)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, Clone, PartialEq, PartialOrd)]
 pub enum OverrideSource {
     Subgraph(SubgraphId),
     Missing(StringId),

@@ -4,14 +4,14 @@ directive @join__owner(graph: join__Graph!) on OBJECT
 
 directive @join__type(
     graph: join__Graph!
-    key: String!
+    key: join__FieldSet
     resolvable: Boolean = true
 ) repeatable on OBJECT | INTERFACE
 
 directive @join__field(
     graph: join__Graph
-    requires: String
-    provides: String
+    requires: join__FieldSet
+    provides: join__FieldSet
 ) on FIELD_DEFINITION
 
 directive @join__graph(name: String!, url: String!) on ENUM_VALUE
@@ -20,53 +20,70 @@ directive @join__implements(graph: join__Graph!, interface: String!) repeatable 
 
 directive @join__unionMember(graph: join__Graph!, member: String!) repeatable on UNION
 
+scalar join__FieldSet
+
 enum join__Graph {
     HAZARDOUS_WASTE @join__graph(name: "hazardous-waste", url: "http://example.com/hazardous-waste")
     WASTE_COLLECTION @join__graph(name: "waste-collection", url: "http://example.com/waste-collection")
 }
 
-type WasteManagementQuery {
-    ohno: Boolean @join__field(graph: WASTE_COLLECTION)
+type WasteManagementQuery
+    @join__type(graph: WASTE_COLLECTION)
+{
+    ohno: Boolean
 }
 
-type RecyclingCenter {
-    address: String @join__field(graph: HAZARDOUS_WASTE)
-    id: ID! @join__field(graph: HAZARDOUS_WASTE)
-    materialsAccepted: [String] @join__field(graph: HAZARDOUS_WASTE)
-    operatingHours: String @join__field(graph: HAZARDOUS_WASTE)
+type RecyclingCenter
+    @join__type(graph: HAZARDOUS_WASTE)
+{
+    address: String
+    id: ID!
+    materialsAccepted: [String]
+    operatingHours: String
 }
 
-type HazardousWasteStats {
-    categoryBreakdown: [HazardousCategoryBreakdown] @join__field(graph: HAZARDOUS_WASTE)
-    city: String @join__field(graph: HAZARDOUS_WASTE)
-    totalHazardousWaste: Float @join__field(graph: HAZARDOUS_WASTE)
+type HazardousWasteStats
+    @join__type(graph: HAZARDOUS_WASTE)
+{
+    categoryBreakdown: [HazardousCategoryBreakdown]
+    city: String
+    totalHazardousWaste: Float
 }
 
-type HazardousCategoryBreakdown {
-    amount: Float @join__field(graph: HAZARDOUS_WASTE)
-    category: String @join__field(graph: HAZARDOUS_WASTE)
+type HazardousCategoryBreakdown
+    @join__type(graph: HAZARDOUS_WASTE)
+{
+    amount: Float
+    category: String
 }
 
-type CollectionPoint {
-    address: String @join__field(graph: WASTE_COLLECTION)
-    enquiries: [WasteManagementQuery!] @join__field(graph: WASTE_COLLECTION)
-    id: ID! @join__field(graph: WASTE_COLLECTION)
-    openingHours: String @join__field(graph: WASTE_COLLECTION)
-    type: String @join__field(graph: WASTE_COLLECTION)
+type CollectionPoint
+    @join__type(graph: WASTE_COLLECTION)
+{
+    address: String
+    enquiries: [WasteManagementQuery!]
+    id: ID!
+    openingHours: String
+    type: String
 }
 
-type WasteStats {
-    city: String @join__field(graph: WASTE_COLLECTION)
-    totalWasteCollected: Float @join__field(graph: WASTE_COLLECTION)
-    wasteTypeBreakdown: [WasteTypeBreakdown] @join__field(graph: WASTE_COLLECTION)
+type WasteStats
+    @join__type(graph: WASTE_COLLECTION)
+{
+    city: String
+    totalWasteCollected: Float
+    wasteTypeBreakdown: [WasteTypeBreakdown]
 }
 
-type WasteTypeBreakdown {
-    amount: Float @join__field(graph: WASTE_COLLECTION)
-    type: String @join__field(graph: WASTE_COLLECTION)
+type WasteTypeBreakdown
+    @join__type(graph: WASTE_COLLECTION)
+{
+    amount: Float
+    type: String
 }
 
-type Query {
+type Query
+{
     hazardousWasteData(city: String!): HazardousWasteStats @join__field(graph: HAZARDOUS_WASTE)
     recyclingCenters(city: String!): [RecyclingCenter] @join__field(graph: HAZARDOUS_WASTE)
     wasteCollectionPoints(city: String!): [CollectionPoint] @join__field(graph: WASTE_COLLECTION)

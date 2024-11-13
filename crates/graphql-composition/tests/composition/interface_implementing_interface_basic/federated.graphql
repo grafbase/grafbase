@@ -4,14 +4,14 @@ directive @join__owner(graph: join__Graph!) on OBJECT
 
 directive @join__type(
     graph: join__Graph!
-    key: String!
+    key: join__FieldSet
     resolvable: Boolean = true
 ) repeatable on OBJECT | INTERFACE
 
 directive @join__field(
     graph: join__Graph
-    requires: String
-    provides: String
+    requires: join__FieldSet
+    provides: join__FieldSet
 ) on FIELD_DEFINITION
 
 directive @join__graph(name: String!, url: String!) on ENUM_VALUE
@@ -20,41 +20,50 @@ directive @join__implements(graph: join__Graph!, interface: String!) repeatable 
 
 directive @join__unionMember(graph: join__Graph!, member: String!) repeatable on UNION
 
+scalar join__FieldSet
+
 enum join__Graph {
     PRODUCT @join__graph(name: "product", url: "http://example.com/product")
     USER @join__graph(name: "user", url: "http://example.com/user")
 }
 
 type Product implements Node
+    @join__type(graph: PRODUCT)
     @join__implements(graph: PRODUCT, interface: "Node")
- {
-    description: String @join__field(graph: PRODUCT)
-    id: ID! @join__field(graph: PRODUCT)
-    name: String! @join__field(graph: PRODUCT)
-    price: Float! @join__field(graph: PRODUCT)
+{
+    description: String
+    id: ID!
+    name: String!
+    price: Float!
 }
 
 type User implements Timestamped
+    @join__type(graph: USER)
     @join__implements(graph: USER, interface: "Timestamped")
- {
-    createdAt: String! @join__field(graph: USER)
-    email: String! @join__field(graph: USER)
-    id: ID! @join__field(graph: USER)
-    updatedAt: String! @join__field(graph: USER)
-    username: String! @join__field(graph: USER)
+{
+    createdAt: String!
+    email: String!
+    id: ID!
+    updatedAt: String!
+    username: String!
 }
 
-type Query {
+type Query
+{
     user(id: ID!): User @join__field(graph: USER)
 }
 
-interface Node {
+interface Node
+    @join__type(graph: PRODUCT)
+    @join__type(graph: USER)
+{
     id: ID!
 }
 
 interface Timestamped implements Node
+    @join__type(graph: USER)
     @join__implements(graph: USER, interface: "Node")
- {
+{
     createdAt: String!
     id: ID!
     updatedAt: String!

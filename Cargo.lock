@@ -3311,6 +3311,7 @@ dependencies = [
  "graphql-wrapping-types",
  "indexmap 2.6.0",
  "indoc",
+ "itertools 0.13.0",
  "serde",
  "serde_json",
 ]

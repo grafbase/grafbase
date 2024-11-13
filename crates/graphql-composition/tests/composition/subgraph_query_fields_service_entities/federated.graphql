@@ -4,14 +4,14 @@ directive @join__owner(graph: join__Graph!) on OBJECT
 
 directive @join__type(
     graph: join__Graph!
-    key: String!
+    key: join__FieldSet
     resolvable: Boolean = true
 ) repeatable on OBJECT | INTERFACE
 
 directive @join__field(
     graph: join__Graph
-    requires: String
-    provides: String
+    requires: join__FieldSet
+    provides: join__FieldSet
 ) on FIELD_DEFINITION
 
 directive @join__graph(name: String!, url: String!) on ENUM_VALUE
@@ -19,6 +19,8 @@ directive @join__graph(name: String!, url: String!) on ENUM_VALUE
 directive @join__implements(graph: join__Graph!, interface: String!) repeatable on OBJECT | INTERFACE
 
 directive @join__unionMember(graph: join__Graph!, member: String!) repeatable on UNION
+
+scalar join__FieldSet
 
 enum join__Graph {
     LENTILS @join__graph(name: "lentils", url: "http://example.com/lentils")
@@ -30,14 +32,17 @@ scalar _Any
 type Lentil
     @join__type(graph: LENTILS, key: "id")
 {
-    color: String! @join__field(graph: LENTILS)
+    color: String!
     id: ID!
-    name: String! @join__field(graph: LENTILS)
-    nutritionalInfo: NutritionalInfo @join__field(graph: LENTILS)
-    origin: String @join__field(graph: LENTILS)
+    name: String!
+    nutritionalInfo: NutritionalInfo
+    origin: String
 }
 
-type NutritionalInfo {
+type NutritionalInfo
+    @join__type(graph: LENTILS)
+    @join__type(graph: RICE)
+{
     calories: Int
     carbohydrates: Float
     fat: Float
@@ -45,34 +50,42 @@ type NutritionalInfo {
     protein: Float
 }
 
-type Rice {
-    id: ID! @join__field(graph: RICE)
-    name: String! @join__field(graph: RICE)
-    nutritionalInfo: NutritionalInfo @join__field(graph: RICE)
-    origin: String @join__field(graph: RICE)
-    variety: String! @join__field(graph: RICE)
+type Rice
+    @join__type(graph: RICE)
+{
+    id: ID!
+    name: String!
+    nutritionalInfo: NutritionalInfo
+    origin: String
+    variety: String!
 }
 
-type Query {
+type Query
+{
     lentil(id: ID!): Lentil @join__field(graph: LENTILS)
     lentils: [Lentil] @join__field(graph: LENTILS)
     rice(id: ID!): Rice @join__field(graph: RICE)
     rices: [Rice] @join__field(graph: RICE)
 }
 
-type Mutation {
+type Mutation
+{
     addLentil(input: AddLentilInput!): Lentil @join__field(graph: LENTILS)
     deleteLentil(id: ID!): Lentil @join__field(graph: LENTILS)
 }
 
-input AddLentilInput {
+input AddLentilInput
+    @join__type(graph: LENTILS)
+{
     name: String!
     color: String!
     origin: String
     nutritionalInfo: NutritionalInfoInput
 }
 
-input NutritionalInfoInput {
+input NutritionalInfoInput
+    @join__type(graph: LENTILS)
+{
     calories: Int
     protein: Float
     carbohydrates: Float

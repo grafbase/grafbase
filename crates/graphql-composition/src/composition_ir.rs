@@ -1,10 +1,10 @@
 mod directive;
 mod field_ir;
 
-pub(crate) use self::{directive::Directive, field_ir::*};
-use crate::subgraphs::{self, SubgraphId};
-use graphql_federated_graph::{self as federated, directives::ListSizeDirective};
-use std::collections::{BTreeMap, BTreeSet, HashMap};
+pub(crate) use self::{directive::*, field_ir::*};
+use crate::subgraphs::{self};
+use graphql_federated_graph::{self as federated};
+use std::collections::{BTreeSet, HashMap};
 
 /// The intermediate representation of the schema that is produced by composition. This data
 /// structure is distinct from [FederatedGraph](graphql_federated_graph::FederatedGraph) because
@@ -18,13 +18,12 @@ use std::collections::{BTreeMap, BTreeSet, HashMap};
 pub(crate) struct CompositionIr {
     pub(crate) definitions_by_name: HashMap<federated::StringId, federated::Definition>,
 
-    pub(crate) type_definitions: Vec<federated::TypeDefinitionRecord>,
+    pub(crate) type_definitions: Vec<TypeDefinitionIr>,
     pub(crate) objects: Vec<federated::Object>,
     pub(crate) interfaces: Vec<federated::Interface>,
-    pub(crate) unions: Vec<federated::Union>,
-    pub(crate) enum_values: Vec<federated::EnumValueRecord>,
-    pub(crate) input_objects: Vec<federated::InputObject>,
-    pub(crate) directives: Vec<Directive>,
+    pub(crate) unions: Vec<UnionIr>,
+    pub(crate) enum_values: Vec<EnumValueIr>,
+    pub(crate) input_objects: Vec<InputObjectIr>,
     pub(crate) input_value_definitions: Vec<InputValueDefinitionIr>,
 
     /// The root `Query` type
@@ -39,29 +38,33 @@ pub(crate) struct CompositionIr {
     pub(crate) strings: StringsIr,
     pub(crate) fields: Vec<FieldIr>,
     pub(crate) union_members: BTreeSet<(federated::StringId, federated::StringId)>,
-    pub(crate) union_join_members: BTreeMap<(federated::StringId, federated::StringId), Vec<SubgraphId>>,
-    pub(crate) keys: Vec<KeyIr>,
+}
 
-    /// @authorized directives on objects
-    pub(crate) object_authorized_directives: Vec<(federated::ObjectId, subgraphs::DirectiveSiteId)>,
-    /// @authorized directives on interfaces
-    pub(crate) interface_authorized_directives: Vec<(federated::InterfaceId, subgraphs::DirectiveSiteId)>,
+pub(crate) struct TypeDefinitionIr {
+    pub federated: federated::TypeDefinitionRecord,
+    pub directives: Vec<Directive>,
+}
 
-    // @listSize on fields
-    //
-    // Indexed by (definition_name, field_name) because we dont have stable id for fields
-    // at the point this is constructed.
-    //
-    // These are separate from FieldIr because they need to reference fields on other types
-    // so should be constructed last.
-    pub(crate) list_sizes: BTreeMap<(federated::StringId, federated::StringId), ListSizeDirective>,
+pub(crate) struct InputObjectIr {
+    pub federated: federated::InputObject,
+    pub directives: Vec<Directive>,
+}
+
+pub(crate) struct EnumValueIr {
+    pub federated: federated::EnumValueRecord,
+    pub directives: Vec<Directive>,
+}
+
+pub(crate) struct UnionIr {
+    pub federated: federated::Union,
+    pub directives: Vec<Directive>,
 }
 
 #[derive(Clone)]
 pub(crate) struct InputValueDefinitionIr {
     pub(crate) name: federated::StringId,
     pub(crate) r#type: subgraphs::FieldTypeId,
-    pub(crate) directives: federated::Directives,
+    pub(crate) directives: Vec<Directive>,
     pub(crate) description: Option<federated::StringId>,
     pub(crate) default: Option<subgraphs::Value>,
 }
@@ -96,11 +99,4 @@ impl std::ops::Index<federated::StringId> for StringsIr {
     fn index(&self, index: federated::StringId) -> &Self::Output {
         self.strings.get_index(usize::from(index)).unwrap().as_str()
     }
-}
-
-pub(crate) struct KeyIr {
-    pub(crate) parent: federated::Definition,
-    pub(crate) key_id: subgraphs::KeyId,
-    pub(crate) is_interface_object: bool,
-    pub(crate) resolvable: bool,
 }

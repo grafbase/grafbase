@@ -4,14 +4,14 @@ directive @join__owner(graph: join__Graph!) on OBJECT
 
 directive @join__type(
     graph: join__Graph!
-    key: String!
+    key: join__FieldSet
     resolvable: Boolean = true
 ) repeatable on OBJECT | INTERFACE
 
 directive @join__field(
     graph: join__Graph
-    requires: String
-    provides: String
+    requires: join__FieldSet
+    provides: join__FieldSet
 ) on FIELD_DEFINITION
 
 directive @join__graph(name: String!, url: String!) on ENUM_VALUE
@@ -20,6 +20,8 @@ directive @join__implements(graph: join__Graph!, interface: String!) repeatable 
 
 directive @join__unionMember(graph: join__Graph!, member: String!) repeatable on UNION
 
+scalar join__FieldSet
+
 enum join__Graph {
     ELECTRONICS @join__graph(name: "electronics", url: "http://example.com/electronics")
     PHYSICAL @join__graph(name: "physical", url: "http://example.com/physical")
@@ -27,32 +29,16 @@ enum join__Graph {
 }
 
 type Furby implements FurbyType & SocialFurby
+    @join__type(graph: SOCIAL)
     @join__implements(graph: SOCIAL, interface: "FurbyType")
     @join__implements(graph: SOCIAL, interface: "SocialFurby")
- {
-    batteryType: String! @join__field(graph: SOCIAL)
-    canDance: Boolean! @join__field(graph: SOCIAL)
-    canSing: Boolean! @join__field(graph: SOCIAL)
-    color: String! @join__field(graph: SOCIAL)
-    connectivity: String @join__field(graph: SOCIAL)
-    friends: [Furby!] @join__field(graph: SOCIAL)
-    height: Float! @join__field(graph: SOCIAL)
-    id: ID! @join__field(graph: SOCIAL)
-    languages: [String!] @join__field(graph: SOCIAL)
-    sensorTypes: [String!] @join__field(graph: SOCIAL)
-    weight: Float! @join__field(graph: SOCIAL)
-}
-
-type Query {
-    furby: Furby @join__field(graph: SOCIAL)
-}
-
-interface FurbyType {
+{
     batteryType: String!
     canDance: Boolean!
     canSing: Boolean!
     color: String!
     connectivity: String
+    friends: [Furby!]
     height: Float!
     id: ID!
     languages: [String!]
@@ -60,6 +46,30 @@ interface FurbyType {
     weight: Float!
 }
 
-interface SocialFurby {
+type Query
+{
+    furby: Furby @join__field(graph: SOCIAL)
+}
+
+interface FurbyType
+    @join__type(graph: ELECTRONICS)
+    @join__type(graph: PHYSICAL)
+    @join__type(graph: SOCIAL)
+{
+    batteryType: String! @join__field(graph: ELECTRONICS)
+    canDance: Boolean! @join__field(graph: SOCIAL)
+    canSing: Boolean! @join__field(graph: SOCIAL)
+    color: String! @join__field(graph: PHYSICAL)
+    connectivity: String @join__field(graph: ELECTRONICS)
+    height: Float! @join__field(graph: PHYSICAL)
+    id: ID!
+    languages: [String!] @join__field(graph: SOCIAL)
+    sensorTypes: [String!] @join__field(graph: ELECTRONICS)
+    weight: Float! @join__field(graph: PHYSICAL)
+}
+
+interface SocialFurby
+    @join__type(graph: SOCIAL)
+{
     friends: [Furby!]
 }

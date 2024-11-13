@@ -1,5 +1,5 @@
 ---
-source: engine/crates/integration-tests/tests/federation/introspection.rs
+source: crates/integration-tests/tests/federation/introspection.rs
 expression: response
 ---
 {
@@ -350,7 +350,7 @@ expression: response
         {
           "kind": "SCALAR",
           "name": "JSON",
-          "description": null,
+          "description": "A scalar that can represent any JSON value.",
           "fields": null,
           "inputFields": null,
           "interfaces": null,

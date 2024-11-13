@@ -74,6 +74,7 @@ impl SubgraphId {
 pub(crate) type SubgraphWalker<'a> = Walker<'a, (SubgraphId, &'a Subgraph)>;
 
 impl<'a> SubgraphWalker<'a> {
+    #[allow(unused)]
     pub(crate) fn subgraph_id(self) -> SubgraphId {
         let (id, _) = self.id;
         id

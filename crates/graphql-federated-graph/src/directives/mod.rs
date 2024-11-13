@@ -1,10 +1,89 @@
+mod authorized;
 mod complexity_control;
 mod deprecated;
+mod federation;
+
+use crate::{ListSize, StringId, Value};
 
 pub use self::{
     complexity_control::{CostDirective, ListSizeDirective},
     deprecated::DeprecatedDirective,
 };
+pub use authorized::*;
+pub use federation::*;
+
+#[derive(PartialEq, PartialOrd, Clone, Debug)]
+pub enum Directive {
+    Authenticated,
+    Deprecated {
+        reason: Option<StringId>,
+    },
+    Inaccessible,
+    Policy(Vec<Vec<StringId>>),
+    RequiresScopes(Vec<Vec<StringId>>),
+    Cost {
+        weight: i32,
+    },
+    JoinField(JoinFieldDirective),
+    JoinType(JoinTypeDirective),
+    JoinUnionMember(JoinUnionMemberDirective),
+    JoinImplements(JoinImplementsDirective),
+    Authorized(AuthorizedDirective),
+    Other {
+        name: StringId,
+        arguments: Vec<(StringId, Value)>,
+    },
+    ListSize(ListSize),
+}
+
+impl From<JoinFieldDirective> for Directive {
+    fn from(d: JoinFieldDirective) -> Self {
+        Self::JoinField(d)
+    }
+}
+
+impl From<JoinTypeDirective> for Directive {
+    fn from(d: JoinTypeDirective) -> Self {
+        Self::JoinType(d)
+    }
+}
+
+impl Directive {
+    pub fn as_join_field(&self) -> Option<&JoinFieldDirective> {
+        match self {
+            Directive::JoinField(d) => Some(d),
+            _ => None,
+        }
+    }
+
+    pub fn as_join_field_mut(&mut self) -> Option<&mut JoinFieldDirective> {
+        match self {
+            Directive::JoinField(d) => Some(d),
+            _ => None,
+        }
+    }
+
+    pub fn as_join_type(&self) -> Option<&JoinTypeDirective> {
+        match self {
+            Directive::JoinType(d) => Some(d),
+            _ => None,
+        }
+    }
+
+    pub fn as_join_union_member(&self) -> Option<&JoinUnionMemberDirective> {
+        match self {
+            Directive::JoinUnionMember(d) => Some(d),
+            _ => None,
+        }
+    }
+
+    pub fn as_join_implements(&self) -> Option<&JoinImplementsDirective> {
+        match self {
+            Directive::JoinImplements(d) => Some(d),
+            _ => None,
+        }
+    }
+}
 
 #[cfg(test)]
 /// Helper for tests

@@ -17,7 +17,7 @@ impl ObjectDefinitionRecord {
     }
 
     pub fn is_resolvable_in(&self, subgraph_id: &SubgraphId) -> bool {
-        self.only_resolvable_in_ids.binary_search(subgraph_id).is_ok()
+        self.exists_in_subgraph_ids.binary_search(subgraph_id).is_ok()
     }
 }
 
@@ -32,6 +32,7 @@ impl std::fmt::Debug for ObjectDefinition<'_> {
             )
             .field("directives", &self.directives())
             .field("fields", &self.fields().map(|f| f.name()).collect::<Vec<_>>())
+            .field("exists_in_subgraph", &self.exists_in_subgraphs().collect::<Vec<_>>())
             .finish()
     }
 }

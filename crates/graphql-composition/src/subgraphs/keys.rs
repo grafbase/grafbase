@@ -9,7 +9,7 @@ pub(crate) struct Keys {
     nested_key_fields: NestedKeyFields,
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, PartialEq, PartialOrd, Debug)]
 pub(crate) struct KeyId(usize);
 
 impl Subgraphs {
@@ -192,12 +192,6 @@ impl<'a> KeyWalker<'a> {
 impl<'a> DefinitionWalker<'a> {
     pub fn is_entity(self) -> bool {
         self.entity_keys().next().is_some()
-            || self
-                .subgraphs
-                .keys
-                .nested_key_fields
-                .objects_with_nested_keys
-                .contains(&self.id)
     }
 
     pub fn entity_keys(self) -> impl Iterator<Item = KeyWalker<'a>> {

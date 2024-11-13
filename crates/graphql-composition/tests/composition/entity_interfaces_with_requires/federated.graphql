@@ -4,14 +4,14 @@ directive @join__owner(graph: join__Graph!) on OBJECT
 
 directive @join__type(
     graph: join__Graph!
-    key: String!
+    key: join__FieldSet
     resolvable: Boolean = true
 ) repeatable on OBJECT | INTERFACE
 
 directive @join__field(
     graph: join__Graph
-    requires: String
-    provides: String
+    requires: join__FieldSet
+    provides: join__FieldSet
 ) on FIELD_DEFINITION
 
 directive @join__graph(name: String!, url: String!) on ENUM_VALUE
@@ -20,25 +20,30 @@ directive @join__implements(graph: join__Graph!, interface: String!) repeatable 
 
 directive @join__unionMember(graph: join__Graph!, member: String!) repeatable on UNION
 
+scalar join__FieldSet
+
 enum join__Graph {
     A @join__graph(name: "a", url: "http://example.com/a")
     B @join__graph(name: "b", url: "http://example.com/b")
 }
 
 type Book implements Media
-    @join__implements(graph: A, interface: "Media")
     @join__type(graph: A, key: "id")
+    @join__implements(graph: A, interface: "Media")
 {
     id: ID!
     reviews: [Review!]! @join__field(graph: B, requires: "title")
-    title: String! @join__field(graph: A)
+    title: String!
 }
 
-type Review {
-    score: Int! @join__field(graph: B)
+type Review
+    @join__type(graph: B)
+{
+    score: Int!
 }
 
-type Query {
+type Query
+{
     topRatedMedia: [Media!]! @join__field(graph: B)
 }
 

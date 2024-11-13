@@ -4,14 +4,14 @@ directive @join__owner(graph: join__Graph!) on OBJECT
 
 directive @join__type(
     graph: join__Graph!
-    key: String!
+    key: join__FieldSet
     resolvable: Boolean = true
 ) repeatable on OBJECT | INTERFACE
 
 directive @join__field(
     graph: join__Graph
-    requires: String
-    provides: String
+    requires: join__FieldSet
+    provides: join__FieldSet
 ) on FIELD_DEFINITION
 
 directive @join__graph(name: String!, url: String!) on ENUM_VALUE
@@ -20,46 +20,63 @@ directive @join__implements(graph: join__Graph!, interface: String!) repeatable 
 
 directive @join__unionMember(graph: join__Graph!, member: String!) repeatable on UNION
 
+scalar join__FieldSet
+
 enum join__Graph {
     PIZZA @join__graph(name: "pizza", url: "http://example.com/pizza")
     SUSHI @join__graph(name: "sushi", url: "http://example.com/sushi")
 }
 
-type Pizza {
-    id: ID! @join__field(graph: PIZZA)
-    nameEn: String @join__field(graph: PIZZA)
-    nameIt: String! @join__field(graph: PIZZA)
-    toppings: [Topping!]! @join__field(graph: PIZZA)
+type Pizza
+    @join__type(graph: PIZZA)
+{
+    id: ID!
+    nameEn: String
+    nameIt: String!
+    toppings: [Topping!]!
 }
 
-type Onion {
-    variety: String @join__field(graph: PIZZA)
+type Onion
+    @join__type(graph: PIZZA)
+{
+    variety: String
 }
 
-type Cheese {
-    quantity: Int! @join__field(graph: PIZZA)
-    type: String! @join__field(graph: PIZZA)
+type Cheese
+    @join__type(graph: PIZZA)
+{
+    quantity: Int!
+    type: String!
 }
 
-type Pineapple {
-    isAnanas: Boolean! @join__field(graph: PIZZA)
+type Pineapple
+    @join__type(graph: PIZZA)
+{
+    isAnanas: Boolean!
 }
 
-type Sushi {
-    id: ID! @join__field(graph: SUSHI)
-    topping: Topping @join__field(graph: SUSHI)
+type Sushi
+    @join__type(graph: SUSHI)
+{
+    id: ID!
+    topping: Topping
 }
 
-type Salmon {
-    id: ID! @join__field(graph: SUSHI)
-    raw: Boolean @join__field(graph: SUSHI)
+type Salmon
+    @join__type(graph: SUSHI)
+{
+    id: ID!
+    raw: Boolean
 }
 
-type Omelet {
-    isRectangular: Boolean @join__field(graph: SUSHI)
+type Omelet
+    @join__type(graph: SUSHI)
+{
+    isRectangular: Boolean
 }
 
-type Query {
+type Query
+{
     pizza(id: ID!): Pizza @join__field(graph: PIZZA)
 }
 
