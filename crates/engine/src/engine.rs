@@ -1,6 +1,6 @@
 use ::runtime::operation_cache::OperationCacheFactory;
 use bytes::Bytes;
-use engine_v2_auth::AuthService;
+use engine_auth::AuthService;
 use futures::{StreamExt, TryFutureExt};
 use futures_util::Stream;
 use retry_budget::RetryBudgets;

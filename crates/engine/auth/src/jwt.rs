@@ -1,6 +1,6 @@
 use std::{borrow::Cow, collections::HashMap};
 
-use engine_v2_config::JwtConfig;
+use engine_config::JwtConfig;
 use futures_util::future::BoxFuture;
 use jwt_compact::{jwk::JsonWebKey, Algorithm, AlgorithmExt, TimeOptions, Token, UntrustedToken};
 use runtime::{auth::JwtToken, kv::KvStore};

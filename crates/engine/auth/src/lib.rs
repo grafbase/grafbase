@@ -1,4 +1,4 @@
-use engine_v2_config::{AuthConfig, AuthProviderConfig};
+use engine_config::{AuthConfig, AuthProviderConfig};
 use grafbase_workspace_hack as _;
 
 mod anonymous;

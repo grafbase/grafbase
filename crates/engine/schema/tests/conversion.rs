@@ -1,5 +1,5 @@
 use config::{HeaderRemove, HeaderRule, NameOrPattern};
-use engine_v2_schema::{DefinitionId, Schema, Version};
+use engine_schema::{DefinitionId, Schema, Version};
 use federated_graph::from_sdl;
 use regex::Regex;
 use walker::Walk;

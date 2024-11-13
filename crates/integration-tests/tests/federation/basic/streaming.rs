@@ -2,7 +2,7 @@
 //!
 //! Subscrition specific tests will probably live elsewhere
 
-use engine_v2::Engine;
+use engine::Engine;
 use graphql_mocks::Stateful;
 use integration_tests::{federation::EngineV2Ext, runtime};
 

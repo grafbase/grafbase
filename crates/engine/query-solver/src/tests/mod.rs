@@ -22,7 +22,7 @@ use walker::Walk;
 #[ctor::ctor]
 fn setup_logging() {
     let filter = tracing_subscriber::filter::EnvFilter::builder()
-        .parse(std::env::var("RUST_LOG").unwrap_or("engine_v2_query_planning=debug".to_string()))
+        .parse(std::env::var("RUST_LOG").unwrap_or("engine_query_planning=debug".to_string()))
         .unwrap();
     tracing_subscriber::fmt()
         .pretty()

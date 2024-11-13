@@ -16,7 +16,7 @@ use url::Url;
 pub struct TestGateway {
     router: axum::Router,
     #[allow(unused)]
-    engine: Arc<engine_v2::Engine<TestRuntime>>,
+    engine: Arc<engine::Engine<TestRuntime>>,
     #[allow(unused)]
     context: TestRuntimeContext,
     subgraphs: subgraph::Subgraphs,

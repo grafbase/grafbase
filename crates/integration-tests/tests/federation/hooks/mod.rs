@@ -5,7 +5,7 @@ mod authorize_parent_edge_post_execution;
 mod on_gateway_request;
 mod on_subgraph_request;
 
-use engine_v2::Engine;
+use engine::Engine;
 use futures::Future;
 use graphql_mocks::SecureSchema;
 use integration_tests::{

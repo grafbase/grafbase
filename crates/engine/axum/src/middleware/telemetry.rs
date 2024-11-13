@@ -8,7 +8,7 @@ use std::{
 };
 
 use ::tower::Layer;
-use engine_v2::TelemetryExtension;
+use engine::TelemetryExtension;
 use grafbase_telemetry::{
     grafbase_client::Client,
     metrics::{RequestMetrics, RequestMetricsAttributes},

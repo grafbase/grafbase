@@ -38,7 +38,7 @@ impl TestRuntime {
     }
 }
 
-impl engine_v2::Runtime for TestRuntime {
+impl engine::Runtime for TestRuntime {
     type Hooks = DynamicHooks;
     type Fetcher = DynamicFetcher;
     type OperationCacheFactory = InMemoryOperationCacheFactory;

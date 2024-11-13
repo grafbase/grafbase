@@ -2,7 +2,7 @@ mod context;
 
 use federated_graph::FederatedGraph;
 
-pub fn build_with_toml_config(config: &gateway_config::Config, graph: FederatedGraph) -> engine_v2_config::Config {
+pub fn build_with_toml_config(config: &gateway_config::Config, graph: FederatedGraph) -> engine_config::Config {
     let mut context = context::BuildContext::default();
 
     let default_header_rules = context.insert_headers(&config.headers);
@@ -12,7 +12,7 @@ pub fn build_with_toml_config(config: &gateway_config::Config, graph: FederatedG
         context.insert_rate_limit(rate_limit);
     }
 
-    engine_v2_config::Config {
+    engine_config::Config {
         graph,
         strings: context.strings.into_vec(),
         paths: context.paths.into_vec(),
@@ -25,19 +25,19 @@ pub fn build_with_toml_config(config: &gateway_config::Config, graph: FederatedG
         rate_limit: context.rate_limit,
         timeout: config.gateway.timeout,
         entity_caching: if config.entity_caching.enabled.unwrap_or_default() {
-            engine_v2_config::EntityCaching::Enabled {
+            engine_config::EntityCaching::Enabled {
                 ttl: config.entity_caching.ttl,
             }
         } else {
-            engine_v2_config::EntityCaching::Disabled
+            engine_config::EntityCaching::Disabled
         },
-        retry: config.gateway.retry.enabled.then_some(engine_v2_config::RetryConfig {
+        retry: config.gateway.retry.enabled.then_some(engine_config::RetryConfig {
             min_per_second: config.gateway.retry.min_per_second,
             ttl: config.gateway.retry.ttl,
             retry_percent: config.gateway.retry.retry_percent,
             retry_mutations: config.gateway.retry.retry_mutations,
         }),
-        batching: engine_v2_config::BatchingConfig {
+        batching: engine_config::BatchingConfig {
             enabled: config.gateway.batching.enabled,
             limit: config.gateway.batching.limit.map(usize::from),
         },
@@ -45,16 +45,16 @@ pub fn build_with_toml_config(config: &gateway_config::Config, graph: FederatedG
     }
 }
 
-fn build_auth_config(config: &gateway_config::Config) -> Option<engine_v2_config::AuthConfig> {
+fn build_auth_config(config: &gateway_config::Config) -> Option<engine_config::AuthConfig> {
     config.authentication.as_ref().map(|auth| {
         let providers = auth
             .providers
             .iter()
             .map(|provider| match provider {
                 gateway_config::AuthenticationProvider::Jwt(provider) => {
-                    engine_v2_config::AuthProviderConfig::Jwt(engine_v2_config::JwtConfig {
+                    engine_config::AuthProviderConfig::Jwt(engine_config::JwtConfig {
                         name: provider.name.clone(),
-                        jwks: engine_v2_config::JwksConfig {
+                        jwks: engine_config::JwksConfig {
                             issuer: provider.jwks.issuer.clone(),
                             audience: provider.jwks.audience.clone(),
                             url: provider.jwks.url.clone(),
@@ -64,20 +64,20 @@ fn build_auth_config(config: &gateway_config::Config) -> Option<engine_v2_config
                         header_value_prefix: provider.header.value_prefix.to_string(),
                     })
                 }
-                gateway_config::AuthenticationProvider::Anonymous => engine_v2_config::AuthProviderConfig::Anonymous,
+                gateway_config::AuthenticationProvider::Anonymous => engine_config::AuthProviderConfig::Anonymous,
             })
             .collect();
 
-        engine_v2_config::AuthConfig { providers }
+        engine_config::AuthConfig { providers }
     })
 }
 
-fn build_operation_limits(config: &gateway_config::Config) -> engine_v2_config::OperationLimits {
+fn build_operation_limits(config: &gateway_config::Config) -> engine_config::OperationLimits {
     let Some(parsed_operation_limits) = &config.operation_limits else {
-        return engine_v2_config::OperationLimits::default();
+        return engine_config::OperationLimits::default();
     };
 
-    engine_v2_config::OperationLimits {
+    engine_config::OperationLimits {
         depth: parsed_operation_limits.depth,
         height: parsed_operation_limits.height,
         aliases: parsed_operation_limits.aliases,
@@ -86,8 +86,8 @@ fn build_operation_limits(config: &gateway_config::Config) -> engine_v2_config::
     }
 }
 
-fn build_complexity_control(config: &gateway_config::ComplexityControlConfig) -> engine_v2_config::ComplexityControl {
-    use engine_v2_config::ComplexityControl;
+fn build_complexity_control(config: &gateway_config::ComplexityControlConfig) -> engine_config::ComplexityControl {
+    use engine_config::ComplexityControl;
     use gateway_config::ComplexityControlMode;
 
     let list_size = |config: &gateway_config::ComplexityControlConfig| {

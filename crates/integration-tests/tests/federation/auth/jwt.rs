@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use engine_v2::Engine;
+use engine::Engine;
 use graphql_mocks::FakeGithubSchema;
 use integration_tests::federation::GraphqlResponse;
 use integration_tests::openid::{CoreClientExt, OryHydraOpenIDProvider};

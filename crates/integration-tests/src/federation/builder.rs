@@ -39,7 +39,7 @@ pub trait EngineV2Ext {
     }
 }
 
-impl EngineV2Ext for engine_v2::Engine<TestRuntime> {}
+impl EngineV2Ext for ::engine::Engine<TestRuntime> {}
 
 impl TestGatewayBuilder {
     pub fn with_toml_config(mut self, toml: impl Display) -> Self {

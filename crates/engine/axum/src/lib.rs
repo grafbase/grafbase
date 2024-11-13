@@ -3,7 +3,7 @@ use grafbase_workspace_hack as _;
 use std::sync::Arc;
 
 use axum::{response::IntoResponse, Json};
-use engine_v2::{Body, Engine, ErrorCode, Runtime};
+use engine::{Body, Engine, ErrorCode, Runtime};
 use futures_util::TryFutureExt;
 use runtime::bytes::OwnedOrSharedBytes;
 

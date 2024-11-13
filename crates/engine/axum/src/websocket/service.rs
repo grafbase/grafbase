@@ -15,7 +15,7 @@ use axum::{
 use futures_util::future::BoxFuture;
 use tower_service::Service;
 
-use engine_v2::websocket::Message;
+use engine::websocket::Message;
 
 use super::WebsocketSender;
 
@@ -116,7 +116,7 @@ pub trait MessageConvert {
     fn to_axum_message(self) -> Result<ws::Message, serde_json::Error>;
 }
 
-impl<R: engine_v2::Runtime> MessageConvert for Message<R> {
+impl<R: engine::Runtime> MessageConvert for Message<R> {
     fn to_axum_message(self) -> Result<ws::Message, serde_json::Error> {
         match self {
             Message::Close { code, reason } => Ok(ws::Message::Close(Some(ws::CloseFrame {

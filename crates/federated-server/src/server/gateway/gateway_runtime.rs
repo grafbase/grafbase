@@ -29,7 +29,7 @@ impl GatewayRuntime {
     pub(super) async fn build(
         gateway_config: &Config,
         hot_reload_config_path: Option<PathBuf>,
-        config: &engine_v2::config::Config,
+        config: &engine::config::Config,
         version_id: Option<ulid::Ulid>,
         hooks: HooksWasi,
     ) -> Result<GatewayRuntime, crate::Error> {
@@ -92,7 +92,7 @@ impl GatewayRuntime {
     }
 }
 
-impl engine_v2::Runtime for GatewayRuntime {
+impl engine::Runtime for GatewayRuntime {
     type Hooks = HooksWasi;
     type Fetcher = NativeFetcher;
     type OperationCacheFactory = InMemoryOperationCacheFactory;

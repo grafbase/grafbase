@@ -1,4 +1,4 @@
-use engine_v2::Engine;
+use engine::Engine;
 use graphql_mocks::FederatedProductsSchema;
 use integration_tests::{federation::EngineV2Ext, runtime};
 use rand::Rng;

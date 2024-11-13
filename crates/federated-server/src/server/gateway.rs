@@ -1,5 +1,5 @@
 use super::GdnResponse;
-use engine_v2::{Engine, SchemaVersion};
+use engine::{Engine, SchemaVersion};
 use gateway_config::Config;
 use graphql_composition::FederatedGraph;
 use runtime::trusted_documents_client::Client;
@@ -74,14 +74,14 @@ pub(super) async fn generate(
         runtime.trusted_documents = trusted_documents;
     }
 
-    let schema = engine_v2::Schema::build(config, schema_version)
+    let schema = engine::Schema::build(config, schema_version)
         .map_err(|err| crate::Error::SchemaValidationError(err.to_string()))?;
 
     Ok(Engine::new(Arc::new(schema), runtime).await)
 }
 
 fn sdl_graph(federated_sdl: String) -> Graph {
-    let version = engine_v2::SchemaVersion::from(
+    let version = engine::SchemaVersion::from(
         [
             b"hash:".to_vec(),
             blake3::hash(federated_sdl.as_bytes()).as_bytes().to_vec(),
@@ -109,7 +109,7 @@ fn gdn_graph(
         ..
     }: GdnResponse,
 ) -> Graph {
-    let version = engine_v2::SchemaVersion::from(
+    let version = engine::SchemaVersion::from(
         [b"id:".to_vec(), version_id.to_bytes().to_vec()]
             .into_iter()
             .flatten()

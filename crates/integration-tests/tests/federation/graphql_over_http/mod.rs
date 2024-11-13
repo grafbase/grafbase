@@ -2,7 +2,7 @@ mod application_graphql_response_json;
 mod application_json;
 mod batch;
 
-use engine_v2::Engine;
+use engine::Engine;
 use graphql_mocks::{FakeGithubSchema, Stateful};
 use integration_tests::{federation::EngineV2Ext, openid::JWKS_URI, runtime};
 

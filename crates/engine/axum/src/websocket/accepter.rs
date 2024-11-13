@@ -1,12 +1,12 @@
 use std::{collections::HashMap, sync::Arc};
 
 use ::axum::extract::ws::{self, WebSocket};
-use engine_v2::{websocket::InitPayload, Engine, Runtime, WebsocketSession};
+use engine::{websocket::InitPayload, Engine, Runtime, WebsocketSession};
 use futures_util::{pin_mut, stream::SplitStream, SinkExt, Stream, StreamExt};
 use tokio::sync::{mpsc, watch};
 
 use super::service::MessageConvert;
-use engine_v2::websocket::{Event, Message};
+use engine::websocket::{Event, Message};
 
 pub type EngineWatcher<R> = watch::Receiver<Option<Arc<Engine<R>>>>;
 pub type WebsocketSender = tokio::sync::mpsc::Sender<WebSocket>;
@@ -141,7 +141,7 @@ async fn handle_incoming_event<R: Runtime>(
     }
 }
 
-async fn subscription_loop<R: engine_v2::Runtime>(
+async fn subscription_loop<R: engine::Runtime>(
     stream: impl Stream<Item = Message<R>>,
     id: String,
     sender: mpsc::Sender<Message<R>>,

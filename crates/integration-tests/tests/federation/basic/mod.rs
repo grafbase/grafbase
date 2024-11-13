@@ -17,7 +17,7 @@ mod skip_include;
 mod streaming;
 mod variables;
 
-use engine_v2::Engine;
+use engine::Engine;
 use graphql_mocks::FakeGithubSchema;
 use integration_tests::{federation::EngineV2Ext, runtime};
 

@@ -1,4 +1,4 @@
-use engine_v2::HooksExtension;
+use engine::HooksExtension;
 use futures_util::Future;
 use http::{response, Request, Response};
 use http_body::Body;

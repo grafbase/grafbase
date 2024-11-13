@@ -6,7 +6,7 @@ mod requires;
 mod sibling_dependencies;
 mod simple_key;
 
-use engine_v2::Engine;
+use engine::Engine;
 use graphql_mocks::{
     FederatedAccountsSchema, FederatedInventorySchema, FederatedProductsSchema, FederatedReviewsSchema,
     FederatedShippingSchema,

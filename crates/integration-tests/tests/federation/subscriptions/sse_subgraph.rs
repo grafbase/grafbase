@@ -1,4 +1,4 @@
-use engine_v2::Engine;
+use engine::Engine;
 use integration_tests::{
     federation::{DockerSubgraph, EngineV2Ext},
     runtime,

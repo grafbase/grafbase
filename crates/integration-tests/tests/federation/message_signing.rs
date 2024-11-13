@@ -1,7 +1,7 @@
 use std::io::Write;
 
 use elliptic_curve::pkcs8::{DecodePrivateKey, EncodePrivateKey};
-use engine_v2::Engine;
+use engine::Engine;
 use graphql_mocks::FakeGithubSchema;
 use httpsig::prelude::SharedKey;
 use integration_tests::{federation::EngineV2Ext, runtime};

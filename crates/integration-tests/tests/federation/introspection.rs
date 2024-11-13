@@ -1,6 +1,6 @@
 use cynic::{http::ReqwestExt, QueryBuilder};
 use cynic_introspection::{CapabilitiesQuery, IntrospectionQuery, SpecificationVersion};
-use engine_v2::Engine;
+use engine::Engine;
 use graphql_mocks::{
     EchoSchema, FakeGithubSchema, FederatedAccountsSchema, FederatedInventorySchema, FederatedProductsSchema,
     FederatedReviewsSchema,

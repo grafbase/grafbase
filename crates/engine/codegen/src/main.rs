@@ -17,10 +17,10 @@ fn domain_dir() -> PathBuf {
 
 fn main() -> anyhow::Result<()> {
     let code_gen_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    let engine_v2_dir = code_gen_dir.parent().unwrap();
+    let engine_dir = code_gen_dir.parent().unwrap();
 
     let filter = tracing_subscriber::filter::EnvFilter::builder()
-        .parse(std::env::var("RUST_LOG").unwrap_or("engine_v2_codegen=debug".to_string()))
+        .parse(std::env::var("RUST_LOG").unwrap_or("engine_codegen=debug".to_string()))
         .unwrap();
 
     tracing_subscriber::fmt()
@@ -40,7 +40,7 @@ fn main() -> anyhow::Result<()> {
         let domain = loader::load(path)?;
         let modules = generation::generate_modules(&formatter, &domain)?;
 
-        let root_module_dir = engine_v2_dir.join(&domain.destination_path).join(GENERATED_MODULE);
+        let root_module_dir = engine_dir.join(&domain.destination_path).join(GENERATED_MODULE);
         tracing::info!("Cleaning up existing code");
         let _ = std::fs::remove_dir_all(&root_module_dir);
 

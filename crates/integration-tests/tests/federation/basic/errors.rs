@@ -1,4 +1,4 @@
-use engine_v2::Engine;
+use engine::Engine;
 use indoc::indoc;
 use integration_tests::{
     federation::{DeterministicEngine, EngineV2Ext as _},

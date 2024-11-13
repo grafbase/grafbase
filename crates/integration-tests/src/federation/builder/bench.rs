@@ -4,7 +4,7 @@ use std::sync::{
 };
 
 use bytes::Bytes;
-use engine_v2::Body;
+use engine::Body;
 use futures::{StreamExt, TryStreamExt};
 use gateway_config::Config;
 use runtime::{
@@ -20,7 +20,7 @@ use super::TestRuntime;
 
 #[derive(Clone)]
 pub struct DeterministicEngine {
-    engine: Arc<engine_v2::Engine<TestRuntime>>,
+    engine: Arc<engine::Engine<TestRuntime>>,
     request_parts: http::request::Parts,
     body: Bytes,
     dummy_responses_index: Arc<AtomicUsize>,
@@ -62,11 +62,11 @@ impl<'a> DeterministicEngineBuilder<'a> {
             dummy_responses_index.clone(),
         );
         let graph = federated_graph::from_sdl(self.schema).unwrap();
-        let config = engine_v2::config::Config::from_graph(graph);
+        let config = engine::config::Config::from_graph(graph);
 
         let schema =
-            engine_v2::Schema::build(config, engine_v2::SchemaVersion::from(ulid::Ulid::new().to_bytes())).unwrap();
-        let engine = engine_v2::Engine::new(
+            engine::Schema::build(config, engine::SchemaVersion::from(ulid::Ulid::new().to_bytes())).unwrap();
+        let engine = engine::Engine::new(
             Arc::new(schema),
             TestRuntime {
                 fetcher: fetcher.into(),
