@@ -19,7 +19,10 @@ pub(crate) struct GraphBuilder<'a> {
 }
 
 impl<'a> GraphBuilder<'a> {
-    pub fn build(ctx: &'a mut BuildContext, config: &mut Config) -> Result<(Graph, IntrospectionMetadata), BuildError> {
+    pub fn build(
+        ctx: &'a mut BuildContext,
+        config: &mut Config,
+    ) -> Result<(Graph, IntrospectionMetadata), BuildError> {
         let mut builder = GraphBuilder {
             ctx,
             field_sets: Default::default(),
@@ -29,7 +32,11 @@ impl<'a> GraphBuilder<'a> {
                 root_operation_types_record: RootOperationTypesRecord {
                     query_id: config.graph.root_operation_types.query.into(),
                     mutation_id: config.graph.root_operation_types.mutation.map(Into::into),
-                    subscription_id: config.graph.root_operation_types.subscription.map(Into::into),
+                    subscription_id: config
+                        .graph
+                        .root_operation_types
+                        .subscription
+                        .map(Into::into),
                 },
                 object_definitions: Vec::new(),
                 interface_definitions: Vec::new(),
@@ -91,9 +98,13 @@ impl<'a> GraphBuilder<'a> {
         config: &mut Config,
     ) -> Result<(), BuildError> {
         // Arbitrary initial capacity, to make it at least proportional to the input_values count.
-        let mut default_values = Vec::with_capacity(config.graph.input_value_definitions.len() / 20);
+        let mut default_values =
+            Vec::with_capacity(config.graph.input_value_definitions.len() / 20);
         let mut input_value_definitions = Vec::new();
-        for (idx, definition) in take(&mut config.graph.input_value_definitions).into_iter().enumerate() {
+        for (idx, definition) in take(&mut config.graph.input_value_definitions)
+            .into_iter()
+            .enumerate()
+        {
             if !self.ctx.idmaps.input_value.contains(idx) {
                 continue;
             }
@@ -125,12 +136,12 @@ impl<'a> GraphBuilder<'a> {
             .into_iter()
             .map(|(idx, value)| {
                 let input_value_definition = &self.graph.input_value_definitions[idx];
-                let value = coercer.coerce(input_value_definition.ty_record, value).map_err(|err| {
-                    BuildError::DefaultValueCoercionError {
+                let value = coercer
+                    .coerce(input_value_definition.ty_record, value)
+                    .map_err(|err| BuildError::DefaultValueCoercionError {
                         err,
                         name: self.ctx.strings[input_value_definition.name_id].to_string(),
-                    }
-                })?;
+                    })?;
                 Ok((idx, value))
             })
             .collect::<Result<Vec<_>, BuildError>>()?;
@@ -215,7 +226,10 @@ impl<'a> GraphBuilder<'a> {
                     // corresponding to the interface and to the subgraph.
                     if join_member_records
                         .binary_search_by(|probe| {
-                            probe.subgraph_id.cmp(subgraph_id).then(probe.member_id.cmp(object_id))
+                            probe
+                                .subgraph_id
+                                .cmp(subgraph_id)
+                                .then(probe.member_id.cmp(object_id))
                         })
                         .is_err()
                     {
@@ -332,7 +346,8 @@ impl<'a> GraphBuilder<'a> {
             ));
 
             for field_id in fields {
-                entities_metadata.field_id_to_maybe_object_id[usize::from(field_id)] = Some(object_id);
+                entities_metadata.field_id_to_maybe_object_id[usize::from(field_id)] =
+                    Some(object_id);
             }
 
             let schema_location = SchemaLocation::Type {
@@ -360,10 +375,12 @@ impl<'a> GraphBuilder<'a> {
             let mut join_implement_records: Vec<_> = object
                 .join_implements
                 .into_iter()
-                .map(|(subgraph_id, interface_id)| JoinImplementsDefinitionRecord {
-                    subgraph_id: SubgraphId::GraphqlEndpoint(subgraph_id.into()),
-                    interface_id: interface_id.into(),
-                })
+                .map(
+                    |(subgraph_id, interface_id)| JoinImplementsDefinitionRecord {
+                        subgraph_id: SubgraphId::GraphqlEndpoint(subgraph_id.into()),
+                        interface_id: interface_id.into(),
+                    },
+                )
                 .collect();
 
             join_implement_records.sort_by_key(|record| (record.subgraph_id, record.interface_id));
@@ -379,14 +396,20 @@ impl<'a> GraphBuilder<'a> {
             self.graph.object_definitions.push(ObjectDefinitionRecord {
                 name_id: config.graph.view(object.type_definition_id).name.into(),
                 description_id: None,
-                interface_ids: object.implements_interfaces.into_iter().map(Into::into).collect(),
+                interface_ids: object
+                    .implements_interfaces
+                    .into_iter()
+                    .map(Into::into)
+                    .collect(),
                 directive_ids: directives,
                 field_ids: fields,
                 join_implement_records,
                 only_resolvable_in_ids,
             });
 
-            if let Some(entity) = self.generate_federation_entity_from_keys(schema_location, object.keys) {
+            if let Some(entity) =
+                self.generate_federation_entity_from_keys(schema_location, object.keys)
+            {
                 entities_metadata.entities.insert(object_id, entity);
             }
         }
@@ -413,7 +436,8 @@ impl<'a> GraphBuilder<'a> {
             ));
 
             for field_id in fields {
-                entities_metadata.field_id_to_maybe_interface_id[usize::from(field_id)] = Some(interface_id);
+                entities_metadata.field_id_to_maybe_interface_id[usize::from(field_id)] =
+                    Some(interface_id);
             }
 
             let directives = self.push_directives(
@@ -424,22 +448,29 @@ impl<'a> GraphBuilder<'a> {
                 },
             );
 
-            self.graph.interface_definitions.push(InterfaceDefinitionRecord {
-                name_id,
-                description_id: None,
-                interface_ids: interface.implements_interfaces.into_iter().map(Into::into).collect(),
-                possible_type_ids: Vec::new(),
-                // Added at the end.
-                possible_types_ordered_by_typename_ids: Vec::new(),
-                directive_ids: directives,
-                field_ids: fields,
-                // Added at the end.
-                not_fully_implemented_in_ids: Vec::new(),
-            });
+            self.graph
+                .interface_definitions
+                .push(InterfaceDefinitionRecord {
+                    name_id,
+                    description_id: None,
+                    interface_ids: interface
+                        .implements_interfaces
+                        .into_iter()
+                        .map(Into::into)
+                        .collect(),
+                    possible_type_ids: Vec::new(),
+                    // Added at the end.
+                    possible_types_ordered_by_typename_ids: Vec::new(),
+                    directive_ids: directives,
+                    field_ids: fields,
+                    // Added at the end.
+                    not_fully_implemented_in_ids: Vec::new(),
+                });
 
-            if let Some(entity) =
-                self.generate_federation_entity_from_keys(SchemaLocation::Type { name: name_id }, interface.keys)
-            {
+            if let Some(entity) = self.generate_federation_entity_from_keys(
+                SchemaLocation::Type { name: name_id },
+                interface.keys,
+            ) {
                 entities_metadata.entities.insert(interface_id, entity);
             }
         }
@@ -452,7 +483,9 @@ impl<'a> GraphBuilder<'a> {
         }
 
         // Adding all not fully implemented interfaces per subgraph.
-        for interface_id in (0..self.graph.interface_definitions.len()).map(InterfaceDefinitionId::from) {
+        for interface_id in
+            (0..self.graph.interface_definitions.len()).map(InterfaceDefinitionId::from)
+        {
             let mut not_fully_implemented_in = BTreeSet::<SubgraphId>::new();
 
             // For every possible type implementing this interface.
@@ -472,7 +505,8 @@ impl<'a> GraphBuilder<'a> {
             }
 
             // Sorted by the subgraph id, hence the btree.
-            self.graph[interface_id].not_fully_implemented_in_ids = not_fully_implemented_in.into_iter().collect();
+            self.graph[interface_id].not_fully_implemented_in_ids =
+                not_fully_implemented_in.into_iter().collect();
         }
 
         entities_metadata
@@ -486,7 +520,8 @@ impl<'a> GraphBuilder<'a> {
     ) {
         let root_fields = {
             let mut root_fields = vec![];
-            root_fields.extend(self.graph[self.graph.root_operation_types_record.query_id].field_ids);
+            root_fields
+                .extend(self.graph[self.graph.root_operation_types_record.query_id].field_ids);
 
             if let Some(mutation) = self.graph.root_operation_types_record.mutation_id {
                 root_fields.extend(self.graph[mutation].field_ids);
@@ -526,11 +561,12 @@ impl<'a> GraphBuilder<'a> {
 
             if root_fields.binary_search(&field_id).is_ok() {
                 for &endpoint_id in &only_resolvable_in {
-                    let resolver_id = *root_field_resolvers.entry(endpoint_id).or_insert_with(|| {
-                        self.push_resolver(ResolverDefinitionRecord::GraphqlRootField(
-                            GraphqlRootFieldResolverDefinitionRecord { endpoint_id },
-                        ))
-                    });
+                    let resolver_id =
+                        *root_field_resolvers.entry(endpoint_id).or_insert_with(|| {
+                            self.push_resolver(ResolverDefinitionRecord::GraphqlRootField(
+                                GraphqlRootFieldResolverDefinitionRecord { endpoint_id },
+                            ))
+                        });
                     resolver_ids.push(resolver_id);
                 }
             } else if let Some(FederationEntity {
@@ -549,7 +585,9 @@ impl<'a> GraphBuilder<'a> {
                 // if resolvable within a federation subgraph and not part of the keys
                 // (requirements), we can use the resolver to retrieve this field.
                 for (endpoint_id, resolver_id, key_field_set) in keys {
-                    if !field_set_contains(key_field_set, federated_id) && only_resolvable_in.contains(endpoint_id) {
+                    if !field_set_contains(key_field_set, federated_id)
+                        && only_resolvable_in.contains(endpoint_id)
+                    {
                         resolver_ids.push(*resolver_id);
                     }
                 }
@@ -569,7 +607,8 @@ impl<'a> GraphBuilder<'a> {
                 object_metadata.field_id_to_maybe_object_id[usize::from(field_id)]
             {
                 EntityDefinitionId::Object(object_id)
-            } else if let Some(interface_id) = interface_metadata.field_id_to_maybe_interface_id[usize::from(field_id)]
+            } else if let Some(interface_id) =
+                interface_metadata.field_id_to_maybe_interface_id[usize::from(field_id)]
             {
                 EntityDefinitionId::Interface(interface_id)
             } else {
@@ -632,25 +671,39 @@ impl<'a> GraphBuilder<'a> {
                     .provides
                     .into_iter()
                     .filter(|provides| !provides.fields.is_empty())
-                    .map(|federated_graph::FieldProvides { subgraph_id, fields }| {
-                        let field_set_id = self.field_sets.push(schema_location, fields);
-                        FieldProvidesRecord {
-                            subgraph_id: SubgraphId::GraphqlEndpoint(GraphqlEndpointId::from(subgraph_id)),
-                            field_set_id,
-                        }
-                    })
+                    .map(
+                        |federated_graph::FieldProvides {
+                             subgraph_id,
+                             fields,
+                         }| {
+                            let field_set_id = self.field_sets.push(schema_location, fields);
+                            FieldProvidesRecord {
+                                subgraph_id: SubgraphId::GraphqlEndpoint(GraphqlEndpointId::from(
+                                    subgraph_id,
+                                )),
+                                field_set_id,
+                            }
+                        },
+                    )
                     .collect(),
                 requires_records: field
                     .requires
                     .into_iter()
                     .filter(|requires| !requires.fields.is_empty())
-                    .map(|federated_graph::FieldRequires { subgraph_id, fields }| {
-                        let field_set_id = self.field_sets.push(schema_location, fields);
-                        FieldRequiresRecord {
-                            subgraph_id: SubgraphId::GraphqlEndpoint(GraphqlEndpointId::from(subgraph_id)),
-                            field_set_id,
-                        }
-                    })
+                    .map(
+                        |federated_graph::FieldRequires {
+                             subgraph_id,
+                             fields,
+                         }| {
+                            let field_set_id = self.field_sets.push(schema_location, fields);
+                            FieldRequiresRecord {
+                                subgraph_id: SubgraphId::GraphqlEndpoint(GraphqlEndpointId::from(
+                                    subgraph_id,
+                                )),
+                                field_set_id,
+                            }
+                        },
+                    )
                     .collect(),
                 argument_ids: self.ctx.idmaps.input_value.get_range(field.arguments),
                 directive_ids: directives,
@@ -669,7 +722,8 @@ impl<'a> GraphBuilder<'a> {
         graph.required_scopes = required_scopes.into();
         field_sets.try_insert_into(ctx, &mut graph)?;
 
-        let introspection = IntrospectionBuilder::create_data_source_and_insert_fields(ctx, &mut graph);
+        let introspection =
+            IntrospectionBuilder::create_data_source_and_insert_fields(ctx, &mut graph);
 
         graph.type_definitions_ordered_by_name = {
             let mut definitions = Vec::with_capacity(
@@ -683,19 +737,25 @@ impl<'a> GraphBuilder<'a> {
 
             // Adding all definitions for introspection & query binding
             definitions.extend(
-                (0..graph.scalar_definitions.len()).map(|id| DefinitionId::Scalar(ScalarDefinitionId::from(id))),
+                (0..graph.scalar_definitions.len())
+                    .map(|id| DefinitionId::Scalar(ScalarDefinitionId::from(id))),
             );
             definitions.extend(
-                (0..graph.object_definitions.len()).map(|id| DefinitionId::Object(ObjectDefinitionId::from(id))),
+                (0..graph.object_definitions.len())
+                    .map(|id| DefinitionId::Object(ObjectDefinitionId::from(id))),
             );
             definitions.extend(
                 (0..graph.interface_definitions.len())
                     .map(|id| DefinitionId::Interface(InterfaceDefinitionId::from(id))),
             );
-            definitions
-                .extend((0..graph.union_definitions.len()).map(|id| DefinitionId::Union(UnionDefinitionId::from(id))));
-            definitions
-                .extend((0..graph.enum_definitions.len()).map(|id| DefinitionId::Enum(EnumDefinitionId::from(id))));
+            definitions.extend(
+                (0..graph.union_definitions.len())
+                    .map(|id| DefinitionId::Union(UnionDefinitionId::from(id))),
+            );
+            definitions.extend(
+                (0..graph.enum_definitions.len())
+                    .map(|id| DefinitionId::Enum(EnumDefinitionId::from(id))),
+            );
             definitions.extend(
                 (0..graph.input_object_definitions.len())
                     .map(|id| DefinitionId::InputObject(InputObjectDefinitionId::from(id))),
@@ -758,12 +818,13 @@ impl<'a> GraphBuilder<'a> {
             let endpoint_id = key.subgraph_id.into();
             if key.resolvable {
                 let key_fields_id = self.field_sets.push(location, key.fields.clone());
-                let resolver_id = self.push_resolver(ResolverDefinitionRecord::GraphqlFederationEntity(
-                    GraphqlFederationEntityResolverDefinitionRecord {
-                        endpoint_id,
-                        key_fields_id,
-                    },
-                ));
+                let resolver_id =
+                    self.push_resolver(ResolverDefinitionRecord::GraphqlFederationEntity(
+                        GraphqlFederationEntityResolverDefinitionRecord {
+                            endpoint_id,
+                            key_fields_id,
+                        },
+                    ));
                 entity.keys.push((endpoint_id, resolver_id, key.fields));
             } else {
                 // We don't need to differentiate between keys here. We'll be using this to add
@@ -791,19 +852,25 @@ impl<'a> GraphBuilder<'a> {
         resolver_id
     }
 
-    fn push_directives(&mut self, config: &Config, directives: Directives) -> Vec<TypeSystemDirectiveId> {
+    fn push_directives(
+        &mut self,
+        config: &Config,
+        directives: Directives,
+    ) -> Vec<TypeSystemDirectiveId> {
         let mut directive_ids = Vec::new();
 
         for directive in &config.graph[directives.federated] {
             let id = match directive {
                 federated_graph::Directive::Authenticated => TypeSystemDirectiveId::Authenticated,
                 federated_graph::Directive::RequiresScopes(federated_scopes) => {
-                    let id = self.required_scopes.get_or_insert(RequiresScopesDirectiveRecord::new(
-                        federated_scopes
-                            .iter()
-                            .map(|scopes| scopes.iter().copied().map(Into::into).collect())
-                            .collect(),
-                    ));
+                    let id =
+                        self.required_scopes
+                            .get_or_insert(RequiresScopesDirectiveRecord::new(
+                                federated_scopes
+                                    .iter()
+                                    .map(|scopes| scopes.iter().copied().map(Into::into).collect())
+                                    .collect(),
+                            ));
                     TypeSystemDirectiveId::RequiresScopes(id)
                 }
                 federated_graph::Directive::Deprecated { reason } => {
@@ -813,7 +880,9 @@ impl<'a> GraphBuilder<'a> {
                 }
                 federated_graph::Directive::Cost { weight } => {
                     let cost_id = self.graph.cost_directives.len().into();
-                    self.graph.cost_directives.push(CostDirectiveRecord { weight: *weight });
+                    self.graph
+                        .cost_directives
+                        .push(CostDirectiveRecord { weight: *weight });
                     TypeSystemDirectiveId::Cost(cost_id)
                 }
                 federated_graph::Directive::Other { .. }
@@ -832,23 +901,29 @@ impl<'a> GraphBuilder<'a> {
                     node,
                 } = &config.graph[id];
 
-                self.graph.authorized_directives.push(AuthorizedDirectiveRecord {
-                    arguments: arguments
-                        .as_ref()
-                        .map(|args| self.convert_input_value_set(args))
-                        .unwrap_or_default(),
-                    fields_id: fields
-                        .as_ref()
-                        .map(|field_set| self.field_sets.push(schema_location, field_set.clone())),
-                    node_id: node
-                        .as_ref()
-                        .map(|field_set| self.field_sets.push(schema_location, field_set.clone())),
-                    metadata_id: metadata.clone().and_then(|value| {
-                        let value = self.graph.input_values.ingest_as_json(self.ctx, value).ok()?;
+                self.graph
+                    .authorized_directives
+                    .push(AuthorizedDirectiveRecord {
+                        arguments: arguments
+                            .as_ref()
+                            .map(|args| self.convert_input_value_set(args))
+                            .unwrap_or_default(),
+                        fields_id: fields.as_ref().map(|field_set| {
+                            self.field_sets.push(schema_location, field_set.clone())
+                        }),
+                        node_id: node.as_ref().map(|field_set| {
+                            self.field_sets.push(schema_location, field_set.clone())
+                        }),
+                        metadata_id: metadata.clone().and_then(|value| {
+                            let value = self
+                                .graph
+                                .input_values
+                                .ingest_as_json(self.ctx, value)
+                                .ok()?;
 
-                        Some(self.graph.input_values.push_value(value))
-                    }),
-                });
+                            Some(self.graph.input_values.push_value(value))
+                        }),
+                    });
 
                 let authorized_id = (self.graph.authorized_directives.len() - 1).into();
                 directive_ids.push(TypeSystemDirectiveId::Authorized(authorized_id));
@@ -857,27 +932,32 @@ impl<'a> GraphBuilder<'a> {
 
         if let Some(list_size) = directives.list_size {
             let directive_id = self.graph.list_size_directives.len().into();
-            self.graph.list_size_directives.push(ListSizeDirectiveRecord {
-                assumed_size: list_size.assumed_size,
-                slicing_argument_ids: list_size
-                    .slicing_arguments
-                    .iter()
-                    .filter_map(|federated_id| self.ctx.idmaps.input_value.get(*federated_id))
-                    .collect(),
-                sized_field_ids: list_size
-                    .sized_fields
-                    .iter()
-                    .filter_map(|federated_id| self.ctx.idmaps.field.get(*federated_id))
-                    .collect(),
-                require_one_slicing_argument: list_size.require_one_slicing_argument,
-            });
+            self.graph
+                .list_size_directives
+                .push(ListSizeDirectiveRecord {
+                    assumed_size: list_size.assumed_size,
+                    slicing_argument_ids: list_size
+                        .slicing_arguments
+                        .iter()
+                        .filter_map(|federated_id| self.ctx.idmaps.input_value.get(*federated_id))
+                        .collect(),
+                    sized_field_ids: list_size
+                        .sized_fields
+                        .iter()
+                        .filter_map(|federated_id| self.ctx.idmaps.field.get(*federated_id))
+                        .collect(),
+                    require_one_slicing_argument: list_size.require_one_slicing_argument,
+                });
             directive_ids.push(TypeSystemDirectiveId::ListSize(directive_id));
         }
 
         directive_ids
     }
 
-    fn convert_input_value_set(&self, input_value_set: &federated_graph::InputValueDefinitionSet) -> InputValueSet {
+    fn convert_input_value_set(
+        &self,
+        input_value_set: &federated_graph::InputValueDefinitionSet,
+    ) -> InputValueSet {
         input_value_set
             .iter()
             .filter_map(|item| {
@@ -934,14 +1014,23 @@ impl InterfaceMetadata {
 
 #[derive(Default)]
 struct FederationEntity {
-    keys: Vec<(GraphqlEndpointId, ResolverDefinitionId, federated_graph::SelectionSet)>,
+    keys: Vec<(
+        GraphqlEndpointId,
+        ResolverDefinitionId,
+        federated_graph::SelectionSet,
+    )>,
     unresolvable_keys: HashMap<GraphqlEndpointId, Vec<federated_graph::SelectionSet>>,
 }
 
-fn field_set_contains(field_set: &federated_graph::SelectionSet, field_id: federated_graph::FieldId) -> bool {
+fn field_set_contains(
+    field_set: &federated_graph::SelectionSet,
+    field_id: federated_graph::FieldId,
+) -> bool {
     field_set.iter().any(|item| match item {
         federated_graph::Selection::Field { field, .. } => *field == field_id,
-        federated_graph::Selection::InlineFragment { subselection, .. } => field_set_contains(subselection, field_id),
+        federated_graph::Selection::InlineFragment { subselection, .. } => {
+            field_set_contains(subselection, field_id)
+        }
     })
 }
 

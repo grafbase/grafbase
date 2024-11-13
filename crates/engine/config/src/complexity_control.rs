@@ -10,3 +10,9 @@ pub enum ComplexityControl {
     /// reporting whether something would have gone over the limit.
     Measure { limit: Option<usize>, list_size: usize },
 }
+
+impl ComplexityControl {
+    pub fn is_disabled(&self) -> bool {
+        matches!(self, ComplexityControl::Disabled)
+    }
+}
