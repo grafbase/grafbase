@@ -1,4 +1,4 @@
-//! Tests of the execute_stream functionality in engine-v2
+//! Tests of the execute_stream functionality in engine
 //!
 //! Subscrition specific tests will probably live elsewhere
 

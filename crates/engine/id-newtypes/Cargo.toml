@@ -1,0 +1,19 @@
+[package]
+authors = ["Grafbase"]
+description = "macros to generate ID newtypes used in engine"
+edition = "2021"
+homepage = "https://grafbase.com"
+keywords = ["graphql", "engine", "grafbase"]
+license = "MPL-2.0"
+name = "engine-id-newtypes"
+repository = "https://github.com/grafbase/grafbase"
+
+[lints]
+workspace = true
+
+[dependencies]
+serde.workspace = true
+itertools.workspace = true
+walker = { path = "../walker", package = "engine-walker" }
+fixedbitset = { version = "0.5", features = ["serde"] }
+grafbase-workspace-hack.workspace = true

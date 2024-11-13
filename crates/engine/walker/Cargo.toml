@@ -1,0 +1,9 @@
+[package]
+edition = "2021"
+name = "engine-walker"
+publish = false
+version = "0.1.0"
+
+[dependencies]
+grafbase-workspace-hack.workspace = true
+

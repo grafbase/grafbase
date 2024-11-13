@@ -1,0 +1,35 @@
+---
+source: engine/crates/engine/query-solver/src/tests/tea_shop.rs
+expression: "digraph {\n    0 [ label = \"root\", color=forestgreen ]\n    1 [ label = \"id\", style=dashed ]\n    2 [ label = \"name\", style=dashed ]\n    3 [ label = \"style\", style=dashed ]\n    4 [ label = \"name\", style=dashed ]\n    5 [ label = \"style\", style=dashed ]\n    6 [ label = \"Root#tea-shop\", shape=parallelogram, color=dodgerblue, style=dashed ]\n    7 [ label = \"teaWithInaccessibleStyle#tea-shop\", shape=box, color=dodgerblue, style=dashed ]\n    8 [ label = \"style#tea-shop\", shape=box, color=dodgerblue, style=dashed ]\n    9 [ label = \"name#tea-shop\", shape=box, color=dodgerblue, style=dashed ]\n    10 [ label = \"recommendedTeas#tea-shop\", shape=box, color=dodgerblue, style=dashed ]\n    11 [ label = \"style#tea-shop\", shape=box, color=dodgerblue, style=dashed ]\n    12 [ label = \"name#tea-shop\", shape=box, color=dodgerblue, style=dashed ]\n    13 [ label = \"id#tea-shop\", shape=box, color=dodgerblue, style=dashed ]\n    14 [ label=\"\", style=dashed]\n    0 -> 6 [ label = <<b>1</b>>, color=royalblue,fontcolor=royalblue,style=dashed ]\n    6 -> 7 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    7 -> 8 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    8 -> 5 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    7 -> 9 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    9 -> 4 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    6 -> 10 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    10 -> 11 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    11 -> 3 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    10 -> 12 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    12 -> 2 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    10 -> 13 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    13 -> 1 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    14 -> 0 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n}\n"
+---
+digraph {
+    0 [ label = "root", steiner=1 ]
+    1 [ label = "id", steiner=0 ]
+    2 [ label = "name", steiner=0 ]
+    3 [ label = "style", steiner=0 ]
+    4 [ label = "name", steiner=0 ]
+    5 [ label = "style", steiner=0 ]
+    6 [ label = "Root#tea-shop", steiner=0 ]
+    7 [ label = "teaWithInaccessibleStyle#tea-shop", steiner=0 ]
+    8 [ label = "style#tea-shop", steiner=0 ]
+    9 [ label = "name#tea-shop", steiner=0 ]
+    10 [ label = "recommendedTeas#tea-shop", steiner=0 ]
+    11 [ label = "style#tea-shop", steiner=0 ]
+    12 [ label = "name#tea-shop", steiner=0 ]
+    13 [ label = "id#tea-shop", steiner=0 ]
+    14 [ label="", style=dashed]
+    0 -> 6 [ cost=1, steiner=0]
+    6 -> 7 [ cost=0, steiner=0]
+    7 -> 8 [ cost=0, steiner=0]
+    8 -> 5 [ cost=0, steiner=0]
+    7 -> 9 [ cost=0, steiner=0]
+    9 -> 4 [ cost=0, steiner=0]
+    6 -> 10 [ cost=0, steiner=0]
+    10 -> 11 [ cost=0, steiner=0]
+    11 -> 3 [ cost=0, steiner=0]
+    10 -> 12 [ cost=0, steiner=0]
+    12 -> 2 [ cost=0, steiner=0]
+    10 -> 13 [ cost=0, steiner=0]
+    13 -> 1 [ cost=0, steiner=0]
+    14 -> 0 [ cost=0, steiner=0]
+}

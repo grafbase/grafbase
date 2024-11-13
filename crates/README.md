@@ -30,7 +30,7 @@
 | [`common-types`](common-types)                     | Various type definitions for the Grafbase platform                  |
 | [`graphql-composition`](graphql-composition)               | An implementation of GraphQL federated schema composition           |
 | [`engine-config-builder`](engine-config-builder)   | Engine configuration builder                                        |
-| [`engine-v2`](engine-v2)                           | A GraphQL federation engine                                         |
+| [`engine`](engine)                           | A GraphQL federation engine                                         |
 | [`federated-graph`](graphql-federated-graph)               | A serializable federated GraphQL graph representation               |
 | [`federation-audit-tests`](federation-audit-tests) | Tests for federation auditing                                       |
 | [`graphql-mocks`](graphql-mocks)                   | GraphQL mocking utilities                                           |

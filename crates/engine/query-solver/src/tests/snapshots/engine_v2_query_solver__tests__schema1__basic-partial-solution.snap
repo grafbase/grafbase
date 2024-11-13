@@ -1,0 +1,29 @@
+---
+source: engine/crates/engine/query-solver/src/tests/schema1.rs
+expression: "digraph {\n    0 [ label = \"root\" ]\n    1 [ label = \"Root#products\", color=royalblue,shape=parallelogram ]\n    2 [ label = \"topProducts\" ]\n    3 [ label = \"FedEntity#reviews\", color=royalblue,shape=parallelogram ]\n    4 [ label = \"reviews\" ]\n    5 [ label = \"author\" ]\n    6 [ label = \"FedEntity#accounts\", color=royalblue,shape=parallelogram ]\n    7 [ label = \"name\" ]\n    8 [ label = \"*id\" ]\n    9 [ label = \"name\" ]\n    10 [ label = \"*upc\" ]\n    0 -> 1 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    1 -> 2 [ label = \"\" ]\n    2 -> 3 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    3 -> 4 [ label = \"\" ]\n    4 -> 5 [ label = \"\" ]\n    5 -> 6 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    6 -> 7 [ label = \"\" ]\n    5 -> 8 [ label = \"\" ]\n    2 -> 9 [ label = \"\" ]\n    2 -> 10 [ label = \"\" ]\n    3 -> 10 [ label = \"\", color=orangered,arrowhead=inv ]\n    6 -> 8 [ label = \"\", color=orangered,arrowhead=inv ]\n}\n"
+---
+digraph {
+    0 [ label = "root" ]
+    1 [ label = "Root#products" ]
+    2 [ label = "topProducts" ]
+    3 [ label = "FedEntity#reviews" ]
+    4 [ label = "reviews" ]
+    5 [ label = "author" ]
+    6 [ label = "FedEntity#accounts" ]
+    7 [ label = "name" ]
+    8 [ label = "*id" ]
+    9 [ label = "name" ]
+    10 [ label = "*upc" ]
+    0 -> 1 [ label = "QueryPartition" ]
+    1 -> 2 [ label = "Field" ]
+    2 -> 3 [ label = "QueryPartition" ]
+    3 -> 4 [ label = "Field" ]
+    4 -> 5 [ label = "Field" ]
+    5 -> 6 [ label = "QueryPartition" ]
+    6 -> 7 [ label = "Field" ]
+    5 -> 8 [ label = "Field" ]
+    2 -> 9 [ label = "Field" ]
+    2 -> 10 [ label = "Field" ]
+    3 -> 10 [ label = "RequiredBySubgraph" ]
+    6 -> 8 [ label = "RequiredBySubgraph" ]
+}

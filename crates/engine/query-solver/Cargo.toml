@@ -1,0 +1,42 @@
+[package]
+authors = ["Grafbase"]
+description = "Query planning"
+edition = "2021"
+homepage = "https://grafbase.com"
+keywords = ["graphql", "engine", "grafbase"]
+license = "MPL-2.0"
+name = "engine-query-solver"
+repository = "https://github.com/grafbase/grafbase"
+
+[lints]
+workspace = true
+
+[dependencies]
+grafbase-workspace-hack.workspace = true
+id-newtypes = { path = "../id-newtypes", package = "engine-id-newtypes" }
+id-derives = { path = "../id-derives", package = "engine-id-derives" }
+walker = { path = "../walker", package = "engine-walker" }
+fixedbitset = "0.5"
+bitflags.workspace = true
+petgraph.workspace = true
+itertools.workspace = true
+tracing.workspace = true
+thiserror.workspace = true
+strum.workspace = true
+schema = { path = "../schema", package = "engine-schema" }
+
+
+[dev-dependencies]
+ctor.workspace = true
+serde.workspace = true
+similar = "2"
+engine-parser = { path = "../parser" }
+config = { path = "../config", package = "engine-config" }
+federated-graph.workspace = true
+tracing-subscriber = { workspace = true, features = [
+    "fmt",
+    "tracing-log",
+    "env-filter",
+    "ansi",
+] }
+insta.workspace = true

@@ -1,0 +1,13 @@
+---
+source: engine/crates/engine/query-solver/src/tests/shared_root.rs
+expression: "digraph {\n    0 [ label = \"root\" ]\n    1 [ label = \"Root#price\", color=royalblue,shape=parallelogram ]\n    2 [ label = \"products\" ]\n    3 [ label = \"price\" ]\n    0 -> 1 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    1 -> 2 [ label = \"\" ]\n    2 -> 3 [ label = \"\" ]\n}\n"
+---
+digraph {
+    0 [ label = "root" ]
+    1 [ label = "Root#price" ]
+    2 [ label = "products" ]
+    3 [ label = "price" ]
+    0 -> 1 [ label = "QueryPartition" ]
+    1 -> 2 [ label = "Field" ]
+    2 -> 3 [ label = "Field" ]
+}

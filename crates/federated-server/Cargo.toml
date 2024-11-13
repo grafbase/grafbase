@@ -21,8 +21,8 @@ axum-server = { version = "0.7.0", features = ["tls-rustls"] }
 blake3.workspace = true
 cfg-if = "1"
 engine-config-builder.workspace = true
-engine-v2.workspace = true
-engine-v2-axum.workspace = true
+engine.workspace = true
+engine-axum.workspace = true
 grafbase-telemetry = { workspace = true, features = ["otlp"] }
 grafbase-workspace-hack.workspace = true
 graph-ref.workspace = true
