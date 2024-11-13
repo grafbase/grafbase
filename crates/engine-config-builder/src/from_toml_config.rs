@@ -41,6 +41,7 @@ pub fn build_with_toml_config(config: &gateway_config::Config, graph: FederatedG
             enabled: config.gateway.batching.enabled,
             limit: config.gateway.batching.limit.map(usize::from),
         },
+        complexity_control: build_complexity_control(&config.complexity_control),
     }
 }
 
@@ -82,5 +83,38 @@ fn build_operation_limits(config: &gateway_config::Config) -> engine_v2_config::
         aliases: parsed_operation_limits.aliases,
         root_fields: parsed_operation_limits.root_fields,
         complexity: parsed_operation_limits.complexity,
+    }
+}
+
+fn build_complexity_control(config: &gateway_config::ComplexityControlConfig) -> engine_v2_config::ComplexityControl {
+    use engine_v2_config::ComplexityControl;
+    use gateway_config::ComplexityControlMode;
+
+    let list_size = |config: &gateway_config::ComplexityControlConfig| {
+        config.list_size.unwrap_or_else(|| {
+            tracing::warn!("Complexity control enabled without setting list_size.  Assuming a list_size of 10");
+            10
+        })
+    };
+
+    match config.mode {
+        None => ComplexityControl::Disabled,
+        Some(ComplexityControlMode::Enforce) if config.limit.is_some() => ComplexityControl::Enforce {
+            limit: config.limit.unwrap(),
+            list_size: list_size(config),
+        },
+        Some(ComplexityControlMode::Enforce) => {
+            tracing::warn!(
+                "Complexity control is configured to enforce limits but a limit was not configured.  Complexity will only be measured"
+            );
+            ComplexityControl::Measure {
+                limit: config.limit,
+                list_size: list_size(config),
+            }
+        }
+        Some(ComplexityControlMode::Measure) => ComplexityControl::Measure {
+            limit: config.limit,
+            list_size: list_size(config),
+        },
     }
 }

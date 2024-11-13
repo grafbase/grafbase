@@ -1,6 +1,7 @@
 use grafbase_workspace_hack as _;
 
 pub mod authentication;
+mod complexity_control;
 pub mod cors;
 pub mod entity_caching;
 pub mod header;
@@ -15,6 +16,7 @@ use std::{collections::BTreeMap, net::SocketAddr, path::PathBuf, time::Duration}
 
 use ascii::AsciiString;
 pub use authentication::*;
+pub use complexity_control::*;
 pub use cors::*;
 pub use entity_caching::*;
 pub use header::*;
@@ -65,6 +67,8 @@ pub struct Config {
     pub health: HealthConfig,
     /// Global configuration for entity caching
     pub entity_caching: EntityCachingConfig,
+    /// Configuration for complexity control
+    pub complexity_control: ComplexityControlConfig,
 }
 
 impl Default for Config {
@@ -86,6 +90,7 @@ impl Default for Config {
             hooks: Default::default(),
             health: Default::default(),
             entity_caching: Default::default(),
+            complexity_control: Default::default(),
         }
     }
 }

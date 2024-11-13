@@ -11,6 +11,7 @@ repository.workspace = true
 
 [dependencies]
 indexmap.workspace = true
+tracing.workspace = true
 
 engine-v2-config = { path = "../engine-v2/config" }
 federated-graph.workspace = true

@@ -1,4 +1,5 @@
 mod auth;
+mod complexity_control;
 mod entity_caching;
 mod header;
 mod operation_limits;
@@ -13,6 +14,7 @@ use std::{
 };
 
 pub use auth::{AuthConfig, AuthProviderConfig, JwksConfig, JwtConfig};
+pub use complexity_control::ComplexityControl;
 pub use entity_caching::EntityCaching;
 pub use federated_graph::{FederatedGraph, StringId, SubgraphId};
 pub use header::{
@@ -66,6 +68,9 @@ pub struct Config {
 
     #[serde(default)]
     pub batching: BatchingConfig,
+
+    #[serde(default)]
+    pub complexity_control: ComplexityControl,
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Debug, Default)]
@@ -110,6 +115,7 @@ impl Config {
             entity_caching: EntityCaching::Disabled,
             retry: None,
             batching: Default::default(),
+            complexity_control: Default::default(),
         }
     }
 

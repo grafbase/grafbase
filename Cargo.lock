@@ -2100,6 +2100,7 @@ dependencies = [
  "grafbase-workspace-hack",
  "graphql-federated-graph",
  "indexmap 2.6.0",
+ "tracing",
 ]
 
 [[package]]
