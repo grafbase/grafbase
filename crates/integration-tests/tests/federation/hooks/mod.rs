@@ -9,7 +9,7 @@ use engine::Engine;
 use futures::Future;
 use graphql_mocks::SecureSchema;
 use integration_tests::{
-    federation::{EngineV2Ext, TestGateway},
+    federation::{EngineExt, TestGateway},
     runtime,
 };
 use runtime::hooks::DynamicHooks;

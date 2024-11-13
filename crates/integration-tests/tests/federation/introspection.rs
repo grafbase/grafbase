@@ -6,7 +6,7 @@ use graphql_mocks::{
     FederatedReviewsSchema,
 };
 use indoc::indoc;
-use integration_tests::{federation::EngineV2Ext, runtime};
+use integration_tests::{federation::EngineExt, runtime};
 
 const PATHFINDER_INTROSPECTION_QUERY: &str = include_str!("../../data/introspection.graphql");
 

@@ -1,5 +1,5 @@
 use engine::Engine;
-use integration_tests::{federation::EngineV2Ext, runtime};
+use integration_tests::{federation::EngineExt, runtime};
 
 #[test]
 fn works_with_empty_config() {

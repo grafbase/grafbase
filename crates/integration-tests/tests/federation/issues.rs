@@ -1,5 +1,5 @@
 use engine::Engine;
-use integration_tests::{federation::EngineV2Ext, fetch::MockFetch, runtime};
+use integration_tests::{federation::EngineExt, fetch::MockFetch, runtime};
 use serde_json::json;
 
 #[test]

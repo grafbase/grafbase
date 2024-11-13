@@ -1,6 +1,6 @@
 use engine::Engine;
 use graphql_mocks::FakeGithubSchema;
-use integration_tests::{federation::EngineV2Ext, runtime};
+use integration_tests::{federation::EngineExt, runtime};
 
 #[rstest::rstest]
 #[case( // 1

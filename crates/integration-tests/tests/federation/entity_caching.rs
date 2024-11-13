@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use engine::Engine;
 use graphql_mocks::{ErrorSchema, FederatedInventorySchema, FederatedProductsSchema, FederatedReviewsSchema};
-use integration_tests::{federation::EngineV2Ext, runtime};
+use integration_tests::{federation::EngineExt, runtime};
 use serde_json::json;
 
 mod directive_scopes;

@@ -12,7 +12,7 @@ use graphql_mocks::{
     FederatedShippingSchema,
 };
 use integration_tests::{
-    federation::{EngineV2Ext, GraphqlResponse},
+    federation::{EngineExt, GraphqlResponse},
     runtime,
 };
 

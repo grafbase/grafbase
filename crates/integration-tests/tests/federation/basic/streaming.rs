@@ -4,7 +4,7 @@
 
 use engine::Engine;
 use graphql_mocks::Stateful;
-use integration_tests::{federation::EngineV2Ext, runtime};
+use integration_tests::{federation::EngineExt, runtime};
 
 #[test]
 fn can_run_a_query_via_execute_stream() {

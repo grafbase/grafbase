@@ -1,6 +1,6 @@
 use engine::Engine;
 use graphql_mocks::Stateful;
-use integration_tests::{federation::EngineV2Ext, runtime};
+use integration_tests::{federation::EngineExt, runtime};
 
 #[test]
 fn subgraph_retries_mutations_disabled() {

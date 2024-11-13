@@ -2,7 +2,7 @@ use engine::Engine;
 use futures::Future;
 use graphql_mocks::FakeGithubSchema;
 use integration_tests::{
-    federation::{EngineV2Ext, GraphQlRequest, TestGateway},
+    federation::{EngineExt, GraphQlRequest, TestGateway},
     runtime, TestTrustedDocument,
 };
 use serde_json::json;

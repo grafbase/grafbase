@@ -1,5 +1,5 @@
 use engine::Engine;
-use integration_tests::{federation::EngineV2Ext, runtime};
+use integration_tests::{federation::EngineExt, runtime};
 
 #[test]
 fn inaccessible_arguments_are_inaccessible() {

@@ -19,7 +19,7 @@ mod variables;
 
 use engine::Engine;
 use graphql_mocks::FakeGithubSchema;
-use integration_tests::{federation::EngineV2Ext, runtime};
+use integration_tests::{federation::EngineExt, runtime};
 
 #[test]
 fn single_field_from_single_server() {

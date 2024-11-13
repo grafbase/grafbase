@@ -2,7 +2,7 @@
 
 use engine::Engine;
 use graphql_mocks::EchoSchema;
-use integration_tests::{federation::EngineV2Ext, runtime};
+use integration_tests::{federation::EngineExt, runtime};
 
 #[test]
 fn should_not_propagate_blacklisted_headers() {

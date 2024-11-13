@@ -4,7 +4,7 @@ mod batch;
 
 use engine::Engine;
 use graphql_mocks::{FakeGithubSchema, Stateful};
-use integration_tests::{federation::EngineV2Ext, openid::JWKS_URI, runtime};
+use integration_tests::{federation::EngineExt, openid::JWKS_URI, runtime};
 
 const APPLICATION_JSON: &str = "application/json";
 const APPLICATION_GRAPHQL_RESPONSE_JSON: &str = "application/graphql-response+json";

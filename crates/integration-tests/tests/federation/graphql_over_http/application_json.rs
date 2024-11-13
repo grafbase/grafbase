@@ -1,7 +1,7 @@
 use super::APPLICATION_JSON;
 use engine::Engine;
 use graphql_mocks::FakeGithubSchema;
-use integration_tests::{federation::EngineV2Ext, runtime};
+use integration_tests::{federation::EngineExt, runtime};
 
 // If the URL is not used for other purposes, the server SHOULD use a 4xx status code to respond to a request that is not a well-formed GraphQL-over-HTTP request.
 #[rstest::rstest]

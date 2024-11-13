@@ -2,7 +2,7 @@ use engine::Engine;
 use futures::Future;
 use graphql_mocks::SecureSchema;
 use integration_tests::{
-    federation::{EngineV2Ext, TestGateway},
+    federation::{EngineExt, TestGateway},
     openid::{CoreClientExt, OryHydraOpenIDProvider, JWKS_URI},
     runtime,
 };

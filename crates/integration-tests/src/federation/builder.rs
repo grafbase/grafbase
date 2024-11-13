@@ -33,13 +33,13 @@ pub struct TestGatewayBuilder {
     fetcher: Option<DynamicFetcher>,
 }
 
-pub trait EngineV2Ext {
+pub trait EngineExt {
     fn builder() -> TestGatewayBuilder {
         TestGatewayBuilder::default()
     }
 }
 
-impl EngineV2Ext for ::engine::Engine<TestRuntime> {}
+impl EngineExt for ::engine::Engine<TestRuntime> {}
 
 impl TestGatewayBuilder {
     pub fn with_toml_config(mut self, toml: impl Display) -> Self {
