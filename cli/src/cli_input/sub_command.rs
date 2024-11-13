@@ -1,6 +1,6 @@
 use clap::Parser;
 
-use crate::is_not_direct_install;
+use crate::{cli_input::dev::Sources, is_not_direct_install};
 
 use super::{
     branch::BranchCommand, trust::TrustCommand, CheckCommand, CompletionsCommand, CreateCommand, DevCommand,
@@ -59,7 +59,10 @@ impl RequiresLogin for SubCommand {
                 | SubCommand::Check(_)
                 | SubCommand::Branch(_)
                 | SubCommand::Schema(_)
-                | SubCommand::Dev(DevCommand { graph_ref: Some(_), .. })
+                | SubCommand::Dev(DevCommand {
+                    sources: Sources { graph_ref: Some(_), .. },
+                    ..
+                })
         )
     }
 }

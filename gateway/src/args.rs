@@ -14,7 +14,7 @@ pub(crate) trait Args {
 
     fn log_level(&self) -> LogLevel<'_>;
 
-    fn fetch_method(&self) -> anyhow::Result<GraphFetchMethod>;
+    fn fetch_method(&self) -> anyhow::Result<Box<dyn GraphFetchMethod>>;
 
     fn config(&self) -> anyhow::Result<Config>;
 

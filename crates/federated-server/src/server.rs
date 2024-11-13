@@ -8,7 +8,8 @@ mod health;
 mod state;
 mod trusted_documents_client;
 
-pub use graph_fetch_method::GraphFetchMethod;
+pub use gateway::{generate, GatewaySender, GraphDefinition};
+pub use graph_fetch_method::{FetchGraphFromGraphRef, FetchGraphFromSchema, GraphFetchMethod};
 use runtime_local::{hooks, ComponentLoader, HooksWasi};
 use tokio::sync::watch;
 use ulid::Ulid;
@@ -32,13 +33,8 @@ pub struct ServerConfig {
     pub listen_addr: Option<SocketAddr>,
     /// The gateway configuration.
     pub config: Config,
-    /// The config file path for hot reload.
+    /// The config file path for interal hot reloading, supported only for a static schema.
     pub config_path: Option<PathBuf>,
-    /// If true, watches changes to the config
-    /// and reloads _some_ of the things.
-    pub config_hot_reload: bool,
-    /// The way of loading the graph for the gateway.
-    pub fetch_method: GraphFetchMethod,
 }
 
 /// Trait for server runtime.
@@ -78,9 +74,8 @@ pub async fn serve(
         listen_addr,
         config,
         config_path,
-        fetch_method,
-        config_hot_reload,
     }: ServerConfig,
+    fetch_method: impl GraphFetchMethod,
     server_runtime: impl ServerRuntime,
 ) -> crate::Result<()> {
     let path = config.graph.path.as_deref().unwrap_or("/graphql");
@@ -105,14 +100,7 @@ pub async fn serve(
     let max_pool_size = config.hooks.as_ref().and_then(|config| config.max_pool_size);
     let hooks = HooksWasi::new(loader, max_pool_size, &meter, access_log_sender.clone());
 
-    fetch_method
-        .start(
-            &config,
-            config_hot_reload.then_some(config_path).flatten(),
-            sender,
-            hooks.clone(),
-        )
-        .await?;
+    fetch_method.start(&config, config_path, sender, hooks.clone()).await?;
 
     if config.gateway.access_logs.enabled {
         access_logs::start(&config.gateway.access_logs, access_log_receiver, pending_logs_counter)?;

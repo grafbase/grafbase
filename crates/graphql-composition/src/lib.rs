@@ -29,7 +29,7 @@ pub fn compose(subgraphs: &Subgraphs) -> CompositionResult {
     let mut diagnostics = Diagnostics::default();
 
     if subgraphs.iter_subgraphs().len() == 0 {
-        let error = "No graphs found for composition build. You must have at least one active graph.";
+        let error = "No subgraphs found for composition build. You must have at least one active subgraph.";
         diagnostics.push_fatal(error.to_owned());
 
         return CompositionResult {

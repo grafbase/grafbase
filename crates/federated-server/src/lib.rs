@@ -7,7 +7,8 @@ use grafbase_workspace_hack as _;
 mod hot_reload;
 pub use error::Error;
 pub use server::GdnResponse;
-pub use server::GraphFetchMethod;
+pub use server::{generate, GatewaySender, GraphDefinition};
+pub use server::{FetchGraphFromGraphRef, FetchGraphFromSchema, GraphFetchMethod};
 
 mod error;
 mod server;

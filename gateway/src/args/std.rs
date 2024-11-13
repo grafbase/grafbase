@@ -8,7 +8,7 @@ use std::{
 use anyhow::Context;
 use ascii::AsciiString;
 use clap::{ArgGroup, Parser};
-use federated_server::GraphFetchMethod;
+use federated_server::{FetchGraphFromGraphRef, FetchGraphFromSchema, GraphFetchMethod};
 use gateway_config::{BatchExportConfig, Config};
 use grafbase_telemetry::config::{OtlpExporterConfig, OtlpExporterGrpcConfig, OtlpExporterProtocol};
 use graph_ref::GraphRef;
@@ -68,22 +68,22 @@ impl Args {
 
 impl super::Args for Args {
     /// The method of fetching a graph
-    fn fetch_method(&self) -> anyhow::Result<GraphFetchMethod> {
+    fn fetch_method(&self) -> anyhow::Result<Box<dyn GraphFetchMethod>> {
         match self.graph_ref.clone() {
-            Some(graph_ref) => Ok(GraphFetchMethod::FromGraphRef {
+            Some(graph_ref) => Ok(Box::new(FetchGraphFromGraphRef {
                 access_token: AsciiString::from_ascii(self.grafbase_access_token().ok_or_else(|| {
                     anyhow::format_err!(
                         "The GRAFBASE_ACCESS_TOKEN environment variable must be set when a graph_ref is provided"
                     )
                 })?)?,
                 graph_ref,
-            }),
+            })),
             None => {
                 let federated_sdl =
                     fs::read_to_string(self.schema.as_ref().expect("must exist if graph-ref is not defined"))
                         .context("could not read federated schema file")?;
 
-                Ok(GraphFetchMethod::FromSchema { federated_sdl })
+                Ok(Box::new(FetchGraphFromSchema { federated_sdl }))
             }
         }
     }

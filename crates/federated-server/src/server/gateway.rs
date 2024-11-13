@@ -13,14 +13,14 @@ pub use gateway_runtime::GatewayRuntime;
 mod gateway_runtime;
 
 /// Send half of the gateway watch channel
-pub(crate) type GatewaySender = watch::Sender<Option<Arc<Engine<GatewayRuntime>>>>;
+pub type GatewaySender = watch::Sender<Option<Arc<Engine<GatewayRuntime>>>>;
 
 /// Receive half of the gateway watch channel.
 ///
 /// Anything part of the system that needs access to the gateway can use this
 pub(crate) type EngineWatcher = watch::Receiver<Option<Arc<Engine<GatewayRuntime>>>>;
 
-pub(crate) enum GraphDefinition {
+pub enum GraphDefinition {
     /// Response from GDN.
     Gdn(GdnResponse),
     /// Response from static file.
@@ -45,7 +45,7 @@ struct Graph {
 /// - `gateway_config`: The configuration settings for the gateway.
 /// - `hot_reload_config_path`: An optional path for hot reload configuration.
 /// - `hooks`: The hooks to be used in the gateway.
-pub(super) async fn generate(
+pub async fn generate(
     graph_definition: GraphDefinition,
     gateway_config: &Config,
     hot_reload_config_path: Option<PathBuf>,

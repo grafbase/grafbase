@@ -3077,6 +3077,7 @@ dependencies = [
  "graphql-federated-graph",
  "ignore",
  "reqwest 0.12.9",
+ "runtime-local",
  "serde",
  "serde-dynamic-string",
  "serde-toml-merge",

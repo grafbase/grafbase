@@ -40,14 +40,15 @@ fn main() -> anyhow::Result<()> {
         let config = ServerConfig {
             listen_addr: args.listen_address(),
             config,
-            config_path: args.config_path().map(|p| p.to_owned()),
-            config_hot_reload: args.hot_reload(),
-            fetch_method: args.fetch_method()?,
+            config_path: args
+                .hot_reload()
+                .then(|| args.config_path().map(|p| p.to_owned()))
+                .flatten(),
         };
 
         let server_runtime = server_runtime::build(telemetry.clone());
 
-        let result = federated_server::serve(config, server_runtime)
+        let result = federated_server::serve(config, *args.fetch_method()?, server_runtime)
             .await
             .map_err(anyhow::Error::from);
 

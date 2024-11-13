@@ -19,7 +19,7 @@ pub struct Branch {
     pub subgraphs: Vec<Subgraph>,
 }
 
-#[derive(cynic::QueryFragment, Debug)]
+#[derive(cynic::QueryFragment, Debug, Clone)]
 pub struct Subgraph {
     pub name: String,
     pub schema: String,

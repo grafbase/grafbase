@@ -1,21 +1,25 @@
 use super::errors::BackendError;
 use crate::api::{
     client::create_client,
-    graphql::queries::subgraph_schemas_by_branch::{SubgraphSchemasByBranch, SubgraphSchemasByBranchVariables},
+    graphql::queries::subgraph_schemas_by_branch::{
+        Subgraph, SubgraphSchemasByBranch, SubgraphSchemasByBranchVariables,
+    },
 };
 use common::environment::PlatformData;
 use cynic::{http::ReqwestExt, QueryBuilder};
-use federated_server::{serve, GraphFetchMethod, ServerConfig, ServerRuntime};
+use federated_server::{serve, GatewaySender, GraphDefinition, GraphFetchMethod, ServerConfig, ServerRuntime};
 use gateway_config::Config;
 use grafbase_graphql_introspection::introspect;
 use graphql_composition::Subgraphs;
+use runtime_local::HooksWasi;
 use serde_dynamic_string::DynamicString;
 use serde_toml_merge::merge;
 use std::{
-    collections::{HashMap, HashSet},
+    collections::{BTreeMap, HashMap, HashSet},
     env::set_current_dir,
     net::{Ipv4Addr, SocketAddr},
     path::PathBuf,
+    sync::Arc,
 };
 use tokio::fs;
 use tokio::sync::mpsc::{channel, Receiver, Sender};
@@ -44,6 +48,31 @@ impl ServerRuntime for CliRuntime {
     }
 }
 
+struct FetchGraphForDev {
+    initial_federated_sdl: String,
+    subgraph_cache: SubgraphCache,
+    gateway_config_path: Option<PathBuf>,
+    graph_overrides_path: Option<PathBuf>,
+}
+
+impl GraphFetchMethod for FetchGraphForDev {
+    async fn start(
+        self,
+        config: &Config,
+        // will always be None
+        _hot_reload_config_path: Option<PathBuf>,
+        sender: GatewaySender,
+        hooks: HooksWasi,
+    ) -> federated_server::Result<()> {
+        let gateway =
+            federated_server::generate(GraphDefinition::Sdl(self.initial_federated_sdl), config, None, hooks).await?;
+
+        sender.send(Some(Arc::new(gateway)))?;
+
+        Ok(())
+    }
+}
+
 #[tokio::main(flavor = "multi_thread")]
 pub async fn start(
     graph_ref: Option<FullGraphRef>,
@@ -69,11 +98,12 @@ pub async fn start(
 
     let mut subgraphs = graphql_composition::Subgraphs::default();
 
-    get_subgraph_sdls(graph_ref, &dev_configuration, &mut subgraphs, graph_overrides_path).await?;
+    let subgraph_cache =
+        get_subgraph_sdls(graph_ref, &dev_configuration, &mut subgraphs, &graph_overrides_path).await?;
 
     let composition_result = graphql_composition::compose(&subgraphs);
 
-    let federated_sdl = match composition_result.into_result() {
+    let initial_federated_sdl = match composition_result.into_result() {
         Ok(result) => federated_graph::render_federated_sdl(&result).map_err(BackendError::ToFederatedSdl)?,
         Err(diagnostics) => {
             return Err(BackendError::Composition(
@@ -84,15 +114,24 @@ pub async fn start(
 
     let server_config = ServerConfig {
         listen_addr: Some(listen_address),
+        // a configuration change will always trigger a full refresh,
+        // so we don't need the internal partial reloader
         config_path: None,
-        config_hot_reload: false,
         config: dev_configuration.merged_configuration,
-        fetch_method: GraphFetchMethod::FromSchema { federated_sdl },
     };
 
-    serve(server_config, CliRuntime { ready_sender })
-        .await
-        .map_err(BackendError::Serve)?;
+    serve(
+        server_config,
+        FetchGraphForDev {
+            initial_federated_sdl,
+            subgraph_cache,
+            gateway_config_path,
+            graph_overrides_path,
+        },
+        CliRuntime { ready_sender },
+    )
+    .await
+    .map_err(BackendError::Serve)?;
 
     Ok(())
 }
@@ -170,44 +209,45 @@ async fn get_and_merge_configurations(
     })
 }
 
+#[derive(Debug)]
+enum LocalSchemaSource {
+    Url {
+        url: url::Url,
+        headers: Vec<(String, DynamicString<String>)>,
+    },
+    File(PathBuf),
+}
+
+#[derive(Debug)]
+struct SubgraphCache {
+    local: BTreeMap<String, LocalSubgraph>,
+    remote: BTreeMap<String, Subgraph>,
+}
+
+#[derive(Debug)]
+struct LocalSubgraph {
+    url: String,
+    source: LocalSchemaSource,
+    schema: String,
+}
+
 async fn get_subgraph_sdls(
     graph_ref: Option<FullGraphRef>,
     dev_configuration: &DevConfiguration,
     subgraphs: &mut Subgraphs,
-    graph_overrides_path: Option<PathBuf>,
-) -> Result<(), BackendError> {
+    graph_overrides_path: &Option<PathBuf>,
+) -> Result<SubgraphCache, BackendError> {
     let mut remote_urls: HashMap<String, String> = HashMap::new();
+    let mut subgraph_cache = SubgraphCache {
+        remote: BTreeMap::new(),
+        local: BTreeMap::new(),
+    };
 
     if let Some(graph_ref) = graph_ref {
-        let platform_data = PlatformData::get();
+        let remote_subgraphs = fetch_remote_subgraphs(graph_ref).await?;
 
-        let client = create_client().await.map_err(BackendError::ApiError)?;
-
-        let branch = &graph_ref.branch.unwrap_or(DEFAULT_BRANCH.to_owned());
-
-        // TODO: cache when we have hot reloading
-        // TODO: we should not request subgraphs that are overridden
-        let query = SubgraphSchemasByBranch::build(SubgraphSchemasByBranchVariables {
-            account_slug: &graph_ref.account,
-            name: branch.as_str(),
-            graph_slug: &graph_ref.graph,
-        });
-
-        let response = client
-            .post(&platform_data.api_url)
-            .run_graphql(query)
-            .await
-            .map_err(|error| BackendError::ApiError(error.into()))?;
-
-        let branch = response
-            .data
-            .ok_or(BackendError::FetchBranch)?
-            .branch
-            .ok_or(BackendError::BranchDoesntExist)?;
-
-        let remote_subgraphs = branch
-            .subgraphs
-            .into_iter()
+        let remote_subgraphs = remote_subgraphs
+            .iter()
             .filter(|subgraph| !dev_configuration.overridden_subgraphs.contains(&subgraph.name))
             .collect::<Vec<_>>();
 
@@ -221,17 +261,18 @@ async fn get_subgraph_sdls(
             {
                 url.to_string()
             } else {
-                subgraph.url
+                subgraph.url.clone()
             };
 
             subgraphs
                 .ingest_str(&subgraph.schema, &subgraph.name, &url)
                 .map_err(BackendError::IngestSubgraph)?;
+
+            subgraph_cache.remote.insert(subgraph.name.clone(), subgraph.clone());
         }
     }
 
     let remote_urls = &remote_urls;
-    let graph_overrides_path = &graph_overrides_path;
 
     let futures = dev_configuration
         .overridden_subgraphs
@@ -268,19 +309,29 @@ async fn get_subgraph_sdls(
                     .await
                     .map_err(|error| BackendError::ReadSdlFromFile(schema_path.clone(), error))?;
 
-                Ok((sdl, name, url.to_string()))
+                Ok((sdl, name, LocalSchemaSource::File(schema_path.clone()), url.to_string()))
             } else if let Some(ref introspection_url) = subgraph.introspection_url {
-                let headers: Vec<(&String, &DynamicString<String>)> = subgraph
+                let headers: Vec<(String, DynamicString<String>)> = subgraph
                     .introspection_headers
                     .as_ref()
-                    .map(|intropection_headers| intropection_headers.iter().collect())
+                    .map(|intropection_headers| {
+                        intropection_headers
+                            .iter()
+                            .map(|(key, value)| (key.clone(), value.clone()))
+                            .collect()
+                    })
                     .unwrap_or_default();
                 // TODO: this also parses and prettifies, expose internal functionality
                 let sdl = introspect(introspection_url.as_str(), &headers)
                     .await
                     .map_err(|_| BackendError::IntrospectSubgraph(introspection_url.to_string()))?;
 
-                Ok((sdl, name, url))
+                let source = LocalSchemaSource::Url {
+                    url: introspection_url.clone(),
+                    headers,
+                };
+
+                Ok((sdl, name, source, url))
             } else {
                 Err(BackendError::NoDefinedRouteToSubgraphSdl(name.clone()))
             }
@@ -288,13 +339,50 @@ async fn get_subgraph_sdls(
 
     let results = futures::future::try_join_all(futures).await?;
 
-    for (sdl, name, url) in results {
+    for (sdl, name, source, url) in results {
         subgraphs
             .ingest_str(&sdl, name, &url)
             .map_err(BackendError::IngestSubgraph)?;
+
+        subgraph_cache.local.insert(
+            name.clone(),
+            LocalSubgraph {
+                url: url.clone(),
+                source,
+                schema: sdl.clone(),
+            },
+        );
     }
 
-    Ok(())
+    Ok(subgraph_cache)
+}
+
+async fn fetch_remote_subgraphs(graph_ref: FullGraphRef) -> Result<Vec<Subgraph>, BackendError> {
+    let platform_data = PlatformData::get();
+
+    let client = create_client().await.map_err(BackendError::ApiError)?;
+
+    let branch = &graph_ref.branch.unwrap_or(DEFAULT_BRANCH.to_owned());
+
+    let query = SubgraphSchemasByBranch::build(SubgraphSchemasByBranchVariables {
+        account_slug: &graph_ref.account,
+        name: branch.as_str(),
+        graph_slug: &graph_ref.graph,
+    });
+
+    let response = client
+        .post(&platform_data.api_url)
+        .run_graphql(query)
+        .await
+        .map_err(|error| BackendError::ApiError(error.into()))?;
+
+    let branch = response
+        .data
+        .ok_or(BackendError::FetchBranch)?
+        .branch
+        .ok_or(BackendError::BranchDoesntExist)?;
+
+    Ok(branch.subgraphs)
 }
 
 // temporary output handler for internal testing until we move output to the CLI and use a proper terminal crate.
