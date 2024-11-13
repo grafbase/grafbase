@@ -126,6 +126,7 @@ pub struct Settings {
     pub disable_introspection: bool,
     pub retry: Option<RetryConfig>,
     pub batching: config::BatchingConfig,
+    pub complexity_control: config::ComplexityControl,
 }
 
 #[derive(serde::Serialize, serde::Deserialize, id_derives::IndexedFields)]

@@ -141,6 +141,7 @@ impl BuildContext {
                 disable_introspection: config.disable_introspection,
                 retry: config.retry.map(Into::into),
                 batching: take(&mut config.batching),
+                complexity_control: take(&mut config.complexity_control),
             },
         })
     }
