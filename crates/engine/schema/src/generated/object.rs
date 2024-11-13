@@ -79,7 +79,7 @@ impl<'a> ObjectDefinition<'a> {
         self.as_ref().directive_ids.walk(self.schema)
     }
     pub fn fields(&self) -> impl Iter<Item = FieldDefinition<'a>> + 'a {
-        self.field_ids.walk(self.schema)
+        self.as_ref().field_ids.walk(self.schema)
     }
     /// sorted by SubgraphId, then InterfaceId
     pub fn join_implements(&self) -> impl Iter<Item = JoinImplementsDefinition<'a>> + 'a {

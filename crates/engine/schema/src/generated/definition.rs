@@ -17,7 +17,7 @@ use walker::Walk;
 ///
 /// ```custom,{.language-graphql}
 /// union Definition @id @meta(module: "definition") @variants(remove_suffix: true) =
-///   | ObjectDefinition
+///     ObjectDefinition
 ///   | InterfaceDefinition
 ///   | UnionDefinition
 ///   | EnumDefinition

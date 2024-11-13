@@ -16,7 +16,7 @@ use walker::Walk;
 ///   @meta(module: "resolver")
 ///   @variants(empty: ["Introspection"], remove_suffix: true)
 ///   @indexed(deduplicated: true, id_size: "u32", max_id: "MAX_ID") =
-///   | GraphqlRootFieldResolverDefinition
+///     GraphqlRootFieldResolverDefinition
 ///   | GraphqlFederationEntityResolverDefinition
 /// ```
 #[derive(serde::Serialize, serde::Deserialize)]

@@ -48,6 +48,8 @@ impl<'a> GraphBuilder<'a> {
                 authorized_directives: Vec::new(),
                 field_sets: Vec::new(),
                 field_arguments: Vec::new(),
+                cost_directives: Vec::new(),
+                list_size_directives: Vec::new(),
             },
         };
         builder.ingest_config(config)?;
@@ -351,6 +353,7 @@ impl<'a> GraphBuilder<'a> {
                         }
                         Some((schema_location, ids))
                     },
+                    list_size: None,
                 },
             );
 
@@ -595,6 +598,12 @@ impl<'a> GraphBuilder<'a> {
                         }
                         Some((schema_location, ids))
                     },
+                    list_size: config
+                        .graph
+                        .list_sizes
+                        .binary_search_by_key(&federated_id, |(id, _)| *id)
+                        .ok()
+                        .map(|index| &config.graph.list_sizes[index].1),
                 },
             );
 
@@ -791,9 +800,10 @@ impl<'a> GraphBuilder<'a> {
                         reason_id: reason.map(Into::into),
                     })
                 }
-                federated_graph::Directive::Cost { .. } => {
-                    // TODO: Implement this
-                    continue;
+                federated_graph::Directive::Cost { weight } => {
+                    let cost_id = self.graph.cost_directives.len().into();
+                    self.graph.cost_directives.push(CostDirectiveRecord { weight: *weight });
+                    TypeSystemDirectiveId::Cost(cost_id)
                 }
                 federated_graph::Directive::Other { .. }
                 | federated_graph::Directive::Inaccessible
@@ -834,6 +844,25 @@ impl<'a> GraphBuilder<'a> {
             }
         }
 
+        if let Some(list_size) = directives.list_size {
+            let directive_id = self.graph.list_size_directives.len().into();
+            self.graph.list_size_directives.push(ListSizeDirectiveRecord {
+                assumed_size: list_size.assumed_size,
+                slicing_argument_ids: list_size
+                    .slicing_arguments
+                    .iter()
+                    .filter_map(|federated_id| self.ctx.idmaps.input_value.get(*federated_id))
+                    .collect(),
+                sized_field_ids: list_size
+                    .sized_fields
+                    .iter()
+                    .filter_map(|federated_id| self.ctx.idmaps.field.get(*federated_id))
+                    .collect(),
+                require_one_slicing_argument: list_size.require_one_slicing_argument,
+            });
+            directive_ids.push(TypeSystemDirectiveId::ListSize(directive_id));
+        }
+
         directive_ids
     }
 
@@ -854,16 +883,18 @@ impl<'a> GraphBuilder<'a> {
     }
 }
 
-struct Directives {
+struct Directives<'a> {
     federated: federated_graph::Directives,
     authorized_directives: Option<(SchemaLocation, Vec<federated_graph::AuthorizedDirectiveId>)>,
+    list_size: Option<&'a federated_graph::ListSize>,
 }
 
-impl Default for Directives {
+impl Default for Directives<'_> {
     fn default() -> Self {
         Self {
             federated: (federated_graph::DirectiveId::from(0), 0),
             authorized_directives: None,
+            list_size: None,
         }
     }
 }

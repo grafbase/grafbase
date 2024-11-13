@@ -19,7 +19,7 @@ type RootOperationTypes @meta(module: "root") {
 }
 
 union Definition @id @meta(module: "definition") @variants(remove_suffix: true) =
-  | ObjectDefinition
+    ObjectDefinition
   | InterfaceDefinition
   | UnionDefinition
   | EnumDefinition
@@ -27,12 +27,12 @@ union Definition @id @meta(module: "definition") @variants(remove_suffix: true) 
   | ScalarDefinition
 
 union EntityDefinition @id @meta(module: "entity") @variants(remove_suffix: "Definition") =
-  | ObjectDefinition
+    ObjectDefinition
   | InterfaceDefinition
 
 "Composite type is the term previously used by the GraphQL spec to describe this union."
 union CompositeType @id @meta(module: "composite_type") @variants(remove_suffix: "Definition") =
-  | ObjectDefinition
+    ObjectDefinition
   | InterfaceDefinition
   | UnionDefinition
 
@@ -172,7 +172,7 @@ type InputValueDefinition @meta(module: "input_value") @indexed(id_size: "u32", 
 # - FieldSet -
 # ------------
 
-scalar FieldSet @indexed @record 
+scalar FieldSet @indexed @record
 
 type SchemaField
   @meta(module: "field_set/field", derive: ["PartialEq", "Eq", "PartialOrd", "Ord"], debug: false)
@@ -197,9 +197,11 @@ union TypeSystemDirective
   @id
   @meta(module: "directive")
   @variants(empty: ["Authenticated"], remove_suffix: "Directive") =
-  | DeprecatedDirective
+    DeprecatedDirective
   | RequiresScopesDirective
   | AuthorizedDirective
+  | CostDirective
+  | ListSizeDirective
 
 type DeprecatedDirective
   @meta(module: "directive/deprecated", derive: ["PartialEq", "Eq", "PartialOrd", "Ord", "Hash"])
@@ -207,15 +209,24 @@ type DeprecatedDirective
   reason: String
 }
 
-type RequiresScopesDirective @meta(module: "directive/requires_scopes") @indexed(id_size: "u32", max_id: "MAX_ID") {
-  possible_
-}
+scalar RequiresScopesDirective @indexed @record
 
 type AuthorizedDirective @meta(module: "directive/authorized") @indexed(id_size: "u32", max_id: "MAX_ID") {
   arguments: InputValueSet!
   fields: FieldSet @field(record_field_name: "fields_id")
   node: FieldSet
   metadata: SchemaInputValue
+}
+
+type CostDirective @meta(module: "directive/complexity_control") @indexed(id_size: "u32") {
+  weight: Int!
+}
+
+type ListSizeDirective @meta(module: "directive/complexity_control") @indexed(id_size: "u32") {
+  assumed_size: u32
+  slicing_arguments: [InputValueDefinition!]! @vec
+  sized_fields: [FieldDefinition!]! @vec
+  require_one_slicing_argument: Boolean!
 }
 
 # -------------
@@ -243,7 +254,7 @@ union HeaderRule
   @meta(module: "header_rule")
   @variants(remove_suffix: true)
   @indexed(id_size: "u32", max_id: "MAX_ID", deduplicated: true) =
-  | ForwardHeaderRule
+    ForwardHeaderRule
   | InsertHeaderRule
   | RemoveHeaderRule
   | RenameDuplicateHeaderRule
@@ -277,7 +288,7 @@ union ResolverDefinition
   @meta(module: "resolver")
   @variants(empty: ["Introspection"], remove_suffix: true)
   @indexed(deduplicated: true, id_size: "u32", max_id: "MAX_ID") =
-  | GraphqlRootFieldResolverDefinition
+    GraphqlRootFieldResolverDefinition
   | GraphqlFederationEntityResolverDefinition
 
 type GraphqlRootFieldResolverDefinition @meta(module: "resolver/graphql") @copy {

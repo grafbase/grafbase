@@ -110,7 +110,7 @@ impl<'a> FieldDefinition<'a> {
     }
     /// The arguments referenced by this range are sorted by their name (string)
     pub fn arguments(&self) -> impl Iter<Item = InputValueDefinition<'a>> + 'a {
-        self.argument_ids.walk(self.schema)
+        self.as_ref().argument_ids.walk(self.schema)
     }
     pub fn directives(&self) -> impl Iter<Item = TypeSystemDirective<'a>> + 'a {
         self.as_ref().directive_ids.walk(self.schema)

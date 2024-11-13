@@ -173,6 +173,12 @@ pub struct Graph {
     required_scopes: Vec<RequiresScopesDirectiveRecord>,
     #[indexed_by(AuthorizedDirectiveId)]
     authorized_directives: Vec<AuthorizedDirectiveRecord>,
+
+    // Complexity control stuff
+    #[indexed_by(CostDirectiveId)]
+    cost_directives: Vec<CostDirectiveRecord>,
+    #[indexed_by(ListSizeDirectiveId)]
+    list_size_directives: Vec<ListSizeDirectiveRecord>,
 }
 
 #[derive(serde::Serialize, serde::Deserialize, id_derives::IndexedFields)]

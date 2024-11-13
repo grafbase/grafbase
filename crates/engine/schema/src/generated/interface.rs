@@ -81,7 +81,7 @@ impl<'a> InterfaceDefinition<'a> {
         self.description_id.walk(self.schema)
     }
     pub fn fields(&self) -> impl Iter<Item = FieldDefinition<'a>> + 'a {
-        self.field_ids.walk(self.schema)
+        self.as_ref().field_ids.walk(self.schema)
     }
     pub fn interfaces(&self) -> impl Iter<Item = InterfaceDefinition<'a>> + 'a {
         self.as_ref().interface_ids.walk(self.schema)
