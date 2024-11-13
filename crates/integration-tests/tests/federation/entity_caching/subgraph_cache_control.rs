@@ -1,9 +1,9 @@
 use std::time::Duration;
 
-use engine_v2::Engine;
+use engine::Engine;
 use graphql_mocks::{FederatedInventorySchema, FederatedProductsSchema, FederatedReviewsSchema};
 use headers::{Age, CacheControl};
-use integration_tests::{federation::EngineV2Ext, runtime};
+use integration_tests::{federation::EngineExt, runtime};
 
 struct CacheControlReviewSubgraph {
     header: CacheControl,

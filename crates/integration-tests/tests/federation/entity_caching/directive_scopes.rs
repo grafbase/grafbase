@@ -1,10 +1,10 @@
 //! Tests that we handle `@authenticated` & `@requiresScopes` directives on parent fields/types
 //! correctly when doing entity caching
 
-use engine_v2::Engine;
+use engine::Engine;
 use graphql_mocks::{FederatedInventorySchema, FederatedProductsSchema, FederatedReviewsSchema, SecureFederatedSchema};
 use integration_tests::{
-    federation::{EngineV2Ext, TestGateway},
+    federation::{EngineExt, TestGateway},
     openid::{CoreClientExt, OryHydraOpenIDProvider, JWKS_URI},
     runtime,
 };

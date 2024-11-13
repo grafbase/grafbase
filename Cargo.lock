@@ -2092,31 +2092,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "engine-config-builder"
-version = "0.80.2"
-dependencies = [
- "engine-v2-config",
- "gateway-config",
- "grafbase-workspace-hack",
- "graphql-federated-graph",
- "indexmap 2.6.0",
- "tracing",
-]
-
-[[package]]
-name = "engine-parser"
-version = "3.0.31"
-dependencies = [
- "engine-value",
- "grafbase-telemetry",
- "grafbase-workspace-hack",
- "pest",
- "pest_derive",
- "serde",
-]
-
-[[package]]
-name = "engine-v2"
+name = "engine"
 version = "3.0.31"
 dependencies = [
  "async-sse",
@@ -2124,15 +2100,15 @@ dependencies = [
  "blake3",
  "bytes",
  "crossbeam-queue",
+ "engine-auth",
+ "engine-config",
+ "engine-id-derives",
+ "engine-id-newtypes",
  "engine-parser",
- "engine-v2-auth",
- "engine-v2-config",
- "engine-v2-id-derives",
- "engine-v2-id-newtypes",
- "engine-v2-query-solver",
- "engine-v2-schema",
- "engine-v2-walker",
+ "engine-query-solver",
+ "engine-schema",
  "engine-value",
+ "engine-walker",
  "futures",
  "futures-util",
  "grafbase-telemetry",
@@ -2166,11 +2142,11 @@ dependencies = [
 ]
 
 [[package]]
-name = "engine-v2-auth"
+name = "engine-auth"
 version = "0.1.0"
 dependencies = [
  "base64 0.22.1",
- "engine-v2-config",
+ "engine-config",
  "futures-util",
  "grafbase-workspace-hack",
  "http 1.1.0",
@@ -2186,12 +2162,12 @@ dependencies = [
 ]
 
 [[package]]
-name = "engine-v2-axum"
+name = "engine-axum"
 version = "3.0.31"
 dependencies = [
  "async-trait",
  "axum",
- "engine-v2",
+ "engine",
  "futures-util",
  "grafbase-telemetry",
  "grafbase-workspace-hack",
@@ -2207,7 +2183,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "engine-v2-codegen"
+name = "engine-codegen"
 version = "0.1.0"
 dependencies = [
  "anyhow",
@@ -2226,7 +2202,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "engine-v2-config"
+name = "engine-config"
 version = "0.1.0"
 dependencies = [
  "base64 0.22.1",
@@ -2244,7 +2220,19 @@ dependencies = [
 ]
 
 [[package]]
-name = "engine-v2-id-derives"
+name = "engine-config-builder"
+version = "0.80.2"
+dependencies = [
+ "engine-config",
+ "gateway-config",
+ "grafbase-workspace-hack",
+ "graphql-federated-graph",
+ "indexmap 2.6.0",
+ "tracing",
+]
+
+[[package]]
+name = "engine-id-derives"
 version = "0.1.0"
 dependencies = [
  "grafbase-workspace-hack",
@@ -2254,10 +2242,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "engine-v2-id-newtypes"
+name = "engine-id-newtypes"
 version = "0.0.0"
 dependencies = [
- "engine-v2-walker",
+ "engine-walker",
  "fixedbitset 0.5.7",
  "grafbase-workspace-hack",
  "itertools 0.13.0",
@@ -2265,17 +2253,29 @@ dependencies = [
 ]
 
 [[package]]
-name = "engine-v2-query-solver"
+name = "engine-parser"
+version = "3.0.31"
+dependencies = [
+ "engine-value",
+ "grafbase-telemetry",
+ "grafbase-workspace-hack",
+ "pest",
+ "pest_derive",
+ "serde",
+]
+
+[[package]]
+name = "engine-query-solver"
 version = "0.0.0"
 dependencies = [
  "bitflags 2.6.0",
  "ctor",
+ "engine-config",
+ "engine-id-derives",
+ "engine-id-newtypes",
  "engine-parser",
- "engine-v2-config",
- "engine-v2-id-derives",
- "engine-v2-id-newtypes",
- "engine-v2-schema",
- "engine-v2-walker",
+ "engine-schema",
+ "engine-walker",
  "fixedbitset 0.5.7",
  "grafbase-workspace-hack",
  "graphql-federated-graph",
@@ -2291,14 +2291,14 @@ dependencies = [
 ]
 
 [[package]]
-name = "engine-v2-schema"
+name = "engine-schema"
 version = "3.0.31"
 dependencies = [
  "anyhow",
- "engine-v2-config",
- "engine-v2-id-derives",
- "engine-v2-id-newtypes",
- "engine-v2-walker",
+ "engine-config",
+ "engine-id-derives",
+ "engine-id-newtypes",
+ "engine-walker",
  "fnv",
  "grafbase-workspace-hack",
  "graphql-federated-graph",
@@ -2322,13 +2322,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "engine-v2-walker"
-version = "0.1.0"
-dependencies = [
- "grafbase-workspace-hack",
-]
-
-[[package]]
 name = "engine-value"
 version = "3.0.31"
 dependencies = [
@@ -2337,6 +2330,13 @@ dependencies = [
  "indexmap 2.6.0",
  "serde",
  "serde_json",
+]
+
+[[package]]
+name = "engine-walker"
+version = "0.1.0"
+dependencies = [
+ "grafbase-workspace-hack",
 ]
 
 [[package]]
@@ -2481,9 +2481,9 @@ dependencies = [
  "axum-server",
  "blake3",
  "cfg-if",
+ "engine",
+ "engine-axum",
  "engine-config-builder",
- "engine-v2",
- "engine-v2-axum",
  "gateway-config",
  "grafbase-telemetry",
  "grafbase-workspace-hack",
@@ -4224,10 +4224,10 @@ dependencies = [
  "cynic-parser",
  "ed25519-compact",
  "elliptic-curve",
+ "engine",
+ "engine-axum",
  "engine-config-builder",
  "engine-parser",
- "engine-v2",
- "engine-v2-axum",
  "engine-value",
  "expect-test",
  "futures",

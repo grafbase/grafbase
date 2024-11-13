@@ -1,6 +1,6 @@
 //! Tests of caching behaviour
 
-use engine_v2::Engine;
+use engine::Engine;
 use graphql_mocks::{FakeGithubSchema, MockGraphQlServer, StateMutationSchema};
 use headers::HeaderMapExt;
 use integration_tests::federation::GraphqlResponse;
@@ -115,7 +115,7 @@ fn test_field_caching() {
         let response: GraphqlResponse = engine.execute("query { favoriteRepository }").await;
         assert_eq!(
             response.metadata.cache_config,
-            Some(engine_v2::CacheControl {
+            Some(engine::CacheControl {
                 max_age: Duration::from_secs(10),
                 ..Default::default()
             })
@@ -159,7 +159,7 @@ fn test_object_caching() {
         let response: GraphqlResponse = engine.execute(r#"query { botPullRequests(bots: []) { title } }"#).await;
         assert_eq!(
             response.metadata.cache_config,
-            Some(engine_v2::CacheControl {
+            Some(engine::CacheControl {
                 max_age: Duration::from_secs(10),
                 ..Default::default()
             })
@@ -261,7 +261,7 @@ fn test_min_object_field_caching() {
         let response: GraphqlResponse = engine.execute(r#"query { botPullRequests(bots: []) { title } }"#).await;
         assert_eq!(
             response.metadata.cache_config,
-            Some(engine_v2::CacheControl {
+            Some(engine::CacheControl {
                 max_age: Duration::from_secs(5),
                 ..Default::default()
             })
@@ -272,7 +272,7 @@ fn test_min_object_field_caching() {
             .await;
         assert_eq!(
             response.metadata.cache_config,
-            Some(engine_v2::CacheControl {
+            Some(engine::CacheControl {
                 max_age: Duration::from_secs(10),
                 ..Default::default()
             })

@@ -1,7 +1,7 @@
-use engine_v2::Engine;
+use engine::Engine;
 use graphql_mocks::FakeGithubSchema;
 use integration_tests::{
-    federation::{EngineV2Ext, GraphQlRequest},
+    federation::{EngineExt, GraphQlRequest},
     runtime,
 };
 

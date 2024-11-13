@@ -1,10 +1,10 @@
 use std::io::Write;
 
 use elliptic_curve::pkcs8::{DecodePrivateKey, EncodePrivateKey};
-use engine_v2::Engine;
+use engine::Engine;
 use graphql_mocks::FakeGithubSchema;
 use httpsig::prelude::SharedKey;
-use integration_tests::{federation::EngineV2Ext, runtime};
+use integration_tests::{federation::EngineExt, runtime};
 
 const SHARED_KEY_BASE64: &str = "aGVsbG8K";
 

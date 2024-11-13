@@ -15,7 +15,7 @@ use ulid::Ulid;
 
 use axum::{extract::State, response::IntoResponse, routing::get, Router};
 use axum_server as _;
-use engine_v2_axum::{
+use engine_axum::{
     middleware::{ResponseHookLayer, TelemetryLayer},
     websocket::{WebsocketAccepter, WebsocketService},
 };
@@ -269,10 +269,10 @@ where
     T: ServerRuntime,
 {
     let Some(engine) = state.gateway.borrow().clone() else {
-        return engine_v2_axum::internal_server_error("there are no subgraphs registered currently");
+        return engine_axum::internal_server_error("there are no subgraphs registered currently");
     };
 
-    let response = engine_v2_axum::execute(engine, request, state.request_body_limit_bytes).await;
+    let response = engine_axum::execute(engine, request, state.request_body_limit_bytes).await;
 
     // lambda must flush the trace events here, otherwise the
     // function might fall asleep and the events are pending until

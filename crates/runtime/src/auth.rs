@@ -5,7 +5,7 @@ use std::{
 
 const NULL: serde_json::Value = serde_json::Value::Null;
 
-// TODO: Hash is only used to generate a cache key for engine-v2. To be removed once moved to the
+// TODO: Hash is only used to generate a cache key for engine. To be removed once moved to the
 // new cache key.
 // TODO: remove Clone with gateway refactor...
 #[derive(Clone, Hash, serde::Serialize, serde::Deserialize)]

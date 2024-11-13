@@ -1,9 +1,9 @@
-use engine_v2::Engine;
+use engine::Engine;
 use graphql_mocks::FakeGithubSchema;
 use integration_tests::federation::GraphqlResponse;
 use integration_tests::openid::{CoreClientExt, OryHydraOpenIDProvider};
 use integration_tests::{
-    federation::EngineV2Ext,
+    federation::EngineExt,
     openid::{AUDIENCE, JWKS_URI, JWKS_URI_2},
     runtime,
 };

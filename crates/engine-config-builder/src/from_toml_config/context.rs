@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use engine_v2_config::{self as config};
+use engine_config::{self as config};
 use federated_graph::{FederatedGraph, SubgraphId};
 
 #[derive(Default)]

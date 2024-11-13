@@ -1,5 +1,5 @@
 use super::gateway::{self, GatewayRuntime, GraphDefinition};
-use engine_v2::Engine;
+use engine::Engine;
 use gateway_config::Config;
 use graph_ref::GraphRef;
 use runtime_local::HooksWasi;

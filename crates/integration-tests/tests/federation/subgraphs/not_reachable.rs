@@ -1,5 +1,5 @@
-use engine_v2::Engine;
-use integration_tests::{federation::EngineV2Ext as _, runtime};
+use engine::Engine;
+use integration_tests::{federation::EngineExt as _, runtime};
 
 const SDL: &str = r#"
 directive @core(feature: String!) repeatable on SCHEMA

@@ -13,7 +13,7 @@ repository.workspace = true
 indexmap.workspace = true
 tracing.workspace = true
 
-engine-v2-config = { path = "../engine-v2/config" }
+engine-config = { path = "../engine/config" }
 federated-graph.workspace = true
 gateway-config.workspace = true
 grafbase-workspace-hack.workspace = true

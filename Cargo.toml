@@ -4,22 +4,19 @@ members = [
     "cli",
     "gateway",
     "crates/*",
-    "crates/engine-v2/auth",
-    "crates/engine-v2/config",
-    "crates/engine-v2/axum",
-    "crates/engine-v2/codegen",
-    "crates/engine-v2/walker",
-    "crates/engine-v2/schema",
-    "crates/engine-v2/query-solver",
-    "crates/engine-v2/id-derives",
-    "crates/engine-v2/id-newtypes",
-    "crates/engine-v2/parser",
-    "crates/engine-v2/value",
+    "crates/engine/auth",
+    "crates/engine/config",
+    "crates/engine/axum",
+    "crates/engine/codegen",
+    "crates/engine/walker",
+    "crates/engine/schema",
+    "crates/engine/query-solver",
+    "crates/engine/id-derives",
+    "crates/engine/id-newtypes",
+    "crates/engine/parser",
+    "crates/engine/value",
 ]
-exclude = [
-    "crates/wasi-component-loader/examples",
-    "examples/hooks-template",
-]
+exclude = ["crates/wasi-component-loader/examples", "examples/hooks-template"]
 
 [patch.crates-io]
 multipart-stream = { git = "https://github.com/grafbase/multipart-stream-rs-fork", rev = "06ff198e4041c8a8c1c93e580c260d597727c193" } # http-1.0-fix-multipart-mixed
@@ -157,12 +154,12 @@ rolling-logger = { path = "crates/rolling-logger" }
 
 # Engine
 engine-config-builder = { path = "crates/engine-config-builder" }
-engine-parser = { path = "crates/engine-v2/parser" }
-engine-v2 = { path = "crates/engine-v2" }
-engine-v2-auth = { path = "crates/engine-v2/auth" }
-engine-v2-axum = { path = "crates/engine-v2/axum" }
-engine-v2-config = { path = "crates/engine-v2/config" }
-engine-value = { path = "crates/engine-v2/value" }
+engine-parser = { path = "crates/engine/parser" }
+engine = { path = "crates/engine" }
+engine-auth = { path = "crates/engine/auth" }
+engine-axum = { path = "crates/engine/axum" }
+engine-config = { path = "crates/engine/config" }
+engine-value = { path = "crates/engine/value" }
 federated-graph = { path = "crates/graphql-federated-graph", package = "graphql-federated-graph" }
 grafbase-telemetry = { path = "crates/telemetry" }
 graphql-composition = { path = "crates/graphql-composition" }

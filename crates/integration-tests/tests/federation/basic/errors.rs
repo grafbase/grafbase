@@ -1,7 +1,7 @@
-use engine_v2::Engine;
+use engine::Engine;
 use indoc::indoc;
 use integration_tests::{
-    federation::{DeterministicEngine, EngineV2Ext as _},
+    federation::{DeterministicEngine, EngineExt as _},
     runtime,
 };
 use serde_json::json;

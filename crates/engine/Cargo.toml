@@ -1,0 +1,69 @@
+[package]
+authors = ["Grafbase"]
+description = "A dynamic GraphQL engine written in Rust"
+edition = "2021"
+homepage = "https://grafbase.com"
+keywords = ["graphql", "engine", "grafbase"]
+license = "MPL-2.0"
+name = "engine"
+repository = "https://github.com/grafbase/grafbase"
+version = "3.0.31"
+
+[lib]
+doctest = false
+
+[lints]
+workspace = true
+
+[features]
+default = []
+qp = []
+
+[dependencies]
+base64.workspace = true
+blake3.workspace = true
+bytes.workspace = true
+url.workspace = true
+crossbeam-queue = "0.3.11"
+futures-util.workspace = true
+futures.workspace = true
+grafbase-telemetry.workspace = true
+hex.workspace = true
+id-newtypes = { path = "./id-newtypes", package = "engine-id-newtypes" }
+id-derives = { path = "./id-derives", package = "engine-id-derives" }
+im = "15.1.0"
+itertools.workspace = true
+lasso2 = { version = "0.8.2", features = ["serialize"] }
+mediatype.workspace = true
+serde = { workspace = true, features = ["rc"] }
+serde-value = "0.7"
+serde_urlencoded.workspace = true
+serde_json = { workspace = true, features = ["raw_value"] }
+sha2.workspace = true
+strum_macros.workspace = true
+strum.workspace = true
+thiserror.workspace = true
+tower = { workspace = true, features = ["retry"] }
+tracing.workspace = true
+http.workspace = true
+headers.workspace = true
+web-time.workspace = true
+
+engine-auth = { path = "./auth" }
+operation-normalizer = { path = "../operation-normalizer" }
+config = { package = "engine-config", path = "./config" }
+engine-parser = { path = "./parser" }
+engine-value = { path = "./value" }
+schema = { path = "./schema", package = "engine-schema" }
+walker = { path = "./walker", package = "engine-walker" }
+query-solver = { path = "./query-solver", package = "engine-query-solver" }
+runtime.workspace = true
+rand.workspace = true
+grafbase-workspace-hack.workspace = true
+async-sse.workspace = true
+mime = "0.3.17"
+serde_with = { workspace = true, features = ["hex"] }
+multipart-stream.workspace = true
+
+[dev-dependencies]
+pretty_assertions = "1"

@@ -1,0 +1,30 @@
+[package]
+authors = ["Grafbase"]
+description = "Axum utils for the GraphQL engine"
+edition = "2021"
+homepage = "https://grafbase.com"
+keywords = ["graphql", "engine", "grafbase"]
+license = "MPL-2.0"
+name = "engine-axum"
+repository = "https://github.com/grafbase/grafbase"
+version = "3.0.31"
+
+[lints]
+workspace = true
+
+[dependencies]
+async-trait = { version = "0.1.80" }
+axum = { workspace = true, features = ["ws", "json"] }
+http-body-util = "0.1"
+engine.workspace = true
+futures-util.workspace = true
+runtime.workspace = true
+serde_json.workspace = true
+tokio.workspace = true
+tower-service.workspace = true
+http.workspace = true
+tracing.workspace = true
+tower.workspace = true
+grafbase-telemetry.workspace = true
+http-body = "1.0.1"
+grafbase-workspace-hack.workspace = true

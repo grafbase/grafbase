@@ -19,8 +19,8 @@ cynic.workspace = true
 cynic-introspection.workspace = true
 ed25519-compact = "2"
 engine-parser.workspace = true
-engine-v2-axum.workspace = true
-engine-v2.workspace = true
+engine-axum.workspace = true
+engine.workspace = true
 graphql-mocks.workspace = true
 httpsig.workspace = true
 engine-config-builder = { path = "../engine-config-builder" }

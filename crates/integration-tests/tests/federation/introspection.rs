@@ -1,12 +1,12 @@
 use cynic::{http::ReqwestExt, QueryBuilder};
 use cynic_introspection::{CapabilitiesQuery, IntrospectionQuery, SpecificationVersion};
-use engine_v2::Engine;
+use engine::Engine;
 use graphql_mocks::{
     EchoSchema, FakeGithubSchema, FederatedAccountsSchema, FederatedInventorySchema, FederatedProductsSchema,
     FederatedReviewsSchema,
 };
 use indoc::indoc;
-use integration_tests::{federation::EngineV2Ext, runtime};
+use integration_tests::{federation::EngineExt, runtime};
 
 const PATHFINDER_INTROSPECTION_QUERY: &str = include_str!("../../data/introspection.graphql");
 

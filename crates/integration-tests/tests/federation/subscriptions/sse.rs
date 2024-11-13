@@ -1,8 +1,8 @@
-use engine_v2::Engine;
+use engine::Engine;
 use graphql_mocks::{
     FederatedAccountsSchema, FederatedInventorySchema, FederatedProductsSchema, FederatedReviewsSchema,
 };
-use integration_tests::{federation::EngineV2Ext, runtime};
+use integration_tests::{federation::EngineExt, runtime};
 
 #[test]
 fn single_subgraph_subscription() {

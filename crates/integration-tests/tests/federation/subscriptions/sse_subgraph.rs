@@ -1,6 +1,6 @@
-use engine_v2::Engine;
+use engine::Engine;
 use integration_tests::{
-    federation::{DockerSubgraph, EngineV2Ext},
+    federation::{DockerSubgraph, EngineExt},
     runtime,
 };
 use pretty_assertions::assert_eq;

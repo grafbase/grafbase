@@ -1,7 +1,7 @@
-use engine_v2::Engine;
+use engine::Engine;
 use graphql_mocks::{EchoSchema, FakeGithubSchema};
 use http::HeaderMap;
-use integration_tests::{federation::EngineV2Ext, runtime};
+use integration_tests::{federation::EngineExt, runtime};
 use runtime::{
     error::{ErrorResponse, PartialErrorCode, PartialGraphqlError},
     hooks::{DynHookContext, DynHooks},

@@ -1,7 +1,7 @@
-use engine_v2::Engine;
+use engine::Engine;
 use graphql_mocks::EchoSchema;
 use integration_tests::{
-    federation::{EngineV2Ext, GraphqlResponse},
+    federation::{EngineExt, GraphqlResponse},
     runtime,
 };
 use serde::Serialize;
