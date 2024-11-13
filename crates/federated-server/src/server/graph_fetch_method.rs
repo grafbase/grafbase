@@ -21,7 +21,7 @@ pub struct FetchGraphFromSchema {
 pub type GraphFetchMethodSender = watch::Sender<Option<Arc<Engine<GatewayRuntime>>>>;
 
 /// The method of running the gateway.
-pub trait GraphFetchMethod: Send + Sync + Sized {
+pub trait GraphFetchMethod: Sync + Sized {
     fn start(
         self,
         config: &Config,

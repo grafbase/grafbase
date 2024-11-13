@@ -3086,6 +3086,7 @@ dependencies = [
  "tokio",
  "toml",
  "tower-http",
+ "url",
  "urlencoding",
 ]
 
