@@ -1,15 +1,16 @@
 mod attach_argument_selection;
 mod context;
 mod emit_fields;
+mod emit_list_sizes;
 mod field_types_map;
 
-use self::context::Context;
+use self::{context::Context, emit_list_sizes::emit_list_sizes};
 use crate::{
     composition_ir::{self as ir, CompositionIr, FieldIr, InputValueDefinitionIr, KeyIr},
     subgraphs::{self, SubgraphId},
     Subgraphs, VecExt,
 };
-use graphql_federated_graph as federated;
+use graphql_federated_graph::{self as federated};
 use itertools::Itertools;
 use std::{
     collections::{BTreeMap, BTreeSet},
@@ -40,6 +41,7 @@ pub(crate) fn emit_federated_graph(mut ir: CompositionIr, subgraphs: &Subgraphs)
         field_authorized_directives: vec![],
         object_authorized_directives: vec![],
         interface_authorized_directives: vec![],
+        list_sizes: vec![],
     };
 
     let mut ctx = Context::new(&mut ir, subgraphs, &mut out);
@@ -56,6 +58,7 @@ pub(crate) fn emit_federated_graph(mut ir: CompositionIr, subgraphs: &Subgraphs)
     emit_union_members(&ir.union_members, &ir.union_join_members, &mut ctx);
     emit_keys(&ir.keys, &mut ctx);
     emit_authorized_directives(&ir, &mut ctx);
+    emit_list_sizes(&ir, &mut ctx);
 
     drop(ctx);
 
@@ -73,7 +76,6 @@ fn emit_directives(ir: &mut Vec<ir::Directive>, ctx: &mut Context<'_>) {
             ir::Directive::Policy(policies) => federated::Directive::Policy(policies),
             ir::Directive::RequiresScopes(scopes) => federated::Directive::RequiresScopes(scopes),
             ir::Directive::Cost { weight } => federated::Directive::Cost { weight },
-            ir::Directive::ListSize(directive) => federated::Directive::ListSize(directive),
             ir::Directive::Other { name, arguments } => federated::Directive::Other {
                 name,
                 arguments: arguments

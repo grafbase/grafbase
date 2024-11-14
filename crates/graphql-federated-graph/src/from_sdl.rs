@@ -1,9 +1,10 @@
 mod arguments;
+mod list_size;
 mod value;
 
 use self::{arguments::*, value::*};
 use crate::{
-    directives::{CostDirective, DeprecatedDirective, ListSizeDirective},
+    directives::{CostDirective, DeprecatedDirective},
     federated_graph::*,
 };
 use cynic_parser::{
@@ -11,11 +12,12 @@ use cynic_parser::{
 };
 use cynic_parser_deser::ConstDeserializer;
 use indexmap::IndexSet;
+use list_size::ingest_list_size_directive;
 use std::{
     collections::{BTreeSet, HashMap},
     error::Error as StdError,
     fmt,
-    ops::Range,
+    ops::{Index, Range},
 };
 use wrapping::Wrapping;
 
@@ -70,7 +72,17 @@ struct State<'a> {
     object_authorized_directives: Vec<(ObjectId, AuthorizedDirectiveId)>,
     interface_authorized_directives: Vec<(InterfaceId, AuthorizedDirectiveId)>,
 
+    list_sizes: Vec<(FieldId, ListSize)>,
+
     type_wrappers: Vec<WrappingType>,
+}
+
+impl Index<StringId> for State<'_> {
+    type Output = str;
+
+    fn index(&self, index: StringId) -> &Self::Output {
+        &self.strings[usize::from(index)]
+    }
 }
 
 impl<'a> State<'a> {
@@ -243,6 +255,8 @@ pub fn from_sdl(sdl: &str) -> Result<FederatedGraph, DomainError> {
     // This needs to happen after all fields have been ingested, in order to attach selection sets.
     ingest_selection_sets(&parsed, &mut state)?;
 
+    state.list_sizes.sort_by_key(|(field_id, _)| *field_id);
+
     Ok(FederatedGraph {
         type_definitions: std::mem::take(&mut state.graph.type_definitions),
         root_operation_types: state.root_operation_types()?,
@@ -260,6 +274,7 @@ pub fn from_sdl(sdl: &str) -> Result<FederatedGraph, DomainError> {
         field_authorized_directives: state.field_authorized_directives,
         object_authorized_directives: state.object_authorized_directives,
         interface_authorized_directives: state.interface_authorized_directives,
+        list_sizes: state.list_sizes,
     })
 }
 
@@ -640,7 +655,8 @@ fn ingest_field_directives_after_graph<'a>(
         let parent_id = state.definition_names[typedef.name()];
 
         ingest_join_field_directive(parent_id, || typedef.directives(), fields.clone(), state)?;
-        ingest_authorized_directive(parent_id, fields, state)?;
+        ingest_authorized_directive(parent_id, fields.clone(), state)?;
+        ingest_list_size_directive(parent_id, fields, state)?;
     }
 
     Ok(())
@@ -1511,13 +1527,8 @@ fn collect_composed_directives<'a>(
                     })
                 }
             }
-            "listSize" => {
-                if let Ok(directive) = directive.deserialize::<ListSizeDirective>() {
-                    state.directives.push(Directive::ListSize(directive))
-                }
-            }
             // Added later after ingesting the graph.
-            "authorized" | "join__implements" | "join__unionMember" => {}
+            "authorized" | "join__implements" | "join__unionMember" | "listSize" => {}
             other => {
                 let name = state.insert_string(other);
                 let arguments = directive

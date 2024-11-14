@@ -90,7 +90,7 @@ pub(crate) fn merge_entity_interface_definitions<'a>(
                 vec![]
             };
 
-            ir::FieldIr {
+            let ir = ir::FieldIr {
                 parent_definition: federated::Definition::Interface(interface_id),
                 field_name: ctx.insert_string(field.name().id),
                 field_type: field.r#type().id,
@@ -102,7 +102,9 @@ pub(crate) fn merge_entity_interface_definitions<'a>(
                 overrides: Vec::new(),
                 description: field.description().map(|description| ctx.insert_string(description.id)),
                 authorized_directives,
-            }
+            };
+
+            (ir, field.directives().list_size())
         });
     }
 
@@ -177,7 +179,7 @@ pub(crate) fn merge_entity_interface_definitions<'a>(
                     vec![]
                 };
 
-                ir::FieldIr {
+                let ir = ir::FieldIr {
                     parent_definition: federated::Definition::Interface(interface_id),
                     field_name: ctx.insert_string(field.name().id),
                     field_type: field.r#type().id,
@@ -191,14 +193,21 @@ pub(crate) fn merge_entity_interface_definitions<'a>(
                     overrides,
                     description,
                     authorized_directives,
-                }
+                };
+                (ir, field.directives().list_size())
             });
         }
     }
 
     let field_ids: Vec<(StringId, _)> = fields
         .into_iter()
-        .map(|(name, field)| (name, ctx.insert_field(field)))
+        .map(|(name, (field, list_size_directive))| {
+            if let Some(directive) = list_size_directive {
+                ctx.insert_list_size_directive(interface_name, field.field_name, directive.clone());
+            }
+
+            (name, ctx.insert_field(field))
+        })
         .collect();
 
     // Contribute the interface fields from the interface object definitions to the implementer of

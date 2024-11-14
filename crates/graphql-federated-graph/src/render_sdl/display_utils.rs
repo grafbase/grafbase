@@ -1,5 +1,3 @@
-use directives::ListSizeDirective;
-
 use crate::*;
 use std::fmt::{self, Display, Write};
 
@@ -361,30 +359,6 @@ pub(crate) fn write_composed_directive<'a, 'b: 'a>(
         }
         Directive::Cost { weight } => {
             DirectiveWriter::new("cost", f, graph)?.arg("weight", Value::Int(*weight as i64))?;
-        }
-        Directive::ListSize(ListSizeDirective {
-            assumed_size,
-            slicing_arguments,
-            sized_fields,
-            require_one_slicing_argument,
-        }) => {
-            let mut writer = DirectiveWriter::new("listSize", f, graph)?;
-            if let Some(size) = assumed_size {
-                writer = writer.arg("assumedSize", Value::Int(*size as i64))?;
-            }
-            if !slicing_arguments.is_empty() {
-                writer = writer.arg("slicingArguments", serde_json::to_value(slicing_arguments).unwrap())?;
-            }
-            if !sized_fields.is_empty() {
-                writer = writer.arg("sizedFields", serde_json::to_value(sized_fields).unwrap())?;
-            }
-            if !require_one_slicing_argument {
-                // require_one_slicing_argument defaults to true so we omit it unless its false
-                writer.arg(
-                    "requireOneSlicingArgument",
-                    Value::Boolean(*require_one_slicing_argument),
-                )?;
-            }
         }
         Directive::Other { name, arguments } => {
             let mut directive = DirectiveWriter::new(&graph[*name], f, graph)?;

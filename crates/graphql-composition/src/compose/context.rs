@@ -310,4 +310,13 @@ impl<'a> Context<'a> {
             .object_fields_from_entity_interfaces
             .insert((object_name, field_id));
     }
+
+    pub(crate) fn insert_list_size_directive(
+        &mut self,
+        definition_name: graphql_federated_graph::StringId,
+        field_name: graphql_federated_graph::StringId,
+        directive: graphql_federated_graph::directives::ListSizeDirective,
+    ) {
+        self.ir.list_sizes.insert((definition_name, field_name), directive);
+    }
 }

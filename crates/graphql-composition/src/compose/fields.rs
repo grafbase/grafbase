@@ -109,3 +109,18 @@ pub(super) fn compose_argument_types<'a>(
         }
     }
 }
+
+pub(super) fn insert_list_size_directives<'a>(
+    fields: impl Iterator<Item = &'a subgraphs::Walker<'a, (subgraphs::FieldId, subgraphs::FieldTuple)>>,
+    ctx: &mut ComposeContext<'_>,
+    definition_name: federated::StringId,
+    field_name: federated::StringId,
+) {
+    let list_size_directive = fields
+        .filter_map(|field| field.directives().list_size().cloned())
+        .reduce(|lhs, rhs| lhs.merge(rhs));
+
+    if let Some(directive) = list_size_directive {
+        ctx.insert_list_size_directive(definition_name, field_name, directive);
+    }
+}

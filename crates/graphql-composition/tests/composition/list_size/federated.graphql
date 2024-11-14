@@ -32,11 +32,11 @@ enum join__Graph {
 }
 
 type BarCollection {
-    length: Int @join__field(graph: A)
+    items: [Int] @join__field(graph: A)
 }
 
 type Query {
-    bar(slice: Int!): BarCollection @join__field(graph: A) @listSize(slicingArguments: ["slice"], sizedFields: ["length"], requireOneSlicingArgument: false)
+    bar(slice: Int!): BarCollection @join__field(graph: A) @listSize(slicingArguments: ["slice"], sizedFields: ["items"], requireOneSlicingArgument: false)
     baz(slice: Int!): [String] @join__field(graph: A) @listSize(slicingArguments: ["slice"])
     foo: [String!] @join__field(graph: A) @listSize(assumedSize: 10)
 }

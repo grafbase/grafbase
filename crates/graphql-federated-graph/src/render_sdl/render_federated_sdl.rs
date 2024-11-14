@@ -327,11 +327,7 @@ fn write_prelude(sdl: &mut String, graph: &FederatedGraph) -> fmt::Result {
         sdl.push_str(CostDirective::definition());
     }
 
-    if graph
-        .directives
-        .iter()
-        .any(|directive| matches!(directive, Directive::ListSize { .. }))
-    {
+    if !graph.list_sizes.is_empty() {
         sdl.push('\n');
         sdl.push_str(ListSizeDirective::definition());
     }
@@ -404,6 +400,7 @@ fn write_field(field_id: FieldId, field: &Field, graph: &FederatedGraph, sdl: &m
     write_composed_directives(field.composed_directives, graph, sdl)?;
     write_overrides(field, graph, sdl)?;
     write_authorized(field_id, graph, sdl)?;
+    write_list_size(field_id, graph, sdl)?;
 
     sdl.push('\n');
     Ok(())
@@ -519,6 +516,20 @@ fn write_authorized(field_id: FieldId, graph: &FederatedGraph, sdl: &mut String)
     Ok(())
 }
 
+fn write_list_size(field_id: FieldId, graph: &FederatedGraph, sdl: &mut String) -> fmt::Result {
+    let Ok(index) = graph
+        .list_sizes
+        .binary_search_by_key(&field_id, |(field_id, _)| *field_id)
+    else {
+        return Ok(());
+    };
+    let (_, list_size) = &graph.list_sizes[index];
+
+    write!(sdl, "{}", ListSizeRender { list_size, graph })?;
+
+    Ok(())
+}
+
 fn render_field_arguments(args: &[InputValueDefinition], graph: &FederatedGraph) -> String {
     if args.is_empty() {
         String::new()
@@ -628,6 +639,61 @@ fn render_authorized_directive(
     }
 
     Ok(())
+}
+
+struct ListSizeRender<'a> {
+    list_size: &'a ListSize,
+    graph: &'a FederatedGraph,
+}
+
+impl std::fmt::Display for ListSizeRender<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(" ")?;
+
+        let ListSizeRender {
+            graph,
+            list_size:
+                ListSize {
+                    assumed_size,
+                    slicing_arguments,
+                    sized_fields,
+                    require_one_slicing_argument,
+                },
+        } = self;
+
+        let mut writer = DirectiveWriter::new("listSize", f, graph)?;
+        if let Some(size) = assumed_size {
+            writer = writer.arg("assumedSize", Value::Int(*size as i64))?;
+        }
+
+        if !slicing_arguments.is_empty() {
+            let slicing_arguments = slicing_arguments
+                .iter()
+                .map(|arg| Value::String(graph[*arg].name))
+                .collect::<Vec<_>>();
+
+            writer = writer.arg("slicingArguments", Value::List(slicing_arguments.into_boxed_slice()))?;
+        }
+
+        if !sized_fields.is_empty() {
+            let sized_fields = sized_fields
+                .iter()
+                .map(|field| Value::String(graph[*field].name))
+                .collect::<Vec<_>>();
+
+            writer = writer.arg("sizedFields", Value::List(sized_fields.into_boxed_slice()))?;
+        }
+
+        if !require_one_slicing_argument {
+            // require_one_slicing_argument defaults to true so we omit it unless its false
+            writer.arg(
+                "requireOneSlicingArgument",
+                Value::Boolean(*require_one_slicing_argument),
+            )?;
+        }
+
+        Ok(())
+    }
 }
 
 #[cfg(test)]

@@ -1,5 +1,5 @@
 use crate::subgraphs;
-use graphql_federated_graph::{self as federated, directives::ListSizeDirective};
+use graphql_federated_graph::{self as federated};
 
 #[derive(PartialEq, PartialOrd, Clone)]
 pub enum Directive {
@@ -13,7 +13,6 @@ pub enum Directive {
     Cost {
         weight: i32,
     },
-    ListSize(ListSizeDirective),
 
     Other {
         name: federated::StringId,
