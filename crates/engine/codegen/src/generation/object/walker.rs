@@ -199,7 +199,6 @@ impl quote::ToTokens for WalkerFieldMethod<'_> {
         let method = Ident::new(&self.0.walker_method_name(), Span::call_site());
         let ty = Ident::new(self.0.ty.walker_name(), Span::call_site());
         let kind = self.0.ty.access_kind();
-        let list_as_id_range = self.0.ty.storage_type().list_as_id_range();
 
         let return_type_and_body = match self.0.wrapping[..] {
             [] => match kind {
