@@ -1,6 +1,16 @@
+mod extensions;
+mod object_set;
+mod path;
+mod read;
+mod shape;
+mod value;
+mod write;
+
 use std::sync::Arc;
 
 pub(crate) use error::*;
+use extensions::ResponseExtensions;
+pub(crate) use extensions::*;
 use grafbase_telemetry::graphql::{GraphqlExecutionTelemetry, GraphqlOperationAttributes, GraphqlResponseStatus};
 pub(crate) use key::*;
 pub(crate) use object_set::*;
@@ -15,12 +25,6 @@ use crate::prepare::CachedOperation;
 
 pub(crate) mod error;
 pub(crate) mod key;
-mod object_set;
-mod path;
-mod read;
-mod shape;
-mod value;
-mod write;
 
 pub(crate) enum Response<OnOperationResponseHookOutput> {
     /// Before or while validating we have a well-formed GraphQL-over-HTTP request, we may
@@ -44,6 +48,7 @@ pub(crate) struct ExecutedResponse<OnOperationResponseHookOutput> {
     errors: Vec<GraphqlError>,
     error_code_counter: ErrorCodeCounter,
     on_operation_response_output: Option<OnOperationResponseHookOutput>,
+    extensions: Option<ResponseExtensions>,
 }
 
 impl<OnOperationResponseHookOutput> ExecutedResponse<OnOperationResponseHookOutput> {
@@ -73,12 +78,14 @@ pub(crate) struct RequestErrorResponse {
     operation_attributes: Option<GraphqlOperationAttributes>,
     errors: Vec<GraphqlError>,
     error_code_counter: ErrorCodeCounter,
+    extensions: Option<ResponseExtensions>,
 }
 
 pub(crate) struct RefusedRequestResponse {
     status: http::StatusCode,
     errors: Vec<GraphqlError>,
     error_code_counter: ErrorCodeCounter,
+    extensions: Option<ResponseExtensions>,
 }
 
 impl RefusedRequestResponse {
@@ -107,6 +114,7 @@ impl<OnOperationResponseHookOutput> Response<OnOperationResponseHookOutput> {
             status,
             errors,
             error_code_counter,
+            extensions: None,
         })
     }
 
@@ -124,6 +132,7 @@ impl<OnOperationResponseHookOutput> Response<OnOperationResponseHookOutput> {
             operation_attributes,
             errors,
             error_code_counter,
+            extensions: None,
         })
     }
 
@@ -141,7 +150,22 @@ impl<OnOperationResponseHookOutput> Response<OnOperationResponseHookOutput> {
             on_operation_response_output,
             errors,
             error_code_counter,
+            extensions: None,
         })
+    }
+
+    pub(crate) fn with_grafbase_extension(mut self, ext: Option<GrafbaseResponseExtension>) -> Self {
+        self.extensions_mut().grafbase = ext;
+        self
+    }
+
+    pub(crate) fn extensions_mut(&mut self) -> &mut ResponseExtensions {
+        match self {
+            Self::RefusedRequest(resp) => &mut resp.extensions,
+            Self::RequestError(resp) => &mut resp.extensions,
+            Self::Executed(resp) => &mut resp.extensions,
+        }
+        .get_or_insert_with(Default::default)
     }
 
     pub(crate) fn take_on_operation_response_output(&mut self) -> Option<OnOperationResponseHookOutput> {

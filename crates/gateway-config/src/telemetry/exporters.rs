@@ -1,17 +1,17 @@
-mod logs;
-mod metrics;
-// #[cfg(feature = "otlp")]
-mod otlp;
-mod stdout;
-mod tracing;
+pub mod logs;
+pub mod metrics;
+pub mod otlp;
+pub mod response_extension;
+pub mod stdout;
+pub mod tracing;
 
 pub use logs::LogsConfig;
 pub use metrics::MetricsConfig;
-// #[cfg(feature = "otlp")]
 pub use otlp::{
     Headers, OtlpExporterConfig, OtlpExporterGrpcConfig, OtlpExporterHttpConfig, OtlpExporterProtocol,
     OtlpExporterTlsConfig,
 };
+pub use response_extension::*;
 pub use tracing::{PropagationConfig, TracingCollectConfig, TracingConfig, DEFAULT_SAMPLING};
 
 use serde::{Deserialize, Deserializer};
@@ -19,7 +19,15 @@ pub use stdout::StdoutExporterConfig;
 
 #[derive(Debug, Clone, PartialEq, Default, Deserialize)]
 #[serde(default, deny_unknown_fields)]
-pub struct ExportersConfig {
+pub struct GlobalExporterConfig {
+    pub stdout: Option<StdoutExporterConfig>,
+    pub otlp: Option<OtlpExporterConfig>,
+    pub response_extension: Option<ResponseExtensionExporterConfig>,
+}
+
+#[derive(Debug, Clone, PartialEq, Default, Deserialize)]
+#[serde(default, deny_unknown_fields)]
+pub struct OpenTelemetryExportersConfig {
     pub stdout: Option<StdoutExporterConfig>,
     pub otlp: Option<OtlpExporterConfig>,
 }

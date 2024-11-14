@@ -1,4 +1,4 @@
-use ::runtime::operation_cache::OperationCacheFactory;
+use ::runtime::{hooks::Hooks as _, operation_cache::OperationCacheFactory};
 use bytes::Bytes;
 use engine_auth::AuthService;
 use futures::{StreamExt, TryFutureExt};
@@ -59,33 +59,18 @@ impl<R: Runtime> Engine<R> {
     where
         F: Future<Output = Result<Bytes, (http::StatusCode, String)>> + Send,
     {
-        let (
-            http::request::Parts {
-                method, headers, uri, ..
-            },
-            body,
-            response_format,
-        ) = match self.unpack_http_request(request) {
+        let (ctx, uri, headers, body) = match self.unpack_http_request(request) {
             Ok(req) => req,
             Err(response) => return response,
         };
 
         let request_context_fut = self
-            .create_request_context(!method.is_safe(), headers, response_format)
-            .map_err(|(mut response, context)| {
-                let on_operation_response_output = response.take_on_operation_response_output();
-                let mut http_response = Http::error(response_format, response);
+            .create_request_context(&ctx, headers)
+            .map_err(|(response, context)| (response, Some(context)));
 
-                http_response.extensions_mut().insert(HooksExtension::Single {
-                    context,
-                    on_operation_response_output,
-                });
-
-                http_response
-            });
-
-        let graphql_request_fut =
-            self.extract_well_formed_graphql_over_http_request(method, uri, response_format, body);
+        let graphql_request_fut = self
+            .extract_well_formed_graphql_over_http_request(&ctx, uri, body)
+            .map_err(|response| (response, None));
 
         // Retrieve the request body while processing the headers
         match self
@@ -96,8 +81,19 @@ impl<R: Runtime> Engine<R> {
                 self.execute_well_formed_graphql_request(request_context, hooks_context, request)
                     .await
             }
-            Some(Err(response)) => response,
-            None => errors::gateway_timeout(response_format),
+            Some(Err((mut response, hooks_context))) => {
+                let context = hooks_context.unwrap_or_else(|| self.runtime.hooks().new_context());
+                let on_operation_response_output = response.take_on_operation_response_output();
+                let mut http_response = Http::error(ctx.response_format, response);
+
+                http_response.extensions_mut().insert(HooksExtension::Single {
+                    context,
+                    on_operation_response_output,
+                });
+
+                http_response
+            }
+            None => Http::error(ctx.response_format, errors::response::gateway_timeout::<()>()),
         }
     }
 
@@ -107,7 +103,13 @@ impl<R: Runtime> Engine<R> {
     ) -> Result<WebsocketSession<R>, Cow<'static, str>> {
         let response_format = ResponseFormat::Streaming(StreamingResponseFormat::GraphQLOverWebSocket);
 
-        let (request_context, hooks_context) = match self.create_request_context(true, headers, response_format).await {
+        let ctx = EarlyHttpContext {
+            method: http::Method::POST,
+            response_format,
+            include_grafbase_response_extension: false,
+        };
+
+        let (request_context, hooks_context) = match self.create_request_context(&ctx, headers).await {
             Ok(context) => context,
             Err((response, _)) => {
                 return Err(response

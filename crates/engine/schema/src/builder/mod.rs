@@ -142,6 +142,7 @@ impl BuildContext {
                 retry: config.retry.map(Into::into),
                 batching: take(&mut config.batching),
                 complexity_control: take(&mut config.complexity_control),
+                response_extension: config.response_extension,
             },
         })
     }

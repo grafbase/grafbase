@@ -21,6 +21,7 @@ mod ty;
 mod union;
 
 pub use self::builder::BuildError;
+use config::ResponseExtensionConfig;
 pub use directive::*;
 pub use field_set::*;
 pub use generated::*;
@@ -127,6 +128,7 @@ pub struct Settings {
     pub retry: Option<RetryConfig>,
     pub batching: config::BatchingConfig,
     pub complexity_control: config::ComplexityControl,
+    pub response_extension: ResponseExtensionConfig,
 }
 
 #[derive(serde::Serialize, serde::Deserialize, id_derives::IndexedFields)]

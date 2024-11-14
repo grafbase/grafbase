@@ -1,7 +1,8 @@
-mod exporters;
+pub mod exporters;
 
 use std::collections::HashMap;
 
+use exporters::GlobalExporterConfig;
 // #[cfg(feature = "otlp")]
 pub use exporters::{
     Headers, OtlpExporterConfig, OtlpExporterGrpcConfig, OtlpExporterHttpConfig, OtlpExporterProtocol,
@@ -11,7 +12,7 @@ pub use exporters::{
     LogsConfig, MetricsConfig, PropagationConfig, {TracingCollectConfig, TracingConfig, DEFAULT_SAMPLING},
 };
 
-pub use exporters::{BatchExportConfig, ExportersConfig, StdoutExporterConfig};
+pub use exporters::{BatchExportConfig, OpenTelemetryExportersConfig, StdoutExporterConfig};
 
 /// Holds telemetry configuration
 #[derive(Default, Debug, Clone, PartialEq, serde::Deserialize)]
@@ -22,7 +23,7 @@ pub struct TelemetryConfig {
     /// Additional resource attributes
     pub resource_attributes: HashMap<String, String>,
     /// Global exporters config
-    pub exporters: ExportersConfig,
+    pub exporters: GlobalExporterConfig,
     /// Separate configuration for logs exports. If set, overrides the global values.
     pub logs: Option<LogsConfig>,
     /// Separate configuration for traces exports. If set, overrides the global values.
