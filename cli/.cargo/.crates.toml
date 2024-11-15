@@ -1,4 +1,0 @@
-[v1]
-"cargo-about 0.6.1 (registry+https://github.com/rust-lang/crates.io-index)" = ["cargo-about"]
-"cargo-instruments 0.4.8 (registry+https://github.com/rust-lang/crates.io-index)" = ["cargo-instruments"]
-"tokio-console 0.1.13 (registry+https://github.com/rust-lang/crates.io-index)" = ["tokio-console"]
