@@ -43,8 +43,8 @@ pub enum BackendError {
     #[error("could not read the graph overrides\nCaused by: {0}")]
     ReadGraphOverrides(std::io::Error),
     #[error("could not parse the gateway configuration\nCaused by: {0}")]
-    ParseGatewayConfig(String),
-    #[error("could not parse the graph overrides\nCaused by: {0}")]
+    ParseGatewayConfig(toml::de::Error),
+    #[error("could not parse the graph overrides configuration\nCaused by: {0}")]
     ParseGraphOverrides(toml::de::Error),
     #[error("could not merge the gateway and graph override configurations")]
     MergeConfigurations,
@@ -52,6 +52,8 @@ pub enum BackendError {
     ApiError(#[from] ApiError),
     #[error("could not read the SDL from {0}\nCaused by: {1}")]
     ReadSdlFromFile(PathBuf, std::io::Error),
+    #[error("could not set the current directory\nCaused by: {0}")]
+    SetCurrentDirectory(std::io::Error),
     #[error("could not introspect a subgraph URL: {0}")]
     IntrospectSubgraph(String),
     #[error("no url or schema_path were defined for an overridden subgraph: {0}")]
@@ -68,4 +70,8 @@ pub enum BackendError {
     FetchBranch,
     #[error("the specified branch does not exist")]
     BranchDoesntExist,
+    #[error("the gateway configuration contains a field reserved for the graph overrides configuration: {0}")]
+    DevOptionsInGatewayConfig(&'static str),
+    #[error("could not set up a file watcher\nCaused by: {0}")]
+    SetUpWatcher(notify::Error),
 }

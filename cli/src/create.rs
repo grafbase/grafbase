@@ -2,7 +2,7 @@ use crate::{errors::CliError, output::report, prompts::handle_inquire_error};
 use backend::api::{create, types::Account};
 use inquire::{validator::Validation, Confirm, Select, Text};
 use slugify::slugify;
-use std::{fmt::Display, str::FromStr};
+use std::fmt::Display;
 
 #[derive(Debug)]
 struct AccountSelection(Account);
@@ -94,43 +94,4 @@ async fn interactive() -> Result<(), CliError> {
     }
 
     Ok(())
-}
-
-#[derive(Debug, Clone, Copy, Default)]
-pub(crate) enum GraphMode {
-    #[default]
-    Managed,
-    SelfHosted,
-}
-
-impl std::fmt::Display for GraphMode {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let rendered = match self {
-            GraphMode::Managed => "Managed",
-            GraphMode::SelfHosted => "Self-hosted",
-        };
-
-        f.write_str(rendered)
-    }
-}
-
-impl From<GraphMode> for backend::api::create::GraphMode {
-    fn from(value: GraphMode) -> Self {
-        match value {
-            GraphMode::Managed => backend::api::create::GraphMode::Managed,
-            GraphMode::SelfHosted => backend::api::create::GraphMode::SelfHosted,
-        }
-    }
-}
-
-impl FromStr for GraphMode {
-    type Err = &'static str;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "self-hosted" => Ok(Self::SelfHosted),
-            "managed" => Ok(Self::Managed),
-            _ => Err("mode must be one of 'self-hosted' or 'managed'"),
-        }
-    }
 }

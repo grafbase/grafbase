@@ -4,7 +4,10 @@ use gateway_config::Config;
 use graph_ref::GraphRef;
 use runtime_local::HooksWasi;
 use std::{path::PathBuf, sync::Arc};
-use tokio::sync::watch;
+use tokio::sync::mpsc::Receiver;
+use tokio::sync::watch::{self};
+use tokio_stream::wrappers::ReceiverStream;
+use tokio_stream::StreamExt;
 
 /// The method of running the gateway.
 pub enum GraphFetchMethod {
@@ -18,6 +21,7 @@ pub enum GraphFetchMethod {
     FromSchema {
         /// Static federated graph from a file
         federated_sdl: String,
+        reload_signal: Option<Receiver<(String, Config)>>,
     },
 }
 
@@ -57,16 +61,38 @@ impl GraphFetchMethod {
                     Ok::<_, crate::Error>(())
                 });
             }
-            GraphFetchMethod::FromSchema { federated_sdl } => {
+            GraphFetchMethod::FromSchema {
+                federated_sdl,
+                reload_signal,
+            } => {
                 let gateway = gateway::generate(
                     GraphDefinition::Sdl(federated_sdl),
                     config,
-                    hot_reload_config_path,
-                    hooks,
+                    hot_reload_config_path.clone(),
+                    hooks.clone(),
                 )
                 .await?;
 
                 sender.send(Some(Arc::new(gateway)))?;
+
+                if let Some(reload_signal) = reload_signal {
+                    tokio::spawn(async move {
+                        let mut stream = ReceiverStream::new(reload_signal);
+
+                        while let Some((sdl, config)) = stream.next().await {
+                            let gateway = gateway::generate(
+                                GraphDefinition::Sdl(sdl),
+                                &config,
+                                hot_reload_config_path.clone(),
+                                hooks.clone(),
+                            )
+                            .await?;
+                            sender.send(Some(Arc::new(gateway)))?;
+                        }
+
+                        Ok::<_, crate::Error>(())
+                    });
+                }
             }
         }
 

@@ -11,8 +11,6 @@ use cynic::http::ReqwestExt;
 use cynic::Id;
 use cynic::{MutationBuilder, QueryBuilder};
 
-pub use super::graphql::mutations::GraphMode;
-
 /// # Errors
 ///
 /// See [`ApiError`]
@@ -49,7 +47,6 @@ pub async fn create(account_id: &str, graph_slug: &str) -> Result<(Vec<String>, 
         input: GraphCreateInput {
             account_id: Id::new(account_id),
             graph_slug,
-            graph_mode: GraphMode::SelfHosted,
         },
     });
 

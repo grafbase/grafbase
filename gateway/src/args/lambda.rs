@@ -41,7 +41,10 @@ impl super::Args for Args {
     /// The method of fetching a graph
     fn fetch_method(&self) -> anyhow::Result<GraphFetchMethod> {
         let federated_sdl = fs::read_to_string(&self.schema).context("could not read federated schema file")?;
-        Ok(GraphFetchMethod::FromSchema { federated_sdl })
+        Ok(GraphFetchMethod::FromSchema {
+            federated_sdl,
+            reload_signal: None,
+        })
     }
 
     /// The gateway configuration

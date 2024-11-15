@@ -2500,6 +2500,7 @@ dependencies = [
  "serde",
  "thiserror 2.0.3",
  "tokio",
+ "tokio-stream",
  "toml",
  "tower 0.5.1",
  "tower-http",
@@ -2539,6 +2540,15 @@ name = "fiat-crypto"
 version = "0.2.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "28dea519a9695b9977216879a3ebfddf92f1c08c05d984f8996aecd6ecdc811d"
+
+[[package]]
+name = "file-id"
+version = "0.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6bc904b9bbefcadbd8e3a9fb0d464a9b979de6324c03b3c663e8994f46a5be36"
+dependencies = [
+ "windows-sys 0.52.0",
+]
 
 [[package]]
 name = "filetime"
@@ -2994,6 +3004,7 @@ dependencies = [
  "tokio",
  "tokio-util",
  "tower-http",
+ "tracing",
  "tracing-subscriber",
  "url",
  "uuid",
@@ -3077,6 +3088,8 @@ dependencies = [
  "graphql-composition",
  "graphql-federated-graph",
  "ignore",
+ "notify",
+ "notify-debouncer-full",
  "reqwest 0.12.9",
  "serde",
  "serde-dynamic-string",
@@ -3084,8 +3097,10 @@ dependencies = [
  "serde_json",
  "thiserror 1.0.68",
  "tokio",
+ "tokio-stream",
  "toml",
  "tower-http",
+ "tracing",
  "urlencoding",
 ]
 
@@ -4993,6 +5008,19 @@ dependencies = [
  "notify-types",
  "walkdir",
  "windows-sys 0.52.0",
+]
+
+[[package]]
+name = "notify-debouncer-full"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9dcf855483228259b2353f89e99df35fc639b2b2510d1166e4858e3f67ec1afb"
+dependencies = [
+ "file-id",
+ "log",
+ "notify",
+ "notify-types",
+ "walkdir",
 ]
 
 [[package]]
@@ -7773,6 +7801,7 @@ dependencies = [
  "futures-core",
  "pin-project-lite",
  "tokio",
+ "tokio-util",
 ]
 
 [[package]]
