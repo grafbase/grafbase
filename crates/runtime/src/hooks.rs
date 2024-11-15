@@ -48,6 +48,8 @@ pub trait Hooks: Send + Sync + 'static {
     type OnSubgraphResponseOutput: Send + Sync + 'static;
     type OnOperationResponseOutput: Send + Sync + 'static;
 
+    fn new_context(&self) -> Self::Context;
+
     fn on_gateway_request(
         &self,
         headers: HeaderMap,
@@ -146,6 +148,8 @@ impl Hooks for () {
     type Context = ();
     type OnSubgraphResponseOutput = ();
     type OnOperationResponseOutput = ();
+
+    fn new_context(&self) -> Self::Context {}
 
     async fn on_gateway_request(
         &self,

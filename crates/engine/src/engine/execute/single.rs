@@ -70,7 +70,7 @@ impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
     async fn execute_single(mut self, request: Request) -> Response<<R::Hooks as Hooks>::OnOperationResponseOutput> {
         let operation = match self.prepare_operation(request).await {
             Ok(operation) => operation,
-            Err(response) => return response,
+            Err(response) => return response.with_grafbase_extension(self.grafbase_response_extension(None)),
         };
 
         if matches!(operation.cached.ty(), OperationType::Subscription) {
@@ -78,9 +78,12 @@ impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
                 Some(operation.cached.attributes.clone()),
                 [GraphqlError::new("Subscriptions are only suported on streaming transports. Try making a request with SSE or WebSockets", ErrorCode::BadRequest)],
             );
-            return response;
+            return response.with_grafbase_extension(self.grafbase_response_extension(None));
         }
 
-        self.execute_query_or_mutation(operation).await
+        let response_ext = self.grafbase_response_extension(Some(&operation));
+        self.execute_query_or_mutation(operation)
+            .await
+            .with_grafbase_extension(response_ext)
     }
 }

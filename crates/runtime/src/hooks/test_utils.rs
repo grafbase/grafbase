@@ -198,6 +198,10 @@ impl Hooks for DynamicHooks {
     type OnSubgraphResponseOutput = Vec<u8>;
     type OnOperationResponseOutput = Vec<u8>;
 
+    fn new_context(&self) -> Self::Context {
+        DynHookContext::default()
+    }
+
     async fn on_gateway_request(
         &self,
         headers: HeaderMap,

@@ -27,6 +27,7 @@ strum = { workspace = true, features = ["derive"] }
 strum_macros.workspace = true
 thiserror.workspace = true
 url.workspace = true
+gateway-config.workspace = true
 
 config = { package = "engine-config", path = "../config" }
 federated-graph.workspace = true

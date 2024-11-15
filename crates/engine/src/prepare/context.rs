@@ -11,8 +11,11 @@ use schema::Schema;
 use crate::{
     engine::{HooksContext, RequestContext},
     execution::RequestHooks,
+    response::GrafbaseResponseExtension,
     Engine, Runtime,
 };
+
+use super::PreparedOperation;
 
 /// Context before starting to operation plan execution.
 /// Background futures will be started in parallel to avoid delaying the plan.
@@ -62,5 +65,12 @@ impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
 
     pub fn metrics(&self) -> &'ctx EngineMetrics {
         self.engine.runtime.metrics()
+    }
+
+    pub fn grafbase_response_extension(
+        &self,
+        _operation: Option<&PreparedOperation>,
+    ) -> Option<GrafbaseResponseExtension> {
+        self.engine.default_grafbase_response_extension(self.request_context)
     }
 }

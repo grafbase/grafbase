@@ -1851,27 +1851,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "derive_more"
-version = "1.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4a9b99b9cbbe49445b21764dc0625032a89b145a2642e67603e1c936f5458d05"
-dependencies = [
- "derive_more-impl",
-]
-
-[[package]]
-name = "derive_more-impl"
-version = "1.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cb7330aeadfbe296029522e6c40f315320aba36fc43a5b3632f3795348f3bd22"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.87",
- "unicode-xid",
-]
-
-[[package]]
 name = "diff"
 version = "0.1.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2206,8 +2185,10 @@ name = "engine-config"
 version = "0.1.0"
 dependencies = [
  "base64 0.22.1",
+ "gateway-config",
  "grafbase-workspace-hack",
  "graphql-federated-graph",
+ "http 1.1.0",
  "insta",
  "regex",
  "secrecy",
@@ -2300,6 +2281,7 @@ dependencies = [
  "engine-id-newtypes",
  "engine-walker",
  "fnv",
+ "gateway-config",
  "grafbase-workspace-hack",
  "graphql-federated-graph",
  "graphql-wrapping-types",
@@ -3252,7 +3234,6 @@ dependencies = [
  "rustls 0.23.16",
  "rustls-webpki",
  "sec1",
- "secrecy",
  "semver",
  "serde",
  "serde_json",
@@ -6538,21 +6519,14 @@ dependencies = [
  "anyhow",
  "async-trait",
  "bytes",
- "derive_more",
  "futures-util",
  "grafbase-telemetry",
  "grafbase-workspace-hack",
- "headers",
  "http 1.1.0",
- "secrecy",
  "serde",
  "serde_json",
  "strum",
  "thiserror 2.0.3",
- "tokio",
- "tracing",
- "tracing-futures",
- "ulid",
  "url",
  "web-time",
 ]
@@ -6815,7 +6789,6 @@ version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9bd1c54ea06cfd2f6b63219704de0b9b4f72dcc2b8fdef820be6cd799780e91e"
 dependencies = [
- "serde",
  "zeroize",
 ]
 
@@ -7994,16 +7967,6 @@ checksum = "c06d3da6113f116aaee68e4d601191614c9053067f9ab7f6edbcb161237daa54"
 dependencies = [
  "once_cell",
  "valuable",
-]
-
-[[package]]
-name = "tracing-futures"
-version = "0.2.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "97d095ae15e245a057c8e8451bab9b3ee1e1f68e9ba2b4fbc18d0ac5237835f2"
-dependencies = [
- "pin-project",
- "tracing",
 ]
 
 [[package]]

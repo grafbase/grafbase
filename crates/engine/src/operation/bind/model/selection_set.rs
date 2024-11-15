@@ -10,8 +10,6 @@ use super::{BoundFieldArgumentId, BoundFieldId, BoundSelectionSetId};
 
 #[derive(Clone, Default, serde::Serialize, serde::Deserialize)]
 pub(crate) struct BoundSelectionSet {
-    /// (ResponseKey, Option<FieldDefinitionId>) is guaranteed to be unique
-    /// Ordered by query (parent EntityId, query position)
     pub(crate) field_ids: Vec<BoundFieldId>,
 }
 

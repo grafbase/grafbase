@@ -95,7 +95,6 @@ rsa = { version = "0.9" }
 rustls = { version = "0.23", default-features = false, features = ["aws-lc-rs", "logging", "ring", "std", "tls12"] }
 rustls-webpki = { version = "0.102", default-features = false, features = ["aws_lc_rs", "ring", "std"] }
 sec1 = { version = "0.7", features = ["pem", "serde", "std", "subtle"] }
-secrecy = { version = "0.8", features = ["serde"] }
 semver = { version = "1", features = ["serde"] }
 serde = { version = "1", features = ["alloc", "derive", "rc"] }
 serde_json = { version = "1", features = ["alloc", "preserve_order", "raw_value"] }
@@ -211,7 +210,6 @@ rsa = { version = "0.9" }
 rustls = { version = "0.23", default-features = false, features = ["aws-lc-rs", "logging", "ring", "std", "tls12"] }
 rustls-webpki = { version = "0.102", default-features = false, features = ["aws_lc_rs", "ring", "std"] }
 sec1 = { version = "0.7", features = ["pem", "serde", "std", "subtle"] }
-secrecy = { version = "0.8", features = ["serde"] }
 semver = { version = "1", features = ["serde"] }
 serde = { version = "1", features = ["alloc", "derive", "rc"] }
 serde_json = { version = "1", features = ["alloc", "preserve_order", "raw_value"] }

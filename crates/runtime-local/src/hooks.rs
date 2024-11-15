@@ -246,6 +246,12 @@ impl Hooks for HooksWasi {
     type OnSubgraphResponseOutput = Vec<u8>;
     type OnOperationResponseOutput = Vec<u8>;
 
+    fn new_context(&self) -> Self::Context {
+        let kv = HashMap::new();
+        let trace_id = Span::current().context().span().span_context().trace_id();
+        Context::new(kv, trace_id)
+    }
+
     async fn on_gateway_request(
         &self,
         headers: HeaderMap,

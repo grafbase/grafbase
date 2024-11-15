@@ -380,6 +380,7 @@ impl ResponseBuilder {
             errors: self.errors,
             error_code_counter,
             on_operation_response_output: Some(on_operation_response_output),
+            extensions: None,
         })
     }
 

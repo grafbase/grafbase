@@ -8,6 +8,8 @@ use crate::{
     Body,
 };
 
+use super::{Engine, RequestContext, Runtime};
+
 pub(crate) fn not_acceptable_error(format: ResponseFormat) -> http::Response<Body> {
     let message = format!(
         "Missing or invalid Accept header. You must specify one of: {}.",
@@ -15,62 +17,75 @@ pub(crate) fn not_acceptable_error(format: ResponseFormat) -> http::Response<Bod
             .iter()
             .format_with(", ", |media_type, f| { f(&format_args!("'{}'", media_type)) }),
     );
-    refuse_request_with(format, http::StatusCode::NOT_ACCEPTABLE, message)
+    Http::error(
+        format,
+        refuse_request_with::<()>(http::StatusCode::NOT_ACCEPTABLE, message),
+    )
 }
 
 pub(crate) fn unsupported_media_type(format: ResponseFormat) -> http::Response<Body> {
-    refuse_request_with(
+    Http::error(
         format,
-        http::StatusCode::UNSUPPORTED_MEDIA_TYPE,
-        "Missing or invalid Content-Type header. Only 'application/json' is supported.",
+        refuse_request_with::<()>(
+            http::StatusCode::UNSUPPORTED_MEDIA_TYPE,
+            "Missing or invalid Content-Type header. Only 'application/json' is supported.",
+        ),
     )
 }
 
 pub(crate) fn method_not_allowed(format: ResponseFormat, message: &'static str) -> http::Response<Body> {
-    refuse_request_with(format, http::StatusCode::METHOD_NOT_ALLOWED, message)
+    Http::error(
+        format,
+        refuse_request_with::<()>(http::StatusCode::METHOD_NOT_ALLOWED, message),
+    )
 }
 
 // https://github.com/graphql/graphql-over-http/blob/main/spec/GraphQLOverHTTP.md
-pub(crate) fn not_well_formed_graphql_over_http_request(
-    format: ResponseFormat,
+pub(crate) fn not_well_formed_graphql_over_http_request<OnOperationResponseHookOutput>(
     message: impl std::fmt::Display,
-) -> http::Response<Body> {
+) -> Response<OnOperationResponseHookOutput> {
     refuse_request_with(
-        format,
         http::StatusCode::BAD_REQUEST,
         format!("Bad request: GraphQL request is not well formed: {message}"),
     )
 }
 
-pub(crate) fn refuse_request_with(
-    format: ResponseFormat,
+pub(crate) fn refuse_request_with<OnOperationResponseHookOutput>(
     status_code: http::StatusCode,
     message: impl Into<Cow<'static, str>>,
-) -> http::Response<Body> {
-    Http::error(
-        format,
-        Response::<()>::refuse_request_with(status_code, vec![GraphqlError::new(message, ErrorCode::BadRequest)]),
+) -> Response<OnOperationResponseHookOutput> {
+    Response::<OnOperationResponseHookOutput>::refuse_request_with(
+        status_code,
+        vec![GraphqlError::new(message, ErrorCode::BadRequest)],
     )
 }
 
-pub(crate) fn bad_request_but_well_formed_graphql_over_http_request(
-    format: ResponseFormat,
-    message: impl std::fmt::Display,
-) -> http::Response<Body> {
-    Http::error(
-        format,
-        Response::<()>::request_error(
-            None,
-            [GraphqlError::new(
-                format!("Bad request: {message}"),
-                ErrorCode::BadRequest,
-            )],
-        ),
-    )
-}
+impl<R: Runtime> Engine<R> {
+    pub(crate) fn bad_request_but_well_formed_graphql_over_http_request(
+        &self,
+        ctx: &RequestContext,
+        message: impl std::fmt::Display,
+    ) -> http::Response<Body> {
+        Http::error(
+            ctx.response_format,
+            Response::<()>::request_error(
+                None,
+                [GraphqlError::new(
+                    format!("Bad request: {message}"),
+                    ErrorCode::BadRequest,
+                )],
+            )
+            .with_grafbase_extension(self.default_grafbase_response_extension(ctx)),
+        )
+    }
 
-pub(crate) fn gateway_timeout(format: ResponseFormat) -> http::Response<Body> {
-    Http::error(format, self::response::gateway_timeout::<()>())
+    pub(crate) fn gateway_timeout_error(&self, ctx: &RequestContext) -> http::Response<Body> {
+        Http::error(
+            ctx.response_format,
+            self::response::gateway_timeout::<()>()
+                .with_grafbase_extension(self.default_grafbase_response_extension(ctx)),
+        )
+    }
 }
 
 pub(crate) mod response {
