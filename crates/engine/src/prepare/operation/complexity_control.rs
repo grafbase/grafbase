@@ -72,7 +72,10 @@ fn field_complexity(
 ) -> PrepareResult<usize> {
     let type_cost = field
         .definition()
-        .map(|def| def.cost().unwrap_or_else(|| cost_for_type(def.ty().definition())))
+        .map(|def| {
+            def.cost()
+                .unwrap_or_else(|| cost_for_type(def.ty().definition()))
+        })
         .unwrap_or(1) as usize;
 
     let list_size_directive = field.definition().and_then(|def| def.list_size());
@@ -104,6 +107,16 @@ fn cost_for_argument(
     let def = argument.definition();
     let argument_type = def.ty().definition();
     let argument_cost = def.cost().unwrap_or_else(|| cost_for_type(argument_type));
+
+    // TODO: Figure out the costs for input_object fields.
+    // if let schema::Definition::InputObject(input_object) = argument_type {
+    // For the sake of my sanity i'm going to do this next week
+    // let Some(fields) = argument.value(variables).fields();
+    // for (name, value) in fields {
+    //     let field_definition = input_object.field(name);
+    //     argument_cost += todo!();
+    // }
+    // }
 
     argument_cost as usize
 }
@@ -151,18 +164,29 @@ fn calculate_child_count<'a>(
         return Ok(ListSizeHandling::ThisFieldIsTheList(size));
     }
 
-    let default_multiplier = if field_is_list { context.default_list_size } else { 1 };
+    let default_multiplier = if field_is_list {
+        context.default_list_size
+    } else {
+        1
+    };
 
     let Some(directive) = list_size_directive else {
         return Ok(ListSizeHandling::ThisFieldIsTheList(default_multiplier));
     };
 
-    let mut multiplier = directive.assumed_size.unwrap_or(context.default_list_size as u32) as usize;
+    let mut multiplier = directive
+        .assumed_size
+        .unwrap_or(context.default_list_size as u32) as usize;
 
     let mut slicing_arguments = directive.slicing_arguments().peekable();
     if slicing_arguments.peek().is_some() {
         let slicing_arguments = slicing_arguments
-            .filter_map(|argument| field.argument(argument.name())?.value(context.variables).as_usize())
+            .filter_map(|argument| {
+                field
+                    .argument(argument.name())?
+                    .value(context.variables)
+                    .as_usize()
+            })
             .collect::<Vec<_>>();
 
         if directive.require_one_slicing_argument && slicing_arguments.len() != 1 {
@@ -176,7 +200,10 @@ fn calculate_child_count<'a>(
             )));
         }
 
-        multiplier = slicing_arguments.into_iter().max().unwrap_or(context.default_list_size);
+        multiplier = slicing_arguments
+            .into_iter()
+            .max()
+            .unwrap_or(context.default_list_size);
     }
 
     let mut sized_fields = directive.sized_fields().peekable();
@@ -197,7 +224,9 @@ fn cost_for_type(definition: schema::Definition<'_>) -> i32 {
 
     match definition {
         schema::Definition::Enum(_) | schema::Definition::Scalar(_) => 0,
-        schema::Definition::Interface(_) | schema::Definition::Object(_) | schema::Definition::Union(_) => 1,
+        schema::Definition::Interface(_)
+        | schema::Definition::Object(_)
+        | schema::Definition::Union(_) => 1,
         schema::Definition::InputObject(_) => 1,
     }
 }

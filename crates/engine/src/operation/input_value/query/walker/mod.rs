@@ -71,7 +71,28 @@ impl<'a> QueryInputValue<'a> {
             selection_set,
         }
     }
+
+    // pub(crate) fn fields(&self) -> Option<impl Iterator<Item = (&'a str, QueryInputValue<'a>)>> {
+    //     match self.ref_ {
+    //         QueryInputValueRecord::InputObject(id_range) => todo!(),
+    //         QueryInputValueRecord::Map(id_range) => todo!(),
+    //         QueryInputValueRecord::DefaultValue(id) => {
+    //             todo!()
+    //         },
+    //         QueryInputValueRecord::Variable(bound_variable_definition_id) => todo!(),
+    //         _ => None,
+    //     }
+    // }
 }
+
+// pub struct InputObjectIterator {
+//     inner: InputObjectIteratorInner,
+// }
+
+// enum InputObjectIteratorInner {
+//     InputObject()
+//     Map
+// }
 
 #[derive(Clone, Copy)]
 pub(crate) enum QueryOrSchemaInputValue<'a> {
