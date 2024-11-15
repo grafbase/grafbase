@@ -117,7 +117,6 @@ jobs:
         shell: bash
         run: |
           cargo about generate -c cli/about.toml -o "licenses.html" cli/about.hbs
-          find cli/crates -maxdepth 1 -type d -exec cp cli/licenses.html {} \;
           find cli/npm -maxdepth 1 -type d -exec cp cli/licenses.html {} \;
 
       - name: Publish npm
