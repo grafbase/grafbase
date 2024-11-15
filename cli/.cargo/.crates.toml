@@ -1,0 +1,4 @@
+[v1]
+"cargo-about 0.6.1 (registry+https://github.com/rust-lang/crates.io-index)" = ["cargo-about"]
+"cargo-instruments 0.4.8 (registry+https://github.com/rust-lang/crates.io-index)" = ["cargo-instruments"]
+"cargo-release 0.24.10 (registry+https://github.com/rust-lang/crates.io-index)" = ["cargo-release"]

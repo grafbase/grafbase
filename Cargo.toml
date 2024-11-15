@@ -27,7 +27,7 @@ multipart-stream = { git = "https://github.com/grafbase/multipart-stream-rs-fork
 grafbase-workspace-hack.path = "crates/grafbase-workspace-hack"
 
 [workspace.package]
-version = "0.80.2"
+version = "0.80.3"
 edition = "2021"
 license = "MPL-2.0"
 homepage = "https://grafbase.com"
