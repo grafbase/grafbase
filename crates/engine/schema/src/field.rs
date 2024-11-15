@@ -1,6 +1,6 @@
 use walker::Walk;
 
-use crate::{FieldDefinition, FieldSet, InputValueDefinition, SubgraphId, TypeSystemDirective};
+use crate::{FieldDefinition, FieldSet, InputValueDefinition, ListSizeDirective, SubgraphId, TypeSystemDirective};
 
 impl<'a> FieldDefinition<'a> {
     pub fn argument_by_name(&self, name: &str) -> Option<InputValueDefinition<'a>> {
@@ -44,5 +44,19 @@ impl<'a> FieldDefinition<'a> {
                 | TypeSystemDirective::ListSize(_) => false,
                 TypeSystemDirective::Authorized(directive) => directive.fields().is_some(),
             })
+    }
+
+    pub fn cost(&self) -> Option<i32> {
+        self.directives().find_map(|directive| match directive {
+            TypeSystemDirective::Cost(cost) => Some(cost.weight),
+            _ => None,
+        })
+    }
+
+    pub fn list_size(&self) -> Option<ListSizeDirective<'a>> {
+        self.directives().find_map(|directive| match directive {
+            TypeSystemDirective::ListSize(list_size_directive) => Some(list_size_directive),
+            _ => None,
+        })
     }
 }

@@ -15,4 +15,20 @@ impl ComplexityControl {
     pub fn is_disabled(&self) -> bool {
         matches!(self, ComplexityControl::Disabled)
     }
+
+    pub fn limit(&self) -> Option<usize> {
+        match self {
+            ComplexityControl::Disabled => None,
+            ComplexityControl::Enforce { limit, .. } => Some(*limit),
+            ComplexityControl::Measure { limit, .. } => *limit,
+        }
+    }
+
+    pub fn list_size(&self) -> Option<usize> {
+        match self {
+            ComplexityControl::Disabled => None,
+            ComplexityControl::Enforce { list_size, .. } => Some(*list_size),
+            ComplexityControl::Measure { list_size, .. } => Some(*list_size),
+        }
+    }
 }

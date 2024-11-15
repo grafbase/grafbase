@@ -1,6 +1,8 @@
 use std::num::NonZero;
 
-use crate::{EnumValueId, IdRange, InputValueDefinition, InputValueDefinitionId, Schema, StringId};
+use crate::{
+    EnumValueId, IdRange, InputValueDefinition, InputValueDefinitionId, Schema, StringId, TypeSystemDirective,
+};
 
 mod error;
 mod set;
@@ -199,5 +201,14 @@ impl SchemaInputValues {
         let start = self.input_fields.len();
         self.input_fields.extend(fields);
         (start..self.input_fields.len()).into()
+    }
+}
+
+impl<'a> InputValueDefinition<'a> {
+    pub fn cost(&self) -> Option<i32> {
+        self.directives().find_map(|directive| match directive {
+            TypeSystemDirective::Cost(cost) => Some(cost.weight),
+            _ => None,
+        })
     }
 }

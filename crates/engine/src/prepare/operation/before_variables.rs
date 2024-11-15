@@ -26,6 +26,11 @@ impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
             }
         };
 
+        let mut operation = None;
+        if !self.schema().settings.complexity_control.is_disabled() {
+            operation = Some(bound_operation.clone());
+        }
+
         let solved_operation = match crate::operation::solve(self.schema(), bound_operation) {
             Ok(op) => op,
             Err(err) => {
@@ -40,6 +45,7 @@ impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
         Ok(CachedOperation {
             solved: solved_operation,
             attributes,
+            operation,
         })
     }
 }

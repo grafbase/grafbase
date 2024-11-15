@@ -44,6 +44,16 @@ impl<'a> QueryInputValue<'a> {
         })
     }
 
+    pub fn as_usize(&self) -> Option<usize> {
+        match self.ref_ {
+            QueryInputValueRecord::Int(value) => Some(*value as usize),
+            QueryInputValueRecord::BigInt(value) => Some(*value as usize),
+            QueryInputValueRecord::DefaultValue(id) => self.ctx.schema.walk(*id).as_usize(),
+            QueryInputValueRecord::Variable(id) => id.walk(self.ctx).as_usize(),
+            _ => None,
+        }
+    }
+
     pub fn is_undefined(&self) -> bool {
         match self.ref_ {
             QueryInputValueRecord::Variable(id) => id.walk(self.ctx).is_undefined(),

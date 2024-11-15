@@ -55,6 +55,13 @@ impl<'a> Definition<'a> {
             Definition::Object(_) | Definition::Interface(_) | Definition::Union(_)
         )
     }
+
+    pub fn cost(&self) -> Option<i32> {
+        self.directives().find_map(|directive| match directive {
+            TypeSystemDirective::Cost(cost) => Some(cost.weight),
+            _ => None,
+        })
+    }
 }
 
 impl DefinitionId {
