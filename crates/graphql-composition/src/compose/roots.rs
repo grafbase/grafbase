@@ -77,7 +77,7 @@ fn merge_fields<'a>(
 
     super::fields::for_each_field_group(definitions, |fields| {
         let Some(first) = fields.first() else { return };
-        object::compose_object_fields(object_id, false, *first, fields, ctx);
+        object::compose_object_fields(object_id, type_name, false, *first, fields, ctx);
     });
 
     Some(object_id)

@@ -60,10 +60,6 @@ pub(super) fn collect_composed_directives<'a>(
         push_directive(ctx, ir::Directive::Cost { weight })
     }
 
-    if let Some(directive) = list_size {
-        push_directive(ctx, ir::Directive::ListSize(directive))
-    }
-
     // @requiresScopes
     {
         let mut scopes: Vec<Vec<federated::StringId>> = Vec::new();

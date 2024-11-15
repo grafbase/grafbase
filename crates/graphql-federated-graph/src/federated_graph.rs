@@ -8,8 +8,6 @@ mod r#type;
 mod type_definitions;
 mod view;
 
-use crate::directives::ListSizeDirective;
-
 pub use self::{
     directives::*,
     enum_values::{EnumValue, EnumValueRecord},
@@ -50,6 +48,8 @@ pub struct FederatedGraph {
     pub field_authorized_directives: Vec<(FieldId, AuthorizedDirectiveId)>,
     pub object_authorized_directives: Vec<(ObjectId, AuthorizedDirectiveId)>,
     pub interface_authorized_directives: Vec<(InterfaceId, AuthorizedDirectiveId)>,
+
+    pub list_sizes: Vec<(FieldId, ListSize)>,
 }
 
 impl FederatedGraph {
@@ -167,8 +167,6 @@ pub enum Directive {
     Cost {
         weight: i32,
     },
-    ListSize(ListSizeDirective),
-
     Other {
         name: StringId,
         arguments: Vec<(StringId, Value)>,
@@ -385,6 +383,7 @@ impl Default for FederatedGraph {
             field_authorized_directives: Vec::new(),
             object_authorized_directives: Vec::new(),
             interface_authorized_directives: Vec::new(),
+            list_sizes: Vec::new(),
         }
     }
 }

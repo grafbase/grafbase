@@ -268,8 +268,8 @@ impl<'a> DirectiveSiteWalker<'a> {
         self.subgraphs.directives.costs.get(&self.id).copied()
     }
 
-    pub(crate) fn list_size(self) -> Option<ListSizeDirective> {
-        self.subgraphs.directives.list_sizes.get(&self.id).cloned()
+    pub(crate) fn list_size(self) -> Option<&'a ListSizeDirective> {
+        self.subgraphs.directives.list_sizes.get(&self.id)
     }
 }
 

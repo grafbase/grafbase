@@ -40,6 +40,24 @@ impl ListSizeDirective {
             ) on FIELD_DEFINITION
         "#}
     }
+
+    pub fn merge(self, other: ListSizeDirective) -> Self {
+        let mut slicing_arguments = self.slicing_arguments;
+        slicing_arguments.extend(other.slicing_arguments);
+
+        let mut sized_fields = self.sized_fields;
+        sized_fields.extend(other.sized_fields);
+
+        ListSizeDirective {
+            assumed_size: match (self.assumed_size, other.assumed_size) {
+                (Some(lhs), Some(rhs)) => Some(std::cmp::max(lhs, rhs)),
+                (lhs, rhs) => lhs.or(rhs),
+            },
+            slicing_arguments,
+            sized_fields,
+            require_one_slicing_argument: self.require_one_slicing_argument || other.require_one_slicing_argument,
+        }
+    }
 }
 
 #[cfg(test)]

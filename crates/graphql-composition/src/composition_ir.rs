@@ -2,7 +2,7 @@ mod directive;
 
 pub(crate) use self::directive::Directive;
 use crate::subgraphs::{self, SubgraphId};
-use graphql_federated_graph as federated;
+use graphql_federated_graph::{self as federated, directives::ListSizeDirective};
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 
 /// The intermediate representation of the schema that is produced by composition. This data
@@ -49,6 +49,15 @@ pub(crate) struct CompositionIr {
     pub(crate) object_authorized_directives: Vec<(federated::ObjectId, subgraphs::DirectiveSiteId)>,
     /// @authorized directives on interfaces
     pub(crate) interface_authorized_directives: Vec<(federated::InterfaceId, subgraphs::DirectiveSiteId)>,
+
+    // @listSize on fields
+    //
+    // Indexed by (definition_name, field_name) because we dont have stable id for fields
+    // at the point this is constructed.
+    //
+    // These are separate from FieldIr because they need to reference fields on other types
+    // so should be constructed last.
+    pub(crate) list_sizes: BTreeMap<(federated::StringId, federated::StringId), ListSizeDirective>,
 }
 
 #[derive(Clone)]
@@ -99,6 +108,10 @@ impl StringsIr {
             .unwrap_or_else(|| self.strings.insert_full(string.to_owned()).0);
 
         federated::StringId::from(idx)
+    }
+
+    pub(crate) fn lookup(&self, string: &str) -> Option<federated::StringId> {
+        Some(federated::StringId::from(self.strings.get_index_of(string)?))
     }
 
     pub(crate) fn into_federated_strings(self) -> Vec<String> {

@@ -34,6 +34,14 @@ impl<'a> Context<'a> {
         self.strings_ir.insert(string.as_str())
     }
 
+    pub(crate) fn lookup_str(&self, string: &str) -> Option<federated::StringId> {
+        self.strings_ir.lookup(string)
+    }
+
+    pub(crate) fn lookup_string_id(&self, string: federated::StringId) -> &str {
+        &self.strings_ir[string]
+    }
+
     pub(crate) fn insert_value(&mut self, value: &subgraphs::Value) -> federated::Value {
         self.insert_value_with_type(value, None)
     }
