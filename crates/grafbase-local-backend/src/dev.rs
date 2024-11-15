@@ -114,10 +114,7 @@ pub async fn start(
             gateway_config_path,
             graph_overrides_path,
         )
-        .await
-        .inspect_err(|error| {
-            dbg!(error);
-        })
+        .await;
     });
 
     serve(server_config, CliRuntime { ready_sender })

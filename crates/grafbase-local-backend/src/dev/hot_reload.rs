@@ -55,20 +55,23 @@ pub async fn hot_reload(
     subgraph_cache: SubgraphCache,
     gateway_config_path: Option<&'static PathBuf>,
     graph_overrides_path: Option<&'static PathBuf>,
-) -> Result<(), BackendError> {
+) {
     // start hot reloading once the server is ready
     if ready_receiver.recv().await.is_err() {
-        return Ok(());
+        return;
     }
 
     if gateway_config_path.is_none() && graph_overrides_path.is_none() {
         // return early since we don't hot reload graphs from the API
-        return Ok(());
+        return;
     }
 
-    let watcher_receiver = watch_configuration_files(gateway_config_path, graph_overrides_path)
+    let Ok(watcher_receiver) = watch_configuration_files(gateway_config_path, graph_overrides_path)
         .map_err(BackendError::SetUpWatcher)
-        .inspect_err(|error| tracing::error!("{}", error.to_string().trim()))?;
+        .inspect_err(|error| tracing::error!("{}", error.to_string().trim()))
+    else {
+        return;
+    };
 
     let subgraph_cache = Mutex::new(subgraph_cache);
 
@@ -149,6 +152,4 @@ pub async fn hot_reload(
 
         Ok::<_, BackendError>(())
     });
-
-    Ok(())
 }
