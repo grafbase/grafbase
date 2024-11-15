@@ -58,7 +58,7 @@ impl<'a> EnumDefinition<'a> {
         self.description_id.walk(self.schema)
     }
     pub fn values(&self) -> impl Iter<Item = EnumValue<'a>> + 'a {
-        self.value_ids.walk(self.schema)
+        self.as_ref().value_ids.walk(self.schema)
     }
     pub fn directives(&self) -> impl Iter<Item = TypeSystemDirective<'a>> + 'a {
         self.as_ref().directive_ids.walk(self.schema)

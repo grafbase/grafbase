@@ -45,12 +45,15 @@ impl<'a> SelectionSet<'a> {
         &self.item
     }
     pub(crate) fn data_fields_ordered_by_parent_entity_id_then_key(&self) -> impl Iter<Item = DataField<'a>> + 'a {
-        self.data_field_ids_ordered_by_parent_entity_id_then_key.walk(self.ctx)
+        self.as_ref()
+            .data_field_ids_ordered_by_parent_entity_id_then_key
+            .walk(self.ctx)
     }
     pub(crate) fn typename_fields_ordered_by_type_condition_id_then_key(
         &self,
     ) -> impl Iter<Item = TypenameField<'a>> + 'a {
-        self.typename_field_ids_ordered_by_type_condition_id_then_key
+        self.as_ref()
+            .typename_field_ids_ordered_by_type_condition_id_then_key
             .walk(self.ctx)
     }
 }

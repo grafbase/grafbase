@@ -68,7 +68,7 @@ impl<'a> QueryPartition<'a> {
         self.selection_set_record.walk(self.ctx)
     }
     pub(crate) fn required_fields(&self) -> impl Iter<Item = DataField<'a>> + 'a {
-        self.required_field_ids.walk(self.ctx)
+        self.as_ref().required_field_ids.walk(self.ctx)
     }
     pub(crate) fn input(&self) -> ResponseObjectSetDefinition<'a> {
         self.input_id.walk(self.ctx)

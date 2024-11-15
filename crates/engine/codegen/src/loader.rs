@@ -23,7 +23,13 @@ pub(super) fn load(path: PathBuf) -> anyhow::Result<domain::Domain> {
 
     let mut domain: Option<domain::Domain> = None;
     let mut definitions_by_name = HashMap::new();
-    for (gql_name, rust_name) in [("Boolean", "bool"), ("bool", "bool"), ("usize", "usize")] {
+    for (gql_name, rust_name) in [
+        ("Boolean", "bool"),
+        ("bool", "bool"),
+        ("usize", "usize"),
+        ("Int", "i32"),
+        ("u32", "u32"),
+    ] {
         definitions_by_name.insert(
             gql_name.into(),
             domain::Scalar::Value {
@@ -165,6 +171,7 @@ pub(super) fn load(path: PathBuf) -> anyhow::Result<domain::Domain> {
                             description: field.description().map(|s| s.to_string()),
                             type_name: field.ty().name().to_string(),
                             wrapping: field.ty().wrappers().collect(),
+                            vec: field.directives().any(|directive| directive.name() == "vec"),
                         }
                     })
                     .collect(),

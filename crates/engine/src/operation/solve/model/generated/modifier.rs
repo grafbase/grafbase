@@ -46,7 +46,7 @@ impl<'a> QueryModifierDefinition<'a> {
         self.ref_
     }
     pub(crate) fn impacted_fields(&self) -> impl Iter<Item = Field<'a>> + 'a {
-        self.impacted_field_ids.walk(self.ctx)
+        self.as_ref().impacted_field_ids.walk(self.ctx)
     }
 }
 
@@ -112,7 +112,7 @@ impl<'a> ResponseModifierDefinition<'a> {
         &self.ctx.operation[self.id]
     }
     pub(crate) fn impacted_fields(&self) -> impl Iter<Item = DataField<'a>> + 'a {
-        self.impacted_field_ids.walk(self.ctx)
+        self.as_ref().impacted_field_ids.walk(self.ctx)
     }
 }
 

@@ -52,11 +52,11 @@ impl ToTokens for DebugField<'_> {
                     }
                     [WrappingType::NonNull, WrappingType::List, WrappingType::NonNull]
                     | [WrappingType::NonNull, WrappingType::List] => {
-                        quote! { .field(#name_string, &self.#name()).collect::<Vec<_>>() }
+                        quote! { .field(#name_string, &self.#name()) }
                     }
                     [WrappingType::NonNull, WrappingType::List, WrappingType::NonNull, WrappingType::List, WrappingType::NonNull]
                     | [WrappingType::NonNull, WrappingType::List, WrappingType::NonNull, WrappingType::List] => {
-                        quote! { .field(#name_string, &self.#name().map(|items| items.collect::<Vec<_>>()).collect::<Vec<_>>()) }
+                        quote! { .field(#name_string, &self.#name().map(|items| items.collect::<Vec<_>>())) }
                     }
                     _ => {
                         tracing::error!("Unsupported wrapping {:?}", self.0.wrapping);

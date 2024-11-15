@@ -19,7 +19,7 @@ use walker::Walk;
 ///
 /// ```custom,{.language-graphql}
 /// union CompositeType @id @meta(module: "composite_type") @variants(remove_suffix: "Definition") =
-///   | ObjectDefinition
+///     ObjectDefinition
 ///   | InterfaceDefinition
 ///   | UnionDefinition
 /// ```

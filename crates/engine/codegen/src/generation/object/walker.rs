@@ -199,7 +199,6 @@ impl quote::ToTokens for WalkerFieldMethod<'_> {
         let method = Ident::new(&self.0.walker_method_name(), Span::call_site());
         let ty = Ident::new(self.0.ty.walker_name(), Span::call_site());
         let kind = self.0.ty.access_kind();
-        let list_as_id_range = self.0.ty.storage_type().list_as_id_range();
 
         let return_type_and_body = match self.0.wrapping[..] {
             [] => match kind {
@@ -272,51 +271,18 @@ impl quote::ToTokens for WalkerFieldMethod<'_> {
                         self.as_ref().#field.iter().copied()
                     }
                 },
-                AccessKind::Ref => quote! {
+                AccessKind::Ref | AccessKind::IdRef => quote! {
                     impl Iter<Item = &'a #ty> + 'a {
                         self.as_ref().#field.iter()
                     }
                 },
-                AccessKind::IdRef => {
-                    if list_as_id_range {
-                        quote! {
-                            impl Iter<Item = &'a #ty> + 'a {
-                                self.#field.walk(self.#ctx)
-                            }
-                        }
-                    } else {
-                        quote! {
-                            impl Iter<Item = &'a #ty> + 'a {
-                                self.as_ref().#field.walk(self.#ctx)
-                            }
+                AccessKind::IdWalker | AccessKind::ItemWalker | AccessKind::RefWalker => {
+                    quote! {
+                        impl Iter<Item =  #ty<'a>> + 'a {
+                            self.as_ref().#field.walk(self.#ctx)
                         }
                     }
                 }
-                AccessKind::IdWalker => {
-                    if list_as_id_range {
-                        quote! {
-                            impl Iter<Item =  #ty<'a>> + 'a {
-                                self.#field.walk(self.#ctx)
-                            }
-                        }
-                    } else {
-                        quote! {
-                            impl Iter<Item = #ty<'a>> + 'a {
-                                self.as_ref().#field.walk(self.#ctx)
-                            }
-                        }
-                    }
-                }
-                AccessKind::ItemWalker => quote! {
-                    impl Iter<Item =  #ty<'a>> + 'a {
-                        self.as_ref().#field.walk(self.#ctx)
-                    }
-                },
-                AccessKind::RefWalker => quote! {
-                    impl Iter<Item = #ty<'a>> + 'a {
-                        self.as_ref().#field.walk(self.#ctx)
-                    }
-                },
             },
             [WrappingType::NonNull, WrappingType::List, WrappingType::NonNull, WrappingType::List, WrappingType::NonNull] => {
                 match kind {

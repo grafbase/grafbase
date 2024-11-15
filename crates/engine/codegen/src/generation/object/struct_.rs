@@ -66,7 +66,7 @@ impl quote::ToTokens for StructField<'_> {
             [] => quote! { Option<#ty> },
             [WrappingType::NonNull] => quote! { #ty },
             [WrappingType::NonNull, WrappingType::List, WrappingType::NonNull] => {
-                if storage_type.list_as_id_range() {
+                if storage_type.list_as_id_range() && !self.0.vec {
                     quote! { IdRange<#ty> }
                 } else {
                     quote! { Vec<#ty> }

@@ -54,7 +54,7 @@ impl<'a> SchemaField<'a> {
     }
     /// Sorted by input value definition id
     pub fn sorted_arguments(&self) -> impl Iter<Item = SchemaFieldArgument<'a>> + 'a {
-        self.sorted_argument_ids.walk(self.schema)
+        self.as_ref().sorted_argument_ids.walk(self.schema)
     }
 }
 

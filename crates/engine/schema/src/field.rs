@@ -39,7 +39,9 @@ impl<'a> FieldDefinition<'a> {
             || self.directives().any(|directive| match directive {
                 TypeSystemDirective::Authenticated
                 | TypeSystemDirective::Deprecated(_)
-                | TypeSystemDirective::RequiresScopes(_) => false,
+                | TypeSystemDirective::RequiresScopes(_)
+                | TypeSystemDirective::Cost(_)
+                | TypeSystemDirective::ListSize(_) => false,
                 TypeSystemDirective::Authorized(directive) => directive.fields().is_some(),
             })
     }

@@ -58,7 +58,7 @@ impl<'a> InputObjectDefinition<'a> {
         self.description_id.walk(self.schema)
     }
     pub fn input_fields(&self) -> impl Iter<Item = InputValueDefinition<'a>> + 'a {
-        self.input_field_ids.walk(self.schema)
+        self.as_ref().input_field_ids.walk(self.schema)
     }
     pub fn directives(&self) -> impl Iter<Item = TypeSystemDirective<'a>> + 'a {
         self.as_ref().directive_ids.walk(self.schema)

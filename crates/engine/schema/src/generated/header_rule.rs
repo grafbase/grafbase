@@ -125,7 +125,7 @@ impl<'a> NameOrPattern<'a> {
 ///   @meta(module: "header_rule")
 ///   @variants(remove_suffix: true)
 ///   @indexed(id_size: "u32", max_id: "MAX_ID", deduplicated: true) =
-///   | ForwardHeaderRule
+///     ForwardHeaderRule
 ///   | InsertHeaderRule
 ///   | RemoveHeaderRule
 ///   | RenameDuplicateHeaderRule

@@ -87,14 +87,14 @@ impl<'a> DataField<'a> {
         self.definition_id.walk(self.ctx)
     }
     pub(crate) fn arguments(&self) -> impl Iter<Item = FieldArgument<'a>> + 'a {
-        self.argument_ids.walk(self.ctx)
+        self.as_ref().argument_ids.walk(self.ctx)
     }
     pub(crate) fn required_fields(&self) -> impl Iter<Item = DataField<'a>> + 'a {
-        self.required_field_ids.walk(self.ctx)
+        self.as_ref().required_field_ids.walk(self.ctx)
     }
     /// Requirement of @authorized, etc.
     pub(crate) fn required_fields_by_supergraph(&self) -> impl Iter<Item = DataField<'a>> + 'a {
-        self.required_field_ids_by_supergraph.walk(self.ctx)
+        self.as_ref().required_field_ids_by_supergraph.walk(self.ctx)
     }
     pub(crate) fn parent_field_output(&self) -> Option<ResponseObjectSetDefinition<'a>> {
         self.parent_field_output_id.walk(self.ctx)

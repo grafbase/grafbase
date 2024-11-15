@@ -35,6 +35,9 @@ pub struct Field {
     pub type_name: String,
     /// The wrapper types from the outermost to innermost
     pub wrapping: Vec<WrappingType>,
+
+    /// If set, the field should be represented as a Vec<Id> rather than an IdRange<Id>
+    pub vec: bool,
 }
 
 impl Field {

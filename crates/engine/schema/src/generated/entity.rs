@@ -13,7 +13,7 @@ use walker::Walk;
 ///
 /// ```custom,{.language-graphql}
 /// union EntityDefinition @id @meta(module: "entity") @variants(remove_suffix: "Definition") =
-///   | ObjectDefinition
+///     ObjectDefinition
 ///   | InterfaceDefinition
 /// ```
 #[derive(serde::Serialize, serde::Deserialize, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
