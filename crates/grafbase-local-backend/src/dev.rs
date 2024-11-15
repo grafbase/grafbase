@@ -44,7 +44,7 @@ pub async fn start(
     graph_overrides_path: Option<PathBuf>,
     port: Option<u16>,
 ) -> Result<(), BackendError> {
-    // these need to live for the duration of the c,
+    // these need to live for the duration of the cli run,
     // leaking them prevents cloning them around
     let gateway_config_path = Box::leak(Box::new(gateway_config_path)).as_ref();
     let graph_overrides_path = Box::leak(Box::new(graph_overrides_path)).as_ref();
