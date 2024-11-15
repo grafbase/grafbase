@@ -118,36 +118,34 @@ pub async fn hot_reload(
                 }
             };
 
-            if !subgraphs.is_empty() {
-                let composition_result = graphql_composition::compose(&subgraphs);
+            let composition_result = graphql_composition::compose(&subgraphs);
 
-                let federated_sdl = match composition_result.into_result() {
-                    Ok(result) => {
-                        match federated_graph::render_federated_sdl(&result).map_err(BackendError::ToFederatedSdl) {
-                            Ok(sdl) => sdl,
-                            Err(error) => {
-                                tracing::error!("{}", error.to_string().trim());
-                                continue;
-                            }
+            let federated_sdl = match composition_result.into_result() {
+                Ok(result) => {
+                    match federated_graph::render_federated_sdl(&result).map_err(BackendError::ToFederatedSdl) {
+                        Ok(sdl) => sdl,
+                        Err(error) => {
+                            tracing::error!("{}", error.to_string().trim());
+                            continue;
                         }
                     }
-                    Err(diagnostics) => {
-                        tracing::error!(
-                            "{}",
-                            BackendError::Composition(diagnostics.iter_messages().collect::<Vec<_>>().join("\n"))
-                                .to_string()
-                                .trim()
-                        );
-                        continue;
-                    }
-                };
+                }
+                Err(diagnostics) => {
+                    tracing::error!(
+                        "{}",
+                        BackendError::Composition(diagnostics.iter_messages().collect::<Vec<_>>().join("\n"))
+                            .to_string()
+                            .trim()
+                    );
+                    continue;
+                }
+            };
 
-                tracing::info!("detected a configuation change, reloading");
+            tracing::info!("detected a configuation change, reloading");
 
-                let _ = config_sender
-                    .send((federated_sdl, dev_configuration.merged_configuration))
-                    .await;
-            }
+            let _ = config_sender
+                .send((federated_sdl, dev_configuration.merged_configuration))
+                .await;
         }
 
         Ok::<_, BackendError>(())
