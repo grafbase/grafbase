@@ -33,6 +33,7 @@ use walker::{Iter, Walk};
 ///   will be specified in this Vec.
 ///   """
 ///   only_resolvable_in: [Subgraph!]!
+///   distinct_type_in: [Subgraph!]!
 ///   requires: [FieldRequires!]! @field(record_field_name: "requires_records")
 ///   provides: [FieldProvides!]! @field(record_field_name: "provides_records")
 ///   "The arguments referenced by this range are sorted by their name (string)"
@@ -51,6 +52,7 @@ pub struct FieldDefinitionRecord {
     /// It's up to the composition to ensure it. If this field is specific to some subgraphs, they
     /// will be specified in this Vec.
     pub only_resolvable_in_ids: Vec<SubgraphId>,
+    pub distinct_type_in_ids: Vec<SubgraphId>,
     pub requires_records: Vec<FieldRequiresRecord>,
     pub provides_records: Vec<FieldProvidesRecord>,
     /// The arguments referenced by this range are sorted by their name (string)
@@ -102,6 +104,9 @@ impl<'a> FieldDefinition<'a> {
     pub fn only_resolvable_in(&self) -> impl Iter<Item = Subgraph<'a>> + 'a {
         self.as_ref().only_resolvable_in_ids.walk(self.schema)
     }
+    pub fn distinct_type_in(&self) -> impl Iter<Item = Subgraph<'a>> + 'a {
+        self.as_ref().distinct_type_in_ids.walk(self.schema)
+    }
     pub fn requires(&self) -> impl Iter<Item = FieldRequires<'a>> + 'a {
         self.as_ref().requires_records.walk(self.schema)
     }
@@ -140,6 +145,7 @@ impl std::fmt::Debug for FieldDefinition<'_> {
             .field("ty", &self.ty())
             .field("resolvers", &self.resolvers())
             .field("only_resolvable_in", &self.only_resolvable_in())
+            .field("distinct_type_in", &self.distinct_type_in())
             .field("requires", &self.requires())
             .field("provides", &self.provides())
             .field("arguments", &self.arguments())

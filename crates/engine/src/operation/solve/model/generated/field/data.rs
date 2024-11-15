@@ -22,6 +22,7 @@ use walker::{Iter, Walk};
 /// ```custom,{.language-graphql}
 /// type DataField @meta(module: "field/data", debug: false) @indexed(id_size: "u32") {
 ///   key: PositionedResponseKey!
+///   subgraph_key: SafeResponseKey!
 ///   location: Location!
 ///   definition: FieldDefinition!
 ///   arguments: [FieldArgument!]!
@@ -42,6 +43,7 @@ use walker::{Iter, Walk};
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub(crate) struct DataFieldRecord {
     pub key: PositionedResponseKey,
+    pub subgraph_key: SafeResponseKey,
     pub location: Location,
     pub definition_id: FieldDefinitionId,
     pub argument_ids: IdRange<FieldArgumentId>,

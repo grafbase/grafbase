@@ -306,7 +306,7 @@ impl QueryBuilderContext {
     }
 
     fn write_field(&mut self, buffer: &mut String, field: PlanDataField<'_>) -> Result<(), Error> {
-        let response_key = field.response_key_str();
+        let response_key = field.subgraph_response_key_str();
         let name = field.definition().name();
         buffer.push(' ');
         if response_key == name {

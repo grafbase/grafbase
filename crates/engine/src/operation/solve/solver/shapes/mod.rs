@@ -13,7 +13,7 @@ use crate::{
     },
     response::{
         ConcreteObjectShapeId, ConcreteObjectShapeRecord, FieldShapeId, FieldShapeRecord, ObjectIdentifier,
-        PolymorphicObjectShapeId, PolymorphicObjectShapeRecord, SafeResponseKey, Shape, Shapes,
+        PolymorphicObjectShapeId, PolymorphicObjectShapeRecord, Shape, Shapes,
     },
     utils::BufferPool,
 };
@@ -173,7 +173,7 @@ impl<'ctx> ShapesBuilder<'ctx> {
             );
 
             if let Some(field) = fields_buffer.first().copied() {
-                let shape = self.create_data_field_shape(response_key, &mut fields_buffer, field);
+                let shape = self.create_data_field_shape(&mut fields_buffer, field);
                 field_shapes_buffer.push((shape, fields_buffer.iter().map(|field| field.id).collect()));
             }
             start = end;
@@ -203,12 +203,7 @@ impl<'ctx> ShapesBuilder<'ctx> {
         self.push_concrete_shape(shape)
     }
 
-    fn create_data_field_shape(
-        &mut self,
-        response_key: SafeResponseKey,
-        fields: &mut [DataField<'ctx>],
-        field: DataField<'ctx>,
-    ) -> FieldShapeRecord {
+    fn create_data_field_shape(&mut self, fields: &mut [DataField<'ctx>], field: DataField<'ctx>) -> FieldShapeRecord {
         let ty = field.definition().ty();
         let shape = match ty.definition_id {
             DefinitionId::Scalar(id) => Shape::Scalar(id.walk(self.schema).ty),
@@ -223,11 +218,10 @@ impl<'ctx> ShapesBuilder<'ctx> {
         let required_field_id = fields.iter().find_map(|field| field.matching_requirement_id);
 
         FieldShapeRecord {
-            expected_key: response_key,
+            expected_key: field.subgraph_key,
             key: field.key,
             id: field.id,
             required_field_id,
-            definition_id: field.definition().id,
             shape,
             wrapping: ty.wrapping,
         }

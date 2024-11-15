@@ -86,6 +86,7 @@ type FieldDefinition @meta(module: "field") @indexed(id_size: "u32", max_id: "MA
   will be specified in this Vec.
   """
   only_resolvable_in: [Subgraph!]!
+  distinct_type_in: [Subgraph!]!
   requires: [FieldRequires!]! @field(record_field_name: "requires_records")
   provides: [FieldProvides!]! @field(record_field_name: "provides_records")
   "The arguments referenced by this range are sorted by their name (string)"

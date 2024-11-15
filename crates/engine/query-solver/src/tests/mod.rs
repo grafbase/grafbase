@@ -16,7 +16,9 @@ use engine_parser::{
     Positioned,
 };
 use itertools::Itertools;
-use schema::{Definition, FieldDefinitionId, ObjectDefinition, ObjectDefinitionId, Schema, Version};
+use schema::{
+    CompositeTypeId, Definition, FieldDefinitionId, ObjectDefinition, ObjectDefinitionId, Schema, SubgraphId, Version,
+};
 use walker::Walk;
 
 #[ctor::ctor]
@@ -146,8 +148,13 @@ impl crate::Operation for &mut TestOperation {
         (self.fields.len() - 1).into()
     }
 
-    fn finalize_selection_set_extra_fields(&mut self, extra: &[Self::FieldId], _existing: &[Self::FieldId]) {
-        for field_id in extra {
+    fn finalize_selection_set(
+        &mut self,
+        _parent_type: CompositeTypeId,
+        extra: &mut [(SubgraphId, Self::FieldId)],
+        _existing: &mut [(SubgraphId, Self::FieldId)],
+    ) {
+        for (_, field_id) in extra {
             self[*field_id].name.push('*');
         }
     }

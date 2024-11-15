@@ -1,6 +1,6 @@
 use std::num::NonZero;
 
-use schema::{EnumDefinitionId, FieldDefinitionId, ScalarType, SchemaFieldId, Wrapping};
+use schema::{EnumDefinitionId, ScalarType, SchemaFieldId, Wrapping};
 use walker::Walk;
 
 use crate::{
@@ -16,7 +16,6 @@ pub(crate) struct FieldShapeRecord {
     pub key: PositionedResponseKey,
     pub id: DataFieldId,
     pub required_field_id: Option<SchemaFieldId>,
-    pub definition_id: FieldDefinitionId,
     pub shape: Shape,
     pub wrapping: Wrapping,
 }

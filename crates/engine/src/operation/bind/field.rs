@@ -1,10 +1,10 @@
-use super::{coercion::coerce_query_value, BindError, BindResult, Binder, BoundFieldId};
+use super::{coercion::coerce_query_value, BindError, BindResult, Binder, BoundFieldId, QueryPosition};
 use crate::{
     operation::{
         BoundField, BoundFieldArgument, BoundFieldArgumentId, BoundQueryField, BoundSelectionSetId, BoundTypeNameField,
         Location, QueryInputValueRecord, QueryModifierRule,
     },
-    response::PositionedResponseKey,
+    response::SafeResponseKey,
 };
 use engine_parser::Positioned;
 use engine_value::Name;
@@ -15,11 +15,13 @@ impl<'schema, 'p> Binder<'schema, 'p> {
     pub(super) fn bind_typename_field(
         &mut self,
         type_condition: CompositeTypeId,
-        key: PositionedResponseKey,
+        query_position: QueryPosition,
+        key: SafeResponseKey,
         Positioned { pos, .. }: &'p Positioned<engine_parser::types::Field>,
     ) -> BindResult<BoundFieldId> {
         Ok(self.push_field(BoundField::TypeName(BoundTypeNameField {
             type_condition,
+            query_position,
             key,
             location: (*pos).try_into()?,
         })))
@@ -27,7 +29,8 @@ impl<'schema, 'p> Binder<'schema, 'p> {
 
     pub(super) fn bind_field(
         &mut self,
-        key: PositionedResponseKey,
+        query_position: QueryPosition,
+        key: SafeResponseKey,
         definition_id: FieldDefinitionId,
         Positioned { pos, node: field }: &'p Positioned<engine_parser::types::Field>,
         selection_set_id: Option<BoundSelectionSetId>,
@@ -60,7 +63,9 @@ impl<'schema, 'p> Binder<'schema, 'p> {
         let field_id = BoundFieldId::from(self.fields.len());
         let argument_ids = self.bind_field_arguments(definition, location, &field.arguments)?;
         self.fields.push(BoundField::Query(BoundQueryField {
+            query_position,
             key,
+            subgraph_key: key,
             location,
             definition_id: definition.id,
             argument_ids,

@@ -4,7 +4,7 @@ use itertools::Itertools;
 use petgraph::graph::NodeIndex;
 use petgraph::visit::EdgeFiltered;
 use petgraph::{visit::EdgeRef, Graph};
-use schema::ResolverDefinitionId;
+use schema::{CompositeTypeId, ResolverDefinitionId, SubgraphId};
 use walker::Walk;
 
 use crate::{
@@ -487,8 +487,12 @@ impl<'ctx, Op: Operation> PartialSolution<'ctx, Op> {
     fn finalize_extra_fields(&mut self) {
         let mut existing_fields = Vec::new();
         let mut extra_fields = Vec::new();
-        let mut stack = vec![self.root_node_ix];
-        while let Some(node) = stack.pop() {
+        let mut stack = vec![(
+            CompositeTypeId::from(self.operation.root_object_id()),
+            SubgraphId::Introspection,
+            self.root_node_ix,
+        )];
+        while let Some((parent_type, subgraph_id, node)) = stack.pop() {
             extra_fields.clear();
             existing_fields.clear();
             for edge in self.graph.edges(node) {
@@ -498,15 +502,23 @@ impl<'ctx, Op: Operation> PartialSolution<'ctx, Op> {
                 match self.graph[edge.target()] {
                     SolutionNode::Field { id, flags, .. } => {
                         if flags.contains(FieldFlags::EXTRA) {
-                            extra_fields.push(id);
+                            extra_fields.push((subgraph_id, id));
                         } else {
-                            existing_fields.push(id);
+                            existing_fields.push((subgraph_id, id));
                         }
-                        if flags.contains(FieldFlags::IS_COMPOSITE_TYPE) {
-                            stack.push(edge.target());
+                        if let Some(parent_type) = self
+                            .operation
+                            .field_definition(id)
+                            .walk(self.schema)
+                            .and_then(|def| def.ty().definition_id.as_composite_type())
+                        {
+                            stack.push((parent_type, subgraph_id, edge.target()));
                         }
                     }
-                    SolutionNode::QueryPartition { .. } => {
+                    SolutionNode::QueryPartition {
+                        resolver_definition_id, ..
+                    } => {
+                        let subgraph_id = resolver_definition_id.walk(self.schema).subgraph_id();
                         for second_degree_edge in self.graph.edges(edge.target()) {
                             if !matches!(
                                 second_degree_edge.weight(),
@@ -516,12 +528,17 @@ impl<'ctx, Op: Operation> PartialSolution<'ctx, Op> {
                             }
                             if let SolutionNode::Field { id, flags, .. } = self.graph[second_degree_edge.target()] {
                                 if flags.contains(FieldFlags::EXTRA) {
-                                    extra_fields.push(id);
+                                    extra_fields.push((subgraph_id, id));
                                 } else {
-                                    existing_fields.push(id);
+                                    existing_fields.push((subgraph_id, id));
                                 }
-                                if flags.contains(FieldFlags::IS_COMPOSITE_TYPE) {
-                                    stack.push(second_degree_edge.target());
+                                if let Some(parent_type) = self
+                                    .operation
+                                    .field_definition(id)
+                                    .walk(self.schema)
+                                    .and_then(|def| def.ty().definition_id.as_composite_type())
+                                {
+                                    stack.push((parent_type, subgraph_id, second_degree_edge.target()));
                                 }
                             }
                         }
@@ -530,7 +547,7 @@ impl<'ctx, Op: Operation> PartialSolution<'ctx, Op> {
                 }
             }
             self.operation
-                .finalize_selection_set_extra_fields(&extra_fields, &existing_fields);
+                .finalize_selection_set(parent_type, &mut extra_fields, &mut existing_fields);
         }
     }
 }

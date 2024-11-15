@@ -223,6 +223,8 @@ pub struct Field {
 
     pub arguments: InputValueDefinitions,
 
+    pub join_fields: Vec<JoinField>,
+
     /// This is populated only of fields of entities. The Vec includes all subgraphs the field can
     /// be resolved in. For a regular field of an entity, it will be one subgraph, the subgraph
     /// where the entity field is defined. For a shareable field in an entity, this contains the
@@ -245,6 +247,13 @@ pub struct Field {
     pub composed_directives: Directives,
 
     pub description: Option<StringId>,
+}
+
+#[derive(Clone)]
+pub struct JoinField {
+    pub subgraph_id: SubgraphId,
+    // Only present if different from the field type.
+    pub r#type: Option<Type>,
 }
 
 impl Value {
@@ -347,6 +356,7 @@ impl Default for FederatedGraph {
                         wrapping: Default::default(),
                         definition: Definition::Scalar(0usize.into()),
                     },
+                    join_fields: Vec::new(),
                     arguments: NO_INPUT_VALUE_DEFINITION,
                     resolvable_in: Vec::new(),
                     provides: Vec::new(),
@@ -361,6 +371,7 @@ impl Default for FederatedGraph {
                         wrapping: Default::default(),
                         definition: Definition::Scalar(0usize.into()),
                     },
+                    join_fields: Vec::new(),
                     arguments: NO_INPUT_VALUE_DEFINITION,
                     resolvable_in: Vec::new(),
                     provides: Vec::new(),

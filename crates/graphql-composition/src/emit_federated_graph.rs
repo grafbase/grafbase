@@ -284,6 +284,7 @@ fn emit_fields<'a>(
                 resolvable_in,
                 composed_directives,
                 description,
+                join_fields: Vec::new(),
             };
 
             let field_id = federated::FieldId::from(ctx.out.fields.push_return_idx(field));

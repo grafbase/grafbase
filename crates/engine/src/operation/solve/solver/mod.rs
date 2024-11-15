@@ -473,7 +473,8 @@ impl BoundField {
     ) -> Result<DataFieldRecord, TypenameFieldRecord> {
         match self {
             BoundField::Query(field) => Ok(DataFieldRecord {
-                key: field.key,
+                key: field.key.with_position(field.query_position),
+                subgraph_key: field.subgraph_key,
                 location: field.location,
                 definition_id: field.definition_id,
                 argument_ids: IdRange::from_start_and_end(field.argument_ids.start, field.argument_ids.end),
@@ -498,6 +499,7 @@ impl BoundField {
                     query_position: None,
                     response_key: field.key.unwrap(),
                 },
+                subgraph_key: field.key.unwrap(),
                 location: field.petitioner_location,
                 definition_id: field.definition_id,
                 argument_ids: IdRange::from_start_and_end(field.argument_ids.start, field.argument_ids.end),
@@ -516,7 +518,7 @@ impl BoundField {
                 shape_ids: IdRange::empty(),
             }),
             BoundField::TypeName(field) => Err(TypenameFieldRecord {
-                key: field.key,
+                key: field.key.with_position(field.query_position),
                 location: field.location,
                 type_condition_id: field.type_condition,
             }),

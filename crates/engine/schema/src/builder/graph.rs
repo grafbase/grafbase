@@ -611,6 +611,17 @@ impl<'a> GraphBuilder<'a> {
                 name_id: field.name.into(),
                 description_id: None,
                 parent_entity_id,
+                distinct_type_in_ids: field
+                    .join_fields
+                    .iter()
+                    .filter_map(|join| {
+                        if join.r#type.as_ref().is_some_and(|ty| ty != &field.r#type) {
+                            Some(SubgraphId::GraphqlEndpoint(join.subgraph_id.into()))
+                        } else {
+                            None
+                        }
+                    })
+                    .collect(),
                 ty_record: self.ctx.convert_type(field.r#type),
                 only_resolvable_in_ids: only_resolvable_in
                     .into_iter()

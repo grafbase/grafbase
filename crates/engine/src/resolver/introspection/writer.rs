@@ -31,13 +31,14 @@ impl<'ctx, R: Runtime> IntrospectionWriter<'ctx, R> {
     pub(super) fn execute(self, id: ConcreteObjectShapeId) {
         let shape = &self.ctx.shapes()[id];
         let mut fields = Vec::with_capacity(shape.field_shape_ids.len() + shape.typename_response_edges.len());
-        for field in &self.shapes[shape.field_shape_ids] {
-            let arguments = field.id.walk(&self.ctx).hydrated_arguments(&self.ctx);
+        for field_shape in &self.shapes[shape.field_shape_ids] {
+            let field = field_shape.id.walk(&self.ctx);
+            let arguments = field.hydrated_arguments(&self.ctx);
             match self.metadata.root_field(field.definition_id) {
                 IntrospectionField::Type => {
                     let name = arguments.get_arg_value_as::<&str>("name");
                     fields.push(ResponseObjectField {
-                        key: field.key,
+                        key: field_shape.key,
                         required_field_id: None,
                         value: self
                             .schema
@@ -45,7 +46,7 @@ impl<'ctx, R: Runtime> IntrospectionWriter<'ctx, R> {
                             .map(|definition| {
                                 self.__type_inner(
                                     self.schema.walk(definition),
-                                    field.shape.as_concrete_object().unwrap(),
+                                    field_shape.shape.as_concrete_object().unwrap(),
                                 )
                             })
                             .into(),
@@ -53,9 +54,9 @@ impl<'ctx, R: Runtime> IntrospectionWriter<'ctx, R> {
                 }
                 IntrospectionField::Schema => {
                     fields.push(ResponseObjectField {
-                        key: field.key,
+                        key: field_shape.key,
                         required_field_id: None,
-                        value: self.__schema(field.shape.as_concrete_object().unwrap()),
+                        value: self.__schema(field_shape.shape.as_concrete_object().unwrap()),
                     });
                 }
             };
@@ -89,7 +90,7 @@ impl<'ctx, R: Runtime> IntrospectionWriter<'ctx, R> {
             fields.push(ResponseObjectField {
                 key: field.key,
                 required_field_id: None,
-                value: build(field, object[field.definition_id]),
+                value: build(field, object[field.id.walk(&self.ctx).definition_id]),
             });
         }
         if !shape.typename_response_edges.is_empty() {

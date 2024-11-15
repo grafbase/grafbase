@@ -38,6 +38,7 @@ type ResponseObjectSetDefinition @meta(module: "response_object_set") @indexed(i
 # ----------------
 
 scalar PositionedResponseKey @copy @prelude
+scalar SafeResponseKey @copy @prelude
 scalar Location @copy @prelude
 scalar QueryInputValueId @prelude @id
 
@@ -53,6 +54,7 @@ union Field @id @meta(module: "field") @variants(remove_suffix: true) = DataFiel
 "In opposition to a __typename field this field does retrieve data from a subgraph"
 type DataField @meta(module: "field/data", debug: false) @indexed(id_size: "u32") {
   key: PositionedResponseKey!
+  subgraph_key: SafeResponseKey!
   location: Location!
   definition: FieldDefinition!
   arguments: [FieldArgument!]!
