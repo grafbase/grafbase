@@ -37,6 +37,10 @@ graphql-composition.workspace = true
 federated-graph.workspace = true
 serde-dynamic-string.workspace = true
 futures.workspace = true
+notify = "7.0.0"
+tokio-stream = "0.1.16"
+notify-debouncer-full = "0.4.0"
+tracing.workspace = true
 
 
 [build-dependencies]

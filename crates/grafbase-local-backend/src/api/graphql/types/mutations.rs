@@ -6,13 +6,6 @@ use super::schema;
 pub struct GraphCreateInput<'a> {
     pub account_id: cynic::Id,
     pub graph_slug: &'a str,
-    pub graph_mode: GraphMode,
-}
-
-#[derive(cynic::Enum, Clone, Debug, Copy)]
-pub enum GraphMode {
-    Managed,
-    SelfHosted,
 }
 
 #[derive(cynic::QueryVariables)]

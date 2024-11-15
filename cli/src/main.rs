@@ -33,9 +33,12 @@ use crate::{
     logout::logout,
 };
 use clap::Parser;
-use common::environment::{Environment, PlatformData};
+use common::{
+    consts::OUTPUT_LAYER_LOG_FILTER,
+    environment::{Environment, PlatformData},
+};
 use errors::CliError;
-use output::report;
+use output::{log_formatters::OutputLayerEventFormatter, report};
 use std::{io::IsTerminal as _, path::PathBuf, process};
 use tracing_subscriber::{fmt, prelude::*, EnvFilter};
 use watercolor::ShouldColorize;
@@ -73,7 +76,20 @@ fn try_main(args: Args) -> Result<(), CliError> {
         }
     };
 
-    tracing_subscriber::registry().with(fmt::layer()).with(filter).init();
+    // logs meant to always reach output, e.g. user facing updates from background tasks
+    let output_layer = fmt::layer()
+        .with_writer(std::io::stdout)
+        .with_file(false)
+        .with_target(false)
+        .with_thread_names(false)
+        .without_time()
+        .event_format(OutputLayerEventFormatter)
+        .with_filter(EnvFilter::new(OUTPUT_LAYER_LOG_FILTER));
+
+    tracing_subscriber::registry()
+        .with(output_layer)
+        .with(fmt::layer().with_filter(filter))
+        .init();
 
     trace!("subcommand: {}", args.command);
 

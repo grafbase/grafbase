@@ -20,3 +20,4 @@ pub const GRAFBASE_DASHBOARD_URL_ENV_VAR: &str = "GRAFBASE_DASHBOARD_URL";
 pub const GRAFBASE_API_URL_ENV_VAR: &str = "GRAFBASE_API_URL";
 pub const DEFAULT_API_URL: &str = "https://api.grafbase.com/graphql";
 pub const DEFAULT_DASHBOARD_URL: &str = "https://app.grafbase.com";
+pub const OUTPUT_LAYER_LOG_FILTER: &str = "grafbase_local_backend=info";

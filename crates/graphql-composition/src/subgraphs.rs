@@ -111,6 +111,11 @@ impl Subgraphs {
         Ok(())
     }
 
+    /// Checks whether any subgraphs have been ingested
+    pub fn is_empty(&self) -> bool {
+        self.subgraphs.is_empty()
+    }
+
     /// Iterate over groups of definitions to compose. The definitions are grouped by name. The
     /// argument is a closure that receives each group as argument. The order of iteration is
     /// deterministic but unspecified.
