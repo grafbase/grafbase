@@ -13,7 +13,7 @@ use crate::{
 use graphql_federated_graph::{self as federated};
 use itertools::Itertools;
 use std::{
-    collections::{BTreeMap, BTreeSet, HashMap},
+    collections::{BTreeMap, BTreeSet},
     mem,
 };
 
@@ -50,12 +50,7 @@ pub(crate) fn emit_federated_graph(mut ir: CompositionIr, subgraphs: &Subgraphs)
     emit_subgraphs(&mut ctx);
     emit_interface_impls(&mut ctx);
     emit_input_value_definitions(&ir.input_value_definitions, &mut ctx);
-    emit_fields(
-        mem::take(&mut ir.fields),
-        &ir.object_fields_from_entity_interfaces,
-        &ir.fields_by_name,
-        &mut ctx,
-    );
+    emit_fields(&ir, &mut ctx);
     emit_union_members(&ir.union_members, &ir.union_join_members, &mut ctx);
     emit_keys(&ir.keys, &mut ctx);
     emit_authorized_directives(&ir, &mut ctx);
@@ -213,12 +208,7 @@ fn emit_interface_impls(ctx: &mut Context<'_>) {
     }
 }
 
-fn emit_fields<'a>(
-    ir_fields: Vec<FieldIr>,
-    object_fields_from_entity_interfaces: &BTreeSet<(federated::StringId, [federated::StringId; 2])>,
-    fields_by_name: &HashMap<[federated::StringId; 2], usize>,
-    ctx: &mut Context<'a>,
-) {
+fn emit_fields<'a>(composition_ir: &CompositionIr, ctx: &mut Context<'a>) {
     // We have to accumulate the `@provides`, `@requires` and `@authorized` and delay emitting them because
     // attach_selection() depends on all fields having been populated first.
     let mut field_provides: Vec<(
@@ -242,18 +232,16 @@ fn emit_fields<'a>(
     }
     let mut field_authorized: Vec<AuthorizedField<'_>> = Vec::new();
 
-    emit_fields::for_each_field_group(&ir_fields, |definition, fields| {
+    emit_fields::for_each_field_group(&composition_ir.fields, |definition, fields| {
         let mut start_field_id = None;
         let mut end_field_id = None;
 
         if let federated::Definition::Object(id) = definition {
             let object_name = ctx.out.at(id).then(|obj| obj.type_definition_id).name;
-            let fields_from_entity_interfaces = object_fields_from_entity_interfaces
-                .range(
-                    (object_name, [federated::StringId::from(0); 2])
-                        ..(object_name, [federated::StringId::from(usize::MAX); 2]),
-                )
-                .map(|(_, field_path)| ir_fields[fields_by_name[field_path]].clone());
+            let fields_from_entity_interfaces = composition_ir
+                .object_fields_from_entity_interfaces
+                .range((object_name, ir::FieldIrId::from(usize::MIN))..(object_name, ir::FieldIrId::from(usize::MAX)))
+                .map(|(_, field_id)| composition_ir[*field_id].clone());
 
             fields.extend(fields_from_entity_interfaces);
         }

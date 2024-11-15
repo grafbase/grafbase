@@ -1,6 +1,7 @@
 mod directive;
+mod field_ir;
 
-pub(crate) use self::directive::Directive;
+pub(crate) use self::{directive::Directive, field_ir::*};
 use crate::subgraphs::{self, SubgraphId};
 use graphql_federated_graph::{self as federated, directives::ListSizeDirective};
 use std::collections::{BTreeMap, BTreeSet, HashMap};
@@ -16,7 +17,6 @@ use std::collections::{BTreeMap, BTreeSet, HashMap};
 #[derive(Default)]
 pub(crate) struct CompositionIr {
     pub(crate) definitions_by_name: HashMap<federated::StringId, federated::Definition>,
-    pub(crate) fields_by_name: HashMap<[federated::StringId; 2], usize>,
 
     pub(crate) type_definitions: Vec<federated::TypeDefinitionRecord>,
     pub(crate) objects: Vec<federated::Object>,
@@ -45,8 +45,8 @@ pub(crate) struct CompositionIr {
     /// Fields of an interface entity that are contributed by other subgraphs and must be added to
     /// the interface's implementers in the federated schema.
     ///
-    /// (object_name, field_path)
-    pub(crate) object_fields_from_entity_interfaces: BTreeSet<(federated::StringId, [federated::StringId; 2])>,
+    /// (object_name, field_id)
+    pub(crate) object_fields_from_entity_interfaces: BTreeSet<(federated::StringId, FieldIrId)>,
 
     /// @authorized directives on objects
     pub(crate) object_authorized_directives: Vec<(federated::ObjectId, subgraphs::DirectiveSiteId)>,
@@ -61,32 +61,6 @@ pub(crate) struct CompositionIr {
     // These are separate from FieldIr because they need to reference fields on other types
     // so should be constructed last.
     pub(crate) list_sizes: BTreeMap<(federated::StringId, federated::StringId), ListSizeDirective>,
-}
-
-#[derive(Clone)]
-pub(crate) struct FieldIr {
-    pub(crate) parent_definition: federated::Definition,
-    pub(crate) field_name: federated::StringId,
-    pub(crate) field_type: subgraphs::FieldTypeId,
-    pub(crate) arguments: federated::InputValueDefinitions,
-
-    pub(crate) resolvable_in: Vec<federated::SubgraphId>,
-
-    /// Subgraph fields corresponding to this federated graph field that have an `@provides`.
-    pub(crate) provides: Vec<subgraphs::FieldId>,
-
-    /// Subgraph fields corresponding to this federated graph field that have an `@requires`.
-    pub(crate) requires: Vec<subgraphs::FieldId>,
-
-    /// Subgraph fields corresponding to this federated graph field that have an `@authorized`.
-    pub(crate) authorized_directives: Vec<subgraphs::FieldId>,
-
-    // @join__field(graph: ..., override: ...)
-    pub(crate) overrides: Vec<federated::Override>,
-
-    pub(crate) composed_directives: federated::Directives,
-
-    pub(crate) description: Option<federated::StringId>,
 }
 
 #[derive(Clone)]
