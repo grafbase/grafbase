@@ -33,8 +33,7 @@ impl ServerRuntime for CliRuntime {
     fn after_request(&self) {}
 
     fn on_ready(&self, url: String) {
-        let sender = self.ready_sender.clone();
-        tokio::spawn(async move { sender.send(url).expect("must still be open") });
+        self.ready_sender.send(url).expect("must still be open");
     }
 }
 
@@ -45,7 +44,7 @@ pub async fn start(
     graph_overrides_path: Option<PathBuf>,
     port: Option<u16>,
 ) -> Result<(), BackendError> {
-    // these need to live for the duration of the cli run,
+    // these need to live for the duration of the c,
     // leaking them prevents cloning them around
     let gateway_config_path = Box::leak(Box::new(gateway_config_path)).as_ref();
     let graph_overrides_path = Box::leak(Box::new(graph_overrides_path)).as_ref();
