@@ -199,14 +199,18 @@ pub(crate) fn merge_entity_interface_definitions<'a>(
         }
     }
 
-    let field_ids: Vec<(StringId, _)> = fields
+    let field_names: Vec<(StringId, _)> = fields
         .into_iter()
         .map(|(name, (field, list_size_directive))| {
             if let Some(directive) = list_size_directive {
                 ctx.insert_list_size_directive(interface_name, field.field_name, directive.clone());
             }
 
-            (name, ctx.insert_field(field))
+            let field_name = field.field_name;
+
+            ctx.insert_field(field);
+
+            (name, field_name)
         })
         .collect();
 
@@ -230,14 +234,14 @@ pub(crate) fn merge_entity_interface_definitions<'a>(
 
         let object_name = ctx.insert_string(object.name().id);
 
-        let fields_to_add = field_ids
+        let fields_to_add = field_names
             .iter()
             // Avoid adding fields that are already present on the object by virtue of the object implementing the interface.
             .filter(|(name, _)| object.find_field(*name).is_none())
             .map(|(_, field_id)| field_id);
 
-        for field_id in fields_to_add {
-            ctx.insert_object_field_from_entity_interface(object_name, *field_id);
+        for field_name in fields_to_add {
+            ctx.insert_object_field_from_entity_interface(object_name, interface_name, *field_name);
         }
     }
 }

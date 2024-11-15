@@ -16,6 +16,7 @@ use std::collections::{BTreeMap, BTreeSet, HashMap};
 #[derive(Default)]
 pub(crate) struct CompositionIr {
     pub(crate) definitions_by_name: HashMap<federated::StringId, federated::Definition>,
+    pub(crate) fields_by_name: HashMap<[federated::StringId; 2], usize>,
 
     pub(crate) type_definitions: Vec<federated::TypeDefinitionRecord>,
     pub(crate) objects: Vec<federated::Object>,
@@ -42,8 +43,10 @@ pub(crate) struct CompositionIr {
     pub(crate) keys: Vec<KeyIr>,
 
     /// Fields of an interface entity that are contributed by other subgraphs and must be added to
-    /// the interface's implementers in the federated schema
-    pub(crate) object_fields_from_entity_interfaces: BTreeSet<(federated::StringId, federated::FieldId)>,
+    /// the interface's implementers in the federated schema.
+    ///
+    /// (object_name, field_path)
+    pub(crate) object_fields_from_entity_interfaces: BTreeSet<(federated::StringId, [federated::StringId; 2])>,
 
     /// @authorized directives on objects
     pub(crate) object_authorized_directives: Vec<(federated::ObjectId, subgraphs::DirectiveSiteId)>,

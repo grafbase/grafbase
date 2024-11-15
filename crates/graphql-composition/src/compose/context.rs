@@ -82,8 +82,31 @@ impl<'a> Context<'a> {
         }))
     }
 
-    pub(crate) fn insert_field(&mut self, ir: ir::FieldIr) -> federated::FieldId {
-        federated::FieldId::from(self.ir.fields.push_return_idx(ir))
+    pub(crate) fn insert_field(&mut self, ir: ir::FieldIr) {
+        let field_name = ir.field_name;
+        let definition_name = match &ir.parent_definition {
+            graphql_federated_graph::Definition::Scalar(type_definition_id) => {
+                self.ir.type_definitions[usize::from(*type_definition_id)].name
+            }
+            graphql_federated_graph::Definition::Object(object_id) => {
+                let type_definition_id = self.ir.objects[usize::from(*object_id)].type_definition_id;
+                self.ir.type_definitions[usize::from(type_definition_id)].name
+            }
+            graphql_federated_graph::Definition::Interface(interface_id) => {
+                let type_definition_id = self.ir.interfaces[usize::from(*interface_id)].type_definition_id;
+                self.ir.type_definitions[usize::from(type_definition_id)].name
+            }
+            graphql_federated_graph::Definition::Union(union_id) => self.ir.unions[usize::from(*union_id)].name,
+            graphql_federated_graph::Definition::Enum(type_definition_id) => {
+                self.ir.type_definitions[usize::from(*type_definition_id)].name
+            }
+            graphql_federated_graph::Definition::InputObject(input_object_id) => {
+                self.ir.input_objects[usize::from(*input_object_id)].name
+            }
+        };
+
+        let idx = self.ir.fields.push_return_idx(ir);
+        self.ir.fields_by_name.insert([definition_name, field_name], idx);
     }
 
     pub(crate) fn insert_input_object(
@@ -304,11 +327,12 @@ impl<'a> Context<'a> {
     pub(crate) fn insert_object_field_from_entity_interface(
         &mut self,
         object_name: federated::StringId,
-        field_id: federated::FieldId,
+        entity_interface_name: federated::StringId,
+        field_name: federated::StringId,
     ) {
         self.ir
             .object_fields_from_entity_interfaces
-            .insert((object_name, field_id));
+            .insert((object_name, [entity_interface_name, field_name]));
     }
 
     pub(crate) fn insert_list_size_directive(

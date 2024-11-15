@@ -13,7 +13,7 @@ use crate::{
 use graphql_federated_graph::{self as federated};
 use itertools::Itertools;
 use std::{
-    collections::{BTreeMap, BTreeSet},
+    collections::{BTreeMap, BTreeSet, HashMap},
     mem,
 };
 
@@ -53,6 +53,7 @@ pub(crate) fn emit_federated_graph(mut ir: CompositionIr, subgraphs: &Subgraphs)
     emit_fields(
         mem::take(&mut ir.fields),
         &ir.object_fields_from_entity_interfaces,
+        &ir.fields_by_name,
         &mut ctx,
     );
     emit_union_members(&ir.union_members, &ir.union_join_members, &mut ctx);
@@ -214,7 +215,8 @@ fn emit_interface_impls(ctx: &mut Context<'_>) {
 
 fn emit_fields<'a>(
     ir_fields: Vec<FieldIr>,
-    object_fields_from_entity_interfaces: &BTreeSet<(federated::StringId, federated::FieldId)>,
+    object_fields_from_entity_interfaces: &BTreeSet<(federated::StringId, [federated::StringId; 2])>,
+    fields_by_name: &HashMap<[federated::StringId; 2], usize>,
     ctx: &mut Context<'a>,
 ) {
     // We have to accumulate the `@provides`, `@requires` and `@authorized` and delay emitting them because
@@ -247,8 +249,11 @@ fn emit_fields<'a>(
         if let federated::Definition::Object(id) = definition {
             let object_name = ctx.out.at(id).then(|obj| obj.type_definition_id).name;
             let fields_from_entity_interfaces = object_fields_from_entity_interfaces
-                .range((object_name, federated::FieldId::from(0))..(object_name, federated::FieldId::from(usize::MAX)))
-                .map(|(_, field_id)| ir_fields[usize::from(*field_id)].clone());
+                .range(
+                    (object_name, [federated::StringId::from(0); 2])
+                        ..(object_name, [federated::StringId::from(usize::MAX); 2]),
+                )
+                .map(|(_, field_path)| ir_fields[fields_by_name[field_path]].clone());
 
             fields.extend(fields_from_entity_interfaces);
         }
