@@ -10,7 +10,7 @@ use cynic::{http::ReqwestExt, MutationBuilder};
 
 pub enum SchemaCheckResult {
     Ok(SchemaCheck),
-    SubgraphNameMissingOnFederatedProjectError,
+    SubgraphNameMissingOnFederatedGraphError,
 }
 
 pub async fn check(
@@ -41,10 +41,10 @@ pub async fn check(
         cynic::GraphQlResponse {
             data:
                 Some(SchemaCheckCreate {
-                    schema_check_create: Some(SchemaCheckPayload::SubgraphNameMissingOnFederatedProjectError(_)),
+                    schema_check_create: Some(SchemaCheckPayload::SubgraphNameMissingOnFederatedGraphError(_)),
                 }),
             errors: _,
-        } => Ok(SchemaCheckResult::SubgraphNameMissingOnFederatedProjectError),
+        } => Ok(SchemaCheckResult::SubgraphNameMissingOnFederatedGraphError),
         cynic::GraphQlResponse {
             data:
                 Some(SchemaCheckCreate {
