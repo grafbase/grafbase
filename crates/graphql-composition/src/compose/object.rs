@@ -161,7 +161,6 @@ fn required_argument_not_in_intersection_error(
 }
 
 pub(super) fn compose_object_fields<'a>(
-    parent_definition: federated::ObjectId,
     parent_definition_name: federated::StringId,
     object_is_shareable: bool,
     first: FieldWalker<'a>,
@@ -254,7 +253,7 @@ pub(super) fn compose_object_fields<'a>(
     fields::insert_list_size_directives(fields.iter(), ctx, parent_definition_name, field_name);
 
     ctx.insert_field(ir::FieldIr {
-        parent_definition: federated::Definition::Object(parent_definition),
+        parent_definition: parent_definition_name,
         field_name,
         field_type,
         arguments,

@@ -1,33 +1,8 @@
-use std::ops::Index;
-
 use super::*;
-
-#[derive(Debug, Clone, Copy, Ord, PartialEq, Eq, PartialOrd)]
-pub(crate) struct FieldIrId(usize);
-
-impl Index<FieldIrId> for CompositionIr {
-    type Output = FieldIr;
-
-    fn index(&self, index: FieldIrId) -> &Self::Output {
-        &self.fields[index.0]
-    }
-}
-
-impl From<usize> for FieldIrId {
-    fn from(value: usize) -> Self {
-        FieldIrId(value)
-    }
-}
-
-impl From<FieldIrId> for usize {
-    fn from(value: FieldIrId) -> Self {
-        value.0
-    }
-}
 
 #[derive(Clone)]
 pub(crate) struct FieldIr {
-    pub(crate) parent_definition: federated::Definition,
+    pub(crate) parent_definition: federated::StringId,
     pub(crate) field_name: federated::StringId,
     pub(crate) field_type: subgraphs::FieldTypeId,
     pub(crate) arguments: federated::InputValueDefinitions,

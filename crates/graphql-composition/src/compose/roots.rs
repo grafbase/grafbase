@@ -60,7 +60,7 @@ fn merge_fields<'a>(
             };
 
             ctx.insert_field(ir::FieldIr {
-                parent_definition: federated::Definition::Object(object_id),
+                parent_definition: type_name,
                 field_name,
                 field_type,
                 arguments: federated::NO_INPUT_VALUE_DEFINITION,
@@ -77,7 +77,7 @@ fn merge_fields<'a>(
 
     super::fields::for_each_field_group(definitions, |fields| {
         let Some(first) = fields.first() else { return };
-        object::compose_object_fields(object_id, type_name, false, *first, fields, ctx);
+        object::compose_object_fields(type_name, false, *first, fields, ctx);
     });
 
     Some(object_id)
