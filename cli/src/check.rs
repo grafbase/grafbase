@@ -56,7 +56,7 @@ pub(crate) async fn check(command: CheckCommand) -> Result<(), CliError> {
         lint_check_errors,
     } = match result {
         check::SchemaCheckResult::Ok(check) => check,
-        check::SchemaCheckResult::SubgraphNameMissingOnFederatedProjectError => {
+        check::SchemaCheckResult::SubgraphNameMissingOnFederatedGraphError => {
             report::check_name_missing_on_federated_graph();
             std::process::exit(1);
         }

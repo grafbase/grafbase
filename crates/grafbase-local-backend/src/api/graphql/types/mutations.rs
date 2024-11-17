@@ -282,14 +282,14 @@ pub enum SchemaCheckErrorSeverity {
 }
 
 #[derive(cynic::QueryFragment, Debug)]
-pub struct SubgraphNameMissingOnFederatedProjectError {
+pub struct SubgraphNameMissingOnFederatedGraphError {
     __typename: String,
 }
 
 #[derive(cynic::InlineFragments, Debug)]
 pub enum SchemaCheckPayload {
     SchemaCheck(SchemaCheck),
-    SubgraphNameMissingOnFederatedProjectError(SubgraphNameMissingOnFederatedProjectError),
+    SubgraphNameMissingOnFederatedGraphError(SubgraphNameMissingOnFederatedGraphError),
     #[cynic(fallback)]
     Unknown(String),
 }
