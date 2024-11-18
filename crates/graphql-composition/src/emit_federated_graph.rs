@@ -46,6 +46,11 @@ pub(crate) fn emit_federated_graph(mut ir: CompositionIr, subgraphs: &Subgraphs)
 
     let mut ctx = Context::new(&mut ir, subgraphs, &mut out);
 
+    // The fields of a given object or interface may not be contiguous in the IR because of entity interfaces.
+    // Also, sort them by name.
+    ir.fields
+        .sort_unstable_by_key(|field| (field.parent_definition, &ctx[field.field_name]));
+
     emit_directives(&mut ir.directives, &mut ctx);
     emit_subgraphs(&mut ctx);
     emit_interface_impls(&mut ctx);
@@ -232,22 +237,10 @@ fn emit_fields<'a>(composition_ir: &CompositionIr, ctx: &mut Context<'a>) {
     }
     let mut field_authorized: Vec<AuthorizedField<'_>> = Vec::new();
 
-    emit_fields::for_each_field_group(&composition_ir.fields, |definition, fields| {
+    emit_fields::for_each_field_group(&composition_ir.fields, |parent_definition_name, fields| {
         let mut start_field_id = None;
         let mut end_field_id = None;
-
-        if let federated::Definition::Object(id) = definition {
-            let object_name = ctx.out.at(id).then(|obj| obj.type_definition_id).name;
-            let fields_from_entity_interfaces = composition_ir
-                .object_fields_from_entity_interfaces
-                .range((object_name, ir::FieldIrId::from(usize::MIN))..(object_name, ir::FieldIrId::from(usize::MAX)))
-                .map(|(_, field_id)| composition_ir[*field_id].clone());
-
-            fields.extend(fields_from_entity_interfaces);
-        }
-
-        // Sort the fields by name.
-        fields.sort_by(|a, b| ctx[a.field_name].cmp(&ctx[b.field_name]));
+        let parent_definition = ctx.definitions[&parent_definition_name];
 
         for FieldIr {
             parent_definition: _,
@@ -308,7 +301,7 @@ fn emit_fields<'a>(composition_ir: &CompositionIr, ctx: &mut Context<'a>) {
                     )
                 })
             }) {
-                field_requires.push((field_id, subgraph_id, definition, requires));
+                field_requires.push((field_id, subgraph_id, parent_definition, requires));
             }
 
             for authorized in authorized_directives
@@ -316,14 +309,14 @@ fn emit_fields<'a>(composition_ir: &CompositionIr, ctx: &mut Context<'a>) {
                 .filter_map(|field_id| ctx.subgraphs.walk_field(*field_id).directives().authorized())
             {
                 field_authorized.push(AuthorizedField {
-                    parent: definition,
+                    parent: parent_definition,
                     field_id,
                     output: output_definition,
                     directive: authorized,
                 });
             }
 
-            let selection_map_key = (definition, field_name);
+            let selection_map_key = (parent_definition, field_name);
             ctx.selection_map.insert(selection_map_key, field_id);
         }
 
@@ -335,7 +328,7 @@ fn emit_fields<'a>(composition_ir: &CompositionIr, ctx: &mut Context<'a>) {
             })
             .unwrap_or(federated::NO_FIELDS);
 
-        match definition {
+        match parent_definition {
             federated::Definition::Object(id) => {
                 ctx.out.objects[usize::from(id)].fields = fields;
             }

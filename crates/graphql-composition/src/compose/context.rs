@@ -82,8 +82,8 @@ impl<'a> Context<'a> {
         }))
     }
 
-    pub(crate) fn insert_field(&mut self, ir: ir::FieldIr) -> ir::FieldIrId {
-        ir::FieldIrId::from(self.ir.fields.push_return_idx(ir))
+    pub(crate) fn insert_field(&mut self, ir: ir::FieldIr) {
+        self.ir.fields.push(ir);
     }
 
     pub(crate) fn insert_input_object(
@@ -299,16 +299,6 @@ impl<'a> Context<'a> {
 
     pub(crate) fn set_subscription(&mut self, id: federated::ObjectId) {
         self.ir.subscription_type = Some(id);
-    }
-
-    pub(crate) fn insert_object_field_from_entity_interface(
-        &mut self,
-        object_name: federated::StringId,
-        field_id: ir::FieldIrId,
-    ) {
-        self.ir
-            .object_fields_from_entity_interfaces
-            .insert((object_name, field_id));
     }
 
     pub(crate) fn insert_list_size_directive(

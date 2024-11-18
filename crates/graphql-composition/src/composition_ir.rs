@@ -42,12 +42,6 @@ pub(crate) struct CompositionIr {
     pub(crate) union_join_members: BTreeMap<(federated::StringId, federated::StringId), Vec<SubgraphId>>,
     pub(crate) keys: Vec<KeyIr>,
 
-    /// Fields of an interface entity that are contributed by other subgraphs and must be added to
-    /// the interface's implementers in the federated schema.
-    ///
-    /// (object_name, field_id)
-    pub(crate) object_fields_from_entity_interfaces: BTreeSet<(federated::StringId, FieldIrId)>,
-
     /// @authorized directives on objects
     pub(crate) object_authorized_directives: Vec<(federated::ObjectId, subgraphs::DirectiveSiteId)>,
     /// @authorized directives on interfaces

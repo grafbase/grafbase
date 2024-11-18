@@ -64,7 +64,7 @@ pub(super) fn merge_interface_definitions<'a>(
         fields::insert_list_size_directives(fields.iter().map(|(_, f)| f), ctx, interface_name, field_name);
 
         ctx.insert_field(ir::FieldIr {
-            parent_definition: federated::Definition::Interface(interface_id),
+            parent_definition: interface_name,
             field_name,
             field_type,
             arguments,

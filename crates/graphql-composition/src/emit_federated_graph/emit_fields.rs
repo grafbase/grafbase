@@ -4,7 +4,7 @@ use graphql_federated_graph as federated;
 /// Takes each group of consecutive fields with the same parent definition and calls `f` with each.
 pub(super) fn for_each_field_group<F>(fields: &[FieldIr], mut f: F)
 where
-    F: FnMut(federated::Definition, &mut Vec<FieldIr>),
+    F: FnMut(federated::StringId, &mut Vec<FieldIr>),
 {
     let mut start = 0;
     let mut buf = Vec::new();

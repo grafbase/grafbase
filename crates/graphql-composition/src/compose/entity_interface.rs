@@ -73,6 +73,7 @@ pub(crate) fn merge_entity_interface_definitions<'a>(
         ctx.insert_interface_authorized(interface_id, authorized.id);
     }
 
+    // The fields of the entity interface. They are defined not only in the subgraph where the entity interface is an interface: more fields are contributed by other subgraphs where there are objects with `@interfaceObject`. These fields from other subgraphs are later automatically added to the implementers of the interface in the subgraph where the interface is defined.
     let mut fields = BTreeMap::new();
 
     for field in interface_def.fields() {
@@ -91,7 +92,7 @@ pub(crate) fn merge_entity_interface_definitions<'a>(
             };
 
             let ir = ir::FieldIr {
-                parent_definition: federated::Definition::Interface(interface_id),
+                parent_definition: interface_name,
                 field_name: ctx.insert_string(field.name().id),
                 field_type: field.r#type().id,
                 arguments,
@@ -180,7 +181,7 @@ pub(crate) fn merge_entity_interface_definitions<'a>(
                 };
 
                 let ir = ir::FieldIr {
-                    parent_definition: federated::Definition::Interface(interface_id),
+                    parent_definition: interface_name,
                     field_name: ctx.insert_string(field.name().id),
                     field_type: field.r#type().id,
                     arguments: translate_arguments(field, ctx),
@@ -199,18 +200,21 @@ pub(crate) fn merge_entity_interface_definitions<'a>(
         }
     }
 
-    let field_ids: Vec<(StringId, _)> = fields
+    let fields_to_add: Vec<(StringId, _)> = fields
         .into_iter()
         .map(|(name, (field, list_size_directive))| {
             if let Some(directive) = list_size_directive {
                 ctx.insert_list_size_directive(interface_name, field.field_name, directive.clone());
             }
 
-            (name, ctx.insert_field(field))
+            // Insert here for the entity. But also return it for the implementers of the interface further down.
+            ctx.insert_field(field.clone());
+
+            (name, field)
         })
         .collect();
 
-    // Contribute the interface fields from the interface object definitions to the implementer of
+    // Contribute the interface fields from the interface object definitions to the implementers of
     // that interface.
     for object in interface_def.subgraph().interface_implementers(first.name().id) {
         match object.entity_keys().next() {
@@ -230,14 +234,16 @@ pub(crate) fn merge_entity_interface_definitions<'a>(
 
         let object_name = ctx.insert_string(object.name().id);
 
-        let fields_to_add = field_ids
+        let fields_to_add = fields_to_add
             .iter()
             // Avoid adding fields that are already present on the object by virtue of the object implementing the interface.
             .filter(|(name, _)| object.find_field(*name).is_none())
-            .map(|(_, field_id)| field_id);
+            .map(|(_, field_ir)| field_ir);
 
-        for field_id in fields_to_add {
-            ctx.insert_object_field_from_entity_interface(object_name, *field_id);
+        for field_ir in fields_to_add {
+            let mut field_ir = field_ir.clone();
+            field_ir.parent_definition = object_name;
+            ctx.insert_field(field_ir);
         }
     }
 }
