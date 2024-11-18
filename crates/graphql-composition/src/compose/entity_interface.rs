@@ -73,6 +73,7 @@ pub(crate) fn merge_entity_interface_definitions<'a>(
         ctx.insert_interface_authorized(interface_id, authorized.id);
     }
 
+    // The fields of the entity interface. They are defined not only in the subgraph where the entity interface is an interface: more fields are contributed by other subgraphs where there are objects with `@interfaceObject`. These fields from other subgraphs are later automatically added to the implementers of the interface in the subgraph where the interface is defined.
     let mut fields = BTreeMap::new();
 
     for field in interface_def.fields() {
