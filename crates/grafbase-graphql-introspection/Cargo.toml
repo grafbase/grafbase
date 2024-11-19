@@ -11,10 +11,10 @@ repository.workspace = true
 workspace = true
 
 [dependencies]
-indoc = "2.0.5"
+indoc.workspace = true
 reqwest = { workspace = true, features = ["json", "rustls-tls"] }
 cynic = { workspace = true, features = ["http-reqwest"] }
 cynic-introspection.workspace = true
-cynic-parser = { workspace = true,  features = ["pretty"] }
+cynic-parser = { workspace = true, features = ["pretty"] }
 serde = "1.0.199"
 grafbase-workspace-hack.workspace = true
