@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use super::complexity_control;
 use crate::{
     operation::Variables,
     prepare::{
@@ -24,6 +25,15 @@ impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
                 })
             }
         };
+
+        if !self.schema().settings.complexity_control.is_disabled() {
+            let operation = cached_operation
+                .operation
+                .as_ref()
+                .expect("cached_operation to be present if complexity control is active");
+
+            complexity_control::control_complexity(self.schema(), operation.walker_with(self.schema()), &variables)?;
+        }
 
         Ok(PreparedOperation {
             cached: cached_operation,

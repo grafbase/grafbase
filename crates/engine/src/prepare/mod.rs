@@ -12,7 +12,7 @@ use runtime::hooks::Hooks;
 use tracing::{info_span, Instrument};
 
 use crate::{
-    operation::{OperationPlan, SolvedOperation, Variables},
+    operation::{BoundOperation, OperationPlan, SolvedOperation, Variables},
     request::Request,
     response::Response,
     Runtime,
@@ -48,6 +48,9 @@ impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
 pub(crate) struct CachedOperation {
     pub solved: SolvedOperation,
     pub attributes: GraphqlOperationAttributes,
+    // This is optional because we only currently need it for complexity control
+    // That may change in the future...
+    pub operation: Option<BoundOperation>,
 }
 
 impl CachedOperation {
