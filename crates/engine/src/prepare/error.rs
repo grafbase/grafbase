@@ -41,7 +41,9 @@ impl From<PrepareError> for GraphqlError {
             PrepareError::Solve { err, .. } => err.into(),
             PrepareError::NormalizationError => GraphqlError::new(err.to_string(), ErrorCode::InternalServerError),
             // TODO: Is this a good error code? Not sure
-            PrepareError::ComplexityLimitReached => GraphqlError::new(err.to_string(), ErrorCode::BadRequest),
+            PrepareError::ComplexityLimitReached => {
+                GraphqlError::new(err.to_string(), ErrorCode::OperationValidationError)
+            }
         }
     }
 }

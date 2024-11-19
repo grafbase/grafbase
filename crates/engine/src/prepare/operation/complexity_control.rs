@@ -48,15 +48,15 @@ struct ComplexityContext<'a> {
 fn selection_set_complexity(
     context: &ComplexityContext<'_>,
     selection_set: SelectionSetWalker<'_>,
-    child_field_count: Option<ChildFieldCount<'_>>,
+    field_multipliers: Option<FieldMultipliers<'_>>,
 ) -> usize {
     selection_set
         .fields()
         .map(|field| {
-            let preset_list_size = child_field_count.as_ref().and_then(|child_fields| {
+            let preset_list_size = field_multipliers.as_ref().and_then(|child_fields| {
                 child_fields.fields.iter().find_map(|child_field| {
                     if field.name() == *child_field {
-                        Some(child_fields.count)
+                        Some(child_fields.multiplier)
                     } else {
                         None
                     }
@@ -104,29 +104,29 @@ fn cost_for_argument(
     argument_cost as usize
 }
 
-enum ChildCount<'a> {
-    ThisField(usize),
-    ChildFields(ChildFieldCount<'a>),
+enum ListSizeHandling<'a> {
+    ThisFieldIsTheList(usize),
+    ChildFieldsAreTheList(FieldMultipliers<'a>),
 }
 
-impl<'a> ChildCount<'a> {
+impl<'a> ListSizeHandling<'a> {
     pub fn this_field_count(&self) -> usize {
         match self {
-            ChildCount::ThisField(count) => *count,
-            ChildCount::ChildFields(_) => 1,
+            ListSizeHandling::ThisFieldIsTheList(count) => *count,
+            ListSizeHandling::ChildFieldsAreTheList(_) => 1,
         }
     }
 
-    pub fn child_field_count(self) -> Option<ChildFieldCount<'a>> {
+    pub fn child_field_count(self) -> Option<FieldMultipliers<'a>> {
         match self {
-            ChildCount::ChildFields(count) => Some(count),
+            ListSizeHandling::ChildFieldsAreTheList(count) => Some(count),
             _ => None,
         }
     }
 }
 
-struct ChildFieldCount<'a> {
-    count: usize,
+struct FieldMultipliers<'a> {
+    multiplier: usize,
     fields: Vec<&'a str>,
 }
 
@@ -135,25 +135,25 @@ fn calculate_child_count<'a>(
     field: OperationWalker<'_, crate::operation::BoundFieldId>,
     list_size_directive: Option<schema::ListSizeDirective<'a>>,
     preset_list_size: Option<usize>,
-) -> ChildCount<'a> {
+) -> ListSizeHandling<'a> {
     let field_is_list = field
         .definition()
         .map(|def| def.ty().wrapping.is_list())
         .unwrap_or_default();
 
     if !field_is_list {
-        return ChildCount::ThisField(1);
+        return ListSizeHandling::ThisFieldIsTheList(1);
     }
 
     if let Some(size) = preset_list_size {
-        return ChildCount::ThisField(size);
+        return ListSizeHandling::ThisFieldIsTheList(size);
     }
 
     let Some(directive) = list_size_directive else {
-        return ChildCount::ThisField(context.default_list_size);
+        return ListSizeHandling::ThisFieldIsTheList(context.default_list_size);
     };
 
-    let mut count = directive.assumed_size.unwrap_or(context.default_list_size as u32) as usize;
+    let mut multiplier = directive.assumed_size.unwrap_or(context.default_list_size as u32) as usize;
 
     let mut slicing_arguments = directive.slicing_arguments().peekable();
     if slicing_arguments.peek().is_some() {
@@ -165,16 +165,16 @@ fn calculate_child_count<'a>(
             todo!("error")
         }
 
-        count = argument_size.unwrap_or(context.default_list_size);
+        multiplier = argument_size.unwrap_or(context.default_list_size);
     }
 
     let mut sized_fields = directive.sized_fields().peekable();
     if sized_fields.peek().is_none() {
-        return ChildCount::ThisField(count);
+        return ListSizeHandling::ThisFieldIsTheList(multiplier);
     }
 
-    ChildCount::ChildFields(ChildFieldCount {
-        count,
+    ListSizeHandling::ChildFieldsAreTheList(FieldMultipliers {
+        multiplier,
         fields: sized_fields.map(|sized_field| sized_field.name()).collect(),
     })
 }
