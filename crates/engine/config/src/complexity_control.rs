@@ -16,6 +16,10 @@ impl ComplexityControl {
         matches!(self, ComplexityControl::Disabled)
     }
 
+    pub fn is_enforce(&self) -> bool {
+        matches!(self, ComplexityControl::Enforce { .. })
+    }
+
     pub fn limit(&self) -> Option<usize> {
         match self {
             ComplexityControl::Disabled => None,

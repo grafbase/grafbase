@@ -32,7 +32,7 @@ pub fn control_complexity(schema: &Schema, operation: OperationWalker<'_>, varia
     let cost = base_cost + selection_set_complexity(&context, selection_set, None);
 
     if let Some(limit) = schema.settings.complexity_control.limit() {
-        if cost > limit {
+        if cost > limit && schema.settings.complexity_control.is_enforce() {
             return Err(PrepareError::ComplexityLimitReached);
         }
     }
