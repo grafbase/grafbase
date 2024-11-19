@@ -19,4 +19,4 @@ workspace = true
 
 [dev-dependencies]
 expect-test = "1.5.0"
-indoc = "2.0.5"
+indoc.workspace = true

@@ -30,7 +30,7 @@ cfg-if = "1.0.0"
 grafbase-workspace-hack.workspace = true
 
 [dev-dependencies]
-indoc = "2.0.5"
+indoc.workspace = true
 insta.workspace = true
 temp-env = "0.3.6"
 toml = "0.8.12"

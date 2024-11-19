@@ -48,7 +48,7 @@ graphql-composition.workspace = true
 grafbase-graphql-introspection.workspace = true
 graphql-mocks.workspace = true
 http.workspace = true
-indoc = "2.0.5"
+indoc.workspace = true
 insta = { workspace = true, features = ["json", "redactions", "yaml"] }
 rand.workspace = true
 reqwest.workspace = true
