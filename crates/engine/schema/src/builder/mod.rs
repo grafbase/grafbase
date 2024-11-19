@@ -190,4 +190,13 @@ from_id_newtypes! {
     config::HeaderRuleId => HeaderRuleId,
 }
 
+impl From<federated_graph::EntityDefinitionId> for EntityDefinitionId {
+    fn from(id: federated_graph::EntityDefinitionId) -> Self {
+        match id {
+            federated_graph::EntityDefinitionId::Object(id) => EntityDefinitionId::Object(id.into()),
+            federated_graph::EntityDefinitionId::Interface(id) => EntityDefinitionId::Interface(id.into()),
+        }
+    }
+}
+
 const DEFAULT_GATEWAY_TIMEOUT: Duration = Duration::from_secs(30);

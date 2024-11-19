@@ -1,3 +1,4 @@
+mod directive;
 mod display_utils;
 mod render_api_sdl;
 mod render_federated_sdl;

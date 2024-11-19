@@ -17,9 +17,10 @@ use crate::{
     composition_ir as ir,
     subgraphs::{self, DefinitionKind, DefinitionWalker, FieldWalker, StringId},
 };
+use directives::create_join_type_from_definitions;
 use graphql_federated_graph as federated;
 use itertools::Itertools;
-use std::collections::{BTreeMap, BTreeSet, HashSet};
+use std::collections::{BTreeSet, HashSet};
 
 pub(crate) fn compose_subgraphs(ctx: &mut Context<'_>) {
     ctx.subgraphs.iter_definition_groups(|definitions| {
@@ -72,8 +73,8 @@ fn merge_object_definitions<'a>(
         return;
     }
 
-    let first_is_entity = first.is_entity();
-    if definitions.iter().any(|object| object.is_entity() != first_is_entity) {
+    let is_entity = first.is_entity();
+    if definitions.iter().any(|object| object.is_entity() != is_entity) {
         let name = first.name().as_str();
         let (entity_subgraphs, non_entity_subgraphs) = definitions
             .iter()
@@ -93,32 +94,30 @@ fn merge_object_definitions<'a>(
     }
 
     let description = definitions.iter().find_map(|def| def.description());
-    let composed_directives = collect_composed_directives(definitions.iter().map(|def| def.directives()), ctx);
+    let mut directives = collect_composed_directives(definitions.iter().map(|def| def.directives()), ctx);
 
+    if is_entity {
+        directives.extend(definitions.iter().flat_map(|def| def.entity_keys()).map(|key| {
+            ir::Directive::JoinType(ir::JoinTypeDirective {
+                subgraph_id: federated::SubgraphId::from(key.parent_definition().subgraph_id().idx()),
+                key: Some(key.id),
+                is_interface_object: false,
+            })
+        }));
+    } else {
+        directives.extend(create_join_type_from_definitions(definitions));
+    }
     let object_name = ctx.insert_string(first.name().id);
-    let object_id = ctx.insert_object(object_name, description, composed_directives);
-
-    for key in definitions.iter().flat_map(|def| def.entity_keys()) {
-        ctx.insert_key(object_id, key);
-    }
-
-    for authorized in definitions
-        .iter()
-        .map(|def| def.directives())
-        .filter(|directives| directives.authorized().is_some())
-    {
-        ctx.insert_object_authorized(object_id, authorized.id);
-    }
+    ctx.insert_object(object_name, description, directives);
 
     if is_shareable {
         object::validate_shareable_object_fields_match(definitions, ctx);
     }
 
-    fields::for_each_field_group(definitions, |fields| {
-        let Some(first) = fields.first() else { return };
-
-        object::compose_object_fields(object_name, is_shareable, *first, fields, ctx);
-    });
+    let fields = object::compose_fields(ctx, definitions, object_name, is_shareable);
+    for field in fields {
+        ctx.insert_field(field);
+    }
 }
 
 fn merge_union_definitions(
@@ -129,16 +128,18 @@ fn merge_union_definitions(
     let union_name = ctx.insert_string(first_union.name().id);
 
     let description = definitions.iter().find_map(|def| def.description());
-    let directives = collect_composed_directives(definitions.iter().map(|def| def.directives()), ctx);
-
-    ctx.insert_union(union_name, directives, description);
+    let mut directives = collect_composed_directives(definitions.iter().map(|def| def.directives()), ctx);
 
     for member in definitions
         .iter()
         .flat_map(|def| ctx.subgraphs.iter_union_members(def.id))
     {
+        directives.push(ir::Directive::JoinUnionMember(ir::JoinUnionMemberDirective { member }));
+
         let member = first_union.walk(member);
         let member_name = ctx.insert_string(member.name().id);
-        ctx.insert_union_member(member.subgraph_id(), union_name, member_name);
+        ctx.insert_union_member(union_name, member_name);
     }
+
+    ctx.insert_union(union_name, directives, description);
 }

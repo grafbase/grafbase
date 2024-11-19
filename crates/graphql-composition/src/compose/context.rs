@@ -1,8 +1,6 @@
-use std::collections::{btree_map, BTreeSet};
-
 use crate::{
     composition_ir::{self as ir, CompositionIr},
-    subgraphs::{self, StringWalker, SubgraphId},
+    subgraphs::{self, StringWalker},
     Diagnostics, VecExt,
 };
 use graphql_federated_graph as federated;
@@ -27,7 +25,7 @@ impl<'a> Context<'a> {
         };
 
         for builtin_scalar in subgraphs.iter_builtin_scalars() {
-            context.insert_scalar(builtin_scalar.as_str(), None, federated::NO_DIRECTIVES);
+            context.insert_scalar(builtin_scalar.as_str(), None, Vec::new());
         }
 
         context
@@ -37,24 +35,24 @@ impl<'a> Context<'a> {
         self.ir
     }
 
-    pub(crate) fn insert_directive(&mut self, directive: ir::Directive) -> federated::DirectiveId {
-        federated::DirectiveId::from(self.ir.directives.push_return_idx(directive))
-    }
-
     pub(crate) fn insert_enum(
         &mut self,
         enum_name: &str,
         description: Option<&str>,
-        directives: federated::Directives,
+        directives: Vec<ir::Directive>,
     ) -> federated::TypeDefinitionId {
         let name = self.ir.strings.insert(enum_name);
         let description = description.map(|description| self.ir.strings.insert(description));
 
-        let r#enum = federated::TypeDefinitionRecord {
-            name,
+        let r#enum = ir::TypeDefinitionIr {
+            federated: federated::TypeDefinitionRecord {
+                name,
+                description,
+                kind: federated::TypeDefinitionKind::Enum,
+                // Populated when emitting the federated graph.
+                directives: Vec::new(),
+            },
             directives,
-            description,
-            kind: federated::TypeDefinitionKind::Enum,
         };
 
         let id = federated::TypeDefinitionId::from(self.ir.type_definitions.push_return_idx(r#enum));
@@ -68,17 +66,21 @@ impl<'a> Context<'a> {
         &mut self,
         value: &str,
         description: Option<&str>,
-        composed_directives: federated::Directives,
+        directives: Vec<ir::Directive>,
         enum_id: federated::TypeDefinitionId,
     ) -> federated::EnumValueId {
         let value = self.ir.strings.insert(value);
         let description = description.map(|description| self.ir.strings.insert(description));
 
-        federated::EnumValueId::from(self.ir.enum_values.push_return_idx(federated::EnumValueRecord {
-            enum_id,
-            value,
-            composed_directives,
-            description,
+        federated::EnumValueId::from(self.ir.enum_values.push_return_idx(ir::EnumValueIr {
+            federated: federated::EnumValueRecord {
+                enum_id,
+                value,
+                description,
+                // Populated when emitting the federated graph.
+                directives: Vec::new(),
+            },
+            directives,
         }))
     }
 
@@ -90,15 +92,19 @@ impl<'a> Context<'a> {
         &mut self,
         name: federated::StringId,
         description: Option<&str>,
-        composed_directives: federated::Directives,
+        directives: Vec<ir::Directive>,
         fields: federated::InputValueDefinitions,
     ) -> federated::InputObjectId {
         let description = description.map(|description| self.ir.strings.insert(description));
-        let object = federated::InputObject {
-            name,
-            fields,
-            composed_directives,
-            description,
+        let object = ir::InputObjectIr {
+            federated: federated::InputObject {
+                name,
+                fields,
+                description,
+                // Populated when emitting the federated graph.
+                directives: Vec::new(),
+            },
+            directives,
         };
         let id = federated::InputObjectId::from(self.ir.input_objects.push_return_idx(object));
         self.ir
@@ -118,24 +124,27 @@ impl<'a> Context<'a> {
         &mut self,
         name: federated::StringId,
         description: Option<&str>,
-        composed_directives: federated::Directives,
+        directives: Vec<ir::Directive>,
     ) -> federated::InterfaceId {
         let description = description.map(|description| self.ir.strings.insert(description));
 
-        let type_definition = federated::TypeDefinitionRecord {
-            name,
-            description,
-            directives: composed_directives,
-            kind: federated::TypeDefinitionKind::Interface,
+        let type_definition = ir::TypeDefinitionIr {
+            federated: federated::TypeDefinitionRecord {
+                name,
+                description,
+                kind: federated::TypeDefinitionKind::Interface,
+                // Populated when emitting the federated graph.
+                directives: Vec::new(),
+            },
+            directives,
         };
         let type_definition_id = self.ir.type_definitions.push_return_idx(type_definition).into();
 
         let interface = federated::Interface {
             type_definition_id,
-            implements_interfaces: Vec::new(),
-            keys: Vec::new(),
+            // Populated when emitting the federated graph.
             fields: federated::NO_FIELDS,
-            join_implements: Vec::new(),
+            implements_interfaces: Vec::new(),
         };
         let id = federated::InterfaceId::from(self.ir.interfaces.push_return_idx(interface));
         self.ir
@@ -150,35 +159,40 @@ impl<'a> Context<'a> {
         key: subgraphs::KeyWalker<'_>,
         is_interface_object: bool,
     ) {
-        self.ir.keys.push(ir::KeyIr {
-            parent: federated::Definition::Interface(id),
-            key_id: key.id,
-            is_interface_object,
-            resolvable: key.is_resolvable(),
-        });
+        let id = self.ir.interfaces[usize::from(id)].type_definition_id;
+        self.ir.type_definitions[usize::from(id)]
+            .directives
+            .push(ir::Directive::JoinType(ir::JoinTypeDirective {
+                subgraph_id: federated::SubgraphId::from(key.parent_definition().subgraph_id().idx()),
+                key: Some(key.id),
+                is_interface_object,
+            }))
     }
 
     pub(crate) fn insert_object(
         &mut self,
         name: federated::StringId,
         description: Option<StringWalker<'_>>,
-        composed_directives: federated::Directives,
+        directives: Vec<ir::Directive>,
     ) -> federated::ObjectId {
         let description = description.map(|description| self.ir.strings.insert(description.as_str()));
-        let type_definition = federated::TypeDefinitionRecord {
-            name,
-            description,
-            directives: composed_directives,
-            kind: federated::TypeDefinitionKind::Object,
+        let type_definition = ir::TypeDefinitionIr {
+            federated: federated::TypeDefinitionRecord {
+                name,
+                description,
+                kind: federated::TypeDefinitionKind::Object,
+                // Populated when emitting the federated graph.
+                directives: Vec::new(),
+            },
+            directives,
         };
         let type_definition_id = self.ir.type_definitions.push_return_idx(type_definition).into();
 
         let object = federated::Object {
             type_definition_id,
-            implements_interfaces: Vec::new(),
-            join_implements: Vec::new(),
-            keys: Vec::new(),
+            // Populated when emitting the federated graph.
             fields: federated::NO_FIELDS,
+            implements_interfaces: Vec::new(),
         };
         let id = federated::ObjectId::from(self.ir.objects.push_return_idx(object));
         self.ir
@@ -192,16 +206,20 @@ impl<'a> Context<'a> {
         &mut self,
         scalar_name: &str,
         description: Option<&str>,
-        composed_directives: federated::Directives,
+        directives: Vec<ir::Directive>,
     ) {
         let name = self.ir.strings.insert(scalar_name);
         let description = description.map(|description| self.ir.strings.insert(description));
 
-        let scalar = federated::TypeDefinitionRecord {
-            name,
-            directives: composed_directives,
-            description,
-            kind: federated::TypeDefinitionKind::Scalar,
+        let scalar = ir::TypeDefinitionIr {
+            federated: federated::TypeDefinitionRecord {
+                name,
+                description,
+                kind: federated::TypeDefinitionKind::Scalar,
+                // Populated when emitting the federated graph.
+                directives: Vec::new(),
+            },
+            directives,
         };
 
         let id = self.ir.type_definitions.push_return_idx(scalar);
@@ -213,17 +231,20 @@ impl<'a> Context<'a> {
     pub(crate) fn insert_union(
         &mut self,
         name: federated::StringId,
-        composed_directives: federated::Directives,
+        directives: Vec<ir::Directive>,
         description: Option<StringWalker<'_>>,
     ) -> federated::UnionId {
         let description = description.map(|description| self.ir.strings.insert(description.as_str()));
 
-        let union = federated::Union {
-            name,
-            members: Vec::new(),
-            join_members: BTreeSet::new(),
-            composed_directives,
-            description,
+        let union = ir::UnionIr {
+            federated: federated::Union {
+                name,
+                description,
+                // Populated when emitting the federated graph.
+                members: Vec::new(),
+                directives: Vec::new(),
+            },
+            directives,
         };
         let id = federated::UnionId::from(self.ir.unions.push_return_idx(union));
         self.ir
@@ -232,51 +253,8 @@ impl<'a> Context<'a> {
         id
     }
 
-    pub(crate) fn insert_union_member(
-        &mut self,
-        subgraph_id: SubgraphId,
-        union_name: federated::StringId,
-        member_name: federated::StringId,
-    ) {
+    pub(crate) fn insert_union_member(&mut self, union_name: federated::StringId, member_name: federated::StringId) {
         self.ir.union_members.insert((union_name, member_name));
-
-        match self.ir.union_join_members.entry((union_name, member_name)) {
-            btree_map::Entry::Vacant(entry) => {
-                entry.insert(vec![subgraph_id]);
-            }
-            btree_map::Entry::Occupied(mut entry) => {
-                entry.get_mut().push(subgraph_id);
-            }
-        }
-    }
-
-    pub(crate) fn insert_key(&mut self, id: federated::ObjectId, key: subgraphs::KeyWalker<'_>) {
-        self.ir.keys.push(ir::KeyIr {
-            parent: federated::Definition::Object(id),
-            key_id: key.id,
-            is_interface_object: false,
-            resolvable: key.is_resolvable(),
-        });
-    }
-
-    pub(crate) fn insert_object_authorized(
-        &mut self,
-        object_id: federated::ObjectId,
-        authorized_directive: subgraphs::DirectiveSiteId,
-    ) {
-        self.ir
-            .object_authorized_directives
-            .push((object_id, authorized_directive));
-    }
-
-    pub(crate) fn insert_interface_authorized(
-        &mut self,
-        interface_id: federated::InterfaceId,
-        authorized_directive: subgraphs::DirectiveSiteId,
-    ) {
-        self.ir
-            .interface_authorized_directives
-            .push((interface_id, authorized_directive));
     }
 
     pub(crate) fn insert_string(&mut self, string_id: subgraphs::StringId) -> federated::StringId {
@@ -299,14 +277,5 @@ impl<'a> Context<'a> {
 
     pub(crate) fn set_subscription(&mut self, id: federated::ObjectId) {
         self.ir.subscription_type = Some(id);
-    }
-
-    pub(crate) fn insert_list_size_directive(
-        &mut self,
-        definition_name: graphql_federated_graph::StringId,
-        field_name: graphql_federated_graph::StringId,
-        directive: graphql_federated_graph::directives::ListSizeDirective,
-    ) {
-        self.ir.list_sizes.insert((definition_name, field_name), directive);
     }
 }

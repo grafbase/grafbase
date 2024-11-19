@@ -73,19 +73,14 @@ impl<'a> Converter<'a> {
         field_set: federated_graph::SelectionSet,
         out: &mut Vec<FieldSetItemRecord>,
     ) -> Result<(), InputValueError> {
-        for item in field_set {
-            match item {
-                federated_graph::Selection::Field {
-                    field,
-                    arguments,
-                    subselection,
-                } => {
-                    if let Some(field) = self.convert_item(field, arguments, subselection)? {
-                        out.push(field)
+        let mut stack = vec![field_set];
+        while let Some(field_set) = stack.pop() {
+            for item in field_set.0 {
+                match item {
+                    federated_graph::Selection::Field(field) => {
+                        out.extend(self.convert_item(field.field_id, field.arguments, field.subselection)?)
                     }
-                }
-                federated_graph::Selection::InlineFragment { on: _, subselection } => {
-                    self.convert_set_rec(subselection, out)?;
+                    federated_graph::Selection::InlineFragment { on: _, subselection } => stack.push(subselection),
                 }
             }
         }

@@ -53,12 +53,12 @@ impl IdMaps {
         };
 
         for (i, field) in graph.fields.iter().enumerate() {
-            if is_inaccessible(graph, field.composed_directives) {
+            if is_inaccessible(graph, &field.directives) {
                 idmaps.field.skip(federated_graph::FieldId::from(i))
             }
         }
         for (i, input_value) in graph.input_value_definitions.iter().enumerate() {
-            if is_inaccessible(graph, input_value.directives) {
+            if is_inaccessible(graph, &input_value.directives) {
                 idmaps
                     .input_value
                     .skip(federated_graph::InputValueDefinitionId::from(i))

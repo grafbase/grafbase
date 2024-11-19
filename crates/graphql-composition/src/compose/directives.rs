@@ -1,30 +1,55 @@
 use super::*;
 
+pub(super) fn create_join_type_from_definitions(
+    definitions: &[DefinitionWalker<'_>],
+) -> impl Iterator<Item = ir::Directive> {
+    let mut subgraph_ids = definitions
+        .iter()
+        .map(|def| federated::SubgraphId::from(def.subgraph_id().idx()))
+        .collect::<Vec<_>>();
+    subgraph_ids.sort_unstable();
+    subgraph_ids.into_iter().dedup().map(|subgraph_id| {
+        ir::Directive::JoinType(ir::JoinTypeDirective {
+            subgraph_id,
+            key: None,
+            is_interface_object: false,
+        })
+    })
+}
+
 pub(super) fn collect_composed_directives<'a>(
     sites: impl Iterator<Item = subgraphs::DirectiveSiteWalker<'a>> + Clone,
     ctx: &mut ComposeContext<'_>,
-) -> federated::Directives {
+) -> Vec<ir::Directive> {
     let mut tags: BTreeSet<StringId> = BTreeSet::new();
     let mut is_inaccessible = false;
     let mut authenticated = false;
     let mut cost = None;
     let mut list_size = None;
     let mut extra_directives = Vec::new();
-    let mut ids: Option<federated::Directives> = None;
-    let mut push_directive = |ctx: &mut ComposeContext<'_>, directive: ir::Directive| {
-        let id = ctx.insert_directive(directive);
-        if let Some((_start, len)) = &mut ids {
-            *len += 1;
+    let mut out = Vec::new();
+
+    out.extend(sites.clone().filter_map(|dir| {
+        if dir.authorized().is_some() {
+            Some(ir::Directive::Authorized(ir::AuthorizedDirective { source: dir.id }))
         } else {
-            ids = Some((id, 1));
+            None
         }
-    };
+    }));
+
+    out.extend(
+        sites
+            .clone()
+            .filter_map(|dir| dir.list_size().cloned())
+            .reduce(|lhs, rhs| lhs.merge(rhs))
+            .map(ir::Directive::ListSize),
+    );
 
     if let Some(deprecated) = sites.clone().find_map(|directives| directives.deprecated()) {
         let directive = ir::Directive::Deprecated {
             reason: deprecated.reason().map(|reason| ctx.insert_string(reason.id)),
         };
-        push_directive(ctx, directive);
+        out.push(directive);
     }
 
     for site in sites.clone() {
@@ -49,15 +74,15 @@ pub(super) fn collect_composed_directives<'a>(
     }
 
     if is_inaccessible {
-        push_directive(ctx, ir::Directive::Inaccessible);
+        out.push(ir::Directive::Inaccessible);
     }
 
     if authenticated {
-        push_directive(ctx, ir::Directive::Authenticated)
+        out.push(ir::Directive::Authenticated);
     }
 
     if let Some(weight) = cost {
-        push_directive(ctx, ir::Directive::Cost { weight })
+        out.push(ir::Directive::Cost { weight });
     }
 
     // @requiresScopes
@@ -77,7 +102,7 @@ pub(super) fn collect_composed_directives<'a>(
         scopes.dedup();
 
         if !scopes.is_empty() {
-            push_directive(ctx, ir::Directive::RequiresScopes(scopes));
+            out.push(ir::Directive::RequiresScopes(scopes));
         }
     }
 
@@ -98,7 +123,7 @@ pub(super) fn collect_composed_directives<'a>(
         policies.dedup();
 
         if !policies.is_empty() {
-            push_directive(ctx, ir::Directive::Policy(policies));
+            out.push(ir::Directive::Policy(policies));
         }
     }
 
@@ -107,14 +132,14 @@ pub(super) fn collect_composed_directives<'a>(
             name: ctx.insert_static_str("tag"),
             arguments: vec![(ctx.insert_static_str("name"), subgraphs::Value::String(tag))],
         };
-        push_directive(ctx, directive);
+        out.push(directive);
     }
 
     extra_directives.dedup();
 
     for directive in extra_directives {
-        push_directive(ctx, directive)
+        out.push(directive);
     }
 
-    ids.unwrap_or((federated::DirectiveId::from(0), 0))
+    out
 }

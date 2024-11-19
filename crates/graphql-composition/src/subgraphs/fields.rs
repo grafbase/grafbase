@@ -20,7 +20,7 @@ pub(crate) struct Fields {
 }
 
 /// A field in an object, interface or input object type.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, PartialOrd, Debug)]
 pub(crate) struct FieldTuple {
     r#type: FieldTypeId,
     description: Option<StringId>,

@@ -1,5 +1,6 @@
+use std::collections::HashMap;
+
 use super::*;
-use crate::composition_ir as ir;
 
 pub(crate) fn merge_entity_interface_definitions<'a>(
     ctx: &mut Context<'a>,
@@ -7,7 +8,6 @@ pub(crate) fn merge_entity_interface_definitions<'a>(
     definitions: &[DefinitionWalker<'a>],
 ) {
     let interface_name = first.name();
-    let composed_directives = collect_composed_directives(definitions.iter().map(|def| def.directives()), ctx);
 
     let interface_defs = || definitions.iter().filter(|def| def.kind() == DefinitionKind::Interface);
     let mut interfaces = interface_defs();
@@ -63,51 +63,8 @@ pub(crate) fn merge_entity_interface_definitions<'a>(
 
     let description = interface_def.description().map(|d| d.as_str());
     let interface_name = ctx.insert_string(interface_name.id);
-    let interface_id = ctx.insert_interface(interface_name, description, composed_directives);
-
-    for authorized in definitions
-        .iter()
-        .map(|def| def.directives())
-        .filter(|directives| directives.authorized().is_some())
-    {
-        ctx.insert_interface_authorized(interface_id, authorized.id);
-    }
-
-    // The fields of the entity interface. They are defined not only in the subgraph where the entity interface is an interface: more fields are contributed by other subgraphs where there are objects with `@interfaceObject`. These fields from other subgraphs are later automatically added to the implementers of the interface in the subgraph where the interface is defined.
-    let mut fields = BTreeMap::new();
-
-    for field in interface_def.fields() {
-        fields.entry(field.name().id).or_insert_with(|| {
-            let arguments = translate_arguments(field, ctx);
-            let resolvable_in = if field.is_part_of_key() {
-                Vec::new()
-            } else {
-                vec![federated::SubgraphId::from(interface_def.subgraph_id().idx())]
-            };
-            let composed_directives = collect_composed_directives(std::iter::once(field.directives()), ctx);
-            let authorized_directives = if field.directives().authorized().is_some() {
-                vec![field.id.0]
-            } else {
-                vec![]
-            };
-
-            let ir = ir::FieldIr {
-                parent_definition: interface_name,
-                field_name: ctx.insert_string(field.name().id),
-                field_type: field.r#type().id,
-                arguments,
-                resolvable_in,
-                provides: Vec::new(),
-                requires: Vec::new(),
-                composed_directives,
-                overrides: Vec::new(),
-                description: field.description().map(|description| ctx.insert_string(description.id)),
-                authorized_directives,
-            };
-
-            (ir, field.directives().list_size())
-        });
-    }
+    let directives = collect_composed_directives(definitions.iter().map(|def| def.directives()), ctx);
+    let interface_id = ctx.insert_interface(interface_name, description, directives);
 
     let Some(expected_key) = interface_def.entity_keys().next() else {
         ctx.diagnostics.push_fatal(format!(
@@ -153,69 +110,28 @@ pub(crate) fn merge_entity_interface_definitions<'a>(
         for entity_key in definition.entity_keys().filter(|key| key.is_resolvable()) {
             ctx.insert_interface_resolvable_key(interface_id, entity_key, true);
         }
-
-        for field in definition.fields() {
-            fields.entry(field.name().id).or_insert_with(|| {
-                let provides = field
-                    .directives()
-                    .provides()
-                    .is_some()
-                    .then(|| vec![field.id.0])
-                    .unwrap_or_default();
-
-                let requires = field
-                    .directives()
-                    .requires()
-                    .is_some()
-                    .then(|| vec![field.id.0])
-                    .unwrap_or_default();
-
-                let overrides = super::object::collect_overrides(&[field], ctx);
-                let composed_directives = collect_composed_directives(std::iter::once(field.directives()), ctx);
-
-                let description = field.description().map(|description| ctx.insert_string(description.id));
-                let authorized_directives = if field.directives().authorized().is_some() {
-                    vec![field.id.0]
-                } else {
-                    vec![]
-                };
-
-                let ir = ir::FieldIr {
-                    parent_definition: interface_name,
-                    field_name: ctx.insert_string(field.name().id),
-                    field_type: field.r#type().id,
-                    arguments: translate_arguments(field, ctx),
-                    resolvable_in: vec![graphql_federated_graph::SubgraphId::from(
-                        definition.subgraph_id().idx(),
-                    )],
-                    provides,
-                    requires,
-                    composed_directives,
-                    overrides,
-                    description,
-                    authorized_directives,
-                };
-                (ir, field.directives().list_size())
-            });
-        }
     }
+
+    // FIXME: there has to be a better way...
+    let field_name_mapping = definitions
+        .iter()
+        .flat_map(|def| def.fields())
+        .map(|field| (ctx.insert_string(field.name().id), field.name().id))
+        .collect::<HashMap<_, _>>();
+
+    let fields = object::compose_fields(ctx, definitions, interface_name, false);
 
     let fields_to_add: Vec<(StringId, _)> = fields
         .into_iter()
-        .map(|(name, (field, list_size_directive))| {
-            if let Some(directive) = list_size_directive {
-                ctx.insert_list_size_directive(interface_name, field.field_name, directive.clone());
-            }
-
-            // Insert here for the entity. But also return it for the implementers of the interface further down.
+        .map(|field| {
             ctx.insert_field(field.clone());
-
-            (name, field)
+            (field_name_mapping[&field.field_name], field)
         })
         .collect();
 
-    // Contribute the interface fields from the interface object definitions to the implementers of
-    // that interface.
+    // The fields of the entity interface are not only defined in the subgraph where the entity interface is an interface.
+    // More fields are contributed by other subgraphs where there are objects with `@interfaceObject`. Those must be added now in all
+    // the implementers of the interface as they won't have them in their definition.
     for object in interface_def.subgraph().interface_implementers(first.name().id) {
         match object.entity_keys().next() {
             Some(key) if key.fields() == expected_key.fields() => (),
@@ -242,34 +158,8 @@ pub(crate) fn merge_entity_interface_definitions<'a>(
 
         for field_ir in fields_to_add {
             let mut field_ir = field_ir.clone();
-            field_ir.parent_definition = object_name;
+            field_ir.parent_definition_name = object_name;
             ctx.insert_field(field_ir);
         }
     }
-}
-
-fn translate_arguments(
-    field: subgraphs::Walker<'_, (subgraphs::FieldId, subgraphs::FieldTuple)>,
-    ctx: &mut ComposeContext<'_>,
-) -> federated::InputValueDefinitions {
-    let mut ids: Option<federated::InputValueDefinitions> = None;
-    for arg in field.arguments() {
-        let directives = collect_composed_directives(std::iter::once(arg.directives()), ctx);
-        let name = ctx.insert_string(arg.name().id);
-        let id = ctx.insert_input_value_definition(ir::InputValueDefinitionIr {
-            name,
-            r#type: arg.r#type().id,
-            directives,
-            description: None,
-            default: arg.default().cloned(),
-        });
-
-        if let Some((_start, len)) = &mut ids {
-            *len += 1;
-        } else {
-            ids = Some((id, 1));
-        }
-    }
-
-    ids.unwrap_or(federated::NO_INPUT_VALUE_DEFINITION)
 }

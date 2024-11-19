@@ -4,14 +4,14 @@ directive @join__owner(graph: join__Graph!) on OBJECT
 
 directive @join__type(
     graph: join__Graph!
-    key: String!
+    key: join__FieldSet
     resolvable: Boolean = true
 ) repeatable on OBJECT | INTERFACE
 
 directive @join__field(
     graph: join__Graph
-    requires: String
-    provides: String
+    requires: join__FieldSet
+    provides: join__FieldSet
 ) on FIELD_DEFINITION
 
 directive @join__graph(name: String!, url: String!) on ENUM_VALUE
@@ -20,27 +20,36 @@ directive @join__implements(graph: join__Graph!, interface: String!) repeatable 
 
 directive @join__unionMember(graph: join__Graph!, member: String!) repeatable on UNION
 
+scalar join__FieldSet
+
 enum join__Graph {
     OTHER_SCHEMA @join__graph(name: "other-schema", url: "http://example.com/other-schema")
     SCHEMA @join__graph(name: "schema", url: "http://example.com/schema")
 }
 
-type Book {
-    author: String! @join__field(graph: SCHEMA)
-    id: ID! @join__field(graph: SCHEMA)
-    title: String! @join__field(graph: SCHEMA)
-    yearPublished: Int @join__field(graph: SCHEMA)
+type Book
+    @join__type(graph: SCHEMA)
+{
+    author: String!
+    id: ID!
+    title: String!
+    yearPublished: Int
 }
 
-type Query {
+type Query
+{
     books(limit: Int = 10): [Book!]! @join__field(graph: OTHER_SCHEMA) @join__field(graph: SCHEMA)
 }
 
-type Mutation {
+type Mutation
+{
     addBook(input: AddBookInput!): Book @join__field(graph: SCHEMA)
 }
 
-input AddBookInput {
+input AddBookInput
+    @join__type(graph: OTHER_SCHEMA)
+    @join__type(graph: SCHEMA)
+{
     title: String!
     author: String!
     yearPublished: Int = 2023

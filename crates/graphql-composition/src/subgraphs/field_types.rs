@@ -11,7 +11,7 @@ pub(super) struct FieldTypes {
     wrappers: IndexSet<WrapperType>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Eq, Hash)]
 pub(crate) struct FieldTypeId(usize);
 
 #[derive(Hash, PartialEq, Eq, Clone, Copy)]
@@ -206,5 +206,27 @@ impl std::fmt::Display for FieldTypeWalker<'_> {
         }
 
         f.write_str(&out)
+    }
+}
+
+impl PartialEq for FieldTypeWalker<'_> {
+    fn eq(&self, other: &Self) -> bool {
+        if self.id != other.id {
+            return false;
+        }
+        if self.inner().name != other.inner().name {
+            return false;
+        }
+        if self.inner_is_required() != other.inner_is_required() {
+            return false;
+        }
+        let mut self_wrappers = self.iter_wrappers();
+        let mut other_wrappers = other.iter_wrappers();
+        while let (Some(self_wrapper), Some(other_wrapper)) = (self_wrappers.next(), other_wrappers.next()) {
+            if self_wrapper != other_wrapper {
+                return false;
+            }
+        }
+        self_wrappers.next().is_none() && other_wrappers.next().is_none()
     }
 }

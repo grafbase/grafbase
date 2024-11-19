@@ -1,6 +1,6 @@
 use crate::{FieldId, InputValueDefinitionId};
 
-#[derive(Clone, Debug)]
+#[derive(Clone, PartialEq, PartialOrd, Debug)]
 pub struct ListSize {
     pub assumed_size: Option<u32>,
     // Arguments on the current field to interpret as slice size

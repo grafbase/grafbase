@@ -4,14 +4,14 @@ directive @join__owner(graph: join__Graph!) on OBJECT
 
 directive @join__type(
     graph: join__Graph!
-    key: String!
+    key: join__FieldSet
     resolvable: Boolean = true
 ) repeatable on OBJECT | INTERFACE
 
 directive @join__field(
     graph: join__Graph
-    requires: String
-    provides: String
+    requires: join__FieldSet
+    provides: join__FieldSet
 ) on FIELD_DEFINITION
 
 directive @join__graph(name: String!, url: String!) on ENUM_VALUE
@@ -20,49 +20,57 @@ directive @join__implements(graph: join__Graph!, interface: String!) repeatable 
 
 directive @join__unionMember(graph: join__Graph!, member: String!) repeatable on UNION
 
+scalar join__FieldSet
+
 enum join__Graph {
     PAYROLL @join__graph(name: "payroll", url: "http://example.com/payroll")
     REGISTRY @join__graph(name: "registry", url: "http://example.com/registry")
 }
 
 type Producer implements MusicEntity
-    @join__implements(graph: PAYROLL, interface: "MusicEntity")
-    @join__implements(graph: REGISTRY, interface: "MusicEntity")
     @join__type(graph: PAYROLL, key: "id")
     @join__type(graph: REGISTRY, key: "id")
+    @join__implements(graph: PAYROLL, interface: "MusicEntity")
+    @join__implements(graph: REGISTRY, interface: "MusicEntity")
 {
     albumsProduced: [String!]! @join__field(graph: REGISTRY)
     id: ID!
-    name: String! @join__field(graph: PAYROLL) @join__field(graph: REGISTRY)
+    name: String!
     studioName: String! @join__field(graph: REGISTRY)
 }
 
 type Band implements MusicEntity
-    @join__implements(graph: PAYROLL, interface: "MusicEntity")
-    @join__implements(graph: REGISTRY, interface: "MusicEntity")
     @join__type(graph: PAYROLL, key: "id")
     @join__type(graph: REGISTRY, key: "id")
+    @join__implements(graph: PAYROLL, interface: "MusicEntity")
+    @join__implements(graph: REGISTRY, interface: "MusicEntity")
 {
     genre: String! @join__field(graph: REGISTRY)
     id: ID!
     members: [String!]! @join__field(graph: REGISTRY)
-    name: String! @join__field(graph: PAYROLL) @join__field(graph: REGISTRY)
+    name: String!
 }
 
-type Payroll {
+type Payroll
+    @join__type(graph: PAYROLL)
+{
     amount: Int! @join__field(graph: PAYROLL, requires: "musicEntity { ... on Producer { studioName }... on Band { members } }")
-    id: ID! @join__field(graph: PAYROLL)
-    musicEntity: MusicEntity! @join__field(graph: PAYROLL)
+    id: ID!
+    musicEntity: MusicEntity!
 }
 
-type Query {
+type Query
+{
     getAllMusicEntities: [MusicEntity!]! @join__field(graph: REGISTRY)
     getBand(id: ID!): Band @join__field(graph: REGISTRY)
     getPayroll: [Payroll] @join__field(graph: PAYROLL)
     getProducer(id: ID!): Producer @join__field(graph: REGISTRY)
 }
 
-interface MusicEntity {
+interface MusicEntity
+    @join__type(graph: PAYROLL)
+    @join__type(graph: REGISTRY)
+{
     id: ID!
     name: String!
 }

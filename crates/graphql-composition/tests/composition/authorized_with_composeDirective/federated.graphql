@@ -4,14 +4,14 @@ directive @join__owner(graph: join__Graph!) on OBJECT
 
 directive @join__type(
     graph: join__Graph!
-    key: String!
+    key: join__FieldSet
     resolvable: Boolean = true
 ) repeatable on OBJECT | INTERFACE
 
 directive @join__field(
     graph: join__Graph
-    requires: String
-    provides: String
+    requires: join__FieldSet
+    provides: join__FieldSet
 ) on FIELD_DEFINITION
 
 directive @join__graph(name: String!, url: String!) on ENUM_VALUE
@@ -19,6 +19,8 @@ directive @join__graph(name: String!, url: String!) on ENUM_VALUE
 directive @join__implements(graph: join__Graph!, interface: String!) repeatable on OBJECT | INTERFACE
 
 directive @join__unionMember(graph: join__Graph!, member: String!) repeatable on UNION
+
+scalar join__FieldSet
 
 enum join__Graph {
     PETS @join__graph(name: "pets", url: "http://example.com/pets")
@@ -30,27 +32,30 @@ scalar _Any
 type Pet
     @join__type(graph: PETS, key: "id")
 {
-    age: String! @join__field(graph: PETS)
+    age: String!
     id: Int!
-    name: String! @join__field(graph: PETS)
+    name: String!
 }
 
 type User
     @join__type(graph: PETS, key: "id")
     @join__type(graph: USERS, key: "id")
 {
-    address: Address @join__field(graph: USERS) @authorized(fields: "id")
+    address: Address @authorized(fields: "id") @join__field(graph: USERS)
     id: Int!
     name: String! @join__field(graph: USERS)
     pets: [Pet!]! @join__field(graph: PETS)
 }
 
-type Address {
-    street: String! @join__field(graph: USERS)
+type Address
+    @join__type(graph: USERS)
+{
+    street: String!
 }
 
-type Query {
+type Query
+{
     pets: [Pet]! @join__field(graph: PETS)
-    user(id: Int!): User @join__field(graph: USERS) @authorized(arguments: "id")
-    users: [User]! @join__field(graph: USERS) @authorized(node: "id", metadata: {role: "admin"})
+    user(id: Int!): User @authorized(arguments: "id") @join__field(graph: USERS)
+    users: [User]! @authorized(node: "id", metadata: {role: "admin"}) @join__field(graph: USERS)
 }

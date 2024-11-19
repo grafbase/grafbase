@@ -8,8 +8,6 @@ pub(super) fn merge_input_object_definitions(
     let mut fields_range: Option<federated::InputValueDefinitions> = None;
     let description = definitions.iter().find_map(|def| def.description()).map(|d| d.as_str());
 
-    let composed_directives = collect_composed_directives(definitions.iter().map(|def| def.directives()), ctx);
-
     let input_object_name = ctx.insert_string(first.name().id);
 
     // We want to take the intersection of the field sets.
@@ -50,24 +48,36 @@ pub(super) fn merge_input_object_definitions(
         }
 
         let directive_containers = fields.iter().map(|(_, field)| field.directives());
-        let composed_directives = collect_composed_directives(directive_containers, ctx);
+        let mut directives = collect_composed_directives(directive_containers, ctx);
 
         let description = fields
             .iter()
             .find_map(|(_, field)| field.description())
             .map(|description| ctx.insert_string(description.id));
 
-        let Some(field_type) = fields::compose_input_field_types(fields.iter().map(|(_, field)| *field), ctx) else {
+        let Some(composed_field_type) = fields::compose_input_field_types(fields.iter().map(|(_, field)| *field), ctx)
+        else {
             continue;
         };
+
+        directives.extend(fields.iter().map(|(_, field)| {
+            ir::Directive::JoinInputField(ir::JoinInputFieldDirective {
+                subgraph_id: federated::SubgraphId::from(field.parent_definition().subgraph_id().idx()),
+                r#type: if field.r#type() != field.walk(composed_field_type) {
+                    Some(field.r#type().id)
+                } else {
+                    None
+                },
+            })
+        }));
 
         let default = fields.iter().find_map(|(_, field)| field.default_value()).cloned();
 
         let name = ctx.insert_string(field_name);
         let id = ctx.insert_input_value_definition(ir::InputValueDefinitionIr {
             name,
-            r#type: field_type,
-            directives: composed_directives,
+            r#type: composed_field_type,
+            directives,
             description,
             default,
         });
@@ -79,6 +89,8 @@ pub(super) fn merge_input_object_definitions(
         }
     }
 
+    let mut directives = collect_composed_directives(definitions.iter().map(|def| def.directives()), ctx);
+    directives.extend(create_join_type_from_definitions(definitions));
     let fields = fields_range.unwrap_or(federated::NO_INPUT_VALUE_DEFINITION);
-    ctx.insert_input_object(input_object_name, description, composed_directives, fields);
+    ctx.insert_input_object(input_object_name, description, directives, fields);
 }

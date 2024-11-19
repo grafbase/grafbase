@@ -4,14 +4,14 @@ directive @join__owner(graph: join__Graph!) on OBJECT
 
 directive @join__type(
     graph: join__Graph!
-    key: String!
+    key: join__FieldSet
     resolvable: Boolean = true
 ) repeatable on OBJECT | INTERFACE
 
 directive @join__field(
     graph: join__Graph
-    requires: String
-    provides: String
+    requires: join__FieldSet
+    provides: join__FieldSet
 ) on FIELD_DEFINITION
 
 directive @join__graph(name: String!, url: String!) on ENUM_VALUE
@@ -19,6 +19,8 @@ directive @join__graph(name: String!, url: String!) on ENUM_VALUE
 directive @join__implements(graph: join__Graph!, interface: String!) repeatable on OBJECT | INTERFACE
 
 directive @join__unionMember(graph: join__Graph!, member: String!) repeatable on UNION
+
+scalar join__FieldSet
 
 enum join__Graph {
     BIRDWATCH_BASIC @join__graph(name: "birdwatch-basic", url: "http://example.com/birdwatch-basic")
@@ -28,7 +30,13 @@ enum join__Graph {
 
 scalar DateTime
 
-type Bird @fieldMarks(plumage: "juvenile") @fieldMarks(plumage: "adult") {
+type Bird
+    @fieldMarks(plumage: "juvenile")
+    @fieldMarks(plumage: "adult")
+    @join__type(graph: BIRDWATCH_BASIC)
+    @join__type(graph: OBSERVATIONS)
+    @join__type(graph: SIGHTINGS)
+{
     id: ID!
     location: String! @tag(name: "locationService") @tag(name: "b") @tag(name: "a")
     name: String!
@@ -37,27 +45,35 @@ type Bird @fieldMarks(plumage: "juvenile") @fieldMarks(plumage: "adult") {
     species: String!
 }
 
-type BirdObservation {
-    bird: Bird! @join__field(graph: OBSERVATIONS)
-    observationID: ID! @join__field(graph: OBSERVATIONS)
-    observerDetails: ObserverDetails! @join__field(graph: OBSERVATIONS)
-    timeOfObservation: DateTime! @join__field(graph: OBSERVATIONS)
+type BirdObservation
+    @join__type(graph: OBSERVATIONS)
+{
+    bird: Bird!
+    observationID: ID!
+    observerDetails: ObserverDetails!
+    timeOfObservation: DateTime!
 }
 
-type ObserverDetails {
-    membershipNumber: String @join__field(graph: OBSERVATIONS)
-    name: String! @join__field(graph: OBSERVATIONS)
-    observerType: ObserverType! @join__field(graph: OBSERVATIONS)
+type ObserverDetails
+    @join__type(graph: OBSERVATIONS)
+{
+    membershipNumber: String
+    name: String!
+    observerType: ObserverType!
 }
 
-type BirdSighting @deprecated(reason: "we haven't seen any birds in a while :(") {
-    bird: Bird! @join__field(graph: SIGHTINGS) @pelagic
-    observer: String! @join__field(graph: SIGHTINGS)
-    sightingID: ID! @join__field(graph: SIGHTINGS)
-    weatherConditions: String @join__field(graph: SIGHTINGS)
+type BirdSighting
+    @deprecated(reason: "we haven't seen any birds in a while :(")
+    @join__type(graph: SIGHTINGS)
+{
+    bird: Bird! @pelagic
+    observer: String!
+    sightingID: ID!
+    weatherConditions: String
 }
 
-type Query {
+type Query
+{
     bird(id: ID!): Bird @join__field(graph: BIRDWATCH_BASIC)
     birdObservation(observationID: ID!): BirdObservation @join__field(graph: OBSERVATIONS)
     birdObservations(filters: BirdObservationFilters): [BirdObservation] @join__field(graph: OBSERVATIONS)
@@ -66,13 +82,17 @@ type Query {
     birds: [Bird] @join__field(graph: BIRDWATCH_BASIC)
 }
 
-enum ObserverType {
+enum ObserverType
+    @join__type(graph: OBSERVATIONS)
+{
     AMATEUR
     SEMIPROFESSIONAL @deprecated(reason: "No such thing as semiprofessionals")
     PROFESSIONAL
 }
 
-input BirdObservationFilters {
+input BirdObservationFilters
+    @join__type(graph: OBSERVATIONS)
+{
     observedAt: DateTime @deprecated(reason: "UNIX timestamps instead, as usual in bird watching")
     observerType: ObserverType
     observerName: String

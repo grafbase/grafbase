@@ -4,14 +4,14 @@ directive @join__owner(graph: join__Graph!) on OBJECT
 
 directive @join__type(
     graph: join__Graph!
-    key: String!
+    key: join__FieldSet
     resolvable: Boolean = true
 ) repeatable on OBJECT | INTERFACE
 
 directive @join__field(
     graph: join__Graph
-    requires: String
-    provides: String
+    requires: join__FieldSet
+    provides: join__FieldSet
 ) on FIELD_DEFINITION
 
 directive @join__graph(name: String!, url: String!) on ENUM_VALUE
@@ -20,20 +20,27 @@ directive @join__implements(graph: join__Graph!, interface: String!) repeatable 
 
 directive @join__unionMember(graph: join__Graph!, member: String!) repeatable on UNION
 
+scalar join__FieldSet
+
 enum join__Graph {
     THESCHEMA @join__graph(name: "theschema", url: "http://example.com/theschema")
 }
 
-type User {
-    id: ID! @join__field(graph: THESCHEMA)
-    name: String! @join__field(graph: THESCHEMA)
+type User
+    @join__type(graph: THESCHEMA)
+{
+    id: ID!
+    name: String!
 }
 
-type Query {
+type Query
+{
     user: User @join__field(graph: THESCHEMA)
 }
 
-enum UserType {
+enum UserType
+    @join__type(graph: THESCHEMA)
+{
     ADMIN
     REGULAR
 }

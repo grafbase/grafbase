@@ -1,4 +1,4 @@
-use super::{Directives, EnumValueId, FederatedGraph, StringId, TypeDefinitionId, View, ViewNested};
+use super::{Directive, EnumValueId, FederatedGraph, StringId, TypeDefinitionId, View, ViewNested};
 
 pub type EnumValue<'a> = ViewNested<'a, EnumValueId, EnumValueRecord>;
 
@@ -15,7 +15,7 @@ impl std::fmt::Debug for EnumValue<'_> {
 pub struct EnumValueRecord {
     pub enum_id: TypeDefinitionId,
     pub value: StringId,
-    pub composed_directives: Directives,
+    pub directives: Vec<Directive>,
     pub description: Option<StringId>,
 }
 

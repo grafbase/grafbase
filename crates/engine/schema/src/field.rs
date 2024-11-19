@@ -27,10 +27,6 @@ impl<'a> FieldDefinition<'a> {
         })
     }
 
-    pub fn is_resolvable_in(&self, subgraph_id: SubgraphId) -> bool {
-        self.only_resolvable_in_ids.is_empty() || self.only_resolvable_in_ids.contains(&subgraph_id)
-    }
-
     pub fn has_required_fields_for_subgraph(&self, subgraph_id: SubgraphId) -> bool {
         self.as_ref()
             .requires_records

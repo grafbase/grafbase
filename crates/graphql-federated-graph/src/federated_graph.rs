@@ -1,5 +1,6 @@
 mod debug;
 mod directives;
+mod entity;
 mod enum_values;
 mod ids;
 mod objects;
@@ -8,8 +9,11 @@ mod r#type;
 mod type_definitions;
 mod view;
 
+use crate::directives::*;
+
 pub use self::{
     directives::*,
+    entity::*,
     enum_values::{EnumValue, EnumValueRecord},
     ids::*,
     r#type::{Definition, Type},
@@ -19,7 +23,7 @@ pub use self::{
 };
 pub use wrapping::Wrapping;
 
-use std::{collections::BTreeSet, ops::Range};
+use std::ops::Range;
 
 #[derive(Clone)]
 pub struct FederatedGraph {
@@ -39,17 +43,6 @@ pub struct FederatedGraph {
 
     /// All the strings in the federated graph, deduplicated.
     pub strings: Vec<String>,
-
-    /// All composed directive instances (not definitions) in a federated graph.
-    pub directives: Vec<Directive>,
-
-    /// All @authorized directives
-    pub authorized_directives: Vec<AuthorizedDirective>,
-    pub field_authorized_directives: Vec<(FieldId, AuthorizedDirectiveId)>,
-    pub object_authorized_directives: Vec<(ObjectId, AuthorizedDirectiveId)>,
-    pub interface_authorized_directives: Vec<(InterfaceId, AuthorizedDirectiveId)>,
-
-    pub list_sizes: Vec<(FieldId, ListSize)>,
 }
 
 impl FederatedGraph {
@@ -98,31 +91,6 @@ impl FederatedGraph {
     pub fn iter_scalars(&self) -> impl Iterator<Item = TypeDefinition<'_>> {
         self.iter_type_definitions().filter(|record| record.kind.is_scalar())
     }
-
-    pub fn object_authorized_directives(&self, object_id: ObjectId) -> impl Iterator<Item = &AuthorizedDirective> {
-        let start = self
-            .object_authorized_directives
-            .partition_point(|(needle, _)| *needle < object_id);
-
-        self.object_authorized_directives[start..]
-            .iter()
-            .take_while(move |(needle, _)| *needle == object_id)
-            .map(move |(_, authorized_directive_id)| &self[*authorized_directive_id])
-    }
-
-    pub fn interface_authorized_directives(
-        &self,
-        interface_id: InterfaceId,
-    ) -> impl Iterator<Item = &AuthorizedDirective> {
-        let start = self
-            .interface_authorized_directives
-            .partition_point(|(needle, _)| *needle < interface_id);
-
-        self.interface_authorized_directives[start..]
-            .iter()
-            .take_while(move |(needle, _)| *needle == interface_id)
-            .map(move |(_, authorized_directive_id)| &self[*authorized_directive_id])
-    }
 }
 
 #[derive(Clone)]
@@ -134,43 +102,17 @@ pub struct Subgraph {
 #[derive(Clone)]
 pub struct Union {
     pub name: StringId,
-    pub members: Vec<ObjectId>,
-    pub join_members: BTreeSet<(SubgraphId, ObjectId)>,
-
-    /// All directives that made it through composition. Notably includes `@tag`.
-    pub composed_directives: Directives,
-
     pub description: Option<StringId>,
+    pub members: Vec<ObjectId>,
+    pub directives: Vec<Directive>,
 }
 
 #[derive(Clone)]
 pub struct InputObject {
     pub name: StringId,
-
-    pub fields: InputValueDefinitions,
-
-    /// All directives that made it through composition. Notably includes `@tag`.
-    pub composed_directives: Directives,
-
     pub description: Option<StringId>,
-}
-
-#[derive(PartialEq, PartialOrd, Clone, Debug)]
-pub enum Directive {
-    Authenticated,
-    Deprecated {
-        reason: Option<StringId>,
-    },
-    Inaccessible,
-    Policy(Vec<Vec<StringId>>),
-    RequiresScopes(Vec<Vec<StringId>>),
-    Cost {
-        weight: i32,
-    },
-    Other {
-        name: StringId,
-        arguments: Vec<(StringId, Value)>,
-    },
+    pub fields: InputValueDefinitions,
+    pub directives: Vec<Directive>,
 }
 
 #[derive(Default, Clone, PartialEq, PartialOrd, Debug)]
@@ -196,12 +138,7 @@ pub enum Value {
 #[derive(Clone)]
 pub struct Object {
     pub type_definition_id: TypeDefinitionId,
-
     pub implements_interfaces: Vec<InterfaceId>,
-
-    pub join_implements: Vec<(SubgraphId, InterfaceId)>,
-
-    pub keys: Vec<Key>,
     pub fields: Fields,
 }
 
@@ -209,51 +146,17 @@ pub struct Object {
 pub struct Interface {
     pub type_definition_id: TypeDefinitionId,
     pub implements_interfaces: Vec<InterfaceId>,
-
-    /// All keys, for entity interfaces.
-    pub keys: Vec<Key>,
     pub fields: Fields,
-    pub join_implements: Vec<(SubgraphId, InterfaceId)>,
 }
 
 #[derive(Clone)]
 pub struct Field {
+    pub parent_entity_id: EntityDefinitionId,
     pub name: StringId,
-    pub r#type: Type,
-
-    pub arguments: InputValueDefinitions,
-
-    pub join_fields: Vec<JoinField>,
-
-    /// This is populated only of fields of entities. The Vec includes all subgraphs the field can
-    /// be resolved in. For a regular field of an entity, it will be one subgraph, the subgraph
-    /// where the entity field is defined. For a shareable field in an entity, this contains the
-    /// subgraphs where the shareable field is defined on the entity. It may not be all the
-    /// subgraphs.
-    ///
-    /// On fields of value types and input types, this is empty.
-    pub resolvable_in: Vec<SubgraphId>,
-
-    /// See [FieldProvides].
-    pub provides: Vec<FieldProvides>,
-
-    /// See [FieldRequires]
-    pub requires: Vec<FieldRequires>,
-
-    /// See [Override].
-    pub overrides: Vec<Override>,
-
-    /// All directives that made it through composition.
-    pub composed_directives: Directives,
-
     pub description: Option<StringId>,
-}
-
-#[derive(Clone)]
-pub struct JoinField {
-    pub subgraph_id: SubgraphId,
-    // Only present if different from the field type.
-    pub r#type: Option<Type>,
+    pub r#type: Type,
+    pub arguments: InputValueDefinitions,
+    pub directives: Vec<Directive>,
 }
 
 impl Value {
@@ -266,19 +169,11 @@ impl Value {
     }
 }
 
-#[derive(Clone, PartialEq, PartialOrd)]
-pub struct AuthorizedDirective {
-    pub fields: Option<SelectionSet>,
-    pub node: Option<SelectionSet>,
-    pub arguments: Option<InputValueDefinitionSet>,
-    pub metadata: Option<Value>,
-}
-
 #[derive(Clone, PartialEq)]
 pub struct InputValueDefinition {
     pub name: StringId,
     pub r#type: Type,
-    pub directives: Directives,
+    pub directives: Vec<Directive>,
     pub description: Option<StringId>,
     pub default: Option<Value>,
 }
@@ -297,19 +192,65 @@ pub struct FieldRequires {
     pub fields: SelectionSet,
 }
 
-pub type SelectionSet = Vec<Selection>;
+#[derive(Clone, Debug, PartialEq, PartialOrd)]
+pub struct SelectionSet(pub Vec<Selection>);
+
+impl From<Vec<Selection>> for SelectionSet {
+    fn from(selections: Vec<Selection>) -> Self {
+        SelectionSet(selections)
+    }
+}
+
+impl FromIterator<Selection> for SelectionSet {
+    fn from_iter<I: IntoIterator<Item = Selection>>(iter: I) -> Self {
+        SelectionSet(iter.into_iter().collect())
+    }
+}
+
+impl std::ops::Deref for SelectionSet {
+    type Target = Vec<Selection>;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl std::ops::DerefMut for SelectionSet {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
+impl SelectionSet {
+    pub fn find_field(&self, field_id: FieldId) -> Option<&FieldSelection> {
+        for selection in &self.0 {
+            match selection {
+                Selection::Field(field) => {
+                    if field.field_id == field_id {
+                        return Some(field);
+                    }
+                }
+                Selection::InlineFragment { subselection, .. } => {
+                    if let Some(found) = subselection.find_field(field_id) {
+                        return Some(found);
+                    }
+                }
+            }
+        }
+        None
+    }
+}
 
 #[derive(Clone, Debug, PartialEq, PartialOrd)]
 pub enum Selection {
-    Field {
-        field: FieldId,
-        arguments: Vec<(InputValueDefinitionId, Value)>,
-        subselection: SelectionSet,
-    },
-    InlineFragment {
-        on: Definition,
-        subselection: SelectionSet,
-    },
+    Field(FieldSelection),
+    InlineFragment { on: Definition, subselection: SelectionSet },
+}
+
+#[derive(Clone, Debug, PartialEq, PartialOrd)]
+pub struct FieldSelection {
+    pub field_id: FieldId,
+    pub arguments: Vec<(InputValueDefinitionId, Value)>,
+    pub subselection: SelectionSet,
 }
 
 #[derive(Clone, Debug)]
@@ -333,7 +274,7 @@ impl Default for FederatedGraph {
             type_definitions: vec![TypeDefinitionRecord {
                 name: StringId::from(0),
                 description: None,
-                directives: NO_DIRECTIVES,
+                directives: Vec::new(),
                 kind: TypeDefinitionKind::Object,
             }],
             root_operation_types: RootOperationTypes {
@@ -344,8 +285,6 @@ impl Default for FederatedGraph {
             objects: vec![Object {
                 type_definition_id: TypeDefinitionId::from(0),
                 implements_interfaces: Vec::new(),
-                join_implements: Vec::new(),
-                keys: Vec::new(),
                 fields: FieldId::from(0)..FieldId::from(2),
             }],
             interfaces: Vec::new(),
@@ -356,14 +295,10 @@ impl Default for FederatedGraph {
                         wrapping: Default::default(),
                         definition: Definition::Scalar(0usize.into()),
                     },
-                    join_fields: Vec::new(),
+                    parent_entity_id: EntityDefinitionId::Object(ObjectId::from(0)),
                     arguments: NO_INPUT_VALUE_DEFINITION,
-                    resolvable_in: Vec::new(),
-                    provides: Vec::new(),
-                    requires: Vec::new(),
-                    overrides: Vec::new(),
-                    composed_directives: NO_DIRECTIVES,
                     description: None,
+                    directives: Vec::new(),
                 },
                 Field {
                     name: StringId::from(2),
@@ -371,14 +306,10 @@ impl Default for FederatedGraph {
                         wrapping: Default::default(),
                         definition: Definition::Scalar(0usize.into()),
                     },
-                    join_fields: Vec::new(),
+                    parent_entity_id: EntityDefinitionId::Object(ObjectId::from(0)),
                     arguments: NO_INPUT_VALUE_DEFINITION,
-                    resolvable_in: Vec::new(),
-                    provides: Vec::new(),
-                    requires: Vec::new(),
-                    overrides: Vec::new(),
-                    composed_directives: NO_DIRECTIVES,
                     description: None,
+                    directives: Vec::new(),
                 },
             ],
             unions: Vec::new(),
@@ -389,22 +320,7 @@ impl Default for FederatedGraph {
                 .into_iter()
                 .map(|string| string.to_owned())
                 .collect(),
-            directives: Vec::new(),
-            authorized_directives: Vec::new(),
-            field_authorized_directives: Vec::new(),
-            object_authorized_directives: Vec::new(),
-            interface_authorized_directives: Vec::new(),
-            list_sizes: Vec::new(),
         }
-    }
-}
-
-impl std::ops::Index<Directives> for FederatedGraph {
-    type Output = [Directive];
-
-    fn index(&self, index: Directives) -> &Self::Output {
-        let (start, len) = index;
-        &self.directives[usize::from(start)..(usize::from(start) + len)]
     }
 }
 
@@ -436,11 +352,8 @@ pub struct InputValueDefinitionSetItem {
 /// A (start, end) range in FederatedGraph::fields.
 pub type Fields = Range<FieldId>;
 /// A (start, len) range in FederatedSchema.
-pub type Directives = (DirectiveId, usize);
-/// A (start, len) range in FederatedSchema.
 pub type InputValueDefinitions = (InputValueDefinitionId, usize);
 
-pub const NO_DIRECTIVES: Directives = (DirectiveId::const_from_usize(0), 0);
 pub const NO_INPUT_VALUE_DEFINITION: InputValueDefinitions = (InputValueDefinitionId::const_from_usize(0), 0);
 pub const NO_FIELDS: Fields = Range {
     start: FieldId::const_from_usize(0),

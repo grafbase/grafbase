@@ -4,6 +4,7 @@ pub mod directives;
 mod federated_graph;
 
 pub use self::federated_graph::*;
+pub use directives::*;
 
 #[cfg(feature = "render_sdl")]
 mod render_sdl;

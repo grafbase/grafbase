@@ -27,7 +27,7 @@ use walker::{Iter, Walk};
 ///   "sorted by SubgraphId, then InterfaceId"
 ///   join_implements: [JoinImplementsDefinition!]!
 ///   "sorted by SubgraphId"
-///   only_resolvable_in: [Subgraph!]!
+///   exists_in_subgraphs: [Subgraph!]!
 /// }
 /// ```
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
@@ -40,7 +40,7 @@ pub struct ObjectDefinitionRecord {
     /// sorted by SubgraphId, then InterfaceId
     pub join_implement_records: Vec<JoinImplementsDefinitionRecord>,
     /// sorted by SubgraphId
-    pub only_resolvable_in_ids: Vec<SubgraphId>,
+    pub exists_in_subgraph_ids: Vec<SubgraphId>,
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
@@ -86,8 +86,8 @@ impl<'a> ObjectDefinition<'a> {
         self.as_ref().join_implement_records.walk(self.schema)
     }
     /// sorted by SubgraphId
-    pub fn only_resolvable_in(&self) -> impl Iter<Item = Subgraph<'a>> + 'a {
-        self.as_ref().only_resolvable_in_ids.walk(self.schema)
+    pub fn exists_in_subgraphs(&self) -> impl Iter<Item = Subgraph<'a>> + 'a {
+        self.as_ref().exists_in_subgraph_ids.walk(self.schema)
     }
 }
 
