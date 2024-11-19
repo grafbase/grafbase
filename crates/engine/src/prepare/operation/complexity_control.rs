@@ -31,6 +31,8 @@ pub fn control_complexity(schema: &Schema, operation: OperationWalker<'_>, varia
 
     let cost = base_cost + selection_set_complexity(&context, selection_set, None);
 
+    eprintln!("Complexity: {cost}");
+
     if let Some(limit) = schema.settings.complexity_control.limit() {
         if cost > limit && schema.settings.complexity_control.is_enforce() {
             return Err(PrepareError::ComplexityLimitReached);
@@ -70,8 +72,9 @@ fn selection_set_complexity(
 fn field_complexity(context: &ComplexityContext<'_>, field: FieldWalker<'_>, preset_list_size: Option<usize>) -> usize {
     let type_cost = field
         .definition()
-        .map(|def| def.cost().unwrap_or_else(|| cost_for_type(def.ty().definition())))
+        .map(|def| dbg!(def.cost()).unwrap_or_else(|| cost_for_type(def.ty().definition())))
         .unwrap_or(1) as usize;
+
     let list_size_directive = field.definition().and_then(|def| def.list_size());
 
     let child_count = calculate_child_count(context, field, list_size_directive, preset_list_size);
@@ -90,7 +93,7 @@ fn field_complexity(context: &ComplexityContext<'_>, field: FieldWalker<'_>, pre
         .map(|selection_set| selection_set_complexity(context, selection_set, child_field_count))
         .unwrap_or_default();
 
-    this_field_count * (type_cost + argument_cost + child_cost)
+    dbg!(this_field_count) * (dbg!(type_cost) + dbg!(argument_cost) + dbg!(child_cost))
 }
 
 fn cost_for_argument(

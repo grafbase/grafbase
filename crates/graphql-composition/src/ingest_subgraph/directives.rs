@@ -170,7 +170,7 @@ pub(super) fn ingest_directives(
             };
         }
 
-        if directive_matcher.is_cost(directive_name) {
+        if dbg!(directive_matcher.is_cost(dbg!(directive_name))) {
             match directive.deserialize::<CostDirective>() {
                 Ok(cost) => {
                     subgraphs.set_cost(directive_site_id, cost.weight);

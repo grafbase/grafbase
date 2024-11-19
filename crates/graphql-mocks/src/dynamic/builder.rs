@@ -342,8 +342,19 @@ fn federation_prelude() -> &'static str {
         extend schema
           @link(
             url: "https://specs.apollo.dev/federation/v2.3",
-            import: ["@key", "@tag", "@shareable", "@inaccessible", "@override", "@external", "@provides", "@requires", "@composeDirective", "@interfaceObject"]
-            )
+            import: [
+                "@key",
+                "@tag",
+                "@shareable",
+                "@inaccessible",
+                "@override",
+                "@external",
+                "@provides",
+                "@requires",
+                "@composeDirective",
+                "@interfaceObject",
+            ]
+        )
         "#
     )
 }

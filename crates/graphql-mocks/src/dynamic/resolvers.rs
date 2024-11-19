@@ -12,3 +12,15 @@ where
         self(context)
     }
 }
+
+impl Resolver for serde_json::Value {
+    fn resolve(&mut self, _context: ResolverContext<'_>) -> Option<serde_json::Value> {
+        Some(self.clone())
+    }
+}
+
+impl Resolver for Option<serde_json::Value> {
+    fn resolve(&mut self, _context: ResolverContext<'_>) -> Option<serde_json::Value> {
+        self.clone()
+    }
+}
