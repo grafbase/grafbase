@@ -1,0 +1,31 @@
+---
+source: crates/engine/query-solver/src/tests/cycle.rs
+expression: "digraph {\n    0 [ label = \"root\" ]\n    1 [ label = \"Root#C\", color=royalblue,shape=parallelogram ]\n    2 [ label = \"feed\" ]\n    3 [ label = \"FedEntity#A\", color=royalblue,shape=parallelogram ]\n    4 [ label = \"author\" ]\n    5 [ label = \"id\" ]\n    6 [ label = \"*comments\" ]\n    7 [ label = \"FedEntity#C\", color=royalblue,shape=parallelogram ]\n    8 [ label = \"*authorId\" ]\n    9 [ label = \"*id\" ]\n    10 [ label = \"*id\" ]\n    0 -> 1 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    1 -> 2 [ label = \"\" ]\n    2 -> 3 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    3 -> 4 [ label = \"\" ]\n    4 -> 5 [ label = \"\" ]\n    3 -> 6 [ label = \"\" ]\n    6 -> 7 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    7 -> 8 [ label = \"\" ]\n    6 -> 9 [ label = \"\" ]\n    2 -> 10 [ label = \"\" ]\n    3 -> 10 [ label = \"\", color=orangered,arrowhead=inv ]\n    4 -> 8 [ label = \"\", color=orangered,arrowhead=inv ]\n    4 -> 6 [ label = \"\", color=orangered,arrowhead=inv ]\n    7 -> 9 [ label = \"\", color=orangered,arrowhead=inv ]\n}\n"
+---
+digraph {
+    0 [ label = "root" ]
+    1 [ label = "Root#C" ]
+    2 [ label = "feed" ]
+    3 [ label = "FedEntity#A" ]
+    4 [ label = "author" ]
+    5 [ label = "id" ]
+    6 [ label = "*comments" ]
+    7 [ label = "FedEntity#C" ]
+    8 [ label = "*authorId" ]
+    9 [ label = "*id" ]
+    10 [ label = "*id" ]
+    0 -> 1 [ label = "QueryPartition" ]
+    1 -> 2 [ label = "Field" ]
+    2 -> 3 [ label = "QueryPartition" ]
+    3 -> 4 [ label = "Field" ]
+    4 -> 5 [ label = "Field" ]
+    3 -> 6 [ label = "Field" ]
+    6 -> 7 [ label = "QueryPartition" ]
+    7 -> 8 [ label = "Field" ]
+    6 -> 9 [ label = "Field" ]
+    2 -> 10 [ label = "Field" ]
+    3 -> 10 [ label = "RequiredBySubgraph" ]
+    4 -> 8 [ label = "RequiredBySubgraph" ]
+    4 -> 6 [ label = "RequiredBySubgraph" ]
+    7 -> 9 [ label = "RequiredBySubgraph" ]
+}

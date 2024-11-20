@@ -402,10 +402,6 @@ impl<'ctx, Op: Operation> PartialSolution<'ctx, Op> {
                     _ => (),
                 }
             }
-            if partitions.len() < 2 {
-                partition_fields.clear();
-                continue;
-            }
 
             partition_fields.sort_unstable_by(|a, b| a.position.cmp(&b.position));
 
