@@ -66,7 +66,7 @@ mod introspection;
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub(crate) enum Resolver {
-    GraphQL(GraphqlResolver),
+    Graphql(GraphqlResolver),
     FederationEntity(FederationEntityResolver),
     Introspection(IntrospectionResolver),
 }
@@ -105,7 +105,7 @@ impl Resolver {
         'ctx: 'fut,
     {
         match self {
-            Resolver::GraphQL(prepared) => async move {
+            Resolver::Graphql(prepared) => async move {
                 let mut ctx = prepared.build_subgraph_context(ctx);
                 let subgraph_result = prepared.execute(&mut ctx, subgraph_response).await;
                 ctx.finalize(subgraph_result).await
@@ -144,7 +144,7 @@ impl Resolver {
         new_response: impl Fn() -> SubscriptionResponse + Send + 'ctx,
     ) -> ExecutionResult<BoxStream<'ctx, ExecutionResult<SubscriptionResponse>>> {
         match self {
-            Resolver::GraphQL(prepared) => {
+            Resolver::Graphql(prepared) => {
                 // TODO: for now we do not finalize this, e.g. we do not call the subgraph response hook. We should figure
                 // out later what kind of data that hook would contain.
                 let mut ctx = prepared.build_subgraph_context(ctx);

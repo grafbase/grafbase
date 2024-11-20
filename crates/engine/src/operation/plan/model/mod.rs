@@ -9,7 +9,9 @@ mod selection_set;
 
 use std::sync::Arc;
 
+use id_newtypes::IdRange;
 use schema::{EntityDefinitionId, FieldSetRecord, Schema};
+use walker::{Iter, Walk};
 
 use crate::{
     operation::{ResponseModifierRule, SolvedOperation, SolvedOperationContext, Variables},
@@ -50,6 +52,12 @@ impl<'ctx> From<OperationPlanContext<'ctx>> for &'ctx Schema {
 impl<'ctx> From<OperationPlanContext<'ctx>> for &'ctx Shapes {
     fn from(ctx: OperationPlanContext<'ctx>) -> Self {
         &ctx.solved_operation.shapes
+    }
+}
+
+impl<'a> OperationPlanContext<'a> {
+    pub fn plans(&self) -> impl Iter<Item = Plan<'a>> + 'a {
+        IdRange::<PlanId>::from(0..self.operation_plan.plans.len()).walk(*self)
     }
 }
 

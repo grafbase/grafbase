@@ -70,7 +70,15 @@ fn grafbase_response_extension_has_the_right_trace_id() {
               },
               "extensions": {
                 "grafbase": {
-                  "traceId": "af7651916cd43dd8448eb211c80319c"
+                  "traceId": "af7651916cd43dd8448eb211c80319c",
+                  "queryPlan": {
+                    "nodes": [
+                      {
+                        "type": "introspection"
+                      }
+                    ],
+                    "edges": []
+                  }
                 }
               }
             }
