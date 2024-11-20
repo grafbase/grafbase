@@ -19,7 +19,6 @@ futures.workspace = true
 headers.workspace = true
 httpsig.workspace = true
 httpsig-hyper.workspace = true
-indoc.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 tokio.workspace = true

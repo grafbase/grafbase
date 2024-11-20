@@ -3343,7 +3343,6 @@ dependencies = [
  "http 1.1.0",
  "httpsig",
  "httpsig-hyper",
- "indoc",
  "serde",
  "serde_json",
  "tokio",

@@ -18,7 +18,7 @@ type ResolverMap = HashMap<(String, String), Box<dyn Resolver>>;
 impl DynamicSchemaBuilder {
     pub fn new(sdl: &str) -> Self {
         DynamicSchemaBuilder {
-            sdl: format!("{sdl}\n\n{}", federation_prelude()),
+            sdl: sdl.into(),
             field_resolvers: Default::default(),
         }
     }
@@ -333,28 +333,4 @@ fn add_federation_fields(query_ty: async_graphql::dynamic::Type, entities: &[&st
     }
 
     obj.into()
-}
-
-fn federation_prelude() -> &'static str {
-    // I've almost certainly not got all the directives here, add more as appropriate
-    indoc::indoc!(
-        r#"
-        extend schema
-          @link(
-            url: "https://specs.apollo.dev/federation/v2.3",
-            import: [
-                "@key",
-                "@tag",
-                "@shareable",
-                "@inaccessible",
-                "@override",
-                "@external",
-                "@provides",
-                "@requires",
-                "@composeDirective",
-                "@interfaceObject",
-            ]
-        )
-        "#
-    )
 }
