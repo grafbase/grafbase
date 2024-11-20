@@ -1,4 +1,5 @@
 mod cycle;
+mod density;
 mod entities;
 mod introspection;
 mod mutation;
@@ -11,14 +12,12 @@ mod typename;
 
 use std::{borrow::Cow, num::NonZero};
 
-use engine_parser::{
-    types::{DocumentOperations, OperationType, SelectionSet},
-    Positioned,
+use cynic_parser::{
+    common::OperationType,
+    executable::{Iter, Selection},
 };
 use itertools::Itertools;
-use schema::{
-    CompositeTypeId, Definition, FieldDefinitionId, ObjectDefinition, ObjectDefinitionId, Schema, SubgraphId, Version,
-};
+use schema::{CompositeType, CompositeTypeId, FieldDefinitionId, ObjectDefinitionId, Schema, SubgraphId, Version};
 use walker::Walk;
 
 #[ctor::ctor]
@@ -57,14 +56,9 @@ struct Field {
 
 impl TestOperation {
     fn bind(schema: &Schema, query: &str) -> Self {
-        let query = engine_parser::parse_query(query).unwrap();
-        let DocumentOperations::Single(Positioned {
-            node: parsed_operation, ..
-        }) = &query.operations
-        else {
-            unreachable!()
-        };
-        let root_object_id = match parsed_operation.ty {
+        let document = cynic_parser::parse_executable_document(query).unwrap();
+        let parsed_operation = document.operations().next().unwrap();
+        let root_object_id = match parsed_operation.operation_type() {
             OperationType::Query => schema.graph.root_operation_types_record.query_id,
             OperationType::Mutation => schema.graph.root_operation_types_record.mutation_id.unwrap(),
             OperationType::Subscription => schema.graph.root_operation_types_record.subscription_id.unwrap(),
@@ -74,35 +68,75 @@ impl TestOperation {
             root_selection_set: Vec::new(),
             fields: Vec::new(),
         };
-        operation.root_selection_set =
-            operation.bind_selection_set(root_object_id.walk(schema), &parsed_operation.selection_set);
+        operation.root_selection_set = operation.bind_selection_set(
+            schema,
+            &document,
+            root_object_id.walk(schema).into(),
+            parsed_operation.selection_set(),
+        );
         operation
     }
 
-    fn bind_selection_set(&mut self, parent: ObjectDefinition<'_>, selection_set: &SelectionSet) -> Vec<FieldId> {
+    fn bind_selection_set<'schema, 'op>(
+        &mut self,
+        schema: &'schema Schema,
+        document: &'op cynic_parser::executable::ExecutableDocument,
+        parent: CompositeType<'schema>,
+        selection_set: Iter<'op, Selection<'op>>,
+    ) -> Vec<FieldId> {
         let mut field_ids = Vec::new();
-        for Positioned { node: selection, .. } in &selection_set.items {
-            let field = selection.as_field().unwrap();
-            if let Some(definition) = parent.fields().find(|def| def.name() == field.name.node.as_str()) {
-                let subselection = match definition.ty().definition() {
-                    Definition::Object(obj) => self.bind_selection_set(obj, &field.selection_set.node),
-                    _ => Vec::new(),
+        let mut stack = vec![(parent, selection_set)];
+        while let Some((parent, selection_set)) = stack.pop() {
+            for selection in selection_set {
+                let field = match selection {
+                    Selection::Field(field) => field,
+                    Selection::InlineFragment(fragment) => {
+                        let parent = fragment
+                            .type_condition()
+                            .map(|name| CompositeType::maybe_from(schema.definition_by_name(name).unwrap()).unwrap())
+                            .unwrap_or(parent);
+                        stack.push((parent, fragment.selection_set()));
+                        continue;
+                    }
+                    Selection::FragmentSpread(spread) => {
+                        let fragment = document
+                            .fragments()
+                            .find(|frag| frag.name() == spread.fragment_name())
+                            .unwrap();
+                        let parent =
+                            CompositeType::maybe_from(schema.definition_by_name(fragment.type_condition()).unwrap())
+                                .unwrap();
+                        stack.push((parent, fragment.selection_set()));
+                        continue;
+                    }
+                };
+                let definition = match parent {
+                    CompositeType::Interface(inf) => inf.find_field_by_name(field.name()),
+                    CompositeType::Object(obj) => obj.find_field_by_name(field.name()),
+                    CompositeType::Union(_) => unreachable!(),
                 };
 
-                self.fields.push(Field {
-                    name: field.name.node.to_string(),
-                    definition_id: Some(definition.id),
-                    subselection,
-                });
-            } else {
-                self.fields.push(Field {
-                    name: field.name.node.to_string(),
-                    definition_id: None,
-                    subselection: Vec::new(),
-                });
+                if let Some(definition) = definition {
+                    let subselection = match CompositeType::maybe_from(definition.ty().definition()) {
+                        Some(parent) => self.bind_selection_set(schema, document, parent, field.selection_set()),
+                        _ => Vec::new(),
+                    };
+
+                    self.fields.push(Field {
+                        name: field.name().to_string(),
+                        definition_id: Some(definition.id),
+                        subselection,
+                    });
+                } else {
+                    self.fields.push(Field {
+                        name: field.name().to_string(),
+                        definition_id: None,
+                        subselection: Vec::new(),
+                    });
+                }
+                let field_id = (self.fields.len() - 1).into();
+                field_ids.push(field_id);
             }
-            let field_id = (self.fields.len() - 1).into();
-            field_ids.push(field_id);
         }
         field_ids
     }
@@ -183,7 +217,7 @@ macro_rules! assert_solving_snapshots {
             &operation_graph.to_pretty_dot_graph()
         );
 
-        let mut solver = $crate::solve::Solver::initialize(&operation_graph).unwrap();
+        let mut solver = $crate::solve::build_solver_with_shortest_path_algorithm(&operation_graph).unwrap();
         insta::assert_snapshot!(
             format!("{name}-solver"),
             solver.to_dot_graph(),

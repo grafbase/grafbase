@@ -1,6 +1,6 @@
 use crate::{
     assert_solving_snapshots,
-    solve::Solver,
+    solve::build_solver_with_shortest_path_algorithm,
     tests::{read_schema, TestOperation},
     OperationGraph,
 };
@@ -64,7 +64,9 @@ fn requirements_cycle() {
         &graph.to_pretty_dot_graph()
     );
 
-    let err = Solver::initialize(&graph).unwrap_err();
+    let Err(err) = build_solver_with_shortest_path_algorithm(&graph) else {
+        unreachable!("expected error");
+    };
     assert!(matches!(err, crate::Error::RequirementCycleDetected));
 }
 

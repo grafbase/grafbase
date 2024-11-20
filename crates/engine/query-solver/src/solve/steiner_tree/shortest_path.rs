@@ -10,7 +10,7 @@ use petgraph::{
 
 use crate::Cost;
 
-use super::SteinerGraph;
+use super::{SteinerGraph, SteinerTreeAlgorithm};
 
 /// Very simple Steiner tree solver. We compute the shortest path from the root to the terminals
 /// and add those incrementally to the Steiner Tree.
@@ -42,14 +42,14 @@ struct CostUpdate {
     records: Vec<(NodeIndex, EdgeIndex, Cost)>,
 }
 
-impl<G: GraphBase> ShortestPathAlgorithm<G>
+impl<G> SteinerTreeAlgorithm<G> for ShortestPathAlgorithm<G>
 where
     G: NodeIndexable + IntoNodeReferences + IntoEdgeReferences + EdgeCount + NodeCount + EdgeIndexable + DataMap,
     G::EdgeId: Ord + std::fmt::Debug,
     G::EdgeWeight: std::fmt::Debug,
     G::NodeWeight: std::fmt::Debug,
 {
-    pub(crate) fn initialize(
+    fn initialize(
         operation_graph: G,
         node_filter: impl Fn(G::NodeRef) -> Option<G::NodeId>,
         edge_filter: impl Fn(G::EdgeRef) -> Option<(G::EdgeId, G::NodeId, G::NodeId, Cost)>,
@@ -115,105 +115,7 @@ where
         alg
     }
 
-    pub(crate) fn to_dot_graph(
-        &self,
-        edge_label: impl Fn(Cost, bool) -> String,
-        node_label: impl Fn(G::NodeId, bool) -> String,
-    ) -> String {
-        format!(
-            "{:?}",
-            Dot::with_attr_getters(
-                &self.steiner_graph.graph,
-                &[Config::EdgeNoLabel, Config::NodeNoLabel],
-                &|_, edge| {
-                    let is_in_steiner_tree = self.steiner_tree.nodes[edge.source().index()]
-                        && self.steiner_tree.nodes[edge.target().index()];
-                    let cost = *edge.weight();
-                    edge_label(cost, is_in_steiner_tree)
-                },
-                &|_, (node_ix, _)| {
-                    let is_in_steiner_tree = self.steiner_tree.nodes[node_ix.index()];
-                    if let Some(node_id) = self.steiner_graph.to_operation_graph_node_id(node_ix) {
-                        node_label(node_id, is_in_steiner_tree)
-                    } else {
-                        debug_assert!(!is_in_steiner_tree);
-                        "label=\"\", style=dashed".to_string()
-                    }
-                }
-            )
-        )
-    }
-
-    /// Pushes an edge cost update to the algorithm. This will be applied before the next growth phase at the latest.
-    /// We don't apply them immediately to avoid re-computing the shortest paths all the time.
-    pub(crate) fn insert_edge_cost_update(&mut self, source_id: G::NodeId, edge_id: G::EdgeId, cost: Cost) {
-        let edge_ix = self.steiner_graph.to_edge_ix(edge_id);
-        match self.steiner_graph.graph[edge_ix].cmp(&cost) {
-            std::cmp::Ordering::Equal => (),
-            std::cmp::Ordering::Less => {
-                self.cost_update.increases_cost = true;
-                self.cost_update
-                    .records
-                    .push((self.steiner_graph.to_node_ix(source_id), edge_ix, cost));
-            }
-            std::cmp::Ordering::Greater => {
-                self.cost_update
-                    .records
-                    .push((self.steiner_graph.to_node_ix(source_id), edge_ix, cost));
-            }
-        }
-    }
-
-    /// Add new terminals that must be reached. Typically those will be requirements based on the
-    /// resolvers that were chosen.
-    pub(crate) fn extend_terminals(&mut self, extra_terminals: impl IntoIterator<Item = G::NodeId>) {
-        self.missing_terminals.extend(
-            extra_terminals
-                .into_iter()
-                .map(|node| self.steiner_graph.to_node_ix(node)),
-        );
-    }
-
-    /// Forces all cost updates to be applied.
-    pub(crate) fn apply_all_cost_updates(&mut self) -> bool {
-        if !self.cost_update.records.is_empty() {
-            if self.cost_update.increases_cost {
-                for (_, edge, cost) in self.cost_update.records.drain(..) {
-                    self.steiner_graph.graph[edge] = cost;
-                }
-                self.regenerate_shortest_paths();
-            } else {
-                debug_assert!(self.tmp.lowered_cost_nodes.is_empty());
-                for (source, edge, cost) in self.cost_update.records.drain(..) {
-                    self.steiner_graph.graph[edge] = cost;
-                    self.tmp.lowered_cost_nodes.push(source);
-                }
-                self.steiner_tree
-                    .update_shortest_paths(&self.steiner_graph, &mut self.tmp.lowered_cost_nodes);
-            }
-            true
-        } else {
-            false
-        }
-    }
-
-    fn regenerate_shortest_paths(&mut self) {
-        for shortest_path in &mut self.steiner_tree.shortest_paths {
-            shortest_path.cumulative_cost_from_root = Cost::MAX;
-        }
-        self.steiner_tree.shortest_paths[self.root_ix.index()].cumulative_cost_from_root = 0;
-
-        debug_assert!(self.tmp.lowered_cost_nodes.is_empty());
-        self.tmp.lowered_cost_nodes.push(self.root_ix);
-        self.steiner_tree
-            .update_shortest_paths(&self.steiner_graph, &mut self.tmp.lowered_cost_nodes);
-    }
-
-    /// Core function that actually moves forward the algorithm. At each step we include at least
-    /// one new terminal with a non-zero cost.
-    /// The control is given back to the caller allowing for any edge cost updates as the cost of requirements might have changed.
-    /// The return value indicates whether we still have any missing terminals left.
-    pub(crate) fn continue_steiner_tree_growth(&mut self) -> bool {
+    fn continue_steiner_tree_growth(&mut self) -> bool {
         // Ensure we start from a clean state.
         self.apply_all_cost_updates();
 
@@ -266,11 +168,11 @@ where
         !self.missing_terminals.is_empty()
     }
 
-    // Estimate the extra cost of retrieving additional terminals with the current Steiner tree and
-    // a few edges force set to zero cost.
-    //
-    // Used to estimate the cost of all requirements of a resolver when taking a certain path.
-    pub(crate) fn estimate_extra_cost(
+    fn contains_node(&self, node_id: G::NodeId) -> bool {
+        self.steiner_tree.nodes[self.steiner_graph.to_node_ix(node_id).index()]
+    }
+
+    fn estimate_extra_cost(
         &mut self,
         zero_cost_edges: impl IntoIterator<Item = G::EdgeId>,
         extra_terminals: impl IntoIterator<Item = G::NodeId>,
@@ -318,12 +220,7 @@ where
         self.tmp.steiner_tree_copy.cost - self.steiner_tree.cost
     }
 
-    // Whether a node is part of the Steiner tree.
-    pub(crate) fn contains_node(&self, node_id: G::NodeId) -> bool {
-        self.steiner_tree.nodes[self.steiner_graph.to_node_ix(node_id).index()]
-    }
-
-    pub(crate) fn operation_graph_bitset(&self) -> FixedBitSet {
+    fn operation_graph_bitset(&self) -> FixedBitSet {
         let mut bitset = FixedBitSet::with_capacity(self.steiner_graph.operation_graph_node_id_to_node_ix.len());
         for (i, ix) in self
             .steiner_graph
@@ -335,6 +232,103 @@ where
             bitset.set(i, self.steiner_tree.nodes[ix.index()]);
         }
         bitset
+    }
+
+    fn insert_edge_cost_update(&mut self, source_id: G::NodeId, edge_id: G::EdgeId, cost: Cost) {
+        let edge_ix = self.steiner_graph.to_edge_ix(edge_id);
+        match self.steiner_graph.graph[edge_ix].cmp(&cost) {
+            std::cmp::Ordering::Equal => (),
+            std::cmp::Ordering::Less => {
+                self.cost_update.increases_cost = true;
+                self.cost_update
+                    .records
+                    .push((self.steiner_graph.to_node_ix(source_id), edge_ix, cost));
+            }
+            std::cmp::Ordering::Greater => {
+                self.cost_update
+                    .records
+                    .push((self.steiner_graph.to_node_ix(source_id), edge_ix, cost));
+            }
+        }
+    }
+
+    fn apply_all_cost_updates(&mut self) -> bool {
+        if !self.cost_update.records.is_empty() {
+            if self.cost_update.increases_cost {
+                for (_, edge, cost) in self.cost_update.records.drain(..) {
+                    self.steiner_graph.graph[edge] = cost;
+                }
+                self.regenerate_shortest_paths();
+            } else {
+                debug_assert!(self.tmp.lowered_cost_nodes.is_empty());
+                for (source, edge, cost) in self.cost_update.records.drain(..) {
+                    self.steiner_graph.graph[edge] = cost;
+                    self.tmp.lowered_cost_nodes.push(source);
+                }
+                self.steiner_tree
+                    .update_shortest_paths(&self.steiner_graph, &mut self.tmp.lowered_cost_nodes);
+            }
+            true
+        } else {
+            false
+        }
+    }
+
+    fn extend_terminals(&mut self, extra_terminals: impl IntoIterator<Item = G::NodeId>) {
+        self.missing_terminals.extend(
+            extra_terminals
+                .into_iter()
+                .map(|node| self.steiner_graph.to_node_ix(node)),
+        );
+    }
+
+    fn to_dot_graph(
+        &self,
+        edge_label: impl Fn(Cost, bool) -> String,
+        node_label: impl Fn(G::NodeId, bool) -> String,
+    ) -> String {
+        format!(
+            "{:?}",
+            Dot::with_attr_getters(
+                &self.steiner_graph.graph,
+                &[Config::EdgeNoLabel, Config::NodeNoLabel],
+                &|_, edge| {
+                    let is_in_steiner_tree = self.steiner_tree.nodes[edge.source().index()]
+                        && self.steiner_tree.nodes[edge.target().index()];
+                    let cost = *edge.weight();
+                    edge_label(cost, is_in_steiner_tree)
+                },
+                &|_, (node_ix, _)| {
+                    let is_in_steiner_tree = self.steiner_tree.nodes[node_ix.index()];
+                    if let Some(node_id) = self.steiner_graph.to_operation_graph_node_id(node_ix) {
+                        node_label(node_id, is_in_steiner_tree)
+                    } else {
+                        debug_assert!(!is_in_steiner_tree);
+                        "label=\"\", style=dashed".to_string()
+                    }
+                }
+            )
+        )
+    }
+}
+
+impl<G: GraphBase> ShortestPathAlgorithm<G>
+where
+    G: NodeIndexable + IntoNodeReferences + IntoEdgeReferences + EdgeCount + NodeCount + EdgeIndexable + DataMap,
+    G::EdgeId: Ord + std::fmt::Debug,
+    G::EdgeWeight: std::fmt::Debug,
+    G::NodeWeight: std::fmt::Debug,
+{
+    fn regenerate_shortest_paths(&mut self) {
+        for shortest_path in &mut self.steiner_tree.shortest_paths {
+            shortest_path.cumulative_cost_from_root = Cost::MAX;
+        }
+        self.steiner_tree.shortest_paths[self.root_ix.index()].cumulative_cost_from_root = 0;
+
+        debug_assert!(self.tmp.lowered_cost_nodes.is_empty());
+        self.tmp.lowered_cost_nodes.push(self.root_ix);
+        self.steiner_tree
+            .update_shortest_paths(&self.steiner_graph, &mut self.tmp.lowered_cost_nodes);
     }
 
     #[cfg(test)]

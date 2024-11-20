@@ -2251,10 +2251,10 @@ version = "0.0.0"
 dependencies = [
  "bitflags 2.6.0",
  "ctor",
+ "cynic-parser",
  "engine-config",
  "engine-id-derives",
  "engine-id-newtypes",
- "engine-parser",
  "engine-schema",
  "engine-walker",
  "fixedbitset 0.5.7",

@@ -30,7 +30,7 @@ schema = { path = "../schema", package = "engine-schema" }
 ctor.workspace = true
 serde.workspace = true
 similar = "2"
-engine-parser = { path = "../parser" }
+cynic-parser.workspace = true
 config = { path = "../config", package = "engine-config" }
 federated-graph.workspace = true
 tracing-subscriber = { workspace = true, features = [

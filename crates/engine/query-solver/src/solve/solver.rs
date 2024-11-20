@@ -16,7 +16,7 @@ use crate::{
     Cost, FieldFlags, Operation,
 };
 
-use super::steiner_tree;
+use super::steiner_tree::SteinerTreeAlgorithm;
 
 /// The solver is responsible for finding the optimal path from the root to the query fields.
 /// There are two cores aspects to this, expressing the problem as a Steiner tree problem and
@@ -31,9 +31,9 @@ use super::steiner_tree;
 ///
 /// As this extra cost changes every time we change the Steiner tree, we have to adjust those while
 /// constructing it.
-pub(crate) struct Solver<'g, 'ctx, Op: Operation> {
+pub(crate) struct Solver<'g, 'ctx, Op: Operation, Alg> {
     operation_graph: &'g OperationGraph<'ctx, Op>,
-    algorithm: steiner_tree::ShortestPathAlgorithm<&'g StableGraph<Node<'ctx, Op::FieldId>, Edge>>,
+    algorithm: Alg,
     /// Keeps track of dispensable requirements to adjust edge cost, ideally we'd like to avoid
     /// them.
     dispensable_requirements_metadata: DispensableRequirementsMetadata,
@@ -45,7 +45,11 @@ pub(crate) struct SteinerTreeSolution {
     pub node_bitset: FixedBitSet,
 }
 
-impl<'g, 'ctx, Op: Operation> Solver<'g, 'ctx, Op> {
+impl<'g, 'ctx, Op, Alg> Solver<'g, 'ctx, Op, Alg>
+where
+    Op: Operation,
+    Alg: SteinerTreeAlgorithm<&'g StableGraph<Node<'ctx, Op::FieldId>, Edge>>,
+{
     pub fn initialize(operation_graph: &'g OperationGraph<'ctx, Op>) -> crate::Result<Self> {
         let mut terminals = Vec::new();
         for (node_ix, node) in operation_graph.graph.node_references() {
@@ -72,7 +76,7 @@ impl<'g, 'ctx, Op: Operation> Solver<'g, 'ctx, Op> {
             Edge::Field | Edge::TypenameField | Edge::HasChildResolver | Edge::Requires => None,
         };
 
-        let algorithm = steiner_tree::ShortestPathAlgorithm::initialize(
+        let algorithm = Alg::initialize(
             &operation_graph.graph,
             node_filter,
             edge_filter,
@@ -313,7 +317,7 @@ impl<'g, 'ctx, Op: Operation> Solver<'g, 'ctx, Op> {
     }
 }
 
-impl<'g, 'ctx, Op: Operation> std::fmt::Debug for Solver<'g, 'ctx, Op> {
+impl<'g, 'ctx, Op: Operation, Alg> std::fmt::Debug for Solver<'g, 'ctx, Op, Alg> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Solver").finish_non_exhaustive()
     }

@@ -15,6 +15,7 @@ pub(crate) use operation::*;
 pub use petgraph;
 use schema::{CompositeTypeId, FieldDefinitionId, ObjectDefinitionId, Schema, SchemaField, SubgraphId};
 pub use solution::*;
+use solve::build_solver_with_shortest_path_algorithm;
 
 pub(crate) type Cost = u16;
 
@@ -47,6 +48,6 @@ pub trait Operation {
 
 pub fn solve<Op: Operation>(schema: &Schema, operation: Op) -> Result<Solution<'_, Op>> {
     let operation_graph = OperationGraph::new(schema, operation)?;
-    let solution = solve::Solver::initialize(&operation_graph)?.solve()?;
+    let solution = build_solver_with_shortest_path_algorithm(&operation_graph)?.solve()?;
     Ok(Solution::build_partial(operation_graph, solution)?.finalize())
 }

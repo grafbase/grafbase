@@ -4,6 +4,8 @@ use std::time::{Duration, Instant};
 
 use petgraph::visit::{EdgeRef, IntoNodeReferences};
 
+use crate::solve::steiner_tree::SteinerTreeAlgorithm;
+
 use super::ShortestPathAlgorithm;
 
 /// Sanity check our ShortestPath Steiner Tree algorithm against a graph with known optimal cost.

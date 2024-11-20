@@ -1,0 +1,34 @@
+---
+source: crates/engine/query-solver/src/tests/density.rs
+expression: "digraph {\n    0 [ label = \"root\", color=forestgreen ]\n    1 [ label = \"id\", style=dashed ]\n    2 [ label = \"id\", style=dashed ]\n    3 [ label = \"name\", style=dashed ]\n    4 [ label = \"Root#a\", shape=parallelogram, color=dodgerblue, style=dashed ]\n    5 [ label = \"media#a\", shape=box, color=dodgerblue, style=dashed ]\n    6 [ label = \"Root#b\", shape=parallelogram, color=dodgerblue, style=dashed ]\n    7 [ label = \"media#b\", shape=box, color=dodgerblue, style=dashed ]\n    8 [ label = \"animals#b\", shape=box, color=dodgerblue, style=dashed ]\n    9 [ label = \"name#b\", shape=box, color=dodgerblue, style=dashed ]\n    10 [ label = \"id#b\", shape=box, color=dodgerblue, style=dashed ]\n    11 [ label = \"id#b\", shape=box, color=dodgerblue, style=dashed ]\n    12 [ label = \"id#a\", shape=box, color=dodgerblue, style=dashed ]\n    13 [ label=\"\", style=dashed]\n    0 -> 4 [ label = <<b>1</b>>, color=royalblue,fontcolor=royalblue,style=dashed ]\n    4 -> 5 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    0 -> 6 [ label = <<b>1</b>>, color=royalblue,fontcolor=royalblue,style=dashed ]\n    6 -> 7 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    7 -> 8 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    8 -> 9 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    9 -> 3 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    8 -> 10 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    10 -> 2 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    7 -> 11 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    11 -> 1 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    5 -> 12 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    12 -> 1 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    13 -> 0 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n}\n"
+---
+digraph {
+    0 [ label = "root", steiner=1 ]
+    1 [ label = "id", steiner=0 ]
+    2 [ label = "id", steiner=0 ]
+    3 [ label = "name", steiner=0 ]
+    4 [ label = "Root#a", steiner=0 ]
+    5 [ label = "media#a", steiner=0 ]
+    6 [ label = "Root#b", steiner=0 ]
+    7 [ label = "media#b", steiner=0 ]
+    8 [ label = "animals#b", steiner=0 ]
+    9 [ label = "name#b", steiner=0 ]
+    10 [ label = "id#b", steiner=0 ]
+    11 [ label = "id#b", steiner=0 ]
+    12 [ label = "id#a", steiner=0 ]
+    13 [ label="", style=dashed]
+    0 -> 4 [ cost=1, steiner=0]
+    4 -> 5 [ cost=0, steiner=0]
+    0 -> 6 [ cost=1, steiner=0]
+    6 -> 7 [ cost=0, steiner=0]
+    7 -> 8 [ cost=0, steiner=0]
+    8 -> 9 [ cost=0, steiner=0]
+    9 -> 3 [ cost=0, steiner=0]
+    8 -> 10 [ cost=0, steiner=0]
+    10 -> 2 [ cost=0, steiner=0]
+    7 -> 11 [ cost=0, steiner=0]
+    11 -> 1 [ cost=0, steiner=0]
+    5 -> 12 [ cost=0, steiner=0]
+    12 -> 1 [ cost=0, steiner=0]
+    13 -> 0 [ cost=0, steiner=0]
+}
