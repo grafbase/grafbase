@@ -1,8 +1,7 @@
 use config::{HeaderRemove, HeaderRule, NameOrPattern};
-use engine_schema::{DefinitionId, Schema, Version};
+use engine_schema::{Schema, Version};
 use federated_graph::from_sdl;
 use regex::Regex;
-use walker::Walk;
 
 const SCHEMA: &str = r#"
 schema
@@ -228,82 +227,6 @@ input BookInput2 {
     genre: String
 }
 "#;
-
-#[test]
-fn should_remove_all_inaccessible_items() {
-    let graph = from_sdl(SCHEMA_WITH_INACCESSIBLES).unwrap();
-    let config = config::Config::from_graph(graph);
-    let schema = Schema::build(config, Version::from("random")).unwrap();
-
-    // Inaccessible types are still in the schema, they're just not reachable through input and output fields.
-    assert!(schema.definition_by_name("BookInput").is_some());
-    assert!(schema.definition_by_name("TVContent").is_some());
-    assert!(schema.definition_by_name("UngulateType").is_some());
-    assert!(schema.definition_by_name("Old").is_some());
-
-    // Input object fields
-    {
-        let Some(DefinitionId::InputObject(book_input_2)) = schema.definition_by_name("BookInput2") else {
-            panic!("missing BookInput2");
-        };
-
-        let book_input_2 = book_input_2.walk(&schema);
-
-        assert!(!book_input_2.input_fields().any(|field| field.name() == "author"));
-    }
-
-    // Field arguments
-    {
-        let Some(DefinitionId::Object(mutation)) = schema.definition_by_name("Mutation") else {
-            panic!("missing Mutation");
-        };
-
-        let mutation = mutation.walk(&schema);
-
-        let field = mutation.fields().find(|field| field.name() == "addBook").unwrap();
-
-        assert!(field.argument_by_name("input").is_none())
-    }
-
-    // Object fields
-    {
-        let Some(DefinitionId::Object(query)) = schema.definition_by_name("Query") else {
-            panic!("missing Query");
-        };
-
-        let query = query.walk(&schema);
-
-        assert!(!query.fields().any(|f| f.name() == "currentTime"));
-        assert!(query.fields().any(|f| f.name() == "getNew"));
-    }
-
-    // Enum values
-    {
-        let Some(DefinitionId::Enum(ungulate_type)) = schema.definition_by_name("UngulateType") else {
-            panic!("Expected UngulateType to be defined");
-        };
-
-        let r#enum = ungulate_type.walk(&schema);
-        assert!(r#enum.values().any(|value| value.name() == "GIRAFFE"));
-        assert!(!r#enum.values().any(|value| value.name() == "HORSE"));
-    }
-
-    // FIXME: fix inaccessible union
-    // Union members
-    // {
-    //     let Some(DefinitionId::Union(continent)) = schema.definition_by_name("Continent") else {
-    //         panic!("Expected Continent to be defined");
-    //     };
-    //
-    //     let members = continent
-    //         .walk(&schema)
-    //         .possible_types()
-    //         .map(|t| t.name())
-    //         .collect::<Vec<_>>();
-    //
-    //     assert_eq!(members, &["New"])
-    // }
-}
 
 #[rstest::rstest]
 #[case(SCHEMA)]

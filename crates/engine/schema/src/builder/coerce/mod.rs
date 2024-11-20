@@ -165,13 +165,7 @@ impl<'a> InputValueCoercer<'a> {
     ) -> Result<SchemaInputValueRecord, InputValueError> {
         let r#enum = &self.graph[enum_id];
         match &value {
-            Value::EnumValue(id) => self
-                .ctx
-                .idmaps
-                .convert_enum_value_id(*id)
-                .map(SchemaInputValueRecord::EnumValue)
-                .map(Ok)
-                .unwrap_or_else(|| Err(InputValueError::InaccessibleEnumValue { path: self.path() })),
+            Value::EnumValue(id) => Ok(SchemaInputValueRecord::EnumValue((*id).into())),
             Value::UnboundEnumValue(id) => {
                 let string_value = &self.ctx.strings[(*id).into()];
                 for id in r#enum.value_ids {
@@ -233,11 +227,7 @@ impl<'a> InputValueCoercer<'a> {
             }
             .map(SchemaInputValueRecord::Boolean),
             ScalarType::JSON => {
-                return Ok(self.input_values.ingest_as_json(self.ctx, value).map_err(
-                    |_: super::input_values::InaccessibleEnumValue| InputValueError::InaccessibleEnumValue {
-                        path: self.path(),
-                    },
-                ))?
+                return Ok(self.input_values.ingest_arbitrary_value(self.ctx, value));
             }
         }
         .ok_or_else(|| InputValueError::IncorrectScalarType {

@@ -9,14 +9,18 @@ impl TypeRecord {
             ..self
         }
     }
+}
 
-    /// Determines whether a variable is compatible with the expected type
-    pub fn is_compatible_with(&self, other: TypeRecord) -> bool {
-        self.definition_id == other.definition_id
-            // if not a list, the current type can be coerced into the proper list wrapping.
-            && (!self.wrapping.is_list()
-                || self.wrapping.list_wrappings().len() == other.wrapping.list_wrappings().len())
-            && (other.wrapping.is_nullable() || self.wrapping.is_required())
+impl<'a> Type<'a> {
+    pub fn wrapped_by(self, list_wrapping: ListWrapping) -> Self {
+        Self {
+            item: self.item.wrapped_by(list_wrapping),
+            ..self
+        }
+    }
+
+    pub fn pop_list_wrapping(&mut self) -> Option<ListWrapping> {
+        self.item.wrapping.pop_list_wrapping()
     }
 }
 

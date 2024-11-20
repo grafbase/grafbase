@@ -4,6 +4,7 @@ use std::collections::BTreeMap;
 use engine_parser::types::Directive;
 use engine_parser::Positioned;
 use schema::{CompositeTypeId, DefinitionId, FieldDefinitionId, ObjectDefinitionId, TypeRecord};
+use walker::Walk;
 
 use super::{BindError, BindResult, Binder};
 use crate::operation::bind::coercion::coerce_query_value;
@@ -206,9 +207,9 @@ impl<'schema, 'p, 'binder> SelectionSetBinder<'schema, 'p, 'binder> {
             return Ok(());
         }
 
-        let definition_id = match parent {
-            CompositeTypeId::Object(object_id) => self.schema.object_field_by_name(object_id, name),
-            CompositeTypeId::Interface(interface_id) => self.schema.interface_field_by_name(interface_id, name),
+        let definition = match parent {
+            CompositeTypeId::Object(object_id) => object_id.walk(self.schema).find_field_by_name(name),
+            CompositeTypeId::Interface(interface_id) => interface_id.walk(self.schema).find_field_by_name(name),
             CompositeTypeId::Union(union_id) => {
                 return Err(BindError::UnionHaveNoFields {
                     name: name.to_string(),
@@ -217,6 +218,7 @@ impl<'schema, 'p, 'binder> SelectionSetBinder<'schema, 'p, 'binder> {
                 });
             }
         }
+        .filter(|field_definition| !field_definition.is_inaccessible())
         .ok_or_else(|| BindError::UnknownField {
             container: self.schema.walk(DefinitionId::from(parent)).name().to_string(),
             name: name.to_string(),
@@ -230,7 +232,7 @@ impl<'schema, 'p, 'binder> SelectionSetBinder<'schema, 'p, 'binder> {
             .data_fields
             .entry(DataFieldUniqueKey {
                 response_key,
-                definition_id,
+                definition_id: definition.id,
                 rules: {
                     let mut rules = self.rules_stack.clone();
                     rules.sort_unstable();
@@ -265,7 +267,7 @@ impl<'schema, 'p, 'binder> SelectionSetBinder<'schema, 'p, 'binder> {
                 name: name.to_string(),
                 location,
             })?;
-        let ty = self.bind_selection_set_type(parent, &fragment.node.type_condition)?;
+        let ty = self.bind_type_condition(parent, &fragment.node.type_condition)?;
 
         let n = self.rules_stack.len();
         self.push_new_rules(&fragment.directives)?;
@@ -284,7 +286,7 @@ impl<'schema, 'p, 'binder> SelectionSetBinder<'schema, 'p, 'binder> {
         let ty = fragment
             .type_condition
             .as_ref()
-            .map(|condition| self.bind_selection_set_type(parent, condition))
+            .map(|condition| self.bind_type_condition(parent, condition))
             .transpose()?
             .unwrap_or(parent);
 
@@ -307,16 +309,12 @@ impl<'schema, 'p, 'binder> SelectionSetBinder<'schema, 'p, 'binder> {
                     location: directive.pos.try_into()?,
                     directive: directive_name.to_string(),
                 })?;
-                let boolean_definition_id = self.schema.scalar_definition_by_name("Boolean").expect("must exist");
-                let input_value_id = coerce_query_value(
-                    self,
-                    argument.1.pos.try_into()?,
-                    TypeRecord {
-                        definition_id: boolean_definition_id,
-                        wrapping: schema::Wrapping::new(true),
-                    },
-                    argument.1.node.clone(),
-                )?;
+                let ty = TypeRecord {
+                    definition_id: self.schema.definition_by_name("Boolean").expect("must exist").id(),
+                    wrapping: schema::Wrapping::required(),
+                }
+                .walk(self.schema);
+                let input_value_id = coerce_query_value(self, argument.1.pos.try_into()?, ty, argument.1.node.clone())?;
 
                 if directive_name == "skip" {
                     skip_include.push(SkipIncludeDirective::SkipIf(input_value_id));
@@ -333,7 +331,7 @@ impl<'schema, 'p, 'binder> SelectionSetBinder<'schema, 'p, 'binder> {
         Ok(())
     }
 
-    fn bind_selection_set_type(
+    fn bind_type_condition(
         &self,
         parent: CompositeTypeId,
         Positioned { pos, node }: &'p Positioned<engine_parser::types::TypeCondition>,
@@ -343,11 +341,12 @@ impl<'schema, 'p, 'binder> SelectionSetBinder<'schema, 'p, 'binder> {
         let definition = self
             .schema
             .definition_by_name(name)
+            .filter(|def| !def.is_inaccessible())
             .ok_or_else(|| BindError::UnknownType {
                 name: name.to_string(),
                 location,
             })?;
-        let fragment_ty = match definition {
+        let fragment_ty = match definition.id() {
             DefinitionId::Object(object_id) => CompositeTypeId::Object(object_id),
             DefinitionId::Interface(interface_id) => CompositeTypeId::Interface(interface_id),
             DefinitionId::Union(union_id) => CompositeTypeId::Union(union_id),
@@ -363,8 +362,8 @@ impl<'schema, 'p, 'binder> SelectionSetBinder<'schema, 'p, 'binder> {
         let fragment_possible_types = self.get_possible_types(fragment_ty);
         let mut i = 0;
         let mut j = 0;
-        while i < possible_types.len() && j < fragment_possible_types.len() {
-            match possible_types[i].cmp(&fragment_possible_types[j]) {
+        while let (Some(left), Some(right)) = (possible_types.get(i), fragment_possible_types.get(j)) {
+            match left.cmp(right) {
                 std::cmp::Ordering::Less => i += 1,
                 // At least one common object
                 std::cmp::Ordering::Equal => return Ok(fragment_ty),

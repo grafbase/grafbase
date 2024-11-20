@@ -8,9 +8,9 @@ use graphql_mocks::{
 use indoc::indoc;
 use integration_tests::{federation::EngineExt, runtime};
 
-const PATHFINDER_INTROSPECTION_QUERY: &str = include_str!("../../data/introspection.graphql");
+pub const PATHFINDER_INTROSPECTION_QUERY: &str = include_str!("../../data/introspection.graphql");
 
-const CONFIG: &str = indoc! {r#"
+pub const CONFIG: &str = indoc! {r#"
     [graph]
     introspection = true
 "#};
@@ -1060,7 +1060,7 @@ fn default_values() {
 }
 
 #[allow(clippy::panic)]
-fn introspection_to_sdl(data: serde_json::Value) -> String {
+pub fn introspection_to_sdl(data: serde_json::Value) -> String {
     serde_json::from_value::<IntrospectionQuery>(data)
         .expect("valid response")
         .into_schema()

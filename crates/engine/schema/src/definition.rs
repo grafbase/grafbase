@@ -62,6 +62,17 @@ impl<'a> Definition<'a> {
             _ => None,
         })
     }
+
+    pub fn is_inaccessible(&self) -> bool {
+        match self {
+            Definition::Enum(enm) => enm.is_inaccessible(),
+            Definition::InputObject(input_object) => input_object.is_inaccessible(),
+            Definition::Interface(interface) => interface.is_inaccessible(),
+            Definition::Object(object) => object.is_inaccessible(),
+            Definition::Scalar(scalar) => scalar.is_inaccessible(),
+            Definition::Union(union) => union.is_inaccessible(),
+        }
+    }
 }
 
 impl DefinitionId {

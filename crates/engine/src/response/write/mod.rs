@@ -592,15 +592,15 @@ impl<'resp> ResponseWriter<'resp> {
     }
 
     // Create a Vec with `new_list` before to re-use an existing Vec.
-    pub fn push_list(&self, values: Vec<ResponseValue>) -> ResponseListId {
+    pub fn push_list(&self, mut values: Vec<ResponseValue>) -> ResponseListId {
         let mut part = self.part();
-        let id = part.data.push_list(&values);
+        let id = part.data.push_list(&mut values);
         part.buffers.push(values);
         id
     }
 
     pub fn push_empty_list(&self) -> ResponseListId {
-        self.part().data.push_list(&[])
+        self.part().data.push_list(&mut Vec::new())
     }
 
     pub fn update_root_object_with(&self, fields: Vec<ResponseObjectField>) {

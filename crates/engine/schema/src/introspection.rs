@@ -622,11 +622,11 @@ impl<'a> IntrospectionBuilder<'a> {
         let values = if values.is_empty() {
             IdRange::empty()
         } else {
-            let start_idx = self.enum_value_definitions.len();
+            let start_idx = self.enum_values.len();
 
             for value in values {
                 let name_id = self.get_or_intern(value);
-                self.enum_value_definitions.push(EnumValueRecord {
+                self.enum_values.push(EnumValueRecord {
                     name_id,
                     directive_ids: Vec::new(),
                     description_id: None,
@@ -635,7 +635,7 @@ impl<'a> IntrospectionBuilder<'a> {
 
             IdRange {
                 start: EnumValueId::from(start_idx),
-                end: EnumValueId::from(self.enum_value_definitions.len()),
+                end: EnumValueId::from(self.enum_values.len()),
             }
         };
 

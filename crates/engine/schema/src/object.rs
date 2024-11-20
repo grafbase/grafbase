@@ -1,4 +1,4 @@
-use crate::{InterfaceDefinitionId, ObjectDefinition, ObjectDefinitionRecord, SubgraphId};
+use crate::{FieldDefinition, InterfaceDefinitionId, ObjectDefinition, ObjectDefinitionRecord, SubgraphId};
 
 impl ObjectDefinitionRecord {
     pub fn implements_interface_in_subgraph(
@@ -18,6 +18,16 @@ impl ObjectDefinitionRecord {
 
     pub fn is_resolvable_in(&self, subgraph_id: &SubgraphId) -> bool {
         self.exists_in_subgraph_ids.binary_search(subgraph_id).is_ok()
+    }
+}
+
+impl<'a> ObjectDefinition<'a> {
+    pub fn find_field_by_name(&self, name: &str) -> Option<FieldDefinition<'a>> {
+        self.fields().find(|field| field.name() == name)
+    }
+
+    pub fn is_inaccessible(&self) -> bool {
+        self.schema.graph.inaccessible_object_definitions[self.id]
     }
 }
 

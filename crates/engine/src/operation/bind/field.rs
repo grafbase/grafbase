@@ -84,7 +84,7 @@ impl<'schema, 'p> Binder<'schema, 'p> {
 
     fn bind_field_arguments(
         &mut self,
-        definition: FieldDefinition<'_>,
+        definition: FieldDefinition<'schema>,
         location: Location,
         arguments: &[(Positioned<Name>, Positioned<engine_value::Value>)],
     ) -> BindResult<IdRange<BoundFieldArgumentId>> {
@@ -97,6 +97,9 @@ impl<'schema, 'p> Binder<'schema, 'p> {
 
         let start = self.field_arguments.len();
         for argument_def in definition.arguments() {
+            if argument_def.is_inaccessible() {
+                continue;
+            }
             if let Some(index) = arguments
                 .iter()
                 .position(|(Positioned { node: name, .. }, _)| name.as_str() == argument_def.name())
@@ -105,7 +108,7 @@ impl<'schema, 'p> Binder<'schema, 'p> {
                 let name_location = Some(name.pos.try_into()?);
                 let value_location = value.pos.try_into()?;
                 let value = value.node;
-                let input_value_id = coerce_query_value(self, value_location, argument_def.ty().into(), value)?;
+                let input_value_id = coerce_query_value(self, value_location, argument_def.ty(), value)?;
                 self.field_arguments.push(BoundFieldArgument {
                     name_location,
                     value_location: Some(value_location),

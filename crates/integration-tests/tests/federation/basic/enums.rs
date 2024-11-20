@@ -3,7 +3,7 @@ use graphql_mocks::TeaShop;
 use integration_tests::{federation::EngineExt, runtime};
 
 #[test]
-fn inaccessible_enum_values_are_inaccessible() {
+fn enum_values_with_some_inaccessible() {
     let response = runtime().block_on(async move {
         let engine = Engine::builder().with_subgraph(TeaShop::default()).build().await;
 
