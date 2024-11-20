@@ -22,21 +22,19 @@ impl ResponseExtensions {
     }
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Default, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct GrafbaseResponseExtension {
-    #[serde(serialize_with = "serialize_trace_id")]
-    trace_id: TraceId,
+    #[serde(skip_serializing_if = "Option::is_none", serialize_with = "serialize_trace_id")]
+    trace_id: Option<TraceId>,
     #[serde(skip_serializing_if = "Option::is_none")]
     query_plan: Option<QueryPlan>,
 }
 
 impl GrafbaseResponseExtension {
-    pub fn new(trace_id: TraceId) -> Self {
-        Self {
-            trace_id,
-            query_plan: None,
-        }
+    pub fn with_trace_id(mut self, trace_id: TraceId) -> Self {
+        self.trace_id = Some(trace_id);
+        self
     }
 
     pub fn with_query_plan(mut self, schema: &Schema, operation: &PreparedOperation) -> Self {
@@ -78,11 +76,15 @@ impl GrafbaseResponseExtension {
     }
 }
 
-fn serialize_trace_id<S>(trace_id: &TraceId, serializer: S) -> Result<S::Ok, S::Error>
+fn serialize_trace_id<S>(trace_id: &Option<TraceId>, serializer: S) -> Result<S::Ok, S::Error>
 where
     S: serde::Serializer,
 {
-    serializer.serialize_str(&format!("{trace_id:x}"))
+    if let Some(trace_id) = trace_id {
+        serializer.serialize_str(&format!("{trace_id:x}"))
+    } else {
+        serializer.serialize_none()
+    }
 }
 
 #[derive(Debug, Serialize, id_derives::IndexedFields)]

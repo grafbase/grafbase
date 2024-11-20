@@ -46,6 +46,91 @@ fn grafbase_extension_on_successful_request() {
 }
 
 #[test]
+fn dot_not_include_query_plan() {
+    runtime().block_on(async move {
+        let engine = Engine::builder()
+            .with_subgraph(FakeGithubSchema)
+            .with_toml_config(
+                r#"
+            [telemetry.exporters.response_extension]
+            query_plan = false
+            "#,
+            )
+            .build()
+            .await;
+
+        let response = engine
+            .post("query { serverVersion }")
+            .header("x-grafbase-telemetry", "yes")
+            .await;
+
+        insta::assert_json_snapshot!(
+            response,
+            @r#"
+        {
+          "data": {
+            "serverVersion": "1"
+          },
+          "extensions": {
+            "grafbase": {
+              "traceId": "0"
+            }
+          }
+        }
+        "#
+        );
+    })
+}
+
+#[test]
+fn dot_not_include_trace_id() {
+    runtime().block_on(async move {
+        let engine = Engine::builder()
+            .with_subgraph(FakeGithubSchema)
+            .with_toml_config(
+                r#"
+            [telemetry.exporters.response_extension]
+            trace_id = false
+            "#,
+            )
+            .build()
+            .await;
+
+        let response = engine
+            .post("query { serverVersion }")
+            .header("x-grafbase-telemetry", "yes")
+            .await;
+
+        insta::assert_json_snapshot!(
+            response,
+            @r#"
+        {
+          "data": {
+            "serverVersion": "1"
+          },
+          "extensions": {
+            "grafbase": {
+              "queryPlan": {
+                "nodes": [
+                  {
+                    "type": "graphql",
+                    "subgraph_name": "github",
+                    "request": {
+                      "query": "query { serverVersion }"
+                    }
+                  }
+                ],
+                "edges": []
+              }
+            }
+          }
+        }
+        "#
+        );
+    })
+}
+
+#[test]
 fn grafbase_extension_on_invalid_request() {
     runtime().block_on(async move {
         let engine = Engine::builder()
