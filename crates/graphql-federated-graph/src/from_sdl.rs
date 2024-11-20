@@ -298,7 +298,7 @@ pub fn from_sdl(sdl: &str) -> Result<FederatedGraph, DomainError> {
     // This needs to happen after all fields have been ingested, in order to attach selection sets.
     ingest_directives_after_graph(&parsed, &mut state)?;
 
-    Ok(FederatedGraph {
+    let mut graph = FederatedGraph {
         type_definitions: std::mem::take(&mut state.graph.type_definitions),
         root_operation_types: state.root_operation_types()?,
         subgraphs: state.subgraphs,
@@ -310,7 +310,11 @@ pub fn from_sdl(sdl: &str) -> Result<FederatedGraph, DomainError> {
         input_objects: state.input_objects,
         strings: state.strings.into_iter().collect(),
         input_value_definitions: state.input_value_definitions,
-    })
+    };
+
+    graph.enum_values.sort_unstable_by_key(|v| v.enum_id);
+
+    Ok(graph)
 }
 
 fn ingest_schema_definitions<'a>(

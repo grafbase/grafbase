@@ -17,6 +17,10 @@ impl<Id> BitSet<Id>
 where
     usize: From<Id>,
 {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
     pub fn with_capacity(n: usize) -> Self {
         Self {
             inner: fixedbitset::FixedBitSet::with_capacity(n),

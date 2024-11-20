@@ -43,11 +43,9 @@ impl<'ctx, R: Runtime> IntrospectionWriter<'ctx, R> {
                         value: self
                             .schema
                             .definition_by_name(name)
+                            .filter(|def| !def.is_inaccessible())
                             .map(|definition| {
-                                self.__type_inner(
-                                    self.schema.walk(definition),
-                                    field_shape.shape.as_concrete_object().unwrap(),
-                                )
+                                self.__type_inner(definition, field_shape.shape.as_concrete_object().unwrap())
                             })
                             .into(),
                     });
@@ -117,6 +115,7 @@ impl<'ctx, R: Runtime> IntrospectionWriter<'ctx, R> {
                     values.extend(
                         self.schema
                             .definitions()
+                            .filter(|def| !def.is_inaccessible())
                             .map(|definition| self.__type_inner(definition, shape_id)),
                     );
                     self.response.push_list(values).into()
@@ -252,7 +251,9 @@ impl<'ctx, R: Runtime> IntrospectionWriter<'ctx, R> {
                     values.extend(
                         r#enum
                             .values()
-                            .filter(|value| (!is_deprecated(value.directives()) || include_deprecated))
+                            .filter(|value| {
+                                !value.is_inaccessible() && (!is_deprecated(value.directives()) || include_deprecated)
+                            })
                             .map(|value| self.__enum_value(value, shape_id)),
                     );
                     self.response.push_list(values).into()
@@ -270,6 +271,7 @@ impl<'ctx, R: Runtime> IntrospectionWriter<'ctx, R> {
                         values.extend(
                             input_object
                                 .input_fields()
+                                .filter(|input_field| !input_field.is_inaccessible())
                                 .map(|input_field| self.__input_value(input_field, shape_id)),
                         );
                         self.response.push_list(values).into()
@@ -283,7 +285,7 @@ impl<'ctx, R: Runtime> IntrospectionWriter<'ctx, R> {
     fn __type_fields(
         &self,
         field: &FieldShapeRecord,
-        field_definitions: impl Iter<Item = FieldDefinition<'ctx>>,
+        field_definitions: impl Iterator<Item = FieldDefinition<'ctx>>,
     ) -> ResponseValue {
         let shape_id = field.shape.as_concrete_object().unwrap();
         let include_deprecated = field
@@ -295,7 +297,8 @@ impl<'ctx, R: Runtime> IntrospectionWriter<'ctx, R> {
         values.extend(
             field_definitions
                 .filter(|field| {
-                    (!is_deprecated(field.directives()) || include_deprecated)
+                    !field.is_inaccessible()
+                        && (!is_deprecated(field.directives()) || include_deprecated)
                         && !self.metadata.meta_fields.contains(&field.id)
                 })
                 .map(|field| self.__field(field, shape_id)),
@@ -306,12 +309,14 @@ impl<'ctx, R: Runtime> IntrospectionWriter<'ctx, R> {
     fn __type_interfaces(
         &self,
         field: &FieldShapeRecord,
-        interface_definitions: impl Iter<Item = InterfaceDefinition<'ctx>>,
+        interface_definitions: impl Iterator<Item = InterfaceDefinition<'ctx>>,
     ) -> ResponseValue {
         let shape_id = field.shape.as_concrete_object().unwrap();
         let mut values = self.response.new_list();
         values.extend(
-            interface_definitions.map(|interface| self.__type_inner(Definition::Interface(interface), shape_id)),
+            interface_definitions
+                .filter(|inf| !inf.is_inaccessible())
+                .map(|interface| self.__type_inner(Definition::Interface(interface), shape_id)),
         );
         self.response.push_list(values).into()
     }
@@ -319,12 +324,15 @@ impl<'ctx, R: Runtime> IntrospectionWriter<'ctx, R> {
     fn __type_possible_types(
         &self,
         field: &FieldShapeRecord,
-        possible_types: impl Iter<Item = ObjectDefinition<'ctx>>,
+        possible_types: impl Iterator<Item = ObjectDefinition<'ctx>>,
     ) -> ResponseValue {
         let shape_id = field.shape.as_concrete_object().unwrap();
         let mut values = self.response.new_list();
-        values
-            .extend(possible_types.map(|possible_type| self.__type_inner(Definition::Object(possible_type), shape_id)));
+        values.extend(
+            possible_types
+                .filter(|obj| !obj.is_inaccessible())
+                .map(|possible_type| self.__type_inner(Definition::Object(possible_type), shape_id)),
+        );
         self.response.push_list(values).into()
     }
 
@@ -338,6 +346,7 @@ impl<'ctx, R: Runtime> IntrospectionWriter<'ctx, R> {
                 values.extend(
                     target
                         .arguments()
+                        .filter(|argument| !argument.is_inaccessible())
                         .map(|argument| self.__input_value(argument, shape_id)),
                 );
                 self.response.push_list(values).into()

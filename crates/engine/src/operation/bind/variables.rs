@@ -1,7 +1,8 @@
 use std::collections::{btree_map::Entry, HashSet};
 
 use engine_parser::Positioned;
-use schema::{DefinitionId, Schema, Wrapping};
+use schema::{Definition, Schema, Wrapping};
+use walker::Walk;
 
 use crate::{
     operation::{
@@ -111,6 +112,7 @@ impl<'schema, 'p> Binder<'schema, 'p> {
                 _ => (),
             }
 
+            let ty = ty.walk(self.schema);
             let default_value = node
                 .default_value
                 .map(|Positioned { pos: _, node: value }| coerce_variable_default_value(self, name_location, ty, value))
@@ -121,7 +123,7 @@ impl<'schema, 'p> Binder<'schema, 'p> {
                 name,
                 name_location,
                 default_value_id: default_value,
-                ty_record: ty,
+                ty_record: ty.into(),
             });
         }
 
@@ -159,16 +161,16 @@ impl<'schema, 'p> Binder<'schema, 'p> {
                         })?;
                 if !matches!(
                     definition,
-                    DefinitionId::Enum(_) | DefinitionId::Scalar(_) | DefinitionId::InputObject(_)
+                    Definition::Enum(_) | Definition::Scalar(_) | Definition::InputObject(_)
                 ) {
                     return Err(BindError::InvalidVariableType {
                         name: variable_name.to_string(),
-                        ty: self.schema.walk(definition).name().to_string(),
+                        ty: definition.name().to_string(),
                         location,
                     });
                 }
                 Ok(schema::TypeRecord {
-                    definition_id: definition,
+                    definition_id: definition.id(),
                     wrapping: schema::Wrapping::new(!ty.nullable),
                 })
             }
