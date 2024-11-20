@@ -28,8 +28,8 @@ fn grafbase_extension_on_successful_request() {
               "queryPlan": {
                 "nodes": [
                   {
-                    "type": "graphql",
-                    "subgraph_name": "github",
+                    "__typename": "GraphqlResolver",
+                    "subgraphName": "github",
                     "request": {
                       "query": "query { serverVersion }"
                     }
@@ -113,8 +113,8 @@ fn dot_not_include_trace_id() {
               "queryPlan": {
                 "nodes": [
                   {
-                    "type": "graphql",
-                    "subgraph_name": "github",
+                    "__typename": "GraphqlResolver",
+                    "subgraphName": "github",
                     "request": {
                       "query": "query { serverVersion }"
                     }
@@ -236,8 +236,8 @@ fn grafbase_extension_secret_value() {
               "queryPlan": {
                 "nodes": [
                   {
-                    "type": "graphql",
-                    "subgraph_name": "github",
+                    "__typename": "GraphqlResolver",
+                    "subgraphName": "github",
                     "request": {
                       "query": "query { serverVersion }"
                     }
@@ -446,49 +446,49 @@ fn complex_query_plan() {
               "queryPlan": {
                 "nodes": [
                   {
-                    "type": "graphql",
-                    "subgraph_name": "accounts",
+                    "__typename": "GraphqlResolver",
+                    "subgraphName": "accounts",
                     "request": {
                       "query": "query { me { id username cart { products { name } } } }"
                     }
                   },
                   {
-                    "type": "graphql",
-                    "subgraph_name": "reviews",
+                    "__typename": "GraphqlResolver",
+                    "subgraphName": "reviews",
                     "request": {
                       "query": "query($var0: [_Any!]!) { _entities(representations: $var0) { ... on Product { reviews { author { id } body } } } }"
                     }
                   },
                   {
-                    "type": "graphql",
-                    "subgraph_name": "accounts",
+                    "__typename": "GraphqlResolver",
+                    "subgraphName": "accounts",
                     "request": {
                       "query": "query($var0: [_Any!]!) { _entities(representations: $var0) { ... on User { username } } }"
                     }
                   },
                   {
-                    "type": "graphql",
-                    "subgraph_name": "products",
+                    "__typename": "GraphqlResolver",
+                    "subgraphName": "products",
                     "request": {
                       "query": "query($var0: [_Any!]!) { _entities(representations: $var0) { ... on Product { price upc weight(unit: KILOGRAM) } } }"
                     }
                   },
                   {
-                    "type": "graphql",
-                    "subgraph_name": "inventory",
+                    "__typename": "GraphqlResolver",
+                    "subgraphName": "inventory",
                     "request": {
                       "query": "query($var0: [_Any!]!) { _entities(representations: $var0) { ... on Product { availableShippingService { __typename name id } } } }"
                     }
                   },
                   {
-                    "type": "graphql",
-                    "subgraph_name": "reviews",
+                    "__typename": "GraphqlResolver",
+                    "subgraphName": "reviews",
                     "request": {
                       "query": "query($var0: [_Any!]!) { _entities(representations: $var0) { ... on ShippingService { reviews { body } } } }"
                     }
                   },
                   {
-                    "type": "introspection"
+                    "__typename": "IntrospectionResolver"
                   }
                 ],
                 "edges": [

@@ -50,14 +50,14 @@ impl GrafbaseResponseExtension {
 
         for plan in ctx.plans() {
             nodes.push(match &plan.resolver {
-                Resolver::Introspection(_) => QueryPlanNode::Introspection,
-                Resolver::Graphql(resolver) => QueryPlanNode::Graphql(GraphqlQueryPlanNode {
+                Resolver::Introspection(_) => QueryPlanNode::IntrospectionResolver,
+                Resolver::Graphql(resolver) => QueryPlanNode::GraphqlResolver(GraphqlResolverNode {
                     subgraph_name: resolver.endpoint_id.walk(ctx).subgraph_name().to_string(),
                     request: GraphqlRequest {
                         query: resolver.subgraph_operation.query.clone(),
                     },
                 }),
-                Resolver::FederationEntity(resolver) => QueryPlanNode::Graphql(GraphqlQueryPlanNode {
+                Resolver::FederationEntity(resolver) => QueryPlanNode::GraphqlResolver(GraphqlResolverNode {
                     subgraph_name: resolver.endpoint_id.walk(ctx).subgraph_name().to_string(),
                     request: GraphqlRequest {
                         query: resolver.subgraph_operation.query.clone(),
@@ -88,6 +88,7 @@ where
 }
 
 #[derive(Debug, Serialize, id_derives::IndexedFields)]
+#[serde(rename_all = "camelCase")]
 struct QueryPlan {
     #[indexed_by(PlanId)]
     nodes: Vec<QueryPlanNode>,
@@ -95,19 +96,21 @@ struct QueryPlan {
 }
 
 #[derive(Debug, Serialize)]
-#[serde(tag = "type", rename_all = "snake_case")]
+#[serde(tag = "__typename", rename_all = "PascalCase")]
 enum QueryPlanNode {
-    Introspection,
-    Graphql(GraphqlQueryPlanNode),
+    IntrospectionResolver,
+    GraphqlResolver(GraphqlResolverNode),
 }
 
 #[derive(Debug, Serialize)]
-struct GraphqlQueryPlanNode {
+#[serde(rename_all = "camelCase")]
+struct GraphqlResolverNode {
     subgraph_name: String,
     request: GraphqlRequest,
 }
 
 #[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 struct GraphqlRequest {
     query: String,
 }
