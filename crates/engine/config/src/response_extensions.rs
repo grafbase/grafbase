@@ -5,7 +5,9 @@ use gateway_config::telemetry::exporters::ResponseExtensionExporterConfig;
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct ResponseExtensionConfig {
     /// Whether the traceId is exposed in the grafbase response extension. Defaults to true.
-    pub trace_id: bool,
+    pub include_trace_id: bool,
+    /// Whether the query plan is exposed in the grafbase response extension. Defaults to true.
+    pub include_query_plan: bool,
     /// Defines under which conditions the grafbase response extension will be added.
     /// Defaults to a simple header rule, the presence of `x-grafbase-telemetry` is enough.
     pub access_control: Vec<AccessControl>,
@@ -20,7 +22,8 @@ impl Default for ResponseExtensionConfig {
 impl From<ResponseExtensionExporterConfig> for ResponseExtensionConfig {
     fn from(config: ResponseExtensionExporterConfig) -> Self {
         ResponseExtensionConfig {
-            trace_id: config.trace_id,
+            include_trace_id: config.trace_id,
+            include_query_plan: config.query_plan,
             access_control: config
                 .access_control
                 .into_iter()

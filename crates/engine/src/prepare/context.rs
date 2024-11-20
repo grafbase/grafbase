@@ -74,7 +74,7 @@ impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
         self.engine
             .default_grafbase_response_extension(self.request_context)
             .map(|ext| {
-                if let Some(op) = operation {
+                if let Some(op) = operation.filter(|_| self.schema().settings.response_extension.include_query_plan) {
                     ext.with_query_plan(self.schema(), op)
                 } else {
                     ext
