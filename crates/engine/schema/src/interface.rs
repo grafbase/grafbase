@@ -16,6 +16,10 @@ impl<'a> InterfaceDefinition<'a> {
     pub fn is_inaccessible(&self) -> bool {
         self.schema.graph.inaccessible_interface_definitions[self.id]
     }
+
+    pub fn has_inaccessible_implementors(&self) -> bool {
+        self.schema.graph.interface_has_inaccessible_implementors[self.id]
+    }
 }
 
 impl std::fmt::Debug for InterfaceDefinition<'_> {

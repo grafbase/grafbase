@@ -32,8 +32,12 @@ impl<'a> PlanQueryPartition<'a> {
         PlanSelectionSet {
             ctx: self.ctx,
             item: self.as_ref().selection_set_record,
-            // Never required for the initial selection set as the parent plan provides the type.
-            requires_typename: false,
+            // If we may encounter an inaccessible object, we have to detect it
+            requires_typename: self
+                .entity_definition()
+                .as_interface()
+                .map(|inf| inf.has_inaccessible_implementors())
+                .unwrap_or_default(),
         }
     }
 }

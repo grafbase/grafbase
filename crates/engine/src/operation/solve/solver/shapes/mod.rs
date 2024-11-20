@@ -303,6 +303,8 @@ impl<'ctx> ShapesBuilder<'ctx> {
             &data_fields_sorted_by_response_key_str_then_position,
         );
 
+        let requires_typename = parent_fields.iter().any(|field| field.selection_set_requires_typename);
+
         //
         // Creating the right shape from the partitioning
         //
@@ -320,7 +322,10 @@ impl<'ctx> ShapesBuilder<'ctx> {
             // We may still need to know the type of the object if there is any __typename field.
             let identifier = if output_possible_types.len() == 1 {
                 ObjectIdentifier::Known(output_possible_types[0])
-            } else if set_id.is_some() || !typename_fields_sorted_by_response_key_str_then_position.is_empty() {
+            } else if set_id.is_some()
+                || !typename_fields_sorted_by_response_key_str_then_position.is_empty()
+                || requires_typename
+            {
                 // The output is part of a ResponseObjectSet or has __typename fields, so we need
                 // to know its actual type. We ensure that __typename will be present in the
                 // selection set we send to the subgraph and know how to read it.
@@ -376,7 +381,7 @@ impl<'ctx> ShapesBuilder<'ctx> {
                     }
                     partition::Partition::Remaining { fields } => {
                         let n = typename_fields_sorted_by_response_key_str_then_position.len();
-                        let identifier = if set_id.is_some() || fields.contains_any_in_range(..n) {
+                        let identifier = if set_id.is_some() || fields.contains_any_in_range(..n) || requires_typename {
                             match output {
                                 CompositeType::Interface(interface) => {
                                     ObjectIdentifier::InterfaceTypename(interface.id)

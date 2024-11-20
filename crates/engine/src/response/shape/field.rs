@@ -91,7 +91,7 @@ pub(crate) enum Shape {
 }
 
 impl Shape {
-    pub(crate) fn as_concrete_object(&self) -> Option<ConcreteShapeId> {
+    pub(crate) fn as_concrete(&self) -> Option<ConcreteShapeId> {
         match self {
             Shape::Concrete(id) => Some(*id),
             _ => None,

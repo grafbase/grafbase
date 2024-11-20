@@ -150,6 +150,7 @@ pub struct Graph {
     #[indexed_by(InterfaceDefinitionId)]
     interface_definitions: Vec<InterfaceDefinitionRecord>,
     inaccessible_interface_definitions: BitSet<InterfaceDefinitionId>,
+    interface_has_inaccessible_implementors: BitSet<InterfaceDefinitionId>,
     #[indexed_by(FieldDefinitionId)]
     field_definitions: Vec<FieldDefinitionRecord>,
     inaccessible_field_definitions: BitSet<FieldDefinitionId>,
@@ -159,6 +160,7 @@ pub struct Graph {
     #[indexed_by(UnionDefinitionId)]
     union_definitions: Vec<UnionDefinitionRecord>,
     inaccessible_union_definitions: BitSet<UnionDefinitionId>,
+    union_has_inaccessible_member: BitSet<UnionDefinitionId>,
     #[indexed_by(ScalarDefinitionId)]
     scalar_definitions: Vec<ScalarDefinitionRecord>,
     inaccessible_scalar_definitions: BitSet<ScalarDefinitionId>,

@@ -5,21 +5,27 @@ use walker::Walk;
 
 use crate::response::{
     write::deserialize::{key::Key, SeedContext},
-    ObjectIdentifier, PolymorphicShapeId, PolymorphicShapeRecord, ResponseValue,
+    FieldShapeRecord, ObjectIdentifier, PolymorphicShapeId, PolymorphicShapeRecord, ResponseValue,
 };
 
 use super::concrete::ConcreteShapeSeed;
 
 pub(crate) struct PolymorphicShapeSeed<'ctx, 'seed> {
     ctx: &'seed SeedContext<'ctx>,
+    parent_field: &'ctx FieldShapeRecord,
     shape: &'ctx PolymorphicShapeRecord,
 }
 
 impl<'ctx, 'seed> PolymorphicShapeSeed<'ctx, 'seed> {
-    pub fn new(ctx: &'seed SeedContext<'ctx>, shape_id: PolymorphicShapeId) -> Self {
+    pub fn new(
+        ctx: &'seed SeedContext<'ctx>,
+        parent_field: &'ctx FieldShapeRecord,
+        shape_id: PolymorphicShapeId,
+    ) -> Self {
         let polymorphic = shape_id.walk(ctx);
         Self {
             ctx,
+            parent_field,
             shape: polymorphic.as_ref(),
         }
     }
@@ -60,8 +66,13 @@ impl<'de> Visitor<'de> for PolymorphicShapeSeed<'_, '_> {
                     .binary_search_by(|(id, _)| schema[schema[*id].name_id].as_str().cmp(typename))
                 {
                     let (object_id, shape_id) = self.shape.possibilities[i];
-                    return ConcreteShapeSeed::new_with_known_object_definition_id(self.ctx, shape_id, object_id)
-                        .visit_map(ChainedMapAcces::new(content, map));
+                    return ConcreteShapeSeed::new_with_known_object_definition_id(
+                        self.ctx,
+                        self.parent_field,
+                        shape_id,
+                        object_id,
+                    )
+                    .visit_map(ChainedMapAcces::new(content, map));
                 } else if let Some(shape_id) = self.shape.fallback {
                     let possible_type_ids = match shape_id.walk(self.ctx).identifier {
                         ObjectIdentifier::UnionTypename(id) => {
@@ -71,7 +82,7 @@ impl<'de> Visitor<'de> for PolymorphicShapeSeed<'_, '_> {
                             &self.ctx.schema[id].possible_types_ordered_by_typename_ids
                         }
                         _ => {
-                            return ConcreteShapeSeed::new(self.ctx, shape_id)
+                            return ConcreteShapeSeed::new(self.ctx, self.parent_field, shape_id)
                                 .visit_map(ChainedMapAcces::new(content, map));
                         }
                     };
@@ -81,6 +92,7 @@ impl<'de> Visitor<'de> for PolymorphicShapeSeed<'_, '_> {
                     {
                         return ConcreteShapeSeed::new_with_known_object_definition_id(
                             self.ctx,
+                            self.parent_field,
                             shape_id,
                             possible_type_ids[i],
                         )

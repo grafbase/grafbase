@@ -36,8 +36,10 @@ impl<'a> GraphBuilder<'a> {
                 inaccessible_object_definitions: BitSet::new(),
                 interface_definitions: Vec::new(),
                 inaccessible_interface_definitions: BitSet::new(),
+                interface_has_inaccessible_implementors: BitSet::new(),
                 union_definitions: Vec::new(),
                 inaccessible_union_definitions: BitSet::new(),
+                union_has_inaccessible_member: BitSet::new(),
                 scalar_definitions: Vec::new(),
                 inaccessible_scalar_definitions: BitSet::new(),
                 enum_definitions: Vec::new(),
@@ -165,6 +167,7 @@ impl<'a> GraphBuilder<'a> {
     fn ingest_unions_after_objects(&mut self, config: &mut Config) {
         self.graph.union_definitions = Vec::with_capacity(config.graph.unions.len());
         self.graph.inaccessible_union_definitions = BitSet::with_capacity(config.graph.unions.len());
+        self.graph.union_has_inaccessible_member = BitSet::with_capacity(config.graph.unions.len());
         for (ix, union) in take(&mut config.graph.unions).into_iter().enumerate() {
             if has_inaccessible(&union.directives) {
                 self.graph.inaccessible_union_definitions.set(ix.into(), true);
@@ -175,6 +178,15 @@ impl<'a> GraphBuilder<'a> {
                 .into_iter()
                 .map(ObjectDefinitionId::from)
                 .collect::<Vec<_>>();
+
+            for object_id in &possible_type_ids {
+                if self.graph.inaccessible_object_definitions[*object_id] {
+                    self.graph
+                        .union_has_inaccessible_member
+                        .set(UnionDefinitionId::from(ix), true);
+                    break;
+                }
+            }
 
             let directive_ids = self.push_directives(
                 SchemaLocation::Definition {
@@ -347,6 +359,7 @@ impl<'a> GraphBuilder<'a> {
     fn ingest_interfaces_after_objects(&mut self, config: &mut Config) {
         self.graph.interface_definitions = Vec::with_capacity(config.graph.interfaces.len());
         self.graph.inaccessible_interface_definitions = BitSet::with_capacity(config.graph.interfaces.len());
+        self.graph.interface_has_inaccessible_implementors = BitSet::with_capacity(config.graph.interfaces.len());
         for (ix, interface) in take(&mut config.graph.interfaces).into_iter().enumerate() {
             let name_id = config.graph.view(interface.type_definition_id).name.into();
             let definition = config.graph.at(interface.type_definition_id);
@@ -376,6 +389,11 @@ impl<'a> GraphBuilder<'a> {
         for object_id in (0..self.graph.object_definitions.len()).map(ObjectDefinitionId::from) {
             for interface_id in self.graph[object_id].interface_ids.clone() {
                 self.graph[interface_id].possible_type_ids.push(object_id);
+                if self.graph.inaccessible_object_definitions[object_id] {
+                    self.graph
+                        .interface_has_inaccessible_implementors
+                        .set(interface_id, true);
+                }
             }
         }
 

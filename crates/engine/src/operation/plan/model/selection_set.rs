@@ -38,6 +38,7 @@ impl std::fmt::Debug for PlanSelectionSet<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("SelectionSet")
             .field("fields", &self.fields().collect::<Vec<_>>())
+            .field("requiress_typename", &self.requires_typename())
             .finish()
     }
 }

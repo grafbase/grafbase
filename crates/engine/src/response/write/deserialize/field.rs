@@ -8,9 +8,9 @@ use super::{
 use crate::response::{FieldShapeRecord, ResponseValue, Shape};
 
 #[derive(Clone)]
-pub(super) struct FieldSeed<'ctx, 'parent> {
-    pub ctx: &'parent SeedContext<'ctx>,
-    pub field: &'parent FieldShapeRecord,
+pub(super) struct FieldSeed<'ctx, 'seed> {
+    pub ctx: &'seed SeedContext<'ctx>,
+    pub field: &'ctx FieldShapeRecord,
     pub wrapping: MutableWrapping,
 }
 
@@ -46,8 +46,12 @@ impl<'de> DeserializeSeed<'de> for FieldSeed<'_, '_> {
                     is_nullable: false,
                 }
                 .deserialize(deserializer),
-                Shape::Concrete(shape_id) => ConcreteShapeSeed::new(self.ctx, shape_id).deserialize(deserializer),
-                Shape::Polymorphic(shape_id) => PolymorphicShapeSeed::new(self.ctx, shape_id).deserialize(deserializer),
+                Shape::Concrete(shape_id) => {
+                    ConcreteShapeSeed::new(self.ctx, self.field, shape_id).deserialize(deserializer)
+                }
+                Shape::Polymorphic(shape_id) => {
+                    PolymorphicShapeSeed::new(self.ctx, self.field, shape_id).deserialize(deserializer)
+                }
             }
         } else {
             match self.field.shape {
@@ -71,13 +75,13 @@ impl<'de> DeserializeSeed<'de> for FieldSeed<'_, '_> {
                 Shape::Concrete(shape_id) => NullableSeed {
                     ctx: self.ctx,
                     field: self.field,
-                    seed: ConcreteShapeSeed::new(self.ctx, shape_id),
+                    seed: ConcreteShapeSeed::new(self.ctx, self.field, shape_id),
                 }
                 .deserialize(deserializer),
                 Shape::Polymorphic(shape_id) => NullableSeed {
                     ctx: self.ctx,
                     field: self.field,
-                    seed: PolymorphicShapeSeed::new(self.ctx, shape_id),
+                    seed: PolymorphicShapeSeed::new(self.ctx, self.field, shape_id),
                 }
                 .deserialize(deserializer),
             }

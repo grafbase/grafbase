@@ -29,7 +29,6 @@ impl<'de> DeserializeSeed<'de> for EnumValueSeed<'_, '_> {
 
         let string_value = std::borrow::Cow::<str>::deserialize(deserializer)?;
 
-        tracing::debug!("EnumDefinition {:#?}", id.walk(ctx.schema));
         match id.walk(ctx.schema).find_value_by_name(string_value.as_ref()) {
             // If inaccessible propagating an error without any message.
             Some(enum_value) => {

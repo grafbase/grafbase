@@ -26,11 +26,7 @@ impl<'a> Plan<'a> {
         self.query_partition().resolver_definition()
     }
     pub(crate) fn selection_set(&self) -> PlanSelectionSet<'a> {
-        PlanSelectionSet {
-            ctx: self.ctx,
-            item: self.query_partition().selection_set_record,
-            requires_typename: false,
-        }
+        self.ctx.view(self.query_partition_id).selection_set()
     }
     pub(crate) fn shape_id(&self) -> ConcreteShapeId {
         self.query_partition().shape_id
