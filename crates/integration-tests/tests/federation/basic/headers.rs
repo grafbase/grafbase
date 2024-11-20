@@ -5,6 +5,170 @@ use graphql_mocks::EchoSchema;
 use integration_tests::{federation::EngineExt, runtime};
 
 #[test]
+fn test_default_headers() {
+    let response = runtime().block_on(async move {
+        let engine = Engine::builder()
+            .with_subgraph(EchoSchema)
+            .with_toml_config(
+                r#"
+                    [[headers]]
+                    rule = "insert"
+                    name = "x-foo"
+                    value = "BAR"
+                "#,
+            )
+            .build()
+            .await;
+
+        engine.post("query { headers { name value }}").await
+    });
+
+    insta::assert_json_snapshot!(response, { "data.headers."}, @r#"
+    {
+      "data": {
+        "headers": [
+          {
+            "name": "accept",
+            "value": "application/graphql-response+json; charset=utf-8, application/json; charset=utf-8"
+          },
+          {
+            "name": "content-length",
+            "value": "59"
+          },
+          {
+            "name": "content-type",
+            "value": "application/json"
+          },
+          {
+            "name": "x-foo",
+            "value": "BAR"
+          }
+        ]
+      }
+    }
+    "#);
+}
+
+#[test]
+fn test_default_headers_forwarding() {
+    let response = runtime().block_on(async move {
+        let engine = Engine::builder()
+            .with_subgraph(EchoSchema)
+            .with_toml_config(
+                r#"
+                    [[headers]]
+                    rule = "insert"
+                    name = "x-foo"
+                    value = "BAR"
+
+                    [[headers]]
+                    rule = "forward"
+                    name = "x-source"
+                    rename = "x-forwarded"
+                "#,
+            )
+            .build()
+            .await;
+
+        engine
+            .post("query { headers { name value }}")
+            .header("x-source", "boom")
+            .await
+    });
+
+    insta::assert_json_snapshot!(response, @r#"
+    {
+      "data": {
+        "headers": [
+          {
+            "name": "accept",
+            "value": "application/graphql-response+json; charset=utf-8, application/json; charset=utf-8"
+          },
+          {
+            "name": "content-length",
+            "value": "59"
+          },
+          {
+            "name": "content-type",
+            "value": "application/json"
+          },
+          {
+            "name": "x-foo",
+            "value": "BAR"
+          },
+          {
+            "name": "x-forwarded",
+            "value": "boom"
+          }
+        ]
+      }
+    }
+    "#);
+}
+
+#[test]
+fn test_subgraph_specific_header_forwarding() {
+    let response = runtime().block_on(async move {
+        let engine = Engine::builder()
+            .with_subgraph(EchoSchema)
+            .with_toml_config(
+                r#"
+                    [[subgraphs.other.headers]]
+                    rule = "insert"
+                    name = "boop"
+                    value = "bleep"
+
+                    [[subgraphs.echo.headers]]
+                    rule = "insert"
+                    name = "x-foo"
+                    value = "BAR"
+
+                    [[subgraphs.echo.headers]]
+                    rule = "forward"
+                    name = "x-source"
+                    rename = "x-forwarded"
+                "#,
+            )
+            .build()
+            .await;
+
+        engine
+            .post("query { headers { name value }}")
+            .header("x-source", "boom")
+            .await
+    });
+
+    insta::assert_json_snapshot!(response, @r#"
+    {
+      "data": {
+        "headers": [
+          {
+            "name": "accept",
+            "value": "application/graphql-response+json; charset=utf-8, application/json; charset=utf-8"
+          },
+          {
+            "name": "content-length",
+            "value": "59"
+          },
+          {
+            "name": "content-type",
+            "value": "application/json"
+          },
+          {
+            "name": "x-foo",
+            "value": "BAR"
+          },
+          {
+            "name": "x-forwarded",
+            "value": "boom"
+          }
+        ]
+      }
+    }
+    "#);
+}
+
+#[test]
 fn should_not_propagate_blacklisted_headers() {
     runtime().block_on(async move {
         let engine = Engine::builder()
