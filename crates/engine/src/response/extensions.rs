@@ -1,5 +1,13 @@
 use grafbase_telemetry::otel::opentelemetry::trace::TraceId;
+use schema::Schema;
 use serde::Serialize;
+use walker::Walk;
+
+use crate::{
+    operation::{Executable, OperationPlanContext, PlanId},
+    prepare::PreparedOperation,
+    resolver::Resolver,
+};
 
 #[derive(Debug, Serialize, Default)]
 #[serde(rename_all = "camelCase")]
@@ -17,17 +25,87 @@ impl ResponseExtensions {
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct GrafbaseResponseExtension {
-    #[serde(skip_serializing_if = "Option::is_none", serialize_with = "serialize_trace_id")]
-    pub trace_id: Option<TraceId>,
+    #[serde(serialize_with = "serialize_trace_id")]
+    trace_id: TraceId,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    query_plan: Option<QueryPlan>,
 }
 
-fn serialize_trace_id<S>(trace_id: &Option<TraceId>, serializer: S) -> Result<S::Ok, S::Error>
+impl GrafbaseResponseExtension {
+    pub fn new(trace_id: TraceId) -> Self {
+        Self {
+            trace_id,
+            query_plan: None,
+        }
+    }
+
+    pub fn with_query_plan(mut self, schema: &Schema, operation: &PreparedOperation) -> Self {
+        let mut nodes = Vec::with_capacity(operation.plan.plans.len());
+        // at least one edge.
+        let mut edges = Vec::with_capacity(operation.plan.plans.len());
+
+        let ctx = OperationPlanContext {
+            schema,
+            solved_operation: &operation.cached.solved,
+            operation_plan: &operation.plan,
+        };
+
+        for plan in ctx.plans() {
+            nodes.push(match &plan.resolver {
+                Resolver::Introspection(_) => QueryPlanNode::Introspection,
+                Resolver::Graphql(resolver) => QueryPlanNode::Graphql(GraphqlQueryPlanNode {
+                    subgraph_name: resolver.endpoint_id.walk(ctx).subgraph_name().to_string(),
+                    request: GraphqlRequest {
+                        query: resolver.subgraph_operation.query.clone(),
+                    },
+                }),
+                Resolver::FederationEntity(resolver) => QueryPlanNode::Graphql(GraphqlQueryPlanNode {
+                    subgraph_name: resolver.endpoint_id.walk(ctx).subgraph_name().to_string(),
+                    request: GraphqlRequest {
+                        query: resolver.subgraph_operation.query.clone(),
+                    },
+                }),
+            });
+            for child in plan.children() {
+                if let Executable::Plan(child) = child {
+                    edges.push((usize::from(plan.id), usize::from(child.id)))
+                }
+            }
+        }
+
+        self.query_plan = Some(QueryPlan { nodes, edges });
+        self
+    }
+}
+
+fn serialize_trace_id<S>(trace_id: &TraceId, serializer: S) -> Result<S::Ok, S::Error>
 where
     S: serde::Serializer,
 {
-    if let Some(trace_id) = trace_id {
-        serializer.serialize_str(&format!("{trace_id:x}"))
-    } else {
-        serializer.serialize_none()
-    }
+    serializer.serialize_str(&format!("{trace_id:x}"))
+}
+
+#[derive(Debug, Serialize, id_derives::IndexedFields)]
+struct QueryPlan {
+    #[indexed_by(PlanId)]
+    nodes: Vec<QueryPlanNode>,
+    edges: Vec<(usize, usize)>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(tag = "type", rename_all = "snake_case")]
+enum QueryPlanNode {
+    Introspection,
+    Graphql(GraphqlQueryPlanNode),
+}
+
+#[derive(Debug, Serialize)]
+struct GraphqlQueryPlanNode {
+    subgraph_name: String,
+    request: GraphqlRequest,
+}
+
+#[derive(Debug, Serialize)]
+struct GraphqlRequest {
+    query: String,
 }

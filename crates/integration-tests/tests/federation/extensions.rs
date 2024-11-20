@@ -1,5 +1,8 @@
 use engine::Engine;
-use graphql_mocks::FakeGithubSchema;
+use graphql_mocks::{
+    FakeGithubSchema, FederatedAccountsSchema, FederatedInventorySchema, FederatedProductsSchema,
+    FederatedReviewsSchema, FederatedShippingSchema,
+};
 use integration_tests::{federation::EngineExt, runtime};
 
 #[test]
@@ -15,17 +18,29 @@ fn grafbase_extension_on_successful_request() {
         insta::assert_json_snapshot!(
             response,
             @r#"
-            {
-              "data": {
-                "serverVersion": "1"
-              },
-              "extensions": {
-                "grafbase": {
-                  "traceId": "0"
-                }
+        {
+          "data": {
+            "serverVersion": "1"
+          },
+          "extensions": {
+            "grafbase": {
+              "traceId": "0",
+              "queryPlan": {
+                "nodes": [
+                  {
+                    "type": "graphql",
+                    "subgraph_name": "github",
+                    "request": {
+                      "query": "query { serverVersion }"
+                    }
+                  }
+                ],
+                "edges": []
               }
             }
-            "#
+          }
+        }
+        "#
         );
     })
 }
@@ -126,17 +141,29 @@ fn grafbase_extension_secret_value() {
         insta::assert_json_snapshot!(
             response,
             @r#"
-            {
-              "data": {
-                "serverVersion": "1"
-              },
-              "extensions": {
-                "grafbase": {
-                  "traceId": "0"
-                }
+        {
+          "data": {
+            "serverVersion": "1"
+          },
+          "extensions": {
+            "grafbase": {
+              "traceId": "0",
+              "queryPlan": {
+                "nodes": [
+                  {
+                    "type": "graphql",
+                    "subgraph_name": "github",
+                    "request": {
+                      "query": "query { serverVersion }"
+                    }
+                  }
+                ],
+                "edges": []
               }
             }
-            "#
+          }
+        }
+        "#
         );
     })
 }
@@ -214,5 +241,197 @@ fn grafbase_extension_on_ill_formed_graphql_over_http_request() {
         }
         "#);
         assert_eq!(status, 400);
+    })
+}
+
+#[test]
+fn complex_query_plan() {
+    runtime().block_on(async move {
+        let engine = Engine::builder()
+            .with_subgraph(FederatedAccountsSchema)
+            .with_subgraph(FederatedProductsSchema)
+            .with_subgraph(FederatedReviewsSchema)
+            .with_subgraph(FederatedInventorySchema)
+            .with_subgraph(FederatedShippingSchema)
+            .with_toml_config(
+                r#"
+                [graph]
+                introspection = true
+                "#)
+            .build()
+            .await;
+        let response = engine
+            .post(
+                r#"
+                query {
+                  __schema {
+                    queryType { name }
+                  }
+                  me {
+                    id
+                    username
+                    cart {
+                      products {
+                        availableShippingService {
+                          __typename
+                          name
+                          reviews {
+                            body
+                          }
+                        }
+                        price
+                        reviews {
+                          author {
+                            id
+                            username
+                          }
+                          body
+                        }
+                      }
+                    }
+                  }
+                }
+            "#,
+            )
+            .header("x-grafbase-telemetry", "")
+            .await;
+        insta::assert_json_snapshot!(response, @r#"
+        {
+          "data": {
+            "__schema": {
+              "queryType": {
+                "name": "Query"
+              }
+            },
+            "me": {
+              "id": "1234",
+              "username": "Me",
+              "cart": {
+                "products": [
+                  {
+                    "availableShippingService": [
+                      {
+                        "__typename": "DeliveryCompany",
+                        "name": "Planet Express",
+                        "reviews": [
+                          {
+                            "body": "Not as good as Mom's Friendly Delivery Company"
+                          }
+                        ]
+                      }
+                    ],
+                    "price": 22,
+                    "reviews": [
+                      {
+                        "author": {
+                          "id": "1234",
+                          "username": "Me"
+                        },
+                        "body": "Fedoras are one of the most fashionable hats around and can look great with a variety of outfits."
+                      }
+                    ]
+                  },
+                  {
+                    "availableShippingService": [
+                      {
+                        "__typename": "DeliveryCompany",
+                        "name": "Planet Express",
+                        "reviews": [
+                          {
+                            "body": "Not as good as Mom's Friendly Delivery Company"
+                          }
+                        ]
+                      }
+                    ],
+                    "price": 55,
+                    "reviews": [
+                      {
+                        "author": null,
+                        "body": "Beautiful Pink, my parrot loves it. Definitely recommend!"
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          "extensions": {
+            "grafbase": {
+              "traceId": "0",
+              "queryPlan": {
+                "nodes": [
+                  {
+                    "type": "graphql",
+                    "subgraph_name": "accounts",
+                    "request": {
+                      "query": "query { me { id username cart { products { name } } } }"
+                    }
+                  },
+                  {
+                    "type": "graphql",
+                    "subgraph_name": "reviews",
+                    "request": {
+                      "query": "query($var0: [_Any!]!) { _entities(representations: $var0) { ... on Product { reviews { author { id } body } } } }"
+                    }
+                  },
+                  {
+                    "type": "graphql",
+                    "subgraph_name": "accounts",
+                    "request": {
+                      "query": "query($var0: [_Any!]!) { _entities(representations: $var0) { ... on User { username } } }"
+                    }
+                  },
+                  {
+                    "type": "graphql",
+                    "subgraph_name": "products",
+                    "request": {
+                      "query": "query($var0: [_Any!]!) { _entities(representations: $var0) { ... on Product { price upc weight(unit: KILOGRAM) } } }"
+                    }
+                  },
+                  {
+                    "type": "graphql",
+                    "subgraph_name": "inventory",
+                    "request": {
+                      "query": "query($var0: [_Any!]!) { _entities(representations: $var0) { ... on Product { availableShippingService { __typename name id } } } }"
+                    }
+                  },
+                  {
+                    "type": "graphql",
+                    "subgraph_name": "reviews",
+                    "request": {
+                      "query": "query($var0: [_Any!]!) { _entities(representations: $var0) { ... on ShippingService { reviews { body } } } }"
+                    }
+                  },
+                  {
+                    "type": "introspection"
+                  }
+                ],
+                "edges": [
+                  [
+                    0,
+                    3
+                  ],
+                  [
+                    1,
+                    2
+                  ],
+                  [
+                    3,
+                    1
+                  ],
+                  [
+                    3,
+                    4
+                  ],
+                  [
+                    4,
+                    5
+                  ]
+                ]
+              }
+            }
+          }
+        }
+        "#);
     })
 }

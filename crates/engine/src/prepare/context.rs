@@ -69,8 +69,16 @@ impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
 
     pub fn grafbase_response_extension(
         &self,
-        _operation: Option<&PreparedOperation>,
+        operation: Option<&PreparedOperation>,
     ) -> Option<GrafbaseResponseExtension> {
-        self.engine.default_grafbase_response_extension(self.request_context)
+        self.engine
+            .default_grafbase_response_extension(self.request_context)
+            .map(|ext| {
+                if let Some(op) = operation {
+                    ext.with_query_plan(self.schema(), op)
+                } else {
+                    ext
+                }
+            })
     }
 }

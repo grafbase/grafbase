@@ -37,12 +37,8 @@ impl<R: Runtime> Engine<R> {
         if !ctx.include_grafbase_response_extension {
             return None;
         }
-        Some(GrafbaseResponseExtension {
-            trace_id: if self.schema.settings.response_extension.trace_id {
-                Some(tracing::Span::current().context().span().span_context().trace_id())
-            } else {
-                None
-            },
-        })
+        Some(GrafbaseResponseExtension::new(
+            tracing::Span::current().context().span().span_context().trace_id(),
+        ))
     }
 }
