@@ -74,7 +74,7 @@ fn grafbase_response_extension_has_the_right_trace_id() {
                   "queryPlan": {
                     "nodes": [
                       {
-                        "type": "introspection"
+                        "__typename": "IntrospectionResolver"
                       }
                     ],
                     "edges": []
