@@ -356,7 +356,7 @@ jobs:
 
       - name: Push Docker image
         run: |
-          docker push --all-tags ghcr.io/grafbase/gateway
+          docker push ghcr.io/grafbase/gateway:$COMMIT_SHA
 
   after-build-rust:
     # This job is responsible for reacting to build success or failure. It must
