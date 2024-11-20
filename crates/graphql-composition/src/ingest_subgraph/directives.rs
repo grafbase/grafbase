@@ -19,6 +19,17 @@ pub(super) fn ingest_directives(
 ) {
     for directive in directives_node {
         let directive_name = directive.name();
+
+        if !directive_matcher.is_known_directive(directive_name) {
+            subgraphs.push_ingestion_warning(
+                subgraph,
+                format!(
+                    "Unknown directive {directive_name} expected one of {}",
+                    directive_matcher.iter_known_directives().collect::<Vec<_>>().join(", ")
+                ),
+            );
+        }
+
         if directive_matcher.is_shareable(directive_name) {
             subgraphs.set_shareable(directive_site_id);
             continue;
@@ -261,7 +272,18 @@ pub(super) fn ingest_directive_definitions(
         }
     }
 
+    directive_matcher
+        .all_known_directives
+        .extend(composed_directives.iter().map(|directive| Cow::Borrowed(*directive)));
+
     directive_matcher.composed_directives = composed_directives;
+
+    directive_matcher
+        .all_known_directives
+        .extend(document.definitions().filter_map(|def| match def {
+            ast::Definition::Directive(def) => Some(Cow::Borrowed(def.name())),
+            _ => None,
+        }));
 
     directive_matcher
 }
@@ -300,33 +322,41 @@ pub(crate) struct DirectiveMatcher<'a> {
     cost: Cow<'a, str>,
     list_size: Cow<'a, str>,
 
-    /// directive name -> is repeatable
-    ///
-    /// The value is None wherever no definition was found for the directive.
     composed_directives: BTreeSet<&'a str>,
+
+    all_known_directives: BTreeSet<Cow<'a, str>>,
 }
 
 const DEFAULT_FEDERATION_PREFIX: &str = "federation__";
 
 impl Default for DirectiveMatcher<'_> {
     fn default() -> Self {
+        let mut all_known_directives = default_known_directives();
+
+        let mut record = |directive: &'static str| {
+            let directive = Cow::Borrowed(directive);
+            all_known_directives.insert(directive.clone());
+            directive
+        };
+
         DirectiveMatcher {
-            authenticated: Cow::Borrowed(AUTHENTICATED),
-            compose_directive: Cow::Borrowed(COMPOSE_DIRECTIVE),
+            authenticated: record(AUTHENTICATED),
+            compose_directive: record(COMPOSE_DIRECTIVE),
             composed_directives: BTreeSet::new(),
-            external: Cow::Borrowed(EXTERNAL),
-            inaccessible: Cow::Borrowed(INACCESSIBLE),
-            interface_object: Cow::Borrowed(INTERFACE_OBJECT),
-            key: Cow::Borrowed(KEY),
-            policy: Cow::Borrowed(POLICY),
-            provides: Cow::Borrowed(PROVIDES),
-            r#override: Cow::Borrowed(OVERRIDE),
-            requires: Cow::Borrowed(REQUIRES),
-            requires_scopes: Cow::Borrowed(REQUIRES_SCOPES),
-            shareable: Cow::Borrowed(SHAREABLE),
-            tag: Cow::Borrowed(TAG),
-            cost: Cow::Borrowed(COST),
-            list_size: Cow::Borrowed(LIST_SIZE),
+            external: record(EXTERNAL),
+            inaccessible: record(INACCESSIBLE),
+            interface_object: record(INTERFACE_OBJECT),
+            key: record(KEY),
+            policy: record(POLICY),
+            provides: record(PROVIDES),
+            r#override: record(OVERRIDE),
+            requires: record(REQUIRES),
+            requires_scopes: record(REQUIRES_SCOPES),
+            shareable: record(SHAREABLE),
+            tag: record(TAG),
+            cost: record(COST),
+            list_size: record(LIST_SIZE),
+            all_known_directives,
         }
     }
 }
@@ -359,15 +389,20 @@ impl<'a> DirectiveMatcher<'a> {
             }
         }
 
+        let mut all_known_directives = default_known_directives();
+
         let federation_prefix = r#as
             .map(|prefix| Cow::Owned(format!("{prefix}__")))
             .unwrap_or(Cow::Borrowed(DEFAULT_FEDERATION_PREFIX));
-        let final_name = |directive_name: &str| {
-            imported
+        let mut final_name = |directive_name: &str| {
+            let name = imported
                 .iter()
                 .find(|(original, _alias)| *original == directive_name)
                 .map(|(_, alias)| Cow::Borrowed(*alias))
-                .unwrap_or_else(|| Cow::Owned(format!("{federation_prefix}{directive_name}")))
+                .unwrap_or_else(|| Cow::Owned(format!("{federation_prefix}{directive_name}")));
+
+            all_known_directives.insert(name.clone());
+            name
         };
 
         DirectiveMatcher {
@@ -387,6 +422,7 @@ impl<'a> DirectiveMatcher<'a> {
             tag: final_name(TAG),
             cost: final_name(COST),
             list_size: final_name(LIST_SIZE),
+            all_known_directives,
         }
     }
 
@@ -412,6 +448,14 @@ impl<'a> DirectiveMatcher<'a> {
 
     pub(crate) fn iter_composed_directives(&self) -> impl Iterator<Item = &str> {
         self.composed_directives.iter().copied()
+    }
+
+    pub(crate) fn iter_known_directives(&self) -> impl Iterator<Item = &str> {
+        self.all_known_directives.iter().map(|directive| directive.as_ref())
+    }
+
+    pub(crate) fn is_known_directive(&self, directive_name: &str) -> bool {
+        self.all_known_directives.contains(directive_name)
     }
 
     pub(crate) fn is_external(&self, directive_name: &str) -> bool {
@@ -469,6 +513,12 @@ impl<'a> DirectiveMatcher<'a> {
     fn is_list_size(&self, directive_name: &str) -> bool {
         self.list_size == directive_name
     }
+}
+
+fn default_known_directives<'a>() -> BTreeSet<Cow<'a, str>> {
+    let mut hash_set = BTreeSet::new();
+    hash_set.insert(Cow::Borrowed("authorized"));
+    hash_set
 }
 
 fn read_imports<'a>(ast_imports: ConstList<'a>, out: &mut Vec<(&'a str, &'a str)>) {
