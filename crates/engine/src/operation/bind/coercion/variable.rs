@@ -1,9 +1,10 @@
 use engine_value::ConstValue;
 use id_newtypes::IdRange;
 use schema::{
-    DefinitionId, EnumDefinition, InputObjectDefinition, InputValueDefinitionId, ListWrapping, ScalarDefinition,
-    ScalarType, Schema, TypeRecord,
+    Definition, EnumDefinition, InputObjectDefinition, InputValueDefinitionId, ListWrapping, ScalarDefinition,
+    ScalarType, Schema, Type,
 };
+use walker::Walk;
 
 use crate::operation::{
     Location, VariableDefinitionRecord, VariableInputValueId, VariableInputValueRecord, VariableInputValues,
@@ -27,7 +28,7 @@ pub fn coerce_variable(
         value_path: Vec::new(),
         input_fields_buffer_pool: Vec::new(),
     };
-    let value = ctx.coerce_input_value(definition.ty_record, value)?;
+    let value = ctx.coerce_input_value(definition.ty_record.walk(schema), value)?;
     Ok(input_values.push_value(value))
 }
 
@@ -42,7 +43,7 @@ struct VariableCoercionContext<'a> {
 impl<'a> VariableCoercionContext<'a> {
     fn coerce_input_value(
         &mut self,
-        ty: TypeRecord,
+        ty: Type<'a>,
         value: ConstValue,
     ) -> Result<VariableInputValueRecord, InputValueError> {
         if ty.wrapping.is_list() && !value.is_array() && !value.is_null() {
@@ -58,16 +59,16 @@ impl<'a> VariableCoercionContext<'a> {
 
     fn coerce_list(
         &mut self,
-        mut ty: TypeRecord,
+        mut ty: Type<'a>,
         value: ConstValue,
     ) -> Result<VariableInputValueRecord, InputValueError> {
-        let Some(list_wrapping) = ty.wrapping.pop_list_wrapping() else {
+        let Some(list_wrapping) = ty.pop_list_wrapping() else {
             return self.coerce_named_type(ty, value);
         };
 
         match (value, list_wrapping) {
             (ConstValue::Null, ListWrapping::RequiredList) => Err(InputValueError::UnexpectedNull {
-                expected: self.schema.walk(ty.wrapped_by(list_wrapping)).to_string(),
+                expected: ty.wrapped_by(list_wrapping).to_string(),
                 path: self.path(),
                 location: self.location,
             }),
@@ -83,7 +84,7 @@ impl<'a> VariableCoercionContext<'a> {
             }
             (value, _) => Err(InputValueError::MissingList {
                 actual: value.into(),
-                expected: self.schema.walk(ty.wrapped_by(list_wrapping)).to_string(),
+                expected: ty.wrapped_by(list_wrapping).to_string(),
                 path: self.path(),
                 location: self.location,
             }),
@@ -92,13 +93,13 @@ impl<'a> VariableCoercionContext<'a> {
 
     fn coerce_named_type(
         &mut self,
-        ty: TypeRecord,
+        ty: Type<'a>,
         value: ConstValue,
     ) -> Result<VariableInputValueRecord, InputValueError> {
         if value.is_null() {
             if ty.wrapping.is_required() {
                 return Err(InputValueError::UnexpectedNull {
-                    expected: self.schema.walk(ty).to_string(),
+                    expected: ty.to_string(),
                     path: self.path(),
                     location: self.location,
                 });
@@ -106,17 +107,19 @@ impl<'a> VariableCoercionContext<'a> {
             return Ok(VariableInputValueRecord::Null);
         }
 
-        match ty.definition_id {
-            DefinitionId::Scalar(scalar) => self.coerce_scalar(self.schema.walk(scalar), value),
-            DefinitionId::Enum(r#enum) => self.coerce_enum(self.schema.walk(r#enum), value),
-            DefinitionId::InputObject(input_object) => self.coerce_input_objet(self.schema.walk(input_object), value),
+        // At this point the definition should be accessible, otherwise the input value should have
+        // been rejected earlier.
+        match ty.definition() {
+            Definition::Scalar(scalar) => self.coerce_scalar(scalar, value),
+            Definition::Enum(r#enum) => self.coerce_enum(r#enum, value),
+            Definition::InputObject(input_object) => self.coerce_input_objet(input_object, value),
             _ => unreachable!("Cannot be an output type."),
         }
     }
 
     fn coerce_input_objet(
         &mut self,
-        input_object: InputObjectDefinition<'_>,
+        input_object: InputObjectDefinition<'a>,
         value: ConstValue,
     ) -> Result<VariableInputValueRecord, InputValueError> {
         let ConstValue::Object(mut fields) = value else {
@@ -130,6 +133,9 @@ impl<'a> VariableCoercionContext<'a> {
 
         let mut fields_buffer = self.input_fields_buffer_pool.pop().unwrap_or_default();
         for input_field in input_object.input_fields() {
+            if input_field.is_inaccessible() {
+                continue;
+            }
             match fields.swap_remove(input_field.name()) {
                 None => {
                     if let Some(default_value_id) = input_field.as_ref().default_value_id {
@@ -144,7 +150,7 @@ impl<'a> VariableCoercionContext<'a> {
                 }
                 Some(value) => {
                     self.value_path.push(input_field.as_ref().name_id.into());
-                    let value = self.coerce_input_value(input_field.ty().into(), value)?;
+                    let value = self.coerce_input_value(input_field.ty(), value)?;
                     fields_buffer.push((input_field.id, value));
                     self.value_path.pop();
                 }
@@ -165,7 +171,7 @@ impl<'a> VariableCoercionContext<'a> {
 
     fn coerce_enum(
         &mut self,
-        r#enum: EnumDefinition<'_>,
+        r#enum: EnumDefinition<'a>,
         value: ConstValue,
     ) -> Result<VariableInputValueRecord, InputValueError> {
         let name = match &value {
@@ -181,7 +187,7 @@ impl<'a> VariableCoercionContext<'a> {
             }
         };
 
-        let Some(id) = r#enum.find_value_by_name(name) else {
+        let Some(value) = r#enum.find_value_by_name(name).filter(|value| !value.is_inaccessible()) else {
             return Err(InputValueError::UnknownEnumValue {
                 r#enum: r#enum.name().to_string(),
                 value: name.to_string(),
@@ -190,12 +196,12 @@ impl<'a> VariableCoercionContext<'a> {
             });
         };
 
-        Ok(VariableInputValueRecord::EnumValue(id))
+        Ok(VariableInputValueRecord::EnumValue(value.id))
     }
 
     fn coerce_scalar(
         &mut self,
-        scalar: ScalarDefinition<'_>,
+        scalar: ScalarDefinition<'a>,
         value: ConstValue,
     ) -> Result<VariableInputValueRecord, InputValueError> {
         match (value, scalar.as_ref().ty) {

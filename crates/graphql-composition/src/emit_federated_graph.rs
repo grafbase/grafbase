@@ -53,6 +53,8 @@ pub(crate) fn emit_federated_graph(mut ir: CompositionIr, subgraphs: &Subgraphs)
 
     emit_directives_and_implements_interface(ctx, ir);
 
+    out.enum_values.sort_unstable_by_key(|v| v.enum_id);
+
     out
 }
 

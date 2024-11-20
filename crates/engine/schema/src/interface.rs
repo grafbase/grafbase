@@ -1,4 +1,4 @@
-use crate::{InterfaceDefinition, SubgraphId};
+use crate::{FieldDefinition, InterfaceDefinition, SubgraphId};
 
 impl<'a> InterfaceDefinition<'a> {
     pub fn is_fully_implemented_in(&self, subgraph_id: SubgraphId) -> bool {
@@ -7,6 +7,14 @@ impl<'a> InterfaceDefinition<'a> {
 
     pub fn is_not_fully_implemented_in(&self, subgraph_id: SubgraphId) -> bool {
         self.not_fully_implemented_in_ids.contains(&subgraph_id)
+    }
+
+    pub fn find_field_by_name(&self, name: &str) -> Option<FieldDefinition<'a>> {
+        self.fields().find(|field| field.name() == name)
+    }
+
+    pub fn is_inaccessible(&self) -> bool {
+        self.schema.graph.inaccessible_interface_definitions[self.id]
     }
 }
 
