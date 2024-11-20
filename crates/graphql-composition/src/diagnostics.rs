@@ -16,6 +16,13 @@ impl Diagnostics {
         self.0.iter().map(|diagnostic| diagnostic.message.as_str())
     }
 
+    pub(crate) fn push_warning(&mut self, message: String) {
+        self.0.push(Diagnostic {
+            message,
+            is_fatal: false,
+        });
+    }
+
     pub(crate) fn push_fatal(&mut self, message: String) {
         self.0.push(Diagnostic {
             message,
