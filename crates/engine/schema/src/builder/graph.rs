@@ -537,7 +537,7 @@ impl<'a> GraphBuilder<'a> {
             }
 
             // Remove any overridden subgraphs
-            for directive in dbg!(&field.directives).iter().filter_map(|dir| dir.as_join_field()) {
+            for directive in field.directives.iter().filter_map(|dir| dir.as_join_field()) {
                 if let Some(r#override) = &directive.r#override {
                     match r#override {
                         federated_graph::OverrideSource::Subgraph(subgraph_id) => {
@@ -731,7 +731,7 @@ impl<'a> GraphBuilder<'a> {
         let mut directive_ids = Vec::new();
 
         for directive in directives {
-            let id = match dbg!(directive) {
+            let id = match directive {
                 federated_graph::Directive::Authenticated => TypeSystemDirectiveId::Authenticated,
                 federated_graph::Directive::RequiresScopes(federated_scopes) => {
                     let id = self.required_scopes.get_or_insert(RequiresScopesDirectiveRecord::new(
@@ -773,7 +773,6 @@ impl<'a> GraphBuilder<'a> {
                     TypeSystemDirectiveId::Authorized(authorized_id)
                 }
                 federated_graph::Directive::Cost { weight } => {
-                    eprintln!("Adding cost directive");
                     let cost_id = self.graph.cost_directives.len().into();
                     self.graph.cost_directives.push(CostDirectiveRecord { weight: *weight });
                     TypeSystemDirectiveId::Cost(cost_id)

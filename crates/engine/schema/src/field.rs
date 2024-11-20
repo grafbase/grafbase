@@ -43,7 +43,7 @@ impl<'a> FieldDefinition<'a> {
     }
 
     pub fn cost(&self) -> Option<i32> {
-        dbg!(self.directives()).find_map(|directive| match directive {
+        self.directives().find_map(|directive| match directive {
             TypeSystemDirective::Cost(cost) => Some(cost.weight),
             _ => None,
         })

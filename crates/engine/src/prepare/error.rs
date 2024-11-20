@@ -30,6 +30,8 @@ pub(super) enum PrepareError {
     NormalizationError,
     #[error("Query exceeded complexity limit")]
     ComplexityLimitReached,
+    #[error("Expected one slicing argument on {0}")]
+    ExpectedOneSlicingArgument(String),
 }
 
 impl From<PrepareError> for GraphqlError {
@@ -40,8 +42,7 @@ impl From<PrepareError> for GraphqlError {
             PrepareError::Plan { err, .. } => err.into(),
             PrepareError::Solve { err, .. } => err.into(),
             PrepareError::NormalizationError => GraphqlError::new(err.to_string(), ErrorCode::InternalServerError),
-            // TODO: Is this a good error code? Not sure
-            PrepareError::ComplexityLimitReached => {
+            PrepareError::ComplexityLimitReached | PrepareError::ExpectedOneSlicingArgument(_) => {
                 GraphqlError::new(err.to_string(), ErrorCode::OperationValidationError)
             }
         }

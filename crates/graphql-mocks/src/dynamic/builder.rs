@@ -114,7 +114,7 @@ fn convert_object(def: parser::ObjectDefinition<'_>, resolvers: &mut ResolverMap
         let resolver = std::sync::Mutex::new(
             resolvers
                 .remove(&(def.name().into(), field_def.name().into()))
-                .unwrap_or_else(|| Box::new(default_field_resolver())),
+                .unwrap_or_else(|| Box::new(default_field_resolver(field_def.name()))),
         );
 
         let mut field = Field::new(field_def.name(), type_ref, move |context| {
@@ -272,10 +272,17 @@ fn root_types(schema: &cynic_parser::TypeSystemDocument) -> (&str, Option<&str>,
     (query_name, mutation_name, subscription_name)
 }
 
-fn default_field_resolver() -> impl Resolver {
-    |context: ResolverContext<'_>| {
+fn default_field_resolver(field_name: &str) -> impl Resolver {
+    let field_name = async_graphql::Name::new(field_name);
+
+    move |context: ResolverContext<'_>| {
         if let Some(value) = context.parent_value.as_value() {
-            return Some(value.clone().into_json().unwrap());
+            return match value {
+                async_graphql::Value::Object(map) => {
+                    map.get(&field_name).map(|value| value.clone().into_json().unwrap())
+                }
+                _ => None,
+            };
         }
         panic!("Unexpected parent value for tests: {:?}", context.parent_value)
     }

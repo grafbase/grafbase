@@ -59,7 +59,7 @@ pub(super) fn collect_composed_directives<'a>(
         is_inaccessible = is_inaccessible || site.inaccessible();
         authenticated = authenticated || site.authenticated();
 
-        cost = dbg!(cost.or(site.cost()));
+        cost = cost.or(site.cost());
         list_size = list_size.or(site.list_size());
 
         for (name, arguments) in site.iter_composed_directives() {
