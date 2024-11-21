@@ -1,7 +1,8 @@
 use walker::Walk;
 
 use crate::{
-    CompositeType, CompositeTypeId, DefinitionId, EntityDefinition, EntityDefinitionId, ObjectDefinitionId, SubgraphId,
+    CompositeType, CompositeTypeId, Definition, DefinitionId, EntityDefinition, EntityDefinitionId, ObjectDefinitionId,
+    SubgraphId,
 };
 
 impl From<EntityDefinitionId> for CompositeTypeId {
@@ -42,6 +43,15 @@ impl CompositeTypeId {
 }
 
 impl<'a> CompositeType<'a> {
+    pub fn maybe_from(definition: Definition<'a>) -> Option<Self> {
+        match definition {
+            Definition::Interface(def) => Some(CompositeType::Interface(def)),
+            Definition::Object(def) => Some(CompositeType::Object(def)),
+            Definition::Union(def) => Some(CompositeType::Union(def)),
+            _ => None,
+        }
+    }
+
     pub fn as_entity(&self) -> Option<EntityDefinition<'a>> {
         match self {
             CompositeType::Interface(def) => Some(EntityDefinition::Interface(*def)),
