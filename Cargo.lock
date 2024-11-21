@@ -348,12 +348,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "async-once-cell"
-version = "0.5.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4288f83726785267c6f2ef073a3d83dc3f9b81464e9f99898240cced85fce35a"
-
-[[package]]
 name = "async-sse"
 version = "5.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3168,6 +3162,7 @@ dependencies = [
  "crossbeam-channel",
  "crossbeam-queue",
  "crossbeam-utils",
+ "cynic",
  "cynic-codegen",
  "cynic-parser",
  "deadpool-runtime",
@@ -4206,14 +4201,11 @@ name = "integration-tests"
 version = "0.1.0"
 dependencies = [
  "async-graphql",
- "async-graphql-parser",
- "async-once-cell",
  "async-sse",
  "async-trait",
  "axum",
  "base64 0.22.1",
  "bytes",
- "const_format",
  "criterion",
  "crossbeam-queue",
  "ctor",
@@ -4225,12 +4217,9 @@ dependencies = [
  "engine",
  "engine-axum",
  "engine-config-builder",
- "engine-parser",
  "engine-value",
- "expect-test",
  "futures",
  "gateway-config",
- "grafbase-graphql-introspection",
  "grafbase-telemetry",
  "grafbase-workspace-hack",
  "graphql-composition",
@@ -4251,14 +4240,12 @@ dependencies = [
  "pprof",
  "pretty_assertions",
  "rand 0.8.5",
- "regex",
  "reqwest 0.12.9",
  "rstest",
  "runtime",
  "runtime-local",
  "runtime-noop",
  "rustls 0.23.16",
- "secrecy",
  "serde",
  "serde_json",
  "serde_urlencoded",
@@ -4274,7 +4261,6 @@ dependencies = [
  "tracing-subscriber",
  "ulid",
  "url",
- "wiremock",
 ]
 
 [[package]]

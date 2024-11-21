@@ -8,26 +8,20 @@ workspace = true
 
 [dependencies]
 axum.workspace = true
-async-graphql-parser.workspace = true
 async-graphql.workspace = true
-async-once-cell = "0.5.3"
 async-sse.workspace = true
 async-trait.workspace = true
 bytes.workspace = true
 crossbeam-queue = "0.3"
 cynic.workspace = true
 cynic-introspection.workspace = true
-ed25519-compact = "2"
-engine-parser.workspace = true
 engine-axum.workspace = true
 engine.workspace = true
 graphql-mocks.workspace = true
 httpsig.workspace = true
 engine-config-builder = { path = "../engine-config-builder" }
-expect-test = "1.5"
 futures = "0.3.30"
 gateway-config.workspace = true
-grafbase-graphql-introspection.workspace = true
 graphql-composition.workspace = true
 federated-graph.workspace = true
 graphql-parser = "0.4.0"
@@ -46,7 +40,6 @@ serde_json.workspace = true
 thiserror.workspace = true
 ulid.workspace = true
 url.workspace = true
-wiremock.workspace = true
 runtime-local = { workspace = true, features = ["wasi", "redis"] }
 runtime-noop.workspace = true
 ory-client = "1.9.0" # overridden by patch, pointing to their last release on GitHub
@@ -62,7 +55,6 @@ toml.workspace = true
 tower.workspace = true
 tracing.workspace = true
 runtime = { workspace = true, features = ["test-utils"] }
-regex.workspace = true
 grafbase-workspace-hack.workspace = true
 engine-value.workspace = true
 serde_with = { workspace = true, features = ["hex"] }
@@ -76,16 +68,15 @@ workspace = true
 
 [dev-dependencies]
 base64.workspace = true
-const_format = "0.2.32"
 criterion = { version = "0.5.1", features = ["async_tokio"] }
 cynic-parser.workspace = true
+ed25519-compact = "2"
 elliptic-curve = "0.13"
 headers.workspace = true
 hex.workspace = true
 pretty_assertions = "1"
 rand.workspace = true
 rstest.workspace = true
-secrecy.workspace = true
 sha2.workspace = true
 similar-asserts = { version = "1.5", features = ["serde"] }
 tempfile = "3"
