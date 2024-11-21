@@ -8,7 +8,7 @@ use crate::{
     response::{GraphqlError, PositionedResponseKey, SafeResponseKey},
 };
 
-use super::{ConcreteObjectShapeId, PolymorphicObjectShapeId};
+use super::{ConcreteShapeId, PolymorphicShapeId};
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub(crate) struct FieldShapeRecord {
@@ -82,14 +82,14 @@ impl std::fmt::Debug for FieldShape<'_> {
 pub(crate) enum Shape {
     Scalar(ScalarType),
     Enum(EnumDefinitionId),
-    ConcreteObject(ConcreteObjectShapeId),
-    PolymorphicObject(PolymorphicObjectShapeId),
+    Concrete(ConcreteShapeId),
+    Polymorphic(PolymorphicShapeId),
 }
 
 impl Shape {
-    pub(crate) fn as_concrete_object(&self) -> Option<ConcreteObjectShapeId> {
+    pub(crate) fn as_concrete_object(&self) -> Option<ConcreteShapeId> {
         match self {
-            Shape::ConcreteObject(id) => Some(*id),
+            Shape::Concrete(id) => Some(*id),
             _ => None,
         }
     }

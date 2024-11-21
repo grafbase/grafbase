@@ -12,8 +12,7 @@ use crate::{
     execution::ExecutionContext,
     operation::Plan,
     response::{
-        ConcreteObjectShapeId, FieldShapeRecord, ResponseObject, ResponseObjectField, ResponseValue, ResponseWriter,
-        Shapes,
+        ConcreteShapeId, FieldShapeRecord, ResponseObject, ResponseObjectField, ResponseValue, ResponseWriter, Shapes,
     },
     Runtime,
 };
@@ -28,7 +27,7 @@ pub(super) struct IntrospectionWriter<'ctx, R: Runtime> {
 }
 
 impl<'ctx, R: Runtime> IntrospectionWriter<'ctx, R> {
-    pub(super) fn execute(self, id: ConcreteObjectShapeId) {
+    pub(super) fn execute(self, id: ConcreteShapeId) {
         let shape = &self.ctx.shapes()[id];
         let mut fields = Vec::with_capacity(shape.field_shape_ids.len() + shape.typename_response_edges.len());
         for field_shape in &self.shapes[shape.field_shape_ids] {
@@ -78,7 +77,7 @@ impl<'ctx, R: Runtime> IntrospectionWriter<'ctx, R> {
     fn object<E: Copy, const N: usize>(
         &self,
         object: &'ctx IntrospectionObject<E, N>,
-        shape_id: ConcreteObjectShapeId,
+        shape_id: ConcreteShapeId,
         build: impl Fn(&'ctx FieldShapeRecord, E) -> ResponseValue,
     ) -> ResponseValue {
         let shape = &self.shapes[shape_id];
@@ -105,7 +104,7 @@ impl<'ctx, R: Runtime> IntrospectionWriter<'ctx, R> {
         self.response.push_object(ResponseObject::new(fields)).into()
     }
 
-    fn __schema(&self, shape_id: ConcreteObjectShapeId) -> ResponseValue {
+    fn __schema(&self, shape_id: ConcreteShapeId) -> ResponseValue {
         self.object(&self.metadata.__schema, shape_id, |field, __schema| {
             match __schema {
                 __Schema::Description => self.schema.graph.description_id.into(),
@@ -147,7 +146,7 @@ impl<'ctx, R: Runtime> IntrospectionWriter<'ctx, R> {
         })
     }
 
-    fn __type(&self, ty: Type<'ctx>, shape_id: ConcreteObjectShapeId) -> ResponseValue {
+    fn __type(&self, ty: Type<'ctx>, shape_id: ConcreteShapeId) -> ResponseValue {
         self.__type_list_wrapping(ty.definition(), ty.wrapping, shape_id)
     }
 
@@ -155,7 +154,7 @@ impl<'ctx, R: Runtime> IntrospectionWriter<'ctx, R> {
         &self,
         definition: Definition<'ctx>,
         mut wrapping: Wrapping,
-        shape_id: ConcreteObjectShapeId,
+        shape_id: ConcreteShapeId,
     ) -> ResponseValue {
         match wrapping.pop_list_wrapping() {
             Some(list_wrapping) => match list_wrapping {
@@ -190,7 +189,7 @@ impl<'ctx, R: Runtime> IntrospectionWriter<'ctx, R> {
         &self,
         definition: Definition<'ctx>,
         wrapping: Wrapping,
-        shape_id: ConcreteObjectShapeId,
+        shape_id: ConcreteShapeId,
     ) -> ResponseValue {
         self.object(&self.metadata.__type, shape_id, |field, __type| match __type {
             __Type::Kind => self.metadata.type_kind.non_null.into(),
@@ -201,7 +200,7 @@ impl<'ctx, R: Runtime> IntrospectionWriter<'ctx, R> {
         })
     }
 
-    fn __type_inner(&self, definition: Definition<'ctx>, shape_id: ConcreteObjectShapeId) -> ResponseValue {
+    fn __type_inner(&self, definition: Definition<'ctx>, shape_id: ConcreteShapeId) -> ResponseValue {
         match definition {
             Definition::Scalar(scalar) => self.object(&self.metadata.__type, shape_id, |_, __type| match __type {
                 __Type::Kind => self.metadata.type_kind.scalar.into(),
@@ -336,7 +335,7 @@ impl<'ctx, R: Runtime> IntrospectionWriter<'ctx, R> {
         self.response.push_list(values).into()
     }
 
-    fn __field(&self, target: FieldDefinition<'ctx>, shape_id: ConcreteObjectShapeId) -> ResponseValue {
+    fn __field(&self, target: FieldDefinition<'ctx>, shape_id: ConcreteShapeId) -> ResponseValue {
         self.object(&self.metadata.__field, shape_id, |field, __field| match __field {
             _Field::Name => target.as_ref().name_id.into(),
             _Field::Description => target.as_ref().description_id.into(),
@@ -357,7 +356,7 @@ impl<'ctx, R: Runtime> IntrospectionWriter<'ctx, R> {
         })
     }
 
-    fn __input_value(&self, target: InputValueDefinition<'ctx>, shape_id: ConcreteObjectShapeId) -> ResponseValue {
+    fn __input_value(&self, target: InputValueDefinition<'ctx>, shape_id: ConcreteShapeId) -> ResponseValue {
         self.object(
             &self.metadata.__input_value,
             shape_id,
@@ -374,7 +373,7 @@ impl<'ctx, R: Runtime> IntrospectionWriter<'ctx, R> {
         )
     }
 
-    fn __enum_value(&self, target: EnumValue<'ctx>, shape_id: ConcreteObjectShapeId) -> ResponseValue {
+    fn __enum_value(&self, target: EnumValue<'ctx>, shape_id: ConcreteShapeId) -> ResponseValue {
         self.object(
             &self.metadata.__enum_value,
             shape_id,

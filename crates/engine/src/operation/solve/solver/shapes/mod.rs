@@ -12,8 +12,8 @@ use crate::{
         TypenameField,
     },
     response::{
-        ConcreteObjectShapeId, ConcreteObjectShapeRecord, FieldShapeId, FieldShapeRecord, ObjectIdentifier,
-        PolymorphicObjectShapeId, PolymorphicObjectShapeRecord, Shape, Shapes,
+        ConcreteShapeId, ConcreteShapeRecord, FieldShapeId, FieldShapeRecord, ObjectIdentifier, PolymorphicShapeId,
+        PolymorphicShapeRecord, Shape, Shapes,
     },
     utils::BufferPool,
 };
@@ -87,7 +87,7 @@ impl<'ctx> ShapesBuilder<'ctx> {
         &mut self,
         entity_definition_id: EntityDefinitionId,
         selection_set: SelectionSet<'ctx>,
-    ) -> ConcreteObjectShapeId {
+    ) -> ConcreteShapeId {
         let exemplar = match entity_definition_id {
             EntityDefinitionId::Object(id) => id,
             EntityDefinitionId::Interface(id) => self.schema[id].possible_type_ids[0],
@@ -126,7 +126,7 @@ impl<'ctx> ShapesBuilder<'ctx> {
         maybe_response_object_set_id: Option<ResponseObjectSetDefinitionId>,
         data_fields_sorted_by_response_key_then_position: &[DataField<'ctx>],
         typename_fields_sorted_by_response_key_then_position: &[TypenameField<'ctx>],
-    ) -> ConcreteObjectShapeId {
+    ) -> ConcreteShapeId {
         let schema = self.schema;
         tracing::trace!("Creating shape for exemplar {}", schema.walk(exemplar_object_id).name());
 
@@ -179,7 +179,7 @@ impl<'ctx> ShapesBuilder<'ctx> {
             start = end;
         }
 
-        let shape = ConcreteObjectShapeRecord {
+        let shape = ConcreteShapeRecord {
             set_id: maybe_response_object_set_id,
             identifier: ObjectIdentifier::Anonymous,
             typename_response_edges,
@@ -235,7 +235,7 @@ impl<'ctx> ShapesBuilder<'ctx> {
             data_fields.extend(parent_field.selection_set().data_fields());
             typename_fields.extend(parent_field.selection_set().typename_fields());
         }
-        let shape = self.collect_object_shapes(
+        let shape = self.collect_shapes(
             output_id,
             maybe_response_object_set_id,
             &mut data_fields,
@@ -245,7 +245,7 @@ impl<'ctx> ShapesBuilder<'ctx> {
         self.typename_fields_buffer_pool.push(typename_fields);
         match shape {
             Shape::Scalar(_) | Shape::Enum(_) => {}
-            Shape::ConcreteObject(id) => {
+            Shape::Concrete(id) => {
                 if matches!(
                     self.shapes[id].identifier,
                     ObjectIdentifier::UnionTypename(_) | ObjectIdentifier::InterfaceTypename(_)
@@ -254,7 +254,7 @@ impl<'ctx> ShapesBuilder<'ctx> {
                         .extend(parent_fields.iter().map(|field| field.id));
                 }
             }
-            Shape::PolymorphicObject(_) => {
+            Shape::Polymorphic(_) => {
                 self.data_field_ids_with_selection_set_requiring_typename
                     .extend(parent_fields.iter().map(|field| field.id));
             }
@@ -262,7 +262,7 @@ impl<'ctx> ShapesBuilder<'ctx> {
         shape
     }
 
-    fn collect_object_shapes(
+    fn collect_shapes(
         &mut self,
         ty: CompositeTypeId,
         maybe_response_object_set_id: Option<ResponseObjectSetDefinitionId>,
@@ -317,7 +317,7 @@ impl<'ctx> ShapesBuilder<'ctx> {
                     }
                 }
             }
-            Shape::PolymorphicObject(self.push_polymorphic_shape(PolymorphicObjectShapeRecord { possibilities }))
+            Shape::Polymorphic(self.push_polymorphic_shape(PolymorphicShapeRecord { possibilities }))
         } else {
             let shape_id = self.create_concrete_shape(
                 output[0],
@@ -335,7 +335,7 @@ impl<'ctx> ShapesBuilder<'ctx> {
                     CompositeTypeId::Object(_) => unreachable!(),
                 }
             }
-            Shape::ConcreteObject(shape_id)
+            Shape::Concrete(shape_id)
         }
     }
 
@@ -370,13 +370,13 @@ impl<'ctx> ShapesBuilder<'ctx> {
         partition_shapes(output, single_object_ids, other_type_conditions)
     }
 
-    fn push_concrete_shape(&mut self, shape: ConcreteObjectShapeRecord) -> ConcreteObjectShapeId {
+    fn push_concrete_shape(&mut self, shape: ConcreteShapeRecord) -> ConcreteShapeId {
         let id = self.shapes.concrete.len().into();
         self.shapes.concrete.push(shape);
         id
     }
 
-    fn push_polymorphic_shape(&mut self, mut shape: PolymorphicObjectShapeRecord) -> PolymorphicObjectShapeId {
+    fn push_polymorphic_shape(&mut self, mut shape: PolymorphicShapeRecord) -> PolymorphicShapeId {
         let id = self.shapes.polymorphic.len().into();
         let schema = self.schema;
         shape.possibilities.sort_unstable_by(|a, b| {

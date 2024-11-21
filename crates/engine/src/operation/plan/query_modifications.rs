@@ -11,7 +11,7 @@ use crate::{
         SolvedOperationContext, TypenameFieldId, Variables,
     },
     prepare::{CachedOperation, PrepareContext},
-    response::{ConcreteObjectShapeId, ErrorCode, FieldShapeId, GraphqlError},
+    response::{ConcreteShapeId, ErrorCode, FieldShapeId, GraphqlError},
     Runtime,
 };
 
@@ -25,7 +25,7 @@ pub(crate) struct QueryModifications {
     pub skipped_typename_fields: BitSet<TypenameFieldId>,
     #[indexed_by(ErrorId)]
     pub errors: Vec<GraphqlError>,
-    pub concrete_shape_has_error: BitSet<ConcreteObjectShapeId>,
+    pub concrete_shape_has_error: BitSet<ConcreteShapeId>,
     pub field_shape_id_to_error_ids: IdToMany<FieldShapeId, ErrorId>,
     pub skipped_field_shapes: BitSet<FieldShapeId>,
     pub root_error_ids: Vec<ErrorId>,
@@ -211,7 +211,7 @@ where
                             std::cmp::Ordering::Equal => {
                                 self.modifications
                                     .concrete_shape_has_error
-                                    .set(ConcreteObjectShapeId::from(concrete_shape_id), true);
+                                    .set(ConcreteShapeId::from(concrete_shape_id), true);
                                 break;
                             }
                             std::cmp::Ordering::Greater => {

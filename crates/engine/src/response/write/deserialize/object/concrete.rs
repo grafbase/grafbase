@@ -9,24 +9,24 @@ use crate::{
     response::{
         value::ResponseObjectField,
         write::deserialize::{field::FieldSeed, key::Key, SeedContext},
-        ConcreteObjectShapeId, FieldShapeId, FieldShapeRecord, GraphqlError, ObjectIdentifier, PositionedResponseKey,
+        ConcreteShapeId, FieldShapeId, FieldShapeRecord, GraphqlError, ObjectIdentifier, PositionedResponseKey,
         ResponseObject, ResponseObjectRef, ResponseValue,
     },
 };
 
-pub(crate) struct ConcreteObjectSeed<'ctx, 'seed> {
+pub(crate) struct ConcreteShapeSeed<'ctx, 'seed> {
     ctx: &'seed SeedContext<'ctx>,
     set_id: Option<ResponseObjectSetDefinitionId>,
-    fields_seed: ConcreteObjectFieldsSeed<'ctx, 'seed>,
+    fields_seed: ConcreteShapeFieldsSeed<'ctx, 'seed>,
 }
 
-impl<'ctx, 'seed> ConcreteObjectSeed<'ctx, 'seed> {
-    pub fn new(ctx: &'seed SeedContext<'ctx>, shape_id: ConcreteObjectShapeId) -> Self {
+impl<'ctx, 'seed> ConcreteShapeSeed<'ctx, 'seed> {
+    pub fn new(ctx: &'seed SeedContext<'ctx>, shape_id: ConcreteShapeId) -> Self {
         let shape = shape_id.walk(ctx);
         Self {
             ctx,
             set_id: shape.set_id,
-            fields_seed: ConcreteObjectFieldsSeed {
+            fields_seed: ConcreteShapeFieldsSeed {
                 ctx,
                 has_error: shape.has_errors(),
                 object_identifier: shape.identifier,
@@ -38,14 +38,14 @@ impl<'ctx, 'seed> ConcreteObjectSeed<'ctx, 'seed> {
 
     pub fn new_with_object_id(
         ctx: &'seed SeedContext<'ctx>,
-        shape_id: ConcreteObjectShapeId,
+        shape_id: ConcreteShapeId,
         object_id: ObjectDefinitionId,
     ) -> Self {
         let shape = shape_id.walk(ctx);
         Self {
             ctx,
             set_id: shape.set_id,
-            fields_seed: ConcreteObjectFieldsSeed {
+            fields_seed: ConcreteShapeFieldsSeed {
                 ctx,
                 has_error: shape.has_errors(),
                 object_identifier: ObjectIdentifier::Known(object_id),
@@ -55,12 +55,12 @@ impl<'ctx, 'seed> ConcreteObjectSeed<'ctx, 'seed> {
         }
     }
 
-    pub(crate) fn into_fields_seed(self) -> ConcreteObjectFieldsSeed<'ctx, 'seed> {
+    pub(crate) fn into_fields_seed(self) -> ConcreteShapeFieldsSeed<'ctx, 'seed> {
         self.fields_seed
     }
 }
 
-pub(crate) struct ConcreteObjectFieldsSeed<'ctx, 'seed> {
+pub(crate) struct ConcreteShapeFieldsSeed<'ctx, 'seed> {
     ctx: &'seed SeedContext<'ctx>,
     has_error: bool,
     object_identifier: ObjectIdentifier,
@@ -68,7 +68,7 @@ pub(crate) struct ConcreteObjectFieldsSeed<'ctx, 'seed> {
     typename_response_edges: &'ctx [PositionedResponseKey],
 }
 
-impl<'de, 'ctx, 'parent> DeserializeSeed<'de> for ConcreteObjectSeed<'ctx, 'parent> {
+impl<'de, 'ctx, 'parent> DeserializeSeed<'de> for ConcreteShapeSeed<'ctx, 'parent> {
     type Value = ResponseValue;
 
     fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
@@ -79,7 +79,7 @@ impl<'de, 'ctx, 'parent> DeserializeSeed<'de> for ConcreteObjectSeed<'ctx, 'pare
     }
 }
 
-impl<'de, 'ctx, 'parent> Visitor<'de> for ConcreteObjectSeed<'ctx, 'parent> {
+impl<'de, 'ctx, 'parent> Visitor<'de> for ConcreteShapeSeed<'ctx, 'parent> {
     type Value = ResponseValue;
 
     fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -109,7 +109,7 @@ impl<'de, 'ctx, 'parent> Visitor<'de> for ConcreteObjectSeed<'ctx, 'parent> {
     }
 }
 
-impl<'de, 'ctx, 'seed> DeserializeSeed<'de> for ConcreteObjectFieldsSeed<'ctx, 'seed> {
+impl<'de, 'ctx, 'seed> DeserializeSeed<'de> for ConcreteShapeFieldsSeed<'ctx, 'seed> {
     type Value = (Option<ObjectDefinitionId>, Vec<ResponseObjectField>);
 
     fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
@@ -120,7 +120,7 @@ impl<'de, 'ctx, 'seed> DeserializeSeed<'de> for ConcreteObjectFieldsSeed<'ctx, '
     }
 }
 
-impl<'de, 'ctx, 'seed> Visitor<'de> for ConcreteObjectFieldsSeed<'ctx, 'seed> {
+impl<'de, 'ctx, 'seed> Visitor<'de> for ConcreteShapeFieldsSeed<'ctx, 'seed> {
     type Value = (Option<ObjectDefinitionId>, Vec<ResponseObjectField>);
 
     fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -183,7 +183,7 @@ impl<'de, 'ctx, 'seed> Visitor<'de> for ConcreteObjectFieldsSeed<'ctx, 'seed> {
     }
 }
 
-impl<'de, 'ctx, 'seed> ConcreteObjectFieldsSeed<'ctx, 'seed> {
+impl<'de, 'ctx, 'seed> ConcreteShapeFieldsSeed<'ctx, 'seed> {
     fn post_process<A: MapAccess<'de>>(&self, response_fields: &mut Vec<ResponseObjectField>) -> Result<(), A::Error> {
         if self.has_error {
             let mut required_field_error = false;
