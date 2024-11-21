@@ -108,6 +108,7 @@ fn validate_prepared_operation(operation: &PreparedOperation, settings: &Setting
         return Ok(());
     };
     let Some(complexity) = operation.complexity else {
+        tracing::error!("Complexity control is enabled but complexity could not be calculated!");
         return Ok(());
     };
     if complexity > limit {
