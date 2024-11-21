@@ -202,8 +202,15 @@ impl<'ctx, Op: Operation> Solution<'ctx, Op> {
 impl<'ctx, Op: Operation> PartialSolution<'ctx, Op> {
     pub(crate) fn finalize(mut self) -> Solution<'ctx, Op> {
         self.finalize_extra_fields();
-        self.ensure_mutation_execution_order();
-        self.split_query_partition_dependency_cycles();
+        if Some(self.operation.root_object_id()) == self.schema.graph.root_operation_types_record.mutation_id {
+            let root_fields = self.ensure_mutation_execution_order();
+            // We already handled query partitions in a more specific way, so we don't want this
+            // function to touch them. So it starts from the root field's selection sets instead of
+            // the root selection set.
+            self.split_query_partition_dependency_cycles(root_fields);
+        } else {
+            self.split_query_partition_dependency_cycles(vec![self.root_node_ix]);
+        }
         self.assign_root_typename_fields();
 
         tracing::debug!("Solution:\n{}", self.to_pretty_dot_graph());
@@ -258,11 +265,7 @@ impl<'ctx, Op: Operation> PartialSolution<'ctx, Op> {
         }
     }
 
-    fn ensure_mutation_execution_order(&mut self) {
-        if Some(self.operation.root_object_id()) != self.schema.graph.root_operation_types_record.mutation_id {
-            return;
-        }
-
+    fn ensure_mutation_execution_order(&mut self) -> Vec<NodeIndex> {
         struct Field {
             position: usize,
             original_partition_node_ix: NodeIndex,
@@ -290,16 +293,10 @@ impl<'ctx, Op: Operation> PartialSolution<'ctx, Op> {
         }
 
         selection_set.sort_unstable_by(|a, b| a.position.cmp(&b.position));
-        let mut selection_set = VecDeque::from(selection_set);
+        let selection_set = VecDeque::from(selection_set);
 
-        let Some(first_partition) = selection_set
-            .pop_front()
-            .map(|field| (field.original_partition_node_ix, field.resolver_definition_id))
-        else {
-            return;
-        };
-
-        let mut partitions = vec![first_partition];
+        let mut partitions = Vec::new();
+        let mut root_fields = Vec::with_capacity(selection_set.len());
 
         for Field {
             original_partition_node_ix,
@@ -308,16 +305,18 @@ impl<'ctx, Op: Operation> PartialSolution<'ctx, Op> {
             ..
         } in selection_set
         {
-            let (last_partition_node_ix, last_resolver_definition_id) = *partitions.last().unwrap();
-            if resolver_definition_id == last_resolver_definition_id {
-                if original_partition_node_ix == last_partition_node_ix {
+            if let Some((last_partition_node_ix, _)) = partitions
+                .last()
+                .filter(|(_, last_resolver_definition_id)| *last_resolver_definition_id == resolver_definition_id)
+            {
+                if original_partition_node_ix == *last_partition_node_ix {
                     continue;
                 } else {
                     if let Some(id) = self.graph.find_edge(original_partition_node_ix, field_node_ix) {
                         self.graph.remove_edge(id);
                     }
                     self.graph
-                        .add_edge(last_partition_node_ix, field_node_ix, SolutionEdge::Field);
+                        .add_edge(*last_partition_node_ix, field_node_ix, SolutionEdge::Field);
                 }
             }
 
@@ -338,15 +337,19 @@ impl<'ctx, Op: Operation> PartialSolution<'ctx, Op> {
             } else {
                 partitions.push((original_partition_node_ix, resolver_definition_id));
             }
+
+            root_fields.push(field_node_ix);
         }
 
         for ((partition1_ix, _), (partition2_ix, _)) in partitions.into_iter().tuple_windows() {
             self.graph
-                .add_edge(partition1_ix, partition2_ix, SolutionEdge::MutationExecutedAfter);
+                .add_edge(partition2_ix, partition1_ix, SolutionEdge::MutationExecutedAfter);
         }
+
+        root_fields
     }
 
-    fn split_query_partition_dependency_cycles(&mut self) {
+    fn split_query_partition_dependency_cycles(&mut self, starting_nodes: Vec<NodeIndex>) {
         struct Field {
             position: usize,
             original_partition_node_ix: NodeIndex,
@@ -354,7 +357,7 @@ impl<'ctx, Op: Operation> PartialSolution<'ctx, Op> {
             field_node_ix: NodeIndex,
         }
         let mut partition_fields = Vec::new();
-        let mut stack = vec![self.root_node_ix];
+        let mut stack = starting_nodes;
         let mut partitions = Vec::new();
 
         while let Some(root_node_ix) = stack.pop() {

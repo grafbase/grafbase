@@ -78,7 +78,7 @@ impl SolutionEdge {
             Self::Field => Attrs::default(),
             Self::RequiredBySubgraph => Attrs::default().with("color=orangered,arrowhead=inv"),
             Self::RequiredBySupergraph => Attrs::default().with("color=orangered,arrowhead=inv,style=dashed"),
-            Self::MutationExecutedAfter => Attrs::default().with("color=red"),
+            Self::MutationExecutedAfter => Attrs::default().with("color=red,arrowhead=inv,style=dashed"),
         }
         .to_string()
     }
