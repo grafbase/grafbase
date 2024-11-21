@@ -81,6 +81,7 @@ pub struct GraphqlOperationAttributes {
     pub ty: OperationType,
     pub name: OperationName,
     pub sanitized_query: Arc<str>,
+    pub complexity: Option<usize>,
 }
 
 #[derive(Clone, Copy, Debug)]

@@ -75,7 +75,7 @@ impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
 
         if matches!(operation.cached.ty(), OperationType::Subscription) {
             let response = Response::request_error(
-                Some(operation.cached.attributes.clone()),
+                Some(operation.attributes()),
                 [GraphqlError::new("Subscriptions are only suported on streaming transports. Try making a request with SSE or WebSockets", ErrorCode::BadRequest)],
             );
             return response.with_grafbase_extension(self.grafbase_response_extension(None));

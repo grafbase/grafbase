@@ -75,12 +75,13 @@ impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
             return Err(mutation_not_allowed_with_safe_method());
         }
 
-        let variables = Variables::build(self.schema(), &cached_operation, request.variables)
-            .map_err(|errors| Response::request_error(Some(cached_operation.attributes.clone()), errors))?;
+        let variables = Variables::build(self.schema(), &cached_operation, request.variables).map_err(|errors| {
+            Response::request_error(Some(cached_operation.operation_attributes_for_error()), errors)
+        })?;
 
         self.prepare_cached_operation(Arc::clone(&cached_operation), variables)
             .await
-            .map_err(|err| Response::request_error(Some(cached_operation.attributes.clone()), [err]))
+            .map_err(|err| Response::request_error(Some(cached_operation.operation_attributes_for_error()), [err]))
     }
 }
 

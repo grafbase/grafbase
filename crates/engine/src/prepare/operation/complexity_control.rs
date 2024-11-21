@@ -8,11 +8,11 @@ use crate::{
 
 use super::Variables;
 
-pub fn control_complexity(schema: &Schema, operation: OperationWalker<'_>, variables: &Variables) -> PrepareResult<()> {
-    if schema.settings.complexity_control.is_disabled() {
-        return Ok(());
-    }
-
+pub fn control_complexity(
+    schema: &Schema,
+    operation: OperationWalker<'_>,
+    variables: &Variables,
+) -> PrepareResult<usize> {
     let base_cost = match operation.operation.ty {
         OperationType::Query | OperationType::Subscription => 0,
         OperationType::Mutation => 10,
@@ -39,7 +39,7 @@ pub fn control_complexity(schema: &Schema, operation: OperationWalker<'_>, varia
         }
     }
 
-    Ok(())
+    Ok(cost)
 }
 
 struct ComplexityContext<'a> {

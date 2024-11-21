@@ -148,7 +148,7 @@ impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
                 };
 
                 if matches!(operation.cached.ty(), OperationType::Query | OperationType::Mutation) {
-                    let attributes = operation.cached.attributes.clone();
+                    let attributes = operation.attributes();
                     let response_ext = self.grafbase_response_extension(Some(&operation));
                     let response = self.execute_query_or_mutation(operation).await;
 
@@ -175,7 +175,7 @@ impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
             }
         };
 
-        let attributes = operation.cached.attributes.clone();
+        let attributes = operation.attributes();
 
         struct AddExtToFirstResponse<Sender> {
             sender: Sender,

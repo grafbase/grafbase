@@ -21,7 +21,7 @@ pub(crate) use shape::*;
 pub(crate) use value::*;
 pub(crate) use write::*;
 
-use crate::prepare::CachedOperation;
+use crate::prepare::{CachedOperation, PreparedOperation};
 
 pub(crate) mod error;
 pub(crate) mod key;
@@ -44,6 +44,7 @@ pub(crate) enum Response<OnOperationResponseHookOutput> {
 
 pub(crate) struct ExecutedResponse<OnOperationResponseHookOutput> {
     operation: Arc<CachedOperation>,
+    attributes: GraphqlOperationAttributes,
     data: Option<ResponseData>,
     errors: Vec<GraphqlError>,
     error_code_counter: ErrorCodeCounter,
@@ -137,7 +138,7 @@ impl<OnOperationResponseHookOutput> Response<OnOperationResponseHookOutput> {
     }
 
     pub(crate) fn execution_error(
-        operation: Arc<CachedOperation>,
+        operation: &PreparedOperation,
         on_operation_response_output: Option<OnOperationResponseHookOutput>,
         errors: impl IntoIterator<Item: Into<GraphqlError>>,
     ) -> Self {
@@ -145,7 +146,8 @@ impl<OnOperationResponseHookOutput> Response<OnOperationResponseHookOutput> {
         let error_code_counter = ErrorCodeCounter::from_errors(&errors);
 
         Self::Executed(ExecutedResponse {
-            operation,
+            operation: operation.cached.clone(),
+            attributes: operation.attributes(),
             data: None,
             on_operation_response_output,
             errors,
@@ -190,7 +192,7 @@ impl<OnOperationResponseHookOutput> Response<OnOperationResponseHookOutput> {
         match self {
             Self::RefusedRequest(_) => None,
             Self::RequestError(resp) => resp.operation_attributes.as_ref(),
-            Self::Executed(resp) => Some(&resp.operation.attributes),
+            Self::Executed(resp) => Some(&resp.attributes),
         }
     }
 

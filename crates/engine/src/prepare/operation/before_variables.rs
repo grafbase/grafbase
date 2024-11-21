@@ -1,7 +1,7 @@
 use crate::{
     prepare::{
         error::{PrepareError, PrepareResult},
-        CachedOperation, PrepareContext,
+        CachedOperation, CachedOperationAttributes, PrepareContext,
     },
     request::Request,
     Runtime,
@@ -20,7 +20,7 @@ impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
             Ok(op) => op,
             Err(err) => {
                 return Err(PrepareError::Bind {
-                    attributes: Box::new(attributes),
+                    attributes: Box::new(attributes.map(CachedOperationAttributes::attributes_for_error)),
                     err,
                 })
             }
@@ -35,7 +35,7 @@ impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
             Ok(op) => op,
             Err(err) => {
                 return Err(PrepareError::Solve {
-                    attributes: Box::new(attributes),
+                    attributes: Box::new(attributes.map(CachedOperationAttributes::attributes_for_error)),
                     err,
                 })
             }
