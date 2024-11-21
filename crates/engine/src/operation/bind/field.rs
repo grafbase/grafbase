@@ -2,12 +2,14 @@ use super::{coercion::coerce_query_value, BindError, BindResult, Binder, BoundFi
 use crate::{
     operation::{
         BoundField, BoundFieldArgument, BoundFieldArgumentId, BoundQueryField, BoundSelectionSetId, BoundTypeNameField,
-        Location, QueryInputValueRecord, QueryModifierRule,
+        QueryInputValueRecord, QueryModifierRule,
     },
     response::SafeResponseKey,
 };
-use engine_parser::Positioned;
-use engine_value::Name;
+use cynic_parser::{
+    executable::{Argument, FieldSelection, Iter},
+    Span,
+};
 use id_newtypes::IdRange;
 use schema::{CompositeTypeId, DefinitionId, FieldDefinition, FieldDefinitionId};
 
@@ -17,13 +19,13 @@ impl<'schema, 'p> Binder<'schema, 'p> {
         type_condition: CompositeTypeId,
         query_position: QueryPosition,
         key: SafeResponseKey,
-        Positioned { pos, .. }: &'p Positioned<engine_parser::types::Field>,
+        field: FieldSelection<'p>,
     ) -> BindResult<BoundFieldId> {
         Ok(self.push_field(BoundField::TypeName(BoundTypeNameField {
             type_condition,
             query_position,
             key,
-            location: (*pos).try_into()?,
+            location: self.parsed_operation.span_to_location(field.name_span()),
         })))
     }
 
@@ -32,41 +34,41 @@ impl<'schema, 'p> Binder<'schema, 'p> {
         query_position: QueryPosition,
         key: SafeResponseKey,
         definition_id: FieldDefinitionId,
-        Positioned { pos, node: field }: &'p Positioned<engine_parser::types::Field>,
+        field: FieldSelection<'p>,
         selection_set_id: Option<BoundSelectionSetId>,
         executable_directive_rules: Vec<QueryModifierRule>,
     ) -> BindResult<BoundFieldId> {
-        let location: Location = (*pos).try_into()?;
+        let location = field.name_span();
         let definition: FieldDefinition<'_> = self.schema.walk(definition_id);
 
         // We don't bother processing the selection set if it's not a union/interface/object, so we
         // need to rely on the parsed data rather than selection_set_id.
-        let has_selection_set = !field.selection_set.node.items.is_empty();
+        let has_selection_set = field.selection_set().len() != 0;
         match definition.ty().as_ref().definition_id {
             DefinitionId::Scalar(_) | DefinitionId::Enum(_) if has_selection_set => {
                 return Err(BindError::CannotHaveSelectionSet {
                     name: definition.name().to_string(),
                     ty: definition.ty().to_string(),
-                    location,
+                    span: location,
                 })
             }
             DefinitionId::Object(_) | DefinitionId::Interface(_) | DefinitionId::Union(_) if !has_selection_set => {
                 return Err(BindError::LeafMustBeAScalarOrEnum {
                     name: definition.name().to_string(),
                     ty: definition.ty().definition().name().to_string(),
-                    location,
+                    span: location,
                 });
             }
             _ => {}
         };
 
         let field_id = BoundFieldId::from(self.fields.len());
-        let argument_ids = self.bind_field_arguments(definition, location, &field.arguments)?;
+        let argument_ids = self.bind_field_arguments(definition, location, field.arguments())?;
         self.fields.push(BoundField::Query(BoundQueryField {
             query_position,
             key,
             subgraph_key: key,
-            location,
+            location: self.parsed_operation.span_to_location(location),
             definition_id: definition.id,
             argument_ids,
             selection_set_id,
@@ -85,15 +87,15 @@ impl<'schema, 'p> Binder<'schema, 'p> {
     fn bind_field_arguments(
         &mut self,
         definition: FieldDefinition<'schema>,
-        location: Location,
-        arguments: &[(Positioned<Name>, Positioned<engine_value::Value>)],
+        span: Span,
+        arguments: Iter<'p, Argument<'p>>,
     ) -> BindResult<IdRange<BoundFieldArgumentId>> {
         // Avoid binding multiple times the same arguments (same fragments used at different places)
-        if let Some(ids) = self.location_to_field_arguments.get(&location) {
+        if let Some(ids) = self.location_to_field_arguments.get(&span.start) {
             return Ok(*ids);
         }
 
-        let mut arguments = arguments.to_vec();
+        let mut arguments = arguments.collect::<Vec<_>>();
 
         let start = self.field_arguments.len();
         for argument_def in definition.arguments() {
@@ -102,23 +104,17 @@ impl<'schema, 'p> Binder<'schema, 'p> {
             }
             if let Some(index) = arguments
                 .iter()
-                .position(|(Positioned { node: name, .. }, _)| name.as_str() == argument_def.name())
+                .position(|argument| argument.name() == argument_def.name())
             {
-                let (name, value) = arguments.swap_remove(index);
-                let name_location = Some(name.pos.try_into()?);
-                let value_location = value.pos.try_into()?;
-                let value = value.node;
-                let input_value_id = coerce_query_value(self, value_location, argument_def.ty(), value)?;
+                let argument = arguments.swap_remove(index);
+                let value = argument.value();
+                let input_value_id = coerce_query_value(self, argument_def.ty(), value)?;
                 self.field_arguments.push(BoundFieldArgument {
-                    name_location,
-                    value_location: Some(value_location),
                     input_value_definition_id: argument_def.id,
                     input_value_id,
                 });
             } else if let Some(id) = argument_def.as_ref().default_value_id {
                 self.field_arguments.push(BoundFieldArgument {
-                    name_location: None,
-                    value_location: None,
                     input_value_definition_id: argument_def.id,
                     input_value_id: self.input_values.push_value(QueryInputValueRecord::DefaultValue(id)),
                 });
@@ -126,7 +122,7 @@ impl<'schema, 'p> Binder<'schema, 'p> {
                 return Err(BindError::MissingArgument {
                     field: definition.name().to_string(),
                     name: argument_def.name().to_string(),
-                    location,
+                    span,
                 });
             }
         }
@@ -134,8 +130,8 @@ impl<'schema, 'p> Binder<'schema, 'p> {
         if let Some(first_unknown_argument) = arguments.first() {
             return Err(BindError::UnknownArgument {
                 field_name: format!("{}.{}", definition.parent_entity().name(), definition.name()),
-                argument_name: first_unknown_argument.0.node.to_string(),
-                location,
+                argument_name: first_unknown_argument.name().to_string(),
+                span: first_unknown_argument.name_span(),
             });
         }
 

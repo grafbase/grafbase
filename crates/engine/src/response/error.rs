@@ -1,5 +1,6 @@
-pub(crate) mod code;
 use std::borrow::Cow;
+
+pub(crate) mod code;
 
 pub(crate) use code::*;
 

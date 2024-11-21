@@ -324,8 +324,6 @@ impl OperationAdapter<'_> {
                 .push_value(QueryInputValueRecord::DefaultValue(argument.value_id));
 
             self.operation.field_arguments.push(BoundFieldArgument {
-                name_location: None,
-                value_location: None,
                 input_value_id,
                 input_value_definition_id: argument.definition_id,
             });

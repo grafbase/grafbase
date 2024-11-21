@@ -135,15 +135,15 @@ fn with_broken_query() {
             .send()
             .await;
 
-        insta::assert_json_snapshot!(resp, @r###"
+        insta::assert_json_snapshot!(resp, @r#"
         {
           "errors": [
             {
-              "message": " --> 1:16\n  |\n1 | query Simple { \n  |                ^---\n  |\n  = expected selection",
+              "message": "unexpected end of file (expected one of , \"...\"RawIdent, schema, query, mutation, subscription, ty, input, true, false, null, implements, interface, \"enum\", union, scalar, extend, directive, repeatable, on, fragment)",
               "locations": [
                 {
                   "line": 1,
-                  "column": 16
+                  "column": 15
                 }
               ],
               "extensions": {
@@ -152,7 +152,7 @@ fn with_broken_query() {
             }
           ]
         }
-        "###);
+        "#);
     });
 
     let result = std::fs::read_to_string(tmpdir.path().join("access.log")).unwrap();

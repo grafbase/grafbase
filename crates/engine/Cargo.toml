@@ -25,6 +25,7 @@ blake3.workspace = true
 bytes.workspace = true
 url.workspace = true
 crossbeam-queue = "0.3.11"
+cynic-parser.workspace = true
 futures-util.workspace = true
 fixedbitset.workspace = true
 futures.workspace = true
@@ -53,7 +54,6 @@ web-time.workspace = true
 engine-auth = { path = "./auth" }
 operation-normalizer = { path = "../operation-normalizer" }
 config = { package = "engine-config", path = "./config" }
-engine-parser = { path = "./parser" }
 engine-value = { path = "./value" }
 schema = { path = "./schema", package = "engine-schema" }
 walker = { path = "./walker", package = "engine-walker" }

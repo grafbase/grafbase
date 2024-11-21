@@ -13,15 +13,22 @@ impl<R: Runtime> PrepareContext<'_, R> {
         request: &Request,
         document: &str,
     ) -> PrepareResult<CachedOperation> {
-        let parsed_operation = crate::operation::parse(self.schema(), request.operation_name.as_deref(), document)?;
+        // TODO: Make the number here configurable probably?
+        if document.len() >= 1024 * 1024 {
+            return Err(PrepareError::QueryTooBig);
+        }
+
+        let parsed_operation = crate::operation::parse(self.schema(), request.operation_name.as_deref(), document)
+            .map_err(PrepareError::Parse)?;
+
         let attributes = crate::operation::extract_attributes(&parsed_operation, document);
 
-        let bound_operation = match crate::operation::bind(self.schema(), parsed_operation) {
+        let bound_operation = match crate::operation::bind(self.schema(), &parsed_operation) {
             Ok(op) => op,
             Err(err) => {
                 return Err(PrepareError::Bind {
                     attributes: Box::new(attributes.map(CachedOperationAttributes::attributes_for_error)),
-                    err,
+                    err: err.into_graphql_error(&parsed_operation),
                 })
             }
         };

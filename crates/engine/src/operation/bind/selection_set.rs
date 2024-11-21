@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
-use engine_parser::types::Directive;
-use engine_parser::Positioned;
+use cynic_parser::executable::{Directive, FieldSelection, FragmentSpread, InlineFragment, Iter, Selection};
+use cynic_parser::Span;
 use schema::{CompositeTypeId, DefinitionId, FieldDefinitionId, TypeRecord};
 use walker::Walk;
 
@@ -9,7 +9,7 @@ use super::{BindError, BindResult, Binder};
 use crate::operation::bind::coercion::coerce_query_value;
 use crate::operation::{QueryModifierRule, SkipIncludeDirective};
 use crate::{
-    operation::{BoundFieldId, BoundSelectionSet, BoundSelectionSetId, Location, QueryPosition},
+    operation::{BoundFieldId, BoundSelectionSet, BoundSelectionSetId, QueryPosition},
     response::SafeResponseKey,
 };
 
@@ -17,7 +17,7 @@ impl<'p> Binder<'_, 'p> {
     pub(super) fn bind_merged_selection_sets(
         &mut self,
         ty: CompositeTypeId,
-        merged_selection_sets: &[&'p Positioned<engine_parser::types::SelectionSet>],
+        merged_selection_sets: &[Iter<'p, Selection<'p>>],
     ) -> BindResult<BoundSelectionSetId> {
         SelectionSetBinder::new(self).bind(ty, merged_selection_sets)
     }
@@ -58,13 +58,13 @@ struct DataFieldUniqueKey {
 #[derive(Clone)]
 struct DataField<'parsed> {
     query_position: QueryPosition,
-    fields: Vec<&'parsed Positioned<engine_parser::types::Field>>,
+    fields: Vec<FieldSelection<'parsed>>,
 }
 
 #[derive(Clone)]
 struct TypenameField<'parsed> {
     query_position: QueryPosition,
-    field: &'parsed Positioned<engine_parser::types::Field>,
+    field: FieldSelection<'parsed>,
 }
 
 impl<'schema, 'p, 'binder> SelectionSetBinder<'schema, 'p, 'binder> {
@@ -81,10 +81,10 @@ impl<'schema, 'p, 'binder> SelectionSetBinder<'schema, 'p, 'binder> {
     fn bind(
         mut self,
         ty: CompositeTypeId,
-        merged_selection_sets: &[&'p Positioned<engine_parser::types::SelectionSet>],
+        merged_selection_sets: &[Iter<'p, Selection<'p>>],
     ) -> BindResult<BoundSelectionSetId> {
         for selection_set in merged_selection_sets {
-            self.register_selection_set_fields(ty, selection_set)?;
+            self.register_selection_set_fields(ty, selection_set.clone())?;
         }
 
         let selection_set = BoundSelectionSet {
@@ -125,15 +125,16 @@ impl<'schema, 'p, 'binder> SelectionSetBinder<'schema, 'p, 'binder> {
                 continue;
             }
 
-            let field: &'p Positioned<engine_parser::types::Field> = fields
+            let field = fields
                 .iter()
-                .min_by_key(|field| field.pos.line)
+                .min_by_key(|field| field.name_span().start)
+                .copied()
                 .expect("At least one occurrence");
             let selection_set_id = CompositeTypeId::maybe_from(definition.ty().as_ref().definition_id)
                 .map(|ty| {
                     let merged_selection_sets = fields
                         .into_iter()
-                        .map(|field| &field.node.selection_set)
+                        .map(|field| field.selection_set())
                         .collect::<Vec<_>>();
                     self.binder.bind_merged_selection_sets(ty, &merged_selection_sets)
                 })
@@ -160,7 +161,7 @@ impl<'schema, 'p, 'binder> SelectionSetBinder<'schema, 'p, 'binder> {
                 .unwrap_or_default()
             {
                 let TypenameField { query_position, field } = typename_fields.get(&ty).unwrap();
-                field_ids.push(self.bind_typename_field(ty, *query_position, response_key, field)?);
+                field_ids.push(self.bind_typename_field(ty, *query_position, response_key, *field)?);
 
                 continue;
             }
@@ -182,21 +183,17 @@ impl<'schema, 'p, 'binder> SelectionSetBinder<'schema, 'p, 'binder> {
     fn register_selection_set_fields(
         &mut self,
         ty: CompositeTypeId,
-        selection_set: &'p Positioned<engine_parser::types::SelectionSet>,
+        selection_set: Iter<'p, Selection<'p>>,
     ) -> BindResult<()> {
-        let Positioned {
-            node: selection_set, ..
-        } = selection_set;
-
-        for Positioned { node: selection, .. } in &selection_set.items {
+        for selection in selection_set {
             match selection {
-                engine_parser::types::Selection::Field(field) => {
+                Selection::Field(field) => {
                     self.register_field(ty, field)?;
                 }
-                engine_parser::types::Selection::FragmentSpread(spread) => {
+                Selection::FragmentSpread(spread) => {
                     self.register_fragment_spread_fields(ty, spread)?;
                 }
-                engine_parser::types::Selection::InlineFragment(fragment) => {
+                Selection::InlineFragment(fragment) => {
                     self.register_inline_fragment_fields(ty, fragment)?;
                 }
             }
@@ -205,21 +202,10 @@ impl<'schema, 'p, 'binder> SelectionSetBinder<'schema, 'p, 'binder> {
         Ok(())
     }
 
-    fn register_field(
-        &mut self,
-        parent: CompositeTypeId,
-        field: &'p Positioned<engine_parser::types::Field>,
-    ) -> BindResult<()> {
-        let name_location: Location = field.pos.try_into()?;
-        let name = field.name.node.as_str();
-        let response_key = self.response_keys.get_or_intern(
-            field
-                .alias
-                .as_ref()
-                .map(|Positioned { node, .. }| node.as_str())
-                .unwrap_or_else(|| name),
-        );
-        let query_position = self.next_query_position(name_location)?;
+    fn register_field(&mut self, parent: CompositeTypeId, field: FieldSelection<'p>) -> BindResult<()> {
+        let name = field.name();
+        let response_key = self.response_keys.get_or_intern(field.alias().unwrap_or(name));
+        let query_position = self.next_query_position(field.name_span())?;
 
         if name == "__typename" {
             self.typename_fields_by_key_then_by_type_condition
@@ -237,7 +223,7 @@ impl<'schema, 'p, 'binder> SelectionSetBinder<'schema, 'p, 'binder> {
                 return Err(BindError::UnionHaveNoFields {
                     name: name.to_string(),
                     ty: self.schema.walk(union_id).name().to_string(),
-                    location: name_location,
+                    span: field.name_span(),
                 });
             }
         }
@@ -245,11 +231,11 @@ impl<'schema, 'p, 'binder> SelectionSetBinder<'schema, 'p, 'binder> {
         .ok_or_else(|| BindError::UnknownField {
             container: self.schema.walk(DefinitionId::from(parent)).name().to_string(),
             name: name.to_string(),
-            location: name_location,
+            span: field.name_span(),
         })?;
 
         let n = self.rules_stack.len();
-        self.push_new_rules(&field.directives)?;
+        self.push_new_rules(field.directives())?;
 
         let entry = self
             .data_fields
@@ -277,25 +263,22 @@ impl<'schema, 'p, 'binder> SelectionSetBinder<'schema, 'p, 'binder> {
     fn register_fragment_spread_fields(
         &mut self,
         parent: CompositeTypeId,
-        Positioned { pos, node: spread }: &'p Positioned<engine_parser::types::FragmentSpread>,
+        spread: FragmentSpread<'p>,
     ) -> BindResult<()> {
-        let location = (*pos).try_into()?;
         // We always create a new selection set from a named fragment. It may not be split in the
         // same way and we need to validate the type condition each time.
-        let name = spread.fragment_name.node.as_str();
-        let fragment = self
-            .parsed_operation
-            .get_fragment(name)
-            .ok_or_else(|| BindError::UnknownFragment {
-                name: name.to_string(),
-                location,
-            })?;
-        let ty = self.bind_type_condition(parent, &fragment.node.type_condition)?;
+        let location = spread.fragment_name_span();
+        let name = spread.fragment_name();
+        let fragment = spread.fragment().ok_or_else(|| BindError::UnknownFragment {
+            name: name.to_string(),
+            span: location,
+        })?;
+        let ty = self.bind_type_condition(parent, fragment.type_condition(), fragment.type_condition_span())?;
 
         let n = self.rules_stack.len();
-        self.push_new_rules(&fragment.directives)?;
+        self.push_new_rules(fragment.directives())?;
 
-        self.register_selection_set_fields(ty, &fragment.node.selection_set)?;
+        self.register_selection_set_fields(ty, fragment.selection_set())?;
 
         self.rules_stack.truncate(n);
         Ok(())
@@ -304,40 +287,44 @@ impl<'schema, 'p, 'binder> SelectionSetBinder<'schema, 'p, 'binder> {
     fn register_inline_fragment_fields(
         &mut self,
         parent: CompositeTypeId,
-        Positioned { node: fragment, .. }: &'p Positioned<engine_parser::types::InlineFragment>,
+        fragment: InlineFragment<'p>,
     ) -> BindResult<()> {
         let ty = fragment
-            .type_condition
-            .as_ref()
-            .map(|condition| self.bind_type_condition(parent, condition))
+            .type_condition()
+            .map(|condition| self.bind_type_condition(parent, condition, fragment.type_condition_span().unwrap()))
             .transpose()?
             .unwrap_or(parent);
 
         let n = self.rules_stack.len();
-        self.push_new_rules(&fragment.directives)?;
+        self.push_new_rules(fragment.directives())?;
 
-        self.register_selection_set_fields(ty, &fragment.selection_set)?;
+        self.register_selection_set_fields(ty, fragment.selection_set())?;
 
         self.rules_stack.truncate(n);
         Ok(())
     }
 
-    fn push_new_rules(&mut self, directives: &[Positioned<Directive>]) -> BindResult<()> {
+    fn push_new_rules(&mut self, directives: Iter<'_, Directive<'_>>) -> BindResult<()> {
         let mut skip_include = Vec::new();
         for directive in directives {
-            let directive_name = directive.name.node.as_str();
+            let directive_name = directive.name();
             if matches!(directive_name, "skip" | "include") {
-                let argument = directive.arguments.first().ok_or(BindError::MissingDirectiveArgument {
-                    name: directive_name.to_string(),
-                    location: directive.pos.try_into()?,
-                    directive: directive_name.to_string(),
-                })?;
+                let argument = directive
+                    .arguments()
+                    .next()
+                    .ok_or(BindError::MissingDirectiveArgument {
+                        name: directive_name.to_string(),
+                        span: directive.name_span(),
+                        directive: directive_name.to_string(),
+                    })?;
+
                 let ty = TypeRecord {
                     definition_id: self.schema.definition_by_name("Boolean").expect("must exist").id(),
                     wrapping: schema::Wrapping::required(),
                 }
                 .walk(self.schema);
-                let input_value_id = coerce_query_value(self, argument.1.pos.try_into()?, ty, argument.1.node.clone())?;
+
+                let input_value_id = coerce_query_value(self, ty, argument.value())?;
 
                 if directive_name == "skip" {
                     skip_include.push(SkipIncludeDirective::SkipIf(input_value_id));
@@ -357,17 +344,16 @@ impl<'schema, 'p, 'binder> SelectionSetBinder<'schema, 'p, 'binder> {
     fn bind_type_condition(
         &self,
         parent: CompositeTypeId,
-        Positioned { pos, node }: &'p Positioned<engine_parser::types::TypeCondition>,
+        name: &'p str,
+        location: Span,
     ) -> BindResult<CompositeTypeId> {
-        let location = (*pos).try_into()?;
-        let name = node.on.node.as_str();
         let definition = self
             .schema
             .definition_by_name(name)
             .filter(|def| !def.is_inaccessible())
             .ok_or_else(|| BindError::UnknownType {
                 name: name.to_string(),
-                location,
+                span: location,
             })?;
         let fragment_ty = match definition.id() {
             DefinitionId::Object(object_id) => CompositeTypeId::Object(object_id),
@@ -376,7 +362,7 @@ impl<'schema, 'p, 'binder> SelectionSetBinder<'schema, 'p, 'binder> {
             _ => {
                 return Err(BindError::InvalidTypeConditionTargetType {
                     name: name.to_string(),
-                    location,
+                    span: location,
                 });
             }
         };
@@ -391,15 +377,15 @@ impl<'schema, 'p, 'binder> SelectionSetBinder<'schema, 'p, 'binder> {
         Err(BindError::DisjointTypeCondition {
             parent: self.schema.walk(DefinitionId::from(parent)).name().to_string(),
             name: name.to_string(),
-            location,
+            span: location,
         })
     }
 
-    fn next_query_position(&mut self, location: Location) -> BindResult<QueryPosition> {
+    fn next_query_position(&mut self, span: Span) -> BindResult<QueryPosition> {
         let query_position = self.next_query_position;
         self.next_query_position += 1;
         if query_position == QueryPosition::MAX {
-            return Err(BindError::TooManyFields { location });
+            return Err(BindError::TooManyFields { span });
         }
         Ok(QueryPosition::from(query_position))
     }

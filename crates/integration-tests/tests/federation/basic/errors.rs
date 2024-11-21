@@ -490,7 +490,7 @@ fn unknown_argument() {
           "locations": [
             {
               "line": 1,
-              "column": 9
+              "column": 12
             }
           ],
           "extensions": {

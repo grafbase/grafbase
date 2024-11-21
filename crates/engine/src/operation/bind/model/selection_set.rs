@@ -110,8 +110,6 @@ impl BoundField {
 /// Represents arguments that were specified in the query with a value
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub(crate) struct BoundFieldArgument {
-    pub(crate) name_location: Option<Location>,
-    pub(crate) value_location: Option<Location>,
     pub(crate) input_value_definition_id: InputValueDefinitionId,
     pub(crate) input_value_id: QueryInputValueId,
 }

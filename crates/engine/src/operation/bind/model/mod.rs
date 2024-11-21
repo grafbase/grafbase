@@ -3,7 +3,7 @@ mod modifier;
 mod selection_set;
 mod variables;
 
-pub(crate) use engine_parser::types::OperationType;
+use grafbase_telemetry::graphql::OperationType;
 use id_derives::IndexedFields;
 pub(crate) use ids::*;
 pub(crate) use modifier::*;

@@ -1,4 +1,4 @@
-use engine_parser::types::OperationType;
+use grafbase_telemetry::graphql::OperationType;
 use schema::{InputObjectDefinition, Schema};
 use serde::Deserialize;
 

@@ -1,5 +1,3 @@
-use engine_value::{ConstValue, Value};
-
 use crate::operation::Location;
 
 #[derive(Debug, thiserror::Error)]
@@ -113,14 +111,16 @@ pub enum ValueKind {
     Null,
 }
 
-impl From<ConstValue> for ValueKind {
-    fn from(value: ConstValue) -> Self {
+impl From<engine_value::ConstValue> for ValueKind {
+    fn from(value: engine_value::ConstValue) -> Self {
         (&value).into()
     }
 }
 
-impl From<&ConstValue> for ValueKind {
-    fn from(value: &ConstValue) -> Self {
+impl From<&engine_value::ConstValue> for ValueKind {
+    fn from(value: &engine_value::ConstValue) -> Self {
+        use engine_value::ConstValue;
+
         match value {
             ConstValue::Null => ValueKind::Null,
             ConstValue::Number(number) if number.is_f64() => ValueKind::Float,
@@ -135,21 +135,21 @@ impl From<&ConstValue> for ValueKind {
     }
 }
 
-impl From<Value> for ValueKind {
-    fn from(value: Value) -> Self {
-        (&value).into()
+impl From<cynic_parser::ConstValue<'_>> for ValueKind {
+    fn from(value: cynic_parser::ConstValue<'_>) -> Self {
+        cynic_parser::Value::from(value).into()
     }
 }
 
-impl From<&Value> for ValueKind {
-    fn from(value: &Value) -> Self {
+impl From<cynic_parser::Value<'_>> for ValueKind {
+    fn from(value: cynic_parser::Value<'_>) -> Self {
+        use cynic_parser::Value;
         match value {
-            Value::Null => ValueKind::Null,
-            Value::Number(number) if number.is_f64() => ValueKind::Float,
-            Value::Number(_) => ValueKind::Integer,
+            Value::Null(_) => ValueKind::Null,
+            Value::Float(_) => ValueKind::Float,
+            Value::Int(_) => ValueKind::Integer,
             Value::String(_) => ValueKind::String,
             Value::Boolean(_) => ValueKind::Boolean,
-            Value::Binary(_) => ValueKind::String,
             Value::Enum(_) => ValueKind::Enum,
             Value::List(_) => ValueKind::List,
             Value::Object(_) => ValueKind::Object,

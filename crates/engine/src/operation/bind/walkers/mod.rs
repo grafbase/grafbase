@@ -2,7 +2,7 @@ mod argument;
 mod field;
 mod selection_set;
 
-use engine_parser::types::OperationType;
+use grafbase_telemetry::graphql::OperationType;
 use schema::Schema;
 
 pub(crate) use field::*;

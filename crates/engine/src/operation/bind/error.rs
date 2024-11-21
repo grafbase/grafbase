@@ -1,125 +1,96 @@
-use crate::{
-    operation::{Location, LocationError},
-    response::GraphqlError,
-    ErrorCode,
-};
+use cynic_parser::Span;
+
+use crate::{response::GraphqlError, ErrorCode};
+
+use super::{Location, ParsedOperation};
 
 #[derive(thiserror::Error, Debug)]
 pub enum BindError {
     #[error("Unknown type named '{name}'")]
-    UnknownType { name: String, location: Location },
+    UnknownType { name: String, span: Span },
     #[error("The field `{field_name}` does not have an argument named `{argument_name}")]
     UnknownArgument {
         field_name: String,
         argument_name: String,
-        location: Location,
+        span: Span,
     },
     #[error("{container} does not have a field named '{name}'")]
     UnknownField {
         container: String,
         name: String,
-        location: Location,
+        span: Span,
     },
     #[error("Unknown fragment named '{name}'")]
-    UnknownFragment { name: String, location: Location },
+    UnknownFragment { name: String, span: Span },
     #[error("Field '{name}' does not exists on {ty}, it's a union. Only interfaces and objects have fields, consider using a fragment with a type condition.")]
-    UnionHaveNoFields {
-        name: String,
-        ty: String,
-        location: Location,
-    },
+    UnionHaveNoFields { name: String, ty: String, span: Span },
     #[error("Field '{name}' cannot have a selection set, it's a {ty}. Only interfaces, unions and objects can.")]
-    CannotHaveSelectionSet {
-        name: String,
-        ty: String,
-        location: Location,
-    },
+    CannotHaveSelectionSet { name: String, ty: String, span: Span },
     #[error("Type conditions cannot be declared on '{name}', only on unions, interfaces or objects.")]
-    InvalidTypeConditionTargetType { name: String, location: Location },
+    InvalidTypeConditionTargetType { name: String, span: Span },
     #[error("Type condition on '{name}' cannot be used in a '{parent}' selection_set")]
-    DisjointTypeCondition {
-        parent: String,
-        name: String,
-        location: Location,
-    },
+    DisjointTypeCondition { parent: String, name: String, span: Span },
     #[error("Mutations are not defined on this schema.")]
     NoMutationDefined,
     #[error("Subscriptions are not defined on this schema.")]
     NoSubscriptionDefined,
     #[error("Leaf field '{name}' must be a scalar or an enum, but is a {ty}.")]
-    LeafMustBeAScalarOrEnum {
-        name: String,
-        ty: String,
-        location: Location,
-    },
+    LeafMustBeAScalarOrEnum { name: String, ty: String, span: Span },
     #[error(
         "Variable named '${name}' does not have a valid input type. Can only be a scalar, enum or input object. Found: '{ty}'."
     )]
-    InvalidVariableType {
-        name: String,
-        ty: String,
-        location: Location,
-    },
+    InvalidVariableType { name: String, ty: String, span: Span },
     #[error("Too many fields selection set.")]
-    TooManyFields { location: Location },
+    TooManyFields { span: Span },
     #[error("There can only be one variable named '${name}'")]
-    DuplicateVariable { name: String, location: Location },
+    DuplicateVariable { name: String, span: Location },
     #[error("Variable '${name}' is not used{operation}")]
     UnusedVariable {
         name: String,
         operation: ErrorOperationName,
-        location: Location,
+        span: Location,
     },
-    #[error("Query is too big: {0}")]
-    QueryTooBig(#[from] LocationError),
     #[error("{0}")]
     InvalidInputValue(#[from] super::coercion::InputValueError),
     #[error("Missing argument named '{name}' for field '{field}'")]
-    MissingArgument {
-        field: String,
-        name: String,
-        location: Location,
-    },
+    MissingArgument { field: String, name: String, span: Span },
     #[error("Missing argument named '{name}' for directive '{directive}'")]
     MissingDirectiveArgument {
         name: String,
         directive: String,
-        location: Location,
+        span: Span,
     },
     #[error("Query is too high.")]
     QueryTooHigh,
     #[error("GraphQL introspection is not allowed, but the query contained __schema or __type")]
-    IntrospectionIsDisabled { location: Location },
+    IntrospectionIsDisabled { span: Location },
 }
 
-impl From<BindError> for GraphqlError {
-    fn from(err: BindError) -> Self {
-        let locations = match err {
-            BindError::UnknownField { location, .. }
-            | BindError::UnknownArgument { location, .. }
-            | BindError::UnknownType { location, .. }
-            | BindError::UnknownFragment { location, .. }
-            | BindError::UnionHaveNoFields { location, .. }
-            | BindError::InvalidTypeConditionTargetType { location, .. }
-            | BindError::CannotHaveSelectionSet { location, .. }
-            | BindError::DisjointTypeCondition { location, .. }
-            | BindError::InvalidVariableType { location, .. }
-            | BindError::TooManyFields { location }
-            | BindError::LeafMustBeAScalarOrEnum { location, .. }
-            | BindError::DuplicateVariable { location, .. }
-            | BindError::MissingArgument { location, .. }
-            | BindError::MissingDirectiveArgument { location, .. }
-            | BindError::UnusedVariable { location, .. }
-            | BindError::IntrospectionIsDisabled { location, .. } => vec![location],
+impl BindError {
+    pub fn into_graphql_error(self, operation: &ParsedOperation) -> GraphqlError {
+        let locations = match self {
+            BindError::UnknownField { span: location, .. }
+            | BindError::UnknownArgument { span: location, .. }
+            | BindError::UnknownType { span: location, .. }
+            | BindError::UnknownFragment { span: location, .. }
+            | BindError::UnionHaveNoFields { span: location, .. }
+            | BindError::InvalidTypeConditionTargetType { span: location, .. }
+            | BindError::CannotHaveSelectionSet { span: location, .. }
+            | BindError::DisjointTypeCondition { span: location, .. }
+            | BindError::InvalidVariableType { span: location, .. }
+            | BindError::TooManyFields { span: location }
+            | BindError::LeafMustBeAScalarOrEnum { span: location, .. }
+            | BindError::MissingArgument { span: location, .. }
+            | BindError::MissingDirectiveArgument { span: location, .. } => vec![operation.span_to_location(location)],
+            BindError::DuplicateVariable { span: location, .. }
+            | BindError::UnusedVariable { span: location, .. }
+            | BindError::IntrospectionIsDisabled { span: location, .. } => vec![location],
             BindError::InvalidInputValue(ref err) => vec![err.location()],
-            BindError::NoMutationDefined
-            | BindError::NoSubscriptionDefined
-            | BindError::QueryTooBig { .. }
-            | BindError::QueryTooHigh => {
+            BindError::NoMutationDefined | BindError::NoSubscriptionDefined | BindError::QueryTooHigh => {
                 vec![]
             }
         };
-        GraphqlError::new(err.to_string(), ErrorCode::OperationValidationError).with_locations(locations)
+        GraphqlError::new(self.to_string(), ErrorCode::OperationValidationError).with_locations(locations)
     }
 }
 

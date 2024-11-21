@@ -30,28 +30,3 @@ impl fmt::Display for Location {
         write!(f, "{}:{}", self.line(), self.column())
     }
 }
-
-#[derive(Debug, thiserror::Error)]
-pub(crate) enum LocationError {
-    #[error("Too many lines ({0})")]
-    TooManyLines(usize),
-    #[error("Too many columns ({0})")]
-    TooManyColumns(usize),
-}
-
-impl TryFrom<engine_parser::Pos> for Location {
-    type Error = LocationError;
-
-    fn try_from(value: engine_parser::Pos) -> Result<Self, Self::Error> {
-        Ok(Self::new(
-            value
-                .line
-                .try_into()
-                .map_err(|_| LocationError::TooManyLines(value.line))?,
-            value
-                .column
-                .try_into()
-                .map_err(|_| LocationError::TooManyColumns(value.column))?,
-        ))
-    }
-}
