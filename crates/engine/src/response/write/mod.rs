@@ -18,13 +18,13 @@ use self::deserialize::UpdateSeed;
 
 use super::{
     value::ResponseObjectField, ConcreteShapeId, ErrorCode, ErrorCodeCounter, ExecutedResponse, GraphqlError,
-    InputResponseObjectSet, OutputResponseObjectSets, PositionedResponseKey, Response, ResponseData, ResponseEdge,
-    ResponseObject, ResponseObjectRef, ResponseObjectSet, ResponsePath, ResponseValue, UnpackedResponseEdge,
+    InputResponseObjectSet, OutputResponseObjectSets, PositionedResponseKey, PreparedOperation, Response, ResponseData,
+    ResponseEdge, ResponseObject, ResponseObjectRef, ResponseObjectSet, ResponsePath, ResponseValue,
+    UnpackedResponseEdge,
 };
 use crate::{
     execution::{ExecutionContext, ExecutionError},
     operation::ResponseObjectSetDefinitionId,
-    prepare::CachedOperation,
     utils::BufferPool,
     Runtime,
 };
@@ -366,12 +366,13 @@ impl ResponseBuilder {
     pub fn build<OnOperationResponseHookOutput>(
         self,
         schema: Arc<Schema>,
-        operation: Arc<CachedOperation>,
+        operation: &PreparedOperation,
         on_operation_response_output: OnOperationResponseHookOutput,
     ) -> Response<OnOperationResponseHookOutput> {
         let error_code_counter = ErrorCodeCounter::from_errors(&self.errors);
         Response::Executed(ExecutedResponse {
-            operation,
+            operation: operation.cached.clone(),
+            operation_attributes: operation.attributes(),
             data: self.root.map(|(root, _)| ResponseData {
                 schema,
                 root,

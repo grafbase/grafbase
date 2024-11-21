@@ -30,7 +30,7 @@ pub(super) enum PrepareError {
     NormalizationError,
     #[error("Query exceeded complexity limit")]
     ComplexityLimitReached,
-    #[error("Expected one slicing argument on {0}")]
+    #[error("Expected one of slicing argument on {0}")]
     ExpectedOneSlicingArgument(String),
 }
 

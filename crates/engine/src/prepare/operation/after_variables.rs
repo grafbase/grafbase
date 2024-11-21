@@ -20,25 +20,31 @@ impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
             Ok(plan) => plan,
             Err(err) => {
                 return Err(PrepareError::Plan {
-                    attributes: Box::new(Some(cached_operation.attributes.clone())),
+                    attributes: Box::new(Some(cached_operation.operation_attributes_for_error())),
                     err,
                 })
             }
         };
 
+        let mut complexity = None;
         if !self.schema().settings.complexity_control.is_disabled() {
             let operation = cached_operation
                 .operation
                 .as_ref()
                 .expect("cached_operation to be present if complexity control is active");
 
-            complexity_control::control_complexity(self.schema(), operation.walker_with(self.schema()), &variables)?;
+            complexity = Some(complexity_control::calculate_complexity(
+                self.schema(),
+                operation.walker_with(self.schema()),
+                &variables,
+            )?);
         }
 
         Ok(PreparedOperation {
             cached: cached_operation,
             plan,
             variables,
+            complexity,
         })
     }
 }
