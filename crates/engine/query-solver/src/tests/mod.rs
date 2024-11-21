@@ -1,6 +1,7 @@
 mod basic;
 mod cycle;
 mod entities;
+mod interface;
 mod introspection;
 mod mutation;
 mod provides;
@@ -164,7 +165,7 @@ impl crate::Operation for &mut TestOperation {
         self[field_id].definition_id == Some(requirement.definition_id)
     }
 
-    fn create_potential_extra_field(
+    fn create_potential_extra_field_from_requirement(
         &mut self,
         _petitioner_field_id: Self::FieldId,
         requirement: schema::SchemaField<'_>,
@@ -173,6 +174,19 @@ impl crate::Operation for &mut TestOperation {
             name: requirement.definition().name().to_string(),
             definition_id: Some(requirement.definition_id),
             subselection: Vec::new(),
+        });
+        (self.fields.len() - 1).into()
+    }
+    fn create_potential_extra_interface_field_alternative(
+        &mut self,
+        original: Self::FieldId,
+        interface_field_definition: schema::FieldDefinition<'_>,
+    ) -> Self::FieldId {
+        let original = self[original].clone();
+        self.fields.push(Field {
+            name: original.name,
+            definition_id: Some(interface_field_definition.id),
+            subselection: original.subselection,
         });
         (self.fields.len() - 1).into()
     }

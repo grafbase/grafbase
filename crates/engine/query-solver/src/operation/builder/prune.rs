@@ -1,5 +1,5 @@
 use petgraph::{
-    visit::{EdgeRef, IntoNodeReferences},
+    visit::{EdgeRef, IntoNodeReferences, NodeIndexable},
     Direction,
 };
 
@@ -9,7 +9,7 @@ use super::{builder::OperationGraphBuilder, Edge, Node, Operation};
 
 impl<Op: Operation> OperationGraphBuilder<'_, Op> {
     pub(super) fn prune_resolvers_not_leading_any_leafs(&mut self) {
-        let mut visited = fixedbitset::FixedBitSet::with_capacity(self.graph.node_count());
+        let mut visited = fixedbitset::FixedBitSet::with_capacity(self.graph.node_bound());
 
         let mut stack = Vec::new();
         let mut extra_leafs = Vec::new();

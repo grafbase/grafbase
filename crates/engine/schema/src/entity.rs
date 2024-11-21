@@ -1,6 +1,8 @@
 use walker::{Iter, Walk};
 
-use crate::{DefinitionId, EntityDefinition, EntityDefinitionId, TypeSystemDirective};
+use crate::{
+    DefinitionId, EntityDefinition, EntityDefinitionId, InterfaceDefinition, InterfaceDefinitionId, TypeSystemDirective,
+};
 
 impl EntityDefinitionId {
     pub fn maybe_from(definition: DefinitionId) -> Option<EntityDefinitionId> {
@@ -26,6 +28,21 @@ impl<'a> EntityDefinition<'a> {
             EntityDefinition::Interface(item) => (item.schema, &item.as_ref().directive_ids),
         };
         directive_ids.walk(schema)
+    }
+
+    pub fn interface_ids(&self) -> &'a [InterfaceDefinitionId] {
+        match self {
+            EntityDefinition::Object(item) => &item.as_ref().interface_ids,
+            EntityDefinition::Interface(item) => &item.as_ref().interface_ids,
+        }
+    }
+
+    pub fn interfaces(&self) -> impl Iter<Item = InterfaceDefinition<'a>> + 'a {
+        let (schema, interface_ids) = match self {
+            EntityDefinition::Object(item) => (item.schema, &item.as_ref().interface_ids),
+            EntityDefinition::Interface(item) => (item.schema, &item.as_ref().interface_ids),
+        };
+        interface_ids.walk(schema)
     }
 }
 

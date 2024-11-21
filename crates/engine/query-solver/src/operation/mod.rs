@@ -1,7 +1,6 @@
 mod builder;
 mod edge;
 mod node;
-mod prune;
 
 pub(crate) use edge::*;
 pub(crate) use node::*;

@@ -38,6 +38,11 @@ impl Solver<'_> {
             .map(|edge| edge.target())
             .collect::<Vec<_>>();
 
+        // We rely on the fact that fields in the SolutionGraph are created in depth order, so a
+        // node will always have a higher id than its parents. This means that the node with the
+        // minimum id in the dependencies is necessarily a scalar requirement or a parent
+        // field of other field requirements. From this parent we just do a breadth-first search
+        // to find other dependencies and build so iteratively a FieldSet structure.
         let mut required_fields = Vec::new();
         while let Some(i) = dependencies.iter().position_min() {
             let start = dependencies.swap_remove(i);
