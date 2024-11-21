@@ -46,10 +46,11 @@ opentelemetry-stdout = { workspace = true, features = [
 ] }
 opentelemetry-otlp = { workspace = true, features = [
     "grpc-tonic",
-    "tls",
-    "tonic",
     "http-proto",
     "logs",
+    "reqwest-client",
+    "tls",
+    "tonic",
 ], optional = true }
 ascii = { version = "1.1.0", features = ["serde"] }
 cfg-if = "1.0.0"
