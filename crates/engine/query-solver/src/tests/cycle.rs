@@ -34,12 +34,36 @@ type PartitionsCycle
   third: String @join__field(graph: A, requires: "second")
 }
 
+type Post
+  @join__type(graph: C, key: "id")
+  @join__type(graph: A, key: "id")
+{
+  id: ID!
+  author: Author @join__field(graph: A, requires: "comments(limit: 3) { authorId }")
+  comments(limit: Int): [Comment] @join__field(graph: A)
+}
+
+type Author
+    @join__type(graph: A)
+{
+    id: ID!
+    name: String
+}
+
+type Comment
+    @join__type(graph: C, key: "id")
+    @join__type(graph: A, key: "id")
+{
+    id: ID!
+    authorId: ID @join__field(graph: C)
+}
 
 type Query
   @join__type(graph: C)
 {
   requirementsCycle: RequirementsCycle
-partitionsCycle: PartitionsCycle
+  partitionsCycle: PartitionsCycle
+  feed: [Post]
 }
 "###;
 
@@ -81,6 +105,25 @@ fn query_partitions_cycle() {
             third
             first
             second
+          }
+        }
+        "#
+    );
+}
+
+#[test]
+fn query_partitions_nested_cycle() {
+    // 'first' and 'third' cannot be in the same query partitions as it would lead to a cyclic
+    // dependency between query partitions.
+    assert_solving_snapshots!(
+        "query_partitions_nested_cycle",
+        SCHEMA,
+        r#"
+        query {
+          feed {
+            author {
+              id
+            }
           }
         }
         "#

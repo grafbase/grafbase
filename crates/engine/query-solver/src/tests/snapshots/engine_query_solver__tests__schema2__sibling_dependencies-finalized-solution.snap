@@ -1,6 +1,6 @@
 ---
-source: engine/crates/engine/query-solver/src/tests/schema2.rs
-expression: "digraph {\n    0 [ label = \"root\" ]\n    1 [ label = \"Root#accounts\", color=royalblue,shape=parallelogram ]\n    2 [ label = \"me\" ]\n    3 [ label = \"cart\" ]\n    4 [ label = \"products\" ]\n    5 [ label = \"FedEntity#reviews\", color=royalblue,shape=parallelogram ]\n    6 [ label = \"reviews\" ]\n    7 [ label = \"body\" ]\n    8 [ label = \"author\" ]\n    9 [ label = \"FedEntity#accounts\", color=royalblue,shape=parallelogram ]\n    10 [ label = \"username\" ]\n    11 [ label = \"id\" ]\n    12 [ label = \"FedEntity#products\", color=royalblue,shape=parallelogram ]\n    13 [ label = \"price\" ]\n    14 [ label = \"*upc*\" ]\n    15 [ label = \"*name*\" ]\n    16 [ label = \"username\" ]\n    17 [ label = \"id\" ]\n    0 -> 1 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    1 -> 2 [ label = \"\" ]\n    2 -> 3 [ label = \"\" ]\n    3 -> 4 [ label = \"\" ]\n    4 -> 5 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    9 -> 11 [ label = \"\", color=orangered,arrowhead=inv ]\n    6 -> 7 [ label = \"\" ]\n    6 -> 8 [ label = \"\" ]\n    8 -> 9 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    9 -> 10 [ label = \"\" ]\n    8 -> 11 [ label = \"\" ]\n    4 -> 12 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    12 -> 15 [ label = \"\", color=orangered,arrowhead=inv ]\n    5 -> 14 [ label = \"\", color=orangered,arrowhead=inv ]\n    4 -> 15 [ label = \"\" ]\n    2 -> 16 [ label = \"\" ]\n    2 -> 17 [ label = \"\" ]\n    12 -> 13 [ label = \"\" ]\n    5 -> 6 [ label = \"\" ]\n    12 -> 14 [ label = \"\" ]\n}\n"
+source: crates/engine/query-solver/src/tests/schema2.rs
+expression: "digraph {\n    0 [ label = \"root\" ]\n    1 [ label = \"Root#accounts\", color=royalblue,shape=parallelogram ]\n    2 [ label = \"me\" ]\n    3 [ label = \"cart\" ]\n    4 [ label = \"products\" ]\n    5 [ label = \"FedEntity#reviews\", color=royalblue,shape=parallelogram ]\n    6 [ label = \"reviews\" ]\n    7 [ label = \"body\" ]\n    8 [ label = \"author\" ]\n    9 [ label = \"FedEntity#accounts\", color=royalblue,shape=parallelogram ]\n    10 [ label = \"username\" ]\n    11 [ label = \"id\" ]\n    12 [ label = \"FedEntity#products\", color=royalblue,shape=parallelogram ]\n    13 [ label = \"price\" ]\n    14 [ label = \"*upc*\" ]\n    15 [ label = \"*name*\" ]\n    16 [ label = \"username\" ]\n    17 [ label = \"id\" ]\n    0 -> 1 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    12 -> 15 [ label = \"\", color=orangered,arrowhead=inv ]\n    2 -> 3 [ label = \"\" ]\n    3 -> 4 [ label = \"\" ]\n    4 -> 5 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    9 -> 11 [ label = \"\", color=orangered,arrowhead=inv ]\n    6 -> 7 [ label = \"\" ]\n    6 -> 8 [ label = \"\" ]\n    8 -> 9 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    12 -> 14 [ label = \"\" ]\n    8 -> 11 [ label = \"\" ]\n    4 -> 12 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    1 -> 2 [ label = \"\" ]\n    5 -> 14 [ label = \"\", color=orangered,arrowhead=inv ]\n    4 -> 15 [ label = \"\" ]\n    2 -> 16 [ label = \"\" ]\n    2 -> 17 [ label = \"\" ]\n    12 -> 13 [ label = \"\" ]\n    5 -> 6 [ label = \"\" ]\n    9 -> 10 [ label = \"\" ]\n}\n"
 ---
 digraph {
     0 [ label = "root" ]
@@ -22,7 +22,7 @@ digraph {
     16 [ label = "username" ]
     17 [ label = "id" ]
     0 -> 1 [ label = "QueryPartition" ]
-    1 -> 2 [ label = "Field" ]
+    12 -> 15 [ label = "RequiredBySubgraph" ]
     2 -> 3 [ label = "Field" ]
     3 -> 4 [ label = "Field" ]
     4 -> 5 [ label = "QueryPartition" ]
@@ -30,15 +30,15 @@ digraph {
     6 -> 7 [ label = "Field" ]
     6 -> 8 [ label = "Field" ]
     8 -> 9 [ label = "QueryPartition" ]
-    9 -> 10 [ label = "Field" ]
+    12 -> 14 [ label = "Field" ]
     8 -> 11 [ label = "Field" ]
     4 -> 12 [ label = "QueryPartition" ]
-    12 -> 15 [ label = "RequiredBySubgraph" ]
+    1 -> 2 [ label = "Field" ]
     5 -> 14 [ label = "RequiredBySubgraph" ]
     4 -> 15 [ label = "Field" ]
     2 -> 16 [ label = "Field" ]
     2 -> 17 [ label = "Field" ]
     12 -> 13 [ label = "Field" ]
     5 -> 6 [ label = "Field" ]
-    12 -> 14 [ label = "Field" ]
+    9 -> 10 [ label = "Field" ]
 }
