@@ -128,8 +128,7 @@ jobs:
         shell: bash
         run: |
           cd gateway
-          cargo about generate -c ../../about.toml -o "../../licenses.html" ../../about.hbs
-          find ../../ -maxdepth 1 -type d -exec cp ../../licenses.html {} \;
+          cargo about generate -c about.toml -o "licenses.html" about.hbs
 
       - name: Github gateway Release
         id: gh-release-gateway
