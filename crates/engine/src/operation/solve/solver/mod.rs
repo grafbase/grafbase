@@ -15,7 +15,7 @@ use crate::{
         BoundField, BoundFieldArgument, BoundFieldArgumentId, BoundFieldId, BoundOperation, BoundQueryModifierId,
         BoundVariableDefinition, BoundVariableDefinitionId, DataFieldRefId, SolveError,
     },
-    response::{ConcreteObjectShapeId, PositionedResponseKey, Shapes},
+    response::{ConcreteShapeId, PositionedResponseKey, Shapes},
     utils::BufferPool,
 };
 
@@ -161,7 +161,7 @@ impl<'a> Solver<'a> {
             input_id,
             // Populated later
             required_field_ids: IdRange::empty(),
-            shape_id: ConcreteObjectShapeId::from(0usize),
+            shape_id: ConcreteShapeId::from(0usize),
         });
         self.query_partition_to_node.push((query_partition_id, source_ix));
     }

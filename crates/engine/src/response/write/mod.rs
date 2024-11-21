@@ -17,7 +17,7 @@ use schema::{ObjectDefinitionId, Schema};
 use self::deserialize::UpdateSeed;
 
 use super::{
-    value::ResponseObjectField, ConcreteObjectShapeId, ErrorCode, ErrorCodeCounter, ExecutedResponse, GraphqlError,
+    value::ResponseObjectField, ConcreteShapeId, ErrorCode, ErrorCodeCounter, ExecutedResponse, GraphqlError,
     InputResponseObjectSet, OutputResponseObjectSets, PositionedResponseKey, Response, ResponseData, ResponseEdge,
     ResponseObject, ResponseObjectRef, ResponseObjectSet, ResponsePath, ResponseValue, UnpackedResponseEdge,
 };
@@ -88,7 +88,7 @@ impl ResponseBuilder {
 
     pub fn new_subgraph_response(
         &mut self,
-        shape_id: ConcreteObjectShapeId,
+        shape_id: ConcreteShapeId,
         root_response_object_set: Arc<InputResponseObjectSet>,
     ) -> SubgraphResponse {
         let id = ResponseDataPartId::from(self.parts.len());
@@ -487,7 +487,7 @@ enum ResponseValueId {
 
 pub(crate) struct SubgraphResponse {
     data: ResponseDataPart,
-    shape_id: ConcreteObjectShapeId,
+    shape_id: ConcreteShapeId,
     root_response_object_set: Arc<InputResponseObjectSet>,
     errors: Vec<GraphqlError>,
     updates: Vec<UpdateSlot>,
@@ -498,7 +498,7 @@ pub(crate) struct SubgraphResponse {
 impl SubgraphResponse {
     fn new(
         data: ResponseDataPart,
-        shape_id: ConcreteObjectShapeId,
+        shape_id: ConcreteShapeId,
         root_response_object_set: Arc<InputResponseObjectSet>,
     ) -> Self {
         Self {

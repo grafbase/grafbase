@@ -4,7 +4,7 @@ use walker::Walk;
 use crate::{
     operation::{QueryPartition, ResponseObjectSetDefinitionId},
     resolver::Resolver,
-    response::{ConcreteObjectShape, ConcreteObjectShapeId},
+    response::{ConcreteShape, ConcreteShapeId},
 };
 
 use super::{Plan, PlanSelectionSet};
@@ -32,10 +32,10 @@ impl<'a> Plan<'a> {
             requires_typename: false,
         }
     }
-    pub(crate) fn shape_id(&self) -> ConcreteObjectShapeId {
+    pub(crate) fn shape_id(&self) -> ConcreteShapeId {
         self.query_partition().shape_id
     }
-    pub(crate) fn shape(&self) -> ConcreteObjectShape<'a> {
+    pub(crate) fn shape(&self) -> ConcreteShape<'a> {
         self.query_partition().shape_id.walk(self.ctx)
     }
 }

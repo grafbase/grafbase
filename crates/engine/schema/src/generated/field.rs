@@ -24,7 +24,7 @@ use walker::{Iter, Walk};
 /// type FieldDefinition @meta(module: "field") @indexed(id_size: "u32", max_id: "MAX_ID") {
 ///   name: String!
 ///   description: String
-///   parent_entity: EntityDefinition! @meta(debug: false)
+///   parent_entity: EntityDefinition!
 ///   ty: Type!
 ///   resolvers: [ResolverDefinition!]!
 ///   """

@@ -6,18 +6,18 @@ use walker::Walk;
 
 use crate::response::{
     write::deserialize::{key::Key, SeedContext},
-    ConcreteObjectShapeId, PolymorphicObjectShapeId, ResponseObject, ResponseValue,
+    ConcreteShapeId, PolymorphicShapeId, ResponseObject, ResponseValue,
 };
 
-use super::concrete::ConcreteObjectSeed;
+use super::concrete::ConcreteShapeSeed;
 
-pub(crate) struct PolymorphicObjectSeed<'ctx, 'seed> {
+pub(crate) struct PolymorphicShapeSeed<'ctx, 'seed> {
     ctx: &'seed SeedContext<'ctx>,
-    possibilities: &'ctx [(ObjectDefinitionId, ConcreteObjectShapeId)],
+    possibilities: &'ctx [(ObjectDefinitionId, ConcreteShapeId)],
 }
 
-impl<'ctx, 'seed> PolymorphicObjectSeed<'ctx, 'seed> {
-    pub fn new(ctx: &'seed SeedContext<'ctx>, shape_id: PolymorphicObjectShapeId) -> Self {
+impl<'ctx, 'seed> PolymorphicShapeSeed<'ctx, 'seed> {
+    pub fn new(ctx: &'seed SeedContext<'ctx>, shape_id: PolymorphicShapeId) -> Self {
         let polymorphic = shape_id.walk(ctx);
         Self {
             ctx,
@@ -26,7 +26,7 @@ impl<'ctx, 'seed> PolymorphicObjectSeed<'ctx, 'seed> {
     }
 }
 
-impl<'de, 'ctx, 'parent> DeserializeSeed<'de> for PolymorphicObjectSeed<'ctx, 'parent> {
+impl<'de, 'ctx, 'parent> DeserializeSeed<'de> for PolymorphicShapeSeed<'ctx, 'parent> {
     type Value = ResponseValue;
 
     fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
@@ -37,7 +37,7 @@ impl<'de, 'ctx, 'parent> DeserializeSeed<'de> for PolymorphicObjectSeed<'ctx, 'p
     }
 }
 
-impl<'de, 'ctx, 'parent> Visitor<'de> for PolymorphicObjectSeed<'ctx, 'parent> {
+impl<'de, 'ctx, 'parent> Visitor<'de> for PolymorphicShapeSeed<'ctx, 'parent> {
     type Value = ResponseValue;
 
     fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -60,7 +60,7 @@ impl<'de, 'ctx, 'parent> Visitor<'de> for PolymorphicObjectSeed<'ctx, 'parent> {
                     .binary_search_by(|(id, _)| schema[schema[*id].name_id].as_str().cmp(typename))
                 {
                     let (object_id, shape_id) = self.possibilities[i];
-                    return ConcreteObjectSeed::new_with_object_id(self.ctx, shape_id, object_id).visit_map(
+                    return ConcreteShapeSeed::new_with_object_id(self.ctx, shape_id, object_id).visit_map(
                         ChainedMapAcces {
                             before: content,
                             next_value: None,
