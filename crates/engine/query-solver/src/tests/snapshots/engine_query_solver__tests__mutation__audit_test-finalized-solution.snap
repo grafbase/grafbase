@@ -1,0 +1,26 @@
+---
+source: crates/engine/query-solver/src/tests/mutation.rs
+expression: "digraph {\n    0 [ label = \"root\" ]\n    1 [ label = \"Root#b\", color=royalblue,shape=parallelogram ]\n    2 [ label = \"delete\" ]\n    3 [ label = \"Root#c\", color=royalblue,shape=parallelogram ]\n    4 [ label = \"add\" ]\n    5 [ label = \"add\" ]\n    6 [ label = \"Root#a\", color=royalblue,shape=parallelogram ]\n    7 [ label = \"multiply\" ]\n    8 [ label = \"Root#c\", color=royalblue,shape=parallelogram ]\n    0 -> 1 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    1 -> 2 [ label = \"\" ]\n    0 -> 3 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    0 -> 8 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    3 -> 5 [ label = \"\" ]\n    0 -> 6 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    6 -> 7 [ label = \"\" ]\n    8 -> 4 [ label = \"\" ]\n    6 -> 3 [ label = \"\", color=red,arrowhead=inv,style=dashed ]\n    8 -> 6 [ label = \"\", color=red,arrowhead=inv,style=dashed ]\n    1 -> 8 [ label = \"\", color=red,arrowhead=inv,style=dashed ]\n}\n"
+---
+digraph {
+    0 [ label = "root" ]
+    1 [ label = "Root#b" ]
+    2 [ label = "delete" ]
+    3 [ label = "Root#c" ]
+    4 [ label = "add" ]
+    5 [ label = "add" ]
+    6 [ label = "Root#a" ]
+    7 [ label = "multiply" ]
+    8 [ label = "Root#c" ]
+    0 -> 1 [ label = "QueryPartition" ]
+    1 -> 2 [ label = "Field" ]
+    0 -> 3 [ label = "QueryPartition" ]
+    0 -> 8 [ label = "QueryPartition" ]
+    3 -> 5 [ label = "Field" ]
+    0 -> 6 [ label = "QueryPartition" ]
+    6 -> 7 [ label = "Field" ]
+    8 -> 4 [ label = "Field" ]
+    6 -> 3 [ label = "MutationExecutedAfter" ]
+    8 -> 6 [ label = "MutationExecutedAfter" ]
+    1 -> 8 [ label = "MutationExecutedAfter" ]
+}
