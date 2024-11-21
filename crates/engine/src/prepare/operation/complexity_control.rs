@@ -8,7 +8,7 @@ use crate::{
 
 use super::Variables;
 
-pub fn control_complexity(
+pub fn calculate_complexity(
     schema: &Schema,
     operation: OperationWalker<'_>,
     variables: &Variables,
@@ -32,12 +32,6 @@ pub fn control_complexity(
     let cost = base_cost + selection_set_complexity(&context, selection_set, None)?;
 
     tracing::debug!("Complexity was {cost}");
-
-    if let Some(limit) = schema.settings.complexity_control.limit() {
-        if cost > limit && schema.settings.complexity_control.is_enforce() {
-            return Err(PrepareError::ComplexityLimitReached);
-        }
-    }
 
     Ok(cost)
 }

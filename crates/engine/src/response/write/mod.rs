@@ -372,7 +372,7 @@ impl ResponseBuilder {
         let error_code_counter = ErrorCodeCounter::from_errors(&self.errors);
         Response::Executed(ExecutedResponse {
             operation: operation.cached.clone(),
-            attributes: operation.attributes(),
+            operation_attributes: operation.attributes(),
             data: self.root.map(|(root, _)| ResponseData {
                 schema,
                 root,

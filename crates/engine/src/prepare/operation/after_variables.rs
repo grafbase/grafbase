@@ -33,7 +33,7 @@ impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
                 .as_ref()
                 .expect("cached_operation to be present if complexity control is active");
 
-            complexity = Some(complexity_control::control_complexity(
+            complexity = Some(complexity_control::calculate_complexity(
                 self.schema(),
                 operation.walker_with(self.schema()),
                 &variables,
