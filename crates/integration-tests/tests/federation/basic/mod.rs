@@ -15,6 +15,7 @@ mod operations;
 mod scalars;
 mod skip_include;
 mod streaming;
+mod typename;
 mod variables;
 
 use engine::Engine;

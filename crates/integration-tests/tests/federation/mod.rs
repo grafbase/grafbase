@@ -1,7 +1,6 @@
 mod apq;
 mod auth;
 mod basic;
-mod complexity_control;
 mod config;
 mod entity_caching;
 mod extensions;
