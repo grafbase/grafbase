@@ -20,12 +20,10 @@ let
     /flake.lock
     /renovate.json
     /scripts
-    /packages/**/src
 
-    !/engine/crates/validation/README.md
-    !/engine/crates/composition/README.md
-    !/engine/crates/graphql-schema-diff/README.md
-    !/packages/grafbase-sdk/package.json
+    !/crates/graphql-schema-validation/README.md
+    !/crates/graphql-composition/README.md
+    !/crates/graphql-schema-diff/README.md
   '';
 
   src = pkgs.nix-gitignore.gitignoreSource [ extraIgnores ] (lib.cleanSourceWith {
@@ -35,7 +33,7 @@ let
 
   version = pkgs.runCommand "getVersion" { } ''
     ${pkgs.dasel}/bin/dasel \
-      --file ${../../crates/gateway-binary/Cargo.toml} \
+      --file ${../Cargo.toml} \
       --selector package.version\
       --write - | tr -d "\n" > $out
   '';
@@ -47,7 +45,6 @@ in
     version = builtins.readFile version;
     stdenv = pkgs.clangStdenv;
 
-    cargoBuildFlags = "-p grafbase-gateway";
     cargoExtraArgs = "-p grafbase-gateway";
 
     RUSTFLAGS = builtins.concatStringsSep " " [
