@@ -1,9 +1,8 @@
-use std::borrow::Cow;
 use std::collections::BTreeMap;
 
 use engine_parser::types::Directive;
 use engine_parser::Positioned;
-use schema::{CompositeTypeId, DefinitionId, FieldDefinitionId, ObjectDefinitionId, TypeRecord};
+use schema::{CompositeTypeId, DefinitionId, FieldDefinitionId, TypeRecord};
 use walker::Walk;
 
 use super::{BindError, BindResult, Binder};
@@ -108,20 +107,37 @@ impl<'schema, 'p, 'binder> SelectionSetBinder<'schema, 'p, 'binder> {
             DataField { query_position, fields },
         ) in std::mem::take(&mut self.data_fields)
         {
+            let definition = definition_id.walk(self.schema);
+
+            // FIXME: Should be done at later stage, during the planning....
+            // During binding we only validate that fragment have a non-empty intersection, but
+            // they might contain type conditions on objects that are not present in the parent
+            // field output. As we flatten everything for the planning we lose those intermediate
+            // fragment conditions and end up generating impossible subgraph queries for objects
+            // that simply can't be part of the output.
+            // Today the simplest is to do it here, but will rework it to move this to the planning
+            // stage.
+            if ty != definition.parent_entity_id.into()
+                && !ty
+                    .walk(self.schema)
+                    .has_non_empty_intersection_with(definition.parent_entity().into())
+            {
+                continue;
+            }
+
             let field: &'p Positioned<engine_parser::types::Field> = fields
                 .iter()
                 .min_by_key(|field| field.pos.line)
                 .expect("At least one occurrence");
-            let selection_set_id =
-                CompositeTypeId::maybe_from(self.schema.walk(definition_id).ty().as_ref().definition_id)
-                    .map(|ty| {
-                        let merged_selection_sets = fields
-                            .into_iter()
-                            .map(|field| &field.node.selection_set)
-                            .collect::<Vec<_>>();
-                        self.binder.bind_merged_selection_sets(ty, &merged_selection_sets)
-                    })
-                    .transpose()?;
+            let selection_set_id = CompositeTypeId::maybe_from(definition.ty().as_ref().definition_id)
+                .map(|ty| {
+                    let merged_selection_sets = fields
+                        .into_iter()
+                        .map(|field| &field.node.selection_set)
+                        .collect::<Vec<_>>();
+                    self.binder.bind_merged_selection_sets(ty, &merged_selection_sets)
+                })
+                .transpose()?;
 
             field_ids.push(self.bind_field(
                 query_position,
@@ -149,6 +165,13 @@ impl<'schema, 'p, 'binder> SelectionSetBinder<'schema, 'p, 'binder> {
                 continue;
             }
             for (type_condition, TypenameField { query_position, field }) in typename_fields {
+                if ty != type_condition
+                    && !ty
+                        .walk(self.schema)
+                        .has_non_empty_intersection_with(type_condition.walk(self.schema))
+                {
+                    continue;
+                }
                 field_ids.push(self.bind_typename_field(type_condition, query_position, response_key, field)?)
             }
         }
@@ -358,17 +381,11 @@ impl<'schema, 'p, 'binder> SelectionSetBinder<'schema, 'p, 'binder> {
             }
         };
 
-        let possible_types = self.get_possible_types(parent);
-        let fragment_possible_types = self.get_possible_types(fragment_ty);
-        let mut i = 0;
-        let mut j = 0;
-        while let (Some(left), Some(right)) = (possible_types.get(i), fragment_possible_types.get(j)) {
-            match left.cmp(right) {
-                std::cmp::Ordering::Less => i += 1,
-                // At least one common object
-                std::cmp::Ordering::Equal => return Ok(fragment_ty),
-                std::cmp::Ordering::Greater => j += 1,
-            }
+        if parent
+            .walk(self.schema)
+            .has_non_empty_intersection_with(fragment_ty.walk(self.schema))
+        {
+            return Ok(fragment_ty);
         }
 
         Err(BindError::DisjointTypeCondition {
@@ -376,14 +393,6 @@ impl<'schema, 'p, 'binder> SelectionSetBinder<'schema, 'p, 'binder> {
             name: name.to_string(),
             location,
         })
-    }
-
-    fn get_possible_types(&self, ty: CompositeTypeId) -> Cow<'schema, [ObjectDefinitionId]> {
-        match ty {
-            CompositeTypeId::Object(id) => Cow::Owned(vec![id]),
-            CompositeTypeId::Interface(id) => Cow::Borrowed(&self.schema[id].possible_type_ids),
-            CompositeTypeId::Union(id) => Cow::Borrowed(&self.schema[id].possible_type_ids),
-        }
     }
 
     fn next_query_position(&mut self, location: Location) -> BindResult<QueryPosition> {

@@ -11,6 +11,7 @@ use super::ConcreteShapeId;
 pub(crate) struct PolymorphicShapeRecord {
     // Sorted by Object typename
     pub possibilities: Vec<(ObjectDefinitionId, ConcreteShapeId)>,
+    pub fallback: Option<ConcreteShapeId>,
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]

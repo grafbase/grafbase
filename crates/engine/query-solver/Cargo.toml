@@ -16,7 +16,7 @@ grafbase-workspace-hack.workspace = true
 id-newtypes = { path = "../id-newtypes", package = "engine-id-newtypes" }
 id-derives = { path = "../id-derives", package = "engine-id-derives" }
 walker = { path = "../walker", package = "engine-walker" }
-fixedbitset = "0.5"
+fixedbitset.workspace = true
 bitflags.workspace = true
 petgraph.workspace = true
 itertools.workspace = true

@@ -77,4 +77,28 @@ impl<'a> CompositeType<'a> {
             CompositeType::Object(object) => object.id == object_id && object.is_resolvable_in(&subgraph_id),
         }
     }
+
+    pub fn possible_types(&self) -> &[ObjectDefinitionId] {
+        match self {
+            CompositeType::Object(object) => std::array::from_ref(&object.id),
+            CompositeType::Interface(interface) => &interface.possible_type_ids,
+            CompositeType::Union(union) => &union.possible_type_ids,
+        }
+    }
+
+    pub fn has_non_empty_intersection_with(&self, other: CompositeType<'a>) -> bool {
+        let left = self.possible_types();
+        let right = other.possible_types();
+        let mut l = 0;
+        let mut r = 0;
+        while let (Some(left_id), Some(right_id)) = (left.get(l), right.get(r)) {
+            match left_id.cmp(right_id) {
+                std::cmp::Ordering::Less => l += 1,
+                // At least one common object
+                std::cmp::Ordering::Equal => return true,
+                std::cmp::Ordering::Greater => r += 1,
+            }
+        }
+        false
+    }
 }
