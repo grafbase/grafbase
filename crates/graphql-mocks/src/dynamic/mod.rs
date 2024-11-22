@@ -1,7 +1,8 @@
 mod builder;
 mod resolvers;
 
-pub use builder::DynamicSchemaBuilder;
+pub use self::builder::DynamicSchemaBuilder;
+pub use async_graphql::dynamic::ResolverContext;
 
 use crate::MockGraphQlServer;
 
