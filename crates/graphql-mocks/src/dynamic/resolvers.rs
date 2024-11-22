@@ -1,4 +1,4 @@
-use async_graphql::dynamic::ResolverContext;
+use async_graphql::{dynamic::ResolverContext, ServerError};
 
 pub trait Resolver: Send + Sync {
     fn resolve(&mut self, context: ResolverContext<'_>) -> Option<serde_json::Value>;
@@ -16,6 +16,13 @@ where
 impl Resolver for serde_json::Value {
     fn resolve(&mut self, _context: ResolverContext<'_>) -> Option<serde_json::Value> {
         Some(self.clone())
+    }
+}
+
+impl Resolver for ServerError {
+    fn resolve(&mut self, context: ResolverContext<'_>) -> Option<serde_json::Value> {
+        context.add_error(self.clone());
+        None
     }
 }
 

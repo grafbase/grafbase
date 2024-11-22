@@ -34,9 +34,8 @@ mod stateful;
 mod tea_shop;
 
 pub use {
-    almost_empty::AlmostEmptySchema, dynamic::DynamicSchema, echo::EchoSchema, error_schema::ErrorSchema,
-    fake_github::FakeGithubSchema, federation::*, secure::SecureSchema, slow::SlowSchema, stateful::Stateful,
-    tea_shop::TeaShop,
+    almost_empty::AlmostEmptySchema, echo::EchoSchema, error_schema::ErrorSchema, fake_github::FakeGithubSchema,
+    federation::*, secure::SecureSchema, slow::SlowSchema, stateful::Stateful, tea_shop::TeaShop,
 };
 
 #[derive(Debug)]

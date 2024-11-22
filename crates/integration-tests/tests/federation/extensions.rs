@@ -1,5 +1,6 @@
 use engine::Engine;
 use graphql_mocks::{
+    dynamic::{DynamicSchema, ServerError},
     FakeGithubSchema, FederatedAccountsSchema, FederatedInventorySchema, FederatedProductsSchema,
     FederatedReviewsSchema, FederatedShippingSchema,
 };
@@ -117,6 +118,58 @@ fn dot_not_include_trace_id() {
                     "subgraphName": "github",
                     "request": {
                       "query": "query { serverVersion }"
+                    }
+                  }
+                ],
+                "edges": []
+              }
+            }
+          }
+        }
+        "#
+        );
+    })
+}
+
+#[test]
+fn grafbase_extension_on_subgraph_error() {
+    runtime().block_on(async move {
+        let engine = Engine::builder()
+            .with_subgraph(
+                DynamicSchema::builder(r#"type Query { hi: String }"#)
+                    .with_resolver("Query", "hi", ServerError::new("Failed", None))
+                    .into_subgraph("test"),
+            )
+            .build()
+            .await;
+
+        let response = engine.post("query { hi }").header("x-grafbase-telemetry", "yes").await;
+
+        insta::assert_json_snapshot!(
+            response,
+            @r#"
+        {
+          "data": {
+            "hi": null
+          },
+          "errors": [
+            {
+              "message": "Failed",
+              "extensions": {
+                "code": "SUBGRAPH_ERROR"
+              }
+            }
+          ],
+          "extensions": {
+            "grafbase": {
+              "traceId": "0",
+              "queryPlan": {
+                "nodes": [
+                  {
+                    "__typename": "GraphqlResolver",
+                    "subgraphName": "test",
+                    "request": {
+                      "query": "query { hi }"
                     }
                   }
                 ],
