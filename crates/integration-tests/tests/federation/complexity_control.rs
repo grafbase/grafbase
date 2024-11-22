@@ -180,7 +180,7 @@ fn test_require_one_slicing_argument() {
         {
           "errors": [
             {
-              "message": "Expected one slicing argument on Query.slicingListField",
+              "message": "Expected exactly one slicing argument on Query.slicingListField",
               "extensions": {
                 "code": "OPERATION_VALIDATION_ERROR"
               }
@@ -196,7 +196,7 @@ fn test_require_one_slicing_argument() {
         {
           "errors": [
             {
-              "message": "Expected one slicing argument on Query.slicingListField",
+              "message": "Expected exactly one slicing argument on Query.slicingListField",
               "extensions": {
                 "code": "OPERATION_VALIDATION_ERROR"
               }
