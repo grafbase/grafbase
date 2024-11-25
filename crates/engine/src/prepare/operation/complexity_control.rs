@@ -1,5 +1,6 @@
 use engine_parser::types::OperationType;
-use schema::Schema;
+use schema::{InputObjectDefinition, Schema};
+use serde::Deserialize;
 
 use crate::{
     operation::{FieldWalker, OperationWalker, SelectionSetWalker},
@@ -72,10 +73,7 @@ fn field_complexity(
 ) -> PrepareResult<usize> {
     let type_cost = field
         .definition()
-        .map(|def| {
-            def.cost()
-                .unwrap_or_else(|| cost_for_type(def.ty().definition()))
-        })
+        .map(|def| def.cost().unwrap_or_else(|| cost_for_type(def.ty().definition())))
         .unwrap_or(1) as usize;
 
     let list_size_directive = field.definition().and_then(|def| def.list_size());
@@ -102,23 +100,58 @@ fn field_complexity(
 
 fn cost_for_argument(
     argument: OperationWalker<'_, crate::operation::BoundFieldArgumentId>,
-    _variables: &Variables,
+    variables: &Variables,
 ) -> usize {
     let def = argument.definition();
     let argument_type = def.ty().definition();
-    let argument_cost = def.cost().unwrap_or_else(|| cost_for_type(argument_type));
+    let argument_cost = def.cost().unwrap_or_else(|| cost_for_type(argument_type)) as usize;
 
-    // TODO: Figure out the costs for input_object fields.
-    // if let schema::Definition::InputObject(input_object) = argument_type {
-    // For the sake of my sanity i'm going to do this next week
-    // let Some(fields) = argument.value(variables).fields();
-    // for (name, value) in fields {
-    //     let field_definition = input_object.field(name);
-    //     argument_cost += todo!();
-    // }
-    // }
+    let Ok(value) = serde_json::Value::deserialize(argument.value(variables)) else {
+        tracing::warn!("Could not deserialize value when calculating cost");
+        return argument_cost;
+    };
 
-    argument_cost as usize
+    match argument_type {
+        schema::Definition::InputObject(obj) => cost_for_object_value(&value, obj, argument_cost),
+        _ => cost_for_input_scalar(&value, argument_cost),
+    }
+}
+
+fn cost_for_object_value(
+    value: &serde_json::Value,
+    object: InputObjectDefinition<'_>,
+    base_object_cost: usize,
+) -> usize {
+    match value {
+        serde_json::Value::Array(values) => values
+            .iter()
+            .map(|value| cost_for_object_value(value, object, base_object_cost))
+            .sum(),
+        serde_json::Value::Object(map) => {
+            let mut overall_cost = base_object_cost;
+            for (name, value) in map {
+                let Some(field) = object.input_fields().find(|field| field.name() == name) else {
+                    continue;
+                };
+                let field_cost = field.cost().unwrap_or(cost_for_type(field.ty().definition())) as usize;
+
+                if let schema::Definition::InputObject(object) = field.ty().definition() {
+                    overall_cost += cost_for_object_value(value, object, field_cost);
+                } else {
+                    overall_cost += cost_for_input_scalar(value, field_cost);
+                }
+            }
+            overall_cost
+        }
+        _ => 0,
+    }
+}
+
+fn cost_for_input_scalar(value: &serde_json::Value, item_cost: usize) -> usize {
+    match value {
+        serde_json::Value::Array(values) => values.iter().map(|value| cost_for_input_scalar(value, item_cost)).sum(),
+        _ => item_cost,
+    }
 }
 
 #[derive(Debug)]
@@ -164,29 +197,18 @@ fn calculate_child_count<'a>(
         return Ok(ListSizeHandling::ThisFieldIsTheList(size));
     }
 
-    let default_multiplier = if field_is_list {
-        context.default_list_size
-    } else {
-        1
-    };
+    let default_multiplier = if field_is_list { context.default_list_size } else { 1 };
 
     let Some(directive) = list_size_directive else {
         return Ok(ListSizeHandling::ThisFieldIsTheList(default_multiplier));
     };
 
-    let mut multiplier = directive
-        .assumed_size
-        .unwrap_or(context.default_list_size as u32) as usize;
+    let mut multiplier = directive.assumed_size.unwrap_or(context.default_list_size as u32) as usize;
 
     let mut slicing_arguments = directive.slicing_arguments().peekable();
     if slicing_arguments.peek().is_some() {
         let slicing_arguments = slicing_arguments
-            .filter_map(|argument| {
-                field
-                    .argument(argument.name())?
-                    .value(context.variables)
-                    .as_usize()
-            })
+            .filter_map(|argument| field.argument(argument.name())?.value(context.variables).as_usize())
             .collect::<Vec<_>>();
 
         if directive.require_one_slicing_argument && slicing_arguments.len() != 1 {
@@ -200,10 +222,7 @@ fn calculate_child_count<'a>(
             )));
         }
 
-        multiplier = slicing_arguments
-            .into_iter()
-            .max()
-            .unwrap_or(context.default_list_size);
+        multiplier = slicing_arguments.into_iter().max().unwrap_or(context.default_list_size);
     }
 
     let mut sized_fields = directive.sized_fields().peekable();
@@ -224,9 +243,7 @@ fn cost_for_type(definition: schema::Definition<'_>) -> i32 {
 
     match definition {
         schema::Definition::Enum(_) | schema::Definition::Scalar(_) => 0,
-        schema::Definition::Interface(_)
-        | schema::Definition::Object(_)
-        | schema::Definition::Union(_) => 1,
+        schema::Definition::Interface(_) | schema::Definition::Object(_) | schema::Definition::Union(_) => 1,
         schema::Definition::InputObject(_) => 1,
     }
 }

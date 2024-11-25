@@ -279,6 +279,65 @@ fn test_sized_fields() {
     });
 }
 
+#[test]
+fn test_argument_complexity() {
+    runtime().block_on(async move {
+        let engine = Engine::builder()
+            .with_subgraph(ComplexitySchema)
+            .with_toml_config(LIMIT_CONFIG)
+            .build()
+            .await;
+
+        // Cost should be way less than 100
+        let response = engine.post("query { argumentsField(int: 1) { blah } }").await;
+        similar_asserts::assert_serde_eq!(response.body, serde_json::json!({"data": {"argumentsField": null}}));
+
+        // Cost should be 100
+        let response = engine.post("query { argumentsField(complexInt: 1) { blah }  }").await;
+        similar_asserts::assert_serde_eq!(response.body, serde_json::json!({"data": {"argumentsField": null}}));
+
+        // Cost should be 100
+        let response = engine
+            .post("query { argumentsField(object: {int: 1}) { blah }  }")
+            .await;
+        similar_asserts::assert_serde_eq!(response.body, serde_json::json!({"data": {"argumentsField": null}}));
+
+        let response = engine
+            .post("query { argumentsField(object: {complexInt: 1}) { blah }  }")
+            .await;
+        similar_asserts::assert_serde_eq!(response.body, serde_json::json!({"data": {"argumentsField": null}}));
+
+        // Cost should be > 100
+        let first_fail = engine
+            .post("query { argumentsField(otherInt: 1, object: {complexInt: 1}) { blah }  }")
+            .await;
+
+        let second_fail = engine
+            .post("query { argumentsField(otherInt: 1, object: {nested: {complexInt: 1}}) { blah }  }")
+            .await;
+
+        let third_fail = engine
+            .post("query { argumentsField(otherInt: 1, object: {nestedList: [{complexInt: 1}]}) { blah }  }")
+            .await;
+
+        insta::assert_json_snapshot!(first_fail.body, @r###"
+        {
+          "errors": [
+            {
+              "message": "Query exceeded complexity limit",
+              "extensions": {
+                "code": "OPERATION_VALIDATION_ERROR"
+              }
+            }
+          ]
+        }
+        "###);
+
+        similar_asserts::assert_serde_eq!(first_fail.body, second_fail.body);
+        similar_asserts::assert_serde_eq!(first_fail.body, third_fail.body);
+    });
+}
+
 #[derive(Default)]
 pub struct ComplexitySchema;
 
@@ -312,10 +371,21 @@ impl Subgraph for ComplexitySchema {
                     slicingArguments: "first"
                     sizedFields: "items"
                 )
+
+                argumentsField(
+                    int: Int,
+                    otherInt: Int @cost(weight: 2)
+                    complexInt: Int @cost(weight: 98)
+                    object: InputObject
+                ): Item
             }
 
-            # TODO: add arguments that cost
-            # TODO: add inpput object fields that cost
+            input InputObject {
+              int: Int
+              complexInt: Int @cost(weight: 98)
+              nested: InputObject
+              nestedList: [InputObject]
+            }
 
             type Connection {
                 items: [Item]
