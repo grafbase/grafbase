@@ -1,4 +1,4 @@
-version: "3"
+version: '3'
 services:
   #grafbase:
   #  build:
@@ -10,25 +10,25 @@ services:
   #    - otel-collector
 
   otel-collector:
-    image: otel/opentelemetry-collector:0.86.0
-    command: [ "--config=/etc/otel-collector.yaml" ]
+    image: otel/opentelemetry-collector:0.113.0
+    command: ['--config=/etc/otel-collector.yaml']
     volumes:
       - ./resources/otel-collector.yaml:/etc/otel-collector.yaml
     ports:
-      - "4317:4317"
+      - '4317:4317'
 
   tempo:
     image: grafana/tempo:latest
-    command: [ "-config.file=/etc/tempo.yaml" ]
+    command: ['-config.file=/etc/tempo.yaml']
     volumes:
       - ./resources/tempo.yaml:/etc/tempo.yaml
       - ./tempo-data:/tmp/tempo
     ports:
-      - "14268"  # jaeger ingest
-      - "3200"   # tempo
-      - "4317"  # otlp grpc
-      - "4318"  # otlp http
-      - "9411"   # zipkin
+      - '14268' # jaeger ingest
+      - '3200' # tempo
+      - '4317' # otlp grpc
+      - '4318' # otlp http
+      - '9411' # zipkin
 
   prometheus:
     image: prom/prometheus:latest
@@ -39,10 +39,10 @@ services:
     volumes:
       - ./resources/prometheus.yaml:/etc/prometheus.yaml
     ports:
-      - "9090:9090"
+      - '9090:9090'
 
   grafana:
-    image: grafana/grafana:11.2.0
+    image: grafana/grafana:11.3.0
     volumes:
       - ./resources/grafana-datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml
     environment:
@@ -51,4 +51,4 @@ services:
       - GF_AUTH_DISABLE_LOGIN_FORM=true
       - GF_FEATURE_TOGGLES_ENABLE=traceqlEditor
     ports:
-      - "3000:3000"
+      - '3000:3000'
