@@ -128,7 +128,7 @@ tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
 ulid = { version = "1", features = ["serde"] }
 url = { version = "2", features = ["serde"] }
 uuid = { version = "1", features = ["v4"] }
-wasmparser = { version = "0.218", default-features = false, features = ["features", "serde", "std", "validate"] }
+wasmparser = { version = "0.219", default-features = false, features = ["component-model", "features", "serde", "std", "validate"] }
 web-sys = { version = "0.3", default-features = false, features = ["AbortController", "AbortSignal", "BinaryType", "Cache", "CacheQueryOptions", "CacheStorage", "CloseEvent", "ErrorEvent", "File", "FormData", "Headers", "MessageEvent", "ProgressEvent", "QueuingStrategy", "ReadableByteStreamController", "ReadableStream", "ReadableStreamByobReader", "ReadableStreamByobRequest", "ReadableStreamDefaultController", "ReadableStreamDefaultReader", "ReadableStreamGetReaderOptions", "ReadableStreamReadResult", "ReadableStreamReaderMode", "ReadableStreamType", "ReadableWritablePair", "Request", "RequestInit", "RequestRedirect", "Response", "ResponseInit", "StreamPipeOptions", "TransformStream", "TransformStreamDefaultController", "Transformer", "UnderlyingSink", "UnderlyingSource", "WebSocket", "WorkerGlobalScope", "WritableStream", "WritableStreamDefaultController", "WritableStreamDefaultWriter", "console"] }
 zerocopy = { version = "0.7", features = ["derive", "simd"] }
 zeroize = { version = "1", features = ["zeroize_derive"] }
@@ -245,7 +245,7 @@ tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
 ulid = { version = "1", features = ["serde"] }
 url = { version = "2", features = ["serde"] }
 uuid = { version = "1", features = ["v4"] }
-wasmparser = { version = "0.218", default-features = false, features = ["features", "serde", "std", "validate"] }
+wasmparser = { version = "0.219", default-features = false, features = ["component-model", "features", "serde", "std", "validate"] }
 web-sys = { version = "0.3", default-features = false, features = ["AbortController", "AbortSignal", "BinaryType", "Cache", "CacheQueryOptions", "CacheStorage", "CloseEvent", "ErrorEvent", "File", "FormData", "Headers", "MessageEvent", "ProgressEvent", "QueuingStrategy", "ReadableByteStreamController", "ReadableStream", "ReadableStreamByobReader", "ReadableStreamByobRequest", "ReadableStreamDefaultController", "ReadableStreamDefaultReader", "ReadableStreamGetReaderOptions", "ReadableStreamReadResult", "ReadableStreamReaderMode", "ReadableStreamType", "ReadableWritablePair", "Request", "RequestInit", "RequestRedirect", "Response", "ResponseInit", "StreamPipeOptions", "TransformStream", "TransformStreamDefaultController", "Transformer", "UnderlyingSink", "UnderlyingSource", "WebSocket", "WorkerGlobalScope", "WritableStream", "WritableStreamDefaultController", "WritableStreamDefaultWriter", "console"] }
 zerocopy = { version = "0.7", features = ["derive", "simd"] }
 zeroize = { version = "1", features = ["zeroize_derive"] }
