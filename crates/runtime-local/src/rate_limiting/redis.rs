@@ -134,7 +134,7 @@ impl RedisRateLimiter {
         pipe.cmd("GET").arg(&current_bucket);
 
         let start = SystemTime::now();
-        let result = pipe.query_async::<_, (Option<u64>, Option<u64>)>(&mut *conn).await;
+        let result = pipe.query_async::<(Option<u64>, Option<u64>)>(&mut *conn).await;
         let duration = SystemTime::now().duration_since(start).unwrap_or_default();
 
         // Execute the whole pipeline in one multiplexed request.
@@ -186,7 +186,7 @@ async fn incr_counter(pool: Pool, current_bucket: String, expire: Duration) -> R
         .arg(expire.as_secs() * 2)
         .ignore();
 
-    if let Err(e) = pipe.query_async::<_, (u64,)>(&mut *conn).await {
+    if let Err(e) = pipe.query_async::<(u64,)>(&mut *conn).await {
         tracing::error!("error with Redis query: {e}");
         return Err(Error::Internal(String::from("rate limit")));
     }

@@ -42,7 +42,7 @@ async-graphql-parser = "7.0.3"
 async-graphql-value = "7.0.3"
 async-sse = "5"
 async-trait = "0.1.80"
-async-tungstenite = "0.26.0"
+async-tungstenite = "0.28.0"
 axum = { version = "0.7.5", default-features = false }
 axum-server = { version = "0.7", default-features = false }
 base64 = "0.22.1"
@@ -57,13 +57,14 @@ cynic-codegen = { version = "3.9", features = ["rkyv"] }
 cynic-introspection = "3.9"
 cynic-parser = "0.8"
 cynic-parser-deser = "0.8"
-deadpool-postgres = "0.14"
+deadpool = { version = "0.12.1", features = ["rt_tokio_1"] }
 derive_more = "1.0.0-beta.6"
 jwt-compact = "0.8"
 flexbuffers = "2"
 futures = "0.3.30"
 futures-channel = "0.3.30"
 futures-util = "0.3.30"
+graphql-ws-client = { version = "0.11.0", features = ["tungstenite"] }
 handlebars = "5.1.2"
 headers = "0.4"
 hex = "0.4.3"
@@ -78,38 +79,41 @@ insta = { version = "1.39.0", features = ["json", "redactions"] }
 internment = { version = "0.8", features = ["serde", "arc"] }
 itertools = "0.13.0"
 jsonwebtoken = "9.3.0"
-governor = "0.6"
+governor = "0.7"
+mini-moka = "0.10"
 multipart-stream = "0.1.2"
 mediatype = "0.19"
 num-traits = "0.2.18"
 openidconnect = "4.0.0-rc.1"
 petgraph = "0.6"
-pprof = "0.13"
+pprof = "0.14"
 postcard = { version = "1", features = ["use-std"] }
 rand = "0.8"
 regex = "1.10.4"
+redis = { version = "0.27.0", features = [
+    "tokio-rustls-comp",
+    "connection-manager",
+] }
 reqwest = { version = "0.12.8", default-features = false, features = ["http2"] }
 rmp-serde = "1.3.0"
-rstest = "0.22"
+rstest = "0.23"
 rustls = { version = "0.23.5", default-features = false }
 rustls-pemfile = { version = "2.1.2", default-features = false }
 rustls-webpki = { version = "0.102.3", default-features = false }
-secrecy = "0.8"
+secrecy = "0.10"
 send_wrapper = "0.6"
 strum = "0.26.2"
 strum_macros = "0.26.2"
 tar = "0.4.40"
 thiserror = "2.0.0"
 tokio = "1.37.0"
-tokio-postgres = { version = "0.7.10", default-features = false }
-tokio-postgres-rustls = "0.12.0"
 tokio-rustls = { version = "0.26.0", default-features = false }
-tokio-tungstenite = { version = "0.23.0", default-features = false }
+tokio-tungstenite = { version = "0.24.0", default-features = false }
 toml = "0.8"
-tungstenite = { version = "0.23.0", default-features = false }
+tungstenite = { version = "0.24.0", default-features = false }
 tonic = "0.12.0"
 tower = "0.5.0"
-tower-http = "0.5.2"
+tower-http = "0.6.0"
 tower-service = "0.3.2"
 url = "2.5.0"
 uuid = "1.8.0"
