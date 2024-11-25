@@ -1,5 +1,6 @@
 use engine_parser::types::OperationType;
-use schema::Schema;
+use schema::{InputObjectDefinition, Schema};
+use serde::Deserialize;
 
 use crate::{
     operation::{FieldWalker, OperationWalker, SelectionSetWalker},
@@ -99,13 +100,58 @@ fn field_complexity(
 
 fn cost_for_argument(
     argument: OperationWalker<'_, crate::operation::BoundFieldArgumentId>,
-    _variables: &Variables,
+    variables: &Variables,
 ) -> usize {
     let def = argument.definition();
     let argument_type = def.ty().definition();
-    let argument_cost = def.cost().unwrap_or_else(|| cost_for_type(argument_type));
+    let argument_cost = def.cost().unwrap_or_else(|| cost_for_type(argument_type)) as usize;
 
-    argument_cost as usize
+    let Ok(value) = serde_json::Value::deserialize(argument.value(variables)) else {
+        tracing::warn!("Could not deserialize value when calculating cost");
+        return argument_cost;
+    };
+
+    match argument_type {
+        schema::Definition::InputObject(obj) => cost_for_object_value(&value, obj, argument_cost),
+        _ => cost_for_input_scalar(&value, argument_cost),
+    }
+}
+
+fn cost_for_object_value(
+    value: &serde_json::Value,
+    object: InputObjectDefinition<'_>,
+    base_object_cost: usize,
+) -> usize {
+    match value {
+        serde_json::Value::Array(values) => values
+            .iter()
+            .map(|value| cost_for_object_value(value, object, base_object_cost))
+            .sum(),
+        serde_json::Value::Object(map) => {
+            let mut overall_cost = base_object_cost;
+            for (name, value) in map {
+                let Some(field) = object.input_fields().find(|field| field.name() == name) else {
+                    continue;
+                };
+                let field_cost = field.cost().unwrap_or(cost_for_type(field.ty().definition())) as usize;
+
+                if let schema::Definition::InputObject(object) = field.ty().definition() {
+                    overall_cost += cost_for_object_value(value, object, field_cost);
+                } else {
+                    overall_cost += cost_for_input_scalar(value, field_cost);
+                }
+            }
+            overall_cost
+        }
+        _ => 0,
+    }
+}
+
+fn cost_for_input_scalar(value: &serde_json::Value, item_cost: usize) -> usize {
+    match value {
+        serde_json::Value::Array(values) => values.iter().map(|value| cost_for_input_scalar(value, item_cost)).sum(),
+        _ => item_cost,
+    }
 }
 
 #[derive(Debug)]
