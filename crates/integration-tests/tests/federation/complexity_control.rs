@@ -1,5 +1,5 @@
 use engine::Engine;
-use graphql_mocks::{DynamicSchema, MockGraphQlServer, Subgraph};
+use graphql_mocks::{dynamic::DynamicSchema, MockGraphQlServer, Subgraph};
 use integration_tests::{federation::EngineExt, runtime};
 
 const LIMIT_CONFIG: &str = r#"
