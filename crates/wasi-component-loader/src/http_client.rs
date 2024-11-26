@@ -3,8 +3,17 @@ use crate::{
     state::WasiState,
 };
 use futures::FutureExt;
+use grafbase_telemetry::{
+    metrics::meter_from_global_provider,
+    otel::opentelemetry::{metrics::Histogram, KeyValue},
+};
 use http::{HeaderName, HeaderValue};
-use std::{future::Future, str::FromStr, sync::LazyLock, time::Duration};
+use std::{
+    future::Future,
+    str::FromStr,
+    sync::LazyLock,
+    time::{Duration, Instant},
+};
 use tracing::{field::Empty, info_span, Instrument};
 use wasmtime::{
     component::{ComponentType, Lift, LinkerInstance, Lower, ResourceType},
@@ -12,6 +21,11 @@ use wasmtime::{
 };
 
 static HTTP_CLIENT: LazyLock<reqwest::Client> = LazyLock::new(reqwest::Client::new);
+
+static REQUEST_METRICS: LazyLock<Histogram<u64>> = LazyLock::new(|| {
+    let meter = meter_from_global_provider();
+    meter.u64_histogram("grafbase.hook.http_request.duration").init()
+});
 
 pub(crate) fn map(types: &mut LinkerInstance<'_, WasiState>) -> crate::Result<()> {
     types.resource(HTTP_CLIENT_RESOURCE, ResourceType::host::<()>(), |_, _| Ok(()))?;
@@ -168,6 +182,10 @@ fn execute_many(_: StoreContextMut<'_, WasiState>, (requests,): (Vec<HttpRequest
 }
 
 async fn send_request(request: HttpRequest) -> Result<HttpResponse, HttpError> {
+    let start = Instant::now();
+
+    let mut attributes = request_attributes(&request);
+
     let HttpRequest {
         method,
         url,
@@ -191,10 +209,15 @@ async fn send_request(request: HttpRequest) -> Result<HttpResponse, HttpError> {
     );
 
     let Ok(url) = reqwest::Url::parse(&url) else {
+        let duration = start.elapsed().as_millis() as u64;
         let message = format!("invalid url: {url}");
 
         span.record("otel.status_code", "Error");
         span.record("error.message", &message);
+
+        attributes.push(KeyValue::new("otel.status_code", "Error"));
+
+        REQUEST_METRICS.record(duration, &attributes);
 
         return Err(HttpError::Request(message));
     };
@@ -208,19 +231,29 @@ async fn send_request(request: HttpRequest) -> Result<HttpResponse, HttpError> {
 
     for (key, value) in headers {
         let Ok(key) = HeaderName::from_str(&key) else {
+            let duration = start.elapsed().as_millis() as u64;
             let message = format!("invalid header key: {key}");
 
             span.record("otel.status_code", "Error");
             span.record("error.message", &message);
 
+            attributes.push(KeyValue::new("otel.status_code", "Error"));
+
+            REQUEST_METRICS.record(duration, &attributes);
+
             return Err(HttpError::Request(message));
         };
 
         let Ok(value) = HeaderValue::from_str(&value) else {
+            let duration = start.elapsed().as_millis() as u64;
             let message = format!("invalid header value: {value}");
 
             span.record("otel.status_code", "Error");
             span.record("error.message", &message);
+
+            attributes.push(KeyValue::new("otel.status_code", "Error"));
+
+            REQUEST_METRICS.record(duration, &attributes);
 
             return Err(HttpError::Request(message));
         };
@@ -234,7 +267,13 @@ async fn send_request(request: HttpRequest) -> Result<HttpResponse, HttpError> {
         builder = builder.timeout(Duration::from_millis(timeout_ms));
     }
 
-    match builder.send().instrument(span.clone()).await {
+    let result = builder.send().instrument(span.clone()).await;
+    let duration = start.elapsed().as_millis() as u64;
+
+    merge_response_attributes(&mut attributes, &result);
+    REQUEST_METRICS.record(duration, &attributes);
+
+    match result {
         Ok(response) => {
             let headers = response
                 .headers()
@@ -280,6 +319,44 @@ async fn send_request(request: HttpRequest) -> Result<HttpResponse, HttpError> {
             span.record("error.message", &error_message);
 
             Err(HttpError::Connect(error_message))
+        }
+    }
+}
+
+fn request_attributes(request: &HttpRequest) -> Vec<KeyValue> {
+    let mut attributes = Vec::new();
+
+    let HttpRequest { method, url, .. } = request;
+
+    attributes.push(KeyValue::new("http.request.method", method.as_ref().to_string()));
+
+    if let Ok(url) = reqwest::Url::parse(url) {
+        attributes.push(KeyValue::new("http.route", url.path().to_string()));
+
+        if let Some(host) = url.host() {
+            attributes.push(KeyValue::new("server.address", host.to_string()));
+        }
+
+        if let Some(port) = url.port() {
+            attributes.push(KeyValue::new("server.port", port.to_string()));
+        }
+
+        attributes.push(KeyValue::new("url.scheme", url.scheme().to_string()));
+    }
+
+    attributes
+}
+
+fn merge_response_attributes(attributes: &mut Vec<KeyValue>, result: &Result<reqwest::Response, reqwest::Error>) {
+    match result {
+        Ok(ref response) => {
+            attributes.push(KeyValue::new(
+                "http.response.status_code",
+                response.status().as_u16().to_string(),
+            ));
+        }
+        Err(_) => {
+            attributes.push(KeyValue::new("otel.status_code", "Error"));
         }
     }
 }
