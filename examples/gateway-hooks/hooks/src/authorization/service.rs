@@ -1,6 +1,9 @@
-use futures_util::{stream::FuturesOrdered, FutureExt, StreamExt, TryFutureExt};
+use itertools::Itertools;
 
-use crate::{bindings::component::grafbase::types::Error, error, REQWEST};
+use crate::{
+    bindings::component::grafbase::types::{Error, HttpClient, HttpMethod, HttpRequest},
+    error,
+};
 
 #[derive(serde::Serialize, serde::Deserialize)]
 struct AuthorizeUserRequest {
@@ -19,78 +22,92 @@ struct AuthorizationResponse {
     authorized: bool,
 }
 
-pub(super) async fn authorize_user(current_user_id: usize, user_ids: Vec<usize>) -> Vec<Result<(), Error>> {
-    user_ids
+pub(super) fn authorize_user(current_user_id: usize, user_ids: Vec<usize>) -> Vec<Result<(), Error>> {
+    let requests = user_ids
         .into_iter()
-        .map(|user_id| async move {
-            tracing::info!("Authorizing access to user {} for user {}", user_id, current_user_id);
+        .map(|user_id| {
+            tracing::info!(
+                "Authorizing access to user of user {} for user {}",
+                user_id,
+                current_user_id
+            );
 
-            REQWEST
-                .post("http://localhost:4001/authorize-user")
-                .json(&AuthorizeUserRequest {
+            HttpRequest {
+                method: HttpMethod::Post,
+                url: String::from("http://localhost:4001/authorize-user"),
+                headers: vec![("Content-Type".to_string(), "application/json".to_string())],
+                body: serde_json::to_vec(&AuthorizeUserRequest {
                     current_user_id,
                     user_id,
                 })
-                .send()
-                .and_then(|response| response.bytes())
-                .map(|result| match result {
-                    Ok(bytes) => {
-                        let response: AuthorizationResponse =
-                            serde_json::from_slice(&bytes).expect("Failed to deserialize authorization response");
-                        if response.authorized {
-                            Ok(())
-                        } else {
-                            Err(error("Unauthorized"))
-                        }
-                    }
-                    Err(err) => {
-                        tracing::error!("Auth service request failure: {err:?}");
-                        Err(error("Unauthorized"))
-                    }
-                })
-                .await
+                .unwrap(),
+                timeout_ms: Some(1000),
+            }
         })
-        .collect::<FuturesOrdered<_>>()
+        .collect_vec();
+
+    HttpClient::execute_many(&requests)
+        .into_iter()
+        .map(|result| match result {
+            Ok(response) => {
+                let body: AuthorizationResponse =
+                    serde_json::from_slice(&response.body).expect("Failed to deserialize authorization response");
+
+                if body.authorized {
+                    Ok(())
+                } else {
+                    Err(error("Unauthorized"))
+                }
+            }
+            Err(err) => {
+                tracing::error!("Auth service request failure: {err:?}");
+                Err(error("Unauthorized"))
+            }
+        })
         .collect()
-        .await
 }
 
-pub(super) async fn authorize_address(current_user_id: usize, owner_ids: Vec<usize>) -> Vec<Result<(), Error>> {
-    owner_ids
+pub(super) fn authorize_address(current_user_id: usize, owner_ids: Vec<usize>) -> Vec<Result<(), Error>> {
+    let requests = owner_ids
         .into_iter()
-        .map(|owner_id| async move {
+        .map(|owner_id| {
             tracing::info!(
                 "Authorizing access to address of user {} for user {}",
                 owner_id,
                 current_user_id
             );
 
-            REQWEST
-                .post("http://localhost:4001/authorize-address")
-                .json(&AuthorizeAddressRequest {
+            HttpRequest {
+                method: HttpMethod::Post,
+                url: String::from("http://localhost:4001/authorize-user"),
+                headers: vec![("Content-Type".to_string(), "application/json".to_string())],
+                body: serde_json::to_vec(&AuthorizeAddressRequest {
                     current_user_id,
                     owner_id,
                 })
-                .send()
-                .and_then(|response| response.bytes())
-                .map(|result| match result {
-                    Ok(bytes) => {
-                        let response: AuthorizationResponse =
-                            serde_json::from_slice(&bytes).expect("Failed to deserialize authorization response");
-                        if response.authorized {
-                            Ok(())
-                        } else {
-                            Err(error("Unauthorized"))
-                        }
-                    }
-                    Err(err) => {
-                        tracing::error!("Auth service request failure: {err:?}");
-                        Err(error("Unauthorized"))
-                    }
-                })
-                .await
+                .unwrap(),
+                timeout_ms: Some(1000),
+            }
         })
-        .collect::<FuturesOrdered<_>>()
+        .collect_vec();
+
+    HttpClient::execute_many(&requests)
+        .into_iter()
+        .map(|result| match result {
+            Ok(response) => {
+                let body: AuthorizationResponse =
+                    serde_json::from_slice(&response.body).expect("Failed to deserialize authorization response");
+
+                if body.authorized {
+                    Ok(())
+                } else {
+                    Err(error("Unauthorized"))
+                }
+            }
+            Err(err) => {
+                tracing::error!("Auth service request failure: {err:?}");
+                Err(error("Unauthorized"))
+            }
+        })
         .collect()
-        .await
 }

@@ -59,3 +59,9 @@ impl From<String> for Error {
         Error::Internal(anyhow::anyhow!(error))
     }
 }
+
+impl From<reqwest::Error> for Error {
+    fn from(value: reqwest::Error) -> Self {
+        Self::Internal(value.into())
+    }
+}
