@@ -1,3 +1,0 @@
-query {
-  node(id: 1, list: [123, 456])
-}

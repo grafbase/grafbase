@@ -1,3 +1,0 @@
-query Foo($site: Float = 0.5) {
-  field
-}

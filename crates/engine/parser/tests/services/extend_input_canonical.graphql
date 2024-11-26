@@ -1,3 +1,0 @@
-extend input InputType {
-  other: Float = 12300
-}
