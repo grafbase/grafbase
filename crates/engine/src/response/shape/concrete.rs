@@ -17,7 +17,7 @@ use super::{FieldShape, FieldShapeId};
 pub(crate) struct ConcreteShapeRecord {
     pub set_id: Option<ResponseObjectSetDefinitionId>,
     pub identifier: ObjectIdentifier,
-    pub typename_response_edges: Vec<PositionedResponseKey>,
+    pub typename_response_keys: Vec<PositionedResponseKey>,
     // Sorted by expected_key
     pub field_shape_ids: IdRange<FieldShapeId>,
 }

@@ -1,19 +1,18 @@
 use std::{collections::VecDeque, fmt};
 
-use schema::ObjectDefinitionId;
 use serde::de::{DeserializeSeed, IgnoredAny, MapAccess, Visitor};
 use walker::Walk;
 
 use crate::response::{
     write::deserialize::{key::Key, SeedContext},
-    ConcreteShapeId, PolymorphicShapeId, ResponseObject, ResponseValue,
+    ObjectIdentifier, PolymorphicShapeId, PolymorphicShapeRecord, ResponseObject, ResponseValue,
 };
 
 use super::concrete::ConcreteShapeSeed;
 
 pub(crate) struct PolymorphicShapeSeed<'ctx, 'seed> {
     ctx: &'seed SeedContext<'ctx>,
-    possibilities: &'ctx [(ObjectDefinitionId, ConcreteShapeId)],
+    shape: &'ctx PolymorphicShapeRecord,
 }
 
 impl<'ctx, 'seed> PolymorphicShapeSeed<'ctx, 'seed> {
@@ -21,7 +20,7 @@ impl<'ctx, 'seed> PolymorphicShapeSeed<'ctx, 'seed> {
         let polymorphic = shape_id.walk(ctx);
         Self {
             ctx,
-            possibilities: &polymorphic.as_ref().possibilities,
+            shape: polymorphic.as_ref(),
         }
     }
 }
@@ -56,17 +55,35 @@ impl<'de, 'ctx, 'parent> Visitor<'de> for PolymorphicShapeSeed<'ctx, 'parent> {
                 let value = map.next_value::<Key<'_>>()?;
                 let typename = value.as_ref();
                 if let Ok(i) = self
+                    .shape
                     .possibilities
                     .binary_search_by(|(id, _)| schema[schema[*id].name_id].as_str().cmp(typename))
                 {
-                    let (object_id, shape_id) = self.possibilities[i];
-                    return ConcreteShapeSeed::new_with_object_id(self.ctx, shape_id, object_id).visit_map(
-                        ChainedMapAcces {
-                            before: content,
-                            next_value: None,
-                            after: map,
-                        },
-                    );
+                    let (object_id, shape_id) = self.shape.possibilities[i];
+                    return ConcreteShapeSeed::new_with_object_id(self.ctx, shape_id, object_id)
+                        .visit_map(ChainedMapAcces::new(content, map));
+                } else if let Some(shape_id) = self.shape.fallback {
+                    let possible_type_ids = match shape_id.walk(self.ctx).identifier {
+                        ObjectIdentifier::UnionTypename(id) => {
+                            &self.ctx.schema[id].possible_types_ordered_by_typename_ids
+                        }
+                        ObjectIdentifier::InterfaceTypename(id) => {
+                            &self.ctx.schema[id].possible_types_ordered_by_typename_ids
+                        }
+                        _ => {
+                            return ConcreteShapeSeed::new(self.ctx, shape_id)
+                                .visit_map(ChainedMapAcces::new(content, map));
+                        }
+                    };
+
+                    if let Ok(i) = possible_type_ids
+                        .binary_search_by(|probe| schema[schema[*probe].name_id].as_str().cmp(typename))
+                    {
+                        return ConcreteShapeSeed::new_with_object_id(self.ctx, shape_id, possible_type_ids[i])
+                            .visit_map(ChainedMapAcces::new(content, map));
+                    }
+
+                    return Err(serde::de::Error::custom("Couldn't determine the object type"));
                 }
 
                 // Discarding the rest of the data if it does not match any concrete shape
@@ -92,6 +109,16 @@ struct ChainedMapAcces<'de, A> {
     before: VecDeque<(Key<'de>, serde_value::Value)>,
     next_value: Option<serde_value::Value>,
     after: A,
+}
+
+impl<'de, A> ChainedMapAcces<'de, A> {
+    fn new(before: VecDeque<(Key<'de>, serde_value::Value)>, after: A) -> Self {
+        Self {
+            before,
+            next_value: None,
+            after,
+        }
+    }
 }
 
 impl<'de, A> MapAccess<'de> for ChainedMapAcces<'de, A>

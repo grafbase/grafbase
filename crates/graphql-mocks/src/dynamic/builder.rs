@@ -2,7 +2,7 @@
 
 use std::collections::HashMap;
 
-use async_graphql::dynamic::ResolverContext;
+use async_graphql::dynamic::{FieldValue, ResolverContext};
 use cynic_parser::{common::WrappingType, type_system as parser};
 use serde::Deserialize;
 
@@ -109,6 +109,10 @@ fn convert_object(def: parser::ObjectDefinition<'_>, resolvers: &mut ResolverMap
 
     let mut object = Object::new(def.name());
 
+    for name in def.implements_interfaces() {
+        object = object.implement(name);
+    }
+
     for field_def in def.fields() {
         let type_ref = convert_type_ref(field_def.ty());
         let resolver = std::sync::Mutex::new(
@@ -119,11 +123,10 @@ fn convert_object(def: parser::ObjectDefinition<'_>, resolvers: &mut ResolverMap
 
         let mut field = Field::new(field_def.name(), type_ref, move |context| {
             let mut resolver = resolver.lock().expect("mutex to be unpoisoned");
-            FieldFuture::from_value(
-                resolver
-                    .resolve(context)
-                    .map(|value| async_graphql::Value::deserialize(value).unwrap()),
-            )
+            FieldFuture::Value(resolver.resolve(context).map(|value| {
+                let value = async_graphql::Value::deserialize(value).unwrap();
+                transform_into_field_value(value)
+            }))
         });
 
         for argument in field_def.arguments() {
@@ -136,8 +139,37 @@ fn convert_object(def: parser::ObjectDefinition<'_>, resolvers: &mut ResolverMap
     object.into()
 }
 
-fn convert_iface(_def: parser::InterfaceDefinition<'_>) -> async_graphql::dynamic::Type {
-    todo!("implement interfaces if you want, probably just copy the object impl")
+fn transform_into_field_value(mut value: async_graphql::Value) -> FieldValue<'static> {
+    match value {
+        async_graphql::Value::Object(ref mut fields) => {
+            if let Some(async_graphql::Value::String(ty)) = fields.swap_remove("__typename") {
+                FieldValue::from(value).with_type(ty)
+            } else {
+                FieldValue::from(value)
+            }
+        }
+        async_graphql::Value::List(values) => FieldValue::list(values.into_iter().map(transform_into_field_value)),
+        value => FieldValue::from(value),
+    }
+}
+
+fn convert_iface(def: parser::InterfaceDefinition<'_>) -> async_graphql::dynamic::Type {
+    use async_graphql::dynamic::*;
+    let mut interface = Interface::new(def.name());
+
+    for field_def in def.fields() {
+        let type_ref = convert_type_ref(field_def.ty());
+
+        let mut field = InterfaceField::new(field_def.name(), type_ref);
+
+        for argument in field_def.arguments() {
+            field = field.argument(convert_input_value(argument));
+        }
+
+        interface = interface.field(field);
+    }
+
+    interface.into()
 }
 
 fn convert_union(def: parser::UnionDefinition<'_>) -> async_graphql::dynamic::Type {

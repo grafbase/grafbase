@@ -29,7 +29,7 @@ pub(super) struct IntrospectionWriter<'ctx, R: Runtime> {
 impl<'ctx, R: Runtime> IntrospectionWriter<'ctx, R> {
     pub(super) fn execute(self, id: ConcreteShapeId) {
         let shape = &self.ctx.shapes()[id];
-        let mut fields = Vec::with_capacity(shape.field_shape_ids.len() + shape.typename_response_edges.len());
+        let mut fields = Vec::with_capacity(shape.field_shape_ids.len() + shape.typename_response_keys.len());
         for field_shape in &self.shapes[shape.field_shape_ids] {
             let field = field_shape.id.walk(&self.ctx);
             let arguments = field.hydrated_arguments(&self.ctx);
@@ -58,12 +58,12 @@ impl<'ctx, R: Runtime> IntrospectionWriter<'ctx, R> {
                 }
             };
         }
-        if !shape.typename_response_edges.is_empty() {
+        if !shape.typename_response_keys.is_empty() {
             let name_id = match self.plan.entity_definition() {
                 EntityDefinition::Object(object) => object.name_id,
                 EntityDefinition::Interface(interface) => interface.name_id,
             };
-            for edge in &shape.typename_response_edges {
+            for edge in &shape.typename_response_keys {
                 fields.push(ResponseObjectField {
                     key: *edge,
                     required_field_id: None,
@@ -81,7 +81,7 @@ impl<'ctx, R: Runtime> IntrospectionWriter<'ctx, R> {
         build: impl Fn(&'ctx FieldShapeRecord, E) -> ResponseValue,
     ) -> ResponseValue {
         let shape = &self.shapes[shape_id];
-        let mut fields = Vec::with_capacity(shape.field_shape_ids.len() + shape.typename_response_edges.len());
+        let mut fields = Vec::with_capacity(shape.field_shape_ids.len() + shape.typename_response_keys.len());
         for id in shape.field_shape_ids {
             let field = &self.shapes[id];
             fields.push(ResponseObjectField {
@@ -90,9 +90,9 @@ impl<'ctx, R: Runtime> IntrospectionWriter<'ctx, R> {
                 value: build(field, object[field.id.walk(&self.ctx).definition_id]),
             });
         }
-        if !shape.typename_response_edges.is_empty() {
+        if !shape.typename_response_keys.is_empty() {
             let name = self.schema.walk(object.id).as_ref().name_id;
-            for edge in &shape.typename_response_edges {
+            for edge in &shape.typename_response_keys {
                 fields.push(ResponseObjectField {
                     key: *edge,
                     required_field_id: None,

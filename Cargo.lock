@@ -2105,6 +2105,7 @@ dependencies = [
  "engine-schema",
  "engine-value",
  "engine-walker",
+ "fixedbitset 0.5.7",
  "futures",
  "futures-util",
  "grafbase-telemetry",

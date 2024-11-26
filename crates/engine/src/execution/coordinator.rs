@@ -501,14 +501,14 @@ impl<'ctx, R: Runtime> OperationExecution<'ctx, R> {
             .fields()
             .map(|field| field.key)
             .min()
-            .or_else(|| shape.typename_response_edges.iter().min().copied())
+            .or_else(|| shape.typename_response_keys.iter().min().copied())
             .expect("Selection set without any fields?");
 
         let mut fields = Vec::new();
-        if !shape.typename_response_edges.is_empty() {
+        if !shape.typename_response_keys.is_empty() {
             if let ObjectIdentifier::Known(object_id) = shape.identifier {
                 let name: ResponseValue = self.schema().walk(object_id).as_ref().name_id.into();
-                fields.extend(shape.typename_response_edges.iter().map(|&key| ResponseObjectField {
+                fields.extend(shape.typename_response_keys.iter().map(|&key| ResponseObjectField {
                     key,
                     required_field_id: None,
                     value: name.clone(),
