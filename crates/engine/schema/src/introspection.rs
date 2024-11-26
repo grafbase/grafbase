@@ -577,17 +577,15 @@ impl<'a> IntrospectionBuilder<'a> {
             wrapping: Wrapping::required(),
         };
         let [Some(__schema_field_id), Some(__type_field_id)] = ["__schema", "__type"].map(|name| {
-            let fields = self[self.root_operation_types_record.query_id].field_ids;
-            let idx = usize::from(fields.start)
-                + self[fields]
-                    .iter()
-                    .position(|field| self.ctx.strings[field.name_id] == name)?;
-            Some(FieldDefinitionId::from(idx))
+            self[self.root_operation_types_record.query_id]
+                .field_ids
+                .into_iter()
+                .find(|id| self.ctx.strings[self[*id].name_id] == name)
         }) else {
             panic!("Invariant broken: missing Query.__type or Query.__schema");
         };
         self[__schema_field_id].ty_record = field_type_id;
-        self[__schema_field_id].resolver_ids.push(resolver_definition_id);
+        self[__schema_field_id].resolver_ids = vec![resolver_definition_id];
 
         /*
         __type(name: String!): __Type
@@ -597,7 +595,7 @@ impl<'a> IntrospectionBuilder<'a> {
             wrapping: Wrapping::nullable(),
         };
         self[__type_field_id].ty_record = field_type_id;
-        self[__type_field_id].resolver_ids.push(resolver_definition_id);
+        self[__type_field_id].resolver_ids = vec![resolver_definition_id];
 
         self.set_field_arguments(
             self.root_operation_types_record.query_id,
@@ -624,11 +622,11 @@ impl<'a> IntrospectionBuilder<'a> {
         let values = if values.is_empty() {
             IdRange::empty()
         } else {
-            let start_idx = self.enum_value_definitions.len();
+            let start_idx = self.enum_values.len();
 
             for value in values {
                 let name_id = self.get_or_intern(value);
-                self.enum_value_definitions.push(EnumValueRecord {
+                self.enum_values.push(EnumValueRecord {
                     name_id,
                     directive_ids: Vec::new(),
                     description_id: None,
@@ -637,7 +635,7 @@ impl<'a> IntrospectionBuilder<'a> {
 
             IdRange {
                 start: EnumValueId::from(start_idx),
-                end: EnumValueId::from(self.enum_value_definitions.len()),
+                end: EnumValueId::from(self.enum_values.len()),
             }
         };
 
@@ -662,7 +660,7 @@ impl<'a> IntrospectionBuilder<'a> {
             directive_ids: Vec::new(),
             field_ids: IdRange::empty(),
             join_implement_records: Vec::new(),
-            only_resolvable_in_ids: Vec::new(),
+            exists_in_subgraph_ids: Vec::new(),
         });
         ObjectDefinitionId::from(self.object_definitions.len() - 1)
     }

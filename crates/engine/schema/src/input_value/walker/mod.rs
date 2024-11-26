@@ -32,4 +32,13 @@ impl<'a> SchemaInputValue<'a> {
             selection_set,
         }
     }
+
+    pub fn as_usize(&self) -> Option<usize> {
+        match self.ref_ {
+            SchemaInputValueRecord::Int(val) => Some(*val as usize),
+            SchemaInputValueRecord::BigInt(val) => Some(*val as usize),
+            SchemaInputValueRecord::U64(val) => Some(*val as usize),
+            _ => None,
+        }
+    }
 }

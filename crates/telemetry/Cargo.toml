@@ -34,11 +34,24 @@ strum.workspace = true
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true, features = ["env-filter"] }
 tracing-opentelemetry.workspace = true
-opentelemetry-appender-tracing = { workspace = true, features = ["experimental_metadata_attributes"] }
+opentelemetry-appender-tracing = { workspace = true, features = [
+    "experimental_metadata_attributes",
+] }
 opentelemetry = { workspace = true, features = ["otel_unstable", "trace"] }
 opentelemetry_sdk = { workspace = true, features = ["rt-tokio", "logs"] }
-opentelemetry-stdout = { workspace = true, features = ["trace", "metrics", "logs"] }
-opentelemetry-otlp = { workspace = true, features = ["grpc-tonic", "tls", "tonic", "http-proto", "logs"], optional = true }
+opentelemetry-stdout = { workspace = true, features = [
+    "trace",
+    "metrics",
+    "logs",
+] }
+opentelemetry-otlp = { workspace = true, features = [
+    "grpc-tonic",
+    "http-proto",
+    "logs",
+    "reqwest-client",
+    "tls",
+    "tonic",
+], optional = true }
 ascii = { version = "1.1.0", features = ["serde"] }
 cfg-if = "1.0.0"
 either = "1.13.0"
@@ -51,7 +64,7 @@ worker = ["dep:worker"]
 lambda = []
 
 [dev-dependencies]
-indoc = "2.0.5"
+indoc.workspace = true
 insta = "1.38.0"
 tempfile = "3.10.1"
 toml = "0.8.12"

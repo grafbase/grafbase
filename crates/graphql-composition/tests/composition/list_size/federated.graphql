@@ -4,14 +4,14 @@ directive @join__owner(graph: join__Graph!) on OBJECT
 
 directive @join__type(
     graph: join__Graph!
-    key: String!
+    key: join__FieldSet
     resolvable: Boolean = true
 ) repeatable on OBJECT | INTERFACE
 
 directive @join__field(
     graph: join__Graph
-    requires: String
-    provides: String
+    requires: join__FieldSet
+    provides: join__FieldSet
 ) on FIELD_DEFINITION
 
 directive @join__graph(name: String!, url: String!) on ENUM_VALUE
@@ -19,6 +19,8 @@ directive @join__graph(name: String!, url: String!) on ENUM_VALUE
 directive @join__implements(graph: join__Graph!, interface: String!) repeatable on OBJECT | INTERFACE
 
 directive @join__unionMember(graph: join__Graph!, member: String!) repeatable on UNION
+
+scalar join__FieldSet
 
 directive @listSize(
   assumedSize: Int,
@@ -31,12 +33,15 @@ enum join__Graph {
     A @join__graph(name: "a", url: "http://example.com/a")
 }
 
-type BarCollection {
-    items: [Int] @join__field(graph: A)
+type BarCollection
+    @join__type(graph: A)
+{
+    items: [Int]
 }
 
-type Query {
-    bar(slice: Int!): BarCollection @join__field(graph: A) @listSize(slicingArguments: ["slice"], sizedFields: ["items"], requireOneSlicingArgument: false)
-    baz(slice: Int!): [String] @join__field(graph: A) @listSize(slicingArguments: ["slice"])
-    foo: [String!] @join__field(graph: A) @listSize(assumedSize: 10)
+type Query
+{
+    bar(slice: Int!): BarCollection  @listSize(slicingArguments: ["slice"], sizedFields: ["items"], requireOneSlicingArgument: false) @join__field(graph: A)
+    baz(slice: Int!): [String]  @listSize(slicingArguments: ["slice"]) @join__field(graph: A)
+    foo: [String!]  @listSize(assumedSize: 10) @join__field(graph: A)
 }

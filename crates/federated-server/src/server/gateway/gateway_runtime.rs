@@ -36,6 +36,7 @@ impl GatewayRuntime {
         let mut redis_factory = RedisPoolFactory::default();
         let watcher = ConfigWatcher::init(gateway_config.clone(), hot_reload_config_path)?;
         let meter = grafbase_telemetry::metrics::meter_from_global_provider();
+
         let rate_limiter = match config.rate_limit_config() {
             Some(config) if config.storage.is_redis() => {
                 let tls = config.redis.tls.map(|tls| RedisTlsConfig {
@@ -58,6 +59,7 @@ impl GatewayRuntime {
             }
             _ => InMemoryRateLimiter::runtime_with_watcher(watcher),
         };
+
         let entity_cache: Box<dyn EntityCache> = match gateway_config.entity_caching.storage {
             gateway_config::EntityCachingStorage::Memory => Box::new(InMemoryEntityCache::default()),
             gateway_config::EntityCachingStorage::Redis => {
@@ -77,6 +79,12 @@ impl GatewayRuntime {
             }
         };
 
+        let operation_cache_factory = if gateway_config.operation_caching.enabled {
+            InMemoryOperationCacheFactory::new(gateway_config.operation_caching.limit)
+        } else {
+            InMemoryOperationCacheFactory::inactive()
+        };
+
         let runtime = GatewayRuntime {
             fetcher: NativeFetcher::new(gateway_config).map_err(|e| crate::Error::FetcherConfigError(e.to_string()))?,
             kv: InMemoryKvStore::runtime(),
@@ -85,7 +93,7 @@ impl GatewayRuntime {
             metrics: EngineMetrics::build(&meter, version_id.map(|id| id.to_string())),
             rate_limiter,
             entity_cache,
-            operation_cache_factory: InMemoryOperationCacheFactory::default(),
+            operation_cache_factory,
         };
 
         Ok(runtime)

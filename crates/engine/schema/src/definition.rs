@@ -55,6 +55,24 @@ impl<'a> Definition<'a> {
             Definition::Object(_) | Definition::Interface(_) | Definition::Union(_)
         )
     }
+
+    pub fn cost(&self) -> Option<i32> {
+        self.directives().find_map(|directive| match directive {
+            TypeSystemDirective::Cost(cost) => Some(cost.weight),
+            _ => None,
+        })
+    }
+
+    pub fn is_inaccessible(&self) -> bool {
+        match self {
+            Definition::Enum(enm) => enm.is_inaccessible(),
+            Definition::InputObject(input_object) => input_object.is_inaccessible(),
+            Definition::Interface(interface) => interface.is_inaccessible(),
+            Definition::Object(object) => object.is_inaccessible(),
+            Definition::Scalar(scalar) => scalar.is_inaccessible(),
+            Definition::Union(union) => union.is_inaccessible(),
+        }
+    }
 }
 
 impl DefinitionId {

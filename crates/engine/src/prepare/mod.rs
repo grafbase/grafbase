@@ -7,12 +7,12 @@ use std::sync::Arc;
 
 pub(crate) use context::*;
 
-use grafbase_telemetry::graphql::{GraphqlOperationAttributes, OperationType};
+use grafbase_telemetry::graphql::{GraphqlOperationAttributes, OperationName, OperationType};
 use runtime::hooks::Hooks;
 use tracing::{info_span, Instrument};
 
 use crate::{
-    operation::{OperationPlan, SolvedOperation, Variables},
+    operation::{BoundOperation, OperationPlan, SolvedOperation, Variables},
     request::Request,
     response::Response,
     Runtime,
@@ -30,7 +30,7 @@ impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
         match result {
             Ok(operation) => {
                 self.metrics()
-                    .record_successful_preparation_duration(operation.cached.attributes.clone(), duration);
+                    .record_successful_preparation_duration(operation.attributes(), duration);
 
                 Ok(operation)
             }
@@ -47,12 +47,45 @@ impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
 #[derive(serde::Serialize, serde::Deserialize)]
 pub(crate) struct CachedOperation {
     pub solved: SolvedOperation,
-    pub attributes: GraphqlOperationAttributes,
+    pub attributes: CachedOperationAttributes,
+    // This is optional because we only currently need it for complexity control
+    // That may change in the future...
+    pub operation: Option<BoundOperation>,
 }
 
 impl CachedOperation {
     pub(crate) fn ty(&self) -> OperationType {
         self.attributes.ty
+    }
+
+    /// Should be used when a request has errored and we only have the cached attributes
+    pub(crate) fn operation_attributes_for_error(&self) -> GraphqlOperationAttributes {
+        self.attributes.clone().attributes_for_error()
+    }
+}
+
+/// The set of Operation attributes that can be cached
+#[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
+pub struct CachedOperationAttributes {
+    pub ty: OperationType,
+    pub name: OperationName,
+    pub sanitized_query: Arc<str>,
+}
+
+impl CachedOperationAttributes {
+    pub fn attributes_for_error(self) -> GraphqlOperationAttributes {
+        let CachedOperationAttributes {
+            ty,
+            name,
+            sanitized_query,
+        } = self;
+
+        GraphqlOperationAttributes {
+            ty,
+            name,
+            sanitized_query,
+            complexity: None,
+        }
     }
 }
 
@@ -60,4 +93,22 @@ pub(crate) struct PreparedOperation {
     pub cached: Arc<CachedOperation>,
     pub plan: OperationPlan,
     pub variables: Variables,
+    pub complexity: Option<usize>,
+}
+
+impl PreparedOperation {
+    pub fn attributes(&self) -> GraphqlOperationAttributes {
+        let CachedOperationAttributes {
+            ty,
+            name,
+            sanitized_query,
+        } = self.cached.attributes.clone();
+
+        GraphqlOperationAttributes {
+            ty,
+            name,
+            sanitized_query,
+            complexity: self.complexity,
+        }
+    }
 }

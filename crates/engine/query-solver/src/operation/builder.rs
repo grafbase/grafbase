@@ -1,6 +1,8 @@
 use std::borrow::Cow;
 
-use schema::{DefinitionId, FieldDefinition, FieldSet, FieldSetRecord, Schema, SubgraphId, TypeSystemDirective};
+use schema::{
+    DefinitionId, EntityDefinition, FieldDefinition, FieldSet, FieldSetRecord, Schema, SubgraphId, TypeSystemDirective,
+};
 use walker::Walk;
 
 use crate::FieldFlags;
@@ -72,6 +74,38 @@ impl<'ctx, Op: Operation> OperationGraphBuilder<'ctx, Op> {
                 self.ingest_requirement(requirement)
             } else {
                 break;
+            }
+        }
+
+        for (id, node_ix) in self.field_nodes.iter().copied().enumerate() {
+            // If the field is not associated with any providable field node and isn't a typename we can't plan it.
+            if !self
+                .graph
+                .edges_directed(node_ix, Direction::Incoming)
+                .any(|edge| matches!(edge.weight(), Edge::Provides | Edge::TypenameField))
+            {
+                let field_id = Op::FieldId::from(id);
+                let definition = self.operation.field_definition(field_id).walk(self.schema);
+
+                tracing::debug!(
+                    "Unplannable OperationGraph:\n{}",
+                    OperationGraph {
+                        schema: self.schema,
+                        operation: self.operation,
+                        root_ix: self.root_ix,
+                        graph: self.graph,
+                    }
+                    .to_pretty_dot_graph()
+                );
+
+                return Err(crate::Error::CouldNotPlanField {
+                    name: definition
+                        .map(|def| {
+                            tracing::debug!("Could not plan field:\n{def:#?}");
+                            format!("{}.{}", def.parent_entity().name(), def.name())
+                        })
+                        .unwrap_or("__typename".into()),
+                });
             }
         }
 
@@ -316,7 +350,9 @@ impl<'ctx, Op: Operation> OperationGraphBuilder<'ctx, Op> {
                 subgraph_id, provides, ..
             } => {
                 let subgraph_id = *subgraph_id;
-                if definition.is_resolvable_in(subgraph_id) && definition.requires_for_subgraph(subgraph_id).is_none() {
+                if self.is_field_resolvable_in(definition, subgraph_id)
+                    && definition.requires_for_subgraph(subgraph_id).is_none()
+                {
                     Some(ProvidableField::InSubgraph {
                         subgraph_id,
                         id,
@@ -347,6 +383,18 @@ impl<'ctx, Op: Operation> OperationGraphBuilder<'ctx, Op> {
                     id,
                     provides,
                 }),
+        }
+    }
+
+    fn is_field_resolvable_in(&self, field: FieldDefinition<'_>, subgraph_id: SubgraphId) -> bool {
+        match field.parent_entity() {
+            EntityDefinition::Interface(_) => {
+                field.only_resolvable_in_ids.is_empty() || field.only_resolvable_in_ids.contains(&subgraph_id)
+            }
+            EntityDefinition::Object(obj) => {
+                (obj.exists_in_subgraph_ids.is_empty() || obj.exists_in_subgraph_ids.contains(&subgraph_id))
+                    && (field.only_resolvable_in_ids.is_empty() || field.only_resolvable_in_ids.contains(&subgraph_id))
+            }
         }
     }
 

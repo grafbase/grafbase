@@ -15,5 +15,5 @@ workspace = true
 serde.workspace = true
 itertools.workspace = true
 walker = { path = "../walker", package = "engine-walker" }
-fixedbitset = { version = "0.5", features = ["serde"] }
+fixedbitset = { workspace = true, features = ["serde"] }
 grafbase-workspace-hack.workspace = true

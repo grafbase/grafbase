@@ -15,6 +15,10 @@ impl<'a> UnionDefinition<'a> {
             })
             .is_ok()
     }
+
+    pub fn is_inaccessible(&self) -> bool {
+        self.schema.graph.inaccessible_union_definitions[self.id]
+    }
 }
 
 impl std::fmt::Debug for UnionDefinition<'_> {

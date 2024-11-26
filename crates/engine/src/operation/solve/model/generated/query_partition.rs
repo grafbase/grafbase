@@ -22,7 +22,7 @@ use walker::{Iter, Walk};
 ///   selection_set: SelectionSet!
 ///   required_fields: [DataFieldRef!]!
 ///   input: ResponseObjectSetDefinition!
-///   shape_id: ConcreteObjectShapeId!
+///   shape_id: ConcreteShapeId!
 /// }
 /// ```
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
@@ -32,7 +32,7 @@ pub(crate) struct QueryPartitionRecord {
     pub selection_set_record: SelectionSetRecord,
     pub required_field_ids: IdRange<DataFieldRefId>,
     pub input_id: ResponseObjectSetDefinitionId,
-    pub shape_id: ConcreteObjectShapeId,
+    pub shape_id: ConcreteShapeId,
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]

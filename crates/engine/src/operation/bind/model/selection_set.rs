@@ -10,8 +10,6 @@ use super::{BoundFieldArgumentId, BoundFieldId, BoundSelectionSetId};
 
 #[derive(Clone, Default, serde::Serialize, serde::Deserialize)]
 pub(crate) struct BoundSelectionSet {
-    /// (ResponseKey, Option<FieldDefinitionId>) is guaranteed to be unique
-    /// Ordered by query (parent EntityId, query position)
     pub(crate) field_ids: Vec<BoundFieldId>,
 }
 
@@ -67,6 +65,13 @@ pub(crate) struct BoundExtraField {
 }
 
 impl BoundField {
+    pub(crate) fn as_query_field(&self) -> Option<&BoundQueryField> {
+        match self {
+            BoundField::Query(field) => Some(field),
+            _ => None,
+        }
+    }
+
     pub(crate) fn response_key(&self) -> Option<SafeResponseKey> {
         match self {
             BoundField::TypeName(field) => Some(field.key),

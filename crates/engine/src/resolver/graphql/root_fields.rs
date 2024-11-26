@@ -27,8 +27,8 @@ use crate::{
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub(crate) struct GraphqlResolver {
-    pub(super) endpoint_id: GraphqlEndpointId,
-    pub(super) subgraph_operation: PreparedGraphqlOperation,
+    pub endpoint_id: GraphqlEndpointId,
+    pub subgraph_operation: PreparedGraphqlOperation,
 }
 
 impl GraphqlResolver {
@@ -43,7 +43,7 @@ impl GraphqlResolver {
                 PlanError::InternalError
             })?;
 
-        Ok(Resolver::GraphQL(Self {
+        Ok(Resolver::Graphql(Self {
             endpoint_id: definition.endpoint().id,
             subgraph_operation,
         }))

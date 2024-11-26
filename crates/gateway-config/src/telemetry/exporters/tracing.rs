@@ -1,4 +1,4 @@
-use super::ExportersConfig;
+use super::OpenTelemetryExportersConfig;
 
 use serde::de::Error as DeserializeError;
 use serde::{Deserialize, Deserializer};
@@ -19,7 +19,7 @@ pub struct TracingConfig {
     /// Collection configuration
     pub collect: TracingCollectConfig,
     /// Exporters configurations
-    pub exporters: ExportersConfig,
+    pub exporters: OpenTelemetryExportersConfig,
     /// Trace parent and context propagation configuration
     pub propagation: PropagationConfig,
 }

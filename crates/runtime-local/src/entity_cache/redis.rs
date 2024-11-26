@@ -39,9 +39,9 @@ impl RedisEntityCache {
 
     fn expiry_time(&self, duration: std::time::Duration) -> redis::SetExpiry {
         if duration.as_secs() > 60 {
-            redis::SetExpiry::PX(duration.as_millis() as usize)
+            redis::SetExpiry::PX(duration.as_millis() as u64)
         } else {
-            redis::SetExpiry::EX(duration.as_secs() as usize)
+            redis::SetExpiry::EX(duration.as_secs())
         }
     }
 

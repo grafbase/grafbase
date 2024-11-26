@@ -162,7 +162,7 @@ fn retries() {
 
         tokio::time::sleep(METRICS_DELAY).await;
 
-        let rows = clickhouse
+        let mut rows = clickhouse
             .query(
                 r#"
                 SELECT Value, Attributes
@@ -176,6 +176,8 @@ fn retries() {
             .fetch_all::<SumRow>()
             .await
             .unwrap();
+
+        rows.sort_unstable_by_key(|row| row.attributes["graphql.subgraph.aborted"].clone());
 
         insta::assert_json_snapshot!(rows, @r###"
             [

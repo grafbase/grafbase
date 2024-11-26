@@ -4,6 +4,7 @@ mod entity_caching;
 mod header;
 mod operation_limits;
 mod rate_limit;
+pub mod response_extensions;
 mod retry;
 mod subgraph;
 
@@ -25,6 +26,7 @@ pub use rate_limit::{
     GraphRateLimit, RateLimitConfig, RateLimitConfigRef, RateLimitKey, RateLimitRedisConfig, RateLimitRedisConfigRef,
     RateLimitRedisTlsConfig, RateLimitRedisTlsConfigRef, RateLimitStorage,
 };
+pub use response_extensions::ResponseExtensionConfig;
 pub use retry::RetryConfig;
 pub use subgraph::SubgraphConfig;
 
@@ -71,6 +73,17 @@ pub struct Config {
 
     #[serde(default)]
     pub complexity_control: ComplexityControl,
+
+    #[serde(default)]
+    pub response_extension: ResponseExtensionConfig,
+
+    #[serde(default)]
+    pub apq: AutomaticPersistedQueries,
+}
+
+#[derive(serde::Serialize, serde::Deserialize, Debug, Default, Clone, Copy)]
+pub struct AutomaticPersistedQueries {
+    pub enabled: bool,
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Debug, Default)]
@@ -116,6 +129,8 @@ impl Config {
             retry: None,
             batching: Default::default(),
             complexity_control: Default::default(),
+            response_extension: Default::default(),
+            apq: Default::default(),
         }
     }
 

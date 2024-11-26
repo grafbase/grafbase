@@ -23,6 +23,7 @@ use serde::ser::SerializeMap;
 use url::Url;
 
 mod almost_empty;
+pub mod dynamic;
 mod echo;
 mod error_schema;
 mod fake_github;

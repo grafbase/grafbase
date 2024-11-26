@@ -1,8 +1,10 @@
 mod apq;
 mod auth;
 mod basic;
+mod complexity_control;
 mod config;
 mod entity_caching;
+mod extensions;
 mod graphql_over_http;
 mod hooks;
 mod inaccessible;

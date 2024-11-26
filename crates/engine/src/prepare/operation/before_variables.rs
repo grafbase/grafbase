@@ -1,7 +1,7 @@
 use crate::{
     prepare::{
         error::{PrepareError, PrepareResult},
-        CachedOperation, PrepareContext,
+        CachedOperation, CachedOperationAttributes, PrepareContext,
     },
     request::Request,
     Runtime,
@@ -20,17 +20,22 @@ impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
             Ok(op) => op,
             Err(err) => {
                 return Err(PrepareError::Bind {
-                    attributes: Box::new(attributes),
+                    attributes: Box::new(attributes.map(CachedOperationAttributes::attributes_for_error)),
                     err,
                 })
             }
         };
 
+        let mut operation = None;
+        if !self.schema().settings.complexity_control.is_disabled() {
+            operation = Some(bound_operation.clone());
+        }
+
         let solved_operation = match crate::operation::solve(self.schema(), bound_operation) {
             Ok(op) => op,
             Err(err) => {
                 return Err(PrepareError::Solve {
-                    attributes: Box::new(attributes),
+                    attributes: Box::new(attributes.map(CachedOperationAttributes::attributes_for_error)),
                     err,
                 })
             }
@@ -40,6 +45,7 @@ impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
         Ok(CachedOperation {
             solved: solved_operation,
             attributes,
+            operation,
         })
     }
 }

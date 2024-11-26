@@ -11,9 +11,10 @@ repository.workspace = true
 
 [dependencies]
 async-graphql-axum.workspace = true
-async-graphql.workspace = true
+async-graphql = { workspace = true, features = ["dynamic-schema"] }
 async-trait = "0.1.80"
 axum.workspace = true
+cynic-parser.workspace = true
 futures.workspace = true
 headers.workspace = true
 httpsig.workspace = true

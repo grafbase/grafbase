@@ -12,10 +12,12 @@ version = "0.1.0"
 [dependencies]
 base64.workspace = true
 secrecy.workspace = true
+http.workspace = true
 serde.workspace = true
 serde_with.workspace = true
 thiserror.workspace = true
 url = { workspace = true, features = ["serde"] }
+gateway-config.workspace = true
 
 federated-graph.workspace = true
 regex.workspace = true

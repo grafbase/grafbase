@@ -1,7 +1,10 @@
 use schema::{FieldDefinition, SchemaFieldRecord};
 use walker::Walk;
 
-use super::{OperationWalker, SelectionSetWalker};
+use super::{
+    argument::{FieldArgumentWalker, FieldArgumentsWalker},
+    OperationWalker, SelectionSetWalker,
+};
 use crate::{
     operation::{BoundExtraField, BoundField, BoundFieldId, BoundQueryField, Location},
     response::ResponseKey,
@@ -38,6 +41,16 @@ impl<'a> FieldWalker<'a> {
             BoundField::Query(BoundQueryField { selection_set_id, .. }) => selection_set_id.map(|id| self.walk(id)),
             _ => None,
         }
+    }
+
+    pub fn arguments(&self) -> FieldArgumentsWalker<'a> {
+        self.walk(self.as_ref().argument_ids())
+    }
+
+    pub fn argument(&self, name: &str) -> Option<FieldArgumentWalker<'_>> {
+        self.arguments()
+            .into_iter()
+            .find(|argument| argument.definition().name() == name)
     }
 }
 

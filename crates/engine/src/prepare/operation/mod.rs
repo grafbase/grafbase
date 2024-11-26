@@ -1,9 +1,12 @@
 mod after_variables;
 mod before_variables;
+mod complexity_control;
 
 use ::runtime::operation_cache::OperationCache;
+use config::ComplexityControl;
 use futures::FutureExt;
 use runtime::hooks::Hooks;
+use schema::Settings;
 use std::sync::Arc;
 
 use crate::{
@@ -13,7 +16,7 @@ use crate::{
     ErrorCode, Runtime,
 };
 
-use super::{trusted_documents::OperationDocument, PrepareContext, PreparedOperation};
+use super::{error::PrepareResult, trusted_documents::OperationDocument, PrepareContext, PreparedOperation};
 
 impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
     pub(super) async fn prepare_operation_inner(
@@ -74,12 +77,19 @@ impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
             return Err(mutation_not_allowed_with_safe_method());
         }
 
-        let variables = Variables::build(self.schema(), &cached_operation, request.variables)
-            .map_err(|errors| Response::request_error(Some(cached_operation.attributes.clone()), errors))?;
+        let variables = Variables::build(self.schema(), &cached_operation, request.variables).map_err(|errors| {
+            Response::request_error(Some(cached_operation.operation_attributes_for_error()), errors)
+        })?;
 
-        self.prepare_cached_operation(Arc::clone(&cached_operation), variables)
+        let prepared_operation = self
+            .prepare_cached_operation(Arc::clone(&cached_operation), variables)
             .await
-            .map_err(|err| Response::request_error(Some(cached_operation.attributes.clone()), [err]))
+            .map_err(|err| Response::request_error(Some(cached_operation.operation_attributes_for_error()), [err]))?;
+
+        validate_prepared_operation(&prepared_operation, &self.schema().settings)
+            .map_err(|err| Response::request_error(Some(prepared_operation.attributes()), [err]))?;
+
+        Ok(prepared_operation)
     }
 }
 
@@ -91,4 +101,19 @@ fn mutation_not_allowed_with_safe_method<OnOperationResponseHookOutput>() -> Res
             ErrorCode::BadRequest,
         )],
     )
+}
+
+fn validate_prepared_operation(operation: &PreparedOperation, settings: &Settings) -> PrepareResult<()> {
+    let ComplexityControl::Enforce { limit, .. } = settings.complexity_control else {
+        return Ok(());
+    };
+    let Some(complexity) = operation.complexity else {
+        tracing::error!("Complexity control is enabled but complexity could not be calculated!");
+        return Ok(());
+    };
+    if complexity > limit {
+        return Err(super::error::PrepareError::ComplexityLimitReached);
+    }
+
+    Ok(())
 }

@@ -3,9 +3,8 @@ use std::borrow::Cow;
 use walker::Walk;
 
 use crate::{
-    FieldDefinitionId, FieldSet, FieldSetId, GraphqlFederationEntityResolverDefinition,
-    GraphqlRootFieldResolverDefinition, ResolverDefinition, ResolverDefinitionRecord, ResolverDefinitionVariant,
-    Subgraph, SubgraphId,
+    FieldSet, FieldSetId, GraphqlFederationEntityResolverDefinition, GraphqlRootFieldResolverDefinition,
+    ResolverDefinition, ResolverDefinitionRecord, ResolverDefinitionVariant, Subgraph, SubgraphId,
 };
 
 impl ResolverDefinitionRecord {
@@ -42,10 +41,6 @@ impl<'a> ResolverDefinition<'a> {
             ResolverDefinitionVariant::GraphqlRootField(resolver) => resolver.name().into(),
             ResolverDefinitionVariant::GraphqlFederationEntity(resolver) => resolver.name().into(),
         }
-    }
-
-    pub fn can_provide(&self, field_id: FieldDefinitionId) -> bool {
-        field_id.walk(self.schema).is_resolvable_in(self.subgraph_id())
     }
 }
 

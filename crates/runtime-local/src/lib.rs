@@ -1,6 +1,5 @@
 use grafbase_workspace_hack as _;
 
-mod cache;
 mod entity_cache;
 mod fetch;
 #[cfg(feature = "wasi")]
@@ -11,7 +10,6 @@ pub mod rate_limiting;
 #[cfg(feature = "redis")]
 pub mod redis;
 
-pub use cache::InMemoryCache;
 pub use entity_cache::memory::InMemoryEntityCache;
 #[cfg(feature = "redis")]
 pub use entity_cache::redis::RedisEntityCache;

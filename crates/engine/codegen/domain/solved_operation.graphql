@@ -18,7 +18,7 @@ scalar FieldShapeRefId @id
 # - QuerySection -
 # ----------------
 
-scalar ConcreteObjectShapeId @prelude @id
+scalar ConcreteShapeId @prelude @id
 
 type QueryPartition @indexed(id_size: "u16") @meta(module: "query_partition") {
   entity_definition: EntityDefinition!
@@ -26,7 +26,7 @@ type QueryPartition @indexed(id_size: "u16") @meta(module: "query_partition") {
   selection_set: SelectionSet!
   required_fields: [DataFieldRef!]!
   input: ResponseObjectSetDefinition!
-  shape_id: ConcreteObjectShapeId!
+  shape_id: ConcreteShapeId!
 }
 
 type ResponseObjectSetDefinition @meta(module: "response_object_set") @indexed(id_size: "u16", deduplicated: true) {

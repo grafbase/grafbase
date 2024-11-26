@@ -24,8 +24,4 @@ pub struct PublishCommand {
     /// The message to annotate the publication with
     #[arg(long, short = 'm')]
     pub(crate) message: Option<String>,
-
-    /// Add a header to the introspection request
-    #[clap(short = 'H', long, value_parser, num_args = 0..)]
-    header: Vec<String>,
 }

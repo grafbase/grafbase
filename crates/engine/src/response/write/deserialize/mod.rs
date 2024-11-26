@@ -3,7 +3,7 @@ use std::{
     fmt,
 };
 
-use object::ConcreteObjectSeed;
+use object::ConcreteShapeSeed;
 use serde::{
     de::{DeserializeSeed, Visitor},
     Deserializer,
@@ -11,7 +11,7 @@ use serde::{
 
 use crate::{
     execution::ExecutionContext,
-    response::{ConcreteObjectShapeId, ErrorCode, GraphqlError, ResponseWriter},
+    response::{ConcreteShapeId, ErrorCode, GraphqlError, ResponseWriter},
     Runtime,
 };
 
@@ -32,13 +32,13 @@ use scalar::*;
 
 pub(crate) struct UpdateSeed<'ctx> {
     ctx: SeedContext<'ctx>,
-    shape_id: ConcreteObjectShapeId,
+    shape_id: ConcreteShapeId,
 }
 
 impl<'ctx> UpdateSeed<'ctx> {
     pub(super) fn new<R: Runtime>(
         ctx: ExecutionContext<'ctx, R>,
-        shape_id: ConcreteObjectShapeId,
+        shape_id: ConcreteShapeId,
         writer: ResponseWriter<'ctx>,
     ) -> Self {
         let path = RefCell::new(writer.root_path().iter().copied().collect());
@@ -64,7 +64,7 @@ impl<'de, 'ctx> DeserializeSeed<'de> for UpdateSeed<'ctx> {
     {
         let UpdateSeed { ctx, shape_id } = self;
         let result = deserializer.deserialize_option(NullableVisitor(
-            ConcreteObjectSeed::new(&ctx, shape_id).into_fields_seed(),
+            ConcreteShapeSeed::new(&ctx, shape_id).into_fields_seed(),
         ));
 
         match result {

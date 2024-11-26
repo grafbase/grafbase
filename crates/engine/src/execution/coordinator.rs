@@ -110,7 +110,7 @@ impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
             .await
         {
             Ok(output) => Response::execution_error(
-                operation.cached.clone(),
+                &operation,
                 Some(output),
                 operation
                     .plan
@@ -120,7 +120,7 @@ impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
                     .copied()
                     .map(|id| operation.plan.query_modifications[id].clone()),
             ),
-            Err(err) => Response::execution_error(operation.cached.clone(), None, [err]),
+            Err(err) => Response::execution_error(&operation, None, [err]),
         }
     }
 }
@@ -304,8 +304,8 @@ where
                             );
 
                             let response = match self.ctx.hooks().on_operation_response(executed_operation).await {
-                                Ok(output) => Response::execution_error(operation, Some(output), [err]),
-                                Err(err) => Response::execution_error(operation, None, [err]),
+                                Ok(output) => Response::execution_error(self.ctx.operation, Some(output), [err]),
+                                Err(err) => Response::execution_error(self.ctx.operation, None, [err]),
                             };
 
                             if responses.send(response).await.is_err() {
@@ -418,10 +418,10 @@ impl<'ctx, R: Runtime> OperationExecution<'ctx, R> {
         };
 
         let schema = self_.ctx.engine.schema.clone();
-        let operation = self_.ctx.operation.cached.clone();
+        let operation = self_.ctx.operation;
         let executed_operation = self_.executed_operation_builder.build(
-            operation.attributes.name.original(),
-            &operation.attributes.sanitized_query,
+            operation.cached.attributes.name.original(),
+            &operation.cached.attributes.sanitized_query,
             self_.response.graphql_status(),
         );
 
@@ -501,14 +501,14 @@ impl<'ctx, R: Runtime> OperationExecution<'ctx, R> {
             .fields()
             .map(|field| field.key)
             .min()
-            .or_else(|| shape.typename_response_edges.iter().min().copied())
+            .or_else(|| shape.typename_response_keys.iter().min().copied())
             .expect("Selection set without any fields?");
 
         let mut fields = Vec::new();
-        if !shape.typename_response_edges.is_empty() {
+        if !shape.typename_response_keys.is_empty() {
             if let ObjectIdentifier::Known(object_id) = shape.identifier {
                 let name: ResponseValue = self.schema().walk(object_id).as_ref().name_id.into();
-                fields.extend(shape.typename_response_edges.iter().map(|&key| ResponseObjectField {
+                fields.extend(shape.typename_response_keys.iter().map(|&key| ResponseObjectField {
                     key,
                     required_field_id: None,
                     value: name.clone(),

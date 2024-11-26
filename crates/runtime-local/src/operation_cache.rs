@@ -9,18 +9,20 @@ pub struct InMemoryOperationCacheFactory {
 }
 
 impl InMemoryOperationCacheFactory {
-    pub fn inactive() -> Self {
+    pub fn new(limit: usize) -> Self {
         InMemoryOperationCacheFactory {
-            config: InMemoryOperationCacheConfig { limit: 0 },
+            config: InMemoryOperationCacheConfig { limit },
         }
+    }
+
+    pub fn inactive() -> Self {
+        Self::new(0)
     }
 }
 
 impl Default for InMemoryOperationCacheFactory {
     fn default() -> Self {
-        InMemoryOperationCacheFactory {
-            config: InMemoryOperationCacheConfig { limit: 1000 },
-        }
+        Self::new(1000)
     }
 }
 

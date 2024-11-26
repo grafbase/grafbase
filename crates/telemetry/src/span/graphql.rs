@@ -33,6 +33,7 @@ impl Default for GraphqlOperationSpan {
             "grafbase.operation.computed_name" = Empty,
             "graphql.operation.type"  = Empty,
             "graphql.operation.document"  = Empty,
+            "graphql.operation.complexity"  = Empty,
             "graphql.response.data.is_present"  = Empty,
             "graphql.response.data.is_null"  = Empty,
             "graphql.response.errors.count" = Empty,
@@ -57,6 +58,9 @@ impl GraphqlOperationSpan {
         }
         self.record("graphql.operation.document", operation.sanitized_query.as_ref());
         self.record("graphql.operation.type", operation.ty.as_str());
+        if let Some(complexity) = operation.complexity {
+            self.record("graphql.operation.complexity", complexity);
+        }
     }
 
     pub fn record_response<ErrorCode: std::fmt::Display>(

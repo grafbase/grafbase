@@ -12,50 +12,50 @@ use crate::{
 use super::{FieldShape, FieldShapeId};
 
 /// Being concrete does not mean it's only associated with a single object definition id
-/// only that we know exactly which fields must be present for one or multiple of them.
+/// only that we know exactly which fields must be present.
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
-pub(crate) struct ConcreteObjectShapeRecord {
+pub(crate) struct ConcreteShapeRecord {
     pub set_id: Option<ResponseObjectSetDefinitionId>,
     pub identifier: ObjectIdentifier,
-    pub typename_response_edges: Vec<PositionedResponseKey>,
+    pub typename_response_keys: Vec<PositionedResponseKey>,
     // Sorted by expected_key
     pub field_shape_ids: IdRange<FieldShapeId>,
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
-pub(crate) struct ConcreteObjectShapeId(NonZero<u32>);
+pub(crate) struct ConcreteShapeId(NonZero<u32>);
 
-impl std::ops::Deref for ConcreteObjectShape<'_> {
-    type Target = ConcreteObjectShapeRecord;
+impl std::ops::Deref for ConcreteShape<'_> {
+    type Target = ConcreteShapeRecord;
     fn deref(&self) -> &Self::Target {
         self.as_ref()
     }
 }
 
-impl<'ctx> Walk<OperationPlanContext<'ctx>> for ConcreteObjectShapeId {
-    type Walker<'w> = ConcreteObjectShape<'w> where 'ctx: 'w;
+impl<'ctx> Walk<OperationPlanContext<'ctx>> for ConcreteShapeId {
+    type Walker<'w> = ConcreteShape<'w> where 'ctx: 'w;
 
     fn walk<'w>(self, ctx: impl Into<OperationPlanContext<'ctx>>) -> Self::Walker<'w>
     where
         Self: 'w,
         'ctx: 'w,
     {
-        ConcreteObjectShape {
+        ConcreteShape {
             ctx: ctx.into(),
             id: self,
         }
     }
 }
 
-pub(crate) struct ConcreteObjectShape<'a> {
+pub(crate) struct ConcreteShape<'a> {
     pub(super) ctx: OperationPlanContext<'a>,
-    pub(super) id: ConcreteObjectShapeId,
+    pub(super) id: ConcreteShapeId,
 }
 
-impl<'a> ConcreteObjectShape<'a> {
+impl<'a> ConcreteShape<'a> {
     /// Prefer using Deref unless you need the 'a lifetime.
     #[allow(clippy::should_implement_trait)]
-    pub(crate) fn as_ref(&self) -> &'a ConcreteObjectShapeRecord {
+    pub(crate) fn as_ref(&self) -> &'a ConcreteShapeRecord {
         &self.ctx.solved_operation.shapes[self.id]
     }
     pub(crate) fn has_errors(&self) -> bool {

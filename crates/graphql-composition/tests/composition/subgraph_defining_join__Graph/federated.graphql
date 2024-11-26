@@ -1,1 +1,2 @@
+# [bad]: Unknown directive join__graph expected one of authenticated, authorized, composeDirective, cost, external, inaccessible, interfaceObject, key, listSize, override, policy, provides, requires, requiresScopes, shareable, tag
 # [bad] Definition name `join__Graph` is a reserved federation definition name, it cannot be defined in subgraphs.

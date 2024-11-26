@@ -1,5 +1,8 @@
 use crate::*;
-use std::fmt::{self, Display, Write};
+use std::{
+    borrow::Cow,
+    fmt::{self, Display, Write},
+};
 
 pub(super) const BUILTIN_SCALARS: &[&str] = &["ID", "String", "Int", "Float", "Boolean"];
 pub(super) const INDENT: &str = "    ";
@@ -196,18 +199,6 @@ impl Display for Arguments<'_> {
     }
 }
 
-pub(super) struct MaybeDisplay<T>(pub Option<T>);
-
-impl<T: Display> Display for MaybeDisplay<T> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        if let Some(inner) = &self.0 {
-            Display::fmt(inner, f)?;
-        }
-
-        Ok(())
-    }
-}
-
 /// Displays a field set inside quotes
 pub(super) struct SelectionSetDisplay<'a>(pub &'a crate::SelectionSet, pub &'a FederatedGraph);
 
@@ -227,12 +218,12 @@ impl Display for BareSelectionSetDisplay<'_> {
 
         while let Some(selection) = selections.next() {
             match selection {
-                Selection::Field {
-                    field,
+                Selection::Field(FieldSelection {
+                    field_id,
                     arguments,
                     subselection,
-                } => {
-                    let name = &graph[graph[*field].name];
+                }) => {
+                    let name = &graph[graph[*field_id].name];
 
                     f.write_str(name)?;
 
@@ -317,63 +308,9 @@ pub(super) fn write_description(
     Display::fmt(&Description(&graph[description], indent), f)
 }
 
-pub(crate) fn write_composed_directive<'a, 'b: 'a>(
-    f: &'a mut fmt::Formatter<'b>,
-    directive: &Directive,
-    graph: &'a FederatedGraph,
-) -> fmt::Result {
-    match directive {
-        Directive::Authenticated => {
-            DirectiveWriter::new("authenticated", f, graph)?;
-        }
-        Directive::Inaccessible => {
-            DirectiveWriter::new("inaccessible", f, graph)?;
-        }
-        Directive::Deprecated { reason } => {
-            let directive = DirectiveWriter::new("deprecated", f, graph)?;
-
-            if let Some(reason) = reason {
-                directive.arg("reason", Value::String(*reason))?;
-            }
-        }
-        Directive::Policy(policies) => {
-            let policies = Value::List(
-                policies
-                    .iter()
-                    .map(|p| Value::List(p.iter().map(|p| Value::String(*p)).collect()))
-                    .collect(),
-            );
-
-            DirectiveWriter::new("policy", f, graph)?.arg("policies", policies)?;
-        }
-
-        Directive::RequiresScopes(scopes) => {
-            let scopes = Value::List(
-                scopes
-                    .iter()
-                    .map(|p| Value::List(p.iter().map(|p| Value::String(*p)).collect()))
-                    .collect(),
-            );
-
-            DirectiveWriter::new("requiresScopes", f, graph)?.arg("scopes", scopes)?;
-        }
-        Directive::Cost { weight } => {
-            DirectiveWriter::new("cost", f, graph)?.arg("weight", Value::Int(*weight as i64))?;
-        }
-        Directive::Other { name, arguments } => {
-            let mut directive = DirectiveWriter::new(&graph[*name], f, graph)?;
-
-            for (name, value) in arguments {
-                directive = directive.arg(&graph[*name], value.clone())?;
-            }
-        }
-    }
-
-    Ok(())
-}
-
 pub(crate) enum DisplayableArgument<'a> {
     Value(Value),
+    String(Cow<'a, str>),
     /// Be careful using this - it will not encode enums correctly...
     JsonValue(serde_json::Value),
     FieldSet(SelectionSetDisplay<'a>),
@@ -389,6 +326,7 @@ impl<'a> DisplayableArgument<'a> {
             DisplayableArgument::FieldSet(v) => v.fmt(f),
             DisplayableArgument::InputValueDefinitionSet(v) => v.fmt(f),
             DisplayableArgument::GraphEnumVariantName(inner) => inner.fmt(f),
+            DisplayableArgument::String(s) => write_quoted(f, s),
         }
     }
 }
@@ -420,6 +358,20 @@ impl<'a> From<InputValueDefinitionSetDisplay<'a>> for DisplayableArgument<'a> {
 impl From<serde_json::Value> for DisplayableArgument<'_> {
     fn from(value: serde_json::Value) -> Self {
         DisplayableArgument::JsonValue(value)
+    }
+}
+impl From<String> for DisplayableArgument<'_> {
+    fn from(value: String) -> Self {
+        DisplayableArgument::String(value.into())
+    }
+}
+
+impl<'a, 'b> From<&'a str> for DisplayableArgument<'b>
+where
+    'a: 'b,
+{
+    fn from(value: &'a str) -> Self {
+        DisplayableArgument::String(value.into())
     }
 }
 

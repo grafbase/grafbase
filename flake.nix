@@ -12,15 +12,11 @@
   description = "Grafbase development environment";
 
   inputs = {
-    crane = {
-      url = "github:ipetkov/crane";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
+    crane.url = "github:ipetkov/crane";
     rust-overlay = {
       url = "github:oxalica/rust-overlay";
       inputs = {
         nixpkgs.follows = "nixpkgs";
-        flake-utils.follows = "flake-utils";
       };
     };
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
@@ -41,6 +37,12 @@
     flake = flake-utils.lib.eachDefaultSystem (system: let
       pkgs = import nixpkgs {
         inherit system;
+        overlays = [
+          (final: prev: {
+            # for federation-audit test
+            nodejs = prev.nodejs_22;
+          })
+        ];
       };
 
       aarch64DarwinExternalCargoCrates = concatStringsSep " " ["cargo-instruments@0.4.8" "cargo-about@0.6.1"];
@@ -81,7 +83,7 @@
             libiconv
 
             # federation-audit test
-            nodejs_22
+            nodejs
             typescript
           ]
           ++ optional (system == systems.aarch64-darwin) [

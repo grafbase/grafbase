@@ -33,8 +33,8 @@ use super::{
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub(crate) struct FederationEntityResolver {
-    endpoint_id: GraphqlEndpointId,
-    subgraph_operation: PreparedFederationEntityOperation,
+    pub endpoint_id: GraphqlEndpointId,
+    pub subgraph_operation: PreparedFederationEntityOperation,
 }
 
 impl FederationEntityResolver {

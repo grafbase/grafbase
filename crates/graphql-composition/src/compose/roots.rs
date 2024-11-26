@@ -60,25 +60,20 @@ fn merge_fields<'a>(
             };
 
             ctx.insert_field(ir::FieldIr {
-                parent_definition: federated::Definition::Object(object_id),
+                parent_definition_name: type_name,
                 field_name,
                 field_type,
                 arguments: federated::NO_INPUT_VALUE_DEFINITION,
-                resolvable_in: Vec::new(),
-                provides: Vec::new(),
-                requires: Vec::new(),
-                authorized_directives: Vec::new(),
-                overrides: Vec::new(),
-                composed_directives: federated::NO_DIRECTIVES,
                 description: None,
+                directives: Vec::new(),
             });
         }
     }
 
-    super::fields::for_each_field_group(definitions, |fields| {
-        let Some(first) = fields.first() else { return };
-        object::compose_object_fields(object_id, type_name, false, *first, fields, ctx);
-    });
+    let fields = object::compose_fields(ctx, definitions, type_name, false);
+    for field in fields {
+        ctx.insert_field(field);
+    }
 
     Some(object_id)
 }

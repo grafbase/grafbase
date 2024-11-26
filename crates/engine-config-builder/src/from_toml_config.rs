@@ -42,6 +42,16 @@ pub fn build_with_toml_config(config: &gateway_config::Config, graph: FederatedG
             limit: config.gateway.batching.limit.map(usize::from),
         },
         complexity_control: build_complexity_control(&config.complexity_control),
+        response_extension: config
+            .telemetry
+            .exporters
+            .response_extension
+            .clone()
+            .unwrap_or_default()
+            .into(),
+        apq: engine_config::AutomaticPersistedQueries {
+            enabled: config.apq.enabled,
+        },
     }
 }
 

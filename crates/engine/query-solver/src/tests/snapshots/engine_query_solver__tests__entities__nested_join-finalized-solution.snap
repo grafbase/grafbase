@@ -1,6 +1,6 @@
 ---
-source: engine/crates/engine/query-solver/src/tests/entities.rs
-expression: "digraph {\n    0 [ label = \"root\" ]\n    1 [ label = \"Root#category\", color=royalblue,shape=parallelogram ]\n    2 [ label = \"products\" ]\n    3 [ label = \"FedEntity#review\", color=royalblue,shape=parallelogram ]\n    4 [ label = \"reviews\" ]\n    5 [ label = \"stars\" ]\n    6 [ label = \"*id*\" ]\n    0 -> 1 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    1 -> 2 [ label = \"\" ]\n    2 -> 3 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    3 -> 4 [ label = \"\" ]\n    4 -> 5 [ label = \"\" ]\n    2 -> 6 [ label = \"\" ]\n    3 -> 6 [ label = \"\", color=orangered,arrowhead=inv ]\n}\n"
+source: crates/engine/query-solver/src/tests/entities.rs
+expression: "digraph {\n    0 [ label = \"root\" ]\n    1 [ label = \"Root#category\", color=royalblue,shape=parallelogram ]\n    2 [ label = \"products\" ]\n    3 [ label = \"FedEntity#review\", color=royalblue,shape=parallelogram ]\n    4 [ label = \"reviews\" ]\n    5 [ label = \"stars\" ]\n    6 [ label = \"*id*\" ]\n    0 -> 1 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    3 -> 6 [ label = \"\", color=orangered,arrowhead=inv ]\n    2 -> 3 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    1 -> 2 [ label = \"\" ]\n    4 -> 5 [ label = \"\" ]\n    2 -> 6 [ label = \"\" ]\n    3 -> 4 [ label = \"\" ]\n}\n"
 ---
 digraph {
     0 [ label = "root" ]
@@ -11,10 +11,10 @@ digraph {
     5 [ label = "stars" ]
     6 [ label = "*id*" ]
     0 -> 1 [ label = "QueryPartition" ]
-    1 -> 2 [ label = "Field" ]
+    3 -> 6 [ label = "RequiredBySubgraph" ]
     2 -> 3 [ label = "QueryPartition" ]
-    3 -> 4 [ label = "Field" ]
+    1 -> 2 [ label = "Field" ]
     4 -> 5 [ label = "Field" ]
     2 -> 6 [ label = "Field" ]
-    3 -> 6 [ label = "RequiredBySubgraph" ]
+    3 -> 4 [ label = "Field" ]
 }

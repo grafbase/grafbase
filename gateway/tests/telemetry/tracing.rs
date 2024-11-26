@@ -42,6 +42,52 @@ fn no_traceparent_no_propagation() {
 }
 
 #[test]
+fn grafbase_response_extension_has_the_right_trace_id() {
+    with_mock_subgraph(
+        "
+            [telemetry.tracing.propagation]
+            trace_context = true
+        ",
+        graphql_mocks::EchoSchema,
+        |_service_name, _start, gateway, _clickhouse| async move {
+            let request = r#"
+                query {
+                    __typename
+                }
+            "#;
+
+            let response: serde_json::Value = gateway
+                .gql(request)
+                .header("traceparent", "00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01")
+                .header("x-grafbase-telemetry", "")
+                .send()
+                .await;
+
+            insta::assert_json_snapshot!(response, @r#"
+            {
+              "data": {
+                "__typename": "Query"
+              },
+              "extensions": {
+                "grafbase": {
+                  "traceId": "af7651916cd43dd8448eb211c80319c",
+                  "queryPlan": {
+                    "nodes": [
+                      {
+                        "__typename": "IntrospectionResolver"
+                      }
+                    ],
+                    "edges": []
+                  }
+                }
+              }
+            }
+            "#);
+        },
+    );
+}
+
+#[test]
 fn tracecontext_traceparent_propagation() {
     with_mock_subgraph(
         "

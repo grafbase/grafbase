@@ -1,6 +1,16 @@
+mod extensions;
+mod object_set;
+mod path;
+mod read;
+mod shape;
+mod value;
+mod write;
+
 use std::sync::Arc;
 
 pub(crate) use error::*;
+use extensions::ResponseExtensions;
+pub(crate) use extensions::*;
 use grafbase_telemetry::graphql::{GraphqlExecutionTelemetry, GraphqlOperationAttributes, GraphqlResponseStatus};
 pub(crate) use key::*;
 pub(crate) use object_set::*;
@@ -11,16 +21,10 @@ pub(crate) use shape::*;
 pub(crate) use value::*;
 pub(crate) use write::*;
 
-use crate::prepare::CachedOperation;
+use crate::prepare::{CachedOperation, PreparedOperation};
 
 pub(crate) mod error;
 pub(crate) mod key;
-mod object_set;
-mod path;
-mod read;
-mod shape;
-mod value;
-mod write;
 
 pub(crate) enum Response<OnOperationResponseHookOutput> {
     /// Before or while validating we have a well-formed GraphQL-over-HTTP request, we may
@@ -40,10 +44,12 @@ pub(crate) enum Response<OnOperationResponseHookOutput> {
 
 pub(crate) struct ExecutedResponse<OnOperationResponseHookOutput> {
     operation: Arc<CachedOperation>,
+    operation_attributes: GraphqlOperationAttributes,
     data: Option<ResponseData>,
     errors: Vec<GraphqlError>,
     error_code_counter: ErrorCodeCounter,
     on_operation_response_output: Option<OnOperationResponseHookOutput>,
+    extensions: Option<ResponseExtensions>,
 }
 
 impl<OnOperationResponseHookOutput> ExecutedResponse<OnOperationResponseHookOutput> {
@@ -73,12 +79,14 @@ pub(crate) struct RequestErrorResponse {
     operation_attributes: Option<GraphqlOperationAttributes>,
     errors: Vec<GraphqlError>,
     error_code_counter: ErrorCodeCounter,
+    extensions: Option<ResponseExtensions>,
 }
 
 pub(crate) struct RefusedRequestResponse {
     status: http::StatusCode,
     errors: Vec<GraphqlError>,
     error_code_counter: ErrorCodeCounter,
+    extensions: Option<ResponseExtensions>,
 }
 
 impl RefusedRequestResponse {
@@ -107,6 +115,7 @@ impl<OnOperationResponseHookOutput> Response<OnOperationResponseHookOutput> {
             status,
             errors,
             error_code_counter,
+            extensions: None,
         })
     }
 
@@ -124,11 +133,12 @@ impl<OnOperationResponseHookOutput> Response<OnOperationResponseHookOutput> {
             operation_attributes,
             errors,
             error_code_counter,
+            extensions: None,
         })
     }
 
     pub(crate) fn execution_error(
-        operation: Arc<CachedOperation>,
+        operation: &PreparedOperation,
         on_operation_response_output: Option<OnOperationResponseHookOutput>,
         errors: impl IntoIterator<Item: Into<GraphqlError>>,
     ) -> Self {
@@ -136,12 +146,28 @@ impl<OnOperationResponseHookOutput> Response<OnOperationResponseHookOutput> {
         let error_code_counter = ErrorCodeCounter::from_errors(&errors);
 
         Self::Executed(ExecutedResponse {
-            operation,
+            operation: operation.cached.clone(),
+            operation_attributes: operation.attributes(),
             data: None,
             on_operation_response_output,
             errors,
             error_code_counter,
+            extensions: None,
         })
+    }
+
+    pub(crate) fn with_grafbase_extension(mut self, ext: Option<GrafbaseResponseExtension>) -> Self {
+        self.extensions_mut().grafbase = ext;
+        self
+    }
+
+    pub(crate) fn extensions_mut(&mut self) -> &mut ResponseExtensions {
+        match self {
+            Self::RefusedRequest(resp) => &mut resp.extensions,
+            Self::RequestError(resp) => &mut resp.extensions,
+            Self::Executed(resp) => &mut resp.extensions,
+        }
+        .get_or_insert_with(Default::default)
     }
 
     pub(crate) fn take_on_operation_response_output(&mut self) -> Option<OnOperationResponseHookOutput> {
@@ -166,7 +192,7 @@ impl<OnOperationResponseHookOutput> Response<OnOperationResponseHookOutput> {
         match self {
             Self::RefusedRequest(_) => None,
             Self::RequestError(resp) => resp.operation_attributes.as_ref(),
-            Self::Executed(resp) => Some(&resp.operation.attributes),
+            Self::Executed(resp) => Some(&resp.operation_attributes),
         }
     }
 

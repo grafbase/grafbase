@@ -17,14 +17,14 @@ use schema::{ObjectDefinitionId, Schema};
 use self::deserialize::UpdateSeed;
 
 use super::{
-    value::ResponseObjectField, ConcreteObjectShapeId, ErrorCode, ErrorCodeCounter, ExecutedResponse, GraphqlError,
-    InputResponseObjectSet, OutputResponseObjectSets, PositionedResponseKey, Response, ResponseData, ResponseEdge,
-    ResponseObject, ResponseObjectRef, ResponseObjectSet, ResponsePath, ResponseValue, UnpackedResponseEdge,
+    value::ResponseObjectField, ConcreteShapeId, ErrorCode, ErrorCodeCounter, ExecutedResponse, GraphqlError,
+    InputResponseObjectSet, OutputResponseObjectSets, PositionedResponseKey, PreparedOperation, Response, ResponseData,
+    ResponseEdge, ResponseObject, ResponseObjectRef, ResponseObjectSet, ResponsePath, ResponseValue,
+    UnpackedResponseEdge,
 };
 use crate::{
     execution::{ExecutionContext, ExecutionError},
     operation::ResponseObjectSetDefinitionId,
-    prepare::CachedOperation,
     utils::BufferPool,
     Runtime,
 };
@@ -88,7 +88,7 @@ impl ResponseBuilder {
 
     pub fn new_subgraph_response(
         &mut self,
-        shape_id: ConcreteObjectShapeId,
+        shape_id: ConcreteShapeId,
         root_response_object_set: Arc<InputResponseObjectSet>,
     ) -> SubgraphResponse {
         let id = ResponseDataPartId::from(self.parts.len());
@@ -366,12 +366,13 @@ impl ResponseBuilder {
     pub fn build<OnOperationResponseHookOutput>(
         self,
         schema: Arc<Schema>,
-        operation: Arc<CachedOperation>,
+        operation: &PreparedOperation,
         on_operation_response_output: OnOperationResponseHookOutput,
     ) -> Response<OnOperationResponseHookOutput> {
         let error_code_counter = ErrorCodeCounter::from_errors(&self.errors);
         Response::Executed(ExecutedResponse {
-            operation,
+            operation: operation.cached.clone(),
+            operation_attributes: operation.attributes(),
             data: self.root.map(|(root, _)| ResponseData {
                 schema,
                 root,
@@ -380,6 +381,7 @@ impl ResponseBuilder {
             errors: self.errors,
             error_code_counter,
             on_operation_response_output: Some(on_operation_response_output),
+            extensions: None,
         })
     }
 
@@ -486,7 +488,7 @@ enum ResponseValueId {
 
 pub(crate) struct SubgraphResponse {
     data: ResponseDataPart,
-    shape_id: ConcreteObjectShapeId,
+    shape_id: ConcreteShapeId,
     root_response_object_set: Arc<InputResponseObjectSet>,
     errors: Vec<GraphqlError>,
     updates: Vec<UpdateSlot>,
@@ -497,7 +499,7 @@ pub(crate) struct SubgraphResponse {
 impl SubgraphResponse {
     fn new(
         data: ResponseDataPart,
-        shape_id: ConcreteObjectShapeId,
+        shape_id: ConcreteShapeId,
         root_response_object_set: Arc<InputResponseObjectSet>,
     ) -> Self {
         Self {
@@ -591,15 +593,15 @@ impl<'resp> ResponseWriter<'resp> {
     }
 
     // Create a Vec with `new_list` before to re-use an existing Vec.
-    pub fn push_list(&self, values: Vec<ResponseValue>) -> ResponseListId {
+    pub fn push_list(&self, mut values: Vec<ResponseValue>) -> ResponseListId {
         let mut part = self.part();
-        let id = part.data.push_list(&values);
+        let id = part.data.push_list(&mut values);
         part.buffers.push(values);
         id
     }
 
     pub fn push_empty_list(&self) -> ResponseListId {
-        self.part().data.push_list(&[])
+        self.part().data.push_list(&mut Vec::new())
     }
 
     pub fn update_root_object_with(&self, fields: Vec<ResponseObjectField>) {

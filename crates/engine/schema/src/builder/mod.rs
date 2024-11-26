@@ -3,20 +3,20 @@ mod error;
 mod external_sources;
 mod field_set;
 mod graph;
-mod ids;
 mod input_values;
 mod interner;
 
+use std::collections::HashMap;
 use std::mem::take;
 use std::time::Duration;
 
 use config::Config;
 use external_sources::ExternalDataSources;
+use federated_graph::TypeDefinitionId;
 use url::Url;
 
 use self::error::*;
 use self::graph::GraphBuilder;
-use self::ids::IdMaps;
 use self::interner::ProxyKeyInterner;
 
 pub use self::error::BuildError;
@@ -39,8 +39,9 @@ pub(crate) fn build(mut config: Config, version: Version) -> Result<Schema, Buil
 pub(crate) struct BuildContext {
     pub strings: Interner<String, StringId>,
     pub regexps: ProxyKeyInterner<Regex, RegexId>,
-    pub(crate) idmaps: IdMaps,
     urls: Interner<Url, UrlId>,
+    scalar_mapping: HashMap<TypeDefinitionId, ScalarDefinitionId>,
+    enum_mapping: HashMap<TypeDefinitionId, EnumDefinitionId>,
 }
 
 impl BuildContext {
@@ -49,7 +50,8 @@ impl BuildContext {
             strings: Interner::from_vec(take(&mut config.graph.strings)),
             regexps: Default::default(),
             urls: Interner::default(),
-            idmaps: IdMaps::new(&config.graph),
+            scalar_mapping: HashMap::new(),
+            enum_mapping: HashMap::new(),
         }
     }
 
@@ -142,6 +144,8 @@ impl BuildContext {
                 retry: config.retry.map(Into::into),
                 batching: take(&mut config.batching),
                 complexity_control: take(&mut config.complexity_control),
+                response_extension: config.response_extension,
+                apq_enabled: config.apq.enabled,
             },
         })
     }
@@ -155,11 +159,11 @@ impl BuildContext {
 
     fn convert_definition(&self, definition: federated_graph::Definition) -> DefinitionId {
         match definition {
-            federated_graph::Definition::Scalar(id) => DefinitionId::Scalar(self.idmaps.convert_scalar_id(id)),
+            federated_graph::Definition::Scalar(id) => DefinitionId::Scalar(self.scalar_mapping[&id]),
             federated_graph::Definition::Object(id) => DefinitionId::Object(id.into()),
             federated_graph::Definition::Interface(id) => DefinitionId::Interface(id.into()),
             federated_graph::Definition::Union(id) => DefinitionId::Union(id.into()),
-            federated_graph::Definition::Enum(id) => DefinitionId::Enum(self.idmaps.convert_enum_id(id)),
+            federated_graph::Definition::Enum(id) => DefinitionId::Enum(self.enum_mapping[&id]),
             federated_graph::Definition::InputObject(id) => DefinitionId::InputObject(id.into()),
         }
     }
@@ -186,7 +190,19 @@ from_id_newtypes! {
     federated_graph::StringId => StringId,
     federated_graph::SubgraphId => GraphqlEndpointId,
     federated_graph::UnionId => UnionDefinitionId,
+    federated_graph::EnumValueId => EnumValueId,
+    federated_graph::InputValueDefinitionId => InputValueDefinitionId,
+    federated_graph::FieldId => FieldDefinitionId,
     config::HeaderRuleId => HeaderRuleId,
+}
+
+impl From<federated_graph::EntityDefinitionId> for EntityDefinitionId {
+    fn from(id: federated_graph::EntityDefinitionId) -> Self {
+        match id {
+            federated_graph::EntityDefinitionId::Object(id) => EntityDefinitionId::Object(id.into()),
+            federated_graph::EntityDefinitionId::Interface(id) => EntityDefinitionId::Interface(id.into()),
+        }
+    }
 }
 
 const DEFAULT_GATEWAY_TIMEOUT: Duration = Duration::from_secs(30);

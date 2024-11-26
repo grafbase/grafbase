@@ -6,8 +6,8 @@ use crate::{FieldSetId, Graph, SchemaFieldId};
 
 use super::{
     coerce::{InputValueCoercer, InputValueError},
-    BuildContext, BuildError, FieldSetItemRecord, FieldSetRecord, SchemaFieldArgumentRecord, SchemaFieldRecord,
-    SchemaLocation,
+    BuildContext, BuildError, FieldSetItemRecord, FieldSetRecord, InputValueDefinitionId, SchemaFieldArgumentRecord,
+    SchemaFieldRecord, SchemaLocation,
 };
 
 #[derive(Default)]
@@ -73,19 +73,14 @@ impl<'a> Converter<'a> {
         field_set: federated_graph::SelectionSet,
         out: &mut Vec<FieldSetItemRecord>,
     ) -> Result<(), InputValueError> {
-        for item in field_set {
-            match item {
-                federated_graph::Selection::Field {
-                    field,
-                    arguments,
-                    subselection,
-                } => {
-                    if let Some(field) = self.convert_item(field, arguments, subselection)? {
-                        out.push(field)
+        let mut stack = vec![field_set];
+        while let Some(field_set) = stack.pop() {
+            for item in field_set.0 {
+                match item {
+                    federated_graph::Selection::Field(field) => {
+                        out.extend(self.convert_item(field.field_id, field.arguments, field.subselection)?)
                     }
-                }
-                federated_graph::Selection::InlineFragment { on: _, subselection } => {
-                    self.convert_set_rec(subselection, out)?;
+                    federated_graph::Selection::InlineFragment { on: _, subselection } => stack.push(subselection),
                 }
             }
         }
@@ -95,28 +90,23 @@ impl<'a> Converter<'a> {
 
     fn convert_item(
         &mut self,
-        field: federated_graph::FieldId,
+        field_id: federated_graph::FieldId,
         arguments: Vec<(federated_graph::InputValueDefinitionId, federated_graph::Value)>,
         subselection: federated_graph::SelectionSet,
     ) -> Result<Option<FieldSetItemRecord>, InputValueError> {
-        let Some(definition_id) = self.ctx.idmaps.field.get(field) else {
-            return Ok(None);
-        };
+        let field_definition_id = field_id.into();
 
         let mut federated_arguments = arguments
             .into_iter()
-            .filter_map(|(id, value)| {
-                let definition_id = self.ctx.idmaps.input_value.get(id)?;
-                Some((definition_id, value))
-            })
+            .map(|(id, value)| (InputValueDefinitionId::from(id), value))
             .collect::<Vec<_>>();
         let mut field = SchemaFieldRecord {
-            definition_id,
+            definition_id: field_definition_id,
             sorted_argument_ids: IdRange::empty(),
         };
 
         let start = self.field_arguments.len();
-        for definition_id in self.graph[definition_id].argument_ids {
+        for definition_id in self.graph[field_definition_id].argument_ids {
             let input_value_definition = &self.graph[definition_id];
             if let Some(index) = federated_arguments.iter().position(|(id, _)| *id == definition_id) {
                 let (_, value) = federated_arguments.swap_remove(index);
@@ -148,7 +138,7 @@ impl<'a> Converter<'a> {
             .or_insert_with(|| SchemaFieldId::from(n));
 
         Ok(Some(FieldSetItemRecord {
-            alias_id: self.graph[definition_id].name_id,
+            alias_id: self.graph[field_definition_id].name_id,
             id,
             subselection_record: self.convert_set(subselection)?,
         }))

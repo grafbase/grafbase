@@ -1,6 +1,6 @@
 use walker::Walk;
 
-use crate::{FieldDefinition, FieldSet, InputValueDefinition, SubgraphId, TypeSystemDirective};
+use crate::{FieldDefinition, FieldSet, InputValueDefinition, ListSizeDirective, SubgraphId, TypeSystemDirective};
 
 impl<'a> FieldDefinition<'a> {
     pub fn argument_by_name(&self, name: &str) -> Option<InputValueDefinition<'a>> {
@@ -27,10 +27,6 @@ impl<'a> FieldDefinition<'a> {
         })
     }
 
-    pub fn is_resolvable_in(&self, subgraph_id: SubgraphId) -> bool {
-        self.only_resolvable_in_ids.is_empty() || self.only_resolvable_in_ids.contains(&subgraph_id)
-    }
-
     pub fn has_required_fields_for_subgraph(&self, subgraph_id: SubgraphId) -> bool {
         self.as_ref()
             .requires_records
@@ -44,5 +40,23 @@ impl<'a> FieldDefinition<'a> {
                 | TypeSystemDirective::ListSize(_) => false,
                 TypeSystemDirective::Authorized(directive) => directive.fields().is_some(),
             })
+    }
+
+    pub fn is_inaccessible(&self) -> bool {
+        self.schema.graph.inaccessible_field_definitions[self.id]
+    }
+
+    pub fn cost(&self) -> Option<i32> {
+        self.directives().find_map(|directive| match directive {
+            TypeSystemDirective::Cost(cost) => Some(cost.weight),
+            _ => None,
+        })
+    }
+
+    pub fn list_size(&self) -> Option<ListSizeDirective<'a>> {
+        self.directives().find_map(|directive| match directive {
+            TypeSystemDirective::ListSize(list_size_directive) => Some(list_size_directive),
+            _ => None,
+        })
     }
 }

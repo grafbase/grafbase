@@ -4,6 +4,12 @@ retries = 2
 failure-output = "immediate-final"
 fail-fast = false
 
+[[profile.ci.overrides]]
+# Telemetry ones tend to be flaky, not sure how to specify only the telemetry ones though...
+filter = 'package(grafbase-gateway)'
+retries = 2
+
+
 [profile.ci.junit]
 # output test results at target/nextest/ci/junit.xml
 path = "junit.xml"

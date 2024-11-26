@@ -1,7 +1,6 @@
 { pkgs
 , crane
 , lib
-, config
 , ...
 }:
 let
@@ -22,9 +21,9 @@ let
     /renovate.json
     /scripts
 
-    !/engine/crates/validation/README.md
-    !/engine/crates/composition/README.md
-    !/engine/crates/graphql-schema-diff/README.md
+    !/crates/graphql-schema-validation/README.md
+    !/crates/graphql-composition/README.md
+    !/crates/graphql-schema-diff/README.md
   '';
 
   src = pkgs.nix-gitignore.gitignoreSource [ extraIgnores ] (lib.cleanSourceWith {
@@ -46,7 +45,7 @@ in
     version = builtins.readFile version;
     stdenv = pkgs.clangStdenv;
 
-    cargoBuildFlags = "-p grafbase";
+    cargoExtraArgs = "-p grafbase";
 
     RUSTFLAGS = builtins.concatStringsSep " " [
       "-Arust-2018-idioms -Aunused-crate-dependencies"

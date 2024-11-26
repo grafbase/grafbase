@@ -19,6 +19,6 @@ type Query {
 
 interface Animal {
     favouriteFood: String
-    species: String!
+    species: String
     weightGrams: Int
 }

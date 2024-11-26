@@ -1,11 +1,13 @@
-use grafbase_telemetry::graphql::{GraphqlOperationAttributes, OperationName};
+use grafbase_telemetry::graphql::OperationName;
+
+use crate::prepare::CachedOperationAttributes;
 
 use super::parse::ParsedOperation;
 
-pub(crate) fn extract_attributes(operation: &ParsedOperation, document: &str) -> Option<GraphqlOperationAttributes> {
+pub(crate) fn extract_attributes(operation: &ParsedOperation, document: &str) -> Option<CachedOperationAttributes> {
     operation_normalizer::normalize(document, operation.name.as_deref())
         .ok()
-        .map(|sanitized_query| GraphqlOperationAttributes {
+        .map(|sanitized_query| CachedOperationAttributes {
             ty: operation.definition.ty.into(),
             name: if let Some(name) = operation.name.clone() {
                 OperationName::Original(name)

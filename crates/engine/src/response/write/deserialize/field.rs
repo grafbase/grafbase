@@ -3,7 +3,7 @@ use serde::de::DeserializeSeed;
 use walker::Walk;
 
 use super::{
-    object::{ConcreteObjectSeed, PolymorphicObjectSeed},
+    object::{ConcreteShapeSeed, PolymorphicShapeSeed},
     EnumValueSeed, ListSeed, NullableSeed, ScalarTypeSeed, SeedContext,
 };
 use crate::response::{ErrorCode, FieldShapeRecord, GraphqlError, ResponseValue, Shape};
@@ -39,13 +39,14 @@ impl<'de, 'ctx, 'parent> DeserializeSeed<'de> for FieldSeed<'ctx, 'parent> {
         } else if self.wrapping.inner_is_required() {
             match self.field.shape {
                 Shape::Scalar(ty) => ScalarTypeSeed(ty).deserialize(deserializer),
-                Shape::Enum(id) => EnumValueSeed(self.ctx, id).deserialize(deserializer),
-                Shape::ConcreteObject(shape_id) => {
-                    ConcreteObjectSeed::new(self.ctx, shape_id).deserialize(deserializer)
+                Shape::Enum(id) => EnumValueSeed {
+                    ctx: self.ctx,
+                    id,
+                    is_extra: self.field.key.query_position.is_none(),
                 }
-                Shape::PolymorphicObject(shape_id) => {
-                    PolymorphicObjectSeed::new(self.ctx, shape_id).deserialize(deserializer)
-                }
+                .deserialize(deserializer),
+                Shape::Concrete(shape_id) => ConcreteShapeSeed::new(self.ctx, shape_id).deserialize(deserializer),
+                Shape::Polymorphic(shape_id) => PolymorphicShapeSeed::new(self.ctx, shape_id).deserialize(deserializer),
             }
         } else {
             match self.field.shape {
@@ -58,19 +59,23 @@ impl<'de, 'ctx, 'parent> DeserializeSeed<'de> for FieldSeed<'ctx, 'parent> {
                 Shape::Enum(enum_definition_id) => NullableSeed {
                     ctx: self.ctx,
                     field_id: self.field.id,
-                    seed: EnumValueSeed(self.ctx, enum_definition_id),
+                    seed: EnumValueSeed {
+                        ctx: self.ctx,
+                        id: enum_definition_id,
+                        is_extra: self.field.key.query_position.is_none(),
+                    },
                 }
                 .deserialize(deserializer),
-                Shape::ConcreteObject(shape_id) => NullableSeed {
+                Shape::Concrete(shape_id) => NullableSeed {
                     ctx: self.ctx,
                     field_id: self.field.id,
-                    seed: ConcreteObjectSeed::new(self.ctx, shape_id),
+                    seed: ConcreteShapeSeed::new(self.ctx, shape_id),
                 }
                 .deserialize(deserializer),
-                Shape::PolymorphicObject(shape_id) => NullableSeed {
+                Shape::Polymorphic(shape_id) => NullableSeed {
                     ctx: self.ctx,
                     field_id: self.field.id,
-                    seed: PolymorphicObjectSeed::new(self.ctx, shape_id),
+                    seed: PolymorphicShapeSeed::new(self.ctx, shape_id),
                 }
                 .deserialize(deserializer),
             }

@@ -9,7 +9,6 @@ use petgraph::{
     visit::{EdgeRef, IntoNodeReferences},
     Direction,
 };
-use walker::Walk;
 
 use crate::{
     dot_graph::Attrs,
@@ -51,22 +50,6 @@ impl<'g, 'ctx, Op: Operation> Solver<'g, 'ctx, Op> {
         let mut terminals = Vec::new();
         for (node_ix, node) in operation_graph.graph.node_references() {
             if let Node::QueryField(field) = node {
-                // If the field is not associated with any providable field node and isn't a typename we can't plan it.
-                if !operation_graph
-                    .graph
-                    .edges_directed(node_ix, Direction::Incoming)
-                    .any(|edge| matches!(edge.weight(), Edge::Provides | Edge::TypenameField))
-                {
-                    let definition = operation_graph
-                        .operation
-                        .field_definition(field.id)
-                        .walk(operation_graph.schema);
-                    return Err(crate::Error::CouldNotPlanField {
-                        name: definition
-                            .map(|def| format!("{}.{}", def.parent_entity().name(), def.name()))
-                            .unwrap_or("__typename".into()),
-                    });
-                }
                 if field.flags.contains(FieldFlags::LEAF_NODE) {
                     terminals.push(node_ix);
                 }

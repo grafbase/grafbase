@@ -18,21 +18,29 @@ impl<OnOperationResponseHookOutput> serde::Serialize for Response<OnOperationRes
                 operation,
                 data,
                 errors,
+                extensions,
                 ..
             }) => {
                 let mut map = serializer.serialize_map(None)?;
+
                 let keys = &operation.solved.response_keys;
                 if let Some(data) = data {
                     map.serialize_entry("data", &SerializableResponseData { keys, data })?;
                 } else {
                     map.serialize_entry("data", &())?;
                 }
+
                 if !errors.is_empty() {
                     map.serialize_entry("errors", &SerializableErrors { keys, errors })?;
                 }
+
+                if let Some(ext) = extensions.as_ref().filter(|ext| !ext.is_emtpy()) {
+                    map.serialize_entry("extensions", ext)?;
+                }
+
                 map.end()
             }
-            Response::RequestError(RequestErrorResponse { errors, .. }) => {
+            Response::RequestError(RequestErrorResponse { errors, extensions, .. }) => {
                 let mut map = serializer.serialize_map(None)?;
                 // Shouldn't happen, but better safe than sorry.
                 if !errors.is_empty() {
@@ -45,14 +53,17 @@ impl<OnOperationResponseHookOutput> serde::Serialize for Response<OnOperationRes
                         },
                     )?;
                 }
+                if let Some(ext) = extensions.as_ref().filter(|ext| !ext.is_emtpy()) {
+                    map.serialize_entry("extensions", ext)?;
+                }
+
                 map.end()
             }
-            Response::RefusedRequest(RefusedRequestResponse { errors, .. }) => {
+            Response::RefusedRequest(RefusedRequestResponse { errors, extensions, .. }) => {
                 let mut map = serializer.serialize_map(None)?;
 
-                // Shouldn't happen, but better safe than sorry.
+                // There shouldn't be any response paths needing this, but better safe than sorry.
                 let empty_keys = ResponseKeys::default();
-
                 map.serialize_entry(
                     "errors",
                     &SerializableErrors {
@@ -60,6 +71,11 @@ impl<OnOperationResponseHookOutput> serde::Serialize for Response<OnOperationRes
                         errors,
                     },
                 )?;
+
+                if let Some(ext) = extensions.as_ref().filter(|ext| !ext.is_emtpy()) {
+                    map.serialize_entry("extensions", ext)?;
+                }
+
                 map.end()
             }
         }

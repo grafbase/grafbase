@@ -24,13 +24,13 @@ serde.workspace = true
 serde-dynamic-string.workspace = true
 serde_regex = "1.1.0"
 size = "0.5.0-preview2"
-tower-http = { version = "0.5.2", features = ["cors", "timeout"] }
+tower-http = { workspace = true, features = ["cors", "timeout"] }
 url = { workspace = true, features = ["serde"] }
 cfg-if = "1.0.0"
 grafbase-workspace-hack.workspace = true
 
 [dev-dependencies]
-indoc = "2.0.5"
+indoc.workspace = true
 insta.workspace = true
 temp-env = "0.3.6"
 toml = "0.8.12"

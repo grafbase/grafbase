@@ -1,8 +1,4 @@
-extend schema
-    @link(
-        url: "https://specs.apollo.dev/federation/v2.3",
-        import: ["@key"]
-     )
+extend schema @link(url: "https://specs.apollo.dev/federation/v2.3", import: ["@key"])
 
 extend type Query {
   as: [A]
@@ -13,7 +9,7 @@ type A @key(fields: "b { id } c") {
   c: String!
 }
 
-type B {
+type B @key(fields: "id") {
   id: ID!
   foo: String
 }

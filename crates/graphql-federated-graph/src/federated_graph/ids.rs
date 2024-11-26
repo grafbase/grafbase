@@ -42,8 +42,6 @@ macro_rules! id_newtypes {
 }
 
 id_newtypes! {
-    authorized_directives[AuthorizedDirectiveId] -> AuthorizedDirective,
-    directives[DirectiveId] -> Directive,
     enum_values[EnumValueId] -> EnumValueRecord,
     fields[FieldId] -> Field,
     input_objects[InputObjectId] -> InputObject,

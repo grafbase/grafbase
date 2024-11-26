@@ -52,7 +52,7 @@ type ObjectDefinition
   "sorted by SubgraphId, then InterfaceId"
   join_implements: [JoinImplementsDefinition!]!
   "sorted by SubgraphId"
-  only_resolvable_in: [Subgraph!]!
+  exists_in_subgraphs: [Subgraph!]!
 }
 
 type InterfaceDefinition
@@ -77,7 +77,7 @@ type InterfaceDefinition
 type FieldDefinition @meta(module: "field") @indexed(id_size: "u32", max_id: "MAX_ID") {
   name: String!
   description: String
-  parent_entity: EntityDefinition! @meta(debug: false)
+  parent_entity: EntityDefinition!
   ty: Type!
   resolvers: [ResolverDefinition!]!
   """

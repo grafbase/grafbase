@@ -117,10 +117,10 @@ impl ResponseDataPart {
         }
     }
 
-    pub fn push_list(&mut self, value: &[ResponseValue]) -> ResponseListId {
+    pub fn push_list(&mut self, value: &mut Vec<ResponseValue>) -> ResponseListId {
         let offset = self.lists.len() as u32;
         let length = value.len() as u32;
-        self.lists.extend_from_slice(value);
+        self.lists.append(value);
         ResponseListId {
             part_id: self.id,
             offset,

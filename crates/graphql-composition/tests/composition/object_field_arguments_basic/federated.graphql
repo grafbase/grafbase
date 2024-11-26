@@ -4,14 +4,14 @@ directive @join__owner(graph: join__Graph!) on OBJECT
 
 directive @join__type(
     graph: join__Graph!
-    key: String!
+    key: join__FieldSet
     resolvable: Boolean = true
 ) repeatable on OBJECT | INTERFACE
 
 directive @join__field(
     graph: join__Graph
-    requires: String
-    provides: String
+    requires: join__FieldSet
+    provides: join__FieldSet
 ) on FIELD_DEFINITION
 
 directive @join__graph(name: String!, url: String!) on ENUM_VALUE
@@ -20,28 +20,37 @@ directive @join__implements(graph: join__Graph!, interface: String!) repeatable 
 
 directive @join__unionMember(graph: join__Graph!, member: String!) repeatable on UNION
 
+scalar join__FieldSet
+
 enum join__Graph {
     HISTORY @join__graph(name: "history", url: "http://example.com/history")
     INVENTORY @join__graph(name: "inventory", url: "http://example.com/inventory")
     PERFORMANCE @join__graph(name: "performance", url: "http://example.com/performance")
 }
 
-type RollerCoaster {
+type RollerCoaster
+    @join__type(graph: HISTORY)
+    @join__type(graph: INVENTORY)
+    @join__type(graph: PERFORMANCE)
+{
     height: Float!
-    historicalData: [HistoricalData] @inaccessible
+    historicalData: [HistoricalData] @inaccessible @join__field(graph: HISTORY)
     id: ID!
     manufacturer: String!
     name: String!
-    numberOfInversions: Int! @inaccessible
+    numberOfInversions: Int! @inaccessible @join__field(graph: PERFORMANCE)
     speed: Float!
 }
 
-type HistoricalData {
+type HistoricalData
+    @join__type(graph: HISTORY)
+{
     incidents: Int!
     visitors: Int!
     year: Int!
 }
 
-type Query {
+type Query
+{
     getRollerCoaster(id: ID!): RollerCoaster @join__field(graph: HISTORY) @join__field(graph: INVENTORY) @join__field(graph: PERFORMANCE)
 }

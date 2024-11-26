@@ -6,25 +6,30 @@ mod definition;
 mod directive;
 mod entity;
 mod enum_def;
+mod enum_value;
 mod field;
 mod field_set;
 mod generated;
 mod ids;
+mod input_object;
 mod input_value;
+mod input_value_def;
 mod interface;
 pub mod introspection;
 mod object;
 mod prelude;
 mod resolver;
+mod scalar;
 mod subgraph;
 mod ty;
 mod union;
 
 pub use self::builder::BuildError;
+use config::ResponseExtensionConfig;
 pub use directive::*;
 pub use field_set::*;
 pub use generated::*;
-use id_newtypes::IdRange;
+use id_newtypes::{BitSet, IdRange};
 pub use ids::*;
 pub use input_value::*;
 use regex::Regex;
@@ -127,6 +132,8 @@ pub struct Settings {
     pub retry: Option<RetryConfig>,
     pub batching: config::BatchingConfig,
     pub complexity_control: config::ComplexityControl,
+    pub response_extension: ResponseExtensionConfig,
+    pub apq_enabled: bool,
 }
 
 #[derive(serde::Serialize, serde::Deserialize, id_derives::IndexedFields)]
@@ -138,22 +145,31 @@ pub struct Graph {
     type_definitions_ordered_by_name: Vec<DefinitionId>,
     #[indexed_by(ObjectDefinitionId)]
     object_definitions: Vec<ObjectDefinitionRecord>,
+    inaccessible_object_definitions: BitSet<ObjectDefinitionId>,
     #[indexed_by(InterfaceDefinitionId)]
     interface_definitions: Vec<InterfaceDefinitionRecord>,
+    inaccessible_interface_definitions: BitSet<InterfaceDefinitionId>,
     #[indexed_by(FieldDefinitionId)]
     field_definitions: Vec<FieldDefinitionRecord>,
+    inaccessible_field_definitions: BitSet<FieldDefinitionId>,
     #[indexed_by(EnumDefinitionId)]
     enum_definitions: Vec<EnumDefinitionRecord>,
+    inaccessible_enum_definitions: BitSet<EnumDefinitionId>,
     #[indexed_by(UnionDefinitionId)]
     union_definitions: Vec<UnionDefinitionRecord>,
+    inaccessible_union_definitions: BitSet<UnionDefinitionId>,
     #[indexed_by(ScalarDefinitionId)]
     scalar_definitions: Vec<ScalarDefinitionRecord>,
+    inaccessible_scalar_definitions: BitSet<ScalarDefinitionId>,
     #[indexed_by(InputObjectDefinitionId)]
     input_object_definitions: Vec<InputObjectDefinitionRecord>,
+    inaccessible_input_object_definitions: BitSet<InputObjectDefinitionId>,
     #[indexed_by(InputValueDefinitionId)]
     input_value_definitions: Vec<InputValueDefinitionRecord>,
+    inaccessible_input_value_definitions: BitSet<InputValueDefinitionId>,
     #[indexed_by(EnumValueId)]
-    enum_value_definitions: Vec<EnumValueRecord>,
+    enum_values: Vec<EnumValueRecord>,
+    inaccessible_enum_values: BitSet<EnumValueId>,
 
     #[indexed_by(ResolverDefinitionId)]
     resolver_definitions: Vec<ResolverDefinitionRecord>,
@@ -197,40 +213,17 @@ impl Schema {
         self.graph.type_definitions_ordered_by_name.walk(self)
     }
 
-    pub fn definition_by_name(&self, name: &str) -> Option<DefinitionId> {
+    pub fn definition_by_name(&self, name: &str) -> Option<Definition<'_>> {
         self.graph
             .type_definitions_ordered_by_name
-            .binary_search_by_key(&name, |definition| self.definition_name(*definition))
+            .binary_search_by_key(&name, |definition_id| definition_id.walk(self).name())
             .map(|index| self.graph.type_definitions_ordered_by_name[index])
             .ok()
-    }
-
-    pub fn object_field_by_name(&self, object_id: ObjectDefinitionId, name: &str) -> Option<FieldDefinitionId> {
-        let fields = self[object_id].field_ids;
-        self[fields]
-            .iter()
-            .position(|field| self[field.name_id] == name)
-            .map(|pos| FieldDefinitionId::from(usize::from(fields.start) + pos))
-    }
-
-    pub fn interface_field_by_name(
-        &self,
-        interface_id: InterfaceDefinitionId,
-        name: &str,
-    ) -> Option<FieldDefinitionId> {
-        let fields = self[interface_id].field_ids;
-        self[fields]
-            .iter()
-            .position(|field| self[field.name_id] == name)
-            .map(|pos| FieldDefinitionId::from(usize::from(fields.start) + pos))
+            .walk(self)
     }
 
     pub fn default_header_rules(&self) -> impl Iter<Item = HeaderRule<'_>> + '_ {
         self.settings.default_header_rules.walk(self)
-    }
-
-    fn definition_name(&self, definition: DefinitionId) -> &str {
-        definition.walk(self).name()
     }
 
     pub fn query(&self) -> ObjectDefinition<'_> {
@@ -250,15 +243,6 @@ impl Schema {
             let id = GraphqlEndpointId::from(i);
             id.walk(self)
         })
-    }
-
-    pub fn scalar_definition_by_name(&self, name: &str) -> Option<DefinitionId> {
-        self.graph
-            .scalar_definitions
-            .iter()
-            .position(|definition| self[definition.name_id] == name)
-            .map(ScalarDefinitionId::from)
-            .map(DefinitionId::Scalar)
     }
 }
 

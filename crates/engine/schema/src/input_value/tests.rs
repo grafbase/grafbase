@@ -76,7 +76,7 @@ fn test_display() {
     let (schema, id) = create_schema_and_input_value();
     let value = id.walk(&schema);
 
-    insta::assert_snapshot!(value, @r###"{inputObject:{fieldA:INACTIVE,fieldB:"some string value"},list:[null,"ACTIVE",73],object:{null:null,string:"some string value",enumValue:ACTIVE,int:7,bigInt:8,float:10,boolean:true}}"###);
+    insta::assert_snapshot!(value, @r#"{inputObject:{fieldA:INACTIVE,fieldB:"some string value"},list:[null,ACTIVE,73],object:{null:null,string:"some string value",enumValue:ACTIVE,int:7,bigInt:8,float:10,boolean:true}}"#);
 }
 
 #[test]
@@ -147,7 +147,7 @@ fn test_input_value() {
 
     println!("hello");
 
-    insta::assert_debug_snapshot!(input_value, @r###"
+    insta::assert_debug_snapshot!(input_value, @r#"
     InputObject(
         [
             (
@@ -310,7 +310,7 @@ fn test_input_value() {
                 List(
                     [
                         Null,
-                        String(
+                        UnboundEnumValue(
                             "ACTIVE",
                         ),
                         BigInt(
@@ -669,7 +669,7 @@ fn test_input_value() {
             ),
         ],
     )
-    "###);
+    "#);
 
     insta::assert_json_snapshot!(input_value, @r###"
     {

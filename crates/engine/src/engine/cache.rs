@@ -20,7 +20,7 @@ pub(crate) enum Key<'a> {
 }
 
 pub(crate) enum Document<'a> {
-    AutomaticallyPersistedQuery(&'a PersistedQueryRequestExtension),
+    AutomaticPersistedQuery(&'a PersistedQueryRequestExtension),
     TrustedDocumentId { client_name: &'a str, doc_id: Cow<'a, str> },
     Text(&'a str),
 }
@@ -44,7 +44,7 @@ impl std::fmt::Display for Key<'_> {
                 // operation name.
                 hasher.update(&[0x00]);
                 match document {
-                    Document::AutomaticallyPersistedQuery(ext) => {
+                    Document::AutomaticPersistedQuery(ext) => {
                         hasher.update(b"apq");
                         hasher.update(&[0x00]);
                         hasher.update(&ext.version.to_ne_bytes());

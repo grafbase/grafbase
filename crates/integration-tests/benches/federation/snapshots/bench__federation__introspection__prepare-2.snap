@@ -1,5 +1,5 @@
 ---
-source: engine/crates/integration-tests/benches/federation/introspection.rs
+source: crates/integration-tests/benches/federation/introspection.rs
 expression: response
 ---
 {
@@ -505,7 +505,7 @@ expression: response
             },
             {
               "name": "reviewCount",
-              "description": null,
+              "description": "This used to be part of this subgraph, but is now being overridden from\n`reviews`",
               "args": [],
               "type": {
                 "kind": "NON_NULL",

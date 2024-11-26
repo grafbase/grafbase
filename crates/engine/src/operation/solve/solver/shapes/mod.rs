@@ -1,19 +1,19 @@
 mod partition;
 
+use fixedbitset::FixedBitSet;
 use id_newtypes::IdRange;
 use itertools::Itertools;
-use partition::{partition_shapes, Partition};
-use schema::{CompositeTypeId, DefinitionId, EntityDefinitionId, ObjectDefinitionId, Schema};
+use schema::{CompositeType, CompositeTypeId, Definition, ObjectDefinitionId, Schema};
 use walker::Walk;
 
 use crate::{
     operation::{
-        DataField, DataFieldId, ResponseObjectSetDefinitionId, SelectionSet, SolvedOperation, SolvedOperationContext,
-        TypenameField,
+        DataField, DataFieldId, FieldShapeRefId, ResponseObjectSetDefinitionId, SelectionSet, SolvedOperation,
+        SolvedOperationContext, TypenameField,
     },
     response::{
-        ConcreteObjectShapeId, ConcreteObjectShapeRecord, FieldShapeId, FieldShapeRecord, ObjectIdentifier,
-        PolymorphicObjectShapeId, PolymorphicObjectShapeRecord, Shape, Shapes,
+        ConcreteShapeId, ConcreteShapeRecord, FieldShapeId, FieldShapeRecord, ObjectIdentifier, PolymorphicShapeId,
+        PolymorphicShapeRecord, PositionedResponseKey, Shape, Shapes,
     },
     utils::BufferPool,
 };
@@ -22,52 +22,62 @@ use super::Solver;
 
 impl Solver<'_> {
     pub(super) fn populate_shapes_after_partition_generation(&mut self) {
-        let mut plans = std::mem::take(&mut self.operation.query_partitions);
+        let mut query_partitions = std::mem::take(&mut self.operation.query_partitions);
         let mut builder = ShapesBuilder {
             schema: self.schema,
             operation: &self.operation,
             shapes: Shapes::default(),
-            field_id_to_field_shape_ids: Vec::new(),
             data_field_ids_with_selection_set_requiring_typename: Vec::new(),
             field_shapes_buffer_pool: BufferPool::default(),
             data_fields_buffer_pool: BufferPool::default(),
             typename_fields_buffer_pool: BufferPool::default(),
+            data_fields_shape_count: vec![0; self.operation.data_fields.len()],
         };
         let ctx = SolvedOperationContext {
             schema: self.schema,
             operation: &self.operation,
         };
-        for plan in &mut plans {
-            plan.shape_id =
-                builder.create_root_shape_for(plan.entity_definition_id, plan.selection_set_record.walk(ctx));
+
+        // Create all shapes for the given QueryPartition
+        for query_partition in &mut query_partitions {
+            query_partition.shape_id = builder.create_root_shape_for(query_partition.selection_set_record.walk(ctx));
         }
-        let data_field_ids_with_selection_set_requiring_typename =
-            builder.data_field_ids_with_selection_set_requiring_typename;
-        let mut field_id_to_field_shape_ids = builder.field_id_to_field_shape_ids;
+        let ShapesBuilder {
+            shapes,
+            data_field_ids_with_selection_set_requiring_typename,
+            data_fields_shape_count,
+            ..
+        } = builder;
+        self.operation.query_partitions = query_partitions;
 
-        let shapes = builder.shapes;
-        self.operation.query_partitions = plans;
-        self.operation.shapes = shapes;
-
+        // Keep track of all fields for which we need to include a __typename in the selection
+        // set we send to the subgraph.
         for id in data_field_ids_with_selection_set_requiring_typename {
             self.operation[id].selection_set_requires_typename = true
         }
 
-        field_id_to_field_shape_ids.sort_unstable();
-        self.operation
-            .field_shape_refs
-            .reserve(field_id_to_field_shape_ids.len());
-        for (data_field_id, field_shape_ids) in field_id_to_field_shape_ids
-            .into_iter()
-            .chunk_by(|(id, _)| *id)
-            .into_iter()
-        {
-            let start = self.operation.field_shape_refs.len();
-            self.operation
-                .field_shape_refs
-                .extend(field_shape_ids.into_iter().map(|(_, id)| id));
-            self.operation[data_field_id].shape_ids = IdRange::from(start..self.operation.field_shape_refs.len());
+        // We keep track of all associated field shapes to a DataField to apply correctly
+        // QueryModifierRules. To avoid an expensive sort, as we may generate *a lot* of shapes in
+        // some edge cases, we rely on two things:
+        // - field shapes needs the DataFieldId anyway
+        // - we keep track of the field shape count associated with each data field.
+        // So we assign a range to each data field in the field shape refs Vec and populate their
+        // range with the right ids. Kind of a counting sort.
+        let mut len: usize = 0;
+        for (data_field, count) in self.operation.data_fields.iter_mut().zip(data_fields_shape_count) {
+            data_field.shape_ids = IdRange::from(len..len);
+            len += count as usize;
         }
+        let mut field_shape_refs = vec![FieldShapeId::from(0usize); len];
+        for (i, field_shape) in shapes.fields.iter().enumerate() {
+            let end = &mut self.operation[field_shape.id].shape_ids.end;
+            let pos = usize::from(*end);
+            field_shape_refs[pos] = FieldShapeId::from(i);
+            *end = FieldShapeRefId::from(pos + 1);
+        }
+
+        self.operation.shapes = shapes;
+        self.operation.field_shape_refs = field_shape_refs;
     }
 }
 
@@ -75,127 +85,142 @@ pub(super) struct ShapesBuilder<'ctx> {
     schema: &'ctx Schema,
     operation: &'ctx SolvedOperation,
     shapes: Shapes,
-    field_id_to_field_shape_ids: Vec<(DataFieldId, FieldShapeId)>,
+    data_fields_shape_count: Vec<u32>,
     data_field_ids_with_selection_set_requiring_typename: Vec<DataFieldId>,
-    field_shapes_buffer_pool: BufferPool<(FieldShapeRecord, Vec<DataFieldId>)>,
+    field_shapes_buffer_pool: BufferPool<FieldShapeRecord>,
     data_fields_buffer_pool: BufferPool<DataField<'ctx>>,
     typename_fields_buffer_pool: BufferPool<TypenameField<'ctx>>,
 }
 
 impl<'ctx> ShapesBuilder<'ctx> {
-    fn create_root_shape_for(
-        &mut self,
-        entity_definition_id: EntityDefinitionId,
-        selection_set: SelectionSet<'ctx>,
-    ) -> ConcreteObjectShapeId {
-        let exemplar = match entity_definition_id {
-            EntityDefinitionId::Object(id) => id,
-            EntityDefinitionId::Interface(id) => self.schema[id].possible_type_ids[0],
+    fn create_root_shape_for(&mut self, selection_set: SelectionSet<'ctx>) -> ConcreteShapeId {
+        let keys = &self.operation.response_keys;
+
+        let data_fields_sorted_by_response_key_str_then_position = {
+            let mut fields = self.data_fields_buffer_pool.pop();
+            fields.extend(selection_set.data_fields());
+            fields.sort_unstable_by(|left, right| {
+                let l = left.key;
+                let r = right.key;
+                keys[l.response_key]
+                    .cmp(&keys[r.response_key])
+                    .then(l.query_position.cmp(&r.query_position))
+            });
+            fields
         };
 
-        let mut data_fields = self.data_fields_buffer_pool.pop();
-        data_fields.extend(selection_set.data_fields());
-        data_fields.sort_unstable_by(|left, right| {
-            let l = left.key;
-            let r = right.key;
-            l.response_key
-                .cmp(&r.response_key)
-                .then(l.query_position.cmp(&r.query_position))
-        });
+        let typename_fields_sorted_by_response_key_str_then_position = {
+            let mut fields = self.typename_fields_buffer_pool.pop();
+            fields.extend(selection_set.typename_fields());
+            fields.sort_unstable_by(|left, right| {
+                let l = left.key;
+                let r = right.key;
+                keys[l.response_key]
+                    .cmp(&keys[r.response_key])
+                    .then(l.query_position.cmp(&r.query_position))
+            });
+            fields
+        };
 
-        let mut typename_fields = self.typename_fields_buffer_pool.pop();
-        typename_fields.extend(selection_set.typename_fields());
-        typename_fields.sort_unstable_by(|left, right| {
-            let l = left.key;
-            let r = right.key;
-            l.response_key
-                .cmp(&r.response_key)
-                .then(l.query_position.cmp(&r.query_position))
-        });
+        let included_typename_then_data_fields = {
+            let mut included = FixedBitSet::with_capacity(
+                data_fields_sorted_by_response_key_str_then_position.len()
+                    + typename_fields_sorted_by_response_key_str_then_position.len(),
+            );
+            included.toggle_range(..included.len());
+            included
+        };
 
-        let id = self.create_concrete_shape(exemplar, None, &data_fields, &typename_fields);
-        self.data_fields_buffer_pool.push(data_fields);
-        self.typename_fields_buffer_pool.push(typename_fields);
+        let shape_id = self.create_concrete_shape(
+            ObjectIdentifier::Anonymous,
+            None,
+            &typename_fields_sorted_by_response_key_str_then_position,
+            &data_fields_sorted_by_response_key_str_then_position,
+            included_typename_then_data_fields,
+        );
+        self.data_fields_buffer_pool
+            .push(data_fields_sorted_by_response_key_str_then_position);
+        self.typename_fields_buffer_pool
+            .push(typename_fields_sorted_by_response_key_str_then_position);
 
-        id
+        shape_id
     }
 
+    /// Create the expected shape with known expected fields, applying the GraphQL field collection
+    /// logic.
     fn create_concrete_shape(
         &mut self,
-        exemplar_object_id: ObjectDefinitionId,
-        maybe_response_object_set_id: Option<ResponseObjectSetDefinitionId>,
-        data_fields_sorted_by_response_key_then_position: &[DataField<'ctx>],
-        typename_fields_sorted_by_response_key_then_position: &[TypenameField<'ctx>],
-    ) -> ConcreteObjectShapeId {
-        let schema = self.schema;
-        tracing::trace!("Creating shape for exemplar {}", schema.walk(exemplar_object_id).name());
-
-        let typename_response_edges = typename_fields_sorted_by_response_key_then_position
-            .iter()
-            .filter(|field| match field.type_condition_id {
-                CompositeTypeId::Object(id) => id == exemplar_object_id,
-                CompositeTypeId::Interface(id) => {
-                    schema[id].possible_type_ids.binary_search(&exemplar_object_id).is_ok()
-                }
-                CompositeTypeId::Union(id) => schema[id].possible_type_ids.binary_search(&exemplar_object_id).is_ok(),
-            })
-            .dedup_by(|a, b| a.key.response_key == b.key.response_key)
-            .map(|field| field.key)
-            .collect();
-
-        let mut fields_buffer = self.data_fields_buffer_pool.pop();
+        identifier: ObjectIdentifier,
+        set_id: Option<ResponseObjectSetDefinitionId>,
+        typename_fields_sorted_by_response_key_str_then_position: &[TypenameField<'ctx>],
+        data_fields_sorted_by_response_key_str_then_position: &[DataField<'ctx>],
+        included_typename_then_data_fields: FixedBitSet,
+    ) -> ConcreteShapeId {
         let mut field_shapes_buffer = self.field_shapes_buffer_pool.pop();
+        let mut distinct_typename_response_keys: Vec<PositionedResponseKey> = Vec::new();
+        let mut included = included_typename_then_data_fields.into_ones();
 
-        let mut start = 0;
-        while let Some(response_key) = data_fields_sorted_by_response_key_then_position
-            .get(start)
-            .map(|field| field.key.response_key)
-        {
-            let mut end = start + 1;
-            while data_fields_sorted_by_response_key_then_position
-                .get(end)
-                .map(|field| field.key.response_key == response_key)
-                .unwrap_or_default()
-            {
-                end += 1;
+        let mut all_expected_keys_equal_response_keys = true;
+        while let Some(i) = included.next() {
+            if let Some(field) = typename_fields_sorted_by_response_key_str_then_position.get(i) {
+                if distinct_typename_response_keys
+                    .last()
+                    // fields aren't sorted by the response key but by the string value they point
+                    // to. However, response keys are deduplicated so the equality also works here
+                    // to ensure we only have distinct values.
+                    .map_or(true, |key| key.response_key != field.key.response_key)
+                {
+                    distinct_typename_response_keys.push(field.key);
+                }
+            } else {
+                // We've exhausted the typename fields, so we know we're in the data fields now.
+                let offset = typename_fields_sorted_by_response_key_str_then_position.len();
+                let mut first = data_fields_sorted_by_response_key_str_then_position[i - offset];
+                self.data_fields_shape_count[usize::from(first.id)] += 1;
+
+                // We'll group data fields together by their response key
+                let mut group = self.data_fields_buffer_pool.pop();
+                group.push(first);
+
+                for i in included.by_ref() {
+                    let field = data_fields_sorted_by_response_key_str_then_position[i - offset];
+                    self.data_fields_shape_count[usize::from(field.id)] += 1;
+                    if field.key.response_key == first.key.response_key {
+                        group.push(field);
+                    } else {
+                        let field_shape = self.create_data_field_shape(&mut group, first);
+                        all_expected_keys_equal_response_keys &= field_shape.expected_key == first.key.response_key;
+                        field_shapes_buffer.push(field_shape);
+                        first = field;
+                        group.clear();
+                        group.push(first);
+                    }
+                }
+
+                let field_shape = self.create_data_field_shape(&mut group, first);
+                all_expected_keys_equal_response_keys &= field_shape.expected_key == first.key.response_key;
+                field_shapes_buffer.push(field_shape);
+
+                self.data_fields_buffer_pool.push(group);
             }
-
-            fields_buffer.clear();
-            fields_buffer.extend(
-                data_fields_sorted_by_response_key_then_position[start..end]
-                    .iter()
-                    .filter(|field| match field.definition().parent_entity_id {
-                        EntityDefinitionId::Object(id) => id == exemplar_object_id,
-                        EntityDefinitionId::Interface(id) => {
-                            schema[id].possible_type_ids.binary_search(&exemplar_object_id).is_ok()
-                        }
-                    }),
-            );
-
-            if let Some(field) = fields_buffer.first().copied() {
-                let shape = self.create_data_field_shape(&mut fields_buffer, field);
-                field_shapes_buffer.push((shape, fields_buffer.iter().map(|field| field.id).collect()));
-            }
-            start = end;
         }
 
-        let shape = ConcreteObjectShapeRecord {
-            set_id: maybe_response_object_set_id,
-            identifier: ObjectIdentifier::Anonymous,
-            typename_response_edges,
+        debug_assert!(!field_shapes_buffer.is_empty() || !distinct_typename_response_keys.is_empty());
+        let shape = ConcreteShapeRecord {
+            set_id,
+            identifier,
+            typename_response_keys: distinct_typename_response_keys,
             field_shape_ids: {
                 let start = self.shapes.fields.len();
                 let keys = &self.operation.response_keys;
-                field_shapes_buffer.sort_unstable_by(|a, b| keys[a.0.expected_key].cmp(&keys[b.0.expected_key]));
-                for (shape, mut field_ids) in field_shapes_buffer.drain(..) {
-                    self.shapes.fields.push(shape);
-                    let field_shape_id = FieldShapeId::from(self.shapes.fields.len() - 1);
-                    for field_id in field_ids.drain(..) {
-                        self.field_id_to_field_shape_ids.push((field_id, field_shape_id));
-                    }
+                // If the expected key matches the response key, we don't need to sort
+                // again.
+                if !all_expected_keys_equal_response_keys {
+                    field_shapes_buffer.sort_unstable_by(|a, b| keys[a.expected_key].cmp(&keys[b.expected_key]));
                 }
+                debug_assert!(field_shapes_buffer.is_sorted_by(|a, b| keys[a.expected_key] < keys[b.expected_key]));
+                self.shapes.fields.append(&mut field_shapes_buffer);
                 self.field_shapes_buffer_pool.push(field_shapes_buffer);
-
                 IdRange::from(start..self.shapes.fields.len())
             },
         };
@@ -203,180 +228,241 @@ impl<'ctx> ShapesBuilder<'ctx> {
         self.push_concrete_shape(shape)
     }
 
-    fn create_data_field_shape(&mut self, fields: &mut [DataField<'ctx>], field: DataField<'ctx>) -> FieldShapeRecord {
-        let ty = field.definition().ty();
-        let shape = match ty.definition_id {
-            DefinitionId::Scalar(id) => Shape::Scalar(id.walk(self.schema).ty),
-            DefinitionId::Enum(id) => Shape::Enum(id),
-            DefinitionId::Interface(id) => self.create_field_output_shape(fields, id.into()),
-            DefinitionId::Object(id) => self.create_field_output_shape(fields, id.into()),
+    fn create_data_field_shape(&mut self, group: &mut [DataField<'ctx>], first: DataField<'ctx>) -> FieldShapeRecord {
+        let ty = first.definition().ty();
+        let shape = match ty.definition() {
+            Definition::Scalar(scalar) => Shape::Scalar(scalar.ty),
+            Definition::Enum(enm) => Shape::Enum(enm.id),
+            Definition::Interface(interface) => self.create_field_composite_type_output_shape(group, interface.into()),
+            Definition::Object(object) => self.create_field_composite_type_output_shape(group, object.into()),
 
-            DefinitionId::Union(id) => self.create_field_output_shape(fields, id.into()),
-            DefinitionId::InputObject(_) => unreachable!("Cannot be an output"),
+            Definition::Union(union) => self.create_field_composite_type_output_shape(group, union.into()),
+            Definition::InputObject(_) => unreachable!("Cannot be an output"),
         };
 
-        let required_field_id = fields.iter().find_map(|field| field.matching_requirement_id);
+        let required_field_id = group.iter().find_map(|field| field.matching_requirement_id);
 
         FieldShapeRecord {
-            expected_key: field.subgraph_key,
-            key: field.key,
-            id: field.id,
+            expected_key: first.subgraph_key,
+            key: first.key,
+            id: first.id,
             required_field_id,
             shape,
             wrapping: ty.wrapping,
         }
     }
 
-    fn create_field_output_shape(&mut self, parent_fields: &[DataField<'ctx>], output_id: CompositeTypeId) -> Shape {
-        let maybe_response_object_set_id = parent_fields.iter().find_map(|field| field.output_id);
-        let mut data_fields = self.data_fields_buffer_pool.pop();
-        let mut typename_fields = self.typename_fields_buffer_pool.pop();
-        for parent_field in parent_fields {
-            data_fields.extend(parent_field.selection_set().data_fields());
-            typename_fields.extend(parent_field.selection_set().typename_fields());
-        }
-        let shape = self.collect_object_shapes(
-            output_id,
-            maybe_response_object_set_id,
-            &mut data_fields,
-            &mut typename_fields,
-        );
-        self.data_fields_buffer_pool.push(data_fields);
-        self.typename_fields_buffer_pool.push(typename_fields);
-        match shape {
-            Shape::Scalar(_) | Shape::Enum(_) => {}
-            Shape::ConcreteObject(id) => {
-                if matches!(
-                    self.shapes[id].identifier,
-                    ObjectIdentifier::UnionTypename(_) | ObjectIdentifier::InterfaceTypename(_)
-                ) {
-                    self.data_field_ids_with_selection_set_requiring_typename
-                        .extend(parent_fields.iter().map(|field| field.id));
-                }
+    fn create_field_composite_type_output_shape(
+        &mut self,
+        parent_fields: &[DataField<'ctx>],
+        output: CompositeType<'ctx>,
+    ) -> Shape {
+        //
+        // Preparation
+        //
+        let set_id = parent_fields.iter().find_map(|field| field.output_id);
+        let output_possible_types = output.possible_types();
+
+        let (
+            data_fields_sorted_by_response_key_str_then_position,
+            typename_fields_sorted_by_response_key_str_then_position,
+        ) = {
+            let mut data_fields = self.data_fields_buffer_pool.pop();
+            let mut typename_fields = self.typename_fields_buffer_pool.pop();
+            for parent_field in parent_fields {
+                data_fields.extend(parent_field.selection_set().data_fields());
+                typename_fields.extend(parent_field.selection_set().typename_fields());
             }
-            Shape::PolymorphicObject(_) => {
+            let keys = &self.operation.response_keys;
+            typename_fields.sort_unstable_by(|left, right| {
+                let l = left.key;
+                let r = right.key;
+                keys[l.response_key]
+                    .cmp(&keys[r.response_key])
+                    .then(l.query_position.cmp(&r.query_position))
+            });
+            data_fields.sort_unstable_by(|left, right| {
+                let l = left.key;
+                let r = right.key;
+                keys[l.response_key]
+                    .cmp(&keys[r.response_key])
+                    .then(l.query_position.cmp(&r.query_position))
+            });
+            (data_fields, typename_fields)
+        };
+
+        //
+        // Partitioning algorithm
+        //
+        let partition::Partitioning {
+            partition_object_count,
+            partitions,
+        } = self.compute_object_shape_partitions(
+            output_possible_types,
+            &typename_fields_sorted_by_response_key_str_then_position,
+            &data_fields_sorted_by_response_key_str_then_position,
+        );
+
+        //
+        // Creating the right shape from the partitioning
+        //
+        let shape = if partitions.is_empty() {
+            // There is no partition so all fields are included all the time.
+            let included_typename_then_data_fields = {
+                let mut included = FixedBitSet::with_capacity(
+                    typename_fields_sorted_by_response_key_str_then_position.len()
+                        + data_fields_sorted_by_response_key_str_then_position.len(),
+                );
+                included.toggle_range(..included.len());
+                included
+            };
+
+            // We may still need to know the type of the object if there is any __typename field.
+            let identifier = if output_possible_types.len() == 1 {
+                ObjectIdentifier::Known(output_possible_types[0])
+            } else if set_id.is_some() || !typename_fields_sorted_by_response_key_str_then_position.is_empty() {
+                // The output is part of a ResponseObjectSet or has __typename fields, so we need
+                // to know its actual type. We ensure that __typename will be present in the
+                // selection set we send to the subgraph and know how to read it.
                 self.data_field_ids_with_selection_set_requiring_typename
                     .extend(parent_fields.iter().map(|field| field.id));
+                match output {
+                    CompositeType::Interface(interface) => ObjectIdentifier::InterfaceTypename(interface.id),
+                    CompositeType::Union(union) => ObjectIdentifier::UnionTypename(union.id),
+                    CompositeType::Object(object) => ObjectIdentifier::Known(object.id),
+                }
+            } else {
+                // We don't know the object type nor do we care.
+                ObjectIdentifier::Anonymous
+            };
+
+            Shape::Concrete(self.create_concrete_shape(
+                identifier,
+                set_id,
+                &typename_fields_sorted_by_response_key_str_then_position,
+                &data_fields_sorted_by_response_key_str_then_position,
+                included_typename_then_data_fields,
+            ))
+        } else {
+            // If even just one partition exists we *always* need to know the type as there are not
+            // treated the same. We may request no fields at all for some objects. So like before
+            // we ensure we'll request the __typename in the subgraph query.
+            self.data_field_ids_with_selection_set_requiring_typename
+                .extend(parent_fields.iter().map(|field| field.id));
+
+            let mut possibilities = Vec::with_capacity(partition_object_count);
+            let mut fallback = None;
+            for partition in partitions {
+                match partition {
+                    partition::Partition::One { id, fields } => {
+                        let shape_id = self.create_concrete_shape(
+                            ObjectIdentifier::Anonymous,
+                            set_id,
+                            &typename_fields_sorted_by_response_key_str_then_position,
+                            &data_fields_sorted_by_response_key_str_then_position,
+                            fields,
+                        );
+                        possibilities.push((id, shape_id));
+                    }
+                    partition::Partition::Many { ids, fields } => {
+                        let shape_id = self.create_concrete_shape(
+                            ObjectIdentifier::Anonymous,
+                            set_id,
+                            &typename_fields_sorted_by_response_key_str_then_position,
+                            &data_fields_sorted_by_response_key_str_then_position,
+                            fields,
+                        );
+                        possibilities.extend(ids.into_iter().map(|id| (id, shape_id)));
+                    }
+                    partition::Partition::Remaining { fields } => {
+                        let n = typename_fields_sorted_by_response_key_str_then_position.len();
+                        let identifier = if set_id.is_some() || fields.contains_any_in_range(..n) {
+                            match output {
+                                CompositeType::Interface(interface) => {
+                                    ObjectIdentifier::InterfaceTypename(interface.id)
+                                }
+                                CompositeType::Union(union) => ObjectIdentifier::UnionTypename(union.id),
+                                CompositeType::Object(object) => ObjectIdentifier::Known(object.id),
+                            }
+                        } else {
+                            ObjectIdentifier::Anonymous
+                        };
+                        fallback = Some(self.create_concrete_shape(
+                            identifier,
+                            set_id,
+                            &typename_fields_sorted_by_response_key_str_then_position,
+                            &data_fields_sorted_by_response_key_str_then_position,
+                            fields,
+                        ));
+                    }
+                }
             }
-        }
+            Shape::Polymorphic(self.push_polymorphic_shape(PolymorphicShapeRecord {
+                possibilities,
+                fallback,
+            }))
+        };
+
+        self.data_fields_buffer_pool
+            .push(data_fields_sorted_by_response_key_str_then_position);
+        self.typename_fields_buffer_pool
+            .push(typename_fields_sorted_by_response_key_str_then_position);
+
         shape
     }
 
-    fn collect_object_shapes(
-        &mut self,
-        ty: CompositeTypeId,
-        maybe_response_object_set_id: Option<ResponseObjectSetDefinitionId>,
-        data_fields: &mut [DataField<'ctx>],
-        typename_fields: &mut [TypenameField<'ctx>],
-    ) -> Shape {
-        let output: &[ObjectDefinitionId] = match &ty {
-            CompositeTypeId::Object(id) => std::array::from_ref(id),
-            CompositeTypeId::Interface(id) => &self.schema[*id].possible_type_ids,
-            CompositeTypeId::Union(id) => &self.schema[*id].possible_type_ids,
-        };
-        let shape_partitions = self.compute_shape_partitions(output, data_fields, typename_fields);
-
-        data_fields.sort_unstable_by(|left, right| {
-            let l = left.key;
-            let r = right.key;
-            l.response_key
-                .cmp(&r.response_key)
-                .then(l.query_position.cmp(&r.query_position))
-        });
-        let data_fields_sorted_by_response_key_then_position = data_fields;
-        typename_fields.sort_unstable_by(|left, right| {
-            let l = left.key;
-            let r = right.key;
-            l.response_key
-                .cmp(&r.response_key)
-                .then(l.query_position.cmp(&r.query_position))
-        });
-        let typename_fields_sorted_by_response_key_then_position = typename_fields;
-
-        if let Some(partitions) = shape_partitions {
-            let mut possibilities = Vec::new();
-            for partition in partitions {
-                match partition {
-                    Partition::One(id) => {
-                        let shape_id = self.create_concrete_shape(
-                            id,
-                            maybe_response_object_set_id,
-                            data_fields_sorted_by_response_key_then_position,
-                            typename_fields_sorted_by_response_key_then_position,
-                        );
-                        possibilities.push((id, shape_id))
-                    }
-                    Partition::Many(ids) => {
-                        let shape_id = self.create_concrete_shape(
-                            ids[0],
-                            maybe_response_object_set_id,
-                            data_fields_sorted_by_response_key_then_position,
-                            typename_fields_sorted_by_response_key_then_position,
-                        );
-                        possibilities.extend(ids.into_iter().map(|id| (id, shape_id)))
-                    }
-                }
-            }
-            Shape::PolymorphicObject(self.push_polymorphic_shape(PolymorphicObjectShapeRecord { possibilities }))
-        } else {
-            let shape_id = self.create_concrete_shape(
-                output[0],
-                maybe_response_object_set_id,
-                data_fields_sorted_by_response_key_then_position,
-                typename_fields_sorted_by_response_key_then_position,
-            );
-            let shape = &mut self.shapes[shape_id];
-            if output.len() == 1 {
-                shape.identifier = ObjectIdentifier::Known(output[0]);
-            } else if shape.set_id.is_some() || !shape.typename_response_edges.is_empty() {
-                shape.identifier = match ty {
-                    CompositeTypeId::Interface(id) => ObjectIdentifier::InterfaceTypename(id),
-                    CompositeTypeId::Union(id) => ObjectIdentifier::UnionTypename(id),
-                    CompositeTypeId::Object(_) => unreachable!(),
-                }
-            }
-            Shape::ConcreteObject(shape_id)
-        }
-    }
-
-    fn compute_shape_partitions(
+    /// Given this list of fields we generate a partitioning of the output possible types so that
+    /// each partition includes objects with the same fields.
+    ///
+    /// Each partition has a list of object ids and a bitset of all included fields. With typename
+    /// fields being first and then data fields. There may be one special "Remaining" partition
+    /// which includes everything not present in all other partitions. This is mainly used to avoid
+    /// copying the list of possible types for big interfaces like `Node`.
+    fn compute_object_shape_partitions(
         &self,
-        output: &[ObjectDefinitionId],
-        data_fields: &[DataField<'ctx>],
+        output_possible_types: &[ObjectDefinitionId],
         typename_fields: &[TypenameField<'ctx>],
-    ) -> Option<Vec<Partition<ObjectDefinitionId>>> {
-        let mut type_conditions = Vec::new();
-        for field in typename_fields {
-            type_conditions.push(field.type_condition_id);
+        data_fields: &[DataField<'ctx>],
+    ) -> partition::Partitioning<ObjectDefinitionId, FixedBitSet> {
+        let mut type_condition_and_field_position_in_bitset =
+            Vec::with_capacity(typename_fields.len() + data_fields.len());
+        for (i, field) in typename_fields.iter().enumerate() {
+            type_condition_and_field_position_in_bitset.push((field.type_condition_id, i));
         }
-        for field in data_fields {
-            type_conditions.push(field.definition().parent_entity_id.into());
+        let offset = typename_fields.len();
+        for (i, field) in data_fields.iter().enumerate() {
+            type_condition_and_field_position_in_bitset.push((field.definition().parent_entity_id.into(), offset + i));
         }
+        type_condition_and_field_position_in_bitset.sort_unstable();
 
-        let mut single_object_ids = Vec::new();
-        let mut other_type_conditions = Vec::new();
-
-        type_conditions.sort_unstable();
-        for type_condition in type_conditions.into_iter().dedup() {
-            match type_condition {
-                CompositeTypeId::Object(id) => single_object_ids.push(id),
-                CompositeTypeId::Interface(id) => {
-                    other_type_conditions.push(self.schema[id].possible_type_ids.as_slice())
+        let type_conditions = type_condition_and_field_position_in_bitset
+            .iter()
+            .chunk_by(|(ty, _)| ty)
+            .into_iter()
+            .map(|(ty, chunk)| {
+                let possible_types = match ty {
+                    CompositeTypeId::Interface(id) => self.schema[*id].possible_type_ids.as_slice(),
+                    CompositeTypeId::Union(id) => self.schema[*id].possible_type_ids.as_slice(),
+                    CompositeTypeId::Object(id) => std::array::from_ref(id),
+                };
+                let mut bitset = FixedBitSet::with_capacity(type_condition_and_field_position_in_bitset.len());
+                for (_, i) in chunk {
+                    bitset.put(*i);
                 }
-                CompositeTypeId::Union(id) => other_type_conditions.push(self.schema[id].possible_type_ids.as_slice()),
-            }
-        }
+                (possible_types, bitset)
+            })
+            .collect();
 
-        partition_shapes(output, single_object_ids, other_type_conditions)
+        partition::partition_object_shapes(output_possible_types, type_conditions)
     }
 
-    fn push_concrete_shape(&mut self, shape: ConcreteObjectShapeRecord) -> ConcreteObjectShapeId {
+    fn push_concrete_shape(&mut self, shape: ConcreteShapeRecord) -> ConcreteShapeId {
         let id = self.shapes.concrete.len().into();
         self.shapes.concrete.push(shape);
         id
     }
 
-    fn push_polymorphic_shape(&mut self, mut shape: PolymorphicObjectShapeRecord) -> PolymorphicObjectShapeId {
+    fn push_polymorphic_shape(&mut self, mut shape: PolymorphicShapeRecord) -> PolymorphicShapeId {
         let id = self.shapes.polymorphic.len().into();
         let schema = self.schema;
         shape.possibilities.sort_unstable_by(|a, b| {

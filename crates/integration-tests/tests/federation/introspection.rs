@@ -8,9 +8,9 @@ use graphql_mocks::{
 use indoc::indoc;
 use integration_tests::{federation::EngineExt, runtime};
 
-const PATHFINDER_INTROSPECTION_QUERY: &str = include_str!("../../data/introspection.graphql");
+pub const PATHFINDER_INTROSPECTION_QUERY: &str = include_str!("../../data/introspection.graphql");
 
-const CONFIG: &str = indoc! {r#"
+pub const CONFIG: &str = indoc! {r#"
     [graph]
     introspection = true
 "#};
@@ -268,7 +268,7 @@ fn echo_subgraph_introspection() {
     });
     assert!(response.errors().is_empty(), "{response}");
 
-    insta::assert_snapshot!(introspection_to_sdl(response.into_data()), @r###"
+    insta::assert_snapshot!(introspection_to_sdl(response.into_data()), @r#"
     enum FancyBool {
       YES
       NO
@@ -290,6 +290,9 @@ fn echo_subgraph_introspection() {
       fancyBool: FancyBool
     }
 
+    """
+    A scalar that can represent any JSON value.
+    """
     scalar JSON
 
     type Query {
@@ -306,8 +309,7 @@ fn echo_subgraph_introspection() {
       optionalListOfOptionalStrings(input: [String]): [String]
       string(input: String!): String!
     }
-
-    "###);
+    "#);
 }
 
 #[test]
@@ -396,7 +398,7 @@ fn can_introsect_when_multiple_subgraphs() {
     });
     assert!(response.errors().is_empty(), "{response}");
 
-    insta::assert_snapshot!(introspection_to_sdl(response.into_data()), @r###"
+    insta::assert_snapshot!(introspection_to_sdl(response.into_data()), @r#"
     type Bot {
       id: ID!
     }
@@ -434,6 +436,9 @@ fn can_introsect_when_multiple_subgraphs() {
       title: String!
     }
 
+    """
+    A scalar that can represent any JSON value.
+    """
     scalar JSON
 
     type PullRequest implements PullRequestOrIssue {
@@ -490,8 +495,7 @@ fn can_introsect_when_multiple_subgraphs() {
     }
 
     union UserOrBot = Bot | User
-
-    "###);
+    "#);
 }
 
 #[test]
@@ -924,6 +928,10 @@ fn introspection_on_multiple_federation_subgraphs() {
       id: ID!
       joinedTimestamp: Int!
       profilePicture: Picture
+      """
+      This used to be part of this subgraph, but is now being overridden from
+      `reviews`
+      """
       reviewCount: Int!
       reviews: [Review!]!
       trustworthiness: Trustworthiness!
@@ -934,7 +942,6 @@ fn introspection_on_multiple_federation_subgraphs() {
       KILOGRAM
       GRAM
     }
-
     "#)
 }
 
@@ -1053,7 +1060,7 @@ fn default_values() {
 }
 
 #[allow(clippy::panic)]
-fn introspection_to_sdl(data: serde_json::Value) -> String {
+pub fn introspection_to_sdl(data: serde_json::Value) -> String {
     serde_json::from_value::<IntrospectionQuery>(data)
         .expect("valid response")
         .into_schema()
