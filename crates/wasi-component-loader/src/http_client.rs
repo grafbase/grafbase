@@ -4,8 +4,8 @@ use crate::{
 };
 use futures::FutureExt;
 use http::{HeaderName, HeaderValue};
-use reqwest::RequestBuilder;
 use std::{future::Future, str::FromStr, sync::LazyLock, time::Duration};
+use tracing::{field::Empty, info_span, Instrument};
 use wasmtime::{
     component::{ComponentType, Lift, LinkerInstance, Lower, ResourceType},
     StoreContextMut,
@@ -60,6 +60,22 @@ enum HttpMethod {
     Connect,
     #[component(name = "trace")]
     Trace,
+}
+
+impl AsRef<str> for HttpMethod {
+    fn as_ref(&self) -> &str {
+        match self {
+            HttpMethod::Get => "GET",
+            HttpMethod::Post => "POST",
+            HttpMethod::Put => "PUT",
+            HttpMethod::Delete => "DELETE",
+            HttpMethod::Patch => "PATCH",
+            HttpMethod::Head => "HEAD",
+            HttpMethod::Options => "OPTIONS",
+            HttpMethod::Connect => "CONNECT",
+            HttpMethod::Trace => "TRACE",
+        }
+    }
 }
 
 impl From<HttpMethod> for reqwest::Method {
@@ -135,82 +151,15 @@ type HttpResult<'a> = Box<dyn Future<Output = anyhow::Result<(Result<HttpRespons
 type HttpManyResult<'a> = Box<dyn Future<Output = anyhow::Result<(Vec<Result<HttpResponse, HttpError>>,)>> + Send + 'a>;
 
 fn execute(_: StoreContextMut<'_, WasiState>, (request,): (HttpRequest,)) -> HttpResult<'_> {
-    Box::new(async move {
-        let HttpRequest {
-            method,
-            url,
-            headers,
-            body,
-            timeout_ms,
-        } = request;
-
-        let mut builder = HTTP_CLIENT.request(method.into(), &url);
-
-        for (key, value) in headers {
-            let Ok(key) = HeaderName::from_str(&key) else {
-                let message = format!("invalid header key: {key}");
-                return Ok((Err(HttpError::Request(message)),));
-            };
-
-            let Ok(value) = HeaderValue::from_str(&value) else {
-                let message = format!("invalid header value: {value}");
-                return Ok((Err(HttpError::Request(message)),));
-            };
-
-            builder = builder.header(key, value);
-        }
-
-        builder = builder.body(body);
-
-        if let Some(timeout_ms) = timeout_ms {
-            builder = builder.timeout(Duration::from_millis(timeout_ms));
-        }
-
-        Ok((send_request(builder).await,))
-    })
+    Box::new(async move { Ok((send_request(request).await,)) })
 }
 
 fn execute_many(_: StoreContextMut<'_, WasiState>, (requests,): (Vec<HttpRequest>,)) -> HttpManyResult<'_> {
     Box::new(async move {
-        let mut futures = Vec::with_capacity(requests.len());
-
-        for request in requests {
-            let HttpRequest {
-                method,
-                url,
-                headers,
-                body,
-                timeout_ms,
-            } = request;
-
-            let mut builder = HTTP_CLIENT.request(method.into(), &url);
-
-            for (key, value) in headers {
-                let Ok(key) = HeaderName::from_str(&key) else {
-                    let message = format!("invalid header key: {key}");
-                    futures.push(request_error(message).boxed());
-
-                    continue;
-                };
-
-                let Ok(value) = HeaderValue::from_str(&value) else {
-                    let message = format!("invalid header value: {value}");
-                    futures.push(request_error(message).boxed());
-
-                    continue;
-                };
-
-                builder = builder.header(key, value);
-            }
-
-            builder = builder.body(body);
-
-            if let Some(timeout_ms) = timeout_ms {
-                builder = builder.timeout(Duration::from_millis(timeout_ms));
-            }
-
-            futures.push(send_request(builder).boxed())
-        }
+        let futures = requests
+            .into_iter()
+            .map(|request| send_request(request).boxed())
+            .collect::<Vec<_>>();
 
         let responses = futures::future::join_all(futures).await;
 
@@ -218,8 +167,74 @@ fn execute_many(_: StoreContextMut<'_, WasiState>, (requests,): (Vec<HttpRequest
     })
 }
 
-async fn send_request(builder: RequestBuilder) -> Result<HttpResponse, HttpError> {
-    match builder.send().await {
+async fn send_request(request: HttpRequest) -> Result<HttpResponse, HttpError> {
+    let HttpRequest {
+        method,
+        url,
+        headers,
+        body,
+        timeout_ms,
+    } = request;
+
+    let span = info_span!(
+        "hook-http-request",
+        "http.request.body.size" = body.len(),
+        "http.request.method" = method.as_ref(),
+        "http.response.body.size" = Empty,
+        "http.response.status_code" = Empty,
+        "otel.name" = Empty,
+        "server.address" = Empty,
+        "server.port" = Empty,
+        "url.path" = Empty,
+        "otel.status_code" = Empty,
+        "error.message" = Empty,
+    );
+
+    let Ok(url) = reqwest::Url::parse(&url) else {
+        let message = format!("invalid url: {url}");
+
+        span.record("otel.status_code", "Error");
+        span.record("error.message", &message);
+
+        return Err(HttpError::Request(message));
+    };
+
+    span.record("server.address", url.host_str());
+    span.record("server.port", url.port());
+    span.record("url.path", url.path());
+    span.record("otel.name", format!("{} {}", method.as_ref(), url.path()));
+
+    let mut builder = HTTP_CLIENT.request(method.into(), url);
+
+    for (key, value) in headers {
+        let Ok(key) = HeaderName::from_str(&key) else {
+            let message = format!("invalid header key: {key}");
+
+            span.record("otel.status_code", "Error");
+            span.record("error.message", &message);
+
+            return Err(HttpError::Request(message));
+        };
+
+        let Ok(value) = HeaderValue::from_str(&value) else {
+            let message = format!("invalid header value: {value}");
+
+            span.record("otel.status_code", "Error");
+            span.record("error.message", &message);
+
+            return Err(HttpError::Request(message));
+        };
+
+        builder = builder.header(key, value);
+    }
+
+    builder = builder.body(body);
+
+    if let Some(timeout_ms) = timeout_ms {
+        builder = builder.timeout(Duration::from_millis(timeout_ms));
+    }
+
+    match builder.send().instrument(span.clone()).await {
         Ok(response) => {
             let headers = response
                 .headers()
@@ -235,20 +250,36 @@ async fn send_request(builder: RequestBuilder) -> Result<HttpResponse, HttpError
             let status = response.status().as_u16();
             let version = response.version().into();
 
+            span.record("http.response.status_code", status);
+
             match response.bytes().await.map(|b| b.to_vec()) {
-                Ok(body) => Ok(HttpResponse {
-                    status,
-                    version,
-                    headers,
-                    body,
-                }),
-                Err(error) => Err(HttpError::Connect(error.to_string())),
+                Ok(body) => {
+                    span.record("http.response.body.size", body.len());
+
+                    Ok(HttpResponse {
+                        status,
+                        version,
+                        headers,
+                        body,
+                    })
+                }
+                Err(error) => {
+                    let error_message = error.to_string();
+
+                    span.record("otel.status_code", "Error");
+                    span.record("error.message", &error_message);
+
+                    Err(HttpError::Connect(error_message))
+                }
             }
         }
-        Err(error) => Err(HttpError::Connect(error.to_string())),
-    }
-}
+        Err(error) => {
+            let error_message = error.to_string();
 
-async fn request_error(message: String) -> Result<HttpResponse, HttpError> {
-    Err(HttpError::Request(message))
+            span.record("otel.status_code", "Error");
+            span.record("error.message", &error_message);
+
+            Err(HttpError::Connect(error_message))
+        }
+    }
 }
