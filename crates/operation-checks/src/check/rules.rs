@@ -282,19 +282,19 @@ pub(super) fn remove_interface_implementation(
         change, check_params, ..
     }: CheckArgs<'_, '_>,
 ) -> Option<CheckDiagnostic> {
+    let (type_name, interface_name) = change.path.split_once('.')?;
+    let interface_name = interface_name.trim_start_matches('&');
+
     if !&check_params
         .field_usage
         .type_condition_counts
-        .contains_key(&change.path)
+        .contains_key(&format!("{interface_name}.{type_name}"))
     {
         return None;
     }
 
     Some(CheckDiagnostic {
-        message: format!(
-            "The interface implementation `{}` was removed but it is still used by clients.",
-            change.path
-        ),
+        message: format!("The interface implementation for `{interface_name}` on `{type_name}` was removed but it is still used by clients."),
         severity: Severity::Error,
     })
 }

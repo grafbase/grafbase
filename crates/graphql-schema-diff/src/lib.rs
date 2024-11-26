@@ -1,6 +1,7 @@
 #![doc = include_str!("../README.md")]
 #![allow(unused_crate_dependencies)]
-#![deny(missing_docs)]
+
+pub mod path;
 
 mod change;
 mod patch;

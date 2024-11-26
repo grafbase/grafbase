@@ -1,7 +1,7 @@
 {
   "src → target": [
     {
-      "path": "",
+      "path": ":schema",
       "kind": "ChangeQueryType",
       "span": {
         "start": 52,
@@ -11,7 +11,7 @@
   ],
   "target → src": [
     {
-      "path": "",
+      "path": ":schema",
       "kind": "ChangeQueryType",
       "span": {
         "start": 32,

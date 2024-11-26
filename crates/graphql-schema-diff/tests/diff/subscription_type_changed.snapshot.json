@@ -1,7 +1,7 @@
 {
   "src → target": [
     {
-      "path": "",
+      "path": ":schema",
       "kind": "ChangeMutationType",
       "span": {
         "start": 63,
@@ -9,7 +9,7 @@
       }
     },
     {
-      "path": "",
+      "path": ":schema",
       "kind": "ChangeSubscriptionType",
       "span": {
         "start": 80,
@@ -19,7 +19,7 @@
   ],
   "target → src": [
     {
-      "path": "",
+      "path": ":schema",
       "kind": "ChangeMutationType",
       "span": {
         "start": 49,
@@ -27,7 +27,7 @@
       }
     },
     {
-      "path": "",
+      "path": ":schema",
       "kind": "ChangeSubscriptionType",
       "span": {
         "start": 66,
