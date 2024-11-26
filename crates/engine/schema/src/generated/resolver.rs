@@ -15,8 +15,8 @@ use walker::Walk;
 /// union ResolverDefinition
 ///   @meta(module: "resolver")
 ///   @variants(empty: ["Introspection"], remove_suffix: true)
-///   @indexed(deduplicated: true, id_size: "u32", max_id: "MAX_ID") =
-///     GraphqlRootFieldResolverDefinition
+///   @indexed(deduplicated: true, id_size: "u32") =
+///   | GraphqlRootFieldResolverDefinition
 ///   | GraphqlFederationEntityResolverDefinition
 /// ```
 #[derive(serde::Serialize, serde::Deserialize)]
@@ -61,7 +61,6 @@ impl ResolverDefinitionRecord {
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
-#[max(MAX_ID)]
 pub struct ResolverDefinitionId(std::num::NonZero<u32>);
 
 #[derive(Clone, Copy)]

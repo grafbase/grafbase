@@ -16,7 +16,7 @@ use walker::{Iter, Walk};
 /// Generated from:
 ///
 /// ```custom,{.language-graphql}
-/// type UnionDefinition @meta(module: "union", debug: false) @indexed(id_size: "u32", max_id: "MAX_ID") {
+/// type UnionDefinition @meta(module: "union", debug: false) @indexed(id_size: "u32") {
 ///   name: String!
 ///   description: String
 ///   possible_types: [ObjectDefinition!]!
@@ -48,7 +48,6 @@ pub struct UnionDefinitionRecord {
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
-#[max(MAX_ID)]
 pub struct UnionDefinitionId(std::num::NonZero<u32>);
 
 #[derive(Clone, Copy)]

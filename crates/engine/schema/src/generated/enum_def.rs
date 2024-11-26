@@ -13,7 +13,7 @@ use walker::{Iter, Walk};
 /// Generated from:
 ///
 /// ```custom,{.language-graphql}
-/// type EnumDefinition @meta(module: "enum_def") @indexed(id_size: "u32", max_id: "MAX_ID") {
+/// type EnumDefinition @meta(module: "enum_def") @indexed(id_size: "u32") {
 ///   name: String!
 ///   description: String
 ///   values: [EnumValue!]!
@@ -29,7 +29,6 @@ pub struct EnumDefinitionRecord {
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
-#[max(MAX_ID)]
 pub struct EnumDefinitionId(std::num::NonZero<u32>);
 
 #[derive(Clone, Copy)]

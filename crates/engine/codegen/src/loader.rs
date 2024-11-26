@@ -444,22 +444,16 @@ fn parse_meta<'a>(mut directives: Iter<'a, Directive<'a>>) -> Option<domain::Met
 #[deser(default)]
 struct IndexedDirective {
     id_size: Option<String>,
-    max_id: Option<String>,
     deduplicated: bool,
 }
 
 fn parse_indexed<'a>(name: &str, mut directives: Iter<'a, Directive<'a>>) -> Option<domain::Indexed> {
     let directive = directives.find(|directive| directive.name() == "indexed")?;
-    let IndexedDirective {
-        id_size,
-        max_id,
-        deduplicated,
-    } = directive.deserialize().unwrap();
+    let IndexedDirective { id_size, deduplicated } = directive.deserialize().unwrap();
 
     Some(domain::Indexed {
         id_struct_name: format!("{name}Id"),
         id_size,
-        max_id,
         deduplicated,
     })
 }

@@ -13,7 +13,7 @@ use walker::{Iter, Walk};
 /// Generated from:
 ///
 /// ```custom,{.language-graphql}
-/// type ScalarDefinition @meta(module: "scalar") @indexed(id_size: "u32", max_id: "MAX_ID") {
+/// type ScalarDefinition @meta(module: "scalar") @indexed(id_size: "u32") {
 ///   name: String!
 ///   ty: ScalarType!
 ///   description: String
@@ -31,7 +31,6 @@ pub struct ScalarDefinitionRecord {
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
-#[max(MAX_ID)]
 pub struct ScalarDefinitionId(std::num::NonZero<u32>);
 
 #[derive(Clone, Copy)]

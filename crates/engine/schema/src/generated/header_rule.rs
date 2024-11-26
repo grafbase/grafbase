@@ -124,8 +124,8 @@ impl<'a> NameOrPattern<'a> {
 /// union HeaderRule
 ///   @meta(module: "header_rule")
 ///   @variants(remove_suffix: true)
-///   @indexed(id_size: "u32", max_id: "MAX_ID", deduplicated: true) =
-///     ForwardHeaderRule
+///   @indexed(id_size: "u32", deduplicated: true) =
+///   | ForwardHeaderRule
 ///   | InsertHeaderRule
 ///   | RemoveHeaderRule
 ///   | RenameDuplicateHeaderRule
@@ -189,7 +189,6 @@ impl HeaderRuleRecord {
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
-#[max(MAX_ID)]
 pub struct HeaderRuleId(std::num::NonZero<u32>);
 
 #[derive(Clone, Copy)]

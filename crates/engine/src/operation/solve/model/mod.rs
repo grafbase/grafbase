@@ -5,8 +5,6 @@ mod hydrate;
 mod prelude;
 mod selection_set;
 
-use std::num::NonZero;
-
 use crate::{
     operation::QueryInputValues,
     response::{FieldShapeId, ResponseKeys, Shapes},
@@ -96,7 +94,7 @@ pub(crate) struct SolvedOperation {
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
-pub struct FieldRefId(NonZero<u32>);
+pub struct FieldRefId(u32);
 
 impl<'a> Walk<SolvedOperationContext<'a>> for FieldRefId {
     type Walker<'w> = Field<'w> where 'a: 'w;
@@ -111,7 +109,7 @@ impl<'a> Walk<SolvedOperationContext<'a>> for FieldRefId {
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
-pub struct DataFieldRefId(NonZero<u32>);
+pub struct DataFieldRefId(u32);
 
 impl<'a> Walk<SolvedOperationContext<'a>> for DataFieldRefId {
     type Walker<'w> = DataField<'w> where 'a: 'w;
@@ -126,4 +124,4 @@ impl<'a> Walk<SolvedOperationContext<'a>> for DataFieldRefId {
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
-pub struct FieldShapeRefId(NonZero<u32>);
+pub struct FieldShapeRefId(u32);

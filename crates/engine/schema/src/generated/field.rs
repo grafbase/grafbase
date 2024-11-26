@@ -21,7 +21,7 @@ use walker::{Iter, Walk};
 /// Generated from:
 ///
 /// ```custom,{.language-graphql}
-/// type FieldDefinition @meta(module: "field") @indexed(id_size: "u32", max_id: "MAX_ID") {
+/// type FieldDefinition @meta(module: "field") @indexed(id_size: "u32") {
 ///   name: String!
 ///   description: String
 ///   parent_entity: EntityDefinition!
@@ -61,7 +61,6 @@ pub struct FieldDefinitionRecord {
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
-#[max(MAX_ID)]
 pub struct FieldDefinitionId(std::num::NonZero<u32>);
 
 #[derive(Clone, Copy)]

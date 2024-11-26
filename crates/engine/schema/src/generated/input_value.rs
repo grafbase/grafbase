@@ -13,7 +13,7 @@ use walker::{Iter, Walk};
 /// Generated from:
 ///
 /// ```custom,{.language-graphql}
-/// type InputValueDefinition @meta(module: "input_value") @indexed(id_size: "u32", max_id: "MAX_ID") {
+/// type InputValueDefinition @meta(module: "input_value") @indexed(id_size: "u32") {
 ///   name: String!
 ///   description: String
 ///   ty: Type!
@@ -31,7 +31,6 @@ pub struct InputValueDefinitionRecord {
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
-#[max(MAX_ID)]
 pub struct InputValueDefinitionId(std::num::NonZero<u32>);
 
 #[derive(Clone, Copy)]
