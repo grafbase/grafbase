@@ -15,6 +15,7 @@ mod context;
 mod error;
 mod headers;
 mod hooks;
+mod http_client;
 mod names;
 mod state;
 
@@ -127,6 +128,7 @@ impl ComponentLoader {
                 headers::map(&mut types)?;
                 context::map(&mut types)?;
                 context::map_shared(&mut types)?;
+                http_client::map(&mut types)?;
 
                 Some(Self {
                     engine,

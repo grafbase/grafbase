@@ -69,11 +69,13 @@ async fn authorize_user(
     }): Json<AuthorizeUserRequest>,
 ) -> impl IntoResponse {
     let is_authorized = user_id <= current_user_id;
+
     tracing::info!(
         "Authorizing access to user {} for user {}: {is_authorized}",
         user_id,
         current_user_id
     );
+
     Json(AuthorizationResponse {
         authorized: is_authorized,
     })
@@ -92,6 +94,7 @@ async fn authorize_address(
     }): Json<AuthorizeAddressRequest>,
 ) -> impl IntoResponse {
     let is_authorized = owner_id == current_user_id;
+
     tracing::info!(
         "Authorizing access to address of user {} for user {}: {is_authorized}",
         owner_id,

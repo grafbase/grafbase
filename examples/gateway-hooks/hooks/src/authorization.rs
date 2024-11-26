@@ -5,7 +5,7 @@ use crate::{
         component::grafbase::types::Error,
         exports::component::grafbase::authorization::{self, EdgeDefinition, SharedContext},
     },
-    contract_error, error, init_logging, maybe_read_input, read_input, Component, Metadata, RUNTIME,
+    contract_error, error, init_logging, maybe_read_input, read_input, Component, Metadata,
 };
 
 mod service;
@@ -74,10 +74,7 @@ impl authorization::Guest for Component {
                     return (0..parents.len()).map(|_| Err(error("No current user id"))).collect();
                 };
 
-                RUNTIME.block_on(service::authorize_address(
-                    current_user_id,
-                    parents.into_iter().map(|User { id, .. }| id).collect(),
-                ))
+                service::authorize_address(current_user_id, parents.into_iter().map(|User { id, .. }| id).collect())
             }
             _ => vec![Err(contract_error())],
         }
@@ -118,10 +115,7 @@ impl authorization::Guest for Component {
                     return (0..nodes.len()).map(|_| Err(error("No current user id"))).collect();
                 };
 
-                RUNTIME.block_on(service::authorize_user(
-                    current_user_id,
-                    nodes.into_iter().map(|User { id, .. }| id).collect(),
-                ))
+                service::authorize_user(current_user_id, nodes.into_iter().map(|User { id, .. }| id).collect())
             }
             _ => vec![Err(contract_error())],
         }

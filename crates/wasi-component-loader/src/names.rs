@@ -31,3 +31,7 @@ pub(crate) const SHARED_CONTEXT_RESOURCE: &str = "shared-context";
 pub(crate) const SHARED_CONTEXT_GET_METHOD: &str = "[method]shared-context.get";
 pub(crate) const SHARED_CONTEXT_ACCESS_LOG_METHOD: &str = "[method]shared-context.log-access";
 pub(crate) const SHARED_CONTEXT_TRACE_ID_METHOD: &str = "[method]shared-context.trace-id";
+
+pub(crate) const HTTP_CLIENT_RESOURCE: &str = "http-client";
+pub(crate) const HTTP_CLIENT_EXECUTE_FUNCTION: &str = "[static]http-client.execute";
+pub(crate) const HTTP_CLIENT_EXECUTE_MANY_FUNCTION: &str = "[static]http-client.execute-many";

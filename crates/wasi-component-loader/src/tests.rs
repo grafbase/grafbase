@@ -159,8 +159,8 @@ async fn dir_access_write() {
 }
 
 #[tokio::test]
-async fn networking() {
-    // the guest code in examples/networking/src/lib.rs
+async fn http_client() {
+    // the guest code in examples/http_client/src/lib.rs
 
     let response = ResponseTemplate::new(200).set_body_string("kekw");
     let server = wiremock::MockServer::start().await;
@@ -173,11 +173,10 @@ async fn networking() {
     std::env::set_var("MOCK_SERVER_ADDRESS", format!("http://{}", server.address()));
 
     let config = formatdoc! {r#"
-        location = "examples/target/wasm32-wasip1/debug/networking.wasm"
+        location = "examples/target/wasm32-wasip1/debug/http_client.wasm"
         environment_variables = true
         stdout = true
         stderr = true
-        networking = true
     "#};
 
     let config: Config = toml::from_str(&config).unwrap();
@@ -188,41 +187,6 @@ async fn networking() {
     let (context, _) = hook.on_gateway_request(HashMap::new(), HeaderMap::new()).await.unwrap();
 
     assert_eq!(Some("kekw"), context.get("HTTP_RESPONSE").map(|s| s.as_str()));
-}
-
-#[tokio::test]
-async fn networking_no_network() {
-    // the guest code in examples/networking/src/lib.rs
-
-    let response = ResponseTemplate::new(200).set_body_string("kekw");
-    let server = wiremock::MockServer::start().await;
-
-    wiremock::Mock::given(method("GET"))
-        .respond_with(response)
-        .mount(&server)
-        .await;
-
-    std::env::set_var("MOCK_SERVER_ADDRESS", format!("http://{}", server.address()));
-
-    let config = formatdoc! {r#"
-        location = "examples/target/wasm32-wasip1/debug/networking.wasm"
-        environment_variables = true
-        stdout = true
-        stderr = true
-        networking = false
-    "#};
-
-    let config: Config = toml::from_str(&config).unwrap();
-    assert!(config.location.exists());
-
-    let loader = ComponentLoader::new(config).unwrap().unwrap();
-    let error = GatewayComponentInstance::new(&loader).await.unwrap_err();
-
-    let expected = expect![
-        "component imports instance `wasi:http/types@0.2.0`, but a matching implementation was not found in the linker"
-    ];
-
-    expected.assert_eq(&error.to_string());
 }
 
 #[tokio::test]

@@ -1,16 +1,7 @@
-use std::sync::{LazyLock, Once};
+use std::sync::Once;
 
 use crate::bindings::component::grafbase::types::Error;
-use reqwest::Client;
-use tokio::runtime::Runtime;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
-
-pub(crate) static REQWEST: LazyLock<Client> = LazyLock::new(Client::new);
-
-/// We initialize this once for the whole component lifetime.
-/// It is a single-threaded Tokio runtime, which can execute async rust code.
-pub(crate) static RUNTIME: LazyLock<Runtime> =
-    LazyLock::new(|| tokio::runtime::Builder::new_current_thread().build().unwrap());
 
 /// Initializes the log subscriber, which must be called in the beginning of every hook to get output.
 /// When the hook is called once, the Once construct prevents re-initializing the logger, which is already

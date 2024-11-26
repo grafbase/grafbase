@@ -2,7 +2,7 @@
 mod bindings;
 
 use bindings::{
-    component::grafbase::types::{Context, ErrorResponse, Headers},
+    component::grafbase::types::{Context, ErrorResponse, Headers, HttpClient, HttpMethod, HttpRequest},
     exports::component::grafbase::gateway_request,
 };
 
@@ -11,8 +11,17 @@ struct Component;
 impl gateway_request::Guest for Component {
     fn on_gateway_request(context: Context, _: Headers) -> Result<(), ErrorResponse> {
         let address = std::env::var("MOCK_SERVER_ADDRESS").unwrap();
-        let response = waki::Client::new().get(&address).send().unwrap().body().unwrap();
-        let body = String::from_utf8(response).unwrap();
+
+        let request = HttpRequest {
+            method: HttpMethod::Get,
+            url: address,
+            headers: Vec::new(),
+            body: Vec::new(),
+            timeout_ms: None,
+        };
+
+        let response = HttpClient::execute(&request).unwrap();
+        let body = String::from_utf8(response.body).unwrap();
 
         context.set("HTTP_RESPONSE", &body);
 
