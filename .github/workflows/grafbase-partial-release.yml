@@ -52,6 +52,9 @@ jobs:
         with:
           platform: linux
 
+      - name: Fetch CLI assets
+        uses: ./.github/actions/fetch-assets
+
       # This is annoying, but github doesn't pass env vars down to child workflows,
       # and you can't use them as input parameters either so lets read them out the
       # YAML

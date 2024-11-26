@@ -5,6 +5,7 @@ use tokio::fs;
 
 use crate::errors::BackendError;
 
+#[derive(Clone)]
 pub struct DevConfiguration {
     pub overridden_subgraphs: HashSet<String>,
     pub merged_configuration: Config,

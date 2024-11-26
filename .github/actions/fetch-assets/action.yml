@@ -1,0 +1,12 @@
+name: Fetch the CLI assets
+description: Fetches the Pathfinder assets for the CLI
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Download the pathfinder assets
+      shell: bash
+      run: |
+        pushd crates/grafbase-local-backend/assets
+        curl -H "Cache-Control: no-cache" -o pathfinder.tar.gz http://assets.grafbase.com/pathfinder/pathfinder.tar.gz
+        popd

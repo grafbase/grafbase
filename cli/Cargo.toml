@@ -53,6 +53,7 @@ graphql-lint.workspace = true
 graph-ref.workspace = true
 grafbase-workspace-hack.workspace = true
 
+
 [dev-dependencies]
 async-graphql-axum.workspace = true
 async-graphql.workspace = true

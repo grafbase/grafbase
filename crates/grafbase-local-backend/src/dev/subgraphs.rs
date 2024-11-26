@@ -1,4 +1,4 @@
-use super::{configurations::DevConfiguration, FullGraphRef};
+use super::FullGraphRef;
 use crate::api::{
     client::create_client,
     graphql::queries::subgraph_schemas_by_branch::{
@@ -8,32 +8,44 @@ use crate::api::{
 use crate::errors::BackendError;
 use common::environment::PlatformData;
 use cynic::{http::ReqwestExt, QueryBuilder};
+use gateway_config::Config;
 use grafbase_graphql_introspection::introspect;
 use graphql_composition::Subgraphs;
 use serde_dynamic_string::DynamicString;
 use std::{
-    collections::{BTreeMap, HashMap},
+    collections::{BTreeMap, HashMap, HashSet},
     env::set_current_dir,
     path::PathBuf,
+    sync::Arc,
 };
-use tokio::fs;
+use tokio::{fs, sync::Mutex};
 
 const DEFAULT_BRANCH: &str = "main";
 
+#[derive(Clone)]
+pub struct CachedIntrospectedSubgraph {
+    pub introspection_url: String,
+    pub introspection_headers: Vec<(String, DynamicString<String>)>,
+    pub sdl: String,
+}
+
 pub struct SubgraphCache {
     pub remote: BTreeMap<&'static String, &'static Subgraph>,
+    pub local: Mutex<BTreeMap<String, CachedIntrospectedSubgraph>>,
 }
 
 pub async fn get_subgraph_sdls(
     graph_ref: Option<&FullGraphRef>,
-    dev_configuration: &DevConfiguration,
+    overridden_subgraphs: &HashSet<String>,
+    merged_configuration: &Config,
     subgraphs: &mut Subgraphs,
     graph_overrides_path: Option<&PathBuf>,
-) -> Result<SubgraphCache, BackendError> {
+) -> Result<Arc<SubgraphCache>, BackendError> {
     let mut remote_urls: HashMap<&String, &String> = HashMap::new();
     let remote_subgraphs: Vec<Subgraph>;
     let mut subgraph_cache = SubgraphCache {
         remote: BTreeMap::new(),
+        local: Mutex::new(BTreeMap::new()),
     };
 
     if let Some(graph_ref) = graph_ref {
@@ -49,13 +61,12 @@ pub async fn get_subgraph_sdls(
 
         let remote_subgraphs = remote_subgraphs
             .iter()
-            .filter(|subgraph| !dev_configuration.overridden_subgraphs.contains(&subgraph.name))
+            .filter(|subgraph| !overridden_subgraphs.contains(&subgraph.name))
             .collect::<Vec<_>>();
 
         for subgraph in remote_subgraphs {
             remote_urls.insert(&subgraph.name, &subgraph.url);
-            let url = if let Some(url) = dev_configuration
-                .merged_configuration
+            let url = if let Some(url) = merged_configuration
                 .subgraphs
                 .get(&subgraph.name)
                 .and_then(|subgraph| subgraph.url.as_ref())
@@ -86,41 +97,57 @@ pub async fn get_subgraph_sdls(
         .map_err(BackendError::SetCurrentDirectory)?;
     }
 
-    let futures = dev_configuration
-        .overridden_subgraphs
+    let subgraph_cache = Arc::new(subgraph_cache);
+    let futures = overridden_subgraphs
         .iter()
-        .map(|subgraph| (subgraph, &dev_configuration.merged_configuration.subgraphs[subgraph]))
-        .map(|(name, subgraph)| async move {
-            let Some(url) = subgraph
-                .url
-                .as_ref()
-                .map(|url| url.as_str())
-                .or_else(|| remote_urls.get(&name).map(|url| url.as_str()))
-                .or(subgraph.introspection_url.as_ref().map(|url| url.as_str()))
-            else {
-                return Err(BackendError::NoDefinedRouteToSubgraphSdl(name.clone()));
-            };
-
-            if let Some(ref schema_path) = subgraph.schema_path {
-                let sdl = fs::read_to_string(schema_path)
-                    .await
-                    .map_err(|error| BackendError::ReadSdlFromFile(schema_path.clone(), error))?;
-
-                Ok((sdl, name, url))
-            } else if let Some(ref introspection_url) = subgraph.introspection_url {
-                let headers: Vec<(&String, &DynamicString<String>)> = subgraph
-                    .introspection_headers
+        .map(|subgraph| (subgraph, &merged_configuration.subgraphs[subgraph]))
+        .map(|(name, subgraph)| {
+            let subgraph_cache = subgraph_cache.clone();
+            async move {
+                let Some(url) = subgraph
+                    .url
                     .as_ref()
-                    .map(|intropection_headers| intropection_headers.iter().collect())
-                    .unwrap_or_default();
-                // TODO: this also parses and prettifies, expose internal functionality
-                let sdl = introspect(introspection_url.as_str(), &headers)
-                    .await
-                    .map_err(|_| BackendError::IntrospectSubgraph(introspection_url.to_string()))?;
+                    .map(|url| url.as_str())
+                    .or_else(|| remote_urls.get(&name).map(|url| url.as_str()))
+                    .or(subgraph.introspection_url.as_ref().map(|url| url.as_str()))
+                else {
+                    return Err(BackendError::NoDefinedRouteToSubgraphSdl(name.clone()));
+                };
 
-                Ok((sdl, name, url))
-            } else {
-                Err(BackendError::NoDefinedRouteToSubgraphSdl(name.clone()))
+                if let Some(ref schema_path) = subgraph.schema_path {
+                    let sdl = fs::read_to_string(schema_path)
+                        .await
+                        .map_err(|error| BackendError::ReadSdlFromFile(schema_path.clone(), error))?;
+
+                    Ok((sdl, name, url))
+                } else if let Some(ref introspection_url) = subgraph.introspection_url {
+                    let headers: Vec<(&String, &DynamicString<String>)> = subgraph
+                        .introspection_headers
+                        .as_ref()
+                        .map(|intropection_headers| intropection_headers.iter().collect())
+                        .unwrap_or_default();
+
+                    // TODO: this also parses and prettifies, expose internal functionality
+                    let sdl = introspect(introspection_url.as_str(), &headers)
+                        .await
+                        .map_err(|_| BackendError::IntrospectSubgraph(introspection_url.to_string()))?;
+
+                    subgraph_cache.local.lock().await.insert(
+                        name.clone(),
+                        CachedIntrospectedSubgraph {
+                            introspection_url: introspection_url.to_string(),
+                            introspection_headers: headers
+                                .iter()
+                                .map(|(key, value)| ((*key).clone(), (*value).clone()))
+                                .collect(),
+                            sdl: sdl.clone(),
+                        },
+                    );
+
+                    Ok((sdl, name, url))
+                } else {
+                    Err(BackendError::NoDefinedRouteToSubgraphSdl(name.clone()))
+                }
             }
         });
 

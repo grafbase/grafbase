@@ -52,6 +52,9 @@ jobs:
         with:
           platform: linux
 
+      - name: Fetch CLI assets
+        uses: ./.github/actions/fetch-assets
+
       - name: Create release directories
         shell: bash
         run: |
