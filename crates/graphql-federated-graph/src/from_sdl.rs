@@ -153,9 +153,9 @@ impl<'a> State<'a> {
             wrapping = match wrappers.peek() {
                 Some(WrappingType::NonNull) => {
                     wrappers.next();
-                    wrapping.wrapped_by_required_list()
+                    wrapping.wrap_list_non_null()
                 }
-                None | Some(WrappingType::List) => wrapping.wrapped_by_nullable_list(),
+                None | Some(WrappingType::List) => wrapping.wrap_list(),
             }
         }
 

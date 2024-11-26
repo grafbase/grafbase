@@ -31,8 +31,8 @@ impl Context<'_> {
 
                 for wrapper in field_type.iter_wrappers() {
                     wrapping = match wrapper {
-                        subgraphs::WrapperTypeKind::List => wrapping.wrapped_by_nullable_list(),
-                        subgraphs::WrapperTypeKind::NonNullList => wrapping.wrapped_by_required_list(),
+                        subgraphs::WrapperTypeKind::List => wrapping.wrap_list(),
+                        subgraphs::WrapperTypeKind::NonNullList => wrapping.wrap_list_non_null(),
                     };
                 }
 
