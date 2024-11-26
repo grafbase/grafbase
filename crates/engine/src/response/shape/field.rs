@@ -48,6 +48,7 @@ impl std::ops::Deref for FieldShape<'_> {
     }
 }
 
+#[derive(Clone, Copy)]
 pub(crate) struct FieldShape<'a> {
     pub(super) ctx: OperationPlanContext<'a>,
     pub(super) id: FieldShapeId,

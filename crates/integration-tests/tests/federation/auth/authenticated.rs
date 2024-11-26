@@ -90,12 +90,18 @@ fn not_authenticated() {
         "###);
 
         let response = engine.post("query { check { mustBeAuthenticated } }").await;
-        insta::assert_json_snapshot!(response, @r###"
+        insta::assert_json_snapshot!(response, @r#"
         {
           "data": null,
           "errors": [
             {
               "message": "Unauthenticated",
+              "locations": [
+                {
+                  "line": 1,
+                  "column": 17
+                }
+              ],
               "path": [
                 "check",
                 "mustBeAuthenticated"
@@ -106,7 +112,7 @@ fn not_authenticated() {
             }
           ]
         }
-        "###);
+        "#);
 
         // We shouldn't have requested the field.
         let requests = engine.drain_graphql_requests_sent_to::<SecureSchema>();
@@ -135,7 +141,7 @@ fn faillible_authenticated() {
         let response = engine
             .post("query { check { anonymous faillibleMustBeAuthenticated } }")
             .await;
-        insta::assert_json_snapshot!(response, @r###"
+        insta::assert_json_snapshot!(response, @r#"
         {
           "data": {
             "check": {
@@ -146,6 +152,12 @@ fn faillible_authenticated() {
           "errors": [
             {
               "message": "Unauthenticated",
+              "locations": [
+                {
+                  "line": 1,
+                  "column": 27
+                }
+              ],
               "path": [
                 "check",
                 "faillibleMustBeAuthenticated"
@@ -156,7 +168,7 @@ fn faillible_authenticated() {
             }
           ]
         }
-        "###);
+        "#);
     });
 }
 
@@ -164,7 +176,7 @@ fn faillible_authenticated() {
 fn authenticated_on_nullable_field() {
     with_secure_schema(|engine| async move {
         let response = engine.post("query { nullableCheck { mustBeAuthenticated } }").await;
-        insta::assert_json_snapshot!(response, @r###"
+        insta::assert_json_snapshot!(response, @r#"
         {
           "data": {
             "nullableCheck": null
@@ -172,6 +184,12 @@ fn authenticated_on_nullable_field() {
           "errors": [
             {
               "message": "Unauthenticated",
+              "locations": [
+                {
+                  "line": 1,
+                  "column": 25
+                }
+              ],
               "path": [
                 "nullableCheck",
                 "mustBeAuthenticated"
@@ -182,7 +200,7 @@ fn authenticated_on_nullable_field() {
             }
           ]
         }
-        "###);
+        "#);
     });
 }
 
@@ -206,12 +224,18 @@ fn authenticated_on_union() {
         let response = engine
             .post("query { entity(check: true) { __typename ... on Check { mustBeAuthenticated } } }")
             .await;
-        insta::assert_json_snapshot!(response, @r###"
+        insta::assert_json_snapshot!(response, @r#"
         {
           "data": null,
           "errors": [
             {
               "message": "Unauthenticated",
+              "locations": [
+                {
+                  "line": 1,
+                  "column": 57
+                }
+              ],
               "path": [
                 "entity",
                 "mustBeAuthenticated"
@@ -222,12 +246,12 @@ fn authenticated_on_union() {
             }
           ]
         }
-        "###);
+        "#);
 
         let response = engine
             .post("query { entity(check: true) { __typename ... on Check { faillibleMustBeAuthenticated } } }")
             .await;
-        insta::assert_json_snapshot!(response, @r###"
+        insta::assert_json_snapshot!(response, @r#"
         {
           "data": {
             "entity": {
@@ -238,6 +262,12 @@ fn authenticated_on_union() {
           "errors": [
             {
               "message": "Unauthenticated",
+              "locations": [
+                {
+                  "line": 1,
+                  "column": 57
+                }
+              ],
               "path": [
                 "entity",
                 "faillibleMustBeAuthenticated"
@@ -248,7 +278,7 @@ fn authenticated_on_union() {
             }
           ]
         }
-        "###);
+        "#);
     });
 }
 
@@ -294,7 +324,7 @@ fn authenticated_on_list_with_nullable_items() {
                 "###,
             )
             .await;
-        insta::assert_json_snapshot!(response, @r###"
+        insta::assert_json_snapshot!(response, @r#"
         {
           "data": {
             "entitiesNullable": [
@@ -308,6 +338,12 @@ fn authenticated_on_list_with_nullable_items() {
           "errors": [
             {
               "message": "Unauthenticated",
+              "locations": [
+                {
+                  "line": 5,
+                  "column": 40
+                }
+              ],
               "path": [
                 "entitiesNullable",
                 1,
@@ -319,7 +355,7 @@ fn authenticated_on_list_with_nullable_items() {
             }
           ]
         }
-        "###);
+        "#);
 
         let response = engine
             .post(
@@ -334,7 +370,7 @@ fn authenticated_on_list_with_nullable_items() {
                 "###,
             )
             .await;
-        insta::assert_json_snapshot!(response, @r###"
+        insta::assert_json_snapshot!(response, @r#"
         {
           "data": {
             "entitiesNullable": [
@@ -351,6 +387,12 @@ fn authenticated_on_list_with_nullable_items() {
           "errors": [
             {
               "message": "Unauthenticated",
+              "locations": [
+                {
+                  "line": 5,
+                  "column": 40
+                }
+              ],
               "path": [
                 "entitiesNullable",
                 1,
@@ -362,7 +404,7 @@ fn authenticated_on_list_with_nullable_items() {
             }
           ]
         }
-        "###);
+        "#);
     });
 }
 
@@ -408,12 +450,18 @@ fn authenticated_on_list_with_required_items() {
                 "###,
             )
             .await;
-        insta::assert_json_snapshot!(response, @r###"
+        insta::assert_json_snapshot!(response, @r#"
         {
           "data": null,
           "errors": [
             {
               "message": "Unauthenticated",
+              "locations": [
+                {
+                  "line": 5,
+                  "column": 40
+                }
+              ],
               "path": [
                 "entities",
                 1,
@@ -425,7 +473,7 @@ fn authenticated_on_list_with_required_items() {
             }
           ]
         }
-        "###);
+        "#);
 
         let response = engine
             .post(
@@ -440,7 +488,7 @@ fn authenticated_on_list_with_required_items() {
                 "###,
             )
             .await;
-        insta::assert_json_snapshot!(response, @r###"
+        insta::assert_json_snapshot!(response, @r#"
         {
           "data": {
             "entities": [
@@ -457,6 +505,12 @@ fn authenticated_on_list_with_required_items() {
           "errors": [
             {
               "message": "Unauthenticated",
+              "locations": [
+                {
+                  "line": 5,
+                  "column": 40
+                }
+              ],
               "path": [
                 "entities",
                 1,
@@ -468,6 +522,6 @@ fn authenticated_on_list_with_required_items() {
             }
           ]
         }
-        "###);
+        "#);
     });
 }

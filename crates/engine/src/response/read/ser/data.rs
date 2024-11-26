@@ -48,7 +48,7 @@ impl serde::Serialize for SerializableResponseObject<'_> {
             };
             map.serialize_key(&self.ctx.keys[edge.response_key])?;
             match value {
-                ResponseValue::Null => map.serialize_value(&())?,
+                ResponseValue::Null | ResponseValue::Inaccessible { .. } => map.serialize_value(&())?,
                 ResponseValue::Boolean { value, .. } => map.serialize_value(value)?,
                 ResponseValue::Int { value, .. } => map.serialize_value(value)?,
                 ResponseValue::Float { value, .. } => map.serialize_value(value)?,
@@ -83,7 +83,7 @@ impl serde::Serialize for SerializableResponseList<'_> {
         let mut seq = serializer.serialize_seq(Some(self.value.len()))?;
         for node in self.value {
             match node {
-                ResponseValue::Null => seq.serialize_element(&())?,
+                ResponseValue::Null | ResponseValue::Inaccessible { .. } => seq.serialize_element(&())?,
                 ResponseValue::Boolean { value, .. } => seq.serialize_element(value)?,
                 ResponseValue::Int { value, .. } => seq.serialize_element(value)?,
                 ResponseValue::Float { value, .. } => seq.serialize_element(value)?,

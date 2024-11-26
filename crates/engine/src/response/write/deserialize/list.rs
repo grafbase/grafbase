@@ -4,18 +4,15 @@ use serde::{
     de::{DeserializeSeed, IgnoredAny, SeqAccess, Visitor},
     Deserializer,
 };
-use walker::Walk;
 
 use super::SeedContext;
-use crate::{
-    operation::DataFieldId,
-    response::{ErrorCode, GraphqlError, ResponseValue},
-};
+use crate::response::{FieldShapeRecord, ResponseValue, ResponseValueId};
 
 pub(super) struct ListSeed<'ctx, 'parent, Seed> {
     pub ctx: &'parent SeedContext<'ctx>,
-    pub field_id: DataFieldId,
+    pub field: &'parent FieldShapeRecord,
     pub seed: &'parent Seed,
+    pub element_is_nullable: bool,
 }
 
 impl<'de, Seed> DeserializeSeed<'de> for ListSeed<'_, '_, Seed>
@@ -46,34 +43,31 @@ where
     where
         A: SeqAccess<'de>,
     {
-        let mut index: usize = 0;
-        let mut values = self.ctx.writer.new_list();
+        let mut index: u32 = 0;
+        let list_id = self.ctx.writer.data().reserve_list_id();
+        let mut list = Vec::new();
         if let Some(size_hint) = seq.size_hint() {
-            values.reserve(size_hint);
+            list.reserve(size_hint);
         }
 
         loop {
-            self.ctx.push_edge(index);
+            self.ctx.path().push(ResponseValueId::Index {
+                list_id,
+                index,
+                nullable: self.element_is_nullable,
+            });
             let result = seq.next_element_seed(self.seed.clone());
-            self.ctx.pop_edge();
+            self.ctx.path().pop();
             match result {
                 Ok(Some(value)) => {
-                    values.push(value);
+                    list.push(value);
                     index += 1;
                 }
                 Ok(None) => {
                     break;
                 }
                 Err(err) => {
-                    if self.ctx.should_create_new_graphql_error() {
-                        let mut path = self.ctx.response_path();
-                        path.push(index);
-                        self.ctx.writer.push_error(
-                            GraphqlError::new(err.to_string(), ErrorCode::SubgraphInvalidResponseError)
-                                .with_location(self.field_id.walk(self.ctx).location)
-                                .with_path(path),
-                        );
-                    }
+                    self.ctx.push_field_serde_error(self.field, true, || err.to_string());
                     // Discarding the rest of the sequence.
                     while seq.next_element::<IgnoredAny>().unwrap_or_default().is_some() {}
                     return Err(err);
@@ -81,6 +75,7 @@ where
             }
         }
 
-        Ok(self.ctx.writer.push_list(values).into())
+        self.ctx.writer.data().put_list(list_id, list);
+        Ok(list_id.into())
     }
 }

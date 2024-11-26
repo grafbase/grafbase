@@ -296,7 +296,7 @@ where
                     response: response.clone(),
                     cache_entries: cache_entries.as_deref(),
                 },
-                EntitiesErrorsSeed::new(ctx, response),
+                EntitiesErrorsSeed::new(response),
             )
             .deserialize(&mut serde_json::Deserializer::from_slice(http_response.body()))?
         };

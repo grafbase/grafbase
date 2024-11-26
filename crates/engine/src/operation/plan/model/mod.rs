@@ -16,7 +16,7 @@ use walker::{Iter, Walk};
 use crate::{
     operation::{ResponseModifierRule, SolvedOperation, SolvedOperationContext, Variables},
     resolver::Resolver,
-    response::{ResponseKey, Shapes},
+    response::Shapes,
 };
 
 use super::QueryModifications;

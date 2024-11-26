@@ -5,7 +5,7 @@ use walker::Walk;
 
 use crate::{
     operation::{ResponseModifier, ResponseModifierRule},
-    response::{ErrorCode, GraphqlError, InputResponseObjectSet, ResponseBuilder, UnpackedResponseEdge},
+    response::{ErrorCode, GraphqlError, InputResponseObjectSet, ResponseBuilder, ResponseValueId},
     Runtime,
 };
 
@@ -98,13 +98,29 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
 
                 for ((i, obj_ref), result) in input.iter_with_set_index().zip_eq(result) {
                     if let Err(err) = result {
-                        for target in
-                            &response_modifier.sorted_target_records[input_associated_targets_range[i].clone()]
-                        {
-                            let path = obj_ref
-                                .path
-                                .child(UnpackedResponseEdge::ExtraFieldResponseKey(target.key.into()).pack());
-                            response.push_error(err.clone().with_path(path));
+                        // If the current field is required, the error must be propagated upwards,
+                        // so the parent object path is enough.
+                        if definition.ty().wrapping.is_required() {
+                            for target in
+                                &response_modifier.sorted_target_records[input_associated_targets_range[i].clone()]
+                            {
+                                response.propagate_null(&obj_ref.path);
+                                response.push_error(err.clone().with_path((&obj_ref.path, target.key)));
+                            }
+                        } else {
+                            // Otherwise we don't need to propagate anything and just need to mark
+                            // the current value as inaccessible. So null for the client, but
+                            // available for requirements to be sent to subgraphs.
+                            for target in
+                                &response_modifier.sorted_target_records[input_associated_targets_range[i].clone()]
+                            {
+                                response.make_inacessible(ResponseValueId::Field {
+                                    object_id: obj_ref.id,
+                                    key: target.key,
+                                    nullable: true,
+                                });
+                                response.push_error(err.clone().with_path((&obj_ref.path, target.key)));
+                            }
                         }
                     }
                 }
@@ -151,7 +167,8 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
 
                 for (obj_ref, result) in input.iter().zip_eq(result) {
                     if let Err(err) = result {
-                        response.push_error(err.clone().with_path(obj_ref.path.clone()));
+                        response.propagate_null(&obj_ref.path);
+                        response.push_error(err.clone().with_path(&obj_ref.path));
                     }
                 }
             }

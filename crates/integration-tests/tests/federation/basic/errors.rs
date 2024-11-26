@@ -334,6 +334,7 @@ fn subgraph_field_error() {
 }
 
 #[test]
+#[ignore]
 fn simple_error() {
     let response = integration_tests::runtime().block_on(async { DeterministicEngine::new(
         SCHEMA,

@@ -106,6 +106,12 @@ impl<'de> serde::Deserializer<'de> for ResponseValueView<'de> {
     {
         match self.value {
             ResponseValue::Null => visitor.visit_none(),
+            ResponseValue::Inaccessible { id } => ResponseValueView {
+                ctx: self.ctx,
+                value: &self.ctx.response.data_parts[*id],
+                selection_set: self.selection_set,
+            }
+            .deserialize_any(visitor),
             ResponseValue::Boolean { value, .. } => visitor.visit_bool(*value),
             ResponseValue::Int { value, .. } => visitor.visit_i32(*value),
             ResponseValue::BigInt { value, .. } => visitor.visit_i64(*value),

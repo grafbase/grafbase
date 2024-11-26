@@ -12,7 +12,8 @@ use crate::{
     execution::ExecutionContext,
     operation::Plan,
     response::{
-        ConcreteShapeId, FieldShapeRecord, ResponseObject, ResponseObjectField, ResponseValue, ResponseWriter, Shapes,
+        ConcreteShapeId, FieldShapeRecord, ObjectUpdate, ResponseObject, ResponseObjectField, ResponseValue,
+        ResponseWriter, Shapes,
     },
     Runtime,
 };
@@ -71,7 +72,7 @@ impl<'ctx, R: Runtime> IntrospectionWriter<'ctx, R> {
                 });
             }
         }
-        self.response.update_root_object_with(fields);
+        self.response.update_root_object(ObjectUpdate::Fields(fields));
     }
 
     fn object<E: Copy, const N: usize>(
@@ -101,7 +102,7 @@ impl<'ctx, R: Runtime> IntrospectionWriter<'ctx, R> {
             }
         }
 
-        self.response.push_object(ResponseObject::new(fields)).into()
+        self.response.data().push_object(ResponseObject::new(fields)).into()
     }
 
     fn __schema(&self, shape_id: ConcreteShapeId) -> ResponseValue {
@@ -110,14 +111,14 @@ impl<'ctx, R: Runtime> IntrospectionWriter<'ctx, R> {
                 __Schema::Description => self.schema.graph.description_id.into(),
                 __Schema::Types => {
                     let shape_id = field.shape.as_concrete_object().unwrap();
-                    let mut values = self.response.new_list();
+                    let mut values = Vec::with_capacity(self.schema.definitions().len());
                     values.extend(
                         self.schema
                             .definitions()
                             .filter(|def| !def.is_inaccessible())
                             .map(|definition| self.__type_inner(definition, shape_id)),
                     );
-                    self.response.push_list(values).into()
+                    self.response.data().push_list(values).into()
                 }
                 __Schema::QueryType => self.__type_inner(
                     Definition::Object(self.schema.query()),
@@ -141,7 +142,7 @@ impl<'ctx, R: Runtime> IntrospectionWriter<'ctx, R> {
                     })
                     .unwrap_or_default(),
                 // TODO: Need to implemented directives...
-                __Schema::Directives => self.response.push_list(Vec::new()).into(),
+                __Schema::Directives => self.response.data().push_list(Vec::new()).into(),
             }
         })
     }
@@ -246,7 +247,7 @@ impl<'ctx, R: Runtime> IntrospectionWriter<'ctx, R> {
                         .walk(&self.ctx)
                         .hydrated_arguments(&self.ctx)
                         .get_arg_value_as::<bool>("includeDeprecated");
-                    let mut values = self.response.new_list();
+                    let mut values = Vec::with_capacity(r#enum.value_ids.len());
                     values.extend(
                         r#enum
                             .values()
@@ -255,7 +256,7 @@ impl<'ctx, R: Runtime> IntrospectionWriter<'ctx, R> {
                             })
                             .map(|value| self.__enum_value(value, shape_id)),
                     );
-                    self.response.push_list(values).into()
+                    self.response.data().push_list(values).into()
                 }
                 _ => ResponseValue::Null,
             }),
@@ -266,14 +267,14 @@ impl<'ctx, R: Runtime> IntrospectionWriter<'ctx, R> {
                     __Type::Description => input_object.description_id.into(),
                     __Type::InputFields => {
                         let shape_id = field.shape.as_concrete_object().unwrap();
-                        let mut values = self.response.new_list();
+                        let mut values = Vec::with_capacity(input_object.input_field_ids.len());
                         values.extend(
                             input_object
                                 .input_fields()
                                 .filter(|input_field| !input_field.is_inaccessible())
                                 .map(|input_field| self.__input_value(input_field, shape_id)),
                         );
-                        self.response.push_list(values).into()
+                        self.response.data().push_list(values).into()
                     }
                     _ => ResponseValue::Null,
                 })
@@ -284,7 +285,7 @@ impl<'ctx, R: Runtime> IntrospectionWriter<'ctx, R> {
     fn __type_fields(
         &self,
         field: &FieldShapeRecord,
-        field_definitions: impl Iterator<Item = FieldDefinition<'ctx>>,
+        field_definitions: impl Iter<Item = FieldDefinition<'ctx>>,
     ) -> ResponseValue {
         let shape_id = field.shape.as_concrete_object().unwrap();
         let include_deprecated = field
@@ -292,7 +293,7 @@ impl<'ctx, R: Runtime> IntrospectionWriter<'ctx, R> {
             .walk(&self.ctx)
             .hydrated_arguments(&self.ctx)
             .get_arg_value_as::<bool>("includeDeprecated");
-        let mut values = self.response.new_list();
+        let mut values = Vec::with_capacity(field_definitions.len());
         values.extend(
             field_definitions
                 .filter(|field| {
@@ -302,37 +303,37 @@ impl<'ctx, R: Runtime> IntrospectionWriter<'ctx, R> {
                 })
                 .map(|field| self.__field(field, shape_id)),
         );
-        self.response.push_list(values).into()
+        self.response.data().push_list(values).into()
     }
 
     fn __type_interfaces(
         &self,
         field: &FieldShapeRecord,
-        interface_definitions: impl Iterator<Item = InterfaceDefinition<'ctx>>,
+        interface_definitions: impl Iter<Item = InterfaceDefinition<'ctx>>,
     ) -> ResponseValue {
         let shape_id = field.shape.as_concrete_object().unwrap();
-        let mut values = self.response.new_list();
+        let mut values = Vec::with_capacity(interface_definitions.len());
         values.extend(
             interface_definitions
                 .filter(|inf| !inf.is_inaccessible())
                 .map(|interface| self.__type_inner(Definition::Interface(interface), shape_id)),
         );
-        self.response.push_list(values).into()
+        self.response.data().push_list(values).into()
     }
 
     fn __type_possible_types(
         &self,
         field: &FieldShapeRecord,
-        possible_types: impl Iterator<Item = ObjectDefinition<'ctx>>,
+        possible_types: impl Iter<Item = ObjectDefinition<'ctx>>,
     ) -> ResponseValue {
         let shape_id = field.shape.as_concrete_object().unwrap();
-        let mut values = self.response.new_list();
+        let mut values = Vec::with_capacity(possible_types.len());
         values.extend(
             possible_types
                 .filter(|obj| !obj.is_inaccessible())
                 .map(|possible_type| self.__type_inner(Definition::Object(possible_type), shape_id)),
         );
-        self.response.push_list(values).into()
+        self.response.data().push_list(values).into()
     }
 
     fn __field(&self, target: FieldDefinition<'ctx>, shape_id: ConcreteShapeId) -> ResponseValue {
@@ -341,14 +342,14 @@ impl<'ctx, R: Runtime> IntrospectionWriter<'ctx, R> {
             _Field::Description => target.as_ref().description_id.into(),
             _Field::Args => {
                 let shape_id = field.shape.as_concrete_object().unwrap();
-                let mut values = self.response.new_list();
+                let mut values = Vec::with_capacity(target.argument_ids.len());
                 values.extend(
                     target
                         .arguments()
                         .filter(|argument| !argument.is_inaccessible())
                         .map(|argument| self.__input_value(argument, shape_id)),
                 );
-                self.response.push_list(values).into()
+                self.response.data().push_list(values).into()
             }
             _Field::Type => self.__type(target.ty(), field.shape.as_concrete_object().unwrap()),
             _Field::IsDeprecated => is_deprecated(target.directives()).into(),

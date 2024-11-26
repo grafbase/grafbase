@@ -3,7 +3,7 @@ use std::borrow::Cow;
 use serde::ser::{SerializeMap, SerializeSeq};
 
 use crate::{
-    response::{GraphqlError, ResponseKeys, ResponsePath, UnpackedResponseEdge},
+    response::{ErrorPathSegment, GraphqlError, ResponseKeys},
     ErrorCode,
 };
 
@@ -65,7 +65,7 @@ impl serde::Serialize for SerializableError<'_> {
 
 struct SerializableResponsePath<'a> {
     keys: &'a ResponseKeys,
-    path: &'a ResponsePath,
+    path: &'a [ErrorPathSegment],
 }
 
 impl serde::Serialize for SerializableResponsePath<'_> {
@@ -74,17 +74,14 @@ impl serde::Serialize for SerializableResponsePath<'_> {
         S: serde::Serializer,
     {
         let mut seq = serializer.serialize_seq(Some(self.path.len()))?;
-        for edge in self.path.iter() {
-            match edge.unpack() {
-                UnpackedResponseEdge::Index(index) => seq.serialize_element(&index)?,
-                // for requrest errors, keys will be empty. There shouldn't be any path within
-                // those errors to begin with, but just in case better to output somthing than
-                // crashing.
-                UnpackedResponseEdge::BoundResponseKey(key) => {
-                    seq.serialize_element(&self.keys.try_resolve(key.as_response_key()).unwrap_or("<unknown>"))?
+        for segment in self.path {
+            match segment {
+                ErrorPathSegment::Field(key) => {
+                    seq.serialize_element(&self.keys[*key])?;
                 }
-                UnpackedResponseEdge::ExtraFieldResponseKey(key) => {
-                    seq.serialize_element(&self.keys.try_resolve(key).unwrap_or("<unknown>"))?
+                ErrorPathSegment::Index(index) => seq.serialize_element(&index)?,
+                ErrorPathSegment::UnknownField(name) => {
+                    seq.serialize_element(name)?;
                 }
             }
         }

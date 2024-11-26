@@ -9,10 +9,6 @@ impl<'a> DataField<'a> {
         self.ctx.operation[self.as_ref().shape_ids].iter().copied()
     }
 
-    pub(crate) fn response_key_str(&self) -> &'a str {
-        &self.ctx.operation.response_keys[self.as_ref().key.response_key]
-    }
-
     pub fn hydrated_arguments<'w, 'v>(&self, variables: impl Into<&'v Variables>) -> HydratedFieldArguments<'w>
     where
         'v: 'w,

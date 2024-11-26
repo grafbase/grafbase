@@ -5,7 +5,7 @@ use walker::Walk;
 
 use crate::response::{
     write::deserialize::{key::Key, SeedContext},
-    ObjectIdentifier, PolymorphicShapeId, PolymorphicShapeRecord, ResponseObject, ResponseValue,
+    ObjectIdentifier, PolymorphicShapeId, PolymorphicShapeRecord, ResponseValue,
 };
 
 use super::concrete::ConcreteShapeSeed;
@@ -60,7 +60,7 @@ impl<'de> Visitor<'de> for PolymorphicShapeSeed<'_, '_> {
                     .binary_search_by(|(id, _)| schema[schema[*id].name_id].as_str().cmp(typename))
                 {
                     let (object_id, shape_id) = self.shape.possibilities[i];
-                    return ConcreteShapeSeed::new_with_object_id(self.ctx, shape_id, object_id)
+                    return ConcreteShapeSeed::new_with_known_object_definition_id(self.ctx, shape_id, object_id)
                         .visit_map(ChainedMapAcces::new(content, map));
                 } else if let Some(shape_id) = self.shape.fallback {
                     let possible_type_ids = match shape_id.walk(self.ctx).identifier {
@@ -79,8 +79,12 @@ impl<'de> Visitor<'de> for PolymorphicShapeSeed<'_, '_> {
                     if let Ok(i) = possible_type_ids
                         .binary_search_by(|probe| schema[schema[*probe].name_id].as_str().cmp(typename))
                     {
-                        return ConcreteShapeSeed::new_with_object_id(self.ctx, shape_id, possible_type_ids[i])
-                            .visit_map(ChainedMapAcces::new(content, map));
+                        return ConcreteShapeSeed::new_with_known_object_definition_id(
+                            self.ctx,
+                            shape_id,
+                            possible_type_ids[i],
+                        )
+                        .visit_map(ChainedMapAcces::new(content, map));
                     }
 
                     return Err(serde::de::Error::custom("Couldn't determine the object type"));
@@ -90,11 +94,7 @@ impl<'de> Visitor<'de> for PolymorphicShapeSeed<'_, '_> {
                 while map.next_entry::<IgnoredAny, IgnoredAny>()?.is_some() {}
 
                 // Adding empty object instead
-                return Ok(self
-                    .ctx
-                    .writer
-                    .push_object(ResponseObject::new(Default::default()))
-                    .into());
+                return Ok(self.ctx.writer.data().push_object(Default::default()).into());
             }
             // keeping the fields until we find the actual __typename.
             content.push_back((key, map.next_value()?));

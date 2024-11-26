@@ -6,12 +6,18 @@ use integration_tests::openid::{CoreClientExt, OryHydraOpenIDProvider, READ_SCOP
 fn anonymous_does_not_any_scope() {
     with_secure_schema(|engine| async move {
         let response = engine.post("query { check { mustHaveReadScope } }").await;
-        insta::assert_json_snapshot!(response, @r###"
+        insta::assert_json_snapshot!(response, @r#"
         {
           "data": null,
           "errors": [
             {
               "message": "Insufficient scopes",
+              "locations": [
+                {
+                  "line": 1,
+                  "column": 17
+                }
+              ],
               "path": [
                 "check",
                 "mustHaveReadScope"
@@ -22,7 +28,7 @@ fn anonymous_does_not_any_scope() {
             }
           ]
         }
-        "###);
+        "#);
     });
 }
 
@@ -39,12 +45,18 @@ fn no_scope() {
             .post("query { check { mustHaveReadScope } }")
             .header("Authorization", format!("Bearer {token}"))
             .await;
-        insta::assert_json_snapshot!(response, @r###"
+        insta::assert_json_snapshot!(response, @r#"
         {
           "data": null,
           "errors": [
             {
               "message": "Insufficient scopes",
+              "locations": [
+                {
+                  "line": 1,
+                  "column": 17
+                }
+              ],
               "path": [
                 "check",
                 "mustHaveReadScope"
@@ -55,7 +67,7 @@ fn no_scope() {
             }
           ]
         }
-        "###);
+        "#);
 
         // We shouldn't have requested the field.
         let requests = engine.drain_graphql_requests_sent_to::<SecureSchema>();
@@ -99,12 +111,18 @@ fn has_read_scope() {
             .post("query { check { mustHaveWriteScope } }")
             .header("Authorization", format!("Bearer {token}"))
             .await;
-        insta::assert_json_snapshot!(response, @r###"
+        insta::assert_json_snapshot!(response, @r#"
         {
           "data": null,
           "errors": [
             {
               "message": "Insufficient scopes",
+              "locations": [
+                {
+                  "line": 1,
+                  "column": 17
+                }
+              ],
               "path": [
                 "check",
                 "mustHaveWriteScope"
@@ -115,7 +133,7 @@ fn has_read_scope() {
             }
           ]
         }
-        "###);
+        "#);
 
         let response = engine
             .post("query { check { mustHaveReadOrWriteScope } }")
@@ -135,12 +153,18 @@ fn has_read_scope() {
             .post("query { check { mustHaveReadAndWriteScope } }")
             .header("Authorization", format!("Bearer {token}"))
             .await;
-        insta::assert_json_snapshot!(response, @r###"
+        insta::assert_json_snapshot!(response, @r#"
         {
           "data": null,
           "errors": [
             {
               "message": "Insufficient scopes",
+              "locations": [
+                {
+                  "line": 1,
+                  "column": 17
+                }
+              ],
               "path": [
                 "check",
                 "mustHaveReadAndWriteScope"
@@ -151,7 +175,7 @@ fn has_read_scope() {
             }
           ]
         }
-        "###);
+        "#);
     });
 }
 
@@ -168,12 +192,18 @@ fn has_write_scope() {
             .post("query { check { mustHaveReadScope } }")
             .header("Authorization", format!("Bearer {token}"))
             .await;
-        insta::assert_json_snapshot!(response, @r###"
+        insta::assert_json_snapshot!(response, @r#"
         {
           "data": null,
           "errors": [
             {
               "message": "Insufficient scopes",
+              "locations": [
+                {
+                  "line": 1,
+                  "column": 17
+                }
+              ],
               "path": [
                 "check",
                 "mustHaveReadScope"
@@ -184,7 +214,7 @@ fn has_write_scope() {
             }
           ]
         }
-        "###);
+        "#);
 
         let response = engine
             .post("query { check { mustHaveWriteScope } }")
@@ -218,12 +248,18 @@ fn has_write_scope() {
             .post("query { check { mustHaveReadAndWriteScope } }")
             .header("Authorization", format!("Bearer {token}"))
             .await;
-        insta::assert_json_snapshot!(response, @r###"
+        insta::assert_json_snapshot!(response, @r#"
         {
           "data": null,
           "errors": [
             {
               "message": "Insufficient scopes",
+              "locations": [
+                {
+                  "line": 1,
+                  "column": 17
+                }
+              ],
               "path": [
                 "check",
                 "mustHaveReadAndWriteScope"
@@ -234,7 +270,7 @@ fn has_write_scope() {
             }
           ]
         }
-        "###);
+        "#);
     });
 }
 
