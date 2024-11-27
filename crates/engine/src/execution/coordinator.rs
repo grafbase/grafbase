@@ -17,7 +17,7 @@ use crate::{
     prepare::{PrepareContext, PreparedOperation},
     resolver::ResolverResult,
     response::{
-        InputResponseObjectSet, ObjectIdentifier, PositionedResponseKey, Response, ResponseBuilder,
+        GraphqlError, InputResponseObjectSet, ObjectIdentifier, PositionedResponseKey, Response, ResponseBuilder,
         ResponseObjectField, ResponseValue, SubgraphResponse, SubgraphResponseRefMut,
     },
     Runtime,
@@ -38,22 +38,22 @@ impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
         let background_futures: FuturesUnordered<_> =
             std::mem::take(&mut self.background_futures).into_iter().collect();
         let background_fut = background_futures.collect::<Vec<_>>();
+        let operation = Arc::new(operation);
+        let hooks_context = Arc::new(self.hooks_context);
+        let ctx = ExecutionContext {
+            engine: self.engine,
+            operation: &operation,
+            request_context: self.request_context,
+            hooks_context: &hooks_context,
+        };
 
         tracing::trace!("Starting execution...");
         if operation.plan.query_modifications.root_error_ids.is_empty() {
-            let operation = Arc::new(operation);
-            let hooks_context = Arc::new(self.hooks_context);
-            let ctx = ExecutionContext {
-                engine: self.engine,
-                operation: &operation,
-                request_context: self.request_context,
-                hooks_context: &hooks_context,
-            };
             let response_fut = ctx.execute(self.executed_operation_builder);
             let (response, _) = futures_util::join!(response_fut, background_fut);
             response
         } else {
-            let response_fut = self.response_for_root_errors(operation);
+            let response_fut = ctx.response_for_root_errors(self.executed_operation_builder);
             let (response, _) = futures_util::join!(response_fut, background_fut);
             response
         }
@@ -68,36 +68,54 @@ impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
             std::mem::take(&mut self.background_futures).into_iter().collect();
         let background_fut = background_futures.collect::<Vec<_>>();
 
+        let operation = Arc::new(operation);
+        let hooks_context = Arc::new(self.hooks_context);
+        let ctx = ExecutionContext {
+            engine: self.engine,
+            operation: &operation,
+            request_context: self.request_context,
+            hooks_context: &hooks_context,
+        };
+
         tracing::trace!("Starting execution...");
         if operation.plan.query_modifications.root_error_ids.is_empty() {
-            let operation = Arc::new(operation);
-            let hooks_context = Arc::new(self.hooks_context);
-            let ctx = ExecutionContext {
-                engine: self.engine,
-                operation: &operation,
-                request_context: self.request_context,
-                hooks_context: &hooks_context,
-            };
-
             let subscription_fut = ctx.execute_subscription(self.executed_operation_builder, responses);
-
             futures_util::join!(subscription_fut, background_fut);
         } else {
-            let response_fut = self.response_for_root_errors(operation);
+            let response_fut = ctx.response_for_root_errors(self.executed_operation_builder);
             let (response, _) = futures_util::join!(response_fut, background_fut);
             responses.send(response).await.ok();
         }
     }
+}
+
+impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
+    fn new_execution_state(&self) -> OperationExecutionState<'ctx, R> {
+        OperationExecutionState::new(*self)
+    }
+
+    fn execution_error(
+        &self,
+        on_operation_response_output: Option<<R::Hooks as Hooks>::OnOperationResponseOutput>,
+        errors: impl IntoIterator<Item: Into<GraphqlError>>,
+    ) -> Response<<R::Hooks as Hooks>::OnOperationResponseOutput> {
+        Response::execution_error(
+            &self.engine.schema,
+            self.operation,
+            on_operation_response_output,
+            errors,
+        )
+    }
 
     async fn response_for_root_errors(
         self,
-        operation: PreparedOperation,
+        executed_operation_builder: ExecutedOperationBuilder<<R::Hooks as Hooks>::OnSubgraphResponseOutput>,
     ) -> Response<<R::Hooks as Hooks>::OnOperationResponseOutput> {
-        let executed_operation = self.executed_operation_builder.build(
-            operation.cached.attributes.name.original(),
-            &operation.cached.attributes.sanitized_query,
+        let executed_operation = executed_operation_builder.build(
+            self.operation.cached.attributes.name.original(),
+            &self.operation.cached.attributes.sanitized_query,
             GraphqlResponseStatus::FieldError {
-                count: operation.plan.query_modifications.root_error_ids.len() as u64,
+                count: self.operation.plan.query_modifications.root_error_ids.len() as u64,
                 data_is_null: true,
             },
         );
@@ -106,28 +124,21 @@ impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
             .engine
             .runtime
             .hooks()
-            .on_operation_response(&self.hooks_context, executed_operation)
+            .on_operation_response(self.hooks_context, executed_operation)
             .await
         {
-            Ok(output) => Response::execution_error(
-                &operation,
+            Ok(output) => self.execution_error(
                 Some(output),
-                operation
+                self.operation
                     .plan
                     .query_modifications
                     .root_error_ids
                     .iter()
                     .copied()
-                    .map(|id| operation.plan.query_modifications[id].clone()),
+                    .map(|id| self.operation.plan.query_modifications[id].clone()),
             ),
-            Err(err) => Response::execution_error(&operation, None, [err]),
+            Err(err) => self.execution_error(None, [err]),
         }
-    }
-}
-
-impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
-    fn new_execution_state(&self) -> OperationExecutionState<'ctx, R> {
-        OperationExecutionState::new(*self)
     }
 
     async fn execute(
@@ -303,10 +314,10 @@ where
                                 },
                             );
 
-                            let response = match self.ctx.hooks().on_operation_response(executed_operation).await {
-                                Ok(output) => Response::execution_error(self.ctx.operation, Some(output), [err]),
-                                Err(err) => Response::execution_error(self.ctx.operation, None, [err]),
-                            };
+                            let response = self.ctx.execution_error(
+                                self.ctx.hooks().on_operation_response(executed_operation).await.ok(),
+                                [err],
+                            );
 
                             if responses.send(response).await.is_err() {
                                 return;
@@ -377,7 +388,7 @@ impl<'ctx, R: Runtime> OperationExecution<'ctx, R> {
         let mut state = State::Execution(self);
 
         futures_util::pin_mut!(futures);
-        let self_ = loop {
+        let this = loop {
             state = match state {
                 State::Ingestion(mut ingestion_fut) => {
                     let task_result = futures_util::select_biased! {
@@ -385,11 +396,11 @@ impl<'ctx, R: Runtime> OperationExecution<'ctx, R> {
                         execution_result = futures.next() => TaskResult::Execution(execution_result),
                     };
                     match task_result {
-                        TaskResult::Ingestion((self_, next_futures)) => {
+                        TaskResult::Ingestion((this, next_futures)) => {
                             for fut in next_futures {
                                 futures.push(fut);
                             }
-                            State::Execution(self_)
+                            State::Execution(this)
                         }
                         TaskResult::Execution(Some(result)) => {
                             results.push_back(result);
@@ -404,30 +415,30 @@ impl<'ctx, R: Runtime> OperationExecution<'ctx, R> {
                         }
                     }
                 }
-                State::Execution(self_) => {
+                State::Execution(this) => {
                     if let Some(result) = results.pop_front() {
-                        State::Ingestion(Box::pin(self_.ingest_execution_result(result).fuse()))
+                        State::Ingestion(Box::pin(this.ingest_execution_result(result).fuse()))
                     } else if let Some(result) = futures.next().await {
                         results.push_back(result);
-                        State::Execution(self_)
+                        State::Execution(this)
                     } else {
-                        break self_;
+                        break this;
                     }
                 }
             };
         };
 
-        let schema = self_.ctx.engine.schema.clone();
-        let operation = self_.ctx.operation;
-        let executed_operation = self_.executed_operation_builder.build(
+        let schema = this.ctx.engine.schema.clone();
+        let operation = this.ctx.operation;
+        let executed_operation = this.executed_operation_builder.build(
             operation.cached.attributes.name.original(),
             &operation.cached.attributes.sanitized_query,
-            self_.response.graphql_status(),
+            this.response.graphql_status(),
         );
 
-        match self_.ctx.hooks().on_operation_response(executed_operation).await {
-            Ok(output) => self_.response.build(schema, operation, output),
-            Err(err) => Response::execution_error(operation, None, [err]),
+        match this.ctx.hooks().on_operation_response(executed_operation).await {
+            Ok(output) => this.response.build(schema, operation, output),
+            Err(err) => Response::execution_error(&this.ctx.engine.schema, operation, None, [err]),
         }
     }
 

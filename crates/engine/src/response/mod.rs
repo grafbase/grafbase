@@ -43,6 +43,7 @@ pub(crate) enum Response<OnOperationResponseHookOutput> {
 }
 
 pub(crate) struct ExecutedResponse<OnOperationResponseHookOutput> {
+    schema: Arc<Schema>,
     operation: Arc<CachedOperation>,
     operation_attributes: GraphqlOperationAttributes,
     data: Option<ResponseData>,
@@ -70,7 +71,6 @@ impl<OnOperationResponseHookOutput> ExecutedResponse<OnOperationResponseHookOutp
 }
 
 struct ResponseData {
-    schema: Arc<Schema>,
     root: ResponseObjectId,
     parts: Vec<ResponseDataPart>,
 }
@@ -138,6 +138,7 @@ impl<OnOperationResponseHookOutput> Response<OnOperationResponseHookOutput> {
     }
 
     pub(crate) fn execution_error(
+        schema: &Arc<Schema>,
         operation: &PreparedOperation,
         on_operation_response_output: Option<OnOperationResponseHookOutput>,
         errors: impl IntoIterator<Item: Into<GraphqlError>>,
@@ -146,6 +147,7 @@ impl<OnOperationResponseHookOutput> Response<OnOperationResponseHookOutput> {
         let error_code_counter = ErrorCodeCounter::from_errors(&errors);
 
         Self::Executed(ExecutedResponse {
+            schema: schema.clone(),
             operation: operation.cached.clone(),
             operation_attributes: operation.attributes(),
             data: None,

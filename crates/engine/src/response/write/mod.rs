@@ -371,10 +371,10 @@ impl ResponseBuilder {
     ) -> Response<OnOperationResponseHookOutput> {
         let error_code_counter = ErrorCodeCounter::from_errors(&self.errors);
         Response::Executed(ExecutedResponse {
+            schema,
             operation: operation.cached.clone(),
             operation_attributes: operation.attributes(),
             data: self.root.map(|(root, _)| ResponseData {
-                schema,
                 root,
                 parts: self.parts,
             }),
