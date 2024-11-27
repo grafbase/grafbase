@@ -142,8 +142,6 @@ impl<'a> Context<'a> {
 
         let interface = federated::Interface {
             type_definition_id,
-            // Populated when emitting the federated graph.
-            fields: federated::NO_FIELDS,
             implements_interfaces: Vec::new(),
         };
         let id = federated::InterfaceId::from(self.ir.interfaces.push_return_idx(interface));
@@ -190,8 +188,6 @@ impl<'a> Context<'a> {
 
         let object = federated::Object {
             type_definition_id,
-            // Populated when emitting the federated graph.
-            fields: federated::NO_FIELDS,
             implements_interfaces: Vec::new(),
         };
         let id = federated::ObjectId::from(self.ir.objects.push_return_idx(object));

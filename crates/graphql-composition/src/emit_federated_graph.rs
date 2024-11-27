@@ -205,8 +205,6 @@ fn emit_fields(fields: &[FieldIr], ctx: &mut Context<'_>) {
             .as_entity()
             .expect("Only interfaces & objects can have fields.");
 
-        let start = ctx.out.fields.len();
-
         // Sort the fields by name.
         fields.sort_by(|a, b| ctx[a.field_name].cmp(&ctx[b.field_name]));
 
@@ -232,20 +230,6 @@ fn emit_fields(fields: &[FieldIr], ctx: &mut Context<'_>) {
 
             let selection_map_key = (parent_definition_id, field_name);
             ctx.selection_map.insert(selection_map_key, field_id);
-        }
-
-        let fields = federated::Fields {
-            start: federated::FieldId::from(start),
-            end: federated::FieldId::from(ctx.out.fields.len()),
-        };
-
-        match parent_entity_id {
-            federated::EntityDefinitionId::Object(id) => {
-                ctx.out.objects[usize::from(id)].fields = fields;
-            }
-            federated::EntityDefinitionId::Interface(id) => {
-                ctx.out.interfaces[usize::from(id)].fields = fields;
-            }
         }
     });
 }

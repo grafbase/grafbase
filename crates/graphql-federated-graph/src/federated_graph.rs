@@ -23,8 +23,6 @@ pub use self::{
 };
 pub use wrapping::Wrapping;
 
-use std::ops::Range;
-
 #[derive(Clone)]
 pub struct FederatedGraph {
     pub subgraphs: Vec<Subgraph>,
@@ -69,12 +67,37 @@ impl FederatedGraph {
         &self[name_id]
     }
 
+    pub fn fields_range(&self, parent_definition_id: EntityDefinitionId) -> std::ops::Range<FieldId> {
+        let start = self
+            .fields
+            .partition_point(|f| f.parent_entity_id < parent_definition_id);
+
+        let end = start + self.fields[start..].partition_point(|f| f.parent_entity_id <= parent_definition_id);
+
+        FieldId::from(start)..FieldId::from(end)
+    }
+
     pub fn iter_interfaces(&self) -> impl ExactSizeIterator<Item = View<InterfaceId, &Interface>> {
         (0..self.interfaces.len()).map(|idx| self.view(InterfaceId::from(idx)))
     }
 
     pub fn iter_objects(&self) -> impl ExactSizeIterator<Item = View<ObjectId, &Object>> {
         (0..self.objects.len()).map(|idx| self.view(ObjectId::from(idx)))
+    }
+
+    pub fn iter_fields(&self, parent_definition_id: EntityDefinitionId) -> impl Iterator<Item = View<FieldId, &Field>> {
+        let start = self
+            .fields
+            .partition_point(|f| f.parent_entity_id < parent_definition_id);
+
+        self.fields[start..]
+            .iter()
+            .take_while(move |field| field.parent_entity_id == parent_definition_id)
+            .enumerate()
+            .map(move |(idx, field)| View {
+                id: FieldId::from(start + idx),
+                record: field,
+            })
     }
 
     pub fn iter_type_definitions(&self) -> impl Iterator<Item = TypeDefinition<'_>> {
@@ -139,14 +162,12 @@ pub enum Value {
 pub struct Object {
     pub type_definition_id: TypeDefinitionId,
     pub implements_interfaces: Vec<InterfaceId>,
-    pub fields: Fields,
 }
 
 #[derive(Clone)]
 pub struct Interface {
     pub type_definition_id: TypeDefinitionId,
     pub implements_interfaces: Vec<InterfaceId>,
-    pub fields: Fields,
 }
 
 #[derive(Clone)]
@@ -285,7 +306,6 @@ impl Default for FederatedGraph {
             objects: vec![Object {
                 type_definition_id: TypeDefinitionId::from(0),
                 implements_interfaces: Vec::new(),
-                fields: FieldId::from(0)..FieldId::from(2),
             }],
             interfaces: Vec::new(),
             fields: vec![
@@ -333,14 +353,6 @@ impl std::ops::Index<InputValueDefinitions> for FederatedGraph {
     }
 }
 
-impl std::ops::Index<Fields> for FederatedGraph {
-    type Output = [Field];
-
-    fn index(&self, index: Fields) -> &Self::Output {
-        &self.fields[usize::from(index.start)..usize::from(index.end)]
-    }
-}
-
 pub type InputValueDefinitionSet = Vec<InputValueDefinitionSetItem>;
 
 #[derive(serde::Serialize, serde::Deserialize, Clone, Debug, PartialEq, PartialOrd)]
@@ -349,16 +361,10 @@ pub struct InputValueDefinitionSetItem {
     pub subselection: InputValueDefinitionSet,
 }
 
-/// A (start, end) range in FederatedGraph::fields.
-pub type Fields = Range<FieldId>;
 /// A (start, len) range in FederatedSchema.
 pub type InputValueDefinitions = (InputValueDefinitionId, usize);
 
 pub const NO_INPUT_VALUE_DEFINITION: InputValueDefinitions = (InputValueDefinitionId::const_from_usize(0), 0);
-pub const NO_FIELDS: Fields = Range {
-    start: FieldId::const_from_usize(0),
-    end: FieldId::const_from_usize(0),
-};
 
 pub type FieldSet = Vec<FieldSetItem>;
 

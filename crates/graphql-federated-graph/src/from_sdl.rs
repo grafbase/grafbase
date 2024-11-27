@@ -12,7 +12,7 @@ use directive::{
     collect_input_value_directives,
 };
 use indexmap::IndexSet;
-use std::{collections::HashMap, error::Error as StdError, fmt, ops::Range};
+use std::{collections::HashMap, error::Error as StdError, fmt};
 use wrapping::Wrapping;
 
 const JOIN_GRAPH_DIRECTIVE_NAME: &str = "join__graph";
@@ -287,7 +287,6 @@ pub fn from_sdl(sdl: &str) -> Result<FederatedGraph, DomainError> {
         state.objects.push(Object {
             type_definition_id,
             implements_interfaces: Vec::new(),
-            fields: NO_FIELDS,
         });
 
         ingest_object_fields(object_id, std::iter::empty(), &mut state)?;
@@ -529,7 +528,6 @@ fn ingest_definitions<'a>(document: &'a ast::TypeSystemDocument, state: &mut Sta
                         let object_id = ObjectId::from(state.objects.push_return_idx(Object {
                             type_definition_id,
                             implements_interfaces: Vec::new(),
-                            fields: NO_FIELDS,
                         }));
 
                         state.definition_names.insert(type_name, Definition::Object(object_id));
@@ -538,7 +536,6 @@ fn ingest_definitions<'a>(document: &'a ast::TypeSystemDocument, state: &mut Sta
                         let interface_id = InterfaceId::from(state.interfaces.push_return_idx(Interface {
                             type_definition_id,
                             implements_interfaces: Vec::new(),
-                            fields: NO_FIELDS,
                         }));
                         state
                             .definition_names
@@ -614,20 +611,10 @@ fn ingest_interface_fields<'a>(
     fields: impl Iterator<Item = ast::FieldDefinition<'a>>,
     state: &mut State<'a>,
 ) -> Result<(), DomainError> {
-    let [mut start, mut end] = [None; 2];
-
     for field in fields {
-        let field_id = ingest_field(EntityDefinitionId::Interface(interface_id), field, state)?;
-        start = Some(start.unwrap_or(field_id));
-        end = Some(field_id);
+        ingest_field(EntityDefinitionId::Interface(interface_id), field, state)?;
     }
 
-    if let [Some(start), Some(end)] = [start, end] {
-        state.interfaces[usize::from(interface_id)].fields = Range {
-            start,
-            end: FieldId::from(usize::from(end) + 1),
-        };
-    };
     Ok(())
 }
 
@@ -739,7 +726,6 @@ fn ingest_object_fields<'a>(
     fields: impl Iterator<Item = ast::FieldDefinition<'a>>,
     state: &mut State<'a>,
 ) -> Result<(), DomainError> {
-    let start = state.fields.len();
     for field in fields {
         ingest_field(EntityDefinitionId::Object(object_id), field, state)?;
     }
@@ -766,11 +752,6 @@ fn ingest_object_fields<'a>(
             });
         }
     }
-
-    state.objects[usize::from(object_id)].fields = Range {
-        start: FieldId::from(start),
-        end: FieldId::from(state.fields.len()),
-    };
 
     Ok(())
 }
@@ -1151,12 +1132,10 @@ fn test_from_sdl() {
         }
     "#).unwrap();
 
-    let query_object = &schema[schema.root_operation_types.query];
-
     for field_name in ["__type", "__schema"] {
         let field_name = schema.strings.iter().position(|s| s == field_name).unwrap();
-        assert!(schema[query_object.fields.clone()]
-            .iter()
+        assert!(schema
+            .iter_fields(schema.root_operation_types.query.into())
             .any(|f| usize::from(f.name) == field_name));
     }
 }
@@ -1234,12 +1213,10 @@ fn test_from_sdl_with_empty_query_root() {
     "#,
     ).unwrap();
 
-    let query_object = &schema[schema.root_operation_types.query];
-
     for field_name in ["__type", "__schema"] {
         let field_name = schema.strings.iter().position(|s| s == field_name).unwrap();
-        assert!(schema[query_object.fields.clone()]
-            .iter()
+        assert!(schema
+            .iter_fields(schema.root_operation_types.query.into())
             .any(|f| usize::from(f.name) == field_name));
     }
 }
@@ -1315,12 +1292,10 @@ fn test_from_sdl_with_missing_query_root() {
     "#,
     ).unwrap();
 
-    let query_object = &schema[schema.root_operation_types.query];
-
     for field_name in ["__type", "__schema"] {
         let field_name = schema.strings.iter().position(|s| s == field_name).unwrap();
-        assert!(schema[query_object.fields.clone()]
-            .iter()
+        assert!(schema
+            .iter_fields(schema.root_operation_types.query.into())
             .any(|f| usize::from(f.name) == field_name));
     }
 }

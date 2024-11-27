@@ -34,8 +34,8 @@ pub fn render_federated_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error
         let definition = graph.at(object.type_definition_id);
         let object_name = definition.then(|def| def.name).as_str();
 
-        let mut fields = graph[object.fields.clone()]
-            .iter()
+        let mut fields = graph
+            .iter_fields(object.id().into())
             .filter(|field| !graph[field.name].starts_with("__"))
             .peekable();
 
@@ -120,7 +120,7 @@ pub fn render_federated_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error
         }
         sdl.push_str("{\n");
 
-        for field in &graph[interface.fields.clone()] {
+        for field in graph.iter_fields(interface.id().into()) {
             write_field(&graph[interface.type_definition_id].directives, field, graph, &mut sdl)?;
         }
 
@@ -332,7 +332,7 @@ fn write_input_field(
 
 fn write_field(
     parent_entity_directives: &[Directive],
-    field: &Field,
+    field: View<FieldId, &Field>,
     graph: &FederatedGraph,
     sdl: &mut String,
 ) -> fmt::Result {

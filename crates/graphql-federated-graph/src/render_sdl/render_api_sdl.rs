@@ -58,14 +58,14 @@ impl fmt::Display for Renderer<'_> {
             f.write_char('\n')?;
         }
 
-        for object in &graph.objects {
+        for object in graph.iter_objects() {
             let definition = graph.at(object.type_definition_id);
 
             if has_inaccessible(&definition.directives) {
                 continue;
             }
 
-            if graph[object.fields.clone()].iter().all(|field| {
+            if graph.iter_fields(object.id().into()).all(|field| {
                 let field_name = &graph[field.name];
                 field_name.starts_with("__") || has_inaccessible(&field.directives)
             }) {
@@ -81,7 +81,7 @@ impl fmt::Display for Renderer<'_> {
             f.write_char(' ')?;
 
             write_block(f, |f| {
-                for field in &graph[object.fields.clone()] {
+                for field in graph.iter_fields(object.id().into()) {
                     let field_name = &graph[field.name];
 
                     if field_name.starts_with("__") || has_inaccessible(&field.directives) {
@@ -104,7 +104,7 @@ impl fmt::Display for Renderer<'_> {
             f.write_char('\n')?;
         }
 
-        for interface in &graph.interfaces {
+        for interface in graph.iter_interfaces() {
             let definition = graph.at(interface.type_definition_id);
 
             if has_inaccessible(&definition.directives) {
@@ -120,7 +120,7 @@ impl fmt::Display for Renderer<'_> {
             f.write_char(' ')?;
 
             write_block(f, |f| {
-                for field in &graph[interface.fields.clone()] {
+                for field in graph.iter_fields(interface.id().into()) {
                     if has_inaccessible(&field.directives) {
                         continue;
                     }

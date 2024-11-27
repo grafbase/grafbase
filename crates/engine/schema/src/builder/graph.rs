@@ -337,7 +337,11 @@ impl<'a> GraphBuilder<'a> {
                 description_id: definition.description.map(Into::into),
                 interface_ids: object.implements_interfaces.into_iter().map(Into::into).collect(),
                 directive_ids: directives,
-                field_ids: IdRange::from(object.fields),
+                field_ids: IdRange::from(
+                    config
+                        .graph
+                        .fields_range(federated_graph::EntityDefinitionId::Object(ix.into())),
+                ),
                 join_implement_records,
                 exists_in_subgraph_ids,
             });
@@ -366,7 +370,11 @@ impl<'a> GraphBuilder<'a> {
                 // Added at the end.
                 possible_types_ordered_by_typename_ids: Vec::new(),
                 directive_ids: directives,
-                field_ids: IdRange::from(interface.fields),
+                field_ids: IdRange::from(
+                    config
+                        .graph
+                        .fields_range(federated_graph::EntityDefinitionId::Interface(ix.into())),
+                ),
                 // Added at the end.
                 not_fully_implemented_in_ids: Vec::new(),
             });
