@@ -3,6 +3,8 @@ use wasmtime::component::Resource;
 use wasmtime_wasi::{ResourceTable, WasiCtx, WasiView};
 use wasmtime_wasi_http::{WasiHttpCtx, WasiHttpView};
 
+use crate::ChannelLogSender;
+
 /// Represents the state of the WASI environment.
 ///
 /// This structure encapsulates the WASI context, HTTP context, and a resource table
@@ -23,6 +25,9 @@ pub(crate) struct WasiState {
 
     /// A client for making HTTP requests from the guest.
     http_client: reqwest::Client,
+
+    /// A sender for the access log channel.
+    access_log: ChannelLogSender,
 }
 
 impl WasiState {
@@ -36,7 +41,7 @@ impl WasiState {
     ///
     /// A new `WasiState` instance initialized with the provided context and default
     /// HTTP and resource table contexts.
-    pub fn new(ctx: WasiCtx) -> Self {
+    pub fn new(ctx: WasiCtx, access_log: ChannelLogSender) -> Self {
         let meter = meter_from_global_provider();
         let request_durations = meter.u64_histogram("grafbase.hook.http_request.duration").build();
         let http_client = reqwest::Client::new();
@@ -47,6 +52,7 @@ impl WasiState {
             table: ResourceTable::new(),
             request_durations,
             http_client,
+            access_log,
         }
     }
 
@@ -87,6 +93,11 @@ impl WasiState {
     /// Returns a reference to the HTTP client used for making requests from the guest.
     pub fn http_client(&self) -> &reqwest::Client {
         &self.http_client
+    }
+
+    /// Returns a reference to the access log sender.
+    pub fn access_log(&self) -> &ChannelLogSender {
+        &self.access_log
     }
 }
 

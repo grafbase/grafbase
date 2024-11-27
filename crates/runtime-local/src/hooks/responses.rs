@@ -1,8 +1,8 @@
 use runtime::error::PartialGraphqlError;
-use tracing::Instrument;
+use tracing::{info_span, Instrument};
 use wasi_component_loader::{
     CacheStatus, ExecutedHttpRequest, ExecutedOperation, ExecutedSubgraphRequest, FieldError, GraphqlResponseStatus,
-    RequestError, SubgraphRequestExecutionKind, SubgraphResponse,
+    HookImplementation, RequestError, SubgraphRequestExecutionKind, SubgraphResponse,
 };
 
 use crate::HooksWasi;
@@ -19,9 +19,12 @@ impl HooksWasi {
             return Ok(Vec::new());
         };
 
-        let Some((mut hook, span)) = inner.get_responses_instance("hook: on-subgraph-response").await else {
+        if !inner.implemented_hooks.contains(HookImplementation::OnSubgraphResponse) {
             return Ok(Vec::new());
-        };
+        }
+
+        let span = info_span!("hook: on-subgraph-response");
+        let mut hook = inner.pool.get().instrument(span.clone()).await;
 
         let runtime::hooks::ExecutedSubgraphRequest {
             subgraph_name,
@@ -90,9 +93,15 @@ impl HooksWasi {
             return Ok(Vec::new());
         };
 
-        let Some((mut hook, span)) = inner.get_responses_instance("hook: on-operation-response").await else {
+        if !inner
+            .implemented_hooks
+            .contains(HookImplementation::OnOperationResponse)
+        {
             return Ok(Vec::new());
-        };
+        }
+
+        let span = info_span!("hook: on-operation-response");
+        let mut hook = inner.pool.get().instrument(span.clone()).await;
 
         let runtime::hooks::ExecutedOperation {
             duration,
@@ -147,9 +156,12 @@ impl HooksWasi {
             return Ok(());
         };
 
-        let Some((mut hook, span)) = inner.get_responses_instance("hook: on-http-response").await else {
+        if !inner.implemented_hooks.contains(HookImplementation::OnHttpResponse) {
             return Ok(());
-        };
+        }
+
+        let span = info_span!("hook: on-http-response");
+        let mut hook = inner.pool.get().instrument(span.clone()).await;
 
         let runtime::hooks::ExecutedHttpRequest {
             method,

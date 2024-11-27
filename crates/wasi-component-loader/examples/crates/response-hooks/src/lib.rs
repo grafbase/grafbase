@@ -1,12 +1,7 @@
-use bindings::component::grafbase::types::{
-    CacheStatus, Error, ExecutedHttpRequest, ExecutedOperation, ExecutedSubgraphRequest, SharedContext,
-    SubgraphRequestExecutionKind,
+use grafbase_hooks::{
+    access_log, grafbase_hooks, CacheStatus, Context, Error, ErrorResponse, ExecutedHttpRequest, ExecutedOperation,
+    ExecutedSubgraphRequest, Headers, Hooks, SharedContext, SubgraphRequestExecutionKind,
 };
-use bindings::exports::component::grafbase::gateway_request;
-use bindings::exports::component::grafbase::responses::Guest;
-
-#[allow(warnings)]
-mod bindings;
 
 struct Component;
 
@@ -76,18 +71,23 @@ struct AuditInfo<'a> {
     operations: Vec<OperationInfo<'a>>,
 }
 
-impl gateway_request::Guest for Component {
-    fn on_gateway_request(
-        _: gateway_request::Context,
-        headers: gateway_request::Headers,
-    ) -> Result<(), gateway_request::ErrorResponse> {
+#[grafbase_hooks]
+impl Hooks for Component {
+    fn new() -> Self
+    where
+        Self: Sized,
+    {
+        Self
+    }
+
+    fn on_gateway_request(&mut self, _: Context, headers: Headers) -> Result<(), ErrorResponse> {
         if headers.get("test-value").is_some() {
             let error = Error {
                 extensions: Vec::new(),
                 message: String::from("test-value header is not allowed"),
             };
 
-            Err(gateway_request::ErrorResponse {
+            Err(ErrorResponse {
                 status_code: 400,
                 errors: vec![error],
             })
@@ -95,10 +95,8 @@ impl gateway_request::Guest for Component {
             Ok(())
         }
     }
-}
 
-impl Guest for Component {
-    fn on_subgraph_response(_: SharedContext, request: ExecutedSubgraphRequest) -> Vec<u8> {
+    fn on_subgraph_response(&mut self, _: SharedContext, request: ExecutedSubgraphRequest) -> Vec<u8> {
         let ExecutedSubgraphRequest {
             subgraph_name,
             method,
@@ -137,7 +135,7 @@ impl Guest for Component {
         postcard::to_stdvec(&info).unwrap()
     }
 
-    fn on_operation_response(_: SharedContext, operation: ExecutedOperation) -> Vec<u8> {
+    fn on_operation_response(&mut self, _: SharedContext, operation: ExecutedOperation) -> Vec<u8> {
         let info = OperationInfo {
             name: operation.name.as_deref(),
             document: &operation.document,
@@ -145,19 +143,15 @@ impl Guest for Component {
             cached: operation.cached_plan,
             duration: operation.duration_ms,
             status: match operation.status {
-                bindings::component::grafbase::types::GraphqlResponseStatus::Success => GraphqlResponseStatus::Success,
-                bindings::component::grafbase::types::GraphqlResponseStatus::FieldError(e) => {
-                    GraphqlResponseStatus::FieldError(FieldError {
-                        count: e.count,
-                        data_is_null: e.data_is_null,
-                    })
-                }
-                bindings::component::grafbase::types::GraphqlResponseStatus::RequestError(e) => {
+                grafbase_hooks::GraphqlResponseStatus::Success => GraphqlResponseStatus::Success,
+                grafbase_hooks::GraphqlResponseStatus::FieldError(e) => GraphqlResponseStatus::FieldError(FieldError {
+                    count: e.count,
+                    data_is_null: e.data_is_null,
+                }),
+                grafbase_hooks::GraphqlResponseStatus::RequestError(e) => {
                     GraphqlResponseStatus::RequestError(RequestError { count: e.count })
                 }
-                bindings::component::grafbase::types::GraphqlResponseStatus::RefusedRequest => {
-                    GraphqlResponseStatus::RefusedRequest
-                }
+                grafbase_hooks::GraphqlResponseStatus::RefusedRequest => GraphqlResponseStatus::RefusedRequest,
             },
             subgraphs: operation
                 .on_subgraph_response_outputs
@@ -169,7 +163,7 @@ impl Guest for Component {
         postcard::to_stdvec(&info).unwrap()
     }
 
-    fn on_http_response(context: SharedContext, request: ExecutedHttpRequest) {
+    fn on_http_response(&mut self, context: SharedContext, request: ExecutedHttpRequest) {
         let info = AuditInfo {
             method: &request.method,
             url: &request.url,
@@ -182,8 +176,8 @@ impl Guest for Component {
                 .collect(),
         };
 
-        context.log_access(&serde_json::to_vec(&info).unwrap()).unwrap();
+        access_log::send(&serde_json::to_vec(&info).unwrap()).unwrap();
     }
 }
 
-bindings::export!(Component with_types_in bindings);
+grafbase_hooks::register_hooks!(Component);

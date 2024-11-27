@@ -8,15 +8,10 @@ keywords.workspace = true
 repository.workspace = true
 
 [dependencies]
-wit-bindgen-rt = { workspace = true, features = ["bitflags"] }
+grafbase-hooks.workspace = true
 serde_json.workspace = true
 serde.workspace = true
 postcard = { version = "1.0.10", features = ["use-std"] }
 
 [lib]
 crate-type = ["cdylib"]
-
-[package.metadata.component]
-package = "component:response-hooks"
-
-[package.metadata.component.dependencies]

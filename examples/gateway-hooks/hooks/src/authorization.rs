@@ -1,144 +1,114 @@
+use grafbase_hooks::{
+    http_client::{self, HttpMethod, HttpRequest},
+    Error,
+};
 use itertools::Itertools;
 
-use crate::{
-    bindings::{
-        component::grafbase::types::Error,
-        exports::component::grafbase::authorization::{self, EdgeDefinition, SharedContext},
-    },
-    contract_error, error, init_logging, maybe_read_input, read_input, Component, Metadata,
-};
+use crate::error;
 
-mod service;
+#[derive(serde::Serialize, serde::Deserialize)]
+struct AuthorizeUserRequest {
+    current_user_id: usize,
+    user_id: usize,
+}
 
-impl authorization::Guest for Component {
-    fn authorize_edge_pre_execution(
-        context: SharedContext,
-        definition: EdgeDefinition,
-        arguments: String,
-        _metadata: String,
-    ) -> Result<(), Error> {
-        init_logging();
+#[derive(serde::Serialize, serde::Deserialize)]
+struct AuthorizeAddressRequest {
+    current_user_id: usize,
+    owner_id: usize,
+}
 
-        match (definition.parent_type_name.as_str(), definition.field_name.as_str()) {
-            ("Query", "user") => {
-                tracing::info!("Authorizing access to Query.user with {arguments}",);
+#[derive(serde::Serialize, serde::Deserialize)]
+struct AuthorizationResponse {
+    authorized: bool,
+}
 
-                #[derive(serde::Deserialize)]
-                struct Arguments {
-                    id: usize,
-                }
-                let arguments: Arguments = read_input(&arguments)?;
+pub(super) fn authorize_user(current_user_id: usize, user_ids: Vec<usize>) -> Vec<Result<(), Error>> {
+    let requests = user_ids
+        .into_iter()
+        .map(|user_id| {
+            tracing::info!(
+                "Authorizing access to user of user {} for user {}",
+                user_id,
+                current_user_id
+            );
 
-                if context.get("current-user-id").and_then(|id| id.parse().ok()) == Some(arguments.id) {
+            HttpRequest {
+                method: HttpMethod::Post,
+                url: String::from("http://localhost:4001/authorize-user"),
+                headers: vec![("Content-Type".to_string(), "application/json".to_string())],
+                body: serde_json::to_vec(&AuthorizeUserRequest {
+                    current_user_id,
+                    user_id,
+                })
+                .unwrap(),
+                timeout_ms: Some(1000),
+            }
+        })
+        .collect_vec();
+
+    http_client::execute_many(&requests)
+        .into_iter()
+        .map(|result| match result {
+            Ok(response) => {
+                let body: AuthorizationResponse =
+                    serde_json::from_slice(&response.body).expect("Failed to deserialize authorization response");
+
+                if body.authorized {
                     Ok(())
                 } else {
                     Err(error("Unauthorized"))
                 }
             }
-            _ => Err(contract_error()),
-        }
-    }
-
-    fn authorize_parent_edge_post_execution(
-        context: SharedContext,
-        definition: EdgeDefinition,
-        parents: Vec<String>,
-        metadata: String,
-    ) -> Vec<Result<(), Error>> {
-        init_logging();
-
-        match (definition.parent_type_name.as_str(), definition.field_name.as_str()) {
-            ("User", "address") => {
-                tracing::info!("Authorizing access to User.address for: {}", parents.iter().join(", "));
-
-                #[derive(Debug, serde::Deserialize)]
-                struct User {
-                    id: usize,
-                }
-
-                let metadata: Metadata = maybe_read_input(&metadata);
-                if let Some(role) = metadata.allow_role {
-                    if context.get("role") == Some(role.clone()) {
-                        tracing::info!("Granting access to role {role}");
-                        return (0..parents.len()).map(|_| Ok(())).collect();
-                    }
-                }
-
-                let parents: Vec<User> = parents
-                    .into_iter()
-                    .map(|parent| read_input(&parent))
-                    .collect::<Result<_, _>>()
-                    .unwrap();
-
-                let Some(current_user_id) = context.get("current-user-id").and_then(|id| id.parse().ok()) else {
-                    return (0..parents.len()).map(|_| Err(error("No current user id"))).collect();
-                };
-
-                service::authorize_address(current_user_id, parents.into_iter().map(|User { id, .. }| id).collect())
+            Err(err) => {
+                tracing::error!("Auth service request failure: {err:?}");
+                Err(error("Unauthorized"))
             }
-            _ => vec![Err(contract_error())],
-        }
-    }
+        })
+        .collect()
+}
 
-    fn authorize_edge_node_post_execution(
-        context: SharedContext,
-        definition: EdgeDefinition,
-        nodes: Vec<String>,
-        metadata: String,
-    ) -> Vec<Result<(), Error>> {
-        init_logging();
+pub(super) fn authorize_address(current_user_id: usize, owner_ids: Vec<usize>) -> Vec<Result<(), Error>> {
+    let requests = owner_ids
+        .into_iter()
+        .map(|owner_id| {
+            tracing::info!(
+                "Authorizing access to address of user {} for user {}",
+                owner_id,
+                current_user_id
+            );
 
-        match (definition.parent_type_name.as_str(), definition.field_name.as_str()) {
-            ("Query", "users") => {
-                tracing::info!("Authorizing access to Query.users for: {}", nodes.iter().join(", "));
-
-                #[derive(Debug, serde::Deserialize)]
-                struct User {
-                    id: usize,
-                }
-
-                let metadata: Metadata = maybe_read_input(&metadata);
-                if let Some(role) = metadata.allow_role {
-                    if context.get("role") == Some(role.clone()) {
-                        tracing::info!("Granting access to role {role}");
-                        return (0..nodes.len()).map(|_| Ok(())).collect();
-                    }
-                }
-
-                let nodes: Vec<User> = nodes
-                    .into_iter()
-                    .map(|node| read_input(&node))
-                    .collect::<Result<_, _>>()
-                    .unwrap();
-
-                let Some(current_user_id) = context.get("current-user-id").and_then(|id| id.parse().ok()) else {
-                    return (0..nodes.len()).map(|_| Err(error("No current user id"))).collect();
-                };
-
-                service::authorize_user(current_user_id, nodes.into_iter().map(|User { id, .. }| id).collect())
+            HttpRequest {
+                method: HttpMethod::Post,
+                url: String::from("http://localhost:4001/authorize-user"),
+                headers: vec![("Content-Type".to_string(), "application/json".to_string())],
+                body: serde_json::to_vec(&AuthorizeAddressRequest {
+                    current_user_id,
+                    owner_id,
+                })
+                .unwrap(),
+                timeout_ms: Some(1000),
             }
-            _ => vec![Err(contract_error())],
-        }
-    }
+        })
+        .collect_vec();
 
-    fn authorize_node_pre_execution(
-        _context: SharedContext,
-        _definition: authorization::NodeDefinition,
-        _metadata: String,
-    ) -> Result<(), Error> {
-        init_logging();
+    http_client::execute_many(&requests)
+        .into_iter()
+        .map(|result| match result {
+            Ok(response) => {
+                let body: AuthorizationResponse =
+                    serde_json::from_slice(&response.body).expect("Failed to deserialize authorization response");
 
-        Err(error("Not implemented"))
-    }
-
-    fn authorize_edge_post_execution(
-        _context: SharedContext,
-        _definition: EdgeDefinition,
-        _edges: Vec<(String, Vec<String>)>,
-        _metadata: String,
-    ) -> Vec<Result<(), authorization::Error>> {
-        init_logging();
-
-        vec![Err(error("Not implemented"))]
-    }
+                if body.authorized {
+                    Ok(())
+                } else {
+                    Err(error("Unauthorized"))
+                }
+            }
+            Err(err) => {
+                tracing::error!("Auth service request failure: {err:?}");
+                Err(error("Unauthorized"))
+            }
+        })
+        .collect()
 }

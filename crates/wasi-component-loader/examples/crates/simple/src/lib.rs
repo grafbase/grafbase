@@ -1,15 +1,17 @@
-#[allow(warnings)]
-mod bindings;
+use grafbase_hooks::{grafbase_hooks, register_hooks, Context, ErrorResponse, Headers, Hooks};
 
-use bindings::{
-    component::grafbase::types::{Context, ErrorResponse, Headers},
-    exports::component::grafbase::gateway_request,
-};
+struct MyHooks;
 
-struct Component;
+#[grafbase_hooks]
+impl Hooks for MyHooks {
+    fn new() -> Self
+    where
+        Self: Sized,
+    {
+        MyHooks
+    }
 
-impl gateway_request::Guest for Component {
-    fn on_gateway_request(context: Context, headers: Headers) -> Result<(), ErrorResponse> {
+    fn on_gateway_request(&mut self, context: Context, headers: Headers) -> Result<(), ErrorResponse> {
         headers.set("direct", "call").unwrap();
 
         assert_eq!(Some("call".to_string()), headers.get("direct"));
@@ -26,4 +28,4 @@ impl gateway_request::Guest for Component {
     }
 }
 
-bindings::export!(Component with_types_in bindings);
+register_hooks!(MyHooks);

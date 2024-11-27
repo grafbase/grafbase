@@ -4,6 +4,7 @@ members = [
     "cli",
     "gateway",
     "crates/*",
+    "crates/grafbase-hooks/derive",
     "crates/engine/auth",
     "crates/engine/config",
     "crates/engine/axum",
@@ -170,6 +171,7 @@ runtime = { path = "crates/runtime" }
 runtime-local = { path = "crates/runtime-local" }
 runtime-noop = { path = "crates/runtime-noop" }
 serde-dynamic-string = { path = "crates/serde-dynamic-string" }
+grafbase-hooks = { path = "crates/grafbase-hooks" }
 grafbase-workspace-hack = { path = "crates/grafbase-workspace-hack", version = "0.1" }
 wrapping = { path = "crates/graphql-wrapping-types", package = "graphql-wrapping-types" }
 

@@ -1,0 +1,25 @@
+[package]
+name = "grafbase-hooks"
+version = "0.1.3"
+description = "An SDK to implement hooks for the Grafbase Gateway"
+edition.workspace = true
+license.workspace = true
+homepage.workspace = true
+keywords.workspace = true
+repository.workspace = true
+
+[features]
+derive = ["dep:grafbase-hooks-derive"]
+
+[dependencies]
+grafbase-hooks-derive = { version = "0.1.0", path = "derive", optional = true }
+wit-bindgen = "0.36.0"
+
+[lints]
+workspace = true
+
+[package.metadata.component]
+target = { path = "wit" }
+
+[package.metadata.docs.rs]
+all-features = true

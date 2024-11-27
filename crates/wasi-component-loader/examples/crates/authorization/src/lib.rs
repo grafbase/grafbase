@@ -1,11 +1,5 @@
-#[allow(warnings)]
-mod bindings;
-
-use bindings::{
-    component::grafbase::types::{
-        Context, EdgeDefinition, Error, ErrorResponse, Headers, NodeDefinition, SharedContext,
-    },
-    exports::component::grafbase::{authorization, gateway_request},
+use grafbase_hooks::{
+    grafbase_hooks, Context, EdgeDefinition, Error, ErrorResponse, Headers, Hooks, NodeDefinition, SharedContext,
 };
 
 struct Component;
@@ -15,18 +9,25 @@ struct Edge {
     value: String,
 }
 
-impl gateway_request::Guest for Component {
-    fn on_gateway_request(context: Context, headers: Headers) -> Result<(), ErrorResponse> {
+#[grafbase_hooks]
+impl Hooks for Component {
+    fn new() -> Self
+    where
+        Self: Sized,
+    {
+        Self
+    }
+
+    fn on_gateway_request(&mut self, context: Context, headers: Headers) -> Result<(), ErrorResponse> {
         if let Some(auth_header) = headers.get("Authorization") {
             context.set("entitlement", &auth_header);
         }
 
         Ok(())
     }
-}
 
-impl authorization::Guest for Component {
     fn authorize_edge_pre_execution(
+        &mut self,
         context: SharedContext,
         _: EdgeDefinition,
         arguments: String,
@@ -44,7 +45,12 @@ impl authorization::Guest for Component {
         Ok(())
     }
 
-    fn authorize_node_pre_execution(context: SharedContext, _: NodeDefinition, metadata: String) -> Result<(), Error> {
+    fn authorize_node_pre_execution(
+        &mut self,
+        context: SharedContext,
+        _: NodeDefinition,
+        metadata: String,
+    ) -> Result<(), Error> {
         let auth_header = context.get("entitlement");
 
         if Some(metadata) != auth_header {
@@ -58,6 +64,7 @@ impl authorization::Guest for Component {
     }
 
     fn authorize_parent_edge_post_execution(
+        &mut self,
         context: SharedContext,
         _: EdgeDefinition,
         parents: Vec<String>,
@@ -84,6 +91,7 @@ impl authorization::Guest for Component {
     }
 
     fn authorize_edge_node_post_execution(
+        &mut self,
         context: SharedContext,
         _: EdgeDefinition,
         nodes: Vec<String>,
@@ -110,6 +118,7 @@ impl authorization::Guest for Component {
     }
 
     fn authorize_edge_post_execution(
+        &mut self,
         context: SharedContext,
         _: EdgeDefinition,
         edges: Vec<(String, Vec<String>)>,
@@ -136,4 +145,4 @@ impl authorization::Guest for Component {
     }
 }
 
-bindings::export!(Component with_types_in bindings);
+grafbase_hooks::register_hooks!(Component);

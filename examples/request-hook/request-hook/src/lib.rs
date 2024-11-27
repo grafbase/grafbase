@@ -1,15 +1,17 @@
-use bindings::{
-    component::grafbase::types::{Context, Error, ErrorResponse, Headers},
-    exports::component::grafbase::gateway_request::Guest,
-};
-
-#[allow(warnings)]
-mod bindings;
+use grafbase_hooks::{grafbase_hooks, Context, Error, ErrorResponse, Headers, Hooks};
 
 struct Component;
 
-impl Guest for Component {
-    fn on_gateway_request(_: Context, headers: Headers) -> Result<(), ErrorResponse> {
+#[grafbase_hooks]
+impl Hooks for Component {
+    fn new() -> Self
+    where
+        Self: Sized,
+    {
+        Self
+    }
+
+    fn on_gateway_request(&mut self, _: Context, headers: Headers) -> Result<(), ErrorResponse> {
         match headers.get("x-custom").as_deref() {
             Some("secret") => Ok(()),
             _ => {
@@ -27,4 +29,4 @@ impl Guest for Component {
     }
 }
 
-bindings::export!(Component with_types_in bindings);
+grafbase_hooks::register_hooks!(Component);

@@ -1,70 +1,108 @@
-use std::sync::Arc;
+use std::{
+    ops::{Deref, DerefMut},
+    sync::Arc,
+};
 
 use deadpool::managed;
-use grafbase_telemetry::otel::opentelemetry::{metrics::UpDownCounter, KeyValue};
+use grafbase_telemetry::otel::opentelemetry::metrics::UpDownCounter;
 use tracing::{info_span, Instrument};
-use wasi_component_loader::{ComponentLoader, RecycleableComponentInstance};
+use wasi_component_loader::{ChannelLogSender, ComponentInstance, ComponentLoader};
 
-pub(super) struct Pool<T: RecycleableComponentInstance>(managed::Pool<ComponentMananger<T>>);
+pub(super) struct Pool {
+    inner: managed::Pool<ComponentManager>,
+    pool_busy_counter: UpDownCounter<i64>,
+}
 
-impl<T: RecycleableComponentInstance> Pool<T> {
-    pub(super) fn new(loader: &Arc<ComponentLoader>, size: Option<usize>) -> Option<Self> {
-        if loader.implements_interface(T::interface_name()) {
-            let mgr = ComponentMananger::<T>::new(loader.clone());
-            let mut builder = managed::Pool::builder(mgr);
+pub(super) struct ComponentGuard {
+    inner: managed::Object<ComponentManager>,
+    pool_busy_counter: UpDownCounter<i64>,
+}
 
-            if let Some(size) = size {
-                builder = builder.max_size(size);
-            }
+impl Deref for ComponentGuard {
+    type Target = ComponentInstance;
 
-            let pool = builder.build().expect("only fails if not in a runtime");
+    fn deref(&self) -> &Self::Target {
+        &self.inner
+    }
+}
 
-            Some(Pool(pool))
-        } else {
-            None
+impl DerefMut for ComponentGuard {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
+
+impl Drop for ComponentGuard {
+    fn drop(&mut self) {
+        self.pool_busy_counter.add(-1, &[]);
+    }
+}
+
+impl Pool {
+    pub(super) fn new(loader: &Arc<ComponentLoader>, size: Option<usize>, access_log: ChannelLogSender) -> Self {
+        let meter = grafbase_telemetry::metrics::meter_from_global_provider();
+        let pool_busy_counter = meter.i64_up_down_counter("grafbase.hook.pool.instances.busy").build();
+
+        let mgr = ComponentManager::new(loader.clone(), access_log);
+        let mut builder = managed::Pool::builder(mgr);
+
+        if let Some(size) = size {
+            builder = builder.max_size(size);
+        }
+
+        let inner = builder.build().expect("only fails if not in a runtime");
+
+        Pool {
+            inner,
+            pool_busy_counter,
         }
     }
 
-    pub(super) async fn get(&self) -> managed::Object<ComponentMananger<T>> {
+    pub(super) async fn get(&self) -> ComponentGuard {
+        self.pool_busy_counter.add(1, &[]);
         let span = info_span!("get instance from pool");
-        self.0.get().instrument(span).await.expect("no io, should not fail")
+        let inner = self.inner.get().instrument(span).await.expect("no io, should not fail");
+
+        ComponentGuard {
+            inner,
+            pool_busy_counter: self.pool_busy_counter.clone(),
+        }
     }
 }
 
-pub(super) struct ComponentMananger<T> {
+pub(super) struct ComponentManager {
     component_loader: Arc<ComponentLoader>,
-    pool_busy_counter: UpDownCounter<i64>,
-    counter_attributes: Vec<KeyValue>,
-    _phantom: std::marker::PhantomData<fn() -> T>,
+    pool_allocated_instances: UpDownCounter<i64>,
+    access_log: ChannelLogSender,
 }
 
-impl<T: RecycleableComponentInstance> ComponentMananger<T> {
-    pub(super) fn new(component_loader: Arc<ComponentLoader>) -> Self {
+impl ComponentManager {
+    pub(super) fn new(component_loader: Arc<ComponentLoader>, access_log: ChannelLogSender) -> Self {
         let meter = grafbase_telemetry::metrics::meter_from_global_provider();
-        let pool_busy_counter = meter.i64_up_down_counter("grafbase.hook.pool.instances.busy").build();
-        let counter_attributes = vec![KeyValue::new("grafbase.hook.interface", T::interface_name())];
+        let pool_allocated_instances = meter.i64_up_down_counter("grafbase.hook.pool.instances.size").build();
 
         Self {
             component_loader,
-            pool_busy_counter,
-            counter_attributes,
-            _phantom: std::marker::PhantomData,
+            pool_allocated_instances,
+            access_log,
         }
     }
 }
 
-impl<T: RecycleableComponentInstance> managed::Manager for ComponentMananger<T> {
-    type Type = T;
+impl managed::Manager for ComponentManager {
+    type Type = ComponentInstance;
     type Error = wasi_component_loader::Error;
 
     async fn create(&self) -> Result<Self::Type, Self::Error> {
-        self.pool_busy_counter.add(1, &self.counter_attributes);
-        T::new(&self.component_loader).await
+        self.pool_allocated_instances.add(1, &[]);
+        ComponentInstance::new(&self.component_loader, self.access_log.clone()).await
     }
 
     async fn recycle(&self, instance: &mut Self::Type, _: &managed::Metrics) -> managed::RecycleResult<Self::Error> {
-        self.pool_busy_counter.add(-1, &self.counter_attributes);
-        instance.recycle()?;
+        if let Err(e) = instance.recycle() {
+            self.pool_allocated_instances.add(-1, &[]);
+            return Err(e.into());
+        }
 
         Ok(())
     }

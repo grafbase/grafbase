@@ -8,10 +8,7 @@ keywords.workspace = true
 repository.workspace = true
 
 [dependencies]
-wit-bindgen-rt.workspace = true
+grafbase-hooks.workspace = true
 
 [lib]
 crate-type = ["cdylib"]
-
-[package.metadata.component]
-package = "component:simple"

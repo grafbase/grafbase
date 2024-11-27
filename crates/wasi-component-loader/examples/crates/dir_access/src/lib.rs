@@ -1,15 +1,17 @@
-#[allow(warnings)]
-mod bindings;
-
-use bindings::{
-    component::grafbase::types::{Context, ErrorResponse, Headers},
-    exports::component::grafbase::gateway_request,
-};
+use grafbase_hooks::{grafbase_hooks, Context, ErrorResponse, Headers, Hooks};
 
 struct Component;
 
-impl gateway_request::Guest for Component {
-    fn on_gateway_request(_: Context, headers: Headers) -> Result<(), ErrorResponse> {
+#[grafbase_hooks]
+impl Hooks for Component {
+    fn new() -> Self
+    where
+        Self: Sized,
+    {
+        Self
+    }
+
+    fn on_gateway_request(&mut self, _: Context, headers: Headers) -> Result<(), ErrorResponse> {
         match std::fs::read_to_string("./contents.txt") {
             Ok(contents) => headers.set("READ_CONTENTS", &contents).unwrap(),
             Err(e) => eprintln!("error reading file contents: {e}"),
@@ -23,4 +25,4 @@ impl gateway_request::Guest for Component {
     }
 }
 
-bindings::export!(Component with_types_in bindings);
+grafbase_hooks::register_hooks!(Component);

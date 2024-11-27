@@ -54,6 +54,8 @@
             cargo-insta
             cargo-nextest
             cargo-component
+            cargo-expand
+
             # Benchmark tool to send multiple requests
             hey
             k6
