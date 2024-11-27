@@ -11,6 +11,7 @@ use cynic::{http::ReqwestExt, MutationBuilder};
 
 pub enum PublishOutcome {
     Success { composition_errors: Vec<String> },
+    NoChange,
     GraphDoesNotExist { account_slug: String, graph_slug: String },
 }
 
@@ -49,6 +50,7 @@ pub async fn publish(
             PublishPayload::PublishSuccess(_) => Ok(PublishOutcome::Success {
                 composition_errors: vec![],
             }),
+            PublishPayload::NoChange(_) => Ok(PublishOutcome::NoChange),
             PublishPayload::FederatedGraphCompositionError(FederatedGraphCompositionError {
                 messages: composition_errors,
             }) => Ok(PublishOutcome::Success { composition_errors }),
