@@ -1,3 +1,4 @@
+mod data;
 mod extensions;
 mod object_set;
 mod path;
@@ -8,6 +9,7 @@ mod write;
 
 use std::sync::Arc;
 
+pub(crate) use data::*;
 pub(crate) use error::*;
 use extensions::ResponseExtensions;
 pub(crate) use extensions::*;
@@ -68,11 +70,6 @@ impl<OnOperationResponseHookOutput> ExecutedResponse<OnOperationResponseHookOutp
             }
         }
     }
-}
-
-struct ResponseData {
-    root: ResponseObjectId,
-    parts: Vec<ResponseDataPart>,
 }
 
 pub(crate) struct RequestErrorResponse {

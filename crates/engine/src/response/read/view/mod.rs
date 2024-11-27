@@ -50,7 +50,7 @@ impl<'a> ResponseObjectsViewWithExtraFields<'a> {
             .map(|item| ResponseObjectViewWithExtraFields {
                 ctx: self.ctx,
 
-                response_object: &self.ctx.response[item.id],
+                response_object: &self.ctx.response.data_parts[item.id],
                 selection_set: self.selection_set,
                 extra_constant_fields: &self.extra_constant_fields,
             })
@@ -79,7 +79,7 @@ impl<'a> Iterator for ResponseObjectsViewIterator<'a> {
         self.idx += 1;
         Some(ResponseObjectView {
             ctx: self.view.ctx,
-            response_object: &self.view.ctx.response[item.id],
+            response_object: &self.view.ctx.response.data_parts[item.id],
             selection_set: self.view.selection_set,
         })
     }

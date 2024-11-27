@@ -9,7 +9,7 @@ use super::{ResponseObjectId, ResponsePath};
 /// A "fat" reference to a response object. We keep track of its path for further execution and its
 /// definition id because we don't store it anywhere else as of today.
 #[derive(Debug, Clone)]
-pub struct ResponseObjectRef {
+pub(crate) struct ResponseObjectRef {
     pub id: ResponseObjectId,
     pub path: ResponsePath,
     pub definition_id: ObjectDefinitionId,

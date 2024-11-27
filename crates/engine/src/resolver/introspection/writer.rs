@@ -141,7 +141,7 @@ impl<'ctx, R: Runtime> IntrospectionWriter<'ctx, R> {
                     })
                     .unwrap_or_default(),
                 // TODO: Need to implemented directives...
-                __Schema::Directives => self.response.push_empty_list().into(),
+                __Schema::Directives => self.response.push_list(Vec::new()).into(),
             }
         })
     }

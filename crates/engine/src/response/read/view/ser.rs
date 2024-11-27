@@ -4,7 +4,7 @@ use super::{
     ResponseObjectView, ResponseObjectViewWithExtraFields, ResponseObjectsView, ResponseObjectsViewWithExtraFields,
     ResponseValueView,
 };
-use crate::response::{ResponseListId, ResponseObjectId, ResponseValue, NULL};
+use crate::response::{ResponseValue, NULL};
 
 impl<'a> serde::Serialize for ResponseObjectsView<'a> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
@@ -80,26 +80,17 @@ impl<'a> serde::Serialize for ResponseValueView<'a> {
             ResponseValue::String { value, .. } => value.serialize(serializer),
             ResponseValue::StringId { id, .. } => self.ctx.schema[*id].serialize(serializer),
             ResponseValue::BigInt { value, .. } => value.serialize(serializer),
-            &ResponseValue::List {
-                part_id,
-                offset,
-                length,
-                ..
-            } => {
-                let values = &self.ctx.response[ResponseListId {
-                    part_id,
-                    offset,
-                    length,
-                }];
+            &ResponseValue::List { id, .. } => {
+                let values = &self.ctx.response.data_parts[id];
                 serializer.collect_seq(values.iter().map(|value| ResponseValueView {
                     ctx: self.ctx,
                     value,
                     selection_set: self.selection_set,
                 }))
             }
-            &ResponseValue::Object { part_id, index, .. } => ResponseObjectView {
+            &ResponseValue::Object { id, .. } => ResponseObjectView {
                 ctx: self.ctx,
-                response_object: &self.ctx.response[ResponseObjectId { part_id, index }],
+                response_object: &self.ctx.response.data_parts[id],
                 selection_set: self.selection_set,
             }
             .serialize(serializer),
