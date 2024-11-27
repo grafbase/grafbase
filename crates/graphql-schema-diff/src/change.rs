@@ -8,6 +8,8 @@ pub struct Change {
     /// Where the change happened in the schema. It is dot separated where relevant. For example if
     /// the change happened in a field argument, the path will be something like
     /// `ParentTypeName.fieldName.argumentName`.
+    ///
+    /// See [crate::path::Path] for the full documentation.
     pub path: String,
     /// The nature of the change.
     pub kind: ChangeKind,

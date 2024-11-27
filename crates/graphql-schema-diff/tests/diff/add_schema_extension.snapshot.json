@@ -1,7 +1,7 @@
 {
   "src → target": [
     {
-      "path": "",
+      "path": ":schema[0]",
       "kind": "RemoveSchemaExtension",
       "span": {
         "start": 7,
@@ -11,7 +11,7 @@
   ],
   "target → src": [
     {
-      "path": "",
+      "path": ":schema[0]",
       "kind": "AddSchemaExtension",
       "span": {
         "start": 7,

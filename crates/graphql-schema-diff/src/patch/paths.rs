@@ -10,9 +10,6 @@ where
 
     /// All the diff entries, but sorted by path.
     paths: Vec<([&'a str; 3], usize)>,
-
-    /// Interface implementations are a special case, because the path is of the form "<implemented_interface>.<implementer>", and we would need the reverse when patching. This Vec contains all changes about interface implementations with the prefix in the right order.
-    interface_impls: Vec<([&'a str; 2], InterfaceImplementationChange)>,
 }
 
 impl<'a, T> Paths<'a, T>
@@ -28,30 +25,12 @@ where
 
         paths.sort_unstable();
 
-        let mut interface_impls: Vec<_> = diff
-            .iter()
-            .filter_map(|change| match change.kind {
-                ChangeKind::AddInterfaceImplementation => {
-                    let path = split_path(&change.path);
-                    Some(([path[1], path[0]], InterfaceImplementationChange::Added))
-                }
-                ChangeKind::RemoveInterfaceImplementation => {
-                    let path = split_path(&change.path);
-                    Some(([path[1], path[0]], InterfaceImplementationChange::Removed))
-                }
-                _ => None,
-            })
-            .collect();
-
-        interface_impls.sort_unstable();
-
         Paths {
             diff,
             source,
             resolved_spans,
 
             paths,
-            interface_impls,
         }
     }
 
@@ -82,18 +61,22 @@ where
     }
 
     pub(crate) fn added_interface_impls<'b>(&'b self, prefix: &'b str) -> impl Iterator<Item = &'a str> + 'b {
-        let start = self.interface_impls.partition_point(|([found, _], _)| *found < prefix);
+        let start = self.paths.partition_point(|([found, _, _], _)| *found < prefix);
 
-        self.interface_impls[start..]
+        self.paths[start..]
             .iter()
-            .take_while(move |([name, _], _)| *name == prefix)
-            .filter(|(_, kind)| *kind == InterfaceImplementationChange::Added)
-            .map(|([_, interface], _)| *interface)
+            .take_while(move |([name, _, _], _)| *name == prefix)
+            .filter(|(_, idx)| matches!(self.diff[*idx].kind, ChangeKind::AddInterfaceImplementation))
+            .map(|([_, interface, _], _)| interface.trim_start_matches('&'))
     }
 
     pub(crate) fn is_interface_impl_removed(&self, prefix: &str, interface: &str) -> bool {
-        self.interface_impls
-            .binary_search(&([prefix, interface], InterfaceImplementationChange::Removed))
+        self.paths
+            .binary_search_by(|(path, idx)| {
+                [path[0], path[1].trim_start_matches('&')]
+                    .cmp(&[prefix, interface])
+                    .then(self.diff[*idx].kind.cmp(&ChangeKind::RemoveInterfaceImplementation))
+            })
             .is_ok()
     }
 }
@@ -144,10 +127,4 @@ fn split_path(path: &str) -> [&str; 3] {
     let path = std::array::from_fn(|_| segments.next().unwrap_or(""));
     debug_assert!(segments.next().is_none());
     path
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-enum InterfaceImplementationChange {
-    Added,
-    Removed,
 }

@@ -1,4 +1,5 @@
 use change::Span;
+use path::PathInType;
 
 use crate::*;
 
@@ -55,14 +56,21 @@ impl DiffState<'_> {
         } = self;
 
         let mut changes = Vec::new();
+        let mut push_change = |path: path::Path<'_>, kind: ChangeKind, span: Span| {
+            changes.push(Change {
+                path: path.to_string(),
+                kind,
+                span,
+            })
+        };
 
-        push_schema_definition_changes(schema_definition_map, &mut changes);
-        push_schema_extension_changes(schema_extensions, &mut changes);
-        push_interface_implementer_changes(interface_impls, &mut changes);
+        push_schema_definition_changes(schema_definition_map, &mut push_change);
+        push_schema_extension_changes(schema_extensions, &mut push_change);
+        push_interface_implementer_changes(interface_impls, &mut push_change);
 
-        push_definition_changes(&types_map, &mut changes);
-        push_field_changes(&fields_map, &types_map, &mut changes);
-        push_argument_changes(&fields_map, &arguments_map, &mut changes);
+        push_definition_changes(&types_map, &mut push_change);
+        push_field_changes(&fields_map, &types_map, &mut push_change);
+        push_argument_changes(&fields_map, &arguments_map, &mut push_change);
 
         changes.sort();
 
@@ -70,29 +78,31 @@ impl DiffState<'_> {
     }
 }
 
+type PushChangeFn<'a> = &'a mut dyn FnMut(path::Path<'_>, ChangeKind, Span);
+
 fn push_schema_extension_changes(
     schema_extensions: Vec<[Option<ast::SchemaDefinition<'_>>; 2]>,
-    changes: &mut Vec<Change>,
+    push_change: PushChangeFn<'_>,
 ) {
     for extension in schema_extensions {
         match extension {
             // TODO(GB-7390): we only react to additions and removals for now. We should do full diffing.
-            [None, Some(def)] => changes.push(Change {
-                path: String::new(),
-                kind: ChangeKind::AddSchemaExtension,
-                span: def.span().into(),
-            }),
-            [Some(def), None] => changes.push(Change {
-                path: String::new(),
-                kind: ChangeKind::RemoveSchemaExtension,
-                span: def.span().into(),
-            }),
+            [None, Some(def)] => push_change(
+                path::Path::SchemaExtension(0),
+                ChangeKind::AddSchemaExtension,
+                def.span().into(),
+            ),
+            [Some(def), None] => push_change(
+                path::Path::SchemaExtension(0),
+                ChangeKind::RemoveSchemaExtension,
+                def.span().into(),
+            ),
             _ => (),
         }
     }
 }
 
-fn push_interface_implementer_changes(interface_impls: DiffMap<&str, Vec<&str>>, changes: &mut Vec<Change>) {
+fn push_interface_implementer_changes(interface_impls: DiffMap<&str, Vec<&str>>, push_change: PushChangeFn<'_>) {
     // O(n²) but n should always be small enough to not matter
     for (implementer, (src, target)) in &interface_impls {
         let src = src.as_deref().unwrap_or(&[]);
@@ -100,21 +110,21 @@ fn push_interface_implementer_changes(interface_impls: DiffMap<&str, Vec<&str>>,
 
         for src_impl in src {
             if !target.contains(src_impl) {
-                changes.push(Change {
-                    path: format!("{}.{}", src_impl, implementer),
-                    kind: ChangeKind::RemoveInterfaceImplementation,
-                    span: Span::empty(),
-                });
+                push_change(
+                    path::Path::TypeDefinition(implementer, Some(PathInType::InterfaceImplementation(src_impl))),
+                    ChangeKind::RemoveInterfaceImplementation,
+                    Span::empty(),
+                );
             }
         }
 
         for target_impl in target {
             if !src.contains(target_impl) {
-                changes.push(Change {
-                    path: format!("{}.{}", target_impl, implementer),
-                    kind: ChangeKind::AddInterfaceImplementation,
-                    span: Span::empty(),
-                });
+                push_change(
+                    path::Path::TypeDefinition(implementer, Some(PathInType::InterfaceImplementation(target_impl))),
+                    ChangeKind::AddInterfaceImplementation,
+                    Span::empty(),
+                );
             }
         }
     }
@@ -123,54 +133,51 @@ fn push_interface_implementer_changes(interface_impls: DiffMap<&str, Vec<&str>>,
 fn push_argument_changes(
     fields_map: &DiffMap<[&str; 2], (Option<ast::Type<'_>>, Span)>,
     arguments_map: &DiffMap<[&str; 3], ast::InputValueDefinition<'_>>,
-    changes: &mut Vec<Change>,
+    push_change: PushChangeFn<'_>,
 ) {
-    for (path @ [type_name, field_name, _arg_name], (src, target)) in arguments_map {
-        let path = *path;
+    for ([type_name, field_name, arg_name], (src, target)) in arguments_map {
         let parent_is_gone = || matches!(&fields_map[&[*type_name, *field_name]], (Some(_), None));
+
+        let argument_path = path::Path::TypeDefinition(
+            type_name,
+            Some(path::PathInType::InField(
+                field_name,
+                Some(path::PathInField::InArgument(arg_name)),
+            )),
+        );
 
         match (src, target) {
             (None, None) => unreachable!(),
             (None, Some(target)) => {
-                changes.push(Change {
-                    path: path.join("."),
-                    kind: ChangeKind::AddFieldArgument,
-                    span: target.span().into(),
-                });
+                push_change(argument_path, ChangeKind::AddFieldArgument, target.span().into());
             }
             (Some(_), None) if !parent_is_gone() => {
-                changes.push(Change {
-                    path: path.join("."),
-                    kind: ChangeKind::RemoveFieldArgument,
-                    span: Span::empty(),
-                });
+                push_change(argument_path, ChangeKind::RemoveFieldArgument, Span::empty());
             }
             (Some(_), None) => (),
             (Some(src_arg), Some(target_arg)) => {
                 if src_arg.ty() != target_arg.ty() {
-                    changes.push(Change {
-                        path: path.join("."),
-                        kind: ChangeKind::ChangeFieldArgumentType,
-                        span: target_arg.ty().span().into(),
-                    });
+                    push_change(
+                        argument_path.clone(),
+                        ChangeKind::ChangeFieldArgumentType,
+                        target_arg.ty().span().into(),
+                    );
                 }
 
                 match (src_arg.default_value(), target_arg.default_value()) {
-                    (None, Some(_)) => changes.push(Change {
-                        path: path.join("."),
-                        kind: ChangeKind::AddFieldArgumentDefault,
-                        span: target_arg.default_value_span().into(),
-                    }),
-                    (Some(_), None) => changes.push(Change {
-                        path: path.join("."),
-                        kind: ChangeKind::RemoveFieldArgumentDefault,
-                        span: Span::empty(),
-                    }),
-                    (Some(a), Some(b)) if a != b => changes.push(Change {
-                        path: path.join("."),
-                        kind: ChangeKind::ChangeFieldArgumentDefault,
-                        span: target_arg.default_value_span().into(),
-                    }),
+                    (None, Some(_)) => push_change(
+                        argument_path,
+                        ChangeKind::AddFieldArgumentDefault,
+                        target_arg.default_value_span().into(),
+                    ),
+                    (Some(_), None) => {
+                        push_change(argument_path, ChangeKind::RemoveFieldArgumentDefault, Span::empty())
+                    }
+                    (Some(a), Some(b)) if a != b => push_change(
+                        argument_path,
+                        ChangeKind::ChangeFieldArgumentDefault,
+                        target_arg.default_value_span().into(),
+                    ),
                     _ => (),
                 }
             }
@@ -181,9 +188,9 @@ fn push_argument_changes(
 fn push_field_changes(
     fields_map: &DiffMap<[&str; 2], (Option<ast::Type<'_>>, Span)>,
     types_map: &DiffMap<&str, ast::Definition<'_>>,
-    changes: &mut Vec<Change>,
+    push_change: PushChangeFn<'_>,
 ) {
-    for (path @ [type_name, _field_name], (src, target)) in fields_map {
+    for ([type_name, field_name], (src, target)) in fields_map {
         let parent = &types_map[type_name];
         let parent_is_gone = || matches!(parent, (Some(_), None));
 
@@ -228,34 +235,34 @@ fn push_field_changes(
         };
 
         if let Some((kind, span)) = change_kind {
-            changes.push(Change {
-                path: path.join("."),
+            push_change(
+                path::Path::TypeDefinition(type_name, Some(path::PathInType::InField(field_name, None))),
                 kind,
                 span,
-            });
+            )
         }
     }
 }
 
 fn push_definition_changes(
     types_map: &HashMap<&str, (Option<ast::Definition<'_>>, Option<ast::Definition<'_>>)>,
-    changes: &mut Vec<Change>,
+    push_change: PushChangeFn<'_>,
 ) {
     for (name, entries) in types_map {
         match entries {
             (None, None) => unreachable!(),
-            (None, Some(definition)) => push_added_type(name, *definition, changes),
-            (Some(definition), None) => push_removed_type(name, *definition, changes),
+            (None, Some(definition)) => push_added_type(name, *definition, push_change),
+            (Some(definition), None) => push_removed_type(name, *definition, push_change),
             (Some(a), Some(b)) if DefinitionKind::new(a) != DefinitionKind::new(b) => {
-                push_removed_type(name, *a, changes);
-                push_added_type(name, *b, changes);
+                push_removed_type(name, *a, push_change);
+                push_added_type(name, *b, push_change);
             }
             (Some(_), Some(_)) => (),
         }
     }
 }
 
-fn push_added_type(name: &str, definition: ast::Definition<'_>, changes: &mut Vec<Change>) {
+fn push_added_type(name: &str, definition: ast::Definition<'_>, push_change: PushChangeFn<'_>) {
     let Some(kind) = DefinitionKind::new(&definition) else {
         return;
     };
@@ -270,14 +277,14 @@ fn push_added_type(name: &str, definition: ast::Definition<'_>, changes: &mut Ve
         DefinitionKind::Union => ChangeKind::AddUnion,
     };
 
-    changes.push(Change {
-        path: name.to_owned(),
-        kind: change_kind,
-        span: definition.span().into(),
-    });
+    push_change(
+        path::Path::TypeDefinition(name, None),
+        change_kind,
+        definition.span().into(),
+    )
 }
 
-fn push_removed_type(name: &str, definition: ast::Definition<'_>, changes: &mut Vec<Change>) {
+fn push_removed_type(name: &str, definition: ast::Definition<'_>, push_change: PushChangeFn<'_>) {
     let change_kind = match DefinitionKind::new(&definition).unwrap() {
         DefinitionKind::Directive => ChangeKind::RemoveDirectiveDefinition,
         DefinitionKind::Enum => ChangeKind::RemoveEnum,
@@ -288,16 +295,16 @@ fn push_removed_type(name: &str, definition: ast::Definition<'_>, changes: &mut 
         DefinitionKind::Union => ChangeKind::RemoveUnion,
     };
 
-    changes.push(Change {
-        path: name.to_owned(),
-        kind: change_kind,
-        span: definition.span().into(),
-    });
+    push_change(
+        path::Path::TypeDefinition(name, None),
+        change_kind,
+        definition.span().into(),
+    );
 }
 
 fn push_schema_definition_changes(
     schema_definition_map: [Option<ast::SchemaDefinition<'_>>; 2],
-    changes: &mut Vec<Change>,
+    push_change: PushChangeFn<'_>,
 ) {
     match schema_definition_map {
         [None, None] => (),
@@ -309,44 +316,44 @@ fn push_schema_definition_changes(
                 [target.query_type(), target.mutation_type(), target.subscription_type()];
 
             if src_query.map(|ty| ty.named_type()) != target_query.map(|ty| ty.named_type()) {
-                changes.push(Change {
-                    path: String::new(),
-                    kind: ChangeKind::ChangeQueryType,
-                    span: target_query
+                push_change(
+                    path::Path::SchemaDefinition,
+                    ChangeKind::ChangeQueryType,
+                    target_query
                         .map(|ty| ty.named_type_span().into())
                         .unwrap_or_else(Span::empty),
-                });
+                );
             }
 
             if src_mutation.map(|ty| ty.named_type()) != target_mutation.map(|ty| ty.named_type()) {
-                changes.push(Change {
-                    path: String::new(),
-                    kind: ChangeKind::ChangeMutationType,
-                    span: target_mutation
+                push_change(
+                    path::Path::SchemaDefinition,
+                    ChangeKind::ChangeMutationType,
+                    target_mutation
                         .map(|ty| ty.named_type_span().into())
                         .unwrap_or_else(Span::empty),
-                });
+                );
             }
 
             if src_subscription.map(|ty| ty.named_type()) != target_subscription.map(|ty| ty.named_type()) {
-                changes.push(Change {
-                    path: String::new(),
-                    kind: ChangeKind::ChangeSubscriptionType,
-                    span: target_subscription
+                push_change(
+                    path::Path::SchemaDefinition,
+                    ChangeKind::ChangeSubscriptionType,
+                    target_subscription
                         .map(|ty| ty.named_type_span().into())
                         .unwrap_or_else(Span::empty),
-                });
+                );
             }
         }
-        [None, Some(definition)] => changes.push(Change {
-            path: String::new(),
-            kind: ChangeKind::AddSchemaDefinition,
-            span: definition.span().into(),
-        }),
-        [Some(_), None] => changes.push(Change {
-            path: String::new(),
-            kind: ChangeKind::RemoveSchemaDefinition,
-            span: Span::empty(),
-        }),
+        [None, Some(definition)] => push_change(
+            path::Path::SchemaDefinition,
+            ChangeKind::AddSchemaDefinition,
+            definition.span().into(),
+        ),
+        [Some(_), None] => push_change(
+            path::Path::SchemaDefinition,
+            ChangeKind::RemoveSchemaDefinition,
+            Span::empty(),
+        ),
     }
 }

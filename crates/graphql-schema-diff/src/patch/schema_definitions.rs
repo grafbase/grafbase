@@ -14,7 +14,12 @@ pub(super) fn patch_schema_definition<T: AsRef<str>>(
     let mut new_mutation_type = None;
     let mut new_subscription_type = None;
 
-    for change in paths.iter_exact([""; 3]) {
+    let prefix = match definition_or_extension {
+        DefinitionOrExtension::Extension => ":schema[0]",
+        DefinitionOrExtension::Definition => ":schema",
+    };
+
+    for change in paths.iter_exact([prefix, "", ""]) {
         match change.kind() {
             ChangeKind::ChangeQueryType => {
                 new_query_type = Some(change.resolved_str());
