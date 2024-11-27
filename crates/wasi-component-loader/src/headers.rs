@@ -33,7 +33,7 @@ enum HeaderError {
 ///     }
 /// }
 /// ```
-pub(crate) fn map(types: &mut LinkerInstance<'_, WasiState>) -> crate::Result<()> {
+pub(crate) fn inject_mapping(types: &mut LinkerInstance<'_, WasiState>) -> crate::Result<()> {
     types.resource(HEADERS_RESOURCE, ResourceType::host::<HeaderMap>(), |_, _| Ok(()))?;
     types.func_wrap(HEADERS_SET_METHOD, set)?;
     types.func_wrap(HEADERS_GET_METHOD, get)?;

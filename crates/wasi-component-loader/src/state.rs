@@ -1,3 +1,4 @@
+use grafbase_telemetry::{metrics::meter_from_global_provider, otel::opentelemetry::metrics::Histogram};
 use wasmtime::component::Resource;
 use wasmtime_wasi::{ResourceTable, WasiCtx, WasiView};
 use wasmtime_wasi_http::{WasiHttpCtx, WasiHttpView};
@@ -16,6 +17,12 @@ pub(crate) struct WasiState {
 
     /// The resource table that manages shared resources in memory.
     table: ResourceTable,
+
+    /// The histogram for request durations.
+    request_durations: Histogram<u64>,
+
+    /// A client for making HTTP requests from the guest.
+    http_client: reqwest::Client,
 }
 
 impl WasiState {
@@ -30,44 +37,25 @@ impl WasiState {
     /// A new `WasiState` instance initialized with the provided context and default
     /// HTTP and resource table contexts.
     pub fn new(ctx: WasiCtx) -> Self {
+        let meter = meter_from_global_provider();
+        let request_durations = meter.u64_histogram("grafbase.hook.http_request.duration").init();
+        let http_client = reqwest::Client::new();
+
         Self {
             ctx,
             http_ctx: WasiHttpCtx::new(),
             table: ResourceTable::new(),
+            request_durations,
+            http_client,
         }
     }
 
     /// Pushes a resource into the shared memory, allowing it to be managed by the resource table.
-    ///
-    /// # Type Parameters
-    ///
-    /// * `T` - The type of the resource being pushed.
-    ///
-    /// # Arguments
-    ///
-    /// * `entry` - The resource instance to be added to the resource table.
-    ///
-    /// # Returns
-    ///
-    /// A result containing the resource holding an instance of `T`, or an error if the operation fails.
     pub fn push_resource<T: Send + 'static>(&mut self, entry: T) -> crate::Result<Resource<T>> {
         Ok(self.table.push(entry).map_err(anyhow::Error::from)?)
     }
 
     /// Takes ownership of a resource identified by its representation ID from the shared memory.
-    ///
-    /// # Type Parameters
-    ///
-    /// * `T` - The type of the resource being taken.
-    ///
-    /// # Arguments
-    ///
-    /// * `rep` - A unique identifier for the resource to be taken.
-    ///
-    /// # Returns
-    ///
-    /// A result containing the resource instance of type `T`, or an error if no instance of type `T`
-    /// with the given representation ID was found.
     pub fn take_resource<T: 'static>(&mut self, rep: u32) -> crate::Result<T> {
         let resource = self
             .table
@@ -78,19 +66,6 @@ impl WasiState {
     }
 
     /// Gets a mutable reference to the instance identified by the given resource.
-    ///
-    /// # Type Parameters
-    ///
-    /// * `T` - The type of the resource being accessed.
-    ///
-    /// # Arguments
-    ///
-    /// * `resource` - A reference to the resource instance whose mutable reference is to be retrieved.
-    ///
-    /// # Returns
-    ///
-    /// A result containing a mutable reference to the resource of type `T`, or an error if the resource
-    /// cannot be accessed.
     pub fn get_mut<T: 'static>(&mut self, resource: &Resource<T>) -> crate::Result<&mut T> {
         let entry = self.table.get_mut(resource).map_err(anyhow::Error::from)?;
 
@@ -98,23 +73,20 @@ impl WasiState {
     }
 
     /// Retrieves a reference to the instance identified by the given resource.
-    ///
-    /// # Type Parameters
-    ///
-    /// * `T` - The type of the resource being accessed.
-    ///
-    /// # Arguments
-    ///
-    /// * `resource` - A reference to the resource instance whose reference is to be retrieved.
-    ///
-    /// # Returns
-    ///
-    /// A result containing a reference to the resource of type `T`, or an error if the resource
-    /// cannot be accessed.
     pub fn get<T: 'static>(&self, resource: &Resource<T>) -> crate::Result<&T> {
         let entry = self.table.get(resource).map_err(anyhow::Error::from)?;
 
         Ok(entry)
+    }
+
+    /// Returns a reference to the histogram tracking request durations.
+    pub fn request_durations(&self) -> &Histogram<u64> {
+        &self.request_durations
+    }
+
+    /// Returns a reference to the HTTP client used for making requests from the guest.
+    pub fn http_client(&self) -> &reqwest::Client {
+        &self.http_client
     }
 }
 

@@ -20,6 +20,7 @@ grafbase-telemetry.workspace = true
 grafbase-workspace-hack.workspace = true
 reqwest.workspace = true
 futures.workspace = true
+strum = { workspace = true, features = ["derive"] }
 
 [dependencies.wasmtime]
 version = "27"

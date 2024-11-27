@@ -125,10 +125,10 @@ impl ComponentLoader {
 
                 let mut types = linker.instance(COMPONENT_TYPES)?;
 
-                headers::map(&mut types)?;
-                context::map(&mut types)?;
-                context::map_shared(&mut types)?;
-                http_client::map(&mut types)?;
+                headers::inject_mapping(&mut types)?;
+                context::inject_mapping(&mut types)?;
+                context::inject_shared_mapping(&mut types)?;
+                http_client::inject_mapping(&mut types)?;
 
                 Some(Self {
                     engine,
