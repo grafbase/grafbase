@@ -19,7 +19,7 @@ type RootOperationTypes @meta(module: "root") {
 }
 
 union Definition @id @meta(module: "definition") @variants(remove_suffix: true) =
-    ObjectDefinition
+  | ObjectDefinition
   | InterfaceDefinition
   | UnionDefinition
   | EnumDefinition
@@ -27,12 +27,12 @@ union Definition @id @meta(module: "definition") @variants(remove_suffix: true) 
   | ScalarDefinition
 
 union EntityDefinition @id @meta(module: "entity") @variants(remove_suffix: "Definition") =
-    ObjectDefinition
+  | ObjectDefinition
   | InterfaceDefinition
 
 "Composite type is the term previously used by the GraphQL spec to describe this union."
 union CompositeType @id @meta(module: "composite_type") @variants(remove_suffix: "Definition") =
-    ObjectDefinition
+  | ObjectDefinition
   | InterfaceDefinition
   | UnionDefinition
 
@@ -41,9 +41,7 @@ type JoinImplementsDefinition @meta(module: "join_implements") @copy {
   subgraph: Subgraph!
 }
 
-type ObjectDefinition
-  @meta(module: "object", debug: false)
-  @indexed(deduplicated: true, id_size: "u32", max_id: "MAX_ID") {
+type ObjectDefinition @meta(module: "object", debug: false) @indexed(deduplicated: true, id_size: "u32") {
   name: String!
   description: String
   interfaces: [InterfaceDefinition!]!
@@ -55,9 +53,7 @@ type ObjectDefinition
   exists_in_subgraphs: [Subgraph!]!
 }
 
-type InterfaceDefinition
-  @meta(module: "interface", debug: false)
-  @indexed(deduplicated: true, id_size: "u32", max_id: "MAX_ID") {
+type InterfaceDefinition @meta(module: "interface", debug: false) @indexed(deduplicated: true, id_size: "u32") {
   name: String!
   description: String
   fields: [FieldDefinition!]!
@@ -74,7 +70,7 @@ type InterfaceDefinition
   not_fully_implemented_in: [Subgraph!]!
 }
 
-type FieldDefinition @meta(module: "field") @indexed(id_size: "u32", max_id: "MAX_ID") {
+type FieldDefinition @meta(module: "field") @indexed(id_size: "u32") {
   name: String!
   description: String
   parent_entity: EntityDefinition!
@@ -110,14 +106,14 @@ type Type @meta(module: "ty") @copy {
 }
 scalar Wrapping @copy
 
-type EnumDefinition @meta(module: "enum_def") @indexed(id_size: "u32", max_id: "MAX_ID") {
+type EnumDefinition @meta(module: "enum_def") @indexed(id_size: "u32") {
   name: String!
   description: String
   values: [EnumValue!]!
   directives: [TypeSystemDirective!]!
 }
 
-type EnumValue @meta(module: "enum_value") @indexed(id_size: "u32", max_id: "MAX_ID") {
+type EnumValue @meta(module: "enum_value") @indexed(id_size: "u32") {
   name: String!
   description: String
   directives: [TypeSystemDirective!]!
@@ -128,7 +124,7 @@ type JoinMemberDefinition @meta(module: "join_member") @copy {
   subgraph: Subgraph!
 }
 
-type UnionDefinition @meta(module: "union", debug: false) @indexed(id_size: "u32", max_id: "MAX_ID") {
+type UnionDefinition @meta(module: "union", debug: false) @indexed(id_size: "u32") {
   name: String!
   description: String
   possible_types: [ObjectDefinition!]!
@@ -144,7 +140,7 @@ type UnionDefinition @meta(module: "union", debug: false) @indexed(id_size: "u32
   not_fully_implemented_in: [Subgraph!]!
 }
 
-type ScalarDefinition @meta(module: "scalar") @indexed(id_size: "u32", max_id: "MAX_ID") {
+type ScalarDefinition @meta(module: "scalar") @indexed(id_size: "u32") {
   name: String!
   ty: ScalarType!
   description: String
@@ -154,14 +150,14 @@ type ScalarDefinition @meta(module: "scalar") @indexed(id_size: "u32", max_id: "
 
 scalar ScalarType @copy
 
-type InputObjectDefinition @meta(module: "input_object") @indexed(id_size: "u32", max_id: "MAX_ID") {
+type InputObjectDefinition @meta(module: "input_object") @indexed(id_size: "u32") {
   name: String!
   description: String
   input_fields: [InputValueDefinition!]!
   directives: [TypeSystemDirective!]!
 }
 
-type InputValueDefinition @meta(module: "input_value") @indexed(id_size: "u32", max_id: "MAX_ID") {
+type InputValueDefinition @meta(module: "input_value") @indexed(id_size: "u32") {
   name: String!
   description: String
   ty: Type!
@@ -198,7 +194,7 @@ union TypeSystemDirective
   @id
   @meta(module: "directive")
   @variants(empty: ["Authenticated"], remove_suffix: "Directive") =
-    DeprecatedDirective
+  | DeprecatedDirective
   | RequiresScopesDirective
   | AuthorizedDirective
   | CostDirective
@@ -212,7 +208,7 @@ type DeprecatedDirective
 
 scalar RequiresScopesDirective @indexed @record
 
-type AuthorizedDirective @meta(module: "directive/authorized") @indexed(id_size: "u32", max_id: "MAX_ID") {
+type AuthorizedDirective @meta(module: "directive/authorized") @indexed(id_size: "u32") {
   arguments: InputValueSet!
   fields: FieldSet @field(record_field_name: "fields_id")
   node: FieldSet
@@ -254,8 +250,8 @@ union NameOrPattern @id @meta(module: "header_rule") @variants(names: ["Pattern"
 union HeaderRule
   @meta(module: "header_rule")
   @variants(remove_suffix: true)
-  @indexed(id_size: "u32", max_id: "MAX_ID", deduplicated: true) =
-    ForwardHeaderRule
+  @indexed(id_size: "u32", deduplicated: true) =
+  | ForwardHeaderRule
   | InsertHeaderRule
   | RemoveHeaderRule
   | RenameDuplicateHeaderRule
@@ -288,8 +284,8 @@ type RenameDuplicateHeaderRule @meta(module: "header_rule/rename_duplicate") @co
 union ResolverDefinition
   @meta(module: "resolver")
   @variants(empty: ["Introspection"], remove_suffix: true)
-  @indexed(deduplicated: true, id_size: "u32", max_id: "MAX_ID") =
-    GraphqlRootFieldResolverDefinition
+  @indexed(deduplicated: true, id_size: "u32") =
+  | GraphqlRootFieldResolverDefinition
   | GraphqlFederationEntityResolverDefinition
 
 type GraphqlRootFieldResolverDefinition @meta(module: "resolver/graphql") @copy {

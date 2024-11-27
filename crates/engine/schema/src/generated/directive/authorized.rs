@@ -9,7 +9,7 @@ use walker::Walk;
 /// Generated from:
 ///
 /// ```custom,{.language-graphql}
-/// type AuthorizedDirective @meta(module: "directive/authorized") @indexed(id_size: "u32", max_id: "MAX_ID") {
+/// type AuthorizedDirective @meta(module: "directive/authorized") @indexed(id_size: "u32") {
 ///   arguments: InputValueSet!
 ///   fields: FieldSet @field(record_field_name: "fields_id")
 ///   node: FieldSet
@@ -25,7 +25,6 @@ pub struct AuthorizedDirectiveRecord {
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
-#[max(MAX_ID)]
 pub struct AuthorizedDirectiveId(std::num::NonZero<u32>);
 
 #[derive(Clone, Copy)]

@@ -6,7 +6,7 @@ use walker::{Iter, Walk};
 
 pub use item::*;
 
-use crate::{Schema, MAX_ID};
+use crate::Schema;
 
 static EMPTY: FieldSetRecord = FieldSetRecord(Vec::new());
 
@@ -80,7 +80,6 @@ impl<'a> Walk<&'a Schema> for &FieldSetRecord {
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
-#[max(MAX_ID)]
 pub struct FieldSetId(std::num::NonZero<u32>);
 
 impl<'a> Walk<&'a Schema> for FieldSetId {

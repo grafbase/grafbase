@@ -1,6 +1,6 @@
 use walker::{Iter, Walk};
 
-use crate::{Schema, StringId, MAX_ID};
+use crate::{Schema, StringId};
 
 #[derive(Debug, Hash, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct RequiresScopesDirectiveRecord {
@@ -18,7 +18,6 @@ impl RequiresScopesDirectiveRecord {
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
-#[max(MAX_ID)]
 pub struct RequiresScopesDirectiveId(std::num::NonZero<u32>);
 
 /// An index into the outer vector of an instance of RequiredScopes

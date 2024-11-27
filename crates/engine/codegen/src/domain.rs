@@ -282,6 +282,5 @@ pub struct Meta {
 pub struct Indexed {
     pub id_struct_name: String,
     pub id_size: Option<String>,
-    pub max_id: Option<String>,
     pub deduplicated: bool,
 }

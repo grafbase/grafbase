@@ -20,7 +20,7 @@ use walker::Walk;
 ///   @id
 ///   @meta(module: "directive")
 ///   @variants(empty: ["Authenticated"], remove_suffix: "Directive") =
-///     DeprecatedDirective
+///   | DeprecatedDirective
 ///   | RequiresScopesDirective
 ///   | AuthorizedDirective
 ///   | CostDirective

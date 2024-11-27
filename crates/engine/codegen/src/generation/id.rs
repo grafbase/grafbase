@@ -9,18 +9,9 @@ pub fn generate_id(domain: &Domain, indexed: &Indexed) -> anyhow::Result<Vec<Tok
 
     let id_struct = if let Some(size) = &indexed.id_size {
         let size = Ident::new(size, Span::call_site());
-        if let Some(max_id) = &indexed.max_id {
-            let max_id = Ident::new(max_id, Span::call_site());
-            quote! {
-                #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
-                #[max(#max_id)]
-                pub #public struct #id_struct_name(std::num::NonZero<#size>);
-            }
-        } else {
-            quote! {
-                #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
-                pub #public struct #id_struct_name(std::num::NonZero<#size>);
-            }
+        quote! {
+            #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
+            pub #public struct #id_struct_name(std::num::NonZero<#size>);
         }
     } else {
         quote! {}

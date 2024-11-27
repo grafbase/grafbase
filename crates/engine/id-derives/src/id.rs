@@ -1,4 +1,4 @@
-use quote::quote;
+use quote::{quote, TokenStreamExt};
 use syn::parse_macro_input;
 
 pub fn derive_id(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
@@ -15,10 +15,6 @@ pub fn derive_id(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
         panic!("IndexImpls can only be derived on named field structs")
     };
 
-    let inner_ty = find_non_zero_kind(&fields).expect("Id derive only supports newtypes containing some NonZero<T>");
-
-    let max_check = build_max_check(&input.attrs, &ident);
-
     let too_many_error = proc_macro2::Literal::string(&format!("Too many {}", ident));
     let ident_string = ident.to_string();
     let name_format_str = proc_macro2::Literal::string(&format!(
@@ -26,38 +22,69 @@ pub fn derive_id(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
         ident_string.strip_suffix("Id").unwrap_or(&ident_string)
     ));
 
-    let output = quote! {
-        impl #impl_generics From<usize> for #ident #ty_generics #where_clause {
-            fn from(value: usize) -> Self {
-                let value = #inner_ty::try_from(value).expect("Too big");
-                #max_check
-                Self(
-                    (value + 1).try_into().expect(#too_many_error)
-                )
+    let mut output = match find_non_zero_kind(&fields) {
+        Some(inner_ty) => quote! {
+            impl #impl_generics From<usize> for #ident #ty_generics #where_clause {
+                fn from(value: usize) -> Self {
+                    let value = #inner_ty::try_from(value).expect(#too_many_error);
+                    Self(
+                        (value + 1).try_into().expect(#too_many_error)
+                    )
+                }
+            }
+
+            impl #impl_generics From<#inner_ty> for #ident #ty_generics #where_clause {
+                fn from(value: #inner_ty) -> Self {
+                    Self(
+                        (value + 1).try_into().expect(#too_many_error)
+                    )
+                }
+            }
+
+            impl From<#ident> for usize {
+                fn from(id: #ident) -> Self {
+                    ((id.0.get() - 1) as usize)
+                }
+            }
+
+            impl From<#ident> for #inner_ty {
+                fn from(id: #ident) -> Self {
+                    (id.0.get() - 1)
+                }
+            }
+        },
+        None => {
+            let inner_ty = &fields.unnamed.first().expect("Empty tuple?").ty;
+            quote! {
+                impl #impl_generics From<usize> for #ident #ty_generics #where_clause {
+                    fn from(value: usize) -> Self {
+                        let value = #inner_ty::try_from(value).expect(#too_many_error);
+                        Self(value)
+                    }
+                }
+
+                impl #impl_generics From<#inner_ty> for #ident #ty_generics #where_clause {
+                    fn from(value: #inner_ty) -> Self {
+                        Self(value)
+                    }
+                }
+
+                impl From<#ident> for usize {
+                    fn from(id: #ident) -> Self {
+                        id.0 as usize
+                    }
+                }
+
+                impl From<#ident> for #inner_ty {
+                    fn from(id: #ident) -> Self {
+                        id.0
+                    }
+                }
             }
         }
+    };
 
-        impl #impl_generics From<#inner_ty> for #ident #ty_generics #where_clause {
-            fn from(value: #inner_ty) -> Self {
-                #max_check
-                Self(
-                    (value + 1).try_into().expect(#too_many_error)
-                )
-            }
-        }
-
-        impl From<#ident> for usize {
-            fn from(id: #ident) -> Self {
-                ((id.0.get() - 1) as usize)
-            }
-        }
-
-        impl From<#ident> for #inner_ty {
-            fn from(id: #ident) -> Self {
-                (id.0.get() - 1)
-            }
-        }
-
+    output.append_all(quote! {
         impl std::fmt::Display for #ident {
             fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
                 write!(f, #name_format_str, usize::from(*self))
@@ -68,24 +95,9 @@ pub fn derive_id(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
                 write!(f, #name_format_str, usize::from(*self))
             }
         }
-    };
+    });
 
     proc_macro::TokenStream::from(output)
-}
-
-fn build_max_check(attrs: &[syn::Attribute], ident: &syn::Ident) -> Option<proc_macro2::TokenStream> {
-    let meta_list = attrs.iter().find_map(|attr| match &attr.meta {
-        syn::Meta::List(inner) if inner.path.is_ident("max") => Some(inner),
-        _ => None,
-    })?;
-
-    let max = meta_list.parse_args::<syn::Ident>().expect("max takes a ident");
-
-    let name = proc_macro2::Literal::string(&ident.to_string());
-
-    Some(quote!(
-        assert!(value <= #max, "{} id {} exceeds maximum {}", #name, value, stringify!(#max));
-    ))
 }
 
 /// Finds the u8 in NonZero<u8>

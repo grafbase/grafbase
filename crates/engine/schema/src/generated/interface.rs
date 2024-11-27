@@ -16,9 +16,7 @@ use walker::{Iter, Walk};
 /// Generated from:
 ///
 /// ```custom,{.language-graphql}
-/// type InterfaceDefinition
-///   @meta(module: "interface", debug: false)
-///   @indexed(deduplicated: true, id_size: "u32", max_id: "MAX_ID") {
+/// type InterfaceDefinition @meta(module: "interface", debug: false) @indexed(deduplicated: true, id_size: "u32") {
 ///   name: String!
 ///   description: String
 ///   fields: [FieldDefinition!]!
@@ -52,7 +50,6 @@ pub struct InterfaceDefinitionRecord {
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
-#[max(MAX_ID)]
 pub struct InterfaceDefinitionId(std::num::NonZero<u32>);
 
 #[derive(Clone, Copy)]

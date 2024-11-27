@@ -1,4 +1,3 @@
-pub(crate) use crate::ids::MAX_ID;
 /// A prelude module for all the generated modules
 ///
 /// Anything in here will be pulled into scope for the modules
