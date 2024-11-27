@@ -20,14 +20,13 @@ exclude = ["crates/wasi-component-loader/examples", "examples/hooks-template"]
 
 [patch.crates-io]
 multipart-stream = { git = "https://github.com/grafbase/multipart-stream-rs-fork", rev = "06ff198e4041c8a8c1c93e580c260d597727c193" } # http-1.0-fix-multipart-mixed
-# FIXME: Drop when a new version is released.
 # Make sure we use the workspace-hack package when building
 # this repo, but not when pulling it in
 # See https://docs.rs/cargo-hakari/0.9.30/cargo_hakari/patch_directive/index.html for details
 grafbase-workspace-hack.path = "crates/grafbase-workspace-hack"
 
 [workspace.package]
-version = "0.80.4"
+version = "0.81.0"
 edition = "2021"
 license = "MPL-2.0"
 homepage = "https://grafbase.com"
