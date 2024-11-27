@@ -46,19 +46,6 @@ pub struct Graph {
     pub slug: String,
     pub account: Account,
     pub production_branch: Branch,
-    #[arguments(last: 5)]
-    pub api_keys: GraphApiKeyConnection,
-}
-
-#[derive(cynic::QueryFragment, Debug)]
-pub struct GraphApiKeyConnection {
-    pub nodes: Vec<GraphApiKey>,
-}
-
-#[derive(cynic::QueryFragment, Debug)]
-pub struct GraphApiKey {
-    pub key: String,
-    pub name: String,
 }
 
 #[derive(cynic::QueryFragment, Debug)]
@@ -207,8 +194,10 @@ pub struct SchemaRegistryBranchDoesNotExistError {
 }
 
 #[derive(cynic::InlineFragments, Debug)]
-pub enum PublishPayload {
+#[allow(dead_code)]
+pub(crate) enum PublishPayload {
     PublishSuccess(PublishSuccess),
+    NoChange(PublishNoChange),
     GraphDoesNotExist(GraphDoesNotExistError),
     FederatedGraphCompositionError(FederatedGraphCompositionError),
     BranchDoesNotExistError(SchemaRegistryBranchDoesNotExistError),
@@ -234,9 +223,9 @@ pub struct PublishInput<'a> {
 
 #[derive(cynic::QueryFragment, Debug)]
 #[cynic(graphql_type = "Mutation", variables = "SubgraphCreateArguments")]
-pub struct SubgraphPublish {
+pub(crate) struct SubgraphPublish {
     #[arguments(input: $input)]
-    pub publish: PublishPayload,
+    pub(crate) publish: PublishPayload,
 }
 
 #[derive(cynic::QueryFragment, Debug)]
@@ -283,6 +272,11 @@ pub enum SchemaCheckErrorSeverity {
 
 #[derive(cynic::QueryFragment, Debug)]
 pub struct SubgraphNameMissingOnFederatedGraphError {
+    __typename: String,
+}
+
+#[derive(cynic::QueryFragment, Debug)]
+pub(crate) struct PublishNoChange {
     __typename: String,
 }
 

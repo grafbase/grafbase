@@ -4,6 +4,8 @@ use std::{
     io::{IsTerminal, Read},
 };
 
+const FAILED_PUBLISH_STATUS: i32 = 1;
+
 #[tokio::main]
 pub(crate) async fn publish(
     PublishCommand {
@@ -52,10 +54,14 @@ pub(crate) async fn publish(
         backend::api::publish::PublishOutcome::Success { composition_errors } => {
             report::publish_command_composition_failure(composition_errors);
         }
+        backend::api::publish::PublishOutcome::NoChange => report::publish_no_change(),
         backend::api::publish::PublishOutcome::GraphDoesNotExist {
             account_slug,
             graph_slug,
-        } => report::publish_graph_does_not_exist(account_slug, graph_slug),
+        } => {
+            report::publish_graph_does_not_exist(account_slug, graph_slug);
+            std::process::exit(FAILED_PUBLISH_STATUS);
+        }
     };
 
     Ok(())

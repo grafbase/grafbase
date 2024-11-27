@@ -187,6 +187,10 @@ pub(crate) fn publish_command_success(subgraph_name: &str) {
     println!("🧩 {subgraph_name} published successfully");
 }
 
+pub(crate) fn publish_no_change() {
+    println!("🟰 The subgraph is already published with this schema and url. Publish skipped.")
+}
+
 pub(crate) fn publish_graph_does_not_exist(account_slug: &str, graph_slug: &str) {
     watercolor::output!("❌ Could not publish: there is no graph named {graph_slug} in the account {account_slug}\n", @BrightRed);
 }
