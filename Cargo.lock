@@ -8419,6 +8419,7 @@ dependencies = [
  "insta",
  "reqwest 0.12.9",
  "serde_json",
+ "strum",
  "tempfile",
  "thiserror 2.0.3",
  "tokio",

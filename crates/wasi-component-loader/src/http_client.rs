@@ -3,31 +3,21 @@ use crate::{
     state::WasiState,
 };
 use futures::FutureExt;
-use grafbase_telemetry::{
-    metrics::meter_from_global_provider,
-    otel::opentelemetry::{metrics::Histogram, KeyValue},
-};
+use grafbase_telemetry::otel::opentelemetry::{metrics::Histogram, KeyValue};
 use http::{HeaderName, HeaderValue};
 use std::{
     future::Future,
     str::FromStr,
-    sync::LazyLock,
     time::{Duration, Instant},
 };
+use strum::AsRefStr;
 use tracing::{field::Empty, info_span, Instrument};
 use wasmtime::{
     component::{ComponentType, Lift, LinkerInstance, Lower, ResourceType},
     StoreContextMut,
 };
 
-static HTTP_CLIENT: LazyLock<reqwest::Client> = LazyLock::new(reqwest::Client::new);
-
-static REQUEST_METRICS: LazyLock<Histogram<u64>> = LazyLock::new(|| {
-    let meter = meter_from_global_provider();
-    meter.u64_histogram("grafbase.hook.http_request.duration").init()
-});
-
-pub(crate) fn map(types: &mut LinkerInstance<'_, WasiState>) -> crate::Result<()> {
+pub(crate) fn inject_mapping(types: &mut LinkerInstance<'_, WasiState>) -> crate::Result<()> {
     types.resource(HTTP_CLIENT_RESOURCE, ResourceType::host::<()>(), |_, _| Ok(()))?;
 
     types.func_wrap_async(HTTP_CLIENT_EXECUTE_FUNCTION, execute)?;
@@ -55,6 +45,8 @@ struct HttpRequest {
 #[component(enum)]
 #[repr(u8)]
 #[allow(dead_code)] // for some reason clippy thinks this is dead code, it's not.
+#[derive(AsRefStr)]
+#[strum(serialize_all = "SCREAMING_SNAKE_CASE")]
 enum HttpMethod {
     #[component(name = "get")]
     Get,
@@ -74,22 +66,6 @@ enum HttpMethod {
     Connect,
     #[component(name = "trace")]
     Trace,
-}
-
-impl AsRef<str> for HttpMethod {
-    fn as_ref(&self) -> &str {
-        match self {
-            HttpMethod::Get => "GET",
-            HttpMethod::Post => "POST",
-            HttpMethod::Put => "PUT",
-            HttpMethod::Delete => "DELETE",
-            HttpMethod::Patch => "PATCH",
-            HttpMethod::Head => "HEAD",
-            HttpMethod::Options => "OPTIONS",
-            HttpMethod::Connect => "CONNECT",
-            HttpMethod::Trace => "TRACE",
-        }
-    }
 }
 
 impl From<HttpMethod> for reqwest::Method {
@@ -164,15 +140,21 @@ enum HttpError {
 type HttpResult<'a> = Box<dyn Future<Output = anyhow::Result<(Result<HttpResponse, HttpError>,)>> + Send + 'a>;
 type HttpManyResult<'a> = Box<dyn Future<Output = anyhow::Result<(Vec<Result<HttpResponse, HttpError>>,)>> + Send + 'a>;
 
-fn execute(_: StoreContextMut<'_, WasiState>, (request,): (HttpRequest,)) -> HttpResult<'_> {
-    Box::new(async move { Ok((send_request(request).await,)) })
+fn execute(ctx: StoreContextMut<'_, WasiState>, (request,): (HttpRequest,)) -> HttpResult<'_> {
+    let request_durations = ctx.data().request_durations().clone();
+    let http_client = ctx.data().http_client().clone();
+
+    Box::new(async move { Ok((send_request(http_client, request_durations, request).await,)) })
 }
 
-fn execute_many(_: StoreContextMut<'_, WasiState>, (requests,): (Vec<HttpRequest>,)) -> HttpManyResult<'_> {
+fn execute_many(ctx: StoreContextMut<'_, WasiState>, (requests,): (Vec<HttpRequest>,)) -> HttpManyResult<'_> {
+    let request_durations = ctx.data().request_durations().clone();
+    let http_client = ctx.data().http_client().clone();
+
     Box::new(async move {
         let futures = requests
             .into_iter()
-            .map(|request| send_request(request).boxed())
+            .map(|request| send_request(http_client.clone(), request_durations.clone(), request).boxed())
             .collect::<Vec<_>>();
 
         let responses = futures::future::join_all(futures).await;
@@ -181,7 +163,11 @@ fn execute_many(_: StoreContextMut<'_, WasiState>, (requests,): (Vec<HttpRequest
     })
 }
 
-async fn send_request(request: HttpRequest) -> Result<HttpResponse, HttpError> {
+async fn send_request(
+    http_client: reqwest::Client,
+    request_durations: Histogram<u64>,
+    request: HttpRequest,
+) -> Result<HttpResponse, HttpError> {
     let start = Instant::now();
 
     let mut attributes = request_attributes(&request);
@@ -217,7 +203,7 @@ async fn send_request(request: HttpRequest) -> Result<HttpResponse, HttpError> {
 
         attributes.push(KeyValue::new("otel.status_code", "Error"));
 
-        REQUEST_METRICS.record(duration, &attributes);
+        request_durations.record(duration, &attributes);
 
         return Err(HttpError::Request(message));
     };
@@ -227,7 +213,7 @@ async fn send_request(request: HttpRequest) -> Result<HttpResponse, HttpError> {
     span.record("url.path", url.path());
     span.record("otel.name", format!("{} {}", method.as_ref(), url.path()));
 
-    let mut builder = HTTP_CLIENT.request(method.into(), url);
+    let mut builder = http_client.request(method.into(), url);
 
     for (key, value) in headers {
         let Ok(key) = HeaderName::from_str(&key) else {
@@ -239,7 +225,7 @@ async fn send_request(request: HttpRequest) -> Result<HttpResponse, HttpError> {
 
             attributes.push(KeyValue::new("otel.status_code", "Error"));
 
-            REQUEST_METRICS.record(duration, &attributes);
+            request_durations.record(duration, &attributes);
 
             return Err(HttpError::Request(message));
         };
@@ -253,7 +239,7 @@ async fn send_request(request: HttpRequest) -> Result<HttpResponse, HttpError> {
 
             attributes.push(KeyValue::new("otel.status_code", "Error"));
 
-            REQUEST_METRICS.record(duration, &attributes);
+            request_durations.record(duration, &attributes);
 
             return Err(HttpError::Request(message));
         };
@@ -271,7 +257,7 @@ async fn send_request(request: HttpRequest) -> Result<HttpResponse, HttpError> {
     let duration = start.elapsed().as_millis() as u64;
 
     merge_response_attributes(&mut attributes, &result);
-    REQUEST_METRICS.record(duration, &attributes);
+    request_durations.record(duration, &attributes);
 
     match result {
         Ok(response) => {

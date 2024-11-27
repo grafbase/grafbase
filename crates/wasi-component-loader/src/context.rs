@@ -139,7 +139,7 @@ pub enum LogError {
 ///     }
 /// }
 /// ```
-pub(crate) fn map(types: &mut LinkerInstance<'_, WasiState>) -> crate::Result<()> {
+pub(crate) fn inject_mapping(types: &mut LinkerInstance<'_, WasiState>) -> crate::Result<()> {
     types.resource(CONTEXT_RESOURCE, ResourceType::host::<ContextMap>(), |_, _| Ok(()))?;
     types.func_wrap(CONTEXT_SET_METHOD, set)?;
     types.func_wrap(CONTEXT_GET_METHOD, get)?;
@@ -159,7 +159,7 @@ pub(crate) fn map(types: &mut LinkerInstance<'_, WasiState>) -> crate::Result<()
 ///     }
 /// }
 /// ```
-pub(crate) fn map_shared(types: &mut LinkerInstance<'_, WasiState>) -> crate::Result<()> {
+pub(crate) fn inject_shared_mapping(types: &mut LinkerInstance<'_, WasiState>) -> crate::Result<()> {
     types.resource(
         SHARED_CONTEXT_RESOURCE,
         ResourceType::host::<SharedContext>(),
