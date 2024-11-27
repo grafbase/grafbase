@@ -1,6 +1,6 @@
 use std::sync::Once;
 
-use crate::bindings::component::grafbase::types::Error;
+use grafbase_hooks::Error;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
 
 /// Initializes the log subscriber, which must be called in the beginning of every hook to get output.

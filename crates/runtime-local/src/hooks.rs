@@ -4,7 +4,7 @@ mod responses;
 
 use std::{collections::HashMap, sync::Arc, time::SystemTime};
 
-use deadpool::managed::Object;
+use enumflags2::BitFlags;
 use futures_util::Future;
 use grafbase_telemetry::otel::{
     opentelemetry::{
@@ -21,11 +21,10 @@ use runtime::{
 };
 use tracing::{info_span, Instrument, Span};
 use url::Url;
-use wasi_component_loader::ResponsesComponentInstance;
+use wasi_component_loader::HookImplementation;
 pub use wasi_component_loader::{
-    create_log_channel, AccessLogMessage, AuthorizationComponentInstance, ChannelLogReceiver, ChannelLogSender,
-    ComponentLoader, Config as HooksWasiConfig, GatewayComponentInstance, GuestError, SharedContext,
-    SubgraphComponentInstance,
+    create_log_channel, AccessLogMessage, ChannelLogReceiver, ChannelLogSender, ComponentLoader,
+    Config as HooksWasiConfig, GuestError, SharedContext,
 };
 
 #[derive(Clone)]
@@ -47,77 +46,14 @@ impl Context {
 }
 
 struct HooksWasiInner {
-    gateway: Option<Pool<GatewayComponentInstance>>,
-    authorization: Option<Pool<AuthorizationComponentInstance>>,
-    subgraph: Option<Pool<SubgraphComponentInstance>>,
-    responses: Option<Pool<ResponsesComponentInstance>>,
+    pool: Pool,
+    implemented_hooks: BitFlags<HookImplementation>,
     hook_latencies: Histogram<u64>,
-    sender: ChannelLogSender,
 }
 
 impl HooksWasiInner {
     pub fn shared_context(&self, context: &Context) -> SharedContext {
-        SharedContext::new(Arc::clone(&context.kv), self.sender.clone(), context.trace_id)
-    }
-
-    pub async fn get_gateway_instance(
-        &self,
-        hook_name: &'static str,
-    ) -> Option<(Object<pool::ComponentMananger<GatewayComponentInstance>>, Span)> {
-        match self.gateway {
-            Some(ref pool) => {
-                let span = info_span!("hook span", "otel.name" = hook_name);
-                let object = pool.get().instrument(span.clone()).await;
-
-                Some((object, span))
-            }
-            None => None,
-        }
-    }
-
-    pub async fn get_authorization_instance(
-        &self,
-        hook_name: &'static str,
-    ) -> Option<(Object<pool::ComponentMananger<AuthorizationComponentInstance>>, Span)> {
-        match self.authorization {
-            Some(ref pool) => {
-                let span = info_span!("hook span", "otel.name" = hook_name);
-                let object = pool.get().instrument(span.clone()).await;
-
-                Some((object, span))
-            }
-            None => None,
-        }
-    }
-
-    pub async fn get_subgraph_instance(
-        &self,
-        hook_name: &'static str,
-    ) -> Option<(Object<pool::ComponentMananger<SubgraphComponentInstance>>, Span)> {
-        match self.subgraph {
-            Some(ref pool) => {
-                let span = info_span!("hook span", "otel.name" = hook_name);
-                let object = pool.get().instrument(span.clone()).await;
-
-                Some((object, span))
-            }
-            None => None,
-        }
-    }
-
-    pub async fn get_responses_instance(
-        &self,
-        hook_name: &'static str,
-    ) -> Option<(Object<pool::ComponentMananger<ResponsesComponentInstance>>, Span)> {
-        match self.responses {
-            Some(ref pool) => {
-                let span = info_span!("hook span", "otel.name" = hook_name);
-                let object = pool.get().instrument(span.clone()).await;
-
-                Some((object, span))
-            }
-            None => None,
-        }
+        SharedContext::new(Arc::clone(&context.kv), context.trace_id)
     }
 
     async fn run_and_measure<F, T, E>(&self, hook_name: &'static str, hook: F) -> Result<T, E>
@@ -221,21 +157,26 @@ impl HookStatus {
 }
 
 impl HooksWasi {
-    pub fn new(
+    pub async fn new(
         loader: Option<ComponentLoader>,
         max_pool_size: Option<usize>,
         meter: &Meter,
-        sender: ChannelLogSender,
+        access_log: ChannelLogSender,
     ) -> Self {
         match loader.map(Arc::new) {
-            Some(loader) => Self(Some(Arc::new(HooksWasiInner {
-                gateway: Pool::new(&loader, max_pool_size),
-                authorization: Pool::new(&loader, max_pool_size),
-                subgraph: Pool::new(&loader, max_pool_size),
-                responses: Pool::new(&loader, max_pool_size),
-                hook_latencies: meter.u64_histogram("grafbase.hook.duration").build(),
-                sender,
-            }))),
+            Some(loader) => {
+                let pool = Pool::new(&loader, max_pool_size, access_log);
+                let instance = pool.get().await;
+                let implemented_hooks = instance.hooks_implemented();
+
+                let inner = HooksWasiInner {
+                    pool,
+                    implemented_hooks,
+                    hook_latencies: meter.u64_histogram("grafbase.hook.duration").build(),
+                };
+
+                Self(Some(Arc::new(inner)))
+            }
             None => Self(None),
         }
     }
@@ -263,9 +204,12 @@ impl Hooks for HooksWasi {
             return Ok((Context::new(kv, trace_id), headers));
         };
 
-        let Some((mut hook, span)) = inner.get_gateway_instance("hook: on-gateway-request").await else {
+        if !inner.implemented_hooks.contains(HookImplementation::OnGatewayRequest) {
             return Ok((Context::new(kv, trace_id), headers));
-        };
+        }
+
+        let span = info_span!("hook: on-gateway-request");
+        let mut hook = inner.pool.get().instrument(span.clone()).await;
 
         inner
             .run_and_measure("on-gateway-request", hook.on_gateway_request(kv, headers))
@@ -316,9 +260,12 @@ impl Hooks for HooksWasi {
             return Ok(headers);
         };
 
-        let Some((mut hook, span)) = inner.get_subgraph_instance("hook: on-subgraph-request").await else {
+        if !inner.implemented_hooks.contains(HookImplementation::OnSubgraphRequest) {
             return Ok(headers);
-        };
+        }
+
+        let span = info_span!("hook: on-subgraph-request");
+        let mut hook = inner.pool.get().instrument(span.clone()).await;
 
         inner
             .run_and_measure(

@@ -1,6 +1,6 @@
 package component:grafbase;
 
-interface types {
+world hooks {
     // Error thrown when accessing the headers. Headers names or values
     // must not contain any special characters.
     enum header-error {
@@ -38,8 +38,6 @@ interface types {
     resource shared-context {
         // Fetches a context value with the given name, if existing.
         get: func(name: string) -> option<string>;
-        // Sends the data to the access log.
-        log-access: func(data: list<u8>) -> result<_, log-error>;
         // Gets the current trace-id.
         trace-id: func() -> string;
     }
@@ -54,6 +52,8 @@ interface types {
         set: func(name: string, value: string) -> result<_, header-error>;
         // Deletes a header value with the given name.
         delete: func(name: string) -> option<string>;
+        // Return all headers as a list of tuples.
+        entries: func() -> list<tuple<string, string>>;
     }
 
     // Defines an edge in a type
@@ -82,6 +82,7 @@ interface types {
         on-operation-response-outputs: list<list<u8>>,
     }
 
+    // An error returned from a field.
     record field-error {
         // The number of errors.
         count: u64,
@@ -89,11 +90,13 @@ interface types {
         data-is-null: bool,
     }
 
+    // An error from a GraphQL request.
     record request-error {
         // The number of errors.
         count: u64,
     }
 
+    // A status of a GraphQL operation.
     variant graphql-response-status {
         // Request was successful.
         success,
@@ -192,14 +195,14 @@ interface types {
 
     // An error response can be used to inject an error to the GraphQL response.
     record error {
-        // The error message.
-        message: string,
         // Adds the given extensions to the response extensions. The first item in
         // the tuple is the extension key, and the second item is the extension value.
         // The extension value can be string-encoded JSON, which will be converted as
         // JSON in the response. It can also be just a string, which will be converted as
         // a JSON string in the response.
         extensions: list<tuple<string, string>>,
+        // The error message.
+        message: string,
     }
 
     // A HTTP client.
@@ -208,6 +211,12 @@ interface types {
         execute: static func(request: http-request) -> result<http-response, http-error>;
         // Executes multiple requests in parallel, yielding the current future until all requests are done.
         execute-many: static func(requests: list<http-request>) -> list<result<http-response, http-error>>;
+    }
+
+    // A sender for the system access log.
+    resource access-log {
+        // Sends the data to the access log.
+        send: static func(data: list<u8>) -> result<_, log-error>;
     }
 
     // A HTTP request.
@@ -281,10 +290,6 @@ interface types {
         // The request failed due to an error (server connection failed).
         connect(string),
     }
-}
-
-interface gateway-request {
-    use types.{headers, error-response, context};
 
     // The hook is called in the federated gateway just before authentication. It can be used
     // to read and modify the request headers. The context object is provided in a mutable form,
@@ -292,25 +297,17 @@ interface gateway-request {
     //
     // If returning an error from the hook, the request processing is stopped and the given error
     // returned to the client.
-    on-gateway-request: func(context: context, headers: headers) -> result<_, error-response>;
-}
-
-interface subgraph-request {
-    use types.{shared-context, headers, error};
+    export on-gateway-request: func(context: context, headers: headers) -> result<_, error-response>;
 
     // The hook is called just before requesting a subgraph, after rate limiting is done. It can be used
     // to read and modify the subgraph request headers. If returning an error, the subgraph is not requested.
-    on-subgraph-request: func(
+    export on-subgraph-request: func(
         context: shared-context,
         subgraph-name: string,
         method: string,
         url: string,
         headers: headers
     ) -> result<_, error>;
-}
-
-interface authorization {
-    use types.{error, shared-context, edge-definition, node-definition};
 
     // The hook is called in the request cycle if the schema defines an authorization directive on
     // an edge, providing the arguments of the edge selected in the directive, the definition of the esge
@@ -320,7 +317,7 @@ interface authorization {
     //
     // The result, if an error, will stop the request execution and return an error back to the user.
     // Result of the edge will be null for an error response.
-    authorize-edge-pre-execution: func(
+    export authorize-edge-pre-execution: func(
         context: shared-context,
         definition: edge-definition,
         arguments: string,
@@ -334,7 +331,7 @@ interface authorization {
     //
     // The result, if an error, will stop the request execution and return an error back to the user.
     // Result of the edge will be null for an error response.
-    authorize-node-pre-execution: func(
+    export authorize-node-pre-execution: func(
         context: shared-context,
         definition: node-definition,
         metadata: string
@@ -358,7 +355,7 @@ interface authorization {
     // The list item can either be an empty Ok, which returns the edge data to the client. Or the
     // item can be an error and the edge access is denied. The error data will be propagated to the
     // response errors.
-    authorize-parent-edge-post-execution: func(
+    export authorize-parent-edge-post-execution: func(
         context: shared-context,
         definition: edge-definition,
         parents: list<string>,
@@ -382,7 +379,7 @@ interface authorization {
     // The list item can either be an empty Ok, which returns the edge data to the client. Or the
     // item can be an error and the edge access is denied. The error data will be propagated to the
     // response errors.
-    authorize-edge-node-post-execution: func(
+    export authorize-edge-node-post-execution: func(
         context: shared-context,
         definition: edge-definition,
         nodes: list<string>,
@@ -409,45 +406,33 @@ interface authorization {
     // The list item can either be an empty Ok, which returns the edge data to the client. Or the
     // item can be an error and the edge access is denied. The error data will be propagated to the
     // response errors.
-    authorize-edge-post-execution: func(
+    export authorize-edge-post-execution: func(
         context: shared-context,
         definition: edge-definition,
         edges: list<tuple<string, list<string>>>,
         metadata: string
     ) -> list<result<_, error>>;
-}
-
-interface responses {
-    use types.{shared-context, executed-operation, executed-subgraph-request, executed-http-request};
 
     // The hook is called after a subgraph entity has been either requested or fetched from cache.
     // The output is a list of bytes, which will be available in the on-operation-response hook.
-    on-subgraph-response: func(
+    export on-subgraph-response: func(
         context: shared-context,
         request: executed-subgraph-request,
     ) -> list<u8>;
 
     // The hook is called after a request is handled in the gateway. The output is a list of bytes,
     // which will be available in the on-http-response hook.
-    on-operation-response: func(
+    export on-operation-response: func(
         context: shared-context,
         request: executed-operation,
     ) -> list<u8>;
 
     // The hook is called right before a response is sent to the user.
-    on-http-response: func(
+    export on-http-response: func(
         context: shared-context,
         request: executed-http-request,
     );
-}
 
-// Export here all the hooks the guest wants to implement. If a hook interface is not exported in the world,
-// the execution in the engine will be a no-op.
-//
-// The guest must implement all exported hooks defined in the world.
-world hooks {
-    export gateway-request;
-    export subgraph-request;
-    export authorization;
-    export responses;
+    // The hooks initialization function. Must be called before any other hook function.
+    export init-hooks: func() -> s64;
 }

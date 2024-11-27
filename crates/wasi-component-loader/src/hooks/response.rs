@@ -1,16 +1,5 @@
 use wasmtime::component::{ComponentType, Lower};
 
-use super::{component_instance, ComponentInstance};
-use crate::{
-    context::SharedContext,
-    names::{
-        ON_HTTP_RESPONSE_FUNCTION, ON_OPERATION_RESPONSE_FUNCTION, ON_SUBGRAPH_RESPONSE_FUNCTION, RESPONSES_INTERFACE,
-    },
-    ComponentLoader,
-};
-
-component_instance!(ResponsesComponentInstance: RESPONSES_INTERFACE);
-
 /// Data from an executed HTTP request.
 #[derive(Debug, Clone, Lower, ComponentType)]
 #[component(record)]
@@ -172,65 +161,4 @@ pub struct ExecutedSubgraphRequest {
     /// True, if the response has any GraphQL errors.
     #[component(name = "has-errors")]
     pub has_errors: bool,
-}
-
-impl ResponsesComponentInstance {
-    /// Allows inspection of the response from a subgraph request.
-    ///
-    /// # Arguments
-    ///
-    /// * `context` - A shared context for the operation.
-    /// * `request` - The executed subgraph request containing details of the request.
-    ///
-    /// # Returns
-    ///
-    /// A `Result` containing a serialized vector of bytes from the user on success,
-    /// or an error on failure.
-    pub async fn on_subgraph_response(
-        &mut self,
-        context: SharedContext,
-        request: ExecutedSubgraphRequest,
-    ) -> crate::Result<Vec<u8>> {
-        self.call1_one_output(ON_SUBGRAPH_RESPONSE_FUNCTION, context, request)
-            .await?
-            .map(|result: Vec<u8>| Ok(result))
-            .unwrap_or_else(|| Ok(Vec::new()))
-    }
-
-    /// Allows inspection of the response from an executed operation.
-    ///
-    /// # Arguments
-    ///
-    /// * `context` - A shared context for the operation.
-    /// * `request` - The executed operation containing details of the operation.
-    ///
-    /// # Returns
-    ///
-    /// A `Result` containing a serialized vector of bytes from the user on success,
-    /// or an error on failure.
-    pub async fn on_operation_response(
-        &mut self,
-        context: SharedContext,
-        request: ExecutedOperation,
-    ) -> crate::Result<Vec<u8>> {
-        self.call1_one_output(ON_OPERATION_RESPONSE_FUNCTION, context, request)
-            .await?
-            .map(|result: Vec<u8>| Ok(result))
-            .unwrap_or_else(|| Ok(Vec::new()))
-    }
-
-    /// Allows inspection of the response from an executed HTTP request.
-    ///
-    /// # Arguments
-    ///
-    /// * `context` - A shared context for the operation.
-    /// * `request` - The executed HTTP request containing details of the request.
-    pub async fn on_http_response(
-        &mut self,
-        context: SharedContext,
-        request: ExecutedHttpRequest,
-    ) -> crate::Result<()> {
-        self.call1_without_output(ON_HTTP_RESPONSE_FUNCTION, context, request)
-            .await
-    }
 }

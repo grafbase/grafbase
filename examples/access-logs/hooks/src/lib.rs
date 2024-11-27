@@ -1,17 +1,20 @@
-use access_logs::{AuditInfo, OperationInfo, SubgraphInfo};
-use bindings::{
-    component::grafbase::types::{CacheStatus, SharedContext},
-    exports::component::grafbase::responses,
-};
-
 mod access_logs;
-#[allow(warnings)]
-mod bindings;
+
+use access_logs::{AuditInfo, OperationInfo, SubgraphInfo};
+use grafbase_hooks::{access_log, grafbase_hooks, CacheStatus, Hooks, SharedContext};
 
 struct Component;
 
-impl responses::Guest for Component {
-    fn on_subgraph_response(_: SharedContext, request: responses::ExecutedSubgraphRequest) -> Vec<u8> {
+#[grafbase_hooks]
+impl Hooks for Component {
+    fn new() -> Self
+    where
+        Self: Sized,
+    {
+        Self
+    }
+
+    fn on_subgraph_response(&mut self, _: SharedContext, request: grafbase_hooks::ExecutedSubgraphRequest) -> Vec<u8> {
         // One response per subgraph execution.
         let responses = request.executions.into_iter().map(Into::into).collect();
 
@@ -29,7 +32,7 @@ impl responses::Guest for Component {
         postcard::to_stdvec(&info).unwrap()
     }
 
-    fn on_operation_response(_: SharedContext, request: responses::ExecutedOperation) -> Vec<u8> {
+    fn on_operation_response(&mut self, _: SharedContext, request: grafbase_hooks::ExecutedOperation) -> Vec<u8> {
         let info = OperationInfo {
             name: request.name.as_deref(),
             document: &request.document,
@@ -50,10 +53,7 @@ impl responses::Guest for Component {
         postcard::to_stdvec(&info).unwrap()
     }
 
-    fn on_http_response(
-        context: SharedContext,
-        request: bindings::exports::component::grafbase::responses::ExecutedHttpRequest,
-    ) {
+    fn on_http_response(&mut self, context: SharedContext, request: grafbase_hooks::ExecutedHttpRequest) {
         let info = AuditInfo {
             method: &request.method,
             url: &request.url,
@@ -73,8 +73,8 @@ impl responses::Guest for Component {
         // steps.
         //
         // We calculated utilizing postcard in the previous steps takes about 150 us or 15% off per request.
-        context.log_access(&serde_json::to_vec(&info).unwrap()).unwrap();
+        access_log::send(&serde_json::to_vec(&info).unwrap()).unwrap()
     }
 }
 
-bindings::export!(Component with_types_in bindings);
+grafbase_hooks::register_hooks!(Component);

@@ -3,11 +3,12 @@ use runtime::{
     hooks::{Anything, AuthorizationVerdict, AuthorizationVerdicts, AuthorizedHooks, EdgeDefinition, NodeDefinition},
 };
 use tracing::Instrument;
+use wasi_component_loader::HookImplementation;
 
 use super::{guest_error_as_gql, Context, HooksWasi};
 
 macro_rules! prepare_authorized {
-    ($span_name: expr; $self:ident named $func_name:literal at $definition:expr; [$(($name:literal, $input:expr),)+]) => {{
+    ($span_name: expr; $impl:path; $self:ident named $func_name:literal at $definition:expr; [$(($name:literal, $input:expr),)+]) => {{
         let Some(ref inner) = $self.0 else {
             return Err(PartialGraphqlError::new(
                 "@authorized directive cannot be used, so access was denied",
@@ -15,12 +16,15 @@ macro_rules! prepare_authorized {
             ));
         };
 
-        let Some((instance, span)) = inner.get_authorization_instance($span_name).await else {
+        if !inner.implemented_hooks.contains($impl) {
             return Err(PartialGraphqlError::new(
                 "@authorized directive cannot be used, so access was denied",
                 PartialErrorCode::Unauthorized,
             ));
-        };
+        }
+
+        let span = tracing::info_span!($span_name);
+        let instance = inner.pool.get().instrument(span.clone()).await;
 
         let inputs = [$(
             encode($func_name, $definition, $name, $input)?,
@@ -57,6 +61,7 @@ impl AuthorizedHooks<Context> for HooksWasi {
     ) -> AuthorizationVerdict {
         let (inner, mut instance, [arguments, metadata], span) = prepare_authorized!(
             "hook: authorize-edge-pre-execution";
+            HookImplementation::AuthorizeEdgePreExecution;
             self named "authorize_edge_pre_execution" at &definition;
             [("arguments", [arguments]), ("metadata", metadata),]
         );
@@ -94,6 +99,7 @@ impl AuthorizedHooks<Context> for HooksWasi {
     ) -> AuthorizationVerdict {
         let (inner, mut instance, [metadata], span) = prepare_authorized!(
             "hook: authorize-node-pre-execution";
+            HookImplementation::AuthorizeNodePreExecution;
             self named "authorize_node_pre_execution" at &definition;
             [ ("metadata", metadata),]
         );
@@ -128,7 +134,8 @@ impl AuthorizedHooks<Context> for HooksWasi {
         metadata: Option<impl Anything<'a>>,
     ) -> AuthorizationVerdicts {
         let (_inner, mut _instance, [_nodes, metadata], _span) = prepare_authorized!(
-            "hook: authorize-node-post-execution";
+            "hook: authorize-edge-node-post-execution";
+            HookImplementation::AuthorizeEdgeNodePostExecution  ;
             self named "authorize_node_post_execution" at &definition;
             [("nodes", nodes), ("metadata", metadata),]
         );
@@ -149,6 +156,7 @@ impl AuthorizedHooks<Context> for HooksWasi {
     ) -> AuthorizationVerdicts {
         let (inner, mut instance, [parents, metadata], span) = prepare_authorized!(
             "hook: authorize-parent-edge-post-execution";
+            HookImplementation::AuthorizeParentEdgePostExecution;
             self named "authorize_parent_edge_post_execution" at &definition;
             [("parents", parents), ("metadata", metadata),]
         );
@@ -196,6 +204,7 @@ impl AuthorizedHooks<Context> for HooksWasi {
     ) -> AuthorizationVerdicts {
         let (inner, mut instance, [nodes, metadata], span) = prepare_authorized!(
             "hook: authorize-edge-node-post-execution";
+            HookImplementation::AuthorizeEdgeNodePostExecution;
             self named "authorize_edge_node_post_execution" at &definition;
             [("nodes", nodes), ("metadata", metadata),]
         );
@@ -242,6 +251,7 @@ impl AuthorizedHooks<Context> for HooksWasi {
     {
         let (inner, mut instance, [metadata], span) = prepare_authorized!(
             "hook: authorize-edge-post-execution";
+            HookImplementation::AuthorizeEdgePostExecution;
             self named "authorize_edge_post_execution" at &definition;
             [("metadata", metadata),]
         );

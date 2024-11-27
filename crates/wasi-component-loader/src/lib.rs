@@ -10,6 +10,7 @@
 
 use grafbase_workspace_hack as _;
 
+mod access_log;
 mod config;
 mod context;
 mod error;
@@ -22,23 +23,19 @@ mod state;
 #[cfg(test)]
 mod tests;
 
+pub use access_log::{create_log_channel, AccessLogMessage, ChannelLogReceiver, ChannelLogSender};
 pub use config::Config;
-pub use context::{
-    create_log_channel, AccessLogMessage, ChannelLogReceiver, ChannelLogSender, ContextMap, SharedContext,
-};
+pub use context::{ContextMap, SharedContext};
 pub use crossbeam::channel::Sender;
 pub use crossbeam::sync::WaitGroup;
 pub use error::{guest::GuestError, Error, GatewayError};
 pub use hooks::{
-    authorization::{AuthorizationComponentInstance, EdgeDefinition, NodeDefinition},
-    gateway::GatewayComponentInstance,
+    authorization::{EdgeDefinition, NodeDefinition},
     response::{
         CacheStatus, ExecutedHttpRequest, ExecutedOperation, ExecutedSubgraphRequest, FieldError,
-        GraphqlResponseStatus, RequestError, ResponsesComponentInstance, SubgraphRequestExecutionKind,
-        SubgraphResponse,
+        GraphqlResponseStatus, RequestError, SubgraphRequestExecutionKind, SubgraphResponse,
     },
-    subgraph::*,
-    RecycleableComponentInstance,
+    ComponentInstance, HookImplementation,
 };
 
 /// The crate result type
@@ -53,8 +50,6 @@ use wasmtime::{
     component::{Component, Linker},
     Engine,
 };
-
-use crate::names::COMPONENT_TYPES;
 
 /// A structure responsible for loading and managing WebAssembly components.
 ///
@@ -123,12 +118,13 @@ impl ComponentLoader {
                     wasmtime_wasi_http::add_only_http_to_linker_async(&mut linker)?;
                 }
 
-                let mut types = linker.instance(COMPONENT_TYPES)?;
+                let mut instance = linker.root();
 
-                headers::inject_mapping(&mut types)?;
-                context::inject_mapping(&mut types)?;
-                context::inject_shared_mapping(&mut types)?;
-                http_client::inject_mapping(&mut types)?;
+                headers::inject_mapping(&mut instance)?;
+                context::inject_mapping(&mut instance)?;
+                context::inject_shared_mapping(&mut instance)?;
+                http_client::inject_mapping(&mut instance)?;
+                access_log::inject_mapping(&mut instance)?;
 
                 Some(Self {
                     engine,

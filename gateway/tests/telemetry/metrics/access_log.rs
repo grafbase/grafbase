@@ -58,7 +58,7 @@ fn measures_pending_logs() {
 }
 
 #[test]
-fn measures_pool_size() {
+fn measures_pool_busy() {
     let tmpdir = TempDir::new().unwrap();
     let path = tmpdir.path().to_str().unwrap();
 
@@ -106,9 +106,62 @@ fn measures_pool_size() {
         insta::assert_json_snapshot!(row, @r#"
         {
           "Value": 0.0,
-          "Attributes": {
-            "grafbase.hook.interface": "component:grafbase/responses"
+          "Attributes": {}
+        }
+        "#);
+    });
+}
+
+#[test]
+fn measures_pool_size() {
+    let tmpdir = TempDir::new().unwrap();
+    let path = tmpdir.path().to_str().unwrap();
+
+    let config = indoc::formatdoc! {r#"
+        [gateway.access_logs]
+        enabled = true
+        path = "{path}"
+
+        [hooks]
+        location = "../crates/wasi-component-loader/examples/target/wasm32-wasip1/debug/response_hooks.wasm"
+    "#};
+
+    with_custom_gateway(&config, |service_name, _, gateway, clickhouse| async move {
+        let response = gateway
+            .gql::<serde_json::Value>("query Simple { __typename }")
+            .send()
+            .await;
+
+        insta::assert_json_snapshot!(response, @r###"
+        {
+          "data": {
+            "__typename": "Query"
           }
+        }"###);
+
+        tokio::time::sleep(METRICS_DELAY).await;
+
+        let row = clickhouse
+            .query(
+                r#"
+                SELECT Value, Attributes
+                FROM otel_metrics_sum
+                WHERE ServiceName = ?
+                    AND ScopeName = 'grafbase'
+                    AND MetricName = 'grafbase.hook.pool.instances.size'
+                "#,
+            )
+            .bind(&service_name)
+            .fetch_all::<SumRow>()
+            .await
+            .unwrap()
+            .pop()
+            .unwrap();
+
+        insta::assert_json_snapshot!(row, @r#"
+        {
+          "Value": 1.0,
+          "Attributes": {}
         }
         "#);
     });

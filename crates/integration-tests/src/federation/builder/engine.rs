@@ -73,7 +73,7 @@ pub(super) async fn build(
         None => gateway_config::Config::default(),
     };
 
-    update_runtime_with_toml_config(&mut runtime, &config, access_log_sender);
+    update_runtime_with_toml_config(&mut runtime, &config, access_log_sender).await;
 
     let config = build_with_toml_config(&config, graph);
 
@@ -84,7 +84,7 @@ pub(super) async fn build(
     (Arc::new(engine), ctx)
 }
 
-fn update_runtime_with_toml_config(
+async fn update_runtime_with_toml_config(
     runtime: &mut TestRuntime,
     config: &gateway_config::Config,
     access_log_sender: ChannelLogSender,
@@ -96,6 +96,8 @@ fn update_runtime_with_toml_config(
             .expect("Wasm examples weren't built, please run:\ncd crates/wasi-component-loader/examples && cargo component build");
 
         let meter = meter_from_global_provider();
-        runtime.hooks = DynamicHooks::wrap(HooksWasi::new(Some(loader), None, &meter, access_log_sender));
+        let hooks = HooksWasi::new(Some(loader), None, &meter, access_log_sender).await;
+
+        runtime.hooks = DynamicHooks::wrap(hooks);
     }
 }

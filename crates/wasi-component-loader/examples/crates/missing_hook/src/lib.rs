@@ -1,23 +1,32 @@
-#[allow(warnings)]
-mod bindings;
-
-use bindings::{
-    component::grafbase::types::{EdgeDefinition, Error, NodeDefinition, SharedContext},
-    exports::component::grafbase::authorization,
-};
+use grafbase_hooks::{grafbase_hooks, EdgeDefinition, Error, Hooks, NodeDefinition, SharedContext};
 
 struct Component;
 
-impl authorization::Guest for Component {
-    fn authorize_edge_pre_execution(_: SharedContext, _: EdgeDefinition, _: String, _: String) -> Result<(), Error> {
+#[grafbase_hooks]
+impl Hooks for Component {
+    fn new() -> Self
+    where
+        Self: Sized,
+    {
+        Self
+    }
+
+    fn authorize_edge_pre_execution(
+        &mut self,
+        _: SharedContext,
+        _: EdgeDefinition,
+        _: String,
+        _: String,
+    ) -> Result<(), Error> {
         Ok(())
     }
 
-    fn authorize_node_pre_execution(_: SharedContext, _: NodeDefinition, _: String) -> Result<(), Error> {
+    fn authorize_node_pre_execution(&mut self, _: SharedContext, _: NodeDefinition, _: String) -> Result<(), Error> {
         Ok(())
     }
 
     fn authorize_parent_edge_post_execution(
+        &mut self,
         _: SharedContext,
         _: EdgeDefinition,
         _: Vec<String>,
@@ -27,6 +36,7 @@ impl authorization::Guest for Component {
     }
 
     fn authorize_edge_node_post_execution(
+        &mut self,
         _: SharedContext,
         _: EdgeDefinition,
         _: Vec<String>,
@@ -36,6 +46,7 @@ impl authorization::Guest for Component {
     }
 
     fn authorize_edge_post_execution(
+        &mut self,
         _: SharedContext,
         _: EdgeDefinition,
         _: Vec<(String, Vec<String>)>,
@@ -45,4 +56,4 @@ impl authorization::Guest for Component {
     }
 }
 
-bindings::export!(Component with_types_in bindings);
+grafbase_hooks::register_hooks!(Component);

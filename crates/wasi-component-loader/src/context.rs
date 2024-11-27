@@ -1,99 +1,18 @@
 use std::{collections::HashMap, sync::Arc};
 
-use crossbeam::{channel::TrySendError, sync::WaitGroup};
-use grafbase_telemetry::otel::opentelemetry::{metrics::UpDownCounter, trace::TraceId};
+use grafbase_telemetry::otel::opentelemetry::trace::TraceId;
 use wasmtime::{
-    component::{ComponentType, LinkerInstance, Lower, Resource, ResourceType},
+    component::{LinkerInstance, Resource, ResourceType},
     StoreContextMut,
 };
 
 use crate::{
     names::{
-        CONTEXT_DELETE_METHOD, CONTEXT_GET_METHOD, CONTEXT_RESOURCE, CONTEXT_SET_METHOD,
-        SHARED_CONTEXT_ACCESS_LOG_METHOD, SHARED_CONTEXT_GET_METHOD, SHARED_CONTEXT_RESOURCE,
-        SHARED_CONTEXT_TRACE_ID_METHOD,
+        CONTEXT_DELETE_METHOD, CONTEXT_GET_METHOD, CONTEXT_RESOURCE, CONTEXT_SET_METHOD, SHARED_CONTEXT_GET_METHOD,
+        SHARED_CONTEXT_RESOURCE, SHARED_CONTEXT_TRACE_ID_METHOD,
     },
     state::WasiState,
 };
-
-/// Sender for a wasi hook to send logs to the writer.
-#[derive(Clone)]
-pub struct ChannelLogSender {
-    sender: crossbeam::channel::Sender<AccessLogMessage>,
-    lossy_log: bool,
-    pending_logs_counter: UpDownCounter<i64>,
-}
-
-impl ChannelLogSender {
-    /// Sends the given access log message to the access log.
-    pub fn send(&self, data: AccessLogMessage) -> Result<(), LogError> {
-        if self.lossy_log {
-            match self.sender.try_send(data) {
-                Ok(_) => (),
-                Err(TrySendError::Full(AccessLogMessage::Data(data))) => return Err(LogError::ChannelFull(data)),
-                Err(_) => return Err(LogError::ChannelClosed),
-            }
-        } else if self.sender.send(data).is_err() {
-            return Err(LogError::ChannelClosed);
-        }
-
-        self.pending_logs_counter.add(1, &[]);
-
-        Ok(())
-    }
-
-    /// Wait until all access logs are written to the file.
-    pub async fn graceful_shutdown(&self) {
-        let wg = WaitGroup::new();
-
-        if self.sender.send(AccessLogMessage::Shutdown(wg.clone())).is_err() {
-            tracing::debug!("access log receiver is already dead, cannot empty log channel");
-        }
-
-        tokio::task::spawn_blocking(|| wg.wait()).await.unwrap();
-    }
-}
-
-/// A receiver for the logger to receive messages and write them somewhere.
-pub type ChannelLogReceiver = crossbeam::channel::Receiver<AccessLogMessage>;
-
-/// https://github.com/tokio-rs/tracing/blob/master/tracing-appender/src/non_blocking.rs#L61-L70
-const DEFAULT_BUFFERED_LINES_LIMIT: usize = 128_000;
-
-/// Creates a new channel for access logs.
-pub fn create_log_channel(
-    lossy_log: bool,
-    pending_logs_counter: UpDownCounter<i64>,
-) -> (ChannelLogSender, ChannelLogReceiver) {
-    let (sender, receiver) = crossbeam::channel::bounded(DEFAULT_BUFFERED_LINES_LIMIT);
-
-    (
-        ChannelLogSender {
-            sender,
-            lossy_log,
-            pending_logs_counter,
-        },
-        receiver,
-    )
-}
-
-/// A message sent through access log channel.
-pub enum AccessLogMessage {
-    /// Write data to the logs.
-    Data(Vec<u8>),
-    /// Shutdown the channel.
-    Shutdown(WaitGroup),
-}
-
-impl AccessLogMessage {
-    /// Convert the message into data bytes, if present.
-    pub fn into_data(self) -> Option<Vec<u8>> {
-        match self {
-            AccessLogMessage::Data(data) => Some(data),
-            AccessLogMessage::Shutdown(_) => None,
-        }
-    }
-}
 
 /// The internal per-request context storage. Accessible from all hooks throughout a single request
 pub type ContextMap = HashMap<String, String>;
@@ -104,28 +23,14 @@ pub struct SharedContext {
     /// Key-value storage.
     kv: Arc<HashMap<String, String>>,
     /// A log channel for access logs.
-    access_log: ChannelLogSender,
     trace_id: TraceId,
 }
 
 impl SharedContext {
     /// Creates a new shared context.
-    pub fn new(kv: Arc<HashMap<String, String>>, access_log: ChannelLogSender, trace_id: TraceId) -> Self {
-        Self {
-            kv,
-            access_log,
-            trace_id,
-        }
+    pub fn new(kv: Arc<HashMap<String, String>>, trace_id: TraceId) -> Self {
+        Self { kv, trace_id }
     }
-}
-
-#[derive(Debug, ComponentType, Lower)]
-#[component(variant)]
-pub enum LogError {
-    #[component(name = "channel-full")]
-    ChannelFull(Vec<u8>),
-    #[component(name = "channel-closed")]
-    ChannelClosed,
 }
 
 /// Map context resource, with get and set accessors to the guest component.
@@ -167,7 +72,6 @@ pub(crate) fn inject_shared_mapping(types: &mut LinkerInstance<'_, WasiState>) -
     )?;
 
     types.func_wrap(SHARED_CONTEXT_GET_METHOD, get_shared)?;
-    types.func_wrap(SHARED_CONTEXT_ACCESS_LOG_METHOD, log_access)?;
     types.func_wrap(SHARED_CONTEXT_TRACE_ID_METHOD, trace_id)?;
 
     Ok(())
@@ -210,31 +114,6 @@ fn get_shared(
     let val = context.kv.get(&key).cloned();
 
     Ok((val,))
-}
-
-/// Sends data to the access log channel.
-fn log_access(
-    store: StoreContextMut<'_, WasiState>,
-    (this, data): (Resource<SharedContext>, Vec<u8>),
-) -> anyhow::Result<(Result<(), LogError>,)> {
-    let context = store.data().get(&this).expect("must exist");
-    let data = AccessLogMessage::Data(data);
-
-    match context.access_log.send(data) {
-        Ok(()) => Ok((Ok(()),)),
-        Err(e) => {
-            match e {
-                LogError::ChannelFull(_) => {
-                    tracing::error!("access log channel is over capacity");
-                }
-                LogError::ChannelClosed => {
-                    tracing::error!("access log channel closed");
-                }
-            }
-
-            Ok((Err(e),))
-        }
-    }
 }
 
 /// Gives the current opentelemetry trace id.

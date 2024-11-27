@@ -1,15 +1,21 @@
-#[allow(warnings)]
-mod bindings;
-
-use bindings::{
-    component::grafbase::types::{Context, ErrorResponse, Headers, HttpClient, HttpMethod, HttpRequest},
-    exports::component::grafbase::gateway_request,
+use grafbase_hooks::{
+    grafbase_hooks,
+    http_client::{self, HttpMethod, HttpRequest},
+    Context, ErrorResponse, Headers, Hooks,
 };
 
 struct Component;
 
-impl gateway_request::Guest for Component {
-    fn on_gateway_request(context: Context, _: Headers) -> Result<(), ErrorResponse> {
+#[grafbase_hooks]
+impl Hooks for Component {
+    fn new() -> Self
+    where
+        Self: Sized,
+    {
+        Self
+    }
+
+    fn on_gateway_request(&mut self, context: Context, _: Headers) -> Result<(), ErrorResponse> {
         let address = std::env::var("MOCK_SERVER_ADDRESS").unwrap();
 
         let request = HttpRequest {
@@ -20,7 +26,7 @@ impl gateway_request::Guest for Component {
             timeout_ms: None,
         };
 
-        let response = HttpClient::execute(&request).unwrap();
+        let response = http_client::execute(&request).unwrap();
         let body = String::from_utf8(response.body).unwrap();
 
         context.set("HTTP_RESPONSE", &body);
@@ -29,4 +35,4 @@ impl gateway_request::Guest for Component {
     }
 }
 
-bindings::export!(Component with_types_in bindings);
+grafbase_hooks::register_hooks!(Component);

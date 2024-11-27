@@ -14,7 +14,9 @@ serde_json = "1.0.118"
 tracing = "0.1.40"
 itertools = "0.13"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
-wit-bindgen-rt = { version = "0.28.0", features = ["bitflags"] }
+grafbase-hooks = { path = "../../../crates/grafbase-hooks", features = [
+    "derive",
+] }
 
 [lib]
 crate-type = ["cdylib"]

@@ -1,18 +1,24 @@
-#[allow(warnings)]
-mod bindings;
-
-use bindings::{component::grafbase::types::Error, exports::component::grafbase::subgraph_request};
+use grafbase_hooks::{grafbase_hooks, Error, Headers, Hooks, SharedContext};
 
 struct Component;
 
-impl subgraph_request::Guest for Component {
+#[grafbase_hooks]
+impl Hooks for Component {
+    fn new() -> Self
+    where
+        Self: Sized,
+    {
+        Self
+    }
+
     fn on_subgraph_request(
-        context: subgraph_request::SharedContext,
+        &mut self,
+        context: SharedContext,
         subgraph_name: String,
         method: String,
         url: String,
-        headers: subgraph_request::Headers,
-    ) -> Result<(), subgraph_request::Error> {
+        headers: Headers,
+    ) -> Result<(), Error> {
         use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
 
         if context.get("should-fail").is_some() {
@@ -38,4 +44,4 @@ impl subgraph_request::Guest for Component {
     }
 }
 
-bindings::export!(Component with_types_in bindings);
+grafbase_hooks::register_hooks!(Component);

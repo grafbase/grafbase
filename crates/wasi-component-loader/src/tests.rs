@@ -1,10 +1,9 @@
 use std::{collections::HashMap, sync::Arc};
 
 use crate::{
-    error::guest::ErrorResponse, hooks::subgraph::SubgraphComponentInstance, AuthorizationComponentInstance,
-    CacheStatus, ChannelLogReceiver, ChannelLogSender, ComponentLoader, Config, EdgeDefinition, ExecutedHttpRequest,
-    ExecutedOperation, ExecutedSubgraphRequest, GatewayComponentInstance, GuestError, NodeDefinition,
-    RecycleableComponentInstance, ResponsesComponentInstance, SharedContext, SubgraphResponse,
+    error::guest::ErrorResponse, hooks::ComponentInstance, CacheStatus, ChannelLogReceiver, ChannelLogSender,
+    ComponentLoader, Config, EdgeDefinition, ExecutedHttpRequest, ExecutedOperation, ExecutedSubgraphRequest,
+    GuestError, NodeDefinition, SharedContext, SubgraphResponse,
 };
 use expect_test::expect;
 use grafbase_telemetry::otel::opentelemetry::trace::TraceId;
@@ -45,8 +44,9 @@ async fn missing_hook() {
     let config: Config = toml::from_str(config).unwrap();
     assert!(config.location.exists());
 
+    let (access_log, _) = create_log_channel();
     let loader = ComponentLoader::new(config).unwrap().unwrap();
-    let mut hook = GatewayComponentInstance::new(&loader).await.unwrap();
+    let mut hook = ComponentInstance::new(&loader, access_log).await.unwrap();
 
     let (context, headers) = hook.on_gateway_request(HashMap::new(), HeaderMap::new()).await.unwrap();
 
@@ -75,7 +75,8 @@ async fn simple_no_io() {
     let mut context = HashMap::new();
     context.insert("kekw".to_string(), "lol".to_string());
 
-    let mut hook = GatewayComponentInstance::new(&loader).await.unwrap();
+    let (access_log, _) = create_log_channel();
+    let mut hook = ComponentInstance::new(&loader, access_log).await.unwrap();
     let (context, headers) = hook.on_gateway_request(context, HeaderMap::new()).await.unwrap();
 
     assert_eq!(Some(&HeaderValue::from_static("call")), headers.get("direct"));
@@ -110,7 +111,8 @@ async fn dir_access_read_only() {
 
     let loader = ComponentLoader::new(config).unwrap().unwrap();
 
-    let mut hook = GatewayComponentInstance::new(&loader).await.unwrap();
+    let (access_log, _) = create_log_channel();
+    let mut hook = ComponentInstance::new(&loader, access_log).await.unwrap();
     let (_, headers) = hook.on_gateway_request(HashMap::new(), HeaderMap::new()).await.unwrap();
 
     assert_eq!(
@@ -147,7 +149,8 @@ async fn dir_access_write() {
     std::fs::write(path.join("contents.txt"), "test string").unwrap();
 
     let loader = ComponentLoader::new(config).unwrap().unwrap();
-    let mut hook = GatewayComponentInstance::new(&loader).await.unwrap();
+    let (access_log, _) = create_log_channel();
+    let mut hook = ComponentInstance::new(&loader, access_log).await.unwrap();
     hook.on_gateway_request(HashMap::new(), HeaderMap::new()).await.unwrap();
 
     let path = path.join("guest_write.txt");
@@ -183,7 +186,8 @@ async fn http_client() {
     assert!(config.location.exists());
 
     let loader = ComponentLoader::new(config).unwrap().unwrap();
-    let mut hook = GatewayComponentInstance::new(&loader).await.unwrap();
+    let (access_log, _) = create_log_channel();
+    let mut hook = ComponentInstance::new(&loader, access_log).await.unwrap();
     let (context, _) = hook.on_gateway_request(HashMap::new(), HeaderMap::new()).await.unwrap();
 
     assert_eq!(Some("kekw"), context.get("HTTP_RESPONSE").map(|s| s.as_str()));
@@ -201,7 +205,8 @@ async fn guest_error() {
     assert!(config.location.exists());
 
     let loader = ComponentLoader::new(config).unwrap().unwrap();
-    let mut hook = GatewayComponentInstance::new(&loader).await.unwrap();
+    let (access_log, _) = create_log_channel();
+    let mut hook = ComponentInstance::new(&loader, access_log).await.unwrap();
 
     let error = hook
         .on_gateway_request(HashMap::new(), HeaderMap::new())
@@ -235,18 +240,16 @@ async fn authorize_edge_pre_execution_error() {
 
     let loader = ComponentLoader::new(config).unwrap().unwrap();
 
-    let mut hook = GatewayComponentInstance::new(&loader).await.unwrap();
+    let (access_log, _) = create_log_channel();
+    let mut hook = ComponentInstance::new(&loader, access_log).await.unwrap();
     let (kv, _) = hook.on_gateway_request(HashMap::new(), headers).await.unwrap();
-
-    let mut hook = AuthorizationComponentInstance::new(&loader).await.unwrap();
 
     let definition = EdgeDefinition {
         parent_type_name: String::new(),
         field_name: String::new(),
     };
 
-    let (access_log, _) = create_log_channel();
-    let context = SharedContext::new(Arc::new(kv), access_log, TraceId::INVALID);
+    let context = SharedContext::new(Arc::new(kv), TraceId::INVALID);
 
     let error = hook
         .authorize_edge_pre_execution(context, definition, String::new(), String::new())
@@ -277,18 +280,16 @@ async fn authorize_edge_pre_execution_success() {
 
     let loader = ComponentLoader::new(config).unwrap().unwrap();
 
-    let mut hook = GatewayComponentInstance::new(&loader).await.unwrap();
+    let (access_log, _) = create_log_channel();
+    let mut hook = ComponentInstance::new(&loader, access_log).await.unwrap();
     let (context, _) = hook.on_gateway_request(HashMap::new(), headers).await.unwrap();
-
-    let mut hook = AuthorizationComponentInstance::new(&loader).await.unwrap();
 
     let definition = EdgeDefinition {
         parent_type_name: String::new(),
         field_name: String::new(),
     };
 
-    let (access_log, _) = create_log_channel();
-    let context = SharedContext::new(Arc::new(context), access_log, TraceId::INVALID);
+    let context = SharedContext::new(Arc::new(context), TraceId::INVALID);
 
     hook.authorize_edge_pre_execution(context, definition, String::from("kekw"), String::new())
         .await
@@ -311,17 +312,15 @@ async fn authorize_node_pre_execution_error() {
 
     let loader = ComponentLoader::new(config).unwrap().unwrap();
 
-    let mut hook = GatewayComponentInstance::new(&loader).await.unwrap();
+    let (access_log, _) = create_log_channel();
+    let mut hook = ComponentInstance::new(&loader, access_log).await.unwrap();
     let (context, _) = hook.on_gateway_request(HashMap::new(), headers).await.unwrap();
-
-    let mut hook = AuthorizationComponentInstance::new(&loader).await.unwrap();
 
     let definition = NodeDefinition {
         type_name: String::new(),
     };
 
-    let (access_log, _) = create_log_channel();
-    let context = SharedContext::new(Arc::new(context), access_log, TraceId::INVALID);
+    let context = SharedContext::new(Arc::new(context), TraceId::INVALID);
 
     let error = hook
         .authorize_node_pre_execution(context, definition, String::new())
@@ -352,17 +351,15 @@ async fn authorize_node_pre_execution_success() {
 
     let loader = ComponentLoader::new(config).unwrap().unwrap();
 
-    let mut hook = GatewayComponentInstance::new(&loader).await.unwrap();
+    let (access_log, _) = create_log_channel();
+    let mut hook = ComponentInstance::new(&loader, access_log).await.unwrap();
     let (context, _) = hook.on_gateway_request(HashMap::new(), headers).await.unwrap();
-
-    let mut hook = AuthorizationComponentInstance::new(&loader).await.unwrap();
 
     let definition = NodeDefinition {
         type_name: String::new(),
     };
 
-    let (access_log, _) = create_log_channel();
-    let context = SharedContext::new(Arc::new(context), access_log, TraceId::INVALID);
+    let context = SharedContext::new(Arc::new(context), TraceId::INVALID);
 
     hook.authorize_node_pre_execution(context, definition, String::from("kekw"))
         .await
@@ -385,10 +382,9 @@ async fn authorize_parent_edge_post_execution() {
 
     let loader = ComponentLoader::new(config).unwrap().unwrap();
 
-    let mut hook = GatewayComponentInstance::new(&loader).await.unwrap();
+    let (access_log, _) = create_log_channel();
+    let mut hook = ComponentInstance::new(&loader, access_log).await.unwrap();
     let (context, _) = hook.on_gateway_request(HashMap::new(), headers).await.unwrap();
-
-    let mut hook = AuthorizationComponentInstance::new(&loader).await.unwrap();
 
     let definition = EdgeDefinition {
         parent_type_name: String::new(),
@@ -400,8 +396,7 @@ async fn authorize_parent_edge_post_execution() {
         serde_json::to_string(&json!({ "value": "lol" })).unwrap(),
     ];
 
-    let (access_log, _) = create_log_channel();
-    let context = SharedContext::new(Arc::new(context), access_log, TraceId::INVALID);
+    let context = SharedContext::new(Arc::new(context), TraceId::INVALID);
 
     let result = hook
         .authorize_parent_edge_post_execution(context, definition, parents, String::new())
@@ -441,10 +436,9 @@ async fn authorize_edge_node_post_execution() {
 
     let loader = ComponentLoader::new(config).unwrap().unwrap();
 
-    let mut hook = GatewayComponentInstance::new(&loader).await.unwrap();
+    let (access_log, _) = create_log_channel();
+    let mut hook = ComponentInstance::new(&loader, access_log).await.unwrap();
     let (context, _) = hook.on_gateway_request(HashMap::new(), headers).await.unwrap();
-
-    let mut hook = AuthorizationComponentInstance::new(&loader).await.unwrap();
 
     let definition = EdgeDefinition {
         parent_type_name: String::new(),
@@ -456,8 +450,7 @@ async fn authorize_edge_node_post_execution() {
         serde_json::to_string(&json!({ "value": "lol" })).unwrap(),
     ];
 
-    let (access_log, _) = create_log_channel();
-    let context = SharedContext::new(Arc::new(context), access_log, TraceId::INVALID);
+    let context = SharedContext::new(Arc::new(context), TraceId::INVALID);
 
     let result = hook
         .authorize_edge_node_post_execution(context, definition, nodes, String::new())
@@ -497,10 +490,9 @@ async fn authorize_edge_post_execution() {
 
     let loader = ComponentLoader::new(config).unwrap().unwrap();
 
-    let mut hook = GatewayComponentInstance::new(&loader).await.unwrap();
+    let (access_log, _) = create_log_channel();
+    let mut hook = ComponentInstance::new(&loader, access_log).await.unwrap();
     let (context, _) = hook.on_gateway_request(HashMap::new(), headers).await.unwrap();
-
-    let mut hook = AuthorizationComponentInstance::new(&loader).await.unwrap();
 
     let definition = EdgeDefinition {
         parent_type_name: String::new(),
@@ -517,8 +509,7 @@ async fn authorize_edge_post_execution() {
         serde_json::to_string(&json!({ "value": "lol" })).unwrap(),
     ];
 
-    let (access_log, _) = create_log_channel();
-    let context = SharedContext::new(Arc::new(context), access_log, TraceId::INVALID);
+    let context = SharedContext::new(Arc::new(context), TraceId::INVALID);
 
     let result = hook
         .authorize_edge_post_execution(
@@ -572,13 +563,11 @@ async fn on_subgraph_request() {
 
     let loader = ComponentLoader::new(config).unwrap().unwrap();
 
-    let mut hook = GatewayComponentInstance::new(&loader).await.unwrap();
+    let (access_log, _) = create_log_channel();
+    let mut hook = ComponentInstance::new(&loader, access_log).await.unwrap();
     let (context, headers) = hook.on_gateway_request(HashMap::new(), headers).await.unwrap();
 
-    let mut hook = SubgraphComponentInstance::new(&loader).await.unwrap();
-
-    let (access_log, _) = create_log_channel();
-    let context = SharedContext::new(Arc::new(context), access_log, TraceId::INVALID);
+    let context = SharedContext::new(Arc::new(context), TraceId::INVALID);
 
     let headers = hook
         .on_subgraph_request(
@@ -612,8 +601,7 @@ async fn on_subgraph_request() {
 
     let context = HashMap::from_iter([("should-fail".into(), "yes".into())]);
 
-    let (access_log, _) = create_log_channel();
-    let context = SharedContext::new(Arc::new(context), access_log, TraceId::INVALID);
+    let context = SharedContext::new(Arc::new(context), TraceId::INVALID);
 
     let error = hook
         .on_subgraph_request(
@@ -649,10 +637,10 @@ async fn response_hooks() {
 
     let loader = ComponentLoader::new(config).unwrap().unwrap();
 
-    let mut hook = ResponsesComponentInstance::new(&loader).await.unwrap();
-
     let (access_log, receiver) = create_log_channel();
-    let context = SharedContext::new(Arc::new(HashMap::new()), access_log, TraceId::INVALID);
+    let mut hook = ComponentInstance::new(&loader, access_log).await.unwrap();
+
+    let context = SharedContext::new(Arc::new(HashMap::new()), TraceId::INVALID);
 
     let request = ExecutedSubgraphRequest {
         subgraph_name: String::from("kekw"),

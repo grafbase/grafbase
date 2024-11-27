@@ -25,5 +25,8 @@ platforms = [
 
 workspace-hack-line-style = "workspace-dotted"
 
+[traversal-excludes]
+workspace-members = ["grafbase-hooks", "grafbase-hooks-derive"]
+
 # Write out exact versions rather than a semver range. (Defaults to false.)
 # exact-versions = true

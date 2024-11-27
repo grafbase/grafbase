@@ -110,7 +110,7 @@ pub async fn serve(
         .flatten();
 
     let max_pool_size = config.hooks.as_ref().and_then(|config| config.max_pool_size);
-    let hooks = HooksWasi::new(loader, max_pool_size, &meter, access_log_sender.clone());
+    let hooks = HooksWasi::new(loader, max_pool_size, &meter, access_log_sender.clone()).await;
 
     fetch_method
         .start(

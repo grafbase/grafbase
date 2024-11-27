@@ -1,7 +1,4 @@
-use crate::bindings::{
-    self,
-    component::grafbase::types::{SubgraphRequestExecutionKind, SubgraphResponse},
-};
+use grafbase_hooks::SubgraphRequestExecutionKind;
 
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct ResponseInfo {
@@ -10,9 +7,9 @@ pub struct ResponseInfo {
     pub status_code: u16,
 }
 
-impl From<SubgraphResponse> for ResponseInfo {
-    fn from(value: SubgraphResponse) -> Self {
-        let SubgraphResponse {
+impl From<grafbase_hooks::SubgraphResponse> for ResponseInfo {
+    fn from(value: grafbase_hooks::SubgraphResponse) -> Self {
+        let grafbase_hooks::SubgraphResponse {
             connection_time_ms,
             response_time_ms,
             status_code,
@@ -64,8 +61,8 @@ pub struct FieldError {
     pub data_is_null: bool,
 }
 
-impl From<bindings::component::grafbase::types::FieldError> for FieldError {
-    fn from(value: bindings::component::grafbase::types::FieldError) -> Self {
+impl From<grafbase_hooks::FieldError> for FieldError {
+    fn from(value: grafbase_hooks::FieldError) -> Self {
         Self {
             count: value.count,
             data_is_null: value.data_is_null,
@@ -78,8 +75,8 @@ pub struct RequestError {
     pub count: u64,
 }
 
-impl From<bindings::component::grafbase::types::RequestError> for RequestError {
-    fn from(value: bindings::component::grafbase::types::RequestError) -> Self {
+impl From<grafbase_hooks::RequestError> for RequestError {
+    fn from(value: grafbase_hooks::RequestError) -> Self {
         Self { count: value.count }
     }
 }
@@ -92,19 +89,13 @@ pub enum GraphqlResponseStatus {
     RefusedRequest,
 }
 
-impl From<bindings::component::grafbase::types::GraphqlResponseStatus> for GraphqlResponseStatus {
-    fn from(value: bindings::component::grafbase::types::GraphqlResponseStatus) -> Self {
+impl From<grafbase_hooks::GraphqlResponseStatus> for GraphqlResponseStatus {
+    fn from(value: grafbase_hooks::GraphqlResponseStatus) -> Self {
         match value {
-            bindings::component::grafbase::types::GraphqlResponseStatus::Success => Self::Success,
-            bindings::component::grafbase::types::GraphqlResponseStatus::FieldError(error) => {
-                Self::FieldError(error.into())
-            }
-            bindings::component::grafbase::types::GraphqlResponseStatus::RequestError(error) => {
-                Self::RequestError(error.into())
-            }
-            bindings::component::grafbase::types::GraphqlResponseStatus::RefusedRequest => {
-                Self::RefusedRequest
-            }
+            grafbase_hooks::GraphqlResponseStatus::Success => Self::Success,
+            grafbase_hooks::GraphqlResponseStatus::FieldError(error) => Self::FieldError(error.into()),
+            grafbase_hooks::GraphqlResponseStatus::RequestError(error) => Self::RequestError(error.into()),
+            grafbase_hooks::GraphqlResponseStatus::RefusedRequest => Self::RefusedRequest,
         }
     }
 }
