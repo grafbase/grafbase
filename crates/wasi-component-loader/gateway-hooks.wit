@@ -207,7 +207,7 @@ interface types {
         // Executes a request and returns the response, yielding the current future until finished.
         execute: static func(request: http-request) -> result<http-response, http-error>;
         // Executes multiple requests in parallel, yielding the current future until all requests are done.
-        execute_many: static func(requests: list<http-request>) -> list<result<http-response, http-error>>;
+        execute-many: static func(requests: list<http-request>) -> list<result<http-response, http-error>>;
     }
 
     // A HTTP request.
