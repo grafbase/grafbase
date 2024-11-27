@@ -148,10 +148,10 @@ fn execute(ctx: StoreContextMut<'_, WasiState>, (request,): (HttpRequest,)) -> H
 }
 
 fn execute_many(ctx: StoreContextMut<'_, WasiState>, (requests,): (Vec<HttpRequest>,)) -> HttpManyResult<'_> {
-    let request_durations = ctx.data().request_durations().clone();
-    let http_client = ctx.data().http_client().clone();
-
     Box::new(async move {
+        let request_durations = ctx.data().request_durations();
+        let http_client = ctx.data().http_client();
+
         let futures = requests
             .into_iter()
             .map(|request| send_request(http_client.clone(), request_durations.clone(), request).boxed())

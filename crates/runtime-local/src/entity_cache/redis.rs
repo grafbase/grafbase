@@ -1,6 +1,7 @@
 use deadpool::managed::Object;
-use futures_util::future::BoxFuture;
+use futures_util::{future::BoxFuture, FutureExt};
 use redis::{AsyncCommands, SetOptions};
+use tracing::{field::Empty, Instrument};
 
 use crate::redis::{Manager, Pool};
 
@@ -58,7 +59,29 @@ impl RedisEntityCache {
 
 impl runtime::entity_cache::EntityCache for RedisEntityCache {
     fn get<'a>(&'a self, name: &'a str) -> BoxFuture<'a, anyhow::Result<Option<Vec<u8>>>> {
-        Box::pin(self.get(name))
+        let cache_span = tracing::info_span!(
+            "entity cache get",
+            "grafbase.entity_cache.status" = Empty,
+            "otel.status_code" = Empty,
+        );
+
+        let cache_get = self
+            .get(name)
+            .instrument(cache_span.clone())
+            .inspect(move |item| match item {
+                Ok(Some(_)) => {
+                    cache_span.record("grafbase.entity_cache.status", "HIT");
+                }
+                Ok(None) => {
+                    cache_span.record("grafbase.entity_cache.status", "MISS");
+                }
+                Err(e) => {
+                    cache_span.record("otel.status_code", "Error");
+                    cache_span.record("grafbase.entity_cache.error", e.to_string());
+                }
+            });
+
+        Box::pin(cache_get)
     }
 
     fn put<'a>(
@@ -67,6 +90,7 @@ impl runtime::entity_cache::EntityCache for RedisEntityCache {
         bytes: std::borrow::Cow<'a, [u8]>,
         expiration_ttl: std::time::Duration,
     ) -> BoxFuture<'a, anyhow::Result<()>> {
-        Box::pin(self.put(name, bytes, expiration_ttl))
+        let cache_span = tracing::info_span!("entity cache put");
+        Box::pin(self.put(name, bytes, expiration_ttl).instrument(cache_span))
     }
 }
