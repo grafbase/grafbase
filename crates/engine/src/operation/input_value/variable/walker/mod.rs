@@ -14,7 +14,7 @@ pub(crate) struct VariableInputValue<'a> {
     pub(super) ref_: &'a VariableInputValueRecord,
 }
 
-impl<'a> VariableInputValue<'a> {
+impl VariableInputValue<'_> {
     fn as_usize(&self) -> Option<usize> {
         match self.ref_ {
             VariableInputValueRecord::Int(value) => Some(*value as usize),
@@ -50,7 +50,7 @@ impl<'ctx> Walk<InputValueContext<'ctx>> for BoundVariableDefinitionId {
     }
 }
 
-impl<'a> VariableValue<'a> {
+impl VariableValue<'_> {
     pub fn is_undefined(&self) -> bool {
         matches!(self, Self::Undefined)
     }

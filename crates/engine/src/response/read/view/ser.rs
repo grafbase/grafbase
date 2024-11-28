@@ -6,7 +6,7 @@ use super::{
 };
 use crate::response::{ResponseValue, NULL};
 
-impl<'a> serde::Serialize for ResponseObjectsView<'a> {
+impl serde::Serialize for ResponseObjectsView<'_> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,
@@ -15,7 +15,7 @@ impl<'a> serde::Serialize for ResponseObjectsView<'a> {
     }
 }
 
-impl<'a> serde::Serialize for ResponseObjectsViewWithExtraFields<'a> {
+impl serde::Serialize for ResponseObjectsViewWithExtraFields<'_> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,
@@ -24,7 +24,7 @@ impl<'a> serde::Serialize for ResponseObjectsViewWithExtraFields<'a> {
     }
 }
 
-impl<'a> serde::Serialize for ResponseObjectViewWithExtraFields<'a> {
+impl serde::Serialize for ResponseObjectViewWithExtraFields<'_> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,
@@ -49,7 +49,7 @@ impl<'a> serde::Serialize for ResponseObjectViewWithExtraFields<'a> {
     }
 }
 
-impl<'a> serde::Serialize for ResponseObjectView<'a> {
+impl serde::Serialize for ResponseObjectView<'_> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,
@@ -67,7 +67,7 @@ impl<'a> serde::Serialize for ResponseObjectView<'a> {
     }
 }
 
-impl<'a> serde::Serialize for ResponseValueView<'a> {
+impl serde::Serialize for ResponseValueView<'_> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,

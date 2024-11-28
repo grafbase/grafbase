@@ -59,7 +59,7 @@ impl<'a> From<&'a str> for RateLimitKey<'a> {
     }
 }
 
-impl<'a> From<String> for RateLimitKey<'a> {
+impl From<String> for RateLimitKey<'_> {
     fn from(value: String) -> Self {
         Self::Subgraph(Cow::Owned(value))
     }

@@ -11,7 +11,7 @@ impl TypeRecord {
     }
 }
 
-impl<'a> Type<'a> {
+impl Type<'_> {
     pub fn wrapped_by(self, list_wrapping: ListWrapping) -> Self {
         Self {
             item: self.item.wrapped_by(list_wrapping),

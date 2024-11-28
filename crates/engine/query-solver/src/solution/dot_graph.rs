@@ -6,7 +6,7 @@ use crate::{dot_graph::Attrs, FieldFlags, Operation};
 use super::{Solution, SolutionEdge, SolutionNode};
 
 #[allow(unused)]
-impl<'ctx, Op: Operation> Solution<'ctx, Op> {
+impl<Op: Operation> Solution<'_, Op> {
     /// Use https://dreampuf.github.io/GraphvizOnline
     /// or `echo '..." | dot -Tsvg` from graphviz
     pub(crate) fn to_pretty_dot_graph(&self) -> String {

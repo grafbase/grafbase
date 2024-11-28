@@ -4,7 +4,7 @@ use crate::operation::QueryInputValueRecord;
 
 use super::{QueryInputValueView, QueryOrSchemaInputValueView};
 
-impl<'a> serde::Serialize for QueryInputValueView<'a> {
+impl serde::Serialize for QueryInputValueView<'_> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,
@@ -49,7 +49,7 @@ impl<'a> serde::Serialize for QueryInputValueView<'a> {
     }
 }
 
-impl<'a> serde::Serialize for QueryOrSchemaInputValueView<'a> {
+impl serde::Serialize for QueryOrSchemaInputValueView<'_> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,

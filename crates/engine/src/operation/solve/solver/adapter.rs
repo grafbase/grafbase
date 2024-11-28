@@ -181,7 +181,7 @@ impl<'a> query_solver::Operation for OperationAdapter<'a> {
     }
 }
 
-impl<'a> OperationAdapter<'a> {
+impl OperationAdapter<'_> {
     /// There are three cases today for renaming a field:
     ///  1. The field has a distinct type in the subgraph than the one we have in the supergraph.
     ///  2. Field is named `__typename` which will clash with the `__typename` field we expect to

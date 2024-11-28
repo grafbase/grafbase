@@ -51,7 +51,7 @@ impl<'a, Id, Record> AsRef<View<Id, &'a Record>> for ViewNested<'a, Id, Record> 
     }
 }
 
-impl<'a, Id, Record> AsRef<Record> for ViewNested<'a, Id, Record> {
+impl<Id, Record> AsRef<Record> for ViewNested<'_, Id, Record> {
     fn as_ref(&self) -> &Record {
         self.view.as_ref()
     }

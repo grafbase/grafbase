@@ -20,7 +20,7 @@ pub(super) struct OperationGraphBuilder<'ctx, Op: Operation> {
     requirement_ingestion_stack: Vec<Requirement<'ctx, Op::FieldId>>,
 }
 
-impl<'ctx, Op: Operation> std::ops::Index<Op::FieldId> for OperationGraphBuilder<'ctx, Op> {
+impl<Op: Operation> std::ops::Index<Op::FieldId> for OperationGraphBuilder<'_, Op> {
     type Output = NodeIndex;
     fn index(&self, field_id: Op::FieldId) -> &Self::Output {
         let ix: usize = field_id.into();

@@ -24,7 +24,7 @@ impl std::ops::Deref for SubgraphGraphqlRequestSpan {
     }
 }
 
-impl<'a> SubgraphRequestSpanBuilder<'a> {
+impl SubgraphRequestSpanBuilder<'_> {
     pub fn build(self) -> SubgraphGraphqlRequestSpan {
         // We follow the HTTP client span conventions:
         // https://opentelemetry.io/docs/specs/semconv/http/http-spans/#http-client

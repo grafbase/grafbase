@@ -32,7 +32,7 @@ pub(crate) struct OperationExecutionState<'ctx, R: Runtime> {
     response_modifier_to_parent_count: Vec<usize>,
 }
 
-impl<'ctx, R: Runtime> Clone for OperationExecutionState<'ctx, R> {
+impl<R: Runtime> Clone for OperationExecutionState<'_, R> {
     fn clone(&self) -> Self {
         Self {
             ctx: self.ctx,

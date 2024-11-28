@@ -7,7 +7,7 @@ use crate::FieldFlags;
 
 use super::{builder::OperationGraphBuilder, Edge, Node, Operation};
 
-impl<'ctx, Op: Operation> OperationGraphBuilder<'ctx, Op> {
+impl<Op: Operation> OperationGraphBuilder<'_, Op> {
     pub(super) fn prune_resolvers_not_leading_any_leafs(&mut self) {
         let mut visited = fixedbitset::FixedBitSet::with_capacity(self.graph.node_count());
 

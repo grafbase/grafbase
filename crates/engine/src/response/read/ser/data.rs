@@ -14,7 +14,7 @@ pub(super) struct SerializableResponseData<'a> {
     pub ctx: Context<'a>,
 }
 
-impl<'a> serde::Serialize for SerializableResponseData<'a> {
+impl serde::Serialize for SerializableResponseData<'_> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,
@@ -32,7 +32,7 @@ struct SerializableResponseObject<'a> {
     object: &'a ResponseObject,
 }
 
-impl<'a> serde::Serialize for SerializableResponseObject<'a> {
+impl serde::Serialize for SerializableResponseObject<'_> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,
@@ -75,7 +75,7 @@ struct SerializableResponseList<'a> {
     value: &'a [ResponseValue],
 }
 
-impl<'a> serde::Serialize for SerializableResponseList<'a> {
+impl serde::Serialize for SerializableResponseList<'_> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,

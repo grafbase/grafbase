@@ -18,7 +18,7 @@ pub(super) struct NullableSeed<'ctx, 'parent, Seed> {
     pub seed: Seed,
 }
 
-impl<'de, 'ctx, 'parent, Seed> DeserializeSeed<'de> for NullableSeed<'ctx, 'parent, Seed>
+impl<'de, Seed> DeserializeSeed<'de> for NullableSeed<'_, '_, Seed>
 where
     Seed: DeserializeSeed<'de, Value = ResponseValue>,
 {
@@ -32,7 +32,7 @@ where
     }
 }
 
-impl<'de, 'ctx, 'parent, Seed> Visitor<'de> for NullableSeed<'ctx, 'parent, Seed>
+impl<'de, Seed> Visitor<'de> for NullableSeed<'_, '_, Seed>
 where
     Seed: DeserializeSeed<'de, Value = ResponseValue>,
 {

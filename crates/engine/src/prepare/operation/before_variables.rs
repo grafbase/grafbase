@@ -7,7 +7,7 @@ use crate::{
     Runtime,
 };
 
-impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
+impl<R: Runtime> PrepareContext<'_, R> {
     pub(super) fn build_cached_operation(
         &mut self,
         request: &Request,

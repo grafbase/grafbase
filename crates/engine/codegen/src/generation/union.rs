@@ -70,7 +70,7 @@ pub struct VariantContext<'a> {
     value: Option<&'a Definition>,
 }
 
-impl<'a> VariantContext<'a> {
+impl VariantContext<'_> {
     pub fn value_type(&self) -> Option<TokenStream> {
         let value = self.value?;
         Some(match value {
@@ -94,7 +94,7 @@ impl<'a> VariantContext<'a> {
     }
 }
 
-impl<'a> std::ops::Deref for VariantContext<'a> {
+impl std::ops::Deref for VariantContext<'_> {
     type Target = Variant;
     fn deref(&self) -> &Self::Target {
         self.variant

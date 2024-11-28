@@ -10,7 +10,7 @@ pub(crate) struct SubgraphGraphqlRequest<'a, Input> {
     pub variables: SubgraphVariables<'a, Input>,
 }
 
-impl<'a, Input> serde::Serialize for SubgraphGraphqlRequest<'a, Input>
+impl<Input> serde::Serialize for SubgraphGraphqlRequest<'_, Input>
 where
     Input: serde::Serialize,
 {
@@ -31,7 +31,7 @@ pub(crate) struct SubgraphVariables<'a, ExtraVariable> {
     pub extra_variables: Vec<(&'a str, ExtraVariable)>,
 }
 
-impl<'a, Input> serde::Serialize for SubgraphVariables<'a, Input>
+impl<Input> serde::Serialize for SubgraphVariables<'_, Input>
 where
     Input: serde::Serialize,
 {

@@ -68,7 +68,7 @@ pub(crate) struct ConcreteShapeFieldsSeed<'ctx, 'seed> {
     typename_response_edges: &'ctx [PositionedResponseKey],
 }
 
-impl<'de, 'ctx, 'parent> DeserializeSeed<'de> for ConcreteShapeSeed<'ctx, 'parent> {
+impl<'de> DeserializeSeed<'de> for ConcreteShapeSeed<'_, '_> {
     type Value = ResponseValue;
 
     fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
@@ -79,7 +79,7 @@ impl<'de, 'ctx, 'parent> DeserializeSeed<'de> for ConcreteShapeSeed<'ctx, 'paren
     }
 }
 
-impl<'de, 'ctx, 'parent> Visitor<'de> for ConcreteShapeSeed<'ctx, 'parent> {
+impl<'de> Visitor<'de> for ConcreteShapeSeed<'_, '_> {
     type Value = ResponseValue;
 
     fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -109,7 +109,7 @@ impl<'de, 'ctx, 'parent> Visitor<'de> for ConcreteShapeSeed<'ctx, 'parent> {
     }
 }
 
-impl<'de, 'ctx, 'seed> DeserializeSeed<'de> for ConcreteShapeFieldsSeed<'ctx, 'seed> {
+impl<'de> DeserializeSeed<'de> for ConcreteShapeFieldsSeed<'_, '_> {
     type Value = (Option<ObjectDefinitionId>, Vec<ResponseObjectField>);
 
     fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
@@ -120,7 +120,7 @@ impl<'de, 'ctx, 'seed> DeserializeSeed<'de> for ConcreteShapeFieldsSeed<'ctx, 's
     }
 }
 
-impl<'de, 'ctx, 'seed> Visitor<'de> for ConcreteShapeFieldsSeed<'ctx, 'seed> {
+impl<'de> Visitor<'de> for ConcreteShapeFieldsSeed<'_, '_> {
     type Value = (Option<ObjectDefinitionId>, Vec<ResponseObjectField>);
 
     fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -183,7 +183,7 @@ impl<'de, 'ctx, 'seed> Visitor<'de> for ConcreteShapeFieldsSeed<'ctx, 'seed> {
     }
 }
 
-impl<'de, 'ctx, 'seed> ConcreteShapeFieldsSeed<'ctx, 'seed> {
+impl<'de> ConcreteShapeFieldsSeed<'_, '_> {
     fn post_process<A: MapAccess<'de>>(&self, response_fields: &mut Vec<ResponseObjectField>) -> Result<(), A::Error> {
         if self.has_error {
             let mut required_field_error = false;

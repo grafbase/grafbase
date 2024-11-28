@@ -80,7 +80,7 @@ struct EntitiesSeed<'resp, 'parent, R: Runtime> {
     cache_entries: Option<std::slice::Iter<'parent, CacheEntry>>,
 }
 
-impl<'resp, 'de, 'parent, R: Runtime> DeserializeSeed<'de> for EntitiesSeed<'resp, 'parent, R>
+impl<'resp, 'de, R: Runtime> DeserializeSeed<'de> for EntitiesSeed<'resp, '_, R>
 where
     'resp: 'de,
 {
@@ -94,7 +94,7 @@ where
     }
 }
 
-impl<'resp, 'de, 'parent, R: Runtime> Visitor<'de> for EntitiesSeed<'resp, 'parent, R>
+impl<'resp, 'de, R: Runtime> Visitor<'de> for EntitiesSeed<'resp, '_, R>
 where
     'resp: 'de,
 {

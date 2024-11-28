@@ -4,7 +4,7 @@ use crate::SchemaInputValueRecord;
 
 use super::SchemaInputValue;
 
-impl<'a> serde::Serialize for SchemaInputValue<'a> {
+impl serde::Serialize for SchemaInputValue<'_> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,

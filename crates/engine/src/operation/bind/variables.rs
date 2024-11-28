@@ -80,7 +80,7 @@ pub fn bind_variables(
     Ok(variables)
 }
 
-impl<'schema, 'p> Binder<'schema, 'p> {
+impl Binder<'_, '_> {
     pub(super) fn bind_variable_definitions(
         &mut self,
         variables: Vec<Positioned<engine_parser::types::VariableDefinition>>,

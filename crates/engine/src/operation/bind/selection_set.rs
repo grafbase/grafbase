@@ -13,7 +13,7 @@ use crate::{
     response::SafeResponseKey,
 };
 
-impl<'schema, 'p> Binder<'schema, 'p> {
+impl<'p> Binder<'_, 'p> {
     pub(super) fn bind_merged_selection_sets(
         &mut self,
         ty: CompositeTypeId,
@@ -34,7 +34,7 @@ pub(super) struct SelectionSetBinder<'schema, 'parsed, 'binder> {
         BTreeMap<SafeResponseKey, BTreeMap<CompositeTypeId, TypenameField<'parsed>>>,
 }
 
-impl<'s, 'p, 'b> std::ops::Deref for SelectionSetBinder<'s, 'p, 'b> {
+impl<'s, 'p> std::ops::Deref for SelectionSetBinder<'s, 'p, '_> {
     type Target = Binder<'s, 'p>;
 
     fn deref(&self) -> &Self::Target {
@@ -42,7 +42,7 @@ impl<'s, 'p, 'b> std::ops::Deref for SelectionSetBinder<'s, 'p, 'b> {
     }
 }
 
-impl<'s, 'p, 'b> std::ops::DerefMut for SelectionSetBinder<'s, 'p, 'b> {
+impl std::ops::DerefMut for SelectionSetBinder<'_, '_, '_> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         self.binder
     }

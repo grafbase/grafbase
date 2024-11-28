@@ -217,7 +217,7 @@ impl SchemaInputValues {
     }
 }
 
-impl<'a> InputValueDefinition<'a> {
+impl InputValueDefinition<'_> {
     pub fn cost(&self) -> Option<i32> {
         self.directives().find_map(|directive| match directive {
             TypeSystemDirective::Cost(cost) => Some(cost.weight),

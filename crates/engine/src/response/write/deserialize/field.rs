@@ -15,7 +15,7 @@ pub(super) struct FieldSeed<'ctx, 'parent> {
     pub wrapping: Wrapping,
 }
 
-impl<'de, 'ctx, 'parent> DeserializeSeed<'de> for FieldSeed<'ctx, 'parent> {
+impl<'de> DeserializeSeed<'de> for FieldSeed<'_, '_> {
     type Value = ResponseValue;
     fn deserialize<D>(mut self, deserializer: D) -> Result<Self::Value, D::Error>
     where

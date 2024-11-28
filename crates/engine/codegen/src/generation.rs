@@ -32,7 +32,7 @@ struct Imports<'a> {
     walker_lib: HashSet<&'a str>,
 }
 
-impl<'a> Imports<'a> {
+impl Imports<'_> {
     fn extend(&mut self, other: Self) {
         self.generated.extend(other.generated);
         self.walker_lib.extend(other.walker_lib);

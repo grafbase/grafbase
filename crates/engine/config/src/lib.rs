@@ -183,7 +183,7 @@ where
 {
     struct FederatedSdlVisitor;
 
-    impl<'a> serde::de::Visitor<'a> for FederatedSdlVisitor {
+    impl serde::de::Visitor<'_> for FederatedSdlVisitor {
         type Value = FederatedGraph;
 
         fn visit_str<E: serde::de::Error>(self, v: &str) -> Result<Self::Value, E> {

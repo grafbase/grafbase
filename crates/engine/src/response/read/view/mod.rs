@@ -43,7 +43,7 @@ impl<'a> ResponseObjectsView<'a> {
     }
 }
 
-impl<'a> ResponseObjectsViewWithExtraFields<'a> {
+impl ResponseObjectsViewWithExtraFields<'_> {
     pub fn iter(&self) -> impl Iterator<Item = ResponseObjectViewWithExtraFields<'_>> + '_ {
         self.response_object_set
             .iter()

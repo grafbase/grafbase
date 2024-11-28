@@ -23,7 +23,7 @@ pub(crate) enum Node<'ctx, FieldId> {
     ProvidableField(ProvidableField<'ctx, FieldId>),
 }
 
-impl<'ctx, FieldId: Copy> Node<'ctx, FieldId> {
+impl<FieldId: Copy> Node<'_, FieldId> {
     /// Meant to be as readable as possible for large graphs with colors.
     pub(crate) fn label<'a, Op: Operation<FieldId = FieldId>>(&self, graph: &OperationGraph<'a, Op>) -> Cow<'a, str> {
         match self {
@@ -110,7 +110,7 @@ pub(crate) enum ProvidableField<'ctx, FieldId> {
     },
 }
 
-impl<'ctx, FieldId> ProvidableField<'ctx, FieldId> {
+impl<FieldId> ProvidableField<'_, FieldId> {
     pub(crate) fn subgraph_id(&self) -> SubgraphId {
         match self {
             ProvidableField::InSubgraph { subgraph_id, .. } => *subgraph_id,

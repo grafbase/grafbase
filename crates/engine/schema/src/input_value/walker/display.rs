@@ -6,7 +6,7 @@ use walker::Walk;
 use super::SchemaInputValue;
 
 /// Displays the input value with GraphQL syntax.
-impl<'a> Display for SchemaInputValue<'a> {
+impl Display for SchemaInputValue<'_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         match self.ref_ {
             SchemaInputValueRecord::Null => f.write_str("null"),

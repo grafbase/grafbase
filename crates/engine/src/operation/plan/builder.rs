@@ -58,7 +58,7 @@ struct Builder<'op, 'ctx, R: Runtime> {
     partition_to_plan: Vec<Option<PlanId>>,
 }
 
-impl<'op, 'ctx, R: Runtime> Builder<'op, 'ctx, R> {
+impl<R: Runtime> Builder<'_, '_, R> {
     fn build(mut self) -> PlanResult<OperationPlan> {
         for query_partition in self.solve_ctx.query_partitions() {
             self.generate_plan(query_partition)?;

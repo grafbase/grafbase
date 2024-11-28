@@ -4,7 +4,7 @@ use crate::operation::VariableInputValueRecord;
 
 use super::{VariableInputValue, VariableValue};
 
-impl<'a> serde::Serialize for VariableValue<'a> {
+impl serde::Serialize for VariableValue<'_> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,
@@ -17,7 +17,7 @@ impl<'a> serde::Serialize for VariableValue<'a> {
     }
 }
 
-impl<'a> serde::Serialize for VariableInputValue<'a> {
+impl serde::Serialize for VariableInputValue<'_> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,
