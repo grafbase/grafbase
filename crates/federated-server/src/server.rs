@@ -22,7 +22,6 @@ use engine_axum::{
     websocket::{WebsocketAccepter, WebsocketService},
 };
 use gateway_config::{Config, TlsConfig};
-
 use std::{net::SocketAddr, path::PathBuf};
 use tokio::signal;
 use tokio::sync::mpsc;

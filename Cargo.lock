@@ -3301,6 +3301,7 @@ dependencies = [
  "serde_json",
  "serde_with",
  "sha2",
+ "signal-hook-mio",
  "signature",
  "similar",
  "similar-asserts",
