@@ -20,7 +20,6 @@ use tokio::{
     sync::broadcast::{channel, Receiver, Sender},
     task::spawn_blocking,
 };
-use url::Url;
 
 #[derive(Clone, Debug)]
 pub struct FullGraphRef {
@@ -68,7 +67,9 @@ pub async fn start(
 
     let output_handler_ready_receiver = ready_sender.subscribe();
 
-    spawn_blocking(|| output_handler(output_handler_ready_receiver));
+    spawn_blocking(|| {
+        let _ = output_handler(output_handler_ready_receiver);
+    });
 
     let dev_configuration = get_and_merge_configurations(gateway_config_path, graph_overrides_path).await?;
 
@@ -149,28 +150,22 @@ pub async fn start(
     Ok(())
 }
 
-// temporary output handler for internal testing until we move output to the CLI and use a proper terminal crate.
-// none of us uses Windows, right?
-fn output_handler(mut receiver: Receiver<String>) {
-    // gray
-    println!("\x1b[90mWarning: This command is in beta, expect missing features, bugs or breaking changes\x1b[0m\n");
-
-    // yellow and bold
-    println!("🕒 \x1b[1;33mFetching\x1b[0m your subgraphs...\n");
-
-    let Ok(Ok(url)) = receiver.blocking_recv().map(|url| Url::parse(&url)) else {
-        return;
+fn output_handler(mut receiver: Receiver<String>) -> Result<(), Box<dyn std::error::Error>> {
+    use crossterm::{
+        cursor::MoveUp,
+        style::Stylize,
+        terminal::{Clear, ClearType},
+        QueueableCommand,
     };
+    use std::io::stdout;
 
-    // move the cursor up two lines and clear the line.
-    // \x1b[{n}A moves the cursor up by {n} lines, \x1b[2K clears the line
-    // not flushing here since we want it to update once rather than twice (once here and once for the next line if we flush)
-    // this has the overall effect of replacing the "fetching" output with the "listening" output
-    print!("\x1b[2A\x1b[2K");
+    println!("🕒 {} your subgraphs...\n", "Fetching".yellow().bold());
 
-    let mut pathfinder_url = url.clone();
-    pathfinder_url.set_path("");
+    let url = receiver.blocking_recv()?;
 
-    // green and bold, blue
-    println!("📡 \x1b[1;32mListening\x1b[0m on \x1b[34m{url}\x1b[0m");
+    stdout().queue(MoveUp(2))?.queue(Clear(ClearType::CurrentLine))?;
+
+    println!("📡 {} on {}\n", "Listening".green().bold(), url.blue().bold());
+
+    Ok(())
 }

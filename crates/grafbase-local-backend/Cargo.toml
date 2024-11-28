@@ -36,7 +36,6 @@ tokio-stream = "0.1.16"
 notify-debouncer-full = "0.4.0"
 tracing.workspace = true
 tokio-util = "0.7.12"
-url.workspace = true
 
 common = { package = "grafbase-local-common", path = "../grafbase-local-common", version = "0.80.4" }
 grafbase-workspace-hack.workspace = true
@@ -46,6 +45,7 @@ federated-server.workspace = true
 graphql-composition.workspace = true
 federated-graph.workspace = true
 serde-dynamic-string.workspace = true
+crossterm = "0.28.1"
 
 
 [build-dependencies]
