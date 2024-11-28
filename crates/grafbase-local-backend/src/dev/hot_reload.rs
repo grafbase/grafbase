@@ -53,7 +53,7 @@ impl SubgraphWatcher {
 
         self.cancellation_token = Some(CancellationToken::new());
 
-        self.introspection_poller(
+        self.spawn_introspection_poller(
             sender.clone(),
             subgraph_cache.clone(),
             overridden_subgraphs.clone(),
@@ -62,7 +62,7 @@ impl SubgraphWatcher {
         )
         .await?;
 
-        self.schema_file_watcher(
+        self.spawn_schema_file_watcher(
             sender,
             subgraph_cache,
             overridden_subgraphs,
@@ -72,7 +72,7 @@ impl SubgraphWatcher {
         .await
     }
 
-    async fn introspection_poller(
+    async fn spawn_introspection_poller(
         &mut self,
         sender: mpsc::Sender<(String, Arc<Config>)>,
         subgraph_cache: Arc<SubgraphCache>,
@@ -180,7 +180,7 @@ impl SubgraphWatcher {
     }
 
     #[allow(clippy::too_many_arguments)]
-    async fn schema_file_watcher(
+    async fn spawn_schema_file_watcher(
         &mut self,
         sender: mpsc::Sender<(String, Arc<Config>)>,
         subgraph_cache: Arc<SubgraphCache>,
