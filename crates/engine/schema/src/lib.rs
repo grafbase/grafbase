@@ -134,6 +134,7 @@ pub struct Settings {
     pub complexity_control: config::ComplexityControl,
     pub response_extension: ResponseExtensionConfig,
     pub apq_enabled: bool,
+    pub executable_document_limit_bytes: usize,
 }
 
 #[derive(serde::Serialize, serde::Deserialize, id_derives::IndexedFields)]

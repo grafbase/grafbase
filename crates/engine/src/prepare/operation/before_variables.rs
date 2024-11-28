@@ -13,8 +13,7 @@ impl<R: Runtime> PrepareContext<'_, R> {
         request: &Request,
         document: &str,
     ) -> PrepareResult<CachedOperation> {
-        // TODO: Make the number here configurable probably?
-        if document.len() >= 1024 * 1024 {
+        if document.len() >= self.schema().settings.executable_document_limit_bytes {
             return Err(PrepareError::QueryTooBig);
         }
 

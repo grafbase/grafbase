@@ -52,6 +52,11 @@ pub fn build_with_toml_config(config: &gateway_config::Config, graph: FederatedG
         apq: engine_config::AutomaticPersistedQueries {
             enabled: config.apq.enabled,
         },
+        executable_document_limit_bytes: config
+            .executable_document_limit
+            .bytes()
+            .try_into()
+            .expect("executable document limit should not be negative"),
     }
 }
 

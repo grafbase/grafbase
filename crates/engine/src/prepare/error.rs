@@ -32,7 +32,7 @@ pub(super) enum PrepareError {
     ComplexityLimitReached,
     #[error("Expected exactly one slicing argument on {0}")]
     ExpectedOneSlicingArgument(String),
-    #[error("Query is too big")]
+    #[error("Executable document exceeded the maximum configured size")]
     QueryTooBig,
 }
 

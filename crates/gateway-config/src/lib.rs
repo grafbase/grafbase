@@ -47,6 +47,9 @@ pub struct Config {
     /// Maximum size of the request body in bytes
     #[serde(deserialize_with = "size_ext::deserialize_positive_size")]
     pub request_body_limit: Size,
+    /// Maximum size of the executable document in bytes
+    #[serde(deserialize_with = "size_ext::deserialize_positive_size")]
+    pub executable_document_limit: Size,
     /// Cross-site request forgery settings
     pub csrf: CsrfConfig,
     /// Cross-origin resource sharing settings
@@ -86,6 +89,7 @@ impl Default for Config {
             network: Default::default(),
             gateway: Default::default(),
             request_body_limit: Size::from_mebibytes(2),
+            executable_document_limit: Size::from_kibibytes(32),
             csrf: Default::default(),
             cors: Default::default(),
             tls: Default::default(),
