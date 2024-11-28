@@ -38,7 +38,7 @@ impl SubgraphWatcher {
     }
 
     #[allow(clippy::too_many_arguments)]
-    async fn start(
+    fn start(
         &mut self,
         sender: mpsc::Sender<(String, Arc<Config>)>,
         subgraph_cache: Arc<SubgraphCache>,
@@ -59,8 +59,7 @@ impl SubgraphWatcher {
             overridden_subgraphs.clone(),
             merged_configuration.clone(),
             graph_overrides_path,
-        )
-        .await?;
+        )?;
 
         self.spawn_schema_file_watcher(
             sender,
@@ -69,10 +68,9 @@ impl SubgraphWatcher {
             merged_configuration,
             graph_overrides_path,
         )
-        .await
     }
 
-    async fn spawn_introspection_poller(
+    fn spawn_introspection_poller(
         &mut self,
         sender: mpsc::Sender<(String, Arc<Config>)>,
         subgraph_cache: Arc<SubgraphCache>,
@@ -180,7 +178,7 @@ impl SubgraphWatcher {
     }
 
     #[allow(clippy::too_many_arguments)]
-    async fn spawn_schema_file_watcher(
+    fn spawn_schema_file_watcher(
         &mut self,
         sender: mpsc::Sender<(String, Arc<Config>)>,
         subgraph_cache: Arc<SubgraphCache>,
@@ -324,7 +322,6 @@ pub async fn hot_reload(
             merged_configuration,
             graph_overrides_path,
         )
-        .await
         .inspect_err(|error| tracing::error!("{}", error.to_string().trim()));
 
     tokio::spawn(async move {
@@ -369,7 +366,6 @@ pub async fn hot_reload(
                     merged_configuration,
                     graph_overrides_path,
                 )
-                .await
                 .inspect_err(|error| tracing::error!("{}", error.to_string().trim()));
         }
 
