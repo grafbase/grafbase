@@ -46,7 +46,10 @@ impl<'a> CostDirective<'a> {
 }
 
 impl<'a> Walk<&'a Schema> for CostDirectiveId {
-    type Walker<'w> = CostDirective<'w> where 'a: 'w ;
+    type Walker<'w>
+        = CostDirective<'w>
+    where
+        'a: 'w;
     fn walk<'w>(self, schema: impl Into<&'a Schema>) -> Self::Walker<'w>
     where
         Self: 'w,
@@ -114,7 +117,10 @@ impl<'a> ListSizeDirective<'a> {
 }
 
 impl<'a> Walk<&'a Schema> for ListSizeDirectiveId {
-    type Walker<'w> = ListSizeDirective<'w> where 'a: 'w ;
+    type Walker<'w>
+        = ListSizeDirective<'w>
+    where
+        'a: 'w;
     fn walk<'w>(self, schema: impl Into<&'a Schema>) -> Self::Walker<'w>
     where
         Self: 'w,

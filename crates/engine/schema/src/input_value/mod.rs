@@ -34,7 +34,10 @@ pub struct SchemaInputValues {
 pub struct SchemaInputValueId(NonZero<u32>);
 
 impl<'s> Walk<&'s Schema> for SchemaInputValueId {
-    type Walker<'w> = SchemaInputValue<'w> where 's: 'w;
+    type Walker<'w>
+        = SchemaInputValue<'w>
+    where
+        's: 'w;
 
     fn walk<'w>(self, schema: impl Into<&'s Schema>) -> Self::Walker<'w>
     where
@@ -53,7 +56,10 @@ impl<'s> Walk<&'s Schema> for SchemaInputValueId {
 pub struct SchemaInputObjectFieldValueId(NonZero<u32>);
 
 impl<'s> Walk<&'s Schema> for SchemaInputObjectFieldValueId {
-    type Walker<'w> = (InputValueDefinition<'w>, SchemaInputValue<'w>) where 's: 'w;
+    type Walker<'w>
+        = (InputValueDefinition<'w>, SchemaInputValue<'w>)
+    where
+        's: 'w;
 
     fn walk<'w>(self, schema: impl Into<&'s Schema>) -> Self::Walker<'w>
     where
@@ -70,7 +76,10 @@ impl<'s> Walk<&'s Schema> for SchemaInputObjectFieldValueId {
 pub struct SchemaInputKeyValueId(NonZero<u32>);
 
 impl<'s> Walk<&'s Schema> for SchemaInputKeyValueId {
-    type Walker<'w> = (&'w str, SchemaInputValue<'w>) where 's: 'w;
+    type Walker<'w>
+        = (&'w str, SchemaInputValue<'w>)
+    where
+        's: 'w;
 
     fn walk<'w>(self, schema: impl Into<&'s Schema>) -> Self::Walker<'w>
     where
@@ -108,7 +117,11 @@ pub enum SchemaInputValueRecord {
 }
 
 impl<'s> Walk<&'s Schema> for &SchemaInputValueRecord {
-    type Walker<'w> = SchemaInputValue<'w> where Self: 'w, 's: 'w;
+    type Walker<'w>
+        = SchemaInputValue<'w>
+    where
+        Self: 'w,
+        's: 'w;
     fn walk<'w>(self, schema: impl Into<&'s Schema>) -> Self::Walker<'w>
     where
         Self: 'w,

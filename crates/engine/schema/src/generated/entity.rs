@@ -90,7 +90,10 @@ impl<'a> From<ObjectDefinition<'a>> for EntityDefinition<'a> {
 }
 
 impl<'a> Walk<&'a Schema> for EntityDefinitionId {
-    type Walker<'w> = EntityDefinition<'w> where 'a: 'w ;
+    type Walker<'w>
+        = EntityDefinition<'w>
+    where
+        'a: 'w;
     fn walk<'w>(self, schema: impl Into<&'a Schema>) -> Self::Walker<'w>
     where
         Self: 'w,

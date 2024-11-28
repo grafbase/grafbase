@@ -11,7 +11,10 @@ use crate::Schema;
 pub struct UrlId(NonZero<u32>);
 
 impl<'a> Walk<&'a Schema> for UrlId {
-    type Walker<'w> = &'w Url where 'a: 'w;
+    type Walker<'w>
+        = &'w Url
+    where
+        'a: 'w;
     fn walk<'w>(self, schema: impl Into<&'a Schema>) -> Self::Walker<'w>
     where
         Self: 'w,
@@ -26,7 +29,10 @@ impl<'a> Walk<&'a Schema> for UrlId {
 pub struct StringId(NonZero<u32>);
 
 impl<'a> Walk<&'a Schema> for StringId {
-    type Walker<'w> = &'w str where 'a: 'w;
+    type Walker<'w>
+        = &'w str
+    where
+        'a: 'w;
 
     fn walk<'w>(self, schema: impl Into<&'a Schema>) -> Self::Walker<'w>
     where
@@ -42,7 +48,10 @@ impl<'a> Walk<&'a Schema> for StringId {
 pub struct RegexId(NonZero<u32>);
 
 impl<'a> Walk<&'a Schema> for RegexId {
-    type Walker<'w> = &'w Regex where 'a: 'w;
+    type Walker<'w>
+        = &'w Regex
+    where
+        'a: 'w;
 
     fn walk<'w>(self, schema: impl Into<&'a Schema>) -> Self::Walker<'w>
     where

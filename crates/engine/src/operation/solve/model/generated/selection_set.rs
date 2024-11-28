@@ -60,7 +60,10 @@ impl<'a> SelectionSet<'a> {
 
 #[allow(unused)]
 impl<'a> Walk<SolvedOperationContext<'a>> for SelectionSetRecord {
-    type Walker<'w> = SelectionSet<'w> where 'a: 'w ;
+    type Walker<'w>
+        = SelectionSet<'w>
+    where
+        'a: 'w;
     fn walk<'w>(self, ctx: impl Into<SolvedOperationContext<'a>>) -> Self::Walker<'w>
     where
         Self: 'w,

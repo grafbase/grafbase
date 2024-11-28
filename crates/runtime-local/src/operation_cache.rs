@@ -27,7 +27,8 @@ impl Default for InMemoryOperationCacheFactory {
 }
 
 impl OperationCacheFactory for InMemoryOperationCacheFactory {
-    type Cache<V> = InMemoryOperationCache<V>
+    type Cache<V>
+        = InMemoryOperationCache<V>
     where
         V: Clone + Send + Sync + 'static + serde::Serialize + serde::de::DeserializeOwned;
 

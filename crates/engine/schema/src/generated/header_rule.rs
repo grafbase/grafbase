@@ -83,7 +83,10 @@ impl std::fmt::Debug for NameOrPattern<'_> {
 }
 
 impl<'a> Walk<&'a Schema> for NameOrPatternId {
-    type Walker<'w> = NameOrPattern<'w> where 'a: 'w ;
+    type Walker<'w>
+        = NameOrPattern<'w>
+    where
+        'a: 'w;
     fn walk<'w>(self, schema: impl Into<&'a Schema>) -> Self::Walker<'w>
     where
         Self: 'w,
@@ -276,7 +279,10 @@ impl<'a> HeaderRule<'a> {
 }
 
 impl<'a> Walk<&'a Schema> for HeaderRuleId {
-    type Walker<'w> = HeaderRule<'w> where 'a: 'w ;
+    type Walker<'w>
+        = HeaderRule<'w>
+    where
+        'a: 'w;
     fn walk<'w>(self, schema: impl Into<&'a Schema>) -> Self::Walker<'w>
     where
         Self: 'w,

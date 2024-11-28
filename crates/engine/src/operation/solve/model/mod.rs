@@ -97,7 +97,10 @@ pub(crate) struct SolvedOperation {
 pub struct FieldRefId(u32);
 
 impl<'a> Walk<SolvedOperationContext<'a>> for FieldRefId {
-    type Walker<'w> = Field<'w> where 'a: 'w;
+    type Walker<'w>
+        = Field<'w>
+    where
+        'a: 'w;
 
     fn walk<'w>(self, ctx: impl Into<SolvedOperationContext<'a>>) -> Field<'w>
     where
@@ -112,7 +115,10 @@ impl<'a> Walk<SolvedOperationContext<'a>> for FieldRefId {
 pub struct DataFieldRefId(u32);
 
 impl<'a> Walk<SolvedOperationContext<'a>> for DataFieldRefId {
-    type Walker<'w> = DataField<'w> where 'a: 'w;
+    type Walker<'w>
+        = DataField<'w>
+    where
+        'a: 'w;
 
     fn walk<'w>(self, ctx: impl Into<SolvedOperationContext<'a>>) -> DataField<'w>
     where

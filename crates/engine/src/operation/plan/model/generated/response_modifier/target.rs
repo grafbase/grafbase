@@ -48,7 +48,11 @@ impl<'a> ResponseModifierTarget<'a> {
 }
 
 impl<'a> Walk<OperationPlanContext<'a>> for &ResponseModifierTargetRecord {
-    type Walker<'w> = ResponseModifierTarget<'w> where Self : 'w , 'a: 'w ;
+    type Walker<'w>
+        = ResponseModifierTarget<'w>
+    where
+        Self: 'w,
+        'a: 'w;
     fn walk<'w>(self, ctx: impl Into<OperationPlanContext<'a>>) -> Self::Walker<'w>
     where
         Self: 'w,

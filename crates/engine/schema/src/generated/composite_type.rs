@@ -121,7 +121,10 @@ impl<'a> From<UnionDefinition<'a>> for CompositeType<'a> {
 }
 
 impl<'a> Walk<&'a Schema> for CompositeTypeId {
-    type Walker<'w> = CompositeType<'w> where 'a: 'w ;
+    type Walker<'w>
+        = CompositeType<'w>
+    where
+        'a: 'w;
     fn walk<'w>(self, schema: impl Into<&'a Schema>) -> Self::Walker<'w>
     where
         Self: 'w,

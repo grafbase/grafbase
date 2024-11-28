@@ -33,7 +33,10 @@ impl std::ops::Deref for ConcreteShape<'_> {
 }
 
 impl<'ctx> Walk<OperationPlanContext<'ctx>> for ConcreteShapeId {
-    type Walker<'w> = ConcreteShape<'w> where 'ctx: 'w;
+    type Walker<'w>
+        = ConcreteShape<'w>
+    where
+        'ctx: 'w;
 
     fn walk<'w>(self, ctx: impl Into<OperationPlanContext<'ctx>>) -> Self::Walker<'w>
     where

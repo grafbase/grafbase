@@ -11,7 +11,11 @@ pub struct FieldSetItemRecord {
 }
 
 impl<'a> Walk<&'a Schema> for &FieldSetItemRecord {
-    type Walker<'w> = FieldSetItem<'w> where Self: 'w, 'a: 'w;
+    type Walker<'w>
+        = FieldSetItem<'w>
+    where
+        Self: 'w,
+        'a: 'w;
     fn walk<'w>(self, schema: impl Into<&'a Schema>) -> Self::Walker<'w>
     where
         Self: 'w,

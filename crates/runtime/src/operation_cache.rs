@@ -36,9 +36,10 @@ where
 // -- No-op implementation -- //
 // ---------------------------//
 impl OperationCacheFactory for () {
-    type Cache<V> = ()
-where
-    V: Clone + Send + Sync + 'static + serde::Serialize + serde::de::DeserializeOwned;
+    type Cache<V>
+        = ()
+    where
+        V: Clone + Send + Sync + 'static + serde::Serialize + serde::de::DeserializeOwned;
 
     async fn create<V>(&self) -> Self::Cache<V>
     where

@@ -72,7 +72,10 @@ impl<'a> From<GraphqlEndpoint<'a>> for Subgraph<'a> {
 }
 
 impl<'a> Walk<&'a Schema> for SubgraphId {
-    type Walker<'w> = Subgraph<'w> where 'a: 'w ;
+    type Walker<'w>
+        = Subgraph<'w>
+    where
+        'a: 'w;
     fn walk<'w>(self, schema: impl Into<&'a Schema>) -> Self::Walker<'w>
     where
         Self: 'w,

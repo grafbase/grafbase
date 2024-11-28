@@ -65,7 +65,10 @@ impl<'a> EnumDefinition<'a> {
 }
 
 impl<'a> Walk<&'a Schema> for EnumDefinitionId {
-    type Walker<'w> = EnumDefinition<'w> where 'a: 'w ;
+    type Walker<'w>
+        = EnumDefinition<'w>
+    where
+        'a: 'w;
     fn walk<'w>(self, schema: impl Into<&'a Schema>) -> Self::Walker<'w>
     where
         Self: 'w,

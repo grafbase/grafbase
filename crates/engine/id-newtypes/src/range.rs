@@ -147,8 +147,10 @@ where
     usize: From<Id>,
     Ctx: Copy,
 {
-    type Walker<'a> = WalkIterator<'a, IdRangeIterator<Id>, Ctx>
-    where Ctx: 'a;
+    type Walker<'a>
+        = WalkIterator<'a, IdRangeIterator<Id>, Ctx>
+    where
+        Ctx: 'a;
 
     fn walk<'a>(self, ctx: impl Into<Ctx>) -> Self::Walker<'a>
     where

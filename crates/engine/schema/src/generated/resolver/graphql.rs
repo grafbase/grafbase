@@ -46,7 +46,10 @@ impl<'a> GraphqlRootFieldResolverDefinition<'a> {
 }
 
 impl<'a> Walk<&'a Schema> for GraphqlRootFieldResolverDefinitionRecord {
-    type Walker<'w> = GraphqlRootFieldResolverDefinition<'w> where 'a: 'w ;
+    type Walker<'w>
+        = GraphqlRootFieldResolverDefinition<'w>
+    where
+        'a: 'w;
     fn walk<'w>(self, schema: impl Into<&'a Schema>) -> Self::Walker<'w>
     where
         Self: 'w,
@@ -108,7 +111,10 @@ impl<'a> GraphqlFederationEntityResolverDefinition<'a> {
 }
 
 impl<'a> Walk<&'a Schema> for GraphqlFederationEntityResolverDefinitionRecord {
-    type Walker<'w> = GraphqlFederationEntityResolverDefinition<'w> where 'a: 'w ;
+    type Walker<'w>
+        = GraphqlFederationEntityResolverDefinition<'w>
+    where
+        'a: 'w;
     fn walk<'w>(self, schema: impl Into<&'a Schema>) -> Self::Walker<'w>
     where
         Self: 'w,

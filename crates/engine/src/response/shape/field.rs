@@ -24,7 +24,10 @@ pub(crate) struct FieldShapeRecord {
 pub(crate) struct FieldShapeId(NonZero<u32>);
 
 impl<'ctx> Walk<OperationPlanContext<'ctx>> for FieldShapeId {
-    type Walker<'w> = FieldShape<'w> where 'ctx: 'w;
+    type Walker<'w>
+        = FieldShape<'w>
+    where
+        'ctx: 'w;
 
     fn walk<'w>(self, ctx: impl Into<OperationPlanContext<'ctx>>) -> Self::Walker<'w>
     where

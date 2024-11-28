@@ -20,7 +20,10 @@ pub trait Walk<Ctx> {
 }
 
 impl<Ctx> Walk<Ctx> for () {
-    type Walker<'a> = () where Ctx: 'a;
+    type Walker<'a>
+        = ()
+    where
+        Ctx: 'a;
     fn walk<'a>(self, _: impl Into<Ctx>) -> Self::Walker<'a>
     where
         Self: 'a,
@@ -37,7 +40,8 @@ pub type Walker<'a, T, G> = <T as Walk<G>>::Walker<'a>;
 /// Convenient blanket implementation to write:
 /// `id.read(schema)` rather than `(*id).read(schema)`
 impl<Ctx, T: Copy + Walk<Ctx>> Walk<Ctx> for &T {
-    type Walker<'a> = Walker<'a, T, Ctx>
+    type Walker<'a>
+        = Walker<'a, T, Ctx>
     where
         Self: 'a,
         Ctx: 'a;
@@ -54,7 +58,8 @@ impl<Ctx, T: Copy + Walk<Ctx>> Walk<Ctx> for &T {
 // Hint: Go to the definition of T instead to find the Walker type.
 //       Walk implementations are always close to T.
 impl<Ctx, T: Walk<Ctx>> Walk<Ctx> for Option<T> {
-    type Walker<'a> = Option<Walker<'a, T, Ctx>>
+    type Walker<'a>
+        = Option<Walker<'a, T, Ctx>>
     where
         Self: 'a,
         Ctx: 'a;
@@ -75,7 +80,8 @@ where
     for<'a> &'a T: Walk<Ctx>,
     Ctx: Copy,
 {
-    type Walker<'a> = WalkIterator<'a, std::slice::Iter<'a, T>, Ctx>
+    type Walker<'a>
+        = WalkIterator<'a, std::slice::Iter<'a, T>, Ctx>
     where
         Self: 'a,
         Ctx: 'a;
