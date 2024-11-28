@@ -94,8 +94,6 @@ pub async fn start(
     )
     .await?;
 
-    let subgraph_cache = Box::leak(Box::new(subgraph_cache));
-
     let composition_result = graphql_composition::compose(&subgraphs);
 
     let federated_sdl = match composition_result.into_result() {

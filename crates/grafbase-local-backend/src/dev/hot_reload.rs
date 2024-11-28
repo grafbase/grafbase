@@ -41,7 +41,7 @@ impl SubgraphWatcher {
     async fn start(
         &mut self,
         sender: mpsc::Sender<(String, Arc<Config>)>,
-        subgraph_cache: &'static SubgraphCache,
+        subgraph_cache: Arc<SubgraphCache>,
         overridden_subgraphs: Arc<HashSet<String>>,
         merged_configuration: Arc<Config>,
         graph_overrides_path: Option<&'static PathBuf>,
@@ -55,7 +55,7 @@ impl SubgraphWatcher {
 
         self.introspection_poller(
             sender.clone(),
-            subgraph_cache,
+            subgraph_cache.clone(),
             overridden_subgraphs.clone(),
             merged_configuration.clone(),
             graph_overrides_path,
@@ -75,7 +75,7 @@ impl SubgraphWatcher {
     async fn introspection_poller(
         &mut self,
         sender: mpsc::Sender<(String, Arc<Config>)>,
-        subgraph_cache: &'static SubgraphCache,
+        subgraph_cache: Arc<SubgraphCache>,
         overridden_subgraphs: Arc<HashSet<String>>,
         merged_configuration: Arc<Config>,
         graph_overrides_path: Option<&'static PathBuf>,
@@ -161,7 +161,7 @@ impl SubgraphWatcher {
                     // (we'll need to prevent schema file and url reloads running at the same time to prevent stale data)
                     match reload_subgraphs(
                         sender.clone(),
-                        subgraph_cache,
+                        subgraph_cache.clone(),
                         overridden_subgraphs.clone(),
                         merged_configuration.clone(),
                         graph_overrides_path,
@@ -183,7 +183,7 @@ impl SubgraphWatcher {
     async fn schema_file_watcher(
         &mut self,
         sender: mpsc::Sender<(String, Arc<Config>)>,
-        subgraph_cache: &'static SubgraphCache,
+        subgraph_cache: Arc<SubgraphCache>,
         overridden_subgraphs: Arc<HashSet<String>>,
         merged_configuration: Arc<Config>,
         graph_overrides_path: Option<&'static PathBuf>,
@@ -207,6 +207,7 @@ impl SubgraphWatcher {
             if result.is_err() {
                 return;
             }
+            let subgraph_cache = subgraph_cache.clone();
             let overridden_subgraphs = overridden_subgraphs.clone();
             let merged_configuration = watcher_merged_configuration.clone();
             let sender = sender.clone();
@@ -286,7 +287,7 @@ fn watch_configuration_files(
 pub async fn hot_reload(
     sender: mpsc::Sender<(String, Arc<Config>)>,
     mut ready_receiver: Receiver<String>,
-    subgraph_cache: &'static SubgraphCache,
+    subgraph_cache: Arc<SubgraphCache>,
     gateway_config_path: Option<&'static PathBuf>,
     graph_overrides_path: Option<&'static PathBuf>,
     dev_configuration: DevConfiguration,
@@ -318,7 +319,7 @@ pub async fn hot_reload(
     let _ = subgraph_watcher
         .start(
             sender.clone(),
-            subgraph_cache,
+            subgraph_cache.clone(),
             overridden_subgraphs,
             merged_configuration,
             graph_overrides_path,
@@ -329,6 +330,7 @@ pub async fn hot_reload(
     tokio::spawn(async move {
         let mut stream = ReceiverStream::new(watcher_receiver);
         while stream.next().await.is_some() {
+            let subgraph_cache = subgraph_cache.clone();
             subgraph_watcher.stop();
 
             let dev_configuration = match get_and_merge_configurations(gateway_config_path, graph_overrides_path).await
@@ -345,7 +347,7 @@ pub async fn hot_reload(
 
             if let Err(error) = reload_subgraphs(
                 sender.clone(),
-                subgraph_cache,
+                subgraph_cache.clone(),
                 overridden_subgraphs.clone(),
                 merged_configuration.clone(),
                 graph_overrides_path,
@@ -377,7 +379,7 @@ pub async fn hot_reload(
 
 async fn reload_subgraphs(
     sender: mpsc::Sender<(String, Arc<Config>)>,
-    subgraph_cache: &'static SubgraphCache,
+    subgraph_cache: Arc<SubgraphCache>,
     overridden_subgraphs: Arc<HashSet<String>>,
     merged_configuration: Arc<Config>,
     graph_overrides_path: Option<&'static PathBuf>,
