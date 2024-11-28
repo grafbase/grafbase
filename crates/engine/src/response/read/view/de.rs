@@ -7,7 +7,7 @@ use serde::{
     forward_to_deserialize_any,
 };
 
-use crate::response::{value::NULL, ResponseListId, ResponseObjectId, ResponseValue};
+use crate::response::{value::NULL, ResponseValue};
 
 use super::{ResponseObjectView, ResponseObjectsView, ResponseValueView};
 
@@ -116,17 +116,8 @@ impl<'de> serde::Deserializer<'de> for ResponseValueView<'de> {
                 .as_ref()
                 .deserialize_any(visitor)
                 .map_err(|err| InputValueSerdeError::Message(err.to_string())),
-            &ResponseValue::List {
-                part_id,
-                offset,
-                length,
-                ..
-            } => {
-                let values = &self.ctx.response[ResponseListId {
-                    part_id,
-                    offset,
-                    length,
-                }];
+            &ResponseValue::List { id, .. } => {
+                let values = &self.ctx.response.data_parts[id];
 
                 SeqDeserializer::new(values.iter().map(|value| ResponseValueView {
                     ctx: self.ctx,
@@ -135,9 +126,9 @@ impl<'de> serde::Deserializer<'de> for ResponseValueView<'de> {
                 }))
                 .deserialize_any(visitor)
             }
-            &ResponseValue::Object { part_id, index, .. } => ResponseObjectView {
+            &ResponseValue::Object { id, .. } => ResponseObjectView {
                 ctx: self.ctx,
-                response_object: &self.ctx.response[ResponseObjectId { part_id, index }],
+                response_object: &self.ctx.response.data_parts[id],
                 selection_set: self.selection_set,
             }
             .deserialize_any(visitor),

@@ -3,8 +3,7 @@ use schema::{SchemaFieldId, StringId};
 use crate::operation::QueryPosition;
 
 use super::{
-    PositionedResponseKey, ResponseDataPartId, ResponseEdge, ResponseListId, ResponseObjectId, SafeResponseKey,
-    UnpackedResponseEdge,
+    PositionedResponseKey, ResponseEdge, ResponseListId, ResponseObjectId, SafeResponseKey, UnpackedResponseEdge,
 };
 
 // Threshold defined a bit arbitrarily
@@ -137,18 +136,12 @@ pub(crate) enum ResponseValue {
         value: Box<serde_json::Value>,
         nullable: bool,
     },
-    // Ideally we would use ResponseListId and ResponseObjectId, but those are already padded by
-    // Rust. So we miss the opportunity to include the nullable flag and the enum tag in that
-    // padding. And we really want ResponseValue to be as small as possible.
     List {
-        part_id: ResponseDataPartId,
-        offset: u32,
-        length: u32,
+        id: ResponseListId,
         nullable: bool,
     },
     Object {
-        part_id: ResponseDataPartId,
-        index: u32,
+        id: ResponseObjectId,
         nullable: bool,
     },
 }
@@ -231,21 +224,12 @@ impl From<Box<serde_json::Value>> for ResponseValue {
 
 impl From<ResponseListId> for ResponseValue {
     fn from(id: ResponseListId) -> Self {
-        Self::List {
-            part_id: id.part_id,
-            offset: id.offset,
-            length: id.length,
-            nullable: false,
-        }
+        Self::List { id, nullable: false }
     }
 }
 
 impl From<ResponseObjectId> for ResponseValue {
     fn from(id: ResponseObjectId) -> Self {
-        Self::Object {
-            part_id: id.part_id,
-            index: id.index,
-            nullable: false,
-        }
+        Self::Object { id, nullable: false }
     }
 }

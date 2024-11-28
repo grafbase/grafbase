@@ -1,10 +1,7 @@
 use schema::Schema;
 use serde::ser::{SerializeMap, SerializeSeq};
 
-use crate::response::{
-    value::ResponseObjectField, ResponseData, ResponseKeys, ResponseListId, ResponseObject, ResponseObjectId,
-    ResponseValue,
-};
+use crate::response::{value::ResponseObjectField, ResponseData, ResponseKeys, ResponseObject, ResponseValue};
 
 #[derive(Clone, Copy)]
 pub(super) struct Context<'a> {
@@ -24,7 +21,7 @@ impl<'a> serde::Serialize for SerializableResponseData<'a> {
     {
         SerializableResponseObject {
             ctx: self.ctx,
-            object: &self.ctx.data[self.ctx.data.root],
+            object: self.ctx.data.root_object(),
         }
         .serialize(serializer)
     }
@@ -58,22 +55,13 @@ impl<'a> serde::Serialize for SerializableResponseObject<'a> {
                 ResponseValue::String { value, .. } => map.serialize_value(&value)?,
                 ResponseValue::StringId { id, .. } => map.serialize_value(&self.ctx.schema[*id])?,
                 ResponseValue::BigInt { value, .. } => map.serialize_value(value)?,
-                &ResponseValue::List {
-                    part_id,
-                    offset,
-                    length,
-                    ..
-                } => map.serialize_value(&SerializableResponseList {
+                &ResponseValue::List { id, .. } => map.serialize_value(&SerializableResponseList {
                     ctx: self.ctx,
-                    value: &self.ctx.data[ResponseListId {
-                        part_id,
-                        offset,
-                        length,
-                    }],
+                    value: &self.ctx.data[id],
                 })?,
-                &ResponseValue::Object { part_id, index, .. } => map.serialize_value(&SerializableResponseObject {
+                &ResponseValue::Object { id, .. } => map.serialize_value(&SerializableResponseObject {
                     ctx: self.ctx,
-                    object: &self.ctx.data[ResponseObjectId { part_id, index }],
+                    object: &self.ctx.data[id],
                 })?,
                 ResponseValue::Json { value, .. } => map.serialize_value(value)?,
             }
@@ -102,25 +90,14 @@ impl<'a> serde::Serialize for SerializableResponseList<'a> {
                 ResponseValue::String { value, .. } => seq.serialize_element(&value)?,
                 ResponseValue::StringId { id, .. } => seq.serialize_element(&self.ctx.schema[*id])?,
                 ResponseValue::BigInt { value, .. } => seq.serialize_element(value)?,
-                &ResponseValue::List {
-                    part_id,
-                    offset,
-                    length,
-                    ..
-                } => seq.serialize_element(&SerializableResponseList {
+                &ResponseValue::List { id, .. } => seq.serialize_element(&SerializableResponseList {
                     ctx: self.ctx,
-                    value: &self.ctx.data[ResponseListId {
-                        part_id,
-                        offset,
-                        length,
-                    }],
+                    value: &self.ctx.data[id],
                 })?,
-                &ResponseValue::Object { part_id, index, .. } => {
-                    seq.serialize_element(&SerializableResponseObject {
-                        ctx: self.ctx,
-                        object: &self.ctx.data[ResponseObjectId { part_id, index }],
-                    })?
-                }
+                &ResponseValue::Object { id, .. } => seq.serialize_element(&SerializableResponseObject {
+                    ctx: self.ctx,
+                    object: &self.ctx.data[id],
+                })?,
                 ResponseValue::Json { value, .. } => seq.serialize_element(value)?,
             }
         }

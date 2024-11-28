@@ -1,5 +1,4 @@
 mod deserialize;
-mod ids;
 
 use std::{
     cell::{Ref, RefCell, RefMut},
@@ -10,17 +9,16 @@ use std::{
 };
 
 use grafbase_telemetry::graphql::GraphqlResponseStatus;
-pub use ids::*;
 use itertools::Either;
 use schema::{ObjectDefinitionId, Schema};
 
 use self::deserialize::UpdateSeed;
 
 use super::{
-    value::ResponseObjectField, ConcreteShapeId, ErrorCode, ErrorCodeCounter, ExecutedResponse, GraphqlError,
+    ConcreteShapeId, DataPart, DataParts, ErrorCode, ErrorCodeCounter, ExecutedResponse, GraphqlError,
     InputResponseObjectSet, OutputResponseObjectSets, PositionedResponseKey, PreparedOperation, Response, ResponseData,
-    ResponseEdge, ResponseObject, ResponseObjectRef, ResponseObjectSet, ResponsePath, ResponseValue,
-    UnpackedResponseEdge,
+    ResponseEdge, ResponseListId, ResponseObject, ResponseObjectField, ResponseObjectId, ResponseObjectRef,
+    ResponseObjectSet, ResponsePath, ResponseValue, UnpackedResponseEdge,
 };
 use crate::{
     execution::{ExecutionContext, ExecutionError},
@@ -29,30 +27,10 @@ use crate::{
     Runtime,
 };
 
-pub(crate) struct ResponseDataPart {
-    id: ResponseDataPartId,
-    objects: Vec<ResponseObject>,
-    lists: Vec<ResponseValue>,
-}
-
-impl ResponseDataPart {
-    fn new(id: ResponseDataPartId) -> Self {
-        Self {
-            id,
-            objects: Vec::new(),
-            lists: Vec::new(),
-        }
-    }
-
-    fn is_empty(&self) -> bool {
-        self.objects.is_empty() && self.lists.is_empty()
-    }
-}
-
 pub(crate) struct ResponseBuilder {
     // will be None if an error propagated up to the root.
     pub(super) root: Option<(ResponseObjectId, ObjectDefinitionId)>,
-    parts: Vec<ResponseDataPart>,
+    pub(super) data_parts: DataParts,
     errors: Vec<GraphqlError>,
 }
 
@@ -62,18 +40,15 @@ pub(crate) struct ResponseBuilder {
 // least wait until we face actual problems. We're focused on OLTP workloads, so might never
 // happen.
 impl ResponseBuilder {
-    pub fn new(root_object_id: ObjectDefinitionId) -> Self {
-        let mut initial_part = ResponseDataPart {
-            id: ResponseDataPartId::from(0),
-            objects: Vec::new(),
-            lists: Vec::new(),
-        };
-
+    pub fn new(root_object_definition_id: ObjectDefinitionId) -> Self {
+        let mut parts = DataParts::default();
+        let mut initial_part = parts.new_part();
         let root_id = initial_part.push_object(ResponseObject::default());
+        parts.insert(initial_part);
 
         Self {
-            root: Some((root_id, root_object_id)),
-            parts: vec![initial_part],
+            root: Some((root_id, root_object_definition_id)),
+            data_parts: parts,
             errors: Vec::new(),
         }
     }
@@ -91,14 +66,7 @@ impl ResponseBuilder {
         shape_id: ConcreteShapeId,
         root_response_object_set: Arc<InputResponseObjectSet>,
     ) -> SubgraphResponse {
-        let id = ResponseDataPartId::from(self.parts.len());
-
-        // reserving the spot until the actual data is written. It's safe as no one can reference
-        // any data in this part before it's added. And a part can only be overwritten if it's
-        // empty.
-        self.parts.push(ResponseDataPart::new(id));
-
-        SubgraphResponse::new(ResponseDataPart::new(id), shape_id, root_response_object_set)
+        SubgraphResponse::new(self.data_parts.new_part(), shape_id, root_response_object_set)
     }
 
     pub fn root_response_object(&self) -> Option<ResponseObjectRef> {
@@ -119,7 +87,7 @@ impl ResponseBuilder {
         let error = GraphqlError::from(error);
         if let Some(fields) = default_fields {
             for obj_ref in root_response_object_set.iter() {
-                self[obj_ref.id].extend(fields.clone());
+                self.data_parts[obj_ref.id].extend(fields.clone());
                 // Definitely not ideal (for the client) to have a new error each time in the response.
                 // Not exactly sure how we should best deal with it.
                 self.errors
@@ -145,9 +113,7 @@ impl ResponseBuilder {
         any_field_key: PositionedResponseKey,
         default_fields: Option<Vec<ResponseObjectField>>,
     ) -> OutputResponseObjectSets {
-        let reservation = &mut self.parts[usize::from(subgraph_response.data.id)];
-        assert!(reservation.is_empty(), "Part already has data");
-        *reservation = subgraph_response.data;
+        self.data_parts.insert(subgraph_response.data);
 
         let mut invalidated_paths = Vec::<&[ResponseEdge]>::new();
         for (update, obj_ref) in subgraph_response
@@ -158,7 +124,7 @@ impl ResponseBuilder {
             match update {
                 UpdateSlot::Reserved => {
                     if let Some(fields) = &default_fields {
-                        self[obj_ref.id].extend(fields.clone());
+                        self.data_parts[obj_ref.id].extend(fields.clone());
                         // If there isn't any existing error within the response object path,
                         // we create one. Errors without any path are considering to be
                         // execution errors which are also enough.
@@ -244,7 +210,7 @@ impl ResponseBuilder {
             return;
         };
 
-        let mut existing_fields = std::mem::take(&mut self[object_id].fields_sorted_by_key);
+        let mut existing_fields = std::mem::take(&mut self.data_parts[object_id].fields_sorted_by_key);
         let n = existing_fields.len();
         let mut i = 0;
         loop {
@@ -282,59 +248,17 @@ impl ResponseBuilder {
         existing_fields.append(&mut Vec::from(new_fields_sorted_by_edge));
         existing_fields.sort_unstable_by(|a, b| a.key.cmp(&b.key));
 
-        self[object_id].fields_sorted_by_key = existing_fields;
+        self.data_parts[object_id].fields_sorted_by_key = existing_fields;
     }
 
     fn recursive_merge_value(&mut self, existing: ResponseValue, new: ResponseValue) {
         match (existing, new) {
-            (
-                ResponseValue::Object {
-                    part_id: existing_part_id,
-                    index: existing_index,
-                    ..
-                },
-                ResponseValue::Object {
-                    part_id: new_part_id,
-                    index: new_index,
-                    ..
-                },
-            ) => {
-                let existing_object_id = ResponseObjectId {
-                    part_id: existing_part_id,
-                    index: existing_index,
-                };
-                let new_object_id = ResponseObjectId {
-                    part_id: new_part_id,
-                    index: new_index,
-                };
-                let new_fields_sorted_by_edge = std::mem::take(&mut self[new_object_id].fields_sorted_by_key);
-                self.recursive_merge_object(existing_object_id, new_fields_sorted_by_edge);
+            (ResponseValue::Object { id: existing_id, .. }, ResponseValue::Object { id: new_id, .. }) => {
+                let new_fields_sorted_by_edge = std::mem::take(&mut self.data_parts[new_id].fields_sorted_by_key);
+                self.recursive_merge_object(existing_id, new_fields_sorted_by_edge);
             }
-            (
-                ResponseValue::List {
-                    part_id: existing_part_id,
-                    offset: existing_offset,
-                    length: existing_length,
-                    ..
-                },
-                ResponseValue::List {
-                    part_id: new_part_id,
-                    offset: new_offset,
-                    length: new_length,
-                    ..
-                },
-            ) => {
-                let existing_list_id = ResponseListId {
-                    part_id: existing_part_id,
-                    offset: existing_offset,
-                    length: existing_length,
-                };
-                let new_list_id = ResponseListId {
-                    part_id: new_part_id,
-                    offset: new_offset,
-                    length: new_length,
-                };
-                self.recursive_merge_list(existing_list_id, new_list_id)
+            (ResponseValue::List { id: existing_id, .. }, ResponseValue::List { id: new_id, .. }) => {
+                self.recursive_merge_list(existing_id, new_id)
             }
             _ => {
                 // FIXME: Unlikely, but we should generate an error here.
@@ -345,7 +269,10 @@ impl ResponseBuilder {
 
     fn recursive_merge_list(&mut self, existing_list_id: ResponseListId, new_list_id: ResponseListId) {
         let mut i = 0;
-        while let Some((existing, new)) = self[existing_list_id].get(i).zip(self[new_list_id].get(i)) {
+        while let Some((existing, new)) = self.data_parts[existing_list_id]
+            .get(i)
+            .zip(self.data_parts[new_list_id].get(i))
+        {
             self.recursive_merge_value(existing.clone(), new.clone());
             i += 1;
         }
@@ -376,7 +303,7 @@ impl ResponseBuilder {
             operation_attributes: operation.attributes(),
             data: self.root.map(|(root, _)| ResponseData {
                 root,
-                parts: self.parts,
+                parts: self.data_parts,
             }),
             errors: self.errors,
             error_code_counter,
@@ -401,7 +328,7 @@ impl ResponseBuilder {
                     Either::Left(object_id),
                     UnpackedResponseEdge::BoundResponseKey(_) | UnpackedResponseEdge::ExtraFieldResponseKey(_),
                 ) => {
-                    let Some(field_position) = self[object_id].field_position(edge) else {
+                    let Some(field_position) = self.data_parts[object_id].field_position(edge) else {
                         // Shouldn't happen but equivalent to null
                         return None;
                     };
@@ -409,12 +336,12 @@ impl ResponseBuilder {
                         object_id,
                         field_position,
                     };
-                    let value = &self[object_id][field_position];
+                    let value = &self.data_parts[object_id][field_position];
                     (id, value)
                 }
                 (Either::Right(list_id), UnpackedResponseEdge::Index(index)) => {
                     let id = ResponseValueId::ListItem { list_id, index };
-                    let Some(value) = self[list_id].get(index) else {
+                    let Some(value) = self.data_parts[list_id].get(index) else {
                         // Shouldn't happen but equivalent to null
                         return None;
                     };
@@ -428,30 +355,20 @@ impl ResponseBuilder {
             match *value {
                 ResponseValue::Object {
                     nullable,
-                    part_id,
-                    index,
+                    id: object_id,
                 } => {
                     if nullable {
                         last_nullable_path_end = i;
                         last_nullable = Some(id);
                     }
-                    previous = Either::Left(ResponseObjectId { part_id, index });
+                    previous = Either::Left(object_id);
                 }
-                ResponseValue::List {
-                    nullable,
-                    part_id,
-                    offset,
-                    length,
-                } => {
+                ResponseValue::List { nullable, id: list_id } => {
                     if nullable {
                         last_nullable_path_end = i;
                         last_nullable = Some(id);
                     }
-                    previous = Either::Right(ResponseListId {
-                        part_id,
-                        offset,
-                        length,
-                    });
+                    previous = Either::Right(list_id);
                 }
                 _ => break,
             }
@@ -462,10 +379,10 @@ impl ResponseBuilder {
                     object_id,
                     field_position,
                 } => {
-                    self[object_id][field_position] = ResponseValue::Null;
+                    self.data_parts[object_id][field_position] = ResponseValue::Null;
                 }
                 ResponseValueId::ListItem { list_id, index } => {
-                    self[list_id][index] = ResponseValue::Null;
+                    self.data_parts[list_id][index] = ResponseValue::Null;
                 }
             }
         } else {
@@ -487,7 +404,7 @@ enum ResponseValueId {
 }
 
 pub(crate) struct SubgraphResponse {
-    data: ResponseDataPart,
+    data: DataPart,
     shape_id: ConcreteShapeId,
     root_response_object_set: Arc<InputResponseObjectSet>,
     errors: Vec<GraphqlError>,
@@ -497,11 +414,7 @@ pub(crate) struct SubgraphResponse {
 }
 
 impl SubgraphResponse {
-    fn new(
-        data: ResponseDataPart,
-        shape_id: ConcreteShapeId,
-        root_response_object_set: Arc<InputResponseObjectSet>,
-    ) -> Self {
+    fn new(data: DataPart, shape_id: ConcreteShapeId, root_response_object_set: Arc<InputResponseObjectSet>) -> Self {
         Self {
             data,
             shape_id,
@@ -593,15 +506,8 @@ impl<'resp> ResponseWriter<'resp> {
     }
 
     // Create a Vec with `new_list` before to re-use an existing Vec.
-    pub fn push_list(&self, mut values: Vec<ResponseValue>) -> ResponseListId {
-        let mut part = self.part();
-        let id = part.data.push_list(&mut values);
-        part.buffers.push(values);
-        id
-    }
-
-    pub fn push_empty_list(&self) -> ResponseListId {
-        self.part().data.push_list(&mut Vec::new())
+    pub fn push_list(&self, values: Vec<ResponseValue>) -> ResponseListId {
+        self.part().data.push_list(values)
     }
 
     pub fn update_root_object_with(&self, fields: Vec<ResponseObjectField>) {
