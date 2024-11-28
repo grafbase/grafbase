@@ -116,7 +116,7 @@ impl SubgraphWatcher {
                 let mut cached_local_subgraphs = subgraph_cache.local.lock().await;
 
                 let futures = cached_local_subgraphs
-                    .iter_mut()
+                    .iter()
                     .map(|(name, cached_local_subgraph)| async move {
                         // TODO: this also parses and prettifies, expose internal functionality
                         let sdl = introspect(
