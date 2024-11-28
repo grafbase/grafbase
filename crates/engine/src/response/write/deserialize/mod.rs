@@ -55,7 +55,7 @@ impl<'ctx> UpdateSeed<'ctx> {
     }
 }
 
-impl<'de, 'ctx> DeserializeSeed<'de> for UpdateSeed<'ctx> {
+impl<'de> DeserializeSeed<'de> for UpdateSeed<'_> {
     type Value = ();
 
     fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>

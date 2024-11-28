@@ -318,7 +318,7 @@ pub(crate) enum DisplayableArgument<'a> {
     GraphEnumVariantName(GraphEnumVariantName<'a>),
 }
 
-impl<'a> DisplayableArgument<'a> {
+impl DisplayableArgument<'_> {
     pub(crate) fn display(&self, f: &mut fmt::Formatter<'_>, graph: &FederatedGraph) -> fmt::Result {
         match self {
             DisplayableArgument::Value(v) => ValueDisplay(v, graph).fmt(f),

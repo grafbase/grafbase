@@ -1,6 +1,6 @@
 use crate::{ObjectDefinitionId, SubgraphId, UnionDefinition};
 
-impl<'a> UnionDefinition<'a> {
+impl UnionDefinition<'_> {
     pub fn is_fully_implemented_in(&self, subgraph_id: SubgraphId) -> bool {
         !self.not_fully_implemented_in_ids.contains(&subgraph_id)
     }

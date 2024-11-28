@@ -61,7 +61,7 @@ struct Converter<'a> {
     field_arguments: Vec<SchemaFieldArgumentRecord>,
 }
 
-impl<'a> Converter<'a> {
+impl Converter<'_> {
     fn convert_set(&mut self, field_set: federated_graph::SelectionSet) -> Result<FieldSetRecord, InputValueError> {
         let mut out = Vec::with_capacity(field_set.len());
         self.convert_set_rec(field_set, &mut out)?;

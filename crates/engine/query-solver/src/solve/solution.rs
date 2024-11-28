@@ -24,7 +24,7 @@ impl<'ctx, Op: Operation> std::ops::Deref for PartialSolution<'ctx, Op> {
     }
 }
 
-impl<'ctx, Op: Operation> std::ops::DerefMut for PartialSolution<'ctx, Op> {
+impl<Op: Operation> std::ops::DerefMut for PartialSolution<'_, Op> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
     }

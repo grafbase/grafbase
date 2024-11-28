@@ -12,7 +12,7 @@ pub struct SchemaInputValueView<'a> {
     pub(super) selection_set: &'a InputValueSet,
 }
 
-impl<'a> serde::Serialize for SchemaInputValueView<'a> {
+impl serde::Serialize for SchemaInputValueView<'_> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,

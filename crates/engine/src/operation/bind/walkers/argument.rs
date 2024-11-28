@@ -32,7 +32,7 @@ impl std::fmt::Debug for FieldArgumentWalker<'_> {
 
 pub type FieldArgumentsWalker<'a> = OperationWalker<'a, IdRange<BoundFieldArgumentId>>;
 
-impl<'a> FieldArgumentsWalker<'a> {
+impl FieldArgumentsWalker<'_> {
     #[expect(dead_code)] // Will use this later
     pub fn is_empty(&self) -> bool {
         self.item.is_empty()

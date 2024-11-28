@@ -54,7 +54,7 @@ pub struct HydratedFieldArgumentsView<'a> {
     pub(super) selection_set: &'a InputValueSet,
 }
 
-impl<'a> serde::Serialize for HydratedFieldArgumentsView<'a> {
+impl serde::Serialize for HydratedFieldArgumentsView<'_> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,

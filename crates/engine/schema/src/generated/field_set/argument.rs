@@ -57,7 +57,10 @@ impl<'a> SchemaFieldArgument<'a> {
 }
 
 impl<'a> Walk<&'a Schema> for SchemaFieldArgumentId {
-    type Walker<'w> = SchemaFieldArgument<'w> where 'a: 'w ;
+    type Walker<'w>
+        = SchemaFieldArgument<'w>
+    where
+        'a: 'w;
     fn walk<'w>(self, schema: impl Into<&'a Schema>) -> Self::Walker<'w>
     where
         Self: 'w,

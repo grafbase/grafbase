@@ -190,7 +190,10 @@ impl<'a> From<UnionDefinition<'a>> for Definition<'a> {
 }
 
 impl<'a> Walk<&'a Schema> for DefinitionId {
-    type Walker<'w> = Definition<'w> where 'a: 'w ;
+    type Walker<'w>
+        = Definition<'w>
+    where
+        'a: 'w;
     fn walk<'w>(self, schema: impl Into<&'a Schema>) -> Self::Walker<'w>
     where
         Self: 'w,

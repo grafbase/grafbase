@@ -66,7 +66,10 @@ impl<'a> ResponseModifier<'a> {
 }
 
 impl<'a> Walk<OperationPlanContext<'a>> for ResponseModifierId {
-    type Walker<'w> = ResponseModifier<'w> where 'a: 'w ;
+    type Walker<'w>
+        = ResponseModifier<'w>
+    where
+        'a: 'w;
     fn walk<'w>(self, ctx: impl Into<OperationPlanContext<'a>>) -> Self::Walker<'w>
     where
         Self: 'w,

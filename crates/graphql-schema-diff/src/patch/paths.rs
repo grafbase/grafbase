@@ -89,13 +89,13 @@ where
     idx: usize,
 }
 
-impl<'a, T: AsRef<str>> Clone for ChangeView<'a, T> {
+impl<T: AsRef<str>> Clone for ChangeView<'_, T> {
     fn clone(&self) -> Self {
         *self
     }
 }
 
-impl<'a, T: AsRef<str>> Copy for ChangeView<'a, T> {}
+impl<T: AsRef<str>> Copy for ChangeView<'_, T> {}
 
 impl<'a, T> ChangeView<'a, T>
 where

@@ -7,7 +7,7 @@ use crate::operation::{
     BoundResponseModifierId, QueryModifierRule, ResponseModifierRule,
 };
 
-impl<'schema, 'p> super::Binder<'schema, 'p> {
+impl super::Binder<'_, '_> {
     pub(super) fn generate_field_modifiers(
         &mut self,
         field_id: BoundFieldId,

@@ -58,7 +58,10 @@ impl<'a> Plan<'a> {
 }
 
 impl<'a> Walk<OperationPlanContext<'a>> for PlanId {
-    type Walker<'w> = Plan<'w> where 'a: 'w ;
+    type Walker<'w>
+        = Plan<'w>
+    where
+        'a: 'w;
     fn walk<'w>(self, ctx: impl Into<OperationPlanContext<'a>>) -> Self::Walker<'w>
     where
         Self: 'w,

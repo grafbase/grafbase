@@ -51,7 +51,10 @@ impl<'a> FieldProvides<'a> {
 }
 
 impl<'a> Walk<&'a Schema> for FieldProvidesRecord {
-    type Walker<'w> = FieldProvides<'w> where 'a: 'w ;
+    type Walker<'w>
+        = FieldProvides<'w>
+    where
+        'a: 'w;
     fn walk<'w>(self, schema: impl Into<&'a Schema>) -> Self::Walker<'w>
     where
         Self: 'w,

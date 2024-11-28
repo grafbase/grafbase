@@ -54,7 +54,10 @@ impl<'a> VariableDefinition<'a> {
 }
 
 impl<'a> Walk<SolvedOperationContext<'a>> for VariableDefinitionId {
-    type Walker<'w> = VariableDefinition<'w> where 'a: 'w ;
+    type Walker<'w>
+        = VariableDefinition<'w>
+    where
+        'a: 'w;
     fn walk<'w>(self, ctx: impl Into<SolvedOperationContext<'a>>) -> Self::Walker<'w>
     where
         Self: 'w,

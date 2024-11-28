@@ -91,7 +91,7 @@ impl PartialEq<SchemaFieldRecord> for FieldWalker<'_> {
     }
 }
 
-impl<'a> std::fmt::Debug for FieldWalker<'a> {
+impl std::fmt::Debug for FieldWalker<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self.as_ref() {
             BoundField::TypeName { .. } => "__typename".fmt(f),

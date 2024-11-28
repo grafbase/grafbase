@@ -171,7 +171,10 @@ impl<'a> From<ListSizeDirective<'a>> for TypeSystemDirective<'a> {
 }
 
 impl<'a> Walk<&'a Schema> for TypeSystemDirectiveId {
-    type Walker<'w> = TypeSystemDirective<'w> where 'a: 'w ;
+    type Walker<'w>
+        = TypeSystemDirective<'w>
+    where
+        'a: 'w;
     fn walk<'w>(self, schema: impl Into<&'a Schema>) -> Self::Walker<'w>
     where
         Self: 'w,

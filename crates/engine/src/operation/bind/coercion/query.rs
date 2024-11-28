@@ -55,7 +55,7 @@ struct QueryValueCoercionContext<'binder, 'schema, 'parsed> {
     is_default_value: bool,
 }
 
-impl<'binder, 'schema, 'parsed> std::ops::Deref for QueryValueCoercionContext<'binder, 'schema, 'parsed> {
+impl<'schema, 'parsed> std::ops::Deref for QueryValueCoercionContext<'_, 'schema, 'parsed> {
     type Target = Binder<'schema, 'parsed>;
 
     fn deref(&self) -> &Self::Target {
@@ -63,13 +63,13 @@ impl<'binder, 'schema, 'parsed> std::ops::Deref for QueryValueCoercionContext<'b
     }
 }
 
-impl<'binder, 'schema, 'parsed> std::ops::DerefMut for QueryValueCoercionContext<'binder, 'schema, 'parsed> {
+impl std::ops::DerefMut for QueryValueCoercionContext<'_, '_, '_> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         self.binder
     }
 }
 
-impl<'binder, 'schema, 'parsed> QueryValueCoercionContext<'binder, 'schema, 'parsed> {
+impl<'schema> QueryValueCoercionContext<'_, 'schema, '_> {
     fn variable_ref(&mut self, name: Name, ty: Type<'schema>) -> Result<QueryInputValueRecord, InputValueError> {
         if self.is_default_value {
             return Err(InputValueError::VariableDefaultValueReliesOnAnotherVariable {

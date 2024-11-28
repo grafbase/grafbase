@@ -134,7 +134,10 @@ impl<'a> ResolverDefinition<'a> {
 }
 
 impl<'a> Walk<&'a Schema> for ResolverDefinitionId {
-    type Walker<'w> = ResolverDefinition<'w> where 'a: 'w ;
+    type Walker<'w>
+        = ResolverDefinition<'w>
+    where
+        'a: 'w;
     fn walk<'w>(self, schema: impl Into<&'a Schema>) -> Self::Walker<'w>
     where
         Self: 'w,

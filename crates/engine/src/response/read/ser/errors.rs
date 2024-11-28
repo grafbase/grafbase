@@ -12,7 +12,7 @@ pub(super) struct SerializableErrors<'a> {
     pub errors: &'a [GraphqlError],
 }
 
-impl<'a> serde::Serialize for SerializableErrors<'a> {
+impl serde::Serialize for SerializableErrors<'_> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,
@@ -30,7 +30,7 @@ struct SerializableError<'a> {
     error: &'a GraphqlError,
 }
 
-impl<'a> serde::Serialize for SerializableError<'a> {
+impl serde::Serialize for SerializableError<'_> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,
@@ -68,7 +68,7 @@ struct SerializableResponsePath<'a> {
     path: &'a ResponsePath,
 }
 
-impl<'a> serde::Serialize for SerializableResponsePath<'a> {
+impl serde::Serialize for SerializableResponsePath<'_> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,
@@ -97,7 +97,7 @@ pub(super) struct SerializableExtension<'a> {
     pub extensions: &'a [(Cow<'static, str>, serde_json::Value)],
 }
 
-impl<'a> serde::Serialize for SerializableExtension<'a> {
+impl serde::Serialize for SerializableExtension<'_> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,

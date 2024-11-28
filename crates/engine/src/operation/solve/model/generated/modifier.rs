@@ -51,7 +51,11 @@ impl<'a> QueryModifierDefinition<'a> {
 }
 
 impl<'a> Walk<SolvedOperationContext<'a>> for &QueryModifierDefinitionRecord {
-    type Walker<'w> = QueryModifierDefinition<'w> where Self : 'w , 'a: 'w ;
+    type Walker<'w>
+        = QueryModifierDefinition<'w>
+    where
+        Self: 'w,
+        'a: 'w;
     fn walk<'w>(self, ctx: impl Into<SolvedOperationContext<'a>>) -> Self::Walker<'w>
     where
         Self: 'w,
@@ -117,7 +121,10 @@ impl<'a> ResponseModifierDefinition<'a> {
 }
 
 impl<'a> Walk<SolvedOperationContext<'a>> for ResponseModifierDefinitionId {
-    type Walker<'w> = ResponseModifierDefinition<'w> where 'a: 'w ;
+    type Walker<'w>
+        = ResponseModifierDefinition<'w>
+    where
+        'a: 'w;
     fn walk<'w>(self, ctx: impl Into<SolvedOperationContext<'a>>) -> Self::Walker<'w>
     where
         Self: 'w,

@@ -65,7 +65,7 @@ pub struct FieldContext<'a> {
     ty: &'a Definition,
 }
 
-impl<'a> std::ops::Deref for FieldContext<'a> {
+impl std::ops::Deref for FieldContext<'_> {
     type Target = Field;
     fn deref(&self) -> &Self::Target {
         self.field

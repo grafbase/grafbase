@@ -89,7 +89,10 @@ impl<'a> From<ResponseModifier<'a>> for Executable<'a> {
 }
 
 impl<'a> Walk<OperationPlanContext<'a>> for ExecutableId {
-    type Walker<'w> = Executable<'w> where 'a: 'w ;
+    type Walker<'w>
+        = Executable<'w>
+    where
+        'a: 'w;
     fn walk<'w>(self, ctx: impl Into<OperationPlanContext<'a>>) -> Self::Walker<'w>
     where
         Self: 'w,

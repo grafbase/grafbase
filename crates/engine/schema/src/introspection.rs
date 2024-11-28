@@ -225,14 +225,14 @@ pub(crate) struct IntrospectionBuilder<'a> {
     graph: &'a mut Graph,
 }
 
-impl<'a> Deref for IntrospectionBuilder<'a> {
+impl Deref for IntrospectionBuilder<'_> {
     type Target = Graph;
     fn deref(&self) -> &Self::Target {
         self.graph
     }
 }
 
-impl<'a> DerefMut for IntrospectionBuilder<'a> {
+impl DerefMut for IntrospectionBuilder<'_> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         self.graph
     }

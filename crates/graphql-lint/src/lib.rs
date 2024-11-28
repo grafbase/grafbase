@@ -134,7 +134,7 @@ impl<'a> SchemaLinter {
         self.diagnostics
     }
 
-    fn case_check(current: &'a str, case: Case) -> CaseMatch<'_> {
+    fn case_check(current: &'a str, case: Case) -> CaseMatch<'a> {
         let fix = match case {
             Case::Pascal => current.to_pascal_case(),
             Case::ShoutySnake => current.to_shouty_snake_case(),

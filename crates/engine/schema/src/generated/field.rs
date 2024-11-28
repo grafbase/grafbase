@@ -122,7 +122,10 @@ impl<'a> FieldDefinition<'a> {
 }
 
 impl<'a> Walk<&'a Schema> for FieldDefinitionId {
-    type Walker<'w> = FieldDefinition<'w> where 'a: 'w ;
+    type Walker<'w>
+        = FieldDefinition<'w>
+    where
+        'a: 'w;
     fn walk<'w>(self, schema: impl Into<&'a Schema>) -> Self::Walker<'w>
     where
         Self: 'w,

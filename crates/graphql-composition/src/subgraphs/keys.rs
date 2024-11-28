@@ -208,7 +208,7 @@ impl<'a> DefinitionWalker<'a> {
     }
 }
 
-impl<'a> FieldWalker<'a> {
+impl FieldWalker<'_> {
     /// Returns true iff there is an `@key` directive containing this field, possibly with others
     /// as part of a composite key.
     pub(crate) fn is_part_of_key(self) -> bool {

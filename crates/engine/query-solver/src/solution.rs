@@ -56,7 +56,7 @@ pub struct Solution<'ctx, Op: Operation> {
 
 pub type SolutionGraph<FieldId> = Graph<SolutionNode<FieldId>, SolutionEdge>;
 
-impl<'ctx, Op: Operation> std::fmt::Debug for Solution<'ctx, Op> {
+impl<Op: Operation> std::fmt::Debug for Solution<'_, Op> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("SolutionGraph").finish_non_exhaustive()
     }

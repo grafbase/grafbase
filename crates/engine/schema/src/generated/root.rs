@@ -55,7 +55,11 @@ impl<'a> RootOperationTypes<'a> {
 }
 
 impl<'a> Walk<&'a Schema> for &RootOperationTypesRecord {
-    type Walker<'w> = RootOperationTypes<'w> where Self : 'w , 'a: 'w ;
+    type Walker<'w>
+        = RootOperationTypes<'w>
+    where
+        Self: 'w,
+        'a: 'w;
     fn walk<'w>(self, schema: impl Into<&'a Schema>) -> Self::Walker<'w>
     where
         Self: 'w,

@@ -67,7 +67,10 @@ impl<'a> ScalarDefinition<'a> {
 }
 
 impl<'a> Walk<&'a Schema> for ScalarDefinitionId {
-    type Walker<'w> = ScalarDefinition<'w> where 'a: 'w ;
+    type Walker<'w>
+        = ScalarDefinition<'w>
+    where
+        'a: 'w;
     fn walk<'w>(self, schema: impl Into<&'a Schema>) -> Self::Walker<'w>
     where
         Self: 'w,

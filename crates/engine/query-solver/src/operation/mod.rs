@@ -64,7 +64,7 @@ impl<'ctx, Op: Operation> OperationGraph<'ctx, Op> {
     }
 }
 
-impl<'ctx, Op: Operation> std::fmt::Debug for OperationGraph<'ctx, Op> {
+impl<Op: Operation> std::fmt::Debug for OperationGraph<'_, Op> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("OperationGraph").finish_non_exhaustive()
     }

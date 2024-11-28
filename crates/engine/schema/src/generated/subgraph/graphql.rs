@@ -67,7 +67,10 @@ impl<'a> GraphqlEndpoint<'a> {
 }
 
 impl<'a> Walk<&'a Schema> for GraphqlEndpointId {
-    type Walker<'w> = GraphqlEndpoint<'w> where 'a: 'w ;
+    type Walker<'w>
+        = GraphqlEndpoint<'w>
+    where
+        'a: 'w;
     fn walk<'w>(self, schema: impl Into<&'a Schema>) -> Self::Walker<'w>
     where
         Self: 'w,

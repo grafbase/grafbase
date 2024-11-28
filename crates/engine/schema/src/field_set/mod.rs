@@ -66,7 +66,11 @@ impl<'a> FieldSet<'a> {
 }
 
 impl<'a> Walk<&'a Schema> for &FieldSetRecord {
-    type Walker<'w> = FieldSet<'w> where Self : 'w , 'a: 'w ;
+    type Walker<'w>
+        = FieldSet<'w>
+    where
+        Self: 'w,
+        'a: 'w;
     fn walk<'w>(self, schema: impl Into<&'a Schema>) -> Self::Walker<'w>
     where
         Self: 'w,
@@ -83,7 +87,11 @@ impl<'a> Walk<&'a Schema> for &FieldSetRecord {
 pub struct FieldSetId(std::num::NonZero<u32>);
 
 impl<'a> Walk<&'a Schema> for FieldSetId {
-    type Walker<'w> = FieldSet<'w> where Self : 'w , 'a: 'w ;
+    type Walker<'w>
+        = FieldSet<'w>
+    where
+        Self: 'w,
+        'a: 'w;
     fn walk<'w>(self, schema: impl Into<&'a Schema>) -> Self::Walker<'w>
     where
         Self: 'w,

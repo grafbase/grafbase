@@ -28,7 +28,10 @@ pub(crate) struct VariableInputValues {
 pub(crate) struct VariableInputValueId(std::num::NonZero<u32>);
 
 impl<'ctx> Walk<InputValueContext<'ctx>> for VariableInputValueId {
-    type Walker<'w> = VariableInputValue<'w> where 'ctx: 'w;
+    type Walker<'w>
+        = VariableInputValue<'w>
+    where
+        'ctx: 'w;
 
     fn walk<'w>(self, ctx: impl Into<InputValueContext<'ctx>>) -> Self::Walker<'w>
     where
@@ -47,7 +50,10 @@ impl<'ctx> Walk<InputValueContext<'ctx>> for VariableInputValueId {
 pub(crate) struct VariableInputObjectFieldValueId(std::num::NonZero<u32>);
 
 impl<'ctx> Walk<InputValueContext<'ctx>> for VariableInputObjectFieldValueId {
-    type Walker<'w> = (InputValueDefinition<'w>, VariableInputValue<'w>) where 'ctx: 'w;
+    type Walker<'w>
+        = (InputValueDefinition<'w>, VariableInputValue<'w>)
+    where
+        'ctx: 'w;
 
     fn walk<'w>(self, ctx: impl Into<InputValueContext<'ctx>>) -> Self::Walker<'w>
     where
@@ -64,7 +70,10 @@ impl<'ctx> Walk<InputValueContext<'ctx>> for VariableInputObjectFieldValueId {
 pub(crate) struct VariableInputKeyValueId(std::num::NonZero<u32>);
 
 impl<'ctx> Walk<InputValueContext<'ctx>> for VariableInputKeyValueId {
-    type Walker<'w> = (&'w str, VariableInputValue<'w>) where 'ctx: 'w;
+    type Walker<'w>
+        = (&'w str, VariableInputValue<'w>)
+    where
+        'ctx: 'w;
 
     fn walk<'w>(self, ctx: impl Into<InputValueContext<'ctx>>) -> Self::Walker<'w>
     where
@@ -100,7 +109,11 @@ pub(crate) enum VariableInputValueRecord {
 }
 
 impl<'ctx, 'value> Walk<InputValueContext<'ctx>> for &'value VariableInputValueRecord {
-    type Walker<'w> = VariableInputValue<'w> where 'ctx: 'w, 'value: 'w;
+    type Walker<'w>
+        = VariableInputValue<'w>
+    where
+        'ctx: 'w,
+        'value: 'w;
 
     fn walk<'w>(self, ctx: impl Into<InputValueContext<'ctx>>) -> Self::Walker<'w>
     where

@@ -32,7 +32,7 @@ pub enum EntityDefinition<'a> {
     Interface(&'a Interface),
 }
 
-impl<'a> EntityDefinition<'a> {
+impl EntityDefinition<'_> {
     pub fn name(&self, graph: &FederatedGraph) -> StringId {
         match self {
             EntityDefinition::Object(obj) => graph[obj.type_definition_id].name,

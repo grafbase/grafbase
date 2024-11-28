@@ -18,7 +18,10 @@ pub(crate) struct PolymorphicShapeRecord {
 pub(crate) struct PolymorphicShapeId(NonZero<u32>);
 
 impl<'ctx> Walk<OperationPlanContext<'ctx>> for PolymorphicShapeId {
-    type Walker<'w> = PolymorphicShape<'w> where 'ctx: 'w;
+    type Walker<'w>
+        = PolymorphicShape<'w>
+    where
+        'ctx: 'w;
 
     fn walk<'w>(self, ctx: impl Into<OperationPlanContext<'ctx>>) -> Self::Walker<'w>
     where

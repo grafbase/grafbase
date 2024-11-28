@@ -135,7 +135,7 @@ pub struct ExecutedOperation<'a, OnSubgraphResponseOutput> {
     pub on_subgraph_response_outputs: Vec<OnSubgraphResponseOutput>,
 }
 
-impl<'a, OnSubgraphResponseOutput> ExecutedOperation<'a, OnSubgraphResponseOutput> {
+impl<OnSubgraphResponseOutput> ExecutedOperation<'_, OnSubgraphResponseOutput> {
     pub fn builder() -> ExecutedOperationBuilder<OnSubgraphResponseOutput> {
         ExecutedOperationBuilder {
             start_time: Instant::now(),

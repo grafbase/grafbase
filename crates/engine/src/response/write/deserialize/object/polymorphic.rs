@@ -25,7 +25,7 @@ impl<'ctx, 'seed> PolymorphicShapeSeed<'ctx, 'seed> {
     }
 }
 
-impl<'de, 'ctx, 'parent> DeserializeSeed<'de> for PolymorphicShapeSeed<'ctx, 'parent> {
+impl<'de> DeserializeSeed<'de> for PolymorphicShapeSeed<'_, '_> {
     type Value = ResponseValue;
 
     fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
@@ -36,7 +36,7 @@ impl<'de, 'ctx, 'parent> DeserializeSeed<'de> for PolymorphicShapeSeed<'ctx, 'pa
     }
 }
 
-impl<'de, 'ctx, 'parent> Visitor<'de> for PolymorphicShapeSeed<'ctx, 'parent> {
+impl<'de> Visitor<'de> for PolymorphicShapeSeed<'_, '_> {
     type Value = ResponseValue;
 
     fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
