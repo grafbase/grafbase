@@ -1,16 +1,19 @@
 use crate::errors::BackendError;
 use axum::{
     extract::State,
+    http::HeaderValue,
     response::{Html, IntoResponse},
-    routing::get,
+    routing::{get, get_service},
     Router,
 };
 use federated_server::ServerRouter;
 use flate2::bufread::GzDecoder;
+use reqwest::header::CACHE_CONTROL;
 use std::path::Path;
 use tar::Archive;
 use tokio::fs;
 use tower_http::services::ServeDir;
+use tower_http::set_header::SetResponseHeader;
 
 const DOT_GRAFBASE_DIR: &str = ".grafbase";
 const PATHFINDER_ASSETS_DIR: &str = "pathfinder";
@@ -61,7 +64,11 @@ pub fn get_pathfinder_router<T>(port: u16, home_dir: &Path) -> ServerRouter<T> {
         .route("/", get(root))
         .nest_service(
             "/static",
-            ServeDir::new(home_dir.join(DOT_GRAFBASE_DIR).join(PATHFINDER_ASSETS_DIR)),
+            get_service(SetResponseHeader::overriding(
+                ServeDir::new(home_dir.join(DOT_GRAFBASE_DIR).join(PATHFINDER_ASSETS_DIR)),
+                CACHE_CONTROL,
+                HeaderValue::from_static("max-age=600"),
+            )),
         )
         .with_state(PathfinderState { html: Html(html) })
 }
