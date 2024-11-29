@@ -327,7 +327,14 @@ impl<'schema> QueryValueCoercionContext<'_, 'schema, '_> {
                 Ok(QueryInputValueRecord::Int(value))
             }
             (Value::Int(number), ScalarType::BigInt) => Ok(QueryInputValueRecord::BigInt(number.as_i64())),
+            (Value::Int(number), ScalarType::Float) => Ok(QueryInputValueRecord::Float(number.value() as f64)),
             (Value::Float(number), ScalarType::Float) => Ok(QueryInputValueRecord::Float(number.as_f64())),
+            (Value::Float(number), ScalarType::Int) if can_coerce_to_int(number.as_f64()) => {
+                Ok(QueryInputValueRecord::Int(number.as_f64() as i32))
+            }
+            (Value::Float(number), ScalarType::BigInt) if can_coerce_to_big_int(number.as_f64()) => {
+                Ok(QueryInputValueRecord::BigInt(number.as_f64() as i64))
+            }
             (Value::String(value), ScalarType::String) => Ok(QueryInputValueRecord::String(value.as_str().into())),
             (Value::Boolean(value), ScalarType::Boolean) => Ok(QueryInputValueRecord::Boolean(value.value())),
             (Value::Variable(variable), _) => self.variable_ref(
@@ -359,4 +366,12 @@ fn are_type_compatibles(left: TypeRecord, right: TypeRecord) -> bool {
             && (!left.wrapping.is_list()
                 || left.wrapping.list_wrappings().len() == right.wrapping.list_wrappings().len())
             && (right.wrapping.is_nullable() || left.wrapping.is_required())
+}
+
+fn can_coerce_to_int(float: f64) -> bool {
+    float.floor() == float && float < (i32::MAX as f64)
+}
+
+fn can_coerce_to_big_int(float: f64) -> bool {
+    float.floor() == float && float < (i64::MAX as f64)
 }

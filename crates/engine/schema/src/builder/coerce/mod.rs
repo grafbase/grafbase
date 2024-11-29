@@ -213,6 +213,7 @@ impl<'a> InputValueCoercer<'a> {
                     })?;
                     Some(n)
                 }
+                Value::Float(f) if can_coerce_to_int(f) => Some(f as i32),
                 _ => None,
             }
             .map(SchemaInputValueRecord::Int),
@@ -265,4 +266,8 @@ impl<'a> InputValueCoercer<'a> {
     fn path(&self) -> String {
         value_path_to_string(self.ctx, &self.value_path)
     }
+}
+
+fn can_coerce_to_int(float: f64) -> bool {
+    float.floor() == float && float < (i32::MAX as f64)
 }

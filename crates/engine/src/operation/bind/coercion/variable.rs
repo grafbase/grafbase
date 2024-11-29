@@ -243,6 +243,11 @@ impl<'a> VariableCoercionContext<'a> {
                     });
                 }
             }),
+            (ConstValue::Number(number), ScalarType::Int)
+                if number.is_f64() && can_coerce_to_int(number.as_f64().unwrap()) =>
+            {
+                Ok(VariableInputValueRecord::Int(number.as_f64().unwrap() as i32))
+            }
             (ConstValue::Number(number), ScalarType::Int) => {
                 let Some(value) = number.as_i64().and_then(|n| i32::try_from(n).ok()) else {
                     return Err(InputValueError::IncorrectScalarValue {
@@ -291,4 +296,8 @@ impl<'a> VariableCoercionContext<'a> {
     fn path(&self) -> String {
         value_path_to_string(self.schema, &self.value_path)
     }
+}
+
+fn can_coerce_to_int(float: f64) -> bool {
+    float.floor() == float && float < (i32::MAX as f64)
 }
