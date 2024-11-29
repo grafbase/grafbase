@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use super::gateway::EngineWatcher;
 
-pub(super) struct ServerStateInner<SR> {
+pub struct ServerStateInner<SR> {
     /// The gateway responsible for handling engine communication.
     pub gateway: EngineWatcher,
 
@@ -14,7 +14,7 @@ pub(super) struct ServerStateInner<SR> {
     pub server_runtime: SR,
 }
 
-pub(super) struct ServerState<SR> {
+pub struct ServerState<SR> {
     inner: Arc<ServerStateInner<SR>>,
 }
 

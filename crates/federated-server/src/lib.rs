@@ -15,4 +15,4 @@ mod server;
 /// The crate result type.
 pub type Result<T> = std::result::Result<T, Error>;
 
-pub use server::{serve, ServerConfig, ServerRuntime};
+pub use server::{serve, ServerConfig, ServerRouter, ServerRuntime};

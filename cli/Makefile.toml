@@ -99,6 +99,15 @@ args = ["run", "--release", "--", "${@}"]
 description = "Profiles the dev command"
 mac_alias = "mac-profile-dev"
 
+[tasks.fetch-assets]
+description = "Fetch the Pathfinder tar.gz"
+script = '''
+pushd ../crates/grafbase-local-backend/assets
+curl -H "Cache-Control: no-cache" -o pathfinder.tar.gz http://assets.grafbase.com/pathfinder/pathfinder.tar.gz
+popd
+'''
+
+
 # XCode must be installed for this to work
 [tasks.mac-profile-dev]
 description = "Profiles the dev command (mac only)"

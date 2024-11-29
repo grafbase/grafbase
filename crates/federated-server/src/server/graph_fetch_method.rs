@@ -21,7 +21,7 @@ pub enum GraphFetchMethod {
     FromSchema {
         /// Static federated graph from a file
         federated_sdl: String,
-        reload_signal: Option<Receiver<(String, Config)>>,
+        reload_signal: Option<Receiver<(String, Arc<Config>)>>,
     },
 }
 

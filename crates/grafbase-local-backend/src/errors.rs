@@ -74,4 +74,16 @@ pub enum BackendError {
     DevOptionsInGatewayConfig(&'static str),
     #[error("could not set up a file watcher\nCaused by: {0}")]
     SetUpWatcher(notify::Error),
+    #[error("could not determine the path of the home directory")]
+    HomeDirectory,
+    #[error("could not unpack Pathfinder\nCaused by: {0}")]
+    UnpackPathfinderArchive(std::io::Error),
+    #[error("could not write the current version of the unpacked Pathfinder assets\nCaused by: {0}")]
+    WriteAssetVersion(std::io::Error),
+    #[error("could not read the current version of the unpacked Pathfinder assets\nCaused by: {0}")]
+    ReadAssetVersion(std::io::Error),
+    #[error("could not create ~/.grafbase\nCaused by: {0}")]
+    CreateDotGrafbaseDirectory(std::io::Error),
+    #[error("could not access ~/.grafbase\nCaused by: {0}")]
+    AccessDotGrafbaseDirectory(std::io::Error),
 }

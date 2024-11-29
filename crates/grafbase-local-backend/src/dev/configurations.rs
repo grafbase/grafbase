@@ -1,9 +1,8 @@
+use crate::errors::BackendError;
 use gateway_config::Config;
 use serde_toml_merge::merge;
 use std::{collections::HashSet, path::PathBuf};
 use tokio::fs;
-
-use crate::errors::BackendError;
 
 pub struct DevConfiguration {
     pub overridden_subgraphs: HashSet<String>,

@@ -9,6 +9,8 @@ mod state;
 mod trusted_documents_client;
 
 pub use graph_fetch_method::GraphFetchMethod;
+pub use state::ServerState;
+
 use runtime_local::{hooks, ComponentLoader, HooksWasi};
 use tokio::sync::watch;
 use ulid::Ulid;
@@ -20,11 +22,12 @@ use engine_axum::{
     websocket::{WebsocketAccepter, WebsocketService},
 };
 use gateway_config::{Config, TlsConfig};
-use state::ServerState;
 use std::{net::SocketAddr, path::PathBuf};
 use tokio::signal;
 use tokio::sync::mpsc;
 use tower_http::cors::CorsLayer;
+
+pub type ServerRouter<T> = Router<ServerState<T>>;
 
 /// Start parameter for the gateway.
 pub struct ServerConfig {
@@ -47,11 +50,15 @@ pub trait ServerRuntime: Send + Sync + 'static + Clone {
     fn after_request(&self);
     /// Called when the server is ready and listening
     fn on_ready(&self, url: String);
+    fn get_external_router<T>(&self) -> Option<ServerRouter<T>>;
 }
 
 impl ServerRuntime for () {
     fn after_request(&self) {}
     fn on_ready(&self, _url: String) {}
+    fn get_external_router<T>(&self) -> Option<ServerRouter<T>> {
+        None
+    }
 }
 
 /// Starts the server and listens for incoming requests.
@@ -137,7 +144,9 @@ pub async fn serve(
     tracing::debug!("Waiting for the engine to be ready...");
     gateway.changed().await.ok();
 
-    let mut router = Router::new()
+    let mut router = server_runtime
+        .get_external_router()
+        .unwrap_or_default()
         .route(path, get(engine_execute).post(engine_execute))
         .route_service("/ws", WebsocketService::new(websocket_sender))
         .layer(ResponseHookLayer::new(hooks))
