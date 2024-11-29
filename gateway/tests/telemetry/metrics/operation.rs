@@ -577,11 +577,11 @@ fn prepare_duration_fail() {
             .send()
             .await;
 
-        insta::assert_json_snapshot!(resp, @r###"
+        insta::assert_json_snapshot!(resp, @r#"
         {
           "errors": [
             {
-              "message": " --> 1:31\n  |\n1 | query SimpleQuery { __typename\n  |                               ^---\n  |\n  = expected selection_set, selection, directive, or arguments",
+              "message": "unexpected end of file (expected one of , \":\"\"{\", \"}\", \"(\", \"@\", \"...\", RawIdent, schema, query, mutation, subscription, ty, input, true, false, null, implements, interface, \"enum\", union, scalar, extend, directive, repeatable, on, fragment)",
               "locations": [
                 {
                   "line": 1,
@@ -594,7 +594,7 @@ fn prepare_duration_fail() {
             }
           ]
         }
-        "###);
+        "#);
 
         tokio::time::sleep(METRICS_DELAY).await;
 

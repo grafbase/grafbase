@@ -91,7 +91,7 @@ fn named_fragment_cycle() {
             .await
     });
 
-    insta::assert_json_snapshot!(response, @r###"
+    insta::assert_json_snapshot!(response, @r#"
     {
       "errors": [
         {
@@ -99,7 +99,7 @@ fn named_fragment_cycle() {
           "locations": [
             {
               "line": 19,
-              "column": 29
+              "column": 32
             }
           ],
           "extensions": {
@@ -108,7 +108,7 @@ fn named_fragment_cycle() {
         }
       ]
     }
-    "###);
+    "#);
 }
 
 #[test]

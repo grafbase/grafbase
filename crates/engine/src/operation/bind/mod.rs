@@ -1,6 +1,7 @@
 mod coercion;
 mod error;
 mod field;
+mod location;
 mod model;
 mod modifier;
 mod selection_set;
@@ -10,19 +11,20 @@ mod walkers;
 
 use std::collections::HashMap;
 
-pub use engine_parser::types::OperationType;
+use cynic_parser::common::OperationType;
 use id_derives::IndexedFields;
 use id_newtypes::IdRange;
 use modifier::{finalize_query_modifiers, finalize_response_modifiers};
 use schema::{CompositeTypeId, Schema};
 
-use crate::response::ResponseKeys;
 pub(crate) use error::*;
+pub(crate) use location::*;
 pub(crate) use model::*;
 pub(crate) use variables::*;
 pub(crate) use walkers::*;
 
-use super::{Location, ParsedOperation, QueryInputValues};
+use super::{ParsedOperation, QueryInputValues};
+use crate::response::ResponseKeys;
 
 pub(crate) type BindResult<T> = Result<T, BindError>;
 
@@ -33,7 +35,7 @@ pub struct Binder<'schema, 'p> {
     operation_name: ErrorOperationName,
     response_keys: ResponseKeys,
     field_arguments: Vec<BoundFieldArgument>,
-    location_to_field_arguments: HashMap<Location, IdRange<BoundFieldArgumentId>>,
+    location_to_field_arguments: HashMap<usize, IdRange<BoundFieldArgumentId>>,
     #[indexed_by(BoundFieldId)]
     fields: Vec<BoundField>,
     #[indexed_by(BoundSelectionSetId)]
@@ -45,17 +47,17 @@ pub struct Binder<'schema, 'p> {
     response_modifiers: HashMap<ResponseModifierRule, (BoundResponseModifierId, Vec<BoundFieldId>)>,
 }
 
-pub(crate) fn bind(schema: &Schema, mut parsed_operation: ParsedOperation) -> BindResult<BoundOperation> {
-    let root_object_id = match parsed_operation.definition.ty {
+pub(crate) fn bind(schema: &Schema, parsed_operation: &ParsedOperation) -> BindResult<BoundOperation> {
+    let operation = parsed_operation.operation();
+    let root_object_id = match operation.operation_type() {
         OperationType::Query => schema.query().id,
         OperationType::Mutation => schema.mutation().ok_or(BindError::NoMutationDefined)?.id,
         OperationType::Subscription => schema.subscription().ok_or(BindError::NoSubscriptionDefined)?.id,
     };
 
-    let variable_definitions = std::mem::take(&mut parsed_operation.definition.variable_definitions);
     let mut binder = Binder {
         schema,
-        parsed_operation: &parsed_operation,
+        parsed_operation,
         operation_name: ErrorOperationName(parsed_operation.name.clone()),
         response_keys: ResponseKeys::default(),
         field_arguments: Vec::new(),
@@ -70,12 +72,10 @@ pub(crate) fn bind(schema: &Schema, mut parsed_operation: ParsedOperation) -> Bi
     };
 
     // Must be executed before binding selection sets
-    binder.bind_variable_definitions(variable_definitions)?;
+    binder.bind_variable_definitions(operation.variable_definitions())?;
 
-    let root_selection_set_id = binder.bind_merged_selection_sets(
-        CompositeTypeId::Object(root_object_id),
-        &[&parsed_operation.definition.selection_set],
-    )?;
+    let root_selection_set_id =
+        binder.bind_merged_selection_sets(CompositeTypeId::Object(root_object_id), &[operation.selection_set()])?;
 
     binder.validate_all_variables_used()?;
 
@@ -85,7 +85,11 @@ pub(crate) fn bind(schema: &Schema, mut parsed_operation: ParsedOperation) -> Bi
         finalize_response_modifiers(binder.response_modifiers);
 
     let operation = BoundOperation {
-        ty: parsed_operation.definition.ty,
+        ty: match operation.operation_type() {
+            OperationType::Query => grafbase_telemetry::graphql::OperationType::Query,
+            OperationType::Mutation => grafbase_telemetry::graphql::OperationType::Mutation,
+            OperationType::Subscription => grafbase_telemetry::graphql::OperationType::Subscription,
+        },
         root_object_id,
         root_query_modifier_ids,
         root_selection_set_id,

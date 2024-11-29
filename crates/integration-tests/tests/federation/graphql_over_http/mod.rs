@@ -290,11 +290,11 @@ fn content_type_with_parameters(#[case] accept: &'static str) {
             .await;
         let status = response.status();
         let body: serde_json::Value = serde_json::from_slice(&response.into_body()).unwrap();
-        insta::assert_json_snapshot!(body, @r###"
+        insta::assert_json_snapshot!(body, @r#"
         {
           "errors": [
             {
-              "message": " --> 1:1\n  |\n1 | __typename\n  | ^---\n  |\n  = expected executable_definition",
+              "message": "unexpected non-variable identifier (e.g. 'x' or 'Foo') token (expected one of , \"{\"query, mutation, subscription, fragment)",
               "locations": [
                 {
                   "line": 1,
@@ -307,7 +307,7 @@ fn content_type_with_parameters(#[case] accept: &'static str) {
             }
           ]
         }
-        "###);
+        "#);
         assert_ne!(status, 405);
     })
 }

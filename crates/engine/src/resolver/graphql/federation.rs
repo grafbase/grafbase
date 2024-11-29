@@ -1,6 +1,9 @@
 use bytes::Bytes;
 use futures::future::join_all;
-use grafbase_telemetry::{graphql::GraphqlResponseStatus, span::subgraph::SubgraphRequestSpanBuilder};
+use grafbase_telemetry::{
+    graphql::{GraphqlResponseStatus, OperationType},
+    span::subgraph::SubgraphRequestSpanBuilder,
+};
 use http::HeaderMap;
 use runtime::bytes::OwnedOrSharedBytes;
 use schema::{GraphqlEndpoint, GraphqlEndpointId, GraphqlFederationEntityResolverDefinition};
@@ -12,7 +15,7 @@ use walker::Walk;
 
 use crate::{
     execution::{ExecutionContext, ExecutionError},
-    operation::{OperationType, Plan, PlanError, PlanQueryPartition, PlanResult},
+    operation::{Plan, PlanError, PlanQueryPartition, PlanResult},
     resolver::{
         graphql::{
             deserialize::{EntitiesErrorsSeed, GraphqlResponseSeed},

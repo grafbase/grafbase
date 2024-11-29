@@ -1,61 +1,82 @@
 mod error;
-mod location;
+mod offsets;
 mod validation;
 
-use std::collections::HashMap;
-
-use engine_parser::{
-    types::{DocumentOperations, FragmentDefinition, OperationDefinition},
-    Positioned,
-};
+use cynic_parser::{executable::OperationDefinition, ExecutableDocument};
+use offsets::LineOffsets;
 use schema::Schema;
 
-pub(crate) use error::*;
-pub(crate) use location::*;
+use self::error::{ParseError, ParseResult};
+use super::Location;
+use crate::response::GraphqlError;
 
 pub(crate) struct ParsedOperation {
     pub name: Option<String>,
-    pub definition: OperationDefinition,
-    pub fragments: HashMap<engine_value::Name, Positioned<FragmentDefinition>>,
+    document: cynic_parser::ExecutableDocument,
+    line_offsets: offsets::LineOffsets,
 }
 
 impl ParsedOperation {
-    pub fn get_fragment(&self, name: &str) -> Option<&Positioned<FragmentDefinition>> {
-        self.fragments.get(name)
+    pub fn operation(&self) -> OperationDefinition<'_> {
+        match &self.name {
+            None => self.document.operations().next().unwrap(),
+            Some(name) => self
+                .document
+                .operations()
+                .find(|operation| operation.name() == Some(name))
+                .unwrap(),
+        }
+    }
+
+    pub fn span_to_location(&self, span: cynic_parser::Span) -> Location {
+        self.line_offsets
+            .span_to_location(span)
+            .unwrap_or_else(|| Location::new(0, 0))
     }
 }
 
 /// Returns a valid GraphQL operation from the query string before.
-pub(crate) fn parse(schema: &Schema, operation_name: Option<&str>, document: &str) -> ParseResult<ParsedOperation> {
-    let document = engine_parser::parse_query(document)?;
+pub(crate) fn parse(
+    schema: &Schema,
+    operation_name: Option<&str>,
+    document_str: &str,
+) -> Result<ParsedOperation, GraphqlError> {
+    let line_offsets = LineOffsets::new(document_str);
 
-    let (name, operation) = if let Some(name) = operation_name {
-        match document.operations {
-            DocumentOperations::Single(_) => None,
-            DocumentOperations::Multiple(mut operations) => operations
-                .remove(name)
-                .map(|operation| (Some(name.to_string()), operation)),
-        }
-        .ok_or_else(|| ParseError::UnknowOperation(name.to_string()))?
-    } else {
-        match document.operations {
-            DocumentOperations::Single(operation) => (None, operation),
-            DocumentOperations::Multiple(map) if map.len() == 1 => map
-                .into_iter()
-                .next()
-                .map(|(name, operation)| (Some(name.to_string()), operation))
-                .unwrap(),
-            _ => return Err(ParseError::MissingOperationName),
-        }
-    };
+    let (name, document) =
+        parse_impl(operation_name, document_str).map_err(|err| err.into_graphql_error(&line_offsets))?;
 
     let operation = ParsedOperation {
         name,
-        definition: operation.node,
-        fragments: document.fragments,
+        document,
+        line_offsets,
     };
 
-    validation::validate(schema, &operation)?;
+    validation::validate(schema, &operation).map_err(|e| e.into_graphql_error(&operation.line_offsets))?;
 
     Ok(operation)
+}
+
+fn parse_impl(operation_name: Option<&str>, document_str: &str) -> ParseResult<(Option<String>, ExecutableDocument)> {
+    let document = cynic_parser::parse_executable_document(document_str)?;
+
+    let count_operations = document.operations().count();
+
+    let mut name = operation_name.map(ToOwned::to_owned);
+
+    match operation_name {
+        None if count_operations > 1 => return Err(ParseError::MissingOperationName),
+        None => {
+            let operation = document.operations().next().ok_or(ParseError::MissingOperations)?;
+            name = operation.name().map(ToOwned::to_owned);
+        }
+        Some(name) => {
+            document
+                .operations()
+                .find(|operation| operation.name() == Some(name))
+                .ok_or_else(|| ParseError::UnknowOperation(name.to_string()))?;
+        }
+    };
+
+    Ok((name, document))
 }

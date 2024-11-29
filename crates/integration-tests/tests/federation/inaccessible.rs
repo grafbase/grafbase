@@ -142,7 +142,7 @@ fn inaccessible_argument() {
               "locations": [
                 {
                   "line": 1,
-                  "column": 9
+                  "column": 27
                 }
               ],
               "extensions": {
@@ -442,7 +442,7 @@ fn inaccessible_input_object() {
               "locations": [
                 {
                   "line": 1,
-                  "column": 9
+                  "column": 19
                 }
               ],
               "extensions": {

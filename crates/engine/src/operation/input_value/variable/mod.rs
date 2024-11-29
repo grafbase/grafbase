@@ -9,7 +9,7 @@ pub(crate) use walker::*;
 
 use super::InputValueContext;
 
-#[derive(Default, IndexedFields)]
+#[derive(Default, IndexedFields, Debug)]
 pub(crate) struct VariableInputValues {
     /// Individual input values and list values
     #[indexed_by(VariableInputValueId)]
@@ -86,7 +86,7 @@ impl<'ctx> Walk<InputValueContext<'ctx>> for VariableInputKeyValueId {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub(crate) enum VariableInputValueRecord {
     #[default]
     Null,

@@ -26,7 +26,7 @@ pub fn compute_post_execution_analytics<'a>(
         return Default::default();
     };
 
-    let Ok(operation) = crate::operation::bind(schema, parsed_operation) else {
+    let Ok(operation) = crate::operation::bind(schema, &parsed_operation) else {
         return Default::default();
     };
     let used_fields = Some(self::used_fields::compute(schema, &operation));

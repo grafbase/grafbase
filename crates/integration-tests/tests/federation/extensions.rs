@@ -186,41 +186,35 @@ fn grafbase_extension_on_subgraph_error() {
 #[test]
 fn grafbase_extension_on_invalid_request() {
     runtime().block_on(async move {
-        let engine = Engine::builder()
-            .with_subgraph(FakeGithubSchema)
-            .build()
-            .await;
+        let engine = Engine::builder().with_subgraph(FakeGithubSchema).build().await;
 
-        let response = engine
-            .post("query x }")
-            .header("x-grafbase-telemetry", "yes")
-            .await;
+        let response = engine.post("query x }").header("x-grafbase-telemetry", "yes").await;
 
         insta::assert_json_snapshot!(
             response,
             @r#"
+        {
+          "errors": [
             {
-              "errors": [
+              "message": "unexpected closing brace ('}') token (expected one of , \"{\"\"(\", \"@\")",
+              "locations": [
                 {
-                  "message": " --> 1:9\n  |\n1 | query x }\n  |         ^---\n  |\n  = expected variable_definitions, selection_set, or directive",
-                  "locations": [
-                    {
-                      "line": 1,
-                      "column": 9
-                    }
-                  ],
-                  "extensions": {
-                    "code": "OPERATION_PARSING_ERROR"
-                  }
+                  "line": 1,
+                  "column": 9
                 }
               ],
               "extensions": {
-                "grafbase": {
-                  "traceId": "0"
-                }
+                "code": "OPERATION_PARSING_ERROR"
               }
             }
-            "#
+          ],
+          "extensions": {
+            "grafbase": {
+              "traceId": "0"
+            }
+          }
+        }
+        "#
         );
     })
 }

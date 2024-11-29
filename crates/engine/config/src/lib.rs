@@ -45,6 +45,8 @@ pub struct Config {
     pub header_rules: Vec<HeaderRule>,
     pub default_header_rules: Vec<HeaderRuleId>,
 
+    pub executable_document_limit_bytes: usize,
+
     /// Additional configuration for our subgraphs
     pub subgraph_configs: BTreeMap<SubgraphId, SubgraphConfig>,
 
@@ -131,6 +133,7 @@ impl Config {
             complexity_control: Default::default(),
             response_extension: Default::default(),
             apq: Default::default(),
+            executable_document_limit_bytes: (32 * 1024),
         }
     }
 

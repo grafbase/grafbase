@@ -90,7 +90,7 @@ impl<'ctx> Walk<InputValueContext<'ctx>> for QueryInputKeyValueId {
     }
 }
 
-#[derive(Default, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Default, Clone, serde::Serialize, serde::Deserialize, Debug)]
 pub(crate) enum QueryInputValueRecord {
     #[default]
     Null,

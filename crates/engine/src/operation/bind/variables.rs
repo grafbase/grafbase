@@ -1,19 +1,17 @@
 use std::collections::{btree_map::Entry, HashSet};
 
-use engine_parser::Positioned;
+use cynic_parser::executable::{Iter, VariableDefinition};
 use schema::{Definition, Schema, Wrapping};
 use walker::Walk;
 
 use crate::{
-    operation::{
-        BoundVariableDefinition, Location, SolvedOperation, VariableInputValues, VariableValueRecord, Variables,
-    },
+    operation::{BoundVariableDefinition, SolvedOperation, VariableInputValues, VariableValueRecord, Variables},
     response::{ErrorCode, GraphqlError},
 };
 
 use super::{
     coercion::{coerce_variable, coerce_variable_default_value, InputValueError},
-    BindError, BindResult, Binder,
+    BindError, BindResult, Binder, Location,
 };
 
 #[derive(Debug, thiserror::Error)]
@@ -25,12 +23,12 @@ pub enum VariableError {
 }
 
 impl From<VariableError> for GraphqlError {
-    fn from(err: VariableError) -> Self {
-        let locations = match err {
+    fn from(val: VariableError) -> Self {
+        let locations = match val {
             VariableError::MissingVariable { location, .. } => vec![location],
             VariableError::InvalidValue { ref err, .. } => vec![err.location()],
         };
-        GraphqlError::new(err.to_string(), ErrorCode::OperationValidationError).with_locations(locations)
+        GraphqlError::new(val.to_string(), ErrorCode::OperationValidationError).with_locations(locations)
     }
 }
 
@@ -81,27 +79,24 @@ pub fn bind_variables(
 }
 
 impl Binder<'_, '_> {
-    pub(super) fn bind_variable_definitions(
-        &mut self,
-        variables: Vec<Positioned<engine_parser::types::VariableDefinition>>,
-    ) -> BindResult<()> {
+    pub(super) fn bind_variable_definitions(&mut self, variables: Iter<'_, VariableDefinition<'_>>) -> BindResult<()> {
         let mut seen_names = HashSet::new();
 
-        for Positioned { node, .. } in variables {
-            let name = node.name.node.to_string();
-            let name_location = node.name.pos.try_into()?;
+        for variable in variables {
+            let name = variable.name().to_string();
+            let name_location = self.parsed_operation.span_to_location(variable.name_span());
 
             if seen_names.contains(&name) {
                 return Err(BindError::DuplicateVariable {
                     name,
-                    location: name_location,
+                    span: name_location,
                 });
             }
             seen_names.insert(name.clone());
 
-            let mut ty = self.convert_type(&name, node.var_type.pos.try_into()?, node.var_type.node)?;
+            let mut ty = self.convert_type(&name, variable.ty())?;
 
-            match node.default_value.as_ref().map(|pos| &pos.node) {
+            match variable.default_value() {
                 Some(value) if !value.is_null() => {
                     if ty.wrapping.is_list() {
                         ty.wrapping = ty.wrapping.wrapped_by_required_list();
@@ -113,9 +108,9 @@ impl Binder<'_, '_> {
             }
 
             let ty = ty.walk(self.schema);
-            let default_value = node
-                .default_value
-                .map(|Positioned { pos: _, node: value }| coerce_variable_default_value(self, name_location, ty, value))
+            let default_value = variable
+                .default_value()
+                .map(|value| coerce_variable_default_value(self, ty, value))
                 .transpose()?;
 
             self.variable_definition_in_use.push(false);
@@ -136,7 +131,7 @@ impl Binder<'_, '_> {
                 return Err(BindError::UnusedVariable {
                     name: variable.name.clone(),
                     operation: self.operation_name.clone(),
-                    location: variable.name_location,
+                    span: variable.name_location,
                 });
             }
         }
@@ -147,43 +142,59 @@ impl Binder<'_, '_> {
     fn convert_type(
         &self,
         variable_name: &str,
-        location: Location,
-        ty: engine_parser::types::Type,
+        ty: cynic_parser::executable::Type<'_>,
     ) -> BindResult<schema::TypeRecord> {
-        match ty.base {
-            engine_parser::types::BaseType::Named(type_name) => {
-                let definition =
-                    self.schema
-                        .definition_by_name(type_name.as_str())
-                        .ok_or_else(|| BindError::UnknownType {
-                            name: type_name.to_string(),
-                            location,
-                        })?;
-                if !matches!(
-                    definition,
-                    Definition::Enum(_) | Definition::Scalar(_) | Definition::InputObject(_)
-                ) {
-                    return Err(BindError::InvalidVariableType {
-                        name: variable_name.to_string(),
-                        ty: definition.name().to_string(),
-                        location,
-                    });
+        use cynic_parser::common::WrappingType;
+
+        let location = ty.span();
+
+        let definition = self
+            .schema
+            .definition_by_name(ty.name())
+            .ok_or_else(|| BindError::UnknownType {
+                name: ty.name().to_string(),
+                span: location,
+            })?;
+
+        if !matches!(
+            definition,
+            Definition::Enum(_) | Definition::Scalar(_) | Definition::InputObject(_)
+        ) {
+            return Err(BindError::InvalidVariableType {
+                name: variable_name.to_string(),
+                ty: definition.name().to_string(),
+                span: location,
+            });
+        }
+
+        let mut wrappers = ty.wrappers().collect::<Vec<_>>();
+        // Reverse wrappers so we go from inner most to outermost type
+        wrappers.reverse();
+        let mut wrappers = wrappers.into_iter().peekable();
+        let required = wrappers.peek() == Some(&WrappingType::NonNull);
+        if required {
+            wrappers.next();
+        }
+
+        let mut type_record = schema::TypeRecord {
+            definition_id: definition.id(),
+            wrapping: schema::Wrapping::new(required),
+        };
+
+        while let Some(wrapper) = wrappers.next() {
+            match (wrapper, wrappers.peek()) {
+                (WrappingType::List, Some(WrappingType::NonNull)) => {
+                    type_record.wrapping = type_record.wrapping.wrapped_by_required_list();
+                    wrappers.next();
                 }
-                Ok(schema::TypeRecord {
-                    definition_id: definition.id(),
-                    wrapping: schema::Wrapping::new(!ty.nullable),
-                })
-            }
-            engine_parser::types::BaseType::List(nested) => {
-                self.convert_type(variable_name, location, *nested).map(|mut r#type| {
-                    if ty.nullable {
-                        r#type.wrapping = r#type.wrapping.wrapped_by_nullable_list();
-                    } else {
-                        r#type.wrapping = r#type.wrapping.wrapped_by_required_list();
-                    }
-                    r#type
-                })
+                (WrappingType::List, _) => {
+                    type_record.wrapping = type_record.wrapping.wrapped_by_nullable_list();
+                }
+                _ => {
+                    unreachable!()
+                }
             }
         }
+        Ok(type_record)
     }
 }

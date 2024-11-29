@@ -54,11 +54,11 @@ fn basic() {
 fn request_error() {
     with_gateway(|service_name, start_time_unix, gateway, clickhouse| async move {
         let resp = gateway.gql::<serde_json::Value>(" __typ__ename }").send().await;
-        insta::assert_json_snapshot!(resp, @r###"
+        insta::assert_json_snapshot!(resp, @r#"
         {
           "errors": [
             {
-              "message": " --> 1:2\n  |\n1 |  __typ__ename }\n  |  ^---\n  |\n  = expected executable_definition",
+              "message": "unexpected non-variable identifier (e.g. 'x' or 'Foo') token (expected one of , \"{\"query, mutation, subscription, fragment)",
               "locations": [
                 {
                   "line": 1,
@@ -71,7 +71,7 @@ fn request_error() {
             }
           ]
         }
-        "###);
+        "#);
 
         tokio::time::sleep(METRICS_DELAY).await;
 

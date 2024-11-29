@@ -13,9 +13,7 @@ pub(super) fn ensure_introspection_is_accepted(schema: &Schema, operation: Opera
 fn detect_introspection(selection_set: SelectionSetWalker<'_>) -> BindResult<()> {
     for field in selection_set.fields() {
         if matches!(field.name(), "__schema" | "__type") {
-            return Err(BindError::IntrospectionIsDisabled {
-                location: field.location(),
-            });
+            return Err(BindError::IntrospectionIsDisabled { span: field.location() });
         }
     }
     Ok(())

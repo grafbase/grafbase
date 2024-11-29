@@ -1,6 +1,6 @@
-use engine_parser::{
-    types::{Field, Selection, SelectionSet},
-    Positioned,
+use cynic_parser::{
+    executable::{FieldSelection, FragmentSpread, InlineFragment, Iter, Selection},
+    Span,
 };
 use schema::Schema;
 
@@ -8,8 +8,9 @@ use super::{ParseError, ParseResult, ParsedOperation};
 
 pub(super) fn validate(schema: &Schema, operation: &ParsedOperation) -> ParseResult<()> {
     let limits = &schema.settings.operation_limits;
+    let operation = operation.operation();
+
     Visitor {
-        operation,
         current_fragments_stack: Vec::new(),
         root_fields: 0,
         max_root_fields: limits.root_fields.map(Into::into).unwrap_or(usize::MAX),
@@ -20,11 +21,10 @@ pub(super) fn validate(schema: &Schema, operation: &ParsedOperation) -> ParseRes
         complexity: 0,
         max_complexity: limits.complexity.map(Into::into).unwrap_or(usize::MAX),
     }
-    .visit_selection_set(&operation.definition.selection_set)
+    .visit_selection_set(operation.selection_set(), operation.selection_set_span())
 }
 
 struct Visitor<'p> {
-    operation: &'p ParsedOperation,
     current_fragments_stack: Vec<&'p str>,
     root_fields: usize,
     max_root_fields: usize,
@@ -37,22 +37,22 @@ struct Visitor<'p> {
 }
 
 impl<'p> Visitor<'p> {
-    fn visit_selection_set(&mut self, selection_set: &'p Positioned<SelectionSet>) -> ParseResult<()> {
-        for item in &selection_set.items {
-            match &item.node {
+    fn visit_selection_set(&mut self, selection_set: Iter<'p, Selection<'p>>, span: Span) -> ParseResult<()> {
+        for item in selection_set {
+            match item {
                 Selection::Field(field) => {
                     self.root_fields += (self.current_depth == 0) as usize;
                     if self.root_fields > self.max_root_fields {
                         return Err(ParseError::QueryContainsTooManyRootFields {
                             count: self.root_fields,
-                            location: selection_set.pos.try_into()?,
+                            span,
                         });
                     }
                     self.complexity += 1;
                     if self.complexity > self.max_complexity {
                         return Err(ParseError::QueryTooComplex {
                             complexity: self.complexity,
-                            location: field.selection_set.pos.try_into()?,
+                            span: field.selection_set_span().map(Into::into).unwrap_or(span),
                         });
                     }
                     self.visit_field(field)?;
@@ -69,61 +69,60 @@ impl<'p> Visitor<'p> {
         Ok(())
     }
 
-    fn visit_field(&mut self, field: &'p Positioned<Field>) -> ParseResult<()> {
-        self.aliases_count += field.alias.is_some() as usize;
+    fn visit_field(&mut self, field: FieldSelection<'p>) -> ParseResult<()> {
+        self.aliases_count += field.alias().is_some() as usize;
         if self.aliases_count > self.max_aliases_count {
             return Err(ParseError::QueryContainsTooManyAliases {
                 count: self.aliases_count,
-                location: field.selection_set.pos.try_into()?,
+                span: field.alias_span().unwrap(),
             });
         }
         self.current_depth += 1;
         if self.current_depth > self.max_depth {
             return Err(ParseError::QueryTooDeep {
                 depth: self.current_depth,
-                location: field.selection_set.pos.try_into()?,
+                span: field.name_span(),
             });
         }
 
-        self.visit_selection_set(&field.selection_set)?;
+        self.visit_selection_set(
+            field.selection_set(),
+            field.selection_set_span().unwrap_or(field.name_span()),
+        )?;
         self.current_depth -= 1;
 
         Ok(())
     }
 
-    fn visit_fragment_spread(
-        &mut self,
-        fragment_spread: &'p Positioned<engine_parser::types::FragmentSpread>,
-    ) -> ParseResult<()> {
-        let fragment_name = &fragment_spread.fragment_name.node;
-        if self.current_fragments_stack.contains(&fragment_name.as_str()) {
-            self.current_fragments_stack.push(fragment_name.as_str());
+    fn visit_fragment_spread(&mut self, fragment_spread: FragmentSpread<'p>) -> ParseResult<()> {
+        let fragment_name = fragment_spread.fragment_name();
+
+        if self.current_fragments_stack.contains(&fragment_name) {
+            self.current_fragments_stack.push(fragment_name);
             return Err(ParseError::FragmentCycle {
                 cycle: std::mem::take(&mut self.current_fragments_stack)
                     .into_iter()
                     .map(str::to_string)
                     .collect(),
-                location: fragment_spread.pos.try_into()?,
+                span: fragment_spread.fragment_name_span(),
             });
         }
-        let Some(fragment) = self.operation.fragments.get(fragment_name) else {
+
+        let Some(fragment) = fragment_spread.fragment() else {
             return Err(ParseError::UnknownFragment {
                 name: fragment_name.to_string(),
-                location: fragment_spread.pos.try_into()?,
+                span: fragment_spread.fragment_name_span(),
             });
         };
 
-        self.current_fragments_stack.push(fragment_name.as_str());
-        self.visit_selection_set(&fragment.selection_set)?;
+        self.current_fragments_stack.push(fragment_name);
+        self.visit_selection_set(fragment.selection_set(), fragment.selection_set_span())?;
         self.current_fragments_stack.pop();
 
         Ok(())
     }
 
-    fn visit_inline_fragment(
-        &mut self,
-        inline_fragment: &'p Positioned<engine_parser::types::InlineFragment>,
-    ) -> ParseResult<()> {
-        self.visit_selection_set(&inline_fragment.selection_set)
+    fn visit_inline_fragment(&mut self, inline_fragment: InlineFragment<'p>) -> ParseResult<()> {
+        self.visit_selection_set(inline_fragment.selection_set(), inline_fragment.selection_set_span())
     }
 }

@@ -1,7 +1,7 @@
 use grafbase_telemetry::graphql::GraphqlOperationAttributes;
 
 use crate::{
-    operation::{BindError, ParseError, PlanError, SolveError},
+    operation::{PlanError, SolveError},
     response::{ErrorCode, GraphqlError},
 };
 
@@ -9,12 +9,12 @@ pub(super) type PrepareResult<T> = std::result::Result<T, PrepareError>;
 
 #[derive(Debug, thiserror::Error)]
 pub(super) enum PrepareError {
-    #[error(transparent)]
-    Parse(#[from] ParseError),
+    #[error("{0}")]
+    Parse(GraphqlError),
     #[error("{err}")]
     Bind {
         attributes: Box<Option<GraphqlOperationAttributes>>,
-        err: BindError,
+        err: GraphqlError,
     },
     #[error("{err}")]
     Solve {
@@ -32,19 +32,21 @@ pub(super) enum PrepareError {
     ComplexityLimitReached,
     #[error("Expected exactly one slicing argument on {0}")]
     ExpectedOneSlicingArgument(String),
+    #[error("Executable document exceeded the maximum configured size")]
+    QueryTooBig,
 }
 
 impl From<PrepareError> for GraphqlError {
-    fn from(err: PrepareError) -> Self {
-        match err {
-            PrepareError::Bind { err, .. } => err.into(),
-            PrepareError::Parse(err) => err.into(),
+    fn from(val: PrepareError) -> Self {
+        match val {
+            PrepareError::Bind { err, .. } => err,
+            PrepareError::Parse(err) => err,
             PrepareError::Plan { err, .. } => err.into(),
             PrepareError::Solve { err, .. } => err.into(),
-            PrepareError::NormalizationError => GraphqlError::new(err.to_string(), ErrorCode::InternalServerError),
-            PrepareError::ComplexityLimitReached | PrepareError::ExpectedOneSlicingArgument(_) => {
-                GraphqlError::new(err.to_string(), ErrorCode::OperationValidationError)
-            }
+            PrepareError::NormalizationError => GraphqlError::new(val.to_string(), ErrorCode::InternalServerError),
+            PrepareError::ComplexityLimitReached
+            | PrepareError::ExpectedOneSlicingArgument(_)
+            | PrepareError::QueryTooBig => GraphqlError::new(val.to_string(), ErrorCode::OperationValidationError),
         }
     }
 }

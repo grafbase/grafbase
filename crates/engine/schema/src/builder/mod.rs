@@ -146,6 +146,7 @@ impl BuildContext {
                 complexity_control: take(&mut config.complexity_control),
                 response_extension: config.response_extension,
                 apq_enabled: config.apq.enabled,
+                executable_document_limit_bytes: config.executable_document_limit_bytes,
             },
         })
     }
