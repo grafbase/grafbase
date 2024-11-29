@@ -1,5 +1,5 @@
 use engine::Engine;
-use graphql_mocks::{AlmostEmptySchema, FakeGithubSchema};
+use graphql_mocks::{dynamic::DynamicSchema, AlmostEmptySchema, FakeGithubSchema};
 use integration_tests::{federation::EngineExt, runtime};
 use serde_json::json;
 
@@ -55,4 +55,215 @@ fn supports_unused_builtin_scalars() {
       ]
     }
     "###);
+}
+
+#[test]
+fn coerces_ints_to_floats() {
+    let response = runtime().block_on(async move {
+        let engine = Engine::builder()
+            .with_subgraph(
+                DynamicSchema::builder(
+                    r#"
+                        type Query {
+                          foo(input: Float): Float
+                        }
+                    "#,
+                )
+                .with_resolver("Query", "foo", json!(1.0))
+                .into_subgraph("foo"),
+            )
+            .build()
+            .await;
+
+        engine.post("query { foo(input: 1) }").await
+    });
+
+    insta::assert_json_snapshot!(response, @r#"
+    {
+      "data": {
+        "foo": 1.0
+      }
+    }
+    "#);
+}
+
+#[test]
+fn coerces_floats_to_ints_where_possible() {
+    let response = runtime().block_on(async move {
+        let engine = Engine::builder()
+            .with_subgraph(
+                DynamicSchema::builder(
+                    r#"
+                        type Query {
+                          foo(input: Int): Float
+                        }
+                    "#,
+                )
+                .with_resolver("Query", "foo", json!(1.0))
+                .into_subgraph("foo"),
+            )
+            .build()
+            .await;
+
+        engine.post("query { foo(input: 1.0) }").await
+    });
+
+    insta::assert_json_snapshot!(response, @r#"
+    {
+      "data": {
+        "foo": 1.0
+      }
+    }
+    "#);
+}
+
+#[test]
+fn refuses_to_lose_precision_when_converting_floats_to_ints() {
+    let response = runtime().block_on(async move {
+        let engine = Engine::builder()
+            .with_subgraph(
+                DynamicSchema::builder(
+                    r#"
+                        type Query {
+                          foo(input: Int): Float
+                        }
+                    "#,
+                )
+                .with_resolver("Query", "foo", json!(1.0))
+                .into_subgraph("foo"),
+            )
+            .build()
+            .await;
+
+        engine.post("query { foo(input: 1.5) }").await
+    });
+
+    insta::assert_json_snapshot!(response, @r#"
+    {
+      "errors": [
+        {
+          "message": "Found a Float value where we expected a Int scalar",
+          "locations": [
+            {
+              "line": 1,
+              "column": 20
+            }
+          ],
+          "extensions": {
+            "code": "OPERATION_VALIDATION_ERROR"
+          }
+        }
+      ]
+    }
+    "#);
+}
+
+#[test]
+fn coerces_variable_ints_to_floats() {
+    let response = runtime().block_on(async move {
+        let engine = Engine::builder()
+            .with_subgraph(
+                DynamicSchema::builder(
+                    r#"
+                        type Query {
+                          foo(input: Float): Float
+                        }
+                    "#,
+                )
+                .with_resolver("Query", "foo", json!(1.0))
+                .into_subgraph("foo"),
+            )
+            .build()
+            .await;
+
+        engine
+            .post("query($foo: Float) { foo(input: $foo) }")
+            .variables(json!({"foo": 1}))
+            .await
+    });
+
+    insta::assert_json_snapshot!(response, @r#"
+    {
+      "data": {
+        "foo": 1.0
+      }
+    }
+    "#);
+}
+
+#[test]
+fn coerces_variable_floats_to_ints_where_possible() {
+    let response = runtime().block_on(async move {
+        let engine = Engine::builder()
+            .with_subgraph(
+                DynamicSchema::builder(
+                    r#"
+                        type Query {
+                          foo(input: Int): Float
+                        }
+                    "#,
+                )
+                .with_resolver("Query", "foo", json!(1.0))
+                .into_subgraph("foo"),
+            )
+            .build()
+            .await;
+
+        engine
+            .post("query($foo: Int) { foo(input: $foo) }")
+            .variables(json!({"foo": 1.0}))
+            .await
+    });
+
+    insta::assert_json_snapshot!(response, @r#"
+    {
+      "data": {
+        "foo": 1.0
+      }
+    }
+    "#);
+}
+
+#[test]
+fn refuses_to_lose_precision_when_converting_variable_floats_to_ints() {
+    let response = runtime().block_on(async move {
+        let engine = Engine::builder()
+            .with_subgraph(
+                DynamicSchema::builder(
+                    r#"
+                        type Query {
+                          foo(input: Int): Float
+                        }
+                    "#,
+                )
+                .with_resolver("Query", "foo", json!(1.0))
+                .into_subgraph("foo"),
+            )
+            .build()
+            .await;
+
+        engine
+            .post("query($foo: Int) { foo(input: $foo) }")
+            .variables(json!({"foo": 1.5}))
+            .await
+    });
+
+    insta::assert_json_snapshot!(response, @r#"
+    {
+      "errors": [
+        {
+          "message": "Variable $foo has an invalid value. Found value 1.5 which cannot be coerced into a Int scalar",
+          "locations": [
+            {
+              "line": 1,
+              "column": 7
+            }
+          ],
+          "extensions": {
+            "code": "OPERATION_VALIDATION_ERROR"
+          }
+        }
+      ]
+    }
+    "#);
 }
