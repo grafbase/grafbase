@@ -4,12 +4,14 @@
 pub mod path;
 
 mod change;
+mod diff_config;
 mod patch;
 mod state;
 mod traverse_schemas;
 
 pub use self::{
     change::{Change, ChangeKind, Span},
+    diff_config::DiffConfig,
     patch::{patch, PatchedSchema},
 };
 
@@ -17,8 +19,8 @@ use self::state::*;
 use cynic_parser::type_system as ast;
 use std::collections::HashMap;
 
-/// Diff two GraphQL schemas.
-pub fn diff(source: &str, target: &str) -> Result<Vec<Change>, cynic_parser::Error> {
+/// Diff two GraphQL schemas with a custom [DiffConfig].
+pub fn diff_with_config(source: &str, target: &str, config: DiffConfig) -> Result<Vec<Change>, cynic_parser::Error> {
     let [source, target] = [source, target].map(|sdl| -> Result<_, cynic_parser::Error> {
         if sdl.trim().is_empty() {
             Ok(None)
@@ -32,7 +34,12 @@ pub fn diff(source: &str, target: &str) -> Result<Vec<Change>, cynic_parser::Err
 
     traverse_schemas::traverse_schemas([source.as_ref(), target.as_ref()], &mut state);
 
-    Ok(state.into_changes())
+    Ok(state.into_changes(&config))
+}
+
+/// Diff two GraphQL schemas with the default configuration.
+pub fn diff(source: &str, target: &str) -> Result<Vec<Change>, cynic_parser::Error> {
+    diff_with_config(source, target, Default::default())
 }
 
 /// Resolve the spans from [Change]s and the corresponding schemas.

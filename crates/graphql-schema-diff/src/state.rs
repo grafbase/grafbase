@@ -45,7 +45,7 @@ impl DefinitionKind {
 }
 
 impl DiffState<'_> {
-    pub(crate) fn into_changes(self) -> Vec<Change> {
+    pub(crate) fn into_changes(self, config: &DiffConfig) -> Vec<Change> {
         let DiffState {
             schema_definition_map,
             schema_extensions,
@@ -69,7 +69,7 @@ impl DiffState<'_> {
         push_interface_implementer_changes(interface_impls, &mut push_change);
 
         push_definition_changes(&types_map, &mut push_change);
-        push_field_changes(&fields_map, &types_map, &mut push_change);
+        push_field_changes(&fields_map, &types_map, &mut push_change, config);
         push_argument_changes(&fields_map, &arguments_map, &mut push_change);
 
         changes.sort();
@@ -189,6 +189,7 @@ fn push_field_changes(
     fields_map: &DiffMap<[&str; 2], (Option<ast::Type<'_>>, Span)>,
     types_map: &DiffMap<&str, ast::Definition<'_>>,
     push_change: PushChangeFn<'_>,
+    config: &DiffConfig,
 ) {
     for ([type_name, field_name], (src, target)) in fields_map {
         let parent = &types_map[type_name];
@@ -199,8 +200,15 @@ fn push_field_changes(
             (Some(a), Some(b)) if DefinitionKind::new(a) != DefinitionKind::new(b) => {
                 continue; // so we don't falsely interpret same name as field type change
             }
-            (Some(_), None) | (None, Some(_)) => continue,
-            (Some(kind), Some(_)) => *kind,
+            (Some(_), None) => continue,
+            (None, Some(definition)) => {
+                if config.additions_inside_type_definitions {
+                    *definition
+                } else {
+                    continue;
+                }
+            }
+            (Some(definition), Some(_)) => *definition,
         };
 
         let change_kind = match (src, target, DefinitionKind::new(&definition).unwrap()) {
