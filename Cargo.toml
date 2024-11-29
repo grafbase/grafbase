@@ -13,7 +13,6 @@ members = [
     "crates/engine/query-solver",
     "crates/engine/id-derives",
     "crates/engine/id-newtypes",
-    "crates/engine/parser",
     "crates/engine/value",
 ]
 exclude = ["crates/wasi-component-loader/examples", "examples/hooks-template"]
@@ -159,7 +158,6 @@ rolling-logger = { path = "crates/rolling-logger" }
 
 # Engine
 engine-config-builder = { path = "crates/engine-config-builder" }
-engine-parser = { path = "crates/engine/parser" }
 engine = { path = "crates/engine" }
 engine-auth = { path = "crates/engine/auth" }
 engine-axum = { path = "crates/engine/axum" }

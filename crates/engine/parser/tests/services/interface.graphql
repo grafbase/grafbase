@@ -1,3 +1,0 @@
-interface Bar {
-  one: Type
-}

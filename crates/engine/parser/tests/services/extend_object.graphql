@@ -1,3 +1,0 @@
-extend type Foo {
-  seven(argument: [String]): Type
-}

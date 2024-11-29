@@ -1,3 +1,0 @@
-query Foo($a: Int @directive = 10, $b: Int @directive) {
-    value
-}
