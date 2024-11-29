@@ -13,7 +13,6 @@ members = [
     "crates/engine/query-solver",
     "crates/engine/id-derives",
     "crates/engine/id-newtypes",
-    "crates/engine/value",
 ]
 exclude = ["crates/wasi-component-loader/examples", "examples/hooks-template"]
 
@@ -162,7 +161,6 @@ engine = { path = "crates/engine" }
 engine-auth = { path = "crates/engine/auth" }
 engine-axum = { path = "crates/engine/axum" }
 engine-config = { path = "crates/engine/config" }
-engine-value = { path = "crates/engine/value" }
 federated-graph = { path = "crates/graphql-federated-graph", package = "graphql-federated-graph" }
 grafbase-telemetry = { path = "crates/telemetry" }
 graphql-composition = { path = "crates/graphql-composition" }

@@ -111,26 +111,24 @@ pub enum ValueKind {
     Null,
 }
 
-impl From<engine_value::ConstValue> for ValueKind {
-    fn from(value: engine_value::ConstValue) -> Self {
+impl From<serde_json::Value> for ValueKind {
+    fn from(value: serde_json::Value) -> Self {
         (&value).into()
     }
 }
 
-impl From<&engine_value::ConstValue> for ValueKind {
-    fn from(value: &engine_value::ConstValue) -> Self {
-        use engine_value::ConstValue;
+impl From<&serde_json::Value> for ValueKind {
+    fn from(value: &serde_json::Value) -> Self {
+        use serde_json::Value;
 
         match value {
-            ConstValue::Null => ValueKind::Null,
-            ConstValue::Number(number) if number.is_f64() => ValueKind::Float,
-            ConstValue::Number(_) => ValueKind::Integer,
-            ConstValue::String(_) => ValueKind::String,
-            ConstValue::Boolean(_) => ValueKind::Boolean,
-            ConstValue::Binary(_) => ValueKind::String,
-            ConstValue::Enum(_) => ValueKind::Enum,
-            ConstValue::List(_) => ValueKind::List,
-            ConstValue::Object(_) => ValueKind::Object,
+            Value::Null => ValueKind::Null,
+            Value::Number(number) if number.is_f64() => ValueKind::Float,
+            Value::Number(_) => ValueKind::Integer,
+            Value::String(_) => ValueKind::String,
+            Value::Object(_) => ValueKind::Object,
+            Value::Bool(_) => ValueKind::Boolean,
+            Value::Array(_) => ValueKind::List,
         }
     }
 }

@@ -2100,7 +2100,6 @@ dependencies = [
  "engine-id-newtypes",
  "engine-query-solver",
  "engine-schema",
- "engine-value",
  "engine-walker",
  "fixedbitset 0.5.7",
  "futures",
@@ -2304,17 +2303,6 @@ dependencies = [
  "strum_macros",
  "thiserror 2.0.3",
  "url",
-]
-
-[[package]]
-name = "engine-value"
-version = "3.0.31"
-dependencies = [
- "bytes",
- "grafbase-workspace-hack",
- "indexmap 2.6.0",
- "serde",
- "serde_json",
 ]
 
 [[package]]
@@ -4268,7 +4256,6 @@ dependencies = [
  "engine",
  "engine-axum",
  "engine-config-builder",
- "engine-value",
  "futures",
  "gateway-config",
  "grafbase-telemetry",

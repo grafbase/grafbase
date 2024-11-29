@@ -1,4 +1,4 @@
-use std::collections::{btree_map::Entry, HashSet};
+use std::collections::HashSet;
 
 use cynic_parser::executable::{Iter, VariableDefinition};
 use schema::{Definition, Schema, Wrapping};
@@ -45,20 +45,17 @@ pub fn bind_variables(
     };
 
     for (variable_id, definition) in operation.variable_definitions.iter().enumerate() {
-        match request_variables.entry(engine_value::Name::new(&definition.name)) {
-            Entry::Occupied(mut entry) => {
-                let value = std::mem::take(entry.get_mut());
-                match coerce_variable(schema, &mut variables.input_values, definition, value) {
-                    Ok(id) => variables.definition_to_value[variable_id] = VariableValueRecord::Provided(id),
-                    Err(err) => {
-                        errors.push(VariableError::InvalidValue {
-                            name: definition.name.clone(),
-                            err,
-                        });
-                    }
+        match request_variables.remove(&definition.name) {
+            Some(value) => match coerce_variable(schema, &mut variables.input_values, definition, value) {
+                Ok(id) => variables.definition_to_value[variable_id] = VariableValueRecord::Provided(id),
+                Err(err) => {
+                    errors.push(VariableError::InvalidValue {
+                        name: definition.name.clone(),
+                        err,
+                    });
                 }
-            }
-            Entry::Vacant(_) => {
+            },
+            None => {
                 if let Some(default_value_id) = definition.default_value_id {
                     variables.definition_to_value[variable_id] = VariableValueRecord::DefaultValue(default_value_id);
                 } else if definition.ty_record.wrapping.is_required() {
