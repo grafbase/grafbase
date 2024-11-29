@@ -121,7 +121,7 @@ toml_datetime = { version = "0.6", default-features = false, features = ["serde"
 toml_edit = { version = "0.22", features = ["serde"] }
 tower-9fbad63c4bcf4a8f = { package = "tower", version = "0.4", features = ["balance", "buffer", "limit", "util"] }
 tower-d8f496e17d97b5cb = { package = "tower", version = "0.5", default-features = false, features = ["log", "make", "retry"] }
-tower-http = { version = "0.6", features = ["cors", "fs", "timeout", "trace"] }
+tower-http = { version = "0.6", features = ["cors", "fs", "set-header", "timeout", "trace"] }
 tracing = { version = "0.1", features = ["log"] }
 tracing-core = { version = "0.1" }
 tracing-log = { version = "0.2" }
@@ -240,7 +240,7 @@ toml_datetime = { version = "0.6", default-features = false, features = ["serde"
 toml_edit = { version = "0.22", features = ["serde"] }
 tower-9fbad63c4bcf4a8f = { package = "tower", version = "0.4", features = ["balance", "buffer", "limit", "util"] }
 tower-d8f496e17d97b5cb = { package = "tower", version = "0.5", default-features = false, features = ["log", "make", "retry"] }
-tower-http = { version = "0.6", features = ["cors", "fs", "timeout", "trace"] }
+tower-http = { version = "0.6", features = ["cors", "fs", "set-header", "timeout", "trace"] }
 tracing = { version = "0.1", features = ["log"] }
 tracing-core = { version = "0.1" }
 tracing-log = { version = "0.2" }
