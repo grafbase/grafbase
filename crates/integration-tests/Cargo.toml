@@ -24,7 +24,6 @@ futures = "0.3.30"
 gateway-config.workspace = true
 graphql-composition.workspace = true
 federated-graph.workspace = true
-graphql-parser = "0.4.0"
 headers.workspace = true
 http.workspace = true
 http-body-util = "0.1.0"

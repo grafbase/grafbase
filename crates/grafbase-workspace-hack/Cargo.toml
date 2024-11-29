@@ -74,7 +74,7 @@ indexmap = { version = "2", features = ["serde"] }
 insta = { version = "1", features = ["json", "redactions", "yaml"] }
 lazy_static = { version = "1", default-features = false, features = ["spin_no_std"] }
 log = { version = "0.4", default-features = false, features = ["std"] }
-memchr = { version = "2", features = ["use_std"] }
+memchr = { version = "2" }
 miette = { version = "7", features = ["fancy"] }
 num-bigint-dig = { version = "0.8", default-features = false, features = ["i128", "prime", "u64_digit", "zeroize"] }
 num-integer = { version = "0.1", default-features = false, features = ["i128", "std"] }
@@ -192,7 +192,7 @@ indexmap = { version = "2", features = ["serde"] }
 insta = { version = "1", features = ["json", "redactions", "yaml"] }
 lazy_static = { version = "1", default-features = false, features = ["spin_no_std"] }
 log = { version = "0.4", default-features = false, features = ["std"] }
-memchr = { version = "2", features = ["use_std"] }
+memchr = { version = "2" }
 miette = { version = "7", features = ["fancy"] }
 num-bigint-dig = { version = "0.8", default-features = false, features = ["i128", "prime", "u64_digit", "zeroize"] }
 num-integer = { version = "0.1", default-features = false, features = ["i128", "std"] }

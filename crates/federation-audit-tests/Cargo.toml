@@ -15,7 +15,6 @@ serde_json.workspace = true
 grafbase-workspace-hack.workspace = true
 
 [dev-dependencies]
-async-graphql-parser.workspace = true
 cynic-parser.workspace = true
 graphql-composition.workspace = true
 integration-tests.path = "../integration-tests"
