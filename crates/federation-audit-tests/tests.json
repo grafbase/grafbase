@@ -164,6 +164,14 @@
     "index": 1
   },
   {
+    "suite": "fed1-external-extends",
+    "index": 2
+  },
+  {
+    "suite": "fed1-external-extends",
+    "index": 3
+  },
+  {
     "suite": "fed1-external-extends-resolvable",
     "index": 0
   },
@@ -176,6 +184,14 @@
     "index": 1
   },
   {
+    "suite": "fed1-external-extension",
+    "index": 2
+  },
+  {
+    "suite": "fed1-external-extension",
+    "index": 3
+  },
+  {
     "suite": "fed2-external-extends",
     "index": 0
   },
@@ -184,12 +200,28 @@
     "index": 1
   },
   {
+    "suite": "fed2-external-extends",
+    "index": 2
+  },
+  {
+    "suite": "fed2-external-extends",
+    "index": 3
+  },
+  {
     "suite": "fed2-external-extension",
     "index": 0
   },
   {
     "suite": "fed2-external-extension",
     "index": 1
+  },
+  {
+    "suite": "fed2-external-extension",
+    "index": 2
+  },
+  {
+    "suite": "fed2-external-extension",
+    "index": 3
   },
   {
     "suite": "include-skip",

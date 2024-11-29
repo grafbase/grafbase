@@ -1,53 +1,13 @@
-use schema::InputValueSerdeError;
+use crate::response::{ResponseObject, ResponseValue};
+use schema::{FieldSetItemRecord, InputValueSerdeError};
 use serde::{
-    de::{
-        value::{MapDeserializer, SeqDeserializer},
-        IntoDeserializer, Visitor,
-    },
+    de::{value::SeqDeserializer, IntoDeserializer, MapAccess, Visitor},
     forward_to_deserialize_any,
 };
+use std::iter::Iterator;
+use walker::Walk;
 
-use crate::response::{value::NULL, ResponseValue};
-
-use super::{ResponseObjectView, ResponseObjectsView, ResponseValueView};
-
-impl<'de> serde::Deserializer<'de> for ResponseObjectsView<'de> {
-    type Error = InputValueSerdeError;
-
-    fn deserialize_any<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-    where
-        V: Visitor<'de>,
-    {
-        SeqDeserializer::new(self.into_iter()).deserialize_any(visitor)
-    }
-
-    fn deserialize_option<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-    where
-        V: Visitor<'de>,
-    {
-        visitor.visit_some(self)
-    }
-
-    fn deserialize_ignored_any<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-    where
-        V: Visitor<'de>,
-    {
-        visitor.visit_unit()
-    }
-
-    forward_to_deserialize_any! {
-        bool i8 i16 i32 i64 i128 u8 u16 u32 u64 u128 f32 f64 char str string
-        bytes byte_buf unit unit_struct newtype_struct seq tuple
-        tuple_struct map struct enum identifier
-    }
-}
-
-impl<'de> IntoDeserializer<'de, InputValueSerdeError> for ResponseObjectsView<'de> {
-    type Deserializer = Self;
-    fn into_deserializer(self) -> Self::Deserializer {
-        self
-    }
-}
+use super::{ResponseObjectView, ResponseValueView, ViewContext};
 
 impl<'de> serde::Deserializer<'de> for ResponseObjectView<'de> {
     type Error = InputValueSerdeError;
@@ -56,17 +16,13 @@ impl<'de> serde::Deserializer<'de> for ResponseObjectView<'de> {
     where
         V: Visitor<'de>,
     {
-        MapDeserializer::new(self.selection_set.iter().map(|selection| {
-            let key = self.ctx.schema[selection.alias_id].as_str();
-            let value = ResponseValueView {
-                ctx: self.ctx,
-                value: self.response_object.find_required_field(selection.id).unwrap_or(&NULL),
-                selection_set: &selection.subselection_record,
-            };
-
-            (key, value)
-        }))
-        .deserialize_any(visitor)
+        let map = ResponseObjectViewMapAcces {
+            ctx: self.ctx,
+            response_object: self.response_object,
+            selection: None,
+            selection_set: self.selection_set.iter(),
+        };
+        visitor.visit_map(map)
     }
 
     fn deserialize_option<V>(self, visitor: V) -> Result<V::Value, Self::Error>
@@ -87,6 +43,52 @@ impl<'de> serde::Deserializer<'de> for ResponseObjectView<'de> {
         bool i8 i16 i32 i64 i128 u8 u16 u32 u64 u128 f32 f64 char str string
         bytes byte_buf unit unit_struct newtype_struct seq tuple
         tuple_struct map struct enum identifier
+    }
+}
+
+struct ResponseObjectViewMapAcces<'de> {
+    ctx: ViewContext<'de>,
+    response_object: &'de ResponseObject,
+    selection: Option<&'de FieldSetItemRecord>,
+    selection_set: std::slice::Iter<'de, FieldSetItemRecord>,
+}
+
+impl<'de> MapAccess<'de> for ResponseObjectViewMapAcces<'de> {
+    type Error = InputValueSerdeError;
+
+    fn next_key_seed<K>(&mut self, seed: K) -> Result<Option<K::Value>, Self::Error>
+    where
+        K: serde::de::DeserializeSeed<'de>,
+    {
+        match self.selection_set.next() {
+            None => Ok(None),
+            Some(selection) => {
+                let key = self.ctx.schema[selection.alias_id].as_str();
+                seed.deserialize(key.into_deserializer()).map(Some)
+            }
+        }
+    }
+
+    fn next_value_seed<V>(&mut self, seed: V) -> Result<V::Value, Self::Error>
+    where
+        V: serde::de::DeserializeSeed<'de>,
+    {
+        let selection = self.selection.take();
+        // Panic because this indicates a bug in the program rather than an
+        // expected failure.
+        let selection = selection.expect("MapAccess::next_value called before next_key");
+        let value = ResponseValueView {
+            ctx: self.ctx,
+            value: self.response_object.find_required_field(selection.id).ok_or_else(|| {
+                InputValueSerdeError::Message(format!(
+                    "Could not retrieve field {}",
+                    selection.id.walk(self.ctx.schema).definition().name()
+                ))
+            })?,
+
+            selection_set: &selection.subselection_record,
+        };
+        seed.deserialize(value.into_deserializer())
     }
 }
 

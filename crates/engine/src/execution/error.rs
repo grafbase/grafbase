@@ -8,8 +8,6 @@ use crate::response::{ErrorCode, GraphqlError};
 pub enum ExecutionError {
     #[error("Internal error: {0}")]
     Internal(Cow<'static, str>),
-    #[error("Deserialization error: {0}")]
-    DeserializationError(String),
     #[error("Request to subgraph '{subgraph_name}' failed with: {error}")]
     Fetch { subgraph_name: String, error: FetchError },
     #[error(transparent)]
@@ -40,7 +38,6 @@ impl From<ExecutionError> for GraphqlError {
         let message = err.to_string();
         let code = match &err {
             ExecutionError::Internal(_) => ErrorCode::InternalServerError,
-            ExecutionError::DeserializationError(_) => ErrorCode::SubgraphInvalidResponseError,
             ExecutionError::Fetch { .. } => ErrorCode::SubgraphRequestError,
             ExecutionError::RateLimit(_) => ErrorCode::RateLimited,
             ExecutionError::Graphql(err) => err.code,
@@ -64,11 +61,5 @@ impl From<&'static str> for ExecutionError {
 impl From<String> for ExecutionError {
     fn from(message: String) -> Self {
         Self::Internal(message.into())
-    }
-}
-
-impl From<serde_json::Error> for ExecutionError {
-    fn from(err: serde_json::Error) -> Self {
-        Self::DeserializationError(err.to_string())
     }
 }

@@ -43,7 +43,7 @@ fn subgraph_not_reachable_does_not_leak_subgraph_url() {
 
         let response = engine.post(r#"query { user { name } }"#).await;
 
-        insta::assert_json_snapshot!(response, @r###"
+        insta::assert_json_snapshot!(response, @r#"
         {
           "data": {
             "user": null
@@ -60,6 +60,6 @@ fn subgraph_not_reachable_does_not_leak_subgraph_url() {
             }
           ]
         }
-        "###);
+        "#);
     })
 }

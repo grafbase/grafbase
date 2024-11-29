@@ -26,12 +26,12 @@ fn subgraph_no_response() {
         .execute()
         .await
     });
-    insta::assert_json_snapshot!(response, @r###"
+    insta::assert_json_snapshot!(response, @r#"
     {
       "data": null,
       "errors": [
         {
-          "message": "Deserialization error: invalid type: null, expected a valid GraphQL response at line 1 column 4",
+          "message": "Invalid response from subgraph",
           "path": [
             "me"
           ],
@@ -41,7 +41,7 @@ fn subgraph_no_response() {
         }
       ]
     }
-    "###);
+    "#);
 
     let response = integration_tests::runtime().block_on(async {
         DeterministicEngine::new(
@@ -59,12 +59,12 @@ fn subgraph_no_response() {
         .execute()
         .await
     });
-    insta::assert_json_snapshot!(response, @r###"
+    insta::assert_json_snapshot!(response, @r#"
     {
       "data": null,
       "errors": [
         {
-          "message": "Missing data from subgraph",
+          "message": "Invalid response from subgraph",
           "path": [
             "me"
           ],
@@ -74,7 +74,7 @@ fn subgraph_no_response() {
         }
       ]
     }
-    "###);
+    "#);
 }
 
 #[test]
@@ -276,14 +276,14 @@ fn invalid_response_for_nullable_field() {
         .execute()
         .await
     });
-    insta::assert_json_snapshot!(response, @r###"
+    insta::assert_json_snapshot!(response, @r#"
     {
       "data": {
         "name": null
       },
       "errors": [
         {
-          "message": "Missing data from subgraph",
+          "message": "Invalid response from subgraph",
           "path": [
             "name"
           ],
@@ -293,7 +293,7 @@ fn invalid_response_for_nullable_field() {
         }
       ]
     }
-    "###);
+    "#);
 }
 
 #[test]
@@ -334,7 +334,6 @@ fn subgraph_field_error() {
 }
 
 #[test]
-#[ignore]
 fn simple_error() {
     let response = integration_tests::runtime().block_on(async { DeterministicEngine::new(
         SCHEMA,
@@ -371,7 +370,7 @@ fn simple_error() {
             ],
         ).await.execute().await
     });
-    insta::assert_json_snapshot!(response, @r###"
+    insta::assert_json_snapshot!(response, @r#"
     {
       "data": {
         "me": {
@@ -408,11 +407,11 @@ fn simple_error() {
       },
       "errors": [
         {
-          "message": "Error decoding response from upstream: Missing required field named 'id' at line 1 column 140",
+          "message": "Invalid response from subgraph",
           "locations": [
             {
-              "line": 9,
-              "column": 21
+              "line": 10,
+              "column": 25
             }
           ],
           "path": [
@@ -422,7 +421,8 @@ fn simple_error() {
             "product",
             "reviews",
             0,
-            "author"
+            "author",
+            "id"
           ],
           "extensions": {
             "code": "SUBGRAPH_INVALID_RESPONSE_ERROR"
@@ -430,7 +430,7 @@ fn simple_error() {
         }
       ]
     }
-    "###);
+    "#);
 }
 
 #[test]

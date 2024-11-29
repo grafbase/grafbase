@@ -49,7 +49,7 @@ impl<'de> Visitor<'de> for PolymorphicShapeSeed<'_, '_> {
         A: MapAccess<'de>,
     {
         let schema = self.ctx.schema;
-        let mut content = VecDeque::<(_, serde_value::Value)>::new();
+        let mut content = VecDeque::<(Key<'_>, serde_value::Value)>::new();
         while let Some(key) = map.next_key::<Key<'de>>()? {
             if key.as_ref() == "__typename" {
                 let value = map.next_value::<Key<'_>>()?;
@@ -87,14 +87,23 @@ impl<'de> Visitor<'de> for PolymorphicShapeSeed<'_, '_> {
                         .visit_map(ChainedMapAcces::new(content, map));
                     }
 
-                    return Err(serde::de::Error::custom("Couldn't determine the object type"));
+                    return Err(serde::de::Error::custom(
+                        "Couldn't determine the object type from __typename",
+                    ));
                 }
 
-                // Discarding the rest of the data if it does not match any concrete shape
+                // Try discarding the next value, we might be able to use other parts of
+                // the response.
                 while map.next_entry::<IgnoredAny, IgnoredAny>()?.is_some() {}
 
                 // Adding empty object instead
-                return Ok(self.ctx.writer.data().push_object(Default::default()).into());
+                return Ok(self
+                    .ctx
+                    .subgraph_response
+                    .borrow_mut()
+                    .data
+                    .push_object(Default::default())
+                    .into());
             }
             // keeping the fields until we find the actual __typename.
             content.push_back((key, map.next_value()?));

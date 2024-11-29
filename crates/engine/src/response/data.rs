@@ -125,9 +125,9 @@ impl DataPart {
 
 impl DataPart {
     /// In a non-federated GraphQL server, values are simply set to null when propagating nulls for
-    /// errors. It's less obvious in a federated context because the supergraph may need some
-    /// fields for subgraph requests or custom directives like `@authorized`. So if a user
-    /// requested something like the following:
+    /// errors. It's not as simple in a federated context because the supergraph may need
+    /// fields for subgraph requests or custom directives like `@authorized`. Let's take an example
+    /// with the following query:
     ///
     /// ```graphql,ignore
     /// {
@@ -136,7 +136,7 @@ impl DataPart {
     /// }
     /// ```
     ///
-    /// with a schema like:
+    /// and this schema:
     ///
     /// ```graphql,ignore
     /// type Author {
@@ -155,15 +155,13 @@ impl DataPart {
     /// ```
     ///
     /// If we have an error for `name`, we still need to be able to read the `id`
-    /// field for the subgraph request retrieving `posts`. So we whichever field would be null
-    /// through propagation is marked as inaccessible. During serialization of the response to the
-    /// client those are treated as null. For every other purpose inaccessible fields are
-    /// transparent.
+    /// field for the subgraph request retrieving `posts`. If we simply propagated null upwards, we
+    /// would lose `author { id }` we retrieved for the `posts`. So instead we mark fields as inaccessible.
+    /// During serialization of the response to the client those are treated as null. For every other
+    /// purpose inaccessible fields are transparent.
     ///
-    /// The primary use-case where this kind of figure can happen where the supergraph needs to
-    /// propagate a null is for `@inaccessible` fields we detect at runtime. This happens typically
-    /// for inaccessible enum values or inaccessible objects we may encounter behind an
-    /// interface/union.
+    /// This happens when the supergraph needs to propagate a null for an `@inaccessible` field we detect at runtime,
+    /// which can occur for enum values or inaccessible objects we may encounter behind an interface/union.
     pub fn make_inaccessible(&mut self, value_id: ResponseValueId) {
         let mut inaccessible_value = ResponseValue::Inaccessible {
             id: ResponseInaccessibleValueId {

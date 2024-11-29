@@ -59,7 +59,8 @@ where
         match self.seed.deserialize(deserializer) {
             Ok(value) => Ok(value),
             Err(err) => {
-                self.ctx.push_field_serde_error(self.field, false, || err.to_string());
+                self.ctx
+                    .push_field_deserialization_error_if_not_bubbling_up(self.field, false, err);
                 Ok(ResponseValue::Null)
             }
         }

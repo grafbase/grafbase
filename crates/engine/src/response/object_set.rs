@@ -69,7 +69,7 @@ pub(crate) struct InputResponseObjectSet {
 impl InputResponseObjectSet {
     pub(crate) fn with_response_objects(mut self, refs: Arc<ResponseObjectSet>) -> Self {
         let n = self.indices.len();
-        self.indices.reserve(refs.len());
+        self.indices.reserve_exact(refs.len());
         self.sets.push(refs);
 
         let set_idx = self.sets.len() - 1;
@@ -91,16 +91,15 @@ impl InputResponseObjectSet {
         refs: Arc<ResponseObjectSet>,
     ) -> Self {
         let n = self.indices.len();
-        self.indices.reserve(refs.len());
-        self.sets.push(refs);
+        self.indices.reserve_exact(refs.len());
 
-        let set_idx = self.sets.len() - 1;
+        let set_idx = self.sets.len();
         assert!(set_idx < MAX_SET_INDEX, "Too many sets");
 
         match ty_id {
             CompositeTypeId::Union(id) => {
                 let possible_types = &schema[id].possible_type_ids;
-                for (i, item) in self.sets[set_idx].iter().enumerate() {
+                for (i, item) in refs.iter().enumerate() {
                     if possible_types.binary_search(&item.definition_id).is_ok() {
                         self.indices.push((set_idx << SET_INDEX_SHIFT) as u32 | i as u32);
                     }
@@ -108,20 +107,21 @@ impl InputResponseObjectSet {
             }
             CompositeTypeId::Interface(id) => {
                 let possible_types = &schema[id].possible_type_ids;
-                for (i, item) in self.sets[set_idx].iter().enumerate() {
+                for (i, item) in refs.iter().enumerate() {
                     if possible_types.binary_search(&item.definition_id).is_ok() {
                         self.indices.push((set_idx << SET_INDEX_SHIFT) as u32 | i as u32);
                     }
                 }
             }
             CompositeTypeId::Object(id) => {
-                for (i, item) in self.sets[set_idx].iter().enumerate() {
+                for (i, item) in refs.iter().enumerate() {
                     if item.definition_id == id {
                         self.indices.push((set_idx << SET_INDEX_SHIFT) as u32 | i as u32);
                     }
                 }
             }
         }
+        self.sets.push(refs);
         assert!(
             self.indices.len() - n < (OBJECT_INDEX_MASK as usize),
             "Too many response objects"
@@ -130,12 +130,24 @@ impl InputResponseObjectSet {
         self
     }
 
-    pub(crate) fn iter(&self) -> ResponseObjectIterator<'_> {
-        ResponseObjectIterator { parent: self, idx: 0 }
+    pub(crate) fn ids(&self) -> impl Iterator<Item = InputObjectId> {
+        (0..self.indices.len()).map(InputObjectId::from)
     }
 
-    pub(crate) fn iter_with_set_index(&self) -> ResponseObjectIteratorWithSetIndex<'_> {
-        ResponseObjectIteratorWithSetIndex { parent: self, idx: 0 }
+    pub(crate) fn iter(&self) -> impl Iterator<Item = &ResponseObjectRef> {
+        self.indices.iter().map(|&index| {
+            let set_idex = (index >> SET_INDEX_SHIFT) as usize;
+            let object_index = (index & OBJECT_INDEX_MASK) as usize;
+            &self.sets[set_idex][object_index]
+        })
+    }
+
+    pub(crate) fn iter_with_id(&self) -> impl Iterator<Item = (InputObjectId, &ResponseObjectRef)> {
+        self.indices.iter().enumerate().map(move |(id, index)| {
+            let set_idex = (index >> SET_INDEX_SHIFT) as usize;
+            let object_index = (index & OBJECT_INDEX_MASK) as usize;
+            (InputObjectId(id as u32), &self.sets[set_idex][object_index])
+        })
     }
 
     pub(crate) fn len(&self) -> usize {
@@ -153,43 +165,19 @@ impl InputResponseObjectSet {
     }
 }
 
+#[derive(Clone, Copy, PartialEq, Eq, id_derives::Id)]
+pub(crate) struct InputObjectId(u32);
+
+impl std::ops::Index<InputObjectId> for InputResponseObjectSet {
+    type Output = ResponseObjectRef;
+    fn index(&self, index: InputObjectId) -> &Self::Output {
+        self.get(usize::from(index)).expect("Out of bounds")
+    }
+}
+
 impl std::ops::Index<usize> for InputResponseObjectSet {
     type Output = ResponseObjectRef;
     fn index(&self, index: usize) -> &Self::Output {
         self.get(index).expect("Out of bounds")
-    }
-}
-
-pub(crate) struct ResponseObjectIterator<'set> {
-    parent: &'set InputResponseObjectSet,
-    idx: usize,
-}
-
-impl<'set> Iterator for ResponseObjectIterator<'set> {
-    type Item = &'set ResponseObjectRef;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let item = self.parent.get(self.idx)?;
-        self.idx += 1;
-        Some(item)
-    }
-}
-
-pub(crate) struct ResponseObjectIteratorWithSetIndex<'set> {
-    parent: &'set InputResponseObjectSet,
-    idx: usize,
-}
-
-impl<'set> Iterator for ResponseObjectIteratorWithSetIndex<'set> {
-    type Item = (usize, &'set ResponseObjectRef);
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let index = self.parent.indices.get(self.idx)?;
-        self.idx += 1;
-
-        let set_idex = (index >> SET_INDEX_SHIFT) as usize;
-        let object_index = (index & OBJECT_INDEX_MASK) as usize;
-        let item = &self.parent.sets[set_idex][object_index];
-        Some((set_idex, item))
     }
 }

@@ -36,7 +36,7 @@ impl<'de> DeserializeSeed<'de> for EnumValueSeed<'_, '_> {
                 let value = ResponseValue::StringId { id: enum_value.name_id };
                 if !is_extra && enum_value.is_inaccessible() {
                     if is_nullable {
-                        let id = ctx.writer.data().push_inaccessible_value(value);
+                        let id = ctx.subgraph_response.borrow_mut().data.push_inaccessible_value(value);
                         Ok(ResponseValue::Inaccessible { id })
                     } else {
                         ctx.propagate_null();

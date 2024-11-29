@@ -44,7 +44,7 @@ where
         A: SeqAccess<'de>,
     {
         let mut index: u32 = 0;
-        let list_id = self.ctx.writer.data().reserve_list_id();
+        let list_id = self.ctx.subgraph_response.borrow_mut().data.reserve_list_id();
         let mut list = Vec::new();
         if let Some(size_hint) = seq.size_hint() {
             list.reserve(size_hint);
@@ -67,15 +67,17 @@ where
                     break;
                 }
                 Err(err) => {
-                    self.ctx.push_field_serde_error(self.field, true, || err.to_string());
-                    // Discarding the rest of the sequence.
-                    while seq.next_element::<IgnoredAny>().unwrap_or_default().is_some() {}
-                    return Err(err);
+                    self.ctx
+                        .push_field_deserialization_error_if_not_bubbling_up(self.field, true, &err);
+                    // Try discarding the rest of the list, we might be able to use other parts of
+                    // the response.
+                    while seq.next_element::<IgnoredAny>()?.is_some() {}
+                    break;
                 }
             }
         }
 
-        self.ctx.writer.data().put_list(list_id, list);
+        self.ctx.subgraph_response.borrow_mut().data.put_list(list_id, list);
         Ok(list_id.into())
     }
 }

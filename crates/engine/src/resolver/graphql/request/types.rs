@@ -31,9 +31,9 @@ pub(crate) struct SubgraphVariables<'a, ExtraVariable> {
     pub extra_variables: Vec<(&'a str, ExtraVariable)>,
 }
 
-impl<Input> serde::Serialize for SubgraphVariables<'_, Input>
+impl<ExtraVariable> serde::Serialize for SubgraphVariables<'_, ExtraVariable>
 where
-    Input: serde::Serialize,
+    ExtraVariable: serde::Serialize,
 {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where

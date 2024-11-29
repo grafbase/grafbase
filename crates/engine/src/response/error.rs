@@ -17,6 +17,13 @@ pub(crate) struct GraphqlError {
 }
 
 impl GraphqlError {
+    pub fn invalid_subgraph_response() -> Self {
+        GraphqlError::new(
+            "Invalid response from subgraph",
+            ErrorCode::SubgraphInvalidResponseError,
+        )
+    }
+
     pub fn new(message: impl Into<Cow<'static, str>>, code: ErrorCode) -> Self {
         GraphqlError {
             message: message.into(),

@@ -17,7 +17,8 @@ use crate::{
     prepare::{PrepareContext, PreparedOperation},
     resolver::ResolverResult,
     response::{
-        GraphqlError, InputResponseObjectSet, Response, ResponseBuilder, SubgraphResponse, SubgraphResponseRefMut,
+        GraphqlError, InputObjectId, InputResponseObjectSet, Response, ResponseBuilder, SubgraphResponse,
+        SubgraphResponseRefMut,
     },
     Runtime,
 };
@@ -38,12 +39,11 @@ impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
             std::mem::take(&mut self.background_futures).into_iter().collect();
         let background_fut = background_futures.collect::<Vec<_>>();
         let operation = Arc::new(operation);
-        let hooks_context = Arc::new(self.hooks_context);
         let ctx = ExecutionContext {
             engine: self.engine,
             operation: &operation,
             request_context: self.request_context,
-            hooks_context: &hooks_context,
+            hooks_context: &self.hooks_context,
         };
 
         tracing::trace!("Starting execution...");
@@ -68,12 +68,11 @@ impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
         let background_fut = background_futures.collect::<Vec<_>>();
 
         let operation = Arc::new(operation);
-        let hooks_context = Arc::new(self.hooks_context);
         let ctx = ExecutionContext {
             engine: self.engine,
             operation: &operation,
             request_context: self.request_context,
-            hooks_context: &hooks_context,
+            hooks_context: &self.hooks_context,
         };
 
         tracing::trace!("Starting execution...");
@@ -219,12 +218,17 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
             InputResponseObjectSet::default()
                 .with_response_objects(Arc::new(response.root_response_object().into_iter().collect())),
         );
+        let input_id = root_response_object_set
+            .ids()
+            .next()
+            .expect("We just added the root object");
 
         let root_subgraph_response =
             response.new_subgraph_response(subscription_plan.shape_id(), root_response_object_set);
 
         SubscriptionResponse {
             response,
+            input_id,
             root_subgraph_response,
         }
     }
@@ -293,6 +297,7 @@ where
                         Ok(SubscriptionResponse {
                             response,
                             root_subgraph_response,
+                            ..
                         }) => {
                             let mut results = VecDeque::new();
                             results.push_back(PlanExecutionResult {
@@ -345,12 +350,17 @@ where
 
 pub(crate) struct SubscriptionResponse {
     response: ResponseBuilder,
+    input_id: InputObjectId,
     root_subgraph_response: SubgraphResponse,
 }
 
 impl SubscriptionResponse {
+    pub fn input_id(&self) -> InputObjectId {
+        self.input_id
+    }
+
     pub fn as_mut(&mut self) -> SubgraphResponseRefMut<'_> {
-        self.root_subgraph_response.as_mut()
+        self.root_subgraph_response.as_shared_mut()
     }
 }
 

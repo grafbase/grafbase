@@ -1,7 +1,9 @@
+use std::sync::Arc;
+
 use crate::{
     execution::{ExecutionContext, ExecutionResult},
     operation::Plan,
-    response::SubgraphResponse,
+    response::{InputResponseObjectSet, SubgraphResponse},
     Runtime,
 };
 
@@ -16,17 +18,22 @@ impl IntrospectionResolver {
         &'ctx self,
         ctx: ExecutionContext<'ctx, R>,
         plan: Plan<'ctx>,
+        input_object_refs: Arc<InputResponseObjectSet>,
         mut subgraph_response: SubgraphResponse,
     ) -> ExecutionResult<SubgraphResponse> {
-        writer::IntrospectionWriter {
-            ctx,
-            schema: ctx.schema(),
-            shapes: ctx.shapes(),
-            metadata: &ctx.engine.schema.subgraphs.introspection,
-            plan,
-            response: subgraph_response.as_mut().next_writer().ok_or("No objects to update")?,
+        let response = subgraph_response.as_shared_mut();
+        for input_object_id in input_object_refs.ids() {
+            writer::IntrospectionWriter {
+                ctx,
+                schema: ctx.schema(),
+                shapes: ctx.shapes(),
+                metadata: &ctx.engine.schema.subgraphs.introspection,
+                plan,
+                input_object_id,
+                response: response.clone(),
+            }
+            .write(plan.shape_id());
         }
-        .execute(plan.shape_id());
         Ok(subgraph_response)
     }
 }

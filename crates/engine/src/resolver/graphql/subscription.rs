@@ -10,13 +10,15 @@ use tracing::Instrument;
 use url::Url;
 
 use super::{
-    deserialize::{GraphqlResponseSeed, RootGraphqlErrors},
+    convert_root_error_path,
+    deserialize::{GraphqlErrorsSeed, GraphqlResponseSeed},
     request::{retrying_fetch, SubgraphGraphqlRequest, SubgraphVariables},
     GraphqlResolver, SubgraphContext,
 };
 use crate::{
     execution::{ExecutionError, SubscriptionResponse},
     resolver::ExecutionResult,
+    response::GraphqlError,
     Runtime,
 };
 
@@ -107,12 +109,17 @@ impl GraphqlResolver {
             .map(move |subgraph_response| {
                 let mut subscription_response = new_response();
 
-                let resp = subscription_response.as_mut();
+                let input_id = subscription_response.input_id();
+                let response = subscription_response.as_mut();
                 GraphqlResponseSeed::new(
-                    resp.next_seed(&ctx).expect("Must have a root object to update"),
-                    RootGraphqlErrors::new(resp),
+                    response.seed(&ctx, input_id),
+                    GraphqlErrorsSeed::new(response, convert_root_error_path),
                 )
-                .deserialize(subgraph_response?)?;
+                .deserialize(subgraph_response?)
+                .map_err(|err| {
+                    tracing::error!("Failed to deserialize subscription response: {}", err);
+                    GraphqlError::invalid_subgraph_response()
+                })?;
 
                 Ok(subscription_response)
             });
@@ -188,13 +195,18 @@ impl GraphqlResolver {
             })
             .map(move |subgraph_response| {
                 let mut subscription_response = new_response();
-                let resp = subscription_response.as_mut();
 
+                let input_id = subscription_response.input_id();
+                let response = subscription_response.as_mut();
                 GraphqlResponseSeed::new(
-                    resp.next_seed(&ctx).expect("Must have a root object to update"),
-                    RootGraphqlErrors::new(resp),
+                    response.seed(&ctx, input_id),
+                    GraphqlErrorsSeed::new(response, convert_root_error_path),
                 )
-                .deserialize(&mut serde_json::Deserializer::from_slice(&subgraph_response?))?;
+                .deserialize(&mut serde_json::Deserializer::from_slice(&subgraph_response?))
+                .map_err(|err| {
+                    tracing::error!("Failed to deserialize subscription response: {}", err);
+                    GraphqlError::invalid_subgraph_response()
+                })?;
 
                 Ok(subscription_response)
             });

@@ -1,5 +1,5 @@
 use std::{
-    cell::{Cell, RefCell},
+    cell::{Cell, Ref, RefCell},
     fmt,
 };
 
@@ -12,7 +12,7 @@ use walker::Walk;
 
 use crate::{
     execution::ExecutionContext,
-    response::{ConcreteShapeId, ResponseWriter},
+    response::{ConcreteShapeId, GraphqlError, InputObjectId},
     Runtime,
 };
 
@@ -31,29 +31,32 @@ use list::ListSeed;
 use nullable::NullableSeed;
 use scalar::*;
 
-use super::ObjectUpdate;
+use super::{ObjectUpdate, SubgraphResponseRefMut};
 
 pub(crate) struct UpdateSeed<'ctx> {
     ctx: SeedContext<'ctx>,
     shape_id: ConcreteShapeId,
+    id: InputObjectId,
 }
 
 impl<'ctx> UpdateSeed<'ctx> {
     pub(super) fn new<R: Runtime>(
         ctx: ExecutionContext<'ctx, R>,
+        subgraph_response: SubgraphResponseRefMut<'ctx>,
         shape_id: ConcreteShapeId,
-        writer: ResponseWriter<'ctx>,
+        id: InputObjectId,
     ) -> Self {
-        let path = RefCell::new(writer.root_object_ref().path.clone());
+        let path = RefCell::new(subgraph_response.borrow().input_object_ref(id).path.clone());
         Self {
             ctx: SeedContext {
                 schema: ctx.schema(),
                 operation: ctx.operation,
-                writer,
-                propagating_error: Cell::new(false),
+                subgraph_response,
+                bubbling_up_serde_error: Cell::new(false),
                 path,
             },
             shape_id,
+            id,
         }
     }
 }
@@ -65,10 +68,10 @@ impl<'de> DeserializeSeed<'de> for UpdateSeed<'_> {
     where
         D: serde::Deserializer<'de>,
     {
-        let UpdateSeed { ctx, shape_id } = self;
+        let UpdateSeed { ctx, shape_id, id } = self;
 
         let fields_seed = {
-            let root_object_ref = ctx.writer.root_object_ref();
+            let root_object_ref = Ref::map(ctx.subgraph_response.borrow(), |resp| resp.input_object_ref(id));
             ConcreteShapeFieldsSeed::new(
                 &ctx,
                 shape_id.walk(&ctx),
@@ -79,19 +82,19 @@ impl<'de> DeserializeSeed<'de> for UpdateSeed<'_> {
 
         let update = match deserializer.deserialize_option(NullableVisitor(fields_seed)) {
             Ok(Some((_, fields))) => ObjectUpdate::Fields(fields),
-            Ok(None) => ObjectUpdate::None,
+            Ok(None) => ObjectUpdate::Missing,
             Err(err) => {
-                if let Some(field) = shape_id
-                    .walk(&ctx)
-                    .fields()
-                    .find(|field| field.key.query_position.is_some())
-                {
-                    ctx.push_field_serde_error(&field, false, || err.to_string());
+                // if we already handled the GraphQL error and are just bubbling up the serde
+                // error, we'll just treat it as an empty fields Vec, a no-op, from here on.
+                if ctx.bubbling_up_serde_error.get() {
+                    ObjectUpdate::Fields(Vec::new())
+                } else {
+                    tracing::error!("Deserialization failure of subgraph response: {err}");
+                    ObjectUpdate::Error(GraphqlError::invalid_subgraph_response())
                 }
-                ObjectUpdate::Error
             }
         };
-        ctx.writer.update_root_object(update);
+        ctx.subgraph_response.borrow_mut().insert_update(id, update);
 
         Ok(())
     }
