@@ -34,7 +34,6 @@ tokio = { version = "1.37.0", features = ["full"] }
 tokio-stream = "0.1.16"
 tokio-util = "0.7.12"
 toml.workspace = true
-tower.workspace = true
 tower-http = { workspace = true, features = ["trace", "fs", "set-header"] }
 tracing.workspace = true
 urlencoding = "2.1.3"
