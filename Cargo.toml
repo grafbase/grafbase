@@ -13,7 +13,6 @@ members = [
     "crates/engine/query-solver",
     "crates/engine/id-derives",
     "crates/engine/id-newtypes",
-    "crates/engine/value",
 ]
 exclude = ["crates/wasi-component-loader/examples", "examples/hooks-template"]
 
@@ -138,12 +137,12 @@ tracing = "0.1.40"
 tracing-subscriber = "0.3.18"
 tracing-futures = "0.2.5"
 tracing-mock = "0.1"
-tracing-opentelemetry = "0.27"
-opentelemetry = "0.26"
-opentelemetry_sdk = "0.26.0"
-opentelemetry-stdout = "0.26"
-opentelemetry-otlp = "0.26"
-opentelemetry-appender-tracing = "0.26.0"
+tracing-opentelemetry = "0.28"
+opentelemetry = "0.27"
+opentelemetry_sdk = "0.27.0"
+opentelemetry-stdout = "0.27"
+opentelemetry-otlp = "0.27"
+opentelemetry-appender-tracing = "0.27.0"
 
 # Common
 graph-ref = { path = "crates/graph-ref" }
@@ -162,7 +161,6 @@ engine = { path = "crates/engine" }
 engine-auth = { path = "crates/engine/auth" }
 engine-axum = { path = "crates/engine/axum" }
 engine-config = { path = "crates/engine/config" }
-engine-value = { path = "crates/engine/value" }
 federated-graph = { path = "crates/graphql-federated-graph", package = "graphql-federated-graph" }
 grafbase-telemetry = { path = "crates/telemetry" }
 graphql-composition = { path = "crates/graphql-composition" }

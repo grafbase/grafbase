@@ -1,8 +1,8 @@
 pub(crate) mod extensions;
 
-use engine_value::{ConstValue, Name};
 use extensions::RequestExtensions;
 use serde::Deserializer;
+use serde_json::Value;
 use std::{
     collections::BTreeMap,
     fmt,
@@ -34,7 +34,7 @@ pub(crate) struct Request {
 /// Variables of a query.
 #[derive(Debug, Clone, Default, serde::Serialize)]
 #[serde(transparent)]
-pub struct RawVariables(BTreeMap<Name, ConstValue>);
+pub struct RawVariables(BTreeMap<String, Value>);
 
 impl fmt::Display for RawVariables {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -60,7 +60,7 @@ impl std::hash::Hash for RawVariables {
 impl<'de> serde::Deserialize<'de> for RawVariables {
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         Ok(Self(
-            <Option<BTreeMap<Name, ConstValue>>>::deserialize(deserializer)?.unwrap_or_default(),
+            <Option<BTreeMap<String, Value>>>::deserialize(deserializer)?.unwrap_or_default(),
         ))
     }
 }
@@ -70,46 +70,37 @@ impl RawVariables {
     ///
     /// If the value is not a map, then no variables will be returned.
     #[must_use]
-    pub fn from_value(value: ConstValue) -> Self {
+    pub fn from_value(value: Value) -> Self {
         match value {
-            ConstValue::Object(obj) => Self(obj.into_iter().collect()),
+            Value::Object(obj) => Self(obj.into_iter().collect()),
             _ => Self::default(),
         }
     }
 
-    /// Get the values from a JSON value.
-    ///
-    /// If the value is not a map or the keys of a map are not valid GraphQL names, then no
-    /// variables will be returned.
-    #[must_use]
-    pub fn from_json(value: serde_json::Value) -> Self {
-        ConstValue::from_json(value).map(Self::from_value).unwrap_or_default()
-    }
-
     /// Get the variables as a GraphQL value.
     #[must_use]
-    pub fn into_value(self) -> ConstValue {
-        ConstValue::Object(self.0.into_iter().collect())
+    pub fn into_value(self) -> Value {
+        Value::Object(self.0.into_iter().collect())
     }
 }
 
 impl IntoIterator for RawVariables {
-    type Item = (Name, ConstValue);
-    type IntoIter = <BTreeMap<Name, ConstValue> as IntoIterator>::IntoIter;
+    type Item = (String, Value);
+    type IntoIter = <BTreeMap<String, Value> as IntoIterator>::IntoIter;
 
     fn into_iter(self) -> Self::IntoIter {
         self.0.into_iter()
     }
 }
 
-impl From<RawVariables> for ConstValue {
+impl From<RawVariables> for Value {
     fn from(variables: RawVariables) -> Self {
         variables.into_value()
     }
 }
 
 impl Deref for RawVariables {
-    type Target = BTreeMap<Name, ConstValue>;
+    type Target = BTreeMap<String, Value>;
 
     fn deref(&self) -> &Self::Target {
         &self.0

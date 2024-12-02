@@ -54,7 +54,6 @@ web-time.workspace = true
 engine-auth = { path = "./auth" }
 operation-normalizer = { path = "../operation-normalizer" }
 config = { package = "engine-config", path = "./config" }
-engine-value = { path = "./value" }
 schema = { path = "./schema", package = "engine-schema" }
 walker = { path = "./walker", package = "engine-walker" }
 query-solver = { path = "./query-solver", package = "engine-query-solver" }
