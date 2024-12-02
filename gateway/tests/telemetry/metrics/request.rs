@@ -293,7 +293,7 @@ fn client() {
 
 #[test]
 fn connected_clients() {
-    with_gateway(|service_name, start_time_unix, gateway, clickhouse| async move {
+    with_gateway(|service_name, _, gateway, clickhouse| async move {
         let resp = gateway.gql::<serde_json::Value>("{ __typename }").send().await;
 
         insta::assert_json_snapshot!(resp, @r###"
@@ -311,13 +311,12 @@ fn connected_clients() {
                 r#"
                 SELECT Value, Attributes
                 FROM otel_metrics_sum
-                WHERE ServiceName = ? AND StartTimeUnix >= ?
+                WHERE ServiceName = ?
                     AND ScopeName = 'grafbase'
                     AND MetricName = 'http.server.connected.clients'
                 "#,
             )
             .bind(&service_name)
-            .bind(start_time_unix)
             .fetch_optional::<SumRow>()
             .await
             .unwrap();

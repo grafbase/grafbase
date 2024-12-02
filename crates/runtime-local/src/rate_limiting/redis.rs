@@ -74,7 +74,7 @@ impl RedisRateLimiter {
             pool,
             key_prefix: config.key_prefix.to_string(),
             config_watcher: watcher,
-            latencies: meter.u64_histogram("grafbase.gateway.rate_limit.duration").init(),
+            latencies: meter.u64_histogram("grafbase.gateway.rate_limit.duration").build(),
         })
     }
 

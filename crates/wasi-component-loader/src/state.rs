@@ -38,7 +38,7 @@ impl WasiState {
     /// HTTP and resource table contexts.
     pub fn new(ctx: WasiCtx) -> Self {
         let meter = meter_from_global_provider();
-        let request_durations = meter.u64_histogram("grafbase.hook.http_request.duration").init();
+        let request_durations = meter.u64_histogram("grafbase.hook.http_request.duration").build();
         let http_client = reqwest::Client::new();
 
         Self {

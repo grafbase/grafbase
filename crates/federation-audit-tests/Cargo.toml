@@ -18,7 +18,7 @@ grafbase-workspace-hack.workspace = true
 cynic-parser.workspace = true
 graphql-composition.workspace = true
 integration-tests.path = "../integration-tests"
-libtest-mimic = "0.7"
+libtest-mimic = "0.8"
 similar-asserts = "1.5"
 
 [lints]
