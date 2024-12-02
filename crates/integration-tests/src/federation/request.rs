@@ -9,7 +9,6 @@ use std::{
 
 use axum::body::Body;
 use bytes::Bytes;
-use engine_value::{Value, Variables};
 use futures::future::BoxFuture;
 use http_body_util::BodyExt;
 use serde::ser::SerializeMap;
@@ -52,9 +51,7 @@ impl TestRequest {
     }
 
     pub fn variables(mut self, variables: impl serde::Serialize) -> Self {
-        self.body.variables = Some(Variables::from_json(
-            serde_json::to_value(variables).expect("variables to be serializable"),
-        ));
+        self.body.variables = Some(serde_json::to_value(variables).expect("variables to be serializable"));
         self
     }
 
@@ -123,7 +120,7 @@ pub struct GraphQlRequest {
     #[serde(skip_serializing_if = "Option::is_none", rename = "operationName")]
     pub operation_name: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub variables: Option<Variables>,
+    pub variables: Option<serde_json::Value>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub extensions: Option<RequestExtensions>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -175,7 +172,7 @@ pub struct RequestExtensions {
     #[serde(default)]
     pub persisted_query: Option<PersistedQueryRequestExtension>,
     #[serde(flatten)]
-    pub custom: HashMap<String, Value>,
+    pub custom: HashMap<String, serde_json::Value>,
 }
 
 #[serde_with::serde_as]

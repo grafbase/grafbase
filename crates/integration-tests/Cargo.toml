@@ -55,7 +55,6 @@ tower.workspace = true
 tracing.workspace = true
 runtime = { workspace = true, features = ["test-utils"] }
 grafbase-workspace-hack.workspace = true
-engine-value.workspace = true
 serde_with = { workspace = true, features = ["hex"] }
 
 [dependencies.tokio]
