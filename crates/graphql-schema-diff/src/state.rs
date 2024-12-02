@@ -136,7 +136,11 @@ fn push_argument_changes(
     push_change: PushChangeFn<'_>,
 ) {
     for ([type_name, field_name, arg_name], (src, target)) in arguments_map {
-        let parent_is_gone = || matches!(&fields_map[&[*type_name, *field_name]], (Some(_), None));
+        let parent_is_gone = match fields_map[&[*type_name, *field_name]] {
+            (Some(_), None) => true,
+            (None, Some(_)) => continue,
+            _ => false,
+        };
 
         let argument_path = path::Path::TypeDefinition(
             type_name,
@@ -151,7 +155,7 @@ fn push_argument_changes(
             (None, Some(target)) => {
                 push_change(argument_path, ChangeKind::AddFieldArgument, target.span().into());
             }
-            (Some(_), None) if !parent_is_gone() => {
+            (Some(_), None) if !parent_is_gone => {
                 push_change(argument_path, ChangeKind::RemoveFieldArgument, Span::empty());
             }
             (Some(_), None) => (),

@@ -1,0 +1,102 @@
+{
+  "src → target": [
+    {
+      "path": "CatInHat.hatStripes",
+      "kind": "AddField",
+      "span": {
+        "start": 326,
+        "end": 375
+      }
+    },
+    {
+      "path": "CatInHat.name",
+      "kind": "AddField",
+      "span": {
+        "start": 196,
+        "end": 242
+      }
+    },
+    {
+      "path": "CatInHat.whimsicalQuote",
+      "kind": "AddField",
+      "span": {
+        "start": 242,
+        "end": 326
+      }
+    },
+    {
+      "path": "CreateSeussCharacterInput.favoriteRhyme",
+      "kind": "AddField",
+      "span": {
+        "start": 430,
+        "end": 453
+      }
+    },
+    {
+      "path": "SeussCharacter.name",
+      "kind": "AddField",
+      "span": {
+        "start": 41,
+        "end": 57
+      }
+    },
+    {
+      "path": "SeussCharacter.whimsicalQuote",
+      "kind": "AddField",
+      "span": {
+        "start": 57,
+        "end": 139
+      }
+    }
+  ],
+  "target → src": [
+    {
+      "path": "CatInHat.hatStripes",
+      "kind": "RemoveField",
+      "span": {
+        "start": 0,
+        "end": 0
+      }
+    },
+    {
+      "path": "CatInHat.name",
+      "kind": "RemoveField",
+      "span": {
+        "start": 0,
+        "end": 0
+      }
+    },
+    {
+      "path": "CatInHat.whimsicalQuote",
+      "kind": "RemoveField",
+      "span": {
+        "start": 0,
+        "end": 0
+      }
+    },
+    {
+      "path": "CreateSeussCharacterInput.favoriteRhyme",
+      "kind": "RemoveField",
+      "span": {
+        "start": 0,
+        "end": 0
+      }
+    },
+    {
+      "path": "SeussCharacter.name",
+      "kind": "RemoveField",
+      "span": {
+        "start": 0,
+        "end": 0
+      }
+    },
+    {
+      "path": "SeussCharacter.whimsicalQuote",
+      "kind": "RemoveField",
+      "span": {
+        "start": 0,
+        "end": 0
+      }
+    }
+  ]
+}

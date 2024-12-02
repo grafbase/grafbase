@@ -7,6 +7,7 @@
 - The `ChangeKind` enum now has a `ChangeKind::as_str()` function and a `FromStr` implementation, implementing respectively its conversion to and from strings.
 - Implemented `ChangeKind::AddSchemaExtension` and `ChangeKind::RemoveSchemaExtension`. Schema extensions are assumed to be in the same order between the schemas.
 - BREAKING: Overhaul the path string format, and add a typed version (`Path`) with parsing and display implementations.
+- BREAKING: `diff()` no longer emits `AddFieldArgument` where there is already an `AddField` for the parent field, it will only be emitted if the field existed in the source schema. This is for consistency with similar nesting cases.
 
 ## 0.2.0 - 2024-07-16
 
