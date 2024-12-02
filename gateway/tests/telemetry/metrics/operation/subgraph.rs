@@ -235,7 +235,7 @@ fn inflight() {
                 WHERE ServiceName = ?
                     AND ScopeName = 'grafbase'
                     AND MetricName = 'graphql.subgraph.request.inflight'
-                "#,
+                LIMIT 1"#,
             )
             .bind(&service_name)
             .fetch_all::<SumRow>()

@@ -1,4 +1,5 @@
 use crate::{config::TelemetryConfig, error::TracingError};
+
 use opentelemetry_sdk::{logs::LoggerProvider, runtime::RuntimeChannel, Resource};
 
 #[allow(unused_variables)]
@@ -12,21 +13,40 @@ where
 {
     cfg_if::cfg_if! {
         if #[cfg(feature = "otlp")] {
+            use opentelemetry_otlp::{LogExporter, WithExportConfig, WithHttpConfig, WithTonicConfig};
+            use crate::otel::exporter::{build_metadata, build_tls_config};
             use opentelemetry_sdk::logs::{BatchConfigBuilder, BatchLogProcessor};
             use std::time::Duration;
 
             let mut builder = LoggerProvider::builder().with_resource(resource);
 
             if let Some(config) = config.logs_otlp_config() {
-                use opentelemetry_otlp::LogExporterBuilder;
+                let exporter_timeout = Duration::from_secs(config.timeout.num_seconds() as u64);
 
-                let exporter = match super::exporter::build_otlp_exporter(config)? {
-                    either::Either::Left(grpc) => LogExporterBuilder::Tonic(grpc)
-                        .build_log_exporter()
-                        .map_err(|e| TracingError::LogsExporterSetup(e.to_string()))?,
-                    either::Either::Right(http) => LogExporterBuilder::Http(http)
-                        .build_log_exporter()
-                        .map_err(|e| TracingError::LogsExporterSetup(e.to_string()))?,
+                let exporter = match config.protocol {
+                    gateway_config::OtlpExporterProtocol::Grpc => {
+                        let grpc_config = config.grpc.clone().unwrap_or_default();
+
+                        LogExporter::builder()
+                            .with_tonic()
+                            .with_endpoint(config.endpoint.to_string())
+                            .with_timeout(exporter_timeout)
+                            .with_metadata(build_metadata(grpc_config.headers))
+                            .with_tls_config(build_tls_config(grpc_config.tls)?)
+                            .build()
+                            .map_err(|e| TracingError::LogsExporterSetup(e.to_string()))?
+                    },
+                    gateway_config::OtlpExporterProtocol::Http => {
+                        let http_config = config.http.clone().unwrap_or_default();
+
+                        LogExporter::builder()
+                            .with_http()
+                            .with_endpoint(config.endpoint.to_string())
+                            .with_headers(http_config.headers.into_map())
+                            .with_timeout(exporter_timeout)
+                            .build()
+                            .map_err(|e| TracingError::LogsExporterSetup(e.to_string()))?
+                    },
                 };
 
                 let processor = {
@@ -44,7 +64,7 @@ where
                 };
 
                 builder = builder.with_log_processor(processor);
-            }
+            };
 
             Ok(Some(builder.build()))
         } else {

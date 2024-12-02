@@ -2,7 +2,10 @@ mod engine;
 mod request;
 
 pub use engine::*;
-use opentelemetry::metrics::{Meter, MeterProvider};
+use opentelemetry::{
+    metrics::{Meter, MeterProvider},
+    InstrumentationScope,
+};
 pub use request::*;
 
 pub fn meter_from_global_provider() -> Meter {
@@ -10,5 +13,9 @@ pub fn meter_from_global_provider() -> Meter {
 }
 
 pub fn meter(provider: &dyn MeterProvider) -> Meter {
-    provider.versioned_meter(crate::SCOPE, Some(crate::SCOPE_VERSION), None::<&'static str>, None)
+    let scope = InstrumentationScope::builder(crate::SCOPE)
+        .with_version(crate::SCOPE_VERSION)
+        .build();
+
+    provider.meter_with_scope(scope)
 }

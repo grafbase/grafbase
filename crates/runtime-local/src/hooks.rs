@@ -233,7 +233,7 @@ impl HooksWasi {
                 authorization: Pool::new(&loader, max_pool_size),
                 subgraph: Pool::new(&loader, max_pool_size),
                 responses: Pool::new(&loader, max_pool_size),
-                hook_latencies: meter.u64_histogram("grafbase.hook.duration").init(),
+                hook_latencies: meter.u64_histogram("grafbase.hook.duration").build(),
                 sender,
             }))),
             None => Self(None),

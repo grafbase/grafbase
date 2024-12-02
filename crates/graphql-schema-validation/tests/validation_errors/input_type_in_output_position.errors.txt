@@ -1,1 +1,2 @@
+
   × The type of "Test.options" must be an output type, but got "Options", an input object.

@@ -70,7 +70,7 @@ duct = "0.13.7"
 fslock = "0.2.1"
 futures-util = "0.3.30"
 graphql-mocks.workspace = true
-graphql-ws-client = { version = "0.10.0", features = ["tungstenite"] }
+graphql-ws-client = { version = "0.11.0", features = ["tungstenite"] }
 headers.workspace = true
 hex.workspace = true
 http.workspace = true
@@ -87,15 +87,15 @@ regex = "1.10.4"
 reqwest = { workspace = true, features = ["rustls-tls", "json"] }
 reqwest-eventsource = "0.6"
 rsa = "0.9.6"
-rstest = "0.22"
+rstest = "0.23"
 rstest_reuse = "0.7"
 serde = { version = "1.0.199", features = ["derive"] }
 sha2.workspace = true
 strum = { version = "0.26.2", features = ["derive"] }
-sysinfo = "0.31.0"
+sysinfo = "0.32.0"
 tempfile = "3.10.1"
 tokio = { version = "1.37.0", features = ["full"] }
-tower-http = "0.5.2"
+tower-http = "0.6.0"
 url = "2.5.0"
 which.workspace = true
 wiremock.workspace = true

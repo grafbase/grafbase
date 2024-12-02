@@ -150,7 +150,7 @@ impl GraphUpdater {
             gateway_config,
             latencies: meter_from_global_provider()
                 .u64_histogram("gdn.request.duration")
-                .init(),
+                .build(),
             hooks,
         })
     }
