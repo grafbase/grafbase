@@ -33,10 +33,11 @@ fn ensure_upstream_is_up_to_date() {
     }
 
     let expected_ref = std::fs::read_to_string("AUDIT_REPO_SHA").unwrap();
+    let expected_ref = expected_ref.trim();
 
     let status = Command::new("git")
         .current_dir("gateway-audit-repo")
-        .args(["checkout", &expected_ref])
+        .args(["checkout", expected_ref])
         .status()
         .unwrap();
 
@@ -51,7 +52,7 @@ fn ensure_upstream_is_up_to_date() {
         .unwrap();
 
     if !status.success() {
-        panic!("Could not pnpmi install in graphql-federation-gateway-audit - please do it yourself");
+        panic!("Could not npm install in graphql-federation-gateway-audit - please do it yourself");
     }
 
     panic!("Checkout of graphql-federation-gateway-audit was updated.  Please re-run the audit tests")
@@ -71,6 +72,7 @@ fn should_update() -> bool {
     let head_ref = std::str::from_utf8(&output.stdout).unwrap();
 
     let expected_ref = std::fs::read_to_string("AUDIT_REPO_SHA").unwrap();
+    let expected_ref = expected_ref.trim();
 
     head_ref.trim() != expected_ref.trim()
 }
