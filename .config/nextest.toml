@@ -9,6 +9,11 @@ fail-fast = false
 filter = 'package(grafbase-gateway)'
 retries = 2
 
+[[profile.ci.overrides]]
+# Some federation audit tests should not be retried as they are self fixing
+# and will always pass on a retry
+filter = 'package(federation-audit-tests) & (binary(checkout) | binary(cache_freshness))'
+retries = 0
 
 [profile.ci.junit]
 # output test results at target/nextest/ci/junit.xml
