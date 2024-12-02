@@ -50,6 +50,7 @@ impl<'ctx> Walk<OperationPlanContext<'ctx>> for ConcreteShapeId {
     }
 }
 
+#[derive(Clone, Copy)]
 pub(crate) struct ConcreteShape<'a> {
     pub(super) ctx: OperationPlanContext<'a>,
     pub(super) id: ConcreteShapeId,

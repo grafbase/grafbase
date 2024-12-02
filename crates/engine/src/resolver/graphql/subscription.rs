@@ -110,7 +110,7 @@ impl GraphqlResolver {
                 let resp = subscription_response.as_mut();
                 GraphqlResponseSeed::new(
                     resp.next_seed(&ctx).expect("Must have a root object to update"),
-                    RootGraphqlErrors::new(&ctx, resp),
+                    RootGraphqlErrors::new(resp),
                 )
                 .deserialize(subgraph_response?)?;
 
@@ -192,7 +192,7 @@ impl GraphqlResolver {
 
                 GraphqlResponseSeed::new(
                     resp.next_seed(&ctx).expect("Must have a root object to update"),
-                    RootGraphqlErrors::new(&ctx, resp),
+                    RootGraphqlErrors::new(resp),
                 )
                 .deserialize(&mut serde_json::Deserializer::from_slice(&subgraph_response?))?;
 

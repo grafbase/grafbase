@@ -42,6 +42,7 @@ impl std::ops::Deref for PolymorphicShape<'_> {
     }
 }
 
+#[derive(Clone, Copy)]
 pub(crate) struct PolymorphicShape<'a> {
     pub(super) ctx: OperationPlanContext<'a>,
     pub(super) id: PolymorphicShapeId,

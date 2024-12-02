@@ -17,8 +17,7 @@ use crate::{
     prepare::{PrepareContext, PreparedOperation},
     resolver::ResolverResult,
     response::{
-        GraphqlError, InputResponseObjectSet, ObjectIdentifier, PositionedResponseKey, Response, ResponseBuilder,
-        ResponseObjectField, ResponseValue, SubgraphResponse, SubgraphResponseRefMut,
+        GraphqlError, InputResponseObjectSet, Response, ResponseBuilder, SubgraphResponse, SubgraphResponseRefMut,
     },
     Runtime,
 };
@@ -153,7 +152,11 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
         OperationExecution {
             state: self.new_execution_state(),
             executed_operation_builder,
-            response: ResponseBuilder::new(self.operation.cached.solved.root_object_id),
+            response: ResponseBuilder::new(
+                self.engine.schema.clone(),
+                self.operation.cached.clone(),
+                self.operation.cached.solved.root_object_id,
+            ),
             ctx: self,
         }
         .run(VecDeque::new())
@@ -206,7 +209,11 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
     }
 
     fn new_subscription_response(&self, subscription_plan: Plan<'ctx>) -> SubscriptionResponse {
-        let mut response = ResponseBuilder::new(self.operation.cached.solved.root_object_id);
+        let mut response = ResponseBuilder::new(
+            self.engine.schema.clone(),
+            self.operation.cached.clone(),
+            self.operation.cached.solved.root_object_id,
+        );
 
         let root_response_object_set = Arc::new(
             InputResponseObjectSet::default()
@@ -428,7 +435,6 @@ impl<'ctx, R: Runtime> OperationExecution<'ctx, R> {
             };
         };
 
-        let schema = this.ctx.engine.schema.clone();
         let operation = this.ctx.operation;
         let executed_operation = this.executed_operation_builder.build(
             operation.cached.attributes.name.original(),
@@ -437,7 +443,7 @@ impl<'ctx, R: Runtime> OperationExecution<'ctx, R> {
         );
 
         match this.ctx.hooks().on_operation_response(executed_operation).await {
-            Ok(output) => this.response.build(schema, operation, output),
+            Ok(output) => this.response.build(operation.attributes(), output),
             Err(err) => Response::execution_error(&this.ctx.engine.schema, operation, None, [err]),
         }
     }
@@ -461,13 +467,11 @@ impl<'ctx, R: Runtime> OperationExecution<'ctx, R> {
 
         // Retrieving the first edge (response key) appearing in the query to provide a better
         // error path if necessary.
-        let (any_field_key, default_fields) = self.get_first_key_and_default_object(plan);
         match result {
             Ok(subgraph_response) => {
                 tracing::trace!(%plan_id, "Succeeded");
 
-                let tracked_response_object_sets =
-                    self.response.ingest(subgraph_response, any_field_key, default_fields);
+                let tracked_response_object_sets = self.response.ingest(plan, subgraph_response);
 
                 for (set_id, response_object_refs) in tracked_response_object_sets.into_iter() {
                     self.state.push_response_objects(set_id, response_object_refs);
@@ -492,7 +496,7 @@ impl<'ctx, R: Runtime> OperationExecution<'ctx, R> {
             Err((root_response_object_set, error)) => {
                 tracing::trace!(%plan_id, "Failed");
                 self.response
-                    .propagate_execution_error(root_response_object_set, error, any_field_key, default_fields);
+                    .propagate_execution_error(plan, root_response_object_set, error);
             }
         }
 
@@ -501,45 +505,6 @@ impl<'ctx, R: Runtime> OperationExecution<'ctx, R> {
         }
 
         (self, next_futures)
-    }
-
-    fn get_first_key_and_default_object(
-        &self,
-        plan: Plan<'ctx>,
-    ) -> (PositionedResponseKey, Option<Vec<ResponseObjectField>>) {
-        let shape = plan.shape();
-        let first_key = shape
-            .fields()
-            .map(|field| field.key)
-            .min()
-            .or_else(|| shape.typename_response_keys.iter().min().copied())
-            .expect("Selection set without any fields?");
-
-        let mut fields = Vec::new();
-        if !shape.typename_response_keys.is_empty() {
-            if let ObjectIdentifier::Known(object_id) = shape.identifier {
-                let name: ResponseValue = self.schema().walk(object_id).as_ref().name_id.into();
-                fields.extend(shape.typename_response_keys.iter().map(|&key| ResponseObjectField {
-                    key,
-                    required_field_id: None,
-                    value: name.clone(),
-                }))
-            } else {
-                return (first_key, None);
-            }
-        }
-        for field_shape in shape.fields() {
-            if field_shape.wrapping.is_required() {
-                return (first_key, None);
-            }
-            fields.push(ResponseObjectField {
-                key: field_shape.key,
-                required_field_id: field_shape.required_field_id,
-                value: ResponseValue::Null,
-            })
-        }
-
-        (first_key, Some(fields))
     }
 
     fn create_plan_execution_future<'exec>(

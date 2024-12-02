@@ -1,19 +1,9 @@
-use crate::response::BoundResponseKey;
-
-use super::ResponseKey;
-
 /// A "safe" ResponseKey is guaranteed to exist inside ResponseKeys
 /// and thus will use `get_unchecked` to be retrieved. This improves
 /// performance by around 1% since we're doing a binary search for each
 /// incoming field name during deserialization.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize)]
 pub struct SafeResponseKey(u16);
-
-impl SafeResponseKey {
-    pub(crate) unsafe fn from(key: ResponseKey) -> Self {
-        Self(key.0)
-    }
-}
 
 /// Interns all of the response keys strings.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -22,12 +12,6 @@ pub struct ResponseKeys(lasso2::Rodeo<SafeResponseKey>);
 impl From<SafeResponseKey> for u32 {
     fn from(key: SafeResponseKey) -> u32 {
         key.0 as u32
-    }
-}
-
-impl From<SafeResponseKey> for ResponseKey {
-    fn from(value: SafeResponseKey) -> Self {
-        ResponseKey(value.0)
     }
 }
 
@@ -48,26 +32,6 @@ impl ResponseKeys {
 
     pub fn contains(&self, key: &str) -> bool {
         self.0.contains(key)
-    }
-
-    pub fn try_resolve(&self, key: ResponseKey) -> Option<&str> {
-        self.0.try_resolve(&SafeResponseKey(key.0))
-    }
-}
-
-impl std::ops::Index<BoundResponseKey> for ResponseKeys {
-    type Output = str;
-
-    fn index(&self, bound_key: BoundResponseKey) -> &Self::Output {
-        self.0.resolve(&SafeResponseKey(bound_key.as_response_key().0))
-    }
-}
-
-impl std::ops::Index<ResponseKey> for ResponseKeys {
-    type Output = str;
-
-    fn index(&self, key: ResponseKey) -> &Self::Output {
-        self.0.resolve(&SafeResponseKey(key.0))
     }
 }
 

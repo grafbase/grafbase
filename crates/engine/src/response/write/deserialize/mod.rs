@@ -3,15 +3,16 @@ use std::{
     fmt,
 };
 
-use object::ConcreteShapeSeed;
+use object::ConcreteShapeFieldsSeed;
 use serde::{
     de::{DeserializeSeed, Visitor},
     Deserializer,
 };
+use walker::Walk;
 
 use crate::{
     execution::ExecutionContext,
-    response::{ConcreteShapeId, ErrorCode, GraphqlError, ResponseWriter},
+    response::{ConcreteShapeId, ResponseWriter},
     Runtime,
 };
 
@@ -30,6 +31,8 @@ use list::ListSeed;
 use nullable::NullableSeed;
 use scalar::*;
 
+use super::ObjectUpdate;
+
 pub(crate) struct UpdateSeed<'ctx> {
     ctx: SeedContext<'ctx>,
     shape_id: ConcreteShapeId,
@@ -41,7 +44,7 @@ impl<'ctx> UpdateSeed<'ctx> {
         shape_id: ConcreteShapeId,
         writer: ResponseWriter<'ctx>,
     ) -> Self {
-        let path = RefCell::new(writer.root_path().iter().copied().collect());
+        let path = RefCell::new(writer.root_object_ref().path.clone());
         Self {
             ctx: SeedContext {
                 schema: ctx.schema(),
@@ -63,28 +66,33 @@ impl<'de> DeserializeSeed<'de> for UpdateSeed<'_> {
         D: serde::Deserializer<'de>,
     {
         let UpdateSeed { ctx, shape_id } = self;
-        let result = deserializer.deserialize_option(NullableVisitor(
-            ConcreteShapeSeed::new(&ctx, shape_id).into_fields_seed(),
-        ));
 
-        match result {
-            Ok(Some((_, fields))) => {
-                ctx.writer.update_root_object_with(fields);
-            }
-            // Not writing any data is handled at the Coordinator level in all cases, so we can
-            // just skip it here.
-            Ok(None) => {}
+        let fields_seed = {
+            let root_object_ref = ctx.writer.root_object_ref();
+            ConcreteShapeFieldsSeed::new(
+                &ctx,
+                shape_id.walk(&ctx),
+                root_object_ref.id,
+                Some(root_object_ref.definition_id),
+            )
+        };
+
+        let update = match deserializer.deserialize_option(NullableVisitor(fields_seed)) {
+            Ok(Some((_, fields))) => ObjectUpdate::Fields(fields),
+            Ok(None) => ObjectUpdate::None,
             Err(err) => {
-                if ctx.should_create_new_graphql_error() {
-                    ctx.writer.propagate_error(
-                        GraphqlError::new(err.to_string(), ErrorCode::SubgraphInvalidResponseError)
-                            .with_path(ctx.response_path()),
-                    );
-                } else {
-                    ctx.writer.continue_error_propagation();
+                if let Some(field) = shape_id
+                    .walk(&ctx)
+                    .fields()
+                    .find(|field| field.key.query_position.is_some())
+                {
+                    ctx.push_field_serde_error(&field, false, || err.to_string());
                 }
+                ObjectUpdate::Error
             }
-        }
+        };
+        ctx.writer.update_root_object(update);
+
         Ok(())
     }
 }

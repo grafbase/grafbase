@@ -1,19 +1,17 @@
-use std::borrow::Cow;
-
 pub(crate) mod code;
-
-pub(crate) use code::*;
+mod path;
 
 use crate::operation::Location;
-
-use super::ResponsePath;
+pub(crate) use code::*;
+pub(crate) use path::*;
+use std::borrow::Cow;
 
 #[derive(Debug, Clone)]
 pub(crate) struct GraphqlError {
     pub message: Cow<'static, str>,
     pub code: ErrorCode,
     pub locations: Vec<Location>,
-    pub path: Option<ResponsePath>,
+    pub path: Option<ErrorPath>,
     // Serialized as a map, but kept as a Vec for efficiency.
     pub extensions: Vec<(Cow<'static, str>, serde_json::Value)>,
 }
@@ -42,8 +40,8 @@ impl GraphqlError {
     }
 
     #[must_use]
-    pub fn with_path(mut self, path: ResponsePath) -> Self {
-        self.path = Some(path);
+    pub fn with_path(mut self, path: impl Into<ErrorPath>) -> Self {
+        self.path = Some(path.into());
         self
     }
 

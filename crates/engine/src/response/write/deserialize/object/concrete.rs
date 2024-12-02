@@ -5,67 +5,41 @@ use std::fmt;
 use walker::Walk;
 
 use crate::{
-    operation::ResponseObjectSetDefinitionId,
     response::{
         value::ResponseObjectField,
         write::deserialize::{field::FieldSeed, key::Key, SeedContext},
-        ConcreteShapeId, FieldShapeId, FieldShapeRecord, GraphqlError, ObjectIdentifier, PositionedResponseKey,
-        ResponseObject, ResponseObjectRef, ResponseValue,
+        ConcreteShape, ConcreteShapeId, FieldShapeId, FieldShapeRecord, GraphqlError, ObjectIdentifier,
+        PositionedResponseKey, ResponseObject, ResponseObjectId, ResponseObjectRef, ResponseValue, ResponseValueId,
     },
+    ErrorCode,
 };
 
 pub(crate) struct ConcreteShapeSeed<'ctx, 'seed> {
     ctx: &'seed SeedContext<'ctx>,
-    set_id: Option<ResponseObjectSetDefinitionId>,
-    fields_seed: ConcreteShapeFieldsSeed<'ctx, 'seed>,
+    shape_id: ConcreteShapeId,
+    known_definition_id: Option<ObjectDefinitionId>,
 }
 
 impl<'ctx, 'seed> ConcreteShapeSeed<'ctx, 'seed> {
     pub fn new(ctx: &'seed SeedContext<'ctx>, shape_id: ConcreteShapeId) -> Self {
-        let shape = shape_id.walk(ctx);
         Self {
             ctx,
-            set_id: shape.set_id,
-            fields_seed: ConcreteShapeFieldsSeed {
-                ctx,
-                has_error: shape.has_errors(),
-                object_identifier: shape.identifier,
-                field_shape_ids: shape.field_shape_ids,
-                typename_response_edges: &shape.as_ref().typename_response_keys,
-            },
+            shape_id,
+            known_definition_id: None,
         }
     }
 
-    pub fn new_with_object_id(
+    pub fn new_with_known_object_definition_id(
         ctx: &'seed SeedContext<'ctx>,
         shape_id: ConcreteShapeId,
-        object_id: ObjectDefinitionId,
+        object_definition_id: ObjectDefinitionId,
     ) -> Self {
-        let shape = shape_id.walk(ctx);
         Self {
             ctx,
-            set_id: shape.set_id,
-            fields_seed: ConcreteShapeFieldsSeed {
-                ctx,
-                has_error: shape.has_errors(),
-                object_identifier: ObjectIdentifier::Known(object_id),
-                field_shape_ids: shape.field_shape_ids,
-                typename_response_edges: &shape.as_ref().typename_response_keys,
-            },
+            shape_id,
+            known_definition_id: Some(object_definition_id),
         }
     }
-
-    pub(crate) fn into_fields_seed(self) -> ConcreteShapeFieldsSeed<'ctx, 'seed> {
-        self.fields_seed
-    }
-}
-
-pub(crate) struct ConcreteShapeFieldsSeed<'ctx, 'seed> {
-    ctx: &'seed SeedContext<'ctx>,
-    has_error: bool,
-    object_identifier: ObjectIdentifier,
-    field_shape_ids: IdRange<FieldShapeId>,
-    typename_response_edges: &'ctx [PositionedResponseKey],
 }
 
 impl<'de> DeserializeSeed<'de> for ConcreteShapeSeed<'_, '_> {
@@ -91,21 +65,56 @@ impl<'de> Visitor<'de> for ConcreteShapeSeed<'_, '_> {
     where
         A: MapAccess<'de>,
     {
-        let (object_id, fields) = self.fields_seed.visit_map(map)?;
+        let shape = self.shape_id.walk(self.ctx);
+        let object_id = self.ctx.writer.data().reserve_object_id();
 
-        let id = self.ctx.writer.push_object(ResponseObject::new(fields));
-        if let Some(set_id) = self.set_id {
-            self.ctx.writer.push_response_object(
+        let (definition_id, fields) =
+            ConcreteShapeFieldsSeed::new(self.ctx, shape, object_id, self.known_definition_id).visit_map(map)?;
+
+        self.ctx
+            .writer
+            .data()
+            .put_object(object_id, ResponseObject::new(fields));
+
+        if let Some(set_id) = shape.set_id {
+            self.ctx.writer.push_object_ref(
                 set_id,
                 ResponseObjectRef {
-                    id,
-                    path: self.ctx.response_path(),
-                    definition_id: object_id.expect("Object id should have been identified"),
+                    id: object_id,
+                    path: self.ctx.path().clone(),
+                    definition_id: definition_id.expect("Object id should have been identified"),
                 },
             );
         }
 
-        Ok(id.into())
+        Ok(object_id.into())
+    }
+}
+
+pub(crate) struct ConcreteShapeFieldsSeed<'ctx, 'seed> {
+    ctx: &'seed SeedContext<'ctx>,
+    object_id: ResponseObjectId,
+    has_error: bool,
+    object_identifier: ObjectIdentifier,
+    field_shape_ids: IdRange<FieldShapeId>,
+    typename_response_keys: &'ctx [PositionedResponseKey],
+}
+
+impl<'ctx, 'seed> ConcreteShapeFieldsSeed<'ctx, 'seed> {
+    pub fn new(
+        ctx: &'seed SeedContext<'ctx>,
+        shape: ConcreteShape<'ctx>,
+        object_id: ResponseObjectId,
+        definition_id: Option<ObjectDefinitionId>,
+    ) -> Self {
+        ConcreteShapeFieldsSeed {
+            ctx,
+            object_id,
+            has_error: shape.has_errors(),
+            object_identifier: definition_id.map(ObjectIdentifier::Known).unwrap_or(shape.identifier),
+            field_shape_ids: shape.field_shape_ids,
+            typename_response_keys: &shape.as_ref().typename_response_keys,
+        }
     }
 }
 
@@ -133,7 +142,7 @@ impl<'de> Visitor<'de> for ConcreteShapeFieldsSeed<'_, '_> {
         A: MapAccess<'de>,
     {
         let schema = self.ctx.schema;
-        let mut response_fields = Vec::with_capacity(self.field_shape_ids.len() + self.typename_response_edges.len());
+        let mut response_fields = Vec::with_capacity(self.field_shape_ids.len() + self.typename_response_keys.len());
 
         let mut maybe_object_id = None;
         match self.object_identifier {
@@ -160,21 +169,18 @@ impl<'de> Visitor<'de> for ConcreteShapeFieldsSeed<'_, '_> {
             }
         }
 
-        self.post_process::<A>(&mut response_fields)?;
+        self.post_process(&mut response_fields);
 
-        if !self.typename_response_edges.is_empty() {
+        if !self.typename_response_keys.is_empty() {
             let Some(object_id) = maybe_object_id else {
                 return Err(serde::de::Error::custom("Could not determine the object type"));
             };
             let name_id = schema[object_id].name_id;
-            for edge in self.typename_response_edges {
+            for key in self.typename_response_keys {
                 response_fields.push(ResponseObjectField {
-                    key: *edge,
+                    key: *key,
                     required_field_id: None,
-                    value: ResponseValue::StringId {
-                        id: name_id,
-                        nullable: false,
-                    },
+                    value: name_id.into(),
                 });
             }
         }
@@ -183,22 +189,21 @@ impl<'de> Visitor<'de> for ConcreteShapeFieldsSeed<'_, '_> {
     }
 }
 
-impl<'de> ConcreteShapeFieldsSeed<'_, '_> {
-    fn post_process<A: MapAccess<'de>>(&self, response_fields: &mut Vec<ResponseObjectField>) -> Result<(), A::Error> {
+impl ConcreteShapeFieldsSeed<'_, '_> {
+    fn post_process(&self, response_fields: &mut Vec<ResponseObjectField>) {
         if self.has_error {
-            let mut required_field_error = false;
+            let mut must_propagate_null = false;
             for field_shape in self.field_shape_ids.walk(self.ctx) {
                 for error in field_shape.errors() {
-                    let mut path = self.ctx.response_path();
-                    path.push(field_shape.key);
-
-                    self.ctx.writer.push_error(GraphqlError {
-                        path: Some(path),
-                        ..error.clone()
-                    });
+                    self.ctx.writer.push_error(
+                        error
+                            .clone()
+                            .with_path((self.ctx.path(), field_shape.key))
+                            .with_location(field_shape.as_ref().id.walk(self.ctx).location),
+                    );
 
                     if field_shape.wrapping.is_required() {
-                        required_field_error = true;
+                        must_propagate_null = true;
                     } else {
                         response_fields.push(ResponseObjectField {
                             key: field_shape.key,
@@ -208,8 +213,9 @@ impl<'de> ConcreteShapeFieldsSeed<'_, '_> {
                     }
                 }
             }
-            if required_field_error {
-                return self.ctx.propagate_error();
+            if must_propagate_null {
+                self.ctx.propagate_null();
+                return;
             }
         }
 
@@ -224,23 +230,44 @@ impl<'de> ConcreteShapeFieldsSeed<'_, '_> {
                     .is_err()
                 {
                     if field_shape.wrapping.is_required() {
-                        return Err(serde::de::Error::custom(
-                            self.ctx.missing_field_error_message(field_shape),
-                        ));
+                        // If part of the query fields the user requested. We don't propagate null
+                        // for extra fields.
+                        if field_shape.key.query_position.is_some() {
+                            self.ctx.propagate_null();
+                            let keys = &self.ctx.operation.cached.solved.response_keys;
+                            let message = if field_shape.key.response_key == field_shape.expected_key {
+                                format!(
+                                    "Error decoding response from upstream: Missing required field named '{}'",
+                                    &keys[field_shape.expected_key]
+                                )
+                            } else {
+                                format!(
+                                    "Error decoding response from upstream: Missing required field named '{}' (expected: '{}')",
+                                    &keys[field_shape.key.response_key],
+                                    &keys[field_shape.expected_key]
+                                )
+                            };
+                            self.ctx.writer.push_error(
+                                GraphqlError::new(message, ErrorCode::SubgraphInvalidResponseError)
+                                    .with_path((self.ctx.path(), field_shape.key))
+                                    .with_location(field_shape.as_ref().id.walk(self.ctx).location),
+                            );
+
+                            return;
+                        }
+                    } else {
+                        response_fields.push(ResponseObjectField {
+                            key: field_shape.key,
+                            required_field_id: field_shape.required_field_id,
+                            value: ResponseValue::Null,
+                        });
                     }
-                    response_fields.push(ResponseObjectField {
-                        key: field_shape.key,
-                        required_field_id: field_shape.required_field_id,
-                        value: ResponseValue::Null,
-                    });
                 }
             }
         }
-
-        Ok(())
     }
 
-    fn visit_fields_with_typename_detection<A: MapAccess<'de>>(
+    fn visit_fields_with_typename_detection<'de, A: MapAccess<'de>>(
         &self,
         map: &mut A,
         possible_types_ordered_by_typename: &[ObjectDefinitionId],
@@ -283,7 +310,7 @@ impl<'de> ConcreteShapeFieldsSeed<'_, '_> {
         }
     }
 
-    fn visit_fields<A: MapAccess<'de>>(
+    fn visit_fields<'de, A: MapAccess<'de>>(
         &self,
         map: &mut A,
         response_fields: &mut Vec<ResponseObjectField>,
@@ -309,7 +336,7 @@ impl<'de> ConcreteShapeFieldsSeed<'_, '_> {
         Ok(())
     }
 
-    fn visit_field<A: MapAccess<'de>>(
+    fn visit_field<'de, A: MapAccess<'de>>(
         &self,
         map: &mut A,
         field_shapes: &[FieldShapeRecord],
@@ -327,13 +354,17 @@ impl<'de> ConcreteShapeFieldsSeed<'_, '_> {
         }
         if end == 1 {
             let field = &field_shapes[0];
-            self.ctx.push_edge(field.key);
+            self.ctx.path().push(ResponseValueId::Field {
+                object_id: self.object_id,
+                key: field.key.response_key,
+                nullable: field.wrapping.is_nullable(),
+            });
             let result = map.next_value_seed(FieldSeed {
                 ctx: self.ctx,
                 field,
                 wrapping: field.wrapping,
             });
-            self.ctx.pop_edge();
+            self.ctx.path().pop();
             response_fields.push(ResponseObjectField {
                 key: field.key,
                 required_field_id: field.required_field_id,
@@ -344,14 +375,18 @@ impl<'de> ConcreteShapeFieldsSeed<'_, '_> {
             // value first.
             let stored_value = map.next_value::<serde_value::Value>()?;
             for field in &field_shapes[..end] {
-                self.ctx.push_edge(field.key);
+                self.ctx.path().push(ResponseValueId::Field {
+                    object_id: self.object_id,
+                    key: field.key.response_key,
+                    nullable: field.wrapping.is_nullable(),
+                });
                 let result = FieldSeed {
                     ctx: self.ctx,
                     field,
                     wrapping: field.wrapping,
                 }
                 .deserialize(serde_value::ValueDeserializer::new(stored_value.clone()));
-                self.ctx.pop_edge();
+                self.ctx.path().pop();
                 response_fields.push(ResponseObjectField {
                     key: field.key,
                     required_field_id: field.required_field_id,

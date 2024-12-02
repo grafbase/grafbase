@@ -111,7 +111,7 @@ impl GraphqlResolver {
                     let response = subgraph_response.as_mut();
                     GraphqlResponseSeed::new(
                         response.next_seed(ctx).ok_or("No object to update")?,
-                        RootGraphqlErrors::new(ctx, response),
+                        RootGraphqlErrors::new(response),
                     )
                     .deserialize(&mut serde_json::Deserializer::from_slice(&bytes))?;
 
@@ -176,7 +176,7 @@ where
             let response = subgraph_response.as_mut();
             GraphqlResponseSeed::new(
                 response.next_seed(&ctx).ok_or("No object to update")?,
-                RootGraphqlErrors::new(&ctx, response),
+                RootGraphqlErrors::new(response),
             )
             .deserialize(&mut serde_json::Deserializer::from_slice(http_response.body()))?
         };

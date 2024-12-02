@@ -52,12 +52,18 @@ fn arguments_are_provided() {
         "###);
 
         let response = engine.post("query { check { authorizedWithId(id: 0) } }").await;
-        insta::assert_json_snapshot!(response, @r###"
+        insta::assert_json_snapshot!(response, @r#"
         {
           "data": null,
           "errors": [
             {
               "message": "Unauthorized ID: 0",
+              "locations": [
+                {
+                  "line": 1,
+                  "column": 17
+                }
+              ],
               "path": [
                 "check",
                 "authorizedWithId"
@@ -68,7 +74,7 @@ fn arguments_are_provided() {
             }
           ]
         }
-        "###);
+        "#);
 
         // We shouldn't have requested the field.
         let requests = engine.drain_graphql_requests_sent_to::<SecureSchema>();
@@ -144,7 +150,7 @@ fn metadata_is_provided() {
                 "#,
             )
             .await;
-        insta::assert_json_snapshot!(response, @r###"
+        insta::assert_json_snapshot!(response, @r#"
         {
           "data": {
             "ok": {
@@ -155,6 +161,12 @@ fn metadata_is_provided() {
           "errors": [
             {
               "message": "Unauthorized role",
+              "locations": [
+                {
+                  "line": 7,
+                  "column": 25
+                }
+              ],
               "path": [
                 "noMetadata",
                 "authorized"
@@ -165,7 +177,7 @@ fn metadata_is_provided() {
             }
           ]
         }
-        "###);
+        "#);
     });
 }
 
@@ -211,7 +223,7 @@ fn definition_is_provided() {
                 "#,
             )
             .await;
-        insta::assert_json_snapshot!(response, @r###"
+        insta::assert_json_snapshot!(response, @r#"
         {
           "data": {
             "ok": {
@@ -223,6 +235,12 @@ fn definition_is_provided() {
           "errors": [
             {
               "message": "Wrong definition",
+              "locations": [
+                {
+                  "line": 7,
+                  "column": 25
+                }
+              ],
               "path": [
                 "wrongField",
                 "authorizedWithMetadata"
@@ -233,6 +251,12 @@ fn definition_is_provided() {
             },
             {
               "message": "Wrong definition",
+              "locations": [
+                {
+                  "line": 10,
+                  "column": 25
+                }
+              ],
               "path": [
                 "wrongType",
                 "authorized"
@@ -243,7 +267,7 @@ fn definition_is_provided() {
             }
           ]
         }
-        "###);
+        "#);
     });
 }
 
@@ -298,12 +322,18 @@ fn context_is_propagated() {
         "###);
 
         let response = engine.post("query { check { authorized } }").await;
-        insta::assert_json_snapshot!(response, @r###"
+        insta::assert_json_snapshot!(response, @r#"
         {
           "data": null,
           "errors": [
             {
               "message": "Missing client",
+              "locations": [
+                {
+                  "line": 1,
+                  "column": 17
+                }
+              ],
               "path": [
                 "check",
                 "authorized"
@@ -314,7 +344,7 @@ fn context_is_propagated() {
             }
           ]
         }
-        "###);
+        "#);
     });
 }
 
@@ -347,12 +377,18 @@ fn error_propagation() {
                 "#,
             )
             .await;
-        insta::assert_json_snapshot!(response, @r###"
+        insta::assert_json_snapshot!(response, @r#"
         {
           "data": null,
           "errors": [
             {
               "message": "Broken",
+              "locations": [
+                {
+                  "line": 4,
+                  "column": 25
+                }
+              ],
               "path": [
                 "check",
                 "authorized"
@@ -363,6 +399,6 @@ fn error_propagation() {
             }
           ]
         }
-        "###);
+        "#);
     });
 }

@@ -1,10 +1,6 @@
 use schema::{SchemaFieldId, StringId};
 
-use crate::operation::QueryPosition;
-
-use super::{
-    PositionedResponseKey, ResponseEdge, ResponseListId, ResponseObjectId, SafeResponseKey, UnpackedResponseEdge,
-};
+use super::{PositionedResponseKey, ResponseInaccessibleValueId, ResponseListId, ResponseObjectId};
 
 // Threshold defined a bit arbitrarily
 pub const NULL: ResponseValue = ResponseValue::Null;
@@ -12,9 +8,7 @@ pub const NULL: ResponseValue = ResponseValue::Null;
 #[derive(Default, Debug)]
 pub(crate) struct ResponseObject {
     /// fields are ordered by the position they appear in the query.
-    /// We use ResponseEdge here, but it'll never be an index out of the 3 possible variants.
-    /// That's something we should rework at some point, but it's convenient for now.
-    pub(super) fields_sorted_by_key: Vec<ResponseObjectField>,
+    pub(super) fields_sorted_by_query_position: Vec<ResponseObjectField>,
 }
 
 #[derive(Debug, Clone)]
@@ -28,53 +22,34 @@ impl ResponseObject {
     pub fn new(mut fields: Vec<ResponseObjectField>) -> Self {
         fields.sort_unstable_by(|a, b| a.key.cmp(&b.key));
         Self {
-            fields_sorted_by_key: fields,
+            fields_sorted_by_query_position: fields,
         }
     }
 
-    pub fn extend(&mut self, fields: Vec<ResponseObjectField>) {
-        self.fields_sorted_by_key.extend(fields);
-        self.fields_sorted_by_key.sort_unstable_by(|a, b| a.key.cmp(&b.key));
+    pub fn extend(&mut self, fields: impl IntoIterator<Item = ResponseObjectField>) {
+        self.fields_sorted_by_query_position.extend(fields);
+        self.fields_sorted_by_query_position
+            .sort_unstable_by(|a, b| a.key.cmp(&b.key));
+    }
+
+    pub fn extend_from_slice(&mut self, fields: &[ResponseObjectField]) {
+        self.fields_sorted_by_query_position.extend_from_slice(fields);
+        self.fields_sorted_by_query_position
+            .sort_unstable_by(|a, b| a.key.cmp(&b.key));
     }
 
     pub fn len(&self) -> usize {
-        self.fields_sorted_by_key.len()
+        self.fields_sorted_by_query_position.len()
     }
 
     pub fn fields(&self) -> impl Iterator<Item = &ResponseObjectField> {
-        self.fields_sorted_by_key.iter()
-    }
-
-    // FIXME: Shouldn't store by edge nor should the response path...
-    pub(super) fn field_position(&self, edge: ResponseEdge) -> Option<usize> {
-        let key: PositionedResponseKey = match edge.unpack() {
-            UnpackedResponseEdge::Index(_) => return None,
-            UnpackedResponseEdge::BoundResponseKey(key) => {
-                PositionedResponseKey {
-                    query_position: u16::try_from(key.position()).map(QueryPosition::from).ok(),
-                    // SAFETY: not used to access keys in ResponseKeys
-                    response_key: unsafe { SafeResponseKey::from(key.as_response_key()) },
-                }
-            }
-            UnpackedResponseEdge::ExtraFieldResponseKey(response_key) => PositionedResponseKey {
-                query_position: None,
-                // SAFETY: not used to access keys in ResponseKeys
-                response_key: unsafe { SafeResponseKey::from(response_key) },
-            },
-        };
-        self.fields_sorted_by_key
-            .binary_search_by(|field| field.key.cmp(&key))
-            .ok()
-            .or_else(|| {
-                self.fields_sorted_by_key
-                    .iter()
-                    .position(|field| field.key.response_key == key.response_key)
-            })
+        self.fields_sorted_by_query_position.iter()
     }
 
     pub(super) fn find_required_field(&self, id: SchemaFieldId) -> Option<&ResponseValue> {
-        self.fields_sorted_by_key
+        self.fields_sorted_by_query_position
             .iter()
+            .rev()
             .find(|field| field.required_field_id == Some(id))
             .map(|field| &field.value)
     }
@@ -84,13 +59,13 @@ impl std::ops::Index<usize> for ResponseObject {
     type Output = ResponseValue;
 
     fn index(&self, index: usize) -> &Self::Output {
-        &self.fields_sorted_by_key[index].value
+        &self.fields_sorted_by_query_position[index].value
     }
 }
 
 impl std::ops::IndexMut<usize> for ResponseObject {
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
-        &mut self.fields_sorted_by_key[index].value
+        &mut self.fields_sorted_by_query_position[index].value
     }
 }
 
@@ -108,64 +83,36 @@ pub(crate) enum ResponseValue {
     Null,
     Boolean {
         value: bool,
-        nullable: bool,
     },
     // Defined as i32
     // https://spec.graphql.org/October2021/#sec-Int
     Int {
         value: i32,
-        nullable: bool,
     },
     BigInt {
         value: i64,
-        nullable: bool,
     },
     Float {
         value: f64,
-        nullable: bool,
     },
     String {
         value: Box<str>,
-        nullable: bool,
     },
     StringId {
         id: StringId,
-        nullable: bool,
     },
     Json {
         value: Box<serde_json::Value>,
-        nullable: bool,
     },
     List {
         id: ResponseListId,
-        nullable: bool,
     },
     Object {
         id: ResponseObjectId,
-        nullable: bool,
     },
-}
-
-impl ResponseValue {
-    pub(super) fn is_null(&self) -> bool {
-        matches!(self, Self::Null)
-    }
-
-    pub(super) fn into_nullable(mut self) -> Self {
-        match &mut self {
-            Self::Null => (),
-            Self::Boolean { nullable, .. } => *nullable = true,
-            Self::Int { nullable, .. } => *nullable = true,
-            Self::BigInt { nullable, .. } => *nullable = true,
-            Self::Float { nullable, .. } => *nullable = true,
-            Self::String { nullable, .. } => *nullable = true,
-            Self::StringId { nullable, .. } => *nullable = true,
-            Self::Json { nullable, .. } => *nullable = true,
-            Self::List { nullable, .. } => *nullable = true,
-            Self::Object { nullable, .. } => *nullable = true,
-        };
-        self
-    }
+    Inaccessible {
+        id: ResponseInaccessibleValueId,
+    },
 }
 
 impl<T: Into<ResponseValue>> From<Option<T>> for ResponseValue {
@@ -179,31 +126,31 @@ impl<T: Into<ResponseValue>> From<Option<T>> for ResponseValue {
 
 impl From<StringId> for ResponseValue {
     fn from(id: StringId) -> Self {
-        Self::StringId { id, nullable: false }
+        Self::StringId { id }
     }
 }
 
 impl From<bool> for ResponseValue {
     fn from(value: bool) -> Self {
-        Self::Boolean { value, nullable: false }
+        Self::Boolean { value }
     }
 }
 
 impl From<i32> for ResponseValue {
     fn from(value: i32) -> Self {
-        Self::Int { value, nullable: false }
+        Self::Int { value }
     }
 }
 
 impl From<i64> for ResponseValue {
     fn from(value: i64) -> Self {
-        Self::BigInt { value, nullable: false }
+        Self::BigInt { value }
     }
 }
 
 impl From<f64> for ResponseValue {
     fn from(value: f64) -> Self {
-        Self::Float { value, nullable: false }
+        Self::Float { value }
     }
 }
 
@@ -211,25 +158,24 @@ impl From<String> for ResponseValue {
     fn from(value: String) -> Self {
         Self::String {
             value: value.into_boxed_str(),
-            nullable: false,
         }
     }
 }
 
 impl From<Box<serde_json::Value>> for ResponseValue {
     fn from(value: Box<serde_json::Value>) -> Self {
-        Self::Json { value, nullable: false }
+        Self::Json { value }
     }
 }
 
 impl From<ResponseListId> for ResponseValue {
     fn from(id: ResponseListId) -> Self {
-        Self::List { id, nullable: false }
+        Self::List { id }
     }
 }
 
 impl From<ResponseObjectId> for ResponseValue {
     fn from(id: ResponseObjectId) -> Self {
-        Self::Object { id, nullable: false }
+        Self::Object { id }
     }
 }

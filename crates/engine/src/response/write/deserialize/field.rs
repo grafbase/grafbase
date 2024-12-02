@@ -1,12 +1,11 @@
 use schema::{ListWrapping, Wrapping};
 use serde::de::DeserializeSeed;
-use walker::Walk;
 
 use super::{
     object::{ConcreteShapeSeed, PolymorphicShapeSeed},
     EnumValueSeed, ListSeed, NullableSeed, ScalarTypeSeed, SeedContext,
 };
-use crate::response::{ErrorCode, FieldShapeRecord, GraphqlError, ResponseValue, Shape};
+use crate::response::{FieldShapeRecord, ResponseValue, Shape};
 
 #[derive(Clone)]
 pub(super) struct FieldSeed<'ctx, 'parent> {
@@ -24,14 +23,15 @@ impl<'de> DeserializeSeed<'de> for FieldSeed<'_, '_> {
         let result = if let Some(list_wrapping) = self.wrapping.pop_list_wrapping() {
             let list_seed = ListSeed {
                 ctx: self.ctx,
-                field_id: self.field.id,
+                field: self.field,
                 seed: &self,
+                element_is_nullable: self.wrapping.is_nullable(),
             };
             match list_wrapping {
                 ListWrapping::RequiredList => list_seed.deserialize(deserializer),
                 ListWrapping::NullableList => NullableSeed {
                     ctx: self.ctx,
-                    field_id: self.field.id,
+                    field: self.field,
                     seed: list_seed,
                 }
                 .deserialize(deserializer),
@@ -43,6 +43,7 @@ impl<'de> DeserializeSeed<'de> for FieldSeed<'_, '_> {
                     ctx: self.ctx,
                     id,
                     is_extra: self.field.key.query_position.is_none(),
+                    is_nullable: false,
                 }
                 .deserialize(deserializer),
                 Shape::Concrete(shape_id) => ConcreteShapeSeed::new(self.ctx, shape_id).deserialize(deserializer),
@@ -52,29 +53,30 @@ impl<'de> DeserializeSeed<'de> for FieldSeed<'_, '_> {
             match self.field.shape {
                 Shape::Scalar(ty) => NullableSeed {
                     ctx: self.ctx,
-                    field_id: self.field.id,
+                    field: self.field,
                     seed: ScalarTypeSeed(ty),
                 }
                 .deserialize(deserializer),
                 Shape::Enum(enum_definition_id) => NullableSeed {
                     ctx: self.ctx,
-                    field_id: self.field.id,
+                    field: self.field,
                     seed: EnumValueSeed {
                         ctx: self.ctx,
                         id: enum_definition_id,
                         is_extra: self.field.key.query_position.is_none(),
+                        is_nullable: true,
                     },
                 }
                 .deserialize(deserializer),
                 Shape::Concrete(shape_id) => NullableSeed {
                     ctx: self.ctx,
-                    field_id: self.field.id,
+                    field: self.field,
                     seed: ConcreteShapeSeed::new(self.ctx, shape_id),
                 }
                 .deserialize(deserializer),
                 Shape::Polymorphic(shape_id) => NullableSeed {
                     ctx: self.ctx,
-                    field_id: self.field.id,
+                    field: self.field,
                     seed: PolymorphicShapeSeed::new(self.ctx, shape_id),
                 }
                 .deserialize(deserializer),
@@ -82,13 +84,7 @@ impl<'de> DeserializeSeed<'de> for FieldSeed<'_, '_> {
         };
 
         result.inspect_err(move |err| {
-            if self.ctx.should_create_new_graphql_error() {
-                self.ctx.writer.push_error(
-                    GraphqlError::new(err.to_string(), ErrorCode::SubgraphInvalidResponseError)
-                        .with_location(self.field.id.walk(self.ctx).location)
-                        .with_path(self.ctx.response_path()),
-                );
-            }
+            self.ctx.push_field_serde_error(self.field, true, || err.to_string());
         })
     }
 }

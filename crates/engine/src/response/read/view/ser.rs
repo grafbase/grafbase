@@ -74,6 +74,12 @@ impl serde::Serialize for ResponseValueView<'_> {
     {
         match self.value {
             ResponseValue::Null => serializer.serialize_none(),
+            ResponseValue::Inaccessible { id } => ResponseValueView {
+                ctx: self.ctx,
+                value: &self.ctx.response.data_parts[*id],
+                selection_set: self.selection_set,
+            }
+            .serialize(serializer),
             ResponseValue::Boolean { value, .. } => value.serialize(serializer),
             ResponseValue::Int { value, .. } => value.serialize(serializer),
             ResponseValue::Float { value, .. } => value.serialize(serializer),

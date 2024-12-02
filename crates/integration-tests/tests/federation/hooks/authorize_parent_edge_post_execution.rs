@@ -125,7 +125,7 @@ fn after_pre_execution_hook() {
                 "#,
             )
             .await;
-        insta::assert_json_snapshot!(response, @r###"
+        insta::assert_json_snapshot!(response, @r#"
         {
           "data": {
             "user": null
@@ -133,6 +133,12 @@ fn after_pre_execution_hook() {
           "errors": [
             {
               "message": "Not authorized",
+              "locations": [
+                {
+                  "line": 3,
+                  "column": 21
+                }
+              ],
               "path": [
                 "user"
               ],
@@ -142,7 +148,7 @@ fn after_pre_execution_hook() {
             }
           ]
         }
-        "###);
+        "#);
     });
 }
 

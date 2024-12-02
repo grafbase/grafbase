@@ -4,14 +4,14 @@ use schema::{CompositeTypeId, ObjectDefinitionId, Schema};
 
 use crate::operation::ResponseObjectSetDefinitionId;
 
-use super::{ResponseObjectId, ResponsePath};
+use super::{ResponseObjectId, ResponseValueId};
 
 /// A "fat" reference to a response object. We keep track of its path for further execution and its
 /// definition id because we don't store it anywhere else as of today.
 #[derive(Debug, Clone)]
 pub(crate) struct ResponseObjectRef {
     pub id: ResponseObjectId,
-    pub path: ResponsePath,
+    pub path: Vec<ResponseValueId>,
     pub definition_id: ObjectDefinitionId,
 }
 

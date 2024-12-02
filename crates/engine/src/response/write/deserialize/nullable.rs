@@ -4,17 +4,13 @@ use serde::{
     de::{DeserializeSeed, Visitor},
     Deserializer,
 };
-use walker::Walk;
 
 use super::SeedContext;
-use crate::{
-    operation::DataFieldId,
-    response::{ErrorCode, GraphqlError, ResponseValue},
-};
+use crate::response::{FieldShapeRecord, ResponseValue};
 
 pub(super) struct NullableSeed<'ctx, 'parent, Seed> {
     pub ctx: &'parent SeedContext<'ctx>,
-    pub field_id: DataFieldId,
+    pub field: &'parent FieldShapeRecord,
     pub seed: Seed,
 }
 
@@ -61,15 +57,9 @@ where
         D: Deserializer<'de>,
     {
         match self.seed.deserialize(deserializer) {
-            Ok(value) => Ok(value.into_nullable()),
+            Ok(value) => Ok(value),
             Err(err) => {
-                if self.ctx.stop_propagating_and_should_create_new_graphql_error() {
-                    self.ctx.writer.push_error(
-                        GraphqlError::new(err.to_string(), ErrorCode::SubgraphInvalidResponseError)
-                            .with_location(self.field_id.walk(self.ctx).location)
-                            .with_path(self.ctx.response_path()),
-                    );
-                }
+                self.ctx.push_field_serde_error(self.field, false, || err.to_string());
                 Ok(ResponseValue::Null)
             }
         }

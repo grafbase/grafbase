@@ -339,7 +339,7 @@ fn metadata_is_provided() {
                 "#,
             )
             .await;
-        insta::assert_json_snapshot!(response, @r###"
+        insta::assert_json_snapshot!(response, @r#"
         {
           "data": {
             "node": {
@@ -352,6 +352,12 @@ fn metadata_is_provided() {
           "errors": [
             {
               "message": "Unauthorized role",
+              "locations": [
+                {
+                  "line": 7,
+                  "column": 25
+                }
+              ],
               "path": [
                 "node",
                 "noMetadata"
@@ -362,7 +368,7 @@ fn metadata_is_provided() {
             }
           ]
         }
-        "###);
+        "#);
 
         // We shouldn't have requested the field.
         let requests = engine.drain_graphql_requests_sent_to::<SecureSchema>();
@@ -419,7 +425,7 @@ fn definition_is_provided() {
                 "#,
             )
             .await;
-        insta::assert_json_snapshot!(response, @r###"
+        insta::assert_json_snapshot!(response, @r#"
         {
           "data": {
             "node": {
@@ -432,6 +438,12 @@ fn definition_is_provided() {
           "errors": [
             {
               "message": "Wrong definition",
+              "locations": [
+                {
+                  "line": 7,
+                  "column": 25
+                }
+              ],
               "path": [
                 "node",
                 "wrongType"
@@ -442,7 +454,7 @@ fn definition_is_provided() {
             }
           ]
         }
-        "###);
+        "#);
     });
 }
 
@@ -501,12 +513,18 @@ fn context_is_propagated() {
         "###);
 
         let response = engine.post("query { node { authorized { id } } }").await;
-        insta::assert_json_snapshot!(response, @r###"
+        insta::assert_json_snapshot!(response, @r#"
         {
           "data": null,
           "errors": [
             {
               "message": "Missing client",
+              "locations": [
+                {
+                  "line": 1,
+                  "column": 16
+                }
+              ],
               "path": [
                 "node",
                 "authorized"
@@ -517,7 +535,7 @@ fn context_is_propagated() {
             }
           ]
         }
-        "###);
+        "#);
     });
 }
 
@@ -551,12 +569,18 @@ fn error_propagation() {
                 "#,
             )
             .await;
-        insta::assert_json_snapshot!(response, @r###"
+        insta::assert_json_snapshot!(response, @r#"
         {
           "data": null,
           "errors": [
             {
               "message": "Broken",
+              "locations": [
+                {
+                  "line": 4,
+                  "column": 25
+                }
+              ],
               "path": [
                 "node",
                 "authorized"
@@ -567,6 +591,6 @@ fn error_propagation() {
             }
           ]
         }
-        "###);
+        "#);
     });
 }
