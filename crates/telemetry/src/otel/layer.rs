@@ -1,5 +1,5 @@
 use opentelemetry::trace::TracerProvider;
-use opentelemetry::KeyValue;
+use opentelemetry::{InstrumentationScope, KeyValue};
 use opentelemetry_appender_tracing::layer::OpenTelemetryTracingBridge;
 use opentelemetry_sdk::runtime::RuntimeChannel;
 use opentelemetry_sdk::trace::IdGenerator;
@@ -85,11 +85,11 @@ where
     let tracer = if config.tracing_exporters_enabled() {
         let provider = super::traces::build_trace_provider(runtime, id_generator, config, resource.clone())?;
 
-        let tracer = provider
-            .tracer_builder(crate::SCOPE)
+        let scope = InstrumentationScope::builder(crate::SCOPE)
             .with_version(crate::SCOPE_VERSION)
             .build();
 
+        let tracer = provider.tracer_with_scope(scope);
         let layer = tracing_opentelemetry::layer().with_tracer(tracer);
 
         Some(Tracer { layer, provider })

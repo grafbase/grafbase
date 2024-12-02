@@ -41,7 +41,7 @@ pub(super) struct ComponentMananger<T> {
 impl<T: RecycleableComponentInstance> ComponentMananger<T> {
     pub(super) fn new(component_loader: Arc<ComponentLoader>) -> Self {
         let meter = grafbase_telemetry::metrics::meter_from_global_provider();
-        let pool_busy_counter = meter.i64_up_down_counter("grafbase.hook.pool.instances.busy").init();
+        let pool_busy_counter = meter.i64_up_down_counter("grafbase.hook.pool.instances.busy").build();
         let counter_attributes = vec![KeyValue::new("grafbase.hook.interface", T::interface_name())];
 
         Self {

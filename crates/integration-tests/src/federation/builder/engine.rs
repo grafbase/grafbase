@@ -49,7 +49,7 @@ pub(super) async fn build(
 
     let counter = grafbase_telemetry::metrics::meter_from_global_provider()
         .i64_up_down_counter("grafbase.gateway.access_log.pending")
-        .init();
+        .build();
 
     let (access_log_sender, access_log_receiver) = hooks::create_log_channel(false, counter);
 

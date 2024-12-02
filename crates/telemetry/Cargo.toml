@@ -38,7 +38,11 @@ opentelemetry-appender-tracing = { workspace = true, features = [
     "experimental_metadata_attributes",
 ] }
 opentelemetry = { workspace = true, features = ["otel_unstable", "trace"] }
-opentelemetry_sdk = { workspace = true, features = ["rt-tokio", "logs"] }
+opentelemetry_sdk = { workspace = true, features = [
+    "rt-tokio",
+    "logs",
+    "spec_unstable_metrics_views",
+] }
 opentelemetry-stdout = { workspace = true, features = [
     "trace",
     "metrics",
@@ -51,6 +55,7 @@ opentelemetry-otlp = { workspace = true, features = [
     "reqwest-client",
     "tls",
     "tonic",
+    "metrics",
 ], optional = true }
 ascii = { version = "1.1.0", features = ["serde"] }
 cfg-if = "1.0.0"

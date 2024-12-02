@@ -1,22 +1,11 @@
-use opentelemetry_sdk::metrics::data::Temporality;
-use opentelemetry_sdk::metrics::reader::TemporalitySelector;
-use opentelemetry_sdk::metrics::{
-    Aggregation, Instrument, InstrumentKind, PeriodicReader, SdkMeterProvider, Stream, View,
-};
+use opentelemetry_sdk::metrics::{Aggregation, Instrument, InstrumentKind, PeriodicReader, SdkMeterProvider, Stream};
+use opentelemetry_sdk::metrics::{Temporality, View};
 use opentelemetry_sdk::runtime::Runtime;
 use opentelemetry_sdk::Resource;
 use std::time::Duration;
 
 use crate::config::TelemetryConfig;
 use crate::error::TracingError;
-
-pub struct DeltaTemporality;
-
-impl TemporalitySelector for DeltaTemporality {
-    fn temporality(&self, _kind: InstrumentKind) -> Temporality {
-        Temporality::Delta
-    }
-}
 
 pub struct AggForLatencyHistogram;
 
@@ -58,8 +47,8 @@ where
 
     if let Some(config) = config.metrics_stdout_config() {
         let reader = PeriodicReader::builder(
-            opentelemetry_stdout::MetricsExporter::builder()
-                .with_temporality_selector(DeltaTemporality)
+            opentelemetry_stdout::MetricExporter::builder()
+                .with_temporality(Temporality::Delta)
                 .build(),
             runtime.clone(),
         )
@@ -99,16 +88,40 @@ fn attach_reader<R>(
 where
     R: Runtime,
 {
-    use opentelemetry_otlp::MetricsExporterBuilder;
+    use gateway_config::OtlpExporterProtocol;
+    use opentelemetry_otlp::{MetricExporter, WithExportConfig, WithHttpConfig, WithTonicConfig};
 
-    let builder: MetricsExporterBuilder = match super::exporter::build_otlp_exporter(config)? {
-        either::Either::Left(grpc) => grpc.into(),
-        either::Either::Right(http) => http.into(),
+    use crate::otel::exporter::{build_metadata, build_tls_config};
+
+    let exporter_timeout = Duration::from_secs(config.timeout.num_seconds() as u64);
+
+    let exporter = match config.protocol {
+        OtlpExporterProtocol::Grpc => {
+            let grpc_config = config.grpc.clone().unwrap_or_default();
+
+            MetricExporter::builder()
+                .with_tonic()
+                .with_endpoint(config.endpoint.to_string())
+                .with_timeout(exporter_timeout)
+                .with_metadata(build_metadata(grpc_config.headers))
+                .with_tls_config(build_tls_config(grpc_config.tls)?)
+                .with_temporality(Temporality::Delta)
+                .build()
+                .map_err(|e| TracingError::MetricsExporterSetup(e.to_string()))?
+        }
+        OtlpExporterProtocol::Http => {
+            let http_config = config.http.clone().unwrap_or_default();
+
+            MetricExporter::builder()
+                .with_http()
+                .with_endpoint(config.endpoint.to_string())
+                .with_headers(http_config.headers.into_map())
+                .with_timeout(exporter_timeout)
+                .with_temporality(Temporality::Delta)
+                .build()
+                .map_err(|e| TracingError::MetricsExporterSetup(e.to_string()))?
+        }
     };
-
-    let exporter = builder
-        .build_metrics_exporter(Box::new(DeltaTemporality))
-        .map_err(|e| TracingError::MetricsExporterSetup(e.to_string()))?;
 
     let reader = PeriodicReader::builder(exporter, runtime.clone())
         .with_interval(
