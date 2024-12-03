@@ -121,7 +121,7 @@ tildify() {
 success "grafbase-gateway was installed successfully to $Bold_Green$(tildify "$exe")"
 
 if command -v grafbase >/dev/null; then
-    echo "Run 'gateway --help' to get started"
+    echo "Run 'grafbase-gateway --help' to get started"
     exit
 fi
 
