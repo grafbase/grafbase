@@ -4,9 +4,8 @@
 #[cfg(feature = "derive")]
 pub use grafbase_hooks_derive::grafbase_hooks;
 
-pub mod access_log;
 mod hooks;
-pub mod http_client;
+pub mod host_io;
 
 pub use hooks::{hooks, HookExports, HookImpls, Hooks};
 pub use wit::{

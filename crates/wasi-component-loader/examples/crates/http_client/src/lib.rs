@@ -1,6 +1,6 @@
 use grafbase_hooks::{
     grafbase_hooks,
-    http_client::{self, HttpMethod, HttpRequest},
+    host_io::http::{self, HttpMethod, HttpRequest},
     Context, ErrorResponse, Headers, Hooks,
 };
 
@@ -26,7 +26,7 @@ impl Hooks for Component {
             timeout_ms: None,
         };
 
-        let response = http_client::execute(&request).unwrap();
+        let response = http::execute(&request).unwrap();
         let body = String::from_utf8(response.body).unwrap();
 
         context.set("HTTP_RESPONSE", &body);
