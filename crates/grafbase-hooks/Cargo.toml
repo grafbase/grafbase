@@ -1,6 +1,6 @@
 [package]
 name = "grafbase-hooks"
-version = "0.1.3"
+version = "0.1.6"
 description = "An SDK to implement hooks for the Grafbase Gateway"
 edition.workspace = true
 license.workspace = true
@@ -13,6 +13,8 @@ derive = ["dep:grafbase-hooks-derive"]
 
 [dependencies]
 grafbase-hooks-derive = { version = "0.1.0", path = "derive", optional = true }
+serde.workspace = true
+serde_json.workspace = true
 wit-bindgen = "0.36.0"
 
 [lints]

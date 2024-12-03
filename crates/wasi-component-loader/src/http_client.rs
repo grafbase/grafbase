@@ -47,7 +47,7 @@ struct HttpRequest {
 #[allow(dead_code)] // for some reason clippy thinks this is dead code, it's not.
 #[derive(AsRefStr)]
 #[strum(serialize_all = "SCREAMING_SNAKE_CASE")]
-enum HttpMethod {
+pub(crate) enum HttpMethod {
     #[component(name = "get")]
     Get,
     #[component(name = "post")]
@@ -80,6 +80,23 @@ impl From<HttpMethod> for reqwest::Method {
             HttpMethod::Options => reqwest::Method::OPTIONS,
             HttpMethod::Connect => reqwest::Method::CONNECT,
             HttpMethod::Trace => reqwest::Method::TRACE,
+        }
+    }
+}
+
+impl From<http::Method> for HttpMethod {
+    fn from(value: http::Method) -> Self {
+        match value {
+            http::Method::GET => HttpMethod::Get,
+            http::Method::POST => HttpMethod::Post,
+            http::Method::PUT => HttpMethod::Put,
+            http::Method::DELETE => HttpMethod::Delete,
+            http::Method::PATCH => HttpMethod::Patch,
+            http::Method::HEAD => HttpMethod::Head,
+            http::Method::OPTIONS => HttpMethod::Options,
+            http::Method::CONNECT => HttpMethod::Connect,
+            http::Method::TRACE => HttpMethod::Trace,
+            method => todo!("unsupported http method: {method:?}"),
         }
     }
 }

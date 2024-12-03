@@ -5,6 +5,23 @@
 use crate::wit::HttpClient;
 pub use crate::wit::{HttpError, HttpMethod, HttpRequest, HttpResponse, HttpVersion};
 
+impl HttpMethod {
+    /// Returns string slice representation of HTTP Method.
+    pub fn as_str(&self) -> &str {
+        match self {
+            HttpMethod::Get => "GET",
+            HttpMethod::Post => "POST",
+            HttpMethod::Put => "PUT",
+            HttpMethod::Delete => "DELETE",
+            HttpMethod::Patch => "PATCH",
+            HttpMethod::Head => "HEAD",
+            HttpMethod::Options => "OPTIONS",
+            HttpMethod::Trace => "TRACE",
+            HttpMethod::Connect => "CONNECT",
+        }
+    }
+}
+
 /// Executes a single HTTP request in the host runtime.
 pub fn execute(request: &HttpRequest) -> Result<HttpResponse, HttpError> {
     HttpClient::execute(request)

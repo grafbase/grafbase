@@ -7,11 +7,14 @@ pub use grafbase_hooks_derive::grafbase_hooks;
 mod hooks;
 pub mod host_io;
 
-pub use hooks::{hooks, HookExports, HookImpls, Hooks};
+pub use hooks::{
+    hooks, EdgeNodePostExecutionArguments, EdgePostExecutionArguments, EdgePreExecutionArguments, HookExports,
+    HookImpls, Hooks, NodePreExecutionArguments, ParentEdgePostExecutionArguments, SubgraphRequest,
+};
 pub use wit::{
-    CacheStatus, Context, EdgeDefinition, Error, ErrorResponse, ExecutedHttpRequest, ExecutedOperation,
-    ExecutedSubgraphRequest, FieldError, GraphqlResponseStatus, HeaderError, Headers, LogError, NodeDefinition,
-    RequestError, SharedContext, SubgraphRequestExecutionKind, SubgraphResponse,
+    CacheStatus, Context, Error, ErrorResponse, ExecutedHttpRequest, ExecutedOperation, ExecutedSubgraphRequest,
+    FieldError, GraphqlResponseStatus, HeaderError, Headers, LogError, RequestError, SharedContext,
+    SubgraphRequestExecutionKind, SubgraphResponse,
 };
 
 #[doc(hidden)]

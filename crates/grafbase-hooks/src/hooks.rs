@@ -1,8 +1,16 @@
+mod authorization;
+mod subgraph;
+
 pub use crate::wit::{
     Context, EdgeDefinition, Error, ErrorResponse, ExecutedHttpRequest, ExecutedOperation, ExecutedSubgraphRequest,
     Guest, Headers, NodeDefinition, SharedContext,
 };
-use crate::Component;
+use crate::{wit::HttpMethod, Component};
+pub use authorization::{
+    EdgeNodePostExecutionArguments, EdgePostExecutionArguments, EdgePreExecutionArguments, NodePreExecutionArguments,
+    ParentEdgePostExecutionArguments,
+};
+pub use subgraph::SubgraphRequest;
 
 pub(super) static mut HOOKS: Option<Box<dyn Hooks>> = None;
 
@@ -25,11 +33,12 @@ impl Guest for Component {
     fn on_subgraph_request(
         context: SharedContext,
         subgraph_name: String,
-        method: String,
+        method: HttpMethod,
         url: String,
         headers: Headers,
     ) -> Result<(), Error> {
-        hooks().on_subgraph_request(context, subgraph_name, method, url, headers)
+        let subgraph_request = SubgraphRequest::new(subgraph_name, method, url);
+        hooks().on_subgraph_request(context, headers, subgraph_request)
     }
 
     fn authorize_edge_pre_execution(
@@ -38,7 +47,8 @@ impl Guest for Component {
         arguments: String,
         metadata: String,
     ) -> Result<(), Error> {
-        hooks().authorize_edge_pre_execution(context, definition, arguments, metadata)
+        let arguments = EdgePreExecutionArguments::new(definition, arguments, metadata);
+        hooks().authorize_edge_pre_execution(context, arguments)
     }
 
     fn authorize_node_pre_execution(
@@ -46,7 +56,8 @@ impl Guest for Component {
         definition: NodeDefinition,
         metadata: String,
     ) -> Result<(), Error> {
-        hooks().authorize_node_pre_execution(context, definition, metadata)
+        let arguments = NodePreExecutionArguments::new(definition, metadata);
+        hooks().authorize_node_pre_execution(context, arguments)
     }
 
     fn authorize_parent_edge_post_execution(
@@ -55,7 +66,8 @@ impl Guest for Component {
         parents: Vec<String>,
         metadata: String,
     ) -> Vec<Result<(), Error>> {
-        hooks().authorize_parent_edge_post_execution(context, definition, parents, metadata)
+        let arguments = ParentEdgePostExecutionArguments::new(definition, parents, metadata);
+        hooks().authorize_parent_edge_post_execution(context, arguments)
     }
 
     fn authorize_edge_node_post_execution(
@@ -64,7 +76,8 @@ impl Guest for Component {
         nodes: Vec<String>,
         metadata: String,
     ) -> Vec<Result<(), Error>> {
-        hooks().authorize_edge_node_post_execution(context, definition, nodes, metadata)
+        let arguments = EdgeNodePostExecutionArguments::new(definition, nodes, metadata);
+        hooks().authorize_edge_node_post_execution(context, arguments)
     }
 
     fn authorize_edge_post_execution(
@@ -73,7 +86,8 @@ impl Guest for Component {
         edges: Vec<(String, Vec<String>)>,
         metadata: String,
     ) -> Vec<Result<(), Error>> {
-        hooks().authorize_edge_post_execution(context, definition, edges, metadata)
+        let arguments = EdgePostExecutionArguments::new(definition, edges, metadata);
+        hooks().authorize_edge_post_execution(context, arguments)
     }
 
     fn on_subgraph_response(context: SharedContext, request: ExecutedSubgraphRequest) -> Vec<u8> {
@@ -131,10 +145,8 @@ pub trait Hooks: HookImpls + HookExports {
     fn on_subgraph_request(
         &mut self,
         context: SharedContext,
-        subgraph_name: String,
-        method: String,
-        url: String,
         headers: Headers,
+        subgraph_request: SubgraphRequest,
     ) -> Result<(), Error> {
         todo!()
     }
@@ -145,14 +157,25 @@ pub trait Hooks: HookImpls + HookExports {
     ///
     /// This hook runs before fetching any data.
     ///
+    /// An example GraphQL schema which will trigger this hook:
+    ///
+    /// ```graphql
+    /// type Query {
+    ///     user(id: ID!): User @authorized(arguments: "id")
+    /// }
+    /// ```
+    ///
+    /// If an authorized directive is defined with the `arguments` argument,
+    /// you must implement this hook.
+    ///
+    /// Every call to the `user` field will trigger this hook.
+    ///
     /// An error result stops request execution and returns the error to the user.
     /// The edge result becomes null for error responses.
     fn authorize_edge_pre_execution(
         &mut self,
         context: SharedContext,
-        definition: EdgeDefinition,
-        arguments: String,
-        metadata: String,
+        arguments: EdgePreExecutionArguments,
     ) -> Result<(), Error> {
         todo!()
     }
@@ -162,13 +185,24 @@ pub trait Hooks: HookImpls + HookExports {
     ///
     /// This hook runs before any data fetching.
     ///
+    /// The hook is called when an edge is about to be executed and the node
+    /// has an `@authorized` directive defined:
+    ///
+    /// ```graphql
+    /// type User @authorized {
+    ///   id: Int!
+    ///   name: String!
+    /// }
+    /// ```
+    ///
+    /// If an authorized directive is defined to a node, you must implement this hook.
+    ///
     /// An error result stops request execution and returns the error to the user.
     /// The edge value will be null for error responses.
     fn authorize_node_pre_execution(
         &mut self,
         context: SharedContext,
-        definition: NodeDefinition,
-        metadata: String,
+        arguments: NodePreExecutionArguments,
     ) -> Result<(), Error> {
         todo!()
     }
@@ -178,7 +212,22 @@ pub trait Hooks: HookImpls + HookExports {
     /// The hook receives parent type information and a list of data with the defined fields of
     /// the parent for every child that the parent query loads.
     ///
-    /// This hook runs after data fetching completes.
+    /// The hook is called when edge data is fetched, before returning the data to the
+    /// client and the `@authorized` directive is defined with the `fields` argument defined:
+    ///
+    /// ```graphql
+    /// type User {
+    ///     id: Int!
+    ///     name: String! @authorized(fields: "id")
+    /// }
+    ///
+    /// type Query {
+    ///    users: [User!]!
+    /// }
+    /// ```
+    ///
+    /// If an authorized directive is defined with the `fields` argument, you must
+    /// implement this hook.
     ///
     /// The hook returns one of the following:
     ///
@@ -195,9 +244,7 @@ pub trait Hooks: HookImpls + HookExports {
     fn authorize_parent_edge_post_execution(
         &mut self,
         context: SharedContext,
-        definition: EdgeDefinition,
-        parents: Vec<String>,
-        metadata: String,
+        arguments: ParentEdgePostExecutionArguments,
     ) -> Vec<Result<(), Error>> {
         todo!()
     }
@@ -206,7 +253,22 @@ pub trait Hooks: HookImpls + HookExports {
     /// an edge with the node argument, providing fields from the child node. This hook receives parent type information
     /// and a list of data with defined fields for every child the parent query loads.
     ///
-    /// This hook runs after fetching the data.
+    /// The hook is called when edge data is fetched, before returning the data to the
+    /// client and the `@authorized` directive is defined with the `node` argument defined:
+    ///
+    /// ```graphql
+    /// type User {
+    ///     id: Int!
+    ///     name: String!
+    /// }
+    ///
+    /// type Query {
+    ///    users: [User!]! @authorized(node: "id")
+    /// }
+    /// ```
+    ///
+    /// If an authorized directive is defined with the `node` argument, you must
+    /// implement this hook.
     ///
     /// The result must be one of:
     ///
@@ -223,9 +285,7 @@ pub trait Hooks: HookImpls + HookExports {
     fn authorize_edge_node_post_execution(
         &mut self,
         context: SharedContext,
-        definition: EdgeDefinition,
-        nodes: Vec<String>,
-        metadata: String,
+        arguments: EdgeNodePostExecutionArguments,
     ) -> Vec<Result<(), Error>> {
         todo!()
     }
@@ -237,7 +297,27 @@ pub trait Hooks: HookImpls + HookExports {
     /// The directive's fields argument defines the first part of the tuple and the node
     /// argument defines the second part.
     ///
-    /// This hook runs after data fetching completes.
+    /// The hook is called when edge data is fetched, before returning the data to the
+    /// client and the `@authorized` directive is defined with the `fields` and `node`
+    /// arguments defined:
+    ///
+    /// ```graphql
+    /// type Address {
+    ///     street: String!
+    /// }
+    ///
+    /// type User {
+    ///     id: Int!
+    ///     addresses: [Address!]! @authorized(fields: "id", node: "street")
+    /// }
+    ///
+    /// type Query {
+    ///    users: [User!]!
+    /// }
+    /// ```
+    ///
+    /// If an authorized directive is defined with the `fields` and `node` arguments,
+    /// you must implement this hook.
     ///
     /// The hook must return one of:
     ///
@@ -254,9 +334,7 @@ pub trait Hooks: HookImpls + HookExports {
     fn authorize_edge_post_execution(
         &mut self,
         context: SharedContext,
-        definition: EdgeDefinition,
-        edges: Vec<(String, Vec<String>)>,
-        metadata: String,
+        arguments: EdgePostExecutionArguments,
     ) -> Vec<Result<(), Error>> {
         todo!()
     }

@@ -39,6 +39,32 @@ pub enum HttpMethod {
     Trace,
 }
 
+impl From<http::Method> for HttpMethod {
+    fn from(value: http::Method) -> Self {
+        if value == http::Method::GET {
+            Self::Get
+        } else if value == http::Method::POST {
+            Self::Post
+        } else if value == http::Method::PUT {
+            Self::Put
+        } else if value == http::Method::DELETE {
+            Self::Delete
+        } else if value == http::Method::PATCH {
+            Self::Patch
+        } else if value == http::Method::HEAD {
+            Self::Head
+        } else if value == http::Method::OPTIONS {
+            Self::Options
+        } else if value == http::Method::TRACE {
+            Self::Trace
+        } else if value == http::Method::CONNECT {
+            Self::Connect
+        } else {
+            todo!("Unsupported HTTP method: {:?}", value);
+        }
+    }
+}
+
 impl From<HttpMethod> for http::Method {
     fn from(value: HttpMethod) -> Self {
         match value {

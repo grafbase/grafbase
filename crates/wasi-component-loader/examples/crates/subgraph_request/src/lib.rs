@@ -1,4 +1,4 @@
-use grafbase_hooks::{grafbase_hooks, Error, Headers, Hooks, SharedContext};
+use grafbase_hooks::{grafbase_hooks, Error, Headers, Hooks, SharedContext, SubgraphRequest};
 
 struct Component;
 
@@ -14,10 +14,8 @@ impl Hooks for Component {
     fn on_subgraph_request(
         &mut self,
         context: SharedContext,
-        subgraph_name: String,
-        method: String,
-        url: String,
         headers: Headers,
+        subgraph_request: SubgraphRequest,
     ) -> Result<(), Error> {
         use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
 
@@ -29,9 +27,9 @@ impl Hooks for Component {
         }
 
         let everything = serde_json::to_vec(&serde_json::json!({
-            "subgraph_name": subgraph_name,
-            "method": method,
-            "url": url,
+            "subgraph_name": subgraph_request.subgraph_name(),
+            "method": subgraph_request.method().as_str(),
+            "url": subgraph_request.url(),
             "headers": headers.entries()
         }))
         .unwrap();

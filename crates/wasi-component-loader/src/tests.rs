@@ -251,8 +251,17 @@ async fn authorize_edge_pre_execution_error() {
 
     let context = SharedContext::new(Arc::new(kv), TraceId::INVALID);
 
+    let value = json!({
+        "value": "lol"
+    });
+
     let error = hook
-        .authorize_edge_pre_execution(context, definition, String::new(), String::new())
+        .authorize_edge_pre_execution(
+            context,
+            definition,
+            serde_json::to_string(&value).unwrap(),
+            String::new(),
+        )
         .await
         .unwrap_err();
 
@@ -291,9 +300,18 @@ async fn authorize_edge_pre_execution_success() {
 
     let context = SharedContext::new(Arc::new(context), TraceId::INVALID);
 
-    hook.authorize_edge_pre_execution(context, definition, String::from("kekw"), String::new())
-        .await
-        .unwrap();
+    let value = json!({
+        "value": "kekw"
+    });
+
+    hook.authorize_edge_pre_execution(
+        context,
+        definition,
+        serde_json::to_string(&value).unwrap(),
+        String::new(),
+    )
+    .await
+    .unwrap();
 }
 
 #[tokio::test]
@@ -322,8 +340,12 @@ async fn authorize_node_pre_execution_error() {
 
     let context = SharedContext::new(Arc::new(context), TraceId::INVALID);
 
+    let metadata = json!({
+        "role": "lol"
+    });
+
     let error = hook
-        .authorize_node_pre_execution(context, definition, String::new())
+        .authorize_node_pre_execution(context, definition, serde_json::to_string(&metadata).unwrap())
         .await
         .unwrap_err();
 
@@ -361,7 +383,11 @@ async fn authorize_node_pre_execution_success() {
 
     let context = SharedContext::new(Arc::new(context), TraceId::INVALID);
 
-    hook.authorize_node_pre_execution(context, definition, String::from("kekw"))
+    let metadata = json!({
+        "role": "kekw"
+    });
+
+    hook.authorize_node_pre_execution(context, definition, serde_json::to_string(&metadata).unwrap())
         .await
         .unwrap();
 }
@@ -398,8 +424,12 @@ async fn authorize_parent_edge_post_execution() {
 
     let context = SharedContext::new(Arc::new(context), TraceId::INVALID);
 
+    let metadata = json!({
+        "role": "kekw"
+    });
+
     let result = hook
-        .authorize_parent_edge_post_execution(context, definition, parents, String::new())
+        .authorize_parent_edge_post_execution(context, definition, parents, serde_json::to_string(&metadata).unwrap())
         .await
         .unwrap();
 
@@ -480,6 +510,8 @@ async fn authorize_edge_post_execution() {
 
     let config = indoc! {r#"
         location = "examples/target/wasm32-wasip1/debug/authorization.wasm"
+        stdout = true
+        stderr = true
     "#};
 
     let config: Config = toml::from_str(config).unwrap();
@@ -499,10 +531,14 @@ async fn authorize_edge_post_execution() {
         field_name: String::new(),
     };
 
+    let parent1 = serde_json::to_string(&json!({ "id": 1 })).unwrap();
+
     let nodes1 = vec![
         serde_json::to_string(&json!({ "value": "kekw" })).unwrap(),
         serde_json::to_string(&json!({ "value": "lol" })).unwrap(),
     ];
+
+    let parent2 = serde_json::to_string(&json!({ "id": 2 })).unwrap();
 
     let nodes2 = vec![
         serde_json::to_string(&json!({ "value": "kekw" })).unwrap(),
@@ -515,7 +551,7 @@ async fn authorize_edge_post_execution() {
         .authorize_edge_post_execution(
             context,
             definition,
-            vec![(String::new(), nodes1), (String::new(), nodes2)],
+            vec![(parent1, nodes1), (parent2, nodes2)],
             String::new(),
         )
         .await
@@ -585,19 +621,19 @@ async fn on_subgraph_request() {
         .map(|value| URL_SAFE_NO_PAD.decode(value.to_str().unwrap()).unwrap())
         .unwrap_or_default();
     let value = serde_json::from_slice::<serde_json::Value>(&everything).unwrap();
-    insta::assert_json_snapshot!(value, @r###"
+    insta::assert_json_snapshot!(value, @r#"
     {
+      "subgraph_name": "dummy",
+      "method": "POST",
+      "url": "http://example.com/",
       "headers": [
         [
           "hi",
           "Rusty"
         ]
-      ],
-      "method": "POST",
-      "subgraph_name": "dummy",
-      "url": "http://example.com/"
+      ]
     }
-    "###);
+    "#);
 
     let context = HashMap::from_iter([("should-fail".into(), "yes".into())]);
 
