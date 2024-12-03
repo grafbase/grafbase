@@ -1,7 +1,9 @@
 mod common;
 use common::*;
-use grafbase_hooks::{grafbase_hooks, Context, EdgeDefinition, Error, ErrorResponse, Headers, Hooks, SharedContext};
-use itertools::Itertools;
+use grafbase_hooks::{
+    grafbase_hooks, Context, EdgeNodePostExecutionArguments, EdgePreExecutionArguments, Error, ErrorResponse, Headers,
+    Hooks, ParentEdgePostExecutionArguments, SharedContext,
+};
 
 // Individual interface implementations
 mod authorization;
@@ -36,21 +38,23 @@ impl Hooks for Component {
     fn authorize_edge_pre_execution(
         &mut self,
         context: SharedContext,
-        definition: EdgeDefinition,
-        arguments: String,
-        _metadata: String,
+        arguments: EdgePreExecutionArguments,
     ) -> Result<(), Error> {
         init_logging();
 
-        match (definition.parent_type_name.as_str(), definition.field_name.as_str()) {
+        match (arguments.parent_type_name(), arguments.field_name()) {
             ("Query", "user") => {
-                tracing::info!("Authorizing access to Query.user with {arguments}",);
+                tracing::info!("Authorizing access to Query.user",);
 
                 #[derive(serde::Deserialize)]
                 struct Arguments {
                     id: usize,
                 }
-                let arguments: Arguments = read_input(&arguments)?;
+
+                let arguments: Arguments = arguments.deserialize_arguments().map_err(|err| {
+                    tracing::error!("Failed to deserialize input: {err}");
+                    contract_error()
+                })?;
 
                 if context.get("current-user-id").and_then(|id| id.parse().ok()) == Some(arguments.id) {
                     Ok(())
@@ -65,34 +69,32 @@ impl Hooks for Component {
     fn authorize_parent_edge_post_execution(
         &mut self,
         context: SharedContext,
-        definition: EdgeDefinition,
-        parents: Vec<String>,
-        metadata: String,
+        arguments: ParentEdgePostExecutionArguments,
     ) -> Vec<Result<(), Error>> {
         init_logging();
 
-        match (definition.parent_type_name.as_str(), definition.field_name.as_str()) {
+        match (arguments.parent_type_name(), arguments.field_name()) {
             ("User", "address") => {
-                tracing::info!("Authorizing access to User.address for: {}", parents.iter().join(", "));
+                tracing::info!("Authorizing access to User.address");
 
                 #[derive(Debug, serde::Deserialize)]
                 struct User {
                     id: usize,
                 }
 
-                let metadata: Metadata = maybe_read_input(&metadata);
+                let metadata: Metadata = arguments.deserialize_metadata().unwrap_or_default();
+
+                let parents: Vec<User> = match arguments.deserialize_parents() {
+                    Ok(parents) => parents,
+                    Err(_) => return vec![Err(contract_error())],
+                };
+
                 if let Some(role) = metadata.allow_role {
                     if context.get("role") == Some(role.clone()) {
                         tracing::info!("Granting access to role {role}");
                         return (0..parents.len()).map(|_| Ok(())).collect();
                     }
                 }
-
-                let parents: Vec<User> = parents
-                    .into_iter()
-                    .map(|parent| read_input(&parent))
-                    .collect::<Result<_, _>>()
-                    .unwrap();
 
                 let Some(current_user_id) = context.get("current-user-id").and_then(|id| id.parse().ok()) else {
                     return (0..parents.len()).map(|_| Err(error("No current user id"))).collect();
@@ -110,34 +112,32 @@ impl Hooks for Component {
     fn authorize_edge_node_post_execution(
         &mut self,
         context: SharedContext,
-        definition: EdgeDefinition,
-        nodes: Vec<String>,
-        metadata: String,
+        arguments: EdgeNodePostExecutionArguments,
     ) -> Vec<Result<(), Error>> {
         init_logging();
 
-        match (definition.parent_type_name.as_str(), definition.field_name.as_str()) {
+        match (arguments.parent_type_name(), arguments.field_name()) {
             ("Query", "users") => {
-                tracing::info!("Authorizing access to Query.users for: {}", nodes.iter().join(", "));
+                tracing::info!("Authorizing access to Query.users");
 
                 #[derive(Debug, serde::Deserialize)]
                 struct User {
                     id: usize,
                 }
 
-                let metadata: Metadata = maybe_read_input(&metadata);
+                let metadata: Metadata = arguments.deserialize_metadata().unwrap_or_default();
+
+                let nodes = match arguments.deserialize_nodes() {
+                    Ok(nodes) => nodes,
+                    Err(_) => return vec![Err(contract_error())],
+                };
+
                 if let Some(role) = metadata.allow_role {
                     if context.get("role") == Some(role.clone()) {
                         tracing::info!("Granting access to role {role}");
                         return (0..nodes.len()).map(|_| Ok(())).collect();
                     }
                 }
-
-                let nodes: Vec<User> = nodes
-                    .into_iter()
-                    .map(|node| read_input(&node))
-                    .collect::<Result<_, _>>()
-                    .unwrap();
 
                 let Some(current_user_id) = context.get("current-user-id").and_then(|id| id.parse().ok()) else {
                     return (0..nodes.len()).map(|_| Err(error("No current user id"))).collect();

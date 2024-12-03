@@ -1,7 +1,7 @@
 mod access_logs;
 
 use access_logs::{AuditInfo, OperationInfo, SubgraphInfo};
-use grafbase_hooks::{access_log, grafbase_hooks, CacheStatus, Hooks, SharedContext};
+use grafbase_hooks::{grafbase_hooks, host_io::access_log, CacheStatus, Hooks, SharedContext};
 
 struct Component;
 

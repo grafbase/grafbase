@@ -14,21 +14,21 @@ module, and inserts the needed shims so the module can act as a wasm32-wasip2 co
 
 Create a new rust library project with cargo:
 
-```no_run,bash
+```bash
 cargo new --lib my-hooks
 cd my-hooks
 ```
 
 Add the `grafbase-hooks` as a dependency:
 
-```no_run,bash
+```bash
 cargo add grafbase-hooks --features derive
 ```
 
 Edit the `src/lib.rs` file and add the following code:
 
 ```rust
-use grafbase_hooks::{grafbase_hooks, register_hooks, Context, ErrorResponse, Headers};
+use grafbase_hooks::{grafbase_hooks, register_hooks, Context, ErrorResponse, Headers, Hooks};
 
 struct MyHooks;
 
@@ -65,14 +65,14 @@ the [`register_hooks`] macro registers the hooks type to the gateway. The macro 
 
 The hooks are compiled with the `cargo-component` subcommand:
 
-```no_run,bash
+```bash
 cargo component build --release
 ```
 
 The compiled hooks wasm module is located in the `target/wasm32-wasip1/release` directory. You can configure the gateway to load
 the hooks in the `grafbase.toml` configuration file:
 
-```no_run,toml
+```toml
 [hooks]
 location = "path/to/my_hooks.wasm"
 ```

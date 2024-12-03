@@ -19,22 +19,6 @@ pub(crate) fn init_logging() {
     });
 }
 
-pub(crate) fn maybe_read_input<T: serde::de::DeserializeOwned + Default>(data: &str) -> T {
-    if data.is_empty() {
-        // avoid logging any errors if nothing was present
-        Default::default()
-    } else {
-        read_input(data).unwrap_or_default()
-    }
-}
-
-pub(crate) fn read_input<T: serde::de::DeserializeOwned>(data: &str) -> Result<T, Error> {
-    serde_json::from_str(data).map_err(|err| {
-        tracing::error!("Failed to deserialize input: {err}");
-        contract_error()
-    })
-}
-
 #[derive(Default, serde::Serialize, serde::Deserialize)]
 pub(crate) struct Metadata {
     #[serde(default, rename = "allowRole")]

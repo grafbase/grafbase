@@ -1,12 +1,24 @@
 use grafbase_hooks::{
-    grafbase_hooks, Context, EdgeDefinition, Error, ErrorResponse, Headers, Hooks, NodeDefinition, SharedContext,
+    grafbase_hooks, Context, EdgeNodePostExecutionArguments, EdgePostExecutionArguments, EdgePreExecutionArguments,
+    Error, ErrorResponse, Headers, Hooks, NodePreExecutionArguments, ParentEdgePostExecutionArguments, SharedContext,
 };
 
 struct Component;
 
 #[derive(serde::Deserialize)]
+#[allow(dead_code)]
+struct Parent {
+    id: u64,
+}
+
+#[derive(serde::Deserialize)]
 struct Edge {
     value: String,
+}
+
+#[derive(serde::Deserialize)]
+struct Metadata {
+    role: String,
 }
 
 #[grafbase_hooks]
@@ -29,13 +41,12 @@ impl Hooks for Component {
     fn authorize_edge_pre_execution(
         &mut self,
         context: SharedContext,
-        _: EdgeDefinition,
-        arguments: String,
-        _: String,
+        arguments: EdgePreExecutionArguments,
     ) -> Result<(), Error> {
         let auth_header = context.get("entitlement");
+        let argument = arguments.deserialize_arguments::<Edge>().unwrap();
 
-        if Some(arguments) != auth_header {
+        if Some(&argument.value) != auth_header.as_ref() {
             return Err(Error {
                 message: String::from("not authorized"),
                 extensions: Vec::new(),
@@ -48,12 +59,12 @@ impl Hooks for Component {
     fn authorize_node_pre_execution(
         &mut self,
         context: SharedContext,
-        _: NodeDefinition,
-        metadata: String,
+        arguments: NodePreExecutionArguments,
     ) -> Result<(), Error> {
         let auth_header = context.get("entitlement");
+        let metadata: Metadata = arguments.deserialize_metadata().unwrap();
 
-        if Some(metadata) != auth_header {
+        if Some(metadata.role) != auth_header {
             return Err(Error {
                 message: String::from("not authorized"),
                 extensions: Vec::new(),
@@ -66,24 +77,29 @@ impl Hooks for Component {
     fn authorize_parent_edge_post_execution(
         &mut self,
         context: SharedContext,
-        _: EdgeDefinition,
-        parents: Vec<String>,
-        _: String,
+        arguments: ParentEdgePostExecutionArguments,
     ) -> Vec<Result<(), Error>> {
         let auth_header = context.get("entitlement");
         let mut result = Vec::new();
 
+        let parents: Vec<Edge> = match arguments.deserialize_parents() {
+            Ok(parents) => parents,
+            Err(_) => {
+                return vec![Err(Error {
+                    message: String::from("not authorized"),
+                    extensions: Vec::new(),
+                })]
+            }
+        };
+
         for parent in parents {
-            match serde_json::from_str::<Edge>(&parent) {
-                Ok(parent) if Some(&parent.value) == auth_header.as_ref() => {
-                    result.push(Ok(()));
-                }
-                _ => {
-                    result.push(Err(Error {
-                        message: String::from("not authorized"),
-                        extensions: Vec::new(),
-                    }));
-                }
+            if Some(&parent.value) == auth_header.as_ref() {
+                result.push(Ok(()));
+            } else {
+                result.push(Err(Error {
+                    message: String::from("not authorized"),
+                    extensions: Vec::new(),
+                }));
             }
         }
 
@@ -93,24 +109,29 @@ impl Hooks for Component {
     fn authorize_edge_node_post_execution(
         &mut self,
         context: SharedContext,
-        _: EdgeDefinition,
-        nodes: Vec<String>,
-        _: String,
+        arguments: EdgeNodePostExecutionArguments,
     ) -> Vec<Result<(), Error>> {
         let auth_header = context.get("entitlement");
         let mut result = Vec::new();
 
+        let nodes: Vec<Edge> = match arguments.deserialize_nodes() {
+            Ok(nodes) => nodes,
+            Err(_) => {
+                return vec![Err(Error {
+                    message: String::from("not authorized"),
+                    extensions: Vec::new(),
+                })]
+            }
+        };
+
         for node in nodes {
-            match serde_json::from_str::<Edge>(&node) {
-                Ok(node) if Some(&node.value) == auth_header.as_ref() => {
-                    result.push(Ok(()));
-                }
-                _ => {
-                    result.push(Err(Error {
-                        message: String::from("not authorized"),
-                        extensions: Vec::new(),
-                    }));
-                }
+            if Some(&node.value) == auth_header.as_ref() {
+                result.push(Ok(()));
+            } else {
+                result.push(Err(Error {
+                    message: String::from("not authorized"),
+                    extensions: Vec::new(),
+                }));
             }
         }
 
@@ -120,24 +141,29 @@ impl Hooks for Component {
     fn authorize_edge_post_execution(
         &mut self,
         context: SharedContext,
-        _: EdgeDefinition,
-        edges: Vec<(String, Vec<String>)>,
-        _: String,
+        arguments: EdgePostExecutionArguments,
     ) -> Vec<Result<(), Error>> {
         let auth_header = context.get("entitlement");
         let mut result = Vec::new();
 
+        let edges: Vec<(Parent, Vec<Edge>)> = match arguments.deserialize_edges() {
+            Ok(edges) => edges,
+            Err(_) => {
+                return vec![Err(Error {
+                    message: String::from("not authorized"),
+                    extensions: Vec::new(),
+                })]
+            }
+        };
+
         for node in edges.into_iter().flat_map(|(_, nodes)| nodes) {
-            match serde_json::from_str::<Edge>(&node) {
-                Ok(node) if Some(&node.value) == auth_header.as_ref() => {
-                    result.push(Ok(()));
-                }
-                _ => {
-                    result.push(Err(Error {
-                        message: String::from("not authorized"),
-                        extensions: Vec::new(),
-                    }));
-                }
+            if Some(&node.value) == auth_header.as_ref() {
+                result.push(Ok(()));
+            } else {
+                result.push(Err(Error {
+                    message: String::from("not authorized"),
+                    extensions: Vec::new(),
+                }));
             }
         }
 

@@ -9,15 +9,18 @@ use wasmtime::{
     Engine, Store,
 };
 
-use crate::names::{
-    AUTHORIZE_EDGE_NODE_POST_EXECUTION_HOOK_FUNCTION, AUTHORIZE_EDGE_POST_EXECUTION_HOOK_FUNCTION,
-    AUTHORIZE_EDGE_PRE_EXECUTION_HOOK_FUNCTION, AUTHORIZE_NODE_PRE_EXECUTION_HOOK_FUNCTION,
-    AUTHORIZE_PARENT_EDGE_POST_EXECUTION_HOOK_FUNCTION, GATEWAY_HOOK_FUNCTION, INIT_HOOKS_FUNCTION,
-    ON_HTTP_RESPONSE_FUNCTION, ON_OPERATION_RESPONSE_FUNCTION, ON_SUBGRAGH_REQUEST_HOOK_FUNCTION,
-    ON_SUBGRAPH_RESPONSE_FUNCTION,
-};
 use crate::{config::build_wasi_context, state::WasiState, ComponentLoader, Config, SharedContext};
 use crate::{error::guest::ErrorResponse, ChannelLogSender};
+use crate::{
+    http_client::HttpMethod,
+    names::{
+        AUTHORIZE_EDGE_NODE_POST_EXECUTION_HOOK_FUNCTION, AUTHORIZE_EDGE_POST_EXECUTION_HOOK_FUNCTION,
+        AUTHORIZE_EDGE_PRE_EXECUTION_HOOK_FUNCTION, AUTHORIZE_NODE_PRE_EXECUTION_HOOK_FUNCTION,
+        AUTHORIZE_PARENT_EDGE_POST_EXECUTION_HOOK_FUNCTION, GATEWAY_HOOK_FUNCTION, INIT_HOOKS_FUNCTION,
+        ON_HTTP_RESPONSE_FUNCTION, ON_OPERATION_RESPONSE_FUNCTION, ON_SUBGRAGH_REQUEST_HOOK_FUNCTION,
+        ON_SUBGRAPH_RESPONSE_FUNCTION,
+    },
+};
 use crate::{
     ContextMap, EdgeDefinition, ExecutedHttpRequest, ExecutedOperation, ExecutedSubgraphRequest, GuestResult,
     NodeDefinition,
@@ -248,7 +251,8 @@ impl ComponentInstance {
 
         let subgraph_name = subgraph_name.to_string();
         let url = url.to_string();
-        let method = method.to_string();
+        let method = HttpMethod::from(method);
+
         // adds the data to the shared memory
         let context = self.store.data_mut().push_resource(context)?;
         let headers = self.store.data_mut().push_resource(headers)?;

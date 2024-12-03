@@ -1,5 +1,5 @@
 use grafbase_hooks::{
-    http_client::{self, HttpMethod, HttpRequest},
+    host_io::http::{self, HttpMethod, HttpRequest},
     Error,
 };
 use itertools::Itertools;
@@ -47,7 +47,7 @@ pub(super) fn authorize_user(current_user_id: usize, user_ids: Vec<usize>) -> Ve
         })
         .collect_vec();
 
-    http_client::execute_many(&requests)
+    http::execute_many(&requests)
         .into_iter()
         .map(|result| match result {
             Ok(response) => {
@@ -92,7 +92,7 @@ pub(super) fn authorize_address(current_user_id: usize, owner_ids: Vec<usize>) -
         })
         .collect_vec();
 
-    http_client::execute_many(&requests)
+    http::execute_many(&requests)
         .into_iter()
         .map(|result| match result {
             Ok(response) => {
