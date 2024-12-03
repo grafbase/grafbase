@@ -1,6 +1,6 @@
 use grafbase_hooks::{
-    access_log, grafbase_hooks, CacheStatus, Context, Error, ErrorResponse, ExecutedHttpRequest, ExecutedOperation,
-    ExecutedSubgraphRequest, Headers, Hooks, SharedContext, SubgraphRequestExecutionKind,
+    grafbase_hooks, host_io::access_log, CacheStatus, Context, Error, ErrorResponse, ExecutedHttpRequest,
+    ExecutedOperation, ExecutedSubgraphRequest, Headers, Hooks, SharedContext, SubgraphRequestExecutionKind,
 };
 
 struct Component;
