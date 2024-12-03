@@ -1,4 +1,4 @@
-use std::{str::FromStr, sync::OnceLock};
+use std::sync::OnceLock;
 
 mod builder;
 mod composite_type;
@@ -258,23 +258,25 @@ impl std::fmt::Debug for Schema {
 /// Defines how a scalar should be represented and validated by the engine. They're almost the same
 /// as scalars, but scalars like ID which have no own data format are just mapped to String.
 /// https://the-guild.dev/graphql/scalars/docs
-#[derive(
-    Debug, Clone, Copy, PartialEq, Eq, strum::Display, strum::EnumString, serde::Serialize, serde::Deserialize,
-)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum ScalarType {
     String,
     Float,
     Int,
     BigInt,
-    JSON,
     Boolean,
+    Any,
 }
 
 impl ScalarType {
     pub fn from_scalar_name(name: &str) -> ScalarType {
-        ScalarType::from_str(name).ok().unwrap_or(match name {
-            "ID" => ScalarType::String,
-            _ => ScalarType::JSON,
-        })
+        match name {
+            "String" | "ID" => ScalarType::String,
+            "Float" => ScalarType::Float,
+            "Int" => ScalarType::Int,
+            "BigInt" => ScalarType::BigInt,
+            "Boolean" => ScalarType::Boolean,
+            _ => ScalarType::Any,
+        }
     }
 }

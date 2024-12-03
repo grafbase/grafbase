@@ -1,7 +1,10 @@
 use crate::response::{ResponseObject, ResponseValue};
 use schema::{FieldSetItemRecord, InputValueSerdeError};
 use serde::{
-    de::{value::SeqDeserializer, IntoDeserializer, MapAccess, Visitor},
+    de::{
+        value::{MapDeserializer, SeqDeserializer},
+        IntoDeserializer, MapAccess, Visitor,
+    },
     forward_to_deserialize_any,
 };
 use std::iter::Iterator;
@@ -120,10 +123,6 @@ impl<'de> serde::Deserializer<'de> for ResponseValueView<'de> {
             ResponseValue::Float { value, .. } => visitor.visit_f64(*value),
             ResponseValue::String { value, .. } => visitor.visit_borrowed_str(value),
             ResponseValue::StringId { id, .. } => visitor.visit_borrowed_str(&self.ctx.schema[*id]),
-            ResponseValue::Json { value, .. } => value
-                .as_ref()
-                .deserialize_any(visitor)
-                .map_err(|err| InputValueSerdeError::Message(err.to_string())),
             &ResponseValue::List { id, .. } => {
                 let values = &self.ctx.response.data_parts[id];
 
@@ -140,6 +139,21 @@ impl<'de> serde::Deserializer<'de> for ResponseValueView<'de> {
                 selection_set: self.selection_set,
             }
             .deserialize_any(visitor),
+            ResponseValue::Unexpected => Err(InputValueSerdeError::Message("Unexpected value".to_string())),
+            ResponseValue::U64 { value } => visitor.visit_u64(*value),
+            ResponseValue::Map { id } => {
+                MapDeserializer::new(self.ctx.response.data_parts[*id].iter().map(|(key, value)| {
+                    (
+                        key.as_str(),
+                        ResponseValueView {
+                            ctx: self.ctx,
+                            value,
+                            selection_set: self.selection_set,
+                        },
+                    )
+                }))
+                .deserialize_any(visitor)
+            }
         }
     }
 

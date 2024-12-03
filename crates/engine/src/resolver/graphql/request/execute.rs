@@ -154,7 +154,6 @@ pub(crate) async fn execute_subgraph_request<'ctx, 'a, R: Runtime>(
         }
         Err(err) => {
             ctx.set_as_invalid_response();
-            tracing::debug!("invalid subgraph response: {err}");
             Err(err)
         }
     }

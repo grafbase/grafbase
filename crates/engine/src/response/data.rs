@@ -94,6 +94,19 @@ impl std::ops::IndexMut<ResponseListId> for DataParts {
     }
 }
 
+impl std::ops::Index<ResponseMapId> for DataParts {
+    type Output = [(String, ResponseValue)];
+    fn index(&self, index: ResponseMapId) -> &Self::Output {
+        &self[index.part_id][index.map_id]
+    }
+}
+
+impl std::ops::IndexMut<ResponseMapId> for DataParts {
+    fn index_mut(&mut self, index: ResponseMapId) -> &mut Self::Output {
+        &mut self[index.part_id][index.map_id]
+    }
+}
+
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, id_derives::Id)]
 pub(crate) struct DataPartId(u16);
 
@@ -106,6 +119,8 @@ pub(crate) struct DataPart {
     lists: Vec<Vec<ResponseValue>>,
     #[indexed_by(PartInaccesibleValueId)]
     inaccessible_values: Vec<ResponseValue>,
+    #[indexed_by(PartMapId)]
+    maps: Vec<Vec<(String, ResponseValue)>>,
 }
 
 impl DataPart {
@@ -115,6 +130,7 @@ impl DataPart {
             objects: Vec::new(),
             lists: Vec::new(),
             inaccessible_values: Vec::new(),
+            maps: Vec::new(),
         }
     }
 
@@ -239,6 +255,15 @@ impl DataPart {
         debug_assert!(part_id == self.id && self[list_id].is_empty());
         self[list_id] = list;
     }
+
+    pub fn push_map(&mut self, map: Vec<(String, ResponseValue)>) -> ResponseMapId {
+        let map_id = PartMapId::from(self.maps.len());
+        self.maps.push(map);
+        ResponseMapId {
+            part_id: self.id,
+            map_id,
+        }
+    }
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, id_derives::Id)]
@@ -266,4 +291,13 @@ pub(crate) struct PartListId(u32);
 pub(crate) struct ResponseListId {
     pub part_id: DataPartId,
     pub list_id: PartListId,
+}
+
+#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, id_derives::Id)]
+pub(crate) struct PartMapId(u32);
+
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
+pub(crate) struct ResponseMapId {
+    pub part_id: DataPartId,
+    pub map_id: PartMapId,
 }

@@ -1,13 +1,7 @@
-use std::{
-    cell::{Cell, Ref, RefCell},
-    fmt,
-};
+use std::cell::{Cell, Ref, RefCell};
 
-use object::ConcreteShapeFieldsSeed;
-use serde::{
-    de::{DeserializeSeed, Visitor},
-    Deserializer,
-};
+use object::{ConcreteShapeFieldsSeed, ObjectValue};
+use serde::de::DeserializeSeed;
 use walker::Walk;
 
 use crate::{
@@ -21,14 +15,12 @@ mod r#enum;
 mod field;
 mod key;
 mod list;
-mod nullable;
 mod object;
 mod scalar;
 
 use self::r#enum::*;
 use ctx::*;
 use list::ListSeed;
-use nullable::NullableSeed;
 use scalar::*;
 
 use super::{ObjectUpdate, SubgraphResponseRefMut};
@@ -80,16 +72,20 @@ impl<'de> DeserializeSeed<'de> for UpdateSeed<'_> {
             )
         };
 
-        let update = match deserializer.deserialize_option(NullableVisitor(fields_seed)) {
-            Ok(Some((_, fields))) => ObjectUpdate::Fields(fields),
-            Ok(None) => ObjectUpdate::Missing,
+        let update = match deserializer.deserialize_any(fields_seed) {
+            Ok(ObjectValue::Some { fields, .. }) => ObjectUpdate::Fields(fields),
+            Ok(ObjectValue::Null) => ObjectUpdate::Missing,
+            Ok(ObjectValue::Unexpected(error)) => ObjectUpdate::Error(error),
             Err(err) => {
                 // if we already handled the GraphQL error and are just bubbling up the serde
                 // error, we'll just treat it as an empty fields Vec, a no-op, from here on.
                 if ctx.bubbling_up_serde_error.get() {
                     ObjectUpdate::Fields(Vec::new())
                 } else {
-                    tracing::error!("Deserialization failure of subgraph response: {err}");
+                    tracing::error!(
+                        "Deserialization failure of subgraph response at path '{}': {err}",
+                        ctx.display_path()
+                    );
                     ObjectUpdate::Error(GraphqlError::invalid_subgraph_response())
                 }
             }
@@ -97,39 +93,5 @@ impl<'de> DeserializeSeed<'de> for UpdateSeed<'_> {
         ctx.subgraph_response.borrow_mut().insert_update(id, update);
 
         Ok(())
-    }
-}
-
-struct NullableVisitor<Seed>(Seed);
-
-impl<'de, Seed> Visitor<'de> for NullableVisitor<Seed>
-where
-    Seed: DeserializeSeed<'de>,
-{
-    type Value = Option<Seed::Value>;
-
-    fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        formatter.write_str("a nullable object")
-    }
-
-    fn visit_unit<E>(self) -> Result<Self::Value, E>
-    where
-        E: serde::de::Error,
-    {
-        Ok(None)
-    }
-
-    fn visit_none<E>(self) -> Result<Self::Value, E>
-    where
-        E: serde::de::Error,
-    {
-        Ok(None)
-    }
-
-    fn visit_some<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        self.0.deserialize(deserializer).map(Some)
     }
 }

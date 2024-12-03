@@ -119,6 +119,7 @@ impl ResponseBuilder {
                             .iter()
                             .any(|subgraph_error| self.sugraph_error_matches_current_object(subgraph_error, obj_ref))
                         {
+                            tracing::error!("Missing data from subgraph.");
                             self.errors.push(
                                 GraphqlError::invalid_subgraph_response().with_path((&obj_ref.path, any_response_key)),
                             );

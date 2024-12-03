@@ -131,10 +131,8 @@ where
         }
 
         if seq.next_element::<IgnoredAny>().unwrap_or_default().is_some() {
+            // Not adding any GraphqlError as from the client perspective we have everything.
             tracing::error!("Received more entities than expected");
-            subgraph_response
-                .borrow_mut()
-                .push_error(GraphqlError::invalid_subgraph_response());
 
             // Try discarding the rest of the list, we might be able to use other parts of
             // the response.
