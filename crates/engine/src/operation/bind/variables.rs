@@ -96,7 +96,7 @@ impl Binder<'_, '_> {
             match variable.default_value() {
                 Some(value) if !value.is_null() => {
                     if ty.wrapping.is_list() {
-                        ty.wrapping = ty.wrapping.wrapped_by_required_list();
+                        ty.wrapping = ty.wrapping.wrap_list_non_null();
                     } else {
                         ty.wrapping = Wrapping::new(true);
                     }
@@ -164,34 +164,19 @@ impl Binder<'_, '_> {
             });
         }
 
-        let mut wrappers = ty.wrappers().collect::<Vec<_>>();
-        // Reverse wrappers so we go from inner most to outermost type
-        wrappers.reverse();
-        let mut wrappers = wrappers.into_iter().peekable();
-        let required = wrappers.peek() == Some(&WrappingType::NonNull);
-        if required {
-            wrappers.next();
+        let mut wrapping = schema::Wrapping::default();
+        let wrappers = ty.wrappers().collect::<Vec<_>>();
+        // from innermost to outermost
+        for wrapper in wrappers.into_iter().rev() {
+            wrapping = match wrapper {
+                WrappingType::NonNull => wrapping.wrap_non_null(),
+                WrappingType::List => wrapping.wrap_list(),
+            };
         }
 
-        let mut type_record = schema::TypeRecord {
+        Ok(schema::TypeRecord {
             definition_id: definition.id(),
-            wrapping: schema::Wrapping::new(required),
-        };
-
-        while let Some(wrapper) = wrappers.next() {
-            match (wrapper, wrappers.peek()) {
-                (WrappingType::List, Some(WrappingType::NonNull)) => {
-                    type_record.wrapping = type_record.wrapping.wrapped_by_required_list();
-                    wrappers.next();
-                }
-                (WrappingType::List, _) => {
-                    type_record.wrapping = type_record.wrapping.wrapped_by_nullable_list();
-                }
-                _ => {
-                    unreachable!()
-                }
-            }
-        }
-        Ok(type_record)
+            wrapping,
+        })
     }
 }

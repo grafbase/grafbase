@@ -390,7 +390,7 @@ impl<'a> IntrospectionBuilder<'a> {
 
         let args = TypeRecord {
             definition_id: __input_value.into(),
-            wrapping: Wrapping::required().wrapped_by_required_list(),
+            wrapping: Wrapping::required().wrap_list_non_null(),
         };
 
         /*
@@ -418,7 +418,7 @@ impl<'a> IntrospectionBuilder<'a> {
 
         let locations = TypeRecord {
             definition_id: __directive_location.into(),
-            wrapping: Wrapping::required().wrapped_by_required_list(),
+            wrapping: Wrapping::required().wrap_list_non_null(),
         };
 
         let __directive = self.insert_object_fields(
@@ -454,15 +454,15 @@ impl<'a> IntrospectionBuilder<'a> {
         };
         let input_fields = TypeRecord {
             definition_id: __input_value.into(),
-            wrapping: Wrapping::required().wrapped_by_nullable_list(),
+            wrapping: Wrapping::required().wrap_list(),
         };
         let nullable__field_list = TypeRecord {
             definition_id: __field.into(),
-            wrapping: Wrapping::required().wrapped_by_nullable_list(),
+            wrapping: Wrapping::required().wrap_list(),
         };
         let nullable__enum_value_list = TypeRecord {
             definition_id: __enum_value.id.into(),
-            wrapping: Wrapping::required().wrapped_by_nullable_list(),
+            wrapping: Wrapping::required().wrap_list(),
         };
 
         let required__type = TypeRecord {
@@ -475,11 +475,11 @@ impl<'a> IntrospectionBuilder<'a> {
         };
         let required__type_list = TypeRecord {
             definition_id: __type.into(),
-            wrapping: Wrapping::required().wrapped_by_required_list(),
+            wrapping: Wrapping::required().wrap_list_non_null(),
         };
         let nullable__type_list = TypeRecord {
             definition_id: __type.into(),
-            wrapping: Wrapping::required().wrapped_by_nullable_list(),
+            wrapping: Wrapping::required().wrap_list(),
         };
 
         let __type = self.insert_object_fields(
@@ -550,7 +550,7 @@ impl<'a> IntrospectionBuilder<'a> {
         */
         let required__directive_list = TypeRecord {
             definition_id: __directive.id.into(),
-            wrapping: Wrapping::required().wrapped_by_required_list(),
+            wrapping: Wrapping::required().wrap_list_non_null(),
         };
         let __schema = self.insert_object("__Schema");
 

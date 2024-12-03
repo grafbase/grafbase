@@ -1,7 +1,7 @@
 use id_newtypes::IdRange;
 use schema::{
-    Definition, EnumDefinition, InputObjectDefinition, InputValueDefinitionId, ListWrapping, ScalarDefinition,
-    ScalarType, Schema, Type,
+    Definition, EnumDefinition, InputObjectDefinition, InputValueDefinitionId, ListWrapping, MutableWrapping,
+    ScalarDefinition, ScalarType, Schema, Type, TypeRecord,
 };
 use serde_json::Value;
 use walker::Walk;
@@ -43,24 +43,47 @@ struct VariableCoercionContext<'a> {
 impl<'a> VariableCoercionContext<'a> {
     fn coerce_input_value(&mut self, ty: Type<'a>, value: Value) -> Result<VariableInputValueRecord, InputValueError> {
         if ty.wrapping.is_list() && !value.is_array() && !value.is_null() {
-            let mut value = self.coerce_named_type(ty, value)?;
+            let mut value = self.coerce_named_type(ty.definition(), value)?;
             for _ in 0..ty.wrapping.list_wrappings().len() {
                 value = VariableInputValueRecord::List(IdRange::from_single(self.input_values.push_value(value)));
             }
             return Ok(value);
         }
 
-        self.coerce_list(ty, value)
+        self.coerce_type(ty.definition(), ty.wrapping.into(), value)
     }
 
-    fn coerce_list(&mut self, mut ty: Type<'a>, value: Value) -> Result<VariableInputValueRecord, InputValueError> {
-        let Some(list_wrapping) = ty.pop_list_wrapping() else {
-            return self.coerce_named_type(ty, value);
+    fn coerce_type(
+        &mut self,
+        definition: Definition<'a>,
+        mut wrapping: MutableWrapping,
+        value: Value,
+    ) -> Result<VariableInputValueRecord, InputValueError> {
+        let Some(list_wrapping) = wrapping.pop_outermost_list_wrapping() else {
+            if value.is_null() {
+                if wrapping.is_required() {
+                    return Err(InputValueError::UnexpectedNull {
+                        expected: format!("{}!", definition.name()),
+                        path: self.path(),
+                        location: self.location,
+                    });
+                }
+                return Ok(VariableInputValueRecord::Null);
+            }
+            return self.coerce_named_type(definition, value);
         };
 
         match (value, list_wrapping) {
             (Value::Null, ListWrapping::RequiredList) => Err(InputValueError::UnexpectedNull {
-                expected: ty.wrapped_by(list_wrapping).to_string(),
+                expected: TypeRecord {
+                    definition_id: definition.id(),
+                    wrapping: {
+                        wrapping.push_outermost_list_wrapping(list_wrapping);
+                        wrapping.into()
+                    },
+                }
+                .walk(self.schema)
+                .to_string(),
                 path: self.path(),
                 location: self.location,
             }),
@@ -69,35 +92,36 @@ impl<'a> VariableCoercionContext<'a> {
                 let ids = self.input_values.reserve_list(array.len());
                 for ((idx, value), id) in array.into_iter().enumerate().zip(ids) {
                     self.value_path.push(idx.into());
-                    self.input_values[id] = self.coerce_list(ty, value)?;
+                    self.input_values[id] = self.coerce_type(definition, wrapping.clone(), value)?;
                     self.value_path.pop();
                 }
                 Ok(VariableInputValueRecord::List(ids))
             }
             (value, _) => Err(InputValueError::MissingList {
                 actual: value.into(),
-                expected: ty.wrapped_by(list_wrapping).to_string(),
+                expected: TypeRecord {
+                    definition_id: definition.id(),
+                    wrapping: {
+                        wrapping.push_outermost_list_wrapping(list_wrapping);
+                        wrapping.into()
+                    },
+                }
+                .walk(self.schema)
+                .to_string(),
                 path: self.path(),
                 location: self.location,
             }),
         }
     }
 
-    fn coerce_named_type(&mut self, ty: Type<'a>, value: Value) -> Result<VariableInputValueRecord, InputValueError> {
-        if value.is_null() {
-            if ty.wrapping.is_required() {
-                return Err(InputValueError::UnexpectedNull {
-                    expected: ty.to_string(),
-                    path: self.path(),
-                    location: self.location,
-                });
-            }
-            return Ok(VariableInputValueRecord::Null);
-        }
-
+    fn coerce_named_type(
+        &mut self,
+        definition: Definition<'a>,
+        value: Value,
+    ) -> Result<VariableInputValueRecord, InputValueError> {
         // At this point the definition should be accessible, otherwise the input value should have
         // been rejected earlier.
-        match ty.definition() {
+        match definition {
             Definition::Scalar(scalar) => self.coerce_scalar(scalar, value),
             Definition::Enum(r#enum) => self.coerce_enum(r#enum, value),
             Definition::InputObject(input_object) => self.coerce_input_objet(input_object, value),

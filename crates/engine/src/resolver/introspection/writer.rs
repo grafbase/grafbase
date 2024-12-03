@@ -4,7 +4,7 @@ use schema::{
         __Type,
     },
     Definition, EntityDefinition, EnumValue, FieldDefinition, InputValueDefinition, InterfaceDefinition, ListWrapping,
-    ObjectDefinition, Schema, StringId, Type, TypeSystemDirective, Wrapping,
+    MutableWrapping, ObjectDefinition, Schema, StringId, Type, TypeSystemDirective,
 };
 use walker::{Iter, Walk};
 
@@ -148,32 +148,35 @@ impl<'ctx, R: Runtime> IntrospectionWriter<'ctx, R> {
     }
 
     fn __type(&self, ty: Type<'ctx>, shape_id: ConcreteShapeId) -> ResponseValue {
-        self.__type_list_wrapping(ty.definition(), ty.wrapping, shape_id)
+        self.__type_list_wrapping(ty.definition(), ty.wrapping.into(), shape_id)
     }
 
     fn __type_list_wrapping(
         &self,
         definition: Definition<'ctx>,
-        mut wrapping: Wrapping,
+        mut wrapping: MutableWrapping,
         shape_id: ConcreteShapeId,
     ) -> ResponseValue {
-        match wrapping.pop_list_wrapping() {
+        match wrapping.pop_outermost_list_wrapping() {
             Some(list_wrapping) => match list_wrapping {
                 ListWrapping::RequiredList => {
-                    self.__type_required_wrapping(definition, wrapping.wrapped_by_nullable_list(), shape_id)
+                    wrapping.push_outermost_list_wrapping(ListWrapping::NullableList);
+                    self.__type_required_wrapping(definition, wrapping, shape_id)
                 }
                 ListWrapping::NullableList => {
                     self.object(&self.metadata.__type, shape_id, |field, __type| match __type {
                         __Type::Kind => self.metadata.type_kind.list.into(),
-                        __Type::OfType => {
-                            self.__type_list_wrapping(definition, wrapping, field.shape.as_concrete_object().unwrap())
-                        }
+                        __Type::OfType => self.__type_list_wrapping(
+                            definition,
+                            wrapping.clone(),
+                            field.shape.as_concrete_object().unwrap(),
+                        ),
                         _ => ResponseValue::Null,
                     })
                 }
             },
             None => {
-                if wrapping.inner_is_required() {
+                if wrapping.is_required() {
                     self.object(&self.metadata.__type, shape_id, |field, __type| match __type {
                         __Type::Kind => self.metadata.type_kind.non_null.into(),
                         __Type::OfType => self.__type_inner(definition, field.shape.as_concrete_object().unwrap()),
@@ -189,13 +192,13 @@ impl<'ctx, R: Runtime> IntrospectionWriter<'ctx, R> {
     fn __type_required_wrapping(
         &self,
         definition: Definition<'ctx>,
-        wrapping: Wrapping,
+        wrapping: MutableWrapping,
         shape_id: ConcreteShapeId,
     ) -> ResponseValue {
         self.object(&self.metadata.__type, shape_id, |field, __type| match __type {
             __Type::Kind => self.metadata.type_kind.non_null.into(),
             __Type::OfType => {
-                self.__type_list_wrapping(definition, wrapping, field.shape.as_concrete_object().unwrap())
+                self.__type_list_wrapping(definition, wrapping.clone(), field.shape.as_concrete_object().unwrap())
             }
             _ => ResponseValue::Null,
         })

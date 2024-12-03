@@ -9,7 +9,7 @@ pub use error::*;
 use federated_graph::Value;
 use id_newtypes::IdRange;
 use path::*;
-use wrapping::ListWrapping;
+use wrapping::{ListWrapping, MutableWrapping};
 
 use super::{BuildContext, DefinitionId};
 
@@ -39,24 +39,44 @@ impl<'a> InputValueCoercer<'a> {
 
     fn coerce_input_value(&mut self, ty: TypeRecord, value: Value) -> Result<SchemaInputValueRecord, InputValueError> {
         if ty.wrapping.is_list() && !value.is_list() && !value.is_null() {
-            let mut value = self.coerce_named_type(ty, value)?;
+            let mut value = self.coerce_named_type(ty.definition_id, value)?;
             for _ in 0..ty.wrapping.list_wrappings().len() {
                 value = SchemaInputValueRecord::List(IdRange::from_single(self.input_values.push_value(value)));
             }
             return Ok(value);
         }
 
-        self.coerce_list(ty, value)
+        self.coerce_type(ty.definition_id, ty.wrapping.into(), value)
     }
 
-    fn coerce_list(&mut self, mut ty: TypeRecord, value: Value) -> Result<SchemaInputValueRecord, InputValueError> {
-        let Some(list_wrapping) = ty.wrapping.pop_list_wrapping() else {
-            return self.coerce_named_type(ty, value);
+    fn coerce_type(
+        &mut self,
+        definition_id: DefinitionId,
+        mut wrapping: MutableWrapping,
+        value: Value,
+    ) -> Result<SchemaInputValueRecord, InputValueError> {
+        let Some(list_wrapping) = wrapping.pop_outermost_list_wrapping() else {
+            if value.is_null() {
+                if wrapping.is_required() {
+                    return Err(InputValueError::UnexpectedNull {
+                        expected: self.type_name(TypeRecord {
+                            definition_id,
+                            wrapping: wrapping.into(),
+                        }),
+                        path: self.path(),
+                    });
+                }
+                return Ok(SchemaInputValueRecord::Null);
+            }
+            return self.coerce_named_type(definition_id, value);
         };
 
         match (value, list_wrapping) {
             (Value::Null, ListWrapping::RequiredList) => Err(InputValueError::UnexpectedNull {
-                expected: self.type_name(ty.wrapped_by(list_wrapping)),
+                expected: self.type_name(TypeRecord {
+                    definition_id,
+                    wrapping: wrapping.into(),
+                }),
                 path: self.path(),
             }),
             (Value::Null, ListWrapping::NullableList) => Ok(SchemaInputValueRecord::Null),
@@ -64,31 +84,28 @@ impl<'a> InputValueCoercer<'a> {
                 let ids = self.input_values.reserve_list(array.len());
                 for ((idx, value), id) in array.into_vec().into_iter().enumerate().zip(ids) {
                     self.value_path.push(idx.into());
-                    self.input_values[id] = self.coerce_list(ty, value)?;
+                    self.input_values[id] = self.coerce_type(definition_id, wrapping.clone(), value)?;
                     self.value_path.pop();
                 }
                 Ok(SchemaInputValueRecord::List(ids))
             }
             (value, _) => Err(InputValueError::MissingList {
                 actual: value.into(),
-                expected: self.type_name(ty.wrapped_by(list_wrapping)),
+                expected: self.type_name(TypeRecord {
+                    definition_id,
+                    wrapping: wrapping.into(),
+                }),
                 path: self.path(),
             }),
         }
     }
 
-    fn coerce_named_type(&mut self, ty: TypeRecord, value: Value) -> Result<SchemaInputValueRecord, InputValueError> {
-        if value.is_null() {
-            if ty.wrapping.is_required() {
-                return Err(InputValueError::UnexpectedNull {
-                    expected: self.type_name(ty),
-                    path: self.path(),
-                });
-            }
-            return Ok(SchemaInputValueRecord::Null);
-        }
-
-        match ty.definition_id {
+    fn coerce_named_type(
+        &mut self,
+        definition_id: DefinitionId,
+        value: Value,
+    ) -> Result<SchemaInputValueRecord, InputValueError> {
+        match definition_id {
             DefinitionId::Scalar(id) => self.coerce_scalar(id, value),
             DefinitionId::Enum(id) => self.coerce_enum(id, value),
             DefinitionId::InputObject(id) => self.coerce_input_objet(id, value),
@@ -239,27 +256,16 @@ impl<'a> InputValueCoercer<'a> {
     }
 
     fn type_name(&self, ty: TypeRecord) -> String {
-        let mut s = String::new();
-        for _ in 0..ty.wrapping.list_wrappings().len() {
-            s.push('[');
-        }
-        s.push_str(match ty.definition_id {
+        let name = match ty.definition_id {
             DefinitionId::Scalar(id) => &self.ctx.strings[self.graph[id].name_id],
             DefinitionId::Object(id) => &self.ctx.strings[self.graph[id].name_id],
             DefinitionId::Interface(id) => &self.ctx.strings[self.graph[id].name_id],
             DefinitionId::Union(id) => &self.ctx.strings[self.graph[id].name_id],
             DefinitionId::Enum(id) => &self.ctx.strings[self.graph[id].name_id],
             DefinitionId::InputObject(id) => &self.ctx.strings[self.graph[id].name_id],
-        });
-        if ty.wrapping.inner_is_required() {
-            s.push('!');
-        }
-        for wrapping in ty.wrapping.list_wrappings() {
-            s.push(']');
-            if wrapping == ListWrapping::RequiredList {
-                s.push('!');
-            }
-        }
+        };
+        let mut s = String::new();
+        ty.wrapping.write_type_string(name, &mut s).unwrap();
         s
     }
 

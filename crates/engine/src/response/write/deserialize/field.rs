@@ -1,4 +1,4 @@
-use schema::{ListWrapping, Wrapping};
+use schema::{ListWrapping, MutableWrapping};
 use serde::de::DeserializeSeed;
 
 use super::{
@@ -11,7 +11,7 @@ use crate::response::{FieldShapeRecord, ResponseValue, Shape};
 pub(super) struct FieldSeed<'ctx, 'parent> {
     pub ctx: &'parent SeedContext<'ctx>,
     pub field: &'parent FieldShapeRecord,
-    pub wrapping: Wrapping,
+    pub wrapping: MutableWrapping,
 }
 
 impl<'de> DeserializeSeed<'de> for FieldSeed<'_, '_> {
@@ -20,7 +20,7 @@ impl<'de> DeserializeSeed<'de> for FieldSeed<'_, '_> {
     where
         D: serde::Deserializer<'de>,
     {
-        let result = if let Some(list_wrapping) = self.wrapping.pop_list_wrapping() {
+        let result = if let Some(list_wrapping) = self.wrapping.pop_outermost_list_wrapping() {
             let list_seed = ListSeed {
                 ctx: self.ctx,
                 field: self.field,
@@ -36,7 +36,7 @@ impl<'de> DeserializeSeed<'de> for FieldSeed<'_, '_> {
                 }
                 .deserialize(deserializer),
             }
-        } else if self.wrapping.inner_is_required() {
+        } else if self.wrapping.is_required() {
             match self.field.shape {
                 Shape::Scalar(ty) => ScalarTypeSeed(ty).deserialize(deserializer),
                 Shape::Enum(id) => EnumValueSeed {

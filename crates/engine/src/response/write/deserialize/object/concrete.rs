@@ -362,7 +362,7 @@ impl ConcreteShapeFieldsSeed<'_, '_> {
             let result = map.next_value_seed(FieldSeed {
                 ctx: self.ctx,
                 field,
-                wrapping: field.wrapping,
+                wrapping: field.wrapping.to_mutable(),
             });
             self.ctx.path().pop();
             response_fields.push(ResponseObjectField {
@@ -383,7 +383,7 @@ impl ConcreteShapeFieldsSeed<'_, '_> {
                 let result = FieldSeed {
                     ctx: self.ctx,
                     field,
-                    wrapping: field.wrapping,
+                    wrapping: field.wrapping.to_mutable(),
                 }
                 .deserialize(serde_value::ValueDeserializer::new(stored_value.clone()));
                 self.ctx.path().pop();
