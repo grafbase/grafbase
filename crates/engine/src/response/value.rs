@@ -1,9 +1,10 @@
-use schema::{SchemaFieldId, StringId};
+use schema::{ObjectDefinitionId, SchemaFieldId, StringId};
 
 use super::{PositionedResponseKey, ResponseInaccessibleValueId, ResponseListId, ResponseMapId, ResponseObjectId};
 
-#[derive(Default, Debug)]
+#[derive(Debug)]
 pub(crate) struct ResponseObject {
+    pub(super) definition_id: Option<ObjectDefinitionId>,
     /// fields are ordered by the position they appear in the query.
     pub(super) fields_sorted_by_query_position: Vec<ResponseObjectField>,
 }
@@ -16,9 +17,10 @@ pub(crate) struct ResponseObjectField {
 }
 
 impl ResponseObject {
-    pub fn new(mut fields: Vec<ResponseObjectField>) -> Self {
+    pub fn new(definition_id: Option<ObjectDefinitionId>, mut fields: Vec<ResponseObjectField>) -> Self {
         fields.sort_unstable_by(|a, b| a.key.cmp(&b.key));
         Self {
+            definition_id,
             fields_sorted_by_query_position: fields,
         }
     }

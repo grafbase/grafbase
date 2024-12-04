@@ -265,7 +265,8 @@ pub enum ScalarType {
     Int,
     BigInt,
     Boolean,
-    Any,
+    /// Anything is accepted for this scalar.
+    Unknown,
 }
 
 impl ScalarType {
@@ -276,7 +277,7 @@ impl ScalarType {
             "Int" => ScalarType::Int,
             "BigInt" => ScalarType::BigInt,
             "Boolean" => ScalarType::Boolean,
-            _ => ScalarType::Any,
+            _ => ScalarType::Unknown,
         }
     }
 }

@@ -292,7 +292,7 @@ fn test_input_value() {
                     ty: Type {
                         definition: ScalarDefinition {
                             name: "Any",
-                            ty: Any,
+                            ty: Unknown,
                             description: None,
                             specified_by_url: None,
                             directives: [],

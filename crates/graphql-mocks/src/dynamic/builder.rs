@@ -58,12 +58,14 @@ impl DynamicSchemaBuilder {
             builder = builder.register(entity_type(&entities));
         }
 
+        let mut found_query_type = false;
         for definition in schema.definitions() {
             match definition {
                 parser::Definition::Type(def) => {
                     let mut ty = convert_type(def, &mut field_resolvers);
                     if def.name() == query_type {
-                        ty = add_federation_fields(ty, &entities);
+                        found_query_type = true;
+                        ty = add_federation_fields(ty, &entities, &mut field_resolvers);
                     }
                     builder = builder.register(ty);
                 }
@@ -72,6 +74,14 @@ impl DynamicSchemaBuilder {
                 }
                 _ => {}
             }
+        }
+
+        if !found_query_type && !entities.is_empty() {
+            builder = builder.register(add_federation_fields(
+                async_graphql::dynamic::Object::new("Query").into(),
+                &entities,
+                &mut field_resolvers,
+            ));
         }
 
         let schema = builder.finish().unwrap();
@@ -95,7 +105,7 @@ fn find_entities(schema: &parser::TypeSystemDocument) -> Vec<&str> {
 
 fn convert_type(def: parser::TypeDefinition<'_>, resolvers: &mut ResolverMap) -> async_graphql::dynamic::Type {
     match def {
-        parser::TypeDefinition::Scalar(_) => todo!(),
+        parser::TypeDefinition::Scalar(def) => async_graphql::dynamic::Scalar::new(def.name()).into(),
         parser::TypeDefinition::Object(def) => convert_object(def, resolvers),
         parser::TypeDefinition::Interface(def) => convert_iface(def),
         parser::TypeDefinition::Union(def) => convert_union(def),
@@ -351,7 +361,11 @@ fn any_type() -> async_graphql::dynamic::Type {
     Scalar::new("_Any").into()
 }
 
-fn add_federation_fields(query_ty: async_graphql::dynamic::Type, entities: &[&str]) -> async_graphql::dynamic::Type {
+fn add_federation_fields(
+    query_ty: async_graphql::dynamic::Type,
+    entities: &[&str],
+    resolvers: &mut ResolverMap,
+) -> async_graphql::dynamic::Type {
     use async_graphql::dynamic::*;
 
     let async_graphql::dynamic::Type::Object(mut obj) = query_ty else {
@@ -363,10 +377,20 @@ fn add_federation_fields(query_ty: async_graphql::dynamic::Type, entities: &[&st
     }));
 
     if !entities.is_empty() {
-        let entity_field = Field::new("_entities", TypeRef::named_nn("_Entity"), |_| {
-            FieldFuture::from_value(Some(async_graphql::Value::Null))
+        let resolver = std::sync::Mutex::new(
+            resolvers
+                .remove(&("Query".to_string(), "_entities".to_string()))
+                .unwrap_or_else(|| Box::new(default_field_resolver("_entitites"))),
+        );
+
+        let entity_field = Field::new("_entities", TypeRef::named_list_nn("_Entity"), move |context| {
+            let mut resolver = resolver.lock().expect("mutex to be unpoisoned");
+            FieldFuture::Value(resolver.resolve(context).map(|value| {
+                let value = async_graphql::Value::deserialize(value).unwrap();
+                transform_into_field_value(value)
+            }))
         })
-        .argument(InputValue::new("representations", TypeRef::named_nn_list_nn("Any")));
+        .argument(InputValue::new("representations", TypeRef::named_nn_list_nn("_Any")));
 
         obj = obj.field(entity_field);
     }

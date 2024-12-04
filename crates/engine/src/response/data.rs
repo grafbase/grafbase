@@ -230,7 +230,7 @@ impl DataPart {
     }
 
     pub fn reserve_object_id(&mut self) -> ResponseObjectId {
-        self.push_object(ResponseObject::default())
+        self.push_object(ResponseObject::new(None, Vec::new()))
     }
 
     pub fn put_object(&mut self, ResponseObjectId { part_id, object_id }: ResponseObjectId, object: ResponseObject) {

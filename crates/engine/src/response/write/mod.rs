@@ -33,7 +33,7 @@ impl ResponseBuilder {
     ) -> Self {
         let mut parts = DataParts::default();
         let mut initial_part = parts.new_part();
-        let root_id = initial_part.push_object(ResponseObject::default());
+        let root_id = initial_part.push_object(ResponseObject::new(Some(operation.solved.root_object_id), Vec::new()));
         parts.insert(initial_part);
 
         Self {

@@ -1,6 +1,10 @@
 use crate::{ObjectDefinitionId, SubgraphId, UnionDefinition};
 
 impl UnionDefinition<'_> {
+    pub fn has_member(&self, id: ObjectDefinitionId) -> bool {
+        self.possible_type_ids.binary_search(&id).is_ok()
+    }
+
     pub fn is_fully_implemented_in(&self, subgraph_id: SubgraphId) -> bool {
         !self.not_fully_implemented_in_ids.contains(&subgraph_id)
     }

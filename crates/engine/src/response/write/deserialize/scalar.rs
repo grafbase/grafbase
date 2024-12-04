@@ -32,7 +32,7 @@ impl ScalarTypeSeed<'_, '_> {
             ScalarType::Float => "a Float value",
             ScalarType::Int => "an Int value",
             ScalarType::BigInt => "a BigInt value",
-            ScalarType::Any => "a JSON value",
+            ScalarType::Unknown => "a JSON value",
             ScalarType::Boolean => "a Boolean value",
         };
         tracing::error!(
@@ -72,7 +72,7 @@ impl<'de> Visitor<'de> for ScalarTypeSeed<'_, '_> {
         E: Error,
     {
         Ok(match self.ty {
-            ScalarType::Boolean | ScalarType::Any => v.into(),
+            ScalarType::Boolean | ScalarType::Unknown => v.into(),
             _ => self.unexpected_type(Unexpected::Bool(v)),
         })
     }
@@ -82,7 +82,7 @@ impl<'de> Visitor<'de> for ScalarTypeSeed<'_, '_> {
         E: Error,
     {
         Ok(match self.ty {
-            ScalarType::Int | ScalarType::Any => ResponseValue::Int { value: v as i32 },
+            ScalarType::Int | ScalarType::Unknown => ResponseValue::Int { value: v as i32 },
             ScalarType::BigInt => ResponseValue::BigInt { value: v as i64 },
             ScalarType::Float => ResponseValue::Float { value: v as f64 },
             _ => self.unexpected_type(Unexpected::Signed(v.into())),
@@ -94,7 +94,7 @@ impl<'de> Visitor<'de> for ScalarTypeSeed<'_, '_> {
         E: Error,
     {
         Ok(match self.ty {
-            ScalarType::Int | ScalarType::Any => ResponseValue::Int { value: v as i32 },
+            ScalarType::Int | ScalarType::Unknown => ResponseValue::Int { value: v as i32 },
             ScalarType::BigInt => ResponseValue::BigInt { value: v as i64 },
             ScalarType::Float => ResponseValue::Float { value: v as f64 },
             _ => self.unexpected_type(Unexpected::Signed(v.into())),
@@ -106,7 +106,7 @@ impl<'de> Visitor<'de> for ScalarTypeSeed<'_, '_> {
         E: Error,
     {
         Ok(match self.ty {
-            ScalarType::Int | ScalarType::Any => ResponseValue::Int { value: v },
+            ScalarType::Int | ScalarType::Unknown => ResponseValue::Int { value: v },
             ScalarType::BigInt => ResponseValue::BigInt { value: v as i64 },
             ScalarType::Float => ResponseValue::Float { value: v as f64 },
             _ => self.unexpected_type(Unexpected::Signed(v.into())),
@@ -125,7 +125,7 @@ impl<'de> Visitor<'de> for ScalarTypeSeed<'_, '_> {
                     self.unexpected_type(Unexpected::Signed(v))
                 }
             }
-            ScalarType::BigInt | ScalarType::Any => ResponseValue::BigInt { value: v },
+            ScalarType::BigInt | ScalarType::Unknown => ResponseValue::BigInt { value: v },
             ScalarType::Float => ResponseValue::Float { value: v as f64 },
             _ => self.unexpected_type(Unexpected::Signed(v)),
         })
@@ -141,7 +141,7 @@ impl<'de> Visitor<'de> for ScalarTypeSeed<'_, '_> {
                     return Ok(ResponseValue::Int { value });
                 }
             }
-            ScalarType::BigInt | ScalarType::Any => {
+            ScalarType::BigInt | ScalarType::Unknown => {
                 if let Ok(value) = i64::try_from(v) {
                     return Ok(ResponseValue::BigInt { value });
                 }
@@ -158,7 +158,7 @@ impl<'de> Visitor<'de> for ScalarTypeSeed<'_, '_> {
         E: Error,
     {
         Ok(match self.ty {
-            ScalarType::Int | ScalarType::Any => ResponseValue::Int { value: v as i32 },
+            ScalarType::Int | ScalarType::Unknown => ResponseValue::Int { value: v as i32 },
             ScalarType::BigInt => ResponseValue::BigInt { value: v as i64 },
             ScalarType::Float => ResponseValue::Float { value: v as f64 },
             _ => self.unexpected_type(Unexpected::Unsigned(v.into())),
@@ -170,7 +170,7 @@ impl<'de> Visitor<'de> for ScalarTypeSeed<'_, '_> {
         E: Error,
     {
         Ok(match self.ty {
-            ScalarType::Int | ScalarType::Any => ResponseValue::Int { value: v as i32 },
+            ScalarType::Int | ScalarType::Unknown => ResponseValue::Int { value: v as i32 },
             ScalarType::BigInt => ResponseValue::BigInt { value: v as i64 },
             ScalarType::Float => ResponseValue::Float { value: v as f64 },
             _ => self.unexpected_type(Unexpected::Unsigned(v.into())),
@@ -189,7 +189,7 @@ impl<'de> Visitor<'de> for ScalarTypeSeed<'_, '_> {
                     self.unexpected_type(Unexpected::Unsigned(v.into()))
                 }
             }
-            ScalarType::BigInt | ScalarType::Any => ResponseValue::BigInt { value: v as i64 },
+            ScalarType::BigInt | ScalarType::Unknown => ResponseValue::BigInt { value: v as i64 },
             ScalarType::Float => ResponseValue::Float { value: v as f64 },
             _ => self.unexpected_type(Unexpected::Unsigned(v.into())),
         })
@@ -211,7 +211,7 @@ impl<'de> Visitor<'de> for ScalarTypeSeed<'_, '_> {
                 }
             }
             ScalarType::Float => return Ok(ResponseValue::Float { value: v as f64 }),
-            ScalarType::Any => {
+            ScalarType::Unknown => {
                 return Ok(ResponseValue::U64 { value: v });
             }
             _ => (),
@@ -230,7 +230,7 @@ impl<'de> Visitor<'de> for ScalarTypeSeed<'_, '_> {
                     return Ok(ResponseValue::Int { value });
                 }
             }
-            ScalarType::BigInt | ScalarType::Any => {
+            ScalarType::BigInt | ScalarType::Unknown => {
                 if let Ok(value) = i64::try_from(v) {
                     return Ok(ResponseValue::BigInt { value });
                 }
@@ -247,7 +247,7 @@ impl<'de> Visitor<'de> for ScalarTypeSeed<'_, '_> {
         E: Error,
     {
         match self.ty {
-            ScalarType::Float | ScalarType::Any => Ok(ResponseValue::Float { value: v as f64 }),
+            ScalarType::Float | ScalarType::Unknown => Ok(ResponseValue::Float { value: v as f64 }),
             ScalarType::Int if can_coerce_f32_to_int(v) => Ok(ResponseValue::Int { value: v as i32 }),
             ScalarType::BigInt if can_coerce_f32_to_big_int(v) => Ok(ResponseValue::BigInt { value: v as i64 }),
             _ => Ok(self.unexpected_type(Unexpected::Float(v as f64))),
@@ -259,7 +259,7 @@ impl<'de> Visitor<'de> for ScalarTypeSeed<'_, '_> {
         E: Error,
     {
         match self.ty {
-            ScalarType::Float | ScalarType::Any => Ok(ResponseValue::Float { value: v }),
+            ScalarType::Float | ScalarType::Unknown => Ok(ResponseValue::Float { value: v }),
             ScalarType::Int if can_coerce_f64_to_int(v) => Ok(ResponseValue::Int { value: v as i32 }),
             ScalarType::BigInt if can_coerce_f64_to_big_int(v) => Ok(ResponseValue::BigInt { value: v as i64 }),
             _ => Ok(self.unexpected_type(Unexpected::Float(v))),
@@ -271,7 +271,7 @@ impl<'de> Visitor<'de> for ScalarTypeSeed<'_, '_> {
         E: Error,
     {
         match self.ty {
-            ScalarType::String | ScalarType::Any => Ok(ResponseValue::String { value: v.into() }),
+            ScalarType::String | ScalarType::Unknown => Ok(ResponseValue::String { value: v.into() }),
             _ => Ok(self.unexpected_type(Unexpected::Str(v))),
         }
     }
@@ -281,7 +281,7 @@ impl<'de> Visitor<'de> for ScalarTypeSeed<'_, '_> {
         E: Error,
     {
         match self.ty {
-            ScalarType::String | ScalarType::Any => Ok(ResponseValue::String {
+            ScalarType::String | ScalarType::Unknown => Ok(ResponseValue::String {
                 value: v.into_boxed_str(),
             }),
             _ => Ok(self.unexpected_type(Unexpected::Str(&v))),
@@ -336,7 +336,7 @@ impl<'de> Visitor<'de> for ScalarTypeSeed<'_, '_> {
         A: serde::de::SeqAccess<'de>,
     {
         match self.ty {
-            ScalarType::Any => {
+            ScalarType::Unknown => {
                 let mut list = Vec::new();
                 if let Some(size_hist) = seq.size_hint() {
                     list.reserve(size_hist);
@@ -362,7 +362,7 @@ impl<'de> Visitor<'de> for ScalarTypeSeed<'_, '_> {
         A: serde::de::MapAccess<'de>,
     {
         match self.ty {
-            ScalarType::Any => {
+            ScalarType::Unknown => {
                 let mut key_values = Vec::new();
                 while let Some(key) = map.next_key::<String>()? {
                     let value = map.next_value_seed(self.clone())?;
