@@ -60,9 +60,9 @@ checksum = "5443807d6dff69373d433ab9ef5378ad8df50ca6298caf15de6e52e24aaf54d5"
 
 [[package]]
 name = "grafbase-hooks"
-version = "0.1.5"
+version = "0.1.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dcb12676eb5d29dab0f78de48a961e942ac58652dae33d84fb86a98097c51d4d"
+checksum = "25436b84a7775d94cec6686745f7903e0db680503e3d85ef03dd283ce03ceda5"
 dependencies = [
  "grafbase-hooks-derive",
  "serde",

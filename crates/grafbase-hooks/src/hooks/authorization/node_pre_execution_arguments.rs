@@ -72,11 +72,14 @@ impl NodePreExecutionArguments {
     /// }
     ///
     /// # fn foo(arguments: grafbase_hooks::EdgePreExecutionArguments) -> Result<(), serde_json::Error> {
-    /// let arguments: Metadata = arguments.deserialize_metadata()?;
+    /// let arguments: Metadata = arguments.metadata()?;
     /// # Ok(())
     /// # }
     /// ```
-    pub fn deserialize_metadata<T: serde::de::DeserializeOwned>(&self) -> Result<T, serde_json::Error> {
+    pub fn metadata<'a, T>(&'a self) -> Result<T, serde_json::Error>
+    where
+        T: serde::Deserialize<'a>,
+    {
         serde_json::from_str(&self.metadata)
     }
 }

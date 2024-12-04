@@ -118,14 +118,17 @@ impl ParentEdgePostExecutionArguments {
     /// }
     ///
     /// # fn foo(arguments: grafbase_hooks::ParentEdgePostExecutionArguments) -> Result<(), serde_json::Error> {
-    /// let parents: Vec<Parent> = arguments.deserialize_parents()?;
+    /// let parents: Vec<Parent> = arguments.parents()?;
     /// # Ok(())
     /// # }
     /// ```
     ///
     /// The directive defines the `fields` argument as `id`, so the hook gets an object of all
     /// ids of the returned users.
-    pub fn deserialize_parents<T: serde::de::DeserializeOwned>(&self) -> Result<Vec<T>, serde_json::Error> {
+    pub fn parents<'a, T>(&'a self) -> Result<Vec<T>, serde_json::Error>
+    where
+        T: serde::Deserialize<'a>,
+    {
         self.parents.iter().map(|parent| serde_json::from_str(parent)).collect()
     }
 
@@ -172,11 +175,14 @@ impl ParentEdgePostExecutionArguments {
     /// }
     ///
     /// # fn foo(arguments: grafbase_hooks::ParentEdgePostExecutionArguments) -> Result<(), serde_json::Error> {
-    /// let arguments: Metadata = arguments.deserialize_metadata()?;
+    /// let arguments: Metadata = arguments.metadata()?;
     /// # Ok(())
     /// # }
     /// ```
-    pub fn deserialize_metadata<T: serde::de::DeserializeOwned>(&self) -> Result<T, serde_json::Error> {
+    pub fn metadata<'a, T>(&'a self) -> Result<T, serde_json::Error>
+    where
+        T: serde::Deserialize<'a>,
+    {
         serde_json::from_str(&self.metadata)
     }
 }
