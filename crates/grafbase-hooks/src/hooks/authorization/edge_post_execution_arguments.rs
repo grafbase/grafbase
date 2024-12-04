@@ -142,7 +142,7 @@ impl EdgePostExecutionArguments {
     /// }
     ///
     /// # fn foo(arguments: grafbase_hooks::EdgePostExecutionArguments) -> Result<(), serde_json::Error> {
-    /// let edges: Vec<(Parent, Vec<Node>)> = arguments.deserialize_edges()?;
+    /// let edges: Vec<(Parent, Vec<Node>)> = arguments.edges()?;
     /// # Ok(())
     /// # }
     /// ```
@@ -151,10 +151,10 @@ impl EdgePostExecutionArguments {
     /// `street`, so the hook gets a vector of tuples where the first item is the
     /// parent fields with the fields defined in `fields` and the second one is
     /// the nodes with the fields defined in `node`.
-    pub fn deserialize_edges<T, K>(&self) -> Result<Vec<(T, Vec<K>)>, serde_json::Error>
+    pub fn edges<'a, T, K>(&'a self) -> Result<Vec<(T, Vec<K>)>, serde_json::Error>
     where
-        T: serde::de::DeserializeOwned,
-        K: serde::de::DeserializeOwned,
+        T: serde::Deserialize<'a>,
+        K: serde::Deserialize<'a>,
     {
         self.edges
             .iter()
@@ -222,11 +222,14 @@ impl EdgePostExecutionArguments {
     /// }
     ///
     /// # fn foo(arguments: grafbase_hooks::EdgePostExecutionArguments) -> Result<(), serde_json::Error> {
-    /// let arguments: Metadata = arguments.deserialize_metadata()?;
+    /// let arguments: Metadata = arguments.metadata()?;
     /// # Ok(())
     /// # }
     /// ```
-    pub fn deserialize_metadata<T: serde::de::DeserializeOwned>(&self) -> Result<T, serde_json::Error> {
+    pub fn metadata<'a, T>(&'a self) -> Result<T, serde_json::Error>
+    where
+        T: serde::Deserialize<'a>,
+    {
         serde_json::from_str(&self.metadata)
     }
 }

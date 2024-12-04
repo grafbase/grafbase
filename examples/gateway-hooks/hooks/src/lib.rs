@@ -51,7 +51,7 @@ impl Hooks for Component {
                     id: usize,
                 }
 
-                let arguments: Arguments = arguments.deserialize_arguments().map_err(|err| {
+                let arguments: Arguments = arguments.arguments().map_err(|err| {
                     tracing::error!("Failed to deserialize input: {err}");
                     contract_error()
                 })?;
@@ -82,9 +82,9 @@ impl Hooks for Component {
                     id: usize,
                 }
 
-                let metadata: Metadata = arguments.deserialize_metadata().unwrap_or_default();
+                let metadata: Metadata = arguments.metadata().unwrap_or_default();
 
-                let parents: Vec<User> = match arguments.deserialize_parents() {
+                let parents: Vec<User> = match arguments.parents() {
                     Ok(parents) => parents,
                     Err(_) => return vec![Err(contract_error())],
                 };
@@ -125,9 +125,9 @@ impl Hooks for Component {
                     id: usize,
                 }
 
-                let metadata: Metadata = arguments.deserialize_metadata().unwrap_or_default();
+                let metadata: Metadata = arguments.metadata().unwrap_or_default();
 
-                let nodes = match arguments.deserialize_nodes() {
+                let nodes = match arguments.nodes() {
                     Ok(nodes) => nodes,
                     Err(_) => return vec![Err(contract_error())],
                 };

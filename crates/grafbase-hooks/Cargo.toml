@@ -1,6 +1,6 @@
 [package]
 name = "grafbase-hooks"
-version = "0.1.6"
+version = "0.1.7"
 description = "An SDK to implement hooks for the Grafbase Gateway"
 edition.workspace = true
 license.workspace = true

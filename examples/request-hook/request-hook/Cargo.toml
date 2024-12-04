@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-grafbase-hooks = { version = "0.1.5", features = ["derive"] }
+grafbase-hooks = { version = "0.1.7", features = ["derive"] }
 
 [lib]
 crate-type = ["cdylib"]

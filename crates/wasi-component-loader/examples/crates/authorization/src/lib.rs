@@ -12,13 +12,13 @@ struct Parent {
 }
 
 #[derive(serde::Deserialize)]
-struct Edge {
-    value: String,
+struct Edge<'a> {
+    value: &'a str,
 }
 
 #[derive(serde::Deserialize)]
-struct Metadata {
-    role: String,
+struct Metadata<'a> {
+    role: &'a str,
 }
 
 #[grafbase_hooks]
@@ -44,9 +44,9 @@ impl Hooks for Component {
         arguments: EdgePreExecutionArguments,
     ) -> Result<(), Error> {
         let auth_header = context.get("entitlement");
-        let argument = arguments.deserialize_arguments::<Edge>().unwrap();
+        let argument = arguments.arguments::<Edge>().unwrap();
 
-        if Some(&argument.value) != auth_header.as_ref() {
+        if Some(argument.value) != auth_header.as_deref() {
             return Err(Error {
                 message: String::from("not authorized"),
                 extensions: Vec::new(),
@@ -62,9 +62,9 @@ impl Hooks for Component {
         arguments: NodePreExecutionArguments,
     ) -> Result<(), Error> {
         let auth_header = context.get("entitlement");
-        let metadata: Metadata = arguments.deserialize_metadata().unwrap();
+        let metadata: Metadata = arguments.metadata().unwrap();
 
-        if Some(metadata.role) != auth_header {
+        if Some(metadata.role) != auth_header.as_deref() {
             return Err(Error {
                 message: String::from("not authorized"),
                 extensions: Vec::new(),
@@ -82,7 +82,7 @@ impl Hooks for Component {
         let auth_header = context.get("entitlement");
         let mut result = Vec::new();
 
-        let parents: Vec<Edge> = match arguments.deserialize_parents() {
+        let parents: Vec<Edge> = match arguments.parents() {
             Ok(parents) => parents,
             Err(_) => {
                 return vec![Err(Error {
@@ -93,7 +93,7 @@ impl Hooks for Component {
         };
 
         for parent in parents {
-            if Some(&parent.value) == auth_header.as_ref() {
+            if Some(parent.value) == auth_header.as_deref() {
                 result.push(Ok(()));
             } else {
                 result.push(Err(Error {
@@ -114,7 +114,7 @@ impl Hooks for Component {
         let auth_header = context.get("entitlement");
         let mut result = Vec::new();
 
-        let nodes: Vec<Edge> = match arguments.deserialize_nodes() {
+        let nodes: Vec<Edge> = match arguments.nodes() {
             Ok(nodes) => nodes,
             Err(_) => {
                 return vec![Err(Error {
@@ -125,7 +125,7 @@ impl Hooks for Component {
         };
 
         for node in nodes {
-            if Some(&node.value) == auth_header.as_ref() {
+            if Some(node.value) == auth_header.as_deref() {
                 result.push(Ok(()));
             } else {
                 result.push(Err(Error {
@@ -146,7 +146,7 @@ impl Hooks for Component {
         let auth_header = context.get("entitlement");
         let mut result = Vec::new();
 
-        let edges: Vec<(Parent, Vec<Edge>)> = match arguments.deserialize_edges() {
+        let edges: Vec<(Parent, Vec<Edge>)> = match arguments.edges() {
             Ok(edges) => edges,
             Err(_) => {
                 return vec![Err(Error {
@@ -157,7 +157,7 @@ impl Hooks for Component {
         };
 
         for node in edges.into_iter().flat_map(|(_, nodes)| nodes) {
-            if Some(&node.value) == auth_header.as_ref() {
+            if Some(node.value) == auth_header.as_deref() {
                 result.push(Ok(()));
             } else {
                 result.push(Err(Error {
