@@ -1,6 +1,6 @@
 [package]
 name = "grafbase-hooks"
-version = "0.1.7"
+version = "0.1.8"
 description = "An SDK to implement hooks for the Grafbase Gateway"
 edition.workspace = true
 license.workspace = true
@@ -9,6 +9,7 @@ keywords.workspace = true
 repository.workspace = true
 
 [features]
+default = ["derive"]
 derive = ["dep:grafbase-hooks-derive"]
 
 [dependencies]
