@@ -21,4 +21,4 @@ lto = true
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 base64 = "0.22"
-grafbase-hooks = { path = "../../grafbase-hooks", features = ["derive"] }
+grafbase-hooks = { path = "../../grafbase-hooks" }
