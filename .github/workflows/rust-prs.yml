@@ -20,7 +20,16 @@ jobs:
   what-changed:
     runs-on: ubicloud-standard-2
     outputs:
-      rust: ${{ steps.what-rust-changed.outputs.rust }}
+      # These 2 are JSON lists
+      changed-packages: ${{ steps.rust.outputs.changed-packages }}
+      changed-binaries: ${{ steps.rust.outputs.changed-binaries }}
+
+      # These 4 are strings
+      cargo-build-specs: ${{ steps.rust.outputs.cargo-build-specs }}
+      cargo-test-specs: ${{ steps.rust.outputs.cargo-test-specs }}
+      cargo-docker-test-specs: ${{ steps.rust.outputs.cargo-docker-test-specs }}
+      cargo-bin-specs: ${{ steps.rust.outputs.cargo-bin-specs }}
+
       grafbase-docker: ${{ steps.paths-changed.outputs.grafbase-docker }}
       gateway-docker: ${{ steps.paths-changed.outputs.gateway-docker }}
     steps:
@@ -34,40 +43,12 @@ jobs:
       - name: Install rust
         uses: ./.github/actions/install-rust
 
-      # If you're iterating on this you may want to change this to a cargo install
-      # while you work
-      - name: Install what-rust-changed
-        uses: ./.github/actions/install-what-rust-changed
-        with:
-          version: v0.1.0
-
       - name: Run what-rust-changed
-        id: what-rust-changed
-        shell: bash
-        env:
-          WHAT_RUST_CHANGED_CONFIG: .github/what-rust-changed.toml
-        # TODO: Much of this script could be moved into the what-rust-changed code
-        # (or it could have its own action) but don't have time for that right now.
-        run: |
-          set -euo pipefail
-          HEAD_REF="$(git rev-parse HEAD)"
-          BASE_REF="remotes/origin/${GITHUB_BASE_REF:-main}"
-          echo "Head: $HEAD_REF"
-          echo "Base: $BASE_REF"
-          MERGE_BASE=$(git merge-base $BASE_REF $HEAD_REF)
-          echo "Merge Base: $MERGE_BASE"
-          git checkout $MERGE_BASE
-          cargo metadata > /tmp/base.metadata.json
-          # Temp hack to get CI to pass
-          git checkout -- Cargo.lock
-          git checkout $HEAD_REF
-          cargo metadata --locked > /tmp/target.metadata.json
-          CHANGED_FILES=$(git diff --no-commit-id --name-only -r $MERGE_BASE HEAD)
-          CHANGES=$(echo $CHANGED_FILES | xargs what-rust-changed /tmp/base.metadata.json /tmp/target.metadata.json)
-          echo "rust=$CHANGES" >> "$GITHUB_OUTPUT"
-          echo "Done.  Output Contents:"
-          echo ""
-          cat $GITHUB_OUTPUT
+        id: rust
+        uses: grafbase/what-rust-changed@obmarg/yosxprrlrxpm
+        with:
+          config: .github/what-rust-changed.toml
+          base: ${{ github.event.pull_request.base.ref || 'main' }}
 
       - name: Check paths changed
         uses: dorny/paths-filter@v3
@@ -79,7 +60,7 @@ jobs:
 
   check-licenses:
     needs: [what-changed]
-    if: toJson(fromJson(needs.what-changed.outputs.rust).changed-packages) != '[]'
+    if: needs.what-changed.outputs.changed-packages != '[]'
     runs-on: ubicloud-standard-2
     steps:
       - name: Get sources
@@ -102,7 +83,7 @@ jobs:
 
   check-format:
     needs: [what-changed]
-    if: toJson(fromJson(needs.what-changed.outputs.rust).changed-packages) != '[]'
+    if: needs.what-changed.outputs.changed-packages != '[]'
     runs-on: ubicloud-standard-2
     steps:
       - name: Get sources
@@ -120,7 +101,7 @@ jobs:
 
   example-component:
     if: |
-      toJson(fromJson(needs.what-changed.outputs.rust).changed-packages) != '[]'
+      needs.what-changed.outputs.changed-packages != '[]'
     needs: [what-changed]
     runs-on: ubicloud-standard-8
     steps:
@@ -148,7 +129,7 @@ jobs:
     # In particular we need `cancelled()` because `always()` (the other way of doing this)
     # makes this job uncancellable - which is not great.
     if: |
-      toJson(fromJson(needs.what-changed.outputs.rust).changed-packages) != '[]'
+      needs.what-changed.outputs.changed-packages != '[]'
       && !(cancelled())
       && !(contains(needs.*.result, 'failure'))
     strategy:
@@ -175,7 +156,7 @@ jobs:
       - name: Dump inputs for debugging
         shell: bash
         run: |
-          echo ${{ needs.what-changed.outputs.rust }}
+          echo ${{ needs.what-changed.outputs.changed-packages }}
 
       - uses: Swatinem/rust-cache@v2
         if: ${{ !startsWith(github.head_ref, 'renovate-') }}
@@ -230,19 +211,19 @@ jobs:
         uses: ilammy/setup-nasm@v1
 
       - name: Build debug binaries
-        if: fromJson(needs.what-changed.outputs.rust).cargo-bin-specs
+        if: needs.what-changed.outputs.cargo-bin-specs
         shell: bash
         run: |
-          cargo build --target ${{ matrix.platform.target }} ${{ fromJson(needs.what-changed.outputs.rust).cargo-bin-specs }}
+          cargo build --target ${{ matrix.platform.target }} ${{ needs.what-changed.outputs.cargo-bin-specs }}
 
       - name: Clippy
-        if: fromJson(needs.what-changed.outputs.rust).cargo-build-specs
+        if: needs.what-changed.outputs.cargo-build-specs
         shell: bash
         run: |
           cargo clippy \
             --locked \
             --target ${{ matrix.platform.target }} \
-            ${{ fromJson(needs.what-changed.outputs.rust).cargo-build-specs }}
+            ${{ needs.what-changed.outputs.cargo-build-specs }}
 
       - name: Login to Docker Hub
         if: runner.os == 'Linux'
@@ -253,7 +234,7 @@ jobs:
 
       - name: Start integration-test docker compose
         if: |
-          contains(fromJson(needs.what-changed.outputs.rust).changed-packages, 'integration-tests')
+          contains(fromJson(needs.what-changed.outputs.changed-packages), 'integration-tests')
           && matrix.platform.target == 'x86_64-unknown-linux-musl'
         shell: bash
         working-directory: crates/integration-tests
@@ -261,7 +242,7 @@ jobs:
 
       - name: Start gateway docker compose
         if: |
-          contains(fromJson(needs.what-changed.outputs.rust).changed-packages, 'grafbase-gateway')
+          contains(fromJson(needs.what-changed.outputs.changed-packages), 'grafbase-gateway')
           && matrix.platform.target == 'x86_64-unknown-linux-musl'
         shell: bash
         working-directory: gateway
@@ -271,39 +252,39 @@ jobs:
       # here
       - name: Build tests (non docker platforms)
         if: |
-          fromJson(needs.what-changed.outputs.rust).cargo-test-specs
+          needs.what-changed.outputs.cargo-test-specs
           && matrix.platform.target != 'x86_64-unknown-linux-musl'
           && matrix.platform.target != 'x86_64-apple-darwin'
         shell: bash
         run: |
-          cargo nextest run --target ${{ matrix.platform.target }} --no-run --profile ci ${{ fromJson(needs.what-changed.outputs.rust).cargo-test-specs }}
+          cargo nextest run --target ${{ matrix.platform.target }} --no-run --profile ci ${{ needs.what-changed.outputs.cargo-test-specs }}
 
       - name: Run tests (non docker platforms)
         id: tests
         if: |
-          fromJson(needs.what-changed.outputs.rust).cargo-test-specs
+          needs.what-changed.outputs.cargo-test-specs
           && matrix.platform.target != 'x86_64-unknown-linux-musl'
           && matrix.platform.target != 'x86_64-apple-darwin'
         shell: bash
         run: |
-          cargo nextest run --target ${{ matrix.platform.target }} --profile ci ${{ fromJson(needs.what-changed.outputs.rust).cargo-test-specs }}
+          cargo nextest run --target ${{ matrix.platform.target }} --profile ci ${{ needs.what-changed.outputs.cargo-test-specs }}
 
       - name: Build tests (docker platforms)
         if: |
-          fromJson(needs.what-changed.outputs.rust).cargo-docker-test-specs
+          needs.what-changed.outputs.cargo-docker-test-specs
           && matrix.platform.target == 'x86_64-unknown-linux-musl'
         shell: bash
         run: |
-          cargo nextest run --target ${{ matrix.platform.target }} --no-run --profile ci ${{ fromJson(needs.what-changed.outputs.rust).cargo-docker-test-specs }}
+          cargo nextest run --target ${{ matrix.platform.target }} --no-run --profile ci ${{ needs.what-changed.outputs.cargo-docker-test-specs }}
 
       - name: Run tests (docker platforms)
         id: tests_docker
         if: |
-          fromJson(needs.what-changed.outputs.rust).cargo-docker-test-specs
+          needs.what-changed.outputs.cargo-docker-test-specs
           && matrix.platform.target == 'x86_64-unknown-linux-musl'
         shell: bash
         run: |
-          cargo nextest run --target ${{ matrix.platform.target }} --profile ci ${{ fromJson(needs.what-changed.outputs.rust).cargo-docker-test-specs }}
+          cargo nextest run --target ${{ matrix.platform.target }} --profile ci ${{ needs.what-changed.outputs.cargo-docker-test-specs }}
 
       - name: Upload the JUnit files
         if: ${{ ( success() || failure() ) && !contains(steps.tests.outputs.exitcode, '101') && !contains(steps.tests_docker.outputs.exitcode, '101') && matrix.platform.target != 'x86_64-apple-darwin'}}
@@ -317,7 +298,7 @@ jobs:
     needs: [what-changed]
     if: |
       needs.what-changed.outputs.gateway-docker == 'true'
-      || contains(fromJson(needs.what-changed.outputs.rust).changed-packages, 'grafbase-gateway')
+      || contains(fromJson(needs.what-changed.outputs.changed-packages), 'grafbase-gateway')
     runs-on: ubicloud-standard-16
     permissions:
       packages: write
