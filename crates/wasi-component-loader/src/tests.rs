@@ -36,7 +36,7 @@ async fn missing_hook() {
     // the guest code in examples/missing_hook/src/lib.rs
 
     let config = indoc! {r#"
-        location = "examples/target/wasm32-wasip1/debug/missing_hook.wasm"
+        location = "examples/target/wasm32-wasip2/debug/missing_hook.wasm"
         stdout = true
         stderr = true
     "#};
@@ -61,7 +61,7 @@ async fn simple_no_io() {
     std::env::set_var("GRAFBASE_WASI_TEST", "meow");
 
     let config = indoc! {r#"
-        location = "examples/target/wasm32-wasip1/debug/simple.wasm"
+        location = "examples/target/wasm32-wasip2/debug/simple.wasm"
         environment_variables = true
         stdout = true
         stderr = true
@@ -93,7 +93,7 @@ async fn dir_access_read_only() {
     let path_str = path.to_str().unwrap().escape_default();
 
     let config = formatdoc! {r#"
-        location = "examples/target/wasm32-wasip1/debug/dir_access.wasm"
+        location = "examples/target/wasm32-wasip2/debug/dir_access.wasm"
         stdout = true
         stderr = true
 
@@ -132,7 +132,7 @@ async fn dir_access_write() {
     let path_str = path.to_str().unwrap().escape_default();
 
     let config = formatdoc! {r#"
-        location = "examples/target/wasm32-wasip1/debug/dir_access.wasm"
+        location = "examples/target/wasm32-wasip2/debug/dir_access.wasm"
         stdout = true
         stderr = true
 
@@ -176,7 +176,7 @@ async fn http_client() {
     std::env::set_var("MOCK_SERVER_ADDRESS", format!("http://{}", server.address()));
 
     let config = formatdoc! {r#"
-        location = "examples/target/wasm32-wasip1/debug/http_client.wasm"
+        location = "examples/target/wasm32-wasip2/debug/http_client.wasm"
         environment_variables = true
         stdout = true
         stderr = true
@@ -198,7 +198,7 @@ async fn guest_error() {
     // the guest code in examples/error/src/lib.rs
 
     let config = indoc! {r#"
-        location = "examples/target/wasm32-wasip1/debug/error.wasm"
+        location = "examples/target/wasm32-wasip2/debug/error.wasm"
     "#};
 
     let config: Config = toml::from_str(config).unwrap();
@@ -229,7 +229,7 @@ async fn authorize_edge_pre_execution_error() {
     // the guest code in examples/authorization/src/lib.rs
 
     let config = indoc! {r#"
-        location = "examples/target/wasm32-wasip1/debug/authorization.wasm"
+        location = "examples/target/wasm32-wasip2/debug/authorization.wasm"
     "#};
 
     let config: Config = toml::from_str(config).unwrap();
@@ -278,7 +278,7 @@ async fn authorize_edge_pre_execution_success() {
     // the guest code in examples/authorization/src/lib.rs
 
     let config = indoc! {r#"
-        location = "examples/target/wasm32-wasip1/debug/authorization.wasm"
+        location = "examples/target/wasm32-wasip2/debug/authorization.wasm"
     "#};
 
     let config: Config = toml::from_str(config).unwrap();
@@ -319,7 +319,7 @@ async fn authorize_node_pre_execution_error() {
     // the guest code in examples/authorization/src/lib.rs
 
     let config = indoc! {r#"
-        location = "examples/target/wasm32-wasip1/debug/authorization.wasm"
+        location = "examples/target/wasm32-wasip2/debug/authorization.wasm"
     "#};
 
     let config: Config = toml::from_str(config).unwrap();
@@ -362,7 +362,7 @@ async fn authorize_node_pre_execution_success() {
     // the guest code in examples/authorization/src/lib.rs
 
     let config = indoc! {r#"
-        location = "examples/target/wasm32-wasip1/debug/authorization.wasm"
+        location = "examples/target/wasm32-wasip2/debug/authorization.wasm"
     "#};
 
     let config: Config = toml::from_str(config).unwrap();
@@ -397,7 +397,7 @@ async fn authorize_parent_edge_post_execution() {
     // the guest code in examples/authorization/src/lib.rs
 
     let config = indoc! {r#"
-        location = "examples/target/wasm32-wasip1/debug/authorization.wasm"
+        location = "examples/target/wasm32-wasip2/debug/authorization.wasm"
     "#};
 
     let config: Config = toml::from_str(config).unwrap();
@@ -455,7 +455,7 @@ async fn authorize_edge_node_post_execution() {
     // the guest code in examples/authorization/src/lib.rs
 
     let config = indoc! {r#"
-        location = "examples/target/wasm32-wasip1/debug/authorization.wasm"
+        location = "examples/target/wasm32-wasip2/debug/authorization.wasm"
     "#};
 
     let config: Config = toml::from_str(config).unwrap();
@@ -509,7 +509,7 @@ async fn authorize_edge_post_execution() {
     // the guest code in examples/authorization/src/lib.rs
 
     let config = indoc! {r#"
-        location = "examples/target/wasm32-wasip1/debug/authorization.wasm"
+        location = "examples/target/wasm32-wasip2/debug/authorization.wasm"
         stdout = true
         stderr = true
     "#};
@@ -588,7 +588,7 @@ async fn on_subgraph_request() {
     use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
 
     let config = indoc! {r#"
-        location = "examples/target/wasm32-wasip1/debug/subgraph_request.wasm"
+        location = "examples/target/wasm32-wasip2/debug/subgraph_request.wasm"
     "#};
 
     let config: Config = toml::from_str(config).unwrap();
@@ -663,7 +663,7 @@ async fn on_subgraph_request() {
 #[tokio::test]
 async fn response_hooks() {
     let config = indoc! {r#"
-        location = "examples/target/wasm32-wasip1/debug/response_hooks.wasm"
+        location = "examples/target/wasm32-wasip2/debug/response_hooks.wasm"
         stdout = true
         stderr = true
     "#};

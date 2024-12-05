@@ -93,7 +93,7 @@ async fn update_runtime_with_toml_config(
         let loader = ComponentLoader::new(hooks_config)
             .ok()
             .flatten()
-            .expect("Wasm examples weren't built, please run:\ncd crates/wasi-component-loader/examples && cargo component build");
+            .expect("Wasm examples weren't built, please run:\ncd crates/wasi-component-loader/examples && cargo build --target wasm32-wasip2");
 
         let meter = meter_from_global_provider();
         let hooks = HooksWasi::new(Some(loader), None, &meter, access_log_sender).await;

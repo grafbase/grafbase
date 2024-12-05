@@ -22,7 +22,7 @@ fn wasi() {
                 name = "hi"
 
                 [hooks]
-                location = "../wasi-component-loader/examples/target/wasm32-wasip1/debug/subgraph_request.wasm"
+                location = "../wasi-component-loader/examples/target/wasm32-wasip2/debug/subgraph_request.wasm"
                 "###,
             )
             .build()

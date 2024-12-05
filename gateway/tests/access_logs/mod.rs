@@ -804,7 +804,7 @@ where
 {
     let wasi_module_path = concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/../crates/wasi-component-loader/examples/target/wasm32-wasip1/debug/response_hooks.wasm"
+        "/../crates/wasi-component-loader/examples/target/wasm32-wasip2/debug/response_hooks.wasm"
     );
 
     let config = &formatdoc! {r#"

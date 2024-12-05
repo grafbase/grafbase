@@ -20,7 +20,8 @@ Additionally, the following tools are needed:
 - A C compiler, such as clang together with pkg-config (install based on your system, `cc` command is required)
 - If on Linux, cargo-component depends on OpenSSL (`libssl-dev` on Debian)
 - Rust compiler ([install docs](https://www.rust-lang.org/learn/get-started))
-- Cargo component ([install docs](https://github.com/bytecodealliance/cargo-component?tab=readme-ov-file#installation))
+- Cargo component on Rust 1.82 or older ([install docs](https://github.com/bytecodealliance/cargo-component?tab=readme-ov-file#installation))
+- Rust target wasm32-wasip2 for Rust 1.83 or later (`rustup target add wasm32-wasip2`)
 - A GraphQL client, such as [Altair](https://altair-gql.sirmuel.design/)
 
 For the advanced users using nix with flakes support:
@@ -37,14 +38,23 @@ First, start the subgraph in one terminal:
 docker compose up --force-recreate --build -d
 ```
 
-Next compile the WebAssembly hook functions into a Wasm component in another terminal:
+Next compile the WebAssembly hook functions into a Wasm component in another terminal.
+
+On Rust 1.83 or later:
+
+```bash
+cd hooks
+cargo build --target wasm32-wasip2
+```
+
+On Rust 1.82 or earlier:
 
 ```bash
 cd hooks
 cargo component build --release
 ```
 
-After a successful build, the Wasm component should be located at `target/wasm32-wasip1/release/demo_hooks.wasm`.
+After a successful build, the Wasm component should be located at `target/wasm32-wasip(1 or 2)/release/demo_hooks.wasm`.
 
 The `grafbase-gateway` is already started in the docker compose file, restart it to take the hook changes into account:
 
