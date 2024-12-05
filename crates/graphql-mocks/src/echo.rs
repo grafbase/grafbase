@@ -97,8 +97,8 @@ impl Query {
         input
     }
 
-    async fn input_object(&self, input: InputObj) -> Json<InputObj> {
-        Json(input)
+    async fn input_object(&self, input: InputObj) -> Option<Json<InputObj>> {
+        Some(Json(input))
     }
 
     async fn list_of_input_object(&self, input: InputObj) -> Json<InputObj> {

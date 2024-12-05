@@ -1,12 +1,12 @@
-use std::cell::{Cell, RefCell, RefMut};
+use std::cell::{Cell, Ref, RefCell, RefMut};
 
 use crate::{
     operation::{OperationPlanContext, SolvedOperationContext},
     prepare::PreparedOperation,
-    response::{FieldShapeRecord, GraphqlError, ResponseValueId, SubgraphResponseRefMut},
+    response::{ResponseKeys, ResponseValueId, SubgraphResponseRefMut},
 };
+use itertools::Itertools;
 use schema::Schema;
-use walker::Walk;
 
 pub(super) struct SeedContext<'ctx> {
     pub schema: &'ctx Schema,
@@ -40,28 +40,26 @@ impl SeedContext<'_> {
         self.path.borrow_mut()
     }
 
-    pub(super) fn propagate_null(&self) {
-        self.subgraph_response.borrow_mut().propagate_null(&self.path())
+    pub(super) fn display_path(&self) -> impl std::fmt::Display + '_ {
+        let keys = &self.operation.cached.solved.response_keys;
+        let path = self.path.borrow();
+        DisplayPath { keys, path }
     }
+}
 
-    pub(super) fn push_field_deserialization_error_if_not_bubbling_up(
-        &self,
-        field_shape: &FieldShapeRecord,
-        continue_bubbling_up: bool,
-        message: impl std::fmt::Display,
-    ) {
-        let is_propagating = self.bubbling_up_serde_error.get();
-        self.bubbling_up_serde_error.set(continue_bubbling_up);
-        if !is_propagating && field_shape.key.query_position.is_some() {
-            tracing::error!("Deserialization failure of subgraph response: {message}");
-            let path = self.path();
-            let mut resp = self.subgraph_response.borrow_mut();
-            resp.propagate_null(&path);
-            resp.push_error(
-                GraphqlError::invalid_subgraph_response()
-                    .with_path(path.as_ref())
-                    .with_location(field_shape.id.walk(self).location),
-            );
-        }
+struct DisplayPath<'a> {
+    keys: &'a ResponseKeys,
+    path: Ref<'a, Vec<ResponseValueId>>,
+}
+
+impl std::fmt::Display for DisplayPath<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!(
+            "{}",
+            self.path.iter().format_with(".", |value_id, f| match value_id {
+                ResponseValueId::Field { key, .. } => f(&format_args!("{}", &self.keys[*key])),
+                ResponseValueId::Index { index, .. } => f(&format_args!("{}", index)),
+            }),
+        ))
     }
 }

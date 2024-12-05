@@ -1,6 +1,6 @@
 use schema::{SchemaFieldId, StringId};
 
-use super::{PositionedResponseKey, ResponseInaccessibleValueId, ResponseListId, ResponseObjectId};
+use super::{PositionedResponseKey, ResponseInaccessibleValueId, ResponseListId, ResponseMapId, ResponseObjectId};
 
 #[derive(Default, Debug)]
 pub(crate) struct ResponseObject {
@@ -98,9 +98,6 @@ pub(crate) enum ResponseValue {
     StringId {
         id: StringId,
     },
-    Json {
-        value: Box<serde_json::Value>,
-    },
     List {
         id: ResponseListId,
     },
@@ -109,6 +106,14 @@ pub(crate) enum ResponseValue {
     },
     Inaccessible {
         id: ResponseInaccessibleValueId,
+    },
+    Unexpected,
+    // For Any, anything serde_json::Value would support
+    U64 {
+        value: u64,
+    },
+    Map {
+        id: ResponseMapId,
     },
 }
 
@@ -156,12 +161,6 @@ impl From<String> for ResponseValue {
         Self::String {
             value: value.into_boxed_str(),
         }
-    }
-}
-
-impl From<Box<serde_json::Value>> for ResponseValue {
-    fn from(value: Box<serde_json::Value>) -> Self {
-        Self::Json { value }
     }
 }
 

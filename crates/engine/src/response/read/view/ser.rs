@@ -93,7 +93,20 @@ impl serde::Serialize for ResponseValueView<'_> {
                 selection_set: self.selection_set,
             }
             .serialize(serializer),
-            ResponseValue::Json { value, .. } => value.serialize(serializer),
+            ResponseValue::Unexpected => Err(S::Error::custom("Unexpected value")),
+            ResponseValue::U64 { value } => value.serialize(serializer),
+            ResponseValue::Map { id } => {
+                serializer.collect_map(self.ctx.response.data_parts[*id].iter().map(|(key, value)| {
+                    (
+                        key.as_str(),
+                        ResponseValueView {
+                            ctx: self.ctx,
+                            value,
+                            selection_set: self.selection_set,
+                        },
+                    )
+                }))
+            }
         }
     }
 }

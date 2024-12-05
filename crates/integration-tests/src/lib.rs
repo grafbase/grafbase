@@ -20,7 +20,9 @@ fn setup_rustls() {
 
 #[ctor::ctor]
 fn setup_logging() {
-    let filter = tracing_subscriber::filter::EnvFilter::try_from_env("RUST_LOG").unwrap_or_default();
+    let filter = tracing_subscriber::filter::EnvFilter::builder()
+        .parse(std::env::var("RUST_LOG").unwrap_or("engine=debug".to_string()))
+        .unwrap();
     tracing_subscriber::fmt()
         .pretty()
         .with_env_filter(filter)

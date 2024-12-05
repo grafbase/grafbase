@@ -216,7 +216,7 @@ impl<'a> VariableCoercionContext<'a> {
         value: Value,
     ) -> Result<VariableInputValueRecord, InputValueError> {
         match (value, scalar.as_ref().ty) {
-            (value, ScalarType::JSON) => Ok(match value {
+            (value, ScalarType::Any) => Ok(match value {
                 Value::Null => VariableInputValueRecord::Null,
                 Value::Number(n) => {
                     if let Some(n) = n.as_f64() {

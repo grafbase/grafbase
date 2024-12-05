@@ -47,24 +47,7 @@ impl serde::Serialize for SerializableResponseObject<'_> {
                 break;
             };
             map.serialize_key(&self.ctx.keys[edge.response_key])?;
-            match value {
-                ResponseValue::Null | ResponseValue::Inaccessible { .. } => map.serialize_value(&())?,
-                ResponseValue::Boolean { value, .. } => map.serialize_value(value)?,
-                ResponseValue::Int { value, .. } => map.serialize_value(value)?,
-                ResponseValue::Float { value, .. } => map.serialize_value(value)?,
-                ResponseValue::String { value, .. } => map.serialize_value(&value)?,
-                ResponseValue::StringId { id, .. } => map.serialize_value(&self.ctx.schema[*id])?,
-                ResponseValue::BigInt { value, .. } => map.serialize_value(value)?,
-                &ResponseValue::List { id, .. } => map.serialize_value(&SerializableResponseList {
-                    ctx: self.ctx,
-                    value: &self.ctx.data[id],
-                })?,
-                &ResponseValue::Object { id, .. } => map.serialize_value(&SerializableResponseObject {
-                    ctx: self.ctx,
-                    object: &self.ctx.data[id],
-                })?,
-                ResponseValue::Json { value, .. } => map.serialize_value(value)?,
-            }
+            map.serialize_value(&SerializableResponseValue { ctx: self.ctx, value })?;
         }
         map.end()
     }
@@ -81,26 +64,49 @@ impl serde::Serialize for SerializableResponseList<'_> {
         S: serde::Serializer,
     {
         let mut seq = serializer.serialize_seq(Some(self.value.len()))?;
-        for node in self.value {
-            match node {
-                ResponseValue::Null | ResponseValue::Inaccessible { .. } => seq.serialize_element(&())?,
-                ResponseValue::Boolean { value, .. } => seq.serialize_element(value)?,
-                ResponseValue::Int { value, .. } => seq.serialize_element(value)?,
-                ResponseValue::Float { value, .. } => seq.serialize_element(value)?,
-                ResponseValue::String { value, .. } => seq.serialize_element(&value)?,
-                ResponseValue::StringId { id, .. } => seq.serialize_element(&self.ctx.schema[*id])?,
-                ResponseValue::BigInt { value, .. } => seq.serialize_element(value)?,
-                &ResponseValue::List { id, .. } => seq.serialize_element(&SerializableResponseList {
-                    ctx: self.ctx,
-                    value: &self.ctx.data[id],
-                })?,
-                &ResponseValue::Object { id, .. } => seq.serialize_element(&SerializableResponseObject {
-                    ctx: self.ctx,
-                    object: &self.ctx.data[id],
-                })?,
-                ResponseValue::Json { value, .. } => seq.serialize_element(value)?,
-            }
+        for value in self.value {
+            seq.serialize_element(&SerializableResponseValue { ctx: self.ctx, value })?;
         }
         seq.end()
+    }
+}
+
+struct SerializableResponseValue<'a> {
+    ctx: Context<'a>,
+    value: &'a ResponseValue,
+}
+
+impl serde::Serialize for SerializableResponseValue<'_> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        match self.value {
+            ResponseValue::Null | ResponseValue::Inaccessible { .. } | ResponseValue::Unexpected => {
+                serializer.serialize_none()
+            }
+            ResponseValue::Boolean { value, .. } => value.serialize(serializer),
+            ResponseValue::Int { value, .. } => value.serialize(serializer),
+            ResponseValue::Float { value, .. } => value.serialize(serializer),
+            ResponseValue::String { value, .. } => value.serialize(serializer),
+            ResponseValue::StringId { id, .. } => self.ctx.schema[*id].serialize(serializer),
+            ResponseValue::BigInt { value, .. } => value.serialize(serializer),
+            ResponseValue::List { id, .. } => SerializableResponseList {
+                ctx: self.ctx,
+                value: &self.ctx.data[*id],
+            }
+            .serialize(serializer),
+            ResponseValue::Object { id, .. } => SerializableResponseObject {
+                ctx: self.ctx,
+                object: &self.ctx.data[*id],
+            }
+            .serialize(serializer),
+            ResponseValue::U64 { value } => value.serialize(serializer),
+            ResponseValue::Map { id } => serializer.collect_map(
+                self.ctx.data[*id]
+                    .iter()
+                    .map(|(key, value)| (key.as_str(), SerializableResponseValue { ctx: self.ctx, value })),
+            ),
+        }
     }
 }
