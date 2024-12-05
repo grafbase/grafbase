@@ -1,12 +1,10 @@
 use walker::Walk;
 
-use crate::{FieldSet, FieldSetRecord, Schema, SchemaField, SchemaFieldId, StringId};
+use crate::{FieldSet, FieldSetRecord, Schema, SchemaField, SchemaFieldId};
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct FieldSetItemRecord {
-    /// If no alias is provided, it's set to field name
-    pub alias_id: StringId,
-    pub id: SchemaFieldId,
+    pub field_id: SchemaFieldId,
     pub subselection_record: FieldSetRecord,
 }
 
@@ -36,7 +34,7 @@ pub struct FieldSetItem<'a> {
 
 impl<'a> FieldSetItem<'a> {
     pub fn field(&self) -> SchemaField<'a> {
-        self.ref_.id.walk(self.schema)
+        self.ref_.field_id.walk(self.schema)
     }
     pub fn subselection(&self) -> FieldSet<'a> {
         self.ref_.subselection_record.walk(self.schema)

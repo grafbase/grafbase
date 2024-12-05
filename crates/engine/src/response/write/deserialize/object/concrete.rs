@@ -285,7 +285,6 @@ impl<'de> Visitor<'de> for ConcreteShapeFieldsSeed<'_, '_> {
             for key in self.typename_response_keys {
                 response_fields.push(ResponseObjectField {
                     key: *key,
-                    required_field_id: None,
                     value: name_id.into(),
                 });
             }
@@ -427,7 +426,6 @@ impl<'ctx> ConcreteShapeFieldsSeed<'ctx, '_> {
                     } else {
                         response_fields.push(ResponseObjectField {
                             key: field_shape.key,
-                            required_field_id: field_shape.required_field_id,
                             value: ResponseValue::Null,
                         });
                     }
@@ -482,7 +480,6 @@ impl<'ctx> ConcreteShapeFieldsSeed<'ctx, '_> {
                     } else {
                         response_fields.push(ResponseObjectField {
                             key: field_shape.key,
-                            required_field_id: field_shape.required_field_id,
                             value: ResponseValue::Null,
                         });
                     }
@@ -585,16 +582,11 @@ impl<'ctx> ConcreteShapeFieldsSeed<'ctx, '_> {
         {
             response_fields.push(ResponseObjectField {
                 key: other_field.key,
-                required_field_id: other_field.required_field_id,
                 value: value.clone(),
             });
         }
 
-        response_fields.push(ResponseObjectField {
-            key: field.key,
-            required_field_id: field.required_field_id,
-            value,
-        });
+        response_fields.push(ResponseObjectField { key: field.key, value });
 
         Ok(())
     }

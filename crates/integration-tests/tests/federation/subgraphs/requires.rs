@@ -234,3 +234,192 @@ fn requires_with_fragments() {
         "#);
     })
 }
+
+#[test]
+fn nested_requires() {
+    runtime().block_on(async move {
+        let gateway = Engine::builder()
+            .with_subgraph(
+                DynamicSchema::builder(
+                    r#"
+                type Query {
+                    users: [User]!
+                }
+
+                type Pet {
+                    name: String!
+                    friends: [Pet]!
+                    owner: User
+                }
+
+                type User @key(fields: "id") {
+                    id: ID!
+                    pets: [Pet]!
+                }
+                "#,
+                )
+                .with_resolver(
+                    "Query",
+                    "users",
+                    serde_json::json!([
+                        {
+                            "id": "1",
+                            "pets": [
+                                {"name": "Fido", "friends": [{"name": "Spot"}], "owner": {"id": "1"}},
+                                {"name": "Spot", "friends": [{"name": "Fido"}], "owner": {"id": "2"}}
+                            ]
+                        },
+                        {
+                            "id": "2",
+                            "pets": [
+                                {"name": "Rex", "friends": [], "owner": {"id": "2"}}
+                            ]
+                        }
+                    ]),
+                )
+                .into_subgraph("x"),
+            )
+            .with_subgraph(
+                DynamicSchema::builder(
+                    r#"
+                type User @key(fields: "id") {
+                    id: ID!
+                    pets: [Pet]! @external
+                    repr: String @requires(fields: "pets { name friends { name } owner { id } }")
+                }
+
+                type Pet {
+                    name: String! @external
+                    friends: [Pet]! @external
+                    owner: User @external
+                }
+
+                "#,
+                )
+                .with_entity_resolver("User", |mut ctx: EntityResolverContext<'_>| {
+                    ctx.representation.remove("__typename");
+                    Some(serde_json::json!({"__typename": "User", "repr": serde_json::to_string(&ctx.representation).unwrap().replace('"', "'")}))
+                })
+                .into_subgraph("y"),
+            )
+            .build()
+            .await;
+
+        let response = gateway.post("{ users { repr } }").await;
+        insta::assert_json_snapshot!(response, @r#"
+        {
+          "data": {
+            "users": [
+              {
+                "repr": "{'pets':[{'name':'Fido','friends':[{'name':'Spot'}],'owner':{'id':'1'}},{'name':'Spot','friends':[{'name':'Fido'}],'owner':{'id':'2'}}],'id':'1'}"
+              },
+              {
+                "repr": "{'pets':[{'name':'Rex','friends':[],'owner':{'id':'2'}}],'id':'2'}"
+              }
+            ]
+          }
+        }
+        "#);
+    })
+}
+
+#[test]
+fn nested_requires_with_intermediate_plan() {
+    runtime().block_on(async move {
+        let gateway = Engine::builder()
+            .with_subgraph(
+                DynamicSchema::builder(
+                    r#"
+                type Query {
+                    users: [User]!
+                }
+
+                type User @key(fields: "id") {
+                    id: ID!
+                    pet: Pet!
+                }
+
+                type Pet @key(fields: "id") {
+                    id: ID!
+                    name: String!
+                }
+
+                "#,
+                )
+                .with_resolver(
+                    "Query",
+                    "users",
+                    serde_json::json!([
+                        {
+                            "id": "1",
+                            "pet": {"id": "11", "name": "Fido"}
+                        },
+                        {
+                            "id": "2",
+                            "pet": {"id": "22", "name": "Rex"}
+                        }
+                    ]),
+                )
+                .into_subgraph("x"),
+            )
+            .with_subgraph(
+                DynamicSchema::builder(
+                    r#"
+                scalar Any
+
+                type User @key(fields: "id") {
+                    id: ID!
+                    pet: Pet! @external
+                    repr: Any @requires(fields: "pet { kind }")
+                }
+
+                type Pet @key(fields: "id") {
+                    id: ID!
+                    kind: String!
+                }
+                "#,
+                )
+                .with_entity_resolver("User", |mut ctx: EntityResolverContext<'_>| {
+                    ctx.representation.remove("__typename");
+                    Some(serde_json::json!({"__typename": "User", "repr": ctx.representation}))
+                })
+                .with_entity_resolver("Pet", |ctx: EntityResolverContext<'_>| {
+                    let kind = match ctx.representation["id"].as_str().unwrap() {
+                        "11" => "Rex doggy",
+                        "22" => "Fido doggy",
+                        _ => unreachable!(),
+                    };
+                    Some(serde_json::json!({"__typename": "Pet", "kind": kind}))
+                })
+                .into_subgraph("y"),
+            )
+            .build()
+            .await;
+
+        let response = gateway.post("{ users { repr } }").await;
+        insta::assert_json_snapshot!(response, @r#"
+        {
+          "data": {
+            "users": [
+              {
+                "repr": {
+                  "pet": {
+                    "kind": "Rex doggy"
+                  },
+                  "id": "1"
+                }
+              },
+              {
+                "repr": {
+                  "pet": {
+                    "kind": "Fido doggy"
+                  },
+                  "id": "2"
+                }
+              }
+            ]
+          }
+        }
+        "#);
+    })
+}

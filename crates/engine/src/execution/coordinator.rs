@@ -544,9 +544,11 @@ impl<'ctx, R: Runtime> OperationExecution<'ctx, R> {
             .response
             .new_subgraph_response(plan.shape_id(), Arc::clone(&root_response_object_set));
 
-        let root_response_objects =
-            self.response
-                .read(self.ctx.schema(), Arc::clone(&root_response_object_set), &plan.requires);
+        let root_response_objects = self.response.read(
+            self.ctx.schema(),
+            Arc::clone(&root_response_object_set),
+            plan.required_fields(),
+        );
 
         let fut = plan
             .as_ref()

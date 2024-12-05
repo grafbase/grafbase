@@ -261,7 +261,7 @@ impl quote::ToTokens for WalkerFieldMethod<'_> {
                 },
                 AccessKind::RefWalker => quote! {
                     #ty<'a> {
-                        self.as_ref().#field.as_ref().walk(self.#ctx)
+                        self.as_ref().#field.walk(self.#ctx)
                     }
                 },
             },

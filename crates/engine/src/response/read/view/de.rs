@@ -1,5 +1,8 @@
-use crate::response::{ResponseObject, ResponseValue};
-use schema::{EntityDefinition, FieldSetItemRecord, InputValueSerdeError};
+use crate::{
+    operation::RequiredFieldSetItem,
+    response::{ResponseObject, ResponseValue},
+};
+use schema::{EntityDefinition, InputValueSerdeError};
 use serde::{
     de::{
         value::{MapDeserializer, SeqDeserializer},
@@ -8,7 +11,6 @@ use serde::{
     forward_to_deserialize_any,
 };
 use std::iter::Iterator;
-use walker::Walk;
 
 use super::{ResponseObjectView, ResponseValueView, ViewContext};
 
@@ -49,14 +51,17 @@ impl<'de> serde::Deserializer<'de> for ResponseObjectView<'de> {
     }
 }
 
-struct ResponseObjectViewMapAcces<'de> {
+struct ResponseObjectViewMapAcces<'de, I> {
     ctx: ViewContext<'de>,
     response_object: &'de ResponseObject,
-    selection: Option<(&'de ResponseValue, &'de FieldSetItemRecord)>,
-    selection_set: std::slice::Iter<'de, FieldSetItemRecord>,
+    selection: Option<(&'de ResponseValue, RequiredFieldSetItem<'de>)>,
+    selection_set: I,
 }
 
-impl<'de> MapAccess<'de> for ResponseObjectViewMapAcces<'de> {
+impl<'de, I> MapAccess<'de> for ResponseObjectViewMapAcces<'de, I>
+where
+    I: Iterator<Item = RequiredFieldSetItem<'de>>,
+{
     type Error = InputValueSerdeError;
 
     fn next_key_seed<K>(&mut self, seed: K) -> Result<Option<K::Value>, Self::Error>
@@ -64,14 +69,15 @@ impl<'de> MapAccess<'de> for ResponseObjectViewMapAcces<'de> {
         K: serde::de::DeserializeSeed<'de>,
     {
         for selection in self.selection_set.by_ref() {
-            let value = match self.response_object.find_required_field(selection.id) {
+            let field = selection.data_field();
+            let key = field.definition().name();
+            let value = match self.response_object.find_by_response_key(field.key.response_key) {
                 Some(value) => value,
                 None => {
                     // If this field doesn't match the actual response object, meaning this field
                     // was in a fragment that doesn't apply to this object, we can safely skip it.
-                    let field_definition = selection.id.walk(self.ctx.schema).definition();
                     if let Some(definition_id) = self.response_object.definition_id {
-                        match field_definition.parent_entity() {
+                        match field.definition().parent_entity() {
                             EntityDefinition::Interface(inf) => {
                                 if inf.possible_type_ids.binary_search(&definition_id).is_err() {
                                     continue;
@@ -86,14 +92,12 @@ impl<'de> MapAccess<'de> for ResponseObjectViewMapAcces<'de> {
                     }
 
                     return Err(InputValueSerdeError::Message(format!(
-                        "Could not retrieve field {}.{}",
-                        field_definition.parent_entity().name(),
-                        field_definition.name()
+                        "Could not retrieve field {}.{key}",
+                        field.definition().parent_entity().name(),
                     )));
                 }
             };
             self.selection = Some((value, selection));
-            let key = self.ctx.schema[selection.alias_id].as_str();
             return seed.deserialize(key.into_deserializer()).map(Some);
         }
 
@@ -113,7 +117,7 @@ impl<'de> MapAccess<'de> for ResponseObjectViewMapAcces<'de> {
         let value = ResponseValueView {
             ctx: self.ctx,
             value,
-            selection_set: &selection.subselection_record,
+            selection_set: selection.subselection(),
         };
         seed.deserialize(value.into_deserializer())
     }
@@ -146,7 +150,7 @@ impl<'de> serde::Deserializer<'de> for ResponseValueView<'de> {
             ResponseValue::BigInt { value, .. } => visitor.visit_i64(*value),
             ResponseValue::Float { value, .. } => visitor.visit_f64(*value),
             ResponseValue::String { value, .. } => visitor.visit_borrowed_str(value),
-            ResponseValue::StringId { id, .. } => visitor.visit_borrowed_str(&self.ctx.schema[*id]),
+            ResponseValue::StringId { id, .. } => visitor.visit_borrowed_str(&self.ctx.response.schema[*id]),
             &ResponseValue::List { id, .. } => {
                 let values = &self.ctx.response.data_parts[id];
 

@@ -138,8 +138,7 @@ impl Converter<'_> {
             .or_insert_with(|| SchemaFieldId::from(n));
 
         Ok(Some(FieldSetItemRecord {
-            alias_id: self.graph[field_definition_id].name_id,
-            id,
+            field_id: id,
             subselection_record: self.convert_set(subselection)?,
         }))
     }

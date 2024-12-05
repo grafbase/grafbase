@@ -9,9 +9,9 @@ use crate::operation::solve::model::{
         ResponseObjectSetDefinitionId, SelectionSet, SelectionSetRecord,
     },
     prelude::*,
-    DataFieldRefId, FieldShapeRefId,
+    FieldShapeRefId, RequiredFieldSet, RequiredFieldSetRecord,
 };
-use schema::{FieldDefinition, FieldDefinitionId, SchemaField, SchemaFieldId};
+use schema::{FieldDefinition, FieldDefinitionId};
 use walker::{Iter, Walk};
 
 /// In opposition to a __typename field this field does retrieve data from a subgraph
@@ -26,9 +26,9 @@ use walker::{Iter, Walk};
 ///   location: Location!
 ///   definition: FieldDefinition!
 ///   arguments: [FieldArgument!]!
-///   required_fields: [DataFieldRef!]!
+///   required_fields: RequiredFieldSet!
 ///   "Requirement of @authorized, etc."
-///   required_fields_by_supergraph: [DataFieldRef!]! @field(record_field_name: "required_field_ids_by_supergraph")
+///   required_fields_by_supergraph: RequiredFieldSet! @field(record_field_name: "required_fields_record_by_supergraph")
 ///   "All field shape ids generated for this field"
 ///   shape_ids: [FieldShapeRefId!]!
 ///   parent_field_output: ResponseObjectSetDefinition
@@ -36,7 +36,6 @@ use walker::{Iter, Walk};
 ///   selection_set: SelectionSet!
 ///   "Whether __typename should be requested from the subgraph for this selection set"
 ///   selection_set_requires_typename: Boolean!
-///   matching_requirement: SchemaField
 ///   query_partition: QueryPartition!
 /// }
 /// ```
@@ -47,9 +46,9 @@ pub(crate) struct DataFieldRecord {
     pub location: Location,
     pub definition_id: FieldDefinitionId,
     pub argument_ids: IdRange<FieldArgumentId>,
-    pub required_field_ids: IdRange<DataFieldRefId>,
+    pub required_fields_record: RequiredFieldSetRecord,
     /// Requirement of @authorized, etc.
-    pub required_field_ids_by_supergraph: IdRange<DataFieldRefId>,
+    pub required_fields_record_by_supergraph: RequiredFieldSetRecord,
     /// All field shape ids generated for this field
     pub shape_ids: IdRange<FieldShapeRefId>,
     pub parent_field_output_id: Option<ResponseObjectSetDefinitionId>,
@@ -57,7 +56,6 @@ pub(crate) struct DataFieldRecord {
     pub selection_set_record: SelectionSetRecord,
     /// Whether __typename should be requested from the subgraph for this selection set
     pub selection_set_requires_typename: bool,
-    pub matching_requirement_id: Option<SchemaFieldId>,
     pub query_partition_id: QueryPartitionId,
 }
 
@@ -91,12 +89,12 @@ impl<'a> DataField<'a> {
     pub(crate) fn arguments(&self) -> impl Iter<Item = FieldArgument<'a>> + 'a {
         self.as_ref().argument_ids.walk(self.ctx)
     }
-    pub(crate) fn required_fields(&self) -> impl Iter<Item = DataField<'a>> + 'a {
-        self.as_ref().required_field_ids.walk(self.ctx)
+    pub(crate) fn required_fields(&self) -> RequiredFieldSet<'a> {
+        self.as_ref().required_fields_record.walk(self.ctx)
     }
     /// Requirement of @authorized, etc.
-    pub(crate) fn required_fields_by_supergraph(&self) -> impl Iter<Item = DataField<'a>> + 'a {
-        self.as_ref().required_field_ids_by_supergraph.walk(self.ctx)
+    pub(crate) fn required_fields_by_supergraph(&self) -> RequiredFieldSet<'a> {
+        self.as_ref().required_fields_record_by_supergraph.walk(self.ctx)
     }
     pub(crate) fn parent_field_output(&self) -> Option<ResponseObjectSetDefinition<'a>> {
         self.parent_field_output_id.walk(self.ctx)
@@ -106,9 +104,6 @@ impl<'a> DataField<'a> {
     }
     pub(crate) fn selection_set(&self) -> SelectionSet<'a> {
         self.selection_set_record.walk(self.ctx)
-    }
-    pub(crate) fn matching_requirement(&self) -> Option<SchemaField<'a>> {
-        self.matching_requirement_id.walk(self.ctx)
     }
     pub(crate) fn query_partition(&self) -> QueryPartition<'a> {
         self.query_partition_id.walk(self.ctx)

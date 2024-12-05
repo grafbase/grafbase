@@ -240,13 +240,10 @@ impl<'ctx> ShapesBuilder<'ctx> {
             Definition::InputObject(_) => unreachable!("Cannot be an output"),
         };
 
-        let required_field_id = group.iter().find_map(|field| field.matching_requirement_id);
-
         FieldShapeRecord {
             expected_key: first.subgraph_key,
             key: first.key,
             id: first.id,
-            required_field_id,
             shape,
             wrapping: ty.wrapping,
         }

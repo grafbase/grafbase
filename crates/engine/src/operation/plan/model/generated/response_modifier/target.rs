@@ -4,6 +4,7 @@
 //! Generated with: `cargo run -p engine-codegen`
 //! Source file: <engine-codegen dir>/domain/operation_plan.graphql
 use crate::operation::plan::model::prelude::*;
+use crate::operation::solve::{DataField, DataFieldId};
 use schema::{CompositeType, CompositeTypeId};
 use walker::Walk;
 
@@ -13,14 +14,14 @@ use walker::Walk;
 /// type ResponseModifierTarget @meta(module: "response_modifier/target") {
 ///   set_id: ResponseObjectSetDefinitionId!
 ///   ty: CompositeType!
-///   key: ResponseKey!
+///   field: DataField!
 /// }
 /// ```
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub(crate) struct ResponseModifierTargetRecord {
     pub set_id: ResponseObjectSetDefinitionId,
     pub ty_id: CompositeTypeId,
-    pub key: ResponseKey,
+    pub field_id: DataFieldId,
 }
 
 #[derive(Clone, Copy)]
@@ -44,6 +45,9 @@ impl<'a> ResponseModifierTarget<'a> {
     }
     pub(crate) fn ty(&self) -> CompositeType<'a> {
         self.ty_id.walk(self.ctx)
+    }
+    pub(crate) fn field(&self) -> DataField<'a> {
+        self.field_id.walk(self.ctx)
     }
 }
 
@@ -70,7 +74,7 @@ impl std::fmt::Debug for ResponseModifierTarget<'_> {
         f.debug_struct("ResponseModifierTarget")
             .field("set_id", &self.set_id)
             .field("ty", &self.ty())
-            .field("key", &self.key)
+            .field("field", &self.field())
             .finish()
     }
 }

@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 
-use schema::{EntityDefinitionId, FieldSetRecord, ResolverDefinitionId, SchemaFieldId, SubgraphId};
+use schema::{EntityDefinitionId, FieldSetRecord, ResolverDefinitionId, SubgraphId};
 use walker::Walk as _;
 
 use crate::{dot_graph::Attrs, FieldFlags, Operation};
@@ -68,7 +68,6 @@ impl<FieldId: Copy> Node<'_, FieldId> {
 #[derive(Debug, Clone)]
 pub(crate) struct QueryField<FieldId> {
     pub id: FieldId,
-    pub matching_requirement_id: Option<SchemaFieldId>,
     pub flags: FieldFlags,
 }
 

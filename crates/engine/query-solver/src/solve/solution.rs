@@ -52,7 +52,6 @@ impl<'ctx, Op: Operation> Solution<'ctx, Op> {
                     if let Node::QueryField(field) = &operation_graph.graph[edge.target()] {
                         let typename_field_ix = graph.add_node(SolutionNode::Field {
                             id: field.id,
-                            matching_requirement_id: field.matching_requirement_id,
                             flags: field.flags,
                         });
                         graph.add_edge(root_node_ix, typename_field_ix, SolutionEdge::Field);
@@ -100,7 +99,6 @@ impl<'ctx, Op: Operation> Solution<'ctx, Op> {
 
                     let field_solution_node_ix = graph.add_node(SolutionNode::Field {
                         id: field.id,
-                        matching_requirement_id: field.matching_requirement_id,
                         flags: field.flags,
                     });
                     graph.add_edge(parent_solution_node_ix, field_solution_node_ix, SolutionEdge::Field);
@@ -118,7 +116,6 @@ impl<'ctx, Op: Operation> Solution<'ctx, Op> {
                                 if let Node::QueryField(field) = &operation_graph[edge.target()] {
                                     let typename_field_ix = graph.add_node(SolutionNode::Field {
                                         id: field.id,
-                                        matching_requirement_id: field.matching_requirement_id,
                                         flags: field.flags,
                                     });
                                     graph.add_edge(field_solution_node_ix, typename_field_ix, SolutionEdge::Field);
@@ -137,7 +134,6 @@ impl<'ctx, Op: Operation> Solution<'ctx, Op> {
                 Node::QueryField(field) if field.is_typename() => {
                     let ix = graph.add_node(SolutionNode::Field {
                         id: field.id,
-                        matching_requirement_id: field.matching_requirement_id,
                         flags: field.flags,
                     });
                     graph.add_edge(parent_solution_node_ix, ix, SolutionEdge::Field);
