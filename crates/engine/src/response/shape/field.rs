@@ -5,14 +5,14 @@ use walker::Walk;
 
 use crate::{
     operation::{DataFieldId, OperationPlanContext},
-    response::{GraphqlError, PositionedResponseKey, SafeResponseKey},
+    response::{GraphqlError, PositionedResponseKey, ResponseKey},
 };
 
 use super::{ConcreteShapeId, PolymorphicShapeId};
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub(crate) struct FieldShapeRecord {
-    pub expected_key: SafeResponseKey,
+    pub expected_key: ResponseKey,
     pub key: PositionedResponseKey,
     pub id: DataFieldId,
     pub required_field_id: Option<SchemaFieldId>,

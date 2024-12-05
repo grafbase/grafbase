@@ -3,7 +3,7 @@ use schema::{CompositeTypeId, FieldDefinitionId, InputValueDefinitionId};
 
 use crate::{
     operation::{Location, QueryInputValueId},
-    response::SafeResponseKey,
+    response::ResponseKey,
 };
 
 use super::{BoundFieldArgumentId, BoundFieldId, BoundSelectionSetId};
@@ -39,15 +39,15 @@ pub(crate) enum BoundField {
 pub(crate) struct BoundTypeNameField {
     pub type_condition: CompositeTypeId,
     pub query_position: QueryPosition,
-    pub key: SafeResponseKey,
+    pub key: ResponseKey,
     pub location: Location,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub(crate) struct BoundQueryField {
     pub query_position: QueryPosition,
-    pub key: SafeResponseKey,
-    pub subgraph_key: SafeResponseKey,
+    pub key: ResponseKey,
+    pub subgraph_key: ResponseKey,
     pub location: Location,
     pub definition_id: FieldDefinitionId,
     pub argument_ids: IdRange<BoundFieldArgumentId>,
@@ -58,7 +58,7 @@ pub(crate) struct BoundQueryField {
 pub(crate) struct BoundExtraField {
     // Extra fields are added as soon as they might be necessary, and they're assigned a key if
     // they are.
-    pub key: Option<SafeResponseKey>,
+    pub key: Option<ResponseKey>,
     pub definition_id: FieldDefinitionId,
     pub argument_ids: IdRange<BoundFieldArgumentId>,
     pub petitioner_location: Location,
@@ -72,7 +72,7 @@ impl BoundField {
         }
     }
 
-    pub(crate) fn response_key(&self) -> Option<SafeResponseKey> {
+    pub(crate) fn response_key(&self) -> Option<ResponseKey> {
         match self {
             BoundField::TypeName(field) => Some(field.key),
             BoundField::Query(field) => Some(field.key),

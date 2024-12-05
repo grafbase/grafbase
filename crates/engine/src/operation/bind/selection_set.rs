@@ -10,7 +10,7 @@ use crate::operation::bind::coercion::coerce_query_value;
 use crate::operation::{QueryModifierRule, SkipIncludeDirective};
 use crate::{
     operation::{BoundFieldId, BoundSelectionSet, BoundSelectionSetId, QueryPosition},
-    response::SafeResponseKey,
+    response::ResponseKey,
 };
 
 impl<'p> Binder<'_, 'p> {
@@ -31,7 +31,7 @@ pub(super) struct SelectionSetBinder<'schema, 'parsed, 'binder> {
     data_fields: BTreeMap<DataFieldUniqueKey, DataField<'parsed>>,
     #[allow(clippy::type_complexity)]
     typename_fields_by_key_then_by_type_condition:
-        BTreeMap<SafeResponseKey, BTreeMap<CompositeTypeId, TypenameField<'parsed>>>,
+        BTreeMap<ResponseKey, BTreeMap<CompositeTypeId, TypenameField<'parsed>>>,
 }
 
 impl<'s, 'p> std::ops::Deref for SelectionSetBinder<'s, 'p, '_> {
@@ -50,7 +50,7 @@ impl std::ops::DerefMut for SelectionSetBinder<'_, '_, '_> {
 
 #[derive(Clone, Eq, PartialEq, PartialOrd, Ord, Hash)]
 struct DataFieldUniqueKey {
-    response_key: SafeResponseKey,
+    response_key: ResponseKey,
     definition_id: FieldDefinitionId,
     rules: Vec<QueryModifierRule>,
 }
