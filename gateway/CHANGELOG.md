@@ -1,5 +1,29 @@
 # Changelog
 
+## [0.22.0] - 2024-12-05
+
+[CHANGELOG](changelog/0.22.0.md)
+
+## [0.21.0] - 2024-11-26
+
+[CHANGELOG](changelog/0.21.0.md)
+
+## [0.20.1] - 2024-11-21
+
+[CHANGELOG](changelog/0.20.1.md)
+
+## [0.20.0] - 2024-11-21
+
+[CHANGELOG](changelog/0.20.0.md)
+
+## [0.19.0] - 2024-11-12
+
+[CHANGELOG](changelog/0.19.0.md)
+
+## [0.18.0] - 2024-11-05
+
+[CHANGELOG](changelog/0.18.0.md)
+
 ## [0.17.0] - 2024-10-30
 
 [CHANGELOG](changelog/0.17.0.md)
