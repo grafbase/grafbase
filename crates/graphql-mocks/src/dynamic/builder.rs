@@ -2,30 +2,43 @@
 
 use std::collections::HashMap;
 
-use async_graphql::dynamic::{FieldValue, ResolverContext};
+use async_graphql::{
+    dynamic::{FieldValue, ResolverContext},
+    ServerError,
+};
 use cynic_parser::{common::WrappingType, type_system as parser};
 use serde::Deserialize;
 
-use super::{resolvers::Resolver, DynamicSchema, DynamicSubgraph};
+use crate::dynamic::entity_resolvers::EntityResolverContext;
+
+use super::{entity_resolvers::EntityResolver, resolvers::Resolver, DynamicSchema, DynamicSubgraph};
 
 pub struct DynamicSchemaBuilder {
     sdl: String,
     field_resolvers: ResolverMap,
+    entity_resolvers: EntityResolverMap,
 }
 
 type ResolverMap = HashMap<(String, String), Box<dyn Resolver>>;
+type EntityResolverMap = HashMap<String, Box<dyn EntityResolver>>;
 
 impl DynamicSchemaBuilder {
     pub fn new(sdl: &str) -> Self {
         DynamicSchemaBuilder {
             sdl: sdl.into(),
             field_resolvers: Default::default(),
+            entity_resolvers: Default::default(),
         }
     }
 
     pub fn with_resolver(mut self, ty: &str, field: &str, resolver: impl Resolver + 'static) -> Self {
         self.field_resolvers
             .insert((ty.into(), field.into()), Box::new(resolver));
+        self
+    }
+
+    pub fn with_entity_resolver(mut self, entity: &str, resolver: impl EntityResolver + 'static) -> Self {
+        self.entity_resolvers.insert(entity.into(), Box::new(resolver));
         self
     }
 
@@ -40,6 +53,7 @@ impl DynamicSchemaBuilder {
         let Self {
             sdl,
             mut field_resolvers,
+            entity_resolvers,
         } = self;
 
         let schema = cynic_parser::parse_type_system_document(&sdl)
@@ -58,14 +72,15 @@ impl DynamicSchemaBuilder {
             builder = builder.register(entity_type(&entities));
         }
 
-        let mut found_query_type = false;
+        let mut entity_resolvers = Some(entity_resolvers);
         for definition in schema.definitions() {
             match definition {
                 parser::Definition::Type(def) => {
                     let mut ty = convert_type(def, &mut field_resolvers);
                     if def.name() == query_type {
-                        found_query_type = true;
-                        ty = add_federation_fields(ty, &entities, &mut field_resolvers);
+                        if let Some(entity_resolvers) = entity_resolvers.take() {
+                            ty = add_federation_fields(ty, &entities, entity_resolvers);
+                        }
                     }
                     builder = builder.register(ty);
                 }
@@ -76,11 +91,12 @@ impl DynamicSchemaBuilder {
             }
         }
 
-        if !found_query_type && !entities.is_empty() {
+        if entity_resolvers.is_some() && !entities.is_empty() {
+            let entity_resolvers = entity_resolvers.unwrap();
             builder = builder.register(add_federation_fields(
                 async_graphql::dynamic::Object::new("Query").into(),
                 &entities,
-                &mut field_resolvers,
+                entity_resolvers,
             ));
         }
 
@@ -364,7 +380,7 @@ fn any_type() -> async_graphql::dynamic::Type {
 fn add_federation_fields(
     query_ty: async_graphql::dynamic::Type,
     entities: &[&str],
-    resolvers: &mut ResolverMap,
+    entity_resolvers: EntityResolverMap,
 ) -> async_graphql::dynamic::Type {
     use async_graphql::dynamic::*;
 
@@ -376,19 +392,40 @@ fn add_federation_fields(
         FieldFuture::from_value(Some(async_graphql::Value::Object([].into())))
     }));
 
+    for entity in entity_resolvers.keys() {
+        if !entities.contains(&entity.as_str()) {
+            panic!("Tried to add an resolver for {entity}, but this entity doesnt exist");
+        }
+    }
+
     if !entities.is_empty() {
-        let resolver = std::sync::Mutex::new(
-            resolvers
-                .remove(&("Query".to_string(), "_entities".to_string()))
-                .unwrap_or_else(|| Box::new(default_field_resolver("_entitites"))),
-        );
+        let resolvers = std::sync::Mutex::new(entity_resolvers);
 
         let entity_field = Field::new("_entities", TypeRef::named_list_nn("_Entity"), move |context| {
-            let mut resolver = resolver.lock().expect("mutex to be unpoisoned");
-            FieldFuture::Value(resolver.resolve(context).map(|value| {
-                let value = async_graphql::Value::deserialize(value).unwrap();
-                transform_into_field_value(value)
-            }))
+            let mut resolvers = resolvers.lock().expect("mutex to be unpoisoned");
+            let representations = context
+                .args
+                .get("representations")
+                .expect("_entities needs representations");
+
+            let reprs = representations
+                .deserialize::<Vec<serde_json::Value>>()
+                .expect("representations to be a list of objects");
+
+            let entities = reprs.into_iter().map(|repr| {
+                let context = EntityResolverContext::new(&context, repr);
+
+                let Some(resolver) = resolvers.get_mut(&context.typename) else {
+                    context.add_error(ServerError::new(format!("{} has no resolver", context.typename), None));
+                    return FieldValue::value(async_graphql::Value::Null);
+                };
+
+                let json_value = resolver.resolve(context).unwrap_or_default();
+
+                transform_into_field_value(async_graphql::Value::deserialize(json_value).unwrap())
+            });
+
+            FieldFuture::Value(Some(FieldValue::list(entities)))
         })
         .argument(InputValue::new("representations", TypeRef::named_nn_list_nn("_Any")));
 

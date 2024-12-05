@@ -1,9 +1,10 @@
 use engine::Engine;
-use graphql_mocks::dynamic::{DynamicSchema, ResolverContext};
+use graphql_mocks::dynamic::{DynamicSchema, EntityResolverContext};
 use integration_tests::{
     federation::{EngineExt, GraphqlResponse},
     runtime,
 };
+use serde_json::json;
 
 #[test]
 fn simple_requires() {
@@ -179,22 +180,11 @@ fn requires_with_fragments() {
                 }
                 "#,
                 )
-                .with_resolver("Query", "_entities", |ctx: ResolverContext<'_>| {
-                    let serde_json::Value::Array(mut repr) = ctx
-                        .args
-                        .get("representations")
-                        .unwrap()
-                        .deserialize::<serde_json::Value>()
-                        .unwrap()
-                    else {
-                        unreachable!()
-                    };
-                    let mut repr = repr.pop().unwrap();
-                    repr.as_object_mut().unwrap().remove("__typename");
-                    Some(serde_json::json!([{
-                        "__typename": "User",
-                        "repr": repr
-                    }]))
+                .with_entity_resolver("User", |ctx: EntityResolverContext<'_>| {
+                    let mut repr = ctx.representation.clone();
+                    repr.remove("__typename");
+
+                    Some(json!({ "__typename": "User", "repr": repr }))
                 })
                 .into_subgraph("y"),
             )

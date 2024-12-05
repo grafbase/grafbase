@@ -1,3 +1,4 @@
+#![allow(clippy::panic)]
 //! A mock GraphQL server for testing the GraphQL connector
 
 use grafbase_workspace_hack as _;

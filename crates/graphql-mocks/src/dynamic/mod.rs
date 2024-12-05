@@ -1,7 +1,13 @@
 mod builder;
+mod entity_resolvers;
 mod resolvers;
 
-pub use self::builder::DynamicSchemaBuilder;
+pub use self::{
+    builder::DynamicSchemaBuilder,
+    entity_resolvers::{EntityResolver, EntityResolverContext},
+    resolvers::Resolver,
+};
+
 pub use async_graphql::{dynamic::ResolverContext, ServerError};
 
 use crate::MockGraphQlServer;
