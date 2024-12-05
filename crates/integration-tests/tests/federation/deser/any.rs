@@ -87,6 +87,41 @@ fn expected_required_any_got_null() {
     insta::assert_json_snapshot!(response, @r#"
     {
       "data": {
+        "user": null,
+        "dummy": "yes"
+      },
+      "errors": [
+        {
+          "message": "Invalid response from subgraph",
+          "locations": [
+            {
+              "line": 4,
+              "column": 9
+            }
+          ],
+          "path": [
+            "user",
+            "something"
+          ],
+          "extensions": {
+            "code": "SUBGRAPH_INVALID_RESPONSE_ERROR"
+          }
+        }
+      ]
+    }
+    "#);
+}
+
+#[test]
+fn expected_nullable_any_got_null() {
+    let response = run(
+        NULLABLE_ANY_SCHEMA,
+        QUERY,
+        json!({"data": {"user": {"something": null, "valid": "yes"}, "dummy": "yes"}}),
+    );
+    insta::assert_json_snapshot!(response, @r#"
+    {
+      "data": {
         "user": {
           "something": null,
           "valid": "yes"

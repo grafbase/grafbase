@@ -301,7 +301,7 @@ fn echo_subgraph_introspection() {
       header(name: String!): String
       headers: [Header!]!
       id(input: ID!): ID!
-      inputObject(input: InputObj!): JSON!
+      inputObject(input: InputObj!): JSON
       int(input: Int!): Int!
       listOfInputObject(input: InputObj!): JSON!
       listOfListOfStrings(input: [[String!]!]!): [[String!]!]!
@@ -468,7 +468,7 @@ fn can_introsect_when_multiple_subgraphs() {
       header(name: String!): String
       headers: [Header!]!
       id(input: ID!): ID!
-      inputObject(input: InputObj!): JSON!
+      inputObject(input: InputObj!): JSON
       int(input: Int!): Int!
       listOfInputObject(input: InputObj!): JSON!
       listOfListOfStrings(input: [[String!]!]!): [[String!]!]!

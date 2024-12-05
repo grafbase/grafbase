@@ -107,6 +107,26 @@ fn expected_nullable_int_got_string() {
 }
 
 #[test]
+fn expected_nullable_int_got_null() {
+    let response = run(
+        NULLABLE_INT_SCHEMA,
+        QUERY,
+        json!({"data": {"user": {"age": null, "valid": "yes"}, "dummy": "yes"}}),
+    );
+    insta::assert_json_snapshot!(response, @r#"
+    {
+      "data": {
+        "user": {
+          "age": null,
+          "valid": "yes"
+        },
+        "dummy": "yes"
+      }
+    }
+    "#);
+}
+
+#[test]
 fn expected_required_int_got_null() {
     let response = run(
         REQUIRED_INT_SCHEMA,

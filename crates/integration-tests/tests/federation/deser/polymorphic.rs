@@ -137,6 +137,25 @@ fn expected_nullable_object_got_string() {
 }
 
 #[test]
+fn expected_nullable_object_got_null() {
+    let response = run(
+        NULLABLE_OBJECT_SCHEMA,
+        QUERY,
+        json!({"data": {"user": {"organization": null, "valid": "yes"}, "dummy": "yes"}}),
+    );
+    insta::assert_json_snapshot!(response, @r#"
+    {
+      "data": {
+        "user": {
+          "organization": null,
+          "valid": "yes"
+        },
+        "dummy": "yes"
+      }
+    }
+    "#);
+}
+#[test]
 fn expected_required_object_got_null() {
     let response = run(
         REQUIRED_OBJECT_SCHEMA,

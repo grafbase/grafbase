@@ -74,6 +74,25 @@ fn expected_nullable_string_got_string() {
 }
 
 #[test]
+fn expected_nullable_string_got_null() {
+    let response = run(
+        NULLABLE_STRING_SCHEMA,
+        QUERY,
+        json!({"data": {"user": {"username": null, "valid": "yes"}, "dummy": "yes"}}),
+    );
+    insta::assert_json_snapshot!(response, @r#"
+    {
+      "data": {
+        "user": {
+          "username": null,
+          "valid": "yes"
+        },
+        "dummy": "yes"
+      }
+    }
+    "#);
+}
+#[test]
 fn expected_required_string_got_null() {
     let response = run(
         REQUIRED_STRING_SCHEMA,

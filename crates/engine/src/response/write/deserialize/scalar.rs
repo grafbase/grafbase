@@ -299,15 +299,10 @@ impl<'de> Visitor<'de> for ScalarTypeSeed<'_, '_> {
     where
         E: Error,
     {
-        match self.ty {
-            ScalarType::Any => Ok(ResponseValue::Null),
-            _ => {
-                if self.is_required {
-                    Ok(self.unexpected_type(Unexpected::Option))
-                } else {
-                    Ok(ResponseValue::Null)
-                }
-            }
+        if self.is_required {
+            Ok(self.unexpected_type(Unexpected::Option))
+        } else {
+            Ok(ResponseValue::Null)
         }
     }
 
@@ -322,15 +317,10 @@ impl<'de> Visitor<'de> for ScalarTypeSeed<'_, '_> {
     where
         E: Error,
     {
-        match self.ty {
-            ScalarType::Any => Ok(ResponseValue::Null),
-            _ => {
-                if self.is_required {
-                    Ok(self.unexpected_type(Unexpected::Unit))
-                } else {
-                    Ok(ResponseValue::Null)
-                }
-            }
+        if self.is_required {
+            Ok(self.unexpected_type(Unexpected::Unit))
+        } else {
+            Ok(ResponseValue::Null)
         }
     }
 
