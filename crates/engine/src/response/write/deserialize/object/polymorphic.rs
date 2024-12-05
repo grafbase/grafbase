@@ -1,5 +1,6 @@
 use std::{collections::VecDeque, fmt};
 
+use schema::Definition;
 use serde::{
     de::{DeserializeSeed, IgnoredAny, MapAccess, Unexpected, Visitor},
     Deserializer,
@@ -8,7 +9,8 @@ use walker::Walk;
 
 use crate::response::{
     write::deserialize::{key::Key, SeedContext},
-    FieldShapeRecord, GraphqlError, ObjectIdentifier, PolymorphicShapeId, PolymorphicShapeRecord, ResponseValue,
+    FieldShapeRecord, GraphqlError, ObjectIdentifier, PolymorphicShapeId, PolymorphicShapeRecord, ResponseObject,
+    ResponseValue,
 };
 
 use super::concrete::ConcreteShapeSeed;
@@ -94,56 +96,70 @@ impl<'de> Visitor<'de> for PolymorphicShapeSeed<'_, '_> {
                 let value = map.next_value::<Key<'_>>()?;
                 let typename = value.as_ref();
 
+                let Some(Definition::Object(object_definition)) = schema.definition_by_name(typename) else {
+                    tracing::error!(
+                        "Couldn't determine the object type from __typename at path '{}'",
+                        self.ctx.display_path()
+                    );
+                    break;
+                };
+                let object_definition_id = object_definition.id;
+
                 // Try to find the matching concrete shape.
-                if let Ok(i) = self
+                return if let Ok(i) = self
                     .shape
                     .possibilities
-                    .binary_search_by(|(id, _)| schema[schema[*id].name_id].as_str().cmp(typename))
+                    .binary_search_by(|(id, _)| id.cmp(&object_definition_id))
                 {
-                    let (object_id, shape_id) = self.shape.possibilities[i];
-                    return ConcreteShapeSeed::new_with_known_object_definition_id(
+                    let (_, shape_id) = self.shape.possibilities[i];
+                    ConcreteShapeSeed::new_with_known_object_definition_id(
                         self.ctx,
                         self.parent_field,
                         self.is_required,
                         shape_id,
-                        object_id,
+                        object_definition_id,
                     )
-                    .visit_map(ChainedMapAcces::new(content, map));
+                    .visit_map(ChainedMapAcces::new(content, map))
                 } else if let Some(shape_id) = self.shape.fallback {
                     // We're falling back on the fallback shape. It may or may not need the object
                     // definition id. ConcreteShapeSeed relies on encountering "__typename" field
                     // like we do to detect the object definition id, but we've already
                     // deserialized it. So we have to provide the object definition id to the
                     // concrete shape seed if needed, as it won't be able to do it.
-                    let possible_type_ids = match shape_id.walk(self.ctx).identifier {
-                        ObjectIdentifier::UnionTypename(id) => {
-                            &self.ctx.schema[id].possible_types_ordered_by_typename_ids
+                    match shape_id.walk(self.ctx).identifier {
+                        ObjectIdentifier::UnionTypename(id)
+                            if !id.walk(self.ctx.schema).has_member(object_definition_id) =>
+                        {
+                            tracing::error!(
+                                "Unexpected object '{}' for union '{}' at path '{}'",
+                                object_definition.name(),
+                                id.walk(self.ctx.schema).name(),
+                                self.ctx.display_path()
+                            );
+                            break;
                         }
-                        ObjectIdentifier::InterfaceTypename(id) => {
-                            &self.ctx.schema[id].possible_types_ordered_by_typename_ids
+                        ObjectIdentifier::InterfaceTypename(id)
+                            if !id.walk(self.ctx.schema).has_implementor(object_definition_id) =>
+                        {
+                            tracing::error!(
+                                "Unexpected object '{}' for interface '{}' at path '{}'",
+                                object_definition.name(),
+                                id.walk(self.ctx.schema).name(),
+                                self.ctx.display_path()
+                            );
+                            break;
                         }
-                        _ => {
-                            return ConcreteShapeSeed::new(self.ctx, self.parent_field, self.is_required, shape_id)
-                                .visit_map(ChainedMapAcces::new(content, map));
-                        }
+                        _ => {}
                     };
 
-                    if let Ok(i) = possible_type_ids
-                        .binary_search_by(|probe| schema[schema[*probe].name_id].as_str().cmp(typename))
-                    {
-                        return ConcreteShapeSeed::new_with_known_object_definition_id(
-                            self.ctx,
-                            self.parent_field,
-                            self.is_required,
-                            shape_id,
-                            possible_type_ids[i],
-                        )
-                        .visit_map(ChainedMapAcces::new(content, map));
-                    } else {
-                        // We have a fallback shape that needs the object definition id, but we
-                        // couldn't provide it.
-                        break;
-                    }
+                    ConcreteShapeSeed::new_with_known_object_definition_id(
+                        self.ctx,
+                        self.parent_field,
+                        self.is_required,
+                        shape_id,
+                        object_definition_id,
+                    )
+                    .visit_map(ChainedMapAcces::new(content, map))
                 } else {
                     // If the __typename doesn't match any of the possibilities nor do we have a
                     // fallback, there is no field to retrieve.
@@ -153,23 +169,18 @@ impl<'de> Visitor<'de> for PolymorphicShapeSeed<'_, '_> {
                     while map.next_entry::<IgnoredAny, IgnoredAny>()?.is_some() {}
 
                     // Adding empty object instead
-                    return Ok(self
+                    Ok(self
                         .ctx
                         .subgraph_response
                         .borrow_mut()
                         .data
-                        .push_object(Default::default())
-                        .into());
-                }
+                        .push_object(ResponseObject::new(Some(object_definition_id), Vec::new()))
+                        .into())
+                };
             }
             // keeping the fields until we find the actual __typename.
             content.push_back((key, map.next_value()?));
         }
-
-        tracing::error!(
-            "Couldn't determine the object type from __typename at path '{}'",
-            self.ctx.display_path()
-        );
 
         // Try discarding the rest of the map, we might be able to use other parts of
         // the response.

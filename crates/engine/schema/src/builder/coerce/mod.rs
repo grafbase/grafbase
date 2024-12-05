@@ -244,7 +244,7 @@ impl<'a> InputValueCoercer<'a> {
                 _ => None,
             }
             .map(SchemaInputValueRecord::Boolean),
-            ScalarType::Any => {
+            ScalarType::Unknown => {
                 return Ok(self.input_values.ingest_arbitrary_value(self.ctx, value));
             }
         }

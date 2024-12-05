@@ -9,7 +9,7 @@ use super::ConcreteShapeId;
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub(crate) struct PolymorphicShapeRecord {
-    // Sorted by Object typename
+    // Sorted by Object definition id
     pub possibilities: Vec<(ObjectDefinitionId, ConcreteShapeId)>,
     pub fallback: Option<ConcreteShapeId>,
 }

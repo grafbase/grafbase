@@ -106,7 +106,7 @@ impl<'ctx, R: Runtime> IntrospectionWriter<'ctx, R> {
         self.response
             .borrow_mut()
             .data
-            .push_object(ResponseObject::new(fields))
+            .push_object(ResponseObject::new(Some(object.id), fields))
             .into()
     }
 

@@ -469,12 +469,7 @@ impl<'ctx> ShapesBuilder<'ctx> {
 
     fn push_polymorphic_shape(&mut self, mut shape: PolymorphicShapeRecord) -> PolymorphicShapeId {
         let id = self.shapes.polymorphic.len().into();
-        let schema = self.schema;
-        shape.possibilities.sort_unstable_by(|a, b| {
-            let a = &schema[schema[a.0].name_id];
-            let b = &schema[schema[b.0].name_id];
-            a.cmp(b)
-        });
+        shape.possibilities.sort_unstable_by_key(|(id, _)| *id);
         self.shapes.polymorphic.push(shape);
         id
     }

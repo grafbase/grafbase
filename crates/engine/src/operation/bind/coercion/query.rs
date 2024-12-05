@@ -304,7 +304,7 @@ impl<'schema> QueryValueCoercionContext<'_, 'schema, '_> {
         value: Value<'_>,
     ) -> Result<QueryInputValueRecord, InputValueError> {
         match (value, scalar.as_ref().ty) {
-            (value, ScalarType::Any) => Ok(match value {
+            (value, ScalarType::Unknown) => Ok(match value {
                 Value::Null(_) => QueryInputValueRecord::Null,
                 Value::Float(n) => QueryInputValueRecord::Float(n.value()),
                 Value::Int(i) => QueryInputValueRecord::BigInt(i.as_i64()),

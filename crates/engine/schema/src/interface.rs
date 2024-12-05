@@ -1,6 +1,10 @@
-use crate::{FieldDefinition, InterfaceDefinition, SubgraphId};
+use crate::{FieldDefinition, InterfaceDefinition, ObjectDefinitionId, SubgraphId};
 
 impl<'a> InterfaceDefinition<'a> {
+    pub fn has_implementor(&self, id: ObjectDefinitionId) -> bool {
+        self.possible_type_ids.binary_search(&id).is_ok()
+    }
+
     pub fn is_fully_implemented_in(&self, subgraph_id: SubgraphId) -> bool {
         !self.not_fully_implemented_in_ids.contains(&subgraph_id)
     }

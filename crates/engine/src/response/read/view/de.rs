@@ -1,5 +1,5 @@
 use crate::response::{ResponseObject, ResponseValue};
-use schema::{FieldSetItemRecord, InputValueSerdeError};
+use schema::{EntityDefinition, FieldSetItemRecord, InputValueSerdeError};
 use serde::{
     de::{
         value::{MapDeserializer, SeqDeserializer},
@@ -52,7 +52,7 @@ impl<'de> serde::Deserializer<'de> for ResponseObjectView<'de> {
 struct ResponseObjectViewMapAcces<'de> {
     ctx: ViewContext<'de>,
     response_object: &'de ResponseObject,
-    selection: Option<&'de FieldSetItemRecord>,
+    selection: Option<(&'de ResponseValue, &'de FieldSetItemRecord)>,
     selection_set: std::slice::Iter<'de, FieldSetItemRecord>,
 }
 
@@ -63,32 +63,56 @@ impl<'de> MapAccess<'de> for ResponseObjectViewMapAcces<'de> {
     where
         K: serde::de::DeserializeSeed<'de>,
     {
-        match self.selection_set.next() {
-            None => Ok(None),
-            Some(selection) => {
-                let key = self.ctx.schema[selection.alias_id].as_str();
-                seed.deserialize(key.into_deserializer()).map(Some)
-            }
+        for selection in self.selection_set.by_ref() {
+            let value = match self.response_object.find_required_field(selection.id) {
+                Some(value) => value,
+                None => {
+                    // If this field doesn't match the actual response object, meaning this field
+                    // was in a fragment that doesn't apply to this object, we can safely skip it.
+                    let field_definition = selection.id.walk(self.ctx.schema).definition();
+                    if let Some(definition_id) = self.response_object.definition_id {
+                        match field_definition.parent_entity() {
+                            EntityDefinition::Interface(inf) => {
+                                if inf.possible_type_ids.binary_search(&definition_id).is_err() {
+                                    continue;
+                                }
+                            }
+                            EntityDefinition::Object(obj) => {
+                                if obj.id != definition_id {
+                                    continue;
+                                }
+                            }
+                        }
+                    }
+
+                    return Err(InputValueSerdeError::Message(format!(
+                        "Could not retrieve field {}.{}",
+                        field_definition.parent_entity().name(),
+                        field_definition.name()
+                    )));
+                }
+            };
+            self.selection = Some((value, selection));
+            let key = self.ctx.schema[selection.alias_id].as_str();
+            return seed.deserialize(key.into_deserializer()).map(Some);
         }
+
+        Ok(None)
     }
 
     fn next_value_seed<V>(&mut self, seed: V) -> Result<V::Value, Self::Error>
     where
         V: serde::de::DeserializeSeed<'de>,
     {
-        let selection = self.selection.take();
         // Panic because this indicates a bug in the program rather than an
         // expected failure.
-        let selection = selection.expect("MapAccess::next_value called before next_key");
+        let (value, selection) = self
+            .selection
+            .take()
+            .expect("MapAccess::next_value called before next_key");
         let value = ResponseValueView {
             ctx: self.ctx,
-            value: self.response_object.find_required_field(selection.id).ok_or_else(|| {
-                InputValueSerdeError::Message(format!(
-                    "Could not retrieve field {}",
-                    selection.id.walk(self.ctx.schema).definition().name()
-                ))
-            })?,
-
+            value,
             selection_set: &selection.subselection_record,
         };
         seed.deserialize(value.into_deserializer())

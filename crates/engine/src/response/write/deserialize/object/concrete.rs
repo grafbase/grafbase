@@ -98,7 +98,8 @@ impl<'ctx> ConcreteShapeSeed<'ctx, '_> {
         match object {
             ObjectValue::Some { definition_id, fields } => {
                 let mut resp = self.ctx.subgraph_response.borrow_mut();
-                resp.data.put_object(object_id, ResponseObject::new(fields));
+                resp.data
+                    .put_object(object_id, ResponseObject::new(definition_id, fields));
 
                 if let Some(definition_id) = definition_id {
                     // If the parent field won't be sent back to the client, there is no need to bother
