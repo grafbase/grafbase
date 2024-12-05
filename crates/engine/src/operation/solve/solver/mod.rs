@@ -7,7 +7,7 @@ use query_solver::{
     petgraph::{graph::NodeIndex, visit::EdgeRef},
     SolutionEdge as Edge, SolutionGraph, SolutionNode as Node,
 };
-use schema::{EntityDefinitionId, ResolverDefinitionId, Schema};
+use schema::{Definition, EntityDefinitionId, ResolverDefinitionId, Schema};
 use walker::Walk;
 
 use crate::{
@@ -203,7 +203,7 @@ impl<'a> Solver<'a> {
                     else {
                         continue;
                     };
-                    match self.bound_operation[id].to_data_field_or_typename_field(query_partition_id) {
+                    match self.bound_operation[id].to_data_field_or_typename_field(self.schema, query_partition_id) {
                         Ok(mut record) => {
                             // If there is any edge with super-graph requirements, means there we'll
                             // need to read this field.
@@ -469,6 +469,7 @@ impl<'a> Solver<'a> {
 impl BoundField {
     fn to_data_field_or_typename_field(
         &self,
+        schema: &Schema,
         query_partition_id: QueryPartitionId,
     ) -> Result<DataFieldRecord, TypenameFieldRecord> {
         match self {
@@ -489,7 +490,12 @@ impl BoundField {
                 output_id: None,
                 parent_field_output_id: None,
                 matching_requirement_id: None,
-                selection_set_requires_typename: false,
+                selection_set_requires_typename: match field.definition_id.walk(schema).ty().definition() {
+                    // If we may encounter an inaccessible object, we have to detect it
+                    Definition::Union(union) => union.has_inaccessible_member(),
+                    Definition::Interface(interface) => interface.has_inaccessible_implementors(),
+                    _ => false,
+                },
                 shape_ids: IdRange::empty(),
             }),
             BoundField::Extra(field) => Ok(DataFieldRecord {

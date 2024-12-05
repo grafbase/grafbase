@@ -14,26 +14,30 @@ use crate::response::{
 pub(crate) struct ConcreteShapeSeed<'ctx, 'seed> {
     ctx: &'seed SeedContext<'ctx>,
     shape_id: ConcreteShapeId,
+    parent_field: &'ctx FieldShapeRecord,
     known_definition_id: Option<ObjectDefinitionId>,
 }
 
 impl<'ctx, 'seed> ConcreteShapeSeed<'ctx, 'seed> {
-    pub fn new(ctx: &'seed SeedContext<'ctx>, shape_id: ConcreteShapeId) -> Self {
+    pub fn new(ctx: &'seed SeedContext<'ctx>, parent_field: &'ctx FieldShapeRecord, shape_id: ConcreteShapeId) -> Self {
         Self {
             ctx,
             shape_id,
+            parent_field,
             known_definition_id: None,
         }
     }
 
     pub fn new_with_known_object_definition_id(
         ctx: &'seed SeedContext<'ctx>,
+        parent_field: &'ctx FieldShapeRecord,
         shape_id: ConcreteShapeId,
         object_definition_id: ObjectDefinitionId,
     ) -> Self {
         Self {
             ctx,
             shape_id,
+            parent_field,
             known_definition_id: Some(object_definition_id),
         }
     }
@@ -71,15 +75,22 @@ impl<'de> Visitor<'de> for ConcreteShapeSeed<'_, '_> {
         let mut resp = self.ctx.subgraph_response.borrow_mut();
         resp.data.put_object(object_id, ResponseObject::new(fields));
 
-        if let Some(set_id) = shape.set_id {
-            resp.push_object_ref(
-                set_id,
-                ResponseObjectRef {
-                    id: object_id,
-                    path: self.ctx.path().clone(),
-                    definition_id: definition_id.expect("Object id should have been identified"),
-                },
-            );
+        if let Some(definition_id) = definition_id {
+            // If the parent field won't be sent back to the client, there is no need to bother
+            // with inaccessible.
+            if self.parent_field.key.query_position.is_some() && definition_id.walk(self.ctx.schema).is_inaccessible() {
+                resp.propagate_null(&self.ctx.path());
+            }
+            if let Some(set_id) = shape.set_id {
+                resp.push_object_ref(
+                    set_id,
+                    ResponseObjectRef {
+                        id: object_id,
+                        path: self.ctx.path().clone(),
+                        definition_id,
+                    },
+                );
+            }
         }
 
         Ok(object_id.into())
@@ -139,24 +150,24 @@ impl<'de> Visitor<'de> for ConcreteShapeFieldsSeed<'_, '_> {
         let schema = self.ctx.schema;
         let mut response_fields = Vec::with_capacity(self.field_shape_ids.len() + self.typename_response_keys.len());
 
-        let mut maybe_object_id = None;
+        let mut maybe_object_definition_id = None;
         match self.object_identifier {
             ObjectIdentifier::Known(id) => {
-                maybe_object_id = Some(id);
+                maybe_object_definition_id = Some(id);
                 self.visit_fields(&mut map, &mut response_fields)?;
             }
             ObjectIdentifier::Anonymous => {
                 self.visit_fields(&mut map, &mut response_fields)?;
             }
             ObjectIdentifier::UnionTypename(id) => {
-                maybe_object_id = Some(self.visit_fields_with_typename_detection(
+                maybe_object_definition_id = Some(self.visit_fields_with_typename_detection(
                     &mut map,
                     &schema[id].possible_types_ordered_by_typename_ids,
                     &mut response_fields,
                 )?);
             }
             ObjectIdentifier::InterfaceTypename(id) => {
-                maybe_object_id = Some(self.visit_fields_with_typename_detection(
+                maybe_object_definition_id = Some(self.visit_fields_with_typename_detection(
                     &mut map,
                     &schema[id].possible_types_ordered_by_typename_ids,
                     &mut response_fields,
@@ -167,7 +178,7 @@ impl<'de> Visitor<'de> for ConcreteShapeFieldsSeed<'_, '_> {
         self.post_process(&mut response_fields);
 
         if !self.typename_response_keys.is_empty() {
-            let Some(object_id) = maybe_object_id else {
+            let Some(object_id) = maybe_object_definition_id else {
                 return Err(serde::de::Error::custom("Could not determine the object type"));
             };
             let name_id = schema[object_id].name_id;
@@ -180,11 +191,11 @@ impl<'de> Visitor<'de> for ConcreteShapeFieldsSeed<'_, '_> {
             }
         }
 
-        Ok((maybe_object_id, response_fields))
+        Ok((maybe_object_definition_id, response_fields))
     }
 }
 
-impl ConcreteShapeFieldsSeed<'_, '_> {
+impl<'ctx> ConcreteShapeFieldsSeed<'ctx, '_> {
     fn post_process(&self, response_fields: &mut Vec<ResponseObjectField>) {
         if self.has_error {
             let mut must_propagate_null = false;
@@ -272,7 +283,7 @@ impl ConcreteShapeFieldsSeed<'_, '_> {
         let schema = self.ctx.schema;
         let keys = &self.ctx.operation.cached.solved.response_keys;
         let fields = &self.ctx.operation.cached.solved.shapes[self.field_shape_ids];
-        let mut maybe_object_id = None;
+        let mut maybe_object_definition_id: Option<ObjectDefinitionId> = None;
         while let Some(key) = map.next_key::<Key<'_>>()? {
             let key = key.as_ref();
             let start = fields.partition_point(|field| &keys[field.expected_key] < key);
@@ -285,11 +296,12 @@ impl ConcreteShapeFieldsSeed<'_, '_> {
             {
                 self.visit_field(map, fields, response_fields)?;
             // This supposes that the discriminant is never part of the schema.
-            } else if maybe_object_id.is_none() && key == "__typename" {
+            } else if maybe_object_definition_id.is_none() && key == "__typename" {
                 let value = map.next_value::<Key<'_>>()?;
                 let typename = value.as_ref();
-                maybe_object_id = possible_types_ordered_by_typename
+                maybe_object_definition_id = possible_types_ordered_by_typename
                     .binary_search_by(|probe| schema[schema[*probe].name_id].as_str().cmp(typename))
+                    .map(|i| possible_types_ordered_by_typename[i])
                     .ok();
             } else {
                 // Try discarding the next value, we might be able to use other parts of
@@ -298,13 +310,8 @@ impl ConcreteShapeFieldsSeed<'_, '_> {
             }
         }
 
-        if let Some(i) = maybe_object_id {
-            Ok(possible_types_ordered_by_typename[i])
-        } else {
-            Err(serde::de::Error::custom(
-                "Missing __typename field, could not determine object type.",
-            ))
-        }
+        maybe_object_definition_id
+            .ok_or_else(|| serde::de::Error::custom("Missing __typename field, could not determine object type."))
     }
 
     fn visit_fields<'de, A: MapAccess<'de>>(
@@ -337,7 +344,7 @@ impl ConcreteShapeFieldsSeed<'_, '_> {
     fn visit_field<'de, A: MapAccess<'de>>(
         &self,
         map: &mut A,
-        field_shapes: &[FieldShapeRecord],
+        field_shapes: &'ctx [FieldShapeRecord],
         response_fields: &mut Vec<ResponseObjectField>,
     ) -> Result<(), A::Error> {
         let field = &field_shapes[0];

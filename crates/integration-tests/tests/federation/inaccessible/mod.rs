@@ -1,3 +1,6 @@
+mod object_behind_interface;
+mod object_behind_union;
+
 use integration_tests::{federation::DeterministicEngine, runtime};
 use serde_json::json;
 

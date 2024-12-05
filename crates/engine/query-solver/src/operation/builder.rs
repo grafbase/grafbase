@@ -479,18 +479,27 @@ impl<'ctx, Op: Operation> OperationGraphBuilder<'ctx, Op> {
 
                 // For all the ProvidableField which may provide the parent QueryField, we have
                 // to try whether they can provide this newly added nested QueryField
-                self.field_ingestion_stack.extend(
-                    self.graph
-                        .edges_directed(parent_query_field_ix, Direction::Incoming)
-                        .filter(|edge| {
-                            matches!(edge.weight(), Edge::Provides) && self.graph[edge.source()].is_providable_field()
-                        })
-                        .map(|edge| CreateProvidableFields {
-                            parent_query_field_ix,
-                            parent_providable_field_or_root_ix: edge.source(),
-                            field_id,
-                        }),
-                );
+                if parent_query_field_ix == self.root_ix {
+                    self.field_ingestion_stack.push(CreateProvidableFields {
+                        parent_query_field_ix,
+                        parent_providable_field_or_root_ix: self.root_ix,
+                        field_id,
+                    });
+                } else {
+                    self.field_ingestion_stack.extend(
+                        self.graph
+                            .edges_directed(parent_query_field_ix, Direction::Incoming)
+                            .filter(|edge| {
+                                matches!(edge.weight(), Edge::Provides)
+                                    && self.graph[edge.source()].is_providable_field()
+                            })
+                            .map(|edge| CreateProvidableFields {
+                                parent_query_field_ix,
+                                parent_providable_field_or_root_ix: edge.source(),
+                                field_id,
+                            }),
+                    );
+                }
 
                 required_query_field_ix
             };
