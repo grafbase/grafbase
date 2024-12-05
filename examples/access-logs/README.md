@@ -16,7 +16,8 @@ To run this example, you'll need:
 - Grafbase Gateway version 0.12.0 or later ([install instructions](https://grafbase.com/docs/self-hosted-gateway/))
 - A C compiler (e.g., clang) and pkg-config
 - Rust compiler ([installation guide](https://www.rust-lang.org/learn/get-started))
-- Cargo component ([installation guide](https://github.com/bytecodealliance/cargo-component?tab=readme-ov-file#installation))
+- The wasm32-wasip2 target for Rust version 1.83 or later (`rustup target add wasm32-wasip2`)
+- Cargo component for Rust version 1.82 or earlier ([installation guide](https://github.com/bytecodealliance/cargo-component?tab=readme-ov-file#installation))
 
 For advanced users using nix with flakes support:
 
@@ -39,14 +40,23 @@ cd subgraph
 cargo run --release
 ```
 
-Compile the WebAssembly hook functions into a Wasm component in another terminal:
+Compile the WebAssembly hook functions into a Wasm component in another terminal.
+
+On Rust 1.83 or later:
+
+```bash
+cd hooks
+cargo build --target wasm32-wasip2
+```
+
+On Rust 1.82 or earlier:
 
 ```bash
 cd hooks
 cargo component build --release
 ```
 
-After a successful build, the component will be found at `target/wasm32-wasip1/release/hooks.wasm`. This file must exist to continue.
+After a successful build, the component will be found at `target/wasm32-wasip(1 or 2)/release/hooks.wasm`. This file must exist to continue.
 
 Finally, start the `grafbase-gateway`:
 

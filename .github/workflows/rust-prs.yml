@@ -130,20 +130,15 @@ jobs:
       - name: Install cargo binstall
         uses: cargo-bins/cargo-binstall@v1.10.15
 
-      - name: Install cargo-component
-        shell: bash
-        run: |
-          cargo binstall cargo-component --secure -y
-
       - name: Build the WASI components for tests
         shell: bash
         working-directory: crates/wasi-component-loader/examples
-        run: cargo component build
+        run: cargo build --target wasm32-wasip2
 
       - uses: actions/upload-artifact@v4
         with:
           name: example-component
-          path: crates/wasi-component-loader/examples/target/wasm32-wasip1/debug/*.wasm
+          path: crates/wasi-component-loader/examples/target/wasm32-wasip2/debug/*.wasm
           retention-days: 5
 
   builds:
@@ -227,7 +222,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: example-component
-          path: crates/wasi-component-loader/examples/target/wasm32-wasip1/debug
+          path: crates/wasi-component-loader/examples/target/wasm32-wasip2/debug
 
       # TODO: Add timing reports in here somehow...
 
