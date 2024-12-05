@@ -1,13 +1,7 @@
-use super::gateway::{self, GatewayRuntime, GraphDefinition};
-use engine::Engine;
-use gateway_config::Config;
+use super::engine_reloader::GraphSender;
+use super::gateway::GraphDefinition;
 use graph_ref::GraphRef;
-use runtime_local::HooksWasi;
-use std::{path::PathBuf, sync::Arc};
-use tokio::sync::mpsc::Receiver;
-use tokio::sync::watch::{self};
-use tokio_stream::wrappers::ReceiverStream;
-use tokio_stream::StreamExt;
+use tokio::sync::mpsc;
 
 /// The method of running the gateway.
 pub enum GraphFetchMethod {
@@ -21,22 +15,18 @@ pub enum GraphFetchMethod {
     FromSchema {
         /// Static federated graph from a file
         federated_sdl: String,
-        reload_signal: Option<Receiver<(String, Arc<Config>)>>,
+    },
+    FromSchemaReloadable {
+        sdl_receiver: mpsc::Receiver<String>,
     },
 }
 
 impl GraphFetchMethod {
-    /// Converts the fetch method into an eventually existing gateway. This can happen
-    /// in two ways: if providing a graph SDL, we a new gateway immediately. Alternatively,
+    /// Converts the fetch method into an eventually existing graph definition. This can happen
+    /// in two ways: if providing a graph SDL, we send a new graph immediately. Alternatively,
     /// if a graph ref and access token is provided, the function returns immediately, and
-    /// the gateway will be available eventually when the GDN responds with a working graph.
-    pub(crate) async fn start(
-        self,
-        config: &Config,
-        hot_reload_config_path: Option<PathBuf>,
-        sender: watch::Sender<Option<Arc<Engine<GatewayRuntime>>>>,
-        hooks: HooksWasi,
-    ) -> crate::Result<()> {
+    /// runs a background process to fetch the graph definition from the GDN
+    pub(crate) async fn start(self, sender: GraphSender) -> crate::Result<()> {
         #[cfg(feature = "lambda")]
         if matches!(self, GraphFetchMethod::FromGraphRef { .. }) {
             return Err(crate::Error::InternalError(
@@ -49,50 +39,25 @@ impl GraphFetchMethod {
                 access_token,
                 graph_ref,
             } => {
-                let config = config.clone();
                 tokio::spawn(async move {
-                    let config = config.clone();
                     use super::graph_updater::GraphUpdater;
 
-                    GraphUpdater::new(graph_ref, access_token, sender, config, hooks)?
-                        .poll()
-                        .await;
+                    GraphUpdater::new(graph_ref, access_token, sender)?.poll().await;
 
                     Ok::<_, crate::Error>(())
                 });
             }
-            GraphFetchMethod::FromSchema {
-                federated_sdl,
-                reload_signal,
-            } => {
-                let gateway = gateway::generate(
-                    GraphDefinition::Sdl(federated_sdl),
-                    config,
-                    hot_reload_config_path.clone(),
-                    hooks.clone(),
-                )
-                .await?;
-
-                sender.send(Some(Arc::new(gateway)))?;
-
-                if let Some(reload_signal) = reload_signal {
-                    tokio::spawn(async move {
-                        let mut stream = ReceiverStream::new(reload_signal);
-
-                        while let Some((sdl, config)) = stream.next().await {
-                            let gateway = gateway::generate(
-                                GraphDefinition::Sdl(sdl),
-                                &config,
-                                hot_reload_config_path.clone(),
-                                hooks.clone(),
-                            )
-                            .await?;
-                            sender.send(Some(Arc::new(gateway)))?;
+            GraphFetchMethod::FromSchema { federated_sdl } => {
+                sender.send(GraphDefinition::Sdl(federated_sdl)).await?;
+            }
+            GraphFetchMethod::FromSchemaReloadable { mut sdl_receiver } => {
+                tokio::spawn(async move {
+                    while let Some(sdl) = sdl_receiver.recv().await {
+                        if sender.send(GraphDefinition::Sdl(sdl)).await.is_err() {
+                            break;
                         }
-
-                        Ok::<_, crate::Error>(())
-                    });
-                }
+                    }
+                });
             }
         }
 

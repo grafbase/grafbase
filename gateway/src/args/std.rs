@@ -83,10 +83,7 @@ impl super::Args for Args {
                     fs::read_to_string(self.schema.as_ref().expect("must exist if graph-ref is not defined"))
                         .context("could not read federated schema file")?;
 
-                Ok(GraphFetchMethod::FromSchema {
-                    federated_sdl,
-                    reload_signal: None,
-                })
+                Ok(GraphFetchMethod::FromSchema { federated_sdl })
             }
         }
     }

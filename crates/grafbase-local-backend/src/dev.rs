@@ -6,16 +6,14 @@ mod subgraphs;
 use super::errors::BackendError;
 use configurations::get_and_merge_configurations;
 use federated_server::{serve, GraphFetchMethod, ServerConfig, ServerRouter, ServerRuntime};
-use gateway_config::Config;
 use hot_reload::hot_reload;
 use pathfinder::{export_assets, get_pathfinder_router};
 use std::{
     net::{Ipv4Addr, SocketAddr},
     path::PathBuf,
-    sync::Arc,
 };
 use subgraphs::get_subgraph_sdls;
-use tokio::sync::mpsc;
+use tokio::sync::{mpsc, watch};
 use tokio::{
     sync::broadcast::{channel, Receiver, Sender},
     task::spawn_blocking,
@@ -106,24 +104,28 @@ pub async fn start(
         }
     };
 
-    let (reload_sender, reload_receiver) = mpsc::channel::<(String, Arc<Config>)>(1);
+    let (sdl_sender, sdl_receiver) = mpsc::channel::<String>(1);
+    let (config_sender, config_receiver) = watch::channel(dev_configuration.merged_configuration.clone());
+
+    sdl_sender
+        .send(federated_sdl)
+        .await
+        .expect("this really has to succeed");
 
     let server_config = ServerConfig {
         listen_addr: Some(listen_address),
         config_path: None,
         config_hot_reload: false,
-        config: dev_configuration.merged_configuration.clone(),
-        fetch_method: GraphFetchMethod::FromSchema {
-            federated_sdl,
-            reload_signal: Some(reload_receiver),
-        },
+        config: config_receiver,
+        fetch_method: GraphFetchMethod::FromSchemaReloadable { sdl_receiver },
     };
 
     let hot_reload_ready_sender = ready_sender.subscribe();
 
     tokio::spawn(async move {
         hot_reload(
-            reload_sender,
+            config_sender,
+            sdl_sender,
             hot_reload_ready_sender,
             subgraph_cache,
             gateway_config_path,
