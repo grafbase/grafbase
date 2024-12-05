@@ -6,27 +6,24 @@ use serde::{
     Deserializer,
 };
 
-use super::errors::{ConcreteGraphqlErrorsSeed, GraphqlErrorsSeed};
-
-pub(in crate::resolver::graphql) struct GraphqlResponseSeed<DataSeed, ErrorSeed> {
-    data_seed: Option<DataSeed>,
-    errors_seed: Option<ConcreteGraphqlErrorsSeed<ErrorSeed>>,
+/// Deserialize a GraphQL response with the help of a DataSeed and an ErrorsSeed:
+/// - DataSeed will deserialize the `data` field and doesn't need to return anything.
+/// - ErrorsSeed will deserialize the `errors` field and must return the number of errors.
+pub(in crate::resolver::graphql) struct GraphqlResponseSeed<DataSeed, ErrorsSeed> {
+    data_seed: DataSeed,
+    errors_seed: ErrorsSeed,
 }
 
-impl<DataSeed, ErrorSeed> GraphqlResponseSeed<DataSeed, ErrorSeed> {
-    pub fn new(data_seed: DataSeed, errors_seed: ErrorSeed) -> Self {
-        Self {
-            data_seed: Some(data_seed),
-            errors_seed: Some(ConcreteGraphqlErrorsSeed(errors_seed)),
-        }
+impl<DataSeed, ErrorsSeed> GraphqlResponseSeed<DataSeed, ErrorsSeed> {
+    pub fn new(data_seed: DataSeed, errors_seed: ErrorsSeed) -> Self {
+        Self { data_seed, errors_seed }
     }
 }
 
-impl<'resp, 'de, DataSeed, ErrorsSeed> DeserializeSeed<'de> for GraphqlResponseSeed<DataSeed, ErrorsSeed>
+impl<'de, DataSeed, ErrorsSeed> DeserializeSeed<'de> for GraphqlResponseSeed<DataSeed, ErrorsSeed>
 where
     DataSeed: DeserializeSeed<'de, Value = ()>,
-    ErrorsSeed: GraphqlErrorsSeed<'resp>,
-    'resp: 'de,
+    ErrorsSeed: DeserializeSeed<'de, Value = usize>,
 {
     type Value = GraphqlResponseStatus;
 
@@ -38,11 +35,10 @@ where
     }
 }
 
-impl<'resp, 'de, DataSeed, ErrorsSeed> Visitor<'de> for GraphqlResponseSeed<DataSeed, ErrorsSeed>
+impl<'de, DataSeed, ErrorsSeed> Visitor<'de> for GraphqlResponseSeed<DataSeed, ErrorsSeed>
 where
     DataSeed: DeserializeSeed<'de, Value = ()>,
-    ErrorsSeed: GraphqlErrorsSeed<'resp>,
-    'resp: 'de,
+    ErrorsSeed: DeserializeSeed<'de, Value = usize>,
 {
     type Value = GraphqlResponseStatus;
 
@@ -50,21 +46,26 @@ where
         formatter.write_str("a valid GraphQL response")
     }
 
-    fn visit_map<A>(mut self, mut map: A) -> Result<Self::Value, A::Error>
+    fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
     where
         A: MapAccess<'de>,
     {
+        let Self { data_seed, errors_seed } = self;
+        let mut data_seed = Some(data_seed);
+        let mut errors_seed = Some(errors_seed);
+
         let mut data_is_null_result = Ok(true);
         let mut errors_count = 0;
+
         while let Some(key) = map.next_key::<ResponseKey>()? {
             match key {
                 ResponseKey::Data => {
-                    if let Some(seed) = self.data_seed.take() {
+                    if let Some(seed) = data_seed.take() {
                         data_is_null_result = map.next_value_seed(NullableDataSeed { seed });
                     }
                 }
                 ResponseKey::Errors => {
-                    if let Some(seed) = self.errors_seed.take() {
+                    if let Some(seed) = errors_seed.take() {
                         errors_count = map.next_value_seed(seed)?;
                     }
                 }
@@ -74,7 +75,7 @@ where
             };
         }
 
-        let data_is_present = self.data_seed.is_some();
+        let data_is_present = data_seed.is_none();
         let status = if errors_count == 0 {
             GraphqlResponseStatus::Success
         } else if data_is_present {

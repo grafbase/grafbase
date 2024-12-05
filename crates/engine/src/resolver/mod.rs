@@ -105,10 +105,14 @@ impl Resolver {
         'ctx: 'fut,
     {
         match self {
-            Resolver::Graphql(prepared) => async move {
-                let mut ctx = prepared.build_subgraph_context(ctx);
-                let subgraph_result = prepared.execute(&mut ctx, subgraph_response).await;
-                ctx.finalize(subgraph_result).await
+            Resolver::Graphql(prepared) => {
+                let input_object_refs = root_response_objects.into_input_object_refs();
+
+                async move {
+                    let mut ctx = prepared.build_subgraph_context(ctx);
+                    let subgraph_result = prepared.execute(&mut ctx, input_object_refs, subgraph_response).await;
+                    ctx.finalize(subgraph_result).await
+                }
             }
             .boxed(),
             Resolver::FederationEntity(prepared) => {
@@ -125,12 +129,15 @@ impl Resolver {
                 }
                 .boxed()
             }
-            Resolver::Introspection(prepared) => async move {
-                let result = prepared.execute(ctx, plan, subgraph_response).await;
+            Resolver::Introspection(prepared) => {
+                let input_object_refs = root_response_objects.into_input_object_refs();
+                async move {
+                    let result = prepared.execute(ctx, plan, input_object_refs, subgraph_response).await;
 
-                ResolverResult {
-                    execution: result,
-                    on_subgraph_response_hook_output: None,
+                    ResolverResult {
+                        execution: result,
+                        on_subgraph_response_hook_output: None,
+                    }
                 }
             }
             .boxed(),

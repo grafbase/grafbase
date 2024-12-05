@@ -4,14 +4,11 @@ use serde::de::{DeserializeSeed, IgnoredAny, MapAccess, Visitor};
 use std::fmt;
 use walker::Walk;
 
-use crate::{
-    response::{
-        value::ResponseObjectField,
-        write::deserialize::{field::FieldSeed, key::Key, SeedContext},
-        ConcreteShape, ConcreteShapeId, FieldShapeId, FieldShapeRecord, GraphqlError, ObjectIdentifier,
-        PositionedResponseKey, ResponseObject, ResponseObjectId, ResponseObjectRef, ResponseValue, ResponseValueId,
-    },
-    ErrorCode,
+use crate::response::{
+    value::ResponseObjectField,
+    write::deserialize::{field::FieldSeed, key::Key, SeedContext},
+    ConcreteShape, ConcreteShapeId, FieldShapeId, FieldShapeRecord, GraphqlError, ObjectIdentifier,
+    PositionedResponseKey, ResponseObject, ResponseObjectId, ResponseObjectRef, ResponseValue, ResponseValueId,
 };
 
 pub(crate) struct ConcreteShapeSeed<'ctx, 'seed> {
@@ -66,18 +63,16 @@ impl<'de> Visitor<'de> for ConcreteShapeSeed<'_, '_> {
         A: MapAccess<'de>,
     {
         let shape = self.shape_id.walk(self.ctx);
-        let object_id = self.ctx.writer.data().reserve_object_id();
+        let object_id = self.ctx.subgraph_response.borrow_mut().data.reserve_object_id();
 
         let (definition_id, fields) =
             ConcreteShapeFieldsSeed::new(self.ctx, shape, object_id, self.known_definition_id).visit_map(map)?;
 
-        self.ctx
-            .writer
-            .data()
-            .put_object(object_id, ResponseObject::new(fields));
+        let mut resp = self.ctx.subgraph_response.borrow_mut();
+        resp.data.put_object(object_id, ResponseObject::new(fields));
 
         if let Some(set_id) = shape.set_id {
-            self.ctx.writer.push_object_ref(
+            resp.push_object_ref(
                 set_id,
                 ResponseObjectRef {
                     id: object_id,
@@ -193,9 +188,10 @@ impl ConcreteShapeFieldsSeed<'_, '_> {
     fn post_process(&self, response_fields: &mut Vec<ResponseObjectField>) {
         if self.has_error {
             let mut must_propagate_null = false;
+            let mut resp = self.ctx.subgraph_response.borrow_mut();
             for field_shape in self.field_shape_ids.walk(self.ctx) {
                 for error in field_shape.errors() {
-                    self.ctx.writer.push_error(
+                    resp.push_error(
                         error
                             .clone()
                             .with_path((self.ctx.path(), field_shape.key))
@@ -214,7 +210,7 @@ impl ConcreteShapeFieldsSeed<'_, '_> {
                 }
             }
             if must_propagate_null {
-                self.ctx.propagate_null();
+                resp.propagate_null(&self.ctx.path());
                 return;
             }
         }
@@ -235,20 +231,20 @@ impl ConcreteShapeFieldsSeed<'_, '_> {
                         if field_shape.key.query_position.is_some() {
                             self.ctx.propagate_null();
                             let keys = &self.ctx.operation.cached.solved.response_keys;
-                            let message = if field_shape.key.response_key == field_shape.expected_key {
-                                format!(
+                            if field_shape.key.response_key == field_shape.expected_key {
+                                tracing::error!(
                                     "Error decoding response from upstream: Missing required field named '{}'",
                                     &keys[field_shape.expected_key]
                                 )
                             } else {
-                                format!(
+                                tracing::error!(
                                     "Error decoding response from upstream: Missing required field named '{}' (expected: '{}')",
                                     &keys[field_shape.key.response_key],
                                     &keys[field_shape.expected_key]
                                 )
-                            };
-                            self.ctx.writer.push_error(
-                                GraphqlError::new(message, ErrorCode::SubgraphInvalidResponseError)
+                            }
+                            self.ctx.subgraph_response.borrow_mut().push_error(
+                                GraphqlError::invalid_subgraph_response()
                                     .with_path((self.ctx.path(), field_shape.key))
                                     .with_location(field_shape.as_ref().id.walk(self.ctx).location),
                             );
@@ -296,7 +292,8 @@ impl ConcreteShapeFieldsSeed<'_, '_> {
                     .binary_search_by(|probe| schema[schema[*probe].name_id].as_str().cmp(typename))
                     .ok();
             } else {
-                // Skipping the value.
+                // Try discarding the next value, we might be able to use other parts of
+                // the response.
                 map.next_value::<IgnoredAny>()?;
             }
         }
@@ -329,7 +326,8 @@ impl ConcreteShapeFieldsSeed<'_, '_> {
             {
                 self.visit_field(map, fields, response_fields)?;
             } else {
-                // Skipping the value.
+                // Try discarding the next value, we might be able to use other parts of
+                // the response.
                 map.next_value::<IgnoredAny>()?;
             }
         }
@@ -342,58 +340,39 @@ impl ConcreteShapeFieldsSeed<'_, '_> {
         field_shapes: &[FieldShapeRecord],
         response_fields: &mut Vec<ResponseObjectField>,
     ) -> Result<(), A::Error> {
-        let mut end = 1;
-        let start_key = field_shapes[0].expected_key;
+        let field = &field_shapes[0];
+
+        self.ctx.path().push(ResponseValueId::Field {
+            object_id: self.object_id,
+            key: field.key.response_key,
+            nullable: field.wrapping.is_nullable(),
+        });
+        let result = map.next_value_seed(FieldSeed {
+            ctx: self.ctx,
+            field,
+            wrapping: field.wrapping.to_mutable(),
+        });
+        self.ctx.path().pop();
+        let value = result?;
+
         // All fields with the same expected_key (when aliases aren't supported by upsteam)
-        while field_shapes
-            .get(end + 1)
-            .map(|field| field.expected_key == start_key)
-            .unwrap_or_default()
+        for other_field in field_shapes[1..]
+            .iter()
+            .take_while(|other_field| other_field.expected_key == field.expected_key)
         {
-            end += 1;
-        }
-        if end == 1 {
-            let field = &field_shapes[0];
-            self.ctx.path().push(ResponseValueId::Field {
-                object_id: self.object_id,
-                key: field.key.response_key,
-                nullable: field.wrapping.is_nullable(),
-            });
-            let result = map.next_value_seed(FieldSeed {
-                ctx: self.ctx,
-                field,
-                wrapping: field.wrapping.to_mutable(),
-            });
-            self.ctx.path().pop();
             response_fields.push(ResponseObjectField {
-                key: field.key,
-                required_field_id: field.required_field_id,
-                value: result?,
+                key: other_field.key,
+                required_field_id: other_field.required_field_id,
+                value: value.clone(),
             });
-        } else {
-            // if we found more than one field with the same expected_key we need to store the
-            // value first.
-            let stored_value = map.next_value::<serde_value::Value>()?;
-            for field in &field_shapes[..end] {
-                self.ctx.path().push(ResponseValueId::Field {
-                    object_id: self.object_id,
-                    key: field.key.response_key,
-                    nullable: field.wrapping.is_nullable(),
-                });
-                let result = FieldSeed {
-                    ctx: self.ctx,
-                    field,
-                    wrapping: field.wrapping.to_mutable(),
-                }
-                .deserialize(serde_value::ValueDeserializer::new(stored_value.clone()));
-                self.ctx.path().pop();
-                response_fields.push(ResponseObjectField {
-                    key: field.key,
-                    required_field_id: field.required_field_id,
-                    value: result?,
-                });
-            }
         }
+
+        response_fields.push(ResponseObjectField {
+            key: field.key,
+            required_field_id: field.required_field_id,
+            value,
+        });
+
         Ok(())
     }
 }

@@ -50,7 +50,7 @@ impl<'ctx, H: Hooks> super::RequestHooks<'ctx, H> {
                     parent_type_name: definition.parent_entity().name(),
                     field_name: definition.name(),
                 },
-                parents,
+                parents.iter_with_id().map(|(_, parent)| parent),
                 metadata,
             )
             // FIXME: Unfortunately, boxing seems to be the only solution for the bug explained here:
@@ -75,7 +75,7 @@ impl<'ctx, H: Hooks> super::RequestHooks<'ctx, H> {
                     parent_type_name: definition.parent_entity().name(),
                     field_name: definition.name(),
                 },
-                nodes,
+                nodes.iter_with_id().map(|(_, node)| node),
                 metadata,
             )
             // FIXME: Unfortunately, boxing seems to be the only solution for the bug explained here:

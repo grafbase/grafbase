@@ -19,7 +19,7 @@ pub(crate) struct ExecutionContext<'ctx, R: Runtime> {
     pub engine: &'ctx Arc<Engine<R>>,
     pub operation: &'ctx Arc<PreparedOperation>,
     pub request_context: &'ctx Arc<RequestContext>,
-    pub hooks_context: &'ctx Arc<HooksContext<R>>,
+    pub hooks_context: &'ctx HooksContext<R>,
 }
 
 impl<R: Runtime> Clone for ExecutionContext<'_, R> {

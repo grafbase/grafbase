@@ -1,28 +1,8 @@
-use serde::ser::SerializeMap;
+use serde::ser::{Error, SerializeMap};
+use walker::Walk;
 
-use super::{
-    ResponseObjectView, ResponseObjectViewWithExtraFields, ResponseObjectsView, ResponseObjectsViewWithExtraFields,
-    ResponseValueView,
-};
-use crate::response::{ResponseValue, NULL};
-
-impl serde::Serialize for ResponseObjectsView<'_> {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        serializer.collect_seq(self.clone())
-    }
-}
-
-impl serde::Serialize for ResponseObjectsViewWithExtraFields<'_> {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        serializer.collect_seq(self.iter())
-    }
-}
+use super::{ResponseObjectView, ResponseObjectViewWithExtraFields, ResponseValueView};
+use crate::response::ResponseValue;
 
 impl serde::Serialize for ResponseObjectViewWithExtraFields<'_> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
@@ -39,7 +19,12 @@ impl serde::Serialize for ResponseObjectViewWithExtraFields<'_> {
             let key = self.ctx.schema[selection.alias_id].as_str();
             let value = ResponseValueView {
                 ctx: self.ctx,
-                value: self.response_object.find_required_field(selection.id).unwrap_or(&NULL),
+                value: self.response_object.find_required_field(selection.id).ok_or_else(|| {
+                    S::Error::custom(format!(
+                        "Could not retrieve field {}",
+                        selection.id.walk(self.ctx.schema).definition().name()
+                    ))
+                })?,
                 selection_set: &selection.subselection_record,
             };
             map.serialize_entry(key, &value)?;
@@ -54,16 +39,24 @@ impl serde::Serialize for ResponseObjectView<'_> {
     where
         S: serde::Serializer,
     {
-        serializer.collect_map(self.selection_set.iter().map(|selection| {
+        let mut map = serializer.serialize_map(Some(self.selection_set.len()))?;
+
+        for selection in self.selection_set {
             let key = self.ctx.schema[selection.alias_id].as_str();
             let value = ResponseValueView {
                 ctx: self.ctx,
-                value: self.response_object.find_required_field(selection.id).unwrap_or(&NULL),
+                value: self.response_object.find_required_field(selection.id).ok_or_else(|| {
+                    S::Error::custom(format!(
+                        "Could not retrieve field {}",
+                        selection.id.walk(self.ctx.schema).definition().name()
+                    ))
+                })?,
                 selection_set: &selection.subselection_record,
             };
+            map.serialize_entry(key, &value)?;
+        }
 
-            (key, value)
-        }))
+        map.end()
     }
 }
 

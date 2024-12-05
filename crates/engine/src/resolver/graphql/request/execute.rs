@@ -31,10 +31,22 @@ pub trait ResponseIngester: Send {
     ) -> impl Future<Output = Result<(GraphqlResponseStatus, SubgraphResponse), ExecutionError>> + Send;
 }
 
+impl<F> ResponseIngester for F
+where
+    F: FnOnce(http::Response<OwnedOrSharedBytes>) -> ExecutionResult<(GraphqlResponseStatus, SubgraphResponse)> + Send,
+{
+    async fn ingest(
+        self,
+        response: http::Response<OwnedOrSharedBytes>,
+    ) -> ExecutionResult<(GraphqlResponseStatus, SubgraphResponse)> {
+        self(response)
+    }
+}
+
 pub(crate) async fn execute_subgraph_request<'ctx, 'a, R: Runtime>(
     ctx: &mut SubgraphContext<'ctx, R>,
     headers: http::HeaderMap,
-    body: Bytes,
+    body: impl Into<Bytes> + Send,
     ingester: impl ResponseIngester,
 ) -> ExecutionResult<SubgraphResponse> {
     let endpoint = ctx.endpoint();
@@ -48,6 +60,7 @@ pub(crate) async fn execute_subgraph_request<'ctx, 'a, R: Runtime>(
             ctx.push_request_execution(SubgraphRequestExecutionKind::HookError);
         })?;
 
+    let body: Bytes = body.into();
     headers.typed_insert(headers::ContentType::json());
     headers.typed_insert(headers::ContentLength(body.len() as u64));
     headers.insert(

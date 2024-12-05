@@ -1,64 +1,42 @@
 use serde::{de::DeserializeSeed, Deserializer};
 
-use crate::response::{ErrorCode, ErrorPath, ErrorPathSegment, GraphqlError, SubgraphResponseRefMut};
+use crate::response::{ErrorCode, ErrorPath, GraphqlError, SubgraphResponseRefMut};
 
-pub(super) trait GraphqlErrorsSeed<'resp> {
-    fn response(&self) -> &SubgraphResponseRefMut<'resp>;
-    fn convert_path(&self, path: serde_json::Value) -> Option<ErrorPath>;
+pub(in crate::resolver::graphql) trait SubgraphToSupergraphErrorPathConverter {
+    fn convert(&self, path: serde_json::Value) -> Option<ErrorPath>;
 }
 
-pub(in crate::resolver::graphql) struct RootGraphqlErrors<'resp> {
-    response: SubgraphResponseRefMut<'resp>,
-}
-
-impl<'resp> RootGraphqlErrors<'resp> {
-    pub fn new(response: SubgraphResponseRefMut<'resp>) -> Self {
-        Self { response }
-    }
-}
-
-impl<'resp> GraphqlErrorsSeed<'resp> for RootGraphqlErrors<'resp> {
-    fn response(&self) -> &SubgraphResponseRefMut<'resp> {
-        &self.response
-    }
-
-    fn convert_path(&self, path: serde_json::Value) -> Option<ErrorPath> {
-        let mut out = Vec::new();
-        let serde_json::Value::Array(path) = path else {
-            return None;
-        };
-        for segment in path {
-            match segment {
-                serde_json::Value::String(field) => {
-                    out.push(ErrorPathSegment::UnknownField(field));
-                }
-                serde_json::Value::Number(index) => {
-                    out.push(ErrorPathSegment::Index(index.as_u64()? as usize));
-                }
-                _ => {
-                    return None;
-                }
-            }
-        }
-        Some(out.into())
-    }
-}
-
-#[derive(serde::Deserialize)]
-pub(super) struct SubgraphGraphqlError {
-    pub message: String,
-    #[serde(default)]
-    pub path: serde_json::Value,
-    #[serde(default)]
-    pub extensions: serde_json::Value,
-}
-
-pub(super) struct ConcreteGraphqlErrorsSeed<T>(pub(super) T);
-
-impl<'resp, 'de, T> DeserializeSeed<'de> for ConcreteGraphqlErrorsSeed<T>
+impl<F> SubgraphToSupergraphErrorPathConverter for F
 where
-    T: GraphqlErrorsSeed<'resp>,
+    F: Fn(serde_json::Value) -> Option<ErrorPath>,
+{
+    fn convert(&self, path: serde_json::Value) -> Option<ErrorPath> {
+        self(path)
+    }
+}
+
+/// Deserialize the `errors` field of a GraphQL response with the help of a ErrorPathConverter.
+pub(in crate::resolver::graphql) struct GraphqlErrorsSeed<'resp, ErrorPathConverter> {
+    pub response: SubgraphResponseRefMut<'resp>,
+    pub path_converter: ErrorPathConverter,
+}
+
+impl<'resp, ErrorPathConverter> GraphqlErrorsSeed<'resp, ErrorPathConverter>
+where
+    ErrorPathConverter: SubgraphToSupergraphErrorPathConverter,
+{
+    pub fn new(response: SubgraphResponseRefMut<'resp>, path_converter: ErrorPathConverter) -> Self {
+        Self {
+            response,
+            path_converter,
+        }
+    }
+}
+
+impl<'resp, 'de, ErrorPathConverter> DeserializeSeed<'de> for GraphqlErrorsSeed<'resp, ErrorPathConverter>
+where
     'resp: 'de,
+    ErrorPathConverter: SubgraphToSupergraphErrorPathConverter,
 {
     type Value = usize;
 
@@ -77,7 +55,7 @@ where
             .into_iter()
             .map(|subgraph_error| {
                 let mut error = GraphqlError::new(subgraph_error.message, ErrorCode::SubgraphError);
-                if let Some(path) = self.0.convert_path(subgraph_error.path) {
+                if let Some(path) = self.path_converter.convert(subgraph_error.path) {
                     error = error.with_path(path);
                 }
                 if !subgraph_error.extensions.is_null() {
@@ -86,7 +64,16 @@ where
                 error
             })
             .collect();
-        self.0.response().set_subgraph_errors(errors);
+        self.response.borrow_mut().set_subgraph_errors(errors);
         Ok(errors_count)
     }
+}
+
+#[derive(serde::Deserialize)]
+struct SubgraphGraphqlError {
+    message: String,
+    #[serde(default)]
+    path: serde_json::Value,
+    #[serde(default)]
+    extensions: serde_json::Value,
 }

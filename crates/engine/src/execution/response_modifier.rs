@@ -96,7 +96,7 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
                     Err(err) => (0..input.len()).map(|_| Err(err.clone())).collect(),
                 };
 
-                for ((i, obj_ref), result) in input.iter_with_set_index().zip_eq(result) {
+                for ((i, obj_ref), result) in input.iter().enumerate().zip_eq(result) {
                     if let Err(err) = result {
                         // If the current field is required, the error must be propagated upwards,
                         // so the parent object path is enough.

@@ -84,7 +84,8 @@ impl<'de> DeserializeSeed<'de> for FieldSeed<'_, '_> {
         };
 
         result.inspect_err(move |err| {
-            self.ctx.push_field_serde_error(self.field, true, || err.to_string());
+            self.ctx
+                .push_field_deserialization_error_if_not_bubbling_up(self.field, true, err);
         })
     }
 }

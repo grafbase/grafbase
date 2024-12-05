@@ -9,7 +9,7 @@ use schema::{ObjectDefinitionId, Schema};
 use walker::Walk;
 
 use super::{
-    ConcreteShapeId, DataParts, ErrorCode, ErrorCodeCounter, ErrorPathSegment, ExecutedResponse, GraphqlError,
+    ConcreteShapeId, DataParts, ErrorCodeCounter, ErrorPathSegment, ExecutedResponse, GraphqlError,
     InputResponseObjectSet, ObjectIdentifier, OutputResponseObjectSets, PositionedResponseKey, Response, ResponseData,
     ResponseObject, ResponseObjectField, ResponseObjectId, ResponseObjectRef, ResponseValue, ResponseValueId,
 };
@@ -106,23 +106,22 @@ impl ResponseBuilder {
         self.data_parts.insert(subgraph_response.data);
 
         let (any_response_key, default_object) = self.extract_any_response_key_and_default_object(plan);
-        let missing_data_error =
-            GraphqlError::new("Missing data from subgraph", ErrorCode::SubgraphInvalidResponseError);
         for (update, obj_ref) in subgraph_response
             .updates
             .into_iter()
-            .zip(subgraph_response.root_response_object_set.iter())
+            .zip(subgraph_response.input_response_object_set.iter())
         {
             match update {
-                ObjectUpdate::None => {
+                ObjectUpdate::Missing => {
                     if let Some(any_response_key) = any_response_key {
                         if !subgraph_response
                             .subgraph_errors
                             .iter()
                             .any(|subgraph_error| self.sugraph_error_matches_current_object(subgraph_error, obj_ref))
                         {
-                            self.errors
-                                .push(missing_data_error.clone().with_path((&obj_ref.path, any_response_key)));
+                            self.errors.push(
+                                GraphqlError::invalid_subgraph_response().with_path((&obj_ref.path, any_response_key)),
+                            );
                         }
                         if let Some(default_object) = &default_object {
                             self.data_parts[obj_ref.id].extend_from_slice(default_object);
@@ -135,11 +134,23 @@ impl ResponseBuilder {
                     fields.sort_unstable_by(|a, b| a.key.cmp(&b.key));
                     self.recursive_merge_object(obj_ref.id, fields);
                 }
-                ObjectUpdate::Error => {
-                    if let Some(default_object) = &default_object {
-                        self.data_parts[obj_ref.id].extend_from_slice(default_object);
-                    } else {
-                        self.propagate_null(&obj_ref.path);
+                ObjectUpdate::Error(error) => {
+                    if let Some(any_response_key) = any_response_key {
+                        self.errors.push(error.with_path((&obj_ref.path, any_response_key)));
+                        if let Some(default_object) = &default_object {
+                            self.data_parts[obj_ref.id].extend_from_slice(default_object);
+                        } else {
+                            self.propagate_null(&obj_ref.path);
+                        }
+                    }
+                }
+                ObjectUpdate::PropagateNullWithoutError => {
+                    if any_response_key.is_some() {
+                        if let Some(default_object) = &default_object {
+                            self.data_parts[obj_ref.id].extend_from_slice(default_object);
+                        } else {
+                            self.propagate_null(&obj_ref.path);
+                        }
                     }
                 }
             }

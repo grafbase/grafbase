@@ -1,6 +1,5 @@
-use std::{borrow::Cow, time::Duration};
+use std::{borrow::Cow, sync::Arc, time::Duration};
 
-use bytes::Bytes;
 use grafbase_telemetry::{
     graphql::{GraphqlResponseStatus, OperationType},
     span::subgraph::SubgraphRequestSpanBuilder,
@@ -12,8 +11,8 @@ use tracing::Instrument;
 use walker::Walk;
 
 use super::{
-    calculate_cache_ttl,
-    deserialize::{GraphqlResponseSeed, RootGraphqlErrors},
+    cache::{ResponseCacheHit, ResponseCacheMiss},
+    deserialize::{GraphqlErrorsSeed, GraphqlResponseSeed},
     request::{execute_subgraph_request, PreparedGraphqlOperation, ResponseIngester, SubgraphVariables},
     SubgraphContext,
 };
@@ -21,7 +20,7 @@ use crate::{
     execution::{ExecutionContext, ExecutionError},
     operation::{PlanError, PlanQueryPartition, PlanResult},
     resolver::{graphql::request::SubgraphGraphqlRequest, ExecutionResult, Resolver},
-    response::SubgraphResponse,
+    response::{ErrorPath, ErrorPathSegment, GraphqlError, InputObjectId, InputResponseObjectSet, SubgraphResponse},
     Runtime,
 };
 
@@ -65,7 +64,8 @@ impl GraphqlResolver {
     pub async fn execute<'ctx, R: Runtime>(
         &'ctx self,
         ctx: &mut SubgraphContext<'ctx, R>,
-        mut subgraph_response: SubgraphResponse,
+        input_object_refs: Arc<InputResponseObjectSet>,
+        subgraph_response: SubgraphResponse,
     ) -> ExecutionResult<SubgraphResponse> {
         let span = ctx.span().entered();
         let variables = SubgraphVariables::<()> {
@@ -88,76 +88,101 @@ impl GraphqlResolver {
         .map_err(|err| format!("Failed to serialize query: {err}"))?;
 
         let span = span.exit();
+        let input_object_id = input_object_refs.ids().next().ok_or("No object to update")?;
         async {
-            let headers = ctx.subgraph_headers_with_rules(ctx.endpoint().header_rules());
+            let subgraph_headers = ctx.subgraph_headers_with_rules(ctx.endpoint().header_rules());
 
-            let cache_ttl = ctx.endpoint().config.cache_ttl;
-            let cache_key = build_cache_key(ctx.endpoint().subgraph_name(), &body, &headers);
-
-            if let Some((_, cache_key)) = cache_ttl.zip(cache_key.as_ref()) {
-                let cache_entry = ctx
-                    .engine()
-                    .runtime
-                    .entity_cache()
-                    .get(cache_key)
-                    .await
-                    .inspect_err(|err| tracing::warn!("Failed to read the cache key {cache_key}: {err}"))
-                    .ok()
-                    .flatten();
-
-                if let Some(bytes) = cache_entry {
-                    ctx.record_cache_hit();
-
-                    let response = subgraph_response.as_mut();
-                    GraphqlResponseSeed::new(
-                        response.next_seed(ctx).ok_or("No object to update")?,
-                        RootGraphqlErrors::new(response),
-                    )
-                    .deserialize(&mut serde_json::Deserializer::from_slice(&bytes))?;
-
-                    return Ok(subgraph_response);
-                } else {
-                    ctx.record_cache_miss();
-                }
-            };
-
-            let ingester = GraphqlIngester {
-                ctx: ctx.execution_context(),
-                cache_ttl,
-                cache_key,
-                subgraph_response,
-            };
-
-            execute_subgraph_request(ctx, headers, Bytes::from(body), ingester).await
+            if ctx.endpoint().config.cache_ttl.is_some() {
+                fetch_response_with_cache(ctx, subgraph_headers, body, input_object_id, subgraph_response).await
+            } else {
+                fetch_response_without_cache(ctx, subgraph_headers, body, input_object_id, subgraph_response).await
+            }
         }
         .instrument(span)
         .await
     }
 }
 
-fn build_cache_key(subgraph_name: &str, subgraph_request_body: &[u8], headers: &http::HeaderMap) -> Option<String> {
-    let mut hasher = blake3::Hasher::new();
-    hasher.update(b"v1");
-    hasher.update(subgraph_name.as_bytes());
-    hasher.update(&headers.len().to_le_bytes());
-    for (name, value) in headers {
-        hasher.update(&name.as_str().len().to_le_bytes());
-        hasher.update(name.as_str().as_bytes());
-        hasher.update(&value.len().to_le_bytes());
-        hasher.update(value.as_bytes());
+async fn fetch_response_without_cache<'ctx, R: Runtime>(
+    ctx: &mut SubgraphContext<'ctx, R>,
+    subgraph_headers: http::HeaderMap,
+    body: Vec<u8>,
+    input_object_id: InputObjectId,
+    mut subgraph_response: SubgraphResponse,
+) -> ExecutionResult<SubgraphResponse> {
+    let execution_ctx = ctx.execution_context();
+    execute_subgraph_request(
+        ctx,
+        subgraph_headers,
+        body,
+        move |http_response: http::Response<OwnedOrSharedBytes>| {
+            let status = {
+                let response = subgraph_response.as_shared_mut();
+                GraphqlResponseSeed::new(
+                    response.seed(&execution_ctx, input_object_id),
+                    GraphqlErrorsSeed::new(response, convert_root_error_path),
+                )
+                .deserialize(&mut serde_json::Deserializer::from_slice(http_response.body()))
+                .map_err(|err| {
+                    tracing::error!("Failed to deserialize subgraph response: {}", err);
+                    GraphqlError::invalid_subgraph_response()
+                })?
+            };
+
+            Ok((status, subgraph_response))
+        },
+    )
+    .await
+}
+
+async fn fetch_response_with_cache<'ctx, R: Runtime>(
+    ctx: &mut SubgraphContext<'ctx, R>,
+    subgraph_headers: http::HeaderMap,
+    body: Vec<u8>,
+    input_object_id: InputObjectId,
+    mut subgraph_response: SubgraphResponse,
+) -> ExecutionResult<SubgraphResponse> {
+    match super::cache::fetch_response(ctx, &subgraph_headers, &body).await {
+        Ok(ResponseCacheHit { data }) => {
+            ctx.record_cache_hit();
+
+            let response = subgraph_response.as_shared_mut();
+            GraphqlResponseSeed::new(
+                response.seed(ctx, input_object_id),
+                GraphqlErrorsSeed::new(response, convert_root_error_path),
+            )
+            .deserialize(&mut serde_json::Deserializer::from_slice(&data))
+            .map_err(|err| {
+                tracing::error!("Failed to deserialize subgraph response: {}", err);
+                GraphqlError::invalid_subgraph_response()
+            })?;
+
+            Ok(subgraph_response)
+        }
+        Err(ResponseCacheMiss { key }) => {
+            ctx.record_cache_miss();
+            let ingester = GraphqlWithCachePutIngester {
+                ctx: ctx.execution_context(),
+                input_object_id,
+                subgraph_default_cache_ttl: ctx.endpoint().config.cache_ttl,
+                cache_key: key,
+                subgraph_response,
+            };
+
+            execute_subgraph_request(ctx, subgraph_headers, body, ingester).await
+        }
     }
-    hasher.update(subgraph_request_body);
-    Some(hasher.finalize().to_string())
 }
 
-struct GraphqlIngester<'ctx, R: Runtime> {
+struct GraphqlWithCachePutIngester<'ctx, R: Runtime> {
     ctx: ExecutionContext<'ctx, R>,
+    input_object_id: InputObjectId,
     subgraph_response: SubgraphResponse,
-    cache_ttl: Option<Duration>,
-    cache_key: Option<String>,
+    subgraph_default_cache_ttl: Option<Duration>,
+    cache_key: String,
 }
 
-impl<'ctx, R> ResponseIngester for GraphqlIngester<'ctx, R>
+impl<'ctx, R> ResponseIngester for GraphqlWithCachePutIngester<'ctx, R>
 where
     R: Runtime,
 {
@@ -168,22 +193,27 @@ where
         let Self {
             ctx,
             mut subgraph_response,
-            cache_ttl,
+            input_object_id,
+            subgraph_default_cache_ttl,
             cache_key,
         } = self;
 
         let status = {
-            let response = subgraph_response.as_mut();
+            let response = subgraph_response.as_shared_mut();
             GraphqlResponseSeed::new(
-                response.next_seed(&ctx).ok_or("No object to update")?,
-                RootGraphqlErrors::new(response),
+                response.seed(&ctx, input_object_id),
+                GraphqlErrorsSeed::new(response, convert_root_error_path),
             )
-            .deserialize(&mut serde_json::Deserializer::from_slice(http_response.body()))?
+            .deserialize(&mut serde_json::Deserializer::from_slice(http_response.body()))
+            .map_err(|err| {
+                tracing::error!("Failed to deserialize subscription response: {}", err);
+                GraphqlError::invalid_subgraph_response()
+            })?
         };
 
-        if let Some(cache_key) = cache_key {
-            let cache_ttl = calculate_cache_ttl(status, http_response.headers(), cache_ttl);
-
+        if status.is_success() {
+            let cache_ttl =
+                super::cache::calculate_cache_ttl(status, http_response.headers(), subgraph_default_cache_ttl);
             if let Some(cache_ttl) = cache_ttl {
                 // We could probably put this call into the background at some point, but for
                 // simplicities sake I am not going to do that just now.
@@ -199,4 +229,25 @@ where
 
         Ok((status, subgraph_response))
     }
+}
+
+pub(super) fn convert_root_error_path(path: serde_json::Value) -> Option<ErrorPath> {
+    let mut out = Vec::new();
+    let serde_json::Value::Array(path) = path else {
+        return None;
+    };
+    for segment in path {
+        match segment {
+            serde_json::Value::String(field) => {
+                out.push(ErrorPathSegment::UnknownField(field));
+            }
+            serde_json::Value::Number(index) => {
+                out.push(ErrorPathSegment::Index(index.as_u64()? as usize));
+            }
+            _ => {
+                return None;
+            }
+        }
+    }
+    Some(out.into())
 }

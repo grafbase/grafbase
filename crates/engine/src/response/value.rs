@@ -2,9 +2,6 @@ use schema::{SchemaFieldId, StringId};
 
 use super::{PositionedResponseKey, ResponseInaccessibleValueId, ResponseListId, ResponseObjectId};
 
-// Threshold defined a bit arbitrarily
-pub const NULL: ResponseValue = ResponseValue::Null;
-
 #[derive(Default, Debug)]
 pub(crate) struct ResponseObject {
     /// fields are ordered by the position they appear in the query.

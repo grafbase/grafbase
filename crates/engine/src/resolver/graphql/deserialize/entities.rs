@@ -1,28 +1,27 @@
-use std::fmt;
-
 use serde::{
-    de::{DeserializeSeed, Error, IgnoredAny, MapAccess, SeqAccess, Visitor},
+    de::{DeserializeSeed, IgnoredAny, MapAccess, Visitor},
     Deserializer,
 };
 
-use crate::{
-    execution::ExecutionContext,
-    resolver::graphql::CacheEntry,
-    response::{ErrorCode, ErrorPath, ErrorPathSegment, GraphqlError, SubgraphResponseRefMut},
-    Runtime,
-};
+use crate::response::{ErrorPath, ErrorPathSegment, InputObjectId, SubgraphResponseRefMut};
 
-use super::errors::GraphqlErrorsSeed;
+use super::SubgraphToSupergraphErrorPathConverter;
 
-pub(in crate::resolver::graphql) struct EntitiesDataSeed<'resp, R: Runtime> {
-    pub ctx: ExecutionContext<'resp, R>,
-    pub response: SubgraphResponseRefMut<'resp>,
-    pub cache_entries: Option<&'resp [CacheEntry]>,
+/// Deserialize the `data` field in the GraphQL response when it's a federated entity request
+/// returning `_entities` field and nothing else.
+pub(in crate::resolver::graphql) struct EntitiesDataSeed<EntitiesSeed> {
+    entities_seed: EntitiesSeed,
 }
 
-impl<'resp, 'de, R: Runtime> DeserializeSeed<'de> for EntitiesDataSeed<'resp, R>
+impl<EntitiesSeed> EntitiesDataSeed<EntitiesSeed> {
+    pub fn new(entities_seed: EntitiesSeed) -> Self {
+        Self { entities_seed }
+    }
+}
+
+impl<'de, EntitiesSeed> DeserializeSeed<'de> for EntitiesDataSeed<EntitiesSeed>
 where
-    'resp: 'de,
+    EntitiesSeed: DeserializeSeed<'de, Value = ()>,
 {
     type Value = ();
 
@@ -34,13 +33,13 @@ where
     }
 }
 
-impl<'resp, 'de, R: Runtime> Visitor<'de> for EntitiesDataSeed<'resp, R>
+impl<'de, EntitiesSeed> Visitor<'de> for EntitiesDataSeed<EntitiesSeed>
 where
-    'resp: 'de,
+    EntitiesSeed: DeserializeSeed<'de, Value = ()>,
 {
     type Value = ();
 
-    fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         formatter.write_str("data with an entities list")
     }
 
@@ -48,20 +47,21 @@ where
     where
         A: MapAccess<'de>,
     {
+        let Self { entities_seed } = self;
+        let mut entities_seed = Some(entities_seed);
         while let Some(key) = map.next_key::<EntitiesKey>()? {
             match key {
                 EntitiesKey::Entities => {
-                    map.next_value_seed(EntitiesSeed {
-                        ctx: self.ctx,
-                        response_part: &self.response,
-                        cache_entries: self.cache_entries.map(|slice| slice.iter()),
-                    })?;
+                    if let Some(seed) = entities_seed.take() {
+                        map.next_value_seed(seed)?;
+                    }
                 }
                 EntitiesKey::Unknown => {
                     map.next_value::<IgnoredAny>()?;
                 }
             }
         }
+
         Ok(())
     }
 }
@@ -74,97 +74,28 @@ enum EntitiesKey {
     Unknown,
 }
 
-struct EntitiesSeed<'resp, 'parent, R: Runtime> {
-    ctx: ExecutionContext<'resp, R>,
-    response_part: &'parent SubgraphResponseRefMut<'resp>,
-    cache_entries: Option<std::slice::Iter<'parent, CacheEntry>>,
-}
-
-impl<'resp, 'de, R: Runtime> DeserializeSeed<'de> for EntitiesSeed<'resp, '_, R>
-where
-    'resp: 'de,
-{
-    type Value = ();
-
-    fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        deserializer.deserialize_seq(self)
-    }
-}
-
-impl<'resp, 'de, R: Runtime> Visitor<'de> for EntitiesSeed<'resp, '_, R>
-where
-    'resp: 'de,
-{
-    type Value = ();
-
-    fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        formatter.write_str("a non null entities list")
-    }
-
-    fn visit_seq<A>(mut self, mut seq: A) -> Result<Self::Value, A::Error>
-    where
-        A: SeqAccess<'de>,
-    {
-        while let Some(seed) = self.response_part.next_seed(&self.ctx) {
-            let maybe_cache_data = self
-                .cache_entries
-                .as_mut()
-                .map(|some| some.next().expect("cache entries to be the correct length"))
-                .and_then(CacheEntry::as_data);
-
-            let result = match maybe_cache_data {
-                Some(data) => {
-                    // The current element was found in the cache
-                    seed.deserialize(&mut serde_json::Deserializer::from_slice(data))
-                        .map(Some)
-                        .map_err(A::Error::custom)
-                }
-                _ => {
-                    // The current element was not found in the cache so should be read from the response
-                    seq.next_element_seed(seed)
-                }
-            };
-
-            match result {
-                Ok(Some(_)) => continue,
-                Ok(None) => break,
-                Err(err) => {
-                    // Discarding the rest of the list
-                    while seq.next_element::<IgnoredAny>().unwrap_or_default().is_some() {}
-                    return Err(err);
-                }
-            }
-        }
-        if seq.next_element::<IgnoredAny>()?.is_some() {
-            self.response_part.push_error(GraphqlError::new(
-                "Received more entities than expected",
-                ErrorCode::SubgraphInvalidResponseError,
-            ));
-            while seq.next_element::<IgnoredAny>()?.is_some() {}
-        }
-        Ok(())
-    }
-}
-
-pub(in crate::resolver::graphql) struct EntitiesErrorsSeed<'resp> {
+pub(in crate::resolver::graphql) struct EntityErrorPathConverter<'resp, F> {
     pub response: SubgraphResponseRefMut<'resp>,
+    pub index_to_input_id: F,
 }
 
-impl<'resp> EntitiesErrorsSeed<'resp> {
-    pub fn new(response: SubgraphResponseRefMut<'resp>) -> Self {
-        Self { response }
+impl<'resp, F> EntityErrorPathConverter<'resp, F>
+where
+    F: Fn(usize) -> Option<InputObjectId>,
+{
+    pub fn new(response: SubgraphResponseRefMut<'resp>, index_to_input_id: F) -> Self {
+        Self {
+            response,
+            index_to_input_id,
+        }
     }
 }
 
-impl<'resp> GraphqlErrorsSeed<'resp> for EntitiesErrorsSeed<'resp> {
-    fn response(&self) -> &SubgraphResponseRefMut<'resp> {
-        &self.response
-    }
-
-    fn convert_path(&self, path: serde_json::Value) -> Option<ErrorPath> {
+impl<F> SubgraphToSupergraphErrorPathConverter for EntityErrorPathConverter<'_, F>
+where
+    F: Fn(usize) -> Option<InputObjectId>,
+{
+    fn convert(&self, path: serde_json::Value) -> Option<ErrorPath> {
         let serde_json::Value::Array(path) = path else {
             return None;
         };
@@ -173,9 +104,11 @@ impl<'resp> GraphqlErrorsSeed<'resp> for EntitiesErrorsSeed<'resp> {
             return None;
         }
 
+        let index = path.next()?.as_u64()? as usize;
         let mut out = self
             .response
-            .get_root_response_object(path.next()?.as_u64()? as usize)?
+            .borrow()
+            .input_object_ref((self.index_to_input_id)(index)?)
             .path
             .iter()
             .map(Into::into)
