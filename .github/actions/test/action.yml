@@ -52,8 +52,7 @@ runs:
       working-directory: crates/wasi-component-loader/examples
       shell: bash
       run: |
-        cargo binstall -y cargo-component
-        cargo component build
+        cargo build --target wasm32-wasip2
 
     - name: Run all non-gateway tests
       id: all_tests
