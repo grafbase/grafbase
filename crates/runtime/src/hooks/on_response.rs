@@ -1,5 +1,4 @@
-use std::time::Duration;
-use web_time::Instant;
+use std::time::{Duration, Instant};
 
 pub use grafbase_telemetry::graphql::GraphqlResponseStatus;
 

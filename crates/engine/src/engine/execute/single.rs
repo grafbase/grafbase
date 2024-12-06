@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{sync::Arc, time::Instant};
 
 use grafbase_telemetry::{
     graphql::OperationType,
@@ -7,7 +7,6 @@ use grafbase_telemetry::{
 };
 use runtime::hooks::Hooks;
 use tracing::Instrument;
-use web_time::Instant;
 
 use crate::{
     engine::{HooksContext, RequestContext},

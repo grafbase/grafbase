@@ -1,4 +1,4 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, time::Duration};
 
 use bytes::Bytes;
 use futures::Future;
@@ -15,7 +15,6 @@ use runtime::{
 };
 use tower::retry::budget::Budget;
 use tracing::{Instrument, Span};
-use web_time::Duration;
 
 use crate::{
     execution::{ExecutionError, ExecutionResult},

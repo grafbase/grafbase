@@ -2131,7 +2131,6 @@ dependencies = [
  "tower 0.5.1",
  "tracing",
  "url",
- "web-time",
 ]
 
 [[package]]
@@ -6598,7 +6597,6 @@ dependencies = [
  "strum",
  "thiserror 2.0.3",
  "url",
- "web-time",
 ]
 
 [[package]]

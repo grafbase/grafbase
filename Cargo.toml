@@ -117,14 +117,10 @@ tower-service = "0.3.2"
 url = "2.5.0"
 uuid = "1.8.0"
 ulid = "1.1.2"
-web-time = "1.1.0"
 which = "7.0.0"
 wiremock = "0.6.0"
 fnv = "1.0.7"
 sha2 = "0.10.8"
-
-# Pin to this exact version, otherwise cargo-hakari pulls in features that exist only in later versions and that forces the upgrade for downstream crates that target cloudflare workers, where the latest wasm-bindgen does not work.
-wasm-bindgen = "=0.2.93"
 
 # Serde
 serde = { version = "1.0.199", features = ["derive"] }
