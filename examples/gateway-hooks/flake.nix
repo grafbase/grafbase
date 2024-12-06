@@ -4,14 +4,12 @@
   inputs.nixpkgs.url = "github:nixos/nixpkgs/master";
   inputs.devshell.url = "github:numtide/devshell";
   inputs.flake-parts.url = "github:hercules-ci/flake-parts";
-  inputs.grafbase.url = "github:grafbase/grafbase/gateway-0.12.0";
 
   outputs = inputs @ {
     self,
     flake-parts,
     devshell,
     nixpkgs,
-    grafbase,
   }:
     flake-parts.lib.mkFlake {inherit inputs;} {
       imports = [
@@ -52,11 +50,6 @@
             {
               package = pkgs.clang;
               category = "development";
-            }
-            {
-              package = grafbase.packages.${system}.grafbase-gateway;
-              category = "development";
-              help = "The Grafbase self-hosted gateway";
             }
           ];
         };

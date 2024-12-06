@@ -1,10 +1,110 @@
+use super::with_engine_for_auth;
+use engine::Engine;
+use graphql_mocks::dynamic::{DynamicSchema, EntityResolverContext};
 use http::HeaderMap;
+use integration_tests::{federation::EngineExt, runtime};
 use runtime::{
     error::{ErrorResponse, PartialErrorCode, PartialGraphqlError},
     hooks::{DynHookContext, DynHooks, EdgeDefinition},
 };
 
-use super::with_engine_for_auth;
+#[test]
+fn continue_execution() {
+    struct TestHooks;
+
+    #[async_trait::async_trait]
+    impl DynHooks for TestHooks {
+        async fn authorize_edge_node_post_execution(
+            &self,
+            _context: &DynHookContext,
+            _definition: EdgeDefinition<'_>,
+            nodes: Vec<serde_json::Value>,
+            _metadata: Option<serde_json::Value>,
+        ) -> Result<Vec<Result<(), PartialGraphqlError>>, PartialGraphqlError> {
+            Ok(nodes
+                .into_iter()
+                .map(|value| {
+                    if value["id"] == "1" {
+                        Ok(())
+                    } else {
+                        Err(PartialGraphqlError::new(
+                            "Unauthorized id",
+                            PartialErrorCode::Unauthorized,
+                        ))
+                    }
+                })
+                .collect())
+        }
+    }
+
+    runtime().block_on(async move {
+        let gateway = Engine::builder()
+            .with_subgraph(
+                DynamicSchema::builder(
+                    r#"
+                type Query {
+                    users: [User]! @authorized(node: "id")
+                }
+
+                type User @key(fields: "id") {
+                    id: ID!
+                }
+                "#,
+                )
+                .with_resolver("Query", "users", serde_json::json!([{"id": "1"}, {"id": "2"}]))
+                .into_subgraph("x"),
+            )
+            .with_subgraph(
+                DynamicSchema::builder(
+                    r#"
+                scalar Any
+
+                type User @key(fields: "id") {
+                    id: ID!
+                    name: String!
+                }
+                "#,
+                )
+                .with_entity_resolver("User", |ctx: EntityResolverContext<'_>| {
+                    match ctx.representation["id"].as_str().unwrap() {
+                        "1" => Some(serde_json::json!({"__typename": "User", "name": "Alice"})),
+                        "2" => Some(serde_json::json!({"__typename": "User", "name": "Bob"})),
+                        _ => unreachable!(),
+                    }
+                })
+                .into_subgraph("y"),
+            )
+            .with_mock_hooks(TestHooks)
+            .build()
+            .await;
+
+        let response = gateway.post("{ users { name } }").await;
+        insta::assert_json_snapshot!(response, @r#"
+        {
+          "data": {
+            "users": [
+              {
+                "name": "Alice"
+              },
+              null
+            ]
+          },
+          "errors": [
+            {
+              "message": "Unauthorized id",
+              "path": [
+                "users",
+                1
+              ],
+              "extensions": {
+                "code": "UNAUTHORIZED"
+              }
+            }
+          ]
+        }
+        "#);
+    })
+}
 
 #[test]
 fn nodes_are_provided() {
@@ -172,9 +272,9 @@ fn metadata_is_provided() {
             {
               "message": "Unauthorized role",
               "path": [
-                "wrongId",
+                "noMetadata",
                 "authorizedEdgeWithNode",
-                "withIdAndMetadata"
+                "withId"
               ],
               "extensions": {
                 "code": "UNAUTHORIZED"
@@ -183,9 +283,9 @@ fn metadata_is_provided() {
             {
               "message": "Unauthorized role",
               "path": [
-                "noMetadata",
+                "wrongId",
                 "authorizedEdgeWithNode",
-                "withId"
+                "withIdAndMetadata"
               ],
               "extensions": {
                 "code": "UNAUTHORIZED"
