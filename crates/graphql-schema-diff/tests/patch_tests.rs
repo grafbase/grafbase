@@ -1,5 +1,3 @@
-#![allow(unused_crate_dependencies)]
-
 use std::{fs, path::Path};
 
 fn read_schemas(case: &Path) -> datatest_stable::Result<(String, String)> {

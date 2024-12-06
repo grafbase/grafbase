@@ -1,4 +1,4 @@
-#![allow(unused_crate_dependencies, clippy::panic)]
+#![allow(clippy::panic)]
 
 pub mod federation;
 pub mod fetch;

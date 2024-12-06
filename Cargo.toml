@@ -193,7 +193,6 @@ codegen-units = 1
 [workspace.lints.rust]
 nonstandard-style = "deny"
 rust-2018-idioms = "deny"
-unused-crate-dependencies = "deny"
 
 [workspace.lints.clippy]
 all = { level = "deny", priority = -1 }

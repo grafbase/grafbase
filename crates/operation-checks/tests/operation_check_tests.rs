@@ -1,5 +1,3 @@
-#![allow(unused_crate_dependencies)]
-
 use operation_checks::CheckParams;
 use std::{fs, path::Path, sync::OnceLock};
 

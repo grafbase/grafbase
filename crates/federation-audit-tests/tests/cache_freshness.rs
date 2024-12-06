@@ -1,4 +1,4 @@
-#![allow(unused_crate_dependencies, clippy::panic)]
+#![allow(clippy::panic)]
 
 use federation_audit_tests::{audit_server::AuditServer, cached_tests, CachedTest};
 

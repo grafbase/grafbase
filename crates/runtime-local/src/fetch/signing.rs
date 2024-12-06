@@ -1,5 +1,3 @@
-use p256 as _; // Don't use this directly but we need to enable its JWK feature
-use p384 as _;
 use serde::Deserialize;
 use serde_json::json; // Don't use this directly but we need to enable its JWK feature
 

@@ -1,5 +1,3 @@
-#![allow(unused_crate_dependencies)]
-
 use std::{fs, path::Path, sync::LazyLock};
 
 static UPDATE_EXPECT: LazyLock<bool> = LazyLock::new(|| std::env::var("UPDATE_EXPECT").is_ok());

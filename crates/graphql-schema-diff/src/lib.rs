@@ -1,5 +1,4 @@
 #![doc = include_str!("../README.md")]
-#![allow(unused_crate_dependencies)]
 
 pub mod path;
 

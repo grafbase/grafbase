@@ -1,6 +1,3 @@
-#![allow(unused_crate_dependencies)]
-
-use itertools::Itertools as _;
 use std::{fs, path::Path, sync::OnceLock};
 
 fn update_expect() -> bool {
@@ -55,7 +52,7 @@ fn run_test(federated_graph_path: &Path) -> datatest_stable::Result<()> {
                 "{}\n",
                 diagnostics
                     .iter_messages()
-                    .map(|msg| format!("# {}", msg.lines().join("\\n")))
+                    .map(|msg| format!("# {}", msg.lines().collect::<Vec<_>>().join("\\n")))
                     .collect::<Vec<_>>()
                     .join("\n"),
             ),

@@ -1,7 +1,5 @@
 #![deny(clippy::future_not_send)]
 
-use grafbase_workspace_hack as _;
-
 pub mod auth;
 pub mod bytes;
 pub mod cursor;

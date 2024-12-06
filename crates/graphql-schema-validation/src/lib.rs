@@ -1,5 +1,4 @@
 #![deny(unsafe_code, missing_docs, rust_2018_idioms)]
-#![allow(unused_crate_dependencies)]
 #![doc = include_str!("../README.md")]
 
 mod context;

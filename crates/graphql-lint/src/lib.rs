@@ -1,5 +1,3 @@
-use grafbase_workspace_hack as _;
-
 use cynic_parser::type_system::{
     Definition, Directive, DirectiveDefinition, EnumDefinition, EnumValueDefinition, FieldDefinition,
     InputObjectDefinition, InputValueDefinition, InterfaceDefinition, ObjectDefinition, ScalarDefinition,
@@ -446,8 +444,6 @@ impl<'a> SchemaLinter {
 
 #[test]
 fn linter() {
-    use criterion as _;
-
     let schema = r#"
         directive @WithDeprecatedArgs(
           ARG: String @deprecated(reason: "Use `newArg`")

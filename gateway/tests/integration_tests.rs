@@ -1,5 +1,3 @@
-#![allow(unused_crate_dependencies, clippy::panic)]
-
 mod access_logs;
 mod entity_caching;
 mod mocks;

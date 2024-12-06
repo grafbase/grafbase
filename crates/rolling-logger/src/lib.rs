@@ -19,7 +19,6 @@ mod strategy;
 
 pub use strategy::RotateStrategy;
 
-use grafbase_workspace_hack as _;
 use log_file::LogFile;
 use std::{
     io::{self, Write},

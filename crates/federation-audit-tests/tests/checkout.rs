@@ -1,4 +1,4 @@
-#![allow(unused_crate_dependencies, clippy::panic)]
+#![allow(clippy::panic)]
 
 use std::process::Command;
 

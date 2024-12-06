@@ -1,5 +1,3 @@
-use grafbase_workspace_hack as _;
-
 use clap::Parser;
 use colored::Colorize;
 use graphql_lint::{lint, LinterError, Severity};

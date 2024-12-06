@@ -1,6 +1,5 @@
 mod mutable;
 
-use grafbase_workspace_hack as _;
 pub use mutable::MutableWrapping;
 
 const LIST_WRAPPER_LENGTH_MASK: u16 = 0b0111_1000_0000_0000;

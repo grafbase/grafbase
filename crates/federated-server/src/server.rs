@@ -16,7 +16,6 @@ use tokio::sync::watch;
 use ulid::Ulid;
 
 use axum::{extract::State, response::IntoResponse, routing::get, Router};
-use axum_server as _;
 use engine_axum::{
     middleware::{ResponseHookLayer, TelemetryLayer},
     websocket::{WebsocketAccepter, WebsocketService},

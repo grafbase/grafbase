@@ -1,5 +1,3 @@
-#![allow(unused_crate_dependencies)]
-
 use graphql_schema_validation::Options;
 use std::{
     fs,

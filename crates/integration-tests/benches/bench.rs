@@ -1,5 +1,3 @@
-#![allow(unused_crate_dependencies)]
-
 #[cfg(unix)]
 mod federation;
 

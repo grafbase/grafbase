@@ -1,5 +1,4 @@
 use engine_config::{AuthConfig, AuthProviderConfig};
-use grafbase_workspace_hack as _;
 
 mod anonymous;
 mod jwt;
