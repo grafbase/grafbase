@@ -1,6 +1,6 @@
 use std::{cell::RefMut, ops::Deref};
 
-use crate::response::{PositionedResponseKey, ResponseValueId, SafeResponseKey};
+use crate::response::{PositionedResponseKey, ResponseKey, ResponseValueId};
 
 #[derive(Debug, Clone)]
 pub(crate) struct ErrorPath(Vec<ErrorPathSegment>);
@@ -14,13 +14,13 @@ impl std::ops::Deref for ErrorPath {
 
 #[derive(Debug, Clone)]
 pub(crate) enum ErrorPathSegment {
-    Field(SafeResponseKey),
+    Field(ResponseKey),
     Index(usize),
     UnknownField(String),
 }
 
-impl From<SafeResponseKey> for ErrorPathSegment {
-    fn from(key: SafeResponseKey) -> Self {
+impl From<ResponseKey> for ErrorPathSegment {
+    fn from(key: ResponseKey) -> Self {
         ErrorPathSegment::Field(key)
     }
 }

@@ -1,4 +1,4 @@
-use super::{DataPartId, ErrorPathSegment, ResponseListId, ResponseObjectId, SafeResponseKey};
+use super::{DataPartId, ErrorPathSegment, ResponseKey, ResponseListId, ResponseObjectId};
 
 /// Unique identifier of a value within the response. Used to propagate null at the right place
 /// and to generate the appropriate error path for GraphQL errors.
@@ -6,7 +6,7 @@ use super::{DataPartId, ErrorPathSegment, ResponseListId, ResponseObjectId, Safe
 pub(crate) enum ResponseValueId {
     Field {
         object_id: ResponseObjectId,
-        key: SafeResponseKey,
+        key: ResponseKey,
         nullable: bool,
     },
     Index {

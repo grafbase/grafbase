@@ -4,7 +4,7 @@ use crate::{
         BoundField, BoundFieldArgument, BoundFieldArgumentId, BoundQueryField, BoundSelectionSetId, BoundTypeNameField,
         QueryInputValueRecord, QueryModifierRule,
     },
-    response::SafeResponseKey,
+    response::ResponseKey,
 };
 use cynic_parser::{
     executable::{Argument, FieldSelection, Iter},
@@ -18,7 +18,7 @@ impl<'schema, 'p> Binder<'schema, 'p> {
         &mut self,
         type_condition: CompositeTypeId,
         query_position: QueryPosition,
-        key: SafeResponseKey,
+        key: ResponseKey,
         field: FieldSelection<'p>,
     ) -> BindResult<BoundFieldId> {
         Ok(self.push_field(BoundField::TypeName(BoundTypeNameField {
@@ -32,7 +32,7 @@ impl<'schema, 'p> Binder<'schema, 'p> {
     pub(super) fn bind_field(
         &mut self,
         query_position: QueryPosition,
-        key: SafeResponseKey,
+        key: ResponseKey,
         definition_id: FieldDefinitionId,
         field: FieldSelection<'p>,
         selection_set_id: Option<BoundSelectionSetId>,

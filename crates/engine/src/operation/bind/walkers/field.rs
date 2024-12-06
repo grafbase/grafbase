@@ -7,7 +7,7 @@ use super::{
 };
 use crate::{
     operation::{BoundExtraField, BoundField, BoundFieldId, BoundQueryField, Location},
-    response::SafeResponseKey,
+    response::ResponseKey,
 };
 
 pub type FieldWalker<'a> = OperationWalker<'a, BoundFieldId>;
@@ -24,7 +24,7 @@ impl<'a> FieldWalker<'a> {
         self.as_ref().definition_id().map(|id| self.schema.walk(id))
     }
 
-    pub fn response_key(&self) -> SafeResponseKey {
+    pub fn response_key(&self) -> ResponseKey {
         self.as_ref().response_key().unwrap()
     }
 

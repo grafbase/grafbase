@@ -12,19 +12,19 @@ use crate::{
         BoundExtraField, BoundField, BoundFieldArgument, BoundFieldArgumentId, BoundFieldId, BoundOperation,
         QueryInputValueRecord, QueryPosition,
     },
-    response::SafeResponseKey,
+    response::ResponseKey,
 };
 
 pub(super) struct OperationAdapter<'a> {
     pub schema: &'a Schema,
     pub operation: &'a mut BoundOperation,
-    field_renames: HashMap<FieldRenameConsistencyKey, SafeResponseKey>,
+    field_renames: HashMap<FieldRenameConsistencyKey, ResponseKey>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 enum FieldRenameConsistencyKey {
     FieldWithDistinctType {
-        key: SafeResponseKey,
+        key: ResponseKey,
         field_definition_id: FieldDefinitionId,
     },
     FieldNamedTypename {
@@ -263,9 +263,9 @@ impl OperationAdapter<'_> {
     fn generate_new_key(
         &mut self,
         rename_consistency_key: Option<FieldRenameConsistencyKey>,
-        selection_set_keys: &[SafeResponseKey],
+        selection_set_keys: &[ResponseKey],
         name_suggestion: StringId,
-    ) -> SafeResponseKey {
+    ) -> ResponseKey {
         if let Some(key) = rename_consistency_key.as_ref().and_then(|k| self.field_renames.get(k)) {
             return *key;
         }
