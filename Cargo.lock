@@ -1093,6 +1093,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "afb84c814227b90d6895e01398aee0d8033c00e7466aca416fb6a8e0eb19d8a7"
 
 [[package]]
+name = "cli-table"
+version = "0.4.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b53f9241f288a7b12c56565f04aaeaeeab6b8923d42d99255d4ca428b4d97f89"
+dependencies = [
+ "termcolor",
+ "unicode-width 0.1.14",
+]
+
+[[package]]
 name = "clickhouse"
 version = "0.13.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3109,6 +3119,7 @@ version = "0.81.0"
 dependencies = [
  "axum",
  "chrono",
+ "cli-table",
  "crossterm 0.28.1",
  "cynic",
  "cynic-codegen",
@@ -3138,6 +3149,7 @@ dependencies = [
  "toml",
  "tower-http",
  "tracing",
+ "url",
  "urlencoding",
 ]
 
