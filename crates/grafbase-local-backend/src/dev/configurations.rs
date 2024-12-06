@@ -64,7 +64,7 @@ pub async fn get_and_merge_configurations(
             (None, None)
         };
 
-    let merged_configuration = if overrides_value.is_none() {
+    let mut merged_configuration = if overrides_value.is_none() {
         config.unwrap_or_default()
     } else {
         config_value
@@ -81,6 +81,8 @@ pub async fn get_and_merge_configurations(
     let overridden_subgraphs = graph_overrides
         .map(|config| config.subgraphs.into_keys().collect::<HashSet<_>>())
         .unwrap_or_default();
+
+    merged_configuration.graph.introspection = true;
 
     Ok(DevConfiguration {
         overridden_subgraphs,
