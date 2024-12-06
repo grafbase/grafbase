@@ -5,6 +5,7 @@ use std::{collections::HashSet, path::PathBuf};
 use tokio::fs;
 
 pub struct DevConfiguration {
+    pub introspection_forced: bool,
     pub overridden_subgraphs: HashSet<String>,
     pub merged_configuration: Config,
 }
@@ -82,9 +83,11 @@ pub async fn get_and_merge_configurations(
         .map(|config| config.subgraphs.into_keys().collect::<HashSet<_>>())
         .unwrap_or_default();
 
+    let introspection_forced = !merged_configuration.graph.introspection;
     merged_configuration.graph.introspection = true;
 
     Ok(DevConfiguration {
+        introspection_forced,
         overridden_subgraphs,
         merged_configuration,
     })

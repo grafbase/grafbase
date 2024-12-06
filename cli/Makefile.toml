@@ -102,8 +102,9 @@ mac_alias = "mac-profile-dev"
 [tasks.fetch-assets]
 description = "Fetch the Pathfinder tar.gz"
 script = '''
+CACHE_BREAKER=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 10 | head -n 1)
 pushd ../crates/grafbase-local-backend/assets
-curl -H "Cache-Control: no-cache" -o pathfinder.tar.gz http://assets.grafbase.com/pathfinder/pathfinder.tar.gz
+curl -o pathfinder.tar.gz http://assets.grafbase.com/pathfinder/pathfinder.tar.gz?cache=$CACHE_BREAKER
 popd
 '''
 
