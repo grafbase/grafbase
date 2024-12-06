@@ -1,3 +1,5 @@
+use std::sync::{atomic::AtomicBool, Arc};
+
 use super::with_engine_for_auth;
 use engine::Engine;
 use graphql_mocks::dynamic::{DynamicSchema, EntityResolverContext};
@@ -8,6 +10,129 @@ use runtime::{
     hooks::{DynHookContext, DynHooks, EdgeDefinition},
 };
 
+#[test]
+fn single_decision_applies_to_all() {
+    #[derive(Default, Clone)]
+    struct TestHooks {
+        is_authorized: Arc<AtomicBool>,
+    }
+
+    #[async_trait::async_trait]
+    impl DynHooks for TestHooks {
+        async fn authorize_edge_node_post_execution(
+            &self,
+            _context: &DynHookContext,
+            _definition: EdgeDefinition<'_>,
+            _nodes: Vec<serde_json::Value>,
+            _metadata: Option<serde_json::Value>,
+        ) -> Result<Vec<Result<(), PartialGraphqlError>>, PartialGraphqlError> {
+            if self.is_authorized.as_ref().load(std::sync::atomic::Ordering::Relaxed) {
+                Ok(vec![Ok(())])
+            } else {
+                Ok(vec![Err(PartialGraphqlError::new(
+                    "Unauthorized",
+                    PartialErrorCode::Unauthorized,
+                ))])
+            }
+        }
+    }
+
+    runtime().block_on(async move {
+        let hooks = TestHooks::default();
+
+        let gateway = Engine::builder()
+            .with_subgraph(
+                DynamicSchema::builder(
+                    r#"
+                type Query {
+                    users: [User]! @authorized(node: "id")
+                }
+
+                type User @key(fields: "id") {
+                    id: ID!
+                }
+                "#,
+                )
+                .with_resolver("Query", "users", serde_json::json!([{"id": "1"}, {"id": "2"}]))
+                .into_subgraph("x"),
+            )
+            .with_subgraph(
+                DynamicSchema::builder(
+                    r#"
+                scalar Any
+
+                type User @key(fields: "id") {
+                    id: ID!
+                    name: String!
+                }
+                "#,
+                )
+                .with_entity_resolver("User", |ctx: EntityResolverContext<'_>| {
+                    match ctx.representation["id"].as_str().unwrap() {
+                        "1" => Some(serde_json::json!({"__typename": "User", "name": "Alice"})),
+                        "2" => Some(serde_json::json!({"__typename": "User", "name": "Bob"})),
+                        _ => unreachable!(),
+                    }
+                })
+                .into_subgraph("y"),
+            )
+            .with_mock_hooks(hooks.clone())
+            .build()
+            .await;
+
+        hooks.is_authorized.store(true, std::sync::atomic::Ordering::Relaxed);
+        let response = gateway.post("{ users { name } }").await;
+        insta::assert_json_snapshot!(response, @r#"
+        {
+          "data": {
+            "users": [
+              {
+                "name": "Alice"
+              },
+              {
+                "name": "Bob"
+              }
+            ]
+          }
+        }
+        "#);
+
+        hooks.is_authorized.store(false, std::sync::atomic::Ordering::Relaxed);
+        let response = gateway.post("{ users { name } }").await;
+        insta::assert_json_snapshot!(response, @r#"
+        {
+          "data": {
+            "users": [
+              null,
+              null
+            ]
+          },
+          "errors": [
+            {
+              "message": "Unauthorized",
+              "path": [
+                "users",
+                0
+              ],
+              "extensions": {
+                "code": "UNAUTHORIZED"
+              }
+            },
+            {
+              "message": "Unauthorized",
+              "path": [
+                "users",
+                1
+              ],
+              "extensions": {
+                "code": "UNAUTHORIZED"
+              }
+            }
+          ]
+        }
+        "#);
+    })
+}
 #[test]
 fn continue_execution() {
     struct TestHooks;
