@@ -15,6 +15,7 @@ use tokio::fs;
 use tower_http::services::ServeDir;
 use tower_http::set_header::SetResponseHeader;
 
+const INDEX_FILE_NAME: &str = "index.hbs";
 const DOT_GRAFBASE_DIR: &str = ".grafbase";
 const PATHFINDER_ASSETS_DIR: &str = "pathfinder";
 const VERSION_FILE_NAME: &str = "version";
@@ -57,8 +58,14 @@ pub async fn export_assets() -> Result<(), BackendError> {
 }
 
 pub fn get_pathfinder_router<T>(port: u16, home_dir: &Path) -> ServerRouter<T> {
-    let html =
-        include_str!("pathfinder.html").replace("{{ GRAPHQL_URL }}", &format!("http://127.0.0.1:{port}/graphql"));
+    let index_path = home_dir
+        .join(DOT_GRAFBASE_DIR)
+        .join(PATHFINDER_ASSETS_DIR)
+        .join(INDEX_FILE_NAME);
+
+    let html = std::fs::read_to_string(index_path)
+        .expect("we create this a step above")
+        .replace("{{ GRAPHQL_URL }}", &format!("\"http://127.0.0.1:{port}/graphql\""));
 
     Router::new()
         .route("/", get(root))

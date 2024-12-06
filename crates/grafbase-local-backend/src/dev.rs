@@ -71,11 +71,12 @@ pub async fn start(
 
     let output_handler_ready_receiver = ready_sender.subscribe();
 
-    spawn_blocking(|| {
-        let _ = output_handler(output_handler_ready_receiver);
-    });
-
     let dev_configuration = get_and_merge_configurations(gateway_config_path, graph_overrides_path).await?;
+    let introspection_forced = dev_configuration.introspection_forced;
+
+    spawn_blocking(move || {
+        let _ = output_handler(output_handler_ready_receiver, introspection_forced);
+    });
 
     let port = port
         .or(dev_configuration
@@ -152,7 +153,10 @@ pub async fn start(
     Ok(())
 }
 
-fn output_handler(mut receiver: Receiver<String>) -> Result<(), Box<dyn std::error::Error>> {
+fn output_handler(
+    mut receiver: Receiver<String>,
+    introspection_forced: bool,
+) -> Result<(), Box<dyn std::error::Error>> {
     use crossterm::{
         cursor::MoveUp,
         style::Stylize,
@@ -192,6 +196,10 @@ fn output_handler(mut receiver: Receiver<String>) -> Result<(), Box<dyn std::err
 
     print_stdout(table).unwrap();
     println!();
+
+    if introspection_forced {
+        tracing::info!("introspection is always enabled in the dev mode, config overriden");
+    }
 
     Ok(())
 }

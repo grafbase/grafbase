@@ -12,7 +12,7 @@ struct AuthorizeUserRequest {
     user_id: usize,
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(serde::Serialize, serde::Deserialize, Debug)]
 struct AuthorizeAddressRequest {
     current_user_id: usize,
     owner_id: usize,
@@ -80,7 +80,7 @@ pub(super) fn authorize_address(current_user_id: usize, owner_ids: Vec<usize>) -
 
             HttpRequest {
                 method: HttpMethod::Post,
-                url: String::from("http://localhost:4001/authorize-user"),
+                url: String::from("http://localhost:4001/authorize-address"),
                 headers: vec![("Content-Type".to_string(), "application/json".to_string())],
                 body: serde_json::to_vec(&AuthorizeAddressRequest {
                     current_user_id,
