@@ -314,9 +314,9 @@ fn metadata_is_provided() {
             {
               "message": "Unauthorized role",
               "path": [
-                "wrongPrefix",
+                "noMetadata",
                 "authorizedEdgeWithFields",
-                "withIdAndMetadata"
+                "withId"
               ],
               "extensions": {
                 "code": "UNAUTHORIZED"
@@ -325,9 +325,9 @@ fn metadata_is_provided() {
             {
               "message": "Unauthorized role",
               "path": [
-                "noMetadata",
+                "wrongPrefix",
                 "authorizedEdgeWithFields",
-                "withId"
+                "withIdAndMetadata"
               ],
               "extensions": {
                 "code": "UNAUTHORIZED"

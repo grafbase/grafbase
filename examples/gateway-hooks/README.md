@@ -44,7 +44,7 @@ On Rust 1.83 or later:
 
 ```bash
 cd hooks
-cargo build --target wasm32-wasip2
+cargo build --target wasm32-wasip2 --release
 ```
 
 On Rust 1.82 or earlier:

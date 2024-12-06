@@ -75,6 +75,7 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
                 // FIXME: make this efficient
                 let result = match result {
                     Ok(result) => {
+                        tracing::debug!("Authorized result: {result:#?}");
                         if result.len() == input.len() {
                             result
                                 .into_iter()
@@ -144,6 +145,7 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
                 // FIXME: make this efficient
                 let result = match result {
                     Ok(result) => {
+                        tracing::debug!("Authorized result: {result:#?}");
                         if result.len() == input.len() {
                             result
                                 .into_iter()

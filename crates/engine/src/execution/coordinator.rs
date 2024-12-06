@@ -487,7 +487,8 @@ impl<'ctx, R: Runtime> OperationExecution<'ctx, R> {
                     self.state.push_response_objects(set_id, response_object_refs);
                 }
 
-                for executable in self.state.get_next_executables(plan) {
+                let mut stack = self.state.get_next_executables(plan);
+                while let Some(executable) = stack.pop() {
                     tracing::trace!("Running {:?}", executable.id());
                     match executable {
                         Executable::Plan(plan) => {
@@ -499,6 +500,7 @@ impl<'ctx, R: Runtime> OperationExecution<'ctx, R> {
                             self.ctx
                                 .execute_response_modifier(&mut self.state, &mut self.response, response_modifier)
                                 .await;
+                            stack.append(&mut self.state.get_next_executables(response_modifier));
                         }
                     }
                 }
