@@ -22,7 +22,6 @@ serde.workspace = true
 thiserror.workspace = true
 tonic = { workspace = true, optional = true, features = ["tls-roots"] }
 url = { workspace = true, features = ["serde"] }
-worker = { workspace = true, optional = true }
 headers.workspace = true
 serde-dynamic-string.workspace = true
 postcard.workspace = true
@@ -65,7 +64,6 @@ grafbase-workspace-hack.workspace = true
 [features]
 default = []
 otlp = ["dep:opentelemetry-otlp", "dep:tonic", "gateway-config/otlp"]
-worker = ["dep:worker"]
 lambda = []
 
 [dev-dependencies]

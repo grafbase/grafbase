@@ -49,7 +49,6 @@ tower = { workspace = true, features = ["retry"] }
 tracing.workspace = true
 http.workspace = true
 headers.workspace = true
-web-time.workspace = true
 
 engine-auth = { path = "./auth" }
 operation-normalizer = { path = "../operation-normalizer" }

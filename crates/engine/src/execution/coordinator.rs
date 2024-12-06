@@ -1,4 +1,4 @@
-use std::{collections::VecDeque, sync::Arc};
+use std::{collections::VecDeque, sync::Arc, time::Instant};
 
 use futures::{stream::FuturesOrdered, Future, FutureExt, Stream};
 use futures_util::{
@@ -288,7 +288,7 @@ where
                         self.first_executed_operation_builder
                             .take()
                             .unwrap_or_else(|| ExecutedOperationBuilder {
-                                start_time: web_time::Instant::now(),
+                                start_time: Instant::now(),
                                 prepare_duration: Some(Default::default()),
                                 cached_plan: true,
                                 on_subgraph_response_outputs: Vec::new(),

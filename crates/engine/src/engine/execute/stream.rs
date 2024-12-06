@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{sync::Arc, time::Instant};
 
 use futures::{
     channel::{mpsc, oneshot},
@@ -13,7 +13,6 @@ use grafbase_telemetry::{
 };
 use runtime::hooks::Hooks;
 use tracing::Instrument;
-use web_time::Instant;
 
 use crate::{
     engine::{errors, HooksContext, RequestContext},

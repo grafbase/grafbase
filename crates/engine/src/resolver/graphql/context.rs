@@ -11,10 +11,9 @@ use runtime::{
     },
 };
 use schema::GraphqlEndpoint;
-use std::ops::Deref;
+use std::{ops::Deref, time::Instant};
 use tower::retry::budget::TpsBudget;
 use tracing::{Instrument, Span};
-use web_time::Instant;
 
 use grafbase_telemetry::{
     graphql::SubgraphResponseStatus,

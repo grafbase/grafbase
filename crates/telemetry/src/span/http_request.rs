@@ -78,47 +78,6 @@ impl<'a> HttpRequestSpanBuilder<'a> {
         }
     }
 
-    #[cfg(feature = "worker")]
-    /// Create a new instance from a reference of [worker::Request]
-    pub fn try_from_worker(request: &'a worker::Request) -> worker::Result<Self> {
-        use core::str::FromStr;
-        use http::HeaderValue;
-
-        use crate::grafbase_client::{X_GRAFBASE_CLIENT_NAME, X_GRAFBASE_CLIENT_VERSION};
-
-        let method =
-            http::Method::from_str(request.method().as_ref()).map_err(|e| worker::Error::RustError(e.to_string()))?;
-
-        let user_agent = request
-            .headers()
-            .get(USER_AGENT.as_str())?
-            .and_then(|value| HeaderValue::from_str(&value).ok())
-            .map(Cow::Owned);
-
-        let x_forwarded_for = request
-            .headers()
-            .get(X_FORWARDED_FOR_HEADER)?
-            .and_then(|value| HeaderValue::from_str(&value).ok())
-            .map(Cow::Owned);
-
-        let uri = http::Uri::try_from(request.url()?.as_str()).map_err(|e| worker::Error::RustError(e.to_string()))?;
-
-        Ok(HttpRequestSpanBuilder {
-            request_body_size: None,
-            request_method: Cow::Owned(method),
-            header_user_agent: user_agent,
-            header_x_forwarded_for: x_forwarded_for,
-            header_x_grafbase_client: Client::maybe_new(
-                request.headers().get(X_GRAFBASE_CLIENT_NAME.as_str()).ok().flatten(),
-                request.headers().get(X_GRAFBASE_CLIENT_VERSION.as_str()).ok().flatten(),
-            ),
-            header_ray_id: None,
-            url: Cow::Owned(uri),
-            server_address: None,
-            server_port: None,
-        })
-    }
-
     /// Consume self and turn into a [Span]
     pub fn build(self) -> HttpRequestSpan {
         // We follow the HTTP server span conventions:
