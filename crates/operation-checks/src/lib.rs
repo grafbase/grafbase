@@ -6,7 +6,6 @@
 //! - Aggregate field usage from the operations with [aggregate_field_usage()].
 //! - Run the checks with [check()].
 
-#![allow(unused_crate_dependencies)]
 #![deny(missing_docs)]
 
 mod aggregate_field_usage;

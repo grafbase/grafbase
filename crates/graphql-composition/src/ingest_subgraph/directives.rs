@@ -547,9 +547,6 @@ fn read_imports<'a>(ast_imports: ConstList<'a>, out: &mut Vec<(&'a str, &'a str)
 
 #[cfg(test)]
 mod federation_directives_matcher_tests {
-    use datatest_stable as _;
-    use miette as _;
-    use similar as _;
 
     use super::*;
 

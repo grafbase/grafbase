@@ -1,5 +1,4 @@
 use apq::AutomaticPersistedQueries;
-use grafbase_workspace_hack as _;
 use operation_caching::OperationCaching;
 
 pub mod apq;

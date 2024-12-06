@@ -1,5 +1,3 @@
-use grafbase_workspace_hack as _;
-
 mod iter;
 
 pub use iter::*;

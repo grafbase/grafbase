@@ -1,4 +1,3 @@
-#![allow(unused_crate_dependencies)]
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use graphql_lint::lint;
 
@@ -16,7 +15,7 @@ fn criterion_benchmark(criterion: &mut Criterion) {
         enum lowercase_Enum {
           an_enum_member @deprecated
         }
-        
+
         type Query {
           __test: String,
           getHello(name: String!): Enum_lowercase!

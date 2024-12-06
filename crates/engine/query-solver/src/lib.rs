@@ -1,7 +1,5 @@
 use std::borrow::Cow;
 
-use grafbase_workspace_hack as _;
-
 #[cfg(test)]
 mod tests;
 

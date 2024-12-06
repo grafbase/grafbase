@@ -18,8 +18,6 @@
 
 #![deny(missing_docs)]
 
-use grafbase_workspace_hack as _;
-
 mod arguments;
 mod directives;
 mod operation;

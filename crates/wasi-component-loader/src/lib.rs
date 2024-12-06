@@ -8,8 +8,6 @@
 
 #![deny(missing_docs)]
 
-use grafbase_workspace_hack as _;
-
 mod access_log;
 mod config;
 mod context;

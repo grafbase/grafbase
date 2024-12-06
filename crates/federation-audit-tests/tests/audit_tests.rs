@@ -1,5 +1,3 @@
-#![allow(unused_crate_dependencies)]
-
 use federation_audit_tests::{
     audit_server::{AuditServer, ExpectedResponse, Test},
     cached_tests, CachedTest, Response,

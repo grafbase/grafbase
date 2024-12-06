@@ -1,7 +1,6 @@
 #![allow(clippy::panic)]
 //! A mock GraphQL server for testing the GraphQL connector
 
-use grafbase_workspace_hack as _;
 use http::Uri;
 use serde_json::json;
 

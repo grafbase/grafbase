@@ -128,7 +128,6 @@ mod tests {
     use std::path::PathBuf;
     #[cfg(feature = "otlp")]
     use std::str::FromStr;
-    use tempfile as _;
     #[cfg(feature = "otlp")]
     use url::Url;
 

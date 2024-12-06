@@ -1,5 +1,3 @@
-#![allow(unused_crate_dependencies)]
-
 #[test]
 fn subgraph_names_that_differ_only_by_case_are_not_allowed() {
     let mut subgraphs = graphql_composition::Subgraphs::default();

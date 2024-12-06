@@ -1,5 +1,3 @@
-use grafbase_workspace_hack as _;
-
 use std::{borrow::Cow, fmt, str};
 
 /// Parsed graph reference. A graph reference is a string of the form `graph@branch#version`.

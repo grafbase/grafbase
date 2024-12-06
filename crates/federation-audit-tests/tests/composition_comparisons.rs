@@ -1,5 +1,3 @@
-#![allow(unused_crate_dependencies)]
-
 use federation_audit_tests::{audit_server::AuditServer, cached_tests};
 use libtest_mimic::{Arguments, Failed, Trial};
 

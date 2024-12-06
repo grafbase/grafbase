@@ -1,9 +1,9 @@
-{ pkgs
-, crane
-, lib
-, ...
-}:
-let
+{
+  pkgs,
+  crane,
+  lib,
+  ...
+}: let
   rustToolchain = pkgs.rust-bin.stable.latest.default;
   craneLib = (crane.mkLib pkgs).overrideToolchain rustToolchain;
   workspaceRoot = builtins.path {
@@ -26,19 +26,18 @@ let
     !/crates/graphql-schema-diff/README.md
   '';
 
-  src = pkgs.nix-gitignore.gitignoreSource [ extraIgnores ] (lib.cleanSourceWith {
+  src = pkgs.nix-gitignore.gitignoreSource [extraIgnores] (lib.cleanSourceWith {
     filter = lib.cleanSourceFilter;
     src = workspaceRoot;
   });
 
-  version = pkgs.runCommand "getVersion" { } ''
+  version = pkgs.runCommand "getVersion" {} ''
     ${pkgs.dasel}/bin/dasel \
       --file ${../Cargo.toml} \
       --selector package.version\
       --write - | tr -d "\n" > $out
   '';
-in
-{
+in {
   packages.grafbase-gateway = craneLib.buildPackage {
     inherit src;
     pname = "grafbase-gateway";
@@ -48,7 +47,7 @@ in
     cargoExtraArgs = "-p grafbase-gateway";
 
     RUSTFLAGS = builtins.concatStringsSep " " [
-      "-Arust-2018-idioms -Aunused-crate-dependencies"
+      "-Arust-2018-idioms"
       "-C linker=clang -C link-arg=-fuse-ld=lld"
     ];
 

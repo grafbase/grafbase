@@ -20,8 +20,6 @@ let (server_port, server_handle) = start_server(PORT, SEARCH).unwrap();
 
 #![forbid(unsafe_code)]
 
-use grafbase_workspace_hack as _;
-
 pub mod api;
 pub mod dev;
 pub mod errors;
