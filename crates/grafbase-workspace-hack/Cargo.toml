@@ -72,7 +72,6 @@ hyper = { version = "1", features = ["full"] }
 hyper-util = { version = "0.1", features = ["client-legacy", "server-auto", "service"] }
 indexmap = { version = "2", features = ["serde"] }
 insta = { version = "1", features = ["json", "redactions", "yaml"] }
-js-sys = { version = "0.3" }
 lazy_static = { version = "1", default-features = false, features = ["spin_no_std"] }
 log = { version = "0.4", default-features = false, features = ["std"] }
 memchr = { version = "2" }
@@ -131,9 +130,7 @@ tungstenite = { version = "0.24", features = ["__rustls-tls", "url"] }
 ulid = { version = "1", features = ["serde"] }
 url = { version = "2", features = ["serde"] }
 uuid = { version = "1", features = ["v4"] }
-wasm-bindgen = { version = "0.2" }
 wasmparser = { version = "0.219", default-features = false, features = ["component-model", "features", "serde", "std", "validate"] }
-web-sys = { version = "0.3", features = ["AbortController", "AbortSignal", "BinaryType", "Cache", "CacheQueryOptions", "CacheStorage", "CloseEvent", "ErrorEvent", "File", "FormData", "Headers", "MessageEvent", "ProgressEvent", "QueuingStrategy", "ReadableByteStreamController", "ReadableStream", "ReadableStreamByobReader", "ReadableStreamByobRequest", "ReadableStreamDefaultController", "ReadableStreamDefaultReader", "ReadableStreamGetReaderOptions", "ReadableStreamReadResult", "ReadableStreamReaderMode", "ReadableStreamType", "ReadableWritablePair", "Request", "RequestInit", "RequestRedirect", "Response", "ResponseInit", "StreamPipeOptions", "TransformStream", "TransformStreamDefaultController", "Transformer", "UnderlyingSink", "UnderlyingSource", "WebSocket", "WorkerGlobalScope", "WritableStream", "WritableStreamDefaultController", "WritableStreamDefaultWriter", "console"] }
 zerocopy = { version = "0.7", features = ["derive", "simd"] }
 zeroize = { version = "1", features = ["zeroize_derive"] }
 
@@ -192,7 +189,6 @@ hyper = { version = "1", features = ["full"] }
 hyper-util = { version = "0.1", features = ["client-legacy", "server-auto", "service"] }
 indexmap = { version = "2", features = ["serde"] }
 insta = { version = "1", features = ["json", "redactions", "yaml"] }
-js-sys = { version = "0.3" }
 lazy_static = { version = "1", default-features = false, features = ["spin_no_std"] }
 log = { version = "0.4", default-features = false, features = ["std"] }
 memchr = { version = "2" }
@@ -252,12 +248,7 @@ tungstenite = { version = "0.24", features = ["__rustls-tls", "url"] }
 ulid = { version = "1", features = ["serde"] }
 url = { version = "2", features = ["serde"] }
 uuid = { version = "1", features = ["v4"] }
-wasm-bindgen = { version = "0.2" }
-wasm-bindgen-backend = { version = "0.2", default-features = false, features = ["spans", "std"] }
-wasm-bindgen-macro = { version = "0.2", default-features = false, features = ["spans", "std"] }
-wasm-bindgen-macro-support = { version = "0.2", features = ["spans"] }
 wasmparser = { version = "0.219", default-features = false, features = ["component-model", "features", "serde", "std", "validate"] }
-web-sys = { version = "0.3", features = ["AbortController", "AbortSignal", "BinaryType", "Cache", "CacheQueryOptions", "CacheStorage", "CloseEvent", "ErrorEvent", "File", "FormData", "Headers", "MessageEvent", "ProgressEvent", "QueuingStrategy", "ReadableByteStreamController", "ReadableStream", "ReadableStreamByobReader", "ReadableStreamByobRequest", "ReadableStreamDefaultController", "ReadableStreamDefaultReader", "ReadableStreamGetReaderOptions", "ReadableStreamReadResult", "ReadableStreamReaderMode", "ReadableStreamType", "ReadableWritablePair", "Request", "RequestInit", "RequestRedirect", "Response", "ResponseInit", "StreamPipeOptions", "TransformStream", "TransformStreamDefaultController", "Transformer", "UnderlyingSink", "UnderlyingSource", "WebSocket", "WorkerGlobalScope", "WritableStream", "WritableStreamDefaultController", "WritableStreamDefaultWriter", "console"] }
 zerocopy = { version = "0.7", features = ["derive", "simd"] }
 zeroize = { version = "1", features = ["zeroize_derive"] }
 
@@ -273,7 +264,6 @@ object = { version = "0.36", default-features = false, features = ["archive", "r
 rustix = { version = "0.38", features = ["event", "mm", "net", "param", "process", "procfs", "stdio", "termios", "thread", "time"] }
 signal-hook-mio = { version = "0.2", default-features = false, features = ["support-v0_8", "support-v1_0"] }
 stable_deref_trait = { version = "1" }
-web-sys = { version = "0.3", default-features = false, features = ["Worker"] }
 
 [target.aarch64-apple-darwin.build-dependencies]
 ahash = { version = "0.8" }
@@ -287,7 +277,6 @@ object = { version = "0.36", default-features = false, features = ["archive", "r
 rustix = { version = "0.38", features = ["event", "mm", "net", "param", "process", "procfs", "stdio", "termios", "thread", "time"] }
 signal-hook-mio = { version = "0.2", default-features = false, features = ["support-v0_8", "support-v1_0"] }
 stable_deref_trait = { version = "1" }
-web-sys = { version = "0.3", default-features = false, features = ["Worker"] }
 
 [target.x86_64-apple-darwin.dependencies]
 ahash = { version = "0.8" }
@@ -302,7 +291,6 @@ rustix = { version = "0.38", features = ["event", "mm", "net", "param", "process
 signal-hook-mio = { version = "0.2", default-features = false, features = ["support-v0_8", "support-v1_0"] }
 spin = { version = "0.9" }
 stable_deref_trait = { version = "1" }
-web-sys = { version = "0.3", default-features = false, features = ["Worker"] }
 
 [target.x86_64-apple-darwin.build-dependencies]
 ahash = { version = "0.8" }
@@ -317,12 +305,10 @@ rustix = { version = "0.38", features = ["event", "mm", "net", "param", "process
 signal-hook-mio = { version = "0.2", default-features = false, features = ["support-v0_8", "support-v1_0"] }
 spin = { version = "0.9" }
 stable_deref_trait = { version = "1" }
-web-sys = { version = "0.3", default-features = false, features = ["Worker"] }
 
 [target.x86_64-pc-windows-msvc.dependencies]
 getrandom = { version = "0.2", default-features = false, features = ["std"] }
 spin = { version = "0.9" }
-web-sys = { version = "0.3", default-features = false, features = ["Worker"] }
 winapi = { version = "0.3", default-features = false, features = ["cfg", "consoleapi", "errhandlingapi", "evntrace", "fileapi", "handleapi", "impl-default", "in6addr", "inaddr", "knownfolders", "minwinbase", "minwindef", "ntsecapi", "objbase", "processenv", "processthreadsapi", "profileapi", "shlobj", "synchapi", "winbase", "windef", "winerror", "winioctl", "winnt", "winuser"] }
 windows-sys-73dcd821b1037cfd = { package = "windows-sys", version = "0.59", features = ["Win32_Security_Authentication_Identity", "Win32_Security_Credentials", "Win32_Security_Cryptography", "Win32_Storage_FileSystem", "Win32_System_Console", "Win32_System_Diagnostics_Debug", "Win32_System_Kernel", "Win32_System_LibraryLoader", "Win32_System_Memory", "Win32_System_Pipes", "Win32_System_SystemInformation", "Win32_System_Threading"] }
 windows-sys-b21d60becc0929df = { package = "windows-sys", version = "0.52", features = ["Wdk_Foundation", "Wdk_Storage_FileSystem", "Wdk_System_IO", "Win32_Foundation", "Win32_NetworkManagement_IpHelper", "Win32_Networking_WinSock", "Win32_Security", "Win32_Storage_FileSystem", "Win32_System_Com", "Win32_System_Console", "Win32_System_IO", "Win32_System_Ioctl", "Win32_System_Kernel", "Win32_System_LibraryLoader", "Win32_System_Performance", "Win32_System_Pipes", "Win32_System_SystemServices", "Win32_System_Threading", "Win32_System_WindowsProgramming", "Win32_UI_Input_KeyboardAndMouse", "Win32_UI_Shell"] }
@@ -331,7 +317,6 @@ windows-sys-c8eced492e86ede7 = { package = "windows-sys", version = "0.48", feat
 [target.x86_64-pc-windows-msvc.build-dependencies]
 getrandom = { version = "0.2", default-features = false, features = ["std"] }
 spin = { version = "0.9" }
-web-sys = { version = "0.3", default-features = false, features = ["Worker"] }
 winapi = { version = "0.3", default-features = false, features = ["cfg", "consoleapi", "errhandlingapi", "evntrace", "fileapi", "handleapi", "impl-default", "in6addr", "inaddr", "knownfolders", "minwinbase", "minwindef", "ntsecapi", "objbase", "processenv", "processthreadsapi", "profileapi", "shlobj", "synchapi", "winbase", "windef", "winerror", "winioctl", "winnt", "winuser"] }
 windows-sys-73dcd821b1037cfd = { package = "windows-sys", version = "0.59", features = ["Win32_Security_Authentication_Identity", "Win32_Security_Credentials", "Win32_Security_Cryptography", "Win32_Storage_FileSystem", "Win32_System_Console", "Win32_System_Diagnostics_Debug", "Win32_System_Kernel", "Win32_System_LibraryLoader", "Win32_System_Memory", "Win32_System_Pipes", "Win32_System_SystemInformation", "Win32_System_Threading"] }
 windows-sys-b21d60becc0929df = { package = "windows-sys", version = "0.52", features = ["Wdk_Foundation", "Wdk_Storage_FileSystem", "Wdk_System_IO", "Win32_Foundation", "Win32_NetworkManagement_IpHelper", "Win32_Networking_WinSock", "Win32_Security", "Win32_Storage_FileSystem", "Win32_System_Com", "Win32_System_Console", "Win32_System_IO", "Win32_System_Ioctl", "Win32_System_Kernel", "Win32_System_LibraryLoader", "Win32_System_Performance", "Win32_System_Pipes", "Win32_System_SystemServices", "Win32_System_Threading", "Win32_System_WindowsProgramming", "Win32_UI_Input_KeyboardAndMouse", "Win32_UI_Shell"] }
@@ -351,7 +336,6 @@ rustix = { version = "0.38", features = ["event", "mm", "net", "param", "process
 signal-hook-mio = { version = "0.2", default-features = false, features = ["support-v0_8", "support-v1_0"] }
 spin = { version = "0.9" }
 stable_deref_trait = { version = "1" }
-web-sys = { version = "0.3", default-features = false, features = ["Worker"] }
 
 [target.x86_64-unknown-linux-musl.build-dependencies]
 ahash = { version = "0.8" }
@@ -367,7 +351,6 @@ rustix = { version = "0.38", features = ["event", "mm", "net", "param", "process
 signal-hook-mio = { version = "0.2", default-features = false, features = ["support-v0_8", "support-v1_0"] }
 spin = { version = "0.9" }
 stable_deref_trait = { version = "1" }
-web-sys = { version = "0.3", default-features = false, features = ["Worker"] }
 
 [target.aarch64-unknown-linux-musl.dependencies]
 ahash = { version = "0.8" }
@@ -382,7 +365,6 @@ object = { version = "0.36", default-features = false, features = ["archive", "r
 rustix = { version = "0.38", features = ["event", "mm", "net", "param", "process", "procfs", "stdio", "termios", "thread", "time"] }
 signal-hook-mio = { version = "0.2", default-features = false, features = ["support-v0_8", "support-v1_0"] }
 stable_deref_trait = { version = "1" }
-web-sys = { version = "0.3", default-features = false, features = ["Worker"] }
 
 [target.aarch64-unknown-linux-musl.build-dependencies]
 ahash = { version = "0.8" }
@@ -397,7 +379,6 @@ object = { version = "0.36", default-features = false, features = ["archive", "r
 rustix = { version = "0.38", features = ["event", "mm", "net", "param", "process", "procfs", "stdio", "termios", "thread", "time"] }
 signal-hook-mio = { version = "0.2", default-features = false, features = ["support-v0_8", "support-v1_0"] }
 stable_deref_trait = { version = "1" }
-web-sys = { version = "0.3", default-features = false, features = ["Worker"] }
 
 [target.wasm32-unknown-unknown.dependencies]
 getrandom = { version = "0.2", default-features = false, features = ["js", "std"] }
@@ -408,7 +389,7 @@ miniz_oxide = { version = "0.8", default-features = false, features = ["with-all
 nom = { version = "7" }
 object = { version = "0.36", default-features = false, features = ["archive", "read_core", "unaligned", "write"] }
 rustix = { version = "0.38", features = ["net", "process", "procfs", "termios", "time"] }
-web-sys = { version = "0.3", default-features = false, features = ["BlobPropertyBag", "CanvasRenderingContext2d", "Document", "DomRect", "HtmlCanvasElement", "Performance", "RequestCredentials", "RequestMode", "ServiceWorkerGlobalScope", "Window", "Worker"] }
+web-sys = { version = "0.3", default-features = false, features = ["AbortController", "AbortSignal", "BlobPropertyBag", "CanvasRenderingContext2d", "Document", "DomRect", "File", "FormData", "Headers", "HtmlCanvasElement", "MessageEvent", "Performance", "QueuingStrategy", "ReadableByteStreamController", "ReadableStream", "ReadableStreamByobReader", "ReadableStreamByobRequest", "ReadableStreamDefaultController", "ReadableStreamDefaultReader", "ReadableStreamGetReaderOptions", "ReadableStreamReadResult", "ReadableStreamReaderMode", "ReadableStreamType", "ReadableWritablePair", "Request", "RequestCredentials", "RequestInit", "RequestMode", "Response", "ServiceWorkerGlobalScope", "StreamPipeOptions", "TransformStream", "TransformStreamDefaultController", "Transformer", "UnderlyingSink", "UnderlyingSource", "Window", "Worker", "WritableStream", "WritableStreamDefaultController", "WritableStreamDefaultWriter"] }
 
 [target.wasm32-unknown-unknown.build-dependencies]
 getrandom = { version = "0.2", default-features = false, features = ["js", "std"] }
@@ -419,9 +400,6 @@ miniz_oxide = { version = "0.8", default-features = false, features = ["with-all
 nom = { version = "7" }
 object = { version = "0.36", default-features = false, features = ["archive", "read_core", "unaligned", "write"] }
 rustix = { version = "0.38", features = ["net", "process", "procfs", "termios", "time"] }
-wasm-bindgen-backend = { version = "0.2", default-features = false, features = ["atomics"] }
-wasm-bindgen-macro = { version = "0.2", default-features = false, features = ["atomics"] }
-wasm-bindgen-macro-support = { version = "0.2", default-features = false, features = ["atomics"] }
-web-sys = { version = "0.3", default-features = false, features = ["BlobPropertyBag", "CanvasRenderingContext2d", "Document", "DomRect", "HtmlCanvasElement", "Performance", "RequestCredentials", "RequestMode", "ServiceWorkerGlobalScope", "Window", "Worker"] }
+web-sys = { version = "0.3", default-features = false, features = ["AbortController", "AbortSignal", "BlobPropertyBag", "CanvasRenderingContext2d", "Document", "DomRect", "File", "FormData", "Headers", "HtmlCanvasElement", "MessageEvent", "Performance", "QueuingStrategy", "ReadableByteStreamController", "ReadableStream", "ReadableStreamByobReader", "ReadableStreamByobRequest", "ReadableStreamDefaultController", "ReadableStreamDefaultReader", "ReadableStreamGetReaderOptions", "ReadableStreamReadResult", "ReadableStreamReaderMode", "ReadableStreamType", "ReadableWritablePair", "Request", "RequestCredentials", "RequestInit", "RequestMode", "Response", "ServiceWorkerGlobalScope", "StreamPipeOptions", "TransformStream", "TransformStreamDefaultController", "Transformer", "UnderlyingSink", "UnderlyingSource", "Window", "Worker", "WritableStream", "WritableStreamDefaultController", "WritableStreamDefaultWriter"] }
 
 ### END HAKARI SECTION
