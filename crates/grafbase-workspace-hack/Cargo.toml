@@ -380,26 +380,4 @@ rustix = { version = "0.38", features = ["event", "mm", "net", "param", "process
 signal-hook-mio = { version = "0.2", default-features = false, features = ["support-v0_8", "support-v1_0"] }
 stable_deref_trait = { version = "1" }
 
-[target.wasm32-unknown-unknown.dependencies]
-getrandom = { version = "0.2", default-features = false, features = ["js", "std"] }
-gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
-itertools = { version = "0.12" }
-libc = { version = "0.2", features = ["extra_traits"] }
-miniz_oxide = { version = "0.8", default-features = false, features = ["with-alloc"] }
-nom = { version = "7" }
-object = { version = "0.36", default-features = false, features = ["archive", "read_core", "unaligned", "write"] }
-rustix = { version = "0.38", features = ["net", "process", "procfs", "termios", "time"] }
-web-sys = { version = "0.3", default-features = false, features = ["AbortController", "AbortSignal", "BlobPropertyBag", "CanvasRenderingContext2d", "Document", "DomRect", "File", "FormData", "Headers", "HtmlCanvasElement", "MessageEvent", "Performance", "QueuingStrategy", "ReadableByteStreamController", "ReadableStream", "ReadableStreamByobReader", "ReadableStreamByobRequest", "ReadableStreamDefaultController", "ReadableStreamDefaultReader", "ReadableStreamGetReaderOptions", "ReadableStreamReadResult", "ReadableStreamReaderMode", "ReadableStreamType", "ReadableWritablePair", "Request", "RequestCredentials", "RequestInit", "RequestMode", "Response", "ServiceWorkerGlobalScope", "StreamPipeOptions", "TransformStream", "TransformStreamDefaultController", "Transformer", "UnderlyingSink", "UnderlyingSource", "Window", "Worker", "WritableStream", "WritableStreamDefaultController", "WritableStreamDefaultWriter"] }
-
-[target.wasm32-unknown-unknown.build-dependencies]
-getrandom = { version = "0.2", default-features = false, features = ["js", "std"] }
-gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
-itertools = { version = "0.12" }
-libc = { version = "0.2", features = ["extra_traits"] }
-miniz_oxide = { version = "0.8", default-features = false, features = ["with-alloc"] }
-nom = { version = "7" }
-object = { version = "0.36", default-features = false, features = ["archive", "read_core", "unaligned", "write"] }
-rustix = { version = "0.38", features = ["net", "process", "procfs", "termios", "time"] }
-web-sys = { version = "0.3", default-features = false, features = ["AbortController", "AbortSignal", "BlobPropertyBag", "CanvasRenderingContext2d", "Document", "DomRect", "File", "FormData", "Headers", "HtmlCanvasElement", "MessageEvent", "Performance", "QueuingStrategy", "ReadableByteStreamController", "ReadableStream", "ReadableStreamByobReader", "ReadableStreamByobRequest", "ReadableStreamDefaultController", "ReadableStreamDefaultReader", "ReadableStreamGetReaderOptions", "ReadableStreamReadResult", "ReadableStreamReaderMode", "ReadableStreamType", "ReadableWritablePair", "Request", "RequestCredentials", "RequestInit", "RequestMode", "Response", "ServiceWorkerGlobalScope", "StreamPipeOptions", "TransformStream", "TransformStreamDefaultController", "Transformer", "UnderlyingSink", "UnderlyingSource", "Window", "Worker", "WritableStream", "WritableStreamDefaultController", "WritableStreamDefaultWriter"] }
-
 ### END HAKARI SECTION
