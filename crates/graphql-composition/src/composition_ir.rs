@@ -18,9 +18,10 @@ use std::collections::{BTreeSet, HashMap};
 pub(crate) struct CompositionIr {
     pub(crate) definitions_by_name: HashMap<federated::StringId, federated::Definition>,
 
-    pub(crate) type_definitions: Vec<TypeDefinitionIr>,
-    pub(crate) objects: Vec<federated::Object>,
-    pub(crate) interfaces: Vec<federated::Interface>,
+    pub(crate) scalar_definitions: Vec<(federated::ScalarDefinitionRecord, Vec<Directive>)>,
+    pub(crate) enum_definitions: Vec<(federated::EnumDefinitionRecord, Vec<Directive>)>,
+    pub(crate) objects: Vec<(federated::Object, Vec<Directive>)>,
+    pub(crate) interfaces: Vec<(federated::Interface, Vec<Directive>)>,
     pub(crate) unions: Vec<UnionIr>,
     pub(crate) enum_values: Vec<EnumValueIr>,
     pub(crate) input_objects: Vec<InputObjectIr>,
@@ -38,11 +39,6 @@ pub(crate) struct CompositionIr {
     pub(crate) strings: StringsIr,
     pub(crate) fields: Vec<FieldIr>,
     pub(crate) union_members: BTreeSet<(federated::StringId, federated::StringId)>,
-}
-
-pub(crate) struct TypeDefinitionIr {
-    pub federated: federated::TypeDefinitionRecord,
-    pub directives: Vec<Directive>,
 }
 
 pub(crate) struct InputObjectIr {

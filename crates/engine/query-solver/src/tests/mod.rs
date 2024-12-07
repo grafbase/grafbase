@@ -11,6 +11,7 @@ mod typename;
 
 use std::{borrow::Cow, num::NonZero};
 
+use config::FederatedGraph;
 use cynic_parser::{
     common::OperationType,
     executable::{Iter, Selection},
@@ -244,7 +245,7 @@ macro_rules! assert_solving_snapshots {
 
 #[track_caller]
 fn read_schema(sdl: &str) -> Schema {
-    let graph = federated_graph::from_sdl(sdl).unwrap();
+    let graph = FederatedGraph::from_sdl(sdl).unwrap();
     let config = config::Config::from_graph(graph);
     Schema::build(config, Version::from(Vec::new())).unwrap()
 }

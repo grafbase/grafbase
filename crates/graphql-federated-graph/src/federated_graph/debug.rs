@@ -18,8 +18,8 @@ impl fmt::Debug for FederatedGraph {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct(std::any::type_name::<Self>())
             .field(
-                "type_definitions",
-                &DebugFn(|f| f.debug_list().entries(self.iter_type_definitions()).finish()),
+                "enum_definitions",
+                &DebugFn(|f| f.debug_list().entries(self.iter_enum_definitions()).finish()),
             )
             .field(
                 "enum_values",

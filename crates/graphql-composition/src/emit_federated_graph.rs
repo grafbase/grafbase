@@ -21,10 +21,11 @@ use std::{collections::BTreeSet, mem};
 /// This can't fail. All the relevant, correct information should already be in the CompositionIr.
 pub(crate) fn emit_federated_graph(mut ir: CompositionIr, subgraphs: &Subgraphs) -> federated::FederatedGraph {
     let mut out = federated::FederatedGraph {
-        type_definitions: ir.type_definitions.iter().map(|ty| ty.federated.clone()).collect(),
+        enum_definitions: ir.enum_definitions.iter().map(|(ty, _)| ty.clone()).collect(),
         enum_values: ir.enum_values.iter().map(|v| v.federated.clone()).collect(),
-        objects: ir.objects.clone(),
-        interfaces: ir.interfaces.clone(),
+        scalar_definitions: ir.scalar_definitions.iter().map(|(ty, _)| ty.clone()).collect(),
+        objects: ir.objects.iter().map(|(obj, _directives)| obj.clone()).collect(),
+        interfaces: ir.interfaces.iter().map(|(iface, _directives)| iface.clone()).collect(),
         unions: ir.unions.iter().map(|u| u.federated.clone()).collect(),
         input_objects: ir.input_objects.iter().map(|io| io.federated.clone()).collect(),
         root_operation_types: federated::RootOperationTypes {
@@ -59,21 +60,19 @@ pub(crate) fn emit_federated_graph(mut ir: CompositionIr, subgraphs: &Subgraphs)
 }
 
 fn emit_directives_and_implements_interface(mut ctx: Context<'_>, mut ir: CompositionIr) {
-    for (i, object) in ir.objects.into_iter().enumerate() {
-        let type_def = &mut ir.type_definitions[usize::from(object.type_definition_id)];
-        ctx.out[object.type_definition_id].directives = transform_type_directives(
+    for (i, (_object, directives)) in ir.objects.into_iter().enumerate() {
+        ctx.out[federated::ObjectId::from(i)].directives = transform_type_directives(
             &mut ctx,
             federated::Definition::Object(federated::ObjectId::from(i)),
-            mem::take(&mut type_def.directives),
+            directives,
         );
     }
 
-    for (i, interface) in ir.interfaces.into_iter().enumerate() {
-        let type_def = &mut ir.type_definitions[usize::from(interface.type_definition_id)];
-        ctx.out[interface.type_definition_id].directives = transform_type_directives(
+    for (i, (_interface, directives)) in ir.interfaces.into_iter().enumerate() {
+        ctx.out[federated::InterfaceId::from(i)].directives = transform_type_directives(
             &mut ctx,
             federated::Definition::Interface(federated::InterfaceId::from(i)),
-            mem::take(&mut type_def.directives),
+            directives,
         );
     }
 
@@ -107,12 +106,17 @@ fn emit_directives_and_implements_interface(mut ctx: Context<'_>, mut ir: Compos
             transform_input_value_directives(&mut ctx, input_value_definition.directives);
     }
 
-    // Anything left from this point is treated with the default transformation. Should only be
-    // enums and scalars today.
-    for (i, type_def) in ir.type_definitions.iter_mut().enumerate() {
-        if !type_def.directives.is_empty() {
-            ctx.out.type_definitions[i].directives =
-                transform_arbitray_type_directives(&mut ctx, mem::take(&mut type_def.directives));
+    for (i, (_enum_definition, directives)) in ir.enum_definitions.iter_mut().enumerate() {
+        if !directives.is_empty() {
+            ctx.out.enum_definitions[i].directives =
+                transform_arbitray_type_directives(&mut ctx, mem::take(directives));
+        }
+    }
+
+    for (i, (_scalar_definition, directives)) in ir.scalar_definitions.iter_mut().enumerate() {
+        if !directives.is_empty() {
+            ctx.out.scalar_definitions[i].directives =
+                transform_arbitray_type_directives(&mut ctx, mem::take(directives));
         }
     }
 
@@ -161,13 +165,11 @@ fn emit_interface_after_directives(mut ctx: Context<'_>) {
                 let object = &mut ctx.out.objects[usize::from(object_id)];
                 object.implements_interfaces.push(implementee);
 
-                let type_def = &mut ctx.out.type_definitions[usize::from(object.type_definition_id)];
-
                 for subgraph_id in ctx
                     .subgraphs
                     .subgraphs_implementing_interface(implementee_name, implementer_name)
                 {
-                    type_def.directives.push(federated::Directive::JoinImplements(
+                    object.directives.push(federated::Directive::JoinImplements(
                         federated::JoinImplementsDirective {
                             subgraph_id: federated::SubgraphId::from(subgraph_id.idx()),
                             interface_id: implementee,
@@ -179,13 +181,11 @@ fn emit_interface_after_directives(mut ctx: Context<'_>) {
                 let interface = &mut ctx.out.interfaces[usize::from(interface_id)];
                 interface.implements_interfaces.push(implementee);
 
-                let type_def = &mut ctx.out.type_definitions[usize::from(interface.type_definition_id)];
-
                 for subgraph_id in ctx
                     .subgraphs
                     .subgraphs_implementing_interface(implementee_name, implementer_name)
                 {
-                    type_def.directives.push(federated::Directive::JoinImplements(
+                    interface.directives.push(federated::Directive::JoinImplements(
                         federated::JoinImplementsDirective {
                             subgraph_id: federated::SubgraphId::from(subgraph_id.idx()),
                             interface_id: implementee,

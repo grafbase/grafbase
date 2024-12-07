@@ -1,4 +1,6 @@
-use super::{EntityDefinitionId, InputObjectId, InterfaceId, ObjectId, TypeDefinitionId, UnionId, Wrapping};
+use super::{
+    EntityDefinitionId, EnumDefinitionId, InputObjectId, InterfaceId, ObjectId, ScalarDefinitionId, UnionId, Wrapping,
+};
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Debug)]
 pub struct Type {
@@ -8,16 +10,16 @@ pub struct Type {
 
 #[derive(Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord, Debug)]
 pub enum Definition {
-    Scalar(TypeDefinitionId),
+    Scalar(ScalarDefinitionId),
     Object(ObjectId),
     Interface(InterfaceId),
     Union(UnionId),
-    Enum(TypeDefinitionId),
+    Enum(EnumDefinitionId),
     InputObject(InputObjectId),
 }
 
 impl Definition {
-    pub fn as_enum(&self) -> Option<TypeDefinitionId> {
+    pub fn as_enum(&self) -> Option<EnumDefinitionId> {
         if let Self::Enum(v) = self {
             Some(*v)
         } else {

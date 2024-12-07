@@ -30,7 +30,7 @@ impl fmt::Display for Renderer<'_> {
             }
         };
 
-        for r#enum in graph.iter_enums() {
+        for r#enum in graph.iter_enum_definitions() {
             if has_inaccessible(&r#enum.directives) {
                 continue;
             }
@@ -58,10 +58,8 @@ impl fmt::Display for Renderer<'_> {
             f.write_char('\n')?;
         }
 
-        for object in &graph.objects {
-            let definition = graph.at(object.type_definition_id);
-
-            if has_inaccessible(&definition.directives) {
+        for object in graph.iter_objects() {
+            if has_inaccessible(&object.directives) {
                 continue;
             }
 
@@ -74,10 +72,10 @@ impl fmt::Display for Renderer<'_> {
 
             write_leading_whitespace(f)?;
 
-            write_description(f, definition.description, "", graph)?;
+            write_description(f, object.description, "", graph)?;
             f.write_str("type ")?;
-            f.write_str(definition.then(|def| def.name).as_str())?;
-            write_public_directives(f, &definition.directives, graph)?;
+            f.write_str(&graph[object.name])?;
+            write_public_directives(f, &object.directives, graph)?;
             f.write_char(' ')?;
 
             write_block(f, |f| {
@@ -105,18 +103,16 @@ impl fmt::Display for Renderer<'_> {
         }
 
         for interface in &graph.interfaces {
-            let definition = graph.at(interface.type_definition_id);
-
-            if has_inaccessible(&definition.directives) {
+            if has_inaccessible(&interface.directives) {
                 continue;
             }
 
             write_leading_whitespace(f)?;
 
-            write_description(f, definition.description, "", graph)?;
+            write_description(f, interface.description, "", graph)?;
             f.write_str("interface ")?;
-            f.write_str(definition.then(|def| def.name).as_str())?;
-            write_public_directives(f, &definition.directives, graph)?;
+            f.write_str(&graph[interface.name])?;
+            write_public_directives(f, &interface.directives, graph)?;
             f.write_char(' ')?;
 
             write_block(f, |f| {
@@ -200,13 +196,7 @@ impl fmt::Display for Renderer<'_> {
 
             while let Some(member) = members.next() {
                 f.write_str(" ")?;
-                f.write_str(
-                    graph
-                        .at(*member)
-                        .then(|obj| obj.type_definition_id)
-                        .then(|def| def.name)
-                        .as_str(),
-                )?;
+                f.write_str(graph.at(*member).then(|obj| obj.name).as_str())?;
 
                 if members.peek().is_some() {
                     f.write_str(" |")?;
@@ -216,7 +206,7 @@ impl fmt::Display for Renderer<'_> {
             f.write_char('\n')?;
         }
 
-        for scalar in graph.iter_scalars() {
+        for scalar in graph.iter_scalar_definitions() {
             let scalar_name = scalar.then(|scalar| scalar.name).as_str();
 
             if BUILTIN_SCALARS.contains(&scalar_name) || has_inaccessible(&scalar.directives) {
