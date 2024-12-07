@@ -12,20 +12,23 @@ union Executable @id @meta(module: "executable") = Plan | ResponseModifier
 
 scalar QueryPartitionId @prelude @id
 scalar Resolver @prelude
+scalar RequiredFieldSet @record @prelude
 
 # Overriding the schema one as we inline it
 scalar FieldSetRecord @prelude
 
 type Plan @indexed(id_size: "u16") @meta(module: "plan") {
   query_partition_id: QueryPartitionId!
-  requires: FieldSetRecord!
+  required_fields: RequiredFieldSet!
   resolver: Resolver!
   parent_count: usize!
   children: [Executable!]!
 }
 
+scalar ResponseModifierRule @prelude @copy
+
 type ResponseModifier @indexed(id_size: "u16") @meta(module: "response_modifier") {
-  definition: ResponseModifierDefinition!
+  rule: ResponseModifierRule!
   sorted_targets: [ResponseModifierTarget!]!
   parent_count: usize!
   children: [Executable!]!
@@ -37,5 +40,5 @@ scalar ResponseKey @copy @prelude
 type ResponseModifierTarget @meta(module: "response_modifier/target") {
   set_id: ResponseObjectSetDefinitionId!
   ty: CompositeType!
-  key: ResponseKey!
+  field: DataField!
 }

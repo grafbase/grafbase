@@ -3,6 +3,7 @@ mod field;
 mod generated;
 mod hydrate;
 mod prelude;
+mod required_field_set;
 mod selection_set;
 
 use crate::{
@@ -12,6 +13,8 @@ use crate::{
 pub(crate) use generated::*;
 pub(crate) use hydrate::*;
 use id_newtypes::IdRange;
+use prelude::ResponseModifierRule;
+pub(crate) use required_field_set::*;
 use schema::{ObjectDefinitionId, Schema};
 use walker::{Iter, Walk};
 
@@ -32,10 +35,14 @@ impl<'a> SolvedOperationContext<'a> {
         IdRange::<QueryPartitionId>::from(0..self.operation.query_partitions.len()).walk(*self)
     }
 
-    pub(in crate::operation) fn response_modifier_definitions(
+    pub(in crate::operation) fn response_modifier_rules(
         &self,
-    ) -> impl Iter<Item = ResponseModifierDefinition<'a>> + 'a {
-        IdRange::<ResponseModifierDefinitionId>::from(0..self.operation.response_modifier_definitions.len()).walk(*self)
+    ) -> impl Iter<Item = (ResponseModifierRule, impl Iterator<Item = DataField<'a>> + 'a)> + 'a {
+        let ctx = *self;
+        self.operation
+            .response_modifier_rule_to_impacted_fields
+            .iter()
+            .map(move |item| (item.rule, item.impacted_field_ids.walk(ctx)))
     }
 }
 
@@ -78,8 +85,7 @@ pub(crate) struct SolvedOperation {
     // deduplicated by rule
     pub query_modifier_definitions: Vec<QueryModifierDefinitionRecord>,
     // deduplicated by rule
-    #[indexed_by(ResponseModifierDefinitionId)]
-    pub response_modifier_definitions: Vec<ResponseModifierDefinitionRecord>,
+    pub response_modifier_rule_to_impacted_fields: Vec<ResponseModifierRuleToImpactedFields>,
     pub query_input_values: QueryInputValues,
     pub shapes: Shapes,
 
@@ -131,3 +137,9 @@ impl<'a> Walk<SolvedOperationContext<'a>> for DataFieldRefId {
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
 pub struct FieldShapeRefId(u32);
+
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+pub(crate) struct ResponseModifierRuleToImpactedFields {
+    pub rule: ResponseModifierRule,
+    pub impacted_field_ids: IdRange<DataFieldRefId>,
+}

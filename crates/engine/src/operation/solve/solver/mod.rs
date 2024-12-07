@@ -1,4 +1,5 @@
 mod adapter;
+mod requires;
 mod shapes;
 
 use id_newtypes::{IdRange, IdToMany};
@@ -13,7 +14,7 @@ use walker::Walk;
 use crate::{
     operation::{
         BoundField, BoundFieldArgument, BoundFieldArgumentId, BoundFieldId, BoundOperation, BoundQueryModifierId,
-        BoundVariableDefinition, BoundVariableDefinitionId, DataFieldRefId, SolveError,
+        BoundVariableDefinition, BoundVariableDefinitionId, SolveError,
     },
     response::{ConcreteShapeId, PositionedResponseKey, Shapes},
     utils::BufferPool,
@@ -21,9 +22,9 @@ use crate::{
 
 use super::{
     DataFieldId, DataFieldRecord, FieldArgumentId, FieldArgumentRecord, FieldId, QueryModifierDefinitionRecord,
-    QueryPartitionId, QueryPartitionRecord, ResponseModifierDefinitionRecord, ResponseObjectSetDefinitionId,
-    SelectionSetRecord, SolveResult, SolvedOperation, TypenameFieldRecord, VariableDefinitionId,
-    VariableDefinitionRecord,
+    QueryPartitionId, QueryPartitionRecord, RequiredFieldSetRecord, ResponseModifierRuleToImpactedFields,
+    ResponseObjectSetDefinitionId, SelectionSetRecord, SolveResult, SolvedOperation, TypenameFieldRecord,
+    VariableDefinitionId, VariableDefinitionRecord,
 };
 
 pub(super) struct Solver<'a> {
@@ -36,7 +37,7 @@ pub(super) struct Solver<'a> {
     query_partitions_to_create_stack: Vec<QueryPartitionToCreate>,
     query_field_node_to_response_object_set: HashMap<NodeIndex, ResponseObjectSetDefinitionId>,
     // one to one, sorted after the plan generation.
-    scalar_field_node_to_field: Vec<(NodeIndex, DataFieldId)>,
+    node_to_field: Vec<(NodeIndex, DataFieldId)>,
     bound_field_to_field: Vec<(BoundFieldId, FieldId)>,
     // Populated during plan generation, drained while populating requirements.
     field_to_node: Vec<(DataFieldId, NodeIndex)>,
@@ -81,22 +82,22 @@ impl<'a> Solver<'a> {
                 mutation_partition_order: Vec::new(),
                 query_input_values: std::mem::take(&mut bound_operation.query_input_values),
                 query_modifier_definitions: Vec::with_capacity(bound_operation.query_modifiers.len()),
-                response_modifier_definitions: Vec::with_capacity(bound_operation.response_modifiers.len()),
+                response_modifier_rule_to_impacted_fields: Vec::with_capacity(bound_operation.response_modifiers.len()),
                 response_object_set_definitions: Vec::new(),
                 shapes: Shapes::default(),
                 field_refs: Vec::new(),
                 data_field_refs: Vec::new(),
                 field_shape_refs: Vec::new(),
             },
+            node_to_field: Vec::with_capacity(graph.node_count()),
+            field_to_node: Vec::with_capacity(graph.node_count()),
+            bound_field_to_field: Vec::with_capacity(bound_operation.fields.len()),
             bound_operation,
             root_node_ix,
             graph,
             nested_fields_buffer_pool: BufferPool::default(),
             query_partitions_to_create_stack: Vec::new(),
-            scalar_field_node_to_field: Vec::new(),
-            field_to_node: Vec::new(),
             query_partition_to_node: Vec::new(),
-            bound_field_to_field: Vec::new(),
             query_field_node_to_response_object_set: HashMap::new(),
         })
     }
@@ -160,7 +161,7 @@ impl<'a> Solver<'a> {
             selection_set_record,
             input_id,
             // Populated later
-            required_field_ids: IdRange::empty(),
+            required_fields_record: Default::default(),
             shape_id: ConcreteShapeId::from(0usize),
         });
         self.query_partition_to_node.push((query_partition_id, source_ix));
@@ -195,12 +196,7 @@ impl<'a> Solver<'a> {
                     self.query_partitions_to_create_stack.push(new_partition);
                 }
                 Edge::Field => {
-                    let Node::Field {
-                        id,
-                        matching_requirement_id,
-                        ..
-                    } = self.graph[target_ix]
-                    else {
+                    let Node::Field { id, .. } = self.graph[target_ix] else {
                         continue;
                     };
                     match self.bound_operation[id].to_data_field_or_typename_field(self.schema, query_partition_id) {
@@ -239,7 +235,6 @@ impl<'a> Solver<'a> {
                                 self.generate_selection_set(query_partition_id, output_id, target_ix);
                             record.selection_set_record = selection_set;
                             record.output_id = output_id;
-                            record.matching_requirement_id = matching_requirement_id;
                             fields_buffer.push(NestedField::Data {
                                 record,
                                 bound_field_id: id,
@@ -278,9 +273,7 @@ impl<'a> Solver<'a> {
                 } => {
                     record.parent_field_output_id = output_id;
                     let data_field_id = DataFieldId::from(self.operation.data_fields.len());
-                    if record.definition_id.walk(self.schema).ty().definition_id.is_scalar() {
-                        self.scalar_field_node_to_field.push((node_ix, data_field_id))
-                    }
+                    self.node_to_field.push((node_ix, data_field_id));
                     self.operation.data_fields.push(record);
                     self.bound_field_to_field.push((bound_field_id, data_field_id.into()));
                     self.field_to_node.push((data_field_id, node_ix));
@@ -327,46 +320,6 @@ impl<'a> Solver<'a> {
             })
     }
 
-    fn populate_requirements_after_partition_generation(&mut self) -> SolveResult<()> {
-        self.scalar_field_node_to_field.sort_unstable();
-
-        fn get_scalar_field_id_for(builder: &Solver<'_>, node_ix: NodeIndex) -> Option<DataFieldId> {
-            builder
-                .scalar_field_node_to_field
-                .binary_search_by(|probe| probe.0.cmp(&node_ix))
-                .map(|i| builder.scalar_field_node_to_field[i].1)
-                .ok()
-        }
-
-        fn push_requirements(builder: &mut Solver<'_>, node_ix: NodeIndex, kind: Edge) -> IdRange<DataFieldRefId> {
-            let start = builder.operation.data_field_refs.len();
-            for edge in builder.graph.edges(node_ix) {
-                if *edge.weight() == kind {
-                    if let Some(field_id) = get_scalar_field_id_for(builder, edge.target()) {
-                        builder.operation.data_field_refs.push(field_id);
-                    }
-                }
-            }
-            IdRange::from(start..builder.operation.data_field_refs.len())
-        }
-
-        debug_assert!(!self.query_partition_to_node.is_empty());
-        let query_partition_to_node = std::mem::take(&mut self.query_partition_to_node);
-        for (query_partition_id, query_partition_root_node_ix) in query_partition_to_node.iter().copied() {
-            self.operation[query_partition_id].required_field_ids =
-                push_requirements(self, query_partition_root_node_ix, Edge::RequiredBySubgraph);
-        }
-        self.query_partition_to_node = query_partition_to_node;
-
-        for (field_id, node_ix) in std::mem::take(&mut self.field_to_node) {
-            self.operation[field_id].required_field_ids = push_requirements(self, node_ix, Edge::RequiredBySubgraph);
-            self.operation[field_id].required_field_ids_by_supergraph =
-                push_requirements(self, node_ix, Edge::RequiredBySupergraph);
-        }
-
-        Ok(())
-    }
-
     fn populate_modifiers_after_partition_generation(&mut self) -> SolveResult<()> {
         let bound_field_to_field = IdToMany::from(std::mem::take(&mut self.bound_field_to_field));
 
@@ -401,8 +354,8 @@ impl<'a> Solver<'a> {
                     }));
             }
             self.operation
-                .response_modifier_definitions
-                .push(ResponseModifierDefinitionRecord {
+                .response_modifier_rule_to_impacted_fields
+                .push(ResponseModifierRuleToImpactedFields {
                     rule: modifier.rule,
                     impacted_field_ids: IdRange::from(start..self.operation.data_field_refs.len()),
                 });
@@ -485,11 +438,10 @@ impl BoundField {
                     data_field_ids_ordered_by_parent_entity_id_then_key: IdRange::empty(),
                     typename_field_ids_ordered_by_type_condition_id_then_key: IdRange::empty(),
                 },
-                required_field_ids: IdRange::empty(),
-                required_field_ids_by_supergraph: IdRange::empty(),
+                required_fields_record: RequiredFieldSetRecord::default(),
+                required_fields_record_by_supergraph: Default::default(),
                 output_id: None,
                 parent_field_output_id: None,
-                matching_requirement_id: None,
                 selection_set_requires_typename: match field.definition_id.walk(schema).ty().definition() {
                     // If we may encounter an inaccessible object, we have to detect it
                     Definition::Union(union) => union.has_inaccessible_member(),
@@ -515,11 +467,10 @@ impl BoundField {
                     data_field_ids_ordered_by_parent_entity_id_then_key: IdRange::empty(),
                     typename_field_ids_ordered_by_type_condition_id_then_key: IdRange::empty(),
                 },
-                required_field_ids: IdRange::empty(),
-                required_field_ids_by_supergraph: IdRange::empty(),
+                required_fields_record: RequiredFieldSetRecord::default(),
+                required_fields_record_by_supergraph: Default::default(),
                 output_id: None,
                 parent_field_output_id: None,
-                matching_requirement_id: None,
                 selection_set_requires_typename: false,
                 shape_ids: IdRange::empty(),
             }),

@@ -1,6 +1,8 @@
-use schema::{ObjectDefinitionId, SchemaFieldId, StringId};
+use schema::{ObjectDefinitionId, StringId};
 
-use super::{PositionedResponseKey, ResponseInaccessibleValueId, ResponseListId, ResponseMapId, ResponseObjectId};
+use super::{
+    PositionedResponseKey, ResponseInaccessibleValueId, ResponseKey, ResponseListId, ResponseMapId, ResponseObjectId,
+};
 
 #[derive(Debug)]
 pub(crate) struct ResponseObject {
@@ -12,7 +14,6 @@ pub(crate) struct ResponseObject {
 #[derive(Debug, Clone)]
 pub(crate) struct ResponseObjectField {
     pub key: PositionedResponseKey,
-    pub required_field_id: Option<SchemaFieldId>,
     pub value: ResponseValue,
 }
 
@@ -45,11 +46,10 @@ impl ResponseObject {
         self.fields_sorted_by_query_position.iter()
     }
 
-    pub(super) fn find_required_field(&self, id: SchemaFieldId) -> Option<&ResponseValue> {
+    pub fn find_by_response_key(&self, key: ResponseKey) -> Option<&ResponseValue> {
         self.fields_sorted_by_query_position
             .iter()
-            .rev()
-            .find(|field| field.required_field_id == Some(id))
+            .find(|field| field.key.response_key == key)
             .map(|field| &field.value)
     }
 }

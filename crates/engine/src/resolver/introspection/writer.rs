@@ -40,7 +40,6 @@ impl<'ctx, R: Runtime> IntrospectionWriter<'ctx, R> {
                     let name = arguments.get_arg_value_as::<&str>("name");
                     fields.push(ResponseObjectField {
                         key: field_shape.key,
-                        required_field_id: None,
                         value: self
                             .schema
                             .definition_by_name(name)
@@ -52,7 +51,6 @@ impl<'ctx, R: Runtime> IntrospectionWriter<'ctx, R> {
                 IntrospectionField::Schema => {
                     fields.push(ResponseObjectField {
                         key: field_shape.key,
-                        required_field_id: None,
                         value: self.__schema(field_shape.shape.as_concrete().unwrap()),
                     });
                 }
@@ -66,7 +64,6 @@ impl<'ctx, R: Runtime> IntrospectionWriter<'ctx, R> {
             for edge in &shape.typename_response_keys {
                 fields.push(ResponseObjectField {
                     key: *edge,
-                    required_field_id: None,
                     value: name_id.into(),
                 });
             }
@@ -88,7 +85,6 @@ impl<'ctx, R: Runtime> IntrospectionWriter<'ctx, R> {
             let field = &self.shapes[id];
             fields.push(ResponseObjectField {
                 key: field.key,
-                required_field_id: None,
                 value: build(field, object[field.id.walk(&self.ctx).definition_id]),
             });
         }
@@ -97,7 +93,6 @@ impl<'ctx, R: Runtime> IntrospectionWriter<'ctx, R> {
             for edge in &shape.typename_response_keys {
                 fields.push(ResponseObjectField {
                     key: *edge,
-                    required_field_id: None,
                     value: name.into(),
                 });
             }

@@ -24,7 +24,7 @@ type QueryPartition @indexed(id_size: "u16") @meta(module: "query_partition") {
   entity_definition: EntityDefinition!
   resolver_definition: ResolverDefinition!
   selection_set: SelectionSet!
-  required_fields: [DataFieldRef!]!
+  required_fields: RequiredFieldSet!
   input: ResponseObjectSetDefinition!
   shape_id: ConcreteShapeId!
 }
@@ -41,6 +41,7 @@ scalar PositionedResponseKey @copy @prelude
 scalar ResponseKey @copy @prelude
 scalar Location @copy @prelude
 scalar QueryInputValueId @prelude @id
+scalar RequiredFieldSet @record
 
 type SelectionSet @meta(module: "selection_set") @copy {
   data_fields_ordered_by_parent_entity_id_then_key: [DataField!]!
@@ -58,9 +59,9 @@ type DataField @meta(module: "field/data", debug: false) @indexed(id_size: "u32"
   location: Location!
   definition: FieldDefinition!
   arguments: [FieldArgument!]!
-  required_fields: [DataFieldRef!]!
+  required_fields: RequiredFieldSet!
   "Requirement of @authorized, etc."
-  required_fields_by_supergraph: [DataFieldRef!]! @field(record_field_name: "required_field_ids_by_supergraph")
+  required_fields_by_supergraph: RequiredFieldSet! @field(record_field_name: "required_fields_record_by_supergraph")
   "All field shape ids generated for this field"
   shape_ids: [FieldShapeRefId!]!
   parent_field_output: ResponseObjectSetDefinition
@@ -68,7 +69,6 @@ type DataField @meta(module: "field/data", debug: false) @indexed(id_size: "u32"
   selection_set: SelectionSet!
   "Whether __typename should be requested from the subgraph for this selection set"
   selection_set_requires_typename: Boolean!
-  matching_requirement: SchemaField
   query_partition: QueryPartition!
 }
 
@@ -101,11 +101,4 @@ type QueryModifierDefinition @meta(module: "modifier") {
   rule: QueryModifierRule!
   impacts_root_object: Boolean!
   impacted_fields: [FieldRef!]!
-}
-
-scalar ResponseModifierRule @prelude
-
-type ResponseModifierDefinition @meta(module: "modifier") @indexed(id_size: "u16") {
-  rule: ResponseModifierRule!
-  impacted_fields: [DataFieldRef!]!
 }

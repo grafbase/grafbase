@@ -9,7 +9,6 @@ use crate::operation::plan::model::{
     generated::{Executable, ExecutableId},
     prelude::*,
 };
-use crate::operation::solve::{ResponseModifierDefinition, ResponseModifierDefinitionId};
 pub(crate) use target::*;
 use walker::{Iter, Walk};
 
@@ -17,7 +16,7 @@ use walker::{Iter, Walk};
 ///
 /// ```custom,{.language-graphql}
 /// type ResponseModifier @indexed(id_size: "u16") @meta(module: "response_modifier") {
-///   definition: ResponseModifierDefinition!
+///   rule: ResponseModifierRule!
 ///   sorted_targets: [ResponseModifierTarget!]!
 ///   parent_count: usize!
 ///   children: [Executable!]!
@@ -25,7 +24,7 @@ use walker::{Iter, Walk};
 /// ```
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub(crate) struct ResponseModifierRecord {
-    pub definition_id: ResponseModifierDefinitionId,
+    pub rule: ResponseModifierRule,
     pub sorted_target_records: Vec<ResponseModifierTargetRecord>,
     pub parent_count: usize,
     pub children_ids: Vec<ExecutableId>,
@@ -53,9 +52,6 @@ impl<'a> ResponseModifier<'a> {
     #[allow(clippy::should_implement_trait)]
     pub(crate) fn as_ref(&self) -> &'a ResponseModifierRecord {
         &self.ctx.operation_plan[self.id]
-    }
-    pub(crate) fn definition(&self) -> ResponseModifierDefinition<'a> {
-        self.definition_id.walk(self.ctx)
     }
     pub(crate) fn sorted_targets(&self) -> impl Iter<Item = ResponseModifierTarget<'a>> + 'a {
         self.as_ref().sorted_target_records.walk(self.ctx)
@@ -85,7 +81,7 @@ impl<'a> Walk<OperationPlanContext<'a>> for ResponseModifierId {
 impl std::fmt::Debug for ResponseModifier<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("ResponseModifier")
-            .field("definition", &self.definition())
+            .field("rule", &self.rule)
             .field("sorted_targets", &self.sorted_targets())
             .field("parent_count", &self.parent_count)
             .field("children", &self.children())

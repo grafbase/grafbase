@@ -408,7 +408,10 @@ impl<'ctx, Op: Operation> OperationGraphBuilder<'ctx, Op> {
         match provides {
             Cow::Borrowed(provides) => provides
                 .iter()
-                .find(|item| self.operation.field_is_equivalent_to(id, item.id.walk(self.schema)))
+                .find(|item| {
+                    self.operation
+                        .field_is_equivalent_to(id, item.field_id.walk(self.schema))
+                })
                 .map(|item| match definition.provides_for_subgraph(subgraph_id) {
                     Some(field_provides) => Cow::Owned(FieldSetRecord::union(
                         field_provides.as_ref(),
@@ -418,7 +421,10 @@ impl<'ctx, Op: Operation> OperationGraphBuilder<'ctx, Op> {
                 }),
             Cow::Owned(provides) => provides
                 .iter()
-                .find(|item| self.operation.field_is_equivalent_to(id, item.id.walk(self.schema)))
+                .find(|item| {
+                    self.operation
+                        .field_is_equivalent_to(id, item.field_id.walk(self.schema))
+                })
                 .map(|item| match definition.provides_for_subgraph(subgraph_id) {
                     Some(field_provides) => Cow::Owned(FieldSetRecord::union(
                         field_provides.as_ref(),
@@ -453,10 +459,7 @@ impl<'ctx, Op: Operation> OperationGraphBuilder<'ctx, Op> {
                         None
                     }
                 })
-                .filter(|(_, field)| {
-                    field.matching_requirement_id == Some(required_item.field().id)
-                        || self.operation.field_is_equivalent_to(field.id, required_item.field())
-                })
+                .filter(|(_, field)| self.operation.field_is_equivalent_to(field.id, required_item.field()))
                 // not sure if necessary but provides consistency
                 .min_by_key(|(_, field)| field.id);
 
@@ -504,12 +507,6 @@ impl<'ctx, Op: Operation> OperationGraphBuilder<'ctx, Op> {
                 required_query_field_ix
             };
 
-            let Node::QueryField(field) = &mut self.graph[required_query_field_ix] else {
-                unreachable!()
-            };
-            // Set the id if not already there.
-            field.matching_requirement_id = Some(required_item.field().id);
-
             self.graph
                 .add_edge(dependent_ix, required_query_field_ix, Edge::Requires);
 
@@ -540,11 +537,7 @@ impl<'ctx, Op: Operation> OperationGraphBuilder<'ctx, Op> {
             flags |= FieldFlags::TYPENAME;
         }
 
-        let query_field = Node::QueryField(QueryField {
-            id,
-            matching_requirement_id: None,
-            flags,
-        });
+        let query_field = Node::QueryField(QueryField { id, flags });
         let query_field_ix = self.graph.add_node(query_field);
         self.field_nodes.push(query_field_ix);
         query_field_ix

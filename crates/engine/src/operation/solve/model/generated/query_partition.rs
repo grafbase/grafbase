@@ -4,14 +4,12 @@
 //! Generated with: `cargo run -p engine-codegen`
 //! Source file: <engine-codegen dir>/domain/solved_operation.graphql
 use crate::operation::solve::model::{
-    generated::{
-        DataField, ResponseObjectSetDefinition, ResponseObjectSetDefinitionId, SelectionSet, SelectionSetRecord,
-    },
+    generated::{ResponseObjectSetDefinition, ResponseObjectSetDefinitionId, SelectionSet, SelectionSetRecord},
     prelude::*,
-    DataFieldRefId,
+    RequiredFieldSet, RequiredFieldSetRecord,
 };
 use schema::{EntityDefinition, EntityDefinitionId, ResolverDefinition, ResolverDefinitionId};
-use walker::{Iter, Walk};
+use walker::Walk;
 
 /// Generated from:
 ///
@@ -20,7 +18,7 @@ use walker::{Iter, Walk};
 ///   entity_definition: EntityDefinition!
 ///   resolver_definition: ResolverDefinition!
 ///   selection_set: SelectionSet!
-///   required_fields: [DataFieldRef!]!
+///   required_fields: RequiredFieldSet!
 ///   input: ResponseObjectSetDefinition!
 ///   shape_id: ConcreteShapeId!
 /// }
@@ -30,7 +28,7 @@ pub(crate) struct QueryPartitionRecord {
     pub entity_definition_id: EntityDefinitionId,
     pub resolver_definition_id: ResolverDefinitionId,
     pub selection_set_record: SelectionSetRecord,
-    pub required_field_ids: IdRange<DataFieldRefId>,
+    pub required_fields_record: RequiredFieldSetRecord,
     pub input_id: ResponseObjectSetDefinitionId,
     pub shape_id: ConcreteShapeId,
 }
@@ -67,8 +65,8 @@ impl<'a> QueryPartition<'a> {
     pub(crate) fn selection_set(&self) -> SelectionSet<'a> {
         self.selection_set_record.walk(self.ctx)
     }
-    pub(crate) fn required_fields(&self) -> impl Iter<Item = DataField<'a>> + 'a {
-        self.as_ref().required_field_ids.walk(self.ctx)
+    pub(crate) fn required_fields(&self) -> RequiredFieldSet<'a> {
+        self.as_ref().required_fields_record.walk(self.ctx)
     }
     pub(crate) fn input(&self) -> ResponseObjectSetDefinition<'a> {
         self.input_id.walk(self.ctx)

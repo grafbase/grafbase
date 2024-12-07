@@ -2,7 +2,7 @@ mod dot_graph;
 
 use bitflags::bitflags;
 use petgraph::{graph::NodeIndex, Graph};
-use schema::{EntityDefinitionId, ResolverDefinitionId, Schema, SchemaFieldId};
+use schema::{EntityDefinitionId, ResolverDefinitionId, Schema};
 
 use crate::Operation;
 
@@ -15,7 +15,6 @@ pub enum SolutionNode<FieldId> {
     },
     Field {
         id: FieldId,
-        matching_requirement_id: Option<SchemaFieldId>,
         flags: FieldFlags,
     },
 }

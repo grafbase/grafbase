@@ -14,7 +14,7 @@ use walker::{Iter, Walk};
 /// ```custom,{.language-graphql}
 /// type Plan @indexed(id_size: "u16") @meta(module: "plan") {
 ///   query_partition_id: QueryPartitionId!
-///   requires: FieldSetRecord!
+///   required_fields: RequiredFieldSet!
 ///   resolver: Resolver!
 ///   parent_count: usize!
 ///   children: [Executable!]!
@@ -23,7 +23,7 @@ use walker::{Iter, Walk};
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub(crate) struct PlanRecord {
     pub query_partition_id: QueryPartitionId,
-    pub requires: FieldSetRecord,
+    pub required_fields_record: RequiredFieldSetRecord,
     pub resolver: Resolver,
     pub parent_count: usize,
     pub children_ids: Vec<ExecutableId>,
@@ -52,6 +52,9 @@ impl<'a> Plan<'a> {
     pub(crate) fn as_ref(&self) -> &'a PlanRecord {
         &self.ctx.operation_plan[self.id]
     }
+    pub(crate) fn required_fields(&self) -> RequiredFieldSet<'a> {
+        self.as_ref().required_fields_record.walk(self.ctx)
+    }
     pub(crate) fn children(&self) -> impl Iter<Item = Executable<'a>> + 'a {
         self.as_ref().children_ids.walk(self.ctx)
     }
@@ -78,7 +81,7 @@ impl std::fmt::Debug for Plan<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Plan")
             .field("query_partition_id", &self.query_partition_id)
-            .field("requires", &self.requires)
+            .field("required_fields", &self.required_fields())
             .field("resolver", &self.resolver)
             .field("parent_count", &self.parent_count)
             .field("children", &self.children())

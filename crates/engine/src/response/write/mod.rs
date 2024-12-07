@@ -18,7 +18,7 @@ pub(crate) use subgraph_response::*;
 
 pub(crate) struct ResponseBuilder {
     // will be None if an error propagated up to the root.
-    schema: Arc<Schema>,
+    pub(in crate::response) schema: Arc<Schema>,
     operation: Arc<CachedOperation>,
     pub(super) root: Option<(ResponseObjectId, ObjectDefinitionId)>,
     pub(super) data_parts: DataParts,
@@ -222,7 +222,6 @@ impl ResponseBuilder {
                 let name: ResponseValue = object_id.walk(self.schema.as_ref()).as_ref().name_id.into();
                 fields.extend(shape.typename_response_keys.iter().map(|&key| ResponseObjectField {
                     key,
-                    required_field_id: None,
                     value: name.clone(),
                 }))
             } else {
@@ -238,7 +237,6 @@ impl ResponseBuilder {
             }
             fields.push(ResponseObjectField {
                 key: field_shape.key,
-                required_field_id: field_shape.required_field_id,
                 value: ResponseValue::Null,
             })
         }

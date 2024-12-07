@@ -26,7 +26,7 @@ impl FieldSetRecord {
         while l < left_set.len() && r < right_set.len() {
             let left = &left_set[l];
             let right = &right_set[r];
-            match left.alias_id.cmp(&right.alias_id).then(left.id.cmp(&right.id)) {
+            match left.field_id.cmp(&right.field_id) {
                 Ordering::Less => {
                     fields.push(left.clone());
                     l += 1;
@@ -37,8 +37,7 @@ impl FieldSetRecord {
                 }
                 Ordering::Equal => {
                     fields.push(FieldSetItemRecord {
-                        alias_id: left.alias_id,
-                        id: left.id,
+                        field_id: left.field_id,
                         subselection_record: if left.subselection_record.is_empty() {
                             right.subselection_record.clone()
                         } else {
