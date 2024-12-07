@@ -67,6 +67,9 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
                                     .into_iter()
                                     .map(|res| res.map_err(GraphqlError::from))
                                     .collect::<Vec<_>>()
+                            } else if result.len() == 1 {
+                                let res = result.into_iter().next().unwrap().map_err(GraphqlError::from);
+                                (0..input.len()).map(|_| res.clone()).collect()
                             } else {
                                 tracing::error!("Incorrect number of authorization replies");
                                 (0..input.len())
@@ -123,6 +126,9 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
                                     .into_iter()
                                     .map(|res| res.map_err(GraphqlError::from))
                                     .collect::<Vec<_>>()
+                            } else if result.len() == 1 {
+                                let res = result.into_iter().next().unwrap().map_err(GraphqlError::from);
+                                (0..input.len()).map(|_| res.clone()).collect()
                             } else {
                                 tracing::error!("Incorrect number of authorization replies");
                                 (0..input.len())
