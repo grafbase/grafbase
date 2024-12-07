@@ -241,7 +241,7 @@ impl<'a> GraphBuilder<'a> {
     }
 
     fn ingest_enums(&mut self, config: &mut Config) {
-        for federated_enum in config.graph.iter_enums() {
+        for federated_enum in config.graph.iter_enum_definitions() {
             let id = EnumDefinitionId::from(self.graph.enum_definitions.len());
             self.ctx.enum_mapping.insert(federated_enum.id(), id);
             self.graph
@@ -285,7 +285,7 @@ impl<'a> GraphBuilder<'a> {
     }
 
     fn ingest_scalars(&mut self, config: &mut Config) {
-        for scalar in config.graph.iter_scalars() {
+        for scalar in config.graph.iter_scalar_definitions() {
             let id = ScalarDefinitionId::from(self.graph.scalar_definitions.len());
             self.ctx.scalar_mapping.insert(scalar.id(), id);
             self.graph
@@ -307,16 +307,15 @@ impl<'a> GraphBuilder<'a> {
         self.graph.object_definitions = Vec::with_capacity(config.graph.objects.len());
         self.graph.inaccessible_object_definitions = BitSet::with_capacity(config.graph.objects.len());
         for (ix, object) in take(&mut config.graph.objects).into_iter().enumerate() {
-            let definition = config.graph.at(object.type_definition_id);
-            let name_id = config.graph.view(object.type_definition_id).name.into();
-            let federated_directives = &config.graph[object.type_definition_id].directives;
+            let name_id = object.name.into();
+            let federated_directives = &object.directives;
             if has_inaccessible(federated_directives) {
                 self.graph.inaccessible_object_definitions.set(ix.into(), true);
             }
 
             let directives = self.push_directives(SchemaLocation::Definition { name: name_id }, federated_directives);
 
-            let mut join_implement_records: Vec<_> = config.graph[object.type_definition_id]
+            let mut join_implement_records: Vec<_> = object
                 .directives
                 .iter()
                 .filter_map(|dir| dir.as_join_implements())
@@ -335,7 +334,7 @@ impl<'a> GraphBuilder<'a> {
 
             join_implement_records.sort_by_key(|record| (record.subgraph_id, record.interface_id));
 
-            let mut exists_in_subgraph_ids = config.graph[object.type_definition_id]
+            let mut exists_in_subgraph_ids = object
                 .directives
                 .iter()
                 .filter_map(|dir| dir.as_join_type())
@@ -346,7 +345,7 @@ impl<'a> GraphBuilder<'a> {
 
             self.graph.object_definitions.push(ObjectDefinitionRecord {
                 name_id,
-                description_id: definition.description.map(Into::into),
+                description_id: object.description.map(Into::into),
                 interface_ids: object.implements_interfaces.into_iter().map(Into::into).collect(),
                 directive_ids: directives,
                 field_ids: IdRange::from(object.fields),
@@ -361,9 +360,8 @@ impl<'a> GraphBuilder<'a> {
         self.graph.inaccessible_interface_definitions = BitSet::with_capacity(config.graph.interfaces.len());
         self.graph.interface_has_inaccessible_implementors = BitSet::with_capacity(config.graph.interfaces.len());
         for (ix, interface) in take(&mut config.graph.interfaces).into_iter().enumerate() {
-            let name_id = config.graph.view(interface.type_definition_id).name.into();
-            let definition = config.graph.at(interface.type_definition_id);
-            let federated_directives = &config.graph[interface.type_definition_id].directives;
+            let name_id = interface.name.into();
+            let federated_directives = &interface.directives;
 
             if has_inaccessible(federated_directives) {
                 self.graph.inaccessible_interface_definitions.set(ix.into(), true);
@@ -373,7 +371,7 @@ impl<'a> GraphBuilder<'a> {
 
             self.graph.interface_definitions.push(InterfaceDefinitionRecord {
                 name_id,
-                description_id: definition.description.map(Into::into),
+                description_id: interface.description.map(Into::into),
                 interface_ids: interface.implements_interfaces.into_iter().map(Into::into).collect(),
                 possible_type_ids: Vec::new(),
                 // Added at the end.
@@ -472,10 +470,10 @@ impl<'a> GraphBuilder<'a> {
             let parent_entity_id = field.parent_entity_id.into();
             let parent_entity = config.graph.entity(field.parent_entity_id);
             let type_schema_location = SchemaLocation::Definition {
-                name: parent_entity.name(&config.graph).into(),
+                name: parent_entity.name().into(),
             };
             let field_schema_location = SchemaLocation::Field {
-                ty: parent_entity.name(&config.graph).into(),
+                ty: parent_entity.name().into(),
                 name: field.name.into(),
             };
 
@@ -521,9 +519,7 @@ impl<'a> GraphBuilder<'a> {
                 key,
                 resolvable,
                 ..
-            } in parent_entity
-                .directives(&config.graph)
-                .filter_map(|dir| dir.as_join_type())
+            } in parent_entity.directives().filter_map(|dir| dir.as_join_type())
             {
                 // If present in the keys as a subgraph must always be able to provide those at least.
                 if key.as_ref().and_then(|key| key.find_field(federated_id)).is_some() {
@@ -571,7 +567,7 @@ impl<'a> GraphBuilder<'a> {
                             .entry((parent_entity_id, endpoint_id))
                             .or_insert_with(|| {
                                 parent_entity
-                                    .directives(&config.graph)
+                                    .directives()
                                     .filter_map(|dir| dir.as_join_type())
                                     .filter_map(|dir| {
                                         dir.key.as_ref().filter(|key| {
@@ -607,7 +603,7 @@ impl<'a> GraphBuilder<'a> {
             // If resolvable in all subgraphs, there is no need for `only_resolvable_in` from this
             // point on.
             if parent_entity
-                .directives(&config.graph)
+                .directives()
                 .filter_map(|dir| dir.as_join_type())
                 .all(|dir| only_resolvable_in.contains(&dir.subgraph_id.into()))
             {

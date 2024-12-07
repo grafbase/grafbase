@@ -1,4 +1,4 @@
-use super::{Directive, EnumValueId, FederatedGraph, StringId, TypeDefinitionId, View, ViewNested};
+use super::{Directive, EnumDefinitionId, EnumValueId, FederatedGraph, StringId, View, ViewNested};
 
 pub type EnumValue<'a> = ViewNested<'a, EnumValueId, EnumValueRecord>;
 
@@ -13,14 +13,14 @@ impl std::fmt::Debug for EnumValue<'_> {
 
 #[derive(Clone, Debug)]
 pub struct EnumValueRecord {
-    pub enum_id: TypeDefinitionId,
+    pub enum_id: EnumDefinitionId,
     pub value: StringId,
     pub directives: Vec<Directive>,
     pub description: Option<StringId>,
 }
 
 impl FederatedGraph {
-    pub fn enum_value_range(&self, enum_id: TypeDefinitionId) -> (EnumValueId, usize) {
+    pub fn enum_value_range(&self, enum_id: EnumDefinitionId) -> (EnumValueId, usize) {
         let mut values = self.iter_enum_values(enum_id);
         let Some(start) = values.next() else {
             return (EnumValueId::from(0), 0);
@@ -29,15 +29,15 @@ impl FederatedGraph {
         (start.id(), values.count() + 1)
     }
 
-    pub fn find_enum_value_by_name(&self, enum_id: TypeDefinitionId, name: &str) -> Option<EnumValue<'_>> {
+    pub fn find_enum_value_by_name(&self, enum_id: EnumDefinitionId, name: &str) -> Option<EnumValue<'_>> {
         self.iter_enum_values(enum_id).find(|value| self[value.value] == name)
     }
 
-    pub fn find_enum_value_by_name_id(&self, enum_id: TypeDefinitionId, name_id: StringId) -> Option<EnumValue<'_>> {
+    pub fn find_enum_value_by_name_id(&self, enum_id: EnumDefinitionId, name_id: StringId) -> Option<EnumValue<'_>> {
         self.iter_enum_values(enum_id).find(|value| value.value == name_id)
     }
 
-    pub fn iter_enum_values(&self, enum_id: TypeDefinitionId) -> impl Iterator<Item = EnumValue<'_>> + Clone {
+    pub fn iter_enum_values(&self, enum_id: EnumDefinitionId) -> impl Iterator<Item = EnumValue<'_>> + Clone {
         let start = self.enum_values.partition_point(|value| value.enum_id < enum_id);
         self.enum_values[start..]
             .iter()

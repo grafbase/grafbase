@@ -190,7 +190,7 @@ where
         type Value = FederatedGraph;
 
         fn visit_str<E: serde::de::Error>(self, v: &str) -> Result<Self::Value, E> {
-            federated_graph::from_sdl(v).map_err(E::custom)
+            FederatedGraph::from_sdl(v).map_err(E::custom)
         }
 
         fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {

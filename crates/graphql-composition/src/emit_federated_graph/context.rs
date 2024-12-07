@@ -49,7 +49,7 @@ impl<'a> Context<'a> {
     pub(crate) fn insert_value_with_type(
         &mut self,
         value: &subgraphs::Value,
-        enum_type: Option<federated::TypeDefinitionId>,
+        enum_type: Option<federated::EnumDefinitionId>,
     ) -> federated::Value {
         match value {
             subgraphs::Value::Null => federated::Value::Null,

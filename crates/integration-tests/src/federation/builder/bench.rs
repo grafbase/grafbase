@@ -5,6 +5,7 @@ use std::sync::{
 
 use bytes::Bytes;
 use engine::Body;
+use federated_graph::FederatedGraph;
 use futures::{StreamExt, TryStreamExt};
 use gateway_config::Config;
 use runtime::{
@@ -61,7 +62,7 @@ impl<'a> DeterministicEngineBuilder<'a> {
                 .collect(),
             dummy_responses_index.clone(),
         );
-        let graph = federated_graph::from_sdl(self.schema).unwrap();
+        let graph = FederatedGraph::from_sdl(self.schema).unwrap();
         let config = engine::config::Config::from_graph(graph);
 
         let schema = engine::Schema::build(config, engine::SchemaVersion::from(ulid::Ulid::new().to_bytes())).unwrap();

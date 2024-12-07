@@ -13,7 +13,7 @@ pub fn render_federated_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error
 
     write_subgraphs_enum(graph, &mut sdl)?;
 
-    for scalar in graph.iter_scalars() {
+    for scalar in graph.iter_scalar_definitions() {
         let name = scalar.then(|scalar| scalar.name).as_str();
 
         if let Some(description) = scalar.description {
@@ -31,8 +31,7 @@ pub fn render_federated_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error
     }
 
     for object in graph.iter_objects() {
-        let definition = graph.at(object.type_definition_id);
-        let object_name = definition.then(|def| def.name).as_str();
+        let object_name = &graph[object.name];
 
         let mut fields = graph[object.fields.clone()]
             .iter()
@@ -44,7 +43,7 @@ pub fn render_federated_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error
             continue;
         }
 
-        if let Some(description) = definition.description {
+        if let Some(description) = object.description {
             write!(sdl, "{}", Description(&graph[description], ""))?;
         }
 
@@ -55,11 +54,7 @@ pub fn render_federated_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error
             sdl.push_str(" implements ");
 
             for (idx, interface) in object.implements_interfaces.iter().enumerate() {
-                let interface_name = graph
-                    .at(*interface)
-                    .then(|interface| interface.type_definition_id)
-                    .then(|def| def.name)
-                    .as_str();
+                let interface_name = graph.at(*interface).then(|iface| iface.name).as_str();
 
                 sdl.push_str(interface_name);
 
@@ -69,7 +64,7 @@ pub fn render_federated_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error
             }
         }
 
-        write_definition_directives(&graph[object.type_definition_id].directives, graph, &mut sdl)?;
+        write_definition_directives(&object.directives, graph, &mut sdl)?;
 
         if !sdl.ends_with('\n') {
             sdl.push('\n');
@@ -77,17 +72,16 @@ pub fn render_federated_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error
         sdl.push_str("{\n");
 
         for field in fields {
-            write_field(&graph[object.type_definition_id].directives, field, graph, &mut sdl)?;
+            write_field(&object.directives, field, graph, &mut sdl)?;
         }
 
         writeln!(sdl, "}}\n")?;
     }
 
     for interface in graph.iter_interfaces() {
-        let definition = graph.at(interface.type_definition_id);
-        let interface_name = definition.then(|def| def.name).as_str();
+        let interface_name = &graph[interface.name];
 
-        if let Some(description) = definition.description {
+        if let Some(description) = interface.description {
             write!(sdl, "{}", Description(&graph[description], ""))?;
         }
 
@@ -99,7 +93,7 @@ pub fn render_federated_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error
 
             for (idx, implemented) in interface.implements_interfaces.iter().enumerate() {
                 let implemented_interface = graph.view(*implemented);
-                let implemented_interface_name = &graph[graph.view(implemented_interface.type_definition_id).name];
+                let implemented_interface_name = &graph[implemented_interface.name];
                 sdl.push_str(implemented_interface_name);
 
                 if idx < interface.implements_interfaces.len() - 1 {
@@ -109,7 +103,7 @@ pub fn render_federated_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error
         }
 
         let directives_start = sdl.len();
-        write_definition_directives(&graph[interface.type_definition_id].directives, graph, &mut sdl)?;
+        write_definition_directives(&interface.directives, graph, &mut sdl)?;
 
         if sdl[interface_start..].len() >= 80 || sdl[directives_start..].len() >= 20 {
             if !sdl.ends_with('\n') {
@@ -121,13 +115,13 @@ pub fn render_federated_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error
         sdl.push_str("{\n");
 
         for field in &graph[interface.fields.clone()] {
-            write_field(&graph[interface.type_definition_id].directives, field, graph, &mut sdl)?;
+            write_field(&interface.directives, field, graph, &mut sdl)?;
         }
 
         writeln!(sdl, "}}\n")?;
     }
 
-    for r#enum in graph.iter_enums() {
+    for r#enum in graph.iter_enum_definitions() {
         let enum_name = graph.at(r#enum.name).as_str();
 
         if let Some(description) = r#enum.description {
@@ -181,13 +175,7 @@ pub fn render_federated_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error
         let mut members = union.members.iter().peekable();
 
         while let Some(member) = members.next() {
-            sdl.push_str(
-                graph
-                    .at(*member)
-                    .then(|member| member.type_definition_id)
-                    .then(|def| def.name)
-                    .as_str(),
-            );
+            sdl.push_str(graph.at(*member).then(|member| member.name).as_str());
 
             if members.peek().is_some() {
                 sdl.push_str(" | ");
@@ -256,9 +244,11 @@ fn write_prelude(sdl: &mut String, graph: &FederatedGraph) -> fmt::Result {
     "#});
 
     if graph
-        .type_definitions
-        .iter()
-        .flat_map(|ty| &ty.directives)
+        .iter_objects()
+        .flat_map(|obj| obj.directives.iter())
+        .chain(graph.iter_interfaces().flat_map(|iface| iface.directives.iter()))
+        .chain(graph.iter_scalar_definitions().flat_map(|def| def.directives.iter()))
+        .chain(graph.iter_enum_definitions().flat_map(|def| def.directives.iter()))
         .chain(graph.fields.iter().flat_map(|f| &f.directives))
         .chain(graph.input_objects.iter().flat_map(|e| &e.directives))
         .any(|directive| matches!(directive, Directive::Cost { .. }))
@@ -522,8 +512,6 @@ impl std::fmt::Display for ListSizeRender<'_> {
 
 #[cfg(test)]
 mod tests {
-    use crate::from_sdl;
-
     use super::*;
 
     #[test]
@@ -566,7 +554,7 @@ mod tests {
     fn escape_strings() {
         use expect_test::expect;
 
-        let empty = from_sdl(
+        let empty = FederatedGraph::from_sdl(
             r###"
             directive @dummy(test: String!) on FIELD
 
@@ -616,7 +604,7 @@ mod tests {
     fn multiline_strings() {
         use expect_test::expect;
 
-        let empty = from_sdl(
+        let empty = FederatedGraph::from_sdl(
             r###"
             directive @dummy(test: String!) on FIELD
 
@@ -681,7 +669,7 @@ mod tests {
             }
         "##;
 
-        let parsed = from_sdl(schema).unwrap();
+        let parsed = FederatedGraph::from_sdl(schema).unwrap();
         let rendered = render_federated_sdl(&parsed).unwrap();
 
         let expected = expect_test::expect![[r#"
@@ -726,7 +714,7 @@ mod tests {
 
         // Check that from_sdl accepts the rendered sdl
         {
-            from_sdl(&rendered).unwrap();
+            FederatedGraph::from_sdl(&rendered).unwrap();
         }
     }
 }

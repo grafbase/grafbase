@@ -32,17 +32,17 @@ pub enum EntityDefinition<'a> {
     Interface(&'a Interface),
 }
 
-impl EntityDefinition<'_> {
-    pub fn name(&self, graph: &FederatedGraph) -> StringId {
+impl<'a> EntityDefinition<'a> {
+    pub fn name(&self) -> StringId {
         match self {
-            EntityDefinition::Object(obj) => graph[obj.type_definition_id].name,
-            EntityDefinition::Interface(interface) => graph[interface.type_definition_id].name,
+            EntityDefinition::Object(obj) => obj.name,
+            EntityDefinition::Interface(interface) => interface.name,
         }
     }
-    pub fn directives<'b>(&self, graph: &'b FederatedGraph) -> impl Iterator<Item = &'b Directive> + 'b {
+    pub fn directives(&'a self) -> impl Iterator<Item = &'a Directive> + 'a {
         match self {
-            EntityDefinition::Object(obj) => graph[obj.type_definition_id].directives.iter(),
-            EntityDefinition::Interface(interface) => graph[interface.type_definition_id].directives.iter(),
+            EntityDefinition::Object(obj) => obj.directives.iter(),
+            EntityDefinition::Interface(interface) => interface.directives.iter(),
         }
     }
 }

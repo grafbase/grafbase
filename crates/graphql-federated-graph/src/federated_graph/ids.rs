@@ -43,6 +43,7 @@ macro_rules! id_newtypes {
 
 id_newtypes! {
     enum_values[EnumValueId] -> EnumValueRecord,
+    enum_definitions[EnumDefinitionId] -> EnumDefinitionRecord,
     fields[FieldId] -> Field,
     input_objects[InputObjectId] -> InputObject,
     input_value_definitions[InputValueDefinitionId] -> InputValueDefinition,
@@ -50,6 +51,6 @@ id_newtypes! {
     objects[ObjectId] -> Object,
     strings[StringId] -> String,
     subgraphs[SubgraphId] -> Subgraph,
-    type_definitions[TypeDefinitionId] -> TypeDefinitionRecord,
+    scalar_definitions[ScalarDefinitionId] -> ScalarDefinitionRecord,
     unions[UnionId] -> Union,
 }

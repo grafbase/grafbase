@@ -276,7 +276,7 @@ fn parse_join_field_directive<'a>(
     directive: ast::Directive<'a>,
     state: &mut State<'a>,
 ) -> Result<Option<Directive>, DomainError> {
-    let field_type = state.fields[usize::from(field_id)].r#type.clone();
+    let field_type = state.graph[field_id].r#type.clone();
     let is_external = directive
         .get_argument("external")
         .map(|arg| arg.as_bool().unwrap_or_default())
@@ -350,7 +350,7 @@ fn parse_authorized_field_directive<'a>(
     directive: ast::Directive<'a>,
     state: &mut State<'a>,
 ) -> Result<Directive, DomainError> {
-    let field_type = state.fields[usize::from(field_id)].r#type.clone();
+    let field_type = state.graph[field_id].r#type.clone();
 
     Ok(Directive::Authorized(AuthorizedDirective {
         arguments: directive
@@ -390,7 +390,7 @@ fn parse_list_size_directive<'a>(
     directive: ast::Directive<'a>,
     state: &mut State<'a>,
 ) -> Result<Option<Directive>, DomainError> {
-    let field = &state.fields[usize::from(field_id)];
+    let field = &state.graph[field_id];
 
     let Ok(ListSizeDirective {
         assumed_size,
@@ -403,7 +403,7 @@ fn parse_list_size_directive<'a>(
     };
 
     let argument_base_index = usize::from(field.arguments.0);
-    let arguments = &state.input_value_definitions[argument_base_index..argument_base_index + field.arguments.1];
+    let arguments = &state.graph.input_value_definitions[argument_base_index..argument_base_index + field.arguments.1];
     let slicing_arguments = slicing_arguments
         .iter()
         .filter_map(|argument| {
