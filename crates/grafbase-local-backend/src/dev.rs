@@ -4,6 +4,10 @@ mod pathfinder;
 mod subgraphs;
 
 use super::errors::BackendError;
+use cli_table::{
+    format::{Border, Justify, Separator},
+    print_stdout, Cell, Style, Table,
+};
 use configurations::get_and_merge_configurations;
 use federated_server::{serve, GraphFetchMethod, ServerConfig, ServerRouter, ServerRuntime};
 use gateway_config::Config;
@@ -67,11 +71,12 @@ pub async fn start(
 
     let output_handler_ready_receiver = ready_sender.subscribe();
 
-    spawn_blocking(|| {
-        let _ = output_handler(output_handler_ready_receiver);
-    });
-
     let dev_configuration = get_and_merge_configurations(gateway_config_path, graph_overrides_path).await?;
+    let introspection_forced = dev_configuration.introspection_forced;
+
+    spawn_blocking(move || {
+        let _ = output_handler(output_handler_ready_receiver, introspection_forced);
+    });
 
     let port = port
         .or(dev_configuration
@@ -148,7 +153,10 @@ pub async fn start(
     Ok(())
 }
 
-fn output_handler(mut receiver: Receiver<String>) -> Result<(), Box<dyn std::error::Error>> {
+fn output_handler(
+    mut receiver: Receiver<String>,
+    introspection_forced: bool,
+) -> Result<(), Box<dyn std::error::Error>> {
     use crossterm::{
         cursor::MoveUp,
         style::Stylize,
@@ -157,13 +165,41 @@ fn output_handler(mut receiver: Receiver<String>) -> Result<(), Box<dyn std::err
     };
     use std::io::stdout;
 
-    println!("🕒 {} your subgraphs...\n", "Fetching".yellow().bold());
+    println!("{} your subgraphs...\n", "Fetching".yellow().bold());
 
     let url = receiver.blocking_recv()?;
+    let url = url::Url::parse(&url)?;
 
     stdout().queue(MoveUp(2))?.queue(Clear(ClearType::CurrentLine))?;
 
-    println!("📡 {} on {}\n", "Listening".green().bold(), url.blue().bold());
+    let pathfinder_url = format!(
+        "http://{}:{}",
+        url.host()
+            .map(|h| h.to_string())
+            .unwrap_or_else(|| "127.0.0.1".to_string()),
+        url.port().unwrap()
+    );
+
+    let table = vec![
+        vec![
+            "GraphQL endpoint:".cell().justify(Justify::Left),
+            url.to_string().cell().justify(Justify::Left).bold(true),
+        ],
+        vec![
+            "Pathfinder:".cell().justify(Justify::Left),
+            pathfinder_url.cell().justify(Justify::Left).bold(true),
+        ],
+    ]
+    .table()
+    .border(Border::builder().build())
+    .separator(Separator::builder().build());
+
+    print_stdout(table).unwrap();
+    println!();
+
+    if introspection_forced {
+        tracing::info!("introspection is always enabled in the dev mode, config overriden");
+    }
 
     Ok(())
 }
