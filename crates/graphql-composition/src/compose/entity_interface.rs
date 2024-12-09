@@ -123,8 +123,13 @@ pub(crate) fn merge_entity_interface_definitions<'a>(
 
     let fields_to_add: Vec<(StringId, _)> = fields
         .into_iter()
-        .map(|field| {
+        .map(|mut field| {
+            // Adding interface field.
             ctx.insert_field(field.clone());
+
+            // Adding only the empty `@join__field` directive indicating it's coming from somewhere
+            // else.
+            field.directives = vec![ir::Directive::JoinEntityInterfaceField];
             (field_name_mapping[&field.field_name], field)
         })
         .collect();

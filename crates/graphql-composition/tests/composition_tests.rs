@@ -8,6 +8,24 @@ fn update_expect() -> bool {
 }
 
 fn run_test(federated_graph_path: &Path) -> datatest_stable::Result<()> {
+    miette_run_test(federated_graph_path).map_err(Into::into)
+}
+
+#[derive(thiserror::Error, Debug)]
+enum Error {
+    #[error("{0}")]
+    Miette(miette::Report),
+    #[error(transparent)]
+    IO(#[from] std::io::Error),
+}
+
+impl From<miette::Report> for Error {
+    fn from(report: miette::Report) -> Self {
+        Error::Miette(report)
+    }
+}
+
+fn miette_run_test(federated_graph_path: &Path) -> Result<(), Error> {
     if cfg!(windows) {
         return Ok(()); // newlines
     }
@@ -64,10 +82,11 @@ fn run_test(federated_graph_path: &Path) -> datatest_stable::Result<()> {
 
     if update_expect() {
         if let Some(sdl) = actual_api_sdl {
-            fs::write(api_sdl_path, sdl)?;
+            fs::write(api_sdl_path, sdl).unwrap();
         }
 
-        return fs::write(federated_graph_path, actual_federated_sdl).map_err(From::from);
+        fs::write(federated_graph_path, actual_federated_sdl)?;
+        return Ok(());
     }
 
     if expected_federated_sdl != actual_federated_sdl {

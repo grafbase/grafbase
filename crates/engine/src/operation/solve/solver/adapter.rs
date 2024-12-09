@@ -63,6 +63,7 @@ impl<'a> query_solver::Operation for OperationAdapter<'a> {
         requirement: SchemaField<'_>,
     ) -> Self::FieldId {
         let field = BoundExtraField {
+            query_position: None,
             key: None, // added later if used
             definition_id: requirement.definition_id,
             argument_ids: self.create_arguments_for(requirement),
@@ -77,14 +78,27 @@ impl<'a> query_solver::Operation for OperationAdapter<'a> {
         original: Self::FieldId,
         interface_field_definition: schema::FieldDefinition<'_>,
     ) -> Self::FieldId {
-        let BoundField::Query(field) = &self.operation[original] else {
-            unreachable!("Extra alternative fields are only created from query fields.")
+        let (query_position, key, argument_ids, location) = match &self.operation[original] {
+            BoundField::Query(field) => (
+                Some(field.query_position),
+                Some(field.key),
+                field.argument_ids,
+                field.location,
+            ),
+            BoundField::Extra(field) => (
+                field.query_position,
+                field.key,
+                field.argument_ids,
+                field.petitioner_location,
+            ),
+            _ => unreachable!(),
         };
         let field = BoundExtraField {
-            key: Some(field.key),
+            query_position,
+            key,
             definition_id: interface_field_definition.id,
-            argument_ids: field.argument_ids,
-            petitioner_location: field.location,
+            argument_ids,
+            petitioner_location: location,
         };
         self.operation.fields.push(BoundField::Extra(field));
         (self.operation.fields.len() - 1).into()

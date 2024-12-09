@@ -452,9 +452,7 @@ impl BoundField {
             }),
             BoundField::Extra(field) => Ok(DataFieldRecord {
                 key: PositionedResponseKey {
-                    // Having no query position is equivalent to being an
-                    // extra field.
-                    query_position: None,
+                    query_position: field.query_position,
                     response_key: field.key.unwrap(),
                 },
                 subgraph_key: field.key.unwrap(),

@@ -14,7 +14,7 @@ type Admin implements Account
     id: ID!
     isMain: Boolean!
     isActive: Boolean!
-    name: String!
+    name: String! @join__field
 }
 
 type Query
@@ -33,8 +33,8 @@ type Regular implements Account
 {
     id: ID!
     isMain: Boolean!
-    name: String!
-    isActive: Boolean!
+    name: String! @join__field
+    isActive: Boolean! @join__field
 }
 
 type User implements NodeWithName
@@ -44,7 +44,7 @@ type User implements NodeWithName
     id: ID!
     name: String
     age: Int
-    username: String
+    username: String @join__field
 }
 
 interface Account
@@ -79,6 +79,26 @@ fn interface_field_providing_object_field() {
           anotherUsers {
             ... on User {
               age
+            }
+          }
+        }
+        "#
+    );
+}
+
+#[test]
+fn entity_interface_field() {
+    // age is coming from subgraph A, but needs User.id for this. `anotherUsers` returns an
+    // interface though, so need to retrieve the `NodeWithName.id` as an alternative for `User.id`
+    assert_solving_snapshots!(
+        "entity_interface_field",
+        SCHEMA,
+        r#"
+        query {
+          users {
+            ... on User {
+              age
+              username
             }
           }
         }

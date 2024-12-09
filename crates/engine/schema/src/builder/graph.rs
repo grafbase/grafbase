@@ -3,7 +3,7 @@ use std::{
     mem::take,
 };
 
-use builder::coerce::InputValueCoercer;
+use builder::{coerce::InputValueCoercer, external_sources::ExternalDataSources};
 use config::Config;
 use federated_graph::{JoinFieldDirective, JoinImplementsDirective, JoinTypeDirective, JoinUnionMemberDirective};
 use introspection::{IntrospectionBuilder, IntrospectionMetadata};
@@ -15,15 +15,25 @@ use super::{interner::Interner, BuildContext, BuildError, FieldSetsBuilder, Sche
 pub(crate) struct GraphBuilder<'a> {
     ctx: &'a mut BuildContext,
     field_sets: FieldSetsBuilder,
+    all_subgraphs: Vec<SubgraphId>,
     required_scopes: Interner<RequiresScopesDirectiveRecord, RequiresScopesDirectiveId>,
     graph: Graph,
 }
 
 impl<'a> GraphBuilder<'a> {
-    pub fn build(ctx: &'a mut BuildContext, config: &mut Config) -> Result<(Graph, IntrospectionMetadata), BuildError> {
+    pub fn build(
+        ctx: &'a mut BuildContext,
+        sources: &ExternalDataSources,
+        config: &mut Config,
+    ) -> Result<(Graph, IntrospectionMetadata), BuildError> {
+        let mut all_subgraphs = (0..sources.graphql_endpoints.len())
+            .map(|i| SubgraphId::GraphqlEndpoint(GraphqlEndpointId::from(i)))
+            .collect::<Vec<_>>();
+        all_subgraphs.sort_unstable();
         let mut builder = GraphBuilder {
             ctx,
             field_sets: Default::default(),
+            all_subgraphs,
             required_scopes: Default::default(),
             graph: Graph {
                 description_id: None,
@@ -340,8 +350,11 @@ impl<'a> GraphBuilder<'a> {
                 .filter_map(|dir| dir.as_join_type())
                 .map(|dir| SubgraphId::GraphqlEndpoint(dir.subgraph_id.into()))
                 .collect::<Vec<_>>();
-
-            exists_in_subgraph_ids.sort_unstable();
+            if exists_in_subgraph_ids.is_empty() {
+                exists_in_subgraph_ids = self.all_subgraphs.clone()
+            } else {
+                exists_in_subgraph_ids.sort_unstable();
+            }
 
             self.graph.object_definitions.push(ObjectDefinitionRecord {
                 name_id,
@@ -481,7 +494,7 @@ impl<'a> GraphBuilder<'a> {
             let mut requires_records = Vec::new();
             let mut provides_records = Vec::new();
             // BTreeSet to ensures consistent ordering of resolvers.
-            let mut only_resolvable_in = BTreeSet::new();
+            let mut resolvable_in = BTreeSet::new();
             let mut has_join_field = false;
 
             for JoinFieldDirective {
@@ -493,27 +506,30 @@ impl<'a> GraphBuilder<'a> {
             } in field.directives.iter().filter_map(|dir| dir.as_join_field())
             {
                 has_join_field = true;
-                let subgraph_id = SubgraphId::GraphqlEndpoint((*federated_subgraph_id).into());
-                if r#type.as_ref().is_some_and(|ty| ty != &field.r#type) {
-                    distinct_type_in_ids.push(subgraph_id);
+                if let Some(federated_subgraph_id) = federated_subgraph_id {
+                    let subgraph_id = SubgraphId::GraphqlEndpoint((*federated_subgraph_id).into());
+                    if r#type.as_ref().is_some_and(|ty| ty != &field.r#type) {
+                        distinct_type_in_ids.push(subgraph_id);
+                    }
+                    if let Some(provides) = provides.as_ref().filter(|provides| !provides.is_empty()) {
+                        let field_set_id = self.field_sets.push(field_schema_location, provides.clone());
+                        provides_records.push(FieldProvidesRecord {
+                            subgraph_id,
+                            field_set_id,
+                        });
+                    }
+                    if let Some(requires) = requires.as_ref().filter(|requires| !requires.is_empty()) {
+                        let field_set_id = self.field_sets.push(field_schema_location, requires.clone());
+                        requires_records.push(FieldRequiresRecord {
+                            subgraph_id,
+                            field_set_id,
+                        });
+                    }
+                    resolvable_in.insert((*federated_subgraph_id).into());
                 }
-                if let Some(provides) = provides.as_ref().filter(|provides| !provides.is_empty()) {
-                    let field_set_id = self.field_sets.push(field_schema_location, provides.clone());
-                    provides_records.push(FieldProvidesRecord {
-                        subgraph_id,
-                        field_set_id,
-                    });
-                }
-                if let Some(requires) = requires.as_ref().filter(|requires| !requires.is_empty()) {
-                    let field_set_id = self.field_sets.push(field_schema_location, requires.clone());
-                    requires_records.push(FieldRequiresRecord {
-                        subgraph_id,
-                        field_set_id,
-                    });
-                }
-                only_resolvable_in.insert((*federated_subgraph_id).into());
             }
 
+            let mut parent_has_join_type = false;
             for JoinTypeDirective {
                 subgraph_id,
                 key,
@@ -521,13 +537,14 @@ impl<'a> GraphBuilder<'a> {
                 ..
             } in parent_entity.directives().filter_map(|dir| dir.as_join_type())
             {
+                parent_has_join_type = true;
                 // If present in the keys as a subgraph must always be able to provide those at least.
                 if key.as_ref().and_then(|key| key.find_field(federated_id)).is_some() {
-                    only_resolvable_in.insert((*subgraph_id).into());
+                    resolvable_in.insert((*subgraph_id).into());
                 } else if !has_join_field && *resolvable {
                     // If there is no @join__field we rely solely @join__type to define the subgraphs
                     // in which this field is resolvable in.
-                    only_resolvable_in.insert((*subgraph_id).into());
+                    resolvable_in.insert((*subgraph_id).into());
                 }
             }
 
@@ -536,7 +553,7 @@ impl<'a> GraphBuilder<'a> {
                 if let Some(r#override) = &directive.r#override {
                     match r#override {
                         federated_graph::OverrideSource::Subgraph(subgraph_id) => {
-                            only_resolvable_in.remove(&(*subgraph_id).into());
+                            resolvable_in.remove(&(*subgraph_id).into());
                         }
                         federated_graph::OverrideSource::Missing(_) => (),
                     };
@@ -545,7 +562,7 @@ impl<'a> GraphBuilder<'a> {
 
             let mut resolver_ids = vec![];
             if root_entities.contains(&parent_entity_id) {
-                for &endpoint_id in &only_resolvable_in {
+                for &endpoint_id in &resolvable_in {
                     resolver_ids.extend(
                         field_resolvers
                             .entry((parent_entity_id, endpoint_id))
@@ -561,7 +578,7 @@ impl<'a> GraphBuilder<'a> {
                     );
                 }
             } else {
-                for &endpoint_id in &only_resolvable_in {
+                for &endpoint_id in &resolvable_in {
                     let endpoint_resolvers =
                         field_resolvers
                             .entry((parent_entity_id, endpoint_id))
@@ -600,15 +617,16 @@ impl<'a> GraphBuilder<'a> {
                 }
             }
 
-            // If resolvable in all subgraphs, there is no need for `only_resolvable_in` from this
-            // point on.
-            if parent_entity
-                .directives()
-                .filter_map(|dir| dir.as_join_type())
-                .all(|dir| only_resolvable_in.contains(&dir.subgraph_id.into()))
-            {
-                only_resolvable_in.clear();
-            }
+            // If there is no @join__field and no @join__type at all, we assume this field to be
+            // available everywhere.
+            let resolvable_in_ids = if !has_join_field && !parent_has_join_type {
+                self.all_subgraphs.clone()
+            } else {
+                resolvable_in
+                    .into_iter()
+                    .map(SubgraphId::GraphqlEndpoint)
+                    .collect::<Vec<_>>()
+            };
 
             let directive_ids = self.push_directives(field_schema_location, &field.directives);
 
@@ -618,10 +636,7 @@ impl<'a> GraphBuilder<'a> {
                 parent_entity_id,
                 distinct_type_in_ids,
                 ty_record: self.ctx.convert_type(field.r#type),
-                only_resolvable_in_ids: only_resolvable_in
-                    .into_iter()
-                    .map(SubgraphId::GraphqlEndpoint)
-                    .collect(),
+                resolvable_in_ids,
                 resolver_ids,
                 provides_records,
                 requires_records,
@@ -637,6 +652,7 @@ impl<'a> GraphBuilder<'a> {
             field_sets,
             required_scopes,
             mut graph,
+            ..
         } = self;
 
         graph.required_scopes = required_scopes.into();

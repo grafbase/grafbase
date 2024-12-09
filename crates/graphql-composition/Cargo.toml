@@ -19,9 +19,10 @@ indexmap.workspace = true
 itertools.workspace = true
 
 [dev-dependencies]
-datatest-stable = "0.2.9"
+datatest-stable.workspace = true
 similar = "2.5.0"
-miette = { version = "7.2.0", features = ["fancy"] }
+thiserror.workspace = true
+miette = { workspace = true, features = ["fancy"] }
 
 [[test]]
 name = "composition_tests"

@@ -105,8 +105,11 @@ fn render_join_field_directive(
     directive: &JoinFieldDirective,
     graph: &FederatedGraph,
 ) -> fmt::Result {
-    let subgraph_name = GraphEnumVariantName(&graph[graph[directive.subgraph_id].name]);
-    let mut writer = DirectiveWriter::new("join__field", f, graph)?.arg("graph", subgraph_name)?;
+    let mut writer = DirectiveWriter::new("join__field", f, graph)?;
+    if let Some(subgraph_id) = directive.subgraph_id {
+        let subgraph_name = GraphEnumVariantName(&graph[graph[subgraph_id].name]);
+        writer = writer.arg("graph", subgraph_name)?;
+    }
 
     if let Some(requires) = directive.requires.as_ref().filter(|requires| !requires.is_empty()) {
         writer = writer.arg("requires", SelectionSetDisplay(requires, graph))?;

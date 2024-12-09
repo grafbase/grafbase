@@ -27,7 +27,7 @@ use interner::Interner;
 pub(crate) fn build(mut config: Config, version: Version) -> Result<Schema, BuildError> {
     let mut ctx = BuildContext::new(&mut config);
     let sources = ExternalDataSources::build(&mut ctx, &mut config);
-    let (graph, introspection) = GraphBuilder::build(&mut ctx, &mut config)?;
+    let (graph, introspection) = GraphBuilder::build(&mut ctx, &sources, &mut config)?;
     let subgraphs = SubGraphs {
         graphql_endpoints: sources.graphql_endpoints,
         introspection,

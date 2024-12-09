@@ -32,7 +32,7 @@ type Book implements Media
     @join__implements(graph: A, interface: "Media")
 {
     id: ID!
-    reviews: [Review!]! @join__field(graph: B, requires: "title")
+    reviews: [Review!]! @join__field
     title: String!
 }
 

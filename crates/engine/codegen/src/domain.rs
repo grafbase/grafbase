@@ -250,17 +250,6 @@ impl<'a> StorageType<'a> {
     }
 }
 
-impl std::fmt::Display for StorageType<'_> {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match self {
-            StorageType::Id { name, .. } => {
-                write!(f, "{}", name)
-            }
-            StorageType::Struct { name, .. } => write!(f, "{}", name),
-        }
-    }
-}
-
 #[derive(Debug)]
 pub enum AccessKind {
     Copy,

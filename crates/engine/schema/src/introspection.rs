@@ -660,7 +660,7 @@ impl<'a> IntrospectionBuilder<'a> {
             directive_ids: Vec::new(),
             field_ids: IdRange::empty(),
             join_implement_records: Vec::new(),
-            exists_in_subgraph_ids: Vec::new(),
+            exists_in_subgraph_ids: vec![SubgraphId::Introspection],
         });
         ObjectDefinitionId::from(self.object_definitions.len() - 1)
     }
@@ -682,7 +682,7 @@ impl<'a> IntrospectionBuilder<'a> {
                 description_id: None,
                 ty_record: r#type,
                 parent_entity_id: EntityDefinitionId::Object(object_id),
-                only_resolvable_in_ids: vec![SubgraphId::Introspection],
+                resolvable_in_ids: vec![SubgraphId::Introspection],
                 requires_records: Vec::new(),
                 provides_records: Vec::new(),
                 directive_ids: Vec::new(),

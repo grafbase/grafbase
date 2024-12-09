@@ -58,6 +58,7 @@ pub(crate) struct BoundQueryField {
 pub(crate) struct BoundExtraField {
     // Extra fields are added as soon as they might be necessary, and they're assigned a key if
     // they are.
+    pub query_position: Option<QueryPosition>,
     pub key: Option<ResponseKey>,
     pub definition_id: FieldDefinitionId,
     pub argument_ids: IdRange<BoundFieldArgumentId>,
