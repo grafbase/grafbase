@@ -60,7 +60,7 @@ impl quote::ToTokens for StructField<'_> {
         let field_name = Ident::new(&self.0.record_field_name, Span::call_site());
 
         let storage_type = self.0.ty.storage_type();
-        let ty = Ident::new(&storage_type.to_string(), Span::call_site());
+        let ty = Ident::new(storage_type.name(), Span::call_site());
 
         let ty = match self.0.wrapping[..] {
             [] => quote! { Option<#ty> },

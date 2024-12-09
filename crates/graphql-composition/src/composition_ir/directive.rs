@@ -18,6 +18,7 @@ pub enum Directive {
         arguments: Vec<(federated::StringId, subgraphs::Value)>,
     },
     JoinField(JoinFieldDirective),
+    JoinEntityInterfaceField,
     JoinInputField(JoinInputFieldDirective),
     Authorized(AuthorizedDirective),
     JoinType(JoinTypeDirective),

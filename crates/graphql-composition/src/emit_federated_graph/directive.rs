@@ -32,7 +32,7 @@ pub(super) fn transform_input_value_directives(
         .filter_map(|directive| match directive {
             ir::Directive::JoinInputField(dir) => {
                 Some(federated::Directive::JoinField(federated::JoinFieldDirective {
-                    subgraph_id: dir.subgraph_id,
+                    subgraph_id: Some(dir.subgraph_id),
                     requires: None,
                     provides: None,
                     r#type: dir.r#type.map(|ty| ctx.insert_field_type(ctx.subgraphs.walk(ty))),
@@ -87,6 +87,9 @@ pub(super) fn transform_field_directives(
         .into_iter()
         .filter_map(|directive| match directive {
             ir::Directive::JoinField(dir) => Some(transform_join_field_directive(ctx, field_id, dir)),
+            ir::Directive::JoinEntityInterfaceField => {
+                Some(federated::Directive::JoinField(federated::JoinFieldDirective::default()))
+            }
             ir::Directive::Authorized(dir) => Some(transform_authorized_field_directive(ctx, field_id, dir)),
             ir::Directive::ListSize(dir) => Some(transform_list_size_directive(ctx, field_id, dir)),
             dir => transform_common_directive(ctx, dir),
@@ -114,7 +117,8 @@ fn transform_common_directive(ctx: &mut Context<'_>, directive: ir::Directive) -
         | ir::Directive::JoinType(_)
         | ir::Directive::ListSize(_)
         | ir::Directive::JoinUnionMember(_)
-        | ir::Directive::JoinInputField(_) => {
+        | ir::Directive::JoinInputField(_)
+        | ir::Directive::JoinEntityInterfaceField => {
             return None;
         }
     })
@@ -241,7 +245,9 @@ fn transform_join_field_directive(
 ) -> federated::Directive {
     let field = ctx.subgraphs.walk(source_field);
     federated::Directive::JoinField(federated::JoinFieldDirective {
-        subgraph_id: federated::SubgraphId::from(field.parent_definition().subgraph_id().idx()),
+        subgraph_id: Some(federated::SubgraphId::from(
+            field.parent_definition().subgraph_id().idx(),
+        )),
         requires: field
             .directives()
             .requires()

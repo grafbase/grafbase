@@ -286,13 +286,10 @@ fn parse_join_field_directive<'a>(
         return Ok(None);
     }
 
-    let Some(subgraph_id) = directive
+    let subgraph_id = directive
         .get_argument("graph")
         .and_then(|arg| arg.as_enum_value())
-        .and_then(|name| state.graph_by_enum_str.get(name).copied())
-    else {
-        return Ok(None);
-    };
+        .and_then(|name| state.graph_by_enum_str.get(name).copied());
 
     let requires = directive
         .get_argument("requires")

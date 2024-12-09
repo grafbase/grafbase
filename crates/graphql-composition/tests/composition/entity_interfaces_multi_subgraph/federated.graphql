@@ -41,12 +41,12 @@ type Cheetah implements Animal
     @join__implements(graph: MANGROVE, interface: "Animal")
     @join__implements(graph: SAVANA, interface: "Animal")
 {
-    favouriteFood: String @join__field(graph: FOREST)
+    favouriteFood: String @join__field
     runSpeedKmh: Float @join__field(graph: MANGROVE)
     species: String!
     swimSpeedKmh: Float @join__field(graph: MANGROVE)
     topSpeed: Int! @join__field(graph: SAVANA)
-    weightGrams: Int @join__field(graph: STEPPE)
+    weightGrams: Int @join__field
 }
 
 type Mammoth

@@ -28,9 +28,9 @@ pub struct JoinTypeDirective {
 ///     overrideLabel: String
 /// ) repeatable on FIELD_DEFINITION | INPUT_FIELD_DEFINITION
 /// ```
-#[derive(Clone, PartialEq, PartialOrd, Debug)]
+#[derive(Default, Clone, PartialEq, PartialOrd, Debug)]
 pub struct JoinFieldDirective {
-    pub subgraph_id: SubgraphId,
+    pub subgraph_id: Option<SubgraphId>,
     pub requires: Option<SelectionSet>,
     pub provides: Option<SelectionSet>,
     pub r#type: Option<Type>,

@@ -99,7 +99,7 @@ impl quote::ToTokens for EnumVariant<'_> {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         let variant = Ident::new(&self.0.name, Span::call_site());
         let tt = if let Some(value) = self.0.value {
-            let storage_type = Ident::new(&value.storage_type().to_string(), Span::call_site());
+            let storage_type = Ident::new(value.storage_type().name(), Span::call_site());
             quote! { #variant(#storage_type) }
         } else {
             quote! { #variant }
@@ -121,7 +121,7 @@ impl quote::ToTokens for FromVariant<'_> {
         let Some(value) = self.variant.value else {
             return;
         };
-        let storage_type = Ident::new(&value.storage_type().to_string(), Span::call_site());
+        let storage_type = Ident::new(value.storage_type().name(), Span::call_site());
         tokens.append_all(quote! {
             impl From<#storage_type> for #enum_ {
                 fn from(value: #storage_type) -> Self {
@@ -152,7 +152,7 @@ impl quote::ToTokens for AsVariant<'_> {
                 }
             });
             let as_variant = Ident::new(&format!("as_{}", self.variant.name.to_snake()), Span::call_site());
-            let ty = Ident::new(&value.storage_type().to_string(), Span::call_site());
+            let ty = Ident::new(value.storage_type().name(), Span::call_site());
             if value.storage_type().is_copy() {
                 let val = if value.storage_type().is_id() { "id" } else { "item" };
                 let val = Ident::new(val, Span::call_site());

@@ -374,7 +374,7 @@ fn write_field_directives(
             {
                 fully_overridden_subgraph_ids.push(*id);
             }
-            join_field_subgraph_ids.push(dir.subgraph_id);
+            join_field_subgraph_ids.extend(dir.subgraph_id);
             join_field_must_be_present |=
                 dir.r#override.is_some() | dir.requires.is_some() | dir.provides.is_some() | dir.r#type.is_some();
         }
@@ -399,8 +399,12 @@ fn write_field_directives(
 
     with_formatter(sdl, |f| {
         for directive in directives {
-            if let Directive::JoinField(dir) = &directive {
-                if !join_field_must_be_present || fully_overridden_subgraph_ids.contains(&dir.subgraph_id) {
+            if let Directive::JoinField(JoinFieldDirective {
+                subgraph_id: Some(subgraph_id),
+                ..
+            }) = &directive
+            {
+                if !join_field_must_be_present || fully_overridden_subgraph_ids.contains(subgraph_id) {
                     continue;
                 }
             }

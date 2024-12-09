@@ -3372,6 +3372,7 @@ dependencies = [
  "itertools 0.13.0",
  "miette",
  "similar",
+ "thiserror 2.0.6",
 ]
 
 [[package]]

@@ -27,12 +27,7 @@ use walker::{Iter, Walk};
 ///   parent_entity: EntityDefinition!
 ///   ty: Type!
 ///   resolvers: [ResolverDefinition!]!
-///   """
-///   By default a field is considered shared and providable by *any* subgraph that exposes it.
-///   It's up to the composition to ensure it. If this field is specific to some subgraphs, they
-///   will be specified in this Vec.
-///   """
-///   only_resolvable_in: [Subgraph!]!
+///   resolvable_in: [Subgraph!]!
 ///   distinct_type_in: [Subgraph!]!
 ///   requires: [FieldRequires!]! @field(record_field_name: "requires_records")
 ///   provides: [FieldProvides!]! @field(record_field_name: "provides_records")
@@ -48,10 +43,7 @@ pub struct FieldDefinitionRecord {
     pub parent_entity_id: EntityDefinitionId,
     pub ty_record: TypeRecord,
     pub resolver_ids: Vec<ResolverDefinitionId>,
-    /// By default a field is considered shared and providable by *any* subgraph that exposes it.
-    /// It's up to the composition to ensure it. If this field is specific to some subgraphs, they
-    /// will be specified in this Vec.
-    pub only_resolvable_in_ids: Vec<SubgraphId>,
+    pub resolvable_in_ids: Vec<SubgraphId>,
     pub distinct_type_in_ids: Vec<SubgraphId>,
     pub requires_records: Vec<FieldRequiresRecord>,
     pub provides_records: Vec<FieldProvidesRecord>,
@@ -97,11 +89,8 @@ impl<'a> FieldDefinition<'a> {
     pub fn resolvers(&self) -> impl Iter<Item = ResolverDefinition<'a>> + 'a {
         self.as_ref().resolver_ids.walk(self.schema)
     }
-    /// By default a field is considered shared and providable by *any* subgraph that exposes it.
-    /// It's up to the composition to ensure it. If this field is specific to some subgraphs, they
-    /// will be specified in this Vec.
-    pub fn only_resolvable_in(&self) -> impl Iter<Item = Subgraph<'a>> + 'a {
-        self.as_ref().only_resolvable_in_ids.walk(self.schema)
+    pub fn resolvable_in(&self) -> impl Iter<Item = Subgraph<'a>> + 'a {
+        self.as_ref().resolvable_in_ids.walk(self.schema)
     }
     pub fn distinct_type_in(&self) -> impl Iter<Item = Subgraph<'a>> + 'a {
         self.as_ref().distinct_type_in_ids.walk(self.schema)
@@ -146,7 +135,7 @@ impl std::fmt::Debug for FieldDefinition<'_> {
             .field("parent_entity", &self.parent_entity())
             .field("ty", &self.ty())
             .field("resolvers", &self.resolvers())
-            .field("only_resolvable_in", &self.only_resolvable_in())
+            .field("resolvable_in", &self.resolvable_in())
             .field("distinct_type_in", &self.distinct_type_in())
             .field("requires", &self.requires())
             .field("provides", &self.provides())

@@ -404,12 +404,9 @@ impl<'ctx, Op: Operation> OperationGraphBuilder<'ctx, Op> {
 
     fn is_field_resolvable_in(&self, field: FieldDefinition<'_>, subgraph_id: SubgraphId) -> bool {
         match field.parent_entity() {
-            EntityDefinition::Interface(_) => {
-                field.only_resolvable_in_ids.is_empty() || field.only_resolvable_in_ids.contains(&subgraph_id)
-            }
+            EntityDefinition::Interface(_) => field.resolvable_in_ids.contains(&subgraph_id),
             EntityDefinition::Object(obj) => {
-                (obj.exists_in_subgraph_ids.is_empty() || obj.exists_in_subgraph_ids.contains(&subgraph_id))
-                    && (field.only_resolvable_in_ids.is_empty() || field.only_resolvable_in_ids.contains(&subgraph_id))
+                obj.exists_in_subgraph_ids.contains(&subgraph_id) && (field.resolvable_in_ids.contains(&subgraph_id))
             }
         }
     }
