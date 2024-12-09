@@ -236,6 +236,13 @@ pub struct SchemaCheck {
     pub composition_check_errors: Vec<CompositionCheckError>,
     pub operation_check_errors: Vec<OperationCheckError>,
     pub lint_check_errors: Vec<LintCheckError>,
+    pub proposal_check_errors: Vec<ProposalCheckError>,
+}
+
+#[derive(cynic::QueryFragment, Debug)]
+pub struct ProposalCheckError {
+    pub message: String,
+    pub title: String,
 }
 
 #[derive(cynic::QueryFragment, Debug)]

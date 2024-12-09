@@ -82,8 +82,6 @@ interface Account {
   createdAt: DateTime!
   status: AccountStatus!
   graphs(after: String, before: String, first: Int, last: Int): GraphConnection!
-  graphsCountStatus: ResourceStatus!
-  resourcesUsageDashboard(filter: AccountResourcesUsageDashboardFilter): AccountResourcesUsageDashboardPayload!
   usage(filters: UsageFilters!): AccountUsageTimeSeries
   accessTokens(after: String, before: String, first: Int, last: Int): AccessTokenConnection!
 }
@@ -98,43 +96,6 @@ type AccountCreationValidatePayload {
 
 type AccountDoesNotExistError {
   query: Query!
-}
-
-type AccountResourcesStatus {
-  requestCount: ResourceStatus!
-}
-
-type AccountResourcesUsage {
-  requestCount: TimeSeries!
-  granularity: TimeAggregationGranularity!
-}
-
-"""
-'limit_cycle_choice' is exclusive with all other options. It's the only case
-where we'll show account limit status (used/limit)
-"""
-input AccountResourcesUsageDashboardFilter {
-  projectIds: [ID!]
-  graphIds: [ID!]
-  limitCycleChoice: LimitCycleChoice
-  startDate: DateTime
-  endDate: DateTime
-}
-
-type AccountResourcesUsageDashboardInvalidFilterCombinationError {
-  message: String!
-  query: Query!
-}
-
-union AccountResourcesUsageDashboardPayload =
-  | AccountResourcesUsageDashboardSuccess
-  | AccountResourcesUsageDashboardInvalidFilterCombinationError
-
-type AccountResourcesUsageDashboardSuccess {
-  periodStart: DateTime!
-  periodEnd: DateTime!
-  usage: AccountResourcesUsage!
-  status: AccountResourcesStatus
 }
 
 type AccountStatus {
@@ -429,6 +390,7 @@ enum DeploymentStepStatus {
 type DeploymentSubgraph {
   name: String!
   versionNumber: Int!
+  url: String!
 }
 
 type DiffSnippet {
@@ -919,16 +881,6 @@ A scalar that can represent any JSON value.
 """
 scalar JSON
 
-"""
-Users can select the previous/current "limit cycle" which defines the cycle on which limits
-applies. For hobby it's monthly starting the first of each month and for pro it matches the
-billing cycle.
-"""
-enum LimitCycleChoice {
-  CURRENT
-  PREVIOUS
-}
-
 type LintCheckError {
   title: String!
   message: String!
@@ -1224,7 +1176,6 @@ type Organization implements Account & Node {
   graphs(after: String, before: String, first: Int, last: Int): GraphConnection!
   invites(after: String, before: String, first: Int, last: Int): InviteConnection!
   members(after: String, before: String, first: Int, last: Int): MemberConnection!
-  graphsCountStatus: ResourceStatus!
   slackIntegration: SlackIntegration
   """
   The url for the UI button to install the Grafbase slack app. It is
@@ -1232,7 +1183,6 @@ type Organization implements Account & Node {
   account id of the authenticated user.
   """
   addToSlackLink: String!
-  resourcesUsageDashboard(filter: AccountResourcesUsageDashboardFilter): AccountResourcesUsageDashboardPayload!
   usage(filters: UsageFilters!): AccountUsageTimeSeries
   accessTokens(after: String, before: String, first: Int, last: Int): AccessTokenConnection!
   teams(after: String, first: Int): TeamConnection!
@@ -1399,6 +1349,11 @@ type ProjectNotFederatedError {
 
 type ProjectScopeLimitExceededError {
   query: Query!
+}
+
+type ProposalCheckError {
+  title: String!
+  message: String!
 }
 
 type PublishDeploymentFailure {
@@ -1679,14 +1634,6 @@ type ReservedSlugsCheckError {
   query: Query!
 }
 
-type ResourceStatus {
-  unit: UnitType!
-  used: Int!
-  limit: Int
-  remaining: Int
-  percentage: Float
-}
-
 """
 An occurrence of a trusted document that was submitted again (same id), but with a different document text. This is an error.
 """
@@ -1799,6 +1746,7 @@ type SchemaCheck {
   compositionCheckErrors: [CompositionCheckError!]!
   operationCheckErrors: [OperationCheckError!]!
   lintCheckErrors: [LintCheckError!]!
+  proposalCheckErrors: [ProposalCheckError!]!
   createdAt: DateTime!
   gitCommit: SchemaCheckGitCommit
 }
@@ -2632,27 +2580,6 @@ enum TeamRole {
   MEMBER
 }
 
-enum TimeAggregationGranularity {
-  DAILY
-  WEEKLY
-  MONTHLY
-}
-
-type TimeSeries {
-  unit: UnitType!
-  data: [TimeSeriesDataPoint!]!
-  statistics: TimeSeriesStatistics!
-}
-
-type TimeSeriesDataPoint {
-  datetime: DateTime!
-  value: Int!
-}
-
-type TimeSeriesStatistics {
-  sum: Int!
-}
-
 type TokenDoesNotExistError {
   query: Query!
 }
@@ -2827,12 +2754,6 @@ union TrustedDocumentsSubmitPayload =
 type TrustedDocumentsSubmitSuccess {
   count: Int!
   documents: [TrustedDocument!]!
-}
-
-enum UnitType {
-  NO_UNIT
-  MILLI_SECONDS
-  BYTES
 }
 
 input UsageFilters {

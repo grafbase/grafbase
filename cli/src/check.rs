@@ -54,6 +54,7 @@ pub(crate) async fn check(command: CheckCommand) -> Result<(), CliError> {
         composition_check_errors,
         operation_check_errors,
         lint_check_errors,
+        proposal_check_errors,
     } = match result {
         check::SchemaCheckResult::Ok(check) => check,
         check::SchemaCheckResult::SubgraphNameMissingOnFederatedGraphError => {
@@ -66,6 +67,7 @@ pub(crate) async fn check(command: CheckCommand) -> Result<(), CliError> {
         && composition_check_errors.is_empty()
         && operation_check_errors.is_empty()
         && lint_check_errors.is_empty()
+        && proposal_check_errors.is_empty()
     {
         report::check_success();
     } else {
@@ -89,6 +91,7 @@ pub(crate) async fn check(command: CheckCommand) -> Result<(), CliError> {
                 .iter()
                 .filter(|err| matches!(err.severity, check::SchemaCheckErrorSeverity::Warning))
                 .map(|err| err.message.as_str()),
+            proposal_check_errors.iter().map(|err| err.message.as_str()),
         );
 
         if error_count > 0 {
