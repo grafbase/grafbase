@@ -1,0 +1,18 @@
+---
+source: crates/engine/query-solver/src/tests/interface.rs
+expression: "digraph {\n    0 [ label = \"root\" ]\n    1 [ label = \"Root#b\", color=royalblue,shape=parallelogram ]\n    2 [ label = \"anotherUsers\" ]\n    3 [ label = \"FedEntity#a\", color=royalblue,shape=parallelogram ]\n    4 [ label = \"age\" ]\n    5 [ label = \"*id\" ]\n    0 -> 1 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    1 -> 2 [ label = \"\" ]\n    2 -> 3 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    3 -> 4 [ label = \"\" ]\n    2 -> 5 [ label = \"\" ]\n    3 -> 5 [ label = \"\", color=orangered,arrowhead=inv ]\n}\n"
+---
+digraph {
+    0 [ label = "root" ]
+    1 [ label = "Root#b" ]
+    2 [ label = "anotherUsers" ]
+    3 [ label = "FedEntity#a" ]
+    4 [ label = "age" ]
+    5 [ label = "*id" ]
+    0 -> 1 [ label = "QueryPartition" ]
+    1 -> 2 [ label = "Field" ]
+    2 -> 3 [ label = "QueryPartition" ]
+    3 -> 4 [ label = "Field" ]
+    2 -> 5 [ label = "Field" ]
+    3 -> 5 [ label = "RequiredBySubgraph" ]
+}

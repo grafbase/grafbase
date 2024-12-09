@@ -11,7 +11,9 @@ pub(crate) mod solve;
 pub use error::*;
 pub(crate) use operation::*;
 pub use petgraph;
-use schema::{CompositeTypeId, FieldDefinitionId, ObjectDefinitionId, Schema, SchemaField, SubgraphId};
+use schema::{
+    CompositeTypeId, FieldDefinition, FieldDefinitionId, ObjectDefinitionId, Schema, SchemaField, SubgraphId,
+};
 pub use solution::*;
 
 pub(crate) type Cost = u16;
@@ -25,10 +27,15 @@ pub trait Operation {
     fn field_query_position(&self, field_id: Self::FieldId) -> usize;
     fn field_definition(&self, field_id: Self::FieldId) -> Option<FieldDefinitionId>;
     fn field_is_equivalent_to(&self, field_id: Self::FieldId, field: SchemaField<'_>) -> bool;
-    fn create_potential_extra_field(
+    fn create_potential_extra_field_from_requirement(
         &mut self,
         petitioner_field_id: Self::FieldId,
         field: SchemaField<'_>,
+    ) -> Self::FieldId;
+    fn create_potential_extra_interface_field_alternative(
+        &mut self,
+        original: Self::FieldId,
+        interface_field_definition: FieldDefinition<'_>,
     ) -> Self::FieldId;
     fn finalize_selection_set(
         &mut self,

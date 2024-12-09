@@ -65,7 +65,7 @@ impl<FieldId: Copy> Node<'_, FieldId> {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub(crate) struct QueryField<FieldId> {
     pub id: FieldId,
     pub flags: FieldFlags,
