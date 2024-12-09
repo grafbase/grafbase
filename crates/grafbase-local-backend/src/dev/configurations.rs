@@ -4,6 +4,7 @@ use serde_toml_merge::merge;
 use std::{collections::HashSet, path::PathBuf};
 use tokio::fs;
 
+#[derive(Debug)]
 pub struct DevConfiguration {
     pub introspection_forced: bool,
     pub overridden_subgraphs: HashSet<String>,
@@ -14,36 +15,36 @@ pub async fn get_and_merge_configurations(
     gateway_config_path: Option<&PathBuf>,
     graph_overrides_path: Option<&PathBuf>,
 ) -> Result<DevConfiguration, BackendError> {
-    let (config, config_value): (Option<Config>, Option<toml::Value>) =
-        if let Some(ref gateway_config_path) = gateway_config_path {
-            let gateway_config_value = fs::read_to_string(gateway_config_path)
-                .await
-                .map_err(BackendError::ReadGatewayConfig)?
-                .parse::<toml::Value>()
-                .map_err(BackendError::ParseGatewayConfig)?;
+    let config_string = match gateway_config_path {
+        Some(path) => fs::read_to_string(path)
+            .await
+            .map_err(BackendError::ReadGatewayConfig)?,
+        None => String::new(),
+    };
 
-            let config = gateway_config_value
-                .clone()
-                .try_into()
-                .map_err(BackendError::ParseGatewayConfig)?;
+    let (config, config_value): (Config, toml::Value) = {
+        let gateway_config_value = config_string
+            .parse::<toml::Value>()
+            .map_err(BackendError::ParseGatewayConfig)?;
 
-            (Some(config), Some(gateway_config_value))
-        } else {
-            (None, None)
-        };
+        let config = gateway_config_value
+            .clone()
+            .try_into()
+            .map_err(BackendError::ParseGatewayConfig)?;
 
-    if let Some(ref config) = config {
-        for (_, subgraph) in config.subgraphs.iter() {
-            match (
-                &subgraph.introspection_url,
-                &subgraph.introspection_headers,
-                &subgraph.schema_path,
-            ) {
-                (Some(_), _, _) => return Err(BackendError::DevOptionsInGatewayConfig("introspection_url")),
-                (_, Some(_), _) => return Err(BackendError::DevOptionsInGatewayConfig("introspection_headers")),
-                (_, _, Some(_)) => return Err(BackendError::DevOptionsInGatewayConfig("schema_path")),
-                _ => {}
-            }
+        (config, gateway_config_value)
+    };
+
+    for (_, subgraph) in config.subgraphs.iter() {
+        match (
+            &subgraph.introspection_url,
+            &subgraph.introspection_headers,
+            &subgraph.schema_path,
+        ) {
+            (Some(_), _, _) => return Err(BackendError::DevOptionsInGatewayConfig("introspection_url")),
+            (_, Some(_), _) => return Err(BackendError::DevOptionsInGatewayConfig("introspection_headers")),
+            (_, _, Some(_)) => return Err(BackendError::DevOptionsInGatewayConfig("schema_path")),
+            _ => {}
         }
     }
 
@@ -66,9 +67,9 @@ pub async fn get_and_merge_configurations(
         };
 
     let mut merged_configuration = if overrides_value.is_none() {
-        config.unwrap_or_default()
+        config
     } else {
-        config_value
+        Some(config_value)
             .zip(overrides_value)
             .map(|(config, overrides)| merge(config, overrides))
             .transpose()
