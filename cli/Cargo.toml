@@ -1,9 +1,9 @@
 [package]
+version = "0.82.4"
 name = "grafbase"
 description = "The Grafbase command line interface"
 categories = ["command-line-utilities"]
 readme = "README.md"
-version.workspace = true
 edition.workspace = true
 license.workspace = true
 homepage.workspace = true

@@ -1,6 +1,5 @@
 [package]
 name = "dir_access"
-version.workspace = true
 edition.workspace = true
 license.workspace = true
 homepage.workspace = true
