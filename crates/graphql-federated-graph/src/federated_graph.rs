@@ -1,12 +1,13 @@
 mod debug;
 mod directives;
 mod entity;
+mod enum_definitions;
 mod enum_values;
 mod ids;
 mod objects;
 mod root_operation_types;
+mod scalar_definitions;
 mod r#type;
-mod type_definitions;
 mod view;
 
 use crate::directives::*;
@@ -14,13 +15,16 @@ use crate::directives::*;
 pub use self::{
     directives::*,
     entity::*,
+    enum_definitions::EnumDefinitionRecord,
     enum_values::{EnumValue, EnumValueRecord},
     ids::*,
     r#type::{Definition, Type},
     root_operation_types::RootOperationTypes,
-    type_definitions::{TypeDefinition, TypeDefinitionKind, TypeDefinitionRecord},
+    scalar_definitions::ScalarDefinitionRecord,
     view::{View, ViewNested},
 };
+use enum_definitions::EnumDefinition;
+use scalar_definitions::ScalarDefinition;
 pub use wrapping::Wrapping;
 
 use std::ops::Range;
@@ -29,11 +33,12 @@ use std::ops::Range;
 pub struct FederatedGraph {
     pub subgraphs: Vec<Subgraph>,
     pub root_operation_types: RootOperationTypes,
-    pub type_definitions: Vec<TypeDefinitionRecord>,
     pub objects: Vec<Object>,
     pub interfaces: Vec<Interface>,
     pub fields: Vec<Field>,
 
+    pub scalar_definitions: Vec<ScalarDefinitionRecord>,
+    pub enum_definitions: Vec<EnumDefinitionRecord>,
     pub unions: Vec<Union>,
     pub input_objects: Vec<InputObject>,
     pub enum_values: Vec<EnumValueRecord>,
@@ -46,21 +51,17 @@ pub struct FederatedGraph {
 }
 
 impl FederatedGraph {
-    /// Instantiate a [FederatedGraph] from a federated schema string.
+    /// Instantiate a [FederatedGraph] from a federated schema string
     #[cfg(feature = "from_sdl")]
     pub fn from_sdl(sdl: &str) -> Result<Self, crate::DomainError> {
-        crate::from_sdl(sdl)
+        crate::from_sdl::from_sdl(sdl)
     }
 
     pub fn definition_name(&self, definition: Definition) -> &str {
         let name_id = match definition {
             Definition::Scalar(scalar_id) => self[scalar_id].name,
-            Definition::Object(object_id) => self.at(object_id).then(|obj| obj.type_definition_id).name,
-            Definition::Interface(interface_id) => {
-                self.at(interface_id)
-                    .then(|interface| interface.type_definition_id)
-                    .name
-            }
+            Definition::Object(object_id) => self.at(object_id).name,
+            Definition::Interface(interface_id) => self.at(interface_id).name,
             Definition::Union(union_id) => self[union_id].name,
             Definition::Enum(enum_id) => self[enum_id].name,
             Definition::InputObject(input_object_id) => self[input_object_id].name,
@@ -77,19 +78,18 @@ impl FederatedGraph {
         (0..self.objects.len()).map(|idx| self.view(ObjectId::from(idx)))
     }
 
-    pub fn iter_type_definitions(&self) -> impl Iterator<Item = TypeDefinition<'_>> {
-        self.type_definitions
+    pub fn iter_scalar_definitions(&self) -> impl Iterator<Item = ScalarDefinition<'_>> {
+        self.scalar_definitions
             .iter()
             .enumerate()
-            .map(|(idx, _)| self.at(TypeDefinitionId::from(idx)))
+            .map(|(idx, _)| self.at(ScalarDefinitionId::from(idx)))
     }
 
-    pub fn iter_enums(&self) -> impl Iterator<Item = TypeDefinition<'_>> {
-        self.iter_type_definitions().filter(|record| record.kind.is_enum())
-    }
-
-    pub fn iter_scalars(&self) -> impl Iterator<Item = TypeDefinition<'_>> {
-        self.iter_type_definitions().filter(|record| record.kind.is_scalar())
+    pub fn iter_enum_definitions(&self) -> impl Iterator<Item = EnumDefinition<'_>> {
+        self.enum_definitions
+            .iter()
+            .enumerate()
+            .map(|(idx, _)| self.at(EnumDefinitionId::from(idx)))
     }
 }
 
@@ -137,14 +137,18 @@ pub enum Value {
 
 #[derive(Clone)]
 pub struct Object {
-    pub type_definition_id: TypeDefinitionId,
+    pub name: StringId,
+    pub directives: Vec<Directive>,
+    pub description: Option<StringId>,
     pub implements_interfaces: Vec<InterfaceId>,
     pub fields: Fields,
 }
 
 #[derive(Clone)]
 pub struct Interface {
-    pub type_definition_id: TypeDefinitionId,
+    pub name: StringId,
+    pub directives: Vec<Directive>,
+    pub description: Option<StringId>,
     pub implements_interfaces: Vec<InterfaceId>,
     pub fields: Fields,
 }
@@ -270,24 +274,27 @@ pub struct Key {
 impl Default for FederatedGraph {
     fn default() -> Self {
         FederatedGraph {
+            scalar_definitions: Vec::new(),
+            enum_definitions: Vec::new(),
             subgraphs: Vec::new(),
-            type_definitions: vec![TypeDefinitionRecord {
-                name: StringId::from(0),
-                description: None,
-                directives: Vec::new(),
-                kind: TypeDefinitionKind::Object,
-            }],
+            interfaces: Vec::new(),
+            unions: Vec::new(),
+            input_objects: Vec::new(),
+            enum_values: Vec::new(),
+            input_value_definitions: Vec::new(),
+
             root_operation_types: RootOperationTypes {
                 query: ObjectId::from(0),
                 mutation: None,
                 subscription: None,
             },
             objects: vec![Object {
-                type_definition_id: TypeDefinitionId::from(0),
+                name: StringId::from(0),
+                description: None,
+                directives: Vec::new(),
                 implements_interfaces: Vec::new(),
                 fields: FieldId::from(0)..FieldId::from(2),
             }],
-            interfaces: Vec::new(),
             fields: vec![
                 Field {
                     name: StringId::from(1),
@@ -312,10 +319,6 @@ impl Default for FederatedGraph {
                     directives: Vec::new(),
                 },
             ],
-            unions: Vec::new(),
-            input_objects: Vec::new(),
-            enum_values: Vec::new(),
-            input_value_definitions: Vec::new(),
             strings: ["Query", "__type", "__schema"]
                 .into_iter()
                 .map(|string| string.to_owned())

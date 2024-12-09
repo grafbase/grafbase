@@ -12,7 +12,6 @@ use std::time::Duration;
 
 use config::Config;
 use external_sources::ExternalDataSources;
-use federated_graph::TypeDefinitionId;
 use url::Url;
 
 use self::error::*;
@@ -40,8 +39,8 @@ pub(crate) struct BuildContext {
     pub strings: Interner<String, StringId>,
     pub regexps: ProxyKeyInterner<Regex, RegexId>,
     urls: Interner<Url, UrlId>,
-    scalar_mapping: HashMap<TypeDefinitionId, ScalarDefinitionId>,
-    enum_mapping: HashMap<TypeDefinitionId, EnumDefinitionId>,
+    scalar_mapping: HashMap<federated_graph::ScalarDefinitionId, ScalarDefinitionId>,
+    enum_mapping: HashMap<federated_graph::EnumDefinitionId, EnumDefinitionId>,
 }
 
 impl BuildContext {

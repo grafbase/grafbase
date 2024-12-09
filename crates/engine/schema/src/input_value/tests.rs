@@ -1,5 +1,6 @@
 use std::borrow::Cow;
 
+use federated_graph::FederatedGraph;
 use serde::Deserialize;
 
 use crate::{InputValue, Schema, Version};
@@ -54,7 +55,7 @@ fn create_schema_and_input_value() -> (Schema, SchemaInputValueId) {
     }
     "###;
 
-    let graph = federated_graph::from_sdl(SDL).unwrap();
+    let graph = FederatedGraph::from_sdl(SDL).unwrap();
     let config = config::Config::from_graph(graph);
     let schema = Schema::build(config, Version::from(Vec::new())).unwrap();
 

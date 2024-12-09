@@ -95,15 +95,7 @@ fn render_join_union_member_directive(
 
     DirectiveWriter::new("join__unionMember", f, graph)?
         .arg("graph", subgraph_name)?
-        .arg(
-            "member",
-            Value::String(
-                graph
-                    .at(directive.object_id)
-                    .then(|object| object.type_definition_id)
-                    .name,
-            ),
-        )?;
+        .arg("member", Value::String(graph.view(directive.object_id).name))?;
 
     Ok(())
 }
@@ -179,15 +171,7 @@ fn render_join_implements_directive(
 
     DirectiveWriter::new("join__implements", f, graph)?
         .arg("graph", subgraph_name)?
-        .arg(
-            "interface",
-            Value::String(
-                graph
-                    .at(directive.interface_id)
-                    .then(|iface| iface.type_definition_id)
-                    .name,
-            ),
-        )?;
+        .arg("interface", Value::String(graph.view(directive.interface_id).name))?;
 
     Ok(())
 }

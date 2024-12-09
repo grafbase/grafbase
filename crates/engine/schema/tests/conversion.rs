@@ -1,6 +1,5 @@
 use config::{HeaderRemove, HeaderRule, NameOrPattern};
 use engine_schema::{Schema, Version};
-use federated_graph::from_sdl;
 use regex::Regex;
 
 const SCHEMA: &str = r#"
@@ -97,7 +96,7 @@ type User
 
 #[test]
 fn should_not_fail() {
-    let graph = from_sdl(SCHEMA).unwrap();
+    let graph = config::FederatedGraph::from_sdl(SCHEMA).unwrap();
     let config = config::Config::from_graph(graph);
     let _schema = Schema::build(config, Version::from(Vec::new())).unwrap();
 }
@@ -232,7 +231,7 @@ input BookInput2 {
 #[case(SCHEMA)]
 #[case(SCHEMA_WITH_INACCESSIBLES)]
 fn serde_roundtrip(#[case] sdl: &str) {
-    let graph = from_sdl(sdl).unwrap();
+    let graph = config::FederatedGraph::from_sdl(sdl).unwrap();
     let mut config = config::Config::from_graph(graph);
 
     config.header_rules.push(HeaderRule::Remove(HeaderRemove {
