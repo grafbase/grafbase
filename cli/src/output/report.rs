@@ -98,6 +98,7 @@ pub(crate) fn check_success() {
     watercolor::output!("\n✨ Successful check!", @BrightBlue);
 }
 
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn check_errors<'a>(
     has_errors: bool,
     validation_errors: impl ExactSizeIterator<Item = &'a str>,
@@ -106,6 +107,7 @@ pub(crate) fn check_errors<'a>(
     lint_errors: impl Iterator<Item = &'a str>,
     operation_warnings: impl Iterator<Item = &'a str>,
     lint_warnings: impl Iterator<Item = &'a str>,
+    proposal_check_errors: impl Iterator<Item = &'a str>,
 ) {
     if has_errors {
         watercolor::output!("\nErrors were found in your schema check:", @BrightRed);
@@ -147,6 +149,16 @@ pub(crate) fn check_errors<'a>(
             watercolor::output!("⚠️ [Warning] {warning}", @BrightYellow);
         }
         for error in operation_errors {
+            watercolor::output!("❌ [Error] {error}", @BrightRed);
+        }
+    }
+
+    let mut proposal_check_errors = proposal_check_errors.peekable();
+
+    if proposal_check_errors.peek().is_some() {
+        watercolor::output!("\nProposal checks\n", @BrightBlue);
+
+        for error in proposal_check_errors {
             watercolor::output!("❌ [Error] {error}", @BrightRed);
         }
     }
