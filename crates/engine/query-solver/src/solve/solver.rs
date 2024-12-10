@@ -50,7 +50,7 @@ impl<'g, 'ctx, Op: Operation> Solver<'g, 'ctx, Op> {
         let mut terminals = Vec::new();
         for (node_ix, node) in operation_graph.graph.node_references() {
             if let Node::QueryField(field) = node {
-                if field.flags.contains(FieldFlags::LEAF_NODE) {
+                if field.flags.contains(FieldFlags::LEAF_NODE | FieldFlags::INDISPENSABLE) {
                     terminals.push(node_ix);
                 }
             }

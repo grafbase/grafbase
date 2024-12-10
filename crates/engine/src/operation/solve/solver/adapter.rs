@@ -10,7 +10,7 @@ use walker::Walk;
 use crate::{
     operation::{
         BoundExtraField, BoundField, BoundFieldArgument, BoundFieldArgumentId, BoundFieldId, BoundOperation,
-        QueryInputValueRecord, QueryPosition,
+        BoundQueryField, BoundSelectionSet, QueryInputValueRecord, QueryPosition,
     },
     response::ResponseKey,
 };
@@ -73,35 +73,26 @@ impl<'a> query_solver::Operation for OperationAdapter<'a> {
         (self.operation.fields.len() - 1).into()
     }
 
-    fn create_potential_extra_interface_field_alternative(
+    fn create_potential_alternative_with_different_definition(
         &mut self,
         original: Self::FieldId,
-        interface_field_definition: schema::FieldDefinition<'_>,
+        definition: schema::FieldDefinition<'_>,
+        deep_clone: bool,
     ) -> Self::FieldId {
-        let (query_position, key, argument_ids, location) = match &self.operation[original] {
-            BoundField::Query(field) => (
-                Some(field.query_position),
-                Some(field.key),
-                field.argument_ids,
-                field.location,
-            ),
-            BoundField::Extra(field) => (
-                field.query_position,
-                field.key,
-                field.argument_ids,
-                field.petitioner_location,
-            ),
-            _ => unreachable!(),
+        let id = if deep_clone {
+            self.deep_clone(original)
+        } else {
+            let field = self.operation[original].clone();
+            self.operation.fields.push(field);
+            (self.operation.fields.len() - 1).into()
         };
-        let field = BoundExtraField {
-            query_position,
-            key,
-            definition_id: interface_field_definition.id,
-            argument_ids,
-            petitioner_location: location,
-        };
-        self.operation.fields.push(BoundField::Extra(field));
-        (self.operation.fields.len() - 1).into()
+        match &mut self.operation[id] {
+            BoundField::TypeName(_) => (),
+            BoundField::Query(field) => field.definition_id = definition.id,
+            BoundField::Extra(field) => field.definition_id = definition.id,
+        }
+
+        id
     }
 
     fn root_selection_set(&self) -> impl ExactSizeIterator<Item = BoundFieldId> + '_ {
@@ -112,13 +103,13 @@ impl<'a> query_solver::Operation for OperationAdapter<'a> {
     }
 
     fn subselection(&self, field_id: BoundFieldId) -> impl ExactSizeIterator<Item = Self::FieldId> + '_ {
-        match &self.operation[field_id] {
-            BoundField::Query(field) => field
-                .selection_set_id
-                .map(|id| self.operation[id].field_ids.iter().copied())
-                .unwrap_or_else(|| [].iter().copied()),
-            _ => [].iter().copied(),
-        }
+        let selection_set_id = match &self.operation[field_id] {
+            BoundField::Query(field) => field.selection_set_id,
+            _ => None,
+        };
+        selection_set_id
+            .map(|id| self.operation[id].field_ids.iter().copied())
+            .unwrap_or_else(|| [].iter().copied())
     }
 
     fn field_label(&self, field_id: BoundFieldId, schema: &Schema, short: bool) -> std::borrow::Cow<'_, str> {
@@ -247,6 +238,28 @@ impl<'a> query_solver::Operation for OperationAdapter<'a> {
 }
 
 impl OperationAdapter<'_> {
+    fn deep_clone(&mut self, id: BoundFieldId) -> BoundFieldId {
+        let mut field = self.operation[id].clone();
+        if let BoundField::Query(BoundQueryField {
+            selection_set_id: Some(selection_set_id),
+            ..
+        }) = &mut field
+        {
+            let subselection = self.operation[*selection_set_id]
+                .field_ids
+                .clone()
+                .iter()
+                .map(|id| self.deep_clone(*id))
+                .collect::<Vec<_>>();
+            self.operation.selection_sets.push(BoundSelectionSet {
+                field_ids: subselection,
+            });
+            *selection_set_id = (self.operation.selection_sets.len() - 1).into();
+        }
+        self.operation.fields.push(field);
+        (self.operation.fields.len() - 1).into()
+    }
+
     /// There are three cases today for renaming a field:
     ///  1. The field has a distinct type in the subgraph than the one we have in the supergraph.
     ///  2. Field is named `__typename` which will clash with the `__typename` field we expect to

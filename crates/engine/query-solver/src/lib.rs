@@ -32,10 +32,11 @@ pub trait Operation {
         petitioner_field_id: Self::FieldId,
         field: SchemaField<'_>,
     ) -> Self::FieldId;
-    fn create_potential_extra_interface_field_alternative(
+    fn create_potential_alternative_with_different_definition(
         &mut self,
         original: Self::FieldId,
-        interface_field_definition: FieldDefinition<'_>,
+        definition: FieldDefinition<'_>,
+        deep_clone: bool,
     ) -> Self::FieldId;
     fn finalize_selection_set(
         &mut self,
