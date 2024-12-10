@@ -1,15 +1,15 @@
 ---
 source: crates/engine/query-solver/src/tests/interface.rs
-expression: "digraph {\n    0 [ label = \"root\" ]\n    1 [ label = \"Root#a\", color=royalblue,shape=parallelogram ]\n    2 [ label = \"users\" ]\n    3 [ label = \"age\" ]\n    4 [ label = \"FedEntity#b\", color=royalblue,shape=parallelogram ]\n    5 [ label = \"username\" ]\n    6 [ label = \"*id\" ]\n    0 -> 1 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    1 -> 2 [ label = \"\" ]\n    2 -> 3 [ label = \"\" ]\n    2 -> 4 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    4 -> 5 [ label = \"\" ]\n    2 -> 6 [ label = \"\" ]\n    4 -> 6 [ label = \"\", color=orangered,arrowhead=inv ]\n}\n"
+expression: "digraph {\n    0 [ label = \"root\" ]\n    1 [ label = \"Root#a\", color=royalblue,shape=parallelogram ]\n    2 [ label = \"Query.users\" ]\n    3 [ label = \"User.age\" ]\n    4 [ label = \"FedEntity#b\", color=royalblue,shape=parallelogram ]\n    5 [ label = \"NodeWithName.username\" ]\n    6 [ label = \"*NodeWithName.id\" ]\n    0 -> 1 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    1 -> 2 [ label = \"\" ]\n    2 -> 3 [ label = \"\" ]\n    2 -> 4 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    4 -> 5 [ label = \"\" ]\n    2 -> 6 [ label = \"\" ]\n    4 -> 6 [ label = \"\", color=orangered,arrowhead=inv ]\n}\n"
 ---
 digraph {
     0 [ label = "root" ]
     1 [ label = "Root#a" ]
-    2 [ label = "users" ]
-    3 [ label = "age" ]
+    2 [ label = "Query.users" ]
+    3 [ label = "User.age" ]
     4 [ label = "FedEntity#b" ]
-    5 [ label = "username" ]
-    6 [ label = "*id" ]
+    5 [ label = "NodeWithName.username" ]
+    6 [ label = "*NodeWithName.id" ]
     0 -> 1 [ label = "QueryPartition" ]
     1 -> 2 [ label = "Field" ]
     2 -> 3 [ label = "Field" ]

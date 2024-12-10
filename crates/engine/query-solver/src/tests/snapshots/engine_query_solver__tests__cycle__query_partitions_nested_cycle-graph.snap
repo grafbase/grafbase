@@ -1,25 +1,25 @@
 ---
 source: crates/engine/query-solver/src/tests/cycle.rs
-expression: "digraph {\n    0 [ label = \"root\" ]\n    1 [ label = \"id\" ]\n    2 [ label = \"author\" ]\n    3 [ label = \"feed\" ]\n    4 [ label = \"Root#C\", shape=parallelogram, color=dodgerblue ]\n    5 [ label = \"feed#C\", shape=box, color=dodgerblue ]\n    6 [ label = \"FedEntity#A\", shape=parallelogram, color=dodgerblue ]\n    7 [ label = \"author#A\", shape=box, color=dodgerblue ]\n    8 [ label = \"id#A\", shape=box, color=dodgerblue ]\n    9 [ label = \"*comments\" ]\n    10 [ label = \"comments#A\", shape=box, color=dodgerblue ]\n    11 [ label = \"*authorId\" ]\n    12 [ label = \"FedEntity#C\", shape=parallelogram, color=dodgerblue ]\n    13 [ label = \"authorId#C\", shape=box, color=dodgerblue ]\n    14 [ label = \"*id\" ]\n    15 [ label = \"id#A\", shape=box, color=dodgerblue ]\n    16 [ label = \"*id\" ]\n    17 [ label = \"id#C\", shape=box, color=dodgerblue ]\n    0 -> 3 [ label = \"\" ]\n    0 -> 4 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    0 -> 4 [ label = \"\", style=dashed,arrowhead=none ]\n    4 -> 5 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    5 -> 3 [ label = \"\", color=violet,arrowhead=none ]\n    3 -> 2 [ label = \"\" ]\n    5 -> 6 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    3 -> 6 [ label = \"\", style=dashed,arrowhead=none ]\n    6 -> 7 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    7 -> 2 [ label = \"\", color=violet,arrowhead=none ]\n    2 -> 1 [ label = \"\" ]\n    7 -> 8 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    8 -> 1 [ label = \"\", color=violet,arrowhead=none ]\n    7 -> 9 [ label = \"\", color=orangered,arrowhead=inv ]\n    3 -> 9 [ label = \"\" ]\n    6 -> 10 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    10 -> 9 [ label = \"\", color=violet,arrowhead=none ]\n    7 -> 11 [ label = \"\", color=orangered,arrowhead=inv ]\n    9 -> 11 [ label = \"\" ]\n    10 -> 12 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    9 -> 12 [ label = \"\", style=dashed,arrowhead=none ]\n    12 -> 13 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    13 -> 11 [ label = \"\", color=violet,arrowhead=none ]\n    12 -> 14 [ label = \"\", color=orangered,arrowhead=inv ]\n    9 -> 14 [ label = \"\" ]\n    10 -> 15 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    15 -> 14 [ label = \"\", color=violet,arrowhead=none ]\n    6 -> 16 [ label = \"\", color=orangered,arrowhead=inv ]\n    3 -> 16 [ label = \"\" ]\n    5 -> 17 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    17 -> 16 [ label = \"\", color=violet,arrowhead=none ]\n}\n"
+expression: "digraph {\n    0 [ label = \"root\" ]\n    1 [ label = \"Author.id\" ]\n    2 [ label = \"Post.author\" ]\n    3 [ label = \"Query.feed\" ]\n    4 [ label = \"Root#C\", shape=parallelogram, color=dodgerblue ]\n    5 [ label = \"feed#C\", shape=box, color=dodgerblue ]\n    6 [ label = \"FedEntity#A\", shape=parallelogram, color=dodgerblue ]\n    7 [ label = \"author#A\", shape=box, color=dodgerblue ]\n    8 [ label = \"id#A\", shape=box, color=dodgerblue ]\n    9 [ label = \"*Post.comments\" ]\n    10 [ label = \"comments#A\", shape=box, color=dodgerblue ]\n    11 [ label = \"*Comment.authorId\" ]\n    12 [ label = \"FedEntity#C\", shape=parallelogram, color=dodgerblue ]\n    13 [ label = \"authorId#C\", shape=box, color=dodgerblue ]\n    14 [ label = \"*Comment.id\" ]\n    15 [ label = \"id#A\", shape=box, color=dodgerblue ]\n    16 [ label = \"*Post.id\" ]\n    17 [ label = \"id#C\", shape=box, color=dodgerblue ]\n    0 -> 3 [ label = \"\" ]\n    0 -> 4 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    0 -> 4 [ label = \"\", style=dashed,arrowhead=none ]\n    4 -> 5 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    5 -> 3 [ label = \"\", color=violet,arrowhead=none ]\n    3 -> 2 [ label = \"\" ]\n    5 -> 6 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    3 -> 6 [ label = \"\", style=dashed,arrowhead=none ]\n    6 -> 7 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    7 -> 2 [ label = \"\", color=violet,arrowhead=none ]\n    2 -> 1 [ label = \"\" ]\n    7 -> 8 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    8 -> 1 [ label = \"\", color=violet,arrowhead=none ]\n    7 -> 9 [ label = \"\", color=orangered,arrowhead=inv ]\n    3 -> 9 [ label = \"\" ]\n    6 -> 10 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    10 -> 9 [ label = \"\", color=violet,arrowhead=none ]\n    7 -> 11 [ label = \"\", color=orangered,arrowhead=inv ]\n    9 -> 11 [ label = \"\" ]\n    10 -> 12 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    9 -> 12 [ label = \"\", style=dashed,arrowhead=none ]\n    12 -> 13 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    13 -> 11 [ label = \"\", color=violet,arrowhead=none ]\n    12 -> 14 [ label = \"\", color=orangered,arrowhead=inv ]\n    9 -> 14 [ label = \"\" ]\n    10 -> 15 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    15 -> 14 [ label = \"\", color=violet,arrowhead=none ]\n    6 -> 16 [ label = \"\", color=orangered,arrowhead=inv ]\n    3 -> 16 [ label = \"\" ]\n    5 -> 17 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    17 -> 16 [ label = \"\", color=violet,arrowhead=none ]\n}\n"
 ---
 digraph {
     0 [ root]
-    1 [ id]
-    2 [ author]
-    3 [ feed]
+    1 [ Author.id]
+    2 [ Post.author]
+    3 [ Query.feed]
     4 [ Root#C]
     5 [ feed#C]
     6 [ FedEntity#A]
     7 [ author#A]
     8 [ id#A]
-    9 [ *comments]
+    9 [ *Post.comments]
     10 [ comments#A]
-    11 [ *authorId]
+    11 [ *Comment.authorId]
     12 [ FedEntity#C]
     13 [ authorId#C]
-    14 [ *id]
+    14 [ *Comment.id]
     15 [ id#A]
-    16 [ *id]
+    16 [ *Post.id]
     17 [ id#C]
     0 -> 3 [ label = "Field" ]
     0 -> 4 [ label = "CreateChildResolver" ]

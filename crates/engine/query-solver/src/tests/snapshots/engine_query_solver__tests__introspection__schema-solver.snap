@@ -1,10 +1,10 @@
 ---
-source: engine/crates/engine/query-solver/src/tests/introspection.rs
-expression: "digraph {\n    0 [ label = \"root\", color=forestgreen ]\n    1 [ label = \"name\", style=dashed ]\n    2 [ label = \"Introspection\", shape=parallelogram, color=dodgerblue, style=dashed ]\n    3 [ label = \"__schema#introspection\", shape=box, color=dodgerblue, style=dashed ]\n    4 [ label = \"queryType#introspection\", shape=box, color=dodgerblue, style=dashed ]\n    5 [ label = \"name#introspection\", shape=box, color=dodgerblue, style=dashed ]\n    6 [ label=\"\", style=dashed]\n    0 -> 2 [ label = <<b>1</b>>, color=royalblue,fontcolor=royalblue,style=dashed ]\n    2 -> 3 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    3 -> 4 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    4 -> 5 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    5 -> 1 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    6 -> 0 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n}\n"
+source: crates/engine/query-solver/src/tests/introspection.rs
+expression: "digraph {\n    0 [ label = \"root\", color=forestgreen ]\n    1 [ label = \"__Type.name\", style=dashed ]\n    2 [ label = \"Introspection\", shape=parallelogram, color=dodgerblue, style=dashed ]\n    3 [ label = \"__schema#introspection\", shape=box, color=dodgerblue, style=dashed ]\n    4 [ label = \"queryType#introspection\", shape=box, color=dodgerblue, style=dashed ]\n    5 [ label = \"name#introspection\", shape=box, color=dodgerblue, style=dashed ]\n    6 [ label=\"\", style=dashed]\n    0 -> 2 [ label = <<b>1</b>>, color=royalblue,fontcolor=royalblue,style=dashed ]\n    2 -> 3 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    3 -> 4 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    4 -> 5 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    5 -> 1 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    6 -> 0 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n}\n"
 ---
 digraph {
     0 [ label = "root", steiner=1 ]
-    1 [ label = "name", steiner=0 ]
+    1 [ label = "__Type.name", steiner=0 ]
     2 [ label = "Introspection", steiner=0 ]
     3 [ label = "__schema#introspection", steiner=0 ]
     4 [ label = "queryType#introspection", steiner=0 ]

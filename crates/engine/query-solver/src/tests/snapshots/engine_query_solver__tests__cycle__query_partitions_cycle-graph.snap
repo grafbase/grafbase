@@ -1,13 +1,13 @@
 ---
-source: engine/crates/engine/query-solver/src/tests/cycle.rs
-expression: "digraph {\n    0 [ label = \"root\" ]\n    1 [ label = \"third\" ]\n    2 [ label = \"first\" ]\n    3 [ label = \"second\" ]\n    4 [ label = \"partitionsCycle\" ]\n    5 [ label = \"Root#C\", shape=parallelogram, color=dodgerblue ]\n    6 [ label = \"partitionsCycle#C\", shape=box, color=dodgerblue ]\n    7 [ label = \"FedEntity#B\", shape=parallelogram, color=dodgerblue ]\n    8 [ label = \"second#B\", shape=box, color=dodgerblue ]\n    9 [ label = \"FedEntity#A\", shape=parallelogram, color=dodgerblue ]\n    10 [ label = \"first#A\", shape=box, color=dodgerblue ]\n    11 [ label = \"third#A\", shape=box, color=dodgerblue ]\n    12 [ label = \"*id\" ]\n    13 [ label = \"id#C\", shape=box, color=dodgerblue ]\n    0 -> 4 [ label = \"\" ]\n    0 -> 5 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    0 -> 5 [ label = \"\", style=dashed,arrowhead=none ]\n    5 -> 6 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    6 -> 4 [ label = \"\", color=violet,arrowhead=none ]\n    4 -> 3 [ label = \"\" ]\n    6 -> 7 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    4 -> 7 [ label = \"\", style=dashed,arrowhead=none ]\n    7 -> 8 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    8 -> 3 [ label = \"\", color=violet,arrowhead=none ]\n    4 -> 2 [ label = \"\" ]\n    6 -> 9 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    4 -> 9 [ label = \"\", style=dashed,arrowhead=none ]\n    9 -> 10 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    10 -> 2 [ label = \"\", color=violet,arrowhead=none ]\n    4 -> 1 [ label = \"\" ]\n    9 -> 11 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    11 -> 1 [ label = \"\", color=violet,arrowhead=none ]\n    11 -> 3 [ label = \"\", color=orangered,arrowhead=inv ]\n    9 -> 12 [ label = \"\", color=orangered,arrowhead=inv ]\n    4 -> 12 [ label = \"\" ]\n    6 -> 13 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    13 -> 12 [ label = \"\", color=violet,arrowhead=none ]\n    8 -> 2 [ label = \"\", color=orangered,arrowhead=inv ]\n    7 -> 12 [ label = \"\", color=orangered,arrowhead=inv ]\n}\n"
+source: crates/engine/query-solver/src/tests/cycle.rs
+expression: "digraph {\n    0 [ label = \"root\" ]\n    1 [ label = \"PartitionsCycle.third\" ]\n    2 [ label = \"PartitionsCycle.first\" ]\n    3 [ label = \"PartitionsCycle.second\" ]\n    4 [ label = \"Query.partitionsCycle\" ]\n    5 [ label = \"Root#C\", shape=parallelogram, color=dodgerblue ]\n    6 [ label = \"partitionsCycle#C\", shape=box, color=dodgerblue ]\n    7 [ label = \"FedEntity#B\", shape=parallelogram, color=dodgerblue ]\n    8 [ label = \"second#B\", shape=box, color=dodgerblue ]\n    9 [ label = \"FedEntity#A\", shape=parallelogram, color=dodgerblue ]\n    10 [ label = \"first#A\", shape=box, color=dodgerblue ]\n    11 [ label = \"third#A\", shape=box, color=dodgerblue ]\n    12 [ label = \"*PartitionsCycle.id\" ]\n    13 [ label = \"id#C\", shape=box, color=dodgerblue ]\n    0 -> 4 [ label = \"\" ]\n    0 -> 5 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    0 -> 5 [ label = \"\", style=dashed,arrowhead=none ]\n    5 -> 6 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    6 -> 4 [ label = \"\", color=violet,arrowhead=none ]\n    4 -> 3 [ label = \"\" ]\n    6 -> 7 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    4 -> 7 [ label = \"\", style=dashed,arrowhead=none ]\n    7 -> 8 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    8 -> 3 [ label = \"\", color=violet,arrowhead=none ]\n    4 -> 2 [ label = \"\" ]\n    6 -> 9 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    4 -> 9 [ label = \"\", style=dashed,arrowhead=none ]\n    9 -> 10 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    10 -> 2 [ label = \"\", color=violet,arrowhead=none ]\n    4 -> 1 [ label = \"\" ]\n    9 -> 11 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    11 -> 1 [ label = \"\", color=violet,arrowhead=none ]\n    11 -> 3 [ label = \"\", color=orangered,arrowhead=inv ]\n    9 -> 12 [ label = \"\", color=orangered,arrowhead=inv ]\n    4 -> 12 [ label = \"\" ]\n    6 -> 13 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    13 -> 12 [ label = \"\", color=violet,arrowhead=none ]\n    8 -> 2 [ label = \"\", color=orangered,arrowhead=inv ]\n    7 -> 12 [ label = \"\", color=orangered,arrowhead=inv ]\n}\n"
 ---
 digraph {
     0 [ root]
-    1 [ third]
-    2 [ first]
-    3 [ second]
-    4 [ partitionsCycle]
+    1 [ PartitionsCycle.third]
+    2 [ PartitionsCycle.first]
+    3 [ PartitionsCycle.second]
+    4 [ Query.partitionsCycle]
     5 [ Root#C]
     6 [ partitionsCycle#C]
     7 [ FedEntity#B]
@@ -15,7 +15,7 @@ digraph {
     9 [ FedEntity#A]
     10 [ first#A]
     11 [ third#A]
-    12 [ *id]
+    12 [ *PartitionsCycle.id]
     13 [ id#C]
     0 -> 4 [ label = "Field" ]
     0 -> 5 [ label = "CreateChildResolver" ]

@@ -1,22 +1,22 @@
 ---
 source: crates/engine/query-solver/src/tests/cycle.rs
-expression: "digraph {\n    0 [ label = \"root\", color=forestgreen ]\n    1 [ label = \"id\", style=dashed ]\n    2 [ label = \"Root#C\", shape=parallelogram, color=dodgerblue, style=dashed ]\n    3 [ label = \"feed#C\", shape=box, color=dodgerblue, style=dashed ]\n    4 [ label = \"FedEntity#A\", shape=parallelogram, color=dodgerblue, style=dashed ]\n    5 [ label = \"author#A\", shape=box, color=dodgerblue, style=dashed ]\n    6 [ label = \"id#A\", shape=box, color=dodgerblue, style=dashed ]\n    7 [ label = \"comments#A\", shape=box, color=dodgerblue, style=dashed ]\n    8 [ label = \"*authorId\", style=dashed ]\n    9 [ label = \"FedEntity#C\", shape=parallelogram, color=dodgerblue, style=dashed ]\n    10 [ label = \"authorId#C\", shape=box, color=dodgerblue, style=dashed ]\n    11 [ label = \"*id\", style=dashed ]\n    12 [ label = \"id#A\", shape=box, color=dodgerblue, style=dashed ]\n    13 [ label = \"*id\", style=dashed ]\n    14 [ label = \"id#C\", shape=box, color=dodgerblue, style=dashed ]\n    15 [ label=\"\", style=dashed]\n    0 -> 2 [ label = <<b>1</b>>, color=royalblue,fontcolor=royalblue,style=dashed ]\n    2 -> 3 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    3 -> 4 [ label = <<b>1</b>>, color=royalblue,fontcolor=royalblue,style=dashed ]\n    4 -> 5 [ label = <<b>1</b>>, color=royalblue,fontcolor=royalblue,style=dashed ]\n    5 -> 6 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    6 -> 1 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    4 -> 7 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    7 -> 9 [ label = <<b>1</b>>, color=royalblue,fontcolor=royalblue,style=dashed ]\n    9 -> 10 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    10 -> 8 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    7 -> 12 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    12 -> 11 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    3 -> 14 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    14 -> 13 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    15 -> 0 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n}\n"
+expression: "digraph {\n    0 [ label = \"root\", color=forestgreen ]\n    1 [ label = \"Author.id\", style=dashed ]\n    2 [ label = \"Root#C\", shape=parallelogram, color=dodgerblue, style=dashed ]\n    3 [ label = \"feed#C\", shape=box, color=dodgerblue, style=dashed ]\n    4 [ label = \"FedEntity#A\", shape=parallelogram, color=dodgerblue, style=dashed ]\n    5 [ label = \"author#A\", shape=box, color=dodgerblue, style=dashed ]\n    6 [ label = \"id#A\", shape=box, color=dodgerblue, style=dashed ]\n    7 [ label = \"comments#A\", shape=box, color=dodgerblue, style=dashed ]\n    8 [ label = \"*Comment.authorId\", style=dashed ]\n    9 [ label = \"FedEntity#C\", shape=parallelogram, color=dodgerblue, style=dashed ]\n    10 [ label = \"authorId#C\", shape=box, color=dodgerblue, style=dashed ]\n    11 [ label = \"*Comment.id\", style=dashed ]\n    12 [ label = \"id#A\", shape=box, color=dodgerblue, style=dashed ]\n    13 [ label = \"*Post.id\", style=dashed ]\n    14 [ label = \"id#C\", shape=box, color=dodgerblue, style=dashed ]\n    15 [ label=\"\", style=dashed]\n    0 -> 2 [ label = <<b>1</b>>, color=royalblue,fontcolor=royalblue,style=dashed ]\n    2 -> 3 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    3 -> 4 [ label = <<b>1</b>>, color=royalblue,fontcolor=royalblue,style=dashed ]\n    4 -> 5 [ label = <<b>1</b>>, color=royalblue,fontcolor=royalblue,style=dashed ]\n    5 -> 6 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    6 -> 1 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    4 -> 7 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    7 -> 9 [ label = <<b>1</b>>, color=royalblue,fontcolor=royalblue,style=dashed ]\n    9 -> 10 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    10 -> 8 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    7 -> 12 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    12 -> 11 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    3 -> 14 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    14 -> 13 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    15 -> 0 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n}\n"
 ---
 digraph {
     0 [ label = "root", steiner=1 ]
-    1 [ label = "id", steiner=0 ]
+    1 [ label = "Author.id", steiner=0 ]
     2 [ label = "Root#C", steiner=0 ]
     3 [ label = "feed#C", steiner=0 ]
     4 [ label = "FedEntity#A", steiner=0 ]
     5 [ label = "author#A", steiner=0 ]
     6 [ label = "id#A", steiner=0 ]
     7 [ label = "comments#A", steiner=0 ]
-    8 [ label = "*authorId", steiner=0 ]
+    8 [ label = "*Comment.authorId", steiner=0 ]
     9 [ label = "FedEntity#C", steiner=0 ]
     10 [ label = "authorId#C", steiner=0 ]
-    11 [ label = "*id", steiner=0 ]
+    11 [ label = "*Comment.id", steiner=0 ]
     12 [ label = "id#A", steiner=0 ]
-    13 [ label = "*id", steiner=0 ]
+    13 [ label = "*Post.id", steiner=0 ]
     14 [ label = "id#C", steiner=0 ]
     15 [ label="", style=dashed]
     0 -> 2 [ cost=1, steiner=0]

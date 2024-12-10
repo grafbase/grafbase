@@ -50,7 +50,7 @@ impl<FieldId> SolutionNode<FieldId> {
                 resolver_definition_id, ..
             } => resolver_definition_id.walk(graph.schema).name().into(),
             SolutionNode::Field { id, flags, .. } => {
-                let field = graph.operation.field_label(*id);
+                let field = graph.operation.field_label(*id, graph.schema, false);
                 format!("{}{}", if flags.contains(FieldFlags::EXTRA) { "*" } else { "" }, field)
             }
         })

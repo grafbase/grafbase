@@ -1,13 +1,13 @@
 ---
 source: crates/engine/query-solver/src/tests/mutation.rs
-expression: "digraph {\n    0 [ label = \"root\" ]\n    1 [ label = \"add\" ]\n    2 [ label = \"multiply\" ]\n    3 [ label = \"add\" ]\n    4 [ label = \"delete\" ]\n    5 [ label = \"Root#b\", shape=parallelogram, color=dodgerblue ]\n    6 [ label = \"delete#b\", shape=box, color=dodgerblue ]\n    7 [ label = \"Root#c\", shape=parallelogram, color=dodgerblue ]\n    8 [ label = \"add#c\", shape=box, color=dodgerblue ]\n    9 [ label = \"Root#a\", shape=parallelogram, color=dodgerblue ]\n    10 [ label = \"multiply#a\", shape=box, color=dodgerblue ]\n    11 [ label = \"add#c\", shape=box, color=dodgerblue ]\n    0 -> 4 [ label = \"\" ]\n    0 -> 5 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    0 -> 5 [ label = \"\", style=dashed,arrowhead=none ]\n    5 -> 6 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    6 -> 4 [ label = \"\", color=violet,arrowhead=none ]\n    0 -> 3 [ label = \"\" ]\n    0 -> 7 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    0 -> 7 [ label = \"\", style=dashed,arrowhead=none ]\n    7 -> 8 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    8 -> 3 [ label = \"\", color=violet,arrowhead=none ]\n    0 -> 2 [ label = \"\" ]\n    0 -> 9 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    0 -> 9 [ label = \"\", style=dashed,arrowhead=none ]\n    9 -> 10 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    10 -> 2 [ label = \"\", color=violet,arrowhead=none ]\n    0 -> 1 [ label = \"\" ]\n    7 -> 11 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    11 -> 1 [ label = \"\", color=violet,arrowhead=none ]\n}\n"
+expression: "digraph {\n    0 [ label = \"root\" ]\n    1 [ label = \"Mutation.add\" ]\n    2 [ label = \"Mutation.multiply\" ]\n    3 [ label = \"Mutation.add\" ]\n    4 [ label = \"Mutation.delete\" ]\n    5 [ label = \"Root#b\", shape=parallelogram, color=dodgerblue ]\n    6 [ label = \"delete#b\", shape=box, color=dodgerblue ]\n    7 [ label = \"Root#c\", shape=parallelogram, color=dodgerblue ]\n    8 [ label = \"add#c\", shape=box, color=dodgerblue ]\n    9 [ label = \"Root#a\", shape=parallelogram, color=dodgerblue ]\n    10 [ label = \"multiply#a\", shape=box, color=dodgerblue ]\n    11 [ label = \"add#c\", shape=box, color=dodgerblue ]\n    0 -> 4 [ label = \"\" ]\n    0 -> 5 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    0 -> 5 [ label = \"\", style=dashed,arrowhead=none ]\n    5 -> 6 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    6 -> 4 [ label = \"\", color=violet,arrowhead=none ]\n    0 -> 3 [ label = \"\" ]\n    0 -> 7 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    0 -> 7 [ label = \"\", style=dashed,arrowhead=none ]\n    7 -> 8 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    8 -> 3 [ label = \"\", color=violet,arrowhead=none ]\n    0 -> 2 [ label = \"\" ]\n    0 -> 9 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    0 -> 9 [ label = \"\", style=dashed,arrowhead=none ]\n    9 -> 10 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    10 -> 2 [ label = \"\", color=violet,arrowhead=none ]\n    0 -> 1 [ label = \"\" ]\n    7 -> 11 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    11 -> 1 [ label = \"\", color=violet,arrowhead=none ]\n}\n"
 ---
 digraph {
     0 [ root]
-    1 [ add]
-    2 [ multiply]
-    3 [ add]
-    4 [ delete]
+    1 [ Mutation.add]
+    2 [ Mutation.multiply]
+    3 [ Mutation.add]
+    4 [ Mutation.delete]
     5 [ Root#b]
     6 [ delete#b]
     7 [ Root#c]

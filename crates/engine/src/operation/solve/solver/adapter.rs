@@ -121,16 +121,49 @@ impl<'a> query_solver::Operation for OperationAdapter<'a> {
         }
     }
 
-    fn field_label(&self, field_id: BoundFieldId) -> std::borrow::Cow<'_, str> {
+    fn field_label(&self, field_id: BoundFieldId, schema: &Schema, short: bool) -> std::borrow::Cow<'_, str> {
         match &self.operation[field_id] {
             BoundField::TypeName(field) => Cow::Borrowed(&self.operation.response_keys[field.key]),
-            BoundField::Query(field) => Cow::Borrowed(&self.operation.response_keys[field.key]),
+            BoundField::Query(field) => {
+                let alias = &self.operation.response_keys[field.key];
+                if short {
+                    Cow::Borrowed(alias)
+                } else {
+                    let definition = field.definition_id.walk(schema);
+                    if alias != definition.name() {
+                        Cow::Owned(format!(
+                            "{}: {}.{}",
+                            alias,
+                            definition.parent_entity().name(),
+                            definition.name()
+                        ))
+                    } else {
+                        Cow::Owned(format!("{}.{}", definition.parent_entity().name(), definition.name()))
+                    }
+                }
+            }
             // For extra fields we didn't create a response key yet.
             BoundField::Extra(field) => {
-                if let Some(key) = field.key {
-                    Cow::Borrowed(&self.operation.response_keys[key])
+                let definition = field.definition_id.walk(schema);
+                if let Some(alias) = field
+                    .key
+                    .map(|key| &self.operation.response_keys[key])
+                    .filter(|alias| *alias != definition.name())
+                {
+                    if short {
+                        Cow::Borrowed(alias)
+                    } else {
+                        Cow::Owned(format!(
+                            "{}: {}.{}",
+                            alias,
+                            definition.parent_entity().name(),
+                            definition.name()
+                        ))
+                    }
+                } else if short {
+                    Cow::Owned(definition.name().to_string())
                 } else {
-                    field.definition_id.walk(self.schema).name().into()
+                    Cow::Owned(format!("{}.{}", definition.parent_entity().name(), definition.name()))
                 }
             }
         }

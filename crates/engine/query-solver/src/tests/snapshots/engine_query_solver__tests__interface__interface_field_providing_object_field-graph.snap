@@ -1,16 +1,16 @@
 ---
 source: crates/engine/query-solver/src/tests/interface.rs
-expression: "digraph {\n    0 [ label = \"root\" ]\n    1 [ label = \"age\" ]\n    2 [ label = \"anotherUsers\" ]\n    3 [ label = \"Root#b\", shape=parallelogram, color=dodgerblue ]\n    4 [ label = \"anotherUsers#b\", shape=box, color=dodgerblue ]\n    5 [ label = \"FedEntity#a\", shape=parallelogram, color=dodgerblue ]\n    6 [ label = \"age#a\", shape=box, color=dodgerblue ]\n    8 [ label = \"*id\" ]\n    9 [ label = \"id#b\", shape=box, color=dodgerblue ]\n    0 -> 2 [ label = \"\" ]\n    0 -> 3 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    0 -> 3 [ label = \"\", style=dashed,arrowhead=none ]\n    3 -> 4 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    4 -> 2 [ label = \"\", color=violet,arrowhead=none ]\n    2 -> 1 [ label = \"\" ]\n    4 -> 5 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    2 -> 5 [ label = \"\", style=dashed,arrowhead=none ]\n    5 -> 6 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    6 -> 1 [ label = \"\", color=violet,arrowhead=none ]\n    2 -> 8 [ label = \"\" ]\n    4 -> 9 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    9 -> 8 [ label = \"\", color=violet,arrowhead=none ]\n    5 -> 8 [ label = \"\", color=orangered,arrowhead=inv ]\n}\n"
+expression: "digraph {\n    0 [ label = \"root\" ]\n    1 [ label = \"User.age\" ]\n    2 [ label = \"Query.anotherUsers\" ]\n    3 [ label = \"Root#b\", shape=parallelogram, color=dodgerblue ]\n    4 [ label = \"anotherUsers#b\", shape=box, color=dodgerblue ]\n    5 [ label = \"FedEntity#a\", shape=parallelogram, color=dodgerblue ]\n    6 [ label = \"age#a\", shape=box, color=dodgerblue ]\n    8 [ label = \"*NodeWithName.id\" ]\n    9 [ label = \"id#b\", shape=box, color=dodgerblue ]\n    0 -> 2 [ label = \"\" ]\n    0 -> 3 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    0 -> 3 [ label = \"\", style=dashed,arrowhead=none ]\n    3 -> 4 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    4 -> 2 [ label = \"\", color=violet,arrowhead=none ]\n    2 -> 1 [ label = \"\" ]\n    4 -> 5 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    2 -> 5 [ label = \"\", style=dashed,arrowhead=none ]\n    5 -> 6 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    6 -> 1 [ label = \"\", color=violet,arrowhead=none ]\n    2 -> 8 [ label = \"\" ]\n    4 -> 9 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    9 -> 8 [ label = \"\", color=violet,arrowhead=none ]\n    5 -> 8 [ label = \"\", color=orangered,arrowhead=inv ]\n}\n"
 ---
 digraph {
     0 [ root]
-    1 [ age]
-    2 [ anotherUsers]
+    1 [ User.age]
+    2 [ Query.anotherUsers]
     3 [ Root#b]
     4 [ anotherUsers#b]
     5 [ FedEntity#a]
     6 [ age#a]
-    8 [ *id]
+    8 [ *NodeWithName.id]
     9 [ id#b]
     0 -> 2 [ label = "Field" ]
     0 -> 3 [ label = "CreateChildResolver" ]
