@@ -1,16 +1,16 @@
 ---
 source: crates/engine/query-solver/src/tests/mutation.rs
-expression: "digraph {\n    0 [ label = \"root\" ]\n    1 [ label = \"Root#b\", color=royalblue,shape=parallelogram ]\n    2 [ label = \"delete\" ]\n    3 [ label = \"Root#c\", color=royalblue,shape=parallelogram ]\n    4 [ label = \"add\" ]\n    5 [ label = \"add\" ]\n    6 [ label = \"Root#a\", color=royalblue,shape=parallelogram ]\n    7 [ label = \"multiply\" ]\n    0 -> 1 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    1 -> 2 [ label = \"\" ]\n    0 -> 3 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    3 -> 4 [ label = \"\" ]\n    3 -> 5 [ label = \"\" ]\n    0 -> 6 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    6 -> 7 [ label = \"\" ]\n}\n"
+expression: "digraph {\n    0 [ label = \"root\" ]\n    1 [ label = \"Root#b\", color=royalblue,shape=parallelogram ]\n    2 [ label = \"Mutation.delete\" ]\n    3 [ label = \"Root#c\", color=royalblue,shape=parallelogram ]\n    4 [ label = \"Mutation.add\" ]\n    5 [ label = \"Mutation.add\" ]\n    6 [ label = \"Root#a\", color=royalblue,shape=parallelogram ]\n    7 [ label = \"Mutation.multiply\" ]\n    0 -> 1 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    1 -> 2 [ label = \"\" ]\n    0 -> 3 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    3 -> 4 [ label = \"\" ]\n    3 -> 5 [ label = \"\" ]\n    0 -> 6 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    6 -> 7 [ label = \"\" ]\n}\n"
 ---
 digraph {
     0 [ label = "root" ]
     1 [ label = "Root#b" ]
-    2 [ label = "delete" ]
+    2 [ label = "Mutation.delete" ]
     3 [ label = "Root#c" ]
-    4 [ label = "add" ]
-    5 [ label = "add" ]
+    4 [ label = "Mutation.add" ]
+    5 [ label = "Mutation.add" ]
     6 [ label = "Root#a" ]
-    7 [ label = "multiply" ]
+    7 [ label = "Mutation.multiply" ]
     0 -> 1 [ label = "QueryPartition" ]
     1 -> 2 [ label = "Field" ]
     0 -> 3 [ label = "QueryPartition" ]

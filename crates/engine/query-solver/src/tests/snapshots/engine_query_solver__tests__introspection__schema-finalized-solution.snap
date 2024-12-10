@@ -1,13 +1,13 @@
 ---
 source: crates/engine/query-solver/src/tests/introspection.rs
-expression: "digraph {\n    0 [ label = \"root\" ]\n    1 [ label = \"Introspection\", color=royalblue,shape=parallelogram ]\n    2 [ label = \"__schema\" ]\n    3 [ label = \"queryType\" ]\n    4 [ label = \"name\" ]\n    0 -> 1 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    3 -> 4 [ label = \"\" ]\n    2 -> 3 [ label = \"\" ]\n    1 -> 2 [ label = \"\" ]\n}\n"
+expression: "digraph {\n    0 [ label = \"root\" ]\n    1 [ label = \"Introspection\", color=royalblue,shape=parallelogram ]\n    2 [ label = \"Query.__schema\" ]\n    3 [ label = \"__Schema.queryType\" ]\n    4 [ label = \"__Type.name\" ]\n    0 -> 1 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    3 -> 4 [ label = \"\" ]\n    2 -> 3 [ label = \"\" ]\n    1 -> 2 [ label = \"\" ]\n}\n"
 ---
 digraph {
     0 [ label = "root" ]
     1 [ label = "Introspection" ]
-    2 [ label = "__schema" ]
-    3 [ label = "queryType" ]
-    4 [ label = "name" ]
+    2 [ label = "Query.__schema" ]
+    3 [ label = "__Schema.queryType" ]
+    4 [ label = "__Type.name" ]
     0 -> 1 [ label = "QueryPartition" ]
     3 -> 4 [ label = "Field" ]
     2 -> 3 [ label = "Field" ]

@@ -153,8 +153,18 @@ impl crate::Operation for &mut TestOperation {
         self[field_id].subselection.iter().copied()
     }
 
-    fn field_label(&self, field_id: Self::FieldId) -> Cow<'_, str> {
-        Cow::Borrowed(&self[field_id].name)
+    fn field_label(&self, field_id: Self::FieldId, schema: &Schema, short: bool) -> Cow<'_, str> {
+        match self[field_id].definition_id {
+            Some(definition_id) => {
+                if short {
+                    Cow::Borrowed(&self[field_id].name)
+                } else {
+                    let definition = definition_id.walk(schema);
+                    Cow::Owned(format!("{}.{}", definition.parent_entity().name(), definition.name()))
+                }
+            }
+            None => Cow::Borrowed(&self[field_id].name),
+        }
     }
 
     fn field_definition(&self, field_id: Self::FieldId) -> Option<FieldDefinitionId> {

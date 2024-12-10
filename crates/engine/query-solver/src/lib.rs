@@ -47,7 +47,7 @@ pub trait Operation {
     fn root_selection_set(&self) -> impl ExactSizeIterator<Item = Self::FieldId> + '_;
     fn subselection(&self, field_id: Self::FieldId) -> impl ExactSizeIterator<Item = Self::FieldId> + '_;
 
-    fn field_label(&self, field_id: Self::FieldId) -> Cow<'_, str>;
+    fn field_label(&self, field_id: Self::FieldId, schema: &Schema, short: bool) -> Cow<'_, str>;
 }
 
 pub fn solve<Op: Operation>(schema: &Schema, operation: Op) -> Result<Solution<'_, Op>> {

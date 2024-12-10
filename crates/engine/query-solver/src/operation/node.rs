@@ -31,18 +31,18 @@ impl<FieldId: Copy> Node<'_, FieldId> {
             Node::QueryField(field) => format!(
                 "{}{}",
                 if field.is_extra() { "*" } else { "" },
-                graph.operation.field_label(field.id)
+                graph.operation.field_label(field.id, graph.schema, false)
             )
             .into(),
             Node::ProvidableField(field) => match field {
                 ProvidableField::InSubgraph { subgraph_id, id, .. } => format!(
                     "{}#{}",
-                    graph.operation.field_label(*id),
+                    graph.operation.field_label(*id, graph.schema, true),
                     subgraph_id.walk(graph.schema).name()
                 ),
                 ProvidableField::OnlyProvidable { subgraph_id, id, .. } => format!(
                     "{}#{}@provides",
-                    graph.operation.field_label(*id),
+                    graph.operation.field_label(*id, graph.schema, true),
                     subgraph_id.walk(graph.schema).name()
                 ),
             }

@@ -1,10 +1,10 @@
 ---
-source: engine/crates/engine/query-solver/src/tests/typename.rs
-expression: "digraph {\n    0 [ label = \"root\", color=forestgreen ]\n    1 [ label = \"topProducts\", color=forestgreen ]\n    2 [ label = \"Root#products\", shape=parallelogram, color=dodgerblue, color=forestgreen ]\n    3 [ label = \"topProducts#products\", shape=box, color=dodgerblue, color=forestgreen ]\n    4 [ label=\"\", style=dashed]\n    0 -> 2 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    2 -> 3 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    3 -> 1 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    4 -> 0 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n}\n"
+source: crates/engine/query-solver/src/tests/typename.rs
+expression: "digraph {\n    0 [ label = \"root\", color=forestgreen ]\n    1 [ label = \"Query.topProducts\", color=forestgreen ]\n    2 [ label = \"Root#products\", shape=parallelogram, color=dodgerblue, color=forestgreen ]\n    3 [ label = \"topProducts#products\", shape=box, color=dodgerblue, color=forestgreen ]\n    4 [ label=\"\", style=dashed]\n    0 -> 2 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    2 -> 3 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    3 -> 1 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    4 -> 0 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n}\n"
 ---
 digraph {
     0 [ label = "root", steiner=1 ]
-    1 [ label = "topProducts", steiner=1 ]
+    1 [ label = "Query.topProducts", steiner=1 ]
     2 [ label = "Root#products", steiner=1 ]
     3 [ label = "topProducts#products", steiner=1 ]
     4 [ label="", style=dashed]

@@ -1,22 +1,22 @@
 ---
 source: crates/engine/query-solver/src/tests/provides.rs
-expression: "digraph {\n    0 [ label = \"root\" ]\n    1 [ label = \"Root#products\", color=royalblue,shape=parallelogram ]\n    2 [ label = \"products\" ]\n    3 [ label = \"categories\" ]\n    4 [ label = \"subCategories\" ]\n    5 [ label = \"FedEntity#category\", color=royalblue,shape=parallelogram ]\n    6 [ label = \"kind\" ]\n    7 [ label = \"name\" ]\n    8 [ label = \"id\" ]\n    9 [ label = \"FedEntity#category\", color=royalblue,shape=parallelogram ]\n    10 [ label = \"kind\" ]\n    11 [ label = \"name\" ]\n    12 [ label = \"id\" ]\n    13 [ label = \"id\" ]\n    0 -> 1 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    9 -> 12 [ label = \"\", color=orangered,arrowhead=inv ]\n    2 -> 3 [ label = \"\" ]\n    3 -> 4 [ label = \"\" ]\n    4 -> 5 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    9 -> 10 [ label = \"\" ]\n    4 -> 7 [ label = \"\" ]\n    4 -> 8 [ label = \"\" ]\n    3 -> 9 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    1 -> 2 [ label = \"\" ]\n    3 -> 11 [ label = \"\" ]\n    3 -> 12 [ label = \"\" ]\n    2 -> 13 [ label = \"\" ]\n    5 -> 8 [ label = \"\", color=orangered,arrowhead=inv ]\n    5 -> 6 [ label = \"\" ]\n}\n"
+expression: "digraph {\n    0 [ label = \"root\" ]\n    1 [ label = \"Root#products\", color=royalblue,shape=parallelogram ]\n    2 [ label = \"Query.products\" ]\n    3 [ label = \"Product.categories\" ]\n    4 [ label = \"Category.subCategories\" ]\n    5 [ label = \"FedEntity#category\", color=royalblue,shape=parallelogram ]\n    6 [ label = \"Category.kind\" ]\n    7 [ label = \"Category.name\" ]\n    8 [ label = \"Category.id\" ]\n    9 [ label = \"FedEntity#category\", color=royalblue,shape=parallelogram ]\n    10 [ label = \"Category.kind\" ]\n    11 [ label = \"Category.name\" ]\n    12 [ label = \"Category.id\" ]\n    13 [ label = \"Product.id\" ]\n    0 -> 1 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    9 -> 12 [ label = \"\", color=orangered,arrowhead=inv ]\n    2 -> 3 [ label = \"\" ]\n    3 -> 4 [ label = \"\" ]\n    4 -> 5 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    9 -> 10 [ label = \"\" ]\n    4 -> 7 [ label = \"\" ]\n    4 -> 8 [ label = \"\" ]\n    3 -> 9 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    1 -> 2 [ label = \"\" ]\n    3 -> 11 [ label = \"\" ]\n    3 -> 12 [ label = \"\" ]\n    2 -> 13 [ label = \"\" ]\n    5 -> 8 [ label = \"\", color=orangered,arrowhead=inv ]\n    5 -> 6 [ label = \"\" ]\n}\n"
 ---
 digraph {
     0 [ label = "root" ]
     1 [ label = "Root#products" ]
-    2 [ label = "products" ]
-    3 [ label = "categories" ]
-    4 [ label = "subCategories" ]
+    2 [ label = "Query.products" ]
+    3 [ label = "Product.categories" ]
+    4 [ label = "Category.subCategories" ]
     5 [ label = "FedEntity#category" ]
-    6 [ label = "kind" ]
-    7 [ label = "name" ]
-    8 [ label = "id" ]
+    6 [ label = "Category.kind" ]
+    7 [ label = "Category.name" ]
+    8 [ label = "Category.id" ]
     9 [ label = "FedEntity#category" ]
-    10 [ label = "kind" ]
-    11 [ label = "name" ]
-    12 [ label = "id" ]
-    13 [ label = "id" ]
+    10 [ label = "Category.kind" ]
+    11 [ label = "Category.name" ]
+    12 [ label = "Category.id" ]
+    13 [ label = "Product.id" ]
     0 -> 1 [ label = "QueryPartition" ]
     9 -> 12 [ label = "RequiredBySubgraph" ]
     2 -> 3 [ label = "Field" ]
