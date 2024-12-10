@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 function cleanup {
     kill "$ACCOUNTS_PID"
@@ -22,4 +22,4 @@ REVIEWS_PID=$!
 
 sleep 1
 
-(cd gateway && npm install && npx grafbase@latest dev)
+(npx grafbase@latest dev -o subgraphs.toml)

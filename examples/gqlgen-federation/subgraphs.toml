@@ -1,0 +1,8 @@
+[subgraphs.accounts]
+introspection_url = "http://localhost:4001/query"
+
+[subgraphs.products]
+introspection_url = "http://localhost:4002/query"
+
+[subgraphs.reviews]
+introspection_url = "http://localhost:4003/query"
