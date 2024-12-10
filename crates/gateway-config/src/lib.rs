@@ -232,7 +232,7 @@ pub struct RetryConfig {
 #[serde(default, deny_unknown_fields)]
 pub struct GraphConfig {
     pub path: Option<String>,
-    pub introspection: bool,
+    pub introspection: Option<bool>,
 }
 
 #[derive(Clone, Debug, Default, serde::Deserialize)]
@@ -381,7 +381,7 @@ mod tests {
     fn graph_defaults() {
         let config: Config = toml::from_str("").unwrap();
 
-        assert!(!config.graph.introspection);
+        assert!(config.graph.introspection.is_none());
         assert_eq!(None, config.graph.path.as_deref());
     }
 
@@ -395,7 +395,7 @@ mod tests {
 
         let config: Config = toml::from_str(input).unwrap();
 
-        assert!(config.graph.introspection);
+        assert!(config.graph.introspection.unwrap());
         assert_eq!(Some("/enterprise"), config.graph.path.as_deref());
     }
 

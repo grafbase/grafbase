@@ -84,8 +84,8 @@ pub async fn get_and_merge_configurations(
         .map(|config| config.subgraphs.into_keys().collect::<HashSet<_>>())
         .unwrap_or_default();
 
-    let introspection_forced = !merged_configuration.graph.introspection;
-    merged_configuration.graph.introspection = true;
+    let introspection_forced = merged_configuration.graph.introspection == Some(false);
+    merged_configuration.graph.introspection = Some(true);
 
     Ok(DevConfiguration {
         introspection_forced,

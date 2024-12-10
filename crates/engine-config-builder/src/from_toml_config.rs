@@ -21,7 +21,7 @@ pub fn build_with_toml_config(config: &gateway_config::Config, graph: FederatedG
         subgraph_configs: context.subgraph_configs,
         auth: build_auth_config(config),
         operation_limits: build_operation_limits(config),
-        disable_introspection: !config.graph.introspection,
+        disable_introspection: !config.graph.introspection.unwrap_or_default(),
         rate_limit: context.rate_limit,
         timeout: config.gateway.timeout,
         entity_caching: if config.entity_caching.enabled.unwrap_or_default() {
