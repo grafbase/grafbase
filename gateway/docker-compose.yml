@@ -1,7 +1,7 @@
 services:
   otel-collector:
     restart: unless-stopped
-    image: ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector-contrib:0.102.1
+    image: ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector-contrib:0.115.1
     command:
       - '--config=/etc/otel-collector-config.yml'
       - '--set=service.telemetry.logs.level=INFO'
@@ -27,6 +27,8 @@ services:
       - '8124:8123'
     networks:
       - otel-clickhouse
+    volumes:
+      - ./data/clickhouse/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d/
 
   redis:
     restart: unless-stopped
