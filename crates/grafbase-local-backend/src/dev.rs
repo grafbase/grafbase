@@ -4,10 +4,6 @@ mod pathfinder;
 mod subgraphs;
 
 use super::errors::BackendError;
-use cli_table::{
-    format::{Border, Justify, Separator},
-    print_stdout, Cell, Style, Table,
-};
 use configurations::get_and_merge_configurations;
 use federated_server::{serve, GraphFetchMethod, ServerConfig, ServerRouter, ServerRuntime};
 use gateway_config::Config;
@@ -180,22 +176,8 @@ fn output_handler(
         url.port().unwrap()
     );
 
-    let table = vec![
-        vec![
-            "GraphQL endpoint:".cell().justify(Justify::Left),
-            url.to_string().cell().justify(Justify::Left).bold(true),
-        ],
-        vec![
-            "Pathfinder:".cell().justify(Justify::Left),
-            pathfinder_url.cell().justify(Justify::Left).bold(true),
-        ],
-    ]
-    .table()
-    .border(Border::builder().build())
-    .separator(Separator::builder().build());
-
-    print_stdout(table).unwrap();
-    println!();
+    println!("GraphQL endpoint:  {}", url.to_string().bold());
+    println!("Pathfinder:        {}\n", pathfinder_url.bold());
 
     if introspection_forced {
         tracing::info!("introspection is always enabled in the dev mode, config overriden");
