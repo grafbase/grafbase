@@ -104,7 +104,7 @@ description = "Fetch the Pathfinder tar.gz"
 script = '''
 CACHE_BREAKER=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 10 | head -n 1)
 pushd ../crates/grafbase-local-backend/assets
-curl -o pathfinder.tar.gz http://assets.grafbase.com/pathfinder/pathfinder.tar.gz?cache=$CACHE_BREAKER
+curl -o pathfinder.tar.gz -H "Cache-Control: must-revalidate, post-check=0, pre-check=0" http://assets.grafbase.com/pathfinder/pathfinder.tar.gz?cache=$CACHE_BREAKER
 popd
 '''
 
