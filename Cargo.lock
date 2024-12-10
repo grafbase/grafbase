@@ -2233,7 +2233,7 @@ dependencies = [
 
 [[package]]
 name = "engine-config-builder"
-version = "0.82.2"
+version = "0.82.3"
 dependencies = [
  "engine-config",
  "gateway-config",
@@ -2541,7 +2541,7 @@ dependencies = [
 
 [[package]]
 name = "federation-audit-tests"
-version = "0.82.2"
+version = "0.82.3"
 dependencies = [
  "cynic-parser",
  "grafbase-workspace-hack",
@@ -2969,7 +2969,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase"
-version = "0.82.2"
+version = "0.82.3"
 dependencies = [
  "assert_matches",
  "async-graphql",
@@ -3090,7 +3090,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-graphql-introspection"
-version = "0.82.2"
+version = "0.82.3"
 dependencies = [
  "cynic",
  "cynic-introspection",
@@ -3122,7 +3122,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-local-backend"
-version = "0.82.2"
+version = "0.82.3"
 dependencies = [
  "axum",
  "chrono",
@@ -3162,7 +3162,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-local-common"
-version = "0.82.2"
+version = "0.82.3"
 dependencies = [
  "const_format",
  "dirs",
@@ -3354,7 +3354,7 @@ dependencies = [
 
 [[package]]
 name = "graph-ref"
-version = "0.82.2"
+version = "0.82.3"
 dependencies = [
  "grafbase-workspace-hack",
 ]
@@ -5439,7 +5439,7 @@ dependencies = [
 
 [[package]]
 name = "operation-checks"
-version = "0.82.2"
+version = "0.82.3"
 dependencies = [
  "async-graphql-parser",
  "async-graphql-value",
@@ -5453,7 +5453,7 @@ dependencies = [
 
 [[package]]
 name = "operation-normalizer"
-version = "0.82.2"
+version = "0.82.3"
 dependencies = [
  "anyhow",
  "expect-test",
@@ -6925,7 +6925,7 @@ dependencies = [
 
 [[package]]
 name = "serde-dynamic-string"
-version = "0.82.2"
+version = "0.82.3"
 dependencies = [
  "ascii",
  "grafbase-workspace-hack",
@@ -8306,7 +8306,7 @@ checksum = "9c8d87e72b64a3b4db28d11ce29237c246188f4f51057d65a7eab63b7987e423"
 
 [[package]]
 name = "wasi-component-loader"
-version = "0.82.2"
+version = "0.82.3"
 dependencies = [
  "anyhow",
  "base64 0.22.1",
