@@ -1,3 +1,4 @@
+mod abstract_types;
 mod basic;
 mod cycle;
 mod entities;
@@ -136,6 +137,13 @@ impl TestOperation {
         }
         field_ids
     }
+
+    fn deep_clone(&mut self, original_id: FieldId) -> FieldId {
+        let mut field = self[original_id].clone();
+        field.subselection = field.subselection.into_iter().map(|id| self.deep_clone(id)).collect();
+        self.fields.push(field);
+        (self.fields.len() - 1).into()
+    }
 }
 
 impl crate::Operation for &mut TestOperation {
@@ -187,18 +195,26 @@ impl crate::Operation for &mut TestOperation {
         });
         (self.fields.len() - 1).into()
     }
-    fn create_potential_extra_interface_field_alternative(
+
+    fn create_potential_alternative_with_different_definition(
         &mut self,
         original: Self::FieldId,
-        interface_field_definition: schema::FieldDefinition<'_>,
+        definition: schema::FieldDefinition<'_>,
+        deep_clone: bool,
     ) -> Self::FieldId {
-        let original = self[original].clone();
-        self.fields.push(Field {
-            name: original.name,
-            definition_id: Some(interface_field_definition.id),
-            subselection: original.subselection,
-        });
-        (self.fields.len() - 1).into()
+        if deep_clone {
+            let id = self.deep_clone(original);
+            self[id].definition_id = Some(definition.id);
+            id
+        } else {
+            let original = self[original].clone();
+            self.fields.push(Field {
+                name: original.name,
+                definition_id: Some(definition.id),
+                subselection: original.subselection,
+            });
+            (self.fields.len() - 1).into()
+        }
     }
 
     fn finalize_selection_set(
