@@ -47,7 +47,6 @@ graphql-composition.workspace = true
 federated-graph.workspace = true
 serde-dynamic-string.workspace = true
 url.workspace = true
-cli-table = { version = "0.4.9", default-features = false }
 
 [build-dependencies]
 cynic-codegen.workspace = true
