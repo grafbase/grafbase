@@ -5,7 +5,8 @@ use std::borrow::Cow;
 
 use fixedbitset::FixedBitSet;
 use schema::{
-    DefinitionId, EntityDefinition, FieldDefinition, FieldSet, FieldSetRecord, Schema, SubgraphId, TypeSystemDirective,
+    CompositeTypeId, DefinitionId, EntityDefinition, FieldDefinition, FieldSet, FieldSetRecord, Schema, SubgraphId,
+    TypeSystemDirective,
 };
 use walker::Walk;
 
@@ -21,6 +22,7 @@ pub(super) struct OperationGraphBuilder<'ctx, Op: Operation> {
     root_ix: NodeIndex,
     field_nodes: Vec<NodeIndex>,
     providable_fields_bitset: FixedBitSet,
+    deleted_fields_bitset: FixedBitSet,
     field_ingestion_stack: Vec<CreateProvidableFields<Op::FieldId>>,
     requirement_ingestion_stack: Vec<Requirement<'ctx, Op::FieldId>>,
 }
@@ -46,6 +48,7 @@ impl<'ctx, Op: Operation> OperationGraph<'ctx, Op> {
             graph,
             field_nodes: Vec::with_capacity(n),
             providable_fields_bitset: FixedBitSet::with_capacity(n),
+            deleted_fields_bitset: FixedBitSet::with_capacity(n),
             field_ingestion_stack: Vec::new(),
             requirement_ingestion_stack: Vec::new(),
         }
@@ -66,25 +69,26 @@ impl<'ctx, Op: Operation> OperationGraphBuilder<'ctx, Op> {
             .map(|field_id| CreateProvidableFields {
                 parent_query_field_ix: self.root_ix,
                 parent_providable_field_or_root_ix: self.root_ix,
+                parent_output_type: CompositeTypeId::Object(self.operation.root_object_id()),
                 field_id,
             })
             .collect();
 
         self.loop_over_ingestion_stacks();
+        self.try_providing_missing_fields_through_alternatives();
 
-        let providable_fields = self.providable_fields_bitset.clone();
-        for field_id in providable_fields.zeroes().map(Op::FieldId::from) {
+        // FIXME: Should only check for indispensable fields. And then if we add new indispensable
+        // field ensure we can provide them instead of everything at once...
+        self.providable_fields_bitset |= &self.deleted_fields_bitset;
+        for field_id in self.providable_fields_bitset.zeroes().map(Op::FieldId::from) {
             let node_ix = self[field_id];
+
             // If the field is not associated with any providable field node and isn't a typename we can't plan it.
             if !self
                 .graph
                 .edges_directed(node_ix, Direction::Incoming)
                 .any(|edge| matches!(edge.weight(), Edge::Provides | Edge::TypenameField))
             {
-                if self.try_providing_an_alternative_field(node_ix) {
-                    continue;
-                }
-
                 let definition = self.operation.field_definition(field_id).walk(self.schema);
 
                 tracing::debug!(
@@ -146,6 +150,8 @@ struct Requirement<'ctx, FieldId> {
 struct CreateProvidableFields<Id> {
     parent_query_field_ix: NodeIndex,
     parent_providable_field_or_root_ix: NodeIndex,
+    #[allow(unused)]
+    parent_output_type: CompositeTypeId,
     field_id: Id,
 }
 
@@ -155,6 +161,7 @@ impl<'ctx, Op: Operation> OperationGraphBuilder<'ctx, Op> {
         CreateProvidableFields {
             parent_query_field_ix,
             parent_providable_field_or_root_ix,
+            parent_output_type: _,
             field_id,
         }: CreateProvidableFields<Op::FieldId>,
     ) {
@@ -173,6 +180,24 @@ impl<'ctx, Op: Operation> OperationGraphBuilder<'ctx, Op> {
             return;
         };
         let field_definition = definition_id.walk(self.schema);
+
+        // TODO: Add me later.
+        // // If can never be present giving the parent type, we simply discard the field and its
+        // // sub-selection.
+        // if parent_output_type != field_definition.parent_entity_id.into()
+        //     && !parent_output_type
+        //         .walk(self.schema)
+        //         .has_non_empty_intersection_with(field_definition.parent_entity().into())
+        // {
+        //     let mut stack = vec![field_id];
+        //     while let Some(field_id) = stack.pop() {
+        //         stack.extend(self.operation.subselection(field_id));
+        //         self.graph.remove_node(self[field_id]);
+        //         self.deleted_fields_bitset.put(field_id.into());
+        //     }
+        //
+        //     return;
+        // }
 
         // if it's the first time we see this field, there won't be any edges and we add any requirements from type system
         // directives. Otherwise it means we're not the first resolver path to this operation
@@ -225,12 +250,15 @@ impl<'ctx, Op: Operation> OperationGraphBuilder<'ctx, Op> {
             );
             self.graph.add_edge(providable_field_ix, query_field_ix, Edge::Provides);
             self.providable_fields_bitset.put(field_id.into());
-            for nested_field_id in self.operation.subselection(field_id) {
-                self.field_ingestion_stack.push(CreateProvidableFields {
-                    parent_query_field_ix: query_field_ix,
-                    parent_providable_field_or_root_ix: providable_field_ix,
-                    field_id: nested_field_id,
-                })
+            if let Some(output_type) = field_definition.ty().definition_id.as_composite_type() {
+                for nested_field_id in self.operation.subselection(field_id) {
+                    self.field_ingestion_stack.push(CreateProvidableFields {
+                        parent_query_field_ix: query_field_ix,
+                        parent_providable_field_or_root_ix: providable_field_ix,
+                        parent_output_type: output_type,
+                        field_id: nested_field_id,
+                    })
+                }
             }
         }
 
@@ -345,12 +373,15 @@ impl<'ctx, Op: Operation> OperationGraphBuilder<'ctx, Op> {
             self.graph.add_edge(providable_field_ix, query_field_ix, Edge::Provides);
             self.providable_fields_bitset.put(field_id.into());
 
-            for nested_field_id in self.operation.subselection(field_id) {
-                self.field_ingestion_stack.push(CreateProvidableFields {
-                    parent_query_field_ix: query_field_ix,
-                    parent_providable_field_or_root_ix: providable_field_ix,
-                    field_id: nested_field_id,
-                })
+            if let Some(output_type) = field_definition.ty().definition_id.as_composite_type() {
+                for nested_field_id in self.operation.subselection(field_id) {
+                    self.field_ingestion_stack.push(CreateProvidableFields {
+                        parent_query_field_ix: query_field_ix,
+                        parent_providable_field_or_root_ix: providable_field_ix,
+                        parent_output_type: output_type,
+                        field_id: nested_field_id,
+                    })
+                }
             }
         }
     }
@@ -513,15 +544,25 @@ impl<'ctx, Op: Operation> OperationGraphBuilder<'ctx, Op> {
     }
 
     fn push_field_to_provide(&mut self, parent_query_field_ix: NodeIndex, field_id: Op::FieldId) {
-        // For all the ProvidableField which may provide the parent QueryField, we have
-        // to try whether they can provide this newly added nested QueryField
         if parent_query_field_ix == self.root_ix {
             self.field_ingestion_stack.push(CreateProvidableFields {
                 parent_query_field_ix,
                 parent_providable_field_or_root_ix: self.root_ix,
+                parent_output_type: CompositeTypeId::Object(self.operation.root_object_id()),
                 field_id,
             });
         } else {
+            let parent_output_type = self
+                .operation
+                .field_definition(self.graph[parent_query_field_ix].as_query_field().unwrap().id)
+                .unwrap()
+                .walk(self.schema)
+                .ty()
+                .definition_id
+                .as_composite_type()
+                .unwrap();
+            // For all the ProvidableField which may provide the parent QueryField, we have
+            // to try whether they can provide this newly added nested QueryField
             self.field_ingestion_stack.extend(
                 self.graph
                     .edges_directed(parent_query_field_ix, Direction::Incoming)
@@ -531,6 +572,7 @@ impl<'ctx, Op: Operation> OperationGraphBuilder<'ctx, Op> {
                     .map(|edge| CreateProvidableFields {
                         parent_query_field_ix,
                         parent_providable_field_or_root_ix: edge.source(),
+                        parent_output_type,
                         field_id,
                     }),
             );
@@ -556,6 +598,7 @@ impl<'ctx, Op: Operation> OperationGraphBuilder<'ctx, Op> {
         let query_field_ix = self.graph.add_node(query_field);
         self.field_nodes.push(query_field_ix);
         self.providable_fields_bitset.grow(self.field_nodes.len());
+        self.deleted_fields_bitset.grow(self.field_nodes.len());
         query_field_ix
     }
 }
