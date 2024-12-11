@@ -13,7 +13,7 @@ pub use entity_cache::memory::InMemoryEntityCache;
 pub use entity_cache::redis::RedisEntityCache;
 pub use fetch::NativeFetcher;
 pub use kv::*;
-pub use operation_cache::{InMemoryOperationCache, InMemoryOperationCacheFactory};
+pub use operation_cache::InMemoryOperationCache;
 
 #[cfg(feature = "wasi")]
 pub use hooks::{ComponentLoader, HooksWasi, HooksWasiConfig};

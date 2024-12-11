@@ -1,51 +1,31 @@
-use runtime::operation_cache::{OperationCache, OperationCacheFactory};
+use runtime::operation_cache::OperationCache;
 
-pub struct InMemoryOperationCacheConfig {
-    pub limit: usize,
+pub struct InMemoryOperationCache<V> {
+    inner: mini_moka::sync::Cache<String, V>,
 }
 
-pub struct InMemoryOperationCacheFactory {
-    pub config: InMemoryOperationCacheConfig,
+impl<V> Default for InMemoryOperationCache<V>
+where
+    V: Clone + Send + Sync + 'static + serde::Serialize + serde::de::DeserializeOwned,
+{
+    fn default() -> Self {
+        Self::new(1000)
+    }
 }
 
-impl InMemoryOperationCacheFactory {
+impl<V> InMemoryOperationCache<V>
+where
+    V: Clone + Send + Sync + 'static + serde::Serialize + serde::de::DeserializeOwned,
+{
     pub fn new(limit: usize) -> Self {
-        InMemoryOperationCacheFactory {
-            config: InMemoryOperationCacheConfig { limit },
+        InMemoryOperationCache {
+            inner: mini_moka::sync::Cache::builder().max_capacity(limit as u64).build(),
         }
     }
 
     pub fn inactive() -> Self {
         Self::new(0)
     }
-}
-
-impl Default for InMemoryOperationCacheFactory {
-    fn default() -> Self {
-        Self::new(1000)
-    }
-}
-
-impl OperationCacheFactory for InMemoryOperationCacheFactory {
-    type Cache<V>
-        = InMemoryOperationCache<V>
-    where
-        V: Clone + Send + Sync + 'static + serde::Serialize + serde::de::DeserializeOwned;
-
-    async fn create<V>(&self) -> Self::Cache<V>
-    where
-        V: Clone + Send + Sync + 'static + serde::Serialize + serde::de::DeserializeOwned,
-    {
-        InMemoryOperationCache {
-            inner: mini_moka::sync::Cache::builder()
-                .max_capacity(self.config.limit as u64)
-                .build(),
-        }
-    }
-}
-
-pub struct InMemoryOperationCache<V> {
-    inner: mini_moka::sync::Cache<String, V>,
 }
 
 impl<V> OperationCache<V> for InMemoryOperationCache<V>
