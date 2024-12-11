@@ -501,7 +501,7 @@ impl<'a> GraphBuilder<'a> {
                 name: field.name.into(),
             };
 
-            let mut distinct_type_in_ids = Vec::new();
+            let mut subgraph_type_records = Vec::new();
             let mut requires_records = Vec::new();
             let mut provides_records = Vec::new();
             // BTreeSet to ensures consistent ordering of resolvers.
@@ -519,8 +519,11 @@ impl<'a> GraphBuilder<'a> {
                 has_join_field = true;
                 if let Some(federated_subgraph_id) = federated_subgraph_id {
                     let subgraph_id = SubgraphId::GraphqlEndpoint((*federated_subgraph_id).into());
-                    if r#type.as_ref().is_some_and(|ty| ty != &field.r#type) {
-                        distinct_type_in_ids.push(subgraph_id);
+                    if let Some(r#type) = r#type.filter(|ty| ty != &field.r#type) {
+                        subgraph_type_records.push(SubgraphTypeRecord {
+                            subgraph_id,
+                            ty_record: self.ctx.convert_type(r#type),
+                        });
                     }
                     if let Some(provides) = provides.as_ref().filter(|provides| !provides.is_empty()) {
                         let field_set_id = self.field_sets.push(field_schema_location, provides.clone());
@@ -645,7 +648,7 @@ impl<'a> GraphBuilder<'a> {
                 name_id: field.name.into(),
                 description_id: field.description.map(Into::into),
                 parent_entity_id,
-                distinct_type_in_ids,
+                subgraph_type_records,
                 ty_record: self.ctx.convert_type(field.r#type),
                 exists_in_subgraph_ids: resolvable_in_ids,
                 resolver_ids,

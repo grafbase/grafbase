@@ -2,7 +2,7 @@ use super::{
     EntityDefinitionId, EnumDefinitionId, InputObjectId, InterfaceId, ObjectId, ScalarDefinitionId, UnionId, Wrapping,
 };
 
-#[derive(Clone, PartialEq, Eq, PartialOrd, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Debug)]
 pub struct Type {
     pub wrapping: Wrapping,
     pub definition: Definition,

@@ -327,7 +327,14 @@ impl QueryBuilderContext {
             write!(buffer, "{response_key}: {name}")?;
         }
         self.write_arguments(buffer, field.arguments())?;
-        if let Some(ty) = field.definition().ty().definition().as_composite_type() {
+        if let Some(ty) = field
+            .definition()
+            .subgraph_types()
+            .find(|record| record.subgraph_id == self.subgraph_id)
+            .and_then(|record| record.ty().definition().as_composite_type())
+        {
+            self.write_selection_set(ParentType::CompositeType(ty), buffer, field.selection_set())?;
+        } else if let Some(ty) = field.definition().ty().definition().as_composite_type() {
             self.write_selection_set(ParentType::CompositeType(ty), buffer, field.selection_set())?;
         }
         Ok(())

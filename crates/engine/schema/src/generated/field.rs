@@ -5,6 +5,7 @@
 //! Source file: <engine-codegen dir>/domain/schema.graphql
 mod provides;
 mod requires;
+mod subgraph_type;
 
 use crate::{
     generated::{
@@ -16,6 +17,7 @@ use crate::{
 };
 pub use provides::*;
 pub use requires::*;
+pub use subgraph_type::*;
 use walker::{Iter, Walk};
 
 /// Generated from:
@@ -28,7 +30,8 @@ use walker::{Iter, Walk};
 ///   ty: Type!
 ///   resolvers: [ResolverDefinition!]!
 ///   exists_in_subgraphs: [Subgraph!]!
-///   distinct_type_in: [Subgraph!]!
+///   "Present if subgraph has a different type from the supergraph"
+///   subgraph_types: [SubgraphType!]!
 ///   requires: [FieldRequires!]! @field(record_field_name: "requires_records")
 ///   provides: [FieldProvides!]! @field(record_field_name: "provides_records")
 ///   "The arguments referenced by this range are sorted by their name (string)"
@@ -44,7 +47,8 @@ pub struct FieldDefinitionRecord {
     pub ty_record: TypeRecord,
     pub resolver_ids: Vec<ResolverDefinitionId>,
     pub exists_in_subgraph_ids: Vec<SubgraphId>,
-    pub distinct_type_in_ids: Vec<SubgraphId>,
+    /// Present if subgraph has a different type from the supergraph
+    pub subgraph_type_records: Vec<SubgraphTypeRecord>,
     pub requires_records: Vec<FieldRequiresRecord>,
     pub provides_records: Vec<FieldProvidesRecord>,
     /// The arguments referenced by this range are sorted by their name (string)
@@ -92,8 +96,9 @@ impl<'a> FieldDefinition<'a> {
     pub fn exists_in_subgraphs(&self) -> impl Iter<Item = Subgraph<'a>> + 'a {
         self.as_ref().exists_in_subgraph_ids.walk(self.schema)
     }
-    pub fn distinct_type_in(&self) -> impl Iter<Item = Subgraph<'a>> + 'a {
-        self.as_ref().distinct_type_in_ids.walk(self.schema)
+    /// Present if subgraph has a different type from the supergraph
+    pub fn subgraph_types(&self) -> impl Iter<Item = SubgraphType<'a>> + 'a {
+        self.as_ref().subgraph_type_records.walk(self.schema)
     }
     pub fn requires(&self) -> impl Iter<Item = FieldRequires<'a>> + 'a {
         self.as_ref().requires_records.walk(self.schema)
@@ -136,7 +141,7 @@ impl std::fmt::Debug for FieldDefinition<'_> {
             .field("ty", &self.ty())
             .field("resolvers", &self.resolvers())
             .field("exists_in_subgraphs", &self.exists_in_subgraphs())
-            .field("distinct_type_in", &self.distinct_type_in())
+            .field("subgraph_types", &self.subgraph_types())
             .field("requires", &self.requires())
             .field("provides", &self.provides())
             .field("arguments", &self.arguments())

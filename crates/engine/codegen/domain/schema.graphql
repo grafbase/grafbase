@@ -79,12 +79,18 @@ type FieldDefinition @meta(module: "field") @indexed(id_size: "u32") {
   ty: Type!
   resolvers: [ResolverDefinition!]!
   exists_in_subgraphs: [Subgraph!]!
-  distinct_type_in: [Subgraph!]!
+  "Present if subgraph has a different type from the supergraph"
+  subgraph_types: [SubgraphType!]!
   requires: [FieldRequires!]! @field(record_field_name: "requires_records")
   provides: [FieldProvides!]! @field(record_field_name: "provides_records")
   "The arguments referenced by this range are sorted by their name (string)"
   arguments: [InputValueDefinition!]!
   directives: [TypeSystemDirective!]!
+}
+
+type SubgraphType @meta(module: "field/subgraph_type") @copy {
+  subgraph: Subgraph!
+  ty: Type!
 }
 
 type FieldProvides @meta(module: "field/provides") @copy {
