@@ -221,8 +221,18 @@ impl QueryBuilderContext {
         let parent_is_fully_implemented = parent_type.is_fully_implemented_in_subgraph(subgraph_id);
         for (entity, fields) in entity_fields.into_iter() {
             let interface = match entity {
-                EntityDefinition::Object(_) => {
-                    self.write_type_condition_and_entity_fields(buffer, entity, fields)?;
+                EntityDefinition::Object(object) => {
+                    match parent_type {
+                        CompositeType::Interface(interface)
+                            if object.implements_interface_in_subgraph(&subgraph_id, &interface.id) =>
+                        {
+                            self.write_type_condition_and_entity_fields(buffer, entity, fields)?;
+                        }
+                        CompositeType::Union(union) if union.has_member_in_subgraph(subgraph_id, object.id) => {
+                            self.write_type_condition_and_entity_fields(buffer, entity, fields)?;
+                        }
+                        _ => (),
+                    }
                     continue;
                 }
                 EntityDefinition::Interface(interface) => interface,
