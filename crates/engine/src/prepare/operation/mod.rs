@@ -23,6 +23,7 @@ impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
         &mut self,
         request: Request,
     ) -> Result<PreparedOperation, Response<<R::Hooks as Hooks>::OnOperationResponseOutput>> {
+        let document_key;
         let result = {
             let OperationDocument { cache_key, load_fut } = match self.determine_operation_document(&request) {
                 Ok(doc) => doc,
@@ -30,6 +31,9 @@ impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
                 // to load, so we don't consider it a well-formed GraphQL-over-HTTP request.
                 Err(err) => return Err(Response::refuse_request_with(http::StatusCode::BAD_REQUEST, vec![err])),
             };
+
+            document_key = cache_key.document_key().to_static();
+            let cache_key = cache_key.to_string();
 
             if let Some(operation) = self.operation_cache().get(&cache_key).await {
                 self.executed_operation_builder.set_cached_plan();
@@ -48,13 +52,13 @@ impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
         let cached_operation = match result {
             Ok(op) => op,
             Err((cache_key, document)) => {
-                let cached_operation =
-                    self.build_cached_operation(&request, &document)
-                        .map(Arc::new)
-                        .map_err(|mut err| {
-                            let attributes = err.take_operation_attributes();
-                            Response::request_error(attributes, [err])
-                        })?;
+                let cached_operation = self
+                    .build_cached_operation(request.operation_name.as_deref(), &document, document_key)
+                    .map(Arc::new)
+                    .map_err(|mut err| {
+                        let attributes = err.take_operation_attributes();
+                        Response::request_error(attributes, [err])
+                    })?;
 
                 let cache_fut = self.operation_cache().insert(cache_key, cached_operation.clone());
                 self.push_background_future(cache_fut.boxed());

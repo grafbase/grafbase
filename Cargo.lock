@@ -2111,6 +2111,7 @@ dependencies = [
  "engine-walker",
  "fixedbitset 0.5.7",
  "futures",
+ "futures-lite 2.5.0",
  "futures-util",
  "grafbase-telemetry",
  "grafbase-workspace-hack",

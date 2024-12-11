@@ -1,24 +1,24 @@
 use crate::{
     prepare::{
         error::{PrepareError, PrepareResult},
-        CachedOperation, PrepareContext,
+        CachedOperation, DocumentKey, PrepareContext,
     },
-    request::Request,
     Runtime,
 };
 
 impl<R: Runtime> PrepareContext<'_, R> {
-    pub(super) fn build_cached_operation(
-        &mut self,
-        request: &Request,
+    pub(crate) fn build_cached_operation(
+        &self,
+        operation_name: Option<&str>,
         document: &str,
+        document_key: DocumentKey<'static>,
     ) -> PrepareResult<CachedOperation> {
         if document.len() >= self.schema().settings.executable_document_limit_bytes {
             return Err(PrepareError::QueryTooBig);
         }
 
-        let parsed_operation = crate::operation::parse(self.schema(), request.operation_name.as_deref(), document)
-            .map_err(PrepareError::Parse)?;
+        let parsed_operation =
+            crate::operation::parse(self.schema(), operation_name, document).map_err(PrepareError::Parse)?;
 
         let attributes = crate::operation::extract_attributes(&parsed_operation);
 
@@ -51,6 +51,9 @@ impl<R: Runtime> PrepareContext<'_, R> {
             solved: solved_operation,
             attributes,
             operation,
+            document: document.to_string(),
+            operation_name: operation_name.map(ToString::to_string),
+            document_key,
         })
     }
 }

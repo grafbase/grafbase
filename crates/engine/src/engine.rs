@@ -19,6 +19,7 @@ pub(crate) use runtime::*;
 pub(crate) mod cache;
 mod errors;
 mod execute;
+pub(crate) mod prewarming;
 mod retry_budget;
 mod runtime;
 
@@ -28,7 +29,7 @@ pub struct Engine<R: Runtime> {
     // We use an Arc for the schema to have a self-contained response which may still
     // needs access to the schema strings
     pub(crate) schema: Arc<Schema>,
-    pub(crate) runtime: R,
+    pub runtime: R,
     auth: AuthService,
     retry_budgets: RetryBudgets,
     default_response_format: ResponseFormat,

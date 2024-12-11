@@ -23,7 +23,7 @@ pub struct GatewayRuntime {
     hooks: HooksWasi,
     rate_limiter: runtime::rate_limiting::RateLimiter,
     entity_cache: Box<dyn EntityCache>,
-    operation_cache: InMemoryOperationCache<Arc<CachedOperation>>,
+    pub(crate) operation_cache: InMemoryOperationCache<Arc<CachedOperation>>,
 }
 
 impl GatewayRuntime {

@@ -10,19 +10,45 @@ mod namespaces {
 }
 
 /// Unique cache key that generates a URL-safe string.
-/// Stable across engine version.
 pub(crate) enum Key<'a> {
     Operation {
         name: Option<&'a str>,
         schema: &'a Schema,
-        document: Document<'a>,
+        document: DocumentKey<'a>,
     },
 }
 
-pub(crate) enum Document<'a> {
-    AutomaticPersistedQuery(&'a PersistedQueryRequestExtension),
-    TrustedDocumentId { client_name: &'a str, doc_id: Cow<'a, str> },
-    Text(&'a str),
+impl<'a> Key<'a> {
+    pub fn document_key(&self) -> &'_ DocumentKey<'a> {
+        match self {
+            Key::Operation { document, .. } => document,
+        }
+    }
+}
+
+#[derive(Clone, serde::Serialize, serde::Deserialize)]
+pub(crate) enum DocumentKey<'a> {
+    AutomaticPersistedQuery(Cow<'a, PersistedQueryRequestExtension>),
+    TrustedDocumentId {
+        client_name: Cow<'a, str>,
+        doc_id: Cow<'a, str>,
+    },
+    Text(Cow<'a, str>),
+}
+
+impl DocumentKey<'_> {
+    pub fn to_static(&self) -> DocumentKey<'static> {
+        match self.clone() {
+            DocumentKey::AutomaticPersistedQuery(inner) => {
+                DocumentKey::AutomaticPersistedQuery(Cow::Owned(inner.into_owned()))
+            }
+            DocumentKey::TrustedDocumentId { client_name, doc_id } => DocumentKey::TrustedDocumentId {
+                client_name: Cow::Owned(client_name.into_owned()),
+                doc_id: Cow::Owned(doc_id.into_owned()),
+            },
+            DocumentKey::Text(inner) => DocumentKey::Text(Cow::Owned(inner.into_owned())),
+        }
+    }
 }
 
 impl std::fmt::Display for Key<'_> {
@@ -44,13 +70,13 @@ impl std::fmt::Display for Key<'_> {
                 // operation name.
                 hasher.update(&[0x00]);
                 match document {
-                    Document::AutomaticPersistedQuery(ext) => {
+                    DocumentKey::AutomaticPersistedQuery(ext) => {
                         hasher.update(b"apq");
                         hasher.update(&[0x00]);
                         hasher.update(&ext.version.to_ne_bytes());
                         hasher.update(&ext.sha256_hash);
                     }
-                    Document::TrustedDocumentId { client_name, doc_id } => {
+                    DocumentKey::TrustedDocumentId { client_name, doc_id } => {
                         hasher.update(b"docid");
                         hasher.update(&[0x00]);
                         hasher.update(&client_name.len().to_ne_bytes());
@@ -58,7 +84,7 @@ impl std::fmt::Display for Key<'_> {
                         hasher.update(&doc_id.len().to_ne_bytes());
                         hasher.update(doc_id.as_bytes());
                     }
-                    Document::Text(document) => {
+                    DocumentKey::Text(document) => {
                         hasher.update(b"doc");
                         hasher.update(&[0x00]);
                         hasher.update(document.as_bytes());
