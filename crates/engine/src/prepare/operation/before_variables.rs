@@ -1,7 +1,7 @@
 use crate::{
     prepare::{
         error::{PrepareError, PrepareResult},
-        CachedOperation, CachedOperationAttributes, PrepareContext,
+        CachedOperation, PrepareContext,
     },
     request::Request,
     Runtime,
@@ -20,15 +20,15 @@ impl<R: Runtime> PrepareContext<'_, R> {
         let parsed_operation = crate::operation::parse(self.schema(), request.operation_name.as_deref(), document)
             .map_err(PrepareError::Parse)?;
 
-        let attributes = crate::operation::extract_attributes(&parsed_operation, document);
+        let attributes = crate::operation::extract_attributes(&parsed_operation);
 
         let bound_operation = match crate::operation::bind(self.schema(), &parsed_operation) {
             Ok(op) => op,
             Err(err) => {
                 return Err(PrepareError::Bind {
-                    attributes: Box::new(attributes.map(CachedOperationAttributes::attributes_for_error)),
+                    attributes: Box::new(Some(attributes.attributes_for_error())),
                     err: err.into_graphql_error(&parsed_operation),
-                })
+                });
             }
         };
 
@@ -41,13 +41,12 @@ impl<R: Runtime> PrepareContext<'_, R> {
             Ok(op) => op,
             Err(err) => {
                 return Err(PrepareError::Solve {
-                    attributes: Box::new(attributes.map(CachedOperationAttributes::attributes_for_error)),
+                    attributes: Box::new(Some(attributes.attributes_for_error())),
                     err,
                 })
             }
         };
 
-        let attributes = attributes.ok_or(PrepareError::NormalizationError)?;
         Ok(CachedOperation {
             solved: solved_operation,
             attributes,

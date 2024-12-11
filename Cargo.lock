@@ -5445,6 +5445,7 @@ name = "operation-normalizer"
 version = "0.82.3"
 dependencies = [
  "anyhow",
+ "cynic-parser",
  "expect-test",
  "grafbase-workspace-hack",
  "graphql-parser",

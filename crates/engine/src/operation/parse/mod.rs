@@ -19,13 +19,17 @@ pub(crate) struct ParsedOperation {
 impl ParsedOperation {
     pub fn operation(&self) -> OperationDefinition<'_> {
         match &self.name {
-            None => self.document.operations().next().unwrap(),
+            None => self.document().operations().next().unwrap(),
             Some(name) => self
-                .document
+                .document()
                 .operations()
                 .find(|operation| operation.name() == Some(name))
                 .unwrap(),
         }
+    }
+
+    pub fn document(&self) -> &ExecutableDocument {
+        &self.document
     }
 
     pub fn span_to_location(&self, span: cynic_parser::Span) -> Location {

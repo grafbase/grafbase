@@ -83,7 +83,7 @@ fn with_working_subgraph() {
 
     let result = serde_json::to_string_pretty(&result).unwrap();
 
-    insta::assert_snapshot!(&result, @r###"
+    insta::assert_snapshot!(&result, @r#"
     {
       "method": "POST",
       "url": "/graphql",
@@ -92,7 +92,7 @@ fn with_working_subgraph() {
       "operations": [
         {
           "name": "Simple",
-          "document": "query Simple {\n  me {\n    id\n  }\n}\n",
+          "document": "query Simple { me { id } }",
           "cached": false,
           "status": "Success",
           "subgraphs": [
@@ -113,7 +113,7 @@ fn with_working_subgraph() {
         }
       ]
     }
-    "###);
+    "#);
 }
 
 #[test]
@@ -237,7 +237,7 @@ fn with_working_subgraph_rate_limited() {
         .map(|line| serde_json::to_string_pretty(&line).unwrap())
         .collect();
 
-    insta::assert_snapshot!(&result[0], @r###"
+    insta::assert_snapshot!(&result[0], @r#"
     {
       "method": "POST",
       "url": "/graphql",
@@ -246,7 +246,7 @@ fn with_working_subgraph_rate_limited() {
       "operations": [
         {
           "name": "Simple",
-          "document": "query Simple {\n  me {\n    id\n  }\n}\n",
+          "document": "query Simple { me { id } }",
           "cached": false,
           "status": "Success",
           "subgraphs": [
@@ -267,9 +267,9 @@ fn with_working_subgraph_rate_limited() {
         }
       ]
     }
-    "###);
+    "#);
 
-    insta::assert_snapshot!(&result[1], @r###"
+    insta::assert_snapshot!(&result[1], @r#"
     {
       "method": "POST",
       "url": "/graphql",
@@ -278,7 +278,7 @@ fn with_working_subgraph_rate_limited() {
       "operations": [
         {
           "name": "Simple",
-          "document": "query Simple {\n  me {\n    id\n  }\n}\n",
+          "document": "query Simple { me { id } }",
           "cached": true,
           "status": {
             "FieldError": {
@@ -300,7 +300,7 @@ fn with_working_subgraph_rate_limited() {
         }
       ]
     }
-    "###);
+    "#);
 }
 
 #[test]
@@ -344,7 +344,7 @@ fn with_broken_subgraph() {
 
     let result = serde_json::to_string_pretty(&result).unwrap();
 
-    insta::assert_snapshot!(&result, @r###"
+    insta::assert_snapshot!(&result, @r#"
     {
       "method": "POST",
       "url": "/graphql",
@@ -353,7 +353,7 @@ fn with_broken_subgraph() {
       "operations": [
         {
           "name": "Simple",
-          "document": "query Simple {\n  me {\n    id\n  }\n}\n",
+          "document": "query Simple { me { id } }",
           "cached": false,
           "status": {
             "FieldError": {
@@ -379,7 +379,7 @@ fn with_broken_subgraph() {
         }
       ]
     }
-    "###);
+    "#);
 }
 
 #[test]
@@ -430,7 +430,7 @@ fn with_broken_subgraph_retried() {
 
     let result = serde_json::to_string_pretty(&result).unwrap();
 
-    insta::assert_snapshot!(&result, @r###"
+    insta::assert_snapshot!(&result, @r#"
     {
       "method": "POST",
       "url": "/graphql",
@@ -439,7 +439,7 @@ fn with_broken_subgraph_retried() {
       "operations": [
         {
           "name": "Simple",
-          "document": "query Simple {\n  me {\n    id\n  }\n}\n",
+          "document": "query Simple { me { id } }",
           "cached": false,
           "status": {
             "FieldError": {
@@ -470,7 +470,7 @@ fn with_broken_subgraph_retried() {
         }
       ]
     }
-    "###);
+    "#);
 }
 
 #[test]
@@ -519,7 +519,7 @@ fn with_caching() {
         .map(|line| serde_json::to_string_pretty(&line).unwrap())
         .collect();
 
-    insta::assert_snapshot!(&result[0], @r###"
+    insta::assert_snapshot!(&result[0], @r#"
     {
       "method": "POST",
       "url": "/graphql",
@@ -528,7 +528,7 @@ fn with_caching() {
       "operations": [
         {
           "name": "Simple",
-          "document": "query Simple {\n  me {\n    id\n  }\n}\n",
+          "document": "query Simple { me { id } }",
           "cached": false,
           "status": "Success",
           "subgraphs": [
@@ -549,9 +549,9 @@ fn with_caching() {
         }
       ]
     }
-    "###);
+    "#);
 
-    insta::assert_snapshot!(&result[1], @r###"
+    insta::assert_snapshot!(&result[1], @r#"
     {
       "method": "POST",
       "url": "/graphql",
@@ -560,7 +560,7 @@ fn with_caching() {
       "operations": [
         {
           "name": "Simple",
-          "document": "query Simple {\n  me {\n    id\n  }\n}\n",
+          "document": "query Simple { me { id } }",
           "cached": true,
           "status": "Success",
           "subgraphs": [
@@ -575,7 +575,7 @@ fn with_caching() {
         }
       ]
     }
-    "###);
+    "#);
 }
 
 #[test]
@@ -619,7 +619,7 @@ fn with_subgraph_status_500() {
 
     let result = serde_json::to_string_pretty(&result).unwrap();
 
-    insta::assert_snapshot!(&result, @r###"
+    insta::assert_snapshot!(&result, @r#"
     {
       "method": "POST",
       "url": "/graphql",
@@ -628,7 +628,7 @@ fn with_subgraph_status_500() {
       "operations": [
         {
           "name": "Simple",
-          "document": "query Simple {\n  me {\n    id\n  }\n}\n",
+          "document": "query Simple { me { id } }",
           "cached": false,
           "status": {
             "FieldError": {
@@ -654,7 +654,7 @@ fn with_subgraph_status_500() {
         }
       ]
     }
-    "###);
+    "#);
 }
 
 #[test]
@@ -705,7 +705,7 @@ fn with_subgraph_status_500_retried() {
 
     let result = serde_json::to_string_pretty(&result).unwrap();
 
-    insta::assert_snapshot!(&result, @r###"
+    insta::assert_snapshot!(&result, @r#"
     {
       "method": "POST",
       "url": "/graphql",
@@ -714,7 +714,7 @@ fn with_subgraph_status_500_retried() {
       "operations": [
         {
           "name": "Simple",
-          "document": "query Simple {\n  me {\n    id\n  }\n}\n",
+          "document": "query Simple { me { id } }",
           "cached": false,
           "status": {
             "FieldError": {
@@ -745,7 +745,7 @@ fn with_subgraph_status_500_retried() {
         }
       ]
     }
-    "###);
+    "#);
 }
 
 #[test]

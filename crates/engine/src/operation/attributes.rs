@@ -1,26 +1,28 @@
+use super::parse::ParsedOperation;
+use crate::prepare::CachedOperationAttributes;
 use grafbase_telemetry::graphql::{OperationName, OperationType};
 
-use crate::prepare::CachedOperationAttributes;
+pub(crate) fn extract_attributes(operation: &ParsedOperation) -> CachedOperationAttributes {
+    let ty = convert_operation_type(operation.operation().operation_type());
 
-use super::parse::ParsedOperation;
+    let name = if let Some(name) = operation.name.clone() {
+        OperationName::Original(name)
+    } else if let Some(name) = crate::analytics::operation_name::compute(operation) {
+        // We have to compute the name during the execution to ensure traces and metrics are
+        // consistent with each other. For metrics it can be computed later efficiently, but
+        // not for spans.
+        OperationName::Computed(name)
+    } else {
+        OperationName::Unknown
+    };
 
-pub(crate) fn extract_attributes(operation: &ParsedOperation, document: &str) -> Option<CachedOperationAttributes> {
-    operation_normalizer::normalize(document, operation.name.as_deref())
-        .ok()
-        .map(|sanitized_query| CachedOperationAttributes {
-            ty: convert_operation_type(operation.operation().operation_type()),
-            name: if let Some(name) = operation.name.clone() {
-                OperationName::Original(name)
-            } else if let Some(name) = crate::analytics::operation_name::compute(operation) {
-                // We have to compute the name during the execution to ensure traces and metrics are
-                // consistent with each other. For metrics it can be computed later efficiently, but
-                // not for spans.
-                OperationName::Computed(name)
-            } else {
-                OperationName::Unknown
-            },
-            sanitized_query: sanitized_query.into(),
-        })
+    let sanitized_query = operation_normalizer::sanitize(operation.document()).into();
+
+    CachedOperationAttributes {
+        ty,
+        name,
+        sanitized_query,
+    }
 }
 
 fn convert_operation_type(ty: cynic_parser::common::OperationType) -> OperationType {
