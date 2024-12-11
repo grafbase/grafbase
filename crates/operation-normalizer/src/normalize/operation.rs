@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use graphql_parser::query::OperationDefinition;
 
-use crate::{directives, selection_set};
+use super::{directives, selection_set};
 
 pub(super) fn normalize<'a>(
     operation: &mut OperationDefinition<'a, &'a str>,

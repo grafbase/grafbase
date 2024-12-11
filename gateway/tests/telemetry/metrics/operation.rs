@@ -34,17 +34,17 @@ fn basic() {
             .fetch_one::<ExponentialHistogramRow>()
             .await
             .unwrap();
-        insta::assert_json_snapshot!(row, @r###"
+        insta::assert_json_snapshot!(row, @r#"
         {
           "Count": 1,
           "Attributes": {
-            "graphql.document": "query Simple {\n  __typename\n}\n",
+            "graphql.document": "query Simple { __typename }",
             "graphql.operation.name": "Simple",
             "graphql.operation.type": "query",
             "graphql.response.status": "SUCCESS"
           }
         }
-        "###);
+        "#);
     });
 }
 
@@ -81,17 +81,17 @@ fn introspection_should_not_appear_in_used_fields() {
             .await
             .unwrap();
 
-        insta::assert_json_snapshot!(row, @r###"
+        insta::assert_json_snapshot!(row, @r#"
         {
           "Count": 1,
           "Attributes": {
             "grafbase.operation.computed_name": "__schema",
-            "graphql.document": "query {\n  __schema {\n    description\n  }\n}\n",
+            "graphql.document": "query { __schema { description } }",
             "graphql.operation.type": "query",
             "graphql.response.status": "SUCCESS"
           }
         }
-        "###);
+        "#);
     });
 }
 
@@ -153,17 +153,17 @@ fn used_fields_should_be_unique() {
             .fetch_one::<ExponentialHistogramRow>()
             .await
             .unwrap();
-        insta::assert_json_snapshot!(row, @r###"
+        insta::assert_json_snapshot!(row, @r#"
         {
           "Count": 1,
           "Attributes": {
-            "graphql.document": "query Faulty {\n  me {\n    id\n    reviews {\n      author {\n        id\n        username\n      }\n      body\n      body\n    }\n    username\n  }\n}\n",
+            "graphql.document": "query Faulty { me { id username reviews { body alias: body author { id username } } } }",
             "graphql.operation.name": "Faulty",
             "graphql.operation.type": "query",
             "graphql.response.status": "FIELD_ERROR_NULL_DATA"
           }
         }
-        "###);
+        "#);
     });
 }
 
@@ -171,7 +171,7 @@ fn used_fields_should_be_unique() {
 fn generate_operation_name() {
     with_gateway(|service_name, _, gateway, clickhouse| async move {
         let response = gateway
-            .gql::<serde_json::Value>("query { myFavoriteField ignoreMe }")
+            .gql::<serde_json::Value>("query { myFavoriteField(id: \"secret\") ignoreMe }")
             .send()
             .await;
 
@@ -210,17 +210,17 @@ fn generate_operation_name() {
             .await
             .unwrap();
 
-        insta::assert_json_snapshot!(row, @r###"
+        insta::assert_json_snapshot!(row, @r#"
         {
           "Count": 1,
           "Attributes": {
             "grafbase.operation.computed_name": "myFavoriteField",
-            "graphql.document": "query {\n  ignoreMe\n  myFavoriteField\n}\n",
+            "graphql.document": "query { myFavoriteField(id: \"\") ignoreMe }",
             "graphql.operation.type": "query",
             "graphql.response.status": "REQUEST_ERROR"
           }
         }
-        "###);
+        "#);
     });
 }
 
@@ -266,17 +266,17 @@ fn request_error() {
             .await
             .unwrap();
 
-        insta::assert_json_snapshot!(row, @r###"
+        insta::assert_json_snapshot!(row, @r#"
         {
           "Count": 1,
           "Attributes": {
-            "graphql.document": "query Faulty {\n  __typ__ename\n}\n",
+            "graphql.document": "query Faulty { __typ__ename }",
             "graphql.operation.name": "Faulty",
             "graphql.operation.type": "query",
             "graphql.response.status": "REQUEST_ERROR"
           }
         }
-        "###);
+        "#);
     });
 }
 
@@ -322,17 +322,17 @@ fn field_error() {
             .await
             .unwrap();
 
-        insta::assert_json_snapshot!(row, @r###"
+        insta::assert_json_snapshot!(row, @r#"
         {
           "Count": 1,
           "Attributes": {
-            "graphql.document": "query Faulty {\n  __typename\n  me {\n    id\n  }\n}\n",
+            "graphql.document": "query Faulty { __typename me { id } }",
             "graphql.operation.name": "Faulty",
             "graphql.operation.type": "query",
             "graphql.response.status": "FIELD_ERROR_NULL_DATA"
           }
         }
-        "###);
+        "#);
     });
 }
 
@@ -378,17 +378,17 @@ fn field_error_data_null() {
             .await
             .unwrap();
 
-        insta::assert_json_snapshot!(row, @r###"
+        insta::assert_json_snapshot!(row, @r#"
         {
           "Count": 1,
           "Attributes": {
-            "graphql.document": "query Faulty {\n  me {\n    id\n  }\n}\n",
+            "graphql.document": "query Faulty { me { id } }",
             "graphql.operation.name": "Faulty",
             "graphql.operation.type": "query",
             "graphql.response.status": "FIELD_ERROR_NULL_DATA"
           }
         }
-        "###);
+        "#);
     });
 }
 
@@ -427,11 +427,11 @@ fn client() {
             .await
             .unwrap();
 
-        insta::assert_json_snapshot!(row, @r###"
+        insta::assert_json_snapshot!(row, @r#"
         {
           "Count": 1,
           "Attributes": {
-            "graphql.document": "query SimpleQuery {\n  __typename\n}\n",
+            "graphql.document": "query SimpleQuery { __typename }",
             "graphql.operation.name": "SimpleQuery",
             "graphql.operation.type": "query",
             "graphql.response.status": "SUCCESS",
@@ -439,7 +439,7 @@ fn client() {
             "http.headers.x-grafbase-client-version": "1.0.0"
           }
         }
-        "###);
+        "#);
     });
 }
 
@@ -555,17 +555,17 @@ fn prepare_duration_success() {
             .await
             .unwrap();
 
-        insta::assert_json_snapshot!(row, @r###"
+        insta::assert_json_snapshot!(row, @r#"
         {
           "Count": 1,
           "Attributes": {
-            "graphql.document": "query SimpleQuery {\n  __typename\n}\n",
+            "graphql.document": "query SimpleQuery { __typename }",
             "graphql.operation.name": "SimpleQuery",
             "graphql.operation.success": "true",
             "graphql.operation.type": "query"
           }
         }
-        "###);
+        "#);
     });
 }
 

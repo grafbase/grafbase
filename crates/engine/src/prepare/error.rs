@@ -26,8 +26,6 @@ pub(super) enum PrepareError {
         attributes: Box<Option<GraphqlOperationAttributes>>,
         err: PlanError,
     },
-    #[error("Failed to normalize query")]
-    NormalizationError,
     #[error("Query exceeded complexity limit")]
     ComplexityLimitReached,
     #[error("Expected exactly one slicing argument on {0}")]
@@ -43,7 +41,6 @@ impl From<PrepareError> for GraphqlError {
             PrepareError::Parse(err) => err,
             PrepareError::Plan { err, .. } => err.into(),
             PrepareError::Solve { err, .. } => err.into(),
-            PrepareError::NormalizationError => GraphqlError::new(val.to_string(), ErrorCode::InternalServerError),
             PrepareError::ComplexityLimitReached
             | PrepareError::ExpectedOneSlicingArgument(_)
             | PrepareError::QueryTooBig => GraphqlError::new(val.to_string(), ErrorCode::OperationValidationError),
