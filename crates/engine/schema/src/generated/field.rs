@@ -27,7 +27,7 @@ use walker::{Iter, Walk};
 ///   parent_entity: EntityDefinition!
 ///   ty: Type!
 ///   resolvers: [ResolverDefinition!]!
-///   resolvable_in: [Subgraph!]!
+///   exists_in_subgraphs: [Subgraph!]!
 ///   distinct_type_in: [Subgraph!]!
 ///   requires: [FieldRequires!]! @field(record_field_name: "requires_records")
 ///   provides: [FieldProvides!]! @field(record_field_name: "provides_records")
@@ -43,7 +43,7 @@ pub struct FieldDefinitionRecord {
     pub parent_entity_id: EntityDefinitionId,
     pub ty_record: TypeRecord,
     pub resolver_ids: Vec<ResolverDefinitionId>,
-    pub resolvable_in_ids: Vec<SubgraphId>,
+    pub exists_in_subgraph_ids: Vec<SubgraphId>,
     pub distinct_type_in_ids: Vec<SubgraphId>,
     pub requires_records: Vec<FieldRequiresRecord>,
     pub provides_records: Vec<FieldProvidesRecord>,
@@ -89,8 +89,8 @@ impl<'a> FieldDefinition<'a> {
     pub fn resolvers(&self) -> impl Iter<Item = ResolverDefinition<'a>> + 'a {
         self.as_ref().resolver_ids.walk(self.schema)
     }
-    pub fn resolvable_in(&self) -> impl Iter<Item = Subgraph<'a>> + 'a {
-        self.as_ref().resolvable_in_ids.walk(self.schema)
+    pub fn exists_in_subgraphs(&self) -> impl Iter<Item = Subgraph<'a>> + 'a {
+        self.as_ref().exists_in_subgraph_ids.walk(self.schema)
     }
     pub fn distinct_type_in(&self) -> impl Iter<Item = Subgraph<'a>> + 'a {
         self.as_ref().distinct_type_in_ids.walk(self.schema)
@@ -135,7 +135,7 @@ impl std::fmt::Debug for FieldDefinition<'_> {
             .field("parent_entity", &self.parent_entity())
             .field("ty", &self.ty())
             .field("resolvers", &self.resolvers())
-            .field("resolvable_in", &self.resolvable_in())
+            .field("exists_in_subgraphs", &self.exists_in_subgraphs())
             .field("distinct_type_in", &self.distinct_type_in())
             .field("requires", &self.requires())
             .field("provides", &self.provides())

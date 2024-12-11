@@ -682,7 +682,7 @@ impl<'a> IntrospectionBuilder<'a> {
                 description_id: None,
                 ty_record: r#type,
                 parent_entity_id: EntityDefinitionId::Object(object_id),
-                resolvable_in_ids: vec![SubgraphId::Introspection],
+                exists_in_subgraph_ids: vec![SubgraphId::Introspection],
                 requires_records: Vec::new(),
                 provides_records: Vec::new(),
                 directive_ids: Vec::new(),

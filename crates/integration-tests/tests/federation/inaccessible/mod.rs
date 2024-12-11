@@ -47,7 +47,10 @@ input PartiallyInaccessibleInput @join__type(graph: PRODUCTS)
   inaccessibleEnum: InaccessibleEnum
 }
 
-type InaccessibleObject implements PartiallyAccessibleInterface @inaccessible @join__type(graph: PRODUCTS)
+type InaccessibleObject implements PartiallyAccessibleInterface 
+    @inaccessible
+    @join__type(graph: PRODUCTS) 
+    @join__implements(graph: PRODUCTS, interface: "PartiallyAccessibleInterface")
 {
   id: ID!
 }
@@ -70,15 +73,19 @@ interface InaccessibleInterface @inaccessible @join__type(graph: PRODUCTS)
   id: ID!
 }
 
-union InaccessibleUnion @inaccessible @join__type(graph: PRODUCTS)
+union InaccessibleUnion @inaccessible @join__type(graph: PRODUCTS) @join__member(graph: PRODUCTS, member: "Tree")
  = Tree
 
-type Tree implements PartiallyAccessibleInterface & InaccessibleInterface @join__type(graph: PRODUCTS)
+type Tree implements PartiallyAccessibleInterface & InaccessibleInterface
+    @join__type(graph: PRODUCTS) 
+    @join__implements(graph: PRODUCTS, interface: "PartiallyAccessibleInterface")
+    @join__implements(graph: PRODUCTS, interface: "InaccessibleInterface")
 {
   id: ID!
 }
 
-union PartiallyAccessibleUnion @join__type(graph: PRODUCTS)
+union PartiallyAccessibleUnion @join__type(graph: PRODUCTS) @join__member(graph: A, member: "Tree") @join__member(graph: A, member: "InaccessibleObject")
+
  = Tree | InaccessibleObject
 
 interface PartiallyAccessibleInterface @join__type(graph: PRODUCTS)

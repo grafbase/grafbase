@@ -50,7 +50,7 @@ type ObjectDefinition @meta(module: "object", debug: false) @indexed(deduplicate
   "sorted by SubgraphId, then InterfaceId"
   join_implements: [JoinImplementsDefinition!]!
   "sorted by SubgraphId"
-  exists_in_subgraphs: [SubgraphRef!]!
+  exists_in_subgraphs: [Subgraph!]!
 }
 
 type InterfaceDefinition @meta(module: "interface", debug: false) @indexed(deduplicated: true, id_size: "u32") {
@@ -68,6 +68,8 @@ type InterfaceDefinition @meta(module: "interface", debug: false) @indexed(dedup
   Sorted by SubgraphId
   """
   not_fully_implemented_in: [Subgraph!]!
+  "sorted by SubgraphId"
+  exists_in_subgraphs: [Subgraph!]!
 }
 
 type FieldDefinition @meta(module: "field") @indexed(id_size: "u32") {
@@ -76,7 +78,7 @@ type FieldDefinition @meta(module: "field") @indexed(id_size: "u32") {
   parent_entity: EntityDefinition!
   ty: Type!
   resolvers: [ResolverDefinition!]!
-  resolvable_in: [Subgraph!]!
+  exists_in_subgraphs: [Subgraph!]!
   distinct_type_in: [Subgraph!]!
   requires: [FieldRequires!]! @field(record_field_name: "requires_records")
   provides: [FieldProvides!]! @field(record_field_name: "provides_records")

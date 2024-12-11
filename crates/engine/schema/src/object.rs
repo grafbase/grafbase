@@ -16,7 +16,7 @@ impl ObjectDefinitionRecord {
             .is_ok()
     }
 
-    pub fn is_resolvable_in(&self, subgraph_id: &SubgraphId) -> bool {
+    pub fn exists_in_subgraph(&self, subgraph_id: &SubgraphId) -> bool {
         self.exists_in_subgraph_ids.binary_search(subgraph_id).is_ok()
     }
 }

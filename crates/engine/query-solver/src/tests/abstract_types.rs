@@ -211,3 +211,42 @@ fn nested_interface_field_provided_by_implementors() {
         "#
     );
 }
+
+#[test]
+fn unreachable_object() {
+    // Group is never reachable.
+    assert_solving_snapshots!(
+        "unreachable_object",
+        SCHEMA,
+        r#"
+        query {
+          products {
+            id
+            ... on Magazine {
+              publisherType {
+                ...Publisher
+              }
+            }
+            ... on Book {
+              publisherType {
+                ...Publisher
+              }
+            }
+          }
+        }
+
+        fragment Publisher on PublisherType {
+          ... on Agency {
+            id
+            companyName
+          }
+          ... on Self {
+            email
+          }
+          ... on Group {
+            name
+          }
+        }
+        "#
+    );
+}

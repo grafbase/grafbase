@@ -3,24 +3,24 @@ use serde_json::json;
 use super::run;
 
 const REQUIRED_OBJECT_SCHEMA: &str = r#"
-type Query {
-    user: User @join__field(graph: A)
-    dummy: String @join__field(graph: A)
+type Query @join__type(graph: A) {
+    user: User
+    dummy: String
 }
-type User {
-    organization: Organization! @join__field(graph: A)
-    valid: String @join__field(graph: A)
+type User @join__type(graph: A) {
+    organization: Organization!
+    valid: String
 }
-interface Organization {
+interface Organization @join__type(graph: A) {
     id: ID!
 }
-type BigCorp implements Organization {
-    id: ID! @join__field(graph: A)
-    valid: String @join__field(graph: A)
+type BigCorp implements Organization @join__type(graph: A) @join__implements(graph: A, interface: "Organization") {
+    id: ID!
+    valid: String
 }
-type SmallBusiness implements Organization {
-    id: ID! @join__field(graph: A)
-    valid: String @join__field(graph: A)
+type SmallBusiness implements Organization @join__type(graph: A) @join__implements(graph: A, interface: "Organization") {
+    id: ID!
+    valid: String
 }
 type Something implements Organization {
     id: ID!
@@ -28,24 +28,24 @@ type Something implements Organization {
 "#;
 
 const NULLABLE_OBJECT_SCHEMA: &str = r#"
-type Query {
-    user: User @join__field(graph: A)
-    dummy: String @join__field(graph: A)
+type Query @join__type(graph: A) {
+    user: User
+    dummy: String
 }
-type User {
-    organization: Organization @join__field(graph: A)
-    valid: String @join__field(graph: A)
+type User @join__type(graph: A) {
+    organization: Organization
+    valid: String
 }
-interface Organization {
+interface Organization @join__type(graph: A) {
     id: ID!
 }
-type BigCorp implements Organization {
-    id: ID! @join__field(graph: A)
-    valid: String @join__field(graph: A)
+type BigCorp implements Organization @join__type(graph: A) @join__implements(graph: A, interface: "Organization") {
+    id: ID!
+    valid: String
 }
-type SmallBusiness implements Organization {
-    id: ID! @join__field(graph: A)
-    valid: String @join__field(graph: A)
+type SmallBusiness implements Organization @join__type(graph: A) @join__implements(graph: A, interface: "Organization") {
+    id: ID!
+    valid: String
 }
 type Something implements Organization {
     id: ID!

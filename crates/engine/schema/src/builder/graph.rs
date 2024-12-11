@@ -216,14 +216,17 @@ impl<'a> GraphBuilder<'a> {
                     },
                 )
                 .collect();
+            let mut union_subgraph_ids = join_member_records
+                .iter()
+                .map(|join| join.subgraph_id)
+                .collect::<Vec<_>>();
+            union_subgraph_ids.sort_unstable();
+            union_subgraph_ids.dedup();
 
             join_member_records.sort_by_key(|record| (record.subgraph_id, record.member_id));
             let mut not_fully_implemented_in_ids = BTreeSet::new();
             for object_id in &possible_type_ids {
-                let object = &self.graph[*object_id];
-
-                // Check in which subgraphs these are resolved.
-                for subgraph_id in &object.exists_in_subgraph_ids {
+                for subgraph_id in &union_subgraph_ids {
                     // The object implements the interface if it defines az `@join__implements`
                     // corresponding to the interface and to the subgraph.
                     if join_member_records
@@ -382,6 +385,13 @@ impl<'a> GraphBuilder<'a> {
 
             let directives = self.push_directives(SchemaLocation::Definition { name: name_id }, federated_directives);
 
+            let exists_in_subgraph_ids = interface
+                .directives
+                .iter()
+                .filter_map(|dir| dir.as_join_type())
+                .map(|dir| SubgraphId::GraphqlEndpoint(dir.subgraph_id.into()))
+                .collect::<Vec<_>>();
+
             self.graph.interface_definitions.push(InterfaceDefinitionRecord {
                 name_id,
                 description_id: interface.description.map(Into::into),
@@ -393,6 +403,7 @@ impl<'a> GraphBuilder<'a> {
                 field_ids: IdRange::from(interface.fields),
                 // Added at the end.
                 not_fully_implemented_in_ids: Vec::new(),
+                exists_in_subgraph_ids,
             });
         }
 
@@ -417,7 +428,7 @@ impl<'a> GraphBuilder<'a> {
                 let object = &self.graph[*object_id];
 
                 // Check in which subgraphs these are resolved.
-                for subgraph_id in &object.exists_in_subgraph_ids {
+                for subgraph_id in &self.graph[interface_id].exists_in_subgraph_ids {
                     // The object implements the interface if it defines az `@join__implements`
                     // corresponding to the interface and to the subgraph.
                     if object.implements_interface_in_subgraph(subgraph_id, &interface_id) {
@@ -636,7 +647,7 @@ impl<'a> GraphBuilder<'a> {
                 parent_entity_id,
                 distinct_type_in_ids,
                 ty_record: self.ctx.convert_type(field.r#type),
-                resolvable_in_ids,
+                exists_in_subgraph_ids: resolvable_in_ids,
                 resolver_ids,
                 provides_records,
                 requires_records,

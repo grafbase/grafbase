@@ -1,7 +1,8 @@
 use walker::{Iter, Walk};
 
 use crate::{
-    DefinitionId, EntityDefinition, EntityDefinitionId, InterfaceDefinition, InterfaceDefinitionId, TypeSystemDirective,
+    DefinitionId, EntityDefinition, EntityDefinitionId, InterfaceDefinition, InterfaceDefinitionId, ObjectDefinitionId,
+    TypeSystemDirective,
 };
 
 impl EntityDefinitionId {
@@ -43,6 +44,13 @@ impl<'a> EntityDefinition<'a> {
             EntityDefinition::Interface(item) => (item.schema, &item.as_ref().interface_ids),
         };
         interface_ids.walk(schema)
+    }
+
+    pub fn possible_type_ids(&self) -> &[ObjectDefinitionId] {
+        match self {
+            EntityDefinition::Object(object) => std::array::from_ref(&object.id),
+            EntityDefinition::Interface(interface) => &interface.possible_type_ids,
+        }
     }
 }
 
