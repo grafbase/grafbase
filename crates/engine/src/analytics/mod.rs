@@ -1,7 +1,6 @@
 pub(crate) mod operation_name;
 mod used_fields;
 
-use base64::{prelude::BASE64_STANDARD, Engine};
 use schema::Schema;
 use used_fields::UsedFields;
 
@@ -9,7 +8,7 @@ use used_fields::UsedFields;
 pub struct OperationAnalytics<'a> {
     /// Used fields, in the form of a iterator of (entity name, field name)
     pub used_fields: Option<UsedFields<'a>>,
-    pub document_hash: String,
+    pub document_hash: [u8; 32],
 }
 
 pub struct ExecutedRequest<'a> {
@@ -34,7 +33,7 @@ pub fn compute_post_execution_analytics<'a>(
 
     let used_fields = Some(self::used_fields::compute(schema, &operation));
     let normalized_document = operation_normalizer::normalize(document, operation_name).unwrap_or_default();
-    let document_hash = BASE64_STANDARD.encode(blake3::hash(normalized_document.as_bytes()).as_bytes());
+    let document_hash = blake3::hash(normalized_document.as_bytes()).into();
 
     OperationAnalytics {
         used_fields,
