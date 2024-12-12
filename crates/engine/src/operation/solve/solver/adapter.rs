@@ -185,7 +185,11 @@ impl<'a> query_solver::Operation for OperationAdapter<'a> {
                 };
                 let definition = definition_id.walk(self.schema);
 
-                let new_key = if definition.distinct_type_in_ids.contains(&subgraph_id) {
+                let new_key = if definition
+                    .subgraph_type_records
+                    .iter()
+                    .any(|record| record.subgraph_id == subgraph_id)
+                {
                     self.generate_new_key(
                         Some(FieldRenameConsistencyKey::FieldWithDistinctType {
                             key,

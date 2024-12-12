@@ -688,7 +688,7 @@ impl<'a> IntrospectionBuilder<'a> {
                 directive_ids: Vec::new(),
                 resolver_ids: Vec::new(),
                 argument_ids: IdRange::empty(),
-                distinct_type_in_ids: Vec::new(),
+                subgraph_type_records: Vec::new(),
             });
 
             out_fields.push((id, tag));

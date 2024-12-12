@@ -276,7 +276,7 @@ fn parse_join_field_directive<'a>(
     directive: ast::Directive<'a>,
     state: &mut State<'a>,
 ) -> Result<Option<Directive>, DomainError> {
-    let field_type = state.graph[field_id].r#type.clone();
+    let field_type = state.graph[field_id].r#type;
     let is_external = directive
         .get_argument("external")
         .map(|arg| arg.as_bool().unwrap_or_default())
@@ -347,7 +347,7 @@ fn parse_authorized_field_directive<'a>(
     directive: ast::Directive<'a>,
     state: &mut State<'a>,
 ) -> Result<Directive, DomainError> {
-    let field_type = state.graph[field_id].r#type.clone();
+    let field_type = state.graph[field_id].r#type;
 
     Ok(Directive::Authorized(AuthorizedDirective {
         arguments: directive

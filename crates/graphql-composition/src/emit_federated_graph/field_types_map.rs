@@ -16,28 +16,24 @@ impl Context<'_> {
     /// Subgraphs field type -> federated graph field type.
     pub(super) fn insert_field_type(&mut self, field_type: subgraphs::FieldTypeWalker<'_>) -> federated::Type {
         let type_name = self.insert_string(field_type.type_name());
-        self.field_types_map
-            .map
-            .entry(field_type.id)
-            .or_insert_with(|| {
-                let Some(definition) = self.definitions.get(&type_name).copied() else {
-                    panic!(
-                        "Invariant violation: definition {:?} from field type not registered.",
-                        field_type.type_name().as_str()
-                    )
+        *self.field_types_map.map.entry(field_type.id).or_insert_with(|| {
+            let Some(definition) = self.definitions.get(&type_name).copied() else {
+                panic!(
+                    "Invariant violation: definition {:?} from field type not registered.",
+                    field_type.type_name().as_str()
+                )
+            };
+
+            let mut wrapping = federated::Wrapping::new(field_type.inner_is_required());
+
+            for wrapper in field_type.iter_wrappers() {
+                wrapping = match wrapper {
+                    subgraphs::WrapperTypeKind::List => wrapping.wrap_list(),
+                    subgraphs::WrapperTypeKind::NonNullList => wrapping.wrap_list_non_null(),
                 };
+            }
 
-                let mut wrapping = federated::Wrapping::new(field_type.inner_is_required());
-
-                for wrapper in field_type.iter_wrappers() {
-                    wrapping = match wrapper {
-                        subgraphs::WrapperTypeKind::List => wrapping.wrap_list(),
-                        subgraphs::WrapperTypeKind::NonNullList => wrapping.wrap_list_non_null(),
-                    };
-                }
-
-                federated::Type { definition, wrapping }
-            })
-            .clone()
+            federated::Type { definition, wrapping }
+        })
     }
 }
