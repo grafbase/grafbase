@@ -14,6 +14,7 @@ use crate::{
 
 use super::Variables;
 
+#[tracing::instrument(name = "plan", level = "debug", skip_all)]
 pub async fn plan(
     ctx: &mut PrepareContext<'_, impl Runtime>,
     operation: &CachedOperation,
