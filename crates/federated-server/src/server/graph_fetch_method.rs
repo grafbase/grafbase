@@ -1,4 +1,5 @@
 use super::gateway::GraphDefinition;
+use futures_lite::{stream, StreamExt};
 use graph_ref::GraphRef;
 use tokio::sync::mpsc;
 use tokio_stream::wrappers::ReceiverStream;
@@ -21,7 +22,7 @@ pub enum GraphFetchMethod {
     },
 }
 
-pub type GraphStream = ReceiverStream<GraphDefinition>;
+pub type GraphStream = stream::Boxed<GraphDefinition>;
 
 impl GraphFetchMethod {
     /// Converts the fetch method into a stream of graph definitions.
@@ -37,13 +38,13 @@ impl GraphFetchMethod {
             ));
         }
 
-        let (sender, receiver) = mpsc::channel(4);
-
         match self {
             GraphFetchMethod::FromGraphRef {
                 access_token,
                 graph_ref,
             } => {
+                let (sender, receiver) = mpsc::channel(4);
+
                 tokio::spawn(async move {
                     use super::graph_updater::GraphUpdater;
 
@@ -51,14 +52,15 @@ impl GraphFetchMethod {
 
                     Ok::<_, crate::Error>(())
                 });
+
+                Ok(ReceiverStream::new(receiver).boxed())
             }
             GraphFetchMethod::FromSchema { federated_sdl } => {
-                sender.send(GraphDefinition::Sdl(federated_sdl)).await?;
-
-                // Leak the sender so the channel never closes
-                Box::leak(Box::new(sender));
+                Ok(once_then_pending_stream(GraphDefinition::Sdl(federated_sdl)).boxed())
             }
             GraphFetchMethod::FromSchemaReloadable { mut sdl_receiver } => {
+                let (sender, receiver) = mpsc::channel(4);
+
                 tokio::spawn(async move {
                     while let Some(sdl) = sdl_receiver.recv().await {
                         if sender.send(GraphDefinition::Sdl(sdl)).await.is_err() {
@@ -66,9 +68,15 @@ impl GraphFetchMethod {
                         }
                     }
                 });
+
+                Ok(ReceiverStream::new(receiver).boxed())
             }
         }
-
-        Ok(ReceiverStream::new(receiver))
     }
+}
+
+/// Returns a stream that returns item on first poll and then remains pending
+/// forever.
+fn once_then_pending_stream<T>(item: T) -> impl futures_lite::Stream<Item = T> {
+    stream::once(item).chain(stream::pending())
 }

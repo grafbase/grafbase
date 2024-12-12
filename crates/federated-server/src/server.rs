@@ -34,7 +34,7 @@ pub struct ServerConfig {
     /// The GraphQL endpoint listen address.
     pub listen_addr: Option<SocketAddr>,
     /// The gateway configuration.
-    pub config: watch::Receiver<Config>,
+    pub config_receiver: watch::Receiver<Config>,
     /// The config file path for hot reload.
     pub config_path: Option<PathBuf>,
     /// If true, watches changes to the config
@@ -83,7 +83,7 @@ impl ServerRuntime for () {
 pub async fn serve(
     ServerConfig {
         listen_addr,
-        config: config_receiver,
+        config_receiver,
         config_path,
         fetch_method,
         config_hot_reload,

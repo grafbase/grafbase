@@ -118,7 +118,7 @@ pub async fn start(
         listen_addr: Some(listen_address),
         config_path: None,
         config_hot_reload: false,
-        config: config_receiver,
+        config_receiver,
         fetch_method: GraphFetchMethod::FromSchemaReloadable { sdl_receiver },
     };
 

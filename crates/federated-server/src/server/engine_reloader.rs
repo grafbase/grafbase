@@ -30,8 +30,13 @@ enum Update {
 
 impl EngineReloader {
     pub async fn spawn(
+        // A receiver that passes the config in.  In the gateway this is usually
+        // static, but in federated dev it will change on reloads.
         gateway_config: watch::Receiver<gateway_config::Config>,
         mut graph_stream: GraphStream,
+        // The config path that should be used to hot reloading in the gateway.
+        // In federated dev this is None.  We should probably merge this
+        // functionality into gateway_config above at some point...
         hot_reload_config_path: Option<PathBuf>,
         hooks: HooksWasi,
     ) -> crate::Result<Self> {
