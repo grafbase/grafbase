@@ -13,13 +13,14 @@ pub use gateway_runtime::GatewayRuntime;
 mod gateway_runtime;
 
 /// Send half of the gateway watch channel
-pub(crate) type GatewaySender = watch::Sender<Option<Arc<Engine<GatewayRuntime>>>>;
+pub(crate) type EngineSender = watch::Sender<Arc<Engine<GatewayRuntime>>>;
 
 /// Receive half of the gateway watch channel.
 ///
 /// Anything part of the system that needs access to the gateway can use this
-pub(crate) type EngineWatcher = watch::Receiver<Option<Arc<Engine<GatewayRuntime>>>>;
+pub(crate) type EngineWatcher = watch::Receiver<Arc<Engine<GatewayRuntime>>>;
 
+#[derive(Clone)]
 pub(crate) enum GraphDefinition {
     /// Response from GDN.
     Gdn(GdnResponse),

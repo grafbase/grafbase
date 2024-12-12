@@ -1,6 +1,7 @@
 mod access_logs;
 mod cors;
 mod csrf;
+mod engine_reloader;
 mod gateway;
 mod graph_fetch_method;
 mod graph_updater;
@@ -12,7 +13,6 @@ pub use graph_fetch_method::GraphFetchMethod;
 pub use state::ServerState;
 
 use runtime_local::{hooks, ComponentLoader, HooksWasi};
-use tokio::sync::watch;
 use ulid::Ulid;
 
 use axum::{extract::State, response::IntoResponse, routing::get, Router};
@@ -20,10 +20,11 @@ use engine_axum::{
     middleware::{ResponseHookLayer, TelemetryLayer},
     websocket::{WebsocketAccepter, WebsocketService},
 };
+use engine_reloader::EngineReloader;
 use gateway_config::{Config, TlsConfig};
 use std::{net::SocketAddr, path::PathBuf};
-use tokio::signal;
 use tokio::sync::mpsc;
+use tokio::{signal, sync::watch};
 use tower_http::cors::CorsLayer;
 
 pub type ServerRouter<T> = Router<ServerState<T>>;
@@ -33,7 +34,7 @@ pub struct ServerConfig {
     /// The GraphQL endpoint listen address.
     pub listen_addr: Option<SocketAddr>,
     /// The gateway configuration.
-    pub config: Config,
+    pub config_receiver: watch::Receiver<Config>,
     /// The config file path for hot reload.
     pub config_path: Option<PathBuf>,
     /// If true, watches changes to the config
@@ -82,17 +83,15 @@ impl ServerRuntime for () {
 pub async fn serve(
     ServerConfig {
         listen_addr,
-        config,
+        config_receiver,
         config_path,
         fetch_method,
         config_hot_reload,
     }: ServerConfig,
     server_runtime: impl ServerRuntime,
 ) -> crate::Result<()> {
+    let config = config_receiver.borrow().clone();
     let path = config.graph.path.as_deref().unwrap_or("/graphql");
-
-    let (sender, mut gateway) = watch::channel(None);
-    gateway.mark_unchanged();
 
     let meter = grafbase_telemetry::metrics::meter_from_global_provider();
     let pending_logs_counter = meter.i64_up_down_counter("grafbase.gateway.access_log.pending").build();
@@ -111,14 +110,17 @@ pub async fn serve(
     let max_pool_size = config.hooks.as_ref().and_then(|config| config.max_pool_size);
     let hooks = HooksWasi::new(loader, max_pool_size, &meter, access_log_sender.clone()).await;
 
-    fetch_method
-        .start(
-            &config,
-            config_hot_reload.then_some(config_path).flatten(),
-            sender,
-            hooks.clone(),
-        )
-        .await?;
+    let graph_stream = fetch_method.into_stream().await?;
+
+    let update_handler = EngineReloader::spawn(
+        config_receiver,
+        graph_stream,
+        config_hot_reload.then_some(config_path).flatten(),
+        hooks.clone(),
+    )
+    .await?;
+
+    let gateway = update_handler.engine_watcher();
 
     if config.gateway.access_logs.enabled {
         access_logs::start(&config.gateway.access_logs, access_log_receiver, pending_logs_counter)?;
@@ -135,13 +137,10 @@ pub async fn serve(
     };
 
     let state = ServerState::new(
-        gateway.clone(),
+        gateway,
         config.request_body_limit.bytes().max(0) as usize,
         server_runtime.clone(),
     );
-
-    tracing::debug!("Waiting for the engine to be ready...");
-    gateway.changed().await.ok();
 
     let mut router = server_runtime
         .get_external_router()
@@ -276,9 +275,7 @@ async fn engine_execute<T>(State(state): State<ServerState<T>>, request: axum::e
 where
     T: ServerRuntime,
 {
-    let Some(engine) = state.gateway.borrow().clone() else {
-        return engine_axum::internal_server_error("there are no subgraphs registered currently");
-    };
+    let engine = state.gateway.borrow().clone();
 
     let response = engine_axum::execute(engine, request, state.request_body_limit_bytes).await;
 
@@ -329,7 +326,7 @@ async fn graceful_shutdown(handle: axum_server::Handle) {
     handle.graceful_shutdown(Some(std::time::Duration::from_secs(3)));
 }
 
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, Clone)]
 #[allow(dead_code)]
 /// Response from the API containing graph information
 pub struct GdnResponse {

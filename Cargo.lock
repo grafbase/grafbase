@@ -2504,6 +2504,7 @@ dependencies = [
  "engine",
  "engine-axum",
  "engine-config-builder",
+ "futures-lite 2.5.0",
  "gateway-config",
  "grafbase-telemetry",
  "grafbase-workspace-hack",

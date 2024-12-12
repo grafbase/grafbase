@@ -1,25 +1,21 @@
 use crate::server::gateway::GraphDefinition;
 
-use super::gateway::GatewaySender;
 use ascii::AsciiString;
-use gateway_config::Config;
 use grafbase_telemetry::{
     metrics::meter_from_global_provider,
     otel::opentelemetry::{metrics::Histogram, KeyValue},
 };
 use graph_ref::GraphRef;
 use http::{HeaderValue, StatusCode};
-use runtime_local::HooksWasi;
 use std::{
     borrow::Cow,
-    sync::Arc,
     time::{Duration, SystemTime},
 };
 use tokio::time::MissedTickBehavior;
 use ulid::Ulid;
 use url::Url;
 
-use super::GdnResponse;
+use super::{engine_reloader::GraphSender, GdnResponse};
 
 /// How often we poll updates from the schema registry.
 const TICK_INTERVAL: Duration = Duration::from_secs(10);
@@ -81,11 +77,9 @@ pub(super) struct GraphUpdater {
     gdn_url: Url,
     gdn_client: reqwest::Client,
     access_token: AsciiString,
-    sender: GatewaySender,
+    sender: GraphSender,
     current_id: Option<Ulid>,
-    gateway_config: Config,
     latencies: Histogram<u64>,
-    hooks: HooksWasi,
 }
 
 impl GraphUpdater {
@@ -102,13 +96,7 @@ impl GraphUpdater {
     /// # Errors
     ///
     /// Returns an error if the HTTP client cannot be built or if the URL parsing fails.
-    pub fn new(
-        graph_ref: GraphRef,
-        access_token: AsciiString,
-        sender: GatewaySender,
-        gateway_config: Config,
-        hooks: HooksWasi,
-    ) -> crate::Result<Self> {
+    pub fn new(graph_ref: GraphRef, access_token: AsciiString, sender: GraphSender) -> crate::Result<Self> {
         let gdn_client = reqwest::ClientBuilder::new()
             .timeout(GDN_TIMEOUT)
             .connect_timeout(CONNECT_TIMEOUT)
@@ -147,11 +135,9 @@ impl GraphUpdater {
             access_token,
             sender,
             current_id: None,
-            gateway_config,
             latencies: meter_from_global_provider()
                 .u64_histogram("gdn.request.duration")
                 .build(),
-            hooks,
         })
     }
 
@@ -257,29 +243,6 @@ impl GraphUpdater {
 
             let version_id = response.version_id;
 
-            let gateway = match super::gateway::generate(
-                GraphDefinition::Gdn(response),
-                &self.gateway_config,
-                None,
-                self.hooks.clone(),
-            )
-            .await
-            {
-                Ok(gateway) => gateway,
-                Err(e) => {
-                    self.record_duration(
-                        GdnFetchLatencyAttributes {
-                            kind: ResponseKind::GdnError,
-                            status_code: None,
-                        },
-                        duration,
-                    );
-
-                    tracing::error!("Failed to process received graph: {e}");
-                    continue;
-                }
-            };
-
             self.record_duration(
                 GdnFetchLatencyAttributes {
                     kind: ResponseKind::New,
@@ -291,7 +254,8 @@ impl GraphUpdater {
             self.current_id = Some(version_id);
 
             self.sender
-                .send(Some(Arc::new(gateway)))
+                .send(GraphDefinition::Gdn(response))
+                .await
                 .expect("internal error: channel closed");
         }
     }

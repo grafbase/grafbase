@@ -11,7 +11,7 @@ use std::sync::Arc;
 use std::{path::PathBuf, time::Duration};
 use tokio::runtime::Handle;
 use tokio::sync::broadcast::Receiver;
-use tokio::sync::mpsc;
+use tokio::sync::{mpsc, watch};
 use tokio::time::MissedTickBehavior;
 use tokio_stream::{wrappers::ReceiverStream, StreamExt};
 use tokio_util::sync::CancellationToken;
@@ -40,7 +40,7 @@ impl SubgraphWatcher {
     #[allow(clippy::too_many_arguments)]
     fn start(
         &mut self,
-        sender: mpsc::Sender<(String, Arc<Config>)>,
+        sender: mpsc::Sender<String>,
         subgraph_cache: Arc<SubgraphCache>,
         overridden_subgraphs: Arc<HashSet<String>>,
         merged_configuration: Arc<Config>,
@@ -72,7 +72,7 @@ impl SubgraphWatcher {
 
     fn spawn_introspection_poller(
         &mut self,
-        sender: mpsc::Sender<(String, Arc<Config>)>,
+        sender: mpsc::Sender<String>,
         subgraph_cache: Arc<SubgraphCache>,
         overridden_subgraphs: Arc<HashSet<String>>,
         merged_configuration: Arc<Config>,
@@ -180,7 +180,7 @@ impl SubgraphWatcher {
     #[allow(clippy::too_many_arguments)]
     fn spawn_schema_file_watcher(
         &mut self,
-        sender: mpsc::Sender<(String, Arc<Config>)>,
+        sender: mpsc::Sender<String>,
         subgraph_cache: Arc<SubgraphCache>,
         overridden_subgraphs: Arc<HashSet<String>>,
         merged_configuration: Arc<Config>,
@@ -283,7 +283,8 @@ fn watch_configuration_files(
 }
 
 pub async fn hot_reload(
-    sender: mpsc::Sender<(String, Arc<Config>)>,
+    config_sender: watch::Sender<Config>,
+    sdl_sender: mpsc::Sender<String>,
     mut ready_receiver: Receiver<String>,
     subgraph_cache: Arc<SubgraphCache>,
     gateway_config_path: Option<&'static PathBuf>,
@@ -291,9 +292,11 @@ pub async fn hot_reload(
     dev_configuration: DevConfiguration,
 ) {
     // start hot reloading once the server is ready
+    eprintln!("Waiting on ready receiver");
     if ready_receiver.recv().await.is_err() {
         return;
     }
+    eprintln!("Ready recievier says go");
 
     if gateway_config_path.is_none() && graph_overrides_path.is_none() {
         // return early since we don't hot reload graphs from the API
@@ -316,7 +319,7 @@ pub async fn hot_reload(
     // the subgraph watcher encountered an error
     let _ = subgraph_watcher
         .start(
-            sender.clone(),
+            sdl_sender.clone(),
             subgraph_cache.clone(),
             overridden_subgraphs,
             merged_configuration,
@@ -339,11 +342,16 @@ pub async fn hot_reload(
                 }
             };
 
+            if let Err(err) = config_sender.send(dev_configuration.merged_configuration.clone()) {
+                tracing::error!("Could not update config: {err}");
+                continue;
+            };
+
             let merged_configuration = Arc::new(dev_configuration.merged_configuration);
             let overridden_subgraphs = Arc::new(dev_configuration.overridden_subgraphs);
 
             if let Err(error) = reload_subgraphs(
-                sender.clone(),
+                sdl_sender.clone(),
                 subgraph_cache.clone(),
                 overridden_subgraphs.clone(),
                 merged_configuration.clone(),
@@ -360,7 +368,7 @@ pub async fn hot_reload(
 
             let _ = subgraph_watcher
                 .start(
-                    sender.clone(),
+                    sdl_sender.clone(),
                     subgraph_cache,
                     overridden_subgraphs,
                     merged_configuration,
@@ -374,7 +382,7 @@ pub async fn hot_reload(
 }
 
 async fn reload_subgraphs(
-    sender: mpsc::Sender<(String, Arc<Config>)>,
+    sender: mpsc::Sender<String>,
     subgraph_cache: Arc<SubgraphCache>,
     overridden_subgraphs: Arc<HashSet<String>>,
     merged_configuration: Arc<Config>,
@@ -423,7 +431,7 @@ async fn reload_subgraphs(
         return Ok(());
     }
 
-    let _ = sender.send((federated_sdl, merged_configuration)).await;
+    let _ = sender.send(federated_sdl).await;
 
     Ok(())
 }

@@ -1,13 +1,8 @@
-use super::gateway::{self, GatewayRuntime, GraphDefinition};
-use engine::Engine;
-use gateway_config::Config;
+use super::gateway::GraphDefinition;
+use futures_lite::{stream, StreamExt};
 use graph_ref::GraphRef;
-use runtime_local::HooksWasi;
-use std::{path::PathBuf, sync::Arc};
-use tokio::sync::mpsc::Receiver;
-use tokio::sync::watch::{self};
+use tokio::sync::mpsc;
 use tokio_stream::wrappers::ReceiverStream;
-use tokio_stream::StreamExt;
 
 /// The method of running the gateway.
 pub enum GraphFetchMethod {
@@ -21,22 +16,21 @@ pub enum GraphFetchMethod {
     FromSchema {
         /// Static federated graph from a file
         federated_sdl: String,
-        reload_signal: Option<Receiver<(String, Arc<Config>)>>,
+    },
+    FromSchemaReloadable {
+        sdl_receiver: mpsc::Receiver<String>,
     },
 }
 
+pub type GraphStream = stream::Boxed<GraphDefinition>;
+
 impl GraphFetchMethod {
-    /// Converts the fetch method into an eventually existing gateway. This can happen
-    /// in two ways: if providing a graph SDL, we a new gateway immediately. Alternatively,
-    /// if a graph ref and access token is provided, the function returns immediately, and
-    /// the gateway will be available eventually when the GDN responds with a working graph.
-    pub(crate) async fn start(
-        self,
-        config: &Config,
-        hot_reload_config_path: Option<PathBuf>,
-        sender: watch::Sender<Option<Arc<Engine<GatewayRuntime>>>>,
-        hooks: HooksWasi,
-    ) -> crate::Result<()> {
+    /// Converts the fetch method into a stream of graph definitions.
+    ///
+    /// This can happen in two ways: if providing a graph SDL, we return a new graph immediately.
+    /// Alternatively, if a graph ref and access token is provided, the function returns
+    /// immediately, and runs a background process to fetch the graph definition from the GDN
+    pub(crate) async fn into_stream(self) -> crate::Result<GraphStream> {
         #[cfg(feature = "lambda")]
         if matches!(self, GraphFetchMethod::FromGraphRef { .. }) {
             return Err(crate::Error::InternalError(
@@ -49,53 +43,40 @@ impl GraphFetchMethod {
                 access_token,
                 graph_ref,
             } => {
-                let config = config.clone();
+                let (sender, receiver) = mpsc::channel(4);
+
                 tokio::spawn(async move {
-                    let config = config.clone();
                     use super::graph_updater::GraphUpdater;
 
-                    GraphUpdater::new(graph_ref, access_token, sender, config, hooks)?
-                        .poll()
-                        .await;
+                    GraphUpdater::new(graph_ref, access_token, sender)?.poll().await;
 
                     Ok::<_, crate::Error>(())
                 });
+
+                Ok(ReceiverStream::new(receiver).boxed())
             }
-            GraphFetchMethod::FromSchema {
-                federated_sdl,
-                reload_signal,
-            } => {
-                let gateway = gateway::generate(
-                    GraphDefinition::Sdl(federated_sdl),
-                    config,
-                    hot_reload_config_path.clone(),
-                    hooks.clone(),
-                )
-                .await?;
+            GraphFetchMethod::FromSchema { federated_sdl } => {
+                Ok(once_then_pending_stream(GraphDefinition::Sdl(federated_sdl)).boxed())
+            }
+            GraphFetchMethod::FromSchemaReloadable { mut sdl_receiver } => {
+                let (sender, receiver) = mpsc::channel(4);
 
-                sender.send(Some(Arc::new(gateway)))?;
-
-                if let Some(reload_signal) = reload_signal {
-                    tokio::spawn(async move {
-                        let mut stream = ReceiverStream::new(reload_signal);
-
-                        while let Some((sdl, config)) = stream.next().await {
-                            let gateway = gateway::generate(
-                                GraphDefinition::Sdl(sdl),
-                                &config,
-                                hot_reload_config_path.clone(),
-                                hooks.clone(),
-                            )
-                            .await?;
-                            sender.send(Some(Arc::new(gateway)))?;
+                tokio::spawn(async move {
+                    while let Some(sdl) = sdl_receiver.recv().await {
+                        if sender.send(GraphDefinition::Sdl(sdl)).await.is_err() {
+                            break;
                         }
+                    }
+                });
 
-                        Ok::<_, crate::Error>(())
-                    });
-                }
+                Ok(ReceiverStream::new(receiver).boxed())
             }
         }
-
-        Ok(())
     }
+}
+
+/// Returns a stream that returns item on first poll and then remains pending
+/// forever.
+fn once_then_pending_stream<T>(item: T) -> impl futures_lite::Stream<Item = T> {
+    stream::once(item).chain(stream::pending())
 }

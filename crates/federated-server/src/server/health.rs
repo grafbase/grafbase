@@ -13,6 +13,7 @@ pub(crate) enum HealthState {
     Healthy,
 
     /// Indicates that the server is unhealthy and not operational.
+    #[expect(dead_code)] // I assume we'll use this sometime
     Unhealthy,
 }
 
@@ -25,12 +26,8 @@ pub(crate) enum HealthState {
 /// # Returns
 ///
 /// A tuple containing the HTTP status code and a JSON representation of the health status.
-pub(crate) async fn health<SR>(State(state): State<ServerState<SR>>) -> (StatusCode, Json<HealthState>) {
-    if state.gateway.borrow().is_some() {
-        (StatusCode::OK, Json(HealthState::Healthy))
-    } else {
-        (StatusCode::SERVICE_UNAVAILABLE, Json(HealthState::Unhealthy))
-    }
+pub(crate) async fn health<SR>(State(_state): State<ServerState<SR>>) -> (StatusCode, Json<HealthState>) {
+    (StatusCode::OK, Json(HealthState::Healthy))
 }
 
 /// Binds the health check endpoint to the specified address and configuration.

@@ -23,6 +23,7 @@ cfg-if = "1"
 engine-config-builder.workspace = true
 engine.workspace = true
 engine-axum.workspace = true
+futures-lite.workspace = true
 grafbase-telemetry = { workspace = true, features = ["otlp"] }
 grafbase-workspace-hack.workspace = true
 graph-ref.workspace = true

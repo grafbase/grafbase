@@ -1,7 +1,7 @@
 use args::Args;
 use clap::crate_version;
 use mimalloc::MiMalloc;
-use tokio::runtime;
+use tokio::{runtime, sync::watch};
 
 use federated_server::ServerConfig;
 
@@ -35,7 +35,7 @@ fn main() -> anyhow::Result<()> {
 
         let config = ServerConfig {
             listen_addr: args.listen_address(),
-            config,
+            config_receiver: config_recevier(config),
             config_path: args.config_path().map(|p| p.to_owned()),
             config_hot_reload: args.hot_reload(),
             fetch_method: args.fetch_method()?,
@@ -51,4 +51,15 @@ fn main() -> anyhow::Result<()> {
 
         result
     })
+}
+
+fn config_recevier(config: gateway_config::Config) -> watch::Receiver<gateway_config::Config> {
+    let (sender, receiver) = watch::channel(config);
+
+    // Leak the sender so the channel never closes
+    //
+    // This should be safe since this function is only ever called once from fn main()
+    Box::leak(Box::new(sender));
+
+    receiver
 }
