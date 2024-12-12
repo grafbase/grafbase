@@ -5,7 +5,6 @@ use grafbase_telemetry::metrics::EngineMetrics;
 use runtime::{
     auth::AccessToken,
     hooks::{ExecutedOperation, ExecutedOperationBuilder, Hooks},
-    operation_cache::OperationCache,
 };
 use schema::Schema;
 
@@ -16,7 +15,7 @@ use crate::{
     Engine, Runtime,
 };
 
-use super::{CachedOperation, PreparedOperation};
+use super::PreparedOperation;
 
 /// Context before starting to operation plan execution.
 /// Background futures will be started in parallel to avoid delaying the plan.
@@ -68,7 +67,7 @@ impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
         self.engine.runtime.metrics()
     }
 
-    pub fn operation_cache(&self) -> &'ctx impl OperationCache<Arc<CachedOperation>> {
+    pub fn operation_cache(&self) -> &'ctx R::OperationCache {
         self.engine.runtime.operation_cache()
     }
 
