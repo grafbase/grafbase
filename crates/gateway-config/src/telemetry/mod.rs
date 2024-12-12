@@ -15,7 +15,7 @@ pub use exporters::{
 pub use exporters::{BatchExportConfig, OpenTelemetryExportersConfig, StdoutExporterConfig};
 
 /// Holds telemetry configuration
-#[derive(Default, Debug, Clone, PartialEq, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, serde::Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct TelemetryConfig {
     /// The name of the service
@@ -33,6 +33,20 @@ pub struct TelemetryConfig {
     /// Grafbase OTEL exporter configuration when an access token is used.
     #[serde(skip)]
     pub grafbase: Option<OtlpExporterConfig>,
+}
+
+impl Default for TelemetryConfig {
+    fn default() -> Self {
+        TelemetryConfig {
+            service_name: "grafbase-gateway".into(),
+            resource_attributes: Default::default(),
+            exporters: Default::default(),
+            logs: Default::default(),
+            tracing: Default::default(),
+            metrics: Default::default(),
+            grafbase: Default::default(),
+        }
+    }
 }
 
 impl TelemetryConfig {
@@ -1218,7 +1232,7 @@ mod tests {
 
         assert_eq!(
             TelemetryConfig {
-                service_name: String::from(""),
+                service_name: "grafbase-gateway".into(),
                 resource_attributes: Default::default(),
                 exporters: Default::default(),
                 logs: Default::default(),
